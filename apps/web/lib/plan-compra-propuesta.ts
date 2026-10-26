@@ -24,6 +24,7 @@
 // año anterior y sus 60 días de antes (`rangoDeCampana(previa)`); si no llega o no alcanza, esa tienda cae al × 3, como antes.
 
 import { medir, type LecturaHistorial } from "./plan-compra-historial";
+import { diasDeVentasDelErp, ultimosDeVentas } from "./plan-compra-periodo";
 
 export const RPC_PROPUESTA = "fn_plan_compra_propuesta";
 export const RPC_GUARDAR_RECUPERO = "guardar_plan_compra_recupero";
@@ -155,6 +156,8 @@ export type PropuestaCategoria = {
   motivoSinFlojo: string | null;
   /** Para explicar el × 3: si se leyó el historial, la campaña no estaba en él; si no, no se sabe. */
   historialLeido: boolean;
+  /** Los días de ventas que el ERP lleva de verdad dentro de la ventana de 90: con cuántos días se hizo esta propuesta. */
+  diasDeVentas?: number;
 };
 
 /** La propuesta de una categoría; null si no vendió en ninguna tienda en 90 días (no hay de dónde proponer). */
@@ -186,7 +189,7 @@ export function proponer(l: LecturaPropuesta, categoriaId: string): PropuestaCat
   const bueno = Math.max(normal, Math.round(partes.reduce((s, p) => s + p.bueno, 0)));
   const flojo = sinMes.length > 0 ? null : Math.min(normal, Math.round(partes.reduce((s, p) => s + (p.flojo ?? 0), 0)));
   const motivoSinFlojo = sinMes.length > 0 ? `${unir(sinMes)} todavía no ${sinMes.length === 1 ? "tiene" : "tienen"} un mes completo de ventas en el ERP: escribe el flojo tú.` : null;
-  return { flojo, normal, bueno, diasCampana: l.diasCampana, tiendas: partes, motivoSinFlojo, historialLeido: l.historialLeido };
+  return { flojo, normal, bueno, diasCampana: l.diasCampana, tiendas: partes, motivoSinFlojo, historialLeido: l.historialLeido, diasDeVentas: diasDeVentasDelErp(l.tiendas) };
 }
 
 const unir = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs.at(-1)}`);
@@ -195,7 +198,7 @@ const veces = (m: number) => `×${m.toLocaleString("es-PE", { minimumFractionDig
 
 /** De dónde salió cada cifra, en palabras de tienda: una línea por escenario. */
 export function explicarPropuesta(p: PropuestaCategoria): { normal: string; flojo: string; bueno: string } {
-  const normal = `Normal ${entero(p.normal)}: lo que vende a su ritmo de los últimos 90 días, en los ${p.diasCampana} días de la campaña.`;
+  const normal = `Normal ${entero(p.normal)}: lo que vende a su ritmo de ${ultimosDeVentas(p.diasDeVentas)}, en los ${p.diasCampana} días de la campaña.`;
   const flojo = p.flojo === null ? (p.motivoSinFlojo ?? "Sin un mes completo de ventas: escribe el flojo tú.") : `Flojo ${entero(p.flojo)}: su mes más bajo de los últimos seis.`;
   const porComo = (c: PorQueTienda["como"]) => p.tiendas.filter((t) => t.como === c);
   const sinCampana = p.historialLeido ? "esa campaña del año pasado no está ni en el ERP ni en su historial" : "todavía no hay la campaña del año pasado en el ERP";

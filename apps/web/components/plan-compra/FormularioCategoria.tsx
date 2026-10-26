@@ -20,6 +20,7 @@ import { Check, Sparkles } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { explicarPropuesta } from "@/lib/plan-compra-propuesta";
 import { guardarConPropuesta, propuestaParaGuardar } from "@/lib/plan-compra-propuesta-guardada";
+import { hayUltimos30, periodoDeVentas, ultimosDeVentas } from "@/lib/plan-compra-periodo";
 import { fraseDelSugerido, sugeridoParcial } from "@/lib/plan-compra-descuento";
 import { RepartoTiendas } from "@/components/plan-compra/RepartoTiendas";
 import {
@@ -201,7 +202,7 @@ export function FormularioCategoria({
     const resto = t.slice(t.indexOf(":") + 1).trim();
     return resto.charAt(0).toUpperCase() + resto.slice(1);
   };
-  const propuesta = propuestaDeNormal(ventas, campana.dias);
+  const propuesta = propuestaDeNormal(ventas, campana.dias, fila.diasDeVentas);
   // Mientras el precio y el costo sean los que vinieron del catálogo, la ayuda lo dice: «revísalo» (no es una decisión de nadie todavía).
   const delCatalogo = !linea && catalogo !== null ? { precio: catalogo.precio.toFixed(2), costo: catalogo.costo.toFixed(2) } : null;
 
@@ -247,8 +248,8 @@ export function FormularioCategoria({
     <form onSubmit={guardar} className="space-y-6 [&_[data-campo]>p:first-child]:min-h-6.5">
       <div data-guia="plan-modal.historia" className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-sm text-tinta/80">
         <span>
-          Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en 90 días
-          {ventas30 !== null && (
+          Vendiste <b className="font-semibold text-tinta">{enteroES.format(ventas)}</b> en {periodoDeVentas(fila.diasDeVentas)}
+          {ventas30 !== null && hayUltimos30(fila.diasDeVentas) && (
             <>
               {" · "}
               <b className="font-semibold text-tinta">{enteroES.format(ventas30)}</b> en los últimos 30
@@ -272,7 +273,7 @@ export function FormularioCategoria({
         )}
         {sugerida !== undefined ? (
           sugerida === null ? (
-            <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios.</span>
+            <span className="basis-full text-xs text-tinta/65">Esta categoría no vendió en {ultimosDeVentas(fila.diasDeVentas)}: no hay de dónde proponer. Escribe tus escenarios.</span>
           ) : (
             // C4 (Felipe 2026-10-12): la propuesta a la vista —las tres cifras grandes, cada una con su «!» que dice de dónde salió, como en
             // Productos— y un botón principal que las pone en las cajas. Una cifra ya puesta lleva su ✓.
@@ -327,8 +328,8 @@ export function FormularioCategoria({
             </Boton>
             <span className="basis-full text-xs text-tinta/65">
               {propuesta === null
-                ? "Esta categoría no vendió en los últimos 90 días: no hay de dónde proponer. Escribe tus escenarios."
-                : `Lo que vendió por día en 90 días, llevado a los ${campana.dias} días de la campaña: un normal de ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
+                ? `Esta categoría no vendió en ${ultimosDeVentas(fila.diasDeVentas)}: no hay de dónde proponer. Escribe tus escenarios.`
+                : `Lo que vendió por día en ${periodoDeVentas(fila.diasDeVentas)}, llevado a los ${campana.dias} días de la campaña: un normal de ${enteroES.format(propuesta)}. El flojo y el bueno los decides tú.`}
             </span>
           </>
         )}
@@ -480,7 +481,7 @@ export function FormularioCategoria({
               Volver a la que propone el sistema
             </button>
             <p className="text-xs text-tinta/65">
-              La propone el sistema con lo vendido en 90 días, en tienda o anotado sin registrar, apoyado en un reparto parejo cuando
+              La propone el sistema con lo vendido en {periodoDeVentas(fila.diasDeVentas)}, en tienda o anotado sin registrar, apoyado en un reparto parejo cuando
               hay pocas ventas.
             </p>
           </div>

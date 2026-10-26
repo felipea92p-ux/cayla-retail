@@ -1,6 +1,7 @@
 import { celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { fraseDelPedido } from "@/lib/plan-compra-pedido";
+import { periodoDeVentas } from "@/lib/plan-compra-periodo";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { enteroES, esAgotada, fraseDeLoReal, margenPorPrenda, solesES, type EstadoCampana, type FilaPlan } from "@/lib/plan-compra-reglas";
 import type { EstadoDelPlazo, PlazoDePedido } from "@/lib/plan-compra-plazo";
@@ -53,7 +54,7 @@ export function FilaCategoria({
   plazo?: PlazoDePedido | null;
   onAbrir: () => void;
 }) {
-  const { c, linea, stock, calculo, vendido, ventas, puesto } = f;
+  const { c, linea, stock, calculo, vendido, ventas, puesto, diasDeVentas } = f;
   const plantilla = plantillaDelPlan(forma);
   const agotada = esAgotada(f);
   // El descuento que se supuso (ADR-0499): con él, lo que se gana por prenda en la campaña; si se come el margen, la fila lo dice.
@@ -76,7 +77,11 @@ export function FilaCategoria({
           {c.nombre}
         </span>
         <span className={`block text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
-          {agotada ? `Se agotó: vendía ${enteroES.format(ventas)} en 90 días` : ventas > 0 ? `Vendiste ${enteroES.format(ventas)} en 90 días` : "Sin ventas en 90 días"}
+          {agotada
+            ? `Se agotó: vendía ${enteroES.format(ventas)} en ${periodoDeVentas(diasDeVentas)}`
+            : ventas > 0
+              ? `Vendiste ${enteroES.format(ventas)} en ${periodoDeVentas(diasDeVentas)}`
+              : `Sin ventas en ${periodoDeVentas(diasDeVentas)}`}
         </span>
         {margen && (
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">

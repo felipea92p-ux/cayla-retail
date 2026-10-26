@@ -29,6 +29,8 @@ export type PropuestaGuardada = {
   /** El sistema no tenía de dónde proponer (la categoría no vendió en 90 días): la persona armó el plan sola. */
   sin_ventas?: true;
   dias_campana?: number;
+  /** Con cuántos días de ventas del ERP se hizo la propuesta (tope 90): cuánto creerle. */
+  dias_de_ventas?: number;
   flojo?: number | null;
   normal?: number;
   bueno?: number;
@@ -49,6 +51,7 @@ export function propuestaParaGuardar(propuesta: PropuestaCategoria | null | unde
     v: VERSION_PROPUESTA,
     calculada_en,
     dias_campana: propuesta.diasCampana,
+    ...(propuesta.diasDeVentas !== undefined ? { dias_de_ventas: propuesta.diasDeVentas } : {}),
     flojo: propuesta.flojo,
     normal: propuesta.normal,
     bueno: propuesta.bueno,

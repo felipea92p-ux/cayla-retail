@@ -123,7 +123,7 @@ Los md5 de local valen mientras el archivo de la migración no cambie: si se edi
 
 - **Leer el historial.** Ni la pantalla ni ninguna función lo lee todavía: eso es la tarea #6 (versiones del plan) y la de medir aciertos.
 - **Dinero, stock y comprobantes.** El historial no mueve nada; es solo memoria.
-- **Lo que la web manda (A3, `lib/plan-compra-propuesta-guardada.ts`):** `{v: 1, calculada_en, dias_campana, flojo, normal, bueno, historial_leido, tiendas: [{tienda, normal, flojo,
+- **Lo que la web manda (A3, `lib/plan-compra-propuesta-guardada.ts`):** `{v: 1, calculada_en, dias_campana, dias_de_ventas, flojo, normal, bueno, historial_leido, tiendas: [{tienda, normal, flojo,
   bueno, como, multiplicador, previa}]}`; si no cabe en 8 KB, sin el detalle por tienda; si la categoría no vendió en 90 días, `{v, calculada_en, sin_ventas: true}`; si la base no manda
   propuestas, nada (`null`). `calculada_en` es cuándo recibió la pantalla la lectura (una pestaña abierta desde ayer dice «ayer»). Con la base vieja repite el guardado sin la propuesta.
 

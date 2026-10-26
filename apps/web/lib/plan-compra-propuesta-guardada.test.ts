@@ -32,6 +32,7 @@ describe("propuestaParaGuardar: lo que la pantalla MOSTRÓ", () => {
     const p = propuesta();
     const g = propuestaParaGuardar(p, "2026-10-26T10:00:00.000Z")!;
     expect([g.v, g.calculada_en, g.dias_campana, g.flojo, g.normal, g.bueno, g.historial_leido]).toEqual([1, "2026-10-26T10:00:00.000Z", 31, p.flojo, p.normal, p.bueno, true]);
+    expect(g.dias_de_ventas).toBe(90);
     expect(g.tiendas?.map((t) => t.tienda)).toEqual(["Tienda tru", "Tienda aqp"]);
     expect(g.tiendas?.[0]).toEqual({ tienda: "Tienda tru", normal: p.tiendas[0].normal, flojo: p.tiendas[0].flojo, bueno: p.tiendas[0].bueno, como: p.tiendas[0].como, multiplicador: p.tiendas[0].multiplicador, previa: p.tiendas[0].previa });
   });

@@ -24,6 +24,7 @@ import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchiv
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { diasDeVentasDelErp } from "@/lib/plan-compra-periodo";
 import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
@@ -166,6 +167,7 @@ export function PlanCampana({
       ...f,
       propuesta: proponer(hechos, f.c.id),
       propuestaLeidaEn: hechos.leidaEn,
+      diasDeVentas: diasDeVentasDelErp(hechos.tiendas),
       recuperoDefecto: hechos.recupero.pct,
       // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
       reparto:

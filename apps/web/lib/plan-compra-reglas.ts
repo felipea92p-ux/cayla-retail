@@ -28,6 +28,7 @@ import { enCaminoDe, type PedidoCategoria } from "./plan-compra-pedido";
 import { compararTallas } from "./tallas";
 import { proyectarCampana } from "./plan-compra-historial";
 import type { SugeridoDescuento } from "./plan-compra-descuento";
+import { DIAS_DE_VENTAS } from "./plan-compra-periodo";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
@@ -580,6 +581,8 @@ export type FilaPlan = {
   propuesta?: PropuestaCategoria | null;
   /** Cuándo leyó la pantalla los datos de los que salió `propuesta` (ISO). Se guarda junto al plan (ADR-0520). */
   propuestaLeidaEn?: string;
+  /** Los días de ventas que el ERP lleva de verdad dentro de la ventana de 90 (`lib/plan-compra-periodo.ts`); undefined = no se sabe. */
+  diasDeVentas?: number;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
   /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
@@ -747,16 +750,16 @@ export const posicionEnEscala = (valor: number, escala: number): number => (esca
 // 9. Ayudas para llenar una categoría
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Cuántos días de ventas mira `fn_plan_compra` para la curva y para «lo que vendiste» (los 90 días de siempre). */
-export const DIAS_DE_VENTAS = 90;
 /**
  * El «normal» cuando la base todavía no manda la propuesta de tres escenarios (C4): lo que la categoría vende por día en los últimos 90
  * días, llevado a los días de ESTA campaña (la misma regla del normal de C4, que reemplazó a «diciembre triplica un mes», R-19: con ella,
- * San Valentín de dos semanas pedía tres meses de venta). Sin ventas o sin días, no hay qué proponer (null).
+ * San Valentín de dos semanas pedía tres meses de venta). Sin ventas o sin días, no hay qué proponer (null). `diasConVentas`: los días
+ * que el ERP lleva de verdad dentro de esos 90 (`diasDeVentasDelErp`); con 26 días, dividir por 90 proponía una tercera parte de lo que se vende.
  */
-export function propuestaDeNormal(ventas90: number, diasCampana: number): number | null {
+export function propuestaDeNormal(ventas90: number, diasCampana: number, diasConVentas: number = DIAS_DE_VENTAS): number | null {
   if (!Number.isFinite(ventas90) || ventas90 <= 0 || !Number.isFinite(diasCampana) || diasCampana <= 0) return null;
-  return Math.round((ventas90 / DIAS_DE_VENTAS) * diasCampana);
+  if (!Number.isFinite(diasConVentas) || diasConVentas <= 0) return null;
+  return Math.round((ventas90 / Math.min(diasConVentas, DIAS_DE_VENTAS)) * diasCampana);
 }
 
 /**
