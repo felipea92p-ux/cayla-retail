@@ -91,7 +91,11 @@ Felipe aprobó, en la sesión de Proveedores: «Sí: que la sesión de maquetas 
 reparto de ventas y stock según lo que trajo cada proveedor, en las tres funciones.» Se mezcló `claude/proveedores-module-analysis-c73c2c`
 (tallas y sedes en la ficha, ADR-0502 act. (e)).
 
-**El reparto, en un solo lugar** (migración `20261026181000`, NO pegada en producción): `fn_proveedor_reparto()` dice qué parte de cada variante
+**Los números:** la migración de tallas y sedes nació como `20261026144000` en la otra rama; al abrir el PR se renumeró a `20261026193000` (su
+reserva era de esa rama y los candados de ADR-0381 la rechazaban) y la del reparto, que nació `20261026181000`, pasó a `20261026194000` para seguir
+DESPUÉS de ella: el reparto reemplaza la función de tallas. Ninguna estaba en producción.
+
+**El reparto, en un solo lugar** (migración `20261026194000`, NO pegada en producción): `fn_proveedor_reparto()` dice qué parte de cada variante
 es de cada proveedor, y las tres funciones (`fn_proveedor_prendas_base`, `fn_proveedores_ventas_diarias`, `fn_proveedor_tallas_sedes`) leen de
 ella; ninguna vuelve a cruzar ventas ni stock por su cuenta.
 - **Lo que trajo cada uno**, por variante: cada recepción con su hora (al proveedor de la factura o del lote) y la carga inicial del habitual «desde siempre».

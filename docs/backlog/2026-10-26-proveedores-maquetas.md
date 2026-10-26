@@ -9,7 +9,7 @@
 - [ ] **Sin probar con datos reales:** en local solo 2 proveedores tienen compras; el «↑ 2» al cambiar de medida, el «Ver los que faltan» (más de 20) y la comparación de 3 están cubiertos por pruebas, no vistos en pantalla.
 - [x] `/formidable` corrido (`docs/formidable/compras-proveedores.md`): leyes 6,1 · oficio 7; **los 3 cambios hechos con el OK de Felipe** (leyes ≈ 6,9 provisional · oficio 8). Contraste claro/oscuro: 0 hallazgos en 5 estados.
 - [ ] Repetir la prueba ciega sobre la pantalla nueva; la lista aparte del informe (la línea de ventas sin marcar «esta semana», los conteos que incluyen al Taller, el scroll de la columna que arrastra la página, el enlace «Le debes» de 20 px) espera que Felipe la mande.
-- [x] **Ventas contadas dos veces:** `fn_proveedor_reparto` (`20261026181000`) reparte ventas, plata y stock entre los proveedores de una variante; las tres funciones leen de ella. `pnpm pruebas:proveedor-reparto` en el CI.
+- [x] **Ventas contadas dos veces:** `fn_proveedor_reparto` (`20261026194000`) reparte ventas, plata y stock entre los proveedores de una variante; las tres funciones leen de ella. `pnpm pruebas:proveedor-reparto` en el CI.
 - [x] **La regla del reparto:** Felipe eligió la B (por lo que había llegado de cada proveedor a la fecha de cada venta), entre A y C.
-- [ ] **No está en producción:** pegar, en orden, `20261026144000_proveedor_tallas_y_sedes.sql`, `20261026172000_proveedores_ventas_diarias.sql` y `20261026181000_proveedor_reparto_entre_proveedores.sql` (cada una una parte, solo lectura, re-pegable), con el OK de Felipe; después refrescar el volcado.
+- [ ] **No está en producción:** pegar, en orden, `20261026193000_proveedor_tallas_y_sedes.sql`, `20261026172000_proveedores_ventas_diarias.sql` y `20261026194000_proveedor_reparto_entre_proveedores.sql` (cada una una parte, solo lectura, re-pegable), con el OK de Felipe; después refrescar el volcado.
 - [ ] `/abrir-pr` al cerrar la obra.

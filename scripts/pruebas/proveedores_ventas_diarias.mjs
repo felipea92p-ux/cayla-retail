@@ -29,9 +29,9 @@ const arg = (nombre, porDefecto) => {
   return i > 0 ? process.argv[i + 1] : porDefecto;
 };
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail");
-// La función nació en 20261026172000 y el reparto entre proveedores (20261026181000) la reemplazó: se pegan las dos, en orden.
+// La función nació en 20261026172000 y el reparto entre proveedores (20261026194000) la reemplazó: se pegan las dos, en orden.
 const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8").replace(/^set lock_timeout.*$/gm, "");
-const MIGRACION = `${leer("20261026172000_proveedores_ventas_diarias.sql")}\n${leer("20261026181000_proveedor_reparto_entre_proveedores.sql")}`;
+const MIGRACION = `${leer("20261026172000_proveedores_ventas_diarias.sql")}\n${leer("20261026194000_proveedor_reparto_entre_proveedores.sql")}`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const ARGS = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 

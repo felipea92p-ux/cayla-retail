@@ -4,7 +4,7 @@
 -- la prenda: una prenda que llegó por la carga inicial de su proveedor habitual y después por una compra a otro le sumaba sus ventas ENTERAS a los
 -- dos. En la base local, una prenda que vendió 4 figuraba con 4 en tres proveedores («12 ya se vendieron»; eran 8). Inflaba lo vendido, las
 -- semanas, el margen y la línea de ventas, y podía encender «Repón» con ventas de otro. Lo encontró el escéptico de Formidable (2026-10-26).
--- `fn_proveedores_ventas_diarias` (20261026172000) y `fn_proveedor_tallas_sedes` (20261026144000) heredaban el mismo cruce. Felipe pidió
+-- `fn_proveedores_ventas_diarias` (20261026172000) y `fn_proveedor_tallas_sedes` (20261026193000) heredaban el mismo cruce. Felipe pidió
 -- arreglarlo en una sola migración, en las tres funciones.
 --
 -- LA REGLA, EN UN SOLO LUGAR: `fn_proveedor_reparto()`. Las tres funciones leen de ella; ninguna vuelve a contar ventas ni stock por su cuenta.
@@ -24,7 +24,7 @@
 -- QUÉ NO CAMBIA. Qué cuenta como «compré» (los dos orígenes, el costo de la carga, la «Prenda sin registrar» fuera), las firmas de las tres
 -- funciones y la llave. Las prendas de un solo proveedor dan lo mismo que antes. Solo lectura: no escribe nada.
 --
--- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe): una sola parte, sin políticas, re-pegable. Necesita ANTES 20261026144000 y 20261026172000
+-- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe): una sola parte, sin políticas, re-pegable. Necesita ANTES 20261026193000 y 20261026172000
 -- (las reemplaza; si no están, créalas pegándolas primero). ORDEN con la web: da igual: las firmas no cambian.
 
 set search_path = retail, public, extensions;
@@ -348,7 +348,7 @@ $function$;
 revoke all on function retail.fn_proveedores_ventas_diarias(integer) from public, anon;
 grant execute on function retail.fn_proveedores_ventas_diarias(integer) to authenticated;
 
--- Las tallas y las sedes de un proveedor (20261026144000): lo vendido neto y el stock de SU parte, por (prenda, talla, sede). La llegada a una
+-- Las tallas y las sedes de un proveedor (20261026193000): lo vendido neto y el stock de SU parte, por (prenda, talla, sede). La llegada a una
 -- sede no puede ser antes de que él trajera esa variante: si otro proveedor la trajo antes, su ritmo en la sede no cuenta desde entonces.
 create or replace function retail.fn_proveedor_tallas_sedes(p_proveedor_id uuid)
 returns table (

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba del reparto entre proveedores (ADR-0521 act. c): `20261026181000_proveedor_reparto_entre_proveedores.sql`.
+ * Prueba del reparto entre proveedores (ADR-0521 act. c): `20261026194000_proveedor_reparto_entre_proveedores.sql`.
  *
  * QUÉ PROMETE
  *   · LA SUMA CUADRA, en toda la base: por cada variante, lo vendido de todos los proveedores suma lo vendido real (en total, por día y por sede),
@@ -29,7 +29,7 @@ const arg = (nombre, porDefecto) => {
   return i > 0 ? process.argv[i + 1] : porDefecto;
 };
 const CONTENEDOR = arg("--contenedor", process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261026181000_proveedor_reparto_entre_proveedores.sql"), "utf8").replace(/^set lock_timeout.*$/gm, "");
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261026194000_proveedor_reparto_entre_proveedores.sql"), "utf8").replace(/^set lock_timeout.*$/gm, "");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const ARGS = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 

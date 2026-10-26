@@ -427,7 +427,7 @@ export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor
   }));
 }
 
-// Las tallas y las sedes de un proveedor (fn_proveedor_tallas_sedes, 20261026144000): una fila por prenda, talla y sede. Las cuentas las hace
+// Las tallas y las sedes de un proveedor (fn_proveedor_tallas_sedes, 20261026193000): una fila por prenda, talla y sede. Las cuentas las hace
 // `proveedor-tallas-sedes-reglas.ts`.
 export async function getProveedorTallasSedes(id: string): Promise<CeldaTallaSede[]> {
   const supabase = await createClient();
