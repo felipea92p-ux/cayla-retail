@@ -244,6 +244,22 @@ describe("la lista: categorías y orden", () => {
     expect(hrefLista({ categoria: "Ropa & más", orden: "destacado" })).toBe("/catalogo?categoria=Ropa+%26+m%C3%A1s");
   });
 
+  it("la dirección lleva color y talla (ADR-0512) en su orden fijo, con las comas a la vista, y no los repite si no hay nada elegido", () => {
+    expect(hrefLista({ categoria: null, orden: "destacado", colorTalla: { color: [], talla: [] } })).toBe("/catalogo");
+    expect(hrefLista({ categoria: null, orden: "destacado", colorTalla: null })).toBe("/catalogo");
+    expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado", colorTalla: { color: ["negro"], talla: [] } })).toBe(
+      "/catalogo?sede=trujillo&color=negro",
+    );
+    // Lo desordenado o repetido sale como lo escribe la tienda: negro antes que blanco, S antes que M, la única al final.
+    expect(
+      hrefLista({ sede: "trujillo", categoria: "FAL", orden: "precio-asc", colorTalla: { color: ["blanco", "negro", "negro"], talla: ["UNICA", "M", "S"] } }),
+    ).toBe("/catalogo?sede=trujillo&categoria=FAL&orden=precio-asc&color=negro,blanco&talla=S,M,UNICA");
+    // Una talla con espacios o símbolos sí se escapa; las comas que separan, no.
+    expect(hrefLista({ categoria: null, orden: "destacado", colorTalla: { color: [], talla: ["Talla 38", "S"] } })).toBe("/catalogo?talla=S,Talla%2038");
+    // Los favoritos no se filtran: ahí no va.
+    expect(hrefLista({ categoria: null, orden: "destacado", lista: "favoritos", colorTalla: { color: ["negro"], talla: ["M"] } })).toBe("/catalogo?lista=favoritos");
+  });
+
   it("cuántas hay: en singular y plural, con la categoría, la tienda elegida y lo que hay en las otras", () => {
     const sin = { categoria: null, tienda: null, enOtras: 0 };
     expect(conteoDeLista(1, sin)).toBe("1 prenda");

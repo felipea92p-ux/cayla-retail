@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
@@ -15,6 +16,7 @@ import {
   cabeceraDeLista,
   campanasDe,
   categoriasDe,
+  claveCategoria,
   conteoDeLista,
   deFavoritos,
   filtrarYOrdenar,
@@ -28,9 +30,20 @@ import {
   siguienteOrden,
   type CampanaVigente,
   type Lista,
+  type Prenda,
 } from "@/lib/catalogo";
 import { categoriasConLaElegida, dondeHay, gruposConLoElegido, paraSeguirMirando, queSeBusca, vacioEnTienda } from "@/lib/catalogo-lista";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
+import { hayElegido, leerElegido, NADA_ELEGIDO } from "@/lib/filtros-color-talla";
+import {
+  categoriasConLaCuenta,
+  elegidoEnElDestino,
+  esLaDireccionCanonica,
+  filtrosDeLaLista,
+  gruposConLaCuenta,
+  prendasQuePasan,
+} from "@/lib/filtros-lista";
+import { leerFiltros } from "@/lib/filtros-servidor";
 import { delGrupo, delMenu, grupoDe, gruposDe, leerGrupo, leerMenu, MENUS, tituloPartido } from "@/lib/grupos";
 import { leerMisLooksEnBase } from "@/lib/looks-guardados-servidor";
 import { armarProbador } from "@/lib/probador";
@@ -64,16 +77,18 @@ const ARRIBA = 4;
 // la página, una sola por visita) o el grupo.
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const sp = await searchParams;
+  // Una lista filtrada por color o talla no se indexa (ADR-0512): son mezclas sin fin de la misma lista, y la lista entera ya está.
+  const sinIndexar: Metadata = sp.color !== undefined || sp.talla !== undefined ? { robots: { index: false, follow: true } } : {};
   const lista = leerLista(sp.lista);
-  if (lista !== "todo") return { title: `${TITULOS[lista]} · CAYLA` };
+  if (lista !== "todo") return { title: `${TITULOS[lista]} · CAYLA`, ...sinIndexar };
   const pedida = leerCategoria(sp.categoria);
   if (pedida) {
     const sedes = sedesEnOrden(await leerSedes());
     const catalogo = await leerCatalogo(sedeDeLaUrl(sp.sede, sedes)?.id ?? null);
     const categoria = categoriasDe(catalogo?.prendas ?? []).find((c) => c.clave === pedida);
-    if (categoria) return { title: `${categoria.nombre} · CAYLA` };
+    if (categoria) return { title: `${categoria.nombre} · CAYLA`, ...sinIndexar };
   }
-  return { title: `${leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo} · CAYLA` };
+  return { title: `${leerGrupo(sp.grupo)?.nombre ?? leerMenu(sp.menu)?.nombre ?? TITULOS.todo} · CAYLA`, ...sinIndexar };
 }
 
 // Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la tienda, Lo nuevo, las ofertas (con una tarjeta por campaña),
@@ -92,16 +107,20 @@ export default async function Catalogo({ searchParams }: Props) {
   const pedida = await sedeDeLaPagina(sp, sedes, "/catalogo", claveDeSede);
   const esFavoritos = lista === "favoritos";
   const sesion = esFavoritos ? await leerSesion() : null;
+  // Lo que la dirección pide en los filtros de color y talla (ADR-0512). Los favoritos no se filtran: lo guardado se ve entero. Solo si se
+  // pidió algo se lee qué variantes hay (junto con el catálogo, de la misma tienda): una visita sin filtros no gasta una consulta de más.
+  const colorTallaPedido = esFavoritos ? NADA_ELEGIDO : leerElegido(sp);
   // Lo guardado es la misma lectura del marco del catálogo (una sola consulta por visita). En los favoritos, también los looks que armó
   // en «Arma el tuyo» (ADR-0434, actividad 8) y lo del probador para dibujarlos: si no llegan, la lista de prendas se ve igual.
   const conCuenta = sesion?.estado === "con_sesion" ? sesion.usuarioId : null;
-  const [catalogo, guardados, misLooks, lecturaProbador, diseno] = await Promise.all([
+  const [catalogo, guardados, misLooks, lecturaProbador, diseno, datosDeFiltros] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     conCuenta ? leerGuardadosEnBase(conCuenta) : null,
     conCuenta ? leerMisLooksEnBase(conCuenta) : null,
     conCuenta ? leerProbador(pedida?.id ?? null) : null,
     // El diseño de la campaña que anuncia la portada (la misma lectura de la franja): viste su banda y el sello de sus prendas.
     leerPortada().then(({ campana }) => leerDisenoDeCampana(campana?.nombre)),
+    hayElegido(colorTallaPedido) ? leerFiltros(pedida?.id ?? null) : null,
   ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
@@ -136,17 +155,35 @@ export default async function Catalogo({ searchParams }: Props) {
   const deLaLista = filtrarYOrdenar(base, { categoria: null, orden: "destacado", lista, campana });
   // La lista en todas las tiendas: si tampoco ahí hay nada, lo que falta no es la tienda (la lista dice su propio vacío).
   const enTodas = esFavoritos ? deLaLista : filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria: null, orden: "destacado", lista, campana });
-  const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana }), grupoPedido);
+  // El nivel: lo que se ve con la tienda, el grupo, la categoría y la campaña elegidos, todavía sin mirar color ni talla. Lo elegido en los
+  // filtros se lleva a este nivel (lo que aquí no existe se suelta, y nunca queda «0 prendas» por eso: `alCambiarDeNivel`).
+  const delNivel = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana }), grupoPedido);
+  const filtros = filtrosDeLaLista(datosDeFiltros, colorTallaPedido, delNivel);
+  const colorTalla = filtros.elegido;
+  const hayFiltros = filtros.indice !== null && hayElegido(colorTalla);
+  const vista = prendasQuePasan(filtros, delNivel);
   // Las tarjetas se dibujan en páginas de 30 (lib/paginas.ts; Felipe 2026-10-19). El conteo y los filtros siguen siendo de la lista entera.
   const pag = paginaDe(vista.length, leerPagina(sp.pagina), POR_PAGINA);
   const loPedidoEnTodas = esFavoritos ? vista : delGrupo(filtrarYOrdenar(delMenu(prendas ?? [], claveMenu), { categoria, orden, lista, campana }), grupoPedido);
-  const enOtras = loPedidoEnTodas.length - vista.length;
+  // «N más en otras tiendas» cuenta lo que se ve con «Todas» y no aquí: con color o talla elegidos no hay con qué compararlo (otra tienda
+  // tiene otras variantes), así que no se dice.
+  const enOtras = hayFiltros ? 0 : loPedidoEnTodas.length - vista.length;
   // El grupo encendido: el pedido o el de la categoría elegida. Lo elegido sale en los filtros aunque esta tienda no tenga nada de eso
   // (con 0): la persona ve dónde está.
   const grupoActivo = grupoPedido ?? (categoriaElegida ? grupoDe(categoriaElegida.clave, categoriaElegida.familia) : null);
-  const grupos = gruposConLoElegido(gruposDe(deLaLista), grupoActivo, categoriaElegida);
-  const categorias = categoriasConLaElegida(categoriasDe(deLaLista), categoriaElegida);
+  // Los grupos y las categorías son siempre los mismos, estén o no filtradas las prendas (cambiar de lugar al filtrar desorienta); lo que
+  // cambia son sus números: cuántas prendas de cada una cumplen lo elegido. Uno que da 0 se queda, apagado (`data-cero`).
+  const gruposDeLaLista = gruposConLoElegido(gruposDe(deLaLista), grupoActivo, categoriaElegida);
+  const categoriasDeLaLista = categoriasConLaElegida(categoriasDe(deLaLista), categoriaElegida);
+  const deLaListaFiltrada = prendasQuePasan(filtros, deLaLista);
+  const pasan = new Set(deLaListaFiltrada.map((p) => p.id));
+  const grupos = hayFiltros ? gruposConLaCuenta(gruposDeLaLista, pasan) : gruposDeLaLista;
+  const categorias = hayFiltros ? categoriasConLaCuenta(categoriasDeLaLista, deLaListaFiltrada) : categoriasDeLaLista;
   const delActivo = grupoActivo ? grupos.find((g) => g.clave === grupoActivo.clave) ?? null : null;
+  // Las prendas (sin filtrar) de cada destino, para llevar lo elegido de color y talla a él: el enlace de un grupo o una categoría ya sale
+  // con lo que allá existe (`elegidoEnElDestino`).
+  const prendasDelGrupo = (clave: string) => gruposDeLaLista.find((g) => g.clave === clave)?.categorias.flatMap((c) => c.prendas) ?? [];
+  const prendasDeLaCategoria = (clave: string) => deLaLista.filter((p) => claveCategoria(p.categoria) === clave);
   // Con muchas categorías y más de un grupo, primero los grupos y, debajo, las categorías del grupo encendido (Felipe 2026-10-15: 28
   // píldoras en tres filas «podría verse mucho mejor»). Con pocas (los favoritos, una tienda chica), todas de una vez.
   const porGrupos = grupos.length > 1 && categorias.length > 8;
@@ -173,7 +210,17 @@ export default async function Catalogo({ searchParams }: Props) {
     campana?: string | null;
     grupo?: string | null;
     menu?: string | null;
-  }) => hrefLista({ sede, categoria, orden, lista, campana, grupo: grupoPedido?.clave ?? null, menu: claveMenu, ...cambios });
+    colorTalla?: typeof colorTalla;
+  }) => hrefLista({ sede, categoria, orden, lista, campana, grupo: grupoPedido?.clave ?? null, menu: claveMenu, colorTalla, ...cambios });
+  // El enlace a otro grupo o categoría: lleva lo elegido de color y talla ya soltado de lo que allá no existe. (Los de otra tienda, otra
+  // campaña o el menú llevan lo elegido tal cual: ahí la página, al llegar, lo corrige.)
+  const hrefA = (destino: readonly Prenda[], cambios: Parameters<typeof href>[0]) => href({ ...cambios, colorTalla: elegidoEnElDestino(filtros, destino) });
+  // Una dirección que no trae lo elegido como lo escribe la tienda (escrita a mano, con una talla que aquí no hay, con un `?color=` vacío o
+  // en los favoritos) manda a la que sí: hay UNA dirección por lista filtrada. Si la base no respondió, no se corrige nada y se ve la lista
+  // entera, sin filtrar.
+  if ((sp.color !== undefined || sp.talla !== undefined) && (filtros.indice !== null || !hayElegido(colorTallaPedido)) && !esLaDireccionCanonica(sp, colorTalla)) {
+    redirect(href({}));
+  }
   // Lo pedido, para decir lo que falta («No hay cinturones en Lima»).
   const que = queSeBusca(lista, categoriaElegida?.nombre ?? grupoPedido?.nombre ?? menuPedido?.nombre ?? null);
   // Vacía en la tienda elegida, pero otra sí tiene: dónde hay y un botón que lleva allá (con lo mismo elegido).
@@ -310,19 +357,20 @@ export default async function Catalogo({ searchParams }: Props) {
                   <nav className="t-pildoras" aria-label="Qué ver">
                     <Link
                       className="t-pildora"
-                      href={href({ grupo: null, categoria: null })}
+                      href={hrefA(deLaLista, { grupo: null, categoria: null })}
                       aria-current={grupoActivo === null ? "true" : undefined}
                       scroll={false}
                     >
-                      Todo <small>{deLaLista.length}</small>
+                      Todo <small>{deLaListaFiltrada.length}</small>
                       <PendienteDelEnlace />
                     </Link>
                     {grupos.map((g) => (
                       <Link
                         key={g.clave}
                         className="t-pildora"
-                        href={href({ grupo: g.clave, categoria: null })}
+                        href={hrefA(prendasDelGrupo(g.clave), { grupo: g.clave, categoria: null })}
                         aria-current={grupoActivo?.clave === g.clave ? "true" : undefined}
+                        data-cero={hayFiltros && g.cuantas === 0 ? "true" : undefined}
                         scroll={false}
                       >
                         {g.nombre} <small>{g.cuantas}</small>
@@ -334,7 +382,7 @@ export default async function Catalogo({ searchParams }: Props) {
                     <nav className="t-subcats" aria-label={`Categorías de ${delActivo.nombre}`}>
                       <Link
                         className="t-subcat"
-                        href={href({ grupo: delActivo.clave, categoria: null })}
+                        href={hrefA(prendasDelGrupo(delActivo.clave), { grupo: delActivo.clave, categoria: null })}
                         aria-current={categoria === null ? "true" : undefined}
                         scroll={false}
                       >
@@ -345,8 +393,9 @@ export default async function Catalogo({ searchParams }: Props) {
                         <Link
                           key={c.clave}
                           className="t-subcat"
-                          href={href({ categoria: c.clave })}
+                          href={hrefA(prendasDeLaCategoria(c.clave), { categoria: c.clave })}
                           aria-current={categoria === c.clave ? "true" : undefined}
+                          data-cero={hayFiltros && c.cuantas === 0 ? "true" : undefined}
                           scroll={false}
                         >
                           {c.nombre} <small>{c.cuantas}</small>
@@ -360,19 +409,20 @@ export default async function Catalogo({ searchParams }: Props) {
                 <nav className="t-pildoras" aria-label="Categoría">
                   <Link
                     className="t-pildora"
-                    href={href({ categoria: null, grupo: null })}
+                    href={hrefA(deLaLista, { categoria: null, grupo: null })}
                     aria-current={categoria === null ? "true" : undefined}
                     scroll={false}
                   >
-                    Todas <small>{deLaLista.length}</small>
+                    Todas <small>{deLaListaFiltrada.length}</small>
                     <PendienteDelEnlace />
                   </Link>
                   {categorias.map((c) => (
                     <Link
                       key={c.clave}
                       className="t-pildora"
-                      href={href({ categoria: c.clave })}
+                      href={hrefA(prendasDeLaCategoria(c.clave), { categoria: c.clave })}
                       aria-current={categoria === c.clave ? "true" : undefined}
+                      data-cero={hayFiltros && c.cuantas === 0 ? "true" : undefined}
                       scroll={false}
                     >
                       {c.nombre} <small>{c.cuantas}</small>

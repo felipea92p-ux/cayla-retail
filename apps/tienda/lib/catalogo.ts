@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { insigniasDeLaTarjeta, leerInsignias, type Insignia, type InsigniasDeLaTarjeta } from "./insignias";
+import { escribirElegido, type Elegido } from "./filtros-color-talla";
 import { pctTexto } from "./portada";
 import { esquemaStockModelo, type StockModelo } from "./stock";
 import type { Lista } from "./listas";
@@ -353,6 +354,7 @@ export function hrefLista({
   campana = null,
   grupo = null,
   menu = null,
+  colorTalla = null,
 }: {
   sede?: string | null;
   categoria: string | null;
@@ -364,6 +366,9 @@ export function hrefLista({
   /** Un menú de la cabecera (`lib/grupos.ts`: «ropa», «accesorios»): toda la ropa junta. Se queda aunque se elija un grupo o una categoría
    *  de adentro, para que la lista siga siendo «dentro de la ropa». */
   menu?: string | null;
+  /** Lo elegido en los filtros de color y talla (ADR-0512): va como `?color=negro,blanco&talla=M`, en el orden fijo de la tienda y solo lo que
+   *  hay. Los favoritos no se filtran: ahí no va. */
+  colorTalla?: Elegido | null;
 }): string {
   const q = new URLSearchParams();
   if (lista !== "todo") q.set("lista", lista);
@@ -373,7 +378,10 @@ export function hrefLista({
   else if (grupo) q.set("grupo", grupo);
   if (lista === "ofertas" && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
-  const s = q.toString();
+  // Las comas de la lista se quedan como comas (son legales en una dirección y se leen mejor que `%2C`); lo demás, escapado.
+  const elegido = colorTalla && lista !== "favoritos" ? escribirElegido(colorTalla) : {};
+  const filtros = Object.entries(elegido).map(([faceta, valores]) => `${faceta}=${valores.split(",").map(encodeURIComponent).join(",")}`);
+  const s = [q.toString(), ...filtros].filter(Boolean).join("&");
   return s ? `/catalogo?${s}` : "/catalogo";
 }
 

@@ -515,4 +515,25 @@ describe("los filtros de color y talla", () => {
       }
     }
   });
+
+  it("corregir una dirección es estable: lo corregido, escrito y vuelto a leer, ya no cambia (la página no puede entrar en un bucle de redirecciones)", () => {
+    const m = mundo(92);
+    const direcciones = [
+      { color: "negro,blanco,rojo,azul", talla: "XXL,34,UNICA,XS" },
+      { color: "morado", talla: "XL" },
+      { color: "zzz", talla: "99" },
+      { talla: "M,L,28" },
+      { color: "gris,negro,gris", talla: "M,S/M,S" },
+    ];
+    for (const sp of direcciones) {
+      for (const nivel of Object.keys(m.niveles)) {
+        const una = alCambiarDeNivel(m.indice, m.niveles[nivel], leerElegido(sp)).elegido;
+        const vuelta = leerElegido(escribirElegido(una));
+        expect(vuelta, `${JSON.stringify(sp)} en ${nivel}: lo escrito se lee igual`).toEqual(una);
+        const dos = alCambiarDeNivel(m.indice, m.niveles[nivel], vuelta);
+        expect(dos.elegido, `${JSON.stringify(sp)} en ${nivel}: corregir lo corregido no cambia nada`).toEqual(una);
+        expect(huboSoltado(dos.soltado)).toBe(false);
+      }
+    }
+  });
 });
