@@ -1466,6 +1466,11 @@ export const PRUEBAS = [
   // lo anotado inmutable y las puertas (módulo + Taller). ROLLBACK.
   "pruebas:produccion-fases",
 
+  // Editar la tela y los avíos de una orden ya abierta (ADR-0510, actividad 1): la lista que llega REEMPLAZA a la declarada con la misma validación que al abrir,
+  // el plan se recalcula con la merma, lo que no cambió no se mueve, una tela con consumo anotado no se quita, una lista rota no vacía el plan, todo o nada y las
+  // puertas (módulo + Taller). La carrera con «Anotar lo que usaste» se comprueba por su forma (el mismo `for update`). ROLLBACK.
+  "pruebas:produccion-editar-tela",
+
   // Las fases nuevas de la orden, «expandir» (ADR-0400 act. k y l, R1, actividad 1): la base acepta la ruta nueva (Ploteo · Corte · Habilitado · Costura ·
   // Ojales y botones · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar) sin dejar de aceptar la anterior; mezclarlas se rechaza; «Cambiar quién»
   // valida contra las fases reales de la orden; la lista de precios acepta las claves nuevas; el candado de md5 y el pegado repetido. ROLLBACK.
