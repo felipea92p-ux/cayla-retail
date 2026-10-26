@@ -34,7 +34,7 @@ Nueve pendientes, cada uno con lo que dice cada aplicación y cómo decidirlo (e
 
 | | Tema | Retail | Dynamic |
 |---|---|---|---|
-| **P1** | Tema oscuro | gris `#1a1a18`; los campos más CLAROS que la página | café `#1c1a16`; los campos más NEGROS que la página |
+| **P1** | Tema oscuro (lámina para elegir mirando: `docs/maquetas/familia-oscuro-2026-10/`) | gris `#1a1a18`; los campos más CLAROS que la página | café `#1c1a16`; los campos más NEGROS que la página |
 | **P2** | Borde de un control | `sand` (1.2:1) | `taupe` (5.6:1), por WCAG 1.4.11 |
 | **P3** | Anillo de foco | tinta | rojo |
 | **P4** | Vocabulario | «cliente», «encargado de sede» | «clienta», nunca «encargada» |
