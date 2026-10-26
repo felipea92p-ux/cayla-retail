@@ -7,7 +7,7 @@ import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { fechaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
+import { estadoDeCaja, fechaEnPalabras, type CajaCayla, type CajaProxima, type CajaSede, type SalidaGrande } from "@/lib/caja-proxima-reglas";
 import { soles } from "@/lib/flujo-caja-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1). Solo DIBUJA lo que arma `cajaProxima`: la línea del
@@ -73,7 +73,7 @@ function CajaDeCayla({ caja: c, hrefFlujo }: { caja: CajaCayla; hrefFlujo: strin
   const hayMinimo = c.minimo > 0;
   const bajo = hayMinimo && c.queda < c.minimo;
   // El chip sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo» (dentro de las dos semanas) y también «ojo después».
-  const estado = c.sinPlata ? "Sin plata" : c.bajaDelMinimo ? "Bajo tu mínimo" : c.luego ? "Ojo después" : c.tono === "verde" ? "Te alcanza" : null;
+  const estado = estadoDeCaja(c)?.texto ?? null;
   // Las marcas del eje: hoy, la mitad y el último día, con su mes («31 oct», «7 nov»): el horizonte casi siempre cruza de mes.
   const marcas = [0, 7, ultimo.dia]
     .filter((x, k, a) => x <= ultimo.dia && a.indexOf(x) === k)

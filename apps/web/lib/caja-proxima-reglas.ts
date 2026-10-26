@@ -76,6 +76,19 @@ export type CajaSede = {
 
 export type CajaProxima = CajaCayla | CajaSede | { tipo: "oculta" } | { tipo: "falla"; mensaje: string };
 
+/**
+ * El estado de la caja en dos o tres palabras, el mismo en «Tu caja en las próximas dos semanas» y en la respuesta «¿Cuánto tienes?»
+ * (una sola fuente: las dos dicen lo mismo con las mismas palabras). Sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo»
+ * (dentro del horizonte) y también «ojo después». `null`: sin mínimo puesto y sin caída, no hay nada que decir.
+ */
+export function estadoDeCaja(c: CajaCayla): { texto: string; tono: TonoCaja } | null {
+  if (c.sinPlata) return { texto: "Sin plata", tono: c.tono };
+  if (c.bajaDelMinimo) return { texto: "Bajo tu mínimo", tono: c.tono };
+  if (c.luego) return { texto: "Ojo después", tono: c.tono };
+  if (c.tono === "verde") return { texto: "Te alcanza", tono: "verde" };
+  return null;
+}
+
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
 

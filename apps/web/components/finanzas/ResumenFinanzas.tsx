@@ -16,7 +16,7 @@ import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
 import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
-import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
+import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
 import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
@@ -25,6 +25,7 @@ import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { deCadaCien } from "@/lib/de-cada-cien-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
+import { tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import {
@@ -34,7 +35,8 @@ import {
   type DiaVenta,
 } from "@/lib/resumen-telar-reglas";
 
-// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493): la cabecera común con la respuesta («¿Cuánto te deja octubre?»), el
+// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493): arriba, las tres respuestas (Felipe 2026-10-26: ¿cuánto tienes?, ¿cuánto debes
+// pagar pronto?, ¿cuánto te deja este mes?), el
 // orillo con lo que vendió cada sede, el recorrido de la plata al lado de «Hoy te toca», la línea de ventas contra la meta y, al
 // final, qué tan seguro es el número (ADR-0417). La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
 // No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
@@ -118,10 +120,10 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
   return (
     <div className="space-y-6">
-        <span hidden data-ancho-completo />
-      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE}>
-        <RespuestaTelar pregunta={resp.pregunta} valor={resp.valor} chips={cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips} motivo={resp.motivo} />
-      </EncabezadoPagina>
+      <span hidden data-ancho-completo />
+      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
+      {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. */}
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar") })} />
       {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
       {confianza.datos ? (
         <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />

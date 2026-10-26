@@ -118,10 +118,10 @@ export const GUIA_FIN_RESUMEN: Guia = {
     },
     ...TELAR,
     {
-      id: "respuesta",
-      ancla: "telar.respuesta",
-      titulo: "Cuánto te deja el mes",
-      texto: "La cifra grande es lo que te queda en el mes, después de pagar la ropa, los sueldos, los alquileres y los servicios. Debajo dice cómo vas contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, dice cuánto cuestan: no venden.",
+      id: "respuestas",
+      ancla: "fin-resumen.respuestas",
+      titulo: "Las tres preguntas de siempre",
+      texto: "Tres respuestas de un vistazo: cuánto tienes hoy entre cajones, cajas fuertes y bancos; cuánto debes pagar pronto (lo vencido y lo de esta semana); y cuánto te deja el mes, contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, la última dice cuánto cuestan: no venden.",
     },
     {
       id: "confianza",
