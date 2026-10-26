@@ -1867,7 +1867,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   en `components/finanzas/{CascadaPulso,Confianza,DineroPulso,ImpuestosPulso,GastosPulso,ResultadoPulso,CierrePulso}.tsx` y los estilos
   `fin-pulso-*` en `app/estilos/finanzas.css`. Lo nuevo en la base (sin pegar al 2026-10-15): `fn_costo_estimado_prenda` + los disparadores
   `prendas_por_regularizar_costo_estimado` y `venta_items_costo_real` + `fn_costo_estimado_resumen` (20261015233000; `venta_items.costo_estimado`);
-  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen`; y los tipos
+  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen` (desde 2026-10-24, una franja bajo la respuesta); y los tipos
   `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
   4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
   **La planilla estimada por sede (ADR-0453, pegada en producción el 2026-10-17):** `fn_planilla_provision` (20261018040000; la interna
@@ -1917,8 +1917,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
     `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
     y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
-    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta, el orillo y la línea de ventas contra la
-    meta) y `lib/recorrido-plata-reglas.ts` → `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata).
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta y el orillo) y `lib/recorrido-plata-reglas.ts` →
+    `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata). **Desde 2026-10-24 (ADR-0493, actualización)**, cinco piezas más:
+    **Desde 2026-10-26 (ADR-0493, actualización c):** abre con `lib/tres-respuestas-reglas.ts` → `TresRespuestas.tsx` (tienes / debes pronto / te deja), va a ancho completo (desde la actualización d de ese ADR, como todo Finanzas: `/finanzas` salió de `CON_TOPE_DE_ANCHO`), y suma la inversión en mercadería tras bandera: `lib/inversion-mercaderia-reglas.ts` (etapas del plan, formas de pagar, la caja con la compra), `lib/inversion-mercaderia.ts` (el lector: hoy `null`, la base aún no lo trae), `InversionMercaderia.tsx`, `AjustesResumen.tsx` (+ `lib/ajustes-resumen-reglas.ts`, `useAjustesResumen`); `cajaProxima` acepta `inversion` y mira seis semanas.
+    `lib/caja-proxima-reglas.ts` → `CajaProxima.tsx` («Tu caja en las próximas dos semanas»; su lectura propia es `getFlujoProximo` →
+    `fn_flujo_caja_proyeccion`, la de Dinero ▸ Flujo, porque `fn_resumen_finanzas` recorta los cobros y solo trae el flujo mirando CAYLA entera),
+    `lib/resumen-cambios-reglas.ts` → `CambiosDelMes.tsx` (lo que más se movió contra el mismo tramo del mes pasado, con `conceptosER`),
+    `lib/equilibrio-mes-reglas.ts` → `EquilibrioMes.tsx` («¿Ya pagaste el mes?», que reemplazó a la línea de ventas contra la meta),
+    `lib/de-cada-cien-reglas.ts` → `DeCadaCien.tsx` («De cada S/ 100», sobre el recorrido) y `Confianza.tsx`, que pasó de tarjeta al fondo a
+    franja bajo la respuesta. Sin migración ni RPC nuevos.
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
@@ -1927,6 +1934,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     RPC `guardar_sede_tienda_web`, `guardar_whatsapp_tienda` (el WhatsApp es el mismo del QR del club) y
     `guardar_parametros_tienda_web`, firmadas con el responsable. Tablas `ubicacion_datos_web` y `configuracion_tienda_web`
     (**sin pegar en producción**). La tienda las lee con `tienda_sedes()` (§3.y).
+    **Desde el 2026-10-26 (ADR-0518, «Conf. Tienda»):** la pantalla es una fila de puertas (`components/tienda-web-conf/PuertaDeTienda.tsx`, `Fachada.tsx`) y el taller
+    de la tienda abierta con su teléfono en vivo (`TelefonoDeTienda.tsx`); el horario por días (`HorarioSemanal.tsx`, gestos en `lib/horario-edicion-reglas.ts`), los
+    cierres (`CierresDeTienda.tsx`) y el reloj del pedido con la escala de stock (`RelojDelPedido.tsx`) son piezas propias. RPC nuevas, todas del módulo `ajustes_web`:
+    `guardar_orden_tiendas_web`, `guardar_mapa_tienda_web`, `guardar_foto_tienda_web` (sube antes al almacén `retail-tiendas` con `lib/foto-de-tienda.ts`),
+    `guardar_horario_tienda_web` y `guardar_cierres_tienda_web`; tablas `ubicacion_horario_web` y `ubicacion_cierres_web` y columnas `orden`, `mapa_url`,
+    `foto_ruta` (migración `20261026162000`, **sin pegar en producción**). Las reglas compartidas con la tienda online viven en
+    `packages/shared/src/tienda-web-sede.ts` y `horario-de-tienda.ts`; la tienda las lee en `apps/tienda/lib/tiendas.ts` y dice «Abierta ahora» en
+    `apps/tienda/components/EstadoDeTienda.tsx` (calculado en el navegador, hora de Lima).
 - **Rendimiento con meta por persona** (ADR-0219, ADR-0325; módulo `rendimiento`, sin módulo nuevo — D-157):
   - `/rendimiento` (`?vista=hoy|semana|mes`, `?sede=`) → `lib/rendimiento.ts` (`leerPantallaRendimiento`: `fn_rendimiento_equipo` para los rankings, y `fn_metas_equipo`, `fn_rendimiento_serie`,
     `fn_metas_historial` para el panel; el panel es una lectura secundaria: si la base no lo tiene la pantalla sigue con los rankings y lo dice) + `lib/rendimiento-meta-reglas.ts` (puro: ventanas Hoy/Semana/Mes,
@@ -2720,5 +2735,6 @@ de cada decisión estructural, `docs/adr/`.*
 ## Proveedores: lo que le compré y «Lo que quizá no ves» (2026-10-24, ADR-0502)
 
 - `/compras/proveedores/[id]` (ficha) → `getProveedorPrendas` (`lib/proveedores.ts`, RPC `fn_proveedor_prendas`) → `components/ProveedorPrendas.tsx` (reglas `lib/proveedor-prendas-reglas.ts`) y `components/LoQueQuizaNoVes.tsx` (reglas `lib/proveedor-analisis-reglas.ts:hallazgosDeProveedor`).
-- `/compras/proveedores` (lista) → `getProveedoresRendimiento` (RPC `fn_proveedores_rendimiento`) → `components/ProveedoresRendimiento.tsx`; `getProveedoresPrendas` (RPC `fn_proveedores_prendas`) → `hallazgosDeCartera` → `LoQueQuizaNoVes`.
+- `/compras/proveedores` (lista) → `getProveedoresRendimiento` (RPC `fn_proveedores_rendimiento`) → `ProveedoresPanel` → `lib/proveedores-ranking-reglas.ts` (`filasDelRanking`) → `components/ProveedoresRanking.tsx` (la pestaña Mercadería es el ranking desde 2026-10-26; reemplaza a `ProveedoresRendimiento.tsx`), con la línea de ventas de cada fila (`getProveedoresVentasDiarias`, RPC `fn_proveedores_ventas_diarias` de 20261026172000 → `seriesDeVentas` → `<Sparkline>`) y su columna derecha `components/ProveedoresLoQueNoSeVe.tsx` (`paraHoy`, `concentracion` y los avisos de `hallazgosDeCartera` en `LoQueQuizaNoVes enColumna`), que al marcar hasta 3 filas (`alternarComparar`) pone `components/ProveedoresComparar.tsx` arriba con «Para hoy» debajo (`soloHoy`); la vista rápida dice «Cómo se vende» (`porqueDelRitmo`) y «Tallas y sedes» (RPC `fn_proveedor_tallas_sedes` desde el navegador → `resumenTallasYSedes`); las tres lecturas de proveedor (`fn_proveedor_prendas_base`, `fn_proveedores_ventas_diarias`, `fn_proveedor_tallas_sedes`) reparten ventas y stock entre proveedores con `fn_proveedor_reparto` (20261026194000); `getProveedoresPrendas` (RPC `fn_proveedores_prendas`) → `hallazgosDeCartera` → `LoQueQuizaNoVes`.
 - Las tres RPC leen `fn_proveedor_prendas_base` (migración `20261024221000`, sin permiso para nadie) y exigen `fn_ve_plata_de_proveedores()`.
+- `/compras/proveedores/[id]` (ficha, tallas y sedes, 2026-10-26) → `getProveedorTallasSedes` (RPC `fn_proveedor_tallas_sedes`, migración `20261026193000`, misma llave) → `components/ProveedorTallasSedes.tsx` (reglas `lib/proveedor-tallas-sedes-reglas.ts`: curva, ritmo por sede, traslado sugerido; sus avisos se suman a `LoQueQuizaNoVes` con `juntarHallazgos`).

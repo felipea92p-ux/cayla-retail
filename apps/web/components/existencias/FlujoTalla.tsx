@@ -661,7 +661,7 @@ export function FlujoTalla({
                   poner({ cant: llenarTodasCon(todas, limpio === "" ? null : Number(limpio), subiendo ? "subir" : "bajar") });
                 }}
                 onFocus={(e) => e.currentTarget.select()}
-                className="h-9 w-14 rounded-[9px] border border-transparent bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
+                className="h-9 w-14 rounded-[9px] border border-borde-control bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
               />
               {subiendo ? (
                 <button type="button" disabled={nColgado === 0} onClick={() => { setRelleno(""); poner({ cant: { ...todoLoColgado } }); }} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">

@@ -78,7 +78,7 @@ export function MatrizOrdenTabla({
                         value={buenas?.[celda.varianteId] ?? ""}
                         onChange={(e) => onCambio?.(celda.varianteId, e.target.value)}
                         aria-label={`Buenas de ${c.nombre} ${t}, de ${celda.plan} planeadas`}
-                        className="w-full min-w-[2.75rem] rounded-md border border-tinta/15 bg-crema py-2 text-center tabular-nums text-tinta outline-none transition-colors focus:border-rojo"
+                        className="w-full min-w-[2.75rem] rounded-md border border-borde-control bg-crema py-2 text-center tabular-nums text-tinta outline-none transition-colors focus:border-rojo"
                       />
                     </td>
                   );

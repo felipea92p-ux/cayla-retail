@@ -65,6 +65,12 @@ type Props = {
   /** Algo ENCIMA del título, dentro de la cascada: la vuelta a la hoja de atrás cuando un modal pasa de una vista a otra dentro de la misma
       hoja (hoy, el detalle de un cierre de caja dentro de «Historial de cierres»: flecha + a dónde vuelve, 2026-10-10). */
   arriba?: ReactNode;
+  /** La hoja no se desliza: crece hasta su alto máximo y su contenido se reparte ese alto (columna flexible), así lo que importa —arriba
+      las opciones, abajo los botones— queda siempre a la vista y solo se desliza lo que el contenido decida (una tabla). Hoy: «Ajustar
+      stock» en el modal de la prenda de Existencias (Felipe 2026-10-26, ronda 2 de la «Planilla rápida»). Lo de adentro pone su
+      `min-h-0` y su `overflow-auto`; si nada lo hace, se corta. Es `overflow: clip` y no `hidden`: una caja `hidden` igual se deja desplazar
+      por código o cuando el navegador lleva un campo a la vista, y quedaba corrida sin forma de volver (/chaos 2026-10-26, H1). */
+  altoFijo?: boolean;
   /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
       sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
       rápido. Antes había tres: crema con sombra y título de 18 px (la de fábrica), «hoja» (esta) y «papel» (esta con la ✕). `hoja` y
@@ -90,7 +96,7 @@ type Props = {
 export type TamanoHoja = "angosta" | "mediana" | "ancha";
 export const ANCHO_HOJA: Record<TamanoHoja, string> = { angosta: "max-w-md", mediana: "max-w-xl", ancha: "max-w-3xl" };
 
-export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false, altoFijo = false }: Props) {
   const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
   // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
   const deCara = variante !== "camara" && variante !== "ticket";
@@ -237,7 +243,7 @@ export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta"
                     // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479). Con
                     // `viewport-fit=cover` la hoja llega a la barrita del iPhone: suma ese margen abajo y el pie pegado
                     // (`.pie-hoja-fijo`, que lee `--borde-abajo`) lo absorbe igual que absorbe el `p-6` (ADR-0479, actividad 9).
-                    `scroll-cayla max-h-[min(90dvh,90%)] overflow-y-auto rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
+                    `${altoFijo ? "flex flex-col overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
               cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
             } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}

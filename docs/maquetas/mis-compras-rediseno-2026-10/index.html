@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Mis compras rediseñada</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
@@ -37,7 +38,7 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 .telefono { width: 100%; max-width: 390px; margin: 0 auto; border-radius: 40px; border: 7px solid var(--tinta); background: var(--crema);
   height: 780px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 .barra-sistema { height: 30px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font-size: 12px; font-weight: 600; }
-.pantalla { flex: 1; overflow-y: auto; padding: 4px 18px 120px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: none; }
+.pantalla { flex: 1; overflow-y: auto; padding: 4px 18px 170px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: none; }
 .pantalla::-webkit-scrollbar { width: 0; }
 .cab { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 .volver { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; flex: none; font-size: 17px; }
@@ -127,6 +128,21 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 .ok-linea { font-size: 13px; display: flex; gap: 6px; align-items: center; }
 .ok-linea.verde { color: var(--verde); } .ok-linea.ambar { color: var(--ambar); }
 
+.chip.otra { border-style: dashed; background: transparent; color: var(--taupe); }
+.chip.otra[aria-expanded="true"] { border-style: solid; border-color: var(--tinta); color: var(--tinta); }
+.chip.elegida { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.cajaSel { display: flex; justify-content: space-between; align-items: center; text-align: left; cursor: pointer; }
+.cajaSel[aria-expanded="true"] { background: var(--papel); border-color: var(--tinta); }
+.cajaSel .ph { color: var(--taupe); }
+.combo { border: 1px solid var(--tinta); background: var(--papel); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.combo .buscar { border: 0; border-bottom: 1px solid var(--sand); background: transparent; min-height: 44px; padding: 0 14px; font: inherit; color: var(--tinta); width: 100%; }
+.combo .buscar:focus { outline: none; background: var(--hueso); }
+.combo .opciones { max-height: 176px; overflow-y: auto; display: flex; flex-direction: column; }
+.combo .grupo { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; padding: 8px 14px 4px; }
+.combo .op-i { border: 0; background: transparent; text-align: left; min-height: 42px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; font-size: 14.5px; }
+.combo .op-i[aria-selected="true"] { font-weight: 600; }
+.combo .op-i[aria-selected="true"]::after { content: "✓"; color: var(--verde); }
+.combo .vacio { padding: 12px 14px; font-size: 13px; color: var(--taupe); }
 .paso { display: inline-flex; align-items: center; background: var(--hueso); border-radius: 12px; height: 42px; }
 .paso button { width: 42px; height: 42px; border: 0; background: transparent; font-size: 20px; }
 .paso b { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; font-size: 16px; }
@@ -147,6 +163,9 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 .nuevo-p b { color: var(--tinta); font-size: 14px; }
 .nuevo-p .mas-i { width: 40px; height: 40px; border-radius: 50%; background: var(--tinta); color: var(--sobre); display: grid; place-items: center; font-size: 20px; }
 
+.pie-c2 { position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 4; display: flex; flex-direction: column; gap: 8px; }
+.pie-c2 .isla { position: static; }
+.pie-c2 .algo-nuevo { background: var(--papel); border-style: dashed; width: 100%; box-shadow: 0 0 0 6px var(--crema); }
 .isla { position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 4; background: var(--tinta); color: var(--sobre); border-radius: 18px;
   display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 10px 10px 16px; }
 .isla .r { font-size: 12px; opacity: .8; } .isla .c { font-family: var(--serif); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -161,6 +180,7 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 @keyframes sube { from { transform: translateY(18px); opacity: .6 } }
 @keyframes entra { from { opacity: 0 } }
 @media (prefers-reduced-motion: reduce) { .velo, .hoja { animation: none; } }
+.velo.quieta, .hoja.quieta { animation: none; }
 .aviso { position: absolute; left: 16px; right: 16px; top: 38px; z-index: 6; background: var(--verde); color: var(--sobre); border-radius: 14px; padding: 12px 14px; font-size: 14px; font-weight: 600; animation: entra .2s; }
 
 .ganas { display: flex; justify-content: space-between; background: var(--verde-suave); color: var(--verde); border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; }
@@ -210,16 +230,21 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
   const S = (n) => "S/ " + Number(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const TIENDAS = ["Lima", "Trujillo", "Arequipa"];
   const PROVEEDORES = [
-    { id: "rosa", nombre: "Textiles Rosa", det: "Le compraste hace 3 días · 12 compras", reciente: true, prendas: [
-      { id: "emma", n: "Blusa Emma", e: "👚", costo: 20, venta: 59.9, vez: 6 }, { id: "tito", n: "Polo Tito", e: "👕", costo: 15, venta: 39.9, vez: 10 },
-      { id: "luz", n: "Blusa Luz", e: "👚", costo: 22, venta: 64.9, vez: 4 } ] },
-    { id: "andina", nombre: "Andina Jeans", det: "Le compraste hoy · 8 compras", reciente: true, prendas: [
-      { id: "mom", n: "Jean Mom", e: "👖", costo: 42, venta: 119.9, vez: 2 }, { id: "recto", n: "Jean Recto", e: "👖", costo: 40, venta: 109.9, vez: 3 } ] },
-    { id: "gamarra", nombre: "Moda Gamarra", det: "Le compraste hoy · 3 compras", reciente: true, prendas: [ { id: "casaca", n: "Casaca Corta", e: "🧥", costo: 55, venta: 149.9, vez: 4 } ] },
-    { id: "lucero", nombre: "Lucero Moda", det: "Vende vestidos, faldas", reciente: false, prendas: [ { id: "vest", n: "Vestido Aurora", e: "👗", costo: 48, venta: 129.9, vez: 0 } ] },
+    { id: "rosa", nombre: "Textiles Rosa", det: "Le compraste hace 3 días · 12 compras", reciente: true, cats: ["Blusas", "Polos"], marcas: ["CAYLA", "Pionier"], prendas: [
+      { id: "emma", n: "Blusa Emma", e: "👚", cat: "Blusas", costo: 20, venta: 59.9, vez: 6 }, { id: "tito", n: "Polo Tito", e: "👕", cat: "Polos", costo: 15, venta: 39.9, vez: 10 },
+      { id: "luz", n: "Blusa Luz", e: "👚", cat: "Blusas", costo: 22, venta: 64.9, vez: 4 }, { id: "mia", n: "Blusa Mía", e: "👚", cat: "Blusas", costo: 21, venta: 62.9, vez: 5 },
+      { id: "ravi", n: "Polo Ravi", e: "👕", cat: "Polos", costo: 14, venta: 37.9, vez: 8 }, { id: "sol", n: "Blusa Sol", e: "👚", cat: "Blusas", costo: 24, venta: 69.9, vez: 3 },
+      { id: "nube", n: "Polo Nube", e: "👕", cat: "Polos", costo: 16, venta: 42.9, vez: 6 }, { id: "perla", n: "Blusa Perla", e: "👚", cat: "Blusas", costo: 26, venta: 74.9, vez: 2 } ] },
+    { id: "andina", nombre: "Andina Jeans", det: "Le compraste hoy · 8 compras", reciente: true, cats: ["Jeans"], marcas: ["Andina"], prendas: [
+      { id: "mom", n: "Jean Mom", e: "👖", cat: "Jeans", costo: 42, venta: 119.9, vez: 2 }, { id: "recto", n: "Jean Recto", e: "👖", cat: "Jeans", costo: 40, venta: 109.9, vez: 3 } ] },
+    { id: "gamarra", nombre: "Moda Gamarra", det: "Le compraste hoy · 3 compras", reciente: true, cats: ["Casacas", "Chompas", "Abrigos", "Camisas", "Shorts", "Faldas"], marcas: ["CAYLA", "Urbano", "Kiara", "Nativa", "Lumen", "Orion"], prendas: [ { id: "casaca", n: "Casaca Corta", e: "🧥", cat: "Casacas", costo: 55, venta: 149.9, vez: 4 } ] },
+    { id: "lucero", nombre: "Lucero Moda", det: "Vende vestidos, faldas", reciente: false, cats: [], marcas: [], prendas: [ { id: "vest", n: "Vestido Aurora", e: "👗", cat: "Vestidos", costo: 48, venta: 129.9, vez: 0 } ] },
   ];
-  const CATEGORIAS = ["Blusas", "Polos", "Jeans", "Casacas", "Vestidos", "Faldas"];
-  const MARCAS = ["CAYLA", "Pionier", "Andina"];
+  // Las del catálogo: en CAYLA son decenas. Por eso «Algo nuevo» no las dibuja todas como chips (ver nuevaHoja).
+  const CATEGORIAS = ["Blusas", "Polos", "Jeans", "Casacas", "Vestidos", "Faldas", "Chompas", "Shorts", "Pantalones", "Camisas", "Abrigos", "Pijamas", "Ropa interior", "Accesorios"];
+  const MARCAS = ["CAYLA", "Pionier", "Andina", "Urbano", "Kiara", "Nativa", "Lumen", "Orion", "Sol Andino", "Tejidos Perú"];
+  const TOPE_CHIPS = 4;
+  const EJEMPLO = { Blusas: "Blusa Aurora", Polos: "Polo Alba", Jeans: "Jean Skinny", Casacas: "Casaca Bruma", Vestidos: "Vestido Lía", Faldas: "Falda Plisada", Chompas: "Chompa Trenza", Shorts: "Short Lino" };
 
   const INICIO = () => ({
     ronda: { abierta: true, texto: "RC-000612", desde: "hoy 08:30" },
@@ -327,19 +352,28 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
   V.c2 = () => {
     const p = PROVEEDORES.find(x => x.id === st.c.prov);
     const enCompra = (id) => lineasC().filter(l => l.id === id).reduce((s, l) => s + l.cant, 0);
+    // Como en el ERP: sus prendas de siempre son un atajo (6 a la vista, «Ver todos los suyos»), nunca una obligación. «Algo nuevo»
+    // va fijo abajo, pegado a la barra, para que no haya que bajar hasta el final de la lista.
+    const cats = [...new Set(p.prendas.map(x => x.cat))];
+    const delCat = st.c.cat ? p.prendas.filter(x => x.cat === st.c.cat) : p.prendas;
+    const ver = st.c.todos || st.c.cat ? delCat : delCat.slice(0, 6);
     return `<div class="cab"><button class="volver" data-ir="c1" aria-label="Volver al proveedor">←</button><span class="mini">${p.nombre} · paso 2 de 3</span></div>
       ${progreso(1)}
       <h2 class="titulo">¿Qué le compraste?</h2>
-      <p class="sub">Toca una prenda: viene con lo de la vez pasada.</p>
+      <p class="sub">${p.prendas.length ? "Toca una prenda de las suyas: viene con lo de la vez pasada. Si es otra, usa «Algo nuevo»." : "Todavía no le compraste nada: describe lo que compraste con «Algo nuevo»."}</p>
+      ${cats.length > 1 ? `<div class="chips" aria-label="Filtrar por categoría"><button class="chip" aria-pressed="${!st.c.cat}" data-fcat="">Todos · ${p.prendas.length}</button>${cats.map(c => `<button class="chip" aria-pressed="${st.c.cat === c}" data-fcat="${c}">${c} · ${p.prendas.filter(x => x.cat === c).length}</button>`).join("")}</div>` : ""}
       <div class="grilla">
-        ${p.prendas.map(x => { const n = enCompra(x.id); return `<button class="tarjeta-p ${n ? "en" : ""}" data-prenda="${x.id}">
+        ${[...new Set(lineasC().filter(l => l.nueva).map(l => l.id))].map(id => { const ls = lineasC().filter(l => l.id === id), l = ls[0], n = ls.reduce((a, x) => a + x.cant, 0); return `<div class="tarjeta-p en"><span class="foto-p">✨</span><span class="globo">${n}</span><span class="n">${l.n}</span><span class="c">Nueva · ${textoTiendas(ls.reduce((o, x) => (o[x.tienda] = (o[x.tienda] || 0) + x.cant, o), {}))}</span></div>`; }).join("")}
+        ${ver.map(x => { const n = enCompra(x.id); return `<button class="tarjeta-p ${n ? "en" : ""}" data-prenda="${x.id}">
           <span class="foto-p" aria-hidden="true">${x.e}</span>${n ? `<span class="globo">${n}</span>` : ""}
           <span class="n">${x.n}</span><span class="c">${n ? textoTiendas(lineasC().filter(l => l.id === x.id).reduce((o, l) => (o[l.tienda] = (o[l.tienda] || 0) + l.cant, o), {})) : x.vez ? `La vez pasada: ${x.vez} a ${S(x.costo)}` : "Nueva para ti"}</span></button>`; }).join("")}
-        ${lineasC().filter(l => l.nueva).map(l => `<div class="tarjeta-p en"><span class="foto-p">✨</span><span class="globo">${l.cant}</span><span class="n">${l.n}</span><span class="c">Nueva · ${l.tienda} ${l.cant}</span></div>`).join("")}
-        <button class="nuevo-p" data-hoja="nueva"><span class="mas-i">＋</span><b>Algo nuevo</b>Una prenda que no está aquí</button>
       </div>
-      ${prendasC() ? `<div class="isla"><span><span class="r">${prendasC()} prendas</span><div class="c">${S(totalC())}</div></span><button class="btn" data-ir="c3">Seguir →</button></div>`
-        : `<div class="isla" style="opacity:.55"><span><span class="r">Elige al menos una prenda</span><div class="c">${S(0)}</div></span><button class="btn" disabled>Seguir →</button></div>`}`;
+      ${!st.c.todos && !st.c.cat && delCat.length > 6 ? `<button class="btn sutil" style="align-self:center" data-accion="ver-todos">Ver todos los suyos (${delCat.length})</button>` : ""}
+      <div class="pie-c2">
+        <button class="btn algo-nuevo" data-hoja="nueva">＋ Algo nuevo, o no la encuentras aquí</button>
+        ${prendasC() ? `<div class="isla"><span><span class="r">${prendasC()} prendas</span><div class="c">${S(totalC())}</div></span><button class="btn" data-ir="c3">Seguir →</button></div>`
+          : `<div class="isla" style="opacity:.55"><span><span class="r">Elige al menos una prenda</span><div class="c">${S(0)}</div></span><button class="btn" disabled>Seguir →</button></div>`}
+      </div>`;
   };
   V.c3 = () => {
     const c = st.c, total = totalC();
@@ -380,13 +414,21 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 
   // ---------- Hojas ----------
   const H = {};
-  H.plata = () => `<h3>Me dieron plata</h3><p class="sub">La puedes usar de una vez. Compras la confirma después.</p>
-    <div class="campo"><span class="et"><span class="num">1</span>¿Cómo te llegó?</span><div class="chips" data-grupo="x">
-      <button class="chip" aria-pressed="true">Yape</button><button class="chip" aria-pressed="false">Transferencia</button><button class="chip" aria-pressed="false">Efectivo</button></div>
-      <label class="mini" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ya-tenia"> Es plata que ya tenía de antes</label></div>
-    <div class="campo"><span class="et"><span class="num">2</span>¿Cuánto te dieron?</span><div class="monto"><span>S/</span><input id="m-plata" inputmode="decimal" value="500.00" aria-label="Cuánto te dieron"></div></div>
-    <button class="foto" data-foto="1">📷 <span><b>Foto del voucher</b>Opcional</span></button>
-    <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Cancelar</button><button class="btn primario" data-accion="guardar-plata">Anotar</button></div>`;
+  // «Me dieron plata»: el medio y, solo con «Transferencia», de qué banco de la empresa salió (BCP o Interbank; de fábrica, BCP).
+  // «Ya tenía de antes» no sale de ningún banco: esconde los medios.
+  const BANCOS = ["BCP", "Interbank"];
+  const plataVacia = () => ({ medio: "Yape", banco: "BCP", ya: false, monto: "500.00" });
+  function guardarPlata() { const p = st.pl; if (!p) return; p.monto = leer("m-plata") ?? p.monto; const y = $("#ya-tenia"); if (y) p.ya = y.checked; }
+  H.plata = () => { const p = st.pl || (st.pl = plataVacia()); return `<h3>Me dieron plata</h3><p class="sub">La puedes usar de una vez. Compras la confirma después.</p>
+    <div class="campo"><span class="et"><span class="num ok">✓</span>¿Cómo te llegó?</span>
+      ${p.ya ? "" : `<div class="chips">${["Yape", "Transferencia", "Efectivo"].map(m => `<button class="chip" aria-pressed="${p.medio === m}" data-pm="${m}">${m}</button>`).join("")}</div>`}
+      <label class="mini" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ya-tenia" ${p.ya ? "checked" : ""}> Es plata que ya tenía de antes</label></div>
+    ${!p.ya && p.medio === "Transferencia" ? `<div class="campo"><span class="et"><span class="num ok">✓</span>¿De qué banco salió?</span>
+      <div class="chips">${BANCOS.map(b => `<button class="chip" aria-pressed="${p.banco === b}" data-pb="${b}">${b}</button>`).join("")}</div>
+      <span class="mini">La cuenta de la empresa de donde salió la plata: así queda en Finanzas.</span></div>` : ""}
+    <div class="campo"><span class="et"><span class="num">${!p.ya && p.medio === "Transferencia" ? 3 : 2}</span>¿Cuánto te dieron?</span><div class="monto"><span>S/</span><input id="m-plata" inputmode="decimal" value="${p.monto}" aria-label="Cuánto te dieron"></div></div>
+    <button class="foto" data-foto="1">📷 <span><b>Foto del voucher</b>Opcional: ayuda a Compras a confirmarla</span></button>
+    <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Cancelar</button><button class="btn primario" data-accion="guardar-plata">Anotar</button></div>`; };
   H.gasto = () => `<h3>Gasté en otra cosa</h3><p class="sub">No es ropa: no se suma al costo de las prendas.</p>
     <div class="campo"><span class="et"><span class="num">1</span>¿En qué gastaste?</span><div class="fichas" data-grupo="x" style="grid-template-columns:repeat(3,1fr)">
       ${[["🚕", "Taxi"], ["🍽", "Comida"], ["📦", "Envío"], ["🛍", "Bolsas"], ["🔌", "Cargador"], ["✏️", "Otro"]].map(([e, n], i) => `<button class="ficha" aria-pressed="${i === 0}" data-concepto="${n}" style="align-items:center;text-align:center;min-height:70px"><b style="font-size:20px">${e}</b><span style="color:var(--tinta)">${n}</span></button>`).join("")}</div></div>
@@ -433,17 +475,59 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
         <span class="ok-linea ${suma === h.cant ? "verde" : "ambar"}">${suma === h.cant ? `✓ Cuadra: ${suma} de ${h.cant}` : `⚠ Reparte las ${h.cant}: ${suma > h.cant ? "sobran " + (suma - h.cant) : "faltan " + (h.cant - suma)}`}</span></div>` : ""}
       <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Cancelar</button><button class="btn primario" data-accion="agregar" ${h.cant && (!varias || suma === h.cant) ? "" : "disabled"}>Agregar ${h.cant} · ${S(h.cant * (Number(h.costo) || 0))}</button></div>`;
   };
-  H.nueva = () => `<h3>Algo nuevo</h3><p class="sub">Descríbela como la conoces. La tienda la registra cuando la recibe.</p>
-    <div class="campo"><span class="et"><span class="num">1</span>¿Qué es?</span><div class="chips" data-grupo="x">${CATEGORIAS.map((c, i) => `<button class="chip" aria-pressed="${i === 0}" data-cat="${c}">${c}</button>`).join("")}</div></div>
-    <div class="campo"><span class="et"><span class="num">2</span>¿De qué marca?</span>
-      <div style="display:flex;gap:8px">${st.marcaNueva ? `<input class="caja" id="n-marca" placeholder="Como dice su etiqueta" aria-label="Marca nueva" style="flex:1">` : `<div class="chips" data-grupo="y" style="flex:1">${MARCAS.map((m, i) => `<button class="chip" aria-pressed="${i === 0}">${m}</button>`).join("")}</div>`}
-      <button class="btn" style="width:48px;padding:0;flex:none" data-accion="marca-nueva" aria-label="${st.marcaNueva ? "Volver a la lista de marcas" : "Escribir una marca nueva"}">${st.marcaNueva ? "×" : "＋"}</button></div></div>
-    <div class="campo"><span class="et"><span class="num">3</span>¿Cómo se llama?</span><input class="caja" id="n-nombre" value="Blusa Aurora" aria-label="Cómo se llama"></div>
+  // «Algo nuevo»: qué es y de qué marca. Con decenas de categorías y marcas, los chips son SOLO lo habitual de este proveedor (hasta
+  // TOPE_CHIPS) y «Otra…» abre un combo con buscador (con más de 8 opciones) y sus grupos «Ya le compras / Otras». Sin historial, solo el combo.
+  function nvVacio() {
+    const p = PROVEEDORES.find(x => x.id === (st.c && st.c.prov)) || { cats: [], marcas: [] };
+    return { cat: null, marca: p.marcas.length === 1 ? p.marcas[0] : null, marcaNueva: false, comboCat: false, comboMarca: false, qCat: "", qMarca: "", tiendas: ["Lima"], reparto: {}, cant: 4, costo: "25.00", nombre: "" };
+  }
+  function guardarNueva() {
+    const n = st.nv; if (!n) return;
+    n.nombre = leer("n-nombre") ?? n.nombre; n.costo = leer("n-costo") ?? n.costo;
+    if (n.marcaNueva) n.marcaEscrita = leer("n-marca") ?? n.marcaEscrita;
+  }
+  function selector({ clave, habituales, todas, valor, abierto, q, marcador }) {
+    const chips = habituales.slice(0, TOPE_CHIPS);
+    const extra = valor && !chips.includes(valor) ? valor : null;
+    const hayChips = chips.length > 0;
+    const norm = (t) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const filtradas = todas.filter(x => norm(x).includes(norm(q)));
+    const suyas = filtradas.filter(x => habituales.includes(x)), otras = filtradas.filter(x => !habituales.includes(x));
+    const grupos = (hayChips ? [["Ya le compras", suyas], ["Otras", otras]] : [["", otras]]);
+    const op = (x) => `<button class="op-i" role="option" aria-selected="${valor === x}" data-pick="${clave}" data-v="${x}">${x}</button>`;
+    const lista = `<div class="combo">${todas.length > 8 ? `<input class="buscar" id="q-${clave}" placeholder="Busca ${clave === "cat" ? "una categoría" : "una marca"}" value="${q}" aria-label="Buscar" autocomplete="off">` : ""}
+        <div class="opciones" role="listbox">${grupos.map(([g, xs]) => xs.length ? (g ? `<div class="grupo">${g}</div>` : "") + xs.map(op).join("") : "").join("") || `<div class="vacio">No hay una así.</div>`}</div></div>`;
+    const disparador = hayChips
+      ? `<button class="chip otra" data-combo="${clave}" aria-expanded="${abierto}">Otra…</button>`
+      : `<button class="caja cajaSel" data-combo="${clave}" aria-expanded="${abierto}"><span class="${valor ? "" : "ph"}">${valor || marcador}</span><span aria-hidden="true">▾</span></button>`;
+    return `${hayChips ? `<div class="chips" data-grupo="${clave}">` : ""}${chips.map(x => `<button class="chip" aria-pressed="${valor === x}" data-pick="${clave}" data-v="${x}">${x}</button>`).join("")}
+        ${extra && hayChips ? `<button class="chip elegida" aria-pressed="true" data-pick="${clave}" data-v="${extra}">${extra}</button>` : ""}${hayChips ? disparador + "</div>" : ""}
+      ${hayChips ? "" : disparador}${abierto ? lista : ""}`;
+  }
+  H.nueva = () => {
+    const n = st.nv, p = PROVEEDORES.find(x => x.id === st.c.prov);
+    const ejemplo = EJEMPLO[n.cat] || "Como la conoces";
+    const marca = n.marcaNueva
+      ? `<div style="display:flex;gap:8px"><input class="caja" id="n-marca" placeholder="Como dice su etiqueta" aria-label="Marca nueva" value="${n.marcaEscrita || ""}" style="flex:1">
+          <button class="btn" style="width:48px;padding:0;flex:none" data-accion="marca-nueva" aria-label="Volver a la lista de marcas">×</button></div>`
+      : `<div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">${selector({ clave: "marca", habituales: p.marcas, todas: MARCAS, valor: n.marca, abierto: n.comboMarca, q: n.qMarca, marcador: "Elige una marca" })}</div>
+          <button class="btn" style="width:${p.marcas.length ? 40 : 48}px;min-height:${p.marcas.length ? 40 : 48}px;padding:0;flex:none" data-accion="marca-nueva" aria-label="Escribir una marca nueva">＋</button></div>`;
+    const varias = n.tiendas.length > 1, suma = n.tiendas.reduce((a, t) => a + (n.reparto[t] || 0), 0);
+    const lista = n.cat && (n.marca || (n.marcaNueva && n.marcaEscrita)) && (!varias || suma === n.cant);
+    return `<h3>Algo nuevo</h3><p class="sub">Descríbela como la conoces. La tienda la registra cuando la recibe.</p>
+    <div class="campo"><span class="et"><span class="num ${n.cat ? "ok" : ""}">${n.cat ? "✓" : "1"}</span>¿Qué es?</span>
+      ${selector({ clave: "cat", habituales: p.cats, todas: CATEGORIAS, valor: n.cat, abierto: n.comboCat, q: n.qCat, marcador: "Elige una categoría" })}</div>
+    <div class="campo"><span class="et"><span class="num ${n.marca || (n.marcaNueva && n.marcaEscrita) ? "ok" : ""}">${n.marca || (n.marcaNueva && n.marcaEscrita) ? "✓" : "2"}</span>¿De qué marca?</span>${marca}</div>
+    <div class="campo"><span class="et"><span class="num">3</span>¿Cómo se llama?</span><input class="caja" id="n-nombre" value="${n.nombre}" placeholder="Ej. ${ejemplo}" aria-label="Cómo se llama"></div>
     <div class="par">
-      <div class="campo"><span class="et">¿Cuántas?</span><span class="paso" style="justify-content:space-between"><button data-nn="-1" aria-label="Una menos">−</button><b id="n-cant">${st.nn || 4}</b><button data-nn="1" aria-label="Una más">+</button></span></div>
-      <div class="campo"><span class="et">Costó c/u</span><div class="monto"><span>S/</span><input id="n-costo" inputmode="decimal" value="25.00" style="font-size:24px" aria-label="Costo"></div></div></div>
-    <div class="campo"><span class="et">¿A qué tienda va?</span><div class="chips" data-grupo="z">${TIENDAS.map((t, i) => `<button class="chip" aria-pressed="${i === 0}" data-nt="${t}">${t}</button>`).join("")}</div></div>
-    <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Cancelar</button><button class="btn primario" data-accion="agregar-nueva">Agregar</button></div>`;
+      <div class="campo"><span class="et">¿Cuántas?</span><span class="paso" style="justify-content:space-between"><button data-nn="-1" aria-label="Una menos">−</button><b id="n-cant">${n.cant}</b><button data-nn="1" aria-label="Una más">+</button></span></div>
+      <div class="campo"><span class="et">Costó c/u</span><div class="monto"><span>S/</span><input id="n-costo" inputmode="decimal" value="${n.costo}" style="font-size:24px" aria-label="Costo"></div></div></div>
+    <div class="campo"><span class="et">¿A qué tienda va? <span class="op">· una o varias</span></span>
+      <div class="chips" data-grupo="z">${TIENDAS.map(t => `<button class="chip" aria-pressed="${n.tiendas.includes(t)}" data-nt="${t}">${n.tiendas.includes(t) ? "✓ " : ""}${t}</button>`).join("")}</div></div>
+    ${varias ? `<div class="campo"><span class="et">¿Cuántas a cada una?</span><div class="reparto">${n.tiendas.map(t => `<div><span>${t}</span><span class="paso"><button data-nr="${t}" data-d="-1" aria-label="Una menos a ${t}">−</button><b>${n.reparto[t] || 0}</b><button data-nr="${t}" data-d="1" aria-label="Una más a ${t}">+</button></span></div>`).join("")}</div>
+      <span class="ok-linea ${suma === n.cant ? "verde" : "ambar"}">${suma === n.cant ? `✓ Cuadra: ${suma} de ${n.cant}` : `⚠ Reparte las ${n.cant}: ${suma > n.cant ? "sobran " + (suma - n.cant) : "faltan " + (n.cant - suma)}`}</span></div>` : ""}
+    <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Cancelar</button><button class="btn primario" data-accion="agregar-nueva" ${lista ? "" : "disabled"}>Agregar</button></div>`;
+  };
   H.proveedor = () => `<h3>Proveedor nuevo</h3><p class="sub">Con lo básico basta. Lo demás lo completa Compras.</p>
     <div class="campo"><span class="et"><span class="num">1</span>¿Cómo se llama?</span><input class="caja" id="p-nombre" value="Confecciones Sol" aria-label="Nombre del proveedor"></div>
     <div class="campo"><span class="et"><span class="num">2</span>RUC <span class="op">· o «No tiene RUC»</span></span><input class="caja" inputmode="numeric" placeholder="11 números" aria-label="RUC">
@@ -472,8 +556,9 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
       "«Es un proveedor nuevo» va arriba, a la vista, antes de la lista.",
       "El buscador filtra mientras escribes; abajo, a quién le compraste hace poco."]],
     c2: ["Compré ropa · las prendas", [
-      "Cada prenda es una tarjeta con su foto y lo de la vez pasada. Si ya va en la compra, se marca y dice a qué tiendas va.",
-      "«Algo nuevo» es una tarjeta más de la grilla, con su ＋.",
+      "Sus prendas de siempre son un atajo, no una obligación: tarjeta con su foto y lo de la vez pasada. Se ven 6 y el resto está en «Ver todos los suyos»; con varias categorías, filtros arriba.",
+      "Si ya va en la compra, la tarjeta se marca y dice a qué tiendas va.",
+      "«Algo nuevo, o no la encuentras aquí» queda fijo abajo, pegado a la barra: nunca hay que bajar hasta el final de la lista. Si el proveedor no tiene prendas, es lo único que se pide.",
       "Abajo, siempre a la vista, cuántas prendas llevas y el total."]],
     c3: ["Compré ropa · papel y pago", [
       "Arriba, lo que llevas, para revisarlo de un vistazo.",
@@ -483,7 +568,10 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
       "«Pagué solo una parte» queda escondido hasta que hace falta."]],
     listo: ["Compra guardada", [
       "Dice qué se guardó y cuánto te queda, y el siguiente paso en grande: mandarla a la tienda."]],
-    plata: ["Me dieron plata", ["Dos preguntas numeradas y la foto opcional. «Ya tenía de antes» es una casilla debajo, no un medio más."]],
+    plata: ["Me dieron plata", [
+      "Preguntas numeradas y la foto opcional. «Ya tenía de antes» es una casilla debajo, no un medio más: al marcarla se esconden los medios.",
+      "<b>Con «Transferencia» pregunta de qué banco salió</b>: BCP o Interbank, las cuentas de la empresa en Finanzas, con BCP marcado de fábrica. Con Yape o efectivo no aparece.",
+      "Es la cuenta de la que sale la plata en Finanzas: Compras la confirma o la corrige al verificar la transferencia."]],
     gasto: ["Gasté en otra cosa", ["Los conceptos son fichas con su dibujo, de un toque. Luego el monto y la foto opcional."]],
     mandar: ["Mandar a las tiendas", ["Una fila por tienda con cuántas prendas y cuántos fardos. Un solo botón manda todo."]],
     cerrar: ["Cerrar la ronda", [
@@ -493,18 +581,30 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
     prenda: ["La hoja de una prenda", [
       "Cuántas, costo, venta y tienda en una sola hoja. «Por cada una ganas» en verde.",
       "Con dos tiendas aparece «¿Cuántas a cada una?» y dice si cuadra."]],
-    nueva: ["Algo nuevo", ["Qué es, la marca (con ＋ para escribir una nueva) y cómo se llama. Después, lo de siempre."]],
+    nueva: ["Algo nuevo", [
+      "Qué es, la marca y cómo se llama. Después, lo de siempre.",
+      "<b>Los chips son solo lo habitual de este proveedor</b> (hasta 4), no todo el catálogo: así la hoja mide lo mismo con 6 categorías que con 60.",
+      "<b>«Otra…» abre un combo</b> con buscador (desde 8 opciones) y los grupos «Ya le compras / Otras». Lo que elijas ahí se queda marcado como un chip más.",
+      "<b>Proveedor nuevo, sin historial</b> (probar «Algo nuevo · proveedor nuevo»): no hay nada que adivinar, así que no salen chips. Cada pregunta es un solo campo que dice «Elige una categoría» o «Elige una marca» y abre la lista con buscador. «Otra…» solo existe cuando hay chips al lado: sin ellos no tendría sentido.",
+      "La marca igual: sus chips son las que trae el proveedor; el ＋ sigue sirviendo para escribir una marca que no existe. Con muchas marcas, probar «Algo nuevo · muchas marcas». Si el proveedor trae una sola marca, ya llega puesta.",
+      "El nombre de ejemplo cambia con lo que elijas en «¿Qué es?».",
+      "La tienda es «una o varias», igual que en la hoja de una prenda: con dos o más aparece «¿Cuántas a cada una?» y dice si cuadra."]],
     proveedor: ["Proveedor nuevo", ["Solo nombre y RUC, o «No tiene RUC». Lo demás lo completa Compras."]],
     detalle: ["Detalle de lo anotado", ["Tocar algo de la ronda dice en qué está y qué va a hacer Compras con eso."]],
   };
   const INDICE = [["inicio", "Inicio"], ["sinRonda", "Sin ronda"], ["c1", "Compra · 1"], ["c2", "Compra · 2"], ["c3", "Compra · 3"], ["listo", "Guardada"],
-    ["h:plata", "Me dieron plata"], ["h:gasto", "Gasté"], ["h:mandar", "Mandar"], ["h:cerrar", "Cerrar ronda"]];
+    ["h:plata", "Me dieron plata"], ["h:gasto", "Gasté"], ["h:mandar", "Mandar"], ["h:cerrar", "Cerrar ronda"],
+    ["h:prenda", "Hoja de prenda"], ["h:nueva", "Algo nuevo"], ["h:nueva2", "Algo nuevo · proveedor nuevo"], ["h:nueva3", "Algo nuevo · muchas marcas"]];
   function claveNota() { if (st.hoja) return st.hoja; if (st.vista === "inicio" && !st.ronda.abierta) return "sinRonda"; return st.vista; }
 
   function render() {
     pantalla.innerHTML = V[st.vista]();
-    capa.innerHTML = (st.hoja ? `<div class="velo" data-fondo="1"><div class="hoja" role="dialog"><div class="asa"></div>${H[st.hoja]()}</div></div>` : "")
+    // La hoja solo entra animada al abrirse; los toques de adentro la redibujan sin repetir la entrada ni perder el scroll.
+    const hojaAntes = capa.querySelector(".hoja"), scrollAntes = hojaAntes ? hojaAntes.scrollTop : 0, yaAbierta = !!hojaAntes && capa.dataset.h === String(st.hoja);
+    capa.dataset.h = String(st.hoja);
+    capa.innerHTML = (st.hoja ? `<div class="velo${yaAbierta ? " quieta" : ""}" data-fondo="1"><div class="hoja${yaAbierta ? " quieta" : ""}" role="dialog"><div class="asa"></div>${H[st.hoja]()}</div></div>` : "")
       + (st.aviso ? `<div class="aviso" role="status">✓ ${st.aviso}</div>` : "");
+    if (yaAbierta) { const h = capa.querySelector(".hoja"); if (h) h.scrollTop = scrollAntes; }
     const k = claveNota(), [t, bullets] = NOTAS[k] || NOTAS.inicio;
     notas.innerHTML = `<div><span class="eyebrow">Qué mejora aquí</span><h2>${t}</h2></div>
       <div class="tarj"><ul>${bullets.map(b => `<li>${b}</li>`).join("")}</ul></div>
@@ -519,6 +619,8 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
 
   document.addEventListener("input", (e) => {
     if (e.target.id === "buscar") { st.c = st.c || { q: "" }; st.c.q = e.target.value; const pos = e.target.selectionStart; render(); const b = $("#buscar"); b.focus(); b.setSelectionRange(pos, pos); }
+    if (e.target.id === "ya-tenia") { guardarPlata(); render(); return; }
+    if (e.target.id === "q-cat" || e.target.id === "q-marca") { guardarNueva(); const k = e.target.id === "q-cat" ? "qCat" : "qMarca", id = e.target.id; st.nv[k] = e.target.value; const pos = e.target.selectionStart; render(); const b = document.getElementById(id); b.focus(); b.setSelectionRange(pos, pos); return; }
     if (e.target.id === "m-papel" && st.c) { st.c.montoPapel = e.target.value; const v = Number(e.target.value), tot = totalC(); const l = e.target.closest(".campo").querySelector(".ok-linea");
       const ok = Math.abs(v - tot) < 0.01; l.className = "ok-linea " + (ok ? "verde" : "ambar"); l.textContent = ok ? "✓ Cuadra con lo que anotaste" : `⚠ Anotaste ${S(tot)}: revisa las prendas o el papel`; }
   });
@@ -533,17 +635,21 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
       st.ronda.abierta = true;
       if (["c1", "c2", "c3"].includes(d.ver)) { if (!st.c || !st.c.prov) { nuevaCompra("rosa"); } if (d.ver !== "c1" && !st.c.lineas.length) st.c.lineas.push({ id: "emma", n: "Blusa Emma", e: "👚", cant: 6, costo: 20, tienda: "Trujillo" }); }
       if (d.ver === "listo") { st.ultima = { prendas: 6, prov: "Textiles Rosa", monto: 120, tiendas: ["Trujillo"] }; }
+      if (d.ver === "h:prenda") { nuevaCompra("rosa"); const x = PROVEEDORES[0].prendas[0]; st.h = { id: x.id, cant: 6, costo: x.costo.toFixed(2), venta: x.venta.toFixed(2), tiendas: ["Lima", "Trujillo"], reparto: { Lima: 3, Trujillo: 3 } }; st.vista = "c2"; st.hoja = "prenda"; render(); return; }
+      if (["h:nueva", "h:nueva2", "h:nueva3"].includes(d.ver)) { nuevaCompra({ "h:nueva": "rosa", "h:nueva2": "lucero", "h:nueva3": "gamarra" }[d.ver]); st.nv = nvVacio(); st.vista = "c2"; st.hoja = "nueva"; render(); return; }
+      if (d.ver === "h:plata") st.pl = plataVacia();
       if (d.ver.startsWith("h:")) { st.vista = "inicio"; st.hoja = d.ver.slice(2); render(); return; }
       ir(d.ver); return;
     }
     if (d.foto) { el.dataset.lista = "1"; el.innerHTML = `✓ <span><b>Foto lista</b>Tócala para cambiarla</span>`; return; }
     if (d.ir) { if (d.ir === "c1" && st.vista === "inicio") nuevaCompra(null); ir(d.ir); return; }
     if (d.hoja) {
-      if (d.hoja === "nueva") { st.marcaNueva = false; st.nn = 4; }
+      if (d.hoja === "nueva") { st.nv = nvVacio(); }
+      if (d.hoja === "plata") st.pl = plataVacia();
       st.hoja = d.hoja; render(); return;
     }
     if (d.detalle) { st.det = Number(d.detalle); st.hoja = "detalle"; render(); return; }
-    if (d.prov) { st.c.prov = d.prov; st.c.lineas = []; ir("c2"); return; }
+    if (d.prov) { st.c.prov = d.prov; st.c.lineas = []; st.c.cat = null; st.c.todos = false; ir("c2"); return; }
     if (d.prenda) {
       const p = PROVEEDORES.find(x => x.id === st.c.prov), x = p.prendas.find(y => y.id === d.prenda);
       const ya = st.c.lineas.filter(l => l.id === x.id);
@@ -559,11 +665,19 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
     if (d.pago) { st.c.montoPapel = leer("m-papel") ?? st.c.montoPapel; st.c.pago = d.pago; render(); return; }
     if (d.medio) { st.c.medio = d.medio; render(); return; }
     if (d.fardo) { st.fardos = st.fardos || {}; st.fardos[d.fardo] = Math.max(1, (st.fardos[d.fardo] || 1) + Number(d.d)); render(); return; }
-    if (d.nn) { st.nn = Math.max(1, (st.nn || 4) + Number(d.nn)); const c = $("#n-cant"); if (c) c.textContent = st.nn; return; }
+    if (d.pm) { guardarPlata(); st.pl.medio = d.pm; render(); return; }
+    if (d.pb) { guardarPlata(); st.pl.banco = d.pb; render(); return; }
+    if (d.fcat !== undefined) { st.c.cat = d.fcat || null; st.c.todos = false; render(); return; }
+    if (d.combo) { guardarNueva(); const k = d.combo === "cat" ? "comboCat" : "comboMarca"; st.nv[k] = !st.nv[k]; st.nv[d.combo === "cat" ? "comboMarca" : "comboCat"] = false; render(); return; }
+    if (d.pick) { guardarNueva(); const n = st.nv; if (d.pick === "cat") { n.cat = d.v; n.comboCat = false; n.qCat = ""; } else { n.marca = d.v; n.comboMarca = false; n.qMarca = ""; } render(); return; }
+    if (d.nt) { guardarNueva(); const n = st.nv; n.tiendas = n.tiendas.includes(d.nt) ? (n.tiendas.length > 1 ? n.tiendas.filter(t => t !== d.nt) : n.tiendas) : [...n.tiendas, d.nt]; parejo(n); render(); return; }
+    if (d.nr) { guardarNueva(); const n = st.nv; n.reparto[d.nr] = Math.max(0, (n.reparto[d.nr] || 0) + Number(d.d)); render(); return; }
+    if (d.nn) { guardarNueva(); const n = st.nv; n.cant = Math.max(1, n.cant + Number(d.nn)); if (n.tiendas.length > 1) parejo(n); render(); return; }
     const grupo = el.closest("[data-grupo]");
     if (grupo && (el.classList.contains("chip") || el.classList.contains("ficha")) && !d.accion) { grupo.querySelectorAll(".chip, .ficha").forEach(c => c.setAttribute("aria-pressed", String(c === el))); return; }
     switch (d.accion) {
       case "abrir": st.ronda = { abierta: true, texto: "RC-000613", desde: "hoy " + hora() }; st.items = st.items.filter(i => i.tipo === "plata" && i.estado[0] === "Por confirmar"); avisar("Abriste tu ronda RC-000613"); return;
+      case "ver-todos": st.c.todos = true; break;
       case "anteriores": st.verAnteriores = !st.verAnteriores; break;
       case "cerrar-hoja": st.hoja = null; break;
       case "vez": { const p = PROVEEDORES.find(x => x.id === st.c.prov); st.h.cant = p.prendas.find(x => x.id === st.h.id).vez; if (st.h.tiendas.length > 1) parejo(st.h); break; }
@@ -576,12 +690,13 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
         st.hoja = null; break;
       }
       case "agregar-nueva": {
-        const t = (capa.querySelector('[data-grupo="z"] [aria-pressed="true"]') || {}).dataset?.nt || "Lima";
-        st.c.lineas.push({ id: "nueva-" + Date.now(), nueva: true, n: leer("n-nombre") || "Prenda nueva", e: "✨", cant: st.nn || 4, costo: Number(leer("n-costo")) || 0, tienda: t });
+        guardarNueva(); const n = st.nv;
+        const reparto = n.tiendas.length > 1 ? n.reparto : { [n.tiendas[0]]: n.cant }, nid = "nueva-" + Date.now();
+        for (const [t, k] of Object.entries(reparto)) if (k > 0) st.c.lineas.push({ id: nid, nueva: true, n: n.nombre || EJEMPLO[n.cat] || "Prenda nueva", e: "✨", cant: k, costo: Number(n.costo) || 0, tienda: t });
         st.hoja = null; break;
       }
-      case "marca-nueva": st.marcaNueva = !st.marcaNueva; break;
-      case "registrar-prov": { const n = leer("p-nombre") || "Proveedor nuevo"; PROVEEDORES.push({ id: "sol", nombre: n, det: "Recién registrado", reciente: true, prendas: [] }); st.c.prov = "sol"; st.hoja = null; ir("c2"); avisar(`Registraste a ${n}`); return; }
+      case "marca-nueva": guardarNueva(); st.nv.marcaNueva = !st.nv.marcaNueva; st.nv.comboMarca = false; break;
+      case "registrar-prov": { const n = leer("p-nombre") || "Proveedor nuevo"; PROVEEDORES.push({ id: "sol", nombre: n, det: "Recién registrado", reciente: true, cats: [], marcas: [], prendas: [] }); st.c.prov = "sol"; st.hoja = null; ir("c2"); avisar(`Registraste a ${n}`); return; }
       case "parte": st.c.parte = !st.c.parte; break;
       case "guardar": {
         const monto = Number(leer("m-papel")) || totalC(), p = PROVEEDORES.find(x => x.id === st.c.prov);
@@ -593,7 +708,7 @@ h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46
         st.c = null; ir("listo"); return;
       }
       case "otra": nuevaCompra(null); ir("c1"); return;
-      case "guardar-plata": { const m = Number(leer("m-plata")) || 0; const ya = $("#ya-tenia")?.checked; st.items.push({ tipo: "plata", hora: hora(), t: ya ? "Ya tenía de antes" : "Me dieron plata", d: ya ? "De la ronda anterior" : "Por confirmar en Compras", monto: m, estado: ["Por confirmar", "pizarra"] }); st.hoja = null; avisar(`Anotaste ${S(m)}`); return; }
+      case "guardar-plata": { guardarPlata(); const m = Number(st.pl.monto) || 0, ya = st.pl.ya; st.items.push({ tipo: "plata", hora: hora(), t: ya ? "Ya tenía de antes" : "Me dieron plata", d: ya ? "De la ronda anterior" : st.pl.medio + (st.pl.medio === "Transferencia" ? " · " + st.pl.banco : ""), monto: m, estado: ["Por confirmar", "pizarra"] }); st.hoja = null; avisar(`Anotaste ${S(m)}`); return; }
       case "guardar-gasto": { const m = Number(leer("m-gasto")) || 0; const c = (capa.querySelector('[data-grupo="x"] [aria-pressed="true"]') || {}).dataset?.concepto || "Gasto"; st.items.push({ tipo: "gasto", hora: hora(), t: c, d: "Compras lo revisa", monto: -m, estado: ["Por revisar", "pizarra"] }); st.hoja = null; avisar(`Anotaste ${S(m)} en ${c.toLowerCase()}`); return; }
       case "mandar": { const n = prendasPorMandar(); for (const i of st.items) if (i.tiendas) i.mandada = true; st.hoja = null; st.vista = "inicio"; avisar(`Mandaste ${n} prendas a las tiendas`); return; }
       case "cerrar-ronda": { const t = tiene(); st.anteriores.unshift({ texto: st.ronda.texto, cuando: "hoy", res: t > 0 ? `Devuelves ${S(t)}` : t < 0 ? `Te devuelven ${S(-t)}` : "Quedó en cero", compras: st.items.filter(i => i.tipo === "compra").length, prendas: st.items.reduce((s, i) => s + (i.tiendas ? Object.values(i.tiendas).reduce((a, b) => a + b, 0) : 0), 0) });
