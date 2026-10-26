@@ -281,6 +281,7 @@
     "pruebas:plan-compra-descuento": "node scripts/pruebas/plan_compra_descuento.mjs",
     "pruebas:plan-compra-historial-lineas": "node scripts/pruebas/plan_compra_historial_lineas.mjs",
     "pruebas:plan-compra-versiones": "node scripts/pruebas/plan_compra_versiones.mjs",
+    "pruebas:plan-compra-calendario": "node scripts/pruebas/plan_compra_calendario.mjs",
     "pruebas:plan-compra-plazo": "node scripts/pruebas/plan_compra_plazo.mjs",
     "pruebas:plan-compra-minimo": "node scripts/pruebas/plan_compra_minimo_con_modulo.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
