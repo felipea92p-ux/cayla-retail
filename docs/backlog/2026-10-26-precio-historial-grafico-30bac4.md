@@ -1,4 +1,4 @@
-## 💸 Historial del costo de la prenda (2026-10-26) — migración 20261024223000 SIN pegar en producción; rama `claude/precio-historial-grafico-30bac4`
+## 💸 Historial del costo de la prenda (2026-10-26) — migración 20261024223000 EN PRODUCCIÓN (2026-10-26); rama `claude/precio-historial-grafico-30bac4`
 
 Maqueta elegida: `docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html`. Decisiones de Felipe (2026-10-24): la forma A
 (escalera), corregir el costo solo de la ÚLTIMA compra, y «Hoy: N prendas» como estimado (se vende primero lo que llegó antes).
@@ -11,7 +11,7 @@ Maqueta elegida: `docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.htm
 - [ ] 5 · Corregir el costo de la última compra: RPC solo líder, motivo obligatorio, tabla nueva de correcciones (append-only,
       nunca editar `costo_historial`), hoja con guía de foco, prueba de base, `/chaos`, ADR. Necesita reservar ADR y migración.
 - [ ] 6 · Cierre: recorrer la guía (`guias:recorrer`), `/formidable`, `tema:auditar`, sacar el PR de borrador.
-- [ ] **Pegar en producción** 20261024223000 (solo crea una función de lectura; sin políticas) — con el OK de Felipe.
+- [x] **Pegada en producción** 20261024223000 el 2026-10-26, con el OK de Felipe: md5(prosrc) = cdbef27edac56c0e830b07821b9cecca (igual que en local); anon no la ejecuta; con un líder lee las compras de una prenda real.
 - [ ] **Sin probar con una cuenta real:** se verificó con datos de ejemplo sacados de la base local, sin sesión.
 - [ ] Los arreglos de costo hechos entre el 23 y el 26-sep quedaron anotados como `costo` (antes de 20260927190000) y no salen
       en «Errores arreglados».
