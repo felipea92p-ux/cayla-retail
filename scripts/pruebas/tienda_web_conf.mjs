@@ -14,7 +14,7 @@
  *      carpeta con nombre de uuid y JPG o WebP; vacío la quita; la web y el ERP la traen; si nada cambió no anota; la tabla también lo exige;
  *      el líder o quien tenga el módulo sube al almacén (y solo a ese) y nadie borra lo subido.
  *   ACTIVIDAD 5 · el horario por días: `guardar_horario_tienda_web` guarda los días y el texto corto en un solo paso, reemplaza lo anterior,
- *      rechaza todo lo que no sea una hora de media en media dentro del día (y no deja nada a medias), la tabla también lo exige, nadie la
+ *      rechaza todo lo que no sea una hora de a 15 minutos dentro del día (20261026205000) (y no deja nada a medias), la tabla también lo exige, nadie la
  *      lee ni escribe directo, la web y el ERP traen los días, y solo el líder o quien tenga el módulo.
  *   ACTIVIDAD 6 · los cierres por fecha: `guardar_cierres_tienda_web` deja exactamente las fechas que llegan de hoy en adelante (hora de Lima),
  *      reemplaza lo anterior, no toca los días pasados, rechaza fechas que no existen, pasadas, repetidas o a más de dos años sin dejar nada a
@@ -35,7 +35,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = process.env.CONTENEDOR_LOCAL ?? "supabase_db_cayla-retail";
-const MIGRACION = readFileSync("supabase/migrations/20261026162000_tienda_web_conf_tienda.sql", "utf8");
+// Las dos migraciones de Conf. Tienda, en orden: la grande (20261026162000) y la que pasa el horario de a 30 a de a 15 minutos (20261026205000).
+const MIGRACION = ["20261026162000_tienda_web_conf_tienda.sql", "20261026205000_tienda_web_horario_de_a_15_minutos.sql"]
+  .map((f) => readFileSync(`supabase/migrations/${f}`, "utf8"))
+  .join("\n");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Tienda Trujillo, sin el módulo
 
@@ -378,13 +381,35 @@ select (detalle -> 'antes' -> 'dias') = '[]'::jsonb and jsonb_array_length(detal
     esperar("solo se anota el cambio de verdad, con antes, después y quién lo hizo", anotados === "1" && detalle === "t", r);
   }
   {
+    const CUARTOS = '[{"dia":0,"abre":495,"cierra":1260},{"dia":1,"abre":510,"cierra":1305},{"dia":2,"abre":525,"cierra":1275}]';
+    const r = correr(`${ESCENA}${HORARIO("t1", CUARTOS, "Lun 8:15 a. m.–9 p. m.")}
+select string_agg(dia || ':' || abre || '-' || cierra, ',' order by dia) from retail.ubicacion_horario_web where ubicacion_id = :'t1';
+select (s #>> '{dias,0,abre}') || '|' || (s ->> 'horario') from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s where s ->> 'id' = :'t1';`);
+    const [filas, web] = lineas(r);
+    esperar("guarda horas de a 15 minutos (8:15, 8:30, 8:45, 9:15 p. m., 9:45 p. m.) y la web las trae", filas === "0:495-1260,1:510-1305,2:525-1275" && web === "495|Lun 8:15 a. m.–9 p. m.", r);
+  }
+  {
+    // Lo que ya estaba guardado de a 30 sigue valiendo con la regla nueva (la migración se pega sobre una tabla con datos).
+    const r = correr(`begin;\n${readFileSync("supabase/migrations/20261026162000_tienda_web_conf_tienda.sql", "utf8")}
+${INTENTO}
+select id as t1 from retail.ubicaciones where tipo = 'tienda' and activo order by nombre limit 1 \\gset
+insert into retail.ubicacion_horario_web values (:'t1', 0, 600, 1260);
+${readFileSync("supabase/migrations/20261026205000_tienda_web_horario_de_a_15_minutos.sql", "utf8")}
+select count(*) from retail.ubicacion_horario_web where ubicacion_id = :'t1' and abre = 600 and cierra = 1260;
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 1, 615, 1260)', :'t1'));
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 2, 610, 1260)', :'t1'));`);
+    const [queda, cuarto, diez] = lineas(r);
+    esperar("pegar la migración sobre horas ya guardadas de a 30 no las toca; el CHECK nuevo deja 10:15 y sigue rechazando 10:10", queda === "1" && cuarto === "SIN_ERROR" && (diez ?? "").includes("ubicacion_horario_web_horas"), r);
+  }
+  {
     const malos = [
       ['[{"dia":7,"abre":600,"cierra":1260}]', "un día que no existe (7)"],
       ['[{"dia":-1,"abre":600,"cierra":1260}]', "un día negativo"],
       ['[{"dia":0,"abre":600,"cierra":1260},{"dia":0,"abre":700,"cierra":800}]', "el mismo día dos veces"],
       ['[{"dia":0,"abre":1260,"cierra":600}]', "abrir después de cerrar"],
       ['[{"dia":0,"abre":600,"cierra":600}]', "abrir y cerrar a la misma hora"],
-      ['[{"dia":0,"abre":615,"cierra":1260}]', "una hora que no es de media en media (10:15)"],
+      ['[{"dia":0,"abre":610,"cierra":1260}]', "una hora que no es de a 15 minutos (10:10)"],
+      ['[{"dia":0,"abre":600,"cierra":1265}]', "un cierre que no es de a 15 minutos (9:05 p. m.)"],
       ['[{"dia":0,"abre":600,"cierra":1470}]', "cerrar pasado el día (más de 24 h)"],
       ['[{"dia":0,"abre":600.5,"cierra":1260}]', "una hora con decimales"],
       ['[{"dia":0,"abre":"600","cierra":1260}]', "una hora escrita como texto"],
@@ -394,7 +419,7 @@ select (detalle -> 'antes' -> 'dias') = '[]'::jsonb and jsonb_array_length(detal
     ];
     for (const [dias, que] of malos) {
       const r = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, %L::jsonb, null)', :'t1', '${dias}'));`);
-      esperar(`rechaza ${que}`, r.ok && (r.salida.includes("media en media hora") || r.salida.includes("lista de días")), r);
+      esperar(`rechaza ${que}`, r.ok && (r.salida.includes("de a 15 minutos") || r.salida.includes("lista de días")), r);
     }
     const nula = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, null, null)', :'t1'));`);
     esperar("rechaza un horario nulo (para quitarlo se manda una lista vacía)", nula.ok && nula.salida.includes("lista de días"), nula);
@@ -406,14 +431,14 @@ select count(*) from retail.ubicacion_horario_web where ubicacion_id = :'t1';`);
   }
   {
     const r = correr(`${ESCENA}reset role;
-select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 615, 1260)', :'t1'));
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 610, 1260)', :'t1'));
 select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 7, 600, 1260)', :'t1'));
 select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 600, 1470)', :'t1'));
 set local role authenticated;
 select pg_temp.intento('select count(*) from retail.ubicacion_horario_web');
 select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 600, 1260)', :'t1'));`);
     const [media, dia7, pasada, leer, escribir] = lineas(r);
-    esperar("la tabla tampoco deja una hora a las 10:15, un día 7 ni cerrar pasado el día, aunque se escriba por fuera (CHECK)", [media, dia7, pasada].every((m) => (m ?? "").includes("ubicacion_horario_web_")), r);
+    esperar("la tabla tampoco deja una hora a las 10:10, un día 7 ni cerrar pasado el día, aunque se escriba por fuera (CHECK)", [media, dia7, pasada].every((m) => (m ?? "").includes("ubicacion_horario_web_")), r);
     esperar("nadie lee ni escribe la tabla directo, ni el líder: todo pasa por las funciones", (leer ?? "").includes("permission denied") && (escribir ?? "").includes("permission denied"), r);
   }
   {
