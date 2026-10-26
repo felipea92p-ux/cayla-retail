@@ -517,6 +517,13 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Si la orden se abrió sin tela, o el consumo salió mal calculado, aquí lo arreglas: agregas, corriges o quitas la tela y los avíos. Lo que ya se usó se queda: no se quita, solo se corrige cuánto lleva cada prenda.",
     },
     {
+      id: "ficha-modelo",
+      ancla: "prod-orden.ficha-modelo",
+      opcional: true,
+      titulo: "La ficha del modelo",
+      texto: "«Ficha del modelo» guarda lo que lleva el modelo en general: la tela de cada talla y los avíos. Las órdenes nuevas lo proponen solas; esta orden no cambia (para eso, «Editar»).",
+    },
+    {
       id: "editar-tela-lista",
       ancla: "prod-orden-editar-tela.lista",
       opcional: true,
