@@ -168,6 +168,7 @@ export default async function Catalogo({ searchParams }: Props) {
   const filtros = filtrosDeLaLista(datosDeFiltros, colorTallaPedido, delNivel);
   const colorTalla = filtros.elegido;
   const hayFiltros = filtros.indice !== null && hayElegido(colorTalla);
+  const sinFiltrar = hayElegido(colorTallaPedido) && filtros.indice === null;
   const vista = prendasQuePasan(filtros, delNivel);
   // Las tarjetas se dibujan en páginas de 30 (lib/paginas.ts; Felipe 2026-10-19). El conteo y los filtros siguen siendo de la lista entera.
   const pag = paginaDe(vista.length, leerPagina(sp.pagina), POR_PAGINA);
@@ -507,6 +508,15 @@ export default async function Catalogo({ searchParams }: Props) {
                 </>
               )}
             </ProveedorFiltros>
+            {/* Pidieron color o talla y la base no pudo decir qué variantes hay: la lista se ve entera, y se dice (si no, parecería que filtró). */}
+            {sinFiltrar && (
+              <div className="fp-aviso fp-aviso-solo" role="status">
+                <p>Ahora no podemos filtrar por color y talla: ves toda la lista.</p>
+                <Link href={href({})} scroll={false}>
+                  Quitar color y talla
+                </Link>
+              </div>
+            )}
             <ElegidoALaVista selector=".t-filtros .t-pildoras, .t-filtros .t-subcats" />
             {/* Sin prendas, el vacío de abajo dice lo que pasa: un «0 prendas» encima solo lo repetía. */}
             {vista.length > 0 && (

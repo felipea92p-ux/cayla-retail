@@ -59,6 +59,10 @@
 .fp-aviso p { margin: 0; flex: 1; }
 .fp-aviso button { position: relative; min-height: 32px; padding: 6px 4px; border: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; color: var(--tinta); }
 .fp-aviso button::before { content: ""; position: absolute; inset: -6px -8px; }
+/* El aviso de la página (servidor): el mismo, con un enlace en vez del botón. */
+.fp-aviso a { position: relative; min-height: 32px; padding: 6px 4px; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; color: var(--tinta); white-space: nowrap; }
+.fp-aviso a::before { content: ""; position: absolute; inset: -6px -8px; }
+.fp-aviso-solo { margin-top: -4px; }
 
 /* ══════════ LAS OPCIONES (muestras y chips) ══════════ */
 .fp-op { position: relative; border: 0; background: none; border-radius: 0; padding: 0; color: var(--tinta); text-align: left; font-family: var(--sans); font-variation-settings: "wdth" 100; }
