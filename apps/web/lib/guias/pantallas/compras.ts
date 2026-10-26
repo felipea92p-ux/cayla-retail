@@ -1990,6 +1990,15 @@ export const GUIA_MI_PLATA: Guia = {
       demostrar: [{ tipo: "clic", ancla: "mi-plata.medio" }],
     },
     {
+      id: "banco",
+      ancla: "mi-plata.banco",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.me-dieron" }, { tipo: "clic", ancla: "mi-plata.transferencia" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "¿De qué banco salió?",
+      texto: "Si te llegó por transferencia, di de cuál banco de la empresa salió (viene el BCP). Esa cuenta es la que baja en Finanzas; Compras la confirma y la puede cambiar.",
+    },
+    {
       id: "ya-tenia",
       ancla: "mi-plata.ya-tenia",
       opcional: true,
