@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ListChecks, Sparkles, X } from "lucide-react";
+import { ListChecks, Plus, Sparkles, X } from "lucide-react";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
@@ -32,8 +32,10 @@ import { DescribirNuevas } from "./DescribirNuevas";
 
 // «¿Qué blusas son?» (ADR-0393, decisiones 1 y 8; la maqueta A): separar lo contado por prenda, si se quiere. Una conocida se busca por su
 // nombre (entre las de esa categoría y marca) y se pone cuántas eran; con sus tallas y colores entra al stock al cerrar, sin ellas queda
-// «por detallar». Lo nuevo es solo cuántas («por crear»); si se sabe qué son, «Describir ahora» lo anota. Lo que no se separa queda «sin
-// separar»: nada de esto frena el cierre. La misma pieza sirve en «Hacer ahora», con lo que quedó de una línea ya cerrada.
+// «por detallar». Lo nuevo es solo cuántas («por crear»); si se sabe qué son, «Describir ahora» lo anota, y una nueva ya descrita se puede
+// «Crear ahora» en el catálogo: desde ahí es una prenda conocida y le toca «Tallas y colores ahora» (el mismo camino que «Para después» ofrece
+// con el envío cerrado). Lo que no se separa queda «sin separar»: nada de esto frena el cierre. La misma pieza sirve en «Hacer ahora», con
+// lo que quedó de una línea ya cerrada.
 
 const BOTON_PASO =
   "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-taupe transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-30";
@@ -110,6 +112,7 @@ export function SepararPrendas({
   onSeparado,
   onTallas,
   onPrendaVista,
+  onCrearNueva,
   elegida = null,
 }: {
   categoria: CategoriaDeLinea;
@@ -121,6 +124,8 @@ export function SepararPrendas({
   onTallas: (p: PrendaSeparada) => void;
   /** Una prenda elegida en la búsqueda (con sus tallas y colores): la pantalla la guarda para la hoja de tallas. */
   onPrendaVista: (p: PrendaRecepcion) => void;
+  /** «Crear ahora» una nueva ya descrita: la pantalla abre la hoja de la prenda. Sin ella, la nueva solo queda «por crear» (se crea después). */
+  onCrearNueva?: (nueva: { cantidad: number; descripcion: string }) => void;
   /** La prenda que eligió la compradora al comprar desde el celular (ADR-0480): se ofrece de un toque, sin buscarla. */
   elegida?: { productoId: string; nombre: string | null; codigo: string | null } | null;
 }) {
@@ -168,7 +173,7 @@ export function SepararPrendas({
         onEsNueva={(texto) => onSeparado(describirNuevas(cambiarNuevasSinDescribir(separado, nuevas + 1), texto, 1))}
       />
 
-      <ul className="space-y-1.5">
+      <ul className="rc-filas-sep space-y-1.5">
         {separado.prendas.map((p) => (
           <li key={p.productoId} className="rc-fila-sep">
             <BaldosaCategoria categoria={categoria} tamano="chico" />
@@ -204,8 +209,10 @@ export function SepararPrendas({
                   {!enHacerAhora && <span className="text-[12.5px] text-taupe">o queda pendiente</span>}
                 </>
               )}
-              <PasoDePrendas valor={p.cantidad} etiqueta={p.nombre ?? "esta prenda"} minimo={1} onValor={(n) => onSeparado(cambiarCantidadPrenda(separado, p.productoId, n))} />
-              <Quitar etiqueta={p.nombre ?? "esta prenda"} onQuitar={() => onSeparado(quitarPrenda(separado, p.productoId))} />
+              <span className="inline-flex items-center gap-2">
+                <PasoDePrendas valor={p.cantidad} etiqueta={p.nombre ?? "esta prenda"} minimo={1} onValor={(n) => onSeparado(cambiarCantidadPrenda(separado, p.productoId, n))} />
+                <Quitar etiqueta={p.nombre ?? "esta prenda"} onQuitar={() => onSeparado(quitarPrenda(separado, p.productoId))} />
+              </span>
             </span>
           </li>
         ))}
@@ -220,9 +227,19 @@ export function SepararPrendas({
               <small className="block text-[12.5px] text-taupe">Nueva · se crea después, con su nombre, tallas y precio</small>
             </span>
             <span className="rc-fila-fin">
+              {onCrearNueva && (
+                <Boton type="button" peso="discreto" onClick={() => onCrearNueva(n)}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Plus aria-hidden className="h-4 w-4" />
+                    Crear ahora
+                  </span>
+                </Boton>
+              )}
               <Chip tono="pizarra">Por crear</Chip>
-              <PasoDePrendas valor={n.cantidad} etiqueta={n.descripcion} minimo={1} onValor={(c) => onSeparado(cambiarCantidadNuevaDescrita(separado, n.descripcion, c))} />
-              <Quitar etiqueta={n.descripcion} onQuitar={() => onSeparado(quitarNuevaDescrita(separado, n.descripcion))} />
+              <span className="inline-flex items-center gap-2">
+                <PasoDePrendas valor={n.cantidad} etiqueta={n.descripcion} minimo={1} onValor={(c) => onSeparado(cambiarCantidadNuevaDescrita(separado, n.descripcion, c))} />
+                <Quitar etiqueta={n.descripcion} onQuitar={() => onSeparado(quitarNuevaDescrita(separado, n.descripcion))} />
+              </span>
             </span>
           </li>
         ))}

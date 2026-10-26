@@ -26,6 +26,7 @@ import {
   leerContadas,
   lineasALaVista,
   ponerTallas,
+  prendaCreadaDeNueva,
   separarAnotada,
   textoPrendas,
   totalSeparado,
@@ -69,6 +70,8 @@ import { SepararPrendas } from "./SepararPrendas";
 type Hoja =
   | { tipo: "tallas"; grupo: string; original: PrendaSeparada; prenda: PrendaRecepcion }
   | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null }
+  // «Crear ahora» de una nueva ya descrita: la hoja de la prenda, sin una prenda de partida (la descripción es el nombre que se ofrece).
+  | { tipo: "crear"; grupo: string; nueva: { cantidad: number; descripcion: string } }
   | { tipo: "agregar" }
   | null;
 
@@ -198,9 +201,25 @@ export function ContarEnvio({
     setHoja({ tipo: "tallas", grupo: g.clave, original: p, prenda: completa });
   }
 
+  /**
+   * La prenda de «Crear ahora» ya existe (recién creada, o «Usar esa prenda»): esas nuevas dejan de estar «por crear» y pasan a ser la prenda,
+   * sin tallas todavía, y se sigue en su hoja de tallas. Se guarda ya: si la hoja de tallas se deja para después, la fila queda con
+   * «Tallas y colores ahora».
+   */
+  function prendaDeLaNueva(g: GrupoDeLineas, descripcion: string, prenda: PrendaRecepcion) {
+    onPrendaVista(prenda);
+    const separado = prendaCreadaDeNueva(g.separado, descripcion, prenda);
+    escribirSeparado(g, separado);
+    const original = separado.prendas.find((p) => p.productoId === prenda.productoId);
+    setHoja(original ? { tipo: "tallas", grupo: g.clave, original, prenda } : null);
+  }
+
   const grupoDeHoja = hoja && hoja.tipo !== "agregar" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
   // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
-  const lineaDeHoja = grupoDeHoja && hoja && hoja.tipo !== "agregar" ? lineaDeLaPrenda(grupoDeHoja, { productoId: hoja.original.productoId }) : null;
+  const lineaDeHoja =
+    grupoDeHoja && hoja && hoja.tipo !== "agregar"
+      ? lineaDeLaPrenda(grupoDeHoja, hoja.tipo === "crear" ? { descripcion: hoja.nueva.descripcion } : { productoId: hoja.original.productoId })
+      : null;
   const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
 
   // La balanza de abajo: todo lo que dijeron contra todo lo contado (sin aviso, nada con qué comparar).
@@ -381,6 +400,7 @@ export function ContarEnvio({
                     onSeparado={(s) => escribirSeparado(grupo, s)}
                     onTallas={(p) => void abrirTallas(grupo, p)}
                     onPrendaVista={onPrendaVista}
+                    onCrearNueva={(nueva) => setHoja({ tipo: "crear", grupo: grupo.clave, nueva })}
                     // La que eligió la compradora se ofrece de un toque solo si la categoría trae una (con varias, cada una tiene su «+»).
                     elegida={grupo.lineas.length === 1 ? (grupo.principal.linea?.prendaElegida ?? null) : null}
                   />
@@ -459,6 +479,26 @@ export function ContarEnvio({
             setHoja(null);
           }}
           onAbrirHoja={(modo, prenda) => setHoja({ tipo: "prenda", grupo: hoja.grupo, original: hoja.original, modo, prenda })}
+          onCerrar={() => setHoja(null)}
+        />
+      )}
+
+      {hoja?.tipo === "crear" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
+        <HojaPrenda
+          // Lo que se describió al contar se ofrece como nombre, igual que con «Crear ahora» de «Para después».
+          destino={{ ...destinoDe(detalle, lineaDeHoja, "nueva", null, proveedores.length), descripcionOrden: hoja.nueva.descripcion || (lineaDeHoja.linea?.descripcion ?? null) }}
+          categoria={categoriaDeHoja}
+          colores={catalogo?.colores ?? []}
+          responsable={responsable}
+          onListo={(prenda) => prendaDeLaNueva(grupoDeHoja, hoja.nueva.descripcion, prenda)}
+          onUsarExistente={async (productoId, nombre) => {
+            if (!grupoDeHoja.principal.categoria) return false;
+            const { prendas: halladas } = await buscarPrendasParaRecibir(grupoDeHoja.principal.categoria.id, marcaDeLinea(grupoDeHoja.principal).id, nombre);
+            const hallada = halladas.find((x) => x.productoId === productoId);
+            if (!hallada) return false;
+            prendaDeLaNueva(grupoDeHoja, hoja.nueva.descripcion, hallada);
+            return true;
+          }}
           onCerrar={() => setHoja(null)}
         />
       )}
