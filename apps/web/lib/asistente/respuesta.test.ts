@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
 import type { Sugerencia } from "./preseleccion";
+import { moduloDeLaGuia, textoSinAcceso } from "./sin-acceso";
 import { costoEnDolares, INSTRUCCIONES, mensajeDePregunta, revisarRespuesta, type RespuestaDeLaIA } from "./respuesta";
 
 const guia: Guia = {
@@ -66,6 +68,33 @@ describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", 
     const largo = `${"Primero ve a Comprobantes y busca la boleta del cliente. ".repeat(8)}Fin`;
     const r = revisar(ia({ texto: largo }), sugerencias);
     expect(r.tipo === "guia" && r.texto.length <= 320 && r.texto.endsWith(".")).toBe(true);
+  });
+});
+
+describe("sin acceso: una pantalla que el rol no ve solo se nombra", () => {
+  const caja = GUIAS.find((g) => g.ruta === "/caja")!;
+  const ajenas: Sugerencia[] = [{ guia: caja, href: "/caja", paso: null, puntos: 4 }];
+
+  it("con una pantalla de fuera del menú, el texto lo pone el sistema (nunca el de la IA) y dice el módulo", () => {
+    const r = revisarRespuesta(ia({ tipo: "sin_acceso", texto: "Ve a Caja y aprieta Cerrar caja.", tramos: [tramo(caja.id)] }), sugerencias, AQUI, ajenas);
+    expect(r).toMatchObject({ tipo: "sin_acceso", guiaId: caja.id, texto: textoSinAcceso(caja), modulo: moduloDeLaGuia(caja) });
+    expect(r.tipo === "sin_acceso" && r.texto).not.toContain("aprieta");
+  });
+
+  it("si la IA elige una pantalla ajena como si fuera de la persona, igual es «sin acceso»: nunca se la lleva", () => {
+    expect(revisarRespuesta(ia({ tramos: [tramo(caja.id, "barra-cierre")] }), sugerencias, AQUI, ajenas)).toMatchObject({ tipo: "sin_acceso" });
+  });
+
+  it("«sin acceso» con una pantalla que no estaba en ninguna lista: búsqueda sin IA", () => {
+    expect(revisarRespuesta(ia({ tipo: "sin_acceso", tramos: [tramo("inventada")] }), sugerencias, AQUI, ajenas)).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
+  });
+
+  it("al mensaje van solo los títulos de sus pasos, no lo que explican", () => {
+    const m = mensajeDePregunta("cerrar la caja", sugerencias, ajenas);
+    const fuera = m.slice(m.indexOf("<fuera_de_tu_menu>"));
+    expect(fuera).toContain(`id="${caja.id}"`);
+    const conTexto = caja.pasos.find((p) => p.ancla !== null && p.texto.length > 40)!;
+    expect(fuera).not.toContain(conTexto.texto);
   });
 });
 

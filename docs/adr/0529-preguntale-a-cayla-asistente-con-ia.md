@@ -183,6 +183,10 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   termina; si la persona sale, lo que faltaba se olvida. La demo entera de la pantalla sigue en «Demo» y en «Otras demos» del cajón.
 - **Un tramo espera hasta 8 s a que su pieza esté a la vista** antes de arrancar: una guía entera empieza con la bienvenida y le da
   tiempo a la pantalla; un tramo salta directo y, en una pantalla recién abierta, el botón todavía no estaba.
+- **«Sin acceso» lo escribe el sistema, no la IA** (actividad 4): la IA solo ve el título, el resumen y los títulos de los pasos de hasta
+  3 pantallas de módulos que el rol no tiene, y si una responde, la frase sale de `textoSinAcceso` («Eso se hace en Por pagar (Compras ▸
+  Historial de compras), y tu rol todavía no lo tiene. Pídeselo a tu líder de equipo…»). Así nunca explica cómo se hace algo de una
+  pantalla ajena. Una pantalla sin módulo (depende de la sede o de un permiso) no entra en esa lista.
 - **Un tramo no cuenta como demo vista entera**: la guía queda como ofrecida y su oferta de la primera vez no vuelve a salir.
 
 ## Producción

@@ -171,6 +171,11 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
                     </Boton>
                   </div>
                 </div>
+              ) : vigente.resultado.tipo === "sin_acceso" ? (
+                // Vive en un módulo que su rol no tiene (actividad 4): se dice a quién pedírselo, sin llevarla ni enseñarle la pantalla.
+                <Aviso tono="info" titulo="Eso no está en tu menú">
+                  {vigente.resultado.texto}
+                </Aviso>
               ) : vigente.resultado.tipo === "basico" ? (
                 <Aviso tono="info" chico>
                   Ahora no pude pensar una respuesta. Te dejo las demos que más se parecen a tu pregunta.

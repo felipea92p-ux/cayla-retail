@@ -2,9 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
 import { preseleccionar } from "@/lib/asistente/preseleccion";
+import { rutasFueraDelMenu } from "@/lib/asistente/sin-acceso";
 import {
   costoEnDolares,
   ESPERA_IA_MS,
+  GUIAS_AJENAS_PARA_LA_IA,
   GUIAS_PARA_LA_IA,
   INSTRUCCIONES,
   LARGO_MAXIMO_PREGUNTA,
@@ -29,6 +31,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 //            algo que no se le puede creer), `resultado.tipo` es «basico» y el cajón muestra la búsqueda sin IA: nunca se cae.
 //   ASUME:   sesión válida. El menú (qué pantallas puede ofrecer) se arma AQUÍ con los módulos de la cuenta, no con lo que mande el
 //            navegador: nadie se entera por la IA de una pantalla que su rol no ve.
+//            Lo que vive en un módulo que su rol no tiene solo se nombra («sin_acceso»: a quién pedírselo), nunca se enseña.
 //   NO HACE: no guarda nada todavía (la pregunta se guarda desde la actividad 5) y no lee datos de la tienda.
 //
 // POR QUÉ EN EL SERVIDOR: la clave de Anthropic (`ANTHROPIC_API_KEY`) cuesta plata por pregunta; si viajara al navegador, cualquiera
@@ -80,6 +83,9 @@ export async function POST(request: Request) {
   const pregunta = limpiarDatosPersonales(cuerpo.data.pregunta);
   const rutaActual = sinConsulta(cuerpo.data.ruta);
   const sugerencias = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu, rutaActual, cuantas: GUIAS_PARA_LA_IA });
+  // Las pantallas de un módulo que su rol no tiene: la IA solo puede decir que existen y a quién pedírselas (actividad 4).
+  const modulos = persona.modulos.map((m) => m.clave);
+  const ajenas = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: rutasFueraDelMenu({ guias: GUIAS, modulos }), rutaActual: "", cuantas: GUIAS_AJENAS_PARA_LA_IA });
 
   if (!process.env.ANTHROPIC_API_KEY) return basico("sin_clave");
 
@@ -94,7 +100,7 @@ export async function POST(request: Request) {
       system: [{ type: "text", text: INSTRUCCIONES, cache_control: { type: "ephemeral" } }],
       // Elegir de una lista corta no pide pensar mucho, y la persona está esperando: el esfuerzo más bajo.
       output_config: { format: zodOutputFormat(RespuestaDeLaIA), effort: "low" },
-      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias) }],
+      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas) }],
     });
 
     if (process.env.NODE_ENV !== "production") {
@@ -105,7 +111,7 @@ export async function POST(request: Request) {
     }
     if (respuesta.stop_reason === "refusal") return basico("rechazo");
 
-    return Response.json({ resultado: revisarRespuesta(respuesta.parsed_output ?? null, sugerencias, rutaActual) });
+    return Response.json({ resultado: revisarRespuesta(respuesta.parsed_output ?? null, sugerencias, rutaActual, ajenas) });
   } catch (error) {
     // Lo que se anota lleva el tipo de error y su código, nunca la pregunta (ADR-0424).
     console.error(`[asistente] sin respuesta de la IA: ${error instanceof Anthropic.APIError ? `${error.constructor.name} ${error.status ?? ""}` : error instanceof Error ? error.name : "desconocido"}`);
