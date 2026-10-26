@@ -2279,7 +2279,14 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       ancla: "compra.lineas",
       opcional: true,
       titulo: "Tu compra",
-      texto: "Cada prenda con cuántas, su costo y su tienda. Tócala y se abre su hoja para corregirla o quitarla. Abajo, el total y lo que ganas si se vende todo.",
+      texto: "Una tarjeta por prenda, con cuántas, su costo y a qué tiendas va (si va a dos, ves cuántas a cada una). Tócala y se abre su hoja para corregirla o quitarla.",
+    },
+    {
+      id: "resumen",
+      ancla: "compra.resumen",
+      opcional: true,
+      titulo: "La cuenta de la compra",
+      texto: "El total, cuánto le toca a cada tienda y lo que ganas si se vende todo. Todavía no dice quién paga: eso viene en el paso del papel.",
     },
     {
       id: "al-papel",

@@ -12,6 +12,8 @@ import {
   opcionesCategoriaNueva,
   opcionesMarcaNueva,
   chipsDeLoHabitual,
+  prendasDeLaCompra,
+  totalesPorTienda,
   TOPE_CHIPS_NUEVA,
   PROVEEDORES_POR_TANDA,
   tandaDeLista,
@@ -259,6 +261,25 @@ describe("algo nuevo de este proveedor", () => {
     // Proveedor nuevo, sin historial: ningún chip.
     expect(chipsDeLoHabitual(todas, [], "c")).toEqual({ chips: [], fuera: "c" });
   });
+  it("«¿Está bien así?»: una prenda repartida entre dos tiendas es UNA fila, con cuántas va a cada una", () => {
+    const base = { productoId: null, categoriaId: "c", marcaId: null, categoria: "Blusas", marca: null, venta: 60 };
+    const lineas = [
+      { ...base, clave: "a", nombre: "Blusa Aurora", cantidad: 2, costo: 14, destinoId: "tru" },
+      { ...base, clave: "b", nombre: "Polo Tito", cantidad: 1, costo: 10, destinoId: "lim" },
+      { ...base, clave: "a", nombre: "Blusa Aurora", cantidad: 1, costo: 14, destinoId: "lim" },
+    ];
+    const prendas = prendasDeLaCompra(lineas);
+    expect(prendas.map((p) => [p.clave, p.indice, p.cantidad, p.total, p.tiendas])).toEqual([
+      ["a", 0, 3, 42, [{ destinoId: "tru", cantidad: 2 }, { destinoId: "lim", cantidad: 1 }]],
+      ["b", 1, 1, 10, [{ destinoId: "lim", cantidad: 1 }]],
+    ]);
+    expect(prendasDeLaCompra([])).toEqual([]);
+    // Lo mismo, por tienda y en el orden en que se anotaron.
+    expect(totalesPorTienda(lineas)).toEqual([
+      { destinoId: "tru", prendas: 2, total: 28 },
+      { destinoId: "lim", prendas: 2, total: 24 },
+    ]);
+  });
   it("el nombre: de 3 a 80 letras, sin contar los espacios de más", () => {
     expect(faltaNombreNuevo("")).toBe("Escribe el nombre de la prenda");
     expect(faltaNombreNuevo("  ab  ")).toBe("Escribe el nombre de la prenda");
@@ -417,9 +438,11 @@ describe("la hoja de la prenda (rediseño)", () => {
     expect(textoAgregarPrenda({ cantidad: "", costo: "1" }, false)).toBe("Agregar");
   });
   it("la barra negra suma prendas, plata y modelos", () => {
-    const r = resumenCarrito([{ cantidad: 12, costo: 17.5 }, { cantidad: 20, costo: 9 }]);
+    const r = resumenCarrito([{ clave: "a", cantidad: 12, costo: 17.5 }, { clave: "b", cantidad: 20, costo: 9 }]);
     expect([plano(r.titulo), r.detalle]).toEqual(["32 prendas · S/ 390.00", "2 modelos"]);
-    expect(resumenCarrito([{ cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
+    expect(resumenCarrito([{ clave: "a", cantidad: 1, costo: 5 }]).detalle).toBe("1 modelo");
+    // Un mismo modelo repartido entre dos tiendas (dos líneas, una clave) sigue siendo 1 modelo.
+    expect(resumenCarrito([{ clave: "a", cantidad: 2, costo: 14 }, { clave: "a", cantidad: 1, costo: 14 }]).detalle).toBe("1 modelo");
   });
 });
 

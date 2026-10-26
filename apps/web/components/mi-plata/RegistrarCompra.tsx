@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Check, ChevronRight, Plus, Store, Truck } from "lucide-react";
+import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
 import { FichasMedio } from "@/components/ui/FichasMedio";
 import { CaminoDePasos } from "./CaminoDePasos";
@@ -62,6 +63,8 @@ import {
   conMarcasCreadas,
   marcasDeHabituales,
   prendasDeLineas,
+  prendasDeLaCompra,
+  totalesPorTienda,
   resumenCarrito,
   textoAvance,
   lineaDeAvance,
@@ -517,14 +520,23 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             {/* «Algo nuevo», fijo abajo junto a lo que lleva la compra (Felipe 2026-10-23): con muchas prendas, la tarjeta del final de la
                 grilla quedaba lejos y en el celular había que bajar hasta ella. */}
             {Array.isArray(habituales) && (
-              <Boton peso="fantasma" className="w-full" onClick={() => algoNuevo()} data-guia="compra.algo-nuevo">
-                <span className="inline-flex items-center gap-2">
-                  <Plus className="h-4 w-4" aria-hidden />
-                  {/* También es la salida de quien no encuentra la prenda en la grilla o no sabe cómo la llaman en la tienda (Felipe
-                      2026-10-23): la describe como la conoce, y Recibir la registra después. */}
-                  Algo nuevo, o no la encuentras aquí
+              <button
+                type="button"
+                onClick={() => algoNuevo()}
+                data-guia="compra.algo-nuevo"
+                /* unificar-fijo: la misma fila punteada de «Es un proveedor nuevo», en chico, para que «Algo nuevo» se vea sin competir con la barra */
+                className="card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] border-dashed border-tinta/50 bg-papel px-3 py-2 text-left"
+              >
+                <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
+                  <Plus className="h-4 w-4" />
                 </span>
-              </Boton>
+                {/* También es la salida de quien no encuentra la prenda en la grilla o no sabe cómo la llaman en la tienda (Felipe
+                    2026-10-23): la describe como la conoce, y Recibir la registra después. */}
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold leading-tight text-tinta">Algo nuevo</span>
+                  <span className="block truncate text-xs text-taupe">Una prenda que no está en la lista</span>
+                </span>
+              </button>
             )}
             {lineas.length > 0 ? (
               <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema" data-guia="compra.carrito">
@@ -557,45 +569,98 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               Elige qué le compras.
             </Vacio>
           ) : (
-            <ul className="divide-y divide-sand" data-guia="compra.lineas">
-              {lineas.map((l, i) => (
-                <li key={`${l.clave}-${i}`}>
-                  <button type="button" onClick={() => corregir(i)} className="w-full text-left">
-                    {filaDeLinea(l)}
-                  </button>
-                </li>
-              ))}
+            // Una tarjeta por prenda (no una fila por tienda): su foto, cuántas y a cuánto, y a qué tiendas va; el total a la derecha.
+            <ul className="flex flex-col gap-2.5" data-guia="compra.lineas">
+              {prendasDeLaCompra(lineas).map((pr) => {
+                const c = deCategoria.get(pr.categoriaId);
+                return (
+                  <li key={pr.clave}>
+                    <button
+                      type="button"
+                      onClick={() => corregir(pr.indice)}
+                      className="card-cayla mov-boton grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3 rounded-[18px] p-3 text-left"
+                    >
+                      <MiniaturaPrenda fotoUrl={(pr.productoId && fotos.get(pr.productoId)) || null} tamano="lg" prefijo={c?.prefijo} familia={c?.familia} categoria={pr.categoria} />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-tinta">{pr.nombre}</span>
+                        <span className="block text-xs tabular-nums text-taupe">
+                          {pr.cantidad} × {soles(pr.costo)}
+                        </span>
+                        <span className="mt-1.5 flex flex-wrap gap-1.5">
+                          {pr.tiendas.map((t) => (
+                            <Chip key={t.destinoId} tono="neutro" versalitas={false}>
+                              {nombresTienda.get(t.destinoId) ?? "Tienda"} {t.cantidad}
+                            </Chip>
+                          ))}
+                        </span>
+                      </span>
+                      <span className="flex flex-col items-end gap-1">
+                        <span className="whitespace-nowrap font-medium tabular-nums text-tinta">{soles(pr.total)}</span>
+                        <ChevronRight className="h-4 w-4 text-taupe" aria-hidden />
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
-          <button type="button" className="btn-cayla btn-enlace self-start" onClick={() => setPaso("habituales")}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Otra prenda de {nombreCorto}
+          <button
+            type="button"
+            onClick={() => setPaso("habituales")}
+            /* unificar-fijo: la misma fila punteada de «Es un proveedor nuevo» y «Algo nuevo», en chico */
+            className="card-cayla mov-boton grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3 rounded-[16px] border-dashed border-tinta/50 bg-papel px-3 py-2 text-left"
+          >
+            <span aria-hidden className="grid h-8 w-8 place-items-center rounded-full bg-tinta text-crema">
+              <Plus className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 truncate text-sm font-semibold text-tinta">Otra prenda de {nombreCorto}</span>
           </button>
           {lineas.length > 0 && (
-            <div className="flex items-baseline justify-between border-t border-sand pt-3">
-              {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Pagar después», y paga Compras). */}
-              <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
-              <span className="font-serif text-3xl tabular-nums text-tinta">{soles(total)}</span>
+            // La cuenta de la compra: lo que cuesta, lo que se vende y lo que se gana, y qué le toca a cada tienda.
+            <div className="card-cayla flex flex-col gap-3 rounded-[18px] p-4" data-guia="compra.resumen">
+              {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Paga Compras»). */}
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
+                <span className="font-serif text-3xl tabular-nums text-tinta">{soles(total)}</span>
+              </div>
+              {totalesPorTienda(lineas).length > 1 && (
+                <ul className="flex flex-col gap-1 border-t border-sand pt-2.5 text-sm">
+                  {totalesPorTienda(lineas).map((t) => (
+                    <li key={t.destinoId} className="flex justify-between gap-3 text-tinta/75">
+                      <span>
+                        {nombresTienda.get(t.destinoId) ?? "Tienda"} · {t.prendas === 1 ? "1 prenda" : `${t.prendas} prendas`}
+                      </span>
+                      <span className="tabular-nums">{soles(t.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {ganancia && (
+                <p
+                  /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-[12px] bg-verde/10 px-3 py-2.5 text-sm"
+                >
+                  <span className="text-tinta">
+                    Si se vende todo, ganas
+                    <span className="block text-xs text-taupe">Vendes {soles(ganancia.vendes)}</span>
+                  </span>
+                  <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
+                </p>
+              )}
             </div>
           )}
-          {ganancia && (
-            <p
-              /* unificar-fijo: el dato de lo que se gana si se vende todo (la maqueta), no un aviso */ className="flex items-center justify-between gap-3 rounded-[14px] bg-verde/10 px-3.5 py-3 text-sm"
-            >
-              <span className="text-tinta">
-                Si se vende todo, ganas
-                <span className="block text-xs text-taupe">Vendes {soles(ganancia.vendes)}</span>
-              </span>
-              <b className="text-[17px] tabular-nums text-verde">{soles(ganancia.ganas)}</b>
-            </p>
-          )}
           <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur">
-            <Boton peso="primario" className="w-full" onClick={alPapel} disabled={lineas.length === 0} data-guia="compra.al-papel">
-              <span className="inline-flex items-center gap-2">
-                Sigue: el papel
-                <ArrowRight className="h-4 w-4" aria-hidden />
+            <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema">
+              <span className="min-w-0 flex-1">
+                <b className="block truncate text-[15px] font-medium tabular-nums">{resumenCarrito(lineas).titulo}</b>
+                <span className="block text-xs text-crema/75">{resumenCarrito(lineas).detalle}</span>
               </span>
-            </Boton>
+              <Boton peso="fantasma" className="border-transparent bg-crema" onClick={alPapel} disabled={lineas.length === 0} data-guia="compra.al-papel">
+                <span className="inline-flex items-center gap-2">
+                  Sigue: el papel
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </span>
+              </Boton>
+            </div>
           </div>
         </section>
       )}

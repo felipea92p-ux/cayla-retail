@@ -350,12 +350,73 @@ export function textoPrendaEnCompra(lineas: readonly LineaCompra[], nombres: Rea
   return `${prendasDeLineas(lineas)} × ${soles(primera.costo)} · ${tiendas}`;
 }
 
+/**
+ * «¿Está bien así?» (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26: «esto también podría mejorar bastante»): UNA fila por prenda,
+ * no una por tienda. Una prenda repartida entre dos tiendas son dos líneas con la misma clave; aquí vuelven a ser una, con cuántas va a cada
+ * tienda. `indice`: la primera de sus líneas, para corregirla (corregir y quitar mueven todas las de esa clave a la vez).
+ */
+export type PrendaDeLaCompra = {
+  clave: string;
+  indice: number;
+  productoId: string | null;
+  nombre: string;
+  categoria: string;
+  categoriaId: string;
+  cantidad: number;
+  /** Lo que costó cada una (en una prenda, todas cuestan lo mismo). */
+  costo: number;
+  total: number;
+  tiendas: { destinoId: string; cantidad: number }[];
+};
+
+export function prendasDeLaCompra(lineas: readonly LineaCompra[]): PrendaDeLaCompra[] {
+  const porClave = new Map<string, PrendaDeLaCompra>();
+  lineas.forEach((l, i) => {
+    const antes = porClave.get(l.clave);
+    if (!antes) {
+      porClave.set(l.clave, {
+        clave: l.clave,
+        indice: i,
+        productoId: l.productoId,
+        nombre: l.nombre,
+        categoria: l.categoria,
+        categoriaId: l.categoriaId,
+        cantidad: l.cantidad,
+        costo: l.costo,
+        total: Math.round(l.cantidad * l.costo * 100) / 100,
+        tiendas: [{ destinoId: l.destinoId, cantidad: l.cantidad }],
+      });
+      return;
+    }
+    antes.cantidad += l.cantidad;
+    antes.total = Math.round((antes.total + l.cantidad * l.costo) * 100) / 100;
+    const t = antes.tiendas.find((x) => x.destinoId === l.destinoId);
+    if (t) t.cantidad += l.cantidad;
+    else antes.tiendas.push({ destinoId: l.destinoId, cantidad: l.cantidad });
+  });
+  return [...porClave.values()];
+}
+
+/** Lo que va a cada tienda: cuántas prendas y cuánto cuestan, en el orden en que se anotaron. Para decir «Lima 1 prenda · S/ 14.00». */
+export function totalesPorTienda(lineas: readonly LineaCompra[]): { destinoId: string; prendas: number; total: number }[] {
+  const por = new Map<string, { destinoId: string; prendas: number; total: number }>();
+  for (const l of lineas) {
+    const t = por.get(l.destinoId) ?? { destinoId: l.destinoId, prendas: 0, total: 0 };
+    t.prendas += l.cantidad;
+    t.total = Math.round((t.total + l.cantidad * l.costo) * 100) / 100;
+    por.set(l.destinoId, t);
+  }
+  return [...por.values()];
+}
+
 /** La barra negra de abajo: «12 prendas · S/ 210.00» y «2 modelos». */
-export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo">[]): { titulo: string; detalle: string } {
+export function resumenCarrito(lineas: readonly Pick<LineaCompra, "cantidad" | "costo" | "clave">[]): { titulo: string; detalle: string } {
   const n = prendasDeLineas(lineas);
+  // Un modelo repartido entre dos tiendas son dos líneas con la misma clave: cuenta como uno (antes decía «2 modelos» con una sola prenda).
+  const modelos = new Set(lineas.map((l) => l.clave)).size;
   return {
     titulo: `${n === 1 ? "1 prenda" : `${n} prendas`} · ${soles(totalDeLineas(lineas))}`,
-    detalle: lineas.length === 1 ? "1 modelo" : `${lineas.length} modelos`,
+    detalle: modelos === 1 ? "1 modelo" : `${modelos} modelos`,
   };
 }
 
