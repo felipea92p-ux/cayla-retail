@@ -119,3 +119,20 @@ export function camposDeTelaUsada(e: EleccionTelaUsada, devuelve = false): Campo
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: devuelve ? "Elige quién anota esta devolución." : "Elige quién anota esto." },
   ];
 }
+
+export type EleccionEditarTela = {
+  /** Lo que `problemasTela` y `problemasDeEdicion` dicen de la lista tal como quedó (vacío = la base la aceptaría). */
+  faltas: readonly string[];
+  /** La lista de la hoja es distinta de la guardada (`hayCambios`): guardar lo mismo no es un paso. */
+  hayCambios: boolean;
+  responsableListo: boolean;
+};
+
+/** «Editar tela y avíos»: la lista entera es UN campo (la base la valida junta: `guardar_insumos_orden`) y después quién lo anota. Sin cambios o con una falta, la guía lo dice. */
+export function camposDeEditarTela(e: EleccionEditarTela): CampoDeGuia[] {
+  const bien = e.faltas.length === 0 && e.hayCambios;
+  return [
+    { id: "tela", nombre: "Tela y avíos", requerido: true, hecho: bien, pendiente: e.faltas[0] ?? "Cambia algo de la tela o de los avíos para guardar." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este cambio." },
+  ];
+}

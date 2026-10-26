@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
 import { marcasPorProveedor, rubrosConConteo, serie12Meses, esDeServicios, type MarcasDeProveedor, type TipoProveedor } from "@/lib/proveedores-reglas";
+import type { PrendaDeProveedor, RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
+import type { PrendaConProveedor } from "@/lib/proveedor-analisis-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -391,6 +393,98 @@ export async function getProveedorMetricasInsumos(id: string): Promise<MetricasI
     total_comprado: string | number;
   };
   return { ...fila, total_comprado: Number(fila.total_comprado) };
+}
+
+// Lo que se le compró a ESTE proveedor, prenda por prenda (fn_proveedor_prendas, 20261024221000): unidades y gasto
+// salen de las entradas de inventario al costo de la prenda (las líneas de factura mandan cuando existen); lo vendido,
+// de las ventas completadas. Solo lectura. Las reglas que lo agrupan y lo interpretan viven en `proveedor-prendas-reglas.ts`.
+export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_prendas", { p_proveedor_id: id }), "las prendas compradas al proveedor");
+  return filas.map((f) => ({
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    codigo: f.codigo,
+    marca: f.marca,
+    categoria: f.categoria,
+    unidadesCompradas: Number(f.unidades_compradas),
+    unidadesCompras: Number(f.unidades_compras),
+    unidadesSinFactura: Number(f.unidades_sin_factura),
+    unidadesCarga: Number(f.unidades_carga),
+    unidadesEstimadas: Number(f.unidades_estimadas),
+    gasto: Number(f.gasto),
+    gastoCompras: Number(f.gasto_compras),
+    gastoCarga: Number(f.gasto_carga),
+    costoPromedio: f.costo_promedio == null ? null : Number(f.costo_promedio),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    stockActual: Number(f.stock_actual),
+    primeraEntrada: f.primera_entrada,
+    ultimaVenta: f.ultima_venta,
+    conFactura: f.con_factura,
+  }));
+}
+
+// El ranking de la lista (fn_proveedores_rendimiento): lo comprado, lo vendido y lo parado de cada proveedor al que se le compró algo.
+export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_rendimiento"), "el rendimiento de los proveedores");
+  return filas.map((f) => ({
+    proveedorId: f.proveedor_id,
+    nombre: f.nombre,
+    esTaller: f.es_taller,
+    prendas: Number(f.prendas),
+    unidadesCompradas: Number(f.unidades_compradas),
+    unidadesCompras: Number(f.unidades_compras),
+    unidadesSinFactura: Number(f.unidades_sin_factura),
+    unidadesCarga: Number(f.unidades_carga),
+    unidadesEstimadas: Number(f.unidades_estimadas),
+    gasto: Number(f.gasto),
+    gastoCompras: Number(f.gasto_compras),
+    gastoCarga: Number(f.gasto_carga),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    plataEnStock: Number(f.plata_en_stock),
+    prendasSinVenta: Number(f.prendas_sin_venta),
+    plataSinVenta: Number(f.plata_sin_venta),
+    // Con la base de antes de 20261024234000 estas dos no llegan: el veredicto no puede medir el ritmo y cae a lo demás (no se rompe nada).
+    primeraEntrada: f.primera_entrada ?? null,
+    unidadesEnEstantes: Number(f.unidades_en_estantes ?? 0),
+  }));
+}
+
+// Todas las prendas de todos los proveedores (fn_proveedores_prendas): la materia prima del análisis «Lo que quizá no ves».
+export async function getProveedoresPrendas(): Promise<PrendaConProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_prendas"), "las prendas compradas a los proveedores");
+  return filas.map((f) => ({
+    proveedorId: f.proveedor_id,
+    proveedorNombre: f.proveedor,
+    esTaller: f.es_taller,
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    codigo: f.codigo,
+    marca: f.marca,
+    categoria: f.categoria,
+    unidadesCompradas: Number(f.unidades_compradas),
+    unidadesCompras: Number(f.unidades_compras),
+    unidadesSinFactura: Number(f.unidades_sin_factura),
+    unidadesCarga: Number(f.unidades_carga),
+    unidadesEstimadas: Number(f.unidades_estimadas),
+    gasto: Number(f.gasto),
+    gastoCompras: Number(f.gasto_compras),
+    gastoCarga: Number(f.gasto_carga),
+    costoPromedio: f.costo_promedio == null ? null : Number(f.costo_promedio),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    stockActual: Number(f.stock_actual),
+    primeraEntrada: f.primera_entrada,
+    ultimaVenta: f.ultima_venta,
+    conFactura: f.con_factura,
+  }));
 }
 
 // Lo que se le PAGA a un proveedor de servicios (Entel, luz, agua, alquiler): los comprobantes de gasto

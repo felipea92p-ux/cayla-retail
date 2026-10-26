@@ -27,14 +27,18 @@
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .caja-campo:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+    /* P2 de la familia (2026-10-26): en reposo el borde ya es el de control (3:1), así que hover y encendida suben UN escalón: una mezcla de
+       tinta (el mismo para los dos). Antes subían desde el sand (hover taupe al 60 %, encendida tinta al 38 %), que ahora quedaría MÁS débil que
+       el reposo. Encendida NO usa la tinta plena: con el cursor adentro ya se suman el anillo de foco de 2 px, el papel y el hilo rojo, y un borde
+       negro además se leía como un doble marco (visto en el ERP, no en la lámina, que no dibuja el anillo). */
+    .caja-campo:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   }
   /* Encendida: con el cursor adentro o la lista abierta. */
   .caja-campo:has(:is(input, textarea):focus),
   .caja-campo[aria-expanded="true"],
   .caja-campo:has([aria-expanded="true"]) {
     background: var(--color-papel);
-    border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+    border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
   }
   /* El hilo: se dibuja desde el centro en el borde de abajo. */
   .caja-campo::after {
@@ -97,7 +101,7 @@
     width: 100%;
     min-height: 2.5rem;
     padding: 0 0.75rem;
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--color-borde-control);
     border-radius: var(--radius-md);
     background-color: var(--color-hueso);
     background-image: linear-gradient(var(--color-rojo), var(--color-rojo));
@@ -109,11 +113,11 @@
     transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
   }
   @media (hover: hover) {
-    .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); }
+    .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   }
   .caja-campo-input:focus {
     background-color: var(--color-papel);
-    border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+    border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
     background-size: calc(100% - 1.25rem) 2px;
   }
   .caja-campo-input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
@@ -191,12 +195,17 @@
   /* El centro óptico de la serif: el de la tinta de «10» cae 1,3 px bajo el de la caja (medido en el navegador). */
   .paso-cantidad[data-tam="grande"] .paso-cantidad-c { transform: translateY(-1px); }
   .paso-cantidad-s { color: var(--color-taupe); line-height: 1; }
-  /* «planilla» («Ajustar stock» en el modal de la prenda de Existencias, ADR-0494, Felipe 2026-10-23): 44 px, el número contado en la
-     serif de 24 px y − y + redondos de 28 px (su ícono, de 14). Va en una tabla de colores × tallas: la caja mide 104 px y su columna 112 (`PLANILLA.columnaTalla`). */
-  .caja-campo.paso-cantidad[data-tam="planilla"] { height: 2.75rem; padding: 0 5px; border-radius: 12px; }
-  .paso-cantidad[data-tam="planilla"] .paso-cantidad-b { height: 1.75rem; border-radius: 999px; }
+  /* «planilla» («Ajustar stock» en el modal de la prenda de Existencias, ADR-0494; «Planilla rápida», ronda 2, Felipe 2026-10-26): 36 px,
+     el número contado en la serif de 20 px y − y + redondos de 24 px (su ícono, de 14); con el dedo, 44 px y − y + de 32. Va en una tabla
+     de colores × tallas: la caja mide ~92 px y su columna 104 (`PLANILLA.columnaTalla`). */
+  .caja-campo.paso-cantidad[data-tam="planilla"] { height: 2.25rem; padding: 0 4px; border-radius: 10px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-b { width: 1.5rem; height: 1.5rem; border-radius: 999px; }
   .paso-cantidad[data-tam="planilla"] .paso-cantidad-b svg { width: 14px; height: 14px; }
-  .paso-cantidad[data-tam="planilla"] .paso-cantidad-n { width: 2.25rem; font-family: var(--font-serif); font-size: 24px; font-weight: 500; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-n { width: 2.25rem; font-family: var(--font-serif); font-size: 20px; font-weight: 500; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+  @media (pointer: coarse) {
+    .caja-campo.paso-cantidad[data-tam="planilla"] { height: 2.75rem; }
+    .paso-cantidad[data-tam="planilla"] .paso-cantidad-b { width: 2rem; height: 2rem; }
+  }
   .paso-cantidad[data-tam="grande"] .paso-cantidad-s { font-family: var(--font-serif); font-size: 26px; }
 
   /* ---------- La lista que se abre (Desplegable, ComboBuscable, ComboResponsable, las píldoras de filtro) ----------
@@ -327,7 +336,7 @@
     appearance: none;
     cursor: pointer;
     border-radius: 6px;
-    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 35%, transparent);
+    border: 1.5px solid var(--color-borde-control); /* P2 de la familia: antes tinta al 35 % (2.2:1 en claro) */
     background: var(--color-papel);
     transition: border-color 150ms, scale 120ms var(--ease-cayla);
   }
@@ -377,9 +386,11 @@
     flex-shrink: 0;
     border-radius: 999px;
     background: color-mix(in srgb, var(--color-tinta) 22%, transparent);
-    transition: background-color 280ms var(--ease-cayla);
+    /* Apagado: el aro de control (P2 de la familia; el relleno solo daba 1.6:1). Prendido: el relleno de tinta ya lo identifica. */
+    box-shadow: inset 0 0 0 1.5px var(--color-borde-control);
+    transition: background-color 280ms var(--ease-cayla), box-shadow 280ms var(--ease-cayla);
   }
-  .interruptor[aria-checked="true"] { background: var(--color-tinta); }
+  .interruptor[aria-checked="true"] { background: var(--color-tinta); box-shadow: none; }
   .interruptor:disabled { cursor: not-allowed; }
   /* La perilla: se desliza al cambiar y se ESTIRA mientras se presiona (como un dedo que la empuja). */
   .interruptor-perilla {

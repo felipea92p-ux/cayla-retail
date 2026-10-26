@@ -46,7 +46,7 @@ marca; Felipe eligió que sea un campo del producto.
 
 - «Es nueva» al recibir y al contar, y el censo: caen a CAYLA sin preguntar; en Lima una cartera CLAURE debería preguntar.
 - Editar producto con la empresa corregible (toca `catalogo_actualizar_producto`, de reemplazo anclado, ADR-0384).
-- Que el **stock** de CLAURE viva solo en Lima (Existencias, Traslados, carga inicial): `empresa_sedes` ya tiene el dato.
+- ~~Que el **stock** de CLAURE viva solo en Lima (Existencias, Traslados, carga inicial)~~ **Hecho en ADR-0505 (2026-10-24):** un disparador en `movimientos` no deja moverla fuera de Lima, y Vender, Catálogo, Existencias, Recibir y Contar no la ofrecen en Trujillo ni Arequipa.
 - La etiqueta de **liquidación** solo cambió el link: sus piezas (`liquidacion_piezas`) no son productos y no tienen empresa; si hay piezas de CLAURE
   hay que decidir de dónde sale su empresa.
 - La ayuda del campo de **costo** de Nuevo producto, con CLAURE elegida, debería decir que es lo que CLAURE le cobra a CAYLA (la liquidación lee ese costo).

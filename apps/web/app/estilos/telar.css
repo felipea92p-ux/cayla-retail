@@ -10,14 +10,20 @@
   /* Justo bajo la cabecera del ERP (61–62 px, `AppShell`): queda 1–2 px por debajo de ella, y la cabecera (z-30) tapa la unión. */
   top: calc(3.75rem + env(safe-area-inset-top));
   z-index: 20;
-  margin: -0.5rem -1rem 1.5rem;
+  /* Arriba, el margen negativo se come el aire que el `<main>` deja bajo la cabecera (5 rem en celular, 6 rem desde 640 px, menos los 3,75 rem
+     del `top` de arriba): la barra nace donde se queda fija y, al bajar la página, no salta ni deja un hueco vacío sobre ella (Felipe 2026-10-26). */
+  margin: -1.25rem -1rem 1rem;
   padding: 0.5rem 1rem 0.25rem;
   /* Opaca: con transparencia el contenido que pasa por detrás se leía a través de las pestañas. */
   background: var(--color-crema);
   border-bottom: 1px solid var(--color-sand);
+  /* Lo que cabe en la fila depende del ancho de la barra, no del de la ventana (el lateral y el padding del <main> se llevan una parte
+     distinta según el tamaño): las reglas «solo íconos» de más abajo preguntan por ella. */
+  container: mesa / inline-size;
 }
 @media (min-width: 640px) {
   .mesa-telar {
+    margin-top: -2.25rem;
     margin-inline: -1.25rem;
     padding-inline: 1.25rem;
   }
@@ -25,92 +31,111 @@
 .mesa-telar-fila {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   min-width: 0;
   padding-block: 4px;
 }
-.mesa-telar-fila-2 {
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-.mesa-telar-palabra {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  line-height: 1;
-  white-space: nowrap;
-  flex: none;
-}
+/* Lo que se está mirando: toma el aire que queda entre el mes y «Te toca» (nunca empuja a «Te toca» a otra línea) y, si no cabe,
+   se parte en dos líneas; el texto entero queda en su `title`. */
 .mesa-telar-dice {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 42ch;
   font-size: 12.5px;
-  color: var(--color-taupe);
-  white-space: nowrap;
+  line-height: 1.35;
+  color: var(--color-taupe-profundo);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
-/* ---- Los hilos de sede: elegir una sede es tirar de su hilo ---- */
-.hilos-telar {
+/* El Resumen cuelga su ícono «Qué se ve» junto al mes. Hasta 1500 px la fila queda justa: ese texto de ayuda se esconde (ya está en su `title`)
+   para que «Registrar gasto» no baje a otra línea. Solo cuando el ícono existe; las otras pantallas de Finanzas no cambian. */
+@media (max-width: 1500px) {
+  .mesa-telar-fila:has(#slot-ajustes-resumen button) .mesa-telar-dice {
+    display: none;
+  }
+}
+
+/* ---- Ver sede: un botón por sede; se marcan una, varias o «Todas» (Felipe 2026-10-24: los hilos no se leían como filtro) ---- */
+.sedes-telar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 6px;
   min-width: 0;
+  padding: 4px 6px 4px 14px;
+  border-radius: 999px;
+  background: var(--color-hueso);
 }
-.hilo-telar {
-  --c: var(--color-taupe);
-  position: relative;
-  padding: 6px 11px 10px;
-  font-size: 13px;
+.sedes-telar-titulo {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-taupe-profundo);
+  margin-right: 2px;
   white-space: nowrap;
-  /* contraste: texto sobre crema, papel (tinta al 64 %: el piso de ADR-0336) */
-  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
-  border-radius: 10px;
-  transition: color 0.25s var(--ease-cayla), background-color 0.2s var(--ease-cayla);
 }
-.hilo-telar::after {
-  content: "";
-  position: absolute;
-  left: 11px;
-  right: 11px;
-  bottom: 4px;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--c);
-  transform: scaleX(0.22);
-  transform-origin: left;
-  opacity: 0.75;
-  transition: transform 0.5s var(--ease-cayla), opacity 0.3s var(--ease-cayla);
+.sede-telar {
+  --c: var(--color-taupe);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 13px 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-sand);
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-cayla), color 0.2s var(--ease-cayla), border-color 0.2s var(--ease-cayla), transform 0.2s var(--ease-cayla);
 }
+span.sede-telar { cursor: default; }
 @media (hover: hover) {
-  a.hilo-telar:hover {
-    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
-    color: var(--color-tinta);
-  }
-  a.hilo-telar:hover::after {
-    transform: scaleX(0.55);
+  button.sede-telar:hover {
+    border-color: var(--color-taupe);
+    transform: translateY(-1px);
   }
 }
-.hilo-telar:focus-visible {
+.sede-telar:focus-visible {
   outline: 2px solid var(--color-tinta);
   outline-offset: 2px;
 }
-.hilo-telar[aria-current="true"] {
-  color: var(--color-tinta);
-  font-weight: 600;
+.sede-telar[aria-pressed="true"] {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  border-color: var(--color-tinta);
 }
-.hilo-telar[aria-current="true"]::after {
-  transform: scaleX(1);
-  opacity: 1;
+/* El punto con el color de la sede: un aro cuando no está marcada; lleno y con su ✓ cuando sí. */
+.sede-telar-punto {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  color: var(--color-crema-fija);
+  transition: background-color 0.2s var(--ease-cayla);
 }
-.hilo-telar[data-color="tru"] { --c: var(--color-sede-tru); }
-.hilo-telar[data-color="aqp"] { --c: var(--color-sede-aqp); }
-.hilo-telar[data-color="lim"] { --c: var(--color-sede-lim); }
-.hilo-telar[data-color="tal"] { --c: var(--color-sede-tal); }
-.hilo-telar[data-color="emp"]::after {
-  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 3px, color-mix(in srgb, var(--color-sede-emp) 40%, transparent) 3px 6px);
-}
-.hilo-telar[data-color="todas"]::after {
-  background: linear-gradient(90deg, var(--color-sede-tru) 0 22%, var(--color-sede-aqp) 0 44%, var(--color-sede-lim) 0 64%, var(--color-sede-tal) 0 82%, var(--color-sede-emp) 0);
+.sede-telar[aria-pressed="true"] .sede-telar-punto { background: var(--c); }
+.sede-telar[data-color="tru"] { --c: var(--color-sede-tru); }
+.sede-telar[data-color="aqp"] { --c: var(--color-sede-aqp); }
+.sede-telar[data-color="lim"] { --c: var(--color-sede-lim); }
+.sede-telar[data-color="tal"] { --c: var(--color-sede-tal); }
+.sede-telar[data-color="emp"] { --c: var(--color-sede-emp); }
+.sede-telar[data-color="emp"][aria-pressed="true"] .sede-telar-punto {
+  background: repeating-linear-gradient(45deg, var(--color-sede-emp) 0 2px, color-mix(in srgb, var(--color-sede-emp) 45%, transparent) 2px 4px);
 }
 
-.mesa-telar-espacio { flex: 1 1 auto; }
+/* «Te toca» (y «Registrar gasto» tras él) van siempre a la derecha: el aire que el dicho no usa queda a su izquierda. */
+.mesa-telar-fila > .te-toca-telar { margin-left: auto; }
 .mesa-telar-registrar { flex: none; }
 
 /* ---- «Te toca»: cuántas cosas te tocan en Finanzas, y su cajón ---- */
@@ -149,7 +174,13 @@
 /* ---- El dock: lo que más se hace en este submódulo, abajo y al centro (solo escritorio) ---- */
 .dock-telar {
   position: fixed;
-  left: 50%;
+  /* Al centro del ÁREA de la pantalla, no de la ventana: el lateral ocupa `--spacing-lateral` a la izquierda (lo comparten la
+     cabecera, el <main> y las barras fijas, y cambia solo al plegarlo). Centrado en la ventana, a 1024 px el lateral tapaba la
+     acción principal. En un `fixed`, el 100 % es el ancho de la ventana sin la barra de scroll. */
+  left: calc(var(--spacing-lateral) + (100% - var(--spacing-lateral)) / 2);
+  max-width: calc(100% - var(--spacing-lateral) - 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
   bottom: calc(16px + env(safe-area-inset-bottom));
   z-index: 25;
   display: none;
@@ -481,8 +512,15 @@
   }
 }
 
-/* ---- Celular: líneas cortas (pestañas · hilos que se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
-@media (max-width: 1100px) {
+/* ---- Celular: líneas cortas (las sedes se deslizan · mes), para que la barra fija no se coma la pantalla ---- */
+/* Medidas de la fila con texto (2026-10-26): sedes 513 + mes 211 + «Te toca» 127 + «Registrar gasto» 151 + 3 huecos de 12 = 1038 px. Por debajo,
+   solo íconos (si no, la barra baja a dos filas y se come 43 px); y el dicho necesita ~150 px propios, o se queda en un hilo de 40 px. */
+@container mesa (max-width: 1190px) {
+  .mesa-telar-dice {
+    display: none;
+  }
+}
+@container mesa (max-width: 1049px) {
   /* Solo el ícono a la vista; el texto queda para el lector de pantalla (es el nombre del botón). */
   .te-toca-telar-texto,
   .mesa-telar-registrar-texto {
@@ -496,37 +534,30 @@
   .te-toca-telar { padding: 0 12px; }
 }
 @media (max-width: 639px) {
-  .mesa-telar-palabra,
   .mesa-telar-dice {
     display: none;
   }
   .mesa-telar-fila {
     padding-block: 2px;
   }
-  .mesa-telar-fila-2 {
-    row-gap: 4px;
+  .mesa-telar-fila {
+    flex-wrap: wrap;
+    row-gap: 6px;
   }
-  .hilos-telar {
+  .sedes-telar {
     flex: 1 0 100%;
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .hilos-telar::-webkit-scrollbar {
+  .sedes-telar::-webkit-scrollbar {
     display: none;
-  }
-  .hilo-telar {
-    padding-inline: 9px;
-  }
-  .hilo-telar::after {
-    left: 9px;
-    right: 9px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hilo-telar,
-  .hilo-telar::after,
+  .sede-telar,
+  .sede-telar-punto,
   .orillo-tramo,
   .retazo-pieza,
   .retazo-pieza > button,

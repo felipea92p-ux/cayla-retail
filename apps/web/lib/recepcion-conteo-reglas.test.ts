@@ -20,6 +20,10 @@ import {
   faltaParaCerrar,
   leerConteosDelEnvio,
   leerCostoCierre,
+  leerPrecioNuevo,
+  cambioDePrecioDeCompra,
+  cambioDePrecioDeVenta,
+  textoCambioDePrecio,
   leerGuardado,
   leerPendientesDeLaSede,
   leerResuelto,
@@ -58,7 +62,6 @@ import {
   leerContadas,
   mensajeAlGuardar,
   esEnvioSinAviso,
-  detalleDeEnvioSinAviso,
   marcaDeLinea,
   nombreDeLinea,
   guardadoDesde,
@@ -373,9 +376,6 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(esEnvioSinAviso({ lineas: 0, ordenes: [] })).toBe(true);
     expect(esEnvioSinAviso({ lineas: 2, ordenes: [] })).toBe(false);
     expect(esEnvioSinAviso({ lineas: 0, ordenes: ["OC-000465"] })).toBe(false);
-    expect(detalleDeEnvioSinAviso({ numeroGuia: "T001-9" })).toBe("Llegó sin aviso: se sigue contando · guía T001-9");
-    expect(detalleDeEnvioSinAviso({ numeroGuia: null })).toBe("Llegó sin aviso: se sigue contando");
-    expect(detalleDeEnvioSinAviso({ numeroGuia: "T001-9" }, "Textiles Andina SAC")).toBe("Llegó sin aviso: se sigue contando · Textiles Andina SAC · guía T001-9");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
     expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
     expect(proveedorDelSinAviso(null)).toBeNull();
@@ -726,5 +726,31 @@ describe("lista aparte (2026-10-14): «Llegó esta semana» cuenta lo guardado s
     expect(textoGuardadoEstaSemana({ envios: 1, prendas: 118 }, "Tienda Trujillo", false)).toMatch(/no entró nada al stock de Tienda Trujillo, pero llegaron 118 prendas/);
     expect(textoGuardadoEstaSemana({ envios: 1, prendas: 1 }, "Tienda Trujillo", true)).toMatch(/^Además llegaron 1 prenda que/);
     expect(textoGuardadoEstaSemana({ envios: 0, prendas: 0 }, "Tienda Trujillo", false)).toBeNull();
+  });
+});
+
+describe("precio de venta desde la recepción", () => {
+  it("lee el precio: vacío aún no es un problema; cero, mal escrito y sobre el tope sí", () => {
+    expect(leerPrecioNuevo("")).toEqual({ valor: null, problema: null });
+    expect(leerPrecioNuevo("159.90").valor).toBe(159.9);
+    expect(leerPrecioNuevo("159,90").valor).toBe(159.9);
+    expect(leerPrecioNuevo("0").problema).toMatch(/mayor que cero/);
+    expect(leerPrecioNuevo("abc").problema).toMatch(/solo con números/);
+    expect(leerPrecioNuevo("5000.01").problema).toMatch(/hasta/);
+    expect(leerPrecioNuevo("5000").valor).toBe(5000);
+  });
+  it("detecta el cambio de compra y de venta, y dice qué cambió y dónde", () => {
+    expect(cambioDePrecioDeCompra("Blusas", "18.50", "18.50")).toBeNull();
+    expect(cambioDePrecioDeCompra("Blusas", "18.50", "19.80")).toMatchObject({ tipo: "compra", antes: 18.5, despues: 19.8 });
+    expect(cambioDePrecioDeCompra("Blusas", "", "19.80")).toMatchObject({ antes: null, despues: 19.8 });
+    expect(cambioDePrecioDeCompra("Blusas", "18.50", "abc")).toBeNull();
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "149.90", "todas")).toBeNull();
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "159.90", "sede")).toMatchObject({ tipo: "venta", antes: 149.9, despues: 159.9, alcance: "sede" });
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "", "todas")).toBeNull();
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "75", "todas")).toMatchObject({ antes: null, despues: 75 });
+    expect(cambioDePrecioDeVenta("Ivana", undefined, "75", "todas")).toBeNull();
+    expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: 149.9, despues: 159.9, alcance: "todas" }, "Tienda Lima")).toBe("S/\u00a0149.90 → S/\u00a0159.90 · todas las sedes");
+    expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: null, despues: 89.9, alcance: "sede" }, "Tienda Lima")).toBe("sin precio → S/\u00a089.90 · solo Tienda Lima");
+    expect(textoCambioDePrecio({ tipo: "compra", nombre: "Blusas", antes: 18.5, despues: 19.8, alcance: null }, "Tienda Lima")).toBe("S/\u00a018.50 → S/\u00a019.80");
   });
 });

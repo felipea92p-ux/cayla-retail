@@ -713,7 +713,16 @@ export function GastoFijoModal({
  * tiendas». Una sede sin activos sale punteada y dice «Sin activos cargados»: así se ve lo que falta cargar. Tocar una sede lleva la
  * lista a esa sede. Lo que vale hoy es costo menos lo depreciado: es la cifra que el Balance toma de cada sede.
  */
-export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<typeof resumenActivosPorSede>; onVer: (ubicacionId: string) => void }) {
+export function ResumenActivosPorSede({
+  resumen,
+  onVer,
+  etiquetaTotal = "CAYLA · todas las sedes",
+}: {
+  resumen: ReturnType<typeof resumenActivosPorSede>;
+  onVer: (ubicacionId: string) => void;
+  /** Con varias sedes marcadas en la barra, el total es de ellas («Total de Trujillo y Lima»), no de CAYLA. */
+  etiquetaTotal?: string;
+}) {
   const { porSede, total } = resumen;
   const entra = (i: number): { className: string; style: CSSProperties } => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
   const detalle = (s: { activos: number; costo: number; alMes: number }) => (
@@ -725,7 +734,7 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
     </>
   );
   return (
-    <section className="fin-cifras fin-cifras-activos" aria-label="Activos de cada sede y total de CAYLA">
+    <section className="fin-cifras fin-cifras-activos" aria-label={`Activos de cada sede y ${etiquetaTotal}`}>
       {porSede.map((s, i) => (
         <TarjetaCifra
           key={s.ubicacionId}
@@ -740,7 +749,7 @@ export function ResumenActivosPorSede({ resumen, onVer }: { resumen: ReturnType<
       ))}
       {/* Antes llevaba `activa` (fondo sand/40) solo para resaltar el total; ese fondo era la marca de «elegida» y desde
           ADR-0358 se reserva para la cifra que filtra. */}
-      <TarjetaCifra etiqueta="CAYLA · todas las sedes" valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
+      <TarjetaCifra etiqueta={etiquetaTotal} valor={solesRedondo(total.valorHoy)} unidad="vale hoy" {...entra(porSede.length + 1)}>
         {detalle(total)}
       </TarjetaCifra>
     </section>

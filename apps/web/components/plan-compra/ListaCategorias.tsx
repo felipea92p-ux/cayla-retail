@@ -9,6 +9,7 @@ import { Boton } from "@/components/ui/campos";
 import { Encabezado, Tabla } from "@/components/ui/Tabla";
 import { Vacio, type FiltroVacio } from "@/components/ui/Vacio";
 import { FilaCategoria, columnasDelPlan, plantillaDelPlan } from "@/components/plan-compra/FilaCategoria";
+import type { PlazoDePedido } from "@/lib/plan-compra-plazo";
 import { pildoraVisible, type FormaTabla } from "@/lib/plan-compra-momento";
 import { LeyendaRango } from "@/components/plan-compra/BarraRango";
 import { aplicarFiltro, conteosDeFiltros, filtrarFilas, ordenarFilas, plegarSinMovimiento, type EstadoCampana, type FilaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
@@ -57,6 +58,7 @@ export function ListaCategorias({
   onSinMov,
   onAbrir,
   recientes,
+  plazo = null,
   vista,
   onVista,
   pasoAPaso,
@@ -81,6 +83,8 @@ export function ListaCategorias({
   onAbrir: (f: FilaPlan) => void;
   /** Las categorías guardadas en esta visita: su fila se enciende una vez (la confirmación de que entró). */
   recientes: ReadonlySet<string>;
+  /** La fecha límite para pedir (ADR-0499): cada fila con compra pendiente la dice. null = no se muestra. */
+  plazo?: PlazoDePedido | null;
   /** Cómo se llena el plan: la tabla (cada categoría se abre en su hoja) o el paso a paso (una a la vez, aquí mismo). */
   vista: VistaPlan;
   onVista: (v: VistaPlan) => void;
@@ -198,7 +202,7 @@ export function ListaCategorias({
       ) : (
         <>
           {visibles.map((f, i) => (
-            <FilaCategoria key={f.c.id} f={f} forma={forma} indice={i} recienGuardada={recientes.has(f.c.id)} onAbrir={() => onAbrir(f)} />
+            <FilaCategoria key={f.c.id} f={f} forma={forma} indice={i} recienGuardada={recientes.has(f.c.id)} plazo={plazo} onAbrir={() => onAbrir(f)} />
           ))}
           {plegadas.length > 0 && (
             <>
@@ -213,7 +217,7 @@ export function ListaCategorias({
                   <b className="font-semibold text-tinta">{plegadas.length}</b> {plegadas.length === 1 ? "categoría sin ventas ni stock" : "categorías sin ventas ni stock"} · no hace falta plan ahora
                 </span>
               </button>
-              {sinMovAbiertas && plegadas.map((f, i) => <FilaCategoria key={f.c.id} f={f} forma={forma} indice={i} recienGuardada={recientes.has(f.c.id)} onAbrir={() => onAbrir(f)} />)}
+              {sinMovAbiertas && plegadas.map((f, i) => <FilaCategoria key={f.c.id} f={f} forma={forma} indice={i} recienGuardada={recientes.has(f.c.id)} plazo={plazo} onAbrir={() => onAbrir(f)} />)}
             </>
           )}
         </>

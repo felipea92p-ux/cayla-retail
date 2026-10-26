@@ -58,8 +58,9 @@ const ESPERA_GUARDAR_MS = 700;
 type Paso = 1 | 2 | 3;
 // El mismo indicador del conteo de inventario (una función, una pieza: ADR-0358), en su forma «riel» (la maqueta A): tres paradas a lo
 // ancho con lo que pasó en cada una. Con el envío abierto, «Contar» y «Cerrar» se tocan para ir y volver.
+// Solo dos paradas: lo que antes era «¿Qué llegó?» ahora es la hoja «Detalle» de la lista de Recibir (Felipe 2026-10-24); un paso que ya no
+// se recorre aquí confundiría («¿me salté uno?»). Las claves siguen siendo «2» y «3».
 const PASOS = [
-  { clave: "1", nombre: "¿Qué llegó?" },
   { clave: "2", nombre: "Contar" },
   { clave: "3", nombre: "Cerrar" },
 ] as const;
@@ -308,10 +309,10 @@ export function RecibirContando({
         </>
       )}
 
-      {(porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe && (
+      {(estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe && (
         <PasosConteo
           forma="riel"
-          actual={String(estado === "en_camino" ? 1 : estado === "cerrado" ? 3 : paso)}
+          actual={String(estado === "cerrado" ? 3 : paso)}
           pasos={PASOS}
           subtitulos={subtitulos}
           etiqueta="Pasos de la recepción"

@@ -1,6 +1,8 @@
+import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import {
+  leerDetalleEnvio,
   leerPrendaPreparada,
   leerPrendasParaRecibir,
   leerResultadoApertura,
@@ -11,6 +13,7 @@ import {
   RPC_RECIBIR_DESPACHO,
   RPC_RECIBIR_SIN_ENVIO,
   type ArgsPrepararPrenda,
+  type DetalleEnvio,
   type ArgsRecibirDespacho,
   type PrendaRecepcion,
   type ResultadoApertura,
@@ -65,4 +68,10 @@ export async function buscarPrendasParaRecibir(categoriaId: string, marcaId: str
     { p_categoria_id: categoriaId, p_marca_id: marcaId, p_busqueda: busqueda.trim() || null } as never,
   )) as unknown as Respuesta;
   return { prendas: error ? [] : leerPrendasParaRecibir(data), error: error ?? null };
+}
+
+/** El detalle de un envío (`fn_envio_detalle`) leído desde el navegador: lo que trae, para la hoja «Detalle» de la lista de Recibir. Solo lee. */
+export async function leerDetalleDelEnvio(despachoId: string): Promise<{ detalle: DetalleEnvio | null; error: ErrorDeBase }> {
+  const { data, error } = (await createClient().rpc(RPC_DETALLE_ENVIO as never, { p_despacho_id: despachoId } as never)) as Respuesta;
+  return { detalle: error ? null : leerDetalleEnvio(data), error: error ?? null };
 }

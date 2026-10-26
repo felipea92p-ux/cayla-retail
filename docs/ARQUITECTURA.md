@@ -264,6 +264,9 @@ flowchart TB
   → RPC `bajar_a_piso` (mueve de `stock_almacen` a `stock` de piso). (V1; hoy: esa ruta y `bajar_a_piso` no
   existen; se baja con `mover_interno` desde «Reponer» de Existencias o con `bajar_al_piso` desde
   `/inventario/bajar`, ver «Inventario V2».)
+- `/recibir` y `/recibir/envio/[id]` (Recibir mercadería, ADR-0393/0503): la puerta lista los envíos por recibir en una tabla con buscador
+  (`EnviosParaRecibir.tsx` + `lib/recepcion-envio-busqueda.ts`) y el botón «Sin Aviso» (`LlegoSinAviso.tsx`); el cierre
+  (`recepcion-conteo/CerrarEnvio.tsx`) lleva la tarjeta «Costos y precios» y `PrecioDePrenda.tsx` → RPC `cambiar_precio_en_recepcion`.
 - `/inventario/recibir` → `lib/catalogo.ts` → `RecibirLoteForm.tsx` → RPC
   `recibir_lote` (la función más inestable del sistema, ver §6).
 - `/inventario/compras` → `ComprasManager.tsx` (escribe directo en
@@ -1014,7 +1017,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `cambiar_quien_fase`, `DeshacerAvanceModal` → `deshacer_avance`). **Desde R1 (ADR-0400 act. k y l, 2026-10-19) la ruta de fases es Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar** (la base acepta también la ruta anterior, Corte · Costura · Acabado, `fn_produccion_fases_normalizar`); **Ploteo es una fase que se marca en vez de contarse** (`MarcarFaseModal` → `marcar_fase_hecha` / `deshacer_marca_fase`, tabla `produccion_fase_marcas`, solo se agrega; `fn_fase_es_hito` y `lib/orden-fases-reglas.ts:FASES`), no entra a la cadena de cantidades (`fn_produccion_fase_anterior` la salta, así que Corte sigue siendo la primera que cuenta) y su servicio cobra por orden (el fijo). Las fases (`produccion_fases`) y lo anotado (`produccion_avances`, `produccion_salidas`,
   `produccion_vueltas`; solo se agrega, nunca se edita ni se borra: lo corregido es una fila contraria) las escriben solo funciones `security definer` (RLS sin políticas); `registrar_salida` y `registrar_vuelta` (hojas `AnotarSalidaModal` y
   `AnotarVueltaModal`: una sola tabla talla × color; la Vuelta elige con un segmento «Volvieron buenas · Segundas · Faltaron» y pide «qué pasó» si hay segundas o faltantes;
-  reglas puras en `lib/orden-pagina-reglas.ts`, guía de foco en `lib/orden-pagina-guia.ts`). Una Salida o una Vuelta mal anotada se **anula** con su motivo desde la línea de tiempo (`AnularSalidaOVueltaModal` → `anular_salida` / `anular_vuelta`, ADR-0400 actividad 4b): la base escribe una fila contraria (`anula_id`, cantidades en negativo; nada se borra) y la lectura marca cada salida y vuelta con `anulada` y `anulable`. **La tela usada (ADR-0400, actividad 7):** `TelaDeLaOrdenVista` ofrece «Anotar lo que usaste» y «Devolver lo que sobró» (`TelaUsadaModal` → `registrar_consumo_insumo` / `devolver_insumo_de_produccion`, partiendo entre lotes con `anotarConsumoEnLotes`; reglas puras en `lib/orden-tela-usada-reglas.ts`), «Terminé» del corte pregunta la tela, y «¿alcanza?» cuenta lo que otras órdenes reservan y muestra lo pedido (`fn_tela_pendiente_de_la_orden`, también dentro de `fn_ordenes_produccion_lista`; «Pedir N m» lleva a `/ordenes-insumos/nueva`). **El Resumen (`/produccion`, ADR-0400 actividad 8d)** cuenta lo que piden las órdenes con UNA cuenta (`demandaDelTaller` sobre `fn_tela_del_taller`: la tela declarada de cada orden y, donde no hay, el rendimiento medido), nombra los pedidos de cada tela (se muestran, no se suman), dice dónde está cada orden («Hoy en el Taller», la lectura de la lista) y manda a **pedir** cuando falta; quien no es líder ve `ProduccionSoloLider` en las cinco pantallas de dinero. **Pasar al stock, anular y revertir (ADR-0400, actividad 6)** se hacen en la página de la orden (`AccionesDeLaOrden` → `PasarAlStockModal` / `AnularLaOrdenModal` / `RevertirLaOrdenModal` → `cerrar_produccion`, `anular_produccion`, `revertir_produccion`; reglas puras en `lib/orden-pagina-reglas.ts`): `cerrar_produccion` no deja entrar más buenas que las terminadas en la última fase ni cierra con prendas afuera, toma el costo de servicios de lo devengado (`fn_costo_servicios_orden`) y escribe lo medido en `producto_consumos`; solo las buenas entran al stock; los costos del Taller (`fn_costos_producciones`, `fn_costos_insumos_taller`) los ve el líder o quien ve Producción en ese Taller (`fn_ve_costos_del_taller`). La hoja «Nueva orden» abre por `abrir_orden_produccion` (envuelve a `abrir_produccion` y `abrir_produccion_con_modelo_nuevo`) y
+  reglas puras en `lib/orden-pagina-reglas.ts`, guía de foco en `lib/orden-pagina-guia.ts`). Una Salida o una Vuelta mal anotada se **anula** con su motivo desde la línea de tiempo (`AnularSalidaOVueltaModal` → `anular_salida` / `anular_vuelta`, ADR-0400 actividad 4b): la base escribe una fila contraria (`anula_id`, cantidades en negativo; nada se borra) y la lectura marca cada salida y vuelta con `anulada` y `anulable`. **La tela usada (ADR-0400, actividad 7):** `TelaDeLaOrdenVista` ofrece «Anotar lo que usaste» y «Devolver lo que sobró» (`TelaUsadaModal` → `registrar_consumo_insumo` / `devolver_insumo_de_produccion`, partiendo entre lotes con `anotarConsumoEnLotes`; reglas puras en `lib/orden-tela-usada-reglas.ts`), «Terminé» del corte pregunta la tela, y «¿alcanza?» cuenta lo que otras órdenes reservan y muestra lo pedido (`fn_tela_pendiente_de_la_orden`, también dentro de `fn_ordenes_produccion_lista`; «Pedir N m» lleva a `/ordenes-insumos/nueva`). **Editar la tela y los avíos de una orden abierta (ADR-0510):** «Editar» / «Declarar tela y avíos» en `TelaDeLaOrdenVista` abre `EditarTelaModal` (el bloque `TelaDeLaOrden` de Nueva orden sobre lo declarado; datos de `getEdicionDeTela` en `lib/orden-pagina.ts`, reglas puras en `lib/orden-tela-editar-reglas.ts`) → `guardar_insumos_orden` (reemplaza la lista con la validación de abrir; no quita lo que ya tiene consumo; avíos por color con «Para»); los avisos «no declaró qué tela lleva» de «Terminé» en Corte y de «Pasar al stock» (`lib/orden-tela-sin-anotar-reglas.ts`) ofrecen declararla. **El Resumen (`/produccion`, ADR-0400 actividad 8d)** cuenta lo que piden las órdenes con UNA cuenta (`demandaDelTaller` sobre `fn_tela_del_taller`: la tela declarada de cada orden y, donde no hay, el rendimiento medido), nombra los pedidos de cada tela (se muestran, no se suman), dice dónde está cada orden («Hoy en el Taller», la lectura de la lista) y manda a **pedir** cuando falta; quien no es líder ve `ProduccionSoloLider` en las cinco pantallas de dinero. **Pasar al stock, anular y revertir (ADR-0400, actividad 6)** se hacen en la página de la orden (`AccionesDeLaOrden` → `PasarAlStockModal` / `AnularLaOrdenModal` / `RevertirLaOrdenModal` → `cerrar_produccion`, `anular_produccion`, `revertir_produccion`; reglas puras en `lib/orden-pagina-reglas.ts`): `cerrar_produccion` no deja entrar más buenas que las terminadas en la última fase ni cierra con prendas afuera, toma el costo de servicios de lo devengado (`fn_costo_servicios_orden`) y escribe lo medido en `producto_consumos`; solo las buenas entran al stock; los costos del Taller (`fn_costos_producciones`, `fn_costos_insumos_taller`) los ve el líder o quien ve Producción en ese Taller (`fn_ve_costos_del_taller`). La hoja «Nueva orden» abre por `abrir_orden_produccion` (envuelve a `abrir_produccion` y `abrir_produccion_con_modelo_nuevo`) y
   lee `fn_nueva_orden_opciones` (servicios con su lista de precios, consumo por modelo, tela comprometida) por `lib/produccion.ts:getOpcionesNuevaOrden`.
 - `/produccion/insumos` → `lib/insumos.ts:getInsumosDelTaller` (saldo derivado del ledger `movimientos_insumo`; el costo de cada lote llega a quien ve Producción en el Taller —`veCostos`, de `fn_costos_insumos_taller`— y el capital solo al líder) +
   `lib/insumos-reglas.ts` (puro) + `lib/telas-vocabulario.ts` (tejidos y colores de la prenda) → `InsumosPanel.tsx`, `InsumoModales.tsx` (RPC `recibir_insumo`), y desde ADR-0400 actividad 8e `insumos-taller/NuevoInsumoModal.tsx` (INSERT en `insumos`, con su guía de foco y
@@ -1110,7 +1113,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
-- `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
+- `/vender` → `lib/catalogo-v2.ts:getCatalogoDeLaSede` (el catálogo sin las prendas de una empresa que no opera en la sede —CLAURE
+  fuera de Lima— y con su insignia en Lima, `lib/empresas-de-sede-reglas.ts`, ADR-0505; lo mismo leen Apartados, Cambios, Buscar,
+  Recibir, Existencias, Contar y Cuadrar) + `lib/caja.ts:getCajaAbierta` +
   `stock` de todas las sedes que RLS deje ver (`lib/stock-por-sede.ts`: aquí + dónde más
   hay; la RPC `fn_stock_por_sede` para colaboradoras está escrita y sin aplicar; «Ventas
   de hoy» firma cada venta con la integrante vía `lib/nombre-integrante.ts`) →
@@ -1213,7 +1218,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `ComprasAgrupadas.tsx` (lista por día y compra) y `FlujoGuiado.tsx` (pasos, botones,
   validaciones, foco/Escape). Reglas puras compartidas —plazo R-38, `unidadesDisponibles`
   (descuenta lo cambiado y lo devuelto), validaciones— en `lib/cambios-reglas.ts`.
-- `/cambios` → `getVentasRecientes` + `getCatalogo` + stock del piso + `fn_stock_por_sede` +
+- `/cambios` → `getVentasRecientes` + `getCatalogoDeLaSede` + stock del piso + `fn_stock_por_sede` +
   `getCajaAbierta` + `lib/cambios-estadisticas.ts` (hoy / mes / valor cambiado; "tallas que no
   calzan" solo para líderes) → `CambiosPanel.tsx` (bloques "Iniciar un cambio" y "Actividad
   reciente", filas en `CambiosVentas.tsx`) → `CambiosFlujo.tsx` (Venta → Prenda → Reemplazo →
@@ -1464,9 +1469,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en seis entradas: Plan de campaña, `/compras/mi-plata`
-  («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), `/compras/fondos` («Revisar
-  compras», módulo `fondos`), Proveedores, Facturas de proveedor y Por pagar. `/compras/ordenes` sigue en el código sin entrada en el menú.
+- **Historial de compras = una fila, tres pestañas (ADR-0504, 2026-10-24):** `/compras` (Historial), `/compras/fondos` (Revisar compras) y
+  `/compras/por-pagar` (Por pagar) comparten la cabecera `components/compras/CabeceraHistorialCompras.tsx` (qué pestañas trae la cuenta y sus
+  contadores; dibuja `CabeceraDeCompras.tsx`) → `lib/compras-pestanas-reglas.ts` (puro) + `lib/compras-pestanas.ts` (conteos: `fn_revisar_compras`,
+  `fn_plata_por_confirmar`, `resumen_compras`). El menú tiene UNA fila (`compras.comprobantes`, `modulo: facturas_compra` + `modulosAlternos`
+  `fondos` y `por_pagar`, sin `exige`); cada pantalla sigue pidiendo su módulo y `/compras` manda a quien no ve el Historial a su primera pestaña.
+- **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en cuatro entradas (ADR-0504; eran seis): Plan de campaña,
+  `/compras/mi-plata` («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
+  de compras (con `/compras/fondos`, «Revisar compras», módulo `fondos`, y Por pagar como pestañas). `/compras/ordenes` sigue en el código sin entrada en el menú.
   Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
   la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
   `/compras/fondos` suma `getPlataPorConfirmar` (`fn_plata_por_confirmar`, vouchers firmados) + `components/mi-plata/PlataPorConfirmar.tsx`
@@ -1863,7 +1873,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   en `components/finanzas/{CascadaPulso,Confianza,DineroPulso,ImpuestosPulso,GastosPulso,ResultadoPulso,CierrePulso}.tsx` y los estilos
   `fin-pulso-*` en `app/estilos/finanzas.css`. Lo nuevo en la base (sin pegar al 2026-10-15): `fn_costo_estimado_prenda` + los disparadores
   `prendas_por_regularizar_costo_estimado` y `venta_items_costo_real` + `fn_costo_estimado_resumen` (20261015233000; `venta_items.costo_estimado`);
-  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen`; y los tipos
+  `fn_finanzas_confianza` (20261015235000) → `lib/finanzas-confianza.ts` (los pesos) → `<Confianza>` en `/finanzas/resumen` (desde 2026-10-24, una franja bajo la respuesta); y los tipos
   `pago_planilla` y `pago_sunat` de `movimientos_dinero` (20261016002000; `registrar_movimiento_dinero`, `fn_asientos_dinero_y_caja` 41 | 104 y
   4011 | 104), que ofrece el modal de `/finanzas/dinero` (`OPCIONES_QUE_PASO`) y enlaza Impuestos.
   **La planilla estimada por sede (ADR-0453, pegada en producción el 2026-10-17):** `fn_planilla_provision` (20261018040000; la interna
@@ -1910,7 +1920,18 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
     Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
     y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
-  - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
+  - `/finanzas/resumen` → el tablero que junta lo anterior (F10). Desde El telar (2026-10-23, ADR-0493) lee, además de
+    `fn_resumen_finanzas` (los avisos de hoy) y `fn_finanzas_confianza` (del mes elegido), `fn_estado_resultados` del mes de la barra
+    y del tramo con que se compara (`lib/resultados.ts`), y `fn_rendimiento_serie` por tienda si la cuenta ve Rendimiento
+    (`lib/resumen-telar.ts`). Lo dibujan `lib/resumen-telar-reglas.ts` (la respuesta y el orillo) y `lib/recorrido-plata-reglas.ts` →
+    `components/finanzas/RecorridoPlata.tsx` (el recorrido de la plata). **Desde 2026-10-24 (ADR-0493, actualización)**, cinco piezas más:
+    **Desde 2026-10-26 (ADR-0493, actualización c):** abre con `lib/tres-respuestas-reglas.ts` → `TresRespuestas.tsx` (tienes / debes pronto / te deja), va a ancho completo (desde la actualización d de ese ADR, como todo Finanzas: `/finanzas` salió de `CON_TOPE_DE_ANCHO`), y suma la inversión en mercadería tras bandera: `lib/inversion-mercaderia-reglas.ts` (etapas del plan, formas de pagar, la caja con la compra), `lib/inversion-mercaderia.ts` (el lector: hoy `null`, la base aún no lo trae), `InversionMercaderia.tsx`, `AjustesResumen.tsx` (+ `lib/ajustes-resumen-reglas.ts`, `useAjustesResumen`); `cajaProxima` acepta `inversion` y mira seis semanas.
+    `lib/caja-proxima-reglas.ts` → `CajaProxima.tsx` («Tu caja en las próximas dos semanas»; su lectura propia es `getFlujoProximo` →
+    `fn_flujo_caja_proyeccion`, la de Dinero ▸ Flujo, porque `fn_resumen_finanzas` recorta los cobros y solo trae el flujo mirando CAYLA entera),
+    `lib/resumen-cambios-reglas.ts` → `CambiosDelMes.tsx` (lo que más se movió contra el mismo tramo del mes pasado, con `conceptosER`),
+    `lib/equilibrio-mes-reglas.ts` → `EquilibrioMes.tsx` («¿Ya pagaste el mes?», que reemplazó a la línea de ventas contra la meta),
+    `lib/de-cada-cien-reglas.ts` → `DeCadaCien.tsx` («De cada S/ 100», sobre el recorrido) y `Confianza.tsx`, que pasó de tarjeta al fondo a
+    franja bajo la respuesta. Sin migración ni RPC nuevos.
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
   - `/tienda-web/ajustes` (ADR-0408, actividad 6; fue la pestaña `/configuracion?tab=tienda-web` hasta ADR-0430; módulo `ajustes_web` «Datos y plazos de la tienda web» desde 20261016223000, antes `configuracion`) → `lib/configuracion.ts`
@@ -1919,6 +1940,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     RPC `guardar_sede_tienda_web`, `guardar_whatsapp_tienda` (el WhatsApp es el mismo del QR del club) y
     `guardar_parametros_tienda_web`, firmadas con el responsable. Tablas `ubicacion_datos_web` y `configuracion_tienda_web`
     (**sin pegar en producción**). La tienda las lee con `tienda_sedes()` (§3.y).
+    **Desde el 2026-10-26 (ADR-0518, «Conf. Tienda»):** la pantalla es una fila de puertas (`components/tienda-web-conf/PuertaDeTienda.tsx`, `Fachada.tsx`) y el taller
+    de la tienda abierta con su teléfono en vivo (`TelefonoDeTienda.tsx`); el horario por días (`HorarioSemanal.tsx`, gestos en `lib/horario-edicion-reglas.ts`), los
+    cierres (`CierresDeTienda.tsx`) y el reloj del pedido con la escala de stock (`RelojDelPedido.tsx`) son piezas propias. RPC nuevas, todas del módulo `ajustes_web`:
+    `guardar_orden_tiendas_web`, `guardar_mapa_tienda_web`, `guardar_foto_tienda_web` (sube antes al almacén `retail-tiendas` con `lib/foto-de-tienda.ts`),
+    `guardar_horario_tienda_web` y `guardar_cierres_tienda_web`; tablas `ubicacion_horario_web` y `ubicacion_cierres_web` y columnas `orden`, `mapa_url`,
+    `foto_ruta` (migración `20261026162000`, **sin pegar en producción**). Las reglas compartidas con la tienda online viven en
+    `packages/shared/src/tienda-web-sede.ts` y `horario-de-tienda.ts`; la tienda las lee en `apps/tienda/lib/tiendas.ts` y dice «Abierta ahora» en
+    `apps/tienda/components/EstadoDeTienda.tsx` (calculado en el navegador, hora de Lima).
 - **Rendimiento con meta por persona** (ADR-0219, ADR-0325; módulo `rendimiento`, sin módulo nuevo — D-157):
   - `/rendimiento` (`?vista=hoy|semana|mes`, `?sede=`) → `lib/rendimiento.ts` (`leerPantallaRendimiento`: `fn_rendimiento_equipo` para los rankings, y `fn_metas_equipo`, `fn_rendimiento_serie`,
     `fn_metas_historial` para el panel; el panel es una lectura secundaria: si la base no lo tiene la pantalla sigue con los rankings y lo dice) + `lib/rendimiento-meta-reglas.ts` (puro: ventanas Hoy/Semana/Mes,
@@ -2186,7 +2215,7 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   precio en la tienda elegida y su nivel en cada tienda (lo libre de `fn_existencias_base`: piso + almacén, sin Cuarentena ni lo apartado,
   que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
   responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
-  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las insignias de Catálogo ▸ Insignias que alcanzan al modelo (a mano o por categoría, aprobadas, vigentes hoy y de esa tienda; sin descuento: ese es el chip rojo) llegan en `prenda.insignias` (`fn_tienda_insignias`, `20261023182000`, ADR-0489) y `chipsDelCatalogo` las pone entre «Nuevo» y «N.º … en más vendidos». Cada chip lleva el dibujo de su insignia (la calabaza de Halloween…): los dibujos y el reconocimiento por nombre viven en `packages/shared/src/insignias-visual.ts` (datos; el ERP los pinta en `components/MuestraEtiqueta.tsx` y la tienda en `components/IconoInsignia.tsx`). El dibujo se puede elegir al crear la insignia o cambiar desde su pase, y también se puede subir una imagen propia (`etiquetas.icono` o `etiquetas.icono_imagen`, excluyentes; `fijar_icono_etiqueta`; `components/sellos/ElegirDibujoDeInsignia.tsx`; la imagen se reduce en el navegador con `lib/imagen-de-insignia.ts` y va al almacén público `retail-insignias`; ADR-0490): manda la imagen, luego el dibujo elegido y luego el nombre (`dibujoResuelto`, `packages/shared/src/insignia-imagen.ts`), y la tienda lo recibe en `{id, nombre, icono, imagen, descuento}` de cada insignia. Las piezas
+  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las insignias de Catálogo ▸ Insignias que alcanzan al modelo (a mano o por categoría, aprobadas, vigentes hoy y de esa tienda; sin descuento: ese es el chip rojo) llegan en `prenda.insignias` (`fn_tienda_insignias`, `20261023182000`, ADR-0489) y `chipsDelCatalogo` las pone entre «Nuevo» y «N.º … en más vendidos». Cada chip lleva el dibujo de su insignia (la calabaza de Halloween…): los dibujos y el reconocimiento por nombre viven en `packages/shared/src/insignias-visual.ts` (datos; el ERP los pinta en `components/MuestraEtiqueta.tsx` y la tienda en `components/IconoInsignia.tsx`). El dibujo se puede elegir al crear la insignia o cambiar desde su pase, y también se puede subir una imagen propia (`etiquetas.icono` o `etiquetas.icono_imagen`, excluyentes; `fijar_icono_etiqueta`; `components/sellos/ElegirDibujoDeInsignia.tsx`; la imagen se reduce en el navegador con `lib/imagen-de-insignia.ts` y va al almacén público `retail-insignias`; ADR-0490): manda la imagen, luego el dibujo elegido y luego el nombre (`dibujoResuelto`, `packages/shared/src/insignia-imagen.ts`), y la tienda lo recibe en `{id, nombre, icono, imagen, silueta, descuento}` de cada insignia. La imagen puede pintarse como **silueta** (`etiquetas.icono_imagen_silueta`, `20261023221000`, ADR-0490 act. b): el navegador la convierte en un molde blanco (`lib/silueta-de-imagen.ts`) y cada lugar la pinta con su color (`.silueta-insignia` en el ERP, un `<mask>` en el sello, `.t-ins-silueta` en la tienda). Las piezas
   internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_sede_elegida`,
   `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`, `fn_tienda_insignias`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
   rotas a propósito).
@@ -2697,3 +2726,9 @@ variables/funciones. Nunca "empleado/jefe/sucursal": se usa
 *Este documento es una fotografía del código al 2026-09-04. Para el estado
 vivo día a día ver `docs/BACKLOG.md` y `docs/BITACORA.md`; para el porqué
 de cada decisión estructural, `docs/adr/`.*
+
+## Proveedores: lo que le compré y «Lo que quizá no ves» (2026-10-24, ADR-0502)
+
+- `/compras/proveedores/[id]` (ficha) → `getProveedorPrendas` (`lib/proveedores.ts`, RPC `fn_proveedor_prendas`) → `components/ProveedorPrendas.tsx` (reglas `lib/proveedor-prendas-reglas.ts`) y `components/LoQueQuizaNoVes.tsx` (reglas `lib/proveedor-analisis-reglas.ts:hallazgosDeProveedor`).
+- `/compras/proveedores` (lista) → `getProveedoresRendimiento` (RPC `fn_proveedores_rendimiento`) → `components/ProveedoresRendimiento.tsx`; `getProveedoresPrendas` (RPC `fn_proveedores_prendas`) → `hallazgosDeCartera` → `LoQueQuizaNoVes`.
+- Las tres RPC leen `fn_proveedor_prendas_base` (migración `20261024221000`, sin permiso para nadie) y exigen `fn_ve_plata_de_proveedores()`.

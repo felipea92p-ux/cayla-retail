@@ -1,17 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto, Boton } from "@/components/ui/campos";
+import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, campoEtiqueta } from "@/components/ui/Modal";
+import { campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
+import { leerOrdenCreada, type OrdenCreada } from "@/lib/ordenes-lista-reglas";
+import { crearTokenDeOrden } from "@/lib/token-de-orden";
+import {
+  almacenDelNavegador,
+  borrarBorrador,
+  guardarBorrador,
+  haceCuanto,
+  leerBorradorGuardado,
+  modeloDelBorrador,
+  prendasDelBorrador,
+  tieneTrabajo,
+  type BorradorDeOrden,
+  type FotoDelBorrador,
+  type PartidaDeOrden,
+} from "@/lib/borrador-orden";
 import type { ModeloProducible, OpcionesNuevaOrden } from "@/lib/produccion";
 import type { InsumoVista } from "@/lib/insumos";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
@@ -31,8 +46,10 @@ import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
+import { NivelDos } from "@/components/orden-produccion/NivelDos";
+import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
 import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
-import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
+import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, prendasDeLaFila, problemasTela, telasDeLaHoja, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
@@ -85,13 +102,15 @@ import {
 // cada color elegido es una fila con su «×» y «+ Agregar color» suma otra. Lo que se manda a la base NO cambia: `lib/orden-tabla-reglas.ts` arma la tabla desde las mismas celdas y las mismas
 // líneas de siempre, y `lib/orden-carga-util.test.ts` lo fija con los números de antes.
 //
-// ADR-0396 (A3, «la hoja ancha con ficha viva»): la hoja mide ~1080 px y es una rejilla de dos paneles dentro del propio `<form>`: el pedido a la izquierda y, a la derecha y siempre a la vista,
+// ADR-0396 (A3, «la hoja ancha con ficha viva»): el formulario es una rejilla de dos paneles dentro del propio `<form>` (era una hoja de ~1080 px; desde ADR-0509 vive en la página y los dos paneles salen cuando su marco mide 880 px o más): el pedido a la izquierda y, a la derecha y siempre a la vista,
 // la ficha de la orden (`FichaOrden`: la prenda, cuántas son, a cuánto se vende, para cuándo, y debajo lo que la cierra). La ficha es presentacional; el formulario sigue dueño de los números, de
 // los controles de cierre (lo que falta, el responsable, el aviso de nombre repetido, Cancelar y «Abrir orden») y del envío. Ya no hay pie pegado: lo que tapaba al responsable.
 //
-// El token de idempotencia nace con el formulario (useRef): si el Taller
-// pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
-// en vez de abrir dos. Mismo mecanismo que `registrar_venta` (p_token).
+// El token de idempotencia (`lib/token-de-orden.ts`) vive con el formulario: si el Taller pierde la red a mitad del clic y reintenta, la base devuelve la misma orden en vez de abrir dos.
+// Mismo mecanismo que `registrar_venta` (p_token). Se renueva cuando la base confirma una orden: el formulario ya no se desmonta al guardar por fuerza (ADR-0509).
+//
+// El MARCO (ADR-0509): el formulario no sabe dónde vive. Hasta ADR-0509 era una hoja de 1080 px que tapaba la lista; hoy vive en la página de Órdenes (`ordenes-lista/MarcoDePagina`).
+// El marco recibe el cuerpo y la salida sin guardar (`antesDeCerrar`: la pregunta «¿Salir sin guardar?» que corre antes de descartar lo escrito).
 
 type Tipo = "produccion" | "muestra";
 const OPCIONES_TIPO = [
@@ -117,6 +136,9 @@ const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"
   pierde: { tono: "rojo", texto: TEXTO_SEMAFORO.pierde },
 };
 
+/** Dónde vive el formulario: recibe el cuerpo (el `<form>` y el aviso de salida) y cómo preguntar «¿Salir sin guardar?» antes de descartarlo. */
+export type MarcoDeLaOrden = ComponentType<{ onClose: () => void; antesDeCerrar: (cerrar: () => void) => void; children: ReactNode }>;
+
 export function NuevaOrdenProduccionForm({
   tallerId,
   modelos,
@@ -131,7 +153,12 @@ export function NuevaOrdenProduccionForm({
   opciones = null,
   insumos = [],
   hoy,
-  onClose,
+  partida = null,
+  onCreada,
+  onOtra,
+  onRetomar,
+  marco,
+  onClose: cerrarMarco,
 }: {
   tallerId: string;
   modelos: ModeloProducible[];
@@ -157,39 +184,51 @@ export function NuevaOrdenProduccionForm({
   insumos?: InsumoVista[];
   /** `aaaa-mm-dd` de Lima: la tarifa vigente y las fechas prometidas se juzgan contra hoy. */
   hoy: string;
+  /** De dónde arranca cuando no es en blanco (ADR-0509): un borrador que se retoma o lo que deja «crear otra orden» (tipo, fases y modelo). La lista cambia su `key` para que el formulario nazca de nuevo con esto. */
+  partida?: PartidaDeOrden | null;
+  /** Se abrió la orden (ADR-0509): la lista salta a la pestaña donde quedó y la marca. Solo si la base devolvió su número. `seguiraAbierta`: la persona pidió «crear otra», así que la lista no se la lleva de la vista. */
+  onCreada?: (orden: OrdenCreada & { esMuestra: boolean; seguiraAbierta: boolean }) => void;
+  /** «Crear otra orden después de esta»: la lista vuelve a armar el formulario con esta partida. */
+  onOtra: (partida: PartidaDeOrden) => void;
+  /** «Retomarla»: la persona eligió un modelo que ya tenía un borrador y quiere seguir con él. */
+  onRetomar: (borrador: BorradorDeOrden) => void;
+  /** Dónde vive el formulario (ADR-0509): hoy, la página de Órdenes (`MarcoDePagina`). */
+  marco: MarcoDeLaOrden;
   onClose: () => void;
 }) {
   const router = useRouter();
-  const token = useRef<string>(crypto.randomUUID());
+  const [token] = useState(() => crearTokenDeOrden());
+  // Lo que trae una partida (un borrador retomado, o lo que deja «crear otra»); el resto nace como siempre. El formulario nace de nuevo con cada partida (la lista cambia su `key`), así que se lee una sola vez.
+  const inicio = partida?.foto ?? null;
   // El tipo con que arranca: un `?tipo=muestra` de la URL (al volver de Nuevo producto) es una elección de la persona y no se pisa (`aMano`).
-  const tipoAMano = useRef(tipoInicial === "muestra");
-  const [tipo, setTipo] = useState<Tipo>(() => tipoAlElegir({ eleccion: modelos.length === 0 ? "nuevo" : "existente", tipoActual: tipoInicial, aMano: tipoInicial === "muestra" }));
+  const tipoAMano = useRef(inicio ? inicio.tipo === "muestra" : tipoInicial === "muestra");
+  const [tipo, setTipo] = useState<Tipo>(() => inicio?.tipo ?? tipoAlElegir({ eleccion: modelos.length === 0 ? "nuevo" : "existente", tipoActual: tipoInicial, aMano: tipoInicial === "muestra" }));
   // Sin modelo elegido (`""`) se ve el buscador: ya no se preselecciona «el primero» (ADR-0396).
-  const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? "");
+  const [productoId, setProductoId] = useState(inicio?.productoId ?? modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? "");
   // Con `sugeridaInicial` la matriz nace llena, en el estado inicial y no en un efecto: lo que trae la sugerencia es el PUNTO DE PARTIDA (`fotoAlAbrir`), así que cerrar sin tocar nada no pregunta
   // «¿salir sin guardar?». Solo si el modelo pedido existe (nunca se llena el primero de la lista por error), si es una orden de producción (la muestra se hace aparte) y si la red respondió.
-  const [cantidades, setCantidades] = useState<Record<string, string>>(() =>
-    cantidadesInicialesDeNuevaOrden({ sugerida: sugeridaInicial, tipo: tipoInicial, productoInicialId, modelos, datos: decision?.datos ?? null })
+  const [cantidades, setCantidades] = useState<Record<string, string>>(
+    () => inicio?.cantidades ?? cantidadesInicialesDeNuevaOrden({ sugerida: sugeridaInicial, tipo: tipoInicial, productoInicialId, modelos, datos: decision?.datos ?? null })
   );
   // Modelo nuevo (ADR-0361): sin modelos en el catálogo, el primero nace acá.
-  const [modoModelo, setModoModelo] = useState<ModoModelo>(modelos.length === 0 ? "nuevo" : "existe");
-  const [nombreNuevo, setNombreNuevo] = useState("");
-  const [categoriaNuevaId, setCategoriaNuevaId] = useState("");
-  const [tallasNuevas, setTallasNuevas] = useState<string[]>([]);
-  const [coloresNuevos, setColoresNuevos] = useState<string[]>([]);
-  const coloresAhora = useRef<string[]>([]);
+  const [modoModelo, setModoModelo] = useState<ModoModelo>(inicio?.modoModelo ?? (modelos.length === 0 ? "nuevo" : "existe"));
+  const [nombreNuevo, setNombreNuevo] = useState(inicio?.nombreNuevo ?? "");
+  const [categoriaNuevaId, setCategoriaNuevaId] = useState(inicio?.categoriaNuevaId ?? "");
+  const [tallasNuevas, setTallasNuevas] = useState<string[]>(inicio?.tallasNuevas ?? []);
+  const [coloresNuevos, setColoresNuevos] = useState<string[]>(inicio?.coloresNuevos ?? []);
+  const coloresAhora = useRef<string[]>(inicio?.coloresNuevos ?? []);
   const [coloresCreados, setColoresCreados] = useState<ColorAlta[]>([]);
-  const [precioNuevo, setPrecioNuevo] = useState("");
+  const [precioNuevo, setPrecioNuevo] = useState(inicio?.precioNuevo ?? "");
   // La base dijo «ya existe un modelo así» (o «casi igual»): se muestra con lo que se puede hacer, no como un error cualquiera.
   const [choque, setChoque] = useState<Extract<ErrorModeloNuevo, { tipo: "nombre_duplicado" | "nombre_casi_igual" }> | null>(null);
   // ADR-0400: las fases (quién hace cada una) y la tela de la orden reemplazan a los tres montos tecleados. Nacen válidas: la espina en el Taller, sin tela.
-  const [fases, setFases] = useState<FaseBorrador[]>(() => fasesIniciales());
+  const [fases, setFases] = useState<FaseBorrador[]>(() => inicio?.fases ?? fasesIniciales());
   // Lo que la persona eligió de tela (null = no tocó nada: manda la sugerencia). Las filas que se ven se DERIVAN de la sugerencia más esto, sin efectos.
-  const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(null);
+  const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(inicio?.telasManual ?? null);
   // «Dejar este consumo como el del modelo»: apagado de fábrica; solo vale si el modelo ya dice otra cosa y quien abre edita el catálogo (`ofertaConsumo`).
   const [fijarConsumo, setFijarConsumo] = useState(false);
-  const [fechaEntrega, setFechaEntrega] = useState("");
-  const [nota, setNota] = useState("");
+  const [fechaEntrega, setFechaEntrega] = useState(inicio?.fechaEntrega ?? "");
+  const [nota, setNota] = useState(inicio?.nota ?? "");
   const [cargando, setCargando] = useState(false);
   // Dos clics en el mismo ciclo del navegador leen el MISMO `cargando` (falso) y enviaban dos llamadas (/chaos DC-01, 2026-10-10): la base las resolvía con el
   // token (1 modelo, 1 orden), pero la pantalla no debe depender de eso. Una marca síncrona corta la segunda.
@@ -319,12 +358,7 @@ export function NuevaOrdenProduccionForm({
     [tejidoId, coloresOrden, insumosDelTaller, consumoDeclaradoTexto]
   );
   const telasTocadas = telasManual !== null;
-  const telas = useMemo<TelaBorrador[]>(() => {
-    if (telasManual === null) return telasSugeridasAhora;
-    const porColor = telasSugeridasAhora.map((s) => telasManual.find((p) => p.colorCodigo !== null && p.colorCodigo === s.colorCodigo) ?? s);
-    const avios = telasSugeridasAhora.some((s) => s.colorCodigo === null) ? [] : telasManual.filter((p) => p.colorCodigo === null && p.insumoId);
-    return [...porColor, ...avios];
-  }, [telasManual, telasSugeridasAhora]);
+  const telas = useMemo<TelaBorrador[]>(() => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller }), [telasManual, telasSugeridasAhora, insumosDelTaller]);
   const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
   const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado), [telas, insumosDelTaller, consumoDeclarado]);
@@ -347,7 +381,7 @@ export function NuevaOrdenProduccionForm({
     ? telas.reduce((suma, t) => {
         if (!t.insumoId) return suma;
         const i = insumosDelTaller.find((x) => x.id === t.insumoId);
-        const prendas = t.colorCodigo === null ? total : (coloresOrden.find((c) => c.colorCodigo === t.colorCodigo)?.cantidad ?? 0);
+        const prendas = prendasDeLaFila(t.colorCodigo, coloresDeLaTela);
         const plan = i ? metrosAPedir(t.consumoPorPrenda, prendas, i.mermaPct) : null;
         return suma + (plan ?? 0) * (costoPorMetro.get(t.insumoId) ?? 0);
       }, 0)
@@ -401,7 +435,9 @@ export function NuevaOrdenProduccionForm({
       totalExistente: total,
       fases: { falta: problemasDeFases[0]?.texto ?? null },
       tela: { falta: problemasDeTela[0]?.texto ?? null, elegida: telas.some((t) => t.insumoId !== null) },
-    })
+    }),
+    // Ya no vive en una hoja que se desplaza sola: la guía lleva el campo a la vista de la ventana, sin taparlo (la cabecera y la barra de abajo cuentan).
+    { enModal: false }
   );
 
   // «¿Salir sin guardar?» (2026-09-28; /chaos NAV-04, 2026-10-10). Escape, el clic fuera y «Cancelar» cerraban la hoja y TODO lo escrito (nombre, tallas, colores, la matriz
@@ -409,13 +445,104 @@ export function NuevaOrdenProduccionForm({
   // lista: abrir la hoja y mirar «Modelo nuevo» no es nada que perder. Guardar bien cierra directo.
   // La tela sugerida por el sistema no cuenta como trabajo (entra sola al elegir el modelo): solo lo que la persona tocó.
   const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases, telas: telasTocadas ? telas : null, fechaEntrega, nota });
-  const [fotoAlAbrir] = useState(fotoActual);
-  const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.");
+  // Un borrador que se retoma cuenta como trabajo desde el primer instante (`""` nunca es igual a una foto): cerrarlo pregunta y, si la persona confirma, lo descarta.
+  const [fotoAlAbrir] = useState(() => (partida?.deBorrador ? "" : fotoActual));
+  const hayCambios = fotoActual !== fotoAlAbrir;
+
+  // ----- El borrador (ADR-0509): lo escrito sobrevive a salir de la pantalla -----
+  // Cada cambio con trabajo se guarda en el navegador, por Taller y por modelo (`lib/borrador-orden.ts`: nunca lanza). Mientras SE GUARDÓ, salir por el menú o por «atrás» ya no pregunta: no se pierde nada, y la lista
+  // lo ofrece al volver. Solo «Cancelar» pregunta, porque cancelar sí descarta. Si no se pudo guardar (ventana privada, disco lleno) o todavía no hay modelo al que atarlo, la guardia es la de siempre.
+  const fotoDelBorrador = useMemo<FotoDelBorrador>(
+    () => ({ tipo, modoModelo, productoId, nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases, telasManual, fechaEntrega, nota }),
+    [tipo, modoModelo, productoId, nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases, telasManual, fechaEntrega, nota]
+  );
+  const claveDeModelo = modeloDelBorrador(fotoDelBorrador);
+  const [almacenSirve, setAlmacenSirve] = useState(true);
+  // El borrador viejo del modelo que se acaba de elegir, a la espera de que la persona decida (retomarlo o descartarlo): mientras tanto NO se pisa.
+  const [oferta, setOferta] = useState<BorradorDeOrden | null>(null);
+  // Los borradores que ESTE formulario guardó: son los únicos que descarta al cancelar o al abrir la orden.
+  const guardadoPara = useRef(new Set<string>());
+  useEffect(() => {
+    if (oferta || !claveDeModelo) return;
+    const almacen = almacenDelNavegador();
+    if (hayCambios && tieneTrabajo(fotoDelBorrador)) {
+      const quedo = guardarBorrador(almacen, tallerId, fotoDelBorrador);
+      if (quedo) guardadoPara.current.add(claveDeModelo);
+      if (quedo === almacenSirve) return;
+      // Solo cuando el almacén cambia de estado (casi nunca): la pantalla se entera en el siguiente ciclo, no dentro del efecto.
+      const aviso = window.setTimeout(() => setAlmacenSirve(quedo), 0);
+      return () => window.clearTimeout(aviso);
+    }
+    // Lo escrito se borró todo: el borrador que este formulario había guardado ya no tiene qué conservar.
+    if (!tieneTrabajo(fotoDelBorrador) && guardadoPara.current.has(claveDeModelo)) {
+      borrarBorrador(almacen, tallerId, claveDeModelo);
+      guardadoPara.current.delete(claveDeModelo);
+    }
+  }, [oferta, claveDeModelo, hayCambios, fotoDelBorrador, tallerId, almacenSirve]);
+  const guardado = claveDeModelo !== null && almacenSirve && oferta === null;
+  const avisoSalida = useSalidaSinGuardar(hayCambios, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.", { soloAlCerrar: guardado });
+  const [otraDespues, setOtraDespues] = useState(partida?.otraDespues ?? false);
+  // El nivel 2 (ADR-0509): fases, tela, entrega y nota, plegados bajo una línea. Se abre a mano, o solo si algo adentro está mal (lo que está mal no se esconde) o si la guía de foco quiere
+  // llevar al cursor a un campo de adentro. Una vez que algo lo abrió, se queda abierto mientras esté mal: cerrarlo con el problema a la vista no lo esconde.
+  const [nivelDosAMano, setNivelDosAMano] = useState(false);
+  const [nivelDosPidio, setNivelDosPidio] = useState(false);
+  const nivelDosPide = nivelDosPideAbrirse({ problemasFases: problemasDeFases.length, problemasTela: problemasDeTela.length, entregaMala: problemaDeEntrega(fechaEntrega, hoyLima()) });
+  if (nivelDosPide && !nivelDosPidio) setNivelDosPidio(true);
+  const nivelDosAbierto = nivelDosAMano || nivelDosPidio;
+  function cambiarNivelDos(abrir: boolean) {
+    setNivelDosAMano(abrir);
+    if (!abrir) setNivelDosPidio(false);
+  }
+  // «Falta: Fases…» lleva al campo: si está plegado, se abre primero (plegado, ni se ve ni se alcanza).
+  const guiaDelPie = {
+    ...guia,
+    ir: (id: string) => {
+      if (esDeNivelDos(id) && !nivelDosAbierto) {
+        setNivelDosAMano(true);
+        window.setTimeout(() => guia.ir(id), 120);
+      } else guia.ir(id);
+    },
+  };
   /** Tras guardar: se retira la guardia ANTES de cerrar y de refrescar (juntos, Next podía volver a montar la pantalla de atrás: ver `useSalidaSinGuardar`). */
   function cerrarTrasGuardar() {
+    // La base confirmó la orden: la siguiente es otra orden y lleva otro token (nunca se renueva tras un error o una respuesta perdida: ahí el reintento necesita el mismo).
+    token.renovar();
+    // La orden ya existe: el borrador que este formulario guardó sobra.
+    descartarBorrador();
     const guardiaFuera = avisoSalida.retirarYa();
-    onClose();
+    // «Crear otra»: la lista arma el formulario de nuevo con el mismo tipo, las mismas fases y el mismo modelo (si ya existía), con las cantidades vacías.
+    if (otraDespues) onOtra({ foto: { tipo, fases, ...(esNuevo ? {} : { productoId }) }, otraDespues: true });
+    else onClose();
     void guardiaFuera.then(() => router.refresh());
+  }
+  /** Lo que este formulario guardó como borrador. Se llama al cancelar (con la pregunta ya hecha) y al abrir la orden; salir por el menú lo deja guardado. */
+  function descartarBorrador() {
+    const almacen = almacenDelNavegador();
+    for (const clave of guardadoPara.current) borrarBorrador(almacen, tallerId, clave);
+    guardadoPara.current.clear();
+  }
+  function onClose() {
+    descartarBorrador();
+    cerrarMarco();
+  }
+  /** Elegido un modelo (o «Crear un modelo nuevo»): si ya tenía un borrador, se ofrece retomarlo en vez de pisarlo en silencio. */
+  function ofrecerBorrador(clave: string | null) {
+    setOferta(clave ? leerBorradorGuardado(almacenDelNavegador(), tallerId, clave) : null);
+  }
+  function descartarOferta() {
+    if (!oferta) return;
+    const clave = modeloDelBorrador(oferta.foto);
+    if (clave) {
+      borrarBorrador(almacenDelNavegador(), tallerId, clave);
+      guardadoPara.current.delete(clave);
+    }
+    setOferta(null);
+  }
+  /** Tras abrir la orden, el aviso dice cuál es y lleva a su página; la lista salta a donde quedó. Si la base no devolvió el número, el aviso es el de siempre: nunca se inventa uno. */
+  function avisarCreada(texto: string, detalle: string, data: unknown) {
+    const creada = leerOrdenCreada(data);
+    avisar.exito(texto, { detalle, ...(creada ? { accion: { texto: `Ver ${creada.numeroTexto}`, onClick: () => router.push(creada.href) } } : {}) });
+    if (creada) onCreada?.({ ...creada, esMuestra: tipo === "muestra", seguiraAbierta: otraDespues });
   }
 
   function usarCurva() {
@@ -430,6 +557,7 @@ export function NuevaOrdenProduccionForm({
     setCantidades({});
     setChoque(null);
     setTipo((actual) => tipoAlElegir({ eleccion: "existente", tipoActual: actual, aMano: tipoAMano.current }));
+    ofrecerBorrador(id || null);
   }
   /** «Crear un modelo nuevo»: lo escrito en el buscador pasa a ser su nombre, y la orden arranca como muestra (se desarrolla antes de fabricarlo). */
   function crearModelo(nombre: string) {
@@ -439,6 +567,7 @@ export function NuevaOrdenProduccionForm({
     setChoque(null);
     if (nombre) setNombreNuevo(nombre);
     setTipo((actual) => tipoAlElegir({ eleccion: "nuevo", tipoActual: actual, aMano: tipoAMano.current }));
+    ofrecerBorrador("nuevo");
   }
   function cambiarTipo(clave: string) {
     tipoAMano.current = true;
@@ -506,7 +635,7 @@ export function NuevaOrdenProduccionForm({
     try {
       // La MISMA carga útil de siempre para `abrir_produccion_con_modelo_nuevo` (`paramsRpcModeloNuevo`, con los costos en cero), envuelta por la
       // RPC nueva que además escribe las fases y la tela en la misma transacción (ADR-0400).
-      const p = paramsRpcModeloNuevo({ ubicacionId: tallerId, borrador, celdas: celdasNuevas, costos: SIN_COSTOS, fechaEntrega, nota, confirmoDistinto, token: token.current });
+      const p = paramsRpcModeloNuevo({ ubicacionId: tallerId, borrador, celdas: celdasNuevas, costos: SIN_COSTOS, fechaEntrega, nota, confirmoDistinto, token: token.actual() });
       resultado = await firmar(
         createClient().rpc(RPC_ABRIR_ORDEN as never, {
           p_apertura: {
@@ -530,7 +659,7 @@ export function NuevaOrdenProduccionForm({
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
@@ -543,7 +672,7 @@ export function NuevaOrdenProduccionForm({
       avisar.error(lectura.tipo === "funcion_ausente" ? TEXTO_FUNCION_AUSENTE : traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(`Orden de ${nombreDelModelo(borrador)} abierta`, { detalle: `Modelo nuevo · ${resumenNuevo.total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
+    avisarCreada(`Orden de ${nombreDelModelo(borrador)} abierta`, `Modelo nuevo · ${resumenNuevo.total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}`, data);
     cerrarTrasGuardar();
   }
 
@@ -591,7 +720,7 @@ export function NuevaOrdenProduccionForm({
             es_muestra: tipo === "muestra",
             fecha_entrega: fechaEntrega || null,
             nota: nota.trim() || null,
-            token: token.current,
+            token: token.actual(),
             // Solo cuando se marcó a propósito: la base lo vuelve a comprobar (corregir lo que el modelo ya dice es de quien edita el catálogo).
             ...(fijarElConsumo ? { fijar_consumo_modelo: true } : {}),
           },
@@ -603,27 +732,21 @@ export function NuevaOrdenProduccionForm({
     } finally {
       enVuelo.current = false;
     }
-    const { error } = resultado;
+    const { data, error } = resultado;
     responsable.despues(error);
     setCargando(false);
     if (error) {
       avisar.error(traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
-    avisar.exito(`Orden de ${modelo.referencia} abierta`, { detalle: `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}` });
+    avisarCreada(`Orden de ${modelo.referencia} abierta`, `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}`, data);
     cerrarTrasGuardar();
   }
 
+  const Marco = marco;
   return (
-    <Modal
-      titulo="Nueva orden de producción"
-      onClose={onClose}
-      antesDeCerrar={avisoSalida.pedirAccion}
-      variante="hoja"
-      // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
-      ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
-    >
-      <form onSubmit={onSubmit} className="mt-3.5 grid gap-y-5 min-[980px]:grid-cols-[minmax(0,1fr)_332px] min-[980px]:items-start min-[980px]:gap-x-8">
+    <Marco onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
+      <form onSubmit={onSubmit} className="mt-3.5 grid gap-y-5 @min-[880px]:grid-cols-[minmax(0,1fr)_332px] @min-[880px]:items-start @min-[880px]:gap-x-8">
         <div className="min-w-0 space-y-5">
         {/* El modelo primero (ADR-0396, A1): el buscador, o la tarjeta del elegido, o los campos del modelo nuevo. El interruptor del tipo aparece cuando ya hay modelo. */}
         <div data-guia="prod-orden-nueva.modelo" className="space-y-4">
@@ -636,6 +759,27 @@ export function NuevaOrdenProduccionForm({
                 <ElegirModelo modelos={modelos} urgentes={urgentes} abiertas={abiertas ?? new Map()} recientes={recientes} onElegir={elegirModelo} onCrear={crearModelo} />
               )}
             </CampoGuiado>
+          )}
+
+          {oferta && (
+            <Aviso
+              tono="info"
+              guia="prod-orden-nueva.oferta"
+              titulo="Hay una orden a medias de este modelo"
+              accion={
+                <span className="flex flex-wrap gap-2">
+                  <Boton type="button" peso="fantasma" onClick={() => onRetomar(oferta)}>
+                    Retomarla
+                  </Boton>
+                  <Boton type="button" peso="peligro" onClick={descartarOferta}>
+                    Descartarla
+                  </Boton>
+                </span>
+              }
+            >
+              Quedó guardada {haceCuanto(oferta.guardadoEn)}
+              {prendasDelBorrador(oferta.foto) > 0 ? ` · ${prendasDelBorrador(oferta.foto)} prendas` : ""}.
+            </Aviso>
           )}
 
           {(modeloExistente || esNuevo) && (
@@ -735,6 +879,11 @@ export function NuevaOrdenProduccionForm({
           />
         )}
 
+        <NivelDos
+          abierto={nivelDosAbierto}
+          onCambio={cambiarNivelDos}
+          resumen={resumenNivelDos({ hayModelo: Boolean(modelo), fases, telasElegidas: telas.filter((t) => t.insumoId !== null).length, entrega: fechaCorta(fechaEntrega), hayNota: nota.trim() !== "" })}
+        >
         {modelo && (
           <>
             <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} />
@@ -769,6 +918,7 @@ export function NuevaOrdenProduccionForm({
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" min={hoyLima()} value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
+        </NivelDos>
 
         </div>
 
@@ -809,7 +959,7 @@ export function NuevaOrdenProduccionForm({
           }
         >
           <div data-guia="prod-orden-nueva.cierre" className="space-y-3">
-            <PieGuia guia={guia} listo={responsable.listo ? "Todo listo para abrir la orden." : "Solo falta elegir quién abre la orden."} conFrase />
+            <PieGuia guia={guiaDelPie} listo={responsable.listo ? "Todo listo para abrir la orden." : "Solo falta elegir quién abre la orden."} conFrase />
             <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
 
             {choque && (
@@ -834,8 +984,18 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
 
+            <div data-guia="prod-orden-nueva.otra">
+              <Interruptor
+                activo={otraDespues}
+                onActivo={setOtraDespues}
+                etiqueta="Crear otra orden después de esta"
+                pie={otraDespues ? (esNuevo ? "Se queda abierta con el mismo tipo y las mismas fases." : "Se queda abierta con el mismo modelo, tipo y fases; solo falta elegir cuántas.") : undefined}
+                disabled={cargando}
+              />
+            </div>
+
             <div className="pie-acciones">
-              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario">
+              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario" data-guia="prod-orden-nueva.cancelar">
                 Cancelar
               </button>
               <Boton
@@ -847,13 +1007,13 @@ export function NuevaOrdenProduccionForm({
                 title={guia.frase ?? responsable.motivo ?? undefined}
                 className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {esNuevo ? "Crear y abrir orden" : "Abrir orden"}
+                {esNuevo ? "Crear orden" : "Abrir orden"}
               </Boton>
             </div>
           </div>
         </FichaOrden>
       </form>
       {avisoSalida.aviso}
-    </Modal>
+    </Marco>
   );
 }

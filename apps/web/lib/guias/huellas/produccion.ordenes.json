@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 104,
+  "total": 110,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -19,6 +19,8 @@
       "Link «Créalo en Productos»"
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
+      "Boton «Retomarla»",
+      "Boton «Descartarla»",
       "SegmentoDeslizante «Tipo de orden»",
       "Link «Editar producto»",
       "CampoTexto «Fecha de entrega»",
@@ -27,7 +29,7 @@
       "ComboResponsable «{responsable}»",
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
-      "button «Cancelar»",
+      "button «prod-orden-nueva.cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/OrdenCierre.tsx": [
@@ -133,12 +135,16 @@
       "CampoMonto «Fijo por orden»",
       "button «+ fijo por orden (ponchado, matriz)»"
     ],
+    "components/orden-produccion/NivelDos.tsx": [
+      "BotonVerMas «prod-orden-nueva.nivel2-abrir»"
+    ],
     "components/orden-produccion/TelaDeLaOrden.tsx": [
       "CampoSelect «Tela»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
       "Casilla «Dejar este consumo como el del modelo»",
       "CampoSelect «Avío»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
+      "CampoSelect «Para»",
       "Boton «+ Agregar avío»"
     ],
     "components/ordenes-lista/FilaDeOrden.tsx": [
@@ -150,6 +156,8 @@
       "Boton «prod-ordenes.nueva»",
       "Pestanas «→(clave) => setPestana(clave as PestanaLista)»",
       "button «{f.texto}»",
+      "Boton «Retomar»",
+      "Boton «Descartar»",
       "Boton «+ Crear el primer modelo»"
     ]
   }

@@ -124,7 +124,8 @@ describe("la imagen propia de una insignia (ADR-0490)", () => {
   });
 
   it("qué manda: la imagen propia, después el dibujo elegido, después el del nombre, después la etiqueta", () => {
-    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "imagen", ruta: RUTA });
+    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "imagen", ruta: RUTA, silueta: false });
+    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: RUTA, silueta: true })).toEqual({ tipo: "imagen", ruta: RUTA, silueta: true });
     expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: null })).toEqual({ tipo: "dibujo", clave: "gato" });
     expect(dibujoResuelto({ nombre: "Halloween" })).toEqual({ tipo: "dibujo", clave: "halloween" });
     expect(dibujoResuelto({ nombre: "Estreno" })).toEqual({ tipo: "dibujo", clave: "generico" });

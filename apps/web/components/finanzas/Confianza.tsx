@@ -1,30 +1,42 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
+import { BarraAvance, type TonoBarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
-import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { textoEstado, tonoPieza, type Confianza } from "@/lib/finanzas-confianza";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
+import Link from "next/link";
+import { textoEstado, tonoPieza, type Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 
-// El medidor de confianza (ADR-0417, Fase 1): «qué tan seguro es este número». Un arco que se dibuja hasta el porcentaje,
-// la frase que lo explica y, debajo, cada pieza con su insignia (completo · a medias · falta · sin dato), su frase en
-// lenguaje de tienda y, si falta algo, el enlace a la pantalla donde se arregla. No calcula nada: la calificación viene de
-// `lib/finanzas-confianza.ts` (pura, con prueba); aquí solo se dibuja. Se apaga con `prefers-reduced-motion` (el arco queda
-// quieto en su valor). Sin estado propio: sirve en el servidor y en el cliente.
+// «¿Puedo fiarme de este número?» (ADR-0417, Fase 1; Felipe 2026-10-24: spike 5-A). Va JUSTO bajo la respuesta del mes: «Seguro al 54 %»
+// con su barra y, a un toque, lo que falta para que lo sea (cada pieza con su insignia, su frase en lenguaje de tienda y el enlace a donde
+// se arregla). Antes era una tarjeta al fondo de la pantalla, lejos de la cifra que califica. No calcula nada: la calificación viene de
+// `lib/finanzas-confianza.ts` (pura, con prueba); aquí solo se dibuja.
 
-export function Confianza({ confianza, guia }: { confianza: Confianza; guia?: string }) {
+const TONO_NIVEL: Record<ConfianzaDatos["nivel"], TonoBarraAvance> = { alto: "verde", medio: "ambar", bajo: "rojo" };
+
+export function Confianza({ confianza, guia }: { confianza: ConfianzaDatos; guia?: string }) {
+  const [abierto, setAbierto] = useState(false);
   const c = confianza;
+  const faltan = c.piezas.filter((p) => p.estado === "falta" || p.estado === "parcial").length;
   return (
-    <Superficie pad guia={guia}>
-      <div className="fin-confianza" data-nivel={c.nivel}>
-        <div className="fin-confianza-cab">
-          <CabeceraBloque titulo="Qué tan seguro es este número" bajada={c.frase} />
-          <div className="fin-confianza-arco" role="img" aria-label={`${c.pct} % de confianza en el número del mes`}>
-            <svg viewBox="0 0 120 68" aria-hidden="true">
-              <path className="fin-confianza-pista" d="M10 60 A50 50 0 0 1 110 60" pathLength={1} />
-              <path className="fin-confianza-valor" d="M10 60 A50 50 0 0 1 110 60" pathLength={1} style={{ strokeDashoffset: 1 - c.pct / 100 }} />
-            </svg>
-            <span className="fin-confianza-pct num">{c.pct} %</span>
-          </div>
+    <section className="card-cayla px-4 py-3 sm:px-5" data-guia={guia} data-nivel={c.nivel} aria-label="Qué tan seguro es este número">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="m-0 min-w-0 flex-1 basis-64 text-sm">
+          <b className="num">Seguro al {c.pct} %</b> <span className="text-taupe">· {c.frase}</span>
+        </p>
+        <div className="w-32 shrink-0" aria-hidden="true">
+          <BarraAvance pct={c.pct} tono={TONO_NIVEL[c.nivel]} decorativa />
         </div>
-        <ul className="fin-confianza-piezas" aria-label="Lo que hace confiable el número">
+        <BotonVerMas
+          forma="enlace"
+          abierto={abierto}
+          onCambiar={setAbierto}
+          controla="fin-confianza-piezas"
+          texto={faltan > 0 ? `${faltan === 1 ? "1 cosa por revisar" : `${faltan} cosas por revisar`}` : "Ver el detalle"}
+        />
+      </div>
+      <FilasDeMas abierto={abierto}>
+        <ul id="fin-confianza-piezas" className="fin-confianza-piezas mt-3" aria-label="Lo que hace confiable el número">
           {c.piezas.map((p) => (
             <li key={p.clave} data-estado={p.estado}>
               <Chip tono={tonoPieza(p.estado)}>{textoEstado(p.estado)}</Chip>
@@ -45,7 +57,7 @@ export function Confianza({ confianza, guia }: { confianza: Confianza; guia?: st
             </li>
           ))}
         </ul>
-      </div>
-    </Superficie>
+      </FilasDeMas>
+    </section>
   );
 }

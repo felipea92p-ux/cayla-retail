@@ -17,6 +17,8 @@ import { contarPorRegularizar } from "@/lib/por-regularizar-cuenta";
 import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
 import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { conDescripcion, conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
@@ -62,7 +64,7 @@ export default async function InventarioPage({
   // Ventas sin registrar (ADR-0330: viven en Existencias, en /inventario/por-regularizar, bajo este mismo módulo): «Para hoy» cuenta
   // las de ESTA sede y su botón abre la lista de esa misma sede, así la cifra y la lista dicen lo mismo. Solo en una tienda: nacen en
   // Vender.
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo, colores, colaSinRegistrar, plan, empresasAqui] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -100,6 +102,8 @@ export default async function InventarioPage({
     // almacén, lo vendido ayer y en 14 días (escaneado y anotado a mano) y las tallas centrales. Solo donde se vende. Si no
     // responde, `null`: «Hoy» dice N/D y la pantalla lo avisa; el resto sigue en pie.
     vende ? leerPlanDelPiso(ubicacionActivaId) : Promise.resolve(null),
+    // Qué empresas operan aquí (ADR-0505): «en el catálogo, sin stock aquí» no ofrece en Trujillo una prenda de CLAURE. Sin respuesta, todas.
+    getEmpresasAqui(ubicacionActivaId).catch(() => null),
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
 
@@ -144,7 +148,7 @@ export default async function InventarioPage({
     ),
     colores
   );
-  const sinStock = productosSinStockEnSede(catalogo.productos, stockBase);
+  const sinStock = productosSinStockEnSede(soloLasDeAqui(catalogo.productos, empresasAqui), stockBase);
   // Lo que pide cada talla («Hoy») lo cuenta el panel con `hoyDeTalla`, la misma regla de la tabla, el filtro y «Para hoy»; el resumen
   // solo suma cantidades. Hasta el 2026-10-04 también contaba las tallas que piden reponer para una tarjeta que ya no existe.
   const resumen = resumirExistencias(stock);

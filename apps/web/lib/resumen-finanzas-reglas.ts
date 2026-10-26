@@ -11,18 +11,17 @@
 // «Para decidir hoy» con su origen y su enlace, y el orden («primero lo que más cuesta si se deja pasar»).
 
 import { leerCuenta, type CuentaDinero, type SinCuenta } from "./cuentas-dinero-reglas";
-import { leerInicioFinanzas, mesAntesDelCorte, mesDelCorte } from "./finanzas-arranque-reglas";
+import { leerInicioFinanzas, mesAntesDelCorte } from "./finanzas-arranque-reglas";
 import { diasHasta, leerFilaPorPagar, textoVence, type FilaPorPagar } from "./por-pagar-consolidado-reglas";
 import {
   etiquetaSemana,
-  etiquetasEje,
   leerProyeccion,
   queVence,
   soles,
   TEXTO_SIN_CUENTA,
   type Proyeccion,
 } from "./flujo-caja-reglas";
-import { avisoUmbral, leerPanelImpuestos, nombreMes, proyectarUmbral, sumarMeses, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
+import { avisoUmbral, leerPanelImpuestos, nombreMes, proyectarUmbral, tonoAvance, type PanelImpuestos } from "./impuestos-reglas";
 import { chipPpto, leerFilaPpto, type FilaPpto } from "./presupuesto-reglas";
 import {
   extraNecesario,
@@ -228,6 +227,22 @@ function leerResumenBruto(data: unknown): ResumenFinanzas {
   };
 }
 
+// ---- Cuando una lectura falla ----------------------------------------------------------------------------------------------
+
+/**
+ * Lo que la pantalla dice cuando una lectura del Resumen falla: qué no se pudo, qué significa y qué hacer, sin el texto crudo de
+ * la base («Could not find the function … in the schema cache» salía tal cual: auditoría v3, hallazgo 4; ley 9 de Formidable).
+ * El detalle técnico va al aviso de errores (`capturarError`), no a la colaboradora.
+ */
+export function explicarFallaLectura(error: { message?: string | null; code?: string | null } | null, que: string): string {
+  const m = (error?.message ?? "").toLowerCase();
+  if (error?.code === "PGRST202" || error?.code === "42883" || m.includes("schema cache") || m.includes("does not exist"))
+    return `No se pudo ${que}: esta parte todavía no está instalada en la base. Lo demás del Resumen sigue al día. Avisa a Felipe.`;
+  if (error?.code === "42501") return `No se pudo ${que}: tu cuenta no tiene permiso para verlo. Si lo necesitas, pídeselo a tu líder.`;
+  if (m.includes("fetch") || m.includes("network")) return `No se pudo ${que}: se cortó la conexión. Revisa el internet y vuelve a cargar la página.`;
+  return `No se pudo ${que}. Vuelve a cargar la página; si sigue igual, avisa a Felipe.`;
+}
+
 // ---- «Ver» ------------------------------------------------------------------------------------------------------------------
 
 /**
@@ -256,19 +271,11 @@ export function deUnidad(nombre: string): string {
 
 // ---- Fechas -----------------------------------------------------------------------------------------------------------------
 
-const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 /** Días que tiene el mes «2026-08» (31). */
 export function diasDelMes(mes: string): number {
   const [a, m] = mes.split("-").map(Number) as [number, number];
   return new Date(Date.UTC(a, m, 0)).getUTCDate();
-}
-
-/** «al jueves 24 de septiembre» (CAYLA entera) o «al jueves 24» (una unidad), como el spike. */
-export function alDia(hoy: string, conMes: boolean): string {
-  const [a, m, d] = hoy.split("-").map(Number) as [number, number, number];
-  const dia = DIAS_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
-  return `al ${dia} ${d}${conMes ? ` de ${mesNombre(hoy.slice(0, 7))}` : ""}`;
 }
 
 // ---- Punto de equilibrio y el día en que se cubre (F5) --------------------------------------------------------------------
@@ -289,8 +296,8 @@ export type Equilibrio = {
  * El punto de equilibrio de F5 (`puntoDeEquilibrio`: gastos ÷ margen %) y el día del mes en que se cubre, vendiendo cada día
  * lo mismo (lo del spike: pe ÷ lo vendido por día). `null` si no hubo ventas o el margen no es positivo.
  */
-export function equilibrio(f: Pick<FilaER, "ventas" | "margen" | "gastos"> | undefined, diasMes: number): Equilibrio | null {
-  if (!f) return null;
+export function equilibrio(f: (Pick<FilaER, "ventas" | "margen" | "gastos"> & { detalleGastos?: FilaER["detalleGastos"] }) | undefined, diasMes: number): Equilibrio | null {
+  if (!f || motivoSinEquilibrio(f)) return null;
   const eq = puntoDeEquilibrio(f);
   if (!eq) return null;
   const porDia = f.ventas / diasMes;
@@ -298,9 +305,25 @@ export function equilibrio(f: Pick<FilaER, "ventas" | "margen" | "gastos"> | und
   return { pe: eq.ventas, ventas: f.ventas, cubre: eq.cubre, dia, diasMes, margenPct: f.margen / f.ventas };
 }
 
-// ---- Qué fila es de qué -----------------------------------------------------------------------------------------------------
+/** La cuenta de las diferencias de caja (faltantes y sobrantes): no es un gasto que la tienda cause. */
+const CUENTA_DIFERENCIAS_CAJA = "6599";
 
-const filas = <T>(p: Parte<T[]>): T[] => (p.estado === "ok" ? p.datos : []);
+/**
+ * Por qué no hay punto de equilibrio: sin ventas, sin margen o SIN GASTOS registrados. Sin gastos, `puntoDeEquilibrio` da 0 (o
+ * menos, con un sobrante de caja) y «cubre» salía 100 % o «desde el día 1»: en local, Trujillo sin alquiler ni sueldos cargados,
+ * solo con un sobrante de S/ 139.90, parecía sana (auditoría v3 del Resumen, hallazgo 1). Lo que cuenta es lo registrado SIN las
+ * diferencias de caja; si eso es 0, no se sabe si cubre y se dice eso, no un número. Un sobrante sobre gastos reales sigue
+ * contando como antes.
+ */
+export function motivoSinEquilibrio(f: Pick<FilaER, "ventas" | "margen" | "gastos"> & { detalleGastos?: FilaER["detalleGastos"] }): "sin_ventas" | "sin_margen" | "sin_gastos" | null {
+  if (f.ventas <= 0) return "sin_ventas";
+  if (f.margen <= 0) return "sin_margen";
+  const caja = (f.detalleGastos ?? []).filter((g) => g.cuenta === CUENTA_DIFERENCIAS_CAJA).reduce((s, g) => s + g.monto, 0);
+  if (f.gastos - caja <= 0) return "sin_gastos";
+  return null;
+}
+
+// ---- Qué fila es de qué -----------------------------------------------------------------------------------------------------
 
 /** La fila del Estado de resultados de lo que se mira: CAYLA (el consolidado), la empresa o la ubicación. */
 export function filaDeVer(filasER: readonly FilaER[], ver: VerResumen): FilaER | undefined {
@@ -309,25 +332,7 @@ export function filaDeVer(filasER: readonly FilaER[], ver: VerResumen): FilaER |
   return filasER.find((f) => f.ubicacionId === ver.ubicacionId);
 }
 
-/** La línea de ventas del presupuesto de lo que se mira (la meta del mes). */
-function ventasPpto(r: ResumenFinanzas): FilaPpto | undefined {
-  const ps = filas(r.presupuesto).filter((f) => f.linea === "ventas");
-  if (r.ver.todas) return ps.find((f) => f.unidad === "consolidado");
-  if (r.ver.soloEmpresa) return undefined;
-  return ps.find((f) => f.ubicacionId === r.ver.ubicacionId);
-}
-
 // ---- Por qué falta una parte (lo que es de otro módulo o solo del líder se explica, no se esconde) ----------------------------
-
-export function motivoAusencia(p: Parte<unknown>, modulo?: string): string | null {
-  if (p.estado === "sin_permiso") return modulo ? `Lo ve quien tiene ${modulo}` : p.mensaje;
-  if (p.estado === "falla") return "No se pudo leer";
-  return null;
-}
-
-// ---- 2. Las cinco cifras ---------------------------------------------------------------------------------------------------
-
-export type Cifra = { clave: string; etiqueta: string; valor: string; rojo?: boolean; detalle: string; origen: string };
 
 const DINERO = "Cuentas y dinero";
 
@@ -349,172 +354,6 @@ export function debesPronto(r: ResumenFinanzas): { monto: number; vencidas: Fila
   return { monto, vencidas, proximas, planilla };
 }
 
-/** La plata disponible de CAYLA: la de F6 (los saldos de F3 sin la tarjeta de crédito); si el flujo no se pudo leer, la
- *  misma suma sobre los saldos de F3. */
-function plataDisponible(r: ResumenFinanzas): number | null {
-  if (r.flujo.estado === "ok") return r.flujo.datos.saldoHoy;
-  if (r.cuentas.estado !== "ok") return null;
-  return r2(r.cuentas.datos.filter((c) => c.tipo !== "tarjeta_credito").reduce((a, c) => a + (c.saldo ?? 0), 0));
-}
-
-function sumaTipos(cs: readonly CuentaDinero[], tipos: readonly CuentaDinero["tipo"][]): { monto: number; hay: boolean; ocultas: boolean } {
-  const del = cs.filter((c) => tipos.includes(c.tipo));
-  return { monto: r2(del.reduce((a, c) => a + (c.saldo ?? 0), 0)), hay: del.length > 0, ocultas: del.some((c) => c.saldo === null) };
-}
-
-export function cifrasResumen(r: ResumenFinanzas): Cifra[] {
-  const mesAnt = mesNombre(r.mesAnterior);
-  // Las cifras de «el último mes completo» hablan del primer mes que cuenta cuando el anterior quedó antes del corte; el IGV
-  // sigue con el mes anterior de verdad (se declara a SUNAT aunque Finanzas arranque después).
-  const mesMedido = r.antesDelCorte ? mesNombre(mesDelCorte(r.antesDelCorte)) : mesAnt;
-  const out: Cifra[] = [];
-
-  // 1 · Lo vendido en el mes (F5, sin IGV).
-  const erMes = r.resultadosMes.estado === "ok" ? r.resultadosMes.datos : [];
-  const fMes = filaDeVer(erMes, r.ver);
-  const vende = r.ver.todas || r.ver.tipo === "tienda";
-  out.push({
-    clave: "vendido",
-    etiqueta: "Vendido en el mes",
-    valor: r.resultadosMes.estado !== "ok" ? "—" : vende ? soles(fMes?.ventas ?? 0) : "—",
-    detalle:
-      r.resultadosMes.estado !== "ok"
-        ? (motivoAusencia(r.resultadosMes) ?? "")
-        : r.ver.todas
-          ? erMes
-              .filter((f) => f.unidad === "tienda")
-              .map((f) => `${nombreCorto(f)} ${soles(f.ventas)}`)
-              .join(" · ") || "Sin IGV"
-          : vende
-            ? "Sin IGV"
-            : r.ver.tipo === "taller"
-              ? "El Taller no vende"
-              : "La empresa no vende",
-    origen: "Estado de resultados (F5), sin IGV",
-  });
-
-  // 2 · La plata (F3; en CAYLA entera, la disponible de F6).
-  if (r.ver.todas || r.ver.soloEmpresa) {
-    const cs = r.cuentas.estado === "ok" ? r.cuentas.datos : [];
-    const disp = r.ver.todas ? plataDisponible(r) : r.cuentas.estado === "ok" ? r2(cs.filter((c) => c.tipo !== "tarjeta_credito").reduce((a, c) => a + (c.saldo ?? 0), 0)) : null;
-    const bancos = sumaTipos(cs, ["banco"]);
-    const efectivo = sumaTipos(cs, r.ver.todas ? ["cajon", "caja_fuerte", "por_rendir"] : ["por_rendir"]);
-    const pos = sumaTipos(cs, ["por_abonar"]);
-    const partes = [
-      bancos.hay ? `Bancos ${soles(bancos.monto)}` : null,
-      efectivo.hay ? `${r.ver.todas ? "cajones y cajas fuertes" : "efectivo con el líder"} ${soles(efectivo.monto)}` : null,
-      pos.hay ? `tarjeta por abonar ${soles(pos.monto)}` : null,
-    ].filter(Boolean);
-    out.push({
-      clave: "plata",
-      etiqueta: r.ver.todas ? "Plata disponible" : "Bancos y cuentas",
-      valor: disp === null ? "—" : soles(disp),
-      detalle:
-        disp === null
-          ? (motivoAusencia(r.cuentas, DINERO) ?? "")
-          : bancos.hay
-            ? mayuscula(partes.join(" · "))
-            : `${partes.length ? `${mayuscula(partes.join(" · "))}. ` : ""}Sin bancos todavía: se agregan en Configuración ▸ Cuentas y cobros.`,
-      origen: "Cuentas y dinero (F3); sin la tarjeta de crédito, que es deuda",
-    });
-  } else {
-    const cs = r.cuentas.estado === "ok" ? r.cuentas.datos.filter((c) => c.tipo === "cajon" || c.tipo === "caja_fuerte") : [];
-    const oculto = cs.some((c) => c.saldo === null);
-    out.push({
-      clave: "plata",
-      etiqueta: r.ver.tipo === "taller" ? "Efectivo en el Taller" : "Efectivo en la tienda",
-      valor: r.cuentas.estado === "ok" ? soles(cs.reduce((a, c) => a + (c.saldo ?? 0), 0)) : "—",
-      detalle:
-        r.cuentas.estado !== "ok"
-          ? (motivoAusencia(r.cuentas, DINERO) ?? "")
-          : oculto
-            ? "Caja fuerte. El cajón abierto lo ve quien cierra la caja"
-            : "Cajón y caja fuerte. Los bancos son de CAYLA entera",
-      origen: "Cuentas y dinero (F3)",
-    });
-  }
-
-  // 3 · Lo que se debe pronto (F4 + la planilla de F6).
-  const deb = debesPronto(r);
-  const dias = r.porPagar.estado === "ok" ? r.porPagar.datos.dias : r.parametros.estado === "ok" ? r.parametros.datos.avisoVenceDias : 7;
-  out.push({
-    clave: "debes",
-    etiqueta: `Debes en ${dias} ${dias === 1 ? "día" : "días"}`,
-    valor: deb ? soles(deb.monto) : "—",
-    rojo: !!deb && deb.vencidas.length > 0,
-    detalle: deb
-      ? `${deb.planilla ? `Incluye la planilla del ${Number(deb.planilla.fecha.slice(8, 10))}. ` : ""}${deb.vencidas.length ? `${deb.vencidas.length} ${deb.vencidas.length === 1 ? "vencida" : "vencidas"}` : "Nada vencido"}`
-      : (motivoAusencia(r.porPagar, DINERO) ?? ""),
-    origen: "Cuentas y dinero ▸ Por pagar (F4)",
-  });
-
-  // 4 · La utilidad del último mes completo (F5), con el mes en curso a la fecha.
-  const erAnt = r.resultadosAnterior.estado === "ok" ? r.resultadosAnterior.datos : [];
-  const fAnt = filaDeVer(erAnt, r.ver);
-  out.push({
-    clave: "utilidad",
-    etiqueta: `Utilidad de ${mesMedido}`,
-    valor: r.resultadosAnterior.estado === "ok" ? soles(fAnt?.resultado ?? 0) : "—",
-    rojo: (fAnt?.resultado ?? 0) < 0,
-    detalle: r.antesDelCorte
-      ? "Se mide cuando el mes termine"
-      : r.resultadosAnterior.estado !== "ok"
-        ? (motivoAusencia(r.resultadosAnterior) ?? "")
-        : fAnt && fAnt.ventas > 0
-          ? `Margen bruto ${porcentaje(fAnt.margen, fAnt.ventas)}`
-          : vende
-            ? `Sin ventas en ${mesAnt}`
-            : "Unidad sin ventas propias",
-    origen: "Estado de resultados (F5)",
-  });
-
-  // 5 · CAYLA entera: el IGV (F8). Una tienda: su meta (Presupuesto). El Taller y la empresa: sus gastos (F5).
-  if (r.ver.todas) {
-    const foco = r.igv.estado === "ok" ? r.igv.datos.foco : null;
-    const anterior = r.igv.estado === "ok" ? r.igv.datos.historial.find((m) => m.mes === r.mesAnterior) : undefined;
-    const siguiente = nombreMes(sumarMeses(r.mes, 1));
-    out.push({
-      clave: "igv",
-      etiqueta: `IGV estimado de ${mesCortoDe(r.mes)}`,
-      valor: foco ? soles(foco.aPagar) : "—",
-      detalle: !foco
-        ? (motivoAusencia(r.igv) ?? "")
-        : [
-            foco.aPagar > 0 ? `Se declara en ${siguiente}` : foco.saldoAFavor > 0 ? `Saldo a favor ${soles(foco.saldoAFavor)}` : `Se declara en ${siguiente}`,
-            anterior && anterior.aPagar > 0 ? `${mesAnt}: ${soles(anterior.aPagar)} por declarar` : null,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-      origen: "Impuestos (F8)",
-    });
-  } else if (r.ver.tipo === "tienda") {
-    const v = ventasPpto(r);
-    out.push({
-      clave: "meta",
-      etiqueta: "Meta de ventas",
-      valor: v && v.presupuesto && v.proyeccion !== null ? (porcentaje(v.proyeccion, v.presupuesto) ?? "—") : "—",
-      detalle:
-        r.presupuesto.estado !== "ok"
-          ? (motivoAusencia(r.presupuesto) ?? "")
-          : v && v.presupuesto && v.proyeccion !== null
-            ? `Proyección al cierre ${soles(v.proyeccion)} de ${soles(v.presupuesto)}`
-            : "Sin meta: se pone en Configuración ▸ Tiendas y caja",
-      origen: "Reportes ▸ Presupuesto",
-    });
-  } else {
-    out.push({
-      clave: "gastos",
-      etiqueta: `Gastos de ${mesMedido}`,
-      valor: r.resultadosAnterior.estado === "ok" ? soles(fAnt?.gastos ?? 0) : "—",
-      detalle: r.ver.tipo === "taller" ? "No entran al costo de las prendas" : "Lo pagan las tiendas con su margen",
-      origen: "Estado de resultados (F5)",
-    });
-  }
-  return out;
-}
-
-const MESES_CORTOS = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic."];
-const mesCortoDe = (mes: string) => MESES_CORTOS[Number(mes.slice(5, 7)) - 1] ?? mes;
 
 // ---- 3. Para decidir hoy -----------------------------------------------------------------------------------------------------
 
@@ -547,6 +386,10 @@ const RANGO: Record<Aviso["tono"], number> = { rojo: 0, ambar: 1, pizarra: 2 };
  *  egresos sin clasificar, lo que no tiene cuenta y el límite del régimen. */
 const CLASE = { vencida: 0, minimo: 1, vencen: 2, pierde: 3, fijo: 4, ppto: 5, campana: 6, cierre: 7, raro: 8, egresos: 9, sin_cuenta: 10, umbral: 11 } as const;
 const MAX_POR_TIPO = 3;
+/** El lugar del aviso «bajo tu mínimo de caja» en el orden: `alinearAvisoDeCaja` (caja-proxima-reglas) lo crea cuando la tarjeta ve una caída que el bloque semanal no ve. */
+export const ORDEN_AVISO_CAJA = CLASE.minimo;
+/** El lugar de «te falta pedir» (la inversión en mercadería de una campaña): entre las campañas que vienen. */
+export const ORDEN_AVISO_CAMPANA = CLASE.campana;
 
 /** «Primero lo que más cuesta si se deja pasar»: rojo, ámbar, informativo; dentro de cada tono, la clase (el orden del
  *  spike) y, dentro de la clase, más soles primero. */
@@ -918,98 +761,5 @@ export function noRevisado(r: ResumenFinanzas): string[] {
     .map(([p, que, quien]) => (p.estado === "sin_permiso" ? `${mayuscula(que)}: lo ve ${quien === "el líder" ? "el líder" : `quien tiene ${quien}`}.` : `${mayuscula(que)}: no se pudo leer.`));
 }
 
-// ---- 4. La columna derecha ----------------------------------------------------------------------------------------------------
-
-export type BarraResumen = { nombre: string; valor: number; mala: boolean; malaTexto: string; titulo: string; lineas: string[] };
-
-/** «¿Cada tienda cubre sus costos?»: lo vendido el último mes contra lo que necesitaba vender (100 %). */
-export function coberturaTiendas(r: ResumenFinanzas): { barras: BarraResumen[]; sinDatos: string[] } {
-  if (r.resultadosAnterior.estado !== "ok") return { barras: [], sinDatos: [] };
-  const dias = diasDelMes(r.mesAnterior);
-  const barras: BarraResumen[] = [];
-  const sinDatos: string[] = [];
-  for (const f of r.resultadosAnterior.datos.filter((x) => x.unidad === "tienda")) {
-    const eq = equilibrio(f, dias);
-    if (!eq) {
-      sinDatos.push(nombreCorto(f));
-      continue;
-    }
-    barras.push({
-      nombre: nombreCorto(f),
-      valor: Math.round(eq.cubre * 100),
-      mala: eq.cubre < 1,
-      malaTexto: "no cubre",
-      titulo: f.nombre,
-      lineas: [`Necesita ${soles(eq.pe)} · vendió ${soles(eq.ventas)}`, eq.dia !== null ? `Cubre sus costos el día ${eq.dia}` : `Le faltan ${soles(eq.pe - eq.ventas)} al mes`],
-    });
-  }
-  return { barras, sinDatos };
-}
-
-/** «Saldo de las próximas 6 semanas» (F6): lo que queda cada semana contra el mínimo de caja. */
-export function barrasSemanas(p: Proyeccion): BarraResumen[] {
-  const eje = etiquetasEje(p.semanas.map((w) => w.desde));
-  return p.semanas.map((w, i) => ({
-    nombre: eje[i] ?? "",
-    valor: w.saldo,
-    mala: w.bajoMinimo,
-    malaTexto: "bajo el mínimo",
-    titulo: etiquetaSemana(w.desde, w.hasta),
-    lineas: [`Entra ${soles(w.entra)} · Sale ${soles(w.sale)}`, queVence(p.salidas, w.desde, w.hasta)],
-  }));
-}
-
-/** «Camino al punto de equilibrio» de una tienda: lo vendido este mes contra lo que necesita (según el último mes). */
-export function caminoEquilibrio(r: ResumenFinanzas): { vendido: number; pe: number; ancho: number; texto: string } | null {
-  if (r.resultadosMes.estado !== "ok" || r.resultadosAnterior.estado !== "ok") return null;
-  const eq = equilibrio(filaDeVer(r.resultadosAnterior.datos, r.ver), diasDelMes(r.mesAnterior));
-  if (!eq || eq.pe <= 0) return null;
-  const vendido = filaDeVer(r.resultadosMes.datos, r.ver)?.ventas ?? 0;
-  const dia = Number(r.hoy.slice(8, 10));
-  const quedan = diasDelMes(r.mes) - dia;
-  const falta = eq.pe - vendido;
-  const texto =
-    falta <= 0
-      ? "Ya cubrió los costos del mes: desde aquí, cada sol de margen es ganancia."
-      : quedan > 0
-        ? `Le faltan ${soles(falta)} en ${quedan} ${quedan === 1 ? "día" : "días"}: unos ${soles(falta / quedan)} diarios. Hoy vende ${soles(vendido / Math.max(1, dia))} al día.`
-        : `Le faltan ${soles(falta)} y hoy termina el mes.`;
-  return { vendido, pe: eq.pe, ancho: Math.max(0, Math.min(100, (vendido / eq.pe) * 100)), texto };
-}
-
-/** «Presupuesto del mes» de una unidad: cada rubro con tope, lo gastado a la fecha y el % de la proyección al cierre. */
-export function miniPresupuesto(r: ResumenFinanzas): { nombre: string; real: number; tope: number; pct: string; tono: "rojo" | "ambar" | "verde" }[] {
-  return filas(r.presupuesto)
-    .filter((f) => f.tipo === "tope" && f.presupuesto && f.unidad !== "consolidado")
-    .map((f) => {
-      const p = (f.proyeccion ?? f.aLaFecha) / (f.presupuesto ?? 1);
-      return {
-        nombre: f.lineaNombre,
-        real: f.aLaFecha,
-        tope: f.presupuesto ?? 0,
-        pct: porcentaje(p, 1) ?? "—",
-        tono: p > 1.05 ? "rojo" : p > 1 ? "ambar" : "verde",
-      };
-    });
-}
-
 // ---- 5. Cabecera -------------------------------------------------------------------------------------------------------------
 
-export function tituloResumen(r: ResumenFinanzas): string {
-  return r.ver.todas ? `CAYLA, ${alDia(r.hoy, true)}` : `${r.ver.nombre}, ${alDia(r.hoy, false)}`;
-}
-
-export function bajadaResumen(r: ResumenFinanzas): string {
-  if (r.ver.todas) return "Cómo está el negocio y qué conviene decidir hoy. Todo sale de lo que ya registran Ventas, Caja, Compras, Producción y Dynamic.";
-  if (!r.lider) return `Lo de ${r.ver.nombre}: sus ventas, sus gastos y lo que conviene decidir hoy.`;
-  return `Solo ${r.ver.soloEmpresa ? "lo de la empresa" : r.ver.nombre}. Para ver el negocio entero, elige «Todas las tiendas».`;
-}
-
-/** La nota del Taller y de la empresa (spike), dicha con lo que hoy es cierto (F5, decisión 8). */
-export function notaUnidad(r: ResumenFinanzas): string | null {
-  if (r.ver.tipo === "taller")
-    return "El Taller no vende: se mide por lo que cuesta. Su planilla y sus gastos no se reparten en las prendas (su costo es tela, avíos y maquila); CAYLA los paga con el margen de las tiendas. El costo de cada prenda se ve en Producción.";
-  if (r.ver.soloEmpresa)
-    return "Lo de la empresa no es de ninguna tienda y no se reparte (D-32). Las tiendas lo pagan con su margen: por eso el punto de equilibrio de CAYLA entera es más alto que la suma de las tiendas.";
-  return null;
-}

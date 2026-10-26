@@ -3,7 +3,12 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { leerVer, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { getContextoGastos, getPanelGastos } from "@/lib/gastos";
 import { sedeDeLaUrl, SEDE_TODAS } from "@/lib/finanzas-telar-reglas";
-import { pendientesDeGastos, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
+import { pendientesDeGastos, pendientesDeImpuestos, type PendienteTelar } from "@/lib/finanzas-te-toca-reglas";
+import { getContextoDinero, getMovimientos, pendientesDeConciliar } from "@/lib/cuentas-dinero";
+import { getPorPagarConsolidado, getUnidadesPorPagar } from "@/lib/por-pagar-consolidado";
+import { cajasSinDepositar, pendientesDeDinero } from "@/lib/dinero-te-toca-reglas";
+import { getPanelImpuestos } from "@/lib/impuestos";
+import { antesDeDeclarar } from "@/lib/impuestos-antes-reglas";
 
 // GET /api/finanzas/te-toca?sede=… → los pendientes de Finanzas de la sede elegida, para «Te toca» de la mesa de mando (El telar).
 //
@@ -30,6 +35,46 @@ export async function GET(request: Request) {
       else incompleto = true;
     } catch (e) {
       console.error("Te toca: no se pudieron leer los pendientes de Gastos", e);
+      incompleto = true;
+    }
+  }
+
+  if (veModulo(persona, "cuentas_dinero")) {
+    try {
+      const hoy = hoyLima();
+      const esLider = persona.rol === "lider";
+      const unidades = await getUnidadesPorPagar(persona);
+      const verDeuda = leerVer(sede, unidades, esLider, persona.ubicacionId);
+      // «Dónde está» no tiene «empresa» propia (la empresa no tiene cajón): sus cajas fuertes se miran como todas.
+      const ctx = await getContextoDinero(persona, sede === "empresa" ? SEDE_TODAS : sede);
+      const [deuda, movimientos] = await Promise.all([getPorPagarConsolidado(verDeuda), getMovimientos(ctx.ver.ubicacionId)]);
+      if (deuda.falla || ctx.cuentas.falla) incompleto = true;
+      pendientes.push(
+        ...pendientesDeDinero(
+          {
+            porPagar: deuda.datos,
+            cajasSinDepositar: cajasSinDepositar(ctx.cuentas.datos, movimientos.datos, hoy, ctx.ver.ubicacionId),
+            lineasSinRevisar: pendientesDeConciliar(ctx.conciliacion.datos),
+            esLider,
+          },
+          hoy,
+          consulta,
+        ),
+      );
+    } catch (e) {
+      console.error("Te toca: no se pudieron leer los pendientes de Cuentas y dinero", e);
+      incompleto = true;
+    }
+  }
+
+  // Impuestos es de CAYLA entera (un RUC): sus pendientes son los mismos en cualquier sede; se lee el mes que se declara ahora.
+  if (veModulo(persona, "impuestos")) {
+    try {
+      const panel = await getPanelImpuestos();
+      if (panel.datos) pendientes.push(...pendientesDeImpuestos(antesDeDeclarar(panel.datos), consulta));
+      else incompleto = true;
+    } catch (e) {
+      console.error("Te toca: no se pudieron leer los pendientes de Impuestos", e);
       incompleto = true;
     }
   }

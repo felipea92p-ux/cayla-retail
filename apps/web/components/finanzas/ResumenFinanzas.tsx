@@ -1,115 +1,175 @@
 "use client";
 
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState, type CSSProperties } from "react";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
-import { Chip } from "@/components/ui/Chip";
-import { CifraAnimada } from "@/components/ui/CifraAnimada";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { BookOpen, CalendarCheck, ChartColumn, Percent, Wallet } from "lucide-react";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
-import { CascadaPulso } from "@/components/finanzas/CascadaPulso";
+import { AjustesResumen } from "@/components/finanzas/AjustesResumen";
+import { CajaProximaPieza } from "@/components/finanzas/CajaProxima";
+import { InversionMercaderia } from "@/components/finanzas/InversionMercaderia";
+import { useAjustesResumen } from "@/components/finanzas/useAjustesResumen";
+import { CambiosDelMesPieza } from "@/components/finanzas/CambiosDelMes";
+import { DeCadaCienPieza } from "@/components/finanzas/DeCadaCien";
 import { Confianza } from "@/components/finanzas/Confianza";
-import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
-import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
+import { EquilibrioMesPieza } from "@/components/finanzas/EquilibrioMes";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
+import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
+import { DockTelar } from "@/components/finanzas/telar/DockTelar";
+import { Orillo } from "@/components/finanzas/telar/Orillo";
+import { TresRespuestas } from "@/components/finanzas/TresRespuestas";
+import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
+import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
-import { soles } from "@/lib/flujo-caja-reglas";
-import { avisoAntesDelCorte, mesDelCorte } from "@/lib/finanzas-arranque-reglas";
-import { mesNombre } from "@/lib/resultados-reglas";
-import { cascadaPulso, lugaresPulso, matizarRespuesta, respuestaPulso, ritmoPulso } from "@/lib/pulso-reglas";
+import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
+import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { deCadaCien } from "@/lib/de-cada-cien-reglas";
+import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
+import { tresRespuestas } from "@/lib/tres-respuestas-reglas";
+import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
+import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
+import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
+import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
-  avisosParaDecidir,
-  bajadaResumen,
-  barrasSemanas,
-  caminoEquilibrio,
-  cifrasResumen,
-  claveVer,
-  coberturaTiendas,
-  miniPresupuesto,
-  motivoAusencia,
-  notaUnidad,
-  noRevisado,
-  tituloResumen,
-  type Acceso,
-  type ResumenFinanzas,
-} from "@/lib/resumen-finanzas-reglas";
-import { Vacio } from "@/components/ui/Vacio";
-import { CalendarX, ChartColumn, Target, Wallet } from "lucide-react";
+  mesAnteriorDe,
+  respuestaResumen,
+  vendidoPorSede,
+  type DiaVenta,
+} from "@/lib/resumen-telar-reglas";
 
-// Finanzas ▸ Resumen, «El Pulso» (camino A de las maquetas finanzas-v2-2026-10, elegido por Felipe el 2026-10-15): una
-// pregunta —¿estoy ganando plata?— y una respuesta grande, lo que queda a la fecha. Debajo, en capas: ¿por qué ese número?
-// (la cascada, a un toque), el ritmo (lo vendido por día contra lo que hace falta, y con qué cerrarías), qué tan seguro es el
-// número (ADR-0417, el medidor de confianza), qué deja cada lugar (sin repartir lo de la empresa) y, recién entonces, las
-// cifras del mes, «para decidir hoy» y los gráficos de siempre. No calcula plata: todo viene de `fn_resumen_finanzas` y de
-// `lib/pulso-reglas.ts` + `lib/resumen-finanzas-reglas.ts`, que deciden qué se dice. Es cliente por el «¿Por qué?» y por
-// los gráficos, que reciben cómo escribir cada valor (una función).
+// Finanzas ▸ Resumen en El telar (Felipe 2026-10-23, ADR-0493): arriba, las tres respuestas (Felipe 2026-10-26: ¿cuánto tienes?, ¿cuánto debes
+// pagar pronto?, ¿cuánto te deja este mes?), el
+// orillo con lo que vendió cada sede, el recorrido de la plata al lado de «Hoy te toca», la línea de ventas contra la meta y, al
+// final, qué tan seguro es el número (ADR-0417). La sede y el mes los pone la barra común; esta pantalla no tiene selector propio.
+// No calcula plata: lo arman `recorrido-plata-reglas`, `resumen-telar-reglas` y `resumen-finanzas-reglas` con lo que lee la página.
 
-const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
-// Lo mismo, para una pieza que ya tiene su clase.
-const entraEn = (clase: string, i: number) => ({ className: `${clase} anim-entra`, style: { ["--i" as string]: i } as CSSProperties });
-const mayuscula = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
+/** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
+const alto = (i: number) => ({ className: "anim-entra h-full", style: { ["--i" as string]: i } as CSSProperties });
+/** Una tarjeta de las columnas: no se parte entre dos y deja 1 rem hasta la de abajo. */
+const columna = (i: number) => ({ className: "anim-entra mb-4 break-inside-avoid", style: { ["--i" as string]: i } as CSSProperties });
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { resumen: ResumenFinanzas | null; falla: string | null; confianza: Lectura<ConfianzaDatos | null>; acceso: Acceso }) {
+type Props = {
+  resumen: ResumenFinanzas | null;
+  falla: string | null;
+  confianza: Lectura<ConfianzaDatos | null>;
+  /** El mes que se mira («2026-10») y hoy («2026-10-23»). */
+  mes: string;
+  hoy: string;
+  /** El Estado de resultados del mes elegido (al día de hoy si es el mes en curso), de todas las sedes que la cuenta ve. */
+  estadoMes: Lectura<FilaER[]>;
+  /** El tramo con que se compara (el mes pasado a la misma fecha); `null` si no se pudo leer. */
+  estadoAntes: FilaER[] | null;
+  /** Lo vendido por día de cada tienda; `null` si la cuenta no ve Rendimiento. */
+  ventasPorDia: { series: DiaVenta[][]; incompleta: boolean } | null;
+  sedes: SedeTelar[];
+  /** La proyección de caja con sus cobros y salidas por día (la de Dinero ▸ Flujo), para «Tu caja en las próximas dos semanas». */
+  flujoProximo: FlujoProximo;
+  /** La inversión en mercadería que entrega el Plan de campaña; `null` si esta base aún no la trae (entonces no se ofrece nada). */
+  inversion: CampanaInversion[] | null;
+  acceso: Acceso;
+};
+
+const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
+
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, acceso }: Props) {
+  const sp = useSearchParams();
+  // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
+  const [ajustes, ponerAjustes] = useAjustesResumen();
+  const [elegidas, setElegidas] = useState<Record<string, string>>({});
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const delPlan = inversion ?? [];
+  const mesDeHoy = mesDelDia(hoy);
+  const enCurso = mes === mesDeHoy;
+  // Las acciones del dock llevan la sede y el mes que se miran (`hrefTelar`).
+  const ir = (ruta: string) => hrefTelar(ruta, sp.entries(), {}, { mismaPantalla: false, mesDeHoy });
+  const dock = (
+    <DockTelar
+      acciones={[
+        { texto: "Pagar facturas", tecla: "p", icono: <Wallet aria-hidden />, principal: true, href: ir("/finanzas/dinero/por-pagar") },
+        { texto: "IGV del mes", tecla: "i", icono: <Percent aria-hidden />, href: ir("/finanzas/impuestos") },
+        { texto: "Cierre de mes", tecla: "m", icono: <CalendarCheck aria-hidden />, href: ir("/finanzas/cierre") },
+        { texto: "Reportes", tecla: "r", icono: <BookOpen aria-hidden />, href: ir("/finanzas/reportes") },
+      ]}
+    />
+  );
+
   if (!resumen) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo="Finanzas · Resumen" titulo="Resumen" bajada="Cómo está el negocio y qué conviene decidir hoy." accionesAbajo />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla ?? "No se pudo leer el resumen."}</p>
+        <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} />
+        <Aviso tono="error" titulo="El Resumen no respondió">
+          {falla ?? "No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe."}
+        </Aviso>
+        {dock}
       </div>
     );
   }
-  const r = resumen;
-  const cifras = cifrasResumen(r);
-  const avisos = avisosParaDecidir(r, acceso);
-  const faltan = noRevisado(r);
-  const ver = { clave: claveVer(r.ver), ubicacionId: r.ver.ubicacionId, soloEmpresa: r.ver.soloEmpresa };
-  const unidades = r.lider ? r.unidades.map((u) => ({ id: u.id, nombre: u.nombre })) : [{ id: r.ver.ubicacionId ?? "", nombre: r.ver.nombre }];
-  const lugares = lugaresPulso(r);
+
+  // El Resumen del mes elegido: los avisos son de hoy, pero la respuesta, el orillo y el recorrido salen del mes de la barra.
+  const r: ResumenFinanzas = {
+    ...resumen,
+    mes,
+    mesAnterior: mesAnteriorDe(mes),
+    resultadosMes: estadoMes.falla
+      ? { estado: "falla", mensaje: "No se pudo leer el estado de resultados de este mes. Vuelve a cargar la página en un rato." }
+      : { estado: "ok", datos: estadoMes.datos },
+  };
+  const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
+  const resp = respuestaResumen(r, estadoAntes, provisional, enCurso);
+  const filas = estadoMes.falla ? [] : estadoMes.datos;
+  const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
+  const cien = deCadaCien(recorrido);
+  const faltan = noRevisado(resumen);
+  // La inversión en mercadería es de CAYLA entera: mirando una sola sede no se reparte (como el saldo de los bancos), así que ahí no se dibuja.
+  const todasLasCampanas = r.ver.todas ? delPlan : [];
+  const campanas = campanasQueSeVen(todasLasCampanas, ajustes);
+  // La compra de campaña que falta pedir entra a la caja como un pago aparte (no como un gasto) si la persona la deja y se mira CAYLA entera.
+  const proyeccion = flujoProximo.estado === "ok" ? flujoProximo.datos : null;
+  const pagosDeCompra = ajustes.enCaja && proyeccion ? pagosDeLaCompra(campanas, proyeccion, ajustes.conIgv, elegidas) : [];
+  const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
+  // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
+  const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
+  const avisos = ordenarAvisos([
+    ...alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/escenarios" : null),
+    ...campanas.flatMap((c) => avisoDeInversion(c, hoy, ajustes.conIgv) ?? []),
+  ]);
+  const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
+  const hrefDeSede = acceso.lider
+    ? Object.fromEntries(sedes.map((s) => [s.clave, hrefTelar("/finanzas/resumen", sp.entries(), { sede: s.clave }, { mismaPantalla: true, mesDeHoy })]))
+    : {};
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Finanzas · Resumen"
-        titulo={tituloResumen(r)}
-        bajada={bajadaResumen(r)}
-        accionesAbajo
-        acciones={<VerPorPagar ver={ver} unidades={unidades} esLider={r.lider} />}
-      />
+      <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
+      {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. */}
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar") })} />
+      {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
+      {confianza.datos ? (
+        <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
+      ) : (
+        <p className="card-cayla px-4 py-3 text-sm text-taupe sm:px-5" data-guia="fin-resumen.confianza">
+          {confianza.falla ?? "No se pudo medir qué tan seguro es este número."}
+        </p>
+      )}
+      <Orillo porSede={porSedeDe(vendidoPorSede(filas))} sedes={sedes} que="vendido" hoy={hoy} />
+      {dock}
 
-      <Respuesta r={r} nivel={confianza.datos?.nivel ?? null} />
+      {/* La caja y «Hoy te toca» van lado a lado y a la misma altura (desde 1280 px, con 20 rem de piso para «Hoy te toca»: antes, a 1024 px
+          quedaba tan angosta que partía el texto palabra por palabra). Más angosto, una bajo la otra. Sin huecos (Felipe 2026-10-26). */}
+      <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]">
+        <div {...alto(2)}>
+          <CajaProximaPieza caja={caja} hrefFlujo={ir("/finanzas/reportes/flujo")} className="h-full" incluye={ajustes.conIgv ? "inversión en mercadería (con IGV)" : "inversión en mercadería"} />
+        </div>
 
-      <section className="fin-dos-col">
-        <Ritmo r={r} />
-        {/* ADR-0417: qué tan cierto es el número del mes y qué falta para que lo sea. Si no se pudo medir, no se dibuja (nunca un 0 % falso). */}
-        {confianza.datos ? (
-          <div {...entra(5)}>
-            <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
-          </div>
-        ) : (
-          <div {...entra(5)}>
-            <Superficie pad>
-              <CabeceraBloque titulo="Qué tan seguro es este número" bajada={confianza.falla ?? "No se pudo medir."} />
-            </Superficie>
-          </div>
-        )}
-      </section>
-
-      {lugares && <Lugares lugares={lugares} />}
-
-      <section className="fin-cifras fin-cinco" aria-label="Los números del mes" data-guia="fin-resumen.cifras">
-        {cifras.map((c, i) => (
-          // `cifrasResumen` dice «—» cuando no hay dato: la pieza lo dibuja como «sin dato», con su detalle de motivo (ADR-0358).
-          <TarjetaCifra key={c.clave} etiqueta={c.etiqueta} valor={c.valor === "—" ? null : c.valor} tono={c.rojo ? "text-rojo" : undefined} {...entra(i + 7)}>
-            <span title={`Sale de ${c.origen}`}>{c.detalle}</span>
-          </TarjetaCifra>
-        ))}
-      </section>
-
-      <section className="fin-dos-col fin-dos-col-izq">
-        <div {...entra(12)} data-guia="fin-resumen.decidir">
-          <Superficie pad>
-            <CabeceraBloque titulo="Para decidir hoy" bajada="Primero lo que más cuesta si se deja pasar. Cada aviso dice cuánto está en juego." />
+        <div {...alto(3)} data-guia="fin-resumen.decidir">
+          <Superficie pad className="h-full">
+            <CabeceraBloque
+              titulo="Hoy te toca"
+              bajada={enCurso ? "Primero lo que más cuesta si se deja pasar." : `Es de hoy, aunque mires ${mesNombre(mes)}. Primero lo que más cuesta si se deja pasar.`}
+            />
             <ResumenDecidir avisos={avisos} parcial={faltan.length > 0} />
             {faltan.length > 0 && (
               <ul className="fin-no-revisado">
@@ -120,305 +180,63 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { re
             )}
           </Superficie>
         </div>
-
-        <div className="fin-columna">
-          {r.ver.todas ? (
-            <>
-              <Cobertura r={r} />
-              <Semanas r={r} />
-            </>
-          ) : r.ver.tipo === "tienda" ? (
-            <>
-              <Camino r={r} />
-              <MiniPresupuesto r={r} acceso={acceso} />
-            </>
-          ) : (
-            notaUnidad(r) && (
-              <div className="nota-cayla anim-entra" style={{ ["--i" as string]: 13 } as CSSProperties}>
-                {notaUnidad(r)}
-              </div>
-            )
-          )}
-        </div>
       </section>
-    </div>
-  );
-}
 
-/** La pregunta y la respuesta grande, con «¿Por qué?» que abre la cascada (vendiste → costó → sueldos → gastos → queda). */
-function Respuesta({ r, nivel }: { r: ResumenFinanzas; nivel: ConfianzaDatos["nivel"] | null }) {
-  const [porque, setPorque] = useState(false);
-  const resp = respuestaPulso(r);
-  // ADR-0417: el «Sí» pelado solo con confianza alta; con baja, «Con lo que hay registrado…» y la cifra provisional.
-  const m = resp.estado === "sin_datos" ? null : matizarRespuesta(resp, r.mes, nivel);
-  const cascada = cascadaPulso(r);
-  const vende = r.ver.todas || r.ver.tipo === "tienda";
-  const pregunta = vende ? "¿Estoy ganando plata?" : r.ver.tipo === "taller" ? "¿Cuánto cuesta el Taller?" : "¿Cuánto cuesta lo de la empresa?";
-  return (
-    <section className="fin-pulso-hero" aria-labelledby="fin-pulso-pregunta" data-guia="fin-resumen.respuesta">
-      <p id="fin-pulso-pregunta" {...entraEn("fin-pulso-pregunta", 1)}>
-        {pregunta}
-      </p>
-      {resp.estado === "sin_datos" || m === null ? (
-        <div {...entra(2)}>
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {resp.estado === "sin_datos" ? resp.motivo : ""}
-          </Vacio>
+      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega (hoy la base no) y se deja ver. */}
+      <InversionMercaderia
+        campanas={campanas}
+        conIgv={ajustes.conIgv}
+        hoy={hoy}
+        proyeccion={proyeccion}
+        elegidas={elegidas}
+        onElegir={(id, clave) => setElegidas((e) => ({ ...e, [id]: clave }))}
+        abierta={abierta}
+        onAbrir={setAbierta}
+        ocultasAqui={todasLasCampanas.some((c) => c.visible) && campanas.length === 0}
+      />
+      <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
+
+      {/* Lo demás, en columnas que se llenan una tras otra: cada tarjeta queda pegada a la de arriba, sin aire. Con ancho para dos
+          columnas de 34 rem se reparten (el navegador corta donde las deja más parejas); con menos, van en una sola (Felipe 2026-10-26). */}
+      <div className="columns-[34rem] gap-4">
+        <div {...columna(4)}>
+          <Superficie pad guia="fin-resumen.recorrido">
+            <CabeceraBloque
+              titulo="Por dónde pasa la plata"
+              bajada={recorrido ? `${recorrido.nota}${acceso.lider ? " Toca una sede para seguirla." : ""}` : `${mesNombre(mes).replace(/^./, (c) => c.toUpperCase())} sin movimientos para dibujar.`}
+            />
+            {recorrido ? (
+              <>
+                <RecorridoPlata recorrido={recorrido} hrefDeSede={hrefDeSede} colorDeSede={coloresDeSede(sedes)} />
+                {cien && <DeCadaCienPieza cien={cien} colorDeSede={coloresDeSede(sedes)} />}
+              </>
+            ) : (
+              <Vacio tamano="chico" icono={<ChartColumn />}>
+                {estadoMes.falla
+                  ? "No se pudo leer el estado de resultados de este mes. Vuelve a cargar la página en un rato."
+                  : r.ver.todas || r.ver.tipo === "tienda"
+                    ? "Todavía no hay ventas ni gastos registrados este mes."
+                    : "Para ver cómo se sostiene, elige «Todas las sedes» o una tienda: este mes no hay tiendas con qué compararlo."}
+              </Vacio>
+            )}
+          </Superficie>
         </div>
-      ) : (
-        <>
-          {vende && (
-            <p {...entraEn("fin-pulso-si", 2)}>
-              <Chip tono={m.tono}>{m.chip}</Chip>
-              <span>{m.intro}</span>
-            </p>
-          )}
-          <p {...entraEn("fin-pulso-respuesta", 3)}>
-            <span className="fin-pulso-verbo">{resp.verbo}</span>
-            <span className="fin-pulso-monto" data-estado={resp.estado} data-provisional={m.provisional || undefined}>
-              {m.aprox}
-              <CifraAnimada valor={Math.round(resp.monto)} formato="soles" />
-            </span>
-          </p>
-          <p {...entraEn("fin-pulso-explica", 4)}>
-            {resp.explica}
-            {m.aviso && ` ${m.aviso}`}
-          </p>
-          {cascada.length > 0 && (
-            <div {...entraEn("fin-pulso-porque", 5)}>
-              <button type="button" className="btn-cayla btn-enlace" aria-expanded={porque} aria-controls="fin-pulso-cascada" onClick={() => setPorque((v) => !v)}>
-                {porque ? "Cerrar" : `¿Por qué ${soles(resp.monto)}?`}
-              </button>
-              {porque && <CascadaPulso id="fin-pulso-cascada" tramos={cascada} etiqueta="De dónde sale el número" />}
-            </div>
-          )}
-        </>
-      )}
-    </section>
-  );
-}
 
-/** El ritmo: lo vendido por día contra lo que hace falta por día para cubrir lo fijo del mes, y con qué cerrarías si sigues así. */
-function Ritmo({ r }: { r: ResumenFinanzas }) {
-  const ritmo = ritmoPulso(r);
-  const nota = notaUnidad(r);
-  return (
-    <div {...entra(4)}>
-      <Superficie pad guia="fin-resumen.ritmo">
-        <CabeceraBloque titulo="Tu ritmo" bajada={ritmo ? ritmo.frase : (nota ?? "Mirando el Taller o la empresa no hay ritmo de venta.")} />
-        {ritmo && ritmo.necesarioPorDia !== null && ritmo.necesarioPorDia > 0 && (
-          <>
-            <RitmoBarra porDia={ritmo.porDia} necesario={ritmo.necesarioPorDia} tono={ritmo.tono} />
-            <p className="fin-pulso-cierre">{ritmo.cierreFrase}</p>
-            <p className="nota-cayla mt-3">
-              Lo fijo de {mesNombre(r.mes)} ronda {soles(ritmo.fijoMes)}: sueldos, alquileres, servicios y desgaste, con lo registrado hasta hoy. Lo que falta registrar lo dice «Qué tan seguro es este número».
-            </p>
-          </>
-        )}
-        {ritmo && (ritmo.necesarioPorDia === null || ritmo.necesarioPorDia <= 0) && ritmo.cierreFrase && <p className="nota-cayla mt-3">{ritmo.cierreFrase}</p>}
-      </Superficie>
-    </div>
-  );
-}
+        <div {...columna(5)}>
+          <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
+        </div>
 
-function RitmoBarra({ porDia, necesario, tono }: { porDia: number; necesario: number; tono: "verde" | "ambar" | "rojo" | "pizarra" }) {
-  const tope = Math.max(porDia, necesario, 1) * 1.25;
-  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / tope) * 100))}%`;
-  return (
-    <div className="fin-pulso-ritmo" data-tono={tono} role="img" aria-label={`Vas en ${soles(porDia)} al día; necesitas ${soles(necesario)} al día`}>
-      <div className="fin-pulso-ritmo-pista">
-        <i className="fin-pulso-ritmo-relleno" style={{ ["--w" as string]: pct(porDia) } as CSSProperties} />
-        <span className="fin-pulso-ritmo-marca" style={{ left: pct(necesario) }}>
-          <span>Necesitas {soles(necesario)}</span>
-        </span>
-      </div>
-      <div className="fin-pulso-ritmo-escala">
-        <span>S/&nbsp;0</span>
-        <span>
-          Tú: {soles(porDia)} al día
-        </span>
+        <div {...columna(6)}>
+          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes: estadoAntes, enCurso })} />
+        </div>
       </div>
     </div>
   );
 }
 
-/** Qué deja cada lugar después de lo que él mismo causa; lo de la empresa va aparte y no se reparte (ADR-0417). */
-function Lugares({ lugares }: { lugares: NonNullable<ReturnType<typeof lugaresPulso>> }) {
-  const { lugares: ls, total, mayor } = lugares;
-  const positivos = ls.filter((l) => l.deja > 0).map((l) => l.nombre);
-  return (
-    <div {...entra(6)}>
-      <Superficie pad guia="fin-resumen.lugares">
-        <CabeceraBloque
-          titulo="Qué deja cada lugar"
-          bajada={positivos.length ? `${positivos.join(" y ")} ${positivos.length === 1 ? "carga" : "cargan"} el mes. Cada lugar, después de pagar lo que él mismo causa.` : "Cada lugar, después de pagar lo que él mismo causa."}
-        />
-        <ul className="fin-pulso-lugares" aria-label="Qué deja cada lugar">
-          {ls.map((l, i) => (
-            <li key={l.id} className="fin-pulso-lugar anim-entra" style={{ ["--i" as string]: i } as CSSProperties}>
-              <span className="fin-pulso-lugar-nombre">
-                <b>{l.nombre}</b>
-                <small>{l.nota ?? (l.vendio > 0 ? `Vendió ${soles(l.vendio)}` : "")}</small>
-              </span>
-              <span className="fin-pulso-lugar-eje" aria-hidden="true">
-                <i data-signo={l.deja >= 0 ? "mas" : "menos"} style={{ ["--w" as string]: `${Math.round((Math.abs(l.deja) / mayor) * 50)}%` } as CSSProperties} />
-              </span>
-              <span className="fin-pulso-lugar-monto num" data-signo={l.deja >= 0 ? "mas" : "menos"}>
-                {l.deja >= 0 ? "+" : "−"}
-                {soles(Math.abs(l.deja))}
-              </span>
-            </li>
-          ))}
-          <li className="fin-pulso-lugar fin-pulso-lugar-total">
-            <span className="fin-pulso-lugar-nombre">
-              <b>{total >= 0 ? "Te quedan" : "Te faltan"}</b>
-            </span>
-            <span />
-            <span className="fin-pulso-lugar-monto num" data-signo={total >= 0 ? "mas" : "menos"}>
-              {soles(Math.abs(total))}
-            </span>
-          </li>
-        </ul>
-      </Superficie>
-    </div>
-  );
-}
-
-function Cobertura({ r }: { r: ResumenFinanzas }) {
-  const { barras, sinDatos } = coberturaTiendas(r);
-  // Si el último mes completo quedó antes del corte de Finanzas (ADR-0332), el primero que se mide es el del corte.
-  const mes = mesNombre(r.antesDelCorte ? mesDelCorte(r.antesDelCorte) : r.mesAnterior);
-  return (
-    <div {...entra(13)}>
-      <Superficie pad guia="fin-resumen.cobertura">
-        <CabeceraBloque titulo="¿Cada tienda cubre sus costos?" bajada={`${mayuscula(mes)}: lo que vendió contra lo que necesitaba vender (100 %).`} />
-        {r.antesDelCorte ? (
-          <Vacio tamano="chico" icono={<CalendarX />}>
-            {avisoAntesDelCorte(r.antesDelCorte)}
-          </Vacio>
-        ) : r.resultadosAnterior.estado !== "ok" ? (
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {motivoAusencia(r.resultadosAnterior) ?? "El estado de resultados no se pudo leer."}
-          </Vacio>
-        ) : barras.length ? (
-          <GraficoSemanas
-            etiqueta={`Lo que vendió cada tienda en ${mes} contra su punto de equilibrio`}
-            barras={barras}
-            alto={190}
-            ancho={560}
-            umbral={100}
-            umbralTexto="100 % = cubre sus costos justos"
-            etiquetaValor={(v) => `${v} %`}
-          />
-        ) : (
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            Todavía no hay un mes completo con ventas para calcularlo.
-          </Vacio>
-        )}
-        {barras.length > 0 && sinDatos.length > 0 && (
-          <p className="nota-cayla mt-3">
-            Sin ventas en {mes}: {sinDatos.join(", ")}.
-          </p>
-        )}
-      </Superficie>
-    </div>
-  );
-}
-
-function Semanas({ r }: { r: ResumenFinanzas }) {
-  return (
-    <div {...entra(14)}>
-      <Superficie pad guia="fin-resumen.semanas">
-        <CabeceraBloque titulo="Saldo de las próximas 6 semanas" bajada="Lo que hay hoy + lo que entra − lo que vence." />
-        {r.flujo.estado === "ok" ? (
-          <GraficoSemanas
-            etiqueta={`Lo que queda cada semana, contra tu mínimo de caja de ${soles(r.flujo.datos.minimoCaja)}`}
-            barras={barrasSemanas(r.flujo.datos)}
-            alto={200}
-            ancho={560}
-            umbral={r.flujo.datos.minimoCaja}
-            umbralTexto={`tu mínimo de caja: ${soles(r.flujo.datos.minimoCaja)} (se cambia en Configuración)`}
-            etiquetaValor={soles}
-          />
-        ) : (
-          <Vacio tamano="chico" icono={<ChartColumn />}>
-            {motivoAusencia(r.flujo, "el líder") ?? "El flujo de caja no se pudo leer."}
-          </Vacio>
-        )}
-      </Superficie>
-    </div>
-  );
-}
-
-function Camino({ r }: { r: ResumenFinanzas }) {
-  const c = caminoEquilibrio(r);
-  return (
-    <div {...entra(13)}>
-      <Superficie pad guia="fin-resumen.camino">
-        <CabeceraBloque
-          titulo="Camino al punto de equilibrio"
-          bajada={`${mayuscula(mesNombre(r.mes))} al día ${Number(r.hoy.slice(8, 10))} contra lo que necesita vender en el mes (según ${mesNombre(r.mesAnterior)}).`}
-        />
-        {c ? (
-          <>
-            <div className="fin-umbral-barra fin-alto" role="img" aria-label={`Vendido ${soles(c.vendido)} de ${soles(c.pe)}`}>
-              <i style={{ width: `${c.ancho}%` }} />
-            </div>
-            <div className="fin-marcas">
-              <span>Vendido {soles(c.vendido)}</span>
-              <span>Necesita {soles(c.pe)}</span>
-            </div>
-            <p className="nota-cayla mt-3">{c.texto}</p>
-          </>
-        ) : (
-          <Vacio tamano="chico" icono={<Target />}>
-            {r.resultadosAnterior.estado !== "ok"
-              ? (motivoAusencia(r.resultadosAnterior) ?? "")
-              : `Sin ventas con margen en ${mesNombre(r.mesAnterior)} para calcular cuánto necesita vender.`}
-          </Vacio>
-        )}
-      </Superficie>
-    </div>
-  );
-}
-
-function MiniPresupuesto({ r, acceso }: { r: ResumenFinanzas; acceso: Acceso }) {
-  const filas = miniPresupuesto(r);
-  const href = `/finanzas/reportes/presupuesto${r.lider && r.ver.ubicacionId ? `?ver=${r.ver.ubicacionId}` : ""}`;
-  return (
-    <div {...entra(14)}>
-      <Superficie pad guia="fin-resumen.presupuesto">
-        <CabeceraBloque titulo="Presupuesto del mes" bajada="Gastado a la fecha contra su tope; el % es la proyección al cierre.">
-          {(acceso.lider || acceso.modulos.includes("reportes_financieros")) && (
-            <Link href={href} className="btn-cayla btn-sutil btn-chico shrink-0">
-              Ver todo
-            </Link>
-          )}
-        </CabeceraBloque>
-        {r.presupuesto.estado !== "ok" ? (
-          <Vacio tamano="chico" icono={<Wallet />}>
-            {motivoAusencia(r.presupuesto) ?? ""}
-          </Vacio>
-        ) : filas.length ? (
-          <ul className="fin-lista-mov">
-            {filas.map((f) => (
-              <li key={f.nombre}>
-                <span>{f.nombre}</span>
-                <span>
-                  {soles(f.real)} de {soles(f.tope)} ·{" "}
-                  <b className="fin-pct" data-tono={f.tono}>
-                    {f.pct}
-                  </b>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Vacio tamano="chico" icono={<Wallet />}>
-            Este mes no tiene topes. Se ponen en Configuración ▸ Presupuesto.
-          </Vacio>
-        )}
-      </Superficie>
-    </div>
+/** Los colores de sede del telar (`--color-sede-*`) para los hilos del recorrido; «otra» toma el de respaldo. */
+function coloresDeSede(sedes: readonly SedeTelar[]): Record<string, string> {
+  return Object.fromEntries(
+    sedes.filter((s) => s.color !== "otra").map((s) => [s.clave === SEDE_EMPRESA ? "empresa" : s.clave, `var(--color-sede-${s.color})`]),
   );
 }

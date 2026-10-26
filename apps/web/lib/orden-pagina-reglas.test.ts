@@ -396,6 +396,19 @@ describe("la tela", () => {
     expect(filasDeTela(conUso)[0]).toMatchObject({ usado: "20 m", alcanza: false, faltan: "25.6 m" });
     expect(filasDeTela(conUso.map((i) => ({ ...i, saldo: 60 })))[0].alcanza).toBe(true);
   });
+  it("cada fila dice si es tela o avío, y la tela va primero aunque el avío esté antes en la base", () => {
+    const [tela, avio] = orden().insumos;
+    const alReves = [avio, tela];
+    expect(filasDeTela(alReves).map((f) => [f.nombre, f.tipo])).toEqual([["Gabardina · negro", "tela"], ["Botón", "avio"]]);
+  });
+  it("un avío de UN color dice su color en el nombre, y el mismo avío en dos colores es una sola fila con el detalle", () => {
+    const [, boton] = orden().insumos;
+    const deUnColor = { ...boton, colorCodigo: "BEI", colorNombre: "Beige" };
+    expect(filasDeTela([deUnColor])[0]).toMatchObject({ nombre: "Botón · beige", tipo: "avio" });
+    const dosColores = [deUnColor, { ...boton, id: "pi-b", colorCodigo: "NEG", colorNombre: "Negro" }];
+    expect(filasDeTela(dosColores)).toHaveLength(1);
+    expect(filasDeTela(dosColores)[0].detalle).toContain("beige");
+  });
   it("una tela y un avío son dos filas", () => {
     expect(filasDeTela(orden().insumos).map((f) => f.nombre)).toEqual(["Gabardina · negro", "Botón"]);
   });

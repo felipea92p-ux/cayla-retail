@@ -7,6 +7,8 @@
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/finanzas-dinero.css";
+@import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/campana-efectos.css";
@@ -78,6 +80,8 @@
 @import "./estilos/historial-tickets.css";
 /* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
 @import "./estilos/tienda-web.css";
+/* Tienda web ▸ Conf. Tienda: las puertas, el teléfono y la fachada (ADR-0518, maqueta 2026-10-26). */
+@import "./estilos/tienda-web-conf.css";
 /* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
 @import "./estilos/barra-abajo.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
@@ -165,6 +169,11 @@
      Encontrado el 2026-09-09 midiendo el lateral; ADR-0012 no lo había visto
      porque sus 9 usos viven en pantallas que necesitan sesión. Ver ADR-0017. */
   --color-taupe-profundo: #805c4c;
+  /* El borde de lo que se toca o se escribe (campo, combo, área de texto, botón secundario, casilla, interruptor apagado). 2026-10-26, P2 de la
+     familia CAYLA (Felipe eligió la opción C mirando la lámina): `sand` da 1.2:1 y no identifica un control (WCAG 1.4.11 pide 3:1); este tono —una
+     mezcla de taupe y papel, el mínimo que pasa con margen— da 3.6:1 sobre crema, 3.8:1 sobre papel y 3.1:1 sobre hueso. `sand` sigue siendo la línea
+     DECORATIVA (tarjeta, tabla, píldora con texto). Mismo valor en CAYLA Dynamic (`docs/familia/contrato.json`, ADR-0516). */
+  --color-borde-control: #96786a;
 
   --color-ambar-profundo: #734f15;
 
@@ -488,11 +497,11 @@ body {
   .btn-secundario {
     background: transparent;
     color: var(--color-tinta);
-    border-color: var(--color-sand);
+    border-color: var(--color-borde-control); /* P2 de la familia: lo que se toca lleva el borde de control, no la línea decorativa */
   }
   @media (hover: hover) {
     .btn-secundario:hover:not(:disabled) {
-      border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent);
+      border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
       background: color-mix(in oklab, var(--color-sand) 50%, transparent);
     }
   }
@@ -587,10 +596,10 @@ body {
     color: var(--color-crema);
   }
 
-  /* Caja de control hundida (input, select, buscador): hueso, borde sand, radio de control. */
+  /* Caja de control hundida (input, select, buscador): hueso, borde de control (P2 de la familia: 3:1, no el sand decorativo), radio de control. */
   .caja-cayla {
     background: var(--color-hueso);
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--color-borde-control);
     border-radius: var(--radius-md);
     transition: border-color 150ms;
   }
