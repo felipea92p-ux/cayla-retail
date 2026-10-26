@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EncabezadoAyuda } from "./ayuda/EncabezadoAyuda";
 import { BotonVerTienda } from "./BotonVerTienda";
+import { EstadoDeTienda } from "./EstadoDeTienda";
 import { Icono } from "./Icono";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, whatsappLegible, type Sede } from "@/lib/tiendas";
 import "@/app/estilos/tiendas.css";
@@ -44,8 +45,14 @@ export function NuestrasTiendas({
           const enlace = ver?.[s.id];
           return (
             <li key={s.id} className="ay-tienda" data-elegida={enlace?.actual ? "" : undefined}>
+              {s.foto && (
+                // La foto ya viene reducida por el ERP (WebP de 200 KB o menos) y se sirve desde el almacén público.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="ay-tienda-foto" src={s.foto} alt={`Fachada de la tienda de ${s.nombre}`} loading="lazy" decoding="async" />
+              )}
               <div className="ay-tienda-in">
                 <Nombre className="ay-tienda-nombre">{s.nombre}</Nombre>
+                <EstadoDeTienda dias={s.dias} cierres={s.cierres} />
                 <ul className="ay-tienda-datos">
                   <li>
                     <Icono nombre="ubicacion" />

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor, getProveedorServicioResumen, getProveedorPrendas } from "@/lib/proveedores";
+import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor, getProveedorServicioResumen, getProveedorPrendas, getProveedorTallasSedes } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight, Receipt } from "lucide-react";
@@ -19,6 +19,8 @@ import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorPrendas } from "@/components/ProveedorPrendas";
 import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
 import { hallazgosDeProveedor } from "@/lib/proveedor-analisis-reglas";
+import { hallazgosDeTallasYSedes, juntarHallazgos } from "@/lib/proveedor-tallas-sedes-reglas";
+import { ProveedorTallasSedes } from "@/components/ProveedorTallasSedes";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorServicio } from "@/components/ProveedorServicio";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
@@ -65,7 +67,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const proveedor = await getProveedor(id);
   if (!proveedor) notFound();
   const deServicios = proveedor.tipo === "servicios";
-  const [m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe, servicio, prendas] = await Promise.all([
+  const [m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe, servicio, prendas, tallasSedes] = await Promise.all([
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorMetricasCompras(id)),
     esLider && !deServicios ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorCostoEvolucion(id)),
@@ -84,8 +86,14 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     // Lo que se le compró prenda por prenda y cuánto se vendió (2026-10-24): plata, así que con la misma llave que las cifras de arriba.
     // Un proveedor de servicios no tiene prendas. Opcional: si la base todavía no tiene la función, la ficha se pinta sin esta sección.
     deServicios ? Promise.resolve(null) : siDinero(() => getProveedorPrendas(id).catch(() => null)),
+    // Las tallas que se llevan y cómo le va en cada sede (2026-10-26): con la misma llave que lo comprado. Opcional: sin la función en la base,
+    // la ficha se pinta sin estas dos secciones.
+    deServicios ? Promise.resolve(null) : siDinero(() => getProveedorTallasSedes(id).catch(() => null)),
   ]);
   const marcas = marcasMapa?.[id] ?? [];
+  const hoy = hoyLima();
+  // El botón de Traslados solo si quien mira tiene ese módulo: si no, la sugerencia se lee y se le pasa a quien lo tiene.
+  const hrefTraslados = usaModulo(persona.rol, persona.modulos, "traslados") ? "/inventario/traslados/nuevo" : null;
 
   const ahora = new Date();
   const plural = (n: number, s: string, p: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? s : p}`;
@@ -227,8 +235,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       </section>
       )}
 
-      {prendas && <LoQueQuizaNoVes guia="proveedor-ficha.analisis" hallazgos={hallazgosDeProveedor(prendas, hoyLima())} />}
+      {prendas && <LoQueQuizaNoVes guia="proveedor-ficha.analisis" hallazgos={juntarHallazgos(hallazgosDeProveedor(prendas, hoy), tallasSedes ? hallazgosDeTallasYSedes(tallasSedes, hoy) : [])} />}
       {prendas && <ProveedorPrendas prendas={prendas} />}
+      {tallasSedes && <ProveedorTallasSedes celdas={tallasSedes} hoy={hoy} hrefTraslados={hrefTraslados} />}
 
       {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
           no cuenta las prendas, el saldo a favor queda solo, como antes. */}

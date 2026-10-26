@@ -747,6 +747,44 @@ ESCENARIOS.push(
       await esperar(pagina, 2500);
     },
   },
+  // ADR-0515: la pestaña «Costo» del Historial (con «Hoy: N prendas» estimado) y la hoja «Corregir el costo» de la última compra. Solo
+  // quien ve el dinero de compras: el admin. `abre` exige la tarjeta o la hoja, no solo la ventana.
+  {
+    id: "productos.historial-costo",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    abre: '[role=dialog] [data-guia="historial-prenda.costo-hoy"]',
+    nombre: "Productos · el historial de una prenda ▸ Costo (Hoy: N prendas, errores arreglados)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="productos.buscador"] input').first().fill("Pantalón Carla");
+      await esperar(pagina, 1800);
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+      await pagina.locator('[data-guia="historial-prenda.costo"]').click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    },
+  },
+  {
+    id: "productos.historial-costo-corregir",
+    ruta: "/productos",
+    cuentas: ["admin"],
+    abre: '[data-guia="historial-prenda.corregir-costo"]',
+    nombre: "Productos · la hoja «Corregir el costo» de la última compra",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="productos.buscador"] input').first().fill("Pantalón Carla");
+      await esperar(pagina, 1800);
+      await pagina.locator(".card-cayla button").first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("[data-ir-historial]").click({ timeout: 8000 });
+      await esperar(pagina, 2500);
+      await pagina.locator('[data-guia="historial-prenda.costo"]').click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator('[data-guia="historial-prenda.costo-corregir"]').click({ timeout: 8000 });
+      await esperar(pagina, 1500);
+    },
+  },
   {
     id: "productos.vista-rapida-talla",
     ruta: "/productos",
@@ -1165,6 +1203,8 @@ ESCENARIOS.push(
   { id: "proveedores.registrar", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · «Registrar proveedor»", preparar: clicRol("button", /Registrar proveedor/i) },
   { id: "proveedores.vista", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "[role=dialog]", nombre: "Proveedores · la vista rápida de un proveedor", preparar: clicRol("button", /Textiles Andina SAC: abrir vista rápida/i) },
   { id: "proveedores.sin-datos", ruta: "/compras/proveedores", cuentas: COMPRAS, nombre: "Proveedores · el filtro «Sin datos de pago»", preparar: clicRol("button", /Sin datos de pago/i) },
+  // El ranking (ADR-0521): marcar dos casillas cambia la columna derecha a «Comparar» (y, bajo 1280 px, saca la isla de abajo).
+  { id: "proveedores.comparar", ruta: "/compras/proveedores", cuentas: COMPRAS, abre: "#proveedores-comparacion", nombre: "Proveedores · comparar dos proveedores del ranking", preparar: secuencia(clicRol("checkbox", /Comparar Textiles Andina/i), clicRol("checkbox", /Comparar Confecciones del Sur/i)) },
   { id: "proveedores.ficha", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "h1", nombre: "Proveedores · la ficha de un proveedor", preparar: async (pagina) => irA(`/compras/proveedores/${idDeProveedor()}`)(pagina) },
   { id: "factura.detalle", ruta: "/compras/factura/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Factura de proveedor · el comprobante", preparar: async (pagina) => irA(`/compras/factura/${idDeCompra()}`)(pagina) },
   { id: "parte.detalle", ruta: "/compras/parte/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Parte de recepción · el documento", preparar: async (pagina) => irA(`/compras/parte/${idDeCompra()}`)(pagina) },
