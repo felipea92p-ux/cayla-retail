@@ -18,7 +18,9 @@ import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { useAnchoDe } from "@/components/ui/useAnchoDe";
 import { paginar } from "@/lib/paginacion";
+import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { Vacio } from "@/components/ui/Vacio";
 import { VitrinaLoteHoja } from "@/components/vitrina/VitrinaLoteHoja";
 import { VitrinaModeloHoja } from "@/components/vitrina/VitrinaModeloHoja";
@@ -31,6 +33,7 @@ import {
   filtrarVitrina,
   interruptorEncendido,
   MODELOS_POR_PAGINA,
+  modoDeLista,
   razonNoSeMuestra,
   stockEnTiendas,
   type FiltroLoNuevo,
@@ -63,6 +66,20 @@ const LO_NUEVO: { valor: FiltroLoNuevo; texto: string }[] = [
 // En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; desde `sm`,
 // columnas.
 const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
+
+// «Columnas» (pantalla grande, hasta 8 tiendas): casilla · modelo · categoría · colores · una columna por tienda · estado · interruptor.
+// Los anchos tienen tope (el modelo, 22 rem; la categoría, 10) para que el stock no quede a un mundo del nombre; lo que sobra lo toma el
+// estado. Tailwind necesita las clases escritas enteras, por eso una por cantidad de tiendas. Los mínimos suman lo que `modoDeLista` supone.
+const PLANTILLA_COLUMNAS: Record<number, string> = {
+  1: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(1,4rem)_minmax(7rem,1fr)_3rem]",
+  2: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(2,4rem)_minmax(7rem,1fr)_3rem]",
+  3: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(3,4rem)_minmax(7rem,1fr)_3rem]",
+  4: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(4,4rem)_minmax(7rem,1fr)_3rem]",
+  5: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(5,4rem)_minmax(7rem,1fr)_3rem]",
+  6: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(6,4rem)_minmax(7rem,1fr)_3rem]",
+  7: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(7,4rem)_minmax(7rem,1fr)_3rem]",
+  8: "grid-cols-[1.5rem_minmax(14rem,22rem)_minmax(6.5rem,10rem)_4rem_repeat(8,4rem)_minmax(7rem,1fr)_3rem]",
+};
 
 /**
  * Tienda web ▸ Vitrina (ADR-0408, actividad 3; maqueta v4, «vitrina»): todos los modelos que se pueden vender, con su stock libre en
@@ -117,6 +134,9 @@ export function VitrinaPantalla({
   const pag = paginar(lista, pagina, MODELOS_POR_PAGINA);
   const visibles = pag.filas;
   const cajaRef = useRef<HTMLElement>(null);
+  // Pantalla grande y pocas tiendas: una columna por tienda; angosta, o más de 8 tiendas: las filas de siempre (`modoDeLista`).
+  const modoLista = modoDeLista(useAnchoDe(cajaRef), tiendas.length);
+  const plantillaLista = modoLista === "columnas" ? PLANTILLA_COLUMNAS[tiendas.length]! : PLANTILLA;
   const saltoAlInicio = useRef(false);
   // Cambiar de página lleva la vista al inicio de la lista (ADR-0185): una paginación al pie no se queda abajo.
   const irAPagina = (n: number) => {
@@ -353,7 +373,7 @@ export function VitrinaPantalla({
         ) : (
           <Tabla className="rounded-none border-0 shadow-none" guia="vitrina.lista">
             <Encabezado
-              plantilla={PLANTILLA}
+              plantilla={plantillaLista}
               columnas={[
                 {
                   titulo: (
@@ -366,21 +386,28 @@ export function VitrinaPantalla({
                   ),
                 },
                 { titulo: "Modelo" },
-                { titulo: "Libre en tiendas" },
-                { titulo: "En la web", alinear: "der" },
+                ...(modoLista === "columnas"
+                  ? [
+                      { titulo: "Categoría" },
+                      { titulo: "Colores", alinear: "der" as const },
+                      ...tiendas.map((t) => ({ titulo: nombreCortoSede(t.nombre), alinear: "der" as const, ayuda: `Libre en ${t.nombre}` })),
+                      { titulo: "En la web" },
+                      { titulo: "" },
+                    ]
+                  : [{ titulo: "Libre en tiendas" }, { titulo: "En la web", alinear: "der" as const }]),
               ]}
             />
-            {visibles.map((m) => (
-              <FilaModelo
-                key={m.id}
-                modelo={m}
-                tiendas={tiendas}
-                elegido={elegidos.includes(m.id)}
-                onElegir={() => alternar(m.id)}
-                onAbrir={() => setAbierto(m.id)}
-                onInterruptor={() => setLote({ modo: m.vitrina?.publicado ? "ocultar" : "mostrar", ids: [m.id] })}
-              />
-            ))}
+            {visibles.map((m) => {
+              const comunes = {
+                modelo: m,
+                tiendas,
+                elegido: elegidos.includes(m.id),
+                onElegir: () => alternar(m.id),
+                onAbrir: () => setAbierto(m.id),
+                onInterruptor: () => setLote({ modo: m.vitrina?.publicado ? ("ocultar" as const) : ("mostrar" as const), ids: [m.id] }),
+              };
+              return modoLista === "columnas" ? <FilaColumnas key={m.id} {...comunes} /> : <FilaModelo key={m.id} {...comunes} />;
+            })}
           </Tabla>
         )}
 
@@ -521,6 +548,82 @@ function FilaModelo({
           aria-checked={interruptorEncendido(m)}
           aria-label={`${m.nombre} en la web`}
           // El empaque no va en la web: el interruptor no se puede prender (la insignia dice por qué).
+          disabled={empaque}
+          onClick={onInterruptor}
+          className="interruptor disabled:opacity-50"
+        >
+          <span aria-hidden className="interruptor-perilla" />
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/** Una fila en modo «columnas» (pantalla grande, hasta 8 tiendas): lo libre de cada tienda en su propia columna, con su título arriba, para
+ *  comparar de un vistazo; la categoría y los colores también tienen la suya. Hace lo mismo que `FilaModelo`: tocar abre su hoja, la casilla
+ *  elige, el interruptor muestra. */
+function FilaColumnas({
+  modelo: m,
+  tiendas,
+  elegido,
+  onElegir,
+  onAbrir,
+  onInterruptor,
+}: {
+  modelo: ModeloVitrina;
+  tiendas: LecturaVitrina["tiendas"];
+  elegido: boolean;
+  onElegir: () => void;
+  onAbrir: () => void;
+  onInterruptor: () => void;
+}) {
+  const v = m.vitrina;
+  const sinFoto = coloresSinFoto(m);
+  const razon = razonNoSeMuestra(m);
+  const empaque = esEmpaque(m);
+  const encendido = interruptorEncendido(m);
+  return (
+    <div
+      role="row"
+      onClick={(e) => {
+        if (!e.currentTarget.contains(e.target as Node) || (e.target as HTMLElement).closest("a,button,input,label")) return;
+        onAbrir();
+      }}
+      className={`${fila(PLANTILLA_COLUMNAS[tiendas.length]!, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
+    >
+      <span data-guia="vitrina.casilla">
+        <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
+      </span>
+      <span className="flex min-w-0 items-center gap-3">
+        <MiniaturaPrenda fotoUrl={m.foto ?? m.colores.find((c) => c.foto)?.foto ?? null} colorHex={m.colores[0]?.hex ?? null} tamano="md" prefijo={m.prefijo} familia={m.familia} categoria={m.categoria} />
+        <span className="min-w-0">
+          <button type="button" onClick={onAbrir} data-guia="vitrina.abrir" className="block max-w-full truncate text-left font-medium text-tinta hover:text-rojo-profundo">
+            <span data-guia="vitrina.modelo">{m.nombre}</span>
+          </button>
+          {sinFoto > 0 && <span className="block truncate text-[12px] text-taupe">{sinFoto} sin foto propia</span>}
+          {(razon || (v && v.enLoNuevo !== "automatico")) && (
+            <span className="mt-1 flex flex-wrap gap-1.5">
+              {razon && <Chip tono={razon.tono}>{razon.chip}</Chip>}
+              {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
+              {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
+            </span>
+          )}
+        </span>
+      </span>
+      <span className="truncate text-[13px] text-taupe">{m.categoria ?? "—"}</span>
+      <span className="text-right text-[13px] tabular-nums text-tinta">{m.colores.length}</span>
+      {stockEnTiendas(m, tiendas).map((s) => (
+        <span key={s.sede} className={`text-right text-[13px] tabular-nums ${s.cantidad === 0 ? "text-tinta/40" : "text-tinta"}`}>
+          {s.cantidad}
+        </span>
+      ))}
+      <span className="text-[13px] text-taupe">{encendido ? "Se ve en la web" : "No se ve"}</span>
+      <span className="flex justify-end" data-guia="vitrina.interruptor">
+        <button
+          type="button"
+          role="switch" // unificar-fijo: la cara del interruptor del sistema en una fila de tabla; su título es la columna «En la web»
+          aria-checked={encendido}
+          aria-label={`${m.nombre} en la web`}
           disabled={empaque}
           onClick={onInterruptor}
           className="interruptor disabled:opacity-50"

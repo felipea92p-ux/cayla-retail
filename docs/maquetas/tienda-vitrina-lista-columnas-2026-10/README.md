@@ -12,3 +12,12 @@ Parámetros de la URL: `?op=A|B|C&an=1024|1280|1366|1440|1536|1920&no=n|l&ti=3|5
 Resultado (alto de la lista de 40 modelos): A 2,787 px en todos los anchos; B 2,827 px a 1024 (una columna), 1,414 px de 1280 a 1536 (dos) y 993 px
 a 1920 (tres); C 2,787 px. Con nombres largos y 5 tiendas, A parte el stock en 2 renglones en las 40 filas y C corta 14 nombres; B no corta ni
 parte nada en ningún ancho.
+
+## Decisión de Felipe (2026-10-26)
+
+No se eligió B. La Lista **alterna entre C y A según el ancho**: pantalla grande y hasta 8 tiendas, **C** (una columna por tienda, con título);
+pantalla angosta —o más de 8 tiendas, o si la tabla se ve muy compacta—, **A** (las filas de siempre, nombre grande y todas las tiendas en un
+renglón). Lo decide `modoDeLista(ancho, tiendas)` en `lib/vitrina-reglas.ts` con el ancho de la tarjeta (`components/ui/useAnchoDe.ts`): con 3
+tiendas pasa a C desde ~1036 px de tarjeta (una laptop de 1366 px); cada tienda de más pide 80 px más. En C las columnas tienen tope (modelo 22 rem,
+categoría 10 rem) para que el stock no quede lejos del nombre: el hueco a 1440 px baja de 625 px a ~220 px.
+

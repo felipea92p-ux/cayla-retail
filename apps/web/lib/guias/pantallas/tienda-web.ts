@@ -398,7 +398,7 @@ export const GUIA_VITRINA: Guia = {
       id: "vista",
       ancla: "vitrina.vista-vitrina",
       titulo: "Vitrina o lista",
-      texto: "«Vitrina» muestra las prendas como las ve el cliente en la tienda online. «Lista» pone una fila por modelo, más cómoda para revisar muchos de una vez. Las dos hacen lo mismo.",
+      texto: "«Vitrina» muestra las prendas como las ve el cliente en la tienda online. «Lista» pone una fila por modelo, más cómoda para revisar muchos; en pantalla grande el stock de cada tienda va en su propia columna. Las dos hacen lo mismo.",
     },
     {
       id: "elegir-pagina",

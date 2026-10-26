@@ -197,6 +197,31 @@ export function cifrasDe(modelos: readonly ModeloVitrina[]): CifrasVitrina {
  *  Las pantallas que ya tenían su paginación (Probador) no cambian. */
 export const MODELOS_POR_PAGINA = 40;
 
+/* ---------------- Cómo se dibuja la Lista: una columna por tienda, o las filas de siempre ---------------- */
+
+export type ModoLista = "columnas" | "filas";
+
+/** Más tiendas que estas y la tabla de columnas se ve apretada: la Lista vuelve a las filas de siempre, sin importar el ancho
+ *  (Felipe 2026-10-26: «si las tiendas pasan a ser más de 8… realizar modelo A»). */
+const MAX_TIENDAS_EN_COLUMNAS = 8;
+// Lo que miden las columnas de la Lista en modo «columnas» (px): casilla 24, modelo 224, categoría 104, colores 64, estado 112,
+// interruptor 48, y 16 de aire entre cada una; cada tienda suma su columna de 64 y su aire. Más 100 de comodidad, para que el nombre
+// del modelo respire en vez de quedar en su mínimo.
+const COLUMNAS_FIJAS_PX = 24 + 224 + 104 + 64 + 112 + 48 + 5 * 16 + 40;
+const POR_TIENDA_PX = 64 + 16;
+const COMODIDAD_PX = 100;
+
+/** Con qué ancho de tarjeta cabe la Lista con una columna por cada una de estas tiendas. */
+const anchoParaColumnas = (tiendas: number): number => COLUMNAS_FIJAS_PX + tiendas * POR_TIENDA_PX + COMODIDAD_PX;
+
+/** Pantalla grande y pocas tiendas: una columna por tienda, con su título, para comparar el stock de un vistazo. Pantalla angosta, o más
+ *  de 8 tiendas: las filas de siempre, con el nombre grande y todas las tiendas en un renglón. `ancho` es el de la tarjeta de la lista
+ *  (0 si todavía no se midió: filas). */
+export function modoDeLista(ancho: number, tiendas: number): ModoLista {
+  if (tiendas < 1 || tiendas > MAX_TIENDAS_EN_COLUMNAS) return "filas";
+  return ancho >= anchoParaColumnas(tiendas) ? "columnas" : "filas";
+}
+
 /** Los estados por los que se filtra la lista. Los dos primeros son las cifras de arriba; `sin_precio` y `ocultos` son lo que el Resumen
  *  cuenta como «encendidos que no se ven» y lo que alguien apagó. `todos` es solo ropa (Felipe 2026-10-15: «solo ropa en la web»): el
  *  empaque —bolsas, cajas— se vende desde el ticket y no se puede prender, así que no ocupa la lista; se ve con `empaque`. */

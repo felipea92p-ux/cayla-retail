@@ -16,6 +16,7 @@ import {
   libreEnTiendas,
   MODELOS_POR_PAGINA,
   modeloDeJson,
+  modoDeLista,
   queLePasa,
   razonNoSeMuestra,
   seVeEnLaWeb,
@@ -233,6 +234,31 @@ describe("la lista de la Vitrina llega de 40 en 40", () => {
   it("un filtro que deja pocos cabe en una página, y una página que ya no existe vuelve a la última", () => {
     expect(paginar(filtrarVitrina(muchos, "todos", "Modelo 5"), 1, MODELOS_POR_PAGINA).totalPaginas).toBe(1);
     expect(paginar(muchos, 9, MODELOS_POR_PAGINA).pagina).toBe(2);
+  });
+});
+
+describe("la Lista: una columna por tienda en pantalla grande, las filas de siempre si no cabe", () => {
+  /** El ancho más chico de la tarjeta con el que la Lista pasa a columnas, para esas tiendas. */
+  const umbral = (tiendas: number) => Array.from({ length: 3000 }, (_, w) => w).find((w) => modoDeLista(w, tiendas) === "columnas");
+
+  it("sin medir todavía (ancho 0) o angosta, son las filas de siempre", () => {
+    expect(modoDeLista(0, 3)).toBe("filas");
+    expect(modoDeLista(700, 3)).toBe("filas");
+  });
+
+  it("con 3 tiendas pasa a columnas desde ~1030 px de tarjeta: una laptop de 1366 sí (1052 px) y una de 1280 no (968 px)", () => {
+    expect(umbral(3)).toBeGreaterThan(900);
+    expect(umbral(3)).toBeLessThanOrEqual(1052);
+    expect(modoDeLista(1052, 3)).toBe("columnas");
+    expect(modoDeLista(968, 3)).toBe("filas");
+    expect(modoDeLista(1600, 3)).toBe("columnas");
+  });
+
+  it("cada tienda de más pide más ancho, y con más de 8 tiendas son filas aunque la pantalla sea enorme", () => {
+    for (let n = 1; n < 8; n++) expect(umbral(n + 1)!).toBeGreaterThan(umbral(n)!);
+    expect(modoDeLista(1700, 8)).toBe("columnas");
+    expect(modoDeLista(5000, 9)).toBe("filas");
+    expect(modoDeLista(5000, 0)).toBe("filas");
   });
 });
 
