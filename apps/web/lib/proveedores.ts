@@ -4,6 +4,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { marcasPorProveedor, rubrosConConteo, serie12Meses, esDeServicios, type MarcasDeProveedor, type TipoProveedor } from "@/lib/proveedores-reglas";
 import type { PrendaDeProveedor, RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import type { PrendaConProveedor } from "@/lib/proveedor-analisis-reglas";
+import type { CeldaTallaSede } from "@/lib/proveedor-tallas-sedes-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -423,6 +424,25 @@ export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor
     primeraEntrada: f.primera_entrada,
     ultimaVenta: f.ultima_venta,
     conFactura: f.con_factura,
+  }));
+}
+
+// Las tallas y las sedes de un proveedor (fn_proveedor_tallas_sedes, 20261026144000): una fila por prenda, talla y sede. Las cuentas las hace
+// `proveedor-tallas-sedes-reglas.ts`.
+export async function getProveedorTallasSedes(id: string): Promise<CeldaTallaSede[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_tallas_sedes", { p_proveedor_id: id }), "las tallas y las sedes del proveedor");
+  return filas.map((f) => ({
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    categoria: f.categoria,
+    talla: f.talla,
+    ubicacionId: f.ubicacion_id,
+    sede: f.sede,
+    sedeTipo: f.sede_tipo,
+    vendidas: Number(f.vendidas),
+    stock: Number(f.stock),
+    primeraLlegada: f.primera_llegada,
   }));
 }
 
