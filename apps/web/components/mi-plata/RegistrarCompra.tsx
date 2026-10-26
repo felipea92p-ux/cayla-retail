@@ -443,14 +443,24 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   }
 
   const atras = ANTERIOR[paso];
-  // Arriba, como la maqueta (mis-compras-rediseno-2026-10): la flecha, a quién le compraste y en qué paso vas, y el camino de 3 tramos con
-  // nombre (El proveedor · Las prendas · Papel y pago): los hechos en verde con su ✓, el de ahora en tinta, el que falta en arena.
+  // Arriba, la cabecera compacta B (maqueta docs/maquetas/mis-compras-cabecera-2026-10/, Felipe 2026-10-26): sin la sede, la fecha ni la frase
+  // de la cabecera del ERP —las ve en el resto de las pantallas—, una sola caja que se queda fija bajo la barra de arriba al bajar por las
+  // prendas: la flecha, «Compré ropa» en chico con a quién y «2 de 3», y el camino de 3 tramos con nombre (El proveedor · Las prendas ·
+  // Papel y pago): los hechos en verde con su ✓, el de ahora en tinta, el que falta en arena. El título es el de la pantalla (nivel 1).
   const fase = faseDePaso(paso);
   const cabecera = paso !== "listo" && (
-    <div className="flex flex-col gap-3" data-guia="compra.avance">
+    <div
+      className="sticky top-[3.625rem] z-20 -mx-4 flex flex-col gap-2.5 bg-crema/95 px-4 pb-2.5 pt-3 backdrop-blur sm:-mx-8 sm:px-8"
+      data-guia="compra.avance"
+    >
       <div className="flex items-center gap-3">
         {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
-        <span className="min-w-0 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</span>
+        <div className="min-w-0 flex-1">
+          <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
+            Compré ropa
+          </div>
+          <div className="mt-1 truncate text-xs text-taupe">{lineaDeAvance(paso, proveedor ? nombreCorto : null)}</div>
+        </div>
       </div>
       <CaminoDePasos pasos={PASOS_DE_LA_COMPRA} ahora={fase - 1} etiqueta={textoAvance(paso)} />
     </div>

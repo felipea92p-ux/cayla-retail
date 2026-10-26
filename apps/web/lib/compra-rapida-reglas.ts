@@ -547,9 +547,9 @@ export function textoAvance(p: PasoCompra): string {
 }
 /** Los tres tramos de la barra, con nombre (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-24). */
 export const PASOS_DE_LA_COMPRA = ["El proveedor", "Las prendas", "Papel y pago"] as const;
-/** La línea chica junto a la flecha: «Compré ropa · paso 1 de 3» y, ya elegido el proveedor, «Textiles Rosa · paso 2 de 3». */
+/** La línea chica bajo «Compré ropa» en la cabecera compacta: «Paso 1 de 3» y, ya elegido el proveedor, «CAYLA · paso 2 de 3». */
 export function lineaDeAvance(p: PasoCompra, proveedor: string | null): string {
-  return `${proveedor ? proveedor : "Compré ropa"} · paso ${faseDePaso(p)} de 3`;
+  return proveedor ? `${proveedor} · paso ${faseDePaso(p)} de 3` : `Paso ${faseDePaso(p)} de 3`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

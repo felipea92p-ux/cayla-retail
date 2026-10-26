@@ -85,4 +85,9 @@ La maqueta `index.html` se ajustó mirándola; **manda sobre lo de arriba** dond
   (`confirmar_plata_compras.p_cuenta_origen_id`, sugerida BCP por `cuentaSugerida`). Construirlo exige una columna y un parámetro nuevos
   (migración, y que la hoja de confirmar traiga el banco ya elegido): es cambio de negocio y de RPC, así que va como actividad aparte con el
   OK de Felipe; hasta entonces la actividad 6 construye la hoja SIN esa pregunta.
+- **Cabecera de «Compré ropa» (opción B, elegida el 2026-10-26 de `docs/maquetas/mis-compras-cabecera-2026-10/`):** mientras la compra está en marcha no se
+  dibuja la cabecera del ERP (sede, fecha, título de 46 px y frase): una sola caja fija bajo la barra de arriba con la flecha, «Compré ropa» en 28 px,
+  «CAYLA · paso 2 de 3» y el camino de 3 tramos. Sin pasos (no cargó, o falta abrir la ronda) vuelve la cabecera del ERP. −129 px en el celular.
+- **«Algo nuevo» y «¿Está bien así?»:** «Algo nuevo» es la fila punteada con «+» en tinta; «¿Está bien así?» es una tarjeta por prenda (con sus tiendas en
+  chips), la cuenta de la compra y la barra negra de abajo.
 
