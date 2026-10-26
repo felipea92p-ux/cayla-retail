@@ -354,6 +354,9 @@ select pg_temp.huella(:'va');`);
     // ADR-0470: las prendas que se lleva la clienta en un cambio por VARIAS prendas. Es historia de la prenda, como `cambios`; el cambio deja además
     // un movimiento de salida con su `cambio_id`, que ya frena el borrado, y la llave a `variantes` (sin cascada) lo impediría igual.
     "cambio_salidas",
+    // ADR-0515: la corrección del costo de una compra. Cuelga de una fila de `costo_historial` de la misma prenda, que ya frena el
+    // borrado, y la llave a `productos` y `variantes` (sin cascada) lo impediría igual.
+    "costo_correcciones",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
