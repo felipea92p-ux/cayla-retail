@@ -2,20 +2,24 @@
 
 import { ChevronRight, MessageCircleQuestion, PlayCircle, SearchX } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { abrirGuiaAqui } from "@/components/guias/MotorGuias";
+import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { Boton } from "@/components/ui/campos";
 import { Cajon } from "@/components/ui/Cajon";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { esAtajoDelAsistente } from "@/lib/asistente/atajo";
 import { preseleccionar, type Sugerencia } from "@/lib/asistente/preseleccion";
+import { LARGO_MAXIMO_PREGUNTA, type ResultadoAsistente } from "@/lib/asistente/respuesta";
 import { GUIAS } from "@/lib/guias/registro";
 import { guiaDeRuta } from "@/lib/guias/reglas";
 
-// «Pregúntale a CAYLA» (ADR-0529, actividad 1): el botón de la cabecera y su cajón. Hoy, sin IA: lo que la persona escribe busca, mientras
-// escribe, las guías interactivas (ADR-0389) de las pantallas que su rol ve (`preseleccionar`), y la que elige arranca en la pantalla de
-// verdad. Es también lo que queda cuando la IA no está (el «modo básico» del ADR). Lo ve toda cuenta, también una terminal: no es un
+// «Pregúntale a CAYLA» (ADR-0529): el botón de la cabecera y su cajón. Mientras la persona escribe, busca sin IA las guías interactivas
+// (ADR-0389) de las pantallas que su rol ve (`preseleccionar`); al apretar «Preguntar» (o Enter), la pregunta va a la IA
+// (`/api/asistente`, actividad 2), que elige la guía y el paso que responden, y «Muéstrame» la arranca en la pantalla de verdad. Si la IA
+// no está, queda la búsqueda sin ella (el «modo básico» del ADR): nunca se cae. Lo ve toda cuenta, también una terminal: no es un
 // módulo, es una ayuda, como «Demo» (ADR-0306). Se abre con el botón, con «?» fuera de un campo o con ⌘/ (Ctrl+/) desde cualquier lado.
 
 /** Lo que tarda el cajón en irse antes de arrancar la guía en la misma pantalla (la salida del cajón, `MS_SALIDA` de `Cajon`). */
@@ -63,12 +67,47 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   const aqui = guiaDeRuta(pathname, GUIAS);
   const sugerencias = useMemo(() => preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu, rutaActual: pathname }), [pregunta, rutasDelMenu, pathname]);
   const escribio = pregunta.trim().length > 0;
+  const [respuesta, setRespuesta] = useState<Respondida | null>(null);
+  const [preguntando, setPreguntando] = useState(false);
+  // Una respuesta vale para la pregunta que se hizo: si la persona sigue escribiendo, vuelve la búsqueda en vivo.
+  const vigente = respuesta && respuesta.pregunta === pregunta.trim() ? respuesta : null;
+  const ultima = useRef(0);
 
   function llevar(s: Pick<Sugerencia, "href">, cerrar: () => void) {
     cerrar();
     if (s.href === null) setTimeout(abrirGuiaAqui, TRAS_CERRAR_MS);
     else router.push(`${s.href}${s.href.includes("?") ? "&" : "?"}demo=1`);
   }
+
+  async function preguntar(e: FormEvent) {
+    e.preventDefault();
+    const texto = pregunta.trim();
+    if (texto.length < 2 || preguntando) return;
+    const esta = ++ultima.current;
+    setPreguntando(true);
+    let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" }, href: null };
+    try {
+      // `x-espera: no`: pensar no bloquea la pantalla con el loader general (ADR-0149); el botón dice «Pensando…».
+      const r = await fetch("/api/asistente", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-espera": "no" },
+        body: JSON.stringify({ pregunta: texto, ruta: pathname }),
+      });
+      if (r.ok) {
+        const json = (await r.json()) as { resultado?: ResultadoAsistente; href?: string | null };
+        if (json.resultado) resultado = { pregunta: texto, resultado: json.resultado, href: json.href ?? null };
+      }
+    } catch {
+      // Sin red: queda la búsqueda sin IA, que ya está a la vista.
+    }
+    if (esta !== ultima.current) return;
+    setRespuesta(resultado);
+    setPreguntando(false);
+  }
+
+  const contestada = vigente?.resultado;
+  const elegida = contestada?.tipo === "guia" ? (GUIAS.find((g) => g.id === contestada.guiaId) ?? null) : null;
+  const otras = elegida ? sugerencias.filter((s) => s.guia.id !== elegida.id) : sugerencias;
 
   return (
     <Cajon
@@ -84,16 +123,53 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     >
       {(cerrar) => (
         <div className="space-y-5">
-          <Buscador
-            valor={pregunta}
-            onCambio={setPregunta}
-            placeholder="Escribe lo que quieres hacer"
-            etiqueta="Lo que quieres hacer"
-            autoFocus
-            conteo={escribio && sugerencias.length > 0 ? `${sugerencias.length === 1 ? "1 demo" : `${sugerencias.length} demos`} pueden ayudarte` : undefined}
-          />
+          <form onSubmit={preguntar} className="space-y-3">
+            <Buscador
+              valor={pregunta}
+              onCambio={setPregunta}
+              placeholder="Escribe lo que quieres hacer"
+              etiqueta="Lo que quieres hacer"
+              maxLength={LARGO_MAXIMO_PREGUNTA}
+              autoFocus
+            />
+            <div className="flex justify-end">
+              <Boton peso="primario" type="submit" cargando={preguntando} textoCargando="Pensando…" disabled={pregunta.trim().length < 2}>
+                Preguntar
+              </Boton>
+            </div>
+          </form>
 
-          {!escribio ? (
+          {vigente ? (
+            <section aria-live="polite" className="space-y-5">
+              {vigente.resultado.tipo === "guia" && elegida ? (
+                <div className="rounded-xl border border-sand bg-papel p-4">
+                  <p className="text-[15px] leading-snug text-tinta">{vigente.resultado.texto}</p>
+                  <div className="mt-3 flex justify-end">
+                    <Boton peso="primario" onClick={() => llevar({ href: vigente.href }, cerrar)}>
+                      <span className="inline-flex items-center gap-2">
+                        <PlayCircle className="h-4 w-4" aria-hidden />
+                        Muéstrame
+                      </span>
+                    </Boton>
+                  </div>
+                </div>
+              ) : vigente.resultado.tipo === "basico" ? (
+                <Aviso tono="info" chico>
+                  Ahora no pude pensar una respuesta. Te dejo las demos que más se parecen a tu pregunta.
+                </Aviso>
+              ) : (
+                <Aviso tono="info" chico>
+                  {vigente.resultado.texto}
+                </Aviso>
+              )}
+              {otras.length > 0 ? (
+                <div>
+                  <TituloGrupo className="mb-2">{elegida ? "Otras demos que pueden ayudarte" : "Demos que pueden ayudarte"}</TituloGrupo>
+                  <ListaDemos sugerencias={otras} onElegir={(s) => llevar(s, cerrar)} />
+                </div>
+              ) : null}
+            </section>
+          ) : !escribio ? (
             aqui ? (
               <section>
                 <TituloGrupo className="mb-2">En esta pantalla</TituloGrupo>
@@ -101,27 +177,35 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
               </section>
             ) : null
           ) : sugerencias.length > 0 ? (
-            <ul className="overflow-hidden rounded-xl border border-sand bg-papel" aria-label="Demos que pueden ayudarte">
-              {sugerencias.map((s, i) => (
-                <li key={s.guia.id} className={i > 0 ? "border-t border-sand" : ""}>
-                  <FilaGuia
-                    titulo={s.guia.titulo}
-                    detalle={s.paso ? `Paso: ${s.paso.titulo}` : s.guia.resumen}
-                    aqui={s.href === null}
-                    onClick={() => llevar(s, cerrar)}
-                    enLista
-                  />
-                </li>
-              ))}
-            </ul>
+            <div>
+              <TituloGrupo className="mb-2" cuenta={sugerencias.length}>
+                Demos que pueden ayudarte
+              </TituloGrupo>
+              <ListaDemos sugerencias={sugerencias} onElegir={(s) => llevar(s, cerrar)} />
+            </div>
           ) : (
             <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setPregunta("") }}>
-              No encontré una demo para «{pregunta.trim()}». Prueba con otras palabras, las que usarías en la tienda.
+              No encontré una demo para «{pregunta.trim()}». Aprieta «Preguntar» o prueba con otras palabras, las que usarías en la tienda.
             </Vacio>
           )}
         </div>
       )}
     </Cajon>
+  );
+}
+
+/** La respuesta de la IA a una pregunta: vale mientras la persona no cambie lo que escribió. */
+type Respondida = { pregunta: string; resultado: ResultadoAsistente; href: string | null };
+
+function ListaDemos({ sugerencias, onElegir }: { sugerencias: readonly Sugerencia[]; onElegir: (s: Sugerencia) => void }) {
+  return (
+    <ul className="overflow-hidden rounded-xl border border-sand bg-papel" aria-label="Demos que pueden ayudarte">
+      {sugerencias.map((s, i) => (
+        <li key={s.guia.id} className={i > 0 ? "border-t border-sand" : ""}>
+          <FilaGuia titulo={s.guia.titulo} detalle={s.paso ? `Paso: ${s.paso.titulo}` : s.guia.resumen} aqui={s.href === null} onClick={() => onElegir(s)} enLista />
+        </li>
+      ))}
+    </ul>
   );
 }
 

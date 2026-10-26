@@ -2114,6 +2114,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   Con `para=ficha` (el nombre de una ficha, 2026-10-15) no usa ese historial —solo vale el padrón— y anota la lectura en la base
   (`anotada`); `sinNombre` dice si no lo encontró o no respondió.
 
+- `/api/asistente` → `POST { pregunta, ruta }`, solo lectura: «Pregúntale a CAYLA» (ADR-0529). Arma el menú de la cuenta con sus módulos
+  (`menuPara`, como `AppShell`), busca sin IA las 5 guías más parecidas (`lib/asistente/preseleccion.ts`) y le pide a Claude Haiku 5.5 que elija una
+  guía y un paso DE ESA LISTA (`lib/asistente/respuesta.ts`: instrucciones, salida estructurada, `revisarRespuesta`, `costoEnDolares`). La clave
+  (`ANTHROPIC_API_KEY`) nunca sale del servidor y la pregunta pasa por `limpiarDatosPersonales`. Siempre 200: si la IA no está, no responde en 8 s,
+  declina o contesta algo fuera de la lista, `resultado.tipo = "basico"` y el cajón (`components/asistente/Asistente.tsx`, botón de la cabecera)
+  muestra la búsqueda sin IA. Tope de 20 preguntas por minuto y cuenta, por instancia.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.
