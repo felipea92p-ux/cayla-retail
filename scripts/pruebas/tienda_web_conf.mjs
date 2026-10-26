@@ -13,6 +13,9 @@
  *   ACTIVIDAD 4 · la foto: el almacén `retail-tiendas` (público, 1 MB, JPG y WebP), `guardar_foto_tienda_web` solo acepta una ruta de SU
  *      carpeta con nombre de uuid y JPG o WebP; vacío la quita; la web y el ERP la traen; si nada cambió no anota; la tabla también lo exige;
  *      el líder o quien tenga el módulo sube al almacén (y solo a ese) y nadie borra lo subido.
+ *   ACTIVIDAD 5 · el horario por días: `guardar_horario_tienda_web` guarda los días y el texto corto en un solo paso, reemplaza lo anterior,
+ *      rechaza todo lo que no sea una hora de media en media dentro del día (y no deja nada a medias), la tabla también lo exige, nadie la
+ *      lee ni escribe directo, la web y el ERP traen los días, y solo el líder o quien tenga el módulo.
  *   La migración se puede pegar dos veces.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK y mete la migración DENTRO de ella: nunca se commitea nada en el Postgres
@@ -333,6 +336,96 @@ select count(*) from pg_policies p where p.schemaname = 'storage' and p.tablenam
     const [insert, otras] = lineas(pol);
     esperar("la política de subida es solo de retail-tiendas y pide el módulo (la misma llave de las funciones)", insert === "INSERT|{authenticated}|true|true", pol);
     esperar("y no hay política de borrar ni de cambiar lo subido: nadie lo toca desde el ERP", otras === "0", pol);
+  }
+
+  console.log("— El horario por días —");
+  const LUNES_A_SABADO = "[" + [0, 1, 2, 3, 4, 5].map((d) => `{"dia":${d},"abre":600,"cierra":1260}`).join(",") + ',{"dia":6,"abre":660,"cierra":1140}]';
+  const HORARIO = (t, dias, resumen) =>
+    `select retail.guardar_horario_tienda_web(:'${t}', '${dias}'::jsonb, ${resumen === null ? "null" : `'${resumen}'`}) as _h \\gset\n`;
+  const RESUMEN = "Lun–Sáb 10 a. m.–9 p. m. · Dom 11 a. m.–7 p. m.";
+  {
+    const r = correr(`${ESCENA}${HORARIO("t1", LUNES_A_SABADO, RESUMEN)}
+select count(*) from retail.ubicacion_horario_web where ubicacion_id = :'t1';
+select (select count(*) from jsonb_array_elements(s -> 'dias')) || '|' || (s ->> 'horario') from jsonb_array_elements(retail.fn_configuracion_tienda_web() -> 'sedes') s where s ->> 'id' = :'t1';
+select (select count(*) from jsonb_array_elements(s -> 'dias')) || '|' || (s ->> 'horario') || '|' || (s #>> '{dias,6,abre}') from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s where s ->> 'id' = :'t1';`);
+    const [filas, erp, web] = lineas(r);
+    esperar("guarda los 7 días y su texto corto en un solo paso", filas === "7", r);
+    esperar("el ERP trae los días y el texto", erp === `7|${RESUMEN}`, r);
+    esperar("la web trae los mismos días y el texto (lo que ya leía sigue igual)", web === `7|${RESUMEN}|660`, r);
+  }
+  {
+    const r = correr(`${ESCENA}${HORARIO("t1", LUNES_A_SABADO, RESUMEN)}${HORARIO("t1", '[{"dia":2,"abre":570,"cierra":1080}]', "Mié 9:30 a. m.–6 p. m.")}
+select count(*) from retail.ubicacion_horario_web where ubicacion_id = :'t1';
+select dia || '|' || abre || '|' || cierra from retail.ubicacion_horario_web where ubicacion_id = :'t1';`);
+    const [filas, fila] = lineas(r);
+    esperar("guardar otra vez reemplaza los días (no se acumulan)", filas === "1" && fila === "2|570|1080", r);
+  }
+  {
+    const r = correr(`${ESCENA}${HORARIO("t1", LUNES_A_SABADO, RESUMEN)}${HORARIO("t1", "[]", "")}
+select count(*) from retail.ubicacion_horario_web where ubicacion_id = :'t1';
+select coalesce((select horario from retail.ubicacion_datos_web where ubicacion_id = :'t1'), 'sin horario');`);
+    const [filas, texto] = lineas(r);
+    esperar("una lista vacía y sin texto quita el horario (todos los días cerrados)", filas === "0" && texto === "sin horario", r);
+  }
+  {
+    const r = correr(`${ESCENA}${HORARIO("t1", LUNES_A_SABADO, RESUMEN)}${HORARIO("t1", LUNES_A_SABADO, RESUMEN)}${HORARIO("t2", "[]", null)}
+select count(*) from retail.configuracion_historial where que = 'tienda_web_horario';
+select (detalle -> 'antes' -> 'dias') = '[]'::jsonb and jsonb_array_length(detalle -> 'despues' -> 'dias') = 7 and (hecho_por is not null) from retail.configuracion_historial where que = 'tienda_web_horario';`);
+    const [anotados, detalle] = lineas(r);
+    esperar("solo se anota el cambio de verdad, con antes, después y quién lo hizo", anotados === "1" && detalle === "t", r);
+  }
+  {
+    const malos = [
+      ['[{"dia":7,"abre":600,"cierra":1260}]', "un día que no existe (7)"],
+      ['[{"dia":-1,"abre":600,"cierra":1260}]', "un día negativo"],
+      ['[{"dia":0,"abre":600,"cierra":1260},{"dia":0,"abre":700,"cierra":800}]', "el mismo día dos veces"],
+      ['[{"dia":0,"abre":1260,"cierra":600}]', "abrir después de cerrar"],
+      ['[{"dia":0,"abre":600,"cierra":600}]', "abrir y cerrar a la misma hora"],
+      ['[{"dia":0,"abre":615,"cierra":1260}]', "una hora que no es de media en media (10:15)"],
+      ['[{"dia":0,"abre":600,"cierra":1470}]', "cerrar pasado el día (más de 24 h)"],
+      ['[{"dia":0,"abre":600.5,"cierra":1260}]', "una hora con decimales"],
+      ['[{"dia":0,"abre":"600","cierra":1260}]', "una hora escrita como texto"],
+      ['[{"dia":0,"abre":600}]', "sin hora de cierre"],
+      ['["lunes"]', "un día que no es un objeto"],
+      ['{"dia":0,"abre":600,"cierra":1260}', "un objeto suelto en vez de una lista"],
+    ];
+    for (const [dias, que] of malos) {
+      const r = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, %L::jsonb, null)', :'t1', '${dias}'));`);
+      esperar(`rechaza ${que}`, r.ok && (r.salida.includes("media en media hora") || r.salida.includes("lista de días")), r);
+    }
+    const nula = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, null, null)', :'t1'));`);
+    esperar("rechaza un horario nulo (para quitarlo se manda una lista vacía)", nula.ok && nula.salida.includes("lista de días"), nula);
+    const largo = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, ''[]''::jsonb, %L)', :'t1', repeat('x', 121)));`);
+    esperar("rechaza un texto de más de 120 letras", largo.ok && largo.salida.includes("120 letras"), largo);
+    const sinEscribir = correr(`${ESCENA}select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, %L::jsonb, null)', :'t1', '[{"dia":0,"abre":600,"cierra":1260},{"dia":1,"abre":1260,"cierra":600}]'));
+select count(*) from retail.ubicacion_horario_web where ubicacion_id = :'t1';`);
+    esperar("un horario a medias no deja nada escrito: todo o nada", sinEscribir.ok && sinEscribir.salida.endsWith("0"), sinEscribir);
+  }
+  {
+    const r = correr(`${ESCENA}reset role;
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 615, 1260)', :'t1'));
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 7, 600, 1260)', :'t1'));
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 600, 1470)', :'t1'));
+set local role authenticated;
+select pg_temp.intento('select count(*) from retail.ubicacion_horario_web');
+select pg_temp.intento(format('insert into retail.ubicacion_horario_web values (%L, 0, 600, 1260)', :'t1'));`);
+    const [media, dia7, pasada, leer, escribir] = lineas(r);
+    esperar("la tabla tampoco deja una hora a las 10:15, un día 7 ni cerrar pasado el día, aunque se escriba por fuera (CHECK)", [media, dia7, pasada].every((m) => (m ?? "").includes("ubicacion_horario_web_")), r);
+    esperar("nadie lee ni escribe la tabla directo, ni el líder: todo pasa por las funciones", (leer ?? "").includes("permission denied") && (escribir ?? "").includes("permission denied"), r);
+  }
+  {
+    const r = correr(`${ESCENA}
+select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, ''[]''::jsonb, null)', :'taller'));
+select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, ''[]''::jsonb, null)', gen_random_uuid()));
+${como(MICAELA)}
+select pg_temp.intento(format('select retail.guardar_horario_tienda_web(%L, ''[]''::jsonb, null)', :'t1'));
+reset role;
+set local role anon;
+select pg_temp.intento('select retail.guardar_horario_tienda_web(gen_random_uuid(), ''[]''::jsonb, null)');`);
+    const [taller, ajena, sinModulo, anonimo] = lineas(r);
+    esperar("no guarda el horario del Taller ni de una tienda que no existe", (taller ?? "").includes("tienda abierta") && (ajena ?? "").includes("no existe"), r);
+    esperar("una colaboradora sin el módulo no cambia el horario", (sinModulo ?? "").includes("necesita el módulo"), r);
+    esperar("un visitante anónimo tampoco", (anonimo ?? "").includes("permission denied"), r);
   }
 
   console.log("— La migración —");

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { semanaVacia } from "@cayla-retail/shared/horario-de-tienda";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, interpretarSedes, SEDES_SIN_DATOS, whatsappLegible } from "./tiendas";
 
-const TRUJILLO = { id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Trujillo", direccion: "Jr. Pizarro 512, Centro", horario: "Lunes a sábado, de 10 a. m. a 9 p. m.", whatsapp: "987654321", mapa: null, foto: null };
-const LIMA = { id: "2d97d322-8a0a-4cd5-99c4-70e52b9c01db", nombre: "Lima", direccion: "Av. Larco 345, Miraflores", horario: null, whatsapp: "912345678", mapa: null, foto: null };
+const TRUJILLO = { id: "f775651f-62c8-4ff4-a414-b5614026d0cd", nombre: "Trujillo", direccion: "Jr. Pizarro 512, Centro", horario: "Lunes a sábado, de 10 a. m. a 9 p. m.", whatsapp: "987654321", mapa: null, foto: null, dias: semanaVacia() };
+const LIMA = { id: "2d97d322-8a0a-4cd5-99c4-70e52b9c01db", nombre: "Lima", direccion: "Av. Larco 345, Miraflores", horario: null, whatsapp: "912345678", mapa: null, foto: null, dias: semanaVacia() };
 
 describe("interpretarSedes", () => {
   it("acepta lo que devuelve retail.tienda_sedes(), en su orden y con el horario opcional", () => {
@@ -87,6 +88,20 @@ describe("la foto de la fachada de cada tienda", () => {
     expect(interpretarSedes({ sedes: [{ ...TRUJILLO, foto: RUTA }] })[0]?.foto).toBeNull();
     expect(interpretarSedes({ sedes: [{ ...TRUJILLO, foto: "https://evil.com/x.png" }] }, ORIGEN)[0]?.foto).toBeNull();
     expect(interpretarSedes({ sedes: [{ ...TRUJILLO, foto: "tiendas/../../x" }] }, ORIGEN)[0]?.foto).toBeNull();
+  });
+});
+
+describe("el horario por días de cada tienda", () => {
+  const filas = [0, 1, 2, 3, 4, 5].map((dia) => ({ dia, abre: 600, cierra: 1260 }));
+  it("la base manda los días y salen en sus siete lugares", () => {
+    const [t] = interpretarSedes({ sedes: [{ ...TRUJILLO, dias: filas }] });
+    expect(t?.dias.map((d) => d !== null)).toEqual([true, true, true, true, true, true, false]);
+    expect(t?.dias[0]).toEqual({ abre: 600, cierra: 1260 });
+  });
+  it("sin días, o con días mal formados, la tarjeta sale igual y sin horario por días (no se cae)", () => {
+    expect(interpretarSedes({ sedes: [TRUJILLO] })[0]?.dias).toEqual(semanaVacia());
+    expect(interpretarSedes({ sedes: [{ ...TRUJILLO, dias: "x" }] })[0]?.dias).toEqual(semanaVacia());
+    expect(interpretarSedes({ sedes: [{ ...TRUJILLO, dias: [{ dia: 9, abre: 1, cierra: 2 }, null, { dia: 0, abre: 1260, cierra: 600 }] }] })[0]?.dias).toEqual(semanaVacia());
   });
 });
 

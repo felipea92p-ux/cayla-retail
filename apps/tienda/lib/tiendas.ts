@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { semanaDesdeFilas } from "@cayla-retail/shared/horario-de-tienda";
 import { enlaceMapaValido, urlDeFotoDeTienda } from "@cayla-retail/shared/tienda-web-sede";
 
 // Las tiendas que la web muestra (ADR-0408, actividad 6). Las arma la base en `retail.tienda_sedes()`: solo las que el ERP
@@ -19,6 +20,9 @@ const esquemaSede = z.object({
   // La foto de la fachada que subió el ERP. La base manda la RUTA dentro del almacén; `interpretarSedes` la vuelve dirección pública. Sin
   // foto (o con una ruta que el ERP no pudo subir) la tarjeta se queda como estaba.
   foto: z.string().nullable().catch(null),
+  // El horario por días que puso el ERP (`[{dia, abre, cierra}]`, minutos). Se lee sin tumbar nada: lo mal formado se ignora y sin días la tarjeta
+  // se queda con el texto del horario, sin «Abierta ahora».
+  dias: z.unknown().transform(semanaDesdeFilas),
 });
 
 export type Sede = z.infer<typeof esquemaSede>;

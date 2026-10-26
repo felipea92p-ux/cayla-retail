@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EncabezadoAyuda } from "./ayuda/EncabezadoAyuda";
 import { BotonVerTienda } from "./BotonVerTienda";
+import { EstadoDeTienda } from "./EstadoDeTienda";
 import { Icono } from "./Icono";
 import { columnasDeTiendas, enlaceMapa, enlaceWhatsapp, whatsappLegible, type Sede } from "@/lib/tiendas";
 import "@/app/estilos/tiendas.css";
@@ -51,6 +52,7 @@ export function NuestrasTiendas({
               )}
               <div className="ay-tienda-in">
                 <Nombre className="ay-tienda-nombre">{s.nombre}</Nombre>
+                <EstadoDeTienda dias={s.dias} />
                 <ul className="ay-tienda-datos">
                   <li>
                     <Icono nombre="ubicacion" />

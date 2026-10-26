@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { semanaVacia } from "@cayla-retail/shared/horario-de-tienda";
 import {
   PALABRA_FALTA,
   avanceDeSede,
@@ -19,6 +20,7 @@ import {
   moverUnLugar,
   ordenarSedes,
   pendientesDe,
+  tieneHorario,
   validarParametrosTiendaWeb,
   type BorradorSede,
   type SedeWeb,
@@ -35,6 +37,7 @@ const sede = (s: Partial<SedeWeb> = {}): SedeWeb => ({
   orden: null,
   mapaUrl: null,
   fotoRuta: null,
+  dias: semanaVacia(),
   ...s,
 });
 const completa = { nombreWeb: "Trujillo", whatsapp: "987654321", direccion: "Jr. Pizarro 512" };
@@ -45,7 +48,7 @@ describe("leer lo que devuelve fn_configuracion_tienda_web", () => {
       sedes: [{ id: "u1", nombre: "Tienda TRU", nombre_web: "Trujillo", whatsapp: "987654321", direccion: " ", horario: null, mostrar: true }],
       parametros: { horas_para_confirmar: 24, horas_aviso_sin_pagar: 48, dias_aviso_sin_recoger: 7, quedan_pocas_desde: 3 },
     });
-    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null, fotoRuta: null }]);
+    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null, mapaUrl: null, fotoRuta: null, dias: semanaVacia() }]);
     expect(c.parametros).toEqual({ horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7, quedanPocasDesde: 3 });
   });
   it("sin datos (o sin la migración) no se cae: sin tiendas y sin plazos", () => {
@@ -269,5 +272,42 @@ describe("la foto de la fachada (maqueta de Conf. Tienda)", () => {
     const subida = { ...base, foto: ruta };
     expect(fusionarBorrador(subida, base, borradorDe(sede({ fotoRuta: "otra" }))).foto).toBe(ruta);
     expect(fusionarBorrador(base, base, borradorDe(sede({ fotoRuta: "otra" }))).foto).toBe("otra");
+  });
+});
+
+describe("el horario por días en la pantalla (maqueta de Conf. Tienda)", () => {
+  const lunes = [{ dia: 0, abre: 600, cierra: 1260 }];
+  it("la base manda los días y la pantalla los lee; un dato raro no la tumba", () => {
+    const r = leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "Tienda TRU", dias: [...lunes, { dia: 9, abre: 1, cierra: 2 }, "x"] }] });
+    expect(r.sedes[0]?.dias[0]).toEqual({ abre: 600, cierra: 1260 });
+    expect(r.sedes[0]?.dias.filter(Boolean)).toHaveLength(1);
+    expect(leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "x" }] }).sedes[0]?.dias.every((d) => d === null)).toBe(true);
+  });
+  it("el borrador guarda los días como texto y un refresco no pisa lo que se está pintando", () => {
+    const con = leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "x", dias: lunes }] }).sedes[0]!;
+    expect(borradorDe(con).dias).toBe("600-1260|x|x|x|x|x|x");
+    expect(borradorDe(sede()).dias).toBe("x|x|x|x|x|x|x");
+    const base = borradorDe(sede());
+    const pintado = { ...base, dias: "600-1260|x|x|x|x|x|x" };
+    expect(fusionarBorrador(pintado, base, borradorDe(con)).dias).toBe("600-1260|x|x|x|x|x|x");
+    expect(fusionarBorrador(base, base, borradorDe(con)).dias).toBe("600-1260|x|x|x|x|x|x");
+  });
+  it("tiene horario con algún día abierto o con el texto de antes; sin ninguno de los dos, no", () => {
+    const vacio = borradorDe(sede());
+    expect(tieneHorario(vacio)).toBe(false);
+    expect(tieneHorario({ ...vacio, dias: "600-1260|x|x|x|x|x|x" })).toBe(true);
+    expect(tieneHorario({ ...vacio, horario: "Lunes a sábado de 10 a 9" })).toBe(true);
+    expect(tieneHorario({ ...vacio, horario: "   " })).toBe(false);
+  });
+  it("la guía de foco cuenta el horario como hecho cuando hay días pintados, y lo marca pendiente cuando no", () => {
+    const s = sede({ id: "u1", nombre: "Tienda TRU" });
+    expect(pendientesDe([s]).has(idCampo("u1", "horario"))).toBe(true);
+    expect(pendientesDe([sede({ id: "u1", dias: [{ abre: 600, cierra: 1260 }, null, null, null, null, null, null] })]).has(idCampo("u1", "horario"))).toBe(false);
+    const pendientes = new Set([idCampo("u1", "horario")]);
+    const sin = camposDeGuia([{ id: "u1", nombre: "Tienda TRU", borrador: borradorDe(s) }], pendientes);
+    const con = camposDeGuia([{ id: "u1", nombre: "Tienda TRU", borrador: { ...borradorDe(s), dias: "600-1260|x|x|x|x|x|x" } }], pendientes);
+    expect(sin[0]?.hecho).toBe(false);
+    expect(con[0]?.hecho).toBe(true);
+    expect(con[0]?.sugerido).toBe(true);
   });
 });

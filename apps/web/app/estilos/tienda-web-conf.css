@@ -129,7 +129,55 @@
   .twc-mapita[data-vacio] .twc-mapita-tile svg { opacity: 0.55; transform: translateY(3px); }
   .twc-boton[data-apagado] { opacity: 0.35; }
 
+  /* «Abierta · cierra 9 p. m.»: el punto es verde si abre y ámbar si no (lleva la palabra escrita al lado). */
+  .twc-atencion { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--color-taupe); }
+  .twc-atencion::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-ambar); flex: none; }
+  .twc-atencion[data-abierta] { color: var(--color-verde); }
+  .twc-atencion[data-abierta]::before { background: var(--color-verde); }
+
+  /* ───────── El horario por días: una barra por día, con asas ───────── */
+  .twc-horas { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px; align-items: center; user-select: none; -webkit-user-select: none; }
+  .twc-eje { position: relative; grid-column: 2; height: 16px; font-size: 11px; font-weight: 600; color: var(--color-taupe); }
+  .twc-eje span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .twc-dia {
+    height: 34px; display: grid; place-items: center; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--color-tinta);
+    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  @media (hover: hover) { .twc-dia:not(:disabled):hover { background: var(--color-hueso); } }
+  .twc-dia[aria-pressed="false"] { color: var(--color-taupe); opacity: 0.75; }
+  .twc-dia[data-hoy] { box-shadow: inset 0 0 0 1.5px var(--color-tinta); }
+  .twc-pista {
+    position: relative; height: 34px; overflow: hidden; border-radius: 8px; cursor: crosshair; touch-action: pan-y;
+    background: repeating-linear-gradient(90deg, var(--color-hueso) 0 calc(100% / 16 - 1px), var(--color-sand) calc(100% / 16 - 1px) calc(100% / 16));
+  }
+  .twc-pista[data-cerrado] { cursor: pointer; }
+  .twc-pista[data-cerrado]::after {
+    content: "Cerrado · toca para abrir"; position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); pointer-events: none;
+  }
+  .twc-pista[data-cierre] { cursor: not-allowed; background: repeating-linear-gradient(135deg, var(--color-hueso) 0 6px, var(--color-sand) 6px 12px); }
+  .twc-pista[data-cierre]::after { content: "Cerrado hoy"; color: var(--color-ambar); }
+  .twc-tramo {
+    position: absolute; top: 3px; bottom: 3px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px;
+    border-radius: 7px; background: var(--color-tinta); color: var(--color-crema); font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; cursor: grab;
+    transition: left 180ms var(--ease-cayla), width 180ms var(--ease-cayla);
+  }
+  .twc-tramo[data-moviendo] { transition: none; cursor: grabbing; }
+  .twc-asa-h { position: absolute; top: 0; bottom: 0; width: 16px; display: grid; place-items: center; cursor: ew-resize; }
+  .twc-asa-h[data-asa="abre"] { left: 0; }
+  .twc-asa-h[data-asa="cierra"] { right: 0; }
+  .twc-asa-h::before {
+    content: ""; width: 4px; height: 14px; transition: transform 200ms var(--ease-cayla);
+    border-left: 1.5px solid color-mix(in srgb, var(--color-crema) 70%, transparent); border-right: 1.5px solid color-mix(in srgb, var(--color-crema) 70%, transparent);
+  }
+  @media (hover: hover) { .twc-asa-h:hover::before { border-color: var(--color-crema); transform: scaleY(1.25); } }
+  /* La hora de ahora: un hilo rojo con su punto, sobre el día de hoy. */
+  .twc-ahora { position: absolute; top: 0; bottom: 0; z-index: 3; width: 2px; background: var(--color-rojo); pointer-events: none; }
+  .twc-ahora::before { content: ""; position: absolute; top: -3px; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-rojo); }
+  .twc-horario-pie { display: flex; justify-content: flex-end; margin-top: 10px; }
+  @media (pointer: coarse) { .twc-dia, .twc-pista { height: 44px; } }
+
   @media (prefers-reduced-motion: reduce) {
-    .twc-puerta, .twc-fachada, .twc-tarjeta { transition: none; }
+    .twc-puerta, .twc-fachada, .twc-tarjeta, .twc-tramo, .twc-dia, .twc-asa-h::before { transition: none; }
   }
 }

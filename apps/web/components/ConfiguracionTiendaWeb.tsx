@@ -12,6 +12,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
+import { HorarioSemanal } from "@/components/tienda-web-conf/HorarioSemanal";
+import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
+import { filasDeSemana, resumenDeHorario, semanaDeSerializada, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, Superficie } from "@/components/finanzas/kit";
@@ -41,6 +44,7 @@ import {
   moverUnLugar,
   ordenarSedes,
   pendientesDe,
+  tieneHorario,
   validarParametrosTiendaWeb,
   type BorradorParametros,
   type BorradorSede,
@@ -62,10 +66,7 @@ import {
 
 /** `listo` es el aviso de éxito; `null` guarda sin avisar (el paso previo de un guardado en dos partes). */
 type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string | null) => Promise<boolean>;
-type CampoTexto = "nombreWeb" | "direccion" | "horario";
-
-/** El horario se escribe igual en cualquier tienda: su ejemplo no depende de nada elegido antes. */
-const EJEMPLO_HORARIO = "Ej. Lunes a sábado, de 10 a. m. a 9 p. m."; // sugerir-fijo: la forma de escribir un horario es la misma en toda tienda
+type CampoTexto = "nombreWeb" | "direccion";
 
 /** Cómo empieza un enlace de «Compartir» de Google Maps: igual para toda tienda. */
 const EJEMPLO_MAPA = "https://maps.app.goo.gl/…"; // sugerir-fijo: el formato de un enlace de Google Maps es el mismo en toda tienda
@@ -184,7 +185,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     const base = bases[s.id];
     if (!b || !base) return false;
     const texto = (["nombreWeb", "direccion", "horario"] as const).some((k) => limpiarTexto(b[k]) !== limpiarTexto(base[k]));
-    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
+    return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || b.dias !== base.dias || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
   /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
@@ -250,6 +251,17 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
         que: "guardar la foto de la tienda",
         hacer: () => createClient().rpc("guardar_foto_tienda_web" as never, { p_ubicacion_id: s.id, p_foto_ruta: b.foto || null } as never),
         listo: b.foto ? `${s.nombre}: foto guardada.` : `${s.nombre}: foto quitada. Se ve el dibujo de la fachada.`,
+      });
+    }
+    // El horario va AL FINAL: guarda también su texto corto en `horario`, y así lo que se guardó antes (el texto de la tienda) no lo pisa.
+    if (b.dias !== base.dias) {
+      const semana = semanaDeSerializada(b.dias);
+      const resumen = resumenDeHorario(semana);
+      pasos.push({
+        que: "guardar el horario de la tienda",
+        hacer: () =>
+          createClient().rpc("guardar_horario_tienda_web" as never, { p_ubicacion_id: s.id, p_dias: filasDeSemana(semana), p_resumen: resumen } as never),
+        listo: resumen ? `${s.nombre}: horario guardado. ${resumen}.` : `${s.nombre}: sin horario por días.`,
       });
     }
     // Con varias cosas, un solo aviso que las junta; la tienda que se enciende o se apaga lo dice primero, porque es lo que el cliente nota.
@@ -373,6 +385,7 @@ function TallerDeTienda({
   onGuardar: () => void;
 }) {
   const [sobreFoto, setSobreFoto] = useState(false);
+  const ahora = useAhoraEnLima();
   const falta = faltaParaMostrar(b);
   const paraLaFrase = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
   // La marca de la guía solo en los datos que llegaron vacíos al abrir (una tienda completa no se llena de marcas).
@@ -380,7 +393,7 @@ function TallerDeTienda({
   // El pie dice, con la regla real, qué le falta para verse en la web; cada cosa lleva a su caja.
   const faltan: CampoDeGuia[] = [
     ...falta.map((dato) => ({ id: idCampo(s.id, dato), nombre: NOMBRE_DATO[dato], requerido: true, hecho: false, pendiente: "" })),
-    ...(limpiarTexto(b.horario) === null ? [{ id: idCampo(s.id, "horario"), nombre: NOMBRE_DATO.horario, requerido: false, sugerido: true, hecho: false, pendiente: "" }] : []),
+    ...(!tieneHorario(b) ? [{ id: idCampo(s.id, "horario"), nombre: NOMBRE_DATO.horario, requerido: false, sugerido: true, hecho: false, pendiente: "" }] : []),
   ];
   const teclas = (campo: keyof BorradorSede) => (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") onRevertir(campo);
@@ -519,8 +532,17 @@ function TallerDeTienda({
         </CampoFin>
 
         <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
-          <CampoFin etiqueta={etiqueta("horario", "Horario")} htmlFor={`tw-${s.id}-horario`} ayuda="Opcional. El cliente lo lee tal cual lo escribes.">
-            {caja("horario", EJEMPLO_HORARIO, TOPES_SEDE.horario)}
+          <CampoFin
+            etiqueta={etiqueta("horario", "Horario")}
+            ayuda="Opcional. Arrastra los bordes o la barra; toca un día para abrirlo o cerrarlo."
+            guia="config.tienda-web-horario"
+          >
+            <HorarioSemanal
+              valor={semanaDeSerializada(b.dias)}
+              onCambio={(semana: SemanaDeTienda) => onEscribir("dias", serializarSemana(semana))}
+              ahora={ahora}
+              deshabilitado={guardando}
+            />
           </CampoFin>
         </CampoGuiado>
 

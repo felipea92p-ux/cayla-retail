@@ -1,5 +1,9 @@
+"use client";
+
 import { CheckCircle2, Clock, MapPin, MessageCircle, Navigation } from "lucide-react";
+import { estadoDeAtencion, resumenDeHorario, semanaDeSerializada } from "@cayla-retail/shared/horario-de-tienda";
 import { Fachada } from "@/components/tienda-web-conf/Fachada";
+import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
 import { nombreCorto } from "@/lib/precio-sede-reglas";
 import { celularValido } from "@/lib/club-reglas";
 import { colorDeSede, errorDeMapa, limpiarTexto, type BorradorSede } from "@/lib/tienda-web-reglas";
@@ -11,7 +15,11 @@ import { colorDeSede, errorDeMapa, limpiarTexto, type BorradorSede } from "@/lib
 export function TelefonoDeTienda({ nombreSede, borrador, enWeb, fotoUrl }: { nombreSede: string; borrador: BorradorSede; enWeb: boolean; fotoUrl?: string | null }) {
   const nombre = limpiarTexto(borrador.nombreWeb) ?? "Sin nombre en la web";
   const direccion = limpiarTexto(borrador.direccion);
-  const horario = limpiarTexto(borrador.horario);
+  // El horario que ve el cliente: el de los días pintados; sin días, el texto que se escribió antes.
+  const semana = semanaDeSerializada(borrador.dias);
+  const horario = resumenDeHorario(semana) ?? limpiarTexto(borrador.horario);
+  const ahora = useAhoraEnLima();
+  const atencion = ahora ? estadoDeAtencion(semana, [], ahora) : null;
   const conWhatsapp = celularValido(borrador.whatsapp);
   // «Cómo llegar» existe con el mapa pegado o, sin él, buscando la dirección (la tienda online lo hace así hoy).
   const conMapa = (borrador.mapa.trim() !== "" && errorDeMapa(borrador.mapa) === null) || direccion !== null;
@@ -26,6 +34,11 @@ export function TelefonoDeTienda({ nombreSede, borrador, enWeb, fotoUrl }: { nom
           <div className="twc-tarjeta" data-oculta={enWeb ? undefined : ""}>
             <Fachada color={colorDeSede(nombreSede)} fotoUrl={fotoUrl} />
             <div className="twc-tarjeta-c">
+              {atencion && (
+                <span className="twc-atencion" data-abierta={atencion.abierta ? "" : undefined}>
+                  {atencion.texto}
+                </span>
+              )}
               <h3>{nombre}</h3>
               <div className="twc-dato" data-falta={direccion ? undefined : ""}>
                 <MapPin aria-hidden />

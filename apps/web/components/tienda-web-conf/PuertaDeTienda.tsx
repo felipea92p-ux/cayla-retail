@@ -2,6 +2,8 @@
 
 import type { CSSProperties } from "react";
 import { Check, ChevronLeft, ChevronRight, GripVertical, Lock } from "lucide-react";
+import { estadoDeAtencion, semanaDeSerializada } from "@cayla-retail/shared/horario-de-tienda";
+import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
 import { Anillo } from "@/components/ui/Anillo";
 import { Chip } from "@/components/ui/Chip";
 import { Interruptor } from "@/components/ui/campos";
@@ -72,6 +74,9 @@ export function PuertaDeTienda({
   const avance = avanceDeSede(borrador);
   const estado = estadoSedeWeb(guardado);
   const nombre = limpiarTexto(borrador.nombreWeb) ?? nombreCorto(sede.nombre);
+  // «Abierta · cierra 9 p. m.»: con el horario que la base YA tiene (lo que el cliente ve hoy) y solo si la tienda se ve en la web.
+  const ahora = useAhoraEnLima();
+  const atencion = ahora && guardado.mostrar ? estadoDeAtencion(semanaDeSerializada(guardado.dias), [], ahora) : null;
 
   return (
     <div
@@ -126,6 +131,11 @@ export function PuertaDeTienda({
             <Chip tono={estado.tono}>{estado.texto}</Chip>
             {sucia && <span className="twc-sin-guardar">Sin guardar</span>}
           </span>
+          {atencion && (
+            <span className="twc-atencion" data-abierta={atencion.abierta ? "" : undefined}>
+              {atencion.texto}
+            </span>
+          )}
         </span>
       </button>
       <div className="twc-pie">

@@ -1077,6 +1077,13 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
       texto: "El interruptor de cada puerta. Con nombre, WhatsApp y dirección se puede encender: el cliente la ve y puede recoger ahí lo que separa. Si falta algo, queda con candado. En la demo no lo tocamos.",
     },
     {
+      id: "horario",
+      ancla: "config.tienda-web-horario",
+      opcional: true,
+      titulo: "El horario, día por día",
+      texto: "Cada día es una barra: arrastra un borde para cambiar esa hora, la barra para correrla, o toca la letra del día para abrirlo o cerrarlo. De media en media hora. La tienda online dirá «Abierta · cierra 9 p. m.» sola.",
+    },
+    {
       id: "guardar",
       ancla: "config.tienda-web-guardar",
       opcional: true,

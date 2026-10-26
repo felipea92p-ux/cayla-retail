@@ -13,6 +13,10 @@
 --   ACTIVIDAD 4 · FOTO. El almacén público `retail-tiendas` (1 MB, JPG y WebP; el ERP sube la foto ya reducida a 200 KB o menos),
 --      `ubicacion_datos_web.foto_ruta` (solo una ruta `tiendas/<tienda>/<archivo>`) y `guardar_foto_tienda_web(uuid, text)`. La base guarda la
 --      RUTA; la web arma la dirección. Solo se SUBE: cada foto nueva lleva un nombre nuevo (nunca se pisa ni se borra desde el ERP).
+--   ACTIVIDAD 5 · HORARIO POR DÍAS. `retail.ubicacion_horario_web` (una fila por día abierto: de qué minuto a qué minuto, de a media hora) y
+--      `guardar_horario_tienda_web(uuid, jsonb, text)`: guarda los días y, en el mismo paso, el texto corto («Lun–Sáb 10 a. m.–9 p. m.») en
+--      `ubicacion_datos_web.horario`, para que lo que ya lee la web y cualquier función vieja siga viendo un horario. La web, con los días,
+--      dice «Abierta · cierra 9 p. m.»; sin ellos, sigue mostrando solo el texto.
 --
 -- LECTURAS. `fn_configuracion_tienda_web()` (el ERP) y `tienda_sedes()` (la web) se reescriben UNA vez, al final, con todo lo nuevo.
 --   Solo AGREGAN claves al JSON: ninguna que ya leyera una pantalla o una función cambia de nombre ni de forma.
@@ -23,6 +27,8 @@
 --   · Solo tiendas abiertas, sin repetir ninguna (el orden es una lista, no un empate).
 --   · El mapa es un enlace de Google Maps y nada más (CHECK de la fila): se dibuja como un botón en la web del cliente, así que no puede
 --     ser cualquier dirección ni un `javascript:`. La misma regla vive en `@cayla-retail/shared/tienda-web-sede` para decirlo antes.
+--   · Cada día abierto abre antes de cerrar, dentro del mismo día y de a media hora (CHECK de la fila); un día aparece una sola vez por tienda
+--     (llave primaria). Nadie lee ni escribe la tabla por fuera de las funciones: RLS encendido sin políticas, y revoke.
 --   · Dos personas ordenando a la vez se turnan (`pg_advisory_xact_lock`): gana la última, nunca queda un orden mezclado.
 --
 -- PRODUCCIÓN. NO está aplicada. Se pega en DOS partes, por separado y en orden (ADR-0195): TODO hasta la línea «PARTE FINAL» primero, y
@@ -272,6 +278,115 @@ comment on function retail.guardar_foto_tienda_web(uuid, text) is
 revoke all on function retail.guardar_foto_tienda_web(uuid, text) from public, anon;
 grant execute on function retail.guardar_foto_tienda_web(uuid, text) to authenticated;
 
+-- ============================== ACTIVIDAD 5 · el horario por días ==============================
+
+create table if not exists retail.ubicacion_horario_web (
+  ubicacion_id uuid not null references retail.ubicaciones (id),
+  dia smallint not null,
+  abre smallint not null,
+  cierra smallint not null,
+  primary key (ubicacion_id, dia),
+  constraint ubicacion_horario_web_dia check (dia between 0 and 6),
+  constraint ubicacion_horario_web_horas check (abre >= 0 and abre < cierra and cierra <= 1440 and abre % 30 = 0 and cierra % 30 = 0)
+);
+
+comment on table retail.ubicacion_horario_web is
+  'Tienda web ▸ Conf. Tienda (ADR-0518): el horario por días de cada tienda en la web. Una fila por día ABIERTO (sin fila, ese día está cerrado). dia 0 = lunes … 6 = domingo; abre/cierra en minutos desde la medianoche, de a 30. Solo por guardar_horario_tienda_web.';
+
+alter table retail.ubicacion_horario_web enable row level security;
+revoke all on retail.ubicacion_horario_web from public, anon, authenticated;
+
+-- PROMETE: reemplaza los días abiertos de una tienda abierta por los que llegan (`[{dia, abre, cierra}]`, `[]` los quita todos) y guarda, en el
+--   mismo paso, el texto corto del horario (vacío lo quita). Cada día va de 0 a 6, una sola vez, con minutos de a media hora y la apertura antes
+--   del cierre dentro del mismo día. Si nada cambió, no escribe ni anota.
+create or replace function retail.guardar_horario_tienda_web(p_ubicacion_id uuid, p_dias jsonb, p_resumen text)
+returns void
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_actor uuid;
+  v_tipo text;
+  v_activo boolean;
+  v_resumen text := nullif(regexp_replace(btrim(coalesce(p_resumen, '')), '\s+', ' ', 'g'), '');
+  v_nuevos jsonb;
+  v_antes jsonb;
+  v_horario_antes text;
+begin
+  if not retail.fn_puede_ajustes_tienda_web() then
+    raise exception 'Cambiar el horario de la tienda web necesita el módulo «Datos y plazos de la tienda web» en tu rol.' using errcode = 'P0001';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+
+  select u.tipo, u.activo into v_tipo, v_activo from retail.ubicaciones u where u.id = p_ubicacion_id;
+  if not found then
+    raise exception 'Esa tienda no existe.' using errcode = 'P0001';
+  end if;
+  if v_tipo is distinct from 'tienda' or not v_activo then
+    raise exception 'Solo una tienda abierta aparece en la web.' using errcode = 'P0001';
+  end if;
+  if p_dias is null or jsonb_typeof(p_dias) <> 'array' then
+    raise exception 'El horario tiene que ser una lista de días.' using errcode = 'P0001', hint = 'horario_invalido';
+  end if;
+  if char_length(v_resumen) > 120 then
+    raise exception 'El horario va hasta 120 letras.' using errcode = 'P0001';
+  end if;
+
+  -- Cada día: un objeto con tres números enteros. Todo lo demás (texto, decimales, un día 7, un día repetido, abrir después de cerrar o a las
+  -- 9:15) se rechaza con la misma frase, antes de escribir nada.
+  if exists (
+    select 1 from jsonb_array_elements(p_dias) e
+     where jsonb_typeof(e) <> 'object'
+        or jsonb_typeof(e -> 'dia') is distinct from 'number' or jsonb_typeof(e -> 'abre') is distinct from 'number' or jsonb_typeof(e -> 'cierra') is distinct from 'number'
+        or (e ->> 'dia') !~ '^[0-6]$' or (e ->> 'abre') !~ '^[0-9]{1,4}$' or (e ->> 'cierra') !~ '^[0-9]{1,4}$'
+  ) then
+    raise exception 'El horario de cada día va de media en media hora, y abre antes de cerrar.' using errcode = 'P0001', hint = 'horario_invalido';
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('dia', (e ->> 'dia')::int, 'abre', (e ->> 'abre')::int, 'cierra', (e ->> 'cierra')::int)
+                            order by (e ->> 'dia')::int), '[]'::jsonb)
+    into v_nuevos from jsonb_array_elements(p_dias) e;
+  if (select count(distinct (e ->> 'dia')) from jsonb_array_elements(v_nuevos) e) <> jsonb_array_length(v_nuevos)
+     or exists (
+       select 1 from jsonb_array_elements(v_nuevos) e
+        where (e ->> 'abre')::int >= (e ->> 'cierra')::int or (e ->> 'cierra')::int > 1440
+           or (e ->> 'abre')::int % 30 <> 0 or (e ->> 'cierra')::int % 30 <> 0) then
+    raise exception 'El horario de cada día va de media en media hora, y abre antes de cerrar.' using errcode = 'P0001', hint = 'horario_invalido';
+  end if;
+
+  -- Dos personas guardando el horario de la misma tienda se turnan: la segunda compara contra lo que dejó la primera.
+  perform pg_advisory_xact_lock(hashtext('tienda_web_horario:' || p_ubicacion_id::text));
+
+  select coalesce(jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia), '[]'::jsonb)
+    into v_antes from retail.ubicacion_horario_web h where h.ubicacion_id = p_ubicacion_id;
+  select w.horario into v_horario_antes from retail.ubicacion_datos_web w where w.ubicacion_id = p_ubicacion_id;
+  if v_antes = v_nuevos and v_horario_antes is not distinct from v_resumen then
+    return;
+  end if;
+
+  delete from retail.ubicacion_horario_web where ubicacion_id = p_ubicacion_id;
+  insert into retail.ubicacion_horario_web (ubicacion_id, dia, abre, cierra)
+  select p_ubicacion_id, (e ->> 'dia')::smallint, (e ->> 'abre')::smallint, (e ->> 'cierra')::smallint from jsonb_array_elements(v_nuevos) e;
+
+  insert into retail.ubicacion_datos_web (ubicacion_id, horario, actualizado_en)
+  values (p_ubicacion_id, v_resumen, now())
+  on conflict (ubicacion_id) do update set horario = excluded.horario, actualizado_en = excluded.actualizado_en;
+
+  insert into retail.configuracion_historial (que, detalle, hecho_por)
+  values ('tienda_web_horario',
+          jsonb_build_object('ubicacion_id', p_ubicacion_id,
+                             'antes', jsonb_build_object('dias', v_antes, 'horario', v_horario_antes),
+                             'despues', jsonb_build_object('dias', v_nuevos, 'horario', v_resumen)),
+          v_actor);
+end
+$$;
+
+comment on function retail.guardar_horario_tienda_web(uuid, jsonb, text) is
+  'Tienda web ▸ Conf. Tienda (ADR-0518): los días abiertos de una tienda ([{dia, abre, cierra}], minutos de a 30) y su texto corto. Líder o módulo «Datos y plazos de la tienda web»; firma el responsable; deja rastro.';
+
+revoke all on function retail.guardar_horario_tienda_web(uuid, jsonb, text) from public, anon;
+grant execute on function retail.guardar_horario_tienda_web(uuid, jsonb, text) to authenticated;
+
 -- ============================== LAS LECTURAS (se reescriben una vez, con todo lo nuevo) ==============================
 
 -- El ERP lee: cada tienda abierta, en el orden de la web, con lo que la pantalla muestra. Mismo permiso que antes.
@@ -298,7 +413,8 @@ begin
           'mostrar', coalesce(w.mostrar, false),
           'orden', w.orden,
           'mapa_url', w.mapa_url,
-          'foto_ruta', w.foto_ruta)
+          'foto_ruta', w.foto_ruta,
+          'dias', coalesce((select jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia) from retail.ubicacion_horario_web h where h.ubicacion_id = u.id), '[]'::jsonb))
         order by coalesce(w.orden, 2147483647), u.nombre, u.id)
       from retail.ubicaciones u
       left join retail.ubicacion_datos_web w on w.ubicacion_id = u.id
@@ -330,7 +446,8 @@ as $$
       'horario', w.horario,
       'whatsapp', u.whatsapp_numero,
       'mapa', w.mapa_url,
-      'foto', w.foto_ruta)
+      'foto', w.foto_ruta,
+      'dias', coalesce((select jsonb_agg(jsonb_build_object('dia', h.dia, 'abre', h.abre, 'cierra', h.cierra) order by h.dia) from retail.ubicacion_horario_web h where h.ubicacion_id = u.id), '[]'::jsonb))
     order by coalesce(w.orden, 2147483647), lower(w.nombre_web), u.id), '[]'::jsonb))
   from retail.ubicacion_datos_web w
   join retail.ubicaciones u on u.id = w.ubicacion_id
