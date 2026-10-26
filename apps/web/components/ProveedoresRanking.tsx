@@ -25,21 +25,23 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 // La fila entera abre la vista rápida que ya existía (decisión de Felipe, 2026-10-26): el botón del nombre se estira sobre la fila con `after:`
 // y el enlace a Por pagar queda por encima (`relative`), igual que en el directorio.
 
-// Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, casilla · puesto · proveedor y, debajo, la barra y la insignia;
-// desde 42 rem, todo en una línea (con la columna derecha al lado, la lista mide ~44 rem en una pantalla de 1440). La casilla marca al
-// proveedor para compararlo a la derecha (hasta 3).
-// Con la casilla son 8 columnas: en lo ancho van más juntas (12 px) y sus mínimos suman justo los 42 rem desde los que se ponen en fila, así
-// ningún ancho las desborda (a 1024 la tabla mide ~43 rem; a 1440, con la columna derecha, ~45).
+// Columnas según el ANCHO DE LA TABLA (`@container`), en tres tamaños (Felipe 2026-10-26: «la tabla en sí debe ser super responsive»):
+//   · angosta (< 42 rem, el teléfono): casilla · puesto · proveedor y, debajo, la barra y la insignia;
+//   · mediana (42 a 56 rem): todo en una línea menos la línea de ventas por día,
+//     que apretada partía cada título en tres renglones;
+//   · ancha (56 rem o más, como una pantalla de 1440 con la columna derecha al lado): también la línea de ventas.
+// Los títulos de las columnas con dato van centrados sobre lo que miden (Felipe 2026-10-26); «Proveedor» queda a la izquierda, como los nombres.
+// La casilla marca al proveedor para compararlo a la derecha (hasta 3).
 const PLANTILLA =
-  "grid-cols-[1.25rem_1.5rem_minmax(0,1fr)_auto] @2xl:grid-cols-[1.25rem_1.5rem_minmax(8rem,1.6fr)_5.75rem_2.75rem_minmax(5.5rem,1fr)_8.5rem_1rem] @2xl:gap-x-3";
+  "grid-cols-[1.25rem_1.5rem_minmax(0,1fr)_auto] @2xl:grid-cols-[1.25rem_1.5rem_minmax(9rem,1.7fr)_3.5rem_minmax(7rem,1fr)_7.5rem_1rem] @4xl:grid-cols-[1.25rem_1.5rem_minmax(11rem,1.7fr)_7rem_3.5rem_minmax(9rem,1.2fr)_8rem_1rem] @2xl:gap-x-3 @4xl:gap-x-4";
 const columnas = (medida: MedidaRanking): Columna[] => [
   { titulo: "", ayuda: "Marca hasta 3 para compararlos a la derecha" },
   { titulo: "#", alinear: "der" },
   { titulo: "Proveedor" },
-  { titulo: "Ventas", subtitulo: "por día, 4 semanas" },
-  { titulo: "Vendido" },
-  { titulo: medida === "soles" ? "Te llegó · a su costo" : "Te llegó · prendas", subtitulo: "lo oscuro ya se vendió" },
-  { titulo: "Lo que queda se vende en" },
+  { titulo: "Ventas", subtitulo: "por día · 4 semanas", alinear: "centro", clase: "hidden @4xl:block" },
+  { titulo: "Vendido", alinear: "centro", ayuda: "De lo que te llegó, cuánto ya se vendió" },
+  { titulo: medida === "soles" ? "Te llegó · a su costo" : "Te llegó · prendas", subtitulo: "lo oscuro ya se vendió", alinear: "centro" },
+  { titulo: "Se vende en", alinear: "centro", ayuda: "Cuánto tardaría en venderse lo que le queda, al ritmo de hoy, y qué toca hacer" },
   { titulo: "" },
 ];
 
@@ -248,7 +250,7 @@ function FilaDelRanking({
         </span>
       </span>
       <VentasDeLaSemana serie={serie} indice={indice} />
-      <span className="hidden @2xl:block">
+      <span className="hidden justify-self-center @2xl:block">
         <Anillo pct={vendidoPct} tamano="chico" indice={indice} etiqueta={`${f.nombre}: vendiste el ${Math.round(vendidoPct)} % de lo que le compraste`}>
           <span className="text-[10.5px] font-semibold tabular-nums">{Math.round(vendidoPct)}%</span>
         </Anillo>
@@ -281,10 +283,10 @@ function FilaDelRanking({
           {valor}
         </span>
       </span>
-      <span className="col-start-4 row-start-2 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-start">
+      <span className="col-start-4 row-start-2 justify-self-end overflow-visible @2xl:col-start-auto @2xl:row-start-auto @2xl:justify-self-center">
         {/* Las semanas arriba y la insignia con lo que toca hacer debajo («Frena compras» no cabía junto a «100+ sem»); en una tabla angosta
             (el teléfono), solo la insignia. Su porqué, a un toque: la fila abre la vista rápida, que lo explica con los números. */}
-        <span className="flex flex-col items-end gap-0.5 @2xl:items-start">
+        <span className="flex flex-col items-end gap-0.5 @2xl:items-center">
           {semanasCortas(f.ritmo) && <span className="hidden text-xs tabular-nums text-tinta/70 @md:block">{semanasCortas(f.ritmo)}</span>}
           <Chip tono={ritmo.tono} title={`${textoRitmo(f)}. ${ritmo.ayuda}`}>
             {ritmo.palabra}
@@ -299,10 +301,10 @@ function FilaDelRanking({
 // La línea de lo vendido por día (4 semanas) y lo de esta semana contra la anterior. Sin la lectura de la base, la celda queda vacía; con la
 // lectura y sin ventas, lo dice. La línea es la pieza de una fila (`<Sparkline>`, ADR-0358).
 function VentasDeLaSemana({ serie, indice }: { serie: number[] | null; indice: number }) {
-  if (!serie) return <span className="hidden @2xl:block" />;
+  if (!serie) return <span className="hidden @4xl:block" />;
   const s = semanaDeVentas(serie);
   return (
-    <span className="hidden min-w-0 flex-col gap-0.5 @2xl:flex" title={`${s.estaSemana} vendidas en los últimos 7 días; ${s.anterior} los 7 de antes`}>
+    <span className="hidden min-w-0 flex-col items-center gap-0.5 @4xl:flex" title={`${s.estaSemana} vendidas en los últimos 7 días; ${s.anterior} los 7 de antes`}>
       <Sparkline serie={serie} indice={indice} />
       <span className="flex items-center gap-1 text-xs text-tinta/70">
         <b className="font-semibold tabular-nums text-tinta">{s.estaSemana}</b> esta semana
