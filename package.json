@@ -148,6 +148,7 @@
     "pruebas:campanas-por-sede": "node scripts/pruebas/campanas_por_sede.mjs",
     "pruebas:campana-reglas": "node scripts/pruebas/campana_reglas.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
+    "pruebas:tienda-filtros": "node scripts/pruebas/tienda_filtros.mjs",
     "pruebas:tienda-insignias": "node scripts/pruebas/tienda_insignias.mjs",
     "pruebas:insignia-icono": "node scripts/pruebas/insignia_icono.mjs",
     "pruebas:tienda-separadas": "node scripts/pruebas/tienda_separadas.mjs",
