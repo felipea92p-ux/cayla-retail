@@ -118,3 +118,26 @@ Spike y contrato con el Plan de campaña en `docs/maquetas/finanzas-v3-2026-10/r
 **DECIDÍ:** el Resumen lee la campaña a través de un contrato del Plan y no ofrece nada hasta que la base lo confirme (la «marca soportado» del ADR-0499). **DESCARTÉ:** que el Resumen calcule la compra por su cuenta desde
 las órdenes y el plan: dos fuentes para «cuánto vamos a comprar». **SE ROMPE SI:** el Plan y Finanzas llaman distinto al mismo concepto («Compromiso de compra» contra «Compras de campaña»): el nombre se elige mirando y es uno solo.
 
+## Actualización 2026-10-26 (c) — El Resumen abre con tres respuestas, sin huecos, y la inversión en mercadería (construido, tras bandera)
+
+Construido sobre la demo que Felipe aprobó (`docs/maquetas/finanzas-v3-2026-10/resumen-demo/`):
+
+1. **Tres respuestas arriba** (`lib/tres-respuestas-reglas.ts` → `TresRespuestas.tsx`, con `TarjetaCifra`): ¿cuánto tienes?, ¿cuánto debes pagar pronto? y ¿cuánto te deja este mes? Ninguna calcula plata: repiten la cifra de la caja (`cajaProxima`),
+   de `debesPronto` y de la respuesta del mes, y el estado de la caja se dice con las mismas palabras que «Tu caja» (`estadoDeCaja`, una sola fuente). **El Resumen ya no pone `RespuestaTelar` en su cabecera** (es la única
+   excepción de las seis pantallas: su respuesta ahora son tres tarjetas).
+2. **Ancho completo solo para el Resumen**, con el marcador `data-ancho-completo` de ADR-0462 y no sacando `/finanzas` de `CON_TOPE_DE_ANCHO`: las otras cinco pantallas se revisan a lo ancho una por una.
+   **Costo conocido:** al pasar del Resumen a otra pantalla de Finanzas la barra cambia de ancho (64 rem). Se arregla cuando las demás salgan de la lista.
+3. **Sin huecos:** la caja y «Hoy te toca» miden lo mismo; el recorrido, el equilibrio y los cambios van en columnas pegadas (`columns-[34rem]`; el navegador corta donde quedan más parejas) y en una columna en angosto.
+4. **Inversión en mercadería, tras bandera** (`lib/inversion-mercaderia-reglas.ts`, `lib/inversion-mercaderia.ts`, `InversionMercaderia.tsx`, `AjustesResumen.tsx`). No es un gasto: sale de la caja el día que se paga.
+   Cada sol del plan está en UNA etapa (pagado, pedido sin pagar, falta pedir) y la caja solo suma **lo que falta pedir** (lo pedido ya está en Por pagar: contarlo dos veces es el error). `cajaProxima` acepta la compra como capa
+   aparte y mira seis semanas cuando la hay. Las formas de pagar (tu plan, todo junto, dos tandas, a plazo) se comparan mirando la caja; **elegir una es mirar, no guarda nada**. «La mejor mezcla» solo la lleva una que no depende
+   del proveedor, no deja la caja en negativo y llega a tiempo con 70 % o más; si ninguna cumple, no recomienda (la caja cuenta «Todo junto» para mostrar el daño). Mirando una sola sede no se dibuja: es de CAYLA entera.
+5. **«Qué se ve»:** un ícono junto al mes (la barra ya es de una sola fila; no cabe «debajo»), solo en el Resumen, que abre una hoja con los interruptores. Visibilidad por campaña = **un booleano** (decidido por Felipe,
+   sin los tres estados del Plan).
+
+**DECIDÍ:** que el lector de la inversión sea una sola función (`getInversionMercaderia`) que hoy devuelve «esta base aún no lo trae» y que, en desarrollo y con `?inversion=ejemplo`, devuelva cifras de ejemplo; **en producción el Resumen no ofrece nada**.
+**DESCARTÉ:** llamar a una función de la base que todavía no existe (daría un error en cada carga) y guardar las elecciones de «Qué se ve» en la base sin que el Plan tenga su columna. **SE ROMPE SI:** el Plan entrega la lista de pagos en otro formato
+(`leerInversion` descarta lo que no entiende, nunca inventa un monto) o si dos campañas se pagan el mismo día y alguien espera verlas por separado (la caja las suma).
+
+**Interino a propósito:** las elecciones de «Qué se ve» (interruptor general, por campaña, contar en la caja, IGV) viven en el navegador (`localStorage`), no en la base. Cuando el Plan guarde «se ve en el Resumen» y el interruptor general,
+`useAjustesResumen` cambia por esa lectura y las reglas no se tocan. **No hecho:** las pestañas «Lo que dice la historia» y «Cuánto cuesta» de la demo (el contrato con el Plan no las incluye; el botón «Ver en el Plan de campaña» lleva al Plan).
