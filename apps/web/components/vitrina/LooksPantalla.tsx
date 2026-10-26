@@ -138,6 +138,7 @@ export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
           key={abierto}
           look={lookAbierto}
           modelos={lectura.modelos}
+          looks={looks}
           cuantos={looks.length}
           onClose={() => setAbierto(null)}
           onGuardado={actualizar}
