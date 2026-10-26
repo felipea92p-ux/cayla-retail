@@ -282,6 +282,9 @@ export type DetalleEnvio = {
   version: number;
   /** Cuántas prendas vienen en total. */
   enviado: number;
+  /** Cuántos fardos (paquetes) entregó la compradora al transporte (ADR-0480). `null` = nadie lo dijo: un envío de antes o armado en el
+   *  escritorio, o una base que todavía no manda `bultos`. La pantalla no muestra nada en ese caso, nunca un «0 fardos». */
+  bultos: number | null;
   lineas: LineaEnvio[];
   /** Solo en un envío cerrado; `null` si la base todavía no lo dice. */
   recibidos: RecibidoEnvio[] | null;
@@ -449,6 +452,7 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     motivoAnulacion: texto(d.motivo_anulacion),
     version: cifra(d.version) ?? 1,
     enviado: cifra(d.unidades) ?? lineas.reduce((a, l) => a + l.enviado, 0),
+    bultos: fardosDe(d.bultos),
     lineas,
     recibidos,
     diferencias,
@@ -464,6 +468,12 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     deudas: leerDeudasDelEnvio(d.deudas_del_proveedor ?? d.deudas),
     papeles: lista(d.papeles).map(leerPapel).filter((x): x is PapelDelEnvio => x !== null),
   };
+}
+
+/** Los fardos que dijo la base: un entero de 1 en adelante (la base los limita de 1 a 99); cualquier otra cosa es «no se sabe». */
+function fardosDe(v: unknown): number | null {
+  const n = cifra(v);
+  return n !== null && Number.isInteger(n) && n >= 1 ? n : null;
 }
 
 /** Los proveedores del envío (uno por línea, sin repetir), en el orden en que aparecen. Con dos o más, lo que no estaba en la guía dice de cuál es. */
@@ -1248,9 +1258,11 @@ export const TEXTO_QUIEN_COMPRO =
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
 const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden)_[a-z_]+$/;
-/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4); con la cara A el botón es «Abrir el fardo». El texto vive en nueve
- *  lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se traduce aquí, por su pista, en vez de tocarlo allá. */
-export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se abrió: ábrelo primero y después cuenta.";
+/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4). La cara A (ADR-0393) lo llamó «Abrir el fardo» y el aviso se traducía; con
+ *  varios fardos por envío que se abren por partes, «abrir el fardo» ya no decía qué hacía el botón y volvió a ser «Empezar a recibir»
+ *  (ADR-0480, 2026-10-26). El texto vive en nueve lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se dice aquí, por su
+ *  pista, en vez de tocarlo allá. */
+export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se empezó a recibir: pulsa «Empezar a recibir» primero y después cuenta.";
 
 export function mensajeDeLaRecepcion(error: { message?: string | null; hint?: string | null } | null | undefined): string | null {
   if (!error?.message) return null;
