@@ -1,5 +1,8 @@
 # Proveedores v3 · ranking + lo que no se ve (2026-10-26)
 
+> **Descartada por Felipe el mismo día:** «No me gusta ninguna, elabora 3 más que sean innovadoras y visuales». La cuarta ronda está en
+> `../proveedores-v4-2026-10/`. La investigación de esta carpeta (`INVESTIGACION.md`) sigue valiendo.
+
 Tercera ronda. Felipe, sobre la segunda: «hay partes con espacio desaprovechado de forma innecesaria y los colores están mal utilizados,
 tengo muchos proveedores, mostrarlos en forma de mosaico es un error tremendo, tal vez hacer un ranking que se pueda filtrar por prendas
 compradas y por dinero y a la derecha las cosas que no se ven a simple vista o las necesarias. Investiga cómo sería la forma más óptima».

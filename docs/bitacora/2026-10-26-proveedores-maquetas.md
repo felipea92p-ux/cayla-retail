@@ -21,3 +21,10 @@ Qué hice:
 - Revisadas a 1440 y 1920 px, claro y oscuro, y a 375 px sin desborde. La v2 queda marcada como descartada.
 Por qué así: lo pidió Felipe y lo respalda la investigación; la ficha se rediseña después de elegir la lista.
 Estado: solo maquetas, sin PR.
+
+## 2026-10-26 (Proveedores v4: innovadoras y visuales)
+Qué hice:
+- Felipe descartó la v3 («elabora 3 más que sean innovadoras y visuales»). Nueva carpeta `docs/maquetas/proveedores-v4-2026-10/` con tres formas de mirar a los 52 proveedores, conservando lo pedido antes (prendas/dinero, color solo con significado y forma, sin espacio muerto, a la derecha lo que no se ve): **A · Mapa de decisiones** (cuánto le compras contra qué tan rápido se vende, en cuatro zonas: repón, prueba comprarles más, frena, no insistas), **B · Sol de proveedores** (el ranking en círculo, un rayo por proveedor del mayor al menor) y **C · Mapa de calor** (el ranking con las semanas de cada talla y cada sede en celdas del verde al ámbar, más la fila de toda la tienda).
+- Al cambiar prendas/dinero, los puntos, los rayos y las filas se deslizan a su lugar nuevo; al tocar un proveedor, su detalle (con tallas y sedes en celdas de color) reemplaza la columna derecha.
+- Revisadas a 1440 y 1920 px, claro y oscuro, y a 375 px sin desborde. La v3 queda marcada como descartada.
+Estado: solo maquetas, sin PR. Falta que Felipe elija.
