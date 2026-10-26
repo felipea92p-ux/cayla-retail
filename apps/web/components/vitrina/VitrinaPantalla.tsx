@@ -155,6 +155,10 @@ export function VitrinaPantalla({
   // ocultar 200 modelos con un clic de más.
   const elegidosVisibles = visibles.filter((m) => elegidos.includes(m.id));
   const paginaEntera = visibles.length > 0 && elegidosVisibles.length === visibles.length;
+  // «Elegir los N que coinciden»: lo de todas las páginas (aparece cuando hay más de una). El lote igual muestra qué le pasa a cada modelo.
+  const hayMasPaginas = lista.length > visibles.length;
+  const todosLosQueCoinciden = lista.length > 0 && lista.every((m) => elegidos.includes(m.id));
+  const alternarTodos = () => setElegidos((ids) => (todosLosQueCoinciden ? ids.filter((id) => !lista.some((m) => m.id === id)) : [...new Set([...ids, ...lista.map((m) => m.id)])]));
   const alternarPagina = () => setElegidos((ids) => (paginaEntera ? ids.filter((id) => !visibles.some((m) => m.id === id)) : [...new Set([...ids, ...visibles.map((m) => m.id)])]));
   const modeloAbierto = abierto ? modelos.find((m) => m.id === abierto) ?? null : null;
   const delLote = lote ? modelos.filter((m) => lote.ids.includes(m.id)) : [];
@@ -173,6 +177,7 @@ export function VitrinaPantalla({
         <TarjetaCifra
           punto="verde"
           etiqueta="Se ven en la web"
+          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
           valor={<CifraQueCuenta valor={cifras.seVen} alMontar />}
@@ -184,6 +189,7 @@ export function VitrinaPantalla({
         <TarjetaCifra
           punto={cifras.sinStock > 0 ? "ambar" : "neutro"}
           etiqueta="Sin stock en ninguna tienda"
+          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
           valor={<CifraQueCuenta valor={cifras.sinStock} alMontar />}
@@ -196,6 +202,7 @@ export function VitrinaPantalla({
         <TarjetaCifra
           punto={esperan ? "ambar" : "neutro"}
           etiqueta="Esperan una talla"
+          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
           valor={esperan === null ? null : <CifraQueCuenta valor={esperan} alMontar />}
@@ -221,6 +228,11 @@ export function VitrinaPantalla({
           {vista === "vitrina" && visibles.length > 0 && (
             <button type="button" className="btn-enlace text-[13px]" data-guia="vitrina.elegir-pagina" onClick={alternarPagina}>
               {paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
+            </button>
+          )}
+          {hayMasPaginas && (
+            <button type="button" className="btn-enlace text-[13px]" onClick={alternarTodos}>
+              {todosLosQueCoinciden ? `Quitar los ${lista.length} que coinciden` : `Elegir los ${lista.length} que coinciden`}
             </button>
           )}
           <SegmentoDeslizante

@@ -218,15 +218,15 @@ describe("filtros por estado, categoría y Lo nuevo (Ola 1 de Tienda web)", () =
   });
 });
 
-describe("la lista de la Vitrina llega de 30 en 30", () => {
+describe("la lista de la Vitrina llega de 40 en 40", () => {
   const muchos = Array.from({ length: 59 }, (_, i) => modelo({ id: `m${i}`, nombre: `Modelo ${i}` }));
 
-  it("30 por página: dos páginas para 59, con lo que se ve de cada una", () => {
-    expect(MODELOS_POR_PAGINA).toBe(30);
+  it("40 por página: dos páginas para 59, con lo que se ve de cada una", () => {
+    expect(MODELOS_POR_PAGINA).toBe(40);
     const p1 = paginar(filtrarVitrina(muchos, "todos", ""), 1, MODELOS_POR_PAGINA);
-    expect(p1).toMatchObject({ pagina: 1, totalPaginas: 2, desde: 1, hasta: 30 });
+    expect(p1).toMatchObject({ pagina: 1, totalPaginas: 2, desde: 1, hasta: 40 });
     const p2 = paginar(filtrarVitrina(muchos, "todos", ""), 2, MODELOS_POR_PAGINA);
-    expect(p2).toMatchObject({ pagina: 2, desde: 31, hasta: 59 });
+    expect(p2).toMatchObject({ pagina: 2, desde: 41, hasta: 59 });
     expect(p2.filas.at(-1)!.id).toBe("m58");
   });
 

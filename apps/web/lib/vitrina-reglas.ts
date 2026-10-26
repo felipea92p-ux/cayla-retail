@@ -192,9 +192,10 @@ export function cifrasDe(modelos: readonly ModeloVitrina[]): CifrasVitrina {
   return { seVen: visibles.length, total: modelos.filter((m) => !esEmpaque(m)).length, sinStock: visibles.filter((m) => libreEnTiendas(m) === 0).length };
 }
 
-/** Cuántos modelos entran en una página de la lista: lo mismo que el catálogo de la tienda, y una cifra que llena filas completas a 5 y
- *  a 6 columnas (un modelo mide ~390 px de alto; con ~300 en producción, sin tope eran ~24 000 px de página). */
-export const MODELOS_POR_PAGINA = 30;
+/** Cuántos modelos entran en una página de la lista (Felipe 2026-10-26: 40 prendas por página). Llena filas completas a 5 y a 8
+ *  columnas, que son las de 1440 y 1920 px; un modelo mide ~390 px de alto y, con ~300 en producción, sin tope eran ~24 000 px de página.
+ *  Las pantallas que ya tenían su paginación (Probador) no cambian. */
+export const MODELOS_POR_PAGINA = 40;
 
 /** Los estados por los que se filtra la lista. Los dos primeros son las cifras de arriba; `sin_precio` y `ocultos` son lo que el Resumen
  *  cuenta como «encendidos que no se ven» y lo que alguien apagó. `todos` es solo ropa (Felipe 2026-10-15: «solo ropa en la web»): el
