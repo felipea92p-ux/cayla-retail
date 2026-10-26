@@ -449,6 +449,9 @@ export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[
     plataEnStock: Number(f.plata_en_stock),
     prendasSinVenta: Number(f.prendas_sin_venta),
     plataSinVenta: Number(f.plata_sin_venta),
+    // Con la base de antes de 20261024234000 estas dos no llegan: el veredicto no puede medir el ritmo y cae a lo demás (no se rompe nada).
+    primeraEntrada: f.primera_entrada ?? null,
+    unidadesEnEstantes: Number(f.unidades_en_estantes ?? 0),
   }));
 }
 

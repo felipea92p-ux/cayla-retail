@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -21,14 +21,18 @@ export const PLANTILLA_LISTA =
 const SOLO_ANCHA = "hidden @min-[900px]:block";
 const DESDE_MEDIA = "hidden @min-[620px]:block";
 
-export function FilaDeOrden({ f, primera = false, guiaPorque = false, onAbrirCajon }: { f: FilaDeLista; primera?: boolean; /** La guía interactiva enciende el «¿Por qué?» de la primera fila que lo tenga. */ guiaPorque?: boolean; /** Una orden de antes de las fases no tiene página: se sigue desde el cajón de siempre. */ onAbrirCajon?: () => void }) {
+export function FilaDeOrden({ f, primera = false, guiaPorque = false, recien = false, onAbrirCajon }: { f: FilaDeLista; primera?: boolean; /** La guía interactiva enciende el «¿Por qué?» de la primera fila que lo tenga. */ guiaPorque?: boolean; /** La orden que se acaba de abrir (ADR-0509): respira en verde una vez (`data-recien`) y se lleva a la vista. */ recien?: boolean; /** Una orden de antes de las fases no tiene página: se sigue desde el cajón de siempre. */ onAbrirCajon?: () => void }) {
   const [abierta, setAbierta] = useState(false);
   const idPorque = useId();
+  const raiz = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (recien) raiz.current?.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [recien]);
   const prenda = categoriaDe({ categoria: f.categoria?.nombre, categoriaPrefijo: f.categoria?.prefijo, categoriaFamilia: f.categoria?.familia });
   const enProceso = f.estado === "en_proceso";
   const entregaEnLinea = f.entrega.fecha ? `Entrega ${f.entrega.texto}${f.entrega.relativo ? ` · ${f.entrega.relativo}` : ""}` : "Sin fecha de entrega";
   return (
-    <div className="fila-cayla ol-fila cursor-pointer px-5 py-3 pr-8" data-guia={primera ? "prod-ordenes.fila" : undefined}>
+    <div ref={raiz} className="fila-cayla ol-fila cursor-pointer px-5 py-3 pr-8" data-guia={primera ? "prod-ordenes.fila" : undefined} data-recien={recien ? "" : undefined}>
       {f.legado && onAbrirCajon ? (
         <button type="button" className="ol-enlace" aria-haspopup="dialog" aria-label={`Abrir ${f.numeroTexto}, ${f.referencia}`} onClick={onAbrirCajon} />
       ) : (

@@ -91,12 +91,15 @@ export function sugerenciasLibresDeEspera(ocupados: readonly (string | undefined
  * dos puertas lo llevan.
  *
  * `id` y `creadoEn` se reciben hechos: el reloj y el generador de UUID no entran a una función pura.
+ *
+ * `cobro` (2026-10-25) es lo del cobro que viaja con el ticket (`lib/ticket-cobro-reglas.ts`: quién atendió, comprobante,
+ * documento, pagos y cupón). Va genérico (`B`) como `L` y `C`: esta función no necesita saber su forma, solo no perderlo.
  */
-export function ticketParaEspera<L, C>(
-  datos: { carrito: L[]; nota: string; nombre: string; clienta: C | null },
+export function ticketParaEspera<L, C, B = undefined>(
+  datos: { carrito: L[]; nota: string; nombre: string; clienta: C | null; cobro?: B },
   id: string,
   creadoEn: string,
-): { id: string; creadoEn: string; carrito: L[]; nota: string; nombre: string | undefined; clienta: C | null } {
+): { id: string; creadoEn: string; carrito: L[]; nota: string; nombre: string | undefined; clienta: C | null; cobro: B | undefined } {
   return {
     id,
     creadoEn,
@@ -106,6 +109,7 @@ export function ticketParaEspera<L, C>(
     // del navegador, que nació antes de que la espera llevara nombre.
     nombre: datos.nombre.trim() || undefined,
     clienta: datos.clienta,
+    cobro: datos.cobro,
   };
 }
 
