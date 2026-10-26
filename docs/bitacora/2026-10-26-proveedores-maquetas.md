@@ -35,3 +35,9 @@ Qué hice:
 - En las tres, al cambiar entre prendas y dinero la lista se reacomoda deslizándose y cada proveedor dice cuántos puestos subió o bajó; el color sigue solo en la píldora del ritmo, y a la derecha va lo que no se ve a simple vista.
 - Revisadas a 1440 px en claro y oscuro y a 375 px sin desborde. La v4 queda marcada como descartada.
 Estado: solo maquetas, sin PR. Falta que Felipe elija.
+
+## 2026-10-26 (Proveedores: Felipe elige la C de la v5 y se ajusta la medida)
+Qué hice:
+- Felipe eligió **C · Filas con su venta** y pidió, antes de implementar, que «prendas compradas y dinero gastado» tengan su ícono y se muestren mejor. Ahora son dos tarjetas de opción (polo y billete, el total de todos los proveedores y qué quiere decir; la elegida con borde de tinta y su visto), y el mismo ícono acompaña cada cifra del ranking y de la comparación. La maqueta abre en la C.
+- Revisada a 1440 y 1920 px, en claro y oscuro, y a 375 px sin desborde.
+Estado: maqueta lista para construir con `/construir`; sin código del ERP ni PR todavía.

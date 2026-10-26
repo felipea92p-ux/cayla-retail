@@ -30,7 +30,7 @@
   const NOTAS = {
     a: "<b>A · Podio y lista.</b> Los 3 primeros en tarjetas grandes y el resto en filas con su barra. Al cambiar entre prendas y dinero, la lista se reacomoda deslizándose y cada uno dice cuántos puestos subió o bajó. Toca uno para ver su detalle a la derecha.",
     b: "<b>B · Carriles.</b> Cada proveedor es un carril con su barra grande, que dice adentro cuánto vendiste y cuánto queda. Tócalo y se abre ahí mismo con tallas, sedes y plata.",
-    c: "<b>C · Filas con su venta.</b> Cada fila con la línea de ventas por día y su anillo de vendido. Marca hasta 3 para compararlos lado a lado a la derecha.",
+    c: "<b>C · Filas con su venta — la elegida.</b> Cada fila con la línea de ventas por día y su anillo de vendido. Marca hasta 3 para compararlos lado a lado a la derecha.",
   };
   // El tema: claro de fábrica, como el ERP (localStorage es solo comodidad).
   const temaBtn = document.getElementById("mq-tema");
@@ -61,6 +61,7 @@
     C.animar(raiz);
     if (!quieto) window.scrollTo({ top: 0 });
   }
+  if (!location.hash) history.replaceState(null, "", "#c/lista"); // la elegida por Felipe (C) abre primero
   window.addEventListener("hashchange", () => pintar());
   pintar();
 })();

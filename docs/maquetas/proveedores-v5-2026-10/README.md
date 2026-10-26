@@ -1,5 +1,8 @@
 # Proveedores v5 · un ranking visual e interactivo, sin extravagancia (2026-10-26)
 
+> **Elegida por Felipe: la C (Filas con su venta).** Antes de construirla pidió un ajuste: «prendas compradas y dinero gastado deberían
+> tener su ícono y mostrarse de la mejor manera». Hecho (abajo, «El ajuste de la C»). La maqueta abre en la C.
+
 Quinta ronda. Felipe, sobre la cuarta (mapa, sol y mapa de calor): «No me gusta ninguno, que sea un ranking más visual e interactivo pero
 sin ser demasiado extravagante».
 
@@ -59,6 +62,18 @@ días, margen, deuda y la talla que se acaba.
 - **Gana:** se ve si un proveedor va subiendo o bajando, y la comparación responde «¿a cuál de estos le compro?».
 - **Paga:** es la que tiene más cosas por fila.
 - **Ojo, datos de ejemplo:** la venta por día es inventada; en el ERP saldría de las ventas reales.
+
+## El ajuste de la C: prendas compradas y dinero gastado
+
+- **Dos tarjetas de opción** en lugar del botón doble:
+  - el ícono del polo para las prendas y el del billete para el dinero (lucide, 20 px, como una tarjeta de opción del ERP);
+  - el nombre;
+  - el total de todos los proveedores en grande: 2,694 prendas · ≈ S/ 81,378;
+  - una línea que dice qué es: «a 52 proveedores» · «aproximado: el 87 % viene de la carga inicial».
+- **La elegida** se marca con su borde de tinta, el ícono sobre tinta y un visto que se dibuja.
+- **En el teléfono** van una al lado de la otra, sin el visto.
+- **El mismo ícono acompaña cada cifra del ranking:** la barra de cada fila, la línea «del que más le compras al que menos» y «Le compraste»
+  en la comparación. Así nunca se confunde si un número son prendas o soles.
 
 ## Datos y reglas
 

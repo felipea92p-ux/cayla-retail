@@ -29,6 +29,24 @@
   const val = (p) => (E.modo === "soles" ? C.gasto(p) : p.comprado);
   const vend = (p) => (E.modo === "soles" ? p.vendidas * p.costo : p.vendidas);
   const fmt = (n) => (E.modo === "soles" ? C.S(n) : C.N(n));
+  // Cuánto le compras se mide en prendas (el polo) o en dinero (el billete). El ícono acompaña cada cifra del ranking para que nunca se
+  // confunda una medida con la otra (Felipe 2026-10-26: «deberían tener su ícono y mostrarse de la mejor manera»).
+  const ICONO_MODO = {
+    prendas: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+    soles: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  };
+  const iconoModo = (modo = E.modo, t = 16) => `<svg class="v5-icono-modo" aria-hidden="true" width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONO_MODO[modo]}</svg>`;
+  // Las dos medidas como tarjetas de opción: el ícono, el nombre, el total de todos los proveedores y qué quiere decir.
+  function opcionModo(modo) {
+    const ps = window.PROVEEDORES, on = E.modo === modo, gasto = ps.reduce((a, p) => a + C.gasto(p), 0), real = ps.reduce((a, p) => a + p.compras * p.costo, 0);
+    const total = modo === "soles" ? `≈ ${C.S(gasto)}` : C.N(ps.reduce((a, p) => a + p.comprado, 0));
+    const sub = modo === "soles" ? `aproximado: el ${C.P(100 - (real / gasto) * 100)} viene de la carga inicial` : `a ${ps.length} proveedores`;
+    return `<button class="v5-opcion ${on ? "on" : ""}" role="radio" aria-checked="${on}" data-modo="${modo}">
+      <span class="v5-opcion-ic">${iconoModo(modo, 20)}</span>
+      <span class="v5-opcion-txt"><span class="v5-opcion-et">${modo === "soles" ? "Dinero gastado" : "Prendas compradas"}</span><b class="num">${total}</b><small>${sub}</small></span>
+      <span class="v5-opcion-check" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg></span>
+    </button>`;
+  }
   const ranking = () => [...window.PROVEEDORES].sort((a, b) => val(b) - val(a));
   const sinTildes = (t) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const pasa = (p) => (!E.filtro || (E.filtro === "vencido" ? p.vencido > 0 : claseDe(p) === E.filtro)) && (!E.q || sinTildes(`${p.nombre} ${p.marcas.join(" ")}`).includes(sinTildes(E.q)));
@@ -39,9 +57,7 @@
     const ps = window.PROVEEDORES, n = (k) => ps.filter((p) => claseDe(p) === k).length;
     const chip = (k, txt, cuenta, forma = "") => `<button class="x-chip ${E.filtro === k ? "on" : ""}" data-filtro="${k ?? ""}" aria-pressed="${E.filtro === k}">${forma}${txt}<span class="globito">${cuenta}</span></button>`;
     return `<div class="x-controles">
-      <div class="x-orden" role="group" aria-label="Medir cuánto le compras en">
-        <button data-modo="prendas" aria-pressed="${E.modo === "prendas"}">Prendas compradas</button><button data-modo="soles" aria-pressed="${E.modo === "soles"}">Dinero gastado</button>
-      </div>
+      <div class="v5-medida" role="radiogroup" aria-label="Ordenar el ranking por">${opcionModo("prendas")}${opcionModo("soles")}</div>
       <div class="x-chips">${chip(null, "Todos", ps.length)}${chip("rapido", "Repón", n("rapido"), marca("rapido"))}${chip("medio", "A su ritmo", n("medio"), marca("medio"))}${chip("lento", "Frena", n("lento"), marca("lento"))}${chip("nomide", "Poco para medir", n("nomide"), marca("nomide"))}${chip("vencido", "Deuda vencida", ps.filter((p) => p.vencido).length, '<i class="x-forma cruz" aria-hidden="true"></i>')}</div>
       <label class="x-buscar"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="search" data-buscar placeholder="Encontrar un proveedor" value="${C.esc(E.q)}" aria-label="Encontrar un proveedor"></label>
     </div>`;
@@ -136,7 +152,7 @@
   const verMas = (n) => (n > POR_PAGINA ? `<button class="v5-vermas" data-vermas>${E.todos ? "Ver solo los primeros 20 ↑" : `Ver los ${n - POR_PAGINA} que faltan ↓`}</button>` : "");
   const vacio = () => `<p class="v5-vacio">Ningún proveedor con ese filtro. <button class="x-enl" data-filtro="">Ver todos</button></p>`;
   const taller = () => `<p class="v5-taller">${C.icon("taller", 16)} El Taller (CAYLA SAC, ${C.N(window.TALLER.prendas)} prendas) va aparte: no es un proveedor.</p>`;
-  const cuenta = (n) => `<p class="v5-cuenta">${n === window.PROVEEDORES.length ? `${n} proveedores` : `${n} de ${window.PROVEEDORES.length} proveedores`}, del que más le compras al que menos · ${E.modo === "soles" ? "en dinero" : "en prendas"}</p>`;
+  const cuenta = (n) => `<p class="v5-cuenta">${n === window.PROVEEDORES.length ? `${n} proveedores` : `${n} de ${window.PROVEEDORES.length} proveedores`}, del que más le compras al que menos · ${iconoModo(E.modo, 14)} ${E.modo === "soles" ? "en dinero gastado" : "en prendas compradas"}</p>`;
 
   // =====================================================================================================
   // A · PODIO Y LISTA
@@ -149,7 +165,7 @@
       <div class="v5-podio">${podio.map((p, i) => `<button class="v5-carta" data-k="${p.id}" data-elegir="${p.id}" style="--i:${i}">
         <span class="v5-carta-cab"><b class="v5-puesto">${pos.get(p.id)}</b>${cambio(p, pos.get(p.id))}<span class="v5-avatar">${iniciales(p.nombre)}</span></span>
         <span class="v5-carta-nom">${p.nombre}</span>
-        <span class="v5-carta-valor"><b class="num">${aprox(p)}${fmt(val(p))}</b>${unidad()}</span>
+        <span class="v5-carta-valor">${iconoModo(E.modo, 20)}<b class="num">${aprox(p)}${fmt(val(p))}</b>${unidad()}</span>
         <span class="v5-carta-peso">${C.P((val(p) / total) * 100)} de todo lo que compras</span>
         <span class="v5-barra grande"><i style="width:100%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i></span>
         <span class="v5-carta-pie">${pildora(p)}<span class="tenue">${C.P(C.vendidoPct(p))} vendido</span></span>
@@ -159,7 +175,7 @@
         <span class="v5-puesto-chico num">${pos.get(p.id)}</span>
         <span class="v5-avatar chico">${iniciales(p.nombre)}</span>
         <span class="v5-nom"><b>${p.nombre}</b><span>${p.marcas.join(", ")} · ${p.rubro}</span></span>
-        <span class="v5-barra"><i style="width:${(val(p) / max) * 100}%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i><b class="num">${aprox(p)}${fmt(val(p))}</b></span>
+        <span class="v5-barra"><i style="width:${(val(p) / max) * 100}%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i>${iconoModo(E.modo, 15)}<b class="num">${aprox(p)}${fmt(val(p))}</b></span>
         <span class="v5-vend num">${C.P(C.vendidoPct(p))}<small>vendido</small></span>
         ${pildora(p)}
         <span class="v5-fin">${cambio(p, pos.get(p.id))}${deudaTxt(p)}</span>
@@ -200,7 +216,7 @@
               <i class="vend" style="flex:${p.vendidas}">${ancho * fv > 13 ? `<em>${fmt(vend(p))} ${E.modo === "soles" ? "vendido" : "vendidas"}</em>` : ""}</i>
               <i class="queda" style="flex:${p.estantes}">${ancho * (p.estantes / p.comprado) > 13 ? `<em>${fmt(E.modo === "soles" ? p.estantes * p.costo : p.estantes)} ${E.modo === "soles" ? "en estantes" : "quedan"}</em>` : ""}</i>
               ${C.otras(p) ? `<i class="otras" style="flex:${C.otras(p)}" title="${C.otras(p)} otras salidas (ajustes y devoluciones)"></i>` : ""}
-            </span><b class="v5-total num">${aprox(p)}${fmt(val(p))}</b></span>
+            </span>${iconoModo(E.modo, 16)}<b class="v5-total num">${aprox(p)}${fmt(val(p))}</b></span>
           </span>
           ${pildora(p)}
           <span class="v5-chev">${C.icon("chevron", 18)}</span>
@@ -236,7 +252,7 @@
     const pts = s.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
     const sem7 = crudo.slice(-7).reduce((a, b) => a + b, 0), antes7 = crudo.slice(-14, -7).reduce((a, b) => a + b, 0);
     return `<span class="v5-linea" title="Ventas por día en los últimos ${crudo.length} días: ${sem7} la última semana, ${antes7} la anterior">
-      <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><path d="M0,${H} L${pts.replace(/ /g, " L")} L${W},${H} Z" class="area"/><polyline points="${pts}" class="trazo" data-anim="dibuja" data-largo-auto/><circle cx="${X(s.length - 1)}" cy="${Y(s[s.length - 1])}" r="2.6" class="punto"/></svg>
+      <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" aria-hidden="true"><path d="M0,${H} L${pts.replace(/ /g, " L")} L${W},${H} Z" class="area"/><polyline points="${pts}" class="trazo" data-anim="dibuja" data-largo-auto/><circle cx="${X(s.length - 1)}" cy="${Y(s[s.length - 1])}" r="2.6" class="punto"/></svg>
       <span class="v5-linea-n"><b class="num">${sem7}</b> esta semana ${sem7 > antes7 ? "↑" : sem7 < antes7 ? "↓" : ""}</span></span>`;
   };
   function rankingC() {
@@ -252,7 +268,7 @@
           <span class="v5-nom"><b>${p.nombre}</b><span>${cambio(p, pos.get(p.id))}${deudaTxt(p) || `${p.marcas.join(", ")} · ${p.rubro}`}</span></span>
           ${linea(p)}
           <span class="v5-anillo">${anillo(C.vendidoPct(p), "var(--tinta)", 42)}<small>vendido</small></span>
-          <span class="v5-barra"><i style="width:${(val(p) / max) * 100}%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i><b class="num">${aprox(p)}${fmt(val(p))}</b></span>
+          <span class="v5-barra"><i style="width:${(val(p) / max) * 100}%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i>${iconoModo(E.modo, 15)}<b class="num">${aprox(p)}${fmt(val(p))}</b></span>
           ${pildora(p)}
         </div>`;
       }).join("")}</div>${verMas(xs.length)}${taller()}`;
@@ -266,7 +282,7 @@
       ${ps.length < 2 ? `<p class="tenue">Marca ${ps.length ? "uno o dos más" : "hasta 3"} en el ranking para verlos lado a lado.</p>` : ""}
       <div class="v5-cmp-tabla">
         <div class="v5-cmp-fila v5-cmp-nombres"><span></span>${ps.map((p) => `<span class="v5-cmp-c"><b>${p.nombre}</b><button class="v5-quitar" data-comparar="${p.id}" aria-label="Quitar ${C.esc(p.nombre)}">×</button></span>`).join("")}</div>
-        ${fila("Le compraste", (p) => `<b class="num">${fmt(val(p))}</b><span class="v5-barra mini"><i style="width:${(val(p) / maxV) * 100}%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i></span>`)}
+        ${fila(`${iconoModo(E.modo, 14)} Le compraste`, (p) => `<b class="num">${aprox(p)}${fmt(val(p))}</b><span class="v5-barra mini"><i style="width:${(val(p) / maxV) * 100}%"><em style="width:${(vend(p) / val(p)) * 100}%"></em></i></span>`)}
         ${fila("Vendiste", (p) => `<b class="num">${C.P(C.vendidoPct(p))}</b>`)}
         ${fila("Lo que queda se vende en", (p) => pildora(p, true))}
         ${fila("Ventas, últimos días", (p) => linea(p, 92, 30))}
@@ -314,7 +330,7 @@
       if (t.dataset.modo) {
         if (E.modo === t.dataset.modo) return;
         E.antes = puestoDe(); E.modo = t.dataset.modo;
-        raiz.querySelectorAll("[data-modo]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.modo === E.modo));
+        raiz.querySelectorAll("[data-modo]").forEach((b) => { const on = b.dataset.modo === E.modo; b.classList.toggle("on", on); b.setAttribute("aria-checked", on); });
         pintarRanking(true); pintarLado();
       } else if (t.hasAttribute("data-filtro")) { const f = t.dataset.filtro || null; E.filtro = E.filtro === f ? null : f; E.todos = false; chips(); pintarRanking(true); }
       else if (t.hasAttribute("data-vermas")) { E.todos = !E.todos; pintarRanking(false); }
