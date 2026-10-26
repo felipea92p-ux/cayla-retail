@@ -9,6 +9,7 @@ import {
   evaluarFormas,
   formasDePago,
   leerInversion,
+  seVeEnElResumen,
   mejorMezcla,
   pagosPendientesDelPlan,
   pendienteDeCaja,
@@ -59,6 +60,27 @@ describe("leerInversion", () => {
     const [c] = leerInversion([{ ...bueno, tope: undefined, visible: false }]);
     expect(c!.tope).toBeNull();
     expect(c!.visible).toBe(false);
+  });
+});
+
+describe("¿se ve en el Resumen?", () => {
+  it("con tres estados, solo «todo» se ve aquí; «escenarios» y «nada» no", () => {
+    expect(seVeEnElResumen({ visibilidad_finanzas: "todo" })).toBe(true);
+    expect(seVeEnElResumen({ visibilidad_finanzas: "escenarios" })).toBe(false);
+    expect(seVeEnElResumen({ visibilidad_finanzas: "nada" })).toBe(false);
+  });
+
+  it("con un sí o no, lo que diga; y sin nada, o con algo que no entiende, se ve", () => {
+    expect(seVeEnElResumen({ se_ve_en_finanzas: false })).toBe(false);
+    expect(seVeEnElResumen({ se_ve_en_finanzas: true })).toBe(true);
+    expect(seVeEnElResumen({})).toBe(true);
+    expect(seVeEnElResumen({ visible: false })).toBe(false);
+  });
+
+  it("`leerInversion` usa esta función: una campaña en «escenarios» no entra a la lista que se ve", () => {
+    const base = { id: "a", nombre: "A", desde: "2026-12-01", hasta: "2026-12-24", plan_sin_igv: 100, igv: 18 };
+    expect(leerInversion([{ ...base, visibilidad_finanzas: "escenarios" }])[0]!.visible).toBe(false);
+    expect(leerInversion([{ ...base, visibilidad_finanzas: "todo" }])[0]!.visible).toBe(true);
   });
 });
 

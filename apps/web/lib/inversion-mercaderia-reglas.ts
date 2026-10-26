@@ -44,6 +44,17 @@ const num = (v: unknown, defecto = 0): number => (typeof v === "number" && Numbe
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
 
 /**
+ * ¿El Plan deja ver esta campaña en el Resumen? Es el ÚNICO lugar que conoce cómo lo dice la base: hoy el campo no existe (lo propone el Plan: un
+ * booleano `se_ve_en_finanzas`, o un texto `visibilidad_finanzas` con «todo» / «escenarios» / «nada», donde solo «todo» se ve aquí). Cambiar de uno a
+ * otro es cambiar esta función; nadie más en el código sabe el nombre del campo. Lo que falta o no se entiende SE VE (por defecto, todo se ve).
+ */
+export function seVeEnElResumen(fila: Record<string, unknown>): boolean {
+  if (typeof fila.visibilidad_finanzas === "string") return fila.visibilidad_finanzas === "todo";
+  if (typeof fila.se_ve_en_finanzas === "boolean") return fila.se_ve_en_finanzas;
+  return fila.visible !== false;
+}
+
+/**
  * Lee lo que entrega el Plan. Lo que no entiende lo deja fuera (una campaña sin id o sin fechas no se dibuja a medias) y nunca inventa un
  * número: un monto ausente es 0 solo donde 0 es verdad (lo pedido, lo pagado), y la lista de pagos que no suma 100 % se descarta entera.
  */
@@ -73,7 +84,7 @@ export function leerInversion(data: unknown): CampanaInversion[] {
         pagado: noNegativo(num(f.pagado)),
         fechaLimite: fechaIso(f.fecha_limite),
         pagos: Math.abs(suma - 100) < 0.01 ? pagos : [],
-        visible: f.visible !== false,
+        visible: seVeEnElResumen(f),
         hrefPlan: typeof f.href_plan === "string" ? f.href_plan : null,
       },
     ];
