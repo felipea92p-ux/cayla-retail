@@ -6,7 +6,8 @@ export type ChipRespuesta = { texto: string; tono: TonoChip };
 /**
  * La respuesta del telar: lo que va a la derecha de la cabecera de cada submódulo de Finanzas (dentro de `<EncabezadoPagina>`,
  * en su lugar de las cifras). La pregunta del submódulo en versalitas, el hilo rojo y la cifra grande que la responde, con sus
- * chips debajo («+8 % que setiembre»). La cifra cuenta una vez al llegar (`CifraAnimada`, ADR-0136). `valor={null}`: no se pudo
+ * chips debajo («+8 % que setiembre»). La cifra cuenta una vez al llegar (`CifraAnimada`, ADR-0136), en soles enteros como las frases
+ * y los chips de al lado (`soles-redondo`: nunca «S/ 3,850.00» junto a «S/ 3,850»). `valor={null}`: no se pudo
  * leer, y se dice, nunca un cero que parezca un dato (principio 9).
  */
 export function RespuestaTelar({ pregunta, valor, chips = [], motivo }: { pregunta: string; valor: number | null; chips?: ChipRespuesta[]; motivo?: string }) {
@@ -18,7 +19,7 @@ export function RespuestaTelar({ pregunta, valor, chips = [], motivo }: { pregun
         <p className="respuesta-telar-motivo">{motivo ?? "No se pudo leer ahora. Vuelve a intentarlo en un rato."}</p>
       ) : (
         <p className="respuesta-telar-cifra">
-          <CifraAnimada valor={Math.round(valor)} formato="soles" />
+          <CifraAnimada valor={Math.round(valor)} formato="soles-redondo" />
         </p>
       )}
       {chips.length > 0 && (

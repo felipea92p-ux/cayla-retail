@@ -12,10 +12,13 @@ import {
   filaDeLaLista,
   filtrarFilas,
   leerListaDeOrdenes,
+  leerOrdenCreada,
   ordenarFilas,
   pestanaDe,
+  pestanaDeOrdenNueva,
   pieDeLaLista,
   textoEntrega,
+  urlSinParametrosDeNueva,
   type FilaDeLista,
 } from "./ordenes-lista-reglas";
 import { leerOrdenPagina } from "./orden-pagina-reglas";
@@ -339,5 +342,38 @@ describe("paridad con la migración 20261015005000", () => {
   it("las en proceso vienen todas y solo las históricas se acotan; las muestras no cuentan como «al stock»", () => {
     expect(SQL).toContain("x.estado = 'en_proceso' or x.posicion <=");
     expect(SQL).toContain("not p.es_muestra");
+  });
+});
+
+describe("la orden que se acaba de abrir (ADR-0509, actividad 1)", () => {
+  it("lee (id, numero) tal como lo entrega supabase-js: una lista de una fila", () => {
+    expect(leerOrdenCreada([{ id: "ord-1", numero: 12 }])).toEqual({ id: "ord-1", numero: 12, numeroTexto: "OP-000012", href: "/produccion/ordenes/OP-000012" });
+  });
+  it("acepta la fila sola y el número como texto (un integer de Postgres puede llegar así)", () => {
+    expect(leerOrdenCreada({ id: "ord-2", numero: "7" })?.numeroTexto).toBe("OP-000007");
+  });
+  it("su dirección es la misma que lleva la fila de la lista", () => {
+    const f = fila({ orden: { id: "o-12", numero: 12, numero_texto: "OP-000012" } });
+    expect(leerOrdenCreada([{ id: f.id, numero: f.numero }])?.href).toBe(f.href);
+  });
+  it("sin id o sin un número entero positivo no inventa nada", () => {
+    for (const malo of [null, undefined, [], {}, [{ id: "", numero: 3 }], [{ id: "x" }], [{ id: "x", numero: 0 }], [{ id: "x", numero: -2 }], [{ id: "x", numero: 1.5 }], [{ id: "x", numero: "doce" }], [{ id: 5, numero: 3 }], "OP-000012"]) {
+      expect(leerOrdenCreada(malo), JSON.stringify(malo)).toBeNull();
+    }
+  });
+  it("una orden nueva siempre está en proceso: va a «Muestras» si es muestra y a «En curso» si no, igual que `pestanaDe`", () => {
+    const base = fila();
+    expect(base.estado).toBe("en_proceso");
+    expect(pestanaDeOrdenNueva(false)).toBe(pestanaDe({ ...base, esMuestra: false }));
+    expect(pestanaDeOrdenNueva(true)).toBe(pestanaDe({ ...base, esMuestra: true }));
+  });
+  it("urlSinParametrosDeNueva quita nueva, sugerida y tipo, y deja lo demás", () => {
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?nueva=auto&sugerida=1&tipo=muestra")).toBe("/produccion/ordenes");
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?nueva=abc-123&orden=xyz")).toBe("/produccion/ordenes?orden=xyz");
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?nueva=&otro=1#lista")).toBe("/produccion/ordenes?otro=1#lista");
+  });
+  it("una dirección sin esos parámetros vuelve igual", () => {
+    expect(urlSinParametrosDeNueva("/produccion/ordenes")).toBe("/produccion/ordenes");
+    expect(urlSinParametrosDeNueva("/produccion/ordenes?orden=xyz")).toBe("/produccion/ordenes?orden=xyz");
   });
 });

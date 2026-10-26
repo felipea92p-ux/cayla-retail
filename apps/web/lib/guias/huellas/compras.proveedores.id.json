@@ -37,6 +37,7 @@
       "BotonEditar «→() => setEditando(true)»"
     ],
     "components/ProveedorModal.tsx": [
+      "SegmentoDeslizante «Clase de proveedor»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",

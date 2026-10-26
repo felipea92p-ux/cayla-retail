@@ -1,7 +1,7 @@
 // Guías de Producción, el Taller (ADR-0389): Resumen, Órdenes, Insumos, Recibir, Proveedores, Facturas de insumos, Por pagar,
 // Cotizaciones de maquila, Eficiencia y, al final, las Órdenes de insumos (ADR-0362, fase 7). Producción solo se ve parado en el Taller (`guias/ejemplos.mjs` entra con `admin-taller`).
 // Es dinero y stock: cada guía dice con cuidado QUÉ guarda cada botón (abrir una orden, ingresar un lote, registrar una factura,
-// pagar) y nunca lo toca. El piloto solo abre las ventanas de «Nueva orden», «Nuevo insumo», «Nuevo proveedor», «Nueva factura» y
+// pagar) y nunca lo toca. El piloto solo abre el formulario de «Nueva orden» (que vive sobre la lista, ADR-0509) y las ventanas de «Nuevo insumo», «Nuevo proveedor», «Nueva factura» y
 // «Nueva cotización» para mostrar sus campos, escribe un ejemplo sacado de la pantalla y cambia de período en Eficiencia.
 // Lo que depende de que haya órdenes, lotes o facturas va `opcional`: en una base sin datos, la guía enseña el vacío y las ventanas.
 
@@ -23,7 +23,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "acciones",
       ancla: "prod-resumen.acciones",
       titulo: "Ir a las órdenes",
-      texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una orden. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+      texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo, con el formulario para abrir una orden. Te llevan a otra pantalla, así que en la demo no los tocamos.",
     },
     {
       id: "miradas",
@@ -215,10 +215,17 @@ export const GUIA_PROD_ORDENES: Guia = {
       demostrar: [{ tipo: "clic", ancla: "prod-ordenes.porque" }],
     },
     {
+      id: "borrador",
+      ancla: "prod-ordenes.borrador",
+      opcional: true,
+      titulo: "Una orden a medias",
+      texto: "Si armas una orden y sales sin abrirla, queda guardada en este computador: aquí dice de qué modelo era, cuántas prendas llevaba y hace cuánto. «Retomar» la arma otra vez como la dejaste; «Descartar» la suelta, con «Deshacer» a mano. No se guarda en la base.",
+    },
+    {
       id: "nueva",
       ancla: "prod-ordenes.nueva",
       titulo: "Abrir una orden nueva",
-      texto: "Empiezas aquí cuando decides fabricar un modelo. Se abre una ventana para armar el lote (te la abrimos para mostrarte sus partes, sin abrir ninguna orden).",
+      texto: "Empiezas aquí cuando decides fabricar un modelo. El formulario se arma aquí mismo, encima de la lista (te lo abrimos para mostrarte sus partes, sin abrir ninguna orden).",
     },
     {
       id: "modelo",
@@ -227,6 +234,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       titulo: "Primero, el modelo",
       texto: "Busca el modelo que se va a fabricar. Si eres líder, arriba salen los que se están acabando. Elegido, «Cambiar» vuelve a la lista. ¿No existe? «Crear un modelo nuevo» lo arma aquí mismo, con su orden (te elegimos uno para mostrártelo).",
       demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.modelo-fila" }],
+    },
+    {
+      id: "oferta",
+      ancla: "prod-orden-nueva.oferta",
+      opcional: true,
+      titulo: "Una orden a medias de este modelo",
+      texto: "Si ya habías empezado una orden de este modelo y no la abriste, aquí te lo dice: «Retomarla» devuelve lo que habías escrito; «Descartarla» la suelta y sigues en blanco. Mientras no decidas, lo que escribas no pisa lo guardado.",
     },
     {
       id: "tipo",
@@ -279,6 +293,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Una segunda opinión, para comparar: mira tienda por tienda y dice qué le falta para poder recomendar (más días de ventas, cuadrar el piso, contar el almacén). Mientras diga «Para comparar», manda la curva de arriba.",
     },
     {
+      id: "nivel2",
+      ancla: "prod-orden-nueva.nivel2",
+      titulo: "Lo demás ya viene resuelto",
+      texto: "Las fases, la tela, la fecha y la nota vienen rellenadas con lo de siempre, y esta línea te lo resume: cuántas fases, cuáles salen afuera, cuántas telas y para cuándo. Casi nunca hay que tocarlas: «Ver y cambiar» las abre (te las abrimos para mostrártelas). Si algo está mal, se abren solas.",
+      demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.nivel2-abrir" }],
+    },
+    {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
@@ -311,20 +332,27 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Para cuándo debe estar lista (así el tablero avisa si se atrasa) y una nota libre: la tela, el cliente, la urgencia. Las dos son opcionales.",
     },
     {
+      id: "otra",
+      ancla: "prod-orden-nueva.otra",
+      titulo: "Crear otra orden",
+      texto: "Prende «Crear otra orden después de esta» si vas a abrir varias seguidas: al abrir una, el formulario se queda con el mismo tipo, las mismas fases y el mismo modelo, y las cantidades vacías. Apagado, el formulario se cierra al abrir la orden.",
+    },
+    {
       id: "cierre",
       ancla: "prod-orden-nueva.cierre",
       titulo: "Quién la abre",
-      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
+      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos el formulario sin guardar nada.",
     },
     {
       id: "fin",
       ancla: null,
-      preparar: [{ tipo: "escape" }],
+      // El formulario ya no es una hoja: Escape no lo cierra (una página no se descarta por un roce). La demo lo cierra con «Cancelar», que no pregunta nada porque la demo no escribe nada.
+      preparar: [{ tipo: "clic", ancla: "prod-orden-nueva.cancelar", siEsta: true }],
       titulo: "¡Listo!",
       texto: "Ya sabes leer el tablero y armar una orden. Para repasarlo: Mi perfil ▸ Demo ▸ Órdenes de producción.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "clic", ancla: "prod-orden-nueva.cancelar", siEsta: true }],
 };
 
 // ---- La orden en su propia página (ADR-0400, actividad 3; vista D de la lámina) ----
