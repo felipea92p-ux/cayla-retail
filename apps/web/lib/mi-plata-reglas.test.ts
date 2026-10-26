@@ -9,7 +9,7 @@ import {
   resumenPrendas,
   estadoParaLaCompradora,
   textoCierre,
-  textoPorMandar,
+  puedeCerrarLaRonda,
   fraseGasto,
   camposConfirmar,
   cuentaSugerida,
@@ -215,10 +215,10 @@ describe("el resto del día de compras (actividad 5)", () => {
       ["Tienda Lima", 4, 1],
       ["Tienda Trujillo", 8, 2],
     ]);
-    // Dos compras distintas (a y c) en dos tiendas.
-    expect(textoPorMandar(p!.porMandar)).toBe("2 compras todavía no salen para Tienda Lima y Tienda Trujillo");
-    expect(textoPorMandar(p!.porMandar.slice(0, 1))).toBe("1 compra todavía no sale para Tienda Lima");
-    expect(textoPorMandar([])).toBeNull();
+    // Con prendas por mandar no se cierra la ronda; sin nada, o con una tienda en 0, sí.
+    expect(puedeCerrarLaRonda(p!.porMandar)).toBe(false);
+    expect(puedeCerrarLaRonda([])).toBe(true);
+    expect(puedeCerrarLaRonda([{ ...p!.porMandar[0], unidades: 0 }])).toBe(true);
     expect(resumenPrendas(p!.porMandar[1].prendas)).toBe("Blusa Emma ×6 · Jean ×2");
     expect(resumenPrendas(p!.porMandar[1].prendas, 1)).toBe("Blusa Emma ×6 y 1 más");
   });

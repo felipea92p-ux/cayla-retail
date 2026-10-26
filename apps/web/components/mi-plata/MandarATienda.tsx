@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import type { MouseEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -12,7 +13,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { mandarATienda } from "@/lib/mi-plata-acciones";
-import { detalleEnvio, resumenPrendas, siglaTienda, textoFaltaMandar, type PorMandar } from "@/lib/mi-plata-reglas";
+import { EVENTO_MANDAR, detalleEnvio, resumenPrendas, siglaTienda, textoFaltaMandar, type PorMandar } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480, actividad 5): «Mandar a la tienda». Lo que la compradora compró para cada tienda y todavía no salió, en una
 // tarjeta por tienda: sus prendas, «¿Cuántos paquetes (fardos)?» y «Mandar a …», que se toca al entregar el fardo al transporte. La base
@@ -28,29 +29,27 @@ export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar:
   const router = useRouter();
   const ruta = usePathname();
   const falta = textoFaltaMandar(porMandar);
+  // «Cerrar mi ronda» pide mandar antes: abre esta hoja desde otra celda de la pantalla.
+  useEffect(() => {
+    const abrir = () => {
+      origen.current = null;
+      setAbierta(true);
+    };
+    window.addEventListener(EVENTO_MANDAR, abrir);
+    return () => window.removeEventListener(EVENTO_MANDAR, abrir);
+  }, []);
   if (!falta && !abierta) return null;
   return (
     <>
       {falta && (
-        <button
-          type="button"
-          data-guia="mi-plata.mandar"
-          /* unificar-fijo: la franja ámbar de la maqueta abre «Mandar a la tienda», es un botón y no un aviso */ className="mov-boton flex w-full items-center gap-3 rounded-2xl bg-ambar/[0.12] px-3.5 py-3 text-left text-ambar"
+        <FranjaFaltaMandar
+          falta={falta}
+          guia="mi-plata.mandar"
           onClick={(e) => {
             origen.current = e.currentTarget;
             setAbierta(true);
           }}
-        >
-          <Truck className="h-5 w-5 shrink-0 text-ambar" aria-hidden />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-tinta">{falta.titulo}</span>
-            <span className="block text-xs">{falta.detalle}</span>
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
-            Mandar
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </span>
-        </button>
+        />
       )}
       {abierta && (
         <MandarModal
@@ -64,6 +63,38 @@ export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar:
         />
       )}
     </>
+  );
+}
+
+/** La franja ámbar de lo que falta mandar: la de Mis compras y, con «Antes, …», la de «Cerrar mi ronda». Es un botón que abre «Mandar a la tienda». */
+export function FranjaFaltaMandar({
+  falta,
+  onClick,
+  guia,
+  antes = false,
+}: {
+  falta: { titulo: string; detalle: string };
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void;
+  guia?: string;
+  antes?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      data-guia={guia}
+      /* unificar-fijo: la franja ámbar de la maqueta abre «Mandar a la tienda», es un botón y no un aviso */ className="mov-boton flex w-full items-center gap-3 rounded-2xl bg-ambar/[0.12] px-3.5 py-3 text-left text-ambar"
+      onClick={onClick}
+    >
+      <Truck className="h-5 w-5 shrink-0 text-ambar" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-tinta">{antes ? `Antes, manda: ${falta.titulo.replace(/^Falta mandar /, "")}` : falta.titulo}</span>
+        <span className="block text-xs">{falta.detalle}</span>
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
+        Mandar
+        <ArrowRight className="h-4 w-4" aria-hidden />
+      </span>
+    </button>
   );
 }
 

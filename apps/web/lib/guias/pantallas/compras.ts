@@ -2090,7 +2090,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.terminar",
       opcional: true,
       titulo: "Cerrar la ronda",
-      texto: "Guarda tu cierre y Compras lo ve. Cerrada, no se reabre: para salir otra vez, abres otra ronda. En la demo no guardamos nada.",
+      texto: "Guarda tu cierre y Compras lo ve. Si todavía falta mandar prendas a una tienda, este botón espera: primero las mandas. Cerrada, no se reabre: para salir otra vez, abres otra ronda. En la demo no guardamos nada.",
     },
     {
       id: "hoy",

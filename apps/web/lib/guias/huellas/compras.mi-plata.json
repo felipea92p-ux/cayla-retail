@@ -31,7 +31,7 @@
       "BotonVerMas «{`Ver ${historial.length}»"
     ],
     "components/mi-plata/MandarATienda.tsx": [
-      "button «mi-plata.mandar»",
+      "button «{guia}»",
       "Boton «{t === porMandar[0] ? \"mi-plata.mandar-uno\" : undefined}»"
     ],
     "components/mi-plata/TarjetaFoto.tsx": [

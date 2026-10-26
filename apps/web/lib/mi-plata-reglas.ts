@@ -487,14 +487,17 @@ export function fraseGasto(monto: number | null): string {
   return monto != null && monto > 0 ? `Anotar ${soles(monto)}` : "Anotar el gasto";
 }
 
-/** Lo que la tarjeta «Mandar a la tienda» dice debajo: «1 compra todavía no sale para Tienda Trujillo». */
-export function textoPorMandar(porMandar: readonly PorMandar[]): string | null {
-  if (porMandar.length === 0) return null;
-  const compras = new Set(porMandar.flatMap((t) => t.prendas.map((p) => p.papelId))).size;
-  const tiendas = porMandar.map((t) => t.tienda);
-  const cuantas = compras === 1 ? "1 compra todavía no sale" : `${compras} compras todavía no salen`;
-  return `${cuantas} para ${tiendas.length === 1 ? tiendas[0] : `${tiendas.slice(0, -1).join(", ")} y ${tiendas[tiendas.length - 1]}`}`;
+/**
+ * ¿Se puede cerrar la ronda? No mientras falte mandar prendas a una tienda (Felipe 2026-10-26, mirando la maqueta mis-compras-rediseno-2026-10:
+ * «bloquear el cierre si falta mandar»; hasta entonces se podía cerrar y mandar al día siguiente). Es la regla de la pantalla: la RPC
+ * `terminar_dia_compras` no la exige, así que no cambia nada en la base.
+ */
+export function puedeCerrarLaRonda(porMandar: readonly PorMandar[]): boolean {
+  return !porMandar.some((t) => t.unidades > 0);
 }
+
+/** El aviso con el que «Cerrar mi ronda» le pide a «Mandar a la tienda» que se abra (están en celdas distintas de la pantalla). */
+export const EVENTO_MANDAR = "cayla:mandar-a-tienda";
 
 /** Las prendas de una tienda, juntas por compra: «Blusa Emma ×6 · Polo Tito ×4». */
 export function resumenPrendas(prendas: PorMandar["prendas"], maximo = 3): string {
