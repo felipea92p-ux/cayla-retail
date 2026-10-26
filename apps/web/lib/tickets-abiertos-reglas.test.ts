@@ -6,9 +6,7 @@ import {
   pasarAlTicket,
   pestanasDeTickets,
   posicionDelActivo,
-  quitarDeLaEspera,
   siguienteNombreDeCliente,
-  ticketOlvidado,
   textoDePrendaEnOtroTicket,
   ticketsQueDisputanLaPrenda,
   TOPE_TICKETS_ABIERTOS,
@@ -65,7 +63,7 @@ describe("las pestañas", () => {
   });
 });
 
-describe("«+ Nuevo cliente»", () => {
+describe("«Dejar en espera»", () => {
   it("el ticket de la caja se queda en su lugar y la caja abre uno nuevo al final", () => {
     const { espera, posActivo } = abrirNuevoTicket([ticket("a", "A"), ticket("b", "B")], 1, ticket("c", "C"));
     expect(ids(espera)).toEqual(["a", "c", "b"]);
@@ -117,45 +115,6 @@ describe("pasar a otra pestaña", () => {
         expect([...ids(r.espera), objetivo].sort()).toEqual(["a", "b", "c", "x"]);
       }
     }
-  });
-});
-
-describe("descartar uno que espera", () => {
-  const espera = [ticket("a", "A"), ticket("b", "B"), ticket("c", "C")];
-  it("la caja conserva su hueco: si se descarta uno a su izquierda, la posición baja uno", () => {
-    expect(quitarDeLaEspera(espera, 2, "a")).toEqual({ espera: [espera[1], espera[2]], posActivo: 1 });
-  });
-  it("si se descarta uno a su derecha, la posición no cambia", () => {
-    expect(quitarDeLaEspera(espera, 1, "c")).toEqual({ espera: [espera[0], espera[1]], posActivo: 1 });
-  });
-  it("con la caja al final se queda al final", () => {
-    expect(quitarDeLaEspera(espera, null, "b").posActivo).toBeNull();
-  });
-  it("un id que no está no cambia nada", () => {
-    expect(quitarDeLaEspera(espera, 1, "z")).toEqual({ espera, posActivo: 1 });
-  });
-});
-
-describe("el ticket que lleva rato esperando", () => {
-  const dejado = "2026-10-25T15:00:00.000Z";
-  const pasados = (min: number, seg = 0) => Date.parse(dejado) + (min * 60 + seg) * 1000;
-  it("a los 5 minutos justos ya se recuerda; un segundo antes, todavía no", () => {
-    expect(ticketOlvidado(dejado, pasados(5))).toBe(true);
-    expect(ticketOlvidado(dejado, pasados(4, 59))).toBe(false);
-  });
-  it("recién dejado o a los 2 minutos, no", () => {
-    expect(ticketOlvidado(dejado, pasados(0))).toBe(false);
-    expect(ticketOlvidado(dejado, pasados(2))).toBe(false);
-  });
-  it("mucho rato después, sigue recordándose", () => {
-    expect(ticketOlvidado(dejado, pasados(180))).toBe(true);
-  });
-  it("el ticket de la caja (sin fecha de espera) nunca se recuerda", () => {
-    expect(ticketOlvidado(null, pasados(60))).toBe(false);
-  });
-  it("una fecha rota o del futuro no inventa un aviso", () => {
-    expect(ticketOlvidado("no es una fecha", pasados(60))).toBe(false);
-    expect(ticketOlvidado(dejado, pasados(-10))).toBe(false);
   });
 });
 

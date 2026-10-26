@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 79,
+  "total": 92,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -12,6 +12,10 @@
       "Link «Revisar»",
       "Link «Crear desde Recibir»",
       "Link «Completar»"
+    ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
     ],
     "components/CambiarEstadoProductosHoja.tsx": [
       "ComboResponsable «{responsable}»",
@@ -86,10 +90,25 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
+    "components/historial-prenda/CorregirCostoModal.tsx": [
+      "CampoMonto «{guia.etiqueta(\"costo\", \"Costo correcto de lo que llegó\")}»",
+      "CampoTexto «{guia.etiqueta(\"motivo\", \"¿Qué estaba mal?\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/historial-prenda/CostoPrenda.tsx": [
+      "button «Por qué es un estimado»",
+      "button «{cuerpo}»",
+      "button «{`Compra ${numero}»",
+      "button «Cómo se calcula»",
+      "BotonPuntos «{`la compra ${numero}»"
+    ],
     "components/historial-prenda/HistorialPrenda.tsx": [
       "button «historial-prenda.volver»",
       "button «Todo»",
       "button «{f.nombre}»",
+      "button «historial-prenda.costo»",
       "button «{`${g.persona?.nombre ?? \"Sin firma\"}»",
       "button «Reintentar»",
       "Link «Movimientos»"
