@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tu compra · tres diseños</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* «Tu compra» en PC (Felipe 2026-10-26: «se ve muy básico, hay que mejorarlo, diseños para elegir»). Tres propuestas, tocables, con los
+   datos que el panel ya conoce: proveedor, cada prenda (foto, cuántas, a cuánto, a qué tiendas), el total, lo que toca a cada tienda y
+   lo que se gana si se vende todo. No cambia qué hace la pantalla: solo cómo se lee. Tokens de «CAYLA Dynamic» (globals.css / tema.css). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --hueso: #eae1d2; --taupe: #805c4c;
+  --rojo: #b8412d; --verde: #48603f; --verde-suave: #e3e4d9; --ambar: #74501a; --ambar-suave: #ece0cf;
+  --pizarra: #4c5d6e; --pizarra-suave: #e1e1dc; --sobre: #f5f0e8;
+  --serif: "EB Garamond", Georgia, serif; --sans: "DM Sans", system-ui, sans-serif;
+}
+:root[data-theme="dark"] {
+  --crema: #1c1a17; --papel: #26241f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --rojo: #d9674f;
+  --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --pizarra: #a9b8c6; --pizarra-suave: #2b2f33; --sobre: #1c1a17; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.45; padding: 24px 20px 56px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.marco { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 38px; line-height: 1.05; margin: 4px 0 6px; }
+.bajada { color: var(--taupe); max-width: 80ch; margin: 0; }
+.mando { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 12px 16px; }
+.mando .g { display: flex; align-items: center; gap: 8px; }
+.mando .g > span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+.seg { display: inline-flex; background: var(--hueso); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; border-radius: 9px; min-height: 34px; padding: 0 14px; font-weight: 500; font-size: 13.5px; }
+.seg button[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); }
+.tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.col h2 { font-family: var(--serif); font-weight: 400; font-size: 22px; margin: 0 0 4px; }
+.col .nota { font-size: 13px; color: var(--taupe); margin: 0 0 12px; min-height: 58px; }
+.fondo { background: var(--crema); border: 1px dashed var(--sand); border-radius: 18px; padding: 16px; }
+
+/* piezas comunes */
+.card { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; }
+.chip-e { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.chip-e::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip-e.verde { background: var(--verde-suave); color: var(--verde); } .chip-e.ambar { background: var(--ambar-suave); color: var(--ambar); }
+.chip-e.neutro { background: var(--hueso); color: var(--taupe); }
+.ini { width: 40px; height: 40px; border-radius: 12px; background: var(--sand); display: grid; place-items: center; font-family: var(--serif); font-size: 16px; flex: none; }
+.foto { width: 44px; height: 44px; border-radius: 10px; background: var(--hueso); display: grid; place-items: center; font-size: 20px; flex: none; }
+.tienda { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; background: var(--hueso); color: var(--taupe); border-radius: 999px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.tn { font-variant-numeric: tabular-nums; }
+.vacio-t { color: var(--taupe); font-size: 14px; }
+.gana { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--verde-suave); color: var(--verde); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.gana b { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+/* A · el ticket */
+.tkt { padding: 0; overflow: hidden; }
+.tkt .cab { display: flex; gap: 12px; align-items: center; padding: 16px 16px 12px; }
+.tkt .cab .n { font-weight: 600; font-size: 15px; line-height: 1.2; }
+.tkt .cab .s { font-size: 12px; color: var(--taupe); }
+.tkt .lineas { padding: 4px 16px 8px; display: grid; }
+.tkt .l { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--sand); }
+.tkt .l:first-child { border-top: 0; }
+.tkt .l .nm { font-size: 14px; font-weight: 500; line-height: 1.2; }
+.tkt .l .dt { font-size: 12px; color: var(--taupe); }
+.tkt .l .m { font-size: 14px; font-weight: 600; text-align: right; }
+.tkt .l .m small { display: block; font-weight: 400; font-size: 11.5px; color: var(--taupe); }
+.tkt .corte { height: 0; border-top: 2px dashed var(--sand); margin: 0 12px; position: relative; }
+.tkt .corte::before, .tkt .corte::after { content: ""; position: absolute; top: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--crema); border: 1px solid var(--sand); }
+.tkt .corte::before { left: -20px; } .tkt .corte::after { right: -20px; }
+.tkt .pie { padding: 12px 16px 16px; display: grid; gap: 8px; }
+.tkt .tt { display: flex; justify-content: space-between; align-items: baseline; }
+.tkt .tt span { font-size: 13px; color: var(--taupe); }
+.tkt .tt b { font-family: var(--serif); font-weight: 400; font-size: 36px; line-height: 1; font-variant-numeric: tabular-nums; }
+.tkt .por { display: flex; justify-content: space-between; font-size: 13px; color: var(--taupe); }
+
+/* B · por tienda */
+.rep { padding: 16px; display: grid; gap: 12px; }
+.rep .top { display: flex; align-items: center; gap: 10px; }
+.rep .top .n { font-weight: 600; font-size: 14.5px; line-height: 1.2; flex: 1; min-width: 0; }
+.barra { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--sand); gap: 2px; }
+.barra i { display: block; height: 100%; }
+.barra i.t0 { background: var(--tinta); } .barra i.t1 { background: var(--taupe); } .barra i.t2 { background: var(--pizarra); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12.5px; color: var(--taupe); }
+.leyenda b { color: var(--tinta); font-weight: 600; }
+.leyenda i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; }
+.grp { border: 1px solid var(--sand); border-radius: 14px; overflow: hidden; }
+.grp > header { display: flex; justify-content: space-between; align-items: center; background: var(--hueso); padding: 8px 12px; }
+.grp > header b { font-family: var(--serif); font-weight: 500; font-size: 17px; }
+.grp > header span { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.grp .it { display: flex; justify-content: space-between; gap: 8px; padding: 7px 12px; font-size: 13.5px; border-top: 1px solid var(--sand); }
+.grp .it:first-of-type { border-top: 0; }
+.grp .it small { color: var(--taupe); }
+.rep .total { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--tinta); padding-top: 10px; }
+.rep .total b { font-family: var(--serif); font-weight: 400; font-size: 32px; font-variant-numeric: tabular-nums; }
+
+/* C · tarjeta oscura */
+.osc { background: var(--tinta); color: var(--sobre); border-radius: 22px; padding: 18px; display: grid; gap: 12px; }
+.osc .arr { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .78; }
+.osc .big { font-family: var(--serif); font-size: 46px; line-height: 1; font-variant-numeric: tabular-nums; }
+.osc .big small { font-size: 21px; margin-right: 4px; opacity: .75; }
+.osc .prov { display: flex; align-items: center; gap: 10px; font-size: 13.5px; opacity: .92; }
+.osc .prov .ini { background: color-mix(in srgb, var(--sobre) 16%, transparent); color: var(--sobre); width: 32px; height: 32px; font-size: 13px; border-radius: 9px; }
+.osc .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.osc .chips span { background: color-mix(in srgb, var(--sobre) 12%, transparent); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; }
+.osc .lin { display: grid; gap: 0; border-top: 1px solid color-mix(in srgb, var(--sobre) 18%, transparent); }
+.osc .lin div { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--sobre) 12%, transparent); font-size: 13.5px; }
+.osc .lin .f { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--sobre) 14%, transparent); display: grid; place-items: center; font-size: 16px; }
+.osc .lin small { display: block; opacity: .7; font-size: 11.5px; }
+.osc .sig { background: color-mix(in srgb, var(--sobre) 10%, transparent); border-radius: 12px; padding: 9px 12px; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+.osc .gana2 { display: flex; justify-content: space-between; font-size: 13px; padding-top: 2px; }
+.osc .gana2 b { color: #cfe0c3; }
+:root[data-theme="dark"] .osc .gana2 b { color: var(--verde); }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="eyebrow">Compras ▸ Mis compras ▸ Compré ropa · «Tu compra» · maqueta tocable · 26 de octubre de 2026</div>
+    <h1>«Tu compra», en tres diseños</h1>
+    <p class="bajada">El panel de la derecha de «Compré ropa» en PC. Hoy dice proveedor, prenda y total en una tarjeta plana. Aquí van tres formas de leerlo mejor, con los mismos datos que ya conoce la pantalla. El celular no lo muestra, así que no cambia. Cambia el paso y el modo para ver cada diseño vacío, lleno y con el papel.</p>
+  </header>
+  <div class="mando">
+    <div class="g"><span>Paso</span><div class="seg" id="seg-paso"></div></div>
+    <div class="g"><span>Modo</span><div class="seg" id="seg-tema"><button data-tema="claro" aria-pressed="true">Claro</button><button data-tema="oscuro" aria-pressed="false">Oscuro</button></div></div>
+  </div>
+  <div class="tres" id="tres"></div>
+</div>
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const PROV = { n: "Alex William Sevilla Morales", i: "AW", s: "Vende pantalones, conjuntos, lentes de sol" };
+  const L = [
+    { e: "👔", n: "Conjunto Cuello Camisero", q: 12, c: 45, t: [["AQP", 6], ["LIM", 6]] },
+    { e: "👖", n: "Pantalón Palazzo", q: 8, c: 38, t: [["LIM", 8]] },
+    { e: "🧥", n: "Casaca Corta", q: 6, c: 52, t: [["AQP", 4], ["TRU", 2]] },
+  ];
+  const venta = { 0: 119.9, 1: 99.9, 2: 149.9 };
+  const soles = (n) => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const lineas = (paso) => paso === 1 ? [] : paso === 2 ? L.slice(0, 1) : L;
+  const total = (l) => l.reduce((s, x) => s + x.q * x.c, 0);
+  const prendas = (l) => l.reduce((s, x) => s + x.q, 0);
+  const gana = (l) => l.reduce((s, x, i) => s + x.q * (venta[L.indexOf(x)] - x.c), 0);
+  function porTienda(l) {
+    const m = {};
+    l.forEach((x) => x.t.forEach(([t, q]) => { (m[t] ??= { q: 0, total: 0, items: [] }); m[t].q += q; m[t].total += q * x.c; m[t].items.push([x.n, q]); }));
+    return Object.entries(m).sort((a, b) => b[1].total - a[1].total);
+  }
+  const vacio = (txt) => `<p class="vacio-t">${txt}</p>`;
+
+  function A(paso) {
+    const l = lineas(paso);
+    return `<div class="card tkt">
+      <div class="cab"><span class="ini">${PROV.i}</span><div style="min-width:0"><div class="n">${PROV.n}</div><div class="s">${paso === 1 ? "Aún sin elegir" : "Le compraste hace poco"}</div></div></div>
+      <div class="corte"></div>
+      <div class="lineas">${l.length ? l.map((x) => `<div class="l"><span class="foto">${x.e}</span><span><div class="nm">${x.n}</div><div class="dt">${x.t.map(([t, q]) => `<span class="tienda">${t} ${q}</span>`).join(" ")}</div></span><span class="m tn">${soles(x.q * x.c)}<small>${x.q} × ${soles(x.c)}</small></span></div>`).join("") : `<div style="padding:14px 0">${vacio(paso === 1 ? "Elige primero a quién le compraste." : "Cuando elijas las prendas, aparecen aquí.")}</div>`}</div>
+      <div class="corte"></div>
+      <div class="pie">
+        ${l.length ? `<div class="por"><span>${prendas(l)} prendas · ${porTienda(l).length} ${porTienda(l).length === 1 ? "tienda" : "tiendas"}</span><span class="tn">${l.length} ${l.length === 1 ? "modelo" : "modelos"}</span></div>` : ""}
+        <div class="tt"><span>Total</span><b>${l.length ? soles(total(l)) : "—"}</b></div>
+        ${l.length && paso >= 2 ? `<div class="gana"><span>Si se vende todo, ganas</span><b>${soles(gana(l))}</b></div>` : ""}
+        ${paso === 3 ? `<div class="por"><span>Papel</span><span class="chip-e verde">Boleta · cuadra</span></div>` : ""}
+      </div></div>`;
+  }
+
+  function B(paso) {
+    const l = lineas(paso), g = porTienda(l), tot = total(l);
+    return `<div class="card rep">
+      <div class="top"><span class="ini" style="width:36px;height:36px;font-size:14px">${PROV.i}</span><span class="n">${PROV.n}</span>${paso === 3 ? '<span class="chip-e verde">Boleta</span>' : ""}</div>
+      ${l.length ? `<div><div class="barra">${g.map(([t, d], i) => `<i class="t${i}" style="width:${(d.total / tot) * 100}%"></i>`).join("")}</div>
+        <div class="leyenda" style="margin-top:8px">${g.map(([t, d], i) => `<span><i style="background:var(--${["tinta", "taupe", "pizarra"][i]})"></i><b>${t}</b> ${d.q} · ${soles(d.total)}</span>`).join("")}</div></div>
+      ${g.map(([t, d]) => `<div class="grp"><header><b>${t === "AQP" ? "Arequipa" : t === "LIM" ? "Lima" : "Trujillo"}</b><span>${soles(d.total)}</span></header>${d.items.map(([n, q]) => `<div class="it"><span>${n}</span><span class="tn">× ${q}</span></div>`).join("")}</div>`).join("")}
+      <div class="total"><span style="font-size:13px;color:var(--taupe)">${prendas(l)} prendas · ${l.length} ${l.length === 1 ? "modelo" : "modelos"}</span><b>${soles(tot)}</b></div>
+      ${paso >= 2 ? `<div class="gana"><span>Si se vende todo, ganas</span><b>${soles(gana(l))}</b></div>` : ""}`
+      : `<div style="padding:6px 0 10px">${vacio(paso === 1 ? "Elige primero a quién le compraste." : "Cuando elijas las prendas, aparecen aquí repartidas por tienda.")}</div>`}
+    </div>`;
+  }
+
+  function C(paso) {
+    const l = lineas(paso), g = porTienda(l);
+    const sig = paso === 1 ? "Sigue: elegir a quién le compraste" : paso === 2 ? "Sigue: revisar las prendas" : "Sigue: guardar la compra";
+    return `<div class="osc">
+      <div class="arr"><span>Tu compra</span><span>${paso === 1 ? "Paso 1 de 3" : paso === 2 ? "Paso 2 de 3" : "Paso 3 de 3"}</span></div>
+      <div class="big"><small>S/</small>${l.length ? total(l).toLocaleString("es-PE", { minimumFractionDigits: 2 }) : "0.00"}</div>
+      <div class="prov"><span class="ini">${PROV.i}</span><span style="min-width:0">${paso === 1 ? "Aún sin proveedor" : PROV.n}</span></div>
+      ${l.length ? `<div class="chips"><span>${prendas(l)} prendas</span><span>${l.length} ${l.length === 1 ? "modelo" : "modelos"}</span>${g.map(([t, d]) => `<span>${t} ${d.q}</span>`).join("")}</div>
+      <div class="lin">${l.map((x) => `<div><span class="f">${x.e}</span><span>${x.n}<small>${x.q} × ${soles(x.c)}</small></span><b class="tn">${soles(x.q * x.c)}</b></div>`).join("")}</div>
+      ${paso >= 2 ? `<div class="gana2"><span>Si se vende todo, ganas</span><b class="tn">${soles(gana(l))}</b></div>` : ""}`
+      : `<div style="opacity:.75;font-size:13.5px">${paso === 1 ? "Elige primero a quién le compraste." : "Cuando elijas las prendas, aparecen aquí."}</div>`}
+      <div class="sig">➜ ${sig}</div>
+    </div>`;
+  }
+
+  let paso = 3;
+  function render() {
+    $("#seg-paso").innerHTML = [[1, "1 · Proveedor"], [2, "2 · Prendas"], [3, "3 · Papel y pago"]].map(([n, t]) => `<button data-paso="${n}" aria-pressed="${paso === n}">${t}</button>`).join("");
+    const D = [
+      ["A · El ticket", "Como la boleta que te dieron: el proveedor arriba, cada prenda con su foto y subtotal, un corte punteado y el total grande. Lo que se gana, al pie.", A],
+      ["B · Repartido por tienda", "Responde «¿cuánto le toca a cada tienda?»: una barra con el reparto, y las prendas agrupadas por tienda con su subtotal. El total, al final.", B],
+      ["C · Tarjeta oscura de resumen", "La misma cara que «Tienes para comprar»: el total grande, el proveedor, chips y la lista compacta. Dice qué sigue. Es la que más se parece al resto de Mis compras.", C],
+    ];
+    $("#tres").innerHTML = D.map(([t, n, f]) => `<div class="col"><h2>${t}</h2><p class="nota">${n}</p><div class="fondo">${f(paso)}</div></div>`).join("");
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.paso) { paso = Number(b.dataset.paso); render(); }
+    if (b.dataset.tema) { document.documentElement.dataset.theme = b.dataset.tema === "oscuro" ? "dark" : "light"; document.querySelectorAll("#seg-tema button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.tema === b.dataset.tema)); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>
