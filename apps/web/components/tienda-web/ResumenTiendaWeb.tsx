@@ -68,14 +68,12 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
   // «Tiendas en la web» solo cuando una está a medias: con todas bien repetía el pie de la ventana, y el caso a medias ya es un pendiente.
   const conTiendas = hayTiendasAMedias(sedes);
 
-  return (
-    <div className="tw space-y-8">
-      {caidas.length > 0 && (
-        <Aviso tono="atencion" titulo="Este resumen está incompleto">
-          No se pudo leer {new Intl.ListFormat("es", { type: "conjunction" }).format(caidas)}. Recarga la página; si sigue, entra a su pantalla.
-        </Aviso>
-      )}
+  // Lo que no tiene nada que decir baja (Felipe 2026-10-26): «Todo al día» y «sin pedidos abiertos» no son lo primero que hay que ver. Si hay algo
+  // que hacer o pedidos abiertos, esa sección sigue arriba; con todo en calma, lo primero es la vitrina como la ve el cliente.
+  const pendientesCalmos = pendientes.length === 0;
+  const caminoCalmo = entrada.pedidos.estado === "ok" && sinPedidosAbiertos(entrada.pedidos.dato.cifras);
 
+  const seccionPendientes = (
       <section className="space-y-3" data-guia="tienda-web.pendientes">
         <TituloSeccion cuenta={pendientes.length}>Lo que te pide hoy</TituloSeccion>
         {pendientes.length === 0 ? (
@@ -92,7 +90,9 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
           </ul>
         )}
       </section>
-
+  );
+  const seccionCamino = (
+    <>
       {entrada.pedidos.estado === "ok" ? (
         <CaminoDePedidosResumen pedidos={entrada.pedidos.dato} tienda={tienda} />
       ) : entrada.pedidos.estado === "no_tienda" ? (
@@ -100,7 +100,10 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
           Cambia a una tienda desde el selector de arriba para ver el camino de sus pedidos.
         </Aviso>
       ) : null}
-
+    </>
+  );
+  const seccionVentana = (
+    <>
       {(conVentana || conTiendas) && (
         <div className={`grid gap-5 ${conVentana && conTiendas ? "xl:grid-cols-[minmax(0,1fr)_19rem]" : ""}`}>
           {conVentana && (
@@ -175,6 +178,26 @@ export function ResumenTiendaWeb({ entrada, teselas, tienda }: { entrada: Entrad
               <p className="mt-3 text-[12.5px] text-taupe">El cliente elige una de las que se ven para recoger lo que separa.</p>
             </section>
           )}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="tw space-y-8">
+      {caidas.length > 0 && (
+        <Aviso tono="atencion" titulo="Este resumen está incompleto">
+          No se pudo leer {new Intl.ListFormat("es", { type: "conjunction" }).format(caidas)}. Recarga la página; si sigue, entra a su pantalla.
+        </Aviso>
+      )}
+
+      {!pendientesCalmos && seccionPendientes}
+      {!caminoCalmo && seccionCamino}
+      {seccionVentana}
+      {(pendientesCalmos || caminoCalmo) && (
+        <div className="space-y-3">
+          {pendientesCalmos && seccionPendientes}
+          {caminoCalmo && seccionCamino}
         </div>
       )}
     </div>
