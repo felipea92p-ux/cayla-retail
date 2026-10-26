@@ -33,7 +33,7 @@
 --   · Dos personas corrigen los avíos del mismo modelo a la vez desde dos órdenes: la última en abrir gana; la otra queda archivada, no perdida.
 --
 -- CÓMO SE PEGA. Una sola parte: tabla nueva (RLS encendido y sin políticas: solo las funciones la leen), dos funciones y reemplazos ANCLADOS (ADR-0288).
--- Va DESPUÉS de 20261026150000 y 20261026151000. Idempotente. Sin `select … into` dentro de un texto entre comillas.
+-- Va DESPUÉS de 20261026150000 y 20261026151000. Idempotente. Sin `select … into` dentro de un texto entre comillas (el SQL Editor lo tomaría por un SELECT INTO).
 -- ============================================================================
 set lock_timeout = '3s';
 
@@ -118,15 +118,15 @@ select pg_temp.reemplazar_anclado(
 -- 2. Ya abierta la orden: sus avíos pasan a ser los del modelo (si el modelo no tenía, o si se pidió y se puede). Fuera del bloque que se traga los errores de la actividad.
 select pg_temp.reemplazar_anclado(
   'retail.abrir_orden_produccion(jsonb, jsonb, jsonb)',
-  $v$  begin
-    select p.referencia into v_referencia from retail.productos p where p.id = v_producto;$v$,
+  $v$  -- Actividad (ADR-0207): sin montos. Si falla, la orden igual queda abierta.
+  begin$v$,
   $v$  if exists (select 1 from jsonb_array_elements(v_insumos) e where exists (select 1 from retail.insumos x where x.id = (e ->> 'insumo_id')::uuid and x.tipo = 'avio'))
      and (coalesce((p_apertura ->> 'fijar_avios_modelo')::boolean, false) or not exists (select 1 from retail.producto_avios a where a.producto_id = v_producto and a.archivado_at is null)) then
     perform retail.fn_producto_avios_reemplazar(v_producto, v_insumos, v_actor);
   end if;
 
-  begin
-    select p.referencia into v_referencia from retail.productos p where p.id = v_producto;$v$
+  -- Actividad (ADR-0207): sin montos. Si falla, la orden igual queda abierta.
+  begin$v$
 );
 -- 3. Nueva orden recibe los avíos vigentes de cada modelo.
 select pg_temp.reemplazar_anclado(
