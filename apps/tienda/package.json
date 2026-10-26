@@ -13,7 +13,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "rol-local": "node scripts/rol-local.mjs",
-    "medicion:leer": "node scripts/medicion-leer.mjs"
+    "medicion:leer": "node scripts/medicion-leer.mjs",
+    "peso:pagina": "node scripts/peso-de-pagina.mjs"
   },
   "dependencies": {
     "@cayla-retail/shared": "workspace:*",
