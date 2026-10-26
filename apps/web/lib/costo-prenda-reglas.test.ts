@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Evento } from "./historial-prenda-reglas";
-import { cuentaDeCompra, fraseDeRespuesta, erroresArreglados, graficoDelCosto, leerCostoPrenda, lotesDeHoy, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
+import { cuentaDeCompra, fraseDeRespuesta, erroresArreglados, erroresDelCosto, graficoDelCosto, leerCostoPrenda, lotesDeHoy, sePuedeCorregir, movidaDeCompra, respuestaCosto, textoDeMovida } from "./costo-prenda-reglas";
 
 // El ejemplo de la maqueta (docs/maquetas/costo-historial-2026-10/v2-escalera-amigable.html), tal como lo devuelve la base.
 const BASE = {
@@ -125,7 +125,7 @@ describe("erroresArreglados", () => {
 
   it("un costo declarado arreglado en la ficha es un error arreglado, con en cuántas variantes y quién", () => {
     const e = erroresArreglados([evento("e1", "2026-09-12T21:40:00Z", [{ k: "costo", antes: 19, despues: 18, variantes: [v, v], declarado: true }])]);
-    expect(e).toEqual([{ id: "e1-0", cuando: "2026-09-12T21:40:00Z", antes: 19, despues: 18, variantes: 2, persona: "Daniel Ruiz" }]);
+    expect(e).toEqual([{ id: "e1-0", cuando: "2026-09-12T21:40:00Z", antes: 19, despues: 18, variantes: 2, persona: "Daniel Ruiz", compra: null, motivo: null }]);
   });
 
   it("lo que mueve una compra (campo `costo`) no es un error, ni anotar un costo donde no había, ni el precio", () => {
@@ -192,5 +192,38 @@ describe("lotesDeHoy", () => {
       expect(suma(l)).toBe(stock);
       expect(l.every((x) => x.cantidad > 0)).toBe(true);
     }
+  });
+});
+
+describe("las correcciones de una compra", () => {
+  const CON = { ...BASE, puede_corregir: true, correcciones: [{ fecha: "2026-10-23T14:00:00+00:00", compra: "2026-10-22T16:20:00+00:00", antes: 20.5, despues: 19.5, motivo: "precio mal tecleado", persona: "Daniel Ruiz" }] };
+
+  it("las lee con su compra, el motivo y quién; sin ellas, la lista queda vacía y no se puede corregir", () => {
+    const c = leerCostoPrenda(CON)!;
+    expect(c.correcciones).toEqual([{ fecha: "2026-10-23T14:00:00+00:00", compra: "2026-10-22T16:20:00+00:00", antes: 20.5, despues: 19.5, motivo: "precio mal tecleado", persona: "Daniel Ruiz" }]);
+    expect(c.puedeCorregir).toBe(true);
+    const sin = leerCostoPrenda(BASE)!;
+    expect(sin.correcciones).toEqual([]);
+    expect(sin.puedeCorregir).toBe(false);
+  });
+
+  it("descarta una corrección rota en vez de dibujarla", () => {
+    expect(leerCostoPrenda({ ...CON, correcciones: [{ fecha: "2026-10-23", compra: "x", antes: 1 }] })!.correcciones).toEqual([]);
+  });
+
+  it("sale en «Errores arreglados» con el número de su compra, mezclada con los declarados por fecha", () => {
+    const c = leerCostoPrenda(CON)!;
+    const lista = erroresDelCosto([], c);
+    expect(lista).toHaveLength(1);
+    expect(lista[0]).toMatchObject({ antes: 20.5, despues: 19.5, compra: 3, motivo: "precio mal tecleado", persona: "Daniel Ruiz" });
+    expect(erroresDelCosto([], null)).toEqual([]);
+  });
+
+  it("solo se ofrece corregir la ÚLTIMA compra, si es una compra y si la cuenta es de un líder", () => {
+    const c = leerCostoPrenda(CON)!;
+    expect(c.compras.map((_, i) => sePuedeCorregir(c, i))).toEqual([false, false, true]);
+    expect(sePuedeCorregir(leerCostoPrenda(BASE)!, 2)).toBe(false);
+    const taller = leerCostoPrenda({ ...CON, compras: CON.compras.map((x, i) => (i === 0 ? { ...x, origen: "produccion" } : x)) })!;
+    expect(sePuedeCorregir(taller, taller.compras.length - 1)).toBe(false);
   });
 });

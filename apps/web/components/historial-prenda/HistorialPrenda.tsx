@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Banknote,
@@ -36,7 +37,7 @@ import {
 } from "@/lib/historial-prenda-reglas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { CostoPrenda } from "@/components/historial-prenda/CostoPrenda";
-import { erroresArreglados } from "@/lib/costo-prenda-reglas";
+import { erroresDelCosto } from "@/lib/costo-prenda-reglas";
 import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
 
@@ -90,6 +91,7 @@ function Swatch({ hex, tam = 16, titulo }: { hex: string | null; tam?: number; t
 }
 
 export function HistorialPrenda({
+  productoId,
   lectura,
   nombre,
   totalVariantes,
@@ -97,6 +99,8 @@ export function HistorialPrenda({
   onVolver,
   onReintentar,
 }: {
+  /** La prenda: la hoja de corregir su costo la necesita para hablarle a la base. */
+  productoId: string;
   lectura: LecturaHistorial;
   /** El nombre de HOY de la prenda: es el texto de «← Volver». */
   nombre: string;
@@ -109,13 +113,16 @@ export function HistorialPrenda({
   onReintentar?: () => void;
 }) {
   const hoy = hoyLima();
+  const router = useRouter();
+  // Tras corregir el costo de una compra la prenda se lee otra vez: la vista rápida vuelve a leer ella misma; la página recarga lo suyo.
+  const alCorregirCosto = () => (onReintentar ? onReintentar() : router.refresh());
   const eventos = useMemo(() => (lectura.estado === "ok" ? lectura.eventos : []), [lectura]);
   // «costo» no es una familia de cambios: es la pestaña que cuenta las compras que movieron el costo (CostoPrenda).
   const [familia, setFamilia] = useState<Familia | "todo" | "costo">("todo");
   const [persona, setPersona] = useState<string | null>(null);
   const lista = useMemo(() => (familia === "costo" ? [] : filtrarEventos(eventos, familia, persona)), [eventos, familia, persona]);
   // La pestaña aparece si hay compras que movieron el costo o costos que alguien arregló a mano.
-  const errores = useMemo(() => erroresArreglados(eventos), [eventos]);
+  const errores = useMemo(() => erroresDelCosto(eventos, lectura.estado === "ok" ? (lectura.costo ?? null) : null), [eventos, lectura]);
   const costo = lectura.estado === "ok" && lectura.costo && (lectura.costo.compras.length > 0 || errores.length > 0) ? lectura.costo : null;
   const cuenta = (f: Familia) => eventos.filter((e) => e.familia === f).length;
   const gente = useMemo(() => personasDe(eventos.filter((e) => e.familia !== "alta")), [eventos]);
@@ -209,7 +216,7 @@ export function HistorialPrenda({
           )}
         </div>
       )}
-      {lectura.estado === "ok" && familia === "costo" && costo && <CostoPrenda costo={costo} errores={errores} />}
+      {lectura.estado === "ok" && familia === "costo" && costo && <CostoPrenda costo={costo} errores={errores} productoId={productoId} nombre={nombre} onCorregido={alCorregirCosto} />}
       {lectura.estado === "ok" && familia !== "costo" && (
         <Hilo key={`${familia}|${persona}`} eventos={lista} hoy={hoy} total={totalVariantes} recien={recien} hrefMovimientos={hrefMovimientos} />
       )}

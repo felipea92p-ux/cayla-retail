@@ -3,7 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, CircleHelp, Equal, Pencil } from "lucide-react";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { CorregirCostoModal } from "@/components/historial-prenda/CorregirCostoModal";
 import { Chip } from "@/components/ui/Chip";
+import { BotonPuntos } from "@/components/ui/MenuAcciones";
 import {
   Encabezado,
   Tabla,
@@ -21,6 +23,7 @@ import {
   lotesDeHoy,
   movidaDeCompra,
   respuestaCosto,
+  sePuedeCorregir,
   textoDeMovida,
   type CompraCosto,
   type CostoPrenda as Costo,
@@ -57,10 +60,20 @@ const COLUMNAS: Columna[] = [
 export function CostoPrenda({
   costo,
   errores,
+  productoId,
+  nombre,
+  onCorregido,
 }: {
   costo: Costo;
   errores: readonly ErrorArreglado[];
+  productoId: string;
+  /** El nombre de hoy de la prenda: va en el subtítulo de la hoja de corregir. */
+  nombre: string;
+  /** Se corrigió el costo de una compra: quien dibuja la pestaña vuelve a leer la prenda. */
+  onCorregido: () => void;
 }) {
+  // La hoja de «Corregir el costo»: el número de la compra que se abrió (solo la última se ofrece).
+  const [corrigiendo, setCorrigiendo] = useState<number | null>(null);
   const r = respuestaCosto(costo);
   // «Ahora» se fija al dibujar: el escalón de hoy no se corre mientras la pestaña está abierta.
   const [ahora] = useState(() => Date.now());
@@ -217,6 +230,7 @@ export function CostoPrenda({
                   onElegir={() => elegir(i + 1, false)}
                   abierta={abiertas.has(k)}
                   onAlternar={() => alternar(k)}
+                  onCorregir={sePuedeCorregir(costo, i) ? () => setCorrigiendo(i + 1) : undefined}
                 />
               );
             })}
@@ -268,16 +282,32 @@ export function CostoPrenda({
                     <b className="font-semibold">{soles(e.despues)}</b>
                   </span>
                   <span className="col-start-3 text-[12px] text-tinta/65 sm:col-start-auto sm:text-right">
-                    costo declarado
+                    {e.compra !== null ? `costo de la compra ${e.compra}` : e.motivo !== null ? "costo de una compra" : "costo declarado"}
                     {e.variantes > 1 ? ` · en ${e.variantes} variantes` : ""}
                     {e.persona ? ` · ${e.persona}` : ""}
                   </span>
+                  {e.motivo && (
+                    <span title={e.motivo} className="col-start-3 line-clamp-2 text-[12px] text-tinta/75 sm:col-span-full sm:col-start-2">
+                      «{e.motivo}»
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
           </section>
         )}
         </div>
+      )}
+
+      {corrigiendo !== null && costo.compras[corrigiendo - 1] && (
+        <CorregirCostoModal
+          productoId={productoId}
+          compra={costo.compras[corrigiendo - 1]!}
+          numero={corrigiendo}
+          nombre={nombre}
+          onCorregido={onCorregido}
+          onClose={() => setCorrigiendo(null)}
+        />
       )}
     </div>
   );
@@ -399,6 +429,7 @@ function FilaCompra({
   onElegir,
   abierta,
   onAlternar,
+  onCorregir,
 }: {
   compra: CompraCosto;
   numero: number;
@@ -406,6 +437,8 @@ function FilaCompra({
   onElegir: () => void;
   abierta: boolean;
   onAlternar: () => void;
+  /** Solo la última compra de una prenda, y solo para un líder: abre la hoja de corregir su costo. */
+  onCorregir?: () => void;
 }) {
   const m = movidaDeCompra(c);
   // En angosto, tres líneas: el número a la izquierda, lo que llegó al centro y el costo a la derecha.
@@ -487,6 +520,7 @@ function FilaCompra({
           >
             <CircleHelp aria-hidden className="h-4 w-4" />
           </button>
+          {onCorregir && <BotonPuntos que={`la compra ${numero}`} onClick={onCorregir} guia="historial-prenda.costo-corregir" />}
         </span>
       </span>
       <span

@@ -22,10 +22,25 @@ export type CompraCosto = {
   persona: string | null;
 };
 
+/** Un costo de lo que llegó en una compra que un líder corrigió a mano (20261026160000, ADR-0515). */
+export type CorreccionCosto = {
+  /** Cuándo se corrigió. */
+  fecha: string;
+  /** La fecha de la compra corregida (la misma `fecha` de `CompraCosto`). */
+  compra: string;
+  antes: number;
+  despues: number;
+  motivo: string | null;
+  persona: string | null;
+};
+
 export type CostoPrenda = {
   compras: CompraCosto[];
   hoy: { stock: number; costo: number | null };
   inicio: { fecha: string | null; costo: number | null };
+  correcciones: CorreccionCosto[];
+  /** La cuenta es de un líder: puede corregir el costo de la última compra. */
+  puedeCorregir: boolean;
 };
 
 const num = (v: unknown): number | null => {
@@ -58,10 +73,19 @@ export function leerCostoPrenda(json: unknown): CostoPrenda | null {
   compras.sort((a, b) => a.fecha.localeCompare(b.fecha));
   const hoy = (j.hoy ?? {}) as Record<string, unknown>;
   const inicio = (j.inicio ?? {}) as Record<string, unknown>;
+  const correcciones: CorreccionCosto[] = (Array.isArray(j.correcciones) ? j.correcciones : []).flatMap((x): CorreccionCosto[] => {
+    const c = (x ?? {}) as Record<string, unknown>;
+    const fecha = texto(c.fecha), compra = texto(c.compra), antes = num(c.antes), despues = num(c.despues);
+    if (!fecha || !compra || antes === null || despues === null) return [];
+    return [{ fecha, compra, antes, despues, motivo: texto(c.motivo), persona: texto(c.persona) }];
+  });
+  correcciones.sort((a, b) => a.fecha.localeCompare(b.fecha));
   return {
     compras,
     hoy: { stock: Math.max(0, num(hoy.stock) ?? 0), costo: num(hoy.costo) },
     inicio: { fecha: texto(inicio.fecha), costo: num(inicio.costo) },
+    correcciones,
+    puedeCorregir: j.puede_corregir === true,
   };
 }
 
@@ -237,6 +261,9 @@ export type ErrorArreglado = {
   /** En cuántas variantes se arregló (la ficha guarda el mismo costo en todas las que se tocaron). */
   variantes: number;
   persona: string | null;
+  /** Si lo arregló un líder en una compra (no el costo declarado de la ficha): el número de la compra (①②③) y lo que dijo. */
+  compra: number | null;
+  motivo: string | null;
 };
 
 /**
@@ -250,8 +277,27 @@ export function erroresArreglados(eventos: readonly Evento[]): ErrorArreglado[] 
   for (const e of eventos) {
     e.cambios.forEach((c, i) => {
       if (c.k !== "costo" || !c.declarado || c.antes === null || c.despues === null || c.antes <= 0 || c.antes === c.despues) return;
-      out.push({ id: `${e.id}-${i}`, cuando: e.cuando, antes: c.antes, despues: c.despues, variantes: Math.max(1, c.variantes.length), persona: e.persona?.nombre ?? null });
+      out.push({ id: `${e.id}-${i}`, cuando: e.cuando, antes: c.antes, despues: c.despues, variantes: Math.max(1, c.variantes.length), persona: e.persona?.nombre ?? null, compra: null, motivo: null });
     });
   }
   return out.sort((a, b) => a.cuando.localeCompare(b.cuando));
+}
+
+/**
+ * Todo lo que alguien arregló del costo, del más viejo al más nuevo: el costo declarado que se corrigió en la ficha (`erroresArreglados`)
+ * y el costo de una compra que un líder corrigió (`correcciones`, con el número de su compra). Ninguno mueve la línea del gráfico: es
+ * una corrección, no un costo nuevo (Felipe, 2026-10-24).
+ */
+export function erroresDelCosto(eventos: readonly Evento[], c: CostoPrenda | null): ErrorArreglado[] {
+  const deCompras: ErrorArreglado[] = (c?.correcciones ?? []).map((k, i) => {
+    const n = c!.compras.findIndex((x) => x.fecha === k.compra) + 1;
+    return { id: `compra-${i}`, cuando: k.fecha, antes: k.antes, despues: k.despues, variantes: 1, persona: k.persona, compra: n > 0 ? n : null, motivo: k.motivo };
+  });
+  return [...erroresArreglados(eventos), ...deCompras].sort((a, b) => a.cuando.localeCompare(b.cuando));
+}
+
+/** ¿Se puede corregir esta compra? Solo la última, y solo una compra (el costo de un cierre del Taller sale de su orden). Lo decide la base; esto solo decide si se ofrece. */
+export function sePuedeCorregir(c: CostoPrenda, indice: number): boolean {
+  const compra = c.compras[indice];
+  return c.puedeCorregir && !!compra && indice === c.compras.length - 1 && compra.origen === "compra";
 }
