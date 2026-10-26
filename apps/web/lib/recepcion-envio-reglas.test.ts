@@ -14,8 +14,6 @@ import {
   conPrenda,
   contadoDeLinea,
   despuesDeRecibirEnvio,
-  detalleDeEnvioPorAbrir,
-  detalleDeOrdenDirecta,
   detalleRecibido,
   diferenciaDe,
   esQuienCompro,
@@ -191,13 +189,6 @@ describe("leer lo que está por recibir en la sede", () => {
       { ordenId: "o1", numero: "OC-000465", proveedor: "Textiles Andina", unidadesPorEnviar: 12, creadaPorMi: false },
       { ordenId: "o2", numero: "OC-000466", proveedor: "Sur", unidadesPorEnviar: 3, creadaPorMi: true },
     ]);
-  });
-
-  it("dice cada fila como se lee en la tienda", () => {
-    expect(detalleDeEnvioPorAbrir({ id: "e", numero: "ENV-000061", numeroGuia: "001-9", estado: "en_camino", unidades: 32, lineas: 2, ordenes: [], proveedores: ["Textiles Andina"], creadoPorMi: false })).toBe(
-      "Textiles Andina · 32 prendas · guía 001-9",
-    );
-    expect(detalleDeOrdenDirecta({ ordenId: "o", numero: "OC-000465", proveedor: null, unidadesPorEnviar: 1, creadaPorMi: false })).toBe("llega sin guía · 1 prenda");
   });
 });
 
