@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -15,6 +15,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
+import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
+import { deLaLinea, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
 import type { CatalogoParaRecibir, DetalleEnvio, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import {
   camposDelConteo,
@@ -36,6 +38,7 @@ import {
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
+import { ObservacionesDeLinea } from "./ObservacionesDeLinea";
 import { HojaTallas } from "./HojaTallas";
 import type { Borrador, EstadoGuardado } from "./RecibirContando";
 import { SepararPrendas } from "./SepararPrendas";
@@ -94,6 +97,15 @@ export function ContarEnvio({
   const visibles = lineasALaVista(lineas, agregados, foco);
   const guia = useGuiaCampos(camposDelConteo(visibles), { enModal: false });
   const [hoja, setHoja] = useState<Hoja>(null);
+  // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada categoría muestra las suyas.
+  const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    void leerObservacionesDelEnvio(detalle.id).then(({ observaciones: leidas }) => vivo && setObservaciones(leidas));
+    return () => {
+      vivo = false;
+    };
+  }, [detalle.id]);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
   const linea = visibles.find((l) => l.clave === foco) ?? visibles[0] ?? null;
   const i = linea ? visibles.indexOf(linea) : -1;
@@ -231,6 +243,16 @@ export function ContarEnvio({
                 guardado={guardados[linea.clave] ?? null}
                 error={errores[linea.clave] ?? null}
                 onEscribir={(c) => onEscribir(linea, c)}
+                observaciones={
+                  <ObservacionesDeLinea
+                    despachoId={detalle.id}
+                    lineaId={linea.linea?.id ?? null}
+                    nombre={linea.categoria ? linea.categoria.nombre.toLowerCase() : "prendas"}
+                    observaciones={deLaLinea(observaciones, linea.linea?.id ?? null)}
+                    responsable={responsable}
+                    onAnotada={(o) => setObservaciones((todas) => [...todas, o])}
+                  />
+                }
               >
                 {linea.categoria && (
                   <SepararPrendas
@@ -373,6 +395,7 @@ function ContadorDeLinea({
   guardado,
   error,
   onEscribir,
+  observaciones,
   children,
 }: {
   linea: LineaParaContar;
@@ -380,6 +403,8 @@ function ContadorDeLinea({
   guardado: EstadoGuardado | null;
   error: string | null;
   onEscribir: (c: Partial<Borrador>) => void;
+  /** Las observaciones de la categoría (ADR-0507): entre el número y lo que se separa. */
+  observaciones?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const contadas = contadasDe(linea);
@@ -497,6 +522,8 @@ function ContadorDeLinea({
           </Aviso>
         )}
       </div>
+
+      {observaciones}
 
       {children}
     </div>

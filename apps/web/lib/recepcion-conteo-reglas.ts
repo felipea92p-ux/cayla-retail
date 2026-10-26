@@ -387,12 +387,6 @@ export function esEnvioSinAviso(e: { lineas: number; ordenes: readonly string[] 
   return e.lineas === 0 && e.ordenes.length === 0;
 }
 
-/** Cómo se lee en la puerta un envío sin aviso que alguien dejó abierto: sin «0 prendas», que confunde, y de quién es si se sabe
- *  (`proveedor`: su nombre, «proveedor por confirmar», o `null` si no se pudo leer). */
-export function detalleDeEnvioSinAviso(e: { numeroGuia: string | null }, proveedor: string | null = null): string {
-  return ["Llegó sin aviso: se sigue contando", proveedor, e.numeroGuia ? `guía ${e.numeroGuia}` : null].filter(Boolean).join(" · ");
-}
-
 /** De quién es un envío sin aviso, para la puerta: su proveedor, «proveedor por confirmar», o `null` si no se sabe. */
 export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
   if (!c) return null;
