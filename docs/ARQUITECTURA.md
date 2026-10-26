@@ -906,7 +906,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
   total con «Todas» —cada prenda, lo que vale en SU color: `fn_tienda_precios` por color, el mismo total de «Arma tu look»—, y los
   modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
-  `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar) + `LookMostrarHoja.tsx`
+  `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar; las prendas se eligen en `ElegirPrendasLook.tsx`, una grilla de fotos por categoría, y el nombre y la frase traen ideas de `lib/vitrina-looks-ideas.ts`) + `LookMostrarHoja.tsx`
   (`vitrina_mostrar_look`); reglas en `lib/vitrina-looks-reglas.ts`, guía de foco en `lib/vitrina-looks-guia.ts`. Qué se ve en la web
   lo decide `tienda_catalogo(null)` (la misma regla del cliente). Prueba en la base: `pnpm pruebas:vitrina-looks`.
 - `/tienda-web/campanas` (Tienda web ▸ Campañas, módulo `campanas_web`, nace solo para el líder, ADR-0471) → `page.tsx` lee `fn_campanas_web` (las campañas vigentes, por empezar o terminadas hace menos de 120 días, con su estado, modelos que toca y el resumen de su diseño) → `CampanasPantalla.tsx` (cifras, filtros, lista y los próximos 3 meses; reglas en `lib/campanas-web-reglas.ts`).
