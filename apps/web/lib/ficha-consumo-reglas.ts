@@ -18,6 +18,7 @@ import { compararTallas } from "./tallas";
 /** Los nombres de las funciones de la base que usa la hoja. */
 export const RPC_LEER_FICHA = "fn_ficha_consumo";
 export const RPC_GUARDAR_FICHA = "guardar_ficha_consumo";
+export const RPC_VOLVER_A_LO_DECLARADO = "reiniciar_consumo_medido";
 
 /** Cuántas órdenes cerradas hacen falta para que lo gastado mande sobre lo declarado (P-21, Felipe 2026-10-16): la prueba lo compara con `fn_consumo_efectivo`. */
 export const ORDENES_PARA_QUE_MANDE_LO_MEDIDO = 3;
@@ -177,6 +178,30 @@ export function problemasDeFicha(b: BorradorFicha, f: FichaLeida, insumos: reado
 }
 
 // ---------- Lo que viaja a la base ----------
+
+// ---------- Lo medido a la vista (actividad 7) ----------
+
+/** Las órdenes cerradas que respaldan lo medido, de la más nueva a la más vieja, con lo que cada una gastó por prenda. `cuenta` = cerrada después de la última vez que se escribió la ficha. */
+export type OrdenDelHistorial = { numero: number; cuando: string; buenas: number; porPrenda: number | null; cuenta: boolean };
+
+const FECHA_CORTA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", day: "numeric", month: "short" });
+
+export function historialDeOrdenes(f: FichaLeida, max = 5): { filas: OrdenDelHistorial[]; sinMostrar: number } {
+  const filas = f.ordenesCerradas.slice(0, max).map<OrdenDelHistorial>((o) => ({
+    numero: o.numero,
+    cuando: o.cerradaEn && !Number.isNaN(Date.parse(o.cerradaEn)) ? FECHA_CORTA.format(new Date(o.cerradaEn)).replace(".", "") : "",
+    buenas: o.buenas,
+    porPrenda: o.buenas > 0 ? Math.round((o.metros / o.buenas) * 1000) / 1000 : null,
+    cuenta: o.cuenta,
+  }));
+  return { filas, sinMostrar: Math.max(0, f.ordenesCerradas.length - filas.length) };
+}
+
+/** «Volver a …» solo se ofrece cuando lo medido está mandando y quien lee puede editar: es lo único que deja a lo declarado mandando de nuevo. */
+export function ofertaVolverADeclarado(f: FichaLeida): { etiqueta: string; cuentan: number } | null {
+  if (!f.puedeEditar || f.medido?.manda !== "medido" || !f.tela) return null;
+  return { etiqueta: f.tela.porTalla ? "Volver a Audaces" : "Volver a tu estimado", cuentan: f.medido.ordenes };
+}
 
 export type FichaParaRpc = {
   p_tela: { por_prenda: string } | { por_talla: Record<string, string> } | null;

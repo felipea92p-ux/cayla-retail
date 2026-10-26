@@ -4,10 +4,13 @@ import { describe, expect, it } from "vitest";
 import {
   ORDENES_PARA_QUE_MANDE_LO_MEDIDO,
   RPC_GUARDAR_FICHA,
+  RPC_VOLVER_A_LO_DECLARADO,
   RPC_LEER_FICHA,
   borradorDeFicha,
   escalon,
   hayCambiosEnLaFicha,
+  historialDeOrdenes,
+  ofertaVolverADeclarado,
   leerFicha,
   paraRpc,
   problemasDeFicha,
@@ -199,10 +202,47 @@ describe("paridad con la migración 20261026153000", () => {
   const funciones = SQL.slice(0, SQL.indexOf("-- Reemplaza `p_viejo`"));
   const hintsSql = [...new Set([...funciones.matchAll(/hint = '([a-z_]+)'/g)].map((m) => m[1]))].sort();
   it("los motivos que dice la base son los que la hoja evita o conoce", () => {
-    expect(hintsSql).toEqual(["consumo_invalido", "ficha_invalida", "modelo_inexistente", "no_es_avio", "responsable_requerido", "talla_ajena"]);
+    expect(hintsSql).toEqual(["consumo_invalido", "ficha_invalida", "modelo_inexistente", "no_es_avio", "responsable_requerido", "sin_ficha", "talla_ajena"]);
   });
   it("el tope de la cifra y la lectura «mayor que cero» son los de la función", () => {
     expect(SQL).toContain("v_valor <= 0 or v_valor > 9999");
     expect(SQL).toContain("v_prenda <= 0 or v_prenda > 9999");
+  });
+});
+
+describe("lo medido a la vista (actividad 7)", () => {
+  const cerrada = (numero: number, cuenta: boolean, buenas = 10, metros = 12, cerrada_en = "2026-10-20T15:00:00Z") => ({ numero, cerrada_en, buenas, metros, cuenta });
+
+  it("el nombre del RPC existe en la migración con la firma que la hoja llama", () => {
+    expect(SQL).toContain(`function retail.${RPC_VOLVER_A_LO_DECLARADO}(p_ubicacion_id uuid, p_producto_id uuid)`);
+  });
+
+  it("el historial va de la más nueva a la más vieja, con los metros por prenda de cada orden y si cuenta", () => {
+    const f = leerFicha(crudo({ ordenes_cerradas: [cerrada(12, true, 10, 12.5), cerrada(11, true, 8, 9.6), cerrada(10, false, 0, 5)] }))!;
+    const h = historialDeOrdenes(f);
+    expect(h.filas.map((o) => [o.numero, o.porPrenda, o.cuenta])).toEqual([[12, 1.25, true], [11, 1.2, true], [10, null, false]]);
+    expect(h.filas[0].cuando).toMatch(/20/);
+    expect(h.sinMostrar).toBe(0);
+  });
+
+  it("con más de cinco órdenes muestra cinco y cuenta las que quedan fuera", () => {
+    const f = leerFicha(crudo({ ordenes_cerradas: Array.from({ length: 8 }, (_, i) => cerrada(20 - i, true)) }))!;
+    const h = historialDeOrdenes(f);
+    expect(h.filas).toHaveLength(5);
+    expect(h.sinMostrar).toBe(3);
+  });
+
+  it("una fecha que no se entiende no rompe la fila", () => {
+    const f = leerFicha(crudo({ ordenes_cerradas: [cerrada(1, true, 10, 12, "no-es-fecha")] }))!;
+    expect(historialDeOrdenes(f).filas[0].cuando).toBe("");
+  });
+
+  it("«Volver a Audaces» solo se ofrece cuando lo medido manda y se puede editar; con una sola cifra dice «tu estimado»", () => {
+    const medido = { manda: "medido", por_prenda: 1.25, ordenes: 3 };
+    expect(ofertaVolverADeclarado(leerFicha(crudo({ medido }))!)).toEqual({ etiqueta: "Volver a Audaces", cuentan: 3 });
+    expect(ofertaVolverADeclarado(leerFicha(crudo({ medido, tela: { por_prenda: 1.2, por_talla: null, declarada_en: "2026-10-26T10:00:00Z" } }))!)?.etiqueta).toBe("Volver a tu estimado");
+    expect(ofertaVolverADeclarado(leerFicha(crudo({ medido: { manda: "declarado", por_prenda: 1.25, ordenes: 2 } }))!)).toBeNull();
+    expect(ofertaVolverADeclarado(leerFicha(crudo({ medido, puede_editar: false }))!)).toBeNull();
+    expect(ofertaVolverADeclarado(leerFicha(crudo({ medido, tela: null }))!)).toBeNull();
   });
 });

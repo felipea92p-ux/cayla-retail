@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 126,
+  "total": 129,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -146,7 +146,10 @@
       "CampoSelect «Avío»",
       "CampoSelect «Para»",
       "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
-      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»"
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
     ],
     "components/orden-produccion/NivelDos.tsx": [
       "BotonVerMas «prod-orden-nueva.nivel2-abrir»"

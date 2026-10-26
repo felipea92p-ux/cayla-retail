@@ -21,10 +21,13 @@ import {
   ORDENES_PARA_QUE_MANDE_LO_MEDIDO,
   RPC_GUARDAR_FICHA,
   RPC_LEER_FICHA,
+  RPC_VOLVER_A_LO_DECLARADO,
   borradorDeFicha,
   escalon,
   hayCambiosEnLaFicha,
+  historialDeOrdenes,
   leerFicha,
+  ofertaVolverADeclarado,
   paraRpc,
   problemasDeFicha,
   separarFichaPorTalla,
@@ -75,6 +78,8 @@ export function FichaDeConsumoHoja({ tallerId, productoId, referencia, insumos, 
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
   const contador = useRef(0);
+  const [confirmandoVolver, setConfirmandoVolver] = useState(false);
+  const [volviendo, setVolviendo] = useState(false);
 
   useEffect(() => {
     let vigente = true;
@@ -125,6 +130,39 @@ export function FichaDeConsumoHoja({ tallerId, productoId, referencia, insumos, 
   }
   function quitarAvio(clave: string) {
     setBorrador((b) => (b ? { ...b, avios: b.avios.filter((a) => a.clave !== clave) } : b));
+  }
+
+  // «Volver a Audaces»: las órdenes cerradas hasta hoy dejan de contar para lo medido (no se borran) y manda otra vez lo declarado. Se pregunta antes: lo medido tarda 3 órdenes en volver.
+  async function volverADeclarado() {
+    if (enVuelo.current || !ficha) return;
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    enVuelo.current = true;
+    setVolviendo(true);
+    const firma = responsable.firma();
+    let resultado;
+    try {
+      resultado = await firmar(createClient().rpc(RPC_VOLVER_A_LO_DECLARADO as never, { p_ubicacion_id: tallerId, p_producto_id: productoId } as never), firma);
+    } finally {
+      enVuelo.current = false;
+    }
+    const { error } = resultado;
+    responsable.despues(error);
+    setVolviendo(false);
+    if (error) {
+      avisar.error(traducirError(error, "volver a lo declarado"));
+      return;
+    }
+    setConfirmandoVolver(false);
+    avisar.exito(`${ficha.referencia} vuelve a lo declarado.`, { detalle: "Las órdenes cerradas siguen en el historial; lo medido vuelve a mandar con 3 órdenes nuevas." });
+    // Se relee SOLO la ficha: lo que la persona va escribiendo en la hoja no se toca.
+    const { data, error: errorLeer } = await createClient().rpc(RPC_LEER_FICHA as never, { p_ubicacion_id: tallerId, p_producto_id: productoId } as never);
+    const nueva = errorLeer ? null : leerFicha(data);
+    if (nueva) setLectura(nueva);
+    onGuardada?.();
+    router.refresh();
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -200,7 +238,10 @@ export function FichaDeConsumoHoja({ tallerId, productoId, referencia, insumos, 
                 <PanelAvios ficha={ficha} borrador={borrador} puedeEditar={puedeEditar} problemas={problemas} insumos={lista} ponerAvio={ponerAvio} agregarAvio={agregarAvio} quitarAvio={quitarAvio} />
               )}
             </CampoGuiado>
-            <DeDondeSale ficha={ficha} />
+            <DeDondeSale
+              ficha={ficha}
+              volver={{ confirmando: confirmandoVolver, ocupado: volviendo, pedir: () => setConfirmandoVolver(true), cancelar: () => setConfirmandoVolver(false), confirmar: () => void volverADeclarado() }}
+            />
           </div>
 
           {puedeEditar && (
@@ -403,9 +444,18 @@ function PanelAvios({
 
 // ---------- De dónde sale el número ----------
 
-function DeDondeSale({ ficha }: { ficha: FichaLeida }) {
+type AccionVolver = { confirmando: boolean; ocupado: boolean; pedir: () => void; cancelar: () => void; confirmar: () => void };
+
+function DeDondeSale({ ficha, volver }: { ficha: FichaLeida; volver: AccionVolver }) {
   const actual = escalon(ficha);
   const n = ficha.medido?.ordenes ?? 0;
+  const historial = historialDeOrdenes(ficha);
+  const oferta = ofertaVolverADeclarado(ficha);
+  // La pregunta aparece al final de una columna larga, bajo el pie fijo de la hoja: al pedirla se lleva a la vista (el clic fue en un botón, no hay un campo de texto con foco que molestar).
+  const pregunta = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (volver.confirmando) pregunta.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [volver.confirmando]);
   return (
     <aside aria-label="De dónde sale el número" className="min-w-0 space-y-4">
       <div>
@@ -438,6 +488,30 @@ function DeDondeSale({ ficha }: { ficha: FichaLeida }) {
         </div>
         <BarraAvance pct={(Math.min(n, ORDENES_PARA_QUE_MANDE_LO_MEDIDO) / ORDENES_PARA_QUE_MANDE_LO_MEDIDO) * 100} alto="normal" etiqueta="Órdenes cerradas que cuentan para lo medido" className="mt-2.5" />
       </div>
+      {historial.filas.length > 0 && (
+        <div>
+          <p className="text-[12px] text-tinta/70">Lo que gastó cada orden</p>
+          <ul className="mt-1.5 divide-y divide-sand rounded-xl border border-sand text-[12.5px]">
+            {historial.filas.map((o) => (
+              <li key={o.numero} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                <span className="min-w-0">
+                  <span className="block whitespace-nowrap">
+                    <span className="font-semibold text-tinta">Orden {o.numero}</span>
+                    {o.cuando && <span className="text-tinta/70"> · {o.cuando}</span>}
+                  </span>
+                  {!o.cuenta && (
+                    <span className="block text-[11.5px] text-tinta/70" title="Se cerró antes de la última vez que se escribió la ficha: ya no cuenta para lo medido">
+                      Ya no cuenta
+                    </span>
+                  )}
+                </span>
+                <span className="flex-none tabular-nums text-tinta">{o.porPrenda !== null ? `${o.porPrenda.toFixed(3)} m` : "—"}</span>
+              </li>
+            ))}
+          </ul>
+          {historial.sinMostrar > 0 && <p className="mt-1 text-[12px] text-tinta/70">y {historial.sinMostrar} {historial.sinMostrar === 1 ? "orden más" : "órdenes más"}</p>}
+        </div>
+      )}
       {actual === "medido" ? (
         <Aviso tono="exito" chico>
           Manda lo gastado de verdad: {ficha.medido?.porPrenda?.toFixed(3) ?? "—"} m por prenda en promedio. Las órdenes ya abiertas no cambian.
@@ -446,6 +520,26 @@ function DeDondeSale({ ficha }: { ficha: FichaLeida }) {
         <p className="text-[12.5px] text-tinta/70">
           Todavía no manda lo medido: {n >= ORDENES_PARA_QUE_MANDE_LO_MEDIDO ? "se cerraron antes de la última vez que se escribió la ficha" : `faltan ${ORDENES_PARA_QUE_MANDE_LO_MEDIDO - n} ${ORDENES_PARA_QUE_MANDE_LO_MEDIDO - n === 1 ? "orden cerrada" : "órdenes cerradas"}`}. Cuando haya {ORDENES_PARA_QUE_MANDE_LO_MEDIDO}, la ficha toma lo que se gastó de verdad.
         </p>
+      )}
+      {oferta && !volver.confirmando && (
+        <Boton type="button" peso="fantasma" onClick={volver.pedir}>
+          {oferta.etiqueta}
+        </Boton>
+      )}
+      {oferta && volver.confirmando && (
+        <div ref={pregunta} className="scroll-mb-28">
+        <Aviso tono="atencion" titulo={`¿${oferta.etiqueta}?`}>
+          Las {oferta.cuentan} órdenes cerradas dejan de contar y manda otra vez lo que escribiste en la ficha. No se borran: siguen en el historial. Lo medido vuelve a mandar cuando se cierren 3 órdenes nuevas.
+          <span className="mt-2.5 flex flex-wrap gap-2">
+            <Boton type="button" peso="primario" cargando={volver.ocupado} textoCargando="Volviendo…" onClick={volver.confirmar}>
+              Sí, {oferta.etiqueta.charAt(0).toLowerCase() + oferta.etiqueta.slice(1)}
+            </Boton>
+            <Boton type="button" peso="fantasma" onClick={volver.cancelar} disabled={volver.ocupado}>
+              Mejor no
+            </Boton>
+          </span>
+        </Aviso>
+        </div>
       )}
     </aside>
   );

@@ -12,6 +12,9 @@
 --     parte. Guardar lo mismo no cambia nada: ni reinicia la cuenta de lo medido ni archiva avíos otra vez.
 --   · `fn_ficha_consumo(taller, modelo)`: la ficha en una sola lectura para la hoja (lo declarado, los avíos, lo medido y las órdenes que lo respaldan, y si quien lee puede
 --     editar). La lee quien lee Producción en ese Taller y quien ve Catálogo (Productos): Catálogo la VE, no la cambia.
+--   · `reiniciar_consumo_medido(taller, modelo)` («Volver a lo declarado», actividad 7): cuando lo medido ya manda y el Taller no lo quiere (una tela que cambió, una orden mal
+--     cerrada), la cuenta de lo medido vuelve a 0 y manda otra vez lo declarado. NO borra las órdenes medidas (siguen en el historial) ni toca lo declarado: solo mueve la
+--     fecha de la declaración, que es lo que `fn_consumo_efectivo` usa para decidir qué órdenes cuentan.
 --   · `abrir_orden_produccion` deja de pedir el permiso de catálogo para «Dejar como el del modelo» (consumo y avíos): quien puede abrir la orden en el Taller es quien
 --     edita la ficha. Una sola regla en las tres puertas (Brooks).
 --
@@ -32,7 +35,7 @@
 --   · Un avío de la ficha se archiva en Insumos después: Nueva orden no lo propone y guardar la ficha de nuevo lo rechaza (`insumo_archivado`) hasta que se quite.
 --   · Una talla se renombra en el catálogo: la cifra por talla guardada ya no calza con las tallas del modelo (la hoja la muestra vacía; guardar pide reescribirla).
 --
--- CÓMO SE PEGA. Una sola parte: dos funciones nuevas y dos reemplazos ANCLADOS (ADR-0288). Va DESPUÉS de 20261026152000. Idempotente. Sin `select … into` dentro de
+-- CÓMO SE PEGA. Una sola parte: tres funciones nuevas y dos reemplazos ANCLADOS (ADR-0288). Va DESPUÉS de 20261026152000. Idempotente. Sin `select … into` dentro de
 -- un texto entre comillas.
 -- ============================================================================
 set lock_timeout = '3s';
@@ -222,6 +225,58 @@ comment on function retail.fn_ficha_consumo(uuid, uuid) is
   'ADR-0513: la ficha de consumo del modelo para la hoja (tela, avíos, lo medido y sus órdenes, y si quien lee puede editar). La lee Producción en ese Taller, quien ve Catálogo y quien edita el catálogo.';
 revoke all on function retail.fn_ficha_consumo(uuid, uuid) from public, anon;
 grant execute on function retail.fn_ficha_consumo(uuid, uuid) to authenticated, service_role;
+
+-- «Volver a lo declarado»: las órdenes cerradas hasta ahora dejan de contar y manda otra vez lo declarado. Devuelve cuántas órdenes dejaron de contar (0 = no había nada que
+-- reiniciar y no se tocó nada). Sin ficha declarada no hay a qué volver.
+create or replace function retail.reiniciar_consumo_medido(p_ubicacion_id uuid, p_producto_id uuid)
+returns integer
+language plpgsql
+volatile
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_actor uuid; v_referencia text; v_declarado timestamptz; v_cuentan integer;
+begin
+  v_referencia := (select p.referencia from retail.productos p where p.id = p_producto_id);
+  if v_referencia is null then
+    raise exception 'Ese modelo no existe' using hint = 'modelo_inexistente';
+  end if;
+  perform retail.fn_produccion_exigir_operar(p_ubicacion_id);
+  v_actor := retail.fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién guarda esto' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  -- El mismo candado que la ficha: reiniciar y declarar a la vez se forman en fila.
+  perform pg_advisory_xact_lock(hashtextextended('ficha_consumo:' || p_producto_id::text, 0));
+  v_declarado := (select c.updated_at from retail.producto_consumos c where c.producto_id = p_producto_id);
+  if v_declarado is null then
+    raise exception 'Este modelo todavía no tiene ficha de consumo: no hay a qué volver' using hint = 'sin_ficha';
+  end if;
+  v_cuentan := (select count(*)::integer from retail.producto_consumo_medido m join retail.producciones p on p.id = m.produccion_id
+                 where m.producto_id = p_producto_id and p.estado = 'terminada' and m.cerrada_en > v_declarado);
+  if v_cuentan = 0 then
+    return 0;
+  end if;
+  update retail.producto_consumos set updated_at = greatest(clock_timestamp(), v_declarado + interval '1 millisecond'), actualizado_por = v_actor where producto_id = p_producto_id;
+  begin
+    perform retail.fn_actividad_anotar(
+      'produccion', 'consumo_medido_reiniciado',
+      'volvió a lo declarado en el consumo de ' || v_referencia,
+      v_actor, retail.fn_actividad_terminal_ahora(), p_ubicacion_id, p_ubicacion_id,
+      'productos', p_producto_id::text, now(),
+      jsonb_build_object('producto_id', p_producto_id, 'ordenes_que_dejan_de_contar', v_cuentan),
+      'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó el reinicio de lo medido de % (%)', v_referencia, sqlerrm;
+  end;
+  return v_cuentan;
+end;
+$$;
+comment on function retail.reiniciar_consumo_medido(uuid, uuid) is
+  'ADR-0513: «Volver a lo declarado»: las órdenes cerradas hasta ahora dejan de contar para lo medido (no se borran). Producción en el Taller; sin nada que reiniciar no cambia nada.';
+revoke all on function retail.reiniciar_consumo_medido(uuid, uuid) from public, anon;
+grant execute on function retail.reiniciar_consumo_medido(uuid, uuid) to authenticated, service_role;
 
 -- Reemplaza `p_viejo` por `p_nuevo` en la función viva; `p_viejo` tiene que aparecer exactamente una vez. Si `p_nuevo` ya está, no hace nada.
 create or replace function pg_temp.reemplazar_anclado(p_firma text, p_viejo text, p_nuevo text)

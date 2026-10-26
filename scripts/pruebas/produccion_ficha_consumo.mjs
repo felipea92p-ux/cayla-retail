@@ -125,6 +125,24 @@ exception when others then
 end;
 $f$;
 create table pg_temp.modelo (id uuid);
+-- Una orden cerrada de este modelo con lo que de verdad gastó (la fila de lo medido, como la escribe cerrar_produccion).
+create function pg_temp.cerrada(p_buenas integer, p_metros numeric) returns void language plpgsql as $f$
+declare v_id uuid;
+begin
+  insert into retail.producciones (ubicacion_id, producto_id, estado, cantidad_plan, cantidad_buenas)
+  values ((select id from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1), (select id from pg_temp.modelo), 'terminada', p_buenas, p_buenas) returning id into v_id;
+  insert into retail.producto_consumo_medido (produccion_id, producto_id, buenas, metros) values (v_id, (select id from pg_temp.modelo), p_buenas, p_metros);
+end;
+$f$;
+create function pg_temp.reinicia() returns text language plpgsql as $f$
+declare v_estado text; v_hint text; v_msg text;
+begin
+  return 'OK:' || retail.reiniciar_consumo_medido((select id from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1), (select id from pg_temp.modelo));
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_msg = message_text;
+  return v_estado || '|' || coalesce(v_hint, '') || '|' || v_msg;
+end;
+$f$;
 insert into retail.insumos (codigo, nombre, tipo, unidad_medida, merma_pct) values ('FC-LINO', 'Lino Ficha Prueba', 'tela', 'metro', 0.05) returning id as lino \\gset
 insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('FC-BOTON', 'Botón Ficha Prueba', 'avio', 'unidad') returning id as boton \\gset
 insert into retail.insumos (codigo, nombre, tipo, unidad_medida, merma_pct) values ('FC-HILO', 'Hilo Ficha Prueba', 'avio', 'cono', 0.05) returning id as hilo \\gset
@@ -239,6 +257,45 @@ caso(
   "t|t|t"
 );
 
+// O. VOLVER A LO DECLARADO ----------------------------------------------------------------------------------------------------
+const EFECTIVO = `(select manda || ':' || ordenes_medidas from retail.fn_consumo_efectivo(:'prod'))`;
+caso(
+  "O1 con 3 órdenes cerradas manda lo medido; «volver a lo declarado» las deja de contar (0 de 3, manda lo declarado) sin borrarlas ni tocar lo declarado; repetirlo no cambia nada; la siguiente orden cuenta 1",
+  `${GUARDA(TELA(["1.0", "1.5"]), "null::jsonb")}
+   select pg_temp.cerrada(10, 12) as _a \\gset
+   select pg_temp.cerrada(10, 13) as _b \\gset
+   select pg_temp.cerrada(10, 14) as _c \\gset
+   select ${EFECTIVO} as antes \\gset
+   select ${MODELO} as modelo_antes \\gset
+   select pg_temp.reinicia() as r1 \\gset
+   select ${EFECTIVO} as despues \\gset
+   select (select updated_at from retail.producto_consumos where producto_id = :'prod') as fecha1 \\gset
+   select pg_temp.reinicia() as r2 \\gset
+   select (select updated_at = :'fecha1' from retail.producto_consumos where producto_id = :'prod') as igual \\gset
+   select pg_temp.cerrada(10, 15) as _d \\gset
+   select concat_ws('|', :'antes', :'r1', :'despues', :'r2', :'igual', ${EFECTIVO},
+     (select count(*) from retail.producto_consumo_medido where producto_id = :'prod'), (:'modelo_antes' = ${MODELO}),
+     (select count(*) from retail.actividad a where a.accion = 'consumo_medido_reiniciado' and a.registro_id = :'prod'),
+     (select count(*) filter (where (o ->> 'cuenta')::boolean) from jsonb_array_elements(retail.fn_ficha_consumo(:'taller', :'prod') -> 'ordenes_cerradas') o));`,
+  "medido:3|OK:3|declarado:0|OK:0|t|declarado:1|4|t|1|1"
+);
+caso(
+  "O2 «volver a lo declarado»: sin ficha declarada → sin_ficha; sin el módulo de Producción → produccion_sin_modulo; parada en otra sede → produccion_sin_taller; sin responsable → responsable_requerido",
+  `select pg_temp.reinicia() as sin_ficha \\gset
+   ${GUARDA(TELA("1.2"), "null::jsonb")}
+   select pg_temp.cerrada(10, 12) as _a \\gset
+   reset role;
+   delete from retail.rol_modulos where modulo in ('produccion') and rol_id = (select c.rol_id from retail.colaboradores c where c.persona_id = :'micaela_p');
+   ${como(MICAELA)}
+   select pg_temp.reinicia() as sin_modulo \\gset
+   reset role;
+   insert into retail.rol_modulos (rol_id, modulo) select c.rol_id, 'produccion' from retail.colaboradores c where c.persona_id = :'micaela_p' on conflict do nothing;
+   ${como(MICAELA)}
+   select pg_temp.reinicia() as otra_sede \\gset
+   select concat_ws('||', pg_temp.eh(:'sin_ficha'), pg_temp.eh(:'sin_modulo'), pg_temp.eh(:'otra_sede'), (select count(*) from retail.producto_consumo_medido where producto_id = :'prod'));`,
+  "P0001|sin_ficha||42501|produccion_sin_modulo||42501|produccion_sin_taller||1"
+);
+
 // V. VALIDAR --------------------------------------------------------------------------------------------------------------------
 const VAL = (tela, avios) => `pg_temp.eh(pg_temp.guarda_ficha(${tela}, ${avios}))`;
 caso(
@@ -346,7 +403,7 @@ caso(
   "F1 las dos funciones son security definer con search_path, authenticated sí y anon no",
   `reset role;
    select concat_ws(',',
-     (select bool_and(p.prosecdef and array_to_string(p.proconfig, ',') like '%search_path%') from pg_proc p where p.oid in ('retail.guardar_ficha_consumo(uuid, uuid, jsonb, jsonb)'::regprocedure, 'retail.fn_ficha_consumo(uuid, uuid)'::regprocedure)),
+     (select bool_and(p.prosecdef and array_to_string(p.proconfig, ',') like '%search_path%') from pg_proc p where p.oid in ('retail.guardar_ficha_consumo(uuid, uuid, jsonb, jsonb)'::regprocedure, 'retail.fn_ficha_consumo(uuid, uuid)'::regprocedure, 'retail.reiniciar_consumo_medido(uuid, uuid)'::regprocedure)),
      has_function_privilege('authenticated', 'retail.guardar_ficha_consumo(uuid, uuid, jsonb, jsonb)', 'execute'), has_function_privilege('anon', 'retail.guardar_ficha_consumo(uuid, uuid, jsonb, jsonb)', 'execute'),
      has_function_privilege('authenticated', 'retail.fn_ficha_consumo(uuid, uuid)', 'execute'), has_function_privilege('anon', 'retail.fn_ficha_consumo(uuid, uuid)', 'execute'));`,
   "t,t,f,t,f"

@@ -521,7 +521,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.ficha-modelo",
       opcional: true,
       titulo: "La ficha del modelo",
-      texto: "«Ficha del modelo» guarda lo que lleva el modelo en general: la tela de cada talla y los avíos. Las órdenes nuevas lo proponen solas; esta orden no cambia (para eso, «Editar»).",
+      texto: "«Ficha del modelo» guarda lo que lleva el modelo en general: la tela de cada talla y los avíos. Las órdenes nuevas lo proponen solas; esta orden no cambia (para eso, «Editar»). Con 3 órdenes cerradas manda lo que se gastó de verdad; «Volver a Audaces» lo deshace.",
     },
     {
       id: "editar-tela-lista",

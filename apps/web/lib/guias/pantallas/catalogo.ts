@@ -398,7 +398,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.ficha-consumo",
       opcional: true,
       titulo: "La ficha de consumo",
-      texto: "Cuánta tela lleva una prenda de este modelo (por talla si hace falta) y qué avíos: botones, hilo, etiquetas. «Abrir la ficha» la muestra; la edita el Taller y las órdenes de producción la proponen solas.",
+      texto: "Cuánta tela lleva una prenda de este modelo (por talla si hace falta) y qué avíos: botones, hilo, etiquetas. «Abrir la ficha» la muestra, con las órdenes cerradas; la edita el Taller. Con 3 órdenes manda lo que se gastó de verdad, y «Volver a Audaces» lo deshace.",
     },
     {
       id: "precio",

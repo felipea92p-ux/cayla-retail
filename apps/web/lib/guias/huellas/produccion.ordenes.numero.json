@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 130,
+  "total": 133,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -176,7 +176,10 @@
       "CampoSelect «Avío»",
       "CampoSelect «Para»",
       "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
-      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»"
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
     ],
     "components/orden-produccion/TelaDeLaOrden.tsx": [
       "Boton «Ficha del modelo»",
