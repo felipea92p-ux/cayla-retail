@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CirclePause, Plus, X } from "lucide-react";
+import { Check, ChevronDown, CirclePause, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { Boton } from "@/components/ui/campos";
 import type { PestanaDeTicket } from "@/lib/tickets-abiertos-reglas";
+import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { haceCuanto, NOMBRE_ESPERA_MAX, sugerenciasLibresDeEspera } from "@/lib/vender-hoy-reglas";
 
 /**
@@ -84,6 +85,44 @@ export function TiraDeTickets({
     if (izq < t.scrollLeft) t.scrollLeft = Math.max(0, izq - 8);
     else if (der > t.scrollLeft + t.clientWidth) t.scrollLeft = der - t.clientWidth + 8;
   }, [huella]);
+
+  // En el celular (bajo 640 px, el mismo corte que las hojas) no caben ni dos pestañas: un selector «Cliente 2 de 4» abre la lista.
+  const celular = useConsultaMedia("(max-width: 639.98px)");
+  const [listaAbierta, setListaAbierta] = useState(false);
+  if (celular) {
+    const indice = pestanas.findIndex((p) => p.esActivo);
+    const activa = pestanas[indice];
+    return (
+      <div className="flex items-center gap-2 border-b border-sand bg-crema px-4 py-2" data-guia="vender.tickets">
+        <button
+          type="button"
+          onClick={() => setListaAbierta(true)}
+          disabled={bloqueado}
+          aria-haspopup="dialog"
+          title="Ver todas las clientas abiertas"
+          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-sand bg-papel pl-4 pr-3 text-left text-xs text-tinta"
+        >
+          <b className="min-w-0 truncate font-semibold">{activa?.nombre}</b>
+          <span className="shrink-0 tabular-nums text-tinta/60">S/{(activa?.total ?? 0).toFixed(2)}</span>
+          <span className="ml-auto shrink-0 text-tinta/60">
+            {indice + 1} de {pestanas.length}
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-tinta/60" aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={onNueva}
+          disabled={!puedeNueva || bloqueado}
+          title={motivoNueva ?? "Atender a otra cliente sin perder este ticket"}
+          aria-label="Nueva cliente"
+          className="btn-cayla btn-secundario h-11 w-11 shrink-0 justify-center px-0"
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+        </button>
+        {listaAbierta && <ListaDeTicketsModal pestanas={pestanas} ahora={ahora} onIr={onIr} onDescartar={onDescartar} onClose={() => setListaAbierta(false)} />}
+      </div>
+    );
+  }
 
   return (
     // «Nueva cliente» va FUERA del tramo que se desliza: con tres pestañas se iba fuera de la vista y justo ese botón es lo que hay
@@ -188,6 +227,70 @@ export function TiraDeTickets({
         {pestanas.length < 3 && "Nueva cliente"}
       </button>
     </div>
+  );
+}
+
+/** Las clientas abiertas en el celular: una hoja a media altura (solo opciones que se aplican al momento, ADR-0479) donde tocar una
+ *  pasa a ella y cierra la hoja. Lo único que pregunta es descartar, y eso lo pregunta su propia hoja. */
+function ListaDeTicketsModal({
+  pestanas,
+  ahora,
+  onIr,
+  onDescartar,
+  onClose,
+}: {
+  pestanas: readonly PestanaDeTicket[];
+  ahora: number;
+  onIr: (id: string) => void;
+  onDescartar: (id: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal titulo="Tus clientas" subtitulo="Toca una para atenderla." variante="hoja" mediaAltura onClose={onClose}>
+      {(cerrar) => (
+        <ul className="flex flex-col gap-2" data-lista-tickets>
+          {pestanas.map((p) => (
+            <li
+              key={p.id ?? "caja"}
+              data-ticket
+              aria-current={p.esActivo ? "true" : undefined}
+              className={`flex items-center rounded-2xl border ${p.esActivo ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta"}`}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  cerrar();
+                  if (p.id) onIr(p.id);
+                }}
+                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 py-2 text-left"
+              >
+                <span className="min-w-0 flex-1">
+                  <b className="block truncate text-sm font-semibold">{p.nombre}</b>
+                  <span className={`block text-xs ${p.esActivo ? "text-crema/70" : "text-tinta/60"}`}>
+                    {p.prendas} {p.prendas === 1 ? "prenda" : "prendas"} · {p.creadoEn ? `la dejaste ${haceCuanto(p.creadoEn, ahora)}` : "en la caja"}
+                  </span>
+                </span>
+                <span className="shrink-0 text-sm font-semibold tabular-nums">S/{p.total.toFixed(2)}</span>
+                {p.esActivo && <Check className="h-4 w-4 shrink-0" aria-hidden />}
+              </button>
+              {(!p.esActivo || p.prendas > 0) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    cerrar();
+                    onDescartar(p.id);
+                  }}
+                  aria-label={`Descartar el ticket de ${p.nombre}`}
+                  className={`grid h-14 w-12 shrink-0 place-items-center rounded-r-2xl ${p.esActivo ? "text-crema/70" : "text-tinta/60"}`}
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
   );
 }
 

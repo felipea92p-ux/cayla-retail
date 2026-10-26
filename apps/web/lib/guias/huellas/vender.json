@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 188,
+  "total": 192,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -188,12 +188,16 @@
       "a «Abrir WhatsApp con la boleta»"
     ],
     "components/punto-de-venta/Esperas.tsx": [
+      "button «Ver todas las clientas abiertas»",
+      "button «Nueva cliente»",
       "input «Nombre de este ticket»",
       "button «Cambiar el nombre de este ticket»",
       "button «{`Descartar el ticket de ${p.nombre}»",
       "button «{`Pasar a ${p.nombre}»",
       "button «{`Descartar el ticket de ${p.nombre}» #2",
-      "button «Nueva cliente»",
+      "button «Nueva cliente» #2",
+      "button «{p.nombre}»",
+      "button «{`Descartar el ticket de ${p.nombre}» #3",
       "Boton «Cancelar»",
       "Boton «Descartar ticket»",
       "input «Ej. Probador 2, señora del abrigo…»",
