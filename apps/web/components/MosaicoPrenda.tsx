@@ -12,7 +12,7 @@ import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
  * de qué color (fondo), aunque no haya foto.
  *
  * Tres formas: `grilla` (cuadrado, la tarjeta de Vender), `fila` (4:5, como `FotoPrenda`, el buscador de Vender) y `relleno`
- * (llena la caja que le da quien lo pone, de 36 px a 176 px: es la de `SinFoto`/`MiniaturaPrenda`/`FotoDePrenda`). En `relleno` el
+ * (llena la caja que le da quien lo pone, de 36 px a 176 px: es la de `SinFoto`/`MiniaturaPrenda`/`FotoDePrenda`; con una caja de 144 px o más el nombre de la categoría pasa de 8 a 11 px, por su propio ancho). En `relleno` el
  * nombre es opcional (`conNombre`): una miniatura de tabla es solo ícono; una de tarjeta o de cajón lo lleva.
  *
  * Sin color (variante sin `colores.hex`) cae al tono de su familia. Sin categoría conocida (ni prefijo ni familia: una pantalla
@@ -60,12 +60,12 @@ export function MosaicoPrenda({
       data-color-dato
       style={estilo}
       className={`pointer-events-none relative flex shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg ${
-        enGrilla ? "aspect-square gap-[7%] p-2" : forma === "fila" ? "aspect-[4/5] gap-1.5 p-1" : "gap-1 p-1"
+        enGrilla ? "aspect-square gap-[7%] p-2" : forma === "fila" ? "aspect-[4/5] gap-1.5 p-1" : "@container gap-1 p-1"
       } ${className}`}
     >
       {sinCategoria ? <IconoPercha className={claseIcono} strokeWidth={1.5} /> : <IconoCategoria prefijo={prefijo} familia={familia ?? null} className={claseIcono} />}
       {conRotulo && (
-        <span className={`label-cayla line-clamp-2 max-w-full text-center leading-snug ${enGrilla ? "text-[9.5px]" : "text-[8px] !tracking-[0.04em]"}`} style={{ opacity: color ? 0.85 : 0.6, color: color ? undefined : "var(--color-tinta-fija)" }}>
+        <span className={`label-cayla line-clamp-2 max-w-full text-center leading-snug ${enGrilla ? "text-[9.5px]" : "text-[8px] !tracking-[0.04em] @min-[9rem]:text-[11px]"}`} style={{ opacity: color ? 0.85 : 0.6, color: color ? undefined : "var(--color-tinta-fija)" }}>
           {categoria}
         </span>
       )}
