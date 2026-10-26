@@ -3,7 +3,7 @@ import type { CampanaInversion } from "./inversion-mercaderia-reglas";
 // «Qué se ve» en el Resumen de Finanzas (Felipe 2026-10-26): el ícono bajo el selector de mes, solo en esta pantalla. Decide qué parte de la
 // inversión en mercadería se ve aquí. Ocultar NO borra nada: la campaña sigue en el Plan de campaña y en Compras, y lo ya pedido sigue en Por pagar.
 //
-// Mientras el Plan no guarde en la base «se ve en el Resumen» (una sola columna sí/no por campaña, decidido por Felipe el 2026-10-26) y el
+// Mientras el Plan no guarde en la base «se ve en el Resumen» (una sola columna con tres estados por campaña —«se hará», «solo en Escenarios», «no mostrarla»—, decidida por Felipe el 2026-10-26; el Resumen lee solo «se hará») y el
 // interruptor general, estas elecciones viven en ESTE navegador (localStorage): son una preferencia de quien mira, no un dato del negocio. Cuando
 // la base las tenga, esta capa se cambia por esa lectura y la regla de abajo no se toca.
 

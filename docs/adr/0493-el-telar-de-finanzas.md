@@ -132,8 +132,8 @@ Construido sobre la demo que Felipe aprobó (`docs/maquetas/finanzas-v3-2026-10/
    Cada sol del plan está en UNA etapa (pagado, pedido sin pagar, falta pedir) y la caja solo suma **lo que falta pedir** (lo pedido ya está en Por pagar: contarlo dos veces es el error). `cajaProxima` acepta la compra como capa
    aparte y mira seis semanas cuando la hay. Las formas de pagar (tu plan, todo junto, dos tandas, a plazo) se comparan mirando la caja; **elegir una es mirar, no guarda nada**. «La mejor mezcla» solo la lleva una que no depende
    del proveedor, no deja la caja en negativo y llega a tiempo con 70 % o más; si ninguna cumple, no recomienda (la caja cuenta «Todo junto» para mostrar el daño). Mirando una sola sede no se dibuja: es de CAYLA entera.
-5. **«Qué se ve»:** un ícono junto al mes (la barra ya es de una sola fila; no cabe «debajo»), solo en el Resumen, que abre una hoja con los interruptores. Visibilidad por campaña = **un booleano** (decidido por Felipe,
-   sin los tres estados del Plan).
+5. **«Qué se ve»:** un ícono junto al mes (la barra ya es de una sola fila; no cabe «debajo»), solo en el Resumen, que abre una hoja con los interruptores. Visibilidad por campaña = **tres estados** (decidido por Felipe la tarde del 2026-10-26, y mandan en todo Finanzas): «se hará» (Resumen, flujo y Escenarios), «solo en Escenarios» y «no mostrarla».
+   El Resumen lee solo «se hará» (`seVeEnElResumen`); la columna la crea el Plan.
 
 **DECIDÍ:** que el lector de la inversión sea una sola función (`getInversionMercaderia`) que hoy devuelve «esta base aún no lo trae» y que, en desarrollo y con `?inversion=ejemplo`, devuelva cifras de ejemplo; **en producción el Resumen no ofrece nada**.
 **DESCARTÉ:** llamar a una función de la base que todavía no existe (daría un error en cada carga) y guardar las elecciones de «Qué se ve» en la base sin que el Plan tenga su columna. **SE ROMPE SI:** el Plan entrega la lista de pagos en otro formato

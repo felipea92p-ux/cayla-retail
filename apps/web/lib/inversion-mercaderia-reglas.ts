@@ -44,9 +44,10 @@ const num = (v: unknown, defecto = 0): number => (typeof v === "number" && Numbe
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
 
 /**
- * ¿El Plan deja ver esta campaña en el Resumen? Es el ÚNICO lugar que conoce cómo lo dice la base: hoy el campo no existe (lo propone el Plan: un
- * booleano `se_ve_en_finanzas`, o un texto `visibilidad_finanzas` con «todo» / «escenarios» / «nada», donde solo «todo» se ve aquí). Cambiar de uno a
- * otro es cambiar esta función; nadie más en el código sabe el nombre del campo. Lo que falta o no se entiende SE VE (por defecto, todo se ve).
+ * ¿El Plan deja ver esta campaña en el Resumen? Es el ÚNICO lugar que conoce cómo lo dice la base. Felipe decidió (2026-10-26) tres estados, que mandan en
+ * todo Finanzas: «se hará» (Resumen, flujo y Escenarios), «solo en Escenarios» y «no mostrarla»; el Resumen lee solo el primero. El Plan propone la columna
+ * `visibilidad_finanzas` (texto: «todo» / «escenarios» / «nada») y aún no existe; si el nombre o el formato cambian, cambia esta función y nadie más.
+ * También entiende un booleano `se_ve_en_finanzas`. Lo que falta o no se entiende SE VE (por defecto, todo se ve).
  */
 export function seVeEnElResumen(fila: Record<string, unknown>): boolean {
   if (typeof fila.visibilidad_finanzas === "string") return fila.visibilidad_finanzas === "todo";

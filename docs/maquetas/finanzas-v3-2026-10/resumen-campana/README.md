@@ -157,3 +157,15 @@ Ninguna cambia el rumbo del Resumen; cambian lo que el contrato le pide al Plan:
 Tiempos: el Plan empieza por #1–#3 y luego #4–#6; lo de Finanzas (#10) viene después y necesita OK de Felipe. Hoy no existe ninguna tabla ni migración del Plan para esto: el lado del Resumen va tras bandera y no ofrece nada hasta que la base lo confirme.
 
 **Decidido por Felipe (2026-10-26): booleano.** Una campaña se ve o no se ve en el Resumen: una sola columna sí/no, por defecto «se ve». Los tres estados del Plan (flujo de caja y Escenarios / solo Escenarios / no mostrarla) quedan fuera por ahora; se pueden agregar después sin romper el booleano. El nombre sigue por elegir.
+
+**Decidido por Felipe (2026-10-26, tarde): TRES ESTADOS, no un sí o no. Reemplaza al «booleano» de arriba.** Una sola columna por campaña con tres valores, que mandan en el Resumen **y en todo Finanzas**:
+
+| Valor propuesto por el Plan | Qué significa | Dónde se ve |
+|---|---|---|
+| `todo` — «Se hará» | La compra se va a hacer: el empresario debe ver los movimientos que vienen para guardar o anticiparse | Resumen, flujo de caja y Escenarios |
+| `escenarios` — «Solo en Escenarios» | Solo para el «¿y si compro esto?» | Únicamente Escenarios: ni Resumen ni flujo |
+| `nada` — «No mostrarla» | Finanzas no la ve | En ningún lado de Finanzas |
+
+El Resumen lee **solo `todo`**. Lo lee una sola función (`seVeEnElResumen`, `apps/web/lib/inversion-mercaderia-reglas.ts`), que ya entiende los tres valores y también un booleano: cuando el Plan cree la columna (su tarea #10, que espera el OK de Felipe; nombre propuesto `visibilidad_finanzas`, texto con CHECK y por defecto `todo`), solo cambia esa función si el nombre es otro. Por defecto, sin dato, la campaña se ve.
+**Lo que NO es del Resumen:** que `todo` también entre al flujo de caja de Reportes y a Escenarios. Hoy el flujo (`fn_flujo_caja_proyeccion`) no suma la compra del plan; eso lo construye el Plan junto con la base, y cuando exista, la caja del Resumen no debe contarla dos veces (la capa de inversión del Resumen suma solo lo que falta pedir). Nombre: «Inversión en mercadería», confirmado por el Plan y por Felipe.
+
