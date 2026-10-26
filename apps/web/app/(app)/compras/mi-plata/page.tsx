@@ -1,6 +1,6 @@
 import { HandCoins, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getMiPlata } from "@/lib/mi-plata";
+import { getBancosParaPlata, getMiPlata } from "@/lib/mi-plata";
 import { PASOS_DE_LA_RONDA, desdeRonda, historialDeLaCompradora, movimientosDeLaCompradora, pasoDeLaRonda, tituloDeLaLista } from "@/lib/mi-plata-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Vacio } from "@/components/ui/Vacio";
@@ -26,7 +26,7 @@ import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 // tiene «tu plata». `?mandar=1` (desde «Compra guardada») abre «Mandar a la tienda».
 export default async function MiPlataPage({ searchParams }: { searchParams: Promise<{ mandar?: string }> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [plata, { mandar }] = await Promise.all([getMiPlata(), searchParams]);
+  const [plata, bancos, { mandar }] = await Promise.all([getMiPlata(), getBancosParaPlata(), searchParams]);
   // Arriba lo de la ronda abierta; lo anterior, agrupado por ronda (Felipe 2026-10-23).
   const lista = plata?.persona ? movimientosDeLaCompradora(plata) : null;
   const anteriores = plata?.persona ? historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? []) : [];
@@ -65,7 +65,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
                 detalle="A un proveedor, en la calle o por pedido"
                 icono={<ShoppingBag className="h-5 w-5" aria-hidden />}
               />
-              <AnotarPlata puedeYaTenia={plata.puedeYaTenia} />
+              <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} />
               <AnotarGasto />
             </section>
           ) : (
@@ -73,7 +73,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
             <div className="flex flex-col gap-2.5 lg:col-start-1">
               <AbrirRonda ultimaCerrada={plata.ronda.ultimaCerrada} />
               <div className="grid grid-cols-2 gap-2.5">
-                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} ancha />
+                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} ancha />
               </div>
             </div>
           )}

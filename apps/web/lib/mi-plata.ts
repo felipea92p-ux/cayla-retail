@@ -1,7 +1,17 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
-import { RPC_MI_PLATA, RPC_PLATA_POR_CONFIRMAR, leerMiPlata, leerPlataPorConfirmar, type MiPlata, type PlataPorConfirmar } from "@/lib/mi-plata-reglas";
+import {
+  RPC_BANCOS_PLATA,
+  RPC_MI_PLATA,
+  RPC_PLATA_POR_CONFIRMAR,
+  leerBancosDePlata,
+  leerMiPlata,
+  leerPlataPorConfirmar,
+  type MiPlata,
+  type PlataPorConfirmar,
+} from "@/lib/mi-plata-reglas";
+import type { CuentaOpcion } from "@/lib/fondos-reglas";
 
 // Compras simple (ADR-0480, actividad 2): lectura del servidor de la plata anotada (20261022235000). Si una lectura falla —la web
 // publicada antes que la migración, o la base caída—, lo dice (principio 9): nunca «tienes S/ 0» ni «nada por confirmar» inventados.
@@ -18,6 +28,20 @@ export async function getMiPlata(): Promise<MiPlata | null> {
     return null;
   }
   return leerMiPlata(r.data);
+}
+
+/**
+ * Los bancos de la empresa para «¿De qué banco salió?» de «Me dieron plata» (20261026170000). Si no se pueden leer —la web publicada antes
+ * que la migración, o la base caída—, la lista queda vacía y la hoja no pregunta el banco: se puede anotar igual y Compras lo elige al confirmar.
+ */
+export async function getBancosParaPlata(): Promise<CuentaOpcion[]> {
+  const supabase = await createClient();
+  const r = (await supabase.rpc(RPC_BANCOS_PLATA as never)) as unknown as Awaited<Respuesta>;
+  if (r.error) {
+    console.error(`bancos para la plata de compras: ${r.error.message}`);
+    return [];
+  }
+  return leerBancosDePlata(r.data);
 }
 
 export type PlataPorConfirmarConFoto = PlataPorConfirmar & { fotoUrl: string | null };

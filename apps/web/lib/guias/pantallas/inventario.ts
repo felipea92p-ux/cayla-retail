@@ -245,7 +245,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.cajon-ajustar",
       opcional: true,
       titulo: "¿No es lo que ves? Ajusta el stock",
-      texto: "Si contaste y el número no cuadra, toca aquí: el modal se vuelve una tabla con todos los colores y tallas, con esta talla encendida. Escribes lo que contaste, eliges qué pasó y guardas todo de una vez; si entraron prendas, te ofrece imprimir sus etiquetas. En la demo no lo abrimos.",
+      texto: "Si contaste y el número no cuadra, toca aquí: arriba eliges dónde contaste y qué pasó, y debajo va la tabla con todos los colores y tallas. Escribes lo que contaste, Enter pasa al siguiente y guardas todo de una vez. En la demo no lo abrimos.",
     },
     {
       id: "cajon-acciones",
