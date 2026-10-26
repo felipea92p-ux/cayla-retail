@@ -242,20 +242,35 @@ function GrillaSegunLaDireccion() {
 
 function GrillaDe({ buscar }: { buscar: string }) {
   const cabecera = useCabeceraVista();
-  return <Grilla titulo={tituloDeEspera(new URLSearchParams(buscar), cabecera?.menus ?? null)} />;
+  const q = new URLSearchParams(buscar);
+  return <Grilla titulo={tituloDeEspera(q, cabecera?.menus ?? null)} conFiltros={q.get("lista") !== "favoritos"} />;
 }
 
-/** Una lista del catálogo: su título (`tituloDeEspera`), los filtros y el orden, el conteo y la grilla. */
-function Grilla({ titulo }: { titulo: TituloDeEspera | null }) {
+/** Una lista del catálogo: su título (`tituloDeEspera`), los filtros y el orden, el conteo y la grilla. Con filtros de color y talla (todas las
+ *  listas menos «Tus favoritos», ADR-0512) la barra lleva su fila de más: el esqueleto la guarda para que lo de abajo no baje al llegar. */
+function Grilla({ titulo, conFiltros = true }: { titulo: TituloDeEspera | null; conFiltros?: boolean }) {
+  const pildoras = (
+    <span className="t-pildoras">
+      {[64, 132, 74, 118, 76].map((ancho) => (
+        <i key={ancho} className="t-esq-pildora" style={{ width: ancho }} />
+      ))}
+    </span>
+  );
   return (
     <>
       <CabeceraDeLista titulo={titulo} />
       <div className="t-filtros t-esq-filtros" aria-hidden="true">
-        <span className="t-pildoras">
-          {[64, 132, 74, 118, 76].map((ancho) => (
-            <i key={ancho} className="t-esq-pildora" style={{ width: ancho }} />
-          ))}
-        </span>
+        {conFiltros ? (
+          <div className="t-filtros-niveles">
+            {pildoras}
+            <span className="fp-fila">
+              <i className="t-esq-pildora t-esq-palabra" />
+              <i className="t-esq-pildora t-esq-palabra" />
+            </span>
+          </div>
+        ) : (
+          pildoras
+        )}
         <span className="t-orden">
           <i className="t-esq-pildora t-esq-orden" />
         </span>
