@@ -2296,13 +2296,6 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       texto: "Cuando está todo, sigues al papel que te dieron.",
     },
     {
-      id: "llevas",
-      ancla: "compra.llevas",
-      opcional: true,
-      titulo: "Lo que llevas",
-      texto: "Arriba, las prendas de esta compra y lo que cuesta cada una, para revisarlo de un vistazo antes de contestar. Si algo está mal, vuelve con la flecha.",
-    },
-    {
       id: "tipo",
       ancla: "compra.tipo",
       opcional: true,
