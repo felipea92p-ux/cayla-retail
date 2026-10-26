@@ -167,16 +167,27 @@ describe("filtros por estado, categoría y Lo nuevo (Ola 1 de Tienda web)", () =
   it("la categoría y Lo nuevo se suman al estado y al texto", () => {
     expect(ids(filtrarVitrina(todos, "todos", "", { categoria: "Collares" }))).toEqual(["p", "pa"]);
     expect(ids(filtrarVitrina(todos, "ocultos", "", { categoria: "Collares" }))).toEqual(["pa"]);
-    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "fijo" }))).toEqual(["e1", "p", "pa", "b"]);
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "fijo" }))).toEqual(["e1", "p", "pa"]);
     expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "quitado" }))).toEqual(["a"]);
     expect(ids(filtrarVitrina(todos, "todos", "luna", { categoria: "Collares" }))).toEqual(["pa"]);
-    // Sin la ficha de la vitrina, Lo nuevo es automático.
-    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "todos" }))).toHaveLength(todos.length);
+    // «Todos» no trae el empaque (queda uno menos). Sin la ficha de la vitrina, Lo nuevo es automático.
+    expect(ids(filtrarVitrina(todos, "todos", "", { loNuevo: "todos" }))).toHaveLength(todos.length - 1);
   });
 
   it("cuenta cada estado para la lista de la píldora, ya con la categoría y Lo nuevo puestas", () => {
-    expect(contarPorEstado(todos)).toEqual({ todos: 7, en_la_web: 2, sin_stock: 1, sin_precio: 1, ocultos: 3 });
-    expect(contarPorEstado(todos, { categoria: "Collares" })).toEqual({ todos: 2, en_la_web: 0, sin_stock: 0, sin_precio: 1, ocultos: 1 });
+    expect(contarPorEstado(todos)).toEqual({ todos: 6, en_la_web: 2, sin_stock: 1, sin_precio: 1, ocultos: 3, empaque: 1 });
+    expect(contarPorEstado(todos, { categoria: "Collares" })).toEqual({ todos: 2, en_la_web: 0, sin_stock: 0, sin_precio: 1, ocultos: 1, empaque: 0 });
+  });
+
+  it("«todos» es solo ropa: el empaque no ocupa la lista y se ve con su propio filtro", () => {
+    expect(ids(filtrarVitrina(todos, "todos", ""))).not.toContain("b");
+    expect(ids(filtrarVitrina(todos, "empaque", ""))).toEqual(["b"]);
+    expect(ids(filtrarVitrina(todos, "empaque", "kraft"))).toEqual(["b"]);
+    expect(ids(filtrarVitrina(todos, "empaque", "", { categoria: "Collares" }))).toEqual([]);
+    // La búsqueda de ropa no encuentra una bolsa: sin el filtro Empaque no hay forma de verla por error en un lote.
+    expect(filtrarVitrina(todos, "todos", "kraft")).toEqual([]);
+    // «De N modelos» no cuenta el empaque.
+    expect(cifrasDe(todos).total).toBe(6);
   });
 
   it("las categorías, de la A a la Z y con su cuenta; sin categoría no entra", () => {
@@ -310,7 +321,7 @@ describe("solo ropa en la web (Felipe 2026-10-15): el empaque se vende en la caj
   });
 
   it("la cifra «se ven en la web» no cuenta el empaque, aunque haya quedado encendido", () => {
-    expect(cifrasDe([emma, bolsa, bolsaDeAntes])).toMatchObject({ seVen: 1, total: 3 });
+    expect(cifrasDe([emma, bolsa, bolsaDeAntes])).toMatchObject({ seVen: 1, total: 1 });
     expect(filtrarVitrina([emma, bolsa, bolsaDeAntes], "en_la_web", "").map((m) => m.id)).toEqual(["e1"]);
   });
 });

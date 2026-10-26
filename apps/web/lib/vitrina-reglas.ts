@@ -184,17 +184,19 @@ export function textoLoNuevo(modo: EnLoNuevo): string {
 
 /* ---------------- Cifras y filtros ---------------- */
 
+/** `total` son los modelos de ropa: el empaque no se muestra en la web ni cuenta en «de N modelos». */
 export type CifrasVitrina = { seVen: number; total: number; sinStock: number };
 
 export function cifrasDe(modelos: readonly ModeloVitrina[]): CifrasVitrina {
   const visibles = modelos.filter(seVeEnLaWeb);
-  return { seVen: visibles.length, total: modelos.length, sinStock: visibles.filter((m) => libreEnTiendas(m) === 0).length };
+  return { seVen: visibles.length, total: modelos.filter((m) => !esEmpaque(m)).length, sinStock: visibles.filter((m) => libreEnTiendas(m) === 0).length };
 }
 
 /** Los estados por los que se filtra la lista. Los dos primeros son las cifras de arriba; `sin_precio` y `ocultos` son lo que el Resumen
- *  cuenta como «encendidos que no se ven» y lo que alguien apagó. */
-export type FiltroVitrina = "todos" | "en_la_web" | "sin_stock" | "sin_precio" | "ocultos";
-const FILTROS_VITRINA: readonly FiltroVitrina[] = ["todos", "en_la_web", "sin_stock", "sin_precio", "ocultos"];
+ *  cuenta como «encendidos que no se ven» y lo que alguien apagó. `todos` es solo ropa (Felipe 2026-10-15: «solo ropa en la web»): el
+ *  empaque —bolsas, cajas— se vende desde el ticket y no se puede prender, así que no ocupa la lista; se ve con `empaque`. */
+export type FiltroVitrina = "todos" | "en_la_web" | "sin_stock" | "sin_precio" | "ocultos" | "empaque";
+const FILTROS_VITRINA: readonly FiltroVitrina[] = ["todos", "en_la_web", "sin_stock", "sin_precio", "ocultos", "empaque"];
 
 /** Lo nuevo, como lo guarda la ficha de la vitrina: solo lo que se decidió a mano se puede filtrar (el «automático» depende de cuándo
  *  llegó a una tienda, y la lista no trae ese dato). */
@@ -220,31 +222,37 @@ function coincideEstado(m: ModeloVitrina, estado: FiltroVitrina): boolean {
       return esEncendidoSinPrecio(m);
     case "ocultos":
       return estaOculto(m);
+    case "empaque":
+      return esEmpaque(m);
     default:
-      return true;
+      return !esEmpaque(m);
   }
 }
+
+type FiltrosExtra = { categoria?: string | null; loNuevo?: FiltroLoNuevo };
+
+/** La categoría y Lo nuevo puestos: lo que se suma al estado. */
+const pasaExtra = (m: ModeloVitrina, extra: FiltrosExtra): boolean =>
+  !(extra.categoria && m.categoria !== extra.categoria) && !(extra.loNuevo && extra.loNuevo !== "todos" && (m.vitrina?.enLoNuevo ?? "automatico") !== extra.loNuevo);
 
 /** La lista según el estado, la categoría, Lo nuevo y lo que se escribió en el buscador. Sin los filtros opcionales, como siempre. */
 export function filtrarVitrina(
   modelos: readonly ModeloVitrina[],
   filtro: FiltroVitrina,
   busqueda: string,
-  extra: { categoria?: string | null; loNuevo?: FiltroLoNuevo } = {},
+  extra: FiltrosExtra = {},
 ): ModeloVitrina[] {
   const q = normalizarBusqueda(busqueda.trim());
   return modelos.filter((m) => {
-    if (!coincideEstado(m, filtro)) return false;
-    if (extra.categoria && m.categoria !== extra.categoria) return false;
-    if (extra.loNuevo && extra.loNuevo !== "todos" && (m.vitrina?.enLoNuevo ?? "automatico") !== extra.loNuevo) return false;
+    if (!coincideEstado(m, filtro) || !pasaExtra(m, extra)) return false;
     if (!q) return true;
     return normalizarBusqueda(`${m.nombre} ${m.codigo ?? ""} ${m.categoria ?? ""}`).includes(q);
   });
 }
 
 /** Cuántos modelos trae cada estado, para decirlo en la lista de la píldora («Ocultos · 6»). Cuentan lo que ya dejaron la categoría y Lo nuevo. */
-export function contarPorEstado(modelos: readonly ModeloVitrina[], extra: { categoria?: string | null; loNuevo?: FiltroLoNuevo } = {}): Record<FiltroVitrina, number> {
-  const base = filtrarVitrina(modelos, "todos", "", extra);
+export function contarPorEstado(modelos: readonly ModeloVitrina[], extra: FiltrosExtra = {}): Record<FiltroVitrina, number> {
+  const base = modelos.filter((m) => pasaExtra(m, extra));
   return Object.fromEntries(FILTROS_VITRINA.map((f) => [f, base.filter((m) => coincideEstado(m, f)).length])) as Record<FiltroVitrina, number>;
 }
 

@@ -45,6 +45,7 @@ const ESTADOS: { valor: FiltroVitrina; texto: string }[] = [
   { valor: "sin_stock", texto: "Sin stock en ninguna tienda" },
   { valor: "sin_precio", texto: "Encendidos sin precio" },
   { valor: "ocultos", texto: "Ocultos" },
+  { valor: "empaque", texto: "Empaque" },
 ];
 // La píldora se da por «puesta» cuando su valor no es `TODOS`: «todos» de aquí se le dice con ese mismo valor.
 const aPildora = (v: string) => (v === "todos" ? TODOS : v);
@@ -100,11 +101,19 @@ export function VitrinaPantalla({
   const cifras = cifrasDe(modelos);
   const extra = { categoria, loNuevo };
   const visibles = filtrarVitrina(modelos, filtro, texto, extra);
-  const categorias = categoriasDe(modelos);
+  // Las categorías de lo que se está mirando: con «Empaque», las del empaque; si no, las de la ropa (una categoría de bolsas no
+  // serviría de filtro: «todos» no trae el empaque).
+  const categorias = categoriasDe(modelos.filter((m) => (filtro === "empaque") === esEmpaque(m)));
+  const hayRopa = modelos.some((m) => !esEmpaque(m));
+  // Pasar a «Empaque» o volver de él suelta la categoría: la de un lado no existe en el otro.
+  const cambiarEstado = (v: FiltroVitrina) => {
+    if ((v === "empaque") !== (filtro === "empaque")) setCategoria(null);
+    setFiltro(v);
+  };
   const porEstado = contarPorEstado(modelos, extra);
   // Cada filtro puesto, para decirlo y quitarlo con un toque. El buscador no cuenta: tiene su propia ✕.
   const puestos = [
-    filtro !== "todos" ? { clave: "estado", texto: ESTADOS.find((e) => e.valor === filtro)!.texto, quitar: () => setFiltro("todos") } : null,
+    filtro !== "todos" ? { clave: "estado", texto: ESTADOS.find((e) => e.valor === filtro)!.texto, quitar: () => cambiarEstado("todos") } : null,
     categoria ? { clave: "categoria", texto: categoria, quitar: () => setCategoria(null) } : null,
     loNuevo !== "todos" ? { clave: "lo-nuevo", texto: LO_NUEVO.find((e) => e.valor === loNuevo)!.texto, quitar: () => setLoNuevo("todos") } : null,
   ].filter((p) => p !== null);
@@ -117,7 +126,7 @@ export function VitrinaPantalla({
   const modeloAbierto = abierto ? modelos.find((m) => m.id === abierto) ?? null : null;
   const delLote = lote ? modelos.filter((m) => lote.ids.includes(m.id)) : [];
 
-  const alternarFiltro = (f: FiltroVitrina) => setFiltro((actual) => (actual === f ? "todos" : f));
+  const alternarFiltro = (f: FiltroVitrina) => cambiarEstado(filtro === f ? "todos" : f);
   const alternar = (id: string) => setElegidos((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   const todosMarcados = visibles.length > 0 && elegidosVisibles.length === visibles.length;
 
@@ -199,7 +208,7 @@ export function VitrinaPantalla({
                 icono={CircleCheck}
                 etiqueta="Estado"
                 valor={aPildora(filtro)}
-                onValor={(v) => setFiltro(dePildora(v) as FiltroVitrina)}
+                onValor={(v) => cambiarEstado(dePildora(v) as FiltroVitrina)}
                 rotuloCantidad="Modelos"
                 opciones={ESTADOS.map((e) => ({ valor: aPildora(e.valor), texto: e.texto, cantidad: porEstado[e.valor] }))}
               />
@@ -237,12 +246,20 @@ export function VitrinaPantalla({
           </div>
         )}
 
+        {filtro === "empaque" && (
+          <div className="border-b border-sand px-5 py-3">
+            <p className="nota-cayla text-[13px]">
+              El empaque (bolsas, cajas) se vende desde el ticket, en la caja: no va en la web ni se puede prender. Se ve aquí solo para saber cuánto hay.
+            </p>
+          </div>
+        )}
+
         {visibles.length === 0 ? (
           texto.trim() ? (
             <Vacio icono={<SearchX />} titulo={`Nada coincide con «${texto.trim()}»`} acciones={<Boton onClick={() => setTexto("")}>Borrar la búsqueda</Boton>}>
               Busca por el nombre del modelo, su código o su categoría.
             </Vacio>
-          ) : modelos.length === 0 ? (
+          ) : !hayRopa && filtro !== "empaque" ? (
             <Vacio icono={<MonitorSmartphone />} titulo="Todavía no hay modelos para la web">
               Los modelos que se pueden vender (activos y con precio en alguna tienda que se ve en la web) aparecen aquí para mostrarlos en la
               tienda online.

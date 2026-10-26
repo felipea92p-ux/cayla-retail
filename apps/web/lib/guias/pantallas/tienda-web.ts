@@ -376,7 +376,7 @@ export const GUIA_VITRINA: Guia = {
       ancla: "vitrina.filtros",
       opcional: true,
       titulo: "Afina la lista",
-      texto: "Por Estado (cada uno dice cuántos modelos trae: los que se ven, los que no tienen nada, los encendidos sin precio, los ocultos), por Categoría y por Lo nuevo. Lo que eliges queda como una píldora que se quita con su ✕; «Limpiar filtros» las quita todas.",
+      texto: "Por Estado (cada uno dice cuántos modelos trae), por Categoría y por Lo nuevo. Lo que eliges queda como una píldora que se quita con su ✕. La lista es solo ropa: el empaque (bolsas, cajas) se vende en la caja y se ve en Estado ▸ Empaque.",
     },
     {
       id: "buscador",
