@@ -41,3 +41,12 @@ Qué hice:
 - Felipe eligió **C · Filas con su venta** y pidió, antes de implementar, que «prendas compradas y dinero gastado» tengan su ícono y se muestren mejor. Ahora son dos tarjetas de opción (polo y billete, el total de todos los proveedores y qué quiere decir; la elegida con borde de tinta y su visto), y el mismo ícono acompaña cada cifra del ranking y de la comparación. La maqueta abre en la C.
 - Revisada a 1440 y 1920 px, en claro y oscuro, y a 375 px sin desborde.
 Estado: maqueta lista para construir con `/construir`; sin código del ERP ni PR todavía.
+
+## 2026-10-26 (Proveedores: la C construida en el ERP, actividades 1 a 5 — ADR-0521)
+Qué hice:
+- **La pestaña Mercadería es el ranking** (`ProveedoresRanking`): del que más le compras al que menos, ordenable por prendas compradas o por dinero gastado (dos tarjetas con su ícono; al cambiar, las filas se deslizan y dicen cuántos puestos se movieron), con el ritmo en cuatro palabras y su filtro. Tocar una fila abre la vista rápida de siempre; los que no tienen compras van al final y el Taller aparte.
+- **A la derecha, «Lo que no se ve a simple vista»** (Para hoy · Antes de volver a comprar · Oportunidades), y al marcar hasta 3 casillas, **«Comparar»** lado a lado; bajo 1280 px, la isla de abajo lleva a la comparación.
+- **Cada fila con sus ventas por día** de 4 semanas: función nueva de solo lectura `fn_proveedores_ventas_diarias` (migración `20261026172000`, con su prueba de Postgres en el CI).
+- Verificado con las pruebas (646 archivos de vitest, Knip, guías con su huella) y en el navegador local a 1008, 1024, 1280, 1440, 1920 y 375 px, en claro y en oscuro.
+Por qué así: Felipe no podía ver «a simple vista a quién le compro más o menos»; eligió la C mirando la quinta ronda de maquetas.
+Estado: commits locales, sin PR. **La migración no está en producción** (espera el OK de Felipe). Falta la actividad 6 (tallas y sedes en la vista rápida y en la comparación), que depende de la rama `claude/proveedores-module-analysis-c73c2c`, todavía fuera de `main`.

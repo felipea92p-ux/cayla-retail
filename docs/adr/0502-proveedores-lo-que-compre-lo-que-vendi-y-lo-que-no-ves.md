@@ -78,3 +78,10 @@ Felipe aprobó las recomendaciones de umbrales de una sesión hermana («Sí: p�
 2. **El veredicto del ranking** (`veredictoDe(r, hoy)`) lo evalúa primero: si el ritmo es lento dice **«Rota lento»** (ámbar), aunque haya vendido poco; si no, «Pocas ventas» (menos de 10 vendidas), «Costo por confirmar», «Margen bajo» o «Rinde». **Se elimina el veredicto «Plata parada»** (y `PARADO_PCT`): lo cubre «Rota lento», y la plata sin vender sigue a la vista en su columna.
 3. **`fn_proveedores_rendimiento` devuelve dos columnas más** (migración `20261024234000_proveedores_rendimiento_con_ritmo.sql`): `primera_entrada` y `unidades_en_estantes`, que son lo que necesita el ritmo. Solo lectura, misma llave. Con la web nueva y la base de antes, esas dos columnas no llegan y el veredicto no mide el ritmo (cae a lo demás): nada se rompe.
 4. **Prueba de que no se contradicen** (`lib/proveedor-analisis-reglas.test.ts`, «UNA SOLA REGLA»): para seis conjuntos de prendas (Lasak, sin ventas, recién llegado, vende rápido, justo en el umbral, poca mercadería), el aviso «frenar» sale si y solo si el veredicto dice «Rota lento».
+
+## Actualización 2026-10-26: la lista pasa a ser un ranking (ADR-0521)
+
+El punto 3 («Lista: A quién le compro y qué me deja», con su veredicto en una palabra) lo reemplaza el **ranking de la pestaña Mercadería**
+del ADR-0521: del que más le compras al que menos, por prendas o por dinero, con el ritmo en cuatro palabras, la línea de ventas por día y,
+a la derecha, «Lo que no se ve a simple vista». `ProveedoresRendimiento.tsx` se borró. Las cuentas son las mismas de este ADR
+(`rankingDeProveedores`, `veredictoDe`, `ritmoDeDatos`): el veredicto sigue explicando la insignia en su «¿por qué?».
