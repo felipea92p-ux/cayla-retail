@@ -435,11 +435,12 @@ export function cuentaSugerida(cuentas: readonly CuentaOpcion[]): string | null 
   return (bancos.find((c) => /\bbcp\b/.test(normalizar(c.nombre))) ?? bancos[0])?.id ?? null;
 }
 
-/** La frase bajo «Tienes para comprar». En negativo gastó más de lo que anotó: lo que sigue es anotar la plata que le dieron. */
-export function detalleTienes(tiene: number): string {
-  return tiene < 0
-    ? `Gastaste ${soles(-tiene)} más de lo que anotaste: anota en «Me dieron plata» la plata que te dieron.`
-    : "Tu plata de compras, lista para usar.";
+/**
+ * La nota bajo «Tienes para comprar» cuando la cifra es negativa (maqueta mis-compras-rediseno-2026-10): puso plata de su bolsillo. Dice qué
+ * hacer y qué pasa si no hace nada. Con plata a favor, nada: la cifra y la cuenta de abajo ya lo dicen.
+ */
+export function detalleTienes(tiene: number): string | null {
+  return tiene < 0 ? `Pusiste ${soles(-tiene)} de tu bolsillo. Si te dieron más plata, anótala; si no, Compras te lo devuelve al cerrar.` : null;
 }
 
 /** El botón de la hoja dice lo que va a pasar: «Anotar S/ 300.00». */
@@ -558,21 +559,39 @@ export function estadoParaLaCompradora(que: "compra" | "gasto" | "plata", pendie
 // ---------- Rediseño de Mi plata (maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23) ----------
 
 /**
- * Los tres tramos de la billetera: lo que te queda, lo que compraste y lo que gastaste en la ronda abierta. En negativo no queda nada que
- * dibujar (la cifra grande y su frase ya lo dicen); sin ronda abierta o sin nada en ella, la barra es toda «te queda».
+ * Las tres columnas bajo la cifra de la billetera: lo que le dieron en la ronda, lo que compró y lo que gastó (maqueta mis-compras-rediseno-
+ * 2026-10). Sin ronda abierta no hay nada que contar y no se dibujan. `antes`: lo que ya tenía al abrirla (puede ser negativo); si no es
+ * cero, la cifra grande no es la suma de las tres columnas y la billetera lo dice, en vez de dejar una cuenta que no cuadra.
  */
-export function repartoBilletera(plata: Pick<MiPlata, "tiene" | "ronda">): { queda: number; compraste: number; gastos: number } {
-  const r = plata.ronda.abierta;
-  return { queda: Math.max(0, plata.tiene), compraste: Math.max(0, r?.compraste ?? 0), gastos: Math.max(0, r?.gastaste ?? 0) };
+export function cuentaDeLaBilletera(plata: Pick<MiPlata, "tiene" | "ronda">): { dieron: number; compraste: number; gastaste: number; antes: number } | null {
+  if (!plata.ronda.abierta) return null;
+  const { dieron, compraste, gastaste, antes } = resumenRonda(plata);
+  return { dieron, compraste, gastaste, antes };
 }
 
-/** La franja de lo que falta mandar: «Te falta mandar 37 prendas a 2 tiendas» o «… 7 prendas a Tienda LIM». Sin nada, nada. */
+/** Los cuatro tramos del camino de una ronda, en el orden en que se hacen (maqueta mis-compras-rediseno-2026-10). */
+export const PASOS_DE_LA_RONDA = ["Abre tu ronda", "Anota", "Manda", "Ciérrala"] as const;
+
+/**
+ * En cuál de los cuatro pasos va: 0 sin ronda abierta; 2 («Manda») mientras haya prendas por mandar; 3 («Ciérrala») con compras anotadas y
+ * nada por mandar; 1 («Anota») en todo lo demás. Los anteriores se pintan hechos. No agrega reglas: sale de lo que la pantalla ya sabe.
+ */
+export function pasoDeLaRonda(plata: Pick<MiPlata, "ronda" | "porMandar">): 0 | 1 | 2 | 3 {
+  const abierta = plata.ronda.abierta;
+  if (!abierta) return 0;
+  if (plata.porMandar.some((t) => t.unidades > 0)) return 2;
+  return abierta.compras > 0 ? 3 : 1;
+}
+
+/** La franja de lo que falta mandar: «Falta mandar 37 prendas» y, debajo, cuántas a cada tienda («LIM 7 · AQP 30»). Sin nada, nada. */
 export function textoFaltaMandar(porMandar: readonly PorMandar[]): { titulo: string; detalle: string } | null {
-  const unidades = porMandar.reduce((s, t) => s + t.unidades, 0);
-  if (porMandar.length === 0 || unidades === 0) return null;
-  const prendas = unidades === 1 ? "1 prenda" : `${unidades} prendas`;
-  const adonde = porMandar.length === 1 ? porMandar[0].tienda : `${porMandar.length} tiendas`;
-  return { titulo: `Te falta mandar ${prendas} a ${adonde}`, detalle: "Arma los paquetes y avisa a la tienda" };
+  const conPrendas = porMandar.filter((t) => t.unidades > 0);
+  const unidades = conPrendas.reduce((s, t) => s + t.unidades, 0);
+  if (unidades === 0) return null;
+  return {
+    titulo: `Falta mandar ${unidades === 1 ? "1 prenda" : `${unidades} prendas`}`,
+    detalle: conPrendas.map((t) => `${siglaTienda(t.tienda)} ${t.unidades}`).join(" · "),
+  };
 }
 
 /** Una fila de «Hoy»: una compra, un gasto o una plata que le dieron, con su ícono, su monto con signo y su estado. */

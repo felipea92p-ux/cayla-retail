@@ -1931,11 +1931,18 @@ export const GUIA_MI_PLATA: Guia = {
       texto: "La plata para compras es de cada persona: desde una terminal no hay «tu plata». Entra con tu correo para anotarla.",
     },
     {
+      id: "camino",
+      ancla: "mi-plata.camino",
+      opcional: true,
+      titulo: "En qué paso vas",
+      texto: "Cuatro pasos: abre tu ronda, anota lo que haces, manda las prendas a las tiendas y ciérrala. El de ahora va en negro y los que ya hiciste, en verde.",
+    },
+    {
       id: "tienes",
       ancla: "mi-plata.tienes",
       opcional: true,
       titulo: "Lo que tienes para comprar",
-      texto: "Toda la plata que tienes para comprar, también la que Compras todavía no revisa: ya la puedes usar. La barra dice cuánto te queda y, con tu ronda abierta, cuánto compraste y gastaste en ella.",
+      texto: "Toda la plata que tienes para comprar, también la que Compras todavía no revisa: ya la puedes usar. Con tu ronda abierta, abajo ves cuánto te dieron, cuánto compraste y cuánto gastaste en ella.",
     },
     {
       id: "abrir-ronda",
@@ -2035,7 +2042,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mandar",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Te falta mandar",
+      titulo: "Falta mandar",
       texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues el paquete al transporte (te lo abrimos).",
     },
     {

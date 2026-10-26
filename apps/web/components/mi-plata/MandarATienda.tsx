@@ -35,7 +35,7 @@ export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar:
         <button
           type="button"
           data-guia="mi-plata.mandar"
-          /* unificar-fijo: la franja punteada de la maqueta abre «Mandar a la tienda», es un botón y no un aviso */ className="mov-boton flex w-full items-center gap-3 rounded-2xl border border-dashed border-ambar/60 bg-ambar/[0.07] px-3.5 py-3 text-left"
+          /* unificar-fijo: la franja ámbar de la maqueta abre «Mandar a la tienda», es un botón y no un aviso */ className="mov-boton flex w-full items-center gap-3 rounded-2xl bg-ambar/[0.12] px-3.5 py-3 text-left text-ambar"
           onClick={(e) => {
             origen.current = e.currentTarget;
             setAbierta(true);
@@ -43,10 +43,13 @@ export function MandarATienda({ porMandar, abrirAlCargar = false }: { porMandar:
         >
           <Truck className="h-5 w-5 shrink-0 text-ambar" aria-hidden />
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium text-tinta">{falta.titulo}</span>
-            <span className="block text-xs text-tinta/65">{falta.detalle}</span>
+            <span className="block text-sm font-semibold text-tinta">{falta.titulo}</span>
+            <span className="block text-xs">{falta.detalle}</span>
           </span>
-          <ArrowRight className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
+            Mandar
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </span>
         </button>
       )}
       {abierta && (
