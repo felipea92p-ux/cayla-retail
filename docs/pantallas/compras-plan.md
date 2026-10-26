@@ -17,7 +17,7 @@ Responde bien UNA pregunta —«¿cuántas prendas de cada categoría compro par
 | Avisos (spike ②) | **Flotante, sin palabra.** Lo urgente sigue asomando (el plazo no se esconde), salvo que lo apagues | #4: el ícono lleva solo el número; la palabra «Avisos» queda como opción apagada. **Con barra propia** (lo pediste con tu captura): el panel se ancla bajo el botón, nunca pasa del borde de la ventana, su lista corre sola sin mover la página, y Escape o un clic fuera lo cierran |
 | Paso 2 (spike ③) | Colores como en A (parejo / lo que propone / a mano) **y al tocar un color, sus tallas**; el **total del paso 1 editable ahí mismo** con un aviso chico («también cambia en el paso 1; la inversión sube S/ X») que se cierra con ✕ o solo | #9: es A + C integrados; «B · prendas» queda solo para mirar |
 | Modelos (spike ⑥) | Pediste ver **primero el producto y la marca, y dentro los colores más vendidos y su talla** (spike ⑥): **elegiste solo el ranking de modelos**, con la marca bajo el nombre y, dentro de cada modelo, los colores y las **tallas editables**. Y que **sumar a una talla suba las prendas de su color** (corregido en los spikes ③ y ⑥: talla → color → modelo → total, con «Subir el total» que congela lo ya elegido) | #9 |
-| Enviar a Compras (spike ⑦) | Con el presupuesto conforme, **mandar lo elegido (modelos, colores y tallas) a Compras como «Pendiente de campaña, falta confirmar»**, con la fecha en que piensas pedir o «pedir ya», y **un botón para rectificar** | pedido posterior, §7b |
+| Enviar a Compras (spike ⑦) | Con el presupuesto conforme, **mandar lo elegido (modelos, colores y tallas) a Compras como «Pendiente de campaña, falta confirmar»**, con la fecha en que piensas pedir o «pedir ya», y **un botón para rectificar** | pedido posterior, §7b — **construido** (ADR-0530; migración `20261026222000` solo en local) |
 | Presupuesto (spike ④) | «Todo bien»: plan con tope lado a lado y tú aceptas, con versiones | #5 y #6 sin cambios |
 | Finanzas (spike ⑤) | «Adecuado». Quiere ver **dónde** se ve cuándo se pide y cuándo se paga. **Tres estados** (no un sí/no) que mandan en el Resumen **y** en Finanzas; nombre **«Inversión en mercadería»** | #10: sub-pestaña **Presupuesto ▸ Cuándo se pide y se paga** (se edita ahí), la franja del plazo (qué día pedir), Finanzas ▸ Flujo de caja y Escenarios (cuándo sale la plata) y Compras ▸ Por pagar (el pago real) |
 | Datos suficientes | **Aprobada tal cual:** Sin base (<10 unidades) · Orientativo (10–29) · Útil (≥30 y ≥2 campañas parecidas) · Sólido (≥100) | #9 |
@@ -263,7 +263,7 @@ Recomiendo el programa, pero **en orden**: #1–#3 ya, luego #4–#6 (sin tocar 
 - [ ] `[pantalla:compras-plan]` #10 Inversión en mercadería en Finanzas — L
 - [ ] `[pantalla:compras-plan]` #11 Pulido de Formidable pendiente — S
 - [ ] `[pantalla:compras-plan]` #12 Decidir: programa del año — decisión
-- [ ] `[pantalla:compras-plan]` 7b Enviar lo elegido a Compras como «Pendiente de campaña» (con fecha y rectificar) — L
+- [x] `[pantalla:compras-plan]` 7b Enviar lo elegido a Compras como «Pendiente de campaña» (con fecha y rectificar) — L · construido el 2026-10-26 (ADR-0530): pestaña «3 · Enviar a Compras» en la hoja de la categoría, «Pendientes de campaña» en Compras ▸ Órdenes; lo del Taller no llega a Producción (se dice, no se crea nada)
 - [ ] `[pantalla:compras-plan]` 7c #13 Recomendar cómo pagar la campaña (calendarios de pago contra un rango de entradas de Sinatra; crédito del proveedor y colchón escritos por el empresario) — M, después de #10
 
 ## Historial

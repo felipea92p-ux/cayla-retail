@@ -1,7 +1,8 @@
 # ADR-0530 — Plan de campaña ▸ Enviar a Compras: pedidos pendientes de campaña, y la orden solo al confirmar
 
-- **Fecha:** 2026-10-26 · **Estado:** la base está construida y probada en local (`20261026222000_plan_compra_enviar_a_compras.sql`, **solo en local**: espera el OK puntual de Felipe para pegarla en producción);
-  la web se arma en los cortes siguientes (ver «Cómo se construye»). El número de este ADR y el de la migración están reservados para la rama `claude/campaign-plan-audit-652032` (`pnpm reservar`).
+- **Fecha:** 2026-10-26 · **Estado:** construido y probado en local: la base (`20261026222000_plan_compra_enviar_a_compras.sql`, **solo en local**: espera el OK puntual de Felipe para pegarla en producción), el Plan (la
+  pestaña «3 · Enviar a Compras» y la marca de cada fila) y Compras ▸ Órdenes («Pendientes de campaña»). La web se apaga sola —no ofrece enviar ni dibuja la bandeja— si la base no tiene la migración. El número de este
+  ADR y el de la migración están reservados para la rama `claude/campaign-plan-audit-652032` (`pnpm reservar`).
 - **Continúa a:** [ADR-0526](0526-plan-de-campana-paso-2-modelos-colores-y-tallas.md) (el reparto por modelo, color y talla que aquí se envía) y [ADR-0527](0527-plan-de-campana-cuando-se-paga-igv-y-lo-que-ve-finanzas.md)
   (lo pedido que lee Finanzas).
 - **Relacionados:** ADR-0362 (órdenes de compra: de ahí sale la orden), ADR-0161 (módulos y roles), ADR-0358 (una función, una pieza), ADR-0389 (guías interactivas), ADR-0136 (movimiento de modales).
@@ -36,6 +37,11 @@ numeración (el número se toma al guardar), su PDF, el envío al proveedor y `f
 8. **Antes de crear la orden se revisa lo que ella rechazaría, y se dice con el nombre de la cosa** (la orden diría «la línea 3»): un proveedor, una categoría o una marca inactivos, un modelo al que se le
    quitó la marca, **o un modelo cuyo proveedor cambió desde que se envió** (pedirle a quien ya no lo surte es el error que no se ve hasta que llega la mercadería). En todos esos casos el pedido **sigue pendiente**.
 
+9. **Confirmar una orden baja «Comprar» y eso NO cambia el plan.** «Comprar» del Plan es lo que FALTA pedir: baja con cada orden de compra. Sin cuidado, confirmar el primer pedido habría dejado todo el paso 2
+   en «por revisar» (el total con que se guardó ya no es lo que falta) y no habría dejado enviar el resto. La base cuenta las **prendas que ya son orden desde que se guardó el paso 2** (`confirmadas`: solo pedidos
+   de campaña cuya orden sigue generada —una anulada vuelve a sumar a lo que falta— y confirmados DESPUÉS de guardar ese paso 2) y la lista y la pestaña las suman a «Comprar» antes de decir «por revisar»
+   (`paso2PorRevisar`). Si de verdad se tocó el plan, o entró otra orden a mano, sí se pide revisar. El paso 3 se queda a la vista aunque ya no falte pedir nada: ahí se ve en qué quedó cada pedido.
+
 ```
 DECIDÍ:     una tabla propia de pedidos pendientes de campaña (estado, cuándo y foto de líneas) cuya única salida a una orden de compra es una función que la crea con las reglas de siempre y deja el pedido ligado a
             ella en la misma transacción.
@@ -48,19 +54,36 @@ SE ROMPE SI: dos personas confirman el mismo pedido a la vez (lo cierra el bloqu
             costo: ver «Objeciones»); o la campaña empieza dentro de más de un año (la entrega se topa a un año y el Plan no la contaría como pedida de esa campaña).
 ```
 
+## Cómo se ve (la web) y en qué se aparta de la maqueta
+
+- **En el Plan:** la hoja de cada categoría gana la pestaña «3 · Enviar a Compras» (solo con el paso 2 guardado). Una tabla por proveedor (prendas, al costo del plan) con «Pedir ya / Pedir el…» y su fecha, el aviso
+  «Llega tarde: después del 17 nov», «Todos: pedir ya» y «Todos: el último día», el cuadro «No se envía todavía» y el pie «Enviar como pendientes de campaña». Ya enviado, cada proveedor dice «Pendiente · falta
+  confirmar» o «Pedido · OC-…», y el pie suma «Rectificar el envío» y «Ver en Compras». La fila de la lista dice «2 pendientes en Compras», «1 pedido» o «El plan cambió después de enviar».
+- **En Compras ▸ Órdenes:** arriba de las órdenes, un aviso («2 pedidos de Navidad 2026 esperan tu confirmación: pide antes del 17 nov para que llegue el 1 dic») y una tarjeta por pedido con «Confirmar y pedir»,
+  «Cambiar fecha», «Rectificar» y «Ver las líneas». Lo ya pedido (30 días) o rectificado (14) se queda a la vista, con «Ver la orden» y «Volver a enviar desde el Plan».
+- **Se aparta de la maqueta, a propósito:** (a) el envío vive en una **pestaña de la hoja de la categoría**, no en un botón de la fila: la fila de la lista del Plan es toda un botón (abre la hoja) y un botón dentro de
+  otro no es HTML válido; (b) **no hay cifra «sale de caja (con IGV)»**: depende de si la categoría está marcada «ya incluye el IGV» en Presupuesto ▸ Cuándo se paga y mostrar una cuenta que puede estar mal es peor que
+  no mostrarla (la columna dice «al costo del plan»); (c) **lo del Taller no se envía** (la maqueta lo mandaba a «Pasar a Producción»): se dice en «No se envía todavía» y se pide en Producción; (d) **«Rectificar»** es
+  una sola hoja para el Plan y Compras (una función, una pieza) y sus razones son las cuatro de la maqueta, sin texto libre: «Otro» queda escrito como «Otro».
+
 ## Cómo se prueba que no se rompe (todo-o-nada, concurrencia y caídas)
 
-- **Estados imposibles, en el esquema y no en la pantalla** (`pruebas:plan-compra-envio`, 51 casos): un «pedido» sin orden, un «rectificado» sin motivo, «ya» con fecha, dos envíos activos de lo mismo, una orden ligada a
+- **Estados imposibles, en el esquema y no en la pantalla** (`pruebas:plan-compra-envio`, 52 casos): un «pedido» sin orden, un «rectificado» sin motivo, «ya» con fecha, dos envíos activos de lo mismo, una orden ligada a
   dos pedidos, una línea repetida o de 0 prendas, un pedido que cambia después de pedido o de rectificado, que se borra o cuyo plan, proveedor, prendas o costo se editan: **los rechaza la tabla** aunque nadie pase por
   las funciones. Las tablas no se leen ni se escriben desde la web (RLS encendido, **sin políticas** y sin permisos de tabla).
 - **Todo-o-nada:** un lote de envíos con UNO inválido no deja ninguno; si la orden de compra rechaza algo que nada más ve (un modelo con más de 99 999 prendas), el pedido **sigue pendiente y no nace orden**.
 - **Sesiones reales a la vez** (con commit, sobre filas «ZZ Envio Real» que se borran al terminar): cuatro personas envían a la vez lo mismo → **un** pedido; cuatro confirman a la vez → **una** orden, la misma para las
   cuatro; alguien confirma mientras otra rectifica, cuatro veces → gana una, y las órdenes que nacen son exactamente los pedidos «pedido». **Se comprobó que la prueba ve el fallo:** sin el bloqueo de la fila en
   `confirmar_pedido_campana`, K2 y K3 fallan (y la invariante sigue en pie gracias al disparador de la tabla, que es la segunda red).
+- **En el navegador, de punta a punta** (local, con la cuenta de un líder): enviar dos proveedores con fechas distintas (uno con «llega tarde»), ver los dos pendientes en Compras, confirmar uno (nace la orden con sus
+  líneas, el costo del plan y la entrega para el inicio de la campaña, y el Plan la cuenta como pedida), rectificar el otro, volver a enviarlo desde el Plan y cambiarle la fecha. En modo oscuro, 0 hallazgos
+  (`tema:auditar`, también la hoja de confirmar); las dos guías corren sin escribir nada; en 375 px las tarjetas apilan sin desbordar. Pruebas de la lógica pura: 25 (Plan) y 14 (Compras).
 - **Caída externa:** no hay red de por medio. Si la base no responde, no se envía ni se confirma nada y la pantalla lo dice; lo que ya estaba en pantalla no se pierde.
 - **La puerta responde a la sesión de la tienda** (el rol `authenticated`, no el dueño: ADR-0496 rompió la tienda 16 h por probar solo como dueño) y se cierra sin el módulo que toca y a `anon`.
 
 ## Lo que todavía no hace (honestidad)
+
+- **Los pedidos pendientes no se avisan fuera de la pantalla:** nadie recibe un correo ni un aviso al celular cuando el Plan manda algo a Compras; lo ve quien abre Órdenes (el aviso de arriba y su número).
 
 - **Lo del Taller no llega a Producción**: se dice «va a Producción» y no se crea nada. Conectar el pedido con Producción ▸ Órdenes es otro módulo.
 - **La orden no lleva color ni talla** (`orden_compra_items` no los guarda): van en la descripción de cada línea y en el pedido de campaña, que se puede ver desde la orden.
