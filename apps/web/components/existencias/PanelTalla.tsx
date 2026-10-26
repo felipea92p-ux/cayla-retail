@@ -227,6 +227,9 @@ export function PanelTalla({
   // «Ajustar stock» (ADR-0494): la planilla del modelo entero. El hook se llama siempre y trabaja solo con la planilla abierta; entra en el
   // lugar donde la talla elegida tiene más unidades (Felipe, ronda 3).
   const modoAjuste = flujo?.tipo === "ajustar";
+  // Con la planilla a la vista, la hoja no se desliza: solo la planilla (ronda 2 de la «Planilla rápida», Felipe 2026-10-26). Las
+  // etiquetas de lo que entró vuelven a la hoja de siempre.
+  const planillaFija = modoAjuste && !listoAjuste;
   const prendaDeAhora = colores.find((c) => c.clave === clave) ?? colores[0];
   const filaDeAhora = prendaDeAhora?.tallas.find((t) => t.varianteId === varianteId) ?? prendaDeAhora?.tallas[0];
   const ajuste = useAjusteDelModelo({
@@ -240,6 +243,14 @@ export function PanelTalla({
     ordenColores: colores.map((c) => c.color),
     ubicadoInicial: lugarInicial({ piso: filaDeAhora?.piso ?? 0, almacen: filaDeAhora?.almacen ?? 0 }, separa),
   });
+  // La última versión del ajuste, para lo que corre después de guardar (el cambio de lugar de «Guardar y pasar a almacén»): la del render
+  // que guardó todavía tiene lo contado y rechazaría el cambio.
+  const ajusteAhora = useRef(ajuste);
+  useEffect(() => {
+    ajusteAhora.current = ajuste;
+  });
+  // «Guardar y pasar a almacén» (ronda 2 de la «Planilla rápida»): tras guardar se sigue en el otro lugar, no se vuelve a la talla.
+  const [pasarDespues, setPasarDespues] = useState<"piso" | "almacen" | null>(null);
   const ajusteSucio = modoAjuste && (ajuste.lineas.length > 0 || ajuste.enviando || ajuste.incierto);
   const { pedirAccion, retirarYa, aviso } = useSalidaSinGuardar(
     ajusteSucio || (Boolean(flujo) && !modoAjuste && pasoSucio),
@@ -464,7 +475,7 @@ export function PanelTalla({
       setListoAjuste(null);
       raiz.current?.focus({ preventScroll: true });
     });
-  async function guardarAjuste() {
+  async function guardarAjuste(luego?: "piso" | "almacen") {
     const antes = { varianteId: fila!.varianteId, piso: fila!.pisoDisponible ?? 0, almacen: fila!.almacenDisponible ?? 0, disponible: fila!.disponible };
     const r = await ajuste.guardar();
     if (!r) return;
@@ -488,8 +499,14 @@ export function PanelTalla({
     window.setTimeout(
       () => {
         setSellando(null);
+        // Si entraron prendas, primero sus etiquetas; con «Guardar y pasar», «Más tarde» sigue en el otro lugar.
         if (!r.yaEstaba && r.lineas.some((l) => l.delta > 0)) {
           setListoAjuste(r);
+          setPasarDespues(luego ?? null);
+          return;
+        }
+        if (luego) {
+          ajusteAhora.current.cambiarLugar(luego);
           return;
         }
         setFlujo(null);
@@ -635,7 +652,7 @@ export function PanelTalla({
       )}
       {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
       {prenda.precioDeSede && <span className="font-semibold text-ambar-profundo"> · precio de esta tienda</span>}
-      {descripcion && <span className="mt-1 block whitespace-pre-line break-words text-[13px] leading-snug text-tinta/80">{descripcion}</span>}
+      {descripcion && !modoAjuste && <span className="mt-1 block whitespace-pre-line break-words text-[13px] leading-snug text-tinta/80">{descripcion}</span>}
     </>
   );
 
@@ -646,13 +663,23 @@ export function PanelTalla({
         variante="hoja"
         ancho={`max-w-[62rem] transition-[max-width] duration-[420ms] ease-[var(--ease-cayla)] ${modoAjuste ? anchoDelModalAlAjustar(ajuste.modelo?.tallas.length ?? tallasDeTodos.length).clase : ""}`} /* unificar-fijo: el modal de la prenda de Existencias es de diseño propio (ADR-0344); al ajustar crece solo si la planilla no cabe (ADR-0494) */
         conCerrar
-        titulo={prenda.referencia}
+        altoFijo={planillaFija}
+        titulo={
+          modoAjuste ? (
+            <>
+              {prenda.referencia}
+              <span className="text-taupe"> · Ajustar stock</span>
+            </>
+          ) : (
+            prenda.referencia
+          )
+        }
         subtitulo={subtitulo}
         onClose={onCerrar}
         antesDeCerrar={(cerrar) => pedirAccion(cerrar)}
       >
         {(cerrar) => (
-          <div ref={raiz} tabIndex={-1} onKeyDown={alTeclear} data-guia="existencias.cajon" className="outline-none">
+          <div ref={raiz} tabIndex={-1} onKeyDown={alTeclear} data-guia="existencias.cajon" className={`outline-none ${planillaFija ? "flex min-h-0 flex-auto flex-col" : ""}`}>
             {/* ¿Qué prenda? Lo que es del MODELO, no de la talla (ADR-0391): las mismas cuatro de la vista rápida de Catálogo. */}
             {/* Al ajustar, lo de la prenda se pliega: la planilla necesita el lugar (ronda 2 de la maqueta), y vuelve al salir. */}
             <div className="ajuste-repliega" data-plegado={modoAjuste ? "si" : undefined} aria-hidden={modoAjuste || undefined}>
@@ -693,9 +720,12 @@ export function PanelTalla({
               </div>
             </div>
 
-            <div className={`grid gap-5 transition-[grid-template-columns] duration-[420ms] ease-[var(--ease-cayla)] sm:gap-6 ${modoAjuste ? "sm:grid-cols-[14rem_minmax(0,1fr)]" : "sm:grid-cols-[17rem_minmax(0,1fr)]"}`}>
-              {/* ¿Cuál? La foto, las vistas, el color, la talla y su código. */}
-              <aside className="grid content-start gap-3">
+            <div
+              className={`grid gap-5 transition-[grid-template-columns] duration-[420ms] ease-[var(--ease-cayla)] sm:gap-6 ${modoAjuste ? "sm:grid-cols-[14rem_minmax(0,1fr)]" : "sm:grid-cols-[17rem_minmax(0,1fr)]"} ${planillaFija ? "min-h-0 flex-auto grid-rows-[minmax(0,1fr)]" : ""}`}
+            >
+              {/* ¿Cuál? La foto, las vistas, el color, la talla y su código. Al ajustar, la foto y el talón (en el celular se van: el pie ya
+                  dice cuántos cambios, y la planilla se queda con el alto). */}
+              <aside className={planillaFija ? "flex min-h-0 flex-col gap-3 max-sm:hidden" : "grid content-start gap-3"}>
                 <div
                   ref={fotoGrandeRef}
                   onClick={prenda.fotoUrl ? () => setFotoGrande(true) : undefined}
@@ -826,7 +856,7 @@ export function PanelTalla({
               </aside>
 
               {/* ¿Dónde está? ¿Qué hago? ¿Cómo se vende? — o el paso en curso, o «Todas». */}
-              <section key={`${vista}-${prenda.clave}-${flujo?.tipo ?? ""}`} className="anim-asentar grid min-w-0 content-start gap-3.5">
+              <section key={`${vista}-${prenda.clave}-${flujo?.tipo ?? ""}`} className={`anim-asentar min-w-0 ${planillaFija ? "flex min-h-0 flex-col" : "grid content-start gap-3.5"}`}>
                 {flujo?.tipo === "ajustar" && listoAjuste ? (
                   <ListoDelAjuste
                     guardado={listoAjuste}
@@ -835,6 +865,11 @@ export function PanelTalla({
                     precioDe={(c) => colores.find((x) => x.color === c)?.precio ?? prenda.precio ?? null}
                     onMasTarde={() => {
                       setListoAjuste(null);
+                      if (pasarDespues) {
+                        ajuste.cambiarLugar(pasarDespues);
+                        setPasarDespues(null);
+                        return;
+                      }
                       setFlujo(null);
                       setFocoAjuste(null);
                       raiz.current?.focus({ preventScroll: true });
@@ -842,6 +877,8 @@ export function PanelTalla({
                   />
                 ) : flujo?.tipo === "ajustar" ? (
                   <PlanillaDelAjuste
+                    // Al cambiar de lugar la planilla empieza de nuevo: «Revisaste» y el aviso son de lo contado en un lugar.
+                    key={ajuste.ubicado}
                     control={ajuste}
                     foco={focoAjuste}
                     onApagarFoco={() => setFocoAjuste(null)}
@@ -851,6 +888,7 @@ export function PanelTalla({
                       const f = colores.flatMap((c) => c.tallas).find((t) => t.varianteId === id);
                       if (f) onAjustarCompleto(f);
                     }}
+                    onGuardarYPasar={(u) => void guardarAjuste(u)}
                     sedeNombre={sedeNombre}
                     sellados={sellando?.lineas.map((l) => l.variante.varianteId)}
                   />

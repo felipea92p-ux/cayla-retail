@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact } from "react";
-import { Check, PencilLine } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
+import { Archive, Check, ClipboardCheck, Info, PencilLine, PenLine, ReceiptText, SearchCheck, SearchX, Store } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
-import { Boton, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { IconoPercha } from "@/components/ui/IconoPercha";
+import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { Globito } from "@/components/ui/Globito";
@@ -18,7 +21,17 @@ import { TiraDeLoQueEntro, VistoQueSeDibuja } from "@/components/ficha-producto/
 import { hrefEtiquetasDeSubidas } from "@/lib/matriz-ficha-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { apartadoEn, type VarianteAjuste } from "@/lib/ajuste-reglas";
-import { anchoDeLaPlanilla, claveCelda, motivoCerrado, motivoPlanilla, MOTIVOS_PLANILLA, PLANILLA } from "@/lib/existencias-ajuste-modelo";
+import {
+  avanceDeLaRevision,
+  avisoCargaDeLaPlanilla,
+  claveCelda,
+  motivoCerrado,
+  motivoPlanilla,
+  MOTIVOS_PLANILLA,
+  ordenDeRecorrido,
+  siguienteDelRecorrido,
+  type ClaveMotivoPlanilla,
+} from "@/lib/existencias-ajuste-modelo";
 import { nombreDeCelda, type AjusteGuardado, type ControlAjuste, type LineaDelLote } from "./useAjusteDelModelo";
 
 /* ====================================================================
@@ -61,45 +74,114 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
 
 /** Lo que dice cada lugar en una frase. */
 const DONDE = { piso: "en piso", almacen: "en almacén", sede: "en la sede" } as const;
+const NOMBRE_LUGAR = { piso: "piso", almacen: "almacén" } as const;
 
+/** El ícono de cada motivo en la banda: se reconoce el botón sin leerlo entero. */
+const ICONO_MOTIVO: Record<ClaveMotivoPlanilla, ReactNode> = {
+  conte: <ClipboardCheck aria-hidden className="h-4 w-4" />,
+  encontre: <SearchCheck aria-hidden className="h-4 w-4" />,
+  no_aparece: <SearchX aria-hidden className="h-4 w-4" />,
+  error_cobro: <ReceiptText aria-hidden className="h-4 w-4" />,
+  uso_interno: <Store aria-hidden className="h-4 w-4" />,
+  otro: <PenLine aria-hidden className="h-4 w-4" />,
+};
+
+/** Lo que una cantidad tiene que decir además de su número: cambió mientras se contaba, nunca estuvo aquí o tiene apartadas. */
+function notaDeCelda(v: VarianteAjuste, control: ControlAjuste): { texto: string; tono: "nueva" | "dato" | "ajeno" } | null {
+  const ajeno = control.cambioAjeno(v);
+  if (ajeno) return { texto: `había ${ajeno.antes}, ahora ${ajeno.ahora}`, tono: "ajeno" };
+  if (v.sinHistoria) return { texto: "nueva aquí", tono: "nueva" };
+  const apartado = apartadoEn(v, control.lugar);
+  if (apartado > 0) return { texto: `${apartado} ${apartado === 1 ? "apartada" : "apartadas"}`, tono: "dato" };
+  return null;
+}
+
+/* La planilla del modelo entero («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html).
+   Arriba, la banda con «Dónde» y «Qué pasó», siempre en el mismo lugar; debajo, el aviso, y la planilla, lo único que se desliza. Con una
+   talla, columnas Hoy · Contaste · Cambio y lo del otro lugar; con varias, colores × tallas. La cantidad de la que se viene lleva el cursor y
+   un filo, y nada se apaga: todo el modelo se toca igual. Enter pasa a la siguiente cantidad (talla por talla, bajando por los colores). */
 export function PlanillaDelAjuste({
   control,
   foco,
   onApagarFoco,
   onVolver,
   onAbrirConteo,
+  onGuardarYPasar,
   sedeNombre,
   sellados,
 }: {
   control: ControlAjuste;
-  /** La celda de la que se viene (su variante), en foco; `null` = todo el modelo encendido. */
+  /** La celda de la que se viene (su variante), con su filo; `null` = ya se tocó otra. */
   foco: string | null;
   onApagarFoco: () => void;
   onVolver: () => void;
   /** Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza (ADR-0291). */
   onAbrirConteo: (varianteId: string) => void;
+  /** «Guardar y pasar a almacén»: guarda lo contado aquí y sigue en el otro lugar. */
+  onGuardarYPasar: (lugar: "piso" | "almacen") => void;
   sedeNombre: string;
   /** Lo recién guardado, por variante y en orden: cada talla se sella en verde, una tras otra, antes de «listo». */
   sellados?: readonly string[];
 }) {
   const { modelo, guia } = control;
-  // El último «por qué no» de un toque: bajo la planilla, hasta el siguiente toque que sí se pudo.
+  // El último «por qué no» de un toque, o el lugar pedido con cambios sin guardar: en el aviso, entre la banda y la planilla, hasta el
+  // siguiente toque que sí se pudo. `vez` vuelve a montar el aviso, así destella también la segunda vez que se pide lo mismo.
   const [razon, setRazon] = useState<string | null>(null);
+  const [pideLugar, setPideLugar] = useState<"piso" | "almacen" | null>(null);
+  const [vez, setVez] = useState(0);
+  // Lo que la persona ya miró en esta visita (tocó, escribió o confirmó con Enter): «Revisaste 3 de 7».
+  const [vistas, setVistas] = useState<ReadonlySet<string>>(() => new Set());
+  const [deslizada, setDeslizada] = useState(false);
   const m = motivoPlanilla(control.motivo);
   const varianteFoco = modelo && foco ? [...modelo.celdas.values()].find((v) => v.varianteId === foco) : undefined;
   const raiz = useRef<HTMLDivElement>(null);
+  const caja = useRef<HTMLDivElement>(null);
+  const motivos = useRef<HTMLDivElement>(null);
+  const orden = modelo ? ordenDeRecorrido(modelo) : [];
+  const avance = modelo ? avanceDeLaRevision(modelo, vistas) : null;
+  const avisoCarga = avisoCargaDeLaPlanilla(control.avisoCarga);
 
-  // En la compu, el cursor queda en la talla de la que se viene, con su número elegido para escribir encima (en el celular no: abriría el
+  // En el celular «Qué pasó» va en una fila que se desliza: el motivo elegido queda a la vista (solo se mueve esa fila, nunca la hoja).
+  useEffect(() => {
+    const fila = motivos.current;
+    const elegido = fila?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!fila || !elegido || fila.scrollWidth <= fila.clientWidth) return;
+    const f = fila.getBoundingClientRect();
+    const b = elegido.getBoundingClientRect();
+    if (b.left < f.left || b.right > f.right) fila.scrollLeft += b.left - f.left - 8;
+  }, [control.motivo]);
+
+  /** Lleva una cantidad a la vista DENTRO de la planilla, sin mover la hoja ni la página. */
+  function verEnLaPlanilla(el: Element) {
+    const vista = caja.current;
+    if (!vista) return;
+    const v = vista.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const cab = vista.querySelector("thead")?.getBoundingClientRect().height ?? 0;
+    const pie = vista.querySelector("tfoot")?.getBoundingClientRect().height ?? 0;
+    const izq = vista.querySelector("tbody .ajuste-col-color")?.getBoundingClientRect().width ?? 0;
+    if (r.top < v.top + cab) vista.scrollTop -= v.top + cab - r.top + 6;
+    else if (r.bottom > v.bottom - pie) vista.scrollTop += r.bottom - (v.bottom - pie) + 6;
+    if (r.left < v.left + izq) vista.scrollLeft -= v.left + izq - r.left + 6;
+    else if (r.right > v.right) vista.scrollLeft += r.right - v.right + 6;
+  }
+
+  function enfocar(varianteId: string) {
+    const input = raiz.current?.querySelector<HTMLInputElement>(`[data-variante="${varianteId}"] input`);
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    input.select();
+    verEnLaPlanilla(input);
+  }
+
+  // En la compu, el cursor queda en la cantidad de la que se viene, con su número elegido para escribir encima (en el celular no: abriría el
   // teclado sin pedirlo). Espera a que la planilla llegue (la ola de ADR-0136).
   const enfocada = Boolean(varianteFoco);
   useEffect(() => {
     if (!enfocada || !foco || !window.matchMedia?.("(pointer: fine)").matches) return;
-    const t = window.setTimeout(() => {
-      const caja = raiz.current?.querySelector<HTMLInputElement>(`[data-variante="${foco}"] input`);
-      caja?.focus({ preventScroll: true });
-      caja?.select();
-    }, 420);
+    const t = window.setTimeout(() => enfocar(foco), 420);
     return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al llegar a la planilla
   }, [enfocada, foco]);
 
   function soltarFocoSiEsOtra(destino: EventTarget) {
@@ -110,238 +192,401 @@ export function PlanillaDelAjuste({
 
   function alTeclear(e: KeyboardEventReact<HTMLDivElement>) {
     if (e.key !== "Escape") return;
-    // El primer Escape enciende todo el modelo; el siguiente vuelve a la talla. Los dos los usa la planilla: no cierran el modal
-    // (`useEscapeLibre`, ADR-0136 act. 2026-09-26).
+    // Escape vuelve a la talla (con «¿Salir sin guardar?» si hay algo tocado). No cierra el modal (`useEscapeLibre`, ADR-0136 act. 2026-09-26).
     e.stopPropagation();
-    if (foco) onApagarFoco();
-    else onVolver();
+    onVolver();
   }
 
+  function avisar(texto: string | null) {
+    setRazon(texto);
+    setPideLugar(null);
+    if (texto) setVez((n) => n + 1);
+  }
+
+  function elegirLugar(u: "piso" | "almacen") {
+    if (u === control.ubicado) return;
+    const r = control.cambiarLugar(u);
+    if (r && control.lineas.length > 0 && !control.incierto) {
+      // Hay cambios sin guardar aquí: un lugar por vez. El aviso pregunta qué hacer con ellos, con las tres salidas a un toque.
+      setRazon(null);
+      setPideLugar(u);
+      setVez((n) => n + 1);
+      return;
+    }
+    avisar(r);
+  }
+
+  const marcarVista = (varianteId: string) => setVistas((s) => (s.has(varianteId) ? s : new Set(s).add(varianteId)));
+
   const nTallas = modelo?.tallas.length ?? 0;
-  const conTotal = nTallas > 1;
-  const titulo = foco && varianteFoco ? nombreDeCelda(varianteFoco, modelo) : null;
+  const varias = nTallas > 1;
+  const titulo = varianteFoco ? nombreDeCelda(varianteFoco, modelo) : null;
+  const totalEn = (u: "piso" | "almacen") => (modelo ? [...modelo.celdas.values()].reduce((s, v) => s + (u === "piso" ? v.stockPiso : v.stockAlmacen), 0) : 0);
+  const otroLugar = control.lugar === "piso" ? "almacén" : "piso";
+  const otro = (v: VarianteAjuste) => (control.lugar === "piso" ? v.stockAlmacen : v.stockPiso);
+  const nCambios = control.lineas.length;
+
+  const celda = (v: VarianteAjuste, f: number, c: number, conNota: boolean) => (
+    <Celda
+      v={v}
+      control={control}
+      enFoco={v.varianteId === varianteFoco?.varianteId}
+      ola={{ f, c }}
+      sello={sellados ? sellados.indexOf(v.varianteId) : -1}
+      conNota={conNota}
+      onRazon={avisar}
+      onVista={() => marcarVista(v.varianteId)}
+      onSiguiente={() => {
+        const sig = siguienteDelRecorrido(orden, v.varianteId);
+        if (sig) enfocar(sig);
+      }}
+      onAbrirConteo={onAbrirConteo}
+    />
+  );
+  const columnaColor = (color: string | null, hex: string | null, extra?: ReactNode) => (
+    <th scope="row" className="ajuste-col-color">
+      <span aria-hidden data-color-dato className="ajuste-franja" style={{ background: hex ?? "var(--color-sand)" }} />
+      <span className="ajuste-color">
+        <b>{color ?? "Sin color"}</b>
+        {extra}
+      </span>
+    </th>
+  );
 
   return (
-    <div ref={raiz} onKeyDown={alTeclear} className="grid min-w-0 content-start gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <Volver onClick={onVolver} a="la talla" />
-          <div className="min-w-0">
-            <TituloSeccion>Ajustar stock</TituloSeccion>
-            <p className="mt-0.5 text-[12.5px] text-taupe">
-              {titulo ? (
-                <>
-                  Empiezas por <b className="font-semibold text-tinta">{titulo}</b> ·{" "}
-                  <button type="button" onClick={onApagarFoco} className="btn-enlace">
-                    Ver todo el modelo
-                  </button>
-                </>
-              ) : (
-                <>
-                  Todo el modelo · {modelo ? `${modelo.colores.length} ${modelo.colores.length === 1 ? "color" : "colores"}${nTallas > 1 ? ` · ${nTallas} tallas` : ""} · ` : ""}
-                  {sedeNombre}
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-        {control.separa && (
-          <div>
-            <Segmentado
-              etiqueta="Dónde contaste"
-              valor={control.ubicado}
-              onValor={(u) => setRazon(control.cambiarLugar(u))}
-              opciones={[
-                { valor: "almacen", texto: "En almacén" },
-                { valor: "piso", texto: "En piso" },
-              ]}
-            />
-          </div>
-        )}
-      </div>
-
-      <CampoGuiado id="motivo" guia={guia} retiene="fila" titulo="Qué pasó">
-        <div role="group" aria-label="Qué pasó" className="flex flex-wrap gap-1.5">
-          {MOTIVOS_PLANILLA.map((x) => {
-            const cerrado = motivoCerrado(x.clave, control.ubicado, control.separa);
-            return (
-              <button
-                key={x.clave}
-                type="button"
-                aria-pressed={control.motivo === x.clave}
-                aria-disabled={cerrado ? true : undefined}
-                title={cerrado ?? undefined}
-                onClick={() => setRazon(control.cambiarMotivo(x.clave))}
-                className={`pildora-cayla ${cerrado ? "opacity-45" : ""}`}
-              >
-                {x.texto}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-[12.5px] text-taupe">
-          {m.ayuda} ¿Se dañó? No se resta: se reporta, con «Reportar dañada» en la talla.
+    <div ref={raiz} onKeyDown={alTeclear} className="ajuste-vista">
+      <div className="ajuste-encabezado">
+        <Volver onClick={onVolver} a="la talla" />
+        <p className="min-w-0">
+          {titulo ? (
+            <>
+              Empiezas por <b>{titulo}</b>
+              <span className="ajuste-de-mas">; puedes cambiar {varias ? "cualquier talla" : "cualquier color"}</span>.
+            </>
+          ) : (
+            <>
+              Todo el modelo{modelo ? ` · ${modelo.colores.length} ${modelo.colores.length === 1 ? "color" : "colores"}${varias ? ` · ${nTallas} tallas` : ""}` : ""} · {sedeNombre}
+            </>
+          )}
         </p>
-      </CampoGuiado>
-
-      {m.nota && (
-        <CampoGuiado id="nota" guia={guia}>
-          <CampoTexto
-            id="ajuste-nota"
-            etiqueta={m.nota.etiqueta}
-            maxLength={200}
-            placeholder={m.nota.ejemplo}
-            value={control.nota}
-            onChange={(e) => control.cambiarNota(e.target.value)}
-          />
-        </CampoGuiado>
-      )}
-
-      {control.avisoCarga && <Aviso tono="info" chico>{control.avisoCarga}</Aviso>}
-
-      <div
-        data-campo="cambios"
-        data-enfocada={varianteFoco ? "si" : undefined}
-        className="ajuste-planilla"
-        // Tocar otra talla (o llegar a ella con Tab) enciende todo el modelo, y el toque sigue: su «+» suma igual (ronda 3).
-        onPointerDownCapture={(e) => soltarFocoSiEsOtra(e.target)}
-        onFocusCapture={(e) => soltarFocoSiEsOtra(e.target)}
-      >
-        {control.fallaLectura ? (
-          <div className="p-4">
-            <Aviso tono="error" chico accion={<button type="button" onClick={control.reintentar} className="btn-enlace">Reintentar</button>}>
-              No se pudo leer el stock de la prenda.
-            </Aviso>
-          </div>
-        ) : !modelo ? (
-          <p role="status" className="p-5 text-[13px] text-taupe">
-            Leyendo el stock de {sedeNombre}…
-          </p>
-        ) : (
-          <table /* unificar-fijo: matriz de colores × tallas (ADR-0494), como la de Editar producto: las matrices de tallas quedan aparte de <Tabla> */ className="ajuste-tabla" style={{ minWidth: anchoDeLaPlanilla(nTallas) }}>
-            <colgroup>
-              <col />
-              {modelo.tallas.map((t) => (
-                <col key={t ?? "unica"} style={{ width: PLANILLA.columnaTalla }} />
-              ))}
-              {conTotal && <col style={{ width: PLANILLA.columnaTotal }} />}
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col" className="ajuste-col-color" style={indice(0)}>
-                  <span className="label-cayla text-[11px] text-taupe">{DONDE[control.lugar].replace(/^en /, "En ")}</span>
-                </th>
-                {modelo.tallas.map((t, i) => (
-                  <th key={t ?? "unica"} scope="col" style={indice(i + 1)}>
-                    <span className="ajuste-talla" data-foco={varianteFoco && varianteFoco.talla === t ? "si" : undefined}>
-                      {t ?? "Única"}
-                    </span>
-                  </th>
-                ))}
-                {conTotal && (
-                  <th scope="col" style={indice(nTallas + 1)}>
-                    <span className="label-cayla text-[11px] text-taupe">Total</span>
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {modelo.colores.map((c, f) => {
-                const enFila = modelo.tallas.map((t) => modelo.celdas.get(claveCelda(c.color, t)));
-                const total = enFila.reduce((s, v) => s + (v ? control.numero(v) : 0), 0);
-                const otroLugar = control.lugar === "piso" ? "almacén" : "piso";
-                const otro = enFila.reduce((s, v) => s + (v ? (control.lugar === "piso" ? v.stockAlmacen : v.stockPiso) : 0), 0);
-                return (
-                  <tr key={c.color ?? "sin-color"} style={indice(f)}>
-                    <th scope="row" className="ajuste-col-color">
-                      <span className="ajuste-color" data-foco={varianteFoco && varianteFoco.color === c.color ? "si" : undefined}>
-                        <span aria-hidden data-color-dato className="ajuste-muestra" style={{ background: c.hex ?? "var(--color-hueso)" }} />
-                        <span className="min-w-0">
-                          <b className="block truncate font-display text-[18px] font-medium leading-tight text-tinta">{c.color ?? "Sin color"}</b>
-                          {control.separa && <small className="block truncate text-[12px] text-taupe">{`${otro} en ${otroLugar}`}</small>}
-                        </span>
-                      </span>
-                    </th>
-                    {enFila.map((v, i) =>
-                      v ? (
-                        <td key={v.varianteId}>
-                          <Celda
-                            v={v}
-                            control={control}
-                            enFoco={v.varianteId === varianteFoco?.varianteId}
-                            ola={{ f, c: i }}
-                            sello={sellados ? sellados.indexOf(v.varianteId) : -1}
-                            onRazon={setRazon}
-                            onAbrirConteo={onAbrirConteo}
-                          />
-                        </td>
-                      ) : (
-                        <td key={`${c.color}-${modelo.tallas[i]}`}>
-                          <span className="ajuste-guion" title="Esta combinación no existe en el catálogo">
-                            —
-                          </span>
-                        </td>
-                      )
-                    )}
-                    {conTotal && <td className="ajuste-total tabular-nums">{total}</td>}
-                  </tr>
-                );
-              })}
-            </tbody>
-            {modelo.colores.length > 1 && (
-              <tfoot>
-                <tr>
-                  <th scope="row" className="ajuste-col-color label-cayla text-[11px] text-taupe">
-                    Total
-                  </th>
-                  {modelo.tallas.map((t) => (
-                    <td key={t ?? "unica"} className="tabular-nums">
-                      {modelo.colores.reduce((s, c) => {
-                        const v = modelo.celdas.get(claveCelda(c.color, t));
-                        return s + (v ? control.numero(v) : 0);
-                      }, 0)}
-                    </td>
-                  ))}
-                  {conTotal && <td className="tabular-nums">{[...modelo.celdas.values()].reduce((s, v) => s + control.numero(v), 0)}</td>}
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        )}
       </div>
 
-      {razon && (
-        <Aviso tono="atencion" chico>
+      <div className="ajuste-banda">
+        {control.separa && (
+          <div className="ajuste-banda-fila">
+            <span className="ajuste-banda-tit">Dónde</span>
+            <div role="group" aria-label="Dónde contaste" className="ajuste-opciones">
+              {(["almacen", "piso"] as const).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  aria-pressed={control.ubicado === u}
+                  data-pide={pideLugar === u ? "si" : undefined}
+                  onClick={() => elegirLugar(u)}
+                  className="pildora-cayla ajuste-opcion"
+                >
+                  {u === "almacen" ? <Archive aria-hidden className="h-4 w-4" /> : <IconoPercha aria-hidden className="h-4 w-4" />}
+                  {u === "almacen" ? "En almacén" : "En piso"}
+                  <span className="ajuste-opcion-cuenta" title={`${totalEn(u)} ${DONDE[u]} hoy`}>
+                    {totalEn(u)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <CampoGuiado id="motivo" guia={guia} retiene="fila" className="ajuste-banda-fila">
+          <span className="ajuste-banda-tit">
+            <ConMarca estado={guia.estado("motivo")}>Qué pasó</ConMarca>
+          </span>
+          <div ref={motivos} role="group" aria-label="Qué pasó" className="ajuste-opciones ajuste-opciones-desliza">
+            {MOTIVOS_PLANILLA.map((x) => {
+              const cerrado = motivoCerrado(x.clave, control.ubicado, control.separa);
+              return (
+                <button
+                  key={x.clave}
+                  type="button"
+                  aria-pressed={control.motivo === x.clave}
+                  aria-disabled={cerrado ? true : undefined}
+                  title={cerrado ?? x.ayuda}
+                  onClick={() => avisar(control.cambiarMotivo(x.clave))}
+                  className="pildora-cayla ajuste-opcion"
+                >
+                  {ICONO_MOTIVO[x.clave]}
+                  {x.texto}
+                </button>
+              );
+            })}
+          </div>
+        </CampoGuiado>
+        {m.nota && (
+          <CampoGuiado id="nota" guia={guia} className="ajuste-banda-pie">
+            <CampoTexto
+              id="ajuste-nota"
+              etiqueta={m.nota.etiqueta}
+              maxLength={200}
+              placeholder={m.nota.ejemplo}
+              value={control.nota}
+              onChange={(e) => control.cambiarNota(e.target.value)}
+            />
+          </CampoGuiado>
+        )}
+        <div className="ajuste-banda-pie">
+          <span>
+            {m.ayuda}
+            <span className="ajuste-de-mas"> ¿Se dañó? Se reporta, no se resta: «Reportar dañada» en la talla.</span>
+          </span>
+          {avisoCarga && (
+            <span className="ajuste-banda-info">
+              <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
+              {avisoCarga}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {pideLugar ? (
+        <Aviso
+          key={`lugar-${vez}`}
+          tono="atencion"
+          className="ajuste-aviso"
+          titulo={`Tienes ${nCambios} ${nCambios === 1 ? "cambio" : "cambios"} sin guardar ${DONDE[control.lugar]}`}
+        >
+          Se cuenta un lugar por vez. ¿Qué hacemos con lo que contaste antes de pasar a {NOMBRE_LUGAR[pideLugar]}?
+          <span className="ajuste-aviso-acciones">
+            <Boton
+              peso="primario"
+              cargando={control.enviando}
+              disabled={Boolean(control.problema)}
+              title={control.problema ? (guia.frase ?? undefined) : undefined}
+              onClick={() => {
+                setPideLugar(null);
+                onGuardarYPasar(pideLugar);
+              }}
+            >
+              Guardar y pasar a {NOMBRE_LUGAR[pideLugar]}
+            </Boton>
+            <Boton
+              peso="fantasma"
+              onClick={() => {
+                control.descartarYPasar(pideLugar);
+                setPideLugar(null);
+              }}
+            >
+              Descartar y pasar
+            </Boton>
+            <Boton peso="fantasma" onClick={() => setPideLugar(null)}>
+              Seguir {DONDE[control.lugar]}
+            </Boton>
+          </span>
+        </Aviso>
+      ) : razon ? (
+        <Aviso key={`razon-${vez}`} tono="atencion" className="ajuste-aviso">
           {razon}
         </Aviso>
-      )}
+      ) : null}
       {control.error && (
         <Aviso tono={control.incierto || control.cambioAlContar ? "atencion" : "error"} enfocable>
           {control.error}
         </Aviso>
       )}
+
+      <div
+        data-campo="cambios"
+        className="ajuste-planilla"
+        // Tocar otra cantidad (o llegar a ella con Tab) le quita el filo a la de partida, y el toque sigue: su «+» suma igual.
+        onPointerDownCapture={(e) => soltarFocoSiEsOtra(e.target)}
+        onFocusCapture={(e) => soltarFocoSiEsOtra(e.target)}
+      >
+        {control.fallaLectura ? (
+          <div className="bg-papel p-4">
+            <Aviso tono="error" chico accion={<button type="button" onClick={control.reintentar} className="btn-enlace">Reintentar</button>}>
+              No se pudo leer el stock de la prenda.
+            </Aviso>
+          </div>
+        ) : !modelo ? (
+          <p role="status" className="bg-papel p-5 text-[13px] text-taupe">
+            Leyendo el stock de {sedeNombre}…
+          </p>
+        ) : (
+          <>
+            <div className="ajuste-planilla-barra">
+              <span className="ajuste-planilla-lugar">
+                {control.lugar === "almacen" ? <Archive aria-hidden className="h-3.5 w-3.5" /> : control.lugar === "piso" ? <IconoPercha aria-hidden className="h-3.5 w-3.5" /> : null}
+                {DONDE[control.lugar].replace(/^en /, "En ")}
+              </span>
+              {!varias && <span className="ajuste-talla">{modelo.tallas[0] ?? "Única"}</span>}
+              <span className="ajuste-pista">
+                <kbd>Enter</kbd> pasa {varias ? "al color de abajo" : "al siguiente"}
+              </span>
+              {avance && (
+                <span className="ajuste-avance">
+                  <span>
+                    Revisaste <b>{avance.hechos}</b> de {avance.total} {avance.unidad}
+                  </span>
+                  <BarraAvance pct={avance.total ? (100 * avance.hechos) / avance.total : 0} alto="fina" decorativa className="ajuste-avance-barra" />
+                </span>
+              )}
+            </div>
+            <div ref={caja} className="ajuste-desliza" data-desliza={deslizada ? "si" : undefined} onScroll={(e) => setDeslizada(e.currentTarget.scrollLeft > 2)}>
+              {varias ? (
+                <table /* unificar-fijo: matriz de colores × tallas (ADR-0494), como la de Editar producto: las matrices de tallas quedan aparte de <Tabla> */ className="ajuste-tabla" data-tallas="varias">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="ajuste-col-color">
+                        <span className="label-cayla text-[11px] text-taupe">Color</span>
+                      </th>
+                      {modelo.tallas.map((t) => (
+                        <th key={t ?? "unica"} scope="col">
+                          <span className="ajuste-talla">{t ?? "Única"}</span>
+                        </th>
+                      ))}
+                      <th scope="col">
+                        <span className="label-cayla text-[11px] text-taupe">Total</span>
+                      </th>
+                      <th aria-hidden className="ajuste-relleno" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelo.colores.map((c, f) => {
+                      const enFila = modelo.tallas.map((t) => modelo.celdas.get(claveCelda(c.color, t)));
+                      const total = enFila.reduce((s, v) => s + (v ? control.numero(v) : 0), 0);
+                      const delColor = enFila.filter((v): v is VarianteAjuste => Boolean(v));
+                      return (
+                        <tr key={c.color ?? "sin-color"} style={indice(f)}>
+                          {columnaColor(c.color, c.hex)}
+                          {enFila.map((v, i) =>
+                            v ? (
+                              <td key={v.varianteId}>{celda(v, f, i, true)}</td>
+                            ) : (
+                              <td key={`${c.color}-${modelo.tallas[i]}`}>
+                                <span className="ajuste-guion" title="Esta combinación no existe en el catálogo">
+                                  —
+                                </span>
+                              </td>
+                            )
+                          )}
+                          <td className="ajuste-total tabular-nums">{total}</td>
+                          <td className="ajuste-relleno">
+                            <Revisado on={delColor.length > 0 && delColor.every((v) => vistas.has(v.varianteId))} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th scope="row" className="ajuste-col-color">
+                        <span className="label-cayla text-[11px] text-taupe">Total</span>
+                      </th>
+                      {modelo.tallas.map((t) => (
+                        <td key={t ?? "unica"} className="tabular-nums">
+                          {modelo.colores.reduce((s, c) => {
+                            const v = modelo.celdas.get(claveCelda(c.color, t));
+                            return s + (v ? control.numero(v) : 0);
+                          }, 0)}
+                        </td>
+                      ))}
+                      <td className="tabular-nums">{[...modelo.celdas.values()].reduce((s, v) => s + control.numero(v), 0)}</td>
+                      <td className="ajuste-relleno" />
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : (
+                <table /* unificar-fijo: la planilla de un modelo de una talla (ADR-0494): sus filas son pasos de cantidad, no registros de <Tabla> */ className="ajuste-tabla" data-tallas="una">
+                  <thead>
+                    <tr>
+                      <th scope="col" className="ajuste-col-color">
+                        <span className="label-cayla text-[11px] text-taupe">Color</span>
+                      </th>
+                      <th scope="col" className="ajuste-hoy">
+                        <span className="label-cayla text-[11px] text-taupe">Hoy</span>
+                      </th>
+                      <th scope="col">
+                        <span className="label-cayla text-[11px] text-taupe">Contaste</span>
+                      </th>
+                      <th scope="col">
+                        <span className="label-cayla text-[11px] text-taupe">Cambio</span>
+                      </th>
+                      <th scope="col" className="ajuste-relleno">
+                        {control.separa && <span className="label-cayla text-[11px] text-taupe">En {otroLugar}</span>}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelo.colores.map((c, f) => {
+                      const v = modelo.celdas.get(claveCelda(c.color, modelo.tallas[0] ?? null));
+                      if (!v) return null;
+                      const hoy = control.hoy(v);
+                      const d = control.numero(v) - hoy;
+                      const nota = notaDeCelda(v, control);
+                      return (
+                        <tr key={v.varianteId} style={indice(f)} data-cambio={d !== 0 ? "si" : undefined}>
+                          {columnaColor(c.color, c.hex, <span className="ajuste-hoy-movil">hoy {hoy}{nota ? ` · ${nota.texto}` : ""}</span>)}
+                          <td className="ajuste-hoy">{hoy}</td>
+                          <td>{celda(v, f, 0, false)}</td>
+                          <td className="ajuste-cambio">
+                            {d === 0 ? (
+                              <span className="ajuste-nada">—</span>
+                            ) : (
+                              <span key={d} className="ajuste-delta tabular-nums" data-tono={d > 0 ? "entra" : "sale"}>
+                                {d > 0 ? `+${d}` : `−${-d}`}
+                              </span>
+                            )}
+                          </td>
+                          <td className="ajuste-relleno ajuste-otro">
+                            {control.separa && otro(v)}
+                            {nota && <small data-tono={nota.tono}>{nota.texto}</small>}
+                            <Revisado on={vistas.has(v.varianteId)} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-/** Una celda: el paso de cantidad «planilla» y, debajo, lo que hay que saber (cómo cambió, nueva aquí, apartadas o el otro lugar). */
+/** El visto de «Revisaste»: aparece cuando ya miraste todo ese color. */
+function Revisado({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden className="ajuste-revisado" data-on={on ? "si" : undefined}>
+      <Check className="h-3.5 w-3.5" />
+    </span>
+  );
+}
+
+/** Una cantidad: el paso de cantidad «planilla» y, con varias tallas, debajo lo que hay que saber (era cuánto, nueva aquí, apartadas). */
 function Celda({
   v,
   control,
   enFoco,
   ola,
   sello,
+  conNota,
   onRazon,
+  onVista,
+  onSiguiente,
   onAbrirConteo,
 }: {
   v: VarianteAjuste;
   control: ControlAjuste;
   enFoco: boolean;
-  /** Su fila y su columna: la ola llega en diagonal, y el anillo del foco se cierra cuando la ola terminó. */
+  /** Su fila y su columna: la ola llega en diagonal, y el anillo de la cantidad de partida se cierra cuando la ola terminó. */
   ola: { f: number; c: number };
   /** Su turno en el sellado tras guardar (`-1`: no se guardó). */
   sello: number;
+  /** Con varias tallas, la línea de abajo; con una, eso va en las columnas de la fila. */
+  conNota: boolean;
   onRazon: (r: string | null) => void;
+  onVista: () => void;
+  onSiguiente: () => void;
   onAbrirConteo: (varianteId: string) => void;
 }) {
   // Lo que se está escribiendo (puede quedar vacío un instante); al salir o con Enter se fija, y la celda vuelve a su número.
@@ -364,14 +609,13 @@ function Celda({
   const cambio = n !== hoy;
   const noSube = control.porQueNoSube(v);
   const noBaja = control.porQueNoBaja(v);
-  const apartado = apartadoEn(v, control.lugar);
-  // Cambió mientras se contaba (ADR-0494): se dice de cuánto venía hasta que la persona toca la talla.
   const ajeno = control.cambioAjeno(v);
 
   function tocar(p: 1 | -1) {
     const r = control.paso(v, p);
     if (r.abrirConteo) onAbrirConteo(v.varianteId);
     else onRazon(r.razon);
+    if (!r.razon) onVista();
   }
   function confirmar() {
     if (borrador === null) return;
@@ -383,13 +627,8 @@ function Celda({
     else onRazon(r.razon);
   }
 
-  let bajo: { texto: string; tono: "cambio" | "nueva" | "dato" | "otro" | "ajeno" } | null;
-  if (ajeno) bajo = { texto: `había ${ajeno.antes}, ahora ${ajeno.ahora}`, tono: "ajeno" };
-  else if (cambio) bajo = { texto: `${hoy} → ${n}`, tono: "cambio" };
-  else if (v.sinHistoria) bajo = { texto: "nueva aquí", tono: "nueva" };
-  else if (apartado > 0) bajo = { texto: `${apartado} ${apartado === 1 ? "apartada" : "apartadas"}`, tono: "dato" };
-  else if (control.separa) bajo = { texto: `${control.lugar === "piso" ? v.stockAlmacen : v.stockPiso} en ${control.lugar === "piso" ? "almacén" : "piso"}`, tono: "otro" };
-  else bajo = null;
+  const nota = notaDeCelda(v, control);
+  const bajo = !conNota ? null : nota?.tono === "ajeno" ? nota : cambio ? { texto: `era ${hoy}`, tono: "cambio" as const } : nota;
 
   return (
     <div
@@ -419,6 +658,8 @@ function Celda({
             if (e.key === "Enter") {
               e.preventDefault();
               confirmar();
+              onVista();
+              onSiguiente();
             } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
               e.preventDefault();
               tocar(e.key === "ArrowUp" ? 1 : -1);
@@ -426,9 +667,11 @@ function Celda({
           },
         }}
       />
-      <span className="ajuste-bajo" data-tono={bajo?.tono}>
-        {bajo?.texto ?? " "}
-      </span>
+      {conNota && (
+        <span className="ajuste-bajo" data-tono={bajo?.tono}>
+          {bajo?.texto ?? " "}
+        </span>
+      )}
       {sello >= 0 && (
         <span aria-hidden className="ajuste-visto" style={{ "--n": sello } as CSSProperties}>
           <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3 w-3" strokeWidth={3} />
@@ -444,7 +687,7 @@ export function TalonDelAjuste({ control, guardadas, sellado = false }: { contro
   const resumen = guardadas ? resumenDeLineas(guardadas) : control.resumen;
   return (
     // En el celular el talón no cabe: el pie ya dice cuántos cambios, cuánto entra y cuánto sale.
-    <div className="grid content-start gap-2.5 max-sm:hidden">
+    <div className="grid min-h-0 content-start gap-2.5 overflow-y-auto max-sm:hidden">
       <p className="flex items-center gap-2">
         <span className="label-cayla text-[11px] text-taupe">{guardadas ? "Lo que se guardó" : "Lo que vas a guardar"}</span>
         <Globito n={lineas.length} pide late etiqueta={`${lineas.length} ${lineas.length === 1 ? "talla tocada" : "tallas tocadas"}`} />
@@ -512,7 +755,7 @@ export function PieDelAjuste({ control, onCancelar, onGuardar }: { control: Cont
         </CampoGuiado>
         <div className="min-w-0 flex-1 text-[13px]">
           {n === 0 ? (
-            <span className="text-taupe">Nada cambia hasta que guardes.</span>
+            <span className="text-taupe max-sm:hidden">Nada cambia hasta que guardes.</span>
           ) : problema ? (
             <PieGuia guia={guia} />
           ) : (

@@ -130,3 +130,46 @@ publicar la web: una web vieja no manda `esperado`, y una base vieja ignora la c
   - Al guardar 6, la base rechazó: «Mientras contabas cambió Beige S: había 8 y ahora hay 7…». La celda siguió en 6 y el pie pasó de «salen 2»
     a «salen 1».
   - El segundo guardado dejó 6, lo contado. Ninguna invariante nueva.
+
+## Actualización 2026-10-26: la «Planilla rápida» (ronda 2)
+
+**Qué pidió Felipe.** Sobre una captura de la Blusa Becky (7 colores, talla Estándar): el número se veía lejísimos del color, había scroll
+que no hacía falta, la talla en foco apagaba el resto (y casi siempre hay que cambiar varios) y las opciones de arriba no se notaban. Se
+hicieron tres propuestas (`docs/maquetas/existencias-ajustar-tabla-2026-10/index.html`); eligió la **C · Planilla rápida** y, sobre su
+ronda 2 (`ronda-2.html`), pidió que «Dónde» y «Qué pasó» no cambien de lugar, que la tabla no se confunda con el fondo, que la columna del
+color no se transparente al deslizar en el celular, la franja de color como en la matriz de Catálogo, un alto fijo para la tabla y un aviso
+que se note. Después: que solo se encienda la cantidad que cambió, que en el celular la columna del color mida lo que el nombre más
+largo, que «Color» vaya centrado y que se quite «Empiezas aquí». Y «que sea super responsive siempre».
+
+**Qué cambió (solo web, sin migración ni RPC; las reglas de un lugar por vez, los motivos y el guardado en una llamada no cambian).**
+1. **La hoja no se desliza.** `<Modal altoFijo>` (prop nueva, `components/ui/Modal.tsx`): la hoja crece hasta su alto máximo y reparte ese
+   alto; arriba la cabecera («Blusa Becky · Ajustar stock»), la vuelta y la banda; abajo el pie. **Solo la planilla se desliza**, en las
+   dos direcciones, con su cabecera y su total fijos. Con pocos colores la hoja mide lo que su contenido (no queda aire). Las etiquetas de
+   lo que entró vuelven a la hoja de siempre.
+2. **La banda:** «Dónde» (con cuántas hay en cada lugar) y «Qué pasó» (cada motivo con su ícono) en píldoras sobre un fondo propio,
+   siempre arriba y en el mismo lugar, con una talla o con muchas. En el celular «Qué pasó» va en una fila que se desliza.
+3. **La planilla:** una bandeja en hueso con borde y filas en papel alternadas; la franja de 6 px del color al inicio de cada fila (como
+   `MatrizStockFicha`); con una talla, columnas Hoy · Contaste · Cambio · En el otro lugar; con varias, colores × tallas con Total. Cada fila
+   pinta un fondo **opaco** (mezclado con papel), así la columna fija del color tapa lo que pasa por detrás al deslizar, con una sombra en
+   su borde. El paso «planilla» bajó a 36 px (44 con el dedo) y su − y + aparecen al pasar el mouse o con el cursor (siempre con el dedo).
+4. **Nada se apaga:** la cantidad de la que se viene lleva el cursor y un filo hasta que se toca otra; se fue el 28 % de opacidad del resto
+   y «Ver todo el modelo». **Enter** pasa a la cantidad siguiente (talla por talla, bajando por los colores, `ordenDeRecorrido`) y
+   «Revisaste 3 de 7» cuenta lo mirado en la visita (solo vive en la pantalla).
+5. **El aviso:** entre la banda y la planilla, fuera de lo que se desliza, más presente que el común y con un destello una vez. Al pedir
+   el otro lugar con cambios sin guardar, el botón queda marcado en ámbar y el aviso ofrece **«Guardar y pasar a almacén»**, «Descartar y
+   pasar» (`descartarYPasar` del hook) o «Seguir en piso». «Guardar y pasar» guarda igual que «Guardar» (la misma llamada) y después cambia
+   de lugar; si entraron prendas, primero sus etiquetas y «Más tarde» sigue en el otro lugar.
+6. **El aviso de la carga inicial** nombra el botón de la planilla, «Encontré unidades» (`avisoCargaDeLaPlanilla`); el texto de la base
+   sigue diciendo «Encontré prendas», que es el nombre del motivo en la ventana completa de Ajustar.
+7. **Celular:** la foto y el talón se van (el pie ya dice cuántos cambios), «Hoy» va bajo el nombre y lo secundario se esconde, para que la
+   planilla se quede con el alto. La columna del color mide lo que su nombre más largo.
+
+**Movimiento.** Sigue la excepción de ADR-0136 act. 2026-10-23 (c), con lo que se fue (el hilo que se dibujaba bajo la cabecera, el apagado
+del resto) y lo que llegó (el destello del aviso, la cifra del cambio que late): una vez, `--ease-cayla`, apagado con «reducir movimiento»;
+lo vigila `lib/ajuste-modelo-movimiento.test.ts`. Las medidas de `PLANILLA` (160 · 104 · 64) siguen a las del CSS.
+
+**Cómo se verificó.** ERP local con la base local: Blusa Emma (2 × 3) y Blusa Aurora (3 colores, una talla) a 1280 × 800, 1024 × 768 (en
+oscuro) y 375 px; la hoja no se desliza en ninguno, sin scroll horizontal en escritorio; en el celular la columna del color queda fija y
+opaca al deslizar. Enter bajó de Beige S a Negro S, el aviso de lugar salió con sus tres salidas y «Descartar y pasar» dejó la planilla limpia
+en piso. **No se probó «Guardar y pasar» guardando de verdad** (la base local es compartida): el guardado es el de siempre y el cambio de
+lugar después se probó con «Descartar y pasar».
