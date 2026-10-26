@@ -100,7 +100,7 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
 
   return (
     <Modal
-      titulo={`Cerrar la ronda ${texto}`}
+      titulo={`Cerrar mi ronda ${texto}`}
       subtitulo="Revisa tu plata y di qué haces con lo que te queda."
       onClose={onClose}
       variante="hoja"
