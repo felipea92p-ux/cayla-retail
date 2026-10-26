@@ -9,10 +9,9 @@
 
 import { soles } from "./compras-reglas";
 import { diasEntreFechas } from "./fechas-lima";
+import { DIAS_PARA_JUZGAR, MIN_COMPRADAS, SEMANAS_AGOTA, SEMANAS_STOCK_LARGO, ritmoDeDatos, textoSemanas, type Ritmo } from "./proveedor-ritmo-reglas";
 import { COSTO_REAL_MIN_PCT, margenDe, pct, plataRealEnEstantes, tieneCostoReal, totalesDePrendas, type PrendaDeProveedor } from "./proveedor-prendas-reglas";
 
-/** Una prenda que llegó hace menos que esto no se juzga: «sin vender» puede ser solo que llegó ayer. */
-export const DIAS_PARA_JUZGAR = 21;
 /** Plata parada mínima para avisar (por debajo no vale la pena un aviso). Felipe 2026-10-24: 1000 → 500. */
 export const PLATA_PARADA_MIN = 500;
 /** Unidades paradas mínimas para avisar cuando el costo está por confirmar (el aviso es de unidades, no de plata). */
@@ -21,15 +20,12 @@ export const UNIDADES_PARADAS_MIN = 30;
 export const PUNTOS_MARGEN_BAJO = 7;
 /** Unidades vendidas mínimas para sacar una conclusión de MARGEN (margen bajo, vuelve a comprarle). No rige para el ritmo ni la plata parada. */
 export const MIN_VENDIDAS = 10;
-/** Unidades compradas mínimas para hablar del ritmo de un proveedor (con menos, es poca mercadería para medir nada). */
-export const MIN_COMPRADAS = 20;
-/** Semanas que tardaría en venderse lo que queda, al ritmo actual, desde las que se avisa «frénate»: una temporada. */
-export const SEMANAS_STOCK_LARGO = 16;
-/** Semanas en las que, al ritmo actual, se agota lo que queda: desde ahí es «vuelve a comprarle» (con margen) o «se agota pronto». */
-export const SEMANAS_AGOTA = 6;
 /** Peso de un proveedor en el gasto de Compras desde el que se avisa dependencia. Felipe 2026-10-24: 40 → 25. */
 export const DEPENDENCIA_PCT = 25;
 export const MAX_AVISOS = 5;
+
+// Los umbrales del ritmo viven en `proveedor-ritmo-reglas.ts` (una sola regla para la ficha, la lista y el ranking); se reexportan aquí.
+export { DIAS_PARA_JUZGAR, MIN_COMPRADAS, SEMANAS_AGOTA, SEMANAS_STOCK_LARGO };
 
 export type TonoHallazgo = "atencion" | "exito" | "info";
 
@@ -52,54 +48,17 @@ export type PrendaConProveedor = PrendaDeProveedor & { proveedorId: string; prov
 const num = (n: number) => n.toLocaleString("es-PE");
 const p0 = (n: number) => `${Math.round(n)} %`;
 
-/** Semanas desde la primera entrada (mínimo 1: antes no hay ritmo que medir). */
-function semanasDesde(primera: string | null, hoy: string): number {
-  if (!primera) return 1;
-  return Math.max(1, diasEntreFechas(primera, hoy) / 7);
-}
-
-export type Ritmo = {
-  /** ¿Hay mercadería suficiente y tiempo en la tienda para hablar de ritmo? */
-  juzgable: boolean;
-  vendidas: number;
-  enEstantes: number;
-  semanas: number;
-  porSemana: number;
-  /** Semanas que tardaría en venderse lo que queda: 0 si no queda nada, `Infinity` si no vendió nada. */
-  semanasParaAgotar: number;
-  /** Tarda `SEMANAS_STOCK_LARGO` semanas o más (o no vendió nada) en vender lo que le queda. */
-  lento: boolean;
-  /** Agota lo que le queda en `SEMANAS_AGOTA` semanas o menos. */
-  agota: boolean;
-};
-
 /**
- * El ritmo de UN proveedor, en UNIDADES (vale para los dos orígenes, carga inicial incluida): una sola función para la ficha y la lista,
- * así no se contradicen. No exige un mínimo de ventas: con 0 o pocas, el ritmo es lento por definición. Si no vendió nada no hay ritmo
- * que medir: cuenta como lento cuando lleva `DIAS_PARA_JUZGAR` días o más en la tienda.
+ * El ritmo de UN proveedor a partir de sus prendas: arma los datos y llama a la regla única de `proveedor-ritmo-reglas.ts`, la misma que usa el
+ * veredicto del ranking. Es de unidades: vale para los dos orígenes.
  */
 export function ritmoDe(prendas: readonly PrendaDeProveedor[], hoy: string): Ritmo {
   const t = totalesDePrendas(prendas);
-  const primera = prendas.map((p) => p.primeraEntrada).filter((d): d is string => !!d).sort()[0] ?? null;
-  const dias = primera ? diasEntreFechas(primera, hoy) : null;
-  const semanas = semanasDesde(primera, hoy);
-  const porSemana = t.unidadesVendidas / semanas;
-  const enEstantes = t.unidadesEnEstantes;
-  const semanasParaAgotar = enEstantes === 0 ? 0 : t.unidadesVendidas === 0 ? Infinity : enEstantes / porSemana;
-  const juzgable = dias != null && dias >= DIAS_PARA_JUZGAR && t.unidadesCompradas >= MIN_COMPRADAS;
-  return {
-    juzgable,
-    vendidas: t.unidadesVendidas,
-    enEstantes,
-    semanas,
-    porSemana,
-    semanasParaAgotar,
-    lento: juzgable && enEstantes > 0 && semanasParaAgotar >= SEMANAS_STOCK_LARGO,
-    agota: juzgable && t.unidadesVendidas > 0 && enEstantes > 0 && semanasParaAgotar <= SEMANAS_AGOTA,
-  };
+  return ritmoDeDatos(
+    { unidadesVendidas: t.unidadesVendidas, unidadesCompradas: t.unidadesCompradas, unidadesEnEstantes: t.unidadesEnEstantes, primeraEntrada: prendas.map((p) => p.primeraEntrada).filter((d): d is string => !!d).sort()[0] ?? null },
+    hoy,
+  );
 }
-
-const textoSemanas = (r: Ritmo) => (Number.isFinite(r.semanasParaAgotar) ? `unas ${Math.round(r.semanasParaAgotar)} semanas` : "un tiempo que no se puede medir: no ha vendido nada");
 
 function sinVenderViejas(prendas: readonly PrendaDeProveedor[], hoy: string): PrendaDeProveedor[] {
   return prendas.filter((p) => p.unidadesVendidas === 0 && p.primeraEntrada != null && diasEntreFechas(p.primeraEntrada, hoy) >= DIAS_PARA_JUZGAR);

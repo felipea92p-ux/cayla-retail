@@ -5,10 +5,13 @@ import { ImagePlus } from "lucide-react";
 import { DIBUJOS_ELEGIBLES, NOMBRE_DEL_DIBUJO } from "@cayla-retail/shared/insignias-visual";
 import { urlDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { Aviso } from "@/components/ui/Aviso";
+import { Casilla } from "@/components/ui/Casilla";
 import { DibujoInsignia } from "@/components/sellos/DibujoInsignia";
+import { ImagenDeInsignia } from "@/components/sellos/ImagenDeInsignia";
 import type { EleccionDeDibujo } from "@/lib/eleccion-de-dibujo";
 import { prepararImagenDeInsignia } from "@/lib/imagen-de-insignia";
 import { ACEPTA_IMAGEN_DE_INSIGNIA } from "@/lib/imagen-de-insignia-reglas";
+import { textoDeModoDeSilueta } from "@/lib/silueta-de-imagen";
 
 /* ====================================================================
    El dibujo de una insignia (ADR-0490, Felipe 2026-10-23): se elige al crearla o después, en Catálogo ▸ Insignias. Hay dos caminos: uno de los 21
@@ -17,7 +20,9 @@ import { ACEPTA_IMAGEN_DE_INSIGNIA } from "@/lib/imagen-de-insignia-reglas";
 
    Es un grupo de opciones de radio (una a la vez, flechas para moverse, Espacio o Enter para elegir): los dibujos y, si hay una imagen propia, su
    baldosa al final. «Subir tu imagen» abre el selector de archivos; la imagen se reduce en el navegador (256 × 256, WebP) y se sube al guardar.
-   Cada dibujo pinta con los colores del tema; una imagen propia no (es lo que la persona subió).
+   Cada dibujo pinta con los colores del tema; una imagen propia, a todo color, no (es lo que la persona subió). Para un logo de UN solo color, la
+   casilla «Pintar con el color del sello» la convierte en silueta (ADR-0490 act. b): se usa solo por su forma y toma el color del lugar, así se ve
+   bien también en modo oscuro; la vista previa se actualiza al marcarla y se puede desmarcar.
    ==================================================================== */
 
 const mismaOpcion = (a: EleccionDeDibujo, b: EleccionDeDibujo): boolean => {
@@ -47,6 +52,9 @@ export function ElegirDibujoDeInsignia({
   const archivo = useRef<HTMLInputElement>(null);
   // La imagen propia se recuerda aunque se pruebe un dibujo: volver a ella es un toque, sin volver a subirla.
   const [imagen, setImagen] = useState<Extract<EleccionDeDibujo, { tipo: "imagen" | "guardada" }> | null>(valor.tipo === "dibujo" ? null : valor);
+  // La silueta se decide al subir (el archivo que sale ya es el molde) y se puede cambiar mientras la imagen no se haya guardado: se vuelve a convertir
+  // desde lo que eligió la persona.
+  const [silueta, setSilueta] = useState(valor.tipo === "guardada" && valor.silueta);
   const [preparando, setPreparando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -69,26 +77,36 @@ export function ElegirDibujoDeInsignia({
     refs.current[destino]?.focus();
   }
 
-  async function alElegirArchivo(e: ChangeEvent<HTMLInputElement>) {
-    const elegido = e.target.files?.[0];
-    e.target.value = ""; // el mismo archivo se puede volver a elegir
-    if (!elegido) return;
+  // Prepara la imagen elegida (a color o como silueta) y la deja como la opción marcada. La usan elegir un archivo y marcar o desmarcar la casilla.
+  async function procesar(original: File, comoSilueta: boolean) {
     setError(null);
-    setAviso(null);
     setPreparando(true);
     try {
-      const listo = await prepararImagenDeInsignia(elegido);
+      const listo = await prepararImagenDeInsignia(original, { silueta: comoSilueta });
       if ("error" in listo) {
         setError(listo.error);
         return;
       }
-      const nueva = { tipo: "imagen", archivo: listo.archivo, vista: URL.createObjectURL(listo.archivo) } as const;
+      const nueva = { tipo: "imagen", archivo: listo.archivo, vista: URL.createObjectURL(listo.archivo), silueta: comoSilueta, modo: listo.modo, original } as const;
       setImagen(nueva);
+      setSilueta(comoSilueta);
       setAviso(listo.aviso);
       onValor(nueva);
     } finally {
       setPreparando(false);
     }
+  }
+
+  async function alElegirArchivo(e: ChangeEvent<HTMLInputElement>) {
+    const elegido = e.target.files?.[0];
+    e.target.value = ""; // el mismo archivo se puede volver a elegir
+    if (!elegido) return;
+    setAviso(null);
+    await procesar(elegido, silueta);
+  }
+
+  async function alCambiarSilueta() {
+    if (imagen?.tipo === "imagen") await procesar(imagen.original, !imagen.silueta);
   }
 
   const clase = (marcado: boolean) =>
@@ -100,7 +118,13 @@ export function ElegirDibujoDeInsignia({
       ? yaElegido
         ? `Dibujo: ${NOMBRE_DEL_DIBUJO[valor.clave]}.`
         : `Sugerido por el nombre: ${NOMBRE_DEL_DIBUJO[valor.clave]}. Elige otro si quieres.`
-      : "Tu imagen propia.";
+      : valor.tipo === "imagen"
+        ? valor.silueta && valor.modo
+          ? textoDeModoDeSilueta(valor.modo)
+          : "Tu imagen propia."
+        : valor.silueta
+          ? "Tu imagen, pintada del color del sello."
+          : "Tu imagen propia.";
 
   return (
     <div className="space-y-2" data-campo="dibujo">
@@ -124,8 +148,7 @@ export function ElegirDibujoDeInsignia({
             {o.tipo === "dibujo" ? (
               <DibujoInsignia clave={o.clave} className="h-6 w-6" />
             ) : urlDeLaImagen ? (
-              // eslint-disable-next-line @next/next/no-img-element -- una vista previa local (blob:) o del almacén público: no pasa por el optimizador
-              <img src={urlDeLaImagen} alt="" className="h-7 w-7 object-contain" />
+              <ImagenDeInsignia url={urlDeLaImagen} silueta={o.silueta} className="h-7 w-7" />
             ) : null}
           </button>
         ))}
@@ -145,6 +168,15 @@ export function ElegirDibujoDeInsignia({
           {texto}
         </p>
       </div>
+      {valor.tipo === "imagen" && imagen?.tipo === "imagen" && (
+        <label className="flex min-h-11 cursor-pointer items-start gap-2.5 py-1 text-sm text-tinta">
+          <Casilla marcada={imagen.silueta} onCambio={alCambiarSilueta} etiqueta="Pintar con el color del sello" disabled={deshabilitado || preparando} className="mt-0.5" />
+          <span>
+            Pintar con el color del sello
+            <span className="block text-xs text-taupe">Para un logo de un solo color: se verá bien también en modo oscuro. Pierde sus colores.</span>
+          </span>
+        </label>
+      )}
       {!imagen && !error && <p className="text-xs text-taupe">¿No está el que buscas? Sube tu imagen: mejor un PNG con fondo transparente, que se reduce a 256 × 256.</p>}
       {aviso && <p className="text-xs text-taupe">{aviso}</p>}
       {error && (

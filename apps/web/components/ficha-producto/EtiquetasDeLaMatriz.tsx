@@ -12,7 +12,7 @@ import { Vacio } from "@/components/ui/Vacio";
 
 /** Una etiqueta que la cuenta puede poner, con su grupo (Rotación, Artesanal, Campaña, General) para dibujarla como en Atributos. */
 /** `icono`: el dibujo que se eligió al crearla (ADR-0490); sin él, el de su nombre. */
-export type EtiquetaMatriz = { valor: string; texto: string; estilo: string; icono?: DibujoDeInsignia | null; imagen?: string | null };
+export type EtiquetaMatriz = { valor: string; texto: string; estilo: string; icono?: DibujoDeInsignia | null; imagen?: string | null; imagenSilueta?: boolean };
 
 // Las etiquetas de la pestaña «Etiquetas» de la matriz (Felipe 2026-10-03): DEBAJO de la tabla, con todo el ancho, y dibujadas
 // como en Catálogo ▸ Insignias (la misma `MuestraEtiqueta` y los mismos grupos), para reconocerlas por su dibujo y
@@ -99,7 +99,7 @@ export function EtiquetasDeLaMatriz({
               const marcada = et.valor === elegida;
               return (
                 <TarjetaMuestraBase key={et.valor} elegido={marcada} deshabilitado={deshabilitado} onClick={() => onElegir(et.valor)} title={`Elegir «${et.texto}» para ponerla o quitarla`}>
-                  <MuestraEtiqueta nombre={et.texto} icono={et.icono} imagen={et.imagen} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
+                  <MuestraEtiqueta nombre={et.texto} icono={et.icono} imagen={et.imagen} imagenSilueta={et.imagenSilueta} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
                   <span className="truncate px-0.5" title={et.texto}>
                     {marcada && <span aria-hidden>✓ </span>}
                     {et.texto}

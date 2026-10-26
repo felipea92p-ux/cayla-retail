@@ -472,6 +472,91 @@ ESCENARIOS.push(
   },
 );
 
+// ---- Vender: varios clientes a la vez (pestañas de tickets, Felipe 2026-10-25) ----
+/** Dos tickets con prendas: uno espera y el otro está en la caja. Es la misma prenda en los dos, así sale también el aviso «Ya está en el
+ *  ticket de Cliente 1» donde no alcanza. Los tickets viven en el navegador: no se escribe nada en la base. */
+async function dosTickets(pagina) {
+  await agregarPrendaAlTicket(pagina);
+  await pagina.getByRole("button", { name: /^Nuevo cliente/ }).first().click();
+  await esperar(pagina, 900);
+  await agregarPrendaAlTicket(pagina);
+}
+async function dosTicketsCelular(pagina) {
+  await abrirCatalogoCelular(pagina);
+  await agregarPrendaAlTicket(pagina);
+  await pagina.getByRole("button", { name: /Ver ticket/i }).first().click();
+  await esperar(pagina, 1200);
+  await pagina.getByRole("button", { name: "Nuevo cliente" }).first().click();
+  await esperar(pagina, 900);
+  await pagina.getByRole("button", { name: /Volver al catálogo/i }).first().click();
+  await esperar(pagina, 900);
+  await agregarPrendaAlTicket(pagina);
+  await pagina.getByRole("button", { name: /Ver ticket/i }).first().click();
+  await esperar(pagina, 1200);
+}
+ESCENARIOS.push(
+  {
+    id: "vender.tickets",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: '[role="group"][aria-label="Tickets abiertos"]',
+    nombre: "Vender · pestañas de tickets (uno en la caja y uno esperando, con el aviso de la prenda repetida)",
+    preparar: dosTickets,
+  },
+  {
+    id: "vender.tickets-descartar",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[role=dialog]",
+    nombre: "Vender · «Descartar este ticket» (pide confirmación)",
+    async preparar(pagina) {
+      await dosTickets(pagina);
+      await pagina.getByRole("button", { name: /^Descartar el ticket de/ }).first().click();
+      await esperar(pagina, 1000);
+    },
+  },
+  {
+    id: "vender.tickets-cierre",
+    ruta: "/vender",
+    // Cerrar la caja solo lo hace un líder o la terminal de ventas (ADR-0160).
+    cuentas: ["admin", "terminal-ventas"],
+    ancho: "escritorio",
+    abre: "[data-tickets-sin-cobrar]",
+    nombre: "Vender · «Hay tickets sin cobrar» antes de cerrar la caja",
+    async preparar(pagina) {
+      await dosTickets(pagina);
+      await pagina.getByRole("button", { name: /^Más/ }).first().click();
+      await esperar(pagina, 900);
+      await pagina.getByRole("button", { name: "Cerrar caja", exact: true }).click();
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "vender.m-tickets",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "celular",
+    abre: '[data-guia="vender.tickets"] button[aria-haspopup="dialog"]',
+    nombre: "Vender (celular) · el selector «Cliente 2 de 2» en la hoja del ticket",
+    preparar: dosTicketsCelular,
+  },
+  {
+    id: "vender.m-tickets-lista",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "celular",
+    abre: "[data-lista-tickets]",
+    nombre: "Vender (celular) · la lista «Tus clientes»",
+    async preparar(pagina) {
+      await dosTicketsCelular(pagina);
+      await pagina.locator('[data-guia="vender.tickets"] button[aria-haspopup="dialog"]').first().click();
+      await esperar(pagina, 1100);
+    },
+  },
+);
+
 // ---------- Caja (actividad 6) ----------
 const CAJEROS = ["admin", "integrante", "terminal-ventas", "rol-personalizado"];
 const botonCaja = (nombre) => async (pagina) => {

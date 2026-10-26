@@ -135,7 +135,10 @@ describe("qué se dibuja de una insignia: imagen propia, luego el dibujo elegido
   const RUTA = rutaDeImagenDeInsignia(E, A);
 
   it("la imagen propia manda sobre el dibujo elegido y sobre el nombre", () => {
-    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "imagen", ruta: RUTA });
+    expect(dibujoResuelto({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "imagen", ruta: RUTA, silueta: false });
+    expect(dibujoResuelto({ nombre: "Halloween", imagen: RUTA, silueta: true })).toEqual({ tipo: "imagen", ruta: RUTA, silueta: true });
+    // Una silueta sin imagen válida no dibuja nada propio: cae al dibujo.
+    expect(dibujoResuelto({ nombre: "Halloween", silueta: true })).toEqual({ tipo: "dibujo", clave: "halloween" });
   });
 
   it("sin imagen válida, el dibujo elegido; sin dibujo elegido, el del nombre", () => {

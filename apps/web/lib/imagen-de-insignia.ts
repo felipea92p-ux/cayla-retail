@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import { BUCKET_DE_INSIGNIAS, LADO_IMAGEN_INSIGNIA, MAX_BYTES_IMAGEN_INSIGNIA, rutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { INTENTOS_DE_COMPRESION_INSIGNIA, avisoDeProporcionInsignia, medidasEnElCuadrado, objecionImagenDeInsignia } from "./imagen-de-insignia-reglas";
+import { aSilueta, type ModoDeSilueta } from "./silueta-de-imagen";
 
 // Preparar y subir la imagen propia de una insignia, desde el NAVEGADOR (Catálogo ▸ Insignias, ADR-0490). Mismo camino que las imágenes de las
 // campañas (`imagen-de-campana.ts`): el archivo se reduce aquí y va directo al almacén público sin pasar por Next; la ruta recién queda en la base
@@ -8,11 +9,14 @@ import { INTENTOS_DE_COMPRESION_INSIGNIA, avisoDeProporcionInsignia, medidasEnEl
 
 type Cliente = ReturnType<typeof createClient>;
 
-export type ImagenDeInsigniaPreparada = { archivo: File; aviso: string | null };
+/** `modo` solo viene con `silueta`: de dónde salió la forma (el fondo transparente o lo oscuro de la imagen). */
+export type ImagenDeInsigniaPreparada = { archivo: File; aviso: string | null; modo: ModoDeSilueta | null };
 
 /** Reduce la imagen elegida a un WebP cuadrado de 256 px y 100 KB o menos: cabe entera en el cuadrado (con fondo transparente, para que un PNG
- *  recortado conserve su silueta) y baja la calidad y, si hace falta, el tamaño, hasta que quepa. Dice por qué no si no se puede. */
-export async function prepararImagenDeInsignia(archivo: File): Promise<ImagenDeInsigniaPreparada | { error: string }> {
+ *  recortado conserve su silueta) y baja la calidad y, si hace falta, el tamaño, hasta que quepa. Dice por qué no si no se puede.
+ *  Con `silueta`, el archivo que sale ya es el MOLDE: píxeles blancos con la forma como transparencia (ADR-0490 act. b), que cada lugar pinta del
+ *  color que le toque; la imagen original no se guarda en ninguna parte. */
+export async function prepararImagenDeInsignia(archivo: File, opciones: { silueta?: boolean } = {}): Promise<ImagenDeInsigniaPreparada | { error: string }> {
   const objecion = objecionImagenDeInsignia(archivo);
   if (objecion) return { error: objecion };
   let bitmap: ImageBitmap;
@@ -23,6 +27,7 @@ export async function prepararImagenDeInsignia(archivo: File): Promise<ImagenDeI
   }
   try {
     const aviso = avisoDeProporcionInsignia(bitmap.width, bitmap.height);
+    let modo: ModoDeSilueta | null = null;
     for (const [calidad, escala] of INTENTOS_DE_COMPRESION_INSIGNIA) {
       const lado = Math.max(16, Math.round(LADO_IMAGEN_INSIGNIA * escala));
       const m = medidasEnElCuadrado(bitmap.width, bitmap.height, lado);
@@ -33,10 +38,16 @@ export async function prepararImagenDeInsignia(archivo: File): Promise<ImagenDeI
       if (!ctx) return { error: "No se pudo preparar la imagen en este navegador." };
       ctx.imageSmoothingQuality = "high";
       ctx.drawImage(bitmap, m.x, m.y, m.ancho, m.alto);
+      if (opciones.silueta) {
+        const pixeles = ctx.getImageData(0, 0, lado, lado);
+        const s = aSilueta(pixeles.data, lado, lado, m);
+        modo = s.modo;
+        ctx.putImageData(new ImageData(s.datos, lado, lado), 0, 0);
+      }
       const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/webp", calidad));
       // Un navegador que no sabe escribir WebP devuelve PNG: no sirve (pesa de más y no es lo que se dice).
       if (!blob || blob.type !== "image/webp") return { error: "Este navegador no puede preparar la imagen (no sabe escribir WebP). Prueba con Chrome, Edge o Safari al día." };
-      if (blob.size <= MAX_BYTES_IMAGEN_INSIGNIA) return { archivo: new File([blob], "insignia.webp", { type: "image/webp" }), aviso };
+      if (blob.size <= MAX_BYTES_IMAGEN_INSIGNIA) return { archivo: new File([blob], "insignia.webp", { type: "image/webp" }), aviso, modo };
     }
     return { error: "Esa imagen sigue pesando más de 100 KB aun reducida. Prueba con una más sencilla." };
   } finally {

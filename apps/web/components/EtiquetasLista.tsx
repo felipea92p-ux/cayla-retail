@@ -106,6 +106,8 @@ export type Etiqueta = {
   icono: DibujoDeInsignia | null;
   /** La ruta de su imagen propia en el almacén `retail-insignias` (ADR-0490); `null` = no tiene. No convive con `icono`. */
   imagen: string | null;
+  /** La imagen propia es un molde (blanco con la forma como transparencia) que se pinta con el color del lugar (ADR-0490 act. b). Solo con `imagen`. */
+  imagenSilueta: boolean;
   vigenteDesde: string | null;
   vigenteHasta: string | null;
   descuentoPct: number | null;
@@ -180,7 +182,7 @@ function TarjetaEtiqueta({
     <TarjetaAtributo
       // Con la tarjeta a todo lo ancho (una columna en el celular) la franja 3:1 llegaba a ~115 px de alto: se topa en 80 y el
       // dibujo se recorta arriba y abajo (`slice`), sin deformarse.
-      muestra={<MuestraEtiqueta nombre={e.nombre} icono={e.icono} imagen={e.imagen} estilo={e.estilo} className="aspect-[3/1] max-h-20 w-full" />}
+      muestra={<MuestraEtiqueta nombre={e.nombre} icono={e.icono} imagen={e.imagen} imagenSilueta={e.imagenSilueta} estilo={e.estilo} className="aspect-[3/1] max-h-20 w-full" />}
       nombre={e.nombre}
       notas={e.estado !== "rechazado" ? e.notas : null}
       insignia={e.estado === "pendiente" ? "Pendiente" : e.estado === "rechazado" ? "Rechazada" : null}
