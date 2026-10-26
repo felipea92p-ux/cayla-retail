@@ -10,6 +10,8 @@
 //            que va a volver rechazado.
 //   NO HACE: leer la base ni decidir permisos.
 
+import { normalizarBusqueda } from "./combo-reglas";
+
 /** Lo que la base acepta (`vitrina_looks`): de 2 a 4 prendas, el nombre hasta 60 letras y la frase hasta 200. */
 export const MIN_PRENDAS_LOOK = 2;
 export const MAX_PRENDAS_LOOK = 4;
@@ -230,10 +232,34 @@ export function colorInicial(m: ModeloParaLook): string {
   return (m.colores.find((c) => c.foto) ?? m.colores[0]).codigo;
 }
 
-/** Los modelos que se pueden agregar: los que se ven en la web y todavía no están en el look. */
-export function modelosParaAgregar(modelos: readonly ModeloParaLook[], elegidas: readonly PiezaElegida[]): ModeloParaLook[] {
-  const ya = new Set(elegidas.map((p) => p.productoId));
-  return modelos.filter((m) => !ya.has(m.id));
+/* ---------------- Elegir las prendas mirándolas (Felipe 2026-10-26) ---------------- */
+
+/** Cuántas prendas se dibujan por página en el selector de la hoja del look: con ~300 modelos, todas juntas serían 300 fotos. */
+export const PRENDAS_POR_PAGINA_LOOK = 24;
+/** Cómo se llama lo que no tiene categoría en el selector. */
+export const SIN_CATEGORIA_LOOK = "Sin categoría";
+
+export type CategoriaParaLook = { nombre: string; modelos: number };
+
+/** Las categorías de los modelos que se pueden elegir, con cuántos hay en cada una: por nombre, y «Sin categoría» al final. */
+export function categoriasParaLook(modelos: readonly ModeloParaLook[]): CategoriaParaLook[] {
+  const cuenta = new Map<string, number>();
+  for (const m of modelos) {
+    const c = m.categoria ?? SIN_CATEGORIA_LOOK;
+    cuenta.set(c, (cuenta.get(c) ?? 0) + 1);
+  }
+  return [...cuenta]
+    .map(([nombre, n]) => ({ nombre, modelos: n }))
+    .sort((a, b) => (a.nombre === SIN_CATEGORIA_LOOK ? 1 : b.nombre === SIN_CATEGORIA_LOOK ? -1 : a.nombre.localeCompare(b.nombre, "es")));
+}
+
+/** Los modelos del selector: los de la categoría elegida (`null`: todas) cuyo nombre o categoría lleva lo escrito (sin tildes ni mayúsculas). Conserva el orden. */
+export function modelosParaElegir(modelos: readonly ModeloParaLook[], filtro: { categoria: string | null; texto: string }): ModeloParaLook[] {
+  const buscado = normalizarBusqueda(filtro.texto);
+  return modelos.filter((m) => {
+    if (filtro.categoria !== null && (m.categoria ?? SIN_CATEGORIA_LOOK) !== filtro.categoria) return false;
+    return buscado === "" || normalizarBusqueda(`${m.nombre} ${m.categoria ?? ""}`).includes(buscado);
+  });
 }
 
 /** Las prendas de un look ya guardado, como se eligen en la hoja. */
