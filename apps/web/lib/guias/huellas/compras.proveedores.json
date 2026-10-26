@@ -2,12 +2,15 @@
   "guia": "compras.proveedores",
   "ruta": "/compras/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 52,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
       "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/LoQueQuizaNoVes.tsx": [
+      "button «Ver»"
     ],
     "components/ProveedorModal.tsx": [
       "SegmentoDeslizante «Clase de proveedor»",
@@ -33,24 +36,41 @@
       "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
       "BotonVer «Abrir ficha completa»"
     ],
+    "components/ProveedoresComparar.tsx": [
+      "button «Quitar todos»",
+      "button «Abrir su vista rápida»",
+      "button «{`Quitar ${f.nombre}»"
+    ],
+    "components/ProveedoresLoQueNoSeVe.tsx": [
+      "button «{p.nombre}»",
+      "Link «Ir a pagar»",
+      "Link «Ir a recibir»"
+    ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",
       "Pestanas «(sin nombre)»",
       "button «{o.etiqueta}»",
       "button «proveedores.sin-pago»",
+      "button «{o.ayuda}»",
       "Boton «Registrar el primero»",
       "Boton «Registrar uno»",
       "Boton «Borrar la búsqueda»",
       "Boton «Registrarlo»",
       "Boton «Limpiar filtros»",
+      "button «Ver en Servicios»",
+      "button «Ver la comparación»",
       "Link «{`${p.nombre}»",
       "button «proveedores.nombre»",
       "Link «{soles(saldo)}»",
       "Link «{soles(p.saldo_favor ?? 0)}»",
       "Boton «Reactivar»"
     ],
-    "components/ProveedoresRendimiento.tsx": [
-      "Link «{r.nombre}»"
+    "components/ProveedoresRanking.tsx": [
+      "button «→() => onMedida(o.m)»",
+      "BotonVerMas «{`Ver los ${resto.length}»",
+      "Casilla «{`Comparar ${f.nombre}»",
+      "button «proveedores.nombre»",
+      "Link «proveedores.saldo»"
     ]
   }
 }
