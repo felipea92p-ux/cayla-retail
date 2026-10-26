@@ -99,7 +99,6 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   if (!resumen) {
     return (
       <div className="space-y-6">
-        <span hidden data-ancho-completo />
         <EncabezadoPagina sede="Finanzas" titulo="Resumen" subtitulo={FRASE} />
         <Aviso tono="error" titulo="El Resumen no respondió">
           {falla ?? "No se pudo leer el resumen. Vuelve a cargar la página; si sigue igual, avisa a Felipe."}
@@ -144,7 +143,6 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
 
   return (
     <div className="space-y-6">
-      <span hidden data-ancho-completo />
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. */}
       <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar") })} />
