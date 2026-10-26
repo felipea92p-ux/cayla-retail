@@ -292,7 +292,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     if (contando.disponible) {
       return (
         <div className="space-y-6">
-          {conEncabezado(`Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
+          {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>

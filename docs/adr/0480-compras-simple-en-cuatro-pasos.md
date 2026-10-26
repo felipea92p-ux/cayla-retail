@@ -290,6 +290,28 @@ nota de venta o sin comprobante.
   indica el banco de la empresa del que salió la plata (`fondo_plata_anotada.cuenta_indicada_id`; BCP de fábrica o Interbank); «Revisar compras» lo trae
   elegido y Compras lo confirma o lo cambia. **La indicación no mueve plata:** lo que baja en Finanzas sigue siendo `confirmar_plata_compras(p_cuenta_origen_id)`.
 
+## Actualización 2026-10-26 (c): la tienda ve cuántos fardos vienen, y el botón es «Empezar a recibir» (rama `claude/fardos-numero-etiqueta-bbb46c`, migración `20261026214000`)
+
+**El problema.** La compradora dice cuántos fardos entrega al transporte (`despachos.bultos`, actividad 5), pero la tienda no lo veía: la hoja «Detalle»
+de Recibir mostraba las prendas por categoría y nada de cuántos paquetes eran. Y el botón de esa hoja decía «Abrir el fardo», que supone UN fardo que se
+abre de una vez; con varios por envío, que se reciben por partes (hoy uno, mañana otro), no decía qué hace: lo que hace (`abrir_despacho`) es empezar la
+recepción del envío, y lo contado queda guardado hasta cerrar.
+
+**La decisión.** Felipe pidió las dos cosas (mostrar el número y dejar de decir «abrir el fardo»); la palabra nueva la propuso el arquitecto y queda por confirmar con él mirándola en pantalla.
+- `fn_envio_detalle` suma `bultos` (reemplazo anclado, idempotente; si falta la columna se detiene antes de tocar nada, porque la función es plpgsql y un
+  `d.bultos` sin columna haría fallar cada lectura de un envío). La hoja y la pantalla del envío dicen «Vienen N fardos» en su propia línea, sobre
+  «Dijeron … prendas»; sin dato (envío de antes o del escritorio) no dibujan nada.
+- El botón vuelve a llamarse **«Empezar a recibir»**, en las dos pantallas, con «Seguir recibiendo» para el día siguiente. Es el nombre de la fase 4
+  (ADR-0362), y es el que la base ya decía en su aviso de «envío sin abrir»: la web lo traducía a «Abrir el fardo» y ahora coinciden. La frase al contar
+  pasa de «Abre el fardo» a «Abre un fardo» (es la instrucción física, una a la vez), y una nota bajo el botón dice que se puede recibir por partes.
+
+DESCARTÉ: «Recibir el envío» (suena a hacerlo todo de una vez); seguir el estado de cada fardo —abierto o no— en una tabla, porque hoy se cuenta por
+categoría y no por fardo (ADR-0393) y sería una pantalla nueva para un dato que informa y no se controla; leer `despachos.bultos` directo desde el
+navegador, porque la tienda lee el envío por `fn_envio_detalle` (módulo Recibir, sede del envío) y una segunda puerta duplicaría esa regla.
+SE ROMPE SI: se pega la migración en una base sin `20261023114000` (la propia migración lo frena con un mensaje) o si alguien vuelve a poner «Abrir el
+fardo» en una pantalla y deja la base, el aviso y la guía diciendo otra cosa.
+**En producción:** pendiente; se pega después de `20261023114000` y `20261023121000`. Mientras tanto la web publicada no muestra fardos y tampoco falla.
+
 ## Cómo se ve mal hecho
 
 - Retirar `ordenes_compra` y crear una clave nueva: el rol «Compras» perdería en silencio recibir, gastos y proveedores.

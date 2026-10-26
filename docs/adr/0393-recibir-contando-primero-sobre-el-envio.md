@@ -492,3 +492,9 @@ SE ROMPE SI: nace otra tabla de la recepción que cita a `productos` o `variante
 Probado sobre una base hecha de cero con todo `main`: `pruebas:eliminar-producto` 40/40, `pruebas:eliminar-producto-con-historia` 66/66 y
 `pruebas:pendientes-de-envio` 25/25 (E1 y E2 nuevos).
 **En producción el 2026-10-14** (con el OK de Felipe): la huella de `fn_producto_historia` coincide con la de la base hecha de cero.
+
+### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
+
+Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del
+envío, no abre «el» fardo. Vuelve «Empezar a recibir» (con «Seguir recibiendo» al día siguiente) y la hoja «Detalle» dice cuántos fardos vienen. La
+frase al contar pasa a «Abre un fardo y cuenta…». Detalle y por qué: ADR-0480, «Actualización 2026-10-26 (c)».
