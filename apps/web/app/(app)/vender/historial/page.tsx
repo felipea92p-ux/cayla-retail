@@ -15,9 +15,14 @@ import {
   listarVentasHistorial,
   serializarCursorVentas,
   textoPeriodoHistorial,
+  totalesEnLaBase,
   totalesVentasHistorial,
   type ParamsHistorial,
 } from "@/lib/ventas-historial";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaHistorial } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 import { EstadoVacio } from "@/components/ComprasAgrupadas";
@@ -80,7 +85,11 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   const supabase = await createClient();
   const veApartados = veModulo(persona, "apartados") && persona.ubicacionTipo === "tienda";
-  const [{ filas, siguiente }, totales, porEnviar, apartados, caja] = await Promise.all([
+  // De quién es lo vendido (ADR-0532): CAYLA y CLAURE donde conviven (Lima; «Todas las tiendas» las trae a las dos). Solo con los filtros
+  // que también suma la base: con los demás (por enviar, factura, con cliente, posventa) la cabecera se calcula aparte y el reparto no
+  // coincidiría con ella, así que no se muestra.
+  const repartoPosible = totalesEnLaBase({ ...filtros, busqueda: undefined }) && !ids.posventa;
+  const [{ filas, siguiente }, totales, porEnviar, apartados, caja, empresasAqui, vendidoPorEmpresa] = await Promise.all([
     listarVentasHistorial(filtros, { cursor, ids }),
     totalesVentasHistorial(filtros, ids),
     // Lo que acompaña a las ventas es secundario: si algo no carga, su aviso o su enlace no aparece y el historial sigue.
@@ -89,7 +98,11 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
       ? supabase.rpc("resumen_separaciones", { p_ubicacion_id: persona.ubicacionId }).then((r) => (r.error ? null : (r.data?.[0] ?? null)))
       : Promise.resolve(null),
     veModulo(persona, "caja") ? opcional(getCajaAbierta(persona.ubicacionId), "la caja (Historial)") : Promise.resolve(undefined),
+    // Quien no es líder ve solo su tienda (la RLS, sin `sedeId`): sus empresas son las de su sede, nunca «todas».
+    getEmpresasAqui(filtros.sedeId ?? (esLider ? null : persona.ubicacionId)),
+    repartoPosible ? getVendidoPorEmpresaHistorial({ ...filtros, busqueda: undefined }) : Promise.resolve(null),
   ]);
+  const reparto = totales.parcial ? null : repartoDeEmpresas(vendidoPorEmpresa, empresasAqui);
 
   const alcance = esLider ? (tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
   const periodoEnPalabras = textoPeriodoHistorial(filtros.periodo, filtros.desde, filtros.hasta);
@@ -186,6 +199,14 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
           <AvisosHistorial avisos={avisos} />
 
+          {reparto && (
+            <RepartoEmpresas
+              reparto={reparto}
+              guia="historial.reparto-empresas"
+              frase={`Lo vendido en ${alcance} · ${periodoEnPalabras.toLowerCase()}, prenda por prenda. Sin las ventas anuladas; el buscador no lo cambia.`}
+            />
+          )}
+
           {buscando && filas.length > 0 && (
             <p className="text-[13px] text-tinta/65">
               <b className="font-semibold text-tinta">
@@ -220,7 +241,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
               />
             ) : (
               // Buscando, los totales por día del período no corresponden a lo encontrado: cada día dice cuántas ventas trajo.
-              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} />
+              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} empresas={empresasAqui} />
             )}
           </div>
 

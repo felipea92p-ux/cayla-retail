@@ -436,6 +436,14 @@ export const GUIA_HISTORIAL: Guia = {
       texto: "Avisos de cualquier fecha, como comprobantes que todavía no llegan a SUNAT o apartados por vencer. Cada uno te lleva a la pantalla donde se resuelve, y no se van hasta que se resuelve.",
     },
     {
+      // ADR-0532: solo donde conviven CAYLA y CLAURE (Lima, o «Todas las tiendas»).
+      id: "reparto-empresas",
+      ancla: "historial.reparto-empresas",
+      opcional: true,
+      titulo: "De quién es lo vendido",
+      texto: "Cuánto de lo vendido en el período es de CAYLA y cuánto de CLAURE. Cada prenda suma a su tienda por lo que se cobró de ella; en la lista, la venta que lleva prendas de CLAURE lo dice.",
+    },
+    {
       id: "lista",
       ancla: "historial.lista",
       titulo: "Las ventas, por día",
