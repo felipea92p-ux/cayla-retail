@@ -17,6 +17,10 @@ import {
   fraseAnotar,
   leerMiPlata,
   leerPlataPorConfirmar,
+  leerBancosDePlata,
+  bancoSugerido,
+  cuentaAlConfirmar,
+  textoBancoIndicado,
   mediosParaAnotar,
   textoMontoAnotado,
   textoPorConfirmar,
@@ -133,6 +137,58 @@ const CUENTAS: CuentaOpcion[] = [
   { id: "bcp", nombre: "BCP", tipo: "banco", sede: null },
   { id: "cf", nombre: "Caja fuerte · Tienda TRU", tipo: "caja_fuerte", sede: "Tienda TRU" },
 ];
+
+describe("«¿De qué banco salió?» (20261026170000)", () => {
+  const BANCOS = leerBancosDePlata([{ id: "i", nombre: "Interbank" }, { id: "b", nombre: "BCP" }, { id: "x" }, null, { nombre: "Sin id" }]);
+
+  it("los bancos se leen como cuentas de tipo banco y lo ilegible se descarta; sin lista, ninguno", () => {
+    expect(BANCOS).toEqual([
+      { id: "i", nombre: "Interbank", tipo: "banco", sede: null },
+      { id: "b", nombre: "BCP", tipo: "banco", sede: null },
+    ]);
+    expect(leerBancosDePlata(null)).toEqual([]);
+    expect(leerBancosDePlata("raro")).toEqual([]);
+  });
+
+  it("llega elegido el BCP aunque no sea el primero; sin uno con ese nombre, el primero; sin bancos, ninguno", () => {
+    expect(bancoSugerido(BANCOS)).toBe("b");
+    expect(bancoSugerido([{ id: "i", nombre: "Interbank" }, { id: "s", nombre: "Scotiabank" }])).toBe("i");
+    expect(bancoSugerido([])).toBeNull();
+    // «bcp» dentro de otra palabra no es el BCP.
+    expect(bancoSugerido([{ id: "x", nombre: "Bcpmundo" }, { id: "y", nombre: "Banco BCP Perú" }])).toBe("y");
+  });
+
+  it("la guía pide el banco solo con una transferencia y con bancos que elegir; lo opcional no bloquea", () => {
+    const campos = (v: Parameters<typeof camposAnotar>[0]) => camposAnotar(v, false, PERSONA).map((c) => [c.id, c.hecho]);
+    expect(campos({ medio: "transferencia", monto: "100", hayBancos: true, banco: null })).toContainEqual(["banco", false]);
+    expect(campos({ medio: "transferencia", monto: "100", hayBancos: true, banco: "b" })).toContainEqual(["banco", true]);
+    for (const medio of ["yape_plin", "efectivo", null] as const) {
+      expect(campos({ medio, monto: "100", hayBancos: true }).map(([id]) => id)).not.toContain("banco");
+    }
+    // Sin bancos configurados no hay nada que elegir: el campo no aparece (la compradora puede anotar igual).
+    expect(campos({ medio: "transferencia", monto: "100", hayBancos: false }).map(([id]) => id)).not.toContain("banco");
+    // El banco va después del medio y antes del monto: el orden de la hoja.
+    expect(campos({ medio: "transferencia", monto: "", hayBancos: true, banco: "b" }).map(([id]) => id).slice(0, 3)).toEqual(["medio", "banco", "monto"]);
+  });
+
+  it("Compras confirma con el banco que dijo la compradora si sigue disponible; si no, con el de siempre", () => {
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: "i" }, BANCOS)).toBe("i");
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: null }, BANCOS)).toBe("b");
+    // Un banco archivado después ya no está entre las cuentas: vuelve al de siempre.
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: "viejo" }, BANCOS)).toBe("b");
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: "i" }, [])).toBe("");
+  });
+
+  it("«Marisol dijo que salió de BCP.» solo si indicó uno; la fila de «por confirmar» trae el banco o nada", () => {
+    expect(textoBancoIndicado("Marisol", "BCP")).toBe("Marisol dijo que salió de BCP.");
+    expect(textoBancoIndicado("Marisol", null)).toBeNull();
+    const [a, b] = leerPlataPorConfirmar([
+      { id: "a", persona_id: "p", medio: "transferencia", monto: 10, cuenta_indicada_id: "b", cuenta_indicada: "BCP" },
+      { id: "b", persona_id: "p", medio: "yape_plin", monto: 10 },
+    ]);
+    expect([a.cuentaIndicadaId, a.cuentaIndicada, b.cuentaIndicadaId, b.cuentaIndicada]).toEqual(["b", "BCP", null, null]);
+  });
+});
 
 describe("camposConfirmar", () => {
   it("una plata que le llegó pide de dónde salió; «ya tenía» no (es el saldo de apertura de su fondo)", () => {
