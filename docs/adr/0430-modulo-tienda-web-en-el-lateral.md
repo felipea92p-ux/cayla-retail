@@ -206,3 +206,27 @@ construir: `docs/maquetas/pedidos-web-2026-10/hoja.html`):
 - **«Quitar del pedido» con una sola prenda llevaba a un callejón**: la prenda se tachaba y «Confirmar» quedaba bloqueado («si quitas
   todas, ciérralo con «No se puede confirmar»»). Ahora el botón sale solo si queda otra prenda sin quitar (`sePuedeQuitar`); con una sola,
   la salida es «No se puede confirmar», que ya está en el pie. `problemaParaConfirmar` sigue de red.
+
+## Actualización 2026-10-26 — Resumen y Vitrina ▸ Modelos, la Ola 1 (Felipe, con maquetas en `docs/maquetas/tienda-vitrina-*`)
+
+Sin migraciones ni funciones nuevas: solo la web. Medido en la pantalla real a 1440 px, claro y oscuro, y a 1024, 1366 y 1920 px (sin desborde).
+
+**DECIDÍ 14 — El Resumen empieza por lo que pide acción, y lo que no tiene nada que decir baja.** «Lo que te pide hoy» pasó de 746 px a 250 px del tope;
+sigue el camino de los pedidos y al final la ventana de la vitrina. Con «Todo al día» y sin pedidos abiertos, esas dos líneas bajan, juntas, debajo de
+la ventana. El camino sin pedidos abiertos es una línea («sin pedidos abiertos · N cerrados en 30 días»; `sinPedidosAbiertos`). «Tiendas en la web» solo
+sale si una tienda está a medias (`hayTiendasAMedias`) y la nota del pie se fue. Loading propio con su silueta (`tienda-web/loading.tsx`).
+**DESCARTÉ** la propuesta B (ventana de una fila arriba): a 375 px dejaba los pendientes en el borde del pliegue. **SE ROMPE SI** una pantalla nueva del
+grupo no trae su `loading.tsx`: hereda la silueta del Resumen (el editor de campañas ya trae uno genérico).
+
+**DECIDÍ 15 — La Vitrina filtra, pagina y se acomoda al ancho.** Estado (con cuántos trae cada uno), Categoría y Lo nuevo van detrás del botón «Filtros»,
+en un panel flotante (`FiltrosFlotantes`); «Encendidos sin precio» es una sola definición para la lista y para el Resumen (`esEncendidoSinPrecio`) y los
+enlaces del Resumen llegan filtrados (`?filtro=`). La lista es solo ropa: el empaque se ve en Estado ▸ Empaque. De 40 en 40 (Probador, que ya paginaba, no
+cambia); «Elegir los N de esta página» y «Elegir los N que coinciden». Las cifras son compactas (`TarjetaCifra compacta`, ~74 px en vez de ~135). La Lista
+alterna entre una columna por tienda (pantalla grande y hasta 8 tiendas) y las filas de siempre (`modoDeLista`). Las hojas cargan bajo demanda.
+**DESCARTÉ** dos columnas de modelos: el spike midió que a 1440 px con 3 tiendas no cortaba nada, pero Felipe prefirió C/A. **SE ROMPE SI** la cuenta de
+tiendas web pasa de 8 (vuelve a filas: está previsto) o si «Lo nuevo» automático debe filtrarse (hoy solo se filtra lo fijado a mano: la lista no trae
+cuándo llegó cada modelo a una tienda).
+
+Registros: `docs/unificar/cifra.md` (`compacta` vuelve como opt-in solo aquí) y `docs/unificar/filtros-flotantes.md`; el spike de la Lista en
+`docs/maquetas/tienda-vitrina-lista-columnas-2026-10/`. Extender `compacta` o `FiltrosFlotantes` a otras pantallas es decisión de Felipe, mirando.
+

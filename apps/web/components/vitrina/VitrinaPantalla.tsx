@@ -190,6 +190,8 @@ export function VitrinaPantalla({
   // ocultar 200 modelos con un clic de más.
   const elegidosVisibles = visibles.filter((m) => elegidos.includes(m.id));
   const paginaEntera = visibles.length > 0 && elegidosVisibles.length === visibles.length;
+  // «de esta página» solo dice algo cuando hay más de una; con una sola, «Elegir los 27» alcanza.
+  const deEstaPagina = pag.totalPaginas > 1 ? " de esta página" : "";
   // «Elegir los N que coinciden»: lo de todas las páginas (aparece cuando hay más de una). El lote igual muestra qué le pasa a cada modelo.
   const hayMasPaginas = lista.length > visibles.length;
   const todosLosQueCoinciden = lista.length > 0 && lista.every((m) => elegidos.includes(m.id));
@@ -315,7 +317,7 @@ export function VitrinaPantalla({
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
               {vista === "vitrina" && visibles.length > 0 && (
                 <button type="button" className="btn-cayla btn-sutil btn-chico" data-guia="vitrina.elegir-pagina" onClick={alternarPagina}>
-                  {paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
+                  {paginaEntera ? `Quitar los ${visibles.length}${deEstaPagina}` : `Elegir los ${visibles.length}${deEstaPagina}`}
                 </button>
               )}
               {hayMasPaginas && (
@@ -395,7 +397,7 @@ export function VitrinaPantalla({
                       marcada={paginaEntera}
                       aMedias={!paginaEntera && elegidosVisibles.length > 0}
                       onCambio={alternarPagina}
-                      etiqueta={paginaEntera ? `Quitar los ${visibles.length} de esta página` : `Elegir los ${visibles.length} de esta página`}
+                      etiqueta={paginaEntera ? `Quitar los ${visibles.length}${deEstaPagina}` : `Elegir los ${visibles.length}${deEstaPagina}`}
                     />
                   ),
                 },
