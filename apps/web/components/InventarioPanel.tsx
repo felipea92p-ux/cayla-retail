@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Globito } from "@/components/ui/Globito";
 import { useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -42,6 +43,7 @@ import { mejorOrigen } from "@/lib/existencias-flujos";
 import { usePistola } from "@/components/ui/usePistola";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { HREF_COLGAR_EN_TANDAS } from "@/lib/inicio-almacen-reglas";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
@@ -104,6 +106,11 @@ function ChipHoy({ f }: { f: FilaExistencias }) {
 /** El buscador, para devolverle el foco cuando un botón del estado vacío (que se desmonta al volver las filas) lo tenía. */
 function enfocarBuscador() {
   requestAnimationFrame(() => document.getElementById(ID_BUSCADOR_EXISTENCIAS)?.focus());
+}
+/** Un aparato táctil (celular, tablet): ahí la cámara es el lector. Solo se pregunta con la cámara ya abierta (tras un toque), nunca
+ *  al pintar en el servidor. */
+function esTactil(): boolean {
+  return window.matchMedia?.("(pointer: coarse)").matches ?? false;
 }
 /** Filas por página de la tabla (Felipe, 2026-09-22: «que solo se vean 15»). Pintar TODAS las variantes
  *  de una tienda —cada una con foto, chips, botones y menú— era lo que hacía lenta la pantalla. */
@@ -279,6 +286,7 @@ export function InventarioPanel({
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
   const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
+  const router = useRouter();
   const setBusqueda = fijarBusqueda;
   const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
   const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });
@@ -1465,6 +1473,25 @@ export function InventarioPanel({
             enfocarBuscador();
           }}
           onClose={() => setCamara(false)}
+          // En el celular, la cámara también sirve para colgar un lote (Felipe 2026-10-26): «Bajar en tandas» lleva a la ráfaga de
+          // Bajar al piso (`?camara=1`, la misma de «Colgar en tandas» del Inicio de Almacén), que lee una tras otra y confirma de una
+          // vez. Solo donde se puede bajar y en un aparato táctil: en el computador manda la pistola y Bajar no abre la cámara sola.
+          modos={
+            puedeBajarAlPiso && esTactil()
+              ? {
+                  valor: "ver",
+                  opciones: [
+                    { clave: "ver", etiqueta: "Ver la prenda", icono: <Eye aria-hidden /> },
+                    { clave: "tandas", etiqueta: "Bajar en tandas", icono: <ArrowDownToLine aria-hidden /> },
+                  ],
+                  onCambio: (clave) => {
+                    if (clave !== "tandas") return;
+                    setCamara(false);
+                    router.push(HREF_COLGAR_EN_TANDAS);
+                  },
+                }
+              : undefined
+          }
         />
       )}
 

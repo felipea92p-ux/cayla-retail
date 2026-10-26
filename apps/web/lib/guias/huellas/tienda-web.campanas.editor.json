@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 98,
+  "total": 100,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -11,6 +11,7 @@
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
       "button «Buscar escribiendo»",
+      "SegmentoDeslizante «Qué hacer con la cámara»",
       "button «Listo ·»",
       "button «Mejor buscar escribiendo»"
     ],
