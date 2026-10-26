@@ -501,7 +501,8 @@ buscador: la del catálogo, como prenda conocida; la que solo tiene nombre, como
 es lo anotado menos lo ya separado (`anotadasSinSeparar`), así que quitarla de «¿Qué … son?» la devuelve sola.
 
 DECIDÍ: la cantidad que entra es siempre la esperada (Felipe, 2026-10-26: con un tope «no más de lo contado» la segunda prenda entraba con 1). Si con eso se
-separa más de lo contado, lo contado sube y la pantalla lo avisa («el conteo sube de 8 a 15»): quien cuenta lo puede corregir en el número. Una prenda anotada
+separa más de lo que ya se había contado, lo contado sube y la pantalla lo avisa («el conteo sube de 8 a 15»): quien cuenta lo puede corregir en el número. Con la categoría en 0 no
+avisa: no había número de nadie que pisar y el número grande se ve pasar de 0 a lo separado. Una prenda anotada
 solo por su nombre sale primero de las «nuevas sin describir» que ya había (quitar una descrita las devuelve ahí), así sacarla y volver a pasarla no duplica.
 La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla, porque una prenda con tallas las suelta si su
 número cambia.

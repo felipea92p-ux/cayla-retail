@@ -168,13 +168,14 @@ export function ContarEnvio({
 
   /**
    * El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban (Felipe 2026-10-26), como si se hubiera elegido
-   * desde el buscador. Si con eso se separa más de lo contado, lo contado sube y la pantalla lo dice: quien cuenta puede corregirlo.
+   * desde el buscador. Si con eso se separa más de lo que ya se había contado, lo contado sube y la pantalla lo dice: quien cuenta puede
+   * corregirlo. Con la categoría en 0 no avisa: no había número de nadie que pisar y el número grande se ve pasar de 0 a lo separado.
    */
   function separarAnotadaDe(g: GrupoDeLineas, a: AnotadaDelGrupo) {
     setFoco(g.clave);
     const r = repartirSeparado(g, separarAnotada(g.separado, a.prenda, a.prenda.cantidad), g.contadas);
     aplicar(r);
-    if (r.contadas > g.contadas) avisar.aviso(`Pasaste más de las que contaste: el conteo sube de ${g.contadas} a ${r.contadas}. Si no es así, corrígelo en el número.`);
+    if (g.contadas > 0 && r.contadas > g.contadas) avisar.aviso(`Pasaste más de las que contaste: el conteo sube de ${g.contadas} a ${r.contadas}. Si no es así, corrígelo en el número.`);
   }
 
   async function prendaCompleta(p: PrendaSeparada, l: LineaParaContar): Promise<PrendaRecepcion | null> {
