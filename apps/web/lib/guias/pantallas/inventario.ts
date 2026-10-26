@@ -1669,7 +1669,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son? (opcional)",
-      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
+      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora»; ya descrita, «Crear ahora» la crea y sigues con sus tallas. Lo que no separes queda para después.",
     },
     {
       id: "elegida",

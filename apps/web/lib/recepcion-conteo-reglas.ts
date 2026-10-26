@@ -316,6 +316,18 @@ export function cambiarCantidadNuevaDescrita(s: Separado, descripcion: string, c
 }
 
 /**
+ * «Crear ahora» de una nueva ya descrita: la prenda ya existe en el catálogo, así que esas nuevas dejan de estar «por crear» y pasan a ser una
+ * prenda conocida, todavía sin tallas ni colores (de ahí en adelante le toca «Tallas y colores ahora»). Cuántas eran se conserva: lo
+ * contado no cambia ni se pierde. Si esa prenda ya estaba separada (se creó una que ya existía, «Usar esa prenda»), se juntan: una prenda va
+ * una sola vez, como pide la base. Sin esa descripción en lo separado, no toca nada.
+ */
+export function prendaCreadaDeNueva(s: Separado, descripcion: string, prenda: { productoId: string; nombre: string | null; codigo: string | null }): Separado {
+  const nueva = s.nuevas.find((x) => x.descripcion === descripcion);
+  if (!nueva) return s;
+  return sumarPrenda({ ...s, nuevas: s.nuevas.filter((x) => x !== nueva) }, prenda, nueva.cantidad);
+}
+
+/**
  * Lo que se guarda de una línea: si lo separado pasa de lo contado, el número sube (perdonar antes que preguntar, ley 7 de /formidable): la
  * pantalla lo dice («Separaste más de lo que contaste: el conteo pasa a 12»). En un envío reabierto lo contado no baja de lo que ya entró.
  */

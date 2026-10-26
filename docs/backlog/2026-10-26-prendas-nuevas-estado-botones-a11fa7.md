@@ -1,0 +1,10 @@
+## 🧾 Recibir ▸ «Crear ahora» una prenda nueva descrita (2026-10-26, ADR-0393) — solo web, sin migración; rama `claude/prendas-nuevas-estado-botones-a11fa7`
+
+- [x] `prendaCreadaDeNueva` (`lib/recepcion-conteo-reglas.ts`): la nueva descrita pasa a prenda separada sin tallas, con la misma cantidad; si esa prenda ya estaba separada se juntan. 5 pruebas nuevas en `recepcion-conteo-reglas.test.ts`.
+- [x] `SepararPrendas` (`onCrearNueva`), `ContarEnvio` (hoja `crear`) y `HacerAhora ▸ Separar` (`vista.desde`): «Crear ahora» abre la hoja de la prenda con lo descrito como nombre sugerido (igual que el de «Para después»); al crear, la fila pasa a «Tallas y colores ahora» y se abre su hoja de tallas.
+- [x] CSS: `.rc-filas-sep` es un contenedor y las acciones de la fila bajan bajo el nombre a ≤ 700 px de lista (antes solo a ≤ 639 px de ventana). El paso de cantidad y la × van juntos.
+- [x] Guía de Recibir (`lib/guias/pantallas/inventario.ts`) y su huella al día.
+- [x] Verificado en local: nueva → «Crear ahora» → prenda creada → «Tallas y colores ahora» → «Entra al stock» (el borrador guardado queda con la prenda y sin la nueva, y sobrevive a recargar); lo mismo en «Hacer ahora ▸ Separar» (sin guardar); 375 px sin desborde. `vitest` 653/653, `tsc`, `eslint`, `knip` y `knip:produccion` en verde.
+- [ ] **Sin hacer:** `/formidable` y `/chaos` de la pantalla de Contar con esta pieza; modo oscuro (solo usa tokens, no se midió con `tema:auditar`).
+- [ ] **Abierto (no se tocó):** en «Para después», `Crear ahora` de un pendiente «crear» → se crea la prenda → «Dejar para después» en su hoja de tallas: nada se guarda y el pendiente sigue diciendo «+ Crear ahora» (la base dice «ya existe» al reintentar). Dejarlo como pendiente «detalle» llama a `resolver_pendiente_envio`: decisión de Felipe.
+- Datos de práctica en la base local compartida: productos `CMS-0004` y `PAN-0004` (marcados `es_prueba`) y el borrador de la primera línea del envío 386, que quedó en 0 (un conteo no se borra, se deja en 0).
