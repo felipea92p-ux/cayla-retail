@@ -99,6 +99,13 @@ export type FasePagina = {
   porVariante: FaseVariante[];
 };
 
+/** El consumo por talla que devuelve `fn_orden_produccion` ({"S": 1.15, "M": 1.2}) como mapa de números; null si no hay, no es un objeto o ninguna cifra se lee. */
+function porTallaLeida(crudo: unknown): Record<string, number> | null {
+  if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return null;
+  const pares = Object.entries(crudo as Record<string, unknown>).flatMap(([talla, v]) => (v !== null && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0 ? [[talla, Number(v)] as const] : []));
+  return pares.length > 0 ? Object.fromEntries(pares) : null;
+}
+
 export type InsumoPagina = {
   id: string;
   insumoId: string;
@@ -108,6 +115,8 @@ export type InsumoPagina = {
   colorCodigo: string | null;
   colorNombre: string | null;
   consumoPorPrenda: number;
+  /** Una cifra por talla (talla → metros o unidades), si la orden la declaró así; ausente o nulo = una sola cifra para todas las tallas (ADR-0513). */
+  consumoPorTalla?: Record<string, number> | null;
   cantidadPlan: number;
   usado: number;
   saldo: number;
@@ -358,7 +367,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
       const pendiente = pendientes.get(insumoId);
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, consumoPorTalla: porTallaLeida(i.consumo_por_talla), cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -747,9 +756,11 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
     const detalle =
       filas.length > 1
         ? filas.map((f) => `${color(f) ?? "toda la orden"} ${cantidadConUnidad(f.cantidadPlan, f.unidad)}`).join(" · ")
-        : base.consumoPorPrenda > 0
-          ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
-          : "";
+        : base.consumoPorTalla && Object.keys(base.consumoPorTalla).length > 0
+          ? `${Object.entries(base.consumoPorTalla).sort(([a], [b]) => compararTallas(a, b)).map(([talla, v]) => `${talla} ${cantidadConUnidad(v, base.unidad)}`).join(" · ")} por prenda`
+          : base.consumoPorPrenda > 0
+            ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
+            : "";
     return {
       id: base.insumoId,
       tipo: base.tipo,

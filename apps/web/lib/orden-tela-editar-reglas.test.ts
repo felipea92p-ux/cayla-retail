@@ -146,3 +146,32 @@ describe("armarEdicionDeTela", () => {
     expect(JSON.parse(JSON.stringify(d))).toEqual(d);
   });
 });
+
+// ---------- Consumo por talla (ADR-0513, actividad 2) ----------
+
+describe("consumo por talla en la edición", () => {
+  const conTalla = (insumoId: string, colorCodigo: string | null, porTalla: Record<string, string>): TelaBorrador => ({ insumoId, colorCodigo, consumoPorPrenda: "", porTalla });
+  it("telasIniciales trae la cifra por talla de la orden, a tres decimales, y la fila de una cifra queda sin ella", () => {
+    const l = telasIniciales([pagina({ insumoId: "lino", colorCodigo: "NEG", consumoPorPrenda: 1.333, consumoPorTalla: { S: 1, M: 1.5 } }), pagina({ insumoId: "lino", colorCodigo: "PRO", consumoPorPrenda: 1.2, consumoPorTalla: null })]);
+    expect(l[0]).toEqual({ insumoId: "lino", colorCodigo: "NEG", consumoPorPrenda: "1.333", porTalla: { S: "1.000", M: "1.500" } });
+    expect(l[1]).toEqual(fila("lino", "PRO", "1.200"));
+    expect("porTalla" in l[1]).toBe(false);
+  });
+  it("cambiar UNA talla es un cambio y una corrección; escribir lo mismo de otra forma no", () => {
+    const inicial = [conTalla("lino", "NEG", { S: "1.000", M: "1.500" })];
+    expect(hayCambios(inicial, [conTalla("lino", "NEG", { S: "1", M: "1.50" })])).toBe(false);
+    expect(hayCambios(inicial, [conTalla("lino", "NEG", { S: "1.000", M: "1.600" })])).toBe(true);
+    expect(contarCambios(inicial, [conTalla("lino", "NEG", { S: "1.000", M: "1.600" })])).toEqual({ agregadas: 0, corregidas: 1, quitadas: 0 });
+  });
+  it("pasar de por talla a una cifra (aunque el promedio sea el mismo) o al revés es una corrección, como en la base", () => {
+    const porTalla = [conTalla("lino", "NEG", { S: "1.000", M: "1.500" })];
+    const unaCifra = [fila("lino", "NEG", "1.333")];
+    expect(hayCambios(porTalla, unaCifra)).toBe(true);
+    expect(hayCambios(unaCifra, porTalla)).toBe(true);
+    expect(contarCambios(porTalla, unaCifra)).toEqual({ agregadas: 0, corregidas: 1, quitadas: 0 });
+    expect(contarCambios(unaCifra, porTalla)).toEqual({ agregadas: 0, corregidas: 1, quitadas: 0 });
+  });
+  it("una cifra por talla que no se lee todavía cuenta como cambio (no se puede dar por igual)", () => {
+    expect(hayCambios([conTalla("lino", "NEG", { S: "1.000", M: "1.500" })], [conTalla("lino", "NEG", { S: "1.000", M: "" })])).toBe(true);
+  });
+});
