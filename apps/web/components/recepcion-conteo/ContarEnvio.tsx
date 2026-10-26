@@ -16,33 +16,42 @@ import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaP
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import { leerObservacionesDelEnvio } from "@/lib/recepcion-conteo-acciones";
-import { deLaLinea, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
+import { deLasLineas, type ObservacionDeEnvio } from "@/lib/observaciones-envio-reglas";
 import type { CatalogoParaRecibir, DetalleEnvio, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import {
-  anotadasSinSeparar,
-  camposDelConteo,
-  cantidadAlSepararAnotada,
   contadasDe,
-  diferenciaDe,
   idCampoConteo,
   ID_CAMPO_AGREGAR,
   leerContadas,
   lineasALaVista,
   ponerTallas,
-  prendasAnotadasDe,
   separarAnotada,
   textoPrendas,
   totalSeparado,
-  veredictoDe,
   type ClaveLinea,
   type ConteosDelEnvio,
   type LineaParaContar,
-  type PrendaAnotada,
   type PrendaSeparada,
   type Separado,
   SIN_MARCA,
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
+import {
+  agruparLineas,
+  anotadasDelGrupo,
+  anotadasPorSepararDelGrupo,
+  camposDelConteoPorGrupo,
+  cantidadAlSepararDelGrupo,
+  descripcionDelGrupo,
+  lineaDeLaPrenda,
+  minimoDelGrupo,
+  repartirSeparado,
+  repartirTotal,
+  veredictoDelGrupo,
+  type AnotadaDelGrupo,
+  type GrupoDeLineas,
+  type Reparto,
+} from "@/lib/recepcion-grupos-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
 import { ObservacionesDeLinea } from "./ObservacionesDeLinea";
 import { HojaTallas } from "./HojaTallas";
@@ -52,10 +61,14 @@ import { SepararPrendas } from "./SepararPrendas";
 // Contar (ADR-0393, el paso 2 de la cara A): a la izquierda las categorías del envío —las de la guía con lo que dijeron y lo que no estaba
 // en ella—; a la derecha, UNA a la vez: cuántas llegaron (el número es lo esencial) y, si se quiere, qué prendas son. Cada cambio se guarda
 // solo. La guía de foco enciende la próxima categoría sin contar.
+//
+// Una categoría es UNA cosa para quien cuenta (ADR-0393, actualización 2026-10-26): si la compra anotó dos vestidos distintos, la lista
+// trae una sola «Vestidos» con su número, y las prendas anotadas se despliegan dentro. Por dentro la base sigue guardando una fila por línea
+// de la compra: `lib/recepcion-grupos-reglas.ts` reparte lo que se escribe entre ellas (solo lo separado tiene cantidad exacta por prenda).
 
 type Hoja =
-  | { tipo: "tallas"; clave: ClaveLinea; original: PrendaSeparada; prenda: PrendaRecepcion }
-  | { tipo: "prenda"; clave: ClaveLinea; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null }
+  | { tipo: "tallas"; grupo: string; original: PrendaSeparada; prenda: PrendaRecepcion }
+  | { tipo: "prenda"; grupo: string; original: PrendaSeparada; modo: "nueva" | "agregar"; prenda: PrendaRecepcion | null }
   | { tipo: "agregar" }
   | null;
 
@@ -97,11 +110,13 @@ export function ContarEnvio({
 }) {
   // Lo agregado en esta visita se ve aunque todavía esté en 0 (lo de fuera de la guía en 0 es «lo quitado»).
   const [agregados, setAgregados] = useState<ReadonlySet<string>>(new Set());
-  const iniciales = lineasALaVista(lineas, agregados, null);
-  const primeraSinContar = iniciales.find((l) => l.linea && !l.conteo)?.clave ?? null;
-  const [foco, setFoco] = useState<ClaveLinea | null>(primeraSinContar ?? iniciales[0]?.clave ?? null);
-  const visibles = lineasALaVista(lineas, agregados, foco);
-  const guia = useGuiaCampos(camposDelConteo(visibles), { enModal: false });
+  const iniciales = agruparLineas(lineasALaVista(lineas, agregados, null));
+  const primeraSinContar = iniciales.find((g) => g.principal.linea && !g.contado)?.clave ?? null;
+  // Se cuenta UNA categoría a la vez: `foco` es la llave de su grupo (para lo de fuera de la guía, la de su única línea).
+  const [foco, setFoco] = useState<string | null>(primeraSinContar ?? iniciales[0]?.clave ?? null);
+  const visibles = lineasALaVista(lineas, agregados, foco?.startsWith("extra:") ? (foco as ClaveLinea) : null);
+  const grupos = agruparLineas(visibles);
+  const guia = useGuiaCampos(camposDelConteoPorGrupo(grupos), { enModal: false });
   const [hoja, setHoja] = useState<Hoja>(null);
   // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada categoría muestra las suyas.
   const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
@@ -114,21 +129,21 @@ export function ContarEnvio({
   }, [detalle.id]);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
   // Las categorías desplegadas en la lista de la izquierda (con las prendas que se anotaron al comprar).
-  const [abiertas, setAbiertas] = useState<ReadonlySet<ClaveLinea>>(new Set());
-  const linea = visibles.find((l) => l.clave === foco) ?? visibles[0] ?? null;
-  const i = linea ? visibles.indexOf(linea) : -1;
-  const siguiente = i >= 0 ? (visibles[i + 1] ?? null) : null;
-  const anterior = i > 0 ? visibles[i - 1] : null;
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
+  const grupo = grupos.find((g) => g.clave === foco) ?? grupos[0] ?? null;
+  const i = grupo ? grupos.indexOf(grupo) : -1;
+  const siguiente = i >= 0 ? (grupos[i + 1] ?? null) : null;
+  const anterior = i > 0 ? grupos[i - 1] : null;
   const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id ?? SIN_MARCA}`));
   const proveedores = conteos?.proveedores ?? [];
   // La guía interactiva explica la flecha de la primera categoría que la trae (un solo ancla por pantalla).
-  const primeraConAnotadas = visibles.find((l) => prendasAnotadasDe(l).length > 0)?.clave ?? null;
+  const primeraConAnotadas = grupos.find((g) => anotadasDelGrupo(g).length > 0)?.clave ?? null;
 
-  function elegir(l: LineaParaContar) {
-    setFoco(l.clave);
+  function elegir(g: GrupoDeLineas) {
+    setFoco(g.clave);
   }
 
-  function alternar(clave: ClaveLinea) {
+  function alternar(clave: string) {
     setAbiertas((a) => {
       const n = new Set(a);
       if (!n.delete(clave)) n.add(clave);
@@ -136,15 +151,25 @@ export function ContarEnvio({
     });
   }
 
-  /** Lo separado de una línea, con lo contado que sube si se separó más (lo mismo para «¿Qué … son?» y para el «+» de la lista). */
-  function escribirSeparado(l: LineaParaContar, s: Separado) {
-    onEscribir(l, { separado: s, contadas: Math.max(contadasDe(l), (l.conteo?.enStock ?? 0) + totalSeparado(s)) });
+  /** Guarda lo que cambió en cada línea de la categoría (cada una se guarda sola, con su propio aviso). */
+  function aplicar(r: Reparto) {
+    for (const c of r.cambios) onEscribir(c.linea, { contadas: c.contadas, separado: c.separado });
+  }
+
+  /** La persona escribió cuántas llegaron de la categoría: se reparte entre sus líneas cambiando lo mínimo. */
+  function escribirTotal(g: GrupoDeLineas, n: number) {
+    aplicar(repartirTotal(g, n));
+  }
+
+  /** Lo separado de una categoría, con lo contado que sube si se separó más (lo mismo para «¿Qué … son?» y para el «+» de la lista). */
+  function escribirSeparado(g: GrupoDeLineas, s: Separado) {
+    aplicar(repartirSeparado(g, s, g.contadas));
   }
 
   /** El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban, como si se hubiera elegido desde el buscador. */
-  function separarAnotadaDe(l: LineaParaContar, p: PrendaAnotada) {
-    setFoco(l.clave);
-    escribirSeparado(l, separarAnotada(l.conteo?.separado ?? { prendas: [], nuevas: [] }, p, cantidadAlSepararAnotada(l, p)));
+  function separarAnotadaDe(g: GrupoDeLineas, a: AnotadaDelGrupo) {
+    setFoco(g.clave);
+    escribirSeparado(g, separarAnotada(g.separado, a.prenda, cantidadAlSepararDelGrupo(g, a.prenda)));
   }
 
   async function prendaCompleta(p: PrendaSeparada, l: LineaParaContar): Promise<PrendaRecepcion | null> {
@@ -157,18 +182,20 @@ export function ContarEnvio({
     return hallada;
   }
 
-  async function abrirTallas(l: LineaParaContar, p: PrendaSeparada) {
+  async function abrirTallas(g: GrupoDeLineas, p: PrendaSeparada) {
     setErrorHoja(null);
-    const completa = await prendaCompleta(p, l);
+    const completa = await prendaCompleta(p, g.principal);
     if (!completa) {
       setErrorHoja(`No se pudieron leer las tallas y colores de ${p.nombre ?? "esa prenda"}. Recarga la pantalla y vuelve a intentar.`);
       return;
     }
-    setHoja({ tipo: "tallas", clave: l.clave, original: p, prenda: completa });
+    setHoja({ tipo: "tallas", grupo: g.clave, original: p, prenda: completa });
   }
 
-  const lineaDeHoja = hoja && hoja.tipo !== "agregar" ? (visibles.find((l) => l.clave === hoja.clave) ?? null) : null;
-  const categoriaDeHoja = lineaDeHoja?.categoria ? (catalogo?.categorias.find((c) => c.id === lineaDeHoja.categoria?.id) ?? null) : null;
+  const grupoDeHoja = hoja && hoja.tipo !== "agregar" ? (grupos.find((g) => g.clave === hoja.grupo) ?? null) : null;
+  // La prenda de la hoja se guarda en la línea de la compra que la anotó (de ahí salen su precio sugerido y su costo).
+  const lineaDeHoja = grupoDeHoja && hoja && hoja.tipo !== "agregar" ? lineaDeLaPrenda(grupoDeHoja, { productoId: hoja.original.productoId }) : null;
+  const categoriaDeHoja = grupoDeHoja?.principal.categoria ? (catalogo?.categorias.find((c) => c.id === grupoDeHoja.principal.categoria?.id) ?? null) : null;
 
   // La balanza de abajo: todo lo que dijeron contra todo lo contado (sin aviso, nada con qué comparar).
   const conGuia = visibles.some((l) => l.dijeron != null);
@@ -198,55 +225,58 @@ export function ContarEnvio({
 
           <nav aria-label="Categorías del envío" className="space-y-1.5" data-guia="recepcion.categorias">
             <p className="label-cayla px-1 text-[11px] text-taupe">{sinAviso ? "Lo que llegó" : "Categorías del envío"}</p>
-            {visibles.map((l) => {
-              const contada = l.linea ? l.conteo !== null : contadasDe(l) > 0;
-              const estado = contada ? "hecho" : linea?.clave === l.clave ? "ahora" : "falta";
-              const dif = diferenciaDe(l);
+            {grupos.map((g) => {
+              const p = g.principal;
+              const hayConteo = g.lineas.some((l) => l.conteo !== null);
+              const contada = p.linea ? g.contado : g.contadas > 0;
+              const estado = contada ? "hecho" : grupo?.clave === g.clave ? "ahora" : "falta";
+              const dif = g.dijeron != null ? g.contadas - g.dijeron : null;
               // Separadas: las que ya se sabe qué prenda son (con o sin tallas) más las que ya entraron; sin separar: el resto de lo contado.
               // Dice lo mismo que la insignia de «¿Qué … son?» («35 sin separar»): «para después» queda para el riel, que cuenta en
               // prendas todo lo que no entra al stock (también lo separado sin tallas y lo nuevo).
-              const sep = l.conteo ? totalSeparado(l.conteo.separado) + (l.conteo.enStock ?? 0) : 0;
-              const sinSep = l.conteo ? Math.max(0, contadasDe(l) - sep) : 0;
-              const sub = !l.conteo
-                ? [l.categoria ? marcaDeLinea(l).nombre : null, l.dijeron != null ? `dijeron ${l.dijeron}` : null, !l.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")
-                : contadasDe(l) === 0
+              const sep = hayConteo ? totalSeparado(g.separado) + g.enStock : 0;
+              const sinSep = hayConteo ? Math.max(0, g.contadas - sep) : 0;
+              const sub = !hayConteo
+                ? [p.categoria ? marcaDeLinea(p).nombre : null, g.dijeron != null ? `dijeron ${g.dijeron}` : null, !p.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")
+                : g.contadas === 0
                   ? "no llegó nada"
                   : sinSep === 0
                     ? "todas separadas"
                     : [sep > 0 ? `${sep} ${sep === 1 ? "separada" : "separadas"}` : null, `${sinSep} sin separar`].filter(Boolean).join(" · ");
               // Las prendas exactas que se anotaron al comprar: la categoría se despliega para verlas y pasarlas a «¿Qué … son?» con el «+».
-              const hayAnotadas = prendasAnotadasDe(l).length > 0;
-              const abierta = hayAnotadas && abiertas.has(l.clave);
-              const porSeparar = abierta ? anotadasSinSeparar(l) : [];
-              const idAnotadas = `rc-anotadas-${l.clave.replace(":", "-")}`;
-              const nombreCategoria = l.categoria?.nombre.toLowerCase() ?? "prendas";
+              const hayAnotadas = anotadasDelGrupo(g).length > 0;
+              const abierta = hayAnotadas && abiertas.has(g.clave);
+              const porSeparar = abierta ? anotadasPorSepararDelGrupo(g) : [];
+              const idAnotadas = `rc-anotadas-${p.clave.replace(":", "-")}`;
+              const nombreCategoria = p.categoria?.nombre.toLowerCase() ?? "prendas";
               return (
-                <div key={l.clave} className="rc-cat-grupo" data-actual={linea?.clave === l.clave ? "" : undefined}>
+                <div key={g.clave} className="rc-cat-grupo" data-actual={grupo?.clave === g.clave ? "" : undefined}>
                   <div className="rc-cat-fila">
                     <button
                       type="button"
-                      data-campo={l.linea ? idCampoConteo(l.clave) : undefined}
-                      aria-current={linea?.clave === l.clave ? "true" : undefined}
+                      data-campo={p.linea ? idCampoConteo(p.clave) : undefined}
+                      data-lineas={g.lineas.map((l) => l.clave).join(" ")}
+                      aria-current={grupo?.clave === g.clave ? "true" : undefined}
                       data-desplegable={hayAnotadas ? "" : undefined}
-                      onClick={() => elegir(l)}
+                      onClick={() => elegir(g)}
                       className="rc-cat-item"
                     >
                       <span className="rc-cat-marca">
                         <MarcaCampo estado={estado} />
                       </span>
-                      <BaldosaCategoria categoria={l.categoria} />
+                      <BaldosaCategoria categoria={p.categoria} />
                       <span className="min-w-0 flex-1">
-                        <b className="block truncate text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
+                        <b className="block truncate text-sm text-tinta">{p.categoria?.nombre ?? "Categoría"}</b>
                         <small className="block text-xs leading-snug text-taupe">{sub}</small>
-                        {dif != null && dif !== 0 && l.conteo && (
+                        {dif != null && dif !== 0 && hayConteo && (
                           <span className="mt-1 inline-block">
                             <Chip tono="ambar">{dif > 0 ? `+${dif}` : dif}</Chip>
                           </span>
                         )}
                       </span>
                       <span className="whitespace-nowrap text-right tabular-nums">
-                        <b className="text-lg text-tinta">{l.conteo ? contadasDe(l) : 0}</b>
-                        {l.dijeron != null && <span className="text-xs text-taupe">/{l.dijeron}</span>}
+                        <b className="text-lg text-tinta">{g.contadas}</b>
+                        {g.dijeron != null && <span className="text-xs text-taupe">/{g.dijeron}</span>}
                       </span>
                     </button>
                     {hayAnotadas && (
@@ -257,8 +287,8 @@ export function ContarEnvio({
                         aria-controls={idAnotadas}
                         aria-label={`${abierta ? "Ocultar" : "Ver"} las prendas anotadas en la compra de ${nombreCategoria}`}
                         title={abierta ? "Ocultar lo anotado en la compra" : "Ver lo anotado en la compra"}
-                        onClick={() => alternar(l.clave)}
-                        data-guia={primeraConAnotadas === l.clave ? "recepcion.desplegar" : undefined}
+                        onClick={() => alternar(g.clave)}
+                        data-guia={primeraConAnotadas === g.clave ? "recepcion.desplegar" : undefined}
                       >
                         <ChevronDown aria-hidden className="h-4 w-4" />
                       </button>
@@ -271,19 +301,19 @@ export function ContarEnvio({
                         <p className="text-xs text-taupe">Todo pasó a «¿Qué {nombreCategoria} son?».</p>
                       ) : (
                         <ul className="space-y-1.5">
-                          {porSeparar.map((p) => (
-                            <li key={p.productoId ?? `nueva:${p.nombre}`} className="rc-anotada">
+                          {porSeparar.map((a) => (
+                            <li key={a.prenda.productoId ?? `nueva:${a.linea.clave}`} className="rc-anotada">
                               <span className="min-w-0">
-                                <b className="block truncate text-[13.5px] text-tinta">{p.nombre}</b>
-                                <small className="block truncate text-[11.5px] text-taupe">{p.codigo ?? (p.productoId ? "Del catálogo" : "Nueva: no está en el catálogo")}</small>
+                                <b className="block truncate text-[13.5px] text-tinta">{a.prenda.nombre}</b>
+                                <small className="block truncate text-[11.5px] text-taupe">{a.prenda.codigo ?? (a.prenda.productoId ? "Del catálogo" : "Nueva: no está en el catálogo")}</small>
                               </span>
-                              <span className="rc-anotada-n">× {p.cantidad}</span>
+                              <span className="rc-anotada-n">× {a.prenda.cantidad}</span>
                               <button
                                 type="button"
                                 className="rc-anotada-mas"
-                                aria-label={`Pasar ${p.nombre} (${cantidadAlSepararAnotada(l, p)}) a «¿Qué ${nombreCategoria} son?»`}
+                                aria-label={`Pasar ${a.prenda.nombre} (${cantidadAlSepararDelGrupo(g, a.prenda)}) a «¿Qué ${nombreCategoria} son?»`}
                                 title={`Pasar a «¿Qué ${nombreCategoria} son?»`}
-                                onClick={() => separarAnotadaDe(l, p)}
+                                onClick={() => separarAnotadaDe(g, a)}
                               >
                                 <Plus aria-hidden className="h-4 w-4" />
                               </button>
@@ -312,40 +342,41 @@ export function ContarEnvio({
 
         <div className="min-w-0 space-y-4">
           <section className="rc-contador space-y-4 p-4 sm:p-6" aria-label="Contar">
-            {!linea ? (
+            {!grupo ? (
               <div className="space-y-2 py-6 text-center">
                 <TituloSeccion>¿Qué llegó?</TituloSeccion>
                 <p className="text-sm text-taupe">Agrega la primera categoría a la izquierda y cuéntala. Una a la vez; después agregas las demás.</p>
               </div>
             ) : (
-              <ContadorDeLinea
-                key={linea.clave}
-                linea={linea}
+              <ContadorDeGrupo
+                key={grupo.clave}
+                grupo={grupo}
                 sinAviso={sinAviso}
-                guardado={guardados[linea.clave] ?? null}
-                error={errores[linea.clave] ?? null}
-                onEscribir={(c) => onEscribir(linea, c)}
+                guardado={estadoDelGrupo(grupo, guardados)}
+                error={grupo.lineas.map((l) => errores[l.clave]).find(Boolean) ?? null}
+                onTotal={(n) => escribirTotal(grupo, n)}
                 observaciones={
                   <ObservacionesDeLinea
                     despachoId={detalle.id}
-                    lineaId={linea.linea?.id ?? null}
-                    nombre={linea.categoria ? linea.categoria.nombre.toLowerCase() : "prendas"}
-                    observaciones={deLaLinea(observaciones, linea.linea?.id ?? null)}
+                    lineaId={grupo.principal.linea?.id ?? null}
+                    nombre={grupo.principal.categoria ? grupo.principal.categoria.nombre.toLowerCase() : "prendas"}
+                    observaciones={deLasLineas(observaciones, grupo.lineas.map((l) => l.linea?.id ?? null))}
                     responsable={responsable}
                     onAnotada={(o) => setObservaciones((todas) => [...todas, o])}
                   />
                 }
               >
-                {linea.categoria && (
+                {grupo.principal.categoria && (
                   <SepararPrendas
-                    categoria={linea.categoria}
-                    marca={marcaDeLinea(linea)}
-                    separado={linea.conteo?.separado ?? { prendas: [], nuevas: [] }}
-                    tope={Math.max(0, contadasDe(linea) - (linea.conteo?.enStock ?? 0))}
-                    onSeparado={(s) => escribirSeparado(linea, s)}
-                    onTallas={(p) => void abrirTallas(linea, p)}
+                    categoria={grupo.principal.categoria}
+                    marca={marcaDeLinea(grupo.principal)}
+                    separado={grupo.separado}
+                    tope={Math.max(0, grupo.contadas - grupo.enStock)}
+                    onSeparado={(s) => escribirSeparado(grupo, s)}
+                    onTallas={(p) => void abrirTallas(grupo, p)}
                     onPrendaVista={onPrendaVista}
-                    elegida={linea.linea?.prendaElegida ?? null}
+                    // La que eligió la compradora se ofrece de un toque solo si la categoría trae una (con varias, cada una tiene su «+»).
+                    elegida={grupo.lineas.length === 1 ? (grupo.principal.linea?.prendaElegida ?? null) : null}
                   />
                 )}
                 {errorHoja && (
@@ -353,7 +384,7 @@ export function ContarEnvio({
                     {errorHoja}
                   </Aviso>
                 )}
-              </ContadorDeLinea>
+              </ContadorDeGrupo>
             )}
 
             <div className="space-y-3 border-t border-sand pt-4">
@@ -369,7 +400,7 @@ export function ContarEnvio({
                 {siguiente && !guia.puedeConfirmar ? (
                   <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
                     <span className="inline-flex items-center gap-1.5">
-                      Listo, sigue {siguiente.categoria?.nombre ?? "la siguiente"}
+                      Listo, sigue {siguiente.principal.categoria?.nombre ?? "la siguiente"}
                       <ArrowRight aria-hidden className="h-4 w-4" />
                     </span>
                   </Boton>
@@ -407,27 +438,26 @@ export function ContarEnvio({
         />
       )}
 
-      {hoja?.tipo === "tallas" && lineaDeHoja?.categoria && (
+      {hoja?.tipo === "tallas" && grupoDeHoja?.principal.categoria && (
         <HojaTallas
           key={hoja.prenda.productoId}
           prenda={hoja.prenda}
-          categoria={lineaDeHoja.categoria}
-          marca={marcaDeLinea(lineaDeHoja)}
+          categoria={grupoDeHoja.principal.categoria}
+          marca={marcaDeLinea(grupoDeHoja.principal)}
           colores={catalogo?.colores ?? []}
           variantes={hoja.original.productoId === hoja.prenda.productoId ? hoja.original.variantes : null}
           sugeridas={hoja.original.cantidad}
           textoListo="Listo"
           onListo={(prenda, variantes) => {
-            const s = lineaDeHoja.conteo?.separado ?? { prendas: [], nuevas: [] };
-            onEscribir(lineaDeHoja, { separado: ponerTallas(s, hoja.original.productoId, prenda, variantes) });
+            escribirSeparado(grupoDeHoja, ponerTallas(grupoDeHoja.separado, hoja.original.productoId, prenda, variantes));
             setHoja(null);
           }}
-          onAbrirHoja={(modo, prenda) => setHoja({ tipo: "prenda", clave: hoja.clave, original: hoja.original, modo, prenda })}
+          onAbrirHoja={(modo, prenda) => setHoja({ tipo: "prenda", grupo: hoja.grupo, original: hoja.original, modo, prenda })}
           onCerrar={() => setHoja(null)}
         />
       )}
 
-      {hoja?.tipo === "prenda" && lineaDeHoja?.categoria && (
+      {hoja?.tipo === "prenda" && grupoDeHoja?.principal.categoria && lineaDeHoja && (
         <HojaPrenda
           destino={destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length)}
           categoria={categoriaDeHoja}
@@ -435,15 +465,15 @@ export function ContarEnvio({
           responsable={responsable}
           onListo={(prenda) => {
             onPrendaVista(prenda);
-            setHoja({ tipo: "tallas", clave: hoja.clave, original: hoja.original, prenda });
+            setHoja({ tipo: "tallas", grupo: hoja.grupo, original: hoja.original, prenda });
           }}
           onUsarExistente={async (productoId, nombre) => {
-            if (!lineaDeHoja.categoria) return false;
-            const { prendas: halladas } = await buscarPrendasParaRecibir(lineaDeHoja.categoria.id, marcaDeLinea(lineaDeHoja).id, nombre);
+            if (!grupoDeHoja.principal.categoria) return false;
+            const { prendas: halladas } = await buscarPrendasParaRecibir(grupoDeHoja.principal.categoria.id, marcaDeLinea(grupoDeHoja.principal).id, nombre);
             const hallada = halladas.find((x) => x.productoId === productoId);
             if (!hallada) return false;
             onPrendaVista(hallada);
-            setHoja({ tipo: "tallas", clave: hoja.clave, original: hoja.original, prenda: hallada });
+            setHoja({ tipo: "tallas", grupo: hoja.grupo, original: hoja.original, prenda: hallada });
             return true;
           }}
           onCerrar={() => setHoja(null)}
@@ -451,6 +481,14 @@ export function ContarEnvio({
       )}
     </div>
   );
+}
+
+/** Cómo va el guardado de una categoría: guardando si alguna de sus líneas guarda, con error si alguna falló, guardado si todas lo están. */
+function estadoDelGrupo(g: GrupoDeLineas, guardados: Readonly<Record<string, EstadoGuardado>>): EstadoGuardado | null {
+  const e = g.lineas.map((l) => guardados[l.clave]);
+  if (e.includes("guardando")) return "guardando";
+  if (e.includes("error")) return "error";
+  return e.includes("guardado") ? "guardado" : null;
 }
 
 /** A dónde va la hoja de la prenda («Es nueva» / «+ talla o color») desde una línea del conteo. */
@@ -471,55 +509,63 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
 }
 
 /** El número de una categoría: − [40] + , con +5, +10 y «Llegaron las 40». */
-function ContadorDeLinea({
-  linea,
+function ContadorDeGrupo({
+  grupo,
   sinAviso,
   guardado,
   error,
-  onEscribir,
+  onTotal,
   observaciones,
   children,
 }: {
-  linea: LineaParaContar;
+  grupo: GrupoDeLineas;
   sinAviso: boolean;
   guardado: EstadoGuardado | null;
   error: string | null;
-  onEscribir: (c: Partial<Borrador>) => void;
+  /** La persona dejó este total para la categoría: la pantalla lo reparte entre sus líneas. */
+  onTotal: (n: number) => void;
   /** Las observaciones de la categoría (ADR-0507): entre el número y lo que se separa. */
   observaciones?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const contadas = contadasDe(linea);
+  const p = grupo.principal;
+  const hayConteo = grupo.lineas.some((l) => l.conteo !== null);
+  const contadas = grupo.contadas;
   // Mientras se escribe, la caja muestra lo escrito; fuera de ella, siempre lo contado (que también cambia al separar más de lo contado,
   // o cuando otra persona guardó la misma línea).
   const [escribiendo, setEscribiendo] = useState<string | null>(null);
-  const texto = escribiendo ?? (linea.conteo ? String(contadas) : "");
-  const minimo = (linea.conteo?.enStock ?? 0) + totalSeparado(linea.conteo?.separado ?? { prendas: [], nuevas: [] });
-  const v = veredictoDe(linea);
+  const texto = escribiendo ?? (hayConteo ? String(contadas) : "");
+  const minimo = minimoDelGrupo(grupo);
+  const v = veredictoDelGrupo(grupo);
   const poner = (n: number) => {
     setEscribiendo(null);
-    onEscribir({ contadas: Math.max(minimo, Math.max(0, n)) });
+    onTotal(Math.max(minimo, Math.max(0, n)));
   };
-  const fraccion = linea.dijeron ? Math.min(1, contadas / linea.dijeron) : contadas > 0 ? 1 : 0;
+  const fraccion = grupo.dijeron ? Math.min(1, contadas / grupo.dijeron) : contadas > 0 ? 1 : 0;
 
-  const llevaCuenta = guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : linea.conteo?.contadoPor?.nombre ? `Contó ${linea.conteo.contadoPor.nombre}` : null; // unificar-fijo: el estado de la línea mientras se guarda sola, no un botón (como la planilla de Contar)
-  const nombre = linea.categoria ? linea.categoria.nombre.toLowerCase() : "prendas";
+  const contoNombre = grupo.lineas
+    .map((l) => l.conteo)
+    .filter((c): c is NonNullable<typeof c> => c !== null && !!c.contadoPor?.nombre)
+    .sort((a, b) => (b.contadoEn ?? "").localeCompare(a.contadoEn ?? ""))[0]?.contadoPor?.nombre;
+  const llevaCuenta = guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : contoNombre ? `Contó ${contoNombre}` : null; // unificar-fijo: el estado de la categoría mientras se guarda sola, no un botón (como la planilla de Contar)
+  const nombre = p.categoria ? p.categoria.nombre.toLowerCase() : "prendas";
+  const descripcion = descripcionDelGrupo(grupo);
 
   return (
     <div className="space-y-4">
       {/* En el celular, «Contó …» baja bajo el nombre: a la derecha apretaba la categoría a una columna de 11 letras. */}
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
-        <BaldosaCategoria categoria={linea.categoria} />
+        <BaldosaCategoria categoria={p.categoria} />
         <div className="min-w-0 flex-1 basis-48">
-          <TituloSeccion dato={!linea.conteo ? <EtiquetaAhora /> : undefined}>{linea.categoria?.nombre ?? "Categoría"}</TituloSeccion>
+          <TituloSeccion dato={!hayConteo ? <EtiquetaAhora /> : undefined}>{p.categoria?.nombre ?? "Categoría"}</TituloSeccion>
           <p className="text-sm text-taupe">
-            {[linea.categoria ? marcaDeLinea(linea).nombre : null, linea.proveedor?.nombre, linea.linea?.descripcion].filter(Boolean).join(" · ")}
-            {linea.dijeron != null && (
+            {[p.categoria ? marcaDeLinea(p).nombre : null, p.proveedor?.nombre, descripcion].filter(Boolean).join(" · ")}
+            {grupo.dijeron != null && (
               <>
-                {" "}· Dijeron <b className="text-tinta">{linea.dijeron}</b>
+                {" "}· Dijeron <b className="text-tinta">{grupo.dijeron}</b>
               </>
             )}
-            {!linea.linea && !sinAviso && (
+            {!p.linea && !sinAviso && (
               <>
                 {" "}· <Chip tono="ambar">No estaba en la guía</Chip>
               </>
@@ -535,7 +581,7 @@ function ContadorDeLinea({
 
       <p className="max-w-[600px] text-[14.5px] text-taupe">
         Cuenta cuántas llegaron de {nombre} y escribe el número.
-        {linea.dijeron != null && " Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué."}
+        {grupo.dijeron != null && " Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué."}
       </p>
 
       <div className="space-y-3" data-guia="recepcion.numero">
@@ -553,7 +599,7 @@ function ContadorDeLinea({
               // Solo dígitos: lo que se ve es lo que se guarda. Vacío es «todavía escribiendo», no 0.
               const { texto: limpio, contadas: n } = leerContadas(e.target.value);
               setEscribiendo(limpio);
-              if (n !== null && n >= minimo) onEscribir({ contadas: n });
+              if (n !== null && n >= minimo) onTotal(n);
             }}
             onBlur={() => setEscribiendo(null)}
             onFocus={(e) => {
@@ -572,12 +618,12 @@ function ContadorDeLinea({
           <button type="button" onClick={() => poner(contadas + 10)}>
             +10
           </button>
-          {linea.dijeron != null && linea.dijeron >= minimo && (
-            <button type="button" onClick={() => poner(linea.dijeron ?? 0)}>
-              Llegaron las {linea.dijeron}
+          {grupo.dijeron != null && grupo.dijeron >= minimo && (
+            <button type="button" onClick={() => poner(grupo.dijeron ?? 0)}>
+              Llegaron las {grupo.dijeron}
             </button>
           )}
-          {!linea.conteo && linea.linea ? (
+          {!hayConteo && p.linea ? (
             <button type="button" onClick={() => poner(0)}>
               No llegó nada
             </button>
@@ -591,12 +637,10 @@ function ContadorDeLinea({
           )}
         </div>
         <div className="flex flex-col items-center gap-2">
-          {/* El color lo pone el veredicto de la línea (coincide o no con lo que dijeron), no el avance. */}
+          {/* El color lo pone el veredicto de la categoría (coincide o no con lo que dijeron), no el avance. */}
           <BarraAvance pct={fraccion * 100} alto="gruesa" tono={v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "tinta"} decorativa className="max-w-[520px]" />
           <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
-          {(linea.conteo?.enStock ?? 0) > 0 && (
-            <p className="text-xs text-taupe">Ya entraron {textoPrendas(linea.conteo?.enStock ?? 0)} al stock: lo contado no baja de ahí.</p>
-          )}
+          {grupo.enStock > 0 && <p className="text-xs text-taupe">Ya entraron {textoPrendas(grupo.enStock)} al stock: lo contado no baja de ahí.</p>}
         </div>
         {error && (
           <Aviso tono="error" chico>

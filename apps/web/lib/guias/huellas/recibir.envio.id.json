@@ -65,9 +65,9 @@
     ],
     "components/recepcion-conteo/ContarEnvio.tsx": [
       "ComboResponsable «{responsable}»",
-      "button «→() => elegir(l)»",
-      "button «{primeraConAnotadas === l.clave ? \"recepcion.desplegar\" : undefined}»",
-      "button «{`Pasar ${p.nombre}»",
+      "button «→() => elegir(g)»",
+      "button «{primeraConAnotadas === g.clave ? \"recepcion.desplegar\" : undefined}»",
+      "button «{`Pasar ${a.prenda.nombre}»",
       "button «recepcion.agregar»",
       "Boton «Anterior»",
       "Boton «Listo, sigue»",

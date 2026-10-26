@@ -5,8 +5,6 @@ import {
   argsResolverPendiente,
   cambiarCantidadPrenda,
   camposDelCierre,
-  camposDelConteo,
-  ID_CAMPO_AGREGAR,
   cambiarNuevasSinDescribir,
   conteoDeVariantes,
   causasDe,
@@ -42,7 +40,6 @@ import {
   textoResuelto,
   totalSeparado,
   variantesDeConteo,
-  veredictoDe,
   type DecisionCierre,
   type LineaParaContar,
   type Separado,
@@ -67,8 +64,6 @@ import {
   guardadoDesde,
   textoGuardadoEstaSemana,
   proveedorDelSinAviso,
-  anotadasSinSeparar,
-  cantidadAlSepararAnotada,
   prendasAnotadasDe,
   separarAnotada,
 } from "./recepcion-conteo-reglas";
@@ -229,22 +224,6 @@ describe("leer lo contado de un envío (fn_envio_conteos)", () => {
     expect(claveDe({ despachoItemId: null, extraPosicion: 3 })).toBe("extra:3");
   });
 
-  it("el veredicto del contador: sin contar, cuadra, faltan, sobran y sin guía", () => {
-    const l = (contadas: number | null, dijeron: number | null): LineaParaContar => ({
-      clave: "item:i1",
-      linea: dijeron == null ? null : linea("i1", dijeron),
-      conteo: contadas == null ? null : (leerConteosDelEnvio({ despacho_id: "d", conteos: [conteoCrudo({ despacho_item_id: "i1", contadas })] })?.conteos[0] ?? null),
-      categoria: CAT,
-      marca: MARCA,
-      proveedor: PROV,
-      dijeron,
-    });
-    expect(veredictoDe(l(null, 10))).toEqual({ texto: "Dijeron 10. Cuenta y escribe el número.", tono: "neutro" });
-    expect(veredictoDe(l(10, 10)).tono).toBe("verde");
-    expect(veredictoDe(l(8, 10)).texto).toMatch(/^Faltan 2\./);
-    expect(veredictoDe(l(12, 10)).texto).toMatch(/^Sobran 2\./);
-    expect(veredictoDe(l(5, null))).toEqual({ texto: "5 contadas", tono: "neutro" });
-  });
 });
 
 describe("guardar una línea", () => {
@@ -623,18 +602,12 @@ describe("la guía de foco del conteo y del cierre", () => {
     expect(campos.filter((c) => c.requerido && !c.hecho).length).toBe(faltan.length);
   });
 
-  it("sin aviso: el costo de lo de fuera de la guía es opcional; conteo: cada línea de la guía hecha cuando tiene su número", () => {
+  it("sin aviso: el costo de lo de fuera de la guía es opcional", () => {
     const campos = camposDelCierre({ lineas: [ls[2]], decisiones: { "extra:1": { ...DECISION_PARA_PRUEBA, costo: "" } }, sinAviso: true, responsable: false });
     expect(campos.map((c) => [c.id, c.requerido, c.hecho])).toEqual([
       ["costo-extra-1", false, false],
       ["responsable", true, false],
     ]);
-    expect(camposDelConteo(ls).map((c) => [c.id, c.hecho])).toEqual([
-      ["contar-item-i1", true],
-      ["contar-item-i2", false],
-    ]);
-    // Un envío sin aviso recién abierto: lo único que falta es agregar lo que llegó.
-    expect(camposDelConteo([]).map((c) => [c.id, c.hecho])).toEqual([[ID_CAMPO_AGREGAR, false]]);
   });
 });
 
@@ -782,19 +755,6 @@ describe("lo que anotó la compra: las prendas exactas de una línea, de un toqu
     expect(prendasAnotadasDe(deLaGuia({ descripcion: "Vestido midi" }, null, 0))).toEqual([]);
   });
 
-  it("al pasar a «¿Qué prendas son?» sale de la lista; si se quita de ahí, vuelve sola", () => {
-    const nombrada = deLaGuia({ descripcion: "Vestido midi" });
-    expect(anotadasSinSeparar(nombrada)).toHaveLength(1);
-    const separada = deLaGuia({ descripcion: "Vestido midi" }, { contadas: 12, separado: { prendas: [], nuevas: [{ cantidad: 12, descripcion: "vestido MIDI" }] } });
-    expect(anotadasSinSeparar(separada)).toEqual([]);
-    expect(anotadasSinSeparar(deLaGuia({ descripcion: "Vestido midi" }, { contadas: 12, separado: { prendas: [], nuevas: [{ cantidad: 3, descripcion: null }] } }))).toHaveLength(1);
-
-    const elegida = deLaGuia({ prendaElegida: ELEGIDA });
-    expect(anotadasSinSeparar(elegida)).toHaveLength(1);
-    expect(anotadasSinSeparar(deLaGuia({ prendaElegida: ELEGIDA }, { contadas: 12, separado: { prendas: [{ producto_id: "pa", nombre: "Chompa Aurora", cantidad: 5, variantes: null }], nuevas: [] } }))).toEqual([]);
-    expect(anotadasSinSeparar(deLaGuia({ prendaElegida: ELEGIDA }, { contadas: 12, separado: { prendas: [{ producto_id: "otra", nombre: "Otra", cantidad: 5, variantes: null }], nuevas: [] } }))).toHaveLength(1);
-  });
-
   it("separar una del catálogo la suma como prenda conocida (sin tallas); una solo por nombre, como nueva ya descrita", () => {
     const a = separarAnotada(SEPARADO_VACIO, { productoId: "pa", nombre: "Chompa Aurora", codigo: "CHO-1", cantidad: 12 }, 12);
     expect(a.prendas).toEqual([{ productoId: "pa", nombre: "Chompa Aurora", codigo: "CHO-1", cantidad: 12, variantes: null }]);
@@ -808,15 +768,4 @@ describe("lo que anotó la compra: las prendas exactas de una línea, de un toqu
     expect(separarAnotada(SEPARADO_VACIO, { productoId: "pa", nombre: "Chompa Aurora", codigo: null, cantidad: 12 }, 0).prendas[0].cantidad).toBe(1);
   });
 
-  it("entra con las que se esperaban; si ya se contó, no más de lo contado que sigue sin separar (contar es certificar)", () => {
-    const esperada = { cantidad: 12 };
-    expect(cantidadAlSepararAnotada(deLaGuia({}), esperada)).toBe(12);
-    expect(cantidadAlSepararAnotada(deLaGuia({}, { contadas: 12 }), esperada)).toBe(12);
-    expect(cantidadAlSepararAnotada(deLaGuia({}, { contadas: 10 }), esperada)).toBe(10);
-    expect(cantidadAlSepararAnotada(deLaGuia({}, { contadas: 15 }), esperada)).toBe(12);
-    expect(cantidadAlSepararAnotada(deLaGuia({}, { contadas: 12, en_stock: 4 }), esperada)).toBe(8);
-    expect(cantidadAlSepararAnotada(deLaGuia({}, { contadas: 12, separado: { prendas: [{ producto_id: "x", nombre: "X", cantidad: 9, variantes: null }], nuevas: [] } }), esperada)).toBe(3);
-    // Contada y toda ya separada: entra una (la persona la ajusta) en vez de ninguna.
-    expect(cantidadAlSepararAnotada(deLaGuia({}, { contadas: 4, separado: { prendas: [{ producto_id: "x", nombre: "X", cantidad: 4, variantes: null }], nuevas: [] } }), esperada)).toBe(1);
-  });
 });

@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { idCampoConteo, type LineaParaContar } from "@/lib/recepcion-conteo-reglas";
+import type { LineaParaContar } from "@/lib/recepcion-conteo-reglas";
 import { avanceAnotado, lineasAnotadas, nombreAnotado, siguienteAnotada } from "@/lib/recibir-papel-reglas";
 import type { Borrador } from "./RecibirContando";
 
@@ -31,7 +31,8 @@ export function PreguntaDeLaCompra({
 
   // Abre la línea en el contador de siempre (su botón de la lista de la izquierda) y la deja a la vista.
   const abrirEnElContador = (clave: string) => {
-    const boton = document.querySelector<HTMLElement>(`[data-campo="${idCampoConteo(clave as LineaParaContar["clave"])}"]`);
+    // La categoría junta sus líneas: su botón de la lista las nombra a todas.
+    const boton = document.querySelector<HTMLElement>(`[data-lineas~="${clave}"]`);
     boton?.click();
     boton?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };

@@ -1644,7 +1644,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número, y abajo te dice cuántas separaste y cuántas quedan para después.",
+      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número, y abajo te dice cuántas separaste y cuántas quedan para después.",
     },
     {
       // Solo si alguna categoría trae prendas anotadas al comprar. El «+» pasa la prenda a «¿Qué … son?»: es un cambio que se guarda solo,

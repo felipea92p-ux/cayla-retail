@@ -500,11 +500,17 @@ muestra la prenda exacta con cuántas eran y un «+» redondo. Al tocarlo la pre
 buscador: la del catálogo, como prenda conocida; la que solo tiene nombre, como nueva ya descrita. No hay estado nuevo: lo que queda en la lista
 es lo anotado menos lo ya separado (`anotadasSinSeparar`), así que quitarla de «¿Qué … son?» la devuelve sola.
 
-DECIDÍ: la cantidad que entra es la esperada, pero en una línea ya contada nunca pasa de lo contado que sigue sin separar (`cantidadAlSepararAnotada`):
+DECIDÍ: la cantidad que entra es la esperada, pero en una línea ya contada nunca pasa de lo contado que sigue sin separar (`cantidadAlSepararDelGrupo`):
 contar es certificar (decisión 17 de ADR-0362) y un toque no lo pisa. En una línea sin contar entra la esperada y lo contado sube, igual que al
 separar de más a mano. La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla,
 porque una prenda con tallas las suelta si su número cambia.
-DESCARTÉ: agrupar las líneas de una misma categoría en una sola desplegable: el conteo, los faltantes y los sobrantes son por línea y agrupar
-obliga a decidir cómo se reparte un número entre varias prendas.
+AGRUPÉ (Felipe, 2026-10-26: «si ambas prendas son vestidos, lo ideal es que se muestren dentro de la misma categoría»): las líneas del mismo proveedor,
+categoría y marca —la llave con la que «Nos debe» suma el reclamo— son UNA categoría en la pantalla: un número, una lista de anotadas, un «¿Qué … son?».
+La base no cambió: sigue una fila por línea (`despacho_conteos`), y `lib/recepcion-grupos-reglas.ts` reparte lo que se escribe cambiando lo mínimo (sube
+llenando las líneas en el orden de la compra, baja desde la última, nunca por debajo de lo separado ni de lo que ya entró al stock). Mientras nada se
+separa ese reparto es de trabajo y no dice de cuál prenda faltó; solo lo separado tiene cantidad exacta por prenda.
+DESCARTÉ: guardar el reparto como dato exacto: separar después del cierre (7 de Sofía con una fila de 5) chocaría con el tope por fila, y el cierre mostraría
+un «faltan 2 de Lima» que nadie dijo. Por eso el cierre por categoría, el reclamo por categoría (sin separar) o por prenda (todo separado) y «Hacer ahora» a
+nivel categoría quedan como el paso siguiente, con migración (zona roja: dinero y stock), cuando la sesión de costos por prenda de Recibir fusione.
 SE ROMPE SI: una línea del envío empieza a traer varias prendas (hoy trae una): `prendasAnotadasDe` ya devuelve una lista, pero la cantidad por
 prenda tendría que salir de la compra y no de `dijeron`.
