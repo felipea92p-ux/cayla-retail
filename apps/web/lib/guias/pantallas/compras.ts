@@ -2119,7 +2119,22 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mandar-uno",
       opcional: true,
       titulo: "Mandar a la tienda",
-      texto: "Al tocarlo, sale todo lo que compraste para esa tienda y la tienda ve que le llega. En la demo no mandamos nada.",
+      texto: "Al tocarlo, sale todo lo que compraste para esa tienda y la tienda ve que le llega. Te mostramos el código del envío (ENV-…) para que se lo avises: la tienda lo busca en Recibir. En la demo no mandamos nada.",
+    },
+    {
+      id: "mis-envios",
+      ancla: "mi-plata.mis-envios",
+      opcional: true,
+      titulo: "Mis envíos",
+      texto: "Con tu ronda cerrada, aquí arriba: todos los paquetes que mandaste, de esta ronda y de las anteriores, con su código. Con la ronda abierta, lo encuentras en «Envíos de esta ronda».",
+    },
+    {
+      id: "envios",
+      ancla: "mi-plata.envios",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Envíos de esta ronda",
+      texto: "Lo que ya mandaste en esta ronda, cada paquete con su código y en qué va: en camino, la tienda lo cuenta o recibido. Tócalo para ver el detalle y copiar el código. «Ver todos» abre Mis envíos, con las rondas anteriores y un buscador.",
     },
     {
       id: "termine",
@@ -2137,6 +2152,15 @@ export const GUIA_MI_PLATA: Guia = {
       prepararSoloAlAvanzar: true,
       titulo: "La cuenta de la ronda",
       texto: "Lo que tenías al abrirla, lo que te dieron, lo que compraste y lo que gastaste: abajo, lo que te queda.",
+    },
+    {
+      id: "cerrar-envios",
+      ancla: "mi-plata.cerrar-envios",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.termine" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Tus envíos de la ronda",
+      texto: "Los códigos a la vista antes de cerrar, por si hay que avisarle algo a una tienda. Un envío que sigue «en camino» no frena el cierre: lo sigues viendo en Mis envíos.",
     },
     {
       id: "decision",
@@ -2165,13 +2189,71 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella.",
+      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella y los envíos que mandaste, con su código.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "Listo",
       texto: "Abre tu ronda al salir a comprar, anota cada plata, compra y gasto, y al terminar, «Cerrar mi ronda».",
+    },
+  ],
+};
+
+// Compras ▸ Mis compras ▸ Mis envíos (ADR-0480): los paquetes que mandó, con su código y por ronda. Solo se lee: la demo cambia de vista y
+// escribe un ejemplo; nunca abre ni manda nada.
+export const GUIA_MIS_ENVIOS: Guia = {
+  id: "compras.mi-plata.envios",
+  ruta: "/compras/mi-plata/envios",
+  titulo: "Mis envíos",
+  resumen: "Los paquetes que mandaste a las tiendas, con su código y en qué van.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Tus envíos",
+      texto: "Cada vez que mandas un paquete a una tienda, queda aquí con su código (ENV-…). Es lo que le avisas a la tienda para que lo busque en Recibir. Es una demo: no se manda ni se cambia nada.",
+    },
+    {
+      id: "alcance",
+      ancla: "mis-envios.alcance",
+      titulo: "Esta ronda o anteriores",
+      texto: "«Esta ronda» son los paquetes de tu ronda abierta. «Rondas anteriores» guarda, por ronda, los que mandaste antes: un código de hace dos semanas sigue aquí.",
+    },
+    {
+      id: "esta",
+      ancla: "mis-envios.esta",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mis-envios.tab-esta" }],
+      titulo: "Lo de tu ronda abierta",
+      texto: "Cada envío con su código, cuándo salió, cuántas prendas y fardos llevaba y en qué va. En la computadora es una tabla; al tocar una fila se abre su detalle a la derecha. Si falta mandar algo, la franja de abajo lo dice.",
+    },
+    {
+      id: "anteriores",
+      ancla: "mis-envios.anteriores",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mis-envios.tab-anteriores" }],
+      titulo: "Las rondas ya cerradas",
+      texto: "Una tarjeta por ronda, plegada: cuántos envíos y prendas tuvo y cómo quedó («Todo recibido», «1 con diferencias» o «2 sin recibir»). Tócala para abrirla.",
+    },
+    {
+      id: "buscador",
+      ancla: "mis-envios.buscador",
+      titulo: "Busca un código",
+      texto: "Escribe un código, una tienda o una ronda: busca en todas las rondas, así encuentras un código viejo sin saber en cuál salió.",
+      demostrar: [{ tipo: "escribir", ancla: "mis-envios.buscador", texto: "ENV" }],
+    },
+    {
+      id: "filtros",
+      ancla: "mis-envios.filtros",
+      titulo: "Cómo van",
+      texto: "«Sin recibir» deja los que la tienda todavía no abre o no termina de contar; «Recibidos», los que ya contó. Sirven en las dos vistas.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "Listo",
+      texto: "Toca un envío para ver su detalle, copiar el código o compartirlo por WhatsApp. Si salió hace días y la tienda no lo abrió, el detalle te lo avisa.",
     },
   ],
 };
@@ -2326,6 +2408,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "Lo que llevas",
       texto: "La barra negra suma lo que llevas: cuántas prendas, cuánto suman y cuántos modelos.",
+    },
+    {
+      id: "tu-compra",
+      ancla: "compra.tu-compra",
+      opcional: true,
+      titulo: "Tu compra",
+      texto: "En la computadora, a la derecha va quedando lo que llevas: el proveedor, cada prenda con sus tiendas y el total. Solo se lee.",
     },
     {
       id: "revisar",
