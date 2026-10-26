@@ -47,7 +47,7 @@ import { soles } from "@/lib/historial-prenda-reglas";
 // La tabla decide su forma por el ancho de su tarjeta (en la vista rápida es angosta aunque la pantalla sea ancha): desde 560 px
 // de tarjeta, columnas; más angosta, tres líneas por compra. Las clases van escritas enteras: Tailwind solo genera lo que lee.
 const PLANTILLA =
-  "@min-[560px]:grid-cols-[28px_64px_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1fr)]";
+  "@min-[560px]:grid-cols-[28px_64px_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,1.1fr)]";
 const COLUMNAS: Columna[] = [
   { titulo: "" },
   { titulo: "Fecha" },
@@ -520,7 +520,6 @@ function FilaCompra({
           >
             <CircleHelp aria-hidden className="h-4 w-4" />
           </button>
-          {onCorregir && <BotonPuntos que={`la compra ${numero}`} onClick={onCorregir} guia="historial-prenda.costo-corregir" />}
         </span>
       </span>
       <span
@@ -531,7 +530,11 @@ function FilaCompra({
         role="cell"
         title={[c.proveedor, c.persona].filter(Boolean).join(" · ")}
       >
-        {c.documento ?? (c.origen === "produccion" ? "Taller" : "—")}
+        {/* El «⋯» de corregir va junto al documento (no en la celda del costo, que no tiene sitio para él y lo dejaba tapado). */}
+        <span className="inline-flex items-center justify-end gap-1">
+          {c.documento ?? (c.origen === "produccion" ? "Taller" : "—")}
+          {onCorregir && <BotonPuntos que={`la compra ${numero}`} onClick={onCorregir} guia="historial-prenda.costo-corregir" />}
+        </span>
       </span>
       {abierta && (
         <p

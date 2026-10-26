@@ -186,7 +186,7 @@ export function CorregirCostoModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="historial-prenda.corregir-costo-pie" className="pie-acciones">
+          <div data-guia="historial-prenda.corregir-costo-pie" className="pie-acciones pie-hoja-fijo">
             <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
