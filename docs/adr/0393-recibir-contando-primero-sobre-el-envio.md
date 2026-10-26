@@ -509,5 +509,9 @@ quien contó.
 SE ROMPE SI: nace otro camino que cree una prenda desde una nueva sin pasar por `prendaCreadaDeNueva` (la nueva y la prenda quedarían las dos
 en lo separado y lo contado se duplicaría).
 
+En «Para después», la fila de un pendiente «detalle» dice «Tallas y colores ahora» (`BOTON_DE_PENDIENTE`), como al contar; «crear» sigue en
+«+ Crear ahora» y «separar» en «Hacer ahora». Que un «crear» pase a «detalle» cuando se crea su prenda es de la base (`ligar_prenda_a_pendiente`,
+migración `20261026163000`, rama `prenda-para-despues-save-613e8c`): no se repite aquí.
+
 De paso, la fila de lo separado baja sus acciones bajo el nombre según el ancho de la LISTA (`.rc-filas-sep`, contenedor de 700 px), no el de la
 ventana: junto a «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho y el nombre se aplastaba.

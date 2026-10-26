@@ -54,6 +54,7 @@ import {
   quitarNuevaDescrita,
   cambiarCantidadNuevaDescrita,
   prendaCreadaDeNueva,
+  BOTON_DE_PENDIENTE,
   veredictoDeLaBalanza,
   subtitulosDelRiel,
   insigniaDelEnvio,
@@ -473,6 +474,31 @@ describe("«Crear ahora» una nueva ya descrita: de «por crear» a prenda conoc
   it("lo que se guarda en la base lleva la prenda y ya no la nueva; la base no ve la descripción", () => {
     const r = prendaCreadaDeNueva(describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 3), "Blusa con lazo, rosada", 3), "Blusa con lazo, rosada", CREADA);
     expect(separadoParaBase(r)).toEqual({ prendas: [{ producto_id: "p-lazo", cantidad: 3, variantes: null }], nuevas: [] });
+  });
+});
+
+describe("el botón de cada fila de «Para después»", () => {
+  it("cada tipo dice lo que hace: crear, tallas y colores, o el genérico de separar", () => {
+    expect(BOTON_DE_PENDIENTE).toEqual({ separar: "Hacer ahora", detalle: "Tallas y colores ahora", crear: "+ Crear ahora" });
+  });
+
+  it("cubre todos los tipos que paraDespues puede devolver", () => {
+    const l = {
+      clave: "item:1",
+      linea: { id: "1" },
+      categoria: { nombre: "Blusas" },
+      marca: { nombre: "CAYLA" },
+      conteo: {
+        sinSeparar: 2,
+        pendientes: [
+          { id: "p1", tipo: "detalle", estado: "pendiente", quedan: 3, producto: { id: "x", nombre: "Emma" }, descripcion: null },
+          { id: "p2", tipo: "crear", estado: "pendiente", quedan: 1, producto: null, descripcion: "Top" },
+        ],
+      },
+    } as unknown as LineaParaContar;
+    const tipos = paraDespues([l]).map((p) => p.tipo);
+    expect(new Set(tipos)).toEqual(new Set(["separar", "detalle", "crear"]));
+    for (const t of tipos) expect(BOTON_DE_PENDIENTE[t]).toBeTruthy();
   });
 });
 

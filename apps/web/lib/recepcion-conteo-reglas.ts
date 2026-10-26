@@ -860,6 +860,17 @@ export type ParaDespues =
   | { tipo: "detalle"; linea: ClaveLinea; pendiente: PendienteDeLinea; cantidad: number; titulo: string; sub: string }
   | { tipo: "crear"; linea: ClaveLinea; pendiente: PendienteDeLinea; cantidad: number; titulo: string; sub: string };
 
+/**
+ * Lo que dice el botón de cada fila de «Para después»: lo que hace, con las mismas palabras que «¿Qué … son?» al contar («+ Crear ahora»,
+ * «Tallas y colores ahora»). Un pendiente «detalle» —una prenda que ya existe y espera sus tallas y colores, sea porque se separó sin
+ * ellas o porque se acaba de crear— dice lo que le falta, no el genérico «Hacer ahora» de «Separar».
+ */
+export const BOTON_DE_PENDIENTE: Record<ParaDespues["tipo"], string> = {
+  separar: "Hacer ahora",
+  detalle: "Tallas y colores ahora",
+  crear: "+ Crear ahora",
+};
+
 /** Lo que queda por terminar, línea por línea: lo sin separar, cada «detalle» y cada «crear» con lo que todavía no entró. */
 export function paraDespues(lineas: readonly LineaParaContar[]): ParaDespues[] {
   const r: ParaDespues[] = [];

@@ -87,7 +87,7 @@
     "components/recepcion-conteo/EnvioCerrado.tsx": [
       "Boton «{veredicto.accion}»",
       "BotonEnlace «{a.texto}»",
-      "Boton «{p.tipo === \"crear\" ? \"+ Crear ahora\" : \"Hacer ahora\"}»",
+      "Boton «{BOTON_DE_PENDIENTE[p.tipo]}»",
       "Boton «Reabrir el conteo»",
       "BotonEnlace «Recibir otro»",
       "BotonEnlace «Ver todo lo recibido»"
