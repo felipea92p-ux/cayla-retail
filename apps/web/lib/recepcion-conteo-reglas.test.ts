@@ -2,7 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   SEPARADO_VACIO,
   argsGuardarConteo,
+  argsLigarPrenda,
+  ALCANCE_DE_FABRICA,
+  avisoDePrecioRechazado,
+  cambiosDeVentaDe,
+  hoyDelPrecio,
+  leerValidacionDePrecio,
+  precioComoTexto,
+  problemasDePrecio,
   argsResolverPendiente,
+  AVISO_PRENDA_SIN_LIGAR,
+  resultadoDeLigar,
+  resultadoDelPrecio,
   cambiarCantidadPrenda,
   camposDelCierre,
   camposDelConteo,
@@ -370,6 +381,158 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(r?.conteo?.contadas).toBe(10);
     expect(textoResuelto(r!)).toBe("4 prendas entraron al stock · 1 quedó para después");
     expect(textoResuelto({ entraron: 0, quedaronPendientes: 0 })).toBe("Listo");
+  });
+
+  // Felipe 2026-10-26: «Crear ahora» crea la prenda, abre «Tallas y colores» y, si la persona toca «Dejar para después», la prenda ya existía
+  // pero la lista seguía diciendo «por crear». La prenda se liga al pendiente (`ligar_prenda_a_pendiente`) y la lista cambia de frase.
+  describe("«Crear ahora» deja la prenda creada en «Para después»", () => {
+    const conteos = (pendientes: object[]) =>
+      leerConteosDelEnvio({ despacho_id: "d1", estado: "cerrado", conteos: [conteoCrudo({ despacho_item_id: "i1", contadas: 10, en_stock: 4, sin_separar: 1, pendientes })] });
+    const lista = (pendientes: object[]) => paraDespues(lineasParaContar({ lineas: [linea("i1", 12)] }, conteos(pendientes)));
+
+    it("solo un pendiente «crear» espera su prenda: un «detalle» ya la tiene y lo sin separar no es un pendiente", () => {
+      const [separar, detalle, crear] = lista([
+        { id: "pe1", tipo: "detalle", cantidad: 3, quedan: 3, producto: { id: "pa", nombre: "Blusa Aurora" }, estado: "pendiente" },
+        { id: "pe2", tipo: "crear", cantidad: 6, quedan: 6, descripcion: "jean", estado: "pendiente" },
+      ]);
+      expect(argsLigarPrenda("d1", crear, "prod-jean")).toEqual({ p_despacho_id: "d1", p_pendiente_id: "pe2", p_producto_id: "prod-jean" });
+      expect(argsLigarPrenda("d1", detalle, "prod-jean")).toBeNull();
+      expect(argsLigarPrenda("d1", separar, "prod-jean")).toBeNull();
+    });
+
+    it("la lista deja de decir «por crear» cuando la base ya tiene la prenda ligada", () => {
+      const antes = lista([{ id: "pe2", tipo: "crear", cantidad: 6, quedan: 6, descripcion: "jean", estado: "pendiente" }]).filter((p) => p.tipo !== "separar");
+      const despues = lista([{ id: "pe2", tipo: "detalle", cantidad: 6, quedan: 6, producto: { id: "prod-jean", nombre: "Jean recto" }, estado: "pendiente" }]).filter((p) => p.tipo !== "separar");
+      expect(antes.map((p) => [p.tipo, p.titulo, p.sub.endsWith("por crear en el catálogo")])).toEqual([["crear", "6 prendas nuevas · jean", true]]);
+      expect(despues.map((p) => [p.tipo, p.titulo, p.sub.endsWith("faltan tallas y colores")])).toEqual([["detalle", "Jean recto · 6 sin tallas", true]]);
+    });
+
+    it("lee qué pasó al ligar: ligado, sin cambio, función ausente (migración sin pegar) o fallo", () => {
+      expect(resultadoDeLigar({ ligado: true }, null)).toBe("ligado");
+      expect(resultadoDeLigar([{ ligado: true }], null)).toBe("ligado");
+      expect(resultadoDeLigar({ ligado: false }, null)).toBe("sin_cambio");
+      expect(resultadoDeLigar(null, { code: "P0001", hint: "pendiente_ya_resuelto" })).toBe("sin_cambio");
+      expect(resultadoDeLigar(null, { code: "PGRST202" })).toBe("no_disponible");
+      expect(resultadoDeLigar(null, { code: "42883" })).toBe("no_disponible");
+      expect(resultadoDeLigar(null, { code: "P0001", hint: "recepcion_prenda_ajena" })).toBe("fallo");
+      expect(resultadoDeLigar(null, { code: "PGRST301" })).toBe("fallo");
+      expect(resultadoDeLigar({}, null)).toBe("fallo");
+      expect(resultadoDeLigar(null, null)).toBe("fallo");
+    });
+
+    it("el aviso de «no se pudo» dice qué pasó con la prenda y cómo se arregla, sin jerga", () => {
+      expect(AVISO_PRENDA_SIN_LIGAR.titulo).toContain("se creó");
+      expect(AVISO_PRENDA_SIN_LIGAR.detalle).toContain("Catálogo ▸ Productos");
+    });
+  });
+
+  // Felipe 2026-10-26: contar «5 blusas» sin decir cuáles no deja cambiar ningún precio al cerrar; en «Para después», al identificar la prenda, sí.
+  describe("el precio de venta de lo que se identifica en «Para después»", () => {
+    const emma = { productoId: "pe", nombre: "Blusa Emma", codigo: "BLU-0001" };
+    const valentina = { productoId: "pv", nombre: null, codigo: "BLU-0002" };
+    const hoy = { desde: 79.9, hasta: 79.9 };
+
+    it("solo cuentan las prendas cuyo precio escrito cambió, con su nombre (o su código), y una vez por prenda", () => {
+      const c = cambiosDeVentaDe([emma, valentina, emma], {
+        pe: { actual: hoy, valor: "89.90", alcance: "todas" },
+        pv: { actual: { desde: 59, hasta: 59 }, valor: "69", alcance: "sede" },
+      });
+      expect(c.map((x) => [x.productoId, x.nombre, x.antes, x.despues, x.alcance])).toEqual([
+        ["pe", "Blusa Emma", 79.9, 89.9, "todas"],
+        ["pv", "BLU-0002", 59, 69, "sede"],
+      ]);
+    });
+
+    it("sin cambio no hay nada que confirmar: igual al de hoy, vacío, mal escrito, todavía leyendo o sin escribir nada", () => {
+      expect(
+        cambiosDeVentaDe([emma, valentina], {
+          pe: { actual: hoy, valor: "79.90", alcance: "todas" },
+          pv: { actual: hoy, valor: "", alcance: "todas" },
+        }),
+      ).toEqual([]);
+      expect(cambiosDeVentaDe([emma], { pe: { actual: hoy, valor: "mucho", alcance: "todas" } })).toEqual([]);
+      expect(cambiosDeVentaDe([emma], { pe: { actual: hoy, valor: "0", alcance: "todas" } })).toEqual([]);
+      expect(cambiosDeVentaDe([emma], { pe: { actual: undefined, valor: "99", alcance: "todas" } })).toEqual([]);
+      expect(cambiosDeVentaDe([emma], {})).toEqual([]);
+    });
+
+    it("el precio nace para la sede donde se recibe, y lo escrito se compara con el de hoy en ESA sede (puede ser otro que el general)", () => {
+      expect(ALCANCE_DE_FABRICA).toBe("sede");
+      const lima = { desde: 80, hasta: 80 };
+      // La prenda vale 79.90 en general y 80 en Lima: escribir 80 en «Solo Lima» no es un cambio; escribir 79.90 sí (vuelve al general).
+      const e = { actual: hoy, actualSede: lima, valor: "80.00", alcance: "sede" as const };
+      expect(hoyDelPrecio(e)).toEqual(lima);
+      expect(hoyDelPrecio({ ...e, alcance: "todas" })).toEqual(hoy);
+      expect(cambiosDeVentaDe([emma], { pe: e })).toEqual([]);
+      expect(cambiosDeVentaDe([emma], { pe: { ...e, valor: "79.90" } }).map((x) => [x.antes, x.despues, x.alcance])).toEqual([[80, 79.9, "sede"]]);
+      // Para todas las sedes se compara con el general.
+      expect(cambiosDeVentaDe([emma], { pe: { ...e, alcance: "todas", valor: "80.00" } }).map((x) => [x.antes, x.despues, x.alcance])).toEqual([[79.9, 80, "todas"]]);
+      // Si no se pudo leer el de la sede, vale el general.
+      expect(hoyDelPrecio({ actual: hoy, actualSede: undefined, alcance: "sede" })).toEqual(hoy);
+      expect(precioComoTexto(lima)).toBe("80.00");
+      expect(precioComoTexto({ desde: 59, hasta: 79 })).toBe("");
+      expect(precioComoTexto(null)).toBe("");
+    });
+
+    it("un precio escrito mal no se ignora: se dice cuál y por qué (vacío es «no lo cambio»)", () => {
+      const v = (valor: string) => ({ actual: hoy, valor, alcance: "sede" as const });
+      expect(problemasDePrecio([emma, valentina], { pe: v("mucho"), pv: v("0") }).map((p) => [p.productoId, p.nombre, p.texto])).toEqual([
+        ["pe", "Blusa Emma", "Escribe el precio solo con números (ej. 79.90)"],
+        ["pv", "BLU-0002", "El precio tiene que ser mayor que cero"],
+      ]);
+      expect(problemasDePrecio([emma], { pe: v("5000.01") }).map((p) => p.texto)).toEqual(["El precio va hasta S/\u00a05\u00a0000"]);
+      expect(problemasDePrecio([emma, valentina], { pe: v(""), pv: v("89.90") })).toEqual([]);
+      expect(problemasDePrecio([emma], {})).toEqual([]);
+    });
+
+    it("el aviso de un precio que no se puede guardar dice cuál, por qué y qué pasó, con su punto aunque el motivo no lo traiga", () => {
+      expect(avisoDePrecioRechazado("Blusa Emma", "Escribe el precio solo con números (ej. 79.90)", "No se guardó nada.")).toBe(
+        "Revisa el precio de venta de Blusa Emma: Escribe el precio solo con números (ej. 79.90). No se guardó nada.",
+      );
+      expect(avisoDePrecioRechazado("Blusa Emma", "Ese precio queda por debajo de lo que cuesta la prenda. ", "No se cerró el envío.")).toBe(
+        "Revisa el precio de venta de Blusa Emma: Ese precio queda por debajo de lo que cuesta la prenda. No se cerró el envío.",
+      );
+    });
+
+    it("lee lo que contestó la validación: ok, el motivo de la base (sin decir cuánto cuesta) o «no se pudo preguntar» y la base decide al guardar", () => {
+      expect(leerValidacionDePrecio({ ok: true }, null)).toEqual({ estado: "ok" });
+      const bajo = leerValidacionDePrecio(
+        { ok: false, codigo: "P0001", hint: "precio_bajo_costo", motivo: "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña (Catálogo ▸ Atributos ▸ Etiquetas)." },
+        null,
+      );
+      expect(bajo).toEqual({ estado: "rechazado", texto: expect.stringContaining("por debajo de lo que cuesta la prenda") });
+      expect(JSON.stringify(bajo)).not.toMatch(/S\/\s?\d/);
+      expect(leerValidacionDePrecio({ ok: false, hint: "precio_invalido", motivo: "Escribe un precio mayor que cero (hasta S/ 5,000)." }, null)).toEqual({
+        estado: "rechazado",
+        texto: expect.stringContaining("mayor que cero"),
+      });
+      expect(leerValidacionDePrecio({ ok: false, hint: "precio_envio_no_abierto", motivo: "El precio se cambia cuando el envío ya se está recibiendo" }, null)).toEqual({
+        estado: "rechazado",
+        texto: expect.stringContaining("Todavía no se puede cambiar el precio desde aquí"),
+      });
+      expect(leerValidacionDePrecio({ ok: false, hint: "precio_prenda_ajena", motivo: "Esa prenda no existe." }, null)).toEqual({ estado: "rechazado", texto: "Esa prenda no existe." });
+      // No se pudo preguntar: la función no está en la base todavía, un corte de red o una respuesta que no se entiende.
+      expect(leerValidacionDePrecio(null, { code: "PGRST202", message: "Could not find the function" })).toEqual({ estado: "sin_respuesta" });
+      expect(leerValidacionDePrecio(null, { message: "Failed to fetch" })).toEqual({ estado: "sin_respuesta" });
+      expect(leerValidacionDePrecio({}, null)).toEqual({ estado: "sin_respuesta" });
+      expect(leerValidacionDePrecio(null, null)).toEqual({ estado: "sin_respuesta" });
+    });
+
+    it("lee lo que contestó la base: ok, «todavía no es de este envío» (se reintenta con la prenda adentro) o el motivo", () => {
+      expect(resultadoDelPrecio(null)).toBe("ok");
+      expect(resultadoDelPrecio({ hint: "precio_prenda_ajena", message: "Esa prenda no es de este envío" })).toBe("ajena");
+      expect(resultadoDelPrecio({ hint: "precio_envio_no_abierto", message: "El precio se cambia mientras el envío está abierto, antes de cerrarlo" })).toEqual({
+        texto: "Todavía no se puede cambiar el precio desde aquí. Déjalo como estaba o cámbialo en Catálogo ▸ Productos.",
+      });
+      const bajo = resultadoDelPrecio({ hint: "precio_bajo_costo", message: "Ese precio queda por debajo de lo que cuesta la prenda. Para liquidar usa una campaña (Catálogo ▸ Atributos ▸ Etiquetas)." });
+      expect(bajo).toEqual({ texto: expect.stringContaining("por debajo de lo que cuesta") });
+      expect(resultadoDelPrecio({ message: "Failed to fetch" })).toEqual({ texto: expect.stringContaining("Se cortó la conexión") });
+    });
+
+    it("una prenda que se cambió de precio pero ya no está en lo que se guarda no se toca", () => {
+      const ventas = { pe: { actual: hoy, valor: "89.90", alcance: "todas" as const } };
+      expect(cambiosDeVentaDe([valentina], ventas)).toEqual([]);
+    });
   });
 
   it("en la puerta, un envío sin órdenes ni líneas es uno que llegó sin aviso", () => {

@@ -60,6 +60,11 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013183000_envio_sin_aviso.sql",
       // ADR-0393: una prenda que la recepción usa no se ofrece para eliminar (casos E).
       "20261014234000_recepcion_frena_eliminar_producto.sql",
+      // ADR-0393 (2026-10-26): «Crear ahora» deja la prenda creada en «Para después» (casos V).
+      "20261026163000_pendiente_crear_pasa_a_detalle.sql",
+      // ADR-0393 (2026-10-26): el precio de venta también se cambia desde «Para después» (casos W). Parcha `cambiar_precio_en_recepcion`
+      // (20261024225000, que ya está en la base).
+      "20261026180000_precio_de_venta_en_para_despues.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -168,6 +173,14 @@ ${atrapa(
   "retail.resolver_pendiente_envio(p_d, p_item, p_extra, p_pend, p_sep, p_conf, p_token)",
 )}
 ${atrapa("pendientes", "p_u uuid", "retail.fn_recepcion_pendientes(p_u)")}
+${atrapa("liga", "p_d uuid, p_pend uuid, p_prod uuid", "retail.ligar_prenda_a_pendiente(p_d, p_pend, p_prod)")}
+${atrapa("cambia", "p_d uuid, p_prod uuid, p_precio numeric, p_alcance text", "retail.cambiar_precio_en_recepcion(p_d, p_prod, p_precio, p_alcance)")}
+${atrapa("valida", "p_d uuid, p_prod uuid, p_precio numeric, p_alcance text", "retail.validar_precio_en_recepcion(p_d, p_prod, p_precio, p_alcance)")}
+-- La pista de lo que dijo la validación: «OK» o por qué no.
+create function pg_temp.hv(p jsonb) returns text language sql as $f$
+  select case when (p ->> 'ok')::boolean then 'OK' else coalesce(p ->> 'hint', p ->> 'codigo') end;
+$f$;
+grant execute on function pg_temp.hv(jsonb) to authenticated;
 
 -- Datos propios de la prueba, creados como Felipe (líder): la prenda de catálogo nace aprobada.
 select set_config('request.jwt.claim.sub', '${FELIPE}', true) \\g /dev/null
@@ -600,6 +613,190 @@ caso(
   "false:3:true,false:1:true,true:2:true,true:1:false / 6",
 );
 
+// V. «CREAR AHORA» DEJA LA PRENDA EN «PARA DESPUÉS» (20261026163000) ---------------------------------------------------------------
+// La prenda de un pendiente «crear» se crea con `preparar_prenda_al_recibir` y, justo después, la pantalla la liga con
+// `ligar_prenda_a_pendiente`: el pendiente pasa a «detalle» (se sabe qué prenda es, faltan tallas y colores). Sin eso, quien dejaba la
+// hoja de tallas «para después» encontraba la lista diciendo «por crear» de una prenda que ya estaba en el catálogo.
+const PRENDA_CAPUCHA = `
+   select pg_temp.prepara(:'d1', :'di_l1', null, null, null, 'Chompa Capucha Conteo', ${MATRIZ(["t_s", "c1"])}, 99.90, null, null, null, false, gen_random_uuid(), null) as prep2 \\gset
+   select (:'prep2'::jsonb -> 'variantes' -> 0 ->> 'id') as v_cap \\gset
+   reset role;
+   select producto_id as prod_cap from retail.variantes where id = :'v_cap' \\gset
+   ${como(MICAELA)}${EN_TIENDA}`;
+caso(
+  "V1 la prenda creada para un «crear» queda en «Para después» como «detalle»: misma línea y cantidad, sin descripción, y se termina con tallas",
+  `${CIERRE_CON_PENDIENTES}${PRENDA_CAPUCHA}
+   select pg_temp.pendientes(:'tru') as antes \\gset
+   select pg_temp.liga(:'d1', :'pend_new', :'prod_cap') as r \\gset
+   select pg_temp.liga(:'d1', :'pend_new', :'prod_cap') as r2 \\gset
+   select pg_temp.pendientes(:'tru') as despues \\gset
+   select pg_temp.conteos(:'d1') as c \\gset
+   reset role;
+   select concat_ws(':', x.tipo, x.cantidad, x.producto_id = :'prod_cap', coalesce(x.descripcion, '-'), x.estado,
+                    x.despacho_item_id = :'di_l1', x.anotado_por = :'micaela_p') as fila
+     from retail.despacho_pendientes x where x.id = :'pend_new' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select ${RESUELVE("d1", "l1", "pend_new", SEP([["prod_cap", 2, [V("v_cap", 2)]]]))} as fin \\gset
+   reset role;
+   select concat_ws(' / ',
+     concat_ws(':', :'r'::jsonb ->> 'ligado', :'r2'::jsonb ->> 'ligado', :'r2'::jsonb ->> 'producto_id' = :'prod_cap'),
+     :'fila',
+     concat_ws(':', :'antes'::jsonb ->> 'por_detallar', :'antes'::jsonb ->> 'por_crear', :'despues'::jsonb ->> 'por_detallar',
+               :'despues'::jsonb ->> 'por_crear', :'despues'::jsonb ->> 'total'),
+     (select p ->> 'tipo' || ':' || (p ->> 'quedan') || ':' || (p -> 'producto' ->> 'nombre')
+        from jsonb_array_elements((select x from jsonb_array_elements(:'c'::jsonb -> 'conteos') x where x ->> 'despacho_item_id' = :'di_l1') -> 'pendientes') p
+       where p ->> 'id' = :'pend_new'),
+     concat_ws(':', :'fin'::jsonb ->> 'entraron', (select estado from retail.despacho_pendientes where id = :'pend_new')));`,
+  "true:false:t / detalle:2:t:-:pendiente:t:t / 3:2:5:0:8 / detalle:2:Chompa Capucha Conteo / 2:resuelto",
+);
+caso(
+  "V2 ligar rechaza lo que no corresponde: otra categoría o marca, una prenda descontinuada, un pendiente ajeno, un envío abierto, sin Recibir; un «detalle» no cambia",
+  `${CIERRE_CON_PENDIENTES}${PRENDA_CAPUCHA}
+   reset role;
+   insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id, estado) values (:'cat', 'Chompa Apagada Conteo', :'marca', :'prov', 'descontinuado')
+     returning id as prod_off \\gset
+   insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat2', 'Gorro Otra Cat Conteo', :'marca', :'prov')
+     returning id as prod_otra \\gset
+   ${ENVIA("d3", [["l_o3", 3]])}${ITEM("d3", "l_o3")}
+   ${como(SANDRA)}${SIN_ENCABEZADOS}${ABRE("d3")}
+   ${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ',
+     pg_temp.h(pg_temp.liga(:'d1', :'pend_new', :'prod_otra')),
+     pg_temp.h(pg_temp.liga(:'d1', :'pend_new', :'prod_off')),
+     pg_temp.h(pg_temp.liga(:'d1', :'pend_new', gen_random_uuid())),
+     pg_temp.h(pg_temp.liga(:'d1', gen_random_uuid(), :'prod_cap')),
+     pg_temp.h(pg_temp.liga(:'d3', :'pend_new', :'prod_cap')),
+     pg_temp.h(pg_temp.liga(gen_random_uuid(), :'pend_new', :'prod_cap')),
+     pg_temp.liga(:'d1', :'pend_det', :'prod_cap') ->> 'ligado') as r \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.liga(:'d1', :'pend_new', :'prod_cap')) as sin_modulo \\gset
+   reset role;
+   select concat_ws(' / ', :'r', :'sin_modulo', (select x.tipo from retail.despacho_pendientes x where x.id = :'pend_new'),
+     (select p.referencia from retail.despacho_pendientes x join retail.productos p on p.id = x.producto_id where x.id = :'pend_det'));`,
+  "recepcion_prenda_ajena / recepcion_prenda_inactiva / recepcion_prenda_no_existe / pendiente_ajeno / pendiente_envio_abierto / envio_no_existe / " +
+    "false / recibir_sin_modulo / crear / Chompa Catálogo Conteo",
+);
+caso(
+  "V3 el cambio de «crear» a «detalle» solo lo hace la función: a mano no, ni cambiando otra cosa ni al revés; la marca no queda encendida",
+  `${CIERRE_CON_PENDIENTES}${PRENDA_CAPUCHA}
+   reset role;
+   select pg_temp.intento($q$update retail.despacho_pendientes set tipo = 'detalle', producto_id = '$q$ || :'prod_cap' || $q$', descripcion = null
+                             where id = '$q$ || :'pend_new' || $q$'$q$) as a \\gset
+   select set_config('retail.ligando_pendiente', 'si', true) \\g /dev/null
+   select pg_temp.intento($q$update retail.despacho_pendientes set tipo = 'detalle', producto_id = '$q$ || :'prod_cap' || $q$', descripcion = null,
+                             cantidad = 1 where id = '$q$ || :'pend_new' || $q$'$q$) as b \\gset
+   select pg_temp.intento($q$update retail.despacho_pendientes set tipo = 'crear', producto_id = null, descripcion = 'otra'
+                             where id = '$q$ || :'pend_det' || $q$'$q$) as c \\gset
+   select set_config('retail.ligando_pendiente', '', true) \\g /dev/null
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.liga(:'d1', :'pend_new', :'prod_cap')) as ok \\gset
+   select case when coalesce(current_setting('retail.ligando_pendiente', true), '') = '' then 'apagada' else 'ENCENDIDA' end as marca \\gset
+   select concat_ws(' / ', :'a', :'b', :'c', :'marca', :'ok');`,
+  "42501|Un pendiente no cambia: se resuelve, o se anula reabriendo el envío / " +
+    "42501|Un pendiente no cambia: se resuelve, o se anula reabriendo el envío / " +
+    "42501|Un pendiente no cambia: se resuelve, o se anula reabriendo el envío / apagada / OK",
+);
+
+// W. EL PRECIO DE VENTA DESDE «PARA DESPUÉS» (20261026180000) ------------------------------------------------------------------
+// Con el envío cerrado, `cambiar_precio_en_recepcion` deja cambiar el precio de lo que sigue «para después» o entró hace menos de una hora.
+// Antes: «El precio se cambia mientras el envío está abierto». Quien identifica la prenda en «Hacer ahora» es quien sabe a cuánto se vende.
+caso(
+  "W1 con el envío cerrado, una prenda que sigue «para después» cambia de precio (todas las sedes y solo esta), con el rastro de quien firma",
+  `${CIERRE_CON_PENDIENTES}
+   select pg_temp.cambia(:'d1', :'prod_p', 99.9, 'todas') as r \\gset
+   select pg_temp.cambia(:'d1', :'prod_p', 89.9, 'sede') as r2 \\gset
+   reset role;
+   select concat_ws(' / ',
+     concat_ws(':', :'r'::jsonb ->> 'alcance', :'r'::jsonb ->> 'variantes', (select precio from retail.variantes where id = :'pv_s'),
+               (select precio from retail.variantes where id = :'pv_l')),
+     :'r2'::jsonb ->> 'alcance',
+     (select count(*) from retail.historial_producto_cambios h where h.entidad_id = :'pv_s' and h.campo = 'precio'
+        and h.valor_anterior = '79.90' and h.valor_nuevo = '99.90' and h.usuario_id = :'micaela_p'),
+     (select ps.precio from retail.precios_sede_prenda ps where ps.producto_id = :'prod_p' and ps.ubicacion_id = :'tru' and ps.archivado_en is null));`,
+  "todas:1:99.90:79.90 / sede / 1 / 89.90",
+);
+caso(
+  "W2 lo que entró por este envío cambia de precio justo después de meterlo; pasada la hora, ya no",
+  `${CIERRE_CON_PENDIENTES}
+   select pg_temp.h(pg_temp.cambia(:'d1', :'prod_n', 94.9, 'todas')) as reciente \\gset
+   reset role;
+   set local session_replication_role = replica;
+   update retail.despacho_recibidos set creado_en = now() - interval '2 hours' where despacho_id = :'d1';
+   set local session_replication_role = origin;
+   ${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ', :'reciente', pg_temp.h(pg_temp.cambia(:'d1', :'prod_n', 95.9, 'todas')));`,
+  "OK / precio_prenda_ajena",
+);
+caso(
+  "W3 lo demás sigue cerrado: una prenda que no pasó por el envío, el envío en camino, sin Recibir, un precio bajo el costo",
+  `${CIERRE_CON_PENDIENTES}
+   reset role;
+   insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Chompa Suelta Conteo', :'marca', :'prov')
+     returning id as prod_suelta \\gset
+   insert into retail.variantes (producto_id, talla_id, color_codigo, precio, costo) values (:'prod_suelta', :'t_s', :'c1', 59.90, 20);
+   ${ENVIA("d_camino", [["l_o3", 1]])}
+   ${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ',
+     pg_temp.h(pg_temp.cambia(:'d1', :'prod_g', 99.9, 'todas')),
+     pg_temp.h(pg_temp.cambia(:'d1', :'prod_suelta', 99.9, 'todas')),
+     pg_temp.h(pg_temp.cambia(:'d_camino', :'prod_p', 99.9, 'todas')),
+     pg_temp.h(pg_temp.cambia(:'d1', :'prod_p', 24.99, 'todas'))) as r \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ', :'r', pg_temp.h(pg_temp.cambia(:'d1', :'prod_p', 99.9, 'todas')));`,
+  "precio_prenda_ajena / precio_prenda_ajena / precio_envio_no_abierto / precio_bajo_costo / recibir_sin_modulo",
+);
+
+caso(
+  "W4 la validación dice si un precio vale y por qué no, sin guardar nada: ni el precio, ni el rastro, ni la marca de transacción",
+  `${CIERRE_CON_PENDIENTES}
+   select concat_ws(' / ',
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 99.9, 'todas')),
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 89.9, 'sede')),
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 24.99, 'todas')),
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 24.99, 'sede')),
+     (pg_temp.valida(:'d1', :'prod_p', 24.99, 'todas') ->> 'motivo') like 'Ese precio queda por debajo de lo que cuesta la prenda%',
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 0, 'todas')),
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 5000.01, 'sede')),
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 99.9, 'regalo'))) as r \\gset
+   reset role;
+   select concat_ws(' / ', :'r',
+     (select string_agg(precio::text, ',' order by id) from retail.variantes where producto_id = :'prod_p'),
+     (select count(*) from retail.precios_sede_prenda where producto_id = :'prod_p'),
+     (select count(*) from retail.historial_producto_cambios h where h.entidad_id in (:'pv_s', :'pv_l') and h.campo = 'precio'),
+     coalesce(nullif(current_setting('retail.precio_validando', true), ''), 'apagada'),
+     coalesce(nullif(current_setting('retail.precio_desde_recepcion', true), ''), 'apagada'));`,
+  "OK / OK / precio_bajo_costo / precio_sede_bajo_costo / t / precio_invalido / precio_invalido / precio_alcance / 79.90,79.90 / 0 / 0 / off / apagada",
+);
+caso(
+  "W5 la validación también contesta por una prenda que todavía no es del envío (sin que la puerta real se abra), y por lo que no se puede: envío en camino, prenda inexistente, sin Recibir",
+  `${CIERRE_CON_PENDIENTES}
+   reset role;
+   insert into retail.productos (categoria_id, referencia, marca_id, proveedor_id) values (:'cat', 'Chompa Suelta Conteo', :'marca', :'prov')
+     returning id as prod_suelta \\gset
+   insert into retail.variantes (producto_id, talla_id, color_codigo, precio, costo) values (:'prod_suelta', :'t_s', :'c1', 59.90, 20);
+   ${ENVIA("d_camino", [["l_o3", 1]])}
+   ${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ',
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_suelta', 99.9, 'todas')),
+     pg_temp.hv(pg_temp.valida(:'d1', :'prod_suelta', 19.9, 'todas')),
+     pg_temp.h(pg_temp.cambia(:'d1', :'prod_suelta', 99.9, 'todas')),
+     pg_temp.hv(pg_temp.valida(:'d_camino', :'prod_p', 99.9, 'todas')),
+     pg_temp.hv(pg_temp.valida(:'d1', gen_random_uuid(), 99.9, 'todas'))) as r \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ', :'r', pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', 99.9, 'todas')));`,
+  "OK / precio_bajo_costo / precio_prenda_ajena / precio_envio_no_abierto / precio_prenda_ajena / recibir_sin_modulo",
+);
+caso(
+  "W6 la validación dice lo mismo que la función real, caso por caso (una sola regla): lo que rechaza la una lo rechaza la otra, con la misma pista",
+  `${CIERRE_CON_PENDIENTES}
+   select concat_ws(',',
+     ${[[0, "todas"], [-5, "todas"], ["'NaN'::numeric", "todas"], [5000.01, "sede"], [24.99, "todas"], [24.99, "sede"], [99.9, "regalo"], [99.9, "todas"]]
+       .map(([precio, alcance]) => `(pg_temp.hv(pg_temp.valida(:'d1', :'prod_p', ${precio}, '${alcance}')) = pg_temp.h(pg_temp.cambia(:'d1', :'prod_p', ${precio}, '${alcance}')))::text`)
+       .join(",\n     ")}) as r \\gset
+   select :'r';`,
+  "true,true,true,true,true,true,true,true",
+);
+
 // I. EL CANDADO DE LA BASE: LA LÍNEA SIEMPRE CUADRA ------------------------------------------------------------------------
 caso(
   "I1 aunque se escriba a mano: lo pendiente no pasa de lo contado, un pendiente no se resuelve sin entrar, no vuelve, no cambia ni se borra",
@@ -705,13 +902,14 @@ caso(
                         || ':' || has_function_privilege('anon', p.oid, 'execute'), ',' order by p.proname)
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'retail' and p.proname in ('cerrar_conteo_envio', 'resolver_pendiente_envio', 'fn_recepcion_pendientes',
-                                                     'fn_recepcion_cerrar', 'fn_envio_cuentas', 'fn_envio_linea_cuadra')),
+                                                     'fn_recepcion_cerrar', 'fn_envio_cuentas', 'fn_envio_linea_cuadra', 'ligar_prenda_a_pendiente')),
      (select string_agg(c.relname || ':' || c.relrowsecurity || ':' || has_table_privilege('authenticated', c.oid, 'select')
                         || ':' || (select count(*) from pg_policies p where p.schemaname = 'retail' and p.tablename = c.relname), ','
                         order by c.relname)
         from pg_class c where c.oid in ('retail.despacho_pendientes'::regclass, 'retail.despacho_separaciones'::regclass)));`,
   "cerrar_conteo_envio:true:true:false,fn_envio_cuentas:true:false:false,fn_envio_linea_cuadra:true:false:false," +
-    "fn_recepcion_cerrar:true:false:false,fn_recepcion_pendientes:true:true:false,resolver_pendiente_envio:true:true:false / " +
+    "fn_recepcion_cerrar:true:false:false,fn_recepcion_pendientes:true:true:false,ligar_prenda_a_pendiente:true:true:false," +
+    "resolver_pendiente_envio:true:true:false / " +
     "despacho_pendientes:true:false:0,despacho_separaciones:true:false:0",
 );
 

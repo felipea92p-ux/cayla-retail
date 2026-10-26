@@ -267,6 +267,13 @@ flowchart TB
 - `/recibir` y `/recibir/envio/[id]` (Recibir mercadería, ADR-0393/0503): la puerta lista los envíos por recibir en una tabla con buscador
   (`EnviosParaRecibir.tsx` + `lib/recepcion-envio-busqueda.ts`) y el botón «Sin Aviso» (`LlegoSinAviso.tsx`); el cierre
   (`recepcion-conteo/CerrarEnvio.tsx`) lleva la tarjeta «Costos y precios» y `PrecioDePrenda.tsx` → RPC `cambiar_precio_en_recepcion`.
+  Con el envío cerrado, «Para después» (`EnvioCerrado.tsx` → `HacerAhora.tsx`) termina lo pendiente con `resolver_pendiente_envio`, y
+  «Crear ahora» deja la prenda recién creada (o la que «ya existe») ligada a su pendiente con `ligar_prenda_a_pendiente` (el «crear» pasa a
+  «detalle»; migración `20261026163000`, ADR-0393 act. 2026-10-26). En esas hojas («Tallas y colores» y «Separar») `PreciosDeVenta.tsx` ofrece el
+  precio de venta de la prenda identificada (`usePreciosDeVenta`, `ConfirmarPrecios`, compartidos con `CerrarEnvio`) → RPC
+  `cambiar_precio_en_recepcion`, que con el envío cerrado solo acepta lo que sigue «para después» o entró hace menos de una hora (`20261026180000`).
+  El precio nace «solo para la sede que recibe» (`ALCANCE_DE_FABRICA`, `lib/recepcion-conteo-reglas.ts`) y, antes de la confirmación, `usePreciosDeVenta.validar` →
+  RPC `validar_precio_en_recepcion` (lectura: corre la función real en una subtransacción que se deshace) dice por qué un precio no se podría guardar.
 - `/inventario/recibir` → `lib/catalogo.ts` → `RecibirLoteForm.tsx` → RPC
   `recibir_lote` (la función más inestable del sistema, ver §6).
 - `/inventario/compras` → `ComprasManager.tsx` (escribe directo en

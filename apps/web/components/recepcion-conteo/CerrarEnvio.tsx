@@ -9,10 +9,10 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { Balanza, BaldosaCategoria } from "./piezas";
-import { PrecioDePrenda, type PrecioEditado } from "./PrecioDePrenda";
-import { Modal } from "@/components/ui/Modal";
+import { enfocarPrecio, PrecioDePrenda } from "./PrecioDePrenda";
+import { ConfirmarPrecios } from "./ConfirmarPrecios";
+import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { Vacio } from "@/components/ui/Vacio";
-import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -29,10 +29,12 @@ import {
   type DetalleEnvio,
 } from "@/lib/recepcion-envio-reglas";
 import {
+  avisoDePrecioRechazado,
   cambioDePrecioDeCompra,
   cambioDePrecioDeVenta,
+  cambiosDeVentaDe,
   camposDelCierre,
-  textoCambioDePrecio,
+  problemasDePrecio,
   type CambioDePrecio,
   causasDe,
   contadasDe,
@@ -109,7 +111,7 @@ export function CerrarEnvio({
   // Lo que traía cada línea al abrir el cierre: la tarjeta «Costos y precios» marca lo que quien cierra cambió y dice cuánto era.
   const [costoInicial] = useState<Record<string, string>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l).costo])));
   // El precio de venta de cada prenda ya identificada (por producto): su precio de hoy, lo escrito y dónde vale. Se aplica al cerrar.
-  const [ventas, setVentas] = useState<Record<string, PrecioEditado>>({});
+  const { ventas, ponerActual, cambiarVenta, rechazar, aplicado, validar } = usePreciosDeVenta();
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
   // Las filas con los precios de venta de sus prendas a la vista (el precio de compra, que es de toda la línea, vive en la fila misma).
@@ -156,32 +158,8 @@ export function CerrarEnvio({
   const resumen = resumenDelCierre(visibles);
   const porDetallar = resumen.guardadas;
 
-  const ponerActual = (productoId: string, actual: { desde: number; hasta: number } | null) =>
-    setVentas((v) => {
-      const hay = v[productoId];
-      if (hay && hay.actual !== undefined) return v;
-      const hoy = actual && actual.desde === actual.hasta ? actual.desde.toFixed(2) : "";
-      return { ...v, [productoId]: { actual, valor: hay?.valor ? hay.valor : hoy, alcance: hay?.alcance ?? "todas" } };
-    });
-  const cambiarVenta = (productoId: string, cambio: Partial<PrecioEditado>) =>
-    setVentas((v) => {
-      const base: PrecioEditado = v[productoId] ?? { actual: undefined, valor: "", alcance: "todas" };
-      return { ...v, [productoId]: { ...base, ...cambio } };
-    });
-
   /** Lo que cambió el precio de venta: una vez por prenda (aunque esté en dos líneas), con el nombre de la prenda. */
-  function cambiosDeVenta(): (CambioDePrecio & { productoId: string })[] {
-    const r: (CambioDePrecio & { productoId: string })[] = [];
-    for (const l of visibles) {
-      for (const p of l.conteo?.separado.prendas ?? []) {
-        const e = ventas[p.productoId];
-        if (!e || r.some((x) => x.productoId === p.productoId)) continue;
-        const c = cambioDePrecioDeVenta(p.nombre ?? p.codigo ?? "La prenda", e.actual, e.valor, e.alcance);
-        if (c) r.push({ ...c, productoId: p.productoId });
-      }
-    }
-    return r;
-  }
+  const cambiosDeVenta = () => cambiosDeVentaDe(visibles.flatMap((l) => l.conteo?.separado.prendas ?? []), ventas);
   /** Todo lo que cambia de precio, de compra primero. */
   function cambiosDePrecio(): CambioDePrecio[] {
     const compra: CambioDePrecio[] = [];
@@ -192,9 +170,35 @@ export function CerrarEnvio({
     }
     return [...compra, ...cambiosDeVenta()];
   }
-  /** «Cerrar»: con precios cambiados, antes de guardar se muestra qué se va a cambiar y se pide confirmar. */
-  function pedirCerrar() {
+  /**
+   * «Cerrar»: con precios cambiados, antes de guardar (1) un precio de venta escrito mal no se ignora, (2) la base dice si cada uno se podría
+   * guardar y por qué no, junto a su campo (la fila de su línea se abre), y recién entonces (3) se muestra qué cambia y se pide confirmar.
+   */
+  async function pedirCerrar() {
     if (!guia.puedeConfirmar || esperandoGuardar) return;
+    const prendas = visibles.flatMap((l) => l.conteo?.separado.prendas ?? []);
+    const mostrar = (productoId: string) => {
+      // El precio vive en la fila de su línea, que puede estar cerrada: se abre (con el motivo junto al campo) y el cursor va al campo.
+      const claves = visibles.filter((l) => (l.conteo?.separado.prendas ?? []).some((p) => p.productoId === productoId)).map((l) => l.clave);
+      setAbiertas((a) => new Set([...a, ...claves]));
+      requestAnimationFrame(() => requestAnimationFrame(() => enfocarPrecio(productoId)));
+    };
+    const mal = problemasDePrecio(prendas, ventas);
+    if (mal.length > 0) {
+      mostrar(mal[0].productoId);
+      return;
+    }
+    const venta = cambiosDeVenta();
+    if (venta.length > 0) {
+      setGuardando(true);
+      setError(null);
+      const rechazos = await validar(detalle.id, venta, responsable.firma());
+      setGuardando(false);
+      if (rechazos.length > 0) {
+        mostrar(rechazos[0].productoId);
+        return;
+      }
+    }
     const c = cambiosDePrecio();
     if (c.length > 0) {
       setPorConfirmar(c);
@@ -239,15 +243,17 @@ export function CerrarEnvio({
     // El precio de venta de lo que cambió, antes de cerrar (la base lo pide con el envío abierto). Cada uno que queda aplicado deja de ser un cambio:
     // si el cierre falla y se reintenta, no se vuelve a mandar.
     for (const c of cambiosDeVenta()) {
-      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? "todas" }, responsable.firma());
+      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? "sede" }, responsable.firma());
       responsable.despues(epv);
       if (epv) {
         setGuardando(false);
-        setError({ texto: `${c.nombre}: ${mensajeAlGuardar(epv, "cambiar el precio de venta")} No se cerró el envío.`, recargar: false });
+        const motivo = mensajeAlGuardar(epv, "cambiar el precio de venta");
+        rechazar(c.productoId, motivo);
+        setError({ texto: avisoDePrecioRechazado(c.nombre, motivo, "No se cerró el envío."), recargar: false });
         requestAnimationFrame(() => avisoError.current?.focus());
         return;
       }
-      setVentas((v) => ({ ...v, [c.productoId]: { ...v[c.productoId], actual: { desde: c.despues, hasta: c.despues } } }));
+      aplicado(c.productoId, c.despues, c.alcance ?? "sede");
     }
     const conConfirmados = Object.fromEntries(Object.entries(decisiones).map(([k, d]) => [k, confirmados.has(k) ? { ...d, confirmaCosto: true } : d]));
     const { resultado, error: e } = await cerrarConteo(
@@ -289,7 +295,7 @@ export function CerrarEnvio({
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        pedirCerrar();
+        void pedirCerrar();
       }}
       className="space-y-5"
      
@@ -471,7 +477,7 @@ export function CerrarEnvio({
                       <p className="text-center text-xs font-semibold text-tinta">Precio de venta</p>
                       {prendas.length === 0 ? (
                         <Vacio tamano="chico" icono={<Shirt />}>
-                          Todavía no hay una prenda identificada en esta línea: su precio de venta se cambia cuando la separes, o al crearla si es nueva.
+                          Todavía no hay una prenda identificada en esta línea: su precio de venta se cambia después, en «Para después», cuando la identifiques; o al crearla si es nueva.
                         </Vacio>
                       ) : (
                         <div className="space-y-3">
@@ -480,8 +486,9 @@ export function CerrarEnvio({
                               key={`${l.clave}-${pr.productoId}`}
                               prenda={pr}
                               sede={sede}
+                              sedeId={detalle.sede?.id ?? null}
                               editado={ventas[pr.productoId]}
-                              onActual={(a) => ponerActual(pr.productoId, a)}
+                              onActual={(general, enSede) => ponerActual(pr.productoId, general, enSede)}
                               onValor={(valor) => cambiarVenta(pr.productoId, { valor })}
                               onAlcance={(alcance) => cambiarVenta(pr.productoId, { alcance })}
                             />
@@ -624,47 +631,19 @@ export function CerrarEnvio({
     </form>
     {/* Fuera del <form> (ADR-0128): un clic o una tecla de la hoja no debe llegar al envío del cierre. */}
     {porConfirmar && (
-      <Modal titulo="Vas a cambiar precios" subtitulo="Revisa lo que cambia antes de cerrar el envío." onClose={() => setPorConfirmar(null)} bloqueado={guardando} tamano="mediana">
-        <div className="space-y-4">
-          {(["compra", "venta"] as const).map((tipo) => {
-            const lista = porConfirmar.filter((c) => c.tipo === tipo);
-            if (lista.length === 0) return null;
-            return (
-              <div key={tipo} className="space-y-1.5">
-                <p className="text-xs font-semibold text-tinta">{tipo === "compra" ? "Precio de compra" : "Precio de venta"}</p>
-                <ul className="divide-y divide-sand rounded-xl border border-sand">
-                  {lista.map((c) => (
-                    <li key={`${tipo}-${c.nombre}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-3 py-2 text-sm">
-                      <span className="font-medium text-tinta">{c.nombre}</span>
-                      <span className="tabular-nums text-taupe">{textoCambioDePrecio(c, sede)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-          <Aviso tono="atencion" chico titulo="Es dinero">
-            El precio de compra cambia el costo de lo que entra en este envío. El de venta rige desde ahora: lo ya vendido no cambia. Los dos quedan en el historial.
-          </Aviso>
-          <PieAcciones>
-            <Boton type="button" peso="fantasma" disabled={guardando} onClick={() => setPorConfirmar(null)}>
-              Cancelar
-            </Boton>
-            <Boton
-              type="button"
-              peso="primario"
-              cargando={guardando}
-              textoCargando="Cerrando…"
-              onClick={() => {
-                setPorConfirmar(null);
-                void cerrar();
-              }}
-            >
-              Confirmar y cerrar
-            </Boton>
-          </PieAcciones>
-        </div>
-      </Modal>
+      <ConfirmarPrecios
+        cambios={porConfirmar}
+        sede={sede}
+        subtitulo="Revisa lo que cambia antes de cerrar el envío."
+        textoConfirmar="Confirmar y cerrar"
+        textoCargando="Cerrando…"
+        cargando={guardando}
+        onCancelar={() => setPorConfirmar(null)}
+        onConfirmar={() => {
+          setPorConfirmar(null);
+          void cerrar();
+        }}
+      />
     )}
     </>
   );

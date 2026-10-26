@@ -235,7 +235,11 @@ export function EnvioCerrado({
             setHaciendo(null);
             onCambio();
           }}
-          onCerrar={() => setHaciendo(null)}
+          // La prenda de un «crear» ya existe aunque no se hayan metido sus tallas: «Para después» se relee para decirlo.
+          onCerrar={(huboCambio) => {
+            setHaciendo(null);
+            if (huboCambio) onCambio();
+          }}
         />
       )}
 
