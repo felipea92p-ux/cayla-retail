@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowUp, Banknote, Check, ChevronRight, Shirt } from "lucide-react";
 import type { Proveedor } from "@/lib/proveedores";
 import { soles } from "@/lib/compras-reglas";
-import { RITMOS, FILAS_A_LA_VISTA, textoRitmo, type FilaRanking } from "@/lib/proveedores-ranking-reglas";
+import { solesRedondo } from "@/lib/gastos-reglas";
+import { RITMOS, FILAS_A_LA_VISTA, cambioDePuesto, esAproximado, textoRitmo, valorDe, type FilaRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { Tabla, Encabezado, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { Anillo } from "@/components/ui/Anillo";
@@ -24,20 +25,66 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 // Columnas según el ANCHO DE LA TABLA (`@container`), como el directorio: angosta, puesto · proveedor · insignia y la barra debajo; desde 48 rem,
 // todo en una línea.
 const PLANTILLA =
-  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @3xl:grid-cols-[2rem_minmax(11rem,1.2fr)_2.75rem_minmax(10rem,1.3fr)_10.5rem_1rem]";
-const COLUMNAS: Columna[] = [
+  "grid-cols-[1.75rem_minmax(0,1fr)_auto] @3xl:grid-cols-[2rem_minmax(11rem,1.2fr)_2.75rem_minmax(12rem,1.4fr)_10.5rem_1rem]";
+const columnas = (medida: MedidaRanking): Columna[] => [
   { titulo: "#", alinear: "der" },
   { titulo: "Proveedor" },
   { titulo: "Vendido" },
-  { titulo: "Le compraste · prendas", subtitulo: "lo oscuro ya se vendió" },
+  { titulo: medida === "soles" ? "Le compraste · dinero" : "Le compraste · prendas", subtitulo: "lo oscuro ya se vendió" },
   { titulo: "Lo que queda se vende en" },
   { titulo: "" },
 ];
 
+// Las dos medidas, cada una con su ícono (Felipe 2026-10-26): el polo para las prendas, el billete para el dinero. El mismo ícono va junto a cada
+// cifra del ranking para que nunca se confunda una medida con la otra.
+const ICONO_MEDIDA = { prendas: Shirt, soles: Banknote } as const;
+
+/** «Prendas compradas» / «Dinero gastado» como dos tarjetas de opción: el ícono, el nombre, el total de todos y qué quiere decir. Ordenan el ranking. */
+export function MedidaDelRanking({ medida, onMedida, prendas, gasto, cargaPct, proveedores }: { medida: MedidaRanking; onMedida: (m: MedidaRanking) => void; prendas: number; gasto: number; cargaPct: number; proveedores: number }) {
+  const opciones = [
+    { m: "prendas" as const, titulo: "Prendas compradas", valor: prendas.toLocaleString("es-PE"), nota: `a ${proveedores} ${proveedores === 1 ? "proveedor" : "proveedores"}` },
+    { m: "soles" as const, titulo: "Dinero gastado", valor: `${cargaPct >= 50 ? "≈ " : ""}${solesRedondo(gasto)}`, nota: cargaPct >= 50 ? `aproximado: el ${Math.round(cargaPct)} % vino por la carga inicial` : "con el costo de cada compra" },
+  ];
+  return (
+    <div role="radiogroup" aria-label="Ordenar el ranking por" data-guia="proveedores.medida" className="grid grid-cols-2 gap-2.5 sm:inline-grid sm:grid-cols-[repeat(2,minmax(0,17rem))]">
+      {opciones.map((o) => {
+        const Icono = ICONO_MEDIDA[o.m];
+        const on = medida === o.m;
+        return (
+          <button
+            key={o.m}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onMedida(o.m)}
+            className={`group/medida grid grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3 rounded-xl border-[1.5px] px-3.5 py-3 text-left transition-[border-color,box-shadow] duration-300 ease-cayla sm:grid-cols-[2.75rem_minmax(0,1fr)_1.25rem] ${
+              on ? "border-tinta bg-papel shadow-[0_10px_24px_-18px_color-mix(in_srgb,var(--color-sombra)_60%,transparent)]" : "border-sand bg-papel hover:border-taupe"
+            }`}
+          >
+            <span className={`grid h-9 w-9 place-items-center rounded-[10px] transition-colors duration-300 ease-cayla sm:h-11 sm:w-11 sm:rounded-xl ${on ? "bg-tinta text-crema" : "bg-hueso text-tinta"}`}>
+              <Icono aria-hidden className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13.5px] font-semibold text-tinta">{o.titulo}</span>
+              <span className="font-display block whitespace-nowrap text-[22px] leading-tight text-tinta tabular-nums sm:text-[26px]">{o.valor}</span>
+              <span className="block text-xs leading-snug text-tinta/65">{o.nota}</span>
+            </span>
+            <span aria-hidden className={`hidden h-5 w-5 place-items-center self-start rounded-full border-[1.5px] transition-colors duration-300 ease-cayla sm:grid ${on ? "border-tinta bg-tinta text-crema" : "border-sand"}`}>
+              {on && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} />}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ProveedoresRanking({
   filas,
   proveedores,
-  maxCompradas,
+  maxValor,
+  medida,
+  antes,
   busqueda,
   verTodos,
   onVerTodos,
@@ -48,8 +95,11 @@ export function ProveedoresRanking({
   filas: readonly FilaRanking[];
   /** El proveedor de cada fila (lo que se le debe, sus marcas y rubros): llega del directorio, no del ranking. */
   proveedores: ReadonlyMap<string, Proveedor>;
-  /** Las prendas compradas del primero: la barra de cada fila se mide contra él. */
-  maxCompradas: number;
+  /** Lo que se le compró al primero en la medida elegida: la barra de cada fila se mide contra él. */
+  maxValor: number;
+  medida: MedidaRanking;
+  /** Los puestos de antes de cambiar de medida: cada fila dice cuántos subió o bajó. `null` mientras no se cambie. */
+  antes: ReadonlyMap<string, number> | null;
   busqueda: string;
   verTodos: boolean;
   onVerTodos: (v: boolean) => void;
@@ -60,12 +110,12 @@ export function ProveedoresRanking({
   const vista = filas.slice(0, FILAS_A_LA_VISTA);
   const resto = filas.slice(FILAS_A_LA_VISTA);
   const filaDe = (f: FilaRanking, i: number) => (
-    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxCompradas={maxCompradas} busqueda={busqueda} onAbrir={onAbrir} refFila={refFila(f.proveedorId)} />
+    <FilaDelRanking key={f.proveedorId} f={f} p={proveedores.get(f.proveedorId)} indice={i} maxValor={maxValor} medida={medida} cambio={cambioDePuesto(antes, f)} busqueda={busqueda} onAbrir={onAbrir} refFila={refFila(f.proveedorId)} />
   );
   return (
     <div className="space-y-3" data-guia="proveedores.lista">
       <Tabla className="@container anim-entra overflow-y-hidden" style={{ ["--i" as string]: 7 }}>
-        <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} visible="hidden @3xl:grid" />
+        <Encabezado plantilla={PLANTILLA} columnas={columnas(medida)} visible="hidden @3xl:grid" />
         {vista.map(filaDe)}
         {resto.length > 0 && (
           <FilasDeMas abierto={verTodos} id="proveedores-ranking-resto">
@@ -90,7 +140,9 @@ function FilaDelRanking({
   f,
   p,
   indice,
-  maxCompradas,
+  maxValor,
+  medida,
+  cambio,
   busqueda,
   onAbrir,
   refFila,
@@ -98,7 +150,9 @@ function FilaDelRanking({
   f: FilaRanking;
   p: Proveedor | undefined;
   indice: number;
-  maxCompradas: number;
+  maxValor: number;
+  medida: MedidaRanking;
+  cambio: number;
   busqueda: string;
   onAbrir: (id: string) => void;
   refFila: (el: HTMLElement | null) => void;
@@ -107,6 +161,10 @@ function FilaDelRanking({
   const saldo = p?.saldo ?? 0;
   const vencido = p?.saldo_vencido ?? 0;
   const ritmo = RITMOS[f.clase];
+  const Icono = ICONO_MEDIDA[medida];
+  // En dinero, lo vendido va a su costo y lo que queda es la plata que sigue en tus tiendas; con la carga inicial como mayoría, aproximado.
+  const enSoles = medida === "soles";
+  const valor = enSoles ? `${esAproximado(f) ? "≈ " : ""}${solesRedondo(f.gasto)}` : f.unidadesCompradas.toLocaleString("es-PE");
   return (
     <div
       ref={refFila}
@@ -126,8 +184,17 @@ function FilaDelRanking({
           aria-label={`${f.nombre}: abrir vista rápida`}
           className="block min-w-0 max-w-full text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-rojo/60"
         >
-          <span className="block truncate text-[15px] font-semibold text-tinta">
-            <Resaltado texto={f.nombre} busqueda={busqueda} />
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[15px] font-semibold text-tinta">
+              <Resaltado texto={f.nombre} busqueda={busqueda} />
+            </span>
+            {/* Cuántos puestos se movió al cambiar de medida: responde a esa acción y se queda hasta el próximo cambio. */}
+            {cambio !== 0 && (
+              <Chip versalitas={false} className="anim-revelar shrink-0" title={`${cambio > 0 ? "Subió" : "Bajó"} ${Math.abs(cambio)} ${Math.abs(cambio) === 1 ? "puesto" : "puestos"} al ordenar por ${enSoles ? "dinero" : "prendas"}`}>
+                {cambio > 0 ? <ArrowUp aria-hidden className="h-3 w-3" /> : <ArrowDown aria-hidden className="h-3 w-3" />}
+                {Math.abs(cambio)}
+              </Chip>
+            )}
           </span>
         </button>
         <span className="block truncate text-xs text-tinta/65">
@@ -152,16 +219,30 @@ function FilaDelRanking({
       <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 items-center gap-2.5 @3xl:col-span-1 @3xl:col-start-auto @3xl:row-start-auto">
         <BarraApilada
           alto={8}
-          total={maxCompradas}
+          total={maxValor}
           retraso={8 + Math.min(indice, 10)}
           className="min-w-0 flex-1"
-          etiqueta={`${f.nombre}: ${f.unidadesCompradas} prendas compradas, ${f.unidadesVendidas} vendidas y ${f.unidadesEnEstantes} en tus tiendas`}
-          segmentos={[
-            { clave: "vendidas", nombre: "Vendidas", valor: f.unidadesVendidas, clase: "bg-tinta" },
-            { clave: "estantes", nombre: "En tus tiendas", valor: f.unidadesEnEstantes, clase: "bg-tinta/25" },
-          ]}
+          etiqueta={
+            enSoles
+              ? `${f.nombre}: ${valor} gastados; ${solesRedondo(f.costoVendido)} ya vendidos a su costo y ${solesRedondo(f.plataEnStock)} en tus tiendas`
+              : `${f.nombre}: ${f.unidadesCompradas} prendas compradas, ${f.unidadesVendidas} vendidas y ${f.unidadesEnEstantes} en tus tiendas`
+          }
+          segmentos={
+            enSoles
+              ? [
+                  { clave: "vendidas", nombre: "Vendido, a su costo", valor: f.costoVendido, clase: "bg-tinta" },
+                  { clave: "estantes", nombre: "En tus tiendas", valor: f.plataEnStock, clase: "bg-tinta/25" },
+                ]
+              : [
+                  { clave: "vendidas", nombre: "Vendidas", valor: f.unidadesVendidas, clase: "bg-tinta" },
+                  { clave: "estantes", nombre: "En tus tiendas", valor: f.unidadesEnEstantes, clase: "bg-tinta/25" },
+                ]
+          }
         />
-        <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums text-tinta">{f.unidadesCompradas.toLocaleString("es-PE")}</span>
+        <span className="flex shrink-0 items-center justify-end gap-1.5 text-sm font-semibold tabular-nums text-tinta">
+          <Icono aria-hidden className="h-3.5 w-3.5 text-tinta/55" />
+          {valor}
+        </span>
       </span>
       <span className="col-start-3 row-start-1 justify-self-end overflow-visible @3xl:col-start-auto @3xl:row-start-auto @3xl:justify-self-start">
         <Chip tono={ritmo.tono} title={`${ritmo.ayuda}. ${f.veredicto.porque}`}>

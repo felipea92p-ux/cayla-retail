@@ -7,7 +7,7 @@
 // se contradicen.
 
 import { ritmoDeDatos, type Ritmo } from "./proveedor-ritmo-reglas";
-import { rankingDeProveedores, type FilaDeRanking, type RendimientoProveedor } from "./proveedor-prendas-reglas";
+import { COSTO_REAL_MIN_PCT, rankingDeProveedores, type FilaDeRanking, type RendimientoProveedor } from "./proveedor-prendas-reglas";
 
 /** Lo que dice el ritmo, en una palabra que la tienda entiende. */
 export type ClaseRitmo = "rapido" | "medio" | "lento" | "nomide";
@@ -27,6 +27,9 @@ export function claseDeRitmo(r: Ritmo): ClaseRitmo {
   return "medio";
 }
 
+/** Con qué se mide «cuánto le compras»: las prendas compradas o el dinero gastado (Felipe 2026-10-26: cada una con su ícono). */
+export type MedidaRanking = "prendas" | "soles";
+
 export type FilaRanking = FilaDeRanking & {
   puesto: number;
   ritmo: Ritmo;
@@ -34,19 +37,21 @@ export type FilaRanking = FilaDeRanking & {
 };
 
 /**
- * Las filas del ranking: los proveedores de mercadería activos a los que se les compró algo, ordenados por prendas compradas (y, si empatan,
- * por lo gastado y el nombre). El Taller va aparte, como en todo Proveedores (ADR-0502 act. (b)). `activos` son los ids de los proveedores de
+ * Las filas del ranking: los proveedores de mercadería activos a los que se les compró algo, ordenados por prendas compradas o por dinero gastado
+ * según `medida` (y, si empatan, por la otra medida y el nombre). El Taller va aparte, como en todo Proveedores (ADR-0502 act. (b)). `activos` son los ids de los proveedores de
  * mercadería activos: un proveedor desactivado o de servicios no entra al ranking aunque tenga prendas.
  */
 export function filasDelRanking(
   filas: readonly RendimientoProveedor[],
   activos: ReadonlySet<string>,
   hoy: string,
+  medida: MedidaRanking = "prendas",
 ): { filas: FilaRanking[]; taller: (RendimientoProveedor & { pesoPct: number }) | null } {
   const { ranking, taller } = rankingDeProveedores(filas, hoy);
+  const [primero, segundo] = medida === "soles" ? (["gasto", "unidadesCompradas"] as const) : (["unidadesCompradas", "gasto"] as const);
   const ordenadas = ranking
     .filter((f) => activos.has(f.proveedorId) && f.unidadesCompradas > 0)
-    .sort((a, b) => b.unidadesCompradas - a.unidadesCompradas || b.gasto - a.gasto || a.nombre.localeCompare(b.nombre, "es"));
+    .sort((a, b) => b[primero] - a[primero] || b[segundo] - a[segundo] || a.nombre.localeCompare(b.nombre, "es"));
   return {
     filas: ordenadas.map((f, i) => {
       const ritmo = ritmoDeDatos(
@@ -91,3 +96,25 @@ export function pasaFiltroRanking(f: Pick<FilaRanking, "clase">, filtro: FiltroR
 
 /** Cuántas filas se ven antes de «Ver los que faltan». */
 export const FILAS_A_LA_VISTA = 20;
+
+/** Cuánto le compras a un proveedor en la medida elegida. */
+export const valorDe = (f: Pick<FilaRanking, "unidadesCompradas" | "gasto">, medida: MedidaRanking) => (medida === "soles" ? f.gasto : f.unidadesCompradas);
+
+/**
+ * El dinero de un proveedor es aproximado cuando la mitad o más de lo que le compraste vino por la carga inicial (costo estimado): se escribe con
+ * «≈». La misma regla que decide «Costo por confirmar» (`COSTO_REAL_MIN_PCT`).
+ */
+export const esAproximado = (f: Pick<FilaRanking, "costoRealPct">) => f.costoRealPct < COSTO_REAL_MIN_PCT;
+
+/** Cuántos puestos subió (positivo) o bajó (negativo) al cambiar de medida; 0 si no se movió o no estaba antes. */
+export function cambioDePuesto(antes: ReadonlyMap<string, number> | null, f: Pick<FilaRanking, "proveedorId" | "puesto">): number {
+  const previo = antes?.get(f.proveedorId);
+  return previo == null ? 0 : previo - f.puesto;
+}
+
+/** Los totales de las dos tarjetas de arriba: todas las prendas compradas, todo el dinero gastado y qué parte de las prendas vino por la carga. */
+export function totalesDelRanking(filas: readonly Pick<FilaRanking, "unidadesCompradas" | "unidadesCompras" | "gasto">[]): { prendas: number; gasto: number; cargaPct: number } {
+  const prendas = filas.reduce((a, f) => a + f.unidadesCompradas, 0);
+  const compras = filas.reduce((a, f) => a + f.unidadesCompras, 0);
+  return { prendas, gasto: filas.reduce((a, f) => a + f.gasto, 0), cargaPct: prendas > 0 ? ((prendas - compras) / prendas) * 100 : 0 };
+}

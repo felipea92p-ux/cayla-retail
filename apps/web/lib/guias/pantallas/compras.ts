@@ -558,6 +558,14 @@ export const GUIA_PROVEEDORES: Guia = {
       texto: "La lista se separa en dos: los proveedores de ropa, a quienes les compras, y los de servicios (Entel, luz, agua, alquiler), a quienes les pagas. Si buscas por nombre, el buscador mira en los dos.",
     },
     {
+      id: "medida",
+      ancla: "proveedores.medida",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Prendas o dinero",
+      texto: "Ordena el ranking por las prendas que le compraste o por el dinero que gastaste. Al cambiar, cada proveedor dice cuántos puestos subió o bajó. Con «≈» el dinero es aproximado: vino por la carga inicial.",
+    },
+    {
       id: "buscador",
       ancla: "proveedores.buscador",
       titulo: "Buscar un proveedor",

@@ -10,8 +10,8 @@ import type { Proveedor, ResumenProveedores } from "@/lib/proveedores";
 import { ProveedorModal, BORRADOR_VACIO, type Borrador } from "@/components/ProveedorModal";
 import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
-import { ProveedoresRanking } from "@/components/ProveedoresRanking";
-import { RITMOS, contarPorRitmo, filasDelRanking, pasaFiltroRanking, type ClaseRitmo, type FiltroRanking } from "@/lib/proveedores-ranking-reglas";
+import { MedidaDelRanking, ProveedoresRanking } from "@/components/ProveedoresRanking";
+import { RITMOS, contarPorRitmo, filasDelRanking, pasaFiltroRanking, totalesDelRanking, valorDe, type ClaseRitmo, type FiltroRanking, type MedidaRanking } from "@/lib/proveedores-ranking-reglas";
 import type { RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -126,6 +126,8 @@ export function ProveedoresPanel({
   const [abiertoId, setAbiertoId] = useState<string | null>(null); // el proveedor de la vista rápida
   const [filtroRitmo, setFiltroRitmo] = useState<FiltroRanking>(null); // el ranking: por ritmo o con deuda vencida
   const [verTodos, setVerTodos] = useState(false); // el ranking: más allá de las primeras 20 filas
+  const [medida, setMedida] = useState<MedidaRanking>("prendas"); // el ranking: por prendas compradas o por dinero gastado
+  const [puestosAntes, setPuestosAntes] = useState<ReadonlyMap<string, number> | null>(null); // los puestos de antes de cambiar de medida
   const [foco, setFoco] = useState<string | null>(null); // el tramo de la barra de concentración al que se apunta
   const [recientes, setRecientes] = useState<ReadonlySet<string>>(new Set());
   const pendienteScroll = useRef<string | null>(null);
@@ -164,8 +166,8 @@ export function ProveedoresPanel({
   const enRanking = verMontos && tipo === "mercaderia" && !!rendimiento;
   const porId = useMemo(() => new Map(proveedores.map((p) => [p.id, p])), [proveedores]);
   const ranking = useMemo(
-    () => (enRanking && rendimiento ? filasDelRanking(rendimiento, new Set(proveedores.filter((p) => p.activo && p.tipo === "mercaderia").map((p) => p.id)), hoy) : null),
-    [enRanking, rendimiento, proveedores, hoy],
+    () => (enRanking && rendimiento ? filasDelRanking(rendimiento, new Set(proveedores.filter((p) => p.activo && p.tipo === "mercaderia").map((p) => p.id)), hoy, medida) : null),
+    [enRanking, rendimiento, proveedores, hoy, medida],
   );
   // Con compras = en el ranking o el Taller (que va aparte en su propia línea): ninguno de los dos va a «Sin compras todavía».
   const conCompras = new Set([...(ranking?.filas.map((f) => f.proveedorId) ?? []), ...(ranking?.taller ? [ranking.taller.proveedorId] : [])]);
@@ -176,6 +178,13 @@ export function ProveedoresPanel({
   });
   const sinCompras = enRanking ? activos.filter((p) => p.tipo === "mercaderia" && !conCompras.has(p.id) && (!filtroRitmo || (filtroRitmo === "vencido" && vencidoDe(p.id)))) : [];
   const conteoRitmo = contarPorRitmo(ranking?.filas ?? []);
+  const totales = totalesDelRanking(ranking?.filas ?? []);
+  // Cambiar de medida reordena: se guardan los puestos de antes para que cada fila diga cuántos subió o bajó (y las filas se deslizan con `useFlip`).
+  const cambiarMedida = (m: MedidaRanking) => {
+    if (m === medida) return;
+    setPuestosAntes(new Map((ranking?.filas ?? []).map((f) => [f.proveedorId, f.puesto])));
+    setMedida(m);
+  };
   // Con algo escrito, el directorio busca en los dos tipos; el ranking es de Mercadería, así que avisa si coincide alguno de Servicios.
   const enServicios = enRanking && k ? proveedores.filter((p) => p.activo && p.tipo === "servicios" && clave(textoBuscableProveedor(p, marcasDe(p.id))).includes(k)).length : 0;
   const refFila = useFlip((enRanking ? [...filasRanking.map((f) => f.proveedorId), ...sinCompras.map((p) => p.id)] : activos.map((p) => p.id)).join("|"));
@@ -277,6 +286,11 @@ export function ProveedoresPanel({
             { clave: "servicios", etiqueta: ETIQUETA_TIPO_PROVEEDOR.servicios, conteo: nDeTipo.servicios, tono: "neutro", pide: "activos", ayuda: "Telefonía, luz, agua, alquiler: a ellos se les paga" },
           ]}
         />
+      )}
+      {hayProveedores && enRanking && ranking && ranking.filas.length > 0 && (
+        <div className="anim-entra" style={{ ["--i" as string]: 5 }}>
+          <MedidaDelRanking medida={medida} onMedida={cambiarMedida} prendas={totales.prendas} gasto={totales.gasto} cargaPct={totales.cargaPct} proveedores={ranking.filas.length} />
+        </div>
       )}
       {hayProveedores && (
         <div className="anim-entra flex flex-wrap items-center gap-x-4 gap-y-3" style={{ ["--i" as string]: 6 }}>
@@ -413,7 +427,9 @@ export function ProveedoresPanel({
             <ProveedoresRanking
               filas={filasRanking}
               proveedores={porId}
-              maxCompradas={ranking.filas[0]?.unidadesCompradas ?? 1}
+              maxValor={Math.max(1, ...ranking.filas.map((f) => valorDe(f, medida)))}
+              medida={medida}
+              antes={puestosAntes}
               busqueda={busqueda}
               verTodos={verTodos || !!k}
               onVerTodos={setVerTodos}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claseDeRitmo, contarPorRitmo, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo } from "./proveedores-ranking-reglas";
+import { cambioDePuesto, claseDeRitmo, contarPorRitmo, esAproximado, filasDelRanking, pasaFiltroRanking, semanasCortas, textoRitmo, totalesDelRanking, valorDe } from "./proveedores-ranking-reglas";
 import { ritmoDeDatos } from "./proveedor-ritmo-reglas";
 import type { RendimientoProveedor } from "./proveedor-prendas-reglas";
 
@@ -72,5 +72,30 @@ describe("el ranking de la lista de Proveedores", () => {
     expect(filas.filter((f) => pasaFiltroRanking(f, "lento", false)).map((f) => f.proveedorId)).toEqual(["lasak", "anqori"]);
     expect(filas.filter((f) => pasaFiltroRanking(f, "vencido", f.proveedorId === "anqori")).map((f) => f.proveedorId)).toEqual(["anqori"]);
     expect(filas.filter((f) => pasaFiltroRanking(f, null, false))).toHaveLength(4);
+  });
+
+  it("por dinero gastado ordena por lo gastado, y dice cuántos puestos subió o bajó cada uno", () => {
+    const caro = prov("caro", { nombre: "Caro", unidadesCompradas: 60, gasto: 8000 });
+    const porPrendas = filasDelRanking([deyner, lasak, caro], new Set(["deyner", "lasak", "caro"]), HOY, "prendas");
+    const porDinero = filasDelRanking([deyner, lasak, caro], new Set(["deyner", "lasak", "caro"]), HOY, "soles");
+    expect(porPrendas.filas.map((f) => f.proveedorId)).toEqual(["deyner", "lasak", "caro"]);
+    expect(porDinero.filas.map((f) => f.proveedorId)).toEqual(["deyner", "caro", "lasak"]);
+    const antes = new Map(porPrendas.filas.map((f) => [f.proveedorId, f.puesto]));
+    const de = (id: string) => porDinero.filas.find((f) => f.proveedorId === id)!;
+    expect(cambioDePuesto(antes, de("caro"))).toBe(1);
+    expect(cambioDePuesto(antes, de("lasak"))).toBe(-1);
+    expect(cambioDePuesto(antes, de("deyner"))).toBe(0);
+    expect(cambioDePuesto(null, de("caro"))).toBe(0);
+    expect(valorDe(de("caro"), "soles")).toBe(8000);
+    expect(valorDe(de("caro"), "prendas")).toBe(60);
+  });
+
+  it("el dinero es aproximado cuando la mitad o más vino por la carga inicial", () => {
+    const { filas } = filasDelRanking([deyner, prov("real", { unidadesCompradas: 80, unidadesCompras: 60, unidadesCarga: 20 })], new Set(["deyner", "real"]), HOY);
+    expect(esAproximado(filas.find((f) => f.proveedorId === "deyner")!)).toBe(true);
+    expect(esAproximado(filas.find((f) => f.proveedorId === "real")!)).toBe(false);
+    const t = totalesDelRanking(filas);
+    expect(t.prendas).toBe(486);
+    expect(Math.round(t.cargaPct)).toBe(88);
   });
 });
