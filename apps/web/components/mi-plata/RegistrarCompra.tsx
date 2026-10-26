@@ -223,24 +223,6 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   const pagadoLeido = pago.forma === "despues" ? 0 : leerMontoPlata(pagoAhora.pagado);
   const cuadra = cuadraElPapel(montoLeido, totalDeLineas(lineas));
   const nombreCorto = proveedor ? proveedor.nombre.replace(/\s+(s\.?a\.?c\.?|e\.?i\.?r\.?l\.?|s\.?r\.?l\.?)$/i, "") : "";
-  /** Una prenda de la compra, en su fila (la de «¿Está bien así?» se toca para corregirla; la del papel solo se lee). */
-  const filaDeLinea = (l: LineaCompra) => {
-    const c = deCategoria.get(l.categoriaId);
-    return (
-      <span className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-3">
-        <MiniaturaPrenda fotoUrl={(l.productoId && fotos.get(l.productoId)) || null} tamano="md" prefijo={c?.prefijo} familia={c?.familia} categoria={l.categoria} />
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-tinta">
-            {l.cantidad} · {l.nombre}
-          </span>
-          <span className="block truncate text-xs tabular-nums text-taupe">
-            {l.cantidad} × {soles(l.costo)} · va a {nombresTienda.get(l.destinoId) ?? "una tienda"}
-          </span>
-        </span>
-        <span className="whitespace-nowrap text-sm tabular-nums text-tinta">{soles(l.cantidad * l.costo)}</span>
-      </span>
-    );
-  };
 
   // El último proveedor elegido: con el internet lento del celular, quien elegía uno, volvía y elegía otro recibía las prendas del PRIMERO
   // si su respuesta llegaba después (y hasta su hoja de «Algo nuevo»). Solo cuenta la respuesta del último.
@@ -684,12 +666,6 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           }}
         >
           <h2 className="compra-pregunta">El papel y el pago</h2>
-          {/* Lo que llevas, para revisarlo de un vistazo antes de contestar (maqueta mis-compras-rediseno-2026-10). */}
-          <ul className="-mt-2 divide-y divide-sand rounded-[18px] border border-sand bg-papel px-3" data-guia="compra.llevas">
-            {lineas.map((l, i) => (
-              <li key={`${l.clave}-${i}`}>{filaDeLinea(l)}</li>
-            ))}
-          </ul>
           <CampoGuiado id="tipo" guia={guia} titulo="¿Qué papel te dieron?">
             <div role="group" aria-label="¿Qué te dio el proveedor?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
               {(Object.keys(TIPOS_PAPEL) as TipoPapel[]).map((k) => (
@@ -731,6 +707,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             <CampoMonto
               etiqueta={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}
               etiquetaOculta
+              sinPie
               inputMode="decimal"
               autoComplete="off"
               value={monto}
@@ -742,7 +719,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               }}
             />
             {cuadra && (
-              <p className={`mt-2 flex items-start gap-2 text-[13px] ${cuadra.cuadra ? "text-verde" : "text-ambar"}`}>
+              <p className={`mt-1.5 flex items-start gap-2 text-[13px] ${cuadra.cuadra ? "text-verde" : "text-ambar"}`}>
                 {cuadra.cuadra ? <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> : <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />}
                 {cuadra.texto}
               </p>
@@ -798,6 +775,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                   <CampoMonto
                     etiqueta="¿Cuánto pagaste?"
                     etiquetaOculta
+                    sinPie
                     inputMode="decimal"
                     autoComplete="off"
                     value={pagoAhora.pagado}
@@ -809,7 +787,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
                       setPago((p) => ({ ...p, pagado: e.target.value }));
                     }}
                   />
-                  {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-2 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
+                  {textoLoQueFalta(montoLeido, pagadoLeido) && <p className="mt-1.5 text-[13px] text-taupe">{textoLoQueFalta(montoLeido, pagadoLeido)}</p>}
                   <button
                     type="button"
                     className="btn-cayla btn-enlace mt-1 self-start"

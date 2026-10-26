@@ -1990,6 +1990,15 @@ export const GUIA_MI_PLATA: Guia = {
       demostrar: [{ tipo: "clic", ancla: "mi-plata.medio" }],
     },
     {
+      id: "banco",
+      ancla: "mi-plata.banco",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "mi-plata.me-dieron" }, { tipo: "clic", ancla: "mi-plata.transferencia" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "¿De qué banco salió?",
+      texto: "Si te llegó por transferencia, di de cuál banco de la empresa salió (viene el BCP). Esa cuenta es la que baja en Finanzas; Compras la confirma y la puede cambiar.",
+    },
+    {
       id: "ya-tenia",
       ancla: "mi-plata.ya-tenia",
       opcional: true,
@@ -2294,13 +2303,6 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "Sigue: el papel",
       texto: "Cuando está todo, sigues al papel que te dieron.",
-    },
-    {
-      id: "llevas",
-      ancla: "compra.llevas",
-      opcional: true,
-      titulo: "Lo que llevas",
-      texto: "Arriba, las prendas de esta compra y lo que cuesta cada una, para revisarlo de un vistazo antes de contestar. Si algo está mal, vuelve con la flecha.",
     },
     {
       id: "tipo",

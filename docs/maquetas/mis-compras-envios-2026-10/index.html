@@ -1,0 +1,447 @@
+<meta charset="utf-8">
+<title>Mis compras · envíos por ronda</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+/* Mis compras con todas sus opciones de hoy, mejor dibujada: un teléfono de 375 px tocable y, al lado, qué mejora en cada pantalla.
+   Tokens de la guía «CAYLA Dynamic» del ERP (apps/web/app/globals.css) y su oscuro (estilos/tema.css). */
+:root {
+  --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --sand: #e8e0d0; --hueso: #eae1d2; --taupe: #805c4c;
+  --rojo: #b8412d; --verde: #48603f; --verde-suave: #e3e4d9; --ambar: #74501a; --ambar-suave: #ece0cf;
+  --pizarra: #4c5d6e; --pizarra-suave: #e1e1dc; --velo: rgba(26,26,24,.34); --sobre: #f5f0e8;
+  --serif: "EB Garamond", Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --crema: #1a1a18; --papel: #24231f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --rojo: #d9674f;
+  --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --pizarra: #a9b8c6; --pizarra-suave: #2b2f33;
+  --velo: rgba(0,0,0,.55); --sobre: #1a1a18; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --crema: #1a1a18; --papel: #24231f; --tinta: #f5f0e8; --sand: #3a3730; --hueso: #2e2c27; --taupe: #c7a894; --rojo: #d9674f;
+  --verde: #9db48f; --verde-suave: #2c3328; --ambar: #d9b27a; --ambar-suave: #3a3022; --pizarra: #a9b8c6; --pizarra-suave: #2b2f33;
+  --velo: rgba(0,0,0,.55); --sobre: #1a1a18; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.envoltura { max-width: 1140px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); font-weight: 600; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 6vw, 46px); line-height: 1.05; margin: 6px 0 8px; text-wrap: balance; }
+.bajada { max-width: 64ch; color: var(--taupe); margin: 0; }
+.ejemplo { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--pizarra); background: var(--hueso); border-radius: 999px; padding: 3px 10px; margin-top: 10px; }
+.escena { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 880px) { .escena { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Teléfono ---------- */
+.telefono { width: 100%; max-width: 390px; margin: 0 auto; border-radius: 40px; border: 7px solid var(--tinta); background: var(--crema);
+  height: 780px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.barra-sistema { height: 30px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font-size: 12px; font-weight: 600; }
+.pantalla { flex: 1; overflow-y: auto; padding: 4px 18px 170px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: none; }
+.pantalla::-webkit-scrollbar { width: 0; }
+.cab { display: flex; align-items: center; gap: 10px; min-height: 42px; }
+.volver { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); display: grid; place-items: center; flex: none; font-size: 17px; }
+.titulo { font-family: var(--serif); font-size: 32px; line-height: 1.04; margin: 0; font-weight: 400; text-wrap: balance; }
+.sub { font-size: 13.5px; color: var(--taupe); margin: 0; }
+.mini { font-size: 12px; color: var(--taupe); }
+
+/* El camino de la ronda: siempre dice en qué vas y qué sigue. */
+.camino { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.camino div { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; font-size: 11.5px; color: var(--taupe); }
+.camino i { display: block; height: 4px; width: 100%; border-radius: 3px; background: var(--sand); }
+.camino .hecho i { background: var(--verde); } .camino .hecho { color: var(--verde); }
+.camino .ahora i { background: var(--tinta); } .camino .ahora { color: var(--tinta); font-weight: 600; }
+
+.billetera { background: var(--tinta); color: var(--sobre); border-radius: 22px; padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 10px; }
+.billetera .arriba { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .78; }
+.billetera .cifra { font-family: var(--serif); font-size: 48px; line-height: 1; font-variant-numeric: tabular-nums; }
+.billetera .cifra small { font-size: 22px; margin-right: 4px; opacity: .75; }
+.cuenta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--sobre) 18%, transparent); }
+.cuenta div { display: flex; flex-direction: column; gap: 1px; font-size: 11.5px; opacity: .8; }
+.cuenta b { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 1; font-weight: 600; }
+.billetera .nota { font-size: 12.5px; background: color-mix(in srgb, var(--sobre) 10%, transparent); border-radius: 10px; padding: 8px 10px; }
+
+.acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.accion { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px; min-height: 104px; }
+.accion .i { width: 38px; height: 38px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; font-size: 18px; }
+.accion .n { font-family: var(--serif); font-size: 20px; line-height: 1.1; }
+.accion .d { font-size: 12px; color: var(--taupe); }
+.accion.grande { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 14px; min-height: 84px; background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.accion.grande .i { background: var(--sobre); color: var(--tinta); width: 46px; height: 46px; font-size: 20px; }
+.accion.grande .n { font-size: 24px; } .accion.grande .d { color: inherit; opacity: .75; }
+
+.franja { border-radius: 16px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid transparent; width: 100%; }
+.franja.ambar { background: var(--ambar-suave); color: var(--ambar); }
+.franja b { color: var(--tinta); display: block; font-size: 14px; }
+.franja .ir { margin-left: auto; font-weight: 600; white-space: nowrap; }
+
+.seccion { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.seccion h3 { font-family: var(--serif); font-weight: 400; font-size: 22px; margin: 0; }
+.lista { display: flex; flex-direction: column; background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; overflow: hidden; }
+.fila { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 14px; border: 0; border-top: 1px solid var(--sand); background: transparent; text-align: left; width: 100%; }
+.fila:first-child { border-top: 0; }
+.fila .ico { width: 36px; height: 36px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; font-size: 15px; }
+.fila .t { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila .d { font-size: 12px; color: var(--taupe); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila .m { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; white-space: nowrap; }
+.fila .m .chip-e { margin-top: 3px; }
+.mas { color: var(--verde); }
+.chip-e { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 8px; }
+.chip-e::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip-e.pizarra { background: var(--pizarra-suave); color: var(--pizarra); }
+.chip-e.verde { background: var(--verde-suave); color: var(--verde); }
+.chip-e.ambar { background: var(--ambar-suave); color: var(--ambar); }
+
+.btn { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; min-height: 48px; padding: 0 16px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.primario { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.btn.ancho { width: 100%; } .btn.grande { min-height: 56px; font-size: 16px; width: 100%; border-radius: 16px; }
+.btn.punteado { border-style: dashed; background: transparent; }
+.btn.sutil { border: 0; background: transparent; color: var(--taupe); text-decoration: underline; text-underline-offset: 3px; font-weight: 500; min-height: 40px; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.campo { display: flex; flex-direction: column; gap: 7px; }
+.campo > .et { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.campo > .et .op { font-size: 12px; color: var(--taupe); font-weight: 400; }
+.num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: var(--hueso); color: var(--taupe); flex: none; }
+.num.ok { background: var(--verde); color: var(--sobre); }
+.caja { background: var(--hueso); border: 1px solid transparent; border-radius: 12px; min-height: 48px; padding: 0 14px; font: inherit; color: var(--tinta); width: 100%; }
+.caja:focus { background: var(--papel); border-color: var(--tinta); outline: none; }
+.monto { display: flex; align-items: baseline; gap: 6px; background: var(--hueso); border-radius: 14px; padding: 6px 14px; border: 1px solid transparent; }
+.monto:focus-within { background: var(--papel); border-color: var(--tinta); }
+.monto span { font-family: var(--serif); font-size: 20px; color: var(--taupe); }
+.monto input { border: 0; background: transparent; font-family: var(--serif); font-size: 32px; width: 100%; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.monto input:focus { outline: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; min-height: 40px; padding: 0 14px; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.chip[aria-pressed="true"] { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.fichas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ficha { border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; min-height: 64px; position: relative; }
+.ficha b { font-size: 14.5px; } .ficha span { font-size: 12px; color: var(--taupe); }
+.ficha[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.ficha[aria-pressed="true"]::after { content: "✓"; position: absolute; right: 10px; top: 8px; width: 18px; height: 18px; border-radius: 50%; background: var(--tinta); color: var(--sobre); font-size: 11px; display: grid; place-items: center; }
+.foto { border: 1.5px dashed var(--sand); border-radius: 14px; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: transparent; width: 100%; text-align: left; color: var(--taupe); font-size: 13.5px; }
+.foto b { color: var(--tinta); font-weight: 600; display: block; }
+.foto[data-lista="1"] { border-style: solid; border-color: var(--verde); color: var(--verde); }
+.ok-linea { font-size: 13px; display: flex; gap: 6px; align-items: center; }
+.ok-linea.verde { color: var(--verde); } .ok-linea.ambar { color: var(--ambar); }
+
+.chip.otra { border-style: dashed; background: transparent; color: var(--taupe); }
+.chip.otra[aria-expanded="true"] { border-style: solid; border-color: var(--tinta); color: var(--tinta); }
+.chip.elegida { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.cajaSel { display: flex; justify-content: space-between; align-items: center; text-align: left; cursor: pointer; }
+.cajaSel[aria-expanded="true"] { background: var(--papel); border-color: var(--tinta); }
+.cajaSel .ph { color: var(--taupe); }
+.combo { border: 1px solid var(--tinta); background: var(--papel); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.combo .buscar { border: 0; border-bottom: 1px solid var(--sand); background: transparent; min-height: 44px; padding: 0 14px; font: inherit; color: var(--tinta); width: 100%; }
+.combo .buscar:focus { outline: none; background: var(--hueso); }
+.combo .opciones { max-height: 176px; overflow-y: auto; display: flex; flex-direction: column; }
+.combo .grupo { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; padding: 8px 14px 4px; }
+.combo .op-i { border: 0; background: transparent; text-align: left; min-height: 42px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; font-size: 14.5px; }
+.combo .op-i[aria-selected="true"] { font-weight: 600; }
+.combo .op-i[aria-selected="true"]::after { content: "✓"; color: var(--verde); }
+.combo .vacio { padding: 12px 14px; font-size: 13px; color: var(--taupe); }
+.paso { display: inline-flex; align-items: center; background: var(--hueso); border-radius: 12px; height: 42px; }
+.paso button { width: 42px; height: 42px; border: 0; background: transparent; font-size: 20px; }
+.paso b { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; font-size: 16px; }
+
+.progreso { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.progreso div { font-size: 11.5px; color: var(--taupe); display: flex; flex-direction: column; gap: 5px; }
+.progreso i { height: 4px; border-radius: 3px; background: var(--sand); display: block; }
+.progreso .hecho i { background: var(--verde); } .progreso .ahora i { background: var(--tinta); } .progreso .ahora { color: var(--tinta); font-weight: 600; }
+
+.grilla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tarjeta-p { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 10px; text-align: left; display: flex; flex-direction: column; gap: 6px; position: relative; }
+.tarjeta-p .foto-p { aspect-ratio: 4/3; border-radius: 12px; background: var(--hueso); display: grid; place-items: center; font-size: 34px; max-width: 100%; }
+.tarjeta-p .n { font-weight: 600; font-size: 13.5px; line-height: 1.2; }
+.tarjeta-p .c { font-size: 11.5px; color: var(--taupe); }
+.tarjeta-p.en { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.tarjeta-p .globo { position: absolute; right: 16px; top: 16px; min-width: 24px; height: 24px; border-radius: 12px; background: var(--tinta); color: var(--sobre); font-size: 12px; font-weight: 600; display: grid; place-items: center; padding: 0 6px; }
+.nuevo-p { border: 1.5px dashed var(--sand); background: transparent; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 160px; color: var(--taupe); font-size: 12.5px; text-align: center; padding: 10px; }
+.nuevo-p b { color: var(--tinta); font-size: 14px; }
+.nuevo-p .mas-i { width: 40px; height: 40px; border-radius: 50%; background: var(--tinta); color: var(--sobre); display: grid; place-items: center; font-size: 20px; }
+
+.pie-c2 { position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 4; display: flex; flex-direction: column; gap: 8px; }
+.pie-c2 .isla { position: static; }
+.pie-c2 .algo-nuevo { background: var(--papel); border-style: dashed; width: 100%; box-shadow: 0 0 0 6px var(--crema); }
+.isla { position: absolute; left: 12px; right: 12px; bottom: 14px; z-index: 4; background: var(--tinta); color: var(--sobre); border-radius: 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 10px 10px 16px; }
+.isla .r { font-size: 12px; opacity: .8; } .isla .c { font-family: var(--serif); font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.isla .btn { background: var(--sobre); color: var(--tinta); border-color: transparent; min-height: 46px; }
+
+.velo { position: absolute; inset: 0; background: var(--velo); z-index: 5; display: flex; align-items: flex-end; animation: entra .2s ease-out; }
+.hoja { background: var(--papel); width: 100%; border-radius: 24px 24px 0 0; padding: 10px 18px 20px; max-height: 94%; overflow-y: auto; scrollbar-width: none;
+  display: flex; flex-direction: column; gap: 14px; animation: sube .26s cubic-bezier(.2,.8,.2,1); }
+.hoja .asa { width: 40px; height: 5px; border-radius: 3px; background: var(--sand); margin: 0 auto; }
+.hoja h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; margin: 0; line-height: 1.1; }
+.hoja .pie { position: sticky; bottom: -20px; background: var(--papel); padding: 10px 0 0; margin-top: 2px; }
+@keyframes sube { from { transform: translateY(18px); opacity: .6 } }
+@keyframes entra { from { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .velo, .hoja { animation: none; } }
+.velo.quieta, .hoja.quieta { animation: none; }
+.aviso { position: absolute; left: 16px; right: 16px; top: 38px; z-index: 6; background: var(--verde); color: var(--sobre); border-radius: 14px; padding: 12px 14px; font-size: 14px; font-weight: 600; animation: entra .2s; }
+
+.ganas { display: flex; justify-content: space-between; background: var(--verde-suave); color: var(--verde); border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; }
+.reparto { display: flex; flex-direction: column; gap: 8px; }
+.reparto div { display: flex; justify-content: space-between; align-items: center; }
+.cuaderno { display: flex; flex-direction: column; gap: 0; background: var(--hueso); border-radius: 14px; padding: 6px 14px; }
+.cuaderno div { display: flex; justify-content: space-between; padding: 7px 0; font-size: 14px; border-top: 1px solid var(--sand); font-variant-numeric: tabular-nums; }
+.cuaderno div:first-child { border-top: 0; }
+.cuaderno .tot { font-weight: 600; border-top: 2px solid var(--tinta); }
+.listo { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-top: 34px; }
+.listo .sello { width: 76px; height: 76px; border-radius: 50%; background: var(--verde-suave); color: var(--verde); display: grid; place-items: center; font-size: 34px; }
+.abrir { background: var(--papel); border: 1px solid var(--sand); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.abrir .t { font-family: var(--serif); font-size: 24px; }
+
+/* ---------- Al lado ---------- */
+.notas { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.notas h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; margin: 0; line-height: 1.1; }
+.tarj { background: var(--papel); border: 1px solid var(--sand); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.tarj h4 { margin: 0; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+.tarj ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.indice { display: flex; flex-wrap: wrap; gap: 8px; }
+.indice button { border: 1px solid var(--sand); background: var(--crema); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.indice button[aria-current="true"] { background: var(--tinta); color: var(--sobre); border-color: var(--tinta); }
+.igual { background: var(--verde-suave); border-color: transparent; } .igual h4 { color: var(--verde); }
+</style>
+<style>
+/* Envíos: el código grande, la historia y su detalle. */
+.codigo { font-family: var(--serif); font-size: 44px; line-height: 1; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.tarjeta-codigo { background: var(--hueso); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+.tarjeta-codigo .mini { text-transform: uppercase; letter-spacing: .1em; font-size: 11px; font-weight: 600; }
+.chip-e.neutro { background: var(--hueso); color: var(--taupe); }
+.chip-e.rojo { background: color-mix(in srgb, var(--rojo) 14%, transparent); color: var(--rojo); }
+.cod-mini { white-space: nowrap; font-family: var(--serif); font-size: 17px; font-variant-numeric: tabular-nums; }
+.buscador { display:flex; align-items:center; gap:8px; background: var(--hueso); border-radius: 14px; min-height: 48px; padding: 0 14px; }
+.buscador input { border:0; background:transparent; font:inherit; color:var(--tinta); width:100%; }
+.buscador input:focus { outline:none; }
+.dia { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); font-weight: 600; margin: 6px 0 -6px; }
+.fila.envio { grid-template-columns: minmax(0,1fr) auto; }
+.fila.envio .t, .fila.envio .d { white-space: normal; }
+.detalle-linea { display:flex; justify-content:space-between; gap:12px; font-size:14px; padding:8px 0; border-top:1px solid var(--sand); }
+.detalle-linea:first-child { border-top:0; }
+.linea-tiempo { display:flex; flex-direction:column; gap:10px; margin:2px 0; }
+.linea-tiempo div { display:grid; grid-template-columns: 18px 1fr; gap:10px; font-size:13.5px; color:var(--taupe); align-items:start; }
+.linea-tiempo i { width:10px; height:10px; border-radius:50%; background:var(--sand); margin-top:5px; display:block; }
+.linea-tiempo .ok { color:var(--tinta); } .linea-tiempo .ok i { background:var(--verde); }
+.linea-tiempo .ahora { color:var(--tinta); font-weight:600; } .linea-tiempo .ahora i { background:var(--tinta); }
+.rcard, .lista { flex: none; }
+.rcard { background: var(--papel); border:1px solid var(--sand); border-radius:18px; overflow:hidden; }
+.rcard > button.rcab { width:100%; border:0; background:transparent; text-align:left; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; padding:12px 14px; }
+.rcard .rcuerpo { border-top:1px solid var(--sand); }
+.rcard .rcuerpo .fila:first-child { border-top:0; }
+.seg { display:grid; grid-template-columns:1fr 1fr; background:var(--hueso); border-radius:14px; padding:4px; gap:4px; }
+.seg button { border:0; background:transparent; border-radius:11px; min-height:40px; font-weight:500; font-size:13.5px; }
+.seg button[aria-pressed="true"] { background:var(--tinta); color:var(--sobre); }
+.ver-todos { display:flex; justify-content:space-between; align-items:center; }
+</style>
+<div class="envoltura">
+  <header>
+    <div class="eyebrow">Compras ▸ Mis compras ▸ Envíos · maqueta tocable · 26 de octubre de 2026</div>
+    <h1>El código de cada envío, por ronda</h1>
+    <p class="bajada">Hoy, al tocar «Mandar a la tienda», el código del envío (<b>ENV-000118</b>) existe pero no se ve: la compradora no tiene cómo avisarle a la sede qué buscar en «Recibir», ni cómo volver a verlo. Aquí: (1) el código grande apenas se manda; (2) «Mis envíos» de la ronda abierta y, aparte, los de rondas anteriores; (3) una ronda cerrada con sus envíos; (4) cerrar la ronda con sus códigos a la vista. Toca el teléfono.</p>
+    <span class="ejemplo">● Datos de ejemplo: Marisol manda a Lima, Trujillo y Arequipa</span>
+  </header>
+  <section class="escena">
+    <div class="telefono" aria-label="Teléfono de ejemplo"><div class="barra-sistema"><span>10:44</span><span>● ● ▮</span></div><div class="pantalla" id="pantalla"></div><div id="capa"></div></div>
+    <div class="notas" id="notas"></div>
+  </section>
+</div>
+<script>
+(() => {
+  const ESTADOS = {
+    en_camino: ["En camino", "pizarra"], abierto: ["La tienda lo cuenta", "ambar"], cerrado: ["Recibido", "verde"], anulado: ["Anulado", "rojo"],
+  };
+  const RONDAS = [
+    { texto: "RC-000612", fechas: "desde hoy 08:30" },
+    { texto: "RC-000611", fechas: "22 – 24 oct", cierre: "Te quedaste S/ 120.00 para tu próxima ronda", compras: 3, gastos: 1, salio: "S/ 904.00" },
+    { texto: "RC-000610", fechas: "18 – 19 oct", cierre: "Devolviste S/ 85.00 en caja", compras: 2, gastos: 2, salio: "S/ 412.50" },
+  ];
+  const INICIO = () => ({
+    sig: 117, vista: "inicio", hoja: null, aviso: null, copiado: false, q: "", filtro: "todos", alcance: "esta", det: null, abierta: true, ronda: null, abiertas: { "RC-000611": true },
+    porMandar: [{ t: "Tienda Trujillo", n: 10, prendas: ["Casaca Corta ×4", "Jean Mom ×6"] }, { t: "Tienda Lima", n: 6, prendas: ["Blusa Emma ×6"] }],
+    fardos: { "Tienda Trujillo": 1, "Tienda Lima": 1 }, ultimo: null,
+    envios: [
+      { cod: "ENV-000116", ronda: "RC-000612", t: "Tienda Arequipa", dia: "Hoy", hora: "09:48", n: 8, fardos: 1, estado: "abierto", prendas: ["Vestido Aurora ×8"] },
+      { cod: "ENV-000109", ronda: "RC-000611", t: "Tienda Arequipa", dia: "Viernes 24 oct", hora: "16:20", n: 24, fardos: 2, estado: "cerrado", recibido: "Sáb 25 oct · 10:05 por Rosa (Arequipa)", contadas: 24, prendas: ["Jean Recto ×14", "Blusa Luz ×10"] },
+      { cod: "ENV-000104", ronda: "RC-000611", t: "Tienda Trujillo", dia: "Miércoles 22 oct", hora: "09:12", n: 12, fardos: 1, estado: "cerrado", recibido: "Mié 22 oct · 17:30 por Micaela (Trujillo)", contadas: 10, prendas: ["Polo Tito ×12"] },
+      { cod: "ENV-000098", ronda: "RC-000610", t: "Tienda Lima", dia: "Domingo 19 oct", hora: "18:40", n: 8, fardos: 1, estado: "cerrado", recibido: "Lun 20 oct · 09:15 por Camila (Lima)", contadas: 8, prendas: ["Casaca Corta ×8"] },
+      { cod: "ENV-000095", ronda: "RC-000610", t: "Tienda Trujillo", dia: "Sábado 18 oct", hora: "17:05", n: 9, fardos: 1, estado: "en_camino", atraso: 9, prendas: ["Falda Plisada ×9"] },
+    ],
+  });
+  let st = INICIO();
+  const $ = (s) => document.querySelector(s);
+  const pantalla = $("#pantalla"), capa = $("#capa"), notas = $("#notas");
+  function avisar(t) { st.aviso = t; render(); clearTimeout(avisar.x); avisar.x = setTimeout(() => { st.aviso = null; render(); }, 1800); }
+  const chip = (e) => `<span class="chip-e ${ESTADOS[e][1]}">${ESTADOS[e][0]}</span>`;
+  const faltan = (e) => e.estado === "cerrado" && e.contadas < e.n;
+  const cabe = (e) => e.dia === "Hoy" ? "Hoy " + e.hora : e.dia.split(" ").slice(-2).join(" ") + " " + e.hora;
+  const deRonda = (r) => st.envios.filter(e => e.ronda === r);
+  const prendasDe = (l) => l.reduce((s, e) => s + e.n, 0);
+  const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+  // Cómo quedó una ronda con sus envíos, dicho en una frase y su chip.
+  function resumen(r) {
+    const l = deRonda(r), sin = l.filter(e => ["en_camino", "abierto"].includes(e.estado)).length, dif = l.filter(faltan).length;
+    if (!l.length) return { txt: "Sin envíos", chip: "" };
+    const txt = `${plural(l.length, "envío", "envíos")} · ${plural(prendasDe(l), "prenda", "prendas")}`;
+    const atras = l.some(e => e.atraso);
+    const chipx = atras ? `<span class="chip-e ambar">${sin} sin recibir</span>` : sin ? `<span class="chip-e pizarra">${sin} sin recibir</span>` : dif ? `<span class="chip-e ambar">${dif} con diferencias</span>` : `<span class="chip-e verde">Todo recibido</span>`;
+    return { txt, chip: chipx };
+  }
+  const fila = (e, conRonda) => `<button class="fila envio" data-det="${e.cod}"><span style="min-width:0"><div class="t"><span class="cod-mini">${e.cod}</span> · ${e.t.replace("Tienda ", "")}</div><div class="d">${cabe(e)} · ${plural(e.n, "prenda", "prendas")} · ${plural(e.fardos, "fardo", "fardos")}${conRonda ? " · " + e.ronda : ""}</div></span><span class="m" style="font-weight:500">${chip(e.estado)}${faltan(e) ? `<br><span class="mini" style="color:var(--ambar)">faltaron ${e.n - e.contadas}</span>` : ""}${e.atraso ? `<br><span class="mini" style="color:var(--ambar)">hace ${e.atraso} días</span>` : ""}</span></button>`;
+  const V = {};
+  V.inicio = () => {
+    const n = st.porMandar.reduce((s, x) => s + x.n, 0), act = deRonda("RC-000612");
+    const r = RONDAS[0];
+    if (!st.abierta) return `<div class="cab"><div><div class="mini">Hola, Marisol · Tienda Lima</div><h2 class="titulo">Mis compras</h2></div></div>
+      <div class="abrir"><span class="t">¿Sales a comprar?</span><span class="sub">Abre tu ronda: lo que compres y gastes queda junto, y al volver la cierras.</span><button class="btn primario grande" data-accion="reiniciar">Abrir mi ronda</button></div>
+      ${anteriores()}`;
+    return `<div class="cab"><div><div class="mini">Hola, Marisol · Tienda Lima</div><h2 class="titulo">Mis compras</h2></div></div>
+      ${n ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Falta mandar ${n} prendas</b>${st.porMandar.map(x => x.t.replace("Tienda ", "").slice(0, 3).toUpperCase() + " " + x.n).join(" · ")}</span><span class="ir">Mandar →</span></button>` : `<div class="franja" style="background:var(--verde-suave);color:var(--verde);cursor:default"><span>✓</span><span><b>Todo lo de esta ronda ya salió</b>Sus códigos están en «Mis envíos»</span></div>`}
+      <div class="seccion ver-todos"><h3>Envíos de esta ronda</h3><button class="btn sutil" data-ir="envios">Ver todos</button></div>
+      ${act.length ? `<div class="lista">${act.map(e => fila(e)).join("")}</div>` : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">Todavía no mandaste nada en la ronda ${r.texto}.</span></div></div>`}
+      <div class="seccion"><h3>En esta ronda</h3><span class="mini">${r.texto} · ${r.fechas}</span></div>
+      <div class="lista"><div class="fila"><span class="ico">🛍</span><span style="min-width:0"><div class="t">Compra a Moda Gamarra</div><div class="d">09:15 · 4 prendas · ${st.porMandar.length ? "falta mandar a TRU" : "enviada"}</div></span><span class="m">− S/ 220.00</span></div></div>
+      <button class="btn ancho" data-hoja="cerrar">🏁 Cerrar mi ronda ${r.texto}</button>
+      ${anteriores()}`;
+  };
+  function anteriores() {
+    return `<div class="seccion"><h3>Rondas anteriores</h3><button class="btn sutil" data-ir="envios-ant">Ver envíos</button></div>
+      <div class="lista">${RONDAS.slice(1).map(r => { const x = resumen(r.texto); return `<button class="fila envio" data-ronda="${r.texto}"><span style="min-width:0"><div class="t">Ronda ${r.texto}</div><div class="d">${r.fechas} · ${x.txt}</div></span><span class="m">${x.chip}</span></button>`; }).join("")}</div>`;
+  }
+  function filtrados() {
+    const q = st.q.trim().toLowerCase();
+    return st.envios.filter(e => (st.filtro === "todos" || (st.filtro === "camino" ? ["en_camino", "abierto"].includes(e.estado) : e.estado === "cerrado"))
+      && (q ? (e.cod.toLowerCase().includes(q) || e.t.toLowerCase().includes(q) || e.ronda.toLowerCase().includes(q)) : (st.alcance === "esta" ? e.ronda === "RC-000612" : e.ronda !== "RC-000612")));
+  }
+  V.envios = () => {
+    const lista = filtrados(), buscando = st.q.trim() !== "";
+    const cuenta = (a) => st.envios.filter(e => a === "esta" ? e.ronda === "RC-000612" : e.ronda !== "RC-000612").length;
+    const filtros = `<div class="chips">${[["todos", "Todos"], ["camino", "Sin recibir"], ["recibidos", "Recibidos"]].map(([k, n]) => `<button class="chip" aria-pressed="${st.filtro === k}" data-filtro="${k}">${n}</button>`).join("")}</div>`;
+    let cuerpo;
+    if (buscando) cuerpo = lista.length ? `<div class="dia">Resultados de todas las rondas</div><div class="lista">${lista.map(e => fila(e, true)).join("")}</div>` : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">No hay un envío así. Revisa el código o quita el filtro.</span></div></div>`;
+    else if (st.alcance === "esta") {
+      const dias = [...new Set(lista.map(e => e.dia))];
+      cuerpo = `<div class="dia">Ronda ${RONDAS[0].texto} · abierta · ${RONDAS[0].fechas}</div>` + (lista.length ? `<div class="lista">${lista.map(e => fila(e)).join("")}</div>` : `<div class="lista"><div class="fila" style="grid-template-columns:1fr"><span class="d">${st.filtro === "todos" ? "Todavía no mandaste nada en esta ronda." : "Nada con ese filtro."}</span></div></div>`)
+        + (st.porMandar.length ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Falta mandar ${st.porMandar.reduce((s, x) => s + x.n, 0)} prendas</b>Cuando salgan, aparecen aquí con su código</span><span class="ir">Mandar →</span></button>` : "");
+    } else {
+      cuerpo = RONDAS.slice(1).map(r => {
+        const l = lista.filter(e => e.ronda === r.texto), x = resumen(r.texto), abierta = st.abiertas[r.texto];
+        if (!l.length && st.filtro !== "todos") return "";
+        return `<div class="rcard"><button class="rcab" data-acordeon="${r.texto}" aria-expanded="${!!abierta}"><span style="min-width:0"><div class="t" style="font-weight:600;white-space:nowrap">Ronda ${r.texto}</div><div class="d mini">${r.fechas} · cerrada<br>${x.txt}</div></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${x.chip}<span aria-hidden="true" class="mini">${abierta ? "▴" : "▾"}</span></span></button>${abierta ? `<div class="rcuerpo">${l.map(e => fila(e)).join("") || `<div class="fila" style="grid-template-columns:1fr"><span class="d">Nada con ese filtro.</span></div>`}</div>` : ""}</div>`;
+      }).join("");
+    }
+    return `<div class="cab"><button class="volver" data-ir="inicio" aria-label="Volver a Mis compras">←</button><div><div class="mini">Mis compras</div><h2 class="titulo" style="font-size:30px">Mis envíos</h2></div></div>
+      <div class="seg" role="group" aria-label="Qué envíos ver"><button aria-pressed="${st.alcance === "esta"}" data-alcance="esta">Esta ronda · ${cuenta("esta")}</button><button aria-pressed="${st.alcance === "anteriores"}" data-alcance="anteriores">Rondas anteriores · ${cuenta("anteriores")}</button></div>
+      <label class="buscador"><span aria-hidden="true">🔎</span><input id="buscar" placeholder="Busca un código, una tienda o una ronda" value="${st.q}" autocomplete="off" aria-label="Buscar un envío"></label>
+      ${filtros}${cuerpo}`;
+  };
+  const H = {};
+  H.mandar = () => `<h3>Mandar a las tiendas</h3><p class="sub">Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. Te damos el código para avisar a la tienda.</p>
+    <div class="lista">${st.porMandar.map(x => `<div class="fila" style="grid-template-columns:36px minmax(0,1fr);align-items:start"><span class="ico">📦</span><span><div class="t" style="white-space:normal">${x.t}</div><div class="d">${x.n} prendas · ${x.prendas.join(" · ")}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin:10px 0 8px"><span class="mini">Fardos</span><span class="paso" style="height:36px"><button style="width:34px;height:36px" data-fardo="${x.t}" data-d="-1" aria-label="Un fardo menos">−</button><b>${st.fardos[x.t]}</b><button style="width:34px;height:36px" data-fardo="${x.t}" data-d="1" aria-label="Un fardo más">+</button></span></div>
+      <button class="btn primario ancho" data-mandar="${x.t}">🚚 Mandar a ${x.t}</button></span></div>`).join("") || `<div class="fila"><span></span><span class="d">Ya mandaste todo.</span></div>`}</div>
+    <div class="pie"><button class="btn ancho" data-accion="cerrar-hoja">Cerrar</button></div>`;
+  H.mandado = () => { const u = st.ultimo; return `<div class="listo" style="padding-top:6px;gap:8px"><div class="sello" style="width:60px;height:60px;font-size:26px">✓</div>
+    <h3>Salió el envío a ${u.t.replace("Tienda ", "")}</h3>
+    <div class="tarjeta-codigo" style="width:100%"><span class="mini">Código del envío</span><span class="codigo">${u.cod}</span><span class="sub">${u.n} prendas · ${u.fardos} fardo${u.fardos > 1 ? "s" : ""} · ${u.hora} · ronda ${u.ronda}</span></div>
+    <p class="sub">Avísale a la tienda este código: lo busca en <b style="color:var(--tinta)">Recibir</b> y lo cuenta.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;width:100%">
+      <button class="btn primario grande" data-accion="copiar">${st.copiado ? "✓ Código copiado" : "Copiar el código"}</button>
+      <button class="btn ancho" data-accion="compartir">Compartir por WhatsApp</button>
+      ${st.porMandar.length ? `<button class="btn sutil" data-hoja="mandar">Mandar a la siguiente tienda (${st.porMandar.length})</button>` : `<button class="btn sutil" data-ir="envios">Ver mis envíos</button>`}</div></div>`; };
+  H.detalle = () => { const e = st.envios.find(x => x.cod === st.det); const dif = faltan(e);
+    const pasos = e.estado === "cerrado" ? [["ok", `Salió · ${e.dia} ${e.hora}`], ["ok", "La tienda lo abrió y lo contó"], ["ok", "Recibido · " + e.recibido]] : e.estado === "abierto" ? [["ok", `Salió · ${e.dia} ${e.hora}`], ["ahora", "La tienda lo está contando"], ["", "Recibido"]] : [["ok", `Salió · ${e.dia} ${e.hora}`], ["ahora", "En camino: la tienda todavía no lo abre"], ["", "Recibido"]];
+    return `<h3>${e.t}</h3>
+      <div class="tarjeta-codigo"><span class="mini">Código del envío</span><span class="codigo">${e.cod}</span>${chip(e.estado)}</div>
+      <div class="par"><button class="btn" data-accion="copiar-det">${st.copiado ? "✓ Copiado" : "Copiar código"}</button><button class="btn" data-accion="compartir">Compartir</button></div>
+      <div class="linea-tiempo">${pasos.map(([c, t]) => `<div class="${c}"><i></i><span>${t}</span></div>`).join("")}</div>
+      ${e.atraso ? `<div class="franja ambar" style="cursor:default"><span>⏳</span><span><b>Salió hace ${e.atraso} días y la tienda no lo abrió</b>Avísale a Trujillo el código ${e.cod}: lo busca en Recibir.</span></div>` : ""}
+      ${dif ? `<div class="franja ambar" style="cursor:default"><span>⚠</span><span><b>La tienda contó ${e.contadas} de ${e.n}</b>Faltaron ${e.n - e.contadas}: Compras lo revisa con el proveedor.</span></div>` : ""}
+      <div class="cuaderno"><div><span>Prendas</span><span>${e.n}</span></div><div><span>Fardos</span><span>${e.fardos}</span></div><div><span>Ronda</span><span>${e.ronda}${e.ronda === "RC-000612" ? " · abierta" : " · cerrada"}</span></div></div>
+      <div><div class="mini" style="margin-bottom:4px">Lo que llevaba</div>${e.prendas.map(p => `<div class="detalle-linea"><span>${p.split(" ×")[0]}</span><span>× ${p.split("×")[1]}</span></div>`).join("")}</div>
+      <div class="pie"><button class="btn ancho" data-accion="cerrar-hoja">Cerrar</button></div>`; };
+  H.ronda = () => { const r = RONDAS.find(x => x.texto === st.ronda), l = deRonda(r.texto), x = resumen(r.texto);
+    return `<h3>Ronda ${r.texto}</h3><p class="sub">${r.fechas} · cerrada</p>
+      <div class="cuaderno"><div><span>Compras</span><span>${r.compras}</span></div><div><span>Otros gastos</span><span>${r.gastos}</span></div><div class="tot"><span>Salió de tu plata</span><span>${r.salio}</span></div></div>
+      <p class="nota" style="font-size:13px;color:var(--taupe)">${r.cierre}.</p>
+      <div class="seccion"><h3 style="font-size:20px">Envíos de esta ronda</h3>${x.chip}</div>
+      <div class="lista">${l.map(e => fila(e)).join("")}</div>
+      <div class="pie"><button class="btn ancho" data-accion="cerrar-hoja">Cerrar</button></div>`; };
+  H.cerrar = () => { const r = RONDAS[0], l = deRonda(r.texto), n = st.porMandar.reduce((s, x) => s + x.n, 0), x = resumen(r.texto);
+    return `<h3>Cerrar mi ronda ${r.texto}</h3>
+      <div class="cuaderno"><div><span>Te dieron</span><span>S/ 1,500.00</span></div><div><span>Compraste</span><span>− S/ 304.00</span></div><div><span>Gastaste</span><span>− S/ 18.00</span></div><div class="tot"><span>Te queda</span><span>S/ 1,178.00</span></div></div>
+      <div class="seccion"><h3 style="font-size:20px">Tus envíos de la ronda</h3>${x.chip}</div>
+      ${l.length ? `<div class="lista">${l.map(e => fila(e)).join("")}</div>` : `<p class="sub">No mandaste nada en esta ronda.</p>`}
+      ${n ? `<button class="franja ambar" data-hoja="mandar"><span>📦</span><span><b>Antes, manda ${n} prendas</b>${st.porMandar.map(y => y.t.replace("Tienda ", "").slice(0, 3).toUpperCase() + " " + y.n).join(" · ")}</span><span class="ir">Mandar →</span></button>` : `<p class="sub">Los envíos que sigan «en camino» los puedes seguir viendo en «Mis envíos» después de cerrar.</p>`}
+      <div class="pie par"><button class="btn" data-accion="cerrar-hoja">Todavía no</button><button class="btn primario" data-accion="cerrar-ronda" ${n ? "disabled" : ""}>Cerrar la ronda</button></div>`; };
+  const NOTAS = {
+    inicio: ["Mis compras · con la ronda abierta", ["«Envíos de esta ronda» muestra solo los de la ronda abierta (RC-000612), con su código y en qué van. Lo que todavía falta mandar sigue arriba, en la franja ámbar.", "Una vez que sale un envío, aparece aquí al instante; no hay que ir a otra pantalla para ver su código.", "Más abajo, «Rondas anteriores»: cada una con cuántos envíos tuvo y si quedó algo sin recibir."]],
+    mandar: ["Mandar a las tiendas", ["Igual que hoy: un fardo o varios y un botón por tienda.", "Tocar «Mandar» guarda el envío de verdad: la sede ya lo ve «en camino» en Recibir. Lo que cambia es lo que ve la compradora después."]],
+    mandado: ["Salió el envío: el código", ["El código se ve grande apenas sale, con la ronda a la que pertenece (RC-000612).", "«Copiar» y «Compartir por WhatsApp» (el mensaje sale armado)."]],
+    envios: ["Mis envíos · esta ronda / anteriores", ["Arriba, dos opciones: <b>Esta ronda</b> (los de la ronda abierta, con la franja de lo que falta mandar) y <b>Rondas anteriores</b>.", "En «Rondas anteriores» cada ronda cerrada es una tarjeta plegada con su resumen: cuántos envíos y prendas, y un chip («Todo recibido», «1 con diferencias», «1 sin recibir» en ámbar). Se abre ahí mismo; la más reciente viene abierta.", "Buscar por código, tienda o ronda trae resultados de <b>todas</b> las rondas, cada uno con su ronda al lado: así se encuentra un código viejo sin saber en cuál ronda salió.", "Los filtros (todos · sin recibir · recibidos) valen en las dos vistas. Es de solo lectura."]],
+    detalle: ["Un envío", ["El mismo detalle para cualquier ronda; dice si la ronda sigue abierta o ya se cerró.", "Un envío que salió hace días y no lo abrieron muestra un aviso con el código: es el que hay que recordarle a la tienda."]],
+    ronda: ["Una ronda cerrada", ["Al tocar una ronda en «Rondas anteriores» se abre su hoja: el cuaderno de lo que compró y gastó, cómo cerró y, nuevo, <b>los envíos de esa ronda</b> con su código.", "Cada envío se abre en su detalle. Así un código de hace dos semanas está a dos toques del inicio."]],
+    cerrar: ["Cerrar la ronda", ["La cuenta de siempre y, nuevo, <b>«Tus envíos de la ronda»</b>: los códigos a la vista antes de cerrar, por si hay que avisar algo a una tienda.", "Con prendas por mandar, el cierre sigue apagado y la franja manda a «Mandar a la tienda» (ya es así hoy). Un envío «en camino» no bloquea: puede cerrarse y seguirse en «Mis envíos».", "Al cerrar, los envíos de la ronda pasan a «Rondas anteriores» sin perderse."]],
+  };
+  const INDICE = [["inicio", "Inicio · ronda abierta"], ["h:mandado", "Salió: el código"], ["envios", "Mis envíos · esta ronda"], ["envios-ant", "Mis envíos · anteriores"], ["buscar", "Buscar un código"], ["h:ronda", "Una ronda cerrada"], ["h:cerrar", "Cerrar · con envíos"], ["h:cerrar-ok", "Cerrar · todo mandado"], ["h:atraso", "Un envío sin recibir"], ["h:dif", "Con diferencias"], ["cerrada", "Inicio · ronda cerrada"]];
+  const claveNota = () => st.hoja === "mandar" ? "mandar" : st.hoja || (st.vista === "envios" ? "envios" : st.vista);
+  function render() {
+    pantalla.innerHTML = V[st.vista]();
+    capa.innerHTML = (st.hoja ? `<div class="velo" data-fondo="1"><div class="hoja" role="dialog"><div class="asa"></div>${H[st.hoja]()}</div></div>` : "") + (st.aviso ? `<div class="aviso" role="status">✓ ${st.aviso}</div>` : "");
+    const [t, b] = NOTAS[claveNota()] || NOTAS.inicio;
+    notas.innerHTML = `<div><span class="eyebrow">Qué cambia aquí</span><h2>${t}</h2></div>
+      <div class="tarj"><ul>${b.map(x => `<li>${x}</li>`).join("")}</ul></div>
+      <div class="tarj igual"><h4>Cómo se decide a qué ronda va un envío</h4><span>Un envío lleva las prendas que la compradora ya compró para esa tienda, y como el cierre de la ronda exige que nada quede por mandar, <b>todo envío sale dentro de su ronda abierta</b>. Por eso «Mis envíos» puede agruparse por ronda sin ambigüedad. La ronda se lee de las compras del envío; no hay que guardar nada nuevo para eso.</span></div>
+      <div class="tarj"><h4>Ir a una pantalla</h4><div class="indice">${INDICE.map(([c, n]) => `<button data-ver="${c}" aria-current="${c === claveNota() || c === "h:" + claveNota()}">${n}</button>`).join("")}</div><button class="btn sutil" style="align-self:flex-start" data-accion="reiniciar">Reiniciar la demo</button></div>`;
+  }
+  function ir(v) { st.vista = v; st.hoja = null; render(); pantalla.scrollTop = 0; }
+  function nuevoEnvio(t) {
+    const x = st.porMandar.find(y => y.t === t), cod = "ENV-" + String(st.sig++).padStart(6, "0");
+    const e = { cod, ronda: "RC-000612", t, dia: "Hoy", hora: "10:4" + st.envios.filter(z => z.dia === "Hoy").length, n: x.n, fardos: st.fardos[t], estado: "en_camino", prendas: x.prendas };
+    st.envios.unshift(e); st.ultimo = e; st.porMandar = st.porMandar.filter(y => y.t !== t); st.copiado = false;
+  }
+  document.addEventListener("input", (e) => { if (e.target.id === "buscar") { st.q = e.target.value; const p = e.target.selectionStart; render(); const b = $("#buscar"); b.focus(); b.setSelectionRange(p, p); } });
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("button, .velo"); if (!el) return;
+    if (el.dataset.fondo) { if (e.target === el) { st.hoja = null; render(); } return; }
+    const d = el.dataset;
+    if (d.ver) {
+      const v = d.ver; st = INICIO();
+      if (v === "inicio") { st.vista = "inicio"; }
+      else if (v === "envios") st.vista = "envios";
+      else if (v === "envios-ant") { st.vista = "envios"; st.alcance = "anteriores"; }
+      else if (v === "buscar") { st.vista = "envios"; st.q = "104"; }
+      else if (v === "h:mandado") { nuevoEnvio("Tienda Trujillo"); st.hoja = "mandado"; }
+      else if (v === "h:ronda") { st.ronda = "RC-000611"; st.hoja = "ronda"; }
+      else if (v === "h:cerrar") { st.hoja = "cerrar"; }
+      else if (v === "h:cerrar-ok") { st.porMandar = []; st.hoja = "cerrar"; }
+      else if (v === "h:atraso") { st.det = "ENV-000095"; st.vista = "envios"; st.alcance = "anteriores"; st.hoja = "detalle"; }
+      else if (v === "h:dif") { st.det = "ENV-000104"; st.vista = "envios"; st.alcance = "anteriores"; st.hoja = "detalle"; }
+      else if (v === "cerrada") { st.porMandar = []; st.abierta = false; }
+      render(); pantalla.scrollTop = 0; return;
+    }
+    if (d.ir) { st.hoja = null; if (d.ir === "envios-ant") { st.alcance = "anteriores"; ir("envios"); } else ir(d.ir); return; }
+    if (d.hoja) { st.hoja = d.hoja; render(); return; }
+    if (d.det) { st.det = d.det; st.copiado = false; st.hoja = "detalle"; render(); return; }
+    if (d.ronda) { st.ronda = d.ronda; st.hoja = "ronda"; render(); return; }
+    if (d.alcance) { st.alcance = d.alcance; render(); return; }
+    if (d.acordeon) { st.abiertas[d.acordeon] = !st.abiertas[d.acordeon]; render(); return; }
+    if (d.filtro) { st.filtro = d.filtro; render(); return; }
+    if (d.fardo) { st.fardos[d.fardo] = Math.max(1, st.fardos[d.fardo] + Number(d.d)); render(); return; }
+    if (d.mandar) { nuevoEnvio(d.mandar); st.hoja = "mandado"; render(); return; }
+    switch (d.accion) {
+      case "cerrar-hoja": st.hoja = null; break;
+      case "copiar": case "copiar-det": st.copiado = true; render(); setTimeout(() => { st.copiado = false; render(); }, 1600); return;
+      case "compartir": avisar("Se abrió WhatsApp con el mensaje armado"); return;
+      case "cerrar-ronda": st.abierta = false; st.hoja = null; st.vista = "inicio"; RONDAS[0] = RONDAS[0]; avisar("Cerraste tu ronda RC-000612"); return;
+      case "reiniciar": st = INICIO(); break;
+      default: return;
+    }
+    render();
+  });
+  render();
+})();
+</script>
