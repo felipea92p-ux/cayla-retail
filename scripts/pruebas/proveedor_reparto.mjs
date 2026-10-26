@@ -92,6 +92,9 @@ select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as pa from retail.proveedores where activo and not retail.fn_proveedor_es_taller(id) order by nombre, id limit 1 \\gset
 select id as pb from retail.proveedores where activo and not retail.fn_proveedor_es_taller(id) and id <> :'pa' order by nombre, id limit 1 \\gset
+-- Lo que B ya vendió esta semana con otras prendas (la base del CI puede tenerlo): la prueba mira solo lo que suma esta prenda.
+select coalesce(sum(d.vendidas), 0) as diarias_antes from retail.fn_proveedores_ventas_diarias(28) d
+  where d.proveedor_id = :'pb' and d.dia >= retail.fn_hoy_lima() - 6 \\gset
 insert into retail.productos (referencia, estado, proveedor_id) values ('ZZ Reparto dos proveedores', 'activo', :'pa') returning id as p \\gset
 insert into retail.variantes (producto_id, sku, precio, costo, activo) values (:'p', 'ZZ-REPARTO-M', 100, 40, true) returning id as v \\gset
 -- A (el habitual) trajo 40 por la carga inicial; se vendieron 36 en Lima.
@@ -114,7 +117,7 @@ const p = correr(`${PRENDA}
 select 'base|' || (b.proveedor_id = :'pa') || '|' || b.unidades_compradas || '|' || b.unidades_vendidas || '|' || b.stock_actual
 from retail.fn_proveedor_prendas_base(null) b where b.producto_id = :'p' order by 1;
 select 'antes-de-B|' || coalesce(sum(uds), 0) from retail.fn_proveedor_reparto() where variante_id = :'v' and proveedor_id = :'pb' and clase = 'venta' and cuando < now() - interval '10 days';
-select 'diarias-B|' || coalesce(sum(d.vendidas), 0) from retail.fn_proveedores_ventas_diarias(28) d where d.proveedor_id = :'pb' and d.dia >= retail.fn_hoy_lima() - 6;
+select 'diarias-B|' || (coalesce(sum(d.vendidas), 0) - :diarias_antes) from retail.fn_proveedores_ventas_diarias(28) d where d.proveedor_id = :'pb' and d.dia >= retail.fn_hoy_lima() - 6;
 select 'tallas-B|' || sum(t.vendidas) || '|' || sum(t.stock) || '|' || (min(t.primera_llegada) >= (now() - interval '11 days')::date) from retail.fn_proveedor_tallas_sedes(:'pb') t where t.producto_id = :'p';
 select 'tallas-A|' || sum(t.vendidas) || '|' || sum(t.stock) from retail.fn_proveedor_tallas_sedes(:'pa') t where t.producto_id = :'p';
 select 'sede|' || u.nombre || '|' || sum(r.uds) from retail.fn_proveedor_reparto() r join retail.ubicaciones u on u.id = r.ubicacion_id
