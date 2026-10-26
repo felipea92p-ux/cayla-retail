@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,7 +17,8 @@ import { ListaCategorias, type VistaPlan } from "@/components/plan-compra/ListaC
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { CentroDeAvisos } from "@/components/plan-compra/CentroDeAvisos";
 import { useAvisosVistos } from "@/components/plan-compra/useAvisosVistos";
-import { avisosDelPlan, marcarVisto, vistosVigentes, type AccionDelAviso, type AvisoDelPlan } from "@/lib/plan-compra-avisos";
+import { usePlanDerivado } from "@/components/plan-compra/usePlanDerivado";
+import { marcarVisto, vistosVigentes, type AccionDelAviso, type AvisoDelPlan } from "@/lib/plan-compra-avisos";
 import { ExportarPlan } from "@/components/plan-compra/ExportarPlan";
 import { NuevaCampanaModal } from "@/components/plan-compra/NuevaCampanaModal";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -25,32 +26,24 @@ import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal"
 import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
-import { diasDeVentasDelErp } from "@/lib/plan-compra-periodo";
-import { leerHistorial } from "@/lib/plan-compra-historial";
-import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
-import { conDescuentos, leerDescuentos } from "@/lib/plan-compra-descuento";
-import { diasConQueSeCuenta, fraseDeLosDias, fraseDelConteoAntesDelPlazo, leerPlazoFijado, plazoDePedido } from "@/lib/plan-compra-plazo";
+import { fraseDelRecupero } from "@/lib/plan-compra-propuesta";
+import { numeroDeOrden } from "@/lib/plan-compra-pedido";
+import { fraseDelConteoAntesDelPlazo } from "@/lib/plan-compra-plazo";
 import { PlazoModal } from "@/components/plan-compra/PlazoModal";
 import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
 import { SimuladorPlan } from "@/components/plan-compra/SimuladorPlan";
 import { RepartoModal } from "@/components/plan-compra/RepartoModal";
-import { fraseDeLosMinimos, tiendasParaRepartir } from "@/lib/plan-compra-reparto";
+import { fraseDeLosMinimos } from "@/lib/plan-compra-reparto";
 import { TopeModal } from "@/components/plan-compra/TopeModal";
 import { PasoAPaso } from "@/components/plan-compra/PasoAPaso";
 import { PlanCategoriaModal } from "@/components/plan-compra/PlanCategoriaModal";
 import {
-  armarFilas,
   enteroES,
   solesES,
   campanasArchivadas,
   diasEntre,
-  confianzaDelStock,
-  leerPlan,
-  momentoDeLaCampana,
   siguienteSinPlan,
-  totalesDelPlan,
   vistaDeLaUrl,
   type CampanasLeidas,
   type CategoriaPlan,
@@ -120,12 +113,9 @@ export function PlanCampana({
   /** Los días para llegar fijados para esta campaña (`fn_plan_compra_plazo`, ADR-0499), crudo; null = la base no lo manda: se cuenta con el supuesto y no se ofrece cambiarlo. */
   plazo?: unknown;
 }) {
-  const plan = useMemo(() => conDescuentos(leerPlan(datos), leerDescuentos(descuentosCrudos)), [datos, descuentosCrudos]);
-  const hechos = useMemo(() => {
-    const leida = leerPropuesta(propuestaCruda);
-    return leida ? conHistorial(leida, leerHistorial(historiaCruda)) : null;
-  }, [propuestaCruda, historiaCruda]);
-  const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
+  // Lo derivado de lo que la base manda (filas, momento, plazo, avisos) lo comparten las pestañas del Plan: ver `usePlanDerivado`.
+  const derivado = usePlanDerivado({ datos, descuentos: descuentosCrudos, propuesta: propuestaCruda, historia: historiaCruda, pedido: pedidoCrudo, plazo: plazoCrudo, preparacion, puedeContar });
+  const { plan: planLeido, hechos, pedido, filas } = derivado;
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
   const [abierta, setAbierta] = useState<CategoriaPlan | null>(null);
@@ -152,32 +142,11 @@ export function PlanCampana({
   const [verArchivadas, setVerArchivadas] = useState(false);
   const [pasoSucio, setPasoSucio] = useState(false);
   // Los avisos que esta persona marcó como «ya lo vi» en esta campaña (recordados en el navegador; ver `useAvisosVistos`).
-  const [vistos, ponerVistos] = useAvisosVistos(plan?.plan.id ?? null);
+  const [vistos, ponerVistos] = useAvisosVistos(planLeido?.plan.id ?? null);
   const salidaPaso = useSalidaSinGuardar(
     vista === "guiado" && pasoSucio,
     "Escribiste parte del plan de esta categoría y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.",
   );
-  // Cada fila lleva lo que propone el sistema (C4) y el % de lo que sobra de la campaña (C5), si la base los manda para ESTA campaña.
-  const filas = useMemo(() => {
-    if (!plan) return [];
-    // Lo ya pedido en órdenes va en cada fila haya o no propuesta, y lo que falta llegar se resta de «Comprar» (ADR-0372 act. (e) y 2026-10-13 b).
-    const base = armarFilas(plan, pedido?.porCategoria);
-    if (!hechos || hechos.planId !== plan.plan.id) return base;
-    return base.map((f) => ({
-      ...f,
-      propuesta: proponer(hechos, f.c.id),
-      propuestaLeidaEn: hechos.leidaEn,
-      diasDeVentas: diasDeVentasDelErp(hechos.tiendas),
-      conCampanaAnterior: hechos.tiendas.some((t) => t.previaDisponible),
-      recuperoDefecto: hechos.recupero.pct,
-      // El reparto entre tiendas (Felipe 2026-10-12): todas las tiendas activas, con su venta de 90 días, su stock y su mínimo.
-      reparto:
-        hechos.tiendasActivas.length > 0
-          ? tiendasParaRepartir(hechos, f.c.id, (nombre) => f.sedes?.find((s) => s.ubicacion === nombre)?.unidades ?? 0)
-          : undefined,
-    }));
-  }, [plan, hechos, pedido]);
-
   const recordar = (categoriaId: string, version: number | null) => {
     if (version !== null) setVersiones((v) => ({ ...v, [categoriaId]: Math.max(v[categoriaId] ?? 0, version) }));
     setRecientes((r) => new Set(r).add(categoriaId));
@@ -215,7 +184,7 @@ export function PlanCampana({
       onClose={() => setHojaCampana(null)}
     />
   );
-  if (!plan) {
+  if (derivado.plan === null) {
     const proxima = campanas ? (ranurasSinPlan(campanas, hoyLima()).at(0) ?? null) : null;
     return (
       <div className="space-y-6">
@@ -264,14 +233,7 @@ export function PlanCampana({
     );
   }
 
-  const momento = momentoDeLaCampana(plan.hoy, plan.plan.desde, plan.plan.hasta);
-  const totales = totalesDelPlan(filas);
-  // La fecha límite para pedir (ADR-0499): el inicio de la campaña menos los días que tarda un pedido en llegar. Mientras ese número no se
-  // fije por campaña, es el supuesto de fábrica (14) y la franja lo dice.
-  const plazoFijado = leerPlazoFijado(plazoCrudo);
-  const plazo = plazoDePedido(plan.plan.desde, plan.plan.hasta, plan.hoy, diasConQueSeCuenta(plazoFijado));
-  const porPedir = filas.filter((f) => (f.calculo?.comprar ?? 0) > 0).length;
-  const confianza = confianzaDelStock(preparacion);
+  const { plan, momento, totales, plazoFijado, plazo, confianza, avisos } = derivado;
   const filaAbierta = abierta ? (filas.find((f) => f.c.id === abierta.id) ?? null) : null;
   const siguiente = abierta ? (siguienteSinPlan(filas, [...hechas, abierta.id])?.c ?? null) : null;
   // La acción principal de la pantalla: la categoría que más vende y todavía no tiene plan. Una sola, arriba (antes: hasta 10 «Armar plan» negros).
@@ -285,25 +247,6 @@ export function PlanCampana({
   const forma = formaDeLaTabla(momento.estado, totales.conPlan);
   const toca = queTocaHoy(momento.estado, totales.conPlan, campanas ? proximaCampana(campanas, plan.hoy, plan.plan.id) : null);
   const campanaActual = campanas?.planes.find((c) => c.id === plan.plan.id) ?? null;
-  // El centro de avisos (Felipe 2026-10-26, spike ②): UNA lista en vez de franjas sueltas, con su número y lo urgente a la vista.
-  const hechosDelPlan = hechos && hechos.planId === plan.plan.id ? hechos : null;
-  const avisos = avisosDelPlan(
-    {
-      estado: momento.estado,
-      plazo,
-      porPedir,
-      conPlan: totales.conPlan,
-      fraseDeLosDias: fraseDeLosDias(plazoFijado),
-      puedeCambiarDias: !!plazoFijado,
-      confianza,
-      puedeContar,
-      fraseDelConteo: fraseDelConteoAntesDelPlazo(plazo),
-      filas,
-      tope: plan.tope.valor,
-      inversion: totales.inversion,
-    },
-    { diasDeVentas: diasDeVentasDelErp(hechosDelPlan?.tiendas), conCampanaAnterior: hechosDelPlan?.tiendas.some((t) => t.previaDisponible) ?? false },
-  );
   const marcarAvisoVisto = (a: AvisoDelPlan) => ponerVistos(vistosVigentes(marcarVisto(vistos, a), avisos));
   const alAccionarAviso = (a: AccionDelAviso) => {
     if (a.tipo === "cambiar-dias") setEditandoPlazo(true);
