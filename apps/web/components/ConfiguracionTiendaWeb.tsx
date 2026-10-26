@@ -34,6 +34,9 @@ import {
   fusionarBorrador,
   idCampo,
   limpiarTexto,
+  moverTienda,
+  moverUnLugar,
+  ordenarSedes,
   pendientesDe,
   validarParametrosTiendaWeb,
   type BorradorParametros,
@@ -77,8 +80,13 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   const [borradores, setBorradores] = useState(() => listaDe(datos.sedes));
   const [bases, setBases] = useState(() => listaDe(datos.sedes));
   const [mostrar, setMostrar] = useState(() => Object.fromEntries(datos.sedes.map((s) => [s.id, s.mostrar])) as Record<string, boolean>);
+  // El orden de las puertas (los ids): la base ya las manda en orden; al mover una, se ve al instante y se guarda enseguida.
+  const [ordenIds, setOrdenIds] = useState(() => datos.sedes.map((x) => x.id));
+  const [arrastrandoId, setArrastrandoId] = useState<string | null>(null);
+  const [encimaId, setEncimaId] = useState<string | null>(null);
   const [vista, setVista] = useState(datos);
   if (vista !== datos) {
+    setOrdenIds(datos.sedes.map((x) => x.id));
     const nuevas = listaDe(datos.sedes);
     setBorradores((b) => Object.fromEntries(datos.sedes.map((s) => [s.id, fusionarBorrador(b[s.id] ?? nuevas[s.id]!, bases[s.id] ?? nuevas[s.id]!, nuevas[s.id]!)])));
     setBases(nuevas);
@@ -87,6 +95,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     setVista(datos);
   }
   const elegida = datos.sedes.find((x) => x.id === elegidaId) ?? datos.sedes[0];
+  const puertas = ordenarSedes(datos.sedes, ordenIds);
 
   // Guía de foco: qué le falta a la tienda abierta para verse en la web. Solo llevan marca los datos que llegaron vacíos al abrir.
   const [pendientes] = useState(() => pendientesDe(datos.sedes));
@@ -111,6 +120,32 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     if (listo) avisar.exito(listo);
     router.refresh();
     return true;
+  };
+
+  /** Mover una puerta: se ve al instante y se guarda enseguida (es el orden, no un dato de la tienda). Si la base no lo acepta, vuelve al de antes. */
+  async function ordenar(nuevo: string[]) {
+    const antes = ordenIds;
+    if (nuevo.join() === antes.join()) return;
+    setOrdenIds(nuevo);
+    const ok = await guardar(
+      () => createClient().rpc("guardar_orden_tiendas_web" as never, { p_ids: nuevo } as never),
+      "ordenar las tiendas de la web",
+      `Orden guardado: ${nuevo.map((id) => limpiarTexto(borradores[id]?.nombreWeb ?? "") ?? nombreCorto(datos.sedes.find((x) => x.id === id)?.nombre ?? "")).join(", ")}.`,
+    );
+    if (!ok) setOrdenIds(antes);
+  }
+  const arrastre = (id: string, fase: "empieza" | "encima" | "suelta" | "termina") => {
+    if (fase === "empieza") setArrastrandoId(id);
+    else if (fase === "encima") setEncimaId(arrastrandoId && arrastrandoId !== id ? id : null);
+    else if (fase === "suelta") {
+      const origen = arrastrandoId;
+      setArrastrandoId(null);
+      setEncimaId(null);
+      if (origen && origen !== id) void ordenar(moverTienda(ordenIds, origen, id));
+    } else {
+      setArrastrandoId(null);
+      setEncimaId(null);
+    }
   };
 
   const escribir = (sedeId: string, campo: keyof BorradorSede, valor: string) =>
@@ -208,7 +243,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       </div>
 
       <section className="twc-calle" role="group" aria-label="Tiendas" data-guia="config.tienda-web-sedes">
-        {datos.sedes.map((s, i) => (
+        {puertas.map((s, i) => (
           <PuertaDeTienda
             key={s.id}
             sede={s}
@@ -220,6 +255,11 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
             indice={i}
             bloqueada={guardando || guardandoEn !== null}
             guiaInterruptor={i === 0 ? "config.tienda-web-mostrar" : undefined}
+            ordenable={puertas.length > 1 && guardandoEn === null && !guardando}
+            arrastrando={arrastrandoId === s.id}
+            encima={encimaId === s.id}
+            onMover={(paso) => void ordenar(moverUnLugar(ordenIds, s.id, paso))}
+            onArrastre={(fase) => arrastre(s.id, fase)}
             onElegir={() => setElegidaId(s.id)}
             // El interruptor es del borrador: abre esa tienda para que su botón «Guardar» quede a la vista.
             onMostrar={(v) => {

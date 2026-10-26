@@ -20,6 +20,8 @@ export type SedeWeb = {
   direccion: string | null;
   horario: string | null;
   mostrar: boolean;
+  /** El lugar en la web (1 es la primera); `null` si todavía no se ordenó. La base ya las manda en orden. */
+  orden: number | null;
 };
 
 export type ParametrosTiendaWeb = { horasParaConfirmar: number; horasAvisoSinPagar: number; diasAvisoSinRecoger: number; quedanPocasDesde: number };
@@ -42,6 +44,7 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
       direccion: texto(s.direccion),
       horario: texto(s.horario),
       mostrar: s.mostrar === true,
+      orden: typeof s.orden === "number" ? s.orden : null,
     })),
     parametros: p
       ? {
@@ -122,6 +125,36 @@ export function estadoSedeWeb(s: { mostrar: boolean } & Pick<BorradorSede, "nomb
   // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Tiendas y caja. La web ya no la muestra (`tienda_sedes`).
   if (falta.length > 0) return { tono: "ambar", texto: `No se ve: falta ${new Intl.ListFormat("es", { type: "conjunction" }).format(falta.map((d) => EN_FRASE[d]))}` };
   return { tono: "verde", texto: "Se ve en la web" };
+}
+
+/** Mover una tienda al lugar de otra (arrastrar y soltar): la lista nueva, o la misma si no hay nada que mover. */
+export function moverTienda(ids: readonly string[], id: string, haciaId: string): string[] {
+  const de = ids.indexOf(id);
+  const a = ids.indexOf(haciaId);
+  if (de < 0 || a < 0 || de === a) return [...ids];
+  const lista = [...ids];
+  lista.splice(de, 1);
+  lista.splice(a, 0, id);
+  return lista;
+}
+
+/** Mover una tienda un lugar a la izquierda (-1) o a la derecha (1): el teclado y el celular, donde no se arrastra. Sin salirse de la fila. */
+export function moverUnLugar(ids: readonly string[], id: string, paso: -1 | 1): string[] {
+  const de = ids.indexOf(id);
+  const a = de + paso;
+  if (de < 0 || a < 0 || a >= ids.length) return [...ids];
+  const lista = [...ids];
+  [lista[de], lista[a]] = [lista[a]!, lista[de]!];
+  return lista;
+}
+
+/** Poner las tiendas en el orden de `ids`; una que no esté en la lista va al final, en el orden en que venía. */
+export function ordenarSedes<T extends { id: string }>(sedes: readonly T[], ids: readonly string[]): T[] {
+  const lugar = new Map(ids.map((id, i) => [id, i]));
+  return sedes
+    .map((s, i) => ({ s, i }))
+    .sort((x, y) => (lugar.get(x.s.id) ?? ids.length) - (lugar.get(y.s.id) ?? ids.length) || x.i - y.i)
+    .map((x) => x.s);
 }
 
 /** La palabra suelta con que la puerta de una tienda dice lo que le falta (sin frases: la maqueta de Conf. Tienda, 2026-10-26). */

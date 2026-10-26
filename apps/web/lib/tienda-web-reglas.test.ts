@@ -14,6 +14,9 @@ import {
   idCampo,
   leerConfiguracionTiendaWeb,
   limpiarTexto,
+  moverTienda,
+  moverUnLugar,
+  ordenarSedes,
   pendientesDe,
   validarParametrosTiendaWeb,
   type BorradorSede,
@@ -28,6 +31,7 @@ const sede = (s: Partial<SedeWeb> = {}): SedeWeb => ({
   direccion: null,
   horario: null,
   mostrar: false,
+  orden: null,
   ...s,
 });
 const completa = { nombreWeb: "Trujillo", whatsapp: "987654321", direccion: "Jr. Pizarro 512" };
@@ -38,7 +42,7 @@ describe("leer lo que devuelve fn_configuracion_tienda_web", () => {
       sedes: [{ id: "u1", nombre: "Tienda TRU", nombre_web: "Trujillo", whatsapp: "987654321", direccion: " ", horario: null, mostrar: true }],
       parametros: { horas_para_confirmar: 24, horas_aviso_sin_pagar: 48, dias_aviso_sin_recoger: 7, quedan_pocas_desde: 3 },
     });
-    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true }]);
+    expect(c.sedes).toEqual([{ id: "u1", nombre: "Tienda TRU", nombreWeb: "Trujillo", whatsapp: "987654321", direccion: null, horario: null, mostrar: true, orden: null }]);
     expect(c.parametros).toEqual({ horasParaConfirmar: 24, horasAvisoSinPagar: 48, diasAvisoSinRecoger: 7, quedanPocasDesde: 3 });
   });
   it("sin datos (o sin la migración) no se cae: sin tiendas y sin plazos", () => {
@@ -195,5 +199,34 @@ describe("la puerta de una tienda (maqueta de Conf. Tienda)", () => {
     ["Tienda Cusco", "emp"],
   ])("%s lleva el toldo %s", (nombre, color) => {
     expect(colorDeSede(nombre)).toBe(color);
+  });
+});
+
+describe("el orden de las tiendas (maqueta de Conf. Tienda)", () => {
+  const ids = ["a", "b", "c"];
+  it("arrastrar una tienda sobre otra la pone en su lugar", () => {
+    expect(moverTienda(ids, "c", "a")).toEqual(["c", "a", "b"]);
+    expect(moverTienda(ids, "a", "c")).toEqual(["b", "c", "a"]);
+  });
+  it("soltarla sobre sí misma o sobre algo que no existe no mueve nada (y no toca la lista de entrada)", () => {
+    expect(moverTienda(ids, "b", "b")).toEqual(ids);
+    expect(moverTienda(ids, "b", "zz")).toEqual(ids);
+    expect(moverTienda(ids, "zz", "a")).toEqual(ids);
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+  it("con el teclado se mueve de a un lugar y no se sale de la fila", () => {
+    expect(moverUnLugar(ids, "b", -1)).toEqual(["b", "a", "c"]);
+    expect(moverUnLugar(ids, "b", 1)).toEqual(["a", "c", "b"]);
+    expect(moverUnLugar(ids, "a", -1)).toEqual(ids);
+    expect(moverUnLugar(ids, "c", 1)).toEqual(ids);
+  });
+  it("las tiendas se acomodan al orden; la que no está en la lista va al final", () => {
+    const s = [sede({ id: "a" }), sede({ id: "b" }), sede({ id: "c" }), sede({ id: "d" })];
+    expect(ordenarSedes(s, ["c", "a"]).map((x) => x.id)).toEqual(["c", "a", "b", "d"]);
+    expect(ordenarSedes(s, []).map((x) => x.id)).toEqual(["a", "b", "c", "d"]);
+  });
+  it("lo que lee de la base trae su lugar, o nada si no se ordenó", () => {
+    const r = leerConfiguracionTiendaWeb({ sedes: [{ id: "a", nombre: "Tienda TRU", orden: 2 }, { id: "b", nombre: "Tienda AQP" }] });
+    expect(r.sedes.map((x) => x.orden)).toEqual([2, null]);
   });
 });

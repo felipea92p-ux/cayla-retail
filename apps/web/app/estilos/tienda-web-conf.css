@@ -31,9 +31,29 @@
   @media (hover: hover) {
     .twc-puerta:hover { border-color: color-mix(in srgb, var(--color-taupe) 60%, transparent); transform: translateY(-2px); }
   }
+  .twc-puerta[data-arrastrando] { opacity: 0.4; }
+  .twc-puerta[data-encima] { border-style: dashed; border-color: var(--color-tinta); }
+  .twc-puerta[draggable="true"] { cursor: grab; }
+  .twc-puerta[draggable="true"][data-arrastrando] { cursor: grabbing; }
   .twc-puerta[data-activa] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
   .twc-puerta[data-oculta] .twc-fachada { opacity: 0.55; filter: grayscale(1); }
 
+  /* El asa para arrastrar y los botones del celular flotan sobre la fachada, arriba a la derecha. */
+  .twc-asa {
+    position: absolute; top: 8px; right: 8px; z-index: 2; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+    background: color-mix(in srgb, var(--color-papel) 82%, transparent); color: var(--color-taupe); pointer-events: none;
+  }
+  .twc-asa svg { width: 16px; height: 16px; }
+  .twc-mover { position: absolute; top: 8px; right: 8px; z-index: 3; display: none; gap: 4px; }
+  .twc-mover button {
+    display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px;
+    background: color-mix(in srgb, var(--color-papel) 88%, transparent); color: var(--color-tinta); border: 1px solid var(--color-sand);
+  }
+  .twc-mover svg { width: 16px; height: 16px; }
+  @media (pointer: coarse) {
+    .twc-asa { display: none; }
+    .twc-mover { display: flex; }
+  }
   .twc-cara { display: grid; width: 100%; text-align: left; cursor: pointer; }
   .twc-cara-texto { display: grid; gap: 8px; padding: 12px 14px 4px; justify-items: start; }
   .twc-nombre { font-family: var(--font-serif); font-size: 22px; line-height: 1.1; color: var(--color-tinta); overflow-wrap: anywhere; }

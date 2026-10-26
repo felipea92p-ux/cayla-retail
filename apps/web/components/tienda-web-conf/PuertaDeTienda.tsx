@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, GripVertical, Lock } from "lucide-react";
 import { Anillo } from "@/components/ui/Anillo";
 import { Chip } from "@/components/ui/Chip";
 import { Interruptor } from "@/components/ui/campos";
@@ -33,8 +33,13 @@ export function PuertaDeTienda({
   indice,
   bloqueada,
   guiaInterruptor,
+  ordenable,
+  arrastrando,
+  encima,
   onElegir,
   onMostrar,
+  onMover,
+  onArrastre,
 }: {
   sede: SedeWeb;
   /** Lo que está escrito ahora (con lo sin guardar): el nombre y los datos que faltan. */
@@ -48,8 +53,17 @@ export function PuertaDeTienda({
   /** Mientras algo se guarda, el interruptor espera. */
   bloqueada: boolean;
   guiaInterruptor?: string;
+  /** Hay más de una tienda: se pueden ordenar (arrastrar, Alt + flechas, o los botones del celular). */
+  ordenable: boolean;
+  arrastrando: boolean;
+  /** Otra puerta se está arrastrando por encima de esta. */
+  encima: boolean;
   onElegir: () => void;
   onMostrar: (valor: boolean) => void;
+  /** Un lugar a la izquierda (-1) o a la derecha (1). */
+  onMover: (paso: -1 | 1) => void;
+  /** El arrastre con el mouse: empieza, pasa por encima, se suelta o se cancela. */
+  onArrastre: (fase: "empieza" | "encima" | "suelta" | "termina") => void;
 }) {
   const falta = faltaParaMostrar(borrador);
   const avance = avanceDeSede(borrador);
@@ -57,8 +71,51 @@ export function PuertaDeTienda({
   const nombre = limpiarTexto(borrador.nombreWeb) ?? nombreCorto(sede.nombre);
 
   return (
-    <div className="twc-puerta tw-entra" data-activa={activa || undefined} data-oculta={!enWeb || undefined} style={{ "--i": indice } as CSSProperties}>
-      <button type="button" className="twc-cara" aria-pressed={activa} onClick={onElegir}>
+    <div
+      className="twc-puerta tw-entra"
+      data-activa={activa || undefined}
+      data-oculta={!enWeb || undefined}
+      data-arrastrando={arrastrando || undefined}
+      data-encima={encima || undefined}
+      style={{ "--i": indice } as CSSProperties}
+      draggable={ordenable}
+      onDragStart={ordenable ? (e) => { e.dataTransfer.effectAllowed = "move"; onArrastre("empieza"); } : undefined}
+      onDragOver={ordenable ? (e) => { e.preventDefault(); onArrastre("encima"); } : undefined}
+      onDrop={ordenable ? (e) => { e.preventDefault(); onArrastre("suelta"); } : undefined}
+      onDragEnd={ordenable ? () => onArrastre("termina") : undefined}
+    >
+      {ordenable && (
+        <>
+          <span className="twc-asa" title="Arrastra para ordenar" aria-hidden>
+            <GripVertical />
+          </span>
+          {/* El celular no arrastra: dos botones mueven la tienda un lugar. Solo se ven con el dedo (pointer: coarse). */}
+          <span className="twc-mover">
+            <button type="button" aria-label={`Mover ${nombre} antes`} onClick={() => onMover(-1)}>
+              <ChevronLeft aria-hidden />
+            </button>
+            <button type="button" aria-label={`Mover ${nombre} después`} onClick={() => onMover(1)}>
+              <ChevronRight aria-hidden />
+            </button>
+          </span>
+        </>
+      )}
+      <button
+        type="button"
+        className="twc-cara"
+        aria-pressed={activa}
+        aria-keyshortcuts={ordenable ? "Alt+ArrowLeft Alt+ArrowRight" : undefined}
+        onClick={onElegir}
+        onKeyDown={
+          ordenable
+            ? (e) => {
+                if (!e.altKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+                e.preventDefault();
+                onMover(e.key === "ArrowLeft" ? -1 : 1);
+              }
+            : undefined
+        }
+      >
         <Fachada color={colorDeSede(sede.nombre)} />
         <span className="twc-cara-texto">
           <span className="twc-nombre">{nombre}</span>
