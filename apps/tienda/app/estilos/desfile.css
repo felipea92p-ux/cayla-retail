@@ -1,0 +1,128 @@
+/* =====================================================================================================
+   EL DESFILE DE «LO NUEVO» (ADR-0524, «G · Pasarela») · el escenario negro con su círculo de luz, la leyenda de la salida que va y el programa, y la lista
+   de salidas que baja del escenario. La maqueta es `docs/maquetas/tienda-rediseno-2026-10/g-pasarela.html`. Es la única pieza de la tienda que corre en bucle
+   (excepción pedida por Felipe a «una vez, sin bucle», ADR-0430): se puede pausar y todo lo que se mueve se apaga con `prefers-reduced-motion`.
+   ===================================================================================================== */
+.t-cap { font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; }
+
+/* El escenario: negro, con la luz al centro. Dentro de él los tokens de siempre se leen sobre el negro (el botón, los enlaces y el texto se invierten
+   solos): el mismo escenario sirve en claro y en oscuro (en oscuro el negro sube a `--t-hero`, un tono para separarse del fondo). */
+.t-escenario {
+  --tinta: var(--t-hero-tinta);
+  --crema: var(--t-hero);
+  --papel: var(--t-hero-2);
+  --taupe: color-mix(in srgb, var(--t-hero-tinta) 68%, var(--t-hero));
+  --sand: var(--t-hero-filo);
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-rows: auto 1fr auto;
+  min-height: clamp(640px, calc(100svh - 112px), 960px);
+  padding: 28px clamp(16px, 4cqi, 64px) 32px;
+  background: var(--t-hero); color: var(--t-hero-tinta);
+}
+.t-escenario[data-modo="seccion"] { min-height: clamp(560px, 82svh, 820px); }
+.t-escenario::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(48% 70% at 50% 56%, color-mix(in srgb, var(--t-hero-tinta) 24%, var(--t-hero)) 0%, color-mix(in srgb, var(--t-hero-tinta) 8%, var(--t-hero)) 45%, var(--t-hero) 75%);
+}
+.t-escenario-cab { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 20px; }
+.t-escena { position: relative; display: grid; place-items: center; min-height: 420px; }
+
+/* El título: enorme, en Didone, detrás de la luz. Las letras suben una a una. */
+.t-escena-tit {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-58%); margin: 0; text-align: center; pointer-events: none;
+  /* Ancho de 4,2 letras de alto: «Lo nuevo» siempre se parte en dos renglones («LO» arriba, «NUEVO» abajo), como en la maqueta, sea cual sea el ancho de la pantalla. */
+  padding-inline: max(0px, calc((100% - 4.2em) / 2));
+  font-family: var(--display); font-weight: 400; font-size: clamp(80px, 19cqi, 330px); line-height: .84; letter-spacing: -.01em; text-transform: uppercase; color: var(--t-hero-tinta);
+}
+.t-palabra { display: inline-block; white-space: nowrap; }
+.t-letra { display: inline-block; }
+/* Sin prendas (la portada de «solo la marca»): el título es la portada, más chico y en su lugar, sin luz. */
+.t-escenario[data-sin-prendas] .t-escena-tit { position: static; transform: none; font-size: clamp(48px, 9cqi, 150px); max-width: 14ch; margin-inline: auto; }
+
+/* El círculo de luz va delante del titular y detrás de la prenda: en él la prenda conserva su color; fuera de él, se oscurece. */
+.t-luz {
+  position: absolute; left: 50%; top: 50%; width: min(52cqi, 660px); aspect-ratio: 1 / 1.12; translate: -50% -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, var(--t-foto) 0%, var(--t-foto-2) 62%, transparent 100%);
+}
+/* La fusión va en la prenda que se mueve (la animación le crea su propia capa; si la fusión fuera en la foto de adentro, no vería el escenario y
+   quedaría un rectángulo blanco). La foto de adentro es la de siempre, sin su placa ni su fusión. */
+/* La prenda cabe en su escena (nunca se monta sobre la leyenda: una prenda larga con letra blanca encima no se lee). */
+.t-modelo { position: absolute; left: 50%; top: 50%; height: min(100%, 650px); max-width: min(42cqi, 520px); aspect-ratio: 4 / 5; margin: 0; translate: -50% -50%; opacity: 0; mix-blend-mode: multiply; pointer-events: none; }
+.t-modelo.quieta { opacity: 1; }
+.t-modelo .t-card-foto { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; background: transparent; }
+.t-modelo .t-card-foto img { padding: 0; mix-blend-mode: normal; transition: none; }
+.t-flash {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(40% 50% at 50% 48%, var(--t-papel-fijo) 0%, color-mix(in srgb, var(--t-papel-fijo) 69%, transparent) 40%, transparent 70%);
+}
+
+/* El pie del escenario: la pausa, la leyenda de la salida que va y el programa. */
+.t-pie-escena { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 20px; }
+/* El piso del escenario: detrás del pie la luz y la prenda se funden en la oscuridad, y la leyenda se lee siempre sobre negro. */
+.t-pie-escena::before { content: ""; position: absolute; z-index: -1; inset: -90px calc(-1 * clamp(16px, 4cqi, 64px)) -32px; pointer-events: none; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--t-hero) 94%, transparent) 62%); }
+.t-pie-escena > :last-child { justify-self: end; }
+.t-leyenda { display: grid; justify-items: center; gap: 6px; text-align: center; min-height: 64px; }
+.t-leyenda-precio s { margin-right: 6px; color: var(--taupe); }
+.t-leyenda-nombre { font-family: var(--nombre); font-style: italic; font-size: clamp(22px, 2.4cqi, 32px); line-height: 1.1; color: var(--t-hero-tinta); text-decoration: none; }
+@media (hover: hover) { .t-leyenda-nombre:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; } }
+.t-leyenda-acciones { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 26px; margin-top: 10px; }
+.t-pausa { justify-self: start; display: inline-flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 16px; border: 1px solid var(--t-hero-filo); border-radius: 999px; background: none; color: var(--t-hero-tinta); cursor: pointer; transition: border-color .3s; }
+@media (hover: hover) { .t-pausa:hover { border-color: var(--t-hero-tinta); } }
+@media (pointer: coarse) { .t-pausa { min-height: 44px; } }
+.t-programa { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; justify-items: end; }
+.t-programa li { display: flex; gap: 14px; opacity: .62; transition: opacity .4s; }
+.t-programa li.ahora { opacity: 1; }
+.t-programa li.ahora::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; background: var(--t-hero-tinta); }
+.t-programa button { display: flex; gap: 14px; border: 0; background: none; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.t-programa button:focus-visible { outline: 1.5px solid currentColor; outline-offset: 3px; }
+
+/* La entrada: el título sube letra por letra, la luz se enciende y el resto aparece. Una sola vez. */
+@media (prefers-reduced-motion: no-preference) {
+  .t-escena-tit .t-letra { animation: t-letra-sube 1.3s var(--ease) calc(.15s + var(--l, 0) * 70ms) both; }
+  .t-luz { animation: t-luz-enciende 2.2s var(--ease) .3s both; }
+  .t-escenario .t-entra { animation: t-entra 1s var(--ease) calc(.7s + var(--s, 0) * 110ms) both; }
+}
+@keyframes t-letra-sube { from { opacity: 0; transform: translateY(.6em); } }
+@keyframes t-luz-enciende { from { opacity: 0; scale: .6; } }
+@keyframes t-entra { from { opacity: 0; transform: translateY(12px); } }
+
+@container tienda (max-width: 699px) {
+  .t-escenario { min-height: 0; }
+  .t-escena { min-height: 360px; }
+  .t-escena-tit { font-size: clamp(80px, 25cqi, 120px); }
+  .t-modelo { max-width: 74cqi; }
+  .t-luz { width: 92cqi; }
+  .t-pausa { justify-self: center; }
+  .t-pie-escena { grid-template-columns: 1fr; justify-items: center; }
+  .t-pie-escena > :last-child { justify-self: center; }
+  .t-programa { display: none; }
+}
+
+/* =====================================================================================================
+   EL PROGRAMA (la lista de salidas que baja del escenario): cada fila es una salida; al pasar el mouse la prenda asoma junto al cursor.
+   ===================================================================================================== */
+.t-programa-sec { padding-block: clamp(80px, 11cqi, 160px) 0; }
+.t-cab-centro { display: grid; justify-items: center; gap: 14px; margin-bottom: clamp(36px, 5cqi, 72px); text-align: center; }
+.t-cab-centro h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(38px, 5.2cqi, 78px); line-height: 1; letter-spacing: -.01em; }
+.t-cab-centro h2 em { font-style: italic; }
+.t-cab-centro p { margin: 0; max-width: 44ch; color: var(--taupe); }
+.t-salidas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--tinta); }
+.t-salidas li { border-bottom: 1px solid var(--sand); }
+.t-salidas a { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto auto; align-items: baseline; gap: 24px; padding: 22px 0; color: var(--tinta); text-decoration: none; transition: padding-left .6s var(--ease); }
+.t-salida-nom { font-family: var(--nombre); font-size: clamp(26px, 3.2cqi, 46px); line-height: 1; }
+.t-salida-gris { color: var(--taupe); }
+.t-salida-precio { font-size: 15px; font-variant-numeric: tabular-nums; }
+.t-salida-precio s { margin-right: 6px; color: var(--taupe); }
+.t-programa-pie { display: flex; justify-content: center; margin-top: 44px; }
+@media (hover: hover) {
+  .t-salidas a:hover { padding-left: 18px; }
+  .t-salidas a:hover .t-salida-nom { font-style: italic; }
+}
+.t-asoma { position: fixed; left: 0; top: 0; z-index: 50; width: 220px; aspect-ratio: 4 / 5; background: var(--t-foto); pointer-events: none; opacity: 0; transition: opacity .35s; }
+.t-asoma.visible { opacity: 1; }
+.t-asoma .t-card-foto { height: 100%; aspect-ratio: auto; }
+@container tienda (max-width: 699px) {
+  .t-salidas a { grid-template-columns: 54px minmax(0, 1fr); gap: 6px 16px; }
+  .t-salidas a > :nth-child(3), .t-salidas a > :nth-child(4) { grid-column: 2; }
+  .t-salida-pal { display: none; }
+}

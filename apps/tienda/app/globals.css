@@ -95,7 +95,7 @@
 .t-angosto { width: 100%; max-width: 620px; margin-inline: auto; }
 .t-anuncio { flex: none; height: 34px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 12px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
 .t-cab { flex: none; position: relative; z-index: 15; background: color-mix(in srgb, var(--crema) 92%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--sand); }
-.t-cab-fila { position: relative; height: 60px; display: flex; align-items: center; gap: 2px; padding-inline: clamp(8px, 3cqi, 64px); }
+.t-cab-fila { position: relative; height: 60px; display: flex; align-items: center; gap: 2px; padding-inline: clamp(16px, 4cqi, 64px); }
 .t-logo { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; color: var(--tinta); }
 /* El logo oficial (`components/Marca.tsx`): cada lugar le da su alto o su ancho y su color; la otra medida sigue sola. */
 /* Sin `max-width` en porcentaje: con él, un SVG dentro de un enlace que se ajusta a su contenido cuenta como «comprimible» y queda en 0. */
@@ -159,27 +159,39 @@
 .t-ver b { font-weight: 500; color: var(--taupe); }
 .t-ver .ic { width: 14px; height: 14px; transition: transform .4s var(--ease); }
 .t-ver:hover .ic { transform: translateX(4px); }
-.t-club { margin-top: clamp(64px, 10cqi, 140px); background: var(--hueso); padding-block: clamp(48px, 7cqi, 96px); }
-.t-club-in { display: block; }
-.t-club-in > .t-revela { display: grid; grid-template-columns: minmax(0, 1fr); }
-.t-club-in > .t-revela > .t-btn { justify-self: start; margin-top: 32px; }
-.t-club h2 { margin: 16px 0 0; font-family: var(--display); text-transform: none; font-weight: 400; letter-spacing: -.01em; line-height: 1; font-size: clamp(34px, 4.4cqi, 64px); max-width: 16ch; }
-.t-club h2 em { font-style: italic; color: inherit; }
-.t-beneficios { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 32px; }
-.t-beneficios li { display: block; padding: 20px 0; border-top: 1px solid var(--sand); }
-.t-beneficios li > span:first-child { display: none; }
-.t-beneficios b { display: block; margin-bottom: 4px; font-size: 15px; font-weight: 500; }
-.t-beneficios small { display: block; color: var(--taupe); font-size: 14px; line-height: 1.55; }
-/* La tarjeta del Club con su sello: el descuento de cumpleaños que cobra la caja, como una etiqueta pegada a la tarjeta (a la
-   derecha, donde la tarjeta está vacía: arriba tapaba la marca). */
-.t-club-tarjeta { display: none; }
-.t-club-sello { position: absolute; z-index: 2; right: 12px; top: 36%; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px 11px; border-radius: 0; background: var(--papel); color: var(--tinta); border: 1px solid var(--sand); box-shadow: 0 18px 30px -18px var(--sombra); transform: rotate(5deg); }
-.t-club-sello b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 30px; line-height: 1; color: var(--rojo); }
-.t-club-sello small { margin-top: 3px; font-size: 11.5px; font-weight: 600; }
-/* En el Club, el brillo de la tarjeta pasa al verla (al bajar), no al cargar la página: abajo de todo, ya había pasado. */
-@supports (animation-timeline: view()) {
-  .t-club .t-tarjeta-club::after { animation: brillo linear both; animation-timeline: view(); animation-range: entry 40% cover 60%; }
+/* El Club del Inicio (G · Pasarela): un panel negro con su texto en marfil y, al lado, la invitación (`InvitacionClub`). Dentro, los tokens de siempre se leen
+   sobre el negro (el botón sale marfil, como en el escenario del desfile). */
+.t-club {
+  --tinta: var(--t-hero-tinta); --crema: var(--t-hero); --papel: var(--t-hero-2); --sand: var(--t-hero-filo);
+  --taupe: color-mix(in srgb, var(--t-hero-tinta) 68%, var(--t-hero));
+  margin-top: clamp(80px, 11cqi, 160px); background: var(--t-hero); color: var(--t-hero-tinta); padding-block: clamp(56px, 8cqi, 120px);
 }
+.t-club-in { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(40px, 6cqi, 112px); align-items: center; }
+.t-club-in > .t-revela { display: block; }
+.t-club .t-ceja { color: var(--taupe); }
+.t-club h2 { margin: 16px 0 0; font-family: var(--display); text-transform: none; font-weight: 400; letter-spacing: -.01em; line-height: 1; font-size: clamp(38px, 5.2cqi, 78px); max-width: 14ch; }
+.t-club h2 em { font-style: italic; color: inherit; }
+.t-beneficios { list-style: none; margin: 30px 0 34px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 28px; }
+.t-beneficios li { display: block; padding: 16px 0; border-top: 1px solid var(--sand); }
+.t-beneficios li > span:first-child { display: none; }
+.t-beneficios b { display: block; font-size: 15px; font-weight: 500; }
+.t-beneficios small { display: block; color: var(--taupe); font-size: 14px; line-height: 1.55; }
+/* La invitación con su sello: el descuento de cumpleaños que cobra la caja, como una etiqueta pegada a la invitación. */
+.t-club-tarjeta { position: relative; display: grid; place-items: center; }
+.t-club-sello { position: absolute; z-index: 2; right: max(0px, calc(50% - 232px)); bottom: 7%; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px 11px; border-radius: 0; background: var(--t-hero); color: var(--t-hero-tinta); border: 1px solid var(--t-hero-filo); transform: rotate(5deg); }
+.t-club-sello b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 30px; line-height: 1; color: var(--t-hero-tinta); }
+.t-club-sello small { margin-top: 3px; font-size: 12px; font-weight: 600; }
+/* La invitación: blanca, 5 : 7, con su filo adentro; se inclina hacia el mouse como una tarjeta que se toma con la mano. */
+.t-invitacion { position: relative; justify-self: center; width: min(400px, 100%); aspect-ratio: 5 / 7; perspective: 1000px; }
+.t-invitacion-cara {
+  position: relative; width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 18px; padding: 34px; text-align: center;
+  background: var(--t-papel-fijo); color: var(--t-tinta-fija); transform-style: preserve-3d; transform: rotateY(var(--ry, 0deg)) rotateX(var(--rx, 0deg));
+  box-shadow: 0 50px 90px -40px var(--t-oscuro); transition: transform .9s var(--ease);
+}
+.t-invitacion-cara::before { content: ""; position: absolute; inset: 14px; border: 1px solid var(--t-tinta-fija); }
+.t-invitacion-cara .t-ceja { color: inherit; }
+.t-invitacion-gris { color: color-mix(in srgb, var(--t-tinta-fija) 62%, var(--t-papel-fijo)); }
+.t-invitacion-nombre { font-family: var(--nombre); font-size: 34px; line-height: 1.05; overflow-wrap: anywhere; }
 .t-tarjeta-club { container-type: inline-size; position: relative; overflow: hidden; aspect-ratio: 1.586; max-width: 440px; width: 100%; justify-self: center; border-radius: 0; padding: clamp(14px, 5cqi, 22px) clamp(14px, 5cqi, 22px) clamp(12px, 4cqi, 18px); color: #f5f0e8; background: radial-gradient(120% 120% at 100% 0%, #5a2a20 0%, #1e1b19 52%, #111010 100%); box-shadow: 0 34px 60px -30px rgba(0, 0, 0, .65); display: flex; flex-direction: column; justify-content: space-between; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .25s var(--ease); }
 .t-tarjeta-club::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, .16) 50%, transparent 62%); background-size: 260% 100%; background-position: 120% 0; animation: brillo 2.6s var(--ease) 1.2s 1 both; }
 .t-tarjeta-club .fila { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
@@ -200,15 +212,15 @@
 .t-pie-legal { margin: 40px 0 0; padding-top: 16px; border-top: 1px solid var(--sand); font-size: 12px; color: var(--taupe); display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; }
 .t-solo-grande { display: none; }
 @container tienda (min-width: 960px) {
-  .t-cab-fila { height: 72px; gap: 4px; }
+  .t-cab-fila { height: 76px; gap: 4px; }
   .t-logo .t-marca-logo { height: 32px; }
   .t-solo-movil { display: none !important; }
   .t-solo-grande { display: flex; }
   .t-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 40%); align-items: end; gap: clamp(24px, 5cqi, 96px); padding: clamp(40px, 7cqi, 96px) clamp(16px, 4cqi, 64px) 0; }
   .t-sec { padding-block: clamp(64px, 10cqi, 140px) 0; }
   .t-sec-cab { margin-bottom: clamp(32px, 5cqi, 64px); }
-  .t-club-in > .t-revela { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-rows: auto auto 1fr; column-gap: clamp(32px, 6cqi, 120px); }
-  .t-club-in > .t-revela > .t-beneficios { grid-column: 2; grid-row: 1 / span 3; grid-template-columns: 1fr 1fr; margin: 0; }
+  .t-club-in { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+  .t-beneficios { grid-template-columns: 1fr 1fr; }
   .t-pie-in { grid-template-columns: 1.4fr repeat(3, 1fr); }
   .t-pie-in > .t-pie-marca { grid-column: auto; }
 }
@@ -258,7 +270,6 @@ button, input, textarea { font: inherit; color: inherit; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   /* Una animación que avanza con el scroll no mira su duración: sin esto, lo que «aparece al bajar» se quedaría invisible. */
   .t-revela { animation: none !important; }
-  .t-club .t-tarjeta-club::after { animation: none !important; }
 }
 /* La palabra CAYLA dentro del título de una campaña («Aniversario CAYLA»): el dibujo del logo, del alto de las mayúsculas de la letra
    del título y sobre su misma línea, en el color del pedazo donde cae (el rosado de la cursiva). */

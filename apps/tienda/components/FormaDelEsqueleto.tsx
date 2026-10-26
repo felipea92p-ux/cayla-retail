@@ -5,6 +5,7 @@ import { Fragment, Suspense, useLayoutEffect, type CSSProperties } from "react";
 import { formaDeLaRuta, prendaDeLaRuta, tituloDeEspera, type FormaEsqueleto, type TituloDeEspera } from "@/lib/esqueleto";
 import { useBolsaVista } from "./bolsa/BolsaRecordada";
 import { useCabeceraVista } from "./CabeceraConCuenta";
+import { EscenarioDelDesfile } from "./desfile/EscenarioDelDesfile";
 import { Icono } from "./Icono";
 import { usePrendaTocada } from "./PrendaTocada";
 import { fotoQueViaja } from "./Vistas";
@@ -194,16 +195,7 @@ function Inicio({ heroe }: { heroe: React.ReactNode }) {
   const circulos = cabecera ? cabecera.menus.reduce((n, m) => n + m.grupos.reduce((k, g) => k + g.categorias.length, 0), 0) || 8 : 8;
   return (
     <div aria-hidden="true">
-      {heroe ?? (
-        <section className="t-hero t-hero-inicio sin-campana t-hero-espera">
-          <div className="t-hero-texto">
-            <i className="t-esq-hero-ceja" />
-            <i className="t-esq-hero-titulo" />
-            <i className="t-esq-hero-titulo corto" />
-            <i className="t-esq-hero-linea" />
-          </div>
-        </section>
-      )}
+      {heroe ?? <EscenarioDelDesfile enEspera piezas={[]} modo="portada" ceja="Llegó en los últimos 30 días" titulo="Lo nuevo" boton={{ texto: "Ver lo nuevo", href: null }} />}
       <div className="t-carril-envol t-circs-envol">
         <div className="t-circs">
           {Array.from({ length: circulos }, (_, i) => (
@@ -216,21 +208,21 @@ function Inicio({ heroe }: { heroe: React.ReactNode }) {
           ))}
         </div>
       </div>
-      <section className="t-sec t-ancho">
-        <div className="t-sec-cab">
-          <div>
-            <span className="t-ceja">Recién llegado</span>
-            <h2>
-              Lo <em>nuevo</em>
-            </h2>
-            <p>Lo que llegó a nuestras tiendas en los últimos 30 días.</p>
-          </div>
+      <section className="t-programa-sec t-ancho">
+        <div className="t-cab-centro">
+          <span className="t-ceja">El programa</span>
+          <h2>
+            En las <em>tiendas</em>
+          </h2>
+          <p>Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
         </div>
-        <div className="t-carril-envol t-carril-inicio">
-          <div className="t-carril">
-            <Tarjetas cuantas={5} />
-          </div>
-        </div>
+        <ol className="t-salidas">
+          {Array.from({ length: 5 }, (_, i) => (
+            <li key={i} style={{ padding: "26px 0" }}>
+              <i className="t-esqueleto-linea" style={{ display: "block", width: `${46 - i * 4}%`, height: 28 }} />
+            </li>
+          ))}
+        </ol>
       </section>
     </div>
   );

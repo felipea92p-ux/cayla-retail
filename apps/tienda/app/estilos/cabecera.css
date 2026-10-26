@@ -14,16 +14,16 @@
 .t-ico.t-solo-grande { display: none; }
 
 /* ---- La navegación de la computadora: un subrayado que se dibuja al pasar el mouse ---- */
-.t-nav { display: none; align-items: center; gap: clamp(14px, 1.7cqi, 26px); height: 100%; order: -1; }
+.t-nav { display: none; align-items: center; gap: clamp(16px, 2.3cqi, 38px); height: 100%; order: -1; }
 .t-cab-fila > .t-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 /* Hasta 1180 px el logo va a la izquierda (junto al menú, en el celular): la navegación y la tienda no caben junto a un logo centrado. */
 @container tienda (max-width: 1179px) {
   .t-cab-fila > .t-logo { position: static; transform: none; order: -2; margin-right: 18px; }
   .t-cab-fila > .t-ico.t-solo-movil { order: -3; }
 }
-.t-nav-b { border: 0; background: none; height: 100%; padding: 0; font: inherit; font-size: 12px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; position: relative; color: var(--tinta); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.t-nav-b { border: 0; background: none; height: 100%; padding: 0; font: inherit; font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; position: relative; color: var(--tinta); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 /* La raya de la Pasarela: al pasar el mouse entra por la izquierda y, al salir, se va por la derecha. */
-.t-nav-b::after { content: ""; position: absolute; left: 0; right: 0; bottom: 22px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: 100% 50%; transition: transform .6s var(--ease-cortina); }
+.t-nav-b::after { content: ""; position: absolute; left: 0; right: 0; bottom: calc(50% - 12px); height: 1px; background: currentColor; transform: scaleX(0); transform-origin: 100% 50%; transition: transform .6s var(--ease-cortina); }
 @media (hover: hover) { .t-nav-b:hover::after { transform: scaleX(1); transform-origin: 0 50%; } }
 .t-nav-b[aria-current="page"]::after { transform: scaleX(1); transform-origin: 0 50%; }
 .t-nav-b.oferta { color: var(--rojo); }
@@ -195,7 +195,7 @@
   .t-sede-nom-sale { display: none; }
 }
 @container tienda (min-width: 960px) {
-  .t-cab-fila { gap: clamp(14px, 1.7cqi, 26px); }
+  .t-cab-fila { gap: clamp(16px, 2.3cqi, 38px); }
 }
 
 
