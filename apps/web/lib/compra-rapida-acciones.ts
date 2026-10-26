@@ -10,6 +10,7 @@ import {
   CARPETA_PAPELES,
   RPC_HABITUALES_PROVEEDOR,
   RPC_REGISTRAR_COMPRA_RAPIDA,
+  RPC_REGISTRAR_MARCA_DE_COMPRA,
   leerHabituales,
   type Habitual,
   type MedioPagoCompra,
@@ -84,4 +85,17 @@ export async function registrarCompraRapida(
 ): Promise<{ error: ErrorDeBase }> {
   const { error } = await firmar(createClient().rpc(RPC_REGISTRAR_COMPRA_RAPIDA as never, args as never), firma);
   return { error: error ?? null };
+}
+
+/** La marca que la compradora escribió en «Algo nuevo»: se crea (o se encuentra, si ya existe) unida al proveedor, justo antes de guardar. */
+export async function registrarMarcaDeCompra(
+  nombre: string,
+  proveedorId: string,
+  firma: Firma | FirmaOmitida | null,
+): Promise<{ id: string | null; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(
+    createClient().rpc(RPC_REGISTRAR_MARCA_DE_COMPRA as never, { p_nombre: nombre, p_proveedor_id: proveedorId } as never),
+    firma,
+  )) as unknown as { data: { id?: string } | null; error: ErrorDeBase };
+  return { id: typeof data?.id === "string" ? data.id : null, error: error ?? null };
 }

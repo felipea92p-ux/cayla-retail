@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 57;
+export const PENDIENTES_HOY = 53;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -96,10 +96,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- finanzas ----
   "/finanzas": PENDIENTE,
   "/finanzas/cierre": PENDIENTE,
-  "/finanzas/dinero": PENDIENTE,
-  "/finanzas/dinero/conciliacion": PENDIENTE,
-  "/finanzas/dinero/efectivo": PENDIENTE,
-  "/finanzas/dinero/por-pagar": PENDIENTE,
+  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: los frascos de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
+  "/finanzas/dinero/conciliacion": { estado: "aplicada", evidencia: ["components/finanzas/CuentasDinero.tsx"] },
+  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: los frascos dicen el efectivo de hoy)." },
+  "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
   "/finanzas/reportes": PENDIENTE,
@@ -177,7 +177,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
   "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
-  "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/ModeloNuevoCampos.tsx"] },
+  "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "/produccion/ordenes/[numero]": { estado: "no-aplica", motivo: "Una orden se lee, no se llena: la ruta de fases, la tela, el costo y la línea de tiempo. Lo que se anota vive en sus hojas «Terminé» y «Cambiar quién», cada una con su guía en el registro de modales." },
   "/produccion/por-pagar": PENDIENTE,
   "/produccion/proveedores": PENDIENTE,
@@ -262,6 +262,7 @@ export const MODALES_PENDIENTES_HOY = 52;
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
   "components/AjustarInventarioModal.tsx": { estado: "aplicada", evidencia: ["components/AjustarInventarioModal.tsx"] },
+  "components/existencias/BuscarPrendaParaAjustar.tsx": { estado: "no-aplica", motivo: "«¿Qué prenda vas a ajustar?» (ADR-0494): un solo campo, el buscador, y su único paso es elegir la prenda; lo que se llena (la planilla, el motivo y quién) vive en el modal de la prenda, con su guía." },
   "components/AnularVentaForm.tsx": PENDIENTE, // 4 controles
   "components/ApartadosModal.tsx": PENDIENTE, // 3 controles
   // ADR-0328 (actividad 9): «La tengo en la mano» en Bajar al piso. Lo que falta es solo quién lo hace (lo mismo que apaga el botón);
@@ -351,10 +352,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/plan-compra/PlanCampana.tsx": { estado: "no-aplica", motivo: "El cajón «Resumen y avisos» se lee: avisos, las cifras de toda CAYLA, lo ya pedido y el reparto. Lo que se fija (el tope, el % de lo que sobra, los mínimos) abre su propia hoja, cada una con su guía en este registro, y el simulador de adentro mueve supuestos sin guardar nada: no hay nada que falte." },
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
+  "components/plan-compra/PlazoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlazoModal.tsx"] },
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
   "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },
   "components/rendimiento/EditarMetaModal.tsx": { estado: "aplicada", evidencia: ["components/rendimiento/EditarMetaModal.tsx"] },
-  "components/NuevaOrdenProduccionForm.tsx": { estado: "aplicada", evidencia: ["components/NuevaOrdenProduccionForm.tsx", "components/ModeloNuevoCampos.tsx"] },
   "components/NuevaProformaModal.tsx": PENDIENTE, // 10 controles
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   // ADR-0400 (actividad 3): la página de la orden. «Terminé» lo único que falta es lo que ya viene precargado (cuántas) y quién lo anota; «Cambiar quién» es la fila de la fase entera.

@@ -11,19 +11,13 @@
 import type { Guia, PasoGuia } from "../tipos";
 
 /** La mesa de mando del telar (Felipe 2026-10-23): la barra que comparten los seis submódulos de Finanzas. Se explica en cada guía
- *  porque es lo primero que se ve; el piloto no la toca (cambiar de submódulo o de sede es cambiar de pantalla). */
+ *  porque es lo primero que se ve; el piloto no la toca (cambiar de sede es cambiar de pantalla). */
 const TELAR: PasoGuia[] = [
-  {
-    id: "telar-submodulos",
-    ancla: "telar.submodulos",
-    titulo: "Las partes de Finanzas",
-    texto: "Arriba están todas las partes de Finanzas: Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre de mes. Pasas de una a otra sin perder la sede ni el mes que elegiste. Solo ves las que tu rol tiene.",
-  },
   {
     id: "telar-sedes",
     ancla: "telar.sedes",
-    titulo: "Qué sede mirar",
-    texto: "Cada sede tiene su hilo de color. Tocas una y todo Finanzas muestra solo esa sede; «Todas las sedes» las junta. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, aquí sale solo la tuya.",
+    titulo: "Qué sedes mirar",
+    texto: "Toca una sede para ver solo esa; toca otra y se suman. Si las marcas todas, vuelve a «Todas». Lo que eliges vale para todo Finanzas, también cuando pasas a otra parte desde el menú de la izquierda. «Empresa» es lo que no es de ninguna tienda, como el contador. Si tu rol no ve todas, aquí sale solo la tuya.",
   },
   {
     id: "telar-mes",
@@ -83,8 +77,24 @@ const EXCEL: PasoGuia = {
 const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
-  titulo: "Las cuatro partes",
-  texto: "Cuentas: cuánta plata hay en cada lugar. Efectivo por tienda: lo que debería haber en cada cajón. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  titulo: "Las tres partes",
+  texto: "Cuentas: dónde está la plata, cada lugar como un frasco, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+};
+
+/** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
+const ORILLO_DINERO: PasoGuia = {
+  id: "orillo",
+  ancla: "telar.orillo",
+  opcional: true,
+  titulo: "Cuánto pone cada sede",
+  texto: "Esta tira de colores reparte la cifra de arriba entre las sedes: cada color es una sede, del tamaño de lo suyo. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
+};
+const DOCK_DINERO: PasoGuia = {
+  id: "dock",
+  ancla: "telar.dock",
+  opcional: true,
+  titulo: "Lo que más se usa, a una tecla",
+  texto: "Abajo: registrar un movimiento entre cuentas (M), dónde está la plata (D), qué debes (P) y, si eres líder, cuadrar con el banco (C). Las tocas o apretas su letra cuando no estás escribiendo.",
 };
 
 const REGISTRAR_MOVIMIENTO: PasoGuia = {
@@ -98,54 +108,47 @@ export const GUIA_FIN_RESUMEN: Guia = {
   id: "finanzas.resumen",
   ruta: "/finanzas/resumen",
   titulo: "Resumen de Finanzas",
-  resumen: "Cómo está el negocio hoy y qué conviene decidir primero.",
+  resumen: "Cuánto te deja el mes, por dónde pasa la plata y qué conviene decidir hoy.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
-      titulo: "El tablero de la plata",
-      texto: "Aquí ves de un vistazo cómo está CAYLA: si alcanza la plata, si las tiendas cubren sus costos y qué conviene decidir hoy. Nada se escribe aquí: todo sale de lo que ya registran Ventas, Caja, Compras y Producción. Es una demo.",
+      titulo: "Por dónde pasa la plata",
+      texto: "Aquí ves de un vistazo cuánto te deja el mes, de dónde vino la plata y a dónde se fue. Nada se escribe aquí: todo sale de lo que ya registran Ventas, Caja, Compras y Producción. Es una demo.",
     },
     ...TELAR,
-    VER,
     {
       id: "respuesta",
-      ancla: "fin-resumen.respuesta",
-      titulo: "¿Estoy ganando plata?",
-      texto: "La respuesta grande: lo que queda tuyo en lo que va del mes, después de pagar la ropa, los sueldos, los alquileres y los servicios. «¿Por qué?» abre la cuenta paso a paso: lo que vendiste, lo que costó, lo que se pagó y lo que queda.",
+      ancla: "telar.respuesta",
+      titulo: "Cuánto te deja el mes",
+      texto: "La cifra grande es lo que te queda en el mes, después de pagar la ropa, los sueldos, los alquileres y los servicios. Debajo dice cómo vas contra el mes pasado a la misma fecha. Mirando el Taller o la Empresa, dice cuánto cuestan: no venden.",
     },
     {
-      id: "ritmo",
-      ancla: "fin-resumen.ritmo",
+      id: "orillo",
+      ancla: "telar.orillo",
       opcional: true,
-      titulo: "Tu ritmo",
-      texto: "Lo que vendes por día contra lo que hace falta por día para cubrir lo fijo del mes (sueldos, alquileres, servicios). La marca es lo necesario; la barra, lo tuyo. Debajo dice con qué cerrarías el mes si sigues así y qué día ya habrás cubierto todo.",
+      titulo: "Cuánto vendió cada sede",
+      texto: "Esta tira de colores reparte lo vendido entre las tiendas: cada color es una sede, del tamaño de lo que vendió. Tocas un color y ves solo esa sede; lo tocas otra vez y vuelves a todas.",
     },
     {
-      id: "confianza",
-      ancla: "fin-resumen.confianza",
+      id: "dock",
+      ancla: "telar.dock",
       opcional: true,
-      titulo: "Qué tan seguro es el número",
-      texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Este medidor dice cuánto confiar en él y qué falta: el costo de las prendas sin registrar, los alquileres cargados, las facturas, el banco cuadrado. Cada cosa que falta lleva a la pantalla donde se arregla.",
+      titulo: "Lo que más se usa, a una tecla",
+      texto: "Abajo están las cuatro cosas que más se hacen desde el Resumen: pagar facturas (P), el IGV del mes (I), el cierre de mes (M) y los reportes (R). Las tocas o apretas su letra cuando no estás escribiendo.",
     },
     {
-      id: "lugares",
-      ancla: "fin-resumen.lugares",
+      id: "recorrido",
+      ancla: "fin-resumen.recorrido",
       opcional: true,
-      titulo: "Qué deja cada lugar",
-      texto: "Cada tienda y el Taller, después de pagar lo que ellos mismos causan. «Lo de toda la empresa» (contador, publicidad, oficina) va aparte y no se reparte entre las tiendas: así una tienda que deja plata no parece perder por cargar gastos que no son suyos.",
-    },
-    {
-      id: "cifras",
-      ancla: "fin-resumen.cifras",
-      titulo: "Los números del mes",
-      texto: "Lo vendido en el mes, la plata que hay en cajones y bancos, lo que debes pagar en los próximos 7 días, la utilidad del mes pasado y el IGV que se calcula para este mes. Si pasas el mouse, dice de qué pantalla sale.",
+      titulo: "Por dónde pasa la plata",
+      texto: "Lo que vende cada tienda entra a «Vendiste» y de ahí se va: a lo que costaron las prendas, a los gastos de las tiendas, a lo que faltó en caja, al Taller y a la Empresa. Lo que queda es lo que te deja el mes. Cada hilo es del grosor de su plata; toca el de una sede para ver solo lo suyo.",
     },
     {
       id: "decidir",
       ancla: "fin-resumen.decidir",
-      titulo: "Para decidir hoy",
-      texto: "Los avisos que más cuestan si se dejan pasar van primero: una factura vencida, la caja bajo tu mínimo, un mes sin cerrar, egresos sin clasificar. Cada uno dice cuánto está en juego y de qué pantalla sale.",
+      titulo: "Hoy te toca",
+      texto: "Lo que más cuesta si se deja pasar va primero: una factura vencida, la caja bajo tu mínimo, un mes sin cerrar, salidas de caja sin clasificar. Cada aviso dice cuánto está en juego y de qué pantalla sale.",
     },
     {
       id: "aviso-accion",
@@ -163,38 +166,24 @@ export const GUIA_FIN_RESUMEN: Guia = {
       demostrar: [{ tipo: "clic", ancla: "fin-resumen.ver-mas" }],
     },
     {
-      id: "cobertura",
-      ancla: "fin-resumen.cobertura",
+      id: "ventas",
+      ancla: "fin-resumen.ventas",
       opcional: true,
-      titulo: "¿Cada tienda cubre sus costos?",
-      texto: "Una barra por tienda: lo que vendió el mes pasado contra lo que necesitaba vender para no perder. La línea punteada es el 100 %: por encima, la tienda ganó; por debajo, no alcanzó a cubrir sus gastos.",
+      titulo: "Ventas contra la meta",
+      texto: "La línea oscura es lo vendido día a día, sumado; la punteada, lo que pedía la meta de cada sede (o la del presupuesto, pareja en el mes). Si la oscura va arriba, vas por delante. Al pasar el mouse dice cada día.",
     },
     {
-      id: "semanas",
-      ancla: "fin-resumen.semanas",
+      id: "confianza",
+      ancla: "fin-resumen.confianza",
       opcional: true,
-      titulo: "La plata de las próximas semanas",
-      texto: "Lo que tendrías al final de cada semana: lo que hay hoy, más lo que esperas vender, menos lo que vence. La línea punteada es tu mínimo de caja; una barra roja avisa que esa semana bajarías de él.",
-    },
-    {
-      id: "camino",
-      ancla: "fin-resumen.camino",
-      opcional: true,
-      titulo: "Camino al punto de equilibrio",
-      texto: "Mirando una tienda: cuánto lleva vendido este mes contra lo que necesita vender para cubrir sus costos. Cuando la barra llega al final, lo que venda después ya es ganancia.",
-    },
-    {
-      id: "presupuesto",
-      ancla: "fin-resumen.presupuesto",
-      opcional: true,
-      titulo: "El presupuesto de la tienda",
-      texto: "Cuánto lleva gastado en cada rubro contra el tope que se puso, y a dónde llegaría al cierre si sigue al mismo ritmo.",
+      titulo: "Qué tan seguro es el número",
+      texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Este medidor dice cuánto confiar en él y qué falta: el costo de las prendas sin registrar, los alquileres cargados, las facturas, el banco cuadrado. Cada cosa que falta lleva a la pantalla donde se arregla.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes leer el tablero de Finanzas. Para repasarlo: Mi perfil ▸ Demo ▸ Resumen de Finanzas.",
+      texto: "Ya sabes leer el Resumen de Finanzas. Para repasarlo: Mi perfil ▸ Demo ▸ Resumen de Finanzas.",
     },
   ],
 };
@@ -496,7 +485,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Cada lugar donde CAYLA tiene dinero: los bancos, la tarjeta que todavía no abona, los cajones y las cajas fuertes. Un saldo nunca se escribe a mano: se suma de las ventas, los gastos y los movimientos. Es una demo.",
     },
     ...TELAR,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánta plata tienes hoy?",
+      texto: "La cifra grande es lo que tiene la sede que elegiste arriba: bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. Con una sede, solo su efectivo: los bancos son de CAYLA entera. Debajo dice dónde está y lo que debes en la tarjeta.",
+    },
+    ORILLO_DINERO,
     {
       ...REGISTRAR_MOVIMIENTO,
       texto: "Cuando la plata cambia de lugar —depositas el cajón en el banco, llega el abono de la tarjeta, pasas de una cuenta a otra— lo anotas aquí. No es venta ni gasto: la plata solo se mueve. Te abrimos la ventana; no registramos nada.",
@@ -546,24 +541,11 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
     { ...PESTANAS_DINERO, preparar: [{ tipo: "escape" }] },
     {
-      id: "pulso",
-      ancla: "fin-dinero.pulso",
-      titulo: "¿Dónde está mi plata?",
-      texto: "La respuesta grande: todo lo que tienes, sumado de los bancos, lo que la máquina de tarjeta todavía no deposita y el efectivo de cajones y cajas fuertes. La tarjeta de crédito va aparte, porque es deuda. Nada se escribe a mano: sale de los movimientos.",
-    },
-    {
       id: "alcanza",
       ancla: "fin-dinero.alcanza",
       opcional: true,
       titulo: "¿Me alcanza?",
       texto: "La primera semana de las próximas seis en que la plata bajaría de tu mínimo de caja, con lo que vence y lo que esperas vender. Y qué pasa si depositas lo que está guardado en las cajas fuertes. Si falta cargar saldos o historia, dice «provisional» y qué falta.",
-    },
-    {
-      id: "debes",
-      ancla: "fin-dinero.debes",
-      opcional: true,
-      titulo: "¿Qué debes?",
-      texto: "Lo vencido primero y lo próximo que vence, de todas las facturas por pagar. Si hay una factura sin anotar, no está aquí: por eso el medidor de confianza del Resumen las cuenta.",
     },
     {
       id: "aviso-maquina",
@@ -584,8 +566,15 @@ export const GUIA_FIN_CUENTAS: Guia = {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       preparar: [{ tipo: "escape" }],
-      titulo: "Cada lugar con su saldo",
-      texto: "Una tarjeta por lugar: cuánto hay y de dónde sale. Los cajones suben con las ventas en efectivo y bajan con los egresos y depósitos. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+      titulo: "Cada lugar, un frasco",
+      texto: "Cada cajón, caja fuerte y banco es un frasco que se llena hasta su saldo, en la fila de su sede. El cajón dice desde qué hora está abierto y cuánto se vendió en efectivo; la caja fuerte, hace cuánto se depositó. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+    },
+    {
+      id: "diferencias",
+      ancla: "fin-dinero.diferencias",
+      opcional: true,
+      titulo: "Cierres con diferencia",
+      texto: "Los últimos cierres de caja donde lo contado no coincidió con lo que debía haber: si faltó o sobró plata, cuánto y quién cerró. Sirve para conversarlo a tiempo con la tienda.",
     },
     {
       id: "dueno",
@@ -641,6 +630,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       titulo: "El detalle de un movimiento",
       texto: "De dónde salió, a dónde llegó, cuánto, su estado y quién lo registró. Nada se borra: si fue un error, «Anular…» pide el motivo y lo deja a la vista. En la demo cerramos sin anular.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -650,44 +640,6 @@ export const GUIA_FIN_CUENTAS: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
-};
-
-export const GUIA_FIN_EFECTIVO: Guia = {
-  id: "finanzas.dinero.efectivo",
-  ruta: "/finanzas/dinero/efectivo",
-  titulo: "Efectivo por tienda",
-  resumen: "Lo que debería haber ahora mismo en el cajón de cada tienda.",
-  pasos: [
-    {
-      id: "bienvenida",
-      ancla: null,
-      titulo: "El efectivo de cada cajón",
-      texto: "Lo que debería haber en el cajón de cada tienda en este momento. Es la misma cuenta que hace Caja al cerrar: Finanzas solo la junta para verlas todas. Es una demo.",
-    },
-    ...TELAR,
-    VER,
-    PESTANAS_DINERO,
-    {
-      id: "efectivo",
-      ancla: "fin-dinero.efectivo",
-      titulo: "Lo que debería haber",
-      texto: "Por tienda: si la caja está abierta, con cuánto abrió, más las ventas en efectivo, menos los egresos y los depósitos al banco. El resultado es lo que debería haber. El monto lo ve solo quien puede cerrar la caja.",
-    },
-    {
-      id: "diferencias",
-      ancla: "fin-dinero.diferencias",
-      opcional: true,
-      titulo: "Cierres con diferencia",
-      texto: "Los últimos cierres de caja donde lo contado no coincidió con lo que debía haber: si faltó o sobró plata, cuánto y quién cerró. Sirve para conversarlo a tiempo con la tienda.",
-    },
-    REGISTRAR_MOVIMIENTO,
-    {
-      id: "fin",
-      ancla: null,
-      titulo: "¡Listo!",
-      texto: "Ya sabes cuánto efectivo debería haber en cada tienda. Para repasarlo: Mi perfil ▸ Demo ▸ Efectivo por tienda.",
-    },
-  ],
 };
 
 export const GUIA_FIN_POR_PAGAR: Guia = {
@@ -703,13 +655,33 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       texto: "Las facturas de mercadería, de gastos, de activos y de los insumos del Taller que todavía tienen saldo, juntas y ordenadas por cuándo vencen. La planilla no está porque la paga Dynamic. Es una demo: no se paga nada.",
     },
     ...TELAR,
-    VER,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto debes?",
+      texto: "La cifra grande es todo lo que se debe de la sede que elegiste arriba. Debajo, cuántas facturas son, cuánto ya venció (en rojo) y cuánto vence esta semana.",
+    },
+    ORILLO_DINERO,
     PESTANAS_DINERO,
     {
       id: "cifras",
       ancla: "fin-por-pagar.cifras",
       titulo: "Cuándo vence la deuda",
-      texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo.",
+      texto: "Lo que ya venció (se paga primero), lo que vence esta semana, la próxima y más adelante, con cuántas facturas hay en cada tramo. Toca una cifra para ver solo esas facturas; tócala otra vez para verlas todas.",
+    },
+    {
+      id: "burbujas",
+      ancla: "fin-por-pagar.burbujas",
+      opcional: true,
+      titulo: "Las deudas en el calendario",
+      texto: "Cada círculo es una factura, del color de su sede y del tamaño de lo que falta pagar, sobre los próximos 30 días. Lo vencido va a la izquierda con borde rojo. Tocar un círculo abre su pago.",
+    },
+    {
+      id: "filtros",
+      ancla: "fin-por-pagar.filtros",
+      opcional: true,
+      titulo: "Buscar y filtrar",
+      texto: "Escribe un proveedor o el número de la factura, o elige el tipo. Cada filtro puesto aparece debajo con su ✕ para quitarlo, y «Limpiar todo» los quita juntos.",
     },
     {
       id: "lista",
@@ -731,6 +703,7 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       titulo: "Pagar varias de un proveedor",
       texto: "Te lleva a Compras ▸ Por pagar, donde juntas varias facturas del mismo proveedor en un solo pago. En la demo no salimos de aquí.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -753,6 +726,12 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       texto: "Cada viernes, el líder anota el saldo que muestra la banca por internet y el sistema dice si coincide con lo que él suma. Así se encuentra a tiempo un depósito que no se registró. Es una demo: no se anota nada.",
     },
     ...TELAR,
+    {
+      id: "respuesta",
+      ancla: "telar.respuesta",
+      titulo: "¿Cuánto dicen tus bancos?",
+      texto: "Lo que suma el sistema en los bancos de CAYLA, y cuántas líneas faltan revisar. Los bancos son de CAYLA entera: la sede de arriba no los cambia.",
+    },
     PESTANAS_DINERO,
     {
       id: "vacia",
@@ -772,8 +751,8 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "lineas",
       ancla: "fin-conciliacion.lineas",
       opcional: true,
-      titulo: "Lo que registró el sistema",
-      texto: "Cada entrada y salida de esa cuenta en el período. Con el extracto del banco al lado, marcas «Revisada» cada línea que aparece en los dos. Lo que no encuentres en el banco es lo que hay que aclarar.",
+      titulo: "Lo anotado y el extracto, en pares",
+      texto: "A la izquierda, cada entrada y salida que anotó CAYLA en el período; a la derecha, si está en el extracto del banco. Con «Sí, está» el hilo que los une se vuelve verde. Lo que no encuentres en el banco es lo que hay que aclarar.",
     },
     {
       id: "anotar",
@@ -793,9 +772,10 @@ export const GUIA_FIN_CONCILIACION: Guia = {
       id: "otras",
       ancla: "fin-conciliacion.otras",
       opcional: true,
-      titulo: "Las otras cuentas",
-      texto: "Los demás bancos, con cuándo se conciliaron por última vez y cuántas líneas faltan revisar. «Conciliar» abre esa cuenta.",
+      titulo: "Qué banco cuadrar",
+      texto: "Arriba eliges el banco o la cuenta que vas a cuadrar; el número dice cuántas líneas le faltan revisar. Los bancos son de CAYLA entera, no de una sede.",
     },
+    DOCK_DINERO,
     {
       id: "fin",
       ancla: null,
@@ -1351,29 +1331,30 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
     },
     ...TELAR,
     {
-      id: "pulso",
-      ancla: "fin-impuestos.pulso",
-      titulo: "¿Cuánto le debo a SUNAT?",
-      texto: "La respuesta grande: lo que le pagas a SUNAT por el mes que se declara, IGV más la renta a cuenta. «¿Por qué?» abre la cuenta: el IGV que cobraste al vender, menos el que descuentas por tus compras con factura. El día exacto depende del último dígito de tu RUC.",
+      id: "ir-a-declarar",
+      ancla: "fin-impuestos.ir-a-declarar",
+      opcional: true,
+      titulo: "El mes que se declara",
+      texto: "Mientras miras el mes en curso, este aviso te recuerda el mes anterior, el que se declara ahora, con lo que quedó. «Ver» te lleva a él.",
+    },
+    {
+      id: "balanza",
+      ancla: "fin-impuestos.balanza",
+      titulo: "La balanza del IGV",
+      texto: "En un plato, el IGV que cobraste al vender; en el otro, el de tus compras con factura. La balanza se inclina hacia el que pesa más y abajo queda la cuenta: cobraste, menos tus compras, más la renta a cuenta, es lo que pagas. Si pesan más las compras, el IGV queda a favor para el mes que viene.",
     },
     {
       id: "por-hacer",
       ancla: "fin-impuestos.por-hacer",
       opcional: true,
       titulo: "Antes de declarar",
-      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo.",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo. Cada cosa lleva a donde se arregla.",
     },
     {
-      id: "registro-ventas",
-      ancla: "fin-impuestos.registro-ventas",
-      titulo: "Registro de ventas",
-      texto: "Baja en Excel todas las boletas y facturas del mes, como las pide el contador.",
-    },
-    {
-      id: "registro-compras",
-      ancla: "fin-impuestos.registro-compras",
-      titulo: "Registro de compras",
-      texto: "Baja en Excel todas las facturas de compras y gastos del mes, con su IGV.",
+      id: "registros",
+      ancla: "fin-impuestos.registros",
+      titulo: "Los registros, en «Más»",
+      texto: "El registro de ventas (todas las boletas y facturas del mes) y el de compras (las facturas de compras y gastos, con su IGV), en Excel, como los pide el contador.",
     },
     {
       id: "paquete",
@@ -1382,50 +1363,32 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Los dos registros y el resumen del mes juntos, listos para mandarle al contador. En la demo no descargamos nada.",
     },
     {
-      id: "cifras",
-      ancla: "fin-impuestos.cifras",
-      titulo: "El IGV en cuatro cifras",
-      texto: "El IGV que cobraste al vender, el que descuentas por tus facturas de compra, lo que queda a pagar (o a tu favor para el mes siguiente) y el pago a cuenta del impuesto a la renta.",
-    },
-    {
       id: "limite",
       ancla: "fin-impuestos.limite",
       titulo: "El límite de ventas",
       texto: "Lo vendido en el año, de enero a hoy, contra el límite del régimen (y el aviso que salta antes, para hablar con el contador). Al cruzarlo, SUNAT pide llevar más libros. La franja rayada es a dónde llegarías a diciembre a este ritmo. Cuenta lo registrado en el sistema: puede quedar por debajo de la cifra real.",
     },
     {
-      id: "revisar",
-      ancla: "fin-impuestos.revisar",
-      titulo: "Antes de declarar",
-      texto: "Lo que puede hacer que pagues de más: compras con boleta (no dan IGV), comprobantes que SUNAT rechazó o no aceptó todavía, ventas sin comprobante. Cada punto lleva a donde se arregla.",
-    },
-    {
       id: "historial",
       ancla: "fin-impuestos.historial",
-      titulo: "Los últimos 6 meses",
-      texto: "Mes por mes: IGV cobrado, descontado, lo que tocó pagar y su estado. Al tocar un mes, toda la pantalla pasa a ese mes. El mes con asterisco va a la fecha y todavía puede cambiar (te lo mostramos).",
+      titulo: "Cada mes, su sobre",
+      texto: "Un sobre por mes con lo que tocó pagar o lo que quedó a favor. Abierto si falta algo (el mes que se declara, o un pago que no se registró); punteado si el mes todavía corre. Al tocar un sobre, la pantalla sube y pasa a ese mes (te lo mostramos).",
     },
     {
       id: "mes-en-curso",
-      ancla: "fin-impuestos.cifras",
+      ancla: "fin-impuestos.balanza",
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-impuestos.mes-en-curso" }],
       titulo: "El mes en curso",
-      texto: "Ahora todas las cifras son de este mes, a la fecha: sirve para ver venir el IGV antes de que termine. El que se declara ahora es el mes anterior.",
+      texto: "Ahora la balanza es de este mes, a la fecha: sirve para ver venir el IGV antes de que termine. El que se declara ahora es el mes anterior.",
     },
     {
       id: "mes-a-declarar",
       ancla: "fin-impuestos.mes-a-declarar",
       opcional: true,
       titulo: "Volver al mes que se declara",
-      texto: "Al tocar el mes anterior, la pantalla vuelve al mes que le toca declarar al contador (te lo dejamos como estaba).",
+      texto: "Su sobre te devuelve al mes que le toca declarar al contador (te lo dejamos como estaba). Un mes más viejo se elige con el mes de la barra de arriba.",
       demostrar: [{ tipo: "clic", ancla: "fin-impuestos.mes-a-declarar" }],
-    },
-    {
-      id: "otro-mes",
-      ancla: "fin-impuestos.otro-mes",
-      titulo: "Otro mes",
-      texto: "Para mirar un mes más antiguo que los seis de la lista.",
     },
     {
       id: "nota",

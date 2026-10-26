@@ -4,6 +4,8 @@ import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type Ca
 import { hoyLima } from "@/lib/fechas-lima";
 import { RPC_PROPUESTA, leerPropuesta } from "@/lib/plan-compra-propuesta";
 import { RPC_PEDIDO } from "@/lib/plan-compra-pedido";
+import { RPC_DESCUENTO } from "@/lib/plan-compra-descuento";
+import { RPC_PLAZO } from "@/lib/plan-compra-plazo";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
 import { RPC_HISTORIAL, rangoDeCampana, rangoDelAnio, sumarDias, type EtiquetaHistorial } from "@/lib/plan-compra-historial";
 import { getPreparacionMotor, type LecturaMotor } from "@/lib/motor-demanda";
@@ -41,6 +43,11 @@ export async function getPlanCompra(planId?: string): Promise<{
   /** La misma campaña del año anterior y sus 60 días de antes (`fn_historial_ventas`), crudo: el multiplicador de cada tienda que el
    *  ERP todavía no cubre (Felipe 2026-10-13). null si no se pudo leer: esas tiendas caen al × 3, como antes. */
   historia: unknown;
+  /** El descuento guardado por categoría y el que sugiere la campaña (`fn_plan_compra_descuento`, ADR-0499), crudo; null si no se pudo leer
+   *  (base sin la migración o caída): el plan se calcula a precio de lista, como antes. */
+  descuentos: unknown;
+  /** Los días que tarda un pedido en llegar, fijados para esta campaña (`fn_plan_compra_plazo`, ADR-0499), crudo; null si no se pudo leer (el plan usa el supuesto). */
+  plazo: unknown;
 }> {
   const supabase = await createClient();
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
@@ -70,7 +77,7 @@ export async function getPlanCompra(planId?: string): Promise<{
   const nombres = familias.error ? [] : (familias.data ?? []);
   if (plan.error) {
     console.error(`${RPC_PLAN}: ${plan.error.message}`);
-    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null };
+    return { datos: null, falla: "No se pudo leer el plan de campaña. Vuelve a intentarlo en un momento; si sigue, avísale a tu líder", familias: nombres, preparacion, campanas, planPedidoNoExiste, propuesta: null, pedido: null, historia: null, descuentos: null, plazo: null };
   }
   // La propuesta (C4) es una ayuda: si falla o la base todavía no la tiene, cada categoría se llena a mano, como antes.
   const abierto = (plan.data as { plan?: { id?: unknown } } | null)?.plan?.id;
@@ -85,15 +92,24 @@ export async function getPlanCompra(planId?: string): Promise<{
     return { propuesta, historia };
   };
   // Lo pedido en órdenes (ADR-0372 act. (e)) también es una ayuda: sin ella, el Plan no lo muestra.
-  const [leida, ordenes] =
+  const [leida, ordenes, descuento, plazo] =
     typeof abierto === "string"
-      ? await Promise.all([leerPropuestaYSuHistoria(abierto), supabase.rpc(RPC_PEDIDO as never, { p_plan_id: abierto } as never)])
-      : [null, null];
+      ? await Promise.all([
+          leerPropuestaYSuHistoria(abierto),
+          supabase.rpc(RPC_PEDIDO as never, { p_plan_id: abierto } as never),
+          // El descuento (ADR-0499) también es una ayuda: sin él, el plan cuenta con el precio de lista.
+          supabase.rpc(RPC_DESCUENTO as never, { p_plan_id: abierto } as never),
+          // El plazo fijado (ADR-0499) también: sin él, la fecha límite usa el supuesto de 14 días y lo dice.
+          supabase.rpc(RPC_PLAZO as never, { p_plan_id: abierto } as never),
+        ])
+      : [null, null, null, null];
   const propuesta = leida?.propuesta ?? null;
   const historia = leida?.historia ?? null;
   if (propuesta?.error) console.error(`${RPC_PROPUESTA}: ${propuesta.error.message}`);
   if (historia?.error) console.error(`${RPC_HISTORIAL} (plan): ${historia.error.message}`);
   if (ordenes?.error) console.error(`${RPC_PEDIDO}: ${ordenes.error.message}`);
+  if (descuento?.error) console.error(`${RPC_DESCUENTO}: ${descuento.error.message}`);
+  if (plazo?.error) console.error(`${RPC_PLAZO}: ${plazo.error.message}`);
   return {
     datos: plan.data,
     falla: null,
@@ -104,6 +120,8 @@ export async function getPlanCompra(planId?: string): Promise<{
     propuesta: propuesta && !propuesta.error ? propuesta.data : null,
     pedido: ordenes && !ordenes.error ? ordenes.data : null,
     historia: historia && !historia.error ? historia.data : null,
+    descuentos: descuento && !descuento.error ? descuento.data : null,
+    plazo: plazo && !plazo.error ? plazo.data : null,
   };
 }
 

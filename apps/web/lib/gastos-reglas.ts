@@ -127,7 +127,16 @@ export function esMes(x: string | undefined): x is string {
 // ---- «Ver»: qué se mira (la cabecera dice dónde se trabaja) ------------------------------------------------------------
 
 export type UbicacionGastos = { id: string; nombre: string };
-export type Ver = { clave: string; ubicacionId: string | null; soloEmpresa: boolean };
+export type Ver = {
+  clave: string;
+  ubicacionId: string | null;
+  soloEmpresa: boolean;
+  /**
+   * Varias sedes a la vez (la barra del telar, Felipe 2026-10-24): las ubicaciones elegidas y si entra la empresa. Con ella,
+   * `ubicacionId` es `null` y `soloEmpresa` es `false`; la arma `verDeVarias` (`gastos-varias-sedes.ts`). Sin ella, una o todas.
+   */
+  varias?: { ubicacionIds: string[]; conEmpresa: boolean };
+};
 
 /**
  * `?ver=` → qué mira la pantalla. El líder: una ubicación, «todas» o «empresa» (por defecto, la sede donde trabaja). Quien

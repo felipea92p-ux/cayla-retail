@@ -7,6 +7,8 @@
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/finanzas-dinero.css";
+@import "./estilos/finanzas-recorrido.css";
 @import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
 @import "./estilos/campana-efectos.css";
@@ -31,6 +33,7 @@
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/ajuste-modelo.css";
 @import "./estilos/orden-pagina.css";
 @import "./estilos/ordenes-lista.css";
 @import "./estilos/compra-celular.css";

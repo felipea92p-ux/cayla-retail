@@ -110,7 +110,7 @@ export const MODULOS: readonly Modulo[] = [
   // ADR-0473: las campañas salen de Atributos a su propia entrada. La clave `campanas` nació en Tienda web (PR #1190) y se muda
   // aquí (20261022151000, Felipe 2026-10-22: «reusar `campanas`»). Guarda una campaña quien ve Campañas, Campañas de la tienda web
   // o Insignias (`fn_puede_campanas`). Desde esa misma tarde no tiene fila propia: abre Catálogo ▸ Insignias, donde las campañas son
-  // la primera vista (la fila Insignias la declara como `moduloAlterno`). Sigue siendo un módulo aparte en Roles y accesos.
+  // la primera vista (la fila Insignias la declara en sus `modulosAlternos`). Sigue siendo un módulo aparte en Roles y accesos.
   { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
   // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
   // el líder se lo da después a las terminales de almacén y caja.

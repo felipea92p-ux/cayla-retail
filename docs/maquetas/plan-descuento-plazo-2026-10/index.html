@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan de campaña · descuento y plazo (maqueta)</title>
+<style>
+/* Maqueta de la mejora 1 del Plan de campaña (ADR-0497): el precio CON el descuento de la campaña y la fecha límite para pedir.
+   DATOS DE EJEMPLO (no son de CAYLA). La cuenta es la misma de lib/plan-compra-reglas.ts y lib/plan-compra-plazo.ts. Tokens de globals.css. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-p:#8b2a1f; --sand:#e8e0d0; --taupe:#805c4c;
+  --hueso:#eae1d2; --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e; --sombra:#1a1a18;
+  --t60:color-mix(in srgb,var(--tinta) 64%,transparent);
+  --serif:Georgia,"EB Garamond",serif; --sans:ui-sans-serif,system-ui,"DM Sans",sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+:root[data-tema="oscuro"]{ --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38; --tinta:#f5f0e8; --sombra:#000;
+  --verde:#9bb98f; --ambar:#d9a85a; --pizarra:#9db3c8; --rojo:#e07b66; --rojo-p:#e9917f; --taupe:#c2a090; color-scheme:dark; }
+*{box-sizing:border-box} html{background:var(--crema)}
+body{margin:0;font:14px/1.45 var(--sans);color:var(--tinta);background:var(--crema);padding:24px clamp(16px,3vw,48px) 96px}
+button{font:inherit;color:inherit;cursor:pointer}
+.sede{display:flex;gap:12px;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60)}
+.sede:after{content:"";flex:1;height:1px;background:var(--taupe);opacity:.4}
+h1{font:600 46px/1.05 var(--serif);margin:8px 0 4px;letter-spacing:-.01em}
+.frase{color:var(--t60);margin:0 0 20px;max-width:70ch}
+.fila{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid color-mix(in srgb,var(--taupe) 60%,transparent);background:transparent;border-radius:999px;padding:7px 14px;font-size:13px;transition:transform .2s var(--ease),background .2s}
+@media (hover:hover){.btn:hover{transform:translateY(-2px);background:var(--hueso)}}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+@media (hover:hover){.btn.pri:hover{background:var(--rojo-p)}}
+.btn.on{background:var(--tinta);color:var(--crema)}
+.btn.chico{padding:4px 10px;font-size:12px}
+/* panel de simulación (solo de la maqueta) */
+.sim{background:var(--papel);border:1px dashed var(--taupe);border-radius:14px;padding:14px 18px;margin-bottom:20px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.sim h4{margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60)}
+.sim small{color:var(--t60)}
+input[type=range]{width:100%;accent-color:var(--tinta)}
+.cajaN{display:flex;align-items:center;border:1px solid var(--taupe);border-radius:10px;background:var(--hueso);overflow:hidden}
+.cajaN button{border:0;background:transparent;width:34px;height:34px;font-size:18px}
+.cajaN input{width:56px;border:0;background:transparent;text-align:center;font:600 15px var(--sans);color:var(--tinta)}
+/* franja de plazo */
+.plazo{display:flex;gap:16px;align-items:center;border-radius:14px;padding:16px 20px;margin-bottom:20px;border-left:6px solid var(--pizarra);background:var(--papel);animation:entra .4s var(--ease)}
+.plazo .ico{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:20px;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);flex:none}
+.plazo{--c:var(--pizarra)} .plazo.a_tiempo{--c:var(--verde);border-color:var(--verde)} .plazo.justo{--c:var(--ambar);border-color:var(--ambar)}
+.plazo.tarde{--c:var(--rojo);border-color:var(--rojo)} .plazo.termino{--c:var(--taupe);border-color:var(--taupe)}
+.plazo b{font:600 24px/1.1 var(--serif);display:block}
+.plazo span{color:var(--t60)}
+.plazo .regla{margin-left:auto;text-align:right;font-size:12px;color:var(--t60);max-width:300px}
+@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* cifras */
+.cifras{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:20px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 18px}
+.cifra .t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60)}
+.cifra .v{font:600 30px/1.15 var(--serif);margin:4px 0 2px}
+.cifra .d{font-size:12.5px;color:var(--t60)}
+.cifra .d.bien{color:var(--verde)} .cifra .d.mal{color:var(--rojo)}
+.barra{height:6px;border-radius:99px;background:var(--sand);overflow:hidden;margin-top:8px}
+.barra i{display:block;height:100%;background:var(--tinta);width:0;transition:width .5s var(--ease)}
+.barra i.pasa{background:var(--ambar)}
+/* tabla */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.herr{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--sand);align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60);text-align:left;padding:10px 16px;font-weight:600}
+td{padding:12px 16px;border-top:1px solid var(--sand);vertical-align:middle}
+tbody tr{cursor:pointer;transition:background .2s}
+@media (hover:hover){tbody tr:hover{background:var(--hueso)}}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.cat{font-weight:600} .cat small{display:block;font-weight:400;color:var(--t60)}
+.chip{display:inline-flex;gap:6px;align-items:center;border-radius:99px;padding:2px 10px;font-size:12px;background:color-mix(in srgb,var(--c,var(--pizarra)) 14%,transparent);color:var(--c,var(--pizarra));white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.sinpunto:before{display:none}
+.chip.verde{--c:var(--verde)} .chip.ambar{--c:var(--ambar)} .chip.rojo{--c:var(--rojo)} .chip.taupe{--c:var(--taupe)}
+.marg{white-space:nowrap} .marg s{color:var(--t60);margin-right:4px} .marg b{font-weight:600}
+.marg.pierde b{color:var(--rojo)}
+.deriva{display:block;font-size:11.5px;color:var(--ambar)}
+.nota{margin-top:16px;background:var(--hueso);border-radius:12px;padding:12px 16px;color:var(--t60);font-size:13px}
+/* hoja */
+.velo{position:fixed;inset:0;background:color-mix(in srgb,var(--sombra) 40%,transparent);backdrop-filter:blur(4px);display:none;z-index:9;place-items:center;padding:16px}
+.velo.on{display:grid;animation:fund .2s}
+@keyframes fund{from{opacity:0}to{opacity:1}}
+.hoja{background:var(--papel);border:1px solid var(--sand);border-radius:18px;width:min(720px,100%);max-height:92vh;overflow:auto;padding:24px 28px;animation:sube .35s var(--ease)}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+.hoja h2{font:600 24px/1.2 var(--serif);margin:0}
+.hoja .sub{color:var(--t60);margin:2px 0 16px}
+.campos{display:grid;gap:12px;grid-template-columns:repeat(3,1fr)}
+@media(max-width:640px){.campos{grid-template-columns:1fr 1fr}}
+label.c{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60);font-weight:600}
+label.c input{display:block;width:100%;margin-top:4px;height:40px;border:1px solid transparent;border-radius:10px;background:var(--hueso);padding:0 12px;font:15px var(--sans);color:var(--tinta);text-transform:none;letter-spacing:0;transition:background .2s,border-color .2s}
+label.c input:focus{outline:0;background:var(--papel);border-color:var(--rojo)}
+label.c em{font-style:normal;font-weight:400;letter-spacing:0;text-transform:none;color:var(--t60)}
+.ahora{background:color-mix(in srgb,var(--rojo) 7%,var(--papel));border-radius:12px;padding:10px;margin:-10px;transition:background .3s}
+.sigue{font-size:11px;color:var(--rojo);font-weight:600}
+.resul{margin-top:18px;border-top:1px solid var(--sand);padding-top:16px;display:grid;gap:10px}
+.dosCol{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+@media(max-width:640px){.dosCol{grid-template-columns:1fr}}
+.caja{border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--crema)}
+.caja .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.caja .v{font:600 26px/1.2 var(--serif)}
+.aviso{border-left:4px solid var(--c,var(--ambar));background:color-mix(in srgb,var(--c,var(--ambar)) 10%,transparent);border-radius:8px;padding:10px 14px;font-size:13.5px}
+.aviso.rojo{--c:var(--rojo)} .aviso.verde{--c:var(--verde)}
+.pie{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.tema{position:fixed;right:16px;bottom:16px;z-index:5}
+.casi{opacity:.55}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:760px){.ocultaMovil{display:none}}
+</style>
+</head>
+<body>
+<div class="sede"><span>Compras</span><span id="fechaHoy"></span></div>
+<h1>Plan de campaña</h1>
+<p class="frase">Maqueta de la mejora 1: el plan cuenta con el <b>descuento de la campaña</b> y te dice <b>hasta cuándo pedir</b>. Mueve la fecha de “hoy”, los días para llegar y el descuento para ver cómo reacciona. <b>Datos de ejemplo.</b></p>
+
+<!-- Panel solo de la maqueta -->
+<div class="sim" aria-label="Controles de la maqueta">
+  <div><h4>Campaña</h4><div class="fila" id="campanas"></div></div>
+  <div><h4>Hoy es <b id="hoyTxt"></b></h4><input id="hoy" type="range" min="0" max="100" value="0"><div class="fila" id="atajos" style="margin-top:6px"></div></div>
+  <div><h4>Días para llegar a las tiendas</h4>
+    <div class="fila"><div class="cajaN"><button id="menos" aria-label="Menos">−</button><input id="dias" value="14" inputmode="numeric" aria-label="Días para llegar"><button id="mas" aria-label="Más">+</button></div><span class="chip taupe sinpunto" id="supuesto">Supuesto, sin historia</span></div>
+    <small>Hasta que haya recepciones reales, 14 es un supuesto y la pantalla lo dice.</small></div>
+  <div><h4>Cómo se calcula</h4><div class="fila"><button class="btn" id="conDesc" aria-pressed="true">Con el descuento de la campaña</button></div>
+    <div class="fila" style="margin-top:8px"><button class="btn chico" id="cambia">La campaña sube su descuento +5 pts</button></div></div>
+</div>
+
+<div id="franja"></div>
+<div class="cifras" id="cifras"></div>
+
+<div class="tarjeta">
+  <div class="herr"><b>Categorías</b><span style="color:var(--t60)" id="cuenta"></span>
+    <span style="margin-left:auto;color:var(--t60);font-size:12.5px">Toca una fila para abrir su hoja</span></div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>Categoría</th><th class="n">Comprar</th><th>Ganas por prenda</th><th class="ocultaMovil">Descuento</th><th>Cuándo pedir</th><th class="n ocultaMovil">Inversión</th></tr></thead>
+    <tbody id="filas"></tbody></table></div>
+</div>
+<div class="nota">Cómo leerlo · <b>Comprar</b> = lo que conviene tener (según tus tres escenarios y lo que cuesta sobrar frente a quedarte corto) − lo que hay − lo que ya viene. El descuento baja lo que ganas por prenda en la campaña, así que quedarte corto cuesta menos y conviene comprar un poco menos. Lo que sobra se vende <b>después</b> de la campaña, a su % del precio de lista: el descuento no lo toca.</div>
+
+<div class="velo" id="velo"><div class="hoja" role="dialog" aria-modal="true" id="hoja"></div></div>
+<button class="btn tema" id="tema">Modo oscuro</button>
+
+<script>
+/* ---------- Datos de ejemplo ---------- */
+const CAMPANAS=[
+  {id:"nav",nombre:"Navidad 2026",desde:"2026-12-11",hasta:"2026-12-25"},
+  {id:"bf",nombre:"Cyber Wow 2026",desde:"2026-11-23",hasta:"2026-11-30"},
+  {id:"mad",nombre:"Día de la Madre 2027",desde:"2027-05-03",hasta:"2027-05-09"},
+];
+/* descuento que la campaña da a cada categoría (Etiquetas) y el plan de ejemplo de cada una */
+const CATS=[
+  {id:"bl",n:"Blusas",ventas:412,hay:60,camino:0,flo:140,nor:260,bue:520,pre:79.9,cos:30,rec:30,desc:{nav:20,bf:30,mad:15}},
+  {id:"ve",n:"Vestidos",ventas:318,hay:35,camino:0,flo:90,nor:200,bue:430,pre:149.9,cos:62,rec:40,desc:{nav:15,bf:25,mad:20}},
+  {id:"ca",n:"Casacas",ventas:150,hay:20,camino:40,flo:40,nor:100,bue:220,pre:239.9,cos:105,rec:20,desc:{nav:25,bf:30,mad:0}},
+  {id:"pa",n:"Pantalones",ventas:260,hay:80,camino:0,flo:70,nor:150,bue:300,pre:119.9,cos:48,rec:55,desc:{nav:10,bf:20,mad:10}},
+  {id:"po",n:"Polos básicos",ventas:520,hay:150,camino:0,flo:200,nor:380,bue:700,pre:49.9,cos:19,rec:85,desc:{nav:0,bf:10,mad:0}},
+  {id:"ch",n:"Chompas",ventas:90,hay:25,camino:0,flo:30,nor:80,bue:170,pre:169.9,cos:88,rec:10,desc:{nav:35,bf:40,mad:50}},
+  {id:"em",n:"Bolsas de regalo",ventas:30,hay:300,camino:0,flo:0,nor:0,bue:0,pre:0,cos:0,rec:0,desc:{nav:0,bf:0,mad:0},fuera:true},
+].filter(c=>!c.fuera);
+/* lo que cada categoría tiene guardado en el plan: el descuento que se supuso (null = todavía no armada) */
+const estado={camp:CAMPANAS[0],hoy:"2026-10-24",dias:14,conDesc:true,subeCamp:0,plan:{}};
+function planDe(c){return estado.plan[estado.camp.id+c.id]}
+function sugerido(c){return Math.min(99.99,(c.desc[estado.camp.id]||0)+(estado.subeCamp&&(c.desc[estado.camp.id]||0)>0?estado.subeCamp:0))}
+/* Armamos el plan de ejemplo: cada categoría arranca con el sugerido de la campaña, salvo Chompas (la persona lo bajó a 20) */
+function sembrar(){ for(const k of CAMPANAS){ for(const c of CATS){ const key=k.id+c.id;
+  if(!estado.plan[key]) estado.plan[key]={flo:c.flo,nor:c.nor,bue:c.bue,pre:c.pre,cos:c.cos,rec:c.rec,desc:(k.id==="nav"&&c.id==="ch")?20:(c.desc[k.id]||0),armada:!(k.id==="nav"&&c.id==="po")}; } } }
+sembrar();
+
+/* ---------- La cuenta: igual que lib/plan-compra-reglas.ts ---------- */
+const precioEnCampana=(p,d=0)=>Math.round(p*(1-Math.min(Math.max(d,0),100)/100)*100)/100;
+function cuantilCritico(p,c,rec,d=0){const cu=Math.max(precioEnCampana(p,d)-c,0),co=Math.max(c-p*rec/100,0);return cu+co===0?.5:cu/(cu+co)}
+function cuantilTri(a,c,b,p){if(b<=a)return a;const q=Math.min(Math.max(p,0),1),fc=(c-a)/(b-a);return q<fc?a+Math.sqrt(q*(b-a)*(c-a)):b-Math.sqrt((1-q)*(b-a)*(b-c))}
+function calcular(l,stock,d){const q=cuantilCritico(l.pre,l.cos,l.rec,d);const obj=Math.ceil(cuantilTri(l.flo,l.nor,l.bue,q)-1e-9);const comprar=Math.max(0,obj-stock);return{q,obj,comprar,inv:Math.round(comprar*l.cos*100)/100}}
+function margen(p,c,d){if(!(p>0)||!(c>=0))return null;const pc=precioEnCampana(p,d),e=Math.round((pc-c)*100)/100;return{lista:Math.round((p-c)*100)/100,en:e,pc,pierde:e<=0}}
+const soles=n=>"S/ "+n.toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const ent=n=>n.toLocaleString("es-PE",{maximumFractionDigits:0});
+const pct=n=>n.toLocaleString("es-PE",{maximumFractionDigits:2})+" %";
+function fraseMargen(p,c,d){if(!(d>0))return null;const m=margen(p,c,d);if(!m)return null;
+  return m.pierde?`Con −${pct(d)} vendes a ${soles(m.pc)}, que no deja ganancia sobre el costo de ${soles(c)}: cada prenda vendida en la campaña no te deja nada o te cuesta.`
+  :`Con −${pct(d)} ganas ${soles(m.en)} por prenda en vez de ${soles(m.lista)}.`}
+function lectura(q){if(q>=.99)return["lo que sobra se vende casi al costo: sobrar no te cuesta","cubrir hasta el bueno"];if(q>=.75)return["sobrar te cuesta poco frente a quedarte corto","comprar más cerca del bueno"];if(q>.6)return["quedarte corto te cuesta un poco más que sobrar","comprar un poco por encima del normal"];if(q>=.4)return["quedarte corto y sobrar te cuestan parecido","comprar cerca del normal"];return["sobrar te cuesta caro","comprar más cerca del flojo"]}
+
+/* ---------- El plazo: igual que lib/plan-compra-plazo.ts ---------- */
+const MS=86400000, dt=s=>Date.parse(s+"T00:00:00Z");
+const sumar=(s,n)=>new Date(dt(s)+n*MS).toISOString().slice(0,10);
+const dEntre=(a,b)=>Math.round((dt(b)-dt(a))/MS);
+const dm=s=>s.slice(8,10)+"/"+s.slice(5,7);
+const dias=n=>Math.abs(n)===1?"1 día":Math.abs(n)+" días";
+function plazo(desde,hasta,hoy,n){const llega=sumar(hoy,n);
+  if(hoy>hasta)return{estado:"termino",texto:"La campaña terminó",detalle:"Ya no hay nada que pedir para esta campaña.",llega};
+  if(hoy>=desde)return{estado:"empezo",texto:`Si pides hoy, llega el ${dm(llega)}`,detalle:`La campaña ya empezó. Un pedido de hoy tarda ${dias(n)} en estar en las tiendas.`,llega};
+  const lim=sumar(desde,-n),f=dEntre(hoy,lim);
+  if(f<0){const t=dEntre(desde,llega);return{estado:"tarde",limite:lim,faltan:f,diasTarde:t,texto:`Llegaría ${dias(t)} tarde`,detalle:`El último día para pedir era el ${dm(lim)}. Un pedido de hoy llega el ${dm(llega)}, ${dias(t)} después de que empieza la campaña.`,llega}}
+  const cuando=f===0?"hoy":f===1?"mañana":`en ${f} días`;
+  return{estado:f<=7?"justo":"a_tiempo",limite:lim,faltan:f,texto:`Pedir antes del ${dm(lim)}`,detalle:`El último día para pedir es el ${dm(lim)} (${cuando}): ${dias(n)} para llegar a las tiendas antes del ${dm(desde)}.`,llega}}
+
+/* ---------- Pantalla ---------- */
+const $=s=>document.querySelector(s);
+const INI="2026-10-24", FIN="2027-05-12";
+function render(){
+  const k=estado.camp, P=plazo(k.desde,k.hasta,estado.hoy,estado.dias);
+  $("#fechaHoy").textContent=new Date(dt(estado.hoy)).toLocaleDateString("es-PE",{timeZone:"UTC",weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  $("#hoyTxt").textContent=dm(estado.hoy)+"/"+estado.hoy.slice(0,4);
+  $("#supuesto").style.display=estado.dias===14?"":"none";
+  $("#conDesc").setAttribute("aria-pressed",estado.conDesc); $("#conDesc").classList.toggle("on",estado.conDesc);
+  $("#conDesc").textContent=estado.conDesc?"Con el descuento de la campaña":"Sin descuento (como hoy)";
+  $("#cambia").classList.toggle("on",estado.subeCamp>0); $("#cambia").textContent=estado.subeCamp>0?"La campaña subió su descuento +5 pts (tocar para deshacer)":"La campaña sube su descuento +5 pts";
+  const icos={a_tiempo:"✓",justo:"!",tarde:"!",empezo:"→",termino:"·"};
+  const filas=CATS.map(c=>{const pl=planDe(c);const d=pl.desc;const stock=c.hay+c.camino;const con=calcular(pl,stock,d);const sin=calcular(pl,stock,0);
+    const usa=pl.armada?(estado.conDesc?con:sin):null;return{c,pl,con,sin,usa,m:margen(pl.pre,pl.cos,pl.desc)}});
+  const armadas=filas.filter(f=>f.pl.armada);
+  const totComprar=armadas.reduce((s,f)=>s+f.usa.comprar,0), totInv=armadas.reduce((s,f)=>s+f.usa.inv,0);
+  const sinC=armadas.reduce((s,f)=>s+f.sin.comprar,0), sinI=armadas.reduce((s,f)=>s+f.sin.inv,0);
+  const porPedir=armadas.filter(f=>f.usa.comprar>0).length;
+  const pierden=armadas.filter(f=>f.m&&f.m.pierde&&f.pl.desc>0).length;
+  $("#franja").innerHTML=`<div class="plazo ${P.estado==="empezo"?"":P.estado}" role="status"><div class="ico">${icos[P.estado]}</div>
+    <div><b>${P.texto}</b><span>${porPedir>0&&P.estado!=="termino"?`${porPedir} ${porPedir===1?"categoría tiene":"categorías tienen"} compra pendiente · `:""}${P.detalle}</span></div>
+    <div class="regla">Último día para pedir = inicio de la campaña (${dm(k.desde)}) − ${dias(estado.dias)} para llegar${estado.dias===14?" (supuesto)":""}</div></div>`;
+  const tope=45000, pTope=Math.min(100,totInv/tope*100);
+  $("#cifras").innerHTML=`
+   <div class="cifra"><div class="t">Categorías con plan</div><div class="v">${armadas.length} de ${filas.length}</div><div class="d">${filas.length-armadas.length?`Falta ${filas.length-armadas.length}`:"Todas armadas"}</div></div>
+   <div class="cifra"><div class="t">Prendas por comprar</div><div class="v">${ent(totComprar)}</div><div class="d ${estado.conDesc&&sinC>totComprar?"bien":""}">${estado.conDesc?(sinC>totComprar?`${ent(sinC-totComprar)} menos que sin descuento (${ent(sinC)})`:"Igual que sin descuento"):"Sin contar el descuento"}</div></div>
+   <div class="cifra"><div class="t">Inversión</div><div class="v">${soles(totInv)}</div><div class="d">${estado.conDesc&&sinI>totInv?`${soles(sinI-totInv)} menos que sin descuento`:"Tope de ejemplo "+soles(tope)}</div><div class="barra"><i class="${totInv>tope?"pasa":""}" style="width:${pTope}%"></i></div></div>
+   <div class="cifra"><div class="t">Descuento que come el margen</div><div class="v">${pierden}</div><div class="d ${pierden?"mal":"bien"}">${pierden?"categoría(s) no dejan ganancia en la campaña":"Todas dejan ganancia"}</div></div>`;
+  $("#cuenta").textContent=`${filas.length} categorías`;
+  $("#filas").innerHTML=filas.map(f=>{const{c,pl,usa,m}=f;
+    const sug=sugerido(c); const deriva=Math.abs(sug-pl.desc)>0.001&&pl.armada;
+    let cuando="—";
+    if(!pl.armada) cuando=`<span class="chip taupe">Sin plan</span>`;
+    else if(c.camino>0&&usa.comprar===0) cuando=`<span class="chip verde sinpunto">${c.camino} ya pedidas, cubre</span>`;
+    else if(usa.comprar===0) cuando=`<span class="chip verde sinpunto">No hay que pedir</span>`;
+    else if(P.estado==="termino") cuando="—";
+    else { const t={a_tiempo:"verde",justo:"ambar",tarde:"rojo",empezo:"taupe"}[P.estado]; cuando=`<span class="chip ${t}" title="${P.detalle}">${P.estado==="empezo"?`Llega el ${dm(P.llega)}`:P.estado==="tarde"?P.texto:`Antes del ${dm(P.limite)}`}</span>`; }
+    return `<tr data-id="${c.id}" class="${pl.armada?"":"casi"}" tabindex="0">
+     <td class="cat">${c.n}<small>${ent(c.ventas)} vendidas en 90 días · hay ${ent(c.hay)}${c.camino?` · ${c.camino} por llegar`:""}</small></td>
+     <td class="n"><b>${pl.armada?ent(usa.comprar):"—"}</b></td>
+     <td class="marg ${m&&m.pierde&&pl.desc>0?"pierde":""}">${pl.armada&&m?(pl.desc>0&&estado.conDesc?`<s>${soles(m.lista)}</s><b>${soles(m.en)}</b>`:`<b>${soles(m.lista)}</b>`):"—"}</td>
+     <td class="ocultaMovil">${pl.armada?(pl.desc>0?`<span class="chip ambar sinpunto">−${pct(pl.desc)}</span>`:`<span style="color:var(--t60)">Sin descuento</span>`):"—"}${deriva?`<span class="deriva">La campaña ahora dice −${pct(sug)}</span>`:""}</td>
+     <td>${cuando}</td>
+     <td class="n ocultaMovil">${pl.armada?soles(usa.inv):"—"}</td></tr>`}).join("");
+  $("#filas").querySelectorAll("tr").forEach(tr=>{tr.onclick=()=>abrir(tr.dataset.id);tr.onkeydown=e=>{if(e.key==="Enter")abrir(tr.dataset.id)}});
+}
+
+/* ---------- La hoja de una categoría ---------- */
+let abierta=null, borr=null;
+function abrir(id){const c=CATS.find(x=>x.id===id),pl=planDe(c);abierta=c;
+  borr={flo:String(pl.flo),nor:String(pl.nor),bue:String(pl.bue),pre:String(pl.pre),cos:String(pl.cos),rec:String(pl.rec),desc:pl.armada?(pl.desc>0?String(pl.desc):""):(sugerido(c)>0?String(sugerido(c)):""),siguiente:pl.armada?"":"desc"};
+  hoja(); $("#velo").classList.add("on"); setTimeout(()=>{const e=$("#hoja input[name=desc]");e&&e.focus()},60)}
+const num=s=>{const l=String(s).replace(/\s+/g,"").replace(",",".");return l===""?null:/^\d+(\.\d{1,2})?$/.test(l)?Number(l):NaN};
+function hoja(){const c=abierta,b=borr,k=estado.camp;
+  const dN=b.desc.trim()===""?0:num(b.desc); const dOk=dN!==null&&!isNaN(dN)&&dN<100;
+  const L={flo:+b.flo,nor:+b.nor,bue:+b.bue,pre:num(b.pre),cos:num(b.cos),rec:+b.rec};
+  const valido=dOk&&[L.flo,L.nor,L.bue,L.rec].every(Number.isFinite)&&L.flo<=L.nor&&L.nor<=L.bue&&L.pre>0&&L.cos!=null&&!isNaN(L.cos)&&L.cos<L.pre&&L.rec<=100;
+  const d=dOk?dN:0, stock=c.hay+c.camino;
+  let con=null,sin=null,fr=null,ver=null; if(valido){con=calcular(L,stock,d);sin=calcular(L,stock,0);fr=fraseMargen(L.pre,L.cos,d);const[a,z]=lectura(cuantilCritico(L.pre,L.cos,L.rec,d));ver=`Con ${L.rec} %, ${a}. Conviene ${z}.`}
+  const sug=sugerido(c), difiere=dOk&&Math.abs(sug-d)>0.001;
+  const m=valido?margen(L.pre,L.cos,d):null;
+  const f=(n,t,extra="")=>`<label class="c ${b.siguiente===n?"ahora":""}">${t}${b.siguiente===n?` <span class="sigue">· Sigue aquí</span>`:""}${extra}<input name="${n}" value="${b[n]}" inputmode="decimal" autocomplete="off"></label>`;
+  $("#hoja").innerHTML=`<h2>${c.n}</h2><p class="sub">${k.nombre} · ${dm(k.desde)} al ${dm(k.hasta)} · ${ent(c.ventas)} vendidas en 90 días, hay ${ent(c.hay)}${c.camino?` y vienen ${c.camino}`:""}</p>
+   <div class="campos">${f("flo","Flojo")}${f("nor","Normal")}${f("bue","Bueno")}${f("pre","Precio de lista")}${f("cos","Costo")}${f("rec","Lo que sobra"," <em>· % del precio</em>")}</div>
+   <div style="margin-top:16px;max-width:360px">${f("desc","Descuento en la campaña"," <em>· opcional, %</em>")}
+     <div style="font-size:12.5px;color:var(--t60);margin-top:6px">${sug>0?`Viene de la campaña: <b>−${pct(sug)}</b> para esta categoría. Puedes cambiarlo.`:`La campaña no da descuento a esta categoría.`} ${difiere?`<button class="btn chico" id="usaSug">Usar −${pct(sug)}</button>`:""}</div></div>
+   ${!dOk?`<div class="aviso rojo" style="margin-top:12px">Escribe el descuento en %, de 0 a menos de 100 (déjalo vacío si no hay).</div>`:""}
+   ${valido?`<div class="resul">
+     ${fr?`<div class="aviso ${m.pierde?"rojo":"verde"}">${fr}</div>`:""}
+     <div class="aviso" style="--c:var(--pizarra)">${ver}</div>
+     <div class="dosCol"><div class="caja"><div class="t">Comprar con el descuento</div><div class="v">${ent(con.comprar)} prendas</div><div style="color:var(--t60);font-size:13px">${soles(con.inv)} · ${d>0?`${sin.comprar>con.comprar?`${ent(sin.comprar-con.comprar)} menos que sin descuento (${ent(sin.comprar)})`:"igual que sin descuento"}`:"no hay descuento"}</div></div>
+     <div class="caja"><div class="t">Cuándo pedir</div><div class="v" style="font-size:20px">${con.comprar>0?plazo(k.desde,k.hasta,estado.hoy,estado.dias).texto:"No hay que pedir"}</div><div style="color:var(--t60);font-size:13px">${con.comprar>0?plazo(k.desde,k.hasta,estado.hoy,estado.dias).detalle:"Lo que hay y lo que viene cubren la campaña."}</div></div></div>
+     <div style="font-size:12.5px;color:var(--t60)">Unidades: tus tres escenarios no cambian con el descuento (el historial ya trae el efecto de campañas pasadas). Lo que sobra se recupera sobre el precio de lista.</div>
+   </div>`:`<div class="resul"><div class="aviso">Completa los datos para ver cuánto comprar.</div></div>`}
+   <div class="pie"><button class="btn" id="cancela">Cancelar</button><button class="btn pri" id="guarda" ${valido?"":"disabled style='opacity:.4;cursor:not-allowed'"}>Guardar plan</button></div>`;
+  $("#hoja").querySelectorAll("input").forEach(i=>{i.oninput=()=>{const en=i.selectionStart;borr[i.name]=i.value;if(i.name==="desc")borr.siguiente="";const nom=i.name;hoja();const nx=$("#hoja input[name="+nom+"]");nx.focus();try{nx.setSelectionRange(en,en)}catch(e){}}});
+  const u=$("#usaSug");if(u)u.onclick=()=>{borr.desc=String(sug);borr.siguiente="";hoja()};
+  $("#cancela").onclick=cerrar;
+  $("#guarda").onclick=()=>{if(!valido)return;Object.assign(planDe(c),{flo:L.flo,nor:L.nor,bue:L.bue,pre:L.pre,cos:L.cos,rec:L.rec,desc:d,armada:true});cerrar();render()}}
+function cerrar(){$("#velo").classList.remove("on");abierta=null}
+$("#velo").onclick=e=>{if(e.target.id==="velo")cerrar()}; document.onkeydown=e=>{if(e.key==="Escape"&&abierta)cerrar()};
+
+/* ---------- Controles de la maqueta ---------- */
+function pintaCampanas(){ $("#campanas").innerHTML=CAMPANAS.map(k=>`<button class="btn ${k.id===estado.camp.id?"on":""}" data-k="${k.id}">${k.nombre}<br><small style="opacity:.7">${dm(k.desde)} → ${dm(k.hasta)}</small></button>`).join("");
+  $("#campanas").querySelectorAll("button").forEach(b=>b.onclick=()=>{estado.camp=CAMPANAS.find(k=>k.id===b.dataset.k);estado.subeCamp=0;pintaCampanas();render()}) }
+const total=dEntre(INI,FIN); const hoy0=()=>sumar(INI,Math.round($("#hoy").value/100*total));
+$("#hoy").oninput=()=>{estado.hoy=hoy0();render()};
+function ponerHoy(s){estado.hoy=s;$("#hoy").value=Math.round(dEntre(INI,s)/total*100);render()}
+function pintaAtajos(){const k=estado.camp;const A=[["Hoy",INI],["10 días antes del límite",sumar(k.desde,-estado.dias-10)],["En el límite",sumar(k.desde,-estado.dias)],["Ya tarde",sumar(k.desde,-estado.dias+4)],["Empezó",k.desde]];
+  $("#atajos").innerHTML=A.map(([t,s])=>`<button class="btn chico" data-s="${s}">${t}</button>`).join("");$("#atajos").querySelectorAll("button").forEach(b=>b.onclick=()=>{ponerHoy(b.dataset.s<INI?INI:b.dataset.s)})}
+const setDias=n=>{estado.dias=Math.min(365,Math.max(1,n||1));$("#dias").value=estado.dias;pintaAtajos();render()};
+$("#menos").onclick=()=>setDias(estado.dias-1);$("#mas").onclick=()=>setDias(estado.dias+1);$("#dias").onchange=e=>setDias(parseInt(e.target.value,10));
+$("#conDesc").onclick=()=>{estado.conDesc=!estado.conDesc;render()};
+$("#cambia").onclick=()=>{estado.subeCamp=estado.subeCamp?0:5;render()};
+$("#tema").onclick=()=>{const o=document.documentElement.dataset.tema==="oscuro";document.documentElement.dataset.tema=o?"":"oscuro";$("#tema").textContent=o?"Modo oscuro":"Modo claro"};
+const _pc=pintaCampanas; pintaCampanas=function(){_pc();pintaAtajos()};
+pintaCampanas(); render();
+</script>
+</body>
+</html>

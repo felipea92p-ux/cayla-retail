@@ -4,6 +4,7 @@
 
 import type { CampoDeGuia } from "./guia-campos";
 import { problemaDelRecupero } from "./plan-compra-propuesta";
+import { problemaDeLosDias } from "./plan-compra-plazo";
 import { problemasDeLosMinimos } from "./plan-compra-reparto";
 import { problemaDelTope, problemasDeLaCampana, problemasDeLaEdicion, problemasDelBorrador, type BorradorCampana, type BorradorEdicion, type Borrador, type EtiquetaCampana, type TallaPlan } from "./plan-compra-reglas";
 
@@ -21,6 +22,8 @@ export function camposDelPlan(
     campo("precio", "Precio", "Escribe el precio de venta promedio."),
     campo("costo", "Costo", "Escribe el costo promedio por prenda."),
     campo("recupero", "Lo que sobra", "Escribe a qué % del precio vendes lo que sobre."),
+    // El descuento es opcional (vacío = sin descuento): solo bloquea si está mal escrito, como los mínimos del reparto. Viene sugerido por la campaña.
+    { id: "descuento", nombre: "Descuento en la campaña", requerido: !!p.descuento, hecho: !p.descuento && (b.descuento ?? "").trim() !== "", pendiente: p.descuento ?? "Opcional." },
     // La curva viene propuesta por el sistema: solo falta si alguien la cambió y ya no suma 100.
     campo("curva", "Curva de tallas", "Revisa la curva de tallas."),
     { id: "responsable", nombre: "Quién arma el plan", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién arma el plan." },
@@ -33,6 +36,15 @@ export function camposDelTope(texto: string, responsable: { listo: boolean; moti
   return [
     { id: "tope", nombre: "Tope de inversión", requerido: true, hecho: problema === null, pendiente: problema ?? "Escribe cuánto quieres invertir." },
     { id: "responsable", nombre: "Quién fija el tope", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién fija el tope." },
+  ];
+}
+
+/** La guía de la hoja del plazo (ADR-0499): los días para llegar y quién los firma. «Hecho» es lo que `problemaDeLosDias` acepta: la misma regla que la base. */
+export function camposDelPlazo(texto: string, responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
+  const problema = problemaDeLosDias(texto);
+  return [
+    { id: "dias", nombre: "Días para llegar", requerido: true, hecho: problema === null, pendiente: problema ?? "Escribe cuántos días tarda un pedido en llegar." },
+    { id: "responsable", nombre: "Quién fija el plazo", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién fija el plazo." },
   ];
 }
 

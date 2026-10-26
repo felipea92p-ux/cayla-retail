@@ -2,36 +2,30 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 19,
+  "total": 13,
   "controles": {
-    "components/MediosDePago.tsx": [
-      "Desplegable «{m.metodo}»",
-      "input «{`Monto del medio ${i + 1}»",
-      "input «{`Referencia del medio ${i + 1}»",
-      "button «{`Quitar el medio ${i + 1}»",
-      "button «Agregar otro medio»",
-      "Desplegable «{valor}»"
-    ],
-    "components/PagarComprobanteProduccionModal.tsx": [
-      "CampoTexto «Fecha del pago»",
-      "ComboResponsable «{responsable}»",
-      "Boton «{responsable.motivo ?? undefined}»"
-    ],
     "components/finanzas/Confianza.tsx": [
       "Link «{p.accion}»"
+    ],
+    "components/finanzas/RecorridoPlata.tsx": [
+      "a «{`Ver solo ${x.nombre}»",
+      "a «{cuerpo}»"
     ],
     "components/finanzas/ResumenDecidir.tsx": [
       "Link «fin-resumen.aviso-accion»",
       "BotonVerMas «fin-resumen.ver-mas»"
     ],
-    "components/finanzas/ResumenFinanzas.tsx": [
-      "button «{porque ? \"Cerrar\" : `¿Por qué ${soles(resp.monto)}»",
-      "Link «Ver todo»"
+    "components/finanzas/telar/DockTelar.tsx": [
+      "Link «{`${a.texto}»",
+      "button «{`${a.texto}»"
     ],
     "components/finanzas/telar/MesaDeMando.tsx": [
-      "Pestanas «(sin nombre)»",
-      "BotonEnlace «telar.registrar»",
-      "Link «{h.nombre}»"
+      "button «Todas»",
+      "button «{marcada && <Check className=\"h-3 w-3\" />}»",
+      "BotonEnlace «telar.registrar»"
+    ],
+    "components/finanzas/telar/Orillo.tsx": [
+      "Link «{`${t.nombre}»"
     ],
     "components/finanzas/telar/TeToca.tsx": [
       "button «telar.te-toca»",

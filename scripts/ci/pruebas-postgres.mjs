@@ -555,6 +555,9 @@ export const PRUEBAS = [
   // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
   // un traslado, y los topes de notas, llegada y motivo de ajuste.
   "pruebas:inventario-token-y-textos",
+  // ADR-0494 (/chaos 2026-10-23, CON-06): «Conté y hay otro número» viaja con lo que había al contar; si otra venta o movimiento lo
+  // cambió, la base rechaza todo el ajuste y dice qué cambió. Sin `esperado`, como antes. Con control y dos sesiones en ROLLBACK.
+  "pruebas:ajuste-lo-que-habia",
   // ADR-0416 (/chaos de Clientes, Colaboradores y Configuración 2026-10-15): NaN en metas, fondo de caja, club y lo que quedaba fuera
   // de Compras; la ficha de un cliente con algún dato, un cumpleaños que existe y no futuro; anonimizar solo un líder. Con controles.
   "pruebas:clientas-y-metas-candados",
@@ -610,6 +613,11 @@ export const PRUEBAS = [
   // rechaza la cuarentena. En producción desde ~2026-10-05; sin archivo en main hasta el 14-oct. Control sin el
   // disparador. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-ajusta",
+
+  // Una prenda solo se mueve en las sedes donde opera su empresa (ADR-0505): un disparador en movimientos rechaza la entrada,
+  // el traslado, la venta y el ajuste de una prenda de CLAURE fuera de Lima, y uno diferido en productos no deja cambiarle la
+  // empresa con stock fuera. Crear una de CLAURE en Lima sigue. Control sin el candado; la sonda de la migración. Cada caso: ROLLBACK.
+  "pruebas:empresa-solo-en-sus-sedes",
 
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
@@ -793,6 +801,10 @@ export const PRUEBAS = [
   // ADR-0421 (/chaos de Compras 2026-10-15): recibir y anular la misma factura no terminan las dos; el token sigue al contenido en la
   // factura y los pagos; NaN, IGV 0–18 %, emisión no futura, serie y vencimiento. Con controles (y anular que espera a la recepción).
   "pruebas:compras-candados-y-token",
+
+  // Lo que le compré a un proveedor (ADR-0502, act. b): una compra recibida cuenta como origen Compras con el costo de su factura y para el
+  // proveedor de la factura; lo sin factura y la carga inicial van aparte y nunca se suman a escondidas. Vigila el enlace con Compras. ROLLBACK.
+  "pruebas:proveedor-prendas-origen",
 
   // El reparto de un comprobante entre tiendas (ADR-0139) y su filtro «Destino»: 24 unidades repartidas 12/12, una suma distinta
   // de lo facturado se rechaza (por la RPC y por la base misma), una tienda no recibe más de lo suyo ni se «come» la de otra,
@@ -1296,6 +1308,15 @@ export const PRUEBAS = [
   // tienda y si la categoría se agotó (sin Cuarentena); los resultados, lo vendido por prenda y a qué % se vendió lo de después. ROLLBACK.
   "pruebas:plan-compra-historia",
 
+  // El descuento de la campaña en el Plan (ADR-0499): `descuento_pct` por categoría (0 a menos de 100, ni con la tabla directo), la web de antes
+  // no borra el guardado, dos personas con descuentos distintos no se pisan (B4), el sugerido es el mayor % que alcanza a la categoría con su
+  // fuente, días y tiendas, y la lectura responde al rol de la tienda (no solo al dueño). ROLLBACK siempre.
+  "pruebas:plan-compra-descuento",
+
+  // El plazo de pedido del Plan (ADR-0499): `dias_para_llegar` por campaña (1 a 365, nunca sin autor, ni con la tabla directo), quitarlo deja anotado
+  // quién, solo con el módulo (42501 si no) y responde al rol de la tienda. ROLLBACK siempre.
+  "pruebas:plan-compra-plazo",
+
   // «Fijar un mínimo» con el módulo (ADR-0362, decisión 64): lo fija quien tiene «Plan de campaña», sea o no líder; sin el módulo,
   // 42501; la suma de una campaña no pasa de 100 % ni con dos personas a la vez (el plan se bloquea: la segunda espera y se rechaza).
   // ROLLBACK en todo, menos el caso de las dos sesiones, que confirma sobre un plan de prueba y lo borra al terminar.
@@ -1437,6 +1458,8 @@ export const PRUEBAS = [
   // compradora; Recibir lee las fotos de papeles/ y nada más del depósito.
   "pruebas:compras-simple-recibir",
   "pruebas:compras-simple-revisar",
+  // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
+  "pruebas:compras-simple-marca",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
