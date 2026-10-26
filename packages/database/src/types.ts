@@ -5949,6 +5949,8 @@ export type Database = {
       fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
       fn_vitrina_modelos: { Args: never; Returns: Json }
+      // Vitrina web ▸ hoja del modelo (20261026191000): con qué precio sale el modelo en cada tienda de la web; solo lectura, la regla es fn_tienda_precios.
+      fn_vitrina_precios_modelo: { Args: { p_producto_id: string }; Returns: Json }
       vitrina_guardar_modelo: {
         Args: {
           p_producto_id: string

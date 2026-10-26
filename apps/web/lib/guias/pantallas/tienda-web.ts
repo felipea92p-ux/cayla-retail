@@ -432,6 +432,13 @@ export const GUIA_VITRINA: Guia = {
       texto: "Este interruptor decide si el modelo sale en la tienda online, con todos sus colores y tallas, al precio de cada tienda.",
     },
     {
+      id: "modelo-precios",
+      ancla: "vitrina-modelo.precios",
+      opcional: true,
+      titulo: "Con qué precio sale",
+      texto: "El precio de este modelo en cada tienda de la web, como lo ve el cliente: con su campaña si la hay, y «Desde» si no toca todas las tallas. Aquí solo se lee: el precio se cambia en su ficha, en Catálogo ▸ Productos.",
+    },
+    {
       id: "modelo-lo-nuevo",
       ancla: "vitrina-modelo.lo-nuevo",
       opcional: true,

@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, Campo, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -16,6 +18,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeModelo } from "@/lib/vitrina-guia";
+import { lineaSinElegirTienda, preciosDelModeloDeJson, textoDePrecio, type PreciosDelModelo } from "@/lib/vitrina-precios-reglas";
 import {
   coloresSinFoto,
   descripcionParaGuardar,
@@ -36,10 +39,69 @@ const OPCIONES_LO_NUEVO = [
   { clave: "quitado", etiqueta: "Fuera" },
 ];
 
+/** «Precio en la web»: con qué precio sale el modelo en cada tienda de la web, tal cual lo lee la tienda (`fn_vitrina_precios_modelo`, solo lectura:
+ *  el precio se cambia en la ficha). Si no se puede leer (la función todavía no está en esa base, o se cayó), lo dice y la hoja sigue igual: nada
+ *  aquí impide mostrar, guardar o cerrar (principio 9). */
+function PrecioEnLaWeb({ productoId }: { productoId: string }) {
+  const [estado, setEstado] = useState<{ tipo: "leyendo" } | { tipo: "error" } | { tipo: "ok"; precios: PreciosDelModelo }>({ tipo: "leyendo" });
+  useEffect(() => {
+    let vigente = true;
+    createClient()
+      .rpc("fn_vitrina_precios_modelo", { p_producto_id: productoId })
+      .then(({ data, error }) => {
+        if (!vigente) return;
+        const precios = error ? null : preciosDelModeloDeJson(data);
+        setEstado(precios ? { tipo: "ok", precios } : { tipo: "error" });
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [productoId]);
+
+  return (
+    <div className="space-y-2 border-t border-sand pt-4" data-guia="vitrina-modelo.precios">
+      <p className="campo-etiqueta">Precio en la web</p>
+      {estado.tipo === "leyendo" ? (
+        <p className="text-[13px] text-taupe" aria-live="polite">
+          Leyendo los precios…
+        </p>
+      ) : estado.tipo === "error" ? (
+        <Aviso tono="atencion" chico>
+          No se pudo leer el precio. Míralo en su ficha, en Catálogo ▸ Productos.
+        </Aviso>
+      ) : estado.precios.sedes.length === 0 ? (
+        <Vacio icono={<Store />} tamano="chico">
+          Ninguna tienda se ve en la web todavía: no hay un precio que mostrar.
+        </Vacio>
+      ) : (
+        <>
+          <ul className="divide-y divide-sand rounded-xl border border-sand bg-papel text-[13px]">
+            {estado.precios.sedes.map((t) => {
+              const d = textoDePrecio(t);
+              return (
+                <li key={t.id ?? t.nombre} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-3.5 py-2">
+                  <span className="min-w-0 truncate text-tinta">{t.nombre}</span>
+                  <span className={`text-right tabular-nums ${t.seOfrece ? "text-tinta" : "text-taupe"}`}>
+                    <b className={t.seOfrece ? "font-semibold" : "font-normal"}>{d.principal}</b>
+                    {d.tachado && <s className="ml-2 text-taupe">{d.tachado}</s>}
+                    {d.campana && <span className="block text-[12px] text-taupe">{d.campana}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {lineaSinElegirTienda(estado.precios) && <p className="text-[12px] text-taupe">{lineaSinElegirTienda(estado.precios)}</p>}
+          <p className="text-[12px] text-taupe">Es el precio de la talla más cara. Se cambia en su ficha, en Catálogo ▸ Productos.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * La hoja de un modelo en la Vitrina web (maqueta v4, «Publicar un modelo»): mostrarlo u ocultarlo, cómo entra a «Lo nuevo» y lo que
  * ve el cliente (sus fotos por color y la descripción para la web). No hay precio web: en la web vale lo que vale en cada tienda
- * (se cambia en la ficha del producto). Guardar firma el «Responsable» (ADR-0162); si otra persona lo cambió mientras estaba abierta,
+ * (se cambia en la ficha del producto) y la hoja lo DICE, por tienda y solo de lectura (`PrecioEnLaWeb`). Guardar firma el «Responsable» (ADR-0162); si otra persona lo cambió mientras estaba abierta,
  * la base lo dice y no pisa nada.
  */
 export function VitrinaModeloHoja({
@@ -150,6 +212,8 @@ export function VitrinaModeloHoja({
             </Aviso>
           )}
         </div>
+
+        <PrecioEnLaWeb productoId={modelo.id} />
 
         <div className="space-y-2 border-t border-sand pt-4" data-guia="vitrina-modelo.lo-nuevo">
           <p className="campo-etiqueta">Lo nuevo</p>
