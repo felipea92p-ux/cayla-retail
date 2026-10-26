@@ -16,7 +16,6 @@ import {
   leerFilaVentas,
   leerPanelImpuestos,
   leerParametro,
-  mesCorto,
   parsearParametro,
   periodoPle,
   porcentaje,
@@ -39,10 +38,6 @@ describe("meses", () => {
   it("suma y resta meses cruzando el año", () => {
     expect(sumarMeses("2026-11", 2)).toBe("2027-01");
     expect(sumarMeses("2026-01", -1)).toBe("2025-12");
-  });
-  it("«Ago» como la tabla del spike", () => {
-    expect(mesCorto("2026-08")).toBe("Ago");
-    expect(mesCorto("2026-09")).toBe("Sep");
   });
 });
 

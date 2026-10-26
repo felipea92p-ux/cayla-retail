@@ -5,11 +5,8 @@ import {
   faltanHasta,
   maxCantidad,
   mejorOrigen,
-  motivoParaLaBase,
-  motivosDeAjuste,
   pasoCompleto,
   pasosDe,
-  quedaTrasAjuste,
   resumenDeFlujo,
   textoHecho,
   verboFinal,
@@ -40,8 +37,6 @@ describe("pasos de cada acción", () => {
     expect(pasosDe("enviar", {}, CTX)).toEqual(["cantidad", "hacia"]);
     expect(pasosDe("pedir", { para: "reponer" }, CTX)).toEqual(["para", "origen", "cantidad", "quien"]);
     expect(pasosDe("pedir", { para: "cliente" }, CTX)).toEqual(["para", "origen", "cliente", "quien"]);
-    expect(pasosDe("ajustar", {}, CTX)).toEqual(["lugar", "cambio", "motivo", "quien"]);
-    expect(pasosDe("ajustar", {}, { ...CTX, separa: false })).toEqual(["cambio", "motivo", "quien"]);
     expect(pasosDe("danada", {}, CTX)).toEqual(["lugar", "cantidad", "quetiene", "quien"]);
   });
 });
@@ -87,43 +82,13 @@ describe("cuándo un paso está completo", () => {
     expect(pasoCompleto("para", "pedir", { para: "cliente" }, { ...CTX, puedePedirParaCliente: false })).toBe(false);
     expect(pasoCompleto("para", "pedir", { para: "reponer" }, CTX)).toBe(true);
   });
-  it("cambio: quitar no deja negativo el lugar; sumar no tiene tope", () => {
-    expect(pasoCompleto("cambio", "ajustar", { lugar: "piso", signo: "quitar", n: 2 }, CTX)).toBe(true);
-    expect(pasoCompleto("cambio", "ajustar", { lugar: "piso", signo: "quitar", n: 3 }, CTX)).toBe(false);
-    expect(pasoCompleto("cambio", "ajustar", { lugar: "piso", signo: "sumar", n: 30 }, CTX)).toBe(true);
-  });
-  it("motivo: «Se dañó» nunca completa (lleva a reportar), y Encontré u Otro piden nota", () => {
-    const d = { lugar: "almacen" as const, signo: "sumar" as const };
-    expect(pasoCompleto("motivo", "ajustar", { ...d, motivo: "encontre" }, CTX)).toBe(false);
-    expect(pasoCompleto("motivo", "ajustar", { ...d, motivo: "encontre", nota: "en la repisa" }, CTX)).toBe(true);
-    expect(pasoCompleto("motivo", "ajustar", { lugar: "piso", signo: "quitar", motivo: "se_dano" }, CTX)).toBe(false);
-    expect(pasoCompleto("motivo", "ajustar", { lugar: "piso", signo: "quitar", motivo: "no_aparece" }, CTX)).toBe(true);
-  });
   it("quién: el responsable elegido", () => {
     expect(pasoCompleto("quien", "colgar", {}, { ...CTX, responsableListo: false })).toBe(false);
   });
 });
 
-describe("Encontré solo en el almacén donde se separa piso y almacén", () => {
-  it("en el piso de una tienda no se ofrece; en el Taller sí", () => {
-    expect(motivosDeAjuste("sumar", "piso", true).map((m) => m.clave)).not.toContain("encontre");
-    expect(motivosDeAjuste("sumar", "almacen", true).map((m) => m.clave)).toContain("encontre");
-    expect(motivosDeAjuste("sumar", undefined, false).map((m) => m.clave)).toContain("encontre");
-  });
-  it("un motivo que ya no se ofrece (cambió el lugar) deja el paso incompleto", () => {
-    expect(pasoCompleto("motivo", "ajustar", { lugar: "piso", signo: "sumar", motivo: "encontre", nota: "en la repisa" }, CTX)).toBe(false);
-  });
-});
-
-describe("los motivos viajan como los cuatro de la base", () => {
-  it("cada uno a su motivo y su nota", () => {
-    expect(motivoParaLaBase("encontre", " repisa ")).toEqual({ motivo: "reposicion", nota: "repisa" });
-    expect(motivoParaLaBase("no_aparece", "")).toEqual({ motivo: "merma", nota: "" });
-    expect(motivoParaLaBase("conte_mas", "")).toEqual({ motivo: "conteo_fisico", nota: "" });
-    expect(motivoParaLaBase("error_cobro", "")).toEqual({ motivo: "otro", nota: "Error al cobrar" });
-    expect(motivoParaLaBase("uso_interno", "vitrina")).toEqual({ motivo: "otro", nota: "Uso interno: vitrina" });
-  });
-});
+// «Ajustar stock» dejó de ser un paso guiado (ADR-0494): sus motivos, «Encontré» solo en el almacén y cómo viajan a la base se prueban
+// en `existencias-ajuste-modelo.test.ts`.
 
 describe("Falta, el botón final y el resumen", () => {
   it("Falta lista solo lo incompleto hasta el paso de ahora", () => {
@@ -138,13 +103,11 @@ describe("Falta, el botón final y el resumen", () => {
     expect(verboFinal("enviar", { n: 1 }, "Tienda Lima")).toBe("Armar el traslado a Tienda Lima");
     expect(verboFinal("pedir", { para: "cliente" })).toBe("Pedir y apartar");
   });
-  it("el resumen y lo que queda tras ajustar", () => {
+  it("el resumen y el aviso de lo hecho", () => {
     expect(resumenDeFlujo("colgar", { n: 2 }, CTX)).toEqual([
       ["Al piso", "2 unidades"],
       ["Queda en almacén", "3"],
     ]);
-    expect(quedaTrasAjuste({ lugar: "piso", signo: "quitar", n: 1 }, CTX)).toBe(1);
-    expect(quedaTrasAjuste({ lugar: "almacen", signo: "sumar", n: 2 }, CTX)).toBe(7);
     expect(textoHecho("colgar", { n: 1 })).toBe("Colgado · 1 unidad al piso");
   });
 });

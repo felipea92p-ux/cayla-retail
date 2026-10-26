@@ -367,7 +367,7 @@ select vigente_desde from retail.pos_tarifas where id = :'t1';
 select coalesce((select esperado from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima()), 0) as e0 \\gset
 ${venta("v1", "tru", [["tarjeta", 60], ["qr", 40]])}
 select n_pagos > 0, esperado - :e0, dias_habiles, atrasado from retail.fn_pos_pendientes(:'vendemas_cta') where fecha = retail.fn_hoy_lima();
-select retail.fn_pos_comision_estimada(:'vendemas', 'tarjeta', 60, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'tarjeta', 40, 1, retail.fn_hoy_lima()) is null;
+select retail.fn_pos_comision_estimada(:'vendemas', 'tarjeta', 60, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'tarjeta', 40, 1, retail.fn_hoy_lima()), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-10-09'), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-09-30'), retail.fn_pos_comision_estimada(:'izipay', 'qr', 40, 1, date '2026-09-10');
 select retail.guardar_pos_tarifa(:'vendemas', 'tarjeta', 3, true, 0.20, 2) as t2 \\gset
 select vigente_desde = retail.fn_hoy_lima(), (select count(*) from retail.pos_tarifas where maquina_id = :'vendemas') from retail.pos_tarifas where id = :'t2';
 select count(*) from retail.configuracion_historial where que = 'pos_tarifa' and detalle ->> 'maquina_id' = :'vendemas';
@@ -380,12 +380,12 @@ select pg_temp.intento(format('select retail.guardar_pos_tarifa(%L, ''tarjeta'',
 select pg_temp.intento('select count(*) from retail.fn_pos_alertas()');`);
   const [habiles, izipayQr, vendemasSin, t101, c51, d16, yape, qrNoOpera, nan, repetida, desde, pendiente, estimadas, cambio, historial, editar, retroceder, alertas, maquinas, micaela, micaelaVe] = lineas(r);
   esperar("días hábiles: el sábado cuenta y el domingo no; el día de partida no", r.ok && habiles === "2|0|1|0", r);
-  esperar("el QR de Izipay nace sin comisión y deposita al día siguiente; Vendemás nace sin tarifa", r.ok && izipayQr === "0.00|f|0.00|1" && vendemasSin === "t", r);
+  esperar("el QR de Izipay hoy cobra 2.38 % + IGV y deposita el mismo día (20261017174000: cobró 0 % hasta el 2026-10-09); Vendemás nace sin tarifa", r.ok && izipayQr === "2.38|t|0.00|0" && vendemasSin === "t", r);
   esperar("la base rechaza una tasa de 101, un cargo de 51, 16 días, un medio que no es de máquina, un medio con el que no cobra y NaN",
     r.ok && t101.includes("0 a 100") && c51.includes("0 a S/ 50") && d16.includes("0 a 15") && yape.includes("tarjeta o del QR") && qrNoOpera.includes("no cobra con QR") && nan.includes("0 a 100"), r);
   esperar("la misma tarifa dos veces no abre una fila nueva; la primera vale para todo lo anterior", r.ok && repetida === "t|1" && desde === "1900-01-01", r);
   esperar("con la tarifa, el día pendiente trae la comisión esperada (3,5 % + IGV sobre S/ 60 + S/ 0.20 = S/ 2.68) y no está atrasado", r.ok && pendiente === "t|2.68|0|f", r);
-  esperar("la estimación: S/ 2.68 para la tarjeta de Vendemás, S/ 0 para el QR de Izipay, nula para la tarjeta de Izipay (sin tarifa)", r.ok && estimadas === "2.68|0.00|t", r);
+  esperar("la estimación: S/ 2.68 para la tarjeta de Vendemás; S/ 1.12 (2.38 % + IGV sobre S/ 40) para el QR y la tarjeta de Izipay; el QR de Izipay sigue la historia: 0 el 2026-10-09 (primeros días gratis de octubre), 1.12 el 2026-09-30 y 0 el 2026-09-10 (primeros días gratis de septiembre)", r.ok && estimadas === "2.68|1.12|1.12|0.00|1.12|0.00", r);
   esperar("cambiarla abre una fila desde hoy y deja su rastro en la historia de Configuración", r.ok && cambio === "t|2" && historial === "2", r);
   esperar("una tarifa no se edita", r.ok && editar.includes("no se edita ni se borra"), r);
   esperar("una venta de hace 9 días sin depósito aparece ATRASADA en las dos máquinas (su tarjeta en Vendemás, su QR en Izipay)",

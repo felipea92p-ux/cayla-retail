@@ -3707,6 +3707,7 @@ export type Database = {
           nombre: string
           plazo_credito_dias: number | null
           rubros: string[]
+          tipo: string
           ruc: string | null
           telefono: string | null
           titular_cuenta: string | null
@@ -3725,6 +3726,7 @@ export type Database = {
           nombre: string
           plazo_credito_dias?: number | null
           rubros?: string[]
+          tipo?: string
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -3743,6 +3745,7 @@ export type Database = {
           nombre?: string
           plazo_credito_dias?: number | null
           rubros?: string[]
+          tipo?: string
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -6879,6 +6882,10 @@ export type Database = {
         Args: { p_categoria_id: string }
         Returns: undefined
       }
+      cambiar_tipo_proveedor: {
+        Args: { p_proveedor_id: string; p_tipo: string }
+        Returns: undefined
+      }
       desactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
@@ -7924,6 +7931,36 @@ export type Database = {
           unidad: string
         }[]
       }
+      fn_proveedor_prendas: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          categoria: string | null
+          codigo: string | null
+          con_factura: boolean
+          costo_promedio: number | null
+          costo_vendido: number
+          gasto: number
+          gasto_carga: number
+          gasto_compras: number
+          ingreso_vendido: number
+          marca: string | null
+          primera_entrada: string | null
+          producto_id: string
+          referencia: string
+          stock_actual: number
+          ultima_venta: string | null
+          unidades_carga: number
+          unidades_compradas: number
+          unidades_compras: number
+          unidades_estimadas: number
+          unidades_sin_factura: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_proveedor_servicio_resumen: {
+        Args: { p_proveedor_id: string }
+        Returns: Json
+      }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
         Returns: {
@@ -7986,6 +8023,60 @@ export type Database = {
           titular_cuenta: string
           total_facturado: number
           ultima_compra: string
+        }[]
+      }
+      fn_proveedores_prendas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          categoria: string | null
+          codigo: string | null
+          con_factura: boolean
+          costo_promedio: number | null
+          costo_vendido: number
+          es_taller: boolean
+          gasto: number
+          gasto_carga: number
+          gasto_compras: number
+          ingreso_vendido: number
+          marca: string | null
+          primera_entrada: string | null
+          producto_id: string
+          proveedor: string
+          proveedor_id: string
+          referencia: string
+          stock_actual: number
+          ultima_venta: string | null
+          unidades_carga: number
+          unidades_compradas: number
+          unidades_compras: number
+          unidades_estimadas: number
+          unidades_sin_factura: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_proveedores_rendimiento: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          costo_vendido: number
+          es_taller: boolean
+          gasto: number
+          gasto_carga: number
+          gasto_compras: number
+          ingreso_vendido: number
+          nombre: string
+          plata_en_stock: number
+          plata_sin_venta: number
+          primera_entrada: string | null
+          prendas: number
+          prendas_sin_venta: number
+          proveedor_id: string
+          unidades_carga: number
+          unidades_compradas: number
+          unidades_compras: number
+          unidades_en_estantes: number
+          unidades_estimadas: number
+          unidades_sin_factura: number
+          unidades_vendidas: number
         }[]
       }
       fn_proveedores_resumen: {

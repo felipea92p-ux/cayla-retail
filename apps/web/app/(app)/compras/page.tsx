@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { exigirModulo } from "@/lib/persona-actual";
+import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
@@ -20,7 +22,7 @@ import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
 
 // Historial de compras (ADR-0035, rediseño ADR-0111; solo lectura desde el 2026-10-23, ADR-0480 act.): la lista de lo que
 // se compró, con su papel —factura, boleta, nota de venta o sin comprobante—. Aquí ya no se registra nada: la compra nace en
@@ -55,7 +57,11 @@ const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
   // 20260923130000: la lista es del módulo `facturas_compra` (en pantalla, «Historial de compras»). ADR-0387 (Felipe 2026-10-12): con el módulo se ven
   // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
-  await exigirModulo("facturas_compra");
+  // ADR-0504: esta ruta es la de la fila «Historial de compras» del menú, que se abre con cualquiera de los tres módulos (Historial, Revisar
+  // compras o Por pagar). Quien no ve el Historial cae en la primera pestaña que sí ve, no en «Sin acceso».
+  const persona = await exigirModulo("facturas_compra", "fondos", "por_pagar");
+  if (!veModulo(persona, "facturas_compra")) redirect(entradaDeCompras(persona.modulos.map((m) => m.clave)) ?? "/");
+  const vePorPagar = veModulo(persona, "por_pagar");
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -105,12 +111,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Desde ADR-0387 quien tiene el módulo ve las
-          facturas de todas las tiendas: eso dice la línea de arriba. */}
-      <EncabezadoPagina
-        sede="Todas las tiendas"
-        titulo="Historial de compras"
-        subtitulo="Todo lo que se compró, con su factura, boleta, nota de venta o sin comprobante: lo que falta pagar y lo que falta llegar."
+      {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504). Desde ADR-0387 quien tiene el módulo ve las facturas de
+          todas las tiendas: eso dice la línea de arriba. Esta pantalla ya leyó lo que se debe (`resumen`): no se vuelve a pedir. */}
+      <CabeceraHistorialCompras
+        activa="historial"
+        conteos={{ porPagar: { conSaldo: resumen.conSaldo, vencidas: resumen.vencidas } }}
         acciones={
           // El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
           // quien tiene el módulo descarga las compras de todas las tiendas, como el líder. Registrar ya no vive aquí (ADR-0480 act.).
@@ -131,7 +136,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
           etiqueta="Por pagar"
           valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
-          href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar"}
+          href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
           reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
         >
           {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
