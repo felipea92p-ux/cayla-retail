@@ -8,5 +8,5 @@
       (`apply_migration`), que la registró con la hora de aplicación: `20261026224000` → `20261026232834`. Comprobado: el disparador
       `variantes_terminal_no_cambia_precio` y el md5 de su función (`393f0c2b…`) son idénticos a los del local. Hasta que se publique la web
       nueva, una terminal que edite la matriz de precio recibe el rechazo con el mensaje genérico de la web de hoy.
-- [ ] Refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) para que el diccionario tenga la función y el disparador.
+- [x] Volcado refrescado el 2026-10-26 (foto de las 23:32 UTC, 287 relaciones y 1657 funciones): entra `fn_terminal_no_cambia_precio_de_la_prenda`.
 - [ ] Ver en el navegador Recibir envío ▸ Cerrar con una terminal y un envío abierto (en local no había ninguno).
