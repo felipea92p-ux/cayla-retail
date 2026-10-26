@@ -1,7 +1,9 @@
 # ADR-0531 — Una terminal cambia el precio solo en su tienda
 
-- **Fecha:** 2026-10-26 · **Estado:** construido y probado en local; la migración `20261026224000` **no está en producción** (espera el OK de
-  Felipe para pegarla).
+- **Fecha:** 2026-10-26 · **Estado:** construido, probado y **con su migración en producción** (2026-10-26, con el OK de Felipe: «pega tú la
+  migración»; aplicada por el MCP de Supabase con `apply_migration`, que la registra con la hora de aplicación: `20261026224000` →
+  `20261026232834`). Se pegó antes de fusionar el PR #1374: mientras la web nueva no se publique, una terminal que edite la matriz de precio
+  recibe el rechazo con el mensaje genérico de la web de hoy.
 - **Relacionados:** ADR-0162 (terminales fijas a una tienda), ADR-0161 (módulos y roles), el precio de tienda por prenda
   (`20261011100000_precio_de_tienda_por_prenda.sql`, Felipe 2026-10-09/10) y el precio de venta desde la recepción (Felipe 2026-10-24).
 
