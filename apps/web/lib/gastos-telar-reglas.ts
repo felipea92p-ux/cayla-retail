@@ -3,23 +3,26 @@
 import { nombreCortoSede } from "./finanzas-telar-reglas";
 import { sinTildes } from "./marcas";
 import { textoMes, type PanelGastos, type UbicacionGastos, type Ver } from "./gastos-reglas";
+import { nombresDeVarias } from "./gastos-varias-sedes";
 import type { TonoChip } from "@/components/ui/Chip";
 
-/** Quién gastó, dentro de una frase: «CAYLA», «la empresa», «el Taller», «Lima». */
+/** Quién gastó, dentro de una frase: «CAYLA», «la empresa», «el Taller», «Lima», «Trujillo y Lima». */
 function quien(ver: Ver, ubicaciones: readonly UbicacionGastos[]): string {
+  if (ver.varias) return nombresDeVarias(ver, ubicaciones, nombreCortoSede, true);
   if (ver.soloEmpresa) return "la empresa";
   if (!ver.ubicacionId) return "CAYLA";
   const nombre = nombreCortoSede(ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda");
   return /^taller$/i.test(nombre) ? "el Taller" : nombre;
 }
 
-/** «¿Cuánto gastó Lima en octubre?» */
+/** «¿Cuánto gastó Lima en octubre?»; con varias sedes, «¿Cuánto gastaron Trujillo y Lima en octubre?». */
 export function preguntaDeGastos(ver: Ver, ubicaciones: readonly UbicacionGastos[], mes: string): string {
-  return `¿Cuánto gastó ${quien(ver, ubicaciones)} en ${textoMes(mes).split(" ")[0]}?`;
+  return `¿Cuánto ${ver.varias ? "gastaron" : "gastó"} ${quien(ver, ubicaciones)} en ${textoMes(mes).split(" ")[0]}?`;
 }
 
 /** La línea de arriba de la cabecera: la sede que se mira, como la dice el hilo elegido. */
 export function sedeDeLaCabecera(ver: Ver, ubicaciones: readonly UbicacionGastos[]): string {
+  if (ver.varias) return nombresDeVarias(ver, ubicaciones, nombreCortoSede, false);
   if (ver.soloEmpresa) return "Empresa";
   if (!ver.ubicacionId) return "Todas las sedes";
   return nombreCortoSede(ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "Tu sede");
