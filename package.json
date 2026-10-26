@@ -56,6 +56,7 @@
     "pruebas:configuracion-caja": "node scripts/pruebas/configuracion_caja_campanas.mjs",
     "pruebas:metas-mes-y-fecha": "node scripts/pruebas/metas_mes_y_fecha.mjs",
     "pruebas:gastos": "node scripts/pruebas/gastos.mjs",
+    "pruebas:asistente-preguntas": "node scripts/pruebas/asistente_preguntas.mjs",
     "pruebas:activos-y-fijos": "node scripts/pruebas/activos_y_gastos_fijos.mjs",
     "pruebas:gasto-fijo-ficha": "node scripts/pruebas/gasto_fijo_ficha.mjs",
     "pruebas:activos-carga-inicial": "node scripts/pruebas/activos_carga_inicial.mjs",

@@ -7,7 +7,7 @@ import { abrirGuiaAqui } from "@/components/guias/MotorGuias";
 import { guardarRestantes, marcaDeVez, olvidarRecorrido } from "@/components/guias/recorrido";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
-import { Boton } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Cajon } from "@/components/ui/Cajon";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -100,7 +100,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     if (texto.length < 2 || preguntando) return;
     const esta = ++ultima.current;
     setPreguntando(true);
-    let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" } };
+    let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" }, preguntaId: null };
     try {
       // `x-espera: no`: pensar no bloquea la pantalla con el loader general (ADR-0149); el botón dice «Pensando…».
       const r = await fetch("/api/asistente", {
@@ -109,8 +109,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
         body: JSON.stringify({ pregunta: texto, ruta: pathname }),
       });
       if (r.ok) {
-        const json = (await r.json()) as { resultado?: ResultadoAsistente };
-        if (json.resultado) resultado = { pregunta: texto, resultado: json.resultado };
+        const json = (await r.json()) as { resultado?: ResultadoAsistente; preguntaId?: string | null };
+        if (json.resultado) resultado = { pregunta: texto, resultado: json.resultado, preguntaId: json.preguntaId ?? null };
       }
     } catch {
       // Sin red: queda la búsqueda sin IA, que ya está a la vista.
@@ -136,7 +136,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
       }
       sobre="Pregúntale a CAYLA"
       titulo="¿Qué quieres hacer?"
-      frase="Escríbelo con tus palabras y te muestro, en la pantalla de verdad, dónde se hace. No se guarda nada."
+      frase="Escríbelo con tus palabras y te muestro, en la pantalla de verdad, dónde se hace. Tu pregunta se guarda para mejorar CAYLA."
     >
       {(cerrar) => (
         <div className="space-y-5">
@@ -191,6 +191,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
                   <ListaDemos sugerencias={otras} onElegir={(s) => llevar(s, cerrar)} />
                 </div>
               ) : null}
+              {/* La clave es la pregunta: una pregunta nueva vuelve a preguntar «¿Te sirvió?» desde cero. */}
+              {vigente.preguntaId ? <TeSirvio key={vigente.preguntaId} preguntaId={vigente.preguntaId} /> : null}
             </section>
           ) : !escribio ? (
             aqui ? (
@@ -218,7 +220,79 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
 }
 
 /** La respuesta de la IA a una pregunta: vale mientras la persona no cambie lo que escribió. */
-type Respondida = { pregunta: string; resultado: ResultadoAsistente };
+type Respondida = { pregunta: string; resultado: ResultadoAsistente; /** La fila anotada en la base; sin ella, no hay «¿Te sirvió?». */ preguntaId: string | null };
+
+/** Manda «¿Te sirvió?» sin levantar el loader general (ADR-0149). Una opinión que no llega no se le reclama a nadie. */
+async function opinar(preguntaId: string, sirvio: boolean, comentario?: string) {
+  try {
+    await fetch("/api/asistente/sirvio", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-espera": "no" },
+      body: JSON.stringify({ preguntaId, sirvio, comentario }),
+    });
+  } catch {
+    // Sin red: la opinión se pierde, la persona sigue.
+  }
+}
+
+/**
+ * «¿Te sirvió? Sí / No» (ADR-0529, decisión 6). Con un «No» se anota al tiro (si cierra el cajón ahí, ya contó) y aparece una caja
+ * opcional, «¿Qué buscabas?», que se manda aparte: es lo que más ayuda a saber qué construir.
+ */
+function TeSirvio({ preguntaId }: { preguntaId: string }) {
+  const [estado, setEstado] = useState<"preguntando" | "si" | "no" | "gracias">("preguntando");
+  const [buscaba, setBuscaba] = useState("");
+
+  if (estado === "si" || estado === "gracias") {
+    return <p className="text-xs text-tinta/65">{estado === "si" ? "¡Qué bueno! Gracias por contarnos." : "Gracias: con esto mejoramos CAYLA."}</p>;
+  }
+  if (estado === "no") {
+    return (
+      <form
+        className="space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (buscaba.trim()) void opinar(preguntaId, false, buscaba.trim());
+          setEstado("gracias");
+        }}
+      >
+        <CampoTexto etiqueta="¿Qué buscabas? · opcional" value={buscaba} onChange={(e) => setBuscaba(e.target.value)} maxLength={300} autoFocus />
+        <div className="flex justify-end">
+          <Boton peso="fantasma" type="submit">
+            {buscaba.trim() ? "Enviar" : "Listo"}
+          </Boton>
+        </div>
+      </form>
+    );
+  }
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm text-tinta/75">¿Te sirvió?</span>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className="btn-cayla btn-secundario btn-chico"
+          onClick={() => {
+            void opinar(preguntaId, true);
+            setEstado("si");
+          }}
+        >
+          Sí
+        </button>
+        <button
+          type="button"
+          className="btn-cayla btn-secundario btn-chico"
+          onClick={() => {
+            void opinar(preguntaId, false);
+            setEstado("no");
+          }}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ListaDemos({ sugerencias, onElegir }: { sugerencias: readonly Sugerencia[]; onElegir: (s: Sugerencia) => void }) {
   return (

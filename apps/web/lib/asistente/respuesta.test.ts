@@ -3,7 +3,7 @@ import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
 import type { Sugerencia } from "./preseleccion";
 import { moduloDeLaGuia, textoSinAcceso } from "./sin-acceso";
-import { costoEnDolares, INSTRUCCIONES, mensajeDePregunta, revisarRespuesta, type RespuestaDeLaIA } from "./respuesta";
+import { costoEnDolares, INSTRUCCIONES, mensajeDePregunta, revisarRespuesta, seLlegoAlTope, type RespuestaDeLaIA } from "./respuesta";
 
 const guia: Guia = {
   id: "vender.comprobantes",
@@ -22,7 +22,7 @@ const sugerencias: Sugerencia[] = [
 ];
 const AQUI = "/compras/9f3a";
 const tramo = (guia_id: string, paso_id = "") => ({ guia_id, paso_id });
-const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tramos: [tramo(guia.id, "lista")], ...r });
+const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", tramos: [tramo(guia.id, "lista")], ...r });
 const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {
@@ -126,5 +126,19 @@ describe("costoEnDolares", () => {
 
   it("un modelo sin precio conocido cuenta como el más caro: el tope se pasa antes, nunca después", () => {
     expect(costoEnDolares("otro", { input_tokens: 1_000_000, output_tokens: 0 })).toBeCloseTo(2);
+  });
+});
+
+describe("el tope del mes", () => {
+  it("con US$30 gastados (o más) ya no se llama a la IA; con menos, sí", () => {
+    expect(seLlegoAlTope(30)).toBe(true);
+    expect(seLlegoAlTope(31.2)).toBe(true);
+    expect(seLlegoAlTope(29.999)).toBe(false);
+    expect(seLlegoAlTope(0)).toBe(false);
+  });
+
+  it("si la base no dijo cuánto se gastó, la IA no se corta (queda el tope de Anthropic de respaldo)", () => {
+    expect(seLlegoAlTope(null)).toBe(false);
+    expect(seLlegoAlTope(Number.NaN)).toBe(false);
   });
 });

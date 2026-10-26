@@ -54,6 +54,10 @@ export const PRUEBAS = [
 
   "pruebas:gastos",
 
+  // «Pregúntale a CAYLA» (ADR-0529): cada pregunta se anota con su cuenta; el costo de una fila tiene techo (nadie infla el tope del
+  // mes); «¿Te sirvió?» solo lo contesta quien preguntó, una vez; la tabla no se toca directo desde la API. ROLLBACK.
+  "pruebas:asistente-preguntas",
+
   "pruebas:activos-y-fijos",
 
   // La ficha de pago de un gasto fijo (ADR-0452): a quién y cómo se paga, el código del recibo y el contrato; datos bancarios solo
