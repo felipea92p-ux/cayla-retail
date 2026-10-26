@@ -17,7 +17,7 @@ import { RecorridoPlata } from "@/components/finanzas/RecorridoPlata";
 import { DockTelar } from "@/components/finanzas/telar/DockTelar";
 import { Orillo } from "@/components/finanzas/telar/Orillo";
 import { RespuestaTelar } from "@/components/finanzas/telar/RespuestaTelar";
-import { cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
+import { alinearAvisoDeCaja, cajaProxima, type FlujoProximo } from "@/lib/caja-proxima-reglas";
 import { equilibrioMes } from "@/lib/equilibrio-mes-reglas";
 import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
 import type { Lectura } from "@/lib/resumen-finanzas";
@@ -105,9 +105,11 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const filas = estadoMes.falla ? [] : estadoMes.datos;
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const cien = deCadaCien(recorrido);
-  const avisos = avisosParaDecidir(resumen, acceso);
   const faltan = noRevisado(resumen);
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver });
+  // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo de las dos semanas).
+  const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
+  const avisos = alinearAvisoDeCaja(avisosParaDecidir(resumen, acceso), caja, verReportes ? "/finanzas/reportes/escenarios" : null);
   const sede = r.ver.todas ? "Todas las sedes" : r.ver.soloEmpresa ? "Empresa" : r.ver.nombre.replace(/^Tienda\s+/i, "");
   const hrefDeSede = acceso.lider
     ? Object.fromEntries(sedes.map((s) => [s.clave, hrefTelar("/finanzas/resumen", sp.entries(), { sede: s.clave }, { mismaPantalla: true, mesDeHoy })]))

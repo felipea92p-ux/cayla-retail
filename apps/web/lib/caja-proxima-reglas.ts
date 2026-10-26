@@ -1,6 +1,6 @@
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { queFaltaEnLaProyeccion, soles, type FaltaProy, type Proyeccion, type SalidaProy } from "./flujo-caja-reglas";
-import type { VerResumen } from "./resumen-finanzas-reglas";
+import { ordenarAvisos, ORDEN_AVISO_CAJA, type Aviso, type VerResumen } from "./resumen-finanzas-reglas";
 
 // Finanzas ▸ Resumen, «Tu caja en las próximas dos semanas» (Felipe 2026-10-24, spike 1 de docs/maquetas/finanzas-v3-2026-10/resumen-siguiente).
 // Lógica pura: a partir de la proyección de caja que ya calcula la base (`fn_flujo_caja_proyeccion`: bloques de 7 días desde mañana, con
@@ -42,6 +42,11 @@ export type CajaCayla = {
   bajaDelMinimo: { fecha: string; saldo: number } | null;
   /** El primer día del horizonte en que el saldo queda en negativo: la plata no alcanza. */
   sinPlata: { fecha: string; saldo: number } | null;
+  /**
+   * El punto más bajo del horizonte (el primero si hay empate), solo si baja del mínimo. ES EL NÚMERO QUE DICEN TODOS: la frase de la tarjeta y el
+   * aviso «bajo tu mínimo de caja» de «Hoy te toca» (`alinearAvisoDeCaja`) hablan de este día y de este monto, no de dos cuentas distintas.
+   */
+  masBajo: { fecha: string; saldo: number } | null;
   /** Si no baja en el horizonte pero sí en las semanas que siguen, el primer bloque que baja. */
   luego: { fecha: string; saldo: number } | null;
   titular: string;
@@ -240,18 +245,23 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
 
   const sinPlataPunto = puntos.find((x) => x.saldo < 0);
   const sinPlata = sinPlataPunto ? { fecha: sinPlataPunto.fecha, saldo: sinPlataPunto.saldo } : null;
+  const bajo = bajaDelMinimo ? puntos.reduce((a, x) => (x.saldo < a.saldo ? x : a), puntos[0]!) : null;
+  const masBajo = bajo ? { fecha: bajo.fecha, saldo: bajo.saldo } : null;
 
   let titular: string;
   let tono: TonoCaja;
-  if (sinPlata) {
-    titular = `Tu caja se queda sin plata el ${fechaEnPalabras(sinPlata.fecha)}: llegas a ${soles(sinPlata.saldo)}.`;
+  if (masBajo && sinPlata) {
+    titular = `Tu caja se queda sin plata: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)}.`;
     tono = "rojo";
-  } else if (bajaDelMinimo && bajaDelMinimo.fecha === p.hoy) {
-    titular = `Hoy tu caja ya está bajo tu mínimo: tienes ${soles(bajaDelMinimo.saldo)} y tu mínimo es ${soles(minimo)}.`;
-    tono = "rojo";
-  } else if (bajaDelMinimo) {
-    titular = `Tu caja baja de tu mínimo el ${fechaEnPalabras(bajaDelMinimo.fecha)}: llegas a ${soles(bajaDelMinimo.saldo)} y tu mínimo es ${soles(minimo)}.`;
-    tono = "rojo";
+  } else if (masBajo && bajaDelMinimo && bajaDelMinimo.fecha === p.hoy) {
+    titular =
+      masBajo.fecha === p.hoy
+        ? `Hoy tu caja ya está bajo tu mínimo: tienes ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`
+        : `Hoy tu caja ya está bajo tu mínimo (tienes ${soles(p.saldoHoy)}): el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
+    tono = "ambar";
+  } else if (masBajo) {
+    titular = `Tu caja baja de tu mínimo: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
+    tono = "ambar";
   } else if (luego) {
     titular = `Las próximas dos semanas estás bien: te quedan ${soles(queda)}. Después baja de tu mínimo la semana que termina el ${fechaEnPalabras(luego.fecha)}.`;
     tono = "ambar";
@@ -281,6 +291,7 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
     mayores: salidasGrandes(p.salidas, p.desde, hasta),
     bajaDelMinimo,
     sinPlata,
+    masBajo,
     luego,
     titular,
     tono,
@@ -288,4 +299,30 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
     faltan: falta.faltan,
     sinPlanilla,
   };
+}
+
+/**
+ * El aviso «bajo tu mínimo de caja» de «Hoy te toca» dice lo MISMO que la tarjeta: el mismo día y el mismo monto. Antes el aviso miraba el cierre de
+ * cada bloque de 7 días («la semana del 27 oct – 2 nov llegarías a −S/ 36,467») y la tarjeta el día («el 27 de octubre llegas a −S/ 41,522»): dos
+ * números para un solo hecho. Y una caída DENTRO de la semana (la planilla del 28, un cobro el 29) que el bloque no ve —cierra sobre el mínimo— la
+ * veía la tarjeta y el aviso ni nacía. Aquí, si la tarjeta ve que baja del mínimo, el aviso existe y habla con su número.
+ * Si la tarjeta no puede decirlo (sin permiso, mirando una sede, no baja dentro de las dos semanas), el aviso queda como lo armó
+ * `avisosParaDecidir`: cuando baja después, los dos ya coinciden porque ambos leen el mismo bloque.
+ *
+ * `hrefEscenarios`: a dónde lleva «Probar escenario»; `null` si la cuenta no ve Reportes (el aviso se lee igual, sin botón).
+ */
+export function alinearAvisoDeCaja(avisos: readonly Aviso[], caja: CajaProxima, hrefEscenarios: string | null): Aviso[] {
+  if (caja.tipo !== "cayla" || !caja.masBajo || !caja.bajaDelMinimo) return [...avisos];
+  const falta = r2(caja.minimo - caja.masBajo.saldo);
+  const yaHoy = caja.bajaDelMinimo.fecha === caja.hoy;
+  const del: Pick<Aviso, "titulo" | "detalle" | "impacto" | "tono" | "peso"> = {
+    titulo: yaHoy ? "Hoy ya estás bajo tu mínimo de caja" : `El ${fechaEnPalabras(caja.bajaDelMinimo.fecha)} quedas bajo tu mínimo de caja`,
+    detalle: caja.titular,
+    impacto: `faltan ${soles(falta)}`,
+    tono: caja.sinPlata ? "rojo" : "ambar",
+    peso: falta,
+  };
+  if (avisos.some((a) => a.clave === "minimo")) return avisos.map((a) => (a.clave === "minimo" ? { ...a, ...del } : a));
+  const nuevo: Aviso = { clave: "minimo", orden: ORDEN_AVISO_CAJA, ...del, href: hrefEscenarios, boton: "Probar escenario", origen: "Reportes ▸ Flujo de caja" };
+  return ordenarAvisos([...avisos, nuevo]);
 }

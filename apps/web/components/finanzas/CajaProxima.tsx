@@ -72,8 +72,8 @@ function CajaDeCayla({ caja: c, hrefFlujo }: { caja: CajaCayla; hrefFlujo: strin
   const minY = menor < 0 ? -topeRedondo(-menor) : 0;
   const hayMinimo = c.minimo > 0;
   const bajo = hayMinimo && c.queda < c.minimo;
-  const estado =
-    c.tono === "rojo" ? (c.sinPlata ? "Sin plata" : "Bajo tu mínimo") : c.tono === "ambar" ? "Ojo después" : c.tono === "verde" ? "Te alcanza" : null;
+  // El chip sale de lo que pasa, no del color: el ámbar es «bajo tu mínimo» (dentro de las dos semanas) y también «ojo después».
+  const estado = c.sinPlata ? "Sin plata" : c.bajaDelMinimo ? "Bajo tu mínimo" : c.luego ? "Ojo después" : c.tono === "verde" ? "Te alcanza" : null;
   // Las marcas del eje: hoy, la mitad y el último día, con su mes («31 oct», «7 nov»): el horizonte casi siempre cruza de mes.
   const marcas = [0, 7, ultimo.dia]
     .filter((x, k, a) => x <= ultimo.dia && a.indexOf(x) === k)

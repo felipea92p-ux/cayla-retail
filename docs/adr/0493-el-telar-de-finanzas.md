@@ -91,6 +91,11 @@ Con el Resumen ya en El telar (#1311), Felipe pidió ver qué faltaba y qué sob
    lo que cambió lo que te deja el mes.
 5. **«De cada S/ 100 que vendes»** (`lib/de-cada-cien-reglas.ts`): la frase va en la respuesta y los cien cuadros a un toque bajo el recorrido.
 
+**Un solo número para la caja (Felipe, 2026-10-26: «deja los dos, pero que digan el mismo número»).** El aviso «bajo tu mínimo de caja» de «Hoy te toca» y la tarjeta
+cuentan el mismo hecho con el mismo día y el mismo monto: el punto más bajo de las dos semanas (`masBajo`, `alinearAvisoDeCaja`). Antes el aviso miraba el cierre de cada
+bloque semanal (−S/ 36,467) y la tarjeta el día (−S/ 41,522); y una caída dentro de la semana, que el bloque no ve, tenía tarjeta pero no aviso. Ahora el aviso también nace.
+Mismo tono en los dos: rojo solo si la plata no alcanza (negativo), ámbar si baja del mínimo sin llegar a negativo.
+
 **DECIDÍ:** la caja vive también en el Resumen, con una lectura propia que usa el mismo cálculo de Dinero. **DESCARTÉ:** recalcular el saldo en el navegador con
 otra regla, porque habría dos números distintos para «cuánto me queda el 31»; y repartir los bancos por sede con un porcentaje, porque es inventar un dato (D-32).
 **SE ROMPE SI:** una cuenta ve el Resumen y no Dinero (la pieza se oculta, no muestra S/ 0), o si la base cambia cómo arma los bloques (la prueba de «cuadra con
