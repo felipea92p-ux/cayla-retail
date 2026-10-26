@@ -1,3 +1,4 @@
+import { UNIDADES_INSUMO } from "./insumos-reglas";
 import { leerDinero } from "./modelo-nuevo-reglas";
 
 // «Tela», el bloque nuevo de la hoja «Nueva orden de producción» (ADR-0400, decisión 6; actividad 2): las reglas puras. Sin React ni Supabase.
@@ -203,4 +204,42 @@ export function insumosParaRpc(telas: readonly TelaBorrador[]): InsumoRpc[] {
     salida.push({ insumo_id: t.insumoId, color_codigo: colorLimpio(t.colorCodigo), consumo_por_prenda: t.consumoPorPrenda.trim() });
   }
   return salida;
+}
+
+// ---------- La lista de la hoja: filas por color y avíos ----------
+
+const esAvioElegido = (t: TelaBorrador, insumos: readonly InsumoDelTaller[]): boolean => (t.insumoId ? insumos.find((i) => i.id === t.insumoId)?.tipo === "avio" : false);
+
+/**
+ * La lista de tela y avíos que dibuja la hoja de «Nueva orden» (ADR-0510): una fila por color de la orden —lo que la persona tocó, o la tela sugerida si no ha tocado
+ * nada de ese color— y después los avíos. Un avío se reconoce por su TIPO en Insumos, no por no tener color: puede ser de toda la orden (color vacío) o de UN color (el hilo
+ * del beige), y una fila de avío todavía sin elegir (`insumoId` nulo, recién agregada) sigue ahí para que la persona la llene. Una fila que no es de ningún color de la orden
+ * (la tela de un color que ya no se fabrica) se descarta, como una de avío cuyo color ya no se fabrica.
+ */
+export function telasDeLaHoja(o: { sugeridas: readonly TelaBorrador[]; manual: readonly TelaBorrador[] | null; insumos: readonly InsumoDelTaller[] }): TelaBorrador[] {
+  if (o.manual === null) return [...o.sugeridas];
+  const filasDeColor = o.sugeridas.map((s) => o.manual?.find((p) => !esAvioElegido(p, o.insumos) && p.colorCodigo === s.colorCodigo) ?? s);
+  const elegidas = new Set<TelaBorrador>(filasDeColor);
+  const coloresDeLaOrden = new Set(o.sugeridas.map((s) => s.colorCodigo));
+  const avios = o.manual.filter((p) => !elegidas.has(p) && (p.insumoId === null ? p.colorCodigo === null : esAvioElegido(p, o.insumos) && (p.colorCodigo === null || coloresDeLaOrden.has(p.colorCodigo))));
+  return [...filasDeColor, ...avios];
+}
+
+/** Cuántas prendas lleva una fila: las de su color, o todas las de la orden si es de toda la orden (color vacío). Un color que la orden no fabrica no lleva ninguna. */
+export function prendasDeLaFila(colorCodigo: string | null, colores: readonly { codigo: string | null; prendas: number }[]): number {
+  const total = colores.reduce((s, c) => s + (Number.isFinite(c.prendas) && c.prendas > 0 ? c.prendas : 0), 0);
+  if (colorCodigo === null) return total;
+  return colores.find((c) => c.codigo === colorCodigo)?.prendas ?? 0;
+}
+
+/**
+ * Lo que de verdad se pide de un plan: el plan redondeado HACIA ARRIBA a lo que la unidad admite (metros a un decimal, kilos a dos, conos y unidades enteros). Un plan de 0.24 conos de hilo se
+ * pide como 1 cono, no como «0 conos»; y 15.12 m se piden como 15.2 m, nunca 15.1 (faltarían 2 cm). El plan guardado en la base no cambia: esto es lo que se dice y lo que se lleva a pedir.
+ */
+export function cantidadAPedir(n: number, unidad: string): number {
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const decimales = unidad in UNIDADES_INSUMO ? UNIDADES_INSUMO[unidad as keyof typeof UNIDADES_INSUMO].decimales : 1;
+  const f = 10 ** decimales;
+  // `toPrecision` quita el ruido binario (0.6000000000000001 × 10 no debe subir a 7).
+  return Math.ceil(Number((n * f).toPrecision(12))) / f;
 }

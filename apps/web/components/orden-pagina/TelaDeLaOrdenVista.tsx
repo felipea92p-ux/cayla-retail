@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { Scissors } from "lucide-react";
+import { EditarTelaModal } from "@/components/orden-pagina/EditarTelaModal";
 import { TelaUsadaModal } from "@/components/orden-pagina/TelaUsadaModal";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { corteTerminado, filasDeTela, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import type { DatosEditarTela } from "@/lib/orden-tela-editar-reglas";
 import { telasDeLaOrden, type ModoDeTela } from "@/lib/orden-tela-usada-reglas";
 import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 
@@ -21,20 +24,30 @@ import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 const PLANTILLA = "@min-[28rem]:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_7rem]";
 const EN_COLUMNAS = "hidden @min-[28rem]:block";
 
-export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: OrdenPagina; /** La cuenta ve el módulo «Órdenes de insumos»: puede pedir lo que falta. */ puedePedir?: boolean }) {
+export function TelaDeLaOrdenVista({ datos, puedePedir = false, edicion = null, edicionFalla = false }: { datos: OrdenPagina; /** La cuenta ve el módulo «Órdenes de insumos»: puede pedir lo que falta. */ puedePedir?: boolean; /** Lo que la hoja «Editar tela y avíos» necesita; null si la cuenta no puede operar la orden o la orden ya no está en proceso. */ edicion?: DatosEditarTela | null; /** No se pudo preparar la edición (no se leyó el estante de Insumos): se dice, en vez de esconder el botón. */ edicionFalla?: boolean }) {
   const filas = filasDeTela(datos.insumos, corteTerminado(datos));
   const [hoja, setHoja] = useState<ModoDeTela | null>(null);
+  const [editando, setEditando] = useState(false);
   const telas = telasDeLaOrden(datos.insumos);
   const puedeAnotar = datos.permisos.puedeOperar && datos.orden.estado === "en_proceso" && telas.length > 0;
   const hayQueDevolver = telas.some((t) => t.usado > 0);
   return (
-    <section data-guia="prod-orden.tela" aria-label="Tela de la orden" className="@container op-bloque">
-      <TituloSeccion dato={datos.orden.producto.tejidoNombre ?? undefined}>Tela</TituloSeccion>
+    <section data-guia="prod-orden.tela" aria-label="Tela y avíos de la orden" className="@container op-bloque">
+      <TituloSeccion dato={datos.orden.producto.tejidoNombre ?? undefined} accion={edicion && filas.length > 0 ? <BotonEditar chico guia="prod-orden.editar-tela" onClick={() => setEditando(true)}>Editar</BotonEditar> : undefined}>
+        Tela y avíos
+      </TituloSeccion>
       {filas.length === 0 ? (
         <div className="card-cayla">
           <Vacio tamano="chico" icono={<Scissors />}>
-            Esta orden no declaró qué tela lleva.
+            Esta orden no declaró qué tela ni qué avíos lleva.
           </Vacio>
+          {edicion && (
+            <div className="flex justify-center px-4 pb-4">
+              <Boton peso="primario" aria-haspopup="dialog" data-guia="prod-orden.editar-tela" onClick={() => setEditando(true)}>
+                Declarar tela y avíos
+              </Boton>
+            </div>
+          )}
         </div>
       ) : (
         <Tabla>
@@ -44,7 +57,14 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: Orden
           {filas.map((f, i) => (
             <div key={f.id} className={fila(PLANTILLA)}>
               <span className={celda("izq", "whitespace-normal")}>
-                <span className="block text-tinta">{f.nombre}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-tinta">
+                  {f.nombre}
+                  {f.tipo === "avio" && (
+                    <Chip versalitas={false} title="Un avío: botones, cierres, etiquetas o hilo">
+                      Avío
+                    </Chip>
+                  )}
+                </span>
                 {f.detalle && <span className="op-sub">{f.detalle}</span>}
                 <span className="mt-1.5 flex flex-wrap items-center gap-2">
                   {f.alcanza && f.conLoQueViene ? (
@@ -83,6 +103,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: Orden
           ))}
         </Tabla>
       )}
+      {edicionFalla && <p className="op-sub">No se pudo preparar la edición de la tela: recarga la página para volver a intentarlo.</p>}
       {puedeAnotar && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Boton peso="fantasma" aria-haspopup="dialog" data-guia="prod-orden.anotar-tela" onClick={() => setHoja("usar")}>
@@ -96,6 +117,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: Orden
         </div>
       )}
       {hoja && <TelaUsadaModal datos={datos} modo={hoja} onClose={() => setHoja(null)} />}
+      {editando && edicion && <EditarTelaModal datos={datos} edicion={edicion} onClose={() => setEditando(false)} />}
     </section>
   );
 }
