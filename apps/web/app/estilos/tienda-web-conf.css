@@ -168,7 +168,14 @@
   }
 
   /* ───────── Los cierres por fecha: pastillas con su día y un ✕ ───────── */
-  .twc-cierres { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .twc-cierres { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .twc-cierres .twc-cierre-hoy { height: 40px; }
+  /* «u otro día» y su campo van juntos: si no caben en la fila, bajan JUNTOS y no se separa la etiqueta de su caja. */
+  .twc-cierres-otro { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+  .twc-cierres-o { font-size: 12.5px; color: var(--color-taupe); }
+  .twc-cierres-fecha { width: 11rem; }
+  /* El campo de fecha reserva un renglón vacío bajo su caja para un error; sin error no se dibuja, o la caja queda más arriba que el botón de al lado. */
+  .twc-cierres-fecha .campo > div:last-child:empty { display: none; }
   .twc-cierre {
     display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 6px 0 12px; border-radius: 999px;
     background: var(--color-hueso); font-size: 12.5px; font-weight: 600; color: var(--color-tinta);
@@ -177,7 +184,6 @@
   .twc-cierre button { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--color-taupe); transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla); }
   .twc-cierre button svg { width: 12px; height: 12px; }
   @media (hover: hover) { .twc-cierre button:hover { background: var(--color-sand); color: var(--color-tinta); } }
-  .twc-cierres-fecha { width: 11rem; }
 
   /* ───────── El horario por días: una barra por día, con asas ───────── */
   .twc-horas { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px; align-items: center; user-select: none; -webkit-user-select: none; }

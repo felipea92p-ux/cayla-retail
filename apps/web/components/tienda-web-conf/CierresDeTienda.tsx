@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { etiquetaDeCierre, type MomentoEnLima } from "@cayla-retail/shared/horario-de-tienda";
 import { CampoFecha } from "@/components/ui/CampoFecha";
@@ -25,9 +26,12 @@ export function CierresDeTienda({
   deshabilitado?: boolean;
 }) {
   const hoy = ahora?.fecha ?? null;
+  // El campo de fecha guarda lo escrito por dentro: tras agregar un día se vuelve a dibujar vacío (otra `key`), para que quede listo para el siguiente.
+  const [vuelta, setVuelta] = useState(0);
   const agregar = (fecha: string) => {
     if (!hoy || !fecha) return;
     const objecion = objecionAlCierre(valor, fecha, hoy);
+    setVuelta((v) => v + 1);
     if (objecion) return avisar.error(objecion);
     onCambio(conCierre(valor, fecha, hoy));
   };
@@ -44,14 +48,17 @@ export function CierresDeTienda({
       ))}
       <button
         type="button"
-        className="btn-cayla btn-sutil btn-chico"
+        className="btn-cayla btn-secundario twc-cierre-hoy"
         disabled={deshabilitado || !hoy || (hoy !== null && valor.includes(hoy))}
         onClick={() => hoy && agregar(hoy)}
       >
         <Plus aria-hidden className="h-3.5 w-3.5" /> Cerrar hoy
       </button>
-      <div className="twc-cierres-fecha">
-        <CampoFecha caja etiqueta="Cerrar otra fecha" valor="" onValor={agregar} disabled={deshabilitado || !hoy} diasMarcados={valor} descripcionMarcado="ya cerrado" />
+      <div className="twc-cierres-otro">
+        <span className="twc-cierres-o">u otro día</span>
+        <div className="twc-cierres-fecha">
+          <CampoFecha key={vuelta} caja etiqueta="Cerrar otro día" valor="" onValor={agregar} disabled={deshabilitado || !hoy} diasMarcados={valor} descripcionMarcado="ya cerrado" />
+        </div>
       </div>
     </div>
   );

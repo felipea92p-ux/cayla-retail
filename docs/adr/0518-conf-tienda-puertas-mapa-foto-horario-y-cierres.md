@@ -112,3 +112,11 @@ valida de a 15 con la frase «de a 15 minutos» (mismo cuerpo, misma firma, mism
 caen al cuarto de hora; **una barra sigue sin poder quedar a menos de media hora** (`MINIMO_DE_TRAMO`): la base aceptaría 15 minutos, pero una barra de 15 es un error
 de dedo. En el celular cada cuarto de hora mide ~4 px: con el dedo cuesta clavarlo y las flechas del teclado (←/→, 15 minutos) son la salida; si hace falta, se agranda la pista.
 **Orden de publicación: primero pegar esta migración, después publicar la web** (con la web nueva y la base vieja, guardar un 8:15 falla con la frase vieja).
+
+## Actualización 2026-10-26 (d) — la fila de «Cierres», alineada y dicha en palabras
+
+Felipe: «esto no está alineado y no es muy entendible lo que hace». La fila tenía «Cerrar hoy» (botón chico) al lado de un campo `dd/mm/aaaa` con un calendario, sin decir qué
+hacía el campo, y el botón quedaba más arriba que la caja (el campo de fecha reserva un renglón vacío bajo ella para un error). Ahora: el botón y la caja miden lo mismo (40 px) y
+quedan a la misma altura (se oculta el renglón vacío cuando no hay error); entre los dos dice «u otro día»; el título lleva el chip «Un día que no abre: feriado, inventario»;
+«u otro día» y su caja bajan **juntas** si la fila no cabe; y tras agregar una fecha la caja vuelve a quedar vacía (antes se quedaba mostrando la fecha ya agregada). Solo
+cambia cómo se ve y cómo se siente.

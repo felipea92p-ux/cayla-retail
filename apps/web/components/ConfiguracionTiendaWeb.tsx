@@ -550,7 +550,17 @@ function TallerDeTienda({
           </CampoFin>
         </CampoGuiado>
 
-        <CampoFin etiqueta="Cierres" guia="config.tienda-web-cierres">
+        <CampoFin
+          etiqueta={
+            <>
+              Cierres
+              <Chip tono="neutro" versalitas={false} className="ml-2">
+                Un día que no abre: feriado, inventario
+              </Chip>
+            </>
+          }
+          guia="config.tienda-web-cierres"
+        >
           <CierresDeTienda
             valor={cierresDeSerializados(b.cierres)}
             onCambio={(fechas) => onEscribir("cierres", serializarCierres(fechas))}
