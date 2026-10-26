@@ -516,6 +516,12 @@ migración `20261026163000`, rama `prenda-para-despues-save-613e8c`): no se repi
 De paso, la fila de lo separado baja sus acciones bajo el nombre según el ancho de la LISTA (`.rc-filas-sep`, contenedor de 700 px), no el de la
 ventana: junto a «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho y el nombre se aplastaba.
 
+### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
+
+Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del
+envío, no abre «el» fardo. Vuelve «Empezar a recibir» (con «Seguir recibiendo» al día siguiente) y la hoja «Detalle» dice cuántos fardos vienen. La
+frase al contar pasa a «Abre un fardo y cuenta…». Detalle y por qué: ADR-0480, «Actualización 2026-10-26 (d)».
+
 ### «Crear ahora» deja la prenda creada en «Para después» (2026-10-26)
 
 Felipe probó «Crear ahora» sobre «6 prendas nuevas · jean» (ENV-000253): la hoja creó la prenda en el catálogo y le abrió «Tallas y colores».
