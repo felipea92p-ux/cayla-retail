@@ -12,6 +12,7 @@ import { BaldosaCategoria } from "@/components/recepcion-conteo/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { VienenFardos } from "./VienenFardos";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { useResponsable } from "@/lib/useResponsable";
@@ -27,8 +28,10 @@ import {
 } from "@/lib/recepcion-envio-reglas";
 
 // «Detalle» de un envío que viene en camino (Felipe 2026-10-24): lo que antes era la primera etapa de «Recibir» —lo que trae, con su cantidad,
-// y lo que dijeron en total— ahora es una hoja que se abre desde la lista. Al pie, «¿Vas a recepcionar una compra? Abre el fardo»: abre el
-// envío (`abrir_despacho`, igual que antes) y salta directo a contar, la etapa 2. Firma quien recibe (el combo «Responsable»). El detalle se
+// y lo que dijeron en total— ahora es una hoja que se abre desde la lista. Al pie, «¿Vas a recepcionar una compra? Empieza a recibirla»:
+// «Empezar a recibir» abre el envío (`abrir_despacho`, igual que antes) y salta directo a contar, la etapa 2. No es «Abrir el fardo» (Felipe
+// 2026-10-26): un envío trae varios fardos y se reciben por partes —hoy uno, mañana otro—, así que el botón empieza la recepción del envío,
+// no abre «el» fardo; arriba dice cuántos fardos vienen (`despachos.bultos`). Firma quien recibe (el combo «Responsable»). El detalle se
 // lee al abrir la hoja, no con la lista: con muchos envíos, la puerta de Recibir no carga lo de todos.
 
 export function DetalleEnvioPorRecibir({ envio, sede }: { envio: EnvioPorAbrir; sede: string }) {
@@ -143,44 +146,49 @@ function HojaDetalle({ envio, sede, onCerrar }: { envio: EnvioPorAbrir; sede: st
                   </li>
                 ))}
               </ul>
-              <p className="text-[14.5px] text-tinta">
-                Dijeron <b className="font-display text-[22px] tabular-nums">{detalle.enviado.toLocaleString("es-PE")}</b> {detalle.enviado === 1 ? "prenda" : "prendas"} · {categorias}{" "}
-                {categorias === 1 ? "categoría" : "categorías"} · {proveedores.length} {proveedores.length === 1 ? "proveedor" : "proveedores"} ·{" "}
-                <span className="text-taupe">todo viene sin etiqueta</span>
-              </p>
+              <div className="space-y-1">
+                <VienenFardos bultos={detalle.bultos} />
+                <p className="text-[14.5px] text-tinta">
+                  Dijeron <b className="font-display text-[22px] tabular-nums">{detalle.enviado.toLocaleString("es-PE")}</b> {detalle.enviado === 1 ? "prenda" : "prendas"} · {categorias}{" "}
+                  {categorias === 1 ? "categoría" : "categorías"} · {proveedores.length} {proveedores.length === 1 ? "proveedor" : "proveedores"} ·{" "}
+                  <span className="text-taupe">todo viene sin etiqueta</span>
+                </p>
+              </div>
               {detalle.nota && <p className="nota-cayla">Nota de quien lo envió: {detalle.nota}</p>}
 
               <div className="space-y-3 border-t border-sand pt-4">
-                <p className="text-[14.5px] font-semibold text-tinta">¿Vas a recepcionar una compra? Abre el fardo.</p>
+                <p className="text-[14.5px] font-semibold text-tinta">¿Vas a recepcionar una compra? Empieza a recibirla.</p>
                 <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe">
                   <ComboResponsable control={responsable} deshabilitado={abriendo} />
                 </CampoGuiado>
-                <PieGuia guia={guia} listo="Todo listo: ábrelo y cuenta." />
+                <PieGuia guia={guia} listo="Todo listo: empieza a recibir." />
                 {error && (
-                  <Aviso ref={avisoError} enfocable tono="error" titulo="No se pudo abrir el envío" accion={error.recargar ? <Boton type="button" onClick={() => window.location.reload()}>Recargar</Boton> : undefined}>
+                  <Aviso ref={avisoError} enfocable tono="error" titulo="No se pudo empezar a recibir el envío" accion={error.recargar ? <Boton type="button" onClick={() => window.location.reload()}>Recargar</Boton> : undefined}>
                     {error.texto}
                   </Aviso>
                 )}
                 <div className="pie-acciones">
                   <Boton type="button" onClick={cerrar} disabled={abriendo}>
-                    Cerrar {/* unificar-fijo: Felipe 2026-10-24 pidió «Cerrar» en el detalle del envío, que además abre el fardo */}
+                    Cerrar {/* unificar-fijo: Felipe 2026-10-24 pidió «Cerrar» en el detalle del envío, que además empieza a recibir */}
                   </Boton>
-                  <Boton type="button" peso="primario" cargando={abriendo} textoCargando="Abriendo…" onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                  <Boton type="button" peso="primario" cargando={abriendo} textoCargando="Empezando…" onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                     <span className="inline-flex items-center gap-2">
                       <Package aria-hidden className="h-4 w-4" />
-                      Abrir el fardo
+                      Empezar a recibir
                       <ArrowRight aria-hidden className="h-4 w-4" />
                     </span>
                   </Boton>
                 </div>
-                <p className="text-xs text-taupe">Desde que lo abres, la compra ya no se puede anular.</p>
+                <p className="text-xs text-taupe">
+                  Desde que empiezas, la compra ya no se puede anular. Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
+                </p>
               </div>
             </>
           )}
           {!detalle && !cargando && (
             <div className="pie-acciones">
               <Boton type="button" onClick={cerrar}>
-                Cerrar {/* unificar-fijo: Felipe 2026-10-24 pidió «Cerrar» en el detalle del envío, que además abre el fardo */}
+                Cerrar {/* unificar-fijo: Felipe 2026-10-24 pidió «Cerrar» en el detalle del envío, que además empieza a recibir */}
               </Boton>
             </div>
           )}
