@@ -16,6 +16,10 @@ dialog.t-inst::backdrop { background: var(--velo); animation: t-inst-vela .3s va
 html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-hoja { width: 100%; max-width: 520px; max-height: 92dvh; overflow-y: auto; background: var(--papel); border-radius: 0; padding: 10px 22px calc(24px + env(safe-area-inset-bottom)); box-shadow: 0 -12px 40px -10px var(--sombra); animation: t-inst-sube .5s var(--ease) .1s both; }
 .t-inst-hoja:focus { outline: none; }
+/* El asa que se arrastra (los filtros del celular, ADR-0512): una zona de toque más alta que la raya, y el velo que se aclara con la hoja. */
+.t-inst-asa[data-arrastra] { position: relative; touch-action: none; cursor: grab; }
+.t-inst-asa[data-arrastra]::before { content: ""; position: absolute; inset: -16px -72px; }
+dialog.t-inst::backdrop { opacity: var(--t-arrastre-velo, 1); }
 .t-inst-asa { width: 38px; height: 4px; border-radius: 0; background: var(--sand); margin: 0 auto 16px; }
 .t-inst-tit { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12;  }
 .t-inst-tit em { color: var(--rojo); }
