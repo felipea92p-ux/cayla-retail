@@ -1,4 +1,4 @@
 ## 2026-10-26 (Proveedores: las tallas que se llevan y cómo le va en cada sede)
 Qué hice: la ficha de un proveedor muestra ahora qué tallas se venden contra cuáles tienes («Pide más» / «Sobra») y cómo le va en cada tienda (por semana, cuánto tardaría en vender lo que queda, «Rota lento» / «Se agota»), y sugiere un traslado con cantidad y prendas cuando una tienda va lenta y otra se queda sin nada. Una función nueva de solo lectura en la base (`20261026144000`) y reglas puras con 13 pruebas.
 Por qué así: Felipe eligió la misma regla de tallas que Análisis y el mismo ritmo que el ranking, para que una pantalla no contradiga a otra (ADR-0502, act. e).
-Felipe se lleva: una decisión (pegar la migración en producción, la base antes que la web) y dos números que puse yo y puede cambiar: 8 semanas de cobertura y 3 unidades mínimas por traslado.
+Felipe se lleva: una decisión (pegar la migración en producción, la base antes que la web) y los dos números del traslado, que confirmó el mismo día: 8 semanas de cobertura y 3 prendas como mínimo.

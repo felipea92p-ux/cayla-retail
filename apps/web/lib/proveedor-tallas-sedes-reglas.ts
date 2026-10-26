@@ -9,7 +9,7 @@
 //   · Sede: «rinde» se mide con el MISMO ritmo que el ranking (`ritmoDeDatos`): semanas que tardaría en venderse lo que queda EN esa sede,
 //     contadas desde que le llegó su primera prenda de ese proveedor. Solo las tiendas venden; lo que está en almacén o Taller se cuenta aparte.
 //   · Traslado: si una tienda va lenta y otra se agota, se sugiere CON cantidad. Solo se sugiere: el traslado lo hace una persona en Traslados.
-//     `SEMANAS_COBERTURA_TRASLADO` y `MIN_TRASLADO` los puse yo (no los fijó Felipe) y se cambian aquí.
+//     `SEMANAS_COBERTURA_TRASLADO` (8) y `MIN_TRASLADO` (3): propuestos en la sesión y confirmados por Felipe el 2026-10-26; se cambian aquí.
 
 import { curvaDeTallas, DIFERENCIA_QUE_SE_NOTA, type ColumnaTalla } from "./analisis-pedir";
 import { MAX_AVISOS, MIN_VENDIDAS, type Hallazgo } from "./proveedor-analisis-reglas";
