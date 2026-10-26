@@ -18,12 +18,13 @@ export type Insignia = z.infer<typeof esquemaInsignia>;
 
 // Lo que la FICHA lee de cada insignia, además de su id y su nombre (`fn_tienda_insignias`, ADR-0490): el dibujo que se eligió al crearla (`icono`; una clave que el
 // código no conoce, o ninguna, es «según el nombre»), su imagen propia (`imagen`, la RUTA en el almacén de insignias: una ruta que no tiene la forma que el ERP sube
-// es «sin imagen») y si lleva descuento (esas no se dibujan aparte: su descuento es el chip de la campaña, de la que solo se toma su dibujo). Sin esos datos (la base
-// todavía no tiene 20261023203000, o es una lista del catálogo, que solo trae id y nombre): según el nombre, sin imagen y sin descuento, como antes. La tarjeta del
-// catálogo sigue leyendo `esquemaInsignia`.
+// es «sin imagen»), si esa imagen es una SILUETA que se pinta con el color del chip (`silueta`, act. b: solo vale con imagen) y si lleva descuento (esas no se dibujan
+// aparte: su descuento es el chip de la campaña, de la que solo se toma su dibujo). Sin esos datos (la base todavía no tiene 20261023203000 y 20261023221000, o es
+// una lista del catálogo, que solo trae id y nombre): según el nombre, sin imagen y sin descuento, como antes. La tarjeta del catálogo sigue leyendo `esquemaInsignia`.
 export const esquemaInsigniaDeLaFicha = esquemaInsignia.extend({
   icono: z.unknown().transform((v) => dibujoElegido(v)),
   imagen: z.unknown().transform((v) => (esRutaDeImagenDeInsignia(v) ? v : null)),
+  silueta: z.unknown().transform((v) => v === true),
   descuento: z.boolean().catch(false),
 });
 

@@ -42,10 +42,11 @@ export function urlDeImagenDeInsignia(origen: string | null | undefined, ruta: u
   }
 }
 
-/** Lo que se dibuja de una insignia: su imagen propia (la ruta), o un dibujo vectorial. */
-export type DibujoResuelto = { tipo: "imagen"; ruta: string } | { tipo: "dibujo"; clave: DibujoDeInsignia };
+/** Lo que se dibuja de una insignia: su imagen propia (la ruta; `silueta`: es un molde que se pinta con el color del lugar, no una imagen a todo
+ *  color), o un dibujo vectorial. */
+export type DibujoResuelto = { tipo: "imagen"; ruta: string; silueta: boolean } | { tipo: "dibujo"; clave: DibujoDeInsignia };
 
 /** Qué manda: la imagen propia si la tiene (y su ruta es válida); si no, el dibujo que se eligió de la lista; si no, el de su nombre; si no, la etiqueta. */
-export function dibujoResuelto(i: { nombre: string; icono?: string | null; imagen?: string | null }): DibujoResuelto {
-  return esRutaDeImagenDeInsignia(i.imagen) ? { tipo: "imagen", ruta: i.imagen } : { tipo: "dibujo", clave: dibujoDeInsignia(i) };
+export function dibujoResuelto(i: { nombre: string; icono?: string | null; imagen?: string | null; silueta?: boolean | null }): DibujoResuelto {
+  return esRutaDeImagenDeInsignia(i.imagen) ? { tipo: "imagen", ruta: i.imagen, silueta: i.silueta === true } : { tipo: "dibujo", clave: dibujoDeInsignia(i) };
 }

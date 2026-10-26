@@ -2,7 +2,7 @@
   "guia": "productos.sellos",
   "ruta": "/productos/insignias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 139,
+  "total": 140,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «{control}»",
@@ -95,7 +95,8 @@
     "components/sellos/ElegirDibujoDeInsignia.tsx": [
       "button «{o.tipo === \"dibujo\" ? NOMBRE_DEL_DIBUJO[o.clave] : \"Tu imagen\"}»",
       "input «→alElegirArchivo»",
-      "button «→() => archivo.current?.click()»"
+      "button «→() => archivo.current?.click()»",
+      "Casilla «Pintar con el color del sello»"
     ],
     "components/sellos/OfertasHoja.tsx": [
       "button «{g.activo ? \"sellos.oferta-rebaja\" : undefined}»",
@@ -149,7 +150,7 @@
       "button «Registrar otra en vez de editar»"
     ],
     "components/sellos/SellosPantalla.tsx": [
-      "button «{e.nombre}»",
+      "button «→() => abrir(e.id)»",
       "button «{conGuia ? \"sellos.prendas\" : undefined}»",
       "button «{conGuia ? \"sellos.configurar\" : undefined}»",
       "button «{conGuia ? \"sellos.dibujo\" : undefined}»",

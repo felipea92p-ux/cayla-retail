@@ -99,6 +99,7 @@ export function FichaPrenda({
   const precio = precioDeLaFicha(ficha, delPrecio);
   const campanaVista = campanaDeLaFicha(ficha, delPrecio);
   const campana = chipCampana(campanaVista);
+  const imagenCampana = campanaVista ? imagenDeLaCampana(ficha, campanaVista) : null;
   const hasta = campanaVista?.hasta ?? null;
   const hayTiendas = ficha.sedes.length > 0;
   const tiendaElegida = ficha.sedes.find((s) => s.id === sedeElegida) ?? null;
@@ -215,13 +216,13 @@ export function FichaPrenda({
               <div className="t-pdp-chips">
                 {chips.map((c) => (
                   <span key={c.texto} className={`t-chip${c.tono ? ` ${c.tono}` : ""}`}>
-                    {c.icono && <IconoInsignia icono={c.icono} imagen={c.imagen} origen={origenFotos} />}
+                    {c.icono && <IconoInsignia icono={c.icono} imagen={c.imagen} silueta={c.silueta} origen={origenFotos} />}
                     {c.texto}
                   </span>
                 ))}
                 {campana && campanaVista && (
                   <span className="t-chip oferta">
-                    <IconoInsignia icono={dibujoDeLaCampana(ficha, campanaVista)} imagen={imagenDeLaCampana(ficha, campanaVista)} origen={origenFotos} />
+                    <IconoInsignia icono={dibujoDeLaCampana(ficha, campanaVista)} imagen={imagenCampana?.ruta} silueta={imagenCampana?.silueta} origen={origenFotos} />
                     {campana}
                   </span>
                 )}

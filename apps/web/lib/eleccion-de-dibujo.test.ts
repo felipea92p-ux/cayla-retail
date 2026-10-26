@@ -4,11 +4,12 @@ import { INTENTOS_DE_COMPRESION_INSIGNIA, avisoDeProporcionInsignia, medidasEnEl
 
 const INS = "0e962052-ade9-4dd2-8ef9-6fe6ff5681fb";
 const RUTA = `insignias/${INS}/5a5a5a5a-1111-4222-8333-444444444444.webp`;
-const IMAGEN_NUEVA = { tipo: "imagen", archivo: {} as File, vista: "blob:x" } satisfies EleccionDeDibujo;
+const IMAGEN_NUEVA = { tipo: "imagen", archivo: {} as File, vista: "blob:x", silueta: false, modo: null, original: {} as File } satisfies EleccionDeDibujo;
 
 describe("lo que se elige como dibujo de una insignia", () => {
   it("lo guardado: la imagen propia manda; si no, el dibujo elegido; si no, el del nombre; si el nombre no dice nada, la etiqueta", () => {
-    expect(eleccionDeLoGuardado({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "guardada", ruta: RUTA });
+    expect(eleccionDeLoGuardado({ nombre: "Halloween", icono: "gato", imagen: RUTA })).toEqual({ tipo: "guardada", ruta: RUTA, silueta: false });
+    expect(eleccionDeLoGuardado({ nombre: "Halloween", imagen: RUTA, silueta: true })).toEqual({ tipo: "guardada", ruta: RUTA, silueta: true });
     expect(eleccionDeLoGuardado({ nombre: "Halloween", icono: "gato" })).toEqual({ tipo: "dibujo", clave: "gato" });
     expect(eleccionDeLoGuardado({ nombre: "Halloween" })).toEqual({ tipo: "dibujo", clave: "halloween" });
     expect(eleccionDeLoGuardado({ nombre: "Estreno", icono: null, imagen: null })).toEqual({ tipo: "dibujo", clave: "generico" });
@@ -27,11 +28,13 @@ describe("lo que se elige como dibujo de una insignia", () => {
 
   it("cambia algo si es otro dibujo, otra imagen o pasar de uno a otro tipo; una imagen nueva siempre cambia", () => {
     const gato: EleccionDeDibujo = { tipo: "dibujo", clave: "gato" };
-    const guardada: EleccionDeDibujo = { tipo: "guardada", ruta: RUTA };
+    const guardada: EleccionDeDibujo = { tipo: "guardada", ruta: RUTA, silueta: false };
     expect(cambioDeDibujo(gato, { tipo: "dibujo", clave: "gato" })).toBe(false);
     expect(cambioDeDibujo(gato, { tipo: "dibujo", clave: "perro" })).toBe(true);
     expect(cambioDeDibujo(gato, guardada)).toBe(true);
-    expect(cambioDeDibujo(guardada, { tipo: "guardada", ruta: RUTA })).toBe(false);
+    expect(cambioDeDibujo(guardada, { tipo: "guardada", ruta: RUTA, silueta: false })).toBe(false);
+    // La misma imagen guardada pasa de color a silueta (o al revés): sí es un cambio.
+    expect(cambioDeDibujo(guardada, { tipo: "guardada", ruta: RUTA, silueta: true })).toBe(true);
     expect(cambioDeDibujo(guardada, gato)).toBe(true);
     expect(cambioDeDibujo(guardada, IMAGEN_NUEVA)).toBe(true);
     expect(cambioDeDibujo(gato, IMAGEN_NUEVA)).toBe(true);
