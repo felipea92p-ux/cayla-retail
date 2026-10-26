@@ -9,7 +9,9 @@
 - [x] `/chaos` del lote «Mostrar / Ocultar» (semilla 1026): 21 ataques, 21 resisten (`docs/chaos/README.md`).
 - [x] `/formidable` del Resumen y de Vitrina ▸ Modelos (`docs/formidable/tienda-web-resumen-y-vitrina-modelos.md`); los 3 cambios del Resumen hechos.
 - [x] Los 3 cambios de Vitrina ▸ Modelos de `/formidable` (rótulo «Libre:» y zonas de toque, regla del precio a un toque con «¿Por qué?», interruptor sin hoja con `responsable.listo` y «Deshacer»).
-- [ ] Repetir la ciega del Resumen y de la Vitrina, y una prueba con una colaboradora real; ver «¿Por qué?» con un modelo sin precio de verdad (la base local no tiene uno).
+- [x] Ciega repetida del Resumen y de la Vitrina (2026-10-26): Resumen 7,3, Vitrina 7,4 (`docs/formidable/tienda-web-resumen-y-vitrina-modelos.md`, «Segunda pasada»).
+- [ ] Prueba con una colaboradora real; repetir la medición completa del oficio; ver «¿Por qué?» con un modelo sin precio de verdad (la base local no tiene uno).
+- [ ] Decisiones de Felipe que salieron de la segunda pasada: que las cifras no se queden en 0 mientras no corre su animación (`CifraQueCuenta alMontar`, ADR-0136) y que la hoja del modelo diga con qué precio sale en cada tienda.
 - [ ] A 375 px, «Filtros» mide 36 px y «Vista» 40 px (piezas del sistema, `/unificar`); «Desmarcar todos» mide 23 px de alto.
 - [ ] Repetir el `/chaos` del lote cuando la rama esté al día con `main` (hoy va 183 commits detrás) y cubrir lo que quedó fuera: sesión vencida, atrás/adelante y entrar por URL con una cuenta sin el módulo.
 - [ ] Ver con datos reales lo que el banco local no tiene: modelos «sin precio» y «ocultos», una tienda a medias, y la Lista con 3 tiendas (debe pasar a columnas desde ~1050 px de tarjeta, una laptop de 1366 px).

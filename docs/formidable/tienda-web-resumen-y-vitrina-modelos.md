@@ -78,3 +78,44 @@ Un agente con el repo (solo lectura) intentó refutar 11 hallazgos de la revisi�
 - **Matizados (6):** el Resumen sin tope de filas (el orden por tono ya deja lo informativo al final, así que no se mezcla); «plata de clientes» sí, «separar» y «recomendaciones» no; la regla del precio repetida (la nota añade información y es ancla de guía); la hoja del interruptor (quitarla choca con ADR-0161 salvo que firme solo con `responsable.listo`, y perdería el aviso de tienda vacía); los objetivos bajo 24 px (la casilla suma ~26 px con su relleno y la foto abre lo mismo); el rótulo de 8 px (es la categoría, no el nombre).
 - **Refutado (1):** la redundancia de «Abrir la tienda» con la barra de URL (el tamaño y el contraste sí se confirman).
 - **Se nos escapó (1, el peor):** «Todo al día» sin haber leído los pedidos (arriba).
+
+## Segunda pasada: la ciega repetida con los cambios hechos (2026-10-26, Sonnet, navegador sin repo, datos inventados)
+Datos de la prueba: 2 pedidos por confirmar (W-0792 vence en ~1 h, W-0793 en ~21 h) y 1 recomendación en Tienda Lima; en la Vitrina, los 27 modelos de siempre. Ya se retiraron de la base local.
+
+### Resumen
+- **Tarea:** encontrar lo más urgente, qué hacer y cuánto tiempo hay, y dejar el paso listo sin confirmar; decir si hay algo más. **Terminó:** identificó W-0792 («se cierra en 59 min»), abrió su pantalla de «Confirmar · reversa las prendas» sin pulsarla y nombró el otro pedido y la recomendación. **5 toques, 0 retrocesos** (antes: 2 toques y no pudo terminar a propósito: otra tarea, no comparable).
+- **El cambio 3 funcionó:** pulsó «Revisar y confirmar», llegó a Pedidos y vio los 2 por confirmar; no dudó de lo que hacía el enlace. La duda de «¿qué hace Confirmar?» se movió a la lista de Pedidos («Confirmar →» en la fila: ¿confirma ahí o abre algo?), otra pantalla.
+- **Lo nuevo que apareció:** la lectura de 5 s fue «a medias» porque las tarjetas decían «0 pedidos esperan que los confirmes» y «0 recomendación por responder» mientras el menú tenía un 2. [Observado + Código] es la cifra que cuenta desde 0 al cargar (`CifraQueCuenta alMontar`, 800 ms) y que en una pestaña en segundo plano se queda en 0: una frase falsa mientras la animación no corre. Es una pieza del sistema (ADR-0136); queda en la lista aparte, la decide Felipe.
+- Dudas: 3 (los «0» contra el 2 del menú, «Confirmar →» de la lista, «hace 23 h» contra «59 min»). Palabras: «separado / reversa las prendas», «Eres admin…», «se recoge en 2 tiendas». Errores evitables: 2 (creyó que el 0 era «nada pendiente»; repitió un clic mientras cargaba).
+- **«Todo al día» sin lectura completa** (cambio 1) **no se pudo ejercitar** con esta prueba: hacía falta una lectura caída. Está cubierto por `vacioDePendientes` y su prueba, no por una persona.
+
+### Vitrina ▸ Modelos
+- **Tarea (más difícil que la primera vez):** dejar listo ocultar aretes y carteras, y contar los modelos de aretes, los Aretes Luna libres en Trujillo y el precio con que los ve la clienta. **13 toques, 2 errores evitables** (antes: 11 clics, 0 retrocesos con una tarea más corta).
+- **Terminó la parte de ocultar:** hoja «Ocultar de la web» con los 4 modelos, sin confirmar. Aretes: 1. **Libres en Trujillo: 8**, sacado de la tarjeta («Libre: Lima 12 · Trujillo 8»): el rótulo del cambio 1 funcionó.
+- **No pudo responder el precio desde la Vitrina**: abrió «¿Qué precio ve el cliente?» (cambio 2), que explica la regla pero no da un número, y salió a Catálogo ▸ Productos (S/ 34,90). Es por diseño (la Vitrina no tiene precio web: en la web vale el de cada tienda), pero es lo que la gente pregunta aquí. Idea para Felipe: que la hoja del modelo diga el precio con que sale en cada tienda.
+- No tocó los interruptores (se le pidió no hacerlo): **el cambio 3 lo probé yo en el navegador** (apagar, «Deshacer», volver a prender), no la ciega.
+- Dudas: 4 («Accesorios de moda» y «Carteras» contra «Bolsos y Carteras», que trae un bolso; dónde está el precio; si «Ocultar» de la barra aplicaba al instante o abría una hoja; el panel «Filtros», que se cerró con Escape). Palabras: «Lo nuevo (Automático / Fijado / Fuera)», «Esperan una talla / Avísame», «sin foto propia». En la Lista, el nombre del modelo abre una hoja pero no parece un botón.
+
+### Notas recalificadas (provisionales: sin una colaboradora real y sin repetir las 8 comprobaciones del oficio)
+| Eje | Resumen | Vitrina |
+|---|---|---|
+| 1 Sin manual | 7 (=) | 8 (=) |
+| 2 Una pregunta | 7 (=) | 7 (=) |
+| 3 Simplicidad profunda | 8 (=) | 8 (=) |
+| 4 Lenguaje de tienda | 7 (=) | **8** (antes 7: el stock dice «Libre:») |
+| 5 Contenido primero | 7 (=) | 9 (=) |
+| 6 Lo difícil, a un toque | 7 (=) | **7** (antes 5: la regla del precio y «¿Por qué?» a un toque; no dio el precio que buscaba) |
+| 7 Perdonar antes que preguntar | 9 (=) | **7** (antes 6: el interruptor aplica con «Deshacer»; el lote sigue con hoja) |
+| 8 Quitar antes de agregar | **7** (antes 6: el plazo vive una vez) | 6 (=) |
+| 9 De punta a punta | **7** (antes 6: el vacío ya no afirma calma sin leer; solo por código y prueba) | **7** (antes 6: zonas de toque medidas a mano) |
+| **Leyes (promedio)** | **7,3** (antes 7,1) | **7,4** (antes 6,9) |
+| **Oficio visual** | 6 (sin repetir la medición; no se tocó) | 5 → sin recalificar. A mano: de 3 controles bajo 24 px por carta a 0 a 1440 px; siguen «Desmarcar todos» (23 px) y, a 375 px, «Filtros» (36) y «Vista» (40), piezas del sistema |
+
+**Lectura honesta:** las notas suben poco (+0,2 y +0,5) porque la ciega mide si se termina y se entiende, no si las cifras son honestas ni qué tan fino es el toque. El cambio que más se notó fue el rótulo «Libre:» y «Revisar y confirmar». Lo que pesa de verdad para la siguiente ronda: el precio en la hoja del modelo (Vitrina, ley 6) y que las cifras no se queden en 0 (Resumen, ley 1).
+
+### Lista aparte (lo que apareció en esta pasada)
+- `CifraQueCuenta alMontar` deja «0 pedidos esperan que los confirmes» mientras no corre la animación (pestaña en segundo plano, o mientras carga): pieza del sistema (ADR-0136), decisión de Felipe.
+- La hoja del modelo no dice con qué precio sale en cada tienda; hoy hay que ir a Catálogo ▸ Productos.
+- «Ocultar» de la barra de los elegidos no dice que abre una hoja de confirmación; en la Lista, el nombre del modelo no parece un botón.
+- «Bolsos y Carteras» junta bolsos y carteras: la colaboradora eligió los tres modelos para ocultar «carteras».
+- «Eres admin. No necesitas autorización» sigue en la hoja (es de `ComboResponsable`, compartido).
