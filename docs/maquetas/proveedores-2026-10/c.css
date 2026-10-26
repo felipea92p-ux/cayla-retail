@@ -1,0 +1,80 @@
+/* Dirección C · El flujo. Prefijo c-. Solo var(--…) de base.css. */
+
+.c-bloque{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* ---------- El río ---------- */
+.c-heroe{padding:20px 22px 16px;display:flex;flex-direction:column;gap:10px}
+.c-heroe-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:14px 32px;flex-wrap:wrap}
+.c-heroe-cab h2{font-size:clamp(22px,2.4vw,30px);line-height:1.15;margin-top:4px;max-width:46ch}
+.c-heroe-cifras{display:flex;gap:26px;flex-wrap:wrap}
+.c-heroe-cifras>div{display:flex;flex-direction:column;padding-left:12px;border-left:3px solid var(--c)}
+.c-heroe-cifras b{font-size:30px;font-weight:400;line-height:1.05}
+.c-heroe-cifras span{font-size:12px;color:var(--taupe);max-width:12ch;line-height:1.25}
+.c-veredicto{margin-top:8px;font-size:14.5px;color:color-mix(in srgb,var(--tinta) 78%,transparent);max-width:70ch}
+.c-veredicto b{color:var(--c);font-weight:600}
+.c-lienzo{overflow-x:auto;margin:0 -8px}
+.c-svg{display:block;width:100%;min-width:820px;height:auto}
+.c-pie{font-size:12.5px}
+
+.c-cinta{fill:color-mix(in srgb,var(--c) 30%,transparent);transition:fill .25s var(--ease-cayla),opacity .25s var(--ease-cayla)}
+.c-svg.enfocado .c-cinta{opacity:.18}
+.c-svg.enfocado .c-cinta.encendida{opacity:1;fill:color-mix(in srgb,var(--c) 55%,transparent)}
+@keyframes revela{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.c-svg .c-cinta{clip-path:inset(0 100% 0 0)}
+.c-svg.corre .c-cinta{animation:revela 1.3s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 22ms + 350ms)}
+.c-nodo rect{fill:var(--c)}
+.c-nodo.c-va{cursor:pointer;outline:none}
+@media (hover:hover){.c-nodo.c-va:hover .c-nl{fill:var(--rojo-p)}}
+.c-nodo.c-va:focus-visible .c-nl{fill:var(--rojo-p);text-decoration:underline}
+.c-nl{font-size:13.5px;font-weight:600;fill:var(--tinta);font-family:var(--sans)}
+.c-ns{font-size:11.5px;fill:var(--taupe);font-family:var(--sans)}
+.c-nl.medio,.c-ns.medio{paint-order:stroke;stroke:var(--papel);stroke-width:4px;stroke-linejoin:round}
+
+/* ---------- Lista: cintas por proveedor ---------- */
+.c-dos{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(320px,1fr);gap:22px;align-items:start}
+@media (max-width:1180px){.c-dos{grid-template-columns:minmax(0,1fr)}}
+.c-avisos{display:flex;flex-direction:column;gap:10px}
+.c-cinta-fila{display:flex;align-items:center;gap:8px;min-width:0}
+.c-cinta-barra{display:flex;gap:2px;height:14px;width:var(--w);min-width:18px;border-radius:4px;overflow:hidden}
+.c-cinta-barra i{display:block;height:100%;background:var(--c);min-width:0}
+.c-cinta-n{font-size:12px;color:var(--taupe)}
+.c-sem{font-size:13.5px;font-weight:600}
+.c-tabla .tabla-fila.encendido{background:color-mix(in srgb,var(--tinta) 4%,transparent)}
+.c-tabla .tabla-fila.encendido::before{transform:scaleY(1)}
+@media (max-width:860px){.c-tabla .tabla-fila{--cols:minmax(0,1fr) minmax(0,1fr) 3.5rem!important}.c-tabla .tabla-fila>:nth-child(4),.c-tabla .tabla-fila>:nth-child(5){display:none}}
+
+/* ---------- Ficha: perchero, sedes, hilo ---------- */
+.c-par{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.c-par{grid-template-columns:minmax(0,1fr)}}
+.c-mitad{padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.c-mitad h3{font-size:22px;padding-right:170px}
+@media (max-width:520px){.c-mitad h3{padding-right:0;margin-top:22px}}
+.c-perchero{width:100%;max-width:560px;height:auto;display:block;margin-top:4px}
+.c-barra{stroke:var(--taupe);stroke-width:3;stroke-linecap:round}
+.c-gancho{fill:none;stroke:var(--taupe);stroke-width:1.8;stroke-linejoin:round}
+.c-talla{font-size:13px;font-weight:700;fill:var(--tinta);font-family:var(--sans)}
+.c-vend{fill:var(--tinta)}
+.c-queda{fill:var(--g-neutro)}
+.c-pn{font-size:12px;fill:var(--taupe);font-family:var(--sans)}
+.c-pnota{font-size:11px;font-weight:700;fill:var(--verde);font-family:var(--sans);letter-spacing:.04em}
+.c-percha.primero .c-talla{fill:var(--verde)}
+@keyframes cae{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+[data-anim="cae"].visto{animation:cae .9s var(--ease-cayla) both;transform-box:fill-box;transform-origin:center top;animation-delay:calc(var(--i,0) * 80ms + 300ms)}
+.c-sedes{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.c-sede{display:grid;grid-template-columns:7rem minmax(0,1fr) 5.5rem;gap:12px;align-items:center;font-size:13.5px}
+.c-sedenom{display:inline-flex;align-items:center;gap:8px}
+.c-sedenom i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.c-sedebar{display:flex;gap:2px;height:14px;width:var(--w);border-radius:4px;overflow:hidden}
+.c-sedebar i{display:block;height:100%;background:var(--c)}
+.c-hilo-caja{padding:16px 20px 8px}
+.c-hilo{width:100%;max-width:760px;height:auto;display:block}
+.c-hilo-fondo{stroke:var(--hueso);stroke-width:4;stroke-linecap:round}
+.c-hilo-real{stroke:var(--verde);stroke-width:4;stroke-linecap:round}
+.c-hilo-real.tarde{stroke:var(--ambar)}
+.c-hilo-ini{fill:var(--taupe)}
+.c-hilo-pac{stroke:var(--taupe);stroke-width:2;stroke-dasharray:3 3}
+.c-hilo-pago{fill:var(--verde);stroke:var(--papel);stroke-width:3}
+.c-hilo-pago.tarde{fill:var(--ambar)}
+.c-ht{font-size:12px;fill:var(--taupe);font-family:var(--sans)}
+.c-ht.fuerte{fill:var(--tinta);font-weight:600}
+@media (prefers-reduced-motion:reduce){.c-svg .c-cinta,.c-svg.corre .c-cinta{clip-path:none;animation:none}}

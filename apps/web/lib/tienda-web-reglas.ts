@@ -5,6 +5,9 @@
 // El WhatsApp de una tienda es `ubicaciones.whatsapp_numero`, el mismo número del QR del club (ADR-0288): esta pestaña lo
 // guarda con la misma función que Tiendas y caja (`guardar_whatsapp_tienda`) y con la misma regla (`celularValido`).
 
+import { cierresDesdeFilas, semanaDeSerializada, semanaDesdeFilas, semanaTieneHoras, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
+import { serializarCierres } from "./horario-edicion-reglas";
+import { enlaceMapaValido, esRutaDeFotoDeTienda } from "@cayla-retail/shared/tienda-web-sede";
 import { celularValido } from "./club-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { Resultado } from "./configuracion-reglas";
@@ -20,6 +23,16 @@ export type SedeWeb = {
   direccion: string | null;
   horario: string | null;
   mostrar: boolean;
+  /** El lugar en la web (1 es la primera); `null` si todavía no se ordenó. La base ya las manda en orden. */
+  orden: number | null;
+  /** El enlace de Google Maps del local; con él, «Cómo llegar» abre ese lugar. `null`: la web busca la dirección. */
+  mapaUrl: string | null;
+  /** La ruta de la foto de la fachada dentro del almacén (`tiendas/<tienda>/<archivo>.webp`); `null`: se ve el dibujo de la fachada. */
+  fotoRuta: string | null;
+  /** El horario por días (lunes a domingo); una semana sin ningún día abierto es «sin horario por días». `horario` es su texto corto. */
+  dias: SemanaDeTienda;
+  /** Los días de hoy en adelante en que no abre aunque el horario diga que sí («AAAA-MM-DD», en orden). */
+  cierres: string[];
 };
 
 export type ParametrosTiendaWeb = { horasParaConfirmar: number; horasAvisoSinPagar: number; diasAvisoSinRecoger: number; quedanPocasDesde: number };
@@ -42,6 +55,11 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
       direccion: texto(s.direccion),
       horario: texto(s.horario),
       mostrar: s.mostrar === true,
+      orden: typeof s.orden === "number" ? s.orden : null,
+      mapaUrl: texto(s.mapa_url),
+      fotoRuta: esRutaDeFotoDeTienda(s.foto_ruta, String(s.id)) ? s.foto_ruta : null,
+      dias: semanaDesdeFilas(s.dias),
+      cierres: cierresDesdeFilas(s.cierres).map((c) => c.fecha),
     })),
     parametros: p
       ? {
@@ -60,13 +78,17 @@ export function leerConfiguracionTiendaWeb(data: unknown): ConfiguracionTiendaWe
 export const TOPES_SEDE = { nombreWeb: 40, direccion: 160, horario: 120 } as const;
 
 /** Lo que se escribe en las cajas de una tienda, tal cual (sin limpiar). */
-export type BorradorSede = { nombreWeb: string; whatsapp: string; direccion: string; horario: string };
+export type BorradorSede = { nombreWeb: string; whatsapp: string; direccion: string; horario: string; mapa: string; foto: string; dias: string; cierres: string };
 
-export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccion" | "horario">): BorradorSede => ({
+export const borradorDe = (s: Pick<SedeWeb, "nombreWeb" | "whatsapp" | "direccion" | "horario" | "mapaUrl" | "fotoRuta" | "dias" | "cierres">): BorradorSede => ({
   nombreWeb: s.nombreWeb ?? "",
   whatsapp: s.whatsapp ?? "",
   direccion: s.direccion ?? "",
   horario: s.horario ?? "",
+  mapa: s.mapaUrl ?? "",
+  foto: s.fotoRuta ?? "",
+  dias: serializarSemana(s.dias),
+  cierres: serializarCierres(s.cierres),
 });
 
 /** Como lo guarda la base: sin espacios de más; vacío = sin dato. */
@@ -82,8 +104,11 @@ export function limpiarTexto(t: string): string | null {
 export function fusionarBorrador(actual: BorradorSede, baseAntes: BorradorSede, baseNueva: BorradorSede): BorradorSede {
   const tomar = (k: keyof BorradorSede) =>
     actual[k] === baseAntes[k] || limpiarTexto(actual[k]) === limpiarTexto(baseNueva[k]) ? baseNueva[k] : actual[k];
-  return { nombreWeb: tomar("nombreWeb"), whatsapp: tomar("whatsapp"), direccion: tomar("direccion"), horario: tomar("horario") };
+  return { nombreWeb: tomar("nombreWeb"), whatsapp: tomar("whatsapp"), direccion: tomar("direccion"), horario: tomar("horario"), mapa: tomar("mapa"), foto: tomar("foto"), dias: tomar("dias"), cierres: tomar("cierres") };
 }
+
+/** ¿Tiene algún horario? Los días que se pintaron, o el texto que se escribió antes de que hubiera días. */
+export const tieneHorario = (b: Pick<BorradorSede, "horario" | "dias">): boolean => semanaTieneHoras(semanaDeSerializada(b.dias)) || limpiarTexto(b.horario) !== null;
 
 /** Lo que le falta a una tienda para verse en la web. LA MISMA regla que `retail.fn_sede_web_falta`, en el mismo orden. */
 export type DatoWeb = "nombre_web" | "whatsapp" | "direccion";
@@ -96,9 +121,9 @@ export function faltaParaMostrar(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" 
   return falta;
 }
 
-/** Cómo lo nombra la persona (la guía de foco y la tarjeta). */
+/** Cómo lo nombra la persona (la guía de foco y la tarjeta). UNA palabra por dato: la misma en la etiqueta del campo, en la puerta, en «Faltan:» y en el teléfono (Formidable 2026-10-26). */
 export const NOMBRE_DATO: Record<DatoWeb | "horario", string> = {
-  nombre_web: "Nombre en la web",
+  nombre_web: "Nombre",
   whatsapp: "WhatsApp",
   direccion: "Dirección",
   horario: "Horario",
@@ -122,6 +147,65 @@ export function estadoSedeWeb(s: { mostrar: boolean } & Pick<BorradorSede, "nomb
   // Encendida pero incompleta: pasa si le quitaron el WhatsApp en Tiendas y caja. La web ya no la muestra (`tienda_sedes`).
   if (falta.length > 0) return { tono: "ambar", texto: `No se ve: falta ${new Intl.ListFormat("es", { type: "conjunction" }).format(falta.map((d) => EN_FRASE[d]))}` };
   return { tono: "verde", texto: "Se ve en la web" };
+}
+
+/** Mover una tienda al lugar de otra (arrastrar y soltar): la lista nueva, o la misma si no hay nada que mover. */
+export function moverTienda(ids: readonly string[], id: string, haciaId: string): string[] {
+  const de = ids.indexOf(id);
+  const a = ids.indexOf(haciaId);
+  if (de < 0 || a < 0 || de === a) return [...ids];
+  const lista = [...ids];
+  lista.splice(de, 1);
+  lista.splice(a, 0, id);
+  return lista;
+}
+
+/** Mover una tienda un lugar a la izquierda (-1) o a la derecha (1): el teclado y el celular, donde no se arrastra. Sin salirse de la fila. */
+export function moverUnLugar(ids: readonly string[], id: string, paso: -1 | 1): string[] {
+  const de = ids.indexOf(id);
+  const a = de + paso;
+  if (de < 0 || a < 0 || a >= ids.length) return [...ids];
+  const lista = [...ids];
+  [lista[de], lista[a]] = [lista[a]!, lista[de]!];
+  return lista;
+}
+
+/** Poner las tiendas en el orden de `ids`; una que no esté en la lista va al final, en el orden en que venía. */
+export function ordenarSedes<T extends { id: string }>(sedes: readonly T[], ids: readonly string[]): T[] {
+  const lugar = new Map(ids.map((id, i) => [id, i]));
+  return sedes
+    .map((s, i) => ({ s, i }))
+    .sort((x, y) => (lugar.get(x.s.id) ?? ids.length) - (lugar.get(y.s.id) ?? ids.length) || x.i - y.i)
+    .map((x) => x.s);
+}
+
+/** La palabra suelta con que la puerta de una tienda dice lo que le falta (sin frases: la maqueta de Conf. Tienda, 2026-10-26). */
+export const PALABRA_FALTA: Record<DatoWeb, string> = { nombre_web: "Nombre", whatsapp: "WhatsApp", direccion: "Dirección" };
+
+/** Cuántos de los tres datos obligatorios tiene una tienda: el anillo de su puerta. */
+export function avanceDeSede(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" | "direccion">): { listos: number; total: number; pct: number } {
+  const total = 3;
+  const listos = total - faltaParaMostrar(b).length;
+  return { listos, total, pct: Math.round((listos / total) * 100) };
+}
+
+/** El color de datos de la sede para su toldo (los hilos de sede, `--color-sede-*`). Una sede nueva cae al neutro (`emp`). */
+export type ColorDeSede = "tru" | "aqp" | "lim" | "tal" | "emp";
+
+export function colorDeSede(nombre: string): ColorDeSede {
+  const n = nombre.toUpperCase();
+  if (/\bTRU\b|TRUJILLO/.test(n)) return "tru";
+  if (/\bAQP\b|AREQUIPA/.test(n)) return "aqp";
+  if (/\bLIM\b|LIMA/.test(n)) return "lim";
+  if (/\bTAL\b|TALLER/.test(n)) return "tal";
+  return "emp";
+}
+
+/** El mapa antes de ir a la base: vacío está bien («sin mapa»); si hay algo, tiene que ser un enlace de Google Maps. La misma frase que la base. */
+export function errorDeMapa(mapa: string): string | null {
+  const t = mapa.trim();
+  if (t === "") return null;
+  return enlaceMapaValido(t) ? null : "El mapa tiene que ser un enlace de Google Maps (el de «Compartir» sirve).";
 }
 
 /** Los largos, con la misma frase que la base. `null` si todo cabe. */
@@ -154,7 +238,7 @@ export function camposDeGuia(
         nombre: `${NOMBRE_DATO[dato]} · ${corto}`,
         requerido: dato !== "horario",
         sugerido: dato === "horario",
-        hecho: dato === "horario" ? limpiarTexto(s.borrador.horario) !== null : !falta.includes(dato),
+        hecho: dato === "horario" ? tieneHorario(s.borrador) : !falta.includes(dato),
         pendiente: PENDIENTE[dato],
       });
     }
@@ -171,7 +255,7 @@ export function pendientesDe(sedes: readonly SedeWeb[]): Set<string> {
   for (const s of sedes) {
     const b = borradorDe(s);
     for (const dato of faltaParaMostrar(b)) ids.add(idCampo(s.id, dato));
-    if (limpiarTexto(b.horario) === null) ids.add(idCampo(s.id, "horario"));
+    if (!tieneHorario(b)) ids.add(idCampo(s.id, "horario"));
   }
   return ids;
 }
@@ -203,6 +287,28 @@ export const borradorParametros = (p: ParametrosTiendaWeb): BorradorParametros =
   quedanPocasDesde: String(p.quedanPocasDesde),
 });
 
+/** ¿Lo escrito en un plazo se sale de su rango (o no es un entero)? El borde de su caja lo dice mientras se escribe, antes de «Guardar». */
+export function parametroFueraDeRango(clave: keyof ParametrosTiendaWeb, texto: string): boolean {
+  const t = texto.trim();
+  const [min, max] = RANGOS_PARAMETROS[clave];
+  return !/^-?\d+$/.test(t) || Number(t) < min || Number(t) > max;
+}
+
+/** Subir o bajar un plazo de a `paso`, sin salirse de su rango. Si lo escrito no es un número, parte de lo más bajo que se acepta. */
+export function moverParametro(clave: keyof ParametrosTiendaWeb, texto: string, paso: number): string {
+  const [min, max] = RANGOS_PARAMETROS[clave];
+  const t = texto.trim();
+  const actual = /^-?\d+$/.test(t) ? Number(t) : min;
+  return String(Math.min(max, Math.max(min, actual + paso)));
+}
+
+/** Lo que dice la tarjeta de la prenda con `cantidad` (1 o más) unidades en una tienda, según desde cuándo se ve el número: «Última», «Quedan 2» o «Hay».
+ *  Es lo que muestra la escala de «Stock en la web», para que se vea lo que leerá el cliente. */
+export function queVeElCliente(cantidad: number, quedanPocasDesde: number): "Última" | `Quedan ${number}` | "Hay" {
+  if (cantidad === 1) return "Última";
+  return cantidad >= 2 && cantidad <= quedanPocasDesde ? `Quedan ${cantidad}` : "Hay";
+}
+
 /** Los cuatro números enteros y en su rango, con la misma frase que la base. */
 export function validarParametrosTiendaWeb(b: BorradorParametros): Resultado<ParametrosTiendaWeb> {
   const valor = {} as ParametrosTiendaWeb;
@@ -214,23 +320,4 @@ export function validarParametrosTiendaWeb(b: BorradorParametros): Resultado<Par
     valor[k] = n;
   }
   return { ok: true, valor };
-}
-
-/** Lo que el cliente ve con cada cantidad según el umbral (ADR-0408, DECIDÍ 6): «Hay», el número, «Última» o «—». */
-function nivelQueVe(cantidad: number, quedanPocasDesde: number): string {
-  if (cantidad <= 0) return "—";
-  if (cantidad === 1) return "Última";
-  return cantidad <= quedanPocasDesde ? String(cantidad) : "Hay";
-}
-
-/** La ayuda del umbral, con lo que el cliente vería: «Con 4 o más ve «Hay»; con 3, «3»; con 2, «2»; con 1, «Última».».
- *  Un umbral fuera de rango (mientras se escribe) no promete nada. */
-export function fraseNiveles(quedanPocasDesde: number): string {
-  const [min, max] = RANGOS_PARAMETROS.quedanPocasDesde;
-  if (!Number.isInteger(quedanPocasDesde) || quedanPocasDesde < min || quedanPocasDesde > max) {
-    return "Con pocas unidades, el cliente ve el número; con más, ve «Hay».";
-  }
-  const partes = [`Con ${quedanPocasDesde + 1} o más ve «${nivelQueVe(quedanPocasDesde + 1, quedanPocasDesde)}»`];
-  for (let n = quedanPocasDesde; n >= 1; n--) partes.push(`con ${n}, «${nivelQueVe(n, quedanPocasDesde)}»`);
-  return `${partes.join("; ")}.`;
 }

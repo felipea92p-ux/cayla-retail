@@ -2,7 +2,7 @@ import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 import { soles } from "./orden-ficha-reglas";
 import { FASES, type FaseClave, type Posicion, type Quien } from "./orden-fases-reglas";
-import { veredictoTela } from "./orden-tela-reglas";
+import { cantidadAPedir, veredictoTela } from "./orden-tela-reglas";
 
 // La página de UNA orden de producción (ADR-0400, actividad 3; «D · Página propia», elegida por Felipe el 2026-10-14): las reglas puras. Sin React ni Supabase, para que
 // las importen la página (servidor) y sus piezas (cliente), y para probar cada frase que la persona lee sin abrir el navegador.
@@ -33,6 +33,7 @@ export const RPC_ANULAR_VUELTA = "anular_vuelta";
 export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
 export const RPC_ANULAR_PRODUCCION = "anular_produccion";
 export const RPC_REVERTIR_PRODUCCION = "revertir_produccion";
+export const RPC_GUARDAR_INSUMOS_ORDEN = "guardar_insumos_orden";
 
 /** Días sin que nadie anote nada para que la orden pida atención (ADR-0400, «Pantallas» punto 1). */
 export const DIAS_SIN_MOVERSE = 4;
@@ -98,6 +99,13 @@ export type FasePagina = {
   porVariante: FaseVariante[];
 };
 
+/** El consumo por talla que devuelve `fn_orden_produccion` ({"S": 1.15, "M": 1.2}) como mapa de números; null si no hay, no es un objeto o ninguna cifra se lee. */
+function porTallaLeida(crudo: unknown): Record<string, number> | null {
+  if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return null;
+  const pares = Object.entries(crudo as Record<string, unknown>).flatMap(([talla, v]) => (v !== null && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0 ? [[talla, Number(v)] as const] : []));
+  return pares.length > 0 ? Object.fromEntries(pares) : null;
+}
+
 export type InsumoPagina = {
   id: string;
   insumoId: string;
@@ -107,6 +115,8 @@ export type InsumoPagina = {
   colorCodigo: string | null;
   colorNombre: string | null;
   consumoPorPrenda: number;
+  /** Una cifra por talla (talla → metros o unidades), si la orden la declaró así; ausente o nulo = una sola cifra para todas las tallas (ADR-0513). */
+  consumoPorTalla?: Record<string, number> | null;
   cantidadPlan: number;
   usado: number;
   saldo: number;
@@ -357,7 +367,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
       const pendiente = pendientes.get(insumoId);
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, consumoPorTalla: porTallaLeida(i.consumo_por_talla), cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -693,6 +703,8 @@ export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiem
 
 export type FilaDeTela = {
   id: string;
+  /** Una tela o un avío (botones, cierres, hilo): la sección los muestra juntos, la tela primero, y dice cuál es cuál. */
+  tipo: "tela" | "avio";
   nombre: string;
   detalle: string;
   plan: string;
@@ -744,19 +756,22 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
     const detalle =
       filas.length > 1
         ? filas.map((f) => `${color(f) ?? "toda la orden"} ${cantidadConUnidad(f.cantidadPlan, f.unidad)}`).join(" · ")
-        : base.consumoPorPrenda > 0
-          ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
-          : "";
+        : base.consumoPorTalla && Object.keys(base.consumoPorTalla).length > 0
+          ? `${Object.entries(base.consumoPorTalla).sort(([a], [b]) => compararTallas(a, b)).map(([talla, v]) => `${talla} ${cantidadConUnidad(v, base.unidad)}`).join(" · ")} por prenda`
+          : base.consumoPorPrenda > 0
+            ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
+            : "";
     return {
       id: base.insumoId,
+      tipo: base.tipo,
       nombre: unColor && !base.nombre.toLocaleLowerCase("es").includes(color(base) as string) ? `${base.nombre} · ${color(base)}` : base.nombre,
       detalle,
       plan: cantidadConUnidad(plan, base.unidad),
       usado: cantidadConUnidad(usado, base.unidad),
       saldo: cantidadConUnidad(base.saldo, base.unidad),
       alcanza: v.alcanza,
-      faltan: v.alcanza ? null : cantidadConUnidad(v.faltan, base.unidad),
-      faltanNumero: v.alcanza ? null : v.faltan,
+      faltan: v.alcanza ? null : cantidadConUnidad(cantidadAPedir(v.faltan, base.unidad), base.unidad),
+      faltanNumero: v.alcanza ? null : cantidadAPedir(v.faltan, base.unidad),
       reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
       enCamino: enCamino > 0 ? cantidadConUnidad(enCamino, base.unidad) : null,
       atrasado: atrasado > 0 ? cantidadConUnidad(atrasado, base.unidad) : null,
@@ -764,7 +779,7 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
       yaCortada,
       pedidos: base.pedidos.map(textoDePedido),
     };
-  });
+  }).sort((a, b) => Number(a.tipo === "avio") - Number(b.tipo === "avio"));
 }
 
 // ---------- El costo ----------

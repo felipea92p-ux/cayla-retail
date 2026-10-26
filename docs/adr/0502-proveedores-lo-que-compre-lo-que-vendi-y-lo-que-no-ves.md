@@ -78,3 +78,27 @@ Felipe aprobó las recomendaciones de umbrales de una sesión hermana («Sí: p�
 2. **El veredicto del ranking** (`veredictoDe(r, hoy)`) lo evalúa primero: si el ritmo es lento dice **«Rota lento»** (ámbar), aunque haya vendido poco; si no, «Pocas ventas» (menos de 10 vendidas), «Costo por confirmar», «Margen bajo» o «Rinde». **Se elimina el veredicto «Plata parada»** (y `PARADO_PCT`): lo cubre «Rota lento», y la plata sin vender sigue a la vista en su columna.
 3. **`fn_proveedores_rendimiento` devuelve dos columnas más** (migración `20261024234000_proveedores_rendimiento_con_ritmo.sql`): `primera_entrada` y `unidades_en_estantes`, que son lo que necesita el ritmo. Solo lectura, misma llave. Con la web nueva y la base de antes, esas dos columnas no llegan y el veredicto no mide el ritmo (cae a lo demás): nada se rompe.
 4. **Prueba de que no se contradicen** (`lib/proveedor-analisis-reglas.test.ts`, «UNA SOLA REGLA»): para seis conjuntos de prendas (Lasak, sin ventas, recién llegado, vende rápido, justo en el umbral, poca mercadería), el aviso «frenar» sale si y solo si el veredicto dice «Rota lento».
+
+## Actualización 2026-10-26 (e): las tallas que se llevan y cómo le va en cada sede
+
+**El problema:** la ficha decía cuánto se le compró a un proveedor y cuánto se vendió, pero no qué tallas se llevan (para pedirle mejor repartido, no solo menos) ni en qué sede se venden (lo que en Trujillo tarda una temporada, en Lima puede agotarse en un mes). Felipe pidió las dos cosas el 2026-10-26.
+
+**Lo que decidió Felipe (2026-10-26), entre opciones con lo que se gana y lo que se paga:**
+1. **Tallas: la misma regla que Análisis** (`curvaDeTallas`, «Las tallas que se llevan»). Una talla «pide más» si pesa 4 puntos más en lo que vendes que en lo que tienes, y «sobra» si es al revés. El aviso sale con `MIN_VENDIDAS` (10) vendidas del proveedor o más. Cuenta todo lo vendido desde que llegó su ropa, como el resto de la ficha. «Lo que tienes» es todo su stock: tiendas, almacén y Taller.
+2. **Sede: «rinde» se mide con el mismo ritmo que el ranking** (`ritmoDeDatos`): semanas que tardaría en venderse lo que queda EN esa sede. Cada tienda cuenta desde que le llegó su primera prenda de ese proveedor, con los mismos 20 unidades y 21 días para medir. Sale «Se agotó», «Se agota», «Rota lento», «Va bien» o «Aún no se mide».
+3. **Traslado sugerido con cantidad.** Si una tienda va lenta (16 semanas o más) y otra no tiene para `SEMANAS_COBERTURA_TRASLADO` semanas, se sugiere llevar lo que le falta a la segunda, sin dejar a la primera por debajo de sus propias semanas. Solo se cuentan prendas que la segunda ya vende, empezando por las tallas que más vende. Solo se sugiere: el traslado lo hace una persona en Traslados.
+
+**Los dos números del traslado (propuestos en la sesión y confirmados por Felipe el 2026-10-26; se cambian en un solo lugar, `lib/proveedor-tallas-sedes-reglas.ts`):** `SEMANAS_COBERTURA_TRASLADO = 8` (dos meses de venta que cada tienda se guarda o recibe) y `MIN_TRASLADO = 3` (menos no vale el viaje).
+
+**Cómo:** `fn_proveedor_tallas_sedes(p_proveedor_id)` (migración `20261026193000`, solo lectura, misma llave `fn_ve_plata_de_proveedores()`) devuelve una fila por (prenda, talla, sede): lo vendido neto en esa sede (la misma cuenta de `movimientos` que `fn_proveedor_prendas_base`, por la sede del movimiento), lo que hay hoy y el día en que llegó por primera vez. Las prendas son las mismas que cuenta «Lo que le compré», así la ficha no se contradice. Las cuentas son puras y probadas (`lib/proveedor-tallas-sedes-reglas.test.ts`). Los avisos de tallas y de traslado se suman a «Lo que quizá no ves» con los de lo comprado (`juntarHallazgos`, máximo 5, los más importantes primero).
+
+**Lo que no hace:** no escribe nada ni arma el traslado. No separa por categoría la curva: si un proveedor vende letras (S·M·L) y números (28·30), se compara el sistema que más pesa y la nota lo dice, como en Análisis. No está en la lista de proveedores, solo en la ficha.
+
+**Producción:** pegada el 2026-10-26 (renumerada `20261026193000`; aplicada como `20261026202502`), junto con el reparto entre proveedores que la reemplaza (ADR-0521 act. (c)).
+
+## Actualización 2026-10-26: la lista pasa a ser un ranking (ADR-0521)
+
+El punto 3 («Lista: A quién le compro y qué me deja», con su veredicto en una palabra) lo reemplaza el **ranking de la pestaña Mercadería**
+del ADR-0521: del que más le compras al que menos, por prendas o por dinero, con el ritmo en cuatro palabras, la línea de ventas por día y,
+a la derecha, «Lo que no se ve a simple vista». `ProveedoresRendimiento.tsx` se borró. Las cuentas son las mismas de este ADR
+(`rankingDeProveedores`, `veredictoDe`, `ritmoDeDatos`): el veredicto sigue explicando la insignia en su «¿por qué?».

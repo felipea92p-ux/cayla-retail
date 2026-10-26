@@ -82,9 +82,12 @@ describe("tokens de color: claro, oscuro y papel fijo dicen lo mismo", () => {
     for (const n of FIJOS) expect(oscuro[n], `--color-${n} no va en el bloque oscuro`).toBeUndefined();
   });
 
-  it("el oscuro es el claro con `tinta` y `crema` intercambiadas (la idea que hace que 5.600 usos se inviertan solos)", () => {
-    expect(oscuro.crema).toBe(claro.tinta); // el fondo es la tinta de siempre: #1a1a18, la que aprobó Felipe en el Observatorio
-    expect(oscuro.tinta).toBe(claro.crema); // y el texto, la crema
+  it("el oscuro invierte los papeles del claro: el texto es la crema y el fondo ocupa el lugar de la tinta (la idea que hace que 5.600 usos se inviertan solos)", () => {
+    expect(oscuro.tinta).toBe(claro.crema); // el texto, la crema
+    // El fondo era la tinta de siempre (#1a1a18, la que aprobó Felipe en el Observatorio). Desde el 2026-10-26 (P1 de la familia CAYLA,
+    // opción C) es un negro cálido con la MISMA claridad: no se distingue de la tinta por luminancia, solo por el matiz.
+    expect(Math.abs(luminancia(oscuro.crema) - luminancia(claro.tinta))).toBeLessThan(0.002);
+    expect(oscuro.crema).not.toBe(claro.tinta);
   });
 
   it("las superficies oscuras suben en orden: crema < papel < hueso < sand (elevado = más claro)", () => {
@@ -237,6 +240,22 @@ describe("modo oscuro: contraste medido", () => {
     expect(c).toBeGreaterThan(1.2);
     expect(c).toBeLessThan(1.8);
   });
+});
+
+// P2 de la familia CAYLA (2026-10-26, Felipe eligió la opción C): el borde de lo que se toca o se escribe tiene que identificar al control
+// (WCAG 1.4.11: 3:1 contra lo que lo rodea), y la línea decorativa (`sand`) no. Se mide sobre las tres superficies donde vive un campo, en los dos temas.
+describe("el borde de un control (`borde-control`): 3:1 sobre crema, papel y hueso, en claro y en oscuro", () => {
+  for (const [nombre, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
+    for (const s of ["crema", "papel", "hueso"] as const) {
+      it(`${nombre}: borde-control sobre ${s}: ≥ 3`, () => {
+        expect(contraste(t["borde-control"], t[s])).toBeGreaterThanOrEqual(3);
+      });
+    }
+    it(`${nombre}: la línea decorativa (sand) NO identifica un control: < 3 sobre papel, y borde-control es otro color`, () => {
+      expect(contraste(t.sand, t.papel)).toBeLessThan(3);
+      expect(t["borde-control"]).not.toBe(t.sand);
+    });
+  }
 });
 
 describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y sobre qué fondo vive, y se mide", () => {

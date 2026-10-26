@@ -23,6 +23,9 @@ import {
 
 const conRegistrar = (href: string) => `${href}${href.includes("?") ? "&" : "?"}registrar=1`;
 
+/** El lugar de la barra donde una pantalla puede colgar su propio ajuste, junto al mes. */
+export const SLOT_AJUSTES_RESUMEN = "slot-ajustes-resumen";
+
 export type SubmoduloTelar = { clave: string; etiqueta: string; ruta: string };
 
 /**
@@ -110,6 +113,8 @@ export function MesaDeMando({
           onCambiar={(x) => router.push(aqui({ mes: mesTelar(x.anio, x.mes) }), { scroll: false })}
           guia="telar.mes"
         />
+        {/* El Resumen cuelga aquí su ícono «Qué se ve» (`AjustesResumen`): solo esa pantalla lo dibuja, el resto de Finanzas no. */}
+        <span id={SLOT_AJUSTES_RESUMEN} className="contents" />
         {puedeElegir && (
           <span className="mesa-telar-dice" role="status" title={dicho}>
             {dicho}

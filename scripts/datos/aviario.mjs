@@ -89,6 +89,10 @@ export const AVIARIO = [
       // rige en todas. Se edita desde la pantalla de Campañas, junto a la etiqueta y su diseño, que son de Loro; la caja solo la lee por
       // `campanas_vigentes(sede)`, como lee `etiquetas`. Asignada en el refresco del volcado del 2026-10-23.
       "campana_sedes",
+      // ADR-0488 (Configuración de una campaña, 20261023232000): las ofertas de una campaña (un % menos con fechas, días y, si se quiere, solo
+      // algunas categorías o sedes) y cómo estaban antes de cada cambio. Se manejan desde la hoja «Configuración» de Catálogo ▸ Insignias, junto
+      // a la etiqueta y su diseño, que son de Loro. Asignadas en el refresco del volcado del 2026-10-26.
+      "campana_reglas", "campana_regla_categorias", "campana_regla_sedes", "campana_regla_historial",
       // ADR-0463: la empresa a la que pertenece cada prenda (CAYLA o CLAURE) y en qué sedes opera cada una. La empresa es un dato del producto,
       // no de la marca ni de la factura (que sale siempre con el RUC de CAYLA): lo maneja quien responde por el catálogo. En producción desde
       // el 2026-10-20; las asignó el refresco del volcado del 2026-10-21.
@@ -119,6 +123,14 @@ export const AVIARIO = [
       // aviso. Son de la recepción del envío, como `despacho_recibidos`: el pájaro del stock. Están en producción desde el 2026-10-14; las
       // asignó el refresco del volcado del 2026-10-15.
       "despacho_conteos", "despacho_pendientes", "despacho_separaciones", "despacho_cierres", "despachos_sin_aviso",
+      // ADR-0507: lo que la persona vio al contar un envío (prenda rota, faltante, manchada…): es de la recepción del envío, como
+      // `despacho_conteos`. Asignada en el refresco del volcado del 2026-10-26.
+      "despacho_observaciones",
+      // ADR-0515: la corrección que un líder hace al costo de lo que llegó en la ÚLTIMA compra de una prenda (solo se agrega). Cuelga de una
+      // fila de `costo_historial` —el libro del costo de lo que entró al stock, de este mismo pájaro— y no la reemplaza: la lee
+      // `fn_costo_historial_efectivo`. Se corrige desde la pestaña «Costo» del Historial de la prenda (Catálogo), pero el dato es del costo
+      // del stock, como `costo_historial`. En producción desde el 2026-10-26.
+      "costo_correcciones",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
       // Análisis v4 (ADR-0357, 20261006216000): «Liquidar desde», un número para toda la red (lo mueve quien ve Análisis).
@@ -207,6 +219,15 @@ export const AVIARIO = [
       "pedidos_web", "pedido_web_lineas", "pedido_web_pagos",
       "cuentas_web", "cuentas_web_pendientes", "cuentas_web_cambios_correo", "cuentas_web_intentos_clave", "cuentas_web_visitas",
       "favoritos_web", "esperas_web", "recomendaciones_web", "configuracion_tienda_web", "ubicacion_datos_web",
+      // ADR-0518 (Tienda web ▸ Conf. Tienda): el horario por días de cada tienda en la web y los días que no abre. Son de la tienda web, como
+      // `ubicacion_datos_web`. Asignadas en el refresco del volcado del 2026-10-26.
+      "ubicacion_horario_web", "ubicacion_cierres_web",
+      // ADR-0495 (Tienda web ▸ Tráfico): cada paso anónimo de una persona en la tienda online (entró, vio prenda, eligió talla, bolsa,
+      // separó), solo se agrega. Cuenta el embudo de los pedidos web: el mismo pájaro. Asignada en el refresco del volcado del 2026-10-26.
+      "trafico_web",
+      // ADR-0511 (paso 2): los tickets de Vender compartidos por la tienda (de una MacBook a un celular). Son del mostrador, como `ventas`.
+      // Asignada en el refresco del volcado del 2026-10-26.
+      "tickets_abiertos",
       // ADR-0008: la huella de las lecturas del padrón de la última hora, con que la base exige que el nombre de una ficha con DNI sea
       // el del padrón (20261015133000). Cuida `clientas.nombre`. Refresco del volcado del 2026-10-16.
       "padron_lecturas",
@@ -283,7 +304,10 @@ export const AVIARIO = [
       // (`fondo_plata_anotada`: nace «por confirmar» y Compras la confirma en «Revisar compras»). Todas se leen y escriben desde las pantallas de
       // Compras. Al confirmar una plata, la entrega al fondo pasa por `entregar_fondo` y escribe en los libros de Garza, pero escribir allí no
       // hace a Compras dueño de ellos (como escribir en `movimientos`). Asignadas en el refresco del volcado del 2026-10-23.
-      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada"] },
+      "compra_papeles", "compra_gastos", "compra_cierres", "compra_item_recibido_antes", "fondo_plata_anotada",
+      // ADR-0480: la ronda de compras de una compradora (RC-000001): la abre, anota sus compras y gastos y la cierra. Se maneja desde
+      // Compras. Asignada en el refresco del volcado del 2026-10-26.
+      "compra_rondas"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
     tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
       // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de
@@ -311,7 +335,10 @@ export const AVIARIO = [
       // ADR-0400 (act. k y l): lo que se marcó «hecho» en una fase que no cuenta prendas (Ploteo). Es de las fases: el mismo pájaro.
       // Asignada en el refresco del volcado del 2026-10-21.
       "produccion_fase_marcas",
-      "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas"] },
+      "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas",
+      // ADR-0513: los avíos de un modelo y lo que de verdad se gastó por orden cerrada (lo declarado vive en `producto_consumos`). Los propone
+      // «Nueva orden» y los escribe `cerrar_produccion`: Producción. Asignadas en el refresco del volcado del 2026-10-26.
+      "producto_avios", "producto_consumo_medido"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la

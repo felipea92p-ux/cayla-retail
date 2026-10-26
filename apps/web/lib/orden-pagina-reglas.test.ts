@@ -396,6 +396,19 @@ describe("la tela", () => {
     expect(filasDeTela(conUso)[0]).toMatchObject({ usado: "20 m", alcanza: false, faltan: "25.6 m" });
     expect(filasDeTela(conUso.map((i) => ({ ...i, saldo: 60 })))[0].alcanza).toBe(true);
   });
+  it("cada fila dice si es tela o avío, y la tela va primero aunque el avío esté antes en la base", () => {
+    const [tela, avio] = orden().insumos;
+    const alReves = [avio, tela];
+    expect(filasDeTela(alReves).map((f) => [f.nombre, f.tipo])).toEqual([["Gabardina · negro", "tela"], ["Botón", "avio"]]);
+  });
+  it("un avío de UN color dice su color en el nombre, y el mismo avío en dos colores es una sola fila con el detalle", () => {
+    const [, boton] = orden().insumos;
+    const deUnColor = { ...boton, colorCodigo: "BEI", colorNombre: "Beige" };
+    expect(filasDeTela([deUnColor])[0]).toMatchObject({ nombre: "Botón · beige", tipo: "avio" });
+    const dosColores = [deUnColor, { ...boton, id: "pi-b", colorCodigo: "NEG", colorNombre: "Negro" }];
+    expect(filasDeTela(dosColores)).toHaveLength(1);
+    expect(filasDeTela(dosColores)[0].detalle).toContain("beige");
+  });
   it("una tela y un avío son dos filas", () => {
     expect(filasDeTela(orden().insumos).map((f) => f.nombre)).toEqual(["Gabardina · negro", "Botón"]);
   });
@@ -1145,5 +1158,23 @@ describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toqu
     for (const hint of ["fase_no_es_hito", "marca_ya_hecha", "marca_inexistente", "fase_es_hito"]) expect(sql, hint).toContain(`hint = '${hint}'`);
     expect(sql).toContain("then 'marca' else 'desmarca'");
     expect(sql).toContain("'hito', true, 'marcada', v_empezada");
+  });
+});
+
+// ---------- Consumo por talla en la página de la orden (ADR-0513, actividad 2) ----------
+
+describe("la tela de la orden con consumo por talla", () => {
+  const lino = (extra: Record<string, unknown>) => ({ id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: "NEG", consumo_por_prenda: 1.333, cantidad_plan: 42, usado: 0, saldo: 100, ...extra });
+  it("lee `consumo_por_talla` como un mapa de números; lo que no es objeto, o no se lee, queda en null (una cifra para todas las tallas)", () => {
+    expect(orden({ insumos: [lino({ consumo_por_talla: { S: 1, M: "1.5" } })] }).insumos[0].consumoPorTalla).toEqual({ S: 1, M: 1.5 });
+    expect(orden({ insumos: [lino({ consumo_por_talla: null })] }).insumos[0].consumoPorTalla).toBeNull();
+    expect(orden({ insumos: [lino({})] }).insumos[0].consumoPorTalla).toBeNull();
+    expect(orden({ insumos: [lino({ consumo_por_talla: [1, 2] })] }).insumos[0].consumoPorTalla).toBeNull();
+    expect(orden({ insumos: [lino({ consumo_por_talla: { S: "x", M: 0 } })] }).insumos[0].consumoPorTalla).toBeNull();
+  });
+  it("la sección Tela de la orden dice lo que lleva cada talla, de la más chica a la más grande, en vez de un promedio", () => {
+    const fila = filasDeTela(orden({ insumos: [lino({ consumo_por_talla: { M: 1.5, S: 1 } })] }).insumos)[0];
+    expect(fila.detalle).toBe("S 1 m · M 1.5 m por prenda");
+    expect(filasDeTela(orden({ insumos: [lino({})] }).insumos)[0].detalle).toBe("1.33 m por prenda");
   });
 });

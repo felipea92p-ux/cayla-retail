@@ -1,0 +1,157 @@
+/* Maquetas de Compras ▸ Proveedores (2026-10-26) — base común de las tres direcciones.
+   Paleta oficial «CAYLA Dynamic» (ADR-0169) y su modo oscuro (ADR-0336): los mismos valores que apps/web/app/globals.css
+   y apps/web/app/estilos/tema.css, incluidos los colores de sede (dato, no adorno).
+   Movimiento de ADR-0136: --ease-cayla, sin rebote, una sola vez al llegar. Todo se apaga con prefers-reduced-motion. */
+
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0;
+  --tinta:#1a1a18; --taupe:#805c4c; --rojo:#b8412d; --rojo-p:#8b2a1f;
+  --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+  --g-alza:#48603f; --g-neutro:#d3c8b4; --g-baja:#a8741f;
+  --sede-tru:#2f6aa3; --sede-aqp:#c26a2e; --sede-lim:#1d8a72; --sede-tal:#8a4fa8;
+  --sombra:#1a1a18;
+  --ease-cayla:cubic-bezier(0.32,0.72,0.24,1);
+  --serif:"EB Garamond",ui-serif,Georgia,serif;
+  --sans:"DM Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --radio:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+    --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-p:#f29a86;
+    --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd;
+    --g-alza:#7fb36d; --g-neutro:#7a7467; --g-baja:#d9a441;
+    --sede-tru:#4f8ad0; --sede-aqp:#d27b3c; --sede-lim:#2fa585; --sede-tal:#a26cc6;
+    --sombra:#000000; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+  --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-p:#f29a86;
+  --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd;
+  --g-alza:#7fb36d; --g-neutro:#7a7467; --g-baja:#d9a441;
+  --sede-tru:#4f8ad0; --sede-aqp:#d27b3c; --sede-lim:#2fa585; --sede-tal:#a26cc6;
+  --sombra:#000000; color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.005em}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.tenue{color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.taupe{color:var(--taupe)}
+.versalita{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.serif{font-family:var(--serif)}
+
+/* ---------- Barra de la maqueta (no es parte del diseño propuesto) ---------- */
+.mq-barra{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;
+  padding:10px clamp(16px,3vw,40px);background:color-mix(in srgb,var(--crema) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--sand)}
+.mq-titulo{font-family:var(--serif);font-size:19px;margin-right:auto}
+.mq-titulo small{font-family:var(--sans);font-size:12px;color:var(--taupe);margin-left:8px}
+.mq-seg{display:inline-flex;background:var(--hueso);border-radius:999px;padding:3px;gap:2px}
+.mq-seg button{border:0;background:transparent;border-radius:999px;padding:6px 13px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--taupe);
+  transition:background .25s var(--ease-cayla),color .2s}
+.mq-seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.mq-tema{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 13px;font-size:12.5px}
+.mq-nota{padding:14px clamp(16px,3vw,40px) 0;font-size:13px;color:var(--taupe);max-width:120ch}
+.mq-nota b{color:var(--tinta);font-weight:600}
+
+/* ---------- Página (ancho completo, ADR-0462) ---------- */
+.pagina{padding:26px clamp(16px,3vw,40px) 72px;display:flex;flex-direction:column;gap:26px}
+
+/* ---------- EncabezadoPagina ---------- */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px 32px;flex-wrap:wrap}
+.cab-izq{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1 1 420px}
+.linea-sede{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--taupe)}
+.linea-sede::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.cab h1{font-size:clamp(34px,5vw,46px);line-height:1.02}
+.cab .frase{font-size:15.5px;max-width:66ch;color:color-mix(in srgb,var(--tinta) 72%,transparent)}
+.cab-der{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.volver{width:32px;height:32px;border-radius:50%;border:1px solid var(--sand);background:var(--papel);display:inline-grid;place-items:center;color:var(--tinta);
+  transition:border-color .2s}
+.volver svg{transition:transform .25s var(--ease-cayla)}
+@media (hover:hover){.volver:hover{border-color:var(--tinta)}.volver:hover svg{transform:translateX(-3px)}}
+.cab-pie{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+
+/* ---------- Botones (btn-cayla) ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:0 16px;height:40px;font-size:13.5px;border:1px solid transparent;
+  transition:transform .25s var(--ease-cayla),box-shadow .25s var(--ease-cayla),background .2s}
+.btn.versal{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+.btn-secundario{background:var(--papel);border-color:var(--sand);color:var(--tinta)}
+@media (hover:hover){
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--sombra) 45%,transparent)}
+  .btn-primario:hover{background:var(--rojo-p)}
+}
+.enlace{color:var(--rojo-p);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--rojo-p) 35%,transparent);text-underline-offset:3px;background:none;border:0;padding:0}
+.ver{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--rojo-p);background:none;border:0;padding:0}
+.ver svg{transition:transform .25s var(--ease-cayla)}
+@media (hover:hover){.ver:hover svg{transform:translateX(4px)}}
+
+/* ---------- Chip ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;white-space:nowrap}
+.chip.punto::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.frase{text-transform:none;letter-spacing:0;font-size:12px;font-weight:500}
+.chip-neutro{background:var(--sand);color:var(--taupe)}
+.chip-verde{background:color-mix(in srgb,var(--verde) 15%,transparent);color:var(--verde)}
+.chip-ambar{background:color-mix(in srgb,var(--ambar) 15%,transparent);color:var(--ambar)}
+.chip-pizarra{background:color-mix(in srgb,var(--pizarra) 15%,transparent);color:var(--pizarra)}
+.chip-rojo{background:color-mix(in srgb,var(--rojo) 10%,transparent);color:var(--rojo-p)}
+.chip-nuevo{background:transparent;color:var(--pizarra);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pizarra) 45%,transparent);text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:500}
+
+/* ---------- Tarjeta (card-cayla) y TarjetaCifra ---------- */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio)}
+.cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:14px 16px 15px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cifra .et{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--taupe);display:flex;align-items:center;gap:7px}
+.cifra .et i{width:6px;height:6px;border-radius:50%;background:var(--c,var(--taupe));display:inline-block}
+.cifra .v{font-family:var(--serif);font-size:28px;line-height:1.15}
+.cifra .d{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+
+/* ---------- Título de sección ---------- */
+.ts{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ts h2{font-size:21px;display:inline-flex;align-items:center;gap:8px}
+.globito{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:999px;background:var(--sand);color:var(--taupe);font-family:var(--sans);font-size:11px;font-weight:600;padding:0 6px}
+.ts .dato{font-size:13px;color:var(--taupe)}
+
+/* ---------- Nota (nota-cayla) ---------- */
+.nota{background:var(--hueso);border-radius:12px;padding:12px 16px 12px 40px;font-size:13px;position:relative;color:color-mix(in srgb,var(--tinta) 80%,transparent);max-width:120ch}
+.nota::before{content:"i";position:absolute;left:14px;top:12px;width:16px;height:16px;border-radius:50%;border:1px solid var(--taupe);color:var(--taupe);font-family:var(--serif);font-style:italic;font-size:12px;display:grid;place-items:center;line-height:1}
+
+/* ---------- BarraApilada / BarraAvance ---------- */
+.apilada{display:flex;gap:2px;height:var(--alto,8px);border-radius:999px;overflow:hidden;background:var(--hueso)}
+.apilada>i{display:block;height:100%;background:var(--c);flex:0 0 var(--w);border-radius:2px}
+.avance{height:var(--alto,6px);border-radius:999px;background:var(--hueso);overflow:hidden}
+.avance>i{display:block;height:100%;width:var(--w);background:var(--c,var(--tinta));border-radius:999px}
+.muestra{display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:-1px}
+
+/* ---------- Hueco reservado para lo que construye la otra sesión ---------- */
+.nuevo{position:relative}
+.nuevo-marca{position:absolute;top:10px;right:12px}
+
+/* ---------- Movimiento (ADR-0136): una vez al llegar, sin rebote, sin bucle ---------- */
+@keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes crece-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes crece-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes funde{from{opacity:0}to{opacity:1}}
+@keyframes dibuja{from{stroke-dashoffset:var(--largo,1000)}to{stroke-dashoffset:0}}
+@keyframes asoma{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+[data-anim]{opacity:0}
+[data-anim].visto{opacity:1}
+[data-anim=""].visto,[data-anim]:not([data-anim="x"]):not([data-anim="y"]):not([data-anim="funde"]):not([data-anim="asoma"]):not([data-anim="dibuja"]):not([data-anim="cae"]).visto{animation:entra .62s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 55ms)}
+[data-anim="x"].visto{animation:crece-x .9s var(--ease-cayla) both;transform-origin:left center;animation-delay:calc(var(--i,0) * 55ms + 120ms)}
+[data-anim="y"].visto{animation:crece-y .8s var(--ease-cayla) both;transform-origin:center bottom;animation-delay:calc(var(--i,0) * 45ms + 120ms)}
+[data-anim="funde"].visto{animation:funde .7s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 55ms)}
+[data-anim="asoma"].visto{animation:asoma .55s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 40ms + 200ms);transform-box:fill-box;transform-origin:center}
+[data-anim="dibuja"]{opacity:1;stroke-dasharray:var(--largo,1000);stroke-dashoffset:var(--largo,1000)}
+[data-anim="dibuja"].visto{animation:dibuja 1.2s var(--ease-cayla) both;animation-delay:calc(var(--i,0) * 70ms + 150ms)}
+@media (prefers-reduced-motion:reduce){
+  [data-anim],[data-anim].visto{animation:none!important;opacity:1!important;transform:none!important;stroke-dashoffset:0!important}
+  *{transition:none!important}
+}
+@media print{[data-anim]{opacity:1!important}}
+@media (max-width:640px){.mq-barra{position:static;padding-block:8px}.mq-titulo small{display:none}.mq-seg button{padding:5px 10px}}

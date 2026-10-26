@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
+import { leerEnvioSalido, type EnvioSalido } from "@/lib/mis-envios-reglas";
 import { leerErrorStorage, objecionArchivo, tipoDeArchivo } from "@/lib/adjuntos-compra";
 import { BUCKET_FOTOS_GASTO_VIAJE } from "@/lib/rendicion-reglas";
 import {
@@ -51,7 +52,8 @@ async function subirFoto(archivo: File, carpeta: string): Promise<{ ruta: string
 }
 
 export function anotarPlata(
-  args: { p_medio: MedioPlata; p_monto: number; p_foto_ruta: string | null },
+  // `p_cuenta_indicada_id` solo viaja con una transferencia: sin él la llamada es la de siempre (la web puede publicarse antes que la base).
+  args: { p_medio: MedioPlata; p_monto: number; p_foto_ruta: string | null; p_cuenta_indicada_id?: string },
   firma: Firma | FirmaOmitida | null,
   token: string,
   senal: AbortSignal,
@@ -81,9 +83,10 @@ export async function registrarGastoRapido(
 export async function mandarATienda(
   args: { p_destino_id: string; p_bultos: number; p_token: string },
   firma: Firma | FirmaOmitida | null,
-): Promise<{ error: ErrorDeBase }> {
-  const { error } = await firmar(createClient().rpc(RPC_MANDAR_A_TIENDA as never, args as never), firma);
-  return { error: error ?? null };
+): Promise<{ error: ErrorDeBase; envio: EnvioSalido | null }> {
+  const { data, error } = await firmar(createClient().rpc(RPC_MANDAR_A_TIENDA as never, args as never), firma);
+  // Lo que salió (su código) sirve para mostrarlo apenas sale; un envío repetido por un corte de red devuelve el mismo.
+  return { error: error ?? null, envio: error ? null : leerEnvioSalido(data) };
 }
 
 /** Abre la ronda de compras de quien la toca (o devuelve la que ya tenía abierta: dos toques no abren dos). */

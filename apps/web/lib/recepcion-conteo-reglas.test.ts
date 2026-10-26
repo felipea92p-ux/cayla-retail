@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   SEPARADO_VACIO,
+  claveCostoDeNueva,
+  costoDePrendaTexto,
+  costosDePrendaConProblema,
+  prendasConCosto,
+  unidadesSinIdentificar,
+  costosPropiosParaCerrar,
   argsGuardarConteo,
   argsResolverPendiente,
   cambiarCantidadPrenda,
@@ -20,6 +26,10 @@ import {
   faltaParaCerrar,
   leerConteosDelEnvio,
   leerCostoCierre,
+  leerPrecioNuevo,
+  cambioDePrecioDeCompra,
+  cambioDePrecioDeVenta,
+  textoCambioDePrecio,
   leerGuardado,
   leerPendientesDeLaSede,
   leerResuelto,
@@ -49,6 +59,8 @@ import {
   describirNuevas,
   quitarNuevaDescrita,
   cambiarCantidadNuevaDescrita,
+  prendaCreadaDeNueva,
+  BOTON_DE_PENDIENTE,
   veredictoDeLaBalanza,
   subtitulosDelRiel,
   insigniaDelEnvio,
@@ -431,6 +443,71 @@ describe("maqueta A: «Describir ahora» las nuevas", () => {
   });
 });
 
+describe("«Crear ahora» una nueva ya descrita: de «por crear» a prenda conocida", () => {
+  const CREADA = { productoId: "p-lazo", nombre: "Blusa lazo", codigo: "BLU-0042" };
+  const conUnaDescrita = () => describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 5), "Blusa con lazo, rosada", 3);
+
+  it("pasa a prenda sin tallas con las mismas cantidades: lo contado ni cambia ni se pierde", () => {
+    const s = conUnaDescrita();
+    const r = prendaCreadaDeNueva(s, "Blusa con lazo, rosada", CREADA);
+    expect(r.nuevas).toEqual([{ cantidad: 2, descripcion: null }]);
+    expect(r.prendas).toEqual([{ ...CREADA, cantidad: 3, variantes: null }]);
+    expect(totalSeparado(r)).toBe(totalSeparado(s));
+    expect(detalladas(r)).toBe(0);
+  });
+
+  it("ya creada, se detalla como cualquier prenda separada y entra al stock", () => {
+    const r = prendaCreadaDeNueva(conUnaDescrita(), "Blusa con lazo, rosada", CREADA);
+    const v = { varianteId: "v1", cantidad: 3, danadas: 0, solucion: null, talla: "S", color: "Rosado", codigo: "BLU-0042-S-ROS" };
+    const d = ponerTallas(r, CREADA.productoId, CREADA, [v]);
+    expect(d.prendas[0]?.variantes).toEqual([v]);
+    expect(detalladas(d)).toBe(3);
+  });
+
+  it("si esa prenda ya estaba separada (usó una que ya existía), se juntan: una prenda va una sola vez", () => {
+    const s = sumarPrenda(conUnaDescrita(), CREADA, 2);
+    const r = prendaCreadaDeNueva(s, "Blusa con lazo, rosada", CREADA);
+    expect(r.prendas).toEqual([{ ...CREADA, cantidad: 5, variantes: null }]);
+    expect(totalSeparado(r)).toBe(totalSeparado(s));
+  });
+
+  it("una descripción que no está en lo separado no toca nada", () => {
+    const s = conUnaDescrita();
+    expect(prendaCreadaDeNueva(s, "Otra cosa", CREADA)).toBe(s);
+    expect(prendaCreadaDeNueva(SEPARADO_VACIO, "Blusa con lazo, rosada", CREADA)).toBe(SEPARADO_VACIO);
+  });
+
+  it("lo que se guarda en la base lleva la prenda y ya no la nueva; la base no ve la descripción", () => {
+    const r = prendaCreadaDeNueva(describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 3), "Blusa con lazo, rosada", 3), "Blusa con lazo, rosada", CREADA);
+    expect(separadoParaBase(r)).toEqual({ prendas: [{ producto_id: "p-lazo", cantidad: 3, variantes: null }], nuevas: [] });
+  });
+});
+
+describe("el botón de cada fila de «Para después»", () => {
+  it("cada tipo dice lo que hace: crear, tallas y colores, o el genérico de separar", () => {
+    expect(BOTON_DE_PENDIENTE).toEqual({ separar: "Hacer ahora", detalle: "Tallas y colores ahora", crear: "+ Crear ahora" });
+  });
+
+  it("cubre todos los tipos que paraDespues puede devolver", () => {
+    const l = {
+      clave: "item:1",
+      linea: { id: "1" },
+      categoria: { nombre: "Blusas" },
+      marca: { nombre: "CAYLA" },
+      conteo: {
+        sinSeparar: 2,
+        pendientes: [
+          { id: "p1", tipo: "detalle", estado: "pendiente", quedan: 3, producto: { id: "x", nombre: "Emma" }, descripcion: null },
+          { id: "p2", tipo: "crear", estado: "pendiente", quedan: 1, producto: null, descripcion: "Top" },
+        ],
+      },
+    } as unknown as LineaParaContar;
+    const tipos = paraDespues([l]).map((p) => p.tipo);
+    expect(new Set(tipos)).toEqual(new Set(["separar", "detalle", "crear"]));
+    for (const t of tipos) expect(BOTON_DE_PENDIENTE[t]).toBeTruthy();
+  });
+});
+
 describe("maqueta A: lo que queda para después, línea por línea", () => {
   it("una frase por cosa: la prenda sin tallas, las nuevas y lo sin separar; nada si todo entra", () => {
     const l = (o: Record<string, unknown>): LineaParaContar => ({
@@ -722,5 +799,116 @@ describe("lista aparte (2026-10-14): «Llegó esta semana» cuenta lo guardado s
     expect(textoGuardadoEstaSemana({ envios: 1, prendas: 118 }, "Tienda Trujillo", false)).toMatch(/no entró nada al stock de Tienda Trujillo, pero llegaron 118 prendas/);
     expect(textoGuardadoEstaSemana({ envios: 1, prendas: 1 }, "Tienda Trujillo", true)).toMatch(/^Además llegaron 1 prenda que/);
     expect(textoGuardadoEstaSemana({ envios: 0, prendas: 0 }, "Tienda Trujillo", false)).toBeNull();
+  });
+});
+
+describe("precio de venta desde la recepción", () => {
+  it("lee el precio: vacío aún no es un problema; cero, mal escrito y sobre el tope sí", () => {
+    expect(leerPrecioNuevo("")).toEqual({ valor: null, problema: null });
+    expect(leerPrecioNuevo("159.90").valor).toBe(159.9);
+    expect(leerPrecioNuevo("159,90").valor).toBe(159.9);
+    expect(leerPrecioNuevo("0").problema).toMatch(/mayor que cero/);
+    expect(leerPrecioNuevo("abc").problema).toMatch(/solo con números/);
+    expect(leerPrecioNuevo("5000.01").problema).toMatch(/hasta/);
+    expect(leerPrecioNuevo("5000").valor).toBe(5000);
+  });
+  it("detecta el cambio de compra y de venta, y dice qué cambió y dónde", () => {
+    expect(cambioDePrecioDeCompra("Blusas", "18.50", "18.50")).toBeNull();
+    expect(cambioDePrecioDeCompra("Blusas", "18.50", "19.80")).toMatchObject({ tipo: "compra", antes: 18.5, despues: 19.8 });
+    expect(cambioDePrecioDeCompra("Blusas", "", "19.80")).toMatchObject({ antes: null, despues: 19.8 });
+    expect(cambioDePrecioDeCompra("Blusas", "18.50", "abc")).toBeNull();
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "149.90", "todas")).toBeNull();
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "159.90", "sede")).toMatchObject({ tipo: "venta", antes: 149.9, despues: 159.9, alcance: "sede" });
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "", "todas")).toBeNull();
+    expect(cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "75", "todas")).toMatchObject({ antes: null, despues: 75 });
+    expect(cambioDePrecioDeVenta("Ivana", undefined, "75", "todas")).toBeNull();
+    expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: 149.9, despues: 159.9, alcance: "todas" }, "Tienda Lima")).toBe("S/\u00a0149.90 → S/\u00a0159.90 · todas las sedes");
+    expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: null, despues: 89.9, alcance: "sede" }, "Tienda Lima")).toBe("sin precio → S/\u00a089.90 · solo Tienda Lima");
+    expect(textoCambioDePrecio({ tipo: "compra", nombre: "Blusas", antes: 18.5, despues: 19.8, alcance: null }, "Tienda Lima")).toBe("S/\u00a018.50 → S/\u00a019.80");
+  });
+});
+
+describe("ADR-0519: el costo propio de cada prenda al cerrar", () => {
+  // Una línea de 10 contadas con dos prendas ya identificadas: Sofía (6) y Antonella (4); el costo de la línea, S/ 58.
+  const sofia = { producto_id: "p-sofia", nombre: "Vestido Sofía", codigo: "VES-1", cantidad: 6 };
+  const antonella = { producto_id: "p-antonella", nombre: "Vestido Antonella", codigo: "VES-2", cantidad: 4 };
+  const lineaCon = (extraCrudo: Record<string, unknown> = {}): LineaParaContar => {
+    const c = leerConteosDelEnvio({
+      despacho_id: "d",
+      conteos: [conteoCrudo({ despacho_item_id: "i1", contadas: 10, costo_unitario: 58, separado: { prendas: [sofia, antonella], nuevas: [] }, ...extraCrudo })],
+    })?.conteos[0] ?? null;
+    return { clave: "item:i1", linea: linea("i1", 10), conteo: c, categoria: CAT, marca: MARCA, proveedor: PROV, dijeron: 10 };
+  };
+  const dec = (o: Partial<DecisionCierre> = {}): DecisionCierre => ({ costo: "58.00", confirmaCosto: false, faltanteCausa: null, sobranteCausa: null, nota: "", ...o });
+
+  it("la lectura del conteo trae el costo propio de las prendas; sin él (o con basura), nada", () => {
+    expect(lineaCon({ costos_prendas: { "p-sofia": 55.5, "p-antonella": "x", vacio: null } }).conteo?.costosPrendas).toEqual({ "p-sofia": 55.5 });
+    expect(lineaCon().conteo?.costosPrendas).toEqual({});
+    expect(lineaCon({ costos_prendas: [1, 2] }).conteo?.costosPrendas).toEqual({});
+  });
+
+  it("lo que dice el campo de una prenda: lo suyo si lo tocó (aunque sea vacío); si no, el de su línea", () => {
+    expect(costoDePrendaTexto("58.00", undefined, "p-sofia")).toBe("58.00");
+    expect(costoDePrendaTexto("58.00", { "p-sofia": "55.50" }, "p-sofia")).toBe("55.50");
+    expect(costoDePrendaTexto("58.00", { "p-sofia": "55.50" }, "p-antonella")).toBe("58.00");
+    expect(costoDePrendaTexto("58.00", { "p-sofia": "" }, "p-sofia")).toBe("");
+  });
+
+  it("lo que se manda: solo lo que cuesta distinto de la línea y es un monto; vacío, igual a la línea o mal escrito, no", () => {
+    const l = lineaCon();
+    expect(costosPropiosParaCerrar(l, "58.00", { "p-sofia": "55.5", "p-antonella": "58" })).toEqual({ "p-sofia": 55.5 });
+    expect(costosPropiosParaCerrar(l, "58.00", { "p-sofia": "", "p-antonella": "doce" })).toEqual({});
+    expect(costosPropiosParaCerrar(l, "58.00", undefined)).toEqual({});
+    // Una prenda que ya no está separada en la línea no se manda (la base también la ignora).
+    expect(costosPropiosParaCerrar(l, "58.00", { "p-otra": "10" })).toEqual({});
+  });
+
+  it("p_lineas lleva costos_prendas solo si hay algo propio, y no cambia lo demás", () => {
+    const l = lineaCon();
+    const sin = lineasParaCerrar([l], { "item:i1": dec() }, false);
+    expect(sin[0]).not.toHaveProperty("costos_prendas");
+    const con = lineasParaCerrar([l], { "item:i1": dec() }, false, { "item:i1": { "p-sofia": "55.50" } });
+    expect(con[0]).toMatchObject({ despacho_item_id: "i1", costo_unitario: 58, costos_prendas: { "p-sofia": 55.5 } });
+    // Si la línea cambia de costo, lo propio sigue siendo lo propio y las demás siguen a la línea.
+    const nueva = lineasParaCerrar([l], { "item:i1": dec({ costo: "60" }) }, false, { "item:i1": { "p-sofia": "55.50", "p-antonella": "60" } });
+    expect(nueva[0]).toMatchObject({ costo_unitario: 60, costos_prendas: { "p-sofia": 55.5 } });
+  });
+
+  it("solo se costea lo que tiene nombre: las prendas identificadas y las nuevas ya descritas; lo demás se cuenta aparte como «sin identificar»", () => {
+    // 12 contadas: Sofía 6 + Antonella 4 identificadas, «holaa» 2 nuevas descritas, 0 sin describir… y 0 sueltas.
+    const l = lineaCon({ contadas: 12, separado: { prendas: [sofia, antonella], nuevas: [{ cantidad: 2, descripcion: "holaa" }] } });
+    expect(prendasConCosto(l).map((p) => [p.clave, p.nombre, p.unidades, p.nueva])).toEqual([
+      ["p-sofia", "Vestido Sofía", 6, false],
+      ["p-antonella", "Vestido Antonella", 4, false],
+      [claveCostoDeNueva("holaa"), "holaa", 2, true],
+    ]);
+    expect(unidadesSinIdentificar(l)).toBe(0);
+    // Las nuevas sin describir y lo sin separar NO tienen fila: entran con el costo de la línea y se avisan como «sin identificar».
+    const sueltas = lineaCon({ contadas: 14, separado: { prendas: [sofia], nuevas: [{ cantidad: 4, descripcion: "holaa" }, { cantidad: 2, descripcion: null }] } });
+    expect(prendasConCosto(sueltas).map((p) => p.nombre)).toEqual(["Vestido Sofía", "holaa"]);
+    expect(unidadesSinIdentificar(sueltas)).toBe(4);
+    expect(unidadesSinIdentificar(lineaCon({ contadas: 7, separado: { prendas: [], nuevas: [] } }))).toBe(7);
+    expect(unidadesSinIdentificar({ conteo: null })).toBe(0);
+  });
+
+  it("el costo de una prenda nueva descrita viaja por su descripción, igual que lo lee la base", () => {
+    const l = lineaCon({ contadas: 10, separado: { prendas: [sofia], nuevas: [{ cantidad: 4, descripcion: "Chompa con capucha" }] } });
+    expect(costosPropiosParaCerrar(l, "58.00", { [claveCostoDeNueva("Chompa con capucha")]: "41.5", "p-sofia": "58" })).toEqual({ "nueva:Chompa con capucha": 41.5 });
+    // Una descripción que ya no está en la línea no se manda.
+    expect(costosPropiosParaCerrar(l, "58.00", { "nueva:Otra": "10" })).toEqual({});
+    const sin = lineasParaCerrar([l], { "item:i1": dec() }, false, { "item:i1": { "nueva:Chompa con capucha": "41.50" } });
+    expect(sin[0]).toMatchObject({ costos_prendas: { "nueva:Chompa con capucha": 41.5 } });
+    const malos = costosDePrendaConProblema([l], { "item:i1": { "nueva:Chompa con capucha": "mucho" } });
+    expect(malos).toHaveLength(1);
+    expect(malos[0]).toMatchObject({ productoId: "nueva:Chompa con capucha", nombre: "Chompa con capucha" });
+  });
+
+  it("un costo mal escrito se avisa antes de ir a la base, con el nombre de la prenda", () => {
+    const l = lineaCon();
+    expect(costosDePrendaConProblema([l], { "item:i1": { "p-sofia": "55.50" } })).toEqual([]);
+    const malos = costosDePrendaConProblema([l], { "item:i1": { "p-antonella": "-3", "p-sofia": "" } });
+    expect(malos).toHaveLength(1);
+    expect(malos[0]).toMatchObject({ linea: "item:i1", productoId: "p-antonella", nombre: "Vestido Antonella" });
+    expect(malos[0].problema).toMatch(/negativo/);
   });
 });
