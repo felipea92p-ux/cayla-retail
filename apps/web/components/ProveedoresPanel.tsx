@@ -336,9 +336,9 @@ export function ProveedoresPanel({
                 proveedores={proveedores.filter((p) => p.activo && p.tipo === "mercaderia")}
                 resumen={resumen ? resumenSoloMercaderia(resumen, proveedores) : null}
                 filas={ranking.filas}
-                medida={medida}
                 hallazgos={hallazgos ?? []}
                 onAbrir={setAbiertoId}
+                onFiltrar={setFiltroRitmo}
                 soloHoy={comparados.length > 0}
               />
             </div>

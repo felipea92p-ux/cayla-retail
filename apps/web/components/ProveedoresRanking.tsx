@@ -36,7 +36,7 @@ const PLANTILLA =
   "grid-cols-[1.25rem_1.5rem_minmax(0,1fr)_auto] @2xl:grid-cols-[1.25rem_1.5rem_minmax(9rem,1.7fr)_3.5rem_minmax(7rem,1fr)_7.5rem_1rem] @4xl:grid-cols-[1.25rem_1.5rem_minmax(11rem,1.7fr)_7rem_3.5rem_minmax(9rem,1.2fr)_8rem_1rem] @2xl:gap-x-3 @4xl:gap-x-4";
 const columnas = (medida: MedidaRanking): Columna[] => [
   { titulo: "", ayuda: "Marca hasta 3 para compararlos a la derecha" },
-  { titulo: "#", alinear: "der" },
+  { titulo: "#", alinear: "centro" },
   { titulo: "Proveedor" },
   { titulo: "Ventas", subtitulo: "por día · 4 semanas", alinear: "centro", clase: "hidden @4xl:block" },
   { titulo: "Vendido", alinear: "centro", ayuda: "De lo que te llegó, cuánto ya se vendió" },
@@ -213,7 +213,7 @@ function FilaDelRanking({
       <label className="relative z-[1] -m-1.5 flex cursor-pointer p-1.5" data-guia="proveedores.comparar">
         <Casilla marcada={comparado} onCambio={() => onComparar(f.proveedorId)} etiqueta={`Comparar ${f.nombre}`} />
       </label>
-      <span className={celda("der", "text-sm text-taupe")}>{f.puesto}</span>
+      <span className={celda("centro", "text-sm text-taupe")}>{f.puesto}</span>
       <span className="col-span-2 min-w-0 @2xl:col-span-1">
         <button
           type="button"
