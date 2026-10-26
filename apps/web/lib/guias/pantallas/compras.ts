@@ -2067,7 +2067,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cerrar mi ronda",
-      texto: "Cuando terminas de comprar, revisa tu plata y di qué haces con lo que te sobró (te lo abrimos).",
+      texto: "Al volver de comprar, ciérrala: revisa tu plata y di qué haces con lo que te sobró (te lo abrimos). Va debajo de la lista de la ronda.",
     },
     {
       id: "cuaderno",
@@ -2098,14 +2098,14 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "En esta ronda",
-      texto: "Todo lo de tu ronda en una lista: lo que compraste y gastaste (con −) y la plata que te dieron (con +, en verde). Cada fila dice quién la revisa: «Compras la revisa» o «En los libros».",
+      texto: "Todo lo de tu ronda en una lista, con la hora de cada cosa: lo que compraste y gastaste (con −) y la plata que te dieron (con +, en verde). Cada fila dice quién la revisa. Tócala y una hoja te cuenta qué hará Compras con eso.",
     },
     {
       id: "antes",
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Aquí está la plata que te dieron, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella.",
+      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella.",
     },
     {
       id: "fin",

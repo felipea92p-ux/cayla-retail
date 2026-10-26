@@ -13,7 +13,7 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/mi-plata/AbrirRonda.tsx": [
-      "Boton «Abrir mi ronda de compras»"
+      "Boton «Abrir mi ronda»"
     ],
     "components/mi-plata/HojaPrenda.tsx": [
       "CampoMonto «compra.costo»",

@@ -12,7 +12,7 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { terminarDia } from "@/lib/mi-plata-acciones";
-import { decisionesCierre, detalleRonda, resumenRonda, textoCierre, textoPorMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { decisionesCierre, resumenRonda, textoCierre, textoPorMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
 
 // Compras simple (ADR-0480): «Cerrar mi ronda» (antes «Terminé de comprar hoy», al que reemplaza desde 20261023183000; Felipe 2026-10-23).
 // Arriba, la ronda abierta con su serie y número y lo que lleva. Al tocar, la cuenta de la ronda como un cuaderno (lo que tenías al
@@ -36,10 +36,6 @@ export function TerminarDia({ plata }: { plata: Plata }) {
   if (!ronda) return null;
   return (
     <section className="flex flex-col gap-2" aria-label="Tu ronda de compras">
-      <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
-        <span className="font-medium text-tinta">Ronda {ronda.texto}</span>
-        <span className="text-xs text-taupe">{detalleRonda(ronda, plata.hoy.fecha)}</span>
-      </p>
       <Boton
         peso="fantasma"
         className="w-full"
@@ -52,7 +48,7 @@ export function TerminarDia({ plata }: { plata: Plata }) {
         {/* El ícono y el texto en una fila: sueltos, el botón los apilaba (el ícono arriba y el texto abajo, a doble alto). */}
         <span className="inline-flex items-center gap-2">
           <Flag className="h-4 w-4" aria-hidden />
-          Cerrar mi ronda
+          Cerrar mi ronda {ronda.texto}
         </span>
       </Boton>
       {abierta && <TerminarModal plata={plata} onClose={() => setAbierta(false)} volverA={origen} />}

@@ -1,4 +1,4 @@
-import { diaLima, diaMes } from "./fechas-lima";
+import { diaLima, diaMes, horaLima } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { campoResponsable, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -511,14 +511,28 @@ export function resumenRonda(plata: Pick<MiPlata, "tiene" | "ronda">) {
   return { antes: redondear(plata.tiene - dieron + compraste + gastaste), dieron, compraste, gastaste, compras, queda: plata.tiene };
 }
 
-/** Bajo el número de la ronda abierta: «Abierta el jueves 23 oct · 2 compras · 16 prendas». */
-export function detalleRonda(r: Pick<RondaAbierta, "abiertaEn" | "compras" | "prendas">, hoy: string): string {
-  // El día de Lima, no el de UTC: una ronda abierta a las 8 pm es de hoy.
-  const dia = diaLima(r.abiertaEn) ?? "";
-  const cuando = !dia ? null : dia === hoy ? "Abierta hoy" : `Abierta el ${diaMes(dia)}`;
-  const compras = r.compras === 0 ? "Todavía sin compras" : r.compras === 1 ? "1 compra" : `${r.compras} compras`;
-  const prendas = r.prendas > 0 ? (r.prendas === 1 ? "1 prenda" : `${r.prendas} prendas`) : null;
-  return [cuando, compras, prendas].filter(Boolean).join(" · ");
+/** Junto al título de «En esta ronda»: «desde hoy 08:30» o «desde el 23/10 08:30» (hora y día de Lima). Sin el instante, nada. */
+export function desdeRonda(abiertaEn: string, hoy: string): string | null {
+  const dia = diaLima(abiertaEn);
+  const hora = horaLima(abiertaEn);
+  if (!dia || !hora) return null;
+  return `desde ${dia === hoy ? "hoy" : `el ${diaMes(dia)}`} ${hora}`;
+}
+
+/** La hora de Lima a la que anotó algo (24 h, «09:15»), para la fila de la lista. Sin el instante, nada: no se inventa. */
+export function horaDeMovimiento(m: Pick<MovimientoCompradora, "creadoEn">): string | null {
+  return horaLima(m.creadoEn);
+}
+
+/**
+ * Lo que dice la hoja de una fila de la lista al tocarla (maqueta mis-compras-rediseno-2026-10): qué hará Compras con lo que anotó, o
+ * que ya lo hizo. Es el mismo estado que el chip de la fila, dicho completo; no agrega reglas.
+ */
+export function queHaraCompras(m: Pick<MovimientoCompradora, "tipo" | "estado">): string {
+  if (!m.estado.pendiente) return m.estado.detalle;
+  if (m.tipo === "compra") return "Compras copia el número del papel y la completa. Si algo no cuadra, te avisa. Mientras tanto, lo que pagaste ya bajó de tu plata.";
+  if (m.tipo === "plata") return "Compras mira tu voucher y la confirma con su banco o su caja. Mientras tanto ya la puedes usar.";
+  return "Compras lo revisa y lo pasa a los gastos del viaje. Mientras tanto ya bajó de tu plata.";
 }
 
 /** Qué se puede elegir al terminar: con plata, quedársela o devolverla; sin plata, nada; en negativo, CAYLA le debe (sin elegir). */

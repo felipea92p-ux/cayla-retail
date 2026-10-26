@@ -5,7 +5,6 @@ import {
   decisionesCierre,
   nombreGasto,
   resumenRonda,
-  detalleRonda,
   tituloDeLaLista,
   resumenPrendas,
   estadoParaLaCompradora,
@@ -22,6 +21,9 @@ import {
   textoMontoAnotado,
   textoPorConfirmar,
   cuentaDeLaBilletera,
+  desdeRonda,
+  horaDeMovimiento,
+  queHaraCompras,
   pasoDeLaRonda,
   PASOS_DE_LA_RONDA,
   textoFaltaMandar,
@@ -240,10 +242,6 @@ describe("el resto del día de compras (actividad 5)", () => {
     })!;
     expect(p.ronda.abierta).toMatchObject({ texto: "RC-000003", compras: 2, prendas: 16, compraste: 300.5 });
     expect(p.ronda.ultimaCerrada).toEqual({ texto: "RC-000002", cerradaEn: "2026-10-20T20:00:00Z", decision: "devuelve", monto: 80, resuelto: false });
-    expect(detalleRonda(p.ronda.abierta!, "2026-10-23")).toBe("Abierta el 21/10 · 2 compras · 16 prendas");
-    expect(detalleRonda({ abiertaEn: "2026-10-23T08:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
-    // Las 8 pm de Lima ya son el día siguiente en UTC: sigue siendo «hoy».
-    expect(detalleRonda({ abiertaEn: "2026-10-24T01:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
     expect(leerMiPlata({ ...BASE, ronda: { abierta: { texto: "RC-1" }, ultima_cerrada: { decision: "regala" } } })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
     expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
   });
@@ -372,6 +370,27 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect(pasoDeLaRonda({ ronda: { abierta: p.ronda.abierta, ultimaCerrada: null }, porMandar: [] })).toBe(3);
     // Una tienda con 0 por mandar no cuenta.
     expect(pasoDeLaRonda({ ronda: { abierta: p.ronda.abierta, ultimaCerrada: null }, porMandar: [{ ...porMandar[0], unidades: 0 }] })).toBe(3);
+  });
+
+  it("la fila dice a qué hora se anotó y la hoja, qué hará Compras (maqueta mis-compras-rediseno-2026-10)", () => {
+    const { actuales } = movimientosDeLaCompradora(p);
+    const [andina, yape, rosa, taxi] = actuales;
+    // 15:05 UTC = 10:05 en Lima (cinco horas detrás todo el año).
+    expect(horaDeMovimiento(andina)).toBe("10:05");
+    expect(horaDeMovimiento({ creadoEn: "" })).toBeNull();
+    expect(queHaraCompras(rosa)).toMatch(/copia el número del papel/);
+    expect(queHaraCompras(yape)).toMatch(/confirma con su banco o su caja/);
+    expect(queHaraCompras(taxi)).toMatch(/pasa a los gastos del viaje/);
+    // Lo que ya está hecho dice lo que ya pasó, no lo que va a pasar.
+    expect(queHaraCompras({ tipo: "compra", estado: { texto: "En los libros", detalle: "Compras ya la pasó a los libros", pendiente: false } })).toBe("Compras ya la pasó a los libros");
+  });
+
+  it("«desde hoy 08:30» junto al título de la lista, con el día de Lima", () => {
+    expect(desdeRonda("2026-10-23T13:30:00Z", "2026-10-23")).toBe("desde hoy 08:30");
+    expect(desdeRonda("2026-10-21T13:30:00Z", "2026-10-23")).toBe("desde el 21/10 08:30");
+    // A las 8 pm de Lima ya es «mañana» en UTC: sigue siendo el día de Lima.
+    expect(desdeRonda("2026-10-24T01:10:00Z", "2026-10-23")).toBe("desde hoy 20:10");
+    expect(desdeRonda("", "2026-10-23")).toBeNull();
   });
 
   it("la franja dice cuántas prendas faltan mandar y a dónde", () => {

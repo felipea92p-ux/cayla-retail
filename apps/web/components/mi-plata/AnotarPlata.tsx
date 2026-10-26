@@ -56,7 +56,7 @@ export function AnotarPlata({ puedeYaTenia, ancha = false }: { puedeYaTenia: boo
         guia="mi-plata.me-dieron"
         ancha={ancha}
         titulo="Me dieron plata"
-        detalle="Yape, transferencia o efectivo"
+        detalle={ancha ? "Se puede anotar antes de abrir la ronda" : "Yape, transferencia o efectivo"}
         icono={<HandCoins className="h-5 w-5" aria-hidden />}
         onClick={(e) => {
           origen.current = e.currentTarget;
