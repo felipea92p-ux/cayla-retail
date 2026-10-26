@@ -54,7 +54,7 @@ const PASOS: {
  * cada paso el número de horas o días que se sube y baja con − y + (o se escribe). Reemplaza a la línea que solo mostraba y las cuatro cajas de abajo:
  * el número está donde se lee. No guarda nada: avisa cada cambio y el guardado es del botón de la tarjeta.
  */
-export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: BorradorParametros; onCambiar: (clave: PlazoEditable, texto: string) => void; onRevertir: () => void }) {
+export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: BorradorParametros; onCambiar: (clave: PlazoEditable, texto: string) => void; onRevertir: (clave: PlazoEditable) => void }) {
   return (
     <ol className="tw tw-linea" aria-label="La vida de un pedido web y sus plazos">
       {PASOS.map((p, i) => (
@@ -77,7 +77,7 @@ export function RelojDelPedido({ valor, onCambiar, onRevertir }: { valor: Borrad
                 style: { width: `${Math.max(2, valor[p.plazo].length)}ch` },
                 onChange: (e) => onCambiar(p.plazo!, e.target.value.replace(/[^\d-]/g, "")),
                 onKeyDown: (e) => {
-                  if (e.key === "Escape") onRevertir();
+                  if (e.key === "Escape") onRevertir(p.plazo!);
                 },
               }}
             />
