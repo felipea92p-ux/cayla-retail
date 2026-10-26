@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  agruparCuentas,
   agruparMaquinas,
   avisosDeMaquinas,
   cuadra,
@@ -14,7 +13,6 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   explicacionCuenta,
-  hoyEnPalabras,
   insigniaCuenta,
   leerConciliacion,
   leerCuenta,
@@ -22,7 +20,6 @@ import {
   leerLotePendiente,
   lotesPorDefecto,
   mediosDeMaquina,
-  otrosDelCajon,
   resumenAbono,
   resumenConciliacion,
   textoLote,
@@ -99,16 +96,6 @@ describe("qué cuentas se ven y cómo se agrupan (spike `vistaCuentas`)", () => 
   });
   it("una cuenta que solo es destino (el banco para quien solo deposita) no se dibuja como tarjeta", () => {
     expect(cuentasVisibles([{ ...bcp, soloDestino: true, saldo: null }, cajonTru], TRU).map((c) => c.id)).toEqual(["cTRU"]);
-  });
-  it("los grupos del spike, en su orden, con su cuenta contable; los vacíos no salen", () => {
-    expect(agruparCuentas(cuentasVisibles(TODAS, TRU)).map((g) => `${g.titulo} ${g.cuenta}: ${g.cuentas.map((c) => c.id).join(",")}`)).toEqual([
-      "Bancos 104: bcp,ibk",
-      "Por depositar 105: pos",
-      "Cajones y fondo fijo 101: cTRU",
-      "Cajas fuertes y efectivo por rendir 101: fTRU,rend",
-      "Tarjetas de crédito de CAYLA · lo que se debe 451: visa",
-    ]);
-    expect(agruparCuentas([bcp]).map((g) => g.clave)).toEqual(["bancos"]);
   });
 });
 
@@ -335,11 +322,7 @@ describe("conciliación", () => {
 });
 
 describe("efectivo por tienda y fechas", () => {
-  it("«± Otros» junta ingresos, devoluciones y cambios en efectivo", () => {
-    expect(otrosDelCajon({ ingresos: 50, reembolsos: 80, cambios: 10.5 })).toBe(-19.5);
-  });
-  it("«Hoy, jueves 24» y el día de un cierre en hora de Lima", () => {
-    expect(hoyEnPalabras("2026-09-24")).toBe("Hoy, jueves 24");
+  it("el día de un cierre en hora de Lima", () => {
     // 02:00 UTC del 23 = 21:00 del martes 22 en Lima.
     expect(diaYNumero("2026-09-23T02:00:00Z")).toBe("martes 22");
   });
