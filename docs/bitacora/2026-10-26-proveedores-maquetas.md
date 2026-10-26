@@ -66,3 +66,7 @@ Qué hice:
 - Verificado: `pruebas:proveedor-reparto` (10 casos, la suma cuadra en toda la base), las pruebas de ventas por día y de los dos orígenes al día, 647 archivos de vitest, Knip, y la lista, la vista rápida y la ficha en el navegador local.
 Estado: commits locales, sin PR. **Ninguna de las tres migraciones está en producción.** Felipe eligió la regla B del reparto (por lo que había llegado a cada venta), entre A y C.
 
+## 2026-10-26 (Proveedores: las tres migraciones en producción — ADR-0521)
+Qué hice: con el OK de Felipe («Pégalas tú») apliqué en producción, en orden y por el MCP de Supabase, las ventas por día, las tallas y sedes y el reparto entre proveedores. Antes y después, solo leyendo: «Lo que le compré» dio lo mismo (335 filas, 981 vendidas, 2.495 en stock: hoy no hay prendas de dos proveedores), la suma cuadra, los permisos están bien y la cuenta tarda 182 ms.
+Estado: PR #1351 con «SQL pegado en producción» marcada. Falta refrescar el volcado del diccionario.
+

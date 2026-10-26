@@ -1,8 +1,8 @@
 # ADR-0521 — Proveedores: la lista de Mercadería es un ranking
 
-- **Fecha:** 2026-10-26 · **Estado:** construido y probado en local (actividades 1 a 5 de 7). **La migración
-  `20261026172000_proveedores_ventas_diarias.sql` NO está en producción:** pegarla espera el OK de Felipe (una parte, solo lectura,
-  re-pegable). La web no depende de ella: sin la función, las filas van sin su línea de ventas.
+- **Fecha:** 2026-10-26 · **Estado:** construido, probado y **con sus tres migraciones en producción** (2026-10-26, con el OK de Felipe:
+  «Pégalas tú»; aplicadas por el MCP de Supabase con `apply_migration`, que las registra con la hora de aplicación y no con la del archivo:
+  `20261026172000` → `20261026202433`, `20261026193000` → `20261026202502`, `20261026194000` → `20261026202626`). Ver «Producción» al final.
 - **Relacionados:** ADR-0502 (lo que le compré y lo que vendí: de ahí salen las cifras), ADR-0136 (movimiento), ADR-0358 (una función,
   una pieza), ADR-0389 (guías), ADR-0462 (ancho completo), ADR-0479 (la isla de abajo), ADR-0336 (modo oscuro).
 - **Maqueta elegida:** `docs/maquetas/proveedores-v5-2026-10/`, dirección «C · Filas con su venta», con el ajuste de las dos medidas.
@@ -118,4 +118,13 @@ ella; ninguna vuelve a cruzar ventas ni stock por su cuenta.
 palabra y el traslado sugerido) y la comparación, «Talla que pide más» y «La tienda que más vende». Las mismas cuentas de la ficha
 (`resumenTallasYSedes`, con su prueba); se piden desde el navegador al abrir o marcar un proveedor, una sola vez; sin la función en la base, esas
 partes no se dibujan. Las palabras de cada tienda viven en un solo lugar (`PALABRA_SEDE`) para la ficha y la lista.
+
+## Producción (2026-10-26)
+
+Felipe pidió pegarlas («Pégalas tú»). Antes de aplicar, en producción no había ninguna prenda traída por más de un proveedor (el conteo doble
+todavía no se veía allá: Compras recién empieza) y «Lo que le compré» daba 335 filas, 981 vendidas y 2.495 en stock. Se aplicaron las tres, en
+orden, con su texto exacto, por el MCP de Supabase (`apply_migration`). Después, solo leyendo: las mismas 335 filas, 981 vendidas y 2.495 en stock
+(las prendas de un solo proveedor no cambian, como se prometió); la suma entre proveedores cuadra en todas las variantes; `fn_proveedor_reparto`
+no la ejecuta nadie, y las otras dos, solo `authenticated`; «Lo que le compré» entera tarda 182 ms. Falta refrescar el volcado del diccionario
+(`docs/datos/generado/COMO-REFRESCAR.md`).
 

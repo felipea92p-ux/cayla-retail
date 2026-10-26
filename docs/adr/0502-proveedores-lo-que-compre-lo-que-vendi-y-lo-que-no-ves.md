@@ -94,7 +94,7 @@ Felipe aprobó las recomendaciones de umbrales de una sesión hermana («Sí: p�
 
 **Lo que no hace:** no escribe nada ni arma el traslado. No separa por categoría la curva: si un proveedor vende letras (S·M·L) y números (28·30), se compara el sistema que más pesa y la nota lo dice, como en Análisis. No está en la lista de proveedores, solo en la ficha.
 
-**Producción:** la migración NO está pegada (es de Felipe). La base antes que la web: con la web nueva y la base vieja, la ficha se pinta sin estas dos secciones.
+**Producción:** pegada el 2026-10-26 (renumerada `20261026193000`; aplicada como `20261026202502`), junto con el reparto entre proveedores que la reemplaza (ADR-0521 act. (c)).
 
 ## Actualización 2026-10-26: la lista pasa a ser un ranking (ADR-0521)
 
