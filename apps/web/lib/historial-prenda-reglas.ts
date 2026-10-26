@@ -15,6 +15,7 @@
  * nuevas, fotos de la ficha, tejido y patrón) no aparece, y la pantalla lo dice al pie.
  */
 
+import type { CostoPrenda } from "./costo-prenda-reglas";
 import { diaLima, horaLima } from "./fechas-lima";
 
 /** Una fila de `fn_historial_prenda` (20261006180000). */
@@ -82,7 +83,8 @@ export type Evento = {
 };
 
 /** Lo que la pantalla tiene del historial: leyendo, falló (se ofrece reintentar) o los eventos. */
-export type LecturaHistorial = { estado: "leyendo" } | { estado: "error" } | { estado: "ok"; eventos: Evento[] };
+/** `costo`: la pestaña «Costo» (`lib/costo-prenda-reglas.ts`); null si la cuenta no ve el dinero de compras o no se pudo leer. */
+export type LecturaHistorial = { estado: "leyendo" } | { estado: "error" } | { estado: "ok"; eventos: Evento[]; costo?: CostoPrenda | null };
 
 export const VENTANA_GUARDADO_MS = 120_000;
 
