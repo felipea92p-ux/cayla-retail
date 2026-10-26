@@ -5953,6 +5953,8 @@ export type Database = {
       fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
       fn_vitrina_modelos: { Args: never; Returns: Json }
+      // Vitrina web ▸ hoja del modelo (20261026191000): con qué precio sale el modelo en cada tienda de la web; solo lectura, la regla es fn_tienda_precios.
+      fn_vitrina_precios_modelo: { Args: { p_producto_id: string }; Returns: Json }
       vitrina_guardar_modelo: {
         Args: {
           p_producto_id: string
@@ -7965,6 +7967,21 @@ export type Database = {
         Args: { p_proveedor_id: string }
         Returns: Json
       }
+      fn_proveedor_tallas_sedes: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          categoria: string | null
+          primera_llegada: string | null
+          producto_id: string
+          referencia: string
+          sede: string
+          sede_tipo: string
+          stock: number
+          talla: string
+          ubicacion_id: string
+          vendidas: number
+        }[]
+      }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
         Returns: {
@@ -8106,6 +8123,14 @@ export type Database = {
           mes: string
           monto: number
           proveedor_id: string
+        }[]
+      }
+      fn_proveedores_ventas_diarias: {
+        Args: { p_dias?: number }
+        Returns: {
+          dia: string
+          proveedor_id: string
+          vendidas: number
         }[]
       }
       fn_puede_operar_ubicacion: {
