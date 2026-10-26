@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⑦ Enviar a Compras · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.ctl{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;border:1px dashed var(--taupe);border-radius:14px;padding:12px 18px;background:var(--papel);align-items:flex-start}
+.ctl h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60);margin-bottom:6px}
+.ctl p{font-size:12.5px;color:var(--t60);margin-top:6px;max-width:48ch}
+.ped{border:1px solid var(--sand);border-radius:16px;background:var(--papel);padding:16px 20px;display:grid;gap:10px;margin-bottom:12px}
+.ped.pendiente{border-left:6px solid var(--ambar)} .ped.pedido{border-left:6px solid var(--verde)} .ped.rectificado{border-left:6px solid var(--taupe);opacity:.88}
+.ped h3{font:600 20px var(--serif);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ped .meta{color:var(--t60);font-size:13px}
+.ped .fila{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cuando{display:inline-flex;gap:8px;align-items:center;background:var(--crema);border:1px solid var(--sand);border-radius:99px;padding:4px 12px;font-size:13px}
+.lin{border-top:1px solid var(--sand);padding-top:10px;display:grid;gap:8px}
+.lin .mo{font-weight:650} .lin .co{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-left:14px;font-size:13px}
+.talla-l{display:flex;gap:6px;flex-wrap:wrap} .talla-l span{min-width:42px;text-align:center;border-radius:8px;padding:2px 6px;font-size:12px;background:var(--hueso);color:var(--t60);font-variant-numeric:tabular-nums} .talla-l span.s{background:color-mix(in srgb,var(--tinta) 10%,transparent);color:var(--tinta);font-weight:650}
+.sw-col{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid color-mix(in srgb,var(--tinta) 25%,transparent);vertical-align:-2px;margin-right:6px}
+.no-env{background:var(--hueso);border-radius:12px;padding:10px 14px;font-size:13px;display:grid;gap:4px;margin-top:10px}
+.sep{font:600 21px var(--serif);margin:22px 0 10px;display:flex;justify-content:space-between;gap:12px;align-items:baseline} .sep small{font:400 13px var(--sans);color:var(--t60)}
+.dest{font-size:12px;color:var(--t60)}
+.fin{font-size:12.5px;color:var(--t60);margin-top:8px}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+
+<div class="ctl">
+  <div><h4>Dónde estás</h4><div class="seg" id="vista"></div><p id="vNota"></p></div>
+  <div><h4>Empezar de cero</h4><button class="btn ch" id="reset">Borrar lo que moví en esta maqueta</button></div>
+</div>
+
+<div id="main"></div>
+<div class="velo" id="velo"><div class="hoja" id="hoja" role="dialog" aria-modal="true" style="width:min(760px,100%)"></div></div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, leer, guardar } = PC;
+const HOY = "2026-10-26", LIMITE = "2026-11-17", COSTO = 19, CAMPANA = "Navidad 2026";
+const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
+const fF = (iso) => { const [, m, d] = iso.split("-").map(Number); return d + " " + MES[m - 1]; };
+const TALLAS = ["XS", "S", "M", "L", "XL"];
+const COL = { Negro: "#1f1f1d", Blanco: "#f4f1ea", "Beige / arena": "#d9c8a9", "Azul / denim": "#3f5f86", Verde: "#5d7a52", Rosa: "#d89aa3", Gris: "#8b8b87" };
+// Lo que el paso 2 de Polos dejó elegido (modelo × color × talla), agrupado por quién lo surte. Datos de ejemplo.
+const G = [
+  { id: "pima", prov: "Textiles Pima Norte", marca: "Pima Norte", destino: "compras", modelos: [
+    ["Polo básico cuello redondo", [["Negro", [1, 4, 5, 3, 1]], ["Blanco", [0, 2, 3, 2, 0]], ["Beige / arena", [0, 1, 1, 0, 0]]]],
+    ["Polo cuello V", [["Negro", [1, 3, 4, 2, 0]], ["Azul / denim", [0, 3, 4, 3, 1]]]],
+    ["Polo manga larga", [["Negro", [0, 2, 3, 2, 0]], ["Verde", [0, 2, 3, 2, 1]]]],
+    ["Polo acanalado", [["Rosa", [1, 3, 3, 2, 0]], ["Beige / arena", [0, 2, 3, 1, 0]]]] ] },
+  { id: "andino", prov: "Hilados Andinos", marca: "Algodón Andino", destino: "compras", modelos: [
+    ["Polo rayado marino", [["Azul / denim", [1, 4, 5, 3, 1]], ["Blanco", [0, 2, 3, 2, 0]]]],
+    ["Polo estampado flor", [["Rosa", [1, 3, 4, 2, 0]], ["Verde", [0, 3, 3, 2, 0]]]],
+    ["Polo con bolsillo", [["Verde", [0, 2, 3, 2, 1]], ["Negro", [0, 2, 2, 1, 0]]]] ] },
+  { id: "lino", prov: "Lino & Co", marca: "Lino & Co", destino: "compras", modelos: [
+    ["Polo de lino con botones", [["Beige / arena", [0, 3, 4, 3, 1]], ["Blanco", [0, 2, 3, 2, 0]]]],
+    ["Polo de lino cuello Mao", [["Beige / arena", [0, 2, 3, 2, 1]], ["Gris", [0, 1, 2, 1, 0]]]] ] },
+  { id: "taller", prov: "Taller CAYLA", marca: "Taller CAYLA", destino: "produccion", modelos: [
+    ["Polo cropped tejido", [["Rosa", [1, 3, 3, 1, 0]], ["Negro", [1, 2, 2, 1, 0]]]] ] },
+];
+const suma = (a) => a.reduce((x, y) => x + y, 0);
+const uni = (g) => suma(g.modelos.map(([, cs]) => suma(cs.map(([, t]) => suma(t)))));
+const nMod = (g) => g.modelos.length;
+const SIN_MARCA = 37, NUEVOS = 207, TOTAL = 414;
+const ENVIADAS = G.reduce((a, g) => a + uni(g), 0);
+let S = leer("pc.envio", { enviado: false, grupos: {} });
+let vista = leer("pc.v7", "plan"), draft = null, abierto = new Set();
+const salvar = () => guardar("pc.envio", S);
+const quien = "Felipe";
+const toast = (t) => { const e = document.createElement("div"); e.style.cssText = "position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:10px 18px;border-radius:99px;font-size:13px;z-index:80;max-width:90vw"; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 3200); };
+const cuando = (x) => (x.cuando === "ya" ? "Pedir ya" : "Pedir el " + fF(x.fecha));
+const tarde = (x) => x.cuando !== "ya" && x.fecha > LIMITE;
+const cuenta = () => { const v = Object.values(S.grupos); return { pend: v.filter((x) => x.estado === "pendiente").length, ped: v.filter((x) => x.estado === "pedido").length, rect: v.filter((x) => x.estado === "rectificado").length }; };
+const lineas = (g) => g.modelos.map(([n, cs]) => `<div class="lin"><div class="mo">${n}</div>${cs.map(([c, t]) => `<div class="co"><span><span class="sw-col" style="background:${COL[c]}" data-color-dato></span>${c}</span><span class="talla-l">${TALLAS.map((tl, j) => `<span class="${t[j] ? "s" : ""}">${tl} ${t[j]}</span>`).join("")}</span><b>${suma(t)}</b></div>`).join("")}</div>`).join("");
+
+function hoja(html) { $("#hoja").innerHTML = `<button class="x" id="cerrarH" aria-label="Cerrar">×</button>` + html; $("#velo").classList.add("on"); $("#cerrarH").onclick = cerrar; const c = $("#cancelarH"); if (c) c.onclick = cerrar; }
+const cerrar = () => $("#velo").classList.remove("on");
+
+// ---------------- Plan ----------------
+function vPlan() {
+  const c = cuenta(), env = S.enviado, g0 = Object.values(S.grupos);
+  const estado = !env ? `<span class="chip sp taupe">Sin enviar</span>` : `${c.pend ? `<span class="chip ambar">${c.pend} pendiente${c.pend > 1 ? "s" : ""} · falta confirmar</span> ` : ""}${c.ped ? `<span class="chip verde">${c.ped} pedido${c.ped > 1 ? "s" : ""}</span> ` : ""}${c.rect ? `<span class="chip sp taupe">${c.rect} rectificado${c.rect > 1 ? "s" : ""}</span>` : ""}`;
+  const cambio = env && S.cambioDespues ? `<div class="aviso pendiente" style="margin-bottom:12px"><span class="ic">${PC.I.alerta}</span><div><b>El plan cambió después de enviar</b><span class="d">Lo que está pendiente en Compras tiene lo de antes. Reenvía para que coincidan.</span></div></div>` : "";
+  return `<div class="cifras"><div class="cifra"><div class="t">Categorías listas para enviar</div><div class="v">1 de 11</div><div class="d">Polos tiene su paso 2 hecho</div></div><div class="cifra"><div class="t">Pide antes del</div><div class="v">17 nov</div><div class="d">1 dic menos 14 días para llegar</div></div><div class="cifra"><div class="t">En Compras</div><div class="v">${env ? c.pend + c.ped : 0}</div><div class="d">${env ? `${c.pend} por confirmar · ${c.ped} pedidos` : "Nada enviado todavía"}</div></div></div>
+  ${cambio}<div class="card scroll-x"><table><thead><tr><th>Categoría</th><th class="n">Comprar</th><th class="n">Inversión</th><th>② Colores y tallas</th><th>En Compras</th><th></th></tr></thead><tbody>
+    <tr><td class="cat"><b>Polos</b><small>${ENVIADAS} con modelo y proveedor · ${SIN_MARCA} sin marca · ${NUEVOS} por elegir</small></td><td class="n">${TOTAL}</td><td class="n">${sES(TOTAL * COSTO)}</td><td><span class="chip verde">Hecho</span></td><td>${estado}</td>
+      <td class="n" style="white-space:nowrap">${!env || (c.pend === 0 && c.ped === 0) ? `<button class="btn pri" id="enviar">Enviar a Compras…</button>` : `<button class="btn ch" id="verC">Ver en Compras ›</button> <button class="btn ch pel" id="rectP">Rectificar el envío</button>`}</td></tr>
+    <tr><td class="cat"><b>Camisas y Blusas</b></td><td class="n">146</td><td class="n">${sES(146 * 32)}</td><td><span class="chip ambar">Por hacer</span></td><td><span class="chip sp taupe">Falta su paso 2</span></td><td></td></tr>
+    <tr><td class="cat"><b>Tops</b></td><td class="n">82</td><td class="n">${sES(82 * 24.46)}</td><td><span class="chip ambar">Por hacer</span></td><td><span class="chip sp taupe">Falta su paso 2</span></td><td></td></tr>
+    <tr><td class="cat"><b>Pantalones</b></td><td class="n">217</td><td class="n">${sES(217 * 42)}</td><td><span class="chip ambar">Por hacer</span></td><td><span class="chip sp taupe">Falta su paso 2</span></td><td></td></tr>
+  </tbody></table></div>
+  <div class="nota" style="margin-top:12px">Solo se envía lo que ya tiene su paso 2 hecho. Enviar <b>no pide nada</b>: deja cada pedido como «Pendiente de campaña, falta confirmar» en Compras, con la fecha en que piensas pedirlo.</div>`;
+}
+function hojaEnviar() {
+  draft = Object.fromEntries(G.map((g) => [g.id, { cuando: "fecha", fecha: "2026-11-12" }]));
+  const filas = () => G.map((g) => { const d = draft[g.id]; return `<tr><td><b>${g.prov}</b><small style="display:block;color:var(--t60)">${nMod(g)} modelos · ${g.destino === "produccion" ? "va a Producción ▸ Órdenes (es del Taller)" : "va a Compras ▸ Órdenes"}</small></td><td class="n">${uni(g)}</td><td class="n">${sES(uni(g) * COSTO)}</td>
+    <td><span class="seg"><button type="button" class="${d.cuando === "ya" ? "on" : ""}" data-w="${g.id}|ya">Pedir ya</button><button type="button" class="${d.cuando === "fecha" ? "on" : ""}" data-w="${g.id}|fecha">Pedir el…</button></span> ${d.cuando === "fecha" ? `<input type="date" data-d="${g.id}" value="${d.fecha}" min="${HOY}" style="height:32px;border:1px solid var(--sand);border-radius:8px;background:var(--hueso);padding:0 8px;color:var(--tinta)">` : ""}${tarde(d) ? ` <span class="chip ambar">Llega tarde: después del ${fF(LIMITE)}</span>` : ""}</td></tr>`; }).join("");
+  const dibujaE = () => {
+    $("#cuerpoE").innerHTML = `<table><thead><tr><th>Quién lo surte</th><th class="n">Prendas</th><th class="n">Al costo</th><th>¿Cuándo piensas pedirlo?</th></tr></thead><tbody>${filas()}</tbody></table>
+    <div style="margin:10px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ch" id="todoYa">Todos: pedir ya</button><button class="btn ch" id="todo17">Todos: el ${fF(LIMITE)} (último día)</button></div>
+    <div class="no-env"><b>No se envía todavía</b><span>• Sin marca: ${SIN_MARCA} prendas. Elige su proveedor en Catálogo ▸ Marcas y las mandas luego.</span><span>• Modelos nuevos por elegir: ${NUEVOS} prendas. No hay un producto que pedir; cuando elijas el modelo con el proveedor, lo mandas.</span></div>
+    <p class="fin">En Finanzas, lo pendiente sigue contando como «falta pedir»; al confirmar cada pedido pasa a «pedido sin pagar».</p>`;
+    $$("[data-w]").forEach((b) => (b.onclick = () => { const [id, v] = b.dataset.w.split("|"); draft[id].cuando = v; if (v === "ya") draft[id].fecha = HOY; else if (draft[id].fecha === HOY) draft[id].fecha = "2026-11-12"; dibujaE(); }));
+    $$("[data-d]").forEach((i) => (i.onchange = () => { draft[i.dataset.d].fecha = i.value || HOY; dibujaE(); }));
+    $("#todoYa").onclick = () => { G.forEach((g) => (draft[g.id] = { cuando: "ya", fecha: HOY })); dibujaE(); };
+    $("#todo17").onclick = () => { G.forEach((g) => (draft[g.id] = { cuando: "fecha", fecha: LIMITE })); dibujaE(); };
+  };
+  hoja(`<h2>Enviar Polos a Compras</h2><p class="sub">${CAMPANA} · ${ENVIADAS} prendas con modelo, color, talla y proveedor.</p><div id="cuerpoE"></div>
+    <div class="pie"><button class="btn" id="cancelarH">Cancelar</button><button class="btn pri" id="siEnviar">Enviar como pendientes de campaña</button></div>`);
+  dibujaE();
+  $("#siEnviar").onclick = () => {
+    S.enviado = true; S.cambioDespues = false; S.grupos = Object.fromEntries(G.map((g) => [g.id, { estado: "pendiente", ...draft[g.id], por: quien, en: "26 oct 10:52" }]));
+    salvar(); cerrar(); vista = "compras"; guardar("pc.v7", vista); toast("Enviado: " + G.length + " pedidos quedaron pendientes de confirmar en Compras"); pintar();
+  };
+}
+
+// ---------------- Compras ▸ Órdenes ----------------
+function tarjeta(g) {
+  const x = S.grupos[g.id]; if (!x) return "";
+  const ab = abierto.has(g.id), prod = g.destino === "produccion";
+  const chip = x.estado === "pendiente" ? `<span class="chip ambar">Pendiente de campaña · falta confirmar</span>` : x.estado === "pedido" ? `<span class="chip verde">${prod ? "Pasado a Producción" : "Pedido"} · ${x.oc}</span>` : `<span class="chip sp taupe">Rectificado</span>`;
+  const acciones = x.estado === "pendiente" ? `<button class="btn pri" data-conf="${g.id}">${prod ? "Pasar a Producción" : "Confirmar y pedir"}</button><button class="btn" data-fecha="${g.id}">Cambiar fecha</button><button class="btn pel" data-rect="${g.id}">Rectificar</button>`
+    : x.estado === "pedido" ? `<span class="dest">Ya es una orden: para deshacerla, anúlala en Órdenes (no se rectifica desde aquí).</span>`
+    : `<button class="btn" data-reenv="${g.id}">Volver a enviar</button><span class="dest">${x.motivo || ""}</span>`;
+  return `<div class="ped ${x.estado}"><h3>${g.prov} ${chip}</h3>
+    <div class="meta">${CAMPANA} · Polos · ${nMod(g)} modelos · <b>${uni(g)} prendas</b> · ${sES(uni(g) * COSTO)} al costo · enviado por ${x.por} el ${x.en}</div>
+    <div class="fila">${x.estado === "pendiente" ? `<span class="cuando">${PC.I.info.replace("<svg", '<svg width="16" height="16"')} ${cuando(x)}</span>${tarde(x) ? `<span class="chip ambar">Llega tarde: después del ${fF(LIMITE)}</span>` : ""}` : x.estado === "pedido" ? `<span class="cuando">Pedido el ${x.pedidoEn}</span>` : ""}<span class="dest">${prod ? "Destino: Producción ▸ Órdenes (Taller)" : "Destino: Compras ▸ Órdenes"}</span></div>
+    <div class="fila">${acciones}<button class="btn ch sut" data-ver="${g.id}">${ab ? "Ocultar líneas" : "Ver líneas"}</button></div>
+    ${ab ? lineas(g) : ""}</div>`;
+}
+function vCompras() {
+  const c = cuenta(), hayPend = c.pend > 0;
+  const pend = G.map(tarjeta).join("");
+  return `${S.enviado ? `<div class="aviso ${hayPend ? "pendiente" : "ok"}" style="margin-bottom:14px"><span class="ic">${hayPend ? PC.I.alerta : PC.I.ok}</span><div><b>${hayPend ? c.pend + " pedido" + (c.pend > 1 ? "s" : "") + " de " + CAMPANA + " esperan tu confirmación" : "Nada pendiente de campaña"}</b><span class="d">${hayPend ? `Nada se ha pedido todavía. Pide antes del ${fF(LIMITE)} para que llegue a las tiendas el 1 de diciembre.` : "Lo confirmado ya es una orden de compra."}</span></div></div>` : ""}
+  <div class="sep">Pendientes de campaña <small>vienen del Plan de campaña; se confirman aquí</small></div>
+  ${S.enviado ? pend : `<div class="card pad"><div class="nota-vacia"><b>No hay pedidos pendientes de campaña.</b><br>Cuando envíes una categoría desde el Plan, sus pedidos aparecen aquí para confirmarlos.</div></div>`}
+  <div class="sep">Órdenes de compra <small>las que ya se pidieron</small></div>
+  <div class="card scroll-x"><table><thead><tr><th>N.º</th><th>Proveedor</th><th class="n">Prendas</th><th class="n">Total</th><th>Estado</th></tr></thead><tbody>
+    ${Object.entries(S.grupos).filter(([, x]) => x.estado === "pedido" && x.destino !== "produccion").map(([id, x]) => { const g = G.find((k) => k.id === id); return `<tr><td><b>${x.oc}</b></td><td>${g.prov} <span class="chip sp verde">de ${CAMPANA}</span></td><td class="n">${uni(g)}</td><td class="n">${sES(uni(g) * COSTO * 1.18)}</td><td><span class="chip verde">Generada</span></td></tr>`; }).join("")}
+    <tr><td>OC-0172</td><td>Textiles Pima Norte</td><td class="n">120</td><td class="n">${sES(120 * 18 * 1.18)}</td><td><span class="chip verde">Generada</span></td></tr>
+    <tr><td>OC-0171</td><td>Lino &amp; Co</td><td class="n">60</td><td class="n">${sES(60 * 21 * 1.18)}</td><td><span class="chip sp taupe">Anulada</span></td></tr></tbody></table></div>`;
+}
+
+// ---------------- hojas de Compras ----------------
+function hojaConfirmar(id) {
+  const g = G.find((k) => k.id === id), x = S.grupos[id], prod = g.destino === "produccion", total = uni(g) * COSTO;
+  hoja(`<h2>${prod ? "Pasar a Producción" : "Confirmar y pedir"}: ${g.prov}</h2><p class="sub">${CAMPANA} · ${uni(g)} prendas de ${nMod(g)} modelos.</p>
+    <div class="dos"><div class="cifra"><div class="t">Al costo</div><div class="v">${sES(total)}</div></div><div class="cifra"><div class="t">${prod ? "Cuándo" : "Sale de caja (con IGV)"}</div><div class="v">${prod ? cuando(x) : sES(total * 1.18)}</div></div></div>
+    <div class="nota" style="margin-top:12px">${prod ? "Se abre una orden de producción en el Taller con estas líneas." : `Se crea la <b>orden de compra OC-${180 + G.findIndex((k) => k.id === id)}</b> con estas líneas, a nombre de ${g.prov}. Es el paso que sí pide la mercadería.`} En Finanzas, este pedido pasa de «falta pedir» a «pedido sin pagar».</div>
+    ${x.estado === "pendiente" && tarde(x) ? `<div class="aviso pendiente" style="margin-top:12px"><span class="ic">${PC.I.alerta}</span><div><b>Con la fecha que tenías pensada llegaría tarde</b><span class="d">Pedir después del ${fF(LIMITE)} llega a las tiendas después del 1 de diciembre.</span></div></div>` : ""}
+    <div class="pie"><button class="btn" id="cancelarH">Cancelar</button><button class="btn pri" id="siConf">${prod ? "Pasar a Producción" : "Crear la orden y pedir"}</button></div>`);
+  $("#siConf").onclick = () => { if (S.grupos[id].estado !== "pendiente") return cerrar(); Object.assign(S.grupos[id], { estado: "pedido", oc: prod ? "OP-0040" : "OC-" + (180 + G.findIndex((k) => k.id === id)), pedidoEn: fF(HOY), destino: g.destino }); salvar(); cerrar(); toast(prod ? "Pasado a Producción" : "Orden creada: " + S.grupos[id].oc); pintar(); };
+}
+function hojaFecha(id) {
+  const g = G.find((k) => k.id === id), x = S.grupos[id]; let d = { cuando: x.cuando, fecha: x.fecha };
+  const dibuja = () => { $("#cuerpoF").innerHTML = `<div class="sel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="seg"><button type="button" class="${d.cuando === "ya" ? "on" : ""}" data-w="ya">Pedir ya</button><button type="button" class="${d.cuando === "fecha" ? "on" : ""}" data-w="fecha">Pedir el…</button></span>${d.cuando === "fecha" ? `<input type="date" id="fD" value="${d.fecha}" min="${HOY}" style="height:36px;border:1px solid var(--sand);border-radius:8px;background:var(--hueso);padding:0 10px;color:var(--tinta)">` : ""}${tarde(d) ? `<span class="chip ambar">Llega tarde: después del ${fF(LIMITE)}</span>` : ""}</div>`;
+    $$("[data-w]").forEach((b) => (b.onclick = () => { d.cuando = b.dataset.w; if (d.cuando === "ya") d.fecha = HOY; dibuja(); })); if ($("#fD")) $("#fD").onchange = (e) => { d.fecha = e.target.value || HOY; dibuja(); }; };
+  hoja(`<h2>¿Cuándo piensas pedir a ${g.prov}?</h2><p class="sub">Solo cambia la fecha prevista; no pide nada.</p><div id="cuerpoF"></div><div class="pie"><button class="btn" id="cancelarH">Cancelar</button><button class="btn pri" id="siF">Guardar la fecha</button></div>`);
+  dibuja(); $("#siF").onclick = () => { Object.assign(S.grupos[id], d); salvar(); cerrar(); toast("Fecha guardada: " + cuando(d)); pintar(); };
+}
+function hojaRectificar(ids) {
+  const lista = ids.map((id) => ({ g: G.find((k) => k.id === id), x: S.grupos[id] })).filter((o) => o.x);
+  const pend = lista.filter((o) => o.x.estado === "pendiente"), ped = lista.filter((o) => o.x.estado === "pedido");
+  hoja(`<h2>${ids.length > 1 ? "Rectificar el envío de Polos" : "Rectificar el pedido de " + lista[0].g.prov}</h2><p class="sub">Rectificar es cambiar de decisión antes de pedir.</p>
+    ${pend.length ? `<div class="nota"><b>Se retiran de Compras (${pend.length}):</b> ${pend.map((o) => o.g.prov).join(", ")}. No se pide nada: vuelven al Plan como «por enviar» y queda anotado quién y cuándo.</div>` : ""}
+    ${ped.length ? `<div class="aviso pendiente" style="margin-top:10px"><span class="ic">${PC.I.alerta}</span><div><b>${ped.length} ya ${ped.length > 1 ? "son órdenes" : "es una orden"}: ${ped.map((o) => o.g.prov).join(", ")}</b><span class="d">Lo pedido no se rectifica desde el Plan: se anula en Compras ▸ Órdenes, para que la orden y el plan no queden contradiciéndose.</span></div></div>` : ""}
+    ${pend.length ? `<label class="campo" style="margin-top:12px">¿Por qué rectificas?<select id="mot"><option>Cambié de idea</option><option>El plan cambió</option><option>Me falta elegir el proveedor</option><option>Otro</option></select></label>` : ""}
+    <div class="pie"><button class="btn" id="cancelarH">Cancelar</button>${pend.length ? `<button class="btn pri pel" id="siR">Rectificar ${pend.length > 1 ? "los " + pend.length : "este pedido"}</button>` : ""}</div>`);
+  if ($("#siR")) $("#siR").onclick = () => { const m = $("#mot").value; pend.forEach((o) => Object.assign(S.grupos[o.g.id], { estado: "rectificado", motivo: `${quien} rectificó el 26 oct: ${m}` })); salvar(); cerrar(); toast("Rectificado: vuelve al Plan como «por enviar»"); pintar(); };
+}
+
+function ligar() {
+  if ($("#enviar")) $("#enviar").onclick = hojaEnviar;
+  if ($("#verC")) $("#verC").onclick = () => { vista = "compras"; guardar("pc.v7", vista); pintar(); };
+  if ($("#rectP")) $("#rectP").onclick = () => hojaRectificar(Object.keys(S.grupos));
+  $$("[data-conf]").forEach((b) => (b.onclick = () => hojaConfirmar(b.dataset.conf)));
+  $$("[data-fecha]").forEach((b) => (b.onclick = () => hojaFecha(b.dataset.fecha)));
+  $$("[data-rect]").forEach((b) => (b.onclick = () => hojaRectificar([b.dataset.rect])));
+  $$("[data-reenv]").forEach((b) => (b.onclick = () => { S.grupos[b.dataset.reenv] = { estado: "pendiente", cuando: "fecha", fecha: "2026-11-12", por: quien, en: "26 oct 11:05" }; salvar(); toast("Vuelve a estar pendiente de confirmar"); pintar(); }));
+  $$("[data-ver]").forEach((b) => (b.onclick = () => { const id = b.dataset.ver; abierto.has(id) ? abierto.delete(id) : abierto.add(id); pintar(); }));
+}
+
+function pintar() {
+  PC.chrome({ activa: "plan", frase: vista === "plan" ? "Navidad 2026: lo que ya está decidido se manda a Compras para confirmarlo." : "Compras ▸ Órdenes de compra." });
+  if (vista === "compras") { $("#chrome h1").textContent = "Órdenes de compra"; const t = $(".fila-tabs"); if (t) t.style.display = "none"; const s = $("#selCamp"); if (s) s.style.display = "none"; }
+  $("#vista").innerHTML = [["plan", "① En el Plan"], ["compras", "② En Compras ▸ Órdenes"]].map(([k, t]) => `<button type="button" class="${k === vista ? "on" : ""}" data-k="${k}">${t}</button>`).join("");
+  $$("#vista button").forEach((b) => (b.onclick = () => { vista = b.dataset.k; guardar("pc.v7", vista); pintar(); }));
+  $("#vNota").innerHTML = vista === "plan" ? "Aquí envías lo ya elegido (modelos, colores y tallas) y ves en qué estado quedó en Compras. «Rectificar el envío» vive aquí y en Compras." : "Los pedidos llegan como <b>Pendiente de campaña, falta confirmar</b>, con su fecha. Aquí se confirman (se crea la orden), se cambia la fecha o se rectifican.";
+  $("#main").innerHTML = vista === "plan" ? vPlan() : vCompras();
+  ligar();
+}
+$("#reset").onclick = () => { ["pc.envio", "pc.v7"].forEach((k) => localStorage.removeItem(k)); location.reload(); };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+pintar();
+</script>
+</body>
+</html>
