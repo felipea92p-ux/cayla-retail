@@ -2233,7 +2233,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "mis-envios.tab-esta" }],
       titulo: "Lo de tu ronda abierta",
-      texto: "Cada envío con su código, cuándo salió, cuántas prendas y fardos llevaba y en qué va. Si todavía falta mandar algo, la franja de abajo lo dice y te deja mandarlo.",
+      texto: "Cada envío con su código, cuándo salió, cuántas prendas y fardos llevaba y en qué va. En la computadora es una tabla; al tocar una fila se abre su detalle a la derecha. Si falta mandar algo, la franja de abajo lo dice.",
     },
     {
       id: "anteriores",
@@ -2415,6 +2415,13 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
       opcional: true,
       titulo: "Lo que llevas",
       texto: "La barra negra suma lo que llevas: cuántas prendas, cuánto suman y cuántos modelos.",
+    },
+    {
+      id: "tu-compra",
+      ancla: "compra.tu-compra",
+      opcional: true,
+      titulo: "Tu compra",
+      texto: "En la computadora, a la derecha va quedando lo que llevas: el proveedor, cada prenda con sus tiendas y el total. Solo se lee.",
     },
     {
       id: "revisar",

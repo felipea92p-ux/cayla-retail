@@ -19,6 +19,7 @@ import {
 } from "@/lib/mis-envios-reglas";
 import { desdeRonda, type PorMandar } from "@/lib/mi-plata-reglas";
 import { FilaEnvio } from "./FilaEnvio";
+import { TablaEnvios, type GrupoDeEnvios } from "./TablaEnvios";
 import { MandarATienda } from "./MandarATienda";
 
 // Mis compras ▸ Mis envíos (ADR-0480, maqueta docs/maquetas/mis-compras-envios-2026-10/, Felipe 2026-10-26): los envíos que mandó la
@@ -51,6 +52,20 @@ export function MisEnvios({
 
   const encontrados = useMemo(() => (buscando ? envios.filter((e) => coincideEnvio(e, filtro, q)) : []), [buscando, envios, filtro, q]);
   const deEstaVisibles = deEsta.filter((e) => coincideEnvio(e, filtro, ""));
+  // En PC, las rondas anteriores son una sola tabla con una franja por ronda (lo que no pasa el filtro no entra).
+  const gruposAnteriores: GrupoDeEnvios[] = rondas
+    .map((r) => {
+      const resumen = resumenDeEnvios(r.envios, hoy);
+      const dias = diasDeLaRonda(r.abiertaEn, r.cerradaEn);
+      return {
+        clave: r.rondaId ?? "sin-ronda",
+        titulo: r.rondaId ? `Ronda ${r.texto}` : r.texto,
+        detalle: [dias, r.rondaId ? "cerrada" : null, resumen.texto].filter(Boolean).join(" · "),
+        chip: resumen.chip,
+        envios: r.envios.filter((e) => coincideEnvio(e, filtro, "")),
+      };
+    })
+    .filter((g) => g.envios.length > 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,11 +105,14 @@ export function MisEnvios({
             Resultados
           </TituloSeccion>
           {encontrados.length > 0 ? (
-            <ul className="divide-y divide-sand">
-              {encontrados.map((e) => (
-                <FilaEnvio key={e.id} e={e} hoy={hoy} conRonda />
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y divide-sand lg:hidden">
+                {encontrados.map((e) => (
+                  <FilaEnvio key={e.id} e={e} hoy={hoy} conRonda />
+                ))}
+              </ul>
+              <TablaEnvios grupos={[{ clave: "resultados", envios: encontrados }]} hoy={hoy} conRonda />
+            </>
           ) : (
             <Vacio icono={<PackageCheck aria-hidden />} titulo="No hay un envío así" tamano="chico">
               Revisa el código o quita el filtro.
@@ -112,11 +130,14 @@ export function MisEnvios({
               Tus envíos anteriores están en «Rondas anteriores».
             </Vacio>
           ) : deEstaVisibles.length > 0 ? (
-            <ul className="divide-y divide-sand">
-              {deEstaVisibles.map((e) => (
-                <FilaEnvio key={e.id} e={e} hoy={hoy} />
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y divide-sand lg:hidden">
+                {deEstaVisibles.map((e) => (
+                  <FilaEnvio key={e.id} e={e} hoy={hoy} />
+                ))}
+              </ul>
+              <TablaEnvios grupos={[{ clave: "esta", envios: deEstaVisibles }]} hoy={hoy} />
+            </>
           ) : (
             <Vacio icono={<PackageCheck aria-hidden />} titulo="Nada por aquí" tamano="chico">
               {filtro === "todos" ? "Todavía no mandaste nada en esta ronda." : "Nada con ese filtro."}
@@ -126,15 +147,18 @@ export function MisEnvios({
           <MandarATienda porMandar={porMandar} />
         </section>
       ) : (
-        <section className="grid items-start gap-3 xl:grid-cols-2" data-guia="mis-envios.anteriores">
+        <section className="flex flex-col gap-3" data-guia="mis-envios.anteriores">
           {rondas.length === 0 ? (
-            <div className="xl:col-span-2">
+            <div>
               <Vacio icono={<PackageCheck aria-hidden />} titulo="Todavía no hay rondas anteriores" tamano="chico">
                 Cuando cierres una ronda, sus envíos quedan aquí con su código.
               </Vacio>
             </div>
           ) : (
-            rondas.map((r) => {
+            <>
+            <TablaEnvios grupos={gruposAnteriores} hoy={hoy} />
+            <div className="grid items-start gap-3 lg:hidden">
+            {rondas.map((r) => {
               const clave = r.rondaId ?? "sin-ronda";
               const lista = r.envios.filter((e) => coincideEnvio(e, filtro, ""));
               if (lista.length === 0 && filtro !== "todos") return null;
@@ -167,7 +191,9 @@ export function MisEnvios({
                   )}
                 </div>
               );
-            })
+            })}
+            </div>
+            </>
           )}
         </section>
       )}

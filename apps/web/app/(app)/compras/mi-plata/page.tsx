@@ -63,58 +63,70 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
           La plata para compras es de cada persona: desde una terminal no hay «tu plata». Entra con tu correo para anotarla.
         </Vacio>
       ) : (
-        // Una sola columna en el celular; en escritorio, «Hoy» ocupa la derecha a todo lo alto y la última fila (1fr) se lleva el aire,
-        // así las piezas de la izquierda no se separan.
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_auto_auto_1fr] lg:gap-x-8">
-          <div className="flex flex-col gap-3.5 lg:col-start-1">
-            <CaminoDePasos pasos={PASOS_DE_LA_RONDA} ahora={pasoDeLaRonda(plata)} etiqueta="Tu ronda, paso a paso" guia="mi-plata.camino" />
-            <Billetera plata={plata} />
-          </div>
-          {plata.ronda.abierta ? (
-            <section aria-label="¿Qué hiciste?" className="grid grid-cols-2 gap-2.5 lg:col-start-1">
-              <AccionDelDia
-                grande
-                href="/compras/mi-plata/compra"
-                guia="mi-plata.compre"
-                titulo="Compré ropa"
-                detalle="A un proveedor, en la calle o por pedido"
-                icono={<ShoppingBag className="h-5 w-5" aria-hidden />}
-              />
-              <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} />
-              <AnotarGasto />
-            </section>
-          ) : (
-            // Sin ronda: abrirla es lo único que se pide. La plata que le dieron se puede anotar igual (Compras a veces la manda antes).
-            <div className="flex flex-col gap-2.5 lg:col-start-1">
-              <AbrirRonda ultimaCerrada={plata.ronda.ultimaCerrada} />
-              <div className="grid grid-cols-2 gap-2.5">
-                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} ancha />
+        // Una sola columna en el celular, en este orden: camino y plata · acciones · falta mandar · envíos · lista de la ronda · cerrar ·
+        // rondas anteriores. En escritorio (Felipe 2026-10-26, «A · tres columnas», docs/maquetas/mis-compras-envios-pc-2026-10/) el mismo
+        // contenido se reparte como se trabaja: tu plata y lo que haces · «Manda» (lo que falta mandar y los envíos con su código) · el
+        // registro de la ronda y las anteriores. Cada columna es una caja que en el celular «desaparece» (`contents`) y deja a sus hijos
+        // en la columna única, con `order` para conservar el orden de siempre. Sin ronda abierta no hay «Manda»: dos columnas.
+        <div
+          className={`grid gap-4 lg:items-start lg:gap-x-7 ${
+            plata.ronda.abierta ? "lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
+          }`}
+        >
+          <div className="contents lg:flex lg:flex-col lg:gap-4">
+            <div className="order-1 flex flex-col gap-3.5 lg:order-none">
+              <CaminoDePasos pasos={PASOS_DE_LA_RONDA} ahora={pasoDeLaRonda(plata)} etiqueta="Tu ronda, paso a paso" guia="mi-plata.camino" />
+              <Billetera plata={plata} />
+            </div>
+            {plata.ronda.abierta ? (
+              <section aria-label="¿Qué hiciste?" className="order-2 grid grid-cols-2 gap-2.5 lg:order-none">
+                <AccionDelDia
+                  grande
+                  href="/compras/mi-plata/compra"
+                  guia="mi-plata.compre"
+                  titulo="Compré ropa"
+                  detalle="A un proveedor, en la calle o por pedido"
+                  icono={<ShoppingBag className="h-5 w-5" aria-hidden />}
+                />
+                <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} />
+                <AnotarGasto />
+              </section>
+            ) : (
+              // Sin ronda: abrirla es lo único que se pide. La plata que le dieron se puede anotar igual (Compras a veces la manda antes).
+              <div className="order-2 flex flex-col gap-2.5 lg:order-none">
+                <AbrirRonda ultimaCerrada={plata.ronda.ultimaCerrada} />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} ancha />
+                </div>
               </div>
+            )}
+            <div className="order-6 lg:order-none">
+              <TerminarDia plata={plata} envios={envios === null ? null : enviosDeLaRonda(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
             </div>
-          )}
-          <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} className="lg:col-start-1" />
-          {/* Los envíos van pegados a «Falta mandar»: es el mismo paso del camino (Manda). En el celular quedan antes de la lista larga de la
-              ronda, donde no se pierden; en escritorio, en la columna de las acciones. */}
-          {rondaAbierta && envios !== null && (
-            <div className="lg:col-start-1">
-              <EnviosDeLaRonda envios={enviosDeLaRonda(envios, rondaAbierta.id)} texto={rondaAbierta.texto} hoy={hoy} />
-            </div>
-          )}
-          <div className="min-w-0 lg:col-start-2 lg:row-span-6 lg:row-start-1">
-            <ListaDelDia
-              actuales={lista?.actuales ?? []}
-              titulo={tituloDeLaLista(plata.ronda)}
-              desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
-            />
           </div>
-          <div className="lg:col-start-1">
-            <TerminarDia plata={plata} envios={envios === null ? null : enviosDeLaRonda(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
+          <div className={`contents ${plata.ronda.abierta ? "lg:flex lg:flex-col lg:gap-4" : "lg:hidden"}`}>
+            {/* Los envíos van pegados a «Falta mandar»: es el mismo paso del camino (Manda). */}
+            <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} className="order-3 lg:order-none" />
+            {rondaAbierta && envios !== null && (
+              <div className="order-4 lg:order-none">
+                <EnviosDeLaRonda envios={enviosDeLaRonda(envios, rondaAbierta.id)} texto={rondaAbierta.texto} hoy={hoy} />
+              </div>
+            )}
           </div>
-          {anteriores.length > 0 && (
-            <div className="lg:col-start-1">
-              <RondasAnteriores historial={anteriores} envios={envios === null ? null : rondasConEnvios(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
+          <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+            <div className="order-5 min-w-0 lg:order-none">
+              <ListaDelDia
+                actuales={lista?.actuales ?? []}
+                titulo={tituloDeLaLista(plata.ronda)}
+                desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
+              />
             </div>
-          )}
+            {anteriores.length > 0 && (
+              <div className="order-7 lg:order-none">
+                <RondasAnteriores historial={anteriores} envios={envios === null ? null : rondasConEnvios(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

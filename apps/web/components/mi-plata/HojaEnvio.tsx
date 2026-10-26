@@ -3,7 +3,9 @@
 import type { RefObject } from "react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { Cajon } from "@/components/ui/Cajon";
 import { Modal } from "@/components/ui/Modal";
+import { useEnCelular } from "@/components/ui/useEnCelular";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import {
   ESTADO_ENVIO,
@@ -17,8 +19,10 @@ import { AccionesDelCodigo, CodigoDeEnvio } from "./CodigoDeEnvio";
 
 // Mis envíos ▸ un envío (maqueta docs/maquetas/mis-compras-envios-2026-10/): el mismo detalle para cualquier ronda. El código grande
 // con copiar y compartir, su historia (salió · la tienda lo cuenta · recibido), los avisos que piden hacer algo (nadie lo abrió hace
-// días; la tienda contó menos), la cuenta como un cuaderno y lo que llevaba. Solo se lee: se cierra con la ×.
+// días; la tienda contó menos), la cuenta como un cuaderno y lo que llevaba. Solo se lee: se cierra con la ×. En el celular es la hoja de
+// siempre (`Modal`); en PC (Felipe 2026-10-26, «A»), un cajón a la derecha con la lista viva detrás, el mismo del resto de Compras.
 export function HojaEnvio({ e, hoy, onClose, volverA }: { e: EnvioMio; hoy?: string; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+  const enCelular = useEnCelular();
   const estado = ESTADO_ENVIO[e.estado];
   const avisos = avisosDeEnvio(e, hoy);
   const filas: [string, string][] = [
@@ -26,8 +30,7 @@ export function HojaEnvio({ e, hoy, onClose, volverA }: { e: EnvioMio; hoy?: str
     ["Fardos", String(e.fardos)],
     ["Ronda", textoDeRondaDelEnvio(e)],
   ];
-  return (
-    <Modal titulo={e.destino} onClose={onClose} variante="hoja" conCerrar alCerrarEnfocar={volverA}>
+  const cuerpo = (
       <div className="space-y-4">
         <div className="flex flex-col items-stretch gap-2.5">
           <CodigoDeEnvio numero={e.numero} linea={detalleDeEnvio(e, hoy)} />
@@ -70,6 +73,17 @@ export function HojaEnvio({ e, hoy, onClose, volverA }: { e: EnvioMio; hoy?: str
           </div>
         )}
       </div>
-    </Modal>
+  );
+  if (enCelular) {
+    return (
+      <Modal titulo={e.destino} onClose={onClose} variante="hoja" conCerrar alCerrarEnfocar={volverA}>
+        {cuerpo}
+      </Modal>
+    );
+  }
+  return (
+    <Cajon titulo={e.destino} sobre="Mis envíos" onCerrar={onClose}>
+      {cuerpo}
+    </Cajon>
   );
 }
