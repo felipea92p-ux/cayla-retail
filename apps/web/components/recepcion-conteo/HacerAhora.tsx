@@ -15,6 +15,7 @@ import { atipicosPorLinea, leerCostoAtipicoRecepcion, type CatalogoParaRecibir, 
 import {
   argsResolverPendiente,
   ponerTallas,
+  prendaCreadaDeNueva,
   SEPARADO_VACIO,
   textoPrendas,
   textoResuelto,
@@ -36,11 +37,13 @@ import { SepararPrendas } from "./SepararPrendas";
 // (`resolver_pendiente_envio`): «Separar» lo que nadie dijo qué es (prendas con o sin tallas, nuevas); «Tallas y colores» de un pendiente
 // «detalle»; y «Crear» lo nuevo (la hoja de la prenda de siempre y, con la prenda creada, sus tallas). Lo que trae tallas entra al stock en
 // el acto, con el costo que se fijó al cerrar; lo demás queda como pendiente nuevo. Nunca más de lo que queda: para eso está reabrir.
+// Al separar, una nueva ya descrita también se puede «Crear ahora»: pasa a ser la prenda creada y le toca «Tallas y colores ahora».
 
 type Vista =
   | { tipo: "separar" }
   | { tipo: "tallas"; prenda: PrendaRecepcion; original: PrendaSeparada | null }
-  | { tipo: "prenda" }
+  // `desde`: la nueva ya descrita que se está creando al separar. Sin ella, es la hoja de siempre («Crear ahora» de un pendiente o «Es nueva»).
+  | { tipo: "prenda"; desde?: { cantidad: number; descripcion: string } }
   | { tipo: "cargando" };
 
 export function HacerAhora({
@@ -172,6 +175,19 @@ export function HacerAhora({
     );
   }
 
+  /** La prenda de «Crear ahora» ya existe: esas nuevas pasan a ser la prenda, sin tallas todavía, y se sigue en su hoja de tallas. */
+  const prendaCreada = (prenda: PrendaRecepcion) => {
+    onPrendaVista(prenda);
+    const desde = vista.tipo === "prenda" ? vista.desde : undefined;
+    if (!desde) {
+      setVista({ tipo: "tallas", prenda, original: null });
+      return;
+    }
+    const s = prendaCreadaDeNueva(separado, desde.descripcion, prenda);
+    setSeparado(s);
+    setVista({ tipo: "tallas", prenda, original: s.prendas.find((p) => p.productoId === prenda.productoId) ?? null });
+  };
+
   if (vista.tipo === "prenda") {
     return (
       <HojaPrenda
@@ -183,7 +199,7 @@ export function HacerAhora({
           marcaId: marca.id,
           marcaNombre: marca.nombre,
           // Sin descripción al contar, el nombre que anotó la compradora en la línea (ADR-0480: «Usar ese nombre»).
-          descripcionOrden: (item.tipo === "crear" ? item.pendiente.descripcion : null) ?? linea.linea?.descripcion ?? null,
+          descripcionOrden: vista.desde?.descripcion ?? (item.tipo === "crear" ? item.pendiente.descripcion : null) ?? linea.linea?.descripcion ?? null,
           precioSugerido: linea.linea?.precioVentaSugerido ?? null,
           costoUnitario: linea.conteo?.costoUnitario ?? linea.linea?.costoUnitario ?? null,
           prenda: null,
@@ -192,16 +208,12 @@ export function HacerAhora({
         categoria={catalogo?.categorias.find((c) => c.id === categoria.id) ?? null}
         colores={catalogo?.colores ?? []}
         responsable={responsable}
-        onListo={(prenda) => {
-          onPrendaVista(prenda);
-          setVista({ tipo: "tallas", prenda, original: null });
-        }}
+        onListo={prendaCreada}
         onUsarExistente={async (productoId, nombre) => {
           const { prendas: halladas } = await buscarPrendasParaRecibir(categoria.id, marca.id, nombre);
           const hallada = halladas.find((p) => p.productoId === productoId);
           if (!hallada) return false;
-          onPrendaVista(hallada);
-          setVista({ tipo: "tallas", prenda: hallada, original: null });
+          prendaCreada(hallada);
           return true;
         }}
         onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : onCerrar}
@@ -239,6 +251,7 @@ export function HacerAhora({
       guardando={guardando}
       error={error}
       onPrendaVista={onPrendaVista}
+      onCrearNueva={(desde) => setVista({ tipo: "prenda", desde })}
       elegida={linea.linea?.prendaElegida ?? null}
       onSeparado={setSeparado}
       onTallas={async (p) => {
@@ -266,6 +279,7 @@ function SepararAhora({
   guardando,
   error,
   onPrendaVista,
+  onCrearNueva,
   elegida,
   onSeparado,
   onTallas,
@@ -281,6 +295,7 @@ function SepararAhora({
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   elegida: { productoId: string; nombre: string | null; codigo: string | null } | null;
   onPrendaVista: (p: PrendaRecepcion) => void;
+  onCrearNueva: (nueva: { cantidad: number; descripcion: string }) => void;
   onSeparado: (s: Separado) => void;
   onTallas: (p: PrendaSeparada) => void;
   onGuardar: () => void;
@@ -320,6 +335,7 @@ function SepararAhora({
               onSeparado={onSeparado}
               onTallas={onTallas}
               onPrendaVista={onPrendaVista}
+              onCrearNueva={onCrearNueva}
             />
           </div>
           {error && <Aviso tono="error" titulo="No se pudo guardar">{error}</Aviso>}
