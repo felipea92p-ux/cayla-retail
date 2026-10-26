@@ -1,0 +1,94 @@
+# ADR-0518 — Tienda web ▸ Conf. Tienda: puertas, mapa, foto, horario por días y cierres
+
+**Estado:** aceptada, **construida en su PR; la migración `20261026162000` NO está pegada en producción** (se pega en dos partes, ver «Cómo se publica»).
+**Fecha:** 2026-10-26 · **Decidió:** Felipe (la revisión «¿está completa?» del 2026-10-26, la maqueta aprobada mirándola y la lista de 8 actividades) ·
+**Sigue a:** ADR-0408 (act. 6, la pantalla original), ADR-0430 (el grupo Tienda web y el módulo `ajustes_web`), ADR-0358 (una función, una pieza),
+ADR-0284 (guía de foco), ADR-0195 (partes que se pegan por separado)
+
+## Contexto
+
+Felipe pidió revisar si «Conf. Tienda» (`/tienda-web/ajustes`) estaba completa. Hacía bien lo que prometía (nombre, WhatsApp, dirección, horario como
+texto, «Se ve en la web», plazos) pero le faltaba lo que un cliente espera de una tienda en internet y lo que un dueño espera poder decir: dónde queda
+exactamente, cómo es por fuera, **si está abierta ahora**, qué día no abre, en qué orden se muestran. El horario era un texto libre que la web solo repetía:
+no podía decir «Abierta · cierra 9 p. m.» ni «Cerrada hoy». Y la pantalla era una tarjeta larga por tienda con párrafos de ayuda en cada caja.
+
+Felipe pidió una maqueta (`docs/maquetas/tienda-web-conf-2026-10/`) «entendible, con pocas palabras, intuitiva y fuera de lo común». La aprobó mirándola, con dos
+ajustes (la escala de «Stock en la web» y que el horario se entendiera sin explicar). `/formidable` y `/chaos` **van después de que todo esté hecho**, a pedido suyo.
+
+## Decisión
+
+**1 · La pantalla.** Una fila de **puertas** (una por tienda: fachada con el color de su sede, el estado «Se ve en la web», el anillo de 3 datos, lo que
+falta con UNA palabra —«Nombre», «WhatsApp», «Dónde»— y el interruptor) y, bajo ella, **el taller** de la tienda abierta con **el teléfono** fijo al lado: la
+tarjeta tal como la lee el cliente, en vivo. Cada tarjeta se sigue guardando con su botón «Guardar», firmado por el responsable (ADR-0408 act. 6): lo que se
+guarda y las funciones que lo guardan no cambian de significado.
+
+**2 · Lo que se suma, cada cosa con su función en la base** (todas: `fn_puede_ajustes_tienda_web()` —el líder o el módulo `ajustes_web`—, firma
+`fn_actor_persona_id(true)`, rastro en `configuracion_historial`, «si nada cambió no escribe ni anota»):
+
+| Qué | Dónde vive | Función | Regla que cierra la base |
+|---|---|---|---|
+| Orden de las tiendas | `ubicacion_datos_web.orden` | `guardar_orden_tiendas_web(uuid[])` | solo tiendas abiertas, sin repetir; se arrastra y se guarda al soltar |
+| Mapa | `ubicacion_datos_web.mapa_url` | `guardar_mapa_tienda_web` | CHECK: solo enlaces de Google Maps (`https`, hasta 400 letras, sin espacios) |
+| Foto de la fachada | `foto_ruta` + almacén público `retail-tiendas` | `guardar_foto_tienda_web` | CHECK: `tiendas/<SU tienda>/<uuid>.webp|jpg`; solo se sube, nunca se pisa ni se borra |
+| Horario por días | `ubicacion_horario_web` (una fila por día abierto) | `guardar_horario_tienda_web(uuid, jsonb, text)` | CHECK: de media en media hora, abre antes de cerrar, dentro del día; guarda también el texto corto en `horario` en el mismo paso |
+| Cierres por fecha | `ubicacion_cierres_web` | `guardar_cierres_tienda_web(uuid, jsonb)` | fechas reales, de hoy (Lima) a 2 años, sin repetir, hasta 60; no toca los días pasados |
+
+`fn_configuracion_tienda_web()` (el ERP) y `tienda_sedes()` (la web) se reescriben **una vez**, solo **agregando claves** al JSON (`orden`, `mapa_url`/`mapa`,
+`foto_ruta`/`foto`, `dias`, `cierres`): ninguna clave que alguien ya leyera cambia de nombre ni de forma, y `tienda_sedes()` sigue ordenando por nombre si no
+hay orden guardado. Los plazos de los pedidos y el umbral de stock **no cambian en la base**: solo se dibujan distinto (el hilo separa → confirmas → paga →
+recoge con − y + bajo cada paso, y la escala 1·2·3·«4+ siempre Hay»).
+
+**3 · «Abierta ahora» se calcula en el navegador, con la hora de Lima.** `@cayla-retail/shared/horario-de-tienda` (puro: leer los días, armar el texto
+corto, decir «Abierta · cierra 9 p. m.» / «Cerrada · abre mañana 10 a. m.» / «Cerrada hoy», saltar los días con cierre) lo usan el ERP y la tienda online. La
+tienda sale armada de antemano (cache components, ADR-0432): un «Abierta» escrito en el servidor seguiría diciéndose horas después de cerrar, así que el
+servidor no dice nada y el estado entra al cargar y se renueva cada medio minuto (`useSyncExternalStore`). Sin horario por días no se dice nada: una tienda no
+se declara cerrada por falta de datos. La hora de Lima se saca con `Intl` (no con la zona del aparato) y asume UTC−5 sin horario de verano.
+
+**4 · Una sola regla en las dos apps.** El enlace de mapa, la ruta de la foto y todo lo del horario viven en `packages/shared` (`tienda-web-sede`,
+`horario-de-tienda`) y la base las repite en sus CHECK: la pantalla avisa ANTES lo que la base diría DESPUÉS, y una prueba (`horario-de-tienda.test.ts`,
+`tienda-web-sede-compartido.test.ts`, `pruebas:tienda-web-conf`) usa las mismas listas de casos para que no discrepen.
+
+## Por qué así
+
+- **El texto corto del horario se sigue guardando** (`ubicacion_datos_web.horario`), derivado de los días en el mismo paso: lo que ya lee la web, y cualquier
+  función vieja, sigue viendo un horario; una tienda con el texto de antes y sin días sigue mostrándolo hasta que alguien pinte sus días.
+- **Una función por cosa, no una gigante** (principio 3): cada una se prueba, se anota y se puede volver a llamar sola. A cambio, guardar una tarjeta con
+  varias cosas cambiadas hace varias llamadas, **en este orden: WhatsApp → datos de la tienda → mapa → foto → horario → cierres** (el WhatsApp primero porque
+  encender la tienda lo exige; el horario después de los datos porque también escribe `horario`). Si una falla, lo escrito se queda para corregirlo y volver
+  a guardar; todas son idempotentes.
+- **Solo se sube a `retail-tiendas`** (como las campañas, ADR-0408 act. 21): la foto nueva lleva un nombre nuevo, volver a una anterior es guardar su ruta,
+  y un archivo huérfano pesa a lo más 200 KB. Sin política de borrar ni de cambiar.
+- **Las puertas se ordenan arrastrando, con Alt + flechas y, con el dedo, con dos botones** (HTML5 no arrastra en el celular). Se ve al instante y vuelve atrás si
+  la base no lo acepta.
+
+## Lo que descarté
+
+- **Un motivo en cada cierre («Feriado», «Inventario»):** la maqueta lo mostraba, pero pedía una palabra más en cada cierre y nadie lo necesita para decidir.
+  La tabla no tiene la columna; sumarla después es una migración chica.
+- **Guardar el horario solo como texto y que la web lo interprete:** imposible de validar y de calcular «abierta ahora». Sí se descartó **borrar** el texto: se deriva.
+- **Calcular «Abierta ahora» en el servidor de la tienda:** queda congelado en el prerender (ver arriba).
+- **Un selector de hora al tocar «10 a. m.» de una barra:** una pieza más; las asas, la barra entera y el teclado (←/→, Mayús, Alt, Suprimir) alcanzan.
+- **Cerrar pasada la medianoche:** una tienda que cierra a las 2 a. m. no cabe todavía (cada día va de las 0:00 a las 24:00). Si aparece, es otro modelo (el cierre
+  del día siguiente).
+
+## Cómo se publica (decisión de Felipe: UNA migración, pegada al final)
+
+`supabase/migrations/20261026162000_tienda_web_conf_tienda.sql`, reservada con `pnpm reservar migracion`. **Dos partes, por separado y en orden** (ADR-0195: en
+Supabase, `create policy` toma en exclusiva las tablas de `auth` y `storage`): **(1)** todo hasta la línea «PARTE FINAL»; **(2)** «PARTE FINAL · la política de
+subida de la foto», sola y fuera del horario de tienda. Las dos se pueden volver a correr. Después: dar `ajustes_web` en Roles y accesos a quien deba usarla, y
+refrescar el volcado del diccionario (`docs/datos/generado/COMO-REFRESCAR.md`; incluye tres tablas y un almacén nuevos). La tienda online necesita
+`TIENDA_FOTOS_ORIGEN` (la misma variable de las imágenes de campaña) para mostrar las fotos.
+
+## Verificado / no verificado
+
+**Verificado:** `pnpm pruebas:tienda-web-conf` (103 escenarios con ROLLBACK, también «se puede pegar dos veces») y la prueba antigua `pruebas:tienda-web-configuracion`
+(63, con y sin la migración); typecheck de las dos apps, lint, Knip y Knip de producción; las guardianas del repo (colores, una función-una pieza, guía de foco,
+sugerencias, guías, hover, tokens). La pantalla en el navegador con datos de ejemplo, en claro y oscuro y a 375 px sin desborde: los gestos del horario
+(estirar un borde, correr la barra, pintar un hueco, un toque, el teclado, un arrastre que se sale de la pista), «Cerrar hoy», el orden, los − y + del reloj, la
+escala y sus flechas, el campo del mapa; y **la foto**: una JPG de 2,8 MB se reduce a un WebP de 196 KB y sube a `retail-tiendas/tiendas/<tienda>/<uuid>.webp`
+(con la respuesta del almacén simulada).
+
+**NO verificado:** (a) la subida real de una foto al almacén con una sesión de verdad (el local no tiene Storage con login: la respuesta se simuló); (b) los
+gestos con el mouse real y con el dedo: se probaron despachando eventos de puntero, y fue ahí donde apareció un fallo real (soltar el mouse antes de que React
+pintara dejaba el arrastre sin confirmar), ya corregido; falta ver el celular de verdad (arrastrar el horario, los dos botones de orden); (c) `pnpm guias:recorrer`
+de la guía nueva (pide la base local al día y una cuenta); (d) la migración contra producción; (e) `/formidable` y `/chaos`, que Felipe quiso al final.

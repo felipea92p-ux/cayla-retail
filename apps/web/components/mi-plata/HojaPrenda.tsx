@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { AlertTriangle, Check, Plus, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoMonto, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { ChipsConOtra } from "./ChipsConOtra";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -37,7 +38,7 @@ import {
   type Habitual,
 } from "@/lib/compra-rapida-reglas";
 
-// La hoja de la prenda de «Compré ropa» (rediseño, maqueta docs/maquetas/compras-formidable-2026-10/, Felipe 2026-10-23). Al tocar una
+// La hoja de la prenda de «Compré ropa» (rediseño, maquetas docs/maquetas/compras-formidable-2026-10/ y mis-compras-rediseno-2026-10/, Felipe 2026-10-23 y 24). Al tocar una
 // prenda se abre esta hoja con lo que antes eran cuatro pantallas seguidas: cuántas, cuánto costó cada una, a cuánto se vende y a qué
 // tienda va (por prenda: Felipe lo pidió así el mismo día). La cantidad llega vacía con «La vez pasada» a un toque (/formidable,
 // 2026-10-23); el costo y la venta, con su atajo («La vez pasada», «Del catálogo»). La tienda llega marcada con la de la prenda anterior.
@@ -336,18 +337,20 @@ function DescribirNueva({
         Úsala también si no la encuentras entre sus prendas o no sabes cómo la llaman en la tienda: descríbela como la conoces. Es solo una
         referencia para la compra: no se crea en el catálogo; la tienda la registra cuando la recibe, con su color y sus tallas.
       </p>
-      {/* Qué es y la marca, lado a lado desde `sm`; en el celular, uno bajo otro: a media columna, «¿Qué es? · Sigue aquí» se partía. */}
-      <div className="grid gap-4 sm:grid-cols-2 sm:gap-3">
+      {/* Qué es y la marca, uno bajo otro: con chips, lado a lado se partían. Los chips son lo habitual de este proveedor y «Otra…» abre
+          la lista completa (maqueta mis-compras-rediseno-2026-10, Felipe 2026-10-26). */}
+      <div className="grid gap-4">
         <CampoGuiado id="categoria" guia={guia} titulo="¿Qué es?">
-          <div data-guia="compra.categoria-nueva">
-            <Desplegable
-              valor={n.categoriaId ?? ""}
-              onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
-              opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
-              marcador="Elige"
-              etiquetaAccesible="¿Qué es?"
-            />
-          </div>
+          <ChipsConOtra
+            guia="compra.categoria-nueva"
+            etiqueta="¿Qué es?"
+            marcadorSinChips="Elige una categoría"
+            todas={nueva.categorias}
+            habituales={nueva.categorias.filter((c) => nueva.suyas.has(c.id)).map((c) => c.id)}
+            valor={n.categoriaId}
+            onValor={(v) => nueva.cambiar({ categoriaId: v || null })}
+            opciones={opcionesCategoriaNueva(nueva.categorias, nueva.suyas)}
+          />
         </CampoGuiado>
         <CampoGuiado id="marca" guia={guia} titulo="¿De qué marca?">
           {/* El «+» del final cambia la lista por una caja para escribir una marca que no está; la «×» vuelve a la lista (Felipe
@@ -366,12 +369,14 @@ function DescribirNueva({
                   onChange={(e) => nueva.cambiar({ marcaNueva: e.target.value })}
                 />
               ) : (
-                <Desplegable
-                  valor={n.marcaId ?? ""}
+                <ChipsConOtra
+                  etiqueta="¿De qué marca?"
+                  marcadorSinChips="Elige una marca"
+                  todas={nueva.marcas}
+                  habituales={nueva.marcasDelProveedor.map((m) => m.id)}
+                  valor={n.marcaId}
                   onValor={(v) => nueva.cambiar({ marcaId: v || null })}
                   opciones={opcionesMarcaNueva(nueva.marcas, nueva.marcasDelProveedor)}
-                  marcador="Elige"
-                  etiquetaAccesible="¿De qué marca?"
                 />
               )}
             </div>

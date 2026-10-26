@@ -126,7 +126,7 @@ Construido sobre la demo que Felipe aprobó (`docs/maquetas/finanzas-v3-2026-10/
    de `debesPronto` y de la respuesta del mes, y el estado de la caja se dice con las mismas palabras que «Tu caja» (`estadoDeCaja`, una sola fuente). **El Resumen ya no pone `RespuestaTelar` en su cabecera** (es la única
    excepción de las seis pantallas: su respuesta ahora son tres tarjetas).
 2. **Ancho completo solo para el Resumen**, con el marcador `data-ancho-completo` de ADR-0462 y no sacando `/finanzas` de `CON_TOPE_DE_ANCHO`: las otras cinco pantallas se revisan a lo ancho una por una.
-   **Costo conocido:** al pasar del Resumen a otra pantalla de Finanzas la barra cambia de ancho (64 rem). Se arregla cuando las demás salgan de la lista.
+   **Costo conocido:** al pasar del Resumen a otra pantalla de Finanzas la barra cambia de ancho (64 rem). Se arregla cuando las demás salgan de la lista. **(Superado el mismo día por la actualización d: Finanzas entera salió de la lista.)**
 3. **Sin huecos:** la caja y «Hoy te toca» miden lo mismo; el recorrido, el equilibrio y los cambios van en columnas pegadas (`columns-[34rem]`; el navegador corta donde quedan más parejas) y en una columna en angosto.
 4. **Inversión en mercadería, tras bandera** (`lib/inversion-mercaderia-reglas.ts`, `lib/inversion-mercaderia.ts`, `InversionMercaderia.tsx`, `AjustesResumen.tsx`). No es un gasto: sale de la caja el día que se paga.
    Cada sol del plan está en UNA etapa (pagado, pedido sin pagar, falta pedir) y la caja solo suma **lo que falta pedir** (lo pedido ya está en Por pagar: contarlo dos veces es el error). `cajaProxima` acepta la compra como capa
@@ -141,3 +141,20 @@ Construido sobre la demo que Felipe aprobó (`docs/maquetas/finanzas-v3-2026-10/
 
 **Interino a propósito:** las elecciones de «Qué se ve» (interruptor general, por campaña, contar en la caja, IGV) viven en el navegador (`localStorage`), no en la base. Cuando el Plan guarde «se ve en el Resumen» y el interruptor general,
 `useAjustesResumen` cambia por esa lectura y las reglas no se tocan. **Las pestañas «Lo que dice la historia» y «Cuánto cuesta»** de la demo están construidas, pero **solo existen si el Plan entrega esos datos** (campos opcionales `historia` y `costos` de la campaña; `leerInversion` los descarta si vienen a medias). Sin ellos, el cuadro de la campaña muestra solo «Cuándo compro»; el Resumen no calcula nada de eso por su cuenta (solo suma «lo que te deja» con lo que el Plan entrega).
+
+## Actualización 2026-10-26 (d) — Todo Finanzas a ancho completo y la barra de sede pegada a la cabecera (Felipe)
+
+Felipe, mirando las cinco pantallas a ~2000 px: «que todos usen la pantalla al completo y no solo un espacio reducido», y «la barra de sede más arriba, no quiero espacios sin usar». Lo que se hizo:
+
+1. **`/finanzas` sale de `CON_TOPE_DE_ANCHO`** (`components/AppShell.tsx`, y de `CON_TOPE_HOY` en `lib/ancho-completo.test.ts`). Resumen, Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre de mes comparten un solo ancho: pasar de una
+   a otra ya no mueve el título (la prueba del grupo «finanzas» lo vigila, como las de Producción, Clientes y Tienda web). El marcador `data-ancho-completo` del Resumen sobra y se quitó (ya solo lo escriben el Inicio de almacén, el Observatorio y Aventurero).
+2. **La barra sube a donde se queda fija.** El `<main>` deja 6 rem sobre el contenido (5 en celular) y la barra se queda fija a 3,75 rem: en reposo había 28 px de aire sobre ella que desaparecían al bajar la página. Un margen negativo (`-2.25rem`
+   desde 640 px, `-1.25rem` en celular, `app/estilos/telar.css`) la hace nacer en su lugar fijo: ni salta ni deja hueco. Medido en 1440 px: de y = 88 a y = 60 (la cabecera mide 63).
+3. **Una sola fila hasta 1280 px.** Con el tope fuera, el «Registrar gasto» de la fila ya no se cae en 1440 px, pero a 1280 seguía bajando a una segunda fila (+43 px). Las reglas «solo íconos» ahora preguntan por el ancho de la propia barra
+   (`container: mesa / inline-size`) y no por el de la ventana: bajo 1050 px la barra deja solo los íconos de «Te toca» y «Registrar gasto»; bajo 1190 px se esconde el dicho («Viendo las cuatro sedes juntas», que también vive en su `title`)
+   porque con menos de ~150 px se queda en un hilo de 40 px. Ambas medidas salen de sumar las piezas: sedes 513 + mes 211 + «Te toca» 127 + «Registrar gasto» 151 + 3 huecos de 12 = 1038 px.
+4. **No se tocó** lo que cada pantalla hace dentro de su ancho: los gráficos con medida propia (la balanza del IGV a 680 px, la cascada del Reportes a 640 px) siguen centrados en su columna; abrirlos a lo ancho es una decisión de diseño de cada pantalla.
+
+**DECIDÍ:** sacar Finanzas entera de la lista de deuda de ancho en vez de mantener la excepción del Resumen y revisar las cinco pantallas «una por una». **DESCARTÉ:** la excepción por pantalla (`data-ancho-completo` en cada una), que dejaba a la persona
+viendo la barra cambiar de ancho cada vez que cambiaba de submódulo y obligaba a cada pantalla nueva de Finanzas a acordarse de pedirlo. **SE ROMPE SI:** una pantalla de Finanzas trae un bloque que no se llena a 1920 px y deja un hueco grande
+(se ve en la captura a lo ancho, no en la prueba), o si una pieza nueva se suma a la fila de la barra sin sumar su ancho a los 1038 px de arriba (volvería a dos filas a 1280 px).

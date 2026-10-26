@@ -12,7 +12,8 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { terminarDia } from "@/lib/mi-plata-acciones";
-import { decisionesCierre, detalleRonda, resumenRonda, textoCierre, textoPorMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { EVENTO_MANDAR, decisionesCierre, puedeCerrarLaRonda, resumenRonda, textoCierre, textoFaltaMandar, type DecisionCierre, type MiPlata } from "@/lib/mi-plata-reglas";
+import { FranjaFaltaMandar } from "./MandarATienda";
 
 // Compras simple (ADR-0480): «Cerrar mi ronda» (antes «Terminé de comprar hoy», al que reemplaza desde 20261023183000; Felipe 2026-10-23).
 // Arriba, la ronda abierta con su serie y número y lo que lleva. Al tocar, la cuenta de la ronda como un cuaderno (lo que tenías al
@@ -36,10 +37,6 @@ export function TerminarDia({ plata }: { plata: Plata }) {
   if (!ronda) return null;
   return (
     <section className="flex flex-col gap-2" aria-label="Tu ronda de compras">
-      <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
-        <span className="font-medium text-tinta">Ronda {ronda.texto}</span>
-        <span className="text-xs text-taupe">{detalleRonda(ronda, plata.hoy.fecha)}</span>
-      </p>
       <Boton
         peso="fantasma"
         className="w-full"
@@ -52,7 +49,7 @@ export function TerminarDia({ plata }: { plata: Plata }) {
         {/* El ícono y el texto en una fila: sueltos, el botón los apilaba (el ícono arriba y el texto abajo, a doble alto). */}
         <span className="inline-flex items-center gap-2">
           <Flag className="h-4 w-4" aria-hidden />
-          Cerrar mi ronda
+          Cerrar mi ronda {ronda.texto}
         </span>
       </Boton>
       {abierta && <TerminarModal plata={plata} onClose={() => setAbierta(false)} volverA={origen} />}
@@ -71,10 +68,11 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
   const d = resumenRonda(plata);
   const texto = plata.ronda.abierta?.texto ?? "";
-  const falta = textoPorMandar(plata.porMandar);
+  const falta = textoFaltaMandar(plata.porMandar);
+  const sePuedeCerrar = puedeCerrarLaRonda(plata.porMandar);
 
   async function confirmar() {
-    if (guardando || !decision) return;
+    if (guardando || !decision || !sePuedeCerrar) return;
     setRechazo(null);
     setGuardando(true);
     const { error } = await terminarDia({ p_decision: decision }, firmaOmitida("compra_terminar_dia"));
@@ -104,7 +102,7 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
 
   return (
     <Modal
-      titulo={`Cerrar la ronda ${texto}`}
+      titulo={`Cerrar mi ronda ${texto}`}
       subtitulo="Revisa tu plata y di qué haces con lo que te queda."
       onClose={onClose}
       variante="hoja"
@@ -131,10 +129,17 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
             </li>
           </ul>
 
+          {/* Con prendas por mandar no se cierra (Felipe 2026-10-26): la franja lleva a «Mandar a la tienda» y «Cerrar» queda apagado. */}
           {falta && (
-            <Aviso tono="atencion" titulo="Antes, manda a la tienda" chico>
-              {falta}. Puedes cerrar igual y mandarlo después.
-            </Aviso>
+            <FranjaFaltaMandar
+              antes
+              falta={falta}
+              onClick={() => {
+                onClose();
+                // Un tick después: la hoja de cierre ya se está yendo cuando «Mandar a la tienda» se abre.
+                setTimeout(() => window.dispatchEvent(new Event(EVENTO_MANDAR)), 0);
+              }}
+            />
           )}
 
           {plata.tiene < 0 ? (
@@ -177,12 +182,24 @@ function TerminarModal({ plata, onClose, volverA }: { plata: Plata; onClose: () 
               {rechazo.texto}
             </Aviso>
           )}
-          {!decision && <p className="text-xs text-taupe">Elige qué haces con lo que te queda.</p>}
+          {!sePuedeCerrar ? (
+            <p className="text-xs text-taupe">Manda las prendas a la tienda y después cierras tu ronda.</p>
+          ) : (
+            !decision && <p className="text-xs text-taupe">Elige qué haces con lo que te queda.</p>
+          )}
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Guardando…" disabled={!decision} data-guia="mi-plata.terminar">
+            <Boton
+              type="submit"
+              peso="primario"
+              cargando={guardando}
+              textoCargando="Guardando…"
+              disabled={!decision || !sePuedeCerrar}
+              title={!sePuedeCerrar ? "Antes, manda las prendas a la tienda" : undefined}
+              data-guia="mi-plata.terminar"
+            >
               Cerrar la ronda
             </Boton>
           </div>
