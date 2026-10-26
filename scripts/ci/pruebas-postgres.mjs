@@ -204,6 +204,15 @@ export const PRUEBAS = [
   // guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
   "pruebas:historial-prenda",
 
+  // Pestaña «Costo» del Historial (2026-10-24): cada compra a nivel prenda (mezcla variantes, descuenta lo vendido entre
+  // compras, junta dos líneas de una misma variante), la cuenta de la pantalla cierra y sin permiso de dinero no ve nada. ROLLBACK.
+  "pruebas:costo-de-la-prenda",
+
+  // Corregir el costo de la ÚLTIMA compra (Felipe 2026-10-24, ADR-0515): solo un líder y con motivo, solo la última, un cierre del
+  // Taller no, encadena dos líneas de una misma variante, costo_historial queda idéntico, la tabla solo agrega y la vista previa
+  // dice lo mismo que quedó. ROLLBACK.
+  "pruebas:costo-corregir-compra",
+
   // Precio propio por sede (Felipe 2026-10-09): cambia solo en esa tienda, deja historial firmado, solo tu propia sede,
   // sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
   "pruebas:precio-sede",
@@ -236,6 +245,10 @@ export const PRUEBAS = [
   // no van en cero ni negativos y el umbral no pasa de 3; guarda el líder o quien tiene Configuración, y tienda_web solo lee
   // tienda_sedes. ROLLBACK.
   "pruebas:tienda-web-configuracion",
+
+  // Tienda web ▸ Conf. Tienda (ADR-0518): el orden de las tiendas en la web (la primera de la lista es la primera, sin repetir, solo
+  // tiendas abiertas, sin escribir si nada cambió), y lo que se agregue por actividad (mapa, foto, horario por días, cierres). ROLLBACK.
+  "pruebas:tienda-web-conf",
 
   // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
@@ -810,6 +823,12 @@ export const PRUEBAS = [
   // Lo que le compré a un proveedor (ADR-0502, act. b): una compra recibida cuenta como origen Compras con el costo de su factura y para el
   // proveedor de la factura; lo sin factura y la carga inicial van aparte y nunca se suman a escondidas. Vigila el enlace con Compras. ROLLBACK.
   "pruebas:proveedor-prendas-origen",
+  // Las ventas por día de cada proveedor (ranking de la lista, ADR-0521): una venta de hoy suma en su proveedor y una devolución resta; la suma
+  // de 90 días no pasa lo vendido del ranking; sin el Taller; días acotados a 7–90; la llave. ROLLBACK.
+  "pruebas:proveedores-ventas-diarias",
+  // El reparto entre proveedores (ADR-0521 act. c): en toda la base, lo vendido y el stock de todos los proveedores de una variante suman lo real
+  // (por día y por sede); una prenda de dos proveedores no le cuenta a B las ventas de antes de que llegara lo suyo. ROLLBACK siempre.
+  "pruebas:proveedor-reparto",
 
   // El reparto de un comprobante entre tiendas (ADR-0139) y su filtro «Destino»: 24 unidades repartidas 12/12, una suma distinta
   // de lo facturado se rechaza (por la RPC y por la base misma), una tienda no recibe más de lo suyo ni se «come» la de otra,

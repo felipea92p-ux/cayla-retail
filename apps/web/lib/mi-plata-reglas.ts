@@ -20,6 +20,8 @@ export const RPC_MANDAR_A_TIENDA = "mandar_compras_a_tienda";
 // Cerrar la ronda (20261023183000): la función conserva su nombre de «Terminé por hoy», al que reemplaza.
 export const RPC_TERMINAR_DIA = "terminar_dia_compras";
 export const RPC_ABRIR_RONDA = "abrir_ronda_compras";
+// «¿De qué banco salió?» (20261026170000): los bancos de la empresa, para quien anota plata por transferencia.
+export const RPC_BANCOS_PLATA = "fn_bancos_para_plata_compras";
 
 /** La carpeta de los vouchers dentro del depósito de las fotos de los gastos del viaje (la base exige que la ruta empiece así). */
 export const CARPETA_VOUCHERS = "plata/";
@@ -364,6 +366,9 @@ export type PlataPorConfirmar = {
   esMia: boolean;
   /** La ronda en la que la anotó (20261023210000): «RC-000012». Sin ronda abierta al anotarla, ninguna. */
   ronda: string | null;
+  /** El banco de la empresa del que la compradora dijo que salió (20261026170000, solo transferencias). La cuenta de verdad la elige Compras. */
+  cuentaIndicadaId: string | null;
+  cuentaIndicada: string | null;
 };
 
 /** Lo que manda `fn_plata_por_confirmar`, la más vieja primero. */
@@ -389,9 +394,25 @@ export function leerPlataPorConfirmar(data: unknown): PlataPorConfirmar[] {
         fotoRuta: ruta && ruta.startsWith(CARPETA_VOUCHERS) ? ruta : null,
         esMia: o.es_mia === true,
         ronda: texto(o.ronda),
+        cuentaIndicadaId: texto(o.cuenta_indicada_id),
+        cuentaIndicada: texto(o.cuenta_indicada),
       };
     })
     .filter((x): x is PlataPorConfirmar => x !== null);
+}
+
+/** Los bancos de la empresa que manda `fn_bancos_para_plata_compras`, como las cuentas que ya se eligen de un toque. Lo ilegible se descarta. */
+export function leerBancosDePlata(data: unknown): CuentaOpcion[] {
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((x): CuentaOpcion | null => {
+      if (!x || typeof x !== "object") return null;
+      const o = x as Record<string, unknown>;
+      const id = texto(o.id);
+      const nombre = texto(o.nombre);
+      return id && nombre ? { id, nombre, tipo: "banco", sede: null } : null;
+    })
+    .filter((x): x is CuentaOpcion => x !== null);
 }
 
 /** Las opciones de «¿Cómo te llegó?»: «Ya tenía plata» solo si todavía puede (la primera vez). */
@@ -402,11 +423,19 @@ export function mediosParaAnotar(puedeYaTenia: boolean): MedioPlata[] {
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
 /** Los campos de «Me dieron plata», en el orden de la hoja. La foto del voucher es opcional: no cuenta como «falta». */
-export function camposAnotar(v: { medio: MedioPlata | null; monto: string; conFoto?: boolean }, puedeYaTenia: boolean, r: Responsable): CampoDeGuia[] {
+export function camposAnotar(
+  v: { medio: MedioPlata | null; monto: string; conFoto?: boolean; banco?: string | null; hayBancos?: boolean },
+  puedeYaTenia: boolean,
+  r: Responsable,
+): CampoDeGuia[] {
   const medioOk = v.medio !== null && mediosParaAnotar(puedeYaTenia).includes(v.medio);
   const monto = problemaDeMonto(v.monto);
   return [
     { id: "medio", nombre: "Cómo te llegó", requerido: true, hecho: medioOk, pendiente: "Elige cómo te llegó la plata." },
+    // Solo una transferencia sale de un banco; sin bancos configurados no hay nada que elegir y no bloquea.
+    ...(v.medio === "transferencia" && v.hayBancos
+      ? [{ id: "banco", nombre: "De qué banco salió", requerido: true, hecho: Boolean(v.banco), pendiente: "Elige de qué banco salió la plata." }]
+      : []),
     { id: "monto", nombre: "Cuánto", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
     { id: "foto", nombre: "Foto del voucher", requerido: false, hecho: Boolean(v.conFoto), pendiente: "Si tienes el voucher, súmale su foto." },
     ...campoResponsable({ ...r, quien: "Quién anota" }),
@@ -431,8 +460,26 @@ const normalizar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toL
  * banco; si no hay bancos, ninguna (la persona elige). Se busca por el nombre porque la cuenta la crea cada empresa en Configuración.
  */
 export function cuentaSugerida(cuentas: readonly CuentaOpcion[]): string | null {
-  const bancos = cuentas.filter((c) => c.tipo === "banco");
+  return bancoSugerido(cuentas.filter((c) => c.tipo === "banco"));
+}
+
+/** El banco que llega elegido en «¿De qué banco salió?»: el BCP (Felipe 2026-10-22 y 26); si no hay uno con ese nombre, el primero; sin bancos, ninguno. */
+export function bancoSugerido(bancos: readonly { id: string; nombre: string }[]): string | null {
   return (bancos.find((c) => /\bbcp\b/.test(normalizar(c.nombre))) ?? bancos[0])?.id ?? null;
+}
+
+/**
+ * La cuenta con la que llega «Revisar compras» al confirmar: la que indicó la compradora si sigue entre las cuentas que se pueden elegir
+ * (puede haberse archivado); si no, la de siempre (el BCP). Compras la puede cambiar: la indicación no mueve plata.
+ */
+export function cuentaAlConfirmar(fila: Pick<PlataPorConfirmar, "cuentaIndicadaId">, cuentas: readonly CuentaOpcion[]): string {
+  const indicada = fila.cuentaIndicadaId;
+  return (indicada && cuentas.some((c) => c.id === indicada) ? indicada : cuentaSugerida(cuentas)) ?? "";
+}
+
+/** «Marisol dijo que salió del BCP»: lo que ve Compras junto a la cuenta cuando la compradora indicó un banco. */
+export function textoBancoIndicado(persona: string, banco: string | null): string | null {
+  return banco ? `${persona} dijo que salió de ${banco}.` : null;
 }
 
 /**

@@ -108,6 +108,8 @@ export type ControlAjuste = {
   error: string | null;
   guardar: () => Promise<AjusteGuardado | null>;
   descartar: () => void;
+  /** «Descartar y pasar» (ronda 2 de la «Planilla rápida», Felipe 2026-10-26): suelta lo contado aquí y sigue en el otro lugar, de una vez. */
+  descartarYPasar: (u: "piso" | "almacen") => void;
   /** La guía de foco (ADR-0284): una talla tocada, el motivo, la nota si la pide y quién. Sale de lo mismo que frena «Guardar». */
   guia: GuiaCampos;
 };
@@ -434,6 +436,14 @@ export function useAjusteDelModelo({
       setPendientes({});
       setCambiadas(new Map());
       setError(null);
+    },
+    descartarYPasar: (u) => {
+      if (incierto || enviando || u === ubicado) return;
+      setPendientes({});
+      setCambiadas(new Map());
+      setError(null);
+      setUbicado(u);
+      if (motivoCerrado(motivo, u, separa)) setMotivo(MOTIVO_INICIAL);
     },
     guia,
   };

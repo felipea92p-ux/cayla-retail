@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { SegmentoDeslizante, type OpcionSegmento } from "@/components/ui/SegmentoDeslizante";
 import { crearLector } from "@/components/EscanerCamara";
 import { esLecturaRepetida, normalizarLectura, sonidoDeLecturaCamara, type TonoLectura } from "@/lib/escaner-reglas";
 import { avisarLectura } from "@/lib/sonido-conteo";
@@ -20,6 +21,9 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 
    Cada lectura SUENA y vibra (2026-10-23, el bip de Conteo): agudo si la pantalla reconoció la prenda o solo va a buscarla, grave
    si responde en ámbar (no la encontró, no entró). Quien escanea no tiene que volver a mirar para saber que se leyó.
+
+   `modos` (Existencias en el celular, 2026-10-26): sobre el botón de abajo, el segmento de modo («Ver la prenda» / «Bajar en
+   tandas»), como el selector de modos de la cámara del teléfono. La pantalla decide qué hace cada uno; este visor solo lo muestra.
    ==================================================================== */
 
 /** Lo que la pantalla dice de la última lectura, en el modo continuo. `clave` cambia con cada lectura (también si se repite el
@@ -40,7 +44,10 @@ export function EscanerBusqueda({
   titulo = "Escanear para cambiar",
   pista = "Centra la etiqueta o el QR de la boleta en el cuadro",
   continuo,
+  modos,
 }: {
+  /** El segmento de modo sobre el botón de abajo (solo con la cámara andando: sin cámara no hay qué elegir). */
+  modos?: { opciones: OpcionSegmento[]; valor: string; onCambio: (clave: string) => void };
   /** Leer en ráfaga sin cerrar: la última respuesta y lo que va del total («12 con la etiqueta»). */
   continuo?: { respuesta: RespuestaLectura | null; resumen: string };
   /** Lo que dice la barra de arriba. Cambios lee etiquetas y boletas; Existencias solo etiquetas (ADR-0237). */
@@ -179,6 +186,16 @@ export function EscanerBusqueda({
           </div>
 
           <div className="papel-fijo relative z-10 space-y-3 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3">
+            {modos && !sinCamara && (
+              <SegmentoDeslizante
+                forma="modo"
+                etiqueta="Qué hacer con la cámara"
+                opciones={modos.opciones}
+                valor={modos.valor}
+                onCambio={modos.onCambio}
+                className="flex w-full [&>button]:flex-1 [&>button]:justify-center"
+              />
+            )}
             {continuo && !sinCamara ? (
               <>
                 {/* Alto fijo: la primera respuesta no empuja el botón (ADR-0185). */}
