@@ -257,3 +257,13 @@ cuándo llegó cada modelo a una tienda).
 Registros: `docs/unificar/cifra.md` (`compacta` vuelve como opt-in solo aquí) y `docs/unificar/filtros-flotantes.md`; el spike de la Lista en
 `docs/maquetas/tienda-vitrina-lista-columnas-2026-10/`. Extender `compacta` o `FiltrosFlotantes` a otras pantallas es decisión de Felipe, mirando.
 
+**DECIDÍ 17 — «Nuevo look» se arma mirando las fotos, y sugiere nombre y frase (Felipe, 2026-10-26: «es complicado elegir las prendas por sus nombres»).** La hoja del look
+pasa de 576 px a `max-w-6xl` (hoja de diseño propio, con su `unificar-fijo`) y el combo por nombre se cambia por una grilla de fotos (`ElegirPrendasLook`):
+categorías como píldoras con cuántas prendas trae cada una, un buscador, 24 por página; tocar la foto elige (✓) y otro toque quita; con 4 elegidas, las demás se apagan.
+A la izquierda queda lo que lleva el look, en el orden de la lámina, con su color y su ✕. Con dos prendas elegidas, bajo el nombre y la frase salen **ideas**
+(`lib/vitrina-looks-ideas.ts`, pura y estable, de una tabla curada por el tipo de look —un vestido, tres capas, dos piezas, con detalles— que sale de la misma tabla de grupos de la tienda,
+`grupoDeLaTienda`, y de si todas las prendas comparten color), «Otras ideas» corre la ventana de tres, y **ninguna idea se parece a un nombre o una frase que ya existe en otro look**
+ni entre sí. **DESCARTÉ** pedirle el texto a un modelo de lenguaje: depende de un servicio de afuera que puede caer (principio 9), manda al exterior lo que se arma antes de guardarlo y
+da un texto distinto cada vez (la misma elección tiene que dar las mismas ideas, ADR-0290). **SE ROMPE SI** la tabla se queda sin ideas libres (la lista sale vacía y no se muestra nada: nunca un
+texto repetido) o si una categoría nueva no está en la tabla de grupos (cae por su familia, y sin familia en lo general). Además, «¿Qué precio ve el cliente?» de Modelos pasó a la derecha
+de las pestañas, a la altura de su centro (`ReglaDelPrecio`, `VitrinaPestanas derecha`).
