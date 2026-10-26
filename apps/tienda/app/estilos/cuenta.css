@@ -199,8 +199,8 @@
 /* ---- Las páginas de «Mi perfil» («Mis pedidos»): su cabecera. «Mi perfil» mismo vive en perfil.css. ---- */
 .t-cuenta-pag { display: grid; gap: 22px; padding-block: 20px 28px; }
 .t-cuenta-cab { display: grid; gap: 18px; }
-.t-cuenta-cab h1 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(27px, 4.96cqi, 44px); line-height: 1.12; }
-.t-cuenta-cab h1 em { font-style: italic; color: var(--rojo); }
+.t-cuenta-cab h1 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(38px, 5.2cqi, 78px); line-height: 1.02; }
+.t-cuenta-cab h1 em { font-style: italic; color: inherit; }
 /* El estado de un pedido: «Escríbele a CAYLA Trujillo» al pie es un enlace al chat (la caja `.w-info` de bolsa.css, que se toca). */
 .w-info.w-info-enlace { color: var(--tinta); align-items: center; transition: border-color .2s; }
 .w-info.w-info-enlace > span { flex: 1; }

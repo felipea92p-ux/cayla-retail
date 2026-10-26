@@ -12,8 +12,9 @@
 
 /* ---- El saludo ---- */
 .pf-cab { display: flex; flex-direction: column; gap: 8px; }
-.pf-cab h1 { margin: 2px 0 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(27px, 4.96cqi, 44px); line-height: 1.12;  }
-.pf-cab h1 em { font-style: italic; color: var(--rojo); }
+.pf-cab h1 { margin: 2px 0 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(38px, 5.2cqi, 78px); line-height: 1.02; }
+/* G · Pasarela: sin el rojo; la cursiva sola, como en los títulos de las secciones. */
+.pf-cab h1 em { font-style: italic; color: inherit; }
 .pf-cab-linea { margin: 0; font-size: 14px; color: var(--tinta-60); }
 .pf-cab .w-nota { margin-top: 6px; }
 

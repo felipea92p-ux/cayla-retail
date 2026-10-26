@@ -8,16 +8,22 @@
 
 /* ---- El marco: la página llega al borde de abajo, para que el panel cubra todo lo que queda bajo la cabecera ---- */
 .t-pagina:has(> .en-partida) { flex: 1; }
-.en-partida { flex: 1; display: flex; flex-direction: column; }
-.en-lado { padding-inline: 16px; }
-.en-lado > .en-form { width: 100%; max-width: 620px; margin-inline: auto; padding-block: 8px 28px; }
+/* G · Pasarela (ADR-0524; la maqueta, `.p-entrar` y `.p-form`): toda la pantalla es el escenario negro con su círculo de luz; el formulario es una hoja blanca con su
+   filo adentro (la misma invitación del Club y de «Separado») y el panel del Club habla en marfil sobre el negro. */
+.en-partida { flex: 1; display: flex; flex-direction: column; position: relative; isolation: isolate; background: var(--t-hero); color: var(--t-hero-tinta); }
+.en-partida::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(60% 45% at 50% 22%, color-mix(in srgb, var(--t-hero-tinta) 20%, var(--t-hero)), var(--t-hero) 72%); }
+.en-lado { padding: 28px 16px 36px; }
+.en-lado > .en-form { position: relative; width: 100%; max-width: 620px; margin-inline: auto; padding: 40px 22px 28px; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
+.en-lado > .en-form::before { content: ""; position: absolute; inset: 10px; border: 1px solid var(--t-tinta-fija); pointer-events: none; }
 
 /* En el celular el formulario llega al margen de la tienda (16 px, el del logo de la cabecera), también en «Cambiar mi correo» y
    «Eliminar mi cuenta» (`.en-sola`): a 375 px la caja del correo medía 179 px junto a «Obtener código» y su ejemplo se cortaba
    («tucorreo@gmail.cor»); ahora mide 220. El pie fijo («Falta: …» y el botón) sigue llegando a los dos bordes de la pantalla. */
 @container tienda (max-width: 959.98px) {
   .en-form .w-ficha { padding-inline: 0; }
-  .en-form .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
+  .en-form .w-pie-form { margin-inline: -11px; padding-inline: 11px; }
+  /* «Cambiar mi correo» y «Eliminar mi cuenta» (`.en-sola`) siguen en la página blanca, sin hoja: su pie llega a los bordes de la pantalla. */
+  .en-form.en-sola .w-pie-form { margin-inline: -16px; padding-inline: 16px; }
 }
 
 /* ---- El panel ---- */
@@ -25,13 +31,8 @@
   container: en-panel / inline-size;
   position: relative;
   isolation: isolate;
-  /* A · Muro: el panel es un lienzo claro (como la obra de «Entrar» en la maqueta), no una pared oscura. Se redefinen los tonos del
-     panel aquí: lo de adentro (`--t-hero-*`) los lee y no hay que tocar cada regla. */
-  --t-hero: var(--hueso); --t-hero-2: var(--hueso);
-  --t-hero-tinta: var(--tinta); --t-hero-acento: var(--taupe);
-  --t-hero-vidrio: transparent; --t-hero-filo: var(--sand);
+  /* Sobre el escenario negro (`.en-partida`): los tonos `--t-hero-*` son los de siempre (negro y marfil) y el panel no pinta fondo propio. */
   color: var(--t-hero-tinta);
-  background: var(--hueso);
 }
 /* El grano de la campaña de la portada (`.t-hero::before`): la misma textura, sin color propio. */
 .en-panel::before {
@@ -50,7 +51,7 @@
 /* La promesa: la ceja con el colibrí (en blanco, como el de la campaña de la portada) y el título, con su última parte en cursiva
    (el acento de la campaña). */
 .en-promesa { display: flex; flex-direction: column; align-items: flex-start; }
-.en-ceja { display: flex; align-items: center; gap: 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--t-hero-acento); }
+.en-ceja { display: flex; align-items: center; gap: 12px; font-size: 12px; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--t-hero-acento); }
 .en-colibri { width: 30px; flex: none; color: var(--t-hero-tinta); opacity: .92; }
 .en-promesa-t { margin: 12px 0 0; font-family: var(--display); text-transform: none; font-weight: 400; font-size: clamp(29px, 6.4cqi, 42px); line-height: 1.1; letter-spacing: -.01em; }
 .en-promesa-t em { display: block; font-style: normal; color: inherit; }
@@ -136,7 +137,9 @@
   .en-panel { grid-column: 2; grid-row: 1; }
   .en-lado { grid-column: 1; grid-row: 1; display: flex; justify-content: center; align-items: center; padding: 48px clamp(32px, 5cqi, 88px) 56px; }
   .en-partida[data-alto="largo"] .en-lado { align-items: flex-start; }
-  .en-lado > .en-form { max-width: 440px; margin: 0; padding-block: 0; }
+  .en-partida::before { background: radial-gradient(44% 60% at 27% 50%, color-mix(in srgb, var(--t-hero-tinta) 20%, var(--t-hero)), var(--t-hero) 72%); }
+  .en-lado > .en-form { max-width: 440px; margin: 0; padding: 46px 40px 36px; }
+  .en-lado > .en-form::before { inset: 12px; }
   .en-partida[data-ancho="ancho"] .en-lado > .en-form { max-width: 520px; }
   /* El panel se queda a la vista mientras el formulario largo pasa (crear la cuenta): su contenido es fijo y su fondo, el de toda
      la columna. Mide lo que queda bajo la cabecera (con un margen: la franja de arriba cambia de alto con su frase). */
@@ -166,8 +169,8 @@
     position: sticky;
     bottom: 0;
     z-index: 4;
-    margin-inline: -24px;
-    padding: 14px 24px 18px;
+    margin-inline: -27px;
+    padding: 14px 27px 18px;
     background: var(--crema);
     border-top: 1px solid var(--sand);
     box-shadow: 0 -14px 24px -22px var(--sombra);
@@ -212,9 +215,31 @@
 .en-o { display: flex; align-items: center; gap: 12px; margin: 2px 0 0; font-size: 12px; color: var(--tinta-60); }
 .en-o::before, .en-o::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
 
-/* A · Muro: el título del formulario es el titular de la maqueta («ENTRAR»), más grande y fino que el de una ficha. */
-.en-form .w-titulo { font-size: clamp(40px, 11cqi, 56px); font-weight: 400; letter-spacing: -.01em; }
-@container tienda (min-width: 960px) { .en-form .w-titulo { font-size: clamp(34px, 3.6cqi, 52px); } }
+/* G · Pasarela: el título del formulario es el titular de la maqueta («ENTRAR»), al centro, en Didone y en mayúsculas. */
+.en-form .w-titulo { font-size: clamp(30px, 8cqi, 38px); font-weight: 400; letter-spacing: -.01em; text-align: center; line-height: 1.06; }
+.en-partida[data-titulo="corto"] .w-titulo { font-size: clamp(40px, 11cqi, 56px); text-transform: uppercase; line-height: .98; }
+@container tienda (min-width: 960px) {
+  .en-form .w-titulo { font-size: clamp(30px, 2.8cqi, 40px); }
+  .en-partida[data-titulo="corto"] .w-titulo { font-size: clamp(44px, 4.2cqi, 64px); }
+}
+.en-form .w-ficha > div:first-child { text-align: center; }
+.en-form .w-ficha > div:first-child .w-texto-sec { margin-inline: auto; }
+
+/* Los campos del formulario: la maqueta no los dibuja en caja sino sobre una línea que se llena de tinta al entrar (`.p-form input`). «Sigue aquí», «Listo» y
+   «Revisa» tiñen la línea (ámbar, verde, rojo), no la caja. */
+.en-form .w-caja { height: 50px; padding: 0 2px; border: 0; border-bottom: 1px solid var(--sand); background: linear-gradient(var(--tinta), var(--tinta)) no-repeat 0 100% / 0% 1px; box-shadow: none; caret-color: var(--tinta); transition: background-size .8s var(--ease-cortina), border-color .3s var(--ease); }
+.en-form .w-caja:focus { border-bottom-color: var(--sand); box-shadow: none; background-size: 100% 1px; }
+.en-form .w-caja:read-only:focus { background-size: 0% 1px; }
+.en-form .w-campo[data-estado="hecho"] .w-caja { border-bottom-color: var(--verde); }
+.en-form .w-campo[data-estado="sigue"] .w-caja { border-bottom-color: var(--ambar); box-shadow: none; }
+.en-form .w-campo[data-estado="sigue"] .w-caja:focus { border-bottom-color: var(--sand); }
+.en-form .w-campo[data-estado="error"] .w-caja { border-bottom-color: var(--rojo-profundo); }
+.en-form .w-campo[data-estado="error"] .w-caja:not(:focus) { background-color: transparent; }
+.en-form .w-caja-clave .w-caja { padding-right: 100px; }
+.en-form .w-caja-pref span { border: 0; border-bottom: 1px solid var(--sand); background: transparent; border-radius: 0; padding-inline: 0 12px; }
+.en-form .w-caja-pref .w-caja { border-radius: 0; }
+.en-form .w-caja-pref:focus-within, .en-form .w-campo[data-estado="sigue"] .w-caja-pref { box-shadow: none; }
+.en-form .w-tipos { border-radius: 0; }
 
 /* En el celular, el panel del Club (la promesa, los beneficios y la tarjeta) no va: el formulario queda solo (Felipe 2026-10-19). El panel de los
    pasos para volver a entrar (`data-panel="acceso"`) sí se queda: dice qué paso sigue. */
