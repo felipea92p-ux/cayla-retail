@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from "react";
 import { Factory, FunnelX, Scissors, Shirt } from "lucide-react";
 import { AnularOrdenModal, RevertirOrdenModal } from "@/components/OrdenModales";
 import { NuevaOrdenProduccionForm } from "@/components/NuevaOrdenProduccionForm";
 import { OrdenPanel } from "@/components/OrdenPanel";
 import { FilaDeOrden, PLANTILLA_LISTA } from "@/components/ordenes-lista/FilaDeOrden";
+import { MarcoDePagina } from "@/components/ordenes-lista/MarcoDePagina";
 import { Aviso } from "@/components/ui/Aviso";
+import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -16,6 +18,17 @@ import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import {
+  almacenDelNavegador,
+  borrarBorrador,
+  guardarBorrador,
+  haceCuanto,
+  leerBorrador,
+  modeloDelBorrador,
+  resumenDelBorrador,
+  textoDelUltimoBorrador,
+  type PartidaDeOrden,
+} from "@/lib/borrador-orden";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import type { OpcionesNuevaOrden, ModeloProducible, OrdenProduccion } from "@/lib/produccion";
@@ -32,9 +45,12 @@ import {
   datoHoyEnElTaller,
   filtrarFilas,
   ordenarFilas,
+  pestanaDeOrdenNueva,
   pieDeLaLista,
+  urlSinParametrosDeNueva,
   type FiltroDeLista,
   type ListaDeOrdenes,
+  type OrdenCreada,
   type PestanaLista,
 } from "@/lib/ordenes-lista-reglas";
 import type { Tolerado } from "@/lib/resultado";
@@ -52,6 +68,21 @@ const COLUMNAS: Columna[] = [
   { titulo: "Entrega", clase: "hidden @min-[900px]:block" },
   { titulo: "Pide algo", clase: "hidden @min-[620px]:block" },
 ];
+
+/** Cuánto se queda marcada la orden recién abierta: la animación corre una vez; pasado esto, la fila vuelve a ser una más. */
+const MS_ORDEN_RECIEN = 6000;
+
+/** El almacén del navegador solo avisa de lo que cambió OTRA pestaña; lo de esta se lee al repintarse. */
+function suscribirseAlAlmacen(alCambiar: () => void) {
+  window.addEventListener("storage", alCambiar);
+  return () => window.removeEventListener("storage", alCambiar);
+}
+
+/** «Blusa Emma · 120 prendas · hace 5 min»: de qué es y cuánto va, para saber si es la que quieres seguir. */
+function textoDelBorrador(foto: Parameters<typeof resumenDelBorrador>[0], guardadoEn: string, nombres: ReadonlyMap<string, string>): string {
+  const { modelo, prendas } = resumenDelBorrador(foto, nombres);
+  return [modelo, prendas > 0 ? `${prendas} ${prendas === 1 ? "prenda" : "prendas"}` : "sin cantidades todavía", haceCuanto(guardadoEn)].join(" · ");
+}
 
 const FILTROS: { valor: FiltroDeLista; texto: string }[] = [
   { valor: "todas", texto: "Todas" },
@@ -118,6 +149,22 @@ export function OrdenesLista({
   const [fase, setFase] = useState<FaseClave | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeLista>("todas");
   const [texto, setTexto] = useState("");
+  // La orden que se acaba de abrir (su id): su fila respira en verde una vez y se lleva a la vista (ADR-0509).
+  const [recien, setRecien] = useState<string | null>(null);
+  // De dónde arranca «Nueva orden» cuando no es en blanco (un borrador que se retoma, o lo que deja «crear otra»). Cada partida hace nacer el formulario de nuevo (`key`).
+  const [partida, setPartida] = useState<PartidaDeOrden | null>(null);
+  const [vuelta, setVuelta] = useState(0);
+  // El borrador que quedó guardado en este navegador (ADR-0509). El texto crudo es lo que se compara (una cadena es estable); el almacén solo avisa de otras pestañas, así que la lista se
+  // vuelve a leer cuando ella misma se repinta: al cerrar el formulario, al descartar o al volver de otra pantalla.
+  const [, repintar] = useReducer((n: number) => n + 1, 0);
+  const textoBorrador = useSyncExternalStore(suscribirseAlAlmacen, () => textoDelUltimoBorrador(almacenDelNavegador(), tallerId), () => null);
+  const borradorGuardado = useMemo(() => leerBorrador(textoBorrador), [textoBorrador]);
+  const nombresDeModelos = useMemo(() => new Map(modelos.map((m) => [m.productoId, m.referencia] as const)), [modelos]);
+  useEffect(() => {
+    if (!recien) return;
+    const t = window.setTimeout(() => setRecien(null), MS_ORDEN_RECIEN);
+    return () => window.clearTimeout(t);
+  }, [recien]);
 
   // Una orden abierta antes de las fases no trae ninguna: su lugar se lee de las etapas de siempre (las que ya traen `ordenes`).
   const filas = useMemo(() => {
@@ -141,8 +188,60 @@ export function OrdenesLista({
     setTexto("");
   }
 
+  // Al abrirse la orden, la lista va a la pestaña donde quedó (una muestra cae en «Muestras») sin filtros que la escondan, y la marca. La fila llega con el refresco que el formulario hace al guardar.
+  function alCrearse(o: OrdenCreada & { esMuestra: boolean; seguiraAbierta: boolean }) {
+    // Con «crear otra» la persona sigue armando la siguiente: la lista no se la lleva de la vista (la orden queda en la lista y el aviso lleva a ella).
+    if (o.seguiraAbierta) return;
+    setPestana(pestanaDeOrdenNueva(o.esMuestra));
+    quitarFiltros();
+    setRecien(o.id);
+  }
+
+  // `?nueva=` (Resumen, Análisis, Nuevo producto) abre la hoja desde la URL, y la URL no cambia sola: con F5 la hoja volvía a abrirse aunque la orden ya estuviera creada. Al cerrar o guardar se limpia.
+  function limpiarUrlDeNueva() {
+    const actual = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const limpia = urlSinParametrosDeNueva(actual);
+    if (limpia !== actual) window.history.replaceState(null, "", limpia);
+  }
+
+  // Con el compositor ya abierto, «+ Nueva orden» no hace nada nuevo: lo lleva a la vista.
+  function abrirNueva() {
+    if (nuevaAbierta) document.querySelector("[data-compositor-orden]")?.scrollIntoView({ block: "start", behavior: "smooth" });
+    else {
+      setPartida(null);
+      setNuevaAbierta(true);
+    }
+  }
+
+  /** El formulario nace de nuevo con esta partida: un borrador que se retoma, o lo que deja «crear otra». */
+  function empezarDesde(nueva: PartidaDeOrden) {
+    setPartida(nueva);
+    setVuelta((n) => n + 1);
+    setSugeridaPendiente(false);
+    setNuevaAbierta(true);
+  }
+
+  function descartarElBorrador() {
+    if (!borradorGuardado) return;
+    const guardado = borradorGuardado;
+    const almacen = almacenDelNavegador();
+    const modelo = modeloDelBorrador(guardado.foto);
+    if (modelo) borrarBorrador(almacen, tallerId, modelo);
+    repintar();
+    // Descartar no se puede deshacer en la base, pero un borrador sí se puede devolver: se vuelve a guardar tal cual, con su hora de antes.
+    avisar.exito("Borrador descartado", {
+      accion: {
+        texto: "Deshacer",
+        onClick: () => {
+          guardarBorrador(almacen, tallerId, guardado.foto, new Date(guardado.guardadoEn));
+          repintar();
+        },
+      },
+    });
+  }
+
   const nuevaOrden = (
-    <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)}>
+    <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={abrirNueva}>
       + Nueva orden
     </Boton>
   );
@@ -155,7 +254,8 @@ export function OrdenesLista({
       </Aviso>
     );
   } else if (filas.length === 0) {
-    cuerpo = (
+    // Con el compositor abierto, él ocupa el lugar de «Todavía no se abrió ninguna orden» (arriba, bajo la cabecera).
+    cuerpo = nuevaAbierta ? null : (
       <div className="card-cayla">
         <Vacio icono={<Factory />} titulo="Todavía no se abrió ninguna orden" acciones={modelos.length > 0 ? nuevaOrden : null}>
           Una orden es un lote de un modelo: cuántas prendas por talla y color, quién hace cada fase y la tela que lleva. Ábrela aquí y la verás avanzar fase por fase.
@@ -241,7 +341,7 @@ export function OrdenesLista({
                 <Vacio
                   tamano="chico"
                   icono={pestana === "muestras" ? <Shirt /> : <Scissors />}
-                  accion={pestana === "en_curso" && modelos.length > 0 ? { texto: "Abrir una orden", onClick: () => setNuevaAbierta(true) } : undefined}
+                  accion={pestana === "en_curso" && modelos.length > 0 ? { texto: "Abrir una orden", onClick: abrirNueva } : undefined}
                   className="py-5"
                 >
                   {pestana === "en_curso" ? "No hay órdenes en curso." : pestana === "muestras" ? "No hay muestras en desarrollo." : "Todavía no se cerró ninguna orden."}
@@ -251,7 +351,7 @@ export function OrdenesLista({
               <>
                 <Encabezado visible="hidden @min-[620px]:grid" plantilla={PLANTILLA_LISTA} columnas={COLUMNAS} />
                 {visibles.map((f, i) => (
-                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} onAbrirCajon={() => setAbiertaId(f.id)} />
+                  <FilaDeOrden key={f.id} f={f} primera={i === 0} guiaPorque={f.id === primeraConPorque} recien={f.id === recien} onAbrirCajon={() => setAbiertaId(f.id)} />
                 ))}
               </>
             )}
@@ -277,7 +377,59 @@ export function OrdenesLista({
     <div className="space-y-6">
       <EncabezadoPagina sede={tallerNombre} titulo="Órdenes" subtitulo="Cada lote, en qué fase está y quién lo tiene. Toca uno para ver y anotar lo que terminaste." acciones={nuevaOrden} />
 
-      {modelos.length === 0 && (
+      {/* Lo escrito en «Nueva orden» y no abierto queda guardado en este navegador (ADR-0509): aquí se ofrece seguir o soltarlo. */}
+      {!nuevaAbierta && borradorGuardado && (
+        <Aviso
+          tono="info"
+          titulo="Hay una orden a medias en este computador"
+          guia="prod-ordenes.borrador"
+          accion={
+            <span className="flex flex-wrap gap-2">
+              <Boton type="button" peso="fantasma" onClick={() => empezarDesde({ foto: borradorGuardado.foto, deBorrador: true })}>
+                Retomar
+              </Boton>
+              <Boton type="button" peso="peligro" onClick={descartarElBorrador}>
+                Descartar
+              </Boton>
+            </span>
+          }
+        >
+          {textoDelBorrador(borradorGuardado.foto, borradorGuardado.guardadoEn, nombresDeModelos)}
+        </Aviso>
+      )}
+
+      {/* «Nueva orden» (ADR-0509): se arma aquí, con la lista a la vista debajo. Antes era una hoja de 1080 px que la tapaba. */}
+      {nuevaAbierta && (
+        <NuevaOrdenProduccionForm
+          key={vuelta}
+          tallerId={tallerId}
+          modelos={modelos}
+          decision={decision}
+          partida={partida}
+          productoInicialId={partida ? null : nuevaInicial}
+          sugeridaInicial={sugeridaPendiente && !partida}
+          tipoInicial={tipoInicial}
+          puedeEditarCatalogo={puedeEditarCatalogo}
+          vocabulario={vocabulario}
+          opciones={opcionesNuevaOrden}
+          insumos={insumos}
+          hoy={hoy}
+          abiertas={paraLaLista.abiertas}
+          recientes={paraLaLista.recientes}
+          marco={MarcoDePagina}
+          onCreada={alCrearse}
+          onOtra={empezarDesde}
+          onRetomar={(b) => empezarDesde({ foto: b.foto, deBorrador: true })}
+          onClose={() => {
+            setNuevaAbierta(false);
+            setSugeridaPendiente(false);
+            setPartida(null);
+            limpiarUrlDeNueva();
+          }}
+        />
+      )}
+
+      {modelos.length === 0 && !nuevaAbierta && (
         <div className="card-cayla">
           <Vacio
             icono={<Shirt />}
@@ -307,27 +459,6 @@ export function OrdenesLista({
           onCerrar={() => setAbiertaId(null)}
           onAnular={() => setAnulando(abierta)}
           onRevertir={() => setRevirtiendo(abierta)}
-        />
-      )}
-      {nuevaAbierta && (
-        <NuevaOrdenProduccionForm
-          tallerId={tallerId}
-          modelos={modelos}
-          decision={decision}
-          productoInicialId={nuevaInicial}
-          sugeridaInicial={sugeridaPendiente}
-          tipoInicial={tipoInicial}
-          puedeEditarCatalogo={puedeEditarCatalogo}
-          vocabulario={vocabulario}
-          opciones={opcionesNuevaOrden}
-          insumos={insumos}
-          hoy={hoy}
-          abiertas={paraLaLista.abiertas}
-          recientes={paraLaLista.recientes}
-          onClose={() => {
-            setNuevaAbierta(false);
-            setSugeridaPendiente(false);
-          }}
         />
       )}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}
