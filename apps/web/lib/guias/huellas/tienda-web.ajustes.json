@@ -2,7 +2,7 @@
   "guia": "tienda-web.ajustes",
   "ruta": "/tienda-web/ajustes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 14,
   "controles": {
     "components/ConfiguracionTiendaWeb.tsx": [
       "ComboResponsable «{responsable}»",
@@ -24,6 +24,9 @@
       "button «{`Mover ${nombre}»",
       "button «{`Mover ${nombre}» #2",
       "button «{nombre}»"
+    ],
+    "components/tienda-web-conf/RelojDelPedido.tsx": [
+      "button «{n}»"
     ]
   }
 }

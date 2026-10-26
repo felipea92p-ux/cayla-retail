@@ -1106,8 +1106,8 @@ export const GUIA_TIENDA_WEB_AJUSTES: Guia = {
     {
       id: "plazos",
       ancla: "config.tienda-web-plazos",
-      titulo: "Para todas las sedes",
-      texto: "La línea de arriba es la vida de un pedido: el cliente separa, tú confirmas, paga y recoge, con el plazo de cada paso. Debajo se cambian esos plazos, y desde cuántas prendas el cliente ve el número en vez de «Hay»; se guardan con su propio botón «Guardar».",
+      titulo: "El reloj del pedido",
+      texto: "Es la vida de un pedido web: separa, confirmas, paga, recoge. Bajo cada paso sube o baja las horas o los días con − y +. Abajo eliges desde cuántas prendas el cliente ve el número («Quedan 2») en vez de «Hay». Es para todas las tiendas y se guarda con su botón.",
     },
     {
       id: "nota",

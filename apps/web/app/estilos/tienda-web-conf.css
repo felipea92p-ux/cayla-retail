@@ -135,6 +135,31 @@
   .twc-atencion[data-abierta] { color: var(--color-verde); }
   .twc-atencion[data-abierta]::before { background: var(--color-verde); }
 
+  /* ───────── Stock en la web: arriba lo que queda, abajo lo que lee el cliente ───────── */
+  .twc-escala-bloque { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-sand); }
+  .twc-escala { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); grid-template-rows: 42px 36px; gap: 6px 10px; }
+  .twc-escala-t { align-self: center; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-taupe); }
+  .twc-escala-opciones { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 6px; }
+  .twc-celda { display: grid; grid-template-rows: 42px 36px; gap: 6px; padding: 0; text-align: center; }
+  .twc-celda b, .twc-celda span {
+    display: grid; place-items: center; padding: 0 4px;
+    transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
+  }
+  .twc-celda b { border: 1.5px solid transparent; border-radius: 10px 10px 4px 4px; background: var(--color-hueso); font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--color-tinta); }
+  .twc-celda span { border-radius: 4px 4px 10px 10px; font-size: 12.5px; font-weight: 700; background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde); }
+  .twc-celda[data-poco] span { background: color-mix(in srgb, var(--color-ambar) 16%, transparent); color: var(--color-ambar); }
+  .twc-celda[data-tope] b { background: var(--color-tinta); color: var(--color-crema); }
+  button.twc-celda { cursor: pointer; }
+  @media (hover: hover) { button.twc-celda:hover b { border-color: var(--color-tinta); } }
+  /* El «4+» no se toca: borde punteado y sin relleno, para que no parezca un botón. */
+  .twc-celda-fija b { background: none; border: 1.5px dashed var(--color-sand); color: var(--color-taupe); }
+  @media (max-width: 520px) {
+    .twc-escala { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+    .twc-escala-t { display: none; }
+    .twc-escala-opciones { grid-column: 1; grid-row: auto; }
+    .twc-celda span { font-size: 11px; }
+  }
+
   /* ───────── Los cierres por fecha: pastillas con su día y un ✕ ───────── */
   .twc-cierres { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .twc-cierre {
@@ -190,6 +215,6 @@
   @media (pointer: coarse) { .twc-dia, .twc-pista { height: 44px; } }
 
   @media (prefers-reduced-motion: reduce) {
-    .twc-puerta, .twc-fachada, .twc-tarjeta, .twc-tramo, .twc-dia, .twc-asa-h::before, .twc-cierre button { transition: none; }
+    .twc-puerta, .twc-fachada, .twc-tarjeta, .twc-tramo, .twc-dia, .twc-asa-h::before, .twc-cierre button, .twc-celda b, .twc-celda span { transition: none; }
   }
 }

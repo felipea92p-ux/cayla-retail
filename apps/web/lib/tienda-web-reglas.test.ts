@@ -11,11 +11,13 @@ import {
   errorDeMapa,
   estadoSedeWeb,
   faltaParaMostrar,
-  fraseNiveles,
   fusionarBorrador,
   idCampo,
   leerConfiguracionTiendaWeb,
   limpiarTexto,
+  moverParametro,
+  parametroFueraDeRango,
+  queVeElCliente,
   moverTienda,
   moverUnLugar,
   ordenarSedes,
@@ -174,19 +176,6 @@ describe("los plazos: los mismos rangos que la base", () => {
   });
 });
 
-describe("la ayuda del umbral dice lo que el cliente vería (ADR-0408, DECIDÍ 6)", () => {
-  it("con 3: el número de 3 para abajo, «Última» con 1, «Hay» con 4 o más", () => {
-    expect(fraseNiveles(3)).toBe("Con 4 o más ve «Hay»; con 3, «3»; con 2, «2»; con 1, «Última».");
-  });
-  it("con 1: solo «Última»", () => {
-    expect(fraseNiveles(1)).toBe("Con 2 o más ve «Hay»; con 1, «Última».");
-  });
-  it("fuera de rango, mientras se escribe, no promete nada", () => {
-    expect(fraseNiveles(0)).toBe(fraseNiveles(9));
-    expect(fraseNiveles(Number.NaN)).toContain("«Hay»");
-  });
-});
-
 describe("la puerta de una tienda (maqueta de Conf. Tienda)", () => {
   it("el anillo cuenta los tres datos obligatorios", () => {
     expect(avanceDeSede({ nombreWeb: "", whatsapp: "", direccion: "" })).toEqual({ listos: 0, total: 3, pct: 0 });
@@ -327,5 +316,35 @@ describe("los cierres por fecha en la pantalla (maqueta de Conf. Tienda)", () =>
     const agregado = { ...base, cierres: '["2026-11-02"]' };
     expect(fusionarBorrador(agregado, base, borradorDe(con)).cierres).toBe('["2026-11-02"]');
     expect(fusionarBorrador(base, base, borradorDe(con)).cierres).toBe('["2026-10-28"]');
+  });
+});
+
+describe("el reloj del pedido y la escala de stock (maqueta de Conf. Tienda)", () => {
+  it("un plazo fuera de su rango, o que no es un número, se marca mientras se escribe", () => {
+    expect(parametroFueraDeRango("horasParaConfirmar", "24")).toBe(false);
+    expect(parametroFueraDeRango("horasParaConfirmar", "0")).toBe(true);
+    expect(parametroFueraDeRango("horasParaConfirmar", "169")).toBe(true);
+    expect(parametroFueraDeRango("horasParaConfirmar", "")).toBe(true);
+    expect(parametroFueraDeRango("horasParaConfirmar", "2,5")).toBe(true);
+    expect(parametroFueraDeRango("horasAvisoSinPagar", "720")).toBe(false);
+    expect(parametroFueraDeRango("diasAvisoSinRecoger", "61")).toBe(true);
+    expect(parametroFueraDeRango("quedanPocasDesde", "4")).toBe(true);
+  });
+  it("los botones − y + suben o bajan de a un paso y no se salen del rango", () => {
+    expect(moverParametro("horasParaConfirmar", "24", 1)).toBe("25");
+    expect(moverParametro("horasParaConfirmar", "1", -1)).toBe("1");
+    expect(moverParametro("horasParaConfirmar", "168", 1)).toBe("168");
+    expect(moverParametro("horasAvisoSinPagar", "48", 6)).toBe("54");
+    expect(moverParametro("horasAvisoSinPagar", "718", 6)).toBe("720");
+    expect(moverParametro("diasAvisoSinRecoger", "7", -1)).toBe("6");
+  });
+  it("si lo escrito no es un número, el primer toque parte de lo más bajo que se acepta", () => {
+    expect(moverParametro("horasParaConfirmar", "", 1)).toBe("2");
+    expect(moverParametro("diasAvisoSinRecoger", "abc", -1)).toBe("1");
+  });
+  it("la escala dice lo que leerá el cliente: «Última», «Quedan 2» o «Hay»", () => {
+    expect([1, 2, 3, 4, 9].map((n) => queVeElCliente(n, 3))).toEqual(["Última", "Quedan 2", "Quedan 3", "Hay", "Hay"]);
+    expect([1, 2, 3, 4].map((n) => queVeElCliente(n, 2))).toEqual(["Última", "Quedan 2", "Hay", "Hay"]);
+    expect([1, 2, 3].map((n) => queVeElCliente(n, 1))).toEqual(["Última", "Hay", "Hay"]);
   });
 });

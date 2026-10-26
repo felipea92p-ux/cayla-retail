@@ -287,6 +287,28 @@ export const borradorParametros = (p: ParametrosTiendaWeb): BorradorParametros =
   quedanPocasDesde: String(p.quedanPocasDesde),
 });
 
+/** ¿Lo escrito en un plazo se sale de su rango (o no es un entero)? El borde de su caja lo dice mientras se escribe, antes de «Guardar». */
+export function parametroFueraDeRango(clave: keyof ParametrosTiendaWeb, texto: string): boolean {
+  const t = texto.trim();
+  const [min, max] = RANGOS_PARAMETROS[clave];
+  return !/^-?\d+$/.test(t) || Number(t) < min || Number(t) > max;
+}
+
+/** Subir o bajar un plazo de a `paso`, sin salirse de su rango. Si lo escrito no es un número, parte de lo más bajo que se acepta. */
+export function moverParametro(clave: keyof ParametrosTiendaWeb, texto: string, paso: number): string {
+  const [min, max] = RANGOS_PARAMETROS[clave];
+  const t = texto.trim();
+  const actual = /^-?\d+$/.test(t) ? Number(t) : min;
+  return String(Math.min(max, Math.max(min, actual + paso)));
+}
+
+/** Lo que dice la tarjeta de la prenda con `cantidad` (1 o más) unidades en una tienda, según desde cuándo se ve el número: «Última», «Quedan 2» o «Hay».
+ *  Es lo que muestra la escala de «Stock en la web», para que se vea lo que leerá el cliente. */
+export function queVeElCliente(cantidad: number, quedanPocasDesde: number): "Última" | `Quedan ${number}` | "Hay" {
+  if (cantidad === 1) return "Última";
+  return cantidad >= 2 && cantidad <= quedanPocasDesde ? `Quedan ${cantidad}` : "Hay";
+}
+
 /** Los cuatro números enteros y en su rango, con la misma frase que la base. */
 export function validarParametrosTiendaWeb(b: BorradorParametros): Resultado<ParametrosTiendaWeb> {
   const valor = {} as ParametrosTiendaWeb;
@@ -298,23 +320,4 @@ export function validarParametrosTiendaWeb(b: BorradorParametros): Resultado<Par
     valor[k] = n;
   }
   return { ok: true, valor };
-}
-
-/** Lo que el cliente ve con cada cantidad según el umbral (ADR-0408, DECIDÍ 6): «Hay», el número, «Última» o «—». */
-function nivelQueVe(cantidad: number, quedanPocasDesde: number): string {
-  if (cantidad <= 0) return "—";
-  if (cantidad === 1) return "Última";
-  return cantidad <= quedanPocasDesde ? String(cantidad) : "Hay";
-}
-
-/** La ayuda del umbral, con lo que el cliente vería: «Con 4 o más ve «Hay»; con 3, «3»; con 2, «2»; con 1, «Última».».
- *  Un umbral fuera de rango (mientras se escribe) no promete nada. */
-export function fraseNiveles(quedanPocasDesde: number): string {
-  const [min, max] = RANGOS_PARAMETROS.quedanPocasDesde;
-  if (!Number.isInteger(quedanPocasDesde) || quedanPocasDesde < min || quedanPocasDesde > max) {
-    return "Con pocas unidades, el cliente ve el número; con más, ve «Hay».";
-  }
-  const partes = [`Con ${quedanPocasDesde + 1} o más ve «${nivelQueVe(quedanPocasDesde + 1, quedanPocasDesde)}»`];
-  for (let n = quedanPocasDesde; n >= 1; n--) partes.push(`con ${n}, «${nivelQueVe(n, quedanPocasDesde)}»`);
-  return `${partes.join("; ")}.`;
 }

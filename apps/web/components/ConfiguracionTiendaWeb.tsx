@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
-import { CheckCircle2, ImagePlus, MapPin, ShoppingBag, Store, Wallet, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ImagePlus, MapPin, X } from "lucide-react";
 import { PuertaDeTienda } from "@/components/tienda-web-conf/PuertaDeTienda";
 import { TelefonoDeTienda } from "@/components/tienda-web-conf/TelefonoDeTienda";
 import { useRouter } from "next/navigation";
@@ -9,11 +9,11 @@ import { createClient } from "@/lib/supabase/client";
 import { direccionDeFotoDeTienda, prepararFotoDeTienda, subirFotoDeTienda } from "@/lib/foto-de-tienda";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CierresDeTienda } from "@/components/tienda-web-conf/CierresDeTienda";
 import { HorarioSemanal } from "@/components/tienda-web-conf/HorarioSemanal";
+import { EscalaDeStock, RelojDelPedido } from "@/components/tienda-web-conf/RelojDelPedido";
 import { useAhoraEnLima } from "@/components/tienda-web-conf/useAhoraEnLima";
 import { filasDeSemana, resumenDeHorario, semanaDeSerializada, serializarSemana, type SemanaDeTienda } from "@cayla-retail/shared/horario-de-tienda";
 import { PieAcciones } from "@/components/ui/PieAcciones";
@@ -39,7 +39,6 @@ import {
   errorDeLargo,
   errorDeMapa,
   faltaParaMostrar,
-  fraseNiveles,
   fusionarBorrador,
   idCampo,
   limpiarTexto,
@@ -631,37 +630,19 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
     }
   }
 
-  const casilla = (campo: keyof BorradorParametros, etiqueta: string, ayuda: ReactNode, unidad?: string) => (
-    <CampoFin etiqueta={etiqueta} htmlFor={`tw-${campo}`} ayuda={ayuda}>
-      <div className="fin-con-unidad">
-        <InputFin
-          id={`tw-${campo}`}
-          inputMode="numeric"
-          value={b[campo]}
-          onChange={(e) => setB((x) => ({ ...x, [campo]: e.target.value.replace(/[^\d-]/g, "") }))}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setB(base);
-          }}
-          className="fin-num"
-        />
-        {unidad && <span>{unidad}</span>}
-      </div>
-    </CampoFin>
-  );
-
   return (
     <Superficie pad className="anim-sube" guia="config.tienda-web-plazos">
-      <CabeceraBloque titulo="Para todas las sedes" bajada="Los plazos de los pedidos que se separan en la web, y desde cuándo el cliente ve el número." />
-      <LineaDePlazos horasConfirmar={Number(b.horasParaConfirmar)} horasPagar={Number(b.horasAvisoSinPagar)} diasRecoger={Number(b.diasAvisoSinRecoger)} />
-      <div className="fin-dos-campos">
-        {casilla("horasParaConfirmar", "Horas para confirmar", "Si la tienda no confirma el pedido en ese tiempo, se cierra solo y el cliente puede volver a separarlo.", "horas")}
-        {casilla("horasAvisoSinPagar", "Aviso si no paga, en horas", "Desde que la tienda lo confirma. Si no pagó nada, se anula solo y sus prendas vuelven a estar disponibles; si pagó una parte, sale con aviso y la tienda decide.", "horas")}
-        {casilla("diasAvisoSinRecoger", "Días para recoger", "Desde que paga. Pasado ese plazo, se le recuerda al cliente y la tienda decide.", "días")}
-        {casilla("quedanPocasDesde", "El número se ve desde", fraseNiveles(Number(b.quedanPocasDesde)), "o menos")}
-      </div>
-      <Aviso tono="atencion" chico>
-        Cambiar estos números afecta a todas las sedes desde el siguiente pedido.
-      </Aviso>
+      <CabeceraBloque titulo="Reloj del pedido" bajada="Para todas las tiendas, desde el siguiente pedido.">
+        <Chip tono="neutro" versalitas={false}>
+          Todas las tiendas
+        </Chip>
+      </CabeceraBloque>
+      <RelojDelPedido
+        valor={b}
+        onCambiar={(clave, texto) => setB((x) => ({ ...x, [clave]: texto }))}
+        onRevertir={() => setB(base)}
+      />
+      <EscalaDeStock valor={Number(b.quedanPocasDesde)} onValor={(n) => setB((x) => ({ ...x, quedanPocasDesde: String(n) }))} />
       <PieAcciones>
         {sucio && !guardando && (
           <span role="status" className="mr-auto self-center text-[12.5px] text-taupe">
@@ -673,30 +654,5 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
         </Boton>
       </PieAcciones>
     </Superficie>
-  );
-}
-
-/** La vida de un pedido web en una línea (ADR-0430): separa → confirmas → paga → recoge, con el plazo de cada tramo tal como está escrito
- *  en las casillas de abajo (cambia mientras escribes). Se dibuja una vez al llegar. Solo muestra: lo que se guarda son las casillas. */
-function LineaDePlazos({ horasConfirmar, horasPagar, diasRecoger }: { horasConfirmar: number; horasPagar: number; diasRecoger: number }) {
-  const n = (x: number) => (Number.isFinite(x) && x > 0 ? x : "—");
-  const pasos: { icono: ReactNode; nombre: string; plazo: ReactNode }[] = [
-    { icono: <ShoppingBag />, nombre: "Separa", plazo: "El cliente, en la web" },
-    { icono: <CheckCircle2 />, nombre: "Confirmas", plazo: <>en <b>{n(horasConfirmar)}</b> h, o se cierra solo</> },
-    { icono: <Wallet />, nombre: "Paga", plazo: <>en <b>{n(horasPagar)}</b> h, o se anula si no pagó nada</> },
-    { icono: <Store />, nombre: "Recoge", plazo: <>en <b>{n(diasRecoger)}</b> días, con su código</> },
-  ];
-  return (
-    <ol className="tw tw-linea" aria-label="La vida de un pedido web y sus plazos">
-      {pasos.map((p, i) => (
-        <li key={p.nombre} className="tw-linea-paso" style={{ "--i": i } as CSSProperties}>
-          <span aria-hidden className="tw-linea-nodo">
-            {p.icono}
-          </span>
-          <span className="tw-linea-nombre">{p.nombre}</span>
-          <span className="tw-linea-plazo">{p.plazo}</span>
-        </li>
-      ))}
-    </ol>
   );
 }
