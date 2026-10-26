@@ -64,7 +64,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
 
   return (
     <div className="op-pagina space-y-6">
-      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={datos.orden.numeroTexto} subtitulo={fraseDeLaOrden(datos.orden)} volver={volver} acciones={<AccionesDeLaOrden datos={datos} />}>
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={datos.orden.numeroTexto} subtitulo={fraseDeLaOrden(datos.orden)} volver={volver} acciones={<AccionesDeLaOrden datos={datos} edicion={edicionDeTela.datos} />}>
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[

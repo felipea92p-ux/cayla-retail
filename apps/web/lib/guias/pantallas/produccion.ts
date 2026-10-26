@@ -424,7 +424,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.terminar" }],
       titulo: "La tela, al terminar el corte",
-      texto: "Cuando lo que anotas completa el lote, la hoja también pregunta cuánta tela usaste. Ya viene lo que falta según el plan: si es lo que usaste, no cambias nada; si prefieres anotarla después, déjala vacía.",
+      texto: "Cuando lo que anotas completa el lote, la hoja también pregunta cuánta tela usaste. Ya viene lo que falta según el plan: si es lo que usaste, no cambias nada; si prefieres anotarla después, déjala vacía. Si la orden no declaró ninguna tela, la hoja te lo avisa en vez de preguntar.",
     },
     {
       id: "responsable",
@@ -633,7 +633,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-stock.resumen",
       opcional: true,
       titulo: "Lo que entra y lo que cuesta",
-      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si falta anotar la tela, aquí te avisamos: sin ella el costo sale bajo; «Anotarla ahora» te lleva a hacerlo. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
+      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si falta anotar la tela, o la orden nunca la declaró, aquí te avisamos: sin ella el costo sale bajo; «Anotarla ahora» o «Declarar la tela» te llevan a hacerlo. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
     },
     {
       id: "stock-cierre",
