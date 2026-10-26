@@ -128,3 +128,39 @@ orden, con su texto exacto, por el MCP de Supabase (`apply_migration`). Después
 no la ejecuta nadie, y las otras dos, solo `authenticated`; «Lo que le compré» entera tarda 182 ms. Falta refrescar el volcado del diccionario
 (`docs/datos/generado/COMO-REFRESCAR.md`).
 
+
+## Actualización 2026-10-26 (b): dos líneas sobre la lista
+
+**El problema (Felipe, con su captura a 2000 px):** entre la cabecera y el primer proveedor había siete franjas: las pestañas, las dos tarjetas grandes de «Prendas» y «Costo», el buscador, dos filas de píldoras de rubro, «Sin datos de pago» y la fila de ritmo. El primer proveedor quedaba en el borde de abajo. Sus palabras: los filtros «ocupan mucho espacio» y las dos tarjetas habría que achicarlas, «pero sobre todo ubicarlos mejor».
+
+**Lo que cambió (solo cómo se ve, no qué hace):**
+1. **Primera línea:** las pestañas Mercadería / Servicios a la izquierda y, a la derecha, «Ordenar por» con un segmento de modo (`SegmentoDeslizante forma="modo"`, la pieza decidida para «lo mismo de otra forma»). Cada opción lleva su ícono, su nombre y su total: «Prendas 2,885» y «Costo ≈ S/ 85,602». Lo que quiere decir la cifra elegida va en letra chica al lado («lo que te llegó, sin IGV · aproximado: el 99 % vino por la carga inicial»). Antes eran dos tarjetas de opción de 19,5 rem cada una.
+2. **Segunda línea:** el buscador y los tres filtros como `DesplegablePildora`, la pieza decidida para «filtro que se abre» (ADR-0358): **Rubro**, **Ritmo** y **Datos de pago**. Cada opción lleva su cuenta adentro. Si hay alguno puesto, aparece «Limpiar filtros» (`BotonLimpiar`). Antes eran tres filas de píldoras sueltas.
+3. **Las anclas de la guía** (`proveedores.medida`, `.rubros`, `.ritmo`, `.sin-pago`) quedaron en las piezas nuevas; los textos de esos pasos ahora dicen «ábrelo», y la huella se aceptó después de mirar la pantalla.
+
+**Lo que se pierde a cambio:** las cuentas por ritmo (Repón 9, Frena compras 5…) ya no se leen sin abrir «Ritmo». La columna «Lo que no se ve a simple vista» sigue avisando lo urgente de cada grupo.
+
+**Cómo se verificó:** en el navegador local a 1440 px y 1920 px en oscuro y a 375 px en claro (sin desborde horizontal); elegir un ritmo filtra la lista y «Limpiar filtros» la devuelve. En local los proveedores no tienen rubro, así que la píldora «Rubro» no se vio con datos.
+
+## Actualización 2026-10-26 (c): la tabla se acomoda a su ancho y la columna derecha es «Qué hacer»
+
+**La tabla (Felipe: «las cabeceras deben estar centradas, y la tabla en sí debe ser super responsive»; después, «centra los números de la columna de números»).**
+- Los títulos de las columnas con dato, y lo que va debajo, se centran: «#», «Ventas», «Vendido», «Te llegó» y «Se vende en». «Proveedor» queda a la izquierda, como los nombres.
+- La tabla se arma en tres tamaños según su propio ancho (`@container`):
+  - **en tarjetas**, por debajo de 42 rem;
+  - **en una fila sin la línea de ventas por día**, de 42 a 56 rem;
+  - **completa**, desde 56 rem.
+- Antes metía las 8 columnas desde 42 rem y cada título se partía en tres renglones. «Lo que queda se vende en» pasó a «Se vende en», con la explicación al pasar el mouse.
+
+**La columna derecha (Felipe: «hay demasiado texto en todas las tarjetas, tanto que no me dan ganas ni de leer»).** Se le mostraron tres formas en la maqueta `docs/maquetas/proveedores-lado-2026-10/` y eligió **B · Qué hacer**. Es una lista de tareas, cada una con un verbo, un número y una flecha, y tocarla hace algo:
+- **Paga lo vencido**: lleva a Por pagar.
+- **Reclama las entregas atrasadas**: lleva a Recibir.
+- **Descuenta lo que te deben**: lleva a Por pagar.
+- **Frena compras** y **Repón**: ponen el filtro «Ritmo» de la tabla.
+- **Pide mejor costo** y **Ten otro proveedor**: salen de los avisos de margen y de dependencia, solo con costo real, y abren al proveedor.
+
+Lo urgente va arriba y en rojo; sin pendientes, «Al día: nada vencido ni atrasado». Lo que no pide hacer nada queda en una línea gris al pie: el % vendido, los costos por confirmar y los que no reciben compras hace 90 días. Este último no tiene una acción desde aquí, por eso pasó al pie aunque la maqueta lo mostraba como tarea. Mientras se compara, la columna solo muestra lo urgente.
+
+**Lo que se quitó:** las tarjetas con párrafos, los anillos de % vendido, de concentración y de carga inicial, y la lista de avisos con su «¿Por qué?». Los avisos de frenar y de reponer los cubren las dos tareas; su porqué está en la vista rápida de cada proveedor. Se borró `concentracion` («qué parte es de tus 10 primeros»), que ya no usaba nadie. La lista de avisos completa (`LoQueQuizaNoVes`) sigue solo para cuando la base no trae el ranking.
+
+**Cómo se verificó:** en el navegador local a 1440, 1024, 768 y 375 px, en claro y en oscuro, sin desborde. Tocar «Frena compras» deja la tabla con «Ritmo: Frena compras». La guía interactiva se puso al día y su huella se aceptó después de mirar la pantalla.

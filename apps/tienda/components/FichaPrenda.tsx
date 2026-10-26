@@ -20,6 +20,7 @@ import {
   pistaOtraTienda,
   precioDeLaFicha,
   tallaDelPrecio,
+  tallaInicial,
   tallasDelColor,
   type ChipFicha,
   type Ficha,
@@ -56,6 +57,7 @@ export function FichaPrenda({
   ficha,
   sedeElegida,
   colorPedido,
+  tallaPedida = null,
   origenFotos,
   chips = [],
   esperas = [],
@@ -70,6 +72,8 @@ export function FichaPrenda({
   sedeElegida: string | null;
   /** `?color=` de la dirección: con qué color abre. */
   colorPedido: string | null;
+  /** `?talla=` de la dirección (la que eligieron en los filtros de la lista, ADR-0512): con qué talla abre, si ese color la tiene. */
+  tallaPedida?: string | null;
   origenFotos: string | undefined;
   /** Los chips de arriba del nombre: «Nuevo…» y «N.º 3 en más vendidos» (del catálogo) y las insignias de la prenda (de su ficha, ADR-0489). */
   chips?: ChipFicha[];
@@ -91,7 +95,7 @@ export function FichaPrenda({
 }) {
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
-  const [tallaId, setTallaId] = useState<string | null>(() => (tallas.length === 1 ? tallas[0].talla.id : null));
+  const [tallaId, setTallaId] = useState<string | null>(() => tallaInicial(ficha, tallaPedida, color) ?? (tallas.length === 1 ? tallas[0].talla.id : null));
   const elegida = tallas.find((t) => t.talla.id === tallaId)?.variante ?? null;
   const colorElegido = ficha.colores.find((c) => c.codigo === color) ?? ficha.colores[0];
   // El precio y la campaña que se ven: los de la talla elegida o, si todas las del color cuestan lo mismo, los de ese color.

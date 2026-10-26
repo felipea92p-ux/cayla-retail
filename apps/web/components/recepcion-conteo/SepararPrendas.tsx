@@ -71,7 +71,6 @@ export function SepararPrendas({
   onTallas,
   onPrendaVista,
   onCrearNueva,
-  elegida = null,
 }: {
   categoria: CategoriaDeLinea;
   marca: MarcaDeLinea;
@@ -84,8 +83,6 @@ export function SepararPrendas({
   onPrendaVista: (p: PrendaRecepcion) => void;
   /** «Crear ahora» una nueva ya descrita: la pantalla abre la hoja de la prenda. Sin ella, la nueva solo queda «por crear» (se crea después). */
   onCrearNueva?: (nueva: { cantidad: number; descripcion: string }) => void;
-  /** La prenda que eligió la compradora al comprar desde el celular (ADR-0480): se ofrece de un toque, sin buscarla. */
-  elegida?: { productoId: string; nombre: string | null; codigo: string | null } | null;
 }) {
   const [describiendo, setDescribiendo] = useState(false);
   const total = totalSeparado(separado);
@@ -103,23 +100,6 @@ export function SepararPrendas({
         </p>
         {tope > 0 && (sinSeparar > 0 ? <Chip tono="neutro">{sinSeparar} sin separar</Chip> : <Chip tono="verde">Todas separadas</Chip>)}
       </div>
-
-      {elegida && sinSeparar > 0 && !separado.prendas.some((p) => p.productoId === elegida.productoId) && (
-        // ADR-0480 (actividad 6): lo que eligió la compradora. Quien cuenta lo confirma (contar es certificar): no se separa solo.
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-hueso px-3 py-2.5" data-guia="recepcion.elegida">
-          <span className="min-w-0 text-sm text-tinta">
-            La compradora anotó <span className="font-medium">{elegida.nombre ?? "una prenda del catálogo"}</span>
-            {elegida.codigo ? <span className="text-taupe"> · {elegida.codigo}</span> : null}. ¿Son estas?
-          </span>
-          <button
-            type="button"
-            className="btn-cayla btn-sutil btn-chico mov-boton"
-            onClick={() => onSeparado(sumarPrenda(separado, elegida, sinSeparar))}
-          >
-            Son estas ({sinSeparar})
-          </button>
-        </div>
-      )}
 
       <BuscarPrendaEnLinea
         categoria={categoria}

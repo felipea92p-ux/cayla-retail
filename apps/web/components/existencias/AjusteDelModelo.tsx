@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as KeyboardEventReact, type ReactNode, type RefObject } from "react";
 import { Archive, Check, ClipboardCheck, Info, PencilLine, PenLine, ReceiptText, SearchCheck, SearchX, Store } from "lucide-react";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -68,6 +68,41 @@ export function BandaAjustar({ que, conResto, onAjustar }: { que: string; conRes
       </span>
     </button>
   );
+}
+
+/** En el celular la hoja se desliza entera y el pie queda pegado abajo (Felipe 2026-10-26: con avisos, la planilla quedaba de una fila).
+ *  La planilla crece con sus colores hasta lo que se ve entre el borde de arriba de la hoja y el pie: bajando, la tabla llena la pantalla
+ *  con sus tallas y su total a la vista. Mide la hoja y el pie (cambian con el teclado y con «Falta: …») y lo deja en `--tope-planilla`,
+ *  que solo lee el CSS del celular (`ajuste-modelo.css`). */
+export function useTopeDeLaPlanilla(raiz: RefObject<HTMLElement | null>, activo: boolean) {
+  useEffect(() => {
+    if (!activo || typeof ResizeObserver === "undefined") return;
+    let el: HTMLElement | null = null;
+    let observador: ResizeObserver | null = null;
+    let cuadro = 0;
+    // El portal de Radix monta la hoja un instante después del primer render: se espera a que exista, cuadro a cuadro.
+    const enlazar = () => {
+      el = raiz.current;
+      const hoja = el?.closest<HTMLElement>("[data-variante]");
+      if (!el || !hoja) {
+        cuadro = requestAnimationFrame(enlazar);
+        return;
+      }
+      const vista = el;
+      const pie = hoja.querySelector<HTMLElement>(".pie-hoja-fijo");
+      // 24 px: los 16 que separan el pie de la planilla y 8 de aire arriba, para que la cabecera de tallas no quede pegada al borde.
+      const medir = () => vista.style.setProperty("--tope-planilla", `${Math.max(192, hoja.clientHeight - (pie?.offsetHeight ?? 0) - 24)}px`);
+      observador = new ResizeObserver(medir);
+      observador.observe(hoja);
+      if (pie) observador.observe(pie);
+    };
+    enlazar();
+    return () => {
+      cancelAnimationFrame(cuadro);
+      observador?.disconnect();
+      el?.style.removeProperty("--tope-planilla");
+    };
+  }, [raiz, activo]);
 }
 
 /** Lo que dice cada lugar en una frase. */
