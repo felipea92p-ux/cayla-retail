@@ -38,7 +38,7 @@
 .t-pildoras { display: flex; gap: 4px 22px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
 .t-pildoras::-webkit-scrollbar { display: none; }
 .t-pildora { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 1px solid transparent; background: none; border-radius: 0; padding: 8px 0 7px; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); white-space: nowrap; transition: color .3s, border-color .3s; }
-.t-pildora small { font-weight: 500; opacity: .7; letter-spacing: .08em; }
+.t-pildora small { font-size: 12px; font-weight: 500; opacity: .7; letter-spacing: .08em; }
 .t-pildora:hover { color: var(--tinta); }
 .t-pildora[aria-current="true"] { background: none; border-color: var(--tinta); color: var(--tinta); }
 .t-orden { flex: none; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
@@ -162,10 +162,10 @@
 @container tarjeta (max-width: 379px) {
   .t-insignias { right: 38px; }
   .t-insignias-fila { gap: 3px; }
-  .t-insignias .t-insignia { font-size: 10.5px; letter-spacing: .08em; padding: 3px 5px 2px; line-height: 1.25; }
+  .t-insignias .t-insignia { font-size: 11px; letter-spacing: .08em; padding: 3px 5px 2px; line-height: 1.25; }
 }
 @container tarjeta (max-width: 299px) {
-  .t-insignias .t-insignia { font-size: 8.5px; letter-spacing: .05em; padding: 3px 4px 2px; }
+  .t-insignias .t-insignia { font-size: 10px; letter-spacing: .05em; padding: 3px 4px 2px; }
 }
 .t-insignia { font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 0; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .t-insignia.oferta { background: var(--t-oferta); color: var(--t-oferta-tinta); }
@@ -176,7 +176,7 @@
 
 .t-card-info { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 2px; padding-top: 12px; text-align: center; }
 /* El nombre en Didone recta; al pasar el mouse por la tarjeta, en cursiva (la maqueta, `p-pie-foto`). */
-.t-card-nom { font-family: var(--nombre); font-style: normal; font-size: 19px; font-weight: 400; line-height: 1.15; letter-spacing: -.005em; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.t-card-nom { padding-block: 2px; font-family: var(--nombre); font-style: normal; font-size: 19px; font-weight: 400; line-height: 1.15; letter-spacing: -.005em; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .t-card-nom:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (hover: hover) { .t-card:hover .t-card-nom { font-style: italic; } }
 .t-precio { display: flex; flex-direction: row; align-items: baseline; justify-content: center; gap: 8px; font-size: 15px; }
@@ -271,7 +271,7 @@ a.t-campana:hover { border-color: var(--tinta); }
    «Menor precio»), sin el «Orden:» de la computadora: las categorías se ven y se deslizan con casi todo el ancho. */
 @container tienda (max-width: 959px) {
   .t-filtros { gap: 16px 10px; }
-  .t-orden a { gap: 4px; font-size: 10.5px; letter-spacing: .06em; }
+  .t-orden a { gap: 4px; font-size: 12px; letter-spacing: .06em; }
   .t-orden .ic { width: 16px; height: 16px; }
 }
 @container tienda (min-width: 960px) {

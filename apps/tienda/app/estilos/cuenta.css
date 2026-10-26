@@ -23,7 +23,7 @@
 /* ---- Cada campo: su título, su marca (✓ Listo · Sigue aquí · Revisa) y lo que dice debajo ---- */
 .w-campo { display: flex; flex-direction: column; gap: 6px; }
 .w-campo > label, .w-campo > .w-campo-t { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.w-marca { font-size: 11.5px; font-weight: 600; color: var(--tinta-60); white-space: nowrap; }
+.w-marca { font-size: 12px; font-weight: 600; color: var(--tinta-60); white-space: nowrap; }
 .w-campo[data-estado="hecho"] .w-marca { color: var(--verde); }
 .w-campo[data-estado="sigue"] .w-marca { color: var(--ambar); }
 /* «Sigue aquí» con su punto, como la luz de la guía de foco del ERP: se ve aunque la palabra sea chica. */

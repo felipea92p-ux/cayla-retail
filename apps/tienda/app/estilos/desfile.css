@@ -108,6 +108,8 @@
 .t-cab-centro h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(38px, 5.2cqi, 78px); line-height: 1; letter-spacing: -.01em; }
 .t-cab-centro h2 em { font-style: italic; }
 .t-cab-centro p { margin: 0; max-width: 44ch; color: var(--taupe); }
+/* El rótulo que es un enlace («Sin pagar en la web»): su zona de toque crece a 44 px sin mover nada (el relleno y el margen negativo se anulan). */
+.t-cab-centro a.t-ceja { padding-block: 12px; margin-block: -12px; }
 .t-salidas { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--tinta); }
 .t-salidas li { border-bottom: 1px solid var(--sand); }
 .t-salidas a { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto auto; align-items: baseline; gap: 24px; padding: 22px 0; color: var(--tinta); text-decoration: none; transition: padding-left .6s var(--ease); }

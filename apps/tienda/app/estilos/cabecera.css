@@ -160,7 +160,7 @@
 @media (prefers-reduced-motion: reduce) { .t-persona-menu { animation: none; } }
 
 /* La cabecera «Una línea» (A · Muro): la tienda es una palabra («LIMA ▾»); la cuenta y la bolsa son íconos, con el número de la bolsa en su globo. */
-.t-sel-tienda .t-nav-b { white-space: nowrap; }
+.t-sel-tienda .t-nav-b { white-space: nowrap; min-height: 44px; }
 /* El nombre de la tienda que rueda (ADR-0466): el de antes sube y se va, el nuevo sube desde abajo, como la cédula de un museo. Los dos
    comparten el lugar, alineados a la derecha (junto a la flecha): el nombre más corto no se corre al terminar. */
 .t-sede-caja { display: inline-grid; justify-items: end; overflow: hidden; }

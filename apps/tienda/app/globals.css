@@ -208,7 +208,7 @@
 .t-tarjeta-club .t-marca-colibri { width: clamp(26px, 8.6cqi, 38px); opacity: .9; }
 .t-tarjeta-club .marca { height: clamp(10px, 3.4cqi, 15px); }
 .t-tarjeta-club .nombre { font-family: var(--nombre); font-style: italic; font-size: clamp(16px, 5.5cqi, 24px); position: relative; z-index: 1; }
-.t-tarjeta-club small { font-size: clamp(8px, 2.3cqi, 10px); letter-spacing: .18em; text-transform: uppercase; color: color-mix(in srgb, var(--t-tinta-fija) 62%, var(--t-papel-fijo)); }
+.t-tarjeta-club small { font-size: clamp(10px, 3.4cqi, 12px); letter-spacing: .18em; text-transform: uppercase; color: color-mix(in srgb, var(--t-tinta-fija) 62%, var(--t-papel-fijo)); }
 .t-tarjeta-club .chip-oro { display: none; }
 .t-pie { margin-top: clamp(64px, 10cqi, 140px); background: var(--crema); color: var(--tinta); border-top: 1px solid var(--tinta); padding-block: clamp(56px, 8cqi, 112px) 40px; }
 .t-pie-in { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
