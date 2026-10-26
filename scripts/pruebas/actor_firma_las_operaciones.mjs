@@ -182,6 +182,9 @@ const MIRAN_LA_CUENTA = [
   // ADR-0362 fase 4: «quién mira» en Recibir (la persona de la cuenta, null en una terminal) para avisar «tú hiciste la orden» antes
   // de que la base lo frene; es identidad, no firma: quien recibe firma con fn_actor_persona_id(true).
   "fn_recepcion_quien_mira",
+  // ADR-0517 (20261026161000): la persona de la cuenta que mira, sin la excepción del Admin (`fn_recepcion_quien_mira` ahora la llama).
+  // Es identidad, no firma: sirve para decir «tú compraste esto» en el detalle del envío.
+  "fn_recepcion_mi_persona",
   // ADR-0362 fase 6 (20261013182000 y 20261013212000): el fondo por rendir es de UNA persona, y estas preguntan por la cuenta que
   // entró, no por el responsable del combo. Es permiso o identidad, no firma (entregar, devolver y anular firman con
   // fn_actor_persona_id(true)): nadie se entrega plata, registra su devolución ni anula lo de su propio fondo

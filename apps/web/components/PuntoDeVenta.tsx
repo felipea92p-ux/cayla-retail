@@ -141,13 +141,14 @@ import {
   rechazoDelCupon,
   solesDelCupon,
 } from "@/lib/club-puntos-reglas";
-import { TicketsSinCobrarModal } from "@/components/punto-de-venta/Esperas";
+import { DescartarTicketModal, TicketsSinCobrarModal } from "@/components/punto-de-venta/Esperas";
 import {
   abrirNuevoTicket,
   cabeOtroTicket,
   nombreDelTicketActivo,
   pasarAlTicket,
   pestanasDeTickets,
+  quitarDeLaEspera,
   siguienteNombreDeCliente,
   ticketsQueDisputanLaPrenda,
   TOPE_TICKETS_ABIERTOS,
@@ -498,6 +499,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   const [hojaCodigo, setHojaCodigo] = useState(false);
   // Dónde se dibuja el ticket de la caja entre las pestañas (`lib/tickets-abiertos-reglas.ts`); `null` = al final, donde nace uno nuevo.
   const [posActivo, setPosActivo] = useState<number | null>(null);
+  // El ticket que espera y se va a descartar, con lo que dice la hoja de confirmación (se guarda aparte: al descartarlo sale de
+  // la espera y la hoja no puede leerlo de ahí mientras se cierra).
+  const [porDescartar, setPorDescartar] = useState<{ id: string; nombre: string; prendas: number; total: number } | null>(null);
   // Se quiere cerrar la caja con tickets que tienen prendas: antes de abrir el cierre se dice cuáles se pierden.
   const [cierreConTickets, setCierreConTickets] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
@@ -753,7 +757,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`). La hoja de la clienta también: con
   // su combo «Tipo de documento» enfocado, una tecla suelta se iba al escáner de atrás, y F1–F5 pasaban el ticket a cobrar.
   const hayModal =
-    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
+    manualAbierto || bolsasAbiertas || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || porDescartar !== null || cierreConTickets || hojaClientaAbierta || hojaPuntos || hojaCodigo || bajadaPorConfirmar !== null || envio.incierto;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1517,6 +1521,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     if (pestanas.some((p) => p.prendas > 0)) setCierreConTickets(true);
     else setModalCaja("cerrar");
   }
+  /** El basurero de «En espera»: pide confirmación, porque se pierden sus prendas. */
+  function pedirDescartar(id: string) {
+    const p = pestanas.find((x) => x.id === id);
+    if (p) setPorDescartar({ id, nombre: p.nombre, prendas: p.prendas, total: p.total });
+  }
+  function descartarDeLaEspera(id: string) {
+    const sin = quitarDeLaEspera(enEspera, posActivo, id);
+    persistirEspera(sin.espera);
+    setPosActivo(sin.posActivo);
+    // Si era el último, ya no queda nada que ver en «En espera»: vuelve al ticket.
+    if (sin.espera.length === 0) setMomento("armar");
+  }
   function retomar(id: string) {
     const ticket = enEspera.find((t) => t.id === id);
     if (!ticket) return;
@@ -2271,6 +2287,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             onDejarEnEspera={pedirDejarEnEspera}
             onRetomar={retomar}
             onIrAEspera={() => setMomento("espera")}
+            onDescartarEspera={pedirDescartar}
             total={total}
             prendas={prendas}
             vale={valeDelTicket}
@@ -2542,6 +2559,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         </Modal>
       )}
 
+
+      {porDescartar && (
+        <DescartarTicketModal
+          nombre={porDescartar.nombre}
+          prendas={porDescartar.prendas}
+          total={porDescartar.total}
+          onDescartar={() => descartarDeLaEspera(porDescartar.id)}
+          onClose={() => setPorDescartar(null)}
+        />
+      )}
 
       {cierreConTickets && (
         <TicketsSinCobrarModal
