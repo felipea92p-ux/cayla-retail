@@ -498,7 +498,7 @@ export const GUIA_VITRINA: Guia = {
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "vitrina.desmarcar", siEsta: true }],
       prepararSoloAlAvanzar: true,
       titulo: "Qué precio ve el cliente",
-      texto: "Toca «¿Qué precio ve el cliente?» arriba: en la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
+      texto: "Toca «¿Qué precio ve el cliente?», a la derecha de las pestañas: en la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
     },
     {
       id: "fin",
