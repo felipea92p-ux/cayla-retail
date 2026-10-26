@@ -20,7 +20,7 @@ import {
   type ParamsHistorial,
 } from "@/lib/ventas-historial";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
-import { getVendidoPorEmpresaHistorial } from "@/lib/vendido-por-empresa";
+import { getEmpresaDeVentas, getVendidoPorEmpresaHistorial } from "@/lib/vendido-por-empresa";
 import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 import { RepartoEmpresas } from "@/components/RepartoEmpresas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -103,6 +103,8 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
     repartoPosible ? getVendidoPorEmpresaHistorial({ ...filtros, busqueda: undefined }) : Promise.resolve(null),
   ]);
   const reparto = totales.parcial ? null : repartoDeEmpresas(vendidoPorEmpresa, empresasAqui);
+  // La marca «CLAURE» de cada venta de esta página: solo donde conviven dos empresas.
+  const empresaPorVenta = empresasAqui && empresasAqui.length > 1 ? await getEmpresaDeVentas(filas.map((f) => f.id)) : {};
 
   const alcance = esLider ? (tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
   const periodoEnPalabras = textoPeriodoHistorial(filtros.periodo, filtros.desde, filtros.hasta);
@@ -241,7 +243,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
               />
             ) : (
               // Buscando, los totales por día del período no corresponden a lo encontrado: cada día dice cuántas ventas trajo.
-              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} empresas={empresasAqui} />
+              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} empresas={empresasAqui} porVenta={empresaPorVenta} />
             )}
           </div>
 

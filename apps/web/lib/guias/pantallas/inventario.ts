@@ -479,6 +479,14 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Para ver solo lo que pasó en el piso, en el almacén o en cuarentena (las dañadas).",
     },
     {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la tienda.
+      id: "tienda",
+      ancla: "movimientos.tienda",
+      opcional: true,
+      titulo: "De qué tienda es",
+      texto: "Para ver por separado lo de CAYLA y lo de CLAURE. En Lima, una prenda de marca CAYLA es de CAYLA y todas las demás son de CLAURE. Con «Ventas» elegido, ves las ventas de cada una.",
+    },
+    {
       id: "limpiar",
       ancla: "movimientos.limpiar",
       opcional: true,

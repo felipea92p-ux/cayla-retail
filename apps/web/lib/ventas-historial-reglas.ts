@@ -182,8 +182,6 @@ export type ItemCrudo = {
     color: { nombre: string; hex?: string | null } | null;
     producto: {
       referencia: string;
-      /** De qué empresa es la prenda (ADR-0463): CAYLA o CLAURE. Ausente en lecturas viejas. */
-      empresa_id?: string | null;
       producto_fotos?: { url: string; color_codigo: string | null; orden?: number; es_principal?: boolean }[] | null;
     } | null;
   } | null;
@@ -347,8 +345,6 @@ export type FilaHistorial = {
   conAnticipo: boolean;
   /** Los nº de operación anotados al cobrar (Yape, Plin, transferencia). */
   operaciones: string[];
-  /** De qué empresa es cada línea y cuánto se cobró por ella (ADR-0532): la marca «CLAURE» de la fila sale de aquí. */
-  lineasEmpresa?: { empresaId: string | null; monto: number }[];
 };
 
 export type MarcaPosventa = { tipo: "cambio" | "devolucion"; fecha: string; pendiente: boolean };
@@ -405,7 +401,6 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     apartado: v.separaciones?.[0] ? { codigo: v.separaciones[0].codigo, creadoEn: v.separaciones[0].created_at } : null,
     conAnticipo: v.venta_pagos.some((p) => p.metodo === "anticipo"),
     operaciones: [...new Set(v.venta_pagos.map((p) => p.referencia?.trim()).filter((r): r is string => !!r))],
-    lineasEmpresa: v.venta_items.map((i) => ({ empresaId: i.variante?.producto?.empresa_id ?? null, monto: subtotalDeItem(i) })),
   };
 }
 

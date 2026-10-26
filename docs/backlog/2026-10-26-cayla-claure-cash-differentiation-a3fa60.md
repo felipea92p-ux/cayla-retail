@@ -1,7 +1,10 @@
-# Backlog · De quién es lo vendido: CAYLA y CLAURE (2026-10-26, ADR-0532)
+# Backlog · En Lima manda la marca: CAYLA y CLAURE (2026-10-26, ADR-0532)
 
-- [ ] Felipe: OK para pegar `20261026232000_vendido_por_empresa.sql` en producción (dos funciones de solo lectura, una sola parte, sin políticas). Antes que la web; sin ella, Caja e Historial salen como antes.
-- [ ] Refrescar el volcado (`pnpm datos:generar:produccion`) cuando esté en producción: no suma tablas, solo dos funciones.
-- [ ] El Excel del Historial (`/vender/historial/exportar`) no trae la empresa de cada venta. Sumarla si Felipe la necesita ahí.
-- [ ] Con los filtros que la base no suma (por enviar, factura, con cliente, con posventa) el reparto no se muestra. Si se pide, hay que llevar esos filtros a `fn_totales_historial_ventas` y a `fn_vendido_por_empresa` a la vez.
+- [ ] Felipe: OK para pegar en producción, en este orden y antes que la web: `20261026232000_vendido_por_empresa.sql` (una parte) y `20261026234000_movimientos_filtro_por_empresa.sql` (una parte; aborta sola si alguien cambió las funciones de Movimientos).
+- [ ] Refrescar el volcado (`pnpm datos:generar:produccion`) cuando estén en producción: una columna nueva (`empresas.marca_id`) y seis funciones.
+- [ ] Felipe: las etiquetas de precio, el filtro «Tienda» de Catálogo ▸ Productos y la tienda online siguen leyendo `productos.empresa_id`. Una prenda de otra marca compartida con Trujillo se imprime y se filtra como CAYLA aunque en Lima su dinero sea de CLAURE. ¿Las llevamos a la regla por marca?
+- [ ] Felipe: la «Prenda sin registrar» es marca CAYLA: vendida en Lima cuenta como CAYLA. ¿Debería contar como CLAURE en Lima?
+- [ ] «Es nueva» al recibir y el censo crean prendas sin preguntar: nacen CAYLA en `productos`. En Lima su dinero ya cuenta por la marca, pero el candado de ADR-0505 no las encierra en Lima. Hacer que también decidan por la marca.
+- [ ] El Excel del Historial (`/vender/historial/exportar`) no trae la empresa de cada venta.
+- [ ] Con los filtros que la base no suma (por enviar, factura, con cliente, con posventa) el reparto del Historial no se muestra.
 - [ ] Lo que CAYLA le debe a CLAURE (a costo, la liquidación) no está en estas pantallas: Felipe eligió ver solo lo vendido.

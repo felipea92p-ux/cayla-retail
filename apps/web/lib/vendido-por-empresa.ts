@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { limitesUTC, type FiltrosHistorial } from "@/lib/ventas-historial-reglas";
-import { vendidoDeLaBase, vendidoPorCaja, type VendidoEmpresa } from "@/lib/vendido-por-empresa-reglas";
+import { vendidoDeLaBase, vendidoPorCaja, type LineaConEmpresa, type VendidoEmpresa } from "@/lib/vendido-por-empresa-reglas";
 
 // Lo vendido por empresa (ADR-0532): CAYLA y CLAURE comparten caja en Lima. Solo lee. Las cuentas y lo que se dibuja viven en
 // `lib/vendido-por-empresa-reglas.ts`.
@@ -34,4 +34,16 @@ export async function getVendidoPorEmpresaDeCajas(cajaIds: string[]): Promise<Ma
   const { data, error } = await supabase.rpc("fn_vendido_por_empresa_de_cajas", { p_cajas: cajaIds });
   if (error || !data) return null;
   return vendidoPorCaja(data);
+}
+
+/** Cuánto de cada venta es de cada empresa (las de una página del Historial), para marcar las que llevan prendas de CLAURE. Vacío si
+ *  no se pudo leer: la lista sale sin marcas, como antes. */
+export async function getEmpresaDeVentas(ventaIds: string[]): Promise<Record<string, LineaConEmpresa[]>> {
+  if (ventaIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_empresa_de_ventas", { p_ventas: ventaIds });
+  if (error || !data) return {};
+  const porVenta: Record<string, LineaConEmpresa[]> = {};
+  for (const f of data) (porVenta[f.venta_id] ??= []).push({ empresaId: f.empresa_id, monto: Number(f.monto) });
+  return porVenta;
 }

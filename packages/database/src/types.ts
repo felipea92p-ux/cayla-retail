@@ -6826,6 +6826,14 @@ export type Database = {
           ventas: number
         }[]
       }
+      fn_marcas_de_empresas: {
+        Args: Record<PropertyKey, never>
+        Returns: { empresa_id: string; marca_id: string | null }[]
+      }
+      fn_empresa_de_ventas: {
+        Args: { p_ventas: string[] }
+        Returns: { empresa_id: string; monto: number; venta_id: string }[]
+      }
       fn_vendido_por_empresa_de_cajas: {
         Args: { p_cajas: string[] }
         Returns: {
@@ -7475,6 +7483,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_empresa_id?: string
           p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
@@ -7567,6 +7576,7 @@ export type Database = {
         Args: {
           p_busqueda?: string
           p_desde?: string
+          p_empresa_id?: string
           p_hasta?: string
           p_motivo?: string
           p_sububicacion_id?: string
