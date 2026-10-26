@@ -20,7 +20,9 @@ import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
 import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR_TIENDA, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { EscudoDeFila } from "./MarcaDeTienda";
 import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
+import { escudoDe } from "@/lib/escudo-de-tienda";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
@@ -384,6 +386,8 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
     return () => window.clearTimeout(t);
   }, [velo]);
   const elegida = opciones.find((o) => o.actual) ?? opciones[0];
+  // Si alguna tienda de la lista tiene escudo, las demás guardan su lugar: los nombres quedan alineados.
+  const hayEscudos = opciones.some((o) => escudoDe(o.nombre) !== null);
   // Elegir una tienda: se recuerda en la cookie, se cubre con el velo y se navega dentro de una transición (`cambiando` dura hasta que la
   // página nueva llega). Con prendas en la bolsa, antes se vacía (la persona ya lo confirmó).
   const ir = (o: OpcionTienda, vaciar: boolean) => {
@@ -476,6 +480,10 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
         }}
       >
         <NombreQueRueda nombre={elegida.nombre} /> <span aria-hidden="true">▾</span>
+        {/* El nombre en letras aparece al pasar el mouse o con el teclado (solo si lo que se ve es el escudo; ver `.t-sel-nombre`). */}
+        <span className="t-sel-nombre" aria-hidden="true">
+          {elegida.nombre}
+        </span>
       </button>
       {velo && <VeloDeSede nombre={velo.nombre} fase={velo.fase} arriba={velo.arriba} />}
       {abierto && (
@@ -514,6 +522,7 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
                   else ir(o, false);
                 }}
               >
+                <EscudoDeFila nombre={o.nombre} hueco={hayEscudos} />
                 {o.nombre}
               </Link>
             ))
