@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 180,
+  "total": 183,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -103,6 +103,7 @@
       "button «Volver al catálogo»",
       "Volver «→onVolverATicket»",
       "button «Retomar»",
+      "button «{`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}»",
       "SegmentoDeslizante «Cómo escribir el descuento»",
       "button «S/»",
       "input «Monto de descuento»",
@@ -190,7 +191,9 @@
     ],
     "components/punto-de-venta/Esperas.tsx": [
       "Boton «Cancelar»",
-      "Boton «Seguir con el cierre»"
+      "Boton «Seguir con el cierre»",
+      "Boton «Cancelar» #2",
+      "Boton «Descartar ticket»"
     ],
     "components/punto-de-venta/HojaDeCobro.tsx": [
       "Volver «→onVolver»",

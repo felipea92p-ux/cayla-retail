@@ -121,9 +121,9 @@ export function faltaParaMostrar(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" 
   return falta;
 }
 
-/** Cómo lo nombra la persona (la guía de foco y la tarjeta). */
+/** Cómo lo nombra la persona (la guía de foco y la tarjeta). UNA palabra por dato: la misma en la etiqueta del campo, en la puerta, en «Faltan:» y en el teléfono (Formidable 2026-10-26). */
 export const NOMBRE_DATO: Record<DatoWeb | "horario", string> = {
-  nombre_web: "Nombre en la web",
+  nombre_web: "Nombre",
   whatsapp: "WhatsApp",
   direccion: "Dirección",
   horario: "Horario",
@@ -180,7 +180,7 @@ export function ordenarSedes<T extends { id: string }>(sedes: readonly T[], ids:
 }
 
 /** La palabra suelta con que la puerta de una tienda dice lo que le falta (sin frases: la maqueta de Conf. Tienda, 2026-10-26). */
-export const PALABRA_FALTA: Record<DatoWeb, string> = { nombre_web: "Nombre", whatsapp: "WhatsApp", direccion: "Dónde" };
+export const PALABRA_FALTA: Record<DatoWeb, string> = { nombre_web: "Nombre", whatsapp: "WhatsApp", direccion: "Dirección" };
 
 /** Cuántos de los tres datos obligatorios tiene una tienda: el anillo de su puerta. */
 export function avanceDeSede(b: Pick<BorradorSede, "nombreWeb" | "whatsapp" | "direccion">): { listos: number; total: number; pct: number } {

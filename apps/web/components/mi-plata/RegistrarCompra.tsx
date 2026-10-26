@@ -19,6 +19,7 @@ import { BotonVerMas } from "@/components/ui/VerMas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { TuCompra } from "./TuCompra";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Globito } from "@/components/ui/Globito";
 import { HojaPrenda } from "@/components/mi-plata/HojaPrenda";
@@ -448,9 +449,14 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
     </div>
   );
 
+  // En PC (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el mismo paso a paso, pero usando el ancho: los pasos a la
+  // izquierda y «Tu compra» fija a la derecha (en «¿Está bien así?» ese lugar ya lo ocupa su propia cuenta). El celular no cambia.
+  const conPanel = paso === "proveedor" || paso === "habituales" || paso === "papel";
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-5 pb-8 lg:max-w-none">
       {cabecera}
+      <div className={conPanel ? "flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_22rem]" : "flex flex-col gap-5"}>
+      <div className="flex min-w-0 flex-col gap-5">
       {paso === "proveedor" && (
         <PasoProveedor
           datos={datos}
@@ -553,7 +559,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       )}
 
       {paso === "revisar" && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-x-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="flex min-w-0 flex-col gap-4">
           <h2 className="compra-pregunta">¿Está bien así?</h2>
           <p className="-mt-2 text-sm text-taupe">Toca una prenda para corregirla o quitarla.</p>
           {lineas.length === 0 ? (
@@ -607,9 +614,10 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             </span>
             <span className="min-w-0 truncate text-sm font-semibold text-tinta">Otra prenda de {nombreCorto}</span>
           </button>
+          </div>
           {lineas.length > 0 && (
             // La cuenta de la compra: lo que cuesta, lo que se vende y lo que se gana, y qué le toca a cada tienda.
-            <div className="card-cayla flex flex-col gap-3 rounded-[18px] p-4" data-guia="compra.resumen">
+            <div className="card-cayla flex flex-col gap-3 rounded-[18px] p-4 lg:sticky lg:top-40" data-guia="compra.resumen">
               {/* «Total», no «Pagaste»: todavía no se eligió cómo pagar (puede ser «Paga Compras»). */}
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-tinta/65">Total · {prendasDeLineas(lineas) === 1 ? "1 prenda" : `${prendasDeLineas(lineas)} prendas`}</span>
@@ -640,7 +648,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               )}
             </div>
           )}
-          <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur">
+          <div className="sticky bottom-0 z-10 bg-crema/95 py-3 backdrop-blur lg:col-span-2">
             <div className="flex items-center gap-3 rounded-full bg-tinta py-1.5 pl-5 pr-1.5 text-crema">
               <span className="min-w-0 flex-1">
                 <b className="block truncate text-[15px] font-medium tabular-nums">{resumenCarrito(lineas).titulo}</b>
@@ -659,13 +667,15 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
       {paso === "papel" && (
         <form
-          className="flex flex-col gap-5"
+          className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8"
           onSubmit={(e) => {
             e.preventDefault();
             void guardar();
           }}
         >
-          <h2 className="compra-pregunta">El papel y el pago</h2>
+          <h2 className="compra-pregunta lg:col-span-2">El papel y el pago</h2>
+          {/* En PC el papel va a la izquierda y el pago a la derecha; en el celular las dos cajas «desaparecen» (`contents`) y todo sigue en fila. */}
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
           <CampoGuiado id="tipo" guia={guia} titulo="¿Qué papel te dieron?">
             <div role="group" aria-label="¿Qué te dio el proveedor?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
               {(Object.keys(TIPOS_PAPEL) as TipoPapel[]).map((k) => (
@@ -703,6 +713,8 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               />
             </CampoGuiado>
           )}
+          </div>
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
           <CampoGuiado id="monto" guia={guia} titulo={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}>
             <CampoMonto
               etiqueta={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}
@@ -811,12 +823,17 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
+          </div>
           {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+            <div className="lg:col-span-2">
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            </div>
           )}
-          <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
+          <div className="lg:col-span-2">
+            <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
+          </div>
           <Boton
             type="submit"
             peso="primario"
@@ -824,13 +841,38 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             textoCargando="Guardando…"
             disabled={!guia.puedeConfirmar}
             title={guia.frase ?? undefined}
-            className={guia.claseConfirmar}
+            className={`${guia.claseConfirmar} lg:col-span-2`}
             data-guia="compra.guardar"
           >
             {montoLeido != null && montoLeido > 0 ? `Guardar la compra · ${soles(montoLeido)}` : "Guardar la compra"}
           </Boton>
         </form>
       )}
+
+      </div>
+      {conPanel && (
+        <TuCompra
+          proveedor={proveedor ? proveedor.nombre : null}
+          paso={fase}
+          prendas={prendasDeLaCompra(lineas)}
+          nombresTienda={nombresTienda}
+          fotos={fotos}
+          categorias={deCategoria}
+          total={total}
+          unidades={prendasDeLineas(lineas)}
+          ganancia={ganancia}
+          siguiente={
+            paso === "proveedor"
+              ? "Sigue: elegir a quién le compraste"
+              : paso === "habituales"
+                ? lineas.length > 0
+                  ? "Sigue: revisar las prendas"
+                  : "Sigue: elegir qué le compraste"
+                : "Sigue: guardar la compra"
+          }
+        />
+      )}
+      </div>
 
       {enCurso && (
         <HojaPrenda
@@ -863,7 +905,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       )}
 
       {paso === "listo" && guardada && (
-        <section className="flex flex-col items-center gap-4 pt-6 text-center" data-guia="compra.listo">
+        <section className="flex flex-col items-center gap-4 pt-6 text-center lg:mx-auto lg:w-full lg:max-w-md" data-guia="compra.listo">
           {/* El visto que se dibuja una vez (la maqueta), con la misma clase que el ícono de un vacío o un aviso. */}
           <span className="trazo-dibuja grid h-24 w-24 place-items-center rounded-full bg-verde text-crema" aria-hidden>
             <Check className="h-11 w-11" />
@@ -1033,13 +1075,13 @@ function PasoProveedor({
           {verRecientes.length > 0 && (
             <>
               <span className="label-cayla text-[11px] text-taupe">Les compraste hace poco</span>
-              <ul className="flex flex-col gap-2">{verRecientes.map(fila)}</ul>
+              <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2 2xl:grid-cols-3">{verRecientes.map(fila)}</ul>
             </>
           )}
           {verResto.length > 0 && (
             <>
               {verRecientes.length > 0 && <span className="label-cayla pt-2 text-[11px] text-taupe">Los demás</span>}
-              <ul className="flex flex-col gap-2">{verResto.map(fila)}</ul>
+              <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2 2xl:grid-cols-3">{verResto.map(fila)}</ul>
             </>
           )}
           {/* Sin IntersectionObserver (navegador viejo), el centinela es un botón que trae la tanda siguiente. */}
@@ -1152,7 +1194,7 @@ function ListaHabituales({
           ))}
         </div>
       )}
-      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3" data-guia="compra.habituales">
+      <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6" data-guia="compra.habituales">
         {nuevas.map(({ l, i }) => tarjeta(l.clave, l.productoId, l.nombre, l.categoriaId, l.categoria, null, () => alCorregir(i)))}
         {ver.map((h) =>
           tarjeta(h.clave, h.productoId, h.nombre, h.categoriaId, h.categoria, textoHabitual(h) ?? `${h.categoria}${h.marca ? ` · ${h.marca}` : ""}`, () => alElegir(h)),

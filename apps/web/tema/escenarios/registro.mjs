@@ -654,6 +654,20 @@ ESCENARIOS.push(
     },
   },
   {
+    id: "vender.espera-descartar",
+    ruta: "/vender",
+    cuentas: VENDEDORAS,
+    ancho: "escritorio",
+    abre: "[role=dialog]",
+    nombre: "Vender · el basurero de «En espera» pide confirmar «Descartar este ticket»",
+    async preparar(pagina) {
+      await dosTickets(pagina);
+      await abrirLaEspera(pagina);
+      await pagina.getByRole("button", { name: /^Descartar el ticket de/ }).first().click();
+      await esperar(pagina, 1000);
+    },
+  },
+  {
     id: "vender.tickets-cierre",
     ruta: "/vender",
     // Cerrar la caja solo lo hace un líder o la terminal de ventas (ADR-0160).
