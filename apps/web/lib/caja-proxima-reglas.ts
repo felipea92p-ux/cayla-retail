@@ -21,6 +21,16 @@ export const DIAS_CAJA_PROXIMA = 14;
 export type PuntoCaja = { dia: number; fecha: string; saldo: number; entra: number; sale: number; principal: string | null };
 export type SalidaGrande = { fecha: string; titulo: string; monto: number };
 export type TonoCaja = "verde" | "ambar" | "rojo" | "pizarra";
+/** Un pago que aún no está en el flujo (la compra de campaña que falta pedir): su fecha y lo que sale de caja ese día. */
+export type PagoCaja = { fecha: string; monto: number };
+/** Lo que se suma a la caja cuando la inversión en mercadería se cuenta: los pagos y hasta cuántos días mirar (seis semanas, no dos). */
+export type InversionEnCaja = { pagos: readonly PagoCaja[]; dias: number };
+const PALABRAS_SEMANAS = ["una semana", "dos semanas", "tres semanas", "cuatro semanas", "cinco semanas", "seis semanas"];
+/** «dos semanas», «seis semanas»: la ventana que mira la caja, dicha en palabras (14 días → dos semanas). */
+export function ventanaEnPalabras(dias: number): string {
+  const semanas = Math.max(1, Math.round(dias / 7));
+  return PALABRAS_SEMANAS[semanas - 1] ?? `${semanas} semanas`;
+}
 
 export type CajaCayla = {
   tipo: "cayla";
@@ -55,6 +65,8 @@ export type CajaCayla = {
   faltan: FaltaProy[];
   /** La cuenta no ve la planilla en Dynamic: no está en lo que sale. */
   sinPlanilla: boolean;
+  /** Si la inversión en mercadería está contada: sus pagos y cómo sería la caja SIN ella (para dibujar las dos). */
+  conInversion?: { pagos: PagoCaja[]; sin: PuntoCaja[] };
 };
 
 export type CajaSede = {
@@ -179,17 +191,19 @@ type Entrada = {
   flujo: FlujoProximo;
   cuentas: readonly CuentaDinero[] | null;
   ver: VerResumen;
+  /** La compra de campaña que aún no se pidió, como capa aparte (solo mirando CAYLA entera: el saldo de los bancos no se reparte por sede). */
+  inversion?: InversionEnCaja | null;
 };
 
 /**
  * Lo que dibuja «Tu caja en las próximas dos semanas». `oculta` si la cuenta no ve el flujo (no se dibuja un 0); `falla` si no se pudo
  * leer (se dice, sin cifras).
  */
-export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
+export function cajaProxima({ flujo, cuentas, ver, inversion }: Entrada): CajaProxima {
   if (flujo.estado === "sin_permiso" || flujo.estado === "no_aplica") return { tipo: "oculta" };
   if (flujo.estado === "falla") return { tipo: "falla", mensaje: flujo.mensaje };
   const p = flujo.datos;
-  const dias = Math.max(0, Math.min(DIAS_CAJA_PROXIMA, diasEntre(p.hoy, p.hasta)));
+  const dias = Math.max(0, Math.min(inversion && inversion.pagos.length ? inversion.dias : DIAS_CAJA_PROXIMA, diasEntre(p.hoy, p.hasta)));
   if (dias === 0) return { tipo: "oculta" };
   const hasta = sumarDias(p.hoy, dias);
   const sinPlanilla = !p.planillaVisible;
@@ -249,6 +263,19 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
     queda = puntos.at(-1)!.saldo;
   }
 
+  // La compra de campaña, como capa aparte: sale de la caja desde el día de cada pago. Se guarda cómo sería la caja SIN ella para dibujar las dos.
+  const pagosDentro = (inversion?.pagos ?? []).filter((x) => x.fecha <= hasta);
+  let conInversion: CajaCayla["conInversion"];
+  if (pagosDentro.length) {
+    const sin = puntos.map((x) => ({ ...x }));
+    const salido = (fecha: string) => pagosDentro.filter((x) => x.fecha <= fecha).reduce((a, x) => a + x.monto, 0);
+    for (const x of puntos) x.saldo = r2(x.saldo - salido(x.fecha));
+    const porLaCompra = r2(pagosDentro.reduce((a, x) => a + x.monto, 0));
+    sale = r2(sale + porLaCompra);
+    queda = puntos.at(-1)!.saldo;
+    conInversion = { pagos: pagosDentro.map((x) => ({ ...x })), sin };
+  }
+
   const minimo = p.minimoCaja;
   const hayMinimo = minimo > 0;
   const baja = hayMinimo ? puntos.find((x) => x.saldo < minimo) : undefined;
@@ -261,6 +288,7 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
   const bajo = bajaDelMinimo ? puntos.reduce((a, x) => (x.saldo < a.saldo ? x : a), puntos[0]!) : null;
   const masBajo = bajo ? { fecha: bajo.fecha, saldo: bajo.saldo } : null;
 
+  const ventana = ventanaEnPalabras(dias);
   let titular: string;
   let tono: TonoCaja;
   if (masBajo && sinPlata) {
@@ -276,10 +304,10 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
     titular = `Tu caja baja de tu mínimo: el ${fechaEnPalabras(masBajo.fecha)} llegas a ${soles(masBajo.saldo)} y tu mínimo es ${soles(minimo)}.`;
     tono = "ambar";
   } else if (luego) {
-    titular = `Las próximas dos semanas estás bien: te quedan ${soles(queda)}. Después baja de tu mínimo la semana que termina el ${fechaEnPalabras(luego.fecha)}.`;
+    titular = `Las próximas ${ventana} estás bien: te quedan ${soles(queda)}. Después baja de tu mínimo la semana que termina el ${fechaEnPalabras(luego.fecha)}.`;
     tono = "ambar";
   } else if (hayMinimo) {
-    titular = `Tu caja aguanta las próximas dos semanas: el ${fechaEnPalabras(hasta)} te quedan ${soles(queda)}, sobre tu mínimo de ${soles(minimo)}.`;
+    titular = `Tu caja aguanta las próximas ${ventana}: el ${fechaEnPalabras(hasta)} te quedan ${soles(queda)}, sobre tu mínimo de ${soles(minimo)}.`;
     tono = "verde";
   } else {
     titular = `Hoy tienes ${soles(p.saldoHoy)}; el ${fechaEnPalabras(hasta)} te quedan ${soles(queda)}. No tienes un mínimo de caja puesto.`;
@@ -311,6 +339,7 @@ export function cajaProxima({ flujo, cuentas, ver }: Entrada): CajaProxima {
     provisional: falta.provisional,
     faltan: falta.faltan,
     sinPlanilla,
+    ...(conInversion ? { conInversion } : {}),
   };
 }
 

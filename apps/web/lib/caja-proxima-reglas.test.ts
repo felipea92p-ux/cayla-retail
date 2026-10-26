@@ -319,3 +319,61 @@ describe("mirando una sede: solo lo que de verdad se separa", () => {
     expect(c).toMatchObject({ tipo: "sede", sale: 600 });
   });
 });
+
+describe("la inversión en mercadería como capa aparte", () => {
+  const p = () => proyeccion({ saldoHoy: 30_000, salidas: [salida("2026-10-20", "Factura de telas", 2_000)] });
+  const conCompra = (pagos: { fecha: string; monto: number }[], dias = 42, ver = TODAS) => cajaProxima({ flujo: ok(p()), cuentas: null, ver, inversion: { pagos, dias } });
+
+  it("sin inversión, la caja es la de siempre: dos semanas y sin capa", () => {
+    const c = cayla(p());
+    expect(c.conInversion).toBeUndefined();
+    expect(diasEntre(c.hoy, c.hasta)).toBe(DIAS_CAJA_PROXIMA);
+    expect(texto(c.titular)).toMatch(/próximas dos semanas/);
+  });
+
+  it("con pagos, mira seis semanas, resta cada pago desde su día y guarda cómo sería SIN la compra", () => {
+    const c = conCompra([{ fecha: "2026-11-05", monto: 12_000 }]);
+    if (c.tipo !== "cayla") throw new Error("se esperaba CAYLA");
+    expect(diasEntre(c.hoy, c.hasta)).toBe(42);
+    const antes = c.puntos.find((x) => x.fecha === "2026-11-04")!.saldo;
+    const despues = c.puntos.find((x) => x.fecha === "2026-11-05")!.saldo;
+    expect(antes - despues).toBeGreaterThanOrEqual(12_000 - 1);
+    expect(c.conInversion!.pagos).toEqual([{ fecha: "2026-11-05", monto: 12_000 }]);
+    expect(c.conInversion!.sin.find((x) => x.fecha === "2026-11-05")!.saldo - despues).toBeCloseTo(12_000, 1);
+    expect(texto(c.titular)).toMatch(/seis semanas|llegas a/);
+  });
+
+  it("lo que sale cuenta la compra, y lo que queda es el saldo del último día con la compra restada", () => {
+    const sin = cayla(cajaOk());
+    const c = conCompra([{ fecha: "2026-11-05", monto: 12_000 }]);
+    if (c.tipo !== "cayla") throw new Error("se esperaba CAYLA");
+    const base42 = conCompra([{ fecha: "2027-06-01", monto: 1 }]);
+    if (base42.tipo !== "cayla") throw new Error("se esperaba CAYLA");
+    expect(c.sale).toBeCloseTo(base42.sale + 12_000, 1);
+    expect(c.queda).toBe(c.puntos.at(-1)!.saldo);
+    expect(sin.conInversion).toBeUndefined();
+  });
+
+  it("un pago que cae después del horizonte no se cuenta ni se dibuja", () => {
+    const c = conCompra([{ fecha: "2027-03-01", monto: 50_000 }]);
+    if (c.tipo !== "cayla") throw new Error("se esperaba CAYLA");
+    expect(c.conInversion).toBeUndefined();
+  });
+
+  it("una compra que deja la caja bajo el mínimo lo dice con su día y su monto", () => {
+    const c = conCompra([{ fecha: "2026-11-05", monto: 20_000 }]);
+    if (c.tipo !== "cayla") throw new Error("se esperaba CAYLA");
+    expect(c.masBajo).not.toBeNull();
+    expect(c.bajaDelMinimo).not.toBeNull();
+    expect(c.tono).toBe("ambar");
+  });
+
+  it("mirando una sola sede la compra no se reparte: el saldo de los bancos es de CAYLA entera", () => {
+    const c = conCompra([{ fecha: "2026-11-05", monto: 12_000 }], 42, LIMA);
+    expect(c.tipo).toBe("sede");
+  });
+});
+
+function cajaOk() {
+  return proyeccion({ saldoHoy: 30_000, salidas: [salida("2026-10-20", "Factura de telas", 2_000)] });
+}
