@@ -342,8 +342,11 @@ function PanelAvios({
       </div>
       {borrador.avios.length === 0 && <p className="text-[12.5px] text-tinta/70">Este modelo no tiene avíos. Si los agregas, las órdenes nuevas los proponen solas.</p>}
       {borrador.avios.map((fila) => {
+        // Si la cuenta no ve el avío en el estante (Editar producto trae solo lo que su rol lee), el nombre sale de la propia ficha.
+        const delModelo = fila.insumoId ? ficha.avios.find((a) => a.insumoId === fila.insumoId) : undefined;
         const insumo = fila.insumoId ? insumos.find((i) => i.id === fila.insumoId) : undefined;
         const opciones: Opcion<string>[] = delEstante.map((i) => ({ valor: i.id, texto: i.nombre }));
+        if (!insumo && delModelo) opciones.unshift({ valor: delModelo.insumoId, texto: delModelo.nombre });
         if (insumo && !opciones.some((o) => o.valor === insumo.id)) opciones.unshift({ valor: insumo.id, texto: `${insumo.nombre} · ${insumo.archivado ? "archivado" : "no es un avío"}`, deshabilitada: true });
         const faltas = problemas.filter((p) => p.campo === "avios" && p.fila === fila.clave);
         const deAvio = faltas.find((p) => !/cuánto lleva|tiene que ser|puede pasar|Escribe/.test(p.texto));
@@ -371,7 +374,7 @@ function PanelAvios({
             />
             <CampoTexto
               id={`ficha-avio-${fila.clave}-cantidad`}
-              etiqueta={`${insumo?.unidad === "cono" ? "conos" : "unid."} por prenda`}
+              etiqueta={`${(insumo?.unidad ?? delModelo?.unidad) === "cono" ? "conos" : "unid."} por prenda`}
               mono
               inputMode="decimal"
               placeholder="0"
@@ -383,7 +386,7 @@ function PanelAvios({
             />
             {puedeEditar && (
               <div className="pt-[1.625rem]">
-                <QuitarColor nombre={insumo?.nombre ?? "este avío"} onQuitar={() => quitarAvio(fila.clave)} />
+                <QuitarColor nombre={insumo?.nombre ?? delModelo?.nombre ?? "este avío"} onQuitar={() => quitarAvio(fila.clave)} />
               </div>
             )}
           </div>

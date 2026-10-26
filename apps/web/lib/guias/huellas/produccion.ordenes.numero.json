@@ -175,7 +175,7 @@
       "CampoTexto «{variasTallas ? \"Todas las tallas\" : \"Metros por prenda\"}»",
       "CampoSelect «Avío»",
       "CampoSelect «Para»",
-      "CampoTexto «{`${insumo?.unidad === \"cono\" ? \"conos\" : \"unid.\"}»",
+      "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
       "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»"
     ],
     "components/orden-produccion/TelaDeLaOrden.tsx": [

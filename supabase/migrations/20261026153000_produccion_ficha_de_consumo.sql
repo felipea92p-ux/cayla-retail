@@ -190,7 +190,7 @@ as $$
 declare
   v_referencia text; v_puede_editar boolean; v_declarado timestamptz; v_salida jsonb;
 begin
-  if not (retail.fn_produccion_puede_leer(p_ubicacion_id) or retail.fn_ve_modulo('productos') is true) then
+  if not (retail.fn_produccion_puede_leer(p_ubicacion_id) or retail.fn_ve_modulo('productos') is true or retail.fn_puede_editar_catalogo() is true) then
     return null;
   end if;
   v_referencia := (select p.referencia from retail.productos p where p.id = p_producto_id);
@@ -219,7 +219,7 @@ begin
 end;
 $$;
 comment on function retail.fn_ficha_consumo(uuid, uuid) is
-  'ADR-0513: la ficha de consumo del modelo para la hoja (tela, avíos, lo medido y sus órdenes, y si quien lee puede editar). La lee Producción en ese Taller y quien ve Catálogo.';
+  'ADR-0513: la ficha de consumo del modelo para la hoja (tela, avíos, lo medido y sus órdenes, y si quien lee puede editar). La lee Producción en ese Taller, quien ve Catálogo y quien edita el catálogo.';
 revoke all on function retail.fn_ficha_consumo(uuid, uuid) from public, anon;
 grant execute on function retail.fn_ficha_consumo(uuid, uuid) to authenticated, service_role;
 
