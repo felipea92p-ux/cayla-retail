@@ -2,7 +2,7 @@ import { CalendarClock, FileX, Shirt, Wallet } from "lucide-react";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getOpcionesNuevaOrden } from "@/lib/produccion";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
-import { getOrdenProduccionPagina } from "@/lib/orden-pagina";
+import { getEdicionDeTela, getOrdenProduccionPagina, sePuedeEditarLaTela } from "@/lib/orden-pagina";
 import { cifrasDeLaOrden, fraseDeLaOrden, puedeCambiarQuien } from "@/lib/orden-pagina-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -56,12 +56,15 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
 
   const hoy = hoyLima();
   const cifras = cifrasDeLaOrden(datos, hoy);
-  // «Cambiar quién» necesita la lista de servicios con sus tarifas; solo se pide si alguna fase todavía lo permite. Es dato secundario: si no responde, la página se ve igual.
-  const opciones = datos.fases.some((f) => puedeCambiarQuien(f, datos)) ? await getOpcionesNuevaOrden(datos.orden.ubicacionId) : null;
+  // «Cambiar quién» necesita la lista de servicios con sus tarifas, y «Editar tela y avíos» lo que ya reservan las demás órdenes y el consumo del modelo; solo se pide si alguna de las dos
+  // cosas se puede hacer. Es dato secundario: si no responde, la página se ve igual.
+  const puedeEditarTela = sePuedeEditarLaTela(datos);
+  const opciones = datos.fases.some((f) => puedeCambiarQuien(f, datos)) || puedeEditarTela ? await getOpcionesNuevaOrden(datos.orden.ubicacionId) : null;
+  const edicionDeTela = await getEdicionDeTela(datos, opciones?.datos ?? null, hoy);
 
   return (
     <div className="op-pagina space-y-6">
-      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={datos.orden.numeroTexto} subtitulo={fraseDeLaOrden(datos.orden)} volver={volver} acciones={<AccionesDeLaOrden datos={datos} />}>
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={datos.orden.numeroTexto} subtitulo={fraseDeLaOrden(datos.orden)} volver={volver} acciones={<AccionesDeLaOrden datos={datos} edicion={edicionDeTela.datos} />}>
         <ResumenSede
           sede={persona.ubicacionEtiqueta}
           cifras={[
@@ -77,7 +80,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
 
       <div className="op-bloques">
         <div className="space-y-6">
-          <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} />
+          <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} edicion={edicionDeTela.datos} edicionFalla={edicionDeTela.falla} />
           <CostoDeLaOrden datos={datos} />
         </div>
         <LineaDeTiempo datos={datos} hoy={hoy} />
