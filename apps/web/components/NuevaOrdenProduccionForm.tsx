@@ -49,7 +49,21 @@ import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
 import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
-import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, prendasDeLaFila, problemasTela, telasDeLaHoja, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
+import {
+  coloresDeLaOrden,
+  consumoPorTallaSugerido,
+  consumoSugerido,
+  insumosParaRpc,
+  ofertaDeConsumoDelModelo,
+  planDeFila,
+  prendasDeLaFila,
+  problemasTela,
+  tallasDeLaFila,
+  telasDeLaHoja,
+  telasSugeridas,
+  type InsumoDelTaller,
+  type TelaBorrador,
+} from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
@@ -328,11 +342,11 @@ export function NuevaOrdenProduccionForm({
   const lineasDeColor = useMemo(
     () =>
       esNuevo
-        ? celdasNuevas.map((c) => ({ colorCodigo: c.color ?? null, cantidad: cantidadDeCelda(borrador, c.clave) ?? 0 }))
-        : lineas.map((l) => ({ colorCodigo: variantePorId.get(l.variante_id)?.colorCodigo ?? null, cantidad: l.cantidad })),
+        ? celdasNuevas.map((c) => ({ colorCodigo: c.color ?? null, cantidad: cantidadDeCelda(borrador, c.clave) ?? 0, talla: categoriaNueva?.tallas.find((t) => t.id === c.tallaId)?.valor ?? null }))
+        : lineas.map((l) => ({ colorCodigo: variantePorId.get(l.variante_id)?.colorCodigo ?? null, cantidad: l.cantidad, talla: variantePorId.get(l.variante_id)?.talla ?? null })),
     // `lineas` se rearma en cada render; lo que de verdad lo mueve es `cantidades`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [esNuevo, celdasNuevas, borrador, cantidades, variantePorId]
+    [esNuevo, celdasNuevas, borrador, cantidades, variantePorId, categoriaNueva]
   );
   const coloresOrden = useMemo(() => coloresDeLaOrden(lineasDeColor), [lineasDeColor]);
   const coloresDeLaTela = useMemo<ColorDeLaTela[]>(
@@ -345,6 +359,7 @@ export function NuevaOrdenProduccionForm({
           nombre: c.colorCodigo === null ? "Sin color" : (deVariante?.color ?? deVocab?.nombre ?? c.colorCodigo),
           hex: deVariante?.colorHex ?? deVocab?.hex ?? null,
           prendas: c.cantidad,
+          tallas: c.tallas,
         };
       }),
     [coloresOrden, modeloExistente, coloresDisponibles]
@@ -354,14 +369,14 @@ export function NuevaOrdenProduccionForm({
   // La tela sugerida sigue al modelo y a los colores; si la persona ya tocó la tela, cada color conserva lo elegido y los colores nuevos entran sugeridos.
   const consumoDeclaradoTexto = consumoSugerido(consumoDeclarado);
   const telasSugeridasAhora = useMemo(
-    () => telasSugeridas({ tejidoId, colores: coloresOrden, insumos: insumosDelTaller, consumo: consumoDeclaradoTexto }),
-    [tejidoId, coloresOrden, insumosDelTaller, consumoDeclaradoTexto]
+    () => telasSugeridas({ tejidoId, colores: coloresOrden, insumos: insumosDelTaller, consumo: consumoDeclaradoTexto, porTalla: consumoPorTallaSugerido(consumoDeclarado) }),
+    [tejidoId, coloresOrden, insumosDelTaller, consumoDeclaradoTexto, consumoDeclarado]
   );
   const telasTocadas = telasManual !== null;
   const telas = useMemo<TelaBorrador[]>(() => telasDeLaHoja({ sugeridas: telasSugeridasAhora, manual: telasManual, insumos: insumosDelTaller }), [telasManual, telasSugeridasAhora, insumosDelTaller]);
   const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
-  const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado), [telas, insumosDelTaller, consumoDeclarado]);
+  const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado, coloresOrden), [telas, insumosDelTaller, consumoDeclarado, coloresOrden]);
   const fijarElConsumo = fijarConsumo && !esNuevo && ofertaConsumo.tipo === "corregir" && puedeEditarCatalogo;
   // Los costos ya no se teclean: la tela sale de los metros a pedir × el costo del lote que se usaría (solo quien ve costos), y los servicios de la tarifa congelada.
   const conCostos = decision !== null;
@@ -382,7 +397,7 @@ export function NuevaOrdenProduccionForm({
         if (!t.insumoId) return suma;
         const i = insumosDelTaller.find((x) => x.id === t.insumoId);
         const prendas = prendasDeLaFila(t.colorCodigo, coloresDeLaTela);
-        const plan = i ? metrosAPedir(t.consumoPorPrenda, prendas, i.mermaPct) : null;
+        const plan = i ? planDeFila(t, tallasDeLaFila(t.colorCodigo, coloresOrden), prendas, i.mermaPct) : null;
         return suma + (plan ?? 0) * (costoPorMetro.get(t.insumoId) ?? 0);
       }, 0)
     : 0;
@@ -652,7 +667,7 @@ export function NuevaOrdenProduccionForm({
             token: p.p_token,
           },
           p_fases: fasesParaRpc(fases, listaDePrecios, hoy),
-          p_insumos: insumosParaRpc(telas),
+          p_insumos: insumosParaRpc(telas, coloresOrden),
         } as never),
         responsable.firma()
       );
@@ -725,7 +740,7 @@ export function NuevaOrdenProduccionForm({
             ...(fijarElConsumo ? { fijar_consumo_modelo: true } : {}),
           },
           p_fases: fasesParaRpc(fases, listaDePrecios, hoy),
-          p_insumos: insumosParaRpc(telas),
+          p_insumos: insumosParaRpc(telas, coloresOrden),
         } as never),
         responsable.firma()
       );

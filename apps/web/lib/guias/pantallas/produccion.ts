@@ -310,7 +310,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela",
       opcional: true,
       titulo: "La tela de la orden",
-      texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere). La orden te dice cuántos pedir y si alcanza. Abajo, «+ Agregar avío» (botones, hilo…): para toda la orden o un color. Es opcional: sin tela la orden se abre igual.",
+      texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere). Con varias tallas, «Separar por talla» deja escribir cada una; con una sola cifra el pedido sale «Aproximado». La orden te dice cuántos pedir y si alcanza. Abajo, «+ Agregar avío». Es opcional.",
     },
     {
       id: "consumo-modelo",
@@ -522,7 +522,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.editar-tela" }],
       titulo: "Tela por color y avíos",
-      texto: "Por cada color eliges la tela y cuánto lleva cada prenda; la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar avío» para botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
+      texto: "Por cada color eliges la tela y cuánto lleva cada prenda, por talla si quieres («Separar por talla»); la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar avío» para botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
     },
     {
       id: "editar-tela-cierre",
