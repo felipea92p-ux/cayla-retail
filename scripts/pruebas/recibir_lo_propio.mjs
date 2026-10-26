@@ -180,7 +180,12 @@ select (:'ab_${envio}'::jsonb ->> 'version')::int as v_${envio} \\gset
 `;
 const RECIBE_L2 = (envio) => `pg_temp.recibe(:'${envio}', :v_${envio}, ${A(LIN("di_l2", [V("pv_s", 4)]))}, '[]'::jsonb, null, null)`;
 // El papel de la compra (una boleta) de la O1, para que «Revisar compras» lo muestre: queda en :papel.
+// Anotar un papel exige que quien compra tenga su ronda de compras abierta (ADR-0480, 20261023183000; la pone la base): en una base armada
+// desde cero (CI) nadie la tiene, así que se abre una dentro de la prueba (todo se deshace con el ROLLBACK).
 const PAPEL_DE_O1 = `reset role;
+insert into retail.compra_rondas (persona_id, abierta_por)
+  select :'felipe_p', :'felipe_p'
+   where not exists (select 1 from retail.compra_rondas r where r.persona_id = :'felipe_p' and r.cerrada_en is null);
 insert into retail.compra_papeles (id, persona_id, proveedor_id, tipo, monto, fecha, huella, registrado_por, pagado)
   values (gen_random_uuid(), :'felipe_p', :'prov', 'boleta', 200, retail.fn_hoy_lima(), md5('papel-lo-propio'), :'felipe_p', 0) returning id as papel \\gset
 update retail.ordenes_compra set papel_id = :'papel' where id = :'o1';
