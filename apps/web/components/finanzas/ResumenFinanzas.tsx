@@ -35,6 +35,7 @@ import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
 import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
   mesAnteriorDe,
+  mesPasadoComparable,
   respuestaResumen,
   vendidoPorSede,
   type DiaVenta,
@@ -120,8 +121,9 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       : { estado: "ok", datos: estadoMes.datos },
   };
   const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
-  const resp = respuestaResumen(r, estadoAntes, provisional, enCurso);
   const filas = estadoMes.falla ? [] : estadoMes.datos;
+  const antes = mesPasadoComparable(filas, estadoAntes);
+  const resp = respuestaResumen(r, antes, provisional, enCurso);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const cien = deCadaCien(recorrido);
   const faltan = noRevisado(resumen);
@@ -234,7 +236,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
         </div>
 
         <div {...columna(6)}>
-          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes: estadoAntes, enCurso })} />
+          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes, enCurso })} />
         </div>
       </div>
     </div>
