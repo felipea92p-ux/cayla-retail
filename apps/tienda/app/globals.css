@@ -91,11 +91,11 @@
   --t-banda-filo: transparent;
 }
 /* El «backstage»: el escenario y el Club, que en claro ya eran negros, suben un tono para separarse del fondo; la placa de la foto se queda clara
-   (apenas más sorda, para no encandilar sobre el negro). */
+   pero más sorda (un gris cálido, no el marfil: sobre el negro encandilaba; la foto se funde con ella con `multiply`, así que su color casi no cambia). */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --t-foto: #ebe9e4; --t-foto-2: #e0ded8; --t-lamina: #ebe9e4; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
+  :root:not([data-theme="light"]) { --t-foto: #dddbd5; --t-foto-2: #d2d0ca; --t-lamina: #dddbd5; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
 }
-:root[data-theme="dark"] { --t-foto: #ebe9e4; --t-foto-2: #e0ded8; --t-lamina: #ebe9e4; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
+:root[data-theme="dark"] { --t-foto: #dddbd5; --t-foto-2: #d2d0ca; --t-lamina: #dddbd5; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
 .t-ancho { width: 100%; max-width: 1440px; margin-inline: auto; padding-inline: clamp(16px, 4cqi, 64px); }
 .t-angosto { width: 100%; max-width: 620px; margin-inline: auto; }
 .t-anuncio { flex: none; height: 34px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 12px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
