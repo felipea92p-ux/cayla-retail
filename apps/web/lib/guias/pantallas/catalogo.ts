@@ -394,15 +394,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
-      titulo: "Costos, insignias y campañas",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      titulo: "Costos e insignias",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
     },
     {
       id: "precio-tienda",
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién lo puso; «Cambiar» y «Quitar» lo ajustan. En una terminal solo se ve su tienda. Esto se guarda aparte, al momento, no con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan al momento. En una terminal no sale: su precio se escribe en la tabla de «Precios» y se guarda con «Revisar y guardar». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
