@@ -1,6 +1,7 @@
 # Backlog · En Lima manda la marca: CAYLA y CLAURE (2026-10-26, ADR-0532)
 
-- [ ] Felipe: OK para pegar en producción, en este orden y antes que la web: `20261026232000_vendido_por_empresa.sql` (una parte) y `20261026234000_movimientos_filtro_por_empresa.sql` (una parte; aborta sola si alguien cambió las funciones de Movimientos).
+- [x] `20261026232000` y `20261026234000` pegadas en producción el 2026-10-26 con el OK de Felipe (versiones `20261027000005` y `20261027000049`), verificadas con lecturas y la sesión de un líder en una transacción de solo lectura.
+- [ ] Fusionar la web (abrir el PR con `/abrir-pr`): hasta entonces Caja, Historial, Movimientos y Nuevo producto se ven como antes.
 - [ ] Refrescar el volcado (`pnpm datos:generar:produccion`) cuando estén en producción: una columna nueva (`empresas.marca_id`) y seis funciones.
 - [ ] Felipe: las etiquetas de precio, el filtro «Tienda» de Catálogo ▸ Productos y la tienda online siguen leyendo `productos.empresa_id`. Una prenda de otra marca compartida con Trujillo se imprime y se filtra como CAYLA aunque en Lima su dinero sea de CLAURE. ¿Las llevamos a la regla por marca?
 - [ ] Felipe: la «Prenda sin registrar» es marca CAYLA: vendida en Lima cuenta como CAYLA. ¿Debería contar como CLAURE en Lima?

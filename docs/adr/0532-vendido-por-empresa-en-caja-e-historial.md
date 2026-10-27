@@ -1,6 +1,6 @@
 # ADR-0532 — En Lima manda la marca: CAYLA y CLAURE en Caja, Historial, Movimientos y el alta
 
-**Estado:** aceptada · migraciones `20261026232000` y `20261026234000` **no están en producción** (esperan el OK de Felipe) · **Fecha:** 2026-10-26 ·
+**Estado:** aceptada · migraciones `20261026232000` y `20261026234000` **EN PRODUCCIÓN desde 2026-10-26** (con el OK de Felipe; registradas como `20261027000005` y `20261027000049`, la hora del pegado) · la web va en su PR · **Fecha:** 2026-10-26 ·
 **Decidió:** Felipe · **Sigue a:** ADR-0463 (empresas CAYLA y CLAURE) y ADR-0505 (CLAURE solo existe en Lima)
 
 ## Contexto
@@ -97,4 +97,11 @@ marca nace CLAURE y, por ADR-0505, no sale de Lima. Solo si la base no dice cuá
   Lima con «Ventas» + «CLAURE» muestra solo su venta (1 operación); el Historial de Lima da CAYLA S/ 1,138.80 + CLAURE S/ 99.90 = el vendido de
   la cabecera, S/ 1,238.70, y la venta mixta lleva «CLAURE S/ 99.90»; Nuevo producto en Lima ya no pregunta la tienda y la ficha dice «CLAURE»
   hasta elegir la marca. Antes (primer mensaje): Caja y el detalle de un cierre cuadran con «Qué se cobró»; Historial a 375 px y en oscuro.
-- **No verificado:** producción (esperan el OK de Felipe), un alta completa de punta a punta y la insignia de Vender con una copia nueva del catálogo.
+- **Producción (2026-10-26, con el OK de Felipe):** pegadas en orden con `apply_migration`. Antes: una sola marca «CAYLA», las huellas de
+  `fn_movimientos` y su resumen iguales a las del parche. Después: `empresas.marca_id` de CAYLA es la marca «CAYLA» (CLAURE, ninguna); una
+  sola firma de cada función, `fn_movimientos` y su resumen con las huellas «después» del parche (`4aac753e…`, `99ac6aac…`) y las cinco nuevas
+  con la misma huella que en local; `anon` no ejecuta ninguna. Regla sobre las 467 prendas: ninguna de marca CAYLA sale CLAURE en Lima, ninguna
+  de otra marca sale CAYLA. Con la sesión de un líder, en una transacción de solo lectura: CAYLA + CLAURE = el vendido del Historial en las
+  tres tiendas (TRU S/ 73,401.06, AQP S/ 32,695.53, LIM S/ 701 = CAYLA S/ 350 + CLAURE S/ 351); las 74 cajas cuadran con `fn_resumen_caja`;
+  Movimientos de Lima, ventas: 11 = 6 de CAYLA + 5 de CLAURE, y la llamada sin el filtro (la de la web de hoy) sigue respondiendo.
+- **No verificado:** la web en producción (va en su PR), un alta completa de punta a punta y la insignia de Vender con una copia nueva del catálogo.
