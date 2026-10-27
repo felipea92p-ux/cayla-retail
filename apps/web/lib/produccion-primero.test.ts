@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filasPorModelo } from "./produccion-decisiones";
 import type { DemandaVariante } from "./produccion-decision-reglas";
-import { fraseDeModelo, porqueDeModelo, queFabricarPrimero } from "./produccion-primero";
+import { AYUDA_PREPARAR_ORDEN, TEXTO_PARA_VIGILAR, fraseDeModelo, porqueDeModelo, queFabricarPrimero } from "./produccion-primero";
 
 // Un modelo de una sola variante: `ventas` en 30 días y `stock` en tiendas. Se mide con filasPorModelo (la regla real), no con filas inventadas.
 const demanda = (id: string, ventas: number, stock: number, extra: Partial<DemandaVariante> = {}): DemandaVariante => ({
@@ -85,5 +85,11 @@ describe("«¿Qué fabrico primero?» (Formidable, Producción ▸ Resumen)", ()
     const r = queFabricarPrimero(filas([demanda("a", 5, 900)]));
     expect(r.firmes).toEqual([]);
     expect(r.vigilar).toEqual([]);
+  });
+
+  it("«Preparar orden» dice antes de tocarlo que no guarda nada, y «Para vigilar» dice qué hacer (segunda prueba ciega)", () => {
+    expect(AYUDA_PREPARAR_ORDEN).toContain("no se guarda nada hasta que la confirmes");
+    expect(TEXTO_PARA_VIGILAR).toContain("Revísalos cada semana");
+    expect(TEXTO_PARA_VIGILAR).toContain("No cortes tela");
   });
 });

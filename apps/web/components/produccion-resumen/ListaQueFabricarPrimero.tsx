@@ -6,7 +6,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { hrefNuevaOrden } from "@/lib/produccion-decisiones";
 import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
-import { PRIMEROS_QUE_SE_VEN, type FilaPrimero, type QueFabricarPrimero } from "@/lib/produccion-primero";
+import { AYUDA_PREPARAR_ORDEN, PRIMEROS_QUE_SE_VEN, TEXTO_PARA_VIGILAR, type FilaPrimero, type QueFabricarPrimero } from "@/lib/produccion-primero";
 import { FilaQueAbreLaHoja } from "./FilaQueAbreLaHoja";
 import { FilasQuePlegan } from "./FilasQuePlegan";
 import { FotoModelo } from "./FotoModelo";
@@ -80,7 +80,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
   return (
     <section data-guia="prod-resumen.que-producir" id="primero" aria-label="Qué fabricar primero" className="space-y-3">
       <TituloSeccion cuenta={firmes.length > 0 ? firmes.length : undefined}>¿Qué fabrico primero?</TituloSeccion>
-      {firmes.length + vigilar.length > 0 && <p className="-mt-1 px-1 text-[13px] text-tinta/70">{presentacion}</p>}
+      {firmes.length + vigilar.length > 0 && <p className="-mt-1 px-1 text-[13px] text-tinta/70">{presentacion} {AYUDA_PREPARAR_ORDEN}</p>}
       {/* La edad de los datos: mientras el sistema lleva pocas semanas de ventas, las cantidades son una guía (se apaga sola, `notaDeHistoria`). */}
       {nota && firmes.length + vigilar.length > 0 && <p className="nota-cayla">{nota}</p>}
       {firmes.length === 0 ? (
@@ -101,7 +101,7 @@ export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones,
             cabecera={
               <div className="px-4 py-3.5">
                 <p className="text-[15px] font-medium text-tinta">{vigilar.length === 1 ? "1 modelo para vigilar" : `${vigilar.length} modelos para vigilar`}</p>
-                <p className="mt-0.5 text-[13px] text-tinta/70">Vendieron 1 o 2 prendas en el mes: todavía no sabemos si se venden de verdad. Míralos, pero no cortes tela por ellos todavía.</p>
+                <p className="mt-0.5 text-[13px] text-tinta/70">{TEXTO_PARA_VIGILAR}</p>
               </div>
             }
             resto={vigilar.map((f) => (

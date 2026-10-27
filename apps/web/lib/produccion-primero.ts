@@ -9,6 +9,12 @@ import { DIAS_RITMO_RECIENTE } from "./inventario-reglas";
 import { DIAS_OBJETIVO_PRODUCCION } from "./produccion-decision-reglas";
 import { baseDelRitmo, sugerenciaDeOrden, textoDiasDeStock, type FilaModelo } from "./produccion-decisiones";
 
+/** Lo que hace «Preparar orden», dicho antes de tocarlo: una persona nueva no sabía si la orden se crea al instante (segunda prueba ciega). Abre «Nueva orden» con la cantidad escrita; guardar es otro paso. */
+export const AYUDA_PREPARAR_ORDEN = "«Preparar orden» abre la orden con la cantidad ya escrita para que la revises: no se guarda nada hasta que la confirmes.";
+
+/** Lo que se hace con los modelos de «Para vigilar»: tiene verbo, no solo un nombre (segunda prueba ciega: «vigilar» no decía qué hago yo). */
+export const TEXTO_PARA_VIGILAR = "Vendieron 1 o 2 prendas en el mes: todavía no sabemos si se venden de verdad. Revísalos cada semana: si siguen vendiéndose, pasan a la lista de arriba. No cortes tela por ellos todavía.";
+
 /** Cuántos modelos con ventas firmes se ven de entrada; el resto baja en su lugar con «Ver N más». */
 export const PRIMEROS_QUE_SE_VEN = 6;
 
