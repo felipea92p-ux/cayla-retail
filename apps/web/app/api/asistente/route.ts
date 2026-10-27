@@ -23,6 +23,7 @@ import { limpiarDatosPersonales, sinConsulta } from "@/lib/errores-reglas";
 import { GUIAS } from "@/lib/guias/registro";
 import { hojasDe, menuPara, permisosDe } from "@/lib/menu";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 import { createClient } from "@/lib/supabase/server";
 
 // POST /api/asistente  { pregunta, ruta }  →  { resultado, preguntaId }
@@ -35,7 +36,7 @@ import { createClient } from "@/lib/supabase/server";
 //   PROMETE: responder siempre 200 con algo que mostrar. Si la IA no está (falta la clave, ya se gastó el tope del mes, no contesta en
 //            8 s, falla, declina o dice algo que no se le puede creer), `resultado.tipo` es «basico» y el cajón muestra la búsqueda
 //            sin IA: nunca se cae. Si la base no anota la pregunta, la respuesta llega igual (`preguntaId: null`, sin «¿Te sirvió?»).
-//   ASUME:   sesión válida. El menú (qué pantallas puede ofrecer) se arma AQUÍ con los módulos de la cuenta, no con lo que mande el
+//   ASUME:   sesión válida y una sede con el asistente encendido (si no, 403: el piloto es por sede). El menú (qué pantallas puede ofrecer) se arma AQUÍ con los módulos de la cuenta, no con lo que mande el
 //            navegador: nadie se entera por la IA de una pantalla que su rol no ve.
 //            Lo que vive en un módulo que su rol no tiene solo se nombra («sin_acceso»: a quién pedírselo), nunca se enseña.
 //   NO HACE: no lee datos de la tienda. Lo único que escribe es la fila de la pregunta.
@@ -76,6 +77,10 @@ export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
   const cuenta = persona.personaId ?? `terminal:${persona.ubicacionId}`;
   if (excedeTope(cuenta)) return Response.json({ error: "Son muchas preguntas seguidas: espera un minuto." }, { status: 429 });
+  // El piloto es por sede (actividad 8): una sede apagada no gasta el tope del mes, aunque alguien llame aquí sin el botón.
+  if (!(await getAsistenteEncendido(persona.vista === "global" ? null : persona.ubicacionId))) {
+    return Response.json({ error: "El asistente todavía no está encendido en esta sede." }, { status: 403 });
+  }
 
   // Las pantallas que esta cuenta ve: el mismo menú del lateral (`AppShell`), armado con sus módulos.
   const rutasDelMenu = menuPara({

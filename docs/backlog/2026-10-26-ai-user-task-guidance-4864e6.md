@@ -11,7 +11,14 @@
 - [ ] **Felipe:** ¿sumar otros campos rellenables (el texto de un motivo, combos de una opción)? Hoy solo el buscador.
 - [x] 7 · Reglas de tienda (`lib/asistente/reglas-de-tienda.ts`, 10 aprobadas por Felipe el 2026-10-27) y errores con la frase de la pantalla (`frasesDeErrores`). Una regla sin escribir: «Eso no lo tengo escrito todavía».
 - [ ] **Felipe (2026-10-27): «los líderes solo supervisan visualmente».** Hoy el sistema exige líder para aprobar una devolución (`aprobar_devolucion`), anular un comprobante y autorizar un descuento sobre el tope; y la guía de Caja dice «Lo hace un líder» aunque `cerrar_caja` ya no lo exige. Sacar esos candados toca dinero y permisos: va en su propia sesión, con su ADR y su migración. Mientras tanto, la regla «devolucion-aprueba» queda en borrador.
-- [ ] 8 · Interruptor por sede en Configuración (`retail.asistente_sedes`).
+- [x] 8 · Interruptor por sede en Configuración ▸ Tiendas y caja (`retail.asistente_sedes`, migración `20261027163000`). Lo cambia quien ve
+  Configuración (Felipe 2026-10-27), nace apagado en todas, el botón y `/api/asistente` solo responden en una sede encendida.
+  `pnpm pruebas:asistente-sedes` (12 casos). Aplicada solo en la base local, con **Tienda Lima encendida** ahí para seguir probando.
+- [ ] **Pegar `20261027163000_asistente_sedes.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres
+  funciones). Ojo: **mientras no esté, el botón no sale en ninguna sede** (sin la función, sale apagado a propósito). Va junto con la de
+  preguntas, y después hay que encender la sede del piloto en Configuración.
+- [ ] El escáner de huellas de las guías (`guias/escaner.mjs`, `CONTROLES`) no cuenta `<Interruptor>` (22 en el ERP): un interruptor nuevo
+  no le avisa a su guía. Sumarlo mueve la huella de cada pantalla que ya tiene uno; va aparte, revisando esas guías.
 - [ ] 9 · Pantalla «Lo que pregunta tu equipo» (módulo nuevo, solo líder).
 - [ ] 10 · El informe del lunes (vigía de GitHub Actions + Sonnet 5.5).
 - [ ] 11 · Evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro y 375 px, y el PR con `/abrir-pr`.
@@ -21,18 +28,15 @@
 
 ### Para continuar desde otra sesión (2026-10-27)
 
-**Dónde está todo.** Rama `claude/ai-user-task-guidance-4864e6`, worktree
-`/Users/felipealvarez/Proyectos/cayla-retail/.claude/worktrees/ai-user-task-guidance-4864e6`. Todo en commits locales (sin push, sin
+**Dónde está todo.** Desde la actividad 8 (2026-10-27): rama `claude/ai-guide-c654db`, worktree
+`/Users/felipealvarez/Proyectos/cayla-retail/.claude/worktrees/zen-bell-150592`, con main traído ese día; la rama de antes
+(`claude/ai-user-task-guidance-4864e6`) quedó quieta en la actividad 7 y no se usa más. Todo en commits locales (sin push, sin
 PR: la regla de Felipe es un PR al final de la obra, con `/abrir-pr`). La decisión es `docs/adr/0529-preguntale-a-cayla-asistente-con-ia.md`
 (léela entera: las 10 respuestas de Felipe, las tres tensiones y «Lo que decidí al construir»). Se construye con `/construir`, una
 actividad y un commit a la vez.
 
 **Lo que sigue, en orden** (la lista completa está arriba):
-- **8 · Interruptor por sede.** Tabla nueva `retail.asistente_sedes` (ubicación, encendido, desde), escrita solo por una función con
-  `fn_es_lider()`… pero ojo: Felipe dijo el 2026-10-27 que «los líderes solo supervisan visualmente»; antes de poner ese candado,
-  pregúntale quién enciende el asistente de una sede (y mira qué decidió la sesión «Sacar los candados de líder que ya no aplican»).
-  El interruptor va en Configuración; el botón «Preguntar» (`components/asistente/Asistente.tsx`, montado en `components/AppShell.tsx`)
-  solo sale en las sedes encendidas. No es un módulo (ADR-0306). Migración nueva con `pnpm reservar migracion`.
+- ~~8 · Interruptor por sede~~ hecha el 2026-10-27 (ver arriba).
 - **9 · Pantalla «Lo que pregunta tu equipo»** (módulo nuevo, nace solo para el líder: migración con `insert into retail.modulos`,
   `CLAVES_MODULO`/`MODULOS` en `lib/modulos.ts`, nodo en `lib/menu.ts`, `exigirModulo`, su guía y su guía de foco).
 - **10 · Informe del lunes** (vigía de GitHub Actions + Claude Sonnet 5.5, `claude-sonnet-5-5`; las cifras salen de SQL y cada mejora

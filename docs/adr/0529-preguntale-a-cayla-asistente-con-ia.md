@@ -112,8 +112,10 @@ lateral. Meterlo como módulo para el piloto rompería esa regla por un motivo p
 
 **Decisión:**
 - **El botón lo ve toda cuenta de una sede con el asistente encendido.** El piloto se prende y apaga **por sede**, con un interruptor en
-  Configuración que solo cambia un líder (`fn_es_lider()`), guardado en una tabla nueva y chica (`retail.asistente_sedes`), no en una columna de
-  `ubicaciones` (es una tabla que la tienda usa: tocarla es la receta del deadlock de ADR-0195).
+  Configuración ~~que solo cambia un líder (`fn_es_lider()`)~~ **que cambia quien ve Configuración** (`fn_puede_configurar()`: el líder o
+  el módulo «configuracion» en su rol; Felipe 2026-10-27, al construirlo: «los líderes solo supervisan visualmente», así que no se suma un
+  candado de líder nuevo y quién lo cambia se decide en Roles y accesos), guardado en una tabla nueva y chica (`retail.asistente_sedes`), no
+  en una columna de `ubicaciones` (es una tabla que la tienda usa: tocarla es la receta del deadlock de ADR-0195).
 - **La pantalla del informe sí es un módulo** («Lo que pregunta tu equipo»), una entrada del lateral que **nace solo para el líder** (regla
   ADR-0161): migración con su `insert into retail.modulos`, `CLAVES_MODULO`, su nodo en `lib/menu.ts` y `exigirModulo`. Propongo el grupo
   Gestión; se confirma al construirla.
@@ -199,6 +201,13 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   tope de descuento y el cierre de caja («los líderes solo supervisan visualmente»), y pidió que una devolución no necesite aprobación.
   Esa queda en borrador: hoy `aprobar_devolucion` exige líder y la regla contradiría la pantalla hasta que el sistema cambie.
 - **Un tramo no cuenta como demo vista entera**: la guía queda como ofrecida y su oferta de la primera vez no vuelve a salir.
+- **El interruptor por sede** (actividad 8, migración `20261027163000_asistente_sedes.sql`): una sede sin fila está **apagada**, así que el
+  asistente nace apagado en todas y alguien enciende la del piloto en Configuración ▸ Tiendas y caja (una tarjeta más, entre el WhatsApp
+  y la carga inicial, con el mismo responsable y el mismo «se guarda solo»; al lado, lo gastado en el mes contra el tope). Entran las
+  tres clases de sede, no solo tiendas: el almacén y el taller también preguntan. **En CAYLA Global el botón sale si alguna sede lo tiene**
+  (quien supervisa el piloto lo prueba desde ahí). Si la base no responde o todavía no tiene la función, el botón sale **apagado**: el
+  piloto es de una sede y nadie gasta sin querer. `/api/asistente` también lo pregunta y contesta 403 a una sede apagada, aunque alguien la
+  llame sin el botón. Apagar no borra la fila (queda desde cuándo corrió) y cada cambio va a `configuracion_historial`.
 
 ## Producción
 

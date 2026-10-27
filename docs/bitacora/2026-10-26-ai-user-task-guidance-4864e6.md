@@ -18,3 +18,10 @@ aprobadas por Felipe y errores con la frase de la pantalla); todo en commits loc
 Por qué así: Felipe se quedó sin tokens en esta cuenta y sigue en otra sesión en esta misma máquina; el estado completo y los pasos
 para retomar están en `docs/backlog/2026-10-26-ai-user-task-guidance-4864e6.md`, sección «Para continuar desde otra sesión».
 Felipe se lleva: abrir la nueva sesión en este mismo worktree y decirle «sigue con la actividad 8 de ADR-0529».
+
+## 2026-10-27 («Pregúntale a CAYLA» se enciende sede por sede: actividad 8 de ADR-0529)
+Qué hice: una tarjeta en Configuración ▸ Tiendas y caja con un interruptor por sede (`retail.asistente_sedes`, migración `20261027163000`);
+el botón «Preguntar» y `/api/asistente` solo responden en una sede encendida, y al lado se ve lo gastado del mes contra el tope de US$30.
+Por qué así: lo cambia quien ve Configuración y no solo un líder (Felipe hoy: «los líderes solo supervisan visualmente»); nace apagado en
+todas porque el piloto es de una sede, y sin la función en la base el botón tampoco sale. Felipe se lleva: pegar las dos migraciones del
+asistente cuando lo decida y encender la sede del piloto; la obra sigue en el worktree `zen-bell-150592` (rama `claude/ai-guide-c654db`).

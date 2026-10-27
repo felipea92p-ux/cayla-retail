@@ -30,7 +30,7 @@ export const GUIAS_AJENAS_PARA_LA_IA = 3;
  * Lo que se puede gastar en IA en un mes de Lima (ADR-0529, decisión 9): al llegar, el asistente sigue sin IA hasta el día 1. Lo suma
  * la base (`fn_asistente_gasto_del_mes`) con el costo que anota cada pregunta. Cambiarlo es decisión de Felipe.
  */
-const TOPE_MENSUAL_USD = 30;
+export const TOPE_MENSUAL_USD = 30;
 
 /** ¿Ya se gastó el mes? Un gasto que no se pudo leer (`null`: la base no respondió) no corta la IA: el tope de Anthropic queda de respaldo. */
 export function seLlegoAlTope(gastado: number | null): boolean {

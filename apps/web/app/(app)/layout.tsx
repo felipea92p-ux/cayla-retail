@@ -15,6 +15,7 @@ import { VersionNueva } from "@/components/VersionNueva";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
+import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -31,11 +32,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // «Pedidos web N» (ADR-0408, act. 8): los que esperan confirmación en la tienda activa. Solo a quien ve el módulo y parado en una
   // tienda (la función igual responde nada sin el módulo); total como el de Traslados.
   const vePedidosWeb = persona.ubicacionTipo === "tienda" && persona.modulos.some((m) => m.clave === "pedidos_web");
-  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar] = await Promise.all([
+  // «Pregúntale a CAYLA» (ADR-0529, act. 8): el botón sale solo en las sedes con el asistente encendido (en CAYLA Global, si alguna lo
+  // tiene). Total como el contador: sin respuesta, sale apagado.
+  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar, asistenteEncendido] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
     getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")),
     recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
     vePedidosWeb ? getPedidosWebPorConfirmar(persona.ubicacionId) : Promise.resolve(null),
+    getAsistenteEncendido(persona.vista === "global" ? null : persona.ubicacionId),
   ]);
 
   const ubicaciones = persona.puedeCambiarUbicacion ? todasLasUbicaciones : todasLasUbicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -63,6 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}
       pedidosWebPorConfirmar={pedidosWebPorConfirmar}
+      asistenteEncendido={asistenteEncendido}
       lateralPlegado={lateralPlegado}
     >
       {/* Recién iniciada la sesión, la app espera a que el velo del colibrí tape la pantalla para mostrarse (Felipe 2026-10-13, «se ve el inicio»).

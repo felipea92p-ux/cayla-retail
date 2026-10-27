@@ -130,6 +130,8 @@ type Props = {
   trasladosPorAtender?: number | null;
   /** Pedidos web que esperan confirmación en la tienda activa (`getPedidosWebPorConfirmar`, ADR-0408 act. 8). `null` = sin número. */
   pedidosWebPorConfirmar?: number | null;
+  /** «Pregúntale a CAYLA» encendido en la sede que mira (ADR-0529, act. 8; `getAsistenteEncendido`). Ausente = apagado. */
+  asistenteEncendido?: boolean;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
   children: React.ReactNode;
@@ -684,7 +686,7 @@ function conTopeDeAncho(pathname: string): boolean {
   return pathname === "/" || CON_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, asistenteEncendido = false, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
@@ -1100,9 +1102,10 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
               que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            {/* «Pregúntale a CAYLA» (ADR-0529): lo ve toda cuenta, también una terminal. No es un módulo (ADR-0306): es una ayuda,
-                como «Demo», y solo ofrece las pantallas del menú de esta cuenta. */}
-            <BotonAsistente rutasDelMenu={pantallasBuscables.map((h) => h.href)} />
+            {/* «Pregúntale a CAYLA» (ADR-0529): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Tiendas y caja,
+                act. 8), también una terminal. No es un módulo (ADR-0306): es una ayuda, como «Demo», y solo ofrece las pantallas del
+                menú de esta cuenta. Apagado, tampoco responde a su atajo. */}
+            {asistenteEncendido ? <BotonAsistente rutasDelMenu={pantallasBuscables.map((h) => h.href)} /> : null}
             {/* Actividad (ADR-0207): el historial del módulo donde uno está, pegado a la sede que mira. No es fila del
                 lateral: no es una pantalla más. Solo para el líder y quien tenga el módulo; nunca en una terminal. */}
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (

@@ -2172,7 +2172,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   declina o contesta algo fuera de la lista, `resultado.tipo = "basico"` y el cajón (`components/asistente/Asistente.tsx`, botón de la cabecera)
   muestra la búsqueda sin IA. Tope de 20 preguntas por minuto y cuenta, por instancia. La respuesta es un recorrido de 1 a 3 tramos
   (`lib/asistente/recorrido.ts`): «Muéstrame» lleva a `?demo=1&paso=…&vez=…` y `MotorGuias` corre la guía corta que arranca en ese paso;
-  los tramos que faltan viven en `sessionStorage` (`components/guias/recorrido.ts`) mientras se pasa de pantalla.
+  los tramos que faltan viven en `sessionStorage` (`components/guias/recorrido.ts`) mientras se pasa de pantalla. Solo en una sede con el
+  asistente encendido (`retail.fn_asistente_encendido`, `lib/asistente/sedes-servidor.ts`; si no, 403): el mismo dato decide si `AppShell`
+  dibuja el botón (lo lee `app/(app)/layout.tsx`). El interruptor vive en Configuración ▸ Tiendas y caja
+  (`components/asistente/ConfiguracionAsistente.tsx`, `fn_asistente_sedes` y `guardar_asistente_sede`, con `fn_puede_configurar()`).
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.
