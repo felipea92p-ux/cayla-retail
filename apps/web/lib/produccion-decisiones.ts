@@ -350,6 +350,8 @@ export type ContextoDecisiones = {
   tallerId?: string | null;
   /** Lo que viene en camino de cada tela y avío (por insumo): lo que FALTA RECIBIR de las órdenes de insumos, sin los pedidos atrasados, que se cuenta como tela que llega (regla de Felipe del 2026-10-16). Sin ello nada viene. */
   enCamino?: Map<string, CaminoDeInsumo>;
+  /** Los modelos por producir tienen su propia lista («¿Qué fabrico primero?», `lib/produccion-primero.ts`): con `true` no se arman sus tarjetas, para no decir lo mismo dos veces. De fábrica `false`. */
+  producirAparte?: boolean;
 };
 
 /** Lo que viene a un insumo: `cuenta` (lo que falta recibir y no está atrasado), `atrasado` (lo que falta recibir de pedidos cuya fecha ya pasó: no cuenta) y los `pedidos`, los que cuentan primero. */
@@ -568,7 +570,7 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   }
 
   // 4 · qué producir: hasta 3 modelos, una tarjeta cada uno; con más, una sola que los junta (los 9 «producir» ya no se comen a lo demás)
-  const porProducir = c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
+  const porProducir = c.producirAparte ? [] : c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
   if (porProducir.length > MAX_PRODUCIR_INDIVIDUALES) out.push(tarjetaProducirAgrupada(porProducir));
   else for (const m of porProducir) out.push(tarjetaProducir(m));
   // Lo que falta ya está en el Taller: se traslada. Solo cuando de verdad urge (la misma barra que «Producir ya»); más allá de 7 días lo dice la fila de la tabla.

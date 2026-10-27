@@ -18,10 +18,12 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { FotoPrenda } from "@/components/ui/FotoPrenda";
 import { lineaDeOrigen, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
+import { FotoModelo } from "@/components/produccion-resumen/FotoModelo";
+import { ListaQueFabricarPrimero } from "@/components/produccion-resumen/ListaQueFabricarPrimero";
+import { queFabricarPrimero } from "@/lib/produccion-primero";
 import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
@@ -32,9 +34,6 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 // vencido; las tarjetas usan ámbar y tinta. Es un componente de servidor: no tiene estado, solo enlaces a la pantalla donde se resuelve cada cosa.
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-
-/** ¿Alguna tarjeta anterior ya lleva su «¿Por qué?»? Solo la primera lleva el ancla de la guía. */
-const hayPorQueAntes = (ds: readonly Decision[], i: number) => ds.slice(0, i).some((d) => d.porque);
 
 /** Lo que viene a una tela, en una línea: «155 m en camino · 40 m facturados por recibir · 35 m atrasados (no los cuento)», o «nada por recibir». */
 function loQueViene(t: FilaTela): string {
@@ -58,16 +57,6 @@ const ICONO: Record<Decision["tipo"], string> = {
   sobrestock: "M10 5v14M14 5v14",
   minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
 };
-
-/** La foto de un modelo (o, sin foto, el ícono de su categoría sobre su color). Decorativa: el nombre ya está escrito al lado, así que no se lee dos veces. */
-function FotoModelo({ productoId, presentaciones, ancho, className }: { productoId: string; presentaciones: Record<string, PresentacionDeModelo>; ancho: number; className: string }) {
-  const p = presentaciones[productoId];
-  return (
-    <span aria-hidden className="block shrink-0">
-      <FotoPrenda fotoUrl={p?.fotoUrl} referencia="" ancho={ancho} colorHex={p?.colorHex} categoria={p?.categoria} categoriaPrefijo={p?.categoriaPrefijo} categoriaFamilia={p?.categoriaFamilia} className={className} />
-    </span>
-  );
-}
 
 export function ResumenProduccionPanel({
   sede,
@@ -104,6 +93,8 @@ export function ResumenProduccionPanel({
   sede: string;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
+  // Los de «Producir ya» ya están arriba, en «¿Qué fabrico primero?»: esta tabla es el resto del catálogo (traslados, vigilar, alcanza, sobrestock, sin ritmo).
+  const resto = modelos.filter((m) => m.estado !== "producir_ya");
 
   return (
     <ProveedorFichasDeColor fichas={fichasDeColor}>
@@ -177,6 +168,8 @@ export function ResumenProduccionPanel({
         </TarjetaCifra>
       </div>
 
+      <ListaQueFabricarPrimero datos={queFabricarPrimero(modelos)} falloRed={falloRed} presentaciones={presentaciones} hojas={hojas} />
+
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
         {/* Cuántos asuntos hay de verdad, en el globito (ADR-0358, ronda 9); a la derecha, solo lo que el número no dice: que se ven
             menos de los que hay, o que no hay nada. */}
@@ -210,7 +203,7 @@ export function ResumenProduccionPanel({
                 <div className="min-w-0">
                   <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
                   <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
-                  <PorQue texto={d.porque} guia={d.porque && !hayPorQueAntes(decisiones, i) ? "prod-resumen.porque" : undefined} />
+                  <PorQue texto={d.porque} />
                 </div>
                 <Link
                   href={d.accion.href}
@@ -266,12 +259,11 @@ export function ResumenProduccionPanel({
         )}
       </section>
 
-      <section data-guia="prod-resumen.que-producir" id="produce" aria-label="Qué producir" className="space-y-2.5">
-        <TituloSeccion dato="días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días">¿Qué producir?</TituloSeccion>
-        {falloRed && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{falloRed}</p>}
-        {modelos.length === 0 ? (
-          // Si la red no se pudo leer, el aviso de arriba ya lo dice: «no hay modelos» sería falso (los hay; lo que falló fue el cálculo).
-          falloRed ? null : <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora. No se ofrecen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias fuera de los motores (como Empaque).</p>
+      {(resto.length > 0 || (modelos.length === 0 && !falloRed)) && (
+      <section id="produce" aria-label="Los demás modelos" className="space-y-2.5">
+        <TituloSeccion dato="los que hoy no piden fabricar · días que dura el stock de las tiendas · marcas en 7 y 30 días">Los demás modelos</TituloSeccion>
+        {resto.length === 0 ? (
+          <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora. No se ofrecen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias fuera de los motores (como Empaque).</p>
         ) : (
           <div className="card-cayla overflow-hidden">
             <div className="hidden grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] gap-x-3 border-b border-tinta/10 px-4 py-2.5 lg:grid xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]">
@@ -283,7 +275,7 @@ export function ResumenProduccionPanel({
               <span className="label-cayla text-[11px] text-tinta/65">Sugerencia</span>
             </div>
             <ul>
-              {modelos.map((m, i) => {
+              {resto.map((m) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
                 const agotadas = textoAgotadas(agotadasQueSeVendian(m));
                 const origen = lineaDeOrigen(hojas[m.productoId]?.ficha ?? null);
@@ -292,7 +284,6 @@ export function ResumenProduccionPanel({
                     <FilaQueAbreLaHoja
                       hoja={hojas[m.productoId]}
                       presentacion={presentaciones[m.productoId]}
-                      guia={i === 0 ? "prod-resumen.modelo" : undefined}
                       className="grid w-full cursor-pointer text-left grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
@@ -359,6 +350,7 @@ export function ResumenProduccionPanel({
           </div>
         )}
       </section>
+      )}
 
       <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
         <TituloSeccion dato="lo que hay y lo que viene en camino, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
