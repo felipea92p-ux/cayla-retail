@@ -194,6 +194,10 @@ const MIRAN_LA_CUENTA = [
   // fn_persona_de_la_cuenta (la tarjeta «Tu fondo», las fotos de un gasto del viaje, rendir, quién no aprueba, retirar la propia).
   "fn_fondo_exigir_otra_persona", "fn_fondos", "fn_fondos_movimientos", "fn_fondos_opciones", "fn_fondo_para_pagar", "fn_mi_fondo",
   "fn_persona_de_la_cuenta",
+  // ADR-0533 (20261027140000): la persona de la cuenta que mira, o null (una terminal, sin sesión), sin rechazar. Es identidad, no firma ni
+  // permiso: la leen `requirePersonaActualV2` (para proponerla en el combo «Responsable») y fn_mi_pantalla_principal. Antes eso era
+  // fn_actor_persona_id(false), que a una terminal la rechazaba y llenaba el registro de Postgres.
+  "fn_mi_persona_id",
 ].sort();
 // Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
 // cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo
@@ -214,7 +218,8 @@ caso(
   `select concat_ws(',',
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      -- fn_mi_pantalla_principal (20260925220000): «mi» preferencia de aterrizaje, mismo patrón que fn_mi_terminal/fn_es_admin —
-     -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
+     -- mira la cuenta, nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije). Desde 20261027140000
+     -- (ADR-0533) la cuenta se lee con fn_mi_persona_id() y ya no llama a fn_actor_persona_id(false); sigue en la lista de abajo por las bases sin esa migración.
      -- fn_mis_ventas_del_dia, fn_mi_meta y fn_mis_ventas_por_dia (ADR-0325, D-149): «lo mío» de la integrante. Preguntan por la CUENTA que
      -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
      -- fn_guia_quien (ADR-0389, 20261007180000): «ya te ofrecí esta guía» es de la cuenta que mira la pantalla (persona o
