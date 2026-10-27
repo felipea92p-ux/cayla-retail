@@ -314,6 +314,38 @@ vez al llegar, más una **etiqueta pegada a la pieza** con el número del paso e
 (`app/estilos/acompanante.css`). El velo no bloquea nada (todo se toca a través), se aparta si hay una lista abierta encima y sigue a la
 pieza cuadro a cuadro sin pasarse. La barra de abajo sigue siendo el GPS. Sin rebote; se apaga con `prefers-reduced-motion`.
 
+**La evaluación de tareas (tercera vuelta, Felipe 2026-10-27: «¿ya es robusto?»).** La de 50 preguntas mide si la IA elige la pantalla,
+no si la tarea llega. `lib/asistente/evaluacion/recorrer-tareas.mjs` (`pnpm --filter web asistente:tareas`, solo local) le pregunta 22
+pedidos de `tareas.json` y los recorre en el navegador como una persona (escribe, toca lo que dice la orden, elige de una lista) hasta el
+primer paso que guarda, sin tocarlo. La primera corrida dio **6 de 22 (27 %)**. Cada vuelta mostró una causa general, y se arregló en el
+sistema, no en la pregunta:
+- **Lo que abre cada paso.** Las guías ya lo dicen: el `preparar` de un paso (lo que la demo toca para que la pieza aparezca), también el
+  de los pasos sin pieza que van justo antes. Si la IA lo saltó, se agrega («Toca Registrar gasto», «Toca Nuevo cliente», «Cambiar» antes
+  del cambio). Un toque de `preparar` nunca guarda: la demo tiene prohibido guardar.
+- **Los «Continuar» de en medio.** Entre dos pasos de la misma guía, los que solo hacen avanzar (un pie de paso, «Continuar», abrir la fila
+  o la tarjeta de algo).
+- **Una tarea mínima** si la IA no armó ninguna y la pregunta pide hacer algo (`pideHacer`): desde su paso (o el que encontró la búsqueda
+  local) hasta el que guarda. Y en las instrucciones, que una pregunta de hacer nunca lleva «pasos» vacío, con tres ejemplos en palabras.
+- **El cierre general, acotado**: solo un guardar de la misma pieza o de la pantalla (antes agregaba el del costo, en el Historial).
+- **El tope de 12 pasos** no cuenta los del celular y, si sobran, recorta del medio: nunca el cierre (antes se perdían Boleta y confirmar).
+- **El buscador busca por el nombre**: sin el color ni la talla que la IA a veces copia (`sinColorNiTalla`); si igual no sale nada, prueba
+  más corto, sin la última palabra, y lo dice.
+- **El Acompañante**: un combo cuenta como hecho cuando cambia lo que muestra (se elige en una lista que flota afuera); tocar lo que tiene
+  la manito cuenta (una fila, una tarjeta); una pieza sin nada que tocar ni escribir se da por hecha («queda a tu nombre»); el nombre de la
+  pieza completa una orden sin título propio («Toca «Agregar color»»); y **nunca salta hasta un paso que guarda** porque apareció
+  encendido (al volver del cobro se encendía el «Confirmar cobro» del ticket y saltaba el pago y la boleta).
+- **Recalcular si la persona se desvía**: si la pieza estaba y se fue (cerró la hoja del cobro), vuelve al paso que la abre y lo dice
+  («Se cerró lo que estabas usando: vuelve a tocar aquí»); si nunca apareció y la del paso anterior sigue ahí, «No se abrió: vuelve a tocar
+  aquí». Probado: cerrar el cobro, recargar a mitad, irse a Caja y volver con «Llévame», salir con la ×.
+- **Anclas nuevas** (pasos opcionales que la demo salta): el flujo de devolución (prendas, motivo, revisar, quién, registrar) y el pie de
+  las hojas de Gasto e Ingreso de Caja, que ya guían campo por campo (la tarea termina en «Llena la hoja y registra el ingreso»).
+
+Las corridas, arreglo a arreglo, fueron 27 %, 27 %, 36 %, 55 % y 73 %; las tres últimas, **con el mismo código**, dieron 73 %, 64 % y
+**45 %**. Esa diferencia ya no es del sistema sino de la IA: para la misma pregunta arma pasos distintos de una vez a otra (agregar una talla,
+el conteo o cerrar la caja salen con pasos una vez y sin pasos la siguiente; el gasto mezcla la hoja rápida con el formulario largo). Lo que
+el sistema puede arreglar solo, lo arregla; lo que no, es la elección de la IA. El siguiente paso de fondo es decidir si las tareas más
+comunes se escriben como **recetas fijas** (la IA solo elige cuál y pone los datos) en vez de pedirle cada camino: ver el backlog.
+
 **Lo que no está.** Los cierres fijos existen solo para Vender; las demás tareas (un cambio, un traslado) siguen lo que propone la IA, revisado.
 
 ## Producción

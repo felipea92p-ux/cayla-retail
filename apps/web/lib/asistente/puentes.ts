@@ -24,6 +24,15 @@ export const PUENTES: Readonly<Record<string, Puente>> = {
       { pasoId: "vr-botones", orden: "Toca Editar" },
     ],
   },
+  "productos.id.historial": {
+    desde: "productos",
+    pasos: [
+      { pasoId: "buscador", orden: "Busca la prenda" },
+      { pasoId: "tarjeta", orden: "Toca la prenda" },
+      { pasoId: "vr-botones", orden: "Toca Historial" },
+    ],
+  },
+  "compras.factura.compraid": { desde: "compras", pasos: [{ pasoId: "lista", orden: "Toca la compra" }] },
   "inventario.traslados.id": { desde: "inventario.traslados", pasos: [{ pasoId: "pase", orden: "Toca el traslado" }] },
   "compras.proveedores.id": { desde: "compras.proveedores", pasos: [{ pasoId: "lista", orden: "Toca el proveedor" }] },
   "inventario.conteo.id": { desde: "inventario.conteo", pasos: [{ pasoId: "fila", orden: "Toca el conteo" }] },

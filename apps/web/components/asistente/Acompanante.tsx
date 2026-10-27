@@ -59,6 +59,25 @@ export function empezarTarea(pasos: readonly PasoTarea[]) {
  *  en una cuenta personal; la lupa del buscador solo existe en el celular). Si la que sigue inmediatamente ya está, casi sin esperar. */
 const AUSENTE_MS = 2000;
 const AUSENTE_SIGUE_MS = 350;
+/** Lo que se muestra una pieza sin nada que tocar antes de pasar al paso siguiente (lo alcanza a leer). */
+const NADA_QUE_TOCAR_MS = 1500;
+
+/** Un combo (o un desplegable) dentro de la pieza: su valor se elige en una lista que flota afuera. */
+const COMBO = '[aria-haspopup="listbox"], [role="combobox"]'; // unificar-fijo: reconoce los combos de la pantalla para seguirlos; no dibuja uno
+
+/** Lo que se espera a ver resultados después de que CAYLA escribió en el buscador, antes de probar más corto. */
+const SIN_RESULTADO_MS = 2200;
+
+/** ¿Salió algo con lo escrito? La pieza del paso siguiente a la vista; si es una lista, con al menos una opción. */
+function hayResultado(ancla: string | undefined): boolean {
+  const el = ancla ? buscarAncla(ancla) : null;
+  return !!el && (el.getAttribute("role") !== "listbox" || !!el.querySelector('[role="option"]'));
+}
+
+/** Lo que se espera a una pieza que estaba y desapareció (se cerró la hoja del paso) antes de volver al paso que la abre. */
+const VOLVER_MS = 2500;
+/** Lo que se espera a una pieza que nunca apareció, con la del paso anterior todavía a la vista, antes de volver a ese paso. */
+const NO_SE_ABRIO_MS = 6000;
 
 /** Lo que dura escrito el campo de un paso de escribir antes de pasar al siguiente (lo lee la persona). */
 const ESCRITO_MS = 1600;
@@ -76,7 +95,12 @@ function disponible(el: HTMLElement | null): boolean {
 }
 
 /** Un paso de escribir: se pasa cuando el campo tiene lo escrito, no al tocarlo (tocarlo es solo poner el cursor). */
-const esCampo = (el: HTMLElement) => el.matches("input, textarea") || !!el.querySelector('input:not([type="checkbox"]):not([type="radio"]), textarea');
+const CAMPO = 'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), textarea';
+/** Los campos de la pieza que se ven (una pieza puede traer uno escondido, como el buscador de un combo cerrado). */
+const camposDe = (el: HTMLElement) => (el.matches(CAMPO) ? [el as HTMLInputElement] : [...el.querySelectorAll<HTMLInputElement>(CAMPO)]).filter((c) => c.getClientRects().length > 0);
+const esCampo = (el: HTMLElement) => camposDe(el).length > 0;
+/** Lo escrito en la pieza: el primer campo a la vista que tiene algo. */
+const valorDe = (el: HTMLElement) => camposDe(el).map((c) => c.value.trim()).find(Boolean) ?? "";
 
 /** Lo que se toca de verdad: un toque en el aire de la pieza (el margen entre dos botones) no es haber hecho el paso. */
 const CONTROL = 'button, a, input, select, textarea, label, [role="option"], [role="radio"], [role="button"], [role="checkbox"], [role="switch"], [role="tab"]';
@@ -110,9 +134,13 @@ export function Acompanante() {
   const [tarea, setTarea] = useState<Guardada | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [porQue, setPorQue] = useState(false);
+  /** Una línea bajo la orden cuando el camino se recalculó («Se cerró lo que estabas usando…»). */
+  const [aviso, setAviso] = useState<string | null>(null);
+  /** El nombre del botón, para un paso que abre algo y no tiene título propio («Toca «Agregar color»»). */
+  const [nombrePieza, setNombrePieza] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
   /** Cuántas veces y cuándo se escribió el dato de cada paso: una pantalla que todavía se arma puede borrarlo, y se reintenta. */
-  const rellenados = useRef(new Map<number, { veces: number; en: number }>());
+  const rellenados = useRef(new Map<number, { veces: number; en: number; texto: string; recortes: number }>());
   const refCapa = useRef<HTMLDivElement>(null);
   const refCamino = useRef<SVGPathElement>(null);
   const refRecorte = useRef<HTMLDivElement>(null);
@@ -126,7 +154,7 @@ export function Acompanante() {
     return () => window.removeEventListener(EVENTO, cargar);
   }, []);
 
-  const ir = useCallback((i: number) => {
+  const ir = useCallback((i: number, porQueVolvio: string | null = null) => {
     setTarea((t) => {
       if (!t) return t;
       const nueva = { ...t, i };
@@ -134,6 +162,8 @@ export function Acompanante() {
       return nueva;
     });
     setPorQue(false);
+    setAviso(porQueVolvio);
+    setNombrePieza(null);
     tocado.current = null;
   }, []);
 
@@ -162,6 +192,12 @@ export function Acompanante() {
     let movido = false;
     let conValorDesde: number | null = null;
     let ausenteDesde: number | null = null;
+    /** La pieza de este paso ya se vio: si desaparece, la persona cerró lo que usaba (o se fue), no es que todavía no cargó. */
+    let visto = false;
+    const empezo = Date.now();
+    let comboAntes: string | null = null;
+    let vistoDesde: number | null = null;
+    let comboCambio: number | null = null;
     const despues = tarea.pasos.slice(tarea.i + 1).map((p) => p.ancla);
     // Qué había a la vista cuando apareció la pieza de ESTE paso (no cuando empezó: tras tocar «Editar» la pantalla nueva todavía carga,
     // y lo que aparece al cargar no es que la persona avanzó).
@@ -171,7 +207,9 @@ export function Acompanante() {
       const el = buscarAncla(paso.ancla);
       if (el && !alEmpezar) alEmpezar = despues.map((a) => disponible(buscarAncla(a)));
       const antes = alEmpezar;
-      const k = antes ? despues.findIndex((a, n) => !antes[n] && disponible(buscarAncla(a))) : -1;
+      // Nunca se salta HASTA un paso que guarda (salvo que sea el siguiente): al volver del cobro al ticket se enciende el «Confirmar
+      // cobro» del ticket, y eso no es que la persona ya eligió el pago y la boleta. Guardar se alcanza recorriendo lo de antes.
+      const k = antes ? despues.findIndex((a, n) => !antes[n] && disponible(buscarAncla(a)) && (n === 0 || !tarea.pasos[tarea.i + 1 + n]?.guarda)) : -1;
       if (k >= 0) {
         ir(tarea.i + 1 + k);
         return;
@@ -182,27 +220,105 @@ export function Acompanante() {
         ausenteDesde = ausenteDesde ?? Date.now();
         const lista = despues.findIndex((a) => disponible(buscarAncla(a)));
         const espera = lista === 0 ? AUSENTE_SIGUE_MS : AUSENTE_MS;
-        if (lista >= 0 && Date.now() - ausenteDesde > espera && mismaPantalla(paso.href, window.location.pathname)) ir(tarea.i + 1 + lista);
+        const aqui = mismaPantalla(paso.href, window.location.pathname);
+        if (lista >= 0 && Date.now() - ausenteDesde > espera && aqui) {
+          ir(tarea.i + 1 + lista);
+          return;
+        }
+        // Recalcular: la pieza estaba y se fue (cerró la hoja del cobro, por ejemplo). Se vuelve al paso más cercano hacia atrás cuya pieza
+        // sigue a la vista y se puede tocar (el que la abre), y se dice por qué. Un campo no cuenta: volver a escribir no reabre nada.
+        if (visto && aqui && Date.now() - ausenteDesde > VOLVER_MS) {
+          for (let k = tarea.i - 1; k >= Math.max(0, tarea.i - 4); k--) {
+            const atras = buscarAncla(tarea.pasos[k]!.ancla);
+            if (atras && disponible(atras) && !esCampo(atras)) {
+              ir(k, "Se cerró lo que estabas usando: vuelve a tocar aquí.");
+              return;
+            }
+          }
+        }
+        // La pieza nunca apareció y la del paso anterior sigue ahí: ese toque no abrió lo que tocaba (un color de la tarjeta en vez de la
+        // tarjeta). Se vuelve a ese paso para tocarlo otra vez.
+        const anterior = tarea.pasos[tarea.i - 1];
+        const suPieza = anterior ? buscarAncla(anterior.ancla) : null;
+        if (!visto && aqui && anterior && !anterior.guarda && suPieza && disponible(suPieza) && !esCampo(suPieza) && Date.now() - empezo > NO_SE_ABRIO_MS) {
+          ir(tarea.i - 1, "No se abrió: vuelve a tocar aquí.");
+          return;
+        }
         return;
       }
       ausenteDesde = null;
+      vistoDesde = vistoDesde ?? Date.now();
+      visto = true;
+      // El paso siguiente vive DENTRO de esta pieza (la compra ya muestra su «Devolver»; el pie del ticket, su «Cobrar»): este paso era
+      // ubicarla, y se pasa directo al que se toca.
+      const siguiente = tarea.pasos[tarea.i + 1];
+      const suPieza = siguiente ? buscarAncla(siguiente.ancla) : null;
+      if (suPieza && suPieza !== el && el.contains(suPieza) && disponible(suPieza) && !paso.guarda && Date.now() - vistoDesde > TRAS_TOQUE_MS * 2) {
+        ir(tarea.i + 1);
+        return;
+      }
+      // Una pieza sin nada que tocar ni escribir (para un líder, «quién atiende» ya dice «queda a tu nombre»): no hay nada que hacer ahí.
+      // Si no es la que guarda, se da por hecha en un momento.
+      const sinControles = !el.matches(CONTROL) && !el.querySelector(CONTROL) && getComputedStyle(el).cursor !== "pointer";
+      if (sinControles && !paso.guarda && tarea.i < tarea.pasos.length - 1 && Date.now() - vistoDesde > NADA_QUE_TOCAR_MS) {
+        ir(tarea.i + 1);
+        return;
+      }
+      if (paso.ordenDeLaPieza) {
+        const nombre = (el.getAttribute("aria-label") || el.innerText).split("\n")[0]!.trim().slice(0, 32);
+        if (nombre) setNombrePieza((n) => (n === nombre ? n : nombre));
+      }
+      // Un combo: elegir pasa en una lista que flota FUERA de la pieza (ese toque no cuenta). El paso está hecho cuando lo que muestra
+      // el combo cambió y la lista ya se cerró.
+      const combo = el.matches(COMBO) ? el : el.querySelector<HTMLElement>(COMBO);
+      if (combo && !paso.rellenar) {
+        const muestra = (combo.textContent ?? "").replace(/\s+/g, " ").trim();
+        comboAntes = comboAntes ?? muestra;
+        const abierta = !!document.querySelector(LISTAS_ABIERTAS);
+        if (muestra !== comboAntes && !abierta) {
+          comboCambio = comboCambio ?? Date.now();
+          if (Date.now() - comboCambio > TRAS_TOQUE_MS) {
+            ir(tarea.i + 1);
+            return;
+          }
+        } else comboCambio = null;
+      }
       if (!movido) {
         movido = true;
         el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
       }
       // El dato que la persona dio, en el buscador: si al rato el campo sigue vacío (la pantalla terminó de armarse y lo borró), otra vez,
       // tres como mucho. Si la persona lo borra a propósito después, no se insiste más allá de eso.
-      const hecho = rellenados.current.get(tarea.i);
-      const campoVacio = !(el.matches("input, textarea") ? (el as HTMLInputElement) : el.querySelector<HTMLInputElement>("input, textarea"))?.value;
-      if (paso.rellenar && campoVacio && (!hecho || (hecho.veces < 3 && Date.now() - hecho.en > 1500))) {
-        rellenados.current.set(tarea.i, { veces: (hecho?.veces ?? 0) + 1, en: Date.now() });
-        void ejecutar({ tipo: "rellenar", ancla: paso.ancla, texto: paso.rellenar }, undefined, false);
+      const previo = rellenados.current.get(tarea.i);
+      const campoVacio = !valorDe(el);
+      if (paso.rellenar && campoVacio && (!previo || (previo.veces < 3 && Date.now() - previo.en > 1500))) {
+        const texto = previo?.texto ?? paso.rellenar;
+        rellenados.current.set(tarea.i, { veces: (previo?.veces ?? 0) + 1, en: Date.now(), texto, recortes: previo?.recortes ?? 0 });
+        void ejecutar({ tipo: "rellenar", ancla: paso.ancla, texto }, undefined, false);
       }
       // Un paso de escribir termina cuando el campo tiene lo escrito un momento (lo escribió CAYLA o la persona).
       if (esCampo(el) && tarea.i < tarea.pasos.length - 1) {
-        const valor = (el.matches("input, textarea") ? (el as HTMLInputElement) : el.querySelector<HTMLInputElement>("input, textarea"))?.value.trim() ?? "";
+        const valor = valorDe(el);
         conValorDesde = valor ? (conValorDesde ?? Date.now()) : null;
-        if (conValorDesde !== null && Date.now() - conValorDesde > ESCRITO_MS) {
+        const escrito = conValorDesde === null ? 0 : Date.now() - conValorDesde;
+        // Si lo escribió CAYLA y no sale nada (la prenda se llama «Catalina Siete» y la persona dijo «catalina 7»), prueba más corto,
+        // sin la última palabra, dos veces como mucho, y lo dice. Sin resultados después de eso, sigue igual que siempre.
+        const hecho = rellenados.current.get(tarea.i);
+        if (paso.rellenar && hecho && valor === hecho.texto && !hayResultado(tarea.pasos[tarea.i + 1]?.ancla)) {
+          const corto = valor.split(/\s+/).slice(0, -1).join(" ");
+          if (escrito > SIN_RESULTADO_MS && hecho.recortes < 2 && corto.length >= 3) {
+            rellenados.current.set(tarea.i, { ...hecho, texto: corto, recortes: hecho.recortes + 1, en: Date.now() });
+            void ejecutar({ tipo: "rellenar", ancla: paso.ancla, texto: corto }, undefined, false);
+            setAviso(`No encontré «${valor}»: busco «${corto}».`);
+            conValorDesde = null;
+            return;
+          }
+          if (escrito < SIN_RESULTADO_MS * 2) {
+            setRect(el.getBoundingClientRect());
+            return;
+          }
+        }
+        if (escrito > ESCRITO_MS) {
           ir(tarea.i + 1);
           return;
         }
@@ -275,7 +391,8 @@ export function Acompanante() {
     const alTocar = (e: Event) => {
       const el = buscarAncla(paso.ancla);
       const objetivo = e.target instanceof Element ? e.target : null;
-      const control = objetivo?.closest(CONTROL) ?? null;
+      // Un control, o lo que se toca aunque no sea un botón (una fila o una tarjeta que se abre: muestra la manito).
+      const control = objetivo?.closest(CONTROL) ?? (objetivo && el?.contains(objetivo) && getComputedStyle(objetivo).cursor === "pointer" ? objetivo : null);
       if (!el || !control || !(el.contains(control) || control.contains(el)) || esCampo(el) || tocado.current === tarea.i) return;
       if (NO_AVANZA.test((control.getAttribute("aria-label") ?? control.textContent ?? "").trim())) return;
       tocado.current = tarea.i;
@@ -289,6 +406,7 @@ export function Acompanante() {
   if (!tarea && !listo) return null;
   const total = tarea?.pasos.length ?? 0;
   const i = tarea?.i ?? 0;
+  const orden = paso?.ordenDeLaPieza && nombrePieza ? `Toca «${nombrePieza}»` : (paso?.orden ?? "");
   const enOtraPantalla = !!paso && !rect && !mismaPantalla(paso.href, pathname);
   // Una pantalla que se abre desde otra (Editar producto) no tiene a dónde llevar: se llega con el paso anterior.
   const sinLlevar = !!paso && seAbreDesdeOtra(paso.href);
@@ -306,7 +424,7 @@ export function Acompanante() {
           <div key={`r${i}`} ref={refRecorte} className="acompana-recorte" />
           <div key={`e${i}`} ref={refEtiqueta} className="acompana-etiqueta" data-lado="arriba">
             <span className="acompana-numero">{i + 1}</span>
-            <span className="acompana-etiqueta-texto">{paso.orden}</span>
+            <span className="acompana-etiqueta-texto">{orden}</span>
           </div>
         </div>
       ) : null}
@@ -330,10 +448,11 @@ export function Acompanante() {
                 </span>
                 {i + 1} de {total}
               </p>
-              <p className="mt-1 text-[19px] font-medium leading-snug text-tinta">{paso.orden}</p>
+              <p className="mt-1 text-[19px] font-medium leading-snug text-tinta">{orden}</p>
               {enOtraPantalla ? (
                 <p className="mt-1 text-sm text-taupe">{sinLlevar ? `Se abre en ${nombreDePantalla(paso.href)}, con el paso anterior.` : `Está en ${nombreDePantalla(paso.href)}.`}</p>
               ) : null}
+              {aviso ? <p className="mt-1 text-sm text-taupe">{aviso}</p> : null}
               {porQue ? <p className="mt-1.5 max-w-prose text-sm text-tinta/75">{paso.porQue}</p> : null}
             </>
           ) : null}

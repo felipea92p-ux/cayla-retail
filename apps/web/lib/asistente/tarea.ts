@@ -9,8 +9,8 @@ import type { Guia, PasoGuia } from "../guias/tipos";
 import { PASO_QUE_GUARDA, PUENTES } from "./puentes";
 import { pasoSePuedeRellenar, rellenoValido } from "./relleno";
 
-/** Más pasos ya no es acompañar una tarea: vender de punta a punta, con el cobro y la boleta, cabe en 10. */
-export const MAXIMO_DE_PASOS = 10;
+/** Más pasos ya no es acompañar una tarea: vender de punta a punta, con quién atiende, el cobro y la boleta, cabe en 12 (sin contar los del celular). */
+export const MAXIMO_DE_PASOS = 12;
 /** Una orden se lee de un vistazo: «Elige cómo paga el cliente». Más larga, se corta. */
 export const LARGO_MAXIMO_ORDEN = 60;
 
@@ -29,16 +29,20 @@ export type PasoTarea = {
   rellenar: string | null;
   /** Un paso que solo existe en el celular (la lupa del buscador, «Ver ticket»): en escritorio no se cuenta ni se muestra. */
   soloCelular?: boolean;
+  /** El paso guarda o confirma (`pasoGuarda`): lo hace la persona, nunca el recorredor de la evaluación de tareas. */
+  guarda?: true;
+  /** La orden se completa en pantalla con el nombre del botón («Toca «Agregar color»»): la pieza que abre algo no tiene paso propio. */
+  ordenDeLaPieza?: true;
 };
 
 /**
  * ¿Este paso es el que guarda o confirma? Lo dice el nombre de su pieza (`data-guia`), que en las guías sigue unas pocas formas:
- * `….guardar`, `….confirmar`, `….enviar`, `….registrar`, `….pagar`, `….anular`, `….terminar` y el pie de una hoja (`….pie`,
+ * `….guardar`, `….confirmar`, `….enviar`, `…-registrar` (a secas, `registrar` suele ser el botón que ABRE la hoja), `….pagar`, `….anular`, `….terminar` y el pie de una hoja (`….pie`,
  * `….form-pie`, `….form-botones`, `….costo-pie`). Un pie que solo muestra (`tabla-pie`, `vista-pie`) no cuenta. Es una pista para la IA y para cerrar una tarea que quedó a medias, no un permiso: guardar lo hace la persona.
  */
 export function pasoGuarda(paso: Pick<PasoGuia, "ancla">): boolean {
   const ultimo = paso.ancla?.split(".").at(-1) ?? "";
-  return /^(guardar|confirmar|enviar|registrar|crear|pagar|anular|terminar|listo|pie|form-pie|form-botones|pie-reemplazo)$|-(guardar|confirmar|enviar|registrar|crear|costo-pie|color-pie|campana-pie)$/.test(ultimo);
+  return /^(guardar|confirmar|enviar|crear|pagar|anular|terminar|listo|pie|form-pie|form-botones|pie-reemplazo)$|-(guardar|confirmar|enviar|registrar|crear|costo-pie|color-pie|campana-pie)$/.test(ultimo);
 }
 
 /** ¿La dirección es esta pantalla? Una pantalla con id en su guía (`/productos/[id]/editar`) vale para cualquier id. */
@@ -87,10 +91,10 @@ export function revisarTarea(propuestos: readonly PasoPropuesto[] | null | undef
       href: candidata.href ?? rutaActual,
       orden,
       porQue: paso.texto,
-      rellenar: pasoSePuedeRellenar(paso) ? rellenoValido(p.rellenar, pregunta) : null,
+      rellenar: pasoSePuedeRellenar(paso) ? sinColorNiTalla(rellenoValido(p.rellenar, pregunta)) : null,
     });
   }
-  const completa = completarTarea(conPuentes(elegirEnLaLista(pasos, candidatas, pregunta), candidatas), candidatas);
+  const completa = completarTarea(conPuentes(conLoQueAbre(conLosDeEnMedio(elegirEnLaLista(pasos, candidatas, pregunta), candidatas), candidatas), candidatas), candidatas).map((p) => (pasoGuarda(p) ? { ...p, guarda: true as const } : p));
   return completa.length >= 2 ? completa : [];
 }
 
@@ -142,6 +146,24 @@ function elegirEnLaLista(tarea: readonly PasoTarea[], candidatas: readonly Candi
   return [...sin.slice(0, j), ...antes, ...sin.slice(j, j + 1), paso, ...despues, ...sin.slice(j + 1)];
 }
 
+/** Los colores de siempre, por su nombre: la orden de la lista los nombra y el buscador no los lleva. */
+const COLORES = "negr[oa]|blanc[oa]|roj[oa]|azul|verde|beige|rosad[oa]|gris|marr[oó]n|celeste|amarill[oa]|morad[oa]|crema|guinda|mostaza|camel|vino|nude|lila|turquesa|naranja|fucsia|plomo";
+
+/**
+ * Lo que se busca, sin el color ni la talla: la IA a veces copia «blusa emma negro talla m» y así el buscador no encuentra nada (busca
+ * por el nombre de la prenda; el color y la talla se eligen en la lista). `null` si no queda nada.
+ */
+export function sinColorNiTalla(texto: string | null): string | null {
+  if (!texto) return null;
+  const limpio = texto
+    .replace(/\b(talla|tallas)\s+\S+/gi, " ")
+    .replace(/\bcolor\s+\S+/gi, " ")
+    .replace(new RegExp(`\\b(${COLORES})\\b`, "gi"), " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return limpio.length >= 2 ? limpio : null;
+}
+
 /**
  * «Toca Negro · talla M en la lista», con el color y la talla tal como los escribió la persona («color negro», «talla m», «en rojo»):
  * la IA a veces deja uno afuera. Sin ninguno de los dos, `null` y queda la orden de la IA.
@@ -152,10 +174,103 @@ export function ordenDeLaLista(pregunta: string): string | null {
   // «color X» tal cual, o los colores de siempre por su nombre («una blusa negra talla M», «en rojo»). «en X» solo no basta: «en efectivo».
   const color =
     /\bcolor\s+([a-záéíóúñ]{3,}(?:\s+(?:claro|oscuro|palo|denim|perla))?)/.exec(t)?.[1] ??
-    /\b(negr[oa]|blanc[oa]|roj[oa]|azul|verde|beige|rosad[oa]|gris|marr[oó]n|celeste|amarill[oa]|morad[oa]|crema|guinda|mostaza|camel|vino|nude|lila|turquesa|naranja|fucsia|plomo)\b/.exec(t)?.[1];
+    new RegExp(`\\b(${COLORES})\\b`).exec(t)?.[1];
   const conMayuscula = color ? color.charAt(0).toLocaleUpperCase("es") + color.slice(1) : null;
   if (!talla && !conMayuscula) return null;
   return `Toca ${[conMayuscula, talla ? `talla ${talla}` : null].filter(Boolean).join(" · ")} en la lista`;
+}
+
+/**
+ * Lo que abre cada paso, si la IA lo saltó. Las guías ya lo dicen: el `preparar` de un paso son los toques que la demo hace para que su
+ * pieza aparezca («Elige el monto» se prepara tocando «Registrar gasto»; «Elige la otra talla», tocando «Continuar»). Si el paso anterior
+ * de la tarea no es ese toque, se agrega uno: «Toca <título del paso de esa pieza>», o «Toca para abrir» si la pieza no tiene paso propio.
+ * Solo los toques obligatorios (`siEsta` es para cerrar algo si quedó abierto).
+ */
+function conLoQueAbre(tarea: readonly PasoTarea[], candidatas: readonly Candidata[]): PasoTarea[] {
+  const salida: PasoTarea[] = [];
+  for (const paso of tarea) {
+    const guia = candidatas.find((c) => c.guia.id === paso.guiaId)?.guia;
+    const k = guia?.pasos.findIndex((x) => x.id === paso.pasoId) ?? -1;
+    const deLaGuia = guia?.pasos[k];
+    // Su `preparar` y el de los pasos SIN pieza que van justo antes («Así se ve un cambio por dentro» abre el cambio tocando «Cambiar»).
+    const previos: PasoGuia[] = [];
+    for (let j = k - 1; j >= 0 && guia!.pasos[j]!.ancla === null; j--) previos.unshift(guia!.pasos[j]!);
+    for (const accion of [...previos, ...(deLaGuia ? [deLaGuia] : [])].flatMap((x) => x.preparar ?? [])) {
+      // Un toque de `preparar` nunca guarda: la demo que lo hace tiene prohibido guardar (`motivoParaNoTocar`).
+      if (accion.tipo !== "clic" || accion.siEsta || accion.ancla === paso.ancla) continue;
+      if (salida.slice(-3).some((s) => s.ancla === accion.ancla)) continue;
+      const suPaso = guia!.pasos.find((x) => x.ancla === accion.ancla);
+      salida.push({
+        guiaId: paso.guiaId,
+        pasoId: suPaso?.id ?? `${paso.pasoId}~abre`,
+        ancla: accion.ancla,
+        href: paso.href,
+        ...ordenParaTocar(suPaso?.titulo),
+        porQue: suPaso?.texto ?? deLaGuia!.texto,
+        rellenar: null,
+      });
+    }
+    salida.push(paso);
+  }
+  return salida;
+}
+
+/**
+ * Un paso que solo hace avanzar: «Continuar», «Siguiente» o el pie de un paso de un flujo (`devolucion.pie-prendas`). Una tarjeta o una fila
+ * no: para crear una categoría nueva no se toca una que ya existe.
+ */
+const esAvanzar = (ancla: string) => /^(pie-|continuar|siguiente|seguir)|-(continuar|siguiente|seguir)$/.test(ancla.split(".").at(-1) ?? "");
+
+/**
+ * Entre dos pasos seguidos de la misma guía, los «Continuar» que la IA saltó: en un flujo por pasos (una devolución: prendas → motivo →
+ * revisar) no se llega al motivo sin tocar «Continuar». Solo los pasos que hacen avanzar, nunca uno que guarda.
+ */
+function conLosDeEnMedio(tarea: readonly PasoTarea[], candidatas: readonly Candidata[]): PasoTarea[] {
+  const salida: PasoTarea[] = [];
+  for (const paso of tarea) {
+    const anterior = salida.at(-1);
+    const guia = candidatas.find((c) => c.guia.id === paso.guiaId);
+    if (anterior && guia && anterior.guiaId === paso.guiaId) {
+      const desde = guia.guia.pasos.findIndex((x) => x.id === anterior.pasoId);
+      const hasta = guia.guia.pasos.findIndex((x) => x.id === paso.pasoId);
+      for (const x of desde >= 0 && hasta > desde ? guia.guia.pasos.slice(desde + 1, hasta) : []) {
+        if (!x.ancla || !esAvanzar(x.ancla) || pasoGuarda(x)) continue;
+        salida.push({ guiaId: paso.guiaId, pasoId: x.id, ancla: x.ancla, href: paso.href, ...ordenParaTocar(x.titulo), porQue: x.texto, rellenar: null });
+      }
+    }
+    salida.push(paso);
+  }
+  return salida;
+}
+
+/** Un título de guía que describe («Cada compra», «El pase abierto») y no nombra un botón: «Toca Cada compra» no se entiende. */
+const tituloDescribe = (titulo: string) => /^(el|la|los|las|lo|cada|un|una|tu|tus|su|sus|qué|cómo|cuánto)\b/i.test(titulo);
+
+/** La orden para tocar un paso que se agrega solo: «Toca <título>», o el nombre de la pieza en pantalla si el título describe. */
+function ordenParaTocar(titulo: string | undefined): Pick<PasoTarea, "orden" | "ordenDeLaPieza"> {
+  if (!titulo || tituloDescribe(titulo)) return { orden: "Toca aquí", ordenDeLaPieza: true };
+  return { orden: limpiarOrden(`Toca ${titulo}`) ?? "Toca aquí" };
+}
+
+/** ¿La pregunta pide HACER algo? (no «dónde veo» ni «qué es»): crear, registrar, agregar, cambiar, cerrar, imprimir… */
+export function pideHacer(pregunta: string): boolean {
+  const t = pregunta.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (/\b(donde|que es|cuanto|cuando|por que|quien)\b/.test(t)) return false;
+  return /\b(crear|crea|creo|registrar|registro|agregar|agrego|anadir|cambiar|cambio|ajustar|imprimir|imprimo|cerrar|cierro|abrir|abro|mandar|mando|enviar|poner|pongo|vender|vendo|bender|apartar|aparto|devolver|devuelve|contar|empezar|hacer|hago|anular|anulo|cobrar|cobro|subir|dar de alta|ingresar|ingreso)\b/.test(t);
+}
+
+/**
+ * Si la IA no armó la tarea y la pregunta pide hacer algo, una tarea mínima desde el paso que eligió hasta el primero que guarda después
+ * de él en esa guía (con lo que abre cada uno, `conLoQueAbre`). Mejor dos o tres pasos ciertos que dejar a la persona en un botón.
+ */
+export function tareaMinima(guia: Guia, pasoId: string | null, href: string, pregunta: string): PasoTarea[] {
+  if (!pideHacer(pregunta) || !pasoId) return [];
+  const desde = guia.pasos.findIndex((x) => x.id === pasoId);
+  const inicio = guia.pasos[desde];
+  const fin = guia.pasos.slice(desde + 1).find((x) => x.ancla !== null && pasoGuarda(x));
+  if (!inicio?.ancla || !fin) return [];
+  const pasos = [inicio, fin].map((x, k) => ({ guia_id: guia.id, paso_id: x.id, orden: k === 0 ? `Toca ${x.titulo}` : /^Llena\b/.test(x.titulo) ? x.titulo : "Revisa y guarda tú", rellenar: "" }));
+  return revisarTarea(pasos, [{ guia, href }], href, pregunta);
 }
 
 /**
@@ -223,7 +338,10 @@ export function completarTarea(tarea: readonly PasoTarea[], candidatas: readonly
   const suGuia = ultimo && !CIERRES[ultimo.guiaId] ? candidatas.find((c) => c.guia.id === ultimo.guiaId) : undefined;
   if (ultimo && suGuia && !pasoGuarda(ultimo)) {
     const desde = suGuia.guia.pasos.findIndex((x) => x.id === ultimo.pasoId);
-    const cierre = suGuia.guia.pasos.slice(desde + 1).find((x) => x.ancla !== null && pasoGuarda(x));
+    // Solo un guardar de la misma pieza (la hoja que se está llenando) o de la pantalla: una guía larga explica otras hojas más adelante
+    // (el costo, en el Historial de una prenda) y su guardar no es el de esta tarea.
+    const propios = new Set([prefijo(ultimo.ancla), prefijoDeLaPantalla(suGuia.guia)]);
+    const cierre = suGuia.guia.pasos.slice(desde + 1).find((x) => x.ancla !== null && pasoGuarda(x) && propios.has(prefijo(x.ancla)));
     if (cierre) salida.push({ guiaId: ultimo.guiaId, pasoId: cierre.id, ancla: cierre.ancla!, href: ultimo.href, orden: "Revisa y guarda tú", porQue: cierre.texto, rellenar: null });
   } else if (ultimo && suGuia && prefijo(ultimo.ancla) !== prefijoDeLaPantalla(suGuia.guia)) {
     // Guardó una HOJA («Agregar» en Agregar color suma a la tabla) y la pantalla guarda aparte después («Revisar y guardar»): falta ese.
@@ -239,7 +357,22 @@ export function completarTarea(tarea: readonly PasoTarea[], candidatas: readonly
     if (otro) salida[k] = { ...p, pasoId: otro.id, ancla: otro.ancla!, porQue: otro.texto };
   }
   const conCobro = salida.some((p) => p.pasoId === "cobrar");
-  return salida.filter((p) => !(conCobro && p.guiaId === "vender" && p.pasoId === "ticket")).slice(0, MAXIMO_DE_PASOS);
+  return aSuMedida(salida.filter((p) => !(conCobro && p.guiaId === "vender" && p.pasoId === "ticket")));
+}
+
+/**
+ * Como mucho `MAXIMO_DE_PASOS`, sin contar los que solo existen en el celular. Si sobran, se quitan del medio y nunca el final: el cierre
+ * (cobrar, la boleta, confirmar) es lo que no puede faltar.
+ */
+function aSuMedida(pasos: PasoTarea[]): PasoTarea[] {
+  const salida = [...pasos];
+  const cuenta = () => salida.filter((p) => !p.soloCelular).length;
+  while (cuenta() > MAXIMO_DE_PASOS) {
+    // El último paso de en medio que no guarda ni es del celular (los primeros orientan; los últimos cierran).
+    const k = salida.findLastIndex((p, j) => j > 0 && j < salida.length - 3 && !p.guarda && !pasoGuarda(p) && !p.soloCelular);
+    salida.splice(k > 0 ? k : salida.length - 1, 1);
+  }
+  return salida;
 }
 
 /** La dirección sin consulta ni grupos: para saber si la persona ya está en la pantalla del paso. */

@@ -182,5 +182,9 @@ export async function POST(request: Request) {
   // Una respuesta declinada o que no se le puede creer igual costó: se anota con su gasto.
   if (respuesta.stop_reason === "refusal") return basico("rechazo", gasto);
   const cruda = respuesta.parsed_output ?? null;
+  if (process.env.NODE_ENV !== "production" && cruda) {
+    // En desarrollo: qué pasos propuso la IA (solo ids, nunca la pregunta), para ver por qué una tarea quedó corta.
+    console.info(`[asistente] pasos de la IA: ${cruda.pasos.map((p) => `${p.guia_id}#${p.paso_id}`).join(" · ") || "ninguno"}`);
+  }
   return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta, conocimiento, hijas), cruda?.tema ?? null, gasto);
 }

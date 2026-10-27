@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
-import { LARGO_MAXIMO_ORDEN, limpiarOrden, MAXIMO_DE_PASOS, mismaPantalla, ordenDeLaLista, pasoGuarda, revisarTarea, rutaDe, seAbreDesdeOtra } from "./tarea";
+import { sinColorNiTalla, LARGO_MAXIMO_ORDEN, limpiarOrden, MAXIMO_DE_PASOS, mismaPantalla, ordenDeLaLista, pasoGuarda, pideHacer, revisarTarea, rutaDe, seAbreDesdeOtra, tareaMinima } from "./tarea";
 
 const vender: Guia = {
   id: "vender",
@@ -186,5 +187,78 @@ describe("limpiarOrden y rutaDe", () => {
   it("la dirección sin consulta ni grupos", () => {
     expect(rutaDe("/inventario/traslados/(billetera)?x=1")).toBe("/inventario/traslados");
     expect(rutaDe("/")).toBe("/");
+  });
+});
+
+describe("lo que abre cada paso (el `preparar` de la guía)", () => {
+  const gastos: Guia = {
+    id: "gastos",
+    ruta: "/finanzas/gastos",
+    titulo: "Gastos",
+    resumen: "Los gastos.",
+    pasos: [
+      { id: "registrar", ancla: "fin-gastos.registrar", titulo: "Registrar gasto", texto: "Abre la hoja." },
+      { id: "monto", ancla: "fin-gastos.form-monto", titulo: "El monto", texto: "Cuánto.", preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }] },
+      { id: "botones", ancla: "fin-gastos.form-botones", titulo: "Registrar", texto: "Guarda.", preparar: [{ tipo: "clic", ancla: "fin-gastos.registrar" }] },
+    ],
+  };
+  it("si la IA saltó el botón que abre la hoja, se agrega antes, una sola vez", () => {
+    const t = revisarTarea([p("monto", "Escribe 15", "", "gastos"), p("botones", "Revisa y registra tú", "", "gastos")], [{ guia: gastos, href: "/finanzas/gastos" }], "/", "registrar un gasto de 15");
+    expect(t.map((x) => [x.pasoId, x.orden])).toEqual([
+      ["registrar", "Toca Registrar gasto"],
+      ["monto", "Escribe 15"],
+      ["botones", "Revisa y registra tú"],
+    ]);
+  });
+  it("si la IA lo puso, no se repite", () => {
+    const t = revisarTarea([p("registrar", "Toca Registrar", "", "gastos"), p("monto", "Escribe 15", "", "gastos"), p("botones", "Guarda", "", "gastos")], [{ guia: gastos, href: "/finanzas/gastos" }], "/", "registrar un gasto");
+    expect(t.map((x) => x.pasoId)).toEqual(["registrar", "monto", "botones"]);
+  });
+  it("una tarea mínima va del paso elegido al que guarda, con lo que lo abre", () => {
+    expect(tareaMinima(gastos, "monto", "/finanzas/gastos", "registrar un gasto de taxi").map((x) => x.pasoId)).toEqual(["registrar", "monto", "botones"]);
+    expect(tareaMinima(gastos, "monto", "/finanzas/gastos", "¿dónde veo los gastos?")).toEqual([]);
+  });
+  it("pideHacer distingue hacer algo de preguntar dónde está", () => {
+    for (const q of ["registrar una marca nueva", "kiero bender una blusa", "cerrar la caja de hoy", "imprimir las etiquetas", "crear una categoría"]) expect(pideHacer(q), q).toBe(true);
+    for (const q of ["¿dónde veo los cierres de caja?", "¿qué es una nota de crédito?", "¿cuánto vendimos hoy?"]) expect(pideHacer(q), q).toBe(false);
+  });
+});
+
+describe("los «Continuar» de en medio", () => {
+  it("entre marcar las prendas y elegir el motivo va «Continuar», si la IA lo saltó", () => {
+    const devoluciones: Guia = { id: "devoluciones", ruta: "/devoluciones", titulo: "Devoluciones", resumen: ".", pasos: [
+      { id: "prendas", ancla: "devolucion.prendas", titulo: "Qué prendas", texto: "." },
+      { id: "pie-prendas", ancla: "devolucion.pie-prendas", titulo: "Continuar", texto: "." },
+      { id: "motivo", ancla: "devolucion.motivo", titulo: "Por qué", texto: "." },
+      { id: "pie-motivo", ancla: "devolucion.pie-motivo", titulo: "Revisar la devolución", texto: "." },
+      { id: "registrar", ancla: "devolucion.registrar", titulo: "Registrar", texto: "." },
+    ] };
+    const t = revisarTarea([p("prendas", "Marca el short", "", "devoluciones"), p("motivo", "Elige el motivo", "", "devoluciones"), p("registrar", "Revisa y registra tú", "", "devoluciones")], [{ guia: devoluciones, href: "/devoluciones" }], "/", "devolver un short");
+    expect(t.map((x) => [x.pasoId, x.orden])).toEqual([
+      ["prendas", "Marca el short"],
+      ["pie-prendas", "Toca Continuar"],
+      ["motivo", "Elige el motivo"],
+      ["pie-motivo", "Toca Revisar la devolución"],
+      ["registrar", "Revisa y registra tú"],
+    ]);
+  });
+});
+
+describe("sinColorNiTalla: el buscador busca por el nombre", () => {
+  it("quita el color y la talla que la IA copió", () => {
+    expect(sinColorNiTalla("blusa emma negro talla m")).toBe("blusa emma");
+    expect(sinColorNiTalla("short mom color rojo talla s")).toBe("short mom");
+    expect(sinColorNiTalla("blusa catalina siete")).toBe("blusa catalina siete");
+    expect(sinColorNiTalla("negro")).toBeNull();
+  });
+});
+
+describe("una venta con pasos de más no pierde su cierre (la guía de Vender de verdad)", () => {
+  it("se recorta el medio, y siguen Boleta y confirmar; los del celular no cuentan", () => {
+    const vender = GUIAS.find((g) => g.id === "vender")!;
+    const ids = ["caja-cerrada", "buscador", "resultados", "ticket-pie", "responsable", "cobrar", "cobro-medio", "cobro-recibe"];
+    const t = revisarTarea(ids.map((paso_id) => ({ guia_id: "vender", paso_id, orden: "Haz esto", rellenar: "" })), [{ guia: vender, href: "/vender" }], "/vender", "vender una blusa en efectivo con boleta");
+    expect(t.filter((x) => !x.soloCelular).length).toBeLessThanOrEqual(MAXIMO_DE_PASOS);
+    expect(t.slice(-2).map((x) => x.pasoId)).toEqual(["cobro-comprobante", "cobro-confirmar"]);
   });
 });
