@@ -10,6 +10,7 @@ import {
   RPC_CERRAR_CONTEO,
   RPC_CONTEOS_ENVIO,
   RPC_CORREGIR_GUIA,
+  RPC_FOTO_PAPEL,
   RPC_PRECIO_RECEPCION,
   resultadoDeLigar,
   RPC_GUARDAR_CONTEO,
@@ -171,4 +172,10 @@ export async function registrarObservacion(
 ): Promise<{ observacion: ObservacionDeEnvio | null; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_REGISTRAR_OBSERVACION as never, args as never), firma)) as Respuesta;
   return { observacion: error ? null : leerObservacion(data), error: error ?? null };
+}
+
+/** Pone la foto (ya subida al depósito) de un papel de la compra que llegó sin ella. Solo agrega: un papel con foto no la cambia. */
+export async function agregarFotoPapel(args: { p_despacho_id: string; p_papel_id: string; p_foto_ruta: string }, firma: Firma | null): Promise<{ error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_FOTO_PAPEL as never, args as never), firma)) as Respuesta;
+  return { error: error ?? null };
 }

@@ -298,6 +298,13 @@ export function rondasConEnvios(envios: readonly EnvioMio[], rondaAbiertaId: str
     .sort((a, b) => (a.rondaId === null ? 1 : b.rondaId === null ? -1 : ms(b.cerradaEn ?? b.abiertaEn) - ms(a.cerradaEn ?? a.abiertaEn)));
 }
 
+/** Los envíos de una fila de ronda del historial: su clave es `ronda-<id>` (`ronda-sin-ronda` para lo de antes de las rondas). `null`: no se pudieron leer los envíos. */
+export function enviosDeLaFila(rondas: RondaConEnvios[] | null, clave: string): EnvioMio[] | null {
+  if (!rondas) return null;
+  const id = clave.replace(/^ronda-/, "");
+  return rondas.find((r) => (r.rondaId ?? "sin-ronda") === id)?.envios ?? null;
+}
+
 /** «22 – 24 oct» no hace falta: «22/10 al 24/10», o «23/10» si fue el mismo día. Sin fechas, nada. */
 export function diasDeLaRonda(abiertaEn: string | null, cerradaEn: string | null): string {
   const a = diaLima(abiertaEn);
