@@ -1836,7 +1836,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
       titulo: "Para después",
-      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora»); al identificar la prenda se puede cambiar su precio de venta. Lo hace quien tenga Recibir. En la demo no lo tocamos.",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora»); al identificar la prenda se puede cambiar su costo y su precio de venta. Lo hace quien tenga Recibir. En la demo no lo tocamos.",
     },
     {
       id: "reabrir",

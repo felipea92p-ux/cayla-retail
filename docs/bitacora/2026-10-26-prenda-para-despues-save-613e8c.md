@@ -13,3 +13,8 @@ Qué hice: «Solo Tienda Lima» va primera y preseleccionada en el precio de ven
 Por qué así: Felipe pidió esa sede por defecto y que un rechazo se explique; reusar la función real evita que la validación y el guardado digan cosas distintas, y el motivo vive junto al campo porque ahí se corrige.
 Qué se rompería sin esto: un precio mal escrito se ignoraba en silencio, el rechazo por el costo llegaba después de la confirmación, y el precio general quedaba como lo habitual cuando casi siempre se quiere el de la sede.
 
+## 2026-10-27 (Recibir: el costo de cada prenda también se cambia en «Hacer ahora»)
+Qué hice: en las hojas «Tallas y colores» y «Separar» de «Para después», junto al precio de venta aparece el costo de la prenda recién identificada (con el que entraría: el suyo, el de su descripción o el de su línea). Se confirma con la misma ventana del precio, entra al stock con ese costo y se queda en el conteo para lo que falte de esa prenda. Migración `20261026210000` (sin pegar): `resolver_pendiente_envio` lee `p_separado -> 'costos'`, `ligar_prenda_a_pendiente` no pierde el costo de una prenda nueva y el candado de lo contado deja anotar solo `costos_prendas` con el envío cerrado.
+Por qué así: Felipe pidió poder cambiar «tanto el precio de venta como el costo»; se esperó a ADR-0519 para no tener dos formas de costo por prenda. Se reusó `fn_envio_costos_prendas` (mismas reglas y mismo permiso que al cerrar) y se dejó intacto el texto del parche de ADR-0519 para que su migración siga siendo re-aplicable.
+Qué se rompería sin esto: una prenda identificada después entraba siempre al costo de su línea aunque hubiera costado otra cosa (solo se corregía desde Catálogo), y el costo escrito para una prenda nueva se perdía al crearla desde «Crear ahora».
+

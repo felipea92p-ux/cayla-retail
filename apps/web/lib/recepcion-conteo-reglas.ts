@@ -1276,7 +1276,8 @@ export type ArgsResolverPendiente = {
   p_despacho_item_id: string | null;
   p_extra_posicion: number | null;
   p_pendiente_id: string | null;
-  p_separado: ReturnType<typeof separadoParaBase>;
+  /** Lo separado y, si quien termina lo pendiente cambió el costo de alguna prenda (ADR-0519), `costos`: `{ producto: costo }` de esas prendas. */
+  p_separado: ReturnType<typeof separadoParaBase> & { costos?: Record<string, number> };
   p_confirma_costo: boolean;
   p_token: string;
 };
@@ -1286,6 +1287,8 @@ export function argsResolverPendiente(p: {
   linea: Pick<LineaParaContar, "linea" | "conteo">;
   pendienteId: string | null;
   separado: Separado;
+  /** El costo propio de las prendas que se identifican ahora (`costosDeHacerAhora`); sin nada, no va y la base hace lo de siempre. */
+  costos?: Readonly<Record<string, number>>;
   confirmaCosto?: boolean;
   token: string;
 }): ArgsResolverPendiente {
@@ -1294,10 +1297,65 @@ export function argsResolverPendiente(p: {
     p_despacho_item_id: p.linea.linea?.id ?? null,
     p_extra_posicion: p.linea.linea ? null : (p.linea.conteo?.extraPosicion ?? null),
     p_pendiente_id: p.pendienteId,
-    p_separado: separadoParaBase(p.separado),
+    p_separado: { ...separadoParaBase(p.separado), ...(p.costos && Object.keys(p.costos).length > 0 ? { costos: { ...p.costos } } : {}) },
     p_confirma_costo: p.confirmaCosto ?? false,
     p_token: p.token,
   };
+}
+
+// ---- El costo de cada prenda en «Hacer ahora» (ADR-0519 sobre ADR-0393, Felipe 2026-10-27) -----------------------------------------
+
+/**
+ * El costo con el que una prenda entra en «Hacer ahora» si nadie lo toca, como se escribe en el campo: el suyo propio que ya quedó en el conteo
+ * (o el que se le puso por su descripción cuando era una prenda nueva todavía sin crear: `descripcionNueva`), y si no, el de su línea.
+ */
+export function costoInicialDePrenda(
+  l: Pick<LineaParaContar, "linea" | "conteo"> | null,
+  productoId: string,
+  descripcionNueva: string | null = null,
+): string {
+  const propios = l?.conteo?.costosPrendas ?? {};
+  const propio = Object.hasOwn(propios, productoId) ? propios[productoId] : descripcionNueva ? propios[claveCostoDeNueva(descripcionNueva)] : undefined;
+  return costoComoTexto(propio ?? l?.conteo?.costoUnitario ?? l?.linea?.costoUnitario ?? null);
+}
+
+/**
+ * Los costos que se escribieron para las prendas que se identifican ahora (una vez por prenda): cuáles se mandan a la base (un monto válido y
+ * distinto de lo que la prenda ya costaba; vacío o igual, no), cuáles son un cambio que se confirma, y cuáles están mal escritos (se dicen junto
+ * al campo y frenan el guardado). `escritos` trae solo lo que la persona tocó; `inicial` es lo que dice el campo sin tocarlo.
+ */
+export function costosDeHacerAhora(
+  prendas: readonly { productoId: string; nombre: string | null; codigo: string | null }[],
+  escritos: Readonly<Record<string, string>>,
+  inicial: (productoId: string) => string,
+): { costos: Record<string, number>; cambios: (CambioDePrecio & { productoId: string })[]; problemas: { productoId: string; nombre: string; texto: string }[] } {
+  const costos: Record<string, number> = {};
+  const cambios: (CambioDePrecio & { productoId: string })[] = [];
+  const problemas: { productoId: string; nombre: string; texto: string }[] = [];
+  const vistos = new Set<string>();
+  for (const p of prendas) {
+    if (vistos.has(p.productoId) || !Object.hasOwn(escritos, p.productoId)) continue;
+    vistos.add(p.productoId);
+    const nombre = p.nombre ?? p.codigo ?? "La prenda";
+    const lectura = leerCostoCierre(escritos[p.productoId] ?? "");
+    if (lectura.problema) {
+      problemas.push({ productoId: p.productoId, nombre, texto: lectura.problema });
+      continue;
+    }
+    const cambio = cambioDePrecioDeCompra(nombre, inicial(p.productoId), escritos[p.productoId] ?? "");
+    if (!cambio) continue;
+    costos[p.productoId] = cambio.despues;
+    cambios.push({ ...cambio, productoId: p.productoId });
+  }
+  return { costos, cambios, problemas };
+}
+
+/** Lo que hay que saber del dinero antes de confirmar en «Hacer ahora»: el costo (si cambia) y el precio de venta (si cambia). */
+export function avisoDeConfirmarHacerAhora(cambios: readonly CambioDePrecio[]): string {
+  const costo = "El costo cambia lo que cuesta lo que entra ahora, y queda para lo que falte de esa prenda; lo ya recibido no se toca.";
+  const venta = "El precio de venta rige desde ahora: lo ya vendido no cambia. Queda en el historial de la prenda.";
+  const partes = [cambios.some((c) => c.tipo === "compra") ? costo : null, cambios.some((c) => c.tipo === "venta") ? venta : null].filter((t): t is string => t !== null);
+  return partes.join(" ");
 }
 
 export function leerResuelto(data: unknown): { entraron: number; quedaronPendientes: number; repetido: boolean; conteo: ConteoDeLinea | null } | null {

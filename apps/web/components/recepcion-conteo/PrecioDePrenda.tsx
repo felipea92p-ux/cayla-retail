@@ -31,6 +31,13 @@ export function enfocarPrecio(productoId: string) {
   campo?.focus({ preventScroll: true });
 }
 
+/** Lleva el cursor al campo del costo de una prenda (para decirle a quien escribe cuál hay que corregir). */
+export function enfocarCosto(productoId: string) {
+  const campo = document.querySelector<HTMLInputElement>(`[data-costo-prenda="${CSS.escape(productoId)}"] input`);
+  campo?.scrollIntoView({ block: "center", behavior: "smooth" });
+  campo?.focus({ preventScroll: true });
+}
+
 /** El costo de compra de una prenda (ADR-0519, Felipe 2026-10-26): lo que dice el campo, qué cuesta su línea (lo que se usa si lo deja vacío), qué
  *  decía al abrir y si lo escrito está mal. Sin esto, el campo no se dibuja (quien no ve el costo de una línea de fuera de la guía). */
 export type CostoDePrenda = { valor: string; deLaLinea: string; antes: string; problema: string | null };
@@ -122,7 +129,7 @@ export function PrecioDePrenda({
       {/* En ancho, `contents` deja al campo y a las opciones como celdas de la fila; en angosto son una segunda línea. */}
       <div className={`col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
         {conCosto && (
-          <div className="w-36 shrink-0">
+          <div className="w-36 shrink-0" data-costo-prenda={prenda.productoId}>
             <CampoTexto
               etiqueta="Costo"
               aria-label={`Costo de ${nombre}`}

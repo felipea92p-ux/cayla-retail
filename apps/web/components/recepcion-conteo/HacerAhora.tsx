@@ -16,8 +16,12 @@ import {
   argsLigarPrenda,
   argsResolverPendiente,
   AVISO_PRENDA_SIN_LIGAR,
+  avisoDeConfirmarHacerAhora,
   avisoDePrecioRechazado,
   cambiosDeVentaDe,
+  costoInicialDePrenda,
+  costosDeHacerAhora,
+  leerCostoCierre,
   ponerTallas,
   prendaCreadaDeNueva,
   problemasDePrecio,
@@ -42,7 +46,7 @@ import { cambiarPrecioEnRecepcion, ligarPrendaAPendiente, resolverPendiente } fr
 import type { Firma } from "@/lib/responsable-reglas";
 import { ConfirmarPrecios } from "./ConfirmarPrecios";
 import { HojaTallas } from "./HojaTallas";
-import { enfocarPrecio } from "./PrecioDePrenda";
+import { enfocarCosto, enfocarPrecio, type CostoDePrenda } from "./PrecioDePrenda";
 import { PreciosDeVenta } from "./PreciosDeVenta";
 import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { SepararPrendas } from "./SepararPrendas";
@@ -68,6 +72,8 @@ export function HacerAhora({
   responsable,
   prendas,
   soloSede = false,
+  sinAviso = false,
+  veDinero = true,
   onPrendaVista,
   onListo,
   onCerrar,
@@ -80,6 +86,9 @@ export function HacerAhora({
   prendas: ReadonlyMap<string, PrendaRecepcion>;
   /** Una terminal (ADR-0531): el precio de venta vale solo en su sede; no se ofrece «Todas las sedes». */
   soloSede?: boolean;
+  /** El envío llegó sin aviso: lo de fuera de la guía no trae costo de ninguna orden, y solo lo escribe quien ve el dinero de Compras (`veDinero`). */
+  sinAviso?: boolean;
+  veDinero?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onListo: () => void;
@@ -107,6 +116,21 @@ export function HacerAhora({
   const aplicados = useRef<(CambioDePrecio & { productoId: string })[]>([]);
   const sede = detalle.sede?.nombre ?? "esta sede";
   const sedeId = detalle.sede?.id ?? null;
+  // El costo de compra de cada prenda que se identifica aquí (ADR-0519, Felipe 2026-10-27): como en el cierre, lo ve y lo corrige quien recibe;
+  // en un envío sin aviso, lo de fuera de la guía solo quien ve el dinero de Compras. `costosEscritos` trae solo lo que la persona tocó; lo demás
+  // sale con el costo que la prenda ya tenía en el conteo, o el de su línea.
+  const editaCosto = !(sinAviso && !linea?.linea && !veDinero);
+  const [costosEscritos, setCostosEscritos] = useState<Record<string, string>>({});
+  const descripcionNueva = item.tipo === "crear" ? item.pendiente.descripcion : null;
+  const costoInicial = (productoId: string) => costoInicialDePrenda(linea, productoId, descripcionNueva);
+  const costoDe = editaCosto
+    ? (productoId: string): CostoDePrenda => {
+        const antes = costoInicial(productoId);
+        const valor = Object.hasOwn(costosEscritos, productoId) ? (costosEscritos[productoId] ?? "") : antes;
+        return { valor, deLaLinea: antes, antes, problema: valor.trim() ? leerCostoCierre(valor).problema : null };
+      }
+    : undefined;
+  const cambiarCosto = (productoId: string, valor: string) => setCostosEscritos((c) => ({ ...c, [productoId]: valor }));
   const [porConfirmar, setPorConfirmar] = useState<{ cambios: CambioDePrecio[]; separado: Separado } | null>(null);
   const categoria = linea?.categoria ?? null;
   // La de la línea, o «Sin marca» (ADR-0393, 2026-10-14): una línea sin marca también se termina.
@@ -157,27 +181,36 @@ export function HacerAhora({
    * entonces (3) se muestra qué cambia y se pide confirmar (es dinero), igual que al cerrar el envío.
    */
   async function pedirGuardar(s: Separado) {
+    // Un costo o un precio escrito mal no se ignora: el motivo ya está junto al campo (`PrecioDePrenda`, siempre a la vista al escribir mal) y
+    // aquí solo se lleva el cursor. El costo primero: su campo va antes que el precio.
+    const malCosto = costosDeHacerAhora(s.prendas, costosEscritos, costoInicial).problemas;
+    if (malCosto.length > 0) {
+      enfocarCosto(malCosto[0].productoId);
+      return;
+    }
     const mal = problemasDePrecio(s.prendas, precios.ventas);
     if (mal.length > 0) {
-      // El motivo ya está junto al campo (`PrecioDePrenda`, siempre a la vista al escribir mal): aquí solo se lleva el cursor.
       enfocarPrecio(mal[0].productoId);
       return;
     }
-    const cambios = cambiosDeVentaDe(s.prendas, precios.ventas);
-    if (cambios.length === 0) {
+    const cambiosCosto = costosDeHacerAhora(s.prendas, costosEscritos, costoInicial).cambios;
+    const cambiosVenta = cambiosDeVentaDe(s.prendas, precios.ventas);
+    if (cambiosCosto.length === 0 && cambiosVenta.length === 0) {
       void guardar(s);
       return;
     }
-    setGuardando(true);
-    setError(null);
-    const rechazos = await precios.validar(detalle.id, cambios, responsable.firma());
-    setGuardando(false);
-    if (rechazos.length > 0) {
-      // El motivo quedó junto al campo de cada precio rechazado: se lleva el cursor al primero. Nada se guardó (la confirmación ni se abrió).
-      enfocarPrecio(rechazos[0].productoId);
-      return;
+    if (cambiosVenta.length > 0) {
+      setGuardando(true);
+      setError(null);
+      const rechazos = await precios.validar(detalle.id, cambiosVenta, responsable.firma());
+      setGuardando(false);
+      if (rechazos.length > 0) {
+        // El motivo quedó junto al campo de cada precio rechazado: se lleva el cursor al primero. Nada se guardó (la confirmación ni se abrió).
+        enfocarPrecio(rechazos[0].productoId);
+        return;
+      }
     }
-    setPorConfirmar({ cambios, separado: s });
+    setPorConfirmar({ cambios: [...cambiosCosto, ...cambiosVenta], separado: s });
   }
 
   /** Un cambio de precio de venta contra la base: «ok», «ajena» (la prenda todavía no es de este envío) o el motivo por el que no se pudo. */
@@ -214,8 +247,10 @@ export function HacerAhora({
         return;
       }
     }
+    // El costo de las prendas que se identifican ahora viaja con lo separado y entra con ellas (todo o nada, en la misma llamada).
+    const { costos, cambios: cambiosCosto } = costosDeHacerAhora(s.prendas, costosEscritos, costoInicial);
     const { resuelto, error: e } = await resolverPendiente(
-      argsResolverPendiente({ despachoId: detalle.id, linea, pendienteId, separado: s, confirmaCosto, token }),
+      argsResolverPendiente({ despachoId: detalle.id, linea, pendienteId, separado: s, costos, confirmaCosto, token }),
       firma,
     );
     responsable.despues(e);
@@ -238,9 +273,11 @@ export function HacerAhora({
       if (r !== "ok") fallas.push({ nombre: c.nombre, texto: r === "ajena" ? "La prenda no quedó en este envío." : r.texto });
     }
     setGuardando(false);
-    avisar.exito(resuelto ? textoResuelto(resuelto) : "Listo", {
-      detalle: aplicados.current.length > 0 ? `Precio de venta · ${aplicados.current.map((c) => `${c.nombre}: ${textoCambioDePrecio(c, sede)}`).join(" · ")}` : undefined,
-    });
+    const detalleDeAviso = [
+      cambiosCosto.length > 0 ? `Costo · ${cambiosCosto.map((c) => `${c.nombre}: ${textoCambioDePrecio(c, sede)}`).join(" · ")}` : null,
+      aplicados.current.length > 0 ? `Precio de venta · ${aplicados.current.map((c) => `${c.nombre}: ${textoCambioDePrecio(c, sede)}`).join(" · ")}` : null,
+    ].filter((t): t is string => t !== null);
+    avisar.exito(resuelto ? textoResuelto(resuelto) : "Listo", { detalle: detalleDeAviso.length > 0 ? detalleDeAviso.join(" — ") : undefined });
     for (const f of fallas) {
       avisar.error(`No se cambió el precio de ${f.nombre}`, { detalle: `${f.texto} Las prendas sí quedaron guardadas: cambia el precio en Catálogo ▸ Productos.` });
     }
@@ -292,7 +329,12 @@ export function HacerAhora({
         <Modal titulo="Hay un costo fuera de lo normal" onClose={() => setAtipicos(null)} bloqueado={guardando} tamano="mediana">
           <AvisoCostoAtipico
             costos={atipicosPorLinea(atipicos.costos)}
-            pie="El costo con el que se cerró esta línea no se parece al de la prenda. Si está bien, confírmalo: el costo de la prenda se promedia con él."
+            pie={
+              // Si lo que se ve raro es el costo que se acaba de escribir, se dice así; si no, es el con el que se cerró la línea.
+              costosDeHacerAhora(atipicos.separado.prendas, costosEscritos, costoInicial).cambios.length > 0
+                ? "El costo que escribiste no se parece al que tiene la prenda hoy. Si está bien, confírmalo: el costo de la prenda se promedia con él."
+                : "El costo con el que se cerró esta línea no se parece al de la prenda. Si está bien, confírmalo: el costo de la prenda se promedia con él."
+            }
             textoCorregir="Volver"
             textoConfirmar="Está bien, meter al stock"
             textoCargando="Guardando…"
@@ -363,7 +405,7 @@ export function HacerAhora({
           error={error}
           onListo={tallasListas}
           onAbrirHoja={() => setVista({ tipo: "prenda" })}
-          precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} />}
+          precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={cambiarCosto} />}
           onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : cerrar}
         />
       );
@@ -394,6 +436,8 @@ export function HacerAhora({
         soloSede={soloSede}
         sedeId={sedeId}
         precios={precios}
+        costoDe={costoDe}
+        onCosto={cambiarCosto}
         onGuardar={() => void pedirGuardar(separado)}
         onCerrar={cerrar}
       />
@@ -408,7 +452,7 @@ export function HacerAhora({
           cambios={porConfirmar.cambios}
           sede={sede}
           subtitulo="Revisa lo que cambia antes de guardar."
-          aviso="El precio de venta rige desde ahora: lo ya vendido no cambia. Queda en el historial de la prenda."
+          aviso={avisoDeConfirmarHacerAhora(porConfirmar.cambios)}
           textoConfirmar="Confirmar y guardar"
           textoCargando="Guardando…"
           cargando={guardando}
@@ -440,6 +484,8 @@ function SepararAhora({
   soloSede,
   sedeId,
   precios,
+  costoDe,
+  onCosto,
   onGuardar,
   onCerrar,
 }: {
@@ -458,6 +504,8 @@ function SepararAhora({
   soloSede: boolean;
   sedeId: string | null;
   precios: ReturnType<typeof usePreciosDeVenta>;
+  costoDe?: (productoId: string) => CostoDePrenda;
+  onCosto: (productoId: string, valor: string) => void;
   onGuardar: () => void;
   onCerrar: () => void;
 }) {
@@ -497,7 +545,7 @@ function SepararAhora({
               onCrearNueva={onCrearNueva}
             />
           </div>
-          <PreciosDeVenta prendas={separado.prendas} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} />
+          <PreciosDeVenta prendas={separado.prendas} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={onCosto} />
           {error && <Aviso tono="error" titulo="No se pudo guardar">{error}</Aviso>}
           <div className="pie-hoja-fijo">
             <div className="space-y-3 border-t border-sand pt-3">
