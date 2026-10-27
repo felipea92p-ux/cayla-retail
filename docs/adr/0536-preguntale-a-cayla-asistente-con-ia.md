@@ -274,6 +274,10 @@ talla m, me paga con yape y quiere boleta» llega, tocando una sola cosa por pas
 marcados (9 pasos en el celular, 7 en escritorio). Para encender Cobrar en local hubo que crear un momento la asistencia de Dynamic
 (`public.marcajes`, que la base local no tiene), y se quitó al terminar.
 
+**La evaluación** (50 preguntas, 10 de ellas con faltas) con la IA sin pensamiento: **49 de 50**. La que fallaba, «¿Como mando ropa a la
+tienda de trujiyo?», iba siempre a Mis compras (su guía dice «lo que mandas a la tienda»): una línea en las instrucciones dice que mover ropa
+entre sedes es un traslado, y desde ahí va a Nuevo traslado, con su tarea de 5 pasos hasta «Enviar la caja».
+
 **Lo que no está.** Los cierres fijos existen solo para Vender; las demás tareas (un cambio, un traslado) siguen lo que propone la IA, revisado.
 
 ## Producción
