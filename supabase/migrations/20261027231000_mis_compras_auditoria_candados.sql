@@ -171,15 +171,20 @@ $n$select sum(coalesce(a.monto_confirmado, a.monto)) from retail.fondo_plata_ano
 select pg_temp.reemplazar('retail.terminar_dia_compras(text)',
 $v$    raise exception 'No tienes una ronda de compras abierta' using errcode = 'P0001', hint = 'compra_ronda_sin_abrir';$v$,
 $n$    -- Auditoría 2026-10-27 (H10): el cierre de hace un momento, si la respuesta no llegó.
-    for v_rep in
-      select r.numero, k.decision, k.monto, k.fecha
-        from retail.compra_rondas r join retail.compra_cierres k on k.id = r.cierre_id
-       where r.persona_id = v_actor and r.cerrada_en is not null and r.cerrada_en > now() - interval '2 minutes'
-       order by r.cerrada_en desc limit 1
-    loop
-      return jsonb_build_object('decision', v_rep.decision, 'monto', v_rep.monto, 'fecha', v_rep.fecha,
-                                'ronda', retail.fn_ronda_compras_numero_texto(v_rep.numero), 'ya_estaba', true);
-    end loop;
+    -- La variable del bucle se declara en su propio bloque: en PL/pgSQL solo el bucle de enteros declara la suya.
+    declare
+      v_rep record;
+    begin
+      for v_rep in
+        select r.numero, k.decision, k.monto, k.fecha
+          from retail.compra_rondas r join retail.compra_cierres k on k.id = r.cierre_id
+         where r.persona_id = v_actor and r.cerrada_en is not null and r.cerrada_en > now() - interval '2 minutes'
+         order by r.cerrada_en desc limit 1
+      loop
+        return jsonb_build_object('decision', v_rep.decision, 'monto', v_rep.monto, 'fecha', v_rep.fecha,
+                                  'ronda', retail.fn_ronda_compras_numero_texto(v_rep.numero), 'ya_estaba', true);
+      end loop;
+    end;
     raise exception 'No tienes una ronda de compras abierta' using errcode = 'P0001', hint = 'compra_ronda_sin_abrir';$n$,
 1);
 
