@@ -281,29 +281,26 @@ export function camposDelConteoPorGrupo(grupos: readonly GrupoDeLineas[]): Campo
   if (grupos.length === 0) {
     return [{ id: ID_CAMPO_AGREGAR, nombre: "Lo que llegó", requerido: true, hecho: false, pendiente: "Agrega la primera categoría que llegó y cuéntala." }];
   }
-  return grupos
-    .filter((g) => g.principal.linea)
-    .flatMap((g) => {
-      const nombre = [g.principal.categoria?.nombre, g.principal.categoria ? marcaDeLinea(g.principal).nombre : null].filter(Boolean).join(" · ") || "esta categoría";
-      const sin = sinIdentificarDelGrupo(g);
-      const prendas = (g.principal.categoria?.nombre ?? "prendas").toLowerCase();
-      return [
-        {
-          id: idCampoConteo(g.principal.clave),
-          nombre,
-          requerido: true,
-          hecho: g.contado,
-          pendiente: `Cuenta ${nombre} y escribe cuántas llegaron.`,
-        },
-        {
-          id: idCampoIdentificar(g.clave),
-          nombre: `Qué ${prendas} son`,
-          requerido: true,
-          hecho: sin === 0,
-          pendiente: `${sin === 1 ? "Falta" : "Faltan"} ${textoPrendas(sin)} por identificar en ${nombre}: busca cada una o anótala como nueva.`,
-        },
-      ];
-    });
+  return grupos.flatMap((g) => {
+    const nombre = [g.principal.categoria?.nombre, g.principal.categoria ? marcaDeLinea(g.principal).nombre : null].filter(Boolean).join(" · ") || "esta categoría";
+    const sin = sinIdentificarDelGrupo(g);
+    const prendas = (g.principal.categoria?.nombre ?? "prendas").toLowerCase();
+    const campos: CampoDeGuia[] = [];
+    // Lo de fuera de la guía no pide su número (es lo que se agrega al contar), pero sí que se sepa qué prendas son.
+    if (g.principal.linea) {
+      campos.push({ id: idCampoConteo(g.principal.clave), nombre, requerido: true, hecho: g.contado, pendiente: `Cuenta ${nombre} y escribe cuántas llegaron.` });
+    }
+    if (g.principal.linea || sin > 0) {
+      campos.push({
+        id: idCampoIdentificar(g.clave),
+        nombre: `Qué ${prendas} son`,
+        requerido: true,
+        hecho: sin === 0,
+        pendiente: `${sin === 1 ? "Falta" : "Faltan"} ${textoPrendas(sin)} por identificar en ${nombre}: busca cada una o anótala como nueva.`,
+      });
+    }
+    return campos;
+  });
 }
 
 /** Cómo se llamaron las prendas de la compra («Vestido Sofía, Vestido Lima»), sin repetir. */

@@ -313,8 +313,10 @@ describe("lo que muestra la pantalla de una categoría", () => {
     expect(hecha.map((c) => c.hecho)).toEqual([true, true]);
     // Un envío sin aviso recién abierto: lo único que falta es agregar lo que llegó.
     expect(camposDelConteoPorGrupo([]).map((c) => [c.id, c.hecho])).toEqual([["contar-agregar", false]]);
-    // Lo de fuera de la guía no pide nada (es lo que se agrega).
-    expect(camposDelConteoPorGrupo(agruparLineas([{ clave: "extra:1", linea: null, conteo: null, categoria: VESTIDOS, marca: CAYLA, proveedor: PROV, dijeron: null }]))).toEqual([]);
+    // Lo de fuera de la guía no pide su número (es lo que se agrega); si ya tiene algo contado, sí pide saber qué prendas son.
+    const extra = (contadas: number | null) => agruparLineas([{ ...deLaGuia(linea("x", 0), contadas === null ? null : { contadas }), clave: "extra:1", linea: null, dijeron: null }]);
+    expect(camposDelConteoPorGrupo(extra(null))).toEqual([]);
+    expect(camposDelConteoPorGrupo(extra(4)).map((c) => [c.id, c.hecho])).toEqual([[idCampoIdentificar("extra:1"), false]]);
   });
 
   it("describe la categoría con los nombres de la compra, sin repetirlos", () => {
