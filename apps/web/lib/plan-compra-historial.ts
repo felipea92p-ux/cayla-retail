@@ -97,12 +97,14 @@ export function mismaFechaEn(iso: string, anio: number): string {
 export type EtiquetaHistorial = { id: string; nombre: string; desde: string; hasta: string };
 export type CampanaDelAnio = { clave: string; nombre: string; desde: string; hasta: string };
 
+/** ¿Su fecha se mueve de un año a otro? Hoy, una: Día de la Madre (en el Perú, el segundo domingo de mayo); las demás caen el mismo día y mes. */
+export const esDeFechaMovil = (e: Pick<EtiquetaHistorial, "hasta">): boolean => e.hasta === segundoDomingoDeMayo(Number(e.hasta.slice(0, 4)));
+
 /** Las fechas de una campaña llevadas a otro año (se mueve con el año de su fin). Día de la Madre conserva su segundo domingo de mayo. */
 export function proyectarCampana(e: Pick<EtiquetaHistorial, "desde" | "hasta">, anio: number): { desde: string; hasta: string } {
   const largo = diasEntre(e.desde, e.hasta);
   // El año del fin manda: San Valentín (31 ene – 14 feb) es del año de su 14 de febrero.
-  const esMadre = e.hasta === segundoDomingoDeMayo(Number(e.hasta.slice(0, 4)));
-  const hasta = esMadre ? segundoDomingoDeMayo(anio) : mismaFechaEn(e.hasta, anio);
+  const hasta = esDeFechaMovil(e) ? segundoDomingoDeMayo(anio) : mismaFechaEn(e.hasta, anio);
   return { desde: sumarDias(hasta, -largo), hasta };
 }
 

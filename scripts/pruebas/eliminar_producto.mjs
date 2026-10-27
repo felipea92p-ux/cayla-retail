@@ -357,6 +357,10 @@ select pg_temp.huella(:'va');`);
     // ADR-0515: la corrección del costo de una compra. Cuelga de una fila de `costo_historial` de la misma prenda, que ya frena el
     // borrado, y la llave a `productos` y `variantes` (sin cascada) lo impediría igual.
     "costo_correcciones",
+    // ADR-0530: lo que el Plan de campaña mandó a Compras («pendiente de campaña», y lo ya pedido o rectificado). Es historia de lo que se decidió comprar de la
+    // prenda y nunca se borra (el pedido es inmutable tras pedido o rectificado); la llave a `productos` (sin cascada) impide borrar una prenda que está en uno.
+    // Pendiente aparte: que Catálogo lo diga con su mensaje («está en un pedido de campaña») en vez del error crudo de la llave: renglón nuevo de `fn_producto_historia`.
+    "pedidos_campana_lineas",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

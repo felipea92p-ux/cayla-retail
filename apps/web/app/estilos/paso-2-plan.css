@@ -1,0 +1,68 @@
+/* ====================================================================
+   Plan de campaña ▸ Paso 2 (ADR-0526, Felipe 2026-10-26: «que se vea tal cual en la maqueta»).
+   Maqueta: docs/maquetas/plan-campana-vision-2026-10/6-modelos.html (el ranking de modelos) dentro de la hoja de la categoría de 3-paso-2.html.
+   Componentes: components/plan-compra/PasoModelos.tsx y FilaDeModelo.tsx.
+
+   Lo que ya tiene pieza (la tabla, los chips, las tarjetas de cifra, el paso de cantidad, la barra de avance, los avisos) se dibuja con su pieza; aquí solo vive lo que la maqueta tiene y el sistema
+   no: el modelo que se abre en sus colores y tallas (la rejilla de colores × tallas) y el bloque de «modelos nuevos por elegir». Solo tokens (el modo oscuro sale solo). Sin movimiento propio
+   (ADR-0136: sin rebote ni bucle); los `:hover` van dentro de `@media (hover: hover)`.
+   ==================================================================== */
+
+/* Un modelo: toda la fila abre su detalle (los pasos de cantidad detienen el clic para no abrirlo). */
+.p2-modelo {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .p2-modelo:hover {
+    background: color-mix(in srgb, var(--color-hueso) 55%, transparent);
+  }
+}
+.p2-abierto {
+  background: color-mix(in srgb, var(--color-hueso) 40%, transparent);
+}
+
+/* Lo que se ve al abrir un modelo: sus colores y, de cada color, sus tallas. */
+.p2-detalle {
+  display: grid;
+  gap: 10px;
+  padding: 12px 20px 16px 34px;
+  background: var(--color-crema);
+}
+.p2-matriz-fila {
+  display: grid;
+  align-items: center;
+  column-gap: 10px;
+  padding: 6px 4px;
+  border-top: 1px solid var(--color-sand);
+}
+.p2-matriz-cabecera {
+  border-top: 0;
+  padding-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--color-taupe);
+}
+.p2-matriz-total {
+  border-top: 2px solid var(--color-sand);
+  padding-top: 8px;
+}
+
+/* El color de una prenda es dato (ADR-0336, regla 3): el punto no cambia con el tema, solo su aro. */
+.p2-punto {
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  background: var(--color-sand);
+  vertical-align: -2px;
+}
+
+/* «Modelos nuevos por elegir»: lo que queda del total y no se puede nombrar. Un tinte verde suave, no un color de alarma. */
+.p2-nuevos {
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--color-verde) 40%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-verde) 7%, var(--color-papel));
+}
