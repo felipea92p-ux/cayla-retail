@@ -19,6 +19,8 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
 import { Casilla, type Guardar } from "@/components/ConfiguracionCasilla";
 import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
+import { ConfiguracionAsistente } from "@/components/asistente/ConfiguracionAsistente";
+import type { SedeAsistente } from "@/lib/asistente/sedes";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1; metas por mes y por fecha, ADR-0435), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
@@ -237,8 +239,19 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
 }
 
 /** `despuesDeWhatsapp`: otra tarjeta de la sede que va entre el WhatsApp y las campañas (la carga inicial, ADR-0328). Se pasa
- *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. */
-export function ConfiguracionTiendas({ datos, metas, despuesDeWhatsapp }: { datos: Datos; metas?: ConfiguracionMetas | null; despuesDeWhatsapp?: ReactNode }) {
+ *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. `asistente`: el interruptor
+ *  de «Pregúntale a CAYLA» por sede (ADR-0536, act. 8), que sí usa el responsable de aquí; `null` si la base no lo tiene todavía. */
+export function ConfiguracionTiendas({
+  datos,
+  metas,
+  despuesDeWhatsapp,
+  asistente,
+}: {
+  datos: Datos;
+  metas?: ConfiguracionMetas | null;
+  despuesDeWhatsapp?: ReactNode;
+  asistente?: { sedes: SedeAsistente[]; gastado: number | null } | null;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
@@ -341,6 +354,8 @@ export function ConfiguracionTiendas({ datos, metas, despuesDeWhatsapp }: { dato
           </span>
         </PieTabla>
       </Superficie>
+
+      {asistente && asistente.sedes.length > 0 && <ConfiguracionAsistente sedes={asistente.sedes} gastado={asistente.gastado} hoy={datos.hoy} guardar={guardar} />}
 
       {despuesDeWhatsapp}
 
