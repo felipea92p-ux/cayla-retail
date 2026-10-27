@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 20261027204000_vitrina_looks_por_tienda.sql — CAYLA V2 · Vitrina web ▸ Looks (ADR-0468, ADR-0465)
--- El editor de looks dice en qué tiendas se completa cada look y qué prenda le falta a cada una.
+-- El editor de looks dice en qué tiendas se completa cada look y qué prenda le falta a cada una (`fn_vitrina_looks_por_tienda`), y, al
+-- armar uno, en qué tiendas hay cada prenda para elegirlas y avisar antes de guardar (`fn_vitrina_prendas_por_tienda`).
 --
 -- EL PROBLEMA PRIMERO. Vitrina web ▸ Looks dice «Se ven en la web: 3 de 3», pero en la tienda online solo sale 1: la web muestra un look
 -- solo si TODAS sus prendas, en su color, están a la venta y libres en la MISMA tienda (ADR-0468), y el ERP cuenta «en cualquier tienda».
@@ -20,6 +21,11 @@
 -- y, por look y tienda, `completo` (todas sus prendas con `hay`) y cuántas `faltan`. NO calcula qué look se ve: usa las MISMAS reglas que
 -- `fn_tienda_looks_json` (la que arma la web), cada una llamada a su función, y una prueba exige que `completo` coincida con lo que
 -- `tienda_looks(tienda)` realmente devuelve.
+--
+-- LA SEGUNDA FUNCIÓN. Felipe (2026-10-27): «no debería avisar o separar por filtro dentro de Nuevo look?». `fn_vitrina_prendas_por_tienda()` dice, de
+-- CADA prenda que la web muestra en algún color, en qué tiendas hay (la misma regla de «hay»): con eso el editor filtra por tienda y avisa, en vivo, en
+-- qué tiendas saldría el look con lo elegido, antes de guardarlo. Medido en producción (2026-10-27): para las 4619 combinaciones prenda-color-tienda,
+-- 6,2 s con una subconsulta por fila y bastante menos juntando las tablas una vez (esta versión). Se pide al abrir la hoja, no con la lista.
 --
 -- DECIDÍ: una función nueva de lectura y no tocar `fn_vitrina_looks` (el editor): el editor la pide aparte, cuando la persona abre la
 --   pestaña de looks; así la pantalla de siempre no se hace más lenta.
@@ -160,3 +166,64 @@ $fn$;
 
 revoke all on function retail.fn_vitrina_looks_por_tienda() from public, anon;
 grant execute on function retail.fn_vitrina_looks_por_tienda() to authenticated;
+
+create or replace function retail.fn_vitrina_prendas_por_tienda()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $fn$
+declare
+  v_res jsonb;
+begin
+  perform retail.fn_exigir_modulo('vitrina_web');
+
+  with tiendas as (
+    select t.id, u.nombre
+      from unnest(retail.fn_tienda_sedes_web()) as t (id)
+      join retail.ubicaciones u on u.id = t.id
+  ),
+  cats as materialized (
+    select t.id as sede_id, retail.tienda_catalogo(t.id) as cat from tiendas t
+  ),
+  visto as materialized (
+    -- Cada prenda en cada color que la web muestra en cada tienda (la regla de CLAURE solo en Lima, ADR-0465, ya viene en el catálogo).
+    select c.sede_id, (x ->> 'id')::uuid as producto_id, co ->> 'codigo' as color_codigo
+      from cats c
+     cross join lateral jsonb_array_elements(coalesce(c.cat -> 'prendas', '[]'::jsonb)) x
+     cross join lateral jsonb_array_elements(coalesce(x -> 'colores', '[]'::jsonb)) co
+  ),
+  ids as (
+    select coalesce(array_agg(distinct producto_id), '{}'::uuid[]) as ids from visto
+  ),
+  ofrecido as materialized (
+    select t.id as sede_id, o.variante_id
+      from tiendas t
+     cross join lateral retail.fn_tienda_precios((select ids from ids), t.id, true) o
+  ),
+  hay as materialized (
+    -- Hay libre y se ofrece, en la misma talla (la regla de la ficha y de la tienda): una vez, juntando, y no una subconsulta por fila.
+    select distinct d.ubicacion_id as sede_id, d.producto_id, v.color_codigo
+      from retail.fn_tienda_disponible((select ids from ids), array(select id from tiendas)) d
+      join retail.variantes v on v.id = d.variante_id
+      join ofrecido o on o.variante_id = d.variante_id and o.sede_id = d.ubicacion_id
+  ),
+  por_prenda as (
+    select s.producto_id, s.color_codigo, array_agg(distinct s.sede_id order by s.sede_id) as en
+      from visto s
+      join hay h on h.sede_id = s.sede_id and h.producto_id = s.producto_id and h.color_codigo = s.color_codigo
+     group by s.producto_id, s.color_codigo
+  )
+  select jsonb_build_object(
+           'tiendas', coalesce((select jsonb_agg(jsonb_build_object('id', t.id, 'nombre', t.nombre) order by t.nombre) from tiendas t), '[]'::jsonb),
+           -- Solo las que hay en alguna tienda: una prenda que no aparece aquí no hay en ninguna.
+           'prendas', coalesce((select jsonb_agg(jsonb_build_object('producto_id', p.producto_id, 'color', p.color_codigo, 'en', to_jsonb(p.en))
+                                                 order by p.producto_id, p.color_codigo) from por_prenda p), '[]'::jsonb))
+    into v_res;
+  return v_res;
+end
+$fn$;
+
+revoke all on function retail.fn_vitrina_prendas_por_tienda() from public, anon;
+grant execute on function retail.fn_vitrina_prendas_por_tienda() to authenticated;
