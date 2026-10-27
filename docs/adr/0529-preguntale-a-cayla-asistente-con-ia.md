@@ -229,6 +229,12 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   sin preguntas se anota sin IA. Lo que cuesta entra al tope de US$30 (`fn_asistente_gasto_del_mes` lo suma). Lo ve solo quien ve todas las
   sedes (el líder o el Admin), porque junta las preguntas de toda CAYLA. Medido en local el 2026-10-27 con 8 preguntas: 4 mejoras, ~1 800
   tokens de entrada y ~570 de salida, **US$0,009**.
+- **La evaluación fija** (actividad 11, `apps/web/lib/asistente/evaluacion/`): 40 preguntas con lo que se acepta; el CI corre la parte sin red
+  (cada id existe y la búsqueda local deja la guía esperada entre las 5 que ve la IA) y `pnpm --filter web asistente:evaluar` corre la IA contra
+  el ERP local. La primera pasada encontró que **la búsqueda solo ofrecía las entradas exactas del menú**: desde ahí también ofrece las pantallas
+  que cuelgan de una entrada sin pedir un id y son del mismo módulo (las 5 que piden otro, en `PIDEN_OTRO_MODULO`, con una prueba que lee cada
+  página), y las de la cabecera con su módulo (`pantallasDelAsistente`). Con eso, 4 equivalencias de tienda y 3 ajustes a las instrucciones,
+  pasó de 35 a **38 de 40**.
 
 ## Producción
 

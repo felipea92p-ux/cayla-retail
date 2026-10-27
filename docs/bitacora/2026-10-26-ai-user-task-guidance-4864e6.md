@@ -40,3 +40,10 @@ Preguntas del equipo y, si el lunes no salió, el líder lo arma con un botón (
 Por qué así: el cron de Vercel usa la clave y la llave que ya están en producción (el vigía de GitHub pedía un secreto nuevo); la IA cita
 «p1, p2…» y la base rechaza el informe si una cita no es de esa semana, así no hay evidencia inventada. Medido en local: US$0,009 por informe.
 Felipe se lleva: pegar las cuatro migraciones del asistente juntas antes de fusionar; si no, el cron del lunes da 500.
+
+## 2026-10-27 (Cierre de «Pregúntale a CAYLA»: actividad 11 de ADR-0529)
+Qué hice: la evaluación fija de 40 preguntas (de 35 a 38 bien con la IA, tras arreglar que la búsqueda no ofrecía pantallas sin entrada propia
+en el menú), /guia, /focus, oscuro y 375 px, /chaos (semilla 529: 21 de 24 resistieron, se cerró el doble clic que pagaba dos veces) y
+/formidable (de 7,7 a 8,3, con los 3 cambios que Felipe aprobó).
+Por qué así: la evaluación mide la búsqueda y la IA por separado, así que cuando falla se sabe dónde. Felipe se lleva: decidir el hallazgo
+de permisos de /chaos (en el chat) y pegar las cuatro migraciones del asistente antes de fusionar el PR.

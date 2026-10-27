@@ -31,7 +31,14 @@
 - [ ] **Pegar `20261027173000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261026235000` y `20261027165000`).
   Hasta entonces el cron del lunes responde 500 (no encuentra las funciones) y lo avisa Sentry: conviene pegar las cuatro migraciones del
   asistente juntas antes de fusionar el PR.
-- [ ] 11 · Evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro y 375 px, y el PR con `/abrir-pr`.
+- [x] 11 · Evaluación de 40 preguntas (`lib/asistente/evaluacion/`: 38 de 40 con la IA, la parte sin red en el CI), `/guia`, `/focus`, oscuro y
+  375 px, `/chaos` (semilla 529) y `/formidable` (leyes 8,3, oficio 8, con los 3 cambios aprobados por Felipe), y el PR con `/abrir-pr`.
+- [ ] **Felipe: hallazgo de seguridad de /chaos (ver chat del 2026-10-27).** Decide aparte; toca una función de la base y permisos.
+- [ ] «Sin acceso» nombra el módulo por `moduloDeRuta`, que da «Historial de compras» para `/compras/por-pagar` (la página pide Por pagar): la
+  frase dice a quién pedir el módulo equivocado en las 5 pantallas de `PIDEN_OTRO_MODULO`.
+- [ ] La evaluación oscila en 2 de 40 (Historial de cierres contra Caja; anular una venta de hoy contra Historial de ventas).
+- [ ] Preguntas del equipo: dos terminales distintas salen como «Una terminal» (mostrar su nombre pide que la función de la base lo traiga).
+- [ ] La prueba de Formidable con una colaboradora real, y la de /chaos que no se cubrió (cambiar de sede con el cajón abierto).
 - [ ] Ver en producción que un tramo encuentra su pieza a tiempo (en desarrollo, Productos tardó más de 8 s en cargar).
 - [ ] **Felipe:** ¿«¿Cómo anulo una boleta?» debe llevar a Devoluciones («Anular una venta de hoy») o a Comprobantes? Hoy la IA elige Devoluciones.
 - [ ] En una terminal la pregunta queda sin persona: el cajón todavía no manda el responsable del combo (`x-responsable`).
