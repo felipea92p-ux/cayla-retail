@@ -111,8 +111,8 @@
       "Boton «{problema ?? undefined}»"
     ],
     "components/recepcion-conteo/PapelesDeLaCompra.tsx": [
-      "a «Abrir el PDF del papel»",
-      "button «recepcion.papel-foto»"
+      "Boton «recepcion.papel-subir»",
+      "input «Ver en grande»"
     ],
     "components/recepcion-conteo/PrecioDePrenda.tsx": [
       "CampoTexto «{`Costo de ${nombre}»",
