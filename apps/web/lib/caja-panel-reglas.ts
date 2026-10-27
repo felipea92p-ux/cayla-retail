@@ -292,16 +292,15 @@ export const MOTIVO_AJUSTE_EGRESO = "Ajuste de caja (faltante)";
 const MOTIVOS_EGRESO = ["Retiro de efectivo", "Depósito bancario", MOTIVO_AJUSTE_EGRESO, "Otro"];
 const MOTIVOS_INGRESO = [MOTIVO_AJUSTE_INGRESO, "Otro"];
 
-/** El motivo es de ajuste: la base lo exige de líder (`registrar_movimiento_caja`, ADR-0056). */
+/** El motivo es de ajuste: marca `es_ajuste` en `registrar_movimiento_caja`. Desde ADR-0534 lo anota quien opera la caja, no solo el
+ *  líder (la líder lo valida en persona). */
 export function esMotivoDeAjuste(motivo: string): boolean {
   return motivo === MOTIVO_AJUSTE_INGRESO || motivo === MOTIVO_AJUSTE_EGRESO;
 }
 
-/** Los motivos que el modal ofrece. A quien no es líder no se le muestra «Ajuste»: la base lo rechazaría
- *  recién al enviar. Solo esconde lo que la base ya rechaza — el candado real sigue siendo la RPC. */
-export function motivosDeMovimiento(tipo: "ingreso" | "egreso", esLider: boolean): string[] {
-  const todos = tipo === "egreso" ? MOTIVOS_EGRESO : MOTIVOS_INGRESO;
-  return esLider ? todos : todos.filter((m) => !esMotivoDeAjuste(m));
+/** Los motivos que el modal ofrece. Desde ADR-0534 el ajuste lo ve toda cuenta que opera la caja. */
+export function motivosDeMovimiento(tipo: "ingreso" | "egreso"): string[] {
+  return tipo === "egreso" ? MOTIVOS_EGRESO : MOTIVOS_INGRESO;
 }
 
 /** «Depósito bancario» y «Otro» necesitan un rastro (N.º de operación o explicación) para poder revisarse después. */

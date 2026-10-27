@@ -96,7 +96,6 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
-  esLider,
 }: {
   sede: string;
   etiquetasIniciales: Etiqueta[];
@@ -124,8 +123,6 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
-  /** Un líder activa y retira lo que ya rige; los demás dejan borradores. */
-  esLider: boolean;
 }) {
   const hoy = hoyLima();
   const responsable = useResponsable();
@@ -435,7 +432,7 @@ export function SellosPantalla({
                   {chip && <Chip tono={chip.tono} title={chip.title}>{chip.texto}</Chip>}
                   {chip?.alerta && <Chip tono="ambar" title={chip.title}>{chip.alerta}</Chip>}
                   {porActivar > 0 && (
-                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: un líder las activa para que bajen el precio.">
+                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: falta activarlas para que bajen el precio.">
                       {porActivar === 1 ? "1 oferta por activar" : `${porActivar} ofertas por activar`}
                     </Chip>
                   )}
@@ -569,7 +566,7 @@ export function SellosPantalla({
 
   // ---- El pase abierto, en grande --------------------------------------------------------------------------------------------
 
-  /** Cuántas ofertas vivas tiene una campaña y cuántas esperan a un líder (para «Lo que ya tiene»). */
+  /** Cuántas ofertas vivas tiene una campaña y cuántas siguen en borrador (para «Lo que ya tiene»). */
   function ofertasDe(e: Etiqueta) {
     const vivas = reglasVivas(reglasDeCampana(reglas, e.id), hoy);
     return { total: vivas.length, borradores: vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length };
@@ -856,7 +853,6 @@ export function SellosPantalla({
           sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[ofertando.id] ?? []}
-          esLider={esLider}
           hoy={hoy}
           puedeDarDescuento={puedeEditar(ofertando)}
           alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}

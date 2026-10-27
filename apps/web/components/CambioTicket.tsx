@@ -78,7 +78,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
       titulo="Cambio registrado"
       subtitulo={
         ticket.vaACuarentena
-          ? "La prenda que trajo quedó en cuarentena, esperando que un líder decida qué hacer con ella."
+          ? "La prenda que trajo quedó en cuarentena, esperando que se decida qué hacer con ella."
           : "El stock ya refleja la prenda que volvió y la que salió."
       }
       onClose={onCerrar}

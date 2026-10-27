@@ -13,8 +13,9 @@ import type { EstadoComprobante } from "@/lib/comprobantes-reglas";
 //            baja para facturas y notas) y guarda el resultado real —
 //            distinguiendo "confirmada" de "en trámite".
 //   ASUME:   sesión válida y el responsable del combo en los encabezados
-//            `x-responsable`/`x-ubicacion` (ADR-0161). Que sea líder, que no
-//            haya nota vigente ni una baja en trámite se revisa ANTES de
+//            `x-responsable`/`x-ubicacion` (ADR-0161). Que vea Facturación
+//            (antes, que fuera líder: ADR-0534), que no haya nota vigente ni
+//            una baja en trámite se revisa ANTES de
 //            llamar a Lucode (`motivoParaNoPedirBaja`); la RPC lo vuelve a
 //            exigir al guardar.
 //   NO HACE: no decide el plazo. La documentación de Lucode se contradice
@@ -75,23 +76,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "Comprobante no encontrado o sin permiso para verlo" }, { status: 404 });
   }
 
-  // Lo que `anular_comprobante` exige (líder, sin nota vigente) y la baja ya en trámite se revisan ANTES de Lucode: lo
+  // Lo que `anular_comprobante` exige (el módulo Facturación, sin nota vigente) y la baja ya en trámite se revisan ANTES de Lucode: lo
   // que llega a SUNAT no se deshace, y si la base lo rechazara recién al guardar, la baja quedaría pedida sin
   // registrarse. Si no se puede saber (la base no responde), no se pide: 503, nunca «adelante».
-  const [{ data: esLider, error: errLider }, { count: notasVigentes, error: errNotas }] = await Promise.all([
-    supabase.rpc("fn_es_lider"),
+  const [{ data: veFacturacion, error: errModulo }, { count: notasVigentes, error: errNotas }] = await Promise.all([
+    supabase.rpc("fn_ve_modulo", { p_clave: "facturacion" }),
     supabase
       .from("comprobantes")
       .select("id", { count: "exact", head: true })
       .eq("comprobante_original_id", comprobante.id)
       .neq("estado", "anulado"),
   ]);
-  if (errLider || errNotas || notasVigentes === null) {
-    capturarError("lucode/anular: no se pudo revisar el permiso o las notas", errLider ?? errNotas, { comprobante_id: comprobante.id });
+  if (errModulo || errNotas || notasVigentes === null) {
+    capturarError("lucode/anular: no se pudo revisar el permiso o las notas", errModulo ?? errNotas, { comprobante_id: comprobante.id });
     return Response.json({ error: "No se pudo comprobar si se puede anular. Reintenta en un momento." }, { status: 503 });
   }
   const rechazo = motivoParaNoPedirBaja({
-    esLider: esLider === true,
+    veFacturacion: veFacturacion === true,
     estado: comprobante.estado as EstadoComprobante,
     anulacion_solicitada_at: comprobante.anulacion_solicitada_at,
     notasVigentes,

@@ -193,8 +193,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
                 <Ayuda titulo="Atributos">
                   Los vocabularios cerrados que describen una prenda además de su categoría: color,
                   talla, tejido, patrón y temporada. En los cuatro primeros, cualquiera con sesión
-                  propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o lo
-                  rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
+                  agrega un valor nuevo y lo puede usar de inmediato. La temporada es una lista
+                  fija de nueve: en su pestaña se ve el
                   calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
                   Top ventas, las campañas) viven en Catálogo ▸ Insignias.
                 </Ayuda>

@@ -224,13 +224,12 @@ describe("turnoLargo", () => {
 });
 
 describe("motivosDeMovimiento", () => {
-  it("el líder ve el ajuste; quien no lo es, no", () => {
-    expect(motivosDeMovimiento("egreso", true)).toContain("Ajuste de caja (faltante)");
-    expect(motivosDeMovimiento("egreso", false)).not.toContain("Ajuste de caja (faltante)");
-    expect(motivosDeMovimiento("ingreso", false)).toEqual(["Otro"]);
+  it("el ajuste lo ve toda cuenta que opera la caja, no solo el líder (ADR-0534)", () => {
+    expect(motivosDeMovimiento("egreso")).toContain("Ajuste de caja (faltante)");
+    expect(motivosDeMovimiento("ingreso")).toEqual(["Ajuste de caja (sobrante)", "Otro"]);
   });
   it("todo motivo de ajuste se reconoce como tal", () => {
-    for (const m of motivosDeMovimiento("egreso", true).concat(motivosDeMovimiento("ingreso", true))) {
+    for (const m of motivosDeMovimiento("egreso").concat(motivosDeMovimiento("ingreso"))) {
       expect(esMotivoDeAjuste(m)).toBe(m.startsWith("Ajuste"));
     }
   });

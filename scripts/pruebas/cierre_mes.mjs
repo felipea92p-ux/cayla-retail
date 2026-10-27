@@ -366,6 +366,10 @@ select 'G1 y «sin costo» tampoco las cuenta (excluye «Cargo especial»)', (se
 
 -- Un líder cierra la cola de TRU (la función real de ADR-0334): las dos pasan a «cerrada sin prenda».
 insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'tru', ${HOY} + 30) on conflict (ubicacion_id) do update set hasta = excluded.hasta;
+-- Desde 20261027174000 (ADR-0334 act. 2026-10-14, A6) cerrar la cola en bloque exige un cuadre del piso guardado después de la última venta
+-- que se cierra. Dentro de la transacción now() es fijo: este cuadre vale también para el segundo cierre (G5), que corta en el mismo instante.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'tru', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('fixture cierre de mes'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)');
 select retail.cerrar_cola_arranque(:'tru', now() - interval '1 second', 'no_se_sabe', 'prueba del cierre de mes') as cola \\gset
 select 'G2 cerrada la cola, el chequeo AVISA (no bloquea) y dice cuántas y cuánto: 2 ventas, S/ 150',
   (select not (x ->> 'ok')::boolean and not (x ->> 'bloquea')::boolean and (x -> 'datos' ->> 'n')::int = 2 and (x -> 'datos' ->> 'monto')::numeric = 150

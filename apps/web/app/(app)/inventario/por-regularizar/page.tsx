@@ -26,12 +26,13 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
-  // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
+  // Los plazos del cierre de arranque (ADR-0334): desde ADR-0534 cierra quien ve Existencias, no solo el líder. RLS deja leer los de las
+  // sedes que la persona opera; sin ellos la pantalla sigue entera (sin el botón de cerrar).
   // Las listas de la hoja con que caja anota la prenda: «Corregir lo anotado» (ADR-0369) usa la misma.
   const [filas, catalogo, plazos, listasLeidas] = await Promise.all([
     getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId),
     getCatalogo(),
-    esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
+    getPlazosColaArranque(),
     leerListasPrendaLibre(),
   ]);
   // Cuántas unidades libres hay de cada prenda en la tienda de cada venta pendiente (para «3 en TRU» y la sugerida). Es lo accesorio:
@@ -81,7 +82,6 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         libro={libro}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
-        esLider={esLider}
         plazos={plazos}
         sedeInicial={unaSede?.id ?? null}
         abrirItemId={item ?? null}

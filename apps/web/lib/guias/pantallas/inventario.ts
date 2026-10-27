@@ -150,7 +150,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.pendientes" }],
       titulo: "Pendientes de hoy",
-      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (se arreglan o, si llegaron así en un envío, se devuelven al proveedor), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
+      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (se arreglan, se liquidan, se botan o se donan; si llegaron así en un envío, se devuelven al proveedor), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
     },
     {
       id: "atajos",
@@ -645,14 +645,14 @@ export const GUIA_POR_REGULARIZAR: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "regularizar.buscador" }],
       titulo: "Pendientes y resueltas",
-      texto: "«Pendientes» son las que faltan, «Regularizadas» las ya unidas a su prenda y «Cerradas» las que el líder cerró sin unir. «Todas» las junta.",
+      texto: "«Pendientes» son las que faltan, «Regularizadas» las ya unidas a su prenda y «Cerradas» las que se cerraron sin unir. «Todas» las junta.",
     },
     {
       id: "herramientas",
       ancla: "regularizar.herramientas",
       opcional: true,
       titulo: "Orden y quién vendió",
-      texto: "Ordena de la más reciente a la más antigua (o al revés) y elige una colaboradora para ver solo sus ventas. El líder tiene más opciones en «Más».",
+      texto: "Ordena de la más reciente a la más antigua (o al revés) y elige una colaboradora para ver solo sus ventas. En «Más» están las acciones en bloque, como identificar con sugerencias.",
     },
     {
       id: "talon",

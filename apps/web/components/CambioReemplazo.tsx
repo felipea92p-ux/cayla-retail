@@ -293,7 +293,7 @@ export function CambioReemplazo({
           {(
             [
               { valor: "vendible", titulo: "Impecable", detalle: "Vuelve al piso de venta." },
-              { valor: "no_vendible", titulo: "Con defecto o uso", detalle: "Va a cuarentena: un líder decide si se repara, se dona o vuelve al proveedor." },
+              { valor: "no_vendible", titulo: "Con defecto o uso", detalle: "Va a cuarentena: ahí se decide si se repara, se dona o vuelve al proveedor." },
             ] as const
           ).map((o) => {
             const activa = r.condicion === o.valor;

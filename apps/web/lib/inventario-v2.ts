@@ -387,7 +387,7 @@ export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias
 
 // ============================================================================
 // "Dañado" (2026-09-17, ADR-0071): la cola de prendas en cuarentena
-// esperando que un líder decida Liquidada / Se botó / Donada
+// esperando que se decida Liquidada / Se botó / Donada (quien ve Existencias en su sede, ADR-0534)
 // (`retail.resolver_prenda_danada`). Consulta aparte de `getStockPorUbicacion`
 // porque acá SÍ hace falta historial (desde cuándo, resuelta por quién) —
 // `retail.stock` (de donde sale `FilaStock.danado`) es solo el snapshot de
