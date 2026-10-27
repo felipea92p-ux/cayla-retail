@@ -789,6 +789,127 @@ function main() {
     esperar("el look que ignora la tienda (como antes de ADR-0468): la prueba de la falda solo en Trujillo lo ve", r.ok && r.salida !== "ZZ Sin falda 1/1", r.ok ? r.salida : r.mensaje);
   }
 
+  // ---- 4c. Por tienda, en el ERP (20261027204000): Vitrina web ▸ Looks dice en qué tiendas se completa cada look y qué prenda le falta ----
+  console.log("— Por tienda, en el ERP —");
+  /** Cuántos (look, tienda) dicen `completo` distinto de lo que `tienda_looks(tienda)` de verdad muestra, y cuántos se compararon (si fueran 0 la prueba no probaría nada). */
+  const COMPLETO_COINCIDE = `select concat_ws('|',
+      (select count(*) from jsonb_array_elements(retail.fn_vitrina_looks_por_tienda() -> 'looks') l
+        cross join jsonb_array_elements(l -> 'por_tienda') t
+        where (t ->> 'completo')::boolean is distinct from exists (
+          select 1 from jsonb_array_elements(retail.tienda_looks((t ->> 'sede')::uuid) -> 'looks') x where x ->> 'id' = l ->> 'id')),
+      (select count(*) from jsonb_array_elements(retail.fn_vitrina_looks_por_tienda() -> 'looks') l
+        cross join jsonb_array_elements(l -> 'por_tienda') t));\n`;
+  /** Lo que el ERP dice de una prenda de un look en una tienda: `hay` y `motivo` (una variable psql para el look, otra para la tienda, el modelo y su color). */
+  const DE_LA_PIEZA = (look, sede, prod, color) =>
+    `select concat_ws('|', pz ->> 'hay', coalesce(pz ->> 'motivo', 'nada'))
+       from jsonb_array_elements(retail.fn_vitrina_looks_por_tienda() -> 'looks') l
+       cross join jsonb_array_elements(l -> 'por_tienda') t
+       cross join jsonb_array_elements(t -> 'piezas') pz
+      where l ->> 'id' = :'${look}' and t ->> 'sede' = :'${sede}' and pz ->> 'producto_id' = :'${prod}' and pz ->> 'color' = '${color}';\n`;
+  esperarValor(
+    "el ERP dice lo mismo que la web: por cada look y cada tienda, `completo` coincide con lo que tienda_looks(tienda) muestra (la falda solo en Trujillo)",
+    correr(`${ESCENA_FALDA_SOLO_EN_TRUJILLO}${COMPLETO_COINCIDE}rollback;`),
+    "0|4",
+  );
+  esperarValor(
+    "y también cuando las prendas se reparten entre tiendas (la blusa solo en Trujillo, la falda solo en Lima): ningún look completo en ninguna, y el ERP lo dice",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${SIN_STOCK("emma", "falda", "vestido", "carla")}
+      ${HAY_EN("tru", "emma")}${HAY_EN("lim", "falda")}${HAY_EN("tru", "vestido")}${HAY_EN("lim", "vestido")}
+      ${crear("look", { ps: piezas(["emma", "BEI"], ["falda", "NEG"]) })}
+      ${COMPLETO_COINCIDE}
+      select string_agg((t ->> 'tienda') || '=' || (t ->> 'completo') || '/' || (t ->> 'faltan'), ', ' order by t ->> 'tienda')
+        from jsonb_array_elements(retail.fn_vitrina_looks_por_tienda() -> 'looks' -> 0 -> 'por_tienda') t;
+      rollback;`),
+    "0|2\nTienda Lima=false/1, Tienda Trujillo=false/1",
+  );
+  esperarValor(
+    "cada prenda dice por qué falta: la falda no tiene nada en Lima (sin_stock) y sí en Trujillo; es por COLOR (la falda negra no está donde solo hay la beige)",
+    correr(`${ESCENA_FALDA_SOLO_EN_TRUJILLO}${DE_LA_PIEZA("con_falda", "lim", "falda", "NEG")}${DE_LA_PIEZA("con_falda", "tru", "falda", "NEG")}
+      ${DE_LA_PIEZA("con_falda", "lim", "emma", "BEI")}rollback;`),
+    "false|sin_stock\ntrue|nada\ntrue|nada",
+  );
+  // La única talla con stock en Lima (de la falda negra) está a S/ 0: la web no la ofrece, así que el color sigue en el catálogo (Trujillo ofrece las otras) pero Lima
+  // no tiene nada que ofrecer. Es el caso de la Cartera Manuela en Arequipa (2026-10-27): hay stock, y no es de la talla que se ofrece.
+  const ESCENA_TALLA_LIBRE_SIN_OFERTA = `${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${SIN_STOCK("emma", "falda", "vestido", "carla")}
+      ${HAY_EN("tru", "emma")}${HAY_EN("lim", "emma")}${HAY_EN("tru", "falda")}
+      select id as v0 from retail.variantes where producto_id = :'falda' and color_codigo = 'NEG' and activo order by id limit 1 \\gset
+      update retail.variantes set precio = 0 where id = :'v0';
+      insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+        values (:'v0', :'lim', (select s.id from retail.sububicaciones s where s.ubicacion_id = :'lim' and s.tipo = 'piso_venta' limit 1), 5, 0);
+      ${crear("look", { ps: piezas(["emma", "BEI"], ["falda", "NEG"]) })}\n`;
+  esperarValor(
+    "una talla libre que la web no ofrece no completa el look: en Lima el motivo es `no_ofrecida` (hay stock, pero de la talla que no se ofrece), no `sin_stock`; y sigue coincidiendo con la tienda",
+    correr(`${ESCENA_TALLA_LIBRE_SIN_OFERTA}${COMPLETO_COINCIDE}${DE_LA_PIEZA("look", "lim", "falda", "NEG")}${DE_LA_PIEZA("look", "tru", "falda", "NEG")}rollback;`),
+    "0|2\nfalse|no_ofrecida\ntrue|nada",
+  );
+  {
+    // El mutante: contar «hay» solo por stock (sin mirar lo que se ofrece). La prueba de la talla sin oferta tiene que ponerse roja.
+    const r = correr(`${ESCENA_TALLA_LIBRE_SIN_OFERTA}
+      ${MUTAR("retail.fn_vitrina_looks_por_tienda()", "(f.se_ve and f.ofrecida_y_libre)", "(f.se_ve and f.libre)")}
+      ${DE_LA_PIEZA("look", "lim", "falda", "NEG")}rollback;`);
+    esperar("el ERP que cuenta «hay» solo por stock (sin mirar lo que se ofrece): la prueba de la talla sin oferta lo ve", r.ok && r.salida !== "false|no_ofrecida", r.ok ? r.salida : r.mensaje);
+  }
+  // ---- 4d. Qué hay en cada tienda, de cada prenda (20261027204000, `fn_vitrina_prendas_por_tienda`): para filtrar y avisar al armar un look ----
+  /** Los nombres de las tiendas donde hay la prenda `prod` en `color` (o «ninguna»), según el ERP. */
+  const HAY_EN_TIENDAS = (prod, color) =>
+    `select coalesce((select string_agg(u.nombre, ',' order by u.nombre)
+        from jsonb_array_elements(retail.fn_vitrina_prendas_por_tienda() -> 'prendas') p
+        cross join jsonb_array_elements_text(p -> 'en') e (sede)
+        join retail.ubicaciones u on u.id = e.sede::uuid
+       where p ->> 'producto_id' = :'${prod}' and p ->> 'color' = '${color}'), 'ninguna');\n`;
+  esperarValor(
+    "cada prenda dice en qué tiendas hay: la falda solo en Trujillo; la blusa en las dos (es por color y se ofrece en la misma talla que hay)",
+    correr(`${ESCENA_FALDA_SOLO_EN_TRUJILLO}${HAY_EN_TIENDAS("falda", "NEG")}${HAY_EN_TIENDAS("emma", "BEI")}${HAY_EN_TIENDAS("carla", "BEI")}rollback;`),
+    "Tienda Trujillo\nTienda Lima,Tienda Trujillo\nninguna",
+  );
+  esperarValor(
+    "lo que dice una prenda es lo mismo que dice su look: por cada prenda de cada look y cada tienda, «hay» coincide con estar en la lista de la prenda",
+    correr(`${ESCENA_FALDA_SOLO_EN_TRUJILLO}
+      select concat_ws('|',
+        (select count(*) from jsonb_array_elements(retail.fn_vitrina_looks_por_tienda() -> 'looks') l
+          cross join jsonb_array_elements(l -> 'por_tienda') t cross join jsonb_array_elements(t -> 'piezas') pz
+          where (pz ->> 'hay')::boolean is distinct from exists (
+            select 1 from jsonb_array_elements(retail.fn_vitrina_prendas_por_tienda() -> 'prendas') p
+             where p ->> 'producto_id' = pz ->> 'producto_id' and p ->> 'color' = pz ->> 'color' and (p -> 'en') ? (t ->> 'sede'))),
+        (select count(*) from jsonb_array_elements(retail.fn_vitrina_looks_por_tienda() -> 'looks') l
+          cross join jsonb_array_elements(l -> 'por_tienda') t cross join jsonb_array_elements(t -> 'piezas') pz));
+      rollback;`),
+    "0|10",
+  );
+  esperarValor(
+    "una talla libre que la web no ofrece no cuenta como «hay»: la falda negra solo está en Trujillo (en Lima su única talla con stock no se ofrece)",
+    correr(`${ESCENA_TALLA_LIBRE_SIN_OFERTA}${HAY_EN_TIENDAS("falda", "NEG")}rollback;`),
+    "Tienda Trujillo",
+  );
+  {
+    // El mutante: contar «hay» solo por stock (sin mirar lo que se ofrece). La prueba de la talla sin oferta tiene que ponerse roja.
+    const r = correr(`${ESCENA_TALLA_LIBRE_SIN_OFERTA}
+      ${MUTAR("retail.fn_vitrina_prendas_por_tienda()", "join ofrecido o on o.variante_id = d.variante_id and o.sede_id = d.ubicacion_id", "left join ofrecido o on false")}
+      ${HAY_EN_TIENDAS("falda", "NEG")}rollback;`);
+    esperar("el ERP que cuenta «hay» solo por stock (sin mirar lo que se ofrece): la prueba de la talla sin oferta lo ve", r.ok && r.salida !== "Tienda Trujillo", r.ok ? r.salida : r.mensaje);
+  }
+  esperarError(
+    "sin el módulo «Vitrina web» no se puede ver qué hay en cada tienda",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${COMO_MICAELA}select retail.fn_vitrina_prendas_por_tienda();\nrollback;`),
+    "vitrina_web_sin_modulo",
+  );
+  esperarError(
+    "y la tienda online no puede llamarla (es del ERP)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${COMO_TIENDA}select retail.fn_vitrina_prendas_por_tienda();\nrollback;`),
+    "permission denied",
+  );
+
+  esperarError(
+    "sin el módulo «Vitrina web» no se puede ver en qué tiendas está completo cada look",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${COMO_MICAELA}select retail.fn_vitrina_looks_por_tienda();\nrollback;`),
+    "vitrina_web_sin_modulo",
+  );
+  esperarError(
+    "y la tienda online no puede llamarla (es del ERP)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${COMO_TIENDA}select retail.fn_vitrina_looks_por_tienda();\nrollback;`),
+    "permission denied",
+  );
+
   esperarValor(
     "como tienda_web: los looks responden (con «Todas» y con una tienda) y las tablas y el guardar se niegan",
     correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_EN_LAS_DOS}${crear("look")}
