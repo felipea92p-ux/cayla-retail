@@ -330,13 +330,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
   id: "productos.id.editar",
   ruta: "/productos/[id]/editar",
   titulo: "Editar producto",
-  resumen: "La ficha completa de una prenda: datos, fotos, colores, tallas, precios y stock.",
+  resumen: "La ficha completa de una prenda: datos, fotos, colores, tallas, precios y costos. El stock se ve aquí y se ajusta en Existencias.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "La ficha de una prenda",
-      texto: "Aquí corriges todo de una prenda que ya existe: su nombre y categoría, el tejido, las fotos, los colores y tallas, los precios y el stock de hoy. Nada se guarda hasta que tocas «Revisar y guardar». Es una demo: no se cambia nada.",
+      texto: "Aquí corriges todo de una prenda que ya existe: su nombre y categoría, el tejido, las fotos, los colores y tallas, los precios y los costos. El stock de hoy se ve aquí, con candado: se ajusta en Existencias. Nada se guarda hasta que tocas «Revisar y guardar». Es una demo: no se cambia nada.",
     },
     {
       id: "cabecera",
@@ -374,12 +374,12 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "variantes",
       ancla: "editar.seccion-variantes",
       titulo: "4 · Variantes y precios",
-      texto: "Una fila por color y una columna por talla. En «Stock de hoy» corriges cuántas hay con − y +; una raya es una talla que no existe en ese color. El lápiz corrige un color o una talla mal registrados y el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
+      texto: "Una fila por color y una columna por talla. En «Unidades» ves cuántas hay, con su candado: tócalo para ajustar el stock en Existencias. Una raya es una talla que no existe. El lápiz corrige un color o una talla; el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
     },
     {
       id: "vistas",
       ancla: "editar.vistas",
-      titulo: "Stock, precios, costos, etiquetas",
+      titulo: "Unidades, precios, costos, insignias",
       texto: "La misma tabla con otro dato a la vista. Mira: pasamos a «Precios», donde escribes el precio de cada talla o cambias varias de una vez.",
       demostrar: [{ tipo: "clic", ancla: "editar.vista-precio" }],
     },
@@ -395,7 +395,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
       titulo: "Costos e insignias",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Unidades».",
     },
     {
       id: "precio-tienda",
@@ -425,7 +425,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Llegó un color o una talla nueva",
-      texto: "«Agregar color» suma una fila con sus tallas; «Agregar talla», una columna en cada color. Las nuevas nacen en cero: el stock entra con el mismo − y + de la tabla. Te abrimos «Agregar color».",
+      texto: "«Agregar color» suma una fila con sus tallas; «Agregar talla», una columna en cada color. Las nuevas nacen con las unidades que les pongas, solo esa vez: después el stock se ajusta en Existencias. Te abrimos «Agregar color».",
     },
     {
       id: "agregar-color",
@@ -464,7 +464,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.stock-talla",
       opcional: true,
       titulo: "Stock por talla",
-      texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Con − y + lo corriges aquí mismo; se guarda con «Revisar y guardar».",
+      texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Cada número tiene candado: tócalo y «Ajustar stock» te lleva a esa talla en Existencias.",
     },
     {
       id: "ficha-consumo",

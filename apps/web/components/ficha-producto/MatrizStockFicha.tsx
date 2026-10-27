@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { TONOS } from "@/components/MuestraEtiqueta";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { EtiquetasDeLaMatriz, ordenarEtiquetas, type EtiquetaMatriz } from "./EtiquetasDeLaMatriz";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { CampoTexto, Desplegable } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { limpiarCantidad, nivelMargen } from "@/lib/alta-producto";
@@ -16,15 +14,14 @@ import { fondoDeMuestra } from "@/lib/colores-familias";
 import { limpiarPrecio } from "@/lib/tabla-alta-reglas";
 import { margenDeFila, textosCostoFijo, type CampoBloque, type FilaFicha } from "@/lib/variantes-ficha-reglas";
 import { armarMatriz, etiquetaCambiada, rangoDePrecios, totalesMatriz, type Hueco } from "@/lib/matriz-ficha-reglas";
-import { AYUDA_ENCONTRE_PRENDAS, notaSuficiente, type MotivoAjuste } from "@/lib/ajuste-reglas";
-import { ConMarca } from "./TiraFicha";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // La matriz color × talla de Editar producto, con el diseño de «Unidades de hoy» de Nuevo producto (`MatrizCantidades`, Felipe
-// 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas, la caja − N + por celda (que también
-// se escribe) y la fila «Total» fija abajo. Quien cargó la prenda en el alta reconoce la tabla al volver a editarla.
+// 2026-10-02 noche): la misma tabla con cabecera, franja y punto del color, filas alternadas y la fila «Total» fija abajo.
+// Desde el 2026-10-27 (ADR-0494, actividad 3) la pestaña «Unidades» es de SOLO LECTURA: cada número guardado lleva su candado y tocarlo abre
+// «Ajustar stock» (Existencias). Solo una variante nueva, sin guardar, lleva la caja − N + de sus unidades de partida.
 //
 // Lo que Editar tiene y el alta no, sigue aquí: la pestaña «Etiquetas» (Precios y Costos por celda también los tiene el alta desde el
 // 2026-10-10; aquí el costo sale solo si la cuenta lo ve, con el margen de cada talla debajo), «Cambiar en bloque» en Precios y Costos (`bloque`), la variante nueva marcada
@@ -100,7 +97,7 @@ export function MatrizStockFicha({
   onElegirColor,
   onVerColor,
   onCambioFila,
-  onAbrirModal,
+  onAjustar,
   etiquetas,
   avisoEtiquetas,
   onEtiqueta,
@@ -124,8 +121,8 @@ export function MatrizStockFicha({
   /** Al pasar el mouse por un color, el panel lo muestra (sin elegirlo). `undefined` = vuelve al elegido. */
   onVerColor: (c: string | null | undefined) => void;
   onCambioFila: (clave: string, cambio: Partial<Pick<FilaFicha, CampoBloque>>) => void;
-  /** Una talla que faltó en un conteo cerrado: el «+» abre el ajuste de siempre, que pregunta si es esa (ADR-0291). */
-  onAbrirModal: (color: string | null) => void;
+  /** El candado de una talla guardada: abre «Ajustar stock» (la puerta a Existencias, ADR-0494). `etiqueta` es «S · Blanco». */
+  onAjustar: (varianteId: string, etiqueta: string) => void;
   /** Las etiquetas que esta cuenta puede poner (sin las de descuento si no es líder). */
   etiquetas: readonly EtiquetaMatriz[];
   avisoEtiquetas?: string;
@@ -150,9 +147,6 @@ export function MatrizStockFicha({
   const [tocadas, setTocadas] = useState<ReadonlySet<string>>(new Set());
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
   const [borrador, setBorrador] = useState<Record<string, string>>({});
-  // Celdas cuyo número escrito quedó bajo lo apartado. Se avisa al SALIR de la celda, no con cada tecla: al escribir «10» sobre una
-  // talla con 2 apartadas, la tecla «1» no es un error (revisión del 2026-10-03).
-  const bajoApartado = useRef(new Set<string>());
   const relojes = useRef(new Map<string, number>());
   // La etiqueta que se está poniendo o quitando en la pestaña «Etiquetas». Si ya no se ofrece, la primera.
   const [etiquetaPedida, setEtiquetaPedida] = useState<string | null>(null);
@@ -186,37 +180,24 @@ export function MatrizStockFicha({
     }
   }
 
+  /** Solo una variante NUEVA (sin guardar) lleva − y +: sus unidades de partida. Una guardada tiene candado (`celdaUnidades`). */
   function paso(f: FilaFicha, p: 1 | -1) {
-    if (f.id && f.guardada) {
-      const r = stock.paso(f.id, p);
-      if (r.abrirModal) return onAbrirModal(f.guardada.colorCodigo);
-    } else stock.pasoNueva(f.clave, p);
+    stock.pasoNueva(f.clave, p);
     destellar([f.clave]);
   }
 
   function escribir(f: FilaFicha, valor: string) {
     const limpio = limpiarCantidad(valor);
     setBorrador((b) => ({ ...b, [f.clave]: limpio }));
-    bajoApartado.current.delete(f.clave);
     if (limpio === "") return;
-    const objetivo = Number(limpio);
-    if (f.id && f.guardada) {
-      const r = stock.fijar(f.id, objetivo);
-      if (r.abrirModal) {
-        setBorrador((b) => sinClave(b, f.clave));
-        return onAbrirModal(f.guardada.colorCodigo);
-      }
-      if (r.rechazado) bajoApartado.current.add(f.clave);
-    } else stock.fijarNueva(f.clave, objetivo);
+    stock.fijarNueva(f.clave, Number(limpio));
   }
 
-  /** Al salir de la celda vuelve a su número; si lo escrito quedó bajo lo apartado, recién ahí se dice por qué no se tomó. */
+  /** Al salir de la celda vuelve a su número. */
   function salirDeCelda(f: FilaFicha) {
-    if (bajoApartado.current.delete(f.clave)) avisar.error("Esa talla tiene unidades apartadas para clientes: no puede quedar en menos.");
     setBorrador((b) => sinClave(b, f.clave));
   }
 
-  const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
   const enUnidades = vista === "unidades";
   const enEtiquetas = vista === "etiquetas";
   // La columna de la derecha está en TODAS las pestañas (Felipe 2026-10-03: «debe estar todo en el mismo lugar»): si apareciera solo
@@ -224,7 +205,7 @@ export function MatrizStockFicha({
   const conColumnaTotal = m.tallas.length > 1;
   const conFilaTotal = enUnidades && m.colores.length > 1;
   const pestanas: [VistaMatriz, string][] = [
-    ["unidades", "Unidades de hoy"],
+    ["unidades", "Unidades"],
     ["precio", "Precios"],
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
     ["etiquetas", "Insignias"],
@@ -269,7 +250,7 @@ export function MatrizStockFicha({
       {/* Las bajadas apiladas en la misma celda de grid: la más larga fija el alto, y cambiar de pestaña no mueve la tabla (ADR-0185). */}
       <div className="grid text-[12.5px] text-taupe">
         <p className={`col-start-1 row-start-1 ${enUnidades ? "" : "invisible"}`} aria-hidden={!enUnidades}>
-          Lo que hay hoy {donde}.{stock.puedeAjustar ? " Toca − / + o escribe el número: se guarda con «Revisar y guardar»." : ""}{" "}
+          Lo que hay hoy en esta sede.{stock.puedeAjustar ? " Cada número tiene candado: tócalo para ajustar el stock en Existencias." : ""}{" "}
           <span className="text-tinta/45">—</span> = no existe: tócala para agregarla.
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "precio" ? "" : "invisible"}`} aria-hidden={vista !== "precio"}>
@@ -550,13 +531,14 @@ export function MatrizStockFicha({
     );
   }
 
-  /** La caja − N + de la celda: el stock de HOY en el lugar que se ajusta, más lo tocado (en ámbar hasta guardarlo). */
+  /** La celda de unidades. Una talla GUARDADA es un número con candado: tocarlo abre «Ajustar stock» (ADR-0494). Una variante NUEVA
+   *  lleva la caja − N + de sus unidades de partida: se escriben una sola vez, antes de guardar. */
   function celdaUnidades(f: FilaFicha, etiqueta: string) {
     const guardada = !!(f.id && f.guardada);
     const u = numero(f);
     // Mientras llega el stock de la base, «…»: un 0 de relleno se lee como «no hay nada» (Felipe, 2026-10-02).
     const esperando = guardada && stock.cargando;
-    // Sin «Ajustar stock» se ve el número, no la caja. Una variante nueva también: nace en 0 y no se le puede poner stock inicial
+    // Sin «Ajustar stock» se ve el número, sin candado ni caja. Una variante nueva también: nace en 0 y no se le puede poner stock inicial
     // (la carga es un ajuste: `cargarNuevas` no podría hacerla y se perdería en silencio).
     if (!stock.puedeAjustar) {
       return (
@@ -568,47 +550,53 @@ export function MatrizStockFicha({
         </span>
       );
     }
-    const antes = guardada ? stock.numeroGuardado(f.id!) : 0;
-    const cambiada = guardada ? u !== antes : u > 0;
-    const puedeBajar = guardada ? !esperando && stock.puedeBajar(f.id!) : u > 0;
-    // ADR-0328: con la carga inicial cerrada, una talla que nunca estuvo en la tienda suma solo con «Encontré prendas». Con otro
-    // motivo la celda queda quieta (sin cambios no hay nada que restar) y dice por qué; la línea bajo el motivo dice qué hacer.
-    const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
-    const quieta = !!bloqueo && u === 0;
-    const valor = borrador[f.clave] ?? (esperando ? "" : String(u));
+    if (guardada) {
+      const abrir = () => onAjustar(f.id!, etiqueta);
+      return (
+        <PasoCantidad
+          tamano="celda"
+          sinTab
+          className="matriz-paso cursor-pointer"
+          data-candado="true"
+          title="Tiene candado: el stock se ajusta en Existencias"
+          onClick={abrir}
+          menos={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${etiqueta}` }}
+          mas={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${etiqueta}` }}
+        >
+          <span className="inline-flex items-center justify-center gap-1">
+            {esperando ? "…" : u}
+            <Lock aria-hidden className="h-3 w-3 text-taupe" />
+          </span>
+        </PasoCantidad>
+      );
+    }
+    const valor = borrador[f.clave] ?? String(u);
     return (
       <PasoCantidad
         tamano="celda"
         sinTab
         className="matriz-paso"
         data-tocada={tocadas.has(f.clave) || undefined}
-        data-cambiada={cambiada || undefined}
-        data-nueva={!guardada || undefined}
-        title={
-          bloqueo ??
-          (cambiada ? (guardada ? `Antes ${antes} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined)
-        }
-        menos={{ onClick: () => paso(f, -1), deshabilitado: deshabilitado || !puedeBajar, etiqueta: `Restar a ${etiqueta}` }}
-        mas={{
-          onClick: () => paso(f, 1),
-          deshabilitado: deshabilitado || esperando || !!bloqueo,
-          etiqueta: bloqueo ? `Sumar a ${etiqueta}: ${bloqueo}` : `Sumar a ${etiqueta}`,
-        }}
+        data-cambiada={u > 0 || undefined}
+        data-nueva
+        title="Unidades de partida: entran como stock inicial al guardar. Después, el stock se ajusta en Existencias"
+        menos={{ onClick: () => paso(f, -1), deshabilitado: deshabilitado || u <= 0, etiqueta: `Restar a ${etiqueta}` }}
+        mas={{ onClick: () => paso(f, 1), deshabilitado, etiqueta: `Sumar a ${etiqueta}` }}
         campo={{
           type: "text",
           inputMode: "numeric",
           pattern: "[0-9]*",
           maxLength: 4,
           autoComplete: "off",
-          "aria-label": `Cuántas hay de ${etiqueta}`,
-          placeholder: esperando ? "…" : "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
+          "aria-label": `Con cuántas unidades nace ${etiqueta}`,
+          placeholder: "0", // sugerir-fijo: una cantidad vacía es cero, sea cual sea la prenda
           value: valor,
-          disabled: deshabilitado || esperando || quieta,
+          disabled: deshabilitado,
           onChange: (e) => escribir(f, e.target.value),
           onFocus: (e) => e.currentTarget.select(),
           onBlur: () => salirDeCelda(f),
           // El «0» de una celda vacía es un fantasma a propósito (25 %), como en Nuevo producto.
-          className: `@lg:w-9 placeholder:text-tinta/25 ${cambiada ? "text-ambar-profundo" : ""}`,
+          className: `@lg:w-9 placeholder:text-tinta/25 ${u > 0 ? "text-ambar-profundo" : ""}`,
         }}
       />
     );
@@ -720,66 +708,4 @@ export function MatrizStockFicha({
       </>
     );
   }
-}
-
-/** «Registrar los ajustes de stock de esta visita como [Conteo físico]» — el motivo, el lugar y quién, UNA vez por visita. */
-export function MotivoDeLaVisita({ stock, deshabilitado }: { stock: StockFicha; deshabilitado: boolean }) {
-  if (!stock.puedeAjustar) {
-    return <p className="mt-2.5 text-[12px] text-taupe">Tu rol ve el stock de cada talla; para ajustarlo hace falta el módulo «Ajustar stock».</p>;
-  }
-  return (
-    <div className="mt-2.5 space-y-2">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[12px] text-taupe">
-        <span>Registrar los ajustes de stock de esta visita como</span>
-        <Desplegable<MotivoAjuste>
-          id="ficha-stock-motivo"
-          forma="cajaBaja"
-          className="w-auto min-w-[9.5rem]"
-          etiquetaAccesible="Motivo de los ajustes de stock"
-          valor={stock.motivo}
-          onValor={stock.cambiarMotivo}
-          opciones={stock.motivos}
-          deshabilitado={deshabilitado}
-        />
-        {stock.separaPisoAlmacen && (
-          <>
-            <span>en</span>
-            <Desplegable<"almacen" | "piso">
-              forma="cajaBaja"
-              className="w-auto min-w-[10rem]"
-              etiquetaAccesible="Dónde se ajusta el stock"
-              valor={stock.ubicado}
-              onValor={stock.cambiarUbicado}
-              opciones={[
-                { valor: "almacen", texto: "el almacén" },
-                { valor: "piso", texto: "el piso de venta" },
-              ]}
-              deshabilitado={deshabilitado || stock.hayPendientes}
-            />
-          </>
-        )}
-      </div>
-      {/* ADR-0328: «Encontré prendas» dice dónde estaban (la base la exige: 3 letras o más). Va junto al motivo que la pide, con su
-          marca de la guía: ✓ cuando ya alcanza, «falta» mientras no. Sin «Encontré prendas» no se ve ni se envía. */}
-      {stock.pideNota && (
-        <div className="max-w-sm">
-          <CampoTexto
-            id="ficha-stock-nota"
-            etiqueta={<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? "hecho" : "falta"}>{stock.ayudaNota.etiqueta}</ConMarca>}
-            ayuda={AYUDA_ENCONTRE_PRENDAS}
-            value={stock.nota}
-            disabled={deshabilitado}
-            onChange={(e) => stock.cambiarNota(e.target.value)}
-            maxLength={200}
-            placeholder={stock.ayudaNota.placeholder}
-          />
-        </div>
-      )}
-      <div id="ficha-stock-responsable" className="max-w-sm">
-        <ComboResponsable control={stock.responsable} compacto deshabilitado={deshabilitado} />
-      </div>
-      {/* ADR-0328: hasta cuándo esta sede carga lo que ya tenía (o que ya se cerró), antes de tocar una talla nueva. */}
-      {stock.avisoCarga && <p className="text-[12px] text-taupe">{stock.avisoCarga}</p>}
-    </div>
-  );
 }
