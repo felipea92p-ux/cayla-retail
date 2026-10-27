@@ -723,7 +723,7 @@ export const GUIA_COLABORADORES: Guia = {
       ancla: "colaboradores.sec-roles",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Roles y accesos",
+      titulo: "Roles",
       texto: "Un rol es un paquete de módulos: «Integrante» ve Vender y Caja; un rol propio puede ver solo Inventario. Te lo abrimos.",
     },
     {
@@ -732,7 +732,7 @@ export const GUIA_COLABORADORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "colaboradores.sec-roles" }],
       titulo: "Los roles",
-      texto: "Cada rol con cuántos módulos ve y quiénes lo tienen. Al tocar uno ves su detalle abajo.",
+      texto: "Un rol por fila, con cuántos módulos ve y cuántas cuentas lo tienen. Al tocar uno ves su detalle al lado.",
     },
     {
       id: "roles-nuevo",
@@ -746,7 +746,7 @@ export const GUIA_COLABORADORES: Guia = {
       ancla: "roles.cabecera",
       opcional: true,
       titulo: "El rol elegido",
-      texto: "Su nombre, para qué es y qué cuentas lo tienen. «Asignar» se lo da a una persona o terminal; el menú «⋯» lo renombra, duplica o archiva. El de Líder solo lo cambia un Admin.",
+      texto: "Su nombre y quiénes lo tienen. «Asignar» se lo da a una persona o terminal; el menú «⋯» lo renombra, duplica o archiva. El de Líder solo lo cambia un Admin.",
     },
     {
       id: "roles-pantalla",
@@ -760,14 +760,7 @@ export const GUIA_COLABORADORES: Guia = {
       ancla: "roles.modulos",
       opcional: true,
       titulo: "Qué módulos ve",
-      texto: "Cada cuadro es un módulo del menú: oscuro lo ve, claro no. Tocarlo lo enciende o apaga en borrador, y nada cambia hasta «Guardar cambios». Un candado dice por qué ese no se puede dar. En la demo no tocamos ninguno.",
-    },
-    {
-      id: "roles-efecto",
-      ancla: "roles.efecto",
-      opcional: true,
-      titulo: "Así queda su menú",
-      texto: "El menú tal como lo verá quien tenga este rol, con lo que sumas o quitas marcado, antes de guardar.",
+      texto: "Cada píldora es un módulo del menú: oscura lo ve, clara no. Tocarla lo enciende o apaga en borrador —verde se suma, rojo se quita— y nada cambia hasta «Guardar cambios». Un candado dice por qué ese no se puede dar. En la demo no tocamos ninguno.",
     },
     {
       id: "roles-responsable",

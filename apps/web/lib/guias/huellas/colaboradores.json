@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 79,
+  "total": 78,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -36,17 +36,16 @@
     ],
     "components/RolesPanel.tsx": [
       "ComboResponsable «{responsable}»",
-      "Boton «{rol.fijo ? \"Asignar a una persona\" : \"Asignar a una cuenta\"}»",
+      "Boton «Asignar»",
       "Desplegable «{`pantalla-principal-${rol.id}»",
       "button «{todoEncendido ? \"Quitar todos\" : \"Todos\"}»",
       "button «{`${m.nombre}»",
       "Boton «Descartar»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "button «roles.nuevo»",
+      "Boton «roles.nuevo»",
       "button «Archivados (»",
       "button «{r.nombre}»",
-      "button «{rol.nombre}»",
-      "SegmentoDeslizante «Dónde está parado»"
+      "button «{rol.descripcion ?? undefined}»"
     ],
     "components/TerminalesModales.tsx": [
       "BotonCopiar «el correo y la clave»",
