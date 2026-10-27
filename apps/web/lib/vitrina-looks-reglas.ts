@@ -245,6 +245,76 @@ export function chipsDeLook(l: Pick<Look, "piezas">, tiendas: readonly LookEnTie
   });
 }
 
+/* ---------------- Qué hay en cada tienda, para armar un look (`fn_vitrina_prendas_por_tienda`, 20261027204000) ---------------- */
+
+// Al armar un look se ve en qué tiendas hay cada prenda: se puede filtrar «solo lo que hay en TRU» y, con lo elegido, avisar en vivo en qué tiendas saldría el look
+// (Felipe 2026-10-27). Es un aviso, no un candado: se puede guardar un look aunque hoy no salga en ninguna tienda (el stock llega mañana). La regla de «hay» es la de la
+// base, la misma que usa la tienda online: aquí solo se lee y se cruza.
+
+export type TiendaWeb = { id: string; nombre: string };
+/** En qué tiendas hay cada prenda en cada color. `en` va por la clave `producto|color`; una prenda que no está no hay en ninguna tienda. */
+export type PrendasPorTienda = { tiendas: TiendaWeb[]; en: Record<string, string[]> };
+
+export const clavePrenda = (productoId: string, color: string): string => `${productoId}|${color}`;
+export const SIN_PRENDAS_POR_TIENDA: PrendasPorTienda = { tiendas: [], en: {} };
+
+/** Lo que devuelve `fn_vitrina_prendas_por_tienda()`. Un dato raro deja todo vacío (el editor se ve igual, sin filtro ni aviso), nunca la hoja caída. */
+export function leerPrendasPorTienda(v: unknown): PrendasPorTienda {
+  if (!esObjeto(v)) return SIN_PRENDAS_POR_TIENDA;
+  const tiendas = lista(v.tiendas).flatMap((t) => {
+    if (!esObjeto(t)) return [];
+    const id = texto(t.id);
+    const nombre = texto(t.nombre);
+    return id && nombre ? [{ id, nombre }] : [];
+  });
+  const en: Record<string, string[]> = {};
+  for (const p of lista(v.prendas)) {
+    if (!esObjeto(p)) continue;
+    const productoId = texto(p.producto_id);
+    const color = texto(p.color);
+    if (!productoId || !color) continue;
+    en[clavePrenda(productoId, color)] = lista(p.en).flatMap((e) => (typeof e === "string" && e ? [e] : []));
+  }
+  return { tiendas, en };
+}
+
+/** ¿Hay esa prenda en ese color en esa tienda? */
+export const hayPrendaEnTienda = (d: PrendasPorTienda, productoId: string, color: string, sede: string): boolean => d.en[clavePrenda(productoId, color)]?.includes(sede) ?? false;
+
+/** ¿Hay el modelo (en algún color) en esa tienda? Para filtrar la grilla de prendas. */
+export const hayModeloEnTienda = (d: PrendasPorTienda, m: Pick<ModeloParaLook, "id" | "colores">, sede: string): boolean => m.colores.some((c) => hayPrendaEnTienda(d, m.id, c.codigo, sede));
+
+export type SalidaEnTienda = { sede: string; nombre: string; completo: boolean; faltan: PiezaElegida[] };
+
+/** Con las prendas elegidas, en qué tiendas saldría el look y qué le faltaría a cada una. Sin tiendas leídas, nada (no se sabe). */
+export function salidaDelLook(d: PrendasPorTienda, piezas: readonly PiezaElegida[]): SalidaEnTienda[] {
+  return d.tiendas.map((t) => {
+    const faltan = piezas.filter((p) => !hayPrendaEnTienda(d, p.productoId, p.color, t.id));
+    return { sede: t.id, nombre: nombreCortoDeTienda(t.nombre), completo: piezas.length > 0 && faltan.length === 0, faltan: [...faltan] };
+  });
+}
+
+export type AvisoDelLook = { tono: "exito" | "atencion"; titulo: string; detalle: string | null };
+
+/**
+ * Lo que se le dice a quien arma el look, con lo elegido: nada hasta tener 2 prendas (con una no hay look) ni sin saber qué hay en las tiendas; verde si sale en alguna tienda (y,
+ * si en otras no, cuál prenda les falta); ámbar si no saldría en ninguna (y qué le falta a cada una). Es un aviso: nunca impide guardar.
+ */
+export function avisoDelLook(salida: readonly SalidaEnTienda[], piezas: readonly PiezaElegida[], nombreDe: (p: PiezaElegida) => string): AvisoDelLook | null {
+  if (piezas.length < MIN_PRENDAS_LOOK || salida.length === 0) return null;
+  const falta = (s: SalidaEnTienda) => `${s.nombre}: falta ${listaDeNombres(s.faltan.map(nombreDe))}`;
+  const donde = salida.filter((s) => s.completo);
+  const sinSalir = salida.filter((s) => !s.completo);
+  if (donde.length > 0) {
+    return {
+      tono: "exito",
+      titulo: `Con estas prendas el look sale en ${listaDeNombres(donde.map((s) => s.nombre))}.`,
+      detalle: sinSalir.length > 0 ? `No sale en ${sinSalir.map(falta).join("; ")}.` : null,
+    };
+  }
+  return { tono: "atencion", titulo: "Con estas prendas el look no saldría en ninguna tienda.", detalle: `${salida.map(falta).join("; ")}.` };
+}
+
 /* ---------------- Lo que dice cada fila ---------------- */
 
 /** «S/ 304.70»: con un espacio que no se parte, para que «S/» no quede sola al final de un renglón (ADR-0413). */

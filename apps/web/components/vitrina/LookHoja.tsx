@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { avisar } from "@/components/ui/Avisos";
@@ -16,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
+import { useQueHayPorTienda } from "@/lib/useQueHayPorTienda";
 import { camposDeLook } from "@/lib/vitrina-looks-guia";
 import { ideasParaLook, ventanaDeIdeas } from "@/lib/vitrina-looks-ideas";
 import {
@@ -33,7 +35,10 @@ import {
   opcionesDeLugar,
   piezasElegidasDe,
   piezasParaGuardar,
+  avisoDelLook,
   prendasQueNoSeVen,
+  salidaDelLook,
+  SIN_PRENDAS_POR_TIENDA,
   type Look,
   type ModeloParaLook,
   type PiezaElegida,
@@ -80,6 +85,9 @@ export function LookHoja({
   const enVuelo = useRef(false);
 
   const porId = new Map(modelos.map((m) => [m.id, m]));
+  // Qué hay en cada tienda: con eso se filtra la grilla y se avisa, con lo elegido, en qué tiendas saldría el look (un aviso, nunca un candado).
+  const hayPorTienda = useQueHayPorTienda();
+  const datosPorTienda = hayPorTienda.estado === "listo" ? hayPorTienda.datos : SIN_PRENDAS_POR_TIENDA;
   // Los nombres de las prendas que ya estaban en el look, aunque hoy no se vean (no están entre los modelos de la web).
   const nombresGuardados = new Map((look?.piezas ?? []).map((p) => [p.productoId, p.nombre]));
   const guardadas = new Map((look?.piezas ?? []).map((p) => [p.productoId, p]));
@@ -89,6 +97,7 @@ export function LookHoja({
   );
   const sinCambios = lookSinCambios(look, { nombre, frase, publicado, piezas, lugar });
   const idsElegidos = new Set(piezas.map((p) => p.productoId));
+  const avisoTiendas = avisoDelLook(salidaDelLook(datosPorTienda, piezas), piezas, (p) => porId.get(p.productoId)?.nombre ?? guardadas.get(p.productoId)?.nombre ?? "Una prenda");
   // Ideas de nombre y de frase según lo elegido (`lib/vitrina-looks-ideas.ts`): sin repetir ni parecerse a lo de los demás looks.
   const otros = looks.filter((l) => l.id !== look?.id);
   const ideas = ideasParaLook(
@@ -253,6 +262,19 @@ export function LookHoja({
                 })}
               </ol>
               )}
+              {(avisoTiendas || hayPorTienda.estado === "error") && (
+                <div data-guia="look.aviso">
+                  {avisoTiendas ? (
+                    <Aviso tono={avisoTiendas.tono} titulo={avisoTiendas.titulo} chico>
+                      {avisoTiendas.detalle}
+                    </Aviso>
+                  ) : (
+                    <Aviso tono="info" chico>
+                      No se pudo mirar en qué tiendas hay estas prendas. Puedes guardar el look igual.
+                    </Aviso>
+                  )}
+                </div>
+              )}
               {Array.from({ length: Math.max(0, MIN_PRENDAS_LOOK - piezas.length) }, (_, k) => (
                 <div key={`falta-${k}`} className="grid h-[4.75rem] place-items-center rounded-xl border border-dashed border-borde-control px-3 text-center text-[13px] text-taupe">
                   {`Elige la prenda ${piezas.length + k + 1} en la grilla`}
@@ -264,6 +286,7 @@ export function LookHoja({
               elegidos={idsElegidos}
               lleno={piezas.length >= MAX_PRENDAS_LOOK}
               deshabilitado={guardando}
+              porTienda={datosPorTienda}
               onElegir={agregar}
               onQuitar={quitarPorId}
             />

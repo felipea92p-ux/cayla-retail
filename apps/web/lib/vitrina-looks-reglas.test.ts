@@ -3,6 +3,7 @@ import { sePuedeConfirmar } from "./guia-campos";
 import { camposDeLook, camposDeMostrarLook } from "./vitrina-looks-guia";
 import {
   categoriasParaLook,
+  avisoDelLook,
   chipsDeLook,
   cifrasLooks,
   colorInicial,
@@ -11,7 +12,10 @@ import {
   filtrarLooks,
   fraseLimpia,
   leerLooks,
+  hayModeloEnTienda,
+  hayPrendaEnTienda,
   leerPorTienda,
+  leerPrendasPorTienda,
   lookDeJson,
   lookSinCambios,
   loQueImpideMostrar,
@@ -26,6 +30,7 @@ import {
   porQueNoSeVe,
   prendasQueNoSeVen,
   resumenLook,
+  salidaDelLook,
   solesLook,
   type Look,
   type ModeloParaLook,
@@ -336,5 +341,82 @@ describe("looks por tienda", () => {
   it("una prenda que el look ya no tiene se dice sin nombre, no se cae", () => {
     const chips = chipsDeLook({ piezas: [] } as unknown as Pick<Look, "piezas">, leerPorTienda(dePrueba)["look-1"]);
     expect(chips[0].detalle).toContain("Una prenda");
+  });
+});
+
+// ---- Qué hay en cada tienda, para armar un look (fn_vitrina_prendas_por_tienda, 20261027204000) ----
+describe("armar un look: qué hay en cada tienda", () => {
+  const BLUSA = "b1";
+  const CARTERA = "c1";
+  const FALDA = "f1";
+  const datos = leerPrendasPorTienda({
+    tiendas: [{ id: "s-aqp", nombre: "Tienda AQP" }, { id: "s-tru", nombre: "Tienda TRU" }],
+    prendas: [
+      { producto_id: BLUSA, color: "MOK", en: ["s-aqp", "s-tru"] },
+      { producto_id: CARTERA, color: "NEG", en: ["s-aqp"] },
+      { producto_id: FALDA, color: "BEI", en: ["s-tru"] },
+    ],
+  });
+  const piezas = (...p: [string, string][]) => p.map(([productoId, color]) => ({ productoId, color }));
+  const nombres: Record<string, string> = { [BLUSA]: "Blusa Alba", [CARTERA]: "Cartera Manuela", [FALDA]: "Falda Renata" };
+  const nombreDe = (p: { productoId: string }) => nombres[p.productoId] ?? "Una prenda";
+
+  it("lee lo que devuelve la base, y un dato raro lo deja vacío sin caerse", () => {
+    expect(datos.tiendas.map((t) => t.nombre)).toEqual(["Tienda AQP", "Tienda TRU"]);
+    expect(hayPrendaEnTienda(datos, CARTERA, "NEG", "s-aqp")).toBe(true);
+    expect(hayPrendaEnTienda(datos, CARTERA, "NEG", "s-tru")).toBe(false);
+    // Es por color: la blusa en otro color no está.
+    expect(hayPrendaEnTienda(datos, BLUSA, "NEG", "s-aqp")).toBe(false);
+    for (const v of [null, undefined, 3, "x", [], {}, { tiendas: "no", prendas: 5 }, { tiendas: [null, { id: 3 }], prendas: [null, { producto_id: "a" }, { producto_id: "a", color: "X", en: "no" }] }])
+      expect(() => leerPrendasPorTienda(v)).not.toThrow();
+    expect(leerPrendasPorTienda({ tiendas: [null], prendas: [{ producto_id: "a" }] })).toEqual({ tiendas: [], en: {} });
+  });
+
+  it("filtrar por tienda: un modelo cuenta si hay en algún color", () => {
+    const m = { id: BLUSA, colores: [{ codigo: "NEG" }, { codigo: "MOK" }] } as unknown as ModeloParaLook;
+    expect(hayModeloEnTienda(datos, m, "s-tru")).toBe(true);
+    expect(hayModeloEnTienda(datos, { id: CARTERA, colores: [{ codigo: "NEG" }] } as unknown as ModeloParaLook, "s-tru")).toBe(false);
+  });
+
+  it("la salida del look: en qué tiendas sale y qué le falta a las otras", () => {
+    const s = salidaDelLook(datos, piezas([BLUSA, "MOK"], [CARTERA, "NEG"]));
+    expect(s.map((t) => [t.nombre, t.completo, t.faltan.length])).toEqual([["AQP", true, 0], ["TRU", false, 1]]);
+    expect(s[1].faltan[0].productoId).toBe(CARTERA);
+  });
+
+  it("sin prendas elegidas o sin tiendas leídas, no se dice nada", () => {
+    expect(salidaDelLook(datos, []).every((t) => !t.completo)).toBe(true);
+    expect(salidaDelLook(leerPrendasPorTienda(null), piezas([BLUSA, "MOK"]))).toEqual([]);
+    expect(avisoDelLook([], piezas([BLUSA, "MOK"], [CARTERA, "NEG"]), nombreDe)).toBeNull();
+  });
+
+  it("con una sola prenda no hay look: no se avisa todavía", () => {
+    const p = piezas([BLUSA, "MOK"]);
+    expect(avisoDelLook(salidaDelLook(datos, p), p, nombreDe)).toBeNull();
+  });
+
+  it("verde donde sale, y dice qué le falta a las demás", () => {
+    const p = piezas([BLUSA, "MOK"], [CARTERA, "NEG"]);
+    const a = avisoDelLook(salidaDelLook(datos, p), p, nombreDe);
+    expect(a).toEqual({ tono: "exito", titulo: "Con estas prendas el look sale en AQP.", detalle: "No sale en TRU: falta Cartera Manuela." });
+  });
+
+  it("verde sin detalle si sale en todas", () => {
+    const p = piezas([BLUSA, "MOK"], [BLUSA, "MOK"]);
+    const a = avisoDelLook(salidaDelLook(datos, p), p, nombreDe);
+    expect(a).toEqual({ tono: "exito", titulo: "Con estas prendas el look sale en AQP y TRU.", detalle: null });
+  });
+
+  it("ámbar si no saldría en ninguna, y qué le falta a cada tienda (prendas repartidas entre tiendas)", () => {
+    const p = piezas([CARTERA, "NEG"], [FALDA, "BEI"]);
+    const a = avisoDelLook(salidaDelLook(datos, p), p, nombreDe);
+    expect(a).toEqual({ tono: "atencion", titulo: "Con estas prendas el look no saldría en ninguna tienda.", detalle: "AQP: falta Falda Renata; TRU: falta Cartera Manuela." });
+  });
+
+  it("una prenda que no hay en ninguna tienda hace que no salga en ninguna", () => {
+    const p = piezas([BLUSA, "MOK"], [FALDA, "NEG"]);
+    const a = avisoDelLook(salidaDelLook(datos, p), p, nombreDe);
+    expect(a?.tono).toBe("atencion");
+    expect(a?.detalle).toBe("AQP: falta Falda Renata; TRU: falta Falda Renata.");
   });
 });

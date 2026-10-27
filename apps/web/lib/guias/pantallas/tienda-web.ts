@@ -670,6 +670,20 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       texto: "Filtra por categoría o busca por nombre, y toca la foto de la prenda para agregarla (otro toque la quita). Solo salen las que se ven en la web.",
     },
     {
+      id: "look-tienda",
+      ancla: "look.tienda",
+      opcional: true,
+      titulo: "Solo lo que hay en una tienda",
+      texto: "Toca una tienda para ver solo las prendas que hay ahí. Un look sale en la tienda online solo donde TODAS sus prendas están a la venta: armarlo con prendas de una misma tienda evita sorpresas.",
+    },
+    {
+      id: "look-aviso",
+      ancla: "look.aviso",
+      opcional: true,
+      titulo: "En qué tiendas saldría",
+      texto: "Con las prendas que llevas, te dice en qué tiendas saldría el look y qué le falta a las otras. Es un aviso: puedes guardarlo igual, por ejemplo si el stock llega mañana.",
+    },
+    {
       id: "look-mostrar",
       ancla: "look.mostrar",
       opcional: true,
