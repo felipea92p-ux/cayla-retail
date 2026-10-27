@@ -100,7 +100,7 @@ function VoucherGrande({ fila }: { fila: Fila }) {
   );
 }
 
-export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuentas: CuentaOpcion[]; alTerminar: () => void }) {
+export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fila: Fila; cuentas: CuentaOpcion[]; alTerminar: () => void; esLider?: boolean }) {
   const router = useRouter();
   const [monto, setMonto] = useState(fila.monto.toFixed(2));
   // Llega elegido el banco que dijo la compradora (si sigue disponible) o, si no, el BCP: Compras lo cambia si la transferencia salió de otro.
@@ -152,7 +152,12 @@ export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuenta
     >
       <div className="grid gap-6 @min-[38rem]:grid-cols-[13rem_minmax(0,1fr)]">
         <VoucherGrande fila={fila} />
-        {fila.esMia ? (
+        {!esLider && yaTenia ? (
+          <div className="flex flex-col items-start gap-2">
+            <Chip tono="pizarra">Solo un líder</Chip>
+            <p className="text-sm text-taupe">La plata que ya tenía antes de usar el sistema la confirma un líder: no sale de ningún banco, solo fija con cuánto empieza su fondo.</p>
+          </div>
+        ) : fila.esMia ? (
           <div className="flex flex-col items-start gap-2">
             <Chip tono="pizarra">Es tuya</Chip>
             <p className="text-sm text-taupe">Que la confirme otra persona de Compras.</p>

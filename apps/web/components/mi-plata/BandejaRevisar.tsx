@@ -55,6 +55,8 @@ type Datos = {
   cuentas: CuentaOpcion[];
   /** Quién está comprando ahora (20261023210000): la tarjeta «Rondas abiertas» bajo la lista. */
   rondasAbiertas?: RondaAbiertaRevisar[];
+  /** La cuenta es de líder: confirmar la plata «Ya tenía» solo es suyo (20261027231000); a los demás no se les ofrece el botón. */
+  esLider?: boolean;
 };
 
 export function BandejaRevisar(d: Datos) {
@@ -95,7 +97,7 @@ export function BandejaRevisar(d: Datos) {
     if (!actual) return null;
     if (tipo === "plata") {
       const f = d.plata.find((x) => x.id === actual.id);
-      return f && <DetallePlata key={f.id} fila={f} cuentas={d.cuentas} alTerminar={alTerminar} />;
+      return f && <DetallePlata key={f.id} fila={f} cuentas={d.cuentas} alTerminar={alTerminar} esLider={d.esLider ?? true} />;
     }
     if (tipo === "papel") {
       const p = d.papeles.find((x) => x.id === actual.id);

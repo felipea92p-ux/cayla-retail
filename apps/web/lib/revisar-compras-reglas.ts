@@ -562,10 +562,10 @@ export function chipPapel(p: Pick<PapelPorCompletar, "llego" | "lineas" | "envio
   return faltan === 0 ? { tono: "verde", texto: "Llegó todo" } : { tono: "ambar", texto: faltan === 1 ? "Faltó 1" : `Faltaron ${faltan}` };
 }
 
-export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta">): FilaBandeja {
+export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta"> & { fotoNoAbrio?: boolean }): FilaBandeja {
   return {
     id: f.id,
-    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? " · con foto" : " · sin foto"}`,
+    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? (f.fotoNoAbrio ? " · no se pudo abrir la foto" : " · con foto") : " · sin foto"}`,
     quien: f.persona,
     cuando: f.fecha ? diaMes(f.fecha) : "",
     monto: f.monto,
