@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   agruparLineas,
   anotadasDelGrupo,
+  camposDelCierrePorGrupo,
+  causasDelGrupo,
+  lineaDelGrupo,
   anotadasPorSepararDelGrupo,
   camposDelConteoPorGrupo,
   claveDeGrupo,
@@ -13,7 +16,7 @@ import {
   repartirSeparado,
   repartirTotal,
 } from "./recepcion-grupos-reglas";
-import { leerConteosDelEnvio, separarAnotada, totalSeparado, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
+import { camposDelCierre, detalleParaDespues, diferenciaDe, leerConteosDelEnvio, lineasParaCerrar, separarAnotada, totalSeparado, unidadesSinIdentificar, type LineaParaContar, type Separado } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
 const VESTIDOS = { id: "c-vestidos", nombre: "Vestidos", prefijo: "VES", familia: "vestidos" };
@@ -143,12 +146,14 @@ describe("repartir el total que se escribe, cambiando lo mínimo", () => {
     expect(repartirTotal(g, 10).cambios).toEqual([]);
   });
 
-  it("lo que ya se contó a mano en una línea no se mueve si no hace falta", () => {
-    // «Son estas (7)» dejó Lima en 7 y Sofía sin contar: escribir 10 pone Sofía en 3 sin tocar a Lima.
-    const r = repartirTotal(grupo(null, 7), 10);
-    expect([contadasDe(r, "l-sofia"), contadasDe(r, "l-lima")]).toEqual([3, undefined]);
+  it("es siempre el mismo para los mismos datos: no arrastra un reparto de antes", () => {
+    // Un reparto viejo (7 y 3 sobre una categoría de 5 y 7 sin nada separado) se vuelve a acomodar solo: nunca una línea de más y otra de menos.
+    const r = repartirTotal(grupo(7, 3), 10);
+    expect([contadasDe(r, "l-sofia"), contadasDe(r, "l-lima")]).toEqual([5, 5]);
+    // Con lo separado puesto en su línea, el resto llena lo que queda.
+    const sep = repartirTotal(grupo(5, 5, 6, 0), 10);
+    expect([contadasDe(sep, "l-sofia"), contadasDe(sep, "l-lima")]).toEqual([6, 4]);
   });
-
   it("nunca baja de lo separado ni de lo que ya entró al stock: pasa a lo mínimo y lo dice", () => {
     const g = grupo(5, 5, 4, 5);
     const r = repartirTotal(g, 6);
@@ -313,5 +318,73 @@ describe("lo que muestra la pantalla de una categoría", () => {
     expect(lineaDeLaPrenda(g, { productoId: "p-lima" }).linea?.id).toBe("l-sofia");
     expect(lineaDeLaPrenda(dosVestidos(), { productoId: "p-lima" }).linea?.id).toBe("l-lima");
     expect(lineaDeLaPrenda(dosVestidos(), { productoId: "otra" }).linea?.id).toBe("l-sofia");
+  });
+});
+
+describe("la categoría en el cierre", () => {
+  const dos = (a: Cuerpo | null, b: Cuerpo | null) => agruparLineas([deLaGuia(sofia(), a), deLaGuia(lima(), b)])[0];
+
+  it("sin separar nada, la categoría solo falta o solo sobra, y se explica UNA vez para todas sus líneas", () => {
+    // Contadas 8 de 12: faltan 4, y en el orden de la compra caen en Lima (Sofía llena).
+    const g = dos({ contadas: 5 }, { contadas: 3 });
+    const causas = causasDelGrupo(g, 0, false);
+    expect(causas.map((c) => [c.tipo, c.cantidad, c.lineas.map((l) => l.linea?.id)])).toEqual([["faltante", 4, ["l-lima"]]]);
+    // Se pasó: sobran, y van a la última.
+    const mas = causasDelGrupo(dos({ contadas: 5 }, { contadas: 9 }), 0, false);
+    expect(mas.map((c) => [c.tipo, c.cantidad])).toEqual([["sobrante", 2]]);
+    // Cuadra: nada que explicar. Sin contar: tampoco (se pide «Contarla»).
+    expect(causasDelGrupo(dos({ contadas: 5 }, { contadas: 7 }), 0, false)).toEqual([]);
+    expect(causasDelGrupo(dos(null, null), 0, false)).toEqual([]);
+  });
+
+  it("si una prenda sobra y otra falta (lo dijo la separación), se explican las dos por separado", () => {
+    // Sofía 7 de 5 (+2) y Lima 3 de 7 (−4), todo separado: dos causas, cada una con su línea.
+    const g = dos({ contadas: 7, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 7)], nuevas: [] } }, { contadas: 3, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 3)], nuevas: [] } });
+    const causas = causasDelGrupo(g, 0, false);
+    expect(causas.map((c) => [c.tipo, c.cantidad, c.lineas.map((l) => l.linea?.id)])).toEqual([
+      ["faltante", 4, ["l-lima"]],
+      ["sobrante", 2, ["l-sofia"]],
+    ]);
+  });
+
+  it("la categoría se ve como una sola línea: lo que dijeron, lo contado y lo que queda para después", () => {
+    const g = dos(
+      { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } },
+      { contadas: 5, separado: { prendas: [], nuevas: [{ cantidad: 2, descripcion: "Vestido midi" }] } },
+    );
+    const v = lineaDelGrupo(g);
+    expect([v.dijeron, v.conteo?.contadas, diferenciaDe(v)]).toEqual([12, 10, -2]);
+    expect(detalleParaDespues(v)).toEqual(["Vestido Sofía · 5 sin tallas ni colores", "Vestido midi · 2 por crear", "3 vestidos sin separar"]);
+    expect(unidadesSinIdentificar(v)).toBe(3);
+    // Sin ningún conteo no inventa uno.
+    expect(lineaDelGrupo(dos(null, null)).conteo).toBeNull();
+  });
+
+  it("la guía del cierre pide una causa y un «cuéntala» por categoría, no por línea", () => {
+    const base = { sinAviso: false, responsable: true, decisiones: {} };
+    const g = dos({ contadas: 5 }, { contadas: 3 });
+    const lineas = g.lineas;
+    const campos = camposDelCierrePorGrupo(camposDelCierre({ ...base, lineas }), [g]);
+    expect(campos.filter((c) => c.id.startsWith("causa")).map((c) => [c.id, c.hecho, c.nombre])).toEqual([["causa-item-l-lima", false, "Qué pasó · Vestidos · CAYLA"]]);
+    // Una categoría sin contar: un solo «cuéntala» aunque falten las dos líneas.
+    const sin = dos(null, null);
+    const camposSin = camposDelCierrePorGrupo(camposDelCierre({ ...base, lineas: sin.lineas }), [sin]);
+    expect(camposSin.filter((c) => c.id.startsWith("contar")).map((c) => c.id)).toEqual(["contar-item-l-sofia"]);
+    // Lo demás de la guía (responsable…) se queda como estaba.
+    expect(camposSin.at(-1)?.id).toBe("responsable");
+    // Y con la causa elegida en las líneas que faltaron, queda hecho.
+    const decisiones = { "item:l-lima": { costo: "", confirmaCosto: false, faltanteCausa: "no_vino" as const, sobranteCausa: null, nota: "" } };
+    const hechas = camposDelCierrePorGrupo(camposDelCierre({ ...base, lineas, decisiones }), [g]);
+    expect(hechas.find((c) => c.id === "causa-item-l-lima")?.hecho).toBe(true);
+  });
+
+  it("lo que se manda a cerrar sigue siendo por línea, con la misma causa en las que faltaron", () => {
+    const g = dos({ contadas: 5 }, { contadas: 3 });
+    const decisiones = { "item:l-sofia": { costo: "30", confirmaCosto: false, faltanteCausa: null, sobranteCausa: null, nota: "" }, "item:l-lima": { costo: "45", confirmaCosto: false, faltanteCausa: "no_vino" as const, sobranteCausa: null, nota: "" } };
+    const enviadas = lineasParaCerrar(g.lineas, decisiones, false);
+    expect(enviadas.map((l) => [l.despacho_item_id, l.faltante_causa, l.sobrante_causa])).toEqual([
+      ["l-sofia", null, null],
+      ["l-lima", "no_vino", null],
+    ]);
   });
 });

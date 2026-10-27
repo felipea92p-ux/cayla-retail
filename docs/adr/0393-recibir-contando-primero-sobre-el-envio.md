@@ -540,6 +540,24 @@ nivel categoría quedan como el paso siguiente, con migración (zona roja: diner
 SE ROMPE SI: una línea del envío empieza a traer varias prendas (hoy trae una): `prendasAnotadasDe` ya devuelve una lista, pero la cantidad por
 prenda tendría que salir de la compra y no de `dijeron`.
 
+### La tabla de «Cerrar» también es por categoría (Felipe, 2026-10-27)
+
+Una fila por categoría en el cierre, no por línea de la compra: «Vestidos» con lo que dijeron, lo contado, lo que se puede vender, lo que queda
+para después y una sola pregunta «¿Qué pasó?». Al desplegar la fila salen las prendas ya identificadas (y las nuevas ya descritas), cada una con su
+costo y su precio de venta; las que nadie ha identificado se cuentan al final en una frase. `lineaDelGrupo` arma la categoría como UNA línea solo
+para dibujarla; lo que se guarda y se manda a `cerrar_conteo_envio` sigue siendo por línea.
+
+DECIDÍ: lo que se contesta en una fila vale para todas las líneas a las que toca. La causa de lo que faltó (o de lo que sobró) se elige una vez y se
+escribe en cada línea que faltó (`causasDelGrupo`); el costo y el precio de una prenda se guardan en la línea donde vive esa prenda, así parte del costo
+de SU orden (Sofía a S/ 30 y Antonella a S/ 45 en la misma categoría). La guía de foco pide una causa por categoría (`camposDelCierrePorGrupo`).
+CAMBIÓ: el reparto del total contado entre las líneas ya no arrastra el de antes. Es el mismo para los mismos datos (lo separado en su línea y, sobre eso,
+lo sin separar llenando en el orden de la compra): sin separar nada, la categoría solo puede faltar o solo sobrar, nunca una línea de más y otra de menos.
+Antes, quitar una separación dejaba un reparto torcido (7 y 3 sobre 5 y 7) que habría pedido reclamar de más.
+DESCARTÉ: dejar el cierre por línea con un aviso: mostraría «faltan 2 de Lima» que nadie dijo.
+SE ROMPE SI: se separa de más una prenda (Sofía 7 de 5) y quedan unidades sin separar de otra: la fila pide DOS respuestas («Faltan 7» y «Sobran 2») y el
+reclamo sale por 7 cuando el neto de la categoría es 5, porque la base hoy cuenta cada línea sin compensar. Eso se arregla en la base (el reclamo por
+categoría neto cuando no todo está separado, y por prenda cuando sí): queda para el paso siguiente, con migración y con el OK de Felipe.
+
 ### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
 
 Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del
