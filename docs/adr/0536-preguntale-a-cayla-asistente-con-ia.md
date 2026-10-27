@@ -296,6 +296,11 @@ entre sedes es un traslado, y desde ahí va a Nuevo traslado, con su tarea de 5 
   busca, abre la prenda, entra a Editar, abre Agregar color, elige, suma (la fila «Crudo · NUEVA») y termina en «Revisa y guarda tú los
   cambios» con «Revisar y guardar» encendido, sin guardar nada. La venta de siempre, otra vez, llega a confirmar el cobro.
 
+- **Otras tareas, por la API** (cuenta de Felipe): cambiar el precio de una prenda (6 pasos, de buscarla a «Revisar y guardar»),
+  registrar un gasto (7, hasta su botón de registrar), crear un cliente (5, hasta «Registrar») y un cambio de talla (5, hasta confirmar).
+- **La evaluación** con estas instrucciones: 49 de 50. La que fallaba («¿Dónde veo cómo cambió el precio de una prenda?») elegía como
+  destino el Historial de una prenda, que se abre desde otra: ahora ese tramo va a Productos, su pantalla madre (3 de 3).
+
 **Lo que aprendí del Acompañante al probarlo con una tarea larga.**
 - La foto de «qué había a la vista» se toma cuando aparece la pieza del paso, no cuando el paso empieza: tras tocar «Editar», la pantalla
   nueva todavía carga y lo que aparece al cargar no es que la persona avanzó (saltaba hasta «guardar»).

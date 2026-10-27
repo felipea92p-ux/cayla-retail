@@ -150,8 +150,8 @@ describe("cualquier tarea termina guardando", () => {
     expect(t.map((x) => x.pasoId)).toEqual(["agregar", "guardar"]);
   });
   it("reconoce el paso que guarda por el nombre de su pieza", () => {
-    for (const a of ["editar.guardar", "agregar-color.pie", "nuevo-traslado.enviar", "vender.cobro-confirmar", "gasto.form-pie", "historial-prenda.corregir-costo-pie"]) expect(pasoGuarda({ ancla: a }), a).toBe(true);
-    for (const a of ["vender.ticket-pie", "vender.prenda-pie", "productos.buscador", "editar.agregar", "vista-rapida.botones", "x.paginas"]) expect(pasoGuarda({ ancla: a }), a).toBe(false);
+    for (const a of ["editar.guardar", "agregar-color.pie", "nuevo-traslado.enviar", "vender.cobro-confirmar", "gasto.form-pie", "historial-prenda.corregir-costo-pie", "clientas.nuevo-registrar", "fin-gastos.form-botones", "cambios.pie-reemplazo", "inicio.almacen-crear"]) expect(pasoGuarda({ ancla: a }), a).toBe(true);
+    for (const a of ["vender.ticket-pie", "vender.prenda-pie", "productos.buscador", "editar.agregar", "vista-rapida.botones", "x.paginas", "existencias.tabla-pie", "categorias.vista-pie", "caja.historial-pie"]) expect(pasoGuarda({ ancla: a }), a).toBe(false);
   });
 });
 

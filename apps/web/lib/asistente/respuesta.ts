@@ -218,6 +218,14 @@ export function revisarRespuesta(
 
   const tramos: Tramo[] = [];
   for (const t of cruda.tramos.slice(0, MAXIMO_DE_TRAMOS)) {
+    // Una pantalla que se abre desde otra (el Historial de una prenda) no tiene a dónde llevar: si la IA la eligió como destino, el tramo
+    // va a su pantalla madre, la candidata de la que cuelga, que es donde se abre.
+    const hija = sugerencias.some((s) => s.guia.id === t.guia_id) ? undefined : hijas.find((h) => h.guia.id === t.guia_id);
+    const madre = hija ? sugerencias.find((s) => s.href !== null && hija.guia.ruta.replace(/\/\([^)]+\)/g, "").startsWith(`${s.guia.ruta.replace(/\/\([^)]+\)/g, "")}/[`)) : undefined;
+    if (madre) {
+      if (!tramos.some((x) => x.guiaId === madre.guia.id)) tramos.push({ guiaId: madre.guia.id, pasoId: null, href: madre.href ?? rutaActual, rellenar: null });
+      continue;
+    }
     const elegida = sugerencias.find((s) => s.guia.id === t.guia_id);
     if (!elegida) break;
     const paso = elegida.guia.pasos.find((p) => p.id === t.paso_id && p.ancla !== null);

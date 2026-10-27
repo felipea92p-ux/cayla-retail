@@ -34,11 +34,11 @@ export type PasoTarea = {
 /**
  * ¿Este paso es el que guarda o confirma? Lo dice el nombre de su pieza (`data-guia`), que en las guías sigue unas pocas formas:
  * `….guardar`, `….confirmar`, `….enviar`, `….registrar`, `….pagar`, `….anular`, `….terminar` y el pie de una hoja (`….pie`,
- * `….form-pie`, `….costo-pie`). Es una pista para la IA y para cerrar una tarea que quedó a medias, no un permiso: guardar lo hace la persona.
+ * `….form-pie`, `….form-botones`, `….costo-pie`). Un pie que solo muestra (`tabla-pie`, `vista-pie`) no cuenta. Es una pista para la IA y para cerrar una tarea que quedó a medias, no un permiso: guardar lo hace la persona.
  */
 export function pasoGuarda(paso: Pick<PasoGuia, "ancla">): boolean {
   const ultimo = paso.ancla?.split(".").at(-1) ?? "";
-  return /^(guardar|confirmar|enviar|registrar|pagar|anular|terminar|listo|pie|form-pie)$|-(guardar|confirmar|enviar|costo-pie)$/.test(ultimo);
+  return /^(guardar|confirmar|enviar|registrar|crear|pagar|anular|terminar|listo|pie|form-pie|form-botones|pie-reemplazo)$|-(guardar|confirmar|enviar|registrar|crear|costo-pie|color-pie|campana-pie)$/.test(ultimo);
 }
 
 /** ¿La dirección es esta pantalla? Una pantalla con id en su guía (`/productos/[id]/editar`) vale para cualquier id. */

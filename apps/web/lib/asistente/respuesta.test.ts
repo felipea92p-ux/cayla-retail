@@ -192,3 +192,20 @@ describe("reglas de tienda y errores (actividad 7): el texto es el aprobado, nun
     expect(m).toContain('<error marca="caja_cerrada">');
   });
 });
+
+describe("revisarRespuesta: una pantalla que se abre desde otra no es un destino", () => {
+  it("si la IA elige el Historial de una prenda como tramo, se lleva a Productos, de donde se abre", () => {
+    const productos = GUIAS.find((g) => g.id === "productos")!;
+    const historial = GUIAS.find((g) => g.id === "productos.id.historial")!;
+    const r = revisarRespuesta(
+      ia({ tramos: [tramo("productos.id.historial", "cabeza")] }),
+      [{ guia: productos, href: "/productos", paso: null, puntos: 5 }],
+      "/",
+      [],
+      "",
+      { reglas: [], errores: [] },
+      [{ guia: historial, href: null, paso: null, puntos: 0 }],
+    );
+    expect(r.tipo === "guia" ? r.tramos.map((t) => [t.guiaId, t.href]) : r).toEqual([["productos", "/productos"]]);
+  });
+});
