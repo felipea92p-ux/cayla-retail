@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, leerTodas, opcional, type Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
 import { categoriasFueraDeMotores } from "@/lib/familias-motores";
+import type { OrdenParaMolde } from "@/lib/orden-modelo-reglas";
 import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
@@ -242,6 +243,19 @@ export async function getVocabularioModeloNuevo(): Promise<Tolerado<VocabularioM
     "las tallas y los colores del modelo nuevo",
   );
   return leido ? { datos: leido, fallo: null } : { datos: null, fallo };
+}
+
+/** El historial mínimo de órdenes del Taller para saber qué modelos ya tienen molde (`moldeDelModelo`): solo producto, estado, tipo y fases, sin joins ni tope de 60 como el tablero.
+ *  Dato SECUNDARIO: si no se lee, devuelve `null` y la hoja pregunta «¿ya tienen el molde?» en vez de deducirlo. */
+export async function getHistorialDeMoldes(tallerId: string): Promise<OrdenParaMolde[] | null> {
+  return opcional(
+    (async () => {
+      const supabase = await createClient();
+      const filas = exigir(await supabase.from("producciones").select("producto_id, estado, es_muestra, etapas").eq("ubicacion_id", tallerId).neq("estado", "anulada").limit(5000), "el historial de moldes");
+      return filas.map((f) => ({ productoId: f.producto_id, estado: f.estado, esMuestra: f.es_muestra, etapas: (f.etapas ?? null) as OrdenParaMolde["etapas"] }));
+    })(),
+    "el historial de moldes",
+  );
 }
 
 /** Lo que la hoja «Nueva orden» ofrece elegir (ADR-0400, actividad 2): los proveedores que hacen servicios con su lista de precios, cuánta tela lleva cada modelo
