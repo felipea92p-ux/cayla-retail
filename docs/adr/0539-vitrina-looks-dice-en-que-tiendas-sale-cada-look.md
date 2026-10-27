@@ -1,6 +1,6 @@
 # ADR-0539 — Vitrina web ▸ Looks dice en qué tiendas sale cada look, y avisa al armarlo
 
-- **Fecha:** 2026-10-27 · **Estado:** código y pruebas listos en la rama `claude/erp-looks-por-tienda`; **la migración `20261027204000` está solo en la base local: se pega en producción cuando Felipe lo apruebe** (hasta entonces la pantalla se ve como antes, sin chips ni filtro).
+- **Fecha:** 2026-10-27 · **Estado:** código y pruebas listos en la rama `claude/erp-looks-por-tienda` (PR #1402); **la migración `20261027204000` está pegada en producción desde el 2026-10-27** (Felipe la pegó; huellas verificadas: `fn_vitrina_looks_por_tienda` `e93a333993b22238ea4a8535b81e305b`, `fn_vitrina_prendas_por_tienda` `f4f40e5e965c95a41f39c55ee69ed997`). Falta fusionar el PR para publicar la pantalla.
 - **Relacionados:** ADR-0468 (cada tienda muestra solo los looks que puede vestir), ADR-0465 (CLAURE solo en Lima), ADR-0408 (la tienda online, «Arma tu look»), ADR-0195 (cómo se pegan las migraciones).
 
 ## El problema
