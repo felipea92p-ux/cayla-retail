@@ -837,6 +837,35 @@ export type EntradaHistorial =
       cierre: string | null;
     };
 
+/**
+ * «Tu última ronda» (Felipe 2026-10-27: sin ronda abierta, la columna de la derecha era un «0» y un «Ver 2» plegado): la ronda cerrada más
+ * nueva, destacada, con cómo cerró y en qué va. `cierre` es lo que devolvió (o lo que CAYLA le devuelve), que el historial trae como fila
+ * aparte; aquí se pega a su ronda y `resto` queda sin ambas, para no decir lo mismo dos veces. Sin ninguna ronda cerrada, `null`.
+ */
+export type UltimaRondaVista = {
+  ronda: Extract<EntradaHistorial, { tipo: "ronda" }>;
+  cierre: Extract<EntradaHistorial, { tipo: "cierre" }> | null;
+  /** Qué falta de su lado: la plata por entregar o recibir manda; si no, que Compras todavía pase algo a los libros; si no, al día. */
+  estado: { texto: string; detalle: string; pendiente: boolean };
+  /** «Devolviste en caja S/ 80.00», «Te quedaste S/ 200.00 para tu próxima ronda.», o lo que corresponda cuando no hubo plata que mover. */
+  comoCerro: string;
+  resto: EntradaHistorial[];
+};
+
+export function ultimaRondaDelHistorial(historial: readonly EntradaHistorial[]): UltimaRondaVista | null {
+  const ronda = historial.find((e): e is Extract<EntradaHistorial, { tipo: "ronda" }> => e.tipo === "ronda" && e.clave !== `ronda-${SIN_RONDA}`);
+  if (!ronda) return null;
+  const id = ronda.clave.slice("ronda-".length);
+  const cierre = historial.find((e): e is Extract<EntradaHistorial, { tipo: "cierre" }> => e.tipo === "cierre" && e.clave === `cierre-${id}`) ?? null;
+  const estado = cierre
+    ? cierre.estado
+    : ronda.pendiente
+      ? { texto: "Compras la revisa", detalle: "Compras todavía pasa algo de esta ronda a los libros", pendiente: true }
+      : { texto: "Todo al día", detalle: "Compras ya pasó todo de esta ronda a los libros", pendiente: false };
+  const comoCerro = cierre ? `${cierre.titulo} ${cierre.monto}` : (ronda.cierre ?? "No hubo plata que mover.");
+  return { ronda, cierre, estado, comoCerro, resto: historial.filter((e) => e !== ronda && e !== cierre) };
+}
+
 /** «23/10» o «21/10 al 23/10»: los días de Lima en que estuvo abierta. */
 function diasDeRonda(abiertaEn: string, cerradaEn: string): string {
   const a = diaLima(abiertaEn);
