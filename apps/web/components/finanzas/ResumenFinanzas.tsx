@@ -69,12 +69,14 @@ type Props = {
   flujoProximo: FlujoProximo;
   /** La inversión en mercadería que entrega el Plan de campaña; `null` si esta base aún no la trae (entonces no se ofrece nada). */
   inversion: CampanaInversion[] | null;
+  /** La lectura del Plan de campaña se cayó (ADR-0527): el bloque no se dibuja y se dice, nunca un 0 que parezca un dato. */
+  inversionFalla?: string | null;
   acceso: Acceso;
 };
 
 const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, acceso }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -182,7 +184,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
         </div>
       </section>
 
-      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega (hoy la base no) y se deja ver. */}
+      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega y se deja ver. */}
+      {inversionFalla && (
+        <Aviso tono="atencion" titulo="Inversión en mercadería">
+          {inversionFalla} Lo ya registrado (órdenes, facturas por pagar) sigue contando.
+        </Aviso>
+      )}
       <InversionMercaderia
         campanas={campanas}
         conIgv={ajustes.conIgv}

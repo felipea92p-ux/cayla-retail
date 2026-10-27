@@ -15,6 +15,144 @@ import { consultarLocal } from "../motor/sesion.mjs";
 const esperar = (pagina, ms = 700) => pagina.waitForTimeout(ms);
 
 export const ESCENARIOS = [
+  // ---------- Compras ▸ Plan de campaña: el centro de avisos abierto (tarea #4 de la auditoría, 2026-10-26) ----------
+  {
+    id: "compras.plan-avisos",
+    ruta: "/compras/plan",
+    ancho: "escritorio",
+    nombre: "Plan de campaña: el centro de avisos abierto",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="plan.avisos"] button').first().click();
+      await esperar(pagina, 700);
+    },
+    abre: '[data-guia="plan.avisos-panel"]',
+  },
+  // ---------- Compras ▸ Plan de campaña ▸ Calendario (ADR-0525, 2026-10-26): la línea del año y la hoja de una campaña, nueva y existente ----------
+  {
+    id: "compras.plan-calendario-linea",
+    ruta: "/compras/plan/calendario",
+    nombre: "Calendario del plan: «La línea del año»",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="calendario.vista-linea"]').first().click();
+      await esperar(pagina, 700);
+    },
+    abre: '[data-guia="calendario.linea"]',
+  },
+  {
+    id: "compras.plan-calendario-hoja-nueva",
+    ruta: "/compras/plan/calendario",
+    nombre: "Calendario del plan: la hoja de una campaña nueva",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="calendario.nueva"]').first().click();
+      await esperar(pagina, 900);
+    },
+    abre: "[role=dialog]",
+  },
+  {
+    id: "compras.plan-calendario-hoja-campana",
+    ruta: "/compras/plan/calendario",
+    nombre: "Calendario del plan: la hoja de una campaña con su historia",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="calendario.en-mi-plan"] button[aria-label^="Editar"]').first().click();
+      await esperar(pagina, 900);
+    },
+    abre: '[data-guia="calendario-hoja.historia"]',
+  },
+  // ---------- Compras ▸ Plan de campaña ▸ Resultados: «¿Subió la venta?» de una campaña terminada (ADR-0525, actualización b, 2026-10-26) ----------
+  // La del Día de la Madre si existe (tiene historia con qué medirse); si no, la última que terminó.
+  {
+    id: "compras.plan-resultados-veredicto",
+    ruta: "/compras/plan/resultados",
+    nombre: "Resultados del plan: «¿Subió la venta?» de una campaña terminada",
+    async preparar(pagina) {
+      const id = consultarLocal("select p.id from retail.planes_compra p where p.hasta < retail.fn_hoy_lima() and p.archivado_en is null and p.etiqueta_id is not null order by (p.nombre ilike 'Día de la Madre%') desc, p.hasta desc limit 1");
+      await irA(`/compras/plan/resultados?plan=${id}`)(pagina);
+    },
+    abre: '[data-guia="plan-resultados.veredicto"]',
+  },
+  // ---------- Compras ▸ Plan de campaña: el paso 2 de una categoría (ADR-0526, 2026-10-26): qué modelos, colores y tallas ----------
+  // Necesita una campaña con una categoría que ya tenga su plan (paso 1 guardado) y pida comprar algo: se toma la campaña con más plan y, de sus categorías, la primera que ofrezca el paso 2.
+  {
+    id: "compras.plan-paso-2",
+    ruta: "/compras/plan",
+    ancho: "escritorio",
+    nombre: "Plan de campaña: el paso 2 de una categoría (modelos, colores y tallas)",
+    async preparar(pagina) {
+      const id = consultarLocal("select pl.id from retail.planes_compra pl where pl.archivado_en is null order by (select coalesce(sum(l.normal), 0) from retail.planes_compra_lineas l where l.plan_id = pl.id) desc limit 1");
+      await irA(`/compras/plan?plan=${id}`)(pagina);
+      const filas = pagina.locator('[data-guia="plan.categoria"][aria-label^="Corregir"]');
+      const cuantas = Math.min(await filas.count(), 10);
+      for (let i = 0; i < cuantas; i++) {
+        await filas.nth(i).click();
+        await esperar(pagina, 900);
+        const pestana = pagina.locator('[data-guia="plan-modal.paso-2"]').first();
+        if (await pestana.count()) {
+          await pestana.click();
+          await esperar(pagina, 1500);
+          return;
+        }
+        await pagina.keyboard.press("Escape");
+        await esperar(pagina, 500);
+      }
+    },
+    abre: '[data-guia="paso2.modelos"]',
+  },
+  // ---------- Compras ▸ Plan de campaña: el paso 3 de una categoría (ADR-0530, 2026-10-26): enviar a Compras lo que el paso 2 nombró ----------
+  // Necesita una campaña con una categoría que ya tenga su paso 2 GUARDADO (la pestaña 3 solo se ofrece entonces): se toma la campaña con más pasos 2 guardados y, de sus categorías, la primera que la ofrezca.
+  {
+    id: "compras.plan-envio",
+    ruta: "/compras/plan",
+    ancho: "escritorio",
+    nombre: "Plan de campaña: el paso 3 de una categoría (enviar a Compras)",
+    async preparar(pagina) {
+      const id = consultarLocal("select p2.plan_id from retail.planes_compra_paso_2 p2 join retail.planes_compra pl on pl.id = p2.plan_id where pl.archivado_en is null group by p2.plan_id order by count(*) desc, max(pl.desde) desc limit 1");
+      await irA(`/compras/plan?plan=${id}`)(pagina);
+      const filas = pagina.locator('[data-guia="plan.categoria"][aria-label^="Corregir"]');
+      const cuantas = Math.min(await filas.count(), 10);
+      for (let i = 0; i < cuantas; i++) {
+        await filas.nth(i).click();
+        await esperar(pagina, 900);
+        const pestana = pagina.locator('[data-guia="plan-modal.paso-3"]').first();
+        if (await pestana.count()) {
+          await pestana.click();
+          await esperar(pagina, 1500);
+          return;
+        }
+        await pagina.keyboard.press("Escape");
+        await esperar(pagina, 500);
+      }
+    },
+    abre: '[data-guia="envio.pie"]',
+  },
+  // ---------- Compras ▸ Órdenes de compra ▸ Pendientes de campaña (ADR-0530, 2026-10-26): los pedidos que el Plan mandó a Compras y la hoja de «Confirmar y pedir» ----------
+  // Necesita al menos un pedido PENDIENTE de campaña (se envía desde el Plan, paso 3): sin él, la hoja no se abre y la CLI lo dice.
+  {
+    id: "compras.ordenes-pendientes-campana",
+    ruta: "/compras/ordenes",
+    ancho: "escritorio",
+    nombre: "Órdenes de compra: «Confirmar y pedir» un pedido pendiente de campaña",
+    async preparar(pagina) {
+      const boton = pagina.locator('[data-guia="ordenes.pendiente-confirmar"]').first();
+      if (await boton.count()) {
+        await boton.click();
+        await esperar(pagina, 1000);
+      }
+    },
+    abre: '[role="dialog"]',
+  },
+  // ---------- Compras ▸ Plan de campaña ▸ Presupuesto ▸ Cuándo se paga (ADR-0527, 2026-10-26): las tandas, el IGV por categoría y qué ve Finanzas ----------
+  // Necesita una campaña con algo por comprar (si nada falta pedir no hay tandas que dibujar): se toma la que más falta pedir tenga, por sus escenarios guardados.
+  {
+    id: "compras.plan-pagos",
+    ruta: "/compras/plan/presupuesto/pagos",
+    ancho: "escritorio",
+    nombre: "Plan de campaña: cuándo se pide y se paga, el IGV y lo que ve Finanzas",
+    async preparar(pagina) {
+      const id = consultarLocal("select pl.id from retail.planes_compra pl where pl.archivado_en is null and pl.hasta >= retail.fn_hoy_lima() order by (select coalesce(sum(l.bueno), 0) from retail.planes_compra_lineas l where l.plan_id = pl.id) desc limit 1");
+      await irA(`/compras/plan/presupuesto/pagos?plan=${id}`)(pagina);
+    },
+    abre: '[data-guia="pagos.tandas"]',
+  },
   // ---------- Estructura: lo que ve toda cuenta (actividad 4) ----------
   {
     id: "estructura.lateral-plegado",
