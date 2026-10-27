@@ -21,7 +21,7 @@ html:has(dialog.t-inst[open]) { overflow: hidden; }
 .t-inst-asa[data-arrastra]::before { content: ""; position: absolute; inset: -16px -72px; }
 dialog.t-inst::backdrop { opacity: var(--t-arrastre-velo, 1); }
 .t-inst-asa { width: 38px; height: 4px; border-radius: 0; background: var(--sand); margin: 0 auto 16px; }
-.t-inst-tit { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  }
+.t-inst-tit { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12;  }
 .t-inst-tit em { color: var(--rojo); }
 .t-inst-txt { margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--tinta-60); }
 .t-inst-acc { display: grid; gap: 2px; margin-top: 20px; justify-items: center; }
@@ -64,7 +64,7 @@ dialog.t-inst::backdrop { opacity: var(--t-arrastre-velo, 1); }
 .t-inst-tarjeta { margin-top: 18px; padding: 16px 18px; border-radius: 0; background: var(--hueso); animation: t-inst-entra .5s var(--ease) .3s both; }
 .t-inst-tarjeta-cab { display: flex; align-items: center; gap: 12px; }
 .t-inst-tarjeta-cab .t-inst-icono { width: 44px; height: 44px; border-radius: 0; }
-.t-inst-tarjeta h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12; }
+.t-inst-tarjeta h2 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12; }
 .t-inst-tarjeta p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--tinta-60); }
 .t-inst-tarjeta-acc { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 .t-inst-tarjeta .t-btn.t-btn-chico { margin-left: 0; }

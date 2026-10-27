@@ -14,14 +14,40 @@
 // SE DEGRADA, NUNCA ESCONDE DE MÁS. Sin la lista (la base no respondió, o es una base sin empresas) o sin la empresa de una
 // prenda (una copia del catálogo armada antes de esto), se ve todo, como antes: la base sigue rechazando lo que no corresponde.
 
-/** Una empresa que opera aquí: `clave` estable (`cayla`, `claure`), `nombre` como se escribe en pantalla. */
-export type EmpresaDeSede = { id: string; clave: string; nombre: string };
+/** Una empresa que opera aquí: `clave` estable (`cayla`, `claure`), `nombre` como se escribe en pantalla y, si se sabe, su marca
+ *  (`empresas.marca_id`, ADR-0532: la marca CAYLA es de CAYLA). */
+export type EmpresaDeSede = { id: string; clave: string; nombre: string; marcaId?: string | null };
 
 /** Las empresas que se ven aquí, o `null` si no se pudo saber (entonces no se esconde nada). */
 export type EmpresasAqui = EmpresaDeSede[] | null;
 
 /** La empresa de la casa: la que no lleva insignia (ADR-0463, `fn_empresa_casa_id`). */
 const CLAVE_CASA = "cayla";
+
+/**
+ * De qué empresa es una prenda NUEVA o vendida en una sede donde conviven dos (ADR-0532, Felipe 2026-10-26: «todo lo que se registre
+ * en Tienda Lima y no sea de la marca CAYLA pasa a ser CLAURE»): la dueña de su marca (marca CAYLA → CAYLA) y, si no la tiene (otra
+ * marca o sin marca), la otra empresa de la sede (CLAURE). Es el espejo de `fn_empresa_de_prenda_en_sede` en la base: si una cambia,
+ * cambia la otra.
+ *
+ * `null` = la regla no aplica: una sola empresa aquí (Trujillo), sin lista, o sin saber la marca de la casa (entonces manda el dato de
+ * la prenda; nunca se pasa a CLAURE lo de la marca CAYLA por un dato que falta).
+ */
+export function empresaPorMarca(marcaId: string | null | undefined, empresas: EmpresasAqui): EmpresaDeSede | null {
+  if (!empresas || empresas.length < 2) return null;
+  const casa = empresas.find((e) => e.clave === CLAVE_CASA);
+  if (!casa?.marcaId) return null;
+  const deLaMarca = marcaId ? empresas.find((e) => e.marcaId === marcaId) : undefined;
+  if (deLaMarca) return deLaMarca;
+  return empresas.find((e) => e.id !== casa.id) ?? null;
+}
+
+/** De quién es una prenda AQUÍ: por su marca donde conviven dos empresas; si no, su dato (`productos.empresa_id`). Una prenda de una
+ *  copia vieja del catálogo, sin el dato de la marca (`marcaId` ausente), se queda con su empresa: sin marca sería CLAURE por error. */
+export function empresaDePrendaAqui(prenda: { empresaId?: string | null; marcaId?: string | null }, empresas: EmpresasAqui): string | null {
+  const porMarca = prenda.marcaId === undefined ? null : empresaPorMarca(prenda.marcaId, empresas);
+  return porMarca?.id ?? prenda.empresaId ?? null;
+}
 
 /** ¿Esta prenda se ve aquí? Sin lista o sin la empresa de la prenda, sí (se degrada a mostrar). */
 export function seVeAqui(empresaId: string | null | undefined, empresas: EmpresasAqui): boolean {

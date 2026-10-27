@@ -15,6 +15,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
 
 function money(n: number) {
   return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -179,6 +180,10 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
       </Tarjeta>
 
       <div className="grid gap-3.5 @4xl:grid-cols-3">
+        {/* De quién fue lo vendido (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. */}
+        {detalle?.reparto && (
+          <RepartoEmpresas enHoja className="@4xl:col-span-3" reparto={detalle.reparto} frase="Lo vendido en este turno, prenda por prenda. Sin las ventas anuladas." />
+        )}
         <Tarjeta titulo="Qué se cobró" nota={detalle && detalle.cobros.total > 0 ? money(detalle.cobros.total) : undefined}>
           {detalle ? <CobrosPorMedio cobros={detalle.cobros} /> : esperando ? <p className="py-8 text-center text-sm text-tinta/60">Cargando lo cobrado…</p> : null}
         </Tarjeta>
