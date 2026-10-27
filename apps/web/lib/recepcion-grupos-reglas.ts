@@ -7,21 +7,26 @@
 //   NO HACE: no habla con la base ni decide dinero. La base sigue guardando una fila por línea: cuando nada se separó, ese número por línea
 //   es un reparto de trabajo (en el orden de la compra) y NO dice de cuál prenda faltó; solo lo separado tiene cantidad exacta por prenda.
 //
-// EL REPARTO cambia lo mínimo. Cada línea no baja de lo suyo ya separado ni de lo que ya entró al stock (su mínimo). Subir el total llena
-// primero las líneas con lugar, en el orden de la compra, y lo que sobre va a la última línea; bajarlo quita desde la última hacia atrás.
-// Así separar Sofía 7 y Lima 3 con 10 contadas deja 7 y 3, y cerrar sin separar deja 5 y 5 sin inventar nada que importe: el reclamo suma
-// por categoría y marca, y lo que entra al stock entra por prenda.
+// EL REPARTO es siempre el mismo para los mismos datos. Cada línea no baja de lo suyo ya separado ni de lo que ya entró al stock (su mínimo);
+// sobre eso, lo sin separar llena las líneas en el orden de la compra hasta lo que dijeron, y lo que no cabe va a la última. Así separar
+// Sofía 7 y Lima 3 con 10 contadas deja 7 y 3, y cerrar sin separar deja 5 y 5 sin inventar nada que importe: el reclamo suma por categoría
+// y marca, y lo que entra al stock entra por prenda. Y sin separar nada, la categoría solo puede faltar o solo sobrar, nunca las dos.
 
 import type { CampoDeGuia } from "./guia-campos";
 import {
   SEPARADO_VACIO,
+  causasDe,
+  contadasDe,
+  diferenciaDe,
   estaSeparada,
   ID_CAMPO_AGREGAR,
+  idCampoCierre,
   idCampoConteo,
   marcaDeLinea,
   prendasAnotadasDe,
   totalSeparado,
   type ClaveLinea,
+  type ConteoDeLinea,
   type LineaParaContar,
   type PrendaAnotada,
   type Separado,
@@ -121,31 +126,21 @@ export type Reparto = {
 };
 
 /**
- * Reparte el total de la categoría entre sus líneas cambiando lo mínimo. `minimos` es lo que cada línea no puede bajar (lo ya separado en
- * ella y lo que ya entró al stock): la categoría no baja de su suma.
+ * Reparte el total de la categoría entre sus líneas, siempre igual para los mismos datos (no depende de cómo se llegó a ellos). `minimos` es lo
+ * que cada línea no puede bajar: lo ya separado en ella y lo que ya entró al stock. Sobre eso, lo sin separar llena las líneas en el orden de
+ * la compra hasta lo que dijeron y lo que no cabe va a la última (es lo que llegó de más). Así, sin separar nada, la categoría solo puede
+ * faltar o solo puede sobrar —nunca una línea de más y otra de menos—, y el reclamo por la categoría es el neto.
  */
 function repartirContadas(lineas: readonly LineaParaContar[], minimos: readonly number[], total: number): { contadas: number[]; subio: boolean } {
   const suma = minimos.reduce((a, m) => a + m, 0);
-  const objetivo = Math.max(total, suma);
-  // Cada línea parte de lo que ya tenía, pero nunca por debajo de su mínimo.
-  const c = lineas.map((l, i) => Math.max(contadasDeLinea(l), minimos[i]));
-  let resto = objetivo - c.reduce((a, x) => a + x, 0);
-  if (resto > 0) {
-    for (let i = 0; i < lineas.length && resto > 0; i++) {
-      const lugar = Math.max(0, (lineas[i].dijeron ?? 0) - c[i]);
-      const pone = Math.min(lugar, resto);
-      c[i] += pone;
-      resto -= pone;
-    }
-    // Lo que no cupo en ninguna línea sobra: va a la última (es lo que llegó de más).
-    if (resto > 0) c[c.length - 1] += resto;
-  } else if (resto < 0) {
-    for (let i = lineas.length - 1; i >= 0 && resto < 0; i--) {
-      const quita = Math.min(c[i] - minimos[i], -resto);
-      c[i] -= quita;
-      resto += quita;
-    }
+  const c = [...minimos];
+  let resto = Math.max(total, suma) - suma;
+  for (let i = 0; i < lineas.length && resto > 0; i++) {
+    const pone = Math.min(Math.max(0, (lineas[i].dijeron ?? 0) - c[i]), resto);
+    c[i] += pone;
+    resto -= pone;
   }
+  if (resto > 0) c[c.length - 1] += resto;
   return { contadas: c, subio: total < suma };
 }
 
@@ -272,4 +267,91 @@ export function camposDelConteoPorGrupo(grupos: readonly GrupoDeLineas[]): Campo
 export function descripcionDelGrupo(g: GrupoDeLineas): string | null {
   const nombres = [...new Set(g.lineas.map((l) => l.linea?.descripcion?.trim()).filter((d): d is string => !!d))];
   return nombres.length ? nombres.join(", ") : null;
+}
+
+// ---- La categoría en el cierre ---------------------------------------------------------------------------------------------------
+
+/**
+ * La categoría vista como UNA sola línea, para dibujarla en el cierre con las mismas piezas de una línea (lo que dijeron y lo contado, «para
+ * después», las prendas con nombre). Es solo una vista: nunca va a la base (`p_lineas` sigue llevando las líneas de verdad).
+ */
+export function lineaDelGrupo(g: GrupoDeLineas): LineaParaContar {
+  const base = g.principal.conteo ?? g.lineas.find((l) => l.conteo !== null)?.conteo ?? null;
+  if (!base) return { ...g.principal, dijeron: g.dijeron };
+  const conteo: ConteoDeLinea = {
+    ...base,
+    contadas: g.contadas,
+    separado: g.separado,
+    enStock: g.enStock,
+    costosPrendas: Object.assign({}, ...g.lineas.map((l) => l.conteo?.costosPrendas ?? {})),
+    sinSeparar: g.lineas.reduce((a, l) => a + (l.conteo?.sinSeparar ?? 0), 0),
+    pendientes: g.lineas.flatMap((l) => l.conteo?.pendientes ?? []),
+  };
+  return { ...g.principal, conteo, dijeron: g.dijeron };
+}
+
+/** Lo que pasó con lo que no cuadró en una categoría: una causa para lo que faltó y otra para lo que sobró (casi siempre solo una). */
+export type CausaDelGrupo = {
+  tipo: "faltante" | "sobrante";
+  opciones: { valor: string; texto: string; ayuda: string }[];
+  /** Las líneas a las que esta causa se aplica: todas las que faltaron (o sobraron). */
+  lineas: LineaParaContar[];
+  cantidad: number;
+};
+
+/**
+ * Qué hay que explicar al cerrar una categoría. Cada línea sigue guardando su propia causa (la base las pide por línea), pero la persona
+ * contesta una sola vez por tipo: lo que se elige vale para todas las líneas que faltaron (o sobraron).
+ */
+export function causasDelGrupo(g: GrupoDeLineas, deudaPendiente: number, sinAviso: boolean): CausaDelGrupo[] {
+  const por = new Map<CausaDelGrupo["tipo"], CausaDelGrupo>();
+  for (const l of g.lineas) {
+    const c = causasDe(l, deudaPendiente, sinAviso);
+    if (!c || !l.conteo) continue;
+    const dif = diferenciaDe(l);
+    const cantidad = c.tipo === "faltante" ? -(dif ?? 0) : (dif ?? contadasDe(l));
+    const ya = por.get(c.tipo);
+    if (ya) {
+      ya.lineas.push(l);
+      ya.cantidad += cantidad;
+    } else {
+      por.set(c.tipo, { tipo: c.tipo, opciones: c.opciones, lineas: [l], cantidad });
+    }
+  }
+  return (["faltante", "sobrante"] as const).flatMap((t) => (por.has(t) ? [por.get(t) as CausaDelGrupo] : []));
+}
+
+/**
+ * Los campos de la guía del cierre por categoría: los de `camposDelCierre` piden una causa (y un «cuéntala») por línea; aquí van juntos, uno
+ * por categoría y por tipo, con el id de la primera línea (donde se dibuja la caja) y hechos cuando todas lo están.
+ */
+export function camposDelCierrePorGrupo(campos: readonly CampoDeGuia[], grupos: readonly GrupoDeLineas[]): CampoDeGuia[] {
+  const llave = new Map<string, { grupo: GrupoDeLineas; clave: string }>();
+  for (const g of grupos) {
+    for (const l of g.lineas) {
+      llave.set(idCampoCierre("contar", l.clave), { grupo: g, clave: `${g.clave}|contar` });
+      const dif = diferenciaDe(l);
+      llave.set(idCampoCierre("causa", l.clave), { grupo: g, clave: `${g.clave}|causa|${dif != null && dif < 0 ? "faltante" : "sobrante"}` });
+    }
+  }
+  const unidos = new Map<string, CampoDeGuia>();
+  const r: CampoDeGuia[] = [];
+  for (const c of campos) {
+    const k = llave.get(c.id);
+    if (!k) {
+      r.push(c);
+      continue;
+    }
+    const ya = unidos.get(k.clave);
+    if (!ya) {
+      const nombre = [k.grupo.principal.categoria?.nombre, k.grupo.principal.categoria ? marcaDeLinea(k.grupo.principal).nombre : null].filter(Boolean).join(" · ") || "esta categoría";
+      const uno: CampoDeGuia = { ...c, nombre: c.id.startsWith("causa") ? `Qué pasó · ${nombre}` : nombre };
+      unidos.set(k.clave, uno);
+      r.push(uno);
+    } else if (!c.hecho) {
+      ya.hecho = false;
+      if (!ya.pendiente) ya.pendiente = c.pendiente;
+    }
+  }
+  return r;
 }
