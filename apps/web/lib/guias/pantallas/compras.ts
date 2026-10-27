@@ -3131,7 +3131,7 @@ export const GUIA_FONDOS: Guia = {
       ancla: null,
       preparar: [{ tipo: "escape" }],
       titulo: "¡Listo!",
-      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
+      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Revisar compras.",
     },
   ],
 };

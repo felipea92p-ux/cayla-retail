@@ -437,7 +437,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
       data-guia="compra.avance"
     >
       <div className="flex items-center gap-3">
-        {atras ? <Volver onClick={() => setPaso(atras)} a="el paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
+        {atras ? <Volver onClick={() => setPaso(atras)} a="Volver al paso anterior" /> : <Volver href="/compras/mi-plata" a="Mis compras" />}
         <div className="min-w-0 flex-1">
           <div role="heading" aria-level={1} className="font-serif text-[28px] leading-none text-tinta">
             Compré ropa

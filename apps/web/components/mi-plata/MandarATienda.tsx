@@ -169,7 +169,7 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
               Mandar a la siguiente tienda ({quedan.length})
             </Boton>
           ) : (
-            <BotonVer href="/compras/mi-plata/envios" alNavegar={onClose}>
+            <BotonVer href="/compras/mi-plata/envios" alNavegar={onClose} className="w-full">
               Ver mis envíos
             </BotonVer>
           )}

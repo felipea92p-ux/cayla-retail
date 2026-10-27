@@ -130,7 +130,7 @@ export function EnviosParaRecibir({
                       Seguir recibiendo
                     </BotonEnlace>
                   ) : (
-                    // En camino: «Detalle» abre la hoja con lo que trae y, ahí, «Abrir el fardo» (salta a contar).
+                    // En camino: «Detalle» abre la hoja con lo que trae y, ahí, «Empezar a recibir» (salta a contar).
                     <DetalleEnvioPorRecibir envio={e} sede={sede} />
                   )
                 )}

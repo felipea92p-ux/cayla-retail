@@ -518,8 +518,10 @@ export function DetallePapel({
                 className={guia.claseConfirmar}
                 data-guia="fondos.papel-completar"
               >
-                <Check className="h-4 w-4" aria-hidden />
-                {fraseCompletar()}
+                <span className="inline-flex items-center gap-2">
+                  <Check className="h-4 w-4" aria-hidden />
+                  {fraseCompletar()}
+                </span>
               </Boton>
             </div>
           </div>

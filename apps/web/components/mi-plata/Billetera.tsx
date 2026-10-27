@@ -40,7 +40,7 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
             // Los montos quedan alineados abajo aunque un nombre ocupe dos líneas a 375 px.
             <div key={c.clave} className="flex min-w-0 flex-col justify-between gap-px">
               <dt className="text-crema/75">{c.nombre}</dt>
-              <dd className="text-sm font-semibold tabular-nums">{c.resta ? <Menos monto={c.monto} /> : soles(c.monto)}</dd>
+              <dd className="whitespace-nowrap text-sm font-semibold tabular-nums">{c.resta ? <Menos monto={c.monto} /> : soles(c.monto)}</dd>
             </div>
           ))}
         </dl>

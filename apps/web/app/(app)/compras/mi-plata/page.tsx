@@ -45,7 +45,8 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
     envios !== null &&
     enviosDeLaRonda(envios, rondaAbierta.id).length === 0;
   // Tres columnas solo con la ronda abierta y algo que mostrar; desde 1280 px (de 1024 a 1279, «Manda» y el registro se apilan en la segunda).
-  const tres = plata?.persona === true && plata.ronda.abierta !== null && !rondaVacia;
+  // La columna «Manda» necesita algo que mostrar: si no falta mandar y los envíos no se pudieron leer, quedaría vacía con su espacio.
+  const tres = plata?.persona === true && plata.ronda.abierta !== null && !rondaVacia && (plata.porMandar.length > 0 || envios !== null);
   const anteriores = plata?.persona ? historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? []) : [];
 
   return (
