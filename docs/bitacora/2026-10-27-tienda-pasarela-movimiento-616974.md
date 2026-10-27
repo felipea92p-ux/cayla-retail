@@ -8,3 +8,6 @@
 - **Cómo no esconde nada por error:** solo lo que está bajo el pliegue espera; sin JavaScript o con «reducir movimiento» todo se ve.
 - **Verificado:** pruebas (980), tsc, eslint, knip; en el navegador, cada animación. **Falta:** captura a 1440 y 375 px en claro y oscuro de cada una (barrido
   final), la cortina de la ficha con una foto real (la base local no tiene fotos en esas prendas), y `.t-top` (carril de «Más vendidos») sin cortina a propósito.
+- **Portada sin llegadas recientes (Felipe, 2026-10-27, decisión (a) del traspaso):** el desfile ya no desaparece. Sin prendas de los últimos 30 días sale con hasta 6 prendas de la
+  tienda (foto primero, `lasEnVitrina`), con el título «Lo nuevo»; su programa «En las tiendas» sigue con 8, y «Ver lo nuevo» siempre lleva a algún lado (a toda la tienda si
+  no hay lista de lo nuevo). Sin ninguna prenda queda la frase de la marca, ahora centrada (antes se corría a la derecha y desbordaba).
