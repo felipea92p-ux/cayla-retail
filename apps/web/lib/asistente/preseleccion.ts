@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 1): la preselección local de guías, sin IA y sin red.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 1): la preselección local de guías, sin IA y sin red.
 //
 // Es la pasada 1 del asistente: con lo que la persona escribió, busca las guías interactivas (ADR-0389) que más se parecen, entre las
 // pantallas que su rol ve. Hoy es todo lo que hay (el «modo básico»); cuando llegue la IA (actividad 2), le pasa solo estas guías en vez

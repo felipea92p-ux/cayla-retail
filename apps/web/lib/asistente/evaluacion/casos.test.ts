@@ -1,4 +1,4 @@
-// La parte sin red de la evaluación fija de «Pregúntale a CAYLA» (ADR-0529): lo que se puede saber sin llamar a la IA. La parte con red
+// La parte sin red de la evaluación fija de «Pregúntale a CAYLA» (ADR-0536): lo que se puede saber sin llamar a la IA. La parte con red
 // (lo que la IA responde de verdad) se corre a mano con `pnpm --filter web asistente:evaluar`.
 //
 // Vigila dos cosas: que cada respuesta esperada exista (una guía, una regla aprobada, un módulo) —si alguien renombra una guía, la

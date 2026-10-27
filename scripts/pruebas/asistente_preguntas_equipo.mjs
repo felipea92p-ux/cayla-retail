@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prueba de «Pregúntale a CAYLA»: la pantalla «Preguntas del equipo» (ADR-0529, actividad 9; migración
- * `20261027165000_asistente_preguntas_equipo.sql`).
+ * Prueba de «Pregúntale a CAYLA»: la pantalla «Preguntas del equipo» (ADR-0536, actividad 9; migración
+ * `20261027182000_asistente_preguntas_equipo.sql`).
  *
  * Vigila: el módulo nace solo para el líder (ningún rol lo trae) y es «solo personas» (una terminal nunca lo tiene); el líder ve las
  * cifras y la lista con QUIÉN preguntó; una integrante sin el módulo no ve nada; con el módulo ve solo su sede (ni otra, ni todas);
@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
-const MIGRACIONES = [leer("20261026235000_asistente_preguntas.sql"), leer("20261027165000_asistente_preguntas_equipo.sql")].join("\n");
+const MIGRACIONES = [leer("20261027181000_asistente_preguntas.sql"), leer("20261027182000_asistente_preguntas_equipo.sql")].join("\n");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed (cuenta)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo (cuenta)
 

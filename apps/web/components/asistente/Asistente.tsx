@@ -18,7 +18,7 @@ import { LARGO_MAXIMO_PREGUNTA, type ResultadoAsistente } from "@/lib/asistente/
 import { GUIAS } from "@/lib/guias/registro";
 import { guiaDeRuta } from "@/lib/guias/reglas";
 
-// «Pregúntale a CAYLA» (ADR-0529): el botón de la cabecera y su cajón. Mientras la persona escribe, busca sin IA las guías interactivas
+// «Pregúntale a CAYLA» (ADR-0536): el botón de la cabecera y su cajón. Mientras la persona escribe, busca sin IA las guías interactivas
 // (ADR-0389) de las pantallas que su rol ve (`preseleccionar`); al apretar «Preguntar» (o Enter), la pregunta va a la IA
 // (`/api/asistente`, actividad 2), que elige el recorrido (hasta 3 pantallas, cada una con el paso que responde), y «Muéstrame» lo arranca
 // en la pantalla de verdad, desde ese paso (actividad 3: `components/guias/recorrido.ts` y `MotorGuias`). Si la IA
@@ -85,7 +85,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     else router.push(`${s.href}${s.href.includes("?") ? "&" : "?"}demo=1`);
   }
 
-  /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0529, actividad 3). */
+  /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0536, actividad 3). */
   function recorrer(tramos: readonly Tramo[], cerrar: () => void) {
     const [primero, ...resto] = tramos;
     if (!primero) return;
@@ -255,7 +255,7 @@ async function opinar(preguntaId: string, sirvio: boolean, comentario?: string) 
 }
 
 /**
- * «¿Te sirvió? Sí / No» (ADR-0529, decisión 6). Con un «No» se anota al tiro (si cierra el cajón ahí, ya contó) y aparece una caja
+ * «¿Te sirvió? Sí / No» (ADR-0536, decisión 6). Con un «No» se anota al tiro (si cierra el cajón ahí, ya contó) y aparece una caja
  * opcional, «¿Qué buscabas?», que se manda aparte: es lo que más ayuda a saber qué construir.
  */
 function TeSirvio({ preguntaId }: { preguntaId: string }) {

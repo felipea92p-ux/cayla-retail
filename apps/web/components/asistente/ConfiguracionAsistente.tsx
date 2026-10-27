@@ -10,7 +10,7 @@ import { fechaCorta } from "@/lib/gastos-reglas";
 import { TOPE_MENSUAL_USD } from "@/lib/asistente/respuesta";
 import { estadoDeSede, gastoDelMes, type SedeAsistente } from "@/lib/asistente/sedes";
 
-// Configuración ▸ Tiendas y caja ▸ «Pregúntale a CAYLA» en cada sede (ADR-0529, actividad 8). El piloto se prende sede por sede: solo
+// Configuración ▸ Tiendas y caja ▸ «Pregúntale a CAYLA» en cada sede (ADR-0536, actividad 8). El piloto se prende sede por sede: solo
 // en las encendidas sale «Preguntar» en la cabecera. Lo cambia quien ve Configuración (Felipe 2026-10-27, `guardar_asistente_sede`),
 // con el mismo responsable y el mismo «se guarda solo» que el resto de la pestaña. Al lado, lo gastado en el mes contra el tope.
 

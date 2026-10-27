@@ -9,7 +9,7 @@ import { getInformesAsistente, getPreguntasEquipo } from "@/lib/asistente/equipo
 import { InformeSemanal } from "@/components/asistente/InformeSemanal";
 import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 
-// Gestión ▸ Preguntas del equipo (ADR-0529, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» en un mes. Felipe lo
+// Gestión ▸ Preguntas del equipo (ADR-0536, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» en un mes. Felipe lo
 // pidió para que las preguntas digan qué falta construir (las que no tuvieron respuesta), qué está escondido (las que se repiten) y
 // qué accesos pide la gente; con el nombre de quien preguntó (Felipe 2026-10-27). La sede es la que se mira (en CAYLA Global, todas);
 // el mes, `?m=`. Las cifras las cuenta la base sobre todo el mes; la lista trae las 300 más recientes.

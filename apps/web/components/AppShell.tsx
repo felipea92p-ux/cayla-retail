@@ -131,7 +131,7 @@ type Props = {
   trasladosPorAtender?: number | null;
   /** Pedidos web que esperan confirmación en la tienda activa (`getPedidosWebPorConfirmar`, ADR-0408 act. 8). `null` = sin número. */
   pedidosWebPorConfirmar?: number | null;
-  /** «Pregúntale a CAYLA» encendido en la sede que mira (ADR-0529, act. 8; `getAsistenteEncendido`). Ausente = apagado. */
+  /** «Pregúntale a CAYLA» encendido en la sede que mira (ADR-0536, act. 8; `getAsistenteEncendido`). Ausente = apagado. */
   asistenteEncendido?: boolean;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
@@ -1103,7 +1103,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
               que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            {/* «Pregúntale a CAYLA» (ADR-0529): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Tiendas y caja,
+            {/* «Pregúntale a CAYLA» (ADR-0536): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Tiendas y caja,
                 act. 8), también una terminal. No es un módulo (ADR-0306): es una ayuda, como «Demo», y solo ofrece las pantallas del
                 menú de esta cuenta. Apagado, tampoco responde a su atajo. */}
             {asistenteEncendido ? (

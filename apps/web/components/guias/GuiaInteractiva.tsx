@@ -108,7 +108,7 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       terminada.current = true;
       control.current?.abort();
       // Dejar la pantalla como estaba: lo que la guía declara, y después cerrar los modales que abrió. Salvo un tramo del asistente
-      // que rellenó un campo con lo que dijo la persona (ADR-0529, actividad 6): ahí sigue ella, con lo escrito y lo abierto a la vista.
+      // que rellenó un campo con lo que dijo la persona (ADR-0536, actividad 6): ahí sigue ella, con lo escrito y lo abierto a la vista.
       if (!guia.dejarComoQuedo) {
         for (const a of guia.alSalir ?? []) await ejecutar(a, undefined, false);
         for (let intento = 0; intento < 4 && modalesAbiertos() > dialogosAlEmpezar.current; intento++) {

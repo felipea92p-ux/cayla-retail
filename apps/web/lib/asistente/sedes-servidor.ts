@@ -3,7 +3,7 @@ import { unstable_rethrow } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { leerSedesAsistente, type SedeAsistente } from "@/lib/asistente/sedes";
 
-// «Pregúntale a CAYLA» en cada sede (ADR-0529, actividad 8): lo que lee el servidor. Todo es total (nunca lanza): el layout de la app
+// «Pregúntale a CAYLA» en cada sede (ADR-0536, actividad 8): lo que lee el servidor. Todo es total (nunca lanza): el layout de la app
 // pregunta por la sede en cada pantalla, y un error aquí no puede dejar a nadie sin ERP por un botón de ayuda.
 
 /** ¿Sale el botón «Preguntar»? `ubicacionId` null = CAYLA Global (sale si alguna sede lo tiene). Si la base no responde o todavía no

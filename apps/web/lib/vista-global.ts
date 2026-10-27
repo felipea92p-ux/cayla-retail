@@ -49,7 +49,7 @@ export const MODULOS_DE_LA_VISTA_GLOBAL = [
   "actividad",
   // Frescura del piso (ADR-0208, act. 2026-10-10 (b)): en esta vista dibuja una barra por tienda y la suma de CAYLA (`FrescuraRed`).
   "frescura",
-  // Preguntas del equipo (ADR-0529, act. 9): en esta vista, las de todas las sedes juntas (la base lo exige con CAYLA Global).
+  // Preguntas del equipo (ADR-0536, act. 9): en esta vista, las de todas las sedes juntas (la base lo exige con CAYLA Global).
   "preguntas_equipo",
 ] as const satisfies readonly ClaveModulo[];
 

@@ -15,7 +15,7 @@ import {
 } from "@/lib/asistente/informe";
 import { costoEnDolares, seLlegoAlTope } from "@/lib/asistente/respuesta";
 
-// Arma el informe del lunes (ADR-0529, actividad 10). Lo llaman el trabajo programado (con la llave de servicio) y el botón del líder (con
+// Arma el informe del lunes (ADR-0536, actividad 10). Lo llaman el trabajo programado (con la llave de servicio) y el botón del líder (con
 // su sesión): el permiso lo decide la base (`fn_asistente_ve_informe`). Pasos: ¿la semana ya tiene informe? → ¿queda tope en el mes? →
 // las cifras y las preguntas de SQL → la IA agrupa y redacta → `revisarInforme` → `guardar_informe_asistente` (que vuelve a mirar las
 // citas). Nunca lanza: devuelve qué pasó, y la ruta decide qué contestar.

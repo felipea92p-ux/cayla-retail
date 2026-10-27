@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529): las pantallas que el asistente puede ofrecer a una cuenta. Son las entradas de su menú lateral y, además,
+// «Pregúntale a CAYLA» (ADR-0536): las pantallas que el asistente puede ofrecer a una cuenta. Son las entradas de su menú lateral y, además,
 // las tres de la cabecera que tienen módulo (Colaboradores, Configuración y Actividad), que no son filas del lateral (ADR-0306). Sin
 // ellas, «¿cómo le doy acceso a una colaboradora?» nunca llevaba a Colaboradores (lo encontró la evaluación fija, 2026-10-27). La usan
 // el cajón (`AppShell`) y `/api/asistente`, para que los dos ofrezcan lo mismo.

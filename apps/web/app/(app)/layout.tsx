@@ -32,7 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // «Pedidos web N» (ADR-0408, act. 8): los que esperan confirmación en la tienda activa. Solo a quien ve el módulo y parado en una
   // tienda (la función igual responde nada sin el módulo); total como el de Traslados.
   const vePedidosWeb = persona.ubicacionTipo === "tienda" && persona.modulos.some((m) => m.clave === "pedidos_web");
-  // «Pregúntale a CAYLA» (ADR-0529, act. 8): el botón sale solo en las sedes con el asistente encendido (en CAYLA Global, si alguna lo
+  // «Pregúntale a CAYLA» (ADR-0536, act. 8): el botón sale solo en las sedes con el asistente encendido (en CAYLA Global, si alguna lo
   // tiene). Total como el contador: sin respuesta, sale apagado.
   const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar, asistenteEncendido] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),

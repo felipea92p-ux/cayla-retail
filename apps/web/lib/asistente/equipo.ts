@@ -1,4 +1,4 @@
-// «Preguntas del equipo» (ADR-0529, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA», en Gestión. Aquí lo puro:
+// «Preguntas del equipo» (ADR-0536, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA», en Gestión. Aquí lo puro:
 // leer lo que devuelve `fn_asistente_preguntas_equipo` sin creerle a ciegas, y traducir cada respuesta a lenguaje de tienda. Las
 // cifras las cuenta la base sobre TODO el período (la lista trae solo las 300 más recientes): aquí solo se juntan por clase.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de «Pregúntale a CAYLA»: el informe del lunes (ADR-0529, actividad 10; migración `20261027173000_asistente_informes.sql`).
+ * Prueba de «Pregúntale a CAYLA»: el informe del lunes (ADR-0536, actividad 10; migración `20261027183000_asistente_informes.sql`).
  *
  * Vigila: lo arma el trabajo del lunes (llave de servicio) o el líder con «Preguntas del equipo»; una integrante no, ni con el módulo
  * (el informe junta todas las sedes); una mejora que cita una pregunta inventada o de otra semana se rechaza; una semana tiene UN informe
@@ -21,9 +21,9 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
 const MIGRACIONES = [
-  leer("20261026235000_asistente_preguntas.sql"),
-  leer("20261027165000_asistente_preguntas_equipo.sql"),
-  leer("20261027173000_asistente_informes.sql"),
+  leer("20261027181000_asistente_preguntas.sql"),
+  leer("20261027182000_asistente_preguntas_equipo.sql"),
+  leer("20261027183000_asistente_informes.sql"),
 ].join("\n");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder del seed (cuenta)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Trujillo (cuenta)

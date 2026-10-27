@@ -1,5 +1,5 @@
 -- ============================================================================
--- «Pregúntale a CAYLA»: la pantalla «Preguntas del equipo» (ADR-0529, actividad 9; Felipe 2026-10-27)
+-- «Pregúntale a CAYLA»: la pantalla «Preguntas del equipo» (ADR-0536, actividad 9; Felipe 2026-10-27)
 --
 -- QUÉ. Felipe pidió el asistente para algo más que responder: que las preguntas digan qué falta construir (las que no tienen
 -- respuesta), qué está escondido (las que se repiten) y qué accesos pide la gente. Esta migración da de alta la pantalla que las
@@ -15,7 +15,7 @@
 --
 -- CÓMO SE PEGA. Una sola parte: el módulo, la lista «solo personas» de `fn_exigir_rol_de_terminal` (reemplazo anclado sobre la
 -- definición viva) y la función de lectura. No crea políticas ni hace `alter` de una tabla que la tienda usa (ADR-0195).
--- Re-ejecutable. Necesita `20261026235000_asistente_preguntas.sql` antes.
+-- Re-ejecutable. Necesita `20261027181000_asistente_preguntas.sql` antes.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -24,7 +24,7 @@ set search_path = retail, public, extensions;
 do $$
 begin
   if to_regclass('retail.asistente_preguntas') is null then
-    raise exception 'Falta retail.asistente_preguntas: pega antes 20261026235000_asistente_preguntas.sql.';
+    raise exception 'Falta retail.asistente_preguntas: pega antes 20261027181000_asistente_preguntas.sql.';
   end if;
 end $$;
 
@@ -54,7 +54,7 @@ begin
 end $$;
 
 comment on function retail.fn_exigir_rol_de_terminal(uuid, text) is
-  'ADR-0161 P6: una terminal nunca puede tener un módulo «solo personas» (colaboradores, roles, actividad, cayla_global, rendimiento, preguntas_equipo). Sin p_modulo: valida el rol completo al dárselo a una terminal. Con p_modulo: valida que ningún rol de terminal tenga ese módulo antes de encenderlo. Actualizada 20261027165000: suma «preguntas_equipo» (ADR-0529).';
+  'ADR-0161 P6: una terminal nunca puede tener un módulo «solo personas» (colaboradores, roles, actividad, cayla_global, rendimiento, preguntas_equipo). Sin p_modulo: valida el rol completo al dárselo a una terminal. Con p_modulo: valida que ningún rol de terminal tenga ese módulo antes de encenderlo. Actualizada 20261027182000: suma «preguntas_equipo» (ADR-0536).';
 
 -- ---------- 3. Lo que muestra la pantalla ----------
 -- `p_ubicacion_id` null = todas las sedes (CAYLA Global). Devuelve:
@@ -139,7 +139,7 @@ end;
 $$;
 
 comment on function retail.fn_asistente_preguntas_equipo(timestamptz, timestamptz, uuid) is
-  'ADR-0529 act. 9: lo que el equipo le pregunta a «Pregúntale a CAYLA» en un período (máx. 3 meses) y una sede (null = todas, con CAYLA Global): cifras, clases de respuesta, pantallas, accesos pedidos y las 300 preguntas más recientes con quién preguntó. Exige el módulo preguntas_equipo; sin ser líder, solo la propia sede.';
+  'ADR-0536 act. 9: lo que el equipo le pregunta a «Pregúntale a CAYLA» en un período (máx. 3 meses) y una sede (null = todas, con CAYLA Global): cifras, clases de respuesta, pantallas, accesos pedidos y las 300 preguntas más recientes con quién preguntó. Exige el módulo preguntas_equipo; sin ser líder, solo la propia sede.';
 revoke all on function retail.fn_asistente_preguntas_equipo(timestamptz, timestamptz, uuid) from public, anon;
 grant execute on function retail.fn_asistente_preguntas_equipo(timestamptz, timestamptz, uuid) to authenticated, service_role;
 

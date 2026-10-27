@@ -1,5 +1,5 @@
 -- ============================================================================
--- «Pregúntale a CAYLA»: el interruptor de cada sede (ADR-0529, actividad 8; Felipe 2026-10-27)
+-- «Pregúntale a CAYLA»: el interruptor de cada sede (ADR-0536, actividad 8; Felipe 2026-10-27)
 --
 -- QUÉ. El asistente de la cabecera se lanza en UNA sede primero (decisión 10 del ADR: 2-3 semanas de piloto antes de abrirlo a
 -- todas). Esta tabla dice en qué sedes está encendido y desde cuándo; el botón «Preguntar» solo sale en esas sedes, y `/api/asistente`
@@ -42,7 +42,7 @@ create table if not exists retail.asistente_sedes (
   cambiado_en timestamptz not null default now()
 );
 comment on table retail.asistente_sedes is
-  'ADR-0529: en qué sedes está encendido «Pregúntale a CAYLA». Sin fila = apagado. Solo la tocan guardar_asistente_sede, fn_asistente_encendido y fn_asistente_sedes.';
+  'ADR-0536: en qué sedes está encendido «Pregúntale a CAYLA». Sin fila = apagado. Solo la tocan guardar_asistente_sede, fn_asistente_encendido y fn_asistente_sedes.';
 
 alter table retail.asistente_sedes enable row level security;
 revoke all on table retail.asistente_sedes from anon, authenticated;
@@ -68,7 +68,7 @@ end;
 $$;
 
 comment on function retail.fn_asistente_encendido(uuid) is
-  'ADR-0529: si «Pregúntale a CAYLA» está encendido en la sede (sin sede: en alguna). Sin sesión, false.';
+  'ADR-0536: si «Pregúntale a CAYLA» está encendido en la sede (sin sede: en alguna). Sin sesión, false.';
 revoke all on function retail.fn_asistente_encendido(uuid) from public, anon;
 grant execute on function retail.fn_asistente_encendido(uuid) to authenticated, service_role;
 
@@ -101,7 +101,7 @@ end;
 $$;
 
 comment on function retail.fn_asistente_sedes() is
-  'ADR-0529: las sedes activas con su interruptor de «Pregúntale a CAYLA», para Configuración. Exige fn_puede_configurar().';
+  'ADR-0536: las sedes activas con su interruptor de «Pregúntale a CAYLA», para Configuración. Exige fn_puede_configurar().';
 revoke all on function retail.fn_asistente_sedes() from public, anon;
 grant execute on function retail.fn_asistente_sedes() to authenticated, service_role;
 
@@ -158,6 +158,6 @@ end;
 $$;
 
 comment on function retail.guardar_asistente_sede(uuid, boolean) is
-  'ADR-0529: enciende o apaga «Pregúntale a CAYLA» en una sede. Exige fn_puede_configurar() (Felipe 2026-10-27), firma con el responsable y anota en configuracion_historial.';
+  'ADR-0536: enciende o apaga «Pregúntale a CAYLA» en una sede. Exige fn_puede_configurar() (Felipe 2026-10-27), firma con el responsable y anota en configuracion_historial.';
 revoke all on function retail.guardar_asistente_sede(uuid, boolean) from public, anon;
 grant execute on function retail.guardar_asistente_sede(uuid, boolean) to authenticated, service_role;

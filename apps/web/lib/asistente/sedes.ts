@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» en cada sede (ADR-0529, actividad 8): el piloto se enciende por sede en Configuración ▸ Tiendas y caja, y lo
+// «Pregúntale a CAYLA» en cada sede (ADR-0536, actividad 8): el piloto se enciende por sede en Configuración ▸ Tiendas y caja, y lo
 // cambia quien ve Configuración (Felipe 2026-10-27, `guardar_asistente_sede`). Aquí, lo puro: leer lo que devuelve la base
 // (`fn_asistente_sedes`) sin creerle a ciegas, y la frase de cada sede.
 

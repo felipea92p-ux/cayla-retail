@@ -9,7 +9,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { faltaElInforme, NOMBRE_MEJORA, type InformeLeido, type MejoraLeida, type TipoMejora } from "@/lib/asistente/informe";
 
-// Gestión ▸ Preguntas del equipo ▸ lo que conviene mejorar (ADR-0529, actividad 10): las 5 mejoras del último informe del lunes, cada una
+// Gestión ▸ Preguntas del equipo ▸ lo que conviene mejorar (ADR-0536, actividad 10): las 5 mejoras del último informe del lunes, cada una
 // con cuántas preguntas la sostienen, de qué sedes, y las preguntas mismas al desplegarla. Si el trabajo del lunes no armó el de la semana
 // pasada, el líder lo arma con el botón (una vez: la base no deja dos informes de la misma semana).
 

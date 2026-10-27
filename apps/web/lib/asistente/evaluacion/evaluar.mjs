@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// La evaluación fija de «Pregúntale a CAYLA», con la IA de verdad (ADR-0529). Se corre a mano antes de cambiar el modelo, las instrucciones o
+// La evaluación fija de «Pregúntale a CAYLA», con la IA de verdad (ADR-0536). Se corre a mano antes de cambiar el modelo, las instrucciones o
 // la búsqueda local: le hace las 40 preguntas de `casos.json` al ERP LOCAL, con las cuentas de prueba, y dice cuántas respondió bien.
 //
 //   pnpm --filter web asistente:evaluar -- --base-url http://localhost:3011

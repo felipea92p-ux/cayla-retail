@@ -180,7 +180,7 @@ export const MODULOS: readonly Modulo[] = [
   // el líder hasta que Felipe se la da al rol de las encargadas. Solo para personas (`MODULOS_SOLO_PERSONAS`):
   // una terminal compartida no revisa el desempeño de nadie.
   { clave: "rendimiento", grupo: "Gestión", nombre: "Rendimiento", incluye: "Ver las ventas de cada persona del equipo en el mes: quién vende más por hora trabajada y quién cierra más ventas, y la ficha de cada quien" },
-  // ADR-0529 (actividad 9, 20261027165000): lo que el equipo le pregunta a «Pregúntale a CAYLA», con quién preguntó (Felipe
+  // ADR-0536 (actividad 9, 20261027182000): lo que el equipo le pregunta a «Pregúntale a CAYLA», con quién preguntó (Felipe
   // 2026-10-27). Nace sin rol (ADR-0161): solo la ve el líder. Solo para personas (`MODULOS_SOLO_PERSONAS`), como Rendimiento: una
   // terminal compartida no revisa lo que preguntan las demás.
   { clave: "preguntas_equipo", grupo: "Gestión", nombre: "Preguntas del equipo", incluye: "Ver lo que el equipo le pregunta a «Pregúntale a CAYLA»: quién preguntó qué, en qué sede y pantalla, qué se resolvió, qué no se encontró, qué accesos piden y si les sirvió" },

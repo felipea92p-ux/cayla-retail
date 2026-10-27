@@ -54,19 +54,19 @@ export const PRUEBAS = [
 
   "pruebas:gastos",
 
-  // «Pregúntale a CAYLA» (ADR-0529): cada pregunta se anota con su cuenta; el costo de una fila tiene techo (nadie infla el tope del
+  // «Pregúntale a CAYLA» (ADR-0536): cada pregunta se anota con su cuenta; el costo de una fila tiene techo (nadie infla el tope del
   // mes); «¿Te sirvió?» solo lo contesta quien preguntó, una vez; la tabla no se toca directo desde la API. ROLLBACK.
   "pruebas:asistente-preguntas",
 
-  // El interruptor de cada sede (ADR-0529, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
+  // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",
 
-  // «Preguntas del equipo» (ADR-0529, act. 9): el módulo nace solo para el líder y es «solo personas»; sin el módulo no se ve nada;
+  // «Preguntas del equipo» (ADR-0536, act. 9): el módulo nace solo para el líder y es «solo personas»; sin el módulo no se ve nada;
   // con él, sin ser líder, solo la propia sede; todas juntas piden CAYLA Global; las cifras cuentan todo el período. ROLLBACK.
   "pruebas:asistente-preguntas-equipo",
 
-  // El informe del lunes (ADR-0529, act. 10): lo arma el cron o el líder; una cita inventada o de otra semana se rechaza; una semana,
+  // El informe del lunes (ADR-0536, act. 10): lo arma el cron o el líder; una cita inventada o de otra semana se rechaza; una semana,
   // un informe (no se paga dos veces); su costo entra al tope del mes. ROLLBACK.
   "pruebas:asistente-informes",
 

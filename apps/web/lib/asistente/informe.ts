@@ -1,4 +1,4 @@
-// El informe del lunes de «Pregúntale a CAYLA» (ADR-0529, actividad 10): las preguntas de la semana anterior se vuelven hasta 5 mejoras,
+// El informe del lunes de «Pregúntale a CAYLA» (ADR-0536, actividad 10): las preguntas de la semana anterior se vuelven hasta 5 mejoras,
 // cada una con las preguntas que la sostienen. Aquí lo puro: qué semana se informa, qué se le manda a la IA (Claude Sonnet 5.5), cómo se
 // revisa lo que contesta y cómo se lee lo guardado para la pantalla.
 //

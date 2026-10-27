@@ -1,5 +1,5 @@
 -- ============================================================================
--- «Pregúntale a CAYLA»: el informe del lunes (ADR-0529, actividad 10; Felipe 2026-10-26, decisión 7)
+-- «Pregúntale a CAYLA»: el informe del lunes (ADR-0536, actividad 10; Felipe 2026-10-26, decisión 7)
 --
 -- QUÉ. Cada lunes, las preguntas de la semana anterior se vuelven 5 mejoras con su evidencia: qué tipo de mejora es (función nueva ·
 -- mover a la vista · escribir una regla · dar un acceso · capacitar a alguien), qué hacer, y LAS PREGUNTAS QUE LA SOSTIENEN. Las cifras
@@ -16,7 +16,7 @@
 -- EL TOPE. Lo que cuesta cada informe entra al tope de US$30 del mes (`fn_asistente_gasto_del_mes`, que aquí se rehace sumándolo).
 --
 -- CÓMO SE PEGA. Una sola parte: tabla nueva (RLS encendido SIN políticas) y funciones; no hace `alter` de una tabla en uso ni crea
--- políticas (ADR-0195). Re-ejecutable. Va después de `20261026235000` y `20261027165000`. Nada se borra nunca: un informe no se rehace.
+-- políticas (ADR-0195). Re-ejecutable. Va después de `20261027181000` y `20261027182000`. Nada se borra nunca: un informe no se rehace.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -25,10 +25,10 @@ set search_path = retail, public, extensions;
 do $$
 begin
   if to_regclass('retail.asistente_preguntas') is null then
-    raise exception 'Falta retail.asistente_preguntas: pega antes 20261026235000_asistente_preguntas.sql.';
+    raise exception 'Falta retail.asistente_preguntas: pega antes 20261027181000_asistente_preguntas.sql.';
   end if;
   if not exists (select 1 from retail.modulos where clave = 'preguntas_equipo') then
-    raise exception 'Falta el módulo preguntas_equipo: pega antes 20261027165000_asistente_preguntas_equipo.sql.';
+    raise exception 'Falta el módulo preguntas_equipo: pega antes 20261027182000_asistente_preguntas_equipo.sql.';
   end if;
 end $$;
 
@@ -52,7 +52,7 @@ create table if not exists retail.asistente_informes (
   pedido_por uuid references public.personas (id)
 );
 comment on table retail.asistente_informes is
-  'ADR-0529 act. 10: el informe semanal de «Pregúntale a CAYLA» (5 mejoras con las preguntas que las sostienen). Uno por semana, sin DELETE. Solo lo tocan sus funciones.';
+  'ADR-0536 act. 10: el informe semanal de «Pregúntale a CAYLA» (5 mejoras con las preguntas que las sostienen). Uno por semana, sin DELETE. Solo lo tocan sus funciones.';
 
 alter table retail.asistente_informes enable row level security;
 revoke all on table retail.asistente_informes from anon, authenticated;
@@ -232,7 +232,7 @@ $$;
 revoke all on function retail.fn_asistente_informes(integer) from public, anon;
 grant execute on function retail.fn_asistente_informes(integer) to authenticated, service_role;
 
--- El tope del mes ahora suma también lo que costaron los informes (rehace la de 20261026235000; misma firma y mismo permiso).
+-- El tope del mes ahora suma también lo que costaron los informes (rehace la de 20261027181000; misma firma y mismo permiso).
 create or replace function retail.fn_asistente_gasto_del_mes()
 returns numeric
 language plpgsql
@@ -252,7 +252,7 @@ end;
 $$;
 
 comment on function retail.fn_asistente_gasto_del_mes() is
-  'ADR-0529: lo que costaron en el mes de Lima las preguntas a «Pregúntale a CAYLA» y sus informes semanales (US$), para el tope mensual.';
+  'ADR-0536: lo que costaron en el mes de Lima las preguntas a «Pregúntale a CAYLA» y sus informes semanales (US$), para el tope mensual.';
 revoke all on function retail.fn_asistente_gasto_del_mes() from public, anon;
 grant execute on function retail.fn_asistente_gasto_del_mes() to authenticated, service_role;
 

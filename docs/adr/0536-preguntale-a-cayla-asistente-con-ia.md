@@ -1,4 +1,4 @@
-# ADR-0529 — «Pregúntale a CAYLA»: la IA que te lleva al botón, y las preguntas que dicen qué construir
+# ADR-0536 — «Pregúntale a CAYLA»: la IA que te lleva al botón, y las preguntas que dicen qué construir
 
 - **Fecha:** 2026-10-26 · **Estado:** propuesto. La visión la fijó Felipe con 10 respuestas el 2026-10-26; las tres tensiones de abajo las
   resolví yo con mi recomendación y Felipe puede cambiarlas. **Nada construido, ninguna migración, ninguna clave de API.**
@@ -208,7 +208,7 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   (quien supervisa el piloto lo prueba desde ahí). Si la base no responde o todavía no tiene la función, el botón sale **apagado**: el
   piloto es de una sede y nadie gasta sin querer. `/api/asistente` también lo pregunta y contesta 403 a una sede apagada, aunque alguien la
   llame sin el botón. Apagar no borra la fila (queda desde cuándo corrió) y cada cambio va a `configuracion_historial`.
-- **La pantalla del informe** (actividad 9, migración `20261027165000_asistente_preguntas_equipo.sql`): Gestión ▸ **«Preguntas del
+- **La pantalla del informe** (actividad 9, migración `20261027182000_asistente_preguntas_equipo.sql`): Gestión ▸ **«Preguntas del
   equipo»** (`/gestion/preguntas`, módulo `preguntas_equipo`). El nombre del ADR, «Lo que pregunta tu equipo», no cabía en el lateral; queda
   como la frase de la cabecera. **Muestra quién preguntó** (Felipe 2026-10-27, elegido entre «solo la sede» y «con el nombre»), y por eso:
   el cajón del asistente avisa antes de escribir («Tu líder ve lo que preguntas, para mejorar CAYLA»), y el módulo es **«solo personas»**
@@ -219,7 +219,7 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   la lista a todo el ancho con sus píldoras (a 1440 px, una columna al costado partía las preguntas a media palabra). «Sin respuesta» se lee
   como «Regla sin escribir», «Error sin explicar» o «No existe en CAYLA» según lo que preguntaba. Las 5 mejoras del lunes (actividad 10) se
   suman a esta misma pantalla.
-- **El informe del lunes** (actividad 10, migración `20261027173000_asistente_informes.sql`, ruta `/api/asistente/informe`): **lo arma un
+- **El informe del lunes** (actividad 10, migración `20261027183000_asistente_informes.sql`, ruta `/api/asistente/informe`): **lo arma un
   trabajo programado de Vercel** (`vercel.json`, los lunes a las 7:00 de Lima) y no un vigía de GitHub Actions como decía «Cómo funciona»:
   el cron de Vercel entra con `CRON_SECRET` y la llave de servicio, que ya están en producción, y no pide un secreto nuevo. Informa la
   semana anterior completa (lunes a lunes de Lima). **La IA no ve ids ni sedes**: ve «p1», «p2»… y lo que se respondió; el servidor descarta

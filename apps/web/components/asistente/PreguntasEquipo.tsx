@@ -25,7 +25,7 @@ import {
   type PreguntaEquipo,
 } from "@/lib/asistente/equipo";
 
-// Gestión ▸ Preguntas del equipo (ADR-0529, actividad 9). Arriba, las cifras del mes (las que filtran se rellenan al tocarlas); después,
+// Gestión ▸ Preguntas del equipo (ADR-0536, actividad 9). Arriba, las cifras del mes (las que filtran se rellenan al tocarlas); después,
 // las pantallas que más responden y qué accesos piden; abajo, la lista con sus filtros en una tarjeta, a todo el ancho. Todo se filtra en el navegador:
 // el servidor ya leyó el mes (sin loader, ADR-0149).
 

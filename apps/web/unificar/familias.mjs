@@ -731,7 +731,7 @@ export const DECISIONES = {
       { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ConfiguracionTiendas.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ConfiguracionMetasMes.tsx", "motivo": "ADR-0195/ADR-0435: las tarjetas de metas por mes y por fecha son de Configuración ▸ Tiendas y caja y usan la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
-      { "archivo": "components/asistente/ConfiguracionAsistente.tsx", "motivo": "ADR-0195/ADR-0529: el interruptor del asistente por sede es una tarjeta de Configuración ▸ Tiendas y caja y usa la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
+      { "archivo": "components/asistente/ConfiguracionAsistente.tsx", "motivo": "ADR-0195/ADR-0536: el interruptor del asistente por sede es una tarjeta de Configuración ▸ Tiendas y caja y usa la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
       { "archivo": "components/GastosFijosYActivos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/GastosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ImpuestosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },

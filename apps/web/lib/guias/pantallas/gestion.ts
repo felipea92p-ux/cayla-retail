@@ -554,7 +554,7 @@ export const GUIA_RENDIMIENTO: Guia = {
   alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "rendimiento.periodo-hoy" }],
 };
 
-// Gestión ▸ Preguntas del equipo (ADR-0529, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA». Solo lee: la demo no
+// Gestión ▸ Preguntas del equipo (ADR-0536, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA». Solo lee: la demo no
 // guarda nada (no hay nada que guardar); los filtros se explican sin tocarlos, para no dejar la lista filtrada al salir.
 export const GUIA_PREGUNTAS_EQUIPO: Guia = {
   id: "gestion.preguntas",

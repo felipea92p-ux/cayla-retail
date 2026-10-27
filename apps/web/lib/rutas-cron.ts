@@ -23,7 +23,7 @@ export const RUTAS_DE_CRON = [
   "/api/pedidos-web/cerrar-vencidos",
   // 20261016003000 (Felipe 2026-10-15, D4): libera los apartados vencidos de todas las tiendas, cada madrugada (3:40 de Lima).
   "/api/apartados/vencer",
-  // ADR-0529 (actividad 10): el informe del lunes de «Pregúntale a CAYLA», los lunes a las 7:00 de Lima.
+  // ADR-0536 (actividad 10): el informe del lunes de «Pregúntale a CAYLA», los lunes a las 7:00 de Lima.
   "/api/asistente/informe",
 ] as const;
 

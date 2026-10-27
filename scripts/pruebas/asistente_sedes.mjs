@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de «Pregúntale a CAYLA»: el interruptor de cada sede (ADR-0529, actividad 8; migración `20261027163000_asistente_sedes.sql`).
+ * Prueba de «Pregúntale a CAYLA»: el interruptor de cada sede (ADR-0536, actividad 8; migración `20261027163000_asistente_sedes.sql`).
  *
  * Vigila: el asistente nace apagado en todas las sedes; quien ve Configuración lo enciende y lo apaga (Felipe 2026-10-27: no solo un
  * líder), y una integrante sin ese módulo no; sin sesión nada sale encendido; en CAYLA Global (sin sede) sale si alguna sede lo
@@ -72,6 +72,8 @@ const rechaza = (patron, sql) => () => {
 
 caso("nace apagado: ninguna sede lo tiene, tampoco en CAYLA Global",
   da("false|false", `${TIENDAS}
+-- La base local puede traer sedes encendidas de antes: dentro de esta transacción (que se deshace) se apagan, como recién pegada.
+update retail.asistente_sedes set encendido = false;
 ${como(FELIPE)}
 select retail.fn_asistente_encendido(:'t')::text || '|' || retail.fn_asistente_encendido(null)::text;`));
 

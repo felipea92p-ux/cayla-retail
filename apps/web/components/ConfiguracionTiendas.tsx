@@ -240,7 +240,7 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
 
 /** `despuesDeWhatsapp`: otra tarjeta de la sede que va entre el WhatsApp y las campañas (la carga inicial, ADR-0328). Se pasa
  *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. `asistente`: el interruptor
- *  de «Pregúntale a CAYLA» por sede (ADR-0529, act. 8), que sí usa el responsable de aquí; `null` si la base no lo tiene todavía. */
+ *  de «Pregúntale a CAYLA» por sede (ADR-0536, act. 8), que sí usa el responsable de aquí; `null` si la base no lo tiene todavía. */
 export function ConfiguracionTiendas({
   datos,
   metas,

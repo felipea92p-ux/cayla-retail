@@ -29,7 +29,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // POST /api/asistente  { pregunta, ruta }  →  { resultado, preguntaId }
 //
-// «Pregúntale a CAYLA» (ADR-0529, actividades 2 a 5): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve
+// «Pregúntale a CAYLA» (ADR-0536, actividades 2 a 5): la pregunta va a la IA con las pocas guías que la búsqueda local encontró, y vuelve
 // un recorrido de 1 a 3 tramos elegidos DE ESA LISTA, cada uno con la dirección para llegar (o «sin acceso», «no existe», «fuera de
 // tema»). Cada pregunta queda anotada (`registrar_pregunta_asistente`) y su id vuelve para contestar «¿Te sirvió?».
 //

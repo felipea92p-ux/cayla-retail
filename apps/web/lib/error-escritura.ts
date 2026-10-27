@@ -500,7 +500,7 @@ const HUELLAS: Huella[] = [
 ];
 
 /**
- * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0529, actividad 7): «¿por qué no me
+ * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0536, actividad 7): «¿por qué no me
  * deja…?» se contesta con la MISMA frase de la pantalla, nunca con una inventada. Solo las fijas (las que llevan un dato del error no).
  */
 export function frasesDeErrores(): { marca: string; frase: string }[] {

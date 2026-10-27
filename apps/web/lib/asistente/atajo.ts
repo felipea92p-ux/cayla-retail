@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529): cuándo una tecla abre el asistente. Lógica pura, probada en `atajo.test.ts`.
+// «Pregúntale a CAYLA» (ADR-0536): cuándo una tecla abre el asistente. Lógica pura, probada en `atajo.test.ts`.
 //
 // ⌘K ya es del buscador de la cabecera (`BuscadorGlobal`) y «/» lleva el cursor al buscador de la pantalla (`Buscador`), así que el
 // asistente usa «?» (la tecla de ayuda de siempre) fuera de un campo, y ⌘/ (Ctrl+/) desde cualquier lado, también escribiendo.

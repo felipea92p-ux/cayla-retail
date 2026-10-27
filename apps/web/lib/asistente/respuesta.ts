@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 2): lo que se le pide a la IA y cómo se revisa lo que contesta. Sin red ni SDK: se prueba
+// «Pregúntale a CAYLA» (ADR-0536, actividad 2): lo que se le pide a la IA y cómo se revisa lo que contesta. Sin red ni SDK: se prueba
 // en `respuesta.test.ts`. La llamada vive en `app/api/asistente/route.ts`.
 //
 // La regla de oro del ADR: la IA NO describe pantallas de memoria. Recibe las pocas guías que la preselección local ya encontró
@@ -14,20 +14,20 @@ import { pasoSePuedeRellenar, rellenoValido } from "./relleno";
 import type { ReglaDeTienda } from "./reglas-de-tienda";
 import { moduloDeLaGuia, textoSinAcceso } from "./sin-acceso";
 
-/** El modelo que responde (ADR-0529: rápido, porque la persona está parada en la tienda). */
+/** El modelo que responde (ADR-0536: rápido, porque la persona está parada en la tienda). */
 export const MODELO_RESPUESTA = "claude-haiku-5-5";
 
-/** Cuánto se espera a la IA antes de mostrar la búsqueda sin ella (ADR-0529, «Modo básico»). */
+/** Cuánto se espera a la IA antes de mostrar la búsqueda sin ella (ADR-0536, «Modo básico»). */
 export const ESPERA_IA_MS = 8000;
 
-/** Cuántas guías se le pasan a la IA: las que más se parecen, no el catálogo entero (ADR-0529, «Dos pasadas»). */
+/** Cuántas guías se le pasan a la IA: las que más se parecen, no el catálogo entero (ADR-0536, «Dos pasadas»). */
 export const GUIAS_PARA_LA_IA = 5;
 
 /** Cuántas pantallas de FUERA del menú de la cuenta se le muestran, para que pueda decir «eso lo hace quien tiene…» (actividad 4). */
 export const GUIAS_AJENAS_PARA_LA_IA = 3;
 
 /**
- * Lo que se puede gastar en IA en un mes de Lima (ADR-0529, decisión 9): al llegar, el asistente sigue sin IA hasta el día 1. Lo suma
+ * Lo que se puede gastar en IA en un mes de Lima (ADR-0536, decisión 9): al llegar, el asistente sigue sin IA hasta el día 1. Lo suma
  * la base (`fn_asistente_gasto_del_mes`) con el costo que anota cada pregunta. Cambiarlo es decisión de Felipe.
  */
 export const TOPE_MENSUAL_USD = 30;
@@ -80,7 +80,7 @@ export type ResultadoAsistente =
  *  gastó el tope del mes. */
 export type MotivoBasico = "sin_clave" | "sin_respuesta" | "respuesta_invalida" | "rechazo" | "tope";
 
-/** Lo que se dice cuando la respuesta sería una regla de tienda que todavía no está escrita (ADR-0529, tensión 3). */
+/** Lo que se dice cuando la respuesta sería una regla de tienda que todavía no está escrita (ADR-0536, tensión 3). */
 const NO_ESTA_ESCRITO = "Eso no lo tengo escrito todavía. Pregúntale a tu líder de tienda: es quien lo decide.";
 
 /** El texto que ve la persona: corto. Una respuesta más larga que esto se corta en una frase. */

@@ -313,7 +313,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "planPiso", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0219 (respuesta 20): la pantalla del equipo; la ficha de cada persona cuelga de su ruta, no del menú.
       { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "rendimiento", pajaro: "13 Águila", conservaNombre: true },
-      // ADR-0529 (actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» dice qué falta, qué está escondido y qué accesos piden.
+      // ADR-0536 (actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» dice qué falta, qué está escondido y qué accesos piden.
       { id: "gestion.preguntas", modulo: "preguntas_equipo", etiqueta: "Preguntas del equipo", estado: "viva", ruta: "/gestion/preguntas", icono: "preguntas", pajaro: "13 Águila", conservaNombre: true },
     ],
   },

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
 import { CLASES, claseDe, filtrarPreguntas, leerPreguntasEquipo, nombreDeGuia, nombreDeModulo, ORDEN_CLASES, porcentaje, queRespondio, respuestaCorta } from "./equipo";
 
-// Los tipos que puede tener una pregunta: el `check` de `asistente_preguntas.tipo` (20261026235000).
+// Los tipos que puede tener una pregunta: el `check` de `asistente_preguntas.tipo` (20261027181000).
 const TIPOS = ["guia", "sin_acceso", "regla", "error", "no_existe", "fuera_de_tema", "basico"] as const;
 
 describe("claseDe", () => {

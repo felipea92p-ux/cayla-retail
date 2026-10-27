@@ -4,7 +4,7 @@ import { cronAutorizado } from "@/lib/rutas-cron";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { createClient } from "@/lib/supabase/server";
 
-// El informe del lunes de «Pregúntale a CAYLA» (ADR-0529, actividad 10). Dos puertas, la misma lógica (`armarInforme`):
+// El informe del lunes de «Pregúntale a CAYLA» (ADR-0536, actividad 10). Dos puertas, la misma lógica (`armarInforme`):
 //
 //   GET  — el trabajo programado de Vercel (`vercel.json` → `crons`), los lunes 7:00 de Lima (12:00 UTC), con `Authorization: Bearer
 //          $CRON_SECRET`; entra con la llave de servicio. El ADR proponía un vigía de GitHub Actions: el cron de Vercel usa la clave y la

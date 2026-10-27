@@ -101,7 +101,7 @@ describe("leerDatosInforme y leerInformes", () => {
 
   it("los tipos de mejora son los cinco del ADR y los mismos que acepta la base", () => {
     expect([...TIPOS_MEJORA].sort()).toEqual(["capacitar", "dar_acceso", "escribir_regla", "funcion_nueva", "mover_a_la_vista"]);
-    const sql = readFileSync(new URL("../../../../supabase/migrations/20261027173000_asistente_informes.sql", import.meta.url), "utf8");
+    const sql = readFileSync(new URL("../../../../supabase/migrations/20261027183000_asistente_informes.sql", import.meta.url), "utf8");
     const enLaBase = sql.match(/v_mejora ->> 'tipo' not in \(([^)]+)\)/)?.[1]?.match(/'([a-z_]+)'/g)?.map((t) => t.slice(1, -1)) ?? [];
     expect(enLaBase.sort()).toEqual([...TIPOS_MEJORA].sort());
   });

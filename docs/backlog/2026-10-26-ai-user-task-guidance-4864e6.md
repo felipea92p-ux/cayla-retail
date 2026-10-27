@@ -1,11 +1,11 @@
-## «Pregúntale a CAYLA»: el asistente con IA que guía (ADR-0529, 11 actividades aprobadas por Felipe el 2026-10-26)
+## «Pregúntale a CAYLA»: el asistente con IA que guía (ADR-0536, 11 actividades aprobadas por Felipe el 2026-10-26)
 
 - [x] 1 · El cajón sin IA: botón «Preguntar» en la cabecera, «?» y ⌘/, búsqueda local entre las guías del menú de la cuenta.
 - [x] 2 · La IA responde (Claude Haiku 5.5, `/api/asistente`): elige guía y paso de una lista cerrada; sin clave, sin respuesta en 8 s o con una respuesta fuera de la lista, búsqueda sin IA. ~2 s y ~US$0,0013 por pregunta (medido en local).
 - [x] 3 · Recorridos: «Muéstrame» arranca en el paso que responde, con lo que necesita abierto, y pasa solo a la pantalla del siguiente tramo (hasta 3).
 - [x] 4 · Sin acceso: si responde una pantalla de un módulo que el rol no tiene, el sistema dice dónde se hace y «pídeselo a tu líder de equipo», sin los pasos.
-- [x] 5 · Cada pregunta queda anotada (`retail.asistente_preguntas`, migración `20261026235000`), «¿Te sirvió? Sí / No» y «¿Qué buscabas?», y el tope de US$30 al mes (`fn_asistente_gasto_del_mes`). Aplicada solo en la base local.
-- [ ] **Pegar `20261026235000_asistente_preguntas.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres funciones). Mientras no esté, el asistente responde igual pero no anota nada (`preguntaId: null`, sin «¿Te sirvió?») ni cuenta el tope del mes: queda solo el límite de gasto de la consola de Anthropic.
+- [x] 5 · Cada pregunta queda anotada (`retail.asistente_preguntas`, migración `20261027181000`), «¿Te sirvió? Sí / No» y «¿Qué buscabas?», y el tope de US$30 al mes (`fn_asistente_gasto_del_mes`). Aplicada solo en la base local.
+- [ ] **Pegar `20261027181000_asistente_preguntas.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres funciones). Mientras no esté, el asistente responde igual pero no anota nada (`preguntaId: null`, sin «¿Te sirvió?») ni cuenta el tope del mes: queda solo el límite de gasto de la consola de Anthropic.
 - [ ] Refrescar el volcado de producción (`datos:generar:produccion`) cuando la migración esté aplicada: `pnpm datos:comparar` marca las tres funciones hasta entonces.
 - [x] 6 · Rellenar con candados: el dato que la persona dijo, tal cual, solo en el `<Buscador>` (`data-asistente="rellenable"`, lista blanca vigilada), marcado «Lo escribió CAYLA · revísalo» hasta que la persona lo toca. Nunca guarda.
 - [ ] **Felipe:** ¿sumar otros campos rellenables (el texto de un motivo, combos de una opción)? Hoy solo el buscador.
@@ -19,16 +19,16 @@
   preguntas, y después hay que encender la sede del piloto en Configuración.
 - [ ] El escáner de huellas de las guías (`guias/escaner.mjs`, `CONTROLES`) no cuenta `<Interruptor>` (22 en el ERP): un interruptor nuevo
   no le avisa a su guía. Sumarlo mueve la huella de cada pantalla que ya tiene uno; va aparte, revisando esas guías.
-- [x] 9 · Gestión ▸ «Preguntas del equipo» (`/gestion/preguntas`, módulo `preguntas_equipo`, migración `20261027165000`): con el nombre de
+- [x] 9 · Gestión ▸ «Preguntas del equipo» (`/gestion/preguntas`, módulo `preguntas_equipo`, migración `20261027182000`): con el nombre de
   quien preguntó (Felipe 2026-10-27), solo personas, nace sin rol. `pnpm pruebas:asistente-preguntas-equipo` (11 casos), guía interactiva
   recorrida en escritorio y a 375 px. Aplicada solo en la base local.
-- [ ] **Pegar `20261027165000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261026235000`). Toca
+- [ ] **Pegar `20261027182000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261027181000`). Toca
   `fn_exigir_rol_de_terminal` con un reemplazo anclado: si la lista viva no es la esperada, se detiene sin tocar nada.
 - [ ] **Felipe:** darle «Preguntas del equipo» a las encargadas en Roles y accesos, si quiere que lo vean (hoy solo el líder).
 - [x] 10 · El informe del lunes: cron de Vercel (los lunes 7:00 de Lima) + Claude Sonnet 5.5, `retail.asistente_informes` (migración
-  `20261027173000`), botón de respaldo en Preguntas del equipo. `pnpm pruebas:asistente-informes` (14 casos). Probado en local por el camino
+  `20261027183000`), botón de respaldo en Preguntas del equipo. `pnpm pruebas:asistente-informes` (14 casos). Probado en local por el camino
   del cron con 8 preguntas de prueba de la semana del 19 oct (ruta `/prueba-informe`, quedan en la base local): 4 mejoras, US$0,009.
-- [ ] **Pegar `20261027173000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261026235000` y `20261027165000`).
+- [ ] **Pegar `20261027183000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261027181000` y `20261027182000`).
   Hasta entonces el cron del lunes responde 500 (no encuentra las funciones) y lo avisa Sentry: conviene pegar las cuatro migraciones del
   asistente juntas antes de fusionar el PR.
 - [x] 11 · Evaluación de 40 preguntas (`lib/asistente/evaluacion/`: 38 de 40 con la IA, la parte sin red en el CI), `/guia`, `/focus`, oscuro y
@@ -48,7 +48,7 @@
 **Dónde está todo.** Desde la actividad 8 (2026-10-27): rama `claude/ai-guide-c654db`, worktree
 `/Users/felipealvarez/Proyectos/cayla-retail/.claude/worktrees/zen-bell-150592`, con main traído ese día; la rama de antes
 (`claude/ai-user-task-guidance-4864e6`) quedó quieta en la actividad 7 y no se usa más. Todo en commits locales (sin push, sin
-PR: la regla de Felipe es un PR al final de la obra, con `/abrir-pr`). La decisión es `docs/adr/0529-preguntale-a-cayla-asistente-con-ia.md`
+PR: la regla de Felipe es un PR al final de la obra, con `/abrir-pr`). La decisión es `docs/adr/0536-preguntale-a-cayla-asistente-con-ia.md`
 (léela entera: las 10 respuestas de Felipe, las tres tensiones y «Lo que decidí al construir»). Se construye con `/construir`, una
 actividad y un commit a la vez.
 
@@ -66,7 +66,7 @@ sin acceso, relleno, reglas de tienda, conocimiento), `app/api/asistente/route.t
 `lib/asistente-rellenable.test.ts`, `pnpm pruebas:asistente-preguntas` (13 casos contra Postgres).
 
 **Base y claves.**
-- La migración `20261026235000_asistente_preguntas.sql` está aplicada **solo en la base local** (contenedor `supabase_db_cayla-retail`,
+- La migración `20261027181000_asistente_preguntas.sql` está aplicada **solo en la base local** (contenedor `supabase_db_cayla-retail`,
   anotada en `supabase_migrations.schema_migrations`). Se editó después de aplicarla (tipos `regla` y `error`, columna `referencia`) y la
   base local se puso al día a mano: si una sesión nueva la recrea, que la aplique entera de nuevo. **No está en producción**: pegarla
   necesita el OK de Felipe.
