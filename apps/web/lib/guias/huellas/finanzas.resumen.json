@@ -12,7 +12,7 @@
       "Link «{p.accion}»"
     ],
     "components/finanzas/DeCadaCien.tsx": [
-      "BotonVerMas «¿Y de cada S/\\u00a0100?»",
+      "BotonVerMas «{\"¿Y de cada S/\\u00a0100?\"}»",
       "button «{p.nombre}»"
     ],
     "components/finanzas/InversionMercaderia.tsx": [
