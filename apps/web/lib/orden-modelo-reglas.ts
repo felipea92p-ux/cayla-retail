@@ -151,3 +151,54 @@ export function ordenesParaLaLista(ordenes: readonly { productoId: string; estad
   }
   return { abiertas, recientes };
 }
+
+// «¿Ya tienen el molde?» (Felipe 2026-10-27): no todo modelo nuevo necesita muestra —a veces el molde ya está hecho—. El sistema no guarda un dato «molde listo» (`productos.patron_id`
+// es el estampado, no el molde), así que se DEDUCE del historial de órdenes del Taller y, cuando no alcanza, se le pregunta a la persona. No cambia lo que se manda a la base: solo
+// qué dice la hoja y con qué tipo arranca un modelo que ya tiene historia.
+
+/** Lo que el historial dice del molde de un modelo: «sin_lectura» (el historial no se pudo leer: no se afirma nada), «listo» (hubo una muestra terminada o con su escalado hecho, o ya se abrió un lote), «en_desarrollo» (hay una muestra
+ *  en proceso y todavía no llegó al escalado) o «sin_historia» (el Taller nunca hizo una orden de este modelo). */
+export type MoldeDelModelo = { estado: "listo"; por: "muestra" | "lote" } | { estado: "en_desarrollo" } | { estado: "sin_historia" } | { estado: "sin_lectura" };
+
+/** Lo mínimo de una orden para saber si dejó un molde: se lee con una consulta liviana, sin joins (`getHistorialDeMoldes`). */
+export type OrdenParaMolde = { productoId: string; estado: string; esMuestra: boolean; etapas: Partial<Record<string, string>> | null };
+
+/** Una orden anulada no cuenta (se abrió por error). Un lote, abierto o cerrado, supone que el molde existía; una muestra lo deja hecho al terminar o al llegar a «Escalado». */
+export function moldeDelModelo(historial: readonly OrdenParaMolde[], productoId: string): MoldeDelModelo {
+  let enDesarrollo = false;
+  let porMuestra = false;
+  for (const o of historial) {
+    if (o.productoId !== productoId || o.estado === "anulada") continue;
+    if (!o.esMuestra) return { estado: "listo", por: "lote" };
+    if (o.estado === "terminada" || o.etapas?.escalado === "hecho") porMuestra = true;
+    else enDesarrollo = true;
+  }
+  if (porMuestra) return { estado: "listo", por: "muestra" };
+  return enDesarrollo ? { estado: "en_desarrollo" } : { estado: "sin_historia" };
+}
+
+/** Lo que dice la línea junto al interruptor del tipo: qué se sabe del molde y qué hacer. Cuando no se sabe, es la pregunta. */
+export function frasesDelMolde(o: { tipo: TipoOrden; esNuevo: boolean; molde: MoldeDelModelo }): { texto: string; pregunta: boolean } {
+  if (o.esNuevo && o.tipo === "produccion") {
+    return { texto: "Es un modelo nuevo y ya tienen el molde: fabrica el lote y, al cerrarlo, entra al stock del Taller. Si todavía falta hacerlo, elige Muestra.", pregunta: false };
+  }
+  if (o.esNuevo) {
+    return {
+      texto: "Es un modelo nuevo, así que arranca como muestra. ¿Ya tienen el molde (de otro proveedor o de un modelo parecido)? Entonces elige Lote de producción.",
+      pregunta: true,
+    };
+  }
+  const { molde } = o;
+  if (molde.estado === "listo") {
+    const de = molde.por === "muestra" ? "Ya hicieron la muestra de este modelo" : "Ya fabricaron un lote de este modelo";
+    return o.tipo === "muestra"
+      ? { texto: `${de}. Otra muestra solo hace falta si cambia el molde. No entra al stock.`, pregunta: false }
+      : { texto: `${de}: el molde está listo. Fabrica el lote y, al cerrarlo, entra al stock del Taller.`, pregunta: false };
+  }
+  const lead =
+    molde.estado === "en_desarrollo" ? "Este modelo tiene una muestra en desarrollo." : molde.estado === "sin_lectura" ? "No pude revisar las órdenes anteriores de este modelo." : "El Taller todavía no ha hecho ninguna orden de este modelo.";
+  return {
+    texto: `${lead} ¿Ya tienen el molde? Si sí, elige Lote de producción; si falta hacerlo, elige Muestra.`,
+    pregunta: true,
+  };
+}
