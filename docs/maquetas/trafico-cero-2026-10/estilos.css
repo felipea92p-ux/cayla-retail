@@ -1,0 +1,1301 @@
+/* =====================================================================
+   Tráfico (maqueta desde cero, 2026-10-23) — tokens, barra de maqueta, marco del ERP y piezas comunes.
+
+   Los TOKENS son copia de `apps/web/app/globals.css` (claro) y `apps/web/app/estilos/tema.css` (oscuro): mismos nombres, mismos
+   valores. Fuera de este bloque no hay un solo hex ni un rgba: todo color es `var(--color-…)` o una mezcla de tokens. El único
+   color que no es token es el de las PRENDAS (dato del catálogo, `datos.js`), que se pinta con `data-color-dato` y no cambia con
+   el tema.
+
+   Prefijos: `mq-` la barra negra de maqueta (no es parte del diseño) · `erp-` el marco (lateral, cabecera) · `tr-` las piezas
+   comunes de Tráfico · `hl-` dirección A «El hilo» · `cc-` dirección B «De cada 100» · `vt-` dirección C «La vitrina».
+   ===================================================================== */
+
+/* ---------- Tokens claros (globals.css) ---------- */
+:root,
+[data-tema="claro"] {
+  color-scheme: light;
+  --color-rojo: #b8412d;
+  --color-crema: #f5f0e8;
+  --color-tinta: #1a1a18;
+  --color-rojo-profundo: #8b2a1f;
+  --color-sand: #e8e0d0;
+  --color-taupe: #805c4c;
+  --color-papel: #fbf8f2;
+  --color-hueso: #eae1d2;
+  --color-sombra: #1a1a18;
+  --color-vidrio: #ffffff;
+  --color-tinta-fija: #1a1a18;
+  --color-crema-fija: #f5f0e8;
+  --color-pizarra: #4c5d6e;
+  --color-tinta-60: #5b544c;
+  --color-verde: #48603f;
+  --color-ambar: #74501a;
+  --color-verde-profundo: #44583a;
+  --color-taupe-profundo: #805c4c;
+  --color-ambar-profundo: #734f15;
+
+  --ease-cayla: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --ease-salida: cubic-bezier(0.4, 0, 1, 1);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "EB Garamond", ui-serif, Georgia, serif;
+  --lateral: 272px;
+
+  --shadow-md: 0 8px 24px -8px color-mix(in srgb, var(--color-sombra) 11%, transparent);
+  --shadow-lg: 0 18px 44px -14px color-mix(in srgb, var(--color-sombra) 16%, transparent);
+  --shadow-xl: 0 30px 64px -22px color-mix(in srgb, var(--color-sombra) 20%, transparent);
+  --foco: 2px solid var(--color-tinta);
+}
+
+/* ---------- Tokens oscuros (estilos/tema.css) ---------- */
+[data-tema="oscuro"] {
+  color-scheme: dark;
+  --color-crema: #1a1a18;
+  --color-papel: #242422;
+  --color-hueso: #31302d;
+  --color-sand: #3d3c38;
+  --color-sombra: #000000;
+  --color-vidrio: #31302d;
+  --color-tinta: #f5f0e8;
+  --color-tinta-60: #b9b2a7;
+  --color-taupe: #c4a898;
+  --color-taupe-profundo: #c4a898;
+  --color-rojo: #e8806a;
+  --color-rojo-profundo: #f29a86;
+  --color-verde: #9ccb8d;
+  --color-verde-profundo: #a8d49a;
+  --color-ambar: #e4b968;
+  --color-ambar-profundo: #ecc676;
+  --color-pizarra: #a2b8cd;
+  --shadow-md: 0 8px 24px -8px color-mix(in srgb, var(--color-sombra) 50%, transparent);
+  --shadow-lg: 0 18px 44px -14px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  --shadow-xl: 0 30px 64px -22px color-mix(in srgb, var(--color-sombra) 70%, transparent);
+}
+
+/* Papel físico (la etiqueta colgada de una prenda): vuelve a declarar los tokens CLAROS; no se oscurece. */
+.papel-fijo {
+  color-scheme: light;
+  --color-crema: #f5f0e8;
+  --color-papel: #fbf8f2;
+  --color-hueso: #eae1d2;
+  --color-sand: #e8e0d0;
+  --color-tinta: #1a1a18;
+  --color-taupe: #805c4c;
+  --color-taupe-profundo: #805c4c;
+  --color-tinta-60: #5b544c;
+  --color-rojo: #b8412d;
+  --color-rojo-profundo: #8b2a1f;
+  --color-verde: #48603f;
+  --color-ambar: #74501a;
+  --color-pizarra: #4c5d6e;
+  color: var(--color-tinta);
+}
+
+/* =====================================================================
+   Base
+   ===================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+body {
+  background: var(--color-hueso);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+:focus-visible {
+  outline: var(--foco);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.font-display {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.label-cayla {
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-weight: 600;
+  font-size: 11px;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   mq- · La barra negra de maqueta (NO es parte del diseño: tinta y crema fijas, igual en los dos temas)
+   ===================================================================== */
+.mq-barra {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  min-height: 52px;
+  padding: 8px 16px;
+  background: var(--color-tinta-fija);
+  color: var(--color-crema-fija);
+  font-size: 13px;
+}
+.mq-barra :focus-visible {
+  outline-color: var(--color-crema-fija);
+}
+.mq-titulo {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 17px;
+  margin-right: 4px;
+}
+.mq-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-crema-fija) 10%, transparent);
+}
+.mq-grupo__nombre {
+  padding: 0 8px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-crema-fija) 78%, transparent);
+}
+.mq-btn {
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  color: var(--color-crema-fija);
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .mq-btn:hover {
+    background: color-mix(in srgb, var(--color-crema-fija) 14%, transparent);
+  }
+}
+.mq-btn[aria-pressed="true"] {
+  background: var(--color-crema-fija);
+  color: var(--color-tinta-fija);
+}
+.mq-btn--borde {
+  border: 1px solid color-mix(in srgb, var(--color-crema-fija) 40%, transparent);
+}
+.mq-nota {
+  margin-left: auto;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-crema-fija) 78%, transparent);
+}
+
+/* El escenario: el marco se dibuja a su tamaño real (1024/1440/1920) y se escala para caber entero. */
+.mq-escenario {
+  position: fixed;
+  inset: 52px 0 0 0;
+  overflow: hidden;
+  display: grid;
+  place-items: start center;
+  padding: 16px;
+}
+.mq-marco {
+  position: relative;
+  flex: none;
+  transform-origin: top center;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  outline: 1px solid color-mix(in srgb, var(--color-tinta-fija) 18%, transparent);
+}
+
+/* =====================================================================
+   erp- · El marco del ERP: lateral, cabecera y la pantalla
+   ===================================================================== */
+.erp {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-crema);
+  color: var(--color-tinta);
+}
+.erp-lateral {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--lateral);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
+  background: var(--color-crema);
+  z-index: 3;
+}
+.erp-logo {
+  padding: 28px 28px 22px;
+}
+.erp-logo__marca {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 30px;
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+.erp-logo__sub {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--color-taupe-profundo);
+}
+.erp-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px;
+  scrollbar-width: none;
+}
+.erp-fila {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 40px;
+  margin-top: 2px;
+  padding: 0 12px 0 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  color: color-mix(in srgb, var(--color-tinta) 80%, transparent);
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  a.erp-fila:hover {
+    background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+  }
+}
+.erp-fila svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+}
+.erp-fila--abierta {
+  color: var(--color-tinta);
+  font-weight: 500;
+}
+.erp-fila--hija {
+  height: 36px;
+  padding-left: 30px;
+  font-size: 14.5px;
+}
+.erp-fila--hija svg {
+  width: 18px;
+  height: 18px;
+}
+.erp-fila[aria-current="page"] {
+  background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+  color: var(--color-tinta);
+  font-weight: 500;
+}
+.erp-fila[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 2px;
+  background: var(--color-rojo); /* el rojo del lateral: 1 de los 2 por pantalla */
+}
+.erp-fila__flecha {
+  margin-left: auto;
+  width: 14px !important;
+  height: 14px !important;
+  transform: rotate(90deg);
+}
+.erp-hijas {
+  position: relative;
+  margin: 2px 0 6px;
+}
+.erp-hijas::before {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+}
+.erp-nuevo {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  /* Sobre la fila elegida (arena) el tinte de pizarra no llegaba a 4,5:1: va sobre papel, con su filo. */
+  background: var(--color-papel);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-pizarra) 35%, transparent);
+  color: var(--color-pizarra);
+}
+.erp-persona {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 28px;
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
+}
+.erp-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-sand);
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 15px;
+}
+.erp-persona__nombre {
+  font-size: 14px;
+  line-height: 1.2;
+}
+.erp-persona__rol {
+  margin-top: 2px;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--color-tinta) 68%, transparent);
+}
+
+.erp-cabecera {
+  position: absolute;
+  left: var(--lateral);
+  right: 0;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  padding: 0 32px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
+  background: color-mix(in srgb, var(--color-crema) 85%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.erp-icono-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--color-tinta) 65%, transparent);
+}
+@media (hover: hover) {
+  .erp-icono-btn:hover {
+    background: color-mix(in oklab, var(--color-sand) 60%, transparent);
+    color: var(--color-tinta);
+  }
+}
+.erp-icono-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.erp-buscar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(380px, 40%);
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-sand);
+  background: var(--color-hueso);
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
+}
+.erp-buscar svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.erp-buscar kbd {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--color-sand);
+}
+.erp-cabecera__der {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.erp-sede {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  color: color-mix(in srgb, var(--color-tinta) 75%, transparent);
+}
+.erp-sede svg {
+  width: 14px;
+  height: 14px;
+}
+
+.erp-main {
+  position: absolute;
+  inset: 0 0 0 var(--lateral);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 92px 40px 40px 24px;
+  container-type: inline-size;
+  container-name: pantalla;
+  scrollbar-width: thin;
+}
+
+/* =====================================================================
+   tr- · Piezas comunes de Tráfico (imitan las del ERP)
+   ===================================================================== */
+
+/* EncabezadoPagina: sede y fecha con el hilo taupe → título 46 px → frase; a la derecha, la cifra. */
+.tr-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 40px;
+}
+.tr-cabecera__linea {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.tr-hilo-taupe {
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--color-taupe);
+  transform-origin: left;
+}
+.tr-cabecera h1 {
+  margin: 12px 0 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+.tr-cabecera__frase {
+  margin: 10px 0 0;
+  max-width: 34rem;
+  font-size: 15px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+}
+
+/* La cifra de la cabecera: cuánta gente entró y contra qué. */
+.tr-cifra {
+  text-align: right;
+}
+.tr-cifra__titulo {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 14px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+}
+.tr-cifra__titulo .label-cayla {
+  color: var(--color-taupe-profundo);
+}
+.tr-cifra__valor {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.tr-cifra__n {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 52px;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+.tr-cifra__u {
+  font-size: 16px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+}
+.tr-cifra__pie {
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 12px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+
+/* Chip (components/ui/Chip.tsx): insignia con punto, tono al 15 %. */
+.tr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.tr-chip svg {
+  width: 12px;
+  height: 12px;
+}
+.tr-chip--verde {
+  background: color-mix(in srgb, var(--color-verde) 15%, transparent);
+  color: var(--color-verde-profundo);
+}
+.tr-chip--ambar {
+  background: color-mix(in srgb, var(--color-ambar) 15%, transparent);
+  color: var(--color-ambar-profundo);
+}
+.tr-chip--neutro {
+  background: var(--color-sand);
+  color: var(--color-taupe-profundo);
+}
+.tr-chip--pizarra {
+  background: color-mix(in srgb, var(--color-pizarra) 15%, transparent);
+  color: var(--color-pizarra);
+}
+.tr-chip--tinta {
+  background: transparent;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1.5px var(--color-tinta);
+}
+
+/* El punto verde que late: la única señal en bucle permitida («está vivo»). */
+.tr-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tr-punto-vivo {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-verde);
+}
+.tr-punto-vivo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-verde);
+  animation: tr-latido 2.2s var(--ease-cayla) infinite;
+}
+@keyframes tr-latido {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* La fila de controles: período (píldoras), filtros puestos y el segmento GRÁFICO / TABLA. */
+.tr-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 18px;
+}
+.tr-grupo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.tr-rango {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 68%, transparent);
+}
+.pildora-cayla {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--color-sand);
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-taupe-profundo);
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+@media (hover: hover) {
+  .pildora-cayla:hover {
+    color: var(--color-tinta);
+    background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+  }
+}
+.pildora-cayla[aria-pressed="true"] {
+  background: var(--color-tinta);
+  border-color: var(--color-tinta);
+  color: var(--color-crema);
+}
+.pildora-cayla[aria-pressed="true"]:focus-visible {
+  outline-color: var(--color-tinta);
+}
+/* FiltroPuesto: la píldora de tinta con su ✕. */
+.tr-filtro-puesto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px 4px 14px;
+  border-radius: 999px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tr-filtro-puesto svg {
+  width: 14px;
+  height: 14px;
+}
+.tr-filtro-puesto__x {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-crema) 18%, transparent);
+}
+/* BotonLimpiar: píldora punteada con el embudo tachado. */
+.tr-limpiar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--color-tinta) 35%, transparent);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 78%, transparent);
+}
+.tr-limpiar svg {
+  width: 14px;
+  height: 14px;
+}
+@media (hover: hover) {
+  .tr-limpiar:hover {
+    color: var(--color-tinta);
+    border-color: var(--color-tinta);
+  }
+}
+.tr-pista-filtro {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+/* SegmentoDeslizante forma="modo": la caja arena con la elegida en papel, en versalitas. */
+.tr-segmento {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--color-sand);
+}
+.tr-segmento button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+}
+.tr-segmento button svg {
+  width: 14px;
+  height: 14px;
+}
+.tr-segmento button[aria-pressed="true"] {
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-sombra) 10%, transparent);
+}
+
+/* Tarjeta del sistema y títulos de sección. */
+.tr-tarjeta {
+  background: var(--color-papel);
+  border: 1px solid var(--color-sand);
+  border-radius: var(--radius-xl);
+}
+.tr-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.2;
+}
+.tr-titulo__dato {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 68%, transparent);
+}
+.tr-veredicto {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+}
+.tr-veredicto b {
+  color: var(--color-tinta);
+  font-weight: 600;
+}
+
+/* Botones (btn-cayla). */
+.btn-cayla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  padding: 0.45rem 1rem;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms, color 150ms, transform 260ms var(--ease-cayla);
+}
+.btn-cayla svg {
+  width: 16px;
+  height: 16px;
+}
+.btn-primario {
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.btn-secundario {
+  background: transparent;
+  color: var(--color-tinta);
+  border-color: var(--color-sand);
+}
+@media (hover: hover) {
+  .btn-primario:hover {
+    background: var(--color-rojo-profundo);
+  }
+  .btn-secundario:hover {
+    border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent);
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+  .btn-secundario:hover .tr-flecha {
+    transform: translateX(4px);
+  }
+}
+.tr-flecha {
+  transition: transform 260ms var(--ease-cayla);
+}
+.btn-enlace {
+  padding: 0 0 0.2em;
+  color: var(--color-tinta);
+  font-size: inherit;
+  /* El enlace del ERP: subrayado tenue; al pasar el mouse el hilo rojo corre y el texto pasa a rojo profundo (solo mientras dura). */
+  background-image:
+    linear-gradient(var(--color-rojo), var(--color-rojo)),
+    linear-gradient(color-mix(in srgb, var(--color-tinta) 32%, transparent), color-mix(in srgb, var(--color-tinta) 32%, transparent));
+  background-size: 0% 1.5px, 100% 1px;
+  background-position: 0 100%, 0 100%;
+  background-repeat: no-repeat;
+  border-radius: 2px;
+  transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .btn-enlace:hover {
+    background-size: 100% 1.5px, 100% 1px;
+    color: var(--color-rojo-profundo);
+  }
+}
+/* EnlaceVer: versalitas con la flecha que avanza (aquí en tinta: el rojo se guarda para «aquí se atora»). */
+.tr-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-tinta);
+}
+.tr-ver svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 260ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .tr-ver:hover svg {
+    transform: translateX(4px);
+  }
+}
+
+/* «¿Por qué?»: lo difícil, a un toque (ley 6). */
+.tr-porque {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.tr-explica {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-taupe-profundo);
+}
+.tr-explica[hidden] {
+  display: none;
+}
+
+/* Lo que se escribe sobre el «aquí se atora»: el segundo rojo de la pantalla. */
+.tr-atora {
+  color: var(--color-rojo);
+  font-weight: 700;
+}
+
+/* La prenda sin foto (MosaicoPrenda): el ícono de su categoría sobre su color de verdad. */
+.tr-mosaico {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.tr-mosaico svg {
+  width: 52%;
+  height: 52%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tr-mosaico--filo {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 10%, transparent);
+}
+
+/* La vista de tabla gemela (Tabla + Encabezado + filas). */
+.tr-tablas {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start;
+}
+.tr-tablas__ancha {
+  grid-column: 1 / -1;
+}
+.tr-tabla-caja {
+  overflow: hidden;
+}
+.tr-tabla-caja > h2 {
+  padding: 14px 18px 10px;
+}
+.tr-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.tr-tabla caption {
+  text-align: left;
+}
+.tr-tabla th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-taupe-profundo);
+  background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+}
+.tr-tabla td {
+  padding: 7px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--color-tinta) 6%, transparent);
+}
+.tr-tabla .der {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tr-tabla tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
+}
+.tr-tabla tr[data-elegida] {
+  background: color-mix(in oklab, var(--color-hueso) 90%, transparent);
+  font-weight: 600;
+}
+.tr-tabla-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  text-align: left;
+}
+.tr-tabla-btn .tr-mosaico {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+/* Globito al pasar el mouse o con el foco (un `<div role="tooltip">` que sigue al control). */
+.tr-globito {
+  position: absolute;
+  z-index: 40;
+  max-width: 260px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  font-size: 12.5px;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 160ms var(--ease-cayla), transform 160ms var(--ease-cayla);
+}
+.tr-globito[data-visible] {
+  opacity: 1;
+  transform: none;
+}
+
+/* =====================================================================
+   El cajón (components/ui/Cajon.tsx): la banda de Compras, el cuerpo que corre y el pie con «3 de 21».
+   ===================================================================== */
+.tr-capa {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.tr-capa[data-abierta] {
+  pointer-events: auto;
+}
+.tr-velo {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-sombra) 25%, transparent);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+[data-tema="oscuro"] .tr-velo {
+  background: color-mix(in srgb, var(--color-sombra) 55%, transparent);
+}
+.tr-cajon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 456px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-papel);
+  border-left: 1px solid var(--color-sand);
+  box-shadow: var(--shadow-xl);
+}
+.tr-cajon__banda {
+  display: flex;
+  gap: 14px;
+  padding: 22px 20px 18px 24px;
+  border-bottom: 1px solid var(--color-sand);
+}
+.tr-cajon__banda .tr-mosaico {
+  width: 40px;
+  height: 40px;
+}
+.tr-cajon__sobre {
+  margin: 0;
+  color: var(--color-taupe-profundo);
+}
+.tr-cajon__titulo {
+  margin: 2px 0 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.15;
+}
+.tr-cajon__frase {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--color-taupe-profundo);
+}
+.tr-cajon__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.tr-cerrar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.tr-cerrar svg {
+  width: 18px;
+  height: 18px;
+}
+@media (hover: hover) {
+  .tr-cerrar:hover {
+    background: color-mix(in oklab, var(--color-sand) 60%, transparent);
+    color: var(--color-tinta);
+  }
+}
+.tr-cajon__cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 24px;
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+.tr-cajon__pie {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 14px 24px;
+  border-top: 1px solid var(--color-sand);
+}
+.tr-cajon__nav {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.tr-cajon__nav button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--color-sand);
+}
+.tr-cajon__nav button svg {
+  width: 16px;
+  height: 16px;
+}
+.tr-cajon__nav button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.tr-cajon__nav span {
+  min-width: 64px;
+  text-align: center;
+}
+.tr-dato-grande {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.tr-dato-grande b {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 38px;
+  line-height: 1;
+}
+.tr-pasos {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tr-paso {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  font-size: 13.5px;
+}
+.tr-paso__barra {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-sand);
+  overflow: hidden;
+}
+.tr-paso__barra i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-tinta);
+  transform-origin: left;
+}
+.tr-paso[data-atora] .tr-paso__nombre::after {
+  content: " · aquí se atora";
+  color: var(--color-rojo);
+  font-weight: 600;
+}
+.tr-mini-lista {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+}
+.tr-mini-lista li {
+  display: grid;
+  grid-template-columns: 110px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+}
+.tr-mini-lista__pista {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-sand);
+  overflow: hidden;
+}
+.tr-mini-lista__pista i {
+  display: block;
+  height: 100%;
+  background: var(--color-tinta);
+  transform-origin: left;
+}
+.tr-colores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.tr-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+.tr-color i {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta-fija) 12%, transparent);
+}
+.tr-tallas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.tr-talla {
+  display: grid;
+  min-width: 56px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--color-hueso);
+  text-align: center;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.tr-talla b {
+  font-size: 16px;
+  color: var(--color-tinta);
+}
+.tr-talla[data-mas] {
+  background: var(--color-tinta);
+  color: color-mix(in srgb, var(--color-crema) 80%, transparent);
+}
+.tr-talla[data-mas] b {
+  color: var(--color-crema);
+}
+.tr-nota-ejemplo {
+  margin: 0;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+
+/* ---------- Movimiento reducido y ?quieto: todo puesto, nada se mueve (salvo que nada late tampoco) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tr-punto-vivo::after {
+    animation: none;
+    opacity: 0;
+  }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}
+[data-quieto] .tr-punto-vivo::after {
+  animation: none;
+  opacity: 0;
+}
+[data-quieto] *,
+[data-quieto] *::before,
+[data-quieto] *::after {
+  transition: none !important;
+}
