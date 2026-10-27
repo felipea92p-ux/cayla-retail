@@ -350,6 +350,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/liquidacion/PiezaLiquidacionModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Precio por tienda (Felipe 2026-10-09): «Precio distinto en una sede» (tienda, precio, por qué, quién) y «Quitar» (quién).
   "components/ficha-producto/PrecioSedeModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/PrecioSedeModal.tsx"] },
+  // «Agregar color» y «Agregar talla» (ADR-0494, actividad 3): dos pasos, con su guía de foco y las unidades de partida de lo que nace.
+  "components/ficha-producto/AgregarColoresModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/AgregarColoresModal.tsx"] },
+  "components/ficha-producto/AgregarTallasModal.tsx": { estado: "aplicada", evidencia: ["components/ficha-producto/AgregarTallasModal.tsx"] },
   "components/GastoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/GastoRapidoModal.tsx"] },
   "components/IngresoRapidoModal.tsx": { estado: "aplicada", evidencia: ["components/IngresoRapidoModal.tsx"] },
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },

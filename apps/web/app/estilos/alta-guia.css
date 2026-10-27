@@ -283,3 +283,25 @@
     transition: none;
   }
 }
+
+/* ---- El sello del stock inicial (ADR-0494, actividad 3) ----
+   Al crear la prenda, sus unidades de partida quedan selladas: se estampa UNA vez, sin rebote ni bucle (ADR-0136). */
+.sello-stock-inicial {
+  transform: rotate(-8deg);
+  animation: sello-stock-inicial 780ms var(--ease-cayla) 250ms both;
+}
+@keyframes sello-stock-inicial {
+  from {
+    opacity: 0;
+    transform: scale(1.7) rotate(-22deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sello-stock-inicial {
+    animation: none;
+  }
+}
