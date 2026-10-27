@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { BotonDeFiltros } from "@/components/filtros/BotonDeFiltros";
@@ -321,10 +322,7 @@ export default async function Catalogo({ searchParams }: Props) {
       <div className="t-ancho">
         <header className="t-lista-cab">
           <span className="t-ceja">{ceja}</span>
-          <h1>
-            {titulo[0] ? `${titulo[0]} ` : null}
-            <em>{titulo[1]}</em>
-          </h1>
+          <TituloConLetras primera={titulo[0] || undefined} cursiva={titulo[1]} />
           {cab.frase && <p>{cab.frase}</p>}
         </header>
 
