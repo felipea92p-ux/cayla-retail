@@ -1689,7 +1689,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó. Al abrir la fila, el costo (viene de la orden: corrígelo si la factura dice otro) y el precio de venta de cada prenda. En la demo no escribimos.",
+      texto: "Una fila por categoría, con sus prendas juntas: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez. Al abrir la fila, cada prenda identificada con su costo (el de la orden; corrígelo si la factura dice otro) y su precio. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
