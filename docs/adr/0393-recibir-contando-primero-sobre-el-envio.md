@@ -663,6 +663,8 @@ con el envío cerrado, el candado de lo contado (`fn_despacho_conteos_fija`, ree
 cambiar. **Es la única rendija nueva en un candado de lo contado y es de Felipe decidir si la acepta** (la alternativa, no guardar el costo en el conteo, deja el
 descuadre silencioso de arriba).
 
+**Sin la migración, no se miente.** Una base sin `20261026210000` ignora `costos` sin error; por eso, al guardar, la pantalla compara lo mandado con el costo de cada prenda que la respuesta trae en el conteo (`costosSinGuardar`) y, si falta, no lo da por hecho: avisa «No se cambió el costo de …» y dice que la prenda entró al costo de su línea.
+
 **«Crear ahora» no pierde el costo.** El costo puesto a una prenda nueva por su descripción (`nueva:<descripción>`) vivía en el pendiente «crear»; al ligar la prenda creada
 (`ligar_prenda_a_pendiente`) el pendiente deja de tener descripción, así que esa clave pasa al `producto_id` de la prenda (lo que la prenda ya tuviera propio gana; la clave
 vieja se quita solo si no queda otro «crear» de la misma línea con esa descripción).

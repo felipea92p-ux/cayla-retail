@@ -1350,6 +1350,16 @@ export function costosDeHacerAhora(
   return { costos, cambios, problemas };
 }
 
+/**
+ * Los cambios de costo que la base NO dejó anotados: la respuesta trae el conteo de la línea con el costo de cada prenda, y si lo que se mandó no
+ * está ahí es que la base todavía no acepta el costo desde «Hacer ahora» (la migración sin pegar la deja pasar sin error y sin hacer nada). Sin
+ * respuesta no se puede saber: no se alarma.
+ */
+export function costosSinGuardar<T extends { productoId: string; despues: number }>(cambios: readonly T[], conteo: Pick<ConteoDeLinea, "costosPrendas"> | null): T[] {
+  if (!conteo) return [];
+  return cambios.filter((c) => conteo.costosPrendas[c.productoId] !== c.despues);
+}
+
 /** Lo que hay que saber del dinero antes de confirmar en «Hacer ahora»: el costo (si cambia) y el precio de venta (si cambia). */
 export function avisoDeConfirmarHacerAhora(cambios: readonly CambioDePrecio[]): string {
   const costo = "El costo cambia lo que cuesta lo que entra ahora, y queda para lo que falte de esa prenda; lo ya recibido no se toca.";

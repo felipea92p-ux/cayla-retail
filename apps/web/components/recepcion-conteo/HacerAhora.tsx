@@ -21,6 +21,7 @@ import {
   cambiosDeVentaDe,
   costoInicialDePrenda,
   costosDeHacerAhora,
+  costosSinGuardar,
   leerCostoCierre,
   ponerTallas,
   prendaCreadaDeNueva,
@@ -273,13 +274,19 @@ export function HacerAhora({
       if (r !== "ok") fallas.push({ nombre: c.nombre, texto: r === "ajena" ? "La prenda no quedó en este envío." : r.texto });
     }
     setGuardando(false);
+    // La base dice qué costos quedaron anotados: uno que no está (la base todavía no lo acepta) no se da por hecho.
+    const sinCosto = costosSinGuardar(cambiosCosto, resuelto?.conteo ?? null);
+    const conCosto = cambiosCosto.filter((c) => !sinCosto.includes(c));
     const detalleDeAviso = [
-      cambiosCosto.length > 0 ? `Costo · ${cambiosCosto.map((c) => `${c.nombre}: ${textoCambioDePrecio(c, sede)}`).join(" · ")}` : null,
+      conCosto.length > 0 ? `Costo · ${conCosto.map((c) => `${c.nombre}: ${textoCambioDePrecio(c, sede)}`).join(" · ")}` : null,
       aplicados.current.length > 0 ? `Precio de venta · ${aplicados.current.map((c) => `${c.nombre}: ${textoCambioDePrecio(c, sede)}`).join(" · ")}` : null,
     ].filter((t): t is string => t !== null);
     avisar.exito(resuelto ? textoResuelto(resuelto) : "Listo", { detalle: detalleDeAviso.length > 0 ? detalleDeAviso.join(" — ") : undefined });
     for (const f of fallas) {
       avisar.error(`No se cambió el precio de ${f.nombre}`, { detalle: `${f.texto} Las prendas sí quedaron guardadas: cambia el precio en Catálogo ▸ Productos.` });
+    }
+    for (const c of sinCosto) {
+      avisar.error(`No se cambió el costo de ${c.nombre}`, { detalle: "La base todavía no acepta cambiar el costo desde aquí. La prenda entró al costo de su línea: corrígelo en Catálogo ▸ Productos." });
     }
     onListo();
   }

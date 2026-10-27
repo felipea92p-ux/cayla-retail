@@ -20,6 +20,7 @@ import {
   avisoDeConfirmarHacerAhora,
   costoInicialDePrenda,
   costosDeHacerAhora,
+  costosSinGuardar,
   AVISO_PRENDA_SIN_LIGAR,
   resultadoDeLigar,
   resultadoDelPrecio,
@@ -1153,6 +1154,15 @@ describe("ADR-0519 sobre ADR-0393: el costo de cada prenda en «Hacer ahora»", 
     const con = argsResolverPendiente({ ...base, costos: { "p-sofia": 52 } });
     expect(con.p_separado).toMatchObject({ prendas: [], nuevas: [], costos: { "p-sofia": 52 } });
     expect(con).toMatchObject({ p_despacho_item_id: "i1", p_pendiente_id: "pe1", p_confirma_costo: false, p_token: "t" });
+  });
+
+  it("un costo que la base no dejó anotado no se da por hecho: lo dice la respuesta con el costo de cada prenda del conteo", () => {
+    const cambios = [{ productoId: "p-sofia", despues: 52 }, { productoId: "p-otra", despues: 40 }];
+    // La base lo anotó: nada que avisar. No lo anotó (la migración sin pegar lo ignora): se dice cuál. Sin respuesta, no se alarma.
+    expect(costosSinGuardar(cambios, lineaDe({ costos_prendas: { "p-sofia": 52, "p-otra": 40 } }).conteo)).toEqual([]);
+    expect(costosSinGuardar(cambios, lineaDe({ costos_prendas: { "p-sofia": 52 } }).conteo)).toEqual([cambios[1]]);
+    expect(costosSinGuardar(cambios, lineaDe().conteo)).toEqual(cambios);
+    expect(costosSinGuardar(cambios, null)).toEqual([]);
   });
 
   it("la confirmación dice lo que hay que saber de cada dinero que cambia, y solo de ese", () => {
