@@ -1,6 +1,6 @@
 # ADR-0534 — Sin validaciones de líder en la tienda: la líder valida en persona
 
-**Estado:** aceptada · migración `20261027164000` **NO está en producción** (espera el OK de Felipe para pegarla) · la web va en el mismo PR ·
+**Estado:** aceptada · migración `20261027164000` **EN PRODUCCIÓN desde 2026-10-27** (con el OK de Felipe, por el MCP de Supabase tras un ensayo revertible; registrada como `20261027171909`, la hora del pegado) · la web va en el mismo PR ·
 **Fecha:** 2026-10-27 · **Decidió:** Felipe · **Sigue a:** ADR-0306 (un módulo es una entrada del menú; quien lo ve hace lo de adentro),
 ADR-0161/0162 (el responsable firma) y ADR-0387 (el costo atípico ya pasó del líder al módulo)
 

@@ -1,4 +1,4 @@
 ## 2026-10-27 (La tienda ya no espera a una cuenta de líder: la líder valida en persona)
 Qué hice: quité las validaciones de líder de las operaciones de tienda (devoluciones, cuadre del piso, prendas dañadas, ajuste de caja, ventas sin registrar), del catálogo (lo nuevo nace aprobado, ofertas, plan del piso) y de anular comprobantes; cada una pide ahora el módulo de su pantalla (ADR-0534, migración `20261027164000`).
 Por qué así: todas usan cuentas de terminal compartidas y la líder valida delante del mostrador; el candado del sistema solo trababa la terminal. La administración (roles, colaboradores, finanzas, configuración) sigue siendo del líder.
-Qué falta: pegar la migración en producción con el OK de Felipe; lo que ya estaba pendiente (devoluciones, colores, insignias) se resuelve como antes.
+Qué falta: la migración ya está en producción (`20261027171909`, con el OK de Felipe); lo que ya estaba pendiente (devoluciones, colores, insignias) se resuelve como antes.
