@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { letrasDelTitulo, piezasDelDesfile, RITMO, SALIDAS_MAX, salidaTexto, siguienteSalida } from "./desfile";
+import { claveDelEscenario, letrasDelTitulo, piezasDelDesfile, RITMO, SALIDAS_MAX, salidaTexto, siguienteSalida } from "./desfile";
 
 const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg";
 
@@ -87,5 +87,20 @@ describe("el desfile de Lo nuevo", () => {
     expect(RITMO).toMatchObject({ entra: 1500, queda: 1700, sale: 1300, flash: 520 });
     // La primera vez no cruza ni espera 2,8 s: se queda menos de lo que una prenda tarda en entrar y quedarse.
     expect(RITMO.primera).toBeLessThan(RITMO.entra + RITMO.queda);
+  });
+});
+
+describe("la clave del escenario (cambiar de tienda reinicia el desfile)", () => {
+  const a = [{ id: "p1" }, { id: "p2" }];
+  it("cambia cuando llegan otras prendas, aunque sean las mismas de cantidad: era el caso que dejaba la escena apagada", () => {
+    expect(claveDelEscenario("portada", false, a)).not.toBe(claveDelEscenario("portada", false, [{ id: "p3" }, { id: "p4" }]));
+  });
+  it("cambia si cambia el orden, y no si es la misma visita", () => {
+    expect(claveDelEscenario("portada", false, a)).not.toBe(claveDelEscenario("portada", false, [...a].reverse()));
+    expect(claveDelEscenario("portada", false, a)).toBe(claveDelEscenario("portada", false, [{ id: "p1" }, { id: "p2" }]));
+  });
+  it("el esqueleto no se confunde con la escena, ni la portada con la sección", () => {
+    expect(claveDelEscenario("portada", true, a)).not.toBe(claveDelEscenario("portada", false, a));
+    expect(claveDelEscenario("portada", false, a)).not.toBe(claveDelEscenario("seccion", false, a));
   });
 });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { letrasDelTitulo, RITMO, salidaTexto, siguienteSalida, type PiezaDelDesfile } from "@/lib/desfile";
+import { claveDelEscenario, letrasDelTitulo, RITMO, salidaTexto, siguienteSalida, type PiezaDelDesfile } from "@/lib/desfile";
 import { FotoTarjeta } from "../FotoTarjeta";
 import "@/app/estilos/desfile.css";
 
@@ -24,7 +24,16 @@ type Props = {
   enEspera?: boolean;
 };
 
-export function EscenarioDelDesfile({ piezas, modo, ceja, titulo, boton, enEspera = false }: Props) {
+/**
+ * El escenario del desfile. Promete que cuando cambian las prendas (la clienta cambia de tienda y llegan otras) arranca de cero: otra escena, con sus propias
+ * prendas a la vista. Antes seguía el mismo componente con su desfile ya en marcha: la vuelta guardaba las prendas de la tienda anterior (ya fuera de la
+ * página), la leyenda seguía contando y la escena nueva quedaba con todas sus prendas apagadas, sin nada en la luz, varios segundos.
+ */
+export function EscenarioDelDesfile(props: Props) {
+  return <Escenario key={claveDelEscenario(props.modo, props.enEspera ?? false, props.piezas)} {...props} />;
+}
+
+function Escenario({ piezas, modo, ceja, titulo, boton, enEspera = false }: Props) {
   const n = piezas.length;
   const caja = useRef<HTMLElement>(null);
   const [actual, setActual] = useState(0);
