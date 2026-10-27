@@ -21,13 +21,13 @@ const sugerencias: Sugerencia[] = [
   { guia: factura, href: null, paso: null, puntos: 3 },
 ];
 const AQUI = "/compras/9f3a";
-const tramo = (guia_id: string, paso_id = "") => ({ guia_id, paso_id });
+const tramo = (guia_id: string, paso_id = "", rellenar = "") => ({ guia_id, paso_id, rellenar });
 const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", tramos: [tramo(guia.id, "lista")], ...r });
 const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {
   it("una guía y un paso de la lista pasan tal cual", () => {
-    expect(revisar(ia({}))).toEqual({ tipo: "guia", texto: "Te llevo a Comprobantes.", tramos: [{ guiaId: guia.id, pasoId: "lista", href: "/vender/comprobantes" }] });
+    expect(revisar(ia({}))).toEqual({ tipo: "guia", texto: "Te llevo a Comprobantes.", tramos: [{ guiaId: guia.id, pasoId: "lista", href: "/vender/comprobantes", rellenar: null }] });
   });
 
   it("una guía que no estaba en la lista manda a la búsqueda sin IA", () => {
@@ -68,6 +68,28 @@ describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", 
     const largo = `${"Primero ve a Comprobantes y busca la boleta del cliente. ".repeat(8)}Fin`;
     const r = revisar(ia({ texto: largo }), sugerencias);
     expect(r.tipo === "guia" && r.texto.length <= 320 && r.texto.endsWith(".")).toBe(true);
+  });
+});
+
+describe("el dato a rellenar (actividad 6): solo si el paso escribe ahí y la persona lo dijo tal cual", () => {
+  const buscador: Guia = { id: "vender.historial", ruta: "/vender/historial", titulo: "Historial", resumen: ".", pasos: [{ id: "buscar", ancla: "h.buscar", titulo: "Busca", texto: ".", demostrar: [{ tipo: "escribir", ancla: "h.buscar", texto: "Blusa" }] }] };
+  const conBuscador: Sugerencia[] = [{ guia: buscador, href: "/vender/historial", paso: null, puntos: 4 }];
+  const preguntaCon = "¿dónde veo la venta B001-482?";
+  const con = (rellenar: string, paso = "buscar", p = preguntaCon) =>
+    revisarRespuesta(ia({ tramos: [tramo(buscador.id, paso, rellenar)] }), conBuscador, AQUI, [], p);
+
+  it("lo que dijo, en un paso que escribe: viaja", () => {
+    expect(con("B001-482")).toMatchObject({ tramos: [{ rellenar: "B001-482" }] });
+  });
+
+  it("inventado, en un paso que no escribe o sin la pregunta: no viaja (la guía sigue sirviendo)", () => {
+    expect(con("B001-999")).toMatchObject({ tipo: "guia", tramos: [{ rellenar: null }] });
+    expect(con("B001-482", "inventado")).toMatchObject({ tipo: "guia", tramos: [{ rellenar: null }] });
+    expect(con("B001-482", "buscar", "")).toMatchObject({ tramos: [{ rellenar: null }] });
+  });
+
+  it("al mensaje van marcados los pasos donde se puede escribir", () => {
+    expect(mensajeDePregunta(preguntaCon, conBuscador)).toContain("paso buscar: Busca. . [aquí se puede escribir]");
   });
 });
 

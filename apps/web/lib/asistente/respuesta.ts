@@ -10,6 +10,7 @@ import * as z from "zod/v4";
 import type { Guia } from "../guias/tipos";
 import type { Sugerencia } from "./preseleccion";
 import { MAXIMO_DE_TRAMOS, type Tramo } from "./recorrido";
+import { pasoSePuedeRellenar, rellenoValido } from "./relleno";
 import { moduloDeLaGuia, textoSinAcceso } from "./sin-acceso";
 
 /** El modelo que responde (ADR-0529: rápido, porque la persona está parada en la tienda). */
@@ -54,6 +55,8 @@ export const RespuestaDeLaIA = z.object({
       guia_id: z.string(),
       /** El id del paso que responde, de esa guía. Vacío si no hay uno en particular. */
       paso_id: z.string(),
+      /** El dato que la persona dio y ese paso puede escribir («B001-482»), copiado de la pregunta. Vacío si no hay. */
+      rellenar: z.string(),
     }),
   ),
 });
@@ -85,6 +88,7 @@ Reglas:
 - Elige SOLO entre las guías y los pasos de la lista, por su id exacto. Nunca inventes una pantalla, un botón, un menú ni un paso que no esté en la lista.
 - Si una guía responde: tipo "guia" y en tramos UN tramo con su guia_id y, si un paso en particular responde, su paso_id (si no, paso_id vacío).
 - Solo si la tarea de verdad pasa por más de una pantalla, en orden (por ejemplo, crear una prenda y después imprimir su etiqueta), pon un tramo por pantalla, tres como máximo. Casi siempre basta uno.
+- Si la persona dio un dato concreto (un número de boleta, un código, el nombre de una prenda) y el paso elegido dice «[aquí se puede escribir]», pon ese dato en rellenar COPIADO TAL CUAL de la pregunta; si no, rellenar vacío. Nunca inventes, completes ni corrijas el dato.
 - Si la pregunta es sobre el sistema pero ninguna guía de la lista la responde: tipo "no_existe", tramos vacío, y dile con calma que eso todavía no se puede hacer o que no lo encontraste, sin prometer nada.
 - Si la pregunta no tiene que ver con el sistema ni con el trabajo en la tienda: tipo "fuera_de_tema", tramos vacío, con una frase amable.
 - El texto: UNA frase corta (25 palabras como máximo) que diga a qué pantalla la llevas y qué va a ver; la guía muestra el resto. Español neutro de Perú, de «tú», sin jerga técnica. No repitas la pregunta.
@@ -98,7 +102,7 @@ Reglas:
 function guiaParaLaIA(guia: Guia): string {
   const pasos = guia.pasos
     .filter((p) => p.ancla !== null)
-    .map((p) => `  - paso ${p.id}: ${p.titulo}. ${p.texto}`)
+    .map((p) => `  - paso ${p.id}: ${p.titulo}. ${p.texto}${pasoSePuedeRellenar(p) ? " [aquí se puede escribir]" : ""}`)
     .join("\n");
   return `<guia id="${guia.id}" pantalla="${guia.titulo}">\n${guia.resumen}\n${pasos}\n</guia>`;
 }
@@ -139,6 +143,8 @@ export function revisarRespuesta(
   sugerencias: readonly Sugerencia[],
   rutaActual: string,
   ajenas: readonly Sugerencia[] = [],
+  /** La pregunta (ya limpia): el dato a rellenar tiene que salir de aquí, tal cual. */
+  pregunta = "",
 ): ResultadoAsistente {
   if (!cruda) return { tipo: "basico", motivo: "respuesta_invalida" };
   const texto = recortar(cruda.texto);
@@ -155,7 +161,9 @@ export function revisarRespuesta(
     const elegida = sugerencias.find((s) => s.guia.id === t.guia_id);
     if (!elegida) break;
     const paso = elegida.guia.pasos.find((p) => p.id === t.paso_id && p.ancla !== null);
-    tramos.push({ guiaId: elegida.guia.id, pasoId: paso?.id ?? null, href: elegida.href ?? rutaActual });
+    // El dato solo viaja si el paso escribe ahí un ejemplo y la persona lo dijo tal cual (actividad 6, `relleno.ts`).
+    const rellenar = paso && pasoSePuedeRellenar(paso) ? rellenoValido(t.rellenar, pregunta) : null;
+    tramos.push({ guiaId: elegida.guia.id, pasoId: paso?.id ?? null, href: elegida.href ?? rutaActual, rellenar });
   }
   if (tramos.length === 0) return { tipo: "basico", motivo: "respuesta_invalida" };
   return { tipo: "guia", texto, tramos };

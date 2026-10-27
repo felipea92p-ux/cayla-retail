@@ -6,8 +6,11 @@
 
 import type { AccionGuia, Guia } from "../guias/tipos";
 
-/** Un tramo del recorrido: qué guía, desde qué paso (`null`: la guía entera) y a qué dirección del menú se llega a ella. */
-export type Tramo = { guiaId: string; pasoId: string | null; href: string };
+/**
+ * Un tramo del recorrido: qué guía, desde qué paso (`null`: la guía entera), a qué dirección del menú se llega a ella y, si la persona
+ * dio un dato que ese paso puede escribir, el dato (actividad 6, `lib/asistente/relleno.ts`).
+ */
+export type Tramo = { guiaId: string; pasoId: string | null; href: string; rellenar?: string | null };
 
 /** Más de tres pantallas ya no es «llévame al botón», es un curso: para eso está la demo de cada pantalla. */
 export const MAXIMO_DE_TRAMOS = 3;
@@ -34,7 +37,7 @@ function prepararParaSaltar(guia: Guia, indice: number): readonly AccionGuia[] {
  * Se le quitan las condiciones que lo harían saltar sin decir nada (`opcional`, `requiere`, `excluye`): la persona preguntó por ESE
  * paso, y si su pieza no está a la vista, la tarjeta lo dice al centro. Sin paso (o con uno que la guía ya no tiene), la guía entera.
  */
-export function guiaDelTramo(guia: Guia, pasoId: string | null): Guia {
+export function guiaDelTramo(guia: Guia, pasoId: string | null, rellenar: string | null = null): Guia {
   const indice = pasoId === null ? -1 : guia.pasos.findIndex((p) => p.id === pasoId && p.ancla !== null);
   if (indice === -1) return guia;
   const paso = { ...guia.pasos[indice]!, preparar: prepararParaSaltar(guia, indice) };
@@ -42,6 +45,14 @@ export function guiaDelTramo(guia: Guia, pasoId: string | null): Guia {
   delete paso.requiere;
   delete paso.excluye;
   delete paso.prepararSoloAlAvanzar;
+  // Con un dato de la persona, el ejemplo que la guía escribía se cambia por ese dato, en el mismo campo, y al terminar se deja como
+  // quedó (sin vaciar ni cerrar): lo que sigue lo hace ella. Sin un ejemplo que reemplazar, el dato no se escribe en ningún lado.
+  const ejemplo = paso.demostrar?.findIndex((a) => a.tipo === "escribir") ?? -1;
+  if (rellenar && ejemplo !== -1) {
+    const demostrar = [...paso.demostrar!];
+    demostrar[ejemplo] = { tipo: "rellenar", ancla: (demostrar[ejemplo] as { ancla: string }).ancla, texto: rellenar };
+    return { ...guia, dejarComoQuedo: true, pasos: [{ ...paso, demostrar }] };
+  }
   return { ...guia, pasos: [paso] };
 }
 
@@ -94,7 +105,14 @@ export function leerRecorrido(texto: string | null, ahora: number): RecorridoGua
   if (!Array.isArray(tramos)) return null;
   const validos = tramos.filter(
     (t): t is Tramo =>
-      !!t && typeof t === "object" && typeof t.guiaId === "string" && typeof t.href === "string" && t.href.startsWith("/") && !t.href.startsWith("//") && (t.pasoId === null || typeof t.pasoId === "string"),
+      !!t &&
+      typeof t === "object" &&
+      typeof t.guiaId === "string" &&
+      typeof t.href === "string" &&
+      t.href.startsWith("/") &&
+      !t.href.startsWith("//") &&
+      (t.pasoId === null || typeof t.pasoId === "string") &&
+      (t.rellenar === undefined || t.rellenar === null || (typeof t.rellenar === "string" && t.rellenar.length <= 60)),
   );
   if (validos.length !== tramos.length || validos.length === 0) return null;
   return { tramos: validos.slice(0, MAXIMO_DE_TRAMOS), creado };

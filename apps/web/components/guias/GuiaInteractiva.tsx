@@ -107,10 +107,13 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
       if (terminada.current) return;
       terminada.current = true;
       control.current?.abort();
-      // Dejar la pantalla como estaba: lo que la guía declara, y después cerrar los modales que abrió.
-      for (const a of guia.alSalir ?? []) await ejecutar(a, undefined, false);
-      for (let intento = 0; intento < 4 && modalesAbiertos() > dialogosAlEmpezar.current; intento++) {
-        await ejecutar({ tipo: "escape" }, undefined, false);
+      // Dejar la pantalla como estaba: lo que la guía declara, y después cerrar los modales que abrió. Salvo un tramo del asistente
+      // que rellenó un campo con lo que dijo la persona (ADR-0529, actividad 6): ahí sigue ella, con lo escrito y lo abierto a la vista.
+      if (!guia.dejarComoQuedo) {
+        for (const a of guia.alSalir ?? []) await ejecutar(a, undefined, false);
+        for (let intento = 0; intento < 4 && modalesAbiertos() > dialogosAlEmpezar.current; intento++) {
+          await ejecutar({ tipo: "escape" }, undefined, false);
+        }
       }
       avisarFin.current(fin);
     },
@@ -570,6 +573,9 @@ function aLaVista(el: HTMLElement): boolean {
 
 /** Lo que dice la tarjeta cuando el piloto no hizo algo. Un botón que guarda se explica, no se toca. */
 function notaDe(accion: AccionGuia, motivo: string): string {
+  if (accion.tipo === "rellenar" && /no se rellena/.test(motivo)) {
+    return "Este campo no lo llenamos por ti: escríbelo tú. Te contamos para qué sirve.";
+  }
   if (accion.tipo === "clic" && /botón que hace algo|formulario|otra pantalla|sale del ERP/.test(motivo)) {
     return "Este botón hace algo de verdad, así que en la demo no lo tocamos: te contamos qué pasa cuando lo usas.";
   }

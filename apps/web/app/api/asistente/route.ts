@@ -164,5 +164,5 @@ export async function POST(request: Request) {
   // Una respuesta declinada o que no se le puede creer igual costó: se anota con su gasto.
   if (respuesta.stop_reason === "refusal") return basico("rechazo", gasto);
   const cruda = respuesta.parsed_output ?? null;
-  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas), cruda?.tema ?? null, gasto);
+  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta), cruda?.tema ?? null, gasto);
 }

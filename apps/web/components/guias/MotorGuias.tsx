@@ -10,7 +10,7 @@ import { debeOfrecer, esEntradaDelMenu, guiaDeRuta } from "@/lib/guias/reglas";
 import type { Guia } from "@/lib/guias/tipos";
 import { GuiaInteractiva, type FinDeGuia } from "./GuiaInteractiva";
 import { esperarAncla } from "./piloto";
-import { marcaDeVez, olvidarRecorrido, tomarSiguiente } from "./recorrido";
+import { guardarRelleno, marcaDeVez, olvidarRecorrido, tomarRelleno, tomarSiguiente } from "./recorrido";
 import { leerVistas, marcarVista } from "./vistas";
 
 // El que decide CUÁNDO corre una guía (ADR-0389). Montado una vez en `AppShell`; una pantalla no tiene que hacer nada.
@@ -24,8 +24,9 @@ import { leerVistas, marcarVista } from "./vistas";
 
 export const EVENTO_ABRIR_GUIA = "cayla:abrir-guia";
 
-/** Lo que lleva el evento cuando lo dispara el asistente: el paso donde arranca el tramo. Sin detalle, la guía entera. */
-type PedidoDeTramo = { pasoId: string | null };
+/** Lo que lleva el evento cuando lo dispara el asistente: el paso donde arranca el tramo y, si la persona lo dio, el dato que escribe
+ *  en su campo (actividad 6). Sin detalle, la guía entera. */
+type PedidoDeTramo = { pasoId: string | null; rellenar?: string | null };
 
 /** Arranca la guía de la pantalla abierta (desde «Demo» de Mi perfil, sin navegar). Con `tramo`, solo desde ese paso (el asistente). */
 export function abrirGuiaAqui(tramo?: PedidoDeTramo) {
@@ -103,7 +104,7 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     const esTramo = vez !== null;
     arranque.pedir(esTramo ? `${guia.id}#${vez}` : guia.id, corriendoRef.current, () => {
       setOfrecida(null);
-      if (esTramo) return arrancarTramo(guiaDelTramo(guia, pasoPedido));
+      if (esTramo) return arrancarTramo(guiaDelTramo(guia, pasoPedido, tomarRelleno(vez)));
       setEnRecorrido(false);
       setCorriendo(guia);
     });
@@ -116,7 +117,7 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
       if (!guia) return;
       const tramo = e instanceof CustomEvent ? (e.detail as PedidoDeTramo | null) : null;
       setOfrecida(null);
-      if (tramo) return arrancarTramo(guiaDelTramo(guia, tramo.pasoId));
+      if (tramo) return arrancarTramo(guiaDelTramo(guia, tramo.pasoId, tramo.rellenar ?? null));
       setEnRecorrido(false);
       setCorriendo(guia);
     };
@@ -153,8 +154,12 @@ export function MotorGuias({ quien, entradas }: { quien: string; /** Las rutas d
     if (fin !== "completa") return olvidarRecorrido();
     const siguiente = tomarSiguiente();
     if (!siguiente) return;
-    if (!esDeEstaPantalla(siguiente, pathname)) return router.push(direccionDelTramo(siguiente, marcaDeVez()));
-    if (guia) arrancarTramo(guiaDelTramo(guia, siguiente.pasoId));
+    if (!esDeEstaPantalla(siguiente, pathname)) {
+      const otraVez = marcaDeVez();
+      guardarRelleno(otraVez, siguiente.rellenar);
+      return router.push(direccionDelTramo(siguiente, otraVez));
+    }
+    if (guia) arrancarTramo(guiaDelTramo(guia, siguiente.pasoId, siguiente.rellenar ?? null));
   }
 
   return (

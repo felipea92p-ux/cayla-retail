@@ -187,6 +187,12 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   3 pantallas de módulos que el rol no tiene, y si una responde, la frase sale de `textoSinAcceso` («Eso se hace en Por pagar (Compras ▸
   Historial de compras), y tu rol todavía no lo tiene. Pídeselo a tu líder de equipo…»). Así nunca explica cómo se hace algo de una
   pantalla ajena. Una pantalla sin módulo (depende de la sede o de un permiso) no entra en esa lista.
+- **Rellenar empieza solo con el `<Buscador>`** (actividad 6), no con el motivo ni los combos que nombraba la tensión 1: buscar no guarda
+  nada, y es lo que la gente pregunta con un dato («la boleta B001-482», «la Blusa Emma»). Sumar otro campo lo decide Felipe y lo
+  vigila `lib/asistente-rellenable.test.ts` (lista blanca, con `campos.tsx`, el monto, la cantidad, la casilla y el responsable vetados).
+  El dato solo se escribe en un paso donde la guía ya escribía un ejemplo, si aparece TAL CUAL en la pregunta (`rellenoValido`): un
+  DNI llega como «[número]» y nunca se rellena. Viaja entre pantallas en el almacenamiento de la pestaña, nunca en la dirección (puede
+  ser el nombre de un cliente). Al terminar ese tramo no se vacía lo escrito ni se cierra lo abierto: sigue la persona.
 - **Un tramo no cuenta como demo vista entera**: la guía queda como ofrecida y su oferta de la primera vez no vuelve a salir.
 
 ## Producción

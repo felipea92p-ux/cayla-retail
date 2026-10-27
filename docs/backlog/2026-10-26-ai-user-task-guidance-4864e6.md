@@ -7,7 +7,8 @@
 - [x] 5 · Cada pregunta queda anotada (`retail.asistente_preguntas`, migración `20261026235000`), «¿Te sirvió? Sí / No» y «¿Qué buscabas?», y el tope de US$30 al mes (`fn_asistente_gasto_del_mes`). Aplicada solo en la base local.
 - [ ] **Pegar `20261026235000_asistente_preguntas.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres funciones). Mientras no esté, el asistente responde igual pero no anota nada (`preguntaId: null`, sin «¿Te sirvió?») ni cuenta el tope del mes: queda solo el límite de gasto de la consola de Anthropic.
 - [ ] Refrescar el volcado de producción (`datos:generar:produccion`) cuando la migración esté aplicada: `pnpm datos:comparar` marca las tres funciones hasta entonces.
-- [ ] 6 · Rellenar con candados (`data-asistente="rellenable"`, «Lo escribió CAYLA»).
+- [x] 6 · Rellenar con candados: el dato que la persona dijo, tal cual, solo en el `<Buscador>` (`data-asistente="rellenable"`, lista blanca vigilada), marcado «Lo escribió CAYLA · revísalo» hasta que la persona lo toca. Nunca guarda.
+- [ ] **Felipe:** ¿sumar otros campos rellenables (el texto de un motivo, combos de una opción)? Hoy solo el buscador.
 - [ ] 7 · Reglas de tienda y catálogo de errores (cada regla con el OK de Felipe).
 - [ ] 8 · Interruptor por sede en Configuración (`retail.asistente_sedes`).
 - [ ] 9 · Pantalla «Lo que pregunta tu equipo» (módulo nuevo, solo líder).

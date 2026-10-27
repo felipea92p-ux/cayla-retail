@@ -55,6 +55,33 @@ describe("guiaDelTramo: la guía corta que arranca en el paso que responde", () 
   });
 });
 
+describe("guiaDelTramo con un dato de la persona (actividad 6)", () => {
+  const conBuscador: Guia = {
+    ...guia,
+    alSalir: [{ tipo: "vaciar", ancla: "c.buscar" }],
+    pasos: [...guia.pasos, { id: "buscar", ancla: "c.buscar", titulo: "Busca", texto: ".", demostrar: [{ tipo: "escribir", ancla: "c.buscar", texto: { palabraDe: "c.fila" } }] }],
+  };
+
+  it("el ejemplo que la guía escribía se cambia por el dato, en el mismo campo, y al terminar se deja como quedó", () => {
+    const t = guiaDelTramo(conBuscador, "buscar", "B001-482");
+    expect(t.pasos[0]?.demostrar).toEqual([{ tipo: "rellenar", ancla: "c.buscar", texto: "B001-482" }]);
+    expect(t.dejarComoQuedo).toBe(true);
+  });
+
+  it("sin dato, o en un paso sin ejemplo que reemplazar, no se rellena nada", () => {
+    expect(guiaDelTramo(conBuscador, "buscar").pasos[0]?.demostrar).toEqual(conBuscador.pasos.at(-1)?.demostrar);
+    expect(guiaDelTramo(conBuscador, "buscar").dejarComoQuedo).toBeUndefined();
+    const sinEjemplo = guiaDelTramo(conBuscador, "anular", "B001-482");
+    expect(sinEjemplo.dejarComoQuedo).toBeUndefined();
+    expect(JSON.stringify(sinEjemplo)).not.toContain("rellenar");
+  });
+
+  it("un dato guardado de más de 60 letras no se lee", () => {
+    const largo = JSON.stringify({ tramos: [{ guiaId: "g", pasoId: null, href: "/x", rellenar: "x".repeat(61) }], creado: 0 });
+    expect(leerRecorrido(largo, 0)).toBeNull();
+  });
+});
+
 describe("anclaDeArranque: lo que tiene que estar a la vista antes de arrancar", () => {
   it("la primera pieza que el piloto toca; sin nada que tocar, la del paso", () => {
     expect(anclaDeArranque(guiaDelTramo(guia, "anular"))).toBe("c.fila");

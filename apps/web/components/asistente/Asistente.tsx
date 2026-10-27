@@ -4,7 +4,7 @@ import { ChevronRight, MessageCircleQuestion, PlayCircle, SearchX } from "lucide
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { abrirGuiaAqui } from "@/components/guias/MotorGuias";
-import { guardarRestantes, marcaDeVez, olvidarRecorrido } from "@/components/guias/recorrido";
+import { guardarRelleno, guardarRestantes, marcaDeVez, olvidarRecorrido } from "@/components/guias/recorrido";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -90,8 +90,13 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     if (!primero) return;
     guardarRestantes(resto);
     cerrar();
-    if (esDeEstaPantalla(primero, pathname)) setTimeout(() => abrirGuiaAqui({ pasoId: primero.pasoId }), TRAS_CERRAR_MS);
-    else router.push(direccionDelTramo(primero, marcaDeVez()));
+    if (esDeEstaPantalla(primero, pathname)) {
+      setTimeout(() => abrirGuiaAqui({ pasoId: primero.pasoId, rellenar: primero.rellenar ?? null }), TRAS_CERRAR_MS);
+      return;
+    }
+    const vez = marcaDeVez();
+    guardarRelleno(vez, primero.rellenar);
+    router.push(direccionDelTramo(primero, vez));
   }
 
   async function preguntar(e: FormEvent) {
