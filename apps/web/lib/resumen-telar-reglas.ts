@@ -147,6 +147,31 @@ export function tramoDelMes(mes: string, hoy: string): { desde: string; hasta: s
   return { desde: `${mes}-01`, hasta: mes === hoy.slice(0, 7) ? hoy : ultimo };
 }
 
+/**
+ * El rango con el que se pide la provisión de sueldos (`fn_planilla_provision`): del 1 al ÚLTIMO día del mes, aunque el resto de las cifras llegue
+ * solo hasta hoy. La base devuelve el período de Dynamic que TERMINA dentro del rango (D-35: el período que termina en el mes es la planilla de
+ * ese mes) y trae lo devengado hasta hoy; pedirla «del 1 a hoy» dejaba fuera el período 28-sep → 28-oct hasta el día 28 y el mes parecía ganar
+ * lo que no ganaba. `null` si el mes todavía no llega.
+ */
+export function tramoDeSueldos(mes: string, hoy: string): { desde: string; hasta: string } | null {
+  const t = tramoDelMes(mes, hoy);
+  if (!t) return null;
+  const [a, m] = mes.split("-").map(Number) as [number, number];
+  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  return { desde: t.desde, hasta: `${mes}-${String(ultimo).padStart(2, "0")}` };
+}
+
+/**
+ * El mes pasado solo sirve de comparación si lleva sueldos igual que el actual. Finanzas cuenta desde su fecha de inicio (ADR-0332): el primer
+ * mes puede tener los sueldos del período en curso y el anterior, que Dynamic pagó antes de esa fecha, ninguno; comparar los dos mostraría una
+ * caída que es solo esa diferencia. Sin base común no se compara (como cuando no hay mes pasado: no se inventa).
+ */
+export function mesPasadoComparable(ahora: readonly FilaER[], antes: readonly FilaER[] | null): readonly FilaER[] | null {
+  if (!antes) return null;
+  const llevaSueldos = (fs: readonly FilaER[]) => fs.some((f) => f.planilla > 0);
+  return llevaSueldos(ahora) === llevaSueldos(antes) ? antes : null;
+}
+
 /** El mes anterior a «AAAA-MM». */
 export function mesAnteriorDe(mes: string): string {
   const [a, m] = mes.split("-").map(Number) as [number, number];
