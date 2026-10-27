@@ -30,7 +30,7 @@
 /* ---- Las ofertas: la banda de lienzo (hueso), con una pestaña por campaña. Las pestañas son las mismas del catálogo (piedra, y la
    activa en grafito con su subrayado): ya no hay que pisarles el color. Aquí había una línea que las pintaba con `--t-oscuro-tinta` (crema,
    hecha para la banda oscura de antes) y en claro quedaban a 1,13:1 sobre el hueso, invisibles. ---- */
-.t-ofertas { margin-top: clamp(56px, 9cqi, 132px); padding-block: clamp(48px, 7cqi, 96px); background: var(--hueso); color: var(--tinta); }
+.t-ofertas { margin-top: clamp(56px, 9cqi, 132px); padding-block: clamp(48px, 7cqi, 96px); background: var(--t-banda); border-block: 1px solid var(--t-banda-filo); color: var(--tinta); }
 .t-ofertas .t-ceja { color: var(--taupe); }
 .t-ofertas .t-sec-cab h2 em { color: inherit; }
 .t-ofertas .t-sec-cab p { color: var(--taupe); }
