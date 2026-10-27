@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
 import { Medicion } from "@/components/Medicion";
+import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
@@ -61,6 +62,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Suspense>
         {/* Cuánto tarda la tienda en el aparato del cliente, en 1 de cada 2 visitas (ADR-0447). No dibuja nada. */}
         <Medicion />
+        {/* Lo que sube y se aclara al bajar la página, una sola vez (components/RevelaAlBajar.tsx). No dibuja nada. */}
+        <RevelaAlBajar />
       </body>
     </html>
   );

@@ -167,7 +167,7 @@
   margin-top: clamp(80px, 11cqi, 160px); background: var(--t-hero); color: var(--t-hero-tinta); padding-block: clamp(56px, 8cqi, 120px);
 }
 .t-club-in { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(40px, 6cqi, 112px); align-items: center; }
-.t-club-in > .t-revela { display: block; }
+.t-club-in > [data-revela] { display: block; }
 .t-club .t-ceja { color: var(--taupe); }
 .t-club h2 { margin: 16px 0 0; font-family: var(--display); text-transform: none; font-weight: 400; letter-spacing: -.01em; line-height: 1; font-size: clamp(38px, 5.2cqi, 78px); max-width: 14ch; }
 .t-club h2 em { font-style: italic; color: inherit; }
@@ -270,16 +270,19 @@ button, input, textarea { font: inherit; color: inherit; }
   .t-fecha-larga { display: inline; }
   .t-fecha-corta { display: none; }
 }
-/* Revelar al bajar (si el navegador lo sabe hacer; si no, todo queda quieto y visible). */
-@supports (animation-timeline: view()) {
-  .t-revela { animation: revela linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+/* Revelar al bajar (la maqueta de la Pasarela): lo que está marcado con `data-revela` (o es hijo de `data-revela-lista`) sube y se aclara una sola vez, por
+   tiempo y no atado al scroll, cuando entra en pantalla; los títulos de sección además cierran su espaciado. `RevelaAlBajar` pone `data-r` («espera» solo
+   a lo que queda bajo el pliegue, «visto» al llegar): sin JavaScript o con «reducir movimiento» nada se esconde nunca. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-revela][data-r="espera"] { opacity: 0; }
+  [data-revela][data-r="visto"] { animation: t-revela-sube 1s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--i, 0) * 110ms); }
+  [data-revela][data-r="visto"] h2 { animation: t-revela-letras 1.6s cubic-bezier(.2, .7, .2, 1) backwards; }
 }
-@keyframes revela { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes t-revela-sube { from { opacity: 0; transform: translateY(26px); } }
+@keyframes t-revela-letras { from { letter-spacing: .2em; } }
 @keyframes brillo { from { background-position: 120% 0; } to { background-position: -40% 0; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-  /* Una animación que avanza con el scroll no mira su duración: sin esto, lo que «aparece al bajar» se quedaría invisible. */
-  .t-revela { animation: none !important; }
 }
 /* La palabra CAYLA dentro del título de una campaña («Aniversario CAYLA»): el dibujo del logo, del alto de las mayúsculas de la letra
    del título y sobre su misma línea, en el color del pedazo donde cae (el rosado de la cursiva). */

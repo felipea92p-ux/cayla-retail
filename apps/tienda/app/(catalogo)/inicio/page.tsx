@@ -152,7 +152,7 @@ export default async function Inicio({ searchParams }: Props) {
         <>
           {nuevas.length > 0 && (
             <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
-              <div className="t-cab-centro t-revela">
+              <div className="t-cab-centro" data-revela>
                 <span className="t-ceja">El programa</span>
                 <h2 id="lo-nuevo">
                   En las <em>tiendas</em>
@@ -170,7 +170,7 @@ export default async function Inicio({ searchParams }: Props) {
 
           {looks.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="arma-tu-look">
                     Arma tu <em>look</em>
@@ -181,7 +181,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-looks-inicio">
+              <div className="t-looks-inicio" data-revela-lista>
                 {looks.slice(0, 3).map((l) => (
                   <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
                 ))}
@@ -220,7 +220,7 @@ export default async function Inicio({ searchParams }: Props) {
 
           {vendidos.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="mas-vendidos">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>
