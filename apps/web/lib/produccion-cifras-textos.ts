@@ -38,15 +38,19 @@ export function textosDeCifras(c: CifrasResumen): TextosDeCifras {
       ? { sinDato: true, contexto: "Aún no hay facturas de proveedores cargadas." }
       : { sinDato: false, contexto: c.vencido > 0 ? `${soles(c.vencido)} ya vencidos` : c.porPagar > 0 ? "nada vencido" : "no se debe nada" };
 
-  const entregas: TextoDeCifra = {
-    sinDato: false,
-    contexto:
-      c.entregasEnRiesgo > 0
-        ? "vencidas o por vencer en 2 días"
-        : c.ordenesSinFecha > 0
-          ? `ninguna vencida · ${plural(c.ordenesSinFecha, "orden sin fecha de entrega", "órdenes sin fecha de entrega")}`
-          : "ninguna vencida ni por vencer",
-  };
+  // Un 0 solo es un dato si las órdenes tienen fecha: sin ninguna, «0 entregas por atender» no dice «todo a tiempo» sino «no sé» (segunda prueba ciega: «0 · 4 sin fecha» confundía).
+  const todasSinFecha = c.entregasEnRiesgo === 0 && c.ordenesSinFecha > 0 && c.ordenesSinFecha === c.ordenesEnProceso;
+  const entregas: TextoDeCifra = todasSinFecha
+    ? { sinDato: true, contexto: `${plural(c.ordenesSinFecha, "orden abierta no tiene", "órdenes abiertas no tienen")} fecha de entrega. Ponles fecha y te avisamos si se atrasan.` }
+    : {
+        sinDato: false,
+        contexto:
+          c.entregasEnRiesgo > 0
+            ? "vencidas o por vencer en 2 días"
+            : c.ordenesSinFecha > 0
+              ? `ninguna vencida · ${plural(c.ordenesSinFecha, "orden sin fecha de entrega", "órdenes sin fecha de entrega")}`
+              : "ninguna vencida ni por vencer",
+      };
 
   return { capital, valorEnProceso, porPagar, entregas };
 }

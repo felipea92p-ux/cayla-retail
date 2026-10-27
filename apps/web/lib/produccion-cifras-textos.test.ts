@@ -65,10 +65,16 @@ describe("las cuatro cifras de arriba dicen la verdad (Formidable, Producción �
     expect(textosDeCifras(cifras({ porPagar: 0 })).porPagar.contexto).toBe("no se debe nada");
   });
 
-  it("entregas: «ninguna vencida» no puede ocultar que las órdenes no tienen fecha", () => {
-    expect(textosDeCifras(cifras({ ordenesSinFecha: 4 })).entregas.contexto).toBe("ninguna vencida · 4 órdenes sin fecha de entrega");
-    expect(textosDeCifras(cifras({ ordenesSinFecha: 1 })).entregas.contexto).toBe("ninguna vencida · 1 orden sin fecha de entrega");
-    expect(textosDeCifras(cifras({ entregasEnRiesgo: 2, ordenesSinFecha: 4 })).entregas.contexto).toBe("vencidas o por vencer en 2 días");
+  it("entregas: si NINGUNA orden tiene fecha, no hay un «0» que mostrar: es «sin dato» y dice qué hacer", () => {
+    expect(textosDeCifras(cifras({ ordenesEnProceso: 4, ordenesSinFecha: 4 })).entregas).toEqual({ sinDato: true, contexto: "4 órdenes abiertas no tienen fecha de entrega. Ponles fecha y te avisamos si se atrasan." });
+    expect(textosDeCifras(cifras({ ordenesEnProceso: 1, ordenesSinFecha: 1 })).entregas.contexto).toContain("1 orden abierta no tiene fecha");
+  });
+  it("entregas: si algunas tienen fecha y otras no, el 0 es un dato y se dice cuántas faltan", () => {
+    expect(textosDeCifras(cifras({ ordenesEnProceso: 4, ordenesSinFecha: 2 })).entregas).toEqual({ sinDato: false, contexto: "ninguna vencida · 2 órdenes sin fecha de entrega" });
+    expect(textosDeCifras(cifras({ ordenesEnProceso: 4, ordenesSinFecha: 1 })).entregas.contexto).toBe("ninguna vencida · 1 orden sin fecha de entrega");
+  });
+  it("entregas: con alguna vencida o por vencer, lo dice aunque falten fechas", () => {
+    expect(textosDeCifras(cifras({ entregasEnRiesgo: 2, ordenesEnProceso: 4, ordenesSinFecha: 4 })).entregas).toEqual({ sinDato: false, contexto: "vencidas o por vencer en 2 días" });
   });
 });
 

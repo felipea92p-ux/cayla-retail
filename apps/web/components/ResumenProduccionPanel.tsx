@@ -161,11 +161,11 @@ export function ResumenProduccionPanel({
           {textos.porPagar.contexto}
         </TarjetaCifra>
         <TarjetaCifra
-          punto={cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
+          punto={textos.entregas.sinDato ? "neutro" : cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
           etiqueta="Entregas por atender"
           className="anim-entra"
           style={{ ["--i" as string]: 3 }}
-          valor={<CifraQueCuenta valor={cifras.entregasEnRiesgo} alMontar />}
+          valor={textos.entregas.sinDato ? null : <CifraQueCuenta valor={cifras.entregasEnRiesgo} alMontar />}
         >
           {textos.entregas.contexto}
         </TarjetaCifra>
