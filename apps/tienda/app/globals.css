@@ -50,10 +50,12 @@
     --lienzo: #121211; --marco: #000000; --estudio: #1b1b1a; --estudio-luz: #242422;
     --velo: rgba(0, 0, 0, .62); --sombra: rgba(0, 0, 0, .6); --suelo: rgba(0, 0, 0, .4);
     --chat: #141413; --burbuja: #24301e; --burbuja-tinta: #f4f1ea;
+    --t-banda: var(--crema); --t-banda-filo: var(--sand);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
+  --t-banda: var(--crema); --t-banda-filo: var(--sand);
   --crema: #0b0b0b; --papel: #141413; --hueso: #1b1b1a; --sand: #2e2e2c; --tinta: #f4f1ea; --taupe: #a6a39c;
   --rojo: #f0786f; --rojo-profundo: #f59a93; --verde: #5fc08c; --ambar: #e0a24a; --pizarra: #a2b8cd;
   --marfil: #f4f1ea;
@@ -84,13 +86,16 @@
   --t-papel-fijo: #ffffff;
   --t-tinta-fija: #0b0b0b;
   --t-sombra-foto: rgba(11, 11, 11, .22);
+  /* La banda de «Las ofertas»: en claro, el humo que la separa del blanco; en oscuro el mismo negro de la página con un filo arriba y abajo (un gris sobre el negro se veía como un parche). */
+  --t-banda: var(--hueso);
+  --t-banda-filo: transparent;
 }
 /* El «backstage»: el escenario y el Club, que en claro ya eran negros, suben un tono para separarse del fondo; la placa de la foto se queda clara
-   (apenas más sorda, para no encandilar sobre el negro). */
+   pero más sorda (un gris cálido, no el marfil: sobre el negro encandilaba; la foto se funde con ella con `multiply`, así que su color casi no cambia). */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --t-foto: #ebe9e4; --t-foto-2: #e0ded8; --t-lamina: #ebe9e4; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
+  :root:not([data-theme="light"]) { --t-foto: #dddbd5; --t-foto-2: #d2d0ca; --t-lamina: #dddbd5; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
 }
-:root[data-theme="dark"] { --t-foto: #ebe9e4; --t-foto-2: #e0ded8; --t-lamina: #ebe9e4; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
+:root[data-theme="dark"] { --t-foto: #dddbd5; --t-foto-2: #d2d0ca; --t-lamina: #dddbd5; --t-hero: #151514; --t-hero-2: #232321; --t-oscuro: #151514; --t-oscuro-2: #232321; --t-oferta: #e0645b; --t-oferta-tinta: #0b0b0b; }
 .t-ancho { width: 100%; max-width: 1440px; margin-inline: auto; padding-inline: clamp(16px, 4cqi, 64px); }
 .t-angosto { width: 100%; max-width: 620px; margin-inline: auto; }
 .t-anuncio { flex: none; height: 34px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 12px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
