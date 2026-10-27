@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
 import { preseleccionar } from "@/lib/asistente/preseleccion";
 import { erroresParecidos, reglasParecidas } from "@/lib/asistente/conocimiento";
+import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { rutasFueraDelMenu } from "@/lib/asistente/sin-acceso";
 import {
   costoEnDolares,
@@ -82,15 +83,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "El asistente todavía no está encendido en esta sede." }, { status: 403 });
   }
 
-  // Las pantallas que esta cuenta ve: el mismo menú del lateral (`AppShell`), armado con sus módulos.
-  const rutasDelMenu = menuPara({
-    permisos: persona.permisos ?? permisosDe(persona.rol),
-    ubicacionTipo: persona.ubicacionTipo,
-    terminal: !!persona.terminal,
+  // Las pantallas que esta cuenta ve: el mismo menú del lateral (`AppShell`), armado con sus módulos, más las de la cabecera.
+  const rutasDelMenu = pantallasDelAsistente({
+    delMenu: menuPara({
+      permisos: persona.permisos ?? permisosDe(persona.rol),
+      ubicacionTipo: persona.ubicacionTipo,
+      terminal: !!persona.terminal,
+      modulos: persona.modulos.map((m) => m.clave),
+    })
+      .riel.flatMap(hojasDe)
+      .map((h) => h.href),
     modulos: persona.modulos.map((m) => m.clave),
-  })
-    .riel.flatMap(hojasDe)
-    .map((h) => h.href);
+  });
 
   const pregunta = limpiarDatosPersonales(cuerpo.data.pregunta);
   const rutaActual = sinConsulta(cuerpo.data.ruta);

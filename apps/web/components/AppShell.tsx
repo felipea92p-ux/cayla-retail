@@ -18,6 +18,7 @@ import { MotorGuias } from "@/components/guias/MotorGuias";
 import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { BotonDemo } from "@/components/guias/BotonDemo";
 import { BotonAsistente } from "@/components/asistente/Asistente";
+import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
@@ -1105,7 +1106,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             {/* «Pregúntale a CAYLA» (ADR-0529): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Tiendas y caja,
                 act. 8), también una terminal. No es un módulo (ADR-0306): es una ayuda, como «Demo», y solo ofrece las pantallas del
                 menú de esta cuenta. Apagado, tampoco responde a su atajo. */}
-            {asistenteEncendido ? <BotonAsistente rutasDelMenu={pantallasBuscables.map((h) => h.href)} /> : null}
+            {asistenteEncendido ? (
+              <BotonAsistente rutasDelMenu={pantallasDelAsistente({ delMenu: pantallasBuscables.map((h) => h.href), modulos: persona.modulos ?? [] })} />
+            ) : null}
             {/* Actividad (ADR-0207): el historial del módulo donde uno está, pegado a la sede que mira. No es fila del
                 lateral: no es una pantalla más. Solo para el líder y quien tenga el módulo; nunca en una terminal. */}
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
