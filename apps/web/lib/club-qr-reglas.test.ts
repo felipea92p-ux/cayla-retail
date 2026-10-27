@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cartelesDelClub, DIRECCION_TIENDA_ONLINE } from "./club-qr-reglas";
+import { cartelesDelClub, DIRECCION_TIENDA_ONLINE, ENLACE_DEL_CARTEL } from "./club-qr-reglas";
 
 // ADR-0288 act. g, G-1: un solo QR por tienda, el del cartel. Desde el 2026-10-16 (Felipe: «al escanear el cartel lleva al link
 // tienda.cayla.pe») abre la tienda online, donde se crea la cuenta y se entra al Club. El ticket no lleva QR del club (act. j).
@@ -17,8 +17,8 @@ describe("el cartel del mostrador", () => {
       { id: OTRA, nombre: "Tienda AQP", whatsappNumero: null },
     ]);
     expect(carteles).toEqual([
-      { id: TIENDA, tienda: "Tienda TRU", numero: "953585537", enlace: DIRECCION_TIENDA_ONLINE },
-      { id: OTRA, tienda: "Tienda AQP", numero: null, enlace: DIRECCION_TIENDA_ONLINE },
+      { id: TIENDA, tienda: "Tienda TRU", numero: "953585537", enlace: ENLACE_DEL_CARTEL },
+      { id: OTRA, tienda: "Tienda AQP", numero: null, enlace: ENLACE_DEL_CARTEL },
     ]);
   });
 
