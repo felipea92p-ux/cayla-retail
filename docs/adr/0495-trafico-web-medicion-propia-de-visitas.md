@@ -44,6 +44,12 @@ que ya viven en la base.
    filtra toda la pantalla; cada lista se cuenta **sin su propio filtro y con el otro** (con Instagram puesto se sigue viendo cuántos
    llegaron por cada camino, para cambiar de uno a otro). «A qué hora entran» es la hora de Lima de la primera entrada; la hora punta son
    las 3 horas seguidas con más gente y se dice solo con 10 personas o más. La vista de tabla lleva los mismos números y TODAS las prendas.
+8. **Eliminar una prenda que la gente miró** (Felipe, 2026-10-27; `20261027211000`): se puede, con una confirmación que lo avisa, y sus
+   visitas **no se borran**: se quedan en Tráfico sin la prenda (las llaves a `productos` y `variantes` son `on delete set null`), así las
+   cifras de días pasados no cambian. Lo único que se le puede cambiar a una visita es eso: soltar la prenda o la talla cuando ya no existe
+   (`fn_trafico_web_inmutable`). La historia de la prenda suma el renglón 27, «personas que la miraron en la tienda online», que no frena:
+   una prenda que solo tiene visitas pide «Eliminar con su historia», y la ventana dice cuántas personas la miraron y qué pasa con sus
+   visitas (`fn_producto_como_eliminar` devuelve `visitas`).
 
 ```
 DECIDÍ:     una tabla propia de pasos anónimos (retail.trafico_web), escrita solo por retail.tienda_anotar_pasos desde el servidor de la
@@ -64,6 +70,10 @@ SE ROMPE SI: un enlace de WhatsApp no lleva su marca: esa gente cuenta como «Di
 SE ROMPE SI: los QR impresos no llevan `?utm_source=qr`: «QR en tienda» sale en cero. La portada conserva las marcas al llevar al
             Inicio (`redireccionDelProxy`), porque el QR del cartel apunta a la portada.
 SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_anotar` en el registro; la página y «Separar» siguen igual.
+DESCARTÉ:   (2026-10-27) que una prenda que miraron no se pudiera eliminar: Felipe eligió poder eliminarla con su aviso.
+DESCARTÉ:   (2026-10-27) borrar sus visitas con ella: bajarían las cifras de Tráfico de días que ya pasaron, y sería borrar datos.
+SE ROMPE SI: alguien vuelve a pegar 20261023230000 entera después de 20261027211000: su `fn_trafico_web_inmutable` no deja soltar la
+            prenda y Catálogo no podrá eliminar una prenda que miraron («no se editan ni se borran»). Se vuelve a pegar 20261027211000.
 ```
 
 ## Cifras
@@ -136,6 +146,13 @@ SE ROMPE SI: la base no responde: el paso se pierde y queda una línea `trafico_
   `20261023231000` también, con su OK (versión `20261024230230`): sus cuatro funciones con la misma huella que en local, el módulo
   `trafico` sin rol, sin sesión responde 42501 y como líder la forma completa en cero. El diccionario no se refrescó todavía: otra sesión
   pegaba sus migraciones en ese momento (ver backlog).
+- **Act. 2026-10-27, eliminar una prenda que miraron:** `pnpm pruebas:tienda-trafico-eliminar-prenda` (15: se elimina con su historia, la
+  ventana sabe cuántas personas la miraron, sus visitas se quedan iguales y sin la prenda, las cifras de ese día no cambian, nada más de una
+  visita se edita ni se borra, se pega dos veces); `pruebas:eliminar-producto` clasifica `trafico_web` como «se suelta»;
+  `pruebas:eliminar-producto-con-historia` 66/66. En el ERP local: una prenda de prueba con 2 personas que la miraron → Catálogo ▸
+  Productos ▸ Eliminar muestra «¿Eliminar … con su historia?» con el aviso «2 personas la miraron en la tienda online», y al confirmar la
+  prenda se fue y sus 5 visitas siguieron ahí, 3 sin prenda. El renglón 27 se ancla en el 19 (Frescura), no al final de la consulta, para
+  que 20261015011000 y 20261023005000 se puedan volver a pegar (la prueba de compras lo hace).
 - **Sin probar:** las cabeceras de ubicación reales de Vercel (solo existen publicadas), la tienda con la base caída en vivo (cubierta por la
   prueba de `anotarPasos`) y «separó» en el navegador (en local no hay una cuenta de cliente de prueba; crear una pide consultar un DNI
   real): su función está probada en Postgres y la acción usa el mismo camino que «a la bolsa».

@@ -7637,6 +7637,7 @@ export type Database = {
           prendas: number
           puedes: boolean
           razon: string
+          visitas: number
         }[]
       }
       fn_producto_se_puede_eliminar: {

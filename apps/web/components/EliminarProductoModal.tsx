@@ -12,6 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import {
   TEXTO_RESPALDO,
+  avisoVisitas,
   leerComoEliminar,
   ofreceEliminar,
   rpcParaEliminar,
@@ -23,6 +24,7 @@ import {
   type ComoEliminar,
 } from "@/lib/eliminar-producto-reglas";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { Aviso } from "@/components/ui/Aviso";
 
 /**
  * «Eliminar» un producto (ADR-0218 sin historia, ADR-0252 con su historia de stock). Lo hace quien edita el catálogo
@@ -102,6 +104,8 @@ export function EliminarProductoModal({
   // Una salida a la vista (ADR-0358, ronda 12): si hay algo que hacer, «Cancelar» al pie; si la hoja solo explica, la ×.
   const hayAccion = puede || Boolean(salida?.irAEditar) || Boolean(salida?.desactivar && onDesactivar);
   const quien = como && como.nivel !== "libre" ? textoQuienLoCargo(como.cargadoPor, como.cargadoEl) : null;
+  // Una prenda que la gente miró en la tienda online: sus visitas se quedan en Tráfico sin ella (ADR-0495). Se avisa antes de confirmar.
+  const visitas = conHistoria && como ? avisoVisitas(como.visitas) : null;
   // «No se puede» solo cuando la base lo dijo: si no se pudo ni preguntar, el título no afirma nada.
   const titulo = puede
     ? conHistoria
@@ -136,6 +140,11 @@ export function EliminarProductoModal({
           {conHistoria && como && (
             <>
               <p className="text-sm text-tinta/80">{textoSeBorraConHistoria(producto.numVariantes, como.prendas, como.movimientos)}</p>
+              {visitas && (
+                <Aviso tono="atencion" titulo={visitas.titulo}>
+                  {visitas.texto}
+                </Aviso>
+              )}
               {quien && <p className="text-sm font-medium text-rojo">{quien} Revisa que de verdad sea de prueba antes de seguir.</p>}
               <p className="nota-cayla">{TEXTO_RESPALDO}</p>
             </>

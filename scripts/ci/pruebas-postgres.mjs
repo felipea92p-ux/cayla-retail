@@ -345,6 +345,10 @@ export const PRUEBAS = [
   // abajo, «recogieron» del pedido entregado); solo quien entró en esos días; camino y ciudad de la primera entrada (los caminos suman el
   // total); «antes» del mismo largo; más de 200 pasos al día no cuenta; la ciudad de cada departamento; la migración se pega dos veces. ROLLBACK.
   "pruebas:tienda-trafico-resumen",
+  // Tienda web ▸ Tráfico, eliminar una prenda que la gente miró (ADR-0495, act. 2026-10-27): se elimina con su historia, la ventana sabe
+  // cuántas personas la miraron, sus visitas se quedan sin la prenda (las cifras no cambian) y nada más de una visita se edita ni se
+  // borra; la migración se pega dos veces. ROLLBACK.
+  "pruebas:tienda-trafico-eliminar-prenda",
 
   // Una tienda solo tiene piso, almacén y Cuarentena (ADR-0408, integración; Felipe 2026-10-15): así la web («hay») y la confirmación
   // de un pedido web cuentan lo mismo. Un rack, un lugar sin tipo o un rack traído del Taller se niegan; el Taller sigue con sus racks;

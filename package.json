@@ -166,6 +166,7 @@
     "pruebas:tienda-separadas": "node scripts/pruebas/tienda_separadas.mjs",
     "pruebas:tienda-trafico": "node scripts/pruebas/tienda_trafico.mjs",
     "pruebas:tienda-trafico-resumen": "node scripts/pruebas/tienda_trafico_resumen.mjs",
+    "pruebas:tienda-trafico-eliminar-prenda": "node scripts/pruebas/tienda_trafico_eliminar_prenda.mjs",
     "pruebas:tienda-lugares": "node scripts/pruebas/tienda_lugares.mjs",
     "pruebas:tienda-inicio": "node scripts/pruebas/tienda_inicio.mjs",
     "pruebas:tienda-rapida": "node scripts/pruebas/tienda_rapida.mjs",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  avisoVisitas,
   leerComoEliminar,
   ofreceEliminar,
   rpcParaEliminar,
@@ -11,7 +12,7 @@ import {
   type ComoEliminar,
 } from "./eliminar-producto-reglas";
 
-const base: ComoEliminar = { nivel: "libre", puedes: true, razon: null, prendas: 0, movimientos: 0, cargadoPor: null, cargadoEl: null };
+const base: ComoEliminar = { nivel: "libre", puedes: true, razon: null, prendas: 0, movimientos: 0, cargadoPor: null, cargadoEl: null, visitas: 0 };
 
 describe("leerComoEliminar", () => {
   it("lee la fila única que entrega PostgREST (arreglo de una fila), con los nombres de la base", () => {
@@ -19,7 +20,12 @@ describe("leerComoEliminar", () => {
       leerComoEliminar([
         { nivel: "con_historia", puedes: true, razon: "tiene movimientos de stock (7)", prendas: 13, movimientos: 7, cargado_por: "Danixa Pérez", cargado_el: "2026-09-27T17:12:00+00:00" },
       ])
-    ).toEqual({ nivel: "con_historia", puedes: true, razon: "tiene movimientos de stock (7)", prendas: 13, movimientos: 7, cargadoPor: "Danixa Pérez", cargadoEl: "2026-09-27T17:12:00+00:00" });
+    ).toEqual({ nivel: "con_historia", puedes: true, razon: "tiene movimientos de stock (7)", prendas: 13, movimientos: 7, cargadoPor: "Danixa Pérez", cargadoEl: "2026-09-27T17:12:00+00:00", visitas: 0 });
+  });
+
+  it("lee cuántas personas la miraron en la tienda online (ADR-0495); una base de antes no lo trae y es 0", () => {
+    expect(leerComoEliminar([{ nivel: "con_historia", puedes: true, razon: "tiene personas que la miraron en la tienda online (4)", prendas: 0, movimientos: 0, visitas: 4 }])?.visitas).toBe(4);
+    expect(leerComoEliminar([{ nivel: "con_historia", puedes: true, visitas: "12" }])?.visitas).toBe(12);
   });
 
   it("acepta un objeto suelto, números como texto (bigint) y trata lo vacío como ausente", () => {
@@ -83,6 +89,21 @@ describe("textos", () => {
     );
     expect(textoSeBorraConHistoria(1, 1, 1)).toContain("(1 prenda en stock y 1 movimiento)");
     expect(textoSeBorraConHistoria(1, 0, 2)).toContain("(2 movimientos)");
+  });
+
+  it("con historia pero sin movimientos ni prendas (solo la miraron en la tienda online): no dice «ya se movió»", () => {
+    expect(textoSeBorraConHistoria(2, 0, 0)).toBe(
+      "Nunca se vendió ni se movió, así que se borra por completo: su ficha, sus 2 variantes (todas sus tallas y colores), sus códigos de barras y sus fotos."
+    );
+  });
+
+  it("el aviso de las visitas: que se quedan en Tráfico sin la prenda; sin visitas, nada", () => {
+    expect(avisoVisitas(0)).toBeNull();
+    expect(avisoVisitas(1)?.titulo).toBe("1 persona la miró en la tienda online");
+    expect(avisoVisitas(1200)?.titulo).toBe("1,200 personas la miraron en la tienda online");
+    expect(avisoVisitas(3)?.texto).toBe(
+      "Esas visitas se quedan en Tráfico sin el nombre de la prenda: siguen contando a la gente que entró, pero la prenda ya no sale en su vitrina."
+    );
   });
 
   it("quién lo cargó, en fecha de Lima; sin fecha, nada", () => {

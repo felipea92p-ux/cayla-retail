@@ -30,6 +30,9 @@ export type ComoEliminar = {
   /** Quién hizo el primer movimiento del producto y cuándo: para no borrar sin darse cuenta el trabajo de otra persona. */
   cargadoPor: string | null;
   cargadoEl: string | null;
+  /** Cuántas personas la miraron en la tienda online (renglón 27 de `fn_producto_historia`, ADR-0495). Sus visitas no se borran: se
+   *  quedan en Tráfico sin la prenda, y la ventana lo avisa. 0 en una base de antes de `20261027211000`. */
+  visitas: number;
 };
 
 const NIVELES: readonly NivelEliminar[] = ["libre", "con_historia", "con_documentos", "sistema"];
@@ -51,6 +54,7 @@ export function leerComoEliminar(datos: unknown): ComoEliminar | null {
     movimientos: numero(f.movimientos),
     cargadoPor: texto(f.cargado_por),
     cargadoEl: texto(f.cargado_el),
+    visitas: numero(f.visitas),
   };
 }
 
@@ -88,12 +92,28 @@ export function textoQuienLoCargo(cargadoPor: string | null, cargadoEl: string |
   return `Lo cargó ${cargadoPor ?? "alguien sin nombre registrado"} el ${fechaLima(cargadoEl)}.`;
 }
 
-/** Qué se borra si se confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. */
+/** Qué se borra si se confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. Sin movimientos ni
+ *  prendas (una prenda cuya historia es solo que la miraron en la tienda online), no se dice «ya se movió»: nunca se movió. */
 export function textoSeBorraConHistoria(numVariantes: number | null, prendas: number, movimientos: number): string {
+  if (movimientos === 0 && prendas === 0) {
+    return `Nunca se vendió ni se movió, así que se borra por completo: su ficha, ${variantesEn(numVariantes)}, sus códigos de barras y sus fotos.`;
+  }
   const cuanto = [prendas > 0 ? plural(prendas, "prenda en stock", "prendas en stock") : null, plural(movimientos, "movimiento", "movimientos")]
     .filter(Boolean)
     .join(" y ");
   return `Ya se movió (${cuanto}), pero nunca se vendió ni se compró. Se borra todo: su ficha, ${variantesEn(numVariantes)}, su stock en todas las sedes y ese historial.`;
+}
+
+/**
+ * El aviso de una prenda que la gente miró en la tienda online (ADR-0495, act. 2026-10-27): sus visitas NO se borran, se quedan en
+ * Tráfico sin el nombre de la prenda. `null`: nadie la miró, no hay nada que avisar.
+ */
+export function avisoVisitas(visitas: number): { titulo: string; texto: string } | null {
+  if (visitas <= 0) return null;
+  return {
+    titulo: visitas === 1 ? "1 persona la miró en la tienda online" : `${visitas.toLocaleString("es-PE")} personas la miraron en la tienda online`,
+    texto: "Esas visitas se quedan en Tráfico sin el nombre de la prenda: siguen contando a la gente que entró, pero la prenda ya no sale en su vitrina.",
+  };
 }
 
 /** Lo que queda después (para quien confirma): el respaldo, la Actividad, y a quién pedirle volver atrás. */

@@ -309,8 +309,8 @@ select pg_temp.huella(:'va');`);
 }
 
 // 12. DERIVA. Toda tabla que cite `productos` o `variantes` tiene que estar clasificada. Si esta prueba falla es que
-// nació una tabla nueva: decide si es SUYA (se borra con la ficha: agrégala a `eliminar_producto`) o HISTORIA (frena el
-// borrado: agrégala a `fn_producto_se_puede_eliminar` y a la lista de abajo).
+// nació una tabla nueva: decide si es SUYA (se borra con la ficha: agrégala a `eliminar_producto`), HISTORIA (frena el
+// borrado: agrégala a `fn_producto_se_puede_eliminar` y a la lista de abajo) o SE SUELTA (su llave es `on delete set null`).
 {
   // `producto_origen` (ADR-0292) es SUYA: es un dato que nace con la ficha (en qué sede se registró) y se va con ella por su
   // `on delete cascade`; no es historia y no frena el borrado.
@@ -361,12 +361,12 @@ select pg_temp.huella(:'va');`);
     // prenda y nunca se borra (el pedido es inmutable tras pedido o rectificado); la llave a `productos` (sin cascada) impide borrar una prenda que está en uno.
     // Pendiente aparte: que Catálogo lo diga con su mensaje («está en un pedido de campaña») en vez del error crudo de la llave: renglón nuevo de `fn_producto_historia`.
     "pedidos_campana_lineas",
-    // ADR-0495: los pasos de la tienda online (vio la prenda, eligió talla, la puso en la bolsa). Solo se agregan: un disparador impide
-    // borrarlos, así que no pueden irse con la ficha; y sus llaves a `productos` y `variantes` (sin cascada) frenan el borrado de una
-    // prenda que alguien miró en la tienda online. Pendiente aparte, como el de arriba: que Catálogo lo diga con su mensaje («la miraron en
-    // la tienda online») en vez del error de la llave, con su renglón en `fn_producto_historia`.
-    "trafico_web",
   ];
+  // Las que SUELTAN la prenda al eliminarla (`on delete set null`): ni se borran con ella ni frenan el borrado.
+  // `trafico_web` (ADR-0495, act. 2026-10-27): los pasos de la tienda online solo se agregan y no se borran nunca; al eliminar la prenda,
+  // la llave suelta la prenda y la talla, y la visita se queda en Tráfico sin ellas. Catálogo lo avisa al confirmar (renglón 27 de
+  // `fn_producto_historia`, que no frena). Lo prueba `tienda_trafico_eliminar_prenda.mjs`.
+  const SE_SUELTAN = ["trafico_web"];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
@@ -377,13 +377,13 @@ select pg_temp.huella(:'va');`);
   // (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
   const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
     "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido"];
-  const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
+  const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE, ...SE_SUELTAN].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c
    where c.contype = 'f' and c.confrelid in ('retail.productos'::regclass, 'retail.variantes'::regclass)
      and c.conrelid::regclass::text not in (${conocidas});`);
   esperar(
-    `toda tabla que cita a productos o variantes está clasificada (suya, historia, o contada por su madre)${r.ok && r.salida !== "NINGUNA" ? ` — SIN CLASIFICAR: ${r.salida}` : ""}`,
+    `toda tabla que cita a productos o variantes está clasificada (suya, historia, contada por su madre o que la suelta)${r.ok && r.salida !== "NINGUNA" ? ` — SIN CLASIFICAR: ${r.salida}` : ""}`,
     r.ok && r.salida === "NINGUNA",
     r
   );
