@@ -350,6 +350,8 @@ export type ContextoDecisiones = {
   tallerId?: string | null;
   /** Lo que viene en camino de cada tela y avío (por insumo): lo que FALTA RECIBIR de las órdenes de insumos, sin los pedidos atrasados, que se cuenta como tela que llega (regla de Felipe del 2026-10-16). Sin ello nada viene. */
   enCamino?: Map<string, CaminoDeInsumo>;
+  /** Los modelos por producir tienen su propia lista («¿Qué fabrico primero?», `lib/produccion-primero.ts`): con `true` no se arman sus tarjetas, para no decir lo mismo dos veces. De fábrica `false`. */
+  producirAparte?: boolean;
 };
 
 /** Lo que viene a un insumo: `cuenta` (lo que falta recibir y no está atrasado), `atrasado` (lo que falta recibir de pedidos cuya fecha ya pasó: no cuenta) y los `pedidos`, los que cuentan primero. */
@@ -568,7 +570,7 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   }
 
   // 4 · qué producir: hasta 3 modelos, una tarjeta cada uno; con más, una sola que los junta (los 9 «producir» ya no se comen a lo demás)
-  const porProducir = c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
+  const porProducir = c.producirAparte ? [] : c.modelos.filter((m): m is FilaModelo & { ritmoDia: number } => m.estado === "producir_ya" && !!m.ritmoDia);
   if (porProducir.length > MAX_PRODUCIR_INDIVIDUALES) out.push(tarjetaProducirAgrupada(porProducir));
   else for (const m of porProducir) out.push(tarjetaProducir(m));
   // Lo que falta ya está en el Taller: se traslada. Solo cuando de verdad urge (la misma barra que «Producir ya»); más allá de 7 días lo dice la fila de la tabla.
@@ -584,7 +586,8 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         tipo: "sobrestock",
         titulo: `«${m.referencia}» tiene ${Math.round(m.diasRed ?? 0)} días de stock: no produzcas más`,
         detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y hay ${m.stockRed} en tiendas y almacenes.`,
-        accion: { texto: "Ver qué producir", href: "#produce" },
+        // «Verlo abajo», no «Ver qué producir»: la tarjeta dice «no produzcas más» y su botón no puede decir lo contrario (segunda prueba ciega, 2026-10-27).
+        accion: { texto: "Verlo abajo", href: "#produce" },
         productoIds: [m.productoId],
       });
   }
@@ -631,6 +634,14 @@ export type CifrasResumen = {
   porPagar: number;
   vencido: number;
   entregasEnRiesgo: number;
+  /** Cuántos insumos hay cargados en el Taller: con 0, un «S/ 0.00» de capital no es «no tengo nada» sino «todavía no se cargó» (Formidable, 2026-10-27). */
+  insumosCargados: number;
+  /** Órdenes abiertas (sin las muestras, que no suman al valor) que todavía no tienen costo de tela ni de avíos: su valor es 0 porque falta el dato, no porque valgan 0. */
+  ordenesSinCosto: number;
+  /** Cuántas facturas de proveedores se han cargado alguna vez: con 0, «no se debe nada» sería afirmar lo que no se sabe. */
+  facturasCargadas: number;
+  /** Órdenes abiertas sin fecha de entrega: no pueden estar «vencidas», porque no tienen fecha. */
+  ordenesSinFecha: number;
 };
 
 /** «Entregas en riesgo» = solo lo que los hechos dicen: la fecha ya pasó o falta `DIAS_ENTREGA_PRONTO` días o menos. */
@@ -650,6 +661,10 @@ export function cifrasResumen(args: {
     ordenesEnProceso: abiertas.length,
     porPagar: redondear2(tramos.reduce((s, t) => s + t.monto, 0)),
     vencido: tramos.find((t) => t.clave === "vencido")?.monto ?? 0,
+    insumosCargados: args.insumos.length,
+    ordenesSinCosto: abiertas.filter((o) => !o.esMuestra && o.costoTela + o.costoAvios === 0).length,
+    facturasCargadas: args.comprobantes.length,
+    ordenesSinFecha: abiertas.filter((o) => o.fechaEntrega === null).length,
     entregasEnRiesgo: abiertas.filter((o) => {
       const e = estadoEntrega(o.fechaEntrega, args.hoy);
       return e.tipo === "vencida" || (e.tipo === "pronto" && e.dias <= DIAS_ENTREGA_PRONTO);

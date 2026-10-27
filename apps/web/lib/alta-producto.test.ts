@@ -507,14 +507,14 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
   });
   it("la frase del stock nunca dice «ya aparecen en Existencias» de algo que no entró", () => {
     const s = { unidades: 12, donde: "almacén de Tienda TRU" };
-    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU): ya aparecen en Existencias.");
+    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
     expect(fraseStockCreado(s, true, "subio")).toMatch(/ya aparecen en Existencias/);
     for (const subida of ["esperando", "rechazada", "descartada"] as const) {
       expect(fraseStockCreado(s, true, subida)).not.toMatch(/Existencias/);
     }
     expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
-    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller): ya aparecen en Existencias.");
+    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
   });
 });
 

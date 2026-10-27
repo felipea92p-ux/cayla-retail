@@ -11,21 +11,15 @@ import { avisoStockDescartado, VISITA_DE_STOCK_INICIAL } from "./ficha-cambio-de
 
 const HOOK = join(__dirname, "..", "components", "ficha-producto", "useStockFicha.ts");
 
-describe("Editar producto: el stock tocado es de su sede", () => {
+describe("Editar producto: el stock puesto en variantes nuevas es de su sede", () => {
   const fuente = readFileSync(HOOK, "utf8");
   const inicio = fuente.indexOf("if (ubicacionId !== sedeDelStock.ubicacionId)");
   const bloque = inicio === -1 ? "" : fuente.slice(inicio, fuente.indexOf("\n  }\n", inicio));
 
-  it("al cambiar de sede, el hook suelta lo tocado en el mismo render (sin un cuadro con el stock nuevo y las diferencias viejas)", () => {
+  it("al cambiar de sede, el hook suelta lo puesto en el mismo render (sin un cuadro con el stock nuevo y las unidades viejas)", () => {
     expect(fuente).toMatch(/const \[sedeDelStock, setSedeDelStock\] = useState\(/);
     expect(inicio).toBeGreaterThan(-1);
-    for (const paso of ["setPendientes({})", "setNuevas({})", "setVariantes(null)", "setFaltantes(new Map())"]) expect(bloque).toContain(paso);
-  });
-
-  it("la visita vuelve a empezar: motivo, nota y lugar de fábrica (el «Encontré prendas» de Lima no viaja a Trujillo)", () => {
-    expect(bloque).toContain("setMotivo(VISITA_DE_STOCK_INICIAL.motivo)");
-    expect(bloque).toContain("setNota(VISITA_DE_STOCK_INICIAL.nota)");
-    expect(bloque).toContain("setUbicado(VISITA_DE_STOCK_INICIAL.ubicado)");
+    for (const paso of ["setNuevas({})", "setVariantes(null)"]) expect(bloque).toContain(paso);
   });
 
   it("lo descartado se dice con su sede", () => {
@@ -33,10 +27,13 @@ describe("Editar producto: el stock tocado es de su sede", () => {
     expect(fuente).toMatch(/avisar\.aviso\(descartado\.texto/);
   });
 
-  it("los valores de fábrica son los mismos con que arranca el hook", () => {
-    expect(fuente).toContain('useState<MotivoAjuste>(VISITA_DE_STOCK_INICIAL.motivo)');
-    expect(fuente).toContain("useState(VISITA_DE_STOCK_INICIAL.nota)");
-    expect(fuente).toContain('useState<"piso" | "almacen">(VISITA_DE_STOCK_INICIAL.ubicado)');
+  it("Editar ya no ajusta stock de variantes guardadas (ADR-0494): el único ajuste que sale es el nacimiento de una variante", () => {
+    expect(fuente).not.toMatch(/pendientes|cambiarMotivo|cambiarUbicado|lineasDelLote|repartirLineasAjuste/);
+    expect(fuente.match(/"ajustar_inventario"/g)?.length).toBe(1);
+  });
+
+  it("el lugar de las unidades de partida es de fábrica el almacén", () => {
+    expect(fuente).toContain("VISITA_DE_STOCK_INICIAL.ubicado");
     expect(VISITA_DE_STOCK_INICIAL).toEqual({ motivo: "conteo_fisico", nota: "", ubicado: "almacen" });
   });
 });

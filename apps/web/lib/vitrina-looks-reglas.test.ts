@@ -7,7 +7,8 @@ import {
   chipsDeLook,
   conSalidaPorTienda,
   cifrasLooks,
-  colorInicial,
+  colorElegible,
+  colorInicialElegible,
   errorDeLook,
   estadoDeLook,
   filtrarLooks,
@@ -20,7 +21,12 @@ import {
   lookDeJson,
   lookSinCambios,
   loQueImpideMostrar,
+  modeloElegible,
+  motivoDelColor,
   motivoPorTienda,
+  porQueNoSeElige,
+  SIN_PRENDAS_POR_TIENDA,
+  tiendasEnComun,
   lugarParaGuardar,
   nombreCortoDeTienda,
   MAX_NOMBRE_LOOK,
@@ -143,8 +149,8 @@ describe("lo que dice cada fila", () => {
 
 describe("la hoja de un look", () => {
   it("un modelo entra con su primer color con foto propia; si ninguno tiene, con el primero", () => {
-    expect(colorInicial(MODELOS[0])).toBe("NEG");
-    expect(colorInicial(MODELOS[1])).toBe("NEG");
+    expect(colorInicialElegible(MODELOS[0], SIN_PRENDAS_POR_TIENDA, null, null)).toBe("NEG");
+    expect(colorInicialElegible(MODELOS[1], SIN_PRENDAS_POR_TIENDA, null, null)).toBe("NEG");
   });
 
   it("las prendas que no se ven: un modelo que ya no está en la web o un color que ya no muestra", () => {
@@ -420,6 +426,88 @@ describe("armar un look: qué hay en cada tienda", () => {
     const a = avisoDelLook(salidaDelLook(datos, p), p, nombreDe);
     expect(a?.tono).toBe("atencion");
     expect(a?.detalle).toBe("AQP: falta Falda Renata; TRU: falta Falda Renata.");
+  });
+});
+
+// ---- Al armar un look solo se puede elegir lo que hay (Felipe 2026-10-27) ----
+describe("elegir solo lo que hay: ninguna prenda ni color sin stock, ni que no coincida con lo ya elegido", () => {
+  // El caso de la captura de Felipe: la blusa beige solo está en TRU y la cartera blanca solo en AQP; ninguna tienda tiene las dos.
+  const datos = leerPrendasPorTienda({
+    tiendas: [{ id: "s-aqp", nombre: "Tienda AQP" }, { id: "s-lim", nombre: "Tienda LIM" }, { id: "s-tru", nombre: "Tienda TRU" }],
+    prendas: [
+      { producto_id: "kiria", color: "BEI", en: ["s-tru"] },
+      { producto_id: "kiria", color: "NEG", en: ["s-aqp", "s-tru"] },
+      { producto_id: "talia", color: "BLA", en: ["s-aqp"] },
+      { producto_id: "talia", color: "NEG", en: ["s-lim"] },
+      { producto_id: "dama", color: "NEG", en: ["s-aqp", "s-tru"] },
+    ],
+  });
+  const modelo = (id: string, ...colores: { codigo: string; foto?: string | null }[]): ModeloParaLook =>
+    ({ id, nombre: id, categoria: null, prefijo: null, familia: null, foto: null, colores: colores.map((c) => ({ codigo: c.codigo, nombre: c.codigo, hex: null, foto: c.foto ?? null })) }) as ModeloParaLook;
+  const KIRIA = modelo("kiria", { codigo: "BEI" }, { codigo: "NEG", foto: "https://x/k.jpg" });
+  const TALIA = modelo("talia", { codigo: "BLA" }, { codigo: "NEG" });
+  const AGOTADA = modelo("agotada", { codigo: "ROJ" });
+  const p = (...x: [string, string][]) => x.map(([productoId, color]) => ({ productoId, color }));
+
+  it("sin prendas elegidas, las tiendas en común son todas; con prendas, solo donde están todas", () => {
+    expect(tiendasEnComun(datos, [])).toEqual(["s-aqp", "s-lim", "s-tru"]);
+    expect(tiendasEnComun(datos, p(["kiria", "NEG"]))).toEqual(["s-aqp", "s-tru"]);
+    expect(tiendasEnComun(datos, p(["kiria", "NEG"], ["dama", "NEG"]))).toEqual(["s-aqp", "s-tru"]);
+    // La captura: blusa beige (solo TRU) y cartera blanca (solo AQP) no coinciden en ninguna.
+    expect(tiendasEnComun(datos, p(["kiria", "BEI"], ["talia", "BLA"]))).toEqual([]);
+  });
+
+  it("una prenda que no hay en ninguna tienda no se puede elegir, ni sola", () => {
+    expect(modeloElegible(datos, tiendasEnComun(datos, []), AGOTADA)).toBe(false);
+    expect(porQueNoSeElige(datos, tiendasEnComun(datos, []), AGOTADA)).toEqual({ corto: "Sin stock", largo: "No hay stock de esta prenda en ninguna tienda." });
+  });
+
+  it("un color que ya no hay no se puede elegir aunque otro color del mismo modelo sí", () => {
+    const comun = tiendasEnComun(datos, []);
+    expect(colorElegible(datos, comun, "kiria", "BEI")).toBe(true);
+    expect(motivoDelColor(datos, comun, "kiria", "ROJ")).toBe("sin_stock");
+    expect(modeloElegible(datos, comun, KIRIA)).toBe(true);
+  });
+
+  it("con prendas elegidas, lo que no coincide en ninguna de sus tiendas no se puede elegir, y dice dónde sí hay", () => {
+    const comun = tiendasEnComun(datos, p(["kiria", "BEI"]));
+    expect(comun).toEqual(["s-tru"]);
+    // La cartera Talia existe (AQP y LIM) pero no donde está la blusa beige: no se ofrece.
+    expect(modeloElegible(datos, comun, TALIA)).toBe(false);
+    expect(motivoDelColor(datos, comun, "talia", "BLA")).toBe("no_coincide");
+    expect(porQueNoSeElige(datos, comun, TALIA)).toEqual({
+      corto: "Solo en AQP y LIM",
+      largo: "Tus prendas están juntas en TRU; esta solo hay en AQP y LIM.",
+    });
+    // La Dama sí está en TRU.
+    expect(modeloElegible(datos, comun, modelo("dama", { codigo: "NEG" }))).toBe(true);
+  });
+
+  it("si lo elegido ya no coincide en ninguna tienda (un look viejo), nada nuevo se ofrece y se dice que quiten una", () => {
+    const comun = tiendasEnComun(datos, p(["kiria", "BEI"], ["talia", "BLA"]));
+    expect(porQueNoSeElige(datos, comun, modelo("dama", { codigo: "NEG" }))?.largo).toBe("Las prendas elegidas ya no coinciden en ninguna tienda: quita una para seguir.");
+  });
+
+  it("sin tiendas leídas (cargando o la base no respondió) no se bloquea nada", () => {
+    expect(tiendasEnComun(SIN_PRENDAS_POR_TIENDA, p(["kiria", "BEI"]))).toBeNull();
+    expect(modeloElegible(SIN_PRENDAS_POR_TIENDA, null, AGOTADA)).toBe(true);
+    expect(motivoDelColor(SIN_PRENDAS_POR_TIENDA, null, "kiria", "ROJ")).toBeNull();
+    expect(porQueNoSeElige(SIN_PRENDAS_POR_TIENDA, null, AGOTADA)).toBeNull();
+  });
+
+  it("el color con que entra: uno que se pueda elegir, en la tienda filtrada si hay, y entre ellos el que tiene foto", () => {
+    // Sin nada elegido: el primero con foto propia que hay (NEG), no el beige sin foto.
+    expect(colorInicialElegible(KIRIA, datos, tiendasEnComun(datos, []), null)).toBe("NEG");
+    // Filtrando por TRU hay beige y negro: sigue el de la foto.
+    expect(colorInicialElegible(KIRIA, datos, tiendasEnComun(datos, []), "s-tru")).toBe("NEG");
+    // Filtrando por LIM la Talia solo tiene el negro (no el blanco, que es de AQP).
+    expect(colorInicialElegible(TALIA, datos, tiendasEnComun(datos, []), "s-lim")).toBe("NEG");
+    // Con la blusa beige elegida (solo TRU), la Talia no entra en ningún color.
+    expect(colorInicialElegible(TALIA, datos, tiendasEnComun(datos, p(["kiria", "BEI"])), null)).toBeNull();
+    // Un modelo sin ningún color con stock no entra.
+    expect(colorInicialElegible(AGOTADA, datos, tiendasEnComun(datos, []), null)).toBeNull();
+    // Sin tiendas leídas se comporta como siempre: el primero con foto, o el primero.
+    expect(colorInicialElegible(KIRIA, SIN_PRENDAS_POR_TIENDA, null, null)).toBe("NEG");
   });
 });
 
