@@ -169,6 +169,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Paleta: Tienda web ▸ Campañas (2026-10-21), cómo se ve la tienda durante cada campaña. Ninguna otra fila lleva colores.
   paleta: "M12 22a1 1 0 0 1 0-20a10 9 0 0 1 10 9a5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13 6.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M17 10.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M8 7.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0 M6 12.5a.5.5 0 1 0 1 0a.5.5 0 1 0-1 0", // lucide «palette»
   ajustesWeb: "M21 4h-7 M10 4H3 M21 12h-9 M8 12H3 M21 20h-5 M12 20H3 M14 2v4 M8 10v4 M16 18v4", // lucide «sliders-horizontal»
+  // Pisadas: Tienda web ▸ Tráfico (ADR-0495), la gente que pasa por la tienda online y hasta dónde llega. Ninguna otra fila lleva pies.
+  trafico: "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z M16 17h4 M4 13h4", // lucide «footprints»
 };
 
 /* ------------------------------------------------------------------
@@ -211,7 +213,9 @@ function iconosPorModulo(nodos: readonly Nodo[], acumulado = new Map<ClaveModulo
 const DEL_MENU = iconosPorModulo(ARBOL);
 
 /** El ícono del menú de este módulo: el de su fila (la primera, si tiene varias con el mismo dibujo) o el que se declaró a mano.
- *  `null` si el módulo no tiene ninguno en el menú. */
+ *  `null` si el módulo no tiene ninguno en el menú.
+ *  @internal Roles ya no dibuja un ícono por módulo (maqueta del 2026-10-27); lo cruzan las pruebas de `menu-iconos.test.ts` (el ícono de cada acceso del Inicio
+ *  es el de su fila del menú). */
 export function iconoDeModulo(clave: ClaveModulo): ClaveIcono | null {
   if (clave in APARTE) return APARTE[clave] ?? null;
   return DEL_MENU.get(clave) ?? null;

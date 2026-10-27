@@ -361,6 +361,11 @@ select pg_temp.huella(:'va');`);
     // prenda y nunca se borra (el pedido es inmutable tras pedido o rectificado); la llave a `productos` (sin cascada) impide borrar una prenda que está en uno.
     // Pendiente aparte: que Catálogo lo diga con su mensaje («está en un pedido de campaña») en vez del error crudo de la llave: renglón nuevo de `fn_producto_historia`.
     "pedidos_campana_lineas",
+    // ADR-0495: los pasos de la tienda online (vio la prenda, eligió talla, la puso en la bolsa). Solo se agregan: un disparador impide
+    // borrarlos, así que no pueden irse con la ficha; y sus llaves a `productos` y `variantes` (sin cascada) frenan el borrado de una
+    // prenda que alguien miró en la tienda online. Pendiente aparte, como el de arriba: que Catálogo lo diga con su mensaje («la miraron en
+    // la tienda online») en vez del error de la llave, con su renglón en `fn_producto_historia`.
+    "trafico_web",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

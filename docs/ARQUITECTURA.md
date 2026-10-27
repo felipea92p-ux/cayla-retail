@@ -916,7 +916,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
   total con «Todas» —cada prenda, lo que vale en SU color: `fn_tienda_precios` por color, el mismo total de «Arma tu look»—, y los
   modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
-  `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar; las prendas se eligen en `ElegirPrendasLook.tsx`, una grilla de fotos por categoría, y el nombre y la frase traen ideas de `lib/vitrina-looks-ideas.ts`) + `LookMostrarHoja.tsx`
+  `fn_vitrina_looks_por_tienda` (en qué tiendas sale cada look y qué prenda le falta a cada una: chips en la tarjeta y el contador «Salen en alguna tienda»; ADR-0539, misma regla que la tienda online) +
+  `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar; al armarlo, `fn_vitrina_prendas_por_tienda` filtra la grilla por tienda y avisa en qué tiendas saldría, vía `lib/useQueHayPorTienda.ts`; las prendas se eligen en `ElegirPrendasLook.tsx`, una grilla de fotos por categoría, y el nombre y la frase traen ideas de `lib/vitrina-looks-ideas.ts`) + `LookMostrarHoja.tsx`
   (`vitrina_mostrar_look`); reglas en `lib/vitrina-looks-reglas.ts`, guía de foco en `lib/vitrina-looks-guia.ts`. Qué se ve en la web
   lo decide `tienda_catalogo(null)` (la misma regla del cliente). Prueba en la base: `pnpm pruebas:vitrina-looks`.
 - `/tienda-web/campanas` (Tienda web ▸ Campañas, módulo `campanas_web`, nace solo para el líder, ADR-0471) → `page.tsx` lee `fn_campanas_web` (las campañas vigentes, por empezar o terminadas hace menos de 120 días, con su estado, modelos que toca y el resumen de su diseño) → `CampanasPantalla.tsx` (cifras, filtros, lista y los próximos 3 meses; reglas en `lib/campanas-web-reglas.ts`).
@@ -1370,6 +1371,20 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/club-avisos.ts:getTextosDeAvisos`) y guarda con `guardar_mensajes_avisos(tienda, …)` (`lib/club-avisos-acciones.ts`) en
   `club_avisos_textos_sede`. Armar, separar y validar un mensaje: `lib/club-avisos-mensajes.ts`
   (la misma regla que `fn_club_aviso_problema` y `fn_club_aviso_componer`).
+- `/tienda-web/trafico` (ADR-0495, Felipe 2026-10-23; módulo **`trafico`**, nace solo para el líder; migraciones `20261023230000` y
+  `20261023231000`, **sin pegar en producción**): cuánta gente entra a la tienda online, qué mira y en qué paso se va, contado por persona
+  anónima (maqueta C «La vitrina», `docs/maquetas/trafico-cero-2026-10/`). Séptima hija de Tienda web (excepción `tiendaWeb: 7` en
+  `menu.test.ts`), `soloConModulo`. `layout.tsx` y `page.tsx` piden `trafico` → RPC `resumen_trafico_web(desde, hasta, camino, ciudad)`
+  (personas por su paso más lejano, desde `fn_trafico_web_personas`; la ciudad de cada departamento, `fn_trafico_web_ciudad`; cada prenda
+  con su recorrido, tallas, colores y caminos, `fn_trafico_web_prendas`) →
+  `lib/trafico-reglas.ts` (puro: lectura, «de cada 100», el cambio contra los días de antes, dónde se atora con poca gente contraído hacia
+  lo de costumbre, y el aviso de «la tienda no manda visitas»; el mosaico de la vitrina, `lib/trafico-mosaico.ts`) → `components/trafico/`
+  (`CifraTrafico`, `RecorridoTrafico`, `PorQue`, `VitrinaTrafico` y su `CajonPrendaTrafico` —abierto con `usePrendaAbierta`, también desde
+  la tabla—, con «Ver en la vitrina» → `/tienda-web/vitrina`; `ControlesTrafico` con el período, los filtros puestos y la vista;
+  `DeDondeVienen`, `HorasTrafico` y `TablasTrafico`). El período, los filtros y la vista van en la dirección (`leerFiltros`/`hrefTrafico`);
+  la campaña del tercer período se lee de `etiquetas` (estilo «campaña», `campanaDelPeriodo`). Lo
+  escribe la TIENDA (`apps/tienda`): `POST /api/visita` y las acciones de la bolsa → `retail.tienda_anotar_pasos` → `retail.trafico_web`
+  (solo se agrega). Pruebas en la base: `pnpm pruebas:tienda-trafico` y `pnpm pruebas:tienda-trafico-resumen`.
 - `/tienda-web/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
   `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
   siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y

@@ -1,9 +1,9 @@
 import { HandCoins, ShoppingBag } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getBancosParaPlata, getMiPlata, getMisEnvios } from "@/lib/mi-plata";
-import { codigosPorCompra, enviosDeLaRonda, rondasConEnvios } from "@/lib/mis-envios-reglas";
+import { codigosPorCompra, enviosDeLaFila, enviosDeLaRonda, rondasConEnvios } from "@/lib/mis-envios-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
-import { PASOS_DE_LA_RONDA, desdeRonda, historialDeLaCompradora, movimientosDeLaCompradora, pasoDeLaRonda, tituloDeLaLista } from "@/lib/mi-plata-reglas";
+import { PASOS_DE_LA_RONDA, desdeRonda, historialDeLaCompradora, movimientosDeLaCompradora, pasoDeLaRonda, tituloDeLaLista, ultimaRondaDelHistorial } from "@/lib/mi-plata-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonVer } from "@/components/ui/BotonDescargar";
@@ -12,11 +12,12 @@ import { AbrirRonda } from "@/components/mi-plata/AbrirRonda";
 import { AccionDelDia } from "@/components/mi-plata/AccionDelDia";
 import { AnotarPlata } from "@/components/mi-plata/AnotarPlata";
 import { AnotarGasto } from "@/components/mi-plata/AnotarGasto";
-import { RondaVacia } from "@/components/mi-plata/RondaVacia";
+import { PrimeraRonda, RondaVacia } from "@/components/mi-plata/RondaVacia";
 import { Billetera } from "@/components/mi-plata/Billetera";
 import { CaminoDePasos } from "@/components/mi-plata/CaminoDePasos";
 import { EnviosDeLaRonda } from "@/components/mi-plata/EnviosDeLaRonda";
 import { ListaDelDia, RondasAnteriores } from "@/components/mi-plata/ListaDelDia";
+import { UltimaRonda } from "@/components/mi-plata/UltimaRonda";
 import { MandarATienda } from "@/components/mi-plata/MandarATienda";
 import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 
@@ -48,6 +49,11 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
   // La columna «Manda» necesita algo que mostrar: si no falta mandar y los envíos no se pudieron leer, quedaría vacía con su espacio.
   const tres = plata?.persona === true && plata.ronda.abierta !== null && !rondaVacia && (plata.porMandar.length > 0 || envios !== null);
   const anteriores = plata?.persona ? historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? []) : [];
+  // Sin ronda abierta (Felipe 2026-10-27, «muy básico»): lo primero es cómo terminó la última, y el resto del historial se ve de una vez en
+  // vez de plegado tras un «Ver 2». La lista de «Antes de abrir tu ronda» solo se dibuja si hay algo anotado.
+  const ultima = plata?.persona && !rondaAbierta ? ultimaRondaDelHistorial(anteriores) : null;
+  const rondasEnvios = envios === null ? null : rondasConEnvios(envios, rondaAbierta?.id ?? null);
+  const sinHistoria = plata?.persona === true && !rondaAbierta && !ultima && (lista?.actuales.length ?? 0) === 0 && anteriores.length === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,16 +136,23 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
           </div>
           <div className={`contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1" : "lg:col-start-2 lg:row-start-1"}`}>
             {rondaAbierta && rondaVacia && <RondaVacia texto={rondaAbierta.texto} />}
+            {ultima && (
+              <div className="order-5 min-w-0 lg:order-none">
+                <UltimaRonda u={ultima} envios={enviosDeLaFila(rondasEnvios, ultima.ronda.clave)} hoy={hoy} />
+              </div>
+            )}
+            {sinHistoria && <PrimeraRonda />}
             <div className={`order-5 min-w-0 lg:order-none ${rondaVacia ? "lg:hidden" : ""}`}>
               <ListaDelDia
                 actuales={lista?.actuales ?? []}
                 titulo={tituloDeLaLista(plata.ronda)}
                 desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
+                ocultarSiVacia={!rondaAbierta}
               />
             </div>
-            {anteriores.length > 0 && (
+            {(ultima ? ultima.resto : anteriores).length > 0 && (
               <div className="order-7 lg:order-none">
-                <RondasAnteriores historial={anteriores} envios={envios === null ? null : rondasConEnvios(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
+                <RondasAnteriores historial={ultima ? ultima.resto : anteriores} envios={rondasEnvios} hoy={hoy} visibles={rondaAbierta ? undefined : 4} />
               </div>
             )}
           </div>

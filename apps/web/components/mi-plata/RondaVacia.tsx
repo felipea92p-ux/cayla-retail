@@ -11,6 +11,18 @@ const PASOS = [
   { n: 3, titulo: "Manda a la tienda", texto: "Cada paquete sale con su código para avisar a la tienda." },
 ] as const;
 
+/** Sin ninguna ronda en su historia (una compradora nueva), en PC: dice qué es una ronda y por dónde empezar, en vez de dejar la columna en
+ *  blanco (Felipe 2026-10-27). El camino de la izquierda ya cuenta los pasos: aquí no se repiten. */
+export function PrimeraRonda() {
+  return (
+    <div className="card-cayla hidden p-6 lg:block">
+      <Vacio icono={<Flag aria-hidden />} titulo="Aquí van a vivir tus rondas de compras">
+        Cada salida a comprar es una ronda con su número. Ábrela al salir, anota lo que compras y gastas, y ciérrala al volver: aquí queda la cuenta de cada una.
+      </Vacio>
+    </div>
+  );
+}
+
 export function RondaVacia({ texto }: { texto: string }) {
   return (
     <div className="card-cayla hidden p-6 lg:block">

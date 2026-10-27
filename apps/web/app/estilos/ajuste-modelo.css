@@ -86,6 +86,23 @@
 .ajuste-opcion.pildora-cayla[data-pide="si"] { border-color: var(--color-ambar); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ambar) 30%, transparent); }
 .ajuste-banda-pie { display: grid; gap: 2px; margin-left: calc(5.5rem + 10px); font-size: 12.5px; color: var(--color-taupe); }
 .ajuste-banda-info { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-pizarra); }
+/* Lo que importa en esta hoja es la planilla (Felipe 2026-10-27: «la tabla se pierde y muestra demasiado poco»): en una hoja ancha, «Dónde» y
+   «Qué pasó» van lado a lado, la nota (si el motivo la pide) con su título a la izquierda como los demás, y la ayuda y el aviso de la carga inicial
+   en una sola línea que corre. Así la banda mide ~150 px en vez de ~270 y la planilla se lleva el resto. En una hoja angosta (el celular)
+   todo sigue apilado, como antes. */
+@container (min-width: 600px) {
+  .ajuste-banda { grid-template-columns: max-content minmax(0, 1fr); column-gap: 28px; row-gap: 6px; padding-block: 8px; }
+  .ajuste-banda-donde { grid-template-columns: auto auto; }
+  .ajuste-banda-que { grid-template-columns: auto minmax(0, 1fr); }
+  .ajuste-banda-sola,
+  .ajuste-banda-pie { grid-column: 1 / -1; }
+  .ajuste-banda-pie { margin-left: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; font-size: 12px; }
+  .ajuste-banda-nota { display: block; }
+  .ajuste-banda-nota .campo { display: grid; grid-template-columns: fit-content(11rem) minmax(0, 1fr); column-gap: 10px; align-items: center; }
+  .ajuste-banda-nota .campo > div { margin-top: 0; }
+  .ajuste-banda-nota .campo > div:empty { display: none; }
+  .ajuste-banda-nota .campo > div:last-child:not(:empty) { grid-column: 2; }
+}
 
 /* El aviso: entre la banda y la planilla, fuera de lo que se desliza; más presente que un aviso común y con un destello UNA vez, porque
    aparece por algo que la persona acaba de tocar (Felipe: «no lo noto, es demasiado sutil»). */

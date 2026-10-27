@@ -2387,6 +2387,20 @@ export const GUIA_MI_PLATA: Guia = {
       texto: "Cada salida a comprar es una ronda, con su número (RC-…). Ábrela al salir: lo que compres y gastes queda en ella. Sin ronda, solo anotas la plata que te dieron.",
     },
     {
+      id: "ultima",
+      ancla: "mi-plata.ultima",
+      opcional: true,
+      titulo: "Tu última ronda",
+      texto: "Sin ronda abierta, aquí ves cómo terminó la última: cuánto salió de tu plata, cómo cerró y en qué van sus envíos. El sello de arriba dice si falta algo de tu lado o del de Compras.",
+    },
+    {
+      id: "ultima-detalle",
+      ancla: "mi-plata.ultima-detalle",
+      opcional: true,
+      titulo: "Lo que anotaste en ella",
+      texto: "Al tocarlo se abre la hoja de esa ronda: cada compra y cada gasto con su estado, lo que salió de tu plata y los envíos con su código. Solo se lee. En la demo no lo abrimos.",
+    },
+    {
       id: "ronda",
       ancla: "mi-plata.ronda",
       opcional: true,

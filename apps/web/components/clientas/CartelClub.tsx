@@ -20,8 +20,9 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 // Ninguna cifra está escrita aquí: las tres líneas y la letra chica las arma `lib/club-cartel-reglas.ts` con los beneficios que
 // leyó el servidor. Sin ellos no se dibuja ningún cartel (ni en pantalla ni en la impresora): la pantalla dice por qué.
 //
-// Cada QR abre la tienda online (`DIRECCION_TIENDA_ONLINE`): ahí la persona crea su cuenta y entra al Club (Felipe 2026-10-16,
-// 20261016154000). Es la misma para todas las tiendas; los carteles impresos antes llevan a `/club/<uuid>`, que redirige ahí.
+// Cada QR abre la tienda online (`ENLACE_DEL_CARTEL`, con la marca `?utm_source=qr` para que Tienda web ▸ Tráfico cuente a quien escanea,
+// ADR-0495): ahí la persona crea su cuenta y entra al Club (Felipe 2026-10-16, 20261016154000). Es la misma para todas las tiendas; los
+// carteles impresos antes llevan a `/club/<uuid>`, que redirige ahí. Lo escrito bajo el QR sigue siendo «tienda.cayla.pe», sin la marca.
 
 const sinSuscripcion = () => () => {};
 
