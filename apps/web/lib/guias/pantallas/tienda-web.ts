@@ -602,7 +602,7 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       id: "cifras",
       ancla: "looks.cifras",
       titulo: "Cómo están los looks",
-      texto: "Cuántos se ven en la web, y cuántos están encendidos pero no salen porque una prenda suya dejó de verse. Toca una tarjeta y la lista se queda solo con esos.",
+      texto: "Cuántos salen en alguna tienda de la web, y cuántos están encendidos pero no salen en ninguna porque a cada tienda le falta una prenda suya. Toca una tarjeta y la lista se queda solo con esos.",
     },
     {
       id: "lista",
@@ -610,6 +610,13 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       opcional: true,
       titulo: "Los looks, en su orden",
       texto: "Salen en la tienda en este orden: el número es su lugar. Cada uno con sus prendas y lo que cuesta todo con «Todas» (el precio más alto entre las tiendas). Si uno encendido no se ve, la fila dice qué prenda falta.",
+    },
+    {
+      id: "tiendas",
+      ancla: "looks.tiendas",
+      opcional: true,
+      titulo: "En qué tiendas sale",
+      texto: "La tienda online muestra un look solo donde TODAS sus prendas están a la venta. Verde: sale en esa tienda. Ámbar: cuántas prendas le faltan; pasa el mouse para ver cuáles y por qué.",
     },
     {
       id: "interruptor",
@@ -661,6 +668,20 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       opcional: true,
       titulo: "Elige mirando las fotos",
       texto: "Filtra por categoría o busca por nombre, y toca la foto de la prenda para agregarla (otro toque la quita). Solo salen las que se ven en la web.",
+    },
+    {
+      id: "look-tienda",
+      ancla: "look.tienda",
+      opcional: true,
+      titulo: "Solo lo que hay en una tienda",
+      texto: "Toca una tienda para ver solo las prendas que hay ahí. Un look sale en la tienda online solo donde TODAS sus prendas están a la venta: armarlo con prendas de una misma tienda evita sorpresas.",
+    },
+    {
+      id: "look-aviso",
+      ancla: "look.aviso",
+      opcional: true,
+      titulo: "En qué tiendas saldría",
+      texto: "Con las prendas que llevas, te dice en qué tiendas saldría el look y qué le falta a las otras. Es un aviso: puedes guardarlo igual, por ejemplo si el stock llega mañana.",
     },
     {
       id: "look-mostrar",

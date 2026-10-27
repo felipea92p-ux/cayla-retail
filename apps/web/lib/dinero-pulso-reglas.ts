@@ -1,6 +1,6 @@
 // Cuentas y dinero en camino A («La respuesta», Felipe 2026-10-15): tres preguntas arriba de la lista de cuentas.
 // ¿Dónde está mi plata? (lo que tienes, sumado de los saldos que la base ya calculó), ¿me alcanza? (la primera semana en que
-// el Flujo proyectado baja de tu mínimo, y qué pasa si depositas lo que está guardado) y ¿qué debes? (lo vencido y lo
+// el Flujo proyectado baja de tu mínimo, y que lo guardado ya cuenta en ese saldo) y ¿qué debes? (lo vencido y lo
 // próximo de Por pagar). Lógica pura: no suma plata que la base no haya sumado; solo decide qué se dice primero.
 
 import { cuentasVisibles, type CuentaDinero } from "./cuentas-dinero-reglas";
@@ -60,28 +60,23 @@ export type Alcanza =
       /** La proyección se apoya en pocos datos (ADR-0433, actividad 4): no se pinta como una respuesta firme, y dice qué falta. */
       provisional: boolean;
       faltan: FaltaProy[];
-      /** Si depositas lo guardado (cajas fuertes y lo del líder): cuánto y en qué queda esa semana. */
-      siDepositas: { monto: number; saldo: number; alcanza: boolean; frase: string } | null;
+      /** Lo guardado (cajas fuertes y lo del líder) ya está dentro del saldo de la proyección: depositarlo lo pasa al banco, no lo aumenta. */
+      guardadoYaCuenta: { monto: number; frase: string } | null;
     };
 
 export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
   if (!p || p.semanas.length === 0) return { estado: "sin_dato", frase: "El flujo de caja de las próximas semanas lo ve el líder." };
   const baja = p.semanas.find((s) => s.bajoMinimo) ?? null;
   const masBaja = p.semanas.reduce((m, s) => (s.saldo < m.saldo ? s : m), p.semanas[0]!);
-  const semana = baja ?? masBaja;
   const { provisional, faltan } = queFaltaEnLaProyeccion(p);
-  const siDepositas =
+  // El saldo de la proyección (`fn_flujo_disponible`) suma todas las cuentas, cajas fuertes y lo del líder incluidos: sumarles `guardado`
+  // otra vez prometía un saldo que depositar no cambia (DIN-01, examen de Finanzas 2026-10-27).
+  const guardadoYaCuenta =
     guardado > 0
-      ? (() => {
-          const saldo = r2(semana.saldo + guardado);
-          const alcanza = saldo >= p.minimoCaja;
-          return {
-            monto: guardado,
-            saldo,
-            alcanza,
-            frase: `Si depositas lo guardado en cajas fuertes (${soles(guardado)}), esa semana quedas en ${soles(saldo)}${alcanza ? ", por encima de tu mínimo." : ", todavía bajo tu mínimo."}`,
-          };
-        })()
+      ? {
+          monto: guardado,
+          frase: `Lo que tienes guardado (${soles(guardado)}, en cajas fuertes y con el líder) ya cuenta en ese saldo: depositarlo lo pasa al banco, pero no lo aumenta.`,
+        }
       : null;
   if (baja) {
     return {
@@ -92,7 +87,7 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
       diasDeCaja: p.diasDeCaja,
       provisional,
       faltan,
-      siDepositas,
+      guardadoYaCuenta,
     };
   }
   return {
@@ -103,7 +98,7 @@ export function alcanzaPulso(p: Proyeccion | null, guardado: number): Alcanza {
     diasDeCaja: p.diasDeCaja,
     provisional,
     faltan,
-    siDepositas: null,
+    guardadoYaCuenta: null,
   };
 }
 

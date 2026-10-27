@@ -7,7 +7,7 @@ import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { getFlujoProximo, getVentasPorDia } from "@/lib/resumen-telar";
 import { getInversionMercaderia } from "@/lib/inversion-mercaderia";
 import { esMesTelar, mesDelDia, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { tiendasDeLaLinea, tramoDeComparacion, tramoDelMes } from "@/lib/resumen-telar-reglas";
+import { tiendasDeLaLinea, tramoDeComparacion, tramoDelMes, tramoDeSueldos } from "@/lib/resumen-telar-reglas";
 import { ResumenFinanzasPanel } from "@/components/finanzas/ResumenFinanzas";
 
 // Finanzas ▸ Resumen en El telar (ADR-0195 F10; ADR-0493, Felipe 2026-10-23). La sede y el mes los elige la barra común (`?sede=`,
@@ -28,12 +28,13 @@ export default async function ResumenFinanzasPage({ searchParams }: { searchPara
   const veTodo = veFinanzasDeTodoDe(persona);
   const pedido = leerVerResumen(sedeDeLaUrl(sp), veTodo);
   const tramo = tramoDelMes(mes, hoy)!;
+  const sueldos = tramoDeSueldos(mes, hoy)!;
   const comparar = tramoDeComparacion(mes, hoy);
 
   const [{ datos, falla }, confianza, erMes, erAntes, telar, flujoProximo, inversion] = await Promise.all([
     getResumenFinanzas(pedido),
     getConfianzaFinanzas(pedido, mes),
-    getEstadoResultados(tramo.desde, tramo.hasta),
+    getEstadoResultados(tramo.desde, tramo.hasta, sueldos.hasta),
     getEstadoResultados(comparar.desde, comparar.hasta),
     getSedesDelTelar(),
     getFlujoProximo(),
