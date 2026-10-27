@@ -154,13 +154,22 @@ describe("atajosEquipo", () => {
       ["Todas", 6],
       ["Tienda TRU", 2],
       ["Tienda AQP", 2],
+      ["De turno", 1],
       ["Suspendidos", 2],
       ["Terminales", 1],
     ]);
     const sinNada = atajosEquipo(armarEquipo(entrada({ suspendidos: [], inactivos: [], terminales: [] })), UBIC);
-    expect(sinNada.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP", "Terminales"]);
+    expect(sinNada.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP", "De turno", "Terminales"]);
     const sinLeer = atajosEquipo(armarEquipo(entrada({ suspendidos: [], inactivos: [], terminales: null })), UBIC, false);
-    expect(sinLeer.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP"]);
+    expect(sinLeer.map((x) => x.etiqueta)).toEqual(["Todas", "Tienda TRU", "Tienda AQP", "De turno"]);
+    // Sin nadie de turno, el atajo no sale.
+    const sinTurno = atajosEquipo(armarEquipo(entrada({ deTurno: new Set<string>() })), UBIC);
+    expect(sinTurno.map((x) => x.clave)).not.toContain("turno");
+  });
+
+  it("«De turno» deja solo a quien está activo y de turno hoy", () => {
+    const g = agruparPorSede(armarEquipo(entrada()), UBIC, "turno", "");
+    expect(g.flatMap((x) => x.miembros.map((m) => m.id))).toEqual(["p1"]);
   });
 });
 

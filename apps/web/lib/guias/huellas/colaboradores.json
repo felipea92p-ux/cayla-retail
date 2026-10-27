@@ -2,7 +2,7 @@
   "guia": "colaboradores",
   "ruta": "/colaboradores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 77,
+  "total": 79,
   "controles": {
     "components/ColaboradoresModales.tsx": [
       "ComboResponsable «{responsable}»",
@@ -10,9 +10,9 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ColaboradoresPanel.tsx": [
-      "button «{guia}»",
       "Boton «colaboradores.actividad»",
-      "Boton «colaboradores.dar-acceso»"
+      "Boton «colaboradores.dar-acceso»",
+      "Pestanas «→(c) => setSeccion(c === \"roles\" ? \"roles\" : \"cuentas\")»"
     ],
     "components/RolesModales.tsx": [
       "input «rol-nombre»",
@@ -78,13 +78,15 @@
     ],
     "components/colaboradores/EquipoLista.tsx": [
       "button «{guia}»",
-      "ComboResponsable «{responsable}»",
-      "button «Sí, rechazar»",
-      "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»",
+      "button «{guia}» #2",
+      "button «Sí»",
       "button «No»",
-      "button «{a.etiqueta}»",
+      "button «{`Aprobar a ${p.nombre}»",
+      "button «{`Rechazar el alta de ${p.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "button «→() => onFiltro(a.filtro)»",
       "Boton «colaboradores.nueva-terminal»",
+      "SegmentoDeslizante «Vista»",
       "Boton «Borrar la búsqueda»"
     ],
     "components/colaboradores/FichaColaborador.tsx": [

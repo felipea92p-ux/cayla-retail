@@ -153,8 +153,8 @@ export function armarEquipo(e: EntradaEquipo): MiembroEquipo[] {
   return [...activos, ...suspendidos, ...bajas, ...terminalesEquipo];
 }
 
-/** Los atajos de arriba: toda CAYLA, cada sede, los suspendidos y las terminales. */
-export type FiltroEquipo = "todas" | "suspendidas" | "terminales" | { sede: string };
+/** Los atajos de arriba: toda CAYLA, cada sede, quienes están de turno hoy, los suspendidos y las terminales. */
+export type FiltroEquipo = "todas" | "turno" | "suspendidas" | "terminales" | { sede: string };
 
 export const SIN_SEDE = "_todas";
 export const BAJA_DYNAMIC = "_dynamic";
@@ -181,6 +181,7 @@ export function coincide(m: MiembroEquipo, texto: string): boolean {
 function pasaFiltro(m: MiembroEquipo, f: FiltroEquipo): boolean {
   if (f === "todas") return true;
   if (f === "terminales") return m.tipo === "terminal";
+  if (f === "turno") return m.tipo === "persona" && m.estado === "activa" && m.deTurno;
   if (f === "suspendidas") return m.tipo === "persona" && m.estado !== "activa";
   return m.ubicacionId === f.sede;
 }
@@ -217,7 +218,7 @@ export function agruparPorSede(miembros: readonly MiembroEquipo[], ubicaciones: 
 
 export type Atajo = { clave: string; etiqueta: string; filtro: FiltroEquipo; n: number };
 
-/** Los atajos con su número. Una sede sin nadie no sale; «Suspendidos» solo si hay alguno. «Terminales» sale siempre que se
+/** Los atajos con su número. Una sede sin nadie no sale; «De turno» y «Suspendidos» solo si hay alguien. «Terminales» sale siempre que se
  *  pudieron leer (`conTerminales`), aunque no haya ninguna: es desde donde se crea la primera. */
 export function atajosEquipo(miembros: readonly MiembroEquipo[], ubicaciones: readonly UbicacionMin[], conTerminales = true): Atajo[] {
   const personas = miembros.filter((m): m is PersonaEquipo => m.tipo === "persona");
@@ -226,9 +227,11 @@ export function atajosEquipo(miembros: readonly MiembroEquipo[], ubicaciones: re
     .map((u) => ({ clave: u.id, etiqueta: u.nombre, filtro: { sede: u.id } as FiltroEquipo, n: personas.filter((p) => p.ubicacionId === u.id).length }))
     .filter((a) => a.n > 0 || terminales.some((x) => x.ubicacionId === a.clave));
   const suspendidas = personas.filter((p) => p.estado !== "activa").length;
+  const deTurno = personas.filter((p) => p.estado === "activa" && p.deTurno).length;
   return [
     { clave: "todas", etiqueta: "Todas", filtro: "todas", n: personas.length },
     ...sedes,
+    ...(deTurno > 0 ? [{ clave: "turno", etiqueta: "De turno", filtro: "turno" as const, n: deTurno }] : []),
     ...(suspendidas > 0 ? [{ clave: "suspendidas", etiqueta: "Suspendidos", filtro: "suspendidas" as const, n: suspendidas }] : []),
     ...(conTerminales ? [{ clave: "terminales", etiqueta: "Terminales", filtro: "terminales" as const, n: terminales.length }] : []),
   ];

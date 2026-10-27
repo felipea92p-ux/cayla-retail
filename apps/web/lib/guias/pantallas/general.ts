@@ -564,8 +564,8 @@ export const GUIA_COLABORADORES: Guia = {
       id: "secciones",
       ancla: "colaboradores.secciones",
       opcional: true,
-      titulo: "Equipo y Roles y accesos",
-      texto: "«Equipo» son las personas y los aparatos de cada tienda. «Roles y accesos» dice qué módulos ve cada rol. Cada sección la ve solo quien tiene su módulo.",
+      titulo: "Equipo y Roles",
+      texto: "«Equipo» son las personas y las terminales de cada tienda. «Roles» dice qué módulos ve cada rol. Cada sección la ve solo quien tiene su módulo.",
     },
     {
       id: "actividad",
@@ -625,7 +625,7 @@ export const GUIA_COLABORADORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Esperan tu ok",
-      texto: "Las altas que pidió alguien que no es líder. Un líder las aprueba o dice «No». En la demo no tocamos ninguna.",
+      texto: "Las altas que pidió alguien que no es líder. Un líder las aprueba con ✓ o las rechaza con ✕. En la demo no tocamos ninguna.",
     },
     {
       id: "atajos",
@@ -633,7 +633,7 @@ export const GUIA_COLABORADORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Ver por grupos",
-      texto: "Todo el equipo, una sede, las terminales o quienes están suspendidos; el número dice cuántos hay en cada uno. Te mostramos las terminales.",
+      texto: "Todo el equipo, una sede, quienes están de turno, las terminales o los suspendidos; el número dice cuántos hay en cada uno. Te mostramos las terminales.",
       demostrar: [{ tipo: "clic", ancla: "colaboradores.atajo-terminales" }],
     },
     {
