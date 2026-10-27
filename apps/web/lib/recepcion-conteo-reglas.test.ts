@@ -43,6 +43,7 @@ import {
   cambioDePrecioDeCompra,
   cambioDePrecioDeVenta,
   textoCambioDePrecio,
+  textoIgualaTallas,
   leerGuardado,
   leerPendientesDeLaSede,
   leerResuelto,
@@ -969,6 +970,21 @@ describe("precio de venta desde la recepción", () => {
     expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: 149.9, despues: 159.9, alcance: "todas" }, "Tienda Lima")).toBe("S/\u00a0149.90 → S/\u00a0159.90 · todas las sedes");
     expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: null, despues: 89.9, alcance: "sede" }, "Tienda Lima")).toBe("sin precio → S/\u00a089.90 · solo Tienda Lima");
     expect(textoCambioDePrecio({ tipo: "compra", nombre: "Blusas", antes: 18.5, despues: 19.8, alcance: null }, "Tienda Lima")).toBe("S/\u00a018.50 → S/\u00a019.80");
+  });
+  it("con tallas de precios distintos dice el rango (no «sin precio») y avisa que el precio nuevo las iguala", () => {
+    const rango = cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "75", "todas");
+    expect(rango).toMatchObject({ antes: null, despues: 75, rango: { desde: 69.9, hasta: 79.9 } });
+    expect(textoCambioDePrecio(rango!, "Tienda Lima")).toBe("S/\u00a069.90 a S/\u00a079.90 → S/\u00a075.00 · todas las sedes");
+    expect(textoIgualaTallas(rango!, "Tienda Lima")).toBe("Hoy las tallas valen distinto: todas pasan a valer este precio.");
+    const enSede = cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "75", "sede");
+    expect(textoCambioDePrecio(enSede!, "Tienda Lima")).toBe("S/\u00a069.90 a S/\u00a079.90 → S/\u00a075.00 · solo Tienda Lima");
+    expect(textoIgualaTallas(enSede!, "Tienda Lima")).toBe("Hoy las tallas valen distinto: en Tienda Lima todas pasan a venderse a este precio.");
+    // Un precio de hoy único, sin precio o el de compra: nada que avisar, y el cambio no trae rango.
+    const unico = cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "159.90", "todas");
+    expect(unico).not.toHaveProperty("rango");
+    expect(textoIgualaTallas(unico!, "Tienda Lima")).toBeNull();
+    expect(textoIgualaTallas({ tipo: "compra", nombre: "Blusas", antes: 18.5, despues: 19.8, alcance: null }, "Tienda Lima")).toBeNull();
+    expect(cambiosDeVentaDe([{ productoId: "p1", nombre: "Ivana", codigo: null }], { p1: { actual: { desde: 69.9, hasta: 79.9 }, valor: "75", alcance: "todas" } })[0]).toMatchObject({ productoId: "p1", rango: { desde: 69.9, hasta: 79.9 } });
   });
 });
 

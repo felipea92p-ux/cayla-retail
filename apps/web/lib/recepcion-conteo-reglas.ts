@@ -654,13 +654,31 @@ export function leerPrecioNuevo(t: string): { valor: number | null; problema: st
 }
 
 /** Un cambio de precio que quien cierra va a confirmar: de compra (la línea) o de venta (la prenda). */
-export type CambioDePrecio = { tipo: "compra" | "venta"; nombre: string; antes: number | null; despues: number; alcance: "todas" | "sede" | null };
+export type CambioDePrecio = {
+  tipo: "compra" | "venta";
+  nombre: string;
+  antes: number | null;
+  despues: number;
+  alcance: "todas" | "sede" | null;
+  /** Solo en una venta: las tallas de la prenda valían distinto (del más barato al más caro). Entonces `antes` no existe y el precio nuevo las iguala. */
+  rango?: RangoDePrecio;
+};
 
-/** «Precio de compra · Camisas y Blusas · S/ 18.50 → S/ 19.80» o, de venta, con dónde vale. */
+/** «Precio de compra · Camisas y Blusas · S/ 18.50 → S/ 19.80» o, de venta, con dónde vale. Con tallas de precios distintos, el rango («S/ 69.90 a S/ 79.90 → …»). */
 export function textoCambioDePrecio(c: CambioDePrecio, sede: string): string {
   const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const donde = c.tipo === "venta" ? (c.alcance === "sede" ? ` · solo ${sede}` : " · todas las sedes") : "";
-  return `${c.antes != null ? `${monto(c.antes)} → ` : "sin precio → "}${monto(c.despues)}${donde}`;
+  const antes = c.rango ? `${monto(c.rango.desde)} a ${monto(c.rango.hasta)} → ` : c.antes != null ? `${monto(c.antes)} → ` : "sin precio → ";
+  return `${antes}${monto(c.despues)}${donde}`;
+}
+
+/**
+ * Lo que hay que saber cuando un precio de venta pasa por encima de tallas que valían distinto: todas quedan al mismo precio (en la sede, si
+ * el precio vale solo para ella). `null` si las tallas valían lo mismo o no es un precio de venta.
+ */
+export function textoIgualaTallas(c: CambioDePrecio, sede: string): string | null {
+  if (c.tipo !== "venta" || !c.rango) return null;
+  return c.alcance === "sede" ? `Hoy las tallas valen distinto: en ${sede} todas pasan a venderse a este precio.` : "Hoy las tallas valen distinto: todas pasan a valer este precio.";
 }
 
 /** El precio de compra de una línea cambió: lo escrito (válido) contra lo que traía. Sin cambio, o con algo mal escrito (eso lo dice el campo), `null`. */
@@ -677,7 +695,8 @@ export function cambioDePrecioDeVenta(nombre: string, actual: { desde: number; h
   const nuevo = leerPrecioNuevo(escrito);
   if (nuevo.problema || nuevo.valor == null || actual === undefined) return null;
   const hoy = actual && actual.desde === actual.hasta ? actual.desde : null;
-  return hoy === nuevo.valor ? null : { tipo: "venta", nombre, antes: hoy, despues: nuevo.valor, alcance };
+  const tallasDistintas = actual && actual.desde !== actual.hasta ? { rango: { desde: actual.desde, hasta: actual.hasta } } : {};
+  return hoy === nuevo.valor ? null : { tipo: "venta", nombre, antes: hoy, despues: nuevo.valor, alcance, ...tallasDistintas };
 }
 
 /** Un precio de hoy: uno solo, o de el más barato al más caro cuando las tallas valen distinto. */

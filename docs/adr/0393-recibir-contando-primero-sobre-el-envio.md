@@ -681,3 +681,9 @@ aviso y sin ver el dinero, no) y las reglas (`costoInicialDePrenda`, `costosDeHa
 Valentina de S/ 19.80 a S/ 18.50 con «Antes S/ 19.80», «abc» se frena junto al campo con el cursor, la confirmación lista el costo, el aviso de costo atípico se confirma y entran 12 y 8 a
 S/ 18.50 con el costo de la línea intacto (S/ 19.80) y la prenda anotada en el conteo.
 
+**Tallas con precios distintos (2026-10-27, c).** El precio de venta vive en cada variante (talla y color), pero cambiarlo desde Recibir pone UN precio: «todas las sedes» iguala todas las tallas y colores activos
+(`cambiar_precio_en_recepcion`), y «solo esta sede» pone un precio de tienda que alcanza a todas las tallas activas (`poner_precio_sede`). Antes, la confirmación decía «sin precio → S/ 75.00» para una prenda
+que valía de S/ 69.90 a S/ 79.90. Ahora el cambio trae el rango (`CambioDePrecio.rango`): «S/ 69.90 a S/ 79.90 → S/ 75.00 · solo Tienda Lima», con la línea «Hoy las tallas valen distinto: en Tienda Lima
+todas pasan a venderse a este precio» (`textoIgualaTallas`). La base no cambia. Además, bajo el campo del precio sale «Antes S/ …» cuando el precio escrito es válido y distinto del de hoy (uno solo), y en la
+hoja de una sola prenda no se repite su nombre ni el precio de hoy cuando el campo ya lo trae.
+
