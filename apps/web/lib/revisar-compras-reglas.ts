@@ -1,6 +1,6 @@
 import { soles } from "./compras-reglas";
 import { TIPOS_PAPEL, type MedioPagoCompra, type TipoPapel } from "./compra-rapida-reglas";
-import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
+import { MONTO_MAXIMO_PLATA, campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import { CONCEPTOS_GASTO, MEDIOS_PLATA, nombreGasto, type ConceptoGasto, type PlataPorConfirmar } from "./mi-plata-reglas";
 import { diaMes } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
@@ -426,7 +426,7 @@ export function camposCompletar(
     campos.push({ id: "numero", nombre: "Número", requerido: n !== null, hecho: n === null && v.numero.trim() !== "", pendiente: n ?? "" });
   }
   if (v.cambiaMonto) {
-    const m = problemaDeMonto(v.monto);
+    const m = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
     campos.push({ id: "monto", nombre: "Lo que dice el papel", requerido: true, hecho: m === null, pendiente: m ?? "" });
   }
   return [...campos, ...campoResponsable({ ...r, quien: "Quién completa" })];

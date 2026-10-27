@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { Chip } from "@/components/ui/Chip";
 import { soles } from "@/lib/compras-reglas";
+import { soloNumero } from "./montos";
 import { inicialesProveedor, type PrendaDeLaCompra } from "@/lib/compra-rapida-reglas";
 
 // «Tu compra» (maqueta docs/maquetas/tu-compra-pc-2026-10/, «C · tarjeta oscura de resumen», Felipe 2026-10-26): en PC, a la derecha de cada
@@ -51,10 +53,10 @@ export function TuCompra({
       </span>
       <p className="font-serif text-[46px] leading-none tabular-nums text-tinta">
         <span className="mr-1 align-[0.35em] text-2xl text-taupe">S/</span>
-        {soles(total).slice(3)}
+        {soloNumero(total)}
       </p>
       <p className="flex min-w-0 items-center gap-2.5 text-[13.5px] text-tinta">
-        <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-sand font-serif text-[13px] text-tinta">
+        <span aria-hidden className="compra-iniciales compra-iniciales-chico">
           {proveedor ? inicialesProveedor(proveedor) : "—"}
         </span>
         <span className="min-w-0">{proveedor ?? "Aún sin proveedor"}</span>
@@ -63,13 +65,17 @@ export function TuCompra({
         <p className="text-[13.5px] text-taupe">{proveedor ? "Cuando elijas las prendas, aparecen aquí." : "Elige primero a quién le compraste."}</p>
       ) : (
         <>
-          <div className="flex flex-wrap gap-1.5 text-[12.5px]">
-            <span className="rounded-full bg-hueso px-2.5 py-0.5 text-taupe">{unidades === 1 ? "1 prenda" : `${unidades} prendas`}</span>
-            <span className="rounded-full bg-hueso px-2.5 py-0.5 text-taupe">{prendas.length === 1 ? "1 modelo" : `${prendas.length} modelos`}</span>
+          <div className="flex flex-wrap gap-1.5">
+            <Chip tono="neutro" versalitas={false}>
+              {unidades === 1 ? "1 prenda" : `${unidades} prendas`}
+            </Chip>
+            <Chip tono="neutro" versalitas={false}>
+              {prendas.length === 1 ? "1 modelo" : `${prendas.length} modelos`}
+            </Chip>
             {tiendas.map(([id, n]) => (
-              <span key={id} className="rounded-full bg-hueso px-2.5 py-0.5 tabular-nums text-taupe">
+              <Chip key={id} tono="neutro" versalitas={false}>
                 {nombresTienda.get(id) ?? "Tienda"} {n}
-              </span>
+              </Chip>
             ))}
           </div>
           <ul className="flex flex-col border-t border-sand">
@@ -80,7 +86,7 @@ export function TuCompra({
                   <MiniaturaPrenda fotoUrl={(p.productoId && fotos.get(p.productoId)) || null} prefijo={c?.prefijo} familia={c?.familia} categoria={p.categoria} />
                   <span className="min-w-0">
                     <span className="block truncate">{p.nombre}</span>
-                    <span className="block text-[11.5px] tabular-nums text-taupe">
+                    <span className="block text-xs tabular-nums text-taupe">
                       {p.cantidad} × {soles(p.costo)}
                     </span>
                   </span>

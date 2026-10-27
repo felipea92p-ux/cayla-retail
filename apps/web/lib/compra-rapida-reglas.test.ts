@@ -21,6 +21,7 @@ import {
   leerCantidad,
   leerHabituales,
   leerPrecio,
+  leerPrecioVenta,
   leerProveedoresParaComprar,
   lineasParaBase,
   marcasDeHabituales,
@@ -138,6 +139,33 @@ describe("los números de cada paso (la regla de las líneas de una orden)", () 
     expect(leerPrecio("1,250.50")).toBe(1250.5);
     expect(leerPrecio("0")).toBe(0);
     for (const malo of ["", "abc", "-1", "100000", "1.234"]) expect(leerPrecio(malo), malo).toBeNull();
+  });
+  it("precio de VENTA: como lo acota la base (de S/ 0 a S/ 5 000; el 0 solo en bolsas, cajas y empaque)", () => {
+    expect(leerPrecioVenta("39.90")).toBe(39.9);
+    expect(leerPrecioVenta("5000")).toBe(5000);
+    expect(leerPrecioVenta("5000.01")).toBeNull();
+    expect(leerPrecioVenta("99999.99")).toBeNull();
+    // El costo, en cambio, llega hasta S/ 99 999.99 (la regla de las líneas de una orden).
+    expect(leerPrecio("5000.01")).toBe(5000.01);
+    // El 0: sin decir la categoría se acepta como siempre; con una que no lo admite, no.
+    expect(leerPrecioVenta("0")).toBe(0);
+    expect(leerPrecioVenta("0", true)).toBe(0);
+    expect(leerPrecioVenta("0", false)).toBeNull();
+    expect(leerPrecioVenta("0.01", false)).toBe(0.01);
+    for (const malo of ["", "abc", "-1", "1.234"]) expect(leerPrecioVenta(malo), malo).toBeNull();
+  });
+  it("la venta fuera de rango se dice bajo el botón, no al guardar los tres pasos", () => {
+    expect(faltaEnPaso("venta", "6000")).toBe("El precio de venta llega hasta S/\u00a05,000.00");
+    expect(faltaEnPaso("venta", "0", false)).toBe("Escribe un precio mayor que 0: solo las bolsas, cajas y empaque se regalan");
+    expect(faltaEnPaso("venta", "0", true)).toBeNull();
+    expect(faltaEnPaso("venta", "")).toBe("Escribe el precio");
+    // El costo no pasa por ese tope.
+    expect(faltaEnPaso("costo", "6000")).toBeNull();
+  });
+  it("el papel de una compra llega hasta S/ 1 000 000 (la base): más, se dice en el campo", () => {
+    const monto = (m: string) => camposPapel({ tipo: "boleta", conFoto: false, monto: m }, { esPersona: true, listo: true, motivo: null }).find((c) => c.id === "monto");
+    expect(monto("1000000")?.hecho).toBe(true);
+    expect(monto("1000000.01")?.hecho).toBe(false);
   });
   it("bajo el botón gris, qué falta", () => {
     expect(faltaEnPaso("cantidad", "")).toBe("Escribe cuántas compraste");

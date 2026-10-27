@@ -1,5 +1,6 @@
 import { HandCoins } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
+import { soloNumero } from "./montos";
 import { cuentaDeLaBilletera, detalleTienes, textoPorConfirmar, type MiPlata } from "@/lib/mi-plata-reglas";
 
 // La billetera de Mis compras (maqueta docs/maquetas/mis-compras-rediseno-2026-10/, Felipe 2026-10-24): una cifra grande —lo que tienes para
@@ -7,7 +8,7 @@ import { cuentaDeLaBilletera, detalleTienes, textoPorConfirmar, type MiPlata } f
 // queda solo la cifra. Si la cifra es negativa, una nota dice qué hacer; si Compras todavía revisa plata anotada, otra dice que ya se puede
 // usar. Tinta sobre crema: en modo oscuro se invierte sola, como todo token. Sin JavaScript propio: la dibuja el servidor.
 function Menos({ monto }: { monto: number }) {
-  // Lo que baja de la plata lleva su «−», salvo cuando no hay nada.
+  // Lo que baja de la plata lleva su «−» delante del «S/», salvo cuando no hay nada.
   return <>{monto > 0.004 ? "− " : ""}{soles(monto)}</>;
 }
 
@@ -24,14 +25,15 @@ export function Billetera({ plata }: { plata: Pick<MiPlata, "tiene" | "porConfir
           {plata.ronda.abierta ? `Ronda ${plata.ronda.abierta.texto}` : "Sin ronda"}
         </span>
       </span>
-      <p className="font-serif text-[46px] leading-none tabular-nums">
+      {/* El «−» va delante del «S/», como en cada renglón de abajo («− S/ 20.00»). */}
+      <p className="whitespace-nowrap font-serif text-[46px] leading-none tabular-nums">
+        {plata.tiene < 0 ? <span className="mr-2">−</span> : null}
         <span className="mr-1 align-[0.35em] text-2xl text-crema/70">S/</span>
-        {plata.tiene < 0 ? "−" : ""}
-        {soles(Math.abs(plata.tiene)).slice(3)}
+        {soloNumero(Math.abs(plata.tiene))}
       </p>
       {negativa && <p className="rounded-[10px] bg-crema/10 px-2.5 py-2 text-[12.5px]">{negativa}</p>}
       {cuenta && (
-        <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-[11.5px]">
+        <dl className="grid grid-cols-3 gap-1.5 border-t border-crema/20 pt-2.5 text-xs">
           {[
             { clave: "dieron", nombre: "Te dieron", monto: cuenta.dieron, resta: false },
             { clave: "compraste", nombre: "Compraste", monto: cuenta.compraste, resta: true },

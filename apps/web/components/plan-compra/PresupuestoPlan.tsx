@@ -60,6 +60,7 @@ export function PresupuestoPlan({
   campanas,
   puedeContar,
   veAnalisis = false,
+  puedeVerCompras = false,
   planPedidoNoExiste = false,
   propuesta = null,
   pedido = null,
@@ -76,6 +77,8 @@ export function PresupuestoPlan({
   puedeContar: boolean;
   /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
   veAnalisis?: boolean;
+  /** Ve Compras ▸ Mis compras (`ordenes_compra`): solo entonces «Ver las órdenes» lleva a donde están. */
+  puedeVerCompras?: boolean;
   planPedidoNoExiste?: boolean;
   propuesta?: unknown;
   pedido?: unknown;
@@ -113,12 +116,12 @@ export function PresupuestoPlan({
         </>
       }
     >
-      {(marco) => <ContenidoDelPresupuesto derivado={derivado} marco={marco} veAnalisis={veAnalisis} />}
+      {(marco) => <ContenidoDelPresupuesto derivado={derivado} marco={marco} veAnalisis={veAnalisis} puedeVerCompras={puedeVerCompras} />}
     </MarcoPlan>
   );
 }
 
-function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: PlanConPlan; marco: DelMarco; veAnalisis: boolean }) {
+function ContenidoDelPresupuesto({ derivado, marco, veAnalisis, puedeVerCompras }: { derivado: PlanConPlan; marco: DelMarco; veAnalisis: boolean; puedeVerCompras: boolean }) {
   const { plan, filas, hechosDelPlan, pedido, plazoFijado, momento, versiones, precioDeLaPlata } = derivado;
   const [editandoTope, setEditandoTope] = useState(false);
   // La hoja de la nota de una versión: guardar una, usar el plan con tope o volver a una (las tres con el mismo camino; ver `NotaDeVersionModal`).
@@ -344,6 +347,7 @@ function ContenidoDelPresupuesto({ derivado, marco, veAnalisis }: { derivado: Pl
               filas={filas}
               hechos={hechosDelPlan}
               pedido={pedido}
+              puedeVerCompras={puedeVerCompras}
               plazoFijado={plazoFijado}
               diasParaLlegar={diasConQueSeCuenta(plazoFijado)}
               onRecupero={() => setEditandoRecupero(true)}

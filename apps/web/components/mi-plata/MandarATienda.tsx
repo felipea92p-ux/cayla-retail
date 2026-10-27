@@ -139,7 +139,7 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
     router.refresh();
     // Con su código a la vista no hace falta el aviso; sin él (la base no lo devolvió), el aviso de siempre.
     if (envio) return setSalio({ envio, tiendaId: t.tiendaId });
-    avisar.exito(`Listo: ${t.tienda} ya sabe que le llega tu paquete`, { detalle: "Cuando llegue, la tienda lo cuenta en Recibir." });
+    avisar.exito(`Listo: ${t.tienda} ya sabe que le llega tu envío`, { detalle: "Cuando llegue, la tienda lo cuenta en Recibir." });
     if (porMandar.length <= 1) onClose();
   }
 
@@ -181,7 +181,7 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
   return (
     <Modal
       titulo="Mandar a la tienda"
-      subtitulo="Toca «Mandar» cuando entregues el paquete (el fardo) al transporte. Te damos el código para avisar a la tienda."
+      subtitulo="Toca «Mandar» cuando entregues los fardos al transporte. Te damos el código para avisar a la tienda."
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}
@@ -210,13 +210,13 @@ function MandarModal({ porMandar, onClose, volverA }: { porMandar: PorMandar[]; 
                 <p className="text-sm text-tinta/75">{resumenPrendas(t.prendas)}</p>
                 <div className="flex items-center justify-between gap-3 border-t border-sand pt-3">
                   <span className="min-w-0">
-                    <span className="block text-sm text-tinta">¿Cuántos paquetes (fardos)?</span>
-                    <span className="block text-xs text-taupe">Si todo va junto, es 1</span>
+                    <span className="block text-sm text-tinta">¿Cuántos fardos?</span>
+                    <span className="block text-xs text-taupe">Cada paquete que entregas. Si todo va junto, es 1</span>
                   </span>
                   <PasoCantidad
                     data-guia={t === porMandar[0] ? "mi-plata.fardos" : undefined}
-                    menos={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.max(1, n - 1) })), deshabilitado: n <= 1 || mandando !== null, etiqueta: "Un paquete menos" }}
-                    mas={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.min(99, n + 1) })), deshabilitado: n >= 99 || mandando !== null, etiqueta: "Un paquete más" }}
+                    menos={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.max(1, n - 1) })), deshabilitado: n <= 1 || mandando !== null, etiqueta: "Un fardo menos" }}
+                    mas={{ onClick: () => setFardos((f) => ({ ...f, [t.tiendaId]: Math.min(99, n + 1) })), deshabilitado: n >= 99 || mandando !== null, etiqueta: "Un fardo más" }}
                   >
                     {n}
                   </PasoCantidad>

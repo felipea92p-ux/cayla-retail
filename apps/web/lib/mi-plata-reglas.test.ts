@@ -78,6 +78,20 @@ describe("leerMiPlata: lo que tiene para comprar es su fondo más lo por confirm
     expect(leerMiPlata({ persona: true, saldo: -40, por_confirmar: 100, anotada: [] })?.tiene).toBe(60);
   });
 
+  it("si faltan las cifras que componen «tienes» la lectura es null, no un cero que engaña (principio 9)", () => {
+    // Sin saldo o sin lo por confirmar (presentes desde la primera versión de la función): respuesta dañada.
+    expect(leerMiPlata({ persona: true, por_confirmar: 0, anotada: [] })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, anotada: [] })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: "roto", por_confirmar: 0 })).toBeNull();
+    // Una base con rondas ya manda lo comprado y lo gastado por completar: sin ellas, «tienes» saldría de más.
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, ronda: {} })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, ronda: {} })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, gastos_por_completar: 30, ronda: {} })).toBeNull();
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 0, gastos_por_completar: 0, ronda: {} })?.tiene).toBe(300);
+    // Una versión anterior a las rondas todavía se lee: lo que no existía en ella es cero de verdad.
+    expect(leerMiPlata({ persona: true, saldo: 300, por_confirmar: 50 })?.tiene).toBe(350);
+  });
+
   it("descarta lo ilegible sin caerse; sin persona (una terminal) no hay plata; sin datos, null", () => {
     expect(leerMiPlata({ persona: true, saldo: 0, por_confirmar: 0, anotada: [{ id: "x", medio: "cheque", monto: 1 }, null, 3] })?.anotada).toEqual([]);
     expect(leerMiPlata({ persona: false })).toMatchObject({ persona: false, tiene: 0 });
@@ -110,6 +124,9 @@ describe("«Ya tenía plata» solo la primera vez", () => {
   it("si ya no puede, elegirla no cuenta como hecho (la base la rechazaría)", () => {
     expect(camposAnotar({ medio: "ya_tenia", monto: "100" }, false, PERSONA)[0].hecho).toBe(false);
     expect(camposAnotar({ medio: "ya_tenia", monto: "100" }, true, PERSONA)[0].hecho).toBe(true);
+    // La plata que te dan llega hasta S/ 1 000 000 (la base); más, se dice en el campo.
+    expect(camposAnotar({ medio: "efectivo", monto: "1000000" }, false, PERSONA).find((c) => c.id === "monto")?.hecho).toBe(true);
+    expect(camposAnotar({ medio: "efectivo", monto: "1000001" }, false, PERSONA).find((c) => c.id === "monto")?.hecho).toBe(false);
   });
 });
 
@@ -239,7 +256,7 @@ describe("textos", () => {
 });
 
 describe("el resto del día de compras (actividad 5)", () => {
-  const BASE = { persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, anotada: [], compras: [] };
+  const BASE = { persona: true, saldo: 300, por_confirmar: 0, compras_por_completar: 120, gastos_por_completar: 0, anotada: [], compras: [] };
 
   it("lo gastado en otras cosas también bajó: tiene = fondo + por confirmar − compras − gastos (como fn_mi_plata_tiene)", () => {
     const p = leerMiPlata({
@@ -303,15 +320,11 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
   });
 
-  it("lee el cierre de hoy y descarta una decisión que no conoce", () => {
-    expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "devuelve", monto: "80.00", resuelto: false } } })?.hoy.cierre).toEqual({
-      decision: "devuelve",
-      monto: 80,
-      resuelto: false,
-    });
-    expect(leerMiPlata({ ...BASE, hoy: { cierre: { decision: "regala", monto: 1 } } })?.hoy.cierre).toBeNull();
+  it("de «hoy» solo se lee el día (lo demás vive en la ronda abierta)", () => {
+    expect(leerMiPlata({ ...BASE, hoy: { fecha: "2026-10-23T05:00:00Z", dieron: 500 } })?.hoy).toEqual({ fecha: "2026-10-23" });
+    expect(leerMiPlata({ ...BASE })?.hoy).toEqual({ fecha: "" });
     expect(leerMiPlata(null)).toBeNull();
-    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ fecha: "", dieron: 0, compraste: 0, compras: 0, gastaste: 0, cierre: null });
+    expect(leerMiPlata({ persona: false })?.hoy).toEqual({ fecha: "" });
   });
 
   it("qué se puede elegir al terminar: lo mismo que acepta terminar_dia_compras", () => {
@@ -335,6 +348,9 @@ describe("el resto del día de compras (actividad 5)", () => {
     expect(faltan({ concepto: "otro", nota: "x".repeat(121), monto: "15" })).toEqual(["nota"]);
     expect(faltan({ concepto: "otro", nota: "Candado", monto: "0" })).toEqual(["monto"]);
     expect(camposGasto({ concepto: "taxi", nota: "", monto: "15" }).find((c) => c.id === "foto")?.requerido).toBe(false);
+    // El tope de un gasto es el de la base (S/ 100 000): se dice en el campo, no al guardar.
+    expect(camposGasto({ concepto: "taxi", nota: "", monto: "100000" }).find((c) => c.id === "monto")?.hecho).toBe(true);
+    expect(camposGasto({ concepto: "taxi", nota: "", monto: "100000.01" }).find((c) => c.id === "monto")).toMatchObject({ hecho: false });
     expect(plano(fraseGasto(15))).toBe("Anotar S/ 15.00");
     expect(fraseGasto(null)).toBe("Anotar el gasto");
   });
@@ -367,7 +383,7 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
       { id: "c2", proveedor: "Andina", tipo: "boleta", monto: 99, estado: "completado", fecha: "2026-10-23", creado_en: "2026-10-23T15:05:00Z", prendas: 1, tiendas: ["LIM"], por_mandar: ["LIM"], ronda_id: "r" },
     ],
     gastos: [{ id: "g1", concepto: "taxi", monto: 12, estado: "por_completar", fecha: "2026-10-23", creado_en: "2026-10-23T09:40:00Z", con_foto: false, ronda_id: "r" }],
-    hoy: { fecha: "2026-10-23", dieron: 500, compraste: 624, compras: 2, gastaste: 12, cierre: null },
+    hoy: { fecha: "2026-10-23" },
     ronda: {
       abierta: { id: "r", texto: "RC-000003", abierta_en: "2026-10-23T08:00:00Z", compras: 2, prendas: 36, dieron: 500, compraste: 624, gastaste: 12 },
       ultima_cerrada: { texto: "RC-000002", cerrada_en: "2026-10-21T20:00:00Z", decision: "se_queda", monto: 0 },
@@ -508,6 +524,9 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
   const p = leerMiPlata({
     persona: true,
     saldo: 0,
+    por_confirmar: 0,
+    compras_por_completar: 0,
+    gastos_por_completar: 0,
     anotada: [
       { id: "a1", medio: "yape_plin", monto: 500, estado: "confirmada", fecha: "2026-10-20", creado_en: "2026-10-20T09:00:00Z", ronda_id: "r1", ronda: "RC-000001" },
       { id: "a2", medio: "efectivo", monto: 200, estado: "por_confirmar", fecha: "2026-10-22", creado_en: "2026-10-22T09:00:00Z", ronda_id: "r2", ronda: "RC-000002" },

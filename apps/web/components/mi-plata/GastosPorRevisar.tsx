@@ -170,7 +170,7 @@ export function DetalleGasto({ gasto, alTerminar }: { gasto: GastoConFoto; alTer
         <div className="flex min-w-0 flex-col gap-5">
           <div>
             <span className="label-cayla block text-[11px] text-taupe">Gastó</span>
-            <span className="mt-1 block whitespace-nowrap font-serif text-[44px] leading-none tabular-nums text-tinta">{soles(gasto.monto)}</span>
+            <span className="mt-1 block whitespace-nowrap font-serif text-[clamp(2rem,10vw,2.75rem)] leading-none tabular-nums text-tinta">{soles(gasto.monto)}</span>
           </div>
           {gasto.esMia ? (
             <div className="flex flex-col items-start gap-2">

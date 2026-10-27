@@ -61,7 +61,7 @@
       "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
     ],
     "components/mi-plata/BandejaRevisar.tsx": [
-      "button «→() => setElegido(fila.id)»"
+      "button «→() => abrir(fila.id)»"
     ],
     "components/mi-plata/CierresPorRecibir.tsx": [
       "CampoMonto «{devuelve ? \"¿Cuánto trajo?\" : \"¿Cuánto le pagas?\"}»",

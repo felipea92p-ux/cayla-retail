@@ -11,6 +11,9 @@
  *   · «Terminé de comprar hoy» guarda lo que tenía (lo calcula la base) y qué hace con eso. Con plata, hay que elegir; en negativo, CAYLA le
  *     debe. Volver a cerrar el mismo día lo reemplaza, hasta que Compras lo resuelve.
  *   · `anon` no ejecuta nada y las tablas no se leen directo.
+ *   · Candados de la auditoría (20261027231000, ADR-0543): anotar una compra o un gasto toma el candado de la ronda (H11); cerrar dos veces
+ *     seguidas devuelve el mismo cierre con `ya_estaba` y, pasados 2 minutos, el error de siempre (H10); «te dieron» suma lo que Compras
+ *     confirmó (H14); las lecturas de la ronda no se llaman desde afuera y la tabla de lo recibido antes no se lee directo (H3, H22).
  *
  * CÓMO. Sesión simulada con `request.jwt.claim.sub`, la migración pegada dos veces y ROLLBACK siempre. Usa «Compré ropa» (actividad 3),
  * que ya tiene que estar en la base.
@@ -51,6 +54,11 @@ const ENVIOS = readFileSync(join(RAIZ, "supabase", "migrations", "20261026174000
   /^set lock_timeout.*$/gm,
   "",
 );
+// Los candados de la auditoría (20261027231000, ADR-0543): después de todo lo anterior, como en la base.
+const AUDITORIA = readFileSync(join(RAIZ, "supabase", "migrations", "20261027231000_mis_compras_auditoria_candados.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
 const RONDAS_ABIERTAS = `
 insert into retail.compra_rondas (persona_id, abierta_por)
 select distinct c.persona_id, c.persona_id from retail.colaboradores c
@@ -76,6 +84,8 @@ ${RONDA}
 ${RONDA}
 ${ENVIOS}
 ${ENVIOS}
+${AUDITORIA}
+${AUDITORIA}
 ${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -89,6 +99,11 @@ exception when others then
 end;
 $f$;
 grant execute on function pg_temp.intento(text) to authenticated;
+-- ¿Esta sesión tiene el candado de la ronda de esa persona (el de abrir y cerrar, «compra_ronda:persona»)?
+create function pg_temp.tiene_candado(p_persona uuid) returns boolean language sql as $f$
+  select exists (select 1 from pg_locks where locktype = 'advisory' and pid = pg_backend_pid() and granted
+                    and ((classid::bigint << 32) | objid::bigint) = hashtextextended('compra_ronda:' || p_persona::text, 0));
+$f$;
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as micaela from public.personas where auth_user_id = '${MICAELA}' \\gset
@@ -226,7 +241,7 @@ select count(*) from retail.despachos where despachado_por = :'micaela' and toke
 );
 
 caso(
-  "cerrar la ronda con plata pide elegir; «devuelve» guarda lo que tenía y cierra la ronda; sin ronda abierta no se cierra otra vez",
+  "cerrar la ronda con plata pide elegir; «devuelve» guarda lo que tenía y cierra la ronda; cerrar otra vez justo después devuelve el mismo cierre (ya_estaba) sin escribir otro",
   `reset role;
 -- Le damos plata por confirmar, para que tenga.
 insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por)
@@ -235,12 +250,12 @@ select retail.fn_mi_plata_tiene(:'micaela') as tiene \\gset
 ${como(MICAELA, "compra_terminar_dia")}
 select ${hint("select retail.terminar_dia_compras(null)")};
 select (retail.terminar_dia_compras('devuelve') ->> 'monto')::numeric = :'tiene'::numeric;
-select ${hint("select retail.terminar_dia_compras('se_queda')")};
+select (retail.terminar_dia_compras('se_queda') ->> 'ya_estaba') || '|' || (retail.terminar_dia_compras('se_queda') ->> 'decision');
 select retail.fn_mi_plata_compras() -> 'ronda' -> 'ultima_cerrada' ->> 'decision', retail.fn_mi_plata_compras() -> 'ronda' ->> 'abierta';
 reset role;
 select count(*), count(*) filter (where k.ronda_id is not null and r.cierre_id = k.id) from retail.compra_cierres k
   left join retail.compra_rondas r on r.id = k.ronda_id where k.persona_id = :'micaela';`,
-  "compra_cierre_decision / t / compra_ronda_sin_abrir / devuelve| / 1|1",
+  "compra_cierre_decision / t / true|devuelve / devuelve| / 1|1",
 );
 
 caso(
@@ -381,6 +396,101 @@ reset role;
 select string_agg(accion || ':' || (descripcion ~ 'S/'), ',' order by accion) from retail.actividad
  where accion in ('gasto_rapido_anotado', 'dia_compras_terminado') and persona_id = :'micaela';`,
   "dia_compras_terminado:false,gasto_rapido_anotado:false",
+);
+
+
+// ---------- Candados de la auditoría de «Mis compras» (20261027231000, ADR-0543) ----------
+caso(
+  "H11: anotar un gasto toma el candado de la ronda de quien lo anota, el mismo que abrir y cerrar",
+  `reset role;
+select pg_temp.tiene_candado(:'micaela') as antes \\gset
+${como(MICAELA, "gasto_rapido")}
+${GASTO()} \\g /dev/null
+reset role;
+select :'antes', pg_temp.tiene_candado(:'micaela');`,
+  "f|t",
+);
+
+caso(
+  "H11: anotar una compra toma el candado de la ronda de quien compra",
+  `reset role;
+select pg_temp.tiene_candado(:'micaela') as antes \\gset
+${COMPRA}reset role;
+select :'antes', pg_temp.tiene_candado(:'micaela');`,
+  "f|t",
+);
+
+caso(
+  "H10: cerrar dos veces seguidas devuelve el mismo cierre (ya_estaba) y no escribe nada nuevo; pasados 2 minutos vuelve el error de siempre",
+  `reset role;
+insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por) values (:'micaela', 'efectivo', 120, retail.fn_hoy_lima(), :'micaela');
+select count(*) as cierres0 from retail.compra_cierres where persona_id = :'micaela' \\gset
+select count(*) as actividad0 from retail.actividad where accion = 'dia_compras_terminado' and persona_id = :'micaela' \\gset
+${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('devuelve') as r1 \\gset
+select retail.terminar_dia_compras('se_queda') as r2 \\gset
+select (:'r1'::jsonb ->> 'ya_estaba') is null, (:'r2'::jsonb ->> 'ya_estaba'),
+       (:'r2'::jsonb ->> 'decision') = (:'r1'::jsonb ->> 'decision'),
+       (:'r2'::jsonb ->> 'monto')::numeric = (:'r1'::jsonb ->> 'monto')::numeric,
+       (:'r2'::jsonb ->> 'ronda') = (:'r1'::jsonb ->> 'ronda'), (:'r2'::jsonb ->> 'fecha') = (:'r1'::jsonb ->> 'fecha');
+reset role;
+select (select count(*) from retail.compra_cierres where persona_id = :'micaela') - :cierres0,
+       (select count(*) from retail.actividad where accion = 'dia_compras_terminado' and persona_id = :'micaela') - :actividad0;
+-- Una ronda cerrada no cambia: para envejecerla se apaga un momento su candado (todo se deshace con el ROLLBACK).
+alter table retail.compra_rondas disable trigger compra_rondas_fija;
+update retail.compra_rondas set cerrada_en = now() - interval '5 minutes' where persona_id = :'micaela' and cerrada_en is not null;
+alter table retail.compra_rondas enable trigger compra_rondas_fija;
+${como(MICAELA, "compra_terminar_dia")}
+select ${hint("select retail.terminar_dia_compras('se_queda')")};`,
+  "t|true|t|t|t|t / 1|1 / compra_ronda_sin_abrir",
+);
+
+caso(
+  "H14: «te dieron» en la ronda suma lo que Compras confirmó, no lo anotado (en Mis compras y en el cuaderno de Revisar compras)",
+  `${como(MICAELA, "plata_anotar")}
+select retail.anotar_plata_compras('yape_plin', 300, null, 'aaaaaaaa-0480-4000-8000-0000000000a1') as a \\gset
+select retail.fn_mi_plata_compras() -> 'ronda' -> 'abierta' ->> 'dieron';
+reset role;
+select id as banco from retail.cuentas_dinero where tipo = 'banco' and archivada_en is null order by nombre limit 1 \\gset
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', 280, :'banco') \\g /dev/null
+${como(MICAELA, null)}
+select retail.fn_mi_plata_compras() -> 'ronda' -> 'abierta' ->> 'dieron';
+${como(FELIPE, null)}
+select r -> 'cuenta' ->> 'dieron' from jsonb_array_elements(retail.fn_revisar_compras() -> 'rondas_abiertas') r where r ->> 'persona_id' = :'micaela';`,
+  "300.00 / 280.00 / 280.00",
+);
+
+caso(
+  "H3 y H22: las lecturas de la ronda y sus ayudas no se llaman desde afuera; abrir la ronda sí (con su módulo); lo recibido antes del comprobante no se lee directo",
+  `reset role;
+select has_function_privilege('authenticated', 'retail.fn_ronda_compras_texto(uuid)', 'execute'),
+       has_function_privilege('authenticated', 'retail.fn_ronda_compras_de(uuid)', 'execute'),
+       has_function_privilege('anon', 'retail.fn_ronda_compras_de(uuid)', 'execute'),
+       has_function_privilege('authenticated', 'retail.fn_ronda_compras_candado(uuid)', 'execute'),
+       has_function_privilege('authenticated', 'retail.fn_compra_en_su_ronda()', 'execute'),
+       has_function_privilege('authenticated', 'retail.abrir_ronda_compras()', 'execute'),
+       has_function_privilege('anon', 'retail.abrir_ronda_compras()', 'execute'),
+       has_table_privilege('authenticated', 'retail.compra_item_recibido_antes', 'select'),
+       has_table_privilege('authenticated', 'retail.compra_item_recibido_antes', 'insert'),
+       has_table_privilege('anon', 'retail.compra_item_recibido_antes', 'select');`,
+  "f|f|f|f|f|t|f|f|f|f",
+);
+
+caso(
+  "H3: una cuenta no puede leer por RPC la ronda de otra persona (42501), y abrir la ronda sin el módulo tampoco (42501)",
+  `reset role;
+delete from retail.rol_modulos where rol_id = :'rol';
+insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'ordenes_compra');
+${como(MICAELA, null)}
+select left(${intento("select retail.fn_ronda_compras_de(gen_random_uuid())")}, 5),
+       left(${intento("select retail.fn_ronda_compras_texto(gen_random_uuid())")}, 5);
+reset role;
+delete from retail.rol_modulos where rol_id = :'rol';
+insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'existencias');
+${como(MICAELA, "compra_ronda_abrir")}
+select left(${intento("select retail.abrir_ronda_compras()")}, 5);`,
+  "42501|42501 / 42501",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

@@ -1458,6 +1458,11 @@ const idDeOrdenConGastoDelViaje = () =>
   consultarLocal(
     "select gvo.orden_compra_id from retail.gastos_viaje_ordenes gvo join retail.gastos g on g.id = gvo.gasto_id where g.estado = 'vigente' order by g.created_at limit 1",
   );
+// «Compré ropa»: el primer proveedor de la lista (la fila de cada uno es un botón dentro de `compra.proveedores`), para llegar al paso de las prendas.
+const elegirProveedorDeLaCompra = async (pagina) => {
+  await pagina.locator('[data-guia="compra.proveedores"] li button').first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
 ESCENARIOS.push(
   { id: "fondos.entregar", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Entregar plata»", preparar: clicRol("button", /Entregar plata/i) },
   // Compras simple (ADR-0480, actividad 2): «Me dieron plata» (la compradora) y «Confirmar la plata» (necesita una plata anotada de otra persona).
@@ -1471,6 +1476,44 @@ ESCENARIOS.push(
   // Las hojas del celular de Mi plata (rediseño): «Gasté en otra cosa» y «Mandar a la tienda» (necesita algo por mandar).
   { id: "mi-plata.gasto", ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Gasté en otra cosa»", preparar: clicRol("button", /Gasté en otra cosa/i) },
   { id: "mi-plata.mandar", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Mandar a la tienda» (necesita algo por mandar)", preparar: clicRol("button", /Falta mandar/i) },
+  // Mis compras, auditoría 2026-10-27: lo que faltaba de la pantalla de la compradora. Casi todo necesita una ronda (abierta o cerrada) con datos
+  // en la base local, así que va solo por id; ninguno guarda (la «Listo» de «Compré ropa» solo aparece tras guardar la compra: no se audita).
+  // «Cerrar mi ronda» (necesita una ronda abierta) y «Ver lo que anoté» de «Tu última ronda» (necesita una cerrada y ninguna abierta).
+  { id: "mi-plata.cerrar-ronda", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · la hoja «Cerrar mi ronda» (necesita una ronda abierta)", preparar: clicGuia("mi-plata.termine") },
+  { id: "mi-plata.ultima-ronda", soloPorId: true, ruta: "/compras/mi-plata", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Mis compras · «Ver lo que anoté» de «Tu última ronda» (necesita una ronda cerrada y ninguna abierta)", preparar: clicGuia("mi-plata.ultima-detalle") },
+  // El detalle de una fila de «En esta ronda» (una plata, una compra o un gasto): la primera fila de la lista de la ronda abierta.
+  {
+    id: "mi-plata.detalle-fila",
+    soloPorId: true,
+    ruta: "/compras/mi-plata",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Mis compras · el detalle de una fila de «En esta ronda» (necesita algo anotado en la ronda abierta)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="mi-plata.hoy"] button[aria-haspopup="dialog"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    },
+  },
+  // Mis compras ▸ Compré ropa: los pasos (proveedor → prendas) y las dos hojas de la prenda. Piden una ronda abierta y proveedores en la base local.
+  { id: "compra.proveedor", soloPorId: true, ruta: "/compras/mi-plata/compra", cuentas: ["admin"], abre: '[data-guia="compra.proveedores"]', nombre: "Compré ropa · paso 1: a quién le compraste (necesita una ronda abierta y proveedores)", preparar: (pagina) => esperar(pagina, 600) },
+  { id: "compra.prendas", soloPorId: true, ruta: "/compras/mi-plata/compra", cuentas: ["admin"], abre: '[data-guia="compra.habituales"], [data-guia="compra.algo-nuevo"]', nombre: "Compré ropa · paso 2: las prendas del proveedor y «Algo nuevo»", preparar: elegirProveedorDeLaCompra },
+  { id: "compra.hoja-prenda", soloPorId: true, ruta: "/compras/mi-plata/compra", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Compré ropa · la hoja de una prenda de siempre (cuántas, costo, venta y tienda)", preparar: secuencia(elegirProveedorDeLaCompra, async (pagina) => { await pagina.locator('[data-guia="compra.habituales"] button').first().click({ timeout: 8000 }); await esperar(pagina, 1100); }) },
+  { id: "compra.algo-nuevo", soloPorId: true, ruta: "/compras/mi-plata/compra", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Compré ropa · la hoja «Algo nuevo» (qué es, marca y cómo se llama)", preparar: secuencia(elegirProveedorDeLaCompra, clicGuia("compra.algo-nuevo")) },
+  // Mis envíos (solo lectura): la tabla con su buscador y filtros, la vista de rondas anteriores y el detalle de un envío con su código.
+  { id: "mis-envios.tabla", ruta: "/compras/mi-plata/envios", cuentas: ["admin"], abre: '[data-guia="mis-envios.alcance"]', nombre: "Mis envíos · «Esta ronda», con su buscador y sus filtros", preparar: (pagina) => esperar(pagina, 600) },
+  { id: "mis-envios.anteriores", ruta: "/compras/mi-plata/envios", cuentas: ["admin"], abre: '[data-guia="mis-envios.anteriores"]', nombre: "Mis envíos · «Rondas anteriores»", preparar: clicGuia("mis-envios.tab-anteriores") },
+  {
+    id: "mis-envios.hoja",
+    soloPorId: true,
+    ruta: "/compras/mi-plata/envios",
+    cuentas: ["admin"],
+    abre: "[role=dialog] .envio-codigo",
+    nombre: "Mis envíos · el detalle de un envío con su código (necesita un envío en la ronda abierta)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="mis-envios.esta"] button[aria-haspopup="dialog"]:visible').first().click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    },
+  },
   // «Quién tiene plata» y «Entregas y devoluciones» se abren en una hoja desde la cabecera (Felipe 2026-10-23); lo de adentro, desde ella.
   { id: "fondos.quien-tiene", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Quién tiene plata»", preparar: clicGuia("fondos.quien-tiene") },
   { id: "fondos.entregas", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Revisar compras · la hoja «Entregas y devoluciones» (necesita una)", preparar: clicGuia("fondos.entregas") },
