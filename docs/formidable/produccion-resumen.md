@@ -46,8 +46,17 @@ Mismo método y mismas preguntas, otro agente nuevo (Sonnet), sobre capturas de 
   6. El total de prendas de las 22 no está en pantalla (suma las 6 que ve). Es la tarea #2 de `docs/pantallas/produccion.md` («faltan ~N prendas»), que se dejó fuera de los 3 cambios.
 - **No se recalculan las 9 leyes con un solo agente:** la nota de facilidad subió de 5 a 7; las leyes 2 (una pregunta) y 3 (simplicidad) mejoraron con evidencia, la 8 (quitar) sigue coja por la duplicación de sobrestock.
 
+## Tercera prueba ciega (2026-10-27, tarde): después de arreglar las 5 confusiones
+Otro agente nuevo (Sonnet), mismas preguntas más dos (sobre «Para decidir» y «Lo que ya se está fabricando»), sobre capturas de la pantalla real con los mismos datos de producción. **Facilidad: 5/10** (la segunda había dado 7, la primera 5). [Observado, 1 agente por ronda; el ruido entre agentes es grande: no se puede decir que «empeoró», pero tampoco que mejoró]
+- **Se sostiene en las tres rondas:** los 3 encuentran la «Camisa M/corta con Amarre» a los 5 s y eligen «unas 13». La parte de arriba funciona.
+- **Los arreglos de las 5 confusiones NO movieron la nota:** «Verlo abajo» ya no contradice, pero «Para decidir» sigue sin entenderse («si ya dice no producir, no hay nada que decidir»), las dos listas siguen pareciendo repetidas y hay **dos «22»** (los modelos de arriba y «22 modelos con sobrestock»).
+- **Un defecto mío, nuevo:** «Valor en proceso» dice «**1** orden abierta todavía sin costo» y más abajo dice «**4** órdenes abiertas»: la cifra cuenta solo las de producción (las muestras no suman al valor) y la otra cuenta todas. Se contradicen a la vista (`produccion-cifras-textos.ts`, `valorEnProceso`).
+- **Siguen sin entenderse:** los «—» (lo toma por falla aunque lea «Aún no hay…»), «Entregas por atender —» junto a «4 órdenes», «modelos para vigilar» («Ver los 32» no sabe qué muestra), el total de prendas de las 22 (no está en pantalla), «ninguna pide algo» junto a lotes por plotear.
+- **Lectura honesta:** lo de arriba está bien; lo que falla es el **tercio de abajo y las tarjetas**. «Para decidir» mezcla asuntos que SÍ piden decisión (entregas, tela, pagos) con modelos que dicen «no produzcas más», que no piden ninguna. Arreglar el texto no alcanza: es un problema de dónde viven esos avisos.
+
 ## Historial
 | Fecha | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|
 | 2026-10-27 | 4,8 (provisional) | sin calificar | — (los 3 cambios esperan OK de Felipe) |
 | 2026-10-27 (tarde) | facilidad 5 → 7 (1 agente, sin recalcular las 9 leyes) | sin calificar | los 3 cambios construidos con el OK de Felipe (commits `b3c70f95e` y `9a35e8c8d`); quedan 5 confusiones de la segunda ciega |
+| 2026-10-27 (noche) | facilidad 5 (1 agente; la anterior dio 7) | sin calificar | las 5 confusiones corregidas con el OK de Felipe (`82abd51ba`, `92f5922e5`, `828f9e356`, `1e2fc2649`); la nota no subió: el problema que queda es «Para decidir» y las cifras |

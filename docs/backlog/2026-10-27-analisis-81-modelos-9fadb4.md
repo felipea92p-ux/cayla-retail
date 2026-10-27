@@ -1,6 +1,7 @@
 # Backlog · Producción ▸ Resumen: «¿Qué fabrico primero?» (rama analisis-81-modelos-9fadb4)
 
-Hecho (2 commits): la lista nueva con frase y cantidad, «Para vigilar» plegado, «Los demás modelos», cifras con «—» y su motivo, nota de historia corta. Pendiente, en este orden:
+Hecho (6 commits: la lista y las cifras; luego las 5 confusiones de la segunda ciega): la lista nueva con frase y cantidad, «Para vigilar» plegado, «Los demás modelos», cifras con «—» y su motivo, nota de historia corta. Pendiente, en este orden:
+- **Lo que queda tras la tercera ciega (5/10, sin mejorar):** (a) mi defecto: «Valor en proceso» dice «1 orden abierta» y «Entregas»/«Hoy» dicen «4»: unificar el recuento o decir «las muestras no cuentan»; (b) «Para decidir» mezcla decisiones reales con modelos de «no produzcas más», que no piden ninguna, y hay dos «22»: sacar el sobrestock de «Para decidir» (cambia ADR-0133, decide Felipe); (c) el total de prendas de las 22 («faltan ~N», tarea #2 del análisis); (d) los «—» se leen como falla.
 - Repetir la prueba con una colaboradora real del Taller (la ciega con un agente dio 5/10 antes; el resultado de la segunda está en `docs/formidable/produccion-resumen.md`).
 - Decisión de Felipe: orden de la lista (hoy, el más urgente primero; propuesta: lo que más se vende primero; cambia ADR-0133).
 - Decisión de Felipe: `SEMANAS_DE_HISTORIA_CORTA` (8) y `VENTAS_DESDE` (2026-09-29) en `lib/produccion-cifras-textos.ts`.
