@@ -3,6 +3,7 @@ import { sePuedeConfirmar } from "./guia-campos";
 import { camposDeLook, camposDeMostrarLook } from "./vitrina-looks-guia";
 import {
   categoriasParaLook,
+  chipsDeLook,
   cifrasLooks,
   colorInicial,
   errorDeLook,
@@ -10,10 +11,12 @@ import {
   filtrarLooks,
   fraseLimpia,
   leerLooks,
+  leerPorTienda,
   lookDeJson,
   lookSinCambios,
   loQueImpideMostrar,
   lugarParaGuardar,
+  nombreCortoDeTienda,
   MAX_NOMBRE_LOOK,
   modelosParaElegir,
   nombreLimpio,
@@ -269,5 +272,69 @@ describe("elegir las prendas mirándolas: categorías y filtro del selector", ()
     expect(modelosParaElegir(todos, { categoria: null, texto: "casacas" }).map((m) => m.id)).toEqual(["2", "5"]);
     expect(modelosParaElegir(todos, { categoria: "Casacas", texto: "liz" }).map((m) => m.id)).toEqual(["5"]);
     expect(modelosParaElegir(todos, { categoria: "Casacas", texto: "emma" })).toEqual([]);
+  });
+});
+
+// ---- En qué tiendas sale cada look (fn_vitrina_looks_por_tienda, 20261027204000) ----
+describe("looks por tienda", () => {
+  const CARTERA = "11111111-1111-4111-8111-111111111111";
+  const BLUSA = "22222222-2222-4222-8222-222222222222";
+  const dePrueba = {
+    looks: [
+      {
+        id: "look-1",
+        nombre: "Una idea para hoy",
+        por_tienda: [
+          { sede: "s-aqp", tienda: "Tienda AQP", completo: false, faltan: 1, piezas: [{ producto_id: BLUSA, color: "MOK", hay: true, motivo: null }, { producto_id: CARTERA, color: "NEG", hay: false, motivo: "no_ofrecida" }] },
+          { sede: "s-tru", tienda: "Tienda TRU", completo: true, faltan: 0, piezas: [{ producto_id: BLUSA, color: "MOK", hay: true, motivo: null }, { producto_id: CARTERA, color: "NEG", hay: true, motivo: null }] },
+        ],
+      },
+    ],
+  };
+  const look = { piezas: [
+    { productoId: BLUSA, nombre: "Blusa Alba", color: { codigo: "MOK", nombre: "Mokka", hex: null } },
+    { productoId: CARTERA, nombre: "Cartera Manuela", color: { codigo: "NEG", nombre: "Negro", hex: null } },
+  ] } as unknown as Pick<Look, "piezas">;
+
+  it("lee lo que devuelve la base y vuelve a sacar «completo» y «faltan» de las prendas", () => {
+    const l = leerPorTienda(dePrueba)["look-1"];
+    expect(l.map((t) => [t.tienda, t.completo, t.faltan])).toEqual([["Tienda AQP", false, 1], ["Tienda TRU", true, 0]]);
+    // Si la base dijera «completo» con una prenda que falta, manda la prenda.
+    const raro = leerPorTienda({ looks: [{ id: "x", por_tienda: [{ sede: "s", tienda: "Tienda X", completo: true, faltan: 0, piezas: [{ producto_id: BLUSA, color: "MOK", hay: false, motivo: "sin_stock" }] }] }] });
+    expect(raro.x[0]).toMatchObject({ completo: false, faltan: 1 });
+  });
+
+  it("un dato raro no tumba la pantalla: queda sin tiendas", () => {
+    for (const v of [null, undefined, 3, "x", [], {}, { looks: "no" }, { looks: [null, 5, { id: 3 }, { id: "a", por_tienda: "no" }] }]) expect(() => leerPorTienda(v)).not.toThrow();
+    expect(leerPorTienda({ looks: [{ id: "a", por_tienda: "no" }] })).toEqual({ a: [] });
+    expect(leerPorTienda(null)).toEqual({});
+  });
+
+  it("una prenda sin tienda completa no es «completo»: sin prendas no se dice que sale", () => {
+    expect(leerPorTienda({ looks: [{ id: "a", por_tienda: [{ sede: "s", tienda: "Tienda X", piezas: [] }] }] }).a[0].completo).toBe(false);
+  });
+
+  it("un motivo desconocido se dice como «sin stock» y una prenda que hay no lleva motivo", () => {
+    const l = leerPorTienda({ looks: [{ id: "a", por_tienda: [{ sede: "s", tienda: "T", piezas: [{ producto_id: BLUSA, color: "MOK", hay: false, motivo: "raro" }, { producto_id: CARTERA, color: "NEG", hay: true, motivo: "no_se_ve" }] }] }] }).a[0];
+    expect(l.piezas.map((p) => p.motivo)).toEqual(["sin_stock", null]);
+  });
+
+  it("el nombre corto de la tienda cabe en un chip", () => {
+    expect(nombreCortoDeTienda("Tienda AQP")).toBe("AQP");
+    expect(nombreCortoDeTienda("  tienda   Trujillo ")).toBe("Trujillo");
+    expect(nombreCortoDeTienda("Tienda")).toBe("Tienda");
+    expect(nombreCortoDeTienda("Boutique Centro")).toBe("Boutique Centro");
+  });
+
+  it("los chips: verde donde sale, ámbar con cuántas faltan y, al pasar el mouse, cuáles y por qué", () => {
+    const chips = chipsDeLook(look, leerPorTienda(dePrueba)["look-1"]);
+    expect(chips.map((c) => [c.texto, c.tono, c.completo])).toEqual([["AQP · falta 1", "ambar", false], ["TRU", "verde", true]]);
+    expect(chips[0].detalle).toBe("No sale en AQP. Falta: Cartera Manuela (hay stock, pero de una talla que la web no ofrece).");
+    expect(chips[1].detalle).toBe("El look sale en TRU: todas sus prendas están ahí.");
+  });
+
+  it("una prenda que el look ya no tiene se dice sin nombre, no se cae", () => {
+    const chips = chipsDeLook({ piezas: [] } as unknown as Pick<Look, "piezas">, leerPorTienda(dePrueba)["look-1"]);
+    expect(chips[0].detalle).toContain("Una prenda");
   });
 });

@@ -13,6 +13,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { LookHoja } from "@/components/vitrina/LookHoja";
 import { LookMostrarHoja } from "@/components/vitrina/LookMostrarHoja";
 import {
+  chipsDeLook,
   cifrasLooks,
   estadoDeLook,
   filtrarLooks,
@@ -21,6 +22,8 @@ import {
   type FiltroLooks,
   type LecturaLooks,
   type Look,
+  type LookEnTienda,
+  type LooksPorTienda,
 } from "@/lib/vitrina-looks-reglas";
 
 /**
@@ -29,7 +32,7 @@ import {
  * una fila lo muestra u oculta. Un look encendido con una prenda que dejó de verse en la web no sale en la tienda: la fila dice cuál.
  * Toda escritura pasa por una hoja con el combo «Responsable» (ADR-0162).
  */
-export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
+export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaLooks; porTienda?: LooksPorTienda | null }) {
   const router = useRouter();
   const [looks, setLooks] = useState(lectura.looks);
   // Lo que trae el servidor al refrescar manda (sin un efecto: se ajusta al dibujar, como pide React).
@@ -119,7 +122,7 @@ export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
           // Cada look como lo arma el cliente (ADR-0430): sus prendas lado a lado, en su orden de «Arma tu look».
           <ul className="tw-looks" data-guia="looks.lista" aria-label="Los looks, en el orden en que salen en la tienda">
             {visibles.map((l, i) => (
-              <CartaLook key={l.id} look={l} i={i} onAbrir={() => setAbierto(l.id)} onInterruptor={() => setInterruptor({ id: l.id, publicado: !l.publicado })} />
+              <CartaLook key={l.id} look={l} i={i} porTienda={porTienda?.[l.id] ?? null} onAbrir={() => setAbierto(l.id)} onInterruptor={() => setInterruptor({ id: l.id, publicado: !l.publicado })} />
             ))}
           </ul>
         )}
@@ -161,9 +164,23 @@ export function LooksPantalla({ lectura }: { lectura: LecturaLooks }) {
 
 /** Un look como lo arma el cliente (ADR-0430): su lugar, sus 2 a 4 prendas lado a lado (la que ya no se ve en la web, atenuada), el
  *  nombre que abre su hoja, cuántas y cuánto, por qué no sale si no sale, y el interruptor. Entra en cascada al llegar (`.tw-carta`). */
-function CartaLook({ look: l, i, onAbrir, onInterruptor }: { look: Look; i: number; onAbrir: () => void; onInterruptor: () => void }) {
+function CartaLook({
+  look: l,
+  i,
+  porTienda,
+  onAbrir,
+  onInterruptor,
+}: {
+  look: Look;
+  i: number;
+  /** En qué tiendas sale (`null`: la base no lo dijo, la carta se ve sin chips). */
+  porTienda: LookEnTienda[] | null;
+  onAbrir: () => void;
+  onInterruptor: () => void;
+}) {
   const estado = estadoDeLook(l);
   const motivo = porQueNoSeVe(l);
+  const chips = porTienda && porTienda.length > 0 ? chipsDeLook(l, porTienda) : [];
   return (
     <li className="tw-carta" style={{ "--i": i } as CSSProperties} data-oculta={l.publicado ? undefined : ""}>
       <button type="button" onClick={onAbrir} className="tw-look-collage" aria-label={`Abrir el look ${l.nombre}`} tabIndex={-1}>
@@ -184,6 +201,16 @@ function CartaLook({ look: l, i, onAbrir, onInterruptor }: { look: Look; i: numb
           {l.nombre}
         </button>
         <span className="text-[12px] leading-snug text-taupe">{`${resumenLook(l)} · ${l.piezas.map((p) => p.nombre).join(", ")}`}</span>
+        {chips.length > 0 && (
+          // En qué tiendas sale el look: la web lo muestra solo donde TODAS sus prendas están a la venta (ADR-0468). Verde = sale; ámbar = cuántas faltan.
+          <span className="flex flex-wrap items-center gap-1.5" data-guia="looks.tiendas" role="group" aria-label="En qué tiendas sale este look">
+            {chips.map((c) => (
+              <Chip key={c.sede} tono={c.tono} title={c.detalle}>
+                {c.texto}
+              </Chip>
+            ))}
+          </span>
+        )}
         {estado === "no_se_ve" && motivo && (
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ambar-profundo">
             <Chip tono="ambar">No se ve en la web</Chip>

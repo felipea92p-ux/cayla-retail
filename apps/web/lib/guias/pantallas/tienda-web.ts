@@ -612,6 +612,13 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       texto: "Salen en la tienda en este orden: el número es su lugar. Cada uno con sus prendas y lo que cuesta todo con «Todas» (el precio más alto entre las tiendas). Si uno encendido no se ve, la fila dice qué prenda falta.",
     },
     {
+      id: "tiendas",
+      ancla: "looks.tiendas",
+      opcional: true,
+      titulo: "En qué tiendas sale",
+      texto: "La tienda online muestra un look solo donde TODAS sus prendas están a la venta. Verde: sale en esa tienda. Ámbar: cuántas prendas le faltan; pasa el mouse para ver cuáles y por qué.",
+    },
+    {
       id: "interruptor",
       ancla: "looks.interruptor",
       opcional: true,

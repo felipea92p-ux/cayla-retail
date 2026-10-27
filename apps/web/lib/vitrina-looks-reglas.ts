@@ -161,6 +161,90 @@ export function leerLooks(v: unknown): LecturaLooks {
   };
 }
 
+/* ---------------- En qué tiendas sale cada look (`fn_vitrina_looks_por_tienda`, 20261027204000) ---------------- */
+
+// La web muestra un look solo si TODAS sus prendas, en su color, están a la venta y libres en la MISMA tienda (ADR-0468). Esto lee lo que la base
+// dice de cada look en cada tienda de la web, con la misma regla que la tienda, para que el ERP no diga «se ve» donde la web dice que no.
+
+/** Por qué una prenda no cuenta en una tienda: no está en su catálogo, no hay stock, o hay una talla libre pero no es de las que la web ofrece. */
+export type MotivoFalta = "no_se_ve" | "sin_stock" | "no_ofrecida";
+export type PiezaEnTienda = { productoId: string; color: string; hay: boolean; motivo: MotivoFalta | null };
+/** Un look en una tienda: `completo` si todas sus prendas cuentan ahí (y entonces sale en la tienda online de esa tienda). */
+export type LookEnTienda = { sede: string; tienda: string; completo: boolean; faltan: number; piezas: PiezaEnTienda[] };
+/** Los looks por tienda, por id de look. Un objeto plano (pasa del servidor a la pantalla). */
+export type LooksPorTienda = Record<string, LookEnTienda[]>;
+
+const MOTIVOS: readonly MotivoFalta[] = ["no_se_ve", "sin_stock", "no_ofrecida"];
+
+function piezaEnTiendaDeJson(v: unknown): PiezaEnTienda | null {
+  if (!esObjeto(v)) return null;
+  const productoId = texto(v.producto_id);
+  const color = texto(v.color);
+  if (!productoId || !color) return null;
+  const hay = v.hay === true;
+  const motivo = MOTIVOS.find((m) => m === v.motivo) ?? null;
+  // Sin motivo no hay falta, y una falta sin motivo conocido se dice como «sin stock» (lo más común), nunca como si hubiera.
+  return { productoId, color, hay, motivo: hay ? null : (motivo ?? "sin_stock") };
+}
+
+/** Lo que devuelve `fn_vitrina_looks_por_tienda()`. Un dato raro deja ese look (o todo) sin tiendas, nunca la pantalla caída. */
+export function leerPorTienda(v: unknown): LooksPorTienda {
+  const salida: LooksPorTienda = {};
+  if (!esObjeto(v)) return salida;
+  for (const l of lista(v.looks)) {
+    if (!esObjeto(l)) continue;
+    const id = texto(l.id);
+    if (!id) continue;
+    const tiendas = lista(l.por_tienda).flatMap((t) => {
+      if (!esObjeto(t)) return [];
+      const sede = texto(t.sede);
+      const tienda = texto(t.tienda);
+      if (!sede || !tienda) return [];
+      const piezas = lista(t.piezas).flatMap((p) => {
+        const leida = piezaEnTiendaDeJson(p);
+        return leida ? [leida] : [];
+      });
+      // Lo que cuenta es lo de las prendas: «completo» y «faltan» se vuelven a sacar de ellas, así nunca se contradicen.
+      const faltan = piezas.filter((p) => !p.hay).length;
+      return [{ sede, tienda, completo: piezas.length > 0 && faltan === 0, faltan, piezas }];
+    });
+    salida[id] = tiendas;
+  }
+  return salida;
+}
+
+/** «Tienda AQP» → «AQP», «Tienda Trujillo» → «Trujillo»: lo corto que cabe en un chip. */
+export const nombreCortoDeTienda = (nombre: string): string => nombre.replace(/^\s*tienda\s+/i, "").trim() || nombre;
+
+/** Lo que dice cada motivo, en palabras de tienda. */
+export const TEXTO_DEL_MOTIVO: Record<MotivoFalta, string> = {
+  no_se_ve: "no está en el catálogo de esa tienda",
+  sin_stock: "no hay stock",
+  no_ofrecida: "hay stock, pero de una talla que la web no ofrece",
+};
+
+export type ChipDeTienda = { sede: string; texto: string; tono: "verde" | "ambar"; completo: boolean; detalle: string };
+
+/**
+ * Los chips de un look, uno por tienda de la web: verde si el look sale completo ahí; ámbar con cuántas prendas faltan. `detalle` (el texto que
+ * sale al pasar el mouse) dice cuáles, por su nombre, y por qué.
+ */
+export function chipsDeLook(l: Pick<Look, "piezas">, tiendas: readonly LookEnTienda[]): ChipDeTienda[] {
+  const nombreDe = (p: PiezaEnTienda) => l.piezas.find((x) => x.productoId === p.productoId && x.color.codigo === p.color)?.nombre ?? "Una prenda";
+  return tiendas.map((t) => {
+    const corto = nombreCortoDeTienda(t.tienda);
+    if (t.completo) return { sede: t.sede, texto: corto, tono: "verde", completo: true, detalle: `El look sale en ${corto}: todas sus prendas están ahí.` };
+    const faltantes = t.piezas.filter((p) => !p.hay).map((p) => `${nombreDe(p)} (${TEXTO_DEL_MOTIVO[p.motivo ?? "sin_stock"]})`);
+    return {
+      sede: t.sede,
+      texto: `${corto} · falta ${t.faltan === 1 ? "1" : t.faltan}`,
+      tono: "ambar",
+      completo: false,
+      detalle: `No sale en ${corto}. Falta: ${listaDeNombres(faltantes)}.`,
+    };
+  });
+}
+
 /* ---------------- Lo que dice cada fila ---------------- */
 
 /** «S/ 304.70»: con un espacio que no se parte, para que «S/» no quede sola al final de un renglón (ADR-0413). */
