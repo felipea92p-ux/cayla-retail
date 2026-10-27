@@ -1666,6 +1666,10 @@ export const PRUEBAS = [
   // siempre; el respaldo no da poderes de líder; «volver» es vaciar la columna. La activación solo toca «Tienda LIM». ROLLBACK siempre.
   "pruebas:terminal-sin-responsable",
 
+  // ADR-0533: una terminal ya no llena el registro de errores al abrir una pantalla. `fn_mi_persona_id()` y `fn_mi_pantalla_principal()` devuelven NULL
+  // sin rechazar; una persona recibe lo mismo que antes; `fn_actor_persona_id` (el candado de permisos) sigue rechazando a la terminal. ROLLBACK siempre.
+  "pruebas:terminal-lecturas-sin-ruido",
+
   // ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
   // comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.
   "pruebas:quien-pendientes",
