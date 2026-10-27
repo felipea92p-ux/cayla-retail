@@ -160,10 +160,27 @@ export function EscenarioDelDesfile({ piezas, modo, ceja, titulo, boton, enEsper
           <button type="button" className="t-pausa t-cap t-entra" style={{ "--s": 2 } as React.CSSProperties} aria-pressed={pausado} onClick={alternar}>
             {pausado ? "Seguir el desfile" : "Pausar el desfile"}
           </button>
+        ) : enEspera ? (
+          // El esqueleto guarda el lugar de la pausa (invisible): la portada de verdad es más alta que un escenario sin ella, y al cambiar del esqueleto a la
+          // página el botón «Ver lo nuevo» saltaba hacia abajo (y todo lo de abajo con él) justo cuando la clienta iba a tocarlo.
+          <span className="t-pausa t-cap" aria-hidden="true" style={{ visibility: "hidden" }}>
+            Pausar el desfile
+          </span>
         ) : (
           <span aria-hidden="true" />
         )}
         <div className="t-leyenda t-entra" style={{ "--s": 3 } as React.CSSProperties}>
+          {enEspera && (
+            // Lo mismo con la leyenda: su precio y su nombre ocupan su renglón aunque aún no haya prenda.
+            <>
+              <span className="t-cap t-leyenda-precio" aria-hidden="true" style={{ visibility: "hidden" }}>
+                Salida 01 · S/ 0.00
+              </span>
+              <span className="t-leyenda-nombre" aria-hidden="true" style={{ visibility: "hidden" }}>
+                Prenda
+              </span>
+            </>
+          )}
           {en && (
             <>
               <span className="t-cap t-leyenda-precio">
