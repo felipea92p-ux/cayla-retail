@@ -35,14 +35,26 @@ function psql(sql) {
     { input: sql, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] },
   ).trim();
 }
-// Las sedes y la marca de CAYLA se resuelven una vez, como postgres: la sesión de la tienda no lee `empresa_sedes` ni `empresas`.
-const LIMA = `'${psql(`select ubicacion_id from retail.empresa_sedes where empresa_id = 'c1a07e00-0000-4000-8000-000000000002' limit 1;`)}'`;
-const TRUJILLO = `'${psql(`select id from retail.ubicaciones where nombre in ('Tienda TRU', 'Tienda Trujillo') limit 1;`)}'`;
-// Con las migraciones ya aplicadas (local y CI). Si sale vacío, el primer caso lo dice.
-const MARCA_CAYLA = `'${psql(`select coalesce(marca_id::text, '') from retail.empresas where clave = 'cayla';`) || "00000000-0000-0000-0000-000000000000"}'::uuid`;
+// Las sedes se buscan por su nombre («Tienda LIM» en producción, «Tienda Lima» en el seed). La base limpia del CI corre las migraciones
+// ANTES de que el seed cree las sedes, así que allí `empresa_sedes` no tiene a CLAURE en Lima ni la marca CAYLA está ligada: cada
+// transacción arma esa escena (como en producción) y lee la marca de CAYLA en una variable de psql, como postgres (la sesión de la
+// tienda no lee `empresas`). Mismo patrón que `empresa_solo_en_sus_sedes.mjs`.
+const sede = (nombres) => {
+  const id = psql(`select id from retail.ubicaciones where nombre in (${nombres}) order by nombre limit 1;`);
+  if (!id) throw new Error(`La base local no tiene la sede ${nombres}.`);
+  return `'${id}'`;
+};
+const LIMA = sede("'Tienda LIM', 'Tienda Lima'");
+const TRUJILLO = sede("'Tienda TRU', 'Tienda Trujillo'");
+const MARCA_CAYLA = ":'marca_cayla'::uuid";
+const ESCENA = `insert into retail.empresa_sedes (empresa_id, ubicacion_id) select ${CAYLA}, u.id from retail.ubicaciones u on conflict do nothing;
+insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;
+update retail.empresas set marca_id = (select m.id from retail.marcas m where upper(btrim(m.nombre)) = 'CAYLA' order by m.created_at limit 1)
+ where clave = 'cayla' and marca_id is null;
+select coalesce(marca_id::text, '00000000-0000-0000-0000-000000000000') as marca_cayla from retail.empresas where clave = 'cayla' \\gset`;
 // `antes`: lo que se hace como postgres antes de entrar con la sesión (pasar una prenda a CLAURE).
 const dentro = (consulta, { sesion = true, antes = "" } = {}) =>
-  psql(`begin;\n\\o /dev/null\n${MIGRACION}\n\\o\n${antes}\n${sesion ? SESION : ""}\n${consulta}\nrollback;`);
+  psql(`begin;\n\\o /dev/null\n${MIGRACION}\n${ESCENA}\n\\o\n${antes}\n${sesion ? SESION : ""}\n${consulta}\nrollback;`);
 const igual = (obtenido, esperado) => (obtenido === String(esperado) ? null : `se esperaba «${esperado}» y salió «${obtenido}»`);
 
 let fallas = 0;
