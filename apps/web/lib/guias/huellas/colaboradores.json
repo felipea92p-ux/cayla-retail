@@ -92,15 +92,15 @@
     "components/colaboradores/FichaColaborador.tsx": [
       "button «{texto}»",
       "ComboResponsable «{responsable}»",
-      "button «{r.nombre}»",
+      "button «Sí, quitar»",
+      "button «Volver»",
+      "button «Quitar acceso»",
+      "button «→() => setRolElegido(r.id)»",
       "button «{u.nombre}»",
       "button «{responsable.motivo ?? guia.frase ?? undefined}»",
       "button «{u.nombre}» #2",
       "input «{`motivo-${persona.id}»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2",
-      "button «Sí, quitar acceso»",
-      "button «Volver»",
-      "button «Quitar acceso»"
+      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
     "components/colaboradores/FichaTerminal.tsx": [
       "button «{texto}»"

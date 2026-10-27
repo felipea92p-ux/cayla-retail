@@ -7,7 +7,6 @@ import {
   armarEquipo,
   atajosEquipo,
   cuandoEntro,
-  diferenciaDeModulos,
   fraseFicha,
   presentesDeTurno,
   type EntradaEquipo,
@@ -190,19 +189,16 @@ describe("fraseFicha", () => {
   const ahora = "2026-10-05T20:00:00Z";
   const texto = (p: PersonaEquipo) => fraseFicha(p, ahora).map((x) => x.texto).join("");
   const ms = armarEquipo(entrada());
-  it("dice lo importante según el estado", () => {
-    expect(texto(persona(ms, "p1"))).toBe("Está de turno hoy en Tienda TRU.");
-    expect(texto(persona(ms, "p2"))).toBe("Todavía no ha entrado al sistema.");
-    expect(texto({ ...persona(ms, "p2"), ultimoAcceso: "2026-10-04T23:05:00Z" })).toBe("Entró por última vez ayer 18:05.");
-    expect(texto(persona(ms, "s1"))).toBe("Acceso suspendido el 03/10/2026 por Carmen Díaz. Motivo: Licencia. Conserva su sede, su rol y su historial.");
-    expect(texto(persona(ms, "b1"))).toMatch(/^Está de baja en Dynamic: no puede entrar/);
+  it("dice lo importante según el estado, en palabras clave", () => {
+    expect(texto({ ...persona(ms, "p1"), ultimoAcceso: "2026-10-05T14:12:00Z" })).toBe("Entró hoy 09:12");
+    expect(texto(persona(ms, "p2"))).toBe("Aún no entra");
+    expect(texto({ ...persona(ms, "p2"), ultimoAcceso: "2026-10-04T23:05:00Z" })).toBe("Entró ayer 18:05");
+    expect(texto(persona(ms, "s1"))).toBe("Suspendido · Licencia · desde el 03/10/2026");
+    expect(texto(persona(ms, "b1"))).toBe("Baja en Dynamic · no puede entrar");
   });
 });
 
-describe("diferenciaDeModulos y presentesDeTurno", () => {
-  it("resta en los dos sentidos", () => {
-    expect(diferenciaDeModulos(["inicio", "vender", "existencias"], ["inicio", "vender", "caja"])).toEqual({ suma: ["caja"], quita: ["existencias"] });
-  });
+describe("presentesDeTurno", () => {
   it("solo cuenta presentes o en pausa de su propia sede", () => {
     expect(
       presentesDeTurno([

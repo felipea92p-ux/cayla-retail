@@ -681,14 +681,14 @@ export const GUIA_COLABORADORES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "colaboradores.fila-otra" }],
       titulo: "La ficha de una persona",
-      texto: "Su sede, su rol y su correo. Te abrimos la de una persona del equipo (la tuya no trae acciones: nadie se cambia el rol a sí mismo).",
+      texto: "Su sede, su rol y su estado. Te abrimos la de una persona del equipo (la tuya no trae acciones: nadie se cambia el rol a sí mismo).",
     },
     {
       id: "ficha-frase",
       ancla: "colaboradores.ficha-frase",
       opcional: true,
-      titulo: "En una frase",
-      texto: "Qué hace en el sistema y desde cuándo, en palabras simples.",
+      titulo: "Lo importante, en una línea",
+      texto: "Cuándo entró por última vez (o si está suspendida y por qué) y su correo.",
     },
     {
       id: "ficha-acciones",
@@ -701,8 +701,8 @@ export const GUIA_COLABORADORES: Guia = {
       id: "ficha-menu",
       ancla: "colaboradores.ficha-menu",
       opcional: true,
-      titulo: "Así ve el sistema",
-      texto: "El menú que ve esa persona con su rol de hoy, para entender qué puede hacer. Si eliges otro rol en «Cambiar rol», aquí ves cómo le quedaría antes de confirmar.",
+      titulo: "Lo que ve",
+      texto: "Los módulos que ve esa persona con su rol de hoy, por grupo. Al elegir otro rol en «Rol», esta lista se oculta: lo que importa es a qué rol pasa.",
     },
     {
       id: "ficha-ver-rol",
@@ -716,7 +716,7 @@ export const GUIA_COLABORADORES: Guia = {
       ancla: "colaboradores.ficha-quitar",
       opcional: true,
       titulo: "Quitar el acceso",
-      texto: "Para quien ya no trabaja aquí: deja de entrar al sistema y su historial se guarda. Pregunta una vez antes. En la demo no lo tocamos.",
+      texto: "Abajo: «Quitar acceso» para quien ya no trabaja aquí (deja de entrar, su historial se guarda; pregunta una vez) y, a la derecha, quién firma el cambio. En la demo no lo tocamos.",
     },
     {
       id: "roles",

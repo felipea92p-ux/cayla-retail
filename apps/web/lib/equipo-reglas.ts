@@ -258,25 +258,17 @@ export function cuandoEntro(iso: string | null, ahoraIso: string): string {
   return fechaLima(iso);
 }
 
-/** La frase de arriba de la ficha: lo importante de la persona en una línea. `fuerte` va en negrita. */
+/** La línea de arriba de la ficha, en palabras clave («Entró hoy 09:12», «Suspendido · Licencia»). `fuerte` va en negrita. */
 export function fraseFicha(p: PersonaEquipo, ahoraIso: string): { texto: string; fuerte?: boolean }[] {
-  if (p.estado === "baja_dynamic")
-    return [{ texto: "Está de baja en Dynamic", fuerte: true }, { texto: ": no puede entrar. Si su cuenta vuelve a estar activa allá, recupera el acceso." }];
+  if (p.estado === "baja_dynamic") return [{ texto: "Baja en Dynamic", fuerte: true }, { texto: " · no puede entrar" }];
   if (p.estado === "suspendida") {
-    const partes = [{ texto: "Acceso suspendido", fuerte: true }, { texto: p.suspendidaEn ? ` el ${fechaLima(p.suspendidaEn)}` : "" }];
-    if (p.suspendidaPor) partes.push({ texto: ` por ${p.suspendidaPor}` });
-    partes.push({ texto: p.motivo ? `. Motivo: ${p.motivo}.` : "." });
-    partes.push({ texto: " Conserva su sede, su rol y su historial." });
+    const partes: { texto: string; fuerte?: boolean }[] = [{ texto: "Suspendido", fuerte: true }];
+    if (p.motivo) partes.push({ texto: ` · ${p.motivo}` });
+    if (p.suspendidaEn) partes.push({ texto: ` · desde el ${fechaLima(p.suspendidaEn)}` });
     return partes;
   }
-  if (p.deTurno) return [{ texto: "Está de turno hoy", fuerte: true }, { texto: p.ubicacionNombre ? ` en ${p.ubicacionNombre}.` : "." }];
-  if (!p.ultimoAcceso) return [{ texto: "Todavía no ha entrado al sistema", fuerte: true }, { texto: "." }];
-  return [{ texto: "Entró por última vez " }, { texto: cuandoEntro(p.ultimoAcceso, ahoraIso), fuerte: true }, { texto: "." }];
-}
-
-/** Lo que gana y pierde una cuenta al pasar de un rol a otro (para «+ Caja · − Existencias» antes de confirmar). */
-export function diferenciaDeModulos(antes: readonly ClaveModulo[], despues: readonly ClaveModulo[]): { suma: ClaveModulo[]; quita: ClaveModulo[] } {
-  return { suma: despues.filter((m) => !antes.includes(m)), quita: antes.filter((m) => !despues.includes(m)) };
+  if (!p.ultimoAcceso) return [{ texto: "Aún no entra", fuerte: true }];
+  return [{ texto: "Entró " }, { texto: cuandoEntro(p.ultimoAcceso, ahoraIso), fuerte: true }];
 }
 
 /** Las personas que la RPC de turno devuelve como presentes hoy en su propia sede (`fn_asesoras_de_turno`). */
