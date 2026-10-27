@@ -422,6 +422,8 @@ export function RecibirContando({
           responsable={responsable}
           prendas={prendas}
           soloSede={soloSede}
+          sinAviso={sinAviso}
+          veDinero={veDinero}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {
