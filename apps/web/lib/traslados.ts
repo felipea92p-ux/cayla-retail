@@ -8,6 +8,7 @@ import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
 import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
 import type { FirmaVigente } from "@/lib/firma-heredada";
 import { esEstadoSobrante, type SobranteTraslado } from "@/lib/traslados-sobrantes-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -354,6 +355,7 @@ export async function getWhatsappDeSedes(): Promise<Map<string, string>> {
     }
     return new Map(data.flatMap((u) => (u.whatsapp_numero ? [[u.id, u.whatsapp_numero] as const] : [])));
   } catch (e) {
+    unstable_rethrow(e);
     console.error("WhatsApp de las sedes:", e);
     return new Map();
   }
@@ -415,6 +417,7 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
     const deMas = puedeCerrarDiferencia ? [...(await leerSobrantesPorRevisar(supabase, ubicacionId)).values()].filter((x) => x.recibe).length : 0;
     return porRecibir + deMas;
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Contador de traslados:", e);
     return null;
   }
