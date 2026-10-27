@@ -8,6 +8,7 @@ import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
+import { SCRIPT_DEL_TEMA } from "@/lib/tema";
 import "./globals.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
 // sale en la portada al salir de la cuenta.
@@ -45,8 +46,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${sans.variable} ${didone.variable}`}>
+    // `suppressHydrationWarning`: el script del tema marca `<html>` antes de que React lo hidrate, y esa marca no viene del servidor.
+    <html lang="es" className={`${sans.variable} ${didone.variable}`} suppressHydrationWarning>
       <head>
+        {/* El tema elegido (claro, oscuro o el del aparato) se aplica antes de pintar: sin esto, quien eligió oscuro vería un destello blanco (lib/tema.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_TEMA }} />
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
       </head>
