@@ -22,8 +22,11 @@ export function useRayaDelNav(nav: RefObject<HTMLElement | null>, activa: string
     }
     delete raya.dataset.oculta;
     if (!animado) raya.style.transition = "none";
-    raya.style.setProperty("--x", `${marcada.offsetLeft}px`);
-    raya.style.setProperty("--w", `${marcada.offsetWidth}px`);
+    // La raya se ancla a la fila de la cabecera (no al nav, que no está posicionado para no encoger el menú desplegable: ver `cabecera.css`), así que se mide desde ahí.
+    const origen = (raya.offsetParent ?? el).getBoundingClientRect().left;
+    const pestana = marcada.getBoundingClientRect();
+    raya.style.setProperty("--x", `${pestana.left - origen}px`);
+    raya.style.setProperty("--w", `${pestana.width}px`);
     if (!animado) {
       // Un cuadro después vuelve la transición: la próxima vez sí corre.
       requestAnimationFrame(() => {
