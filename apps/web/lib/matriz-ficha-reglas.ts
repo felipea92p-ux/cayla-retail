@@ -3,22 +3,16 @@
 //
 // CONTRATO
 //   PROMETE: armar las filas (colores activos, en el orden de la ficha) y columnas (tallas activas, en orden de curva) de la
-//            matriz; el número de cada celda (el stock de HOY en el lugar que se ajusta, más lo que la persona ya tocó y todavía
-//            no viaja); los totales por color, por talla y general; y el lote que se manda a `ajustar_inventario`.
+//            matriz; los totales por color, por talla y general; y el lote que se manda a `ajustar_inventario` (lo usa la planilla de Existencias).
 //   ASUME:   el stock llega por `VarianteAjuste` (la misma lectura que `AjustarInventarioModal`), acotado a la sede activa.
-//   NO HACE: no escribe stock. El stepper es el ajuste de siempre (ADR-0240, `ajustar_inventario`): lo tocado se junta y viaja
-//            UNA vez, al confirmar «Revisar y guardar» (ADR-0313, act. 2026-10-02 noche), con su motivo y su responsable; `stock`
-//            sigue siendo un snapshot de `movimientos` (principio 4).
+//   NO HACE: no escribe stock. Editar producto ya no ajusta stock (ADR-0494, actividad 3): el ajuste vive en Existencias, y `stock` sigue
+//            siendo un snapshot de `movimientos` (principio 4).
 
 import { compararTallas } from "./tallas";
 import {
-  NOTA_MINIMA_ENCONTRE,
-  apartadoEn,
   lineasDeAjuste,
   modoDeAjuste,
-  notaSuficiente,
   stockEn,
-  textoProblemaMotivo,
   type LineaAjuste,
   type LugarAjuste,
   type MotivoAjuste,
@@ -54,59 +48,8 @@ export function armarMatriz(filas: readonly FilaFicha[], n: NombresFicha): Matri
 /** Lo que la persona tocó y todavía no viajó (o está viajando), por variante guardada: +2, −1. */
 export type Pendientes = Readonly<Record<string, number>>;
 
-/** El número de una celda guardada: el stock de hoy en el lugar, más lo tocado. Sin lectura de stock (todavía cargando), 0. */
-export function cantidadDeCelda(v: VarianteAjuste | undefined, lugar: LugarAjuste, pendiente: number): number {
-  return (v ? stockEn(v, lugar) : 0) + pendiente;
-}
-
-/** El piso de una celda: no baja de cero ni de lo apartado para clientas (los dos candados de `fn_aplicar_movimiento`). Con
- *  «Encontré prendas», ni de lo que hay hoy: ese motivo solo suma (ADR-0328; la base: `encontre_prendas_resta`). */
-export function minimoDeCelda(v: VarianteAjuste | undefined, lugar: LugarAjuste, motivo?: MotivoAjuste): number {
-  if (!v) return 0;
-  return motivo === "reposicion" ? stockEn(v, lugar) : apartadoEn(v, lugar);
-}
-
-/** Lo tocado tras un «−» o un «+»; `null` si ese toque dejaría la celda debajo de su piso. */
-export function pasoDeCelda(actual: number, pendiente: number, paso: 1 | -1, minimo: number): number | null {
-  const siguiente = pendiente + paso;
-  if (actual + siguiente < minimo) return null;
-  return siguiente;
-}
-
-/** Lo tocado para que la celda muestre `objetivo` (el número que se escribió en ella); `null` si no es un entero de 0 en
- *  adelante o si queda debajo de su piso (lo apartado para clientas no se puede contar como que no está). */
-export function fijarCelda(actual: number, objetivo: number, minimo: number): number | null {
-  if (!Number.isInteger(objetivo) || objetivo < 0 || objetivo < minimo) return null;
-  return objetivo - actual;
-}
-
 /** Un cambio de stock de una variante guardada, como lo lee la hoja «Revisa y guarda»: de cuánto a cuánto. */
 export type CambioDeStock = { varianteId: string; color: string | null; talla: string | null; antes: number; despues: number };
-
-/** Lo tocado en las variantes guardadas, en el orden de la lectura (por talla y color). Lo que volvió a su número no cuenta. */
-export function cambiosDeStock(variantes: readonly VarianteAjuste[], pendientes: Pendientes, lugar: LugarAjuste): CambioDeStock[] {
-  return variantes.flatMap((v) => {
-    const d = pendientes[v.varianteId];
-    if (!d) return [];
-    const antes = stockEn(v, lugar);
-    return [{ varianteId: v.varianteId, color: v.color, talla: v.talla, antes, despues: antes + d }];
-  });
-}
-
-/** El grupo «Stock» de la hoja: una línea por talla («S · Blanco  4 → 6») y una nota con el motivo y el lugar. */
-export function grupoDeStockEnHoja(
-  cambios: readonly CambioDeStock[],
-  motivo: string,
-  donde: string
-): { titulo: string; lineas: { texto: string; antes: string; despues: string }[]; nota: string } | null {
-  if (cambios.length === 0) return null;
-  const sube = cambios.filter((c) => c.despues > c.antes).reduce((s, c) => s + (c.despues - c.antes), 0);
-  return {
-    titulo: "Stock",
-    lineas: cambios.map((c) => ({ texto: [c.talla ?? "Única", c.color].filter(Boolean).join(" · "), antes: String(c.antes), despues: String(c.despues) })),
-    nota: `Se registra como «${motivo}» ${donde}.${sube > 0 ? ` Entran ${sube} ${sube === 1 ? "unidad" : "unidades"}: al guardar te propone imprimir sus etiquetas.` : ""}`,
-  };
-}
 
 /** Lo que subió al guardar, por variante (cuántas unidades nuevas, para imprimir justo esas etiquetas). Se suma si se repite. */
 export type Subida = { varianteId: string; color: string | null; talla: string | null; unidades: number };
@@ -151,55 +94,6 @@ export function lineasDelLote(variantes: readonly VarianteAjuste[], pendientes: 
     cantidades[v.varianteId] = String(modo === "contado" ? stockEn(v, lugar) + d : d);
   }
   return lineasDeAjuste(variantes, cantidades, lugar, modo);
-}
-
-// «Encontré prendas» y la carga inicial cerrada en la ficha (ADR-0328, actividad 4; revisión adversarial). La ficha ofrece
-// «Encontré prendas» como cualquier motivo de la visita, con su nota (dónde estaban), y con la carga de la sede CERRADA es la
-// única forma de sumar una talla que nunca estuvo en la tienda —también una variante recién creada—: todo viaja como ajuste
-// con ese motivo, igual que en Ajustar. Lo que la base va a rechazar se dice ANTES de «Revisar y guardar», con el campo a enfocar.
-
-/** Por qué el «+» de una celda no suma (o `null`): una talla sin historia en la tienda, con la carga cerrada y otro motivo. */
-export function bloqueoDeSubida(o: { sinHistoria: boolean; cargaAbierta: boolean; motivo: MotivoAjuste; enPisoCerrado: boolean }): string | null {
-  return textoProblemaMotivo({ delta: 1, variante: { sinHistoria: o.sinHistoria } }, o.motivo, o.cargaAbierta, o.enPisoCerrado);
-}
-
-/** Lo que frena guardar el stock de la visita (y el campo que lo arregla), o `null`. Mismas reglas que la base y el mismo orden
- *  que en Ajustar: primero el motivo de cada talla, después la nota. Una variante NUEVA con la carga abierta entra como stock
- *  inicial (sin motivo ni nota); con la carga cerrada, como ajuste con el motivo de la visita. */
-export function problemaDelStockDeLaVisita(o: {
-  lineas: readonly { delta: number; variante: Pick<VarianteAjuste, "sinHistoria"> }[];
-  /** Cuántas variantes nuevas (sin guardar) llevan unidades. */
-  nuevasConStock: number;
-  motivo: MotivoAjuste;
-  nota: string;
-  cargaAbierta: boolean;
-  enPisoCerrado: boolean;
-}): { texto: string; campo: "motivo" | "nota" } | null {
-  for (const l of o.lineas) {
-    const texto = textoProblemaMotivo(l, o.motivo, o.cargaAbierta, o.enPisoCerrado);
-    if (texto) return { texto, campo: "motivo" };
-  }
-  const nuevasComoAjuste = !o.cargaAbierta && o.nuevasConStock > 0;
-  if (nuevasComoAjuste) {
-    const texto = bloqueoDeSubida({ sinHistoria: true, cargaAbierta: false, motivo: o.motivo, enPisoCerrado: o.enPisoCerrado });
-    if (texto) return { texto, campo: "motivo" };
-  }
-  // La nota la pide solo lo que viaja como AJUSTE (como `repartirLineasAjuste`): con la carga abierta, una talla sin historia
-  // entra como stock inicial, sin motivo ni nota.
-  const hayAjustes = o.lineas.some((l) => !o.cargaAbierta || !l.variante.sinHistoria) || nuevasComoAjuste;
-  if (hayAjustes && !notaSuficiente(o.motivo, o.nota)) {
-    return { texto: `Con «Encontré prendas» cuenta dónde estaban o por qué aparecieron (${NOTA_MINIMA_ENCONTRE} letras o más).`, campo: "nota" };
-  }
-  return null;
-}
-
-/** La línea de la carga inicial bajo el motivo de la visita: el aviso de la sede y, cerrada y con otro motivo, qué hacer con
- *  las tallas que nunca estuvieron en la tienda (sus celdas quedan quietas: así se sabe por qué). */
-export function avisoCargaDeLaFicha(aviso: string | null, cargaAbierta: boolean, motivo: MotivoAjuste, enPisoCerrado: boolean): string | null {
-  if (!aviso || cargaAbierta || motivo === "reposicion") return aviso;
-  return enPisoCerrado
-    ? `${aviso} Las tallas que nunca estuvieron aquí se suman en el almacén, con «Encontré prendas».`
-    : `${aviso} Las tallas que nunca estuvieron aquí se suman eligiendo «Encontré prendas».`;
 }
 
 /** Totales de la matriz con lo que cada celda muestra: por color, por talla y general. */

@@ -26,6 +26,8 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
+import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
+import { desdeDeParams } from "@/lib/vuelta-productos";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -42,12 +44,14 @@ import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string; danados?: string; variante?: string }>;
+  searchParams: Promise<{ ubicacion?: string; danados?: string; variante?: string; ajustar?: string; de?: string; desde?: string }>;
 }) {
   const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0232).
   // `variante=<id>`: llegar desde un movimiento («Ver en Existencias», ADR-0241) abre el detalle de ESA prenda en esa talla.
-  const { ubicacion: ubicacionQuery, danados, variante } = await searchParams;
+  // `ajustar=1&de=<producto>`: llegar desde el candado de Editar producto (ADR-0494, actividad 3) abre la planilla de «Ajustar stock» en esa talla y
+  // ofrece «Volver a Editar producto» (`lib/existencias-ajustar-desde-editar.ts`).
+  const { ubicacion: ubicacionQuery, danados, variante, ajustar, de, desde } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -258,6 +262,8 @@ export default async function InventarioPage({
         danadosPendientes={danadosPendientes}
         abrirDanados={danados === "1"}
         abrirVariante={variante ?? null}
+        abrirAjustar={pideAjustar(ajustar)}
+        volverAEditar={vueltaAEditar(de, desdeDeParams(desde))}
         apartados={apartados}
         editaCatalogo={puede(persona, "editarCatalogo")}
         puedeAjustar={puede(persona, "ajustarStock")}

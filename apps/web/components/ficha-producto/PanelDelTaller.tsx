@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Lock } from "lucide-react";
 import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Boton } from "@/components/ui/campos";
@@ -23,7 +24,7 @@ import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 // para que quien ajusta precios o stock a la izquierda vea de un vistazo qué le falta sin bajar a buscarlo.
 //
 // NO es un segundo lugar para guardar (ADR-0257: guardar es solo la barra de abajo). Lo que hace aquí es lo mismo que hace la
-// izquierda, por el mismo camino: el stepper de cada talla es el ajuste de `useStockFicha` (con el motivo de la visita), y
+// izquierda, por el mismo camino: el stock de cada talla se ve con su candado (tocarlo abre «Ajustar stock» en Existencias, ADR-0494), y
 // «Cambiar foto» sube la foto con la misma revisión de siempre (`useSubirFotos`, ADR-0228) y la deja en la ficha hasta «Revisar y
 // guardar», como cualquier foto de la sección «Fotos».
 
@@ -36,7 +37,7 @@ export function PanelDelTaller({
   fotosVista,
   onFotosSubidas,
   stock,
-  onAbrirModal,
+  onAjustar,
   pendientes,
   completadaAqui,
   onIrPendiente,
@@ -55,7 +56,8 @@ export function PanelDelTaller({
   /** Fotos recién subidas desde el panel: van al color mostrado y pasan a ser su portada. */
   onFotosSubidas: (nuevas: FotoSubida[]) => void;
   stock: StockFicha;
-  onAbrirModal: (color: string | null) => void;
+  /** El candado de una talla guardada: abre «Ajustar stock» (la puerta a Existencias, ADR-0494). `etiqueta` es «Blanco · S». */
+  onAjustar: (varianteId: string, etiqueta: string) => void;
   pendientes: readonly PendienteFicha[];
   completadaAqui: boolean;
   onIrPendiente: (p: PendienteFicha, colorSinFoto: string | null) => void;
@@ -174,13 +176,10 @@ export function PanelDelTaller({
               const esperando = guardada && stock.cargando;
               const talla = n.talla(f.tallaId) || "Única";
               const nombre = `${n.color(colorMostrado)} · ${talla}`;
-              const puedeBajar = guardada ? stock.puedeAjustar && stock.puedeBajar(f.id!) : u > 0;
-              // ADR-0328: con la carga inicial cerrada, una talla que nunca estuvo aquí suma solo con «Encontré prendas».
-              const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
-              // Lo tocado y sin guardar, en ámbar como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
-              const cambiada = !esperando && (guardada ? u !== stock.numeroGuardado(f.id!) : u > 0);
-              const tituloNumero = cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined;
-              // Sin «Ajustar stock» no hay stepper, ni en una variante nueva (no se le podría cargar stock inicial).
+              // Lo puesto en una variante NUEVA y sin guardar va en ámbar, como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
+              const cambiada = !guardada && u > 0;
+              const tituloNumero = cambiada ? "Entra como stock inicial al guardar" : undefined;
+              // Sin «Ajustar stock» no hay candado ni stepper, ni en una variante nueva (no se le podría cargar stock inicial).
               const conBotones = stock.puedeAjustar;
               return (
                 <div key={f.clave} className="taller-barra-talla">
@@ -193,29 +192,35 @@ export function PanelDelTaller({
                     texto={`${u} ${u === 1 ? "unidad" : "unidades"}`}
                   />
                   {conBotones ? (
-                    // El número va dentro del paso de cantidad (ADR-0358, ronda 17): ocupa las dos últimas columnas de la fila.
-                    <PasoCantidad
-                      tamano="celda"
-                      className="col-span-2 justify-self-end"
-                      menos={{
-                        onClick: () => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1)),
-                        deshabilitado: deshabilitado || esperando || !puedeBajar,
-                        etiqueta: `Una menos de ${nombre}`,
-                      }}
-                      mas={{
-                        onClick: () => {
-                          if (!guardada) return stock.pasoNueva(f.clave, 1);
-                          if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);
-                        },
-                        deshabilitado: deshabilitado || esperando || !!bloqueo,
-                        etiqueta: bloqueo ? `Una más de ${nombre}: ${bloqueo}` : `Una más de ${nombre}`,
-                        title: bloqueo ?? undefined,
-                      }}
-                    >
-                      <span className={cambiada ? "text-ambar-profundo" : undefined} title={tituloNumero}>
-                        {esperando ? "…" : u}
-                      </span>
-                    </PasoCantidad>
+                    // El número va dentro del paso de cantidad (ADR-0358, ronda 17): ocupa las dos últimas columnas de la fila. Una talla
+                    // guardada lleva candado (se ajusta en Existencias); solo una variante nueva lleva − y + (sus unidades de partida).
+                    guardada ? (
+                      <PasoCantidad
+                        tamano="celda"
+                        sinTab
+                        className="col-span-2 cursor-pointer justify-self-end"
+                        title="Tiene candado: el stock se ajusta en Existencias"
+                        onClick={() => onAjustar(f.id!, nombre)}
+                        menos={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${nombre}` }}
+                        mas={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${nombre}` }}
+                      >
+                        <span className="inline-flex items-center justify-center gap-1">
+                          {esperando ? "…" : u}
+                          <Lock aria-hidden className="h-3 w-3 text-taupe" />
+                        </span>
+                      </PasoCantidad>
+                    ) : (
+                      <PasoCantidad
+                        tamano="celda"
+                        className="col-span-2 justify-self-end"
+                        menos={{ onClick: () => stock.pasoNueva(f.clave, -1), deshabilitado: deshabilitado || u <= 0, etiqueta: `Una menos de ${nombre}` }}
+                        mas={{ onClick: () => stock.pasoNueva(f.clave, 1), deshabilitado, etiqueta: `Una más de ${nombre}` }}
+                      >
+                        <span className={cambiada ? "text-ambar-profundo" : undefined} title={tituloNumero}>
+                          {u}
+                        </span>
+                      </PasoCantidad>
+                    )
                   ) : (
                     <>
                       <span className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`} title={tituloNumero}>

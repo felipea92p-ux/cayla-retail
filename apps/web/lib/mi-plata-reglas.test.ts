@@ -33,6 +33,7 @@ import {
   textoFaltaMandar,
   movimientosDeLaCompradora,
   historialDeLaCompradora,
+  ultimaRondaDelHistorial,
   siglaTienda,
   detalleEnvio,
 } from "./mi-plata-reglas";
@@ -575,6 +576,31 @@ describe("el historial por ronda (Felipe 2026-10-23)", () => {
       ["cierre-r5", "Te lo devolvieron"],
       ["ronda-r5", "22/10 · Sin compras ni gastos"],
     ]);
+  });
+
+  it("la última ronda se destaca con su cierre pegado y el resto queda sin ella (Felipe 2026-10-27)", () => {
+    const u = ultimaRondaDelHistorial(h)!;
+    expect(u.ronda.clave).toBe("ronda-r2");
+    // Devolvió S/ 80 y Compras todavía no lo recibe: manda la plata, no el estado de los libros.
+    expect([u.cierre?.clave, u.estado.texto, u.estado.pendiente, u.comoCerro]).toEqual(["cierre-r2", "Entrégalo en caja", true, `Devolviste en caja ${soles(80)}`]);
+    expect(u.resto.map((e) => e.clave)).toEqual(["plata-a2", "ronda-r1", "plata-a1", "ronda-sin-ronda"]);
+  });
+
+  it("sin plata que devolver, la última ronda dice cómo cerró o que Compras todavía revisa; sin rondas cerradas, nada", () => {
+    // RC-000001 se quedó con la plata y todo está en los libros.
+    const r1 = ultimaRondaDelHistorial(h.filter((e) => !["cierre-r2", "ronda-r2"].includes(e.clave)))!;
+    expect([r1.ronda.clave, r1.cierre, r1.estado, r1.comoCerro]).toEqual([
+      "ronda-r1",
+      null,
+      { texto: "Todo al día", detalle: "Compras ya pasó todo de esta ronda a los libros", pendiente: false },
+      `Te quedaste ${soles(200)} para tu próxima ronda.`,
+    ]);
+    // Algo sin pasar a los libros y ningún cierre aparte.
+    const sinCierre = ultimaRondaDelHistorial(h.filter((e) => e.clave !== "cierre-r2"))!;
+    expect([sinCierre.estado.texto, sinCierre.estado.pendiente]).toEqual(["Compras la revisa", true]);
+    // «Antes de las rondas» no es una ronda: no se destaca.
+    expect(ultimaRondaDelHistorial(h.filter((e) => e.clave === "ronda-sin-ronda"))).toBeNull();
+    expect(ultimaRondaDelHistorial([])).toBeNull();
   });
 
   it("sin la migración (sin `cerradas`), igual agrupa por ronda con el número de sus compras", () => {

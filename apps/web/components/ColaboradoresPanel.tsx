@@ -12,12 +12,13 @@ import type {
   Terminal,
 } from "@/lib/colaboradores";
 import { accionesSupabase, type AccionesColaboradores, type ResultadoAccion } from "@/lib/colaboradores-acciones";
-import { avisoTerminal, plural, vistaDe, type SeccionColaboradores, type VistaColaboradores } from "@/lib/colaboradores-reglas";
+import { avisoTerminal, vistaDe, type SeccionColaboradores, type VistaColaboradores } from "@/lib/colaboradores-reglas";
 import { armarEquipo, type FiltroEquipo, type PersonaEquipo } from "@/lib/equipo-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Pestanas } from "@/components/ui/Pestanas";
 import { History } from "lucide-react";
 import { AlternarTerminalModal } from "@/components/ColaboradoresModales";
 import { DarAccesoModal } from "@/components/colaboradores/DarAccesoModal";
@@ -45,24 +46,6 @@ import { Aviso } from "@/components/ui/Aviso";
 // trabaja ahí. `?pestana=` de antes sigue funcionando (`vistaDe`).
 // `acciones` y `alActualizar` existen para poder mostrar la pantalla con datos de ejemplo: por defecto escriben en la base
 // y recargan los datos del servidor.
-
-/** Una de las dos secciones: título y, debajo, su resumen (con lo que pide atención en ámbar). */
-function BotonSeccion({ activa, onClick, titulo, guia, children }: { activa: boolean; onClick: () => void; titulo: string; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activa}
-      data-guia={guia}
-      onClick={onClick}
-      className={`rounded-xl border px-4 py-3 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-cayla ${
-        activa ? "border-taupe bg-papel shadow-[inset_0_-2px_0_var(--color-rojo)]" : "border-tinta/10 hover:border-tinta/30 hover:bg-papel/60"
-      }`}
-    >
-      <span className="block text-[15px] font-semibold text-tinta">{titulo}</span>
-      <span className="mt-0.5 block text-[12.5px] text-tinta/65">{children}</span>
-    </button>
-  );
-}
 
 type ModalPanel =
   | { tipo: "agregar" }
@@ -232,7 +215,6 @@ export function ColaboradoresPanel({
   }
 
   const ve = (x: SeccionColaboradores) => !secciones || secciones.includes(x);
-  const terminalesActivas = terminales?.filter((t) => t.activo).length ?? 0;
   const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
   const rolesSinModulos = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "sin_modulos").length : 0;
   const nombreSede = (id: string) => ubicaciones.find((u) => u.id === id)?.nombre ?? "la nueva sede";
@@ -282,7 +264,6 @@ export function ColaboradoresPanel({
       <EncabezadoPagina
         sede="Toda CAYLA"
         titulo="Colaboradores"
-        subtitulo="Quién entra a retail, en qué sede y con qué rol."
         acciones={
           ve("cuentas") && (
             <>
@@ -309,20 +290,25 @@ export function ColaboradoresPanel({
       />
 
       {ve("cuentas") && ve("roles") && (
-        <nav aria-label="Secciones de colaboradores" className="grid gap-2.5 sm:grid-cols-2 xl:max-w-3xl" data-guia="colaboradores.secciones">
-          <BotonSeccion activa={seccion === "cuentas"} onClick={() => setSeccion("cuentas")} titulo="Equipo" guia="colaboradores.sec-equipo">
-            {plural(colaboradores.length, "persona", "personas")} · {plural(terminalesActivas, "terminal", "terminales")}
-            {pendientes.length > 0 && <strong className="font-semibold text-ambar-profundo"> · {pendientes.length} por aprobar</strong>}
-          </BotonSeccion>
-          <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos" guia="colaboradores.sec-roles">
-            {plural(rolesVigentes.length, "rol", "roles")}
-            {rolesSinModulos > 0 ? (
-              <strong className="font-semibold text-ambar-profundo"> · {rolesSinModulos === 1 ? "1 deja" : `${rolesSinModulos} dejan`} cuentas sin ningún módulo</strong>
-            ) : (
-              " · qué ve cada cuenta"
-            )}
-          </BotonSeccion>
-        </nav>
+        // Dos pestañas con su número (Felipe 2026-10-27, «palabras clave, compacto»): lo que pide atención (altas por aprobar,
+        // roles que dejan cuentas sin módulo) lo dice la franja «Esperan tu ok» y el conteo en ámbar de Roles.
+        <Pestanas
+          items={[
+            { clave: "cuentas", etiqueta: "Equipo", conteo: colaboradores.length, guia: "colaboradores.sec-equipo" },
+            {
+              clave: "roles",
+              etiqueta: "Roles",
+              conteo: rolesVigentes.length,
+              ...(rolesSinModulos > 0 ? { pide: rolesSinModulos === 1 ? "1 deja cuentas sin módulos" : `${rolesSinModulos} dejan cuentas sin módulos` } : {}),
+              guia: "colaboradores.sec-roles",
+            },
+          ]}
+          activa={seccion}
+          onCambio={(c) => setSeccion(c === "roles" ? "roles" : "cuentas")}
+          etiquetaAccesible="Secciones de colaboradores"
+          idIndicador="colaboradores"
+          guia="colaboradores.secciones"
+        />
       )}
 
       {seccion === "cuentas" && ve("cuentas") && (
