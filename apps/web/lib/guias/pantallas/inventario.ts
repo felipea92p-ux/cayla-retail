@@ -1587,7 +1587,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.papeles",
       opcional: true,
       titulo: "El papel de la compra",
-      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas.",
+      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas. Si un papel no trae foto, «Subir foto» te deja subirla o tomarla ahí mismo.",
     },
     {
       id: "papel-foto",
@@ -1597,11 +1597,18 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Tócala y se abre en grande sobre la pantalla, sin perder lo que estás contando.",
     },
     {
+      id: "papel-subir",
+      ancla: "recepcion.papel-subir",
+      opcional: true,
+      titulo: "Sube o toma la foto",
+      texto: "Cuando un papel llegó sin foto, este botón abre la cámara o tus fotos. Queda guardada con la compra y Compras la ve al completarla; una foto ya subida no se cambia.",
+    },
+    {
       id: "anotado",
       ancla: "recepcion.anotado",
       opcional: true,
       titulo: "Lo que anotó la compradora",
-      texto: "Cada prenda que anotó al comprar, con cuántas: «Ahora» es la que sigue, «Contada» la que ya llegó completa.",
+      texto: "Cada prenda que anotó al comprar, con cuántas. Se va llenando con lo que identificas de ella en «¿Qué … son?»: «Contada» es la que ya llegó completa y «0 de 4» la que todavía no identificas.",
     },
     // ---- En camino: se lee lo que trae y se abre ----
     {

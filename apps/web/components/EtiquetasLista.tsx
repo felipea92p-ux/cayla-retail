@@ -820,8 +820,8 @@ export function NuevaEtiquetaModal({
   const delUno = `${T.la === "el" ? "del" : "de la"} ${T.uno}`;
   const guia = useGuiaCampos([
     { id: "nombre", nombre: `Nombre ${delUno}`, requerido: true, hecho: nombre.trim() !== "", pendiente: `Escribe el nombre ${delUno}.` },
-    // Opcional de verdad: sin elegir, se queda el dibujo que sugiere el nombre. Se cuenta como hecho cuando se eligió uno.
-    { id: "dibujo", nombre: "Dibujo", requerido: false, hecho: eleccion !== null, pendiente: "Elige un dibujo o sube tu imagen, o deja el que sugiere el nombre." },
+    // Opcional de verdad: sin elegir, se queda el ícono que sugiere el nombre. Se cuenta como hecho cuando se eligió uno.
+    { id: "dibujo", nombre: "Ícono", requerido: false, hecho: eleccion !== null, pendiente: "Elige un ícono o sube tu imagen, o deja el que sugiere el nombre." },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -832,7 +832,7 @@ export function NuevaEtiquetaModal({
             <CampoTexto etiqueta={guia.etiqueta("nombre", `Nombre ${delUno}`)} value={nombre} onChange={(e) => onNombre(e.target.value)} placeholder={T.ejemplo} autoFocus />
           </CampoGuiado>
           <CampoGuiado id="dibujo" guia={guia}>
-            <Campo etiqueta={guia.etiqueta("dibujo", "Dibujo")} idEtiqueta="dibujo-nuevo" sinPie>
+            <Campo etiqueta={guia.etiqueta("dibujo", "Ícono")} idEtiqueta="dibujo-nuevo" sinPie>
               <ElegirDibujoDeInsignia valor={eleccionEfectiva(eleccion, nombre)} yaElegido={eleccion !== null} onValor={onEleccion} idEtiqueta="dibujo-nuevo" deshabilitado={guardando} />
             </Campo>
           </CampoGuiado>

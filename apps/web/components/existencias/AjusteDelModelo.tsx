@@ -128,6 +128,7 @@ export function PlanillaDelAjuste({
   foco,
   onApagarFoco,
   onVolver,
+  volverA = "la talla",
   onAbrirConteo,
   onGuardarYPasar,
   onAvisoLugar,
@@ -139,6 +140,8 @@ export function PlanillaDelAjuste({
   foco: string | null;
   onApagarFoco: () => void;
   onVolver: () => void;
+  /** Adónde vuelve la flecha: la talla (de siempre) o «Editar producto» si se llegó desde su candado. */
+  volverA?: string;
   /** Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza (ADR-0291). */
   onAbrirConteo: (varianteId: string) => void;
   /** «Guardar y pasar a almacén»: guarda lo contado aquí y sigue en el otro lugar. */
@@ -275,7 +278,7 @@ export function PlanillaDelAjuste({
   return (
     <div ref={raiz} onKeyDown={alTeclear} className="ajuste-vista">
       <div className="ajuste-encabezado">
-        <Volver onClick={onVolver} a="la talla" />
+        <Volver onClick={onVolver} a={volverA} />
         <p className="min-w-0">
           {titulo ? (
             <>

@@ -1171,7 +1171,7 @@ export function NuevoProductoForm({
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
         <FilaAlta
           etiqueta="Unidades de hoy"
-          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`}
+          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Se escribe una sola vez: al crear, queda sellado y después se ajusta en Existencias. Si no tienes, márcalo abajo`}
           campo="stock"
           estado={est.stock}
         >

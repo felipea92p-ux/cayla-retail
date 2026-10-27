@@ -53,6 +53,8 @@ export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
 /** Felipe 2026-10-14: el número de guía se escribe o corrige al cerrar (`20261014205000`). */
 export const RPC_CORREGIR_GUIA = "corregir_guia_envio";
+/** Felipe 2026-10-27: la foto de un papel de la compra que llegó sin ella, desde «Los papeles de la compra» (`20261027210000`). Solo agrega. */
+export const RPC_FOTO_PAPEL = "agregar_foto_papel";
 
 export const TOPES_CONTEO = { contadas: 99999, descripcionNueva: 200, nota: 300, notaEnvio: 500, motivo: 300, guia: 40 } as const;
 
