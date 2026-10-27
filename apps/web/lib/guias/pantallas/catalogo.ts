@@ -394,15 +394,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
-      titulo: "Costos, insignias y campañas",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      titulo: "Costos e insignias",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
     },
     {
       id: "precio-tienda",
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién lo puso; «Cambiar» y «Quitar» lo ajustan. Esto se guarda aparte, al momento, no con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan al momento. En una terminal no sale: su precio se escribe en la tabla de «Precios» y se guarda con «Revisar y guardar». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
@@ -465,6 +465,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       titulo: "Stock por talla",
       texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Con − y + lo corriges aquí mismo; se guarda con «Revisar y guardar».",
+    },
+    {
+      id: "ficha-consumo",
+      ancla: "editar.ficha-consumo",
+      opcional: true,
+      titulo: "La ficha de consumo",
+      texto: "Cuánta tela lleva una prenda de este modelo (por talla si hace falta) y qué avíos: botones, hilo, etiquetas. «Abrir la ficha» la muestra, con las órdenes cerradas; la edita el Taller. Con 3 órdenes manda lo que se gastó de verdad, y «Volver a Audaces» lo deshace.",
     },
     {
       id: "precio",

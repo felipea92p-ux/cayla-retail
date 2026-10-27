@@ -166,6 +166,7 @@ function paramsRpc(ubicacionId: string, filtros: FiltrosMovimientos) {
     ...(filtros.motivo ? { p_motivo: filtros.motivo } : {}),
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
     ...(filtros.sububicacionId ? { p_sububicacion_id: filtros.sububicacionId } : {}),
+    ...(filtros.empresaId ? { p_empresa_id: filtros.empresaId } : {}),
   };
 }
 

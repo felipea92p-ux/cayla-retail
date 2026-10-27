@@ -20,6 +20,7 @@ import {
   pistaOtraTienda,
   precioDeLaFicha,
   tallaDelPrecio,
+  tallaInicial,
   tallasDelColor,
   type ChipFicha,
   type Ficha,
@@ -28,6 +29,7 @@ import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
 import { textoNivel, tonoNivel } from "@/lib/stock";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
+import { volarALaBolsa } from "./bolsa/volarALaBolsa";
 import { BotonAvisame } from "./club/BotonAvisame";
 import { BotonFavorito } from "./club/BotonFavorito";
 import { IconoInsignia } from "./IconoInsignia";
@@ -56,6 +58,7 @@ export function FichaPrenda({
   ficha,
   sedeElegida,
   colorPedido,
+  tallaPedida = null,
   origenFotos,
   chips = [],
   esperas = [],
@@ -70,6 +73,8 @@ export function FichaPrenda({
   sedeElegida: string | null;
   /** `?color=` de la dirección: con qué color abre. */
   colorPedido: string | null;
+  /** `?talla=` de la dirección (la que eligieron en los filtros de la lista, ADR-0512): con qué talla abre, si ese color la tiene. */
+  tallaPedida?: string | null;
   origenFotos: string | undefined;
   /** Los chips de arriba del nombre: «Nuevo…» y «N.º 3 en más vendidos» (del catálogo) y las insignias de la prenda (de su ficha, ADR-0489). */
   chips?: ChipFicha[];
@@ -91,7 +96,7 @@ export function FichaPrenda({
 }) {
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
-  const [tallaId, setTallaId] = useState<string | null>(() => (tallas.length === 1 ? tallas[0].talla.id : null));
+  const [tallaId, setTallaId] = useState<string | null>(() => tallaInicial(ficha, tallaPedida, color) ?? (tallas.length === 1 ? tallas[0].talla.id : null));
   const elegida = tallas.find((t) => t.talla.id === tallaId)?.variante ?? null;
   const colorElegido = ficha.colores.find((c) => c.codigo === color) ?? ficha.colores[0];
   // El precio y la campaña que se ven: los de la talla elegida o, si todas las del color cuestan lo mismo, los de ese color.
@@ -113,6 +118,8 @@ export function FichaPrenda({
   const seleccion = `${color}|${tallaId ?? ""}`;
   const [resultado, setResultado] = useState<{ seleccion: string; bien: boolean; texto: string } | null>(null);
   const alAgregar = resultado?.seleccion === seleccion ? resultado : null;
+  // Cada vez que una prenda entra a la bolsa, el visor encuadra la foto y estalla el flash (`Galeria`); un rato después, la foto vuela a la bolsa.
+  const [disparo, setDisparo] = useState(0);
 
   // «Elige tu talla» lleva a las tallas (en el celular quedan lejos, arriba de la barra) y las resalta hasta que elija una.
   const bloqueTallas = useRef<HTMLDivElement>(null);
@@ -171,7 +178,13 @@ export function FichaPrenda({
             varianteId={boton.tipo === "agregar" ? boton.varianteId : null}
             sedeId={sedeElegida}
             alElegirTalla={pedirTalla}
-            alResponder={(r) => setResultado({ seleccion, bien: r.bien, texto: lineaAlAgregar(r, tallaElegida, tallas.length > 1) })}
+            alResponder={(r) => {
+              setResultado({ seleccion, bien: r.bien, texto: lineaAlAgregar(r, tallaElegida, tallas.length > 1) });
+              if (r.bien) {
+                setDisparo((n) => n + 1);
+                window.setTimeout(volarALaBolsa, 650);
+              }
+            }}
           />
         )}
         <BotonFavorito productoId={ficha.id} nombre={ficha.nombre} forma="ficha" />
@@ -207,7 +220,7 @@ export function FichaPrenda({
     <>
       <div className="t-pdp">
         {/* Otra clave por color: al cambiarlo, la tira vuelve a su primera foto (la del color nuevo). */}
-        <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} />
+        <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} disparo={disparo} />
 
         <div className="t-pdp-info">
           {/* En el celular esta caja se deshace (`display: contents`): el nombre y el precio suben y los chips van bajo el precio. */}
@@ -356,7 +369,7 @@ export function FichaPrenda({
 }
 
 /** Las fotos del color elegido primero. En el celular se deslizan de lado y los puntos (sobre la foto) dicen cuál se ve. */
-function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: string; hex: string | null; origenFotos: string | undefined }) {
+function Galeria({ ficha, color, hex, origenFotos, disparo }: { ficha: Ficha; color: string; hex: string | null; origenFotos: string | undefined; disparo: number }) {
   const { fotos, enOtroColor } = fotosDelColor(ficha, color);
   const [vista, setVista] = useState(0);
   const forma = formaDe(ficha.categoria?.prefijo);
@@ -392,6 +405,7 @@ function Galeria({ ficha, color, hex, origenFotos }: { ficha: Ficha; color: stri
               previa={i === 0 && tocada && esLaMismaFoto(tocada, url) ? tocada.foto : null}
               // La primera es a donde vuela la foto de la tarjeta tocada (`fotoQueViaja`).
               viaja={i === 0 ? ficha.id : null}
+              disparo={disparo}
             />
           ))
         )}
@@ -422,6 +436,7 @@ function FotoGaleria({
   rotulo,
   previa,
   viaja,
+  disparo,
 }: {
   url: string;
   alt: string;
@@ -434,6 +449,8 @@ function FotoGaleria({
   previa: string | null;
   /** La prenda cuya foto vuela hasta aquí desde la tarjeta tocada (solo la primera). */
   viaja: string | null;
+  /** Cuántas veces se agregó la prenda a la bolsa desde esta ficha: cada una dispara el visor y el flash (0: todavía ninguna). */
+  disparo: number;
 }) {
   // Una foto que no carga deja la silueta, nunca una imagen rota.
   const [rota, setRota] = useState(false);
@@ -499,6 +516,17 @@ function FotoGaleria({
         <Image src={url} alt="" aria-hidden fill sizes="1080px" unoptimized={!optimizar} className="cp-lupa" onLoad={() => setLupa("lista")} />
       )}
       {rotulo && <figcaption>{rotulo}</figcaption>}
+      {/* El visor de la Pasarela: al agregar, cuatro esquinas encuadran la foto y estalla un flash, como un fotógrafo. Con `key`, cada agregado lo
+          vuelve a montar y por eso vuelve a correr; sin movimiento no se dibuja nada (la línea «✓ ya está en tu bolsa» ya lo dijo). */}
+      {disparo > 0 && (
+        <span key={disparo} className="t-visor" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <b className="t-visor-flash" />
+        </span>
+      )}
     </figure>
   );
 }

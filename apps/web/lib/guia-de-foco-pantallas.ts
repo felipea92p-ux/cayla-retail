@@ -68,6 +68,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/fondos": { estado: "aplicada", evidencia: ["components/mi-plata/PlataPorConfirmar.tsx", "components/mi-plata/PapelesPorCompletar.tsx", "components/mi-plata/GastosPorRevisar.tsx", "components/mi-plata/CierresPorRecibir.tsx"] },
   "/compras/mi-plata": { estado: "no-aplica", motivo: "ADR-0480: la pantalla no tiene campos propios; los tiene la hoja «Me dieron plata» (declarada en MODALES) y la compra (/compras/mi-plata/compra)." },
   // ADR-0480, actividad 3: «Compré ropa». Una pregunta por pantalla; el paso del papel dice qué falta (qué te dieron, la foto si hay papel, cuánto).
+  "/compras/mi-plata/envios": { estado: "no-aplica", motivo: "ADR-0480: solo se lee; su único campo es el buscador de códigos y no hay nada que llenar ni pasos por recorrer." },
   "/compras/mi-plata/compra": { estado: "aplicada", evidencia: ["components/mi-plata/RegistrarCompra.tsx"] },
   "/compras/notas-credito": { estado: "no-aplica", motivo: "Redirige al Historial de compras: Notas de crédito se retiró (ADR-0480)." },
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
@@ -81,6 +82,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/por-pagar": PENDIENTE,
   // Plan de campaña (ADR-0349): lo que se llena (escenarios, precio, costo, lo que sobra, curva) vive en `FormularioCategoria`, el mismo formulario de la hoja de cada categoría y del paso a paso, con su guía de foco hecha. `PlanCategoriaModal` ya no tiene campos propios: por eso no figura entre los modales.
   "/compras/plan": { estado: "aplicada", evidencia: ["components/plan-compra/FormularioCategoria.tsx"] },
+  "/compras/plan/calendario": { estado: "no-aplica", motivo: "Se lee y se prende o apaga: la lista no tiene campos; sus interruptores guardan en un toque y los lápices abren la hoja de cada campaña, que sí lleva su guía en este registro (HojaDeCampanaCalendario). No hay campos que llenar en la pantalla misma." },
+  "/compras/plan/presupuesto/pagos": { estado: "no-aplica", motivo: "No hay campos obligatorios ni pasos que completar: arranca con tandas y pagos que ya suman 100 % y se pueden guardar tal cual. Lo único que se elige (la semana, la forma de pago, el %, si el costo trae IGV) tiene siempre un valor; lo que podría salir mal lo dice en el lugar: «llega tarde» en la tanda y «los pagos tienen que sumar 100 %» sobre el botón. Elegir quién guarda lo resuelve su combo, con el mismo candado de siempre." },
+  "/compras/plan/presupuesto": { estado: "no-aplica", motivo: "Se lee y se simula: un deslizador para mover el tope y botones que abren las hojas de siempre (el tope, lo que sobra, el reparto, los días), cada una con su guía en este registro. No hay campos que llenar ni pasos que completar." },
   "/compras/plan/resultados": { estado: "no-aplica", motivo: "Solo lectura (ADR-0372, C6): lo vendido en una campaña por tienda, prenda y color; elegir la tienda es una píldora y la campaña, el selector." },
   "/compras/plan/historial": { estado: "no-aplica", motivo: "Solo lectura (ADR-0372, C3): lo vendido por tienda en cada campaña, un año a la vez; elegir el año es una píldora, no un campo." },
   "/compras/proveedores": PENDIENTE,
@@ -348,12 +352,15 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/CorregirPagoModal.tsx": { estado: "aplicada", evidencia: ["components/CorregirPagoModal.tsx"] },
   "components/RevisarProductoHoja.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién firma): el título dice qué prenda se aprueba o se rechaza y la nota qué pasa después; cuando el rechazo está bloqueado (orden en proceso o stock) la hoja no pide nada, dice qué lo frena y a dónde ir. No hay camino que indicar (ADR-0371)." },
   "components/plan-compra/NuevaCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/NuevaCampanaModal.tsx"] },
+  "components/plan-compra/HojaDeCampanaCalendario.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/HojaDeCampanaCalendario.tsx"] },
   "components/plan-compra/EditarCampanaModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/EditarCampanaModal.tsx"] },
   // El cajón «Resumen y avisos» del Plan de compra (Felipe 2026-10-12). El campo que ve el detector es el selector de campaña, que vive
   // en la cabecera de la pantalla, fuera del cajón.
-  "components/plan-compra/PlanCampana.tsx": { estado: "no-aplica", motivo: "El cajón «Resumen y avisos» se lee: avisos, las cifras de toda CAYLA, lo ya pedido y el reparto. Lo que se fija (el tope, el % de lo que sobra, los mínimos) abre su propia hoja, cada una con su guía en este registro, y el simulador de adentro mueve supuestos sin guardar nada: no hay nada que falte." },
   "components/plan-compra/CampanasArchivadasModal.tsx": { estado: "no-aplica", motivo: "Una lista de campañas archivadas con «Ver» y «Restaurar» en cada fila y un solo control (quién restaura): no se llenan campos ni hay pasos." },
   "components/plan-compra/TopeModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/TopeModal.tsx"] },
+  "components/plan-compra/RectificarPedidos.tsx": { estado: "no-aplica", motivo: "UN solo control (la razón de rectificar, con «Cambié de idea» de fábrica) y quién lo hace: no hay campos que completar ni pasos. La base solo se niega si el pedido ya es una orden, y la hoja lo dice antes con su aviso." },
+  "components/ordenes-compra/PendientesDeCampana.tsx": { estado: "no-aplica", motivo: "Dos hojas sin nada obligatorio: «Confirmar y pedir» no tiene campos (resume el pedido, avisa si llega tarde y pide quién lo hace) y «Cambiar fecha» arranca con la fecha que ya tenía el pedido, un valor válido; lo que podría salir mal lo dice en el lugar (la fecha que ya pasó, el proveedor que cambió, la orden que la base no acepta)." },
+  "components/plan-compra/NotaDeVersionModal.tsx": { estado: "no-aplica", motivo: "Una nota opcional de hasta 120 letras y quién lo hace: no hay nada que falte ni pasos que completar. Sirve a tres caminos (guardar una versión, usar el plan con tope y volver a una) y nunca bloquea: la base solo se niega si el plan no cambió." },
   "components/plan-compra/PlazoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/PlazoModal.tsx"] },
   "components/plan-compra/RecuperoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RecuperoModal.tsx"] },
   "components/plan-compra/RepartoModal.tsx": { estado: "aplicada", evidencia: ["components/plan-compra/RepartoModal.tsx"] },
@@ -378,6 +385,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 7: anotar lo que se usó de la tela (o devolver lo que sobró): cuánto —con lo que hay en el estante o lo ya descontado— y quién lo anota.
   "components/orden-pagina/TelaUsadaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/TelaUsadaModal.tsx"] },
   "components/orden-pagina/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EditarTelaModal.tsx"] },
+  "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
   "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
@@ -507,7 +515,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/recepcion-conteo/AgregarFueraDeGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/AgregarFueraDeGuia.tsx"] },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de
   // siempre (HojaTallas, HojaPrenda), con su guía.
-  "components/recepcion-conteo/CerrarEnvio.tsx": { estado: "no-aplica", motivo: "La hoja de confirmación solo lista los precios que cambian (compra y venta) y pide confirmar: no tiene campos. Los campos del cierre ya traen su guía en la página." },
+  "components/recepcion-conteo/ConfirmarPrecios.tsx": { estado: "no-aplica", motivo: "La hoja de confirmación solo lista los precios que cambian (compra y venta) y pide confirmar: no tiene campos. Los campos del cierre ya traen su guía en la página y los de «Hacer ahora», en su hoja. La usan el cierre y «Hacer ahora»." },
   "components/recepcion-conteo/HacerAhora.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/HacerAhora.tsx"] },
   // ADR-0393: las tallas y colores de una prenda separada: qué prenda es, cuántas de cada talla y color y, si llegaron dañadas, cuántas y
   // si tienen arreglo (lo que la base rechazaría al meterlas al stock).

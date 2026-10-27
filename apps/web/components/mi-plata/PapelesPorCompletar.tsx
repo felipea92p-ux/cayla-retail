@@ -32,6 +32,7 @@ import {
   notaNoCuadra,
   pagoPapel,
   pideSerie,
+  recibioQuienCompro,
   sobrePapel,
   subtituloPapel,
   textoFaltan,
@@ -40,6 +41,7 @@ import {
   type ProveedorOpcion,
 } from "@/lib/revisar-compras-reglas";
 import type { PapelConFoto } from "@/lib/revisar-compras";
+import { TEXTO_LO_RECIBIO_QUIEN_COMPRO } from "@/lib/recepcion-envio-reglas";
 import { PanelDetalle } from "./PanelDetalle";
 
 // Compras simple (ADR-0480, actividad 7): «Revisar compras» ▸ las compras que anotaron las compradoras. Rediseño (2026-10-23): cada papel
@@ -463,7 +465,19 @@ export function DetallePapel({
       titulo={proveedor}
       subtitulo={subtituloPapel(papel)}
       monto={soles(papel.monto)}
-      estado={papel.esMia ? <Chip tono="pizarra">Es tuya</Chip> : undefined}
+      // ADR-0517: si un Admin recibió lo que él mismo compró, quien completa el papel (que nunca es quien compró) lo ve aquí.
+      estado={
+        papel.esMia || recibioQuienCompro(papel) ? (
+          <span className="flex flex-wrap justify-end gap-1.5">
+            {papel.esMia && <Chip tono="pizarra">Es tuya</Chip>}
+            {recibioQuienCompro(papel) && (
+              <Chip tono="ambar" versalitas={false} title="La misma persona hizo la compra y cerró el conteo en la tienda: nadie más contó esta mercadería.">
+                {TEXTO_LO_RECIBIO_QUIEN_COMPRO}
+              </Chip>
+            )}
+          </span>
+        ) : undefined
+      }
     >
       {editable ? (
         <form

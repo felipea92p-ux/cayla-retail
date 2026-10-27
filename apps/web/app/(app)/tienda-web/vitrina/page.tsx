@@ -5,6 +5,7 @@ import { personasQueEsperan } from "@/lib/vitrina-esperan-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { VitrinaPantalla } from "@/components/vitrina/VitrinaPantalla";
+import { ReglaDelPrecio } from "@/components/vitrina/ReglaDelPrecio";
 import { VitrinaPestanas } from "@/components/vitrina/VitrinaPestanas";
 
 // Tienda web ▸ Vitrina (ADR-0408, actividad 3; maqueta docs/maquetas/tienda-online-2026-10, «vitrina»): qué modelos se ven en la
@@ -29,7 +30,7 @@ export default async function VitrinaPage({ searchParams }: { searchParams: Prom
         titulo="Vitrina"
         subtitulo="Elige qué modelos ve el cliente en la tienda online."
       />
-      <VitrinaPestanas activa="modelos" />
+      <VitrinaPestanas activa="modelos" derecha={<ReglaDelPrecio />} />
       {error ? (
         <Aviso tono="error" titulo="No se pudo leer la vitrina">
           Recarga la página; si sigue, avísale al líder.

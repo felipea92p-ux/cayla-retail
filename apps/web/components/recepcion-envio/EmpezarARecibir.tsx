@@ -16,9 +16,10 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { abrirDespacho } from "@/lib/recepcion-envio-acciones";
 import { AVISO_DE_CORTE_APERTURA, mensajeDeLaRecepcion, ordenesDelEnvio, proveedoresDelEnvio, sugiereRecargarRecepcion, type DetalleEnvio, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import { LoQueTrae } from "./PiezasEnvio";
+import { VienenFardos } from "./VienenFardos";
 
-// El envío llegó a la tienda pero todavía va «en camino» en el sistema (ADR-0362, fase 4): un solo botón, «Empezar a recibir» («Abrir el fardo» al contar por categoría, ADR-0393)
-// (`abrir_despacho`). Abrirlo es el primer paso: desde ahí la compradora ya no lo puede anular y se cuenta lo que llegó. Antes se lee lo que
+// El envío llegó a la tienda pero todavía va «en camino» en el sistema (ADR-0362, fase 4): un solo botón, «Empezar a recibir»
+// (`abrir_despacho`; entre ADR-0393 y 2026-10-26 la cara por categoría lo llamó «Abrir el fardo», ver DetalleEnvioPorRecibir). Abrirlo es el primer paso: desde ahí la compradora ya no lo puede anular y se cuenta lo que llegó. Antes se lee lo que
 // trae. Firma quien recibe (el combo «Responsable»); si ya estaba abierto, la base devuelve lo mismo sin tocar nada.
 
 export function EmpezarARecibir({
@@ -72,7 +73,7 @@ export function EmpezarARecibir({
   }
 
   const errorDeApertura = error && (
-    <Aviso ref={avisoError} enfocable tono="error" titulo="No se pudo abrir el envío" accion={error.recargar ? <Boton type="button" onClick={() => window.location.reload()}>Recargar</Boton> : undefined}>
+    <Aviso ref={avisoError} enfocable tono="error" titulo="No se pudo empezar a recibir el envío" accion={error.recargar ? <Boton type="button" onClick={() => window.location.reload()}>Recargar</Boton> : undefined}>
       {error.texto}
     </Aviso>
   );
@@ -115,33 +116,38 @@ export function EmpezarARecibir({
                 </li>
               ))}
             </ul>
-            <p data-guia="recepcion.cifra" className="text-[14.5px] text-tinta">
-              Dijeron <b className="font-display text-[22px] tabular-nums">{detalle.enviado.toLocaleString("es-PE")}</b> {detalle.enviado === 1 ? "prenda" : "prendas"} ·{" "}
-              {categorias} {categorias === 1 ? "categoría" : "categorías"} · {proveedores.length} {proveedores.length === 1 ? "proveedor" : "proveedores"} ·{" "}
-              <span className="text-taupe">todo viene sin etiqueta</span>
-            </p>
+            <div className="space-y-1">
+              <VienenFardos bultos={detalle.bultos} />
+              <p data-guia="recepcion.cifra" className="text-[14.5px] text-tinta">
+                Dijeron <b className="font-display text-[22px] tabular-nums">{detalle.enviado.toLocaleString("es-PE")}</b> {detalle.enviado === 1 ? "prenda" : "prendas"} ·{" "}
+                {categorias} {categorias === 1 ? "categoría" : "categorías"} · {proveedores.length} {proveedores.length === 1 ? "proveedor" : "proveedores"} ·{" "}
+                <span className="text-taupe">todo viene sin etiqueta</span>
+              </p>
+            </div>
             {detalle.nota && <p className="nota-cayla">Nota de quien lo envió: {detalle.nota}</p>}
             <div data-guia="recepcion.empezar" className="space-y-3 pt-1">
               <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe" className="max-w-sm">
                 <ComboResponsable control={responsable} deshabilitado={abriendo} />
               </CampoGuiado>
-              <PieGuia guia={guia} listo="Todo listo: ábrelo y cuenta." />
+              <PieGuia guia={guia} listo="Todo listo: empieza a recibir." />
               {errorDeApertura}
-              <Boton type="button" peso="primario" cargando={abriendo} textoCargando="Abriendo…" onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="button" peso="primario" cargando={abriendo} textoCargando="Empezando…" onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                 <span className="inline-flex items-center gap-2">
                   <Package aria-hidden className="h-4 w-4" />
-                  Abrir el fardo
+                  Empezar a recibir
                   <ArrowRight aria-hidden className="h-4 w-4" />
                 </span>
               </Boton>
-              <p className="text-xs text-taupe">Desde que lo abres, la compra ya no se puede anular.</p>
+              <p className="text-xs text-taupe">
+                Desde que empiezas, la compra ya no se puede anular. Puedes recibirla por partes: lo que cuentes queda guardado y sigues cuando quieras.
+              </p>
             </div>
           </div>
         </article>
         <aside data-guia="recepcion.otro-sin-aviso" className="card-cayla space-y-2 p-5">
           <TituloSeccion nivel={3}>¿Llegó algo que no está aquí?</TituloSeccion>
           <p className="text-[13.5px] text-taupe">
-            Si viene <b className="text-tinta">dentro de este fardo</b>, ábrelo igual: al contar lo sumas con «+ Agregar categoría».
+            Si viene <b className="text-tinta">dentro de este envío</b>, empieza a recibirlo igual: al contar lo sumas con «+ Agregar categoría».
           </p>
           <p className="text-[13.5px] text-taupe">
             Si es <b className="text-tinta">otro paquete</b> que vino sin aviso de Compras (por WhatsApp, o directo del proveedor), se recibe aparte: cuentas lo mismo, solo que sin con qué comparar.

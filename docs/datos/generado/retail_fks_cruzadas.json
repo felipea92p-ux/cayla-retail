@@ -265,6 +265,16 @@
   "src_table": "compra_reasignaciones"
  },
  {
+  "conname": "compra_rondas_abierta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_rondas"
+ },
+ {
+  "conname": "compra_rondas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_rondas"
+ },
+ {
   "conname": "compradores_de_tienda_agregado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "compradores_de_tienda"
@@ -345,6 +355,11 @@
   "src_table": "conteos"
  },
  {
+  "conname": "costo_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "costo_correcciones"
+ },
+ {
   "conname": "costo_historial_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "costo_historial"
@@ -403,6 +418,11 @@
   "conname": "despacho_diferencias_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "despacho_diferencias"
+ },
+ {
+  "conname": "despacho_observaciones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_observaciones"
  },
  {
   "conname": "despacho_pendientes_anotado_por_fkey",
@@ -700,6 +720,11 @@
   "src_table": "pedido_web_pagos"
  },
  {
+  "conname": "pedido_web_pagos_verificado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_pagos"
+ },
+ {
   "conname": "pedidos_no_atendidos_atendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "pedidos_no_atendidos"
@@ -756,6 +781,11 @@
  },
  {
   "conname": "planes_compra_editado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_plazo_actualizado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "planes_compra"
  },
@@ -883,6 +913,11 @@
   "conname": "producciones_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "producciones"
+ },
+ {
+  "conname": "producto_avios_declarado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_avios"
  },
  {
   "conname": "producto_color_temporadas_asignado_por_fkey",

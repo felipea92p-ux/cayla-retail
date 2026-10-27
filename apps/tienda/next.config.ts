@@ -60,6 +60,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: CABECERAS_DE_SEGURIDAD },
       { source: "/:archivo(cayla-[^/]+\\.png)", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
+      // Los escudos de las ciudades de la cabecera (2026-10-26): salen en todas las páginas, así que el mismo trato que los íconos.
+      { source: "/escudos/:archivo", headers: [{ key: "Cache-Control", value: CACHE_DE_IMAGENES_FIJAS }] },
     ];
   },
   // La raíz del monorepo, como en apps/web: sin esto Next la adivina buscando lockfiles hacia arriba y, en un worktree

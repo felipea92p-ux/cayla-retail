@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avanceAnotado, estadoAnotada, lineasAnotadas, nombreAnotado, siguienteAnotada } from "./recibir-papel-reglas";
+import { estadoAnotada, lineasAnotadas, nombreAnotado, siguienteAnotada } from "./recibir-papel-reglas";
 import type { LineaParaContar } from "./recepcion-conteo-reglas";
 
 const linea = (clave: string, dijeron: number, contadas: number | null, extra: Partial<NonNullable<LineaParaContar["linea"]>> = {}): LineaParaContar =>
@@ -30,13 +30,9 @@ describe("recibir mirando el papel", () => {
     expect(nombreAnotado(linea("a", 1, null, { descripcion: "Casaca nueva" }))).toBe("Casaca nueva");
     expect(nombreAnotado(linea("a", 1, null))).toBe("Blusas");
   });
-  it("la que sigue salta las contadas y las que se dejaron para después", () => {
-    const ls = [linea("a", 12, 12), linea("b", 20, null), linea("c", 3, null)];
-    expect(siguienteAnotada(ls, new Set())?.clave).toBe("b");
-    expect(siguienteAnotada(ls, new Set(["b"]))?.clave).toBe("c");
-    expect(siguienteAnotada(ls, new Set(["b", "c"]))).toBeNull();
-  });
-  it("lo que se lleva contado de lo anotado", () => {
-    expect(avanceAnotado([linea("a", 12, 12), linea("b", 20, 5), linea("c", 3, null)])).toEqual({ contadas: 17, total: 35 });
+  it("la que sigue salta las contadas y las que van a medias; sin ninguna por contar, no hay", () => {
+    expect(siguienteAnotada([linea("a", 12, 12), linea("b", 20, 5), linea("c", 3, null)])?.clave).toBe("c");
+    expect(siguienteAnotada([linea("a", 12, 12), linea("b", 20, null), linea("c", 3, null)])?.clave).toBe("b");
+    expect(siguienteAnotada([linea("a", 12, 12), linea("b", 20, 20)])).toBeNull();
   });
 });

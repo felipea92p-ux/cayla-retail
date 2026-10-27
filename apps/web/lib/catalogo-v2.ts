@@ -5,7 +5,7 @@ import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
-import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
+import { empresaDePrendaAqui, insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -51,6 +51,9 @@ export type VarianteCatalogo = {
   categoriaFamilia?: string | null;
   /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
   marca?: string | null;
+  /** El id de su marca (ADR-0532): en Lima, la marca CAYLA es de CAYLA y cualquier otra, de CLAURE. `null` = sin marca; ausente = un
+   *  catálogo guardado antes de este cambio (entonces manda `empresaId`). */
+  marcaId?: string | null;
   /** De qué empresa es la prenda (`productos.empresa_id`, CAYLA o CLAURE; ADR-0463). Decide en qué sedes se ve (ADR-0505). Opcional: un
    *  catálogo guardado antes de este cambio no la trae, y entonces la prenda se ve en todas, como antes. */
   empresaId?: string | null;
@@ -148,12 +151,15 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
     // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
     // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
-    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
+    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
   ]);
   const filas = exigir(resVariantes, "el catálogo");
   const marcaPorProducto = new Map<string, string>();
+  // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
+  const marcaIdPorProducto = new Map<string, string | null>();
   for (const p of resMarcas.error ? [] : (resMarcas.data ?? [])) {
     if (p.marca?.nombre) marcaPorProducto.set(p.id, p.marca.nombre);
+    marcaIdPorProducto.set(p.id, p.marca_id ?? null);
   }
 
   return filas.map((v) => ({
@@ -176,6 +182,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
     categoriaFamilia: v.producto?.categoria?.familia ?? null,
     marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
+    marcaId: marcaIdPorProducto.get(v.producto?.id ?? ""),
     empresaId: v.producto?.empresa_id ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
@@ -192,7 +199,9 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
  */
 export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
   const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
-  return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(v.empresaId, empresas) }));
+  // La insignia dice de quién es la prenda AQUÍ (ADR-0532): en Lima, por su marca; una blusa Strend que también está en Trujillo lleva
+  // «CLAURE» en Lima. Qué se ofrece sigue decidiéndolo el dato de la prenda (ADR-0505: CLAURE no sale de Lima).
+  return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(empresaDePrendaAqui(v, empresas), empresas) }));
 }
 
 // ============================================================================

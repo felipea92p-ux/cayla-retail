@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * Pruebas de pasar la orden al stock y de los costos del Taller (ADR-0400, actividad 6; OK de Felipe, 2026-10-15) — migración
- * `20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql`, sobre 154000, 155000 y 20261015160000. CAYLA V2.
+ * `20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql`, sobre 154000, 155000 y 20261015160000, y `20261026150000` (ADR-0513: lo medido no pisa lo declarado). CAYLA V2.
  *
  * LO QUE VIGILA. Que `cerrar_produccion` no deje entrar al stock más prendas de una talla y color que las terminadas en la última fase, ni cierre con prendas todavía en un
  * servicio; que solo las BUENAS entren (las segundas y las faltantes no) y el costo se reparta entre ellas; que el costo de los servicios salga de lo devengado; que lo medido
- * quede en el modelo; que lo rechazado no deje nada escrito; que una orden de ANTES de las fases cierre como siempre; que `anular_produccion` no anule con prendas afuera; y
+ * quede aparte (una fila por orden cerrada) sin pisar lo declarado, y mande solo con 3 órdenes cerradas; que lo rechazado no deje nada escrito; que una orden de ANTES de las fases cierre como siempre; que `anular_produccion` no anule con prendas afuera; y
  * que los costos del Taller los vea el líder o quien ve `produccion` parado en ese Taller, y nadie más.
  *
  * USO
@@ -32,6 +32,7 @@ const MIGRACION_FASES = leer("20261014154000_produccion_fases_y_tela_de_la_orden
 const MIGRACION_AVANCES = leer("20261014155000_produccion_avance_salida_y_vuelta.sql");
 const MIGRACION_ANULAR = leer("20261015160000_produccion_anular_salida_y_vuelta.sql");
 const MIGRACION = leer("20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql");
+const MIGRACION_MEDIDO = leer("20261026150000_produccion_lo_medido_no_pisa_lo_declarado.sql"); // ADR-0513: lo medido ya no pisa lo declarado
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
@@ -180,6 +181,8 @@ ${MIGRACION_AVANCES}
 set local search_path = retail, public, extensions;
 ${MIGRACION}
 set local search_path = retail, public, extensions;
+${MIGRACION_MEDIDO}
+set local search_path = retail, public, extensions;
 ${MIGRACION_ANULAR}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
@@ -242,6 +245,18 @@ const FLUJO = `${ORDEN(ESPINA, LINO)}
    select pg_temp.vuelve(:'f_cost', jsonb_build_array(${VL("v1", 27, 2, 1, "salieron con mancha y una se perdió")}, ${VL("v2", 19, 0, 1, "se perdió en el servicio")}), '001-2') as w0 \\gset
    select pg_temp.avanza(:'f_acab', ${L(["v1", 27], ["v2", 19])}) as b0 \\gset
    update retail.variantes set costo = 4.50 where id in (:'v1', :'v2');`;
+
+// ADR-0513 · LO MEDIDO: lo que se necesita para cerrar varias órdenes del MISMO modelo. El lote de lino (300 m) alcanza para tres.
+const LOTE_LINO = `insert into retail.insumo_lotes (insumo_id, ubicacion_id, cantidad_ingresada, costo_unitario, origen) values (:'lino', :'taller', 300, 12.50, 'compra') returning id as lote \\gset
+   insert into retail.movimientos_insumo (insumo_id, insumo_lote_id, ubicacion_id, tipo, cantidad, costo_unitario, usuario_id)
+     values (:'lino', :'lote', :'taller', 'compra', 300, 12.50, :'felipe_p');`;
+// Una orden más del modelo, de punta a punta, que gastó `metros` de lino y se pasa al stock. Deja en :efe lo que manda a esa altura («manda:órdenes:cifra»).
+const UNA_CERRADA = (metros) => `${FLUJO}
+   select retail.registrar_consumo_insumo(:'oid', :'lino', ${metros}, 'tendido') as consumo \\gset
+   select pg_temp.cierra(:'oid', ${L(["v1", 27], ["v2", 19])}, null, null, null, true) as cc \\gset
+   select manda || ':' || ordenes_medidas || ':' || coalesce(medido_por_prenda::text, '-') as efe from retail.fn_consumo_efectivo(:'prod') \\gset`;
+const DECLARADO = `(select fuente || ':' || tela_por_prenda from retail.producto_consumos where producto_id = :'prod')`;
+
 const MOV_ENTRADA = `(select coalesce(sum(cantidad), 0) from retail.movimientos where produccion_id = :'oid' and motivo = 'produccion')`;
 const ESTADO = `(select estado from retail.producciones where id = :'oid')`;
 
@@ -333,7 +348,7 @@ caso(
   "P0001|cierre_con_prendas_afuera,t,OK,terminada"
 );
 caso(
-  "C7 lo MEDIDO: al pasar un lote al stock, los metros de tela usados ÷ las buenas quedan en el modelo (fuente «medido»), y ganan sobre lo declarado",
+  "C7 lo MEDIDO: al pasar un lote al stock, los metros de tela usados ÷ las buenas quedan en SU fila (producto_consumo_medido) y lo declarado del modelo NO se toca",
   `${FLUJO}
    insert into retail.insumo_lotes (insumo_id, ubicacion_id, cantidad_ingresada, costo_unitario, origen) values (:'lino', :'taller', 100, 12.50, 'compra') returning id as lote \\gset
    insert into retail.movimientos_insumo (insumo_id, insumo_lote_id, ubicacion_id, tipo, cantidad, costo_unitario, usuario_id)
@@ -341,9 +356,59 @@ caso(
    select retail.registrar_consumo_insumo(:'oid', :'lino', 69, 'tendido') as consumo \\gset
    select (select fuente || ':' || tela_por_prenda from retail.producto_consumos where producto_id = :'prod') as antes \\gset
    select pg_temp.cierra(:'oid', ${L(["v1", 27], ["v2", 19])}, null, null, null, true) as c \\gset
-   select concat_ws(',', :'c', coalesce(:'antes', 'sin'), (select fuente || ':' || tela_por_prenda from retail.producto_consumos where producto_id = :'prod'),
+   select concat_ws(',', :'c', :'antes', (select fuente || ':' || tela_por_prenda from retail.producto_consumos where producto_id = :'prod'),
+     (select buenas || ':' || metros from retail.producto_consumo_medido where produccion_id = :'oid'),
      (select costo_tela from retail.producciones where id = :'oid'));`,
-  (o) => /^OK,(sin|declarado:[0-9.]+),medido:1\.500,862\.50$/.test(o)
+  (o) => /^OK,(declarado:1\.200),\1,46:69\.000,862\.50$/.test(o)
+);
+caso(
+  "C7b lo medido manda SOLO desde la 3.ª orden cerrada del modelo (P-21): con 1 y con 2 sigue mandando lo declarado; con 3, la cifra es Σ metros ÷ Σ buenas; lo declarado nunca se toca",
+  `${LOTE_LINO}
+   ${UNA_CERRADA(69)}
+   select :'efe' as e1 \\gset
+   ${UNA_CERRADA(60)}
+   select :'efe' as e2 \\gset
+   ${UNA_CERRADA(70)}
+   select concat_ws('|', :'e1', :'e2', :'efe', ${DECLARADO});`,
+  "declarado:1:1.500|declarado:2:1.402|medido:3:1.442|declarado:1.200"
+);
+caso(
+  "C7c Nueva orden recibe lo que manda con la forma de siempre (tela_por_prenda y fuente) y además lo declarado, lo medido y cuántas órdenes lo respaldan: con 2 cerradas manda lo declarado; con 3, lo medido",
+  `${LOTE_LINO}
+   ${UNA_CERRADA(69)}
+   ${UNA_CERRADA(60)}
+   select (select (e ->> 'tela_por_prenda') || ':' || (e ->> 'fuente') || ':' || (e ->> 'declarado_por_prenda') || ':' || (e ->> 'medido_por_prenda') || ':' || (e ->> 'ordenes_medidas')
+             from jsonb_array_elements(retail.fn_nueva_orden_opciones(:'taller') -> 'consumos') e where e ->> 'producto_id' = :'prod') as con2 \\gset
+   ${UNA_CERRADA(70)}
+   select concat_ws('|', :'con2', (select (e ->> 'tela_por_prenda') || ':' || (e ->> 'fuente') || ':' || (e ->> 'declarado_por_prenda') || ':' || (e ->> 'medido_por_prenda') || ':' || (e ->> 'ordenes_medidas')
+             from jsonb_array_elements(retail.fn_nueva_orden_opciones(:'taller') -> 'consumos') e where e ->> 'producto_id' = :'prod'));`,
+  (o) => /^1\.200:declarado:1\.200:1\.402:2\|1\.442:medido:1\.200:1\.442:3$/.test(o)
+);
+caso(
+  "C7d declarar otra vez («Dejar como el del modelo») reinicia la cuenta: lo medido deja de mandar y vuelve lo declarado, que es volver a Audaces a propósito",
+  `${LOTE_LINO}
+   ${UNA_CERRADA(69)}
+   ${UNA_CERRADA(60)}
+   ${UNA_CERRADA(70)}
+   select :'efe' as antes \\gset
+   -- En la vida real cada RPC es su transacción: lo cerrado ya quedó atrás. Aquí todo es una sola, así que se lo manda un día atrás.
+   update retail.producto_consumo_medido set cerrada_en = cerrada_en - interval '1 day' where producto_id = :'prod';
+   select pg_temp.abre(${APERTURA.replace("'fecha_entrega'", "'fijar_consumo_modelo', true, 'fecha_entrega'")}, ${ESPINA}, ${LINO.replace("'1.2'", "'1.3'")}) as r4 \\gset
+   select concat_ws('|', :'antes', (select manda || ':' || ordenes_medidas || ':' || coalesce(medido_por_prenda::text, '-') from retail.fn_consumo_efectivo(:'prod')), ${DECLARADO});`,
+  "medido:3:1.442|declarado:0:-|declarado:1.300"
+);
+caso(
+  "C7e una orden que se revierte deja de contar sola (vuelve a 2 y manda lo declarado); al volver a cerrarla, su fila se reescribe y no se duplica (siguen 3 filas)",
+  `${LOTE_LINO}
+   ${UNA_CERRADA(69)}
+   ${UNA_CERRADA(60)}
+   ${UNA_CERRADA(70)}
+   select retail.revertir_produccion(:'oid') as _r \\gset
+   select manda || ':' || ordenes_medidas as tras_revertir from retail.fn_consumo_efectivo(:'prod') \\gset
+   select pg_temp.cierra(:'oid', ${L(["v1", 27], ["v2", 19])}, null, null, null, true) as c2 \\gset
+   select concat_ws('|', :'tras_revertir', :'c2', (select manda || ':' || ordenes_medidas from retail.fn_consumo_efectivo(:'prod')),
+     (select count(*) from retail.producto_consumo_medido where producto_id = :'prod'));`,
+  "declarado:2|OK|medido:3|3"
 );
 caso(
   "C8 una muestra se da por terminada sin tocar el stock ni lo medido (pero el candado de las buenas vale igual: antes de terminar Acabado, no)",
@@ -353,10 +418,10 @@ caso(
    select pg_temp.sale(:'f_cost', ${L(["v1", 30], ["v2", 20])}, '001-1') as s0 \\gset
    select pg_temp.vuelve(:'f_cost', jsonb_build_array(${VL("v1", 30, 0, 0, null)}, ${VL("v2", 20, 0, 0, null)}), '001-2') as w0 \\gset
    select pg_temp.avanza(:'f_acab', ${L(["v1", 30], ["v2", 20])}) as b0 \\gset
-   select count(*) as consumos_antes from retail.producto_consumos where fuente = 'medido' and producto_id = :'prod' \\gset
+   select count(*) as consumos_antes from retail.producto_consumo_medido where producto_id = :'prod' \\gset
    select pg_temp.cierra(:'oid', ${L(["v1", 30], ["v2", 20])}) as c2 \\gset
    select concat_ws(',', pg_temp.eh(:'c1'), :'c2', ${ESTADO}, ${MOV_ENTRADA}, (select inventariado_at is null from retail.producciones where id = :'oid'),
-     (select count(*) from retail.producto_consumos where fuente = 'medido' and producto_id = :'prod') - :consumos_antes);`,
+     (select count(*) from retail.producto_consumo_medido where producto_id = :'prod') - :consumos_antes);`,
   "P0001|cierre_buenas_exceden,OK,terminada,0,t,0"
 );
 caso(
@@ -433,6 +498,17 @@ caso(
      (select bool_or(has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')) ${DE("'fn_costo_servicios_orden','fn_ve_costos_del_taller'")}),
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'cerrar_produccion'));`,
   "t,f,t,f,1"
+);
+
+caso(
+  "F2 ADR-0513: la tabla de lo medido tiene RLS encendido y ninguna política (solo las funciones la leen), y fn_consumo_efectivo está cerrada a la API",
+  `reset role;
+   select concat_ws(',',
+     (select relrowsecurity from pg_class where oid = 'retail.producto_consumo_medido'::regclass),
+     (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'producto_consumo_medido'),
+     (select has_function_privilege('authenticated', 'retail.fn_consumo_efectivo(uuid)', 'execute') or has_function_privilege('anon', 'retail.fn_consumo_efectivo(uuid)', 'execute')),
+     (select prosecdef from pg_proc where oid = 'retail.fn_consumo_efectivo(uuid)'::regprocedure));`,
+  "t,0,f,t"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR})`);

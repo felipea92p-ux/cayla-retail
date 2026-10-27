@@ -95,7 +95,7 @@ export function PuertaDeTienda({
     >
       {ordenable && (
         <>
-          <span className="twc-asa" title="Arrastra para ordenar" aria-hidden>
+          <span className="twc-asa" aria-hidden>
             <GripVertical />
           </span>
           {/* El celular no arrastra: dos botones mueven la tienda un lugar. Solo se ven con el dedo (pointer: coarse). */}
@@ -114,6 +114,8 @@ export function PuertaDeTienda({
         className="twc-cara"
         aria-pressed={activa}
         aria-keyshortcuts={ordenable ? "Alt+ArrowLeft Alt+ArrowRight" : undefined}
+        // El agarre no recibe el puntero (se arrastra toda la tarjeta), así que el atajo de teclado se dice aquí, donde sí aparece al pasar el mouse.
+        title={ordenable ? "Arrastra para ordenar, o Alt + ← →" : undefined}
         onClick={onElegir}
         onKeyDown={
           ordenable

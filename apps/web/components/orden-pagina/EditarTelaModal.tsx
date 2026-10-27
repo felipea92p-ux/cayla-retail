@@ -37,12 +37,12 @@ export function EditarTelaModal({ datos, edicion, onClose }: { datos: OrdenPagin
   const enVuelo = useRef(false);
 
   // Los colores que la orden fabrica, con sus prendas, en el orden de la tabla de cantidades.
-  const colores = useMemo(() => coloresDeLaOrden(datos.lineas.map((l) => ({ colorCodigo: l.colorCodigo, cantidad: l.cantidadPlan }))), [datos.lineas]);
+  const colores = useMemo(() => coloresDeLaOrden(datos.lineas.map((l) => ({ colorCodigo: l.colorCodigo, cantidad: l.cantidadPlan, talla: l.talla }))), [datos.lineas]);
   const coloresDeLaTela = useMemo<ColorDeLaTela[]>(
     () =>
       colores.map((c) => {
         const deLinea = datos.lineas.find((l) => l.colorCodigo === c.colorCodigo);
-        return { codigo: c.colorCodigo, nombre: c.colorCodigo === null ? "Sin color" : (deLinea?.colorNombre ?? c.colorCodigo), hex: deLinea?.colorHex ?? null, prendas: c.cantidad };
+        return { codigo: c.colorCodigo, nombre: c.colorCodigo === null ? "Sin color" : (deLinea?.colorNombre ?? c.colorCodigo), hex: deLinea?.colorHex ?? null, prendas: c.cantidad, tallas: c.tallas };
       }),
     [colores, datos.lineas]
   );
@@ -61,7 +61,7 @@ export function EditarTelaModal({ datos, edicion, onClose }: { datos: OrdenPagin
   const guia = useGuiaCampos(camposDeEditarTela({ faltas, hayCambios: cambio, responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace con lo guardado, así que solo cuenta lo que la persona cambió.
-  const fotoActual = fotoFormulario({ telas: telas.map((t) => [t.insumoId, t.colorCodigo, t.consumoPorPrenda]) });
+  const fotoActual = fotoFormulario({ telas: telas.map((t) => [t.insumoId, t.colorCodigo, t.consumoPorPrenda, t.porTalla ?? null]) });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Cambiaste la tela o los avíos y todavía no se guardó. Si cierras ahora, se pierde lo que cambiaste.");
   function cerrarTrasGuardar() {
@@ -90,7 +90,7 @@ export function EditarTelaModal({ datos, edicion, onClose }: { datos: OrdenPagin
     const firma = responsable.firma();
     let resultado;
     try {
-      resultado = await firmar(createClient().rpc(RPC_GUARDAR_INSUMOS_ORDEN as never, { p_produccion_id: datos.orden.id, p_insumos: insumosParaRpc(telas) } as never), firma);
+      resultado = await firmar(createClient().rpc(RPC_GUARDAR_INSUMOS_ORDEN as never, { p_produccion_id: datos.orden.id, p_insumos: insumosParaRpc(telas, colores) } as never), firma);
     } finally {
       enVuelo.current = false;
     }

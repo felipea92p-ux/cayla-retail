@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 113,
+  "total": 133,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -133,6 +133,7 @@
       "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
+      "Boton «prod-orden.ficha-modelo»",
       "BotonEditar «Editar»",
       "Boton «prod-orden.editar-tela»",
       "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
@@ -164,14 +165,35 @@
       "CampoMonto «Fijo por orden»",
       "button «+ fijo por orden (ponchado, matriz)»"
     ],
+    "components/orden-produccion/FichaDeConsumoHoja.tsx": [
+      "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»",
+      "SegmentoDeslizante «Cuántas cifras»",
+      "CampoTexto «{`Talla ${t}»",
+      "CampoTexto «{variasTallas ? \"Todas las tallas\" : \"Metros por prenda\"}»",
+      "CampoSelect «Avío»",
+      "CampoSelect «Para»",
+      "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
+    ],
     "components/orden-produccion/TelaDeLaOrden.tsx": [
+      "Boton «Ficha del modelo»",
       "CampoSelect «Tela»",
-      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
+      "CampoTexto «{`${unidadDeLaFila}»",
+      "CampoTexto «{`Talla ${x.talla}»",
+      "button «Una cifra para todas las tallas»",
+      "button «Separar por talla»",
       "Casilla «Dejar este consumo como el del modelo»",
       "CampoSelect «Avío»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
       "CampoSelect «Para»",
-      "Boton «+ Agregar avío»"
+      "Boton «+ Agregar avío»",
+      "Casilla «Dejar estos avíos como los del modelo»"
     ]
   }
 }

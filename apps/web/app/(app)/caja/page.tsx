@@ -6,6 +6,9 @@ import { getCategoriasGasto, getContextoGastos, getGastosDeCaja, getProveedoresP
 import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
@@ -118,6 +121,9 @@ async function CajaConDatos({
     getPagosDelDia(caja.ubicacionId, hoy),
     getPagosDelDia(caja.ubicacionId, diaAnterior(hoy)),
   ]);
+  // De quién es lo vendido del turno (ADR-0532): solo donde conviven CAYLA y CLAURE (Lima). Si la base no responde, Caja sale como antes.
+  const [empresasAqui, vendidoPorCaja] = await Promise.all([getEmpresasAqui(caja.ubicacionId), getVendidoPorEmpresaDeCajas([caja.id])]);
+  const repartoEmpresas = repartoDeEmpresas(vendidoPorCaja ? (vendidoPorCaja.get(caja.id) ?? []) : null, empresasAqui);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
   const filas = fallo ? [] : (filasVentas ?? []);
@@ -171,6 +177,7 @@ async function CajaConDatos({
       cierresRecientes={historial}
       contexto={contexto}
       comparativa={pagosHoy && pagosAyer ? { hoy: pagosHoy, ayer: pagosAyer } : null}
+      repartoEmpresas={repartoEmpresas}
       accesos={{
         vender: veModulo(persona, "vender"),
         cambios: veModulo(persona, "cambios"),
