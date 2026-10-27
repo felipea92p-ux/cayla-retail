@@ -176,6 +176,11 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
                     </Boton>
                   </div>
                 </div>
+              ) : vigente.resultado.tipo === "regla" || vigente.resultado.tipo === "error" ? (
+                // Una regla de tienda aprobada o la frase de un error conocido (actividad 7): el texto es el nuestro, tal cual.
+                <Aviso tono="info" titulo={vigente.resultado.tipo === "regla" ? "La regla de la tienda" : "Por qué pasa"}>
+                  {vigente.resultado.texto}
+                </Aviso>
               ) : vigente.resultado.tipo === "sin_acceso" ? (
                 // Vive en un módulo que su rol no tiene (actividad 4): se dice a quién pedírselo, sin llevarla ni enseñarle la pantalla.
                 <Aviso tono="info" titulo="Eso no está en tu menú">

@@ -46,8 +46,9 @@ create table if not exists retail.asistente_preguntas (
   -- La pantalla donde estaba, sin su `?…` (la consulta puede traer lo que buscó).
   ruta text not null check (ruta ~ '^/' and char_length(ruta) <= 300),
   pregunta text not null check (char_length(pregunta) between 2 and 300),
-  -- Lo que respondió: guia (la llevó) · sin_acceso (vive en un módulo que su rol no tiene) · no_existe · fuera_de_tema · basico (sin IA).
-  tipo text not null check (tipo in ('guia', 'sin_acceso', 'no_existe', 'fuera_de_tema', 'basico')),
+  -- Lo que respondió: guia (la llevó) · sin_acceso (vive en un módulo que su rol no tiene) · regla (una regla de tienda aprobada) ·
+  -- error (la frase de un error conocido) · no_existe · fuera_de_tema · basico (sin IA).
+  tipo text not null check (tipo in ('guia', 'sin_acceso', 'regla', 'error', 'no_existe', 'fuera_de_tema', 'basico')),
   -- De qué era la pregunta, según la IA: como_hacer · regla (del negocio) · por_que (algo que hizo el sistema) · otro. Vacío sin IA.
   tema text check (tema in ('como_hacer', 'regla', 'por_que', 'otro')),
   -- Por qué no hubo IA (solo con tipo basico): sin_clave · sin_respuesta · respuesta_invalida · rechazo · tope.
@@ -56,6 +57,8 @@ create table if not exists retail.asistente_preguntas (
   tramos jsonb not null default '[]'::jsonb check (jsonb_typeof(tramos) = 'array' and jsonb_array_length(tramos) <= 3),
   guia_id text check (guia_id ~ '^[a-z0-9][a-z0-9._-]{0,79}$'),
   modulo text check (char_length(modulo) <= 60),
+  -- Con regla, su id (`lib/asistente/reglas-de-tienda.ts`); con error, la marca del error (`lib/error-escritura.ts`).
+  referencia text check (char_length(referencia) <= 80),
   modelo text check (char_length(modelo) <= 60),
   tokens_entrada integer not null default 0 check (tokens_entrada >= 0),
   tokens_salida integer not null default 0 check (tokens_salida >= 0),
@@ -94,7 +97,8 @@ create or replace function retail.registrar_pregunta_asistente(
   p_tokens_salida integer default 0,
   p_tokens_cache integer default 0,
   p_costo_usd numeric default 0,
-  p_ms integer default null
+  p_ms integer default null,
+  p_referencia text default null
 )
 returns uuid
 language plpgsql
@@ -119,21 +123,21 @@ begin
   end if;
   insert into retail.asistente_preguntas (
     cuenta_id, persona_id, ubicacion_id, ruta, pregunta, tipo, tema, motivo, tramos, guia_id, modulo, modelo,
-    tokens_entrada, tokens_salida, tokens_cache, costo_usd, ms
+    tokens_entrada, tokens_salida, tokens_cache, costo_usd, ms, referencia
   ) values (
     auth.uid(), v_persona, p_ubicacion_id, p_ruta, btrim(p_pregunta), p_tipo, p_tema, p_motivo, coalesce(p_tramos, '[]'::jsonb),
     p_guia_id, p_modulo, p_modelo, coalesce(p_tokens_entrada, 0), coalesce(p_tokens_salida, 0), coalesce(p_tokens_cache, 0),
-    coalesce(p_costo_usd, 0), p_ms
+    coalesce(p_costo_usd, 0), p_ms, p_referencia
   )
   returning id into v_id;
   return v_id;
 end;
 $$;
 
-comment on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer) is
+comment on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer, text) is
   'ADR-0529: anota una pregunta a «Pregúntale a CAYLA» (ya limpia de datos personales) y devuelve su id.';
-revoke all on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer) from public, anon;
-grant execute on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer) to authenticated, service_role;
+revoke all on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer, text) from public, anon;
+grant execute on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer, text) to authenticated, service_role;
 
 -- «¿Te sirvió?» y, si no, «¿Qué buscabas?». Solo la cuenta que preguntó, dentro de un día, y cada cosa una sola vez: contestar lo
 -- mismo de nuevo no hace nada (un doble clic no falla); cambiar de opinión no se puede (la cifra del informe no se mueve sola).

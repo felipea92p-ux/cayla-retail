@@ -494,6 +494,14 @@ const HUELLAS: Huella[] = [
 ];
 
 /**
+ * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0529, actividad 7): «¿por qué no me
+ * deja…?» se contesta con la MISMA frase de la pantalla, nunca con una inventada. Solo las fijas (las que llevan un dato del error no).
+ */
+export function frasesDeErrores(): { marca: string; frase: string }[] {
+  return HUELLAS.flatMap((h) => (typeof h.frase === "string" ? [{ marca: h.marca, frase: h.frase }] : []));
+}
+
+/**
  * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
  * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
  * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».

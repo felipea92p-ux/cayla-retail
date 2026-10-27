@@ -22,7 +22,7 @@ const sugerencias: Sugerencia[] = [
 ];
 const AQUI = "/compras/9f3a";
 const tramo = (guia_id: string, paso_id = "", rellenar = "") => ({ guia_id, paso_id, rellenar });
-const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", tramos: [tramo(guia.id, "lista")], ...r });
+const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], ...r });
 const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {
@@ -162,5 +162,33 @@ describe("el tope del mes", () => {
   it("si la base no dijo cuánto se gastó, la IA no se corta (queda el tope de Anthropic de respaldo)", () => {
     expect(seLlegoAlTope(null)).toBe(false);
     expect(seLlegoAlTope(Number.NaN)).toBe(false);
+  });
+});
+
+describe("reglas de tienda y errores (actividad 7): el texto es el aprobado, nunca el de la IA", () => {
+  const regla = { id: "cambio-plazo", pregunta: "plazo de cambio", respuesta: "Un cliente puede cambiar una prenda hasta 15 días después.", fuente: "R-38", estado: "aprobada" as const };
+  const error = { marca: "caja_cerrada", frase: "La caja está cerrada: ábrela y vuelve a intentar." };
+  const conocimiento = { reglas: [regla], errores: [error] };
+  const con = (r: Partial<RespuestaDeLaIA>) => revisarRespuesta(ia({ tramos: [], ...r }), sugerencias, AQUI, [], "", conocimiento);
+
+  it("una regla de la lista: la persona ve su respuesta aprobada, aunque la IA haya escrito otra cosa", () => {
+    expect(con({ tipo: "regla", referencia: "cambio-plazo", texto: "Son 30 días." })).toEqual({ tipo: "regla", texto: regla.respuesta, reglaId: "cambio-plazo" });
+  });
+
+  it("un error de la lista: la misma frase de la pantalla", () => {
+    expect(con({ tipo: "error", referencia: "caja_cerrada", texto: "x" })).toEqual({ tipo: "error", texto: error.frase, marca: "caja_cerrada" });
+  });
+
+  it("una regla o un error que no estaban en la lista: «no lo tengo escrito», nunca una regla inventada", () => {
+    for (const r of [con({ tipo: "regla", referencia: "devolver-30-dias", texto: "Son 30 días." }), con({ tipo: "error", referencia: "regla" })]) {
+      expect(r.tipo).toBe("no_existe");
+      expect(r.tipo === "no_existe" && r.texto).toMatch(/no lo tengo escrito/);
+    }
+  });
+
+  it("al mensaje van las reglas y los errores, cada uno con su id", () => {
+    const m = mensajeDePregunta("plazo de cambio", sugerencias, [], conocimiento);
+    expect(m).toContain('<regla id="cambio-plazo">');
+    expect(m).toContain('<error marca="caja_cerrada">');
   });
 });

@@ -53,8 +53,8 @@ function raiz(palabra: string): string {
   return palabra;
 }
 
-/** Las raíces de un texto, sin las palabras vacías ni las de menos de 3 letras. */
-function raices(texto: string): Set<string> {
+/** Las raíces de un texto, sin las palabras vacías ni las de menos de 3 letras. También las usa `conocimiento.ts`. */
+export function raices(texto: string): Set<string> {
   const salida = new Set<string>();
   for (const palabra of normalizar(texto).split(/[^a-z0-9]+/)) {
     if (palabra.length < 3 || PALABRAS_VACIAS.has(palabra)) continue;

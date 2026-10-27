@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
 import { preseleccionar } from "@/lib/asistente/preseleccion";
+import { erroresParecidos, reglasParecidas } from "@/lib/asistente/conocimiento";
 import { rutasFueraDelMenu } from "@/lib/asistente/sin-acceso";
 import {
   costoEnDolares,
@@ -17,6 +18,7 @@ import {
   seLlegoAlTope,
   type ResultadoAsistente,
 } from "@/lib/asistente/respuesta";
+import { frasesDeErrores } from "@/lib/error-escritura";
 import { limpiarDatosPersonales, sinConsulta } from "@/lib/errores-reglas";
 import { GUIAS } from "@/lib/guias/registro";
 import { hojasDe, menuPara, permisosDe } from "@/lib/menu";
@@ -91,6 +93,8 @@ export async function POST(request: Request) {
   // Las pantallas de un módulo que su rol no tiene: la IA solo puede decir que existen y a quién pedírselas (actividad 4).
   const modulos = persona.modulos.map((m) => m.clave);
   const ajenas = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: rutasFueraDelMenu({ guias: GUIAS, modulos }), rutaActual: "", cuantas: GUIAS_AJENAS_PARA_LA_IA });
+  // Las reglas de tienda APROBADAS y los errores conocidos que más se parecen (actividad 7): la IA elige uno por su id, el texto es el nuestro.
+  const conocimiento = { reglas: reglasParecidas(pregunta), errores: erroresParecidos(pregunta, frasesDeErrores()) };
 
   const supabase = await createClient();
   /** Anota la pregunta y responde. Si la base no la anota (sin la migración, sin respuesta), la respuesta llega igual. */
@@ -114,6 +118,7 @@ export async function POST(request: Request) {
         p_tokens_cache: gasto.tokensCache,
         p_costo_usd: Number(gasto.costoUsd.toFixed(6)),
         p_ms: gasto.ms,
+        p_referencia: resultado.tipo === "regla" ? resultado.reglaId : resultado.tipo === "error" ? resultado.marca : null,
       } as never,
     );
     if (error) console.error(`[asistente] no se anotó la pregunta: ${error.code ?? "sin código"}`);
@@ -141,7 +146,7 @@ export async function POST(request: Request) {
       system: [{ type: "text", text: INSTRUCCIONES, cache_control: { type: "ephemeral" } }],
       // Elegir de una lista corta no pide pensar mucho, y la persona está esperando: el esfuerzo más bajo.
       output_config: { format: zodOutputFormat(RespuestaDeLaIA), effort: "low" },
-      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas) }],
+      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas, conocimiento) }],
     });
   } catch (error) {
     // Lo que se anota lleva el tipo de error y su código, nunca la pregunta (ADR-0424).
@@ -164,5 +169,5 @@ export async function POST(request: Request) {
   // Una respuesta declinada o que no se le puede creer igual costó: se anota con su gasto.
   if (respuesta.stop_reason === "refusal") return basico("rechazo", gasto);
   const cruda = respuesta.parsed_output ?? null;
-  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta), cruda?.tema ?? null, gasto);
+  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta, conocimiento), cruda?.tema ?? null, gasto);
 }
