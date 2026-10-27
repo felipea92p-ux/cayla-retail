@@ -8539,6 +8539,8 @@ export type Database = {
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       // 20260925220000: Inicio módulo apagable + pantalla principal por rol.
       fn_mi_pantalla_principal: { Args: never; Returns: string | null }
+      // 20261027140000 (ADR-0533): la persona de mi cuenta; NULL en una terminal o sin sesión, sin rechazar.
+      fn_mi_persona_id: { Args: never; Returns: string | null }
       // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
       fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {
