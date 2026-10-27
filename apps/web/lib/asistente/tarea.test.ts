@@ -100,7 +100,9 @@ describe("ordenDeLaLista", () => {
     expect(ordenDeLaLista("kiero bender una blusa emma color negro talla m")).toBe("Toca Negro · talla M en la lista");
     expect(ordenDeLaLista("quiero vender un short mom en rojo talla s")).toBe("Toca Rojo · talla S en la lista");
     expect(ordenDeLaLista("vender una casaca talla 28")).toBe("Toca talla 28 en la lista");
+    expect(ordenDeLaLista("quiero vender una blusa emma negro talla m con efectivo")).toBe("Toca Negro · talla M en la lista");
     expect(ordenDeLaLista("me paga en efectivo")).toBeNull();
+    expect(ordenDeLaLista("una blusa negra talla m, paga en efectivo")).toBe("Toca Negra · talla M en la lista");
     expect(ordenDeLaLista("cómo vendo")).toBeNull();
   });
 });

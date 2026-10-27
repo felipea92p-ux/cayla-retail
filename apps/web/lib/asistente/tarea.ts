@@ -126,8 +126,11 @@ function elegirEnLaLista(tarea: readonly PasoTarea[], candidatas: readonly Candi
 export function ordenDeLaLista(pregunta: string): string | null {
   const t = pregunta.toLocaleLowerCase("es");
   const talla = /\btalla\s+(xxs|xs|s|m|l|xl|xxl|xxxl|\d{1,2})\b/.exec(t)?.[1]?.toUpperCase();
-  const color = /\b(?:color|en)\s+([a-záéíóúñ]{3,}(?:\s+(?:claro|oscuro|palo|denim|perla))?)/.exec(t)?.[1];
-  const conMayuscula = color && !/^(la|el|los|las|una|uno|tienda|caja|efectivo|yape|plin|tarjeta)$/.test(color) ? color.charAt(0).toLocaleUpperCase("es") + color.slice(1) : null;
+  // «color X» tal cual, o los colores de siempre por su nombre («una blusa negra talla M», «en rojo»). «en X» solo no basta: «en efectivo».
+  const color =
+    /\bcolor\s+([a-záéíóúñ]{3,}(?:\s+(?:claro|oscuro|palo|denim|perla))?)/.exec(t)?.[1] ??
+    /\b(negr[oa]|blanc[oa]|roj[oa]|azul|verde|beige|rosad[oa]|gris|marr[oó]n|celeste|amarill[oa]|morad[oa]|crema|guinda|mostaza|camel|vino|nude|lila|turquesa|naranja|fucsia|plomo)\b/.exec(t)?.[1];
+  const conMayuscula = color ? color.charAt(0).toLocaleUpperCase("es") + color.slice(1) : null;
   if (!talla && !conMayuscula) return null;
   return `Toca ${[conMayuscula, talla ? `talla ${talla}` : null].filter(Boolean).join(" · ")} en la lista`;
 }
