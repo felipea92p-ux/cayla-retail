@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -31,6 +31,7 @@ export function HojaTallas({
   error = null,
   onListo,
   onAbrirHoja,
+  precioDe,
   onCerrar,
 }: {
   prenda: PrendaRecepcion;
@@ -51,6 +52,8 @@ export function HojaTallas({
   onListo: (prenda: PrendaRecepcion, variantes: VarianteSeparada[]) => void;
   /** «Es nueva» o «+ talla o color»: la pantalla abre la hoja de la prenda y vuelve aquí con la que quedó. */
   onAbrirHoja: (modo: "nueva" | "agregar", prenda: PrendaRecepcion | null) => void;
+  /** El precio de venta de la prenda elegida (Felipe 2026-10-26: «Hacer ahora» lo ofrece una vez identificada); sigue a «Cambiar». */
+  precioDe?: (prenda: PrendaRecepcion) => ReactNode;
   onCerrar: () => void;
 }) {
   const [prenda, setPrenda] = useState<PrendaRecepcion | null>(prendaInicial);
@@ -121,6 +124,7 @@ export function HojaTallas({
             onConteo={(cambios) => setConteo((c) => ({ ...c, ...cambios }))}
             onAbrirHoja={(modo) => onAbrirHoja(modo, prenda)}
           />
+          {prenda && precioDe?.(prenda)}
           {maximo == null && sugeridas != null && prenda && s.contado > 0 && s.contado !== sugeridas && (
             <p className="text-xs text-taupe">Contaste {sugeridas.toLocaleString("es-PE")} de esta prenda: al guardar, pasan a ser {s.contado.toLocaleString("es-PE")}.</p>
           )}

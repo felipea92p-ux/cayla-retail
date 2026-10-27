@@ -33,6 +33,7 @@ export function EnvioCerrado({
   veExistencias,
   responsable,
   prendas,
+  soloSede = false,
   onPrendaVista,
   onCambio,
   onReabierto,
@@ -45,6 +46,8 @@ export function EnvioCerrado({
   veExistencias: boolean;
   responsable: ControlResponsable;
   prendas: ReadonlyMap<string, PrendaRecepcion>;
+  /** Una terminal (ADR-0531): el precio de venta vale solo en su sede; no se ofrece «Todas las sedes». */
+  soloSede?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onCambio: () => void;
@@ -230,12 +233,17 @@ export function EnvioCerrado({
           catalogo={catalogo}
           responsable={responsable}
           prendas={prendas}
+          soloSede={soloSede}
           onPrendaVista={onPrendaVista}
           onListo={() => {
             setHaciendo(null);
             onCambio();
           }}
-          onCerrar={() => setHaciendo(null)}
+          // La prenda de un «crear» ya existe aunque no se hayan metido sus tallas: «Para después» se relee para decirlo.
+          onCerrar={(huboCambio) => {
+            setHaciendo(null);
+            if (huboCambio) onCambio();
+          }}
         />
       )}
 

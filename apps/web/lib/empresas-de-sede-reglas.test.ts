@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa, seVeAqui, soloLasDeAqui, type EmpresaDeSede } from "./empresas-de-sede-reglas";
+import { empresaDelListado, empresaDePrendaAqui, empresaPorMarca, insigniaDeEmpresa, opcionesDeEmpresa, seVeAqui, soloLasDeAqui, type EmpresaDeSede } from "./empresas-de-sede-reglas";
 
 const CAYLA: EmpresaDeSede = { id: "e-cayla", clave: "cayla", nombre: "CAYLA" };
 const CLAURE: EmpresaDeSede = { id: "e-claure", clave: "claure", nombre: "CLAURE" };
@@ -81,5 +81,34 @@ describe("opcionesDeEmpresa: la píldora «Tienda» solo donde hay que elegir", 
     ]);
     expect(opcionesDeEmpresa(TRUJILLO)).toBeNull();
     expect(opcionesDeEmpresa(null)).toBeNull();
+  });
+});
+
+describe("empresaPorMarca y empresaDePrendaAqui (ADR-0532: en Lima manda la marca)", () => {
+  const MARCA_CAYLA = "m-cayla";
+  const CASA = { ...CAYLA, marcaId: MARCA_CAYLA };
+  const LIMA = [CASA, { ...CLAURE, marcaId: null }];
+  it("en Lima, la marca CAYLA es de CAYLA", () => {
+    expect(empresaPorMarca(MARCA_CAYLA, LIMA)?.clave).toBe("cayla");
+  });
+  it("en Lima, otra marca o sin marca es de CLAURE", () => {
+    expect(empresaPorMarca("m-strend", LIMA)?.clave).toBe("claure");
+    expect(empresaPorMarca(null, LIMA)?.clave).toBe("claure");
+    expect(empresaPorMarca("", LIMA)?.clave).toBe("claure");
+  });
+  it("con una sola empresa (Trujillo) o sin lista, la regla no aplica", () => {
+    expect(empresaPorMarca("m-strend", [CASA])).toBeNull();
+    expect(empresaPorMarca("m-strend", null)).toBeNull();
+  });
+  it("sin saber la marca de la casa no decide (nunca pasa a CLAURE lo de CAYLA por un dato que falta)", () => {
+    expect(empresaPorMarca(MARCA_CAYLA, [CAYLA, CLAURE])).toBeNull();
+  });
+  it("una prenda compartida con Trujillo, en Lima, es de CLAURE; en Trujillo, de su dato", () => {
+    const strend = { empresaId: CAYLA.id, marcaId: "m-strend" };
+    expect(empresaDePrendaAqui(strend, LIMA)).toBe(CLAURE.id);
+    expect(empresaDePrendaAqui(strend, [CASA])).toBe(CAYLA.id);
+  });
+  it("una copia vieja del catálogo sin el dato de la marca se queda con su empresa", () => {
+    expect(empresaDePrendaAqui({ empresaId: CAYLA.id }, LIMA)).toBe(CAYLA.id);
   });
 });

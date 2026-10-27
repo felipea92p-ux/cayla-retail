@@ -4,6 +4,8 @@ import { useState, type CSSProperties } from "react";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import type { EmpresasAqui } from "@/lib/empresas-de-sede-reglas";
+import { marcaDeEmpresa, type LineaConEmpresa } from "@/lib/vendido-por-empresa-reglas";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -58,8 +60,14 @@ export function HistorialVentasLista({
   hoyLima,
   totalesPorDia,
   contexto,
+  empresas = null,
+  porVenta = {},
 }: {
   filas: FilaHistorial[];
+  /** Cuánto de cada venta es de cada empresa (`fn_empresa_de_ventas`, ADR-0532), por id de venta. */
+  porVenta?: Record<string, LineaConEmpresa[]>;
+  /** Las empresas de esta vista (ADR-0505): donde conviven CAYLA y CLAURE, la venta que trae prendas de CLAURE lo dice (ADR-0532). */
+  empresas?: EmpresasAqui;
   /** Lo que la cuenta puede hacer: decide qué acciones ofrece el detalle y si el chip del comprobante lleva a resolverlo. */
   contexto: ContextoAccionesSerializable;
   hoyLima: string;
@@ -99,7 +107,7 @@ export function HistorialVentasLista({
                 <div className="rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
                   <ul className="p-1.5">
                     {dia.filas.map((v) => (
-                      <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} puedeFacturar={contexto.puedeFacturar} />
+                      <FilaVenta key={v.id} v={v} onAbrir={() => setAbierta(v)} puedeFacturar={contexto.puedeFacturar} empresas={empresas} lineas={porVenta[v.id] ?? []} />
                     ))}
                   </ul>
                 </div>
@@ -124,7 +132,21 @@ export function HistorialVentasLista({
   );
 }
 
-function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: () => void; puedeFacturar: boolean }) {
+function FilaVenta({
+  v,
+  onAbrir,
+  puedeFacturar,
+  empresas,
+  lineas,
+}: {
+  v: FilaHistorial;
+  onAbrir: () => void;
+  puedeFacturar: boolean;
+  empresas: EmpresasAqui;
+  lineas: LineaConEmpresa[];
+}) {
+  // La parte de la venta que no es de CAYLA (ADR-0532): «CLAURE» si es toda suya; si es mixta, cuánto es suyo.
+  const deEmpresa = marcaDeEmpresa(lineas, empresas);
   const apagado = v.anulada ? "text-tinta/50" : "text-tinta";
   const subtitulo = subtituloDePrendas(v.piezas, v.unidades);
   const meta = [v.hora, nombreCortoSede(v.ubicacion), v.clienta ?? "Cliente varios", v.vendedor && `Vendido por ${v.vendedor}`].filter(Boolean).join(" · ");
@@ -158,6 +180,15 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
           {/* Solo aparece con el toggle «Con datos de prueba» activo (D-54, ADR-0159): sin él, esta fila
               ni siquiera llega de la base — así que no hace falta un tono de alerta, solo distinguirla. */}
           {v.esPrueba && <Chip tono="neutro">Prueba</Chip>}
+          {deEmpresa && (
+            <Chip
+              tono="pizarra"
+              versalitas={false}
+              title={deEmpresa.toda ? `Toda esta venta es de ${deEmpresa.nombre}.` : `De esta venta, ${soles(deEmpresa.monto)} son de ${deEmpresa.nombre} y el resto de CAYLA.`}
+            >
+              {deEmpresa.toda ? deEmpresa.nombre : `${deEmpresa.nombre} ${soles(deEmpresa.monto)}`}
+            </Chip>
+          )}
           {v.comprobante ? (
             <>
               <span className={`text-xs font-medium ${apagado}`}>

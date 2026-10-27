@@ -48,6 +48,9 @@ const EXCEPCIONES: Record<string, string> = {
   "/compras/fondos": "pestaña de Historial de compras (ADR-0504)",
   "/compras/por-pagar": "pestaña de Historial de compras (ADR-0504)",
   "/compras/plan/historial": "pestaña del Plan de campaña",
+  "/compras/plan/presupuesto": "pestaña del Plan de campaña",
+  "/compras/plan/presupuesto/pagos": "parte del Presupuesto, pestaña del Plan de campaña (su selector «Costos y tope» queda arriba)",
+  "/compras/plan/calendario": "pestaña del Plan de campaña",
   "/compras/plan/resultados": "pestaña del Plan de campaña",
 };
 

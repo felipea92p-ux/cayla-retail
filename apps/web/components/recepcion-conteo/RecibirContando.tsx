@@ -80,6 +80,7 @@ export function RecibirContando({
   lotes,
   veExistencias,
   veDinero,
+  soloSede = false,
   proveedoresParaElegir = [],
   papeles = [],
 }: {
@@ -92,6 +93,8 @@ export function RecibirContando({
   veExistencias: boolean;
   /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
   veDinero: boolean;
+  /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
+  soloSede?: boolean;
   /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
   proveedoresParaElegir?: readonly { id: string; nombre: string }[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
@@ -258,7 +261,7 @@ export function RecibirContando({
       ? "Este envío se anuló: ya no llega."
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
-        : "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
+        : "Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
   // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
   // lleva contado van en el riel y en la balanza.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
@@ -395,6 +398,7 @@ export function RecibirContando({
           sede={sedeActual.etiqueta}
           responsable={responsable}
           veDinero={veDinero}
+          soloSede={soloSede}
           proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
@@ -417,6 +421,7 @@ export function RecibirContando({
           veExistencias={veExistencias}
           responsable={responsable}
           prendas={prendas}
+          soloSede={soloSede}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {
