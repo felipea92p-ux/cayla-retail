@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
-import { letrasDelTitulo } from "@/lib/desfile";
+import { Fragment, type CSSProperties } from "react";
+import { letrasDelTitulo } from "../lib/desfile";
 
 /**
  * El título grande de una página («Ropa», «Tu bolsa»…), que sube letra a letra al llegar (la maqueta de la Pasarela, `p-letras`). Promete que el lector
@@ -13,14 +13,17 @@ export function TituloConLetras({ primera, cursiva }: { primera?: string; cursiv
   const enNormal = primera ? primera.split(" ").filter(Boolean).length : 0;
   const dibujar = (desde: number, hasta: number) =>
     palabras.slice(desde, hasta).map((p, k) => (
-      <span key={desde + k} className="t-palabra" aria-hidden="true">
-        {p.letras.map((l) => (
-          <span key={l.n} className="t-letra" style={{ "--l": l.n } as CSSProperties}>
-            {l.c}
-          </span>
-        ))}
+      // El espacio va FUERA de la palabra: dentro de un `inline-block` el espacio final se come y las palabras quedaban pegadas («TODALATIENDA»).
+      <Fragment key={desde + k}>
+        <span className="t-palabra" aria-hidden="true">
+          {p.letras.map((l) => (
+            <span key={l.n} className="t-letra" style={{ "--l": l.n } as CSSProperties}>
+              {l.c}
+            </span>
+          ))}
+        </span>
         {desde + k < palabras.length - 1 ? " " : ""}
-      </span>
+      </Fragment>
     ));
   return (
     <h1 className="t-titulo-letras" aria-label={entero}>

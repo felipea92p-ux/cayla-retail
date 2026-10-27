@@ -1,0 +1,34 @@
+{
+  "guia": "tienda-web.trafico",
+  "ruta": "/tienda-web/trafico",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 12,
+  "controles": {
+    "app/(app)/tienda-web/trafico/page.tsx": [
+      "BotonLimpiar «Limpiar filtros»"
+    ],
+    "components/trafico/ControlesTrafico.tsx": [
+      "Link «{p.title}»",
+      "SegmentoEnlaces «(sin nombre)»"
+    ],
+    "components/trafico/DeDondeVienen.tsx": [
+      "Link «{`${f.nombre}»"
+    ],
+    "components/trafico/FiltrosPuestosTrafico.tsx": [
+      "FiltroPuesto «{`Quitar el filtro ${camino.nombre}»",
+      "FiltroPuesto «{`Quitar el filtro ${ciudad.nombre}»",
+      "BotonLimpiar «Limpiar filtros»"
+    ],
+    "components/trafico/PorQue.tsx": [
+      "button «{guia}»"
+    ],
+    "components/trafico/TablasTrafico.tsx": [
+      "button «{p.nombre}»",
+      "Link «{CAMINOS[c]}»",
+      "Link «{CIUDADES[c].nombre}»"
+    ],
+    "components/trafico/VitrinaTrafico.tsx": [
+      "button «{k === 0 ? \"trafico.prenda\" : undefined}»"
+    ]
+  }
+}

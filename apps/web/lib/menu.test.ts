@@ -303,7 +303,9 @@ const TOPE_HIJAS = 6;
 // Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
 // VENTAS, cerrado (ADR-0430, 2026-10-16): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8); desde que se mudó a
 // «Tienda web», Ventas vuelve a 6 y cabe en el tope general: la excepción se borra y no vuelve.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
+// TIENDA WEB, 7 (Felipe, 2026-10-23; ADR-0495): «Tráfico» entra como séptima hija, entre Recomendaciones y Conf. Tienda, con su propio
+// módulo. Se descartó hacerla pestaña del Resumen: una pestaña no es un módulo (ADR-0306) y la vería todo el que ve el Resumen.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, tiendaWeb: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
