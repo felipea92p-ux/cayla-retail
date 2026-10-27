@@ -138,8 +138,8 @@ export const GUIA_PROD_RESUMEN: Guia = {
     {
       id: "hoy",
       ancla: "prod-resumen.hoy",
-      titulo: "Hoy en el Taller",
-      texto: "Dónde está cada orden abierta ahora: por cortar y en costura siempre, y por plotear, en habilitado, en planchado u otra fase si hay algún lote ahí, con sus prendas, cuántas están afuera y con quién. Ámbar avisa que alguna pide algo. Tocas una tarjeta y te lleva a Órdenes.",
+      titulo: "Lo que ya se fabrica",
+      texto: "No son tareas nuevas: es lo que ya está en marcha. Dónde está cada orden abierta ahora: por cortar y en costura siempre, y por plotear, en habilitado u otra fase si hay algún lote ahí, con sus prendas y cuántas están afuera. Ámbar avisa que alguna pide algo. Tocas una tarjeta y te lleva a Órdenes.",
     },
     {
       id: "tela",

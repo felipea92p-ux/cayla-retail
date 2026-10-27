@@ -234,9 +234,9 @@ export function ResumenProduccionPanel({
         )}
       </section>
 
-      <section data-guia="prod-resumen.hoy" aria-label="Hoy en el Taller" className="space-y-3">
+      <section data-guia="prod-resumen.hoy" aria-label="Lo que ya se está fabricando" className="space-y-3">
         <TituloSeccion dato={hoyEnElTaller?.dato} accion={<EnlaceVer href="/produccion/ordenes">Ver las órdenes</EnlaceVer>}>
-          Hoy en el Taller
+          Lo que ya se está fabricando
         </TituloSeccion>
         {hoyEnElTaller === null ? (
           <Aviso tono="atencion" titulo="No pudimos leer dónde está cada orden">
