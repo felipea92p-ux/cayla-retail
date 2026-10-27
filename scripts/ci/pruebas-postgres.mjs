@@ -66,6 +66,10 @@ export const PRUEBAS = [
   // con él, sin ser líder, solo la propia sede; todas juntas piden CAYLA Global; las cifras cuentan todo el período. ROLLBACK.
   "pruebas:asistente-preguntas-equipo",
 
+  // El informe del lunes (ADR-0529, act. 10): lo arma el cron o el líder; una cita inventada o de otra semana se rechaza; una semana,
+  // un informe (no se paga dos veces); su costo entra al tope del mes. ROLLBACK.
+  "pruebas:asistente-informes",
+
   "pruebas:activos-y-fijos",
 
   // La ficha de pago de un gasto fijo (ADR-0452): a quién y cómo se paga, el código del recibo y el contrato; datos bancarios solo

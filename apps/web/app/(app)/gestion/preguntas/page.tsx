@@ -5,7 +5,8 @@ import { PreguntasEquipo } from "@/components/asistente/PreguntasEquipo";
 import { exigirModulo } from "@/lib/persona-actual";
 import { mesActualLima, mesLimaUTC } from "@/lib/fechas-lima";
 import { mesDeParametro } from "@/lib/facturacion-reglas";
-import { getPreguntasEquipo } from "@/lib/asistente/equipo-servidor";
+import { getInformesAsistente, getPreguntasEquipo } from "@/lib/asistente/equipo-servidor";
+import { InformeSemanal } from "@/components/asistente/InformeSemanal";
 import { getAsistenteEncendido } from "@/lib/asistente/sedes-servidor";
 
 // Gestión ▸ Preguntas del equipo (ADR-0529, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» en un mes. Felipe lo
@@ -20,7 +21,13 @@ export default async function PreguntasEquipoPage({ searchParams }: { searchPara
   const mes = mesDeParametro(m, actual);
   const { desde, hasta } = mesLimaUTC(mes.anio, mes.mes);
   const sede = persona.vista === "global" ? null : persona.ubicacionId;
-  const [{ datos, falla }, encendido] = await Promise.all([getPreguntasEquipo(desde, hasta, sede), getAsistenteEncendido(sede)]);
+  // El informe del lunes (actividad 10) junta todas las sedes: solo lo pide quien las ve (el líder o el Admin); la base lo vuelve a exigir.
+  const veInforme = persona.rol === "lider" || persona.esAdmin;
+  const [{ datos, falla }, encendido, informes] = await Promise.all([
+    getPreguntasEquipo(desde, hasta, sede),
+    getAsistenteEncendido(sede),
+    veInforme ? getInformesAsistente() : Promise.resolve(null),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -42,6 +49,7 @@ export default async function PreguntasEquipoPage({ searchParams }: { searchPara
           puedeEncender={persona.modulos.some((x) => x.clave === "configuracion")}
           todasLasSedes={sede === null}
           mes={mes}
+          informe={informes ? <InformeSemanal informes={informes} /> : null}
         />
       ) : null}
     </div>

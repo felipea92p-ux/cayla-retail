@@ -62,6 +62,7 @@
     "pruebas:asistente-preguntas": "node scripts/pruebas/asistente_preguntas.mjs",
     "pruebas:asistente-sedes": "node scripts/pruebas/asistente_sedes.mjs",
     "pruebas:asistente-preguntas-equipo": "node scripts/pruebas/asistente_preguntas_equipo.mjs",
+    "pruebas:asistente-informes": "node scripts/pruebas/asistente_informes.mjs",
     "pruebas:activos-y-fijos": "node scripts/pruebas/activos_y_gastos_fijos.mjs",
     "pruebas:gasto-fijo-ficha": "node scripts/pruebas/gasto_fijo_ficha.mjs",
     "pruebas:activos-carga-inicial": "node scripts/pruebas/activos_carga_inicial.mjs",

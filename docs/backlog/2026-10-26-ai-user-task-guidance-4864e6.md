@@ -25,7 +25,12 @@
 - [ ] **Pegar `20261027165000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261026235000`). Toca
   `fn_exigir_rol_de_terminal` con un reemplazo anclado: si la lista viva no es la esperada, se detiene sin tocar nada.
 - [ ] **Felipe:** darle «Preguntas del equipo» a las encargadas en Roles y accesos, si quiere que lo vean (hoy solo el líder).
-- [ ] 10 · El informe del lunes (vigía de GitHub Actions + Sonnet 5.5).
+- [x] 10 · El informe del lunes: cron de Vercel (los lunes 7:00 de Lima) + Claude Sonnet 5.5, `retail.asistente_informes` (migración
+  `20261027173000`), botón de respaldo en Preguntas del equipo. `pnpm pruebas:asistente-informes` (14 casos). Probado en local por el camino
+  del cron con 8 preguntas de prueba de la semana del 19 oct (ruta `/prueba-informe`, quedan en la base local): 4 mejoras, US$0,009.
+- [ ] **Pegar `20261027173000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261026235000` y `20261027165000`).
+  Hasta entonces el cron del lunes responde 500 (no encuentra las funciones) y lo avisa Sentry: conviene pegar las cuatro migraciones del
+  asistente juntas antes de fusionar el PR.
 - [ ] 11 · Evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro y 375 px, y el PR con `/abrir-pr`.
 - [ ] Ver en producción que un tramo encuentra su pieza a tiempo (en desarrollo, Productos tardó más de 8 s en cargar).
 - [ ] **Felipe:** ¿«¿Cómo anulo una boleta?» debe llevar a Devoluciones («Anular una venta de hoy») o a Comprobantes? Hoy la IA elige Devoluciones.
@@ -44,8 +49,7 @@ actividad y un commit a la vez.
 - ~~8 · Interruptor por sede~~ hecha el 2026-10-27 (ver arriba).
 - ~~9 · Pantalla «Lo que pregunta tu equipo»~~ hecha el 2026-10-27 como «Preguntas del equipo» (ver arriba). Las 5 mejoras del lunes
   se suman a esa pantalla (`components/asistente/PreguntasEquipo.tsx`).
-- **10 · Informe del lunes** (vigía de GitHub Actions + Claude Sonnet 5.5, `claude-sonnet-5-5`; las cifras salen de SQL y cada mejora
-  cita ids de preguntas que existen).
+- ~~10 · Informe del lunes~~ hecha el 2026-10-27 (ver arriba), con un cron de Vercel en vez del vigía de GitHub Actions.
 - **11 · Cierre**: evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro, 375 px y el PR con `/abrir-pr`.
 
 **Piezas que ya existen** (para no rehacerlas): `lib/asistente/` (preselección local, respuesta y revisión de la IA, recorrido,

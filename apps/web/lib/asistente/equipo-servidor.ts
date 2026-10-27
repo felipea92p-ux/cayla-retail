@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { leerPreguntasEquipo, type DatosEquipo } from "@/lib/asistente/equipo";
+import { leerInformes, type InformeLeido } from "@/lib/asistente/informe";
 
 // «Preguntas del equipo» (ADR-0529, actividad 9): lo que lee el servidor. El candado real (el módulo, y qué sede ve cada cuenta) está
 // en la base, `fn_asistente_preguntas_equipo`.
@@ -16,4 +17,12 @@ export async function getPreguntasEquipo(desde: string, hasta: string, ubicacion
   }
   const datos = leerPreguntasEquipo(data);
   return datos ? { datos, falla: null } : { datos: null, falla: "La base respondió algo que esta pantalla no entiende." };
+}
+
+/** Los últimos informes del lunes (actividad 10), el más nuevo primero. `null` si la cuenta no los ve (el informe junta todas las sedes:
+ *  es del líder o del Admin) o la base todavía no tiene la función: la tarjeta no se dibuja. */
+export async function getInformesAsistente(): Promise<InformeLeido[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_asistente_informes" as never, { p_limite: 4 } as never);
+  return error ? null : leerInformes(data);
 }

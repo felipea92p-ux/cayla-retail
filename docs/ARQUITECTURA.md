@@ -2179,7 +2179,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 - `/gestion/preguntas` → Gestión ▸ Preguntas del equipo (ADR-0529, act. 9; módulo `preguntas_equipo`, solo personas): `page.tsx` lee el mes
   (`?m=`) con `getPreguntasEquipo` (`lib/asistente/equipo-servidor.ts` → `retail.fn_asistente_preguntas_equipo`, que pide el módulo y, sin ser
   líder, solo la propia sede; en CAYLA Global, todas). `lib/asistente/equipo.ts` traduce cada respuesta a su caja («Resuelta», «Sin
-  respuesta»…) y `components/asistente/PreguntasEquipo.tsx` dibuja cifras, resúmenes y la lista, que filtra en el navegador.
+  respuesta»…) y `components/asistente/PreguntasEquipo.tsx` dibuja cifras, resúmenes y la lista, que filtra en el navegador. Arriba,
+  `components/asistente/InformeSemanal.tsx` con el último informe del lunes (`getInformesAsistente` → `fn_asistente_informes`).
+- `/api/asistente/informe` → el informe del lunes (ADR-0529, act. 10). `GET` es el cron de Vercel (los lunes 12:00 UTC, `Bearer $CRON_SECRET`,
+  llave de servicio); `POST` es el botón del líder (su sesión). Las dos llaman a `armarInforme` (`lib/asistente/informe-servidor.ts`):
+  `fn_asistente_informes` (¿ya está?) → tope del mes → `fn_asistente_datos_informe` → Claude Sonnet 5.5 (`lib/asistente/informe.ts`:
+  instrucciones, salida estructurada, `revisarInforme`) → `guardar_informe_asistente`, que rechaza una cita que no sea de esa semana.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.

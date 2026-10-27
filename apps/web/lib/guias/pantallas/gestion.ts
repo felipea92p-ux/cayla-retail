@@ -582,6 +582,20 @@ export const GUIA_PREGUNTAS_EQUIPO: Guia = {
       texto: "Cuántas preguntas hubo y de cuántas personas, cuántas se resolvieron, cuántas se quedaron sin respuesta, cuántas piden un acceso y a cuántas no les sirvió. Tocar una cifra deja en la lista solo esas.",
     },
     {
+      id: "informe",
+      ancla: "preguntas.informe",
+      opcional: true,
+      titulo: "Lo que conviene mejorar",
+      texto: "Cada lunes a las 7:00, las preguntas de la semana anterior se vuelven hasta 5 mejoras: algo que CAYLA no hace, algo escondido, una regla sin escribir, un acceso o alguien a quien capacitar. Cada una muestra las preguntas que la sostienen.",
+    },
+    {
+      id: "armar",
+      ancla: "preguntas.armar",
+      opcional: true,
+      titulo: "Si el lunes no salió",
+      texto: "Si el informe de la semana pasada no está, este botón lo arma en unos segundos. Se arma una sola vez por semana. En la demo no lo tocamos.",
+    },
+    {
       id: "pantallas",
       ancla: "preguntas.pantallas",
       opcional: true,

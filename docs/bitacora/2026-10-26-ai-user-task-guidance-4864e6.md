@@ -32,3 +32,11 @@ dónde llevaron las respuestas, qué accesos piden y la lista de preguntas con q
 Por qué así: Felipe eligió mostrar el nombre; por eso el cajón avisa «Tu líder ve lo que preguntas» y el módulo es solo de personas (como
 Rendimiento). Nace sin rol: hoy solo la ve el líder. Felipe se lleva: pegar la migración (después de la de preguntas) y decidir si se la da
 a las encargadas en Roles y accesos.
+
+## 2026-10-27 (El informe del lunes: actividad 10 de ADR-0529)
+Qué hice: cada lunes a las 7:00 de Lima un cron de Vercel junta las preguntas de la semana anterior y Claude Sonnet 5.5 las vuelve en hasta
+5 mejoras (función nueva, mover a la vista, escribir una regla, dar un acceso, capacitar), cada una con sus preguntas; se ve arriba de
+Preguntas del equipo y, si el lunes no salió, el líder lo arma con un botón (`retail.asistente_informes`, migración `20261027173000`).
+Por qué así: el cron de Vercel usa la clave y la llave que ya están en producción (el vigía de GitHub pedía un secreto nuevo); la IA cita
+«p1, p2…» y la base rechaza el informe si una cita no es de esa semana, así no hay evidencia inventada. Medido en local: US$0,009 por informe.
+Felipe se lleva: pegar las cuatro migraciones del asistente juntas antes de fusionar; si no, el cron del lunes da 500.

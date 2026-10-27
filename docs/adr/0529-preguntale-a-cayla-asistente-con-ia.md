@@ -219,6 +219,16 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   la lista a todo el ancho con sus píldoras (a 1440 px, una columna al costado partía las preguntas a media palabra). «Sin respuesta» se lee
   como «Regla sin escribir», «Error sin explicar» o «No existe en CAYLA» según lo que preguntaba. Las 5 mejoras del lunes (actividad 10) se
   suman a esta misma pantalla.
+- **El informe del lunes** (actividad 10, migración `20261027173000_asistente_informes.sql`, ruta `/api/asistente/informe`): **lo arma un
+  trabajo programado de Vercel** (`vercel.json`, los lunes a las 7:00 de Lima) y no un vigía de GitHub Actions como decía «Cómo funciona»:
+  el cron de Vercel entra con `CRON_SECRET` y la llave de servicio, que ya están en producción, y no pide un secreto nuevo. Informa la
+  semana anterior completa (lunes a lunes de Lima). **La IA no ve ids ni sedes**: ve «p1», «p2»… y lo que se respondió; el servidor descarta
+  las citas que no están en la lista y **la base vuelve a rechazar el informe entero** si una cita no es una pregunta de esa semana. Cuántas
+  preguntas sostienen una mejora y de qué sedes se calcula al leer, de las citas. **Una semana, un informe**: correrlo otra vez devuelve el
+  mismo sin llamar a la IA. Si el lunes no salió, el líder lo arma con un botón en la pantalla (la misma lógica, con su sesión). Una semana
+  sin preguntas se anota sin IA. Lo que cuesta entra al tope de US$30 (`fn_asistente_gasto_del_mes` lo suma). Lo ve solo quien ve todas las
+  sedes (el líder o el Admin), porque junta las preguntas de toda CAYLA. Medido en local el 2026-10-27 con 8 preguntas: 4 mejoras, ~1 800
+  tokens de entrada y ~570 de salida, **US$0,009**.
 
 ## Producción
 
