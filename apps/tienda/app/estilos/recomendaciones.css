@@ -10,7 +10,7 @@
 /* ---- La página: escribirla arriba (a la izquierda desde 960 px) y las suyas abajo (a la derecha) ---- */
 .r-pag { display: grid; gap: 36px; padding-block: 28px 8px; }
 .r-cab { display: grid; gap: 14px; align-content: start; min-width: 0; }
-.r-cab h1 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(24.8px, 4.34cqi, 42.2px); line-height: 1.12;  text-wrap: balance; }
+.r-cab h1 { margin: 0; font-family: var(--display); text-transform: uppercase; letter-spacing: -.01em; font-weight: 400; font-size: clamp(24.8px, 4.34cqi, 42.2px); line-height: 1.12;  text-wrap: balance; }
 .r-cab h1 em { font-style: italic; color: var(--rojo); }
 .r-cab > .w-texto-sec { max-width: 48ch; font-size: 15px; line-height: 1.55; }
 
@@ -72,7 +72,7 @@
 .ay-reco-vacio { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .ay-reco-vacio-ic { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 4px; background: var(--papel); color: var(--rojo-profundo); }
 .ay-reco-vacio-ic .ic { width: 22px; height: 22px; }
-.ay-reco-vacio-t { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
+.ay-reco-vacio-t { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; line-height: 1.12; }
 .ay-reco-pasos { list-style: none; margin: 14px 0 0; padding: 16px 0 0; border-top: 1px solid color-mix(in srgb, var(--sand) 60%, var(--taupe)); display: flex; flex-direction: column; gap: 14px; counter-reset: ay-reco; align-self: stretch; }
 .ay-reco-pasos li { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 10px; counter-increment: ay-reco; }
 .ay-reco-pasos li::before { content: counter(ay-reco); grid-row: span 2; font-family: var(--nombre); font-style: italic; font-size: 28px; line-height: 1; color: var(--rojo); font-variant-numeric: lining-nums; }

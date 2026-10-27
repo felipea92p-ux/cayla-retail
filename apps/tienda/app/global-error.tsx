@@ -14,7 +14,7 @@ import "./globals.css";
  */
 export default function ErrorGeneral({ retry, reset }: { error: Error & { digest?: string }; retry?: () => void; reset: () => void }) {
   return (
-    <html lang="es" style={{ "--font-archivo": '"Archivo"', "--font-newsreader": '"Newsreader"' } as React.CSSProperties}>
+    <html lang="es" style={{ "--font-public": '"Public Sans"', "--font-bodoni": '"Bodoni Moda"' } as React.CSSProperties}>
       <body>
         <title>CAYLA · Tienda online</title>
         <div className="tienda">
