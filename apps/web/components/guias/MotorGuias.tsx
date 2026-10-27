@@ -18,7 +18,7 @@ import { leerVistas, marcarVista } from "./vistas";
 //     una sola vez por persona y por pantalla (Felipe, 2026-10-07), diga que sí o que no.
 //   · `?demo=1` en la URL (lo pone «Demo» de Mi perfil al llevarte a otra pantalla) la arranca sola.
 //   · El evento `cayla:abrir-guia` (el mismo «Demo», si ya estás en esa pantalla) también.
-//   · «Pregúntale a CAYLA» (ADR-0529, actividad 3) arranca un TRAMO: la guía corta que empieza en el paso que responde
+//   · «Pregúntale a CAYLA» (ADR-0536, actividad 3) arranca un TRAMO: la guía corta que empieza en el paso que responde
 //     (`?demo=1&paso=…&vez=…`, o el mismo evento con el paso). Al terminarlo, si el recorrido sigue, lleva a la pantalla del
 //     siguiente (`components/guias/recorrido.ts`); si la persona sale, lo que faltaba se olvida.
 

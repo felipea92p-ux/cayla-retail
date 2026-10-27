@@ -12,7 +12,7 @@
 .t-galeria::-webkit-scrollbar { display: none; }
 .t-foto-g { position: relative; margin: 0; aspect-ratio: 4 / 5; background: var(--t-foto); scroll-snap-align: start; overflow: hidden; }
 .t-foto-g img { object-fit: contain; mix-blend-mode: multiply; }
-.t-foto-g figcaption { position: absolute; left: 12px; bottom: 10px; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); }
+.t-foto-g figcaption { position: absolute; left: 12px; bottom: 10px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); }
 .t-foto-g.sin-foto .t-dibujo { display: grid; }
 .t-foto-g .pz { width: 62%; }
 /* Los puntos van SOBRE la foto, abajo (2026-10-16): debajo empujaban el nombre y el precio fuera de la primera pantalla del celular. La
@@ -36,16 +36,54 @@
   }
 }
 
+/* ---- El visor y el flash (G · Pasarela, ADR-0524; la maqueta, `.p-visor` y `.p-flash`): al agregar la prenda, cuatro esquinas encuadran la foto
+   y estalla un flash blanco, una sola vez. Es un adorno: lo que pasó lo dice la línea de abajo del botón, y con «reducir movimiento» no se dibuja. ---- */
+.t-visor { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+.t-visor > i { position: absolute; width: 34px; height: 34px; border: 0 solid var(--t-tinta-fija); opacity: 0; }
+.t-visor > i:nth-of-type(1) { left: 14px; top: 14px; border-width: 1px 0 0 1px; }
+.t-visor > i:nth-of-type(2) { right: 14px; top: 14px; border-width: 1px 1px 0 0; }
+.t-visor > i:nth-of-type(3) { left: 14px; bottom: 14px; border-width: 0 0 1px 1px; }
+.t-visor > i:nth-of-type(4) { right: 14px; bottom: 14px; border-width: 0 1px 1px 0; }
+.t-visor-flash { position: absolute; inset: 0; background: var(--t-papel-fijo); opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .t-visor > i { animation: t-encuadre .9s var(--ease) both; }
+  .t-visor-flash { animation: t-flash-visor .5s ease-out .35s both; }
+}
+/* La llegada de la ficha (la maqueta de la Pasarela): la foto se descubre de arriba abajo y el panel sube en cascada. Solo al cargar la página
+   (`data-entra` lo apaga FichaPrenda al rato); el esqueleto no lo lleva. La que se anima es la foto grande, no la previa de la tarjeta que se tocó:
+   así la foto que ya se veía no se apaga y la grande la descubre encima. */
+@media (prefers-reduced-motion: no-preference) {
+  .t-pdp[data-entra] .t-foto-g img:not(.cp-lupa):not(.t-foto-previa) { animation: t-ficha-cortina 1.4s cubic-bezier(.76, 0, .24, 1) .1s both; }
+  .t-pdp[data-entra] .t-pdp-info > :not(.cp-pdp-cab):not([role="status"]),
+  .t-pdp[data-entra] .cp-pdp-cab > * { animation: t-ficha-sube 1s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(.25s + var(--f, 0) * 75ms); }
+  .t-pdp[data-entra] .cp-pdp-cab > :nth-child(2) { --f: 1; }
+  .t-pdp[data-entra] .cp-pdp-cab > :nth-child(3) { --f: 2; }
+  .t-pdp[data-entra] .t-pdp-info > :nth-child(2) { --f: 3; }
+  .t-pdp[data-entra] .t-pdp-info > :nth-child(3) { --f: 4; }
+  .t-pdp[data-entra] .t-pdp-info > :nth-child(4) { --f: 5; }
+  .t-pdp[data-entra] .t-pdp-info > :nth-child(5) { --f: 6; }
+  .t-pdp[data-entra] .t-pdp-info > :nth-child(n + 6) { --f: 7; }
+}
+@keyframes t-ficha-cortina { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+@keyframes t-ficha-sube { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes t-encuadre { 0% { opacity: 0; transform: scale(1.6); } 30% { opacity: 1; } 70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes t-flash-visor { 0% { opacity: 0; } 15% { opacity: .9; } 100% { opacity: 0; } }
+/* En la computadora el visor encuadra solo la foto grande (la primera); en la tira del celular, la que se ve. */
+@container tienda (min-width: 960px) {
+  .t-galeria .t-foto-g:not(:first-child) .t-visor { display: none; }
+}
+
 /* ---- Los datos ---- */
 .t-pdp-info { display: flex; flex-direction: column; gap: 18px; padding-top: 12px; min-width: 0; }
-.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(36px, 8cqi, 56px); line-height: 1.05; letter-spacing: -.005em; text-wrap: balance; }
+/* G · Pasarela (ADR-0524): el nombre en Didone recta, como el de la maqueta (`.p-panel h1`). */
+.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--nombre); font-style: normal; font-weight: 400; font-size: clamp(36px, 4.2cqi, 58px); line-height: 1.02; letter-spacing: -.01em; text-wrap: balance; }
 /* En el celular la caja del nombre se deshace: el nombre y el precio quedan pegados a la foto (en la primera pantalla) y los chips
    («Nuevo», la campaña) bajan bajo el precio. En la computadora, los chips van sobre el nombre. */
 .cp-pdp-cab { display: contents; }
 .cp-pdp-cab h1 { order: -2; margin-top: 2px; }
 .t-pdp-info > .t-bloque-precio { order: -1; margin-top: -8px; }
 .t-pdp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.t-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 0; background: var(--hueso); color: var(--tinta); }
+.t-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 0; background: var(--hueso); color: var(--tinta); }
 .t-chip.oferta { background: color-mix(in srgb, var(--rojo) 13%, transparent); color: var(--rojo-profundo); }
 /* «Nuevo» y las insignias de Catálogo ▸ Insignias (ADR-0489) se dibujan igual: una sola cara para «lo que CAYLA le marcó a la prenda». */
 .t-chip.nuevo, .t-chip.insignia { background: var(--tinta); color: var(--crema); }
@@ -69,12 +107,12 @@
 
 .t-bloque { display: flex; flex-direction: column; gap: 10px; }
 .t-bloque-precio { gap: 6px; }
-.t-precio.grande { font-size: 20px; gap: 4px; align-items: flex-start; }
+.t-precio.grande { font-size: 18px; letter-spacing: .04em; gap: 10px; align-items: baseline; justify-content: flex-start; }
 .t-precio.grande s { font-size: 15px; }
 .t-precio-nota { font-size: 12px; color: var(--tinta-60); }
 .t-cuenta-linea { font-size: 12.5px; color: var(--rojo-profundo); font-weight: 600; display: flex; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
 .t-cuenta-linea .ic { width: 15px; height: 15px; }
-.t-etq { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
+.t-etq { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); }
 .t-etq b { font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--tinta); font-weight: 600; margin-left: 4px; }
 
 /* Los colores: un círculo con el color de la prenda (dato). El filo sigue al tema para que un color oscuro se vea sobre el oscuro. */
@@ -88,8 +126,8 @@
 /* Las tallas: botones de 48 px de alto (el dedo); una sin stock en la tienda elegida, punteada y con su nota. De 76 px de ancho como
    mínimo: con 64, en la columna de la computadora «Otra tienda» se partía en dos renglones dentro del botón. */
 .t-tallas { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
-.t-talla { height: 48px; border: 1px solid var(--sand); border-radius: 0; background: transparent; font: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--tinta); cursor: pointer; transition: border-color .15s, background-color .15s; }
-.t-talla small { font-size: 10px; font-weight: 600; color: var(--tinta-60); letter-spacing: .02em; white-space: nowrap; }
+.t-talla { height: 48px; border: 1px solid var(--sand); border-radius: 0; background: transparent; font: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--tinta); cursor: pointer; transition: background-color .35s, color .35s, border-color .3s; }
+.t-talla small { font-size: 12px; font-weight: 600; color: var(--tinta-60); letter-spacing: .02em; white-space: nowrap; }
 .t-talla:hover { border-color: var(--tinta); }
 .t-talla[data-agotada] { background: transparent; border-style: dashed; color: var(--tinta-60); }
 .t-talla[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); border-style: solid; }
@@ -102,7 +140,7 @@
 .t-stock-envol { overflow-x: auto; border-block: 1px solid var(--sand); border-radius: 0; background: transparent; }
 .t-stock { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .t-stock th, .t-stock td { padding: 9px 8px; text-align: center; border-top: 1px solid var(--sand); }
-.t-stock thead th { border-top: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
+.t-stock thead th { border-top: 0; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); }
 .t-stock tbody th { text-align: left; font-weight: 500; color: var(--tinta); padding-left: 12px; white-space: nowrap; }
 .t-stock td.hay { color: var(--verde); font-weight: 600; }
 .t-stock td.poco { color: var(--rojo-profundo); font-weight: 700; }

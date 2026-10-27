@@ -28,14 +28,15 @@
    propósito: un hijo «sticky» de un grid solo se mueve dentro de su propia celda. */
 .t-bolsa { display: flex; flex-direction: column; gap: 20px; padding-block: 0 24px; }
 .t-bolsa-lado { display: contents; }
-.t-bolsa-items { display: flex; flex-direction: column; }
+/* G · Pasarela (ADR-0524): la lista de prendas lleva su raya negra arriba (la maqueta, `.p-linea:first-child`). */
+.t-bolsa-items { display: flex; flex-direction: column; border-top: 1px solid var(--tinta); }
 .t-bolsa-item { display: grid; grid-template-columns: 88px 1fr auto; gap: 18px; align-items: start; padding: 24px 0; border-bottom: 1px solid var(--sand); }
 @container tienda (min-width: 700px) { .t-bolsa-item { grid-template-columns: 120px 1fr auto; gap: 24px; } }
 .t-bolsa-item > span { display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; min-width: 0; }
 .t-bolsa-item small { color: var(--tinta-60); font-size: 12.5px; }
 /* La empresa de la prenda, encima de su nombre (ADR-0465): la letra de la insignia de la tarjeta, sin caja. */
-.t-bolsa-empresa { font-size: 9.5px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta-60); }
-.t-bolsa-item > span > b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 22px; line-height: 1.2; letter-spacing: -.005em; }
+.t-bolsa-empresa { font-size: 12px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--tinta-60); }
+.t-bolsa-item > span > b { font-family: var(--nombre); font-style: normal; font-weight: 400; font-size: 22px; line-height: 1.2; letter-spacing: -.005em; }
 .t-bolsa-item .t-bolsa-der b { font-family: var(--sans); font-style: normal; font-size: 15px; letter-spacing: 0; line-height: 1.5; }
 .t-bolsa-item em { font-style: normal; font-size: 12px; color: var(--rojo-profundo); font-weight: 600; }
 .t-bolsa-item .t-ok, .t-bolsa-item .t-traslado { display: flex; gap: 5px; align-items: center; font-weight: 600; font-size: 12px; }
@@ -87,7 +88,7 @@
 .w-bloque[data-estado="sigue"] .w-marca { color: var(--ambar); }
 .w-lista { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .w-bloque[data-estado="sigue"] .w-lista { border-radius: 0; box-shadow: 0 0 0 6px color-mix(in srgb, var(--ambar) 10%, transparent); background: color-mix(in srgb, var(--ambar) 10%, transparent); }
-.w-opcion { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 0; border: 1px solid var(--sand); background: var(--crema); color: var(--tinta); font: inherit; text-align: left; width: 100%; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.w-opcion { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: 0; border: 1px solid var(--sand); background: var(--crema); color: var(--tinta); font: inherit; text-align: left; width: 100%; cursor: pointer; transition: background-color .35s, color .35s, border-color .3s, box-shadow .3s; }
 .w-opcion:hover { border-color: var(--taupe); }
 .w-opcion[aria-pressed="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
 /* Elegir la tienda de recojo es una acción del servidor: la tocada ya se ve elegida mientras llega y las demás se apagan. */
@@ -96,7 +97,7 @@
 .w-opcion:disabled:not([aria-busy="true"]):not([aria-pressed="true"]) { opacity: .55; }
 .w-opcion-cab { display: flex; gap: 10px; align-items: flex-start; }
 .w-opcion-t { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.w-opcion-cab b { font-weight: 600; font-size: 14px; }
+.w-opcion-cab b { font-family: var(--nombre); font-weight: 400; font-size: 22px; line-height: 1.1; }
 .w-opcion-cab small { font-size: 12.5px; color: var(--tinta-60); }
 .w-radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--taupe); margin-top: 1px; display: grid; place-items: center; }
 .w-opcion[aria-pressed="true"] .w-radio { border-color: var(--tinta); }
@@ -104,12 +105,12 @@
 .t-op-tienda .w-opcion-cab > .ic { flex: none; width: 18px; height: 18px; color: var(--taupe); margin-top: 1px; }
 
 /* El resumen y «Separar» */
-.t-resumen { border: 0; border-radius: 0; background: var(--hueso); padding: 32px; display: flex; flex-direction: column; gap: 16px; }
-.t-resumen h3 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; font-weight: 250; font-size: clamp(20px, 2.2cqi, 28px); letter-spacing: .06em; line-height: 1.05; }
+.t-resumen { border: 1px solid var(--tinta); border-radius: 0; background: transparent; padding: 32px; display: flex; flex-direction: column; gap: 16px; }
+.t-resumen h3 { margin: 0; font-family: var(--display); text-transform: none; font-weight: 400; font-size: clamp(26px, 2.2cqi, 36px); letter-spacing: -.01em; line-height: 1.05; }
 .w-resumen { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
 .w-resumen > div { display: flex; justify-content: space-between; gap: 10px; }
 .w-resumen .tot { font-weight: 400; font-size: 15px; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--sand); }
-.w-resumen .tot > :last-child { font-family: var(--nombre); font-size: 26px; font-weight: 400; }
+.w-resumen .tot > :last-child { font-family: var(--nombre); font-size: 34px; font-weight: 400; line-height: 1; }
 .w-resumen small { color: var(--tinta-60); }
 .w-resumen .num { font-variant-numeric: tabular-nums lining-nums; }
 .t-ahorro { color: var(--rojo-profundo); }
@@ -127,8 +128,10 @@
 .t-bolsa-cupon-mio small { font-size: 11.5px; color: var(--tinta-60); }
 
 /* ---- «¡Listo, lo separaste!» ---- */
-.t-separado { padding-top: 22px; }
-.t-separado-cab { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding-top: 6px; }
+.t-separado { padding-top: 22px; perspective: 1400px; }
+/* G · Pasarela (ADR-0524; la maqueta, `.p-invitacion-cara`): la confirmación es una invitación blanca con su filo adentro. Llega de espaldas y se da vuelta. */
+.t-separado-cab { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 44px 28px 40px; background: var(--crema); color: var(--tinta); box-shadow: 0 30px 60px -36px var(--t-sombra-foto); backface-visibility: hidden; }
+.t-separado-cab::before { content: ""; position: absolute; inset: 14px; border: 1px solid var(--tinta); pointer-events: none; }
 .t-separado-cab .w-texto-sec { max-width: 36ch; }
 /* Como la maqueta (`.w-titulo em`) y los títulos de la tienda: la última palabra en cursiva ROJA (en la cuenta, `.w-titulo em` solo
    es cursiva). */
@@ -150,7 +153,8 @@
 .w-tarjeta { border: 1px solid var(--sand); background: var(--papel); border-radius: 0; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .w-tarjeta .t-bolsa-item { grid-template-columns: 56px 1fr auto; padding: 0 0 12px; }
 .w-tarjeta .t-bolsa-item:has(+ .w-resumen) { border-bottom: 0; padding-bottom: 0; }
-.w-tarjeta .t-bolsa-item b { font-weight: 600; }
+.w-tarjeta .t-bolsa-item > span > b { font-weight: 400; }
+.w-tarjeta .t-bolsa-item .t-bolsa-der b { font-weight: 500; }
 .w-tarjeta .w-lbl { justify-content: flex-start; }
 
 /* ---- El estado de un pedido ---- */
@@ -166,7 +170,7 @@
 .w-estado-cab .num { font-variant-numeric: tabular-nums; }
 .w-codigo-caja { border: 1px solid var(--tinta); border-radius: 0; padding: 12px 14px 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--papel); }
 .w-codigo-caja small { font-size: 12px; color: var(--tinta-60); text-align: center; }
-.w-codigo-recojo { font-family: var(--nombre); font-style: italic; font-size: 58px; line-height: 1; letter-spacing: .14em; text-align: center; padding: 10px 0 2px; }
+.w-codigo-recojo { font-family: var(--nombre); font-style: normal; font-size: 64px; line-height: 1; letter-spacing: .14em; text-align: center; padding: 10px 0 2px; }
 .w-linea { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .w-hito { display: grid; grid-template-columns: 26px 1fr; gap: 12px; position: relative; padding-bottom: 16px; font-size: 13.5px; }
 .w-hito::before { content: ""; position: absolute; left: 12px; top: 26px; bottom: 0; width: 2px; background: var(--sand); }
@@ -248,3 +252,14 @@
 /* La tienda de recojo ya elegida (la bolsa es de una sola): sin radio ni clic, con el filo de la elegida. */
 .w-opcion.t-op-fija { cursor: default; border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
 .w-opcion.t-op-fija:hover { border-color: var(--tinta); }
+
+/* ---- La entrada (G · Pasarela, ADR-0524): las prendas de la bolsa y su resumen suben una vez, una tras otra; la invitación de «Separado» se da vuelta. Todo se apaga con
+   «reducir movimiento». ---- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Su esqueleto (`.t-esqueleto`) no sube: la bolsa de verdad sube al llegar, una vez; el esqueleto solo espera. */
+  .t-bolsa-items .t-bolsa-item:not(.t-esqueleto .t-bolsa-item) { animation: t-sube-k 1s var(--ease) calc(.15s + var(--i, 0) * 110ms) both; }
+  .t-resumen:not(.t-esqueleto .t-resumen) { animation: t-sube-k 1s var(--ease) .3s both; }
+  .t-separado-cab { animation: t-voltea 1.3s var(--ease) both; }
+}
+@keyframes t-sube-k { from { opacity: 0; transform: translateY(26px); } }
+@keyframes t-voltea { from { transform: rotateY(-180deg) translateY(30px); opacity: 0; } 40% { opacity: 1; } to { transform: none; } }

@@ -24,6 +24,9 @@ type Props = {
   /** El aviso del Admin como chip de una línea (Punto de venta, spike 2026-09-26): el recuadro de siempre ocupaba
    *  ~60 px del pie del ticket, justo donde el espacio más cuesta, y no cambia nada de lo que se hace. */
   compacto?: boolean;
+  /** La etiqueta a la izquierda de la caja y sin el «Obligatorio para guardar»: el pie de una hoja donde el alto es de la tabla
+   *  (Ajustar stock, Felipe 2026-10-27). Lo que falta lo dice la guía de foco del pie. */
+  enLinea?: boolean;
 };
 
 /**
@@ -40,7 +43,7 @@ type Props = {
  *    y «Actualizar lista». Igual para un líder, incluso trabajando desde casa (A9).
  *  · El Admin (ADR-0178) no pasa por nada de esto: firma él y solo ve un aviso de que no necesita autorización.
  */
-export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false }: Props) {
+export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false, enLinea = false }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
@@ -215,8 +218,8 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   return (
     // `campo`: la etiqueta se oscurece con la caja encendida (ADR-0358, ronda 6).
-    <div ref={raiz} className={`campo relative ${className}`} onKeyDown={alTeclado}>
-      <p className="campo-etiqueta mb-1.5 flex items-center gap-1.5">
+    <div ref={raiz} className={`campo relative ${enLinea ? "flex flex-wrap items-center gap-x-3" : ""} ${className}`} onKeyDown={alTeclado}>
+      <p className={`campo-etiqueta flex items-center gap-1.5 ${enLinea ? "" : "mb-1.5"}`}>
         Responsable <span className="text-rojo" aria-hidden>*</span>
       </p>
       <button
@@ -230,7 +233,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         onClick={abrirOCerrar}
         // La caja que se enciende, de 48 px con su avatar (ADR-0358, ronda 6). Antes, una caja crema propia con borde rojo punteado
         // mientras faltaba: ahora lo dice el «*», «Obligatorio para guardar» y la guía de foco, como en todo campo.
-        className="caja-cayla caja-campo caja-campo-alta disabled:cursor-default disabled:opacity-60"
+        className={`caja-cayla caja-campo disabled:cursor-default disabled:opacity-60 ${enLinea ? "min-w-[14rem] flex-1" : "caja-campo-alta"}`}
       >
         {elegido ? (
           <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} tamano={32} />
@@ -244,7 +247,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
       </button>
       {/* Pantalla abierta sin red (ADR-0210): la lista es la última que se leyó aquí. La base confirma al subir. */}
       {control.deMemoria && (
-        <p className="mt-1.5 text-xs text-ambar-profundo">
+        <p className={`text-xs text-ambar-profundo ${enLinea ? "basis-full" : "mt-1.5"}`}>
           Sin conexión: lista de turno de las {diaYHoraLima(control.deMemoria).hora}. Al subir, el sistema confirma que esa persona estaba de turno.
         </p>
       )}
@@ -325,7 +328,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           destino
         )}
 
-      {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
+      {!elegido && !cargando && !enLinea && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
     </div>
   );
 }

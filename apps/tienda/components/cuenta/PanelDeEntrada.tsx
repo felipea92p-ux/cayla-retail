@@ -19,24 +19,27 @@ import { EntradaViva, PasosDeAcceso, TarjetaConTuNombre } from "./EntradaViva";
 
 /**
  * El marco partido. `alto`: «largo» para un formulario que pasa de una pantalla (el de crear la cuenta), que empieza arriba; «corto»
- * lo centra. `ancho`: «ancho» para el formulario de crear la cuenta, con más campos por fila.
+ * lo centra. `ancho`: «ancho» para el formulario de crear la cuenta, con más campos por fila. `titulo`: ver más abajo.
  */
 export function PantallaDeEntrada({
   panel,
   alto = "corto",
   ancho = "angosto",
+  titulo = "largo",
   children,
 }: {
   panel: ReactNode;
   alto?: "corto" | "largo";
   ancho?: "angosto" | "ancho";
+  /** «corto»: el título es una palabra o dos («Entrar», «Crear cuenta») y va enorme, en mayúsculas, como la maqueta; «largo»: una frase («Te mandamos un enlace…»), en Didone más chica. */
+  titulo?: "corto" | "largo";
   children: ReactNode;
 }) {
   return (
     <EntradaViva>
-      <div className="en-partida" data-alto={alto} data-ancho={ancho}>
+      <div className="en-partida" data-alto={alto} data-ancho={ancho} data-titulo={titulo}>
         <div className="en-lado">
-          <div className="en-form">{children}</div>
+          <div className="en-form t-papel-fijo">{children}</div>
         </div>
         {panel}
       </div>

@@ -81,7 +81,7 @@ function ponerValor(el: HTMLInputElement | HTMLTextAreaElement, valor: string) {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-/** El campo que el asistente puede rellenar (ADR-0529, actividad 6): solo uno dentro de una pieza marcada así, que es una lista blanca. */
+/** El campo que el asistente puede rellenar (ADR-0536, actividad 6): solo uno dentro de una pieza marcada así, que es una lista blanca. */
 const RELLENABLE = '[data-asistente="rellenable"]';
 
 /**

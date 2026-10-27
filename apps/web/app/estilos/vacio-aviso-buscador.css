@@ -149,7 +149,7 @@
   }
   .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   .buscador:has(input:focus-visible) { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); }
-  /* «Lo escribió CAYLA» (ADR-0529, actividad 6): el asistente escribió aquí lo que la persona dijo. La marca va dentro de la caja, a la
+  /* «Lo escribió CAYLA» (ADR-0536, actividad 6): el asistente escribió aquí lo que la persona dijo. La marca va dentro de la caja, a la
      derecha, hasta que la persona la toca o escribe (`marcarLoEscribioCayla`, components/guias/piloto.ts). */
   .buscador[data-lo-escribio-cayla] { border-color: var(--color-taupe); }
   .buscador[data-lo-escribio-cayla]::after {

@@ -1,4 +1,5 @@
 import { BotonDeFormulario } from "@/components/BotonDeFormulario";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -117,9 +118,7 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
         <div className="pf-perfil">
           <header className="pf-cab">
             <span className="t-ceja">Mi perfil</span>
-            <h1>
-              Hola, <em>{cuenta.nombreCorto}.</em>
-            </h1>
+            <TituloConLetras primera="Hola," cursiva={`${cuenta.nombreCorto}.`} />
             <p className="pf-cab-linea">{lineaDeMiembro(miClub?.club ?? null, esDelClub ? (cuenta.clubDesde ?? anioLima()) : null)}</p>
             {aviso === "avisos-sin-activar" && (
               // Recién creada la cuenta: marcó los avisos, pero su ficha del Club ya tenía otro celular (la web no lo cambia).

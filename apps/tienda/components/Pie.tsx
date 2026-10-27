@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { hrefLista } from "@/lib/catalogo";
+import { CREDITOS_DE_ESCUDOS } from "@/lib/escudos-creditos";
 import { hrefLooks } from "@/lib/looks";
 import { TEMAS_DE_AYUDA } from "./ayuda/temas";
 import { Icono } from "./Icono";
@@ -94,6 +95,24 @@ export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; co
           </div>
           <p className="t-pie-legal">
             <span>© {anio} CAYLA</span>
+          </p>
+          {/* Los escudos de las ciudades (cabecera) son de Wikimedia Commons con licencia Creative Commons: piden mencionar al autor y la licencia. */}
+          <p className="t-pie-creditos">
+            Escudos de las ciudades, de Wikimedia Commons, reducidos de tamaño:{" "}
+            {CREDITOS_DE_ESCUDOS.map((c, i) => (
+              <span key={c.clave}>
+                {i > 0 && (i === CREDITOS_DE_ESCUDOS.length - 1 ? " y " : ", ")}
+                <a href={c.hrefArchivo} target="_blank" rel="noopener noreferrer">
+                  {c.ciudad}
+                </a>{" "}
+                (por {c.autor},{" "}
+                <a href={c.hrefLicencia} target="_blank" rel="noopener noreferrer">
+                  {c.licencia}
+                </a>
+                )
+              </span>
+            ))}
+            .
           </p>
         </div>
       </footer>

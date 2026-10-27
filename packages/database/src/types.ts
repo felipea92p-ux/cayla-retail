@@ -6046,6 +6046,8 @@ export type Database = {
       marcar_recomendacion_leida: { Args: { p_id: string }; Returns: Json }
       responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
       archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
+      // Tienda web ▸ Tráfico (ADR-0495; 20261023231000): personas que entraron a la tienda online y hasta qué paso llegaron. Pide el módulo.
+      resumen_trafico_web: { Args: { p_desde: string; p_hasta: string; p_camino?: string; p_ciudad?: string }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string
@@ -6805,6 +6807,48 @@ export type Database = {
           orden: number
         }[]
       }
+      fn_vendido_por_empresa: {
+        Args: {
+          p_comprobante?: string
+          p_desde?: string
+          p_estado?: string
+          p_hasta?: string
+          p_incluir_prueba?: boolean
+          p_pago?: string
+          p_sede_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: {
+          clave: string
+          empresa_id: string
+          nombre: string
+          orden: number
+          total: number
+          unidades: number
+          ventas: number
+        }[]
+      }
+      fn_marcas_de_empresas: {
+        Args: Record<PropertyKey, never>
+        Returns: { empresa_id: string; marca_id: string | null }[]
+      }
+      fn_empresa_de_ventas: {
+        Args: { p_ventas: string[] }
+        Returns: { empresa_id: string; monto: number; venta_id: string }[]
+      }
+      fn_vendido_por_empresa_de_cajas: {
+        Args: { p_cajas: string[] }
+        Returns: {
+          caja_id: string
+          clave: string
+          empresa_id: string
+          nombre: string
+          orden: number
+          total: number
+          unidades: number
+          ventas: number
+        }[]
+      }
       crear_producto_con_empresa: {
         Args: {
           p_al_piso?: boolean
@@ -7441,6 +7485,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_empresa_id?: string
           p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
@@ -7533,6 +7578,7 @@ export type Database = {
         Args: {
           p_busqueda?: string
           p_desde?: string
+          p_empresa_id?: string
           p_hasta?: string
           p_motivo?: string
           p_sububicacion_id?: string
@@ -8495,6 +8541,8 @@ export type Database = {
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       // 20260925220000: Inicio módulo apagable + pantalla principal por rol.
       fn_mi_pantalla_principal: { Args: never; Returns: string | null }
+      // 20261027140000 (ADR-0533): la persona de mi cuenta; NULL en una terminal o sin sesión, sin rechazar.
+      fn_mi_persona_id: { Args: never; Returns: string | null }
       // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
       fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {

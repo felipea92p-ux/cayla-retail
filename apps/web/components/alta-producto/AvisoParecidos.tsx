@@ -8,7 +8,7 @@ import { Casilla } from "@/components/ui/Casilla";
 // 20260918230000). Tres niveles con tres consecuencias distintas — y la
 // consecuencia se ve, no solo se lee:
 //   identico  → bloquea. No hay salida: un nombre identifica a un solo producto.
-//   una_letra → bloquea SALVO que la Líder confirme que es otro ("Top Lily" /
+//   una_letra → bloquea SALVO que quien lo da de alta confirme que es otro ("Top Lily" /
 //               "Top Lili"). La salida es un acto deliberado, no un clic de paso.
 //   parecido  → solo informa. Nunca frena.
 

@@ -182,7 +182,7 @@ describe("avisosDePlazo", () => {
 });
 
 describe("textoCierreHecho", () => {
-  it("dice la cifra que cerró la base, no la que vio el líder", () => {
+  it("dice la cifra que cerró la base, no la que vio quien cierra", () => {
     expect(textoCierreHecho("Tienda TRU", 92)).toBe("92 prendas de Tienda TRU quedaron cerradas sin prenda.");
     expect(textoCierreHecho("Tienda TRU", 1)).toBe("1 prenda de Tienda TRU quedó cerrada sin prenda.");
   });
@@ -205,7 +205,7 @@ describe("errorDeSugerencias", () => {
     expect(r?.texto).toContain("«Blusa negra M»");
   });
   it("otro error no se toca: lo traduce traducirError", () => {
-    expect(errorDeSugerencias({ message: "cola_solo_lider" })).toBeNull();
+    expect(errorDeSugerencias({ message: "cola_sin_modulo" })).toBeNull();
     expect(errorDeSugerencias(null)).toBeNull();
   });
 });

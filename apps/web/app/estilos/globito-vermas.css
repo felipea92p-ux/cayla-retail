@@ -69,7 +69,8 @@
   @media (hover: hover) {
     .ver-mas-pie:hover { background: color-mix(in srgb, var(--color-tinta) 5%, transparent); color: var(--color-tinta); }
   }
-  .ver-mas-enlace { gap: 6px; }
+  /* 24 px de alto como mínimo: el blanco de un control con mouse (Formidable, oficio visual; WCAG 2.5.8). Medía 20. */
+  .ver-mas-enlace { gap: 6px; min-height: 24px; }
   .ver-mas-flecha { width: 16px; height: 16px; flex-shrink: 0; transition: transform 400ms var(--ease-cayla); }
   [aria-expanded="true"] > .ver-mas-flecha { transform: rotate(180deg); }
   /* Las filas de más bajan en su lugar (0fr → 1fr), sin medir alturas; cerradas, no se alcanzan con el teclado (inert). */

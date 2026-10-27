@@ -181,9 +181,19 @@ ${VISTAS()}\nrollback;`),
     correr(`${PARTIR()}${insignia("a", "ZZ Desactivada", { activo: false })}${VISTAS()}\nrollback;`),
     "-",
   );
+  // ADR-0534 (20261027164000): lo que crea una integrante nace aprobado y se ve; ya no nacen pendientes. Las que quedaron
+  // pendientes de antes (nadie las aprobó) siguen sin verse: se arman pasando la fila a «pendiente» a mano.
   esperarLinea(
-    "una insignia que propuso una integrante y nadie aprobó no se ve",
+    "una insignia que crea una integrante nace aprobada (ADR-0534) y se ve",
+    correr(`${PARTIR(MICAELA)}${insignia("a", "ZZ De la integrante")}
+select (select estado from retail.etiquetas where id = :'e_a') || '|' || (${VISTAS().replace(/;$/, "")});
+rollback;`),
+    "aprobado|ZZ De la integrante",
+  );
+  esperarLinea(
+    "una insignia que quedó pendiente de antes de ADR-0534 (nadie la aprobó) no se ve",
     correr(`${PARTIR(MICAELA)}${insignia("a", "ZZ Pendiente")}
+update retail.etiquetas set estado = 'pendiente', aprobado_por = null, aprobado_en = null where id = :'e_a';
 select (select estado from retail.etiquetas where id = :'e_a') || '|' || (${VISTAS().replace(/;$/, "")});
 rollback;`),
     "pendiente|-",

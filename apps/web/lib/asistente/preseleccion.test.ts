@@ -1,7 +1,9 @@
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
-import { preseleccionar } from "./preseleccion";
+import { moduloDeRuta } from "../actividad-reglas";
+import { PIDEN_OTRO_MODULO, preseleccionar } from "./preseleccion";
 
 const guia = (ruta: string, titulo: string, resumen: string, pasos: [string, string][] = []): Guia => ({
   id: ruta.slice(1).replaceAll("/", ".") || "inicio",
@@ -95,5 +97,42 @@ describe("con las guías de verdad", () => {
   ])("«%s» → %s", (pregunta, ruta) => {
     const top = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: menu, rutaActual: "/" }).map((s) => s.guia.ruta);
     expect(top).toContain(ruta);
+  });
+});
+
+describe("preseleccionar: las pantallas que cuelgan de una entrada del menú", () => {
+  const HISTORIAL = guia("/caja/historial", "Historial de cierres", "Los cierres de caja de cada día.");
+  const POR_PAGAR = guia("/compras/por-pagar", "Por pagar", "Lo que se le debe a cada proveedor.");
+  const CON_ID = guia("/caja/[id]", "Un cierre", "El detalle de un cierre de caja.");
+  const elegidas = (pregunta: string, menu: string[]) =>
+    preseleccionar({ pregunta, guias: [HISTORIAL, POR_PAGAR, CON_ID], rutasDelMenu: menu, rutaActual: "/" }).map((s) => [s.guia.ruta, s.href]);
+
+  it("una del mismo módulo y sin id se ofrece, y lleva a su dirección («Historial de cierres» cuelga de Caja)", () => {
+    expect(elegidas("¿Dónde veo los cierres de caja?", ["/caja"])).toEqual([["/caja/historial", "/caja/historial"]]);
+  });
+  it("sin la entrada de la que cuelga, no", () => {
+    expect(elegidas("¿Dónde veo los cierres de caja?", ["/cambios"])).toEqual([]);
+  });
+  it("una que pide otro módulo no se ofrece por colgar (Por pagar bajo Historial de compras)", () => {
+    expect(elegidas("¿Cuánto le debemos al proveedor?", ["/compras"])).toEqual([]);
+    expect(elegidas("¿Cuánto le debemos al proveedor?", ["/compras", "/compras/por-pagar"])).toEqual([["/compras/por-pagar", "/compras/por-pagar"]]);
+  });
+
+  it("la lista de las que piden otro módulo está al día con las páginas", () => {
+    // Una pantalla de guía, sin id, cuya página (o un layout de su camino) exige un módulo distinto del que `moduloDeRuta` le da.
+    const piden = GUIAS.filter((g) => !g.ruta.includes("[") && g.ruta !== "/").flatMap((g) => {
+      const direccion = g.ruta.replace(/\/\([^)]+\)/g, "");
+      const modulo = moduloDeRuta(direccion);
+      if (modulo === null) return [];
+      const partes = g.ruta.split("/").filter(Boolean);
+      const exigidos = partes.flatMap((_, i) => {
+        const base = `app/(app)/${partes.slice(0, i + 1).join("/")}`;
+        return [`${base}/layout.tsx`, ...(i === partes.length - 1 ? [`${base}/page.tsx`] : [])]
+          .filter((f) => existsSync(f))
+          .flatMap((f) => [...readFileSync(f, "utf8").matchAll(/exigirModulo\("([a-z_]+)"\)/g)].map((m) => m[1]));
+      });
+      return exigidos.some((m) => m !== modulo) ? [direccion] : [];
+    });
+    expect([...PIDEN_OTRO_MODULO].sort()).toEqual(piden.sort());
   });
 });

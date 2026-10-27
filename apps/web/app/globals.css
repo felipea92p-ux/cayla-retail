@@ -6,6 +6,11 @@
 @import "./estilos/comprobantes-registro.css";
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
+@import "./estilos/centro-avisos.css";
+@import "./estilos/presupuesto-plan.css";
+@import "./estilos/calendario-plan.css";
+@import "./estilos/paso-2-plan.css";
+@import "./estilos/pagos-plan.css";
 @import "./estilos/finanzas.css";
 @import "./estilos/finanzas-dinero.css";
 @import "./estilos/finanzas-recorrido.css";
@@ -84,6 +89,8 @@
 @import "./estilos/tienda-web-conf.css";
 /* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
 @import "./estilos/barra-abajo.css";
+/* Tienda web ▸ Tráfico (ADR-0495): el punto de «ahora mirando» y, después, la vitrina. */
+@import "./estilos/trafico.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -784,10 +791,11 @@ body {
     align-items: center;
     gap: 1.3mm;
   }
-  .etq-cab svg {
+  /* El logo oficial (colibrí + palabra, ADR-0446) en vez del colibrí viejo y «C A Y L A» escrito: 4,6 mm de alto, ~16 mm de ancho. */
+  .etq-cab .etq-logo {
     flex: none;
-    width: 6.2mm;
-    height: auto;
+    width: auto;
+    height: 4.6mm;
   }
   .etq-cab b {
     font-size: 3mm;
@@ -1160,11 +1168,9 @@ body {
     width: 72mm;
     box-sizing: border-box;
     /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba lo justo
-       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo 18 mm (antes 6,
-       Felipe 2026-10-09): la cuchilla de la térmica está más arriba que el cabezal, y con 6 mm el
-       corte caía sobre el pie y el QR salía partido. Este blanco es lo que el papel avanza hasta
-       la cuchilla después de la última línea. */
-    padding: 2mm 4mm 18mm;
+       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo el blanco lo pone
+       `::after` (ver abajo), no el padding. */
+    padding: 2mm 4mm 0;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -1175,6 +1181,19 @@ body {
     font-size: 8pt;
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
+  }
+  /* El blanco del pie para arrancar el ticket sin apretar «avanzar papel» (Felipe 2026-10-26). La cuchilla y la barra de
+     corte están más arriba que el cabezal: después de la última línea el papel tiene que avanzar hasta ahí (6 mm partían el
+     QR; 18 mm de padding, 2026-10-09, tampoco alcanzaban). Un blanco que termina en blanco no sirve: el driver de la térmica
+     recorta las líneas vacías del final y el papel se detiene sobre el pie. Por eso el blanco termina en un punto impreso,
+     que obliga a avanzar los 24 mm completos y queda al filo del corte. */
+  #comprobante-print::after {
+    content: "·";
+    display: block;
+    padding-top: 24mm;
+    text-align: center;
+    font-size: 8pt;
+    line-height: 1;
   }
   #comprobante-print p,
   #comprobante-print dl,
@@ -1191,20 +1210,12 @@ body {
   #comprobante-print .rt-negrita {
     font-weight: 700;
   }
-  /* Cabecera: logo en negro (el PNG es terracota; una térmica solo tiene un tono). */
+  /* Cabecera: el logo oficial en vector y negro (una térmica solo tiene un tono), centrado: ~31 mm de ancho. */
   #comprobante-print .rt-logo {
     display: block;
-    width: 13mm;
-    height: auto;
-    margin: 0 auto 1mm;
-    filter: brightness(0);
-  }
-  #comprobante-print .rt-marca {
-    font-size: 13pt;
-    font-weight: 700;
-    letter-spacing: 0.32em;
-    margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
-    margin-bottom: 0.5mm;
+    width: auto;
+    height: 9mm;
+    margin: 0 auto 1.5mm;
   }
   #comprobante-print .rt-tienda {
     margin-top: 1mm;
@@ -2810,9 +2821,10 @@ html[data-buscando] [data-resultados] {
 #boleta-a4-print {
   display: none;
 }
+/* Arriba 22 mm (Felipe 2026-10-26: con 12 mm el logo salía pegado al borde de la hoja); los lados y abajo siguen en 12. */
 @page a4 {
   size: A4;
-  margin: 12mm;
+  margin: 22mm 12mm 12mm;
 }
 @media print {
   body:has(#boleta-a4-print) > *:not(#boleta-a4-print) {

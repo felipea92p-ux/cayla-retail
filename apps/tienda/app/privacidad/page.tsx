@@ -85,6 +85,13 @@ export default function Privacidad() {
                     comprobantes, los puntos del club que ganas y canjeas, y los cupones que creas y su uso.
                   </li>
                   <li>La prueba de lo que aceptaste: la versión de estos textos, la fecha y la hora.</li>
+                  <li>
+                    Cuando miras la tienda, con o sin cuenta: un número al azar que tu navegador guarda en una cookie (no lleva tu nombre, tu
+                    correo ni tu cuenta, y no lo unimos a ellos), la página o el enlace por donde llegaste (Instagram, WhatsApp, Google…), el
+                    departamento aproximado desde donde entras (lo calcula nuestro proveedor del sitio a partir de tu conexión; tu dirección IP
+                    no la guardamos) y qué prendas abriste, qué talla elegiste, qué pusiste en tu bolsa y si separaste. Si tu navegador pide «no
+                    me rastrees» (Global Privacy Control), no anotamos nada.
+                  </li>
                 </ul>
                 <p>No pedimos datos sensibles (salud, origen, religión u otros).</p>
               </SeccionLegal>
@@ -101,6 +108,10 @@ export default function Privacidad() {
                   </li>
                   <li>
                     <b>Cumplir obligaciones legales</b>: emitir y conservar comprobantes de pago ante SUNAT.
+                  </li>
+                  <li>
+                    <b>Saber cómo se usa la tienda</b>: contar cuánta gente entra, por dónde llega, qué prendas mira y en qué paso se va, para
+                    mejorarla. Solo vemos cifras: nadie en CAYLA ve quién eres.
                   </li>
                 </ol>
                 <p>
@@ -150,6 +161,10 @@ export default function Privacidad() {
                   tu cuenta en «Mi cuenta» ▸ «Eliminar mi cuenta» o pides la cancelación en una tienda: dejas de ser miembro del club. Si tienes
                   un pedido web o un apartado pendiente, primero lo recoges o le pides a la tienda que lo anule. Los comprobantes de pago se
                   conservan el tiempo que exige la ley tributaria, sin tus datos.
+                </p>
+                <p>
+                  Lo que anotamos cuando miras la tienda no te identifica y lo guardamos para comparar con el tiempo. La cookie con el número al
+                  azar dura 90 días desde tu última visita; si la borras, empiezas con otro número.
                 </p>
               </SeccionLegal>
 

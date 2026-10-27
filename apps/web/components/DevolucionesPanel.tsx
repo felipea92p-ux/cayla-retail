@@ -24,8 +24,8 @@ import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
-/** Las pestañas de la parte baja (spike 2026-09-26, ADR-0232): lo que se puede devolver, lo que espera a
- *  un líder y lo que ya se resolvió. */
+/** Las pestañas de la parte baja (spike 2026-09-26, ADR-0232): lo que se puede devolver, lo que espera
+ *  que alguien lo revise y lo apruebe, y lo que ya se resolvió. */
 type Vista = "compras" | "pendientes" | "resueltas";
 
 /** Qué pantallas vecinas ve esta cuenta (ADR-0161): un acceso nunca lleva a «Sin acceso». `cuarentena`
@@ -55,7 +55,7 @@ function ventasDelFiltro(lineas: LineaVentaReciente[], filtro: Filtro): Set<stri
  * Devoluciones, rehecha el 2026-09-18 con el mismo modelo que Cambios (ADR-0125):
  *   A. «Iniciar una devolución» — buscar o escanear; los resultados aparecen ahí mismo.
  *   B. Tres pestañas (2026-09-26, ADR-0232): «Compras» (los últimos 15 días, con filtros), «Por aprobar»
- *      (lo que un líder todavía no resolvió; la cifra de la cabecera abre esta) y «Resueltas».
+ *      (lo que todavía nadie resolvió; la cifra de la cabecera abre esta) y «Resueltas».
  *   Encima, avisos que llevan a las pantallas vecinas: cuarentena (Inventario) y caja cerrada (Caja).
  *   En el celular, «Escanear prenda» y la lupa quedan fijos abajo (acción de la pantalla, ADR-0206).
  * Al iniciar una devolución, los bloques se van y queda el flujo guiado (`DevolucionesFlujo`).
@@ -70,7 +70,6 @@ export function DevolucionesPanel({
   busqueda,
   todasLasSedes,
   puedeVerTodas,
-  esLider,
   sede,
   ubicacionId,
   colaboradora,
@@ -84,7 +83,6 @@ export function DevolucionesPanel({
   busqueda: string;
   todasLasSedes: boolean;
   puedeVerTodas: boolean;
-  esLider: boolean;
   sede: string;
   ubicacionId: string;
   colaboradora: string;
@@ -223,7 +221,6 @@ export function DevolucionesPanel({
         ubicacionId={ubicacionId}
         sede={sede}
         colaboradora={colaboradora}
-        esLider={esLider}
         ahora={ahora}
         onCerrar={cerrarFlujo}
         onNuevo={() => {
@@ -264,7 +261,7 @@ export function DevolucionesPanel({
     compras: { titulo: "Actividad reciente", bajada: `Compras de los últimos 15 días en ${sede}: el plazo para cambiar o devolver.` },
     pendientes: {
       titulo: "Por aprobar",
-      bajada: esLider ? "Revisa cada una: al aprobarla se mueve el stock y se emite la nota de crédito." : "Esperan que un líder las apruebe: hasta entonces el stock no cambia.",
+      bajada: "Revisa cada una: al aprobarla se mueve el stock y se emite la nota de crédito.",
     },
     resueltas: { titulo: "Resueltas", bajada: "Las aprobadas y rechazadas de los últimos 15 días: su nota de crédito y adónde fue cada prenda." },
   };
@@ -277,7 +274,7 @@ export function DevolucionesPanel({
   return (
     // En el celular, aire al pie para que la barra fija no tape la última tarjeta.
     <div className="space-y-10 pb-24 sm:pb-0">
-      <AvisosDevoluciones accesos={accesos} cajaAbierta={cajaAbierta} esLider={esLider} />
+      <AvisosDevoluciones accesos={accesos} cajaAbierta={cajaAbierta} />
 
       <section ref={zonaBusqueda} aria-labelledby="iniciar-devolucion" className="scroll-mt-24 space-y-4">
         <TituloSeccion id="iniciar-devolucion">Iniciar una devolución</TituloSeccion>
@@ -376,14 +373,14 @@ export function DevolucionesPanel({
                   detalle={
                     filtro === "sin_comprobante"
                       ? "Si el cliente no trae la boleta, escanea la prenda o busca su nombre arriba."
-                      : "Si la compra es más antigua, búscala por su boleta: una devolución fuera de plazo la decide un líder."
+                      : "Si la compra es más antigua, búscala por su boleta: una devolución fuera de plazo se decide al revisarla."
                   }
                 />
               )}
             </>
           )}
           {vista === "pendientes" && (
-            <DevolucionesPendientes pendientes={pendientes} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacionId={ubicacionId} sede={sede} />
+            <DevolucionesPendientes pendientes={pendientes} cajaAbierta={cajaAbierta} ahora={ahora} ubicacionId={ubicacionId} sede={sede} />
           )}
           {vista === "resueltas" && <DevolucionesResueltas resueltas={resueltas} ahora={ahora} veComprobantes={accesos.comprobantes} />}
         </section>
@@ -425,10 +422,10 @@ export function DevolucionesPanel({
 }
 
 /** Avisos que llevan a las pantallas vecinas (spike 2026-09-26, ADR-0232). Solo salen si hay algo que
- *  decir y la cuenta ve el módulo al que llevan (ADR-0161). El de caja lo ven los dos roles con su
- *  propio texto: el líder decide el reembolso al aprobar; la colaboradora es quien le avisa a la clienta
- *  antes de registrar. Pizarra y ámbar, nunca rojo: ninguno es urgente. */
-function AvisosDevoluciones({ accesos, cajaAbierta, esLider }: { accesos: AccesosDevoluciones; cajaAbierta: boolean; esLider: boolean }) {
+ *  decir y la cuenta ve el módulo al que llevan (ADR-0161). El de caja es uno solo desde ADR-0534 (quien
+ *  registra también aprueba): sin caja se registra y se aprueba, pero sin reembolso en efectivo.
+ *  Pizarra y ámbar, nunca rojo: ninguno es urgente. */
+function AvisosDevoluciones({ accesos, cajaAbierta }: { accesos: AccesosDevoluciones; cajaAbierta: boolean }) {
   const cuarentena = accesos.cuarentena ?? 0;
   const cajaCerrada = !cajaAbierta;
   if (cuarentena === 0 && !cajaCerrada) return null;
@@ -458,9 +455,7 @@ function AvisosDevoluciones({ accesos, cajaAbierta, esLider }: { accesos: Acceso
           </span>
           <span className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] text-tinta/80 sm:basis-auto">
             <b className="font-semibold text-tinta">La caja está cerrada.</b>{" "}
-            {esLider
-              ? "Puedes aprobar sin reembolso; para devolver en efectivo, abre la caja primero."
-              : "Si el cliente quiere su dinero en efectivo, abre la caja antes de registrar: sin ella no se le puede reembolsar."}
+            Puedes registrar y aprobar sin reembolso; si el cliente quiere su dinero en efectivo, abre la caja primero.
           </span>
           {accesos.caja && (
             <Link href="/caja" className="btn-cayla btn-enlace gap-1 text-[13px] max-sm:ml-11">
