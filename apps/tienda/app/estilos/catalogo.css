@@ -66,6 +66,14 @@
 .t-subcat { flex: none; position: relative; padding: 5px 0 7px; font-size: 13px; color: var(--taupe); white-space: nowrap; transition: color .3s; }
 .t-subcat small { margin-left: 3px; font-size: 11px; font-variant-numeric: tabular-nums; }
 .t-subcat::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--tinta); transform: scaleX(0); transform-origin: left; transition: transform .4s var(--ease); }
+/* La raya única (`NavConIndicador`): con ella, las opciones no dibujan la suya; se desliza hasta la elegida o hasta la que está llegando. */
+.t-subcats { position: relative; }
+.t-indicador { position: absolute; left: 0; top: 0; height: 1px; width: var(--w, 0); background: var(--tinta); transform: translate(var(--x, 0), var(--y, 0)); pointer-events: none; }
+.t-indicador[data-oculta] { opacity: 0; }
+.t-subcats[data-indicador] .t-subcat::after { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .t-indicador { transition: transform .6s cubic-bezier(.2, .7, .2, 1), width .6s cubic-bezier(.2, .7, .2, 1); }
+}
 .t-subcat:hover { color: var(--tinta); }
 .t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 500; }
 .t-subcat[aria-current="true"]::after { transform: scaleX(1); }

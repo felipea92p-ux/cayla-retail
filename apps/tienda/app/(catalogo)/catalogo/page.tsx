@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
+import { NavConIndicador } from "@/components/NavConIndicador";
 import { TituloConLetras } from "@/components/TituloConLetras";
 import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
@@ -437,7 +438,7 @@ export default async function Catalogo({ searchParams }: Props) {
                       })}
                     </nav>
                     {delActivo && delActivo.categorias.length > 1 && (
-                      <nav className="t-subcats" aria-label={`Categorías de ${delActivo.nombre}`}>
+                      <NavConIndicador className="t-subcats" ariaLabel={`Categorías de ${delActivo.nombre}`}>
                         {(() => {
                           const ir = hrefA(prendasDelGrupo(delActivo.clave), { grupo: delActivo.clave, categoria: null }, delActivo.nombre);
                           return (
@@ -464,7 +465,7 @@ export default async function Catalogo({ searchParams }: Props) {
                             </Link>
                           );
                         })}
-                      </nav>
+                      </NavConIndicador>
                     )}
                     {conFiltros && <PalabrasDeFiltros />}
                   </div>
