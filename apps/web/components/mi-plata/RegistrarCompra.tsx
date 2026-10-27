@@ -667,15 +667,15 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
 
       {paso === "papel" && (
         <form
-          className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8"
+          className="flex flex-col gap-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-x-8"
           onSubmit={(e) => {
             e.preventDefault();
             void guardar();
           }}
         >
-          <h2 className="compra-pregunta lg:col-span-2">El papel y el pago</h2>
+          <h2 className="compra-pregunta xl:col-span-2">El papel y el pago</h2>
           {/* En PC el papel va a la izquierda y el pago a la derecha; en el celular las dos cajas «desaparecen» (`contents`) y todo sigue en fila. */}
-          <div className="contents lg:flex lg:flex-col lg:gap-5">
+          <div className="contents xl:flex xl:flex-col xl:gap-5">
           <CampoGuiado id="tipo" guia={guia} titulo="¿Qué papel te dieron?">
             <div role="group" aria-label="¿Qué te dio el proveedor?" className="grid grid-cols-2 gap-2" data-guia="compra.tipo">
               {(Object.keys(TIPOS_PAPEL) as TipoPapel[]).map((k) => (
@@ -714,7 +714,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             </CampoGuiado>
           )}
           </div>
-          <div className="contents lg:flex lg:flex-col lg:gap-5">
+          <div className="contents xl:flex xl:flex-col xl:gap-5">
           <CampoGuiado id="monto" guia={guia} titulo={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}>
             <CampoMonto
               etiqueta={tipo === "sin_comprobante" ? "¿Cuánto dice lo que pagaste?" : "¿Cuánto dice el papel?"}
@@ -825,13 +825,13 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
           )}
           </div>
           {rechazo && (
-            <div className="lg:col-span-2">
+            <div className="xl:col-span-2">
               <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
                 {rechazo.texto}
               </Aviso>
             </div>
           )}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2">
             <PieGuia guia={guia} listo="Todo listo para guardar." conFrase />
           </div>
           <Boton
@@ -841,7 +841,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
             textoCargando="Guardando…"
             disabled={!guia.puedeConfirmar}
             title={guia.frase ?? undefined}
-            className={`${guia.claseConfirmar} lg:col-span-2`}
+            className={`${guia.claseConfirmar} xl:col-span-2`}
             data-guia="compra.guardar"
           >
             {montoLeido != null && montoLeido > 0 ? `Guardar la compra · ${soles(montoLeido)}` : "Guardar la compra"}

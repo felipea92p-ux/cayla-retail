@@ -42,7 +42,11 @@ export const RPC_GUARDAR_CONTEO = "guardar_conteo_envio";
 export const RPC_CERRAR_CONTEO = "cerrar_conteo_envio";
 /** Cambiar el precio de venta de una prenda de este envío, desde la recepción (20261024225000). */
 export const RPC_PRECIO_RECEPCION = "cambiar_precio_en_recepcion";
+/** ¿Se podría guardar este precio?, con el motivo si no: la misma regla que `cambiar_precio_en_recepcion`, sin guardar nada (`20261026180000`). Lectura. */
+export const RPC_VALIDAR_PRECIO = "validar_precio_en_recepcion";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
+/** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
+export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
@@ -676,6 +680,108 @@ export function cambioDePrecioDeVenta(nombre: string, actual: { desde: number; h
   return hoy === nuevo.valor ? null : { tipo: "venta", nombre, antes: hoy, despues: nuevo.valor, alcance };
 }
 
+/** Un precio de hoy: uno solo, o de el más barato al más caro cuando las tallas valen distinto. */
+export type RangoDePrecio = { desde: number; hasta: number };
+
+/** Con qué alcance nace el precio de venta de una prenda (Felipe 2026-10-26): la sede donde se recibe. «Todas las sedes» se elige a propósito. */
+export const ALCANCE_DE_FABRICA = "sede" as const;
+
+/** Lo que la pantalla sabe del precio de venta de una prenda: su precio de hoy, lo escrito, dónde vale y por qué la base no lo aceptaría. */
+export type PrecioEditado = {
+  /** El precio general de hoy (`undefined` mientras se lee, `null` si no hay). */
+  actual: RangoDePrecio | null | undefined;
+  /** El de ESTA sede hoy: el propio de la tienda si lo tiene y, si no, el general. `undefined` si no se pudo leer (entonces vale el general). */
+  actualSede?: RangoDePrecio | null | undefined;
+  valor: string;
+  alcance: "todas" | "sede";
+  /** Por qué la base no guardaría lo escrito (`validar_precio_en_recepcion`): sale junto al campo y se borra al cambiar el precio o el alcance. */
+  rechazo?: string | null;
+};
+
+/** El precio de hoy contra el que se compara lo escrito: el de la sede si el precio vale solo para ella, si no el general. */
+export function hoyDelPrecio(e: Pick<PrecioEditado, "actual" | "actualSede" | "alcance">): RangoDePrecio | null | undefined {
+  return e.alcance === "sede" && e.actualSede !== undefined ? e.actualSede : e.actual;
+}
+
+/** El precio de hoy como se escribe en el campo («79.90»); vacío si no hay uno solo (un rango, o nada). */
+export function precioComoTexto(r: RangoDePrecio | null | undefined): string {
+  return r && r.desde === r.hasta ? r.desde.toFixed(2) : "";
+}
+
+/**
+ * Los cambios de precio de venta de estas prendas, una vez por prenda (aunque esté dos veces), con su nombre: lo escrito contra su precio de
+ * hoy (el de la sede o el general, según dónde valga). Lo usan el cierre (las prendas separadas al contar) y «Hacer ahora» (las que se acaban
+ * de identificar en «Para después»).
+ */
+export function cambiosDeVentaDe(
+  prendas: readonly { productoId: string; nombre: string | null; codigo: string | null }[],
+  ventas: Readonly<Record<string, PrecioEditado>>,
+): (CambioDePrecio & { productoId: string })[] {
+  const r: (CambioDePrecio & { productoId: string })[] = [];
+  for (const p of prendas) {
+    const e = ventas[p.productoId];
+    if (!e || r.some((x) => x.productoId === p.productoId)) continue;
+    const c = cambioDePrecioDeVenta(p.nombre ?? p.codigo ?? "La prenda", hoyDelPrecio(e), e.valor, e.alcance);
+    if (c) r.push({ ...c, productoId: p.productoId });
+  }
+  return r;
+}
+
+/**
+ * Los precios escritos que no se pueden guardar (no es un número, es cero o pasa de S/ 5 000). Un precio escrito mal NO se ignora al guardar:
+ * se dice cuál y por qué, y se lleva al campo. Vacío no es un problema (es «no lo cambio»).
+ */
+export function problemasDePrecio(
+  prendas: readonly { productoId: string; nombre: string | null; codigo: string | null }[],
+  ventas: Readonly<Record<string, PrecioEditado>>,
+): { productoId: string; nombre: string; texto: string }[] {
+  const r: { productoId: string; nombre: string; texto: string }[] = [];
+  for (const p of prendas) {
+    const e = ventas[p.productoId];
+    if (!e || r.some((x) => x.productoId === p.productoId)) continue;
+    const { problema } = leerPrecioNuevo(e.valor);
+    if (problema) r.push({ productoId: p.productoId, nombre: p.nombre ?? p.codigo ?? "La prenda", texto: problema });
+  }
+  return r;
+}
+
+/** El aviso de un precio que no se puede guardar: «Revisa el precio de venta de Blusa Emma: <motivo>. No se guardó nada.» (con el punto que el motivo no traiga). */
+export function avisoDePrecioRechazado(nombre: string, motivo: string, consecuencia: string): string {
+  const m = motivo.trim().replace(/[\s.]+$/, "");
+  return `Revisa el precio de venta de ${nombre}: ${m}. ${consecuencia}`;
+}
+
+/**
+ * Lo que contestó `validar_precio_en_recepcion`: «ok»; «rechazado» con el motivo en palabras de tienda (el de la base, que no dice cuánto cuesta
+ * la prenda: el costo es dato con permiso); o «sin_respuesta» si no se pudo preguntar (la función todavía no está en la base, un corte de red):
+ * entonces se sigue y la base decide al guardar, como antes.
+ */
+export type ResultadoDeValidar = { estado: "ok" } | { estado: "rechazado"; texto: string } | { estado: "sin_respuesta" };
+
+export function leerValidacionDePrecio(data: unknown, error: { message?: string | null; hint?: string | null; code?: string | null } | null | undefined): ResultadoDeValidar {
+  if (error) return { estado: "sin_respuesta" };
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  const ok = r ? booleano(r.ok) : null;
+  if (!r || ok === null) return { estado: "sin_respuesta" };
+  if (ok) return { estado: "ok" };
+  const motivo = texto(r.motivo);
+  const veredicto = resultadoDelPrecio({ hint: texto(r.hint), message: motivo, code: texto(r.codigo) });
+  return { estado: "rechazado", texto: typeof veredicto === "object" ? veredicto.texto : (motivo ?? "No se puede guardar ese precio.") };
+}
+
+/**
+ * Qué dice la base al cambiar el precio de venta desde «Hacer ahora» (`cambiar_precio_en_recepcion` con el envío cerrado): «ok»; «ajena» —la
+ * prenda todavía no es de este envío (se acaba de identificar y aún no entró ni quedó pendiente): se vuelve a intentar con la prenda
+ * adentro—; o el texto de por qué no se pudo. Sin la migración pegada, la base sigue diciendo «solo con el envío abierto»: se avisa con
+ * palabras de tienda, no con el mensaje de la base («antes de cerrarlo»), que aquí confundiría.
+ */
+export function resultadoDelPrecio(error: { message?: string | null; hint?: string | null; code?: string | null; details?: string | null } | null | undefined): "ok" | "ajena" | { texto: string } {
+  if (!error) return "ok";
+  if (error.hint === "precio_prenda_ajena") return "ajena";
+  if (error.hint === "precio_envio_no_abierto") return { texto: "Todavía no se puede cambiar el precio desde aquí. Déjalo como estaba o cámbialo en Catálogo ▸ Productos." };
+  return { texto: mensajeAlGuardar(error, "cambiar el precio de venta") };
+}
+
 export type FaltaCierre = { clave: "contar" | "causa" | "costo" | "responsable"; linea: ClaveLinea | null; texto: string };
 
 /**
@@ -1199,6 +1305,41 @@ export function leerResuelto(data: unknown): { entraron: number; quedaronPendien
   if (!r) return null;
   return { entraron: entero(r.entraron), quedaronPendientes: entero(r.quedaron_pendientes), repetido: booleano(r.repetido) ?? false, conteo: leerConteoDeLinea(r.linea) };
 }
+
+export type ArgsLigarPrenda = { p_despacho_id: string; p_pendiente_id: string; p_producto_id: string };
+
+/**
+ * «Crear ahora» crea la prenda en el catálogo antes de pedir sus tallas. Si la persona deja las tallas «para después», el pendiente tiene que
+ * decirlo: pasa de «por crear» a «sin tallas» de esa prenda (`ligar_prenda_a_pendiente`). Solo un pendiente «crear» espera una prenda; un
+ * «detalle» ya la tiene y lo sin separar no es un pendiente: ahí no hay nada que ligar (`null`).
+ */
+export function argsLigarPrenda(despachoId: string, item: ParaDespues, productoId: string): ArgsLigarPrenda | null {
+  return item.tipo === "crear" ? { p_despacho_id: despachoId, p_pendiente_id: item.pendiente.id, p_producto_id: productoId } : null;
+}
+
+/**
+ * Qué pasó al ligar: «ligado» (el pendiente pasó a «sin tallas»), «sin_cambio» (ya tenía su prenda, o ya se terminó mientras tanto),
+ * «no_disponible» (la base todavía no tiene la función: la web se publica antes de pegar la migración, y entonces todo sigue como antes)
+ * o «fallo» (cualquier otra cosa: la prenda quedó creada igual, pero «Para después» seguirá diciendo «por crear»).
+ */
+export type ResultadoDeLigar = "ligado" | "sin_cambio" | "no_disponible" | "fallo";
+
+export function resultadoDeLigar(data: unknown, error: { code?: string | null; hint?: string | null } | null | undefined): ResultadoDeLigar {
+  if (error) {
+    // PGRST202 (PostgREST) y 42883 (Postgres): la función no existe todavía.
+    if (error.code === "PGRST202" || error.code === "42883") return "no_disponible";
+    return error.hint === "pendiente_ya_resuelto" ? "sin_cambio" : "fallo";
+  }
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  const ligado = r ? booleano(r.ligado) : null;
+  return ligado === null ? "fallo" : ligado ? "ligado" : "sin_cambio";
+}
+
+/** El aviso cuando no se pudo dejar la prenda en «Para después»: la prenda existe, y cómo se arregla. */
+export const AVISO_PRENDA_SIN_LIGAR = {
+  titulo: "La prenda se creó, pero «Para después» todavía la muestra como por crear",
+  detalle: "Se arregla al ponerle tallas y colores. La encuentras también en Catálogo ▸ Productos.",
+} as const;
 
 /** «4 prendas entraron al stock» / «2 quedaron por crear». */
 export function textoResuelto(r: { entraron: number; quedaronPendientes: number }): string {

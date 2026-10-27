@@ -479,6 +479,14 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Para ver solo lo que pasó en el piso, en el almacén o en cuarentena (las dañadas).",
     },
     {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la tienda.
+      id: "tienda",
+      ancla: "movimientos.tienda",
+      opcional: true,
+      titulo: "De qué tienda es",
+      texto: "Para ver por separado lo de CAYLA y lo de CLAURE. En Lima, una prenda de marca CAYLA es de CAYLA y todas las demás son de CLAURE. Con «Ventas» elegido, ves las ventas de cada una.",
+    },
+    {
       id: "limpiar",
       ancla: "movimientos.limpiar",
       opcional: true,
@@ -1828,7 +1836,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
       titulo: "Para después",
-      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora») y lo termina con la cantidad ya contada; lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora»); al identificar la prenda se puede cambiar su precio de venta. Lo hace quien tenga Recibir. En la demo no lo tocamos.",
     },
     {
       id: "reabrir",

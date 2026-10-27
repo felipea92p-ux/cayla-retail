@@ -688,6 +688,7 @@ rollback;`);
     fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",
+    fn_vendido_por_empresa: "De quién es lo vendido (ADR-0532): suma las LÍNEAS de la venta (venta_items), nunca los pagos; venta_pagos solo se lee para el filtro «pagadas con X» del Historial, igual que fn_totales_historial_ventas. El redondeo no cambia nada.",
     fn_ventas_del_dia: "PARCHADA (20261003111000): la lista de medios de la venta no incluye el redondeo.",
     fn_verificar_separaciones: "Suma TODAS las filas de la venta contra el total del apartado: el redondeo cuenta (la suma de filas sigue igualando el total).",
     liquidar_prenda_danada: "Valida su propio medio (efectivo, tarjeta, yape, plin, transferencia): no acepta redondeo.",
