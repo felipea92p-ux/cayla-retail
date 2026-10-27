@@ -15,13 +15,15 @@ export const CLASES: Record<ClaseRespuesta, { nombre: string; plural: string; to
   // Lo que falta construir o escribir: la señal más valiosa de la pantalla.
   sin_respuesta: { nombre: "Sin respuesta", plural: "Sin respuesta", tono: "ambar" },
   sin_acceso: { nombre: "Pide un acceso", plural: "Piden un acceso", tono: "pizarra" },
-  sin_ia: { nombre: "Sin IA", plural: "Sin IA", tono: "neutro" },
-  fuera_de_tema: { nombre: "Fuera de tema", plural: "Fuera de tema", tono: "apagado" },
+  // «Sin IA» no se entendía (prueba ciega de Formidable, 2026-10-27): es lo que la persona vio, las demos parecidas.
+  sin_ia: { nombre: "Solo sugirió demos", plural: "Solo sugirió demos", tono: "neutro" },
+  // Neutro y no `apagado`: apagado se dibuja tachado y quiere decir «anulada»; una pregunta fuera de tema sí cuenta.
+  fuera_de_tema: { nombre: "Fuera de tema", plural: "Fuera de tema", tono: "neutro" },
 };
 
 export const ORDEN_CLASES: readonly ClaseRespuesta[] = ["resuelta", "sin_respuesta", "sin_acceso", "sin_ia", "fuera_de_tema"];
 
-/** La caja de una respuesta (`asistente_preguntas.tipo`). Un tipo que no se conoce cae en «Sin IA»: no se pierde de las cifras. */
+/** La caja de una respuesta (`asistente_preguntas.tipo`). Un tipo que no se conoce cae en «Solo sugirió demos»: no se pierde de las cifras. */
 export function claseDe(tipo: string): ClaseRespuesta {
   if (tipo === "guia" || tipo === "regla" || tipo === "error") return "resuelta";
   if (tipo === "no_existe") return "sin_respuesta";
@@ -41,7 +43,7 @@ export function queRespondio(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo">
     case "error":
       return "Le explicó el error";
     case "sin_acceso":
-      return "Vive en un módulo que su rol no tiene";
+      return "Le falta un acceso";
     case "no_existe":
       return p.tema === "regla" ? "Regla sin escribir" : p.tema === "por_que" ? "Error sin explicar" : "No existe en CAYLA";
     case "fuera_de_tema":
@@ -51,8 +53,22 @@ export function queRespondio(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo">
         ? "Sin IA: se gastó el tope del mes"
         : p.motivo === "sin_clave"
           ? "Sin IA: falta la clave"
-          : "Sin IA: buscó entre las guías";
+          : "La IA no respondió a tiempo";
   }
+}
+
+/** Lo que se lee bajo la insignia de una pregunta, corto y con lo importante primero, para que no se corte: «→ Caja», «Le falta:
+ *  Traslados», «Regla sin escribir» (Formidable 2026-10-27: «Vive en un módulo que su rol no tie…» se cortaba antes de decir cuál). */
+export function respuestaCorta(p: Pick<PreguntaEquipo, "tipo" | "tema" | "motivo" | "guiaId" | "modulo">): string {
+  if (p.tipo === "guia") {
+    const pantalla = nombreDeGuia(p.guiaId);
+    return pantalla ? `→ ${pantalla}` : queRespondio(p);
+  }
+  if (p.tipo === "sin_acceso") {
+    const modulo = nombreDeModulo(p.modulo);
+    return modulo ? `Le falta: ${modulo}` : queRespondio(p);
+  }
+  return queRespondio(p);
 }
 
 /** El nombre de la pantalla de una guía, o nada si la guía ya no existe. */

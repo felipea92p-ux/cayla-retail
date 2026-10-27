@@ -75,6 +75,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   // Una respuesta vale para la pregunta que se hizo: si la persona sigue escribiendo, vuelve la búsqueda en vivo.
   const vigente = respuesta && respuesta.pregunta === pregunta.trim() ? respuesta : null;
   const ultima = useRef(0);
+  const enCurso = useRef(false);
 
   /** La demo entera de una pantalla (las «demos que pueden ayudarte»). */
   function llevar(s: Pick<Sugerencia, "href">, cerrar: () => void) {
@@ -102,7 +103,10 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
   async function preguntar(e: FormEvent) {
     e.preventDefault();
     const texto = pregunta.trim();
-    if (texto.length < 2 || preguntando) return;
+    // El candado va en una ref y no en `preguntando`: dos clics en el mismo instante leen el estado de antes y los dos pasaban, anotando
+    // y pagando la pregunta dos veces (/chaos 2026-10-27, DC-01).
+    if (texto.length < 2 || enCurso.current) return;
+    enCurso.current = true;
     const esta = ++ultima.current;
     setPreguntando(true);
     let resultado: Respondida = { pregunta: texto, resultado: { tipo: "basico", motivo: "sin_respuesta" }, preguntaId: null };
@@ -119,6 +123,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
       }
     } catch {
       // Sin red: queda la búsqueda sin IA, que ya está a la vista.
+    } finally {
+      enCurso.current = false;
     }
     if (esta !== ultima.current) return;
     setRespuesta(resultado);
@@ -156,7 +162,9 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
               autoFocus
             />
             <div className="flex justify-end">
-              <Boton peso="primario" type="submit" cargando={preguntando} textoCargando="Pensando…" disabled={pregunta.trim().length < 2}>
+              {/* Con una respuesta a la vista, lo que sigue es «Muéstrame»: «Preguntar» baja a secundario hasta que cambie la pregunta
+                  (Formidable 2026-10-27, ley 2: un solo botón negro). */}
+              <Boton peso={vigente ? "fantasma" : "primario"} type="submit" cargando={preguntando} textoCargando="Pensando…" disabled={pregunta.trim().length < 2}>
                 Preguntar
               </Boton>
             </div>

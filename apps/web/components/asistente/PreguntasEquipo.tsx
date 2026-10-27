@@ -19,13 +19,14 @@ import {
   ORDEN_CLASES,
   porcentaje,
   queRespondio,
+  respuestaCorta,
   type DatosEquipo,
   type FiltroEquipo,
   type PreguntaEquipo,
 } from "@/lib/asistente/equipo";
 
 // Gestión ▸ Preguntas del equipo (ADR-0529, actividad 9). Arriba, las cifras del mes (las que filtran se rellenan al tocarlas); después,
-// dónde las llevó y qué accesos piden; abajo, la lista con sus filtros en una tarjeta, a todo el ancho. Todo se filtra en el navegador:
+// las pantallas que más responden y qué accesos piden; abajo, la lista con sus filtros en una tarjeta, a todo el ancho. Todo se filtra en el navegador:
 // el servidor ya leyó el mes (sin loader, ADR-0149).
 
 const POR_PAGINA = 25;
@@ -44,16 +45,8 @@ const FILTROS: { clave: FiltroEquipo; texto: string }[] = [
   { clave: "no_sirvio", texto: "No le sirvió" },
 ];
 
-/** Lo que se ve bajo «Qué le respondió»: la pantalla a la que la llevó o el módulo que pide. */
-function detalleDe(p: PreguntaEquipo): string | null {
-  if (p.tipo === "sin_acceso") return nombreDeModulo(p.modulo);
-  if (p.tipo === "guia") return nombreDeGuia(p.guiaId);
-  return null;
-}
-
 function FilaPregunta({ p, todasLasSedes }: { p: PreguntaEquipo; todasLasSedes: boolean }) {
   const clase = CLASES[claseDe(p.tipo)];
-  const detalle = detalleDe(p);
   const quien = p.persona ?? "Una terminal";
   return (
     <div className={fila(PLANTILLA)} role="row">
@@ -75,11 +68,16 @@ function FilaPregunta({ p, todasLasSedes }: { p: PreguntaEquipo; todasLasSedes: 
         <Chip tono={clase.tono} title={queRespondio(p)}>
           {clase.nombre}
         </Chip>
-        <span className="mt-1 block truncate text-xs text-taupe">{detalle ? `${queRespondio(p)} · ${detalle}` : queRespondio(p)}</span>
+        <span className="mt-1 block truncate text-xs text-taupe" title={queRespondio(p)}>
+          {respuestaCorta(p)}
+        </span>
       </span>
       <span role="cell">
         {p.sirvio === null ? (
-          <span className="text-xs text-taupe">Sin contestar</span>
+          // Un «—» y no «Sin contestar» en cada fila: casi nadie contesta, y la palabra repetida tapaba el «Sí» y el «No» (Formidable, ley 8).
+          <span className="text-taupe" title="Sin contestar">
+            —<span className="sr-only">Sin contestar</span>
+          </span>
         ) : (
           <Chip tono={p.sirvio ? "verde" : "rojo"}>{p.sirvio ? "Sí" : "No"}</Chip>
         )}
@@ -169,7 +167,7 @@ export function PreguntasEquipo({
       {/* Lo que resume el mes, en una fila sobre la lista: así la lista usa todo el ancho y la pregunta no se parte (ADR-0462). */}
       <div className="grid items-start gap-6 md:grid-cols-2">
         <section className="card-cayla space-y-3 p-5" data-guia="preguntas.pantallas">
-          <TituloSeccion cuenta={datos.pantallas.length || undefined}>Dónde las llevó</TituloSeccion>
+          <TituloSeccion cuenta={datos.pantallas.length || undefined}>Pantallas que más responden</TituloSeccion>
           {datos.pantallas.length === 0 ? (
             <p className="text-sm text-taupe">Todavía ninguna pregunta llevó a una pantalla.</p>
           ) : (

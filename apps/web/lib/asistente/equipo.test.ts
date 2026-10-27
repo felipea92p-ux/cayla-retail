@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
-import { claseDe, filtrarPreguntas, leerPreguntasEquipo, nombreDeGuia, nombreDeModulo, ORDEN_CLASES, porcentaje, queRespondio } from "./equipo";
+import { CLASES, claseDe, filtrarPreguntas, leerPreguntasEquipo, nombreDeGuia, nombreDeModulo, ORDEN_CLASES, porcentaje, queRespondio, respuestaCorta } from "./equipo";
 
 // Los tipos que puede tener una pregunta: el `check` de `asistente_preguntas.tipo` (20261026235000).
 const TIPOS = ["guia", "sin_acceso", "regla", "error", "no_existe", "fuera_de_tema", "basico"] as const;
@@ -26,7 +26,7 @@ describe("queRespondio", () => {
   });
   it("sin IA dice por qué", () => {
     expect(queRespondio({ tipo: "basico", tema: null, motivo: "tope" })).toMatch(/tope/);
-    expect(queRespondio({ tipo: "basico", tema: null, motivo: "sin_respuesta" })).toMatch(/guías/);
+    expect(queRespondio({ tipo: "basico", tema: null, motivo: "sin_respuesta" })).toMatch(/no respondió a tiempo/);
   });
   it("todo tipo tiene su frase", () => {
     for (const t of TIPOS) expect(queRespondio({ tipo: t, tema: null, motivo: null })).not.toBe("");
@@ -92,5 +92,21 @@ describe("porcentaje", () => {
     expect(porcentaje(3, 5)).toBe("60 %");
     expect(porcentaje(1, 3)).toBe("33 %");
     expect(porcentaje(0, 0)).toBeNull();
+  });
+});
+
+describe("respuestaCorta (Formidable 2026-10-27: lo importante primero, sin cortarse)", () => {
+  const base = { tema: null, motivo: null, guiaId: null, modulo: null };
+  it("dice a qué pantalla la llevó y qué acceso le falta, por su nombre", () => {
+    expect(respuestaCorta({ ...base, tipo: "guia", guiaId: GUIAS[0]!.id })).toBe(`→ ${GUIAS[0]!.titulo}`);
+    expect(respuestaCorta({ ...base, tipo: "sin_acceso", modulo: "preguntas_equipo" })).toBe("Le falta: Preguntas del equipo");
+  });
+  it("sin pantalla o sin módulo conocidos, la frase de siempre", () => {
+    expect(respuestaCorta({ ...base, tipo: "guia", guiaId: "ya-no-existe" })).toBe("La llevó a la pantalla");
+    expect(respuestaCorta({ ...base, tipo: "sin_acceso" })).toBe("Le falta un acceso");
+    expect(respuestaCorta({ ...base, tipo: "no_existe", tema: "regla" })).toBe("Regla sin escribir");
+  });
+  it("ninguna caja se dibuja tachada: tachado es «anulada», y toda pregunta cuenta", () => {
+    for (const c of ORDEN_CLASES) expect(CLASES[c].tono).not.toBe("apagado");
   });
 });

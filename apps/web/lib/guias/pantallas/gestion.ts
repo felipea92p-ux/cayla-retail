@@ -599,7 +599,7 @@ export const GUIA_PREGUNTAS_EQUIPO: Guia = {
       id: "pantallas",
       ancla: "preguntas.pantallas",
       opcional: true,
-      titulo: "Dónde las llevó",
+      titulo: "Pantallas que más responden",
       texto: "Las pantallas que más respuestas dieron. Una que se pregunta mucho puede estar escondida: conviene acercarla.",
     },
     {

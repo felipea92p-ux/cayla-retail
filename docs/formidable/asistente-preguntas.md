@@ -2,6 +2,7 @@
 
 - **Fecha / SHA:** 2026-10-27 · `cd71f3a01` (rama `claude/ai-guide-c654db`) · **Dispositivo que manda:** escritorio (Mac mini); el cajón también se usa en la tienda
 - **Pregunta que debería resolver:** Preguntas del equipo → «¿qué no encuentra mi equipo y qué conviene mejorar?»; el cajón → «¿dónde se hace esto?» · **Protagonista:** la mejora (y la pregunta que la sostiene); en el cajón, la respuesta
+- **Estado:** los 3 cambios hechos y medidos el 2026-10-27 (ver Historial).
 - **Veredicto en una línea:** Se entiende en ~5 s y deja claro qué mejorar; le falta que la lista diga a qué módulo le falta acceso (se corta), que «Fuera de tema» no parezca anulada y que el cajón tenga UN solo botón negro después de responder.
 
 ## Notas (0–10)
@@ -69,3 +70,4 @@ A 375 px: la página es larguísima y las preguntas quedan muy abajo. El círcul
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-27 | `cd71f3a01` | 7,7 | 7 | — (propuestos 3, esperan el OK de Felipe) |
+| 2026-10-27 | (este commit) | 8,3 | 8 | Los 3, con el OK de Felipe: un solo botón negro tras responder (y el candado del doble clic de /chaos: una sola petición, una fila), «→ pantalla» / «Le falta: módulo» enteros, «Fuera de tema» sin tachar, «Solo sugirió demos», «Pantallas que más responden», «—» en vez de «Sin contestar» y el «Ver más» de 24 px en la pieza del sistema (sus 10 pantallas). [Medido] blancos propios bajo 24 px: 5 → 0 a 1440 |
