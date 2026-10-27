@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ViewTransition } from "react";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { NavConIndicador } from "@/components/NavConIndicador";
 import { TituloConLetras } from "@/components/TituloConLetras";
@@ -531,8 +532,9 @@ export default async function Catalogo({ searchParams }: Props) {
               <>
                 <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`} data-cortina-lista>
                   {vista.slice(pag.desde, pag.hasta).map((p, i) => (
+                    // Cada tarjeta lleva su nombre: al filtrar, las que siguen se deslizan a su nuevo lugar y las que llegan o se van, entran y salen (`vistas.css`, `.t-carta`).
+                    <ViewTransition key={p.id} name={`t-carta-${p.id.toLowerCase()}`} default="t-carta">
                     <TarjetaPrenda
-                      key={p.id}
                       prenda={p}
                       sede={sede}
                       origenFotos={origenFotos}
@@ -543,6 +545,7 @@ export default async function Catalogo({ searchParams }: Props) {
                       diseno={diseno}
                       coincide={hayFiltros ? coincidenciaDe(filtros, p) : null}
                     />
+                    </ViewTransition>
                   ))}
                 </div>
                 <Paginacion href={href({})} pagina={pag.pagina} paginas={pag.paginas} desde={pag.desde} hasta={pag.hasta} total={vista.length} />
