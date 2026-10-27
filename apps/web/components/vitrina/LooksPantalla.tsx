@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Shirt } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
@@ -15,8 +15,11 @@ import { LookMostrarHoja } from "@/components/vitrina/LookMostrarHoja";
 import {
   chipsDeLook,
   cifrasLooks,
+  conSalidaPorTienda,
   estadoDeLook,
   filtrarLooks,
+  loQueImpideMostrar,
+  motivoPorTienda,
   porQueNoSeVe,
   resumenLook,
   type FiltroLooks,
@@ -46,8 +49,11 @@ export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaL
   const [abierto, setAbierto] = useState<string | null>(null);
   const [interruptor, setInterruptor] = useState<{ id: string; publicado: boolean } | null>(null);
 
-  const cifras = cifrasLooks(looks);
-  const visibles = filtrarLooks(looks, filtro);
+  // Lo que dice la tienda online: un look cuenta como «sale» solo si alguna tienda lo completa (la base da `seVe` con «en alguna tienda» por prenda; ver `conSalidaPorTienda`).
+  const efectivos = useMemo(() => conSalidaPorTienda(looks, porTienda), [looks, porTienda]);
+  const porTiendaListo = porTienda !== null && Object.values(porTienda).some((t) => t.length > 0);
+  const cifras = cifrasLooks(efectivos);
+  const visibles = filtrarLooks(efectivos, filtro);
   const lookAbierto = abierto && abierto !== "nuevo" ? looks.find((l) => l.id === abierto) ?? null : null;
   const lookDelInterruptor = interruptor ? looks.find((l) => l.id === interruptor.id) ?? null : null;
   const alternarFiltro = (f: FiltroLooks) => setFiltro((actual) => (actual === f ? "todos" : f));
@@ -78,7 +84,7 @@ export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaL
       <div className="grid gap-3 sm:grid-cols-2" data-guia="looks.cifras">
         <TarjetaCifra
           punto="verde"
-          etiqueta="Se ven en la web"
+          etiqueta={porTiendaListo ? "Salen en alguna tienda" : "Se ven en la web"}
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
           valor={<CifraQueCuenta valor={cifras.seVen} alMontar />}
@@ -89,14 +95,14 @@ export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaL
         </TarjetaCifra>
         <TarjetaCifra
           punto={cifras.noSeVen > 0 ? "ambar" : "neutro"}
-          etiqueta="Encendidos que no se ven"
+          etiqueta={porTiendaListo ? "Encendidos que no salen" : "Encendidos que no se ven"}
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
           valor={<CifraQueCuenta valor={cifras.noSeVen} alMontar />}
           activa={filtro === "no_se_ven"}
           onClick={() => alternarFiltro("no_se_ven")}
         >
-          {cifras.noSeVen > 0 ? "Una prenda suya ya no se ve en la web" : "Todos los encendidos se ven"}
+          {cifras.noSeVen > 0 ? (porTiendaListo ? "No salen en ninguna tienda: les falta una prenda" : "Una prenda suya ya no se ve en la web") : "Todos los encendidos se ven"}
         </TarjetaCifra>
       </div>
 
@@ -131,8 +137,8 @@ export function LooksPantalla({ lectura, porTienda = null }: { lectura: LecturaL
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="looks.nota">
         <p>
           El cliente ve cada look en «Arma tu look», con el precio de la tienda que elige (con «Todas», el más alto entre ellas) y la campaña
-          encima, y lo agrega completo eligiendo la talla de cada prenda. Un look solo sale si todas sus prendas se ven en la web; el total de
-          cada fila es el que ve con «Todas».
+          encima, y lo agrega completo eligiendo la talla de cada prenda. Un look sale en una tienda solo si TODAS sus prendas están a la venta ahí
+          (los chips dicen en cuáles); el total de cada fila es el que ve con «Todas».
         </p>
       </div>
 
@@ -179,7 +185,10 @@ function CartaLook({
   onInterruptor: () => void;
 }) {
   const estado = estadoDeLook(l);
-  const motivo = porQueNoSeVe(l);
+  // Un look encendido que no sale: primero lo que falta del todo en el catálogo; si no, qué le falta a cada tienda.
+  const deLaBase = estado === "no_se_ve" ? loQueImpideMostrar(l) : null;
+  const deLasTiendas = estado === "no_se_ve" && !deLaBase ? motivoPorTienda(l, porTienda) : null;
+  const motivo = deLaBase ?? deLasTiendas ?? porQueNoSeVe(l);
   const chips = porTienda && porTienda.length > 0 ? chipsDeLook(l, porTienda) : [];
   return (
     <li className="tw-carta" style={{ "--i": i } as CSSProperties} data-oculta={l.publicado ? undefined : ""}>
@@ -213,7 +222,7 @@ function CartaLook({
         )}
         {estado === "no_se_ve" && motivo && (
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ambar-profundo">
-            <Chip tono="ambar">No se ve en la web</Chip>
+            <Chip tono="ambar">{deLasTiendas ? "No sale en ninguna tienda" : "No se ve en la web"}</Chip>
             <span className="min-w-0">{motivo}</span>
           </span>
         )}

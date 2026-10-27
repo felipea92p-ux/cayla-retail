@@ -602,7 +602,7 @@ export const GUIA_VITRINA_LOOKS: Guia = {
       id: "cifras",
       ancla: "looks.cifras",
       titulo: "Cómo están los looks",
-      texto: "Cuántos se ven en la web, y cuántos están encendidos pero no salen porque una prenda suya dejó de verse. Toca una tarjeta y la lista se queda solo con esos.",
+      texto: "Cuántos salen en alguna tienda de la web, y cuántos están encendidos pero no salen en ninguna porque a cada tienda le falta una prenda suya. Toca una tarjeta y la lista se queda solo con esos.",
     },
     {
       id: "lista",

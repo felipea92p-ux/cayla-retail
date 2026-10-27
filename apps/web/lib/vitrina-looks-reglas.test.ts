@@ -5,6 +5,7 @@ import {
   categoriasParaLook,
   avisoDelLook,
   chipsDeLook,
+  conSalidaPorTienda,
   cifrasLooks,
   colorInicial,
   errorDeLook,
@@ -19,6 +20,7 @@ import {
   lookDeJson,
   lookSinCambios,
   loQueImpideMostrar,
+  motivoPorTienda,
   lugarParaGuardar,
   nombreCortoDeTienda,
   MAX_NOMBRE_LOOK,
@@ -418,5 +420,46 @@ describe("armar un look: qué hay en cada tienda", () => {
     const a = avisoDelLook(salidaDelLook(datos, p), p, nombreDe);
     expect(a?.tono).toBe("atencion");
     expect(a?.detalle).toBe("AQP: falta Falda Renata; TRU: falta Falda Renata.");
+  });
+});
+
+// ---- Lo que dice la tienda online de cada look (el contador y el mensaje del ERP) ----
+describe("el ERP dice lo que dice la tienda online", () => {
+  const unLook = (id: string, extra: Partial<Look> = {}): Look =>
+    ({ id, nombre: id, frase: null, publicado: true, lugar: 1, version: 1, piezasDelLook: 2, faltan: 0, seVe: true, total: 10, desde: false, actualizadoEn: null, actualizadoPor: null, piezas: [], ...extra }) as Look;
+  const T = (tienda: string, completo: boolean, piezas: { producto_id: string; hay: boolean }[] = []) => ({
+    sede: `s-${tienda}`, tienda: `Tienda ${tienda}`, completo, faltan: piezas.filter((p) => !p.hay).length,
+    piezas: piezas.map((p) => ({ productoId: p.producto_id, color: "NEG", hay: p.hay, motivo: p.hay ? null : ("sin_stock" as const) })),
+  });
+
+  it("un look que la base da por visto pero ninguna tienda completa, deja de contar como visto (el caso de Felipe: 3 de 3 en el ERP, 1 en la web)", () => {
+    const looks = [unLook("a"), unLook("b"), unLook("c")];
+    const porTienda = { a: [T("TRU", true), T("AQP", false)], b: [T("TRU", false), T("AQP", false)], c: [T("AQP", false), T("TRU", false)] };
+    const efectivos = conSalidaPorTienda(looks, porTienda);
+    expect(efectivos.map((l) => l.seVe)).toEqual([true, false, false]);
+    expect(cifrasLooks(efectivos)).toEqual({ seVen: 1, total: 3, noSeVen: 2 });
+    expect(filtrarLooks(efectivos, "no_se_ven").map((l) => l.id)).toEqual(["b", "c"]);
+    // Lo de la base queda tal cual: no se muta.
+    expect(looks.every((l) => l.seVe)).toBe(true);
+  });
+
+  it("sin el dato por tienda, sin tiendas, o con un look nuevo que aún no está en la lista, queda como lo dijo la base", () => {
+    const looks = [unLook("a"), unLook("b")];
+    expect(conSalidaPorTienda(looks, null).map((l) => l.seVe)).toEqual([true, true]);
+    expect(conSalidaPorTienda(looks, { a: [] }).map((l) => l.seVe)).toEqual([true, true]);
+    expect(conSalidaPorTienda(looks, { zz: [T("TRU", false)] }).map((l) => l.seVe)).toEqual([true, true]);
+  });
+
+  it("un look que la base ya daba por no visto sigue sin verse (no se arregla hacia arriba)", () => {
+    expect(conSalidaPorTienda([unLook("a", { seVe: false })], { a: [T("TRU", true)] })[0].seVe).toBe(false);
+  });
+
+  it("el mensaje dice qué le falta a cada tienda, y no dice nada si sale en alguna o no se sabe", () => {
+    const look = { piezas: [{ productoId: "p1", nombre: "Blusa Alba", color: { codigo: "NEG", nombre: "Negro", hex: null } }, { productoId: "p2", nombre: "Cartera Manuela", color: { codigo: "NEG", nombre: "Negro", hex: null } }] } as unknown as Pick<Look, "piezas">;
+    const m = motivoPorTienda(look, [T("AQP", false, [{ producto_id: "p1", hay: true }, { producto_id: "p2", hay: false }]), T("TRU", false, [{ producto_id: "p1", hay: false }, { producto_id: "p2", hay: false }])]);
+    expect(m).toBe("No sale en ninguna tienda, porque en cada una le falta algo. AQP: falta Cartera Manuela; TRU: falta Blusa Alba y Cartera Manuela.");
+    expect(motivoPorTienda(look, [T("AQP", true), T("TRU", false)])).toBeNull();
+    expect(motivoPorTienda(look, [])).toBeNull();
+    expect(motivoPorTienda(look, null)).toBeNull();
   });
 });

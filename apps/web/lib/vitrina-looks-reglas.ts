@@ -352,6 +352,28 @@ export function porQueNoSeVe(l: Look): string | null {
   return loQueImpideMostrar(l) ?? "No se ve en la web: recarga la pantalla.";
 }
 
+/**
+ * Lo que dice la TIENDA ONLINE de cada look: encendido, con todas sus prendas a la vista Y completo en al menos una tienda. La base responde `seVe` con «cada prenda se ve en la
+ * web en alguna tienda»; la tienda es más exigente (todas en la MISMA tienda, ADR-0468), y por eso el ERP decía «se ve» donde la web no lo mostraba (Felipe 2026-10-27: 3 de 3
+ * en el ERP y 1 en la web). Con lo que dice la base por tienda se corrige aquí `seVe`; sin ese dato (la base no lo dio, o el look es nuevo) o sin tiendas en la web, queda como vino.
+ */
+export function conSalidaPorTienda(looks: readonly Look[], porTienda: LooksPorTienda | null): Look[] {
+  if (!porTienda) return [...looks];
+  return looks.map((l) => {
+    const tiendas = porTienda[l.id];
+    if (!tiendas || tiendas.length === 0 || !l.seVe) return l;
+    return tiendas.some((t) => t.completo) ? l : { ...l, seVe: false };
+  });
+}
+
+/** Por qué un look encendido, con todas sus prendas a la vista, no sale en ninguna tienda: qué le falta a cada una. `null` si sale en alguna (o no se sabe). */
+export function motivoPorTienda(l: Pick<Look, "piezas">, tiendas: readonly LookEnTienda[] | null | undefined): string | null {
+  if (!tiendas || tiendas.length === 0 || tiendas.some((t) => t.completo)) return null;
+  const nombreDe = (p: PiezaEnTienda) => l.piezas.find((x) => x.productoId === p.productoId && x.color.codigo === p.color)?.nombre ?? "una prenda";
+  const porTienda = tiendas.map((t) => `${nombreCortoDeTienda(t.tienda)}: falta ${listaDeNombres(t.piezas.filter((p) => !p.hay).map(nombreDe))}`);
+  return `No sale en ninguna tienda, porque en cada una le falta algo. ${porTienda.join("; ")}.`;
+}
+
 /** El estado de un look para su insignia: se ve, oculto o encendido pero sin verse (algo falta). */
 export type EstadoLook = "se_ve" | "oculto" | "no_se_ve";
 export const estadoDeLook = (l: Look): EstadoLook => (l.seVe ? "se_ve" : l.publicado ? "no_se_ve" : "oculto");
