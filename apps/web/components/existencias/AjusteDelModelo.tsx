@@ -292,7 +292,7 @@ export function PlanillaDelAjuste({
 
       <div className="ajuste-banda">
         {control.separa && (
-          <div className="ajuste-banda-fila">
+          <div className="ajuste-banda-fila ajuste-banda-donde">
             <span className="ajuste-banda-tit">Dónde</span>
             <div role="group" aria-label="Dónde contaste" className="ajuste-opciones">
               {(["almacen", "piso"] as const).map((u) => (
@@ -311,7 +311,7 @@ export function PlanillaDelAjuste({
             </div>
           </div>
         )}
-        <CampoGuiado id="motivo" guia={guia} retiene="fila" className="ajuste-banda-fila">
+        <CampoGuiado id="motivo" guia={guia} retiene="fila" className={`ajuste-banda-fila ${control.separa ? "ajuste-banda-que" : "ajuste-banda-sola"}`}>
           <span id="ajuste-motivo-tit" className="ajuste-banda-tit">
             <ConMarca estado={guia.estado("motivo")} sinAhora>
               Qué pasó
@@ -331,7 +331,7 @@ export function PlanillaDelAjuste({
           />
         </CampoGuiado>
         {m.nota && (
-          <CampoGuiado id="nota" guia={guia} className="ajuste-banda-pie">
+          <CampoGuiado id="nota" guia={guia} className="ajuste-banda-pie ajuste-banda-nota">
             <CampoTexto
               id="ajuste-nota"
               etiqueta={m.nota.etiqueta}
@@ -762,10 +762,10 @@ export function PieDelAjuste({
   const { resumen, problema, guia } = control;
   const n = resumen.tallas;
   return (
-    <div className="pie-hoja-fijo mt-4">
-      <div className="grid gap-3 border-t border-sand pt-3 sm:flex sm:flex-wrap sm:items-center">
+    <div className="pie-hoja-fijo mt-3">
+      <div className="grid gap-3 border-t border-sand pt-2.5 sm:flex sm:flex-wrap sm:items-center">
         <CampoGuiado id="responsable" guia={guia}>
-          <ComboResponsable control={control.responsable} compacto deshabilitado={control.enviando} />
+          <ComboResponsable control={control.responsable} compacto enLinea deshabilitado={control.enviando} />
         </CampoGuiado>
         <div className="min-w-0 flex-1 text-[13px]">
           {n === 0 ? (
