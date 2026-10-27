@@ -1,7 +1,7 @@
 # ADR-0533 — Una terminal ya no llena el registro de errores al abrir una pantalla
 
-**Estado:** propuesta · migración `20261027140000` **solo en local, NO está en producción** (espera el OK de Felipe) · **Fecha:** 2026-10-27 ·
-**Decide:** Felipe (toca funciones de la base en producción) · **Sigue a:** ADR-0161/0162 (responsable de la operación) y ADR-0454 (terminales con respaldo)
+**Estado:** aceptada · migración `20261027140000` **EN PRODUCCIÓN desde 2026-10-27** (con el OK de Felipe; registrada como `20261027140750`, la hora del pegado) · la web va en su PR · **Fecha:** 2026-10-27 ·
+**Decidió:** Felipe (toca funciones de la base en producción) · **Sigue a:** ADR-0161/0162 (responsable de la operación) y ADR-0454 (terminales con respaldo)
 
 ## Contexto
 
@@ -49,10 +49,12 @@ sigue decidiéndose con `fn_es_lider()` / `fn_ve_modulo()` o `fn_actor_persona_i
   una terminal y «sin sesión» reciben NULL sin error; `fn_actor_persona_id` sigue rechazando a la terminal; `anon` no ejecuta.
 - `pnpm pruebas:terminal-sin-responsable` sigue en verde (27/27).
 
-## Cómo se aplica en producción (con el OK de Felipe)
+## Cómo se aplicó en producción (OK de Felipe, 2026-10-27)
 
-Pegar `supabase/migrations/20261027140000_terminal_lecturas_sin_ruido.sql` tal cual en el SQL Editor, de una vez, **antes** de publicar la web. Solo
-`create or replace function` y permisos: no toma tablas ni políticas. Después, comprobar (solo lectura) que en el registro de Postgres cae el conteo
-de «Elige quién hace esta operación».
+Se aplicó por el MCP de Supabase **antes** de publicar la web, tras un ensayo revertible contra una terminal real y una persona real (terminal → vacío
+sin error; persona → mismo id y misma pantalla que con la lectura vieja; `fn_actor_persona_id(false)` sigue rechazando a la terminal; `anon` sin
+permiso). Solo `create or replace function` y permisos: no toma tablas ni políticas. Con solo el SQL cae la mitad del ruido (la de
+`fn_mi_pantalla_principal`); la otra mitad cae al publicar la web de este PR. Comprobación pendiente: el conteo de «Elige quién hace esta operación» en
+`query_logs` (`source = 'postgres_logs'`).
 
-Si no se pega: nada se rompe. La web usa la lectura de antes y el ruido sigue como hoy.
+Si la web se publicara antes que el SQL, nada se rompe: usa la lectura de antes.
