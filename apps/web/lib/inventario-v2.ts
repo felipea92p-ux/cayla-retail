@@ -3,6 +3,7 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
+import type { DuenoDeStock } from "@/lib/stock-por-dueno-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
@@ -256,6 +257,9 @@ export type FilaExistencias = FilaStock & {
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
+  /** De quién son las unidades de esta talla en esta sede (ADR-0542), solo donde conviven dos empresas y solo si alguien que no es la casa
+   *  tiene unidades. La pone la página con `conDuenos`, de una lectura aparte y tolerante. Ausente = nada que decir, o no se pudo leer. */
+  duenos?: DuenoDeStock[];
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía

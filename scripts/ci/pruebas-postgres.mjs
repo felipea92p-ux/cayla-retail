@@ -680,6 +680,11 @@ export const PRUEBAS = [
   // empresa con stock fuera. Crear una de CLAURE en Lima sigue. Control sin el candado; la sonda de la migración. Cada caso: ROLLBACK.
   "pruebas:empresa-solo-en-sus-sedes",
 
+  // El stock de una sede con dos empresas (Lima) se parte por dueño (ADR-0542): `stock_dueno` guarda solo lo de CLAURE y CAYLA es el
+  // resto; un disparador en movimientos resuelve el dueño (elegido, o el único que tiene con qué; con dos, «elige de cuál es») y
+  // CLAURE no sale de Lima; la red al cierre atrapa un reparto que no cuadra con el stock. Cada caso: ROLLBACK.
+  "pruebas:stock-dueno",
+
   // Cuánto de lo vendido es de CAYLA y cuánto de CLAURE (ADR-0532): en el Historial la suma de las empresas es el vendido de
   // fn_totales_historial_ventas con los mismos filtros; una prenda de CLAURE suma a CLAURE; en Caja, lo de cada turno es lo de
   // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.

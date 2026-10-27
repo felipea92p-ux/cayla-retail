@@ -19,6 +19,8 @@ import { cifraColgadasEnElPiso } from "@/lib/capacidad-piso";
 import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/existencias-catalogo";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
+import { getStockPorDueno } from "@/lib/stock-por-dueno";
+import { conDuenos } from "@/lib/stock-por-dueno-reglas";
 import { conDescripcion, conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { COOKIE_PANEL_FILTROS_EXISTENCIAS, leerPanelFiltros } from "@/lib/panel-filtros";
@@ -106,6 +108,9 @@ export default async function InventarioPage({
     getEmpresasAqui(ubicacionActivaId).catch(() => null),
   ]);
   const sinRegistrar = vende ? (colaSinRegistrar ?? "fallo") : null;
+  // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Corre en paralelo con el ritmo de abajo;
+  // dato secundario: si la base no responde, las tallas quedan sin la línea «De quién es» y nada más cambia.
+  const repartoDeStock = getStockPorDueno(ubicacionActivaId, empresasAqui);
 
   // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
   // no sale de aquí: lo decide el motor del piso (`plan`).
@@ -130,23 +135,26 @@ export default async function InventarioPage({
   // encima: si el catálogo no respondió, cada fila queda sin marca y el panel lo avisa.
   // La familia de cada color (2026-10-03) va igual: sin ella, el filtro de color queda como lista plana.
   // La descripción (2026-10-06) sale de la misma lectura: sin ella, el panel de la talla no dibuja nada bajo el nombre.
-  const stock = conFamiliaDeColor(
-    conDescripcion(
-      conEstadoProducto(
-        conMarca(
-          stockBase.map((f) => ({
-            ...f,
-            ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
-            coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-            planPiso: planPiso.get(f.varianteId) ?? null,
-          })),
+  const stock = conDuenos(
+    conFamiliaDeColor(
+      conDescripcion(
+        conEstadoProducto(
+          conMarca(
+            stockBase.map((f) => ({
+              ...f,
+              ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
+              coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
+              planPiso: planPiso.get(f.varianteId) ?? null,
+            })),
+            catalogo.productos
+          ),
           catalogo.productos
         ),
         catalogo.productos
       ),
-      catalogo.productos
+      colores
     ),
-    colores
+    await repartoDeStock
   );
   const sinStock = productosSinStockEnSede(soloLasDeAqui(catalogo.productos, empresasAqui), stockBase);
   // Lo que pide cada talla («Hoy») lo cuenta el panel con `hoyDeTalla`, la misma regla de la tabla, el filtro y «Para hoy»; el resumen

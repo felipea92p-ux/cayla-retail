@@ -371,7 +371,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 `/inventario/*` y `/gestion/*` va a ancho completo (`SIN_TOPE_DE_ANCHO`).
 - `/inventario` (Existencias) → `lib/inventario-v2.ts:getExistencias` = `getStockPorUbicacion`
   (tabla `stock` agregada por variante) + RPC `fn_stock_por_sede` (dónde más hay, la misma
-  de Vender, vía `lib/stock-por-sede.ts`) + `transferencia_items` en tránsito hacia acá →
+  de Vender, vía `lib/stock-por-sede.ts`) + RPC `fn_stock_por_dueno` (ADR-0542: de quién son las unidades de cada talla en una sede con
+  dos empresas, solo las prendas con unidades de CLAURE; vía `lib/stock-por-dueno.ts`, la línea «De quién es» de `PanelTalla`) +
+  `transferencia_items` en tránsito hacia acá →
   + RPC `fn_piso_plan_lectura` (ADR-0328 act. 7, migraciones `20261004213000` y `20261005160100`: lo libre en piso y almacén, lo vendido
   escaneado y anotado «sin registrar» en 14 días —la anotada cuenta mientras no tenga prenda: pendiente o cerrada sin prenda,
   ADR-0334— por prenda y por categoría × talla × familia de color —lo que el cliente
