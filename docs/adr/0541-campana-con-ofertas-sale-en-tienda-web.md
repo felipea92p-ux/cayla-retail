@@ -1,8 +1,8 @@
 # ADR-0541 — Una campaña que solo tiene ofertas también sale en la Tienda web
 
 - **Fecha:** 2026-10-27 · **Estado:** aceptado (Felipe eligió el % de la portada el 2026-10-27). Código y prueba en la rama
-  `claude/campanas-tienda-catalogo-42d8de`. **La migración `20261027221000_campana_con_ofertas_en_tienda_web.sql` NO está en producción** hasta
-  que Felipe la apruebe y se pegue. Sí está aplicada en el Postgres **local** (es lo que Felipe estaba probando).
+  `claude/campanas-tienda-catalogo-42d8de`. **La migración `20261027221000_campana_con_ofertas_en_tienda_web.sql` se pegó en producción el 2026-10-27** (Felipe lo ordenó; una sola
+  parte, con la guarda de md5). También está en el Postgres **local**.
 - **Relacionados:** ADR-0496 (las ofertas de una campaña: «Lo que NO cubre» es este pendiente), ADR-0471 (Tienda web ▸ Campañas), ADR-0476 (la
   llave de las campañas), ADR-0408 (la tienda online y su puerta `retail.tienda_*`), ADR-0486 (campañas por sede), ADR-0370 (reemplazos
   anclados), ADR-0195 (políticas y deadlocks), ADR-0288 (el SQL Editor y `select … into`).
@@ -78,8 +78,7 @@ Con la migración puesta en el local siguen en verde `campanas-web` (101/101), `
 
 ## Sin verificar
 
-Producción: no se pegó. Antes de pegar, comprobar el md5 de las cuatro funciones (la guarda lo hace sola) y, después, `select retail.tienda_portada();`
-(debe seguir dando la misma campaña que antes si ninguna tiene ofertas). La tienda real en un navegador contra producción. `tienda_ficha` 47/48 en local:
+Producción: pegada el 2026-10-27. La guarda de md5 pasó; `select retail.tienda_portada();` y `tienda_diseno_campana()` dieron `{"campana":null}`, igual que antes (ninguna campaña de producción tiene hoy descuento ni ofertas que rijan); las 6 funciones quedaron con el texto nuevo, `tienda_web` ejecuta las dos públicas y `anon`/`authenticated` no ejecutan las internas. Falta mirar la tienda real en un navegador cuando exista una campaña con ofertas. `tienda_ficha` 47/48 en local:
 el escenario de fotos falla por una foto principal duplicada de los datos locales, ajeno a este cambio.
 
 **Nota de pruebas en local.** Las suites `campanas-web`, `campanas-por-sede` y `tienda-ficha` suponen una base SIN campañas con ofertas; con una campaña
