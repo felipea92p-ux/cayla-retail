@@ -50,7 +50,7 @@ import {
 /** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
 const alto = (i: number) => ({ className: "anim-entra h-full", style: { ["--i" as string]: i } as CSSProperties });
 /** Una tarjeta de las columnas: no se parte entre dos y deja 1 rem hasta la de abajo. */
-const columna = (i: number) => ({ className: "anim-entra mb-4 break-inside-avoid", style: { ["--i" as string]: i } as CSSProperties });
+const columna = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
 type Props = {
   resumen: ResumenFinanzas | null;
@@ -207,9 +207,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       />
       <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
 
-      {/* Lo demás, en columnas que se llenan una tras otra: cada tarjeta queda pegada a la de arriba, sin aire. Con ancho para dos
-          columnas de 34 rem se reparten (el navegador corta donde las deja más parejas); con menos, van en una sola (Felipe 2026-10-26). */}
-      <div className="columns-[34rem] gap-4">
+      {/* Lo demás, en dos columnas FIJAS: el recorrido a la izquierda y las otras dos tarjetas apiladas a la derecha, cada una pegada a la
+          de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem (dos columnas de 34 rem) van en una sola, en el mismo orden.
+          Antes eran `columns-[34rem]`, que reparte según las alturas: al abrir «¿Y de cada S/ 100?» el recorrido crecía y el navegador
+          pasaba otra tarjeta a la otra columna a media animación (medido el 2026-10-27: de 401 a 497 px y la tarjeta 2 saltaba de columna).
+          Con columnas fijas, lo que crece solo empuja lo que tiene debajo. */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4 pb-4">
         <div {...columna(4)}>
           <Superficie pad guia="fin-resumen.recorrido">
             <CabeceraBloque
@@ -233,12 +236,14 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           </Superficie>
         </div>
 
-        <div {...columna(5)}>
-          <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
-        </div>
+        <div className="flex flex-col gap-4">
+          <div {...columna(5)}>
+            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
+          </div>
 
-        <div {...columna(6)}>
-          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes, enCurso })} />
+          <div {...columna(6)}>
+            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes, enCurso })} />
+          </div>
         </div>
       </div>
     </div>

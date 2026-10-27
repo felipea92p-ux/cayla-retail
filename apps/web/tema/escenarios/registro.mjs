@@ -2068,3 +2068,33 @@ export const escenariosDe = (ruta, cuentaClave, celular = false) =>
   ESCENARIOS.filter(
     (e) => e.ruta === ruta && (!e.cuentas || e.cuentas.includes(cuentaClave)) && (!e.ancho || (e.ancho === "celular") === celular),
   );
+
+// Tienda web ▸ Tráfico (ADR-0495, actividades 5 y 6): el cajón de la prenda más mirada (desde la vitrina y desde la tabla) y la vista de
+// tabla. Si la base local no tiene visitas, la vitrina no se dibuja y el escenario lo dice (no pasa en verde sin abrir nada).
+ESCENARIOS.push(
+  {
+    id: "trafico.cajon",
+    ruta: "/tienda-web/trafico",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Tráfico · el cajón de la prenda más mirada (desde la vitrina)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="trafico.prenda"]').click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    },
+  },
+  {
+    id: "trafico.tabla-cajon",
+    ruta: "/tienda-web/trafico",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Tráfico · la vista de tabla con el cajón de una prenda",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="trafico.vista"] a').filter({ hasText: /tabla/i }).click({ timeout: 8000 });
+      await pagina.waitForURL(/vista=tabla/, { timeout: 8000 });
+      await esperar(pagina, 1200);
+      await pagina.locator("button[data-prenda]").first().click({ timeout: 8000 });
+      await esperar(pagina, 1100);
+    },
+  },
+);
