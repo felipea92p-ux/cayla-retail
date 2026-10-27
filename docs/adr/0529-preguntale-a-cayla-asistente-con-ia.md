@@ -193,6 +193,11 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   El dato solo se escribe en un paso donde la guía ya escribía un ejemplo, si aparece TAL CUAL en la pregunta (`rellenoValido`): un
   DNI llega como «[número]» y nunca se rellena. Viaja entre pantallas en el almacenamiento de la pestaña, nunca en la dirección (puede
   ser el nombre de un cliente). Al terminar ese tramo no se vacía lo escrito ni se cierra lo abierto: sigue la persona.
+- **Reglas de tienda y errores** (actividad 7): la IA elige una regla o un error por su id y el texto lo pone el sistema (la respuesta
+  aprobada, o la misma frase de `lib/error-escritura.ts` que ve la pantalla). Una regla que no está escrita se contesta «Eso no lo tengo
+  escrito todavía. Pregúntale a tu líder de tienda» y queda anotada. **Felipe aprobó el 2026-10-27** 10 de las 13 del borrador; sacó el
+  tope de descuento y el cierre de caja («los líderes solo supervisan visualmente»), y pidió que una devolución no necesite aprobación.
+  Esa queda en borrador: hoy `aprobar_devolucion` exige líder y la regla contradiría la pantalla hasta que el sistema cambie.
 - **Un tramo no cuenta como demo vista entera**: la guía queda como ofrecida y su oferta de la primera vez no vuelve a salir.
 
 ## Producción

@@ -9,7 +9,8 @@
 - [ ] Refrescar el volcado de producción (`datos:generar:produccion`) cuando la migración esté aplicada: `pnpm datos:comparar` marca las tres funciones hasta entonces.
 - [x] 6 · Rellenar con candados: el dato que la persona dijo, tal cual, solo en el `<Buscador>` (`data-asistente="rellenable"`, lista blanca vigilada), marcado «Lo escribió CAYLA · revísalo» hasta que la persona lo toca. Nunca guarda.
 - [ ] **Felipe:** ¿sumar otros campos rellenables (el texto de un motivo, combos de una opción)? Hoy solo el buscador.
-- [ ] 7 · Reglas de tienda y catálogo de errores (cada regla con el OK de Felipe).
+- [x] 7 · Reglas de tienda (`lib/asistente/reglas-de-tienda.ts`, 10 aprobadas por Felipe el 2026-10-27) y errores con la frase de la pantalla (`frasesDeErrores`). Una regla sin escribir: «Eso no lo tengo escrito todavía».
+- [ ] **Felipe (2026-10-27): «los líderes solo supervisan visualmente».** Hoy el sistema exige líder para aprobar una devolución (`aprobar_devolucion`), anular un comprobante y autorizar un descuento sobre el tope; y la guía de Caja dice «Lo hace un líder» aunque `cerrar_caja` ya no lo exige. Sacar esos candados toca dinero y permisos: va en su propia sesión, con su ADR y su migración. Mientras tanto, la regla «devolucion-aprueba» queda en borrador.
 - [ ] 8 · Interruptor por sede en Configuración (`retail.asistente_sedes`).
 - [ ] 9 · Pantalla «Lo que pregunta tu equipo» (módulo nuevo, solo líder).
 - [ ] 10 · El informe del lunes (vigía de GitHub Actions + Sonnet 5.5).
