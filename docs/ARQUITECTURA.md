@@ -2176,6 +2176,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   asistente encendido (`retail.fn_asistente_encendido`, `lib/asistente/sedes-servidor.ts`; si no, 403): el mismo dato decide si `AppShell`
   dibuja el botón (lo lee `app/(app)/layout.tsx`). El interruptor vive en Configuración ▸ Tiendas y caja
   (`components/asistente/ConfiguracionAsistente.tsx`, `fn_asistente_sedes` y `guardar_asistente_sede`, con `fn_puede_configurar()`).
+- `/gestion/preguntas` → Gestión ▸ Preguntas del equipo (ADR-0529, act. 9; módulo `preguntas_equipo`, solo personas): `page.tsx` lee el mes
+  (`?m=`) con `getPreguntasEquipo` (`lib/asistente/equipo-servidor.ts` → `retail.fn_asistente_preguntas_equipo`, que pide el módulo y, sin ser
+  líder, solo la propia sede; en CAYLA Global, todas). `lib/asistente/equipo.ts` traduce cada respuesta a su caja («Resuelta», «Sin
+  respuesta»…) y `components/asistente/PreguntasEquipo.tsx` dibuja cifras, resúmenes y la lista, que filtra en el navegador.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.

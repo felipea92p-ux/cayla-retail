@@ -62,6 +62,10 @@ export const PRUEBAS = [
   // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
   "pruebas:asistente-sedes",
 
+  // «Preguntas del equipo» (ADR-0529, act. 9): el módulo nace solo para el líder y es «solo personas»; sin el módulo no se ve nada;
+  // con él, sin ser líder, solo la propia sede; todas juntas piden CAYLA Global; las cifras cuentan todo el período. ROLLBACK.
+  "pruebas:asistente-preguntas-equipo",
+
   "pruebas:activos-y-fijos",
 
   // La ficha de pago de un gasto fijo (ADR-0452): a quién y cómo se paga, el código del recibo y el contrato; datos bancarios solo

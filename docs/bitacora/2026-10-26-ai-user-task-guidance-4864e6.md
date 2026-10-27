@@ -25,3 +25,10 @@ el botón «Preguntar» y `/api/asistente` solo responden en una sede encendida,
 Por qué así: lo cambia quien ve Configuración y no solo un líder (Felipe hoy: «los líderes solo supervisan visualmente»); nace apagado en
 todas porque el piloto es de una sede, y sin la función en la base el botón tampoco sale. Felipe se lleva: pegar las dos migraciones del
 asistente cuando lo decida y encender la sede del piloto; la obra sigue en el worktree `zen-bell-150592` (rama `claude/ai-guide-c654db`).
+
+## 2026-10-27 (Gestión ▸ «Preguntas del equipo»: actividad 9 de ADR-0529)
+Qué hice: una pantalla nueva en Gestión (`/gestion/preguntas`, módulo `preguntas_equipo`, migración `20261027165000`) con las cifras del mes,
+dónde llevaron las respuestas, qué accesos piden y la lista de preguntas con quién preguntó, qué se le respondió y si le sirvió.
+Por qué así: Felipe eligió mostrar el nombre; por eso el cajón avisa «Tu líder ve lo que preguntas» y el módulo es solo de personas (como
+Rendimiento). Nace sin rol: hoy solo la ve el líder. Felipe se lleva: pegar la migración (después de la de preguntas) y decidir si se la da
+a las encargadas en Roles y accesos.

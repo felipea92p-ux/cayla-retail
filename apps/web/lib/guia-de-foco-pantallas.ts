@@ -137,6 +137,8 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
   // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.
   "/gestion/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
+  // Preguntas del equipo (ADR-0529, actividad 9): solo lee. Cifras que filtran, píldoras y una lista; ningún campo que llenar ni pasos.
+  "/gestion/preguntas": { estado: "no-aplica", motivo: "La pantalla solo lee: cifras que filtran, píldoras, la lista de preguntas y dos columnas de resumen, sin campos ni pasos." },
   // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,

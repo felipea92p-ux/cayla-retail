@@ -134,6 +134,8 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // «Facturas de proveedor» (el papel) y de la mano con monedas de «Mis compras» (la plata de quien compra).
   revisarCompras: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM9 14l2 2 4-4", // lucide «clipboard-check»
   rendimiento: "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", // lucide «trophy»
+  // El globo con su «?»: el mismo del botón «Preguntar» de la cabecera, porque son sus preguntas (Preguntas del equipo, ADR-0529).
+  preguntas: "M7.9 20A9 9 0 1 0 4 16.1L2 22ZM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01", // lucide «message-circle-question»
   // Monitor con su percha: la tienda online, donde el cliente ve la prenda desde su pantalla (Vitrina web, ADR-0408). No la tienda
   // con toldo de «Inicio» (la puerta física) ni la polera de «Productos» (lo que ES la prenda): lo que se MUESTRA en la web.
   vitrina: "M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z M8 21h8 M12 17v4 M10.8 6.8a1.2 1.2 0 1 1 1.2 1.2v.9l4 3H8l4-3",

@@ -19,7 +19,12 @@
   preguntas, y después hay que encender la sede del piloto en Configuración.
 - [ ] El escáner de huellas de las guías (`guias/escaner.mjs`, `CONTROLES`) no cuenta `<Interruptor>` (22 en el ERP): un interruptor nuevo
   no le avisa a su guía. Sumarlo mueve la huella de cada pantalla que ya tiene uno; va aparte, revisando esas guías.
-- [ ] 9 · Pantalla «Lo que pregunta tu equipo» (módulo nuevo, solo líder).
+- [x] 9 · Gestión ▸ «Preguntas del equipo» (`/gestion/preguntas`, módulo `preguntas_equipo`, migración `20261027165000`): con el nombre de
+  quien preguntó (Felipe 2026-10-27), solo personas, nace sin rol. `pnpm pruebas:asistente-preguntas-equipo` (11 casos), guía interactiva
+  recorrida en escritorio y a 375 px. Aplicada solo en la base local.
+- [ ] **Pegar `20261027165000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261026235000`). Toca
+  `fn_exigir_rol_de_terminal` con un reemplazo anclado: si la lista viva no es la esperada, se detiene sin tocar nada.
+- [ ] **Felipe:** darle «Preguntas del equipo» a las encargadas en Roles y accesos, si quiere que lo vean (hoy solo el líder).
 - [ ] 10 · El informe del lunes (vigía de GitHub Actions + Sonnet 5.5).
 - [ ] 11 · Evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro y 375 px, y el PR con `/abrir-pr`.
 - [ ] Ver en producción que un tramo encuentra su pieza a tiempo (en desarrollo, Productos tardó más de 8 s en cargar).
@@ -37,8 +42,8 @@ actividad y un commit a la vez.
 
 **Lo que sigue, en orden** (la lista completa está arriba):
 - ~~8 · Interruptor por sede~~ hecha el 2026-10-27 (ver arriba).
-- **9 · Pantalla «Lo que pregunta tu equipo»** (módulo nuevo, nace solo para el líder: migración con `insert into retail.modulos`,
-  `CLAVES_MODULO`/`MODULOS` en `lib/modulos.ts`, nodo en `lib/menu.ts`, `exigirModulo`, su guía y su guía de foco).
+- ~~9 · Pantalla «Lo que pregunta tu equipo»~~ hecha el 2026-10-27 como «Preguntas del equipo» (ver arriba). Las 5 mejoras del lunes
+  se suman a esa pantalla (`components/asistente/PreguntasEquipo.tsx`).
 - **10 · Informe del lunes** (vigía de GitHub Actions + Claude Sonnet 5.5, `claude-sonnet-5-5`; las cifras salen de SQL y cada mejora
   cita ids de preguntas que existen).
 - **11 · Cierre**: evaluación de 40 preguntas, `/guia`, `/focus`, `/formidable`, `/chaos`, modo oscuro, 375 px y el PR con `/abrir-pr`.

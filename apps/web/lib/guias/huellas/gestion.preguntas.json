@@ -1,0 +1,11 @@
+{
+  "guia": "gestion.preguntas",
+  "ruta": "/gestion/preguntas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 1,
+  "controles": {
+    "components/asistente/PreguntasEquipo.tsx": [
+      "button «{f.texto}»"
+    ]
+  }
+}

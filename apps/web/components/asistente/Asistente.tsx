@@ -141,7 +141,8 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
       }
       sobre="Pregúntale a CAYLA"
       titulo="¿Qué quieres hacer?"
-      frase="Escríbelo con tus palabras y te muestro, en la pantalla de verdad, dónde se hace. Tu pregunta se guarda para mejorar CAYLA."
+      // Quien preguntó se ve en Gestión ▸ Preguntas del equipo (Felipe 2026-10-27, «con el nombre»): la persona lo sabe antes de escribir.
+      frase="Escríbelo con tus palabras y te muestro, en la pantalla de verdad, dónde se hace. Tu líder ve lo que preguntas, para mejorar CAYLA."
     >
       {(cerrar) => (
         <div className="space-y-5">
