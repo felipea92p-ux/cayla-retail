@@ -68,7 +68,7 @@ import {
   type TelaBorrador,
 } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
-import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
+import { frasesDelMolde, moldeDelModelo, tipoAlElegir, urgentesDeLaRed, type OrdenParaMolde } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
 import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -134,10 +134,6 @@ const OPCIONES_TIPO = [
   { clave: "produccion", etiqueta: "Lote de producción" },
   { clave: "muestra", etiqueta: "Muestra" },
 ];
-const CONSECUENCIA_DEL_TIPO: Record<Tipo, string> = {
-  produccion: "Fabrica el lote. Al cerrarlo entra al stock del Taller.",
-  muestra: "Desarrolla el modelo: patronaje, aprobación y escalado. No entra al stock.",
-};
 
 /** «existe» sin `productoId` = todavía no se eligió (se muestra el buscador); «nuevo» = se está creando uno. */
 type ModoModelo = "existe" | "nuevo";
@@ -167,6 +163,7 @@ export function NuevaOrdenProduccionForm({
   vocabulario = null,
   abiertas,
   recientes = [],
+  historialDeMoldes = null,
   opciones = null,
   insumos = [],
   hoy,
@@ -195,6 +192,8 @@ export function NuevaOrdenProduccionForm({
   abiertas?: ReadonlyMap<string, number>;
   /** Los modelos de las últimas órdenes, la más reciente primero. */
   recientes?: readonly string[];
+  /** El historial de órdenes del Taller: de él se deduce si el modelo ya tiene molde. `null` si no se pudo leer (la hoja pregunta). */
+  historialDeMoldes?: readonly OrdenParaMolde[] | null;
   /** Lo que la hoja ofrece elegir (ADR-0400): servicios con su lista de precios, consumo por modelo, tela comprometida. Secundario: sin esto, fases en el Taller y sin tela. */
   opciones?: Tolerado<OpcionesNuevaOrden> | null;
   /** Telas y avíos del Taller con su saldo (la misma lectura de Insumos). */
@@ -276,6 +275,11 @@ export function NuevaOrdenProduccionForm({
 
   // ----- Modelo nuevo: el borrador, sus celdas y un modelo VIRTUAL para que la matriz, el costo por prenda y el margen lo traten como a cualquier otro -----
   const esNuevo = modoModelo === "nuevo";
+  // «¿Ya tienen el molde?»: con historial se deduce; sin él (no se pudo leer) se pregunta, como con un modelo sin historia.
+  const frase = useMemo(
+    () => frasesDelMolde({ tipo, esNuevo, molde: historialDeMoldes ? moldeDelModelo(historialDeMoldes, productoId) : { estado: "sin_lectura" } }),
+    [tipo, esNuevo, historialDeMoldes, productoId],
+  );
   const vocab = vocabulario?.datos ?? null;
   const categoriaNueva = useMemo(() => vocab?.categorias.find((cat) => cat.id === categoriaNuevaId) ?? null, [vocab, categoriaNuevaId]);
   const coloresDisponibles = useMemo<ColorAlta[]>(() => {
@@ -815,7 +819,7 @@ export function NuevaOrdenProduccionForm({
             <div data-guia="prod-orden-nueva.tipo" className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <span className={campoEtiqueta}>Tipo de orden</span>
               <SegmentoDeslizante etiqueta="Tipo de orden" valor={tipo} onCambio={cambiarTipo} opciones={OPCIONES_TIPO} />
-              <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{CONSECUENCIA_DEL_TIPO[tipo]}</p>
+              <p className="min-w-[14rem] flex-1 text-[12.5px] leading-snug text-tinta/70">{frase.texto}</p>
             </div>
           )}
 
