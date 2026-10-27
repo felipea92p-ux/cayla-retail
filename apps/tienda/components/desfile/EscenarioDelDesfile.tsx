@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { letrasDelTitulo, RITMO, salidaTexto, siguienteSalida, type PiezaDelDesfile } from "@/lib/desfile";
 import { FotoTarjeta } from "../FotoTarjeta";
 import "@/app/estilos/desfile.css";
@@ -133,14 +133,17 @@ export function EscenarioDelDesfile({ piezas, modo, ceja, titulo, boton, enEsper
       <div className="t-escena">
         <Titulo className="t-escena-tit" aria-label={titulo}>
           {palabras.map((p, k) => (
-            <span key={k} className="t-palabra" aria-hidden="true">
-              {p.letras.map((l) => (
-                <span key={l.n} className="t-letra" style={{ "--l": l.n } as React.CSSProperties}>
-                  {l.c}
-                </span>
-              ))}
+            // El espacio va fuera de la palabra: dentro de un `inline-block` se lo come y las palabras quedan pegadas si caben en un renglón.
+            <Fragment key={k}>
+              <span className="t-palabra" aria-hidden="true">
+                {p.letras.map((l) => (
+                  <span key={l.n} className="t-letra" style={{ "--l": l.n } as React.CSSProperties}>
+                    {l.c}
+                  </span>
+                ))}
+              </span>
               {k < palabras.length - 1 ? " " : ""}
-            </span>
+            </Fragment>
           ))}
         </Titulo>
         {(conPrendas || enEspera) && <i className="t-luz" aria-hidden="true" />}

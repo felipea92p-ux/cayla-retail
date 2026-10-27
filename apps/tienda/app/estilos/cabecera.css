@@ -8,6 +8,20 @@
 /* ---- Los íconos de la fila (menú, buscar, favoritos, mi cuenta, la bolsa): 42 px, el dedo ---- */
 .t-ico { position: relative; width: 42px; height: 42px; flex: none; border: 0; border-radius: 0; background: transparent; display: grid; place-items: center; color: var(--tinta); cursor: pointer; transition: opacity .3s; }
 .t-ico:hover { opacity: .6; }
+/* El botón del tema: tres íconos dibujados y se ve el de la elección (`html[data-theme]`, que el <head> ya puso); sin atributo, el del aparato (contraste). En el
+   celular no cabe en la cabecera: va como fila del menú (`.t-tema-fila`). */
+.t-tema-iconos { display: grid; place-items: center; }
+.t-tema-iconos > span { grid-area: 1 / 1; display: none; }
+.t-tema-iconos .t-tema-auto { display: grid; }
+html[data-theme="light"] .t-tema-iconos .t-tema-auto, html[data-theme="dark"] .t-tema-iconos .t-tema-auto { display: none; }
+html[data-theme="light"] .t-tema-iconos .t-tema-claro, html[data-theme="dark"] .t-tema-iconos .t-tema-oscuro { display: grid; }
+.t-tema-fila { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 0; border: 0; background: none; font: inherit; font-size: 14px; color: var(--tinta); cursor: pointer; }
+.t-tema-fila .ic { width: 18px; height: 18px; }
+.t-tema-fila:hover { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
+.t-tema-fila:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
+@container tienda (max-width: 699px) {
+  .t-ico.t-tema { display: none; }
+}
 .t-ico .ic { width: 20px; height: 20px; }
 /* El corazón de los favoritos va solo en la computadora (en el celular está en el menú). `.t-ico` se carga después de globals.css y
    le ganaría a `.t-solo-grande`: por eso la regla lleva las dos clases. */
