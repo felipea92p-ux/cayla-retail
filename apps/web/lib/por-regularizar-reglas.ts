@@ -143,28 +143,8 @@ export function coincideConBusqueda(f: FilaBuscable, consulta: string): boolean 
 // Rescatado de #788 el 2026-10-12 sobre la mesa de ADR-0360 (revisión adversarial de #975): la regla vive en `regularizar_prenda`, en
 // producción desde el 2026-10-05; esto solo la dice antes, con las MISMAS frases, para que nadie haga todo el trabajo (elegir la prenda,
 // contestar, firmar) y recién al tocar «Regularizar» se entere de que no se podía. Solo avisa: el botón y la guía de foco no cambian, y si
-// esto y la base no coinciden, manda la base.
-
-/** La frase de la base (`regularizar_prenda`, 42501, hint `regularizar_propia_venta`) cuando firma quien vendió. */
-export const NO_SU_PROPIA_VENTA = "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.";
-/** Cuando la venta es de la persona de la cuenta (y no es líder): elegir a otra en el combo no la vuelve ajena. */
-export const TU_PROPIA_VENTA = "Tú vendiste esta prenda: la regulariza otra persona del equipo desde su cuenta o desde la terminal, o un líder.";
-
-/**
- * Nadie regulariza su propia venta, salvo el líder firmando él mismo (Felipe 2026-10-04). Espejo de la regla de `regularizar_prenda`:
- *   · una venta sin quién la vendió registrado no tiene con quién compararse: pasa;
- *   · la cuenta es de quien vendió y no es de líder → no (con su propia cuenta, nombrar a otra persona no vuelve ajena la venta);
- *   · firma quien vendió → no, salvo el líder firmando ÉL MISMO: cuenta de líder y el elegido es la persona de la cuenta. Con la sesión de
- *     una líder abierta en caja, elegir a la asesora que vendió no le presta la excepción.
- * `null` = nada que decir.
- */
-export function motivoPropiaVenta(p: { vendidoPorId: string | null; responsableId: string | null; personaSesionId: string | null; esLider: boolean }): string | null {
-  const { vendidoPorId: vendio, responsableId: firma, personaSesionId: cuenta, esLider } = p;
-  if (!vendio) return null;
-  if (vendio === cuenta && !esLider) return TU_PROPIA_VENTA;
-  if (vendio === firma && !(esLider && firma === cuenta)) return NO_SU_PROPIA_VENTA;
-  return null;
-}
+// esto y la base no coinciden, manda la base. Desde ADR-0534 (20261027164000) quien vendió también regulariza su propia venta: ese aviso se
+// fue con la regla.
 
 /** La carga inicial de la sede tal como la base la dice en su frase (`fn_carga_inicial_de_sede`): abierta o no, y su último día ya
  *  corto («15-oct»; `null` = sin fecha). Donde se recibe `null` en vez de esto, no se sabe: la frase no afirma nada de la carga. */

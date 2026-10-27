@@ -97,9 +97,10 @@ const HUELLAS: Huella[] = [
   // Cierre de la cola de arranque (ADR-0334): 20261005100100.
   {
     marca: "prenda_cerrada_sin_prenda",
-    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide a un líder que la reabra en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
+    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide que la reabran en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
   },
-  { marca: "cola_solo_lider", frase: "Solo un líder puede cerrar o reabrir ventas sin registrar de una tienda." },
+  // ADR-0534 (20261027164000): cerrar, reabrir y las sugerencias de la cola ya no son solo del líder; las hace quien ve Existencias.
+  { marca: "cola_sin_modulo", frase: "Esto se hace desde Existencias: pide que le den ese módulo a tu rol." },
   { marca: "cola_sin_persona", frase: "No se sabe quién cierra la cola. Entra con tu cuenta y vuelve a intentarlo." },
   { marca: "cola_sin_permiso_sede", frase: "No tienes permiso para cerrar la cola de esa tienda." },
   { marca: "cola_motivo_invalido", frase: "Elige por qué se cierran sin identificar la prenda." },
@@ -112,12 +113,6 @@ const HUELLAS: Huella[] = [
   {
     marca: "cola_vacia",
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
-  },
-  {
-    // ADR-0328 (20261004204000, en producción desde el 5-oct): llega con 42501 y este hint; la frase es la misma de la base.
-    // Sin esta huella caía al genérico con «avisa a Felipe. Código: …», y no es un rechazo del combo «Responsable».
-    marca: "regularizar_propia_venta",
-    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
   },
   {
     // 20261026224000 (Felipe 2026-10-26): llega con 42501 y este hint. Una terminal no cambia el precio de la prenda, que vale en

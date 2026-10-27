@@ -51,7 +51,7 @@ export type PermisosDelDetalle = {
   eliminar: boolean;
   /** «Reportar dañada» (ADR-0328 act. 10, `reportar_danada`): mueve una prenda del piso o del almacén a la cuarentena. Es una
    *  función de Existencias (ADR-0306): la base pide el módulo y operar la sede, y la sede tiene que separar piso, almacén y
-   *  cuarentena. Lo que se HACE con la dañada (Se arregló, Liquidada…) sigue siendo del líder, en Dañadas. */
+   *  cuarentena. Lo que se HACE con la dañada (Se arregló, Liquidada…) también es de quien ve Existencias en su sede (ADR-0534), en Dañadas. */
   reportarDanada: boolean;
 };
 

@@ -254,7 +254,7 @@ export const GUIA_FRESCURA: Guia = {
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "frescura.buscador" }],
 };
 
-// Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde el líder prepara cambios que se guardan con «Revisar y guardar».
+// Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde quien ve el módulo prepara cambios que se guardan con «Revisar y guardar».
 // La demo recorre las tres pestañas (son estado de la pantalla, no rutas), pero nunca confirma ni cambia el grupo de una categoría.
 export const GUIA_PLAN_DEL_PISO: Guia = {
   id: "inventario.plan-del-piso",
@@ -350,7 +350,7 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "plan-piso.pestana-grupos" }],
       titulo: "Cómo van los grupos",
-      texto: "En «Grupos» (te la abrimos): cuántas categorías hay, cuántas ya confirmó el líder, cuántas siguen por revisar y cuántas son nuevas y todavía no tienen grupo.",
+      texto: "En «Grupos» (te la abrimos): cuántas categorías hay, cuántas ya están confirmadas, cuántas siguen por revisar y cuántas son nuevas y todavía no tienen grupo.",
     },
     {
       id: "grupos-tabla",
@@ -364,14 +364,14 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       ancla: "plan-piso.grupos-acciones",
       opcional: true,
       titulo: "Revisar de corrido",
-      texto: "Solo para el líder. «Siguiente por revisar» te lleva a la próxima categoría pendiente, y el otro botón deja confirmadas de una vez todas las propuestas. Nada se guarda todavía: queda preparado.",
+      texto: "«Siguiente por revisar» te lleva a la próxima categoría pendiente, y el otro botón deja confirmadas de una vez todas las propuestas. Nada se guarda todavía: queda preparado.",
     },
     {
       id: "grupos-fila",
       ancla: "plan-piso.grupos-fila",
       opcional: true,
       titulo: "Cada categoría",
-      texto: "El líder elige aquí su grupo o confirma el propuesto. Los cambios se juntan en una barra abajo; recién con «Revisar y guardar», eligiendo quién lo hace, quedan guardados. Quien no es líder solo ve el grupo.",
+      texto: "Aquí eliges su grupo o confirmas el propuesto. Los cambios se juntan en una barra abajo; recién con «Revisar y guardar», eligiendo quién lo hace, quedan guardados.",
     },
     {
       id: "historia-cifras",

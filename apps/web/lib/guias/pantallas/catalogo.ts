@@ -648,7 +648,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "cabecera",
       ancla: "atributos.cabecera",
       titulo: "Atributos y su «!»",
-      texto: "El «!» junto al título cuenta la regla de estas listas: cualquiera con sesión propone un valor nuevo y ya lo puede usar; después un líder lo aprueba o lo rechaza. La temporada es distinta: una lista fija de nueve.",
+      texto: "El «!» junto al título cuenta la regla de estas listas: cualquiera con sesión agrega un valor nuevo y ya lo puede usar. La temporada es distinta: una lista fija de nueve.",
     },
     {
       id: "pestanas",
@@ -660,7 +660,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "ayuda",
       ancla: "atributos.ayuda",
       titulo: "Para qué sirve esta lista",
-      texto: "Una línea que explica la lista que tienes abierta. En Colores: quién propone uno nuevo y quién lo aprueba.",
+      texto: "Una línea que explica la lista que tienes abierta. En Colores: quién agrega uno nuevo y qué pasa con lo que quedó pendiente.",
     },
     {
       id: "filtros",
@@ -698,14 +698,14 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vocabulario.buscador" }, { tipo: "clic", ancla: "atributos.pestana-colores" }],
       titulo: "Colores, por familia",
-      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» propone uno nuevo: avisa si se parece mucho a otro que ya existe.",
+      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» agrega uno nuevo: avisa si se parece mucho a otro que ya existe.",
     },
     {
       id: "color-tarjeta",
       ancla: "vocabulario.tarjeta",
       opcional: true,
       titulo: "Cada color",
-      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también con qué otros colores combina. Uno propuesto dice «Pendiente» hasta que un líder lo aprueba o lo rechaza. «Editar» abre su ficha (te la abrimos).",
+      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también con qué otros colores combina. Uno que quedó pendiente de antes dice «Pendiente» hasta que se aprueba o se rechaza. «Editar» abre su ficha (te la abrimos).",
     },
     {
       id: "color-form",
@@ -728,7 +728,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-tallas" }],
       titulo: "Tallas, por tipo",
-      texto: "Pasamos a Tallas: letras (S, M, L), numeración (26, 38), única y estándar, y otras. Se ordenan como la curva, no por abecedario. «+ Agregar talla» propone una nueva.",
+      texto: "Pasamos a Tallas: letras (S, M, L), numeración (26, 38), única y estándar, y otras. Se ordenan como la curva, no por abecedario. «+ Agregar talla» agrega una nueva.",
     },
     {
       id: "talla-tarjeta",
@@ -743,7 +743,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.pestana-tejidos" }],
       titulo: "Tejidos: en uso o sin prendas",
-      texto: "Pasamos a Tejidos, la tela de la prenda. «En uso» deja los que tienen prendas; «Sin prendas», los que nadie usa todavía. Se buscan por nombre y se proponen con «+ Agregar tejido».",
+      texto: "Pasamos a Tejidos, la tela de la prenda. «En uso» deja los que tienen prendas; «Sin prendas», los que nadie usa todavía. Se buscan por nombre y se agregan con «+ Agregar tejido».",
     },
     {
       id: "tejido-tarjeta",
@@ -934,7 +934,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.ofertas-registradas",
       opcional: true,
       titulo: "Las que ya están",
-      texto: "Cada oferta dice su estado: Borrador espera a un líder, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
+      texto: "Cada oferta dice su estado: Borrador todavía no se activó, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
     },
     {
       id: "oferta-pasos",
@@ -1008,7 +1008,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.oferta-activar",
       opcional: true,
       titulo: "Guardar o activar",
-      texto: "Quien no es líder la deja como borrador. Un líder también puede activarla: desde ese momento la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
+      texto: "Puedes dejarla como borrador o activarla: desde que la activas, la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
     },
     {
       id: "ofertas-campana",

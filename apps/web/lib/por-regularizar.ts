@@ -26,13 +26,10 @@ export type FilaPorRegularizar = {
   categoriaFamilia: string | null;
   precioCobrado: number;
   vendidoPor: string;
-  /** Quién la vendió, como id de persona (`null` = no quedó registrado): la mesa avisa ANTES del botón que nadie regulariza su propia
-   *  venta (20261004204000, `motivoPropiaVenta`). */
-  vendidoPorId: string | null;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
-  /** `cerrada_sin_prenda` (ADR-0334): un líder la dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
+  /** `cerrada_sin_prenda` (ADR-0334): se dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
   estado: "pendiente" | "regularizada" | "anulada" | "cerrada_sin_prenda";
   /** Solo cerrada (o anulada después de cerrada): por qué se cerró y cuándo. */
   cierre: { motivo: string; cerradoEn: string } | null;
@@ -81,7 +78,7 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
   const yaResueltas = [...exigir(resueltas, "las prendas ya regularizadas"), ...exigir(cerradas, "las ventas cerradas sin prenda")].sort(
     (a, b) => Date.parse(b.vendido_en) - Date.parse(a.vendido_en) || a.id.localeCompare(b.id),
   );
-  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o un líder cierra) justo entre las lecturas saldría en
+  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o alguien cierra) justo entre las lecturas saldría en
   // dos y se pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
   // hasta el siguiente refresco.)
   const idsResueltas = new Set(yaResueltas.map((f) => f.id));
@@ -120,7 +117,6 @@ export async function getPorRegularizar(ubicacionId: string | null, ahora: Date 
     categoriaFamilia: f.categoria?.familia ?? null,
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
-    vendidoPorId: f.vendido_por ?? null,
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",

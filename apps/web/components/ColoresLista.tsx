@@ -42,9 +42,9 @@ import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
  * dejaba agregar uno nuevo a mano.
  *
  * "+ Agregar color" es de cualquiera con sesión desde el 2026-09-16
- * (`20260916220000_colores_proponer_aprobar.sql`): un color propuesto nace
- * `pendiente` y queda usable al instante (nunca frena a quien está en medio
- * de un censo), y cualquiera de los Líderes lo aprueba después. Editar,
+ * (`20260916220000_colores_proponer_aprobar.sql`) y, desde ADR-0534
+ * (2026-10-27), lo que se agrega nace aprobado, lo agregue quien lo agregue.
+ * Lo que ya quedó pendiente de antes se aprueba o rechaza aquí. Editar,
  * aprobar y desactivar/reactivar siguen detrás de `puedeEditar` — el candado
  * real vive en la base (`colores_update_lider`), esto solo decide qué se
  * MUESTRA.
@@ -322,10 +322,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         ])
       );
       responsable.despues(null);
-      avisar.exito(
-        datos.color.estado === "pendiente" ? `${datos.color.nombre} agregado — ya lo puedes usar` : `Color ${datos.color.nombre} agregado`,
-        datos.color.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
-      );
+      avisar.exito(`Color ${datos.color.nombre} agregado`);
       setAgregando(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
