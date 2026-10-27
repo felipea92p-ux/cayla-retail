@@ -227,6 +227,9 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 ${cambiaA(FELIPE)}select id as v_old from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select precio as precio_viejo from retail.variantes where id = :'v_old' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
+-- Vender pide una caja abierta en la sede: la de la siembra si la hay (Lima), o una de prueba (Trujillo). COALESCE no abre si ya hay.
+select coalesce((select id from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta' limit 1),
+                retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada')) as _caja_venta \\gset
 
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
   values (:'v_old', :'ubic', :'sub_piso', 'entrada', 1000, 'colchón de prueba') returning id as mov_old \\gset
