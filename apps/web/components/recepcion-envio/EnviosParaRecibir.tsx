@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
-import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -13,23 +12,30 @@ import { ESTADO_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { TEXTO_LA_RECIBE_OTRA, type EnvioPorAbrir, type OrdenDirecta } from "@/lib/recepcion-envio-reglas";
 import { esEnvioSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { coincideConBusqueda, ordenarFilasPorRecibir, textoBuscableDeEnvio, textoBuscableDeOrden } from "@/lib/recepcion-envio-busqueda";
+import { contarFiltros, fechaDeEnvioParaTabla, filtrarFilas, proveedoresDeLaLista, SIN_FILTROS, type FiltrosEnvios } from "@/lib/recepcion-envio-filtros";
+import { hoyLima } from "@/lib/fechas-lima";
+import { FiltrosDeEnvios } from "./FiltrosDeEnvios";
 import { RecibirSinGuia } from "./RecibirSinGuia";
 import { DetalleEnvioPorRecibir } from "./DetalleEnvioPorRecibir";
 
 // La tarjeta de la puerta de Recibir (ADR-0362, fase 4): arriba del formulario «Sin Aviso», lo que viene de una orden de compra para ESTA sede,
-// en una tabla (número, estado, proveedor, guía, prendas y la acción) con un buscador para hallar uno entre muchos. Cada envío en camino (o
+// en una tabla (número, fecha de envío, estado, proveedor, guía, prendas y la acción) con un buscador y filtros (estado, proveedor, fechas) para
+// hallar uno entre muchos, del que salió hace más tiempo al más nuevo dentro de cada grupo. Cada envío en camino (o
 // ya abierto por alguien) con «Recibir», y cada orden «directo» que llegó sin guía con «Llegó esta orden» (decisión 48). Quien hizo la orden no
 // la recibe (decisión 17): en vez del botón, lo dice. Solo sale si hay algo; si la lectura falló, no sale y la puerta recibe igual (lo decide
 // la página).
 
-// La guía tiene su columna desde @3xl (el ancho de la TARJETA, no de la ventana: con el menú abierto la tarjeta es más angosta); antes, se
-// lee bajo el proveedor.
-const PLANTILLA = "sm:grid-cols-[7rem_6rem_minmax(0,1fr)_5rem_11rem] @3xl:grid-cols-[7.5rem_6.5rem_minmax(0,1fr)_8rem_5.5rem_13rem]";
+// «Enviado» es la primera columna y sale desde @3xl, y la guía tiene la suya desde @5xl (el ancho de la TARJETA, no de la ventana: con el
+// menú abierto la tarjeta es más angosta). Antes, la fecha de envío se lee bajo el número del envío y la guía bajo el proveedor, sin quitarle
+// espacio al proveedor.
+const PLANTILLA =
+  "sm:grid-cols-[7rem_6rem_minmax(0,1fr)_5rem_11rem] @3xl:grid-cols-[5.5rem_7rem_6rem_minmax(0,1fr)_5rem_11rem] @5xl:grid-cols-[5.5rem_7.5rem_6.5rem_minmax(0,1fr)_8rem_5.5rem_13rem]";
 const COLUMNAS: Columna[] = [
+  { titulo: "Enviado", ayuda: "El día en que salió el envío", clase: "hidden @3xl:block" },
   { titulo: "Envío" },
   { titulo: "Estado" },
   { titulo: "Proveedor" },
-  { titulo: "Guía", clase: "hidden @3xl:block" },
+  { titulo: "Guía", clase: "hidden @5xl:block" },
   { titulo: "Prendas", alinear: "der" },
   { titulo: "", alinear: "der" },
 ];
@@ -55,12 +61,22 @@ export function EnviosParaRecibir({
   accionTitulo?: ReactNode;
 }) {
   const [buscar, setBuscar] = useState("");
+  const [filtros, setFiltros] = useState<FiltrosEnvios>(SIN_FILTROS);
   if (envios.length === 0 && ordenes.length === 0) return null;
-  const filas = ordenarFilasPorRecibir(envios, ordenes).filter((f) =>
-    coincideConBusqueda(f.tipo === "envio" ? textoBuscableDeEnvio(f.envio, proveedoresSinAviso[f.envio.id] ?? null) : textoBuscableDeOrden(f.orden), buscar),
+  const hoy = hoyLima();
+  const proveedorSinAviso = (envioId: string) => proveedoresSinAviso[envioId] ?? null;
+  // Primero el orden (grupo y, dentro del grupo, del envío más antiguo al más nuevo), después los filtros y al final lo escrito en el buscador.
+  const todas = ordenarFilasPorRecibir(envios, ordenes);
+  const filas = filtrarFilas(todas, filtros, proveedorSinAviso).filter((f) =>
+    coincideConBusqueda(f.tipo === "envio" ? textoBuscableDeEnvio(f.envio, proveedorSinAviso(f.envio.id)) : textoBuscableDeOrden(f.orden), buscar),
   );
   const total = envios.length + ordenes.length;
   const coinciden = filas.length;
+  const hayFiltros = contarFiltros(filtros) > 0;
+  const limpiar = () => {
+    setBuscar("");
+    setFiltros(SIN_FILTROS);
+  };
   return (
     <section data-guia="recibir.envios-oc" className="space-y-3" aria-labelledby="recibir-envios-oc">
       {/* Dos columnas en la misma fila: a la izquierda, el título con su leyenda; a la derecha, la pregunta con su botón. */}
@@ -71,12 +87,14 @@ export function EnviosParaRecibir({
         </div>
         {accionTitulo}
       </div>
-      <Buscador
-        valor={buscar}
-        onCambio={setBuscar}
-        placeholder="Busca por número de envío, guía, proveedor u orden"
-        etiqueta="Buscar un envío por recibir"
-        conteo={buscar.trim() ? (coinciden === 1 ? "1 coincide" : `${coinciden} de ${total} coinciden`) : undefined}
+      <FiltrosDeEnvios
+        busqueda={buscar}
+        onBusqueda={setBuscar}
+        filtros={filtros}
+        onFiltros={setFiltros}
+        proveedores={proveedoresDeLaLista(todas, proveedorSinAviso)}
+        hoy={hoy}
+        conteo={buscar.trim() || hayFiltros ? (coinciden === 1 ? "1 coincide" : `${coinciden} de ${total} coinciden`) : undefined}
       />
       <Tabla className="@container">
         <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
@@ -85,6 +103,10 @@ export function EnviosParaRecibir({
             const o = f.orden;
             return (
           <div key={o.ordenId} className={fila(PLANTILLA, "sm:items-center")}>
+            {/* Una orden sin guía todavía no salió: no hay fecha de envío que decir. */}
+            <span className={celda("izq", "hidden text-sm text-taupe @3xl:block")} title="Todavía no tiene envío">
+              —
+            </span>
             <span className={celda("izq", "text-sm font-semibold tabular-nums text-tinta")}>{o.numero}</span>
             <span className={celda("izq", "overflow-visible")}>
               <Chip tono="neutro">Sin guía</Chip>
@@ -92,7 +114,7 @@ export function EnviosParaRecibir({
             <span className={celda("izq", "text-sm text-tinta")} title={o.proveedor ?? undefined}>
               {o.proveedor ?? "—"}
             </span>
-            <span className={celda("izq", "hidden text-sm text-taupe @3xl:block")}>—</span>
+            <span className={celda("izq", "hidden text-sm text-taupe @5xl:block")}>—</span>
             <span className={celda("der", "text-sm text-tinta")}>{prendas(o.unidadesPorEnviar)}</span>
             <span className={celda("der", "overflow-visible whitespace-normal sm:flex sm:justify-end")}>
               {o.creadaPorMi ? <span className="whitespace-normal text-right text-[12.5px] leading-snug text-taupe">{TEXTO_LA_RECIBE_OTRA}</span> : <RecibirSinGuia orden={o} sede={sede} />}
@@ -101,6 +123,7 @@ export function EnviosParaRecibir({
             );
           }
           const e = f.envio;
+          const salio = fechaDeEnvioParaTabla(e.despachadoEn, hoy);
           const sinAviso = porCategoria && esEnvioSinAviso(e);
           const proveedor = sinAviso ? (proveedoresSinAviso[e.id] ?? "Por confirmar") : e.proveedores.length > 0 ? e.proveedores.join(", ") : "—";
           return (
@@ -110,16 +133,36 @@ export function EnviosParaRecibir({
               {!e.creadoPorMi && (
                 <Link href={`/recibir/envio/${e.id}`} aria-hidden tabIndex={-1} className="absolute inset-0 transition-colors duration-200 group-hover:bg-tinta/[0.03]" />
               )}
-              <span className={celda("izq", "pointer-events-none relative text-sm font-semibold tabular-nums text-tinta")}>{e.numero}</span>
+              <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-tinta @3xl:block")} title={salio ? `Enviado el ${salio.completa}` : "Sin fecha de envío"}>
+                {salio ? (
+                  <>
+                    {salio.dia}
+                    {salio.hora && <small className="block text-xs text-taupe">{salio.hora}</small>}
+                  </>
+                ) : (
+                  <span className="text-taupe">—</span>
+                )}
+              </span>
+              <span className={celda("izq", "pointer-events-none relative text-sm font-semibold tabular-nums text-tinta")}>
+                {e.numero}
+                {/* Con la tarjeta angosta, la fecha de envío se lee bajo el número; con la ancha, tiene su columna (la primera). */}
+                {salio && (
+                  <small className="block text-xs font-normal text-taupe @3xl:hidden" title={`Enviado el ${salio.completa}`}>
+                    <span className="sm:hidden">Enviado </span>
+                    {salio.dia}
+                    {salio.hora && ` · ${salio.hora}`}
+                  </small>
+                )}
+              </span>
               <span className={celda("izq", "pointer-events-none relative overflow-visible")}>
                 <Chip tono={ESTADO_ENVIO[e.estado].tono}>{ESTADO_ENVIO[e.estado].texto}</Chip>
               </span>
               <span className={celda("izq", "pointer-events-none relative text-sm text-tinta")} title={proveedor}>
                 {proveedor}
                 {sinAviso && <small className="block truncate text-xs text-taupe">Llegó sin aviso: se sigue contando</small>}
-                {e.numeroGuia && <small className="block truncate text-xs text-taupe @3xl:hidden">guía {e.numeroGuia}</small>}
+                {e.numeroGuia && <small className="block truncate text-xs text-taupe @5xl:hidden">guía {e.numeroGuia}</small>}
               </span>
-              <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-taupe @3xl:block")}>{e.numeroGuia ?? "—"}</span>
+              <span className={celda("izq", "pointer-events-none relative hidden text-sm tabular-nums text-taupe @5xl:block")}>{e.numeroGuia ?? "—"}</span>
               <span className={celda("der", "pointer-events-none relative text-sm text-tinta")}>{sinAviso ? "—" : prendas(e.unidades)}</span>
               <span className={celda("der", "relative overflow-visible whitespace-normal sm:flex sm:justify-end")}>
                 {e.creadoPorMi ? (
@@ -139,8 +182,8 @@ export function EnviosParaRecibir({
           );
         })}
         {coinciden === 0 && (
-          <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setBuscar("") }}>
-            Ningún envío coincide con «{buscar}».
+          <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />} accion={{ texto: hayFiltros ? "Limpiar todo" : "Borrar la búsqueda", onClick: limpiar }}>
+            {buscar.trim() ? <>Ningún envío coincide con «{buscar}»{hayFiltros ? " y los filtros puestos" : ""}.</> : "Ningún envío cumple los filtros puestos."}
           </Vacio>
         )}
       </Tabla>
