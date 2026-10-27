@@ -436,6 +436,20 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Elige uno o varios de la lista de colores, o búscalo por nombre. Al elegir, aparecen su foto (opcional), en qué tallas viene y la tabla de las variantes que van a nacer, con su precio.",
     },
     {
+      id: "agregar-color-unidades",
+      ancla: "agregar-color.unidades",
+      opcional: true,
+      titulo: "¿Con cuántas unidades nacen?",
+      texto: "Pon cuántas hay de cada talla nueva, o déjalas en 0. Es la única vez que se escribe stock aquí: al guardar, el número se sella con su candado y después solo se ajusta en Existencias.",
+    },
+    {
+      id: "agregar-color-vista",
+      ancla: "agregar-color.vista-previa",
+      opcional: true,
+      titulo: "Así quedará en la tabla",
+      texto: "Lo que ya hay, atenuado, y lo que nace, en ámbar con sus unidades. Míralo antes de sumarlas a la ficha.",
+    },
+    {
       id: "agregar-color-pie",
       ancla: "agregar-color.pie",
       opcional: true,
@@ -450,6 +464,20 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "editar.agregar-talla" }],
       titulo: "Las tallas que llegaron",
       texto: "Marca las tallas nuevas: cada una nace en los colores que ya vende la prenda. Toca una celda para quitar una combinación que no llegó y pon su precio. Solo ofrece las tallas de su categoría. Cerramos sin agregar.",
+    },
+    {
+      id: "agregar-talla-unidades",
+      ancla: "agregar-talla.unidades",
+      opcional: true,
+      titulo: "¿Con cuántas unidades nacen?",
+      texto: "Pon cuántas hay de la talla nueva en cada color, o déjalas en 0. Es la única vez que se escribe stock aquí: al guardar se sella y después solo se ajusta en Existencias.",
+    },
+    {
+      id: "agregar-talla-vista",
+      ancla: "agregar-talla.vista-previa",
+      opcional: true,
+      titulo: "Así quedará en la tabla",
+      texto: "La columna nueva, en ámbar y con sus unidades, junto a lo que ya hay. Míralo antes de sumarla a la ficha.",
     },
     {
       id: "foto",

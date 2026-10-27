@@ -25,7 +25,7 @@ export function PuertaAjustarStock({ etiqueta, href, onCerrar }: { etiqueta: str
           </p>
         </div>
         <PieAcciones>
-          <Boton peso="fantasma" onClick={onCerrar}>
+          <Boton type="button" peso="fantasma" onClick={onCerrar}>
             Cancelar
           </Boton>
           <BotonEnlace peso="primario" href={href}>

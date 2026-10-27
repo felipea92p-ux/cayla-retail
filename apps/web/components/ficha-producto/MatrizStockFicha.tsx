@@ -145,6 +145,18 @@ export function MatrizStockFicha({
   const numero = (f: FilaFicha) => (f.id && f.guardada ? stock.numero(f.id) : stock.numeroNueva(f.clave));
   const totales = totalesMatriz(m, numero);
   const [tocadas, setTocadas] = useState<ReadonlySet<string>>(new Set());
+  // Las unidades de partida SE SELLAN al guardar (ADR-0494): la variante que era nueva y ya está guardada cambia su caja por el candado,
+  // con un destello de una sola vez. Se sabe porque en la pintada anterior su clave era de una fila sin guardar.
+  const eranNuevas = useRef<ReadonlySet<string>>(new Set());
+  const [selladas, setSelladas] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    const recien = filas.filter((f) => f.guardada && eranNuevas.current.has(f.clave)).map((f) => f.clave);
+    eranNuevas.current = new Set(filas.filter((f) => !f.guardada).map((f) => f.clave));
+    if (recien.length === 0) return;
+    setSelladas((a) => new Set([...a, ...recien]));
+    const t = window.setTimeout(() => setSelladas(new Set()), 1400);
+    return () => window.clearTimeout(t);
+  }, [filas]);
   // Lo que se está escribiendo en una celda de unidades (puede quedar vacío un instante); al salir, la celda vuelve a su número.
   const [borrador, setBorrador] = useState<Record<string, string>>({});
   const relojes = useRef(new Map<string, number>());
@@ -558,6 +570,7 @@ export function MatrizStockFicha({
           sinTab
           className="matriz-paso cursor-pointer"
           data-candado="true"
+          data-sellada={selladas.has(f.clave) || undefined}
           title="Tiene candado: el stock se ajusta en Existencias"
           onClick={abrir}
           menos={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${etiqueta}` }}
@@ -565,7 +578,7 @@ export function MatrizStockFicha({
         >
           <span className="inline-flex items-center justify-center gap-1">
             {esperando ? "…" : u}
-            <Lock aria-hidden className="h-3 w-3 text-taupe" />
+            <Lock aria-hidden className="candado-sellado h-3 w-3 text-taupe" />
           </span>
         </PasoCantidad>
       );

@@ -46,6 +46,7 @@ import {
 } from "@/lib/temporada-ficha-reglas";
 import {
   agregarCombinaciones,
+  unidadesParaNuevas,
   anclarFotos,
   asignacionesDeEtiquetas,
   avisoBloqueSinAplicar,
@@ -1214,7 +1215,7 @@ export function ProductoForm({
       detalle:
         [
           hechoTodo.length > 0 ? hechoTodo.join(", ") : null,
-          cargadas > 0 ? `${cargadas} ${cargadas === 1 ? "unidad entró" : "unidades entraron"} como stock inicial` : creadas > 0 ? NACEN_SIN_UNIDADES : null,
+          cargadas > 0 ? `${cargadas} ${cargadas === 1 ? "unidad entró" : "unidades entraron"} como stock inicial: queda sellado, desde ahora se ajusta en Existencias` : creadas > 0 ? NACEN_SIN_UNIDADES : null,
           reimprimir?.detalle ?? null,
         ]
           .filter(Boolean)
@@ -1345,8 +1346,16 @@ export function ProductoForm({
           { colorCodigo: r.colorDeLasQueTiene }
         )
       : filas;
-    setFilas(agregarCombinaciones(base, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }));
+    const siguientes = agregarCombinaciones(base, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes });
+    setFilas(siguientes);
+    ponerUnidadesDeLasNuevas(base, siguientes, r.unidades);
     if (r.fotos.length > 0) sumarFotosDeColores(r.fotos);
+  }
+
+  /** Las unidades de partida que se escribieron en «Agregar color/talla» pasan a las filas que acaban de nacer: entran como stock inicial
+   *  al guardar (`stock.cargarNuevas`) y, ya guardadas, su número lleva candado (ADR-0494). */
+  function ponerUnidadesDeLasNuevas(antes: readonly FilaFicha[], despues: readonly FilaFicha[], unidades: Record<string, number>) {
+    for (const [clave, n] of Object.entries(unidadesParaNuevas(antes, despues, unidades))) stock.fijarNueva(clave, n);
   }
 
   /** La celda «—» de la matriz (esa combinación no se vende): la agrega o la reactiva (`comoLlenarHueco`). Nace con el precio y el
@@ -2003,7 +2012,11 @@ export function ProductoForm({
           tallas={tallasCategoria}
           categoriaNombre={categoriaActual?.nombre}
           etiquetasTexto={etiquetasTexto}
-          onConfirmar={(r) => setFilas(agregarCombinaciones(filas, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes }))}
+          onConfirmar={(r) => {
+            const siguientes = agregarCombinaciones(filas, r.combos, { precio: r.precio, costo: r.costo, etiquetaIds: comunes });
+            setFilas(siguientes);
+            ponerUnidadesDeLasNuevas(filas, siguientes, r.unidades);
+          }}
           onClose={() => setAgregandoTalla(false)}
           admitePrecioCero={!!categoriaActual?.admitePrecioCero}
         />
