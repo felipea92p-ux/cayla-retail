@@ -56,3 +56,4 @@ dónde duele más (mostrador antes que configuración).
 
 ## Cómo se agrega una fila
 Al cerrar una corrida de `/formidable`: copia la nota de leyes y de oficio del informe, el estado, el enlace y la fecha. No inventes una nota sin evidencia: pon «sin probar».
+| Gestión / cabecera | «Pregúntale a CAYLA»: Preguntas del equipo con el informe del lunes (`/gestion/preguntas`) y el cajón del asistente (ADR-0529) | medido a 1440, 1024 y 375 (Playwright, cuenta de prueba del líder) · ciega con capturas (1 agente: entendió las dos piezas en 5 s, 5 dudas de palabras) · real sin probar; **3 cambios propuestos, esperan el OK de Felipe** | 7,7 | 7 (lo propio: el «Ver más» de 20 px y «Fuera de tema» tachado; lo demás es del marco) | [asistente-preguntas](asistente-preguntas.md) | 2026-10-27 |
