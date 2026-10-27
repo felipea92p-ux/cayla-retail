@@ -5,8 +5,8 @@
 - [x] 3 · Recorridos: «Muéstrame» arranca en el paso que responde, con lo que necesita abierto, y pasa solo a la pantalla del siguiente tramo (hasta 3).
 - [x] 4 · Sin acceso: si responde una pantalla de un módulo que el rol no tiene, el sistema dice dónde se hace y «pídeselo a tu líder de equipo», sin los pasos.
 - [x] 5 · Cada pregunta queda anotada (`retail.asistente_preguntas`, migración `20261027181000`), «¿Te sirvió? Sí / No» y «¿Qué buscabas?», y el tope de US$30 al mes (`fn_asistente_gasto_del_mes`). Aplicada solo en la base local.
-- [ ] **Pegar `20261027181000_asistente_preguntas.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres funciones). Mientras no esté, el asistente responde igual pero no anota nada (`preguntaId: null`, sin «¿Te sirvió?») ni cuenta el tope del mes: queda solo el límite de gasto de la consola de Anthropic.
-- [ ] Refrescar el volcado de producción (`datos:generar:produccion`) cuando la migración esté aplicada: `pnpm datos:comparar` marca las tres funciones hasta entonces.
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181646`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027181000_asistente_preguntas.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres funciones). Mientras no esté, el asistente responde igual pero no anota nada (`preguntaId: null`, sin «¿Te sirvió?») ni cuenta el tope del mes: queda solo el límite de gasto de la consola de Anthropic.
+- [ ] Refrescar el volcado de producción (`datos:refrescar` por el MCP, `datos:generar:produccion`): las cuatro migraciones del asistente ya están allá desde el 2026-10-27 y el diccionario todavía no las tiene.
 - [x] 6 · Rellenar con candados: el dato que la persona dijo, tal cual, solo en el `<Buscador>` (`data-asistente="rellenable"`, lista blanca vigilada), marcado «Lo escribió CAYLA · revísalo» hasta que la persona lo toca. Nunca guarda.
 - [ ] **Felipe:** ¿sumar otros campos rellenables (el texto de un motivo, combos de una opción)? Hoy solo el buscador.
 - [x] 7 · Reglas de tienda (`lib/asistente/reglas-de-tienda.ts`, 10 aprobadas por Felipe el 2026-10-27) y errores con la frase de la pantalla (`frasesDeErrores`). Una regla sin escribir: «Eso no lo tengo escrito todavía».
@@ -14,7 +14,7 @@
 - [x] 8 · Interruptor por sede en Configuración ▸ Tiendas y caja (`retail.asistente_sedes`, migración `20261027163000`). Lo cambia quien ve
   Configuración (Felipe 2026-10-27), nace apagado en todas, el botón y `/api/asistente` solo responden en una sede encendida.
   `pnpm pruebas:asistente-sedes` (12 casos). Aplicada solo en la base local, con **Tienda Lima encendida** ahí para seguir probando.
-- [ ] **Pegar `20261027163000_asistente_sedes.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181558`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027163000_asistente_sedes.sql` en producción** (necesita el OK de Felipe; una sola parte, tabla nueva sin políticas y tres
   funciones). Ojo: **mientras no esté, el botón no sale en ninguna sede** (sin la función, sale apagado a propósito). Va junto con la de
   preguntas, y después hay que encender la sede del piloto en Configuración.
 - [ ] El escáner de huellas de las guías (`guias/escaner.mjs`, `CONTROLES`) no cuenta `<Interruptor>` (22 en el ERP): un interruptor nuevo
@@ -22,13 +22,13 @@
 - [x] 9 · Gestión ▸ «Preguntas del equipo» (`/gestion/preguntas`, módulo `preguntas_equipo`, migración `20261027182000`): con el nombre de
   quien preguntó (Felipe 2026-10-27), solo personas, nace sin rol. `pnpm pruebas:asistente-preguntas-equipo` (11 casos), guía interactiva
   recorrida en escritorio y a 375 px. Aplicada solo en la base local.
-- [ ] **Pegar `20261027182000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261027181000`). Toca
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181726`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027182000_asistente_preguntas_equipo.sql` en producción** (OK de Felipe; va DESPUÉS de `20261027181000`). Toca
   `fn_exigir_rol_de_terminal` con un reemplazo anclado: si la lista viva no es la esperada, se detiene sin tocar nada.
 - [ ] **Felipe:** darle «Preguntas del equipo» a las encargadas en Roles y accesos, si quiere que lo vean (hoy solo el líder).
 - [x] 10 · El informe del lunes: cron de Vercel (los lunes 7:00 de Lima) + Claude Sonnet 5.5, `retail.asistente_informes` (migración
   `20261027183000`), botón de respaldo en Preguntas del equipo. `pnpm pruebas:asistente-informes` (14 casos). Probado en local por el camino
   del cron con 8 preguntas de prueba de la semana del 19 oct (ruta `/prueba-informe`, quedan en la base local): 4 mejoras, US$0,009.
-- [ ] **Pegar `20261027183000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261027181000` y `20261027182000`).
+- [x] **En producción el 2026-10-27** (con `apply_migration`, que la anota como `20261027181823`; las funciones y tablas quedaron con la misma huella que en local). ~~Pegar `20261027183000_asistente_informes.sql` en producción** (OK de Felipe; va después de `20261027181000` y `20261027182000`).
   Hasta entonces el cron del lunes responde 500 (no encuentra las funciones) y lo avisa Sentry: conviene pegar las cuatro migraciones del
   asistente juntas antes de fusionar el PR.
 - [x] 11 · Evaluación de 40 preguntas (`lib/asistente/evaluacion/`: 38 de 40 con la IA, la parte sin red en el CI), `/guia`, `/focus`, oscuro y

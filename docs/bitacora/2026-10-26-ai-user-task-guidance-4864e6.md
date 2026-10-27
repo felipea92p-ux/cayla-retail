@@ -47,3 +47,10 @@ en el menú), /guia, /focus, oscuro y 375 px, /chaos (semilla 529: 21 de 24 resi
 /formidable (de 7,7 a 8,3, con los 3 cambios que Felipe aprobó).
 Por qué así: la evaluación mide la búsqueda y la IA por separado, así que cuando falla se sabe dónde. Felipe se lleva: decidir el hallazgo
 de permisos de /chaos (en el chat) y pegar las cuatro migraciones del asistente antes de fusionar el PR.
+
+## 2026-10-27 (Las cuatro migraciones del asistente, en producción)
+Qué hice: por orden de Felipe, apliqué en producción (proyecto de Dynamic, schema `retail`) las cuatro migraciones de ADR-0536, en orden:
+sedes, preguntas, Preguntas del equipo e informes; producción las anota con su hora (`20261027181558`…`181823`).
+Por qué así: con `apply_migration` del MCP, como las otras de hoy; después comparé la huella de las 11 funciones y las 3 tablas contra la
+base local: idénticas. El módulo nació sin rol y ninguna sede está encendida. Felipe se lleva: fusionar el PR cuando decida el hallazgo de
+permisos y, después, encender la sede del piloto.
