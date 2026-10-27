@@ -118,3 +118,14 @@ test`, `typecheck` y `lint`. La tienda **no tiene vista previa de rama** (sus va
 - **Arreglo:** el nav vuelve a no estar posicionado; la raya se ancla a la fila (`.t-cab-fila`) y `useRayaDelNav` la mide desde su `offsetParent`. `lib/cabecera-mega.test.ts` falla si el nav o el envoltorio del menú vuelven a ser un ancestro posicionado.
 - **Además, primero los nombres:** las columnas de los grupos dejaron de toparse en 210 px (`minmax(190px, auto)`: cada una mide lo que pide su categoría más larga) y «Recién llegado» se queda con lo que sobra, apagándose si no llega a 230 px, como antes. Un nombre que aun así no cabe (ventana de 1000 a 1100 px con «Ropa interior/Lencería») baja a una segunda línea en vez de cortarse, y el número de prendas lo sigue en la última línea. Medido con los nombres más largos del catálogo a 1000 y 1440 px: ninguno cortado, sin desborde, raya alineada con su pestaña.
 - **Costo (calculado, no medido: la base local no trae prendas recién llegadas para ese menú):** con nombres largos en varios grupos a 1280 px o menos, la vitrina «Recién llegado» puede apagarse antes que antes (los nombres tienen la prioridad). Si Felipe prefiere lo contrario, se vuelve a topar la columna. Falta verlo con los datos reales de producción.
+
+## Actualización 2026-10-27 (b): el movimiento que faltaba frente a la maqueta
+
+**DECIDÍ:** igualar la tienda a la maqueta en movimiento con piezas pequeñas y una sola vez: revelado al bajar por tiempo (`components/RevelaAlBajar.tsx`, un `IntersectionObserver` que solo
+esconde lo que está bajo el pliegue), cortina de fotos escalonada por columna, entrada de la ficha solo al cargar, títulos de página por letras (`TituloConLetras`), una raya única en
+las categorías (`NavConIndicador`) y el reacomodo de las tarjetas al filtrar con `<ViewTransition>`. Y que la portada **nunca pierda el desfile**: sin llegadas de 30 días sale con las
+prendas que hay (foto primero), titulado «Lo nuevo» (Felipe, 2026-10-27).
+**DESCARTÉ:** el revelado atado al scroll (`animation-timeline: view()`): avanza con el dedo y no calza con los 1–1,6 s de la maqueta; y un FLIP de cliente: el filtrado es de servidor
+(la lista sale de la dirección), así que el navegador ya tiene la técnica. Tampoco generalicé `useRayaDelNav`: la raya de la cabecera mide desde otra fila y tocarla arriesga el menú de «Ropa».
+**SE ROMPE SI:** una prenda aparece dos veces en una misma página con `<ViewTransition name>` (nombre duplicado: la transición se aborta; por eso solo el catálogo lo lleva); o si un
+bloque marcado `data-revela` queda bajo el pliegue de una ventana sin tamaño (un panel oculto): se queda apagado hasta que se vea.

@@ -32,7 +32,7 @@ export function OfertasPorCampana({ campanas, inicial, titulo }: { campanas: Cam
 
   return (
     <>
-      <div className="t-sec-cab">
+      <div className="t-sec-cab" data-revela>
         {titulo}
         <Link className="t-ver" href={actual.verTodas}>
           Ver todas <b>{actual.cuantas}</b>
@@ -69,7 +69,7 @@ export function OfertasPorCampana({ campanas, inicial, titulo }: { campanas: Cam
         ))}
       </nav>
       {campanas.map((c) => (
-        <div key={c.id ?? "todas"} className="t-grilla t-ofertas-grilla" hidden={c.id !== actual.id}>
+        <div key={c.id ?? "todas"} className="t-grilla t-ofertas-grilla" data-cortina-lista hidden={c.id !== actual.id}>
           {c.grilla}
         </div>
       ))}

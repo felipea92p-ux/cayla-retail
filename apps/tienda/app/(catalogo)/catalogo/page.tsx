@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ViewTransition } from "react";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
+import { NavConIndicador } from "@/components/NavConIndicador";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import { BotonBuscarCatalogo } from "@/components/BotonBuscarCatalogo";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { BotonDeFiltros } from "@/components/filtros/BotonDeFiltros";
@@ -321,10 +324,7 @@ export default async function Catalogo({ searchParams }: Props) {
       <div className="t-ancho">
         <header className="t-lista-cab">
           <span className="t-ceja">{ceja}</span>
-          <h1>
-            {titulo[0] ? `${titulo[0]} ` : null}
-            <em>{titulo[1]}</em>
-          </h1>
+          <TituloConLetras primera={titulo[0] || undefined} cursiva={titulo[1]} />
           {cab.frase && <p>{cab.frase}</p>}
         </header>
 
@@ -439,7 +439,7 @@ export default async function Catalogo({ searchParams }: Props) {
                       })}
                     </nav>
                     {delActivo && delActivo.categorias.length > 1 && (
-                      <nav className="t-subcats" aria-label={`Categorías de ${delActivo.nombre}`}>
+                      <NavConIndicador className="t-subcats" ariaLabel={`Categorías de ${delActivo.nombre}`}>
                         {(() => {
                           const ir = hrefA(prendasDelGrupo(delActivo.clave), { grupo: delActivo.clave, categoria: null }, delActivo.nombre);
                           return (
@@ -466,7 +466,7 @@ export default async function Catalogo({ searchParams }: Props) {
                             </Link>
                           );
                         })}
-                      </nav>
+                      </NavConIndicador>
                     )}
                     {conFiltros && <PalabrasDeFiltros />}
                   </div>
@@ -530,10 +530,11 @@ export default async function Catalogo({ searchParams }: Props) {
             )}
             {vista.length > 0 ? (
               <>
-                <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`}>
+                <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`} data-cortina-lista>
                   {vista.slice(pag.desde, pag.hasta).map((p, i) => (
+                    // Cada tarjeta lleva su nombre: al filtrar, las que siguen se deslizan a su nuevo lugar y las que llegan o se van, entran y salen (`vistas.css`, `.t-carta`).
+                    <ViewTransition key={p.id} name={`t-carta-${p.id.toLowerCase()}`} default="t-carta">
                     <TarjetaPrenda
-                      key={p.id}
                       prenda={p}
                       sede={sede}
                       origenFotos={origenFotos}
@@ -544,6 +545,7 @@ export default async function Catalogo({ searchParams }: Props) {
                       diseno={diseno}
                       coincide={hayFiltros ? coincidenciaDe(filtros, p) : null}
                     />
+                    </ViewTransition>
                   ))}
                 </div>
                 <Paginacion href={href({})} pagina={pag.pagina} paginas={pag.paginas} desde={pag.desde} hasta={pag.hasta} total={vista.length} />

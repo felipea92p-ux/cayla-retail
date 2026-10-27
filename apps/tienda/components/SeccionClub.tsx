@@ -32,7 +32,7 @@ export function SeccionClub({
   return (
     <section className="t-club" aria-labelledby="club-cayla">
       <div className="t-ancho t-club-in">
-        <div className="t-revela">
+        <div data-revela>
           <span className="t-ceja">Club CAYLA</span>
           <h2 id="club-cayla">
             {esDelClub ? (

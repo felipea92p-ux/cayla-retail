@@ -12,6 +12,15 @@ qué decisiones son de Felipe, cómo correrla en local y las trampas. La maqueta
 
 ---
 
+## 0. Hecho después de este traspaso (rama `claude/tienda-pasarela-movimiento-616974`, 2026-10-27)
+
+**Hecho (no rehacer):** 1 revelado al bajar (por tiempo, con `RevelaAlBajar`, no atado al scroll); 2 cortina escalonada por columna con el pie después; 3 entrada de la ficha;
+4 títulos de página por letras (`TituloConLetras`); 5 raya única en las categorías del catálogo (`NavConIndicador` / `useIndicador`); 6 reacomodo de tarjetas al filtrar
+(el filtrado es de SERVIDOR: `<ViewTransition>` por prenda, no FLIP de cliente); 7 estados de talla/color a .35 s. **Decidido por Felipe:** (a) el desfile no desaparece sin llegadas
+de 30 días: sale con lo que hay y se llama «Lo nuevo», con su programa y un «Ver lo nuevo» que siempre lleva a algún lado.
+**Sigue pendiente:** 8 la cabecera pegada (decisión de Felipe, para después); (c) «Crear mi cuenta» bajo el desfile; (d) Lighthouse móvil en producción; (e) guía de tallas;
+la cortina de la ficha con una foto real (la base local no tiene) y las capturas en claro y oscuro de cada animación.
+
 ## 1. Dónde quedó todo (verificado el 2026-10-27)
 
 | Cosa | Estado |
