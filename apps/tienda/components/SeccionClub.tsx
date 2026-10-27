@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Icono, type NombreIcono } from "./Icono";
-import { TarjetaClub } from "./TarjetaClub";
+import { InvitacionClub } from "./InvitacionClub";
 
 // Solo el título de cada beneficio: se entiende de un vistazo (el detalle, en «Cómo separar» y en el perfil).
 const BENEFICIOS: [NombreIcono, string][] = [
@@ -11,8 +11,8 @@ const BENEFICIOS: [NombreIcono, string][] = [
 ];
 
 /**
- * El Club CAYLA (maqueta, `seccionClub`): los beneficios y la tarjeta. Sin cuenta, invita a crearla con «Tu nombre aquí»; con cuenta,
- * la tarjeta lleva su nombre y el botón lleva a «Mi perfil». `regaloCumple`: los puntos de regalo del cumpleaños (la configuración vigente,
+ * El Club CAYLA (maqueta, `seccionClub`): los beneficios y la invitación (G · Pasarela). Sin cuenta, invita a crearla con «Tu nombre aquí»; con cuenta,
+ * la invitación lleva su nombre y el botón lleva a «Mi perfil». `regaloCumple`: los puntos de regalo del cumpleaños (la configuración vigente,
  * `tienda_puntos_config`, programa de puntos), en un sello sobre la tarjeta; sin el dato, sin sello (nunca un número inventado).
  */
 export function SeccionClub({
@@ -33,6 +33,7 @@ export function SeccionClub({
     <section className="t-club" aria-labelledby="club-cayla">
       <div className="t-ancho t-club-in">
         <div className="t-revela">
+          <span className="t-ceja">Club CAYLA</span>
           <h2 id="club-cayla">
             {esDelClub ? (
               <>
@@ -44,7 +45,7 @@ export function SeccionClub({
               </>
             ) : (
               <>
-                Tu cuenta es tu <em>membresía.</em>
+                Tu cuenta es tu <em>invitación.</em>
               </>
             )}
           </h2>
@@ -75,7 +76,7 @@ export function SeccionClub({
           )}
         </div>
         <div className="t-club-tarjeta">
-          <TarjetaClub nombre={nombre ?? "Tu nombre aquí"} desde={desde} />
+          <InvitacionClub nombre={nombre} desde={desde} />
           {regaloCumple !== null && regaloCumple > 0 && (
             <span className="t-club-sello">
               <b>+{regaloCumple.toLocaleString("es-PE")}</b>

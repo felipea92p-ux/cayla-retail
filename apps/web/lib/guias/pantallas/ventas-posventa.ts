@@ -426,6 +426,14 @@ export const GUIA_CAJA: Guia = {
       texto: "En una frase, cómo vas comparado con ayer a esta misma hora, con lo vendido, las ventas y la venta promedio. El círculo dice cuánto llevas de lo que se vendió ayer.",
     },
     {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la caja.
+      id: "reparto-empresas",
+      ancla: "caja.reparto-empresas",
+      opcional: true,
+      titulo: "De quién es lo vendido",
+      texto: "Cuánto de lo vendido hoy es de CAYLA y cuánto de CLAURE, prenda por prenda. El efectivo y los demás pagos siguen juntos: es un solo cajón.",
+    },
+    {
       id: "cajon",
       ancla: "caja.cajon",
       opcional: true,

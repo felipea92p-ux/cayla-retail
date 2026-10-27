@@ -20,7 +20,10 @@ import { claveMasCercana, debePedirUbicacion } from "@/lib/sede-cercana";
 import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR_TIENDA, VELO_SALE_MS } from "@/lib/sede-velo";
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
+import { EscudoDeFila } from "./MarcaDeTienda";
+import { marcarViaje, useRayaDelNav, viajaHacia } from "./useRayaDelNav";
 import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
+import { escudoDe } from "@/lib/escudo-de-tienda";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
 import "@/app/estilos/bolsa.css";
 
@@ -200,6 +203,9 @@ export function CabeceraConCuenta({
   const camino = useCamino();
   const marcada = camino ? seccionDeLaRuta(camino.ruta, new URLSearchParams(camino.buscar)) : actual;
   const marca = (seccion: SeccionActual) => (marcada === seccion ? "page" : undefined);
+  // La raya que viaja (ADR-0524): una sola, bajo la pestaña marcada; corre de la de antes a la que se tocó mientras llega la página.
+  const nav = useRef<HTMLElement>(null);
+  useRayaDelNav(nav, marcada);
 
   return (
     <>
@@ -211,7 +217,8 @@ export function CabeceraConCuenta({
           <Link className="t-logo" href={datos.inicio} aria-label="CAYLA, ir al inicio">
             <Logo />
           </Link>
-          <nav className="t-nav" aria-label="Secciones">
+          {/* Al tocar una pestaña se apunta hacia dónde va el recorrido (a la derecha o a la izquierda): la página entra de lado en ese sentido (`vistas.css`). */}
+          <nav className="t-nav" aria-label="Secciones" ref={nav} onClickCapture={(e) => marcarViaje(nav.current, (e.target as Element).closest(".t-nav-b"))}>
             <Link className="t-nav-b" href={datos.nuevo.href} aria-current={marca("nuevo")}>
               Lo nuevo
             </Link>
@@ -224,6 +231,7 @@ export function CabeceraConCuenta({
             <Link className="t-nav-b" href={datos.ofertas.href} aria-current={marca("ofertas")}>
               Ofertas
             </Link>
+            <span className="t-raya" aria-hidden="true" />
           </nav>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
@@ -384,6 +392,8 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
     return () => window.clearTimeout(t);
   }, [velo]);
   const elegida = opciones.find((o) => o.actual) ?? opciones[0];
+  // Si alguna tienda de la lista tiene escudo, las demás guardan su lugar: los nombres quedan alineados.
+  const hayEscudos = opciones.some((o) => escudoDe(o.nombre) !== null);
   // Elegir una tienda: se recuerda en la cookie, se cubre con el velo y se navega dentro de una transición (`cambiando` dura hasta que la
   // página nueva llega). Con prendas en la bolsa, antes se vacía (la persona ya lo confirmó).
   const ir = (o: OpcionTienda, vaciar: boolean) => {
@@ -476,6 +486,10 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
         }}
       >
         <NombreQueRueda nombre={elegida.nombre} /> <span aria-hidden="true">▾</span>
+        {/* El nombre en letras aparece al pasar el mouse o con el teclado (solo si lo que se ve es el escudo; ver `.t-sel-nombre`). */}
+        <span className="t-sel-nombre" aria-hidden="true">
+          {elegida.nombre}
+        </span>
       </button>
       {velo && <VeloDeSede nombre={velo.nombre} fase={velo.fase} arriba={velo.arriba} />}
       {abierto && (
@@ -514,6 +528,7 @@ function SelectorTienda({ opciones, prendasEnBolsa }: { opciones: OpcionTienda[]
                   else ir(o, false);
                 }}
               >
+                <EscudoDeFila nombre={o.nombre} hueco={hayEscudos} />
                 {o.nombre}
               </Link>
             ))
@@ -637,7 +652,8 @@ function HojaMenu({
   visitante: boolean;
 }) {
   return (
-    <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
+    // En el celular no hay raya: al tocar una sección del menú, la página entra de lado hacia la derecha (ADR-0524).
+    <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú" onClickCapture={(e) => ((e.target as Element).closest("a") ? viajaHacia(1) : undefined)}>
       <div className="t-menu-cab">
         <span className="t-logo">
           <Logo />

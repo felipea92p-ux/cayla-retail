@@ -86,6 +86,7 @@ import {
   type TemporadaElegida,
 } from "@/lib/variantes-ficha-reglas";
 import { PanelDelTaller } from "@/components/ficha-producto/PanelDelTaller";
+import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
 import { PreciosPorSede } from "@/components/ficha-producto/PreciosPorSede";
 import type { Tienda } from "@/components/ficha-producto/PrecioSedeModal";
@@ -286,6 +287,7 @@ export function ProductoForm({
   estadoVariantes,
   esLider,
   puedeCorregir = true,
+  fichaConsumo = null,
   ajusteStock = null,
   lecturaStock = null,
   preciosSede = null,
@@ -316,6 +318,8 @@ export function ProductoForm({
    *  corregir: una base vieja ignora la corrección pero SÍ guarda las fotos que se movieron con ella. La página la
    *  calcula siempre (`esFuncionAusente` sobre `fn_variantes_estado`); sin pasarla, se asume que sí. */
   puedeCorregir?: boolean;
+  /** La puerta de la «Ficha de consumo» del modelo (ADR-0513): el Taller y los avíos que la hoja necesita. `null` = no se dibuja la tarjeta (modelo nuevo, o no se pudo leer). */
+  fichaConsumo?: PuertaDeLaFicha | null;
   /** Ajustar el stock de la sede activa desde la ficha (2026-09-29). `null` = la cuenta no tiene «Ajustar stock». */
   ajusteStock?: AjusteStockFicha | null;
   /** La sede de la que se LEE el stock aunque la cuenta no pueda ajustarlo (sin «Ajustar stock» se ve, no se toca). */
@@ -329,6 +333,8 @@ export function ProductoForm({
     general: number | null;
     ubicacionId: string;
     sede: string;
+    /** Una terminal: el bloque «Precio por tienda» muestra solo su tienda. */
+    soloAqui?: boolean;
   } | null;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
@@ -490,6 +496,7 @@ export function ProductoForm({
     costoSinComprobar: costosSinComprobar(producto?.variantes ?? []),
     puedeCorregir,
     ajusteStock,
+    precioFijoEn: preciosSede?.soloAqui ? (preciosSede.tiendas[0]?.nombre ?? "") : null,
   };
 
   // «Para completar esta ficha» (ADR-0284 c): lo que le falta a la prenda para estar completa. Solo guía; guardar no depende de esto.
@@ -1739,6 +1746,7 @@ export function ProductoForm({
                 tiendas={preciosSede.tiendas}
                 ubicacionActual={preciosSede.ubicacionId}
                 costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
+                soloAqui={preciosSede.soloAqui}
                 deshabilitado={loading}
               />
             )}
@@ -1856,6 +1864,7 @@ export function ProductoForm({
           completadaAqui={pendientesAlAbrir.size > 0}
           onIrPendiente={irAPendiente}
           campana={fraseCampana}
+          fichaConsumo={producto && fichaConsumo ? { ...fichaConsumo, productoId: producto.id, referencia: producto.referencia } : null}
           deshabilitado={loading}
         />
       </div>

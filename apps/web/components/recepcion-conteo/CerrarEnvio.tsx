@@ -9,10 +9,10 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { Balanza, BaldosaCategoria } from "./piezas";
-import { PrecioDePrenda, type PrecioEditado } from "./PrecioDePrenda";
-import { Modal } from "@/components/ui/Modal";
+import { enfocarPrecio, FilaDeCosto, PrecioDePrenda } from "./PrecioDePrenda";
+import { ConfirmarPrecios } from "./ConfirmarPrecios";
+import { usePreciosDeVenta } from "./usePreciosDeVenta";
 import { Vacio } from "@/components/ui/Vacio";
-import { PieAcciones } from "@/components/ui/PieAcciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -28,33 +28,8 @@ import {
   type CostoAtipicoRecepcion,
   type DetalleEnvio,
 } from "@/lib/recepcion-envio-reglas";
-import {
-  cambioDePrecioDeCompra,
-  cambioDePrecioDeVenta,
-  camposDelCierre,
-  textoCambioDePrecio,
-  type CambioDePrecio,
-  causasDe,
-  contadasDe,
-  decisionInicial,
-  detalladas,
-  diferenciaDe,
-  HINT_CONTEO_CAMBIADO,
-  idCampoCierre,
-  leerCostoCierre,
-  lineaVisible,
-  lineasParaCerrar,
-  nombreDeLinea,
-  textoBotonCerrar,
-  TOPES_CONTEO,
-  type DecisionCierre,
-  type LineaParaContar,
-  mensajeAlGuardar,
-  resumenDelCierre,
-  detalleParaDespues,
-  textoResumenDelCierre,
-  marcaDeLinea,
-} from "@/lib/recepcion-conteo-reglas";
+import { agruparLineas, camposDelCierrePorGrupo, causasDelGrupo, lineaDeLaPrenda, lineaDelGrupo } from "@/lib/recepcion-grupos-reglas";
+import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, cambioDePrecioDeVenta, cambiosDeVentaDe, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, problemasDePrecio, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
 import { cambiarPrecioEnRecepcion, cerrarConteo, corregirGuiaEnvio, ponerProveedorEnvio } from "@/lib/recepcion-conteo-acciones";
 
 // Cerrar (ADR-0393, el paso 3 de la cara A): una fila por categoría —lo que dijeron, lo que se contó, lo que entra hoy al stock y lo que
@@ -67,7 +42,7 @@ import { cambiarPrecioEnRecepcion, cerrarConteo, corregirGuiaEnvio, ponerProveed
 // columnas se pisaban. Desde 880 px de tarjeta, columnas; con menos, cada fila apilada, con su etiqueta en cada dato.
 // En columnas, toda celda pone su primera línea en la franja de 40 px de la caja del costo (`FRANJA`): el nombre, las cifras, el chip y la
 // diferencia quedan a la misma altura aunque «Para después» o la causa sumen líneas abajo.
-const PLANTILLA_CIERRE = "@min-[1000px]:grid-cols-[minmax(0,1.5fr)_3.75rem_4.25rem_7rem_minmax(0,1.5fr)_minmax(0,1.6fr)_7.5rem_2rem]";
+const PLANTILLA_CIERRE = "@min-[1000px]:grid-cols-[minmax(0,1.5fr)_3.75rem_4.25rem_7rem_minmax(0,1.5fr)_minmax(0,1.6fr)_2rem]";
 const FRANJA = "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center";
 const CIFRA = "min-w-0 whitespace-nowrap tabular-nums @min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center @min-[1000px]:justify-end";
 
@@ -80,6 +55,7 @@ export function CerrarEnvio({
   sede,
   responsable,
   veDinero,
+  soloSede = false,
   proveedorPorConfirmar = false,
   proveedores = [],
   esperandoGuardar,
@@ -95,6 +71,8 @@ export function CerrarEnvio({
   sede: string;
   responsable: ControlResponsable;
   veDinero: boolean;
+  /** Una terminal (Felipe 2026-10-26): el precio de venta vale solo en su sede; la base no le deja cambiar el de todas. */
+  soloSede?: boolean;
   /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): antes de cerrar se elige el proveedor (`poner_proveedor_envio`). */
   proveedorPorConfirmar?: boolean;
   proveedores?: readonly { id: string; nombre: string }[];
@@ -108,11 +86,22 @@ export function CerrarEnvio({
   const [decisiones, setDecisiones] = useState<Record<string, DecisionCierre>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l)])));
   // Lo que traía cada línea al abrir el cierre: la tarjeta «Costos y precios» marca lo que quien cierra cambió y dice cuánto era.
   const [costoInicial] = useState<Record<string, string>>(() => Object.fromEntries(visibles.map((l) => [l.clave, decisionInicial(l).costo])));
-  // El precio de venta de cada prenda ya identificada (por producto): su precio de hoy, lo escrito y dónde vale. Se aplica al cerrar.
-  const [ventas, setVentas] = useState<Record<string, PrecioEditado>>({});
+  // El costo de compra propio de cada prenda ya identificada (ADR-0519): por línea y por producto, solo lo que quien cierra tocó (lo demás sigue el
+  // costo de su línea). Arranca con lo que quedó en el conteo; `costoPrendaInicial` es lo que traía al abrir, para decir «Antes S/ …».
+  const [costoPrendaInicial] = useState<Record<string, CostosDePrendas>>(() =>
+    Object.fromEntries(visibles.map((l) => [l.clave, Object.fromEntries(Object.entries(l.conteo?.costosPrendas ?? {}).map(([p, c]) => [p, costoComoTexto(c)]))])),
+  );
+  const [costosPrenda, setCostosPrenda] = useState<Record<string, CostosDePrendas>>(costoPrendaInicial);
+  const cambiarCostoPrenda = (clave: string, productoId: string, valor: string) => {
+    setAtipicos(null);
+    setCostosPrenda((c) => ({ ...c, [clave]: { ...(c[clave] ?? {}), [productoId]: valor } }));
+  };
+  // El precio de venta de cada prenda ya identificada (por producto): su precio de hoy, lo escrito, dónde vale y por qué la base no lo aceptaría.
+  // Se valida antes de confirmar y se aplica al cerrar.
+  const { ventas, ponerActual, cambiarVenta, rechazar, aplicado, validar } = usePreciosDeVenta();
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
-  // Las filas con los precios de venta de sus prendas a la vista (el precio de compra, que es de toda la línea, vive en la fila misma).
+  // Las filas con el costo y el precio de venta de sus prendas a la vista.
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(() => new Set());
   const alternarFila = (clave: string) =>
     setAbiertas((a) => {
@@ -141,47 +130,29 @@ export function CerrarEnvio({
     setDecisiones((d) => ({ ...d, [clave]: { ...decisionDe(clave), ...cambio } }));
   };
 
-  const campos = camposDelCierre({
-    lineas: visibles,
-    decisiones,
-    sinAviso,
-    responsable: responsable.listo,
-    proveedorPorConfirmar,
-    proveedorElegido: proveedorPuesto || proveedorId !== "",
-    guia: guiaEscrita,
-  });
+  // Una categoría es UNA fila (ADR-0393, act. 2026-10-26): las líneas de la compra con el mismo proveedor, categoría y marca van juntas. Lo que se
+  // decide en una fila (qué pasó, el costo y el precio de cada prenda) se guarda en las líneas a las que toca: la base sigue pidiéndolo por línea.
+  const grupos = agruparLineas(visibles);
+  const campos = camposDelCierrePorGrupo(
+    camposDelCierre({
+      lineas: visibles,
+      decisiones,
+      sinAviso,
+      responsable: responsable.listo,
+      proveedorPorConfirmar,
+      proveedorElegido: proveedorPuesto || proveedorId !== "",
+      guia: guiaEscrita,
+    }),
+    grupos,
+  );
   const guia = useGuiaCampos(campos, { enModal: false });
   const contadas = visibles.reduce((a, l) => a + contadasDe(l), 0);
   // Lo que pasa al cerrar, dicho para la tienda (formidable 2026-10-13, cambio 3): cuántas se pueden vender ya y cuántas quedan guardadas.
   const resumen = resumenDelCierre(visibles);
   const porDetallar = resumen.guardadas;
 
-  const ponerActual = (productoId: string, actual: { desde: number; hasta: number } | null) =>
-    setVentas((v) => {
-      const hay = v[productoId];
-      if (hay && hay.actual !== undefined) return v;
-      const hoy = actual && actual.desde === actual.hasta ? actual.desde.toFixed(2) : "";
-      return { ...v, [productoId]: { actual, valor: hay?.valor ? hay.valor : hoy, alcance: hay?.alcance ?? "todas" } };
-    });
-  const cambiarVenta = (productoId: string, cambio: Partial<PrecioEditado>) =>
-    setVentas((v) => {
-      const base: PrecioEditado = v[productoId] ?? { actual: undefined, valor: "", alcance: "todas" };
-      return { ...v, [productoId]: { ...base, ...cambio } };
-    });
-
   /** Lo que cambió el precio de venta: una vez por prenda (aunque esté en dos líneas), con el nombre de la prenda. */
-  function cambiosDeVenta(): (CambioDePrecio & { productoId: string })[] {
-    const r: (CambioDePrecio & { productoId: string })[] = [];
-    for (const l of visibles) {
-      for (const p of l.conteo?.separado.prendas ?? []) {
-        const e = ventas[p.productoId];
-        if (!e || r.some((x) => x.productoId === p.productoId)) continue;
-        const c = cambioDePrecioDeVenta(p.nombre ?? p.codigo ?? "La prenda", e.actual, e.valor, e.alcance);
-        if (c) r.push({ ...c, productoId: p.productoId });
-      }
-    }
-    return r;
-  }
+  const cambiosDeVenta = () => cambiosDeVentaDe(visibles.flatMap((l) => l.conteo?.separado.prendas ?? []), ventas);
   /** Todo lo que cambia de precio, de compra primero. */
   function cambiosDePrecio(): CambioDePrecio[] {
     const compra: CambioDePrecio[] = [];
@@ -190,11 +161,71 @@ export function CerrarEnvio({
       const c = cambioDePrecioDeCompra(nombreDeLinea(l), costoInicial[l.clave] ?? "", decisionDe(l.clave).costo);
       if (c) compra.push(c);
     }
-    return [...compra, ...cambiosDeVenta()];
+    return [...compra, ...cambiosDeCompraPorPrenda(), ...cambiosDeVenta()];
   }
-  /** «Cerrar»: con precios cambiados, antes de guardar se muestra qué se va a cambiar y se pide confirmar. */
-  function pedirCerrar() {
+  /** Lo que ve el campo «Costo» de una prenda: lo suyo (o el de su línea), lo que decía al abrir y si está mal escrito. */
+  const costoDePrenda = (clave: string, textoLinea: string, productoId: string) => {
+    const valor = costoDePrendaTexto(textoLinea, costosPrenda[clave], productoId); // `productoId`: o `nueva:<descripción>`
+    return {
+      valor,
+      deLaLinea: textoLinea,
+      antes: costoPrendaInicial[clave]?.[productoId] ?? costoInicial[clave] ?? "",
+      problema: valor.trim() ? leerCostoCierre(valor).problema : null,
+    };
+  };
+  /** El costo propio de una prenda que quien cierra cambió (ADR-0519): contra lo que traía al abrir. Una prenda sin costo propio sigue el de su línea. */
+  function cambiosDeCompraPorPrenda(): CambioDePrecio[] {
+    const r: CambioDePrecio[] = [];
+    for (const l of visibles) {
+      if (sinAviso && !l.linea && !veDinero) continue;
+      for (const p of prendasConCosto(l)) {
+        const propios = costosPrenda[l.clave];
+        if (!propios || !Object.hasOwn(propios, p.clave) || !propios[p.clave]?.trim()) continue;
+        const antes = costoPrendaInicial[l.clave]?.[p.clave] ?? costoInicial[l.clave] ?? "";
+        const c = cambioDePrecioDeCompra(`${p.nombre}${p.nueva ? " (por crear)" : ""} · ${nombreDeLinea(l)}`, antes, propios[p.clave] ?? "");
+        if (c) r.push(c);
+      }
+    }
+    return r;
+  }
+  /** Un costo propio mal escrito frena el cierre antes de ir a la base (que lo rechaza con las mismas reglas). */
+  function hayCostoDePrendaMalo(): boolean {
+    const malos = costosDePrendaConProblema(visibles, costosPrenda);
+    if (malos.length === 0) return false;
+    setError({ texto: `Corrige el costo de ${malos[0].nombre}: ${malos[0].problema}.`, recargar: false });
+    requestAnimationFrame(() => avisoError.current?.focus());
+    return true;
+  }
+  /**
+   * «Cerrar»: con precios cambiados, antes de guardar (1) un costo o un precio de venta escrito mal no se ignora, (2) la base dice si cada precio de venta se
+   * podría guardar y por qué no, junto a su campo (la fila de su línea se abre), y recién entonces (3) se muestra qué cambia y se pide confirmar.
+   */
+  async function pedirCerrar() {
     if (!guia.puedeConfirmar || esperandoGuardar) return;
+    if (hayCostoDePrendaMalo()) return;
+    const prendas = visibles.flatMap((l) => l.conteo?.separado.prendas ?? []);
+    const mostrar = (productoId: string) => {
+      // El precio vive en la fila de su categoría, que puede estar cerrada: se abre (con el motivo junto al campo) y el cursor va al campo.
+      const claves = grupos.filter((g) => g.separado.prendas.some((p) => p.productoId === productoId)).map((g) => g.clave);
+      setAbiertas((a) => new Set([...a, ...claves]));
+      requestAnimationFrame(() => requestAnimationFrame(() => enfocarPrecio(productoId)));
+    };
+    const mal = problemasDePrecio(prendas, ventas);
+    if (mal.length > 0) {
+      mostrar(mal[0].productoId);
+      return;
+    }
+    const venta = cambiosDeVenta();
+    if (venta.length > 0) {
+      setGuardando(true);
+      setError(null);
+      const rechazos = await validar(detalle.id, venta, responsable.firma());
+      setGuardando(false);
+      if (rechazos.length > 0) {
+        mostrar(rechazos[0].productoId);
+        return;
+      }
+    }
     const c = cambiosDePrecio();
     if (c.length > 0) {
       setPorConfirmar(c);
@@ -205,6 +236,7 @@ export function CerrarEnvio({
 
   async function cerrar(confirmados: ReadonlySet<string> = new Set()) {
     if (!guia.puedeConfirmar || esperandoGuardar) return;
+    if (hayCostoDePrendaMalo()) return;
     setGuardando(true);
     setError(null);
     // Primero, de quién llegó (si se abrió sin saberlo): sin proveedor la base no cierra. Puesto una vez, queda puesto.
@@ -239,22 +271,24 @@ export function CerrarEnvio({
     // El precio de venta de lo que cambió, antes de cerrar (la base lo pide con el envío abierto). Cada uno que queda aplicado deja de ser un cambio:
     // si el cierre falla y se reintenta, no se vuelve a mandar.
     for (const c of cambiosDeVenta()) {
-      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? "todas" }, responsable.firma());
+      const { error: epv } = await cambiarPrecioEnRecepcion({ p_despacho_id: detalle.id, p_producto_id: c.productoId, p_precio: c.despues, p_alcance: c.alcance ?? "sede" }, responsable.firma());
       responsable.despues(epv);
       if (epv) {
         setGuardando(false);
-        setError({ texto: `${c.nombre}: ${mensajeAlGuardar(epv, "cambiar el precio de venta")} No se cerró el envío.`, recargar: false });
+        const motivo = mensajeAlGuardar(epv, "cambiar el precio de venta");
+        rechazar(c.productoId, motivo);
+        setError({ texto: avisoDePrecioRechazado(c.nombre, motivo, "No se cerró el envío."), recargar: false });
         requestAnimationFrame(() => avisoError.current?.focus());
         return;
       }
-      setVentas((v) => ({ ...v, [c.productoId]: { ...v[c.productoId], actual: { desde: c.despues, hasta: c.despues } } }));
+      aplicado(c.productoId, c.despues, c.alcance ?? "sede");
     }
     const conConfirmados = Object.fromEntries(Object.entries(decisiones).map(([k, d]) => [k, confirmados.has(k) ? { ...d, confirmaCosto: true } : d]));
     const { resultado, error: e } = await cerrarConteo(
       {
         p_despacho_id: detalle.id,
         p_version: versionParaCerrar,
-        p_lineas: lineasParaCerrar(visibles, conConfirmados, sinAviso),
+        p_lineas: lineasParaCerrar(visibles, conConfirmados, sinAviso, costosPrenda),
         p_nota: nota.trim() ? nota.trim().slice(0, TOPES_CONTEO.notaEnvio) : null,
         p_token: token,
       },
@@ -289,7 +323,7 @@ export function CerrarEnvio({
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        pedirCerrar();
+        void pedirCerrar();
       }}
       className="space-y-5"
      
@@ -311,49 +345,90 @@ export function CerrarEnvio({
             { titulo: "Se pueden vender", alinear: "der", ayuda: "Lo que entra al stock al cerrar: ya tiene su talla y su color" },
             { titulo: "Para después", clase: "@min-[1000px]:pl-5", ayuda: "Lo que queda guardado en el almacén hasta separarlo, ponerle tallas o crearlo" },
             { titulo: "Diferencia y por qué" },
-            { titulo: "Precio de compra", alinear: "der", ayuda: "Viene de la orden y es de toda la línea; quien cierra lo corrige si la factura dice otra cosa" },
-            { titulo: <span className="sr-only">Precio de venta</span> },
+            { titulo: <span className="sr-only">Costo y precio de venta de cada prenda</span> },
           ]}
         />
-            {visibles.map((l) => {
-              const d = decisionDe(l.clave);
+            {grupos.map((g) => {
+              // La categoría como UNA línea: solo para mostrarla (cifras, «para después», prendas con nombre). Lo que se guarda va por las líneas de `g`.
+              const l = lineaDelGrupo(g);
+              const p = g.principal;
+              const hayConteo = g.lineas.some((x) => x.conteo !== null);
               const dif = diferenciaDe(l);
-              const causas = causasDe(l, l.proveedor && l.categoria && l.marca ? pendienteDe(detalle.deudas, l.proveedor.id, l.categoria.id, l.marca.id) : 0, sinAviso);
-              const costo = leerCostoCierre(d.costo);
-              const editaCosto = !(sinAviso && !l.linea && !veDinero);
-              const cambio = editaCosto && d.costo.trim() !== (costoInicial[l.clave] ?? "").trim();
-              const prendas = l.conteo?.separado.prendas ?? [];
-              const alStock = (l.conteo?.enStock ?? 0) + detalladas(l.conteo?.separado ?? { prendas: [], nuevas: [] });
-              const para = Math.max(0, contadasDe(l) - alStock);
-              const siempreAbierta = false;
-              const abierta = siempreAbierta || abiertas.has(l.clave);
-              // Lo que cambió en esta línea y quedaría escondido: se avisa en la fila cerrada.
+              const deuda = p.proveedor && p.categoria && p.marca ? pendienteDe(detalle.deudas, p.proveedor.id, p.categoria.id, p.marca.id) : 0;
+              const causas = causasDelGrupo(g, deuda, sinAviso);
+              const dP = decisionDe(p.clave);
+              const costo = leerCostoCierre(dP.costo);
+              const editaCosto = !(sinAviso && !p.linea && !veDinero);
+              const cambio = editaCosto && g.lineas.some((x) => decisionDe(x.clave).costo.trim() !== (costoInicial[x.clave] ?? "").trim());
+              const prendas = g.separado.prendas;
+              const alStock = g.enStock + detalladas(g.separado);
+              const para = Math.max(0, g.contadas - alStock);
+              // La línea de la compra donde vive cada prenda: de ahí salen su costo de partida y donde se guarda lo que quien cierra le cambie.
+              const dondeVive = (pr: { clave: string; nueva: boolean; nombre: string }) => lineaDeLaPrenda(g, pr.nueva ? { descripcion: pr.nombre } : { productoId: pr.clave });
+              // Al abrir la fila solo se ven las prendas con nombre: las identificadas y las nuevas ya descritas (Felipe 2026-10-26: cambiar el costo
+              // de lo que no se sabe qué es no tiene sentido). Lo demás se cuenta al final («Hay 2 prendas sin identificar»). Una línea de fuera
+              // de la guía es la excepción: su costo es obligatorio y no viene de ninguna orden, así que lleva su campo y se ve abierta.
+              const conNombre = prendasConCosto(l);
+              const sinIdentificar = unidadesSinIdentificar(l);
+              const costoDeLaLineaObligatorio = editaCosto && !p.linea && g.contadas > 0;
+              // UN solo aviso para lo que no tiene nombre (Felipe 2026-10-26): cuántas son y a qué costo entran (el de la orden, si la línea venía en
+              // la guía). Si no hay ninguna prenda con nombre, ese mismo aviso hace de vacío y dice cuándo se podrá cambiar su costo. Con varias
+              // órdenes de costos distintos, el aviso dice entre cuáles.
+              const costosDeOrden = g.lineas.map((x) => leerCostoCierre(decisionDe(x.clave).costo).valor).filter((v): v is number => v != null);
+              const costoMin = Math.min(...costosDeOrden);
+              const costoMax = Math.max(...costosDeOrden);
+              const sinIdentificarTexto =
+                sinIdentificar > 0
+                  ? `Hay ${sinIdentificar} ${sinIdentificar === 1 ? "prenda sin identificar" : "prendas sin identificar"}` +
+                    (p.linea && editaCosto && costosDeOrden.length > 0
+                      ? costoMin === costoMax
+                        ? `: cuestan lo que dice la orden (S/\u00a0${costoMin.toFixed(2)}).`
+                        : `: cuestan lo que dice cada orden (de S/\u00a0${costoMin.toFixed(2)} a S/\u00a0${costoMax.toFixed(2)}).`
+                      : ".")
+                  : null;
+              const siempreAbierta = costoDeLaLineaObligatorio;
+              const abierta = siempreAbierta || abiertas.has(g.clave);
+              const idFila = g.principal.clave.replace(":", "-");
+              const nombreGrupo = [p.categoria?.nombre ?? "Categoría", p.categoria ? marcaDeLinea(p).nombre : null].filter(Boolean).join(" · ");
+              const contaron = [...new Set(g.lineas.map((x) => x.conteo?.contadoPor?.nombre?.split(" ")[0]).filter((n): n is string => !!n))];
+              // Lo que cambió en esta categoría y quedaría escondido: se avisa en la fila cerrada.
               const cambiaVenta = prendas.some((pr) => {
                 const e = ventas[pr.productoId];
                 return !!e && cambioDePrecioDeVenta("", e.actual, e.valor, e.alcance) !== null;
               });
-              const conCambios = cambiaVenta;
+              const cambiaCosto =
+                editaCosto &&
+                (cambio ||
+                  conNombre.some((pr) => {
+                    const v = dondeVive(pr).clave;
+                    const ahora = costoDePrendaTexto(decisionDe(v).costo, costosPrenda[v], pr.clave);
+                    const antes = costoPrendaInicial[v]?.[pr.clave] ?? costoInicial[v] ?? "";
+                    return ahora.trim() !== "" && cambioDePrecioDeCompra("", antes, ahora) !== null;
+                  }));
+              const textoCambios = cambiaCosto && cambiaVenta ? "Costo y precio cambiados" : cambiaCosto ? "Costo cambiado" : "Precio de venta cambiado";
+              const conCambios = cambiaVenta || cambiaCosto;
+              const sinContar = g.lineas.find((x) => x.linea && !x.conteo);
               return (
-                <div key={l.clave}>
+                <div key={g.clave}>
                 <div
                   className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} @min-[1000px]:items-start ${siempreAbierta ? "" : "cursor-pointer"} ${abierta ? "bg-tinta/[0.03]" : ""}`}
                   role="row"
                   onClick={(e) => {
                     if (siempreAbierta || !(e.currentTarget.contains(e.target as Node))) return;
                     if ((e.target as HTMLElement).closest("button, input, a, [role='group'], [role='radio']")) return;
-                    alternarFila(l.clave);
+                    alternarFila(g.clave);
                   }}
                 >
                   {/* El ícono en la franja; el nombre, centrado en ella si cabe en una línea y hacia abajo si se parte. */}
                   <div className="flex min-w-0 items-start gap-2.5" role="cell">
                     <span className="flex items-center @min-[1000px]:h-10">
-                      <BaldosaCategoria categoria={l.categoria} tamano="chico" />
+                      <BaldosaCategoria categoria={p.categoria} tamano="chico" />
                     </span>
                     <span className="min-w-0 @min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center">
-                      <p className="font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</p>
-                      {conCambios && !abierta && <Chip tono="ambar">Precio de venta cambiado</Chip>}
+                      <p className="font-medium text-tinta">{p.categoria?.nombre ?? "Categoría"}</p>
+                      {conCambios && !abierta && <Chip tono="ambar">{textoCambios}</Chip>}
                       <p className="text-xs text-taupe">
-                        {[l.categoria ? marcaDeLinea(l).nombre : null, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
+                        {[p.categoria ? marcaDeLinea(p).nombre : null, contaron.length > 0 ? `contó ${contaron.join(" y ")}` : null, !p.linea && !sinAviso ? "no estaba en la guía" : null]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
@@ -361,11 +436,11 @@ export function CerrarEnvio({
                   </div>
                   <div className={`${CIFRA} text-taupe`} role="cell">
                     <span className="@min-[1000px]:hidden">Dijeron&nbsp;</span>
-                    {l.dijeron ?? "—"}
+                    {g.dijeron ?? "—"}
                   </div>
                   <div className={`${CIFRA} text-tinta`} role="cell">
                     <span className="text-taupe @min-[1000px]:hidden">Contaste&nbsp;</span>
-                    {l.conteo ? contadasDe(l) : <Chip tono="ambar">Sin contar</Chip>}
+                    {hayConteo ? g.contadas : <Chip tono="ambar">Sin contar</Chip>}
                   </div>
                   <div className={CIFRA} role="cell">
                     <span className="text-taupe @min-[1000px]:hidden">Se pueden vender&nbsp;</span>
@@ -390,74 +465,49 @@ export function CerrarEnvio({
                     )}
                   </div>
                   <div className="min-w-0" role="cell">
-                    {!l.conteo ? (
-                      <CampoGuiado id={idCampoCierre("contar", l.clave)} guia={guia} className={FRANJA}>
+                    {sinContar ? (
+                      <CampoGuiado id={idCampoCierre("contar", sinContar.clave)} guia={guia} className={FRANJA}>
                         <Boton type="button" peso="discreto" onClick={onVolver}>
                           Contarla
                         </Boton>
                       </CampoGuiado>
-                    ) : causas ? (
-                      <CampoGuiado id={idCampoCierre("causa", l.clave)} guia={guia} retiene="fila">
-                        {/* Como la maqueta: el chip de la diferencia en la franja y, debajo, qué pasó. */}
-                        <div className={`${FRANJA} gap-2`}>
-                          <Chip tono="ambar">
-                            {dif != null && dif < 0 ? `Faltan ${-dif}` : dif != null && dif > 0 ? `Sobran ${dif}` : `${contadasDe(l)} que no venían`}
-                          </Chip>
-                          <span className="text-xs text-taupe">¿Qué pasó?</span>
-                        </div>
-                        <div className="mt-1">
-                          <ElegirOpcion
-                            chico
-                            etiqueta={`Qué pasó con ${nombreDeLinea(l)}`}
-                            opciones={causas.opciones}
-                            valor={causas.tipo === "faltante" ? d.faltanteCausa : d.sobranteCausa}
-                            onValor={(v) => cambiar(l.clave, causas.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante })}
-                          />
-                        </div>
-                      </CampoGuiado>
+                    ) : causas.length > 0 ? (
+                      <div className="space-y-3">
+                        {causas.map((c) => (
+                          <CampoGuiado key={c.tipo} id={idCampoCierre("causa", c.lineas[0].clave)} guia={guia} retiene="fila">
+                            {/* Como la maqueta: el chip de la diferencia en la franja y, debajo, qué pasó. Una sola respuesta vale para todas las líneas de la categoría. */}
+                            <div className={`${FRANJA} gap-2`}>
+                              <Chip tono="ambar">{c.tipo === "faltante" ? `Faltan ${c.cantidad}` : !c.lineas[0].linea ? `${c.cantidad} que no venían` : `Sobran ${c.cantidad}`}</Chip>
+                              <span className="text-xs text-taupe">¿Qué pasó?</span>
+                            </div>
+                            <div className="mt-1">
+                              <ElegirOpcion
+                                chico
+                                etiqueta={`Qué pasó con ${nombreGrupo}`}
+                                opciones={c.opciones}
+                                valor={c.tipo === "faltante" ? decisionDe(c.lineas[0].clave).faltanteCausa : decisionDe(c.lineas[0].clave).sobranteCausa}
+                                onValor={(v) => {
+                                  for (const x of c.lineas) cambiar(x.clave, c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante });
+                                }}
+                              />
+                            </div>
+                          </CampoGuiado>
+                        ))}
+                      </div>
                     ) : (
                       <div className={FRANJA}>
                         {dif == null ? <Chip tono="neutro">{sinAviso ? "Sin aviso" : "Sin guía"}</Chip> : <Chip tono="verde">Cuadra</Chip>}
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0 @min-[1000px]:text-right" role="cell">
-                    {editaCosto ? (
-                      <CampoGuiado id={idCampoCierre("costo", l.clave)} guia={guia}>
-                        <span aria-hidden className="mb-1 block text-xs font-semibold text-tinta @min-[1000px]:hidden">
-                          Precio de compra <span className="font-normal text-taupe">· de toda la línea</span>
-                        </span>
-                        <CampoTexto
-                          caja
-                          etiqueta={`Precio de compra de ${nombreDeLinea(l)}`}
-                          inputMode="decimal"
-                          value={d.costo}
-                          // sugerir-fijo: un costo es un monto de soles, no depende de nada elegido antes
-                          placeholder={sinAviso ? "S/\u00a0sin costo" : "S/\u00a00.00"}
-                          onChange={(e) => cambiar(l.clave, { costo: e.target.value, confirmaCosto: false })}
-                          tono={costo.problema ? "error" : undefined}
-                          pie={costo.problema ?? undefined}
-                          sinPie={!costo.problema}
-                          className="text-right font-semibold tabular-nums"
-                        />
-                        {cambio && (
-                          <p className="mt-1 text-xs text-ambar-profundo" role="status">
-                            Antes S/&nbsp;{(costoInicial[l.clave] ?? "").trim() || "—"}
-                          </p>
-                        )}
-                      </CampoGuiado>
-                    ) : (
-                      <span className="text-xs text-taupe">llega con la factura</span>
-                    )}
-                  </div>
                   <div className="flex min-w-0 @min-[1000px]:min-h-10 @min-[1000px]:items-center @min-[1000px]:justify-end" role="cell">
                     {!siempreAbierta && (
                       <button
                         type="button"
-                        onClick={() => alternarFila(l.clave)}
+                        onClick={() => alternarFila(g.clave)}
                         aria-expanded={abierta}
-                        aria-controls={`precios-${l.clave}`}
-                        aria-label={`${abierta ? "Esconder" : "Ver"} los precios de ${nombreDeLinea(l)}`}
+                        aria-controls={`precios-${idFila}`}
+                        aria-label={`${abierta ? "Esconder" : "Ver"} las prendas y los precios de ${nombreGrupo}`}
                         className="grid h-8 w-8 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
                       >
                         <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
@@ -466,27 +516,74 @@ export function CerrarEnvio({
                   </div>
                 </div>
                 {abierta && (
-                  <div id={`precios-${l.clave}`} className="border-t border-sand bg-tinta/[0.02] px-5 py-4" data-precios-de={l.clave}>
-                    <div className="mx-auto w-full max-w-xl space-y-3">
-                      <p className="text-center text-xs font-semibold text-tinta">Precio de venta</p>
-                      {prendas.length === 0 ? (
+                  <div id={`precios-${idFila}`} className="border-t border-sand bg-tinta/[0.02] px-5 py-4" data-precios-de={g.clave}>
+                    <div className="space-y-3">
+                      {costoDeLaLineaObligatorio && (
+                        <CampoGuiado id={idCampoCierre("costo", p.clave)} guia={guia}>
+                          <FilaDeCosto
+                            marca="linea"
+                            titulo="Toda la línea"
+                            subtitulo="no estaba en la guía: su costo es obligatorio"
+                            unidades={g.contadas}
+                            nombre={nombreDeLinea(p)}
+                            costo={{ valor: dP.costo, deLaLinea: dP.costo, antes: costoInicial[p.clave] ?? "", problema: costo.problema }}
+                            placeholder={sinAviso ? "S/\u00a0sin costo" : "S/\u00a00.00"}
+                            onCosto={(valor) => cambiar(p.clave, { costo: valor, confirmaCosto: false })}
+                          />
+                        </CampoGuiado>
+                      )}
+                      {conNombre.length === 0 && !costoDeLaLineaObligatorio ? (
                         <Vacio tamano="chico" icono={<Shirt />}>
-                          Todavía no hay una prenda identificada en esta línea: su precio de venta se cambia cuando la separes, o al crearla si es nueva.
+                          {sinIdentificarTexto
+                            ? `${sinIdentificarTexto} Su costo y su precio de venta se cambian cuando las identifiques o las describas.`
+                            : "No llegó nada de esta categoría."}
                         </Vacio>
                       ) : (
                         <div className="space-y-3">
-                          {prendas.map((pr) => (
-                            <PrecioDePrenda
-                              key={`${l.clave}-${pr.productoId}`}
-                              prenda={pr}
-                              sede={sede}
-                              editado={ventas[pr.productoId]}
-                              onActual={(a) => ponerActual(pr.productoId, a)}
-                              onValor={(valor) => cambiarVenta(pr.productoId, { valor })}
-                              onAlcance={(alcance) => cambiarVenta(pr.productoId, { alcance })}
-                            />
-                          ))}
+                          {prendas.map((pr) => {
+                            const v = dondeVive({ clave: pr.productoId, nueva: false, nombre: pr.nombre ?? "" }).clave;
+                            return (
+                              <PrecioDePrenda
+                                key={`${g.clave}-${pr.productoId}`}
+                                prenda={pr}
+                                sede={sede}
+                                soloSede={soloSede}
+                                sedeId={detalle.sede?.id ?? null}
+                                editado={ventas[pr.productoId]}
+                                costo={editaCosto ? costoDePrenda(v, decisionDe(v).costo, pr.productoId) : undefined}
+                                onCosto={(valor) => cambiarCostoPrenda(v, pr.productoId, valor)}
+                                onActual={(general, enSede) => ponerActual(pr.productoId, general, enSede)}
+                                onValor={(valor) => cambiarVenta(pr.productoId, { valor })}
+                                onAlcance={(alcance) => cambiarVenta(pr.productoId, { alcance })}
+                              />
+                            );
+                          })}
+                          {/* Las nuevas ya descritas todavía no existen: solo llevan costo; su precio se pone al crearlas. */}
+                          {editaCosto &&
+                            conNombre
+                              .filter((n) => n.nueva)
+                              .map((n) => {
+                                const v = dondeVive(n).clave;
+                                return (
+                                  <FilaDeCosto
+                                    key={`${g.clave}-${n.clave}`}
+                                    marca="nueva"
+                                    titulo={n.nombre}
+                                    subtitulo="nueva · se crea después, con su precio"
+                                    unidades={n.unidades}
+                                    nombre={n.nombre}
+                                    costo={costoDePrenda(v, decisionDe(v).costo, n.clave)}
+                                    placeholder={`S/\u00a0${decisionDe(v).costo.trim() || "0.00"}`}
+                                    onCosto={(valor) => cambiarCostoPrenda(v, n.clave, valor)}
+                                  />
+                                );
+                              })}
                         </div>
+                      )}
+                      {sinIdentificarTexto && (conNombre.length > 0 || costoDeLaLineaObligatorio) && (
+                        <p className="text-xs text-taupe" data-sin-identificar={sinIdentificar}>
+                          {sinIdentificarTexto}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -496,11 +593,11 @@ export function CerrarEnvio({
             })}
       </Tabla>
 
-      <Aviso tono="atencion" titulo="El precio de compra de cada línea se puede corregir aquí">
+      <Aviso tono="atencion" titulo="El costo de cada prenda se puede corregir aquí">
         {sinAviso
-          ? "Lo que llega sin aviso entra sin precio de compra si lo dejas vacío; la factura lo trae después. "
+          ? "Lo que llega sin aviso entra sin costo si lo dejas vacío; la factura lo trae después. "
           : "Viene de la orden: si la factura dice otra cosa, corrígelo. "}
-        Cambia el costo de lo que entra en este envío; lo comprado y recibido antes no se toca. El precio de venta se cambia solo de las prendas que ya identificaste y rige
+        Cambia el costo de lo que entra en este envío; lo comprado y recibido antes no se toca. El costo y el precio de venta se cambian por prenda, solo de las que ya identificaste o describiste: abre la fila. El de venta rige
         desde ahora: lo ya vendido guarda su precio. Los dos quedan en el historial de la prenda.
       </Aviso>
 
@@ -561,7 +658,7 @@ export function CerrarEnvio({
       <CampoGuiado id="responsable" guia={guia} className="card-cayla p-4 sm:p-5">
         <p className="mb-2 text-[13px] font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
         <ComboResponsable control={responsable} />
-        {!sinAviso && <p className="mt-2 text-xs text-taupe">Quien hizo una orden no puede cerrar su envío (regla de Compras): firma otra persona de la tienda.</p>}
+        {!sinAviso && <p className="mt-2 text-xs text-taupe">Quien hizo una orden no puede cerrar su envío (solo un Admin cierra lo que él mismo compró): firma otra persona de la tienda.</p>}
       </CampoGuiado>
 
       {error && (
@@ -624,47 +721,19 @@ export function CerrarEnvio({
     </form>
     {/* Fuera del <form> (ADR-0128): un clic o una tecla de la hoja no debe llegar al envío del cierre. */}
     {porConfirmar && (
-      <Modal titulo="Vas a cambiar precios" subtitulo="Revisa lo que cambia antes de cerrar el envío." onClose={() => setPorConfirmar(null)} bloqueado={guardando} tamano="mediana">
-        <div className="space-y-4">
-          {(["compra", "venta"] as const).map((tipo) => {
-            const lista = porConfirmar.filter((c) => c.tipo === tipo);
-            if (lista.length === 0) return null;
-            return (
-              <div key={tipo} className="space-y-1.5">
-                <p className="text-xs font-semibold text-tinta">{tipo === "compra" ? "Precio de compra" : "Precio de venta"}</p>
-                <ul className="divide-y divide-sand rounded-xl border border-sand">
-                  {lista.map((c) => (
-                    <li key={`${tipo}-${c.nombre}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-3 py-2 text-sm">
-                      <span className="font-medium text-tinta">{c.nombre}</span>
-                      <span className="tabular-nums text-taupe">{textoCambioDePrecio(c, sede)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-          <Aviso tono="atencion" chico titulo="Es dinero">
-            El precio de compra cambia el costo de lo que entra en este envío. El de venta rige desde ahora: lo ya vendido no cambia. Los dos quedan en el historial.
-          </Aviso>
-          <PieAcciones>
-            <Boton type="button" peso="fantasma" disabled={guardando} onClick={() => setPorConfirmar(null)}>
-              Cancelar
-            </Boton>
-            <Boton
-              type="button"
-              peso="primario"
-              cargando={guardando}
-              textoCargando="Cerrando…"
-              onClick={() => {
-                setPorConfirmar(null);
-                void cerrar();
-              }}
-            >
-              Confirmar y cerrar
-            </Boton>
-          </PieAcciones>
-        </div>
-      </Modal>
+      <ConfirmarPrecios
+        cambios={porConfirmar}
+        sede={sede}
+        subtitulo="Revisa lo que cambia antes de cerrar el envío."
+        textoConfirmar="Confirmar y cerrar"
+        textoCargando="Cerrando…"
+        cargando={guardando}
+        onCancelar={() => setPorConfirmar(null)}
+        onConfirmar={() => {
+          setPorConfirmar(null);
+          void cerrar();
+        }}
+      />
     )}
     </>
   );

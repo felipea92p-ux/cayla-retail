@@ -1,0 +1,53 @@
+/* ── 1 · BLANCO ─ papel blanco, tinta negra y UN solo color: el rojo del colibrí, que solo vive en el logo y en las marcas chicas.
+   Suizo y callado, pero con capas: un titular enorme que las placas de prenda cruzan, cada una con su número, su luz y su sombra
+   de piso. Sin esquinas ni marcos: la profundidad la dan la escala, la superposición y la sombra, no el adorno. ── */
+#lienzo[data-d="blanco"] {
+  --bg: #ffffff; --surface: #f1f1ef; --surface-2: #e2e2df; --luz: #fbfbfa; --ink: #111111; --mute: #666662; --line: #e2e2de;
+  --btn-bg: #111111; --btn-ink: #ffffff; --logo: #d13730; --marca: #c4302a; --band: #111111; --band-ink: #ffffff;
+  --band-fondo: radial-gradient(120% 140% at 100% 0%, #262624 0%, #111111 60%);
+  --look-fondo: var(--surface);
+  --f-display: "Inter Tight", "Helvetica Neue", Arial, sans-serif; --f-body: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+  --w-display: 500; --ls-display: -.04em; --lh-display: .96;
+  --r: 0; --r-foto: 0; --r-btn: 0; --logo-h: 22px; --pad-foto: 8%;
+  --ls-cap: .1em; --grano: 0;
+}
+/* La marca roja: un cuadradito antes de cada rótulo, y el filtro elegido subraya en rojo. Nada más. */
+[data-d="blanco"] .cap:not(.sec-cab .cap)::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px; background: var(--marca); vertical-align: .12em; }
+[data-d="blanco"] .filtros button[aria-pressed="true"] { border-bottom-color: var(--marca); }
+[data-d="blanco"] .cab { grid-template-columns: 1fr auto 1fr; grid-template-areas: "nav logo acc"; }
+[data-d="blanco"] .cab .logo-a { justify-self: center; }
+[data-d="blanco"] .anu { letter-spacing: .02em; font-weight: 500; }
+[data-d="blanco"] .btn { font-weight: 500; letter-spacing: -.005em; }
+[data-d="blanco"] .tj-nombre { font-weight: 500; letter-spacing: -.01em; }
+[data-d="blanco"] .tienda { border: 0; border-top: 1px solid var(--ink); padding: 24px 0 0; }
+[data-d="blanco"] .club { margin-inline: 0; padding-inline: var(--gutter); }
+[data-d="blanco"] .cat-tile .foto { aspect-ratio: 4 / 5; }
+[data-d="blanco"] .cats a { border-radius: 0; }
+[data-d="blanco"] .look-fondo { border-radius: 0; }
+[data-d="blanco"] .tj-ver { letter-spacing: .06em; text-transform: uppercase; font-size: 12px; }
+
+/* Portada: el titular al fondo de todo y tres placas de distinto tamaño que lo cruzan. Nada lo tapa: el texto va encima. */
+[data-d="blanco"] .h-colage { position: relative; min-height: clamp(600px, 60cqi, 960px); padding: clamp(28px, 4.5cqi, 64px) var(--gutter) 0; }
+[data-d="blanco"] .h-lineas { position: relative; z-index: 3; }
+[data-d="blanco"] .h-tit { font-size: clamp(46px, 9cqi, 144px); line-height: .92; letter-spacing: -.05em; margin-top: 16px; }
+[data-d="blanco"] .h-placas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+[data-d="blanco"] .placa { position: absolute; display: block; pointer-events: auto; text-decoration: none; }
+[data-d="blanco"] .placa .foto { box-shadow: 0 44px 60px -36px rgba(0, 0, 0, .5); }
+[data-d="blanco"] .p1 { left: 4.2cqi; top: 24cqi; width: 20cqi; }
+[data-d="blanco"] .p2 { left: 28cqi; top: 19.5cqi; width: 26cqi; }
+[data-d="blanco"] .p3 { left: 58cqi; top: 26cqi; width: 18cqi; }
+[data-d="blanco"] .placa-pie { display: flex; gap: 10px; align-items: baseline; padding-top: 12px; font-size: 13px; }
+[data-d="blanco"] .placa-pie b { font-weight: 500; color: var(--marca); }
+[data-d="blanco"] .h-lado { position: absolute; z-index: 3; right: var(--gutter); top: 28cqi; width: min(19cqi, 300px); }
+[data-d="blanco"] .h-lado p { margin: 0 0 24px; font-size: 16px; }
+
+@container lienzo (max-width: 760px) {
+  [data-d="blanco"] .cab { grid-template-columns: 44px 1fr 44px; grid-template-areas: "menu logo acc"; }
+  [data-d="blanco"] .cab-acc { justify-self: end; }
+  [data-d="blanco"] .h-colage { min-height: 0; }
+  [data-d="blanco"] .h-tit { font-size: clamp(40px, 12.5cqi, 64px); }
+  [data-d="blanco"] .h-placas { position: static; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 28px; }
+  [data-d="blanco"] .placa { position: static; width: auto; translate: none; }
+  [data-d="blanco"] .placa-pie { padding-top: 8px; font-size: 11px; flex-direction: column; gap: 2px; }
+  [data-d="blanco"] .h-lado { position: static; width: auto; margin-top: 28px; }
+}
