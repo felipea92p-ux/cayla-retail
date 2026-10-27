@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atributoDelTema, CLAVE_DEL_TEMA, SCRIPT_DEL_TEMA, temaGuardado, temaSiguiente } from "./tema";
+import { atributoDelTema, CLAVE_DEL_TEMA, colorDeLaBarra, NOMBRE_DEL_TEMA, SCRIPT_DEL_TEMA, temaGuardado, temaSiguiente } from "./tema";
 
 /** Corre el script del `<head>` contra un `<html>` y un almacén de mentira. */
 function correr(almacen: Record<string, string> | "roto") {
@@ -34,6 +34,13 @@ describe("el tema de la tienda", () => {
     expect(temaSiguiente("auto")).toBe("claro");
     expect(temaSiguiente("claro")).toBe("oscuro");
     expect(temaSiguiente("oscuro")).toBe("auto");
+  });
+
+  it("la barra del navegador toma el color de lo elegido; en automático queda la del aparato", () => {
+    expect(colorDeLaBarra("claro")).toBe("#ffffff");
+    expect(colorDeLaBarra("oscuro")).toBe("#0b0b0b");
+    expect(colorDeLaBarra("auto")).toBeNull();
+    expect(Object.keys(NOMBRE_DEL_TEMA).sort()).toEqual(["auto", "claro", "oscuro"]);
   });
 
   it("el script del <head> marca <html> con lo guardado, antes de pintar", () => {

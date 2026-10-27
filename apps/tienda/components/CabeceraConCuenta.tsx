@@ -21,6 +21,7 @@ import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
 import { EscudoDeFila } from "./MarcaDeTienda";
+import { BotonDeTema } from "./BotonDeTema";
 import { marcarViaje, useRayaDelNav, viajaHacia } from "./useRayaDelNav";
 import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
 import { escudoDe } from "@/lib/escudo-de-tienda";
@@ -236,6 +237,7 @@ export function CabeceraConCuenta({
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
           {/* La bolsa antes y la cuenta al final (Felipe 2026-10-19): la cuenta, con su menú, queda en la esquina. */}
+          <BotonDeTema />
           {bolsa}
           {!visitante && campanita}
           <MenuDeLaCuenta
@@ -708,6 +710,7 @@ function HojaMenu({
         <Link href="/tiendas" onClick={cerrar}>
           Tiendas
         </Link>
+        <BotonDeTema forma="fila" />
         {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre: solo con cuenta. */}
         {!visitante && (
           <Link href="/recomendaciones" onClick={cerrar}>

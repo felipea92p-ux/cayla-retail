@@ -22,5 +22,13 @@ export function temaSiguiente(tema: Tema): Tema {
   return tema === "auto" ? "claro" : tema === "claro" ? "oscuro" : "auto";
 }
 
+/** El color de la barra del navegador en el celular (`themeColor`, `app/layout.tsx`) para una elección; `null` si es automática (queda la del aparato). */
+export function colorDeLaBarra(tema: Tema): string | null {
+  return tema === "claro" ? "#ffffff" : tema === "oscuro" ? "#0b0b0b" : null;
+}
+
+/** Cómo se llama cada elección, para quien la lee en voz alta o en el menú. */
+export const NOMBRE_DEL_TEMA: Record<Tema, string> = { auto: "automático", claro: "claro", oscuro: "oscuro" };
+
 /** Corre en el `<head>` antes de pintar: lee la elección y, si hay, marca `<html>`. Sin almacén (ventana privada), no hace nada: manda el aparato. */
 export const SCRIPT_DEL_TEMA = `try{var t=localStorage.getItem(${JSON.stringify(CLAVE_DEL_TEMA)});var d=document.documentElement;if(t==="claro")d.setAttribute("data-theme","light");else if(t==="oscuro")d.setAttribute("data-theme","dark");}catch(e){}`;
