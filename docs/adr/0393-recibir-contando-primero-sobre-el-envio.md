@@ -558,6 +558,31 @@ SE ROMPE SI: se separa de más una prenda (Sofía 7 de 5) y quedan unidades sin 
 reclamo sale por 7 cuando el neto de la categoría es 5, porque la base hoy cuenta cada línea sin compensar. Eso se arregla en la base (el reclamo por
 categoría neto cuando no todo está separado, y por prenda cuando sí): queda para el paso siguiente, con migración y con el OK de Felipe.
 
+### Al contar, toda prenda se identifica: sin eso no se pasa a «Cerrar» (Felipe, 2026-10-27)
+
+**Decisión.** El número grande de «Contar» es el de la categoría completa, y cada prenda contada tiene que saber qué prenda es: una del catálogo, o una nueva
+con al menos su nombre corto (la descripción rápida). La suma de lo identificado tiene que ser igual al número grande, y mientras no lo sea «Pasar a cerrar»
+queda apagado. Lo que sigue pudiendo esperar son las tallas y los colores de cada prenda («por detallar», «Para después»). Reemplaza lo del 2026-10-13
+(«¿Qué … son?» opcional: lo no separado quedaba como pendiente «Separar» y no frenaba nada).
+
+**Qué cambia en la pantalla.** `sinIdentificarDelGrupo` (`lib/recepcion-grupos-reglas.ts`) cuenta lo contado que no es una prenda con nombre: lo no separado y las
+nuevas sin describir (lo que ya entró al stock cuenta como identificado). La categoría solo lleva su ✓ con su número Y sus prendas identificadas; su subtítulo
+dice «8 identificadas · 7 por identificar»; «¿Qué vestidos son?» deja de decir «opcional» y su insignia pasa de «sin separar» a «Faltan 7 por identificar» (ámbar) o
+«Todas identificadas» (verde); la fila de las nuevas pide «descríbelas con un nombre corto» y marca «Falta describirlas». La guía de foco suma, por categoría, un
+campo requerido «Qué … son» (`idCampoIdentificar`, el `data-campo` de «¿Qué … son?»); «Falta: …» de otra categoría la abre primero y después lleva a su caja.
+«Pasar a cerrar» queda apagado con `gruposSinIdentificar(grupos)` (lo dice su `title` y el pie de la guía). Las categorías sin contar no frenan nada aquí: ya las
+frena «Cerrar» con «Contarla» (que vuelve a «Contar»). «Hacer ahora» no cambia (sigue diciendo «sin separar»: es de un envío ya cerrado).
+
+**El aviso del «+»** ya no dice «Pasaste más de las que contaste…»: ahora dice qué se agregó, con el nombre de la prenda («Se agregaron 5 prendas «Vestido Sofía» al
+conteo: ahora son 9.»), solo si lo contado ya era mayor que 0 y sube (`avisoDePrendasAgregadas`).
+
+**Lo que esto simplifica en la base.** Con todo identificado, cada línea de la compra (una prenda) termina con lo identificado de esa prenda, así que lo que falta o
+sobra es por prenda: justo el reclamo que pidió Felipe («si se hizo separación, sobre la prenda específica»). El caso «una prenda de más y otra sin separar»,
+que dejaba «Faltan 7» y «Sobran 2» con un neto de 5, ya no se puede dar al cerrar; tampoco habrá un «Separar» pendiente nuevo que resolver con «Hacer ahora» a nivel
+categoría (las filas viejas sí seguirán). **Sin migración**: es una regla de la pantalla (la base sigue aceptando un cierre con prendas sin separar, y los envíos ya
+cerrados no cambian). Queda para la base, con su OK: que «Nos debe» guarde QUÉ prenda faltó (hoy suma por proveedor, categoría y marca), y, si se quiere,
+que `cerrar_conteo_envio` rechace un cierre con prendas sin identificar para que la regla no dependa de la pantalla.
+
 ### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
 
 Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del

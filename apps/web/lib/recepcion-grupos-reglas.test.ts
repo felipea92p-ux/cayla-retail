@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   agruparLineas,
   anotadasDelGrupo,
+  avisoDePrendasAgregadas,
+  gruposSinIdentificar,
+  idCampoIdentificar,
+  sinIdentificarDelGrupo,
   camposDelCierrePorGrupo,
   causasDelGrupo,
   lineaDelGrupo,
@@ -294,17 +298,25 @@ describe("lo que muestra la pantalla de una categoría", () => {
     expect(veredictoDelGrupo(dosVestidos({ contadas: 5 }, { contadas: 9 })).texto).toMatch(/^Sobran 2\./);
   });
 
-  it("la guía de foco pide un número por categoría: hecha cuando todas sus líneas lo tienen", () => {
+  it("la guía de foco pide por categoría su número y, con lo contado, que se sepa qué prendas son", () => {
     const campos = camposDelConteoPorGrupo([...agruparLineas([deLaGuia(sofia(), { contadas: 5 }), deLaGuia(lima())]), ...agruparLineas([deLaGuia(linea("l-f", 3, { categoria: FALDAS }), { contadas: 3 })])]);
     expect(campos.map((c) => [c.id, c.hecho, c.requerido])).toEqual([
       ["contar-item-l-sofia", false, true],
+      [idCampoIdentificar("p1|c-vestidos|m-cayla"), false, true],
       ["contar-item-l-f", true, true],
+      [idCampoIdentificar("p1|c-faldas|m-cayla"), false, true],
     ]);
     expect(campos[0].nombre).toBe("Vestidos · CAYLA");
+    expect(campos[1].pendiente).toBe("Faltan 5 prendas por identificar en Vestidos · CAYLA: busca cada una o anótala como nueva.");
+    // Con todo identificado (Sofía 5 del catálogo) la categoría queda hecha en los dos campos.
+    const hecha = camposDelConteoPorGrupo(agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } })]));
+    expect(hecha.map((c) => c.hecho)).toEqual([true, true]);
     // Un envío sin aviso recién abierto: lo único que falta es agregar lo que llegó.
     expect(camposDelConteoPorGrupo([]).map((c) => [c.id, c.hecho])).toEqual([["contar-agregar", false]]);
-    // Lo de fuera de la guía no pide nada (es lo que se agrega).
-    expect(camposDelConteoPorGrupo(agruparLineas([{ clave: "extra:1", linea: null, conteo: null, categoria: VESTIDOS, marca: CAYLA, proveedor: PROV, dijeron: null }]))).toEqual([]);
+    // Lo de fuera de la guía no pide su número (es lo que se agrega); si ya tiene algo contado, sí pide saber qué prendas son.
+    const extra = (contadas: number | null) => agruparLineas([{ ...deLaGuia(linea("x", 0), contadas === null ? null : { contadas }), clave: "extra:1", linea: null, dijeron: null }]);
+    expect(camposDelConteoPorGrupo(extra(null))).toEqual([]);
+    expect(camposDelConteoPorGrupo(extra(4)).map((c) => [c.id, c.hecho])).toEqual([[idCampoIdentificar("extra:1"), false]]);
   });
 
   it("describe la categoría con los nombres de la compra, sin repetirlos", () => {
@@ -318,6 +330,68 @@ describe("lo que muestra la pantalla de una categoría", () => {
     expect(lineaDeLaPrenda(g, { productoId: "p-lima" }).linea?.id).toBe("l-sofia");
     expect(lineaDeLaPrenda(dosVestidos(), { productoId: "p-lima" }).linea?.id).toBe("l-lima");
     expect(lineaDeLaPrenda(dosVestidos(), { productoId: "otra" }).linea?.id).toBe("l-sofia");
+  });
+});
+
+describe("identificar todas las prendas para poder pasar a «Cerrar» (Felipe 2026-10-27)", () => {
+  const dos = (a: Cuerpo | null = null, b: Cuerpo | null = null) => agruparLineas([deLaGuia(sofia(), a), deLaGuia(lima(), b)])[0];
+  const nueva = (descripcion: string | null, cantidad: number) => ({ cantidad, descripcion });
+
+  it("sin contar nada no hay nada que identificar; contadas sin separar, faltan todas", () => {
+    expect(sinIdentificarDelGrupo(dos())).toBe(0);
+    expect(sinIdentificarDelGrupo(dos({ contadas: 5 }, { contadas: 7 }))).toBe(12);
+    expect(sinIdentificarDelGrupo(dos({ contadas: 0 }, { contadas: 0 }))).toBe(0);
+  });
+
+  it("las del catálogo y las nuevas con nombre cuentan, aunque no tengan tallas; las nuevas sin describir y lo no separado, no", () => {
+    // Sofía 5 y Lima 3 del catálogo (sin tallas), 4 sin separar: faltan 4.
+    const parcial = dos({ contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }, { contadas: 7, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 3)], nuevas: [] } });
+    expect(sinIdentificarDelGrupo(parcial)).toBe(4);
+    // Cuatro nuevas SIN describir cierran el hueco de lo separado pero no lo identifican: siguen faltando 4.
+    const sinNombre = dos({ contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }, { contadas: 7, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 3)], nuevas: [nueva(null, 4)] } });
+    expect(sinIdentificarDelGrupo(sinNombre)).toBe(4);
+    // Con su nombre corto (la descripción rápida) sí quedan identificadas.
+    const conNombre = dos({ contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } }, { contadas: 7, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 3)], nuevas: [nueva("Vestido floral", 4)] } });
+    expect(sinIdentificarDelGrupo(conNombre)).toBe(0);
+  });
+
+  it("lo que ya entró al stock (un envío reabierto) cuenta como identificado", () => {
+    expect(sinIdentificarDelGrupo(dos({ contadas: 5, en_stock: 5 }, { contadas: 7, en_stock: 0, separado: { prendas: [prendaSep("p-lima", "Vestido Lima", 7)], nuevas: [] } }))).toBe(0);
+    expect(sinIdentificarDelGrupo(dos({ contadas: 5, en_stock: 2 }, { contadas: 0 }))).toBe(3);
+  });
+
+  it("la suma de lo identificado es lo contado: al identificar una prenda de más, lo contado sube y no falta ninguna", () => {
+    // Contadas 4 sin separar; pasar Sofía con 9 sube lo contado a 9 y ya no falta nada.
+    const g = dos({ contadas: 4 }, { contadas: 0 });
+    const r = repartirSeparado(g, separarAnotada(g.separado, anotadasDelGrupo(g)[0].prenda, 9), g.contadas);
+    expect(r.contadas).toBe(9);
+    const despues = agruparLineas(r.cambios.length ? [deLaGuia(sofia(), { contadas: r.cambios[0].contadas, separado: { prendas: r.cambios[0].separado.prendas.map((p) => prendaSep(p.productoId, p.nombre ?? "", p.cantidad)), nuevas: [] } }), deLaGuia(lima())] : [])[0];
+    expect(sinIdentificarDelGrupo(despues)).toBe(0);
+  });
+
+  it("solo las categorías contadas con algo por identificar frenan el paso a «Cerrar»", () => {
+    const completa = agruparLineas([deLaGuia(sofia(), { contadas: 5, separado: { prendas: [prendaSep("p-sofia", "Vestido Sofía", 5)], nuevas: [] } })])[0];
+    const falta = agruparLineas([deLaGuia(linea("l-f", 3, { categoria: FALDAS }), { contadas: 3 })])[0];
+    const sinContar = agruparLineas([deLaGuia(linea("l-b", 2, { categoria: { id: "c-b", nombre: "Blusas", prefijo: "BLU", familia: "blusas" } }))])[0];
+    const noLlego = agruparLineas([deLaGuia(linea("l-c", 2, { categoria: { id: "c-c", nombre: "Casacas", prefijo: "CAS", familia: "casacas" } }), { contadas: 0 })])[0];
+    expect(gruposSinIdentificar([completa, falta, sinContar, noLlego])).toEqual([falta]);
+    expect(gruposSinIdentificar([completa, sinContar, noLlego])).toEqual([]);
+  });
+
+  it("el campo de la guía queda hecho solo con todo identificado", () => {
+    const clave = "p1|c-faldas|m-cayla";
+    const campo = (c: Cuerpo) => camposDelConteoPorGrupo(agruparLineas([deLaGuia(linea("l-f", 3, { categoria: FALDAS }), c)])).find((x) => x.id === idCampoIdentificar(clave));
+    expect(campo({ contadas: 3 })?.hecho).toBe(false);
+    expect(campo({ contadas: 3, separado: { prendas: [], nuevas: [nueva("Falda plisada", 3)] } })?.hecho).toBe(true);
+    expect(campo({ contadas: 1 })?.pendiente).toMatch(/^Falta 1 prenda por identificar/);
+  });
+
+  it("el aviso dice cuántas se agregaron al conteo y cuánto es ahora; sin que suba, no hay aviso", () => {
+    expect(avisoDePrendasAgregadas("Vestido Sofía", 4, 9)).toBe("Se agregaron 5 prendas «Vestido Sofía» al conteo: ahora son 9.");
+    expect(avisoDePrendasAgregadas("Vestido Lima", 7, 8)).toBe("Se agregó 1 prenda «Vestido Lima» al conteo: ahora son 8.");
+    expect(avisoDePrendasAgregadas("Vestido Sofía", 9, 9)).toBeNull();
+    // Con la categoría en 0 el número grande pasa de 0 a lo identificado: nadie pisó nada, no hay aviso.
+    expect(avisoDePrendasAgregadas("Vestido Sofía", 0, 5)).toBeNull();
   });
 });
 
