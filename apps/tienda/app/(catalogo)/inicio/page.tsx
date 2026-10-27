@@ -25,7 +25,7 @@ import { leerConfigDePuntosDelClub } from "@/lib/puntos-servidor";
 import { hoyLima } from "@/lib/cuentas";
 import { leerDisenoDeCampana } from "@/lib/diseno-campana-servidor";
 import { piezasDelDesfile } from "@/lib/desfile";
-import { heroDelInicio, lasNuevas } from "@/lib/inicio";
+import { heroDelInicio, lasEnVitrina, lasNuevas } from "@/lib/inicio";
 import { avisoAlEntrar, avisosDeRespuestas } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
 import { leerMisRecomendaciones } from "@/lib/recomendaciones-servidor";
@@ -105,6 +105,8 @@ export default async function Inicio({ searchParams }: Props) {
   const nuevos = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" });
   // Lo que llegó hace menos, con foto primero: las salidas del desfile (hasta 6) y las filas de su programa (hasta 8) siguen el mismo orden y la misma numeración.
   const nuevas = lasNuevas(prendas);
+  // Sin nada que llegara hace menos de 30 días el programa sigue (Felipe 2026-10-27): lista lo que hay en la tienda, el mismo orden del desfile.
+  const delPrograma = nuevas.length > 0 ? nuevas : lasEnVitrina(prendas);
   const ofertas = filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "ofertas" });
   const campanas = campanasDe(prendas);
   const ofertaElegida = campanas.find((c) => c.id === leerCampana(sp.oferta)) ?? null;
@@ -150,19 +152,19 @@ export default async function Inicio({ searchParams }: Props) {
         </div>
       ) : (
         <>
-          {nuevas.length > 0 && (
+          {delPrograma.length > 0 && (
             <section className="t-programa-sec t-ancho" aria-labelledby="lo-nuevo">
-              <div className="t-cab-centro t-revela">
+              <div className="t-cab-centro" data-revela>
                 <span className="t-ceja">El programa</span>
                 <h2 id="lo-nuevo">
                   En las <em>tiendas</em>
                 </h2>
                 <p>Lo que llegó a nuestras tiendas. Mira cuánto hay en cada una y sepáralo sin pagar.</p>
               </div>
-              <ListaDeSalidas piezas={piezasDelDesfile(nuevas, sede, origenFotos, 8)} />
+              <ListaDeSalidas piezas={piezasDelDesfile(delPrograma, sede, origenFotos, 8)} />
               <div className="t-programa-pie">
-                <Link className="t-btn t-btn-sec" href={lista("nuevo")}>
-                  Ver las {nuevos.length} salidas
+                <Link className="t-btn t-btn-sec" href={nuevas.length > 0 ? lista("nuevo") : hrefLista({ sede, categoria: null, orden: "destacado" })}>
+                  {nuevas.length > 0 ? `Ver las ${nuevos.length} salidas` : "Ver toda la tienda"}
                 </Link>
               </div>
             </section>
@@ -170,7 +172,7 @@ export default async function Inicio({ searchParams }: Props) {
 
           {looks.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="arma-tu-look">
                     Arma tu <em>look</em>
@@ -181,7 +183,7 @@ export default async function Inicio({ searchParams }: Props) {
                   <Icono nombre="flecha" />
                 </Link>
               </div>
-              <div className="t-looks-inicio">
+              <div className="t-looks-inicio" data-revela-lista>
                 {looks.slice(0, 3).map((l) => (
                   <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} />
                 ))}
@@ -220,7 +222,7 @@ export default async function Inicio({ searchParams }: Props) {
 
           {vendidos.length > 0 && (
             <section className="t-sec t-ancho" aria-labelledby="mas-vendidos">
-              <div className="t-sec-cab">
+              <div className="t-sec-cab" data-revela>
                 <div>
                   <h2 id="mas-vendidos">
                     Más <em>vendidos</em>

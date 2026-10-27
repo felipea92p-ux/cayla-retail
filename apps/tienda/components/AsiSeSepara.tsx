@@ -27,7 +27,7 @@ export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }
   ];
   return (
     <section className="t-sec t-ancho ay-asi" aria-labelledby="asi-se-separa">
-      <div className="t-cab-centro">
+      <div className="t-cab-centro" data-revela>
         <Link className="t-ceja" href="/como-separar">
           Sin pagar en la web
         </Link>
@@ -35,7 +35,7 @@ export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }
           Así se <em>separa</em>
         </h2>
       </div>
-      <ol className="as-pasos" aria-label="Los pasos para separar">
+      <ol className="as-pasos" data-revela-lista aria-label="Los pasos para separar">
         {pasos.map((p, i) => (
           <li key={p.titulo} className="as-paso" data-hecho={p.hecho ? "" : undefined}>
             <span className="as-n" aria-hidden="true">

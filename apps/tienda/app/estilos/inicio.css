@@ -30,7 +30,7 @@
 /* ---- Las ofertas: la banda de lienzo (hueso), con una pestaña por campaña. Las pestañas son las mismas del catálogo (piedra, y la
    activa en grafito con su subrayado): ya no hay que pisarles el color. Aquí había una línea que las pintaba con `--t-oscuro-tinta` (crema,
    hecha para la banda oscura de antes) y en claro quedaban a 1,13:1 sobre el hueso, invisibles. ---- */
-.t-ofertas { margin-top: clamp(56px, 9cqi, 132px); padding-block: clamp(48px, 7cqi, 96px); background: var(--hueso); color: var(--tinta); }
+.t-ofertas { margin-top: clamp(56px, 9cqi, 132px); padding-block: clamp(48px, 7cqi, 96px); background: var(--t-banda); border-block: 1px solid var(--t-banda-filo); color: var(--tinta); }
 .t-ofertas .t-ceja { color: var(--taupe); }
 .t-ofertas .t-sec-cab h2 em { color: inherit; }
 .t-ofertas .t-sec-cab p { color: var(--taupe); }
@@ -41,7 +41,8 @@
 .t-ofertas .t-precio s, .t-ofertas .t-muestras small { color: var(--taupe); }
 /* Las píldoras de las campañas se tocan en 44 px de alto (una capa invisible), sin cambiar de lugar. */
 .t-ofertas .t-pildoras { padding-block: 5px; margin-block: -5px 11px; }
-.t-ofertas .t-pildora { border-color: transparent; color: var(--taupe); }
+/* La capa invisible (`::before`) se ancla a su píldora: sin `position: relative` se anclaba a la página entera y tapaba la primera pantalla (el botón «Ver lo nuevo» del desfile no recibía el toque). */
+.t-ofertas .t-pildora { position: relative; border-color: transparent; color: var(--taupe); }
 .t-ofertas .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
 .t-ofertas .t-pildora:hover { color: var(--tinta); }
 .t-ofertas .t-pildora[aria-current="true"], .t-ofertas .t-pildora:has(> .t-pendiente[data-pendiente]) { background: none; border-color: var(--tinta); color: var(--tinta); }

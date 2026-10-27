@@ -28,6 +28,7 @@ import {
 import { hrefDelProbador } from "@/lib/probador";
 import { esLaMismaFoto } from "@/lib/prenda-tocada";
 import { textoNivel, tonoNivel } from "@/lib/stock";
+import { anotarPaso } from "@/lib/visita-cola";
 import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
 import { volarALaBolsa } from "./bolsa/volarALaBolsa";
 import { BotonAvisame } from "./club/BotonAvisame";
@@ -94,6 +95,15 @@ export function FichaPrenda({
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
+  // Tráfico (ADR-0495): «vio una prenda», al abrir su ficha (una vez por pestaña; sale con el próximo envío).
+  useEffect(() => anotarPaso({ paso: 1, producto: ficha.id }), [ficha.id]);
+  // La llegada de la ficha (foto que se descubre, panel que sube) corre solo al cargar la página: pasado el rato se apaga la marca, y cambiar
+  // de color (que vuelve a montar la galería) o de talla ya no la repite.
+  const [llegando, setLlegando] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLlegando(false), 2400);
+    return () => clearTimeout(t);
+  }, []);
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
   const [tallaId, setTallaId] = useState<string | null>(() => tallaInicial(ficha, tallaPedida, color) ?? (tallas.length === 1 ? tallas[0].talla.id : null));
@@ -218,7 +228,7 @@ export function FichaPrenda({
 
   return (
     <>
-      <div className="t-pdp">
+      <div className="t-pdp" data-entra={llegando ? "" : undefined}>
         {/* Otra clave por color: al cambiarlo, la tira vuelve a su primera foto (la del color nuevo). */}
         <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} disparo={disparo} />
 
@@ -305,6 +315,8 @@ export function FichaPrenda({
                     onClick={() => {
                       setPideTalla(false);
                       setTallaId(talla.id === tallaId && tallas.length > 1 ? null : talla.id);
+                      // Tráfico (ADR-0495): «eligió talla», solo al elegirla (no al soltarla).
+                      if (talla.id !== tallaId) anotarPaso({ paso: 2, producto: ficha.id, variante: variante.id });
                     }}
                   >
                     {talla.nombre}

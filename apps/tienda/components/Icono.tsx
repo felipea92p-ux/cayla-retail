@@ -25,6 +25,9 @@ const TRAZOS = {
   chevron: <path d="M7 10l5 5 5-5" />,
   // La cabecera con cuenta (actividad 5): el menú, el buscador y cerrar sus hojas.
   menu: <path d="M4 7h16M4 12h16M4 17h10" />,
+  sol: <><circle cx="12" cy="12" r="4" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /></>,
+  luna: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />,
+  contraste: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor" /></>,
   lupa: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></>,
   cerrar: <path d="M6 6l12 12M18 6L6 18" />,
   // Instalar CAYLA en el celular (ADR-0431): los botones que la guía nombra, dibujados como los del navegador para reconocerlos.

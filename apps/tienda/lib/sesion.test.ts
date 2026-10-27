@@ -51,6 +51,12 @@ describe("a dónde lleva el proxy", () => {
     for (const usuario of ["si", "no", "no_se"] as const) expect(redireccionDelProxy("/", "GET", usuario)).toBe("/inicio");
   });
 
+  it("al Inicio llegan solo las marcas del enlace (utm), para que Tráfico sepa por dónde llegó la persona (ADR-0495)", () => {
+    expect(redireccionDelProxy("/", "GET", "no", "?utm_source=qr")).toBe("/inicio?utm_source=qr");
+    expect(redireccionDelProxy("/", "GET", "no", "?utm_source=whatsapp&utm_medium=look&x=1")).toBe("/inicio?utm_source=whatsapp&utm_medium=look");
+    expect(redireccionDelProxy("/", "GET", "no", "?sede=lima&volver=/cuenta")).toBe("/inicio");
+  });
+
   it("si el proyecto de clientes no contesta, o es una acción (POST), no manda a nadie a ningún lado", () => {
     expect(redireccionDelProxy("/cuenta", "GET", "no_se")).toBeNull();
     expect(redireccionDelProxy("/cuenta/pedidos", "GET", "no_se")).toBeNull();
