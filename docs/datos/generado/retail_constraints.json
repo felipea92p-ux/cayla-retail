@@ -4215,6 +4215,11 @@
   "tabla": "retail.despacho_conteos"
  },
  {
+  "conname": "despacho_conteos_costos_prendas_objeto",
+  "definicion": "CHECK ((jsonb_typeof(costos_prendas) = 'object'::text))",
+  "tabla": "retail.despacho_conteos"
+ },
+ {
   "conname": "despacho_conteos_cuadra",
   "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
   "tabla": "retail.despacho_conteos"

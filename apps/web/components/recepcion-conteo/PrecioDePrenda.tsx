@@ -7,7 +7,7 @@ import { leerCostoCierre, leerPrecioNuevo, type PrendaSeparada } from "@/lib/rec
 import { leerPrecioDePrenda } from "@/lib/recepcion-conteo-acciones";
 
 // El precio de venta de una prenda que ya se identificó en este envío (Felipe 2026-10-24). El campo viene con el precio de hoy; quien recibe lo
-// cambia y elige si vale para todas las sedes o solo para la suya. NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
+// cambia y elige si vale para todas las sedes o solo para la suya (una terminal, solo la suya: 2026-10-26). NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
 // confirmación que lista todo lo que cambia (`CerrarEnvio`). Rige hacia adelante: lo ya vendido guarda su precio y el cambio queda en el
 // historial de la prenda (Catálogo ▸ Productos ▸ Historial).
 
@@ -23,6 +23,7 @@ export type CostoDePrenda = { valor: string; deLaLinea: string; antes: string; p
 export function PrecioDePrenda({
   prenda,
   sede,
+  soloSede = false,
   editado,
   costo,
   onActual,
@@ -33,6 +34,8 @@ export function PrecioDePrenda({
   prenda: PrendaSeparada;
   /** El nombre de la sede que recibe: «Solo Tienda Lima». */
   sede: string;
+  /** Una terminal: el precio vale solo en su sede. No se ofrece «Todas las sedes»; se dice dónde vale. */
+  soloSede?: boolean;
   editado: PrecioEditado | undefined;
   /** El costo de compra de ESTA prenda (por defecto el de su línea) y qué hacer al escribirlo; sin él, no hay campo de costo. */
   costo?: CostoDePrenda;
@@ -130,17 +133,22 @@ export function PrecioDePrenda({
         <div>
           <span className="campo-etiqueta block">¿Dónde vale?</span>
           <div className={`mt-1.5 ${conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
-            <ElegirOpcion
-              chico
-              etiqueta={`Dónde vale el precio de venta de ${nombre}`}
-              // Felipe 2026-10-26: la primera opción es la sede que recibe y viene marcada; «Todas las sedes» es la segunda.
-              opciones={[
-                { valor: "sede", texto: `Solo ${sede}` },
-                { valor: "todas", texto: "Todas las sedes" },
-              ]}
-              valor={editado?.alcance ?? "sede"}
-              onValor={(v) => onAlcance(v as "todas" | "sede")}
-            />
+            {soloSede ? (
+              // Una terminal (Felipe 2026-10-26, ADR-0531): solo su sede; la base no le deja cambiar el de todas.
+              <p className="text-xs text-taupe">Solo en {sede}: las otras sedes no cambian.</p>
+            ) : (
+              <ElegirOpcion
+                chico
+                etiqueta={`Dónde vale el precio de venta de ${nombre}`}
+                // Felipe 2026-10-26: la primera opción es la sede que recibe y viene marcada; «Todas las sedes» es la segunda.
+                opciones={[
+                  { valor: "sede", texto: `Solo ${sede}` },
+                  { valor: "todas", texto: "Todas las sedes" },
+                ]}
+                valor={editado?.alcance ?? "sede"}
+                onValor={(v) => onAlcance(v as "todas" | "sede")}
+              />
+            )}
           </div>
         </div>
       </div>

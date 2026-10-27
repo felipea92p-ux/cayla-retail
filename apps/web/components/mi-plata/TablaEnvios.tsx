@@ -25,14 +25,15 @@ const COLUMNAS = (conRonda: boolean): Columna[] => [
   { titulo: "Tienda" },
   { titulo: "Salió" },
   { titulo: "Prendas", alinear: "der" },
-  { titulo: "Fardos", alinear: "der" },
-  ...(conRonda ? [{ titulo: "Ronda" }] : []),
+  { titulo: "Fardos", alinear: "der", desdeXl: true },
+  ...(conRonda ? [{ titulo: "Ronda", desdeXl: true }] : []),
   { titulo: "Estado" },
 ];
+// De 1024 a 1279 px la tabla es angosta (cabe en ~650 px): sin «Fardos» ni «Ronda» (el detalle los trae) y con el estado más corto.
 const PLANTILLA = (conRonda: boolean) =>
   conRonda
-    ? "lg:grid-cols-[9.5rem_minmax(0,1fr)_8.5rem_5rem_5rem_8rem_minmax(0,15rem)]"
-    : "lg:grid-cols-[9.5rem_minmax(0,1fr)_8.5rem_5rem_5rem_minmax(0,15rem)]";
+    ? "lg:grid-cols-[8.5rem_minmax(4rem,1fr)_7rem_4rem_minmax(0,11rem)] xl:grid-cols-[9.5rem_minmax(0,1fr)_8.5rem_5rem_5rem_8rem_minmax(0,15rem)]"
+    : "lg:grid-cols-[8.5rem_minmax(4rem,1fr)_7rem_4rem_minmax(0,11rem)] xl:grid-cols-[9.5rem_minmax(0,1fr)_8.5rem_5rem_5rem_minmax(0,15rem)]";
 
 function FilaTabla({ e, hoy, conRonda, plantilla }: { e: EnvioMio; hoy?: string; conRonda: boolean; plantilla: string }) {
   const [abierta, setAbierta] = useState(false);
@@ -52,8 +53,8 @@ function FilaTabla({ e, hoy, conRonda, plantilla }: { e: EnvioMio; hoy?: string;
         <span className={celda()}>{e.destino.replace(/^Tienda /, "")}</span>
         <span className={celda("izq", "text-taupe")}>{cuandoSalio(e, hoy)}</span>
         <span className={celda("der")}>{e.prendas}</span>
-        <span className={celda("der")}>{e.fardos}</span>
-        {conRonda && <span className={celda("izq", "text-taupe")}>{e.ronda ?? "—"}</span>}
+        <span className={celda("der", "hidden xl:block")}>{e.fardos}</span>
+        {conRonda && <span className={celda("izq", "hidden text-taupe xl:block")}>{e.ronda ?? "—"}</span>}
         <span className={celda("izq", "flex items-center gap-2 overflow-visible")}>
           <Chip tono={estado.tono}>{estado.texto}</Chip>
           {nota && <span className="text-xs text-ambar">{nota}</span>}

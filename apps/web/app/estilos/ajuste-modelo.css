@@ -73,6 +73,8 @@
 .ajuste-banda-fila { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 10px; align-items: center; }
 .ajuste-banda-tit { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
 .ajuste-opciones { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+/* «Qué pasó» es un combo (Felipe 2026-10-26): a la medida del motivo más largo, no de toda la banda. */
+.ajuste-motivo { width: 100%; max-width: 20rem; }
 /* La píldora del sistema (`pildora-cayla`) sobre la banda: en papel y con un borde que se ve, para que no se pierda en el fondo. */
 .ajuste-opcion.pildora-cayla { gap: 6px; background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 16%, transparent); color: var(--color-tinta); font-weight: 500; white-space: nowrap; }
 .ajuste-opcion.pildora-cayla[aria-pressed="true"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
@@ -234,7 +236,7 @@
 }
 .ajuste-visto path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: ajuste-traza 320ms var(--ease-cayla) 1 forwards; animation-delay: calc(var(--n, 0) * 70ms + 120ms); }
 
-/* El celular (o una hoja angosta): «Qué pasó» va en una fila que se desliza, la columna del color mide lo que su nombre más largo, «Hoy»
+/* El celular (o una hoja angosta): «Qué pasó» ocupa el ancho, la columna del color mide lo que su nombre más largo, «Hoy»
    va bajo el nombre y lo del otro lugar se esconde, para que con una talla no haya que deslizar de lado. */
 @container (max-width: 460px) {
   .ajuste-banda { padding: 9px 10px; }
@@ -242,15 +244,7 @@
   .ajuste-banda-pie { margin-left: 0; }
   .ajuste-banda-info,
   .ajuste-de-mas { display: none; }
-  .ajuste-opciones-desliza {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    margin-right: -10px;
-    padding-right: 10px;
-    -webkit-mask-image: linear-gradient(90deg, var(--color-tinta) 85%, transparent);
-    mask-image: linear-gradient(90deg, var(--color-tinta) 85%, transparent);
-  }
+  .ajuste-motivo { max-width: none; }
   .ajuste-opcion.pildora-cayla { padding: 0.3125rem 0.625rem; font-size: 12.5px; }
   .ajuste-tabla th,
   .ajuste-tabla td { padding: 4px 5px; }

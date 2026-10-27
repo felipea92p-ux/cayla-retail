@@ -402,7 +402,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién lo puso; «Cambiar» y «Quitar» lo ajustan. Esto se guarda aparte, al momento, no con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién lo puso; «Cambiar» y «Quitar» lo ajustan. En una terminal solo se ve su tienda. Esto se guarda aparte, al momento, no con «Revisar y guardar». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
