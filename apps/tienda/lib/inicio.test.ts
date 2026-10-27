@@ -77,9 +77,17 @@ describe("el héroe del Inicio", () => {
       prenda("Fijada", { nuevo: { dias: null } }),
     ];
     const hero = heroDelInicio(null, prendas);
-    expect(hero.tipo === "nuevo" && nombres(hero.piezas)).toEqual(["Hace 5 con foto", "Hace 1", "Hace 9"]);
+    expect(hero.tipo === "nuevo" && nombres(hero.piezas)).toEqual(["Hace 5 con foto", "Hace 1", "Hace 9", "Fijada"]);
     expect(heroDelInicio(null, [prenda("Vieja")])).toEqual({ tipo: "marca" });
     expect(heroDelInicio(null, [])).toEqual({ tipo: "marca" });
+  });
+
+  it("sin campaña, lo nuevo trae hasta seis prendas (las salidas del desfile); con campaña, solo tres (las polaroids)", () => {
+    const nuevas = Array.from({ length: 9 }, (_, i) => prenda(`Nueva ${i + 1}`, { nuevo: { dias: i + 1 }, fotos: [FOTO] }));
+    const sin = heroDelInicio(null, nuevas);
+    expect(sin.tipo === "nuevo" && sin.piezas).toHaveLength(6);
+    const con = heroDelInicio({ nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21" }, [...nuevas, ...Array.from({ length: 5 }, (_, i) => enCampana(`Rebajada ${i}`))]);
+    expect(con.tipo === "campana" && con.piezas).toHaveLength(3);
   });
 });
 

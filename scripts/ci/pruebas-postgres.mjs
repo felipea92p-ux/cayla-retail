@@ -656,6 +656,11 @@ export const PRUEBAS = [
   // empresa con stock fuera. Crear una de CLAURE en Lima sigue. Control sin el candado; la sonda de la migración. Cada caso: ROLLBACK.
   "pruebas:empresa-solo-en-sus-sedes",
 
+  // Cuánto de lo vendido es de CAYLA y cuánto de CLAURE (ADR-0532): en el Historial la suma de las empresas es el vendido de
+  // fn_totales_historial_ventas con los mismos filtros; una prenda de CLAURE suma a CLAURE; en Caja, lo de cada turno es lo de
+  // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.
+  "pruebas:vendido-por-empresa",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 
@@ -1355,6 +1360,38 @@ export const PRUEBAS = [
   // no borra el guardado, dos personas con descuentos distintos no se pisan (B4), el sugerido es el mayor % que alcanza a la categoría con su
   // fuente, días y tiendas, y la lectura responde al rol de la tienda (no solo al dueño). ROLLBACK siempre.
   "pruebas:plan-compra-descuento",
+
+  // El historial de las líneas del Plan (ADR-0520): cada guardado de una categoría deja UNA fila (lo guardado, su versión, quién y la propuesta
+  // que mostró la pantalla) en la misma transacción; un guardado rechazado o un historial que no puede escribir no dejan nada; la fila no se edita
+  // ni se borra ni con la tabla directo; responde al rol de la tienda; y la migración se pega dos veces y se niega si la función ya no es la leída.
+  "pruebas:plan-compra-historial-lineas",
+  "pruebas:plan-compra-versiones",
+
+  // El calendario del Plan (ADR-0525): una fila por campaña de Insignias a lo sumo y una propia con su nombre y sus dos fechas, «pausada» como la única con regreso
+  // (y a futuro), fechas que existen (el 29 de febrero sí, el 31 de abril no), quitar archiva y restaurar devuelve, el plan de una propia nace con su vínculo y sus
+  // fechas llevadas al año (también si cruzan de año), dos personas a la vez no chocan, responde al rol de la tienda y se cierra sin el módulo. ROLLBACK, salvo
+  // el caso de las sesiones paralelas, que confirma sobre filas «ZZ Cal concurrencia» y las borra al terminar.
+  "pruebas:plan-compra-calendario",
+
+  // El paso 2 del Plan (ADR-0526): la lectura cuenta lo mismo que `fn_plan_compra` (ventas completadas y no de prueba en 90 días, stock libre de apartados y sin Cuarentena,
+  // sin modelos de prueba, las «sin registrar» aparte); guardar rechaza lo imposible (un reparto que se pasa del total del paso 1, un modelo de otra categoría, una talla ajena,
+  // la misma celda dos veces) sin escribir nada; lo idéntico no crea otra foto; quien edita sobre una versión vieja no pisa a otra persona; la tabla no se edita ni se borra;
+  // responde al rol de la tienda y se cierra sin el módulo; y cuatro personas a la vez dejan UNA foto vigente. ROLLBACK, salvo el caso de las sesiones paralelas, que confirma
+  // sobre filas «ZZ Paso2 Concurrencia» y las borra al terminar.
+  "pruebas:plan-compra-paso-2",
+
+  // Cómo se paga la campaña y si Finanzas la ve (ADR-0527): la lista de pagos (fecha, %) solo se guarda si suma exacto 100, con fechas que existen y sin repetir (la función Y el CHECK
+  // de la tabla); lo idéntico no crea otra foto y quien edita sobre una versión vieja no pisa a otra persona; la tabla no se edita ni se borra; la visibilidad toma uno de tres valores,
+  // firmada; «lo pagado» cuenta solo comprobantes vigentes de mercadería de órdenes generadas de la campaña y SIN IGV; responde al rol de la tienda y se cierra sin el módulo; y cuatro
+  // personas a la vez dejan UNA foto vigente. ROLLBACK, salvo el caso de las sesiones paralelas, que confirma sobre «ZZ Pagos Concurrencia» y lo borra al terminar.
+  "pruebas:plan-compra-pagos",
+
+  // Enviar a Compras (ADR-0530): el paso 2 guardado se agrupa por proveedor y se envía como pedido PENDIENTE (sin pedir nada); enviar rechaza lo imposible sin escribir nada (otra versión del paso 2,
+  // el Taller, una fecha pasada, un proveedor o una marca inactivos) y repetirlo idéntico no crea otro; cambiar la fecha y rectificar solo valen mientras está pendiente; confirmar crea LA orden de compra
+  // (una línea por modelo, el costo del plan, entrega para el inicio de la campaña: el Plan la cuenta) y la deja ligada, una sola vez aunque se confirme dos veces, y si la orden no se puede crear el
+  // pedido sigue pendiente; el esquema hace imposibles los estados que nunca deben existir; responde al rol de la tienda, se cierra sin el módulo que toca y a anon. ROLLBACK, salvo las sesiones
+  // paralelas (cuatro que envían lo mismo, cuatro que confirman lo mismo, una que confirma contra una que rectifica), que confirman sobre «ZZ Envio Real» y lo borran al terminar.
+  "pruebas:plan-compra-envio",
 
   // El plazo de pedido del Plan (ADR-0499): `dias_para_llegar` por campaña (1 a 365, nunca sin autor, ni con la tabla directo), quitarlo deja anotado
   // quién, solo con el módulo (42501 si no) y responde al rol de la tienda. ROLLBACK siempre.

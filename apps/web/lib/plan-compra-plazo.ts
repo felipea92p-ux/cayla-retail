@@ -98,6 +98,16 @@ export function plazoDePedido(desde: string, hasta: string, hoy: string, diasPar
   };
 }
 
+/**
+ * Hasta cuándo conviene tener cuadrado el stock (A1 de la auditoría del 2026-10-26): «Comprar» resta lo que ya hay, y si «Hay hoy» está incompleto la compra sale
+ * inflada. Contar sirve hasta el último día para pedir: con tiempo, dice esa fecha; si ya es tarde o la campaña empezó, «antes de pedir»; terminada, nada.
+ */
+export function fraseDelConteoAntesDelPlazo(p: Pick<PlazoDePedido, "estado" | "limite">): string | null {
+  if (p.estado === "termino") return null;
+  if ((p.estado === "a_tiempo" || p.estado === "justo") && p.limite !== null) return `Cuéntalo antes del ${diaMes(p.limite)}: es el último día para pedir.`;
+  return "Cuéntalo antes de pedir.";
+}
+
 export const RPC_PLAZO = "fn_plan_compra_plazo";
 export const RPC_GUARDAR_PLAZO = "guardar_plan_compra_plazo";
 

@@ -10,7 +10,7 @@
 
 /* ---- Un bloque con su título (lo usa «Lo que nos escribiste», en Recomendaciones) ---- */
 .c-bloque { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.c-bloque-t { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-size: 18px; font-weight: 250; line-height: 1.12; }
+.c-bloque-t { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; line-height: 1.12; }
 .c-reintentar { align-self: flex-start; margin-left: 0; }
 
 /* ---- Un beneficio o la línea de las novedades (maqueta: `.t-novedad`) ---- */

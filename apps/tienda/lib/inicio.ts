@@ -16,6 +16,7 @@ import {
   type Forma,
   type Prenda,
 } from "./catalogo";
+import { SALIDAS_MAX } from "./desfile";
 import { hrefLooks } from "./looks";
 import { hrefDelProbador } from "./probador";
 import { gruposDe, MENUS, type Menu } from "./grupos";
@@ -30,7 +31,7 @@ import type { Campana } from "./portada";
 export type Hero =
   /** La campaña que anuncia la portada (la misma de la franja), con hasta 3 prendas suyas que hay en la tienda elegida. */
   | { tipo: "campana"; campana: Campana; piezas: Prenda[]; campanaId: string | null }
-  /** Sin campaña: lo que llegó hace menos. */
+  /** Sin campaña: lo que llegó hace menos, hasta seis prendas: las salidas del desfile (`lib/desfile.ts`). */
   | { tipo: "nuevo"; piezas: Prenda[] }
   /** Sin campaña ni nada nuevo: la frase de la marca. */
   | { tipo: "marca" };
@@ -54,9 +55,14 @@ export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[
       };
     }
   }
-  const nuevas = prendas.filter((p) => p.nuevo);
-  if (nuevas.length > 0) return { tipo: "nuevo", piezas: [...nuevas].sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b)).slice(0, 3) };
+  const nuevas = lasNuevas(prendas);
+  if (nuevas.length > 0) return { tipo: "nuevo", piezas: nuevas.slice(0, SALIDAS_MAX) };
   return { tipo: "marca" };
+}
+
+/** Lo que llegó hace menos, con foto primero y luego lo más reciente: las salidas del desfile y las filas de su programa, en ese orden. */
+export function lasNuevas(prendas: readonly Prenda[]): Prenda[] {
+  return prendas.filter((p) => p.nuevo).sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b));
 }
 
 /* ---------------- Las categorías ---------------- */

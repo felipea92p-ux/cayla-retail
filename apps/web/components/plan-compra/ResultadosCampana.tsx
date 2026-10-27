@@ -39,6 +39,8 @@ import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
 import { CeldaComoVa } from "@/components/plan-compra/ComoVaCampana";
 import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { CierreCampana } from "@/components/plan-compra/CierreCampana";
+import { VeredictoDeLaCampana } from "@/components/plan-compra/VeredictoDeLaCampana";
+import type { HistoriaDelPlan } from "@/lib/plan-compra-veredicto";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
@@ -59,6 +61,7 @@ export function ResultadosCampana({
   falla,
   anterior = null,
   propuesta = null,
+  historia = null,
   veAnalisis = false,
   sedeDeLaCabecera = null,
 }: {
@@ -69,6 +72,8 @@ export function ResultadosCampana({
   anterior?: unknown;
   /** La propuesta del Plan (`fn_plan_compra_propuesta`, crudo): lo vendido por categoría en la misma campaña el año anterior. */
   propuesta?: unknown;
+  /** La historia de la campaña de este plan, medida en el servidor solo si ya terminó (ADR-0525): lo que subió la venta ahora y otros años. null = no aplica. */
+  historia?: HistoriaDelPlan | null;
   /** Quien ve Análisis recibe los accesos a la prenda exacta (Se está acabando, No se vende). */
   veAnalisis?: boolean;
   /** La sede elegida en la cabecera (null en CAYLA Global): si es una de las tiendas, se arranca en ella. */
@@ -214,6 +219,7 @@ export function ResultadosCampana({
 
       {/* Al terminar, el cierre arriba (Felipe 2026-10-12). Durante, «¿cómo va?» es la primera tarjeta de cifras y lo que pide más o pide
           impulso va DENTRO de la tabla de categorías (columna «Qué hacer» y la píldora «Piden atención»). */}
+      {momento === "terminada" && historia && <VeredictoDeLaCampana h={historia} nombre={r.plan.nombre} conCalendario={!!campanas?.calendario} />}
       {momento === "terminada" && datosCierre && <CierreCampana c={datosCierre} veAnalisis={veAnalisis} />}
 
       {/* Compacta por defecto, en UNA barra (Felipe 2026-10-12: «como antes había en Plan»): «¿Cómo va?», «Toda CAYLA» y cada tienda, separadas

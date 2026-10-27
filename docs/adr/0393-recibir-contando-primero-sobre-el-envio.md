@@ -516,6 +516,30 @@ migración `20261026163000`, rama `prenda-para-despues-save-613e8c`): no se repi
 De paso, la fila de lo separado baja sus acciones bajo el nombre según el ancho de la LISTA (`.rc-filas-sep`, contenedor de 700 px), no el de la
 ventana: junto a «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho y el nombre se aplastaba.
 
+### Las categorías se despliegan: lo que se anotó al comprar, de un toque a «¿Qué … son?» (2026-10-26)
+
+Cada categoría de la lista que trae prendas anotadas en la compra (`prendaElegida` o la descripción de la línea, ADR-0480) tiene una flecha que
+muestra la prenda exacta con cuántas eran y un «+» redondo. Al tocarlo la prenda pasa a «¿Qué … son?» como si se hubiera elegido desde el
+buscador: la del catálogo, como prenda conocida; la que solo tiene nombre, como nueva ya descrita. No hay estado nuevo: lo que queda en la lista
+es lo anotado menos lo ya separado (`anotadasSinSeparar`), así que quitarla de «¿Qué … son?» la devuelve sola.
+
+DECIDÍ: la cantidad que entra es siempre la esperada (Felipe, 2026-10-26: con un tope «no más de lo contado» la segunda prenda entraba con 1). Si con eso se
+separa más de lo que ya se había contado, lo contado sube y la pantalla lo avisa («el conteo sube de 8 a 15»): quien cuenta lo puede corregir en el número. Con la categoría en 0 no
+avisa: no había número de nadie que pisar y el número grande se ve pasar de 0 a lo separado. Una prenda anotada
+solo por su nombre sale primero de las «nuevas sin describir» que ya había (quitar una descrita las devuelve ahí), así sacarla y volver a pasarla no duplica.
+La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla, porque una prenda con tallas las suelta si su
+número cambia.
+AGRUPÉ (Felipe, 2026-10-26: «si ambas prendas son vestidos, lo ideal es que se muestren dentro de la misma categoría»): las líneas del mismo proveedor,
+categoría y marca —la llave con la que «Nos debe» suma el reclamo— son UNA categoría en la pantalla: un número, una lista de anotadas, un «¿Qué … son?».
+La base no cambió: sigue una fila por línea (`despacho_conteos`), y `lib/recepcion-grupos-reglas.ts` reparte lo que se escribe cambiando lo mínimo (sube
+llenando las líneas en el orden de la compra, baja desde la última, nunca por debajo de lo separado ni de lo que ya entró al stock). Mientras nada se
+separa ese reparto es de trabajo y no dice de cuál prenda faltó; solo lo separado tiene cantidad exacta por prenda.
+DESCARTÉ: guardar el reparto como dato exacto: separar después del cierre (7 de Sofía con una fila de 5) chocaría con el tope por fila, y el cierre mostraría
+un «faltan 2 de Lima» que nadie dijo. Por eso el cierre por categoría, el reclamo por categoría (sin separar) o por prenda (todo separado) y «Hacer ahora» a
+nivel categoría quedan como el paso siguiente, con migración (zona roja: dinero y stock), cuando la sesión de costos por prenda de Recibir fusione.
+SE ROMPE SI: una línea del envío empieza a traer varias prendas (hoy trae una): `prendasAnotadasDe` ya devuelve una lista, pero la cantidad por
+prenda tendría que salir de la compra y no de `dijeron`.
+
 ### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
 
 Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del

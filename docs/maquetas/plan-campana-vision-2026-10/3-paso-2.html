@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>③ Paso 2 · Plan de campaña (spike)</title>
+<link rel="stylesheet" href="base.css?v=13">
+<style>
+.ctl{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;border:1px dashed var(--taupe);border-radius:14px;padding:12px 18px;background:var(--papel);align-items:flex-start}
+.ctl h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t60);margin-bottom:6px}
+.ctl p{font-size:12.5px;color:var(--t60);margin-top:6px;max-width:42ch}
+.pasos{display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap}
+.pasos button{display:flex;gap:10px;align-items:center;border:1px solid var(--sand);background:var(--crema);border-radius:14px;padding:9px 14px;text-align:left;flex:1;min-width:230px}
+.pasos button .nn{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--sand);flex:none}
+.pasos button.on{background:var(--papel);border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)} .pasos button.on .nn{background:var(--tinta);color:var(--crema)}
+.pasos button.hecho .nn{background:var(--verde);color:var(--crema)}
+.pasos small{display:block;color:var(--t60);font-size:12px}
+.totctl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:8px 14px;margin-bottom:10px}
+.totctl .grande{font:600 22px var(--serif)}
+.avT{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.4;border-left:4px solid var(--ambar);background:color-mix(in srgb,var(--ambar) 9%,var(--papel));border-radius:8px;padding:7px 10px;margin-bottom:10px;animation:entra .3s var(--ease)}
+.avT button{margin-left:auto;border:0;background:transparent;font-size:18px;line-height:1;color:var(--t60);padding:0 4px}
+.exacto{display:flex;gap:12px;align-items:center;background:color-mix(in srgb,var(--ambar) 9%,var(--papel));border:1px solid color-mix(in srgb,var(--ambar) 40%,transparent);border-radius:12px;padding:9px 14px;font-size:13px;margin-bottom:12px;flex-wrap:wrap}
+.exacto .med{display:flex;gap:4px} .exacto .med i{width:22px;height:6px;border-radius:99px;background:var(--sand)} .exacto .med i.on{background:var(--ambar)}
+.cuando{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:-2px 0 12px}
+.cuando[hidden]{display:none}
+.cuando div{border-left:3px solid var(--sand);padding:2px 10px;font-size:12.5px;color:var(--t60)} .cuando div.ya{border-color:var(--ambar);color:var(--tinta)} .cuando b{display:block;color:var(--tinta)}
+@media(max-width:800px){.cuando{grid-template-columns:1fr 1fr}}
+.sw-col{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid color-mix(in srgb,var(--tinta) 25%,transparent);vertical-align:-2px;margin-right:8px}
+.alcanza{font-size:12.5px;color:var(--t60);white-space:nowrap} .alcanza.mal{color:var(--ambar);font-weight:600}
+.cuadre{display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.cuadre .barra{flex:1;min-width:180px;margin:0}
+.heat{display:inline-block;min-width:40px;text-align:center;border-radius:8px;padding:4px 6px;font-variant-numeric:tabular-nums;font-weight:600}
+.resp{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px}
+.resp div{min-width:120px} .resp .v{font:600 26px var(--serif)} .resp .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.prm{display:grid;gap:6px;font-size:13px;color:var(--t60)} .prm b{color:var(--tinta)}
+tr.clic td:last-child{white-space:nowrap}
+.det h3{font:600 22px/1.2 var(--serif);margin:6px 0 10px}
+.tg{display:grid;grid-template-columns:repeat(5,minmax(78px,1fr));gap:10px;margin:12px 0}
+.tg div{border:1px solid var(--sand);border-radius:12px;padding:10px;background:var(--crema);text-align:center}
+.tg .t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t60)}
+.tg .pct{font-size:12px;color:var(--t60);margin-top:4px}
+.tg .paso{margin-top:6px}
+@media(max-width:700px){.tg{grid-template-columns:repeat(3,1fr)}}
+.mini{font-size:12.5px;color:var(--t60);margin-top:8px}
+</style>
+</head>
+<body>
+<div id="chrome"></div>
+
+<div class="ctl">
+  <div><h4>Cómo ve el paso 2</h4><div class="seg" id="vista"></div><p id="vNota"></p></div>
+  <div><h4>¿Cuánta historia tiene el ERP?</h4><div class="seg" id="mad"></div><p id="mNota"></p></div>
+  <div><h4>Empezar de cero</h4><button class="btn ch" id="reset">Borrar lo que moví en esta maqueta</button></div>
+</div>
+
+<div class="cifras">
+  <div class="cifra"><div class="t">Categorías con plan</div><div class="v">7 de 45</div><div class="d">Toca una fila para abrir su hoja</div></div>
+  <div class="cifra"><div class="t">Prendas a comprar</div><div class="v" id="cP">—</div><div class="d">Lo que conviene tener menos lo que hay</div></div>
+  <div class="cifra"><div class="t">Inversión al costo</div><div class="v" id="cI">—</div><div class="d" id="cID"></div></div>
+  <div class="cifra"><div class="t">Paso 2 hecho</div><div class="v" id="cH">0 de 11</div><div class="d">De qué colores y tallas comprar cada categoría</div></div>
+</div>
+<div class="card scroll-x"><table><thead><tr><th>Categoría</th><th class="n">Hay hoy</th><th class="n">Comprar</th><th class="n">Inversión</th><th>① Cuánto</th><th>② De qué colores y tallas</th></tr></thead><tbody id="filas"></tbody></table></div>
+<div class="nota" style="margin-top:14px">Toca <b>Polos</b>, <b>Camisas y Blusas</b> o cualquier fila: se abre su hoja con los dos pasos. En el paso 2, toca un color para elegir sus tallas.</div>
+
+<div class="velo" id="velo"><div class="hoja ancha" id="hoja" role="dialog" aria-modal="true"></div></div>
+
+<script src="app.js?v=13"></script>
+<script>
+const { $, $$, nES, sES, s2, cfg, guardar, leer, CAMP, DIAS_ERP } = PC;
+let vista = leer("pc.v3b", "ac"), mad = leer("pc.mad", "hoy"), hechos = leer("pc.hechos", {}), ed3 = leer("pc.ed3", {});
+let sel = null, paso = 2, colorSel = null, avTot = null, tAv = null;
+let edCol = {}, edTal = {}, modoTal = {};      // por categoría; viven solo mientras la hoja está abierta
+const MAD = { hoy: { f: 1, dias: 26, n: 1 }, ene: { f: 3.4, dias: 90, n: 2 }, anio: { f: 11, dias: 365, n: 3 } };
+const COL = [["Negro", "#1f1f1d"], ["Blanco", "#f4f1ea"], ["Beige / arena", "#d9c8a9"], ["Azul / denim", "#3f5f86"], ["Rojo / vino", "#8e2f2f"], ["Verde", "#5d7a52"], ["Rosa", "#d89aa3"], ["Gris", "#8b8b87"]];
+const S = [.26, .18, .15, .12, .09, .08, .07, .05], H = [.12, .22, .10, .18, .12, .08, .06, .12];
+const hash = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
+const rot = (a, k) => a.map((_, i) => a[(i + k) % a.length]);
+const K = 10;                                   // el mismo n/(n+10) de la curva de tallas (K_CURVA)
+const TALLAS = ["XS", "S", "M", "L", "XL"], CURVA = [.08, .28, .32, .22, .10];
+const P = () => PC.planActual(ed3);
+const baseTotal = (id) => PC.planActual().filas.find((x) => x.id === id).comprar;
+
+function rep(total, pesos) {
+  const sum = pesos.reduce((a, b) => a + b, 0); if (sum <= 0) return pesos.map(() => 0);
+  const raw = pesos.map((p) => (p / sum) * total), base = raw.map(Math.floor); let r = total - base.reduce((a, b) => a + b, 0);
+  raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (r-- > 0) base[i]++; });
+  return base;
+}
+function datos(f) {
+  const k = hash(f.id) % 8, s = rot(S, k), h = rot(H, (k + 3) % 8), m = MAD[mad];
+  const vend = rep(f.v, s).map((x) => Math.round(x * m.f)), hay = rep(f.hay, h), viene = rep(f.viene, h), N = vend.reduce((a, b) => a + b, 0);
+  const raw = vend.map((n) => { const w = n / (n + K); return w * (N > 0 ? n / N : 0) + (1 - w) / 8; });   // peso de cada color: n/(n+K) hacia lo vendido, el resto parejo
+  const sr = raw.reduce((a, b) => a + b, 0), share = raw.map((x) => x / sr);
+  const need = share.map((sh, i) => Math.max(0, sh * f.objetivo - hay[i] - viene[i]));
+  const sugerido = rep(f.comprar, need.some((x) => x > 0) ? need : share);
+  return { vend, hay, viene, share, need, sugerido, conf: vend.map((n) => (n >= 30 ? "base" : n >= 10 ? "poco" : "sin")), sumaNec: Math.round(need.reduce((a, b) => a + b, 0)), alcanzan: vend.map((n, i) => (n > 0 ? Math.round(((hay[i] + viene[i]) / n) * m.dias) : null)) };
+}
+const CONF = { base: ["Con base", "verde"], poco: ["Poco dato", "ambar"], sin: ["Sin dato: parejo", "taupe"] };
+const cantColor = (f, d) => d.sugerido.map((s, i) => (edCol[f.id] && edCol[f.id][i] !== undefined ? edCol[f.id][i] : s));
+function tallasDe(f, i, q) {
+  const modo = (modoTal[f.id] || {})[i] || "prop";
+  if (modo === "mano" && edTal[f.id] && edTal[f.id][i]) return edTal[f.id][i];
+  return rep(q, modo === "parejo" ? [1, 1, 1, 1, 1] : CURVA);
+}
+
+function tabla() {
+  const p = P(); $("#cP").textContent = nES(p.prendas); $("#cI").textContent = sES(p.total);
+  const pasa = p.total - PC.tope(); $("#cID").textContent = pasa > 0 ? `Te pasas ${sES(pasa)} del tope` : `Te quedan ${sES(-pasa)} del tope`;
+  $("#cH").textContent = Object.keys(hechos).length + " de " + p.filas.length;
+  $("#filas").innerHTML = p.filas.map((f) => `<tr class="clic" data-id="${f.id}"><td class="cat"><b>${f.n}</b><small>Vendiste ${nES(f.v)} en los ${DIAS_ERP} días que lleva el ERP</small></td><td class="n">${nES(f.hay + f.viene)}</td><td class="n">${f.comprar ? nES(f.comprar) : "—"}${ed3[f.id] !== undefined ? ' <span class="chip sp ambar">cambiado</span>' : ""}</td><td class="n">${f.inversion ? sES(f.inversion) : "—"}</td><td><span class="chip verde">Hecho</span></td><td>${f.comprar === 0 ? '<span class="chip sp taupe">No hace falta: ya hay de sobra</span>' : hechos[f.id] ? '<span class="chip verde">Hecho</span>' : '<span class="chip ambar">Por hacer</span>'}</td></tr>`).join("");
+  $$("#filas tr").forEach((tr) => (tr.onclick = () => abrir(tr.dataset.id)));
+}
+function abrir(id) { sel = id; paso = 2; colorSel = null; edCol = {}; edTal = {}; modoTal = {}; avTot = null; hoja(); $("#velo").classList.add("on"); }
+const cerrar = () => { clearTimeout(tAv); avTot = null; $("#velo").classList.remove("on"); tabla(); };
+
+function cambiarTotal(f, nuevo) {
+  const antes = f.comprar, id = f.id; nuevo = Math.max(0, Math.round(nuevo));
+  if (nuevo === antes) return;
+  if (nuevo === baseTotal(id)) delete ed3[id]; else ed3[id] = nuevo;
+  guardar("pc.ed3", ed3); edCol[id] = {}; delete modoTal[id]; delete edTal[id];
+  const g = P(), f2 = g.filas.find((x) => x.id === id), di = (nuevo - antes) * f.costo;
+  avTot = `Cambiaste el total de ${f.n} de <b>${nES(antes)}</b> a <b>${nES(nuevo)}</b>. También cambia en el paso 1: la inversión ${di >= 0 ? "sube" : "baja"} <b>${sES(Math.abs(di))}</b> y el plan completo queda en ${sES(g.total)} (tu tope: ${sES(PC.tope())}).`;
+  clearTimeout(tAv); tAv = setTimeout(() => { avTot = null; hoja(); }, 9000);
+  hoja(); tabla();
+}
+function ctlTotal(f) {
+  const bt = baseTotal(f.id);
+  return `<div class="totctl"><span><b>Comprar en total</b> <span class="mini" style="margin:0">(es el del paso 1)</span></span>
+    <span class="paso"><button data-tot="-10" aria-label="10 prendas menos en total" title="De 10 en 10; también puedes escribir el número">−</button><input id="totIn" value="${f.comprar}" inputmode="numeric" aria-label="Comprar en total"><button data-tot="10" aria-label="10 prendas más en total" title="De 10 en 10; también puedes escribir el número">+</button></span>
+    ${bt !== f.comprar ? `<span class="chip ambar">antes ${nES(bt)}</span>` : ""}<span class="mini" style="margin:0">Cuesta <b style="color:var(--tinta)">${sES(f.comprar * f.costo)}</b></span></div>
+    <div id="avTot">${avTot ? `<div class="avT" role="status"><span>${avTot}</span><button type="button" id="xAv" aria-label="Cerrar el aviso">×</button></div>` : ""}</div>`;
+}
+
+function hoja() {
+  const f = P().filas.find((x) => x.id === sel), d = datos(f), m = MAD[mad], bt = baseTotal(f.id);
+  const q = cantColor(f, d), suma = q.reduce((a, b) => a + b, 0), falta = f.comprar - suma;
+  const exacto = `<div class="exacto"><span class="med" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i <= m.n ? "on" : ""}"></i>`).join("")}</span><div style="flex:1;min-width:220px"><b>${m.n === 1 ? "Los datos todavía no son exactos." : m.n === 2 ? "Los datos ya orientan, sin ser exactos." : "Datos con un año de campañas."}</b> ${m.n === 1 ? `El ERP lleva ${m.dias} de 90 días de ventas y ninguna campaña completa.` : m.n === 2 ? "Ya hay 90 días y Navidad 2026 medida." : "Las campañas ya se comparan año contra año."} Las cifras orientan: tú decides.</div><button class="btn ch sut" id="cuandoB">¿Cuándo mejora?</button></div>
+  <div class="cuando" id="cuando" hidden><div class="${m.n >= 1 ? "ya" : ""}"><b>Hoy</b>26 días de ventas. Se reparte por lo vendido, con cautela.</div><div class="${m.n >= 2 ? "ya" : ""}"><b>29 dic 2026</b>90 días de ventas: los colores con base se afirman.</div><div class="${m.n >= 2 ? "ya" : ""}"><b>Ene 2027</b>Navidad medida: primera campaña completa en el ERP.</div><div class="${m.n >= 3 ? "ya" : ""}"><b>Oct–dic 2027</b>Halloween y Navidad contra el año anterior: aquí sí hay probabilidad por campaña.</div></div>`;
+  const paso1 = `<div class="resp"><div><div class="t">Flojo</div><div class="v">${nES(f.flojo)}</div></div><div><div class="t">Normal</div><div class="v">${nES(f.normal)}</div></div><div><div class="t">Bueno</div><div class="v">${nES(f.bueno)}</div></div><div><div class="t">Hay hoy + viene</div><div class="v">${nES(f.hay + f.viene)}</div></div><div><div class="t">Comprar</div><div class="v">${nES(f.comprar)}</div></div><div><div class="t">Cuesta</div><div class="v">${sES(f.inversion)}</div></div></div>
+    <div class="nota">Así queda el paso 1. Vendiste <b>${nES(f.v)} en los ${DIAS_ERP} días que lleva el ERP</b> (hoy la pantalla dice «en 90 días»). ${bt !== f.comprar ? `Lo cambiaste en el paso 2: era <b>${nES(bt)}</b>. ` : ""}${f.comprar === 0 ? "Ya hay más de lo que conviene tener: no hace falta comprar." : "El paso 2 reparte esta compra entre colores y tallas."}</div>`;
+  let cuerpo = "";
+  if (paso === 2 && f.comprar > 0) cuerpo = ctlTotal(f) + exacto + (vista === "prenda" ? vPrenda(f) : colorSel === null ? vColores(f, d, q, suma, falta) : vTallas(f, d, q, suma, falta));
+  const sucio = ed3[f.id] !== undefined;
+  $("#hoja").innerHTML = `<button class="x" id="cerrar" aria-label="Cerrar">×</button><h2>Plan de ${f.n}</h2><p class="sub">${CAMP.nombre} · ${CAMP.dias} días</p>
+  <div class="pasos"><button class="hecho ${paso === 1 ? "on" : ""}" data-p="1"><span class="nn">✓</span><div><b>① Cuánto compro</b><small>Comprar ${nES(f.comprar)} · ${sES(f.inversion)}${sucio ? " · cambiado aquí" : ""}</small></div></button><button class="${paso === 2 ? "on" : ""} ${hechos[f.id] ? "hecho" : ""}" data-p="2"><span class="nn">${hechos[f.id] ? "✓" : "2"}</span><div><b>② De qué colores y tallas</b><small>${f.comprar === 0 ? "No hace falta" : hechos[f.id] ? "Guardado" : "Sigue aquí"}</small></div></button></div>
+  ${paso === 1 ? paso1 : f.comprar === 0 ? paso1 : cuerpo}
+  <div class="pie"><button class="btn" id="cancelar">Cancelar</button>${paso === 1 ? `<button class="btn pri" id="sig">Seguir: de qué colores y tallas →</button>` : `<button class="btn pri" id="guardarP" ${f.comprar > 0 && vista === "ac" && falta !== 0 ? "disabled" : ""}>Guardar el paso 2</button>`}</div>`;
+  ligar(f, d, q, suma);
+}
+
+function vColores(f, d, q, suma, falta) {
+  const filas = COL.map(([n, hex], i) => {
+    const [t, tono] = CONF[d.conf[i]], al = d.alcanzan[i], hechoT = (modoTal[f.id] || {})[i];
+    return `<tr class="clic" data-ci="${i}"><td><span class="sw-col" style="background:${hex}" data-color-dato></span><b>${n}</b></td><td class="n">${nES(d.vend[i])}<span class="alcanza"> · ${Math.round(d.share[i] * 100)} %</span></td><td class="n">${nES(d.hay[i] + d.viene[i])}<br><span class="alcanza ${al !== null && al < CAMP.dias ? "mal" : ""}">${al === null ? "—" : "alcanza " + al + " días"}</span></td><td class="n"><b>${nES(d.sugerido[i])}</b></td>
+      <td class="n"><span class="paso" data-no><button data-mas="${i}:-1" aria-label="Menos de ${n}">−</button><input data-edit="${i}" value="${q[i]}" inputmode="numeric" aria-label="Comprar de ${n}"><button data-mas="${i}:1" aria-label="Más de ${n}">+</button></span></td><td><span class="chip ${tono}">${t}</span></td><td class="n"><button class="btn ch" data-ci="${i}">Tallas${hechoT ? " ✓" : ""} ›</button></td></tr>`;
+  }).join("");
+  const pct = Math.min(100, (suma / Math.max(1, f.comprar)) * 100);
+  const mat = COL.map(([n, hex], i) => { const t = tallasDe(f, i, q[i]); return `<tr><td><span class="sw-col" style="background:${hex}" data-color-dato></span>${n}</td>${t.map((x) => `<td class="n"><span class="heat" style="background:color-mix(in srgb,var(--tinta) ${Math.min(60, Math.round((x / Math.max(1, Math.max(...q) * 0.35)) * 40))}%,transparent)">${x}</span></td>`).join("")}<td class="n"><b>${q[i]}</b></td></tr>`; }).join("");
+  const totT = TALLAS.map((_, j) => COL.reduce((a, _c, i) => a + tallasDe(f, i, q[i])[j], 0));
+  return `<div class="card scroll-x"><table><thead><tr><th>Familia de color</th><th class="n">Vendió · %</th><th class="n">Hay hoy</th><th class="n">El sistema propone</th><th class="n">Tú compras</th><th>Dato</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>
+  <div class="cuadre"><div style="min-width:220px"><b>Repartido ${nES(suma)} de ${nES(f.comprar)}</b><div class="barra"><i style="width:${pct}%;background:${falta === 0 ? "var(--verde)" : falta < 0 ? "var(--ambar)" : "var(--ambar)"}"></i></div></div>
+    ${falta === 0 ? `<span class="chip verde">Cuadra con el paso 1</span>` : falta > 0 ? `<span class="chip ambar">Te faltan ${nES(falta)} por repartir</span>` : `<span class="chip ambar">Te pasaste ${nES(-falta)}</span><button class="btn ch" id="subirTot">Subir el total a ${nES(suma)}</button>`}
+    <span style="flex:1"></span><button class="btn ch" id="parejo">Repartir parejo</button><button class="btn ch" id="propone">Usar lo que propone</button></div>
+  <p class="mini">Toca un color para elegir cuántas prendas de cada talla compras de ese color.</p>
+  <div class="titulo-sec" style="font-size:17px;margin-top:14px">Así queda por color y talla <small>lo que le pasas al proveedor o al Taller</small></div>
+  <div class="card scroll-x"><table><thead><tr><th>Color</th>${TALLAS.map((t) => `<th class="n">${t}</th>`).join("")}<th class="n">Total</th></tr></thead><tbody>${mat}<tr><td><b>Total</b></td>${totT.map((x) => `<td class="n"><b>${x}</b></td>`).join("")}<td class="n"><b>${suma}</b></td></tr></tbody></table></div>
+  <div class="prm" style="margin-top:12px"><div><b>Cómo lo calcula.</b> Cada color pesa lo que vendió, con cautela: con pocas ventas se apoya en un reparto parejo (el mismo peso n/(n+10) de la curva de tallas). Sobre lo que conviene tener (${nES(f.objetivo)}), resta lo que ya hay de ese color.</div>
+  <div>${d.sumaNec > f.comprar ? `<b>Ojo.</b> Si compraras justo lo que falta de cada color, serían <b>${nES(d.sumaNec)}</b>, no ${nES(f.comprar)}: hay colores con de sobra que no tapan la falta de otros. El sistema reparte las ${nES(f.comprar)} donde más falta.` : `Lo que falta de cada color suma ${nES(d.sumaNec)}: cabe en el paso 1.`}</div></div>`;
+}
+function vTallas(f, d, q, suma, falta) {
+  const i = colorSel, [n, hex] = COL[i], modo = (modoTal[f.id] || {})[i] || "prop", t = tallasDe(f, i, q[i]), st = t.reduce((a, b) => a + b, 0), ft = q[i] - st;
+  return `<div class="det"><button class="btn ch" id="volverC">‹ Colores</button>
+  <h3><span class="sw-col" style="background:${hex};width:18px;height:18px" data-color-dato></span>${n}: elegimos <b>${nES(q[i])}</b> prendas para este color</h3>
+  <div class="sel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="campo" style="margin:0">Prendas de este color</span><span class="paso"><button data-mas="${i}:-1" aria-label="Menos">−</button><input data-edit="${i}" value="${q[i]}" inputmode="numeric" aria-label="Prendas de ${n}"><button data-mas="${i}:1" aria-label="Más">+</button></span>
+    ${falta < 0 ? `<span class="chip ambar">Con esto te pasas ${nES(-falta)} del total</span><button class="btn ch" id="subirTot">Subir el total a ${nES(suma)}</button>` : falta > 0 ? `<span class="chip sp taupe">Quedan ${nES(falta)} por repartir en otros colores</span>` : ""}</div>
+  <div style="margin-top:12px" class="seg" id="modos"><button type="button" class="${modo === "parejo" ? "on" : ""}" data-m="parejo">Repartir parejo</button><button type="button" class="${modo === "prop" ? "on" : ""}" data-m="prop">Usar lo que propone</button><button type="button" class="${modo === "mano" ? "on" : ""}" data-m="mano">A mano</button></div>
+  <div class="tg">${TALLAS.map((tl, j) => `<div><div class="t">${tl}</div><span class="paso"><button data-tm="${j}:-1" aria-label="Menos ${tl}">−</button><input data-tal="${j}" value="${t[j]}" inputmode="numeric" aria-label="Prendas ${tl}"><button data-tm="${j}:1" aria-label="Más ${tl}">+</button></span><div class="pct">${q[i] ? Math.round((t[j] / q[i]) * 100) : 0} %</div></div>`).join("")}</div>
+  <span class="chip verde">Las tallas suman las ${nES(q[i])} de ${n}</span>
+  <p class="mini">Si sumas o quitas prendas en una talla, cambian las prendas de este color. «Lo que propone» usa la curva de tallas del paso 1 (XS ${Math.round(CURVA[0] * 100)} · S ${Math.round(CURVA[1] * 100)} · M ${Math.round(CURVA[2] * 100)} · L ${Math.round(CURVA[3] * 100)} · XL ${Math.round(CURVA[4] * 100)} %). Con poco dato, es la misma para todos los colores.</p>
+  <div class="pie" style="margin-top:8px;justify-content:flex-start"><button class="btn" id="listoC">Listo con ${n}</button></div></div>`;
+}
+function vPrenda(f) {
+  const nom = ["básico", "manga corta", "cuello V", "oversize", "estampado", "rayado", "con botones", "ribete", "de lino", "cropped", "con bolsillo", "acanalado"], tal = [9, 8, 6, 6, 5, 4, 4, 3, 3, 2, 2, 2];
+  const col = rot(COL, hash(f.id) % 8);
+  const filas = nom.map((n, i) => { const vend = Math.max(1, Math.round(tal[i] * (f.v / 366))), hay = Math.max(0, Math.round((f.hay / 35) * (0.4 + ((i * 7) % 5) / 4))); return { n: `${f.n.replace(/s$/, "")} ${n}`, c: col[i % 8], vend, hay }; });
+  const uno = Math.round(f.v * 0.07);
+  return `<div class="aviso info"><span class="ic">${PC.I.info}</span><div><b>Por qué aquí no hay cantidades por prenda</b><span class="d">En CAYLA los modelos no se repiten: una prenda nueva vende 1 o 2 en su vida en una tienda. De las ${nES(f.v)} que vendió ${f.n}, la mayoría fueron prendas con <b>una sola venta</b>. Lo que sí se repite es el color y la talla.</span></div></div>
+  <div class="titulo-sec">Las que más vendieron <small>solo para decidir si repetir un lote, no cuánto comprar</small></div>
+  <div class="card scroll-x"><table><thead><tr><th>Prenda</th><th>Color</th><th class="n">Vendió</th><th class="n">Hay hoy</th><th>Lectura</th><th></th></tr></thead><tbody>${filas.map((x) => `<tr><td class="cat"><b>${x.n}</b></td><td><span class="sw-col" style="background:${x.c[1]}" data-color-dato></span>${x.c[0]}</td><td class="n">${x.vend}</td><td class="n">${x.hay}</td><td>${x.vend >= 5 && x.hay < x.vend * 2 ? '<span class="chip verde">Candidata a repetir</span>' : x.vend >= 5 ? '<span class="chip sp taupe">Se vende, aún hay</span>' : '<span class="chip ambar">Pocas ventas: no alcanza</span>'}</td><td class="n">${x.vend >= 5 && x.hay < x.vend * 2 ? '<button class="btn ch">Repetir lote…</button>' : ""}</td></tr>`).join("")}</tbody></table></div>
+  <p class="mini">Además hay ${nES(uno)} prendas de ${f.n} con 1 sola venta cada una: ninguna se puede «predecir».</p>`;
+}
+
+function ligar(f, d, q, suma) {
+  $("#cerrar").onclick = $("#cancelar").onclick = cerrar;
+  $$(".pasos button").forEach((b) => (b.onclick = () => { paso = Number(b.dataset.p); hoja(); }));
+  if ($("#sig")) $("#sig").onclick = () => { paso = 2; hoja(); };
+  if ($("#cuandoB")) $("#cuandoB").onclick = () => { $("#cuando").hidden = !$("#cuando").hidden; };
+  if ($("#xAv")) $("#xAv").onclick = () => { clearTimeout(tAv); avTot = null; hoja(); };
+  $$("[data-tot]").forEach((b) => (b.onclick = () => cambiarTotal(f, f.comprar + Number(b.dataset.tot))));
+  if ($("#totIn")) $("#totIn").onchange = (e) => cambiarTotal(f, Number(e.target.value) || 0);
+  if ($("#subirTot")) $("#subirTot").onclick = () => cambiarTotal(f, suma);
+  // cantidad por color
+  const setQ = (i, v) => { edCol[f.id] = { ...(edCol[f.id] || {}), [i]: Math.max(0, Math.round(v)) }; (modoTal[f.id] = modoTal[f.id] || {})[i] = (modoTal[f.id][i] === "parejo" ? "parejo" : "prop"); hoja(); };
+  $$("[data-mas]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const [i, dl] = b.dataset.mas.split(":").map(Number); setQ(i, q[i] + dl); }));
+  $$("[data-edit]").forEach((x) => { x.onclick = (e) => e.stopPropagation(); x.onchange = () => setQ(Number(x.dataset.edit), Number(x.value) || 0); });
+  $$("[data-no]").forEach((x) => (x.onclick = (e) => e.stopPropagation()));
+  $$("tr[data-ci]").forEach((tr) => (tr.onclick = () => { colorSel = Number(tr.dataset.ci); hoja(); }));
+  $$("button[data-ci]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); colorSel = Number(b.dataset.ci); hoja(); }));
+  if ($("#parejo")) $("#parejo").onclick = () => { edCol[f.id] = Object.fromEntries(rep(f.comprar, Array(8).fill(1)).map((x, i) => [i, x])); hoja(); };
+  if ($("#propone")) $("#propone").onclick = () => { edCol[f.id] = {}; hoja(); };
+  // tallas de un color
+  if ($("#volverC") || $("#listoC")) { const v = () => { colorSel = null; hoja(); }; if ($("#volverC")) $("#volverC").onclick = v; if ($("#listoC")) $("#listoC").onclick = v; }
+  $$("#modos button").forEach((b) => (b.onclick = () => { (modoTal[f.id] = modoTal[f.id] || {})[colorSel] = b.dataset.m; if (b.dataset.m === "mano") { edTal[f.id] = edTal[f.id] || {}; edTal[f.id][colorSel] = tallasDe(f, colorSel, q[colorSel]).slice(); } hoja(); }));
+  // Las tallas SON el color: lo que sumas a una talla sube las prendas de este color (y, si ya no caben, el aviso de «Subir el total»).
+  const setT = (j, v) => { const arr = tallasDe(f, colorSel, q[colorSel]).slice(); arr[j] = Math.max(0, Math.round(v)); (modoTal[f.id] = modoTal[f.id] || {})[colorSel] = "mano"; edTal[f.id] = edTal[f.id] || {}; edTal[f.id][colorSel] = arr; edCol[f.id] = { ...(edCol[f.id] || {}), [colorSel]: arr.reduce((a, b) => a + b, 0) }; hoja(); };
+  $$("[data-tm]").forEach((b) => (b.onclick = () => { const [j, dl] = b.dataset.tm.split(":").map(Number); setT(j, tallasDe(f, colorSel, q[colorSel])[j] + dl); }));
+  $$("[data-tal]").forEach((x) => (x.onchange = () => setT(Number(x.dataset.tal), Number(x.value) || 0)));
+  if ($("#guardarP")) $("#guardarP").onclick = () => {
+    let msg = "Paso 2 guardado";
+    if (ed3[f.id] !== undefined) { const a = PC.actualV(); const v = PC.nuevaVersion({ lambda: a.lambda, ed: { ...a.ed, [f.id]: ed3[f.id] }, tope: a.tope, nota: `Paso 2 de ${f.n}: total ${nES(baseTotal(f.id))} → ${nES(ed3[f.id])}` }); delete ed3[f.id]; guardar("pc.ed3", ed3); msg = `Paso 2 guardado · quedó como la versión ${v.v} en Presupuesto`; }
+    hechos[f.id] = true; guardar("pc.hechos", hechos); cerrar(); toast(msg);
+  };
+}
+function toast(t) { const e = document.createElement("div"); e.style.cssText = "position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:10px 18px;border-radius:99px;font-size:13px;z-index:80;max-width:90vw"; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 3200); }
+
+function controles() {
+  const sel2 = (id, op, actual, fn) => { $(id).innerHTML = op.map(([k, t]) => `<button type="button" class="${k === actual ? "on" : ""}" data-k="${k}">${t}</button>`).join(""); $$(id + " button").forEach((b) => (b.onclick = () => fn(b.dataset.k))); };
+  sel2("#vista", [["ac", "A + C · Colores y tallas"], ["prenda", "B · Prendas (solo mirar)"]], vista, (k) => { vista = k; guardar("pc.v3b", k); controles(); if ($("#velo").classList.contains("on")) hoja(); });
+  sel2("#mad", [["hoy", "Hoy (26 días)"], ["ene", "Ene 2027"], ["anio", "Dic 2027"]], mad, (k) => { mad = k; guardar("pc.mad", k); controles(); if ($("#velo").classList.contains("on")) hoja(); });
+  $("#vNota").innerHTML = vista === "ac" ? "<b>Lo que elegiste.</b> Colores con el sistema que propone, parejo o a mano; al tocar un color, sus tallas; y el total editable con un aviso chico." : "Solo para ver qué prendas se vendieron: con 1 o 2 ventas por prenda no puede decir cuánto comprar.";
+  $("#mNota").textContent = { hoy: "Lo que hay hoy: 26 días de ventas y 0 campañas completas.", ene: "Cuando haya 90 días y Navidad 2026 medida: los colores con más ventas se afirman.", anio: "Con un año: se compara Halloween y Navidad 2027 contra 2026." }[mad];
+  $("#reset").onclick = () => { ["pc.ed3", "pc.hechos", "pc.versiones", "pc.lambda", "pc.tope"].forEach((k) => localStorage.removeItem(k)); location.reload(); };
+}
+PC.chrome({ activa: "plan" }); controles(); tabla();
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#velo").classList.contains("on")) cerrar(); });
+</script>
+</body>
+</html>

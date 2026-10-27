@@ -4,6 +4,7 @@ import { getResumenCompras } from "@/lib/compras";
 import { RPC_PLATA_POR_CONFIRMAR, leerPlataPorConfirmar } from "@/lib/mi-plata-reglas";
 import { RPC_REVISAR_COMPRAS, leerRevisarCompras } from "@/lib/revisar-compras-reglas";
 import { totalPorRevisar, type ConteosDeCompras } from "@/lib/compras-pestanas-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // Lo que cuentan los contadores de las pestañas de «Historial de compras» (ADR-0504) cuando la pantalla que se está viendo no lo leyó por su
 // cuenta. Si una lectura falla —la base caída, o la web publicada antes que su migración—, el contador se calla (`null`): nunca un 0 inventado
@@ -23,7 +24,8 @@ export async function contarPorRevisar(): Promise<number | null> {
     const datos = leerRevisarCompras(revisar.data);
     if (!datos) return null;
     return totalPorRevisar({ plata: leerPlataPorConfirmar(plata.data).length, papeles: datos.papeles.length, gastos: datos.gastos.length, cierres: datos.cierres.length });
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return null;
   }
 }
