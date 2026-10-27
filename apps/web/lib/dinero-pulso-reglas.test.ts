@@ -52,13 +52,25 @@ const PROY: Proyeccion = {
 };
 
 describe("alcanzaPulso", () => {
-  it("la primera semana bajo el mínimo, y qué pasa si depositas lo guardado", () => {
+  it("la primera semana bajo el mínimo, y lo guardado ya cuenta en ese saldo (depositar no lo aumenta)", () => {
     const a = alcanzaPulso(PROY, 10100);
     expect(a.estado).toBe("baja");
     if (a.estado !== "baja") return;
     expect(a.frase).toMatch(/^La semana .* bajas a S\/ 11,280, bajo tu mínimo de S\/ 15,000\.$/);
-    expect(a.siDepositas).toMatchObject({ monto: 10100, saldo: 21380, alcanza: true });
-    expect(a.siDepositas!.frase).toContain("por encima de tu mínimo");
+    // El saldo de la proyección (`fn_flujo_disponible`) ya incluye las cajas fuertes y lo del líder: sumarles lo guardado otra vez
+    // prometía S/ 21,380 y la semana sigue en S/ 11,280 (2026-10-27, DIN-01 del examen de Finanzas).
+    expect(a.guardadoYaCuenta).toMatchObject({ monto: 10100 });
+    expect(a.guardadoYaCuenta!.frase).toContain("ya cuenta");
+    expect(a.guardadoYaCuenta!.frase).toContain("S/ 10,100");
+    expect(a.guardadoYaCuenta!.frase).not.toContain("S/ 21,380");
+    expect(a.guardadoYaCuenta!.frase).not.toContain("quedas en");
+    expect("siDepositas" in a).toBe(false);
+  });
+  it("sin nada guardado, o en «bien», no dice nada de depositar", () => {
+    const sinGuardado = alcanzaPulso(PROY, 0);
+    expect(sinGuardado.estado === "baja" && sinGuardado.guardadoYaCuenta).toBeNull();
+    const bien = alcanzaPulso({ ...PROY, semanas: PROY.semanas.map((s) => ({ ...s, saldo: s.saldo + 10000, bajoMinimo: false })) }, 10100);
+    expect(bien.estado === "bien" && bien.guardadoYaCuenta).toBeNull();
   });
   it("si nada baja del mínimo, lo dice con la semana más baja", () => {
     const a = alcanzaPulso({ ...PROY, semanas: PROY.semanas.map((s) => ({ ...s, saldo: s.saldo + 10000, bajoMinimo: false })) }, 10100);

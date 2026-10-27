@@ -213,7 +213,9 @@ function iconosPorModulo(nodos: readonly Nodo[], acumulado = new Map<ClaveModulo
 const DEL_MENU = iconosPorModulo(ARBOL);
 
 /** El ícono del menú de este módulo: el de su fila (la primera, si tiene varias con el mismo dibujo) o el que se declaró a mano.
- *  `null` si el módulo no tiene ninguno en el menú. */
+ *  `null` si el módulo no tiene ninguno en el menú.
+ *  @internal Roles ya no dibuja un ícono por módulo (maqueta del 2026-10-27); lo cruzan las pruebas de `menu-iconos.test.ts` (el ícono de cada acceso del Inicio
+ *  es el de su fila del menú). */
 export function iconoDeModulo(clave: ClaveModulo): ClaveIcono | null {
   if (clave in APARTE) return APARTE[clave] ?? null;
   return DEL_MENU.get(clave) ?? null;

@@ -85,3 +85,11 @@ export function letrasDelTitulo(texto: string): { palabra: string; letras: { c: 
     .filter(Boolean)
     .map((palabra) => ({ palabra, letras: [...palabra].map((c) => ({ c, n: n++ })) }));
 }
+
+/**
+ * La clave del escenario del desfile: cambia cuando cambian las prendas que salen (o su orden), y entonces el escenario arranca de cero. Promete que dos
+ * visitas a la misma tienda dan la misma clave (no se reinicia solo) y que el esqueleto no se confunde con la escena de verdad.
+ */
+export function claveDelEscenario(modo: string, enEspera: boolean, piezas: readonly { id: string }[]): string {
+  return `${modo}:${enEspera ? "espera" : piezas.map((p) => p.id).join("|")}`;
+}
