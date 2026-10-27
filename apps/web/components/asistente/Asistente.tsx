@@ -15,6 +15,8 @@ import { esAtajoDelAsistente } from "@/lib/asistente/atajo";
 import { preseleccionar, type Sugerencia } from "@/lib/asistente/preseleccion";
 import { direccionDelTramo, esDeEstaPantalla, type Tramo } from "@/lib/asistente/recorrido";
 import { LARGO_MAXIMO_PREGUNTA, type ResultadoAsistente } from "@/lib/asistente/respuesta";
+import { rutaDe, type PasoTarea } from "@/lib/asistente/tarea";
+import { empezarTarea } from "@/components/asistente/Acompanante";
 import { GUIAS } from "@/lib/guias/registro";
 import { guiaDeRuta } from "@/lib/guias/reglas";
 
@@ -83,6 +85,15 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     cerrar();
     if (s.href === null) setTimeout(abrirGuiaAqui, TRAS_CERRAR_MS);
     else router.push(`${s.href}${s.href.includes("?") ? "&" : "?"}demo=1`);
+  }
+
+  /** «Acompáñame»: la tarea paso a paso, que la persona hace con la barra de abajo (`Acompanante`). Si el primer paso es de otra pantalla, lleva ahí. */
+  function acompanar(tarea: readonly PasoTarea[], cerrar: () => void) {
+    const primero = tarea[0];
+    if (!primero) return;
+    empezarTarea(tarea);
+    cerrar();
+    if (rutaDe(primero.href) !== rutaDe(pathname)) router.push(primero.href);
   }
 
   /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0536, actividad 3). */
@@ -175,14 +186,35 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
               {vigente.resultado.tipo === "guia" ? (
                 <div className="rounded-xl border border-sand bg-papel p-4">
                   <p className="text-[15px] leading-snug text-tinta">{vigente.resultado.texto}</p>
-                  {pantallas.length > 1 ? <p className="mt-2 text-xs text-tinta/65">Pasa por {pantallas.join(" → ")}.</p> : null}
+                  {vigente.resultado.tarea ? (
+                    // Una tarea (Felipe 2026-10-27): los pasos cortos a la vista, y «Acompáñame» los enciende uno a uno mientras la persona los hace.
+                    <ol className="mt-3 space-y-1.5">
+                      {vigente.resultado.tarea.map((p, k) => (
+                        <li key={`${p.guiaId}-${p.pasoId}-${k}`} className="flex items-baseline gap-2.5 text-[15px] text-tinta">
+                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sand text-[11px] tabular-nums text-tinta">{k + 1}</span>
+                          {p.orden}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : pantallas.length > 1 ? (
+                    <p className="mt-2 text-xs text-tinta/65">Pasa por {pantallas.join(" → ")}.</p>
+                  ) : null}
                   <div className="mt-3 flex justify-end">
-                    <Boton peso="primario" onClick={() => recorrer(tramos, cerrar)}>
-                      <span className="inline-flex items-center gap-2">
-                        <PlayCircle className="h-4 w-4" aria-hidden />
-                        Muéstrame
-                      </span>
-                    </Boton>
+                    {vigente.resultado.tarea ? (
+                      <Boton peso="primario" onClick={() => acompanar(vigente.resultado.tipo === "guia" ? (vigente.resultado.tarea ?? []) : [], cerrar)}>
+                        <span className="inline-flex items-center gap-2">
+                          <PlayCircle className="h-4 w-4" aria-hidden />
+                          Acompáñame
+                        </span>
+                      </Boton>
+                    ) : (
+                      <Boton peso="primario" onClick={() => recorrer(tramos, cerrar)}>
+                        <span className="inline-flex items-center gap-2">
+                          <PlayCircle className="h-4 w-4" aria-hidden />
+                          Muéstrame
+                        </span>
+                      </Boton>
+                    )}
                   </div>
                 </div>
               ) : vigente.resultado.tipo === "regla" || vigente.resultado.tipo === "error" ? (

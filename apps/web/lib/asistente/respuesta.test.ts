@@ -22,7 +22,7 @@ const sugerencias: Sugerencia[] = [
 ];
 const AQUI = "/compras/9f3a";
 const tramo = (guia_id: string, paso_id = "", rellenar = "") => ({ guia_id, paso_id, rellenar });
-const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], ...r });
+const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], pasos: [], ...r });
 const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {

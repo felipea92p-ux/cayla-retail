@@ -153,7 +153,9 @@ export async function POST(request: Request) {
       max_tokens: 2048,
       // Las instrucciones son siempre las mismas: la API las guarda en su caché y cobra la décima parte al releerlas.
       system: [{ type: "text", text: INSTRUCCIONES, cache_control: { type: "ephemeral" } }],
-      // Elegir de una lista corta no pide pensar mucho, y la persona está esperando: el esfuerzo más bajo.
+      // Elegir de una lista corta no pide pensar, y la persona está esperando: sin pensamiento y con el esfuerzo más bajo. Con el
+      // pensamiento prendido (el de fábrica en Haiku 5.5), una tarea de 6 pasos escribía ~1.500 tokens y tardaba 7,5 s, al borde de los 8.
+      thinking: { type: "disabled" },
       output_config: { format: zodOutputFormat(RespuestaDeLaIA), effort: "low" },
       messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas, conocimiento) }],
     });

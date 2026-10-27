@@ -236,7 +236,47 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   página), y las de la cabecera con su módulo (`pantallasDelAsistente`). Con eso, 4 equivalencias de tienda y 3 ajustes a las instrucciones,
   pasó de 35 a **38 de 40**.
 
+## Acompañar una tarea (Felipe 2026-10-27, segunda vuelta)
+
+**El problema.** Felipe probó el asistente y pidió más que una demo larga: «Quiero vender un short mom color rojo talla S» tiene que llevarte
+paso a paso hasta los métodos de pago y la boleta; las guías tenían «mucho texto pequeño que nadie lee»; y la pregunta llega con faltas
+(«kiero bender»). Una respuesta que te deja en el botón de Cobrar sin decir qué sigue no ayuda en una venta de verdad.
+
+**Lo que eligió Felipe** (dos preguntas, 2026-10-27): **la persona hace los clics y CAYLA la guía** (no un piloto que vende solo), con **una
+barra fija abajo, como un GPS**.
+
+**Cómo quedó.**
+- **La IA arma la tarea** (`pasos` en la salida estructurada): hasta 10 pasos en orden, cada uno un paso de una guía con su `data-guia`, con una
+  orden de 2 a 8 palabras con los datos de la persona («Toca Negro · talla M en la lista»). El servidor no le cree (`lib/asistente/tarea.ts`,
+  `revisarTarea`): solo pasos de las guías que vio, con ancla, sin repetir, y menos de 2 pasos no es tarea (queda el recorrido de siempre).
+- **Lo fijo no se le pide a la IA, se completa en el servidor** (`completarTarea`, `CIERRES`): una venta siempre termina en «Revisa y
+  confirma tú el cobro», pasando por quién atiende, Cobrar, cómo paga y Boleta o Factura, cada uno insertado en su lugar aunque la IA lo
+  saltara. Y en Vender, si la tarea busca, se elige **en la lista del buscador** (cada fila es un color y una talla): los pasos de la tarjeta
+  o de su hoja de tallas no aparecen por ese camino y la guía se quedaba esperando. El color y la talla salen de la pregunta tal como los
+  escribió la persona (`ordenDeLaLista`), porque la IA a veces dejaba uno afuera. Para el celular se agregan la lupa (el buscador vive tras ella)
+  y «Ver ticket» (el ticket vive en la barra de abajo).
+- **El Acompañante** (`components/asistente/Acompanante.tsx`, montado una vez en `AppShell` con el asistente encendido): un anillo que respira
+  alrededor de la pieza **sin taparla** (se toca a través), y la barra de abajo (la Isla, `BarraDeAbajo`, dentro de `DismissableLayer.Branch`
+  para que tocarla no cierre la hoja de cobro) con la orden en letra de 19 px, «¿Por qué?» (el texto de la guía, que ya existe y está vigilado),
+  «Saltar» y la ×. Pasa solo: cuando la persona toca un control de la pieza; cuando aparece o se enciende una pieza de más adelante (la hoja de
+  cobro al abrirse, Cobrar al entrar la prenda); cuando un campo tiene lo escrito 1,6 s; o cuando la pieza de este paso no existe en esta
+  pantalla y una de más adelante ya se puede usar (la lupa en escritorio, «quién atiende» en una cuenta personal). La barra sube arriba si la
+  pieza está en el borde de abajo. La tarea viaja en la pestaña (`sessionStorage`, 20 min), así sigue al cambiar de pantalla, con «Llévame».
+- **Nunca hace un clic ni guarda.** Lo único que escribe es el nombre de la prenda en el buscador `rellenable` (la lista blanca de la
+  actividad 6). El último paso, confirmar el cobro, lo confirma la persona.
+- **Faltas de ortografía** (`preseleccion.ts`): la búsqueda local compara también por cómo suena (b/v, c/s/z, k/qu, h muda, ll/y) y por
+  distancia de edición, con la mitad del peso de una coincidencia exacta; la IA recibe la pregunta tal cual y se le dice que la entienda.
+- **Sin pensamiento.** Con el pensamiento de fábrica de Haiku 5.5, una tarea de 6 pasos escribía ~1 500 tokens y tardaba 7,5 s, al borde del
+  tope de 8 s (fallaba una de cada dos). Con `thinking: {type: "disabled"}` (válido en Haiku 5.5 con esfuerzo `low`) salen ~450 tokens en ~5 s.
+
+**Verificado** en el ERP local con la cuenta de la terminal de Tienda Lima, a 1440 y a 375 px: «kiero bender una blusa emma color negro
+talla m, me paga con yape y quiere boleta» llega, tocando una sola cosa por paso, hasta «Revisa y confirma tú el cobro» con Yape y Boleta
+marcados (9 pasos en el celular, 7 en escritorio). Para encender Cobrar en local hubo que crear un momento la asistencia de Dynamic
+(`public.marcajes`, que la base local no tiene), y se quitó al terminar.
+
+**Lo que no está.** Los cierres fijos existen solo para Vender; las demás tareas (un cambio, un traslado) siguen lo que propone la IA, revisado.
+
 ## Producción
 
-Nada todavía. Cuando toque: las migraciones esperan el OK de Felipe (cambio de esquema en producción), la `ANTHROPIC_API_KEY` la pone Felipe en
-Vercel, y la sede del piloto la elige Felipe.
+Las cuatro migraciones del asistente se aplicaron el 2026-10-27 (ver el backlog). La `ANTHROPIC_API_KEY` está en Vercel y la sede del piloto
+la elige Felipe en Configuración ▸ Tiendas y caja. La segunda vuelta (Acompañar) no tiene migración.

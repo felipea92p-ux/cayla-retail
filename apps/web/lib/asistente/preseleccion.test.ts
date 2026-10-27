@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
 import { moduloDeRuta } from "../actividad-reglas";
-import { PIDEN_OTRO_MODULO, preseleccionar } from "./preseleccion";
+import { PIDEN_OTRO_MODULO, preseleccionar, raices } from "./preseleccion";
 
 const guia = (ruta: string, titulo: string, resumen: string, pasos: [string, string][] = []): Guia => ({
   id: ruta.slice(1).replaceAll("/", ".") || "inicio",
@@ -97,6 +97,66 @@ describe("con las guías de verdad", () => {
   ])("«%s» → %s", (pregunta, ruta) => {
     const top = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: menu, rutaActual: "/" }).map((s) => s.guia.ruta);
     expect(top).toContain(ruta);
+  });
+});
+
+// Las faltas de ortografía de tienda (se escribe rápido, en el celular, como suena): la búsqueda local tiene que encontrar la pantalla
+// igual, porque si no la deja entre las primeras, la IA nunca la ve.
+describe("con faltas de ortografía", () => {
+  it("lo que suena igual queda en la misma raíz", () => {
+    const igual = (a: string, b: string) => expect([...raices(a)], `${a} / ${b}`).toEqual([...raices(b)]);
+    igual("caaja", "caja");
+    igual("caha", "caja");
+    igual("bender", "vender");
+    igual("sierro", "cierro");
+    igual("taya", "talla");
+    igual("canbio", "cambio");
+    igual("debolucion", "devolución");
+    igual("trujiyo", "Trujillo");
+    igual("kiero", "quiero");
+  });
+
+  it("«kiero» y «aser» son palabras vacías, como «quiero» y «hacer»", () => {
+    expect([...raices("kiero aser")]).toEqual([]);
+  });
+
+  it("una letra de menos o cambiada de lugar se perdona en una raíz de 4 letras o más, a la mitad del peso", () => {
+    const APARTADOS = guia("/vender/apartados", "Apartados", "Guardar una prenda para un cliente.");
+    const [exacta] = preseleccionar({ pregunta: "apartar", guias: [APARTADOS], rutasDelMenu: ["/vender/apartados"], rutaActual: "/" });
+    const [falta] = preseleccionar({ pregunta: "apartr", guias: [APARTADOS], rutasDelMenu: ["/vender/apartados"], rutaActual: "/" });
+    const [vuelta] = preseleccionar({ pregunta: "aprtaar", guias: [APARTADOS], rutasDelMenu: ["/vender/apartados"], rutaActual: "/" });
+    expect(exacta?.puntos).toBe(5);
+    expect(falta?.puntos).toBe(2.5);
+    expect(vuelta?.guia.ruta).toBe("/vender/apartados");
+  });
+
+  it("una raíz de 3 letras no se perdona: «taler» no llega ni a «talla» ni a «taller»", () => {
+    expect(rutas("cambio de taya")).toEqual(["/cambios"]);
+    expect(rutas("taler")).toEqual([]);
+  });
+
+  it("los falsos amigos siguen separados: «compras» no trae Comprobantes, ni «talla» el taller", () => {
+    expect(rutas("compras")).not.toContain("/vender/comprobantes");
+    expect(rutas("comprobante")).not.toContain("/compras");
+    expect(rutas("talla")).not.toContain("/produccion");
+    expect(rutas("taller")).not.toContain("/cambios");
+  });
+
+  const menu = GUIAS.filter((g) => !/[[(]/.test(g.ruta)).map((g) => g.ruta);
+  it.each([
+    ["kiero bender un chort", "vender"],
+    ["como sierro la caha", "caja"],
+    ["aser un canbio de taya", "cambios"],
+    ["debolucion de plata", "devoluciones"],
+    ["mandar ropa a trujiyo", "inventario.traslados.nuevo"],
+    ["como apartr una prenda", "vender.apartados"],
+    ["registrar un prodcto nuebo", "productos.nuevo"],
+    ["conteo de imbentario", "inventario.conteo"],
+    ["yego mercaderia del probedor", "recibir"],
+    ["poner una prenda en liquidasion", "productos.liquidacion"],
+  ])("«%s» → %s", (pregunta, id) => {
+    const top = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: menu, rutaActual: "/", cuantas: 5 }).map((s) => s.guia.id);
+    expect(top).toContain(id);
   });
 });
 

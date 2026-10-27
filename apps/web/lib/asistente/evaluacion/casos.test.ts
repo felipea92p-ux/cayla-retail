@@ -29,8 +29,8 @@ const menuDelLider = (ubicacionTipo: "tienda" | "taller") =>
   });
 
 describe("la evaluación fija", () => {
-  it("son 40 casos, con cuentas de prueba que existen", () => {
-    expect(CASOS).toHaveLength(40);
+  it("son 50 casos, con cuentas de prueba que existen", () => {
+    expect(CASOS).toHaveLength(50);
     for (const c of CASOS) expect(CUENTAS).toContain(c.cuenta);
   });
 
