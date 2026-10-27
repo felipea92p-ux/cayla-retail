@@ -12,7 +12,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { EtiquetaAhora, MarcaCampo } from "@/components/alta-producto/guia";
 import { Balanza, BaldosaCategoria } from "./piezas";
-import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
@@ -29,7 +29,6 @@ import {
   prendaCreadaDeNueva,
   separarAnotada,
   textoPrendas,
-  totalSeparado,
   type ClaveLinea,
   type ConteosDelEnvio,
   type LineaParaContar,
@@ -42,12 +41,16 @@ import {
   agruparLineas,
   anotadasDelGrupo,
   anotadasPorSepararDelGrupo,
+  avisoDePrendasAgregadas,
   camposDelConteoPorGrupo,
   descripcionDelGrupo,
+  gruposSinIdentificar,
+  idCampoIdentificar,
   lineaDeLaPrenda,
   minimoDelGrupo,
   repartirSeparado,
   repartirTotal,
+  sinIdentificarDelGrupo,
   veredictoDelGrupo,
   type AnotadaDelGrupo,
   type GrupoDeLineas,
@@ -119,7 +122,7 @@ export function ContarEnvio({
   const [foco, setFoco] = useState<string | null>(primeraSinContar ?? iniciales[0]?.clave ?? null);
   const visibles = lineasALaVista(lineas, agregados, foco?.startsWith("extra:") ? (foco as ClaveLinea) : null);
   const grupos = agruparLineas(visibles);
-  const guia = useGuiaCampos(camposDelConteoPorGrupo(grupos), { enModal: false });
+  const guiaBase = useGuiaCampos(camposDelConteoPorGrupo(grupos), { enModal: false });
   const [hoja, setHoja] = useState<Hoja>(null);
   // Las observaciones de todo el envío (ADR-0507), leídas una vez; cada categoría muestra las suyas.
   const [observaciones, setObservaciones] = useState<readonly ObservacionDeEnvio[]>([]);
@@ -134,6 +137,18 @@ export function ContarEnvio({
   // Las categorías desplegadas en la lista de la izquierda (con las prendas que se anotaron al comprar).
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   const grupo = grupos.find((g) => g.clave === foco) ?? grupos[0] ?? null;
+  // «Falta: identificar las prendas de Faldas» desde otra categoría: primero se abre esa categoría y recién después se lleva a su «¿Qué … son?»
+  // (que solo existe para la que se está contando).
+  const guia: GuiaCampos = {
+    ...guiaBase,
+    ir: (id) => {
+      const deOtra = grupos.find((g) => idCampoIdentificar(g.clave) === id && g.clave !== grupo?.clave);
+      if (!deOtra) return guiaBase.ir(id);
+      setFoco(deOtra.clave);
+      requestAnimationFrame(() => requestAnimationFrame(() => guiaBase.ir(id)));
+    },
+  };
+  const faltanIdentificar = gruposSinIdentificar(grupos);
   const i = grupo ? grupos.indexOf(grupo) : -1;
   const siguiente = i >= 0 ? (grupos[i + 1] ?? null) : null;
   const anterior = i > 0 ? grupos[i - 1] : null;
@@ -171,14 +186,16 @@ export function ContarEnvio({
 
   /**
    * El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban (Felipe 2026-10-26), como si se hubiera elegido
-   * desde el buscador. Si con eso se separa más de lo que ya se había contado, lo contado sube y la pantalla lo dice: quien cuenta puede
-   * corregirlo. Con la categoría en 0 no avisa: no había número de nadie que pisar y el número grande se ve pasar de 0 a lo separado.
+   * desde el buscador. Si con eso se separa más de lo que ya se había contado, lo contado sube y la pantalla lo dice con el nombre de la
+   * prenda y cuántas se agregaron (Felipe 2026-10-27). Con la categoría en 0 no avisa: no había número de nadie que pisar y el número
+   * grande se ve pasar de 0 a lo separado.
    */
   function separarAnotadaDe(g: GrupoDeLineas, a: AnotadaDelGrupo) {
     setFoco(g.clave);
     const r = repartirSeparado(g, separarAnotada(g.separado, a.prenda, a.prenda.cantidad), g.contadas);
     aplicar(r);
-    if (g.contadas > 0 && r.contadas > g.contadas) avisar.aviso(`Pasaste más de las que contaste: el conteo sube de ${g.contadas} a ${r.contadas}. Si no es así, corrígelo en el número.`);
+    const texto = avisoDePrendasAgregadas(a.prenda.nombre, g.contadas, r.contadas);
+    if (texto) avisar.aviso(texto);
   }
 
   async function prendaCompleta(p: PrendaSeparada, l: LineaParaContar): Promise<PrendaRecepcion | null> {
@@ -254,20 +271,21 @@ export function ContarEnvio({
               const p = g.principal;
               const hayConteo = g.lineas.some((l) => l.conteo !== null);
               const contada = p.linea ? g.contado : g.contadas > 0;
-              const estado = contada ? "hecho" : grupo?.clave === g.clave ? "ahora" : "falta";
+              const sinIdent = sinIdentificarDelGrupo(g);
+              // Hecha solo con su número Y sus prendas identificadas (Felipe 2026-10-27): contada sin identificar sigue «por hacer».
+              const estado = contada && sinIdent === 0 ? "hecho" : grupo?.clave === g.clave ? "ahora" : "falta";
               const dif = g.dijeron != null ? g.contadas - g.dijeron : null;
-              // Separadas: las que ya se sabe qué prenda son (con o sin tallas) más las que ya entraron; sin separar: el resto de lo contado.
-              // Dice lo mismo que la insignia de «¿Qué … son?» («35 sin separar»): «para después» queda para el riel, que cuenta en
-              // prendas todo lo que no entra al stock (también lo separado sin tallas y lo nuevo).
-              const sep = hayConteo ? totalSeparado(g.separado) + g.enStock : 0;
-              const sinSep = hayConteo ? Math.max(0, g.contadas - sep) : 0;
+              // Identificadas: las que ya se sabe qué prenda son (con o sin tallas) más las que ya entraron; el resto de lo contado falta
+              // identificar. Dice lo mismo que la insignia de «¿Qué … son?» («Faltan 35 por identificar»): «para después» queda para el
+              // riel, que cuenta en prendas todo lo que no entra al stock (también lo identificado sin tallas y lo nuevo).
+              const ident = hayConteo ? g.contadas - sinIdent : 0;
               const sub = !hayConteo
                 ? [p.categoria ? marcaDeLinea(p).nombre : null, g.dijeron != null ? `dijeron ${g.dijeron}` : null, !p.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")
                 : g.contadas === 0
                   ? "no llegó nada"
-                  : sinSep === 0
-                    ? "todas separadas"
-                    : [sep > 0 ? `${sep} ${sep === 1 ? "separada" : "separadas"}` : null, `${sinSep} sin separar`].filter(Boolean).join(" · ");
+                  : sinIdent === 0
+                    ? "todas identificadas"
+                    : [ident > 0 ? `${ident} ${ident === 1 ? "identificada" : "identificadas"}` : null, `${sinIdent} por identificar`].filter(Boolean).join(" · ");
               // Las prendas exactas que se anotaron al comprar: la categoría se despliega para verlas y pasarlas a «¿Qué … son?» con el «+».
               const hayAnotadas = anotadasDelGrupo(g).length > 0;
               const abierta = hayAnotadas && abiertas.has(g.clave);
@@ -395,6 +413,7 @@ export function ContarEnvio({
                     categoria={grupo.principal.categoria}
                     marca={marcaDeLinea(grupo.principal)}
                     separado={grupo.separado}
+                    idCampo={idCampoIdentificar(grupo.clave)}
                     tope={Math.max(0, grupo.contadas - grupo.enStock)}
                     onSeparado={(s) => escribirSeparado(grupo, s)}
                     onTallas={(p) => void abrirTallas(grupo, p)}
@@ -411,7 +430,7 @@ export function ContarEnvio({
             )}
 
             <div className="space-y-3 border-t border-sand pt-4">
-              <PieGuia guia={guia} listo="Todas las categorías tienen su número." />
+              <PieGuia guia={guia} listo="Todas las categorías tienen su número y sus prendas identificadas." />
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
                   <span className="inline-flex items-center gap-1.5">
@@ -428,7 +447,14 @@ export function ContarEnvio({
                     </span>
                   </Boton>
                 ) : (
-                  <Boton type="button" peso="primario" onClick={onCerrar} disabled={visibles.length === 0} data-guia="recepcion.pasar-a-cerrar">
+                  <Boton
+                    type="button"
+                    peso="primario"
+                    onClick={onCerrar}
+                    disabled={visibles.length === 0 || faltanIdentificar.length > 0}
+                    title={faltanIdentificar.length > 0 ? `Falta identificar las prendas de ${faltanIdentificar.map((g) => g.principal.categoria?.nombre ?? "una categoría").join(", ")}` : undefined}
+                    data-guia="recepcion.pasar-a-cerrar"
+                  >
                     <span className="inline-flex items-center gap-1.5">
                       Pasar a cerrar
                       <ArrowRight aria-hidden className="h-4 w-4" />
@@ -623,7 +649,7 @@ function ContadorDeGrupo({
       </div>
 
       <p className="max-w-[600px] text-[14.5px] text-taupe">
-        Cuenta cuántas llegaron de {nombre} y escribe el número.
+        Cuenta cuántas llegaron de {nombre} y escribe el número; abajo dices qué prenda es cada una.
         {grupo.dijeron != null && " Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué."}
       </p>
 
