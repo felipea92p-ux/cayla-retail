@@ -586,7 +586,8 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         tipo: "sobrestock",
         titulo: `«${m.referencia}» tiene ${Math.round(m.diasRed ?? 0)} días de stock: no produzcas más`,
         detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y hay ${m.stockRed} en tiendas y almacenes.`,
-        accion: { texto: "Ver qué producir", href: "#produce" },
+        // «Verlo abajo», no «Ver qué producir»: la tarjeta dice «no produzcas más» y su botón no puede decir lo contrario (segunda prueba ciega, 2026-10-27).
+        accion: { texto: "Verlo abajo", href: "#produce" },
         productoIds: [m.productoId],
       });
   }

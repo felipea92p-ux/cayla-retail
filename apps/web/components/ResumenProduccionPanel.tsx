@@ -178,7 +178,7 @@ export function ResumenProduccionPanel({
             menos de los que hay, o que no hay nada. */}
         <TituloSeccion
           cuenta={totalAsuntos > 0 ? totalAsuntos : undefined}
-          dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `se ven ${decisiones.length}` : undefined}
+          dato={totalAsuntos === 0 ? "nada por ahora" : `lo demás que pide tu decisión${totalAsuntos > decisiones.length ? ` · se ven ${decisiones.length}` : ""}`}
         >
           Para decidir
         </TituloSeccion>

@@ -899,3 +899,16 @@ describe("filasDeTela con lo que viene en camino", () => {
     expect(filasDeTela([insumo("lino")], new Map(), [])[0]).toMatchObject({ pedidos: [], enCamino: 0, atrasado: 0, facturado: 0 });
   });
 });
+
+describe("la tarjeta de sobrestock no se contradice (segunda prueba ciega, Producción ▸ Resumen)", () => {
+  it("dice «no produzcas más» y su botón no dice «producir»: «Verlo abajo»", () => {
+    const f = filasPorModelo(
+      [{ varianteId: "v1", productoId: "p1", stockRed: 700, stockTaller: 0, enCamino: 0, ritmoDia: 10, sedesConRitmo: 1, ventasNetas: 4, ventasBase: 4, cobertura: { tipo: "medida", dias: 60 }, banda: "alta" }],
+      [{ productoId: "p1", referencia: "Blusa Satinada", variantesIds: ["v1"] }],
+      {}
+    );
+    const [d] = decisionesDeProduccion(contexto({ modelos: f }));
+    expect(d.titulo).toContain("no produzcas más");
+    expect(d.accion).toEqual({ texto: "Verlo abajo", href: "#produce" });
+  });
+});
