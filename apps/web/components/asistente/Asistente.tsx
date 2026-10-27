@@ -15,7 +15,7 @@ import { esAtajoDelAsistente } from "@/lib/asistente/atajo";
 import { preseleccionar, type Sugerencia } from "@/lib/asistente/preseleccion";
 import { direccionDelTramo, esDeEstaPantalla, type Tramo } from "@/lib/asistente/recorrido";
 import { LARGO_MAXIMO_PREGUNTA, type ResultadoAsistente } from "@/lib/asistente/respuesta";
-import { rutaDe, type PasoTarea } from "@/lib/asistente/tarea";
+import { mismaPantalla, seAbreDesdeOtra, type PasoTarea } from "@/lib/asistente/tarea";
 import { empezarTarea } from "@/components/asistente/Acompanante";
 import { GUIAS } from "@/lib/guias/registro";
 import { guiaDeRuta } from "@/lib/guias/reglas";
@@ -93,7 +93,7 @@ function CajonAsistente({ rutasDelMenu, onCerrar }: { rutasDelMenu: readonly str
     if (!primero) return;
     empezarTarea(tarea);
     cerrar();
-    if (rutaDe(primero.href) !== rutaDe(pathname)) router.push(primero.href);
+    if (!mismaPantalla(primero.href, pathname) && !seAbreDesdeOtra(primero.href)) router.push(primero.href);
   }
 
   /** «Muéstrame»: el recorrido que contestó la IA, desde el paso que responde (ADR-0536, actividad 3). */

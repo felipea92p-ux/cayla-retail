@@ -207,7 +207,37 @@ export const PIDEN_OTRO_MODULO: ReadonlySet<string> = new Set([
   "/compras/ordenes",
   "/compras/ordenes/nueva",
   "/compras/fondos",
+  "/compras/ordenes/comprobante/[id]",
+  "/compras/ordenes/editar/[id]",
+  "/compras/ordenes/envio/[id]",
+  "/compras/ordenes/ver/[id]",
 ]);
+
+/** Cuántas pantallas que se abren desde otra se le muestran a la IA para armar una tarea, y de cuántas candidatas se buscan. */
+const HIJAS_MAXIMO = 4;
+const HIJAS_DE_LAS_PRIMERAS = 3;
+
+/**
+ * Las pantallas que se abren DESDE una candidata y no tienen entrada propia, porque piden un id (Editar producto se abre desde la ficha
+ * de una prenda en Productos). Una tarea pasa por ellas («agrega un color a la blusa Catalina 7»: Productos → la prenda → Editar →
+ * Agregar color → guardar), pero no hay a dónde llevar a la persona: se llega tocando el paso anterior. Solo las que cuelgan
+ * directamente de la dirección de una candidata con entrada en el menú, y no las que piden otro módulo.
+ */
+export function pantallasQueSeAbrenDesde(sugerencias: readonly Sugerencia[], guias: readonly Guia[]): Sugerencia[] {
+  const ya = new Set(sugerencias.map((s) => s.guia.id));
+  const salida: Sugerencia[] = [];
+  for (const s of sugerencias.slice(0, HIJAS_DE_LAS_PRIMERAS)) {
+    if (s.href === null) continue;
+    const base = s.guia.ruta.replace(/\/\([^)]+\)/g, "");
+    for (const g of guias) {
+      const ruta = g.ruta.replace(/\/\([^)]+\)/g, "");
+      if (salida.length >= HIJAS_MAXIMO || ya.has(g.id) || !ruta.startsWith(`${base}/[`) || PIDEN_OTRO_MODULO.has(ruta)) continue;
+      ya.add(g.id);
+      salida.push({ guia: g, href: null, paso: null, puntos: 0 });
+    }
+  }
+  return salida;
+}
 
 /** Cuánto pesa encontrar una palabra en cada parte de la guía: el título dice de qué es la pantalla; el texto de un paso, un detalle. */
 const PESO = { titulo: 5, resumen: 3, pasoTitulo: 2, pasoTexto: 1 } as const;

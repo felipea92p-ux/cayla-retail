@@ -5,7 +5,8 @@
 // La persona hace cada clic; CAYLA enciende dónde tocar y pasa sola al siguiente (`components/asistente/Acompanante.tsx`). Nunca hace un
 // clic que cambie la tienda: es una venta real, hecha por ella con la guía al lado. Aquí lo puro: revisar lo que propone la IA, sin creerle.
 
-import type { Guia } from "../guias/tipos";
+import type { Guia, PasoGuia } from "../guias/tipos";
+import { PASO_QUE_GUARDA, PUENTES } from "./puentes";
 import { pasoSePuedeRellenar, rellenoValido } from "./relleno";
 
 /** Más pasos ya no es acompañar una tarea: vender de punta a punta, con el cobro y la boleta, cabe en 10. */
@@ -26,7 +27,29 @@ export type PasoTarea = {
   porQue: string;
   /** Si la persona dio un dato que este paso escribe (el buscador), el dato tal cual. */
   rellenar: string | null;
+  /** Un paso que solo existe en el celular (la lupa del buscador, «Ver ticket»): en escritorio no se cuenta ni se muestra. */
+  soloCelular?: boolean;
 };
+
+/**
+ * ¿Este paso es el que guarda o confirma? Lo dice el nombre de su pieza (`data-guia`), que en las guías sigue unas pocas formas:
+ * `….guardar`, `….confirmar`, `….enviar`, `….registrar`, `….pagar`, `….anular`, `….terminar` y el pie de una hoja (`….pie`,
+ * `….form-pie`, `….costo-pie`). Es una pista para la IA y para cerrar una tarea que quedó a medias, no un permiso: guardar lo hace la persona.
+ */
+export function pasoGuarda(paso: Pick<PasoGuia, "ancla">): boolean {
+  const ultimo = paso.ancla?.split(".").at(-1) ?? "";
+  return /^(guardar|confirmar|enviar|registrar|pagar|anular|terminar|listo|pie|form-pie)$|-(guardar|confirmar|enviar|costo-pie)$/.test(ultimo);
+}
+
+/** ¿La dirección es esta pantalla? Una pantalla con id en su guía (`/productos/[id]/editar`) vale para cualquier id. */
+export function mismaPantalla(href: string, pathname: string): boolean {
+  const patron = rutaDe(href).split("/");
+  const ruta = rutaDe(pathname).split("/");
+  return patron.length === ruta.length && patron.every((s, k) => (s.startsWith("[") && s.endsWith("]") ? ruta[k] !== "" : s === ruta[k]));
+}
+
+/** Una pantalla que se abre desde otra (con un id en la dirección): no hay a dónde llevar a la persona, se llega por el paso anterior. */
+export const seAbreDesdeOtra = (href: string) => href.includes("[");
 
 /** Lo que la IA propone por paso (salida estructurada; los nombres van como los de los tramos). */
 export type PasoPropuesto = { guia_id: string; paso_id: string; orden: string; rellenar: string };
@@ -36,7 +59,7 @@ type Candidata = { guia: Guia; href: string | null };
 
 /** Una orden limpia: una línea, sin comillas de adorno ni punto final, con su mayúscula, a su medida. `null` si no queda nada. */
 export function limpiarOrden(orden: string): string | null {
-  let o = orden.replace(/\s+/g, " ").trim().replace(/^["'«»“”]+|["'«»“”]+$/g, "").replace(/[.。]+$/, "").trim();
+  let o = orden.replace(/\[[^\]]*\]/g, " ").replace(/\s+/g, " ").trim().replace(/^["'«»“”]+|["'«»“”]+$/g, "").replace(/[.。]+$/, "").trim();
   if (o.length < 3) return null;
   if (o.length > LARGO_MAXIMO_ORDEN) o = `${o.slice(0, LARGO_MAXIMO_ORDEN - 1).trimEnd()}…`;
   return o.charAt(0).toLocaleUpperCase("es") + o.slice(1);
@@ -67,7 +90,7 @@ export function revisarTarea(propuestos: readonly PasoPropuesto[] | null | undef
       rellenar: pasoSePuedeRellenar(paso) ? rellenoValido(p.rellenar, pregunta) : null,
     });
   }
-  const completa = completarTarea(elegirEnLaLista(pasos, candidatas, pregunta), candidatas);
+  const completa = completarTarea(conPuentes(elegirEnLaLista(pasos, candidatas, pregunta), candidatas), candidatas);
   return completa.length >= 2 ? completa : [];
 }
 
@@ -110,12 +133,12 @@ function elegirEnLaLista(tarea: readonly PasoTarea[], candidatas: readonly Candi
   // En el celular el ticket vive tras «Ver ticket», en la barra de abajo: se abre antes de elegir quién atiende y cobrar.
   const barra = vender.guia.pasos.find((x) => x.id === "barra-ticket" && x.ancla !== null);
   const yaBarra = sin.some((p) => p.guiaId === "vender" && p.pasoId === "barra-ticket");
-  const despues = barra && !yaBarra ? [{ guiaId: "vender", pasoId: barra.id, ancla: barra.ancla!, href: tarea[iBuscador]!.href, orden: "Toca Ver ticket", porQue: barra.texto, rellenar: null }] : [];
+  const despues = barra && !yaBarra ? [{ guiaId: "vender", pasoId: barra.id, ancla: barra.ancla!, href: tarea[iBuscador]!.href, orden: "Toca Ver ticket", porQue: barra.texto, rellenar: null, soloCelular: true }] : [];
   // En el celular el buscador está detrás de la lupa (la cámara ocupa su lugar): primero se toca la lupa. En escritorio esa pieza no
   // existe y el acompañante la salta sola.
   const lupa = vender.guia.pasos.find((x) => x.id === "buscar-por-nombre" && x.ancla !== null);
   const yaLupa = sin.some((p) => p.guiaId === "vender" && p.pasoId === "buscar-por-nombre");
-  const antes = lupa && !yaLupa ? [{ guiaId: "vender", pasoId: lupa.id, ancla: lupa.ancla!, href: tarea[iBuscador]!.href, orden: "Toca la lupa para buscar", porQue: lupa.texto, rellenar: null }] : [];
+  const antes = lupa && !yaLupa ? [{ guiaId: "vender", pasoId: lupa.id, ancla: lupa.ancla!, href: tarea[iBuscador]!.href, orden: "Toca la lupa para buscar", porQue: lupa.texto, rellenar: null, soloCelular: true }] : [];
   return [...sin.slice(0, j), ...antes, ...sin.slice(j, j + 1), paso, ...despues, ...sin.slice(j + 1)];
 }
 
@@ -135,6 +158,44 @@ export function ordenDeLaLista(pregunta: string): string | null {
   return `Toca ${[conMayuscula, talla ? `talla ${talla}` : null].filter(Boolean).join(" · ")} en la lista`;
 }
 
+/**
+ * Antes del primer paso de una pantalla con id (Editar producto), los pasos de su pantalla madre que la abren («Toca la prenda»,
+ * «Toca Editar»), si la IA no los puso y la madre está entre las candidatas (`PUENTES`).
+ */
+function conPuentes(tarea: readonly PasoTarea[], candidatas: readonly Candidata[]): PasoTarea[] {
+  // Los pasos de un puente que la IA puso por su cuenta se sacan y vuelven a entrar en su orden (a veces pone «Editar» antes de «Toca
+  // la prenda», y el acompañante se salta uno).
+  const delPuente = (p: PasoTarea) => Object.entries(PUENTES).some(([hija, pu]) => tarea.some((t) => t.guiaId === hija) && pu.desde === p.guiaId && pu.pasos.some((x) => x.pasoId === p.pasoId));
+  const quitados = tarea.filter(delPuente);
+  const salida: PasoTarea[] = [];
+  for (const paso of tarea.filter((t) => !delPuente(t))) {
+    const puente = PUENTES[paso.guiaId];
+    const anterior = salida.at(-1);
+    const madre = puente ? candidatas.find((c) => c.guia.id === puente.desde) : undefined;
+    if (puente && madre && anterior?.guiaId !== paso.guiaId) {
+      for (const p of puente.pasos) {
+        const deLaGuia = madre.guia.pasos.find((x) => x.id === p.pasoId && x.ancla !== null);
+        if (!deLaGuia || salida.some((s) => s.guiaId === puente.desde && s.pasoId === p.pasoId)) continue;
+        // El de la IA solo si trae un dato que escribir (su búsqueda con el nombre de la prenda); si no, la orden de fábrica, más clara.
+        const suyo = quitados.find((q) => q.guiaId === puente.desde && q.pasoId === p.pasoId && q.rellenar);
+        salida.push(suyo ?? { guiaId: puente.desde, pasoId: deLaGuia.id, ancla: deLaGuia.ancla!, href: madre.href ?? madre.guia.ruta, orden: p.orden, porQue: deLaGuia.texto, rellenar: null });
+      }
+    }
+    salida.push(paso);
+  }
+  return salida;
+}
+
+/** El prefijo de la pieza (`editar` en `editar.guardar`): el de la pantalla, o el de una hoja que se abre en ella (`agregar-color`). */
+const prefijo = (ancla: string) => ancla.split(".")[0] ?? "";
+
+/** El prefijo que más usan las piezas de una guía: el de la pantalla misma, no el de sus hojas. */
+function prefijoDeLaPantalla(guia: Guia): string {
+  const cuenta = new Map<string, number>();
+  for (const p of guia.pasos) if (p.ancla) cuenta.set(prefijo(p.ancla), (cuenta.get(prefijo(p.ancla)) ?? 0) + 1);
+  return [...cuenta].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+}
+
 /** Lo que se le suma a la tarea para que llegue a su cierre; y quita «revisa el ticket» si sigue el cobro (no es una acción). */
 export function completarTarea(tarea: readonly PasoTarea[], candidatas: readonly Candidata[]): PasoTarea[] {
   const salida = [...tarea];
@@ -150,6 +211,32 @@ export function completarTarea(tarea: readonly PasoTarea[], candidatas: readonly
       const nuevo = { guiaId, pasoId: paso.id, ancla: paso.ancla!, href: guia.href ?? salida[0]?.href ?? guia.guia.ruta, orden: c.orden, porQue: paso.texto, rellenar: null };
       salida.splice(antesDe < 0 ? salida.length : antesDe, 0, nuevo);
     });
+    // Un paso del cierre que la IA puso dos veces (Cobrar antes y después de «quién atiende») queda una sola, la última.
+    for (let k = salida.length - 1; k >= 0; k--) {
+      const p = salida[k]!;
+      if (p.guiaId === guiaId && orden.includes(p.pasoId) && salida.slice(k + 1).some((q) => q.guiaId === guiaId && q.pasoId === p.pasoId)) salida.splice(k, 1);
+    }
+  }
+  // Toda tarea, no solo una venta, termina en el paso que guarda (Felipe 2026-10-27: «en cualquier cosa que pida el usuario»). Si la IA
+  // cortó antes, se agrega el primer paso que guarda que viene después del último suyo, en la misma guía.
+  const ultimo = salida.at(-1);
+  const suGuia = ultimo && !CIERRES[ultimo.guiaId] ? candidatas.find((c) => c.guia.id === ultimo.guiaId) : undefined;
+  if (ultimo && suGuia && !pasoGuarda(ultimo)) {
+    const desde = suGuia.guia.pasos.findIndex((x) => x.id === ultimo.pasoId);
+    const cierre = suGuia.guia.pasos.slice(desde + 1).find((x) => x.ancla !== null && pasoGuarda(x));
+    if (cierre) salida.push({ guiaId: ultimo.guiaId, pasoId: cierre.id, ancla: cierre.ancla!, href: ultimo.href, orden: "Revisa y guarda tú", porQue: cierre.texto, rellenar: null });
+  } else if (ultimo && suGuia && prefijo(ultimo.ancla) !== prefijoDeLaPantalla(suGuia.guia)) {
+    // Guardó una HOJA («Agregar» en Agregar color suma a la tabla) y la pantalla guarda aparte después («Revisar y guardar»): falta ese.
+    const desde = suGuia.guia.pasos.findIndex((x) => x.id === ultimo.pasoId);
+    const pantalla = prefijoDeLaPantalla(suGuia.guia);
+    const cierre = suGuia.guia.pasos.slice(desde + 1).find((x) => x.ancla !== null && pasoGuarda(x) && prefijo(x.ancla) === pantalla);
+    if (cierre) salida.push({ guiaId: ultimo.guiaId, pasoId: cierre.id, ancla: cierre.ancla!, href: ultimo.href, orden: "Revisa y guarda tú los cambios", porQue: cierre.texto, rellenar: null });
+  }
+  // Donde la guía explica el guardado sobre otra pieza, se enciende el botón de verdad (`PASO_QUE_GUARDA`).
+  for (const [k, p] of salida.entries()) {
+    const cambio = PASO_QUE_GUARDA[p.guiaId];
+    const otro = cambio && p.pasoId === cambio.en ? candidatas.find((c) => c.guia.id === p.guiaId)?.guia.pasos.find((x) => x.id === cambio.usar && x.ancla !== null) : undefined;
+    if (otro) salida[k] = { ...p, pasoId: otro.id, ancla: otro.ancla!, porQue: otro.texto };
   }
   const conCobro = salida.some((p) => p.pasoId === "cobrar");
   return salida.filter((p) => !(conCobro && p.guiaId === "vender" && p.pasoId === "ticket")).slice(0, MAXIMO_DE_PASOS);

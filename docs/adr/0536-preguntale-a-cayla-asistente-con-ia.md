@@ -278,6 +278,37 @@ marcados (9 pasos en el celular, 7 en escritorio). Para encender Cobrar en local
 tienda de trujiyo?», iba siempre a Mis compras (su guía dice «lo que mandas a la tienda»): una línea en las instrucciones dice que mover ropa
 entre sedes es un traslado, y desde ahí va a Nuevo traslado, con su tarea de 5 pasos hasta «Enviar la caja».
 
+**Cualquier tarea, no solo vender (Felipe 2026-10-27, tras ver el PR #1404: «lo de venta era un ejemplo, eso debe ser así para todo»).**
+- **Pantallas que se abren desde otra.** Editar producto (`/productos/[id]/editar`) no tiene entrada en el menú: se abre tocando una
+  prenda y «Editar». La IA ahora recibe esas pantallas (`pantallasQueSeAbrenDesde`, en `<se_abren_desde>`, solo para los pasos de una
+  tarea, nunca para un tramo), las que cuelgan con un id de una candidata, menos las que piden otro módulo (`PIDEN_OTRO_MODULO`, que su
+  prueba ahora calcula también para las de id). El Acompañante no ofrece «Llévame» a una pantalla así: se llega con el paso anterior.
+- **Los puentes** (`lib/asistente/puentes.ts`): cómo se abre cada pantalla con id desde su madre (Productos: busca, toca la prenda, toca
+  Editar). La IA suele saltarlos o ponerlos desordenados; el servidor los deja en su orden, antes del primer paso de la pantalla con id.
+  La búsqueda de la IA se conserva si trae el nombre; si no, se usa el que dio en otra parte de su respuesta (tal cual de la pregunta).
+  `puentes.test.ts` falla si una guía o un paso del mapa deja de existir.
+- **Toda tarea termina guardando.** `pasoGuarda` reconoce el paso que guarda por el nombre de su pieza (`….guardar`, `….confirmar`,
+  `….enviar`, `….registrar`, el pie de una hoja…); la IA lo ve marcado `[guarda]`. Si cortó antes, se agrega el que guarda después de su
+  último paso; si guardó una hoja («Agregar» de Agregar color, que solo suma a la tabla) y la pantalla guarda aparte, se agrega también el
+  de la pantalla. Editar producto explicaba su guardado sobre un texto: tiene un ancla nueva en el botón de verdad
+  (`editar.barra-guardar`, paso opcional de su guía, `PASO_QUE_GUARDA`).
+- **Verificado** a 1440 y 375 px con la cuenta de Felipe: «quiero agregar un color a la blusa catalina siete» va de Inicio a Productos,
+  busca, abre la prenda, entra a Editar, abre Agregar color, elige, suma (la fila «Crudo · NUEVA») y termina en «Revisa y guarda tú los
+  cambios» con «Revisar y guardar» encendido, sin guardar nada. La venta de siempre, otra vez, llega a confirmar el cobro.
+
+**Lo que aprendí del Acompañante al probarlo con una tarea larga.**
+- La foto de «qué había a la vista» se toma cuando aparece la pieza del paso, no cuando el paso empieza: tras tocar «Editar», la pantalla
+  nueva todavía carga y lo que aparece al cargar no es que la persona avanzó (saltaba hasta «guardar»).
+- En una pieza con varios botones manda el principal (el de enviar o el último): el pie de una hoja trae «Cancelar» siempre encendido.
+- «Cancelar», «Descartar», «Cerrar» o «Volver» no avanzan el paso.
+- El dato del buscador se reintenta hasta 3 veces si el campo queda vacío (una pantalla que termina de armarse lo borraba).
+
+**El diseño del resaltado (Felipe 2026-10-27: «se ve muy pobre y feo si solo es una línea roja»).** El Acompañante habla el idioma de las
+guías interactivas (ADR-0389): un velo suave con un recorte alrededor de la pieza, filo rojo, el halo que respira y la onda que sale una
+vez al llegar, más una **etiqueta pegada a la pieza** con el número del paso en rojo y la orden, con su pico hacia ella
+(`app/estilos/acompanante.css`). El velo no bloquea nada (todo se toca a través), se aparta si hay una lista abierta encima y sigue a la
+pieza cuadro a cuadro sin pasarse. La barra de abajo sigue siendo el GPS. Sin rebote; se apaga con `prefers-reduced-motion`.
+
 **Lo que no está.** Los cierres fijos existen solo para Vender; las demás tareas (un cambio, un traslado) siguen lo que propone la IA, revisado.
 
 ## Producción

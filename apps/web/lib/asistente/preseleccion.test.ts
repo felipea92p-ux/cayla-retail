@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
 import { moduloDeRuta } from "../actividad-reglas";
-import { PIDEN_OTRO_MODULO, preseleccionar, raices } from "./preseleccion";
+import { pantallasQueSeAbrenDesde, PIDEN_OTRO_MODULO, preseleccionar, raices } from "./preseleccion";
 
 const guia = (ruta: string, titulo: string, resumen: string, pasos: [string, string][] = []): Guia => ({
   id: ruta.slice(1).replaceAll("/", ".") || "inicio",
@@ -179,8 +179,9 @@ describe("preseleccionar: las pantallas que cuelgan de una entrada del menú", (
   });
 
   it("la lista de las que piden otro módulo está al día con las páginas", () => {
-    // Una pantalla de guía, sin id, cuya página (o un layout de su camino) exige un módulo distinto del que `moduloDeRuta` le da.
-    const piden = GUIAS.filter((g) => !g.ruta.includes("[") && g.ruta !== "/").flatMap((g) => {
+    // Una pantalla de guía cuya página (o un layout de su camino) exige un módulo distinto del que `moduloDeRuta` le da. También las
+    // que tienen id: una tarea puede pasar por ellas (`pantallasQueSeAbrenDesde`).
+    const piden = GUIAS.filter((g) => g.ruta !== "/").flatMap((g) => {
       const direccion = g.ruta.replace(/\/\([^)]+\)/g, "");
       const modulo = moduloDeRuta(direccion);
       if (modulo === null) return [];
@@ -194,5 +195,19 @@ describe("preseleccionar: las pantallas que cuelgan de una entrada del menú", (
       return exigidos.some((m) => m !== modulo) ? [direccion] : [];
     });
     expect([...PIDEN_OTRO_MODULO].sort()).toEqual(piden.sort());
+  });
+});
+
+describe("pantallasQueSeAbrenDesde", () => {
+  it("ofrece las pantallas con id que cuelgan de una candidata con entrada (Editar producto, desde Productos), y no las de otro módulo", () => {
+    const productos = GUIAS.find((g) => g.ruta === "/productos")!;
+    const ordenes = GUIAS.find((g) => g.ruta === "/compras/ordenes")!;
+    const ids = pantallasQueSeAbrenDesde([{ guia: productos, href: "/productos", paso: null, puntos: 9 }, { guia: ordenes, href: "/compras/ordenes", paso: null, puntos: 5 }], GUIAS).map((s) => s.guia.ruta);
+    expect(ids).toContain("/productos/[id]/editar");
+    expect(ids.some((r) => r.startsWith("/compras/ordenes/"))).toBe(false);
+  });
+  it("sin entrada en el menú (la pantalla donde ya está), no busca hijas", () => {
+    const productos = GUIAS.find((g) => g.ruta === "/productos")!;
+    expect(pantallasQueSeAbrenDesde([{ guia: productos, href: null, paso: null, puntos: 9 }], GUIAS)).toEqual([]);
   });
 });

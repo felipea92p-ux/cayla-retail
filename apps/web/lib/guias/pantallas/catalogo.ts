@@ -488,6 +488,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Te dice qué le falta para quedar completa, como las fotos de algunos colores. Tócalo y te lleva directo a ese campo. No impide guardar: es un recordatorio.",
     },
     {
+      // La barra que aparece al cambiar algo: aquí guarda la persona. El asistente que acompaña una tarea la enciende; la demo no cambia
+      // nada, así que no la ve y se salta (opcional).
+      id: "barra-guardar",
+      ancla: "editar.barra-guardar",
+      opcional: true,
+      titulo: "Revisar y guardar",
+      texto: "Te muestra la lista de lo que cambiaste antes de guardar; ahí confirmas. «Descartar» deja la ficha como estaba.",
+    },
+    {
       id: "guardar",
       ancla: "editar.guardar",
       opcional: true,

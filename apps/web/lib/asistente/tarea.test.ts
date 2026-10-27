@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Guia } from "../guias/tipos";
-import { LARGO_MAXIMO_ORDEN, limpiarOrden, MAXIMO_DE_PASOS, ordenDeLaLista, revisarTarea, rutaDe } from "./tarea";
+import { LARGO_MAXIMO_ORDEN, limpiarOrden, MAXIMO_DE_PASOS, mismaPantalla, ordenDeLaLista, pasoGuarda, revisarTarea, rutaDe, seAbreDesdeOtra } from "./tarea";
 
 const vender: Guia = {
   id: "vender",
@@ -46,8 +46,10 @@ describe("revisarTarea: solo se le cree a la IA lo que existe", () => {
     expect(revisarTarea(null, candidatas, "/", PREGUNTA)).toEqual([]);
   });
   it("diez pasos como mucho, y una orden vacía usa el título del paso", () => {
-    const muchos = Array.from({ length: 30 }, (_, k) => p(k % 2 ? "colores" : "cobrar", ""));
-    const t = revisarTarea(muchos, candidatas, "/", PREGUNTA);
+    // Una guía sin cierre fijo (la de Vender deja una sola vez cada paso del cobro).
+    const otra: Guia = { ...vender, id: "otra" };
+    const muchos = Array.from({ length: 30 }, (_, k) => p(k % 2 ? "colores" : "cobrar", "", "", "otra"));
+    const t = revisarTarea(muchos, [{ guia: otra, href: "/otra" }], "/", PREGUNTA);
     expect(t).toHaveLength(MAXIMO_DE_PASOS);
     expect(t[0]!.orden).toBe("Cobrar");
   });
@@ -92,6 +94,74 @@ describe("el cierre entra en su lugar", () => {
     const conResponsable: Guia = { ...vender, pasos: [...vender.pasos, { id: "responsable", ancla: "vender.responsable", titulo: "Quién atiende", texto: "Eliges quién atiende." }] };
     const t = revisarTarea([p("buscador", "Busca el short"), p("cobrar", "Toca Cobrar"), p("cobro-confirmar", "Confirma")], [{ guia: conResponsable, href: "/vender" }], "/", PREGUNTA);
     expect(t.map((x) => x.pasoId)).toEqual(["buscador", "responsable", "cobrar", "cobro-confirmar"]);
+  });
+  it("un paso del cierre repetido queda una sola vez, en su lugar", () => {
+    const conResponsable: Guia = { ...vender, pasos: [...vender.pasos, { id: "responsable", ancla: "vender.responsable", titulo: "Quién atiende", texto: "Eliges quién atiende." }] };
+    const t = revisarTarea([p("buscador", "Busca"), p("cobrar", "Toca Cobrar"), p("responsable", "Elige quién"), p("cobrar", "Toca Cobrar"), p("cobro-confirmar", "Confirma")], [{ guia: conResponsable, href: "/vender" }], "/", PREGUNTA);
+    expect(t.map((x) => x.pasoId)).toEqual(["buscador", "responsable", "cobrar", "cobro-confirmar"]);
+  });
+});
+
+describe("cualquier tarea termina guardando", () => {
+  const editar: Guia = {
+    id: "productos.id.editar",
+    ruta: "/productos/[id]/editar",
+    titulo: "Editar producto",
+    resumen: "La ficha.",
+    pasos: [
+      { id: "agregar", ancla: "editar.agregar", titulo: "Agregar", texto: "Agregar color." },
+      { id: "agregar-color", ancla: "agregar-color.colores", titulo: "Colores", texto: "Elige el color." },
+      { id: "agregar-color-pie", ancla: "agregar-color.pie", titulo: "Sumarlos", texto: "Suma a la ficha." },
+      { id: "foto", ancla: "editar.foto", titulo: "Foto", texto: "La foto." },
+      { id: "guardar", ancla: "editar.guardar", titulo: "Revisar y guardar", texto: "Guarda todo." },
+    ],
+  };
+  const conEditar = [...candidatas, { guia: editar, href: editar.ruta }];
+  it("si la IA corta antes de guardar, se agrega el paso que guarda que sigue en esa guía", () => {
+    const t = revisarTarea([p("agregar", "Toca Agregar color", "", "productos.id.editar"), p("agregar-color", "Elige Rojo", "", "productos.id.editar")], conEditar, "/", PREGUNTA);
+    expect(t.map((x) => [x.pasoId, x.orden])).toEqual([
+      ["agregar", "Toca Agregar color"],
+      ["agregar-color", "Elige Rojo"],
+      ["agregar-color-pie", "Revisa y guarda tú"],
+    ]);
+  });
+  it("si guardó una hoja y la pantalla guarda aparte, se agrega el «Revisar y guardar» de la pantalla", () => {
+    const t = revisarTarea([p("agregar-color", "Elige Rojo", "", "productos.id.editar"), p("agregar-color-pie", "Toca Agregar", "", "productos.id.editar")], conEditar, "/", PREGUNTA);
+    expect(t.map((x) => x.pasoId)).toEqual(["agregar-color", "agregar-color-pie", "guardar"]);
+  });
+  it("antes de la ficha van los pasos de la pantalla madre que la abren (el puente)", () => {
+    const productos: Guia = { id: "productos", ruta: "/productos", titulo: "Productos", resumen: "El catálogo.", pasos: [
+      { id: "buscador", ancla: "productos.buscador", titulo: "Busca", texto: "Escribe." },
+      { id: "tarjeta", ancla: "productos.tarjeta", titulo: "Cada prenda", texto: "Tócala." },
+      { id: "vr-botones", ancla: "vista-rapida.botones", titulo: "Lo que haces", texto: "Editar." },
+    ] };
+    // La IA puso «Editar» antes de «Toca la prenda»: el puente los vuelve a poner en orden, con sus órdenes de fábrica.
+    const t = revisarTarea([p("vr-botones", "Abre Editar", "", "productos"), p("buscador", "Busca la blusa", "", "productos"), p("tarjeta", "Toca", "", "productos"), p("agregar", "Toca Agregar color", "", "productos.id.editar"), p("guardar", "Guarda [guarda]", "", "productos.id.editar")], [{ guia: productos, href: "/productos" }, { guia: editar, href: editar.ruta }], "/", PREGUNTA);
+    expect(t.map((x) => [x.pasoId, x.orden])).toEqual([
+      ["buscador", "Busca la prenda"],
+      ["tarjeta", "Toca la prenda"],
+      ["vr-botones", "Toca Editar"],
+      ["agregar", "Toca Agregar color"],
+      ["guardar", "Guarda"],
+    ]);
+  });
+  it("si ya termina guardando, no se agrega nada", () => {
+    const t = revisarTarea([p("agregar", "Toca Agregar color", "", "productos.id.editar"), p("guardar", "Revisa y guarda tú", "", "productos.id.editar")], conEditar, "/", PREGUNTA);
+    expect(t.map((x) => x.pasoId)).toEqual(["agregar", "guardar"]);
+  });
+  it("reconoce el paso que guarda por el nombre de su pieza", () => {
+    for (const a of ["editar.guardar", "agregar-color.pie", "nuevo-traslado.enviar", "vender.cobro-confirmar", "gasto.form-pie", "historial-prenda.corregir-costo-pie"]) expect(pasoGuarda({ ancla: a }), a).toBe(true);
+    for (const a of ["vender.ticket-pie", "vender.prenda-pie", "productos.buscador", "editar.agregar", "vista-rapida.botones", "x.paginas"]) expect(pasoGuarda({ ancla: a }), a).toBe(false);
+  });
+});
+
+describe("pantallas con id", () => {
+  it("una dirección de guía con [id] vale para cualquier id, y no tiene a dónde llevar", () => {
+    expect(mismaPantalla("/productos/[id]/editar", "/productos/8f2c/editar")).toBe(true);
+    expect(mismaPantalla("/productos/[id]/editar", "/productos/editar")).toBe(false);
+    expect(mismaPantalla("/vender?x=1", "/vender")).toBe(true);
+    expect(seAbreDesdeOtra("/productos/[id]/editar")).toBe(true);
+    expect(seAbreDesdeOtra("/productos")).toBe(false);
   });
 });
 

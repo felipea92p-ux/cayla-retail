@@ -19,7 +19,7 @@
     "components/BarraDeCambios.tsx": [
       "Boton «Descartar»",
       "Boton «Recargar la prenda»",
-      "Boton «Revisar y guardar»"
+      "Boton «editar.barra-guardar»"
     ],
     "components/ConfirmarCambios.tsx": [
       "ComboResponsable «{responsable}»",
