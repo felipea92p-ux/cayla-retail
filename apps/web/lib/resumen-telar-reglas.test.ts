@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./resumen-finanzas.fixture.json";
 import { leerResumen } from "./resumen-finanzas-reglas";
 import type { FilaER } from "./resultados-reglas";
-import { lineaVentasMeta, respuestaResumen, tramoAnteriorALaFecha, vendidoPorSede } from "./resumen-telar-reglas";
+import { lineaVentasMeta, mesPasadoComparable, respuestaResumen, tramoAnteriorALaFecha, tramoDeSueldos, vendidoPorSede } from "./resumen-telar-reglas";
 
 // Lo que el Resumen le pasa a la barra común del telar (su respuesta y su orillo) y la línea de ventas contra la meta.
 
@@ -106,5 +106,28 @@ describe("lineaVentasMeta", () => {
     expect(lineaVentasMeta([], "2026-09", "2026-10-23", null).serie).toHaveLength(30);
     const futuro = lineaVentasMeta([], "2026-11", "2026-10-23", null);
     expect(futuro.serie).toHaveLength(0);
+  });
+});
+
+// Examen de Finanzas 2026-10-27, tarea #2: «¿Cuánto te deja?» no llevaba los sueldos del período en curso. La provisión (`fn_planilla_provision`) solo
+// devuelve el período que TERMINA dentro del rango pedido; el Resumen pedía «del 1 a hoy» y el período 28-sep → 28-oct, que termina mañana, no
+// entraba: el mes parecía +S/ 13 mil cuando con sus sueldos devengados estaba en unos −S/ 28 mil.
+describe("los sueldos del mes en el Resumen", () => {
+  it("la provisión se pide hasta el último día del mes en curso: el período que termina el 28 entra desde el día 1", () => {
+    expect(tramoDeSueldos("2026-10", "2026-10-27")).toEqual({ desde: "2026-10-01", hasta: "2026-10-31" });
+    expect(tramoDeSueldos("2028-02", "2028-02-10")).toEqual({ desde: "2028-02-01", hasta: "2028-02-29" });
+  });
+  it("un mes que ya pasó se pide entero, como el resto de sus cifras; uno que no llega, sin tramo", () => {
+    expect(tramoDeSueldos("2026-09", "2026-10-27")).toEqual({ desde: "2026-09-01", hasta: "2026-09-30" });
+    expect(tramoDeSueldos("2026-11", "2026-10-27")).toBeNull();
+  });
+  it("el mes pasado solo sirve para comparar si lleva sueldos igual que este (si no, la diferencia sería un artefacto)", () => {
+    const base = filas(todas());
+    const con = (fs: FilaER[], planilla: number) => fs.map((f) => ({ ...f, planilla }));
+    // Octubre ya lleva sus sueldos devengados; septiembre se pagó antes del inicio de Finanzas y no los tiene: no se compara.
+    expect(mesPasadoComparable(con(base, 41717.28), con(base, 0))).toBeNull();
+    expect(mesPasadoComparable(con(base, 41717.28), con(base, 30062.23))).toEqual(con(base, 30062.23));
+    expect(mesPasadoComparable(con(base, 0), con(base, 0))).toEqual(con(base, 0));
+    expect(mesPasadoComparable(con(base, 41717.28), null)).toBeNull();
   });
 });
