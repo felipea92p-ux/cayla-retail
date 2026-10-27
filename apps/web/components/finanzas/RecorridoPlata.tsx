@@ -20,8 +20,9 @@ const RESPALDO_SEDE = ["var(--color-tinta)", "var(--color-taupe)", "var(--color-
 
 /** El color de lo que no es una sede: fijo, y dice qué es (verde lo que queda, rojo lo que falta). */
 export const COLOR_TIPO: Partial<Record<HiloRecorrido["tipo"], string>> = {
-  prendas: "color-mix(in srgb, var(--color-taupe) 60%, transparent)",
-  gastos: "color-mix(in srgb, var(--color-tinta) 32%, transparent)",
+  // Prendas y gastos son azul pizarra (oscuro y claro): el taupe y el gris de antes se confundían con la Empresa (beige) en «De cada S/ 100».
+  prendas: "color-mix(in srgb, var(--color-pizarra) 85%, transparent)",
+  gastos: "color-mix(in srgb, var(--color-pizarra) 38%, transparent)",
   caja: "var(--color-ambar)",
   sobrante: "color-mix(in srgb, var(--color-verde) 55%, transparent)",
   ajustes: "var(--color-sand)",
