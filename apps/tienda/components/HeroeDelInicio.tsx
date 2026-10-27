@@ -49,8 +49,13 @@ export function HeroeDelInicio({
         piezas={nuevo || vitrina ? piezasDelDesfile(hero.piezas, sede, origenFotos) : []}
         modo="portada"
         ceja={nuevo ? "Llegó en los últimos 30 días" : "Tienda online"}
-        titulo={nuevo ? "Lo nuevo" : vitrina ? "En vitrina" : "Donde el estilo transforma"}
-        boton={nuevo ? { texto: "Ver lo nuevo", href: verNuevo } : { texto: "Ver toda la tienda", href: hrefLista({ sede, categoria: null, orden: "destacado" }) }}
+        // Sin llegadas de los últimos 30 días el desfile conserva su título («Lo nuevo», Felipe 2026-10-27) pero ya no jura que llegó hace poco: su rótulo es el de la tienda.
+        titulo={nuevo || vitrina ? "Lo nuevo" : "Donde el estilo transforma"}
+        boton={{
+          texto: nuevo || vitrina ? "Ver lo nuevo" : "Ver toda la tienda",
+          // El botón siempre lleva a algún lado: a la lista de lo nuevo si la tienda la tiene y, si no, a toda la tienda.
+          href: (nuevo ? verNuevo : null) ?? hrefLista({ sede, categoria: null, orden: "destacado" }),
+        }}
         enEspera={enEspera}
       />
     );

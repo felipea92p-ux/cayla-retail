@@ -60,9 +60,14 @@ export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[
   }
   const nuevas = lasNuevas(prendas);
   if (nuevas.length > 0) return { tipo: "nuevo", piezas: nuevas.slice(0, SALIDAS_MAX) };
-  const enVitrina = [...prendas].sort(conFotoPrimero).slice(0, SALIDAS_MAX);
+  const enVitrina = lasEnVitrina(prendas).slice(0, SALIDAS_MAX);
   if (enVitrina.length > 0) return { tipo: "vitrina", piezas: enVitrina };
   return { tipo: "marca" };
+}
+
+/** Lo que hay en la tienda, con foto primero: lo que sale en el desfile y en su programa cuando nada llegó hace menos de 30 días. */
+export function lasEnVitrina(prendas: readonly Prenda[]): Prenda[] {
+  return [...prendas].sort(conFotoPrimero);
 }
 
 /** Lo que llegó hace menos, con foto primero y luego lo más reciente: las salidas del desfile y las filas de su programa, en ese orden. */
