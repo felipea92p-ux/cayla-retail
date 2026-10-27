@@ -1018,11 +1018,11 @@ export const GUIA_SELLOS: Guia = {
       texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. «Cambiar fechas» las mueve aquí mismo, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite con un toque: «Repetir».",
     },
     {
-      id: "dibujo",
-      ancla: "sellos.dibujo",
+      id: "editar",
+      ancla: "sellos.editar",
       opcional: true,
-      titulo: "Su dibujo",
-      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… o sube tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien también en modo oscuro. Quien compra ve lo mismo en la ficha de la prenda. En la demo no lo tocamos.",
+      titulo: "Corregir su nombre y su ícono",
+      texto: "«Editar», a la derecha del estado, corrige el nombre (por si se escribió mal) y cambia el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro. En la demo no lo tocamos.",
     },
     {
       id: "campana-form",

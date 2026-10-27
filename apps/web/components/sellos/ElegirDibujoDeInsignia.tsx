@@ -116,7 +116,7 @@ export function ElegirDibujoDeInsignia({
   const texto =
     valor.tipo === "dibujo"
       ? yaElegido
-        ? `Dibujo: ${NOMBRE_DEL_DIBUJO[valor.clave]}.`
+        ? `Ícono: ${NOMBRE_DEL_DIBUJO[valor.clave]}.`
         : `Sugerido por el nombre: ${NOMBRE_DEL_DIBUJO[valor.clave]}. Elige otro si quieres.`
       : valor.tipo === "imagen"
         ? valor.silueta && valor.modo
