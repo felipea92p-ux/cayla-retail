@@ -5997,6 +5997,10 @@ export type Database = {
       }
       // Vitrina web ▸ Looks (ADR-0408, actividad 11; 20261015031000): las combinaciones de «Arma tu look».
       fn_vitrina_looks: { Args: never; Returns: Json }
+      // En qué tiendas sale cada look y qué prenda le falta a cada una (20261027204000): las mismas reglas que la tienda online.
+      fn_vitrina_looks_por_tienda: { Args: never; Returns: Json }
+      // En qué tiendas hay cada prenda en cada color, para filtrar y avisar al armar un look (20261027204000).
+      fn_vitrina_prendas_por_tienda: { Args: never; Returns: Json }
       vitrina_guardar_look: {
         Args: {
           p_look_id: string | null

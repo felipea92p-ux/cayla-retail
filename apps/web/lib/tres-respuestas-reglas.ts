@@ -1,4 +1,5 @@
 import { estadoDeCaja, type CajaProxima } from "./caja-proxima-reglas";
+import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { soles } from "./flujo-caja-reglas";
 import { debesPronto, type ResumenFinanzas } from "./resumen-finanzas-reglas";
 import type { RespuestaResumen } from "./resumen-telar-reglas";
@@ -8,7 +9,8 @@ import type { RespuestaResumen } from "./resumen-telar-reglas";
 //
 // Contrato. PROMETE: tres respuestas, siempre en el mismo orden, cada una con su cifra (o el motivo por el que no hay) y el contexto que la
 // vuelve legible. NO CALCULA plata: cada cifra sale de donde ya vive (la caja, `debesPronto`, la respuesta del mes), así que el Resumen no
-// puede decir en la tarjeta de arriba algo distinto de lo que dice abajo. ASUME: que `caja` ya viene armada con `cajaProxima`.
+// puede decir en la tarjeta de arriba algo distinto de lo que dice abajo. Lo único que agrupa son los saldos que la base ya calculó, por tipo
+// de cuenta (`desgloseDeTienes`), y solo si suman la cifra de arriba. ASUME: que `caja` ya viene armada con `cajaProxima`.
 // Sin dato dice por qué (principio 9): nunca un cero que parezca un dato.
 
 export type Tono = "verde" | "ambar" | "rojo" | "pizarra";
@@ -35,16 +37,57 @@ type Entrada = {
   deja: RespuestaResumen;
   hrefDinero: string | null;
   hrefPorPagar: string | null;
+  /** De qué está hecho «lo que tienes» (`desgloseDeTienes`); sin él, la tarjeta conserva su texto de siempre. */
+  desglose?: DesgloseTienes | null;
 };
 
-function tienes(caja: CajaProxima, href: string | null): Respuesta {
+/** Lo que suma «¿Cuánto tienes?», agrupado por lo que una persona entiende: lo que está a mano, lo que las máquinas deben depositar y el resto. */
+export type DesgloseTienes = { enMano: number; porAbonar: number; otros: number };
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * «¿Cuánto tienes?» es la suma de TODAS las cuentas menos la tarjeta de crédito (`fn_flujo_disponible`), pero su texto decía «en cajones, cajas
+ * fuertes y bancos»: el 27-oct-2026 el 56 % del titular (S/ 56,146 de S/ 99,570) era tarjeta y QR que las máquinas todavía no depositaban, más un
+ * fondo y plata por rendir. Aquí se reparte esa suma por tipo con los saldos que la base ya calculó, y solo se devuelve si las partes suman la cifra
+ * de arriba (S/ 0.50 de tolerancia): si una cuenta no se ve (saldo nulo) o las lecturas se desfasaron, `null` y la tarjeta queda como estaba.
+ */
+export function desgloseDeTienes(cuentas: readonly CuentaDinero[] | null, saldoHoy: number): DesgloseTienes | null {
+  if (!cuentas) return null;
+  const suman = cuentas.filter((c) => c.tipo !== "tarjeta_credito");
+  if (suman.some((c) => c.saldo === null)) return null;
+  let enMano = 0;
+  let porAbonar = 0;
+  let otros = 0;
+  for (const c of suman) {
+    const saldo = c.saldo ?? 0;
+    if (c.tipo === "banco" || c.tipo === "caja_fuerte" || c.tipo === "cajon") enMano += saldo;
+    else if (c.tipo === "por_abonar") porAbonar += saldo;
+    else otros += saldo;
+  }
+  const d = { enMano: r2(enMano), porAbonar: r2(porAbonar), otros: r2(otros) };
+  return Math.abs(d.enMano + d.porAbonar + d.otros - saldoHoy) < 0.5 ? d : null;
+}
+
+/** La línea de la tarjeta: lo que está a mano y, aparte, lo que no lo está todavía. Si no hay nada aparte, el texto de siempre, que ya era exacto. */
+function detalleDeTienes(d: DesgloseTienes | null | undefined): string {
+  const siempre = "En cajones, cajas fuertes y bancos de toda la empresa.";
+  if (!d) return siempre;
+  const aparte: string[] = [];
+  if (Math.abs(d.porAbonar) > 0.005) aparte.push(`${soles(d.porAbonar)} de tarjeta y QR que las máquinas todavía no depositan`);
+  if (Math.abs(d.otros) > 0.005) aparte.push(`${soles(d.otros)} en fondos y plata por rendir`);
+  if (!aparte.length) return siempre;
+  return `En bancos, cajas fuertes y cajones: ${soles(d.enMano)}. Más ${aparte.join(" y ")}.`;
+}
+
+function tienes(caja: CajaProxima, href: string | null, desglose?: DesgloseTienes | null): Respuesta {
   const base = { clave: "tienes" as const, chips: [] as Chip[], ...(href ? { href } : {}) };
   if (caja.tipo === "cayla") {
     const estado = estadoDeCaja(caja);
     const chips: Chip[] = [];
     if (caja.provisional) chips.push({ texto: "Provisional", tono: "pizarra" });
     if (estado) chips.push({ texto: estado.texto, tono: estado.tono });
-    return { ...base, pregunta: "¿Cuánto tienes?", valor: caja.saldoHoy, detalle: "En cajones, cajas fuertes y bancos de toda la empresa.", chips };
+    return { ...base, pregunta: "¿Cuánto tienes?", valor: caja.saldoHoy, detalle: detalleDeTienes(desglose), chips };
   }
   if (caja.tipo === "sede") {
     const pregunta = caja.vende ? `¿Cuánto efectivo tienes en ${caja.nombre}?` : "¿Cuánto efectivo tienes?";
@@ -78,6 +121,6 @@ function deja(resp: RespuestaResumen): Respuesta {
 }
 
 /** Las tres, en el orden en que una persona se las hace: lo que tiene, lo que debe, lo que gana. */
-export function tresRespuestas({ r, caja, deja: resp, hrefDinero, hrefPorPagar }: Entrada): [Respuesta, Respuesta, Respuesta] {
-  return [tienes(caja, hrefDinero), debes(r, hrefPorPagar), deja(resp)];
+export function tresRespuestas({ r, caja, deja: resp, hrefDinero, hrefPorPagar, desglose }: Entrada): [Respuesta, Respuesta, Respuesta] {
+  return [tienes(caja, hrefDinero, desglose), debes(r, hrefPorPagar), deja(resp)];
 }
