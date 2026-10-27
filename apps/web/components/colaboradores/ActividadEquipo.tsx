@@ -62,7 +62,7 @@ export function ActividadEquipo({
   onClose: () => void;
 }) {
   return (
-    <Modal conCerrar titulo="Actividad del equipo" subtitulo={esLider ? "Todas las sedes." : "Tu sede."} tamano="ancha" variante="hoja" onClose={onClose}>
+    <Modal conCerrar titulo="Actividad" subtitulo={esLider ? "Todas las sedes" : "Tu sede"} tamano="ancha" variante="hoja" onClose={onClose}>
       {veActividad ? (
         <ConActividad esLider={esLider} />
       ) : (
