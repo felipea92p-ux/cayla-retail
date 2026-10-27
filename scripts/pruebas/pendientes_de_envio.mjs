@@ -65,6 +65,11 @@ const MIGRACIONES = SIN_MIGRACION
       // ADR-0393 (2026-10-26): el precio de venta también se cambia desde «Para después» (casos W). Parcha `cambiar_precio_en_recepcion`
       // (20261024225000, que ya está en la base).
       "20261026180000_precio_de_venta_en_para_despues.sql",
+      // ADR-0519: el costo propio de cada prenda al cerrar (deja `costos_prendas` y los parches a las funciones que ya reescribieron las de arriba).
+      "20261026164000_costo_por_prenda_en_la_recepcion.sql",
+      // ADR-0519 sobre ADR-0393 (2026-10-27): el costo de cada prenda también se cambia desde «Para después» (casos K). Parcha
+      // `resolver_pendiente_envio`, `ligar_prenda_a_pendiente` y el candado de lo contado (ADR-0519, 20261026164000, que ya está en la base).
+      "20261026210000_costo_por_prenda_en_hacer_ahora.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -180,6 +185,7 @@ ${atrapa("pendientes", "p_u uuid", "retail.fn_recepcion_pendientes(p_u)")}
 ${atrapa("liga", "p_d uuid, p_pend uuid, p_prod uuid", "retail.ligar_prenda_a_pendiente(p_d, p_pend, p_prod)")}
 ${atrapa("cambia", "p_d uuid, p_prod uuid, p_precio numeric, p_alcance text", "retail.cambiar_precio_en_recepcion(p_d, p_prod, p_precio, p_alcance)")}
 ${atrapa("valida", "p_d uuid, p_prod uuid, p_precio numeric, p_alcance text", "retail.validar_precio_en_recepcion(p_d, p_prod, p_precio, p_alcance)")}
+${atrapa("sinaviso", "p_u uuid, p_prov uuid, p_guia text, p_nota text, p_token uuid", "retail.abrir_envio_sin_aviso(p_u, p_prov, p_guia, p_nota, p_token)")}
 -- La pista de lo que dijo la validación: «OK» o por qué no.
 create function pg_temp.hv(p jsonb) returns text language sql as $f$
   select case when (p ->> 'ok')::boolean then 'OK' else coalesce(p ->> 'hint', p ->> 'codigo') end;
@@ -301,6 +307,12 @@ select producto_id as prod_n from retail.variantes where id = :'v_s' \\gset
 `;
 // El escenario de casi todos los casos: el envío d1 (l1 = 10 y l2 = 4) a Trujillo, abierto por Micaela, con la prenda nueva en l1.
 const BASE_D1 = `${ENVIA("d1", [["l1", 10], ["l2", 4]])}${ITEM("d1", "l1")}${ITEM("d1", "l2")}${MICAELA_RECIBE}${ABRE("d1")}${PRENDA_NUEVA("d1")}`;
+// Micaela abre un envío sin aviso en Trujillo, del proveedor de la prueba: :<nombre> y su versión :v_<nombre> (casos K).
+const SIN_AVISO = (nombre) => `
+select pg_temp.sinaviso(:'tru', :'prov', 'G-77', null, gen_random_uuid()) as sa_${nombre} \\gset
+select (:'sa_${nombre}'::jsonb ->> 'despacho_id') as ${nombre} \\gset
+select (:'sa_${nombre}'::jsonb ->> 'version')::int as v_${nombre} \\gset
+`;
 const GUARDA = (envio, item, contadas, sep = VACIO, version = "null::int", { extra = "null::int", prov = "null::uuid", cat = "null::uuid", marca = "null::uuid" } = {}) =>
   `pg_temp.guarda(:'${envio}', ${item ? `:'${item}'` : "null::uuid"}, ${contadas}, ${sep}, ${version}, ${extra}, ${prov}, ${cat}, ${marca})`;
 
@@ -341,8 +353,9 @@ ${items.map((i) => `select version as k_${i} from retail.despacho_conteos where 
 ${extras.map((x) => `select version as k_x${x} from retail.despacho_conteos where despacho_id = :'${envio}' and extra_posicion = ${x} \\gset`).join("\n")}
 ${como(MICAELA)}${EN_TIENDA}`;
 // Lo que decide quien cierra por un conteo: [línea | {extra}], con la versión que vio y, si hace falta, costo, causas y nota.
-const DEC = (item, { costo = null, confirma = false, falt = null, sobr = null, nota = null, version = null } = {}) =>
+const DEC = (item, { costo = null, confirma = false, falt = null, sobr = null, nota = null, version = null, costosPrendas = null } = {}) =>
   J({
+    ...(costosPrendas ? { costos_prendas: costosPrendas } : {}),
     ...(typeof item === "number" ? { extra_posicion: item } : { despacho_item_id: `:'di_${item}'` }),
     version: version ?? (typeof item === "number" ? `:k_x${item}` : `:k_${item}`),
     costo_unitario: costo === null ? "null::numeric" : `${costo}`,
@@ -356,6 +369,8 @@ const CIERRA = (envio, decs, { nota = "null::text", token = "null::uuid", versio
 const RESUELVE = (envio, item, pendiente, sep, { confirma = false, token = "null::uuid" } = {}) =>
   `pg_temp.resuelve(:'${envio}', ${typeof item === "number" ? "null::uuid" : `:'di_${item}'`}, ${typeof item === "number" ? item : "null::int"}, ` +
   `${pendiente ? `:'${pendiente}'` : "null::uuid"}, ${sep}, ${confirma ? "true" : "false"}, ${token})`;
+// El costo propio de cada prenda que se identifica en «Hacer ahora» (`p_separado -> 'costos'`): [[producto, costo]] con el costo ya en SQL.
+const CON_COSTOS = (sep, ...pares) => `(${sep} || jsonb_build_object('costos', jsonb_build_object(${pares.map(([p, c]) => `:'${p}', ${c}`).join(", ")})))`;
 // Las cuentas de una línea, leídas como postgres: contadas:en_stock:en_pendientes:sin_separar.
 const CUENTAS = (envio, item) =>
   `(select concat_ws(':', c.contadas, c.en_stock, c.en_pendientes, c.sin_separar) from retail.fn_envio_cuentas(array[:'${envio}'::uuid]) c ` +
@@ -800,6 +815,148 @@ caso(
        .join(",\n     ")}) as r \\gset
    select :'r';`,
   "true,true,true,true,true,true,true,true",
+);
+
+// K. EL COSTO DE CADA PRENDA EN «HACER AHORA» (ADR-0519 sobre ADR-0393) ---------------------------------------------------------
+// El mismo escenario del cierre con pendientes, pero la prenda nueva «Chompa con capucha» ya traía su costo propio, escrito por su descripción
+// al cerrar (ADR-0519): el pendiente «crear» lo conserva hasta que se cree su prenda.
+const CIERRE_CON_COSTO_DE_NUEVA = `${BASE_D1}
+   select ${GUARDA("d1", "di_l1", 10, SEP([["prod_n", 4, [V("v_s", 3), V("v_m", 1)]], ["prod_p", 3]], [[2, "Chompa con capucha"]]))} \\g /dev/null
+   select ${GUARDA("d1", "di_l2", 2)} \\g /dev/null
+   ${VERS("d1", ["l1", "l2"])}
+   select ${CIERRA("d1", [DEC("l1", { costosPrendas: J({ "nueva:Chompa con capucha": 41.5 }) }), DEC("l2", { falt: "no_vino" })], { nota: "'Un fardo'" })} as cierre \\gset
+   reset role;
+   select id as pend_det from retail.despacho_pendientes where despacho_id = :'d1' and tipo = 'detalle' \\gset
+   select id as pend_new from retail.despacho_pendientes where despacho_id = :'d1' and tipo = 'crear' \\gset
+   ${como(MICAELA)}${EN_TIENDA}`;
+const COSTOS_DE_L1 = `(select costos_prendas from retail.despacho_conteos where despacho_id = :'d1' and despacho_item_id = :'di_l1')`;
+const RECIBIDOS_DE = (pendiente) =>
+  `(select string_agg(r.cantidad || '@' || r.costo_unitario, ',' order by r.creado_en, r.cantidad desc) from retail.despacho_recibidos r where r.pendiente_id = :'${pendiente}')`;
+caso(
+  "K1 «Hacer ahora» con el costo de la prenda: lo que entra lleva ese costo (no el de la línea), queda en el conteo, y la segunda parte de la prenda entra con él",
+  `${CIERRE_CON_PENDIENTES}
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 24.5]))} as r1 \\gset
+   select ${RESUELVE("d1", "l1", "pend_det", SEP([["prod_p", 1, [V("pv_s", 1)]]]))} as r2 \\gset
+   reset role;
+   select concat_ws(' / ',
+     :'r1'::jsonb -> 'linea' -> 'costos_prendas' ->> :'prod_p',
+     ${RECIBIDOS_DE("pend_det")},
+     ${COSTOS_DE_L1} ->> :'prod_p',
+     (select costo_unitario from retail.despacho_conteos where despacho_id = :'d1' and despacho_item_id = :'di_l1'),
+     (select estado from retail.despacho_pendientes where id = :'pend_det'));`,
+  "24.5 / 2@24.50,1@24.50 / 24.5 / 30.00 / resuelto",
+);
+caso(
+  "K2 lo escrito ahora gana sobre lo que ya había; sin costos, vacío, nulo o de una prenda que no es de la hoja, todo sigue como hoy (el costo de la línea)",
+  `${CIERRE_CON_PENDIENTES}
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_g", 99]))} \\g /dev/null
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_p", "null::numeric"]))} \\g /dev/null
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_p", "''::text"]))} \\g /dev/null
+   reset role;
+   select concat_ws(' / ', ${RECIBIDOS_DE("pend_det")}, ${COSTOS_DE_L1}::text, (select estado from retail.despacho_pendientes where id = :'pend_det'));`,
+  "1@30.00,1@30.00,1@30.00 / {} / resuelto",
+);
+caso(
+  "K3 lo de ahora gana: la segunda parte de la prenda puede entrar a otro costo, y las dos quedan anotadas cada una con el suyo",
+  `${CIERRE_CON_PENDIENTES}
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 24.5]))} \\g /dev/null
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_p", 26]))} \\g /dev/null
+   reset role;
+   select concat_ws(' / ', ${RECIBIDOS_DE("pend_det")}, ${COSTOS_DE_L1} ->> :'prod_p');`,
+  "2@24.50,1@26.00 / 26",
+);
+caso(
+  "K4 un costo mal escrito se rechaza con su motivo y no se escribe nada: negativo, de más de S/ 99 999.99, con tres decimales o que no es número",
+  `${CIERRE_CON_PENDIENTES}
+   select concat_ws(',',
+     ${[-1, 100000, 24.555, "'abc'::text"]
+       .map((c) => `pg_temp.h(${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_p", c]))})`)
+       .join(",\n     ")}) as r \\gset
+   reset role;
+   select concat_ws(' / ', :'r', (select count(*) from retail.despacho_recibidos where pendiente_id = :'pend_det'), ${COSTOS_DE_L1}::text,
+     (select estado from retail.despacho_pendientes where id = :'pend_det'));`,
+  "recepcion_costo,recepcion_costo,recepcion_costo,recepcion_costo / 0 / {} / pendiente",
+);
+caso(
+  "K5 un costo fuera de lo normal pide confirmación como siempre, y al fallar no deja el costo escrito; confirmado, entra y se queda",
+  `${CIERRE_CON_PENDIENTES}
+   select pg_temp.h(${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_p", 400]))}) as atipico \\gset
+   reset role;
+   select ${COSTOS_DE_L1}::text as tras_el_aviso \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 1, [V("pv_s", 1)]]]), ["prod_p", 400]), { confirma: true })}) as confirmado \\gset
+   reset role;
+   select concat_ws(' / ', :'atipico', :'tras_el_aviso', :'confirmado', ${RECIBIDOS_DE("pend_det")}, ${COSTOS_DE_L1} ->> :'prod_p');`,
+  "recepcion_costo_atipico / {} / OK / 1@400.00 / 400",
+);
+caso(
+  "K6 doble clic: el mismo token y los mismos datos responden lo mismo sin entrar dos veces; el mismo token con otro costo no",
+  `${CIERRE_CON_PENDIENTES}
+   select gen_random_uuid() as tk \\gset
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 24.5]), { token: ":'tk'" })} as r1 \\gset
+   select ${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 24.5]), { token: ":'tk'" })} as r2 \\gset
+   select pg_temp.h(${RESUELVE("d1", "l1", "pend_det", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 20]), { token: ":'tk'" })}) as r3 \\gset
+   reset role;
+   select concat_ws(' / ', :'r1'::jsonb ->> 'repetido', :'r2'::jsonb ->> 'repetido', :'r2'::jsonb ->> 'entraron', :'r3',
+     ${RECIBIDOS_DE("pend_det")}, ${COSTOS_DE_L1} ->> :'prod_p');`,
+  "false / true / 2 / recepcion_otros_datos / 2@24.50 / 24.5",
+);
+caso(
+  "K7 el costo puesto a una prenda nueva por su descripción pasa a la prenda cuando se crea y se liga; al terminar su pendiente entra con ese costo",
+  `${CIERRE_CON_COSTO_DE_NUEVA}${PRENDA_CAPUCHA}
+   reset role;
+   select (${COSTOS_DE_L1} ? 'nueva:Chompa con capucha')::text || ':' || (${COSTOS_DE_L1} ->> 'nueva:Chompa con capucha') as antes \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.liga(:'d1', :'pend_new', :'prod_cap') as ligada \\gset
+   reset role;
+   select (${COSTOS_DE_L1} ? 'nueva:Chompa con capucha')::text || ':' || (${COSTOS_DE_L1} ->> :'prod_cap') as despues \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select ${RESUELVE("d1", "l1", "pend_new", SEP([["prod_cap", 2, [V("v_cap", 2)]]]))} as fin \\gset
+   reset role;
+   select concat_ws(' / ', :'antes', :'ligada'::jsonb ->> 'ligado', :'despues', :'fin'::jsonb ->> 'entraron', ${RECIBIDOS_DE("pend_new")});`,
+  "true:41.5 / true / false:41.5 / 2 / 2@41.50",
+);
+caso(
+  "K8 el candado de lo contado con el envío cerrado: solo la columna del costo por prenda y solo con la marca de la función; todo lo demás sigue sin poder cambiar",
+  `${CIERRE_CON_PENDIENTES}
+   reset role;
+   select id as k_l1 from retail.despacho_conteos where despacho_id = :'d1' and despacho_item_id = :'di_l1' \\gset
+   select concat_ws(' / ',
+     pg_temp.intento($q$update retail.despacho_conteos set contadas = contadas where id = '$q$ || :'k_l1' || $q$'$q$),
+     pg_temp.intento($q$update retail.despacho_conteos set costos_prendas = '{"x": 1}'::jsonb where id = '$q$ || :'k_l1' || $q$'$q$),
+     pg_temp.intento($q$select set_config('retail.costo_de_prenda', 'si', true);
+                        update retail.despacho_conteos set costos_prendas = '{"x": 1}'::jsonb where id = '$q$ || :'k_l1' || $q$';
+                        select set_config('retail.costo_de_prenda', '', true)$q$),
+     pg_temp.intento($q$select set_config('retail.costo_de_prenda', 'si', true);
+                        update retail.despacho_conteos set costos_prendas = '{"x": 2}'::jsonb, costo_unitario = 1 where id = '$q$ || :'k_l1' || $q$'$q$),
+     pg_temp.intento($q$select set_config('retail.costo_de_prenda', 'si', true);
+                        update retail.despacho_conteos set contadas = contadas + 1 where id = '$q$ || :'k_l1' || $q$'$q$)) as r \\gset
+   -- Lo que quedó se lee en otra sentencia: la de arriba no ve lo que sus propias llamadas escribieron.
+   select concat_ws(' / ', :'r', (select costos_prendas::text from retail.despacho_conteos where id = :'k_l1'),
+     coalesce(nullif(current_setting('retail.costo_de_prenda', true), ''), 'apagada'));`,
+  "23514|Solo se cuenta un envío abierto / 23514|Solo se cuenta un envío abierto / SIN_ERROR / 23514|Solo se cuenta un envío abierto / " +
+    "23514|Solo se cuenta un envío abierto / {\"x\": 1} / apagada",
+);
+
+caso(
+  "K9 en un envío sin aviso, el costo de lo que no estaba en la guía lo escribe solo quien ve el dinero de Compras, también en «Hacer ahora»; lo que dejó anotado vale para quien termina el resto",
+  `${MICAELA_RECIBE}
+   ${SIN_AVISO("d")}
+   select pg_temp.guarda(:'d', null, 4, ${SEP([["prod_p", 4]])}, null::int, null::int, null::uuid, :'cat', :'marca') \\g /dev/null
+   ${VERS("d", [], [1])}
+   select ${CIERRA("d", [DEC(1)])} \\g /dev/null
+   reset role;
+   select id as pend from retail.despacho_pendientes where despacho_id = :'d' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(${RESUELVE("d", 1, "pend", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 24]))}) as micaela \\gset
+   ${como(SANDRA)}${SIN_ENCABEZADOS}
+   select pg_temp.h(${RESUELVE("d", 1, "pend", CON_COSTOS(SEP([["prod_p", 2, [V("pv_s", 2)]]]), ["prod_p", 24]))}) as sandra \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(${RESUELVE("d", 1, "pend", SEP([["prod_p", 2, [V("pv_s", 2)]]]))}) as resto \\gset
+   reset role;
+   select concat_ws(' / ', :'micaela', :'sandra', :'resto', ${RECIBIDOS_DE("pend")},
+     (select estado from retail.despacho_pendientes where id = :'pend'));`,
+  "recepcion_costo_sin_permiso / OK / OK / 2@24.00,2@24.00 / resuelto",
 );
 
 // I. EL CANDADO DE LA BASE: LA LÍNEA SIEMPRE CUADRA ------------------------------------------------------------------------

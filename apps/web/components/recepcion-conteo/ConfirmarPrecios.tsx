@@ -4,7 +4,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { PieAcciones } from "@/components/ui/PieAcciones";
-import { textoCambioDePrecio, type CambioDePrecio } from "@/lib/recepcion-conteo-reglas";
+import { textoCambioDePrecio, textoIgualaTallas, type CambioDePrecio } from "@/lib/recepcion-conteo-reglas";
 
 // «Vas a cambiar precios»: lo que cambia, antes de guardar (el cierre del envío, y «Hacer ahora» en «Para después»). Es dinero, así que
 // se lee y se confirma. Va FUERA del <form> de quien la abre (ADR-0128): un clic o una tecla de la hoja no debe llegar al envío.
@@ -47,6 +47,7 @@ export function ConfirmarPrecios({
                   <li key={`${tipo}-${c.nombre}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-3 py-2 text-sm">
                     <span className="font-medium text-tinta">{c.nombre}</span>
                     <span className="tabular-nums text-taupe">{textoCambioDePrecio(c, sede)}</span>
+                    {textoIgualaTallas(c, sede) && <span className="basis-full text-xs text-taupe">{textoIgualaTallas(c, sede)}</span>}
                   </li>
                 ))}
               </ul>

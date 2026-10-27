@@ -274,6 +274,9 @@ flowchart TB
   `cambiar_precio_en_recepcion`, que con el envío cerrado solo acepta lo que sigue «para después» o entró hace menos de una hora (`20261026180000`).
   El precio nace «solo para la sede que recibe» (`ALCANCE_DE_FABRICA`, `lib/recepcion-conteo-reglas.ts`) y, antes de la confirmación, `usePreciosDeVenta.validar` →
   RPC `validar_precio_en_recepcion` (lectura: corre la función real en una subtransacción que se deshace) dice por qué un precio no se podría guardar.
+  El mismo bloque trae el costo de la prenda (`PrecioDePrenda` con `costo`; `costoInicialDePrenda` / `costosDeHacerAhora` en `lib/recepcion-conteo-reglas.ts`): viaja en
+  `p_separado -> 'costos'` a `resolver_pendiente_envio`, que lo valida con `fn_envio_costos_prendas` y lo deja en `despacho_conteos.costos_prendas` para lo que falte de esa prenda
+  (`20261026210000`, ADR-0393 act. 2026-10-27, sobre ADR-0519).
 - `/inventario/recibir` → `lib/catalogo.ts` → `RecibirLoteForm.tsx` → RPC
   `recibir_lote` (la función más inestable del sistema, ver §6).
 - `/inventario/compras` → `ComprasManager.tsx` (escribe directo en
