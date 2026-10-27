@@ -17,6 +17,7 @@ import {
   type PapelDelEnvio,
   type TallaDeLaCategoria,
 } from "@/lib/recepcion-envio-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // Recibir en la sede un envío de orden de compra (ADR-0362, fase 4): lo que la pantalla lee en el servidor. Las reglas viven en la base
 // (`fn_envios_por_recibir`, `fn_ordenes_directas_por_recibir`, `fn_envio_detalle`, todas con el módulo Recibir u Órdenes de compra); la
@@ -135,6 +136,7 @@ export async function getCatalogoParaRecibir(): Promise<CatalogoParaRecibir | nu
       vinculos: vinculos.error ? [] : (vinculos.data ?? []).map((v) => ({ marcaId: v.marca_id, proveedorId: v.proveedor_id })),
     };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("[recepcion-envio] catálogo:", e instanceof Error ? e.message : e);
     return null;
   }
@@ -174,7 +176,8 @@ async function lotesDelEnvio(despachoId: string): Promise<string[]> {
     const { data, error } = await consulta.select("id").eq("despacho_id", despachoId);
     if (error || !Array.isArray(data)) return [];
     return data.map((f) => (f && typeof f === "object" ? (f as { id?: unknown }).id : null)).filter((x): x is string => typeof x === "string");
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return [];
   }
 }
