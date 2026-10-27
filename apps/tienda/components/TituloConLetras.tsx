@@ -1,5 +1,5 @@
 import { Fragment, type CSSProperties } from "react";
-import { letrasDelTitulo } from "@/lib/desfile";
+import { letrasDelTitulo } from "../lib/desfile";
 
 /**
  * El título grande de una página («Ropa», «Tu bolsa»…), que sube letra a letra al llegar (la maqueta de la Pasarela, `p-letras`). Promete que el lector
