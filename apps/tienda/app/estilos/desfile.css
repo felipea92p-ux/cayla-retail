@@ -37,7 +37,7 @@
 .t-palabra { display: inline-block; white-space: nowrap; }
 .t-letra { display: inline-block; }
 /* Sin prendas (la portada de «solo la marca»): el título es la portada, más chico y en su lugar, sin luz. */
-.t-escenario[data-sin-prendas] .t-escena-tit { position: static; transform: none; font-size: clamp(48px, 9cqi, 150px); max-width: 14ch; margin-inline: auto; }
+.t-escenario[data-sin-prendas] .t-escena-tit { position: static; transform: none; font-size: clamp(40px, 7.5cqi, 128px); padding-inline: 0; max-width: 100%; margin-inline: auto; text-align: center; text-wrap: balance; }
 
 /* El círculo de luz va delante del titular y detrás de la prenda: en él la prenda conserva su color; fuera de él, se oscurece. */
 .t-luz {

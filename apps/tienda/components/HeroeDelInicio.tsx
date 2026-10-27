@@ -43,12 +43,13 @@ export function HeroeDelInicio({
 }) {
   if (hero.tipo !== "campana") {
     const nuevo = hero.tipo === "nuevo";
+    const vitrina = hero.tipo === "vitrina";
     return (
       <EscenarioDelDesfile
-        piezas={nuevo ? piezasDelDesfile(hero.piezas, sede, origenFotos) : []}
+        piezas={nuevo || vitrina ? piezasDelDesfile(hero.piezas, sede, origenFotos) : []}
         modo="portada"
         ceja={nuevo ? "Llegó en los últimos 30 días" : "Tienda online"}
-        titulo={nuevo ? "Lo nuevo" : "Donde el estilo transforma"}
+        titulo={nuevo ? "Lo nuevo" : vitrina ? "En vitrina" : "Donde el estilo transforma"}
         boton={nuevo ? { texto: "Ver lo nuevo", href: verNuevo } : { texto: "Ver toda la tienda", href: hrefLista({ sede, categoria: null, orden: "destacado" }) }}
         enEspera={enEspera}
       />

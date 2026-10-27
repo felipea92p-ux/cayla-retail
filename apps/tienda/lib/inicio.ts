@@ -33,7 +33,10 @@ export type Hero =
   | { tipo: "campana"; campana: Campana; piezas: Prenda[]; campanaId: string | null }
   /** Sin campaña: lo que llegó hace menos, hasta seis prendas: las salidas del desfile (`lib/desfile.ts`). */
   | { tipo: "nuevo"; piezas: Prenda[] }
-  /** Sin campaña ni nada nuevo: la frase de la marca. */
+  /** Sin campaña ni nada que llegara hace menos de 30 días, pero con prendas en la tienda: el desfile sigue siendo la portada y sale con lo que hay (hasta
+   *  seis, con foto primero), sin llamarlo «nuevo». Felipe 2026-10-27: «no existe la pasarela». */
+  | { tipo: "vitrina"; piezas: Prenda[] }
+  /** Sin campaña ni prendas en la tienda elegida: la frase de la marca. */
   | { tipo: "marca" };
 
 
@@ -57,6 +60,8 @@ export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[
   }
   const nuevas = lasNuevas(prendas);
   if (nuevas.length > 0) return { tipo: "nuevo", piezas: nuevas.slice(0, SALIDAS_MAX) };
+  const enVitrina = [...prendas].sort(conFotoPrimero).slice(0, SALIDAS_MAX);
+  if (enVitrina.length > 0) return { tipo: "vitrina", piezas: enVitrina };
   return { tipo: "marca" };
 }
 

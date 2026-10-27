@@ -57,10 +57,10 @@ describe("el héroe del Inicio", () => {
   it("con campaña pero nada suyo en lo que se ve: no se anuncia (Felipe 2026-10-15); sale Lo nuevo y, sin nada nuevo, la marca", () => {
     const hero = heroDelInicio(campana, [prenda("Blusa"), prenda("Nueva", { nuevo: { dias: 3 }, fotos: [FOTO] })]);
     expect(hero.tipo === "nuevo" && nombres(hero.piezas)).toEqual(["Nueva"]);
-    expect(heroDelInicio(campana, [prenda("Blusa")])).toEqual({ tipo: "marca" });
+    expect(heroDelInicio(campana, [prenda("Blusa")]).tipo).toBe("vitrina");
     // De la campaña pero sin descuento en esta tienda tampoco cuenta: no es «suya» aquí.
     const sinDescuento = prenda("Sin descuento", { campana: { id: ANIV, nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21" } });
-    expect(heroDelInicio(campana, [sinDescuento]).tipo).toBe("marca");
+    expect(heroDelInicio(campana, [sinDescuento]).tipo).toBe("vitrina");
   });
 
   it("el nombre de la campaña se compara sin tildes ni mayúsculas", () => {
@@ -78,7 +78,10 @@ describe("el héroe del Inicio", () => {
     ];
     const hero = heroDelInicio(null, prendas);
     expect(hero.tipo === "nuevo" && nombres(hero.piezas)).toEqual(["Hace 5 con foto", "Hace 1", "Hace 9", "Fijada"]);
-    expect(heroDelInicio(null, [prenda("Vieja")])).toEqual({ tipo: "marca" });
+    // Sin nada que llegara hace menos de 30 días el desfile no desaparece: sale con lo que hay (foto primero), sin llamarlo «nuevo».
+    const sinNuevas = heroDelInicio(null, [prenda("Vieja"), prenda("Con foto", { fotos: [FOTO] })]);
+    expect(sinNuevas.tipo === "vitrina" && nombres(sinNuevas.piezas)).toEqual(["Con foto", "Vieja"]);
+    // Solo sin prendas en la tienda elegida queda la frase de la marca.
     expect(heroDelInicio(null, [])).toEqual({ tipo: "marca" });
   });
 
