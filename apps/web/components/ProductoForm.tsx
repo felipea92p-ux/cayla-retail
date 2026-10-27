@@ -91,7 +91,16 @@ import { SeccionFicha } from "@/components/ficha-producto/SeccionFicha";
 import { PreciosPorSede } from "@/components/ficha-producto/PreciosPorSede";
 import type { Tienda } from "@/components/ficha-producto/PrecioSedeModal";
 import { usePreciosDeTienda } from "@/components/ficha-producto/usePreciosDeTienda";
-import { nombreCorto, tiendasAlCambiarPrecio } from "@/lib/precio-sede-reglas";
+import {
+  MOTIVO_DESDE_LA_TABLA,
+  cambioPrecioAqui,
+  nombreCorto,
+  problemaPrecioAqui,
+  soles,
+  tiendasAlCambiarPrecio,
+  type CambioPrecioAqui,
+} from "@/lib/precio-sede-reglas";
+import { PrecioAquiTerminal } from "@/components/ficha-producto/PrecioAquiTerminal";
 import { MatrizStockFicha, MotivoDeLaVisita, type BotonesDeColor, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
 import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
@@ -601,6 +610,18 @@ export function ProductoForm({
   // Los precios propios que siguen después del último guardado (los igualados se van), para ver en qué tiendas cambió el precio en caja.
   const propiosTras = useRef<ReadonlyMap<string, number>>(new Map());
   const [igualarTiendas, setIgualarTiendas] = useState<ReadonlySet<string>>(new Set());
+  // Una terminal escribe el precio de SU tienda en la tabla de «Precios», como un costo (Felipe 2026-10-27), y se guarda con «Revisar y
+  // guardar» (`poner_precio_sede`, o `quitar_precio_sede` si vuelve al de la prenda). `null` = no se tocó. Sin motivo que escribir: quién
+  // lo cambió lo dice la firma del responsable (Felipe 2026-10-27).
+  const tiendaTerminal = preciosSede?.soloAqui ? (preciosSede.tiendas[0] ?? null) : null;
+  const [precioAquiEscrito, setPrecioAquiEscrito] = useState<string | null>(null);
+  const propioTerminal = tiendaTerminal ? preciosTienda.precios?.find((p) => p.ubicacionId === tiendaTerminal.id) : undefined;
+  // Mientras se leen los precios de la tienda no se sabe a cuánto vende: la celda espera (sin caja) y nada cuenta como cambio.
+  const precioAquiListo = !!tiendaTerminal && preciosTienda.precios !== null;
+  const cambioAqui: CambioPrecioAqui =
+    precioAquiListo && preciosSede
+      ? cambioPrecioAqui({ escrito: precioAquiEscrito, propio: propioTerminal?.precio ?? null, general: preciosSede.general })
+      : { que: "nada" };
   // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
   const [guardado, setGuardado] = useState(false);
 
@@ -715,7 +736,25 @@ export function ProductoForm({
   // en la hoja como su propio grupo. El de las variantes NUEVAS ya cuenta con ellas («agregan»).
   const donde = stock.lugar === "piso" ? "en el piso de venta" : stock.lugar === "almacen" ? "en el almacén" : "en esta sede";
   const grupoStock = grupoDeStockEnHoja(stock.cambios, stock.motivos.find((m) => m.valor === stock.motivo)?.texto ?? "Ajuste", donde);
-  const totalCambios = resumen.total + stock.cambios.length;
+  const totalCambios = resumen.total + stock.cambios.length + (cambioAqui.que === "nada" ? 0 : 1);
+  // El precio de la tienda escrito en la tabla, como un grupo más de la hoja «Revisa y guarda».
+  const grupoPrecioAqui =
+    tiendaTerminal && (cambioAqui.que === "poner" || cambioAqui.que === "quitar")
+      ? {
+          titulo: `Precio en ${nombreCorto(tiendaTerminal.nombre)}`,
+          lineas: [
+            {
+              texto: "Todas las tallas",
+              antes: cambioAqui.antes !== null ? soles(cambioAqui.antes) : "Según la talla",
+              despues: soles(cambioAqui.que === "poner" ? cambioAqui.precio : cambioAqui.general),
+            },
+          ],
+          nota:
+            cambioAqui.que === "poner"
+              ? "Las otras tiendas no cambian."
+              : "Vuelve al precio de la prenda: deja de tener precio propio. Las otras tiendas no cambian.",
+        }
+      : null;
   // Si cambió el precio de alguna talla activa y alguna tienda tiene precio propio: qué pasa en cada tienda (la hoja lo pregunta).
   const preciosActivos = (vs: readonly { activo: boolean; precio: string }[]) => vs.filter((v) => v.activo).map((v) => Number(v.precio)).filter((n) => n > 0);
   const alCambiarPrecio =
@@ -804,7 +843,59 @@ export function ProductoForm({
       abrir("variantes");
       return void enVista("unidades", () => avisar.error(stock.responsable.motivo ?? "Elige quién hace el ajuste de stock.", { enfocar: "ficha-stock-responsable" }));
     }
+    // El precio de la tienda escrito en la tabla (terminal): lo que la base rechazaría, con la celda a corregir.
+    if (tiendaTerminal && cambioAqui.que !== "nada") {
+      const costoAqui = veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null;
+      const problemaAqui = problemaPrecioAqui(cambioAqui, tiendaTerminal.nombre, preciosSede?.general ?? null, costoAqui);
+      const primeraCelda = filas.find((f) => f.activo && f.guardada);
+      if (problemaAqui) {
+        abrir("variantes");
+        return void enVista("precio", () =>
+          avisar.error(problemaAqui, primeraCelda ? { enfocar: `producto-variante-${primeraCelda.clave}-precio` } : undefined)
+        );
+      }
+    }
     setHojaAbierta(true);
+  }
+
+  /** El precio de la tienda que la terminal escribió en la tabla (Felipe 2026-10-27). Va después del guardado de la prenda, con la misma
+   *  firma. Devuelve la frase para el aviso de éxito; `null` si no había nada; `false` si falló (ya avisó; lo escrito sigue en la tabla
+   *  y «Revisar y guardar» lo vuelve a intentar). `"responsable"`: quien firma ya no está de turno, la hoja sigue abierta. */
+  async function guardarPrecioAqui(supabase: ReturnType<typeof createClient>, firma: NonNullable<ReturnType<typeof stock.responsable.firma>>, nombrePrenda: string) {
+    if (!producto || !tiendaTerminal || (cambioAqui.que !== "poner" && cambioAqui.que !== "quitar")) return null;
+    const corto = nombreCorto(tiendaTerminal.nombre);
+    const { error } = await firmar(
+      cambioAqui.que === "poner"
+        ? supabase.rpc("poner_precio_sede", {
+            p_producto_id: producto.id,
+            p_ubicacion_id: tiendaTerminal.id,
+            p_precio: cambioAqui.precio,
+            p_motivo: MOTIVO_DESDE_LA_TABLA,
+          })
+        : supabase.rpc("quitar_precio_sede", { p_producto_id: producto.id, p_ubicacion_id: tiendaTerminal.id, p_motivo: "Vuelve al precio de la prenda" }),
+      firma
+    );
+    stock.responsable.despues(error);
+    if (error && esErrorDeResponsable(error)) {
+      avisar.error(traducirError(error, `guardar el precio de ${corto}`), { enfocar: "confirmar-cambios-responsable" });
+      return "responsable" as const;
+    }
+    if (error) {
+      avisar.error(traducirError(error, `guardar el precio de ${corto}`), {
+        detalle: resumen.total > 0 ? `${nombrePrenda} ya quedó guardado; el precio de ${corto} sigue como estaba.` : undefined,
+      });
+      return false as const;
+    }
+    // Lo que la caja de esta tienda cobra después (la vista previa de las etiquetas y el aviso de reimprimir lo miran).
+    const nuevo = cambioAqui.que === "poner" ? cambioAqui.precio : null;
+    precioAquiTras.current = nuevo;
+    const tras = new Map(propiosTras.current);
+    if (nuevo !== null) tras.set(tiendaTerminal.id, nuevo);
+    else tras.delete(tiendaTerminal.id);
+    propiosTras.current = tras;
+    setPrecioAquiEscrito(null);
+    preciosTienda.recargar();
+    return nuevo !== null ? `${corto} vende a ${soles(nuevo)}` : `${corto} vuelve al precio de la prenda`;
   }
 
   /** «Confirmar y guardar», desde la hoja. Devuelve si la hoja debe cerrarse: `false` solo cuando falta o no vale el «Responsable»
@@ -815,15 +906,30 @@ export function ProductoForm({
     propiosTras.current = propiosDeTienda();
     // Lo que cobra la caja ANTES de tocar nada; si el guardado queda a medias y se reintenta, sigue el primero.
     cobraAntesDeGuardar.current ??= { variantes: variantesGuardadas(filas, null), categoriaId: enLaBase.datos.categoriaId || null, propios: propiosDeTienda() };
-    // Solo se tocó el stock: no hay nada de la prenda que mandar (ni versión que subir, ni historial que escribir).
+    // Solo se tocó el stock (o el precio de la tienda, en una terminal): no hay nada de la prenda que mandar (ni versión que subir, ni
+    // historial que escribir).
     if (resumen.total === 0) {
+      const firmaAqui = cambioAqui.que === "nada" ? null : stock.responsable.firma();
+      if (cambioAqui.que !== "nada" && !firmaAqui) {
+        avisar.error(stock.responsable.motivo ?? "Elige quién hace estos cambios.", { enfocar: "confirmar-cambios-responsable" });
+        return false;
+      }
       setLoading(true);
-      const cerrarProceso = avisar.proceso(`Guardando el stock de ${referencia.trim()}…`);
+      const cerrarProceso = avisar.proceso(
+        stock.cambios.length > 0 ? `Guardando el stock de ${referencia.trim()}…` : `Guardando el precio de ${referencia.trim()}…`
+      );
+      const fraseAqui = firmaAqui ? await guardarPrecioAqui(createClient(), firmaAqui, referencia.trim()) : null;
+      if (fraseAqui === false || fraseAqui === "responsable") {
+        cerrarProceso();
+        setLoading(false);
+        if (fraseAqui === false) setHojaAbierta(false);
+        return fraseAqui === false;
+      }
       const { ok } = await stock.guardar();
       cerrarProceso();
       setLoading(false);
       setHojaAbierta(false);
-      if (ok) terminarGuardado(referencia.trim(), [], false, 0, 0, filas);
+      if (ok) terminarGuardado(referencia.trim(), fraseAqui ? [fraseAqui] : [], false, 0, 0, filas);
       return true;
     }
     const firma = stock.responsable.firma();
@@ -942,6 +1048,16 @@ export function ProductoForm({
     propiosTras.current = new Map([...propiosDeTienda()].filter(([ubicacionId]) => !quedaIgual(ubicacionId)));
     // La base quita sola el precio propio que quedó igual al de la prenda: el bloque se vuelve a leer.
     if ((preciosTienda.precios?.length ?? 0) > 0) preciosTienda.recargar();
+    // El precio de la tienda que la terminal escribió en la tabla. Si falla, la prenda igual quedó guardada y lo escrito sigue en la
+    // tabla (la barra lo cuenta): «Revisar y guardar» lo vuelve a intentar.
+    const fraseAqui = await guardarPrecioAqui(supabase, firma, nombrePrenda);
+    if (fraseAqui === false || fraseAqui === "responsable") {
+      cerrarProceso();
+      setLoading(false);
+      setHojaAbierta(false);
+      return true;
+    }
+    if (fraseAqui) logrado.current.frases = [...logrado.current.frases, fraseAqui];
 
     // Cómo quedaron las variantes: los ids de las nuevas (para sus etiquetas) y si la base aplicó las correcciones. Con
     // la base sin el SQL de ADR-0263, `catalogo_actualizar_producto` ignora el color y la talla de una variante que ya
@@ -1161,7 +1277,9 @@ export function ProductoForm({
       return;
     }
     const antes = capturar();
+    const antesAqui = precioAquiEscrito;
     aplicar(inicial);
+    setPrecioAquiEscrito(null);
     const deshacerStock = stock.descartar();
     setVersionCambiada(false);
     // Lo que la sección de variantes guarda por su cuenta también vuelve a cero (un «Precio puesto en 6 variantes» que ya
@@ -1174,6 +1292,7 @@ export function ProductoForm({
         texto: "Deshacer",
         onClick: () => {
           aplicar(antes);
+          setPrecioAquiEscrito(antesAqui);
           deshacerStock();
           setReinicio((r) => r + 1);
         },
@@ -1731,12 +1850,39 @@ export function ProductoForm({
               onCorregirTalla={puedeCorregir ? (t) => setCorrigiendo({ claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
               onQuitarTalla={quitarLaTalla}
               huecos={{ como: (c, t) => comoLlenarHueco(filas, c, t, permitidosHueco, nombres), onLlenar: llenarHueco }}
+              precioAqui={
+                tiendaTerminal && precioAquiListo
+                  ? {
+                      sede: nombreCorto(tiendaTerminal.nombre),
+                      valor: (f) => precioAquiEscrito ?? (propioTerminal ? propioTerminal.precio.toFixed(2) : f.precio),
+                      cambiado: cambioAqui.que !== "nada",
+                      antes: propioTerminal?.precio ?? preciosSede?.general ?? null,
+                      onCambio: setPrecioAquiEscrito,
+                    }
+                  : null
+              }
               deshabilitado={loading}
             />
 
             {vista === "unidades" && <MotivoDeLaVisita stock={stock} deshabilitado={loading} />}
 
-            {producto && preciosSede && (
+            {vista === "precio" && tiendaTerminal && precioAquiListo && (
+              <PrecioAquiTerminal
+                sede={tiendaTerminal.nombre}
+                propio={propioTerminal}
+                cambio={cambioAqui}
+                general={preciosSede?.general ?? null}
+                costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
+                error={
+                  cambioAqui.que === "poner"
+                    ? problemaPrecioAqui(cambioAqui, tiendaTerminal.nombre, preciosSede?.general ?? null, veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null)
+                    : null
+                }
+              />
+            )}
+
+            {/* En una terminal no: el precio de su tienda se escribe en la tabla (arriba). */}
+            {producto && preciosSede && !preciosSede.soloAqui && (
               <PreciosPorSede
                 productoId={producto.id}
                 precios={preciosTienda.precios}
@@ -1746,7 +1892,6 @@ export function ProductoForm({
                 tiendas={preciosSede.tiendas}
                 ubicacionActual={preciosSede.ubicacionId}
                 costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
-                soloAqui={preciosSede.soloAqui}
                 deshabilitado={loading}
               />
             )}
@@ -1955,6 +2100,7 @@ export function ProductoForm({
           avisos={avisosSinBloquear}
           notaAgregan={notaAgregan}
           extra={grupoStock}
+          extraPrecio={grupoPrecioAqui}
           tiendas={
             alCambiarPrecio
               ? {

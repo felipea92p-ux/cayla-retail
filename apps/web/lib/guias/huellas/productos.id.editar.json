@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 148,
+  "total": 146,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -143,6 +143,7 @@
       "button «{b.quitar.titulo}»",
       "button «{h.puede ? `Agregar ${donde}»",
       "button «{`${nombreElegida}»",
+      "input «{`Precio de ${etiqueta}»",
       "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»",
       "CampoTexto «{<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? \"hecho\" : \"falta\"}»",
       "ComboResponsable «{stock.responsable}»"
@@ -167,9 +168,6 @@
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
     "components/ficha-producto/PreciosPorSede.tsx": [
-      "Boton «{`Cambiar el precio de ${aqui.nombre}»",
-      "Boton «{`Quitar el precio de ${aqui.nombre}»",
-      "Boton «{`Poner un precio propio en ${aqui.nombre}»",
       "Boton «{textoPoner}»",
       "Boton «{`Cambiar el precio de ${f.sede}»",
       "Boton «{`Quitar el precio de ${f.sede}»",

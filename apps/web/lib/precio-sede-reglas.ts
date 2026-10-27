@@ -430,3 +430,45 @@ export function camposPonerPrecio(h: {
 export function camposQuitarPrecio(h: { responsableListo: boolean; responsableMotivo: string | null }): CampoDeGuia[] {
   return [{ id: "responsable", nombre: "Quién lo quita", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién lo quita." }];
 }
+
+/** Lo que pasa con el precio que una terminal escribe en la tabla de Precios (Felipe 2026-10-27: «que sea más simple, como en
+ *  costos»). El precio de una tienda es UNO para toda la prenda (ADR-0370), así que lo escrito en cualquier talla vale para todas.
+ *  `nada`: no se escribió, o es el que ya vende la tienda. `poner`: la tienda pasa a vender a ese precio (pide motivo, la base lo
+ *  exige). `quitar`: lo escrito es el precio de la prenda y la tienda tenía uno propio, así que vuelve al de la prenda (la base no
+ *  deja un precio propio igual al de la prenda). `invalido`: lo escrito no es un monto. */
+export type CambioPrecioAqui =
+  | { que: "nada" }
+  | { que: "invalido" }
+  | { que: "poner"; precio: number; antes: number | null }
+  | { que: "quitar"; antes: number; general: number };
+
+export function cambioPrecioAqui(h: {
+  /** Lo escrito en la tabla; `null` si no se tocó. */
+  escrito: string | null;
+  /** El precio propio vigente de la tienda; `null` si vende al de la prenda. */
+  propio: number | null;
+  /** El precio de la prenda GUARDADO, si todas sus tallas valen igual; si cambia según la talla, null. */
+  general: number | null;
+}): CambioPrecioAqui {
+  if (h.escrito === null) return { que: "nada" };
+  const precio = leerMonto(h.escrito);
+  if (precio === null) return { que: "invalido" };
+  const igual = (a: number | null) => a !== null && Math.abs(precio - a) < 0.005;
+  const vigente = h.propio ?? h.general;
+  if (igual(vigente)) return { que: "nada" };
+  if (igual(h.general)) return h.propio !== null ? { que: "quitar", antes: h.propio, general: h.general! } : { que: "nada" };
+  return { que: "poner", precio, antes: vigente };
+}
+
+/** El motivo que se guarda cuando una terminal cambia el precio desde la tabla. La base lo exige (`poner_precio_sede`, 3 letras como
+ *  mínimo), pero Felipe decidió no pedirlo (2026-10-27): basta saber quién lo cambió, y eso lo guarda la firma del responsable. */
+export const MOTIVO_DESDE_LA_TABLA = "Cambiado desde la tabla de precios";
+
+/** Por qué no se puede guardar lo escrito (lo que la base rechazaría), o null. */
+export function problemaPrecioAqui(c: CambioPrecioAqui, sede: string, general: number | null, costoMaximo: number | null): string | null {
+  if (c.que === "invalido") return `Escribe el precio de ${nombreCorto(sede)} (por ejemplo, 79.90).`;
+  if (c.que !== "poner") return null;
+  if (c.precio > MAX_PRECIO_PRENDA) return FRASE_PRECIO_CON_TOPE;
+  if (bajoElCostoSinIgual(c.precio, general, costoMaximo)) return FRASE_BAJO_COSTO;
+  return null;
+}
