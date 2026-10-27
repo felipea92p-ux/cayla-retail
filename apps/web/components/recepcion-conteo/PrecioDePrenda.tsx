@@ -1,20 +1,35 @@
 "use client";
 
 import { useEffect } from "react";
+import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
-import { leerCostoCierre, leerPrecioNuevo, type PrendaSeparada } from "@/lib/recepcion-conteo-reglas";
-import { leerPrecioDePrenda } from "@/lib/recepcion-conteo-acciones";
+import { ALCANCE_DE_FABRICA, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
+import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
 
 // El precio de venta de una prenda que ya se identificó en este envío (Felipe 2026-10-24). El campo viene con el precio de hoy; quien recibe lo
-// cambia y elige si vale para todas las sedes o solo para la suya (una terminal, solo la suya: 2026-10-26). NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
+// cambia y elige si vale solo para la sede donde recibe (la primera opción y la que viene elegida, Felipe 2026-10-26) o para todas (una terminal, solo la suya: 2026-10-26). NO guarda aquí: el cambio se aplica al cerrar el envío, después de una
 // confirmación que lista todo lo que cambia (`CerrarEnvio`). Rige hacia adelante: lo ya vendido guarda su precio y el cambio queda en el
 // historial de la prenda (Catálogo ▸ Productos ▸ Historial).
 
-const monto = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const textoRango = (r: RangoDePrecio) => (r.desde === r.hasta ? monto(r.desde) : `${monto(r.desde)} a ${monto(r.hasta)}`);
 
-/** Lo que la pantalla sabe de una prenda: su precio de hoy (`undefined` mientras se lee, `null` si no hay), lo escrito y dónde vale. */
-export type PrecioEditado = { actual: { desde: number; hasta: number } | null | undefined; valor: string; alcance: "todas" | "sede" };
+/** Junto al nombre de la prenda: su precio de hoy (el de la sede si el precio vale solo para ella, y si es otro que el general, también el general). */
+function textoDeHoy(e: PrecioEditado | undefined, sede: string): string {
+  if (!e || e.actual === undefined) return "leyendo el precio…";
+  const hoy = hoyDelPrecio(e);
+  if (hoy === null || hoy === undefined) return "sin precio a la vista";
+  const distinto = e.alcance === "sede" && e.actual !== null && e.actualSede !== undefined && e.actualSede !== null && textoRango(e.actual) !== textoRango(e.actualSede);
+  return distinto && e.actual ? `hoy en ${sede} ${textoRango(hoy)} (en las demás sedes, ${textoRango(e.actual)})` : `hoy ${textoRango(hoy)}`;
+}
+
+/** Lleva el cursor al campo del precio de una prenda (para decirle a quien escribe cuál hay que corregir). */
+export function enfocarPrecio(productoId: string) {
+  const campo = document.querySelector<HTMLInputElement>(`[data-precio-prenda="${CSS.escape(productoId)}"] input`);
+  campo?.scrollIntoView({ block: "center", behavior: "smooth" });
+  campo?.focus({ preventScroll: true });
+}
 
 /** El costo de compra de una prenda (ADR-0519, Felipe 2026-10-26): lo que dice el campo, qué cuesta su línea (lo que se usa si lo deja vacío), qué
  *  decía al abrir y si lo escrito está mal. Sin esto, el campo no se dibuja (quien no ve el costo de una línea de fuera de la guía). */
@@ -24,6 +39,7 @@ export function PrecioDePrenda({
   prenda,
   sede,
   soloSede = false,
+  sedeId,
   editado,
   costo,
   onActual,
@@ -31,33 +47,38 @@ export function PrecioDePrenda({
   onAlcance,
   onCosto,
 }: {
-  prenda: PrendaSeparada;
+  /** `cantidad`: cuántas llegaron (la columna «Llegaron»); sin ella (la hoja de tallas de una sola prenda, donde todavía se está contando) no hay columna. */
+  prenda: Pick<PrendaSeparada, "productoId" | "nombre" | "codigo"> & { cantidad?: number };
   /** El nombre de la sede que recibe: «Solo Tienda Lima». */
   sede: string;
   /** Una terminal: el precio vale solo en su sede. No se ofrece «Todas las sedes»; se dice dónde vale. */
   soloSede?: boolean;
+  /** La sede que recibe, para leer el precio que la prenda tiene en ella (`null`: no se sabe, vale el general). */
+  sedeId: string | null;
   editado: PrecioEditado | undefined;
   /** El costo de compra de ESTA prenda (por defecto el de su línea) y qué hacer al escribirlo; sin él, no hay campo de costo. */
   costo?: CostoDePrenda;
-  /** El precio de hoy ya se leyó: la pantalla lo guarda y, si no hay nada escrito, lo pone en el campo. */
-  onActual: (actual: { desde: number; hasta: number } | null) => void;
+  /** El precio de hoy ya se leyó (el general y el de esta sede): la pantalla lo guarda y, si no hay nada escrito, lo pone en el campo. */
+  onActual: (general: RangoDePrecio | null, enSede: RangoDePrecio | null | undefined) => void;
   onValor: (valor: string) => void;
   onAlcance: (alcance: "todas" | "sede") => void;
   onCosto?: (valor: string) => void;
 }) {
   const nombre = prenda.nombre ?? prenda.codigo ?? "la prenda";
-  const actual = editado?.actual;
+  const alcance = editado?.alcance ?? ALCANCE_DE_FABRICA;
   const lectura = leerPrecioNuevo(editado?.valor ?? "");
+  // Lo que está mal escrito, o lo que la base no aceptaría (con su motivo): junto al campo, no en un aviso aparte.
+  const problema = lectura.problema ?? editado?.rechazo ?? null;
 
   useEffect(() => {
     let vivo = true;
-    void leerPrecioDePrenda(prenda.productoId).then((p) => vivo && onActual(p));
+    void leerPreciosDePrenda(prenda.productoId, sedeId).then((p) => vivo && onActual(p.general, p.enSede));
     return () => {
       vivo = false;
     };
     // Se lee una vez por prenda; `onActual` es de la pantalla y cambia en cada dibujo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prenda.productoId]);
+  }, [prenda.productoId, sedeId]);
 
   // Una fila por prenda (Felipe 2026-10-26): de izquierda a derecha van el nombre con su precio de hoy, lo que llegó de esa prenda, lo que
   // costó, el precio de venta y las dos opciones de dónde vale. Cabe en una fila desde 1000 px de ancho del contenedor de `Tabla` (con el
@@ -84,18 +105,20 @@ export function PrecioDePrenda({
         <div className={`mt-1.5 ${contenido}`}>
           <p className="truncate text-sm font-medium leading-tight text-tinta" title={nombre}>{nombre}</p>
           <p className="truncate text-xs leading-tight text-taupe">
-            {actual === undefined ? "leyendo el precio…" : actual === null ? "sin precio a la vista" : actual.desde === actual.hasta ? `hoy ${monto(actual.desde)}` : `hoy ${monto(actual.desde)} a ${monto(actual.hasta)}`}
+            {textoDeHoy(editado, sede)}
           </p>
         </div>
       </div>
-      <div className={`whitespace-nowrap text-right ${conCosto ? "@min-[1000px]:text-left" : "@min-[820px]:text-left"}`}>
-        <span className="campo-etiqueta block">Llegaron</span>
-        <div className={`mt-1.5 ${contenido}`}>
-          <p className="text-sm font-semibold leading-tight tabular-nums text-tinta">
-            {prenda.cantidad.toLocaleString("es-PE")} {prenda.cantidad === 1 ? "unidad" : "unidades"}
-          </p>
+      {prenda.cantidad !== undefined && (
+        <div className={`whitespace-nowrap text-right ${conCosto ? "@min-[1000px]:text-left" : "@min-[820px]:text-left"}`}>
+          <span className="campo-etiqueta block">Llegaron</span>
+          <div className={`mt-1.5 ${contenido}`}>
+            <p className="text-sm font-semibold leading-tight tabular-nums text-tinta">
+              {prenda.cantidad.toLocaleString("es-PE")} {prenda.cantidad === 1 ? "unidad" : "unidades"}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
       {/* En ancho, `contents` deja al campo y a las opciones como celdas de la fila; en angosto son una segunda línea. */}
       <div className={`col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
         {conCosto && (
@@ -124,9 +147,8 @@ export function PrecioDePrenda({
             // sugerir-fijo: un precio es un monto de soles, no depende de nada elegido antes
             placeholder="S/ 0.00"
             onChange={(e) => onValor(e.target.value)}
-            tono={lectura.problema ? "error" : undefined}
-            pie={lectura.problema ?? undefined}
-            sinPie={!lectura.problema}
+            tono={problema ? "error" : undefined}
+            sinPie
             className="text-right font-semibold tabular-nums"
           />
         </div>
@@ -145,13 +167,22 @@ export function PrecioDePrenda({
                   { valor: "sede", texto: `Solo ${sede}` },
                   { valor: "todas", texto: "Todas las sedes" },
                 ]}
-                valor={editado?.alcance ?? "sede"}
+                valor={alcance}
                 onValor={(v) => onAlcance(v as "todas" | "sede")}
               />
             )}
           </div>
         </div>
       </div>
+      {/* El motivo va bajo la fila, a todo el ancho (el campo es angosto y un motivo largo se partía en una columna), con el pie de error de siempre. */}
+      {problema && (
+        <p role="alert" className="col-span-full text-xs leading-tight text-rojo-profundo">
+          <span className="pie-error trazo-dibuja anim-revelar">
+            <CircleAlert aria-hidden />
+            <span>{problema}</span>
+          </span>
+        </p>
+      )}
     </div>
   );
 }
