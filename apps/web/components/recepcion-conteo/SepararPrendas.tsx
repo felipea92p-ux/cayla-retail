@@ -16,6 +16,7 @@ import {
   cambiarCantidadPrenda,
   cambiarNuevasSinDescribir,
   describirNuevas,
+  leerContadas,
   nuevasSinDescribir,
   quitarNuevaDescrita,
   quitarPrenda,
@@ -39,15 +40,56 @@ import { DescribirNuevas } from "./DescribirNuevas";
 const BOTON_PASO =
   "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-taupe transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-30";
 
-/** − 3 + : cuántas de una fila (el paso de cantidad del sistema, `<PasoCantidad>`; el número se muestra, no se escribe). */
+/**
+ * − 3 + : cuántas de una fila (el paso de cantidad del sistema, `<PasoCantidad>`). El número también se escribe: se guarda al salir de la
+ * caja o con Enter, no con cada tecla —una prenda con sus tallas las suelta si su número cambia, y «1» camino a «12» no debe soltarlas—;
+ * lo que no vale (vacío, bajo el mínimo) vuelve a lo que había, y Escape deja lo escrito sin guardar.
+ */
 export function PasoDePrendas({ valor, onValor, etiqueta, minimo = 0 }: { valor: number; onValor: (n: number) => void; etiqueta: string; minimo?: number }) {
+  // Mientras se escribe, la caja muestra lo escrito (vacío es «todavía escribiendo», no 0); fuera de ella, siempre el valor.
+  const [escribiendo, setEscribiendo] = useState<string | null>(null);
+  // Escape quita el foco para dejar lo escrito; ese `blur` no debe guardarlo (la función de salir aún ve lo escrito).
+  const dejarlo = useRef(false);
+  const poner = (n: number) => {
+    setEscribiendo(null);
+    onValor(n);
+  };
+  const terminar = () => {
+    const { contadas } = leerContadas(escribiendo ?? "");
+    const guardar = !dejarlo.current && contadas !== null && contadas >= minimo && contadas !== valor;
+    dejarlo.current = false;
+    setEscribiendo(null);
+    if (guardar) onValor(contadas);
+  };
   return (
     <PasoCantidad
-      menos={{ onClick: () => onValor(valor - 1), deshabilitado: valor <= minimo, etiqueta: `Una menos de ${etiqueta}` }}
-      mas={{ onClick: () => onValor(valor + 1), etiqueta: `Una más de ${etiqueta}` }}
-    >
-      {valor}
-    </PasoCantidad>
+      menos={{ onClick: () => poner(valor - 1), deshabilitado: valor <= minimo, etiqueta: `Una menos de ${etiqueta}` }}
+      mas={{ onClick: () => poner(valor + 1), etiqueta: `Una más de ${etiqueta}` }}
+      campo={{
+        type: "text",
+        inputMode: "numeric",
+        autoComplete: "off",
+        value: escribiendo ?? String(valor),
+        "aria-label": `Cuántas de ${etiqueta}`,
+        onFocus: (e) => {
+          setEscribiendo(String(valor));
+          e.currentTarget.select();
+        },
+        onChange: (e) => setEscribiendo(leerContadas(e.target.value).texto),
+        onBlur: terminar,
+        onKeyDown: (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          } else if (e.key === "Escape" && escribiendo !== null) {
+            // Escape deshace lo escrito y es de la caja: la hoja de afuera, si la hay, no se cierra con él.
+            e.stopPropagation();
+            dejarlo.current = true;
+            e.currentTarget.blur();
+          }
+        },
+      }}
+    />
   );
 }
 

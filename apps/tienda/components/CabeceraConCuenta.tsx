@@ -21,6 +21,7 @@ import { ahoraMs, debeCubrir, esperaHastaElTope, esperaParaSalir, EVENTO_CAMBIAR
 import { Icono } from "./Icono";
 import { Logo } from "./Marca";
 import { EscudoDeFila } from "./MarcaDeTienda";
+import { marcarViaje, useRayaDelNav, viajaHacia } from "./useRayaDelNav";
 import { NombreQueRueda, VeloDeSede } from "./VeloDeSede";
 import { escudoDe } from "@/lib/escudo-de-tienda";
 // El globo rojo de la bolsa y del corazón (`.t-globo`).
@@ -202,6 +203,9 @@ export function CabeceraConCuenta({
   const camino = useCamino();
   const marcada = camino ? seccionDeLaRuta(camino.ruta, new URLSearchParams(camino.buscar)) : actual;
   const marca = (seccion: SeccionActual) => (marcada === seccion ? "page" : undefined);
+  // La raya que viaja (ADR-0524): una sola, bajo la pestaña marcada; corre de la de antes a la que se tocó mientras llega la página.
+  const nav = useRef<HTMLElement>(null);
+  useRayaDelNav(nav, marcada);
 
   return (
     <>
@@ -213,7 +217,8 @@ export function CabeceraConCuenta({
           <Link className="t-logo" href={datos.inicio} aria-label="CAYLA, ir al inicio">
             <Logo />
           </Link>
-          <nav className="t-nav" aria-label="Secciones">
+          {/* Al tocar una pestaña se apunta hacia dónde va el recorrido (a la derecha o a la izquierda): la página entra de lado en ese sentido (`vistas.css`). */}
+          <nav className="t-nav" aria-label="Secciones" ref={nav} onClickCapture={(e) => marcarViaje(nav.current, (e.target as Element).closest(".t-nav-b"))}>
             <Link className="t-nav-b" href={datos.nuevo.href} aria-current={marca("nuevo")}>
               Lo nuevo
             </Link>
@@ -226,6 +231,7 @@ export function CabeceraConCuenta({
             <Link className="t-nav-b" href={datos.ofertas.href} aria-current={marca("ofertas")}>
               Ofertas
             </Link>
+            <span className="t-raya" aria-hidden="true" />
           </nav>
           <span className="t-esp" />
           {tiendas && <SelectorTienda opciones={tiendas} prendasEnBolsa={prendasEnBolsa} />}
@@ -646,7 +652,8 @@ function HojaMenu({
   visitante: boolean;
 }) {
   return (
-    <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
+    // En el celular no hay raya: al tocar una sección del menú, la página entra de lado hacia la derecha (ADR-0524).
+    <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú" onClickCapture={(e) => ((e.target as Element).closest("a") ? viajaHacia(1) : undefined)}>
       <div className="t-menu-cab">
         <span className="t-logo">
           <Logo />

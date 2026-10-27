@@ -250,10 +250,19 @@ export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCie
 }
 
 /** El tramo de comparativa de la pantalla de Caja: titular, referencia, clientes y ticket, gráfico, medios de pago y horas. */
-export function ComparativaCaja({ hoy, ayer, ahoraMin, horaCierreMin, cajon, movimientos }: Props & { cajon: React.ReactNode; movimientos: React.ReactNode }) {
+export function ComparativaCaja({
+  hoy,
+  ayer,
+  ahoraMin,
+  horaCierreMin,
+  cajon,
+  movimientos,
+  reparto = null,
+}: Props & { cajon: React.ReactNode; movimientos: React.ReactNode; /** De quién es lo vendido (ADR-0532), solo en Lima. */ reparto?: React.ReactNode }) {
   return (
     <div className="space-y-3">
       <VeredictoCaja hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />
+      {reparto}
       <div className="grid grid-cols-1 gap-3 @[900px]:grid-cols-2">
         {cajon}
         <ClientesYTicket hoy={hoy} ayer={ayer} ahoraMin={ahoraMin} />

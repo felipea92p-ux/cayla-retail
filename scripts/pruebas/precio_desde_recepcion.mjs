@@ -36,9 +36,17 @@ const BASE = arg("--base", "postgres");
 const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : readFileSync(join(RAIZ, "supabase", "migrations", "20261024225000_precio_de_venta_desde_la_recepcion.sql"), "utf8")
-      .replace(/^set lock_timeout.*$/m, "")
-      .replace(/^reset lock_timeout;$/m, "");
+  : [
+      "20261024225000_precio_de_venta_desde_la_recepcion.sql",
+      // ADR-0393 (2026-10-26): lo mismo con el envío cerrado, desde «Para después» (sus casos W viven en `pendientes_de_envio.mjs`).
+      "20261026180000_precio_de_venta_en_para_despues.sql",
+    ]
+      .map((f) =>
+        readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
+          .replace(/^set lock_timeout.*$/m, "")
+          .replace(/^reset lock_timeout;$/m, ""),
+      )
+      .join("\n");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";

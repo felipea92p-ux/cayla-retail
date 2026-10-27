@@ -479,6 +479,14 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Para ver solo lo que pasó en el piso, en el almacén o en cuarentena (las dañadas).",
     },
     {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la tienda.
+      id: "tienda",
+      ancla: "movimientos.tienda",
+      opcional: true,
+      titulo: "De qué tienda es",
+      texto: "Para ver por separado lo de CAYLA y lo de CLAURE. En Lima, una prenda de marca CAYLA es de CAYLA y todas las demás son de CLAURE. Con «Ventas» elegido, ves las ventas de cada una.",
+    },
+    {
       id: "limpiar",
       ancla: "movimientos.limpiar",
       opcional: true,
@@ -1623,7 +1631,17 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número, y abajo te dice cuántas separaste y cuántas quedan para después.",
+      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número, y abajo te dice cuántas separaste y cuántas quedan para después.",
+    },
+    {
+      // Solo si alguna categoría trae prendas anotadas al comprar. El «+» pasa la prenda a «¿Qué … son?»: es un cambio que se guarda solo,
+      // así que la demo explica la flecha sin tocarla.
+      id: "desplegar",
+      ancla: "recepcion.desplegar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que se anotó al comprar",
+      texto: "Si la compra anotó qué prendas eran, la flecha de la categoría las muestra con cuántas eran. Toca el «+» de una y pasa a «¿Qué prendas son?» con esa cantidad; si ya contaste menos, con lo que contaste. Allí puedes cambiar el número, también escribiéndolo.",
     },
     {
       id: "numero",
@@ -1648,7 +1666,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son? (opcional)",
-      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora»; ya descrita, «Crear ahora» la crea y sigues con sus tallas. Lo que no separes queda para después.",
+      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran (con − y +, o escribiéndolo); con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora»; ya descrita, «Crear ahora» la crea y sigues con sus tallas. Lo que no separes queda para después.",
     },
     {
       id: "agregar",
@@ -1818,7 +1836,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
       titulo: "Para después",
-      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora») y lo termina con la cantidad ya contada; lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora»); al identificar la prenda se puede cambiar su precio de venta. Lo hace quien tenga Recibir. En la demo no lo tocamos.",
     },
     {
       id: "reabrir",
