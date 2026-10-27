@@ -445,13 +445,15 @@ a.t-pag:focus-visible { outline: 2px solid var(--rojo); outline-offset: -2px; }
 .t-buscar-cat:hover { background: var(--hueso); }
 .t-buscar-cat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
 
-/* ---- La foto sube con una cortina que se retira (G · Pasarela, ADR-0524; la maqueta, `.p-fig[data-revela] .p-foto`): al entrar a la pantalla, la foto
-   de una grilla se descubre de abajo hacia arriba, una vez. Solo en las grillas (no en los carriles, que se deslizan de lado) y donde el navegador
-   anima con el scroll; sin eso, o con «reducir movimiento», la foto está siempre a la vista. Lo que ya se ve al cargar queda descubierto. ---- */
-@supports (animation-timeline: view()) {
-  .t-grilla .t-card-foto:not(.t-esqueleto .t-card-foto) { animation: t-cortina linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; }
+/* ---- La foto sube con una cortina que se retira (G · Pasarela, ADR-0524; la maqueta, `.p-fig[data-revela] .p-foto`): al entrar a la pantalla, la
+   foto de una tarjeta de grilla se descubre de abajo hacia arriba, una vez, con un desfase por columna (100 ms, de a cuatro); el nombre y el precio
+   aparecen después, detrás de ella. Por tiempo y no atado al scroll. `RevelaAlBajar` marca las tarjetas (`data-cortina`) y pone `data-r`: solo
+   lo que está bajo el pliegue espera, y sin JavaScript o con «reducir movimiento» todo está siempre a la vista. Solo grillas, no carriles. ---- */
+@media (prefers-reduced-motion: no-preference) {
+  [data-cortina][data-r="espera"] .t-card-media { clip-path: inset(100% 0 0 0); }
+  [data-cortina][data-r="espera"] .t-card-info { opacity: 0; }
+  [data-cortina][data-r="visto"] .t-card-media { animation: t-cortina 1.2s cubic-bezier(.76, 0, .24, 1) backwards; animation-delay: calc(var(--i, 0) * 100ms); }
+  [data-cortina][data-r="visto"] .t-card-info { animation: t-cortina-pie .9s ease backwards; animation-delay: calc(.5s + var(--i, 0) * 100ms); }
 }
 @keyframes t-cortina { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0); } }
-@media (prefers-reduced-motion: reduce) {
-  .t-grilla .t-card-foto:not(.t-esqueleto .t-card-foto) { animation: none; }
-}
+@keyframes t-cortina-pie { from { opacity: 0; } }

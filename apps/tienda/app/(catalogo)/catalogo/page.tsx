@@ -530,7 +530,7 @@ export default async function Catalogo({ searchParams }: Props) {
             )}
             {vista.length > 0 ? (
               <>
-                <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`}>
+                <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`} data-cortina-lista>
                   {vista.slice(pag.desde, pag.hasta).map((p, i) => (
                     <TarjetaPrenda
                       key={p.id}

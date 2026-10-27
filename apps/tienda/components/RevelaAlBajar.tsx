@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Lo que sube al bajar la página (la maqueta de la Pasarela): promete que cada bloque marcado con `data-revela`, y cada hijo de un
- * `data-revela-lista`, se esconde SOLO si está bajo el pliegue y aparece una sola vez al entrar en pantalla. Lo que ya se ve al cargar no
+ * `data-revela-lista`, y cada tarjeta de un `data-cortina-lista` (su foto se descubre como una cortina), se esconde SOLO si está bajo el pliegue y aparece una sola vez al entrar en pantalla. Lo que ya se ve al cargar no
  * se toca, y sin JavaScript o con «reducir movimiento» no se esconde nada. Asume que el CSS de `globals.css` lee `data-r`
  * («espera» / «visto» / «ya»). Se monta una vez en el marco: sigue lo que aparece al navegar o al cambiar una pestaña.
  * No dibuja nada.
@@ -33,7 +33,15 @@ export function RevelaAlBajar() {
           (hijo as HTMLElement).style.setProperty("--i", String(Math.min(i, 5)));
         });
       });
-      document.querySelectorAll<HTMLElement>("[data-revela]:not([data-r])").forEach((el) => {
+      // La cortina de las grillas: la columna (de a cuatro) fija cuánto espera cada tarjeta.
+      document.querySelectorAll("[data-cortina-lista]").forEach((lista) => {
+        Array.from(lista.children).forEach((hijo, i) => {
+          if (hijo.hasAttribute("data-cortina")) return;
+          hijo.setAttribute("data-cortina", "");
+          (hijo as HTMLElement).style.setProperty("--i", String(i % 4));
+        });
+      });
+      document.querySelectorAll<HTMLElement>("[data-revela]:not([data-r]), [data-cortina]:not([data-r])").forEach((el) => {
         const r = el.getBoundingClientRect();
         if (r.top < window.innerHeight * 0.9) {
           // Ya a la vista (o más arriba, o escondido por `hidden`): se queda como está.
