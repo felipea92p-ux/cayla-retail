@@ -94,7 +94,7 @@ export function UnidadesDeLasNuevas({
           <tbody>
             {filas.map((f) => (
               <tr key={f.id ?? "sin-color"} className="border-t border-sand">
-                <th scope="row" className="whitespace-nowrap bg-papel px-3 py-2 text-left font-medium text-tinta">
+                <th scope="row" className="whitespace-nowrap bg-papel px-2 py-2 text-left font-medium text-tinta sm:px-3">
                   <span className="inline-flex items-center gap-2">
                     {f.punto}
                     {f.nombre}
@@ -105,7 +105,7 @@ export function UnidadesDeLasNuevas({
                   if (!incluida(f.id, c.id)) return <td key={c.id ?? "unica"} className="border-l border-sand px-2 py-1.5 text-center text-tinta/30">—</td>;
                   const n = valor(f.id, c.id);
                   return (
-                    <td key={c.id ?? "unica"} className="border-l border-sand px-2 py-1.5 text-center">
+                    <td key={c.id ?? "unica"} className="border-l border-sand px-0.5 py-1.5 text-center sm:px-2">
                       <PasoCantidad
                         tamano="celda"
                         sinTab

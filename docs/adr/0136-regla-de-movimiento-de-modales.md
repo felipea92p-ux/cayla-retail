@@ -523,3 +523,12 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `prefers-reduced-motion` todo queda quieto. **Un solo bucle, que es señal y no adorno:** el punto verde de «Ahora, N mirando» respira
   (una onda que se abre cada 2,4 s) solo mientras alguien mira la tienda online; si nadie mira, el punto no se dibuja.
 - **Dónde vive:** `apps/web/app/estilos/trafico.css`, `components/trafico/` y lo vigila `lib/trafico-movimiento.test.ts`.
+
+## Actualización 2026-10-27 — El stock inicial se sella (ADR-0494, actividad 3)
+
+Dos movimientos de una sola vez, sin rebote ni bucle y apagados con «reducir movimiento»: **el sello de «Stock inicial»** de Nuevo producto (la
+pantalla de «Se creó…»: gira de 22° a −8° mientras baja de 1,7× a su tamaño, 780 ms con `--ease-cayla`) y **el destello del candado** de una variante
+que acaba de guardarse con sus unidades de partida (la caja pasa de ámbar a verde y el grillete se cierra, 900 ms). En «Agregar color / talla», la fila
+nueva de «Así quedará en la tabla» entra con `anim-revelar`. El sello (`.sello-stock-inicial`) vive en `app/estilos/alta-guia.css` y el candado
+(`.matriz-paso[data-sellada]`) en `app/estilos/ficha-taller.css`.
+

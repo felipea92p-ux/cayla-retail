@@ -1,6 +1,6 @@
 # Maqueta · El stock solo se cuenta en Existencias (2026-10-27)
 
-**Estado: maqueta para que Felipe elija mirando. Nada construido.** Abrir `index.html` con doble clic (o desde el servidor `maqueta-referentes`). La barra negra de
+**Estado: Felipe eligió la dirección A (2026-10-27) y se construyó: ver «Actualización 2026-10-27» de `docs/adr/0494-el-stock-se-carga-en-existencias.md`. Sin las olas de transición ni la cerradura de la base.** Abrir `index.html` con doble clic (o desde el servidor `maqueta-referentes`). La barra negra de
 arriba no es parte del diseño: elige la dirección, la pantalla, cómo nace una variante nueva, el tema (claro/oscuro), el ancho (pleno · 1024 · 375) y la
 «Cámara lenta». Todo se puede tocar; nada se guarda. «↻ Repetir» lo reinicia. `?sinmov` apaga todo el movimiento.
 
