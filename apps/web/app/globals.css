@@ -89,6 +89,8 @@
 @import "./estilos/tienda-web-conf.css";
 /* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
 @import "./estilos/barra-abajo.css";
+/* Tienda web ▸ Tráfico (ADR-0495): el punto de «ahora mirando» y, después, la vitrina. */
+@import "./estilos/trafico.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 

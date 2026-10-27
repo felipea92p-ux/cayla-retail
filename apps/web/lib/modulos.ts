@@ -13,7 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion",
-  "tienda_web", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
+  "tienda_web", "trafico", "pedidos_web", "vitrina_web", "campanas_web", "recomendaciones", "ajustes_web",
   "clientas", "avisos_club", "beneficios_club",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "campanas", "liquidacion",
@@ -66,6 +66,10 @@ export const MODULOS: readonly Modulo[] = [
   // otras tres pantallas, y cada una pide SU módulo. Pedidos web, Vitrina web y Recomendaciones llegaron de Ventas, Catálogo y Clientes
   // sin cambiar quién los ve. Su quinta pantalla, Ajustes («Datos y plazos»), tiene su módulo desde 20261016223000 (abajo): antes la abría Configuración.
   { clave: "tienda_web", grupo: "Tienda web", nombre: "Resumen de la tienda web", incluye: "Ver de un vistazo lo que la tienda online pide hoy: los pedidos por atender de su tienda, las recomendaciones sin responder, quién espera una talla, qué modelos no se ven en la web y qué le falta a cada tienda para mostrarse (cada cosa, solo si también tiene su pantalla)" },
+  // Tráfico (ADR-0495, Felipe 2026-10-23; 20261023231000): cuánta gente entra a la tienda online, qué mira y dónde se va, contado por
+  // persona anónima. Nace SIN rol (solo el líder) y delegable: su lectura pide este módulo. Orden 63, junto al Resumen (en el menú va
+  // entre Recomendaciones y Conf. Tienda: entre sus órdenes no había lugar).
+  { clave: "trafico", grupo: "Tienda web", nombre: "Tráfico de la tienda web", incluye: "Ver cuánta gente entra a la tienda online, por dónde llega, desde qué ciudad y a qué hora, qué prendas mira y en qué paso del recorrido se va (sin datos de ninguna persona)" },
   // Pedidos web (ADR-0408, actividad 8; 20261015010000): lo que los clientes separan en la tienda online para esta tienda. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo (`fn_pedido_web_exigir`) y la tienda que se opera. Quien lo tiene ve
   // del cliente solo lo necesario para coordinar por WhatsApp (nombre, celular, el DNI a medias y si es del club), tenga o no «Clientes».
