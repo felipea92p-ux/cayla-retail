@@ -558,7 +558,7 @@ export const GUIA_COMPROBANTES: Guia = {
       ancla: "comprobantes.lista",
       opcional: true,
       titulo: "Cada comprobante",
-      texto: "Número, cliente, monto y su estado en SUNAT. Desde cada uno se reenvía, se descarga o se anula (anular lo decide el líder).",
+      texto: "Número, cliente, monto y su estado en SUNAT. Desde cada uno se reenvía, se descarga o se anula (anular lo hace quien tiene Facturación).",
     },
     {
       id: "fin",

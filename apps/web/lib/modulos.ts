@@ -192,10 +192,10 @@ export const MODULOS: readonly Modulo[] = [
  *  una prenda» SALIÓ el 2026-09-30 (Felipe, ADR-0293): quien crea la prenda la etiqueta como quiera y quien tiene Etiquetas
  *  configura el descuento (migración 20261001130000). */
 export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
-  { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
+  // SALIERON el 2026-10-27 (Felipe, ADR-0534: la líder valida en persona): anular un comprobante y liberar uno no emitido
+  // (Facturación), aprobar o rechazar devoluciones (Devoluciones) y decidir los grupos del plan del piso (Plan del piso).
+  { que: "Anular una venta, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
-  { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
-  { que: "Decidir a qué grupo del plan del piso va cada categoría (el módulo Plan del piso solo deja ver la propuesta)", origen: "ADR-0329, decisión 4" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).

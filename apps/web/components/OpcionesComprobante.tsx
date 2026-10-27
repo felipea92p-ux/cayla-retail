@@ -19,7 +19,7 @@ import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 // WhatsApp AL NÚMERO de la clienta, imprimirla de nuevo, y empezar un cambio o una devolución con la boleta ya
 // buscada en Posventa. En celular es la hoja que sube desde abajo (`<Modal variante="hoja">`, botones de 52 px);
 // XML y CDR van al final porque son del contador, no de la tienda (lo mismo hacen Alegra y Bsale).
-// Anular, liberar y reintentar siguen en la fila (son del estado ante SUNAT, y Anular es del líder).
+// Anular, liberar y reintentar siguen en la fila (son del estado ante SUNAT; Anular es de quien ve Facturación, ADR-0534).
 
 const BASE_OPCION =
   "flex min-h-[52px] items-center gap-3 rounded-[12px] border px-3 py-2.5 text-left text-[14px] outline-none transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60";

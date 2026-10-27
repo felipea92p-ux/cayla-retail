@@ -52,7 +52,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  * Y los poderes que una cuenta recibe sin ser líder porque su ROL ve el módulo (ADR-0161 B2, `permisosDeModulos` en
  * `lib/modulos.ts`). Cada uno espeja una capacidad de la base (`fn_puede_*()` = «líder O su rol ve el módulo»), así que la
  * pantalla y el candado dicen lo mismo:
- *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
+ *  - facturar:               Facturación (emitir, ver y anular comprobantes; anular dejó de ser solo del líder, ADR-0534).
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
  *  - ajustarInventario:      cerrar conteo, cerrar traslado con diferencia       (fn_puede_ajustar_inventario). Hasta el
  *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque

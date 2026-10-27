@@ -141,7 +141,7 @@ const SOLO_PANTALLA = {
     "usan Caja e Historial.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
-  facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
+  // facturacion salió el 2026-10-27: anular_comprobante y marcar_comprobante_no_emitido la exigen (ADR-0534, 20261027164000).
   // Una decisión, no una deuda (ADR-0430, 2026-10-16): el Resumen no guarda nada ni lee nada propio.
   tienda_web:
     "es un tablero, no un candado (ADR-0430): el Resumen de la tienda web no guarda nada y no tiene lectura propia. Cada " +

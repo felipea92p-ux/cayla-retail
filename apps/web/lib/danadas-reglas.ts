@@ -13,7 +13,7 @@
  *            la migración); y leer la respuesta en uno de tres finales: hecho (o ya estaba hecho), no alcanza / no se puede,
  *            o «no sé» (corte de red: se reenvía lo mismo con la misma marca).
  *   ASUME:   las cifras que recibe son las LIBRES de Existencias (`pisoDisponible`, `almacenDisponible`: sin lo apartado).
- *   NO HACE: no decide qué se hace con la prenda (eso es del líder, en Dañadas) ni cuenta una pérdida: reportar es moverla a la
+ *   NO HACE: no decide qué se hace con la prenda (eso se hace en Dañadas) ni cuenta una pérdida: reportar es moverla a la
  *            cuarentena dentro de la sede.
  */
 
@@ -282,7 +282,7 @@ export function tituloExitoDevolucion(unidades: number, proveedor: string): stri
 
 export const TEXTO_DEVOLUCION_YA_ESTABA = "Esta prenda ya se había devuelto al proveedor. No se repitió.";
 
-const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas y el líder decide si se arregla y vuelve, se liquida, se bota o se dona.";
+const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas, donde se decide si se arregla y vuelve, se liquida, se bota o se dona.";
 
 /**
  * Lo que pasa al reportar, en palabras de tienda: se avisa ANTES de confirmar y sigue al lugar elegido. Pide el acto físico
@@ -317,7 +317,7 @@ const ESTADO_DANADA_EN_PALABRAS: Record<string, string> = {
 const YA_RESUELTA_CRUDO = /^Esta prenda ya se resolvió como ([a-z_]+)$/;
 
 /**
- * El rechazo de «Se botó», «Donada» o «Liquidada» que perdió la carrera contra otro líder: `resolver_prenda_danada` y
+ * El rechazo de «Se botó», «Donada» o «Liquidada» que perdió la carrera contra otra persona: `resolver_prenda_danada` y
  * `liquidar_prenda_danada` (de antes de esta pantalla) dicen el estado crudo («…como se_arreglo»). Se dice en palabras de tienda
  * y `yaResuelta` avisa a la pantalla que relea la lista. Cualquier otro rechazo pasa por `traducirError`.
  */

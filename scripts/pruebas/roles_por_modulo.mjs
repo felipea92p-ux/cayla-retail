@@ -429,7 +429,9 @@ caso(
   }
 );
 caso(
-  "Etiquetas: sin el módulo, una etiqueta nueva es solo una propuesta y no se edita",
+  // ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera (antes, sin el módulo, era solo una propuesta);
+  // editarla y ponerle prendas sigue siendo de quien ve Etiquetas.
+  "Etiquetas: sin el módulo, una etiqueta nueva nace aprobada (ADR-0534), pero no se edita ni se le ponen prendas",
   como(MICAELA_AUTH) +
     `set local role authenticated;\n` +
     `insert into retail.etiquetas (nombre) values ('ZZ propuesta') returning estado \\gset\nselect :'estado';\n` +
@@ -437,7 +439,7 @@ caso(
     intento(`select retail.etiquetar_variantes('[]'::jsonb)`),
   (s) => {
     const l = s.split("\n");
-    return l[0] === "pendiente" && l[1] === "0" && l[2].startsWith("42501|");
+    return l[0] === "aprobado" && l[1] === "0" && l[2].startsWith("42501|");
   }
 );
 caso(

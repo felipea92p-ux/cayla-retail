@@ -107,7 +107,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       ancla: "comprobantes.acciones",
       opcional: true,
       titulo: "Lo que haces con cada uno",
-      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Solo el líder ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). En la demo no los tocamos.",
+      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Quien tiene Facturación ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). En la demo no los tocamos.",
     },
     {
       id: "opciones",
@@ -833,7 +833,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Devolver una compra",
-      texto: "Cuando un cliente devuelve una prenda, se registra aquí y un líder la aprueba: recién ahí vuelve el stock y sale la nota de crédito. Es una demo: no se devuelve nada.",
+      texto: "Cuando un cliente devuelve una prenda, se registra aquí y, al revisarla, se aprueba: recién ahí vuelve el stock y sale la nota de crédito. Es una demo: no se devuelve nada.",
     },
     {
       id: "cifras",
@@ -880,7 +880,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       ancla: "devoluciones.pestanas",
       opcional: true,
       titulo: "Tres vistas",
-      texto: "«Compras» son las ventas recientes que se pueden devolver; «Por aprobar», las devoluciones que esperan a un líder; «Resueltas», las aprobadas y rechazadas.",
+      texto: "«Compras» son las ventas recientes que se pueden devolver; «Por aprobar», las devoluciones que esperan que alguien las revise; «Resueltas», las aprobadas y rechazadas.",
     },
     {
       id: "filtros",
@@ -925,7 +925,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Devolver",
-      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que un líder la aprueba. En la demo no lo tocamos.",
+      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que alguien la revisa y la aprueba. En la demo no lo tocamos.",
     },
     {
       id: "anular",
@@ -940,7 +940,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "devoluciones.pestana-pendientes" }],
       titulo: "Por aprobar",
-      texto: "Las devoluciones registradas que esperan. El líder revisa cada una y la aprueba o la rechaza: al aprobarla se mueve el stock y sale la nota de crédito.",
+      texto: "Las devoluciones registradas que esperan. Revisas cada una y la apruebas o la rechazas: al aprobarla se mueve el stock y sale la nota de crédito.",
     },
     {
       id: "resueltas",

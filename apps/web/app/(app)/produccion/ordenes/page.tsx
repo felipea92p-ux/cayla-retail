@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo, getOpcionesNuevaOrden } from "@/lib/produccion";
+import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo, getOpcionesNuevaOrden, getHistorialDeMoldes } from "@/lib/produccion";
 import { getListaDeOrdenes } from "@/lib/ordenes-lista";
 import { OrdenesLista } from "@/components/ordenes-lista/OrdenesLista";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -63,7 +63,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   // es `fn_puede_editar_catalogo()` en la base. Los demás ven a quién pedírselo.
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const hoy = hoyLima();
-  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas, opcionesNuevaOrden, listaDeOrdenes] = await Promise.all([
+  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas, opcionesNuevaOrden, listaDeOrdenes, historialDeMoldes] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
@@ -76,6 +76,8 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
     getOpcionesNuevaOrden(taller.id),
     // Las filas de la lista: si no se leen, la pantalla lo dice (nunca una lista vacía que parezca «no hay órdenes»).
     getListaDeOrdenes(taller.id, hoy),
+    // Qué modelos ya tienen molde (muestra hecha o lote abierto): decide qué dice «Nueva orden» sobre el tipo. Secundario: sin esto, la hoja pregunta.
+    getHistorialDeMoldes(taller.id),
   ]);
   // `?orden=<id>` (los enlaces del Resumen y de antes) abría el cajón de la orden. Desde ADR-0400 (actividad 6) una orden CON fases se sigue en su página: se va allá. El cajón queda solo
   // para las abiertas antes de las fases (las que la lista marca `legado`).
@@ -91,7 +93,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesLista tallerId={taller.id} tallerNombre={taller.nombre} lista={listaDeOrdenes.lista} falla={listaDeOrdenes.falla} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} opcionesNuevaOrden={opcionesNuevaOrden} />
+      <OrdenesLista tallerId={taller.id} tallerNombre={taller.nombre} lista={listaDeOrdenes.lista} falla={listaDeOrdenes.falla} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} opcionesNuevaOrden={opcionesNuevaOrden} historialDeMoldes={historialDeMoldes} />
     </div>
   );
 }

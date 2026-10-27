@@ -164,14 +164,11 @@ export function NuevoProductoForm({
   contexto,
   destino,
   cargaInicial = null,
-  puedeAprobarEtiquetas,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
   cargaInicial?: CargaInicialSede | null;
-  /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
-  puedeAprobarEtiquetas: boolean;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
@@ -243,9 +240,6 @@ export function NuevoProductoForm({
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
   const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
   const vocabEtiquetas = useMemo(() => unirEtiquetas(contexto.etiquetas, etiquetasNuevas), [contexto.etiquetas, etiquetasNuevas]);
-  // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
-  // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
-  const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
   // «Temporada y etiquetas · opcional» (paso 2) arranca ABIERTO (Felipe 2026-09-29): plegado se pasaba de largo y nadie
   // sabía que ahí se elige la temporada y las etiquetas. Sigue siendo plegable, y plegado la línea dice lo elegido.
   const [masAbierto, setMasAbierto] = useState(true);
@@ -1055,11 +1049,8 @@ export function NuevoProductoForm({
                 categoriaId={categoriaId}
                 elegidas={etiquetasElegidas}
                 onElegidas={setEtiquetasElegidas}
-                puedeAprobar={puedeAprobarEtiquetas}
                 enLinea={enLinea}
                 onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
-                propuestas={etiquetasPropuestas}
-                onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
               />
             </FilaAlta>
           </PlegableAlta>

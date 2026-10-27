@@ -48,6 +48,19 @@ export type BotonesDeColor = {
 
 export type VistaMatriz = "unidades" | CampoBloque | "etiquetas";
 
+/** En una terminal, la pestaña «Precios» escribe el precio de SU tienda (Felipe 2026-10-27: «que sea más simple, como en costos»).
+ *  Es uno para toda la prenda, así que todas las tallas guardadas muestran el mismo número y escribir en una lo cambia en todas. */
+export type PrecioAquiMatriz = {
+  sede: string;
+  /** Lo que se ve en la celda de una talla guardada: lo escrito o, sin tocar, el precio al que vende hoy la tienda. */
+  valor: (f: FilaFicha) => string;
+  /** Lo escrito cambia el precio de la tienda (se pinta en ámbar, como un costo cambiado). */
+  cambiado: boolean;
+  /** El precio al que vende hoy la tienda, para el «Antes» de la celda; null si cambia según la talla. */
+  antes: number | null;
+  onCambio: (escrito: string) => void;
+};
+
 /** El mínimo de cada talla: lo que pide la caja − N + (la más ancha de las cuatro pestañas). Igual en todas: no se corre nada. */
 const ANCHO_CELDA_PX = 80;
 /** La columna de la derecha (Total, Precio, Costo, Llevan). */
@@ -95,6 +108,7 @@ export function MatrizStockFicha({
   onCorregirTalla,
   onQuitarTalla,
   huecos,
+  precioAqui = null,
   deshabilitado,
 }: {
   ctx: ContextoFicha;
@@ -125,6 +139,8 @@ export function MatrizStockFicha({
   onQuitarTalla: (talla: string | null) => void;
   /** La celda «—» (esa combinación no se vende): qué pasaría al tocarla y cómo se agrega (`comoLlenarHueco`). */
   huecos: { como: (color: string | null, talla: string | null) => Hueco; onLlenar: (color: string | null, talla: string | null) => void };
+  /** En una terminal: el precio de su tienda se escribe en la tabla (`PrecioAquiMatriz`). */
+  precioAqui?: PrecioAquiMatriz | null;
   deshabilitado: boolean;
 }) {
   const n = ctx.nombres;
@@ -211,13 +227,14 @@ export function MatrizStockFicha({
     ["unidades", "Unidades de hoy"],
     ["precio", "Precios"],
     ...(ctx.veCosto ? ([["costo", "Costos"]] as [VistaMatriz, string][]) : []),
-    ["etiquetas", "Insignias y campañas"],
+    ["etiquetas", "Insignias"],
   ];
   const nombreElegida = etiquetaElegida ? textoEtiqueta(etiquetaElegida) : null;
   // Todos los costos vienen de compras: en «Costos» no hay nada que escribir, ni de a una ni en bloque.
   const activas = filas.filter((f) => f.activo);
   const costosTodosFijos = activas.length > 0 && activas.every((f) => f.costoFijo);
-  // Una terminal no cambia el precio de la prenda (vale en todas las tiendas): las tallas guardadas se ven sin caja y no hay bloque.
+  // Una terminal no cambia el precio de la prenda (vale en todas las tiendas): en sus tallas guardadas escribe el de SU tienda
+  // (`precioAqui`), y «Cambiar en bloque» no sale (escribir en una talla ya las cambia todas).
   const precioFijo = ctx.precioFijoEn != null;
 
   /** Lo que dice la columna de la derecha en la fila de un color, según la pestaña. */
@@ -227,7 +244,9 @@ export function MatrizStockFicha({
       if (!etiquetaElegida) return "";
       return `${delColor.filter((f) => f.etiquetaIds.includes(etiquetaElegida)).length}/${delColor.length}`;
     }
-    const montos = delColor.map((f) => Number(vista === "precio" ? f.precio : f.costo)).filter((x) => x > 0);
+    const montos = delColor
+      .map((f) => Number(vista === "precio" ? (precioAqui && f.guardada ? precioAqui.valor(f) : f.precio) : f.costo))
+      .filter((x) => x > 0);
     return montos.length > 0 ? rangoDePrecios(montos) : "—";
   }
 
@@ -255,7 +274,9 @@ export function MatrizStockFicha({
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "precio" ? "" : "invisible"}`} aria-hidden={vista !== "precio"}>
           {precioFijo
-            ? `El precio de la prenda vale en todas las tiendas: desde esta terminal se ve, no se cambia.${ctx.precioFijoEn ? ` Para vender a otro precio aquí, usa «Precio en ${ctx.precioFijoEn}», más abajo.` : ""}`
+            ? precioAqui
+              ? `El precio al que se vende en ${precioAqui.sede}. Escríbelo en cualquier talla: vale para todas. Se guarda con «Revisar y guardar».`
+              : "El precio de la prenda vale en todas las tiendas: desde esta terminal se ve, no se cambia."
             : "Escribe el precio de cada talla, o cambia varias de una vez aquí abajo. Lo que cambió se ve en ámbar hasta guardarlo."}
         </p>
         <p className={`col-start-1 row-start-1 ${vista === "costo" ? "" : "invisible"}`} aria-hidden={vista !== "costo"}>
@@ -637,6 +658,30 @@ export function MatrizStockFicha({
     const valor = campo === "precio" ? f.precio : f.costo;
     const antes = f.guardada ? (campo === "precio" ? f.guardada.precio : f.guardada.costo) : null;
     const cambiado = antes !== null && Number(antes) !== Number(valor);
+    if (campo === "precio" && precioFijo && f.guardada && precioAqui) {
+      const antesAqui = precioAqui.antes ?? Number(f.precio);
+      return (
+        <input
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          id={`producto-variante-${f.clave}-precio`}
+          aria-label={`Precio de ${etiqueta} en ${precioAqui.sede} (vale para todas las tallas)`}
+          value={precioAqui.valor(f)}
+          disabled={deshabilitado}
+          title={
+            precioAqui.cambiado
+              ? `Antes S/\u00a0${texto(String(antesAqui))} · vale para todas las tallas · se guarda con «Revisar y guardar»`
+              : `En ${precioAqui.sede} todas las tallas se venden a un mismo precio`
+          }
+          onChange={(e) => precioAqui.onCambio(limpiarPrecio(e.target.value))}
+          onFocus={(e) => e.currentTarget.select()}
+          className={`w-[58px] rounded-[7px] border border-borde-control bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${
+            precioAqui.cambiado ? "font-semibold text-ambar-profundo" : "text-tinta"
+          }`}
+        />
+      );
+    }
     if (campo === "precio" && precioFijo && f.guardada) {
       return (
         <span className="px-1 text-[13px] tabular-nums text-tinta" title="El precio de la prenda vale en todas las tiendas: desde una terminal no se cambia">

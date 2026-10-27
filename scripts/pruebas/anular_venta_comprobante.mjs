@@ -20,6 +20,9 @@
  *      el comportamiento visible, no prueba el código nuevo).
  *   8. La reparación de la migración: un pendiente que YA quedó colgado de una venta anulada
  *      (anulada antes de esta migración) pasa a `no_emitido` con los datos de quien anuló.
+ *   9. Quién libera o anula un comprobante (ADR-0534, 20261027164000; antes, solo un líder): sin el módulo
+ *      Facturación, 42501 en `marcar_comprobante_no_emitido` y en `anular_comprobante`, y nada cambia; con
+ *      Facturación, una integrante (no líder) lo libera y queda a su nombre.
  *
  * CÓMO. Mismo mecanismo que `ventas_del_dia.mjs` y `registrar_venta.mjs` (léelos primero): `docker
  * exec ... psql`, `set local request.jwt.claim.sub` para ser Felipe (líder) y una sola transacción que
@@ -44,6 +47,7 @@ const MIGRACION = "supabase/migrations/20260921121500_anular_venta_libera_el_com
 
 // Mismas credenciales obvias que supabase/seed.sql y registrar_venta.mjs.
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
+const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed): no es líder
 
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 
@@ -282,6 +286,54 @@ rollback;
     "la reparación libera el pendiente que ya colgaba de una venta anulada, y no toca el de una venta viva",
     dato3("antes") === "pendiente" && dato3("despues") === "no_emitido|Venta anulada: anulada antes de la migración|true" && dato3("intacta") === "pendiente",
     r3.salida
+  );
+
+  // ---- Escenario 4: quién libera o anula un comprobante (ADR-0534: el módulo Facturación, no un líder) ----
+  const SIN_FACTURACION = `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'facturacion';`;
+  const CON_FACTURACION = `insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('integrante'), 'facturacion'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'facturacion');`;
+  const r4 = correr(`${FIXTURE}
+create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
+declare v_estado text; v_msg text;
+begin
+  execute p_sql;
+  return 'SIN_ERROR';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text;
+  return v_estado || '|' || v_msg;
+end;
+$f$;
+select ${VENTA_CON_BOLETA} as j \\gset
+select id as j_cmp from retail.comprobantes where venta_id = :'j' \\gset
+select id as micaela_id from public.personas where auth_user_id = '${MICAELA}' \\gset
+${SIN_FACTURACION}
+set local request.jwt.claim.sub = '${MICAELA}';
+select 'sin_liberar|' || pg_temp.intento(format('select retail.marcar_comprobante_no_emitido(%L, %L)', :'j_cmp', 'prueba automatizada'));
+select 'sin_anular|' || pg_temp.intento(format('select retail.anular_comprobante(%L, %L, false, %L::jsonb)', :'j_cmp', 'prueba automatizada', '[]'));
+select 'sin_estado|' || estado from retail.comprobantes where id = :'j_cmp';
+${CON_FACTURACION}
+select 'con_liberar|' || pg_temp.intento(format('select retail.marcar_comprobante_no_emitido(%L, %L)', :'j_cmp', 'prueba automatizada'));
+select 'con_estado|' || estado || '|' || (marcado_no_emitido_por = :'micaela_id')::text from retail.comprobantes where id = :'j_cmp';
+rollback;
+`);
+  if (!r4.ok) {
+    console.log("✗ el escenario de quién libera o anula falló antes de poder probar nada");
+    console.log(`    ${r4.mensaje.slice(0, 1400)}`);
+    process.exit(1);
+  }
+  const l4 = r4.salida.split("\n");
+  const dato4 = (clave) => l4.find((l) => l.startsWith(`${clave}|`))?.slice(clave.length + 1);
+  esperar(
+    "sin el módulo Facturación, una integrante no libera ni anula un comprobante (42501) y el comprobante sigue pendiente",
+    (dato4("sin_liberar") ?? "").startsWith("42501|Liberar un comprobante no emitido necesita el módulo Facturación") &&
+      (dato4("sin_anular") ?? "").startsWith("42501|Anular un comprobante necesita el módulo Facturación") &&
+      dato4("sin_estado") === "pendiente",
+    r4.salida
+  );
+  esperar(
+    "con Facturación, una integrante (no líder) libera el comprobante pendiente y queda a su nombre (ADR-0534)",
+    dato4("con_liberar") === "SIN_ERROR" && dato4("con_estado") === "no_emitido|true",
+    r4.salida
   );
 
   console.log(`\n${total - fallos}/${total} pruebas en verde.`);

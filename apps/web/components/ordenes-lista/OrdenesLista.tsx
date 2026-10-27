@@ -34,7 +34,7 @@ import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import type { OpcionesNuevaOrden, ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
-import { ordenesParaLaLista } from "@/lib/orden-modelo-reglas";
+import { ordenesParaLaLista, type OrdenParaMolde } from "@/lib/orden-modelo-reglas";
 import type { FaseClave } from "@/lib/orden-fases-reglas";
 import { DIAS_SIN_MOVERSE } from "@/lib/orden-pagina-reglas";
 import {
@@ -110,6 +110,7 @@ export function OrdenesLista({
   puedeEditarCatalogo = false,
   vocabulario = null,
   opcionesNuevaOrden = null,
+  historialDeMoldes = null,
 }: {
   tallerId: string;
   tallerNombre: string;
@@ -138,6 +139,8 @@ export function OrdenesLista({
   vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
   /** Lo que «Nueva orden» ofrece elegir (ADR-0400): servicios con su lista de precios, consumo por modelo, tela comprometida. Secundario. */
   opcionesNuevaOrden?: Tolerado<OpcionesNuevaOrden> | null;
+  /** Las órdenes del Taller que dicen qué modelos ya tienen molde (`moldeDelModelo`). `null` si no se pudo leer: la hoja pregunta en vez de deducir. */
+  historialDeMoldes?: readonly OrdenParaMolde[] | null;
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
@@ -412,6 +415,7 @@ export function OrdenesLista({
           puedeEditarCatalogo={puedeEditarCatalogo}
           vocabulario={vocabulario}
           opciones={opcionesNuevaOrden}
+          historialDeMoldes={historialDeMoldes}
           insumos={insumos}
           hoy={hoy}
           abiertas={paraLaLista.abiertas}
