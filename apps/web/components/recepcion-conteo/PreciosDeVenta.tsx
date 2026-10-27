@@ -18,6 +18,7 @@ export function PreciosDeVenta({
   precios,
   costoDe,
   onCosto,
+  sinNombre = false,
 }: {
   prendas: readonly Pick<PrendaSeparada, "productoId" | "nombre" | "codigo">[];
   /** El nombre de la sede que recibe: «Solo Tienda Lima». */
@@ -29,6 +30,8 @@ export function PreciosDeVenta({
   /** El costo de compra de cada prenda (por defecto el que ya tiene en el conteo o el de su línea); sin él, no hay campo de costo. */
   costoDe?: (productoId: string) => CostoDePrenda;
   onCosto?: (productoId: string, valor: string) => void;
+  /** Una sola prenda y la hoja ya dice cuál es (Tallas y colores): no se repite su nombre. */
+  sinNombre?: boolean;
 }) {
   if (prendas.length === 0) return null;
   const conCosto = costoDe !== undefined && onCosto !== undefined;
@@ -52,6 +55,7 @@ export function PreciosDeVenta({
             editado={precios.ventas[pr.productoId]}
             costo={costoDe?.(pr.productoId)}
             onCosto={onCosto ? (valor) => onCosto(pr.productoId, valor) : undefined}
+            sinNombre={sinNombre}
             onActual={(general, enSede) => precios.ponerActual(pr.productoId, general, enSede)}
             onValor={(valor) => precios.cambiarVenta(pr.productoId, { valor })}
             onAlcance={(alcance) => precios.cambiarVenta(pr.productoId, { alcance })}

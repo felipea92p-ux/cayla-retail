@@ -412,7 +412,7 @@ export function HacerAhora({
           error={error}
           onListo={tallasListas}
           onAbrirHoja={() => setVista({ tipo: "prenda" })}
-          precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={cambiarCosto} />}
+          precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} costoDe={costoDe} onCosto={cambiarCosto} sinNombre />}
           onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : cerrar}
         />
       );

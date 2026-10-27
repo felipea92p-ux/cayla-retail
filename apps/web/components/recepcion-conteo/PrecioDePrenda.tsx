@@ -53,6 +53,7 @@ export function PrecioDePrenda({
   onValor,
   onAlcance,
   onCosto,
+  sinNombre = false,
 }: {
   /** `cantidad`: cuántas llegaron (la columna «Llegaron»); sin ella (la hoja de tallas de una sola prenda, donde todavía se está contando) no hay columna. */
   prenda: Pick<PrendaSeparada, "productoId" | "nombre" | "codigo"> & { cantidad?: number };
@@ -70,6 +71,8 @@ export function PrecioDePrenda({
   onValor: (valor: string) => void;
   onAlcance: (alcance: "todas" | "sede") => void;
   onCosto?: (valor: string) => void;
+  /** La hoja ya dice de qué prenda es (la de «Tallas y colores» de una sola): no se repite su nombre, solo el precio de hoy, y los campos van en una línea. */
+  sinNombre?: boolean;
 }) {
   const nombre = prenda.nombre ?? prenda.codigo ?? "la prenda";
   const alcance = editado?.alcance ?? ALCANCE_DE_FABRICA;
@@ -98,25 +101,32 @@ export function PrecioDePrenda({
   const contenido = conCosto
     ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center"
     : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:flex-col @min-[820px]:justify-center";
+  const deHoy = textoDeHoy(editado, sede);
   return (
     <div
-      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-6 gap-y-2 ${
-        conCosto
-          ? "@min-[1000px]:grid-cols-[minmax(0,16rem)_6.5rem_9rem_9rem_auto] @min-[1000px]:justify-start"
-          : "@min-[820px]:grid-cols-[minmax(0,18rem)_6.5rem_9rem_auto] @min-[820px]:justify-start"
-      }`}
+      className={
+        sinNombre
+          ? "min-w-0 space-y-2"
+          : `grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-6 gap-y-2 ${
+              conCosto
+                ? "@min-[1000px]:grid-cols-[minmax(0,16rem)_6.5rem_9rem_9rem_auto] @min-[1000px]:justify-start"
+                : "@min-[820px]:grid-cols-[minmax(0,18rem)_6.5rem_9rem_auto] @min-[820px]:justify-start"
+            }`
+      }
       data-precio-prenda={prenda.productoId}
     >
-      <div className="min-w-0">
-        <span className="campo-etiqueta block">Prenda</span>
-        <div className={`mt-1.5 ${contenido}`}>
-          <p className="truncate text-sm font-medium leading-tight text-tinta" title={nombre}>{nombre}</p>
-          <p className="truncate text-xs leading-tight text-taupe">
-            {textoDeHoy(editado, sede)}
-          </p>
+      {sinNombre ? (
+        <p className="text-xs text-taupe">{deHoy.startsWith("hoy") ? `Precio ${deHoy}` : deHoy.charAt(0).toUpperCase() + deHoy.slice(1)}</p>
+      ) : (
+        <div className="min-w-0">
+          <span className="campo-etiqueta block">Prenda</span>
+          <div className={`mt-1.5 ${contenido}`}>
+            <p className="truncate text-sm font-medium leading-tight text-tinta" title={nombre}>{nombre}</p>
+            <p className="truncate text-xs leading-tight text-taupe">{deHoy}</p>
+          </div>
         </div>
-      </div>
-      {prenda.cantidad !== undefined && (
+      )}
+      {!sinNombre && prenda.cantidad !== undefined && (
         <div className={`whitespace-nowrap text-right ${conCosto ? "@min-[1000px]:text-left" : "@min-[820px]:text-left"}`}>
           <span className="campo-etiqueta block">Llegaron</span>
           <div className={`mt-1.5 ${contenido}`}>
@@ -127,7 +137,7 @@ export function PrecioDePrenda({
         </div>
       )}
       {/* En ancho, `contents` deja al campo y a las opciones como celdas de la fila; en angosto son una segunda línea. */}
-      <div className={`col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
+      <div className={sinNombre ? "flex flex-wrap items-start gap-x-3 gap-y-2" : `col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
         {conCosto && (
           <div className="w-36 shrink-0" data-costo-prenda={prenda.productoId}>
             <CampoTexto
@@ -161,7 +171,7 @@ export function PrecioDePrenda({
         </div>
         <div>
           <span className="campo-etiqueta block">¿Dónde vale?</span>
-          <div className={`mt-1.5 ${conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
+          <div className={`mt-1.5 ${sinNombre ? "flex min-h-10 items-center" : conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
             {soloSede ? (
               // Una terminal (Felipe 2026-10-26, ADR-0531): solo su sede; la base no le deja cambiar el de todas.
               <p className="text-xs text-taupe">Solo en {sede}: las otras sedes no cambian.</p>
