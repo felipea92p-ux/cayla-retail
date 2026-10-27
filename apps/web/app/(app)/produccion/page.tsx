@@ -19,6 +19,7 @@ import { getTelaDelTaller } from "@/lib/tela-del-taller";
 import { getListaDeOrdenes } from "@/lib/ordenes-lista";
 import { cifrasHoyEnElTaller, datoHoyEnElTaller } from "@/lib/ordenes-lista-reglas";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
+import { notaDeHistoria } from "@/lib/produccion-cifras-textos";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
 // de Producción, solo parado en el Taller. Quien trabaja en el Taller va directo a Órdenes. Todo se calcula acá, en el servidor, con reglas puras
@@ -111,7 +112,7 @@ export default async function ProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} />
+      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} hoyEnElTaller={hoyEnElTaller} falloRed={decision.fallo} notaDeHistoria={notaDeHistoria(hoy)} />
     </div>
   );
 }

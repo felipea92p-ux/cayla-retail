@@ -35,7 +35,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "cifras",
       ancla: "prod-resumen.cifras",
       titulo: "El Taller en cuatro cifras",
-      texto: "Cuánto dinero hay en tela y avíos, cuánto vale lo que se está fabricando, cuánto se debe a proveedores del Taller (y si algo venció) y cuántas entregas están vencidas o por vencer.",
+      texto: "Cuánto dinero hay en tela y avíos, cuánto vale lo que se está fabricando, cuánto se debe a proveedores del Taller (y si algo venció) y cuántas entregas están vencidas o por vencer. Un «—» no es cero: quiere decir que ese dato todavía no se ha cargado, y la tarjeta dice qué hacer.",
     },
     {
       id: "que-producir",

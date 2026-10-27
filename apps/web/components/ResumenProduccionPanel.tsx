@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
 import { Chip } from "@/components/ui/Chip";
@@ -24,6 +23,7 @@ import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLa
 import { FotoModelo } from "@/components/produccion-resumen/FotoModelo";
 import { ListaQueFabricarPrimero } from "@/components/produccion-resumen/ListaQueFabricarPrimero";
 import { queFabricarPrimero } from "@/lib/produccion-primero";
+import { textosDeCifras } from "@/lib/produccion-cifras-textos";
 import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
@@ -32,8 +32,6 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
 // vencido; las tarjetas usan ámbar y tinta. Es un componente de servidor: no tiene estado, solo enlaces a la pantalla donde se resuelve cada cosa.
-
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Lo que viene a una tela, en una línea: «155 m en camino · 40 m facturados por recibir · 35 m atrasados (no los cuento)», o «nada por recibir». */
 function loQueViene(t: FilaTela): string {
@@ -71,6 +69,7 @@ export function ResumenProduccionPanel({
   telas,
   hoyEnElTaller,
   falloRed,
+  notaDeHistoria,
 }: {
   /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
   presentaciones: Record<string, PresentacionDeModelo>;
@@ -89,12 +88,16 @@ export function ResumenProduccionPanel({
   /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
   hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
   falloRed: string | null;
+  /** «El sistema lleva 4 semanas de ventas…»: avisa que las cantidades son una guía mientras haya poca historia. `null` cuando ya hay suficiente. */
+  notaDeHistoria: string | null;
   /** La sede de la línea de arriba de la cabecera (el Taller). */
   sede: string;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
   // Los de «Producir ya» ya están arriba, en «¿Qué fabrico primero?»: esta tabla es el resto del catálogo (traslados, vigilar, alcanza, sobrestock, sin ritmo).
   const resto = modelos.filter((m) => m.estado !== "producir_ya");
+  // Lo que dice cada cifra: si el dato no se cargó, no es un cero sino «aún no hay» (Formidable, 2026-10-27).
+  const textos = textosDeCifras(cifras);
 
   return (
     <ProveedorFichasDeColor fichas={fichasDeColor}>
@@ -129,33 +132,33 @@ export function ResumenProduccionPanel({
 
       <div data-guia="prod-resumen.cifras" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaCifra
-          punto={cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
+          punto={textos.capital.sinDato ? "neutro" : cifras.insumosBajoMinimo > 0 ? "ambar" : "verde"}
           etiqueta="Capital en insumos"
           className="anim-entra"
           style={{ ["--i" as string]: 0 }}
-          valor={cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
+          valor={textos.capital.sinDato || cifras.capitalInsumos === null ? null : <CifraQueCuenta valor={cifras.capitalInsumos} formato="soles" alMontar />}
           detalleTono={cifras.insumosBajoMinimo > 0 ? "text-ambar-profundo" : undefined}
         >
-          {cifras.insumosBajoMinimo > 0 ? `${plural(cifras.insumosBajoMinimo, "insumo bajo el mínimo", "insumos bajo el mínimo")}` : "a costo de cada lote"}
+          {textos.capital.contexto}
         </TarjetaCifra>
         <TarjetaCifra
-          punto="verde"
+          punto={textos.valorEnProceso.sinDato ? "neutro" : "verde"}
           etiqueta="Valor en proceso"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          valor={<CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
+          valor={textos.valorEnProceso.sinDato ? null : <CifraQueCuenta valor={cifras.valorEnProceso} formato="soles" alMontar />}
         >
-          tela y avíos de {plural(cifras.ordenesEnProceso, "orden abierta", "órdenes abiertas")}
+          {textos.valorEnProceso.contexto}
         </TarjetaCifra>
         <TarjetaCifra
-          punto={cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
+          punto={textos.porPagar.sinDato ? "neutro" : cifras.vencido > 0 ? "rojo" : cifras.porPagar > 0 ? "ambar" : "verde"}
           etiqueta="Por pagar a proveedores"
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
-          valor={<CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
+          valor={textos.porPagar.sinDato ? null : <CifraQueCuenta valor={cifras.porPagar} formato="soles" alMontar />}
           detalleTono={cifras.vencido > 0 ? "text-rojo-profundo" : undefined}
         >
-          {cifras.vencido > 0 ? `${soles(cifras.vencido)} ya vencidos` : cifras.porPagar > 0 ? "nada vencido" : "no se debe nada"}
+          {textos.porPagar.contexto}
         </TarjetaCifra>
         <TarjetaCifra
           punto={cifras.entregasEnRiesgo > 0 ? "ambar" : "verde"}
@@ -164,11 +167,11 @@ export function ResumenProduccionPanel({
           style={{ ["--i" as string]: 3 }}
           valor={<CifraQueCuenta valor={cifras.entregasEnRiesgo} alMontar />}
         >
-          {cifras.entregasEnRiesgo > 0 ? "vencidas o por vencer en 2 días" : "ninguna vencida ni por vencer"}
+          {textos.entregas.contexto}
         </TarjetaCifra>
       </div>
 
-      <ListaQueFabricarPrimero datos={queFabricarPrimero(modelos)} falloRed={falloRed} presentaciones={presentaciones} hojas={hojas} />
+      <ListaQueFabricarPrimero datos={queFabricarPrimero(modelos)} falloRed={falloRed} nota={notaDeHistoria} presentaciones={presentaciones} hojas={hojas} />
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
         {/* Cuántos asuntos hay de verdad, en el globito (ADR-0358, ronda 9); a la derecha, solo lo que el número no dice: que se ven

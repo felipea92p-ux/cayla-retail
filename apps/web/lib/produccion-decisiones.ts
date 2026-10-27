@@ -633,6 +633,14 @@ export type CifrasResumen = {
   porPagar: number;
   vencido: number;
   entregasEnRiesgo: number;
+  /** Cuántos insumos hay cargados en el Taller: con 0, un «S/ 0.00» de capital no es «no tengo nada» sino «todavía no se cargó» (Formidable, 2026-10-27). */
+  insumosCargados: number;
+  /** Órdenes abiertas (sin las muestras, que no suman al valor) que todavía no tienen costo de tela ni de avíos: su valor es 0 porque falta el dato, no porque valgan 0. */
+  ordenesSinCosto: number;
+  /** Cuántas facturas de proveedores se han cargado alguna vez: con 0, «no se debe nada» sería afirmar lo que no se sabe. */
+  facturasCargadas: number;
+  /** Órdenes abiertas sin fecha de entrega: no pueden estar «vencidas», porque no tienen fecha. */
+  ordenesSinFecha: number;
 };
 
 /** «Entregas en riesgo» = solo lo que los hechos dicen: la fecha ya pasó o falta `DIAS_ENTREGA_PRONTO` días o menos. */
@@ -652,6 +660,10 @@ export function cifrasResumen(args: {
     ordenesEnProceso: abiertas.length,
     porPagar: redondear2(tramos.reduce((s, t) => s + t.monto, 0)),
     vencido: tramos.find((t) => t.clave === "vencido")?.monto ?? 0,
+    insumosCargados: args.insumos.length,
+    ordenesSinCosto: abiertas.filter((o) => !o.esMuestra && o.costoTela + o.costoAvios === 0).length,
+    facturasCargadas: args.comprobantes.length,
+    ordenesSinFecha: abiertas.filter((o) => o.fechaEntrega === null).length,
     entregasEnRiesgo: abiertas.filter((o) => {
       const e = estadoEntrega(o.fechaEntrega, args.hoy);
       return e.tipo === "vencida" || (e.tipo === "pronto" && e.dias <= DIAS_ENTREGA_PRONTO);

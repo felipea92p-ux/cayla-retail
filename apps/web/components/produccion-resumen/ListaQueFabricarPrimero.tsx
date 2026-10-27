@@ -64,7 +64,7 @@ function FilaVigilar({ f, presentaciones, hojas }: { f: FilaPrimero } & Comunes)
   );
 }
 
-export function ListaQueFabricarPrimero({ datos, falloRed, presentaciones, hojas }: { datos: QueFabricarPrimero; falloRed: string | null } & Comunes) {
+export function ListaQueFabricarPrimero({ datos, falloRed, nota, presentaciones, hojas }: { datos: QueFabricarPrimero; falloRed: string | null; nota: string | null } & Comunes) {
   const { firmes, vigilar, presentacion } = datos;
   // Si la red no se pudo leer, «nada se está agotando» sería falso: se dice lo que pasó (principio 9) y la pantalla sigue.
   if (falloRed)
@@ -81,6 +81,8 @@ export function ListaQueFabricarPrimero({ datos, falloRed, presentaciones, hojas
     <section data-guia="prod-resumen.que-producir" id="primero" aria-label="Qué fabricar primero" className="space-y-3">
       <TituloSeccion cuenta={firmes.length > 0 ? firmes.length : undefined}>¿Qué fabrico primero?</TituloSeccion>
       {firmes.length + vigilar.length > 0 && <p className="-mt-1 px-1 text-[13px] text-tinta/70">{presentacion}</p>}
+      {/* La edad de los datos: mientras el sistema lleva pocas semanas de ventas, las cantidades son una guía (se apaga sola, `notaDeHistoria`). */}
+      {nota && firmes.length + vigilar.length > 0 && <p className="nota-cayla">{nota}</p>}
       {firmes.length === 0 ? (
         <div className="card-cayla">
           <Vacio tamano="chico" icono={<CircleCheck />}>
