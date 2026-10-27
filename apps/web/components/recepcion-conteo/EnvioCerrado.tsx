@@ -34,6 +34,8 @@ export function EnvioCerrado({
   responsable,
   prendas,
   soloSede = false,
+  sinAviso = false,
+  veDinero = true,
   onPrendaVista,
   onCambio,
   onReabierto,
@@ -48,6 +50,9 @@ export function EnvioCerrado({
   prendas: ReadonlyMap<string, PrendaRecepcion>;
   /** Una terminal (ADR-0531): el precio de venta vale solo en su sede; no se ofrece «Todas las sedes». */
   soloSede?: boolean;
+  /** Llegó sin aviso y quien ve el dinero de Compras: de ellos depende quién escribe el costo de lo de fuera de la guía (`HacerAhora`). */
+  sinAviso?: boolean;
+  veDinero?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onCambio: () => void;
@@ -234,6 +239,8 @@ export function EnvioCerrado({
           responsable={responsable}
           prendas={prendas}
           soloSede={soloSede}
+          sinAviso={sinAviso}
+          veDinero={veDinero}
           onPrendaVista={onPrendaVista}
           onListo={() => {
             setHaciendo(null);

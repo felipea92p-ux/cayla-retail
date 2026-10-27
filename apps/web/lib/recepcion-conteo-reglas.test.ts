@@ -17,6 +17,10 @@ import {
   precioComoTexto,
   problemasDePrecio,
   argsResolverPendiente,
+  avisoDeConfirmarHacerAhora,
+  costoInicialDePrenda,
+  costosDeHacerAhora,
+  costosSinGuardar,
   AVISO_PRENDA_SIN_LIGAR,
   resultadoDeLigar,
   resultadoDelPrecio,
@@ -39,6 +43,7 @@ import {
   cambioDePrecioDeCompra,
   cambioDePrecioDeVenta,
   textoCambioDePrecio,
+  textoIgualaTallas,
   leerGuardado,
   leerPendientesDeLaSede,
   leerResuelto,
@@ -966,6 +971,21 @@ describe("precio de venta desde la recepción", () => {
     expect(textoCambioDePrecio({ tipo: "venta", nombre: "Ivana", antes: null, despues: 89.9, alcance: "sede" }, "Tienda Lima")).toBe("sin precio → S/\u00a089.90 · solo Tienda Lima");
     expect(textoCambioDePrecio({ tipo: "compra", nombre: "Blusas", antes: 18.5, despues: 19.8, alcance: null }, "Tienda Lima")).toBe("S/\u00a018.50 → S/\u00a019.80");
   });
+  it("con tallas de precios distintos dice el rango (no «sin precio») y avisa que el precio nuevo las iguala", () => {
+    const rango = cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "75", "todas");
+    expect(rango).toMatchObject({ antes: null, despues: 75, rango: { desde: 69.9, hasta: 79.9 } });
+    expect(textoCambioDePrecio(rango!, "Tienda Lima")).toBe("S/\u00a069.90 a S/\u00a079.90 → S/\u00a075.00 · todas las sedes");
+    expect(textoIgualaTallas(rango!, "Tienda Lima")).toBe("Hoy las tallas valen distinto: todas pasan a valer este precio.");
+    const enSede = cambioDePrecioDeVenta("Ivana", { desde: 69.9, hasta: 79.9 }, "75", "sede");
+    expect(textoCambioDePrecio(enSede!, "Tienda Lima")).toBe("S/\u00a069.90 a S/\u00a079.90 → S/\u00a075.00 · solo Tienda Lima");
+    expect(textoIgualaTallas(enSede!, "Tienda Lima")).toBe("Hoy las tallas valen distinto: en Tienda Lima todas pasan a venderse a este precio.");
+    // Un precio de hoy único, sin precio o el de compra: nada que avisar, y el cambio no trae rango.
+    const unico = cambioDePrecioDeVenta("Ivana", { desde: 149.9, hasta: 149.9 }, "159.90", "todas");
+    expect(unico).not.toHaveProperty("rango");
+    expect(textoIgualaTallas(unico!, "Tienda Lima")).toBeNull();
+    expect(textoIgualaTallas({ tipo: "compra", nombre: "Blusas", antes: 18.5, despues: 19.8, alcance: null }, "Tienda Lima")).toBeNull();
+    expect(cambiosDeVentaDe([{ productoId: "p1", nombre: "Ivana", codigo: null }], { p1: { actual: { desde: 69.9, hasta: 79.9 }, valor: "75", alcance: "todas" } })[0]).toMatchObject({ productoId: "p1", rango: { desde: 69.9, hasta: 79.9 } });
+  });
 });
 
 describe("lo que anotó la compra: las prendas exactas de una línea, de un toque a «¿Qué prendas son?»", () => {
@@ -1095,5 +1115,79 @@ describe("ADR-0519: el costo propio de cada prenda al cerrar", () => {
     expect(malos).toHaveLength(1);
     expect(malos[0]).toMatchObject({ linea: "item:i1", productoId: "p-antonella", nombre: "Vestido Antonella" });
     expect(malos[0].problema).toMatch(/negativo/);
+  });
+});
+
+describe("ADR-0519 sobre ADR-0393: el costo de cada prenda en «Hacer ahora»", () => {
+  const sofia = { producto_id: "p-sofia", nombre: "Vestido Sofía", codigo: "VES-1", cantidad: 6 };
+  // Una línea contada en 10, a S/ 58 la unidad; `extra` pisa lo que trae el conteo (el costo propio de las prendas, por ejemplo).
+  const lineaDe = (extra: Record<string, unknown> = {}): LineaParaContar => {
+    const c = leerConteosDelEnvio({
+      despacho_id: "d",
+      conteos: [conteoCrudo({ despacho_item_id: "i1", contadas: 10, costo_unitario: 58, separado: { prendas: [sofia], nuevas: [] }, ...extra })],
+    })?.conteos[0] ?? null;
+    return { clave: "item:i1", linea: linea("i1", 10), conteo: c, categoria: CAT, marca: MARCA, proveedor: PROV, dijeron: 10 };
+  };
+  const prendas = [{ productoId: "p-sofia", nombre: "Vestido Sofía", codigo: "VES-1" }, { productoId: "p-otra", nombre: null, codigo: "VES-9" }];
+
+  it("sin tocar, la prenda sale con el costo que ya tenía: el suyo propio, el que se le puso por su descripción, o el de su línea", () => {
+    const l = lineaDe({ costos_prendas: { "p-sofia": 55.5, "nueva:Chompa con capucha": 41.5 } });
+    expect(costoInicialDePrenda(l, "p-sofia")).toBe("55.50");
+    expect(costoInicialDePrenda(l, "p-otra")).toBe("58.00");
+    // Una prenda recién creada para un «crear»: todavía no tiene el suyo, pero su descripción sí.
+    expect(costoInicialDePrenda(l, "p-nueva", "Chompa con capucha")).toBe("41.50");
+    expect(costoInicialDePrenda(l, "p-nueva", "Otra descripción")).toBe("58.00");
+    // Sin conteo (una línea que solo está en la guía) sale el costo de la orden; sin nada, vacío.
+    expect(costoInicialDePrenda({ linea: linea("i1", 10, { costoUnitario: 30 }), conteo: null }, "p-sofia")).toBe("30.00");
+    expect(costoInicialDePrenda(null, "p-sofia")).toBe("");
+  });
+
+  it("lo que se manda y se confirma: solo un monto válido y distinto de lo que costaba; vacío, igual o sin tocar, no", () => {
+    const inicial = (id: string) => costoInicialDePrenda(lineaDe({ costos_prendas: { "p-sofia": 55.5 } }), id);
+    const r = costosDeHacerAhora(prendas, { "p-sofia": "52", "p-otra": "58" }, inicial);
+    expect(r.costos).toEqual({ "p-sofia": 52 });
+    expect(r.cambios).toEqual([{ tipo: "compra", nombre: "Vestido Sofía", antes: 55.5, despues: 52, alcance: null, productoId: "p-sofia" }]);
+    expect(r.problemas).toEqual([]);
+    // Igual a lo que ya costaba (aunque se escriba con otro formato), vacío o sin tocar: nada.
+    expect(costosDeHacerAhora(prendas, { "p-sofia": "55.5", "p-otra": "" }, inicial)).toEqual({ costos: {}, cambios: [], problemas: [] });
+    expect(costosDeHacerAhora(prendas, {}, inicial)).toEqual({ costos: {}, cambios: [], problemas: [] });
+  });
+
+  it("un costo mal escrito se dice con el nombre de la prenda y no se manda; una prenda repetida cuenta una vez", () => {
+    const inicial = () => "58.00";
+    const r = costosDeHacerAhora([...prendas, prendas[0]], { "p-sofia": "-3", "p-otra": "doce" }, inicial);
+    expect(r.costos).toEqual({});
+    expect(r.cambios).toEqual([]);
+    expect(r.problemas.map((p) => [p.productoId, p.nombre])).toEqual([["p-sofia", "Vestido Sofía"], ["p-otra", "VES-9"]]);
+    expect(r.problemas[0].texto).toMatch(/negativo/);
+    expect(costosDeHacerAhora([{ productoId: "p-x", nombre: null, codigo: null }], { "p-x": "100000" }, inicial).problemas[0]).toMatchObject({ nombre: "La prenda" });
+  });
+
+  it("resolver_pendiente_envio lleva `costos` dentro de lo separado solo si hay algo, y no cambia lo demás", () => {
+    const base = { despachoId: "d1", linea: { linea: linea("i1", 10), conteo: null }, pendienteId: "pe1", separado: SEPARADO_VACIO, token: "t" };
+    expect(argsResolverPendiente(base).p_separado).not.toHaveProperty("costos");
+    expect(argsResolverPendiente({ ...base, costos: {} }).p_separado).not.toHaveProperty("costos");
+    const con = argsResolverPendiente({ ...base, costos: { "p-sofia": 52 } });
+    expect(con.p_separado).toMatchObject({ prendas: [], nuevas: [], costos: { "p-sofia": 52 } });
+    expect(con).toMatchObject({ p_despacho_item_id: "i1", p_pendiente_id: "pe1", p_confirma_costo: false, p_token: "t" });
+  });
+
+  it("un costo que la base no dejó anotado no se da por hecho: lo dice la respuesta con el costo de cada prenda del conteo", () => {
+    const cambios = [{ productoId: "p-sofia", despues: 52 }, { productoId: "p-otra", despues: 40 }];
+    // La base lo anotó: nada que avisar. No lo anotó (la migración sin pegar lo ignora): se dice cuál. Sin respuesta, no se alarma.
+    expect(costosSinGuardar(cambios, lineaDe({ costos_prendas: { "p-sofia": 52, "p-otra": 40 } }).conteo)).toEqual([]);
+    expect(costosSinGuardar(cambios, lineaDe({ costos_prendas: { "p-sofia": 52 } }).conteo)).toEqual([cambios[1]]);
+    expect(costosSinGuardar(cambios, lineaDe().conteo)).toEqual(cambios);
+    expect(costosSinGuardar(cambios, null)).toEqual([]);
+  });
+
+  it("la confirmación dice lo que hay que saber de cada dinero que cambia, y solo de ese", () => {
+    const costo = { tipo: "compra" as const, nombre: "Vestido Sofía", antes: 55.5, despues: 52, alcance: null };
+    const venta = { tipo: "venta" as const, nombre: "Vestido Sofía", antes: 99.9, despues: 105, alcance: "sede" as const };
+    expect(avisoDeConfirmarHacerAhora([costo])).toMatch(/^El costo cambia lo que cuesta lo que entra ahora/);
+    expect(avisoDeConfirmarHacerAhora([costo])).not.toMatch(/precio de venta/i);
+    expect(avisoDeConfirmarHacerAhora([venta])).toMatch(/^El precio de venta rige desde ahora/);
+    expect(avisoDeConfirmarHacerAhora([venta])).not.toMatch(/costo/i);
+    expect(avisoDeConfirmarHacerAhora([costo, venta])).toMatch(/costo[\s\S]*precio de venta/i);
   });
 });

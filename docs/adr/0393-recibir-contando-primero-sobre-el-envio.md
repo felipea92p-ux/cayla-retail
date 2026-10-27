@@ -658,3 +658,50 @@ real) y W6 (la validación dice lo mismo que la función real, caso por caso) en
 liquidar usa una campaña…» antes de la confirmación, 105 pasa y queda **solo para Tienda Lima** (general 99.90, Trujillo sin cambio, motivo «Recepción ENV-000255»).
 
 **Una terminal (ADR-0531, fusionado 2026-10-26):** el precio de venta solo vale en su tienda, así que ni la tarjeta del cierre ni las hojas de «Para después» le ofrecen «Todas las sedes»: dicen «Solo en <su sede>: las otras sedes no cambian» (`soloSede`, que baja de `recibir/envio/[id]/page.tsx` por `RecibirContando` → `CerrarEnvio` y `EnvioCerrado` → `HacerAhora` → `PreciosDeVenta` → `PrecioDePrenda`). El alcance que viaja siempre es `sede`; la base lo respalda con el disparador `variantes_terminal_no_cambia_precio`.
+
+#### El costo de cada prenda también se cambia en «Hacer ahora» (2026-10-27, sobre ADR-0519)
+
+**El problema primero.** ADR-0519 dejó que quien cierra un envío le ponga costo propio a cada prenda que separó. Pero una prenda que al contar solo fue
+«5 blusas» no se puede costear al cerrar (no se cambia el costo de algo que no se sabe qué es): se identifica después, en «Para después» ▸ «Hacer ahora», y ahí
+entraba al stock con el costo de su LÍNEA. Si había costado otra cosa, solo se corregía desde Catálogo cuando ya había entrado. Felipe (2026-10-26/27): «se debe
+poder cambiar tanto el precio de venta (ya está) como el costo (falta)». Esperó a que ADR-0519 estuviera en `main` para no tener dos formas de costo por prenda.
+
+**Qué se hizo** (`20261026210000_costo_por_prenda_en_hacer_ahora.sql`, aún sin pegar en producción; se pega DESPUÉS de `20261026163000` y `20261026180000`).
+En la hoja de la prenda (Tallas y colores, y Separar) el bloque «Costo y precio de venta · opcional» trae el costo con el que la prenda entraría (el suyo propio si
+ya lo tiene, el que se le puso por su descripción si era una nueva, o el de su línea) y se confirma con la misma ventana del precio («Vas a cambiar costos y
+precios»). El costo viaja dentro de lo separado (`p_separado -> 'costos'`, `{producto: costo}`): `resolver_pendiente_envio` mantiene su firma, y la huella del doble clic ya lo
+cubre porque incluye todo `p_separado`. La base lo valida con LA MISMA función del cierre (`fn_envio_costos_prendas`: solo prendas de esa hoja, S/ 0 a 99 999.99 con dos
+decimales, vacío = no cambia), con el mismo permiso (un envío sin aviso: el costo de una línea de fuera de la guía solo lo escribe quien ve el dinero de Compras) y con
+la misma revisión del costo atípico (`fn_recepcion_entrar`), que ahora dice «el costo que escribiste no se parece al que tiene la prenda hoy» cuando lo raro es lo recién escrito.
+
+**Lo que se queda anotado.** El costo se guarda en `despacho_conteos.costos_prendas` (lo de ahora gana sobre lo que había): si esa prenda se detalla por partes, la
+segunda parte entra al mismo costo, y la pantalla lo muestra al volver. Sin eso, la segunda mitad entraría en silencio al costo de la línea. Para poder escribirlo
+con el envío cerrado, el candado de lo contado (`fn_despacho_conteos_fija`, reemplazo anclado) deja pasar **solo la columna `costos_prendas`**, y solo mientras
+`resolver_pendiente_envio` o `ligar_prenda_a_pendiente` tienen encendida su marca de transacción `retail.costo_de_prenda`; lo contado, la línea y el envío siguen sin poder
+cambiar. **Es la única rendija nueva en un candado de lo contado y es de Felipe decidir si la acepta** (la alternativa, no guardar el costo en el conteo, deja el
+descuadre silencioso de arriba).
+
+**Sin la migración, no se miente.** Una base sin `20261026210000` ignora `costos` sin error; por eso, al guardar, la pantalla compara lo mandado con el costo de cada prenda que la respuesta trae en el conteo (`costosSinGuardar`) y, si falta, no lo da por hecho: avisa «No se cambió el costo de …» y dice que la prenda entró al costo de su línea.
+
+**«Crear ahora» no pierde el costo.** El costo puesto a una prenda nueva por su descripción (`nueva:<descripción>`) vivía en el pendiente «crear»; al ligar la prenda creada
+(`ligar_prenda_a_pendiente`) el pendiente deja de tener descripción, así que esa clave pasa al `producto_id` de la prenda (lo que la prenda ya tuviera propio gana; la clave
+vieja se quita solo si no queda otro «crear» de la misma línea con esa descripción).
+
+**Compatibilidad con ADR-0519.** La función lee `v_k.costos_prendas`, el mismo nombre que ADR-0519 escribió: el parche le asigna la mezcla a ese campo en vez de reescribir sus
+líneas, y así `20261026164000` sigue siendo re-aplicable tal cual (su prueba, `pruebas:costo-por-prenda`, lo comprueba: 10/10 con las dos migraciones puestas).
+
+DESCARTÉ: (a) un parámetro nuevo en `resolver_pendiente_envio` (otra firma = otra función para permisos y llamadas); (b) no guardar el costo en el conteo (segunda parte al costo
+de la línea, sin aviso); (c) reescribir las líneas del parche de ADR-0519 (rompía su idempotencia: su migración y su prueba fallaban al re-aplicarse); (d) un campo de costo para las
+nuevas descritas de la hoja «Separar»: no tienen precio de venta ahí tampoco; su costo se escribe al crearlas («Crear ahora» trae el que ya tenían).
+Probado: casos K1–K9 de `pruebas:pendientes-de-envio` (el costo entra y se queda; lo de ahora gana; vacío, nulo y de otra prenda no cambian nada; mal escrito se rechaza sin escribir;
+atípico pide confirmar y no deja rastro al fallar; doble clic; el costo de una nueva pasa a la prenda al ligar; el candado solo deja la columna del costo y solo con la marca; sin
+aviso y sin ver el dinero, no) y las reglas (`costoInicialDePrenda`, `costosDeHacerAhora`, `avisoDeConfirmarHacerAhora`) con prueba; y en el navegador con ENV-000254: Blusa
+Valentina de S/ 19.80 a S/ 18.50 con «Antes S/ 19.80», «abc» se frena junto al campo con el cursor, la confirmación lista el costo, el aviso de costo atípico se confirma y entran 12 y 8 a
+S/ 18.50 con el costo de la línea intacto (S/ 19.80) y la prenda anotada en el conteo.
+
+**Tallas con precios distintos (2026-10-27, c).** El precio de venta vive en cada variante (talla y color), pero cambiarlo desde Recibir pone UN precio: «todas las sedes» iguala todas las tallas y colores activos
+(`cambiar_precio_en_recepcion`), y «solo esta sede» pone un precio de tienda que alcanza a todas las tallas activas (`poner_precio_sede`). Antes, la confirmación decía «sin precio → S/ 75.00» para una prenda
+que valía de S/ 69.90 a S/ 79.90. Ahora el cambio trae el rango (`CambioDePrecio.rango`): «S/ 69.90 a S/ 79.90 → S/ 75.00 · solo Tienda Lima», con la línea «Hoy las tallas valen distinto: en Tienda Lima
+todas pasan a venderse a este precio» (`textoIgualaTallas`). La base no cambia. Además, bajo el campo del precio sale «Antes S/ …» cuando el precio escrito es válido y distinto del de hoy (uno solo), y en la
+hoja de una sola prenda no se repite su nombre ni el precio de hoy cuando el campo ya lo trae.
+

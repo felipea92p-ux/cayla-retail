@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
-import { ALCANCE_DE_FABRICA, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
+import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
 import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
 
 // El precio de venta de una prenda que ya se identificó en este envío (Felipe 2026-10-24). El campo viene con el precio de hoy; quien recibe lo
@@ -15,18 +15,40 @@ import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
 const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const textoRango = (r: RangoDePrecio) => (r.desde === r.hasta ? monto(r.desde) : `${monto(r.desde)} a ${monto(r.hasta)}`);
 
+/** El general y el de la sede son otros (el precio propio de la tienda): vale decir los dos. */
+function precioDeSedeDistinto(e: PrecioEditado): boolean {
+  return e.alcance === "sede" && e.actual !== null && e.actual !== undefined && e.actualSede !== undefined && e.actualSede !== null && textoRango(e.actual) !== textoRango(e.actualSede);
+}
+
 /** Junto al nombre de la prenda: su precio de hoy (el de la sede si el precio vale solo para ella, y si es otro que el general, también el general). */
 function textoDeHoy(e: PrecioEditado | undefined, sede: string): string {
   if (!e || e.actual === undefined) return "leyendo el precio…";
   const hoy = hoyDelPrecio(e);
   if (hoy === null || hoy === undefined) return "sin precio a la vista";
-  const distinto = e.alcance === "sede" && e.actual !== null && e.actualSede !== undefined && e.actualSede !== null && textoRango(e.actual) !== textoRango(e.actualSede);
-  return distinto && e.actual ? `hoy en ${sede} ${textoRango(hoy)} (en las demás sedes, ${textoRango(e.actual)})` : `hoy ${textoRango(hoy)}`;
+  return precioDeSedeDistinto(e) && e.actual ? `hoy en ${sede} ${textoRango(hoy)} (en las demás sedes, ${textoRango(e.actual)})` : `hoy ${textoRango(hoy)}`;
+}
+
+/**
+ * ¿Hace falta decir el precio de hoy aparte del campo? No cuando ya se leyó, es uno solo y es el mismo en todas las sedes: el campo del precio
+ * viene con ese número y repetirlo es ruido. Sí cuando el campo no lo muestra: tallas con precios distintos (un rango), sin precio, o el de la
+ * sede distinto del general.
+ */
+function hoyYaSeVeEnElCampo(e: PrecioEditado | undefined): boolean {
+  if (!e || e.actual === undefined) return false;
+  const hoy = hoyDelPrecio(e);
+  return hoy !== null && hoy !== undefined && hoy.desde === hoy.hasta && !precioDeSedeDistinto(e);
 }
 
 /** Lleva el cursor al campo del precio de una prenda (para decirle a quien escribe cuál hay que corregir). */
 export function enfocarPrecio(productoId: string) {
   const campo = document.querySelector<HTMLInputElement>(`[data-precio-prenda="${CSS.escape(productoId)}"] input`);
+  campo?.scrollIntoView({ block: "center", behavior: "smooth" });
+  campo?.focus({ preventScroll: true });
+}
+
+/** Lleva el cursor al campo del costo de una prenda (para decirle a quien escribe cuál hay que corregir). */
+export function enfocarCosto(productoId: string) {
+  const campo = document.querySelector<HTMLInputElement>(`[data-costo-prenda="${CSS.escape(productoId)}"] input`);
   campo?.scrollIntoView({ block: "center", behavior: "smooth" });
   campo?.focus({ preventScroll: true });
 }
@@ -46,6 +68,7 @@ export function PrecioDePrenda({
   onValor,
   onAlcance,
   onCosto,
+  sinNombre = false,
 }: {
   /** `cantidad`: cuántas llegaron (la columna «Llegaron»); sin ella (la hoja de tallas de una sola prenda, donde todavía se está contando) no hay columna. */
   prenda: Pick<PrendaSeparada, "productoId" | "nombre" | "codigo"> & { cantidad?: number };
@@ -63,12 +86,16 @@ export function PrecioDePrenda({
   onValor: (valor: string) => void;
   onAlcance: (alcance: "todas" | "sede") => void;
   onCosto?: (valor: string) => void;
+  /** La hoja ya dice de qué prenda es (la de «Tallas y colores» de una sola): no se repite su nombre, solo el precio de hoy, y los campos van en una línea. */
+  sinNombre?: boolean;
 }) {
   const nombre = prenda.nombre ?? prenda.codigo ?? "la prenda";
   const alcance = editado?.alcance ?? ALCANCE_DE_FABRICA;
   const lectura = leerPrecioNuevo(editado?.valor ?? "");
   // Lo que está mal escrito, o lo que la base no aceptaría (con su motivo): junto al campo, no en un aviso aparte.
   const problema = lectura.problema ?? editado?.rechazo ?? null;
+  // «Antes S/ …» bajo el precio, como bajo el costo: solo si lo escrito es un precio válido y distinto del de hoy (y el de hoy es uno solo).
+  const antesDelPrecio = cambioDePrecioDeVenta(nombre, hoyDelPrecio({ actual: editado?.actual, actualSede: editado?.actualSede, alcance }), editado?.valor ?? "", alcance)?.antes ?? null;
 
   useEffect(() => {
     let vivo = true;
@@ -91,25 +118,35 @@ export function PrecioDePrenda({
   const contenido = conCosto
     ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center"
     : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:flex-col @min-[820px]:justify-center";
+  const deHoy = textoDeHoy(editado, sede);
   return (
     <div
-      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-6 gap-y-2 ${
-        conCosto
-          ? "@min-[1000px]:grid-cols-[minmax(0,16rem)_6.5rem_9rem_9rem_auto] @min-[1000px]:justify-start"
-          : "@min-[820px]:grid-cols-[minmax(0,18rem)_6.5rem_9rem_auto] @min-[820px]:justify-start"
-      }`}
+      className={
+        sinNombre
+          ? "min-w-0 space-y-2"
+          : `grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-6 gap-y-2 ${
+              conCosto
+                ? "@min-[1000px]:grid-cols-[minmax(0,16rem)_6.5rem_9rem_9rem_auto] @min-[1000px]:justify-start"
+                : "@min-[820px]:grid-cols-[minmax(0,18rem)_6.5rem_9rem_auto] @min-[820px]:justify-start"
+            }`
+      }
       data-precio-prenda={prenda.productoId}
     >
-      <div className="min-w-0">
-        <span className="campo-etiqueta block">Prenda</span>
-        <div className={`mt-1.5 ${contenido}`}>
-          <p className="truncate text-sm font-medium leading-tight text-tinta" title={nombre}>{nombre}</p>
-          <p className="truncate text-xs leading-tight text-taupe">
-            {textoDeHoy(editado, sede)}
-          </p>
+      {sinNombre ? (
+        // La hoja ya dice qué prenda es y el campo trae el precio de hoy: solo se dice aparte lo que el campo no muestra (un rango, sin precio, el de la sede).
+        editado?.actual !== undefined && !hoyYaSeVeEnElCampo(editado) && (
+          <p className="text-xs text-taupe">{deHoy.startsWith("hoy") ? `Precio ${deHoy}` : deHoy.charAt(0).toUpperCase() + deHoy.slice(1)}</p>
+        )
+      ) : (
+        <div className="min-w-0">
+          <span className="campo-etiqueta block">Prenda</span>
+          <div className={`mt-1.5 ${contenido}`}>
+            <p className="truncate text-sm font-medium leading-tight text-tinta" title={nombre}>{nombre}</p>
+            <p className="truncate text-xs leading-tight text-taupe">{deHoy}</p>
+          </div>
         </div>
-      </div>
-      {prenda.cantidad !== undefined && (
+      )}
+      {!sinNombre && prenda.cantidad !== undefined && (
         <div className={`whitespace-nowrap text-right ${conCosto ? "@min-[1000px]:text-left" : "@min-[820px]:text-left"}`}>
           <span className="campo-etiqueta block">Llegaron</span>
           <div className={`mt-1.5 ${contenido}`}>
@@ -120,9 +157,9 @@ export function PrecioDePrenda({
         </div>
       )}
       {/* En ancho, `contents` deja al campo y a las opciones como celdas de la fila; en angosto son una segunda línea. */}
-      <div className={`col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
+      <div className={sinNombre ? "flex flex-wrap items-start gap-x-3 gap-y-2" : `col-span-2 flex flex-wrap items-start gap-x-3 gap-y-2 ${conCosto ? "@min-[1000px]:contents" : "@min-[820px]:contents"}`}>
         {conCosto && (
-          <div className="w-36 shrink-0">
+          <div className="w-36 shrink-0" data-costo-prenda={prenda.productoId}>
             <CampoTexto
               etiqueta="Costo"
               aria-label={`Costo de ${nombre}`}
@@ -148,13 +185,14 @@ export function PrecioDePrenda({
             placeholder="S/ 0.00"
             onChange={(e) => onValor(e.target.value)}
             tono={problema ? "error" : undefined}
-            sinPie
+            pie={antesDelPrecio !== null ? `Antes ${monto(antesDelPrecio)}` : undefined}
+            sinPie={antesDelPrecio === null}
             className="text-right font-semibold tabular-nums"
           />
         </div>
         <div>
           <span className="campo-etiqueta block">¿Dónde vale?</span>
-          <div className={`mt-1.5 ${conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
+          <div className={`mt-1.5 ${sinNombre ? "flex min-h-10 items-center" : conCosto ? "@min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:items-center" : "@min-[820px]:flex @min-[820px]:min-h-10 @min-[820px]:items-center"}`}>
             {soloSede ? (
               // Una terminal (Felipe 2026-10-26, ADR-0531): solo su sede; la base no le deja cambiar el de todas.
               <p className="text-xs text-taupe">Solo en {sede}: las otras sedes no cambian.</p>
