@@ -27,7 +27,8 @@ import {
   type Separado,
   mensajeAlGuardar,
 } from "@/lib/recepcion-conteo-reglas";
-import { guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { agregarFotoPapel, guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
+import { subirFotoPapel } from "@/lib/compra-rapida-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
 import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -244,6 +245,21 @@ export function RecibirContando({
     router.refresh();
   }, [detalle.id, router]);
 
+  /** Sube la foto de un papel que llegó sin ella y se la pone a la compra. Devuelve por qué no se pudo, o `null` si quedó. */
+  const subirFotoDelPapel = useCallback(
+    async (papelId: string, archivo: File): Promise<string | null> => {
+      const subida = await subirFotoPapel(archivo);
+      if (!subida.ruta) return subida.motivo ?? "No se pudo subir la foto.";
+      const { error } = await agregarFotoPapel({ p_despacho_id: detalle.id, p_papel_id: papelId, p_foto_ruta: subida.ruta }, responsable.firma());
+      responsable.despues(error);
+      if (error) return mensajeAlGuardar(error, "subir la foto del papel");
+      avisar.exito("Subiste la foto del papel");
+      router.refresh();
+      return null;
+    },
+    [detalle.id, responsable, router],
+  );
+
   // Cerrar cambia la VISTA (de contar a «cerrado»): se suelta <PaginaEstable> (ADR-0185) y la vista va arriba.
   const [recienCerrado, setRecienCerrado] = useState(false);
   useLayoutEffect(() => {
@@ -345,7 +361,7 @@ export function RecibirContando({
       <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
       {conPapel && (
         <div className="xl:sticky xl:top-4">
-          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
+          <PapelesDeLaCompra papeles={papeles} lineas={lineas} alSubirFoto={subirFotoDelPapel} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
         </div>
       )}
       <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>

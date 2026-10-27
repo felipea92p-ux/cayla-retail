@@ -299,6 +299,12 @@ describe("decisionesDeProduccion", () => {
       expect(d[0].detalle).toBe("Los más urgentes (ventas de los últimos 30 días): «Modelo 8» (ya se agotó, 63 por semana, 30 ventas), «Modelo 7» (ya se agotó, 56 por semana, 30 ventas), «Modelo 6» (ya se agotó, 49 por semana, 30 ventas); y 6 más.");
       expect(d[0].accion).toEqual({ texto: "Ver los 9 modelos", href: "#produce" });
     });
+    it("con `producirAparte` (los modelos tienen su propia lista) no hay tarjeta de «por producir», pero lo demás sigue", () => {
+      const r = resumenDeDecisiones(contexto({ modelos: conAgotados(9), producirAparte: true, comprobantes: [comp("1", { fechaVencimiento: "2026-09-26" })] }));
+      expect(r.decisiones.map((x) => x.tipo)).toEqual(["pago"]);
+      expect(r.ocultas).toEqual([]);
+      expect(r.total).toBe(1);
+    });
     it("9 modelos por producir y un pago por vencer en 5 días: el pago SÍ aparece, y no queda nada oculto", () => {
       const r = resumenDeDecisiones(contexto({ modelos: conAgotados(9), comprobantes: [comp("1", { fechaVencimiento: "2026-09-26" })] }));
       expect(r.decisiones.map((x) => x.tipo)).toEqual(["producir", "pago"]);
@@ -781,9 +787,11 @@ describe("cada cifra dice su base (/pantalla produccion, tarea #4)", () => {
 });
 
 describe("la guía de Producción cuenta lo mismo que la pantalla", () => {
-  it("el umbral de «poca base» que dice el paso «Cómo se lee un modelo» es el de la constante: si alguien la cambia, esta prueba pide actualizar la guía", () => {
-    const paso = GUIA_PROD_RESUMEN.pasos.find((p) => p.id === "modelo");
-    expect(paso?.texto).toContain(`«Poca base»: ${UMBRAL_POCA_BASE_VENTAS} o menos`);
+  it("el umbral de «poca base» que dice el paso «¿Qué fabrico primero?» es el de la constante: si alguien la cambia, esta prueba pide actualizar la guía", () => {
+    const paso = GUIA_PROD_RESUMEN.pasos.find((p) => p.id === "que-producir");
+    // «ventas firmes» son las que pasan el umbral (3 o más) y «poca base», las que no (1 o 2).
+    expect(paso?.texto).toContain(`${UMBRAL_POCA_BASE_VENTAS + 1} o más ventas en el mes`);
+    expect(paso?.texto).toContain(`Los de 1 o ${UMBRAL_POCA_BASE_VENTAS} ventas`);
   });
 });
 
@@ -889,5 +897,18 @@ describe("filasDeTela con lo que viene en camino", () => {
 
   it("sin nada en camino la fila no trae pedidos ni cantidades", () => {
     expect(filasDeTela([insumo("lino")], new Map(), [])[0]).toMatchObject({ pedidos: [], enCamino: 0, atrasado: 0, facturado: 0 });
+  });
+});
+
+describe("la tarjeta de sobrestock no se contradice (segunda prueba ciega, Producción ▸ Resumen)", () => {
+  it("dice «no produzcas más» y su botón no dice «producir»: «Verlo abajo»", () => {
+    const f = filasPorModelo(
+      [{ varianteId: "v1", productoId: "p1", stockRed: 700, stockTaller: 0, enCamino: 0, ritmoDia: 10, sedesConRitmo: 1, ventasNetas: 4, ventasBase: 4, cobertura: { tipo: "medida", dias: 60 }, banda: "alta" }],
+      [{ productoId: "p1", referencia: "Blusa Satinada", variantesIds: ["v1"] }],
+      {}
+    );
+    const [d] = decisionesDeProduccion(contexto({ modelos: f }));
+    expect(d.titulo).toContain("no produzcas más");
+    expect(d.accion).toEqual({ texto: "Verlo abajo", href: "#produce" });
   });
 });
