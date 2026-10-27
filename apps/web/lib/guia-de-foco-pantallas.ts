@@ -517,6 +517,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/recepcion-conteo/AgregarFueraDeGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/AgregarFueraDeGuia.tsx"] },
   // ADR-0393: «Hacer ahora». Separar pide al menos una prenda y nunca más de lo que queda; las tallas y la prenda nueva son las hojas de
   // siempre (HojaTallas, HojaPrenda), con su guía.
+  "components/recepcion-conteo/PapelesDeLaCompra.tsx": { estado: "no-aplica", motivo: "Su hoja solo muestra la foto del papel en grande: nada que llenar. El único control de archivo es el botón «Subir foto» de un papel sin foto: un toque que abre la cámara o la galería, sin campos ni pasos." },
   "components/recepcion-conteo/ConfirmarPrecios.tsx": { estado: "no-aplica", motivo: "La hoja de confirmación solo lista los precios que cambian (compra y venta) y pide confirmar: no tiene campos. Los campos del cierre ya traen su guía en la página y los de «Hacer ahora», en su hoja. La usan el cierre y «Hacer ahora»." },
   "components/recepcion-conteo/HacerAhora.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/HacerAhora.tsx"] },
   // ADR-0393: las tallas y colores de una prenda separada: qué prenda es, cuántas de cada talla y color y, si llegaron dañadas, cuántas y
