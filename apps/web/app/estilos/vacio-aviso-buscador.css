@@ -149,6 +149,13 @@
   }
   .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   .buscador:has(input:focus-visible) { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); }
+  /* «Lo escribió CAYLA» (ADR-0536, actividad 6): el asistente escribió aquí lo que la persona dijo. La marca va dentro de la caja, a la
+     derecha, hasta que la persona la toca o escribe (`marcarLoEscribioCayla`, components/guias/piloto.ts). */
+  .buscador[data-lo-escribio-cayla] { border-color: var(--color-taupe); }
+  .buscador[data-lo-escribio-cayla]::after {
+    content: "Lo escribió CAYLA · revísalo"; flex-shrink: 0; white-space: nowrap; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; line-height: 16px; color: var(--color-taupe-profundo); background: var(--color-sand);
+  }
   /* La sombra de predicción (opt-in, `sombra`): el campo y la sombra comparten caja para que su texto empiece en el mismo punto. La
      sombra solo se ve con el cursor adentro; lo ya escrito va invisible para que lo único que se vea sea lo que falta. */
   .buscador-campo { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; }

@@ -61,7 +61,7 @@ const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
 ];
 
 const AYUDA: Record<Tipo, string> = {
-  colores: "Vocabulario cerrado de color. Cualquiera propone, un Líder aprueba o rechaza.",
+  colores: "Vocabulario cerrado de color. Lo que se agrega queda listo para usar; lo que quedó pendiente de antes se aprueba o rechaza aquí.",
   tallas: "Vocabulario cerrado de talla. Aprobar exige un comentario: una talla mal aprobada ensucia la unicidad de variante y es más cara de deshacer con SKUs ya colgando.",
   tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda. Haz clic en uno para ver su foto y las prendas que lo usan.",
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto. Haz clic en uno para ver su foto y las prendas que lo usan.",

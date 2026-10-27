@@ -62,9 +62,9 @@ export function faltaParaCrear(b: BorradorColor): string | null {
 
 /**
  * Lo que devuelve `POST /api/productos/colores` (`{ color: { codigo, nombre, familia_color, hex, estado, sinonimos, pantone_tcx } }`)
- * como lo usa el alta. `pendiente`: lo creó alguien que no es Líder; ya se puede usar, falta que un Líder lo apruebe.
+ * como lo usa el alta. Desde ADR-0534 todo color nace aprobado, lo cree quien lo cree: el estado ya no se lee.
  */
-export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente: boolean } | null {
+export function colorDeRespuesta(datos: unknown): { color: ColorAlta } | null {
   const c = (datos as { color?: Record<string, unknown> } | null)?.color;
   if (!c || typeof c.codigo !== "string" || typeof c.nombre !== "string") return null;
   return {
@@ -80,6 +80,5 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente:
       descripcion: typeof c.descripcion === "string" ? c.descripcion : null,
       combinaCon: Array.isArray(c.combina_con) ? c.combina_con.filter((s): s is string => typeof s === "string") : [],
     },
-    pendiente: c.estado === "pendiente",
   };
 }

@@ -71,8 +71,8 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
  *  gesto (contar y corregir) pero sin abrir un conteo de verdad. Un motivo
  *  que no esté acá se muestra tal cual — nunca rompe la pantalla.
  *
- *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando un
- *  líder resuelve una prenda dañada — `resolver_prenda_danada`, una por
+ *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando se
+ *  resuelve una prenda dañada — `resolver_prenda_danada`, una por
  *  cada uno de los 3 estados de salida. La ENTRADA a cuarentena sigue
  *  usando el motivo `devolucion` de siempre (mismo gesto que una devolución
  *  vendible, solo cambia la sububicación destino). */

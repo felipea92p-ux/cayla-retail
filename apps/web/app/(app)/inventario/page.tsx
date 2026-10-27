@@ -259,7 +259,6 @@ export default async function InventarioPage({
         abrirDanados={danados === "1"}
         abrirVariante={variante ?? null}
         apartados={apartados}
-        esLider={persona.rol === "lider"}
         editaCatalogo={puede(persona, "editarCatalogo")}
         puedeAjustar={puede(persona, "ajustarStock")}
         coberturaFallo={ritmoReciente.fallo}

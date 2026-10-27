@@ -81,6 +81,24 @@ function ponerValor(el: HTMLInputElement | HTMLTextAreaElement, valor: string) {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+/** El campo que el asistente puede rellenar (ADR-0536, actividad 6): solo uno dentro de una pieza marcada así, que es una lista blanca. */
+const RELLENABLE = '[data-asistente="rellenable"]';
+
+/**
+ * Deja la pieza marcada «Lo escribió CAYLA · revísalo» (`app/estilos/vacio-aviso-buscador.css`) hasta que la persona la toca o escribe
+ * en ella: lo que escribió el piloto se distingue de lo que escribió ella. El piloto escribe con eventos que no son de una persona
+ * (`isTrusted` falso): esos no quitan la marca.
+ */
+function marcarLoEscribioCayla(pieza: HTMLElement) {
+  pieza.setAttribute("data-lo-escribio-cayla", "");
+  const quitar = (e: Event) => {
+    if (!e.isTrusted) return;
+    pieza.removeAttribute("data-lo-escribio-cayla");
+    for (const tipo of ["input", "pointerdown", "keydown"]) pieza.removeEventListener(tipo, quitar, true);
+  };
+  for (const tipo of ["input", "pointerdown", "keydown"]) pieza.addEventListener(tipo, quitar, true);
+}
+
 function campoDe(el: HTMLElement): HTMLInputElement | HTMLTextAreaElement | null {
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return el;
   return el.querySelector<HTMLInputElement | HTMLTextAreaElement>("input:not([type=hidden]), textarea");
@@ -150,7 +168,11 @@ export async function ejecutar(
     ponerValor(campo, "");
     return { ok: true };
   }
-  const texto = typeof accion.texto === "string" ? accion.texto : palabraDe(accion.texto.palabraDe);
+  // Rellenar es escribir, con un candado más: solo en una pieza marcada `data-asistente="rellenable"`. Un campo de monto, de cantidad,
+  // de un comprobante o el combo «Responsable» nunca lo está (lo vigila `lib/asistente-rellenable.test.ts`).
+  const rellenable = accion.tipo === "rellenar" ? campo.closest<HTMLElement>(RELLENABLE) : null;
+  if (accion.tipo === "rellenar" && !rellenable) return { ok: false, motivo: "ese campo no se rellena solo" };
+  const texto = accion.tipo === "rellenar" ? accion.texto : typeof accion.texto === "string" ? accion.texto : palabraDe(accion.texto.palabraDe);
   if (!texto) return { ok: false, motivo: "no hay un ejemplo a la vista" };
   // Escribir: letra a letra, para que se vea a alguien escribiendo (y el buscador reaccione como con una persona).
   if (apuntar && conMovimiento) await apuntar(campo, "escribir");
@@ -158,12 +180,13 @@ export async function ejecutar(
   campo.focus({ preventScroll: true });
   if (!conMovimiento) {
     ponerValor(campo, texto);
-    return { ok: true };
+  } else {
+    for (let i = 1; i <= texto.length; i++) {
+      if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
+      ponerValor(campo, texto.slice(0, i));
+      await pausa(70);
+    }
   }
-  for (let i = 1; i <= texto.length; i++) {
-    if (senal?.aborted) return { ok: false, motivo: "la guía terminó" };
-    ponerValor(campo, texto.slice(0, i));
-    await pausa(70);
-  }
+  if (rellenable) marcarLoEscribioCayla(rellenable);
   return { ok: true };
 }

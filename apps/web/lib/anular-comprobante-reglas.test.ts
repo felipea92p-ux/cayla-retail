@@ -1,19 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { motivoParaNoPedirBaja, type DatosParaPedirBaja } from "./anular-comprobante-reglas";
 
-const listo: DatosParaPedirBaja = { esLider: true, estado: "aceptado", anulacion_solicitada_at: null, notasVigentes: 0 };
+const listo: DatosParaPedirBaja = { veFacturacion: true, estado: "aceptado", anulacion_solicitada_at: null, notasVigentes: 0 };
 
 describe("motivoParaNoPedirBaja — lo que se revisa antes de llamar a Lucode", () => {
-  it("un líder con un comprobante aceptado, sin baja pedida ni notas: se puede pedir", () => {
+  it("quien ve Facturación (ya no solo un líder, ADR-0534) con un comprobante aceptado, sin baja pedida ni notas: se puede pedir", () => {
     expect(motivoParaNoPedirBaja(listo)).toBeNull();
   });
 
-  it("quien no es líder recibe 403, aunque todo lo demás esté bien", () => {
-    expect(motivoParaNoPedirBaja({ ...listo, esLider: false })?.status).toBe(403);
+  it("quien no ve Facturación recibe 403, aunque todo lo demás esté bien", () => {
+    const r = motivoParaNoPedirBaja({ ...listo, veFacturacion: false });
+    expect(r?.status).toBe(403);
+    expect(r?.error).toMatch(/Facturación/);
+    expect(r?.error).not.toMatch(/líder/i);
   });
 
-  it("el permiso se mira primero: quien no es líder no se entera del estado del comprobante", () => {
-    expect(motivoParaNoPedirBaja({ ...listo, esLider: false, estado: "rechazado", notasVigentes: 2 })?.status).toBe(403);
+  it("el permiso se mira primero: quien no ve Facturación no se entera del estado del comprobante", () => {
+    expect(motivoParaNoPedirBaja({ ...listo, veFacturacion: false, estado: "rechazado", notasVigentes: 2 })?.status).toBe(403);
   });
 
   it.each(["pendiente", "pendiente_reintento", "enviado", "rechazado", "anulado", "no_emitido"] as const)(

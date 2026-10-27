@@ -7,7 +7,6 @@ import {
   INGRESO_RAPIDO_VACIO,
   MAX_NOTA_INGRESO,
   camposDeIngresoRapido,
-  conceptosIngresoVisibles,
   limpiarMontoIngreso,
   notaDeIngreso,
   validarIngreso,
@@ -40,11 +39,9 @@ describe("conceptos de ingreso", () => {
     expect(new Set(CONCEPTOS_INGRESO.map((c) => c.motivo)).size).toBe(CONCEPTOS_INGRESO.length);
   });
 
-  it("el sobrante solo lo ve el líder", () => {
-    expect(conceptosIngresoVisibles(true).map((c) => c.clave)).toContain("sobrante");
-    expect(conceptosIngresoVisibles(false).map((c) => c.clave)).not.toContain("sobrante");
-    expect(validarIngreso(con({ concepto: "sobrante", monto: "5" }), SEDES, false).ok).toBe(false);
-    expect(validarIngreso(con({ concepto: "sobrante", monto: "5" }), SEDES, true).ok).toBe(true);
+  it("el sobrante lo anota quien opera la caja, no solo el líder (ADR-0534)", () => {
+    expect(CONCEPTOS_INGRESO.map((c) => c.clave)).toContain("sobrante");
+    expect(validarIngreso(con({ concepto: "sobrante", monto: "5" }), SEDES).ok).toBe(true);
   });
 });
 
@@ -79,9 +76,9 @@ describe("lo que se manda a registrar_ingreso_caja", () => {
   });
 
   it("solo el líder lleva «de dónde» y solo otra sede lleva la sede", () => {
-    const lider = validarIngreso(con({ concepto: "lider", monto: "50", deDonde: "dueno", quien: "Felipe", sedeId: "lim" }), SEDES, true);
+    const lider = validarIngreso(con({ concepto: "lider", monto: "50", deDonde: "dueno", quien: "Felipe", sedeId: "lim" }), SEDES);
     expect(lider.ok && lider.valor).toMatchObject({ p_concepto: "lider", p_de_donde: "dueno", p_sede_origen_id: null, p_monto: 50 });
-    const sede = validarIngreso(con({ concepto: "otra_sede", monto: "80", sedeId: "lim", deDonde: "cierre" }), SEDES, true);
+    const sede = validarIngreso(con({ concepto: "otra_sede", monto: "80", sedeId: "lim", deDonde: "cierre" }), SEDES);
     expect(sede.ok && sede.valor).toMatchObject({ p_concepto: "otra_sede", p_de_donde: null, p_sede_origen_id: "lim", p_nota: "De Tienda Lima" });
   });
 });
@@ -111,12 +108,12 @@ describe("la guía de foco dice lo mismo que validarIngreso", () => {
     ["vuelve de un retiro", con({ concepto: "vuelve_retiro", monto: "20.5" })],
     ["otro sin texto", con({ concepto: "otro", monto: "10" })],
     ["otro completo", con({ concepto: "otro", monto: "10", otroTexto: "Vuelto de un pedido" })],
-    ["sobrante (líder)", con({ concepto: "sobrante", monto: "1.20" })],
+    ["sobrante", con({ concepto: "sobrante", monto: "1.20" })],
     ["monto ilegible", con({ concepto: "caja_fuerte", monto: "." })],
   ];
   for (const [nombre, e] of escenarios) {
     it(nombre, () => {
-      expect(sePuedeConfirmar(camposDeIngresoRapido(e))).toBe(validarIngreso(e, SEDES, true).ok);
+      expect(sePuedeConfirmar(camposDeIngresoRapido(e))).toBe(validarIngreso(e, SEDES).ok);
     });
   }
 });

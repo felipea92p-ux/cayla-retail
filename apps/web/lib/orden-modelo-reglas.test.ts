@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   FILAS_SIN_BUSCAR,
+  frasesDelMolde,
+  moldeDelModelo,
   listaDeModelos,
   ordenesParaLaLista,
   textoUrgencia,
@@ -189,5 +191,68 @@ describe("ordenesParaLaLista", () => {
     const r = ordenesParaLaLista([]);
     expect(r.abiertas.size).toBe(0);
     expect(r.recientes).toEqual([]);
+  });
+});
+
+describe("moldeDelModelo", () => {
+  const o = (estado: string, esMuestra: boolean, etapas: Record<string, string> | null = null, productoId = "p1") => ({ productoId, estado, esMuestra, etapas });
+
+  it("sin ninguna orden del modelo no hay historia", () => {
+    expect(moldeDelModelo([], "p1")).toEqual({ estado: "sin_historia" });
+    expect(moldeDelModelo([o("terminada", false, null, "otro")], "p1")).toEqual({ estado: "sin_historia" });
+  });
+  it("una muestra terminada, o con su escalado hecho, deja el molde listo", () => {
+    expect(moldeDelModelo([o("terminada", true)], "p1")).toEqual({ estado: "listo", por: "muestra" });
+    expect(moldeDelModelo([o("en_proceso", true, { patronaje: "hecho", muestra: "hecho", escalado: "hecho" })], "p1")).toEqual({ estado: "listo", por: "muestra" });
+  });
+  it("una muestra en proceso que no llegó al escalado está en desarrollo", () => {
+    expect(moldeDelModelo([o("en_proceso", true, { patronaje: "hecho" })], "p1")).toEqual({ estado: "en_desarrollo" });
+    expect(moldeDelModelo([o("en_proceso", true)], "p1")).toEqual({ estado: "en_desarrollo" });
+  });
+  it("un lote, abierto o cerrado, supone que el molde existía", () => {
+    expect(moldeDelModelo([o("en_proceso", false)], "p1")).toEqual({ estado: "listo", por: "lote" });
+    expect(moldeDelModelo([o("terminada", false), o("terminada", true)], "p1")).toEqual({ estado: "listo", por: "lote" });
+  });
+  it("una orden anulada no cuenta: se abrió por error", () => {
+    expect(moldeDelModelo([o("anulada", false), o("anulada", true)], "p1")).toEqual({ estado: "sin_historia" });
+  });
+  it("una muestra terminada gana sobre otra a medias", () => {
+    expect(moldeDelModelo([o("en_proceso", true), o("terminada", true)], "p1")).toEqual({ estado: "listo", por: "muestra" });
+  });
+});
+
+describe("frasesDelMolde", () => {
+  it("un modelo nuevo pregunta por el molde antes de dar la muestra por hecha", () => {
+    const r = frasesDelMolde({ tipo: "muestra", esNuevo: true, molde: { estado: "sin_historia" } });
+    expect(r.pregunta).toBe(true);
+    expect(r.texto).toMatch(/¿Ya tienen el molde/);
+  });
+  it("un modelo nuevo con Lote elegido da por dicho que ya tienen el molde", () => {
+    const r = frasesDelMolde({ tipo: "produccion", esNuevo: true, molde: { estado: "sin_historia" } });
+    expect(r.pregunta).toBe(false);
+    expect(r.texto).toMatch(/ya tienen el molde/);
+    expect(r.texto).not.toMatch(/arranca como muestra/);
+  });
+  it("con el molde listo lo dice y no pregunta", () => {
+    const lote = frasesDelMolde({ tipo: "produccion", esNuevo: false, molde: { estado: "listo", por: "muestra" } });
+    expect(lote).toMatchObject({ pregunta: false });
+    expect(lote.texto).toMatch(/Ya hicieron la muestra/);
+    expect(frasesDelMolde({ tipo: "produccion", esNuevo: false, molde: { estado: "listo", por: "lote" } }).texto).toMatch(/Ya fabricaron un lote/);
+  });
+  it("si eligió Muestra con el molde listo, avisa que solo hace falta si el molde cambia", () => {
+    expect(frasesDelMolde({ tipo: "muestra", esNuevo: false, molde: { estado: "listo", por: "muestra" } }).texto).toMatch(/solo hace falta si cambia el molde/);
+  });
+  it("sin lectura del historial pregunta sin afirmar que no hay órdenes", () => {
+    const r = frasesDelMolde({ tipo: "produccion", esNuevo: false, molde: { estado: "sin_lectura" } });
+    expect(r.pregunta).toBe(true);
+    expect(r.texto).toMatch(/No pude revisar/);
+    expect(r.texto).not.toMatch(/todavía no ha hecho/);
+  });
+  it("sin historia o con la muestra a medias pregunta", () => {
+    for (const molde of [{ estado: "sin_historia" }, { estado: "en_desarrollo" }] as const) {
+      const r = frasesDelMolde({ tipo: "produccion", esNuevo: false, molde });
+      expect(r.pregunta).toBe(true);
+      expect(r.texto).toMatch(/¿Ya tienen el molde\?/);
+    }
   });
 });

@@ -25,6 +25,7 @@ export const CLAVES_MODULO = [
   "actividad",
   "cayla_global",
   "rendimiento",
+  "preguntas_equipo",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -179,6 +180,10 @@ export const MODULOS: readonly Modulo[] = [
   // el líder hasta que Felipe se la da al rol de las encargadas. Solo para personas (`MODULOS_SOLO_PERSONAS`):
   // una terminal compartida no revisa el desempeño de nadie.
   { clave: "rendimiento", grupo: "Gestión", nombre: "Rendimiento", incluye: "Ver las ventas de cada persona del equipo en el mes: quién vende más por hora trabajada y quién cierra más ventas, y la ficha de cada quien" },
+  // ADR-0536 (actividad 9, 20261027182000): lo que el equipo le pregunta a «Pregúntale a CAYLA», con quién preguntó (Felipe
+  // 2026-10-27). Nace sin rol (ADR-0161): solo la ve el líder. Solo para personas (`MODULOS_SOLO_PERSONAS`), como Rendimiento: una
+  // terminal compartida no revisa lo que preguntan las demás.
+  { clave: "preguntas_equipo", grupo: "Gestión", nombre: "Preguntas del equipo", incluye: "Ver lo que el equipo le pregunta a «Pregúntale a CAYLA»: quién preguntó qué, en qué sede y pantalla, qué se resolvió, qué no se encontró, qué accesos piden y si les sirvió" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -187,10 +192,10 @@ export const MODULOS: readonly Modulo[] = [
  *  una prenda» SALIÓ el 2026-09-30 (Felipe, ADR-0293): quien crea la prenda la etiqueta como quiera y quien tiene Etiquetas
  *  configura el descuento (migración 20261001130000). */
 export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
-  { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
+  // SALIERON el 2026-10-27 (Felipe, ADR-0534: la líder valida en persona): anular un comprobante y liberar uno no emitido
+  // (Facturación), aprobar o rechazar devoluciones (Devoluciones) y decidir los grupos del plan del piso (Plan del piso).
+  { que: "Anular una venta, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
-  { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
-  { que: "Decidir a qué grupo del plan del piso va cada categoría (el módulo Plan del piso solo deja ver la propuesta)", origen: "ADR-0329, decisión 4" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).
@@ -215,7 +220,7 @@ export const NACEN_QUITADOS_AL_LIDER: readonly ClaveModulo[] = ["cayla_global"];
  *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
  *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. «CAYLA Global», con el
  *  ADR-0275 (20260929140000): un aparato fijo a una tienda no mira la empresa entera. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento"];
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento", "preguntas_equipo"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);

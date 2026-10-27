@@ -1001,6 +1001,13 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "El número al que escriben los clientes desde el cartel del club y desde la tienda web. Sin número, esa tienda no muestra el código QR ni sale en la web. «Ver el cartel del club» te lleva al cartel, tal como sale impreso.",
     },
     {
+      id: "tiendas-asistente",
+      ancla: "config.tiendas-asistente",
+      opcional: true,
+      titulo: "Pregúntale a CAYLA en cada sede",
+      texto: "La ayuda de la cabecera que responde «¿cómo hago…?» se prende sede por sede: el botón «Preguntar» solo sale en las encendidas. Arriba ves cuánto va gastado en el mes; al llegar al tope, sigue respondiendo sin IA hasta el día 1.",
+    },
+    {
       id: "carga-inicial",
       ancla: "config.carga-inicial",
       opcional: true,

@@ -318,7 +318,7 @@ export function lineaDeLaSuma(d: DesgloseDePrenda): { cuenta: string; texto: str
 /** Lo que hace la caja con cada lugar, en una frase: la aclaración que pidió Felipe (2026-10-04). El número es lo que la
  *  caja puede cobrar HOY de esta prenda. «Cliente», no «clienta»: en pantalla se le habla igual a un hombre que a una mujer. */
 export function aclaracionDeLaCaja(d: DesgloseDePrenda): string {
-  return `La caja solo cobra lo que está colgado en el piso y libre: hoy,\u00a0${d.piso}. Lo del almacén se baja al piso primero, lo apartado está reservado para un cliente y lo dañado espera la decisión de un líder.`;
+  return `La caja solo cobra lo que está colgado en el piso y libre: hoy,\u00a0${d.piso}. Lo del almacén se baja al piso primero, lo apartado está reservado para un cliente y lo dañado espera que se decida qué hacer con él.`;
 }
 
 /** De una lista de la sede (apartados, dañadas en cuarentena…), solo lo que es de ESTA prenda, por sus tallas. Es lo que abre

@@ -9,6 +9,8 @@
  *      pone y le quita prendas, y la desactiva.
  *   2. Sin ninguno de los tres, cada una de esas puertas la rechaza con un mensaje que nombra los tres módulos.
  *   3. Una insignia que NO es campaña sigue siendo solo de Insignias: con un módulo de Campañas no se le ponen prendas ni descuento.
+ *      (Lo que se CREA, campaña o sello, nace aprobado para cualquiera desde ADR-0534, 20261027164000: antes, sin la llave de ESA
+ *      etiqueta, nacía «por aprobar».)
  *   4. La migración se puede volver a correr, y lo que #1190 dejó para su editor de diseño (si existe) queda sin permiso de ejecutar.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Micaela (integrante de Trujillo): nunca se commitea nada en el
@@ -31,6 +33,15 @@ import { readFileSync } from "node:fs";
 const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
 const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const MIGRACION = "supabase/migrations/20261022203000_campanas_llave_de_los_tres_modulos.sql";
+// ADR-0534 parcha `fn_etiquetas_estado_trigger` con un reemplazo anclado (lo que se crea nace aprobado). Para volver a correr la
+// migración de arriba, cuya guarda conoce el cuerpo de antes de ese parche, primero se deshace (solo esa función, dentro del ROLLBACK).
+const MIGRACION_SIN_LIDER = "supabase/migrations/20261027164000_quitar_validaciones_del_lider.sql";
+const DESHACER_SIN_LIDER_ETIQUETAS = [
+  ...readFileSync(MIGRACION_SIN_LIDER, "utf8").matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g),
+]
+  .filter(([, firma]) => firma === "retail.fn_etiquetas_estado_trigger()")
+  .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+  .join("\n");
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? readFileSync(process.env.APLICAR_ANTES, "utf8") : "";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante, fija a Tienda Trujillo
@@ -171,9 +182,9 @@ async function main() {
     `Configurar una campaña necesita el módulo ${TRES}`,
   );
   esperarValor(
-    "una campaña que crea directo nace por aprobar",
+    "una campaña que crea directo, aun sin ninguno de los tres, nace aprobada (ADR-0534: ya no espera a nadie)",
     correr(`${PREPARAR}${COMO_MICAELA}insert into retail.etiquetas (nombre, estilo) values ('ZZ Propuesta', 'campana') returning estado;\nrollback;`),
-    "pendiente",
+    "aprobado",
   );
 
   // ---------------------------------------------------------------- 3. Una insignia que no es campaña sigue siendo de Insignias
@@ -190,9 +201,9 @@ async function main() {
       "otra insignia con descuento, con «Insignias»",
     );
     esperarValor(
-      `con «${clave}», un sello que crea nace por aprobar`,
+      `con «${clave}», un sello que crea nace aprobado (ADR-0534), aunque ponerle prendas o descuento siga siendo de Insignias`,
       correr(`${PREPARAR}${MODULO_A_INTEGRANTE(clave)}${COMO_MICAELA}insert into retail.etiquetas (nombre) values ('ZZ Sello nuevo') returning estado;\nrollback;`),
-      "pendiente",
+      "aprobado",
     );
   }
   esperarValor(
@@ -210,6 +221,7 @@ async function main() {
       create table if not exists retail.campana_disenos (id int);
       create or replace function retail.campana_diseno(uuid) returns int language sql as 'select 1';
       grant execute on function retail.campana_diseno(uuid) to authenticated;
+      ${DESHACER_SIN_LIDER_ETIQUETAS}
       ${migracion}
       ${migracion}
       select concat_ws('|', has_function_privilege('authenticated', 'retail.campana_diseno(uuid)', 'EXECUTE'),

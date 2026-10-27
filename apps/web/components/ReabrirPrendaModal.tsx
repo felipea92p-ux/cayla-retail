@@ -17,8 +17,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
 /**
  * «Reabrir una venta cerrada sin prenda» (ADR-0334, Felipe 2026-10-04): la salida cuando quien compró devuelve o quiere cambiar una
- * prenda cuya venta se cerró sin identificarla. La fila vuelve a «Pendiente» y se regulariza como cualquier otra. Solo un líder, desde su
- * propia cuenta (la base lo exige con `fn_es_lider`: una terminal de caja no puede, ni con un líder identificado en ella).
+ * prenda cuya venta se cerró sin identificarla. La fila vuelve a «Pendiente» y se regulariza como cualquier otra. La reabre quien ve
+ * Existencias, también desde una terminal (ADR-0534; antes, solo un líder con su propia cuenta): la base exige el módulo.
  * Sin combo «Responsable»: firma la cuenta (`cola_arranque_reabrir`). Un solo control obligatorio: el motivo.
  */
 export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar; onClose: () => void }) {
@@ -28,7 +28,7 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
 
   const campos: CampoDeGuia[] = [{ id: "motivo", nombre: "Motivo", requerido: true, hecho: motivo !== null, pendiente: "Elige por qué se reabre la venta." }];
   const guia = useGuiaCampos(campos);
-  // Si la venta se cerró porque «la prenda aún no estaba cargada», reabrirla para una devolución tiene una consecuencia que el líder tiene
+  // Si la venta se cerró porque «la prenda aún no estaba cargada», reabrirla para una devolución tiene una consecuencia que quien reabre tiene
   // que conocer antes de regularizar (crea historial de esa prenda y la carga inicial la rechaza después).
   const avisoDelCierre = avisoAlReabrir(fila.cierre?.motivo);
 
