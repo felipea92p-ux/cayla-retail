@@ -139,7 +139,7 @@ export function FichaColaborador({
       frase={
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <MapPin aria-hidden className="h-3.5 w-3.5" />
-          {persona.ubicacionNombre ?? (persona.nivel === "lider" ? "Todas las sedes" : "Sin sede")}
+          {persona.nivel === "lider" ? (persona.ubicacionNombre ? `Todas las sedes · abre en ${persona.ubicacionNombre}` : "Todas las sedes") : (persona.ubicacionNombre ?? "Sin sede")}
           <PildoraRol nombre={persona.rolNombre} lider={persona.nivel === "lider"} />
           {persona.esAdmin && <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-taupe">Admin</span>}
           <EstadoPersona p={persona} />
@@ -280,7 +280,7 @@ export function FichaColaborador({
 
           {panel === "sede" && (
             <div className="anim-revelar space-y-2 rounded-xl border border-sand p-3">
-              <p className="text-[13px] text-tinta/70">{persona.nivel === "lider" ? "Arranca en (opera en todas):" : "Sede donde trabaja:"}</p>
+              <p className="text-[13px] text-tinta/70">{persona.nivel === "lider" ? "Sede donde abre su sesión:" : "Sede donde trabaja:"}</p>
               <div className="grid grid-cols-2 gap-2">
                 {ubicaciones.map((u) => {
                   const actual = u.id === persona.ubicacionId;
@@ -300,6 +300,7 @@ export function FichaColaborador({
                   );
                 })}
               </div>
+              {persona.nivel === "lider" && <p className="text-xs text-tinta/60">Ve y opera todas las sedes; esta es solo la que se abre primero.</p>}
               {pieSiFalta}
             </div>
           )}
