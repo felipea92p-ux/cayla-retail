@@ -54,6 +54,7 @@ export function CerrarEnvio({
   sede,
   responsable,
   veDinero,
+  soloSede = false,
   proveedorPorConfirmar = false,
   proveedores = [],
   esperandoGuardar,
@@ -69,6 +70,8 @@ export function CerrarEnvio({
   sede: string;
   responsable: ControlResponsable;
   veDinero: boolean;
+  /** Una terminal (Felipe 2026-10-26): el precio de venta vale solo en su sede; la base no le deja cambiar el de todas. */
+  soloSede?: boolean;
   /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): antes de cerrar se elige el proveedor (`poner_proveedor_envio`). */
   proveedorPorConfirmar?: boolean;
   proveedores?: readonly { id: string; nombre: string }[];
@@ -511,6 +514,7 @@ export function CerrarEnvio({
                               key={`${l.clave}-${pr.productoId}`}
                               prenda={pr}
                               sede={sede}
+                              soloSede={soloSede}
                               sedeId={detalle.sede?.id ?? null}
                               editado={ventas[pr.productoId]}
                               costo={editaCosto ? costoDePrenda(l.clave, d.costo, pr.productoId) : undefined}

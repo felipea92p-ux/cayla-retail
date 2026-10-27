@@ -12,12 +12,15 @@ import type { usePreciosDeVenta } from "./usePreciosDeVenta";
 export function PreciosDeVenta({
   prendas,
   sede,
+  soloSede = false,
   sedeId,
   precios,
 }: {
   prendas: readonly Pick<PrendaSeparada, "productoId" | "nombre" | "codigo">[];
   /** El nombre de la sede que recibe: «Solo Tienda Lima». */
   sede: string;
+  /** Una terminal (ADR-0531): el precio vale solo en su sede. */
+  soloSede?: boolean;
   sedeId: string | null;
   precios: ReturnType<typeof usePreciosDeVenta>;
 }) {
@@ -25,13 +28,14 @@ export function PreciosDeVenta({
   return (
     <section className="space-y-2.5" aria-label="Precio de venta" data-precios-de-venta>
       <TituloGrupo nota="opcional">Precio de venta</TituloGrupo>
-      <p className="text-xs text-taupe">Si ya sabes a cuánto se vende, cámbialo aquí: por defecto vale solo para {sede}. Rige desde ahora; lo ya vendido no cambia.</p>
+      <p className="text-xs text-taupe">Si ya sabes a cuánto se vende, cámbialo aquí: {soloSede ? `vale solo para ${sede}` : `por defecto vale solo para ${sede}`}. Rige desde ahora; lo ya vendido no cambia.</p>
       <div className="space-y-3">
         {prendas.map((pr) => (
           <PrecioDePrenda
             key={pr.productoId}
             prenda={pr}
             sede={sede}
+            soloSede={soloSede}
             sedeId={sedeId}
             editado={precios.ventas[pr.productoId]}
             onActual={(general, enSede) => precios.ponerActual(pr.productoId, general, enSede)}

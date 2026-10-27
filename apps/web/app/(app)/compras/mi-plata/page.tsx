@@ -44,6 +44,8 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
     (plata?.porMandar.length ?? 0) === 0 &&
     envios !== null &&
     enviosDeLaRonda(envios, rondaAbierta.id).length === 0;
+  // Tres columnas solo con la ronda abierta y algo que mostrar; desde 1280 px (de 1024 a 1279, «Manda» y el registro se apilan en la segunda).
+  const tres = plata?.persona === true && plata.ronda.abierta !== null && !rondaVacia;
   const anteriores = plata?.persona ? historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? []) : [];
 
   return (
@@ -78,10 +80,14 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
         // en la columna única, con `order` para conservar el orden de siempre. Sin ronda abierta no hay «Manda»: dos columnas.
         <div
           className={`grid gap-4 lg:items-start lg:gap-x-7 ${
-            plata.ronda.abierta ? "lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
+            tres
+              ? "lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,21rem)_minmax(0,1fr)_minmax(0,1fr)]"
+              : rondaVacia
+                ? "lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]"
+                : "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
           }`}
         >
-          <div className="contents lg:flex lg:flex-col lg:gap-4">
+          <div className={`contents lg:flex lg:flex-col lg:gap-4 lg:col-start-1 ${tres ? "lg:row-span-2 xl:row-span-1" : ""}`}>
             <div className="order-1 flex flex-col gap-3.5 lg:order-none">
               <CaminoDePasos pasos={PASOS_DE_LA_RONDA} ahora={pasoDeLaRonda(plata)} etiqueta="Tu ronda, paso a paso" guia="mi-plata.camino" />
               <Billetera plata={plata} />
@@ -112,7 +118,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
               <TerminarDia plata={plata} envios={envios === null ? null : enviosDeLaRonda(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
             </div>
           </div>
-          <div className={`contents ${plata.ronda.abierta && !rondaVacia ? "lg:flex lg:flex-col lg:gap-4" : "lg:hidden"}`}>
+          <div className={`contents ${tres ? "lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4" : "lg:hidden"}`}>
             {/* Los envíos van pegados a «Falta mandar»: es el mismo paso del camino (Manda). */}
             <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} className="order-3 lg:order-none" />
             {rondaAbierta && envios !== null && (
@@ -121,7 +127,7 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
               </div>
             )}
           </div>
-          <div className={`contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${rondaVacia ? "lg:col-span-2" : ""}`}>
+          <div className={`contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1" : "lg:col-start-2 lg:row-start-1"}`}>
             {rondaAbierta && rondaVacia && <RondaVacia texto={rondaAbierta.texto} />}
             <div className={`order-5 min-w-0 lg:order-none ${rondaVacia ? "lg:hidden" : ""}`}>
               <ListaDelDia

@@ -69,7 +69,7 @@ export function MisEnvios({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <Pestanas
           guia="mis-envios.alcance"
           idIndicador="mis-envios"
@@ -88,7 +88,7 @@ export function MisEnvios({
           atajo
           placeholder="Busca un código, una tienda o una ronda"
           etiqueta="Buscar un envío"
-          className="lg:w-[26rem]"
+          className="xl:w-[26rem]"
         />
       </div>
       <div role="group" aria-label="Filtrar por cómo van" className="flex flex-wrap gap-2" data-guia="mis-envios.filtros">

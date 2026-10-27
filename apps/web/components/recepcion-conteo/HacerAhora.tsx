@@ -67,6 +67,7 @@ export function HacerAhora({
   catalogo,
   responsable,
   prendas,
+  soloSede = false,
   onPrendaVista,
   onListo,
   onCerrar,
@@ -77,6 +78,8 @@ export function HacerAhora({
   catalogo: CatalogoParaRecibir | null;
   responsable: ControlResponsable;
   prendas: ReadonlyMap<string, PrendaRecepcion>;
+  /** Una terminal (ADR-0531): el precio de venta vale solo en su sede; no se ofrece «Todas las sedes». */
+  soloSede?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onListo: () => void;
@@ -360,7 +363,7 @@ export function HacerAhora({
           error={error}
           onListo={tallasListas}
           onAbrirHoja={() => setVista({ tipo: "prenda" })}
-          precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} sedeId={sedeId} precios={precios} />}
+          precioDe={item.tipo === "separar" ? undefined : (prenda) => <PreciosDeVenta prendas={[prenda]} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} />}
           onCerrar={item.tipo === "separar" ? () => setVista({ tipo: "separar" }) : cerrar}
         />
       );
@@ -388,6 +391,7 @@ export function HacerAhora({
           setVista({ tipo: "tallas", prenda: completa, original: p });
         }}
         sede={sede}
+        soloSede={soloSede}
         sedeId={sedeId}
         precios={precios}
         onGuardar={() => void pedirGuardar(separado)}
@@ -433,6 +437,7 @@ function SepararAhora({
   onSeparado,
   onTallas,
   sede,
+  soloSede,
   sedeId,
   precios,
   onGuardar,
@@ -450,6 +455,7 @@ function SepararAhora({
   onSeparado: (s: Separado) => void;
   onTallas: (p: PrendaSeparada) => void;
   sede: string;
+  soloSede: boolean;
   sedeId: string | null;
   precios: ReturnType<typeof usePreciosDeVenta>;
   onGuardar: () => void;
@@ -491,7 +497,7 @@ function SepararAhora({
               onCrearNueva={onCrearNueva}
             />
           </div>
-          <PreciosDeVenta prendas={separado.prendas} sede={sede} sedeId={sedeId} precios={precios} />
+          <PreciosDeVenta prendas={separado.prendas} sede={sede} soloSede={soloSede} sedeId={sedeId} precios={precios} />
           {error && <Aviso tono="error" titulo="No se pudo guardar">{error}</Aviso>}
           <div className="pie-hoja-fijo">
             <div className="space-y-3 border-t border-sand pt-3">

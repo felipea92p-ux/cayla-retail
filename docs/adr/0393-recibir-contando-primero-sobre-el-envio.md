@@ -614,3 +614,5 @@ Probado: casos W4 (dice el motivo y no deja rastro: ni precio, ni historial, ni 
 real) y W6 (la validación dice lo mismo que la función real, caso por caso) en `pruebas:pendientes-de-envio`; las reglas (`hoyDelPrecio`, `problemasDePrecio`,
 `leerValidacionDePrecio`) con prueba; y en el navegador: «abc» se frena con su motivo, 1 sol dice «Ese precio queda por debajo de lo que cuesta la prenda. Para
 liquidar usa una campaña…» antes de la confirmación, 105 pasa y queda **solo para Tienda Lima** (general 99.90, Trujillo sin cambio, motivo «Recepción ENV-000255»).
+
+**Una terminal (ADR-0531, fusionado 2026-10-26):** el precio de venta solo vale en su tienda, así que ni la tarjeta del cierre ni las hojas de «Para después» le ofrecen «Todas las sedes»: dicen «Solo en <su sede>: las otras sedes no cambian» (`soloSede`, que baja de `recibir/envio/[id]/page.tsx` por `RecibirContando` → `CerrarEnvio` y `EnvioCerrado` → `HacerAhora` → `PreciosDeVenta` → `PrecioDePrenda`). El alcance que viaja siempre es `sede`; la base lo respalda con el disparador `variantes_terminal_no_cambia_precio`.
