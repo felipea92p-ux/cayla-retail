@@ -142,14 +142,17 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
               </div>
             )}
             {sinHistoria && <PrimeraRonda />}
-            <div className={`order-5 min-w-0 lg:order-none ${rondaVacia ? "lg:hidden" : ""}`}>
-              <ListaDelDia
-                actuales={lista?.actuales ?? []}
-                titulo={tituloDeLaLista(plata.ronda)}
-                desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
-                ocultarSiVacia={!rondaAbierta}
-              />
-            </div>
+            {/* Sin ronda abierta y nada anotado, la lista no dibuja nada: tampoco su caja, que sumaba un hueco de más entre las tarjetas. */}
+            {(rondaAbierta || (lista?.actuales.length ?? 0) > 0) && (
+              <div className={`order-5 min-w-0 lg:order-none ${rondaVacia ? "lg:hidden" : ""}`}>
+                <ListaDelDia
+                  actuales={lista?.actuales ?? []}
+                  titulo={tituloDeLaLista(plata.ronda)}
+                  desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
+                  ocultarSiVacia={!rondaAbierta}
+                />
+              </div>
+            )}
             {(ultima ? ultima.resto : anteriores).length > 0 && (
               <div className="order-7 lg:order-none">
                 <RondasAnteriores historial={ultima ? ultima.resto : anteriores} envios={rondasEnvios} hoy={hoy} visibles={rondaAbierta ? undefined : 4} />
