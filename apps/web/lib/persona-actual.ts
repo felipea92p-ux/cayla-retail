@@ -117,8 +117,9 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
   // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
   // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
-  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): con `p_de_tienda = false`
-  // `fn_actor_persona_id` devuelve el id propio sin mirar encabezados. En una terminal falla (exige responsable): null.
+  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): `fn_mi_persona_id` (ADR-0533) devuelve el id propio y
+  // NULL en una terminal, sin rechazar: antes se leía con `fn_actor_persona_id(false)`, que a una terminal la rechazaba y llenaba el
+  // registro de Postgres (4 258 errores al día). Web publicada antes de pegar 20261027140000: se usa esa lectura de antes (abajo).
   // ¿Admin? También en paralelo; un error = no es admin (falla cerrado: se le pide el combo como a todos).
   const [
     { data, error, status: estadoDelResumen },
@@ -131,7 +132,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
     supabase.rpc("fn_mi_terminal"),
     supabase.rpc("fn_mis_modulos"),
-    supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
+    supabase.rpc("fn_mi_persona_id"),
     supabase.rpc("fn_es_admin"),
     supabase.rpc("fn_mi_pantalla_principal"),
   ]);
@@ -145,6 +146,9 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
 
   const textoTerminal = !errorTerminal && typeof miTerminal === "string" ? miTerminal.trim() : "";
   const terminal = textoTerminal !== "";
+  // Sin `fn_mi_persona_id` todavía en esa base (PGRST202): la lectura de antes, para que la persona no pierda su propuesta en el combo.
+  const personaPropia =
+    errorPersonaId?.code === "PGRST202" ? await supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }) : { data: miPersonaId, error: errorPersonaId };
   const rol = data.es_lider ? "lider" : "integrante";
   const firmaRespaldo = terminal ? await leerFirmaRespaldo(supabase) : null;
   const deLaBase = !errorModulos && Array.isArray(filasModulos);
@@ -202,7 +206,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     vista,
     puedeVerGlobal,
     terminal,
-    personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
+    personaId: !terminal && !personaPropia.error && typeof personaPropia.data === "string" ? personaPropia.data : null,
     esAdmin: !terminal && soyAdmin === true,
     firmaRespaldo,
     permisos,
