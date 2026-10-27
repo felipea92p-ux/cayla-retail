@@ -377,7 +377,7 @@ select left(pg_temp.intento('select retail.fn_bancos_para_plata_compras()'), 5);
 
 // ---------- Candados de la auditoría de «Mis compras» (20261027231000, ADR-0543) ----------
 caso(
-  "H1: la plata que Compras ya confirmó no se anula aparte (movimiento_de_plata_anotada) y la lista no ofrece el «Anular»; el movimiento sigue vigente",
+  "H1: la plata que Compras ya confirmó no se anula aparte (movimiento_de_plata_anotada); el movimiento sigue vigente",
   `${rolDeMicaela("ordenes_compra")}${anota("a", "yape_plin", 300, T1)}
 ${como(FELIPE, "plata_confirmar")}
 select retail.confirmar_plata_compras(:'a', null, :'banco') \\g /dev/null
@@ -385,10 +385,9 @@ reset role;
 select movimiento_id as mov from retail.fondo_plata_anotada where id = :'a' \\gset
 ${como(FELIPE, null)}
 select split_part(pg_temp.intento(format('select retail.anular_movimiento_fondo(%L, %L)', :'mov', 'me equivoque')), '|', 2);
-select (select x.puede_anular from retail.fn_fondos_movimientos(null, 200) x where x.id = :'mov'::uuid);
 reset role;
 select (select estado from retail.movimientos_dinero where id = :'mov'), (select estado from retail.fondo_plata_anotada where id = :'a');`,
-  "movimiento_de_plata_anotada / f / vigente|confirmada",
+  "movimiento_de_plata_anotada / vigente|confirmada",
 );
 
 caso(

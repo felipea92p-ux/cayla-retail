@@ -18,7 +18,7 @@ vez y sin tocar ninguna tabla ni dato. Lo demás espera la decisión de Felipe (
 
 | # | Qué estaba mal | Qué hace ahora | Dónde |
 |---|---|---|---|
-| **H1** (alta, dinero) | Confirmar plata crea una `entrega_fondo` y la guarda en `fondo_plata_anotada.movimiento_id`. Esa entrega salía en «Entregas y devoluciones» con «Anular», y `anular_movimiento_fondo` solo protegía a los cierres de ronda: quien tiene «Fondos por rendir» y no es dueña del fondo la anulaba. La anotada seguía «confirmada» sin movimiento y, como `movimiento_id` es único, no se podía volver a confirmar. | Un movimiento que una plata anotada tiene como suyo **no se anula aparte** (`P0001`, `movimiento_de_plata_anotada`, con un texto que explica qué hacer), y `fn_fondos_movimientos.puede_anular` es falso para él. La misma regla que ya tenían los cierres. | `anular_movimiento_fondo(uuid,text)` y `fn_fondos_movimientos(uuid,integer)`, reemplazos anclados |
+| **H1** (alta, dinero) | Confirmar plata crea una `entrega_fondo` y la guarda en `fondo_plata_anotada.movimiento_id`. Esa entrega salía en «Entregas y devoluciones» con «Anular», y `anular_movimiento_fondo` solo protegía a los cierres de ronda: quien tiene «Fondos por rendir» y no es dueña del fondo la anulaba. La anotada seguía «confirmada» sin movimiento y, como `movimiento_id` es único, no se podía volver a confirmar. | Un movimiento que una plata anotada tiene como suyo **no se anula aparte** (`P0001`, `movimiento_de_plata_anotada`, con un texto que explica qué hacer). La misma regla que ya tenían los cierres. **No se toca `fn_fondos_movimientos.puede_anular`**: `20261023143000` la parchó con un reemplazo anclado y volver a pegar esa migración (lo hace la prueba de Revisar compras) exige que su texto nuevo siga entero en la función; el botón «Anular» se sigue ofreciendo y la base lo rechaza con su frase (ocultarlo queda en el backlog). | `anular_movimiento_fondo(uuid,text)`, reemplazo anclado |
 | **H2** (alta, dinero y permisos) | «Ya tenía plata» no sale de ningún banco: al confirmarla se fija `saldo_inicial` del fondo (hasta S/ 1 000 000) sin que se mueva nada ni se pida líder. | **Confirmar** una plata `ya_tenia` exige `fn_es_lider()` (la cuenta, no el responsable del combo): `42501`, `plata_ya_tenia_solo_lider`. La compradora sigue pudiendo **anotarla**; un reintento de lo ya confirmado devuelve lo mismo sin pedir líder. | `confirmar_plata_compras(uuid,numeric,uuid)`, reemplazo anclado |
 | **H3** (media, permisos) | `fn_ronda_compras_texto(uuid)` y `fn_ronda_compras_de(uuid)` son `security definer` sin validar nada, y su `revoke` quitaba `public` y `anon` pero no `authenticated` (el permiso de fábrica, `0005_grants.sql`): cualquier cuenta leía por RPC la ronda, lo comprado y lo gastado de cualquier persona. | Se les quita `authenticated`. Nadie las llama desde la web (se verificó con grep en `apps/web`): las llaman `fn_mi_plata_compras`, `fn_revisar_compras` y `fn_mis_envios`, que son `security definer` y corren con el permiso de su dueño. Se sigue el patrón de sus hermanas. Las tres funciones de disparador de las rondas también. `abrir_ronda_compras` se revisó por el mismo hueco: **está bien** (valida `fn_ve_modulo('ordenes_compra')` y el responsable, y su `grant` a `authenticated` es explícito y a propósito); la prueba lo fija. | `revoke` |
 | **H22** (baja) | `compra_item_recibido_antes` tenía RLS pero no el `revoke all … from anon, authenticated` de las otras tablas de Mis compras. | Se agrega. Solo la leen y escriben funciones `security definer` (se revisó cada lector). | `revoke` |
@@ -32,7 +32,7 @@ quien no es líder.
 
 ## Por qué así
 
-- **Reemplazos anclados, no `create or replace` con otro cuerpo.** Las nueve funciones tocadas ya tienen varias capas de migraciones encima
+- **Reemplazos anclados, no `create or replace` con otro cuerpo.** Las ocho funciones tocadas ya tienen varias capas de migraciones encima
   (la ronda, el pago, el banco de la plata). Reescribirlas enteras desde una definición vieja habría pisado esas capas. Cada ancla se verificó
   contra la definición que resulta de aplicar, en orden, todas las migraciones del repo (por script: una aparición exacta de cada ancla), y
   ninguna se detiene si ya está hecha. Los inserts quedan DESPUÉS de las líneas que pegan las migraciones anteriores, para que volver a pegar
@@ -78,7 +78,7 @@ compras): solo funciones, permisos y un `revoke` de tabla; ni `alter table`, ni 
 anclado se detiene sin cambiar nada si la función en producción no es la esperada; si eso pasa, **no se «arregla» el ancla a ojo**: se regenera
 desde la definición real (`pg_get_functiondef`).
 
-Antes de pegar, mirar en producción (solo lectura) que existan las nueve funciones, y que `anular_movimiento_fondo` ya traiga la guarda de los
+Antes de pegar, mirar en producción (solo lectura) que existan las ocho funciones, y que `anular_movimiento_fondo` ya traiga la guarda de los
 cierres (`20261023143000`). Después de pegar, verificar:
 
 ```sql
@@ -103,7 +103,7 @@ ahora).
 ## Qué se probó y qué no
 
 - **Probado sin base:** que cada ancla aparece exactamente una vez en la definición que resulta de aplicar, en orden, todas las migraciones
-  del repo (script de simulación), que los nueve reemplazos son idempotentes, los candados de migraciones del repo (`migraciones:pg-temp`,
+  del repo (script de simulación), que los ocho reemplazos son idempotentes, los candados de migraciones del repo (`migraciones:pg-temp`,
   `migraciones:sin-drop-trigger`, `migraciones:versiones`, la reserva) y las pruebas del CI que leen migraciones.
 - **NO probado contra Postgres** (el contenedor de Docker no respondió): las pruebas nuevas de `compras_simple_plata.mjs` (H1, H2, H11) y
   `compras_simple_dia.mjs` (H3, H10, H11, H14, H22) están escritas y sin correr. Las corre el job «Pruebas de RPC contra Postgres» del CI;

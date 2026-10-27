@@ -13,12 +13,12 @@
 - `devolver_fondo`: no devuelve más que lo entregado con movimiento; hoy el saldo inicial («Ya tenía») cuenta.
 - H15/H18/H19/H20/H23: bajos; ver el informe y el ADR.
 
+- Ocultar el «Anular» de una plata ya confirmada: `fn_fondos_movimientos.puede_anular` no se pudo tocar sin romper el re-pegado de `20261023143000` (la prueba de Revisar compras lo hace); la base ya rechaza la anulación con una frase clara. Hay que redefinir la función completa en una migración propia, con su prueba.
+
 **Vínculos pendientes de producto:**
 - «Pendientes de campaña» (ADR-0530) se confirman en `/compras/ordenes`, que no tiene entrada de menú desde ADR-0480: ¿se mudan a Mis compras o se devuelve «Órdenes» al menú?
 - «Anular envío» vive solo en el detalle de la orden: Mis envíos muestra «Anulado» pero no tiene el botón. «Gasto del viaje» (Órdenes) duplica «Gasté en otra cosa»; «Tu fondo ▸ Rendir» convive con «Cerrar mi ronda».
 - Compras no recibe aviso fuera de su pantalla de que hay plata, compras o gastos por revisar (Inicio y número en el menú).
-- Los botones de confirmar plata «Ya tenía» se ofrecen a quien no es líder (la base ahora lo rechaza con una frase clara): falta que la pantalla lo sepa (`SedeActiva` no trae el rol).
-- `filaPlata` (`lib/revisar-compras-reglas.ts`) dice «sin foto» aunque la foto exista y no se pudo firmar (`fotoNoAbrio`).
 
 **Diseño pendiente:**
 - «Rondas anteriores» queda antes que «Cerrar mi ronda» en el orden de Tab en celular (mover «Cerrar» después en celular es decisión de Felipe).

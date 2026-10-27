@@ -7,7 +7,7 @@
 --       aparece en «Entregas y devoluciones» con su «Anular», y `anular_movimiento_fondo` solo protegía a los cierres de ronda: cualquiera con
 --       «Fondos por rendir» (que no fuera la dueña) la podía anular. La plata anotada seguía «confirmada» pero sin movimiento, y como
 --       `movimiento_id` es único no había forma de confirmarla otra vez: un estado imposible (principio 2). Ahora un movimiento que una plata
---       anotada tiene como suyo no se anula aparte, igual que el de un cierre; y la lista tampoco ofrece el «Anular».
+--       anotada tiene como suyo no se anula aparte, igual que el de un cierre.
 --   H2  «Ya tenía plata» no sale de ningún banco: al confirmarla se FIJA el saldo inicial del fondo (hasta S/ 1 000 000) sin que nada se mueva.
 --       Confirmar cualquier otra plata mueve dinero real desde una cuenta que elige quien confirma; esta, no: es un número que se escribe.
 --       Decisión conservadora (Felipe pidió corregir todo): la compradora sigue pudiendo ANOTAR «ya tenía»; CONFIRMARLA es solo del líder
@@ -37,7 +37,7 @@
 -- (y no se pudo probar contra Postgres). Las decisiones de Felipe pendientes (H4–H9, H12, H15, H18, H23, H24) están listadas en el ADR.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA sola parte: solo funciones, permisos y un `revoke` de tabla; ni `alter table`, ni
--- políticas, ni `drop trigger` (ADR-0195: nada que tome los candados de auth y storage). Idempotente. Los nueve reemplazos son ANCLADOS sobre
+-- políticas, ni `drop trigger` (ADR-0195: nada que tome los candados de auth y storage). Idempotente. Los ocho reemplazos son ANCLADOS sobre
 -- la definición viva: no hacen nada si ya están hechos y se detienen, sin cambiar nada, si la función no es la esperada. Sin la lectura «into» dentro de ningún texto entre comillas (ADR-0288).
 -- Orden: después de 20261026174000 (la última de Mis compras).
 -- ============================================================================
@@ -134,12 +134,9 @@ $n$  v_duena := (select c.persona_id from retail.cuentas_dinero c where c.id = v
   end if;$n$,
 1);
 
--- Y la lista no ofrece el «Anular» de ese movimiento (como el de un cierre). El ancla es el final del reemplazo de 20261023143000.
-select pg_temp.reemplazar('retail.fn_fondos_movimientos(uuid,integer)',
-$v$k.id = d.token_cliente) as puede_anular -- ADR-0480$v$,
-$n$k.id = d.token_cliente)
-             and not exists (select 1 from retail.fondo_plata_anotada fpa where fpa.movimiento_id = d.id) as puede_anular -- ADR-0480 + auditoría 2026-10-27 (H1)$n$,
-1);
+-- La lista (`fn_fondos_movimientos.puede_anular`) NO se toca a propósito: `20261023143000` la parchó con un reemplazo anclado y volver a pegar
+-- esa migración (la prueba de Revisar compras lo hace) exige que su texto nuevo siga entero en la función. El «Anular» de ese movimiento
+-- se sigue ofreciendo, pero la base lo rechaza con una frase clara (`movimiento_de_plata_anotada`); ocultarlo queda pendiente (backlog).
 
 -- ---------- 4. H2: confirmar «ya tenía» es solo del líder ----------
 -- Dentro del bloque de «ya tenía»: después de las validaciones comunes (monto, «nadie confirma la suya») y antes de crear o tocar el fondo.
