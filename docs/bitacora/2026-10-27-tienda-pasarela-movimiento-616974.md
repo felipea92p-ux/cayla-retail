@@ -11,3 +11,7 @@
 - **Portada sin llegadas recientes (Felipe, 2026-10-27, decisión (a) del traspaso):** el desfile ya no desaparece. Sin prendas de los últimos 30 días sale con hasta 6 prendas de la
   tienda (foto primero, `lasEnVitrina`), con el título «Lo nuevo»; su programa «En las tiendas» sigue con 8, y «Ver lo nuevo» siempre lleva a algún lado (a toda la tienda si
   no hay lista de lo nuevo). Sin ninguna prenda queda la frase de la marca, ahora centrada (antes se corría a la derecha y desbordaba).
+- **Paquete 2 y 3 (Felipe, 2026-10-27):** títulos de Catálogo, Looks, Bolsa y Mi perfil por letras (`TituloConLetras`); una sola raya que se desliza en las categorías del catálogo
+  (`NavConIndicador` / `useIndicador`, gemelo de `useRayaDelNav`, que no se tocó por la trampa del menú); reacomodo de las tarjetas al filtrar con `<ViewTransition>` por prenda
+  (el filtrado es de SERVIDOR: la lista sale de la dirección con `router.replace`, no hay FLIP de cliente que hacer). React solo nombra las tarjetas a la vista; verificado a 1440 y 375 px.
+  **Falta:** la cabecera pegada (decisión de Felipe, queda para después), el barrido completo (`barrido.mjs`, `chico.mjs`) y las capturas en claro y oscuro.
