@@ -15,13 +15,28 @@ import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
 const monto = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const textoRango = (r: RangoDePrecio) => (r.desde === r.hasta ? monto(r.desde) : `${monto(r.desde)} a ${monto(r.hasta)}`);
 
+/** El general y el de la sede son otros (el precio propio de la tienda): vale decir los dos. */
+function precioDeSedeDistinto(e: PrecioEditado): boolean {
+  return e.alcance === "sede" && e.actual !== null && e.actual !== undefined && e.actualSede !== undefined && e.actualSede !== null && textoRango(e.actual) !== textoRango(e.actualSede);
+}
+
 /** Junto al nombre de la prenda: su precio de hoy (el de la sede si el precio vale solo para ella, y si es otro que el general, también el general). */
 function textoDeHoy(e: PrecioEditado | undefined, sede: string): string {
   if (!e || e.actual === undefined) return "leyendo el precio…";
   const hoy = hoyDelPrecio(e);
   if (hoy === null || hoy === undefined) return "sin precio a la vista";
-  const distinto = e.alcance === "sede" && e.actual !== null && e.actualSede !== undefined && e.actualSede !== null && textoRango(e.actual) !== textoRango(e.actualSede);
-  return distinto && e.actual ? `hoy en ${sede} ${textoRango(hoy)} (en las demás sedes, ${textoRango(e.actual)})` : `hoy ${textoRango(hoy)}`;
+  return precioDeSedeDistinto(e) && e.actual ? `hoy en ${sede} ${textoRango(hoy)} (en las demás sedes, ${textoRango(e.actual)})` : `hoy ${textoRango(hoy)}`;
+}
+
+/**
+ * ¿Hace falta decir el precio de hoy aparte del campo? No cuando ya se leyó, es uno solo y es el mismo en todas las sedes: el campo del precio
+ * viene con ese número y repetirlo es ruido. Sí cuando el campo no lo muestra: tallas con precios distintos (un rango), sin precio, o el de la
+ * sede distinto del general.
+ */
+function hoyYaSeVeEnElCampo(e: PrecioEditado | undefined): boolean {
+  if (!e || e.actual === undefined) return false;
+  const hoy = hoyDelPrecio(e);
+  return hoy !== null && hoy !== undefined && hoy.desde === hoy.hasta && !precioDeSedeDistinto(e);
 }
 
 /** Lleva el cursor al campo del precio de una prenda (para decirle a quien escribe cuál hay que corregir). */
@@ -116,7 +131,10 @@ export function PrecioDePrenda({
       data-precio-prenda={prenda.productoId}
     >
       {sinNombre ? (
-        <p className="text-xs text-taupe">{deHoy.startsWith("hoy") ? `Precio ${deHoy}` : deHoy.charAt(0).toUpperCase() + deHoy.slice(1)}</p>
+        // La hoja ya dice qué prenda es y el campo trae el precio de hoy: solo se dice aparte lo que el campo no muestra (un rango, sin precio, el de la sede).
+        editado?.actual !== undefined && !hoyYaSeVeEnElCampo(editado) && (
+          <p className="text-xs text-taupe">{deHoy.startsWith("hoy") ? `Precio ${deHoy}` : deHoy.charAt(0).toUpperCase() + deHoy.slice(1)}</p>
+        )
       ) : (
         <div className="min-w-0">
           <span className="campo-etiqueta block">Prenda</span>
