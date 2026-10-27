@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { CircleAlert } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
-import { ALCANCE_DE_FABRICA, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
+import { ALCANCE_DE_FABRICA, cambioDePrecioDeVenta, hoyDelPrecio, leerCostoCierre, leerPrecioNuevo, type PrecioEditado, type PrendaSeparada, type RangoDePrecio } from "@/lib/recepcion-conteo-reglas";
 import { leerPreciosDePrenda } from "@/lib/recepcion-conteo-acciones";
 
 // El precio de venta de una prenda que ya se identificó en este envío (Felipe 2026-10-24). El campo viene con el precio de hoy; quien recibe lo
@@ -94,6 +94,8 @@ export function PrecioDePrenda({
   const lectura = leerPrecioNuevo(editado?.valor ?? "");
   // Lo que está mal escrito, o lo que la base no aceptaría (con su motivo): junto al campo, no en un aviso aparte.
   const problema = lectura.problema ?? editado?.rechazo ?? null;
+  // «Antes S/ …» bajo el precio, como bajo el costo: solo si lo escrito es un precio válido y distinto del de hoy (y el de hoy es uno solo).
+  const antesDelPrecio = cambioDePrecioDeVenta(nombre, hoyDelPrecio({ actual: editado?.actual, actualSede: editado?.actualSede, alcance }), editado?.valor ?? "", alcance)?.antes ?? null;
 
   useEffect(() => {
     let vivo = true;
@@ -183,7 +185,8 @@ export function PrecioDePrenda({
             placeholder="S/ 0.00"
             onChange={(e) => onValor(e.target.value)}
             tono={problema ? "error" : undefined}
-            sinPie
+            pie={antesDelPrecio !== null ? `Antes ${monto(antesDelPrecio)}` : undefined}
+            sinPie={antesDelPrecio === null}
             className="text-right font-semibold tabular-nums"
           />
         </div>
