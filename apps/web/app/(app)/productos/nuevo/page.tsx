@@ -74,7 +74,6 @@ export default async function NuevoProductoPage({ searchParams }: { searchParams
           contexto={contexto}
           destino={destino}
           cargaInicial={cargaInicialDe(carga, persona.ubicacionId)}
-          puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")}
         />
       )}
     </div>

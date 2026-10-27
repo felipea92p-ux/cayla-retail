@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 6): el RELLENO. Sin React ni DOM: se prueba en `relleno.test.ts`.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 6): el RELLENO. Sin React ni DOM: se prueba en `relleno.test.ts`.
 //
 // Felipe eligió «llena, la persona confirma»: el asistente puede escribir en un campo lo que la persona dijo («¿cómo anulo la boleta
 // B001-482?» → «B001-482» en el buscador), y el botón que guarda lo aprieta ella. Es la parte delicada del ADR, por eso va con tres

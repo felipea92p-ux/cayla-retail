@@ -2165,14 +2165,26 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   Con `para=ficha` (el nombre de una ficha, 2026-10-15) no usa ese historial —solo vale el padrón— y anota la lectura en la base
   (`anotada`); `sinNombre` dice si no lo encontró o no respondió.
 
-- `/api/asistente` → `POST { pregunta, ruta }`, solo lectura: «Pregúntale a CAYLA» (ADR-0529). Arma el menú de la cuenta con sus módulos
+- `/api/asistente` → `POST { pregunta, ruta }`, solo lectura: «Pregúntale a CAYLA» (ADR-0536). Arma el menú de la cuenta con sus módulos
   (`menuPara`, como `AppShell`), busca sin IA las 5 guías más parecidas (`lib/asistente/preseleccion.ts`) y le pide a Claude Haiku 5.5 que elija una
   guía y un paso DE ESA LISTA (`lib/asistente/respuesta.ts`: instrucciones, salida estructurada, `revisarRespuesta`, `costoEnDolares`). La clave
   (`ANTHROPIC_API_KEY`) nunca sale del servidor y la pregunta pasa por `limpiarDatosPersonales`. Siempre 200: si la IA no está, no responde en 8 s,
   declina o contesta algo fuera de la lista, `resultado.tipo = "basico"` y el cajón (`components/asistente/Asistente.tsx`, botón de la cabecera)
   muestra la búsqueda sin IA. Tope de 20 preguntas por minuto y cuenta, por instancia. La respuesta es un recorrido de 1 a 3 tramos
   (`lib/asistente/recorrido.ts`): «Muéstrame» lleva a `?demo=1&paso=…&vez=…` y `MotorGuias` corre la guía corta que arranca en ese paso;
-  los tramos que faltan viven en `sessionStorage` (`components/guias/recorrido.ts`) mientras se pasa de pantalla.
+  los tramos que faltan viven en `sessionStorage` (`components/guias/recorrido.ts`) mientras se pasa de pantalla. Solo en una sede con el
+  asistente encendido (`retail.fn_asistente_encendido`, `lib/asistente/sedes-servidor.ts`; si no, 403): el mismo dato decide si `AppShell`
+  dibuja el botón (lo lee `app/(app)/layout.tsx`). El interruptor vive en Configuración ▸ Tiendas y caja
+  (`components/asistente/ConfiguracionAsistente.tsx`, `fn_asistente_sedes` y `guardar_asistente_sede`, con `fn_puede_configurar()`).
+- `/gestion/preguntas` → Gestión ▸ Preguntas del equipo (ADR-0536, act. 9; módulo `preguntas_equipo`, solo personas): `page.tsx` lee el mes
+  (`?m=`) con `getPreguntasEquipo` (`lib/asistente/equipo-servidor.ts` → `retail.fn_asistente_preguntas_equipo`, que pide el módulo y, sin ser
+  líder, solo la propia sede; en CAYLA Global, todas). `lib/asistente/equipo.ts` traduce cada respuesta a su caja («Resuelta», «Sin
+  respuesta»…) y `components/asistente/PreguntasEquipo.tsx` dibuja cifras, resúmenes y la lista, que filtra en el navegador. Arriba,
+  `components/asistente/InformeSemanal.tsx` con el último informe del lunes (`getInformesAsistente` → `fn_asistente_informes`).
+- `/api/asistente/informe` → el informe del lunes (ADR-0536, act. 10). `GET` es el cron de Vercel (los lunes 12:00 UTC, `Bearer $CRON_SECRET`,
+  llave de servicio); `POST` es el botón del líder (su sesión). Las dos llaman a `armarInforme` (`lib/asistente/informe-servidor.ts`):
+  `fn_asistente_informes` (¿ya está?) → tope del mes → `fn_asistente_datos_informe` → Claude Sonnet 5.5 (`lib/asistente/informe.ts`:
+  instrucciones, salida estructurada, `revisarInforme`) → `guardar_informe_asistente`, que rechaza una cita que no sea de esa semana.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.

@@ -50,6 +50,15 @@ html { scrollbar-gutter: stable; }
 
 @keyframes t-vista-llega { from { opacity: 0; } }
 
+/* El reacomodo de las tarjetas al filtrar (la maqueta de la Pasarela: `flipAntes` / `flipDespues`): las que siguen en la lista se deslizan a su nuevo lugar
+   (700 ms) y las que llegan entran subiendo 24 px (650 ms); las que se van se apagan rápido. Cada tarjeta del catálogo lleva su nombre (`t-carta-<prenda>`, clase
+   `t-carta`); React solo nombra las que están a la vista. Una vez por filtro, sin rebote; con «reducir movimiento» (más abajo) cambia de golpe. */
+::view-transition-group(.t-carta) { animation-duration: .7s; animation-timing-function: cubic-bezier(.2, .7, .2, 1); z-index: 40; }
+::view-transition-new(.t-carta):only-child { animation: t-carta-entra .65s cubic-bezier(.2, .7, .2, 1) both; }
+::view-transition-old(.t-carta):only-child { animation: t-carta-sale .2s var(--ease) both; }
+@keyframes t-carta-entra { from { opacity: 0; transform: translateY(24px); } }
+@keyframes t-carta-sale { to { opacity: 0; } }
+
 /* ---- «La raya que viaja» (ADR-0524, Felipe 2026-10-26; reemplaza a «El título se cuelga» de ADR-0466): la pantalla de carga del cambio de pestaña.
    Dos cosas a la vez: la raya de la cabecera corre de la palabra de antes a la nueva (`components/useRayaDelNav.ts`, `cabecera.css`) y la página entra de lado,
    en el sentido del recorrido (hacia la derecha si la pestaña nueva está a la derecha): la de antes sale 22 px y se apaga, la nueva llega desde 22 px.

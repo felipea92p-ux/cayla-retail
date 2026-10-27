@@ -837,7 +837,7 @@ rollback;`,
 // venta se caería. Aquí `postgres` sí lo es y se saltaría toda ACL: por eso, dentro del ROLLBACK, la función que llama
 // la tienda pasa a una dueña NO superusuaria que hereda los permisos de `postgres` (como la dueña real).
 
-const SANDRA = "22222222-2222-4222-8222-000000000005"; // otra líder: quien registró la devolución no puede aprobarla
+const SANDRA = "22222222-2222-4222-8222-000000000005"; // otra líder (antes, quien registró la devolución no podía aprobarla; ADR-0534 quitó esa regla: aprobar es de quien ve Devoluciones en la sede, y Sandra, líder, lo ve)
 
 /** Pasa esas funciones (por nombre) a una dueña NO superusuaria que hereda de `postgres` (solo si `postgres` es superusuario). */
 const DUENA_COMO_EN_PRODUCCION = (nombres) =>
@@ -911,7 +911,7 @@ select retail.crear_devolucion(:'venta_id', :'ubic',
 `;
 
 exito(
-  "F · COMO authenticated (otra líder), aprobar la devolución de una venta aceptada emite su nota de crédito (emitir_nota por dentro)",
+  "F · COMO authenticated (otra cuenta con Devoluciones), aprobar la devolución de una venta aceptada emite su nota de crédito (emitir_nota por dentro)",
   `${DEVOLUCION_LISTA}${DUENA_COMO_EN_PRODUCCION(["aprobar_devolucion"])}
 ${COMO("authenticated", SANDRA)}
 select 1 as _a from retail.aprobar_devolucion(:'devolucion_id', null, null) \\gset

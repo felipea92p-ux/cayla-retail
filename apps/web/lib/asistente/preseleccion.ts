@@ -1,10 +1,11 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 1): la preselección local de guías, sin IA y sin red.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 1): la preselección local de guías, sin IA y sin red.
 //
 // Es la pasada 1 del asistente: con lo que la persona escribió, busca las guías interactivas (ADR-0389) que más se parecen, entre las
 // pantallas que su rol ve. Hoy es todo lo que hay (el «modo básico»); cuando llegue la IA (actividad 2), le pasa solo estas guías en vez
 // del catálogo entero, y sigue siendo la respuesta cuando la IA no está (tope del mes, la API no responde). Por eso no puede depender de
 // nada de afuera.
 
+import { moduloDeRuta } from "../actividad-reglas";
 import { guiaDeRuta, normalizar } from "../guias/reglas";
 import type { Guia, PasoGuia } from "../guias/tipos";
 
@@ -32,6 +33,13 @@ const EQUIVALENTES: Record<string, readonly string[]> = {
   cierr: ["cerr"],
   devuelv: ["devolu", "devolv"],
   devolv: ["devolu"],
+  // Lo que salió de la evaluación fija (`evaluacion/casos.json`, 2026-10-27): «mando prendas a Trujillo» es un traslado, «cuánto le
+  // debemos» es Por pagar, «cuántas unidades quedan» son las existencias y «cada vendedora» es «cada persona» de Rendimiento.
+  mand: ["trasl"],
+  debem: ["pag"],
+  deud: ["pag"],
+  unidad: ["existenci"],
+  vendedor: ["person"],
 };
 
 /** Las que parecen conjugadas y no lo son: sin esto, «taller» y «talla» serían la misma raíz. */
@@ -63,6 +71,19 @@ export function raices(texto: string): Set<string> {
   return salida;
 }
 
+/**
+ * Las pantallas que cuelgan de una entrada del menú pero piden OTRO módulo que esa entrada (su página llama a `exigirModulo` con otro):
+ * `moduloDeRuta` las da como de la entrada, y ofrecerlas por colgar le mostraría al rol una pantalla que no ve. Solo salen si son una
+ * entrada de su menú. `preseleccion.test.ts` lee cada página y falla si aparece una nueva que no está aquí.
+ */
+export const PIDEN_OTRO_MODULO: ReadonlySet<string> = new Set([
+  "/productos/familias",
+  "/compras/por-pagar",
+  "/compras/ordenes",
+  "/compras/ordenes/nueva",
+  "/compras/fondos",
+]);
+
 /** Cuánto pesa encontrar una palabra en cada parte de la guía: el título dice de qué es la pantalla; el texto de un paso, un detalle. */
 const PESO = { titulo: 5, resumen: 3, pasoTitulo: 2, pasoTexto: 1 } as const;
 
@@ -77,8 +98,10 @@ export type Sugerencia = {
 
 /**
  * Las guías que más se parecen a la pregunta, entre las que esta cuenta puede abrir: las de las entradas de su menú (`rutasDelMenu`, ya
- * resueltas por rol) y la de la pantalla donde está. Una guía de una pantalla interna (`/compras/[id]`) solo sale si la persona ya está
- * ahí: no hay a dónde llevarla sin un id.
+ * resueltas por rol), la de la pantalla donde está y las que cuelgan de una entrada sin pedir un id y son del MISMO módulo (Historial de
+ * cierres cuelga de Caja; Nuevo traslado, de Traslados). Una que cuelga pero tiene su propio módulo (Por pagar, bajo Compras) no se
+ * ofrece por colgar: su rol podría no verla. Una guía de una pantalla con id (`/compras/[id]`) solo sale si la persona ya está ahí: no hay
+ * a dónde llevarla sin un id.
  */
 export function preseleccionar({
   pregunta,
@@ -104,11 +127,19 @@ export function preseleccionar({
     if (g && !entradaDe.has(g)) entradaDe.set(g, h);
   }
   const deAqui = guiaDeRuta(rutaActual, guias);
+  const entradas = rutasDelMenu.map((h) => h.split(/[?#]/)[0] ?? h).filter((h) => h !== "/");
+  /** La entrada de la que cuelga la pantalla de una guía, si se llega sin un id y es del mismo módulo que esa entrada. */
+  const colgadaDe = (guia: Guia): string | null => {
+    if (guia.ruta.includes("[")) return null;
+    const direccion = guia.ruta.replace(/\/\([^)]+\)/g, "") || "/";
+    const padre = entradas.filter((e) => direccion.startsWith(`${e}/`)).sort((a, b) => b.length - a.length)[0];
+    return padre && !PIDEN_OTRO_MODULO.has(direccion) && moduloDeRuta(direccion) === moduloDeRuta(padre) ? direccion : null;
+  };
 
   const sugerencias: Sugerencia[] = [];
   for (const guia of guias) {
     const aqui = guia === deAqui;
-    const entrada = entradaDe.get(guia);
+    const entrada = entradaDe.get(guia) ?? colgadaDe(guia);
     if (!aqui && !entrada) continue;
 
     const enTitulo = raices(guia.titulo);

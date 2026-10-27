@@ -130,7 +130,7 @@
       "Boton «sellos.oferta-activar»",
       "Volver «→() => ir((paso - 1) as Paso)»",
       "Boton «Cancelar»",
-      "button «{r.nombre}»",
+      "button «{viva ? \"Toca para editarla\" : undefined}»",
       "Boton «Activar»",
       "button «Retirar»",
       "Boton «Sí, retirar»",

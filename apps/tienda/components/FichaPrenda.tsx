@@ -94,6 +94,13 @@ export function FichaPrenda({
   /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
   children?: React.ReactNode;
 }) {
+  // La llegada de la ficha (foto que se descubre, panel que sube) corre solo al cargar la página: pasado el rato se apaga la marca, y cambiar
+  // de color (que vuelve a montar la galería) o de talla ya no la repite.
+  const [llegando, setLlegando] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setLlegando(false), 2400);
+    return () => clearTimeout(t);
+  }, []);
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido, sedeElegida));
   const tallas = tallasDelColor(ficha, color);
   const [tallaId, setTallaId] = useState<string | null>(() => tallaInicial(ficha, tallaPedida, color) ?? (tallas.length === 1 ? tallas[0].talla.id : null));
@@ -218,7 +225,7 @@ export function FichaPrenda({
 
   return (
     <>
-      <div className="t-pdp">
+      <div className="t-pdp" data-entra={llegando ? "" : undefined}>
         {/* Otra clave por color: al cambiarlo, la tira vuelve a su primera foto (la del color nuevo). */}
         <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} disparo={disparo} />
 

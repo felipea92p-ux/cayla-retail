@@ -7,16 +7,14 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 import { MosaicoDeVenta, IconoVisto } from "./piezas";
 import { LineaCorregida } from "./LineaCorregida";
 
-/** Lo que se dice de una venta que ya no está pendiente (regularizada, cerrada sin prenda, anulada): sin prendas que elegir. Un líder
- *  puede reabrir una cerrada (la base lo exige, `reabrir_prenda_cerrada`). */
+/** Lo que se dice de una venta que ya no está pendiente (regularizada, cerrada sin prenda, anulada): sin prendas que elegir. Una cerrada
+ *  se reabre desde aquí (`reabrir_prenda_cerrada`: quien ve Existencias, ADR-0534). */
 export function ResumenResuelta({
   fila,
-  esLider,
   onReabrir,
   onCorregir,
 }: {
   fila: FilaPorRegularizar;
-  esLider: boolean;
   onReabrir: (f: FilaPorRegularizar) => void;
   /** Una cerrada sin prenda sigue contando en la demanda con lo anotado: también se corrige (ADR-0369). */
   onCorregir: (f: FilaPorRegularizar) => void;
@@ -52,11 +50,9 @@ export function ResumenResuelta({
           <button type="button" onClick={() => onCorregir(fila)} className="btn-cayla btn-secundario">
             Corregir lo anotado
           </button>
-          {esLider && (
-            <button type="button" onClick={() => onReabrir(fila)} className="btn-cayla btn-secundario">
-              Reabrir
-            </button>
-          )}
+          <button type="button" onClick={() => onReabrir(fila)} className="btn-cayla btn-secundario">
+            Reabrir
+          </button>
         </div>
       )}
     </div>

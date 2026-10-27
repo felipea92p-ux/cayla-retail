@@ -176,7 +176,7 @@ export function Buscador({
   const caja = (
     <div
       data-guia={conteo === undefined ? guia : undefined}
-      // «Pregúntale a CAYLA» puede escribir aquí lo que la persona dijo (ADR-0529, actividad 6): buscar no guarda nada. Es la única
+      // «Pregúntale a CAYLA» puede escribir aquí lo que la persona dijo (ADR-0536, actividad 6): buscar no guarda nada. Es la única
       // pieza marcada; agregar otra lo decide Felipe y la vigila `lib/asistente-rellenable.test.ts`.
       data-asistente="rellenable"
       className={`buscador ${mostrador ? "mostrador" : ""} ${conteo === undefined ? className : ""}`}

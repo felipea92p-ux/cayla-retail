@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icono } from "@/components/Icono";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { hrefLista } from "@/lib/catalogo";
@@ -50,9 +51,7 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
     >
       <div className="t-ancho">
         <header className="t-lista-cab t-looks-cab">
-          <h1>
-            Arma tu <em>look</em>
-          </h1>
+          <TituloConLetras primera="Arma tu" cursiva="look" />
           {/* Los looks de CAYLA están abajo; este es el camino para armar el propio (el probador). Siempre a la vista: si todavía no hay
               prendas que probar en esa tienda, el probador lo dice y lleva de vuelta a los looks. */}
           <Link className="t-btn t-btn-sec" href={hrefDelProbador(sede)}>

@@ -386,10 +386,11 @@ caso(
   `${sesion(T_ADMIN, { resp: "rosa" })}${COMO_API}${COLOR}`,
   (s) => s.startsWith("aprobado,") && s.endsWith(",t")
 );
+// ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera; antes, la terminal de ventas (sin Catálogo) lo dejaba pendiente.
 caso(
-  "catálogo — terminal de ventas + Rosa propone un color: PENDIENTE, propuesto por Rosa",
+  "catálogo — terminal de ventas (sin Catálogo) + Rosa crea un color: también APROBADO (ADR-0534), propuesto y aprobado por Rosa",
   `${sesion(T_VENTAS, { resp: "rosa" })}${COMO_API}${COLOR}`,
-  "pendiente,t,f"
+  "aprobado,t,t"
 );
 caso(
   "catálogo — terminal administrativa SIN responsable: el disparador rechaza (42501)",

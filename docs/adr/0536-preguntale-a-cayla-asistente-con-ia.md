@@ -1,4 +1,4 @@
-# ADR-0529 — «Pregúntale a CAYLA»: la IA que te lleva al botón, y las preguntas que dicen qué construir
+# ADR-0536 — «Pregúntale a CAYLA»: la IA que te lleva al botón, y las preguntas que dicen qué construir
 
 - **Fecha:** 2026-10-26 · **Estado:** propuesto. La visión la fijó Felipe con 10 respuestas el 2026-10-26; las tres tensiones de abajo las
   resolví yo con mi recomendación y Felipe puede cambiarlas. **Nada construido, ninguna migración, ninguna clave de API.**
@@ -112,8 +112,10 @@ lateral. Meterlo como módulo para el piloto rompería esa regla por un motivo p
 
 **Decisión:**
 - **El botón lo ve toda cuenta de una sede con el asistente encendido.** El piloto se prende y apaga **por sede**, con un interruptor en
-  Configuración que solo cambia un líder (`fn_es_lider()`), guardado en una tabla nueva y chica (`retail.asistente_sedes`), no en una columna de
-  `ubicaciones` (es una tabla que la tienda usa: tocarla es la receta del deadlock de ADR-0195).
+  Configuración ~~que solo cambia un líder (`fn_es_lider()`)~~ **que cambia quien ve Configuración** (`fn_puede_configurar()`: el líder o
+  el módulo «configuracion» en su rol; Felipe 2026-10-27, al construirlo: «los líderes solo supervisan visualmente», así que no se suma un
+  candado de líder nuevo y quién lo cambia se decide en Roles y accesos), guardado en una tabla nueva y chica (`retail.asistente_sedes`), no
+  en una columna de `ubicaciones` (es una tabla que la tienda usa: tocarla es la receta del deadlock de ADR-0195).
 - **La pantalla del informe sí es un módulo** («Lo que pregunta tu equipo»), una entrada del lateral que **nace solo para el líder** (regla
   ADR-0161): migración con su `insert into retail.modulos`, `CLAVES_MODULO`, su nodo en `lib/menu.ts` y `exigirModulo`. Propongo el grupo
   Gestión; se confirma al construirla.
@@ -199,6 +201,40 @@ igual, marcada «sin IA», y cuenta en el informe. Es el principio 9: se pierde 
   tope de descuento y el cierre de caja («los líderes solo supervisan visualmente»), y pidió que una devolución no necesite aprobación.
   Esa queda en borrador: hoy `aprobar_devolucion` exige líder y la regla contradiría la pantalla hasta que el sistema cambie.
 - **Un tramo no cuenta como demo vista entera**: la guía queda como ofrecida y su oferta de la primera vez no vuelve a salir.
+- **El interruptor por sede** (actividad 8, migración `20261027163000_asistente_sedes.sql`): una sede sin fila está **apagada**, así que el
+  asistente nace apagado en todas y alguien enciende la del piloto en Configuración ▸ Tiendas y caja (una tarjeta más, entre el WhatsApp
+  y la carga inicial, con el mismo responsable y el mismo «se guarda solo»; al lado, lo gastado en el mes contra el tope). Entran las
+  tres clases de sede, no solo tiendas: el almacén y el taller también preguntan. **En CAYLA Global el botón sale si alguna sede lo tiene**
+  (quien supervisa el piloto lo prueba desde ahí). Si la base no responde o todavía no tiene la función, el botón sale **apagado**: el
+  piloto es de una sede y nadie gasta sin querer. `/api/asistente` también lo pregunta y contesta 403 a una sede apagada, aunque alguien la
+  llame sin el botón. Apagar no borra la fila (queda desde cuándo corrió) y cada cambio va a `configuracion_historial`.
+- **La pantalla del informe** (actividad 9, migración `20261027182000_asistente_preguntas_equipo.sql`): Gestión ▸ **«Preguntas del
+  equipo»** (`/gestion/preguntas`, módulo `preguntas_equipo`). El nombre del ADR, «Lo que pregunta tu equipo», no cabía en el lateral; queda
+  como la frase de la cabecera. **Muestra quién preguntó** (Felipe 2026-10-27, elegido entre «solo la sede» y «con el nombre»), y por eso:
+  el cajón del asistente avisa antes de escribir («Tu líder ve lo que preguntas, para mejorar CAYLA»), y el módulo es **«solo personas»**
+  como Rendimiento y Actividad (una terminal compartida no revisa lo que preguntan las demás; se suma a `fn_exigir_rol_de_terminal` con un
+  reemplazo anclado). Nace sin rol (ADR-0161). Cada cuenta ve la sede que mira; el líder o el Admin, cualquiera con el selector, y todas
+  juntas en CAYLA Global; quien tiene el módulo sin ser líder, solo la suya. Las cifras las cuenta SQL sobre todo el mes y la lista trae las
+  300 más recientes. Arriba, cinco cifras (las que filtran se rellenan al tocarlas); después, «Dónde las llevó» y «Accesos que piden»; abajo,
+  la lista a todo el ancho con sus píldoras (a 1440 px, una columna al costado partía las preguntas a media palabra). «Sin respuesta» se lee
+  como «Regla sin escribir», «Error sin explicar» o «No existe en CAYLA» según lo que preguntaba. Las 5 mejoras del lunes (actividad 10) se
+  suman a esta misma pantalla.
+- **El informe del lunes** (actividad 10, migración `20261027183000_asistente_informes.sql`, ruta `/api/asistente/informe`): **lo arma un
+  trabajo programado de Vercel** (`vercel.json`, los lunes a las 7:00 de Lima) y no un vigía de GitHub Actions como decía «Cómo funciona»:
+  el cron de Vercel entra con `CRON_SECRET` y la llave de servicio, que ya están en producción, y no pide un secreto nuevo. Informa la
+  semana anterior completa (lunes a lunes de Lima). **La IA no ve ids ni sedes**: ve «p1», «p2»… y lo que se respondió; el servidor descarta
+  las citas que no están en la lista y **la base vuelve a rechazar el informe entero** si una cita no es una pregunta de esa semana. Cuántas
+  preguntas sostienen una mejora y de qué sedes se calcula al leer, de las citas. **Una semana, un informe**: correrlo otra vez devuelve el
+  mismo sin llamar a la IA. Si el lunes no salió, el líder lo arma con un botón en la pantalla (la misma lógica, con su sesión). Una semana
+  sin preguntas se anota sin IA. Lo que cuesta entra al tope de US$30 (`fn_asistente_gasto_del_mes` lo suma). Lo ve solo quien ve todas las
+  sedes (el líder o el Admin), porque junta las preguntas de toda CAYLA. Medido en local el 2026-10-27 con 8 preguntas: 4 mejoras, ~1 800
+  tokens de entrada y ~570 de salida, **US$0,009**.
+- **La evaluación fija** (actividad 11, `apps/web/lib/asistente/evaluacion/`): 40 preguntas con lo que se acepta; el CI corre la parte sin red
+  (cada id existe y la búsqueda local deja la guía esperada entre las 5 que ve la IA) y `pnpm --filter web asistente:evaluar` corre la IA contra
+  el ERP local. La primera pasada encontró que **la búsqueda solo ofrecía las entradas exactas del menú**: desde ahí también ofrece las pantallas
+  que cuelgan de una entrada sin pedir un id y son del mismo módulo (las 5 que piden otro, en `PIDEN_OTRO_MODULO`, con una prueba que lee cada
+  página), y las de la cabecera con su módulo (`pantallasDelAsistente`). Con eso, 4 equivalencias de tienda y 3 ajustes a las instrucciones,
+  pasó de 35 a **38 de 40**.
 
 ## Producción
 

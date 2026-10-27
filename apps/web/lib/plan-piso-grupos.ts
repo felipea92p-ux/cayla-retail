@@ -5,7 +5,7 @@ import { FAMILIAS_FUERA_DEL_RIEL } from "./capacidad-piso";
  *
  * El mix no se reparte entre las 42 categorías sueltas sino entre 8 grupos con un rol (destino, rutina, ocasional, de temporada,
  * conveniencia): con 600 ganchos y pocos días de venta, una categoría con 2 prendas no dice nada. Esta pantalla es la primera
- * mitad del Plan del piso: el líder revisa la propuesta de grupos y la confirma, o cambia lo que no calza.
+ * mitad del Plan del piso: quien ve el módulo revisa la propuesta de grupos y la confirma, o cambia lo que no calza (ADR-0534; antes, solo el líder).
  *
  * PROMETE: leer las dos lecturas de la base sin confiar en su forma (lo que no tiene la forma esperada es «no se pudo leer», nunca
  * una lista inventada); decir el estado de cada categoría (confirmada, por revisar, sin grupo); decir a qué grupos puede ir cada
@@ -43,7 +43,7 @@ export type CategoriaMix = {
   familia: string | null;
   /** Nulo = «Sin grupo»: la base no inventa un grupo. */
   grupoClave: string | null;
-  /** El líder ya la revisó. Falso mientras sea solo la propuesta sembrada. */
+  /** Alguien ya la revisó y la confirmó. Falso mientras sea solo la propuesta sembrada. */
   confirmada: boolean;
   confirmadaEn: string | null;
   /** La que `fijar_grupos_de_categorias` pide (0 si todavía no tenía grupo). */
@@ -101,7 +101,7 @@ export function leerCategorias(datos: unknown): CategoriaMix[] | null {
 
 export type EstadoCategoria = "confirmada" | "por_revisar" | "sin_grupo";
 
-/** Sin grupo manda sobre todo; con grupo, «confirmada» es lo que el líder ya revisó y lo demás es la propuesta por revisar. */
+/** Sin grupo manda sobre todo; con grupo, «confirmada» es lo que alguien ya revisó y lo demás es la propuesta por revisar. */
 export function estadoDe(c: CategoriaMix): EstadoCategoria {
   if (c.grupoClave === null) return "sin_grupo";
   return c.confirmada ? "confirmada" : "por_revisar";
@@ -126,19 +126,19 @@ export function resumir(categorias: readonly CategoriaMix[]): ResumenGrupos {
 export type AvisoDeGruposPorRevisar = { titulo: string; detalle: string; accion: string };
 
 /**
- * El aviso de la Propuesta sobre las categorías que esperan al líder, que son DOS cosas distintas y la propuesta las trata distinto:
+ * El aviso de la Propuesta sobre las categorías que esperan revisión, que son DOS cosas distintas y la propuesta las trata distinto:
  *  · «por revisar»: el sistema les puso un grupo, que la propuesta SÍ usa mientras nadie lo confirme;
  *  · «sin grupo»: son nuevas y no tienen ninguno, así que NO entran al reparto (`armarPropuesta` las cuenta aparte).
- * Dice cuántas son de cada una, qué pasa mientras tanto y a dónde ir. Quien es líder las confirma; quien no, solo las ve. Sin ninguna, no hay aviso.
+ * Dice cuántas son de cada una, qué pasa mientras tanto y a dónde ir. Las confirma quien ve el Plan del piso (ADR-0534), así que el aviso le
+ * habla a quien lo lee. Sin ninguna, no hay aviso.
  */
-export function avisoDeGruposPorRevisar(porRevisar: number, sinGrupo: number, esLider: boolean): AvisoDeGruposPorRevisar | null {
+export function avisoDeGruposPorRevisar(porRevisar: number, sinGrupo: number): AvisoDeGruposPorRevisar | null {
   const rev = Number.isFinite(porRevisar) && porRevisar > 0 ? Math.floor(porRevisar) : 0;
   const sin = Number.isFinite(sinGrupo) && sinGrupo > 0 ? Math.floor(sinGrupo) : 0;
   const total = rev + sin;
   if (total === 0) return null;
   const cuantas = total.toLocaleString("es-PE");
-  const accion = esLider ? (total === 1 ? "Revisar la categoría" : `Revisar las ${cuantas} categorías`) : total === 1 ? "Ver la categoría" : `Ver las ${cuantas} categorías`;
-  const quien = esLider ? "no" : "el líder no";
+  const accion = total === 1 ? "Revisar la categoría" : `Revisar las ${cuantas} categorías`;
   const nRev = rev.toLocaleString("es-PE");
   const nSin = sin.toLocaleString("es-PE");
 
@@ -146,7 +146,7 @@ export function avisoDeGruposPorRevisar(porRevisar: number, sinGrupo: number, es
     const una = rev === 1;
     return {
       titulo: una ? "1 categoría sigue por revisar" : `${nRev} categorías siguen por revisar`,
-      detalle: `Mientras ${quien} ${una ? "la" : "las"} ${esLider ? "confirmes" : "confirme"}, la propuesta usa el grupo que el sistema ${una ? "le" : "les"} puso.`,
+      detalle: `Mientras no ${una ? "la" : "las"} confirmes, la propuesta usa el grupo que el sistema ${una ? "le" : "les"} puso.`,
       accion,
     };
   }
@@ -154,7 +154,7 @@ export function avisoDeGruposPorRevisar(porRevisar: number, sinGrupo: number, es
     const una = sin === 1;
     return {
       titulo: una ? "1 categoría no tiene grupo" : `${nSin} categorías no tienen grupo`,
-      detalle: `Mientras ${quien} ${una ? "le" : "les"} ${esLider ? "elijas" : "elija"} uno, ${una ? "no entra" : "no entran"} al reparto de la propuesta.`,
+      detalle: `Mientras no ${una ? "le" : "les"} elijas uno, ${una ? "no entra" : "no entran"} al reparto de la propuesta.`,
       accion,
     };
   }
@@ -206,7 +206,7 @@ export function armarVista(grupos: readonly GrupoMix[], categorias: readonly Cat
 }
 
 /**
- * Lo que el líder dejó preparado sin guardar: categoría → el grupo en que quedará (el mismo que tiene si solo la confirma) y la
+ * Lo que se dejó preparado sin guardar: categoría → el grupo en que quedará (el mismo que tiene si solo la confirma) y la
  * VERSIÓN de la categoría que vio al prepararlo. Si otra persona la cambia después, esa versión ya no es la vigente y el cambio
  * preparado deja de valer: no se guarda (decidía sobre un estado que ya no existe) y se le dice a quien lo preparó.
  */

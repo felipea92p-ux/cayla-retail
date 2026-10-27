@@ -1,4 +1,5 @@
 import { BotonDeFormulario } from "@/components/BotonDeFormulario";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
@@ -158,9 +159,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
       <div className="t-ancho">
         <header className="t-lista-cab t-bolsa-cab cp-sec-cab">
           <span className="t-ceja">Tu bolsa</span>
-          <h1>
-            {cuantas(totalPrendas)} <em>por separar</em>
-          </h1>
+          <TituloConLetras primera={cuantas(totalPrendas)} cursiva="por separar" />
           <Link className="t-ver" href="/catalogo">
             Seguir mirando <Icono nombre="flecha" />
           </Link>

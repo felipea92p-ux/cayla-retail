@@ -1,5 +1,5 @@
 -- ============================================================================
--- «Pregúntale a CAYLA»: cada pregunta queda anotada (ADR-0529, actividad 5; Felipe 2026-10-26)
+-- «Pregúntale a CAYLA»: cada pregunta queda anotada (ADR-0536, actividad 5; Felipe 2026-10-26)
 --
 -- QUÉ. El asistente de la cabecera responde «cómo hago X» llevando a la persona al botón. Felipe lo pidió para algo más: que las
 -- preguntas digan qué falta construir (las que no tienen respuesta), qué está escondido (las que se repiten) y qué accesos pide la
@@ -73,7 +73,7 @@ create table if not exists retail.asistente_preguntas (
   check (comentario is null or sirvio is false)
 );
 comment on table retail.asistente_preguntas is
-  'ADR-0529: cada pregunta a «Pregúntale a CAYLA», con lo que se respondió, su costo y si le sirvió. Sin DELETE. Solo la tocan registrar_pregunta_asistente, responder_pregunta_asistente y fn_asistente_gasto_del_mes.';
+  'ADR-0536: cada pregunta a «Pregúntale a CAYLA», con lo que se respondió, su costo y si le sirvió. Sin DELETE. Solo la tocan registrar_pregunta_asistente, responder_pregunta_asistente y fn_asistente_gasto_del_mes.';
 
 create index if not exists asistente_preguntas_creada_en on retail.asistente_preguntas (creada_en);
 create index if not exists asistente_preguntas_cuenta on retail.asistente_preguntas (cuenta_id, creada_en);
@@ -135,7 +135,7 @@ end;
 $$;
 
 comment on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer, text) is
-  'ADR-0529: anota una pregunta a «Pregúntale a CAYLA» (ya limpia de datos personales) y devuelve su id.';
+  'ADR-0536: anota una pregunta a «Pregúntale a CAYLA» (ya limpia de datos personales) y devuelve su id.';
 revoke all on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer, text) from public, anon;
 grant execute on function retail.registrar_pregunta_asistente(uuid, text, text, text, text, text, jsonb, text, text, text, integer, integer, integer, numeric, integer, text) to authenticated, service_role;
 
@@ -183,7 +183,7 @@ end;
 $$;
 
 comment on function retail.responder_pregunta_asistente(uuid, boolean, text) is
-  'ADR-0529: «¿Te sirvió?» de una pregunta a «Pregúntale a CAYLA», solo la cuenta que preguntó, una vez, dentro de un día.';
+  'ADR-0536: «¿Te sirvió?» de una pregunta a «Pregúntale a CAYLA», solo la cuenta que preguntó, una vez, dentro de un día.';
 revoke all on function retail.responder_pregunta_asistente(uuid, boolean, text) from public, anon;
 grant execute on function retail.responder_pregunta_asistente(uuid, boolean, text) to authenticated, service_role;
 
@@ -206,6 +206,6 @@ end;
 $$;
 
 comment on function retail.fn_asistente_gasto_del_mes() is
-  'ADR-0529: lo que costaron las preguntas a «Pregúntale a CAYLA» en el mes de Lima (US$), para el tope mensual.';
+  'ADR-0536: lo que costaron las preguntas a «Pregúntale a CAYLA» en el mes de Lima (US$), para el tope mensual.';
 revoke all on function retail.fn_asistente_gasto_del_mes() from public, anon;
 grant execute on function retail.fn_asistente_gasto_del_mes() to authenticated, service_role;

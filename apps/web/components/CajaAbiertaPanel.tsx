@@ -527,12 +527,11 @@ export function CajaAbiertaPanel({
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} soloSalida onClose={() => setModal(null)} />}
       {modal === "ingreso" && (
         <IngresoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
           ubicacionNombre={ubicacionNombre}
-          esLider={personaRol === "lider"}
           sedes={sedesIngreso}
           accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
           onCerrar={() => setModal(null)}

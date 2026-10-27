@@ -487,10 +487,9 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
   });
 
-  it("los de las ofertas de una campaña («Tres preguntas»): dicen quién las activa, sin «Código:»", () => {
-    const lider = { message: "Solo un líder activa una oferta.", code: "42501", hint: "oferta_solo_lider" };
+  it("los de las ofertas de una campaña («Tres preguntas»): dicen qué módulo falta, sin «Código:»", () => {
+    // Desde ADR-0534 activar, cambiar y retirar ya no esperan a un líder: el único rechazo de permiso es no tener la llave de campañas.
     const modulo = { message: "Registrar una oferta necesita el módulo «Campañas», «Campañas de la tienda web» o «Insignias» en tu rol.", code: "42501", hint: "oferta_sin_modulo" };
-    expect(traducirError(lider, "activar la oferta")).toBe(lider.message);
     expect(traducirError(modulo, "guardar la oferta")).toBe(modulo.message);
   });
 
@@ -829,13 +828,12 @@ describe("las fechas de una factura de compra", () => {
   });
 });
 
-describe("regularizar la propia venta (ADR-0328)", () => {
-  it("dice, en palabras de tienda, que lo haga otra persona o un líder", () => {
-    const salida = traducirError(
-      { code: "42501", message: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.", hint: "regularizar_propia_venta" },
-      "regularizar la prenda",
-    );
-    expect(salida).toBe("Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.");
+describe("regularizar una prenda", () => {
+  // ADR-0534: quien vendió ya puede regularizar su propia venta; lo que falta es el módulo Existencias para la cola.
+  it("la cola sin el módulo Existencias dice dónde se hace, sin «líder» y sin «Código:»", () => {
+    const salida = traducirError({ code: "42501", message: "cola_sin_modulo", hint: "Cerrar la cola de una tienda necesita el módulo Existencias (ADR-0534)" }, "cerrar la cola");
+    expect(salida).toBe("Esto se hace desde Existencias: pide que le den ese módulo a tu rol.");
+    expect(salida).not.toMatch(/líder/);
   });
 
   // La base nombra la sede en el mensaje; pasa tal cual (P0001), sin caer al genérico.

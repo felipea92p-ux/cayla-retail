@@ -52,7 +52,7 @@ export function ListaDeSalidas({ piezas }: { piezas: PiezaDelDesfile[] }) {
   const en = piezas[ultima] ?? piezas[0];
   return (
     <>
-      <ol className="t-salidas" onPointerLeave={() => setSobre(null)}>
+      <ol className="t-salidas" data-revela-lista onPointerLeave={() => setSobre(null)}>
         {piezas.map((p, i) => (
           <li key={p.id} onPointerEnter={(e) => alEntrar(e, i)}>
             <Link

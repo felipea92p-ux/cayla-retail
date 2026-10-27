@@ -55,7 +55,6 @@ import {
   sumarLecturaCuadre,
   textoConteoAbierto,
   textoCuadradoEn,
-  textoQuienConfirma,
   textoDeBorradorCuadre,
   textoDeEnvioIncierto,
   textoDeResultado,
@@ -80,8 +79,8 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
  * «Cuadrar el piso» (ADR-0328, decisión técnica 4). Tres pasos y el resultado:
  *   1. Escanear lo GUARDADO, de pie frente al estante, con la pistola o la cámara en ráfaga (cada lectura suma 1 y suena).
  *   2. Revisar lo que va a pasar, con la cuenta de la base (`previsualizar_cuadre_piso`).
- *   3. Confirmar, una vez, con el nombre de quien lo hace (solo un líder: la cuenta, no el responsable).
- * La lista vive en el navegador (por SEDE: escanea la cuenta Almacén y confirma un líder con su cuenta en el mismo equipo) y la
+ *   3. Confirmar, una vez, con el nombre de quien lo hace (quien ve Existencias, el mismo que escanea: ADR-0534).
+ * La lista vive en el navegador (por SEDE: sobrevive a un cambio de cuenta en el mismo equipo) y la
  * base se toca una vez para confirmar, con marca de reintento. Nada es optimista: la pantalla espera a la base y muestra SU
  * respuesta. Si la respuesta no llega, la lista se congela y solo se puede comprobar con la misma marca.
  */
@@ -144,7 +143,6 @@ export function CuadrarPisoForm({
   prendas,
   libre,
   estado,
-  esLider,
   ahoraServidor,
 }: {
   ubicacionId: string;
@@ -154,8 +152,6 @@ export function CuadrarPisoForm({
   /** Lo libre de la sede por prenda: solo para el aviso «no cargada» mientras se escanea. La cuenta la hace la base. */
   libre: Record<string, StockLibre>;
   estado: EstadoCuadre;
-  /** La cuenta de un líder: confirmar es solo suyo (la base lo vuelve a preguntar). */
-  esLider: boolean;
   /** La hora del servidor al dibujar: la del escaneo se pide en SU reloj, no en el del aparato. */
   ahoraServidor: string;
 }) {
@@ -206,7 +202,7 @@ export function CuadrarPisoForm({
   const total = totalEscaneado(datos.lineas);
   const notaRequerida = estado.cuadres > 0 || notaExigida;
   const motivoRevisar = motivoNoRevisar({ lineas: datos.lineas.length, confirmoVacio: datos.confirmoVacio, pendientes: datos.pendientes.length });
-  const motivoConfirmar = motivoNoConfirmar({ esLider, sede, responsableMotivo: responsable.motivo, notaRequerida, nota: datos.nota, conteoAbierto: conteo });
+  const motivoConfirmar = motivoNoConfirmar({ responsableMotivo: responsable.motivo, notaRequerida, nota: datos.nota, conteoAbierto: conteo });
   const guiaEscaneo = useGuiaCampos(camposGuiaEscaneo({ lineas: datos.lineas.length, confirmoVacio: datos.confirmoVacio, pendientes: datos.pendientes.length }), {
     enModal: false,
   });
@@ -651,7 +647,7 @@ export function CuadrarPisoForm({
               <li>Hazlo antes de abrir: si mientras escaneas se vende, se repone o se recibe algo del almacén, tendrás que volver a escanear esas prendas.</li>
               <li>Escanea solo lo GUARDADO. No escanees las dañadas (cuarentena) ni el estante de Apartados: el cuadre no las mueve.</li>
               <li>Una prenda guardada sin etiqueta no se puede escanear y quedaría como colgada: cárgala antes de cuadrar.</li>
-              <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.{!esLider && ` ${textoQuienConfirma(sede)}`}</li>
+              <li>Lo escaneado se guarda en este equipo hasta 12 horas: termina hoy y aquí.</li>
             </ul>
           ) : (
             <p className="text-xs text-taupe">Solo lo guardado · sin dañadas ni Apartados · termina hoy y en este equipo.</p>
@@ -882,12 +878,12 @@ export function CuadrarPisoForm({
                   placeholder={notaRequerida ? "Ej.: faltó escanear el estante del fondo" : "Ej.: cuadre de arranque, antes de abrir"} // sugerir-fijo: la nota de un cuadre no depende de una prenda ni de una categoría elegida; solo cambia si es el primero o se repite
                 />
               </CampoGuiado>
-              {(!esLider || conteo) && <p className="text-sm text-taupe">{motivoConfirmar}</p>}
+              {conteo && <p className="text-sm text-taupe">{motivoConfirmar}</p>}
             </section>
           )}
 
           <BarraFija
-            aviso={paso === "confirmar" && esLider && !conteo ? <PieGuia guia={guiaConfirmar} listo={`Listo para cuadrar el piso de ${sede}.`} /> : undefined}
+            aviso={paso === "confirmar" && !conteo ? <PieGuia guia={guiaConfirmar} listo={`Listo para cuadrar el piso de ${sede}.`} /> : undefined}
             resumen={
               vista?.estado === "lista" ? (
                 <span className="tabular-nums">

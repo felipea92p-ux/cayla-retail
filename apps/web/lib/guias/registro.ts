@@ -116,7 +116,7 @@ import {
   GUIA_GLOBAL,
   GUIA_INICIO,
 } from "./pantallas/general";
-import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
+import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_PREGUNTAS_EQUIPO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
 import { GUIA_AVISOS_CLUB, GUIA_BENEFICIOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import {
   GUIA_CAMPANAS_EDITOR,
@@ -243,6 +243,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_CONFIGURACION,
   GUIA_GLOBAL,
   GUIA_RENDIMIENTO,
+  GUIA_PREGUNTAS_EQUIPO,
   // Tienda web (ADR-0430).
   GUIA_TIENDA_WEB_RESUMEN,
   GUIA_PEDIDOS_WEB,
@@ -352,6 +353,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/gestion/plan-del-piso": { estado: "aplicada", guia: GUIA_PLAN_DEL_PISO.id },
   "/inventario/por-regularizar": { estado: "aplicada", guia: GUIA_POR_REGULARIZAR.id },
   "/gestion/analisis": { estado: "aplicada", guia: GUIA_ANALISIS.id },
+  "/gestion/preguntas": { estado: "aplicada", guia: GUIA_PREGUNTAS_EQUIPO.id },
   "/inventario/traslados/(billetera)": { estado: "aplicada", guia: GUIA_TRASLADOS.id },
   "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", guia: GUIA_TRASLADO.id },
   "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de un traslado: se imprime y viaja con la mercadería." },
