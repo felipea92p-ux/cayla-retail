@@ -109,7 +109,7 @@
 /* Las tallas: botones de 48 px de alto (el dedo); una sin stock en la tienda elegida, punteada y con su nota. De 76 px de ancho como
    mínimo: con 64, en la columna de la computadora «Otra tienda» se partía en dos renglones dentro del botón. */
 .t-tallas { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
-.t-talla { height: 48px; border: 1px solid var(--sand); border-radius: 0; background: transparent; font: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--tinta); cursor: pointer; transition: border-color .15s, background-color .15s; }
+.t-talla { height: 48px; border: 1px solid var(--sand); border-radius: 0; background: transparent; font: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--tinta); cursor: pointer; transition: background-color .35s, color .35s, border-color .3s; }
 .t-talla small { font-size: 12px; font-weight: 600; color: var(--tinta-60); letter-spacing: .02em; white-space: nowrap; }
 .t-talla:hover { border-color: var(--tinta); }
 .t-talla[data-agotada] { background: transparent; border-style: dashed; color: var(--tinta-60); }
