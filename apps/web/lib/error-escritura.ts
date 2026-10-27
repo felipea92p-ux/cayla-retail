@@ -110,6 +110,11 @@ const HUELLAS: Huella[] = [
   { marca: "cola_corte_invalido", frase: "No se pudo fijar hasta qué venta se cierra. Recarga la página y vuelve a intentarlo." },
   { marca: "cola_sin_plazo", frase: "Esta tienda no tiene plazo abierto para cerrar su cola de ventas sin registrar." },
   { marca: "cola_plazo_vencido", frase: "El plazo para cerrar la cola de esta tienda ya venció." },
+  // ADR-0334 act. 2026-10-14 (A6), en main desde 20261027174000: cerrar en bloque pide un cuadre del piso posterior a la última venta.
+  {
+    marca: "cola_sin_cuadre",
+    frase: "Primero cuadra el piso de esta tienda (Existencias ▸ Cuadrar el piso) después de la última venta sin registrar: cerrar sin contar entierra las prendas que sí están en el sistema.",
+  },
   {
     marca: "cola_vacia",
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",

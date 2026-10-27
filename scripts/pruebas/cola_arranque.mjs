@@ -4,8 +4,9 @@
  *
  * Quien ve Existencias en la sede (desde ADR-0534, 2026-10-27; antes, solo un líder) cierra en bloque las ventas sin
  * registrar pendientes de UNA sede (`cerrar_cola_arranque`): pasan a `cerrada_sin_prenda`, sin prenda y sin mover stock.
- * Estas pruebas cuidan tres cosas: que el cierre sea todo-o-nada y de quien tiene el módulo dentro de su plazo (sin el
- * módulo, `cola_sin_modulo`), que cerrado no sea un camino a un stock inventado (devolución bloqueada, regularizar
+ * Estas pruebas cuidan tres cosas: que el cierre sea todo-o-nada y de quien tiene el módulo dentro de su plazo y con un
+ * cuadre del piso guardado después de la última venta que se cierra (sin el módulo, `cola_sin_modulo`; sin cuadre,
+ * `cola_sin_cuadre`, 20261027174000), que cerrado no sea un camino a un stock inventado (devolución bloqueada, regularizar
  * bloqueado) y que los estados imposibles lo sean por el esquema y no por el código.
  *
  * Mismo patrón que `scripts/pruebas/prendas_por_regularizar.mjs` (léelo primero): cada caso corre en su propia transacción
@@ -51,7 +52,7 @@ ${sqlDespues}
  * Sede con piso/almacén, caja abierta y stock de BLU-EMMA-NEG-M. Lo que ya estuviera pendiente en esa sede (restos de otras
  * pruebas o de otra sesión) se aparta un día hacia adelante, dentro de esta transacción: el cierre solo ve lo que la prueba vende.
  */
-function fixture(ubicacionNombre = "Tienda Lima") {
+function fixture(ubicacionNombre = "Tienda Lima", { conCuadre = true } = {}) {
   return `
 select id as ubic from retail.ubicaciones where nombre = '${ubicacionNombre}' \\gset
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
@@ -69,6 +70,10 @@ update retail.prendas_por_regularizar set vendido_en = now() + interval '1 day' 
 -- migraciones, y la siembra de plazos de la migración (que en producción sí encuentra sus tres tiendas) no ve ninguna.
 insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'ubic', retail.fn_hoy_lima() + 11)
   on conflict (ubicacion_id) do update set hasta = excluded.hasta;
+-- Desde 20261027174000 (ADR-0334 act. 2026-10-14, A6) cerrar en bloque exige un cuadre del piso guardado después de la última venta que
+-- se cierra. Dentro de la transacción now() es fijo: el cuadre y las ventas llevan el mismo instante, y created_at >= corte se cumple.
+${conCuadre ? `insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('fixture cola de arranque'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)');` : ""}
 
 select id as v1 from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
@@ -227,6 +232,47 @@ delete from retail.cola_arranque_plazo where ubicacion_id = :'ubic';
 ${cerrar()}rollback;`
   ),
   "cola_sin_plazo"
+);
+
+error(
+  "sin un cuadre del piso de la sede no se cierra en bloque (cola_sin_cuadre, 20261027174000)",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Lima", { conCuadre: false })}${venderLibre("a", 50)}${cerrar()}rollback;`
+  ),
+  "cola_sin_cuadre"
+);
+
+error(
+  "un cuadre guardado ANTES de la última venta que se cierra no vale: hay que cuadrar después",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Lima", { conCuadre: false })}${venderLibre("a", 50)}
+-- Un cuadre registrado no se edita ni se borra (fn_cuadre_piso_es_inmutable): se inserta uno de hace una hora.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, created_at, nota)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('cuadre viejo'), now() - interval '2 hours', '{}'::jsonb, now() - interval '1 hour', 'Cuadre de prueba (fixture)');
+${cerrar()}rollback;`
+  ),
+  "cola_sin_cuadre"
+);
+
+exito(
+  "con el cuadre guardado después de la última venta, cierra; regularizar una venta y reabrir no piden cuadre",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Lima", { conCuadre: false })}${venderLibre("a", 50)}${venderLibre("b", 30)}
+select retail.regularizar_prenda(p.id, :'v1', 'ya_registrada') as _reg from retail.prendas_por_regularizar p where p.venta_item_id = :'item_a' \\gset
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('cuadre tras vender'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)');
+${cerrar()}
+select id as pr_b from retail.prendas_por_regularizar where venta_item_id = :'item_b' \\gset
+select retail.reabrir_prenda_cerrada(:'pr_b', 'cierre_por_error') as _reab \\gset
+select (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_a'),
+       (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_b'),
+       (select filas from retail.cierres_cola_arranque where id = :'cierre_id');
+rollback;`
+  ),
+  ([a, b, filas]) => a === "regularizada" && b === "pendiente" && filas === "1"
 );
 
 error(

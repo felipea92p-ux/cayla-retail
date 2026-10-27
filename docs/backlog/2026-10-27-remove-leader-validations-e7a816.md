@@ -23,3 +23,12 @@ Después de pegar: `pnpm datos:generar:produccion` (`docs/datos/generado/COMO-RE
 - **Qué roles tienen Facturación.** Desde este cambio, quien ve Facturación anula comprobantes ante SUNAT. Revisar en Roles y accesos que la
   terminal de caja lo tenga solo si debe.
 - **Lo que ya estaba pendiente** (devoluciones por aprobar, colores e insignias propuestos) no se aprobó solo: se revisa como siempre.
+
+## `20261027174000_cola_arranque_exige_cuadre_en_main.sql` — NO hace falta pegarla (producción ya la tiene)
+
+Trae a main el candado `cola_sin_cuadre` de `cerrar_cola_arranque` que producción tiene desde el 2026-10-14 (pegado desde el PR #1094,
+`20261015000109`, nunca fusionado). Sin él, el check «SQL pegado» veía `cerrar_cola_arranque` distinta en producción. Comprobado el
+2026-10-27: la huella de la función en local tras esta migración es la misma que en producción (`b92f8af18f08`). Es idempotente: si se pega,
+no cambia nada. Lo demás de #1094 (`anular_venta` con la baja pedida, el plazo de la cola que sigue a la carga inicial) sigue vivo en
+producción y fuera de main hasta que ese PR se resuelva. La web ya traduce `cola_sin_cuadre`; lo que #1094 también hacía (no ofrecer
+«Cerrar» a una tienda sin cuadre y decir por qué antes de tocar) no se trajo.
