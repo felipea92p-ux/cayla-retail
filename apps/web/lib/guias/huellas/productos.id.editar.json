@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 141,
+  "total": 145,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -165,6 +165,12 @@
     "components/ficha-producto/PuertaAjustarStock.tsx": [
       "Boton «Cancelar»",
       "BotonEnlace «Ajustar stock»"
+    ],
+    "components/ficha-producto/QuitarVarianteHoja.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Llevarlo a 0 en Existencias»",
+      "Boton «Cancelar» #2",
+      "Boton «Archivar»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",

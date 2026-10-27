@@ -104,6 +104,8 @@ import {
 import { PrecioAquiTerminal } from "@/components/ficha-producto/PrecioAquiTerminal";
 import { MatrizStockFicha, type BotonesDeColor, type VistaMatriz } from "@/components/ficha-producto/MatrizStockFicha";
 import { PuertaAjustarStock } from "@/components/ficha-producto/PuertaAjustarStock";
+import { QuitarVarianteHoja } from "@/components/ficha-producto/QuitarVarianteHoja";
+import { queHaceAlQuitar } from "@/lib/quitar-variante-reglas";
 import { hrefAjustarDesdeEditar } from "@/lib/existencias-ajustar-desde-editar";
 import { useStockFicha } from "@/components/ficha-producto/useStockFicha";
 import { CambiarEnBloque } from "@/components/ficha-producto/CambiarEnBloque";
@@ -557,6 +559,8 @@ export function ProductoForm({
   // faltó en un conteo no se suma a ciegas desde el stepper).
   // El candado de una talla guardada (ADR-0494): la hoja «Ajustar stock» que lleva a Existencias. `null` = cerrada.
   const [puerta, setPuerta] = useState<{ varianteId: string; etiqueta: string } | null>(null);
+  // El tacho de un color o de una talla (ADR-0494): la hoja que bloquea el archivado con unidades o pide confirmar. `null` = cerrada.
+  const [quitando, setQuitando] = useState<{ eje: "color" | "talla"; id: string | null } | null>(null);
   const stock = useStockFicha({ productoId: producto?.id ?? null, ajuste: ajusteStock, lecturaStock });
   const coloresPanel = coloresFicha.filter((c) => c !== "");
   const [colorElegido, setColorElegido] = useState<string | null>(coloresPanel[0] ?? null);
@@ -1425,6 +1429,15 @@ export function ProductoForm({
     setFilas((actual) => quitarTalla(actual, t));
   }
 
+  /** El tacho de un color o de una talla: lo que todavía no existe se quita sin más; lo guardado, solo con 0 unidades (hoja que confirma),
+   *  y con unidades la hoja dice cuántas son y lleva a dejarlas en 0 en Existencias (`lib/quitar-variante-reglas.ts`, ADR-0494). */
+  function pedirQuitar(eje: "color" | "talla", id: string | null) {
+    const delEje = filas.filter((f) => f.activo && (eje === "color" ? f.colorCodigo === id : f.tallaId === id));
+    const decision = queHaceAlQuitar(delEje, estadoVariantes, ajusteStock?.ubicacionId ?? null);
+    if (decision.tipo === "directo") return eje === "color" ? quitarElColor(id) : quitarLaTalla(id);
+    setQuitando({ eje, id });
+  }
+
   /** El lápiz (corregir el color si se registró mal: conserva stock e historia) y el tacho (quitarlo) de cada color. */
   function botonesDeColor(c: string | null): BotonesDeColor {
     const delColor = filasDelEje(filas, "color", c);
@@ -1439,7 +1452,7 @@ export function ProductoForm({
             onClick: () => setCorrigiendo({ claves: delColor.map((f) => f.clave), ejes: "color" }),
           }
         : null,
-      quitar: { titulo: nuevo ? `Quitar ${nombre} (recién agregado)` : `Quitar ${nombre}: deja de venderse al guardar`, onClick: () => quitarElColor(c) },
+      quitar: { titulo: nuevo ? `Quitar ${nombre} (recién agregado)` : `Quitar ${nombre}: deja de venderse al guardar`, onClick: () => pedirQuitar("color", c) },
     };
   }
 
@@ -1827,7 +1840,7 @@ export function ProductoForm({
               onEtiqueta={(id, poner, claves) => setFilas((actual) => ponerEtiqueta(actual, id, poner, claves))}
               botonesDeColor={botonesDeColor}
               onCorregirTalla={puedeCorregir ? (t) => setCorrigiendo({ claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
-              onQuitarTalla={quitarLaTalla}
+              onQuitarTalla={(t) => pedirQuitar("talla", t)}
               huecos={{ como: (c, t) => comoLlenarHueco(filas, c, t, permitidosHueco, nombres), onLlenar: llenarHueco }}
               precioAqui={
                 tiendaTerminal && precioAquiListo
@@ -2057,6 +2070,29 @@ export function ProductoForm({
           />
         </span>
       )}
+
+      {quitando && producto && (() => {
+        const delEje = filas.filter((f) => f.activo && (quitando.eje === "color" ? f.colorCodigo === quitando.id : f.tallaId === quitando.id));
+        const decision = queHaceAlQuitar(delEje, estadoVariantes, ajusteStock?.ubicacionId ?? null);
+        if (decision.tipo === "directo") return null;
+        return (
+          // Un portal dentro de un <form>: sus eventos suben por el árbol de React (ADR-0128).
+          <span className="contents" onSubmit={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <QuitarVarianteHoja
+              que={quitando.eje}
+              nombre={quitando.eje === "color" ? nombres.color(quitando.id) : nombres.talla(quitando.id) || "Única"}
+              decision={decision}
+              hrefAjustar={
+                decision.tipo === "bloqueado" && decision.varianteParaAjustar
+                  ? hrefAjustarDesdeEditar({ varianteId: decision.varianteParaAjustar, productoId: producto.id, desde: volverA })
+                  : null
+              }
+              onArchivar={() => (quitando.eje === "color" ? quitarElColor(quitando.id) : quitarLaTalla(quitando.id))}
+              onCerrar={() => setQuitando(null)}
+            />
+          </span>
+        );
+      })()}
 
       {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0257). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
       <BarraDeCambios
