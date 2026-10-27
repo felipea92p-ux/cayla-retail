@@ -1,3 +1,6 @@
+import { dibujoElegido, type DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { getMarcasDeEmpresas } from "@/lib/empresas-de-sede";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
@@ -33,12 +36,18 @@ import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 
 export type FamiliaAlta = { codigo: string; nombre: string; exigeTejidoPatron: boolean };
 /** Una tienda a la que puede pertenecer un producto (ADR-0463): CAYLA, CLAURE. */
-export type EmpresaAlta = { id: string; clave: string; nombre: string };
+export type EmpresaAlta = { id: string; clave: string; nombre: string; /** ADR-0532: su marca (la marca CAYLA es de CAYLA). */ marcaId?: string | null };
 export type CategoriaAlta = { id: string; nombre: string; familia: string | null; prefijo: string | null; padreNombre: string | null };
 export type EtiquetaAlta = {
   id: string;
   nombre: string;
   estilo: string;
+  /** El dibujo que se eligió al crearla (ADR-0490); null = el de su nombre. */
+  icono: DibujoDeInsignia | null;
+  /** Su imagen propia (la ruta en el almacén de insignias, ADR-0490); null = no tiene. Manda sobre `icono`. */
+  imagen: string | null;
+  /** La imagen propia es un molde que se pinta con el color del lugar (ADR-0490 act. b). */
+  imagenSilueta: boolean;
   /** Descuento de campaña en % (20260918160000). Null = etiqueta informativa. */
   descuentoPct: number | null;
   /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
@@ -77,9 +86,9 @@ export type ContextoAlta = CatalogoMarcas & {
  *  `null`: el alta no pregunta nada y el producto nace en CAYLA. Solo Lima, donde conviven CAYLA y CLAURE, trae dos. */
 async function getEmpresasAlta(sedeId: string): Promise<EmpresaAlta[] | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId });
+  const [{ data, error }, marcas] = await Promise.all([supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId }), getMarcasDeEmpresas()]);
   if (error || !data || data.length < 2) return null;
-  return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre }));
+  return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre, marcaId: marcas?.get(t.id) ?? null }));
 }
 
 const VENTANA_VARIANTES = 1000;
@@ -100,7 +109,7 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
       supabase
         .from("etiquetas")
-        .select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+        .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
         .eq("activo", true)
         .eq("estado", "aprobado")
         .order("nombre"),
@@ -149,6 +158,9 @@ export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
       estilo: e.estilo,
       descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      icono: dibujoElegido(e.icono),
+      imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
+      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
     }));

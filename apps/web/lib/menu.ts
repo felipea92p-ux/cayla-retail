@@ -52,7 +52,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  * Y los poderes que una cuenta recibe sin ser líder porque su ROL ve el módulo (ADR-0161 B2, `permisosDeModulos` en
  * `lib/modulos.ts`). Cada uno espeja una capacidad de la base (`fn_puede_*()` = «líder O su rol ve el módulo»), así que la
  * pantalla y el candado dicen lo mismo:
- *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
+ *  - facturar:               Facturación (emitir, ver y anular comprobantes; anular dejó de ser solo del líder, ADR-0534).
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
  *  - ajustarInventario:      cerrar conteo, cerrar traslado con diferencia       (fn_puede_ajustar_inventario). Hasta el
  *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque
@@ -120,7 +120,7 @@ export type ClaveIcono =
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
   | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "revisarCompras" | "vitrina" | "pedidosWeb"
-  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "trafico";
+  | "recomendaciones" | "tiendaWeb" | "resumenWeb" | "ajustesWeb" | "puntos" | "paleta" | "calendarioCampana" | "insignias" | "preguntas" | "trafico";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
@@ -162,10 +162,11 @@ type Comun = {
    *  como las rutas de prueba) no sale. Existe por CAYLA Global (ADR-0275): una pantalla que no es de ninguna sede no
    *  existía antes de los módulos y no tiene por qué aparecerle a un perfil que no los trae. */
   soloConModulo?: true;
-  /** Otro módulo que TAMBIÉN abre esta fila (ADR-0161, 20260923130000). Existe por UN caso: Catálogo ▸ Insignias junta lo
-   *  que eran dos filas, Sellos (`etiquetas`, hoy «Insignias») y Campañas (`campanas`; Felipe 2026-10-22), así que un rol que solo ve Campañas
-   *  entra por la misma fila (y la pantalla le muestra solo esa vista). Hasta ese día era Atributos con los sellos en una pestaña. */
-  moduloAlterno?: ClaveModulo;
+  /** Los otros módulos que TAMBIÉN abren esta fila (ADR-0161, 20260923130000; lista desde ADR-0504). Una fila de menú con varias
+   *  vistas, cada una con su módulo en Roles y accesos: quien ve CUALQUIERA de los módulos entra por la misma fila, y la pantalla
+   *  le muestra solo las vistas que le tocan. Catálogo ▸ Insignias junta lo que eran dos filas, Sellos (`etiquetas`, hoy «Insignias»)
+   *  y Campañas (`campanas`; Felipe 2026-10-22). Era `moduloAlterno` (uno solo) hasta que Compras necesitó dos. */
+  modulosAlternos?: readonly ClaveModulo[];
 };
 
 /** Una pantalla. */
@@ -312,6 +313,8 @@ export const ARBOL: readonly Nodo[] = [
       { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "planPiso", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0219 (respuesta 20): la pantalla del equipo; la ficha de cada persona cuelga de su ruta, no del menú.
       { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "rendimiento", pajaro: "13 Águila", conservaNombre: true },
+      // ADR-0536 (actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA» dice qué falta, qué está escondido y qué accesos piden.
+      { id: "gestion.preguntas", modulo: "preguntas_equipo", etiqueta: "Preguntas del equipo", estado: "viva", ruta: "/gestion/preguntas", icono: "preguntas", pajaro: "13 Águila", conservaNombre: true },
     ],
   },
 
@@ -415,7 +418,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
       { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
-      { id: "catalogo.insignias", modulo: "etiquetas", moduloAlterno: "campanas", etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
+      { id: "catalogo.insignias", modulo: "etiquetas", modulosAlternos: ["campanas"], etiqueta: "Insignias", estado: "viva", ruta: "/productos/insignias", icono: "insignias", pajaro: "02 Loro" },
       // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan con su etiqueta, SIN pasar a Productos. Vive en
       // Catálogo porque es la otra cara de «qué se vende y a cuánto» (y el grupo Inventario ya está en su tope). La
       // visibilidad la da su módulo, que nace solo para el líder.
@@ -443,16 +446,17 @@ export const ARBOL: readonly Nodo[] = [
       // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
       // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
-      // ADR-0480 (Compras simple, Felipe 2026-10-22): la compra nace en el celular de quien compra. «Mi plata para compras» reusa la
+      // ADR-0480 (Compras simple, Felipe 2026-10-22): la compra nace en el celular de quien compra. «Mis compras» reusa la
       // clave `ordenes_compra` (unas 40 funciones la usan como llave: recibir, gastos del viaje, datos bancarios, proveedor nuevo,
-      // «Nos debe»); las pantallas de órdenes salen del menú. «Revisar compras» es la oficina (la clave `fondos`). «Notas de crédito»
-      // se retiró: «por ahora no manejaremos notas de crédito». Compras queda en 6, dentro del tope.
-      { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mi plata para compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
-      { id: "compras.fondos", modulo: "fondos", etiqueta: "Revisar compras", estado: "viva", ruta: "/compras/fondos", icono: "revisarCompras", pajaro: "09 Pelícano" },
+      // «Nos debe»); las pantallas de órdenes salen del menú. «Notas de crédito» se retiró: «por ahora no manejaremos notas de crédito».
+      { id: "compras.miPlata", modulo: "ordenes_compra", etiqueta: "Mis compras", estado: "viva", ruta: "/compras/mi-plata", icono: "fondos", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      // ADR-0504 (Felipe 2026-10-24, opción A): UNA fila, tres pestañas —Historial, Revisar compras (la oficina, `fondos`) y Por pagar—, antes tres
+      // filas sueltas (Compras bajó de 6 a 4). Los TRES módulos siguen en Roles y accesos y la fila se abre con cualquiera; cada pestaña pide el suyo
+      // (`CabeceraHistorialCompras`, `lib/compras-pestanas-reglas.ts`) y las rutas no cambian. Sin `exige`: `verDineroCompras` sale de Historial o Por
+      // pagar y, sumado al módulo, escondería la fila de un rol con solo «Revisar compras».
       // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
-      { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", modulosAlternos: ["fondos", "por_pagar"], etiqueta: "Historial de compras", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano" },
     ],
   },
 
@@ -569,6 +573,19 @@ export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
 }
 
+/** Ids de los grupos HERMANOS de `id` (mismo nivel, mismo padre; `id` no incluido). Abrir un grupo cierra a sus
+ *  hermanos — un solo desplegado a la vez por nivel (Felipe, 2026-10-23) —, pero nunca a su padre ni a sus hijos:
+ *  abrir Abastecimiento no cierra Producción. */
+export function hermanosDe(id: string, filas: readonly FilaMenu[]): string[] {
+  if (filas.some((f) => esGrupoMenu(f) && f.id === id)) return filas.filter((f) => esGrupoMenu(f) && f.id !== id).map((f) => f.id);
+  for (const f of filas) {
+    if (!esGrupoMenu(f)) continue;
+    const dentro = hermanosDe(id, f.hijos);
+    if (dentro.length) return dentro;
+  }
+  return [];
+}
+
 /** Todas las hojas que cuelgan de una fila YA CONSTRUIDA (`riel`/`movil`), sin importar cuántos subgrupos haya en el
  *  medio (D-84): la usan `menuPara` (para sumar los números de la barra del celular) y `menu.test.ts` (para que un
  *  invariante siga valiendo aunque una pantalla se mude un nivel más abajo, sin tener que saber a qué profundidad vive). */
@@ -629,7 +646,7 @@ function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolea
     if (n.id === "inicio" && perfil.terminal) return terminalVeInicio(modulos);
     // Por rol (ADR-0161): la hoja sale si la cuenta ve su módulo; un grupo, si le queda alguna hija (lo resuelve
     // `construirFila`).
-    if (n.modulo) return modulos.includes(n.modulo) || (!!n.moduloAlterno && modulos.includes(n.moduloAlterno));
+    if (n.modulo) return modulos.includes(n.modulo) || !!n.modulosAlternos?.some((m) => modulos.includes(m));
   }
   return true;
 }

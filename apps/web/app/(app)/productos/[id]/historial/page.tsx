@@ -34,6 +34,7 @@ export default async function HistorialProductoPage({
         </p>
       </div>
       <HistorialPrenda
+        productoId={productoId}
         lectura={lectura}
         nombre={prenda.referencia}
         totalVariantes={prenda.variantes}

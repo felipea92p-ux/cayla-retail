@@ -25,6 +25,7 @@ export const CLAVES_MODULO = [
   "actividad",
   "cayla_global",
   "rendimiento",
+  "preguntas_equipo",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -54,7 +55,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
   // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
   { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },
-  { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja" },
+  // Registrar el gasto de hoy desde la caja es de Caja, sin el módulo Gastos (ADR-0491, 20261023212000).
+  { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja, y registrar los gastos de hoy que se pagan del cajón o con el Yape o el Plin de la tienda" },
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir, exportar y corregir el pago mientras la caja siga abierta" },
@@ -113,7 +115,7 @@ export const MODULOS: readonly Modulo[] = [
   // ADR-0473: las campañas salen de Atributos a su propia entrada. La clave `campanas` nació en Tienda web (PR #1190) y se muda
   // aquí (20261022151000, Felipe 2026-10-22: «reusar `campanas`»). Guarda una campaña quien ve Campañas, Campañas de la tienda web
   // o Insignias (`fn_puede_campanas`). Desde esa misma tarde no tiene fila propia: abre Catálogo ▸ Insignias, donde las campañas son
-  // la primera vista (la fila Insignias la declara como `moduloAlterno`). Sigue siendo un módulo aparte en Roles y accesos.
+  // la primera vista (la fila Insignias la declara en sus `modulosAlternos`). Sigue siendo un módulo aparte en Roles y accesos.
   { clave: "campanas", grupo: "Catálogo", nombre: "Campañas", incluye: "Crear y archivar campañas (San Valentín, Halloween, Navidad…), elegir sus fechas, su descuento, sus prendas y las categorías donde rige, repetirlas el año siguiente e imprimir sus etiquetas de precio" },
   // ADR-0379 (Felipe 2026-10-10): las prendas sueltas que se liquidan sin entrar al catálogo. Nace sin rol (20261010195000);
   // el líder se lo da después a las terminales de almacén y caja.
@@ -121,16 +123,16 @@ export const MODULOS: readonly Modulo[] = [
   // Órdenes de compra (ADR-0362, 20261010214500): lo que se le pide a cada proveedor antes de la factura. Nace SIN rol (solo el
   // líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las órdenes de TODAS las sedes con sus precios
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
-  // ADR-0480 (Compras simple, 20261022225000): la clave `ordenes_compra` se REUSA como «Mi plata para compras». Unas 40 funciones de la
+  // ADR-0480 (Compras simple, 20261022225000): la clave `ordenes_compra` se REUSA como «Mis compras». Unas 40 funciones de la
   // base la usan como llave (recibir, gastos del viaje, datos bancarios, proveedor nuevo, «Nos debe»); retirarla cambiaría en silencio
   // quién puede qué. Lo que se ve es la compradora en su celular; las pantallas de órdenes salen del menú.
-  { clave: "ordenes_compra", grupo: "Compras", nombre: "Mi plata para compras", incluye: "En el celular: anotar la plata que te dieron para comprar, lo que compraste (proveedor, prendas, la boleta con foto) y otros gastos; mandar lo comprado a cada tienda y terminar el día" },
+  { clave: "ordenes_compra", grupo: "Compras", nombre: "Mis compras", incluye: "En el celular: abrir y cerrar tu ronda de compras, anotar la plata que te dieron, lo que compraste (proveedor, prendas y el papel) y otros gastos, y mandar lo comprado a cada tienda" },
   { clave: "facturas_compra", grupo: "Compras", nombre: "Historial de compras", incluye: "Ver todas las compras con su papel (factura, boleta, nota de venta o sin comprobante), lo que falta pagar y lo que falta llegar; adjuntar documentos, anular una compra sin pagos ni recepciones y descargar el mes para el contador" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).
   // ADR-0480: «Revisar compras», la oficina. Misma clave y mismas funciones; cambia lo que se ve.
-  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número de la boleta o factura, y qué hacer si algo no cuadró) y ver los cierres del día" },
+  { clave: "fondos", grupo: "Compras", nombre: "Revisar compras", incluye: "Confirmar la plata que anotaron las compradoras, completar las compras que llegaron a la tienda (serie y número del papel, y qué hacer si algo no cuadró), revisar sus gastos y recibir sus rondas cerradas" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
   // «Notas de crédito» se retiró (ADR-0480, 20261022225000): «por ahora no manejaremos notas de crédito» (Felipe, 2026-10-22).
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
@@ -182,6 +184,10 @@ export const MODULOS: readonly Modulo[] = [
   // el líder hasta que Felipe se la da al rol de las encargadas. Solo para personas (`MODULOS_SOLO_PERSONAS`):
   // una terminal compartida no revisa el desempeño de nadie.
   { clave: "rendimiento", grupo: "Gestión", nombre: "Rendimiento", incluye: "Ver las ventas de cada persona del equipo en el mes: quién vende más por hora trabajada y quién cierra más ventas, y la ficha de cada quien" },
+  // ADR-0536 (actividad 9, 20261027182000): lo que el equipo le pregunta a «Pregúntale a CAYLA», con quién preguntó (Felipe
+  // 2026-10-27). Nace sin rol (ADR-0161): solo la ve el líder. Solo para personas (`MODULOS_SOLO_PERSONAS`), como Rendimiento: una
+  // terminal compartida no revisa lo que preguntan las demás.
+  { clave: "preguntas_equipo", grupo: "Gestión", nombre: "Preguntas del equipo", incluye: "Ver lo que el equipo le pregunta a «Pregúntale a CAYLA»: quién preguntó qué, en qué sede y pantalla, qué se resolvió, qué no se encontró, qué accesos piden y si les sirvió" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -190,10 +196,10 @@ export const MODULOS: readonly Modulo[] = [
  *  una prenda» SALIÓ el 2026-09-30 (Felipe, ADR-0293): quien crea la prenda la etiqueta como quiera y quien tiene Etiquetas
  *  configura el descuento (migración 20261001130000). */
 export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
-  { que: "Anular una venta o un comprobante, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
+  // SALIERON el 2026-10-27 (Felipe, ADR-0534: la líder valida en persona): anular un comprobante y liberar uno no emitido
+  // (Facturación), aprobar o rechazar devoluciones (Devoluciones) y decidir los grupos del plan del piso (Plan del piso).
+  { que: "Anular una venta, y las series de SUNAT", origen: "ADR-0150, decisión 4" },
   { que: "Autorizar un descuento por encima del tope (a una persona; la terminal no tiene tope)", origen: "D-67" },
-  { que: "Aprobar o rechazar devoluciones", origen: "ADR-0160" },
-  { que: "Decidir a qué grupo del plan del piso va cada categoría (el módulo Plan del piso solo deja ver la propuesta)", origen: "ADR-0329, decisión 4" },
   // Colaboradores, y Roles y accesos, SALIERON de esta lista el 2026-09-22 (Felipe, 20260923131000). Lo que queda del
   // líder dentro de ellos son las protecciones mínimas de esa migración («decisión de arquitectura, revisable»):
   // ADR-0178 (Felipe, 2026-09-23): entre líderes manda el ADMIN, que se lee de Dynamic (admin allá + Líder aquí).
@@ -218,7 +224,7 @@ export const NACEN_QUITADOS_AL_LIDER: readonly ClaveModulo[] = ["cayla_global"];
  *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
  *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. «CAYLA Global», con el
  *  ADR-0275 (20260929140000): un aparato fijo a una tienda no mira la empresa entera. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento"];
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad", "cayla_global", "rendimiento", "preguntas_equipo"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);
@@ -269,7 +275,8 @@ export function modulosDeHoy(
  * De los módulos que ve la cuenta a los permisos que preguntan las pantallas (`puede(persona, …)`). ESPEJA las
  * capacidades de la base (`fn_puede_*()` = líder o `fn_capacidad_por_modulos`), así pantalla y candado dicen lo mismo:
  *  - facturar               ← ve Facturación
- *  - gestionarCaja          ← ve Caja, completo
+ *  - gestionarCaja          ← ve Caja, completo (también registrar el gasto de hoy desde la caja sin el módulo Gastos:
+ *                             `fn_puede_registrar_gasto`, ADR-0491)
  *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo (cerrar conteo/traslado con diferencia;
  *                             sigue así desde antes de ADR-0250, a propósito: no es el botón «Ajustar»)
  *  - ajustarStock           ← lo mismo que ajustarInventario (`fn_puede_ajustar_stock`, ADR-0306): el botón «Ajustar» de

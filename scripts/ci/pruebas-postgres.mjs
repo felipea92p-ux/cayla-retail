@@ -54,6 +54,22 @@ export const PRUEBAS = [
 
   "pruebas:gastos",
 
+  // «Pregúntale a CAYLA» (ADR-0536): cada pregunta se anota con su cuenta; el costo de una fila tiene techo (nadie infla el tope del
+  // mes); «¿Te sirvió?» solo lo contesta quien preguntó, una vez; la tabla no se toca directo desde la API. ROLLBACK.
+  "pruebas:asistente-preguntas",
+
+  // El interruptor de cada sede (ADR-0536, act. 8): nace apagado; lo cambia quien ve Configuración (Felipe 2026-10-27), no una
+  // integrante sin el módulo; sin sesión nada sale encendido; apagar no borra la fila; un doble clic no ensucia la historia. ROLLBACK.
+  "pruebas:asistente-sedes",
+
+  // «Preguntas del equipo» (ADR-0536, act. 9): el módulo nace solo para el líder y es «solo personas»; sin el módulo no se ve nada;
+  // con él, sin ser líder, solo la propia sede; todas juntas piden CAYLA Global; las cifras cuentan todo el período. ROLLBACK.
+  "pruebas:asistente-preguntas-equipo",
+
+  // El informe del lunes (ADR-0536, act. 10): lo arma el cron o el líder; una cita inventada o de otra semana se rechaza; una semana,
+  // un informe (no se paga dos veces); su costo entra al tope del mes. ROLLBACK.
+  "pruebas:asistente-informes",
+
   "pruebas:activos-y-fijos",
 
   // La ficha de pago de un gasto fijo (ADR-0452): a quién y cómo se paga, el código del recibo y el contrato; datos bancarios solo
@@ -204,9 +220,37 @@ export const PRUEBAS = [
   // guardar las mismas etiquetas no deja ninguna; lo que nace con la prenda no es un cambio; la lectura nunca da un uuid. ROLLBACK.
   "pruebas:historial-prenda",
 
+  // Pestaña «Costo» del Historial (2026-10-24): cada compra a nivel prenda (mezcla variantes, descuenta lo vendido entre
+  // compras, junta dos líneas de una misma variante), la cuenta de la pantalla cierra y sin permiso de dinero no ve nada. ROLLBACK.
+  "pruebas:costo-de-la-prenda",
+
+  // Corregir el costo de la ÚLTIMA compra (Felipe 2026-10-24, ADR-0515): solo un líder y con motivo, solo la última, un cierre del
+  // Taller no, encadena dos líneas de una misma variante, costo_historial queda idéntico, la tabla solo agrega y la vista previa
+  // dice lo mismo que quedó. ROLLBACK.
+  "pruebas:costo-corregir-compra",
+
   // Precio propio por sede (Felipe 2026-10-09): cambia solo en esa tienda, deja historial firmado, solo tu propia sede,
   // sin el módulo Productos nada, se archiva y nunca se borra ni se edita. ROLLBACK.
   "pruebas:precio-sede",
+
+  // El precio de venta desde la recepción (Felipe 2026-10-24): quien recibe cambia el precio de una prenda de SU envío (todas las
+  // sedes o solo la suya) sin Productos; otra sede, quien hizo la orden, un envío sin abrir, una prenda ajena y un precio malo o
+  // bajo el costo no; el guardián de Productos sigue cerrado. ROLLBACK.
+  "pruebas:precio-desde-recepcion",
+
+  // Un Admin recibe lo que él mismo compró (ADR-0517, Felipe 2026-10-26): el Admin abre y cierra su envío y recibe «sin guía» su orden;
+  // el líder que no es Admin y quien compra sin ser líder siguen frenados; queda en Actividad y en el detalle; la excepción se pregunta a
+  // la cuenta; el Taller conserva su bloqueo. ROLLBACK.
+  "pruebas:recibir-lo-propio",
+
+  // El costo propio por prenda al cerrar un envío (ADR-0519, Felipe 2026-10-26): la prenda con tallas entra con su costo y las demás con el de
+  // su línea; lo pendiente se detalla después con el costo de su prenda; se valida como el de la línea; un costo fuera de lo normal pide
+  // confirmar; sin costos propios todo sigue igual. ROLLBACK.
+  "pruebas:costo-por-prenda",
+
+  // Una terminal no cambia el precio de la prenda (Felipe 2026-10-26): vale en todas las tiendas; pone el de SU tienda. El mismo
+  // precio, otra columna y una talla nueva sí pasan; el líder, una integrante y sin sesión, igual que antes. ROLLBACK.
+  "pruebas:precio-terminal",
 
   // Actividad de Colaboradores, Roles, Configuración y Regularizar (ADR-0207, act. 2026-10-03): cada operación en la
   // sede correcta, las formas de producción dan frases legibles, sin el dinero de la empresa. ROLLBACK.
@@ -231,6 +275,10 @@ export const PRUEBAS = [
   // no van en cero ni negativos y el umbral no pasa de 3; guarda el líder o quien tiene Configuración, y tienda_web solo lee
   // tienda_sedes. ROLLBACK.
   "pruebas:tienda-web-configuracion",
+
+  // Tienda web ▸ Conf. Tienda (ADR-0518): el orden de las tiendas en la web (la primera de la lista es la primera, sin repetir, solo
+  // tiendas abiertas, sin escribir si nada cambió), y lo que se agregue por actividad (mapa, foto, horario por días, cierres). ROLLBACK.
+  "pruebas:tienda-web-conf",
 
   // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
   // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
@@ -262,6 +310,7 @@ export const PRUEBAS = [
   // en su tienda y no lo acepta en otra (`registrar_venta`), el apartado nace con él solo ahí, la tienda web lo muestra desde su tienda y
   // sin sede nunca aparece una campaña limitada; el guardián falla si una de las cinco funciones deja de preguntar por la sede. ROLLBACK.
   "pruebas:campanas-por-sede",
+  "pruebas:campana-reglas",
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
@@ -270,11 +319,20 @@ export const PRUEBAS = [
   // precio propio, campaña del modelo y de la categoría, «Todas»), ofrecen las mismas tallas (ninguna a S/ 0) y romper la pieza común
   // las cambia a todas juntas. ROLLBACK.
   "pruebas:tienda-ficha",
+  // Qué hay por COLOR y TALLA en la tienda (ADR-0512, actividad 1): `tienda_filtros` dice qué variantes (prenda, color, talla) se pueden
+  // separar en la tienda elegida o, con «Todas», en alguna de la web, con LA regla de «hay» (fn_tienda_disponible) y lo que la tienda
+  // ofrece (fn_tienda_precios); coincide con el catálogo, baja al vender o apartar, no cuenta lo retirado, lo de S/ 0, lo no publicado,
+  // el Taller ni lo escondido, NUNCA deja salir una cifra y es solo de tienda_web; con 10 mutantes. ROLLBACK.
+  "pruebas:tienda-filtros",
   // Las insignias en la ficha de la tienda (ADR-0489): la ficha trae las de Catálogo ▸ Insignias que alcanzan al modelo (a mano en una variante
   // que se ofrece o por su categoría), activas, aprobadas, vigentes hoy y de su tienda, por grupo y nombre; una insignia CON descuento no sale
   // aparte (su descuento es el chip de la campaña: con varias, la de mayor %); la función de adentro es interna y `tienda_web` solo llama a la
   // ficha; la migración se pega dos veces. ROLLBACK.
   "pruebas:tienda-insignias",
+  // El dibujo elegido de una insignia (ADR-0490): la columna `etiquetas.icono` (vacía = según el nombre, solo exige su forma), `fijar_icono_etiqueta` con la
+  // llave de cada etiqueta (Insignias para una insignia suelta; Campañas, Campañas web o Insignias para una campaña), crear una insignia con su dibujo, y que
+  // `tienda_ficha` lo traiga en `{id, nombre, icono}`. ROLLBACK.
+  "pruebas:insignia-icono",
   // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
   // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
   // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
@@ -558,6 +616,9 @@ export const PRUEBAS = [
   // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
   // un traslado, y los topes de notas, llegada y motivo de ajuste.
   "pruebas:inventario-token-y-textos",
+  // ADR-0494 (/chaos 2026-10-23, CON-06): «Conté y hay otro número» viaja con lo que había al contar; si otra venta o movimiento lo
+  // cambió, la base rechaza todo el ajuste y dice qué cambió. Sin `esperado`, como antes. Con control y dos sesiones en ROLLBACK.
+  "pruebas:ajuste-lo-que-habia",
   // ADR-0416 (/chaos de Clientes, Colaboradores y Configuración 2026-10-15): NaN en metas, fondo de caja, club y lo que quedaba fuera
   // de Compras; la ficha de un cliente con algún dato, un cumpleaños que existe y no futuro; anonimizar solo un líder. Con controles.
   "pruebas:clientas-y-metas-candados",
@@ -613,6 +674,16 @@ export const PRUEBAS = [
   // rechaza la cuarentena. En producción desde ~2026-10-05; sin archivo en main hasta el 14-oct. Control sin el
   // disparador. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-ajusta",
+
+  // Una prenda solo se mueve en las sedes donde opera su empresa (ADR-0505): un disparador en movimientos rechaza la entrada,
+  // el traslado, la venta y el ajuste de una prenda de CLAURE fuera de Lima, y uno diferido en productos no deja cambiarle la
+  // empresa con stock fuera. Crear una de CLAURE en Lima sigue. Control sin el candado; la sonda de la migración. Cada caso: ROLLBACK.
+  "pruebas:empresa-solo-en-sus-sedes",
+
+  // Cuánto de lo vendido es de CAYLA y cuánto de CLAURE (ADR-0532): en el Historial la suma de las empresas es el vendido de
+  // fn_totales_historial_ventas con los mismos filtros; una prenda de CLAURE suma a CLAURE; en Caja, lo de cada turno es lo de
+  // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.
+  "pruebas:vendido-por-empresa",
 
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
@@ -796,6 +867,16 @@ export const PRUEBAS = [
   // ADR-0421 (/chaos de Compras 2026-10-15): recibir y anular la misma factura no terminan las dos; el token sigue al contenido en la
   // factura y los pagos; NaN, IGV 0–18 %, emisión no futura, serie y vencimiento. Con controles (y anular que espera a la recepción).
   "pruebas:compras-candados-y-token",
+
+  // Lo que le compré a un proveedor (ADR-0502, act. b): una compra recibida cuenta como origen Compras con el costo de su factura y para el
+  // proveedor de la factura; lo sin factura y la carga inicial van aparte y nunca se suman a escondidas. Vigila el enlace con Compras. ROLLBACK.
+  "pruebas:proveedor-prendas-origen",
+  // Las ventas por día de cada proveedor (ranking de la lista, ADR-0521): una venta de hoy suma en su proveedor y una devolución resta; la suma
+  // de 90 días no pasa lo vendido del ranking; sin el Taller; días acotados a 7–90; la llave. ROLLBACK.
+  "pruebas:proveedores-ventas-diarias",
+  // El reparto entre proveedores (ADR-0521 act. c): en toda la base, lo vendido y el stock de todos los proveedores de una variante suman lo real
+  // (por día y por sede); una prenda de dos proveedores no le cuenta a B las ventas de antes de que llegara lo suyo. ROLLBACK siempre.
+  "pruebas:proveedor-reparto",
 
   // El reparto de un comprobante entre tiendas (ADR-0139) y su filtro «Destino»: 24 unidades repartidas 12/12, una suma distinta
   // de lo facturado se rechaza (por la RPC y por la base misma), una tienda no recibe más de lo suyo ni se «come» la de otra,
@@ -1299,6 +1380,47 @@ export const PRUEBAS = [
   // tienda y si la categoría se agotó (sin Cuarentena); los resultados, lo vendido por prenda y a qué % se vendió lo de después. ROLLBACK.
   "pruebas:plan-compra-historia",
 
+  // El descuento de la campaña en el Plan (ADR-0499): `descuento_pct` por categoría (0 a menos de 100, ni con la tabla directo), la web de antes
+  // no borra el guardado, dos personas con descuentos distintos no se pisan (B4), el sugerido es el mayor % que alcanza a la categoría con su
+  // fuente, días y tiendas, y la lectura responde al rol de la tienda (no solo al dueño). ROLLBACK siempre.
+  "pruebas:plan-compra-descuento",
+
+  // El historial de las líneas del Plan (ADR-0520): cada guardado de una categoría deja UNA fila (lo guardado, su versión, quién y la propuesta
+  // que mostró la pantalla) en la misma transacción; un guardado rechazado o un historial que no puede escribir no dejan nada; la fila no se edita
+  // ni se borra ni con la tabla directo; responde al rol de la tienda; y la migración se pega dos veces y se niega si la función ya no es la leída.
+  "pruebas:plan-compra-historial-lineas",
+  "pruebas:plan-compra-versiones",
+
+  // El calendario del Plan (ADR-0525): una fila por campaña de Insignias a lo sumo y una propia con su nombre y sus dos fechas, «pausada» como la única con regreso
+  // (y a futuro), fechas que existen (el 29 de febrero sí, el 31 de abril no), quitar archiva y restaurar devuelve, el plan de una propia nace con su vínculo y sus
+  // fechas llevadas al año (también si cruzan de año), dos personas a la vez no chocan, responde al rol de la tienda y se cierra sin el módulo. ROLLBACK, salvo
+  // el caso de las sesiones paralelas, que confirma sobre filas «ZZ Cal concurrencia» y las borra al terminar.
+  "pruebas:plan-compra-calendario",
+
+  // El paso 2 del Plan (ADR-0526): la lectura cuenta lo mismo que `fn_plan_compra` (ventas completadas y no de prueba en 90 días, stock libre de apartados y sin Cuarentena,
+  // sin modelos de prueba, las «sin registrar» aparte); guardar rechaza lo imposible (un reparto que se pasa del total del paso 1, un modelo de otra categoría, una talla ajena,
+  // la misma celda dos veces) sin escribir nada; lo idéntico no crea otra foto; quien edita sobre una versión vieja no pisa a otra persona; la tabla no se edita ni se borra;
+  // responde al rol de la tienda y se cierra sin el módulo; y cuatro personas a la vez dejan UNA foto vigente. ROLLBACK, salvo el caso de las sesiones paralelas, que confirma
+  // sobre filas «ZZ Paso2 Concurrencia» y las borra al terminar.
+  "pruebas:plan-compra-paso-2",
+
+  // Cómo se paga la campaña y si Finanzas la ve (ADR-0527): la lista de pagos (fecha, %) solo se guarda si suma exacto 100, con fechas que existen y sin repetir (la función Y el CHECK
+  // de la tabla); lo idéntico no crea otra foto y quien edita sobre una versión vieja no pisa a otra persona; la tabla no se edita ni se borra; la visibilidad toma uno de tres valores,
+  // firmada; «lo pagado» cuenta solo comprobantes vigentes de mercadería de órdenes generadas de la campaña y SIN IGV; responde al rol de la tienda y se cierra sin el módulo; y cuatro
+  // personas a la vez dejan UNA foto vigente. ROLLBACK, salvo el caso de las sesiones paralelas, que confirma sobre «ZZ Pagos Concurrencia» y lo borra al terminar.
+  "pruebas:plan-compra-pagos",
+
+  // Enviar a Compras (ADR-0530): el paso 2 guardado se agrupa por proveedor y se envía como pedido PENDIENTE (sin pedir nada); enviar rechaza lo imposible sin escribir nada (otra versión del paso 2,
+  // el Taller, una fecha pasada, un proveedor o una marca inactivos) y repetirlo idéntico no crea otro; cambiar la fecha y rectificar solo valen mientras está pendiente; confirmar crea LA orden de compra
+  // (una línea por modelo, el costo del plan, entrega para el inicio de la campaña: el Plan la cuenta) y la deja ligada, una sola vez aunque se confirme dos veces, y si la orden no se puede crear el
+  // pedido sigue pendiente; el esquema hace imposibles los estados que nunca deben existir; responde al rol de la tienda, se cierra sin el módulo que toca y a anon. ROLLBACK, salvo las sesiones
+  // paralelas (cuatro que envían lo mismo, cuatro que confirman lo mismo, una que confirma contra una que rectifica), que confirman sobre «ZZ Envio Real» y lo borran al terminar.
+  "pruebas:plan-compra-envio",
+
+  // El plazo de pedido del Plan (ADR-0499): `dias_para_llegar` por campaña (1 a 365, nunca sin autor, ni con la tabla directo), quitarlo deja anotado
+  // quién, solo con el módulo (42501 si no) y responde al rol de la tienda. ROLLBACK siempre.
+  "pruebas:plan-compra-plazo",
+
   // «Fijar un mínimo» con el módulo (ADR-0362, decisión 64): lo fija quien tiene «Plan de campaña», sea o no líder; sin el módulo,
   // 42501; la suma de una campaña no pasa de 100 % ni con dos personas a la vez (el plan se bloquea: la segunda espera y se rechaza).
   // ROLLBACK en todo, menos el caso de las dos sesiones, que confirma sobre un plan de prueba y lo borra al terminar.
@@ -1359,6 +1481,7 @@ export const PRUEBAS = [
   // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
   // envío cerrado no se cuenta. ROLLBACK siempre.
   "pruebas:conteo-de-envio",
+  "pruebas:observaciones-de-envio",
 
   // Cerrar lo contado con pendientes y «Hacer ahora» (ADR-0393, actividad 3): entra solo lo que tiene talla y color; lo demás queda
   // pendiente («detalle», «crear») o sin separar; lo que faltó se mide con lo contado; quien cierra firma lo que vio; «Hacer ahora» entra
@@ -1440,11 +1563,27 @@ export const PRUEBAS = [
   // compradora; Recibir lee las fotos de papeles/ y nada más del depósito.
   "pruebas:compras-simple-recibir",
   "pruebas:compras-simple-revisar",
+  // La marca nueva de «Algo nuevo» (Felipe 2026-10-24): con «Mis compras» se crea unida al proveedor, sin duplicarse.
+  "pruebas:compras-simple-marca",
 
   // La orden con sus fases, quién hace cada una y su tela (ADR-0400, actividad 1): la espina obligatoria, el servicio con
   // proveedor y tarifa congelados, la tela por color con su plan, el estado derivado, cambiar quién solo antes de empezar,
   // lo anotado inmutable y las puertas (módulo + Taller). ROLLBACK.
   "pruebas:produccion-fases",
+
+  // Editar la tela y los avíos de una orden ya abierta (ADR-0510, actividad 1): la lista que llega REEMPLAZA a la declarada con la misma validación que al abrir,
+  // el plan se recalcula con la merma, lo que no cambió no se mueve, una tela con consumo anotado no se quita, una lista rota no vacía el plan, todo o nada y las
+  // puertas (módulo + Taller). La carrera con «Anotar lo que usaste» se comprueba por su forma (el mismo `for update`). ROLLBACK.
+  "pruebas:produccion-editar-tela",
+
+  // El consumo de tela POR TALLA de una orden (ADR-0513, actividad 2): el plan es la suma por talla, sin cifra por talla todo igual, y abrir, editar y la lectura de la orden lo llevan. ROLLBACK.
+  "pruebas:produccion-consumo-por-talla",
+
+  // Los avíos del MODELO (ADR-0513, actividad 3): la primera orden los declara, una posterior no los pisa, el líder los corrige (los anteriores se archivan, no se borran), quien no edita el catálogo no, y Nueva orden los recibe. ROLLBACK.
+  "pruebas:produccion-avios-modelo",
+
+  // La FICHA de consumo del modelo (ADR-0513, actividad 4): Producción la escribe sin abrir una orden (tela por talla y avíos, todo o nada), guardar lo mismo no cambia nada ni reinicia lo medido, Catálogo la lee y no la escribe. ROLLBACK.
+  "pruebas:produccion-ficha-consumo",
 
   // Las fases nuevas de la orden, «expandir» (ADR-0400 act. k y l, R1, actividad 1): la base acepta la ruta nueva (Ploteo · Corte · Habilitado · Costura ·
   // Ojales y botones · Limpiar hilos y revisar · Planchado · Etiquetar y embolsar) sin dejar de aceptar la anterior; mezclarlas se rechaza; «Cambiar quién»
@@ -1550,6 +1689,10 @@ export const PRUEBAS = [
   // siempre como esa persona (Caja Lima y Almacén Lima, a nombre de Felipe); sin respaldo, o con el respaldo suspendido, el candado de
   // siempre; el respaldo no da poderes de líder; «volver» es vaciar la columna. La activación solo toca «Tienda LIM». ROLLBACK siempre.
   "pruebas:terminal-sin-responsable",
+
+  // ADR-0533: una terminal ya no llena el registro de errores al abrir una pantalla. `fn_mi_persona_id()` y `fn_mi_pantalla_principal()` devuelven NULL
+  // sin rechazar; una persona recibe lo mismo que antes; `fn_actor_persona_id` (el candado de permisos) sigue rechazando a la terminal. ROLLBACK siempre.
+  "pruebas:terminal-lecturas-sin-ruido",
 
   // ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
   // comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.

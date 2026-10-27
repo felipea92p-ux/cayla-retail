@@ -15,7 +15,7 @@ import { Aviso } from "@/components/ui/Aviso";
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
 //
 // Son DOS escrituras y se dicen así, porque la segunda puede fallar sola:
-//   1. crear el valor en el vocabulario (queda aprobado si quien lo crea es Líder);
+//   1. crear el valor en el vocabulario (nace aprobado, lo cree quien lo cree: ADR-0534);
 //   2. ofrecerlo en ESTA categoría (categoria_tallas / _tejidos / _patrones).
 // Si la 2 falla, el valor existe pero no aparece aquí: se avisa con esas
 // palabras y reintentar es seguro: como el valor ya existe, el reintento lo
@@ -72,7 +72,7 @@ export function ProponerValor(props: Props) {
         <Modal
           variante="hoja"
           titulo={t.titulo}
-          subtitulo="¿No está? Agrégalo. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe."
+          subtitulo="¿No está? Agrégalo: queda en el catálogo y se ofrece en esta categoría."
           onClose={() => setAbierto(false)}
         >
           {(cerrar) => <ProponerValorAbierto {...props} onCerrar={cerrar} />}
@@ -112,11 +112,11 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
       setTrabajando(false);
       return;
     }
+    // Desde ADR-0534 todo valor nace aprobado. Si la base todavía no tiene ese cambio y lo dejó por aprobar, no se ofrece en la
+    // categoría (el alta lo rechazaría): se dice dónde quedó, sin cerrar la hoja.
     if (!valor.aprobado) {
-      avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un Líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+      setError(`«${valor.texto}» quedó por aprobar en Catálogo → Atributos: todavía no se puede usar en esta prenda.`);
       setTrabajando(false);
-      setTexto("");
-      onCerrar();
       return;
     }
 

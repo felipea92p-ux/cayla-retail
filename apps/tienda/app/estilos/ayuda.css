@@ -14,12 +14,12 @@
 /* ---- La cabecera: ceja, título grande y, al lado en la computadora, para qué sirve la página ---- */
 .ay-cab { display: grid; gap: 16px; }
 .ay-cab-tit { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
-.ay-titulo { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(24.8px, 4.65cqi, 49.6px); line-height: 1.12;  text-wrap: balance; }
+.ay-titulo { margin: 0; font-family: var(--display); text-transform: uppercase; letter-spacing: -.01em; font-weight: 400; font-size: clamp(24.8px, 4.65cqi, 49.6px); line-height: 1.12;  text-wrap: balance; }
 .ay-titulo em { font-style: italic; color: var(--rojo); }
 .ay-bajada { margin: 0; max-width: 46ch; font-size: 15.5px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
 
 /* El título de un bloque dentro de la página («Lo que tienes que saber»): la misma letra, más chica. */
-.ay-h2 { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: clamp(18.6px, 3.1cqi, 28.5px); line-height: 1.12;  text-wrap: balance; }
+.ay-h2 { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: clamp(24px, 3.1cqi, 37px); line-height: 1.12;  text-wrap: balance; }
 .ay-h2 em { font-style: italic; color: var(--rojo); }
 .ay-bloque { display: flex; flex-direction: column; gap: 22px; }
 .ay-bloque-cab { display: flex; flex-direction: column; gap: 8px; }
@@ -75,7 +75,7 @@
 .ay-punto-ic .ic { width: 20px; height: 20px; }
 .ay-punto-cuerpo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 /* `pretty` y no `balance`: equilibrar partía «24 / horas» en dos líneas; así la cifra se queda con su unidad. */
-.ay-punto-t { margin: 0; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  text-wrap: pretty; }
+.ay-punto-t { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12;  text-wrap: pretty; }
 .ay-punto-x { margin: 0; font-size: 14px; line-height: 1.55; color: var(--tinta-60); text-wrap: pretty; }
 /* El enlace de un punto no lo agranda: su área de toque (44 px) baja sobre el aire de la tarjeta. */
 .ay-punto .ay-enlace { margin-bottom: -12px; }
@@ -101,7 +101,7 @@
 .ay-legal-cuerpo { display: grid; gap: 28px; }
 .ay-legal-texto { display: flex; flex-direction: column; gap: 36px; min-width: 0; max-width: 680px; align-self: start; }
 .ay-legal-sec { display: flex; flex-direction: column; gap: 12px; padding-top: 30px; border-top: 1px solid var(--sand); scroll-margin-top: 20px; }
-.ay-legal-h2 { margin: 0 0 4px; font-family: var(--sans); font-variation-settings: var(--ancho); text-transform: uppercase; letter-spacing: .06em; font-weight: 250; font-size: 18px; line-height: 1.12;  text-wrap: balance; }
+.ay-legal-h2 { margin: 0 0 4px; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-weight: 400; font-size: 23px; line-height: 1.12;  text-wrap: balance; }
 .ay-legal-n { color: var(--taupe); font-variant-numeric: lining-nums; }
 /* La versión del texto («borrador-2026-10-23») no se parte en dos líneas por sus guiones. */
 .ay-sin-corte { white-space: nowrap; }

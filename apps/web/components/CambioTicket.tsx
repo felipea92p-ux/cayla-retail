@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
@@ -78,7 +78,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
       titulo="Cambio registrado"
       subtitulo={
         ticket.vaACuarentena
-          ? "La prenda que trajo quedó en cuarentena, esperando que un líder decida qué hacer con ella."
+          ? "La prenda que trajo quedó en cuarentena, esperando que se decida qué hacer con ella."
           : "El stock ya refleja la prenda que volvió y la que salió."
       }
       onClose={onCerrar}
@@ -144,8 +144,8 @@ function TicketCambioTermico({ ticket }: { ticket: TicketCambio }) {
   return (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <Image src="/cayla-isotipo.png" alt="" width={221} height={150} priority unoptimized className="rt-logo" />
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-tienda">{ticket.sede}</p>
       </header>
       <div className="rt-doble" />

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Pestanas } from "@/components/ui/Pestanas";
 
 /**
@@ -6,8 +7,10 @@ import { Pestanas } from "@/components/ui/Pestanas";
  * (`vitrina_web`, ADR-0306): la pestaña solo lleva a su dirección. Es la pestaña de vista del sistema (ADR-0358): cambia de sección, no
  * filtra.
  */
-export function VitrinaPestanas({ activa }: { activa: "modelos" | "looks" | "probador" }) {
-  return (
+export function VitrinaPestanas({ activa, derecha }: { activa: "modelos" | "looks" | "probador"; derecha?: ReactNode }) {
+  // `derecha`: lo que va a la derecha de las pestañas, a la altura de su centro (hoy, «¿Qué precio ve el cliente?» de Modelos). Es la fila de las
+  // pestañas con lo suyo; si una pantalla no pasa nada, queda exactamente como estaba.
+  const pestanas = (
     <Pestanas
       etiquetaAccesible="Vitrina web"
       activa={activa}
@@ -20,4 +23,6 @@ export function VitrinaPestanas({ activa }: { activa: "modelos" | "looks" | "pro
       ]}
     />
   );
+  if (!derecha) return pestanas;
+  return <div className="flex flex-wrap items-center gap-x-4">{pestanas}{derecha}</div>;
 }

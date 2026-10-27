@@ -1,6 +1,10 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { getInsumosDelTaller } from "@/lib/insumos";
 import { RPC_ORDEN_PRODUCCION, RPC_TELA_PENDIENTE, leerOrdenPagina, numeroDeOrdenEnUrl, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { armarEdicionDeTela, type DatosEditarTela } from "@/lib/orden-tela-editar-reglas";
+import type { OpcionesNuevaOrden } from "@/lib/produccion";
+import { unstable_rethrow } from "next/navigation";
 
 // La página de una orden de producción (ADR-0400, actividad 3): lectura del servidor. Dos pasos: el número de la URL (`OP-000067`) se resuelve al id de la orden y `fn_orden_produccion`
 // trae TODO lo que la página dibuja (orden, fases, tela, costos, línea de tiempo y permisos) en una sola lectura. Si algo falla lo dice (principio 9): nunca una orden "vacía" que
@@ -42,4 +46,42 @@ export async function getOrdenProduccionPagina(segmento: string): Promise<{ orde
   const orden = leerOrdenPagina(typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>), tela_pendiente: telaPendiente } : data);
   // Una respuesta que no se parece a una orden es una falla de lectura, no una orden inexistente: decir «no existe» escondería un problema.
   return orden ? { orden, falla: null } : { orden: null, falla: FALLA };
+}
+
+/** ¿Esta orden se puede editar de tela y avíos? Solo en proceso y para quien opera el Taller (la base lo vuelve a exigir en `guardar_insumos_orden`). */
+export function sePuedeEditarLaTela(orden: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return orden.permisos.puedeOperar && orden.orden.estado === "en_proceso";
+}
+
+/**
+ * Lo que la hoja «Editar tela y avíos» necesita (ADR-0510): el estante del Taller con sus saldos y costos, el tejido del modelo y lo que ya reservan las demás órdenes. Es dato SECUNDARIO de la
+ * página: si no se puede leer, la página se ve igual y la sección dice que no se pudo preparar la edición (`falla`), no que no hay nada que editar.
+ */
+export async function getEdicionDeTela(orden: OrdenPagina, opciones: OpcionesNuevaOrden | null, hoy: string): Promise<{ datos: DatosEditarTela | null; falla: boolean }> {
+  if (!sePuedeEditarLaTela(orden)) return { datos: null, falla: false };
+  try {
+    const supabase = await createClient();
+    const [estante, modelo] = await Promise.all([
+      getInsumosDelTaller(orden.orden.ubicacionId, { conCostos: orden.permisos.veCostos, hoy }),
+      supabase.from("productos").select("tejido_id").eq("id", orden.orden.producto.id).maybeSingle(),
+    ]);
+    if (modelo.error) throw new Error(modelo.error.message);
+    return {
+      datos: armarEdicionDeTela({
+        insumosDeLaOrden: orden.insumos,
+        tejidoNombre: orden.orden.producto.tejidoNombre,
+        estante: estante.insumos,
+        tejidoId: modelo.data?.tejido_id ?? null,
+        consumoDeclarado: opciones?.consumos[orden.orden.producto.id] ?? null,
+        comprometidoDeTodas: opciones?.comprometido ?? null,
+        enCaminoDeTodas: opciones?.enCamino ?? null,
+        conCostos: orden.permisos.veCostos,
+      }),
+      falla: false,
+    };
+  } catch (e) {
+    unstable_rethrow(e);
+    console.error(`editar tela de ${orden.orden.numeroTexto}: ${e instanceof Error ? e.message : String(e)}`);
+    return { datos: null, falla: true };
+  }
 }

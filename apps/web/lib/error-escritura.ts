@@ -65,6 +65,9 @@ const HUELLAS: Huella[] = [
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
   // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
   { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },
+  // Gasto que cierra un fijo (20260925000000, revisión del 22-oct): `registrar_gasto` levanta «Ese gasto fijo ya tiene su gasto de este mes.» con 23505
+  // ante CUALQUIER choque único cuando el gasto lleva un fijo, también un comprobante repetido. La frase no afirma cuál de los dos fue.
+  { marca: "ya tiene su gasto de este mes", frase: "No se registró: ese gasto fijo ya tiene su gasto de este mes (quizá otra persona lo registró hace un momento) o ese comprobante ya estaba registrado. Mira «Fijos del mes» antes de volver a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
@@ -94,9 +97,10 @@ const HUELLAS: Huella[] = [
   // Cierre de la cola de arranque (ADR-0334): 20261005100100.
   {
     marca: "prenda_cerrada_sin_prenda",
-    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide a un líder que la reabra en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
+    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide que la reabran en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
   },
-  { marca: "cola_solo_lider", frase: "Solo un líder puede cerrar o reabrir ventas sin registrar de una tienda." },
+  // ADR-0534 (20261027164000): cerrar, reabrir y las sugerencias de la cola ya no son solo del líder; las hace quien ve Existencias.
+  { marca: "cola_sin_modulo", frase: "Esto se hace desde Existencias: pide que le den ese módulo a tu rol." },
   { marca: "cola_sin_persona", frase: "No se sabe quién cierra la cola. Entra con tu cuenta y vuelve a intentarlo." },
   { marca: "cola_sin_permiso_sede", frase: "No tienes permiso para cerrar la cola de esa tienda." },
   { marca: "cola_motivo_invalido", frase: "Elige por qué se cierran sin identificar la prenda." },
@@ -106,15 +110,20 @@ const HUELLAS: Huella[] = [
   { marca: "cola_corte_invalido", frase: "No se pudo fijar hasta qué venta se cierra. Recarga la página y vuelve a intentarlo." },
   { marca: "cola_sin_plazo", frase: "Esta tienda no tiene plazo abierto para cerrar su cola de ventas sin registrar." },
   { marca: "cola_plazo_vencido", frase: "El plazo para cerrar la cola de esta tienda ya venció." },
+  // ADR-0334 act. 2026-10-14 (A6), en main desde 20261027174000: cerrar en bloque pide un cuadre del piso posterior a la última venta.
+  {
+    marca: "cola_sin_cuadre",
+    frase: "Primero cuadra el piso de esta tienda (Existencias ▸ Cuadrar el piso) después de la última venta sin registrar: cerrar sin contar entierra las prendas que sí están en el sistema.",
+  },
   {
     marca: "cola_vacia",
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
   },
   {
-    // ADR-0328 (20261004204000, en producción desde el 5-oct): llega con 42501 y este hint; la frase es la misma de la base.
-    // Sin esta huella caía al genérico con «avisa a Felipe. Código: …», y no es un rechazo del combo «Responsable».
-    marca: "regularizar_propia_venta",
-    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
+    // 20261026224000 (Felipe 2026-10-26): llega con 42501 y este hint. Una terminal no cambia el precio de la prenda, que vale en
+    // todas las tiendas; la ficha ya no se lo ofrece, así que esto solo sale si una pantalla vieja o dos pestañas lo intentan.
+    marca: "terminal_precio_de_la_prenda",
+    frase: "Desde una terminal el precio se cambia solo en su tienda: usa «Precio en tu tienda» en la ficha de la prenda. No se guardó nada.",
   },
   {
     // Desde 20261004204000 «Perdió la etiqueta» descuenta solo de lo DISPONIBLE (como las cifras de la mesa): las apartadas y las
@@ -491,6 +500,14 @@ const HUELLAS: Huella[] = [
 ];
 
 /**
+ * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0536, actividad 7): «¿por qué no me
+ * deja…?» se contesta con la MISMA frase de la pantalla, nunca con una inventada. Solo las fijas (las que llevan un dato del error no).
+ */
+export function frasesDeErrores(): { marca: string; frase: string }[] {
+  return HUELLAS.flatMap((h) => (typeof h.frase === "string" ? [{ marca: h.marca, frase: h.frase }] : []));
+}
+
+/**
  * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
  * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
  * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».
@@ -499,7 +516,7 @@ const HUELLAS: Huella[] = [
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
  * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
  */
-const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion)_[a-z_]+|en_rendicion)$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano

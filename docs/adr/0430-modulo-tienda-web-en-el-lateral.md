@@ -206,3 +206,64 @@ construir: `docs/maquetas/pedidos-web-2026-10/hoja.html`):
 - **«Quitar del pedido» con una sola prenda llevaba a un callejón**: la prenda se tachaba y «Confirmar» quedaba bloqueado («si quitas
   todas, ciérralo con «No se puede confirmar»»). Ahora el botón sale solo si queda otra prenda sin quitar (`sePuedeQuitar`); con una sola,
   la salida es «No se puede confirmar», que ya está en el pie. `problemaParaConfirmar` sigue de red.
+
+## Actualización 2026-10-26 — Resumen y Vitrina ▸ Modelos, la Ola 1 (Felipe, con maquetas en `docs/maquetas/tienda-vitrina-*`)
+
+Sin migraciones ni funciones nuevas: solo la web. Medido en la pantalla real a 1440 px, claro y oscuro, y a 1024, 1366 y 1920 px (sin desborde).
+
+**DECIDÍ 14 — El Resumen empieza por lo que pide acción, y lo que no tiene nada que decir baja.** «Lo que te pide hoy» pasó de 746 px a 250 px del tope;
+sigue el camino de los pedidos y al final la ventana de la vitrina. Con «Todo al día» y sin pedidos abiertos, esas dos líneas bajan, juntas, debajo de
+la ventana. El camino sin pedidos abiertos es una línea («sin pedidos abiertos · N cerrados en 30 días»; `sinPedidosAbiertos`). «Tiendas en la web» (la leyenda de en qué
+tiendas se ve) sigue siempre junto a la ventana, que conserva su ancho (Felipe, mismo día: un primer intento la escondía con todas bien); la nota del pie sí se fue. Loading propio con su silueta (`tienda-web/loading.tsx`).
+**Tres cambios que salieron de `/formidable` (2026-10-26, `docs/formidable/tienda-web-resumen-y-vitrina-modelos.md`):** (1) «Todo al día» solo se dice
+con todo leído (`vacioDePendientes`): con una lectura caída o parado fuera de una tienda dice «Sin novedades en lo que se pudo leer», con el motivo, y no
+baja con lo calmo (principio 9: se degrada, no engaña); (2) el reloj de «por confirmar» vive una sola vez, en el camino («El primero se cierra en 1 h»): la
+fila dice qué hace confirmar y qué pasa si nadie lo hace, sin horas; (3) el enlace de esa fila dice «Revisar y confirmar», porque lleva a la lista y se
+confirma dentro de cada pedido. **DESCARTÉ** atenuar las estaciones en cero del camino: la pieza la comparte Pedidos y ya van con punto neutro.
+**SE ROMPE SI** una lectura nueva del Resumen no se suma a `lecturasCaidas`/`vacioDePendientes`: volvería a decir «Todo al día» sin haberla leído.
+
+**Los 3 cambios de Vitrina ▸ Modelos de `/formidable` (2026-10-26, Felipe aprobó el 3 con condición):** (1) el stock de la carta dice «Libre:» (antes eran
+números sueltos) y lo que se toca responde en 24 px o más sin agrandar el dibujo —la casilla es un `<label>` de 32 px, el interruptor y el enlace
+llevan `.tw-toque` (un `::after` invisible), el nombre pasa de 17 a 25 px de alto—; el rótulo de categoría de una prenda sin foto pasa de 8 a 11 px
+cuando su caja mide 144 px o más (`MosaicoPrenda`, por su propio ancho: `@container`, sin tocar las miniaturas); (2) la regla del precio vive tras
+«¿Qué precio ve el cliente?» (`BotonVerMas`, antes un subtítulo y una nota de tres frases siempre abiertos) y los avisos ámbar traen «¿Por qué?» con la
+frase de `razonNoSeMuestra`; (3) el interruptor de UN modelo aplica sin hoja cuando `responsable.listo` (Admin, o la persona de la sesión que está de
+turno), con «Deshacer» en el aviso (`aplicaSinHoja`, `lib/vitrina-escritura.ts`; el rastro queda firmado igual: la misma `vitrina_mostrar`, ADR-0161
+regla 3). Si el responsable no está resuelto, el cambio no cambia nada o ocultarlo dejaría la tienda sin modelos o casi, abre la hoja como antes (la hoja
+y los lotes siguen con su combo y su aviso). **DECIDÍ 16 — La hoja del modelo dice con qué precio sale en cada tienda (Felipe, 2026-10-26, «igual a lo que es hoy, separado por tiendas»).** Sección «Precio en la
+web» (`PrecioEnLaWeb`): una fila por tienda que se ve en la web, con lo que el cliente ve hoy en la tarjeta de la tienda —el precio de la talla más cara; con
+campaña, el que paga, el de lista tachado y la campaña con su % y su último día; «Desde» si la campaña no toca a todas las tallas por igual— o «No se ofrece:
+sin precio en esta tienda». Una línea aparte, «Sin elegir tienda, el cliente ve el mayor», solo cuando ese precio difiere del de alguna tienda. La cuenta no
+se rehace en la pantalla: la hace `retail.fn_vitrina_precios_modelo(uuid)` (`20261026191000`, solo lectura, módulo `vitrina_web`), que llama a `fn_tienda_precios`,
+la regla única que lee la tienda (esa función es solo de la tienda online: el ERP no podía llamarla). **DESCARTÉ** armar el precio en TypeScript con
+`fn_precios_sede_producto` + `variantes.precio` (duplica la regla, no ve campañas ni «Todas») y sumarlo a `fn_vitrina_modelos` (la lista de ~300 modelos
+pagaría el cálculo de cada uno por un dato que se mira en una hoja). **SE ROMPE SI** el código sale a producción antes que la migración: la hoja dice «No se
+pudo leer el precio» y todo lo demás funciona (se degrada); o si alguien cambia `fn_tienda_precios` de firma (lo vigila `pnpm pruebas:vitrina-web`, sección 4e,
+que compara esta función contra lo que lee `tienda_catalogo` y trae un mutante). La migración está solo en local: **producción espera el OK de Felipe**.
+**DESCARTÉ** tocar la casilla y el interruptor del sistema para subirlos a 24 px: es una decisión de
+`/unificar`. **SE ROMPE SI** «Deshacer» corre después de que otra persona cambió el mismo modelo: vuelve a llamar con lo contrario y lo pisa (7 s de ventana).
+**DESCARTÉ** la propuesta B (ventana de una fila arriba): a 375 px dejaba los pendientes en el borde del pliegue. **SE ROMPE SI** una pantalla nueva del
+grupo no trae su `loading.tsx`: hereda la silueta del Resumen (el editor de campañas ya trae uno genérico).
+
+**DECIDÍ 15 — La Vitrina filtra, pagina y se acomoda al ancho.** Estado (con cuántos trae cada uno), Categoría y Lo nuevo van detrás del botón «Filtros»,
+en un panel flotante (`FiltrosFlotantes`); «Encendidos sin precio» es una sola definición para la lista y para el Resumen (`esEncendidoSinPrecio`) y los
+enlaces del Resumen llegan filtrados (`?filtro=`). La lista es solo ropa: el empaque se ve en Estado ▸ Empaque. De 40 en 40 (Probador, que ya paginaba, no
+cambia); «Elegir los N de esta página» y «Elegir los N que coinciden». Las cifras son compactas (`TarjetaCifra compacta`, ~74 px en vez de ~135). La Lista
+alterna entre una columna por tienda (pantalla grande y hasta 8 tiendas) y las filas de siempre (`modoDeLista`). Las hojas cargan bajo demanda.
+**DESCARTÉ** dos columnas de modelos: el spike midió que a 1440 px con 3 tiendas no cortaba nada, pero Felipe prefirió C/A. **SE ROMPE SI** la cuenta de
+tiendas web pasa de 8 (vuelve a filas: está previsto) o si «Lo nuevo» automático debe filtrarse (hoy solo se filtra lo fijado a mano: la lista no trae
+cuándo llegó cada modelo a una tienda).
+
+Registros: `docs/unificar/cifra.md` (`compacta` vuelve como opt-in solo aquí) y `docs/unificar/filtros-flotantes.md`; el spike de la Lista en
+`docs/maquetas/tienda-vitrina-lista-columnas-2026-10/`. Extender `compacta` o `FiltrosFlotantes` a otras pantallas es decisión de Felipe, mirando.
+
+**DECIDÍ 17 — «Nuevo look» se arma mirando las fotos, y sugiere nombre y frase (Felipe, 2026-10-26: «es complicado elegir las prendas por sus nombres»).** La hoja del look
+pasa de 576 px a `max-w-6xl` (hoja de diseño propio, con su `unificar-fijo`) y el combo por nombre se cambia por una grilla de fotos (`ElegirPrendasLook`):
+categorías como píldoras con cuántas prendas trae cada una, un buscador, 24 por página; tocar la foto elige (✓) y otro toque quita; con 4 elegidas, las demás se apagan.
+A la izquierda queda lo que lleva el look, en el orden de la lámina, con su color y su ✕. Con dos prendas elegidas, bajo el nombre y la frase salen **ideas**
+(`lib/vitrina-looks-ideas.ts`, pura y estable, de una tabla curada por el tipo de look —un vestido, tres capas, dos piezas, con detalles— que sale de la misma tabla de grupos de la tienda,
+`grupoDeLaTienda`, y de si todas las prendas comparten color), «Otras ideas» corre la ventana de tres, y **ninguna idea se parece a un nombre o una frase que ya existe en otro look**
+ni entre sí. **DESCARTÉ** pedirle el texto a un modelo de lenguaje: depende de un servicio de afuera que puede caer (principio 9), manda al exterior lo que se arma antes de guardarlo y
+da un texto distinto cada vez (la misma elección tiene que dar las mismas ideas, ADR-0290). **SE ROMPE SI** la tabla se queda sin ideas libres (la lista sale vacía y no se muestra nada: nunca un
+texto repetido) o si una categoría nueva no está en la tabla de grupos (cae por su familia, y sin familia en lo general). Además, «¿Qué precio ve el cliente?» de Modelos pasó a la derecha
+de las pestañas, a la altura de su centro (`ReglaDelPrecio`, `VitrinaPestanas derecha`).

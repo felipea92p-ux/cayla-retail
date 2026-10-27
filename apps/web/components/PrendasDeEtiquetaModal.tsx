@@ -18,6 +18,7 @@ import { EtiquetaColgada } from "@/components/etiqueta-prendas/EtiquetaColgada";
 import type { Vuelo } from "@/components/etiqueta-prendas/vuelo";
 import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
+import { leerRpcPorPaginas, ORDEN_FN_EXISTENCIAS } from "@/lib/rpc-por-paginas";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -25,6 +26,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmar } from "@/lib/responsable-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
+import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { soles } from "@/lib/compras-reglas";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { avisoReimprimir, destinoReimprimir, nombreBajoCosto, prendasBajoCosto, type PrendaConCosto, type TiendaOpcion } from "@/lib/etiqueta-campana";
@@ -34,6 +36,9 @@ import {
   cajaAntesDespues,
   cambioEntre,
   cuentaPorMarca,
+  cuentaPorSede,
+  disponiblePorVariante,
+  filtrarPorSede,
   estadoDe,
   etiquetaColgada,
   filtrarProductos,
@@ -78,6 +83,11 @@ import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
  * prendas, cuánto baja, desde cuándo y, si el descuento las deja por debajo de su costo, cuáles. Quitarla también cambia el precio
  * (sube), y también se confirma. Sin descuento se guarda directo.
  *
+ * Debajo de esos filtros hay una fila por SEDE («Disponible en»): deja solo las prendas que hoy se pueden vender en esa tienda. La cifra
+ * es la de Existencias, `fn_existencias` (ADR-0270: físico menos dañado menos apartado), que cualquier colaborador activo lee de todas
+ * las tiendas. Se aplica ENCIMA del buscador, la categoría y «Con la etiqueta / Sin ella»: cada filtro recorta lo que dejó el
+ * anterior, y los números de todos se recalculan con eso.
+ *
  * Las marcas de prendas que ya no se venden (una talla desactivada, un producto descontinuado) no salen en la lista, pero se
  * dicen: si la prenda vuelve a la venta, vuelve con la etiqueta. «Quitárselas» las suma a lo que se quita. Los productos que ya
  * entran por CATEGORÍA (regla de la campaña) aparecen marcados y bloqueados.
@@ -94,7 +104,8 @@ export type EtiquetaParaPrendas = {
   sedeIds: string[];
 };
 
-type Cargado = { productos: ProductoEtiquetable[]; iniciales: Set<string>; fueraDeVentaLeibles: PrendaFueraDeVenta[] };
+/** `conExistencias`: si se pudo leer cuánto hay en cada sede (`fn_existencias`); sin eso no se ofrece filtrar por sede. */
+type Cargado = { productos: ProductoEtiquetable[]; iniciales: Set<string>; fueraDeVentaLeibles: PrendaFueraDeVenta[]; conExistencias: boolean };
 
 /** La última lectura y lo que se le ofrece al lado: «Ponérsela a sus otras N tallas» y «Deshacer». */
 type Leida = RespuestaLectura & { lectura: Lectura; otras: string[] };
@@ -150,6 +161,8 @@ export function PrendasDeEtiquetaModal({
   const [leida, setLeida] = useState<Leida | null>(null);
   const [camara, setCamara] = useState(false);
   const [caben, setCaben] = useState(18);
+  // La sede elegida en «Disponible en» (`null` = cualquiera).
+  const [sedeId, setSedeId] = useState<string | null>(null);
   // El producto que se pidió ver desde la etiqueta (clic en su pieza): su fila se abre, queda arriba de la lista y respira una vez.
   const [senalada, setSenalada] = useState<{ id: string; clave: number } | null>(null);
   const tactil = usePantallaTactil();
@@ -171,6 +184,9 @@ export function PrendasDeEtiquetaModal({
       const supabase = createClient();
       // Por páginas: PostgREST corta en 1.000 productos sin avisar (hoy son ~450 y suben ~100 por semana); los de después del corte no existirían
       // para el modal ni para la pistola («no encontrado»), y no habría cómo etiquetarlos. `id` desempata el orden de `referencia`.
+      // «Cuánto hay» por talla y sede sale de `fn_existencias` (ADR-0270, la única fórmula), la misma cifra de Existencias; esta pantalla no
+      // suma `stock`. Para cualquier colaborador activo, de todas las sedes. Si no responde, la hoja sigue sin el filtro de sede.
+      const existencias = leerRpcPorPaginas(supabase, "fn_existencias", {}, ORDEN_FN_EXISTENCIAS, { enParalelo: 1 });
       const { data, error } = await leerTodas(
         (desde, hasta) =>
           supabase
@@ -186,7 +202,9 @@ export function PrendasDeEtiquetaModal({
             .range(desde, hasta),
         { enParalelo: 1 },
       );
+      const { data: filasExistencias, error: errorExistencias } = await existencias;
       if (!vigente) return;
+      const disponible = disponiblePorVariante((filasExistencias ?? []) as unknown as { variante_id: string; ubicacion_id: string; disponible: number }[]);
       if (error) {
         setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
@@ -210,7 +228,7 @@ export function PrendasDeEtiquetaModal({
             })
             .map((v) => {
               if ((v.variante_etiquetas ?? []).some((e) => e.etiqueta_id === etiqueta.id)) iniciales.add(v.id);
-              return { id: v.id, talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null, colorHex: v.color?.hex ?? null, precio: v.precio, codigos: codigosDe(v) };
+              return { id: v.id, talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null, colorHex: v.color?.hex ?? null, precio: v.precio, codigos: codigosDe(v), disponible: disponible.get(v.id) };
             });
           return {
             id: p.id,
@@ -229,7 +247,7 @@ export function PrendasDeEtiquetaModal({
         })
         .filter((p) => p.variantes.length > 0);
       setMarcadas(new Set(iniciales));
-      setCarga({ estado: "listo", productos, iniciales, fueraDeVentaLeibles });
+      setCarga({ estado: "listo", productos, iniciales, fueraDeVentaLeibles, conExistencias: !errorExistencias });
     })();
     return () => {
       vigente = false;
@@ -239,6 +257,9 @@ export function PrendasDeEtiquetaModal({
   // La hoja mide del alto de la pantalla: lo que ocupa su título se descuenta del alto de la lista (`.eqp-hoja`, etiqueta-prendas.css).
   // `offsetTop` y no `getBoundingClientRect`: la hoja entra con un `transform` que movería la medida. Es una ref de función y no un
   // efecto: el contenido de `<Modal>` llega por el portal de Radix un render después, y un efecto del primer render no lo encuentra.
+  // Con el teclado del celular arriba la hoja NO se mide de nuevo: `<Modal>` le suma abajo el alto del teclado como relleno
+  // (`data-teclado`, useHojaSobreElTeclado) y descontarlo la aplastaba a su mínimo, con la lista encimada al pie (2026-10-26).
+  // El teclado pasa por encima de la hoja; `--eqp-alto` guarda el alto de antes para que tampoco lo achique un `vh` que cambie.
   const hoja = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
     let cuadro = 0;
@@ -248,15 +269,22 @@ export function PrendasDeEtiquetaModal({
         cuadro = requestAnimationFrame(medir);
         return;
       }
+      if (el.closest("[data-teclado]")) return;
       const abajo = parseFloat(getComputedStyle(panel).paddingBottom) || 0;
       el.style.setProperty("--eqp-encima", `${el.offsetTop + abajo + 2}px`);
+      el.style.setProperty("--eqp-alto", `${el.offsetHeight}px`);
     };
     medir();
-    // El título puede pasar a dos líneas al angostar la ventana.
-    window.addEventListener("resize", medir);
+    // El título puede pasar a dos líneas al angostar la ventana. Un cuadro después: el teclado avisa por `visualViewport` y por
+    // `window`, y así `data-teclado` ya está puesto cuando se mide.
+    const alCambiar = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(medir);
+    };
+    window.addEventListener("resize", alCambiar);
     return () => {
       cancelAnimationFrame(cuadro);
-      window.removeEventListener("resize", medir);
+      window.removeEventListener("resize", alCambiar);
     };
   }, []);
 
@@ -269,14 +297,22 @@ export function PrendasDeEtiquetaModal({
     () => filtrarProductos(productos, { texto, categoriaId: categoriaId === TODOS ? null : categoriaId }),
     [productos, texto, categoriaId],
   );
-  const visibles = marca.ids ? buscados.filter((p) => marca.ids!.has(p.id)) : buscados;
+  // Las sedes que se ofrecen: todas las tiendas, si se pudo leer cuánto hay en cada una.
+  const conExistencias = carga.estado === "listo" && carga.conExistencias;
+  const sedes = useMemo(() => (conExistencias ? tiendas : []), [conExistencias, tiendas]);
+  // La sede encima de los otros: los números de «Todas / Con la etiqueta / Sin ella» cuentan solo lo que hay en ella.
+  const enSede = useMemo(() => filtrarPorSede(buscados, sedeId), [buscados, sedeId]);
+  const visibles = marca.ids ? enSede.filter((p) => marca.ids!.has(p.id)) : enSede;
+  // Los números de los chips de sede: lo que dejaron el buscador, la categoría y la píldora de «etiqueta».
+  const sinSede = useMemo(() => (marca.ids ? buscados.filter((p) => marca.ids!.has(p.id)) : buscados), [buscados, marca.ids]);
+  const cuentaSedes = useMemo(() => cuentaPorSede(sinSede, sedes.map((t) => t.id)), [sinSede, sedes]);
   // Las marcas de prendas que ya no se venden: las de la tarjeta que no están en la lista (que es lo que está a la venta).
   const fueraDeVenta = useMemo(() => {
     if (carga.estado !== "listo") return [];
     const enVenta = new Set(carga.productos.flatMap((p) => p.variantes.map((v) => v.id)));
     return marcasManuales.filter((id) => !enVenta.has(id));
   }, [carga, marcasManuales]);
-  const cuentas = cuentaPorMarca(buscados, marcadas, porCategoria);
+  const cuentas = cuentaPorMarca(enSede, marcadas, porCategoria);
   // Lo que se puede tocar: los que NO entran ya por categoría.
   const editables = visibles.filter((p) => !(p.categoriaId && porCategoria.has(p.categoriaId)));
   const porMarcar = editables.filter((p) => estadoDe(p, marcadas) !== "todas").length;
@@ -332,6 +368,7 @@ export function PrendasDeEtiquetaModal({
     if (!visibles.some((p) => p.id === productoId)) {
       setTexto("");
       setCategoriaId(TODOS);
+      setSedeId(null);
       setMarca({ filtro: "todas", ids: null });
     }
     setAbiertos((a) => new Set(a).add(productoId));
@@ -521,6 +558,21 @@ export function PrendasDeEtiquetaModal({
               </div>
             </div>
 
+            {/* Disponible en: una fila por sede, ENCIMA de los otros filtros (el buscador, la categoría y «Con la etiqueta / Sin ella»). */}
+            {sedes.length > 0 && (
+              <div className="-mx-1 flex min-w-0 items-center gap-2 overflow-x-auto px-1 pb-0.5 max-sm:flex-nowrap sm:flex-wrap" role="group" aria-label="Disponible en">
+                <span className="label-cayla whitespace-nowrap text-[10.5px] text-taupe">Disponible en</span>
+                <BotonFiltro activo={sedeId === null} onClick={() => setSedeId(null)} cuenta={sinSede.length}>
+                  Todas las sedes
+                </BotonFiltro>
+                {sedes.map((t) => (
+                  <BotonFiltro key={t.id} activo={sedeId === t.id} onClick={() => setSedeId(t.id)} cuenta={cuentaSedes[t.id] ?? 0}>
+                    {nombreCortoSede(t.nombre)}
+                  </BotonFiltro>
+                ))}
+              </div>
+            )}
+
             {leida ? (
               <LecturaReciente leida={leida} pct={etiqueta.descuentoPct} onDeshacer={deshacerLeida} onOtras={ponerOtras} deshabilitado={guardando} />
             ) : (
@@ -578,7 +630,7 @@ export function PrendasDeEtiquetaModal({
                 )}
                 {listo && visibles.length === 0 && (
                   <Vacio tamano="chico" className="py-12" icono={<FunnelX />}>
-                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda está marcada." : "Ningún producto coincide con ese filtro."}
+                    {marca.filtro === "con" ? "Ninguna prenda de esta búsqueda está marcada." : sedeId ? "Ningún producto coincide con esos filtros en esa sede." : "Ningún producto coincide con ese filtro."}
                   </Vacio>
                 )}
                 {listo && visibles.length > 0 && (

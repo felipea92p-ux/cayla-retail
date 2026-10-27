@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { insigniasDeLaTarjeta, leerInsignias, type Insignia, type InsigniasDeLaTarjeta } from "./insignias";
+import { parametrosDeFiltros, type Elegido } from "./filtros-color-talla";
 import { pctTexto } from "./portada";
 import { esquemaStockModelo, type StockModelo } from "./stock";
 import type { Lista } from "./listas";
@@ -53,6 +55,9 @@ const esquemaPrenda = z
     nuevo: z.object({ dias: z.number().int().min(0).max(30).nullable() }).nullable().catch(null),
     // Su puesto en «Más vendidos» (1 a 20), o null. Nunca las unidades.
     vendidos: z.number().int().min(1).max(20).nullable().catch(null),
+    // Las insignias asignadas en Catálogo ▸ Insignias que ve el cliente (ADR-0489, act. c): todas, en el orden de la base; la tarjeta decide cuántas
+    // caben (`insigniasAsignadasDeTarjeta`). Sin el campo (una base que aún no lo manda), ninguna: nunca un error.
+    insignias: z.array(z.unknown()).catch([]),
   })
   .refine((p) => p.precio_final <= p.precio);
 
@@ -73,6 +78,8 @@ export type Prenda = {
   stock: StockModelo | null;
   nuevo: { dias: number | null } | null;
   vendidos: number | null;
+  /** Las insignias de Catálogo ▸ Insignias de la prenda (sin las de descuento: ese es el sello rojo), por grupo y nombre. */
+  insignias: Insignia[];
 };
 
 /** El catálogo leído: sus prendas y la tienda cuyo precio usó la base (`null`: «Todas»). */
@@ -106,6 +113,7 @@ export function interpretarCatalogo(dato: unknown): Catalogo | null {
         stock: d.stock,
         nuevo: d.nuevo,
         vendidos: d.vendidos,
+        insignias: leerInsignias(d.insignias),
       }];
     }),
   };
@@ -156,14 +164,30 @@ export function insigniasDeTarjeta(p: Prenda, { puesto, sinNuevo = false }: { pu
   ];
 }
 
-/** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. */
-export function muestras(p: Prenda, max = 5): { visibles: Color[]; mas: number } {
-  return { visibles: p.colores.slice(0, max), mas: Math.max(0, p.colores.length - max) };
+/**
+ * Las insignias de Catálogo ▸ Insignias que caben en la tarjeta (ADR-0489, act. c; Felipe 2026-10-23): el tope es de 3 EN TOTAL —el descuento, «Nuevo»
+ * y el puesto cuentan, igual que las asignadas— y lo que no cabe se dice en un «+2». La empresa (CAYLA o CLAURE) no cuenta. Con las mismas opciones
+ * que `insigniasDeTarjeta`, que es lo que la tarjeta ya dibuja de lo suyo.
+ */
+export function insigniasAsignadasDeTarjeta(p: Prenda, opciones: { puesto?: number | null; sinNuevo?: boolean } = {}): InsigniasDeLaTarjeta {
+  const propias = insigniasDeTarjeta(p, opciones).filter((i) => i.clave !== "empresa").length;
+  // «Nuevo» se mira por lo que la prenda ES (llegó hace poco), no por si la lista lo escribe en cada tarjeta: en «Lo nuevo» tampoco se repite.
+  return insigniasDeLaTarjeta(p.insignias, { propias, nuevo: p.nuevo !== null, masVendido: opciones.puesto != null });
+}
+
+/** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. Con colores elegidos en los filtros (`elegidos`: sus códigos, ADR-0512)
+ *  esos van primero, para que se vean aunque la prenda tenga más de las que caben. */
+export function muestras(p: Prenda, max = 5, elegidos: readonly string[] = []): { visibles: Color[]; mas: number } {
+  const colores = elegidos.length > 0 ? [...p.colores.filter((c) => elegidos.includes(c.codigo)), ...p.colores.filter((c) => !elegidos.includes(c.codigo))] : p.colores;
+  return { visibles: colores.slice(0, max), mas: Math.max(0, colores.length - max) };
 }
 
 /** Las dos fotos de la tarjeta: la principal y la que aparece al pasar el mouse. Sin fotos del modelo, la de su primer color que tenga
- *  una (propuesta c: un color sin foto propia se ve con la principal, y al revés). */
-export function fotosDeTarjeta(p: Prenda): [string | null, string | null] {
+ *  una (propuesta c: un color sin foto propia se ve con la principal, y al revés). Con un color elegido en los filtros (`color`, su código,
+ *  ADR-0512) que tiene foto propia, esa va primero: se ve la prenda en el color que se buscó (si no tiene, la de siempre). */
+export function fotosDeTarjeta(p: Prenda, color: string | null = null): [string | null, string | null] {
+  const delColor = color ? p.colores.find((c) => c.codigo === color)?.foto ?? null : null;
+  if (delColor) return [delColor, [...p.fotos, ...p.colores.map((c) => c.foto)].find((f) => f && f !== delColor) ?? null];
   const primera = p.fotos[0] ?? p.colores.find((c) => c.foto)?.foto ?? null;
   return [primera, p.fotos[1] ?? null];
 }
@@ -174,8 +198,9 @@ const tieneFoto = (p: Prenda): boolean => fotosDeTarjeta(p)[0] !== null;
 /** Para ordenar con lo que tiene foto adelante. `sort` es estable: dentro de cada parte queda el orden que ya traía la lista. */
 export const conFotoPrimero = (a: Prenda, b: Prenda): number => Number(tieneFoto(b)) - Number(tieneFoto(a));
 
-/** El color con que se dibuja la prenda sin foto: el de su primer color (es un dato de la prenda, no del tema). */
-export const colorDeDibujo = (p: Prenda): string | null => p.colores[0]?.hex ?? null;
+/** El color con que se dibuja la prenda sin foto: el de su primer color o, con un color elegido en los filtros (`color`, su código), el de ese
+ *  (es un dato de la prenda, no del tema). */
+export const colorDeDibujo = (p: Prenda, color: string | null = null): string | null => (color ? p.colores.find((c) => c.codigo === color)?.hex : null) ?? p.colores[0]?.hex ?? null;
 
 /** La silueta de la prenda sin foto, por su categoría (`categorias.prefijo`, nunca el nombre visible, que se renombra). Lo que no es
  *  ropa (calzado, bisutería, accesorios) cae en la percha: no promete una forma que no tiene. */
@@ -192,7 +217,15 @@ const FORMA_POR_PREFIJO: Record<string, Forma> = {
 export const formaDe = (prefijo: string | null | undefined): Forma => (prefijo ? FORMA_POR_PREFIJO[prefijo] ?? "percha" : "percha");
 
 /** A dónde lleva una tarjeta: la ficha de la prenda, con la tienda elegida si hay una. */
-export const hrefDePrenda = (p: Pick<Prenda, "id">, sede: string | null = null) => `/catalogo/${p.id}${sede ? `?sede=${encodeURIComponent(sede)}` : ""}`;
+export const hrefDePrenda = (
+  p: Pick<Prenda, "id">,
+  sede: string | null = null,
+  /** Con color o talla elegidos en los filtros (ADR-0512), la ficha abre ya con eso: `?color=` es el código del color y `?talla=`, la talla. */
+  elegido: { color?: string | null; talla?: string | null } = {},
+) => {
+  const q = [sede ? `sede=${encodeURIComponent(sede)}` : "", elegido.color ? `color=${encodeURIComponent(elegido.color)}` : "", elegido.talla ? `talla=${encodeURIComponent(elegido.talla)}` : ""].filter(Boolean);
+  return `/catalogo/${p.id}${q.length > 0 ? `?${q.join("&")}` : ""}`;
+};
 
 /** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en el almacén PÚBLICO de fotos de prendas del origen
  *  que permite `next.config.ts` (`TIENDA_FOTOS_ORIGEN`). Cualquier otra se muestra tal cual: con un host no permitido, `next/image`
@@ -335,6 +368,7 @@ export function hrefLista({
   campana = null,
   grupo = null,
   menu = null,
+  colorTalla = null,
 }: {
   sede?: string | null;
   categoria: string | null;
@@ -346,6 +380,9 @@ export function hrefLista({
   /** Un menú de la cabecera (`lib/grupos.ts`: «ropa», «accesorios»): toda la ropa junta. Se queda aunque se elija un grupo o una categoría
    *  de adentro, para que la lista siga siendo «dentro de la ropa». */
   menu?: string | null;
+  /** Lo elegido en los filtros de color y talla (ADR-0512): va como `?color=negro,blanco&talla=M`, en el orden fijo de la tienda y solo lo que
+   *  hay. Los favoritos no se filtran: ahí no va. */
+  colorTalla?: Elegido | null;
 }): string {
   const q = new URLSearchParams();
   if (lista !== "todo") q.set("lista", lista);
@@ -355,7 +392,7 @@ export function hrefLista({
   else if (grupo) q.set("grupo", grupo);
   if (lista === "ofertas" && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
-  const s = q.toString();
+  const s = [q.toString(), ...(colorTalla && lista !== "favoritos" ? parametrosDeFiltros(colorTalla) : [])].filter(Boolean).join("&");
   return s ? `/catalogo?${s}` : "/catalogo";
 }
 

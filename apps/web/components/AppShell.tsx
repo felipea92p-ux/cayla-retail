@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
@@ -10,18 +10,21 @@ import { BotonActividad } from "@/components/actividad/BotonActividad";
 import { BotonTema } from "@/components/ui/BotonTema";
 import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hermanosDe, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { MotorGuias } from "@/components/guias/MotorGuias";
 import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { BotonDemo } from "@/components/guias/BotonDemo";
+import { BotonAsistente } from "@/components/asistente/Asistente";
+import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { BuscadorGlobal } from "@/components/BuscadorGlobal";
 import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
+import { hrefConSedeYMes } from "@/lib/finanzas-telar-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useLateralConElDedo } from "@/components/useLateralConElDedo";
 
@@ -128,6 +131,8 @@ type Props = {
   trasladosPorAtender?: number | null;
   /** Pedidos web que esperan confirmación en la tienda activa (`getPedidosWebPorConfirmar`, ADR-0408 act. 8). `null` = sin número. */
   pedidosWebPorConfirmar?: number | null;
+  /** «Pregúntale a CAYLA» encendido en la sede que mira (ADR-0536, act. 8; `getAsistenteEncendido`). Ausente = apagado. */
+  asistenteEncendido?: boolean;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
   children: React.ReactNode;
@@ -192,6 +197,23 @@ type FilaLateral =
  *  usa `AppShell` para abrir un SUBGRUPO (p.ej. Abastecimiento dentro de Producción) solo cuando aterriza adentro —
  *  si no, quien llega directo a `/produccion/proveedores` vería Producción abierto pero Abastecimiento cerrado, con
  *  la fila activa escondida detrás de una cabecera. */
+/**
+ * La sede y el mes de Finanzas viajan también por el menú (Felipe 2026-10-24: sin las pestañas del telar, el lateral es el camino
+ * entre submódulos). Al tocar otra pantalla de Finanzas DESDE Finanzas, se va con `?sede=` y `?mes=` tal como están; se leen al
+ * hacer clic (no con `useSearchParams`, que obligaría a envolver todo el lateral en un `Suspense`). Un clic con ⌘, Ctrl o Mayús
+ * (otra pestaña) va a la dirección de siempre.
+ */
+function useConSedeYMes() {
+  const router = useRouter();
+  return (href: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const destino = hrefConSedeYMes(href, window.location.pathname, new URLSearchParams(window.location.search));
+    if (destino === href) return;
+    e.preventDefault();
+    router.push(destino);
+  };
+}
+
 function cadenaAbiertaDesde(filas: readonly FilaMenu[], activo: (href: string) => boolean): string[] {
   for (const f of filas) {
     if (!esGrupo(f)) continue;
@@ -233,6 +255,7 @@ function GrupoLateral({
 }) {
   // Un grupo cuenta como abierto solo si el lateral está expandido Y su estado dice abierto.
   const estaAbierto = (id: string) => !compacto && (gruposAbiertos[id] ?? false);
+  const conSedeYMes = useConSedeYMes();
 
   // Aplana cabecera + hijas (solo si está abierta) en las filas que de
   // verdad se van a ver — el riel lee ESTE índice, nunca el del array
@@ -320,7 +343,7 @@ function GrupoLateral({
       const hijoActivo = claveActiva === `i:${h.href}`;
       return (
         <div key={h.href} className="lateral-hijo" style={{ marginTop: AIRE_FILA, "--i": idx } as React.CSSProperties}>
-          <Link href={h.href} aria-current={hijoActivo ? "page" : undefined} style={{ height: ALTO_FILA }} className={claseFila(hijoActivo, profundidad)}>
+          <Link href={h.href} onClick={conSedeYMes(h.href)} aria-current={hijoActivo ? "page" : undefined} style={{ height: ALTO_FILA }} className={claseFila(hijoActivo, profundidad)}>
             {/* Marca fantasma: al pasar el mouse por una fila apagada aparece el riel en gris, en el mismo sitio
                 exacto donde va a quedar el rojo si sueltas el clic. Se lee "estás acá / irías allá" — es el riel
                 mostrando su próximo destino, no un efecto aparte. */}
@@ -399,6 +422,7 @@ function GrupoLateral({
               <div key={it.href} data-pieza-cajon style={margen}>
                 <Link
                   href={it.href}
+                  onClick={conSedeYMes(it.href)}
                   aria-current={esActivo ? "page" : undefined}
                   style={{ height: ALTO_FILA }}
                   className={claseFila(esActivo, 0)}
@@ -621,6 +645,7 @@ function CajonGrupo({
 /** Una fila del cajón (una pantalla). Aparte para que `pintarFilas` (recursiva, D-84) no repita el marcado cada vez
  *  que encuentra una hoja dentro o fuera de un subgrupo. */
 function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; esActivo: boolean; onCerrar: (devolverFoco: boolean) => void; refFila: (el: HTMLAnchorElement | null) => void }) {
+  const conSedeYMes = useConSedeYMes();
   return (
     <Link
       href={h.href}
@@ -628,7 +653,10 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
       tabIndex={-1}
       aria-current={esActivo ? "page" : undefined}
       ref={refFila}
-      onClick={() => onCerrar(false)}
+      onClick={(e) => {
+        conSedeYMes(h.href)(e);
+        onCerrar(false);
+      }}
       // Escalonado de 30 ms por fila, el mismo del desplegable de campos.tsx.
       style={{ animationDelay: `${i * 30}ms` }}
       className={`anim-revelar group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:bg-sand/60 focus-visible:text-rojo ${
@@ -652,14 +680,14 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // o un formulario corto se topan por su cuenta (`max-w-prose`, `max-w-2xl`…), no con la pantalla entera.
 // El Inicio («/», exacto) también lleva el tope: es de todas las cuentas y no fue pensado a lo ancho; el de almacén, el Observatorio y la
 // pantalla de Aventurero lo piden con `data-ancho-completo`.
-const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/configuracion", "/finanzas", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
+const CON_TOPE_DE_ANCHO = ["/actividad", "/buscar", "/comercial", "/configuracion", "/global", "/movimientos", "/pedidos-no-atendidos", "/rendimiento", "/sin-acceso"];
 
 /** ¿Esta ruta lleva todavía el tope de 64 rem? El Inicio exacto y lo que cuelga de `CON_TOPE_DE_ANCHO`; todo lo demás, ancho completo. */
 function conTopeDeAncho(pathname: string): boolean {
   return pathname === "/" || CON_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, asistenteEncendido = false, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
@@ -905,7 +933,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               gruposAbiertos={gruposAbiertos}
               compacto={compacto}
               cajonDe={cajon?.grupoId ?? null}
-              onToggleGrupo={(id) => setGruposAbiertos((g) => ({ ...g, [id]: !g[id] }))}
+              onToggleGrupo={(id) =>
+                setGruposAbiertos((g) => {
+                  const abre = !g[id];
+                  const cerrados = abre ? Object.fromEntries(hermanosDe(id, menu.riel).map((h) => [h, false])) : {};
+                  return { ...g, ...cerrados, [id]: abre };
+                })
+              }
               onAbrirCajon={abrirCajon}
               onEntrarFila={entrarFila}
               onSalirFila={salirFila}
@@ -1069,6 +1103,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
               En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
               que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {/* «Pregúntale a CAYLA» (ADR-0536): lo ve toda cuenta de una sede con el asistente encendido (Configuración ▸ Tiendas y caja,
+                act. 8), también una terminal. No es un módulo (ADR-0306): es una ayuda, como «Demo», y solo ofrece las pantallas del
+                menú de esta cuenta. Apagado, tampoco responde a su atajo. */}
+            {asistenteEncendido ? (
+              <BotonAsistente rutasDelMenu={pantallasDelAsistente({ delMenu: pantallasBuscables.map((h) => h.href), modulos: persona.modulos ?? [] })} />
+            ) : null}
             {/* Actividad (ADR-0207): el historial del módulo donde uno está, pegado a la sede que mira. No es fila del
                 lateral: no es una pantalla más. Solo para el líder y quien tenga el módulo; nunca en una terminal. */}
             {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (

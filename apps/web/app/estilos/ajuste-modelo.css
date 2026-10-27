@@ -1,0 +1,365 @@
+/* EXISTENCIAS · «AJUSTAR STOCK» EN EL MODAL DE LA PRENDA (ADR-0494, Felipe 2026-10-23; ronda 3 de
+   docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html). La banda bajo «Dónde está», la planilla del modelo entero con la talla
+   en foco y el talón de lo que se va a guardar. Solo tokens (ADR-0169, ADR-0336); el color de cada prenda es dato (`data-color-dato`).
+   Movimiento: excepción de ADR-0136 (act. 2026-10-23 (c); Felipe pidió «sofisticada, elegante y full animaciones» y eligió la ronda 3):
+   la luz que cruza la banda y el lápiz que se dibuja, el hilo de la cabecera de la planilla, las filas en cascada y las celdas en ola,
+   el anillo que se cierra sobre la talla en foco, el número que rueda al cambiar, el talón que entra, el visto que sella cada talla al
+   guardar y el sello «Guardado». Todo UNA vez, con `--ease-cayla`, sin rebote ni bucle, y quieto con `prefers-reduced-motion`. Lo vigila
+   `lib/ajuste-modelo-movimiento.test.ts`. */
+
+/* ---- La banda: «¿No es lo que ves en la tienda?» ---- */
+.banda-ajustar {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 12px 12px 14px;
+  text-align: left;
+  border: 1px solid var(--color-tinta);
+  border-radius: 16px;
+  background: var(--color-papel);
+  transition: background-color 240ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .banda-ajustar:hover { background: var(--color-crema); }
+}
+.banda-ajustar:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.banda-ajustar-icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+}
+.banda-ajustar-boton { gap: 8px; pointer-events: none; }
+/* Al llegar, una luz cruza la banda una vez y el lápiz se dibuja: «aquí se corrige». */
+.banda-ajustar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-sand) 70%, transparent) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: ajuste-luz 1100ms var(--ease-cayla) 500ms 1 both;
+}
+.banda-ajustar-icono svg :is(path, line, polyline) { stroke-dasharray: 60; stroke-dashoffset: 60; animation: ajuste-traza 600ms var(--ease-cayla) 350ms 1 forwards; }
+@media (max-width: 639px) {
+  .banda-ajustar { grid-template-columns: 40px minmax(0, 1fr); }
+  .banda-ajustar-boton { grid-column: 1 / -1; }
+}
+
+/* ---- La vista de ajuste («Planilla rápida», ronda 2: Felipe 2026-10-26, docs/maquetas/existencias-ajustar-tabla-2026-10/ronda-2.html) ----
+   La hoja no se desliza desde 640 px (`<Modal altoFijo>`; el celular, más abajo): de arriba abajo van la vuelta, la banda con «Dónde» y «Qué pasó» (siempre en el mismo
+   lugar, con una talla o con muchas), el aviso y la planilla, que es lo ÚNICO que se desliza, con su cabecera fija. Abajo, el pie. */
+.ajuste-vista { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; min-width: 0; container-type: inline-size; }
+.ajuste-vista > * { flex: none; }
+.ajuste-encabezado { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 12.5px; color: var(--color-taupe); }
+.ajuste-encabezado b { font-weight: 600; color: var(--color-tinta); }
+
+/* La banda: dos filas de opciones con su título a la izquierda, sobre un fondo propio para que se lean como «lo que eliges primero». */
+.ajuste-banda {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent);
+  background: color-mix(in srgb, var(--color-hueso) 60%, var(--color-papel));
+}
+.ajuste-banda-fila { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 10px; align-items: center; }
+.ajuste-banda-tit { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-taupe); }
+.ajuste-opciones { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+/* «Qué pasó» es un combo (Felipe 2026-10-26): a la medida del motivo más largo, no de toda la banda. */
+.ajuste-motivo { width: 100%; max-width: 20rem; }
+/* La píldora del sistema (`pildora-cayla`) sobre la banda: en papel y con un borde que se ve, para que no se pierda en el fondo. */
+.ajuste-opcion.pildora-cayla { gap: 6px; background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 16%, transparent); color: var(--color-tinta); font-weight: 500; white-space: nowrap; }
+.ajuste-opcion.pildora-cayla[aria-pressed="true"] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
+.ajuste-opcion.pildora-cayla[aria-disabled="true"] { opacity: 0.45; border-style: dashed; cursor: not-allowed; }
+@media (hover: hover) {
+  .ajuste-opcion.pildora-cayla:not([aria-pressed="true"]):not([aria-disabled="true"]):hover { border-color: var(--color-tinta); background: var(--color-papel); }
+}
+/* El lugar que se pidió y todavía no se puede (hay cambios sin guardar): queda marcado mientras el aviso pregunta qué hacer. */
+.ajuste-opcion.pildora-cayla[data-pide="si"] { border-color: var(--color-ambar); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ambar) 30%, transparent); }
+.ajuste-banda-pie { display: grid; gap: 2px; margin-left: calc(5.5rem + 10px); font-size: 12.5px; color: var(--color-taupe); }
+.ajuste-banda-info { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-pizarra); }
+
+/* El aviso: entre la banda y la planilla, fuera de lo que se desliza; más presente que un aviso común y con un destello UNA vez, porque
+   aparece por algo que la persona acaba de tocar (Felipe: «no lo noto, es demasiado sutil»). */
+.ajuste-aviso.aviso-linea {
+  border-width: 1.5px 1.5px 1.5px 4px;
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 13%, var(--color-papel));
+  animation: cayla-aviso-linea-entra 280ms var(--ease-cayla) both, cayla-aviso-linea-franja 520ms var(--ease-cayla) both, cayla-aviso-linea-destello 900ms var(--ease-cayla) 300ms;
+}
+.ajuste-aviso .aviso-linea-det { color: var(--color-tinta); }
+.ajuste-aviso-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* La planilla: una bandeja en hueso con borde (que no se confunda con el papel de la hoja) y, adentro, la tabla en papel. Crece hasta lo
+   que queda de la hoja y desde ahí se desliza por dentro, en las dos direcciones, con la cabecera y el total fijos. */
+.ajuste-planilla {
+  position: relative;
+  flex: 0 1 auto;
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 16%, transparent);
+  background: var(--color-hueso);
+}
+.ajuste-planilla-barra { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; white-space: nowrap; font-size: 12.5px; color: var(--color-taupe); }
+.ajuste-planilla-lugar { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--color-tinta); }
+.ajuste-pista { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }
+.ajuste-pista kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border: 1px solid var(--color-sand); border-radius: 5px; background: var(--color-papel); font: inherit; font-size: 10.5px; }
+.ajuste-desliza { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--color-papel); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 14%, transparent); }
+
+/* Cada fila pinta su fondo OPACO (mezclado con papel, nunca semitransparente): la columna del color, que se queda fija al deslizar de
+   lado, tapa lo que pasa por detrás (Felipe 2026-10-26, en el celular). */
+.ajuste-tabla { --fila: var(--color-papel); width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+.ajuste-tabla th,
+.ajuste-tabla td { padding: 4px 8px; text-align: center; vertical-align: middle; font-weight: inherit; white-space: nowrap; background: var(--fila); }
+.ajuste-tabla thead th { position: sticky; top: 0; z-index: 3; padding: 7px 8px; background: var(--color-hueso); border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); }
+.ajuste-tabla tfoot > tr > * { position: sticky; bottom: 0; z-index: 3; padding: 8px; background: var(--color-hueso); border-top: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent); font-family: var(--font-serif); font-size: 17px; color: var(--color-tinta); }
+.ajuste-tabla tbody tr + tr > * { border-top: 1px solid var(--color-sand); }
+.ajuste-tabla tbody tr:nth-child(even) { --fila: color-mix(in srgb, var(--color-hueso) 42%, var(--color-papel)); }
+/* Con una talla, la fila ES la cantidad: se tiñe al cambiar. Con varias, solo la celda que cambió (Felipe 2026-10-26). */
+.ajuste-tabla tbody tr[data-cambio="si"] { --fila: color-mix(in srgb, var(--color-ambar) 9%, var(--color-papel)); }
+.ajuste-tabla tbody tr { animation: ajuste-cascada 280ms var(--ease-cayla) 1 backwards; animation-delay: calc(var(--i, 0) * 35ms + 200ms); }
+.ajuste-relleno { width: 100%; text-align: left !important; }
+
+/* La columna del color: fija a la izquierda, con la franja de su color al inicio (como la matriz de Catálogo, `MatrizStockFicha`) y,
+   al deslizar de lado, una sombra que marca su borde. */
+.ajuste-col-color { position: sticky; left: 0; z-index: 2; min-width: 190px; max-width: 220px; padding-left: 16px !important; text-align: left !important; }
+.ajuste-tabla[data-tallas="varias"] .ajuste-col-color { min-width: 160px; }
+.ajuste-tabla thead .ajuste-col-color,
+.ajuste-tabla tfoot .ajuste-col-color { z-index: 4; }
+.ajuste-tabla thead .ajuste-col-color { text-align: center !important; }
+.ajuste-desliza[data-desliza="si"] .ajuste-col-color { box-shadow: 8px 0 10px -8px color-mix(in srgb, var(--color-sombra) 40%, transparent); }
+.ajuste-franja { position: absolute; top: 0; bottom: 0; left: 0; width: 6px; box-shadow: inset -1px 0 0 color-mix(in srgb, var(--color-tinta) 18%, transparent); }
+.ajuste-color { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; min-width: 0; }
+.ajuste-color b { overflow: hidden; text-overflow: ellipsis; font-family: var(--font-serif); font-size: 17.5px; font-weight: 500; line-height: 1.25; color: var(--color-tinta); }
+.ajuste-hoy-movil { display: none; flex-basis: 100%; font-size: 11.5px; color: var(--color-taupe); }
+.ajuste-hoy { min-width: 46px; font-size: 14px; color: var(--color-taupe); }
+.ajuste-cambio { min-width: 70px; }
+.ajuste-nada { color: var(--color-taupe); opacity: 0.55; }
+.ajuste-otro { font-size: 13px; color: var(--color-taupe); }
+.ajuste-otro small { margin-left: 8px; font-size: 11.5px; }
+.ajuste-otro small[data-tono="nueva"] { color: var(--color-pizarra); }
+.ajuste-otro small[data-tono="ajeno"] { color: var(--color-ambar-profundo); font-weight: 600; }
+.ajuste-delta { padding: 1px 7px; border-radius: 999px; font-size: 12.5px; font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
+.ajuste-delta[data-tono="entra"] { background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde-profundo); }
+.ajuste-delta[data-tono="sale"] { background: color-mix(in srgb, var(--color-ambar) 14%, transparent); color: var(--color-ambar-profundo); }
+/* El visto de un color que ya miraste entero en esta visita. */
+.ajuste-revisado { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-left: 6px; vertical-align: middle; color: var(--color-verde); opacity: 0; transition: opacity 240ms var(--ease-cayla); }
+.ajuste-revisado[data-on="si"] { opacity: 1; }
+.ajuste-talla {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 12%, transparent);
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.ajuste-total { min-width: 52px; font-family: var(--font-serif); font-size: 17px; color: var(--color-taupe); }
+.ajuste-guion { color: var(--color-taupe); font-size: 18px; opacity: 0.6; }
+
+/* La celda: el paso de cantidad «planilla» y, debajo, lo que hay que saber (con varias tallas). */
+.ajuste-celda {
+  position: relative;
+  display: inline-grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 2px;
+  border-radius: 12px;
+  /* La ola en diagonal: cada celda llega un poco después que la de su izquierda y la de arriba. */
+  animation: ajuste-ola 320ms var(--ease-cayla) 1 backwards;
+  animation-delay: calc((var(--f, 0) + var(--c, 0)) * 38ms + 260ms);
+}
+/* El − y el + aparecen con el mouse sobre la fila o con el cursor en el número; con el dedo, siempre. Así la tabla se lee como números. */
+@media (hover: hover) and (pointer: fine) {
+  .ajuste-tabla .paso-cantidad-b { opacity: 0; transition: opacity 200ms var(--ease-cayla); }
+  .ajuste-tabla tbody tr:hover .paso-cantidad-b,
+  .ajuste-tabla .paso-cantidad:focus-within .paso-cantidad-b { opacity: 1; }
+  .ajuste-tabla tbody tr:hover .paso-cantidad-b[aria-disabled="true"],
+  .ajuste-tabla .paso-cantidad:focus-within .paso-cantidad-b[aria-disabled="true"] { opacity: 0.3; }
+}
+/* El número que rueda al cambiar: sube al sumar, baja al restar. */
+.ajuste-celda .paso-cantidad-n.ajuste-sube { animation: ajuste-sube 240ms var(--ease-cayla) 1; }
+.ajuste-celda .paso-cantidad-n.ajuste-baja { animation: ajuste-baja 240ms var(--ease-cayla) 1; }
+.ajuste-bajo { min-height: 13px; font-size: 10.5px; line-height: 1.25; white-space: nowrap; color: var(--color-taupe); }
+.ajuste-bajo[data-tono="cambio"] { color: var(--color-ambar-profundo); font-weight: 600; }
+.ajuste-bajo[data-tono="nueva"] { color: var(--color-pizarra); }
+/* Cambió mientras se contaba (ADR-0494): el mismo ámbar de lo que cambia, con un filo en la celda para encontrarla en la tabla. */
+.ajuste-bajo[data-tono="ajeno"] { color: var(--color-ambar-profundo); font-weight: 600; }
+.ajuste-celda[data-ajeno="si"] .paso-cantidad { box-shadow: 0 0 0 1.5px var(--color-ambar); }
+/* Por dónde se empieza: la cantidad de la que se viene lleva un filo de tinta (y el cursor, en la compu) hasta que se toca otra. Nada
+   más se apaga: todo el modelo se toca igual (Felipe 2026-10-26). */
+.ajuste-celda[data-foco="si"] .paso-cantidad { box-shadow: 0 0 0 1.5px var(--color-tinta); }
+/* Cuando la ola termina, un anillo se cierra una vez sobre esa cantidad. */
+.ajuste-celda[data-foco="si"]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-tinta) 28%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  animation: ajuste-anillo 500ms var(--ease-cayla) 1;
+  animation-delay: var(--espera-foco, 700ms);
+}
+/* Al guardar, cada cantidad se sella en verde, una tras otra, con su visto que se dibuja. */
+.ajuste-celda[data-sellada="si"] .paso-cantidad { border-color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 12%, var(--color-papel)); }
+.ajuste-visto {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color-verde);
+  color: var(--color-papel);
+  transform: scale(0);
+  animation: ajuste-aparece 240ms var(--ease-cayla) 1 forwards;
+  animation-delay: calc(var(--n, 0) * 70ms);
+}
+.ajuste-visto path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: ajuste-traza 320ms var(--ease-cayla) 1 forwards; animation-delay: calc(var(--n, 0) * 70ms + 120ms); }
+
+/* El celular (o una hoja angosta): «Qué pasó» ocupa el ancho, la columna del color mide lo que su nombre más largo, «Hoy»
+   va bajo el nombre y lo del otro lugar se esconde, para que con una talla no haya que deslizar de lado. */
+@container (max-width: 460px) {
+  .ajuste-banda { padding: 9px 10px; }
+  .ajuste-banda-fila { grid-template-columns: 1fr; gap: 5px; }
+  .ajuste-banda-pie { margin-left: 0; }
+  .ajuste-banda-info,
+  .ajuste-de-mas { display: none; }
+  .ajuste-motivo { max-width: none; }
+  .ajuste-opcion.pildora-cayla { padding: 0.3125rem 0.625rem; font-size: 12.5px; }
+  .ajuste-tabla th,
+  .ajuste-tabla td { padding: 4px 5px; }
+  .ajuste-col-color,
+  .ajuste-tabla[data-tallas="varias"] .ajuste-col-color { width: 1%; min-width: 0; max-width: none; padding-left: 12px !important; padding-right: 8px; }
+  .ajuste-color b { white-space: nowrap; }
+  .ajuste-tabla[data-tallas="una"] :is(.ajuste-hoy, .ajuste-relleno) { display: none; }
+  .ajuste-tabla[data-tallas="una"] .ajuste-hoy-movil { display: block; }
+  .ajuste-pista { display: none; }
+}
+
+/* El celular: la hoja se desliza entera (desde 640 px sigue de alto fijo, `<Modal altoFijo>`) y el pie queda pegado abajo. Con dos avisos
+   la planilla se quedaba con una fila (Felipe 2026-10-26): ahora crece con sus colores hasta lo que se ve sobre el pie (`--tope-planilla`,
+   lo mide `useTopeDeLaPlanilla`) y, bajando la hoja, llena la pantalla. Si aún así no cabe, corre por dentro y, en su borde, el gesto
+   sigue con la hoja (sin `contain` hacia arriba y abajo), para volver a «Qué pasó» sin buscar de dónde agarrarla. */
+@media (max-width: 639.98px) {
+  .ajuste-planilla { max-height: var(--tope-planilla, 70dvh); }
+  .ajuste-desliza { overscroll-behavior-y: auto; }
+}
+
+/* ---- El talón: lo que se va a guardar ---- */
+.ajuste-ticket {
+  animation: ajuste-entra-ticket 320ms var(--ease-cayla) 1 backwards;
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-sand);
+  border-radius: 10px;
+  background: var(--color-papel);
+  font-size: 12.5px;
+}
+.ajuste-ticket-muestra { width: 12px; height: 12px; border-radius: 999px; box-shadow: 0 0 0 1px var(--color-sand); }
+.ajuste-ticket-delta { padding: 1px 7px; border-radius: 999px; font-size: 12px; font-weight: 700; animation: ajuste-late 240ms var(--ease-cayla) 1; }
+/* El sello «Guardado» se estampa sobre los tickets, inclinado, una vez. */
+.ajuste-talon-tickets { position: relative; }
+.ajuste-sello {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  margin-top: -14px;
+  z-index: 1;
+  padding: 3px 10px;
+  border: 2px solid var(--color-verde);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-papel) 85%, transparent);
+  color: var(--color-verde-profundo);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-7deg);
+  animation: ajuste-estampa 420ms var(--ease-cayla) 1 both;
+}
+/* El rótulo «Ajustando» sobre la foto que se achica. */
+.ajuste-rotulo {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-papel) 88%, transparent);
+  color: var(--color-tinta);
+  font-size: 12px;
+  font-weight: 600;
+  animation: ajuste-asoma 320ms var(--ease-cayla) 200ms 1 backwards;
+}
+/* Lo de la prenda se pliega al ajustar (y vuelve al salir). */
+.ajuste-repliega { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 320ms var(--ease-cayla), opacity 240ms var(--ease-cayla); }
+.ajuste-repliega[data-plegado="si"] { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
+.ajuste-repliega > * { min-height: 0; overflow: hidden; }
+.ajuste-ticket-delta[data-tono="entra"] { background: color-mix(in srgb, var(--color-verde) 14%, transparent); color: var(--color-verde-profundo); }
+.ajuste-ticket-delta[data-tono="sale"] { background: color-mix(in srgb, var(--color-ambar) 14%, transparent); color: var(--color-ambar-profundo); }
+
+/* El «−» o el «+» que no se puede (`bloqueado`) no cambia de fondo al pasar el mouse: la pantalla dice por qué al tocarlo. */
+@media (hover: hover) {
+  .ajuste-celda .paso-cantidad-b[aria-disabled="true"]:hover { background: transparent; }
+}
+
+@keyframes ajuste-luz { to { transform: translateX(100%); } }
+@keyframes ajuste-traza { to { stroke-dashoffset: 0; } }
+@keyframes ajuste-cascada { from { opacity: 0; } }
+@keyframes ajuste-ola { from { opacity: 0; transform: translateY(6px) scale(0.94); } }
+@keyframes ajuste-anillo { from { opacity: 1; transform: scale(1.3); } 60% { opacity: 1; } to { opacity: 0; transform: scale(1); } }
+@keyframes ajuste-sube { from { opacity: 0; transform: translateY(12px); } }
+@keyframes ajuste-baja { from { opacity: 0; transform: translateY(-12px); } }
+@keyframes ajuste-aparece { to { transform: scale(1); } }
+@keyframes ajuste-entra-ticket { from { opacity: 0; transform: translateX(16px); } }
+@keyframes ajuste-late { from { transform: scale(1.35); } }
+@keyframes ajuste-estampa { from { opacity: 0; transform: rotate(-7deg) scale(1.5); } to { opacity: 1; transform: rotate(-7deg) scale(1); } }
+@keyframes ajuste-asoma { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .banda-ajustar::before,
+  .banda-ajustar-icono svg :is(path, line, polyline),
+  .ajuste-tabla tbody tr,
+  .ajuste-aviso.aviso-linea,
+  .ajuste-delta,
+  .ajuste-celda,
+  .ajuste-celda .paso-cantidad-n.ajuste-sube,
+  .ajuste-celda .paso-cantidad-n.ajuste-baja,
+  .ajuste-celda[data-foco="si"]::after,
+  .ajuste-visto,
+  .ajuste-visto path,
+  .ajuste-ticket,
+  .ajuste-ticket-delta,
+  .ajuste-sello,
+  .ajuste-rotulo { animation: none; }
+  .banda-ajustar::before { display: none; }
+  .banda-ajustar-icono svg :is(path, line, polyline),
+  .ajuste-visto path { stroke-dashoffset: 0; }
+  .ajuste-visto { transform: none; }
+  .ajuste-repliega,
+  .banda-ajustar,
+  .ajuste-revisado,
+  .ajuste-tabla .paso-cantidad-b { transition: none; }
+}

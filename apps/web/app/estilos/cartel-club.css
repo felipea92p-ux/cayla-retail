@@ -62,11 +62,9 @@
   align-items: center;
   gap: calc(14 * var(--u));
 }
-.cartel-club-isotipo {
-  display: block;
-  width: calc(84 * var(--u));
-  height: auto;
-  filter: brightness(0) invert(95%) sepia(10%);
+.cartel-club-logo {
+  width: auto;
+  height: calc(64 * var(--u));
 }
 .cartel-club-sello {
   font-size: calc(15 * var(--u));

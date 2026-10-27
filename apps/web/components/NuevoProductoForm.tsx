@@ -9,6 +9,7 @@ import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
+import { empresaPorMarca } from "@/lib/empresas-de-sede-reglas";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -163,14 +164,11 @@ export function NuevoProductoForm({
   contexto,
   destino,
   cargaInicial = null,
-  puedeAprobarEtiquetas,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
   cargaInicial?: CargaInicialSede | null;
-  /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
-  puedeAprobarEtiquetas: boolean;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
@@ -204,15 +202,20 @@ export function NuevoProductoForm({
     }),
     []
   );
-  // ADR-0463: antes de la categoría, a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo
-  // = Trujillo, Arequipa o una base sin tiendas: sin pregunta, y el producto nace en CAYLA. Ninguna viene marcada (Felipe 2026-10-20).
-  const [empresaId, setEmpresaId] = useState("");
-  const empresas = contexto.empresas;
-  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
-  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
-  const faltaEmpresa = exigeEmpresa && !empresaId;
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
+  // ADR-0463: a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo = Trujillo,
+  // Arequipa o una base sin tiendas: el producto nace en CAYLA. Desde el 2026-10-26 (ADR-0532, Felipe: «todo lo que se registre en Lima y
+  // no sea de la marca CAYLA pasa a ser CLAURE») ya no se pregunta: la decide la marca (`empresaPorMarca`). Solo si la base no dice cuál
+  // es la marca de CAYLA se vuelve a preguntar, como antes, sin ninguna marcada.
+  const [empresaElegida, setEmpresaId] = useState("");
+  const empresas = contexto.empresas;
+  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
+  const decideLaMarca = Boolean(empresas?.find((t) => t.clave === "cayla")?.marcaId);
+  const empresaId = decideLaMarca ? (empresaPorMarca(marcaId, empresas)?.id ?? "") : empresaElegida;
+  const preguntaEmpresa = exigeEmpresa && !decideLaMarca;
+  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
+  const faltaEmpresa = preguntaEmpresa && !empresaId;
   const [proveedorId, setProveedorId] = useState("");
   const [marcaNombre, setMarcaNombre] = useState("");
   const [proveedorNombre, setProveedorNombre] = useState("");
@@ -237,9 +240,6 @@ export function NuevoProductoForm({
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
   const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
   const vocabEtiquetas = useMemo(() => unirEtiquetas(contexto.etiquetas, etiquetasNuevas), [contexto.etiquetas, etiquetasNuevas]);
-  // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
-  // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
-  const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
   // «Temporada y etiquetas · opcional» (paso 2) arranca ABIERTO (Felipe 2026-09-29): plegado se pasaba de largo y nadie
   // sabía que ahí se elige la temporada y las etiquetas. Sigue siendo plegable, y plegado la línea dice lo elegido.
   const [masAbierto, setMasAbierto] = useState(true);
@@ -447,7 +447,8 @@ export function NuevoProductoForm({
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
-    exigeEmpresa,
+    // La guía y la validación piden la tienda solo si se pregunta (sin la marca de CAYLA en la base): si la decide la marca, siempre está.
+    exigeEmpresa: preguntaEmpresa,
     empresaId,
     categoriaId,
     referencia,
@@ -1048,11 +1049,8 @@ export function NuevoProductoForm({
                 categoriaId={categoriaId}
                 elegidas={etiquetasElegidas}
                 onElegidas={setEtiquetasElegidas}
-                puedeAprobar={puedeAprobarEtiquetas}
                 enLinea={enLinea}
                 onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
-                propuestas={etiquetasPropuestas}
-                onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
               />
             </FilaAlta>
           </PlegableAlta>
@@ -1318,7 +1316,7 @@ export function NuevoProductoForm({
                 </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
-              {paso === 1 && empresas && (
+              {paso === 1 && empresas && preguntaEmpresa && (
                 <TarjetaEmpresa>
                   <FilaAlta etiqueta="Tienda" campo="empresa" estado={est.empresa}>
                     <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />

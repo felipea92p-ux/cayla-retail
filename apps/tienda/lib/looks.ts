@@ -163,6 +163,7 @@ export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
     stock: null,
     nuevo: null,
     vendidos: null,
+    insignias: [],
     campana: p.prenda.campana ? { id: null, hasta: null, ...p.prenda.campana } : null,
   });
 

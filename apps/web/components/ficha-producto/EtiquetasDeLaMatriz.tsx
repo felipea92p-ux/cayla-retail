@@ -1,5 +1,6 @@
 "use client";
 
+import type { DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TarjetaMuestraBase } from "@/components/alta-producto/GrillaMuestras";
@@ -10,7 +11,8 @@ import { Tag } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 
 /** Una etiqueta que la cuenta puede poner, con su grupo (Rotación, Artesanal, Campaña, General) para dibujarla como en Atributos. */
-export type EtiquetaMatriz = { valor: string; texto: string; estilo: string };
+/** `icono`: el dibujo que se eligió al crearla (ADR-0490); sin él, el de su nombre. */
+export type EtiquetaMatriz = { valor: string; texto: string; estilo: string; icono?: DibujoDeInsignia | null; imagen?: string | null; imagenSilueta?: boolean };
 
 // Las etiquetas de la pestaña «Etiquetas» de la matriz (Felipe 2026-10-03): DEBAJO de la tabla, con todo el ancho, y dibujadas
 // como en Catálogo ▸ Insignias (la misma `MuestraEtiqueta` y los mismos grupos), para reconocerlas por su dibujo y
@@ -58,7 +60,7 @@ export function EtiquetasDeLaMatriz({
   const cuenta = elegida ? cuentaEtiqueta(filas, elegida) : null;
 
   return (
-    <section aria-label="Insignias y campañas" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
+    <section aria-label="Insignias" className="space-y-3 rounded-xl border border-sand bg-papel p-3 @lg:p-4" id="matriz-etiquetas">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
         <p className="text-[13px] text-tinta">
           {nombre && cuenta ? (
@@ -97,7 +99,7 @@ export function EtiquetasDeLaMatriz({
               const marcada = et.valor === elegida;
               return (
                 <TarjetaMuestraBase key={et.valor} elegido={marcada} deshabilitado={deshabilitado} onClick={() => onElegir(et.valor)} title={`Elegir «${et.texto}» para ponerla o quitarla`}>
-                  <MuestraEtiqueta nombre={et.texto} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
+                  <MuestraEtiqueta nombre={et.texto} icono={et.icono} imagen={et.imagen} imagenSilueta={et.imagenSilueta} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
                   <span className="truncate px-0.5" title={et.texto}>
                     {marcada && <span aria-hidden>✓ </span>}
                     {et.texto}

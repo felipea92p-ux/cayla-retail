@@ -6,13 +6,15 @@ import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
+import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia, imagenEsDeLaInsignia } from "@cayla-retail/shared/insignia-imagen";
 
 // POST/PATCH /api/productos/etiquetas → vocabulario cerrado de etiquetas
 // (ADR-0095). Mismo mecanismo que tejidos/patrones. Sin restricción por
 // sede a propósito (Felipe, 2026-09-18: "empresa uniforme") — la columna
 // `sedes_permitidas` sigue en el esquema, dormida, pero este endpoint ya
 // no la lee ni la escribe.
-const COLUMNAS_FILA = "id, nombre, activo, notas, estado";
+const COLUMNAS_FILA = "id, nombre, activo, notas, estado, icono, icono_imagen, icono_imagen_silueta";
 
 /** La función todavía no está en esta base (PostgREST no la encuentra): se sigue por el camino de antes. */
 const faltaLaFuncion = (e: { code?: string }) => e.code === "PGRST202" || e.code === "42883";
@@ -26,6 +28,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
 
+  // El dibujo que se eligió al crearla (ADR-0490): una clave de la lista de `shared`, o nada (se dibuja por el nombre).
+  const iconoPedido = cuerpo?.icono;
+  const icono = iconoPedido === undefined || iconoPedido === null ? null : dibujoElegido(iconoPedido);
+  if (iconoPedido !== undefined && iconoPedido !== null && icono === null) {
+    return Response.json({ error: "Ese dibujo no existe. Elige uno de la lista." }, { status: 400 });
+  }
   // Desde Catálogo ▸ Campañas nace con estilo `campana`; desde Insignias, sin estilo (la base pone «neutral»). ADR-0473.
   const estilo = cuerpo?.estilo === undefined ? undefined : estiloConocido(String(cuerpo.estilo));
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
@@ -37,12 +45,23 @@ export async function POST(request: Request) {
     if (!creada.error) {
       const { data: fila, error: errorFila } = await supabase.from("etiquetas").select(COLUMNAS_FILA).eq("id", creada.data as string).single();
       if (errorFila) return Response.json({ error: traducirError(errorFila, "leer la campaña recién creada", { lectura: true }) }, { status: 400 });
+      // Su dibujo se fija después, por la misma puerta que usa cambiarlo (`crear_campana` no cambia de firma). Si esa segunda escritura
+      // falla, la campaña ya existe y se ve por su nombre: se crea igual y se dice.
+      if (icono) {
+        const fijado = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: creada.data as string, p_icono: icono });
+        if (fijado.error) return Response.json({ etiqueta: fila, avisoDibujo: traducirError(fijado.error, "guardar el dibujo de la campaña") });
+        return Response.json({ etiqueta: { ...fila, icono } });
+      }
       return Response.json({ etiqueta: fila });
     }
     if (!faltaLaFuncion(creada.error)) return Response.json({ error: traducirError(creada.error, "agregar la campaña") }, { status: 400 });
     // Una base sin ADR-0476 todavía: el camino de antes (el alta directa, con su estilo).
   }
-  const { data, error } = await supabase.from("etiquetas").insert(estilo ? { nombre, estilo } : { nombre }).select(COLUMNAS_FILA).single();
+  const { data, error } = await supabase
+    .from("etiquetas")
+    .insert({ nombre, ...(estilo ? { estilo } : {}), ...(icono ? { icono } : {}) })
+    .select(COLUMNAS_FILA)
+    .single();
 
   if (error) {
     return Response.json({ error: traducirError(error, estilo === "campana" ? "agregar la campaña" : "agregar la insignia") }, { status: 400 });
@@ -110,6 +129,27 @@ export async function PATCH(request: Request) {
         : await supabase.rpc("actualizar_campana_etiqueta_con_sedes", { ...argumentos, p_sede_ids: sedeIds as string[] });
     if (error) return Response.json({ error: traducirError(error, "guardar la campaña") }, { status: 400 });
     return Response.json({ ok: true });
+  }
+
+  // El dibujo (ADR-0490) se cambia por su función (`fijar_icono_etiqueta`): la llave es la de cada etiqueta (una campaña, la de las
+  // campañas; otra insignia, Insignias) y la fila se toma primero. Un dibujo de la lista (`icono`) o una imagen propia ya subida al almacén
+  // (`imagen`, su ruta); nunca los dos, y fijar uno borra el otro. La imagen puede pintarse como silueta (`silueta`, ADR-0490 act. b): el archivo es un
+  // molde que toma el color del lugar; solo tiene sentido con una imagen. Solo ese cambio: nada más viaja en el mismo pedido.
+  if ("icono" in cuerpoObj || "imagen" in cuerpoObj) {
+    const pedidoIcono = cuerpoObj.icono ?? null;
+    const pedidoImagen = cuerpoObj.imagen ?? null;
+    const icono = pedidoIcono === null ? null : dibujoElegido(pedidoIcono);
+    if (pedidoIcono !== null && icono === null) return Response.json({ error: "Ese dibujo no existe. Elige uno de la lista." }, { status: 400 });
+    // La imagen tiene que ser una ruta que el ERP pudo subir y de ESTA insignia: nunca una dirección ni la de otra.
+    const imagen = pedidoImagen === null ? null : esRutaDeImagenDeInsignia(pedidoImagen) && imagenEsDeLaInsignia(pedidoImagen, id) ? pedidoImagen : undefined;
+    if (imagen === undefined) return Response.json({ error: "Esa imagen no es válida para esta insignia." }, { status: 400 });
+    if (icono !== null && imagen !== null) return Response.json({ error: "Elige un dibujo de la lista o una imagen propia, no los dos." }, { status: 400 });
+    const silueta = cuerpoObj.silueta === true;
+    if (silueta && imagen === null) return Response.json({ error: "La silueta es de una imagen propia: sube una imagen o quita la silueta." }, { status: 400 });
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
+    const { error } = await supabase.rpc("fijar_icono_etiqueta", { p_etiqueta_id: id, p_icono: icono, p_imagen: imagen, p_silueta: silueta });
+    if (error) return Response.json({ error: traducirError(error, "cambiar el dibujo") }, { status: 400 });
+    return Response.json({ ok: true, icono, imagen, silueta });
   }
 
   const patch: { nombre?: string; activo?: boolean; notas?: string | null; estado?: string } = {};

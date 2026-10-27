@@ -8,6 +8,7 @@
     { "path": "/api/inventario/frescura-vara-cayla", "schedule": "20 8 * * *" },
     { "path": "/api/inventario/espacio-piso", "schedule": "0 8 * * 1" },
     { "path": "/api/pedidos-web/cerrar-vencidos", "schedule": "*/15 * * * *" },
-    { "path": "/api/apartados/vencer", "schedule": "40 8 * * *" }
+    { "path": "/api/apartados/vencer", "schedule": "40 8 * * *" },
+    { "path": "/api/asistente/informe", "schedule": "0 12 * * 1" }
   ]
 }

@@ -26,6 +26,7 @@ export function PasoAPaso({
   familias,
   conVersion,
   versiones,
+  precioDeLaPlata = 0,
   onGuardado,
   onCambios,
   pedirSalida,
@@ -45,6 +46,8 @@ export function PasoAPaso({
   /** La base ya compara versiones al guardar (B4) y lo que devolvió cada guardado de esta visita, por categoría. */
   conVersion: boolean;
   versiones: Readonly<Record<string, number>>;
+  /** El precio de la plata del plan con tope que la campaña usa (0 = el plan de siempre). */
+  precioDeLaPlata?: number;
   /** Se guardó una categoría (con su versión nueva, si la base la devuelve): la pantalla la recuerda y enciende su fila. */
   onGuardado: (categoriaId: string, version: number | null) => void;
   /** ¿Hay algo escrito sin guardar en la categoría de ahora? */
@@ -180,6 +183,7 @@ export function PasoAPaso({
             enPantalla
             conVersion={conVersion}
             versionConocida={versiones[actual.c.id]}
+            precioDeLaPlata={precioDeLaPlata}
             onCambios={onCambios}
             antesDeRefrescar={antesDeRefrescar}
             irAlMontar={hechas.length > 0 || elegida !== null || saltadas.length > 0}

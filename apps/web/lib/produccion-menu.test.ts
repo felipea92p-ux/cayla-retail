@@ -42,9 +42,9 @@ describe("puedeVerProduccion", () => {
 });
 
 describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se muestra — Felipe, 2026-09-21)", () => {
-  it("el líder ve las seis pantallas de Compras desde una tienda o un almacén, en el orden plan → mi plata → revisar → proveedor → factura → pago (ADR-0480; Recibir vive en Inventario desde el 2026-10-14)", () => {
+  it("el líder ve las cuatro filas de Compras desde una tienda o un almacén, en el orden plan → mi plata → proveedor → historial (ADR-0504: Revisar compras y Por pagar son pestañas del Historial; Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "miPlata", "fondos", "proveedores", "comprobantes", "porPagar"]);
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "miPlata", "proveedores", "comprobantes"]);
     }
   });
 
@@ -56,10 +56,14 @@ describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se
   // Compras. Sin módulos (la forma vieja con que esta vista arma el menú) quien no es líder ve esas dos en una tienda o un almacén;
   // con módulos, cada cuenta ve solo las de su rol. Las cinco de plata siguen pidiendo `verDineroCompras`. En el Taller, nada.
   // ADR-0362 fase 6 (decisión 65): Fondos por rendir, igual que esas dos, pide solo su módulo (nace sin rol: con módulos solo la ve el líder).
-  // ADR-0480 (2026-10-22): Órdenes de compra pasa a «Mi plata para compras» y Fondos por rendir a «Revisar compras», con las mismas llaves.
-  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Mi plata para compras y Revisar compras); en el Taller, nada", () => {
+  // ADR-0480 (2026-10-22): Órdenes de compra pasa a «Mis compras» y Fondos por rendir a «Revisar compras», con las mismas llaves.
+  // ADR-0504 (2026-10-24): «Revisar compras» ya no es una fila: es una pestaña de «Historial de compras», que se abre con CUALQUIERA de sus tres
+  // módulos y por eso no pide `verDineroCompras` (con él, un rol con solo «Revisar compras» no la vería). Esta vista no trae módulos, así que
+  // quien no es líder ve esa fila donde antes veía «Revisar compras»; con módulos, solo la ve quien tiene uno de los tres, y cada pestaña
+  // pide el suyo.
+  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Mis compras y la fila del Historial); en el Taller, nada", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "miPlata", "fondos"]);
+      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "miPlata", "comprobantes"]);
     }
   });
 

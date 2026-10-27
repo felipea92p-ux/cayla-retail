@@ -1,11 +1,12 @@
 /* =====================================================================
    MODO OSCURO (ADR-0336, Felipe 2026-10-05).
 
-   LA IDEA. El oscuro NO es otra paleta: es la misma con `tinta` y `crema` en los papeles cambiados (el fondo es la tinta
-   de siempre y el texto, la crema), y el resto de los tokens aclarados para leerse sobre ese fondo. Así los ~5.600 usos de
-   `tinta` —3.917 con opacidad— se invierten solos: `text-tinta/65`, `bg-tinta/5`, `border-tinta/10`, un botón `bg-tinta
+   LA IDEA. El oscuro NO es otra paleta: es la misma con `tinta` y `crema` en los papeles cambiados (el texto es la crema y el
+   fondo un negro cálido que ocupa el lugar de la tinta), y el resto de los tokens aclarados para leerse sobre ese fondo. Así los ~5.600
+   usos de `tinta` —3.917 con opacidad— se invierten solos: `text-tinta/65`, `bg-tinta/5`, `border-tinta/10`, un botón `bg-tinta
    text-crema`… todos conservan su relación sin tocar una pantalla. Lo aprobó Felipe en el Observatorio (ADR-0322): fondo
-   #1a1a18, superficies un 7 % y un 14 % más claras, texto crema. El nombre del atributo lo reservó ADR-0169.
+   #1a1a18, superficies un 7 % y un 14 % más claras, texto crema; desde el 2026-10-26 ese fondo y sus superficies llevan el matiz
+   cálido de la familia (ver el bloque de abajo). El nombre del atributo lo reservó ADR-0169.
 
    REGLAS.
    1. Los valores viven ACÁ y en el `@theme` de globals.css, con los MISMOS nombres. `lib/tema-tokens.test.ts` falla si un
@@ -21,20 +22,26 @@
     color-scheme: dark; /* barras de scroll, selectores de fecha, autocompletado: los nativos también se oscurecen */
 
     /* Superficies: elevado = más claro. crema (página) < papel (tarjeta, tabla, hoja) < hueso (campo, zebra) < sand (línea). */
-    --color-crema: #1a1a18;
-    --color-papel: #242422; /* 2 niveles menos que el #262624 inicial: así `tinta` al 50 % (el texto de apoyo más usado del ERP; Tailwind lo mezcla en oklab) pasa de 4.46 a 4.5+:1 */
-    --color-hueso: #31302d;
-    --color-sand: #3d3c38;
+    /* Desde el 2026-10-26 (P1 de la familia CAYLA, Felipe eligió la opción C): las MISMAS claridades de siempre (#1a1a18, #242422, #31302d,
+       #3d3c38) teñidas del matiz del café de Dynamic (H 36°, S 10 %), calculadas para tener la misma luminancia: los contrastes no cambian
+       —el papel sigue dos niveles bajo el #262624 inicial para que `tinta` al 50 % (el texto de apoyo más usado del ERP; Tailwind lo mezcla
+       en oklab) pase de 4.46 a 4.5+:1— y CAYLA Retail y CAYLA Dynamic comparten el mismo oscuro (`docs/familia/contrato.json`). */
+    --color-crema: #1c1a17;
+    --color-papel: #26241f;
+    --color-hueso: #33302a;
+    --color-sand: #403b34;
 
-    /* Sombra y vidrio: dos colores que antes eran blanco y tinta escritos a mano en el CSS (ver `@theme` de globals.css). */
+    /* Sombra y vidrio: dos colores que antes eran blanco y tinta escritos a mano en el CSS (ver `@theme` de globals.css). El vidrio es el hueso. */
     --color-sombra: #000000;
-    --color-vidrio: #31302d;
+    --color-vidrio: #33302a;
 
     /* Texto. Todos ≥ 4.5:1 sobre crema, papel y hueso (la prueba lo mide). */
     --color-tinta: #f5f0e8;
     --color-tinta-60: #b9b2a7;
     --color-taupe: #c4a898;
     --color-taupe-profundo: #c4a898;
+    /* El borde de un control (P2 de la familia): 4.3:1 sobre crema, 3.8:1 sobre papel y 3.2:1 sobre hueso. */
+    --color-borde-control: #8d7a6e;
 
     /* El acento y los dos rojos: el de marca sube de tono para leerse sobre oscuro; el profundo (hover, texto sobre tinte)
        queda por encima de él, como en el claro. */
@@ -60,6 +67,13 @@
     --color-metodo-yape: #b79be0;
     --color-metodo-plin: #5fc4a4;
     --color-metodo-transferencia: #78b0e6;
+
+    /* Hilos de sede del telar de Finanzas: los mismos tonos, aclarados para leerse sobre el fondo oscuro. */
+    --color-sede-tru: #4f8ad0;
+    --color-sede-aqp: #d27b3c;
+    --color-sede-lim: #2fa585;
+    --color-sede-tal: #a26cc6;
+    --color-sede-emp: #8a7d70;
 
     /* Sombras: en oscuro la tinta no se ve sobre la tinta; son de negro y más abiertas, solo para lo que flota. */
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
@@ -98,6 +112,7 @@
     --color-rojo-profundo: #8b2a1f;
     --color-sand: #e8e0d0;
     --color-taupe: #805c4c;
+    --color-borde-control: #96786a;
     --color-papel: #fbf8f2;
     --color-hueso: #eae1d2;
     --color-sombra: #1a1a18;
@@ -123,6 +138,11 @@
     --color-metodo-transferencia: #2f6aa3;
     --color-metodo-qr: var(--color-tinta);
     --color-metodo-anticipo: var(--color-taupe);
+    --color-sede-tru: #2f6aa3;
+    --color-sede-aqp: #c26a2e;
+    --color-sede-lim: #1d8a72;
+    --color-sede-tal: #8a4fa8;
+    --color-sede-emp: #9a8b7b;
     --color-metodo-redondeo: var(--color-taupe);
 
     --color-background: var(--color-crema);

@@ -1,3 +1,5 @@
+import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { notFound, redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
@@ -15,6 +17,7 @@ import { precioUnico } from "@/lib/precio-sede-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { esUuid } from "@/lib/club-registro-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
+import { getPuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 import type { CampanaDelVocabulario } from "@/lib/precio-de-hoy";
 
 
@@ -38,7 +41,7 @@ export default async function EditarProductoPage({
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -55,7 +58,7 @@ export default async function EditarProductoPage({
     // regla de la caja (marcada a mano o por su categoría).
     supabase
       .from("etiquetas")
-      .select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+      .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
       .eq("activo", true)
       .eq("estado", "aprobado")
       .order("nombre"),
@@ -71,6 +74,8 @@ export default async function EditarProductoPage({
     // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas): el aviso de reimprimir dice en cuáles cambió el precio en caja.
     // Tolerante: si falla (la base sin la migración), todas rigen en todas las sedes, como antes.
     supabase.rpc("campanas_sedes"),
+    // La ficha de consumo del modelo (ADR-0513): el Taller y los avíos para su hoja. Tolerante: si falla, la tarjeta no se dibuja.
+    getPuertaDeLaFicha(),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const filasFamilias = exigir(familias, "las familias del catálogo");
@@ -90,7 +95,7 @@ export default async function EditarProductoPage({
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
-    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral" }));
+    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral", icono: dibujoElegido(e.icono), imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null, imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true }));
   // Las que bajan el precio (ADR-0472): la ficha calcula con ellas lo que cobra la caja, también mientras se cambian etiquetas.
   const sedesDeCampana = new Map<string, string[]>();
   for (const f of resSedesCampanas.error ? [] : (resSedesCampanas.data ?? [])) {
@@ -193,6 +198,7 @@ export default async function EditarProductoPage({
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}
         puedeCorregir={puedeCorregir}
+        fichaConsumo={puertaDeLaFicha}
         ajusteStock={ajusteStock}
         lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
         preciosSede={{
@@ -201,6 +207,8 @@ export default async function EditarProductoPage({
           general: precioPrenda,
           ubicacionId: persona.ubicacionId,
           sede: persona.ubicacionEtiqueta,
+          // Una terminal está fija en su tienda: el bloque habla solo de ella (Felipe 2026-10-26).
+          soloAqui: persona.terminal,
         }}
         producto={producto}
         volverA={volverA}

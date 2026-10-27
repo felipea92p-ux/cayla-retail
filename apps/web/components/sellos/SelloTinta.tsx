@@ -1,4 +1,5 @@
 import { useId, type CSSProperties } from "react";
+import type { DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
 import { dibujoDeEtiqueta } from "@/components/MuestraEtiqueta";
 import type { EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 
@@ -16,6 +17,9 @@ const GRUPO: Record<EstiloEtiqueta, string> = { campana: "Campaña", urgencia: "
 
 export function SelloTinta({
   nombre,
+  icono = null,
+  imagen = null,
+  imagenSilueta = false,
   estilo,
   anio = null,
   tamano = 72,
@@ -25,6 +29,12 @@ export function SelloTinta({
   className = "",
 }: {
   nombre: string;
+  /** El dibujo elegido al crearla (ADR-0490); sin él, el de su nombre. */
+  icono?: DibujoDeInsignia | null;
+  /** Su imagen propia (la ruta en el almacén); manda sobre `icono`. */
+  imagen?: string | null;
+  /** La imagen es un molde que se pinta con el color del sello (ADR-0490 act. b). */
+  imagenSilueta?: boolean;
   estilo: EstiloEtiqueta;
   /** El año de una campaña con fechas: va en el borde de abajo («★ 2026 ★»). */
   anio?: string | null;
@@ -37,7 +47,7 @@ export function SelloTinta({
   className?: string;
 }) {
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const dibujo = dibujoDeEtiqueta(nombre)("currentColor");
+  const dibujo = dibujoDeEtiqueta(nombre, icono, imagen, imagenSilueta)("currentColor");
   const estilos = { width: tamano, height: tamano, "--sl-giro": `${giro}deg`, "--i": indice } as CSSProperties;
   const abajo = estilo === "campana" ? (anio ?? "CAYLA") : GRUPO[estilo];
   return (

@@ -37,11 +37,17 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261023114
   "",
 );
 
+const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder: revisa
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
 
 // La ronda de compras (20261023183000): sin una abierta, la base no deja anotar una compra ni un gasto. Se vuelve a pegar después de la
 // migración de este archivo (que deja funciones de antes) y cada persona de la semilla empieza con su ronda abierta.
 const RONDA = readFileSync(join(RAIZ, "supabase", "migrations", "20261023183000_compras_simple_ronda_de_compras.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+// «Mis envíos» (20261026174000): lo que mandó cada compradora, con su código y su ronda. Solo lectura.
+const ENVIOS = readFileSync(join(RAIZ, "supabase", "migrations", "20261026174000_mis_compras_mis_envios.sql"), "utf8").replace(
   /^set lock_timeout.*$/gm,
   "",
 );
@@ -68,6 +74,8 @@ ${MIGRACION}
 ${MIGRACION}
 ${RONDA}
 ${RONDA}
+${ENVIOS}
+${ENVIOS}
 ${RONDAS_ABIERTAS}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
@@ -299,6 +307,56 @@ select (retail.fn_mi_plata_compras() -> 'hoy' -> 'cierre' ->> 'decision') is not
 reset role;
 select count(*) from retail.compra_cierres where persona_id = :'micaela' and fecha = retail.fn_hoy_lima() and ronda_id is not null;`,
   "t| / 2",
+);
+
+caso(
+  "Revisar compras ve la ronda abierta con lo que lleva; cerrada, su cierre trae el cuaderno y la plata dice su ronda (20261023210000)",
+  `${como(MICAELA, "gasto_rapido")}
+${GASTO()} \\g /dev/null
+${como(MICAELA, "plata_anotar")}
+select retail.anotar_plata_compras('efectivo', 40, null, gen_random_uuid()) \\g /dev/null
+${como(FELIPE, null)}
+select (r -> 'cuenta' ->> 'gastos') || '|' || (r -> 'cuenta' ->> 'gastaste') || '|' || (r -> 'cuenta' ->> 'dieron') || '|' || (r ->> 'texto' ~ '^RC-')
+  from jsonb_array_elements(retail.fn_revisar_compras() -> 'rondas_abiertas') r where r ->> 'persona_id' = :'micaela';
+select (p ->> 'ronda') ~ '^RC-' from jsonb_array_elements(retail.fn_plata_por_confirmar()) p where p ->> 'persona_id' = :'micaela' and (p ->> 'monto')::numeric = 40;
+${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('devuelve') \\g /dev/null
+${como(FELIPE, null)}
+select (k -> 'cuaderno' ->> 'gastaste') || '|' || (k -> 'cuaderno' ->> 'dieron'), (select count(*) from jsonb_array_elements(retail.fn_revisar_compras() -> 'rondas_abiertas') r where r ->> 'persona_id' = :'micaela')
+  from jsonb_array_elements(retail.fn_revisar_compras() -> 'cierres') k where k ->> 'persona_id' = :'micaela';`,
+  "1|18.00|40.00|true / t / 18.00|40.00|0",
+);
+
+caso(
+  "Mis envíos: cada compradora ve los que mandó, con su código, su tienda, lo que llevaba y su ronda (también cerrada); otra persona no los ve (20261026174000)",
+  `${COMPRA}
+${como(MICAELA, "compra_mandar")}
+${MANDAR()} \\g /dev/null
+${como(MICAELA, "compra_terminar_dia")}
+select retail.terminar_dia_compras('se_queda') \\g /dev/null
+select jsonb_array_length(retail.fn_mis_envios()),
+       retail.fn_mis_envios() -> 0 ->> 'numero' ~ '^ENV-[0-9]{6}$',
+       retail.fn_mis_envios() -> 0 ->> 'estado', retail.fn_mis_envios() -> 0 ->> 'destino',
+       retail.fn_mis_envios() -> 0 ->> 'bultos', retail.fn_mis_envios() -> 0 ->> 'unidades', retail.fn_mis_envios() -> 0 ->> 'contadas',
+       retail.fn_mis_envios() -> 0 ->> 'ronda' ~ '^RC-[0-9]{6}$', (retail.fn_mis_envios() -> 0 ->> 'ronda_cerrada_en') is not null,
+       jsonb_array_length(retail.fn_mis_envios() -> 0 -> 'lineas');
+reset role;
+select id as envio from retail.despachos where token_cliente = '${TOKEN}' \\gset
+${como(FELIPE, null)}
+select count(*) from jsonb_array_elements(retail.fn_mis_envios()) e where e ->> 'id' = :'envio';`,
+  "1|t|en_camino|Tienda Trujillo|2|6|0|t|t|1 / 0",
+);
+
+caso(
+  "Mis envíos pide el módulo (42501) y anon no lo ejecuta",
+  `reset role;
+delete from retail.rol_modulos where rol_id = :'rol';
+insert into retail.rol_modulos (rol_id, modulo) values (:'rol', 'existencias');
+${como(MICAELA, null)}
+select left(${intento("select retail.fn_mis_envios()")}, 5);
+reset role;
+select has_function_privilege('anon', 'retail.fn_mis_envios()', 'execute');`,
+  "42501 / f",
 );
 
 caso(

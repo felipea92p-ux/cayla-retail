@@ -17,6 +17,7 @@ import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas
 import { getMaquinasPos, getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
 import { getPresupuestoConfig } from "@/lib/presupuesto";
 import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
+import { getAsistenteSedes } from "@/lib/asistente/sedes-servidor";
 
 // Configuración (ADR-0195, módulo «configuracion»; delegable desde el ADR-0253): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
@@ -62,11 +63,12 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 // La carga inicial de cada sede (ADR-0328, actividad 4) va en esta pestaña: es una fecha de la sede, como su hora de cierre. Si la
 // base todavía no tiene la función (la web salió antes que el SQL), la tarjeta no aparece y nada más cambia.
 async function SeccionTiendas({ esLider, esAdmin }: { esLider: boolean; esAdmin: boolean }) {
-  const [datos, carga, metas] = await Promise.all([getConfiguracionTiendas(), getCargaInicial(), getConfiguracionMetas()]);
+  const [datos, carga, metas, asistente] = await Promise.all([getConfiguracionTiendas(), getCargaInicial(), getConfiguracionMetas(), getAsistenteSedes()]);
   return (
     <ConfiguracionTiendas
       datos={datos}
       metas={metas}
+      asistente={asistente}
       despuesDeWhatsapp={carga && carga.sedes.length > 0 ? <ConfiguracionCargaInicial lectura={carga} esLider={esLider} esAdmin={esAdmin} /> : null}
     />
   );

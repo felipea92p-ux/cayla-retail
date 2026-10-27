@@ -12,6 +12,7 @@ import {
   esGrupo,
   esGrupoMenu,
   esMostrador,
+  hermanosDe,
   hojasDe,
   menuPara,
   permisosDe,
@@ -464,17 +465,26 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los seis módulos ve las seis pantallas desde una tienda o un almacén, en el orden plan → mi plata → revisar → proveedores → facturas → por pagar (ADR-0480; Recibir vive en Inventario desde el 2026-10-14)", () => {
+  it("con `verDineroCompras` y los módulos de Compras ve cuatro filas desde una tienda o un almacén, en el orden plan → mi plata → proveedores → historial (ADR-0504: Revisar compras y Por pagar son pestañas del Historial; Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.plan",
         "compras.miPlata",
-        "compras.fondos",
         "compras.proveedores",
         "compras.comprobantes",
-        "compras.porPagar",
       ]);
     }
+  });
+
+  it("la fila «Historial de compras» (ADR-0504) sale con CUALQUIERA de sus tres módulos, y sin ninguno no sale", () => {
+    // Con una sola hija visible el grupo sale como fila suelta con el nombre del grupo («Compras»): se mira el destino, no la etiqueta.
+    const filas = (modulos: ClaveModulo[]) =>
+      menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href).filter((href) => href === "/compras");
+    expect(filas(["facturas_compra"])).toEqual(["/compras"]);
+    expect(filas(["fondos"])).toEqual(["/compras"]);
+    expect(filas(["por_pagar"])).toEqual(["/compras"]);
+    expect(filas(["fondos", "por_pagar", "facturas_compra"])).toEqual(["/compras"]);
+    expect(filas(["proveedores", "ordenes_compra"])).toEqual([]);
   });
 
   it("parado en el Taller el líder NO ve Compras: allí se trabaja Producción", () => {
@@ -508,19 +518,20 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(enElTaller(INTEGRANTE).map((f) => f.href)).toContain("/recibir");
   });
 
-  // ADR-0480 (Compras simple, Felipe 2026-10-22): Compras queda en 6. Sin «Órdenes de compra» ni «Notas de crédito».
-  it("Compras tiene 6 opciones: Plan de campaña, Mi plata para compras, Revisar compras, Proveedores, Historial de compras y Por pagar", () => {
+  // ADR-0480 (Compras simple, Felipe 2026-10-22): sin «Órdenes de compra» ni «Notas de crédito». ADR-0504 (2026-10-24): «Revisar compras» y «Por pagar»
+  // pasan a pestañas del Historial; Compras queda en 4.
+  it("Compras tiene 4 opciones: Plan de campaña, Mis compras, Proveedores y Historial de compras", () => {
     const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda" });
     const compras = riel.find((f) => f.id === "compras");
     const hijos = compras && esGrupoMenu(compras) ? compras.hijos : [];
-    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mi plata para compras", "Revisar compras", "Proveedores", "Historial de compras", "Por pagar"]);
+    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mis compras", "Proveedores", "Historial de compras"]);
     expect(hijos.find((h) => h.id === "compras.miPlata")).toMatchObject({ href: "/compras/mi-plata" });
   });
 
   // Hasta el 2026-10-10 decía «sin `verDineroCompras` no ve Compras». La decisión 34 de ADR-0362 (el módulo es la llave) lo cambió a
   // propósito: Órdenes de compra trae sus precios y no pide el dinero de las facturas. Lo que sigue en pie: sin ese permiso no se ve
   // NINGUNA pantalla de dinero de Compras, y con los módulos de hoy (sin Órdenes de compra) Compras no aparece.
-  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo de quien compra ve solo «Mi plata para compras» (ADR-0362, ADR-0480)", () => {
+  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo de quien compra ve solo «Mis compras» (ADR-0362, ADR-0480)", () => {
     const deHoy = MODULOS_DE_HOY.integrante.map((m) => m.clave);
     for (const ubicacionTipo of TIPOS_UBICACION) {
       expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: deHoy }).riel.some((f) => f.id === "compras"), ubicacionTipo).toBe(false);
@@ -579,6 +590,25 @@ describe("reglas de menuPara", () => {
     const ids = (perfil: PerfilDelMenu) => menuPara(perfil, fuente(arbol)).riel.map((f) => f.id);
     expect(ids({ permisos: [], ubicacionTipo: "tienda" })).toEqual(["libre", "soloSinDinero"]);
     expect(ids({ permisos: ["verDinero"], ubicacionTipo: "taller" })).toEqual(["libre", "soloConDinero", "soloTaller"]);
+  });
+
+  it("una fila con varias vistas se abre con CUALQUIERA de sus módulos, y sin ninguno no sale (ADR-0504)", () => {
+    const arbol: Nodo[] = [hoja("historial", { modulo: "facturas_compra", modulosAlternos: ["fondos", "por_pagar"] })];
+    const ids = (modulos: ClaveModulo[]) => menuPara({ ...PERFIL_BASE, modulos }, fuente(arbol)).riel.map((f) => f.id);
+    expect(ids(["facturas_compra"])).toEqual(["historial"]);
+    expect(ids(["fondos"])).toEqual(["historial"]);
+    expect(ids(["por_pagar"])).toEqual(["historial"]);
+    expect(ids(["fondos", "por_pagar"])).toEqual(["historial"]);
+    expect(ids(["proveedores"])).toEqual([]);
+    expect(ids([])).toEqual([]);
+  });
+
+  it("Catálogo ▸ Insignias sigue abriéndose con Campañas sola: el alterno de antes no cambió", () => {
+    // Con una sola hija, el grupo sale como fila suelta con el nombre del grupo: se mira el destino, no el id.
+    const destinos = (modulos: ClaveModulo[]) => menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href);
+    expect(destinos(["campanas"])).toContain("/productos/insignias");
+    expect(destinos(["etiquetas"])).toContain("/productos/insignias");
+    expect(destinos(["existencias"])).not.toContain("/productos/insignias");
   });
 
   it("las insignias salen solo con un número positivo", () => {
@@ -881,5 +911,25 @@ describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su
     expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso", "Inventario"]);
     expect(conModulos(["frescura", "existencias"]).grupoDe("/gestion/frescura")).toBe("gestion");
     expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario")).toBe("inventario");
+  });
+});
+
+describe("hermanosDe (un solo grupo abierto por nivel)", () => {
+  const filas: FilaMenu[] = [
+    { id: "a", etiqueta: "A", icono: "inicio" as never, hijos: [{ id: "a1", etiqueta: "A1", href: "/a1", icono: "inicio" as never }] },
+    { id: "b", etiqueta: "B", icono: "inicio" as never, hijos: [
+      { id: "b-sub", etiqueta: "Sub", icono: "inicio" as never, hijos: [] },
+      { id: "b-sub2", etiqueta: "Sub2", icono: "inicio" as never, hijos: [] },
+    ] },
+    { id: "suelta", etiqueta: "Suelta", href: "/s", icono: "inicio" as never },
+  ];
+  it("los grupos de primer nivel son hermanos entre sí, sin contar las filas sueltas", () => {
+    expect(hermanosDe("a", filas)).toEqual(["b"]);
+  });
+  it("un subgrupo solo cierra a sus hermanos, nunca a su padre", () => {
+    expect(hermanosDe("b-sub", filas)).toEqual(["b-sub2"]);
+  });
+  it("un id desconocido no cierra nada", () => {
+    expect(hermanosDe("zzz", filas)).toEqual([]);
   });
 });

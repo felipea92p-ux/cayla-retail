@@ -4,6 +4,7 @@
 // PROMETE: las filas de la pantalla (las de su modo, por `esDelModo`, o todas), las categorías para elegir dónde rige, las prendas
 //   con su precio más bajo entre tiendas y su costo (para el aviso «quedaría bajo su costo»), las prendas puestas a mano, la lectura
 //   de Rotación si se pide y, con `conVitrina`, de qué modelo, color y categoría es cada prenda y su foto (la vitrina de cada pase).
+//   las ofertas de cada campaña (`reglas`; sin la función o sin la llave, vacías y `reglasDisponibles: false`).
 //   Lanza si una lectura de la base falla (`exigir`), como lo hacía la página; las fotos, no: sin ellas la vitrina dibuja la prenda
 //   sin foto (su categoría sobre su color).
 // ASUME: que quien llama ya pasó la puerta del módulo; `puedeEditar` decide si se leen las prendas y el costo.
@@ -15,10 +16,13 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getLecturaRotacion } from "@/lib/etiqueta-rotacion-datos";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { precioMasBajoEnTiendas } from "@/lib/precio-sede-reglas";
+import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
 import { esDelModo, type ModoEtiquetas } from "@/lib/sellos-campanas";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import type { TallaVitrina } from "@/lib/sellos-pases";
+import { reglaDeFila, type FilaRegla } from "@/lib/campana-reglas";
 
 /** «Ninguna tienda con precio propio»: lo que se usa cuando no hace falta leerlos (la forma de `getPreciosDeLasTiendas`). */
 const sinPreciosDeTiendas = () => ({ nombres: new Map<string, string>(), porSede: {} as Record<string, Record<string, number>> });
@@ -55,10 +59,16 @@ export async function cargarEtiquetasPantalla({
   // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas) y las tiendas para elegir. Si la función aún no existe en esa base
   // (PGRST202, la migración sin pegar), ninguna campaña está limitada y la hoja de Configurar no ofrece sedes.
   const cargaSedes = supabase.rpc("campanas_sedes");
+  // Las ofertas de cada campaña («Tres preguntas», migración 20261023232000). Sin la función en esa base (PGRST202) o sin la llave, la
+  // lista queda vacía y la hoja de Configurar no ofrece ofertas: la campaña sigue con su descuento de siempre.
+  // De qué empresa es cada prenda (ADR-0463): para que el conteo de una oferta no cuente las de Claurè, que ninguna oferta alcanza salvo a propósito.
+  // Sin la función (una base vieja) nadie es de Claurè: el conteo es el de antes.
+  const cargaEmpresas = puedeEditar ? supabase.rpc("fn_empresas") : Promise.resolve({ data: null, error: null });
+  const cargaReglas = supabase.rpc("campana_reglas" as never) as unknown as PromiseLike<{ data: FilaRegla[] | null; error: { message: string } | null }>;
   const cargaTiendas = getUbicaciones().then((u) => u.filter((x) => x.tipo === "tienda").map((x) => ({ id: x.id, nombre: x.nombre })));
 
-  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas] = await Promise.all([
-    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
+  const [resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, preciosTiendas, resSedes, tiendas, resReglas, resEmpresas] = await Promise.all([
+    supabase.from("etiquetas").select("id, nombre, activo, notas, estado, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct").order("nombre"),
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id"),
     supabase.from("familias").select("codigo, nombre"),
@@ -66,7 +76,7 @@ export async function cargarEtiquetasPantalla({
       ? leerTodas((desde, hasta) =>
           supabase
             .from("variantes")
-            .select("id, sku, precio, color_codigo, producto:productos!inner ( id, referencia, categoria_id )")
+            .select("id, sku, precio, color_codigo, producto:productos!inner ( id, referencia, categoria_id, empresa_id )")
             .eq("activo", true)
             .eq("producto.estado", "activo")
             .order("id")
@@ -81,7 +91,10 @@ export async function cargarEtiquetasPantalla({
     cargaPreciosTiendas,
     cargaSedes,
     cargaTiendas,
+    cargaReglas,
+    cargaEmpresas,
   ]);
+  const idClaure = (resEmpresas.data ?? []).find((e) => e.clave === "claure")?.id ?? null;
 
   const sedesDeCampana = new Map<string, string[]>();
   // Una lectura que falla deja todas las campañas «en todas las sedes»: lo que se ve es lo de siempre, y guardar no pisa nada que no se vio.
@@ -89,6 +102,8 @@ export async function cargarEtiquetasPantalla({
     sedesDeCampana.set(f.etiqueta_id, [...(sedesDeCampana.get(f.etiqueta_id) ?? []), f.ubicacion_id]);
   }
   const sedesDisponibles = !resSedes.error;
+  const reglasDisponibles = !resReglas.error;
+  const reglas = reglasDisponibles ? (resReglas.data ?? []).map(reglaDeFila) : [];
 
   const etiquetaCategorias = new Map<string, string[]>();
   for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
@@ -102,6 +117,9 @@ export async function cargarEtiquetasPantalla({
       notas: e.notas,
       estado: e.estado as "pendiente" | "aprobado" | "rechazado",
       estilo: estiloConocido(e.estilo),
+      icono: dibujoElegido(e.icono),
+      imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
+      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
       descuentoPct: e.descuento_pct,
@@ -122,6 +140,7 @@ export async function cargarEtiquetasPantalla({
       nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
       // Una prenda es un modelo en un color, con la misma clave que el pase de Insignias (`prendasDelSello`): la hoja y el pase cuentan igual.
       modelo: `${v.producto?.id ?? v.id}·${v.color_codigo ?? ""}`,
+      deClaure: idClaure !== null && v.producto?.empresa_id === idClaure,
     };
   });
   const variantesManuales: Record<string, string[]> = {};
@@ -155,7 +174,7 @@ export async function cargarEtiquetasPantalla({
         };
       })
     : null;
-  return { etiquetas, categorias, prendasConCosto, variantesManuales, rotacion: await cargaRotacion, prendasVitrina, tiendas: sedesDisponibles ? tiendas : [] };
+  return { etiquetas, categorias, prendasConCosto, variantesManuales, rotacion: await cargaRotacion, prendasVitrina, tiendas: sedesDisponibles ? tiendas : [], reglas, reglasDisponibles };
 }
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;

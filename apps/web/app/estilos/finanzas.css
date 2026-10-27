@@ -465,7 +465,8 @@
   }
   .fin-fijo {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    /* La última columna mide lo mismo en todas las filas con botón (7,5 rem): así los montos quedan alineados aunque diga «Registrar» o «Registrar monto». */
+    grid-template-columns: 1fr auto minmax(7.5rem, auto);
     gap: 12px;
     align-items: center;
     padding: 12px 0;
@@ -473,6 +474,9 @@
   }
   .fin-fijos .fin-fijo:first-child {
     border-top: 0;
+  }
+  .fin-fijo > :last-child {
+    justify-self: end;
   }
   .fin-fijo b {
     display: block;
@@ -490,6 +494,19 @@
     font-size: 19px;
     white-space: nowrap;
     color: var(--color-tinta);
+  }
+  /* Fijos del mes como cola (2026-10-22): los grupos se separan con aire, y en el celular el botón baja bajo el nombre en vez de partirlo. */
+  .fin-fijos-grupo {
+    margin-top: 18px;
+  }
+  @media (max-width: 639px) {
+    .fin-fijo {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .fin-fijo > :last-child {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
   }
 
   /* Par de entradas en una celda (Configuración: «% · fondo»). */
@@ -729,6 +746,244 @@
     .fin-decidir li > .btn-cayla {
       grid-column: 2;
       justify-self: start;
+    }
+  }
+}
+
+/* ---- Finanzas ▸ Impuestos en «El telar» (Felipe 2026-10-23): la balanza del IGV ----
+   Diseño: docs/maquetas/finanzas-telar-2026-10/ (rama claude/finanzas-redesign-filters-d154a4), pantalla «La balanza».
+   Solo tokens (ADR-0169/0336): las pesas usan colores que se invierten en oscuro y su texto va en crema, que también se invierte,
+   así el contraste se mantiene en los dos temas. Movimiento (ADR-0136): la balanza entra con el fundido de siempre y aparece ya
+   inclinada; las pesas que caen y el brazo que se mece esperan la excepción de Finanzas que decide Felipe. */
+@layer components {
+  .fin-balanza-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .fin-balanza-cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .fin-balanza {
+    display: block;
+    width: 100%;
+    max-width: 680px;
+    height: auto;
+    margin: 4px auto 0;
+    overflow: visible;
+  }
+  .fin-balanza text {
+    font-family: var(--font-sans);
+    fill: var(--color-tinta);
+  }
+  .fin-balanza .fin-balanza-brazo {
+    transform-origin: 340px 74px;
+    transform: rotate(var(--ang));
+  }
+  .fin-balanza .fin-balanza-plato-i {
+    transform: translateY(var(--dy));
+  }
+  .fin-balanza .fin-balanza-plato-d {
+    transform: translateY(calc(var(--dy) * -1));
+  }
+  .fin-balanza .fin-balanza-et {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    fill: var(--color-taupe);
+  }
+  .fin-balanza .fin-balanza-total {
+    font-family: var(--font-serif);
+    font-size: 22px;
+  }
+  .fin-balanza .fin-balanza-pesa-texto {
+    font-size: 11.5px;
+    font-weight: 600;
+    fill: var(--color-crema);
+  }
+
+  /* Colores de pesa: dato (qué es cada pesa), no decoración. Cuando haya reparto por sede, cada lugar trae su color. */
+  .fin-pesa-ventas { fill: var(--color-tinta); }
+  .fin-pesa-creditoMercaderia { fill: var(--color-taupe); }
+  .fin-pesa-creditoGastos { fill: var(--color-pizarra); }
+  .fin-pesa-creditoActivos { fill: var(--color-ambar); }
+  .fin-pesa-creditoTaller { fill: var(--color-verde); }
+  .fin-pesa-saldo_anterior { fill: var(--color-sand); }
+  .fin-pesa-saldo_anterior + .fin-balanza-pesa-texto { fill: var(--color-tinta); }
+
+  /* La cuenta que siempre cierra, bajo la balanza. */
+  .fin-balanza-cuenta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .fin-balanza-paso {
+    flex: 1 1 110px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: 12px;
+    background: var(--color-crema);
+  }
+  .fin-balanza-paso .fin-balanza-v {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-balanza-paso.fin-balanza-fin {
+    background: var(--color-tinta);
+    border-color: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .fin-balanza-paso-et {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-balanza-paso.fin-balanza-fin .fin-balanza-paso-et {
+    color: color-mix(in srgb, var(--color-crema) 78%, transparent);
+  }
+  .fin-balanza-op {
+    align-self: center;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--color-taupe);
+  }
+  @media (max-width: 640px) {
+    .fin-balanza-op {
+      flex-basis: 100%;
+      text-align: center;
+      line-height: 0.6;
+    }
+  }
+}
+
+/* ---- Finanzas ▸ Impuestos en «El telar»: un sobre por mes (abierto si falta algo, punteado si corre, apagado si no hubo nada).
+   La tapa se entreabre al pasar el mouse (con mouse de verdad: ADR-0136). Sin lacre todavía: el «pagado» espera a Felipe. */
+@layer components {
+  .fin-sobres {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    /* Fila con aire: la tapa abierta sube por encima de su sobre y no debe pisar la fila de arriba. */
+    gap: 40px 12px;
+    margin-top: 28px;
+  }
+  /* En pantallas angostas, «Otro mes» baja bajo el título en vez de apretarlo. */
+  .fin-sobres-bloque .fin-bloque-cab {
+    flex-wrap: wrap;
+  }
+  @media (max-width: 900px) {
+    .fin-sobres {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-sobres {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .fin-sobre {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px;
+    margin: -8px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  .fin-sobre[aria-current="true"] {
+    background: var(--color-hueso);
+  }
+  .fin-sobre:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  .fin-sobre-cuerpo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.45;
+    border-radius: 10px;
+    background: var(--color-hueso);
+    perspective: 500px;
+  }
+  .fin-sobre[aria-current="true"] .fin-sobre-cuerpo {
+    background: var(--color-papel);
+  }
+  /* Los pliegues del sobre: dos diagonales finas. */
+  .fin-sobre-cuerpo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background:
+      linear-gradient(155deg, transparent 49.5%, color-mix(in srgb, var(--color-tinta) 10%, transparent) 50%, transparent 51%),
+      linear-gradient(25deg, transparent 49.5%, color-mix(in srgb, var(--color-tinta) 10%, transparent) 50%, transparent 51%);
+  }
+  .fin-sobre-tapa {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 58%;
+    border-radius: 10px 10px 0 0;
+    background: color-mix(in srgb, var(--color-sand) 85%, var(--color-hueso));
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top;
+    transition: transform 0.6s var(--ease-cayla);
+  }
+  /* Abierta, la tapa sube por encima del sobre; más corta, para no tapar la cabecera del bloque. */
+  .fin-sobre[data-forma="abierto"] .fin-sobre-tapa {
+    transform: rotateX(180deg) scaleY(0.6);
+  }
+  @media (hover: hover) {
+    .fin-sobre[data-forma="cerrado"]:hover .fin-sobre-tapa,
+    .fin-sobre[data-forma="vacio"]:hover .fin-sobre-tapa {
+      transform: rotateX(35deg);
+    }
+  }
+  .fin-sobre[data-forma="curso"] .fin-sobre-cuerpo {
+    background: transparent;
+    border: 1.5px dashed var(--color-sand);
+  }
+  .fin-sobre[data-forma="curso"] .fin-sobre-tapa {
+    background: transparent;
+  }
+  .fin-sobre[data-forma="vacio"] .fin-sobre-cuerpo,
+  .fin-sobre[data-forma="vacio"] .fin-sobre-monto {
+    opacity: 0.55;
+  }
+  .fin-sobre-mes {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .fin-sobre-monto {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-sobre-monto small {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-verde);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-sobre-tapa {
+      transition: none;
     }
   }
 }
@@ -1997,65 +2252,8 @@
   }
 }
 
-/* ---- El medidor de confianza (ADR-0417, Fase 1): un arco que se dibuja hasta el porcentaje, la frase y las piezas. ---- */
+/* ---- El medidor de confianza (ADR-0417; spike 5-A, 2026-10-24): bajo la respuesta, «Seguro al N %» y, a un toque, las piezas. ---- */
 @layer components {
-  .fin-confianza {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .fin-confianza-cab {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .fin-confianza-arco {
-    position: relative;
-    flex: none;
-    width: 132px;
-  }
-  .fin-confianza-arco svg {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-  .fin-confianza-pista,
-  .fin-confianza-valor {
-    fill: none;
-    stroke-width: 9;
-    stroke-linecap: round;
-  }
-  .fin-confianza-pista {
-    stroke: var(--color-hueso);
-  }
-  .fin-confianza-valor {
-    stroke: var(--color-verde);
-    stroke-dasharray: 1;
-    animation: fin-confianza-dibuja 900ms var(--ease-cayla) backwards;
-  }
-  .fin-confianza[data-nivel="medio"] .fin-confianza-valor {
-    stroke: var(--color-ambar);
-  }
-  .fin-confianza[data-nivel="bajo"] .fin-confianza-valor {
-    stroke: var(--color-rojo-profundo);
-  }
-  @keyframes fin-confianza-dibuja {
-    from {
-      stroke-dashoffset: 1;
-    }
-  }
-  .fin-confianza-pct {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 2px;
-    text-align: center;
-    font-family: var(--font-serif);
-    font-size: 26px;
-    line-height: 1;
-    color: var(--color-tinta);
-  }
   .fin-confianza-piezas {
     list-style: none;
     margin: 0;
@@ -2082,20 +2280,14 @@
     color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel y hueso (ADR-0336: desde 64 % pasa) */
   }
   @media (max-width: 720px) {
-    .fin-confianza-cab {
-      flex-direction: column-reverse;
-      align-items: stretch;
-    }
-    .fin-confianza-arco {
-      width: 120px;
-    }
     .fin-confianza-piezas {
       grid-template-columns: 1fr;
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .fin-confianza-valor {
-      animation: none;
+  /* La animación del arco de «Cierre» (`fin-cierre-valor`) la usa todavía: la del medidor se fue con el arco. */
+  @keyframes fin-confianza-dibuja {
+    from {
+      stroke-dashoffset: 1;
     }
   }
 }
@@ -2208,6 +2400,13 @@
   }
   .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
     background: var(--color-verde);
+  }
+  /* Una pérdida no se pinta de verde (auditoría v3 del Resumen, hallazgo 3): el color sigue al signo, como la cifra grande. */
+  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-barra > i {
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-monto {
+    color: var(--color-rojo-profundo);
   }
   @keyframes fin-pulso-crece {
     from {

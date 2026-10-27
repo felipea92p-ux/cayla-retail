@@ -181,7 +181,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Código de cupón» canjea un cupón del Club. «Dejar en espera», arriba junto al título, guarda el ticket para atender a otro cliente. Sobre «Cobrar» eliges quién atiende.",
+      texto: "«Aplicar descuento» rebaja el ticket o unas prendas, en % o en soles, con su motivo. «Código de cupón» canjea un cupón del Club. «Dejar en espera» guarda el ticket para atender a otro; «En espera · N» muestra los guardados para retomarlos o descartarlos. Sobre «Cobrar» eliges quién atiende.",
     },
     {
       id: "codigo-cupon",
@@ -436,6 +436,14 @@ export const GUIA_HISTORIAL: Guia = {
       texto: "Avisos de cualquier fecha, como comprobantes que todavía no llegan a SUNAT o apartados por vencer. Cada uno te lleva a la pantalla donde se resuelve, y no se van hasta que se resuelve.",
     },
     {
+      // ADR-0532: solo donde conviven CAYLA y CLAURE (Lima, o «Todas las tiendas»).
+      id: "reparto-empresas",
+      ancla: "historial.reparto-empresas",
+      opcional: true,
+      titulo: "De quién es lo vendido",
+      texto: "Cuánto de lo vendido en el período es de CAYLA y cuánto de CLAURE. Cada prenda suma a su tienda por lo que se cobró de ella; en la lista, la venta que lleva prendas de CLAURE lo dice.",
+    },
+    {
       id: "lista",
       ancla: "historial.lista",
       titulo: "Las ventas, por día",
@@ -550,7 +558,7 @@ export const GUIA_COMPROBANTES: Guia = {
       ancla: "comprobantes.lista",
       opcional: true,
       titulo: "Cada comprobante",
-      texto: "Número, cliente, monto y su estado en SUNAT. Desde cada uno se reenvía, se descarga o se anula (anular lo decide el líder).",
+      texto: "Número, cliente, monto y su estado en SUNAT. Desde cada uno se reenvía, se descarga o se anula (anular lo hace quien tiene Facturación).",
     },
     {
       id: "fin",

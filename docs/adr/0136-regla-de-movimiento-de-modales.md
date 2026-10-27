@@ -485,7 +485,33 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `prefers-reduced-motion` todo queda quieto (la hoja se cierra al instante al guardar). **Nada en bucle.**
 - **Dónde vive:** `apps/web/app/estilos/campana-hoja.css`, `components/campana-hoja/` y lo vigila `lib/campana-hoja-movimiento.test.ts`.
 
-## Actualización 2026-10-23 (b) — Tienda web ▸ Tráfico, la vitrina por miradas (ADR-0495), elegida por Felipe
+## Actualización 2026-10-23 (b) — El telar de Finanzas (ADR-0493), aprobado por Felipe
+
+- **Qué:** en la barra común de Finanzas, los hilos de sede que crecen bajo la sede elegida, el orillo que se teje al entrar y se reacomoda al
+  cambiar de sede, la cifra de la respuesta que cuenta y el dock que sube. En cada submódulo, su gráfico propio entra una vez: el retazo y el
+  calendario de Gastos, los frascos de Cuentas y dinero, la biblioteca de Reportes, la balanza de Impuestos y el mapa del Cierre.
+- **Por qué se admite:** Felipe eligió «El telar de Finanzas» mirando la maqueta (docs/maquetas/finanzas-telar-2026-10/), que pedía «muchas
+  animaciones», y aprobó la excepción acotada a lo que la maqueta muestra (decisión b, 2026-10-23).
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote y solo con tokens del tema; con `prefers-reduced-motion`, todo queda
+  quieto. **Nada en bucle**, salvo las señales que esta regla ya admite.
+- **Dónde vive:** `apps/web/app/estilos/telar.css` y `components/finanzas/telar/`.
+
+## Actualización 2026-10-23 (c) — «Ajustar stock» en el modal de la prenda de Existencias, la planilla (ADR-0494), pedido por Felipe
+
+- **Qué:** al abrir el modal, una luz cruza la banda «¿No es lo que ves en la tienda?» y su lápiz se dibuja. Al tocarla, la foto se achica
+  y dice «Ajustando», lo de la prenda se pliega, el modal crece solo si la planilla no cabe, el hilo de la cabecera se dibuja columna por
+  columna, las filas llegan en cascada y las celdas en una ola en diagonal (las que no están en foco llegan ya en sombra), y un anillo se
+  cierra sobre la talla en foco. Al contar, el número rueda hacia arriba o hacia abajo y el talón de la izquierda entra con su cambio. Al
+  guardar, el hilo del botón corre mientras la base responde, cada talla se sella en verde una tras otra, el talón recibe el sello
+  «Guardado», salen las etiquetas por la ranura (la tira de Editar producto) y las cifras de «Dónde está» cuentan desde el número viejo.
+- **Por qué se admite:** Felipe pidió que la vista de ajuste sea «sofisticada, elegante y full animaciones» y eligió la ronda 3 mirándola
+  (docs/maquetas/existencias-ajustar-stock-2026-10/ronda-3.html), con el contrato de siempre: rico, una vez, sin bucle.
+- **Los límites:** todo corre UNA vez, con `--ease-cayla`, sin rebote, cada pieza en 1,2 s o menos, solo tokens del tema, y con
+  `prefers-reduced-motion` todo queda quieto (el sellado no espera). **Nada en bucle** (el hilo del botón ya era una excepción).
+- **Dónde vive:** `apps/web/app/estilos/ajuste-modelo.css`, `components/existencias/AjusteDelModelo.tsx` y `PanelTalla.tsx`; lo vigila
+  `lib/ajuste-modelo-movimiento.test.ts`.
+
+## Actualización 2026-10-23 (d) — Tienda web ▸ Tráfico, la vitrina por miradas (ADR-0495), elegida por Felipe
 
 - **Qué:** las tarjetas de la pantalla suben en cascada con `anim-sube` (la del sistema); en la vitrina, cada baldosa crece desde casi su
   tamaño en cascada (de la más mirada a la menos), su etiqueta de papel se cuelga girando a su lugar y, cuando ya están todas, una luz cruza

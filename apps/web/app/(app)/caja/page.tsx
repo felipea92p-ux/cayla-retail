@@ -2,10 +2,13 @@ import type { CSSProperties } from "react";
 import { puede, requirePersonaActualV2, veModulo, type PersonaActualV2 } from "@/lib/persona-actual";
 import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getPagosDelDia, diaAnterior } from "@/lib/caja";
 import { getContextoTableroCaja } from "@/lib/caja-tablero";
-import { getCategoriasGasto, getContextoGastos, getGastosDeUbicacion, getProveedoresParaGasto } from "@/lib/gastos";
+import { getCategoriasGasto, getContextoGastos, getGastosDeCaja, getProveedoresParaGasto } from "@/lib/gastos";
 import { DIAS_FRECUENCIA, ordenarPorFrecuencia } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
@@ -84,6 +87,10 @@ async function CajaConDatos({
   const supabase = await createClient();
   const puedeCerrar = puede(persona, "gestionarCaja");
   const registraGastos = puede(persona, "registrarGastos");
+  // Registrar el gasto de hoy desde la caja es una función de Caja (ADR-0491, sobre ADR-0306): lo hace quien maneja la caja, con o sin
+  // el módulo Gastos. El formulario completo (otra fecha, a crédito, un proveedor nuevo) sigue siendo de Gastos. El candado real es
+  // `fn_puede_registrar_gasto`.
+  const gastoDesdeCaja = registraGastos || puedeCerrar;
   const hoy = hoyLima();
   const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto, pagosHoy, pagosAyer] = await Promise.all([
     getTableroCaja(caja.id),
@@ -97,23 +104,26 @@ async function CajaConDatos({
     // «Registrar gasto» abre aquí la versión rápida (mosaico ordenado por lo que más se gasta en ESTA sede, 2026-10-09) y, para un
     // proveedor nuevo o un pago a crédito, el formulario completo de Finanzas ▸ Gastos (solo a quien ve Gastos). Si la lista de
     // gastos no se puede leer, el mosaico sale en su orden de fábrica y sin ★: nunca deja de abrir (principio 9).
-    registraGastos
+    gastoDesdeCaja
       ? Promise.all([
           getCategoriasGasto(),
-          getContextoGastos(),
+          registraGastos ? getContextoGastos() : Promise.resolve(null),
           getProveedoresParaGasto(),
-          getGastosDeUbicacion(caja.ubicacionId, diasAntes(hoy, DIAS_FRECUENCIA), hoy),
+          getGastosDeCaja(caja.ubicacionId, diasAntes(hoy, DIAS_FRECUENCIA)),
         ]).then(([categorias, contexto, proveedores, recientes]) => ({
           categorias,
-          ...contexto,
+          completo: contexto,
           proveedores,
-          frecuencia: ordenarPorFrecuencia(recientes.map((g) => ({ descripcion: g.descripcion, categoria: g.categoria, montoTotal: g.montoTotal }))),
+          frecuencia: ordenarPorFrecuencia((recientes ?? []).map((g) => ({ descripcion: g.descripcion, categoria: g.categoria, montoTotal: g.montoTotal }))),
         }))
       : Promise.resolve(null),
     // Hoy contra ayer (ADR-0319): los pagos de los dos días. Si la base no tiene la lectura, `null` y Caja se ve como antes.
     getPagosDelDia(caja.ubicacionId, hoy),
     getPagosDelDia(caja.ubicacionId, diaAnterior(hoy)),
   ]);
+  // De quién es lo vendido del turno (ADR-0532): solo donde conviven CAYLA y CLAURE (Lima). Si la base no responde, Caja sale como antes.
+  const [empresasAqui, vendidoPorCaja] = await Promise.all([getEmpresasAqui(caja.ubicacionId), getVendidoPorEmpresaDeCajas([caja.id])]);
+  const repartoEmpresas = repartoDeEmpresas(vendidoPorCaja ? (vendidoPorCaja.get(caja.id) ?? []) : null, empresasAqui);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
   const filas = fallo ? [] : (filasVentas ?? []);
@@ -135,7 +145,8 @@ async function CajaConDatos({
     comprobantesPorEnviar,
     permisos: {
       apartados: veModulo(persona, "apartados"),
-      gastos: registraGastos,
+      gastos: gastoDesdeCaja,
+      gastosEnFinanzas: registraGastos,
       cambios: veModulo(persona, "cambios"),
       devoluciones: veModulo(persona, "devoluciones"),
       traslados: veModulo(persona, "traslados"),
@@ -166,6 +177,7 @@ async function CajaConDatos({
       cierresRecientes={historial}
       contexto={contexto}
       comparativa={pagosHoy && pagosAyer ? { hoy: pagosHoy, ayer: pagosAyer } : null}
+      repartoEmpresas={repartoEmpresas}
       accesos={{
         vender: veModulo(persona, "vender"),
         cambios: veModulo(persona, "cambios"),

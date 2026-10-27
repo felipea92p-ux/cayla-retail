@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Globito } from "@/components/ui/Globito";
 import { useMemo, useRef, useState } from "react";
 import { Aviso } from "@/components/ui/Aviso";
-import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ChevronRight, Clock, Eye, ListChecks, Moon, Package, PackageX, ScanLine, ShoppingBag, SignpostBig, Tag, TriangleAlert, X } from "lucide-react";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { Tabla, Encabezado, celda } from "@/components/ui/Tabla";
@@ -17,6 +18,8 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { Modal } from "@/components/ui/Modal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { BuscarPrendaParaAjustar } from "@/components/existencias/BuscarPrendaParaAjustar";
+import { usePedidoDeAjuste } from "@/components/existencias/BotonAjustarStock";
 // «Pedir para una clienta» (PedirOtraSedeModal) no vuelve: el rediseño del cajón (2026-09-28) no tiene esa entrada — el
 // mismo criterio ya documentado para «Apartar»/«Retirar del piso»/«Dónde más hay». «Eliminar el producto» (ADR-0252) salió del
 // detalle de la prenda el 2026-10-12 (ADR-0391, decisión de Felipe): es de Catálogo, y ahí sigue (la vista rápida de Productos).
@@ -40,6 +43,7 @@ import { mejorOrigen } from "@/lib/existencias-flujos";
 import { usePistola } from "@/components/ui/usePistola";
 import { tallasQueFaltan } from "@/lib/reponer-prenda-reglas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { HREF_COLGAR_EN_TANDAS } from "@/lib/inicio-almacen-reglas";
 import { agruparPorPrenda, deLaPrenda, tallasPorPrenda, coloresDelModelo, MAX_VARIANTES_EN_URL, ordenarPorListaDelDia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
@@ -102,6 +106,11 @@ function ChipHoy({ f }: { f: FilaExistencias }) {
 /** El buscador, para devolverle el foco cuando un botón del estado vacío (que se desmonta al volver las filas) lo tenía. */
 function enfocarBuscador() {
   requestAnimationFrame(() => document.getElementById(ID_BUSCADOR_EXISTENCIAS)?.focus());
+}
+/** Un aparato táctil (celular, tablet): ahí la cámara es el lector. Solo se pregunta con la cámara ya abierta (tras un toque), nunca
+ *  al pintar en el servidor. */
+function esTactil(): boolean {
+  return window.matchMedia?.("(pointer: coarse)").matches ?? false;
 }
 /** Filas por página de la tabla (Felipe, 2026-09-22: «que solo se vean 15»). Pintar TODAS las variantes
  *  de una tienda —cada una con foto, chips, botones y menú— era lo que hacía lenta la pantalla. */
@@ -184,7 +193,6 @@ export function InventarioPanel({
   abrirDanados = false,
   abrirVariante = null,
   apartados,
-  esLider,
   editaCatalogo = false,
   puedeAjustar,
   coberturaFallo = null,
@@ -223,10 +231,6 @@ export function InventarioPanel({
   abrirVariante?: string | null;
   /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
   apartados: Apartado[];
-  /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
-   *  una integrante puede ABRIR la cola y verla, no marcarla. */
-  /** Sigue siendo del líder: resolver y liquidar prendas dañadas. */
-  esLider: boolean;
   /** Edita el catálogo (`puede(persona, "editarCatalogo")`): ve «Eliminar el producto» en el detalle, como en Catálogo (ADR-0252; `permisosDelDetalle`). */
   editaCatalogo?: boolean;
   /** ¿Puede ajustar stock fuera de una venta? Un líder o la terminal administrativa (ADR-0160). */
@@ -277,6 +281,7 @@ export function InventarioPanel({
   // Los filtros viven en la URL (2026-10-03, misma estructura que Productos): recargar, volver de «Bajar al piso» o abrir un
   // enlace copiado los trae puestos. Cambiar uno reescribe la URL sin volver a pedir la página (`useFiltrosExistencias`).
   const { filtros, busqueda, aplicar, limpiar, teclear, fijarBusqueda, soltarBusqueda } = useFiltrosExistencias(resumen.separaPisoAlmacen);
+  const router = useRouter();
   const setBusqueda = fijarBusqueda;
   const setCategoria = (v: string) => aplicar({ cat: v === TODAS ? null : v });
   const setMarca = (v: string) => aplicar({ marca: v === TODAS ? null : v });
@@ -291,6 +296,14 @@ export function InventarioPanel({
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
+  const pedidoDeAjuste = usePedidoDeAjuste();
+  const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
+  const [buscandoAjuste, setBuscandoAjuste] = useState(false);
+  if (pedidoDeAjuste !== pedidoVisto) {
+    setPedidoVisto(pedidoDeAjuste);
+    setBuscandoAjuste(true);
+  }
   // «Eliminar el producto» desde el detalle (ADR-0252): el producto entero, no la talla ni el color.
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [viendoApartados, setViendoApartados] = useState(false);
@@ -621,11 +634,12 @@ export function InventarioPanel({
         sinStockAtras: { tallas: stock.filter((f) => hoyDeTalla(f) === "sin_stock_atras" && f.enTransito === 0).length },
         sinRegistrar,
         danadas: danadosPendientes.length,
-        resuelveDanadas: esLider && enSedeActiva,
+        // Desde ADR-0534 las decide quien ve Existencias en su sede (antes, solo un líder).
+        resuelveDanadas: enSedeActiva,
         apartados: { vencidos: resumenApartados.vencidos },
         enCamino,
       }),
-    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, esLider, enSedeActiva, resumenApartados.vencidos, enCamino]
+    [separa, cuentaPorColgar, planFallo, stock, sinRegistrar, danadosPendientes.length, enSedeActiva, resumenApartados.vencidos, enCamino]
   );
   function verHoy(tipo: "por_colgar" | "sin_stock_atras") {
     aplicar({ hoy: tipo });
@@ -636,16 +650,16 @@ export function InventarioPanel({
     por_colgar: hrefBajarPorColgar ? { texto: "Bajar al piso", href: hrefBajarPorColgar } : { texto: "Ver cuáles", onClick: () => verHoy("por_colgar") },
     // «Cuadrar el piso» (/inventario/cuadrar, ADR-0328 act. 3) con la misma condición que su acceso en la cabecera
     // (`puedeCuadrarPiso = puedeBajarAlPiso`): una función de Existencias (ADR-0306) en la sede activa que separa piso y almacén.
-    // Confirmar el cuadre es de un líder: esa pantalla lo dice. Sin la condición, la fila informa y no lleva botón.
+    // Confirmar el cuadre lo hace quien lo escanea (ADR-0534). Sin la condición, la fila informa y no lleva botón.
     piso_en_pausa: puedeBajarAlPiso ? { texto: "Cuadrar el piso", href: "/inventario/cuadrar" } : undefined,
     // Sin plan, «Bajar al piso» sigue sirviendo a mano: no depende de lo que recomienda el motor.
     piso_sin_calcular: puedeBajarAlPiso ? { texto: "Bajar al piso", href: "/inventario/bajar" } : undefined,
     // Con la sede en el enlace: la cifra es de ESTA sede, y sin ella un líder llegaba a la cola de todas sus tiendas. La lista vive en
     // Existencias (ADR-0330), bajo el mismo módulo que esta pantalla: quien ve la fila puede resolverla.
     sin_registrar: { texto: "Regularizar", href: `/inventario/por-regularizar?ubicacion=${ubicacionId}` },
-    // Solo un líder, en su sede, decide qué se hace con una dañada (`ResolverDanadosModal`); los demás ven la lista y, en su sede,
-    // pueden marcar «Se arregló» (Felipe 2026-10-09).
-    danadas: esLider && enSedeActiva ? { texto: "Decidir", onClick: () => setViendoDanados(true) } : { texto: "Ver cuáles", onClick: () => setViendoDanados(true) },
+    // Quien ve Existencias, en su sede, decide qué se hace con una dañada (`ResolverDanadosModal`, ADR-0534); mirando otra
+    // sede solo ve la lista.
+    danadas: enSedeActiva ? { texto: "Decidir", onClick: () => setViendoDanados(true) } : { texto: "Ver cuáles", onClick: () => setViendoDanados(true) },
     apartados_vencidos: { texto: "Ver apartados", onClick: () => setViendoApartados(true) },
     traslados_atrasados: veTraslados ? { texto: "Ver traslados", href: "/inventario/traslados" } : undefined,
     en_camino: veTraslados ? { texto: "Ver traslados", href: "/inventario/traslados" } : undefined,
@@ -1245,7 +1259,7 @@ export function InventarioPanel({
                             mismo tiempo — no son el mismo eje. Solo informa; resolverlas vive en la tarjeta «Incidencias». */}
                         {!!f.danado && (
                           <Chip tono="rojo">
-                            <span title="En cuarentena: un líder decide si se arregló y vuelve, o si se liquida, se bota o se dona">Dañado · {f.danado}</span>
+                            <span title="En cuarentena: se decide si se arregló y vuelve, o si se liquida, se bota o se dona">Dañado · {f.danado}</span>
                           </Chip>
                         )}
                         {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
@@ -1322,7 +1336,6 @@ export function InventarioPanel({
       {viendoDanados && (
         <ResolverDanadosModal
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
-          esLider={esLider}
           otraSede={!enSedeActiva}
           sede={sedeNombre}
           onClose={() => {
@@ -1353,6 +1366,18 @@ export function InventarioPanel({
           El cajón de la prenda (diseño aprobado, 2026-09-28): el MISMO desde «Por prenda» y «Por talla». Sus acciones no abren un
           modal encima del cajón: lo cierran y abren el suyo (Reponer, Ajustar, Eliminar), que al guardar refresca la pantalla. Sin
           `key`: al tocar otra fila el cajón se queda y solo cambia su contenido. */}
+      {buscandoAjuste && puedeAjustarAqui && (
+        <BuscarPrendaParaAjustar
+          indice={indiceBusqueda}
+          sedeNombre={sedeNombre}
+          onClose={() => setBuscandoAjuste(false)}
+          onElegir={(clave, varianteId) => {
+            setBuscandoAjuste(false);
+            setAbierta({ clave, varianteId, flujo: { tipo: "ajustar" } });
+          }}
+        />
+      )}
+
       {prendaAbierta && (
         <PanelTalla
           colores={coloresDelModelo(stock, prendaAbierta.productoId)}
@@ -1398,7 +1423,7 @@ export function InventarioPanel({
                 }
               : undefined
           }
-          puedeResolverDanadas={esLider && enSedeActiva}
+          puedeResolverDanadas={enSedeActiva}
           hrefCatalogo={verProductos ? (referencia) => `/productos?q=${encodeURIComponent(referencia)}` : undefined}
           fotoDesde={abierta?.origen ?? null}
           onCerrar={() => setAbierta(null)}
@@ -1443,6 +1468,25 @@ export function InventarioPanel({
             enfocarBuscador();
           }}
           onClose={() => setCamara(false)}
+          // En el celular, la cámara también sirve para colgar un lote (Felipe 2026-10-26): «Bajar en tandas» lleva a la ráfaga de
+          // Bajar al piso (`?camara=1`, la misma de «Colgar en tandas» del Inicio de Almacén), que lee una tras otra y confirma de una
+          // vez. Solo donde se puede bajar y en un aparato táctil: en el computador manda la pistola y Bajar no abre la cámara sola.
+          modos={
+            puedeBajarAlPiso && esTactil()
+              ? {
+                  valor: "ver",
+                  opciones: [
+                    { clave: "ver", etiqueta: "Ver la prenda", icono: <Eye aria-hidden /> },
+                    { clave: "tandas", etiqueta: "Bajar en tandas", icono: <ArrowDownToLine aria-hidden /> },
+                  ],
+                  onCambio: (clave) => {
+                    if (clave !== "tandas") return;
+                    setCamara(false);
+                    router.push(HREF_COLGAR_EN_TANDAS);
+                  },
+                }
+              : undefined
+          }
         />
       )}
 

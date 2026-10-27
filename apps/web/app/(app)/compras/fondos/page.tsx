@@ -3,6 +3,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
 import { getPlataPorConfirmar } from "@/lib/mi-plata";
 import { getRevisarCompras } from "@/lib/revisar-compras";
+import { porRecibirDe } from "@/lib/revisar-compras-reglas";
 import { BandejaRevisar } from "@/components/mi-plata/BandejaRevisar";
 import {
   TEXTO_MOVIMIENTO_FONDO,
@@ -15,7 +16,8 @@ import {
 } from "@/lib/fondos-reglas";
 import { diaCorto } from "@/lib/orden-pagina-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
+import { totalPorRevisar } from "@/lib/compras-pestanas-reglas";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -92,7 +94,7 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n)}</span>;
 
 export default async function FondosPage() {
-  const persona = await exigirModulo("fondos");
+  await exigirModulo("fondos");
   const [{ fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla }, plataAnotada, revisar] = await Promise.all([
     getDatosFondos(),
     getPlataPorConfirmar(),
@@ -165,6 +167,9 @@ export default async function FondosPage() {
               const rinde = estado.get(f.cuentaId)?.porAprobar;
               const suDeuda = debe(f.personaId);
               const leDeben = f.saldo < -0.005;
+              // Cerró su ronda y devuelve lo que le sobró: Compras todavía no lo recibe (20261023210000). Lo que le debemos ya lo dice `leDeben`.
+              const porRecibir = porRecibirDe(revisar?.cierres ?? [], f.personaId);
+              const devuelve = porRecibir?.decision === "devuelve" ? porRecibir.monto : 0;
               return (
                 <li
                   key={f.cuentaId}
@@ -187,7 +192,7 @@ export default async function FondosPage() {
                       etiqueta={`${f.persona}: gastó ${soles(t.gasto)}, devolvió ${soles(t.devolvio)} y tiene ${soles(t.tiene)} de ${soles(f.entregado)} entregados`}
                       segmentos={TRAMOS_FONDO.map((x) => ({ clave: x.clave, nombre: x.nombre, clase: x.clase, valor: t[x.clave] }))}
                     />
-                    {(rinde || suDeuda > 0.005 || leDeben) && (
+                    {(rinde || suDeuda > 0.005 || leDeben || devuelve > 0) && (
                       <p className="flex flex-wrap gap-1.5 pt-0.5">
                         {/* Con su rendición por aprobar, lo que ella dijo tener, al lado de lo de los libros (/formidable 2026-10-14, cambio 3). */}
                         {rinde && (
@@ -196,6 +201,11 @@ export default async function FondosPage() {
                           </Chip>
                         )}
                         {suDeuda > 0.005 && <Chip tono="ambar">Debe {soles(suDeuda)}</Chip>}
+                        {devuelve > 0 && (
+                          <Chip tono="ambar" title="Cerró su ronda: recíbelo en la bandeja, en Rondas">
+                            {soles(devuelve)} por recibir
+                          </Chip>
+                        )}
                         {/* Pagó de su bolsillo (decisión 32): el negativo no es plata en la mano, es lo que CAYLA le debe. */}
                         {leDeben && (
                           <Chip tono="ambar">
@@ -327,11 +337,18 @@ export default async function FondosPage() {
 
   return (
     <div className="space-y-6">
-      <EncabezadoPagina
-        sede={persona.ubicacionEtiqueta}
-        titulo="Revisar compras"
-        subtitulo="Lo que anotaron las compradoras desde el celular. Confírmalo y pásalo a los libros."
+      {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504), con «Todas las tiendas»: antes decía la sede de quien
+          mira aunque esta pantalla muestra la plata de todas. Lo que cuenta su pestaña lo sabe ya esta pantalla (la bandeja): si una de
+          sus dos lecturas falló, el contador se calla en vez de decir 0. */}
+      <CabeceraHistorialCompras
+        activa="revisar"
         acciones={falla ? undefined : acciones}
+        conteos={{
+          revisar:
+            plataAnotada && revisar
+              ? totalPorRevisar({ plata: plataAnotada.length, papeles: revisar.papeles.length, gastos: revisar.gastos.length, cierres: revisar.cierres.length })
+              : null,
+        }}
       />
 
       {/* La bandeja (ADR-0480, actividades 2 y 7; rediseño 2026-10-23). Si una de sus dos lecturas falla (la base sin la migración, o
@@ -349,6 +366,7 @@ export default async function FondosPage() {
           cierres={revisar?.cierres ?? []}
           proveedores={revisar?.proveedores ?? []}
           cuentas={opciones.cuentas}
+          rondasAbiertas={revisar?.rondasAbiertas ?? []}
         />
       )}
 

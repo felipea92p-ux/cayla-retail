@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 128,
+  "total": 146,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
@@ -143,6 +143,7 @@
       "button «{b.quitar.titulo}»",
       "button «{h.puede ? `Agregar ${donde}»",
       "button «{`${nombreElegida}»",
+      "input «{`Precio de ${etiqueta}»",
       "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»",
       "CampoTexto «{<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? \"hecho\" : \"falta\"}»",
       "ComboResponsable «{stock.responsable}»"
@@ -151,6 +152,7 @@
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
       "input «(sin nombre)»",
       "button «{n.color(c)}»",
+      "Boton «Abrir la ficha»",
       "button «editar.falta»"
     ],
     "components/ficha-producto/PrecioSedeModal.tsx": [
@@ -185,6 +187,26 @@
       "button «Cancelar»",
       "button «{texto}»",
       "button «{fuera ? `${etiqueta}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/FichaDeConsumoHoja.tsx": [
+      "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»",
+      "SegmentoDeslizante «Cuántas cifras»",
+      "CampoTexto «{`Talla ${t}»",
+      "CampoTexto «{variasTallas ? \"Todas las tallas\" : \"Metros por prenda\"}»",
+      "CampoSelect «Avío»",
+      "CampoSelect «Para»",
+      "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
     ]
   }
 }

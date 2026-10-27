@@ -38,7 +38,9 @@ DECIDÍ:
    vigente; anularlo lo libera. Un depósito mayor que lo cobrado se rechaza: una comisión negativa es un error de marcado, no un dato.
 5. **La tarifa solo estima y avisa.** Con ella, cada día pendiente dice su comisión esperada (nula sin tarifa: nunca se inventa un
    número) y si está **atrasado** (más días hábiles —sin domingos— que los que la máquina tarda; sin tarifa, 3). Cuentas y dinero avisa
-   «<máquina> no depositó N días» con el camino al depósito. El QR de Izipay nace sin comisión y al día siguiente (Felipe, 2026-10-05).
+   «<máquina> no depositó N días» con el camino al depósito. El QR de Izipay nace sin comisión y al día siguiente (Felipe, 2026-10-05)
+   — **matizado por los reportes de Izipay: el QR sale sin comisión solo los primeros ~10 días de cada mes y paga 2.38 % + IGV el resto,
+   y deposita el mismo día (ver «Actualización 2026-10-17 (c)»).**
 6. **El diario** asienta el QR que entra en la 105 (espera en la máquina), como la tarjeta. El abono y su comisión ya se asentaban bien
    (104 | 105 y 639 | 105).
 7. **Lo pasado se rehace una vez**, con una función que solo corre desde una migración (`fn_resellar_cobros_a_maquinas`): los cobros con
@@ -144,3 +146,56 @@ dentro: ahora cuenta solo las claves de su escenario.
 (más columnas) y `create or replace` no puede cambiar el tipo de retorno—. Sus ocho reemplazos anclados sí son re-ejecutables, y eso es lo
 que las pruebas rehacen. En producción no cambia nada (cada migración se pegó una vez, en orden); «idempotente» en el encabezado de la 173000
 vale hasta la 191000.
+
+## Actualización 2026-10-17 (c): lo que enseñaron los reportes de Izipay y de Vendemás
+
+Felipe pasó los reportes de abono de Izipay de agosto, septiembre y octubre (hasta el 16; tres códigos de comercio —uno por cada tienda, el
+de Lima aparte—, varios cientos de pagos) y el estado de cuenta de Vendemás de septiembre. Se leyó cada fila; no es una muestra. Un detalle de
+depósito de Vendemás de noviembre de 2022 vino mezclado: es de otro tiempo y de otro contrato, no sirve para la tarifa de hoy. **Los montos
+cobrados, los códigos de comercio y la cifra de cualquier reclamo no se escriben aquí (el repo es público): los tiene Felipe.**
+
+**Izipay — el QR no «dejó de ser gratis»: es gratis los primeros ~10 días de cada mes, tres meses seguidos.** Agosto: sin comisión hasta el 10
+inclusive y cobrado desde el 11. Septiembre: sin comisión hasta el 10 (un código cobró desde el 10 por la tarde, el otro desde el 11). Octubre: sin
+comisión hasta el 9 y cobrado desde el 10. Se repite en los tres códigos y sin una sola fila fuera de la línea (ningún QR gratis después de un QR
+cobrado). **No es un tope:** el monto que entró sin comisión fue distinto cada mes (varios miles de soles), y tampoco es «10 días desde el primer
+QR del mes» (el corte cayó entre 8.9 y 10.1 días después). Lo único estable es el calendario, con un día de más o de menos. La tarjeta (chip y
+contactless) nunca fue gratis. El resto del mes el QR paga lo mismo que la tarjeta: **2.38 % + IGV** (2.36 a 2.42 por centavos redondeados), y el IGV
+es el 18 % de la comisión (`neto = importe − comisión − IGV` cuadra en todas las filas con comisión). La tarjeta tiene sus excepciones (American
+Express 3.43 %, una Visa extranjera 4.5 % y, en Lima, algunos pagos contactless a 2.48 %). **Deposita el mismo día de la venta.** Hay un cargo de
+S/ 1.00 por código de comercio a fin de mes («COBRANZAS»). El costo real sobre lo cobrado fue de entre 1 % y 2 % según cuántos días gratis tuvo
+el mes. La tarifa pública de Izipay es 3.44 % + IGV + S/ 0.69 + IGV por operación: lo de CAYLA es negociado. **Por qué existe la ventana gratis
+no está en los archivos** (¿un beneficio del plan?, ¿una promoción que se renueva?): Felipe se lo pregunta a su ejecutivo (cuántos días, si tiene
+tope, desde cuándo corre, si Izipay prometió el QR gratis al inicio y por qué no avisó del cambio).
+
+**Vendemás (Niubiz).** La mayoría de las tarjetas pagan 2.30 % + IGV; una minoría de Visa y Mastercard paga 4.0 % y American Express 4.45 %
+(sin pista de qué los distingue: no es el monto ni la marca, la misma tarjeta aparece en las dos tasas). El promedio de septiembre fue 2.41 % de
+comisión (2.84 % con IGV). Deposita el día hábil siguiente. La tarifa solo guarda UNA tasa por máquina y medio: dividirla por marca sería un
+cambio de esquema que el volumen de CAYLA no justifica. La tasa de Vendemás se carga cuando Felipe pase sus reportes de 2026.
+
+**Lo que se vio en el ERP (producción, solo lectura).** Los reportes de Izipay suman bastante más QR que el ERP. Del 30 de septiembre al 8 de
+octubre casi todo el QR de Izipay se registró como **Yape**; desde el 9 el «QR» sube y el «Yape» cae a casi nada, pero sigue faltando QR cada
+día. Un QR de Izipay registrado como Yape va a la cuenta del Yape (BCP), no a «Por depositar Izipay»: el BCP queda con plata que en realidad
+llegó a Interbank y la comisión no existe en ningún lado. Es un hallazgo, no un arreglo: cómo se registra cada pago en las tiendas lo decide
+Felipe con sus colaboradoras.
+
+**Lima.** El tercer código de Izipay (el de Tienda LIM) trae pocos pagos de octubre con el mismo patrón: QR gratis hasta el 8 (no hubo pagos el
+9) y cobrado desde el 10. **El ERP no tiene ninguna venta de Tienda LIM** (al 2026-10-17): lo que Izipay deposita por Lima no tiene «día
+pendiente» al cual cruzarse en «Por depositar Izipay», y su depósito se registrará aparte hasta que Lima venda por el ERP.
+
+DECIDÍ: sembrar la tarifa de Izipay con la historia observada (`20261017174000_tarifas_reales_de_izipay.sql`): QR 0 % hasta el 10 de
+septiembre (la fila sembrada), 2.38 % + IGV desde el 11 de septiembre, 0 % desde el 1 de octubre y 2.38 % + IGV desde el 10 de octubre, sin
+cargo fijo y con depósito el mismo día; tarjeta de Izipay 2.38 % + IGV, 0 días, desde siempre (nunca tuvo una). La pantalla solo cambia una
+tarifa «desde hoy», así que esa historia no se podía cargar desde ahí.
+DESCARTÉ: cambiar la fila sembrada de 0 % (una tarifa no se edita ni se borra: es la historia); una tasa por marca (esquema aparte);
+sembrar la ventana gratis de noviembre y diciembre (sería adivinar un contrato que nadie confirmó); y un campo «primeros días gratis» en la
+tarifa, que con tres meses de evidencia ya es razonable pero toca el esquema en producción y la función que estima: se propone a Felipe aparte,
+cuando Izipay confirme la regla (cuántos días y desde cuándo).
+SE ROMPE SI: noviembre llega y nadie carga la ventana gratis (la estimación dice 2.38 % del 1 al 10, de más, y Conciliación lo corrige al
+registrar el depósito: nunca de menos); Felipe carga desde la pantalla otra tarifa de Izipay con la fecha de hoy (gana desde hoy; estas filas
+cubren lo anterior); o Izipay cambia las condiciones (se carga una tarifa nueva desde ese día). **La tarifa solo estima: la comisión real
+sigue saliendo del depósito**, así que ningún saldo ni gasto cambia con esta migración.
+
+**Pegada en producción el 2026-10-17 (17:49 Lima)** con el OK de Felipe, después de un ensayo con rollback (el archivo entero más un bloque final que
+lanza `ENSAYO_OK` con las filas y las estimaciones) que coincidió con lo esperado, y verificada con lecturas: cinco filas en `pos_tarifas` y la función
+estima 0 el 10-sep, 1-oct y 9-oct y 2.81 sobre S/ 100 el 11-sep, 30-sep, 10-oct y 17-oct (la tarjeta de Izipay también 2.81). Se pegó por SQL: no figura en
+`schema_migrations`. `pnpm pruebas:pos-maquinas` pasa completa (79 casos) sobre una base armada solo con las migraciones del repo.

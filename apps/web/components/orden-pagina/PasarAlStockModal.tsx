@@ -27,7 +27,7 @@ import {
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
-import { avisoTelaSinAnotar } from "@/lib/orden-tela-sin-anotar-reglas";
+import { avisoSinTelaDeclarada, avisoTelaSinAnotar } from "@/lib/orden-tela-sin-anotar-reglas";
 import { urlLlevarATiendas } from "@/lib/produccion-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -42,7 +42,7 @@ import { useResponsable } from "@/lib/useResponsable";
 // Si la tela del lote todavía no se anotó (plan > 0 y nada usado), un aviso lo dice antes del botón: el costo por prenda saldría sin tela y alimenta el promedio de la prenda en todas las sedes
 // (ADR-0400, «Tela y costo honestos» b; OK de Felipe 2026-10-16). Es un aviso y nunca un candado: «Pasar al stock» sigue disponible, y «Anotarla ahora» deja esta hoja y abre «Anotar lo que usaste».
 
-export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: OrdenPagina; onClose: () => void; /** Deja esta hoja y abre «Anotar lo que usaste» con esa tela. Sin esto, el aviso se muestra sin el botón. */ alAnotarTela?: (insumoId: string) => void }) {
+export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela }: { datos: OrdenPagina; onClose: () => void; /** Deja esta hoja y abre «Anotar lo que usaste» con esa tela. Sin esto, el aviso se muestra sin el botón. */ alAnotarTela?: (insumoId: string) => void; /** Deja esta hoja y abre «Declarar tela y avíos». Sin esto (la cuenta no puede editar la tela), el aviso se muestra sin el botón. */ alDeclararTela?: () => void }) {
   const router = useRouter();
   const { orden, fases, lineas: lineasOrden } = datos;
   const responsable = useResponsable({ ubicacionId: orden.ubicacionId, etiqueta: orden.ubicacionNombre });
@@ -64,6 +64,7 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
   const problemas = problemasDeCierre(fases, lineasOrden, cantidades, nombreDe);
   const resumen = resumenDeCierre(datos, total);
   const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
+  const sinTela = avisoSinTelaDeclarada(datos.insumos, orden.esMuestra);
   const guia = useGuiaCampos(camposDeCierre({ total, problemas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
@@ -192,6 +193,21 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: Ord
             </p>
           )}
         </div>
+
+        {sinTela && (
+          <Aviso
+            tono="atencion"
+            accion={
+              alDeclararTela ? (
+                <Boton type="button" peso="fantasma" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(alDeclararTela)}>
+                  Declarar la tela
+                </Boton>
+              ) : undefined
+            }
+          >
+            {sinTela.texto}
+          </Aviso>
+        )}
 
         {telaSinAnotar && (
           <Aviso

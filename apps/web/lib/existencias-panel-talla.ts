@@ -15,7 +15,7 @@ import { estadoTalla, type FilaPrenda } from "./existencias-prendas";
 import { fraseDeLoQueFalta, tallasQueFaltan, type PrendaParaReponer } from "./reponer-prenda-reglas";
 import { cantidadEnSede, nombreCortoSede, type SedeConStockId } from "./stock-por-sede";
 
-export type ClaveAccionTalla = "colgar" | "subir" | "enviar" | "apartar" | "pedir" | "ajustar" | "danada";
+export type ClaveAccionTalla = "colgar" | "subir" | "enviar" | "apartar" | "pedir" | "danada";
 
 export type AccionTalla = {
   clave: ClaveAccionTalla;
@@ -30,22 +30,22 @@ export type AccionTalla = {
 };
 
 // «Ficha» (7) dejó de ser una acción el 2026-10-12 (ADR-0391): lo suyo vive en la fila de la prenda del modal. Su tecla pasa a
-// «Reportar dañada», que antes estaba escondida en esa ficha.
-const TECLA: Record<ClaveAccionTalla, number> = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, ajustar: 6, danada: 7 };
+// «Reportar dañada», que antes estaba escondida en esa ficha. «Ajustar stock» dejó la lista el 2026-10-23 (ADR-0494): es la banda bajo
+// «Dónde está», que abre la planilla del modelo entero, y conserva su tecla, la 6 (`PanelTalla`).
+const TECLA: Record<ClaveAccionTalla, number> = { colgar: 1, subir: 2, enviar: 3, apartar: 4, pedir: 5, danada: 7 };
 
 /** En qué orden conviene ofrecerlas según dónde está la prenda (2026-10-06, pedido de uso: «que el orden cambie según lo que necesita esa
  *  prenda y se muestren primero las que puede usar»): con algo en el piso, venderla (apartar) es lo primero; sin nada colgado pero algo
  *  atrás, colgarla; sin nada en la sede, pedirla. */
 const ORDEN_SEGUN_LUGAR: Record<"conPiso" | "sinPiso" | "sinStock", readonly ClaveAccionTalla[]> = {
-  conPiso: ["apartar", "colgar", "subir", "enviar", "pedir", "danada", "ajustar"],
-  sinPiso: ["colgar", "apartar", "enviar", "pedir", "subir", "danada", "ajustar"],
-  sinStock: ["pedir", "ajustar", "apartar", "colgar", "subir", "enviar", "danada"],
+  conPiso: ["apartar", "colgar", "subir", "enviar", "pedir", "danada"],
+  sinPiso: ["colgar", "apartar", "enviar", "pedir", "subir", "danada"],
+  sinStock: ["pedir", "apartar", "colgar", "subir", "enviar", "danada"],
 };
 
 export type PermisosDeTalla = {
   puedeReponer: boolean;
   puedeEnviar: boolean;
-  puedeAjustar: boolean;
   /** Módulo Apartados en una tienda: «Apartar» abre la separación de Vender con esta talla. */
   puedeApartar?: boolean;
   /** Puede pedir a otra tienda (módulo Traslados, en una tienda). */
@@ -103,7 +103,6 @@ export function accionesDeTalla(f: FilaDeTalla, p: PermisosDeTalla, separa: bool
   if (p.puedePedir) {
     filas.push({ clave: "pedir", texto: "Pedir a otra sede", ok: tienen !== null, sub: tienen ?? "Ninguna tienda tiene", sugerida: pidePedir && !!p.puedePedir }); // al Taller no se le pide por aquí
   }
-  if (p.puedeAjustar) filas.push({ clave: "ajustar", texto: "Ajustar stock", ok: true, sub: "Corregir el número", sugerida: false });
   if (p.puedeReportarDanada) filas.push({ clave: "danada", texto: "Reportar dañada", ok: aqui > 0, sub: aqui > 0 ? "Pasa a cuarentena" : "Nada que reportar", sugerida: false });
 
   // Primero la que la talla necesita; después las que se pueden, en el orden de su lugar; al final las que no se pueden ahora.

@@ -131,9 +131,11 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   // Mano con monedas: la plata que se le entrega en la mano a quien viaja a comprar (Fondos por rendir, ADR-0362 fase 6).
   fondos: "M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17M7 21l1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9M2 16l6 6M13.1 9a2.9 2.9 0 1 0 5.8 0a2.9 2.9 0 1 0-5.8 0M3 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0", // lucide «hand-coins»
   // Tablilla con su visto: la oficina que revisa lo que anotaron las compradoras (Revisar compras, ADR-0480). Distinta de la hoja de
-  // «Facturas de proveedor» (el papel) y de la mano con monedas de «Mi plata para compras» (la plata de quien compra).
+  // «Facturas de proveedor» (el papel) y de la mano con monedas de «Mis compras» (la plata de quien compra).
   revisarCompras: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM9 14l2 2 4-4", // lucide «clipboard-check»
   rendimiento: "M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3M4 22h16M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zM6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3", // lucide «trophy»
+  // El globo con su «?»: el mismo del botón «Preguntar» de la cabecera, porque son sus preguntas (Preguntas del equipo, ADR-0536).
+  preguntas: "M7.9 20A9 9 0 1 0 4 16.1L2 22ZM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01", // lucide «message-circle-question»
   // Monitor con su percha: la tienda online, donde el cliente ve la prenda desde su pantalla (Vitrina web, ADR-0408). No la tienda
   // con toldo de «Inicio» (la puerta física) ni la polera de «Productos» (lo que ES la prenda): lo que se MUESTRA en la web.
   vitrina: "M2 5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z M8 21h8 M12 17v4 M10.8 6.8a1.2 1.2 0 1 1 1.2 1.2v.9l4 3H8l4-3",
@@ -186,9 +188,13 @@ const APARTE: Partial<Record<ClaveModulo, ClaveIcono | null>> = {
   atributos: "atributos",
   // Resumen y Reportes de Finanzas son dos filas del mismo módulo; en Roles se dibuja como los reportes.
   reportes_financieros: "reportes",
-  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `moduloAlterno`). En Roles lleva su
+  // Campañas (`campanas`) no tiene fila propia desde el 2026-10-22: abre la de Insignias (su `modulosAlternos`). En Roles lleva su
   // calendario con corazón, para no confundirse con la medalla del módulo Insignias (`etiquetas`).
   campanas: "calendarioCampana",
+  // «Revisar compras» y «Por pagar» ya no tienen fila propia (ADR-0504): son pestañas de «Historial de compras», que abre con su módulo y con
+  // `modulosAlternos`. En Roles y accesos siguen dibujándose como siempre: el portapapeles con visto y el calendario con reloj.
+  fondos: "revisarCompras",
+  por_pagar: "porPagar",
   colaboradores: "colaboradores",
   // Actividad no es una fila: es el botón de la cabecera (ADR-0207), que dibuja el reloj con flecha del Historial (`BotonActividad`).
   actividad: "historial",

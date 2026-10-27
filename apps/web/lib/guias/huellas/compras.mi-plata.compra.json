@@ -2,15 +2,23 @@
   "guia": "compras.mi-plata.compra",
   "ruta": "/compras/mi-plata/compra",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 51,
   "controles": {
+    "app/(app)/compras/mi-plata/compra/page.tsx": [
+      "Volver «/compras/mi-plata»"
+    ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
       "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/mi-plata/AbrirRonda.tsx": [
-      "Boton «Abrir mi ronda de compras»"
+      "Boton «Abrir mi ronda»"
+    ],
+    "components/mi-plata/ChipsConOtra.tsx": [
+      "Desplegable «{fuera}»",
+      "button «{c.nombre}»",
+      "Desplegable «{fuera}» #2"
     ],
     "components/mi-plata/HojaPrenda.tsx": [
       "CampoMonto «compra.costo»",
@@ -20,31 +28,34 @@
       "Boton «Cancelar»",
       "Boton «compra.agregar»",
       "button «{guia}»",
-      "Desplegable «{n.categoriaId ?? \"\"}»",
-      "Desplegable «{n.marcaId ?? \"\"}»",
+      "CampoTexto «Marca nueva»",
+      "Boton «compra.marca-mas»",
       "CampoTexto «compra.nombre-nuevo»"
     ],
     "components/mi-plata/RegistrarCompra.tsx": [
       "Volver «→() => setPaso(atras)»",
       "Volver «/compras/mi-plata»",
-      "Boton «compra.algo-nuevo»",
+      "button «compra.algo-nuevo»",
       "Boton «compra.revisar»",
-      "button «→() => corregir(i)»",
+      "button «→() => corregir(pr.indice)»",
       "button «Otra prenda de»",
       "Boton «compra.al-papel»",
       "button «{TIPOS_PAPEL[k].nombre}»",
       "CampoMonto «compra.monto»",
       "button «{o.nombre}»",
       "CampoMonto «compra.pagado»",
+      "button «Pagué todo»",
+      "button «compra.parte»",
       "ComboResponsable «{responsable}»",
       "Boton «compra.guardar»",
       "BotonEnlace «compra.mandar»",
       "Boton «Anotar otra compra»",
-      "Link «Ver mi plata»",
+      "Link «Ver mis compras»",
       "button «{inicialesProveedor(p.nombre)}»",
+      "button «compra.proveedor-nuevo»",
+      "Boton «{q.trim() ? `Registrar «${q.trim()}»",
       "BotonVerMas «(sin nombre)»",
       "BotonFiltro «{c.nombre}»",
-      "Boton «compra.proveedor-nuevo»",
       "button «→onClick»",
       "BotonFiltro «Todos»",
       "BotonFiltro «{c.nombre}» #2",

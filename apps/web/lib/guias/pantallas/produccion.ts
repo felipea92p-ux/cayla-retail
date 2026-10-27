@@ -1,7 +1,7 @@
 // Guías de Producción, el Taller (ADR-0389): Resumen, Órdenes, Insumos, Recibir, Proveedores, Facturas de insumos, Por pagar,
 // Cotizaciones de maquila, Eficiencia y, al final, las Órdenes de insumos (ADR-0362, fase 7). Producción solo se ve parado en el Taller (`guias/ejemplos.mjs` entra con `admin-taller`).
 // Es dinero y stock: cada guía dice con cuidado QUÉ guarda cada botón (abrir una orden, ingresar un lote, registrar una factura,
-// pagar) y nunca lo toca. El piloto solo abre las ventanas de «Nueva orden», «Nuevo insumo», «Nuevo proveedor», «Nueva factura» y
+// pagar) y nunca lo toca. El piloto solo abre el formulario de «Nueva orden» (que vive sobre la lista, ADR-0509) y las ventanas de «Nuevo insumo», «Nuevo proveedor», «Nueva factura» y
 // «Nueva cotización» para mostrar sus campos, escribe un ejemplo sacado de la pantalla y cambia de período en Eficiencia.
 // Lo que depende de que haya órdenes, lotes o facturas va `opcional`: en una base sin datos, la guía enseña el vacío y las ventanas.
 
@@ -23,7 +23,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "acciones",
       ancla: "prod-resumen.acciones",
       titulo: "Ir a las órdenes",
-      texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una orden. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+      texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo, con el formulario para abrir una orden. Te llevan a otra pantalla, así que en la demo no los tocamos.",
     },
     {
       id: "miradas",
@@ -215,10 +215,17 @@ export const GUIA_PROD_ORDENES: Guia = {
       demostrar: [{ tipo: "clic", ancla: "prod-ordenes.porque" }],
     },
     {
+      id: "borrador",
+      ancla: "prod-ordenes.borrador",
+      opcional: true,
+      titulo: "Una orden a medias",
+      texto: "Si armas una orden y sales sin abrirla, queda guardada en este computador: aquí dice de qué modelo era, cuántas prendas llevaba y hace cuánto. «Retomar» la arma otra vez como la dejaste; «Descartar» la suelta, con «Deshacer» a mano. No se guarda en la base.",
+    },
+    {
       id: "nueva",
       ancla: "prod-ordenes.nueva",
       titulo: "Abrir una orden nueva",
-      texto: "Empiezas aquí cuando decides fabricar un modelo. Se abre una ventana para armar el lote (te la abrimos para mostrarte sus partes, sin abrir ninguna orden).",
+      texto: "Empiezas aquí cuando decides fabricar un modelo. El formulario se arma aquí mismo, encima de la lista (te lo abrimos para mostrarte sus partes, sin abrir ninguna orden).",
     },
     {
       id: "modelo",
@@ -227,6 +234,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       titulo: "Primero, el modelo",
       texto: "Busca el modelo que se va a fabricar. Si eres líder, arriba salen los que se están acabando. Elegido, «Cambiar» vuelve a la lista. ¿No existe? «Crear un modelo nuevo» lo arma aquí mismo, con su orden (te elegimos uno para mostrártelo).",
       demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.modelo-fila" }],
+    },
+    {
+      id: "oferta",
+      ancla: "prod-orden-nueva.oferta",
+      opcional: true,
+      titulo: "Una orden a medias de este modelo",
+      texto: "Si ya habías empezado una orden de este modelo y no la abriste, aquí te lo dice: «Retomarla» devuelve lo que habías escrito; «Descartarla» la suelta y sigues en blanco. Mientras no decidas, lo que escribas no pisa lo guardado.",
     },
     {
       id: "tipo",
@@ -279,6 +293,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Una segunda opinión, para comparar: mira tienda por tienda y dice qué le falta para poder recomendar (más días de ventas, cuadrar el piso, contar el almacén). Mientras diga «Para comparar», manda la curva de arriba.",
     },
     {
+      id: "nivel2",
+      ancla: "prod-orden-nueva.nivel2",
+      titulo: "Lo demás ya viene resuelto",
+      texto: "Las fases, la tela, la fecha y la nota vienen rellenadas con lo de siempre, y esta línea te lo resume: cuántas fases, cuáles salen afuera, cuántas telas y para cuándo. Casi nunca hay que tocarlas: «Ver y cambiar» las abre (te las abrimos para mostrártelas). Si algo está mal, se abren solas.",
+      demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.nivel2-abrir" }],
+    },
+    {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
@@ -289,7 +310,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.tela",
       opcional: true,
       titulo: "La tela de la orden",
-      texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere si se escribió una vez). La orden te dice cuántos metros pedir y si alcanza con lo que hay. Es opcional: sin tela la orden se abre igual.",
+      texto: "Por cada color eliges la tela y cuántos metros lleva cada prenda (el modelo ya lo sugiere). «Separar por talla» deja escribir cada talla; con una sola cifra el pedido sale «Aproximado». La orden te dice cuántos pedir y si alcanza. «Ficha del modelo» guarda tela y avíos para las próximas; «+ Agregar avío» suma otro.",
     },
     {
       id: "consumo-modelo",
@@ -311,20 +332,27 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Para cuándo debe estar lista (así el tablero avisa si se atrasa) y una nota libre: la tela, el cliente, la urgencia. Las dos son opcionales.",
     },
     {
+      id: "otra",
+      ancla: "prod-orden-nueva.otra",
+      titulo: "Crear otra orden",
+      texto: "Prende «Crear otra orden después de esta» si vas a abrir varias seguidas: al abrir una, el formulario se queda con el mismo tipo, las mismas fases y el mismo modelo, y las cantidades vacías. Apagado, el formulario se cierra al abrir la orden.",
+    },
+    {
       id: "cierre",
       ancla: "prod-orden-nueva.cierre",
       titulo: "Quién la abre",
-      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
+      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos el formulario sin guardar nada.",
     },
     {
       id: "fin",
       ancla: null,
-      preparar: [{ tipo: "escape" }],
+      // El formulario ya no es una hoja: Escape no lo cierra (una página no se descarta por un roce). La demo lo cierra con «Cancelar», que no pregunta nada porque la demo no escribe nada.
+      preparar: [{ tipo: "clic", ancla: "prod-orden-nueva.cancelar", siEsta: true }],
       titulo: "¡Listo!",
       texto: "Ya sabes leer el tablero y armar una orden. Para repasarlo: Mi perfil ▸ Demo ▸ Órdenes de producción.",
     },
   ],
-  alSalir: [{ tipo: "escape" }],
+  alSalir: [{ tipo: "clic", ancla: "prod-orden-nueva.cancelar", siEsta: true }],
 };
 
 // ---- La orden en su propia página (ADR-0400, actividad 3; vista D de la lámina) ----
@@ -396,7 +424,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.terminar" }],
       titulo: "La tela, al terminar el corte",
-      texto: "Cuando lo que anotas completa el lote, la hoja también pregunta cuánta tela usaste. Ya viene lo que falta según el plan: si es lo que usaste, no cambias nada; si prefieres anotarla después, déjala vacía.",
+      texto: "Cuando lo que anotas completa el lote, la hoja también pregunta cuánta tela usaste. Ya viene lo que falta según el plan: si es lo que usaste, no cambias nada; si prefieres anotarla después, déjala vacía. Si la orden no declaró ninguna tela, la hoja te lo avisa en vez de preguntar.",
     },
     {
       id: "responsable",
@@ -478,13 +506,43 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "tela",
       ancla: "prod-orden.tela",
       preparar: [{ tipo: "escape" }],
-      titulo: "La tela",
-      texto: "Por cada tela y color: cuánta pide el plan, cuánta se usó y cuánta hay en el estante. «Alcanza» o «Faltan N m» te dice si se puede terminar la orden con lo que hay.",
+      titulo: "La tela y los avíos",
+      texto: "Por cada tela y avío: cuánto pide el plan, cuánto se usó y cuánto hay en el estante. «Alcanza» o «Faltan N» te dice si se puede terminar la orden con lo que hay. Los avíos llevan su etiqueta «Avío».",
+    },
+    {
+      id: "editar-tela",
+      ancla: "prod-orden.editar-tela",
+      opcional: true,
+      titulo: "Declarar o cambiar la tela",
+      texto: "Si la orden se abrió sin tela, o el consumo salió mal calculado, aquí lo arreglas: agregas, corriges o quitas la tela y los avíos. Lo que ya se usó se queda: no se quita, solo se corrige cuánto lleva cada prenda.",
+    },
+    {
+      id: "ficha-modelo",
+      ancla: "prod-orden.ficha-modelo",
+      opcional: true,
+      titulo: "La ficha del modelo",
+      texto: "«Ficha del modelo» guarda lo que lleva el modelo en general: la tela de cada talla y los avíos. Las órdenes nuevas lo proponen solas; esta orden no cambia (para eso, «Editar»). Con 3 órdenes cerradas manda lo que se gastó de verdad; «Volver a Audaces» lo deshace.",
+    },
+    {
+      id: "editar-tela-lista",
+      ancla: "prod-orden-editar-tela.lista",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "prod-orden.editar-tela" }],
+      titulo: "Tela por color y avíos",
+      texto: "Por cada color eliges la tela y cuánto lleva cada prenda, por talla si quieres («Separar por talla»); la hoja calcula cuántos metros pedir y si alcanzan. Abajo, «+ Agregar avío» para botones, cierres, etiquetas o hilo. En la demo no guardamos nada.",
+    },
+    {
+      id: "editar-tela-cierre",
+      ancla: "prod-orden-editar-tela.cierre",
+      opcional: true,
+      titulo: "Quién lo anota",
+      texto: "Eliges quién anota el cambio y tocas «Guardar». En la demo cerramos la hoja sin guardar nada.",
     },
     {
       id: "pedir-tela",
       ancla: "prod-orden.pedir-tela",
       opcional: true,
+      preparar: [{ tipo: "escape" }],
       titulo: "Cuando falta tela",
       texto: "«Alcanza» cuenta lo que hay en el estante menos lo que otras órdenes reservan, más lo que viene en camino. Si falta, «Pedir» abre un pedido nuevo con esa tela y los metros que faltan ya puestos; y si ya hay un pedido, aparece debajo con su número, a quién y para cuándo.",
     },
@@ -492,6 +550,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "anotar-tela",
       ancla: "prod-orden.anotar-tela",
       opcional: true,
+      preparar: [{ tipo: "escape" }],
       titulo: "Anotar lo que usaste",
       texto: "Cuando se gasta tela o avíos, «Anotar lo que usaste» lo descuenta del estante y lo deja en la orden: de ahí sale el costo real. Te abrimos la hoja para mostrártela; no se anota nada.",
     },
@@ -581,7 +640,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-stock.resumen",
       opcional: true,
       titulo: "Lo que entra y lo que cuesta",
-      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si falta anotar la tela, aquí te avisamos: sin ella el costo sale bajo; «Anotarla ahora» te lleva a hacerlo. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
+      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si falta anotar la tela, o la orden nunca la declaró, aquí te avisamos: sin ella el costo sale bajo; «Anotarla ahora» o «Declarar la tela» te llevan a hacerlo. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
     },
     {
       id: "stock-cierre",

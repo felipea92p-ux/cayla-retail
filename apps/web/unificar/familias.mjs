@@ -731,6 +731,7 @@ export const DECISIONES = {
       { "archivo": "components/ConfiguracionImpuestos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ConfiguracionTiendas.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ConfiguracionMetasMes.tsx", "motivo": "ADR-0195/ADR-0435: las tarjetas de metas por mes y por fecha son de Configuración ▸ Tiendas y caja y usan la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
+      { "archivo": "components/asistente/ConfiguracionAsistente.tsx", "motivo": "ADR-0195/ADR-0536: el interruptor del asistente por sede es una tarjeta de Configuración ▸ Tiendas y caja y usa la tabla del kit de Finanzas (fin-tabla), como sus vecinas" },
       { "archivo": "components/GastosFijosYActivos.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/GastosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
       { "archivo": "components/ImpuestosPanel.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
@@ -835,7 +836,7 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
+    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/FiltrosFlotantes.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
     "firmas": [
       // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
       "role=\"combobox\"",
@@ -1079,9 +1080,7 @@ export const DECISIONES = {
       "\\btituloGrande\\b"
     ],
     "deuda": [],
-    "excepciones": [
-      { "archivo": "components/NuevaOrdenProduccionForm.tsx", "motivo": "Nueva orden de producción es de diseño propio (la matriz y la barra de la ficha): conserva su ancho" }
-    ]
+    "excepciones": []
   },
   "grafico.barra": {
     "fecha": "2026-10-09",
@@ -1259,6 +1258,7 @@ export const DECISIONES = {
     ],
     "deuda": [],
     "excepciones": [
+      { "archivo": "app/estilos/centro-avisos.css", "motivo": "el centro de avisos del Plan se ve como su maqueta, con la campana de 18 px y el ícono de cada aviso de 22 px (Felipe 2026-10-26: «tal cual»)" },
       { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera es del marco, que se queda en trazo 1,5 (Felipe, ronda 16, P2)" },
       { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo con el juego del marco (1,7 a 16 px, para que su línea se vea como la del lateral)" },
       { "archivo": "components/traslados-pases/PasePedido.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },

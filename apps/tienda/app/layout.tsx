@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Newsreader } from "next/font/google";
+import { Bodoni_Moda, Public_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
 import { Medicion } from "@/components/Medicion";
 import { Visita } from "@/components/Visita";
+import { RevelaAlBajar } from "@/components/RevelaAlBajar";
 import { VigiaDelCamino } from "@/components/EnCamino";
 import { RecordarPrendaTocada } from "@/components/PrendaTocada";
 import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
@@ -21,12 +22,11 @@ import "./estilos/instalar.css";
 // El paso de una vista a otra: el fundido, lo fijo que no se mueve y la foto que viaja a la ficha (components/Vistas.tsx).
 import "./estilos/vistas.css";
 
-// Las letras de la dirección «A · Muro» (Felipe 2026-10-17, docs/maquetas/tienda-rediseno-2026-10/a-muro.html; el 2026-10-19 eligió A
-// completa sobre Heebo, ADR-0446): Archivo para todo el texto y, ensanchada (eje `wdth` hasta 125), para los títulos en mayúsculas, como la
-// señalética de una galería; Newsreader en cursiva para el nombre de cada prenda, como la cédula de una obra. La palabra CAYLA no va con
-// ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
-const sans = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
-const nombre = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-newsreader", display: "swap" });
+// Las letras de la dirección «G · Pasarela» (Felipe 2026-10-26, ADR-0524; antes «A · Muro»: Archivo y Newsreader): Public Sans para todo el texto y las
+// versalitas, y Bodoni Moda —una Didone de alto contraste— para los títulos, el nombre de cada prenda y las cifras grandes, como el programa de un
+// desfile. La palabra CAYLA no va con ninguna letra: es el dibujo del logo (`components/Marca.tsx`).
+const sans = Public_Sans({ subsets: ["latin"], variable: "--font-public", display: "swap" });
+const didone = Bodoni_Moda({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-bodoni", display: "swap" });
 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
@@ -39,14 +39,14 @@ export const metadata: Metadata = {
 // El color de la barra del navegador en el celular: el crema del tema claro y el fondo del oscuro (los de globals.css).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ecebe7" },
-    { media: "(prefers-color-scheme: dark)", color: "#161615" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0b" },
   ],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${sans.variable} ${nombre.variable}`}>
+    <html lang="es" className={`${sans.variable} ${didone.variable}`}>
       <head>
         {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
@@ -67,6 +67,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={null}>
           <Visita />
         </Suspense>
+        {/* Lo que sube y se aclara al bajar la página, una sola vez (components/RevelaAlBajar.tsx). No dibuja nada. */}
+        <RevelaAlBajar />
       </body>
     </html>
   );

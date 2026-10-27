@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
@@ -62,6 +63,11 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
 
   const guia = useGuiaCampos(camposGasto({ concepto, nota, monto, conFoto: archivo !== null }));
   const montoLeido = leerMontoPlata(monto);
+  // En el celular la hoja se baja con el dedo (ADR-0479): un tirón sin querer, o el gesto «atrás», borraba lo llenado sin avisar.
+  const salida = useSalidaSinGuardar(
+    concepto !== null || nota.trim() !== "" || monto.trim() !== "" || archivo !== null,
+    "Llenaste parte de este gasto y todavía no se anotó. Si cierras ahora, se pierde lo que llenaste.",
+  );
 
   const limpiar = <T,>(f: (v: T) => void) => (v: T) => {
     setRechazo(null);
@@ -103,8 +109,9 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
       );
     }
     avisar.exito(`Anotaste ${soles(montoLeido ?? 0)}`, { detalle: "Ya bajó de tu plata. Compras lo revisa." });
+    // La guardia del «atrás» se retira antes de refrescar: los dos a la vez pueden recargar la página entera (useSalidaSinGuardar).
+    void salida.retirarYa().then(() => router.refresh());
     onClose();
-    router.refresh();
   }
 
   return (
@@ -113,8 +120,11 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
       subtitulo="No es ropa: no se suma al costo de las prendas."
       onClose={onClose}
       variante="hoja"
+      // En PC la hoja se ensancha para llevar dos columnas (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el celular y la tablet siguen igual.
+      ancho="max-w-md lg:max-w-3xl" // unificar-fijo: hoja de dos columnas solo desde 1024 px; bajo eso es la hoja angosta de siempre
       alCerrarEnfocar={volverA}
       bloqueado={guardando}
+      antesDeCerrar={salida.pedirAccion}
     >
       {(cerrar) => (
         <form
@@ -124,6 +134,9 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
           }}
           className="space-y-5"
         >
+          {/* En PC: ¿en qué gastaste? a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
+          <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
           <CampoGuiado id="concepto" guia={guia} titulo="¿En qué gastaste?">
             <div role="group" aria-label="¿En qué gastaste?" className="grid grid-cols-3 gap-2" data-guia="mi-plata.concepto">
               {(Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[]).map((k) => {
@@ -158,6 +171,8 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               />
             </CampoGuiado>
           )}
+          </div>
+          <div className="contents lg:flex lg:flex-col lg:gap-5">
           <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto fue?">
             <CampoMonto
               etiqueta="¿Cuánto fue?"
@@ -170,7 +185,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               onChange={(e) => limpiar(setMonto)(e.target.value)}
             />
           </CampoGuiado>
-          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel">
+          <CampoGuiado id="foto" guia={guia} titulo="Foto del papel" ayuda="· opcional">
             <TarjetaFoto
               titulo="Foto del papel, si te dieron"
               ayuda="Un taxi o un cargador pueden ir sin papel"
@@ -182,6 +197,8 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               }}
             />
           </CampoGuiado>
+          </div>
+          </div>
           {rechazo && (
             <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
               {rechazo.texto}
@@ -189,7 +206,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
           )}
           <PieGuia guia={guia} listo="Todo listo para anotar." conFrase />
           <div className="pie-hoja-fijo pie-acciones pt-1">
-            <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" peso="fantasma" onClick={() => salida.pedirAccion(cerrar)} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -204,6 +221,7 @@ function AnotarGastoModal({ onClose, volverA }: { onClose: () => void; volverA: 
               {fraseGasto(montoLeido)}
             </Boton>
           </div>
+          {salida.aviso}
         </form>
       )}
     </Modal>

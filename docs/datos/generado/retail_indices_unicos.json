@@ -160,6 +160,26 @@
   "tablename": "campana_efecto_caja"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX campana_regla_categorias_pkey ON retail.campana_regla_categorias USING btree (regla_id, categoria_id)",
+  "indexname": "campana_regla_categorias_pkey",
+  "tablename": "campana_regla_categorias"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_regla_historial_pkey ON retail.campana_regla_historial USING btree (id)",
+  "indexname": "campana_regla_historial_pkey",
+  "tablename": "campana_regla_historial"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_regla_sedes_pkey ON retail.campana_regla_sedes USING btree (regla_id, ubicacion_id)",
+  "indexname": "campana_regla_sedes_pkey",
+  "tablename": "campana_regla_sedes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX campana_reglas_pkey ON retail.campana_reglas USING btree (id)",
+  "indexname": "campana_reglas_pkey",
+  "tablename": "campana_reglas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX campana_sedes_pkey ON retail.campana_sedes USING btree (etiqueta_id, ubicacion_id)",
   "indexname": "campana_sedes_pkey",
   "tablename": "campana_sedes"
@@ -465,8 +485,8 @@
   "tablename": "compra_cierres"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX compra_cierres_uno_por_dia ON retail.compra_cierres USING btree (persona_id, fecha)",
-  "indexname": "compra_cierres_uno_por_dia",
+  "indexdef": "CREATE UNIQUE INDEX compra_cierres_ronda_id_key ON retail.compra_cierres USING btree (ronda_id)",
+  "indexname": "compra_cierres_ronda_id_key",
   "tablename": "compra_cierres"
  },
  {
@@ -563,6 +583,26 @@
   "indexdef": "CREATE UNIQUE INDEX compra_reasignaciones_pkey ON retail.compra_reasignaciones USING btree (id)",
   "indexname": "compra_reasignaciones_pkey",
   "tablename": "compra_reasignaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_rondas_cierre_id_key ON retail.compra_rondas USING btree (cierre_id)",
+  "indexname": "compra_rondas_cierre_id_key",
+  "tablename": "compra_rondas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_rondas_numero_key ON retail.compra_rondas USING btree (numero)",
+  "indexname": "compra_rondas_numero_key",
+  "tablename": "compra_rondas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_rondas_pkey ON retail.compra_rondas USING btree (id)",
+  "indexname": "compra_rondas_pkey",
+  "tablename": "compra_rondas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_rondas_una_abierta ON retail.compra_rondas USING btree (persona_id) WHERE (cerrada_en IS NULL)",
+  "indexname": "compra_rondas_una_abierta",
+  "tablename": "compra_rondas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX compradores_de_tienda_pkey ON retail.compradores_de_tienda USING btree (persona_id, ubicacion_id)",
@@ -698,6 +738,11 @@
   "indexdef": "CREATE UNIQUE INDEX conteos_un_abierto_por_ubicacion ON retail.conteos USING btree (ubicacion_id) WHERE (estado = 'abierto'::text)",
   "indexname": "conteos_un_abierto_por_ubicacion",
   "tablename": "conteos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX costo_correcciones_pkey ON retail.costo_correcciones USING btree (id)",
+  "indexname": "costo_correcciones_pkey",
+  "tablename": "costo_correcciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX costo_historial_movimiento_id_key ON retail.costo_historial USING btree (movimiento_id)",
@@ -888,6 +933,16 @@
   "indexdef": "CREATE UNIQUE INDEX despacho_items_pkey ON retail.despacho_items USING btree (id)",
   "indexname": "despacho_items_pkey",
   "tablename": "despacho_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_observaciones_pkey ON retail.despacho_observaciones USING btree (id)",
+  "indexname": "despacho_observaciones_pkey",
+  "tablename": "despacho_observaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_observaciones_token_unico ON retail.despacho_observaciones USING btree (despacho_id, token_cliente) WHERE (token_cliente IS NOT NULL)",
+  "indexname": "despacho_observaciones_token_unico",
+  "tablename": "despacho_observaciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX despacho_pendientes_pkey ON retail.despacho_pendientes USING btree (id)",
@@ -1875,9 +1930,24 @@
   "tablename": "producciones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX producto_avios_pkey ON retail.producto_avios USING btree (id)",
+  "indexname": "producto_avios_pkey",
+  "tablename": "producto_avios"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX producto_avios_vigente_uq ON retail.producto_avios USING btree (producto_id, insumo_id, COALESCE(color_codigo, ''::text)) WHERE (archivado_at IS NULL)",
+  "indexname": "producto_avios_vigente_uq",
+  "tablename": "producto_avios"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX producto_color_temporadas_pkey ON retail.producto_color_temporadas USING btree (producto_id, color_codigo)",
   "indexname": "producto_color_temporadas_pkey",
   "tablename": "producto_color_temporadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX producto_consumo_medido_pkey ON retail.producto_consumo_medido USING btree (produccion_id)",
+  "indexname": "producto_consumo_medido_pkey",
+  "tablename": "producto_consumo_medido"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX producto_consumos_pkey ON retail.producto_consumos USING btree (producto_id)",
@@ -2245,6 +2315,21 @@
   "tablename": "terminales"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX tickets_abiertos_pkey ON retail.tickets_abiertos USING btree (id)",
+  "indexname": "tickets_abiertos_pkey",
+  "tablename": "tickets_abiertos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX tickets_un_nombre_por_sede ON retail.tickets_abiertos USING btree (ubicacion_id, lower(btrim(nombre))) WHERE (estado = 'abierto'::text)",
+  "indexname": "tickets_un_nombre_por_sede",
+  "tablename": "tickets_abiertos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX tickets_una_venta ON retail.tickets_abiertos USING btree (venta_id) WHERE (venta_id IS NOT NULL)",
+  "indexname": "tickets_una_venta",
+  "tablename": "tickets_abiertos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX tienda_push_envios_clave_unica ON retail.tienda_push_envios USING btree (cuenta_web_id, clave)",
   "indexname": "tienda_push_envios_clave_unica",
   "tablename": "tienda_push_envios"
@@ -2268,6 +2353,16 @@
   "indexdef": "CREATE UNIQUE INDEX tipos_activo_pkey ON retail.tipos_activo USING btree (codigo)",
   "indexname": "tipos_activo_pkey",
   "tablename": "tipos_activo"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX trafico_web_pedido_una_vez ON retail.trafico_web USING btree (pedido_web_id) WHERE (pedido_web_id IS NOT NULL)",
+  "indexname": "trafico_web_pedido_una_vez",
+  "tablename": "trafico_web"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX trafico_web_pkey ON retail.trafico_web USING btree (id)",
+  "indexname": "trafico_web_pkey",
+  "tablename": "trafico_web"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX transferencia_items_pkey ON retail.transferencia_items USING btree (id)",
@@ -2315,6 +2410,11 @@
   "tablename": "traslado_sobrantes"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX ubicacion_cierres_web_pkey ON retail.ubicacion_cierres_web USING btree (ubicacion_id, fecha)",
+  "indexname": "ubicacion_cierres_web_pkey",
+  "tablename": "ubicacion_cierres_web"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX ubicacion_datos_fiscales_pkey ON retail.ubicacion_datos_fiscales USING btree (ubicacion_id)",
   "indexname": "ubicacion_datos_fiscales_pkey",
   "tablename": "ubicacion_datos_fiscales"
@@ -2328,6 +2428,11 @@
   "indexdef": "CREATE UNIQUE INDEX ubicacion_datos_web_pkey ON retail.ubicacion_datos_web USING btree (ubicacion_id)",
   "indexname": "ubicacion_datos_web_pkey",
   "tablename": "ubicacion_datos_web"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX ubicacion_horario_web_pkey ON retail.ubicacion_horario_web USING btree (ubicacion_id, dia)",
+  "indexname": "ubicacion_horario_web_pkey",
+  "tablename": "ubicacion_horario_web"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX ubicacion_metas_dia_pkey ON retail.ubicacion_metas_dia USING btree (ubicacion_id, dia_semana)",

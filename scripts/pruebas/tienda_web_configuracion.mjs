@@ -149,7 +149,9 @@ select retail.fn_sede_web_falta('Trujillo', '', '987654321')::text;`);
   esperar("sin tiendas encendidas, la web no muestra ninguna", correr(`${ESCENA}${SEDES}`).salida === '{"sedes": []}');
   {
     const r = correr(`${ESCENA}${whatsapp("t1", "987654321")}${guardar("t1", "Trujillo", "Jr. Pizarro 512, Centro", "Lunes a sábado, de 10 a. m. a 9 p. m.", true)}
-select retail.tienda_sedes() = jsonb_build_object('sedes', jsonb_build_array(jsonb_build_object(
+-- Las cinco claves de siempre, exactas. Lo que sumó Conf. Tienda (mapa, foto, días y cierres, 20261026162000) se quita antes de comparar: lo vigila
+-- pruebas:tienda-web-conf, y esta prueba sigue valiendo con o sin esa migración.
+select (select jsonb_build_object('sedes', coalesce(jsonb_agg(s - 'mapa' - 'foto' - 'dias' - 'cierres'), '[]'::jsonb)) from jsonb_array_elements(retail.tienda_sedes() -> 'sedes') s) = jsonb_build_object('sedes', jsonb_build_array(jsonb_build_object(
   'id', :'t1', 'nombre', 'Trujillo', 'direccion', 'Jr. Pizarro 512, Centro', 'horario', 'Lunes a sábado, de 10 a. m. a 9 p. m.', 'whatsapp', '987654321')));`);
     esperar("una tienda completa y encendida sale con su nombre web, dirección, horario y WhatsApp", r.ok && r.salida === "t", r);
   }

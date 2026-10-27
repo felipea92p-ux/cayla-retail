@@ -22,18 +22,21 @@
 
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
+import type { PropuestaGuardada } from "./plan-compra-propuesta-guardada";
 import type { TiendaReparto } from "./plan-compra-reparto";
 import { enCaminoDe, type PedidoCategoria } from "./plan-compra-pedido";
 import { compararTallas } from "./tallas";
 import { proyectarCampana } from "./plan-compra-historial";
+import { cuentaEnElAnio, decisionesPorEtiqueta, fechasDeLaDecision, propiasQueSeOfrecen, seOfrece, type DecisionDeCampana, type LecturaCalendario } from "./plan-compra-calendario";
+import type { SugeridoDescuento } from "./plan-compra-descuento";
+import type { ResumenDeEnvio } from "./plan-compra-envio";
+import { DIAS_DE_VENTAS } from "./plan-compra-periodo";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
 export const RPC_GUARDAR_TOPE = "guardar_plan_compra_tope";
 export const RPC_PLANES = "fn_planes_compra";
 export const RPC_CREAR_CAMPANA = "crear_plan_compra";
-/** «Campaña nueva» (act. 2026-10-12 f): la etiqueta de campaña en Etiquetas y su plan, en una transacción. */
-export const RPC_CAMPANA_NUEVA = "crear_campana_con_plan";
 export const RPC_EDITAR_CAMPANA = "editar_plan_compra";
 export const RPC_QUITAR_CAMPANA = "quitar_plan_compra";
 export const RPC_RESTAURAR_CAMPANA = "restaurar_plan_compra";
@@ -50,6 +53,9 @@ export type LineaPlan = {
   precio: number;
   costo: number;
   recuperoPct: number;
+  /** El descuento que se supuso para esta categoría en la campaña (0 a 99,99 %). Ausente o 0 = precio de lista. Lo que sobra NO lo lleva:
+   *  se recupera sobre el precio de lista, porque se vende después de la campaña (ADR-0499). */
+  descuentoPct?: number;
   /** talla_id → porcentaje entero; vacío = sin curva decidida. */
   curva: Record<string, number>;
   nota: string | null;
@@ -84,6 +90,10 @@ export type LecturaPlan = {
   tope: { soportado: boolean; valor: number | null };
   /** La base ya compara versiones al guardar una categoría (B4): la web le manda la que leyó. false = base vieja, se guarda como antes. */
   conVersion: boolean;
+  /** La base ya guarda el descuento supuesto de cada categoría: la web se lo manda. false = base vieja, se guarda como antes y el campo no se ofrece. */
+  conDescuento: boolean;
+  /** categoría → lo que sugiere la campaña del plan (`lib/plan-compra-descuento.ts`); vacío si la base no lo manda. */
+  sugeridosDescuento: Map<string, SugeridoDescuento>;
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -189,6 +199,8 @@ export function leerPlan(v: unknown): LecturaPlan | null {
     vendido30: hay("vendido_30") ? porCategoria(v.vendido_30) : null,
     tope: { soportado: v.plan.tope_inversion !== undefined, valor: topeLeido !== null && topeLeido > 0 ? topeLeido : null },
     conVersion: v.con_version === true,
+    conDescuento: false,
+    sugeridosDescuento: new Map(),
   };
 }
 
@@ -196,12 +208,67 @@ export function leerPlan(v: unknown): LecturaPlan | null {
 // 2. Cuánto comprar
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Cu ÷ (Cu + Co). Si sobrar no cuesta nada (se recupera todo el costo), conviene cubrir el escenario bueno: 1. */
-export function cuantilCritico(precio: number, costo: number, recuperoPct: number): number {
-  const cu = Math.max(precio - costo, 0);
+/**
+ * Cu ÷ (Cu + Co). Si sobrar no cuesta nada (se recupera todo el costo), conviene cubrir el escenario bueno: 1.
+ * `descuentoPct` (ADR-0499): en la campaña se vende con descuento, así que lo que se pierde por cada prenda que faltó es el precio CON descuento
+ * menos el costo. Lo que sobra se recupera después de la campaña, sobre el precio de lista: el descuento no entra en Co. Si el descuento se
+ * come todo el margen, Cu = 0 y el cuantil es 0: comprar cerca del flojo.
+ */
+export function cuantilCritico(precio: number, costo: number, recuperoPct: number, descuentoPct = 0, precioDeLaPlata = 0): number {
+  const cu = Math.max(precioEnCampana(precio, descuentoPct) - costo, 0);
   const co = Math.max(costo - (precio * recuperoPct) / 100, 0);
   if (cu + co === 0) return 0.5;
-  return cu / (cu + co);
+  // El precio de la plata (λ, Hadley y Whitin 1963; ver `lib/plan-compra-tope.ts`): cada sol que se inmoviliza en mercadería cuesta λ soles de
+  // lo que esa plata rendiría en otra parte, así que lo que se deja de ganar por quedarse corto baja en λ × el costo de la prenda. Con 0 (el
+  // plan de siempre) es exactamente Cu ÷ (Cu + Co); positivo aprieta la compra de todas las categorías a la vez, negativo la afloja.
+  const lambda = Number.isFinite(precioDeLaPlata) ? precioDeLaPlata : 0;
+  return Math.min(Math.max((cu - lambda * costo) / (cu + co), 0), 1);
+}
+
+/** El precio al que se vende en la campaña: el de lista menos el descuento, a centavos. */
+export function precioEnCampana(precio: number, descuentoPct = 0): number {
+  const d = Math.min(Math.max(descuentoPct, 0), 100);
+  return Math.round(precio * (1 - d / 100) * 100) / 100;
+}
+
+export type MargenPorPrenda = {
+  /** Lo que queda por prenda al precio de lista. */
+  lista: number;
+  /** Lo que queda por prenda al precio de la campaña. Negativo = se vende por debajo del costo. */
+  enCampana: number;
+  /** El precio de la campaña. */
+  precioCampana: number;
+  /** El margen de la campaña como % de su precio; null si el precio es 0. */
+  pctEnCampana: number | null;
+  /** Se vende al costo o por debajo (no deja ganancia): hay que avisarlo. */
+  pierde: boolean;
+};
+
+/** Lo que gana la campaña por prenda, dicho con y sin descuento. null mientras falte el precio o el costo. */
+export function margenPorPrenda(precio: number, costo: number, descuentoPct = 0): MargenPorPrenda | null {
+  if (!(precio > 0) || !(costo >= 0)) return null;
+  const precioCampana = precioEnCampana(precio, descuentoPct);
+  const enCampana = Math.round((precioCampana - costo) * 100) / 100;
+  return {
+    lista: Math.round((precio - costo) * 100) / 100,
+    enCampana,
+    precioCampana,
+    pctEnCampana: precioCampana > 0 ? Math.round((enCampana / precioCampana) * 1000) / 10 : null,
+    pierde: enCampana <= 0,
+  };
+}
+
+/**
+ * «Con −20 % ganas S/ 33.92 por prenda en vez de S/ 49.90.» El margen dicho junto al campo del descuento. null si no hay descuento o falta
+ * un dato; si el descuento se come el margen lo dice con todas sus letras (nunca un número negativo sin explicar).
+ */
+export function fraseDelMargen(precio: number, costo: number, descuentoPct: number): string | null {
+  if (!(descuentoPct > 0)) return null;
+  const m = margenPorPrenda(precio, costo, descuentoPct);
+  if (!m) return null;
+  const d = `${descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
+  if (m.pierde) return `Con −${d} vendes a ${solesES(m.precioCampana)}, que no deja ganancia sobre el costo de ${solesES(costo)}: cada prenda vendida en la campaña no te deja nada o te cuesta.`;
+  return `Con −${d} ganas ${solesES(m.enCampana)} por prenda en vez de ${solesES(m.lista)}.`;
 }
 
 /** El cuantil p de una triangular (mínimo a, más probable c, máximo b). */
@@ -225,8 +292,8 @@ export type Calculo = {
   inversion: number;
 };
 
-export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct">, stock: number): Calculo {
-  const cuantil = cuantilCritico(l.precio, l.costo, l.recuperoPct);
+export function calcular(l: Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "descuentoPct">, stock: number, precioDeLaPlata = 0): Calculo {
+  const cuantil = cuantilCritico(l.precio, l.costo, l.recuperoPct, l.descuentoPct ?? 0, precioDeLaPlata);
   const objetivo = Math.ceil(cuantilTriangular(l.flojo, l.normal, l.bueno, cuantil) - 1e-9);
   const comprar = Math.max(0, objetivo - stock);
   return { cuantil, objetivo, stock, comprar, inversion: Math.round(comprar * l.costo * 100) / 100 };
@@ -254,12 +321,12 @@ export function porQue(c: Calculo): string {
  * Lo que produce el porcentaje de «Lo que sobra» con el precio y el costo de la hoja, dicho junto al campo mientras se escribe: el número que
  * más mueve la compra no se llena a ciegas (Formidable, 2026-10-10). null mientras falte el precio, el costo o el porcentaje.
  */
-export function veredictoDeLoQueSobra(b: Pick<Borrador, "precio" | "costo" | "recupero">): string | null {
+export function veredictoDeLoQueSobra(b: Pick<Borrador, "precio" | "costo" | "recupero"> & { descuento?: string }): string | null {
   const precio = leerNumeroDeMonto(b.precio);
   const costo = leerNumeroDeMonto(b.costo);
   const recupero = entero(b.recupero);
   if (precio === null || costo === null || recupero === null || precio <= 0 || costo >= precio || recupero > 100) return null;
-  const { costo: cuesta, compra } = lecturaDelCuantil(cuantilCritico(precio, costo, recupero));
+  const { costo: cuesta, compra } = lecturaDelCuantil(cuantilCritico(precio, costo, recupero, leerDescuento(b.descuento) ?? 0));
   return `Con ${recupero} %, ${cuesta}. Conviene ${compra}.`;
 }
 
@@ -307,8 +374,18 @@ export function comprarPorTalla(total: number, tallas: readonly TallaPlan[], cur
 // 4. Validar (lo mismo que `guardar_plan_compra_linea`)
 // ---------------------------------------------------------------------------------------------------------------------
 
-export type Borrador = { flojo: string; normal: string; bueno: string; precio: string; costo: string; recupero: string; curva: Record<string, string> };
-export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "recupero" | "curva";
+export type Borrador = {
+  flojo: string;
+  normal: string;
+  bueno: string;
+  precio: string;
+  costo: string;
+  recupero: string;
+  /** El descuento que se supone para la campaña, en %. Opcional: vacío = sin descuento (0). */
+  descuento?: string;
+  curva: Record<string, string>;
+};
+export type CampoPlan = "flojo" | "normal" | "bueno" | "precio" | "costo" | "recupero" | "descuento" | "curva";
 
 const entero = (s: string): number | null => (/^\d+$/.test(s.trim()) ? Number(s.trim()) : null);
 
@@ -322,6 +399,16 @@ export function leerNumeroDeMonto(t: string): number | null {
   if (!limpio) return null;
   const sinMiles = /^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(limpio) ? limpio.replace(/,/g, "") : limpio.replace(",", ".");
   return /^\d+(\.\d{1,2})?$/.test(sinMiles) ? Number(sinMiles) : null;
+}
+
+/**
+ * El descuento tal como lo escribe la persona: «20», «12,5» o «12.5» (hasta dos decimales). Vacío = sin descuento (0). null si no se entiende.
+ * Es el mismo rango que acepta la base (0 a menos de 100): un 100 % deja el precio en cero y no hay nada que planear.
+ */
+export function leerDescuento(t: string | undefined): number | null {
+  const limpio = (t ?? "").replace(/\s+/g, "").replace(",", ".");
+  if (limpio === "") return 0;
+  return /^\d{1,2}(\.\d{1,2})?$/.test(limpio) ? Number(limpio) : null;
 }
 
 /** Topes contra un error de tipeo, no reglas de negocio: ninguna categoría de CAYLA vende 100 000 prendas en una campaña ni una prenda cuesta
@@ -354,6 +441,7 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
   else if (precio !== null && costo >= precio) p.costo = "El costo tiene que ser menor que el precio de venta.";
   const recupero = entero(b.recupero);
   if (recupero === null || recupero > 100) p.recupero = "Escribe a qué % del precio vendes lo que sobre (de 0 a 100).";
+  if (leerDescuento(b.descuento) === null) p.descuento = "Escribe el descuento en %, de 0 a menos de 100 (déjalo vacío si no hay).";
   const usadas = tallas.filter((t) => (b.curva[t.id] ?? "").trim() !== "");
   if (usadas.length > 0) {
     const valores = tallas.map((t) => entero(b.curva[t.id] ?? "0") ?? NaN);
@@ -368,7 +456,19 @@ export function problemasDelBorrador(b: Borrador, tallas: readonly TallaPlan[]):
  * Los argumentos de `guardar_plan_compra_linea` desde un borrador válido. `versionEsperada` (B4, ADR-0193): la versión de la línea que la hoja
  * leyó al abrirse (0 = no había plan). Solo se manda si la base ya compara versiones (`conVersion`); sin ella, la llamada es la de siempre.
  */
-export function argsGuardar(planId: string, categoriaId: string, b: Borrador, tallas: readonly TallaPlan[], nota: string, versionEsperada?: number) {
+export function argsGuardar(
+  planId: string,
+  categoriaId: string,
+  b: Borrador,
+  tallas: readonly TallaPlan[],
+  nota: string,
+  versionEsperada?: number,
+  /** Solo si la base ya guarda el descuento (`LecturaPlan.conDescuento`): una función que no conoce el parámetro rechazaría la llamada. */
+  conDescuento = false,
+  /** Lo que la pantalla propuso al guardar (ADR-0520, `propuestaParaGuardar`): la base lo deja en el historial. Una base que todavía no conoce el
+   *  parámetro lo rechaza; por eso se guarda con `guardarConPropuesta`, que repite sin él. */
+  propuesta?: PropuestaGuardada | null,
+) {
   const curva: Record<string, number> = {};
   if (tallas.some((t) => (b.curva[t.id] ?? "").trim() !== "")) for (const t of tallas) curva[t.id] = Number((b.curva[t.id] ?? "0").trim() || "0");
   return {
@@ -383,6 +483,8 @@ export function argsGuardar(planId: string, categoriaId: string, b: Borrador, ta
     p_curva: curva,
     p_nota: nota.trim() === "" ? null : nota.trim(),
     ...(versionEsperada !== undefined ? { p_version_esperada: versionEsperada } : {}),
+    ...(conDescuento ? { p_descuento_pct: leerDescuento(b.descuento) ?? 0 } : {}),
+    ...(propuesta ? { p_propuesta: propuesta } : {}),
   };
 }
 
@@ -398,6 +500,9 @@ export function versionDevuelta(data: unknown): number | null {
   return esObjeto(data) && typeof data.version === "number" && Number.isInteger(data.version) ? data.version : null;
 }
 
+/** Un descuento como se escribe en el campo: «20», «12.5» (el punto, como el precio y el costo de la misma hoja); 0 = vacío (sin descuento). */
+const textoDeDescuento = (n: number) => (n > 0 ? String(n) : "");
+
 /** El borrador para una categoría: lo guardado, o vacío con la curva que propone el sistema. */
 export function borradorDe(
   linea: LineaPlan | undefined,
@@ -407,6 +512,8 @@ export function borradorDe(
   catalogo?: { precio: number; costo: number } | null,
   /** El % de lo que sobra de la campaña (C5): sin plan guardado, la categoría arranca con él; se puede cambiar. */
   recuperoDefecto?: number | null,
+  /** El descuento que rige para esta categoría según la campaña (ADR-0499): sin plan guardado, la categoría arranca con él; se puede cambiar. */
+  descuentoSugerido?: number | null,
 ): Borrador {
   const curva = linea && Object.keys(linea.curva).length > 0 ? linea.curva : curvaSugerida(tallas, vendido);
   return {
@@ -416,15 +523,16 @@ export function borradorDe(
     precio: linea ? linea.precio.toFixed(2) : catalogo ? catalogo.precio.toFixed(2) : "",
     costo: linea ? linea.costo.toFixed(2) : catalogo ? catalogo.costo.toFixed(2) : "",
     recupero: linea ? String(linea.recuperoPct) : recuperoDefecto != null ? String(recuperoDefecto) : "",
+    descuento: textoDeDescuento(linea ? (linea.descuentoPct ?? 0) : (descuentoSugerido ?? 0)),
     curva: Object.fromEntries(Object.entries(curva).map(([k, v]) => [k, String(v)])),
   };
 }
 
 /** El borrador como línea (para calcular en vivo mientras se escribe); null si todavía no se puede. */
-export function lineaDeBorrador(b: Borrador, tallas: readonly TallaPlan[]): Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "curva"> | null {
+export function lineaDeBorrador(b: Borrador, tallas: readonly TallaPlan[]): Pick<LineaPlan, "flojo" | "normal" | "bueno" | "precio" | "costo" | "recuperoPct" | "descuentoPct" | "curva"> | null {
   if (Object.keys(problemasDelBorrador(b, tallas)).length > 0) return null;
   const a = argsGuardar("", "", b, tallas, "");
-  return { flojo: a.p_flojo, normal: a.p_normal, bueno: a.p_bueno, precio: a.p_precio, costo: a.p_costo, recuperoPct: a.p_recupero_pct, curva: a.p_curva };
+  return { flojo: a.p_flojo, normal: a.p_normal, bueno: a.p_bueno, precio: a.p_precio, costo: a.p_costo, recuperoPct: a.p_recupero_pct, descuentoPct: leerDescuento(b.descuento) ?? 0, curva: a.p_curva };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -475,6 +583,12 @@ export type FilaPlan = {
   catalogo: { precio: number; costo: number } | null;
   /** Flojo, normal y bueno que propone el sistema (C4, `lib/plan-compra-propuesta.ts`); null = no vendió; undefined = la base no lo manda. */
   propuesta?: PropuestaCategoria | null;
+  /** Cuándo leyó la pantalla los datos de los que salió `propuesta` (ISO). Se guarda junto al plan (ADR-0520). */
+  propuestaLeidaEn?: string;
+  /** Los días de ventas que el ERP lleva de verdad dentro de la ventana de 90 (`lib/plan-compra-periodo.ts`); undefined = no se sabe. */
+  diasDeVentas?: number;
+  /** La misma campaña del año pasado ya está en el ERP, en alguna tienda (`previaDisponible`); undefined = no se sabe. Con `diasDeVentas`, dice cuánto creerle a los números. */
+  conCampanaAnterior?: boolean;
   /** El % de lo que sobra de la campaña (C5): con él arranca una categoría sin plan. null = nadie lo fijó todavía. */
   recuperoDefecto?: number | null;
   /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
@@ -483,6 +597,14 @@ export type FilaPlan = {
   pedido?: PedidoCategoria;
   /** Lo pedido que todavía no llegó a ninguna tienda: se suma a `stock` en la cuenta de «Comprar». 0 si no hay o la base no lo manda. */
   enCamino: number;
+  /** La base guarda el descuento de cada categoría (ADR-0499): la hoja ofrece el campo. false = base vieja, no se ofrece. */
+  conDescuento?: boolean;
+  /** Lo que sugiere la campaña para esta categoría; null = la campaña no la alcanza; undefined = la base no lo manda. */
+  descuentoSugerido?: SugeridoDescuento | null;
+  /** El paso 2 de esta categoría (ADR-0526: qué modelos, colores y tallas): el último reparto guardado; null = todavía no se hizo; undefined = la base no lo sabe. */
+  paso2?: { version: number; pct: number; total: number; unidades: number; por: string | null; en: string | null } | null;
+  /** Lo que esta categoría tiene en Compras (ADR-0530): cuántos pedidos pendientes o ya pedidos y si el plan cambió desde que se enviaron; null/undefined = nada que decir (no se envió, o la base no lo sabe). */
+  envio?: ResumenDeEnvio | null;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -495,8 +617,9 @@ function porVentas(a: FilaPlan, b: FilaPlan): number {
  * Una fila por categoría activa, con su cuenta hecha, ordenada por lo que más vende (la que más vende primero; a igual venta, la de más
  * stock; a igual stock, por nombre). El orden es estable: dos lecturas iguales dan la misma tabla. `ordenarFilas` la reordena.
  * `pedido` (lo pedido en órdenes, por categoría): lo que falta llegar se cuenta como si ya estuviera, así «Comprar» no lo pide dos veces.
+ * `precioDeLaPlata` (ADR-0523): el del plan con tope que la campaña USA hoy; 0 = el plan de siempre.
  */
-export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, PedidoCategoria> | null): FilaPlan[] {
+export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, PedidoCategoria> | null, precioDeLaPlata = 0): FilaPlan[] {
   const filas = plan.categorias
     .map((c): FilaPlan => {
       const linea = plan.lineas.get(c.id);
@@ -507,9 +630,11 @@ export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, Pedid
         c,
         linea,
         stock,
-        calculo: linea ? calcular(linea, stock + enCamino) : null,
+        calculo: linea ? calcular(linea, stock + enCamino, precioDeLaPlata) : null,
         pedido: delPedido,
         enCamino,
+        conDescuento: plan.conDescuento,
+        descuentoSugerido: plan.conDescuento ? (plan.sugeridosDescuento.get(c.id) ?? null) : undefined,
         vendido: plan.vendidoEnCampana.get(c.id) ?? 0,
         ventas: sumaDe(plan.vendidoPorTalla.get(c.id)),
         puesto: null,
@@ -636,16 +761,16 @@ export const posicionEnEscala = (valor: number, escala: number): number => (esca
 // 9. Ayudas para llenar una categoría
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Cuántos días de ventas mira `fn_plan_compra` para la curva y para «lo que vendiste» (los 90 días de siempre). */
-export const DIAS_DE_VENTAS = 90;
 /**
  * El «normal» cuando la base todavía no manda la propuesta de tres escenarios (C4): lo que la categoría vende por día en los últimos 90
  * días, llevado a los días de ESTA campaña (la misma regla del normal de C4, que reemplazó a «diciembre triplica un mes», R-19: con ella,
- * San Valentín de dos semanas pedía tres meses de venta). Sin ventas o sin días, no hay qué proponer (null).
+ * San Valentín de dos semanas pedía tres meses de venta). Sin ventas o sin días, no hay qué proponer (null). `diasConVentas`: los días
+ * que el ERP lleva de verdad dentro de esos 90 (`diasDeVentasDelErp`); con 26 días, dividir por 90 proponía una tercera parte de lo que se vende.
  */
-export function propuestaDeNormal(ventas90: number, diasCampana: number): number | null {
+export function propuestaDeNormal(ventas90: number, diasCampana: number, diasConVentas: number = DIAS_DE_VENTAS): number | null {
   if (!Number.isFinite(ventas90) || ventas90 <= 0 || !Number.isFinite(diasCampana) || diasCampana <= 0) return null;
-  return Math.round((ventas90 / DIAS_DE_VENTAS) * diasCampana);
+  if (!Number.isFinite(diasConVentas) || diasConVentas <= 0) return null;
+  return Math.round((ventas90 / Math.min(diasConVentas, DIAS_DE_VENTAS)) * diasCampana);
 }
 
 /**
@@ -695,16 +820,6 @@ export type SedeStock = {
   /** Lo que falta, dicho corto («piso sin cuadrar»), o null si está al día. */
   falta: string | null;
 };
-
-/**
- * El número del botón «Resumen y avisos» (Felipe 2026-10-12: el resumen va en un cajón y la tabla queda a la vista): cuántas tiendas no
- * tienen su stock al día; 1 si no se pudo comprobar (no se dice «todo bien» por un error). 0 = el botón va sin número.
- */
-export function avisosDelResumen(c: Pick<ConfianzaDelStock, "estado" | "sedes">): number {
-  if (c.estado === "sin-dato") return 1;
-  if (c.estado === "confiable") return 0;
-  return c.sedes.filter((s) => !s.alDia).length;
-}
 
 export type ConfianzaDelStock = {
   /** `sin-dato`: no se pudo comprobar (la lectura falló o la cuenta no opera ninguna tienda). Nunca se dice «confiable» por omisión. */
@@ -829,8 +944,13 @@ export type CampanaPlan = { id: string; nombre: string; desde: string; hasta: st
 /** Una campaña de Catálogo ▸ Etiquetas (aprobada). Sus fechas son las de un año y vuelven cada año (como en Historial); sin fechas, null.
  *  `planes`: los planes que ya tiene, con el año en que termina cada uno (uno por año, act. 2026-10-12 f); `planId`, el del último año. */
 export type EtiquetaCampana = { id: string; nombre: string; desde: string | null; hasta: string | null; planId: string | null; planes: { id: string; anio: number }[] };
-/** `edicion` (B5): la base ya sabe editar, quitar y restaurar campañas; si no, la pantalla esconde esas opciones. */
-export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[]; edicion: boolean };
+/** `edicion` (B5): la base ya sabe editar, quitar y restaurar campañas; si no, la pantalla esconde esas opciones. `calendario` (ADR-0525): lo que se decidió de cada
+ *  campaña (entra a mi plan, descansa o no la compro) y las campañas propias del plan; ausente o null = la base todavía no lo guarda y se ofrecen todas, como antes.
+ *  Es JSON plano: viaja del servidor al navegador dentro de las campañas. */
+export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[]; edicion: boolean; calendario?: LecturaCalendario | null };
+
+/** Las campañas con el calendario del plan pegado (lo que `getPlanCompra` hace al leerlas); sin campañas, sin nada que pegar. */
+export const conCalendario = (c: CampanasLeidas | null, calendario: LecturaCalendario | null): CampanasLeidas | null => (c ? { ...c, calendario } : c);
 
 const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
@@ -880,84 +1000,132 @@ export function fechasDelAnio(e: Pick<EtiquetaCampana, "desde" | "hasta">, anio:
   return e.desde && e.hasta ? proyectarCampana({ desde: e.desde, hasta: e.hasta }, anio) : null;
 }
 
-/** Una campaña del calendario que todavía no tiene plan ese año: «Black Friday 2026, del 9 al 30 nov». */
-export type RanuraCalendario = { etiquetaId: string; anio: number; nombre: string; desde: string; hasta: string };
+/**
+ * Una campaña del calendario que todavía no tiene plan ese año: «Black Friday 2026, del 9 al 30 nov». O es de Catálogo ▸ Insignias (`etiquetaId`) o es PROPIA del plan
+ * (`calendarioId`, sin insignia, ADR-0525): una u otra, nunca las dos.
+ */
+export type RanuraCalendario = { etiquetaId: string | null; calendarioId: string | null; anio: number; nombre: string; desde: string; hasta: string };
+
+/** Lo que identifica una ranura (el valor de su opción en el selector y la llave de su hoja): la misma campaña el mismo año es la misma ranura. */
+export const claveDeRanura = (r: Pick<RanuraCalendario, "etiquetaId" | "calendarioId" | "anio">): string => `${r.etiquetaId ?? `propia:${r.calendarioId}`}|${r.anio}`;
 
 /** ¿Esa campaña ya tiene plan ese año? (también uno archivado: la base no deja otro igual). */
 const tienePlanEn = (e: Pick<EtiquetaCampana, "id" | "planes">, anio: number, planes: readonly Pick<CampanaPlan, "etiquetaId" | "hasta">[]) =>
   e.planes.some((p) => p.anio === anio) || planes.some((p) => p.etiquetaId === e.id && Number(p.hasta.slice(0, 4)) === anio);
 
 /**
- * El calendario sin plan (Felipe 2026-10-12, opción A): cada campaña de Etiquetas con fechas, este año y el que viene, que todavía no tiene plan
- * ese año y no terminó. Es lo que el selector ofrece para «Armar plan».
+ * El calendario sin plan (Felipe 2026-10-12, opción A): cada campaña con fechas, este año y el que viene, que todavía no tiene plan ese año y no terminó. Es lo que
+ * el selector ofrece para «Armar plan». Con el calendario del plan (ADR-0525) solo entran las que están «en mi plan» hoy —las de Insignias que prendiste o que ya
+ * tuvieron plan, y las propias— y cada una con las fechas que le puso el calendario si las tiene; sin él (la base todavía no lo guarda), todas, como antes.
  */
-export function ranurasSinPlan(c: Pick<CampanasLeidas, "etiquetas" | "planes">, hoy: string): RanuraCalendario[] {
+export function ranurasSinPlan(c: Pick<CampanasLeidas, "etiquetas" | "planes" | "calendario">, hoy: string): RanuraCalendario[] {
   const anio = Number(hoy.slice(0, 4));
-  return c.etiquetas
-    .flatMap((e) =>
-      [anio, anio + 1].flatMap((a): RanuraCalendario[] => {
-        const f = fechasDelAnio(e, a);
-        if (!f || f.hasta < hoy || tienePlanEn(e, a, c.planes)) return [];
-        return [{ etiquetaId: e.id, anio: a, nombre: nombreDeLaCampana(e, a), ...f }];
-      }),
-    )
-    .sort((x, y) => x.desde.localeCompare(y.desde) || x.nombre.localeCompare(y.nombre, "es"));
+  const decisiones = decisionesPorEtiqueta(c.calendario);
+  const deInsignias = c.etiquetas.flatMap((e) => {
+    const d = decisiones.get(e.id);
+    if (c.calendario && !seOfrece(e, d, hoy)) return [];
+    return [anio, anio + 1].flatMap((a): RanuraCalendario[] => {
+      if (d && !cuentaEnElAnio(d, a)) return [];
+      const f = (d && fechasDeLaDecision(d, a)) ?? fechasDelAnio(e, a);
+      if (!f || f.hasta < hoy || tienePlanEn(e, a, c.planes)) return [];
+      return [{ etiquetaId: e.id, calendarioId: null, anio: a, nombre: nombreDeLaCampana(e, a), ...f }];
+    });
+  });
+  const dePropias = c.calendario
+    ? propiasQueSeOfrecen(c.calendario, hoy).flatMap((d) =>
+        [anio, anio + 1].flatMap((a): RanuraCalendario[] => {
+          const f = fechasDeLaDecision(d, a);
+          if (!f || !cuentaEnElAnio(d, a) || f.hasta < hoy || d.planes.some((p) => p.anio === a)) return [];
+          return [{ etiquetaId: null, calendarioId: d.id, anio: a, nombre: nombreDeLaCampana({ nombre: d.nombre ?? "" }, a), ...f }];
+        }),
+      )
+    : [];
+  return [...deInsignias, ...dePropias].sort((x, y) => x.desde.localeCompare(y.desde) || x.nombre.localeCompare(y.nombre, "es"));
 }
 
-/** Las campañas de Etiquetas sin fechas: no se pueden armar hasta que se les pongan (el selector se lo dice al líder). */
-export const campanasSinFechas = (c: Pick<CampanasLeidas, "etiquetas">): EtiquetaCampana[] => c.etiquetas.filter((e) => !e.desde || !e.hasta);
+/** Cuántos días antes de que empiece una campaña de tu plan, el centro de avisos ofrece armar su plan (spike ①: «te ofrece armarlo cuando falten 90 días»). */
+export const DIAS_PARA_OFRECER_ARMAR = 90;
 
-/** La hoja de una campaña: la de una del calendario (`etiquetaId`, ya llena) o una campaña NUEVA que no está en Etiquetas (`etiquetaId` null). */
-export type BorradorCampana = { etiquetaId: string | null; nombre: string; desde: string; hasta: string };
+/**
+ * Las campañas «en mi plan» que todavía no tienen plan y empiezan dentro de `dias` días, de la que empieza antes a la que empieza después, con los días que faltan. Es lo que el
+ * centro de avisos ofrece armar. Solo con el calendario del plan (ADR-0525): sin él se ofrecerían todas las de Insignias y nadie decidió cuáles compra. Una que ya empezó no entra
+ * (para eso está el aviso de «empezó sin plan»).
+ */
+export function ranurasPorArmar(c: Pick<CampanasLeidas, "etiquetas" | "planes" | "calendario">, hoy: string, dias: number = DIAS_PARA_OFRECER_ARMAR): { ranura: RanuraCalendario; dias: number }[] {
+  if (!c.calendario) return [];
+  return ranurasSinPlan(c, hoy).flatMap((ranura) => {
+    const faltan = diasEntre(hoy, ranura.desde);
+    return faltan > 0 && faltan <= dias ? [{ ranura, dias: faltan }] : [];
+  });
+}
+
+/**
+ * Las campañas de Insignias a las que se les ofrecería armar su plan pero no tienen fechas con qué hacerlo: ni en Insignias ni en el calendario. El selector le dice a quien
+ * las ve que se las ponga en el Calendario (ahí se decide, ADR-0525); las que no se ofrecen (no las compro, pausadas, quitadas) no salen.
+ */
+export function campanasSinFechas(c: Pick<CampanasLeidas, "etiquetas" | "calendario">, hoy: string): EtiquetaCampana[] {
+  const decisiones = decisionesPorEtiqueta(c.calendario);
+  return c.etiquetas.filter((e) => {
+    if (e.desde && e.hasta) return false;
+    const d = decisiones.get(e.id);
+    if (c.calendario && !seOfrece(e, d, hoy)) return false;
+    return !(d?.desdeMd && d.hastaMd);
+  });
+}
+
+/** La hoja de armar un plan: la de una campaña del calendario (`etiquetaId` de Insignias o `calendarioId` de una propia), ya llena con su nombre y sus fechas de ese año. */
+export type BorradorCampana = { etiquetaId: string | null; calendarioId: string | null; nombre: string; desde: string; hasta: string };
 export type CampoCampana = "etiqueta" | "nombre" | "desde" | "hasta";
 
 /** La hoja de una campaña del calendario: su nombre y sus fechas de ese año. */
-export const borradorDeRanura = (r: RanuraCalendario): BorradorCampana => ({ etiquetaId: r.etiquetaId, nombre: r.nombre, desde: r.desde, hasta: r.hasta });
-/** La hoja de una campaña nueva: vacía. */
-export const borradorNuevo = (): BorradorCampana => ({ etiquetaId: null, nombre: "", desde: "", hasta: "" });
-/** El nombre del plan de una campaña nueva: el de la campaña con el año en que termina, como lo pone la base. */
-export const nombreDelPlanNuevo = (b: Pick<BorradorCampana, "nombre" | "hasta">): string => `${b.nombre.replace(/\s+/g, " ").trim()} ${b.hasta.slice(0, 4)}`;
+export const borradorDeRanura = (r: RanuraCalendario): BorradorCampana => ({ etiquetaId: r.etiquetaId, calendarioId: r.calendarioId, nombre: r.nombre, desde: r.desde, hasta: r.hasta });
 
 /** Un nombre de plan para compararlo con otro: sin tildes, sin mayúsculas y con un solo espacio entre palabras. «Navídad  2026» y «navidad 2026»
  *  son el mismo nombre en el selector (chaos 2026-10-10: convivían). */
 export const nombreComparable = (t: string) => sinTildes(t).replace(/\s+/g, " ").trim();
 
 /**
- * Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechazan `crear_plan_compra` (una del calendario) y
- * `crear_campana_con_plan` (una nueva). `nombresEnUso`: los nombres de los planes que ya existen.
+ * Lo que impide armar el plan de una campaña del calendario, campo por campo (vacío = se puede): lo mismo que rechazan `crear_plan_compra` (una de Insignias) y
+ * `crear_plan_compra_propio` (una propia). `nombresEnUso`: los nombres de los planes que ya existen. `propias`: las decisiones del calendario, para saber si una campaña
+ * propia ya tiene su plan de ese año.
  */
-export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[] = []): Partial<Record<CampoCampana, string>> {
+export function problemasDeLaCampana(
+  b: BorradorCampana,
+  etiquetas: readonly EtiquetaCampana[],
+  nombresEnUso: readonly string[] = [],
+  propias: readonly Pick<DecisionDeCampana, "id" | "planes">[] = [],
+): Partial<Record<CampoCampana, string>> {
   const p: Partial<Record<CampoCampana, string>> = {};
   const nombre = b.nombre.replace(/\s+/g, " ").trim();
   const anio = fechaIso(b.hasta) ? Number(b.hasta.slice(0, 4)) : null;
   const enUso = (n: string) => nombresEnUso.some((x) => nombreComparable(x) === nombreComparable(n));
-  if (b.etiquetaId !== null) {
+  if (b.calendarioId !== null) {
+    const d = propias.find((x) => x.id === b.calendarioId);
+    if (!d) p.etiqueta = "Esa campaña ya no está en tu calendario: vuelve a elegirla en el selector.";
+    else if (anio !== null && d.planes.some((x) => x.anio === anio)) p.etiqueta = `Esa campaña ya tiene su plan de ${anio}: ábrelo desde el selector.`;
+  } else {
     const e = etiquetas.find((x) => x.id === b.etiquetaId);
     if (!e) p.etiqueta = "Esa campaña ya no está en Etiquetas: vuelve a elegirla en el selector.";
     else if (anio !== null && tienePlanEn(e, anio, [])) p.etiqueta = `Esa campaña ya tiene su plan de ${anio}: ábrelo desde el selector.`;
-    if (!nombre) p.nombre = "Ponle un nombre al plan.";
-    else if (enUso(nombre)) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
-  } else if (!nombre) {
-    p.nombre = "Escribe el nombre de la campaña.";
-  } else if (etiquetas.some((e) => nombreComparable(e.nombre) === nombreComparable(nombre))) {
-    const e = etiquetas.find((x) => nombreComparable(x.nombre) === nombreComparable(nombre))!;
-    // Una sin fechas no se puede elegir en el selector (sale apagada): se le dice dónde ponérselas.
-    p.nombre = e.desde
-      ? `«${e.nombre}» ya está en el calendario: elígela en el selector.`
-      : `«${e.nombre}» ya está en Catálogo ▸ Insignias, sin fechas: pónselas ahí («Configurar») y saldrá en el calendario.`;
-  } else if (anio !== null && enUso(nombreDelPlanNuevo(b))) {
-    p.nombre = `Ya hay un plan «${nombreDelPlanNuevo(b)}»: ponle otro nombre a la campaña.`;
   }
+  if (!nombre) p.nombre = "Ponle un nombre al plan.";
+  else if (enUso(nombre)) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
   if (!fechaIso(b.desde)) p.desde = "Escribe desde cuándo empieza.";
   if (!fechaIso(b.hasta)) p.hasta = "Escribe hasta cuándo dura.";
   else if (fechaIso(b.desde) && b.hasta < b.desde) p.hasta = "La campaña no puede terminar antes de empezar.";
   return p;
 }
 
-/** Los argumentos de `crear_plan_compra` (una campaña del calendario). */
+/** Los argumentos de `crear_plan_compra` (una campaña de Insignias). */
 export const argsCrearCampana = (b: BorradorCampana) => ({ p_etiqueta_id: b.etiquetaId, p_nombre: b.nombre.replace(/\s+/g, " ").trim() || null, p_desde: b.desde, p_hasta: b.hasta });
-/** Los argumentos de `crear_campana_con_plan` (una campaña nueva). */
-export const argsCampanaNueva = (b: BorradorCampana) => ({ p_nombre: b.nombre.replace(/\s+/g, " ").trim(), p_desde: b.desde, p_hasta: b.hasta });
+/** Los argumentos de `crear_plan_compra_propio` (una campaña propia): el año es el del fin de la campaña, como el de su nombre; las fechas, las de la hoja. */
+export const argsPlanPropio = (b: BorradorCampana) => ({
+  p_calendario_id: b.calendarioId,
+  p_anio: Number(b.hasta.slice(0, 4)),
+  p_nombre: b.nombre.replace(/\s+/g, " ").trim() || null,
+  p_desde: b.desde,
+  p_hasta: b.hasta,
+});
 
 /** Si las fechas del plan no son las de su campaña ESE AÑO, lo dice (la diferencia nunca es silenciosa); si coinciden o no hay con qué comparar, null. */
 export function diferenciaConLaEtiqueta(b: Pick<BorradorCampana, "desde" | "hasta">, e: Pick<EtiquetaCampana, "nombre" | "desde" | "hasta"> | undefined): string | null {
@@ -1065,7 +1233,7 @@ export function campanasDelSelector(planes: readonly CampanaPlan[], hoy: string)
   ];
 }
 
-/** Una fila del selector: un plan que se abre, una campaña del calendario que se arma, o una sin fechas (solo se lee). */
+/** Una fila del selector: un plan que se abre, una campaña del calendario que se arma, o una sin fechas (lleva al Calendario a ponérselas). */
 export type EntradaSelector =
   | { tipo: "plan"; campana: CampanaPlan; grupo: string }
   | { tipo: "calendario"; ranura: RanuraCalendario; grupo: string }
@@ -1080,18 +1248,18 @@ function rangoDeGrupo(g: string): number {
 }
 
 /**
- * El selector como CALENDARIO (Felipe 2026-10-12, opción A): los planes de siempre más las campañas de Etiquetas que todavía no tienen plan este
- * año o el que viene, cada una en su grupo, y —solo para quien puede armar— las que no tienen fechas. Los grupos quedan seguidos (el combo los
- * dibuja con un título por tanda) y, dentro de cada uno, por fecha.
+ * El selector como CALENDARIO (Felipe 2026-10-12, opción A): los planes de siempre más las campañas del calendario que todavía no tienen plan este
+ * año o el que viene y que están «en mi plan» (ADR-0525), cada una en su grupo, y —solo para quien puede armar— las que no tienen fechas. Los grupos
+ * quedan seguidos (el combo los dibuja con un título por tanda) y, dentro de cada uno, por fecha.
  */
-export function calendarioDelSelector(c: Pick<CampanasLeidas, "etiquetas" | "planes">, hoy: string, conSinFechas: boolean): EntradaSelector[] {
+export function calendarioDelSelector(c: Pick<CampanasLeidas, "etiquetas" | "planes" | "calendario">, hoy: string, conSinFechas: boolean): EntradaSelector[] {
   const desde = (x: EntradaSelector) => (x.tipo === "plan" ? x.campana.desde : x.tipo === "calendario" ? x.ranura.desde : "9999");
   const nombre = (x: EntradaSelector) => (x.tipo === "plan" ? x.campana.nombre : x.tipo === "calendario" ? x.ranura.nombre : x.etiqueta.nombre);
   const enCurso = (r: RanuraCalendario) => estadoCampana(hoy, r.desde, r.hasta) === "durante";
   const todas: EntradaSelector[] = [
     ...campanasDelSelector(c.planes, hoy).map(({ campana, grupo }) => ({ tipo: "plan" as const, campana, grupo })),
     ...ranurasSinPlan(c, hoy).map((ranura) => ({ tipo: "calendario" as const, ranura, grupo: enCurso(ranura) ? "En curso" : `Por venir · ${ranura.desde.slice(0, 4)}` })),
-    ...(conSinFechas ? campanasSinFechas(c).map((etiqueta) => ({ tipo: "sin-fechas" as const, etiqueta, grupo: "Sin fechas en Etiquetas" })) : []),
+    ...(conSinFechas ? campanasSinFechas(c, hoy).map((etiqueta) => ({ tipo: "sin-fechas" as const, etiqueta, grupo: "Sin fechas" })) : []),
   ];
   // Las terminadas, de la más reciente a la más vieja (como antes); el resto, por fecha.
   return todas.sort((a, b) => {

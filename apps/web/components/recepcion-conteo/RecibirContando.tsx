@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useResponsable } from "@/lib/useResponsable";
-import { TEXTO_LA_RECIBE_OTRA, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
+import { TEXTO_COMPRASTE_Y_LO_RECIBES, TEXTO_LA_RECIBE_OTRA, TEXTO_LO_RECIBIO_QUIEN_COMPRO, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion, type ResultadoApertura } from "@/lib/recepcion-envio-reglas";
 import {
   argsGuardarConteo,
   claveDe,
@@ -37,7 +37,6 @@ import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
 import { PapelesDeLaCompra } from "./PapelesDeLaCompra";
-import { PreguntaDeLaCompra } from "./PreguntaDeLaCompra";
 import { siguienteAnotada } from "@/lib/recibir-papel-reglas";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 
@@ -58,8 +57,9 @@ const ESPERA_GUARDAR_MS = 700;
 type Paso = 1 | 2 | 3;
 // El mismo indicador del conteo de inventario (una función, una pieza: ADR-0358), en su forma «riel» (la maqueta A): tres paradas a lo
 // ancho con lo que pasó en cada una. Con el envío abierto, «Contar» y «Cerrar» se tocan para ir y volver.
+// Solo dos paradas: lo que antes era «¿Qué llegó?» ahora es la hoja «Detalle» de la lista de Recibir (Felipe 2026-10-24); un paso que ya no
+// se recorre aquí confundiría («¿me salté uno?»). Las claves siguen siendo «2» y «3».
 const PASOS = [
-  { clave: "1", nombre: "¿Qué llegó?" },
   { clave: "2", nombre: "Contar" },
   { clave: "3", nombre: "Cerrar" },
 ] as const;
@@ -80,6 +80,7 @@ export function RecibirContando({
   lotes,
   veExistencias,
   veDinero,
+  soloSede = false,
   proveedoresParaElegir = [],
   papeles = [],
 }: {
@@ -92,6 +93,8 @@ export function RecibirContando({
   veExistencias: boolean;
   /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
   veDinero: boolean;
+  /** Una terminal: el precio de venta que se cambia al cerrar vale solo en su sede («Todas las sedes» no se ofrece). */
+  soloSede?: boolean;
   /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
   proveedoresParaElegir?: readonly { id: string; nombre: string }[];
   /** Los papeles de lo comprado desde el celular, con su foto (ADR-0480): se cuenta mirándolos. */
@@ -152,6 +155,7 @@ export function RecibirContando({
           contadas: b.contadas,
           separado: b.separado,
           costoUnitario: null,
+          costosPrendas: {},
           version: 0,
           contadoPor: null,
           contadoEn: null,
@@ -163,8 +167,6 @@ export function RecibirContando({
     });
   }, [detalle, conteos, borradores]);
   const cifras = cifrasDelEnvio(lineas);
-  // Lo anotado que se dejó para después con «Es otra prenda» (rediseño de Compras simple): se cuenta a mano en el contador.
-  const [saltadas, setSaltadas] = useState<ReadonlySet<string>>(() => new Set());
 
   /** Guarda una línea en la base con lo último que se escribió. */
   const guardar = useCallback(
@@ -259,7 +261,7 @@ export function RecibirContando({
       ? "Este envío se anuló: ya no llega."
       : otraSede || noLoRecibe
         ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
-        : "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
+        : "Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
   // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
   // lleva contado van en el riel y en la balanza.
   const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
@@ -296,7 +298,8 @@ export function RecibirContando({
             </Aviso>
           ) : (
             <Aviso tono="atencion" guia="recepcion.quien-compro" titulo={TEXTO_LA_RECIBE_OTRA}>
-              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder: contar es certificar lo que llegó. Pídele a otra persona de la tienda que lo haga.
+              Quien hace una orden no la cuenta ni la cierra, ni siquiera un líder (solo un Admin recibe lo que él mismo compró): contar es certificar lo que llegó.
+              Pídele a otra persona de la tienda que lo haga.
             </Aviso>
           )}
           {detalle.lineas.length > 0 && (
@@ -308,10 +311,22 @@ export function RecibirContando({
         </>
       )}
 
-      {(porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe && (
+      {/* ADR-0517: un Admin sí recibe lo que él mismo compró. Antes de contar se le avisa; ya cerrado, lo ve cualquiera que mire el envío. */}
+      {porRecibir && !otraSede && !noLoRecibe && detalle.comproQuienMira && (
+        <Aviso tono="info" titulo={TEXTO_COMPRASTE_Y_LO_RECIBES}>
+          Al cerrar el conteo queda anotado que lo recibió quien hizo la compra, y quien revise las compras lo verá.
+        </Aviso>
+      )}
+      {estado === "cerrado" && detalle.recibioQuienCompro && (
+        <Aviso tono="atencion" titulo={TEXTO_LO_RECIBIO_QUIEN_COMPRO}>
+          La misma persona hizo la compra y cerró el conteo (un Admin puede recibir lo que él mismo compró), así que nadie más contó esta mercadería.
+        </Aviso>
+      )}
+
+      {(estado === "abierto" || estado === "cerrado") && !otraSede && !noLoRecibe && (
         <PasosConteo
           forma="riel"
-          actual={String(estado === "en_camino" ? 1 : estado === "cerrado" ? 3 : paso)}
+          actual={String(estado === "cerrado" ? 3 : paso)}
           pasos={PASOS}
           subtitulos={subtitulos}
           etiqueta="Pasos de la recepción"
@@ -330,14 +345,10 @@ export function RecibirContando({
       <div className={conPapel ? "grid items-start gap-6 xl:grid-cols-[21.25rem_minmax(0,1fr)]" : "space-y-6"}>
       {conPapel && (
         <div className="xl:sticky xl:top-4">
-          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas, saltadas)?.clave ?? null) : null} />
+          <PapelesDeLaCompra papeles={papeles} lineas={lineas} siguiente={estado === "abierto" ? (siguienteAnotada(lineas)?.clave ?? null) : null} />
         </div>
       )}
       <div className={conPapel ? "min-w-0 space-y-6" : "space-y-6"}>
-
-      {estado === "abierto" && !otraSede && !noLoRecibe && paso !== 3 && conPapel && (
-        <PreguntaDeLaCompra lineas={lineas} saltadas={saltadas} onEscribir={escribir} onSaltar={(c) => setSaltadas((s) => new Set(s).add(c))} />
-      )}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (
         <EmpezarARecibir
@@ -387,6 +398,7 @@ export function RecibirContando({
           sede={sedeActual.etiqueta}
           responsable={responsable}
           veDinero={veDinero}
+          soloSede={soloSede}
           proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
@@ -409,6 +421,9 @@ export function RecibirContando({
           veExistencias={veExistencias}
           responsable={responsable}
           prendas={prendas}
+          soloSede={soloSede}
+          sinAviso={sinAviso}
+          veDinero={veDinero}
           onPrendaVista={recordarPrenda}
           onCambio={() => void releer()}
           onReabierto={() => {

@@ -1,4 +1,4 @@
-// Reglas del «cierre de la cola de arranque» (ADR-0334): un líder da por hechas, en bloque y sin identificar la prenda, las ventas
+// Reglas del «cierre de la cola de arranque» (ADR-0334): quien ve Existencias (ADR-0534; antes, solo un líder) da por hechas, en bloque y sin identificar la prenda, las ventas
 // sin registrar de UNA tienda mientras dura la adopción. Lógica pura: la usan la lista de Ventas sin registrar y el modal que cierra.
 //
 // CONTRATO
@@ -25,7 +25,7 @@ export function motivoLegible(clave: string | null | undefined): string {
 
 export type MotivoReapertura = "devolucion_o_cambio" | "ya_se_sabe" | "cierre_por_error";
 
-/** Por qué un líder reabre una venta cerrada (`reabrir_prenda_cerrada`, 20261005110000): la lista cerrada de la base, en palabras del negocio. */
+/** Por qué se reabre una venta cerrada (`reabrir_prenda_cerrada`, 20261005110000): la lista cerrada de la base, en palabras del negocio. */
 export const MOTIVOS_REAPERTURA: readonly { clave: MotivoReapertura; titulo: string; ayuda: string }[] = [
   { clave: "devolucion_o_cambio", titulo: "Quien la compró la quiere devolver o cambiar", ayuda: "Reabierta, se regulariza con su prenda real y recién entonces se puede devolver." },
   { clave: "ya_se_sabe", titulo: "Ya se sabe qué prenda era", ayuda: "Se identifica ahora y el stock de esa prenda queda cuadrado." },
@@ -42,7 +42,7 @@ export type SedeParaCerrar = {
   soles: number;
   /** La venta pendiente más vieja y la más nueva (texto de la base, sin tocar): el rango que verá quien cierra. */
   desde: string;
-  /** El momento que se manda como `p_hasta`: la venta pendiente más nueva QUE VIO el líder. Lo que entre después no se cierra. */
+  /** El momento que se manda como `p_hasta`: la venta pendiente más nueva QUE VIO quien cierra. Lo que entre después no se cierra. */
   corte: string;
   /** Último día del plazo (AAAA-MM-DD, Lima), o null si la tienda no tiene plazo: sin plazo no hay botón. */
   plazoHasta: string | null;
@@ -122,7 +122,7 @@ export function sedesParaCerrar(filas: readonly FilaDeCola[], plazos: Readonly<R
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
-// «Identificar con sugerencias» (20261005120000): la base propone parejas (venta sin registrar → prenda) y un líder confirma.
+// «Identificar con sugerencias» (20261005120000): la base propone parejas (venta sin registrar → prenda) y quien ve Existencias confirma.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Lo que devuelve `fn_cola_arranque_candidatas`: la pareja y cuántas unidades hay de esa prenda en la tienda. */
@@ -177,7 +177,7 @@ export const diaMes = (fecha: string) => {
 };
 
 /**
- * Lo que la pantalla le dice a un líder sobre el plazo de cada tienda con ventas pendientes. Sin esto, vencido el plazo el botón
+ * Lo que la pantalla le dice a quien cierra sobre el plazo de cada tienda con ventas pendientes. Sin esto, vencido el plazo el botón
  * desaparecía sin explicación: quien lo buscaba no sabía si era un permiso, un error o una fecha.
  */
 export function avisosDePlazo(sedes: readonly SedeParaCerrar[]): string[] {
@@ -190,7 +190,7 @@ export function avisosDePlazo(sedes: readonly SedeParaCerrar[]): string[] {
   });
 }
 
-/** El aviso de éxito del cierre: con la cifra que cerró la BASE (puede ser menor que la que vio el líder si otra persona regularizó mientras tanto). */
+/** El aviso de éxito del cierre: con la cifra que cerró la BASE (puede ser menor que la que vio quien cierra si otra persona regularizó mientras tanto). */
 export function textoCierreHecho(sede: string, cerradas: number | null): string {
   if (cerradas === null) return `Las ventas sin registrar de ${sede} quedaron cerradas sin prenda.`;
   return cerradas === 1 ? `1 prenda de ${sede} quedó cerrada sin prenda.` : `${cerradas} prendas de ${sede} quedaron cerradas sin prenda.`;
@@ -202,7 +202,7 @@ export type ErrorDeLaBase = { message?: string | null; hint?: string | null } | 
 const CAMBIO_MIENTRAS_SE_REVISABA = ["prenda_sin_stock_para_descontar", "prenda_ya_regularizada", "cola_pares_invalidos"];
 
 /**
- * Cuando «Identificar con sugerencias» falla porque algo cambió mientras el líder revisaba (alguien vendió la última unidad, alguien ya
+ * Cuando «Identificar con sugerencias» falla porque algo cambió mientras se revisaba (alguien vendió la última unidad, alguien ya
  * regularizó una de las ventas, una pareja ya no calza): un texto propio de ESTA hoja y la orden de volver a buscar. El mensaje genérico de
  * `regularizar_prenda` manda a «Llegó nueva», una opción que esta hoja no tiene. null = otro error: que lo traduzca `traducirError`.
  */

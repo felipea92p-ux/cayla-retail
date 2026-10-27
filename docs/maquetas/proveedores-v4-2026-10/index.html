@@ -1,0 +1,68 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Proveedores v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="piezas.css">
+<link rel="stylesheet" href="v4.css">
+</head>
+<body>
+<!-- Proveedores v4 (2026-10-26). Cuarta ronda: «innovadoras y visuales». Tres formas de mirar a los proveedores (un mapa de
+     decisiones, un ranking en círculo y un mapa de calor de tallas y sedes), con el botón prendas/dinero, los filtros por ritmo y, a la
+     derecha, lo que no se ve a simple vista o el detalle del proveedor que tocas. -->
+<div class="mq-barra">
+  <span class="mq-titulo">Proveedores <small id="mq-lema"></small></span>
+  <div class="mq-seg" role="group" aria-label="Dirección">
+    <button data-dir="a">A · Mapa de decisiones</button><button data-dir="b">B · Sol</button><button data-dir="c">C · Mapa de calor</button>
+  </div>
+  <button class="mq-tema" id="mq-tema" aria-label="Cambiar tema">Oscuro</button>
+</div>
+<p class="mq-nota" id="mq-nota"></p>
+<main class="pagina" id="raiz"></main>
+
+<script src="datos.js"></script>
+<script src="datos-mas.js"></script>
+<script src="comun.js"></script>
+<script src="v4.js"></script>
+<script>
+(function () {
+  const C = window.C, raiz = document.getElementById("raiz");
+  const NOTAS = {
+    a: "<b>A · Mapa de decisiones.</b> Cada proveedor es un punto: a la derecha, más le compras; arriba, más rápido se vende. Las cuatro zonas dicen qué hacer. Pasa el mouse para ver los datos; tócalo para ver su detalle a la derecha.",
+    b: "<b>B · Sol de proveedores.</b> El ranking en círculo: cada rayo es un proveedor y gira del mayor al menor, como el reloj. Al cambiar entre prendas y dinero, los rayos se reacomodan solos.",
+    c: "<b>C · Mapa de calor.</b> El ranking con sus tallas y sus sedes: cada celda dice en cuántas semanas se vende lo que queda. Verde, se agota; ámbar, se queda.",
+  };
+  // El tema: claro de fábrica, como el ERP (localStorage es solo comodidad).
+  const temaBtn = document.getElementById("mq-tema");
+  const ponerTema = (t) => { document.documentElement.dataset.theme = t; temaBtn.textContent = t === "dark" ? "Claro" : "Oscuro"; try { localStorage.setItem("mq-prov4-tema", t); } catch (e) {} };
+  let tema = "light"; try { tema = localStorage.getItem("mq-prov4-tema") || "light"; } catch (e) {}
+  ponerTema(tema);
+  temaBtn.addEventListener("click", () => ponerTema(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+
+  document.querySelectorAll("[data-dir]").forEach((b) => b.addEventListener("click", () => { const e = C.estado(); location.hash = `${b.dataset.dir}/${e.vista}${e.vista === "ficha" ? "/" + e.id : ""}`; }));
+  document.querySelectorAll("[data-vista]").forEach((b) => b.addEventListener("click", () => { const e = C.estado(); location.hash = `${e.dir}/${b.dataset.vista}${b.dataset.vista === "ficha" ? "/" + e.id : ""}`; }));
+  document.querySelectorAll("[data-prov]").forEach((b) => b.addEventListener("click", () => { const e = C.estado(); location.hash = `${e.dir}/ficha/${b.dataset.prov}`; }));
+
+  let ultimo = "";
+  window.repintar = () => { ultimo = ""; pintar(true); };
+  function pintar(quieto) {
+    const e = C.estado(), dir = window.DIRS[e.dir];
+    const clave = `${e.dir}/${e.vista}/${e.id}`;
+    if (clave === ultimo) return; ultimo = clave;
+    document.querySelectorAll("[data-dir]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.dir === e.dir));
+    document.querySelectorAll("[data-vista]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.vista === e.vista));
+    document.querySelectorAll("[data-prov]").forEach((b) => b.setAttribute("aria-pressed", e.vista === "ficha" && b.dataset.prov === e.id));
+    document.getElementById("mq-nota").innerHTML = NOTAS[e.dir];
+    document.getElementById("mq-lema").textContent = dir.lema;
+    const p = window.PROVEEDORES.find((x) => x.id === e.id);
+    raiz.className = `pagina dir-${e.dir} vista-${e.vista}`;
+    raiz.innerHTML = dir.ficha && e.vista === "ficha" ? dir.ficha(p) : dir.lista();
+    if (dir.despues) dir.despues(raiz, e, p);
+    C.animar(raiz);
+    if (!quieto) window.scrollTo({ top: 0 });
+  }
+  window.addEventListener("hashchange", () => pintar());
+  pintar();
+})();
+</script>
+</body></html>

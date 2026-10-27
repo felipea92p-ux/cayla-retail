@@ -2387,6 +2387,9 @@ export type Database = {
           descuento_pct: number | null
           estado: string
           estilo: string
+          icono: string | null
+          icono_imagen: string | null
+          icono_imagen_silueta: boolean
           id: string
           nombre: string
           notas: string | null
@@ -2403,6 +2406,9 @@ export type Database = {
           descuento_pct?: number | null
           estado?: string
           estilo?: string
+          icono?: string | null
+          icono_imagen?: string | null
+          icono_imagen_silueta?: boolean
           id?: string
           nombre: string
           notas?: string | null
@@ -2419,6 +2425,9 @@ export type Database = {
           descuento_pct?: number | null
           estado?: string
           estilo?: string
+          icono?: string | null
+          icono_imagen?: string | null
+          icono_imagen_silueta?: boolean
           id?: string
           nombre?: string
           notas?: string | null
@@ -3701,6 +3710,7 @@ export type Database = {
           nombre: string
           plazo_credito_dias: number | null
           rubros: string[]
+          tipo: string
           ruc: string | null
           telefono: string | null
           titular_cuenta: string | null
@@ -3719,6 +3729,7 @@ export type Database = {
           nombre: string
           plazo_credito_dias?: number | null
           rubros?: string[]
+          tipo?: string
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -3737,6 +3748,7 @@ export type Database = {
           nombre?: string
           plazo_credito_dias?: number | null
           rubros?: string[]
+          tipo?: string
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -5289,6 +5301,15 @@ export type Database = {
         }
         Returns: string
       }
+      fijar_icono_etiqueta: {
+        Args: {
+          p_etiqueta_id: string
+          p_icono: string | null
+          p_imagen?: string | null
+          p_silueta?: boolean
+        }
+        Returns: undefined
+      }
       actualizar_campana_etiqueta: {
         Args: {
           p_categoria_ids: string[]
@@ -5932,6 +5953,8 @@ export type Database = {
       fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
       fn_vitrina_modelos: { Args: never; Returns: Json }
+      // Vitrina web ▸ hoja del modelo (20261026191000): con qué precio sale el modelo en cada tienda de la web; solo lectura, la regla es fn_tienda_precios.
+      fn_vitrina_precios_modelo: { Args: { p_producto_id: string }; Returns: Json }
       vitrina_guardar_modelo: {
         Args: {
           p_producto_id: string
@@ -6784,6 +6807,48 @@ export type Database = {
           orden: number
         }[]
       }
+      fn_vendido_por_empresa: {
+        Args: {
+          p_comprobante?: string
+          p_desde?: string
+          p_estado?: string
+          p_hasta?: string
+          p_incluir_prueba?: boolean
+          p_pago?: string
+          p_sede_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: {
+          clave: string
+          empresa_id: string
+          nombre: string
+          orden: number
+          total: number
+          unidades: number
+          ventas: number
+        }[]
+      }
+      fn_marcas_de_empresas: {
+        Args: Record<PropertyKey, never>
+        Returns: { empresa_id: string; marca_id: string | null }[]
+      }
+      fn_empresa_de_ventas: {
+        Args: { p_ventas: string[] }
+        Returns: { empresa_id: string; monto: number; venta_id: string }[]
+      }
+      fn_vendido_por_empresa_de_cajas: {
+        Args: { p_cajas: string[] }
+        Returns: {
+          caja_id: string
+          clave: string
+          empresa_id: string
+          nombre: string
+          orden: number
+          total: number
+          unidades: number
+          ventas: number
+        }[]
+      }
       crear_producto_con_empresa: {
         Args: {
           p_al_piso?: boolean
@@ -6865,6 +6930,10 @@ export type Database = {
       }
       desactivar_categoria: {
         Args: { p_categoria_id: string }
+        Returns: undefined
+      }
+      cambiar_tipo_proveedor: {
+        Args: { p_proveedor_id: string; p_tipo: string }
         Returns: undefined
       }
       desactivar_proveedor: {
@@ -7416,6 +7485,7 @@ export type Database = {
           p_hasta?: string
           p_limite?: number
           p_motivo?: string
+          p_empresa_id?: string
           p_producto_id?: string
           p_sububicacion_id?: string
           p_ubicacion_id: string
@@ -7508,6 +7578,7 @@ export type Database = {
         Args: {
           p_busqueda?: string
           p_desde?: string
+          p_empresa_id?: string
           p_hasta?: string
           p_motivo?: string
           p_sububicacion_id?: string
@@ -7912,6 +7983,51 @@ export type Database = {
           unidad: string
         }[]
       }
+      fn_proveedor_prendas: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          categoria: string | null
+          codigo: string | null
+          con_factura: boolean
+          costo_promedio: number | null
+          costo_vendido: number
+          gasto: number
+          gasto_carga: number
+          gasto_compras: number
+          ingreso_vendido: number
+          marca: string | null
+          primera_entrada: string | null
+          producto_id: string
+          referencia: string
+          stock_actual: number
+          ultima_venta: string | null
+          unidades_carga: number
+          unidades_compradas: number
+          unidades_compras: number
+          unidades_estimadas: number
+          unidades_sin_factura: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_proveedor_servicio_resumen: {
+        Args: { p_proveedor_id: string }
+        Returns: Json
+      }
+      fn_proveedor_tallas_sedes: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          categoria: string | null
+          primera_llegada: string | null
+          producto_id: string
+          referencia: string
+          sede: string
+          sede_tipo: string
+          stock: number
+          talla: string
+          ubicacion_id: string
+          vendidas: number
+        }[]
+      }
       fn_proveedor_produccion_metricas: {
         Args: { p_proveedor_id: string }
         Returns: {
@@ -7976,6 +8092,60 @@ export type Database = {
           ultima_compra: string
         }[]
       }
+      fn_proveedores_prendas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          categoria: string | null
+          codigo: string | null
+          con_factura: boolean
+          costo_promedio: number | null
+          costo_vendido: number
+          es_taller: boolean
+          gasto: number
+          gasto_carga: number
+          gasto_compras: number
+          ingreso_vendido: number
+          marca: string | null
+          primera_entrada: string | null
+          producto_id: string
+          proveedor: string
+          proveedor_id: string
+          referencia: string
+          stock_actual: number
+          ultima_venta: string | null
+          unidades_carga: number
+          unidades_compradas: number
+          unidades_compras: number
+          unidades_estimadas: number
+          unidades_sin_factura: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_proveedores_rendimiento: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          costo_vendido: number
+          es_taller: boolean
+          gasto: number
+          gasto_carga: number
+          gasto_compras: number
+          ingreso_vendido: number
+          nombre: string
+          plata_en_stock: number
+          plata_sin_venta: number
+          primera_entrada: string | null
+          prendas: number
+          prendas_sin_venta: number
+          proveedor_id: string
+          unidades_carga: number
+          unidades_compradas: number
+          unidades_compras: number
+          unidades_en_estantes: number
+          unidades_estimadas: number
+          unidades_sin_factura: number
+          unidades_vendidas: number
+        }[]
+      }
       fn_proveedores_resumen: {
         Args: never
         Returns: {
@@ -7999,6 +8169,14 @@ export type Database = {
           mes: string
           monto: number
           proveedor_id: string
+        }[]
+      }
+      fn_proveedores_ventas_diarias: {
+        Args: { p_dias?: number }
+        Returns: {
+          dia: string
+          proveedor_id: string
+          vendidas: number
         }[]
       }
       fn_puede_operar_ubicacion: {
@@ -8363,6 +8541,8 @@ export type Database = {
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
       // 20260925220000: Inicio módulo apagable + pantalla principal por rol.
       fn_mi_pantalla_principal: { Args: never; Returns: string | null }
+      // 20261027140000 (ADR-0533): la persona de mi cuenta; NULL en una terminal o sin sesión, sin rechazar.
+      fn_mi_persona_id: { Args: never; Returns: string | null }
       // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
       fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {

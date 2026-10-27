@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { NIVEL_QR, ZONA_MUDA_MODULOS } from "@/lib/qr";
 import { cartelesDelClub, type CartelDeTienda } from "@/lib/club-qr-reglas";
 import { CARTEL_INVITACION, letraChicaDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
@@ -139,8 +140,9 @@ function Cartel({ cartel, textos }: { cartel: CartelDeTienda; textos: TextosCart
       <div className="cartel-club-marco">
         <div className="cartel-club-interior">
           <div className="cartel-club-cabeza">
-            {/* eslint-disable-next-line @next/next/no-img-element -- se imprime: una <img> normal se decodifica antes de `print()` */}
-            <img src="/cayla-isotipo.png" alt="" className="cartel-club-isotipo" />
+            {/* El logo oficial (ADR-0446) en crema sobre el rojo profundo; debajo, «CLUB» en versalitas. */}
+            <LogoCayla tinta="actual" className="cartel-club-logo" />
+            <span className="sr-only">CAYLA</span>
             <span className="cartel-club-sello">{CARTEL_INVITACION.sello}</span>
           </div>
 

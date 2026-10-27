@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conf. Tienda · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Tokens de apps/web/app/globals.css y estilos/tema.css (ADR-0169, ADR-0336). Nada de hex suelto fuera de este bloque. */
+:root{
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--taupe:#805c4c;--papel:#fbf8f2;--hueso:#eae1d2;
+  --verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --sede-tru:#2f6aa3;--sede-aqp:#c26a2e;--sede-lim:#1d8a72;
+  --ease:cubic-bezier(.32,.72,.24,1);
+  --serif:"EB Garamond",ui-serif,Georgia,serif;--sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+}
+:root[data-tema="oscuro"]{
+  color-scheme:dark;
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--sombra:#000;--vidrio:#31302d;
+  --tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-profundo:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;
+}
+*{box-sizing:border-box;margin:0}
+html{background:var(--crema)}
+body{font-family:var(--sans);color:var(--tinta);background:var(--crema);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- Marco de la maqueta (no es parte del ERP) ---------- */
+.marco{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 24px;background:var(--tinta);color:var(--crema);font-size:12.5px}
+.marco b{font-weight:600}
+.marco .fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.marco button{padding:5px 12px;border:1px solid color-mix(in srgb,var(--crema) 35%,transparent);border-radius:999px;font-size:12px;transition:background-color 200ms var(--ease)}
+.marco button[aria-pressed="true"]{background:var(--crema);color:var(--tinta)}
+
+main{padding:28px 32px 120px;max-width:none}
+@media(max-width:700px){main{padding:20px 16px 120px}.marco{padding:10px 16px}}
+
+/* ---------- Cabecera de la pantalla (EncabezadoPagina) ---------- */
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.cab-sede{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.cab-sede::after{content:"";width:56px;height:1px;background:var(--taupe);opacity:.6}
+.cab h1{font-family:var(--serif);font-weight:500;font-size:46px;line-height:1.05;margin-top:6px}
+.resp{display:flex;align-items:center;gap:10px;padding:6px 14px 6px 6px;border:1px solid var(--sand);border-radius:999px;background:var(--papel);font-size:13px}
+.resp i{width:28px;height:28px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font:500 14px var(--serif);font-style:normal}
+.resp small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);line-height:1}
+
+/* ---------- La calle: las tiendas en fila ---------- */
+.calle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px}
+@media(max-width:900px){.calle{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.calle>*{scroll-snap-align:start}}
+.puerta{position:relative;text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:0;overflow:hidden;display:grid;transition:border-color 220ms var(--ease),transform 220ms var(--ease),opacity 220ms var(--ease)}
+@media(hover:hover){.puerta:hover{border-color:color-mix(in srgb,var(--taupe) 60%,transparent);transform:translateY(-2px)}}
+.puerta[aria-selected="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.puerta.arrastrando{opacity:.4}
+.puerta.sobre{border-style:dashed;border-color:var(--tinta)}
+/* la fachada: toldo de rayas del color de la sede */
+.fachada{position:relative;height:96px;background:var(--hueso);overflow:hidden}
+.fachada .toldo{position:absolute;inset:0 0 auto 0;height:34px;background:repeating-linear-gradient(90deg,var(--c) 0 22px,color-mix(in srgb,var(--c) 55%,var(--papel)) 22px 44px);clip-path:polygon(0 0,100% 0,100% 70%,96% 100%,88% 70%,80% 100%,72% 70%,64% 100%,56% 70%,48% 100%,40% 70%,32% 100%,24% 70%,16% 100%,8% 70%,0 100%)}
+.fachada img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fachada .puertita{position:absolute;left:50%;bottom:0;width:34px;height:46px;transform:translateX(-50%);background:var(--papel);border:1px solid var(--sand);border-bottom:0;border-radius:6px 6px 0 0}
+.fachada .puertita::after{content:"";position:absolute;right:6px;top:24px;width:3px;height:3px;border-radius:50%;background:var(--taupe)}
+.puerta[data-oculta] .fachada{filter:grayscale(1);opacity:.55}
+.puerta-cuerpo{padding:12px 14px 14px;display:grid;gap:10px}
+.puerta-nombre{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.puerta-nombre strong{font:500 22px/1.1 var(--serif)}
+.asa{color:var(--taupe);cursor:grab;padding:2px;opacity:.7}
+.estado{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.estado::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.estado.abierta{color:var(--verde)}.estado.cerrada{color:var(--ambar)}.estado.oculta{color:var(--taupe)}.estado.oculta::before{background:none;border:1.5px solid currentColor}
+.puerta-pie{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:30px}
+.anillo{position:relative;width:34px;height:34px;flex:none}
+.anillo>svg{width:34px;height:34px;transform:rotate(-90deg)}
+.anillo b svg{width:16px;height:16px;color:var(--verde);stroke-width:3}
+.anillo circle{fill:none;stroke-width:3.5}
+.anillo .p{stroke:var(--sand)}.anillo .v{stroke:var(--tinta);stroke-linecap:round;transition:stroke-dashoffset 500ms var(--ease),stroke 300ms var(--ease)}
+.anillo[data-ok] .v{stroke:var(--verde)}
+.anillo b{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700}
+.faltan{display:flex;gap:4px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:color-mix(in srgb,var(--taupe) 12%,transparent);color:var(--taupe)}
+.chip.falta{background:color-mix(in srgb,var(--ambar) 14%,transparent);color:var(--ambar)}
+.chip.nuevo{background:color-mix(in srgb,var(--pizarra) 16%,transparent);color:var(--pizarra)}
+/* interruptor (en tinta, como el del ERP) */
+.sw{position:relative;width:42px;height:24px;border-radius:999px;background:var(--hueso);border:1px solid var(--sand);transition:background-color 220ms var(--ease);flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--papel);box-shadow:0 1px 2px color-mix(in srgb,var(--sombra) 30%,transparent);transition:transform 220ms var(--ease)}
+.sw[aria-checked="true"]{background:var(--tinta);border-color:var(--tinta)}
+.sw[aria-checked="true"]::after{transform:translateX(18px);background:var(--crema)}
+.sw:disabled{opacity:.45;cursor:not-allowed}
+.sw-lbl{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--taupe)}
+
+/* ---------- El taller de una tienda ---------- */
+.taller{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+@media(max-width:900px){.taller{grid-template-columns:1fr}.lado{position:static}}
+.tarj{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:20px;display:grid;gap:18px}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.fila2{grid-template-columns:1fr}}
+.campo{display:grid;gap:6px;align-content:start}
+.etq{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.etq .ok{color:var(--verde);margin-left:auto;display:none}
+.campo[data-ok] .ok{display:inline-flex}
+.campo[data-falta] .etq{color:var(--ambar)}
+.caja{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;background:var(--hueso);border:1px solid transparent;border-radius:10px;transition:background-color 220ms var(--ease),border-color 220ms var(--ease)}
+.caja:focus-within{background:var(--papel);border-color:color-mix(in srgb,var(--tinta) 38%,transparent)}
+.caja::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2px;background:var(--rojo);transform:scaleX(0);transition:transform 300ms var(--ease)}
+.caja:focus-within::after{transform:scaleX(1)}
+.caja input{flex:1;min-width:0;border:0;background:none;outline:0;height:38px;font-size:14px}
+.caja input::placeholder{color:color-mix(in srgb,var(--tinta) 45%,transparent)}
+.caja svg{color:var(--taupe)}
+.caja .pref{font-size:13px;color:var(--taupe);font-weight:600}
+.campo[data-falta] .caja{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);border-style:dashed}
+/* lo nuevo, resaltable */
+body.ver-nuevo [data-nuevo]{outline:2px dashed var(--pizarra);outline-offset:6px;border-radius:12px;position:relative}
+body.ver-nuevo [data-nuevo]::before{content:"Nuevo";position:absolute;top:-10px;right:8px;z-index:2;background:var(--pizarra);color:var(--crema);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:1px 8px;border-radius:999px}
+
+/* Foto: se suelta o se elige */
+.foto{position:relative;height:104px;border-radius:10px;background:var(--hueso);border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);display:grid;place-items:center;text-align:center;color:var(--taupe);overflow:hidden;cursor:pointer;transition:border-color 220ms var(--ease),background-color 220ms var(--ease)}
+.foto:hover,.foto.sobre{border-color:var(--tinta);background:var(--papel)}
+.foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.foto span{display:grid;gap:4px;justify-items:center;font-size:12px;font-weight:600}
+.foto button.quitar{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--sombra) 70%,transparent);color:var(--crema-fija);display:grid;place-items:center}
+
+/* Mapa: pegar el enlace y listo */
+.mapita{display:flex;align-items:center;gap:10px;margin-top:2px}
+.mapita .tile{width:56px;height:40px;border-radius:8px;background:var(--hueso);position:relative;overflow:hidden;flex:none;border:1px solid var(--sand)}
+.mapita .tile::before,.mapita .tile::after{content:"";position:absolute;background:var(--sand)}
+.mapita .tile::before{left:-4px;right:-4px;top:16px;height:6px;transform:rotate(-14deg)}
+.mapita .tile::after{top:-4px;bottom:-4px;left:34px;width:6px;transform:rotate(18deg)}
+.mapita .pin{position:absolute;left:21px;top:7px;color:var(--rojo);z-index:2;transition:transform 300ms var(--ease)}
+.mapita[data-vacio] .pin{color:var(--taupe);opacity:.5;transform:translateY(3px)}
+.mapita[data-vacio]{color:var(--taupe)}
+
+/* ---------- Horario que se pinta ---------- */
+.reglaH{display:grid;grid-template-columns:44px 1fr;gap:0 10px;align-items:center;user-select:none;-webkit-user-select:none}
+.horas{grid-column:2;position:relative;height:18px;font-size:10.5px;color:var(--taupe);font-weight:600}
+.horas span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.dia{height:34px;display:grid;place-items:center;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--tinta);transition:background-color 200ms var(--ease),color 200ms var(--ease)}
+@media(hover:hover){.dia:hover{background:var(--hueso)}}
+.dia[aria-pressed="false"]{color:var(--taupe);opacity:.7}
+.dia.hoy{box-shadow:inset 0 0 0 1.5px var(--tinta)}
+.pista{touch-action:pan-y;position:relative;height:34px;margin:2px 0;border-radius:8px;background:repeating-linear-gradient(90deg,var(--hueso) 0 calc(100%/16 - 1px),var(--sand) calc(100%/16 - 1px) calc(100%/16));cursor:crosshair;overflow:hidden}
+.tramo{position:absolute;top:3px;bottom:3px;border-radius:7px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:space-between;padding:0 18px;cursor:grab;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;transition:left 180ms var(--ease),width 180ms var(--ease)}
+.tramo.pintando{transition:none;cursor:grabbing}
+/* los dos bordes se ven como asas: dos rayitas y el cursor de estirar */
+.asa-h{position:absolute;top:0;bottom:0;width:16px;cursor:ew-resize;display:grid;place-items:center}
+.asa-h:first-child{left:0}.asa-h:last-child{right:0}
+.asa-h::before{content:"";width:4px;height:14px;border-left:1.5px solid color-mix(in srgb,var(--crema) 70%,transparent);border-right:1.5px solid color-mix(in srgb,var(--crema) 70%,transparent);transition:transform 200ms var(--ease)}
+@media(hover:hover){.asa-h:hover::before{border-color:var(--crema);transform:scaleY(1.25)}}
+.pista.cerrado{cursor:pointer}
+.pista.cerrado::after{content:"Cerrado · toca para abrir";position:absolute;inset:0;display:grid;place-items:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.pista.cierre::after{content:"Cerrado hoy";color:var(--ambar)}
+.pista.cierre{cursor:not-allowed}
+.pista.cierre{background:repeating-linear-gradient(135deg,var(--hueso) 0 6px,var(--sand) 6px 12px)}
+.ahora{position:absolute;top:0;bottom:0;width:2px;background:var(--rojo);z-index:3;pointer-events:none;transition:left 120ms linear}
+.ahora::before{content:"";position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--rojo)}
+.herr{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+.btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:10px;font-size:13.5px;font-weight:600;border:1px solid var(--sand);background:var(--papel);transition:background-color 200ms var(--ease),transform 200ms var(--ease),border-color 200ms var(--ease)}
+@media(hover:hover){.btn:hover{border-color:var(--tinta);transform:translateY(-1px)}}
+.btn.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+@media(hover:hover){.btn.primario:hover{background:var(--rojo-profundo);border-color:var(--rojo-profundo)}}
+.btn.chico{height:30px;padding:0 10px;font-size:12.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* cierres */
+.cierres{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cierre{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 6px 0 12px;border-radius:999px;background:var(--hueso);font-size:12.5px;font-weight:600}
+.cierre button{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:var(--taupe)}
+@media(hover:hover){.cierre button:hover{background:var(--sand);color:var(--tinta)}}
+.cierre small{color:var(--taupe);font-weight:500}
+
+/* ---------- El teléfono: así lo ve el cliente ---------- */
+.lado{position:sticky;top:16px;display:grid;gap:12px;justify-items:center}
+.cel{width:300px;border:1px solid var(--sand);border-radius:34px;padding:10px;background:var(--papel)}
+.cel-pant{border-radius:26px;background:var(--crema);overflow:hidden;min-height:430px;display:grid;grid-template-rows:auto 1fr}
+.cel-barra{display:flex;justify-content:center;padding:10px 0 6px;font:500 15px var(--serif);letter-spacing:.2em;text-transform:uppercase}
+.tcard{margin:6px 12px 14px;background:var(--papel);border:1px solid var(--sand);border-radius:18px;overflow:hidden;display:grid;transition:opacity 300ms var(--ease)}
+.tcard[data-oculta]{opacity:.45}
+.tcard .fachada{height:118px}
+.tcard-c{padding:14px;display:grid;gap:10px}
+.tcard h3{font:500 26px/1.05 var(--serif);overflow-wrap:anywhere}
+.tdato{display:grid;grid-template-columns:16px 1fr;gap:8px;font-size:13px;align-items:start}
+.tdato svg{margin-top:2px;color:var(--taupe)}
+.tdato[data-falta]{color:var(--taupe);font-style:italic}
+.tbotones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.tb{display:flex;justify-content:center;align-items:center;gap:6px;height:38px;border-radius:999px;font-size:12.5px;font-weight:700;border:1px solid var(--tinta);color:var(--tinta)}
+.tb.lleno{background:var(--tinta);color:var(--crema)}
+.tb[data-apagado]{opacity:.35}
+.lado .nota{font-size:12px;color:var(--taupe);font-weight:600;display:flex;align-items:center;gap:6px}
+
+/* ---------- El reloj del pedido (plazos) ---------- */
+.reloj{margin-top:28px}
+.reloj-cab{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.reloj-cab h2{font:500 26px/1.1 var(--serif)}
+.hilo{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:8px 0 4px}
+@media(max-width:900px){.hilo{grid-template-columns:1fr 1fr}}
+.hilo::before{content:"";position:absolute;left:12.5%;right:12.5%;top:21px;height:2px;background:repeating-linear-gradient(90deg,var(--taupe) 0 6px,transparent 6px 12px);opacity:.5;transform-origin:left;animation:dibuja 900ms var(--ease) both}
+@media(max-width:900px){.hilo::before{display:none}}
+@keyframes dibuja{from{transform:scaleX(0)}}
+.paso{position:relative;display:grid;justify-items:center;gap:8px;text-align:center}
+.nodo{width:44px;height:44px;border-radius:50%;background:var(--papel);border:1.5px solid var(--tinta);display:grid;place-items:center;z-index:1}
+.paso h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);font-weight:700}
+.mas{display:flex;align-items:center;gap:0;background:var(--hueso);border-radius:10px;padding:2px}
+.mas button{width:30px;height:32px;display:grid;place-items:center;border-radius:8px}
+@media(hover:hover){.mas button:hover{background:var(--sand)}}
+.mas output{min-width:64px;text-align:center;font:600 15px var(--sans)}
+.mas output small{font-size:11px;color:var(--taupe);font-weight:600;margin-left:3px}
+.stock{display:grid;gap:12px;margin-top:22px;padding-top:20px;border-top:1px solid var(--sand)}
+/* la escala: arriba lo que queda en la tienda, abajo lo que lee el cliente */
+.escala{display:grid;grid-template-columns:72px repeat(4,minmax(0,1fr));grid-template-rows:auto auto;gap:6px 6px;align-items:stretch}
+.escala-t{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--taupe);align-self:center}
+.escala-t:nth-child(1){grid-row:1;grid-column:1}.escala-t:nth-child(2){grid-row:2;grid-column:1}
+.celda{display:contents}
+.celda b,.celda span{display:grid;place-items:center;text-align:center;transition:background-color 260ms var(--ease),color 260ms var(--ease),border-color 260ms var(--ease)}
+.celda b{grid-row:1;height:42px;border-radius:10px 10px 4px 4px;font:600 20px var(--serif);background:var(--hueso);border:1.5px solid transparent}
+.celda span{grid-row:2;height:36px;border-radius:4px 4px 10px 10px;font-size:12.5px;font-weight:700;padding:0 4px}
+.celda.poco span{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.celda.hay span{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+.celda.tope b{background:var(--tinta);color:var(--crema)}
+.fijo{display:contents}
+.fijo b,.fijo span{display:grid;place-items:center;text-align:center}
+.fijo b{grid-row:1;grid-column:5;height:42px;border-radius:10px 10px 4px 4px;font:600 20px var(--serif);background:none;border:1.5px dashed var(--sand);color:var(--taupe)}
+.fijo span{grid-row:2;grid-column:5;height:36px;border-radius:4px 4px 10px 10px;font-size:12.5px;font-weight:700;background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+.celda:not(:disabled){cursor:pointer}
+@media(hover:hover){.celda:not(:disabled):hover b{border-color:var(--tinta)}}
+.celda{position:static}
+@media(max-width:700px){.escala{grid-template-columns:repeat(4,minmax(0,1fr))}.escala-t{display:none}.celda span{font-size:11px}}
+
+/* guardar */
+.pie{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:2px}
+.sucio{margin-right:auto;font-size:12.5px;color:var(--taupe);display:none}
+.sucio.on{display:inline}
+.aviso{position:fixed;right:20px;top:64px;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);box-shadow:0 8px 24px color-mix(in srgb,var(--sombra) 20%,transparent);font-weight:600;font-size:13.5px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity 260ms var(--ease),transform 260ms var(--ease)}
+.aviso.on{opacity:1;transform:none}
+.aviso svg{color:var(--verde)}
+@media(prefers-reduced-motion:reduce){*{transition-duration:1ms!important;animation-duration:1ms!important}}
+</style>
+</head>
+<body>
+
+<div class="marco">
+  <div class="fila"><b>Maqueta</b> Tienda web ▸ Conf. Tienda · todo tocable, nada se guarda de verdad</div>
+  <div class="fila">
+    <button id="bNuevo" aria-pressed="false">Resaltar lo nuevo</button>
+    <button id="bTema" aria-pressed="false">Modo oscuro</button>
+  </div>
+</div>
+
+<main>
+  <header class="cab">
+    <div>
+      <div class="cab-sede">Tienda web · CAYLA global</div>
+      <h1>Conf. Tienda</h1>
+    </div>
+    <div class="resp" title="Quién firma el cambio"><i>F</i><span><small>Responsable</small>Felipe Alvarez</span></div>
+  </header>
+
+  <section class="calle" id="calle" aria-label="Tiendas"></section>
+
+  <section class="taller" id="taller"></section>
+
+  <section class="tarj reloj" id="reloj"></section>
+</main>
+
+<div class="aviso" id="aviso" role="status"></div>
+
+<script>
+/* ============ Iconos (trazos de lucide) ============ */
+const P={
+  pin:'<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  wa:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  img:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  grip:'<circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/>',
+  copy:'<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  plus:'<path d="M5 12h14M12 5v14"/>',
+  minus:'<path d="M5 12h14"/>',
+  cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  bag:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  ok:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  wallet:'<path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  store:'<path d="m2 7 4.4-4h11.2L22 7"/><path d="M4 10v10h16V10"/><path d="M2 7a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/>',
+  nav:'<path d="m3 11 19-9-9 19-2-8Z"/>'
+};
+const ic=(n,c='')=>`<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+
+/* ============ Datos de ejemplo (INVENTADOS: nombres de sede reales, todo lo demás de muestra) ============ */
+const DIAS=['L','M','X','J','V','S','D'];
+const DIAS_LARGO=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const semana=(a,b,dom)=>[[a,b],[a,b],[a,b],[a,b],[a,b],[a,b],dom];
+let T=[
+  {id:'tru',nombre:'Tienda TRU',web:'Trujillo',wa:'987654321',dir:'Av. España 1250, frente al parque',mapa:'https://maps.app.goo.gl/trujillo',foto:null,mostrar:true,color:'--sede-tru',hor:semana(10,21,[11,19]),cierres:[{f:'28 jul',m:'Feriado'}]},
+  {id:'aqp',nombre:'Tienda AQP',web:'Arequipa',wa:'',dir:'',mapa:'',foto:null,mostrar:false,color:'--sede-aqp',hor:semana(10,20,null),cierres:[]},
+  {id:'lim',nombre:'Tienda LIM',web:'Lima',wa:'912345678',dir:'Jr. de la Unión 540, 2.º piso',mapa:'',foto:null,mostrar:true,color:'--sede-lim',hor:semana(11,22,[12,20]),cierres:[]}
+];
+let base=JSON.parse(JSON.stringify(T));
+let sel='tru';
+let PL={conf:24,pagar:48,recoger:7,pocas:3}, PLbase={...PL};
+const hoyJs=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Lima'})).getDay(); const HOY=(hoyJs+6)%7;      // 0 = lunes
+const _l=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Lima'}));
+let AHORA=Math.round((_l.getHours()+_l.getMinutes()/60)*2)/2;   // la hora real de Lima, como la lee la web
+const get=id=>T.find(t=>t.id===id), getB=id=>base.find(t=>t.id===id);
+const $=s=>document.querySelector(s);
+
+/* ============ Reglas ============ */
+const falta=t=>[!t.web.trim()&&'Nombre',!/^9\d{8}$/.test(t.wa)&&'WhatsApp',!t.dir.trim()&&'Dónde'].filter(Boolean);
+const listos=t=>3-falta(t).length;
+const h12=h=>{const hh=Math.floor(h)%24,m=h%1?':30':'',s=hh>=12?'p. m.':'a. m.';return `${hh%12||12}${m} ${s}`};
+const h12c=h=>{const hh=Math.floor(h)%24,m=h%1?':30':'';return `${hh%12||12}${m}`};
+function resumenHorario(t){
+  const g=[];for(let i=0;i<7;i++){const r=t.hor[i],k=r?r.join('-'):'x';const u=g[g.length-1];if(u&&u.k===k)u.f=i;else g.push({k,i,f:i,r})}
+  const a=g.filter(x=>x.r).map(x=>`${x.i===x.f?DIAS_LARGO[x.i].slice(0,3):DIAS_LARGO[x.i].slice(0,3)+'–'+DIAS_LARGO[x.f].slice(0,3)} ${h12c(x.r[0])}–${h12(x.r[1])}`);
+  return a.length?a.join(' · '):null;
+}
+const hoyCerrado=t=>t.cierres.find(c=>c.hoy);
+function estado(t){
+  if(!t.mostrar)return{k:'oculta',txt:'Oculta'};
+  const c=hoyCerrado(t);if(c)return{k:'cerrada',txt:'Cerrada hoy',det:c.m};
+  const r=t.hor[HOY];
+  if(r&&AHORA>=r[0]&&AHORA<r[1])return{k:'abierta',txt:'Abierta',det:'cierra '+h12(r[1])};
+  if(r&&AHORA<r[0])return{k:'cerrada',txt:'Cerrada',det:'abre '+h12(r[0])};
+  for(let d=1;d<=7;d++){const i=(HOY+d)%7,n=t.hor[i];if(n)return{k:'cerrada',txt:'Cerrada',det:`abre ${d===1?'mañana':DIAS_LARGO[i].toLowerCase()} ${h12(n[0])}`}}
+  return{k:'cerrada',txt:'Cerrada'};
+}
+const sucio=t=>JSON.stringify({...t,cierres:t.cierres})!==JSON.stringify(getB(t.id));
+const sucioPl=()=>JSON.stringify(PL)!==JSON.stringify(PLbase);
+
+/* ============ La calle: tiendas como puertas ============ */
+function fachada(t,foto=true){
+  return `<div class="fachada" style="--c:var(${t.color})">${t.foto&&foto?`<img src="${t.foto}" alt="">`:`<span class="toldo"></span><span class="puertita"></span>`}</div>`;
+}
+function pintarCalle(){
+  $('#calle').innerHTML=T.map(t=>{
+    const f=falta(t),e=estado(t),ok=f.length===0,off=(1-listos(t)/3)*94.2;
+    return `<div class="puerta" role="option" tabindex="0" draggable="true" data-id="${t.id}" aria-selected="${t.id===sel}" ${t.mostrar?'':'data-oculta'}>
+      ${fachada(t)}
+      <div class="puerta-cuerpo">
+        <div class="puerta-nombre"><strong>${t.web||'Sin nombre'}</strong><span class="asa" title="Arrastra para ordenar" data-nuevo>${ic('grip')}</span></div>
+        <span class="estado ${e.k}">${e.txt}${e.det?` <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--taupe)">· ${e.det}</span>`:''}</span>
+        <div class="puerta-pie">
+          <div class="anillo" ${ok?'data-ok':''} title="${listos(t)} de 3 datos"><svg viewBox="0 0 34 34"><circle class="p" cx="17" cy="17" r="15"/><circle class="v" cx="17" cy="17" r="15" stroke-dasharray="94.2" stroke-dashoffset="${off}"/></svg><b>${ok?ic('check'):listos(t)}</b></div>
+          <div class="faltan">${f.map(x=>`<span class="chip falta">${x}</span>`).join('')}</div>
+          <label class="sw-lbl" data-stop>${f.length?ic('lock'):''}<button class="sw" role="switch" aria-checked="${t.mostrar}" aria-label="Visible en la web" data-sw="${t.id}" ${f.length?'disabled':''}></button></label>
+        </div>
+      </div></div>`}).join('');
+}
+$('#calle').addEventListener('click',e=>{
+  const sw=e.target.closest('[data-sw]');
+  if(sw){const t=get(sw.dataset.sw);t.mostrar=!t.mostrar;todo();return}
+  if(e.target.closest('[data-stop]'))return;
+  const p=e.target.closest('.puerta');if(p){sel=p.dataset.id;todo()}
+});
+$('#calle').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('puerta')){e.preventDefault();sel=e.target.dataset.id;todo()}});
+/* orden: arrastrar */
+let arr=null;
+$('#calle').addEventListener('dragstart',e=>{const p=e.target.closest('.puerta');if(!p)return;arr=p.dataset.id;p.classList.add('arrastrando');e.dataTransfer.effectAllowed='move'});
+$('#calle').addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.puerta').forEach(x=>x.classList.remove('sobre'));const p=e.target.closest('.puerta');if(p&&p.dataset.id!==arr)p.classList.add('sobre')});
+$('#calle').addEventListener('drop',e=>{e.preventDefault();const p=e.target.closest('.puerta');if(!p||!arr||p.dataset.id===arr){arr=null;return}
+  const a=T.findIndex(t=>t.id===arr),b=T.findIndex(t=>t.id===p.dataset.id);const [x]=T.splice(a,1);T.splice(b,0,x);base=reordenarBase();arr=null;todo();aviso('Orden guardado')});
+$('#calle').addEventListener('dragend',()=>{arr=null;pintarCalle()});
+function reordenarBase(){return T.map(t=>base.find(b=>b.id===t.id))}
+
+/* ============ El taller de la tienda elegida ============ */
+function pintarTaller(){
+  const t=get(sel),f=falta(t),su=sucio(t);
+  const campo=(clave,etq,icono,cuerpo,okc)=>`<div class="campo" ${okc?'data-ok':''} ${f.includes(clave)?'data-falta':''}><div class="etq">${icono}${etq}<span class="ok">${ic('check')}</span></div>${cuerpo}</div>`;
+  $('#taller').innerHTML=`
+  <div class="tarj">
+    <div class="fila2">
+      ${campo('Nombre','Nombre',ic('store'),`<label class="caja"><input id="fNombre" value="${esc(t.web)}" maxlength="40" placeholder="Ej. ${t.nombre.replace('Tienda ','')}" autocomplete="off"></label>`,t.web.trim())}
+      ${campo('WhatsApp','WhatsApp',ic('wa'),`<label class="caja"><span class="pref">+51</span><input id="fWa" inputmode="tel" value="${esc(fmtWa(t.wa))}" placeholder="987 654 321" autocomplete="off"></label>`,/^9\d{8}$/.test(t.wa))}
+    </div>
+    <div class="fila2">
+      <div style="display:grid;gap:16px;align-content:start">
+        ${campo('Dónde','Dónde',ic('pin'),`<label class="caja"><input id="fDir" value="${esc(t.dir)}" maxlength="160" placeholder="Calle, número, referencia" autocomplete="off"></label>`,t.dir.trim())}
+        <div class="campo" data-nuevo ${t.mapa?'data-ok':''}><div class="etq">${ic('nav')}Mapa<span class="ok">${ic('check')}</span></div>
+          <label class="caja"><input id="fMapa" value="${esc(t.mapa)}" placeholder="Pega el enlace de Google Maps" autocomplete="off"></label>
+          <div class="mapita" ${t.mapa?'':'data-vacio'}><span class="tile">${ic('pin','pin')}</span><span class="chip ${t.mapa?'':'falta'}" style="${t.mapa?'':'background:none;color:var(--taupe)'}">${t.mapa?'Botón «Cómo llegar» activo':'Sin mapa'}</span></div>
+        </div>
+      </div>
+      <div class="campo" data-nuevo ${t.foto?'data-ok':''}><div class="etq">${ic('img')}Foto<span class="ok">${ic('check')}</span></div>
+        <label class="foto" id="fFoto" tabindex="0">${t.foto?`<img src="${t.foto}" alt=""><button type="button" class="quitar" id="fQuitar" aria-label="Quitar foto">${ic('x')}</button>`:`<span>${ic('img')}Suelta la fachada</span>`}<input type="file" accept="image/*" class="sr" id="fArchivo"></label>
+      </div>
+    </div>
+    <div class="campo" data-nuevo>
+      <div class="etq">${ic('clock')}Horario <span class="chip" style="margin-left:6px;text-transform:none;letter-spacing:0">Arrastra los bordes o la barra</span></div>
+      ${reglaHorario(t)}
+      <div class="herr">
+        <button class="btn chico" id="fCopiar">${ic('copy')}Copiar lunes a todos</button>
+      </div>
+    </div>
+    <div class="campo" data-nuevo>
+      <div class="etq">${ic('cal')}Cierres</div>
+      <div class="cierres">
+        ${t.cierres.map((c,i)=>`<span class="cierre">${c.hoy?'Hoy':c.f} <small>${c.m}</small><button aria-label="Quitar" data-qc="${i}">${ic('x')}</button></span>`).join('')}
+        <button class="btn chico" id="fCierreHoy" ${hoyCerrado(t)?'disabled':''}>${ic('plus')}Cerrar hoy</button>
+        <label class="btn chico" style="cursor:pointer">${ic('cal')}Otra fecha<input type="date" class="sr" id="fFecha"></label>
+      </div>
+    </div>
+    <div class="pie">
+      <span class="sucio ${su?'on':''}">Sin guardar</span>
+      <button class="btn" id="fRev" ${su?'':'disabled'}>Deshacer</button>
+      <button class="btn primario" id="fGuardar" ${su?'':'disabled'}>Guardar</button>
+    </div>
+  </div>
+  ${telefono(t)}`;
+  enlazarTaller();
+}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const fmtWa=w=>w.replace(/(\d{3})(\d{0,3})(\d{0,3})/,(_,a,b,c)=>[a,b,c].filter(Boolean).join(' '));
+
+function reglaHorario(t){
+  const pos=h=>((h-7)/16*100);
+  let s=`<div class="reglaH" id="regla"><div class="horas">${[8,10,12,14,16,18,20,22].map(h=>`<span style="left:${pos(h)}%">${h12c(h)}${h===12?' m':h>12?' p':''}</span>`).join('')}</div>`;
+  for(let i=0;i<7;i++){
+    const r=t.hor[i],cerr=hoyCerrado(t)&&i===HOY;
+    s+=`<button class="dia ${i===HOY?'hoy':''}" data-d="${i}" aria-pressed="${!!r}" title="${DIAS_LARGO[i]}">${DIAS[i]}</button>
+    <div class="pista ${r&&!cerr?'':'cerrado'} ${cerr?'cierre':''}" data-p="${i}">
+      ${r&&!cerr?`<div class="tramo" style="left:${pos(r[0])}%;width:${pos(r[1])-pos(r[0])}%">${tramoHtml(r)}</div>`:''}
+      ${i===HOY?`<span class="ahora" style="left:${Math.max(0,Math.min(100,pos(AHORA)))}%"></span>`:''}
+    </div>`;
+  }
+  return s+'</div>';
+}
+function telefono(t){
+  const e=estado(t),res=resumenHorario(t),puedeMapa=!!t.mapa,puedeWa=/^9\d{8}$/.test(t.wa);
+  return `<aside class="lado" aria-label="Así lo ve el cliente">
+    <div class="cel"><div class="cel-pant"><div class="cel-barra">Cayla</div>
+      <div class="tcard" ${t.mostrar?'':'data-oculta'}>
+        ${fachada(t)}
+        <div class="tcard-c">
+          <span class="estado ${e.k}">${e.txt}${e.det?` <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--taupe)">· ${e.det}</span>`:''}</span>
+          <h3>${esc(t.web.trim()||'Sin nombre')}</h3>
+          <div class="tdato" ${t.dir.trim()?'':'data-falta'}>${ic('pin')}<span>${esc(t.dir.trim()||'Falta dónde recoger')}</span></div>
+          <div class="tdato" ${res?'':'data-falta'}>${ic('clock')}<span>${res||'Sin horario'}</span></div>
+          <div class="tbotones"><span class="tb" ${puedeMapa?'':'data-apagado'}>${ic('nav')}Cómo llegar</span><span class="tb lleno" ${puedeWa?'':'data-apagado'}>${ic('wa')}WhatsApp</span></div>
+        </div></div></div></div>
+    <span class="nota">${ic('ok')}Así lo ve el cliente · en vivo</span>
+  </aside>`;
+}
+
+/* ---- eventos del taller ---- */
+function enlazarTaller(){
+  const t=get(sel);
+  const re=()=>{pintarCalle();refrescarVivo();marcas()};
+  /* la marca ✓ / «falta» de cada campo cambia mientras se escribe */
+  const marcas=()=>{const f=falta(t);
+    [['fNombre','Nombre',!!t.web.trim()],['fWa','WhatsApp',/^9\d{8}$/.test(t.wa)],['fDir','Dónde',!!t.dir.trim()],['fMapa',null,!!t.mapa]].forEach(([id,k,ok])=>{
+      const c=document.getElementById(id).closest('.campo');c.toggleAttribute('data-ok',ok);if(k)c.toggleAttribute('data-falta',f.includes(k))});
+    const m=document.querySelector('.mapita');m.toggleAttribute('data-vacio',!t.mapa);const ch=m.querySelector('.chip');ch.textContent=t.mapa?'Botón «Cómo llegar» activo':'Sin mapa';ch.classList.toggle('falta',!t.mapa);ch.style.cssText=t.mapa?'':'background:none;color:var(--taupe)'};
+  $('#fNombre').oninput=e=>{t.web=e.target.value;re()};
+  $('#fWa').oninput=e=>{const d=e.target.value.replace(/\D/g,'').slice(0,9);t.wa=d;e.target.value=fmtWa(d);re()};
+  $('#fDir').oninput=e=>{t.dir=e.target.value;re()};
+  $('#fMapa').oninput=e=>{t.mapa=e.target.value.trim();re()};
+  $('#fGuardar').onclick=()=>{const i=T.findIndex(x=>x.id===t.id);base[i]=JSON.parse(JSON.stringify(t));todo();aviso(`${t.web||t.nombre}: cambios guardados`)};
+  $('#fRev').onclick=()=>{const i=T.findIndex(x=>x.id===t.id);T[i]=JSON.parse(JSON.stringify(base[i]));todo()};
+  /* foto */
+  const fo=$('#fFoto'),ar=$('#fArchivo');
+  const poner=f=>{if(f&&f.type.startsWith('image/')){t.foto=URL.createObjectURL(f);todo()}};
+  ar.onchange=()=>poner(ar.files[0]);
+  fo.ondragover=e=>{e.preventDefault();fo.classList.add('sobre')};fo.ondragleave=()=>fo.classList.remove('sobre');
+  fo.ondrop=e=>{e.preventDefault();fo.classList.remove('sobre');poner(e.dataTransfer.files[0])};
+  const q=$('#fQuitar');if(q)q.onclick=e=>{e.preventDefault();e.stopPropagation();t.foto=null;todo()};
+  /* horario */
+  $('#fCopiar').onclick=()=>{const r=t.hor[0];t.hor=t.hor.map(()=>r?[...r]:null);todo();aviso('Lunes copiado a toda la semana',true)};
+  document.querySelectorAll('.dia').forEach(b=>b.onclick=()=>{const i=+b.dataset.d;t.hor[i]=t.hor[i]?null:[10,21];todo()});
+  document.querySelectorAll('.pista').forEach(p=>pintarTramo(p,t));
+  /* cierres */
+  $('#fCierreHoy').onclick=()=>{t.cierres.push({hoy:true,f:'Hoy',m:'Descanso'});todo()};
+  $('#fFecha').onchange=e=>{if(!e.target.value)return;const d=new Date(e.target.value+'T12:00');t.cierres.push({f:d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()],m:'Feriado'});todo()};
+  document.querySelectorAll('[data-qc]').forEach(b=>b.onclick=()=>{t.cierres.splice(+b.dataset.qc,1);todo()});
+}
+/* El horario se edita de tres formas, todas visibles: arrastrar un borde (cambia esa hora), arrastrar la barra (la mueve entera)
+   y arrastrar sobre un hueco (pinta una nueva); tocar un día cerrado lo abre. Todo de a media hora. */
+const tramoHtml=r=>`<i class="asa-h" data-l="i"></i><span>${h12(r[0])}</span><span>${h12(r[1])}</span><i class="asa-h" data-l="d"></i>`;
+function pintarTramo(pista,t){
+  const i=+pista.dataset.p;
+  const h=ev=>{const r=pista.getBoundingClientRect();return Math.max(7,Math.min(23,Math.round(((ev.clientX-r.left)/r.width*16+7)*2)/2))};
+  pista.onpointerdown=ev=>{
+    if(pista.classList.contains('cierre'))return;
+    pista.setPointerCapture(ev.pointerId);
+    let tr=pista.querySelector('.tramo');
+    const lado=ev.target.closest('.asa-h')?.dataset.l, modo=lado||(ev.target.closest('.tramo')?'mover':'pintar');
+    const h0=h(ev), r0=t.hor[i]?[...t.hor[i]]:null; let r=r0, movio=false;
+    const dib=()=>{
+      if(!tr){tr=document.createElement('div');tr.className='tramo';pista.classList.remove('cerrado');pista.insertBefore(tr,pista.firstChild)}
+      tr.classList.add('pintando');tr.style.left=((r[0]-7)/16*100)+'%';tr.style.width=((r[1]-r[0])/16*100)+'%';tr.innerHTML=tramoHtml(r)};
+    pista.onpointermove=e2=>{
+      const hh=h(e2); if(hh===h0&&!movio)return; movio=true;
+      if(modo==='i')r=[Math.min(hh,r0[1]-.5),r0[1]];
+      else if(modo==='d')r=[r0[0],Math.max(hh,r0[0]+.5)];
+      else if(modo==='mover'){const d=r0[1]-r0[0],x=Math.max(7,Math.min(23-d,r0[0]+hh-h0));r=[x,x+d]}
+      else{const x=Math.min(h0,hh),y=Math.max(h0,hh);r=[x,Math.max(y,x+.5)]}
+      dib();
+    };
+    pista.onpointerup=()=>{
+      pista.onpointermove=null;pista.onpointerup=null;
+      if(!movio){ if(!r0){t.hor[i]=[10,21];todo()} return }   // un toque en un día cerrado lo abre
+      t.hor[i]=r;todo();
+    };
+  };
+}
+function refrescarVivo(){
+  const t=get(sel);
+  document.querySelector('.lado').outerHTML=telefono(t);
+  const su=sucio(t);document.querySelector('.sucio').classList.toggle('on',su);$('#fGuardar').disabled=!su;$('#fRev').disabled=!su;
+  document.querySelectorAll('.campo').forEach(()=>{});
+}
+
+/* ============ El reloj del pedido ============ */
+function pintarReloj(){
+  const paso=(ic1,nom,clave,u,min,max,paso1=1)=>`<div class="paso"><div class="nodo">${ic(ic1)}</div><h4>${nom}</h4>${clave?`<div class="mas"><button data-k="${clave}" data-s="-${paso1}" aria-label="Menos">${ic('minus')}</button><output>${PL[clave]}<small>${u}</small></output><button data-k="${clave}" data-s="${paso1}" aria-label="Más">${ic('plus')}</button></div>`:`<div class="mas"><output style="color:var(--taupe)">Cliente</output></div>`}</div>`;
+  $('#reloj').innerHTML=`
+    <div class="reloj-cab"><h2>Reloj del pedido <span class="chip" style="vertical-align:middle;margin-left:8px">Todas las tiendas</span></h2></div>
+    <div class="hilo">
+      ${paso('bag','Separa',null,'',0,0)}
+      ${paso('ok','Confirmar','conf','h',1,168,1)}
+      ${paso('wallet','Pagar','pagar','h',1,720,6)}
+      ${paso('store','Recoger','recoger','d',1,60,1)}
+    </div>
+    <div class="stock"><div class="etq">${ic('bag')}Stock en la web <span class="chip" style="margin-left:6px;text-transform:none;letter-spacing:0">Toca hasta dónde avisar</span></div>
+      <div class="escala" role="group" aria-label="Qué ve el cliente según lo que queda">
+        <span class="escala-t">Quedan</span><span class="escala-t">Cliente ve</span>
+        ${[1,2,3].map(n=>{const aviso=n<=PL.pocas,txt=aviso?(n===1?'Última':'Quedan '+n):'Hay';
+          return `<button class="celda ${aviso?'poco':'hay'} ${n===PL.pocas?'tope':''}" data-pocas="${n}" aria-pressed="${n===PL.pocas}"><b style="grid-column:${n+1}">${n}</b><span style="grid-column:${n+1}">${txt}</span></button>`}).join('')}
+        <div class="fijo" title="Con 4 o más, siempre dice «Hay»"><b>4+</b><span>Hay</span></div>
+      </div>
+    </div>
+    <div class="pie"><span class="sucio ${sucioPl()?'on':''}">Sin guardar</span>
+      <button class="btn" id="pRev" ${sucioPl()?'':'disabled'}>Deshacer</button>
+      <button class="btn primario" id="pGuardar" ${sucioPl()?'':'disabled'}>Guardar</button></div>`;
+  const lim={conf:[1,168],pagar:[1,720],recoger:[1,60]};
+  $('#reloj').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k,[a,z]=lim[k];PL[k]=Math.max(a,Math.min(z,PL[k]+ +b.dataset.s));pintarReloj()});
+  $('#reloj').querySelectorAll('[data-pocas]').forEach(b=>b.onclick=()=>{PL.pocas=+b.dataset.pocas;pintarReloj()});
+  $('#pGuardar').onclick=()=>{PLbase={...PL};pintarReloj();aviso('Plazos guardados')};
+  $('#pRev').onclick=()=>{PL={...PLbase};pintarReloj()};
+}
+
+/* ============ Aviso de éxito ============ */
+let tm;function aviso(txt){const a=$('#aviso');a.innerHTML=ic('check')+txt;a.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>a.classList.remove('on'),2600)}
+
+/* ============ Marco ============ */
+$('#bTema').onclick=e=>{const o=document.documentElement.dataset.tema!=='oscuro';document.documentElement.dataset.tema=o?'oscuro':'';e.currentTarget.setAttribute('aria-pressed',o);e.currentTarget.textContent=o?'Modo claro':'Modo oscuro'};
+$('#bNuevo').onclick=e=>{const o=!document.body.classList.contains('ver-nuevo');document.body.classList.toggle('ver-nuevo',o);e.currentTarget.setAttribute('aria-pressed',o)};
+
+function todo(){pintarCalle();pintarTaller()}
+todo();pintarReloj();
+</script>
+</body>
+</html>

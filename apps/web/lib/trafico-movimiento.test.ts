@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Candado de los límites de ADR-0136 para Tienda web ▸ Tráfico (act. 2026-10-23 (b), ADR-0495): Felipe eligió la maqueta C «La vitrina»
+// Candado de los límites de ADR-0136 para Tienda web ▸ Tráfico (act. 2026-10-23 (d), ADR-0495): Felipe eligió la maqueta C «La vitrina»
 // con su movimiento. Las baldosas entran en cascada, su etiqueta se cuelga y una luz cruza la vitrina UNA vez; con la curva del sistema,
 // solo colores del tema y apagado con «reducir movimiento». El único bucle es una señal: el punto verde de «Ahora, N mirando».
 

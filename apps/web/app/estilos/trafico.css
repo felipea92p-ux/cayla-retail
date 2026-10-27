@@ -1,5 +1,5 @@
 /* Tienda web ▸ Tráfico (ADR-0495; maqueta C «La vitrina», docs/maquetas/trafico-cero-2026-10/). Solo tokens: el oscuro sale solo.
-   Movimiento (ADR-0136, act. 2026-10-23 (b)): las tarjetas suben en cascada con `anim-sube` del sistema; lo propio de esta pantalla es la
+   Movimiento (ADR-0136, act. 2026-10-23 (d)): las tarjetas suben en cascada con `anim-sube` del sistema; lo propio de esta pantalla es la
    vitrina —las baldosas entran en cascada, su etiqueta se cuelga y una luz cruza el mosaico— UNA vez al llegar, con `--ease-cayla`, sin
    rebote. El único bucle es una señal: el punto verde de «Ahora, N mirando» respira mientras alguien mira la tienda (si nadie mira, no se
    dibuja). Con `prefers-reduced-motion`, todo quieto. Lo vigila `lib/trafico-movimiento.test.ts`. */

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Wallet, X } from "lucide-react";
+import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
-  descuentoPedido,
+  descuentosPedidos,
+  entraAlDescuento,
   descuentoResultante,
   desgloseIgv,
   hayDescuentoManual,
@@ -173,6 +174,8 @@ type Props = {
   /** Color y talla de cada variante (por `varianteId`), para la fila de cada prenda. La línea del carrito no los
    *  guarda; sin ellos la fila muestra el código de la etiqueta, como antes. */
   detalles?: ReadonlyMap<string, DetalleVariante>;
+  /** Por `claveLinea`: los otros tickets abiertos que llevan esa prenda cuando no alcanza para todos (solo avisa). */
+  tambienEn?: ReadonlyMap<string, readonly string[]>;
   /** Ref de la lista de líneas: el padre le captura la posición para el reflujo `Flip`. */
   listaRef: RefObject<HTMLDivElement | null>;
   onQuitar: (claveLinea: string) => void;
@@ -192,6 +195,8 @@ type Props = {
   onDejarEnEspera: () => void;
   onRetomar: (id: string) => void;
   onIrAEspera: () => void;
+  /** El basurero de una fila de «En espera»: pide confirmación y lo saca de la espera. */
+  onDescartarEspera: (id: string) => void;
   // Totales — ya calculados en el padre
   /** Lo que se cobra: con el cupón del Club, ya sin su parte. */
   total: number;
@@ -254,6 +259,7 @@ export function PuntoDeVentaTicket({
   bloqueado,
   carrito,
   detalles,
+  tambienEn,
   listaRef,
   onQuitar,
   onCantidad,
@@ -268,6 +274,7 @@ export function PuntoDeVentaTicket({
   onDejarEnEspera,
   onRetomar,
   onIrAEspera,
+  onDescartarEspera,
   total,
   prendas,
   vale = null,
@@ -335,8 +342,9 @@ export function PuntoDeVentaTicket({
   const cobrando = momentoMostrado === "cobrar";
   const descontando = momentoMostrado === "descuento";
   const enLaEspera = momentoMostrado === "espera";
-  // El chip «En espera · N» de la cabecera: solo cuando hay algo esperando, y no en la hoja del celular (allí ya está la tira).
-  const conChipEspera = enEspera.length > 0 && !enHoja;
+  // El chip «En espera · N» de la cabecera: solo cuando hay algo esperando. Es la puerta a la vista «En espera», donde se ven
+  // todos los tickets guardados y se retoma el que toca (Felipe 2026-10-26: vuelve en lugar de las pestañas).
+  const conChipEspera = enEspera.length > 0;
   // Resumen de cada ticket en espera, derivado de sus líneas (sin estado, sin hooks).
   const resumenEspera = (t: TicketEnEspera) => ({
     hora: new Date(t.creadoEn).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" }),
@@ -363,12 +371,18 @@ export function PuntoDeVentaTicket({
   const elegidas = descuento.elegidas;
   const todoElTicket = elegidas === null;
   const alcanza = (claveLinea: string) => elegidas === null || elegidas.includes(claveLinea);
+  // Lo que de verdad recibe el descuento: lo elegido menos las piezas de liquidación (precio final, ADR-0379). Aquí `[]` es
+  // «ninguna marcada» (en la regla, `[]` es todo el ticket): por eso se pregunta con `alcanza` y no con las claves.
+  const recibeDescuento = (it: ItemCarrito) => alcanza(it.claveLinea) && entraAlDescuento(it, null);
+  const alcanzadas = carrito.filter(recibeDescuento);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
   // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % sale del
-  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ es el monto tal cual.
-  const montoPedido = (it: ItemCarrito) => descuentoPedido(descuento.modo, porMonto ? monto : pct, it.precioUnitario);
+  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ el monto es del total de lo elegido y se reparte según el precio.
+  const pedidos = descuentosPedidos(descuento.modo, porMonto ? monto : pct, alcanzadas);
+  const montoPedido = (it: ItemCarrito) => pedidos.get(it.claveLinea) ?? 0;
+  const unidadesAlcanzadas = alcanzadas.reduce((c, it) => c + it.cantidad, 0);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
-    !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
+    !recibeDescuento(it) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con un cupón del Club puesto, también sin su parte
   // (el cupón se reparte sobre lo que quedará): el mismo número que quedará en «Total».
   const totalConDescuento = vale
@@ -381,8 +395,7 @@ export function PuntoDeVentaTicket({
   // cuenta — ese descuento no es manual. El candado real vive en `registrar_venta`.
   const mostrarArgumento =
     valorValido &&
-    carrito.some((it) => {
-      if (!alcanza(it.claveLinea)) return false;
+    alcanzadas.some((it) => {
       const r = descuentoResultante(it, montoPedido(it));
       return !r.prevaleceCampana && necesitaArgumentoEscrito(it.precioUnitario, r.monto);
     });
@@ -452,8 +465,9 @@ export function PuntoDeVentaTicket({
               </span>
             </TituloSeccion>
             {/* Park, a la altura del título (Felipe 2026-10-22): sacarlo del pie le devuelve una fila a la lista. Guarda el
-                ticket y libera la caja para el siguiente cliente. Con el chip «En espera · N» al lado, o en un ticket angosto,
-                queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con texto no caben en 420 px. */}
+                ticket (pidiendo un nombre, opcional) y libera la caja para el siguiente cliente. Con el chip «En espera · N» al
+                lado, o en un ticket angosto, queda solo el ícono (con su nombre para el lector y al pasar el mouse): los dos con
+                texto no caben en 420 px. */}
             {carrito.length > 0 && (
               <button
                 type="button"
@@ -469,6 +483,18 @@ export function PuntoDeVentaTicket({
                 {!conChipEspera && <span className="hidden @min-[20rem]:inline">Dejar en espera</span>}
               </button>
             )}
+            {/* Solo cuando hay algo esperando: el chip cambia el ticket por la lista completa de los que esperan. */}
+            {conChipEspera && (
+              <button
+                type="button"
+                onClick={onIrAEspera}
+                disabled={bloqueado}
+                className="btn-cayla btn-secundario anim-revelar flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
+              >
+                <CirclePause className={ICONO_CHICO} aria-hidden />
+                En espera · {enEspera.length}
+              </button>
+            )}
             {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
             {enHoja && onCerrarHoja && (
               <button
@@ -478,19 +504,6 @@ export function PuntoDeVentaTicket({
                 className="order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
               >
                 <X className="h-5 w-5" aria-hidden />
-              </button>
-            )}
-            {/* Solo cuando hay algo esperando: el chip abre la lista completa. En la hoja del celular no hace falta: la
-                tira de arriba ya los muestra y la cabecera no tiene ancho para los dos. */}
-            {conChipEspera && (
-              <button
-                type="button"
-                onClick={onIrAEspera}
-                disabled={bloqueado}
-                className="btn-cayla btn-secundario anim-revelar flex h-8 items-center gap-1.5 px-2.5 text-[12.5px]"
-              >
-                <CirclePause className={ICONO_CHICO} aria-hidden />
-                En espera · {enEspera.length}
               </button>
             )}
           </>
@@ -580,6 +593,18 @@ export function PuntoDeVentaTicket({
                           <Play className={ICONO_CHICO} aria-hidden />
                           Retomar
                         </button>
+                        {/* El mismo basurero rojo que quita una prenda del ticket: aquí tira el ticket entero que ya no se va a
+                            cobrar (Felipe 2026-10-26). Pide confirmación antes, porque no se deshace. */}
+                        <button
+                          type="button"
+                          onClick={() => onDescartarEspera(t.id)}
+                          disabled={bloqueado}
+                          aria-label={`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}`}
+                          title="Descartar este ticket"
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-rojo-profundo transition-colors hover:bg-rojo/10 hover:text-rojo"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
                       </div>
                     );
                   })}
@@ -588,14 +613,15 @@ export function PuntoDeVentaTicket({
             </div>
           ) : descontando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              {/* 1 · Cuánto: % del precio o S/ por prenda (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25). El % deja el
-                  precio sin céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
+              {/* 1 · Cuánto: % del precio o S/ del total de lo elegido (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25; desde el
+                  2026-10-24 el S/ se reparte entre las prendas según su precio, ya no es por prenda). El % deja el precio sin
+                  céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
                   «Otro» es para cualquier otro valor. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1.5">
                     {porMonto ? <Banknote className={ICONO_CHICO} aria-hidden /> : <Percent className={ICONO_CHICO} aria-hidden />}
-                    {porMonto ? "Monto por prenda" : "Porcentaje"}
+                    {porMonto ? "Monto" : "Porcentaje"}
                   </span>
                 </legend>
                 <SegmentoDeslizante
@@ -605,7 +631,7 @@ export function PuntoDeVentaTicket({
                   onCambio={(m) => onDescuento({ modo: m as ModoDescuento })}
                   opciones={[
                     { clave: "porcentaje", etiqueta: "%", ayuda: "En porcentaje del precio" },
-                    { clave: "monto", etiqueta: "S/", ayuda: "En soles por prenda" },
+                    { clave: "monto", etiqueta: "S/", ayuda: "En soles, del total de lo elegido" },
                   ]}
                 />
                 {porMonto ? (
@@ -628,7 +654,7 @@ export function PuntoDeVentaTicket({
                       <span className="text-[11px] text-tinta/50">Otro</span>
                       <span className="ml-auto text-sm text-tinta/60">S/</span>
                       <input
-                        aria-label="Monto de descuento por prenda"
+                        aria-label="Monto de descuento"
                         {...atributosMontoTexto(descuento.monto)}
                         value={descuento.monto}
                         onChange={(e) => onDescuento({ monto: e.target.value })}
@@ -801,6 +827,10 @@ export function PuntoDeVentaTicket({
               {/* Por qué el % no da el precio «exacto»: cada prenda baja al S/ 0.10 de abajo para que se cobre sin céntimos
                   sueltos (ADR-0403). En S/ no hace falta: lo que se escribe es lo que se descuenta. */}
               {valorValido && elegidasCuenta > 0 && !porMonto && <p className="-mt-3 text-xs text-tinta/50">Cada prenda baja a un precio sin céntimos sueltos.</p>}
+              {/* En S/ con más de una prenda: el monto no se resta a cada una, se reparte (Felipe, 2026-10-24). */}
+              {valorValido && porMonto && unidadesAlcanzadas > 1 && (
+                <p className="-mt-3 text-xs text-tinta/50">Los {money(monto)} se reparten entre las prendas según su precio.</p>
+              )}
             </div>
           ) : cobrando && cuerpoCobro ? (
             // En el celular la hoja de cobro vive aquí, dentro de la hoja del ticket (y del formulario que cobra). En
@@ -828,6 +858,7 @@ export function PuntoDeVentaTicket({
                     key={it.claveLinea}
                     linea={it}
                     detalle={detalles?.get(it.varianteId)}
+                    tambienEn={tambienEn?.get(it.claveLinea)}
                     bloqueado={bloqueado || cobrando}
                     onQuitar={onQuitar}
                     onCantidad={onCantidad}

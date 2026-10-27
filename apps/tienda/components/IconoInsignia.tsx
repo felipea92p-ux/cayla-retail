@@ -1,5 +1,6 @@
-import { createElement, type ReactElement } from "react";
+import { createElement, type CSSProperties, type ReactElement } from "react";
 import { DIBUJOS_DE_INSIGNIA, type ColorDeInsignia, type IconoInsignia as Familia, type PiezaDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { urlDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 
 // El dibujo de una insignia en la tienda (ADR-0489): el mismo que el ERP muestra en Catálogo ▸ Insignias —la calabaza de Halloween, el pastel
 // de Aniversario…—, que vive en `packages/shared/src/insignias-visual.ts`. Aquí solo se pinta, con los colores de la tienda: el trazo y el
@@ -18,8 +19,20 @@ function pintarInsignia(piezas: readonly PiezaDeInsignia[]): ReactElement[] {
   });
 }
 
-/** El dibujo de una familia de insignias (o el genérico: una etiqueta), listo para ir dentro de un chip. Decorativo: el texto del chip ya dice qué es. */
-export function IconoInsignia({ icono }: { icono: Familia | "generico" }) {
+/** El dibujo de una familia de insignias (o el genérico: una etiqueta), listo para ir dentro de un chip. Decorativo: el texto del chip ya dice qué es.
+ *  Si la insignia tiene una imagen propia (ADR-0490: la ruta en el almacén público de insignias) y se sabe de dónde cuelga el almacén (`origen`,
+ *  `TIENDA_FOTOS_ORIGEN`), se dibuja esa imagen; sin una de las dos cosas, el dibujo, así que un dato que falta nunca deja el chip sin figura. */
+export function IconoInsignia({ icono, imagen = null, silueta = false, origen }: { icono: Familia | "generico"; imagen?: string | null; silueta?: boolean; origen?: string }) {
+  const url = urlDeImagenDeInsignia(origen, imagen);
+  // Como silueta (ADR-0490 act. b) la imagen es un molde —blanco con la forma como transparencia— y toma el color del chip (`currentColor`): crema en la
+  // cara oscura, tinta en la clara. Sin baldosa: ya no trae colores propios que proteger.
+  if (url && silueta) return <span aria-hidden="true" className="t-ins-img t-ins-silueta" style={{ "--silueta-url": `url("${url.replace(/"/g, "%22")}")` } as CSSProperties} />;
+  if (url) {
+    // Un icono de 18 px que ya viene reducido (≤ 100 KB, WebP): no pasa por el optimizador de imágenes. Sin `loading="lazy"`: el chip va justo
+    // arriba del nombre de la prenda, a la vista desde el primer cuadro, y con «lazy» el navegador lo dejaba sin pintar hasta que la pantalla lo pedía.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className="t-ins-img t-ins-foto" src={url} alt="" width={18} height={18} decoding="async" />;
+  }
   return (
     // Un poco más allá de ±14: el gato y la llama de la vela se asoman hasta 15.
     <svg className="t-ins-img" viewBox="-15.5 -15.5 31 31" aria-hidden="true" focusable="false">

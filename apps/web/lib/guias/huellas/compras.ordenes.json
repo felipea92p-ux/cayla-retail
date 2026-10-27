@@ -2,7 +2,7 @@
   "guia": "compras.ordenes",
   "ruta": "/compras/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 43,
+  "total": 59,
   "controles": {
     "app/(app)/compras/ordenes/page.tsx": [
       "BotonEnlace «ordenes.nueva»",
@@ -58,6 +58,26 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/ordenes-compra/PendientesDeCampana.tsx": [
+      "Boton «{guia}»",
+      "Boton «Cambiar fecha»",
+      "Boton «Rectificar»",
+      "BotonVerMas «Ver las líneas»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Crear la orden y pedir»",
+      "SegmentoDeslizante «{`Cuándo pedir a ${p.proveedor.nombre}»",
+      "CampoFecha «{<span className=\"sr-only\">Fecha en que pedir a {p.proveedor.nombre}»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{igual ? \"No cambiaste nada\" : (problema ?? undefined)}»"
+    ],
+    "components/plan-compra/RectificarPedidos.tsx": [
+      "CampoSelect «¿Por qué rectificas?»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{pendientes.length > 1 ? `Rectificar los ${pendientes.length}»"
     ]
   }
 }

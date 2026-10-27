@@ -196,6 +196,8 @@ const fotoDeAntes = (p: PerfilDelMenu) => {
 // Avisos, porque sus perfiles no traen módulos.
 // (ADR-0430, 2026-10-16): «Resumen» de Tienda web, igual: nace sin rol; la fotografía de antes lo trae primero en «Tienda web»,
 // porque sus perfiles no traen módulos.
+// (ADR-0536, actividad 9, 2026-10-27): «Preguntas del equipo», igual: nace sin rol; la fotografía de antes la trae en Gestión, después
+// de Rendimiento, porque sus perfiles no traen módulos.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
@@ -219,6 +221,7 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "campanas" as const, completo: false },
         { clave: "recomendaciones" as const, completo: false },
         { clave: "tienda_web" as const, completo: false },
+        { clave: "preguntas_equipo" as const, completo: false },
       ];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
@@ -233,11 +236,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) ni «tienda_web» (ADR-0430) le faltan exactamente esas dieciocho`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «beneficios_club» (puntos, act. 8), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6), «vitrina_web» (ADR-0408), «campanas_web» (2026-10-21), «campanas» (ADR-0473), «pedidos_web» (ADR-0408, act. 8), «recomendaciones» (ADR-0408, 2026-10-15) «tienda_web» (ADR-0430) ni «preguntas_equipo» (ADR-0536) le faltan exactamente esas diecinueve`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/clientas/beneficios", "/gestion/plan-del-piso", "/productos/liquidacion", "/productos/insignias", "/compras/mi-plata", "/compras/plan", "/ordenes-insumos", "/compras", "/tienda-web/vitrina", "/tienda-web/campanas", "/tienda-web/pedidos", "/tienda-web/recomendaciones", "/tienda-web", "/gestion/preguntas"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
@@ -326,14 +329,14 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
     expect(permisosDeModulos("integrante", [{ clave: "por_pagar", completo: false }])).toEqual([]);
   });
 
-  it("«Por pagar» solo: Compras sale con una sola pantalla, Por pagar; Insignias o Campañas solos: entran por la fila «Insignias»", () => {
+  it("«Por pagar» solo: Compras sale con una sola fila, «Historial de compras» (ADR-0504: la pantalla lo deja en Por pagar); Insignias o Campañas solos: entran por la fila «Insignias»", () => {
     const soloPagos = ahora({ nombre: "pagos", rol: "integrante" }, "tienda", [{ clave: "por_pagar", completo: true }]);
     const riel = menuPara(soloPagos).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Compras"]);
-    expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/por-pagar" });
+    expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
     expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
-    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `moduloAlterno` (la pantalla le muestra solo esa vista).
+    // Campañas no tiene fila propia desde el 2026-10-22: abre la de Insignias, su `modulosAlternos` (la pantalla le muestra solo esa vista).
     const soloCampanas = ahora({ nombre: "campanas", rol: "integrante" }, "tienda", [{ clave: "campanas", completo: true }]);
     expect(menuPara(soloCampanas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/insignias" });
   });
@@ -469,9 +472,9 @@ describe("un módulo es una entrada del menú, no una función suelta (ADR-0306)
   };
 
   it("cada módulo del catálogo tiene su entrada en el menú, o es una de las cuatro pantallas declaradas", () => {
-    const sinEntrada = CLAVES_MODULO.filter(
-      (c) => !new RegExp(`modulo(?:Alterno)?: "${c}"`).test(MENU) && !(c in PANTALLA_PROPIA_FUERA_DEL_LATERAL),
-    );
+    // Un módulo tiene entrada si es el `modulo` de una fila o uno de sus `modulosAlternos` (una fila con varias vistas, ADR-0504).
+    const enElMenu = (c: string) => new RegExp(`modulo: "${c}"|modulosAlternos: \\[[^\\]]*"${c}"`).test(MENU);
+    const sinEntrada = CLAVES_MODULO.filter((c) => !enElMenu(c) && !(c in PANTALLA_PROPIA_FUERA_DEL_LATERAL));
     expect(sinEntrada, `módulos sin entrada de menú: ${sinEntrada.join(", ")}. ¿Es una función de otro módulo? No la des de alta como módulo.`).toEqual([]);
   });
 

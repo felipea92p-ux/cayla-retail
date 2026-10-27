@@ -1,0 +1,81 @@
+/* ====================================================================
+   Plan de campaña ▸ Presupuesto ▸ Cuándo se paga (ADR-0527, Felipe 2026-10-26: «que se vea tal cual en la maqueta»).
+   Maqueta: docs/maquetas/plan-campana-vision-2026-10/5-finanzas.html. Componentes: components/plan-compra/{CuandoSePaga,TandaDePago,CostoEIgv,VisibilidadEnFinanzas}.tsx.
+
+   Lo que ya tiene pieza (las cifras, la tabla, el interruptor, los avisos, los chips, los combos y los segmentos) se dibuja con su pieza; aquí solo vive lo que la maqueta tiene y el sistema
+   no: la caja de cada tanda y la lista «qué pasa en Finanzas». Solo tokens (el modo oscuro sale solo). Sin movimiento propio (ADR-0136).
+   ==================================================================== */
+
+/* Una tanda de compra: una caja con su filo, dentro de la tarjeta (no lleva fondo propio: hereda el de la tarjeta, en claro y en oscuro). */
+.pp-tanda {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-sand);
+  border-radius: 14px;
+}
+
+/* «Qué pasa en Finanzas»: un renglón por lugar, con su marca (✓ lo cuenta, ✗ no, reloj: todavía no), separados por un filo. */
+.pp-donde {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-donde > li {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--color-sand);
+}
+.pp-donde > li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.pp-donde__marca {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+/* «Mostrar esta campaña»: tres opciones que se leen enteras, una bajo otra. La elegida lleva el contorno de tinta (la misma marca que el segmento del sistema); el punto se llena. */
+.pp-opcion {
+  display: grid;
+  grid-template-columns: 1.125rem minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--color-borde-control);
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+.pp-opcion:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+@media (hover: hover) {
+  .pp-opcion:not(:disabled):hover {
+    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+  }
+}
+.pp-opcion[aria-pressed="true"] {
+  border-color: var(--color-tinta);
+  background: var(--color-papel);
+}
+.pp-opcion__punto {
+  box-sizing: border-box;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 1px;
+  border: 1.5px solid var(--color-borde-control);
+  border-radius: 50%;
+}
+.pp-opcion[aria-pressed="true"] .pp-opcion__punto {
+  border-color: var(--color-tinta);
+  background: radial-gradient(circle, var(--color-tinta) 0 42%, transparent 46%);
+}

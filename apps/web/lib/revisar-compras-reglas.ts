@@ -37,7 +37,8 @@ export type LineaPapel = {
   sobran: number;
 };
 
-export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado" };
+/** `recibioQuienCompro` (ADR-0517): el envío está cerrado y lo cerró quien hizo alguna de sus órdenes: un Admin recibió lo que él mismo compró. */
+export type EnvioPapel = { id: string; numero: number; estado: "en_camino" | "abierto" | "cerrado"; recibioQuienCompro: boolean };
 
 export type PapelPorCompletar = {
   id: string;
@@ -71,7 +72,17 @@ export type CierrePorRecibir = {
   decision: "devuelve" | "le_deben";
   monto: number;
   plataPorConfirmar: number;
+  /** La tienda de quien compró (su ficha de colaborador, 20261023210000); un líder sin tienda, ninguna. */
+  tienda: string | null;
+  /** Lo que pasó en su ronda (20261023210000). Un cierre de antes de las rondas no lo trae. */
+  cuaderno: CuadernoRonda | null;
 };
+
+/** Lo que pasó en una ronda de compras (`fn_ronda_compras_cuenta`): le dieron, compró (lo pagado de su plata), gastó. */
+export type CuadernoRonda = { dieron: number; compras: number; compraste: number; gastos: number; gastaste: number; prendas: number };
+
+/** Una ronda que sigue abierta: quién está comprando ahora, desde cuándo y cuánto lleva (diseño A, «Rondas abiertas»). */
+export type RondaAbiertaRevisar = { id: string; texto: string; personaId: string; persona: string; tienda: string | null; abiertaEn: string; cuenta: CuadernoRonda };
 
 export type ProveedorOpcion = { id: string; nombre: string; ruc: string | null };
 
@@ -92,7 +103,13 @@ export type GastoPorRevisar = {
   tieneCompra: boolean;
 };
 
-export type RevisarCompras = { papeles: PapelPorCompletar[]; gastos: GastoPorRevisar[]; cierres: CierrePorRecibir[]; proveedores: ProveedorOpcion[] };
+export type RevisarCompras = {
+  papeles: PapelPorCompletar[];
+  gastos: GastoPorRevisar[];
+  cierres: CierrePorRecibir[];
+  proveedores: ProveedorOpcion[];
+  rondasAbiertas: RondaAbiertaRevisar[];
+};
 
 const numero = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
@@ -154,7 +171,7 @@ function leerPapel(x: unknown): PapelPorCompletar | null {
       const eid = texto(eo?.id);
       const n = numero(eo?.numero);
       const estado = ESTADOS_ENVIO.find((s) => s === eo?.estado);
-      return eid && n != null && estado ? [{ id: eid, numero: n, estado }] : [];
+      return eid && n != null && estado ? [{ id: eid, numero: n, estado, recibioQuienCompro: eo?.recibio_quien_compro === true }] : [];
     }),
     llego: o.llego === true,
   };
@@ -213,7 +230,69 @@ function leerCierre(x: unknown): CierrePorRecibir | null {
     decision: o.decision,
     monto,
     plataPorConfirmar: numero(o.plata_por_confirmar) ?? 0,
+    tienda: texto(o.tienda),
+    cuaderno: leerCuaderno(o.cuaderno),
   };
+}
+
+function leerCuaderno(x: unknown): CuadernoRonda | null {
+  const o = objeto(x);
+  if (!o) return null;
+  const n = (v: unknown) => numero(v) ?? 0;
+  const entero = (v: unknown) => Math.max(0, Math.trunc(n(v)));
+  return { dieron: n(o.dieron), compras: entero(o.compras), compraste: n(o.compraste), gastos: entero(o.gastos), gastaste: n(o.gastaste), prendas: entero(o.prendas) };
+}
+
+function leerRondaAbierta(x: unknown): RondaAbiertaRevisar | null {
+  const o = objeto(x);
+  const id = texto(o?.id);
+  if (!o || !id) return null;
+  return {
+    id,
+    texto: texto(o.texto) ?? "Ronda",
+    personaId: texto(o.persona_id) ?? "",
+    persona: texto(o.persona) ?? "Alguien de Compras",
+    tienda: texto(o.tienda),
+    abiertaEn: texto(o.abierta_en) ?? "",
+    cuenta: leerCuaderno(o.cuenta) ?? { dieron: 0, compras: 0, compraste: 0, gastos: 0, gastaste: 0, prendas: 0 },
+  };
+}
+
+/** Un renglón del cuaderno de una ronda cerrada. */
+export type RenglonCuaderno = { clave: "antes" | "dieron" | "compro" | "gasto"; titulo: string; detalle: string | null; monto: number; signo: "+" | "-" };
+
+/**
+ * El cuaderno de una ronda cerrada: lo que tenía al abrirla (se despeja del final, así la cuenta siempre cierra), le dieron, compró y gastó.
+ * El renglón final (devuelve o le debemos) lo dibuja la pantalla aparte, en grande. Sin cuaderno, ninguno.
+ */
+export function renglonesCuaderno(c: Pick<CierrePorRecibir, "cuaderno" | "decision" | "monto">): RenglonCuaderno[] {
+  const k = c.cuaderno;
+  if (!k) return [];
+  const final = c.decision === "devuelve" ? c.monto : -c.monto;
+  const antes = Math.round((final - k.dieron + k.compraste + k.gastaste) * 100) / 100;
+  const plural = (n: number, uno: string, varios: string) => (n === 1 ? `1 ${uno}` : `${n} ${varios}`);
+  const r: RenglonCuaderno[] = [];
+  if (Math.abs(antes) >= 0.005) r.push({ clave: "antes", titulo: antes > 0 ? "Tenía al abrirla" : "Debía al abrirla", detalle: null, monto: Math.abs(antes), signo: antes > 0 ? "+" : "-" });
+  r.push({ clave: "dieron", titulo: "Le dieron", detalle: null, monto: k.dieron, signo: "+" });
+  r.push({ clave: "compro", titulo: "Compró", detalle: k.compras > 0 ? plural(k.compras, "compra", "compras") : null, monto: k.compraste, signo: "-" });
+  r.push({ clave: "gasto", titulo: "Gastó", detalle: k.gastos > 0 ? plural(k.gastos, "gasto", "gastos") : null, monto: k.gastaste, signo: "-" });
+  return r;
+}
+
+/** Bajo una ronda abierta: «3 compras · 47 prendas» (o «Todavía sin compras»). */
+export function detalleRondaAbierta(c: Pick<CuadernoRonda, "compras" | "prendas">): string {
+  if (c.compras === 0) return "Todavía sin compras";
+  const compras = c.compras === 1 ? "1 compra" : `${c.compras} compras`;
+  return c.prendas > 0 ? `${compras} · ${c.prendas === 1 ? "1 prenda" : `${c.prendas} prendas`}` : compras;
+}
+
+/** Lo que tiene por cerrar cada persona en «Quién tiene plata»: lo que devuelve o lo que le debemos al cerrar su ronda. */
+export function porRecibirDe(cierres: readonly Pick<CierrePorRecibir, "personaId" | "decision" | "monto">[], personaId: string): { decision: "devuelve" | "le_deben"; monto: number } | null {
+  const suyos = cierres.filter((c) => c.personaId === personaId);
+  if (suyos.length === 0) return null;
+  const neto = suyos.reduce((s, c) => s + (c.decision === "devuelve" ? c.monto : -c.monto), 0);
+  if (Math.abs(neto) < 0.005) return null;
+  return { decision: neto > 0 ? "devuelve" : "le_deben", monto: Math.round(Math.abs(neto) * 100) / 100 };
 }
 
 /** Lo que manda `fn_revisar_compras`. `null` si no es lo que se espera (la base vieja, una respuesta rota). */
@@ -230,6 +309,7 @@ export function leerRevisarCompras(data: unknown): RevisarCompras | null {
       const nombre = texto(po?.nombre);
       return pid && nombre ? [{ id: pid, nombre, ruc: texto(po?.ruc) }] : [];
     }),
+    rondasAbiertas: lista(o.rondas_abiertas).map(leerRondaAbierta).filter((r): r is RondaAbiertaRevisar => r !== null),
   };
 }
 
@@ -289,6 +369,11 @@ export function textoLlegada(p: Pick<PapelPorCompletar, "llego" | "lineas" | "en
   if (p.lineas.some((l) => l.mandadas < l.cantidad)) return "Falta mandarla a la tienda";
   if (p.envios.some((e) => e.estado === "abierto")) return "La tienda la está contando";
   return "En camino a la tienda";
+}
+
+/** ¿Algún envío de esta compra lo cerró quien la compró? (ADR-0517: un Admin recibe lo suyo; quien revisa lo ve en la ficha.) */
+export function recibioQuienCompro(p: Pick<PapelPorCompletar, "envios">): boolean {
+  return p.envios.some((e) => e.recibioQuienCompro);
 }
 
 /** Qué dijo la tienda de lo que faltó en una línea: «2 no vino: está en «Nos debe» del proveedor». */

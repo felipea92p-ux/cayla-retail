@@ -5,12 +5,11 @@ import {
   decisionesCierre,
   nombreGasto,
   resumenRonda,
-  detalleRonda,
   tituloDeLaLista,
   resumenPrendas,
   estadoParaLaCompradora,
   textoCierre,
-  textoPorMandar,
+  puedeCerrarLaRonda,
   fraseGasto,
   camposConfirmar,
   cuentaSugerida,
@@ -18,16 +17,27 @@ import {
   fraseAnotar,
   leerMiPlata,
   leerPlataPorConfirmar,
+  leerBancosDePlata,
+  bancoSugerido,
+  cuentaAlConfirmar,
+  textoBancoIndicado,
   mediosParaAnotar,
   textoMontoAnotado,
   textoPorConfirmar,
-  repartoBilletera,
+  cuentaDeLaBilletera,
+  desdeRonda,
+  horaDeMovimiento,
+  queHaraCompras,
+  pasoDeLaRonda,
+  PASOS_DE_LA_RONDA,
   textoFaltaMandar,
   movimientosDeLaCompradora,
+  historialDeLaCompradora,
   siglaTienda,
   detalleEnvio,
 } from "./mi-plata-reglas";
 import type { CuentaOpcion } from "./fondos-reglas";
+import { soles } from "./compras-reglas";
 
 // `soles()` une «S/» y la cifra con un espacio que no se parte (ADR-0413): las frases se comparan con espacios comunes.
 const plano = (s: string | null) => s?.replace(/\u00a0/g, " ") ?? null;
@@ -128,6 +138,58 @@ const CUENTAS: CuentaOpcion[] = [
   { id: "cf", nombre: "Caja fuerte · Tienda TRU", tipo: "caja_fuerte", sede: "Tienda TRU" },
 ];
 
+describe("«¿De qué banco salió?» (20261026170000)", () => {
+  const BANCOS = leerBancosDePlata([{ id: "i", nombre: "Interbank" }, { id: "b", nombre: "BCP" }, { id: "x" }, null, { nombre: "Sin id" }]);
+
+  it("los bancos se leen como cuentas de tipo banco y lo ilegible se descarta; sin lista, ninguno", () => {
+    expect(BANCOS).toEqual([
+      { id: "i", nombre: "Interbank", tipo: "banco", sede: null },
+      { id: "b", nombre: "BCP", tipo: "banco", sede: null },
+    ]);
+    expect(leerBancosDePlata(null)).toEqual([]);
+    expect(leerBancosDePlata("raro")).toEqual([]);
+  });
+
+  it("llega elegido el BCP aunque no sea el primero; sin uno con ese nombre, el primero; sin bancos, ninguno", () => {
+    expect(bancoSugerido(BANCOS)).toBe("b");
+    expect(bancoSugerido([{ id: "i", nombre: "Interbank" }, { id: "s", nombre: "Scotiabank" }])).toBe("i");
+    expect(bancoSugerido([])).toBeNull();
+    // «bcp» dentro de otra palabra no es el BCP.
+    expect(bancoSugerido([{ id: "x", nombre: "Bcpmundo" }, { id: "y", nombre: "Banco BCP Perú" }])).toBe("y");
+  });
+
+  it("la guía pide el banco solo con una transferencia y con bancos que elegir; lo opcional no bloquea", () => {
+    const campos = (v: Parameters<typeof camposAnotar>[0]) => camposAnotar(v, false, PERSONA).map((c) => [c.id, c.hecho]);
+    expect(campos({ medio: "transferencia", monto: "100", hayBancos: true, banco: null })).toContainEqual(["banco", false]);
+    expect(campos({ medio: "transferencia", monto: "100", hayBancos: true, banco: "b" })).toContainEqual(["banco", true]);
+    for (const medio of ["yape_plin", "efectivo", null] as const) {
+      expect(campos({ medio, monto: "100", hayBancos: true }).map(([id]) => id)).not.toContain("banco");
+    }
+    // Sin bancos configurados no hay nada que elegir: el campo no aparece (la compradora puede anotar igual).
+    expect(campos({ medio: "transferencia", monto: "100", hayBancos: false }).map(([id]) => id)).not.toContain("banco");
+    // El banco va después del medio y antes del monto: el orden de la hoja.
+    expect(campos({ medio: "transferencia", monto: "", hayBancos: true, banco: "b" }).map(([id]) => id).slice(0, 3)).toEqual(["medio", "banco", "monto"]);
+  });
+
+  it("Compras confirma con el banco que dijo la compradora si sigue disponible; si no, con el de siempre", () => {
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: "i" }, BANCOS)).toBe("i");
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: null }, BANCOS)).toBe("b");
+    // Un banco archivado después ya no está entre las cuentas: vuelve al de siempre.
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: "viejo" }, BANCOS)).toBe("b");
+    expect(cuentaAlConfirmar({ cuentaIndicadaId: "i" }, [])).toBe("");
+  });
+
+  it("«Marisol dijo que salió de BCP.» solo si indicó uno; la fila de «por confirmar» trae el banco o nada", () => {
+    expect(textoBancoIndicado("Marisol", "BCP")).toBe("Marisol dijo que salió de BCP.");
+    expect(textoBancoIndicado("Marisol", null)).toBeNull();
+    const [a, b] = leerPlataPorConfirmar([
+      { id: "a", persona_id: "p", medio: "transferencia", monto: 10, cuenta_indicada_id: "b", cuenta_indicada: "BCP" },
+      { id: "b", persona_id: "p", medio: "yape_plin", monto: 10 },
+    ]);
+    expect([a.cuentaIndicadaId, a.cuentaIndicada, b.cuentaIndicadaId, b.cuentaIndicada]).toEqual(["b", "BCP", null, null]);
+  });
+});
+
 describe("camposConfirmar", () => {
   it("una plata que le llegó pide de dónde salió; «ya tenía» no (es el saldo de apertura de su fondo)", () => {
     expect(camposConfirmar({ monto: "300", cuentaId: "" }, "yape_plin", CUENTAS, PERSONA).filter((c) => !c.hecho).map((c) => c.id)).toEqual(["cuenta"]);
@@ -156,8 +218,8 @@ describe("cuentaSugerida: el BCP (Felipe 2026-10-22)", () => {
 
 describe("textos", () => {
   it("bajo lo que tiene: en negativo, que anote la plata que le dieron", () => {
-    expect(detalleTienes(50)).toBe("Tu plata de compras, lista para usar.");
-    expect(plano(detalleTienes(-726))).toBe("Gastaste S/ 726.00 más de lo que anotaste: anota en «Me dieron plata» la plata que te dieron.");
+    expect(detalleTienes(50)).toBeNull();
+    expect(plano(detalleTienes(-726))).toBe("Pusiste S/ 726.00 de tu bolsillo. Si te dieron más plata, anótala; si no, Compras te lo devuelve al cerrar.");
   });
   it("el botón dice cuánto se anota", () => {
     expect(plano(fraseAnotar(300))).toBe("Anotar S/ 300.00");
@@ -209,10 +271,10 @@ describe("el resto del día de compras (actividad 5)", () => {
       ["Tienda Lima", 4, 1],
       ["Tienda Trujillo", 8, 2],
     ]);
-    // Dos compras distintas (a y c) en dos tiendas.
-    expect(textoPorMandar(p!.porMandar)).toBe("2 compras todavía no salen para Tienda Lima y Tienda Trujillo");
-    expect(textoPorMandar(p!.porMandar.slice(0, 1))).toBe("1 compra todavía no sale para Tienda Lima");
-    expect(textoPorMandar([])).toBeNull();
+    // Con prendas por mandar no se cierra la ronda; sin nada, o con una tienda en 0, sí.
+    expect(puedeCerrarLaRonda(p!.porMandar)).toBe(false);
+    expect(puedeCerrarLaRonda([])).toBe(true);
+    expect(puedeCerrarLaRonda([{ ...p!.porMandar[0], unidades: 0 }])).toBe(true);
     expect(resumenPrendas(p!.porMandar[1].prendas)).toBe("Blusa Emma ×6 · Jean ×2");
     expect(resumenPrendas(p!.porMandar[1].prendas, 1)).toBe("Blusa Emma ×6 y 1 más");
   });
@@ -236,12 +298,8 @@ describe("el resto del día de compras (actividad 5)", () => {
     })!;
     expect(p.ronda.abierta).toMatchObject({ texto: "RC-000003", compras: 2, prendas: 16, compraste: 300.5 });
     expect(p.ronda.ultimaCerrada).toEqual({ texto: "RC-000002", cerradaEn: "2026-10-20T20:00:00Z", decision: "devuelve", monto: 80, resuelto: false });
-    expect(detalleRonda(p.ronda.abierta!, "2026-10-23")).toBe("Abierta el 21/10 · 2 compras · 16 prendas");
-    expect(detalleRonda({ abiertaEn: "2026-10-23T08:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
-    // Las 8 pm de Lima ya son el día siguiente en UTC: sigue siendo «hoy».
-    expect(detalleRonda({ abiertaEn: "2026-10-24T01:00:00Z", compras: 0, prendas: 0 }, "2026-10-23")).toBe("Abierta hoy · Todavía sin compras");
-    expect(leerMiPlata({ ...BASE, ronda: { abierta: { texto: "RC-1" }, ultima_cerrada: { decision: "regala" } } })?.ronda).toEqual({ abierta: null, ultimaCerrada: null });
-    expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null });
+    expect(leerMiPlata({ ...BASE, ronda: { abierta: { texto: "RC-1" }, ultima_cerrada: { decision: "regala" } } })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
+    expect(leerMiPlata({ persona: false })?.ronda).toEqual({ abierta: null, ultimaCerrada: null, cerradas: [] });
   });
 
   it("lee el cierre de hoy y descarta una decisión que no conoce", () => {
@@ -330,6 +388,14 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect([taxi.titulo, taxi.icono, taxi.detalle, taxi.estado.texto]).toEqual(["Taxi", "taxi", "Sin papel", "Compras lo revisa"]);
   });
 
+  it("una compra ya enviada dice su código (Mis envíos); si falta mandar algo, sigue diciendo a qué tienda", () => {
+    const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]], ["c2", ["ENV-000120"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, codigos);
+    const [andina, , rosa] = actuales;
+    expect(rosa.detalle).toBe("35 prendas · Factura · enviada · ENV-000118, ENV-000119");
+    expect(andina.detalle).toBe("1 prenda · Boleta · falta mandar a LIM");
+  });
+
   it("sin ronda: lo anotado después del último cierre va arriba; sin ningún cierre, lo de hoy; sin el día de la base, todo", () => {
     const sinRonda = { ...p, compras: p.compras.map((c) => ({ ...c, rondaId: null })), gastos: p.gastos.map((g) => ({ ...g, rondaId: null })), anotada: p.anotada.map((a) => ({ ...a, rondaId: null })) };
     const r = (abierta: typeof p.ronda.abierta, cerradaEn: string | null) => ({ abierta, ultimaCerrada: cerradaEn ? { ...p.ronda.ultimaCerrada!, cerradaEn } : null });
@@ -348,16 +414,55 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     expect(tituloDeLaLista({ abierta: null, ultimaCerrada: null })).toBe("Hoy");
   });
 
-  it("la billetera reparte lo que queda, lo comprado y lo gastado en la ronda; sin ronda o en negativo, nada que dibujar", () => {
-    expect(repartoBilletera(p)).toEqual({ queda: p.tiene, compraste: 624, gastos: 12 });
-    expect(repartoBilletera({ tiene: -40, ronda: { abierta: null, ultimaCerrada: null } })).toEqual({ queda: 0, compraste: 0, gastos: 0 });
+  it("la billetera cuenta lo que te dieron, compraste y gastaste en la ronda, y lo que ya tenías al abrirla; sin ronda, nada que dibujar", () => {
+    // 1000 de fondo + 500 por confirmar − 624 − 12 = 864; la ronda recibió 500, así que ya tenía 1000 al abrirla.
+    expect(cuentaDeLaBilletera(p)).toEqual({ dieron: 500, compraste: 624, gastaste: 12, antes: p.tiene - 500 + 624 + 12 });
+    expect(cuentaDeLaBilletera({ tiene: -40, ronda: { abierta: null, ultimaCerrada: null } })).toBeNull();
+  });
+
+  it("el camino de la ronda: sin ronda 1.º; por mandar, 3.º; con compras y nada por mandar, 4.º; si no, 2.º", () => {
+    const sinRonda = { ronda: { abierta: null, ultimaCerrada: null }, porMandar: [] };
+    const vacia = { ...p.ronda.abierta!, compras: 0, prendas: 0 };
+    const porMandar = [{ tiendaId: "t", tienda: "Tienda LIM", unidades: 3, prendas: [] }];
+    expect(PASOS_DE_LA_RONDA).toHaveLength(4);
+    expect(pasoDeLaRonda(sinRonda)).toBe(0);
+    // Un sin-ronda con prendas por mandar (de la anterior) sigue pidiendo abrir la ronda: sin ronda no hay nada que seguir.
+    expect(pasoDeLaRonda({ ...sinRonda, porMandar })).toBe(0);
+    expect(pasoDeLaRonda({ ronda: { abierta: vacia, ultimaCerrada: null }, porMandar: [] })).toBe(1);
+    expect(pasoDeLaRonda({ ronda: { abierta: vacia, ultimaCerrada: null }, porMandar })).toBe(2);
+    expect(pasoDeLaRonda({ ronda: { abierta: p.ronda.abierta, ultimaCerrada: null }, porMandar })).toBe(2);
+    expect(pasoDeLaRonda({ ronda: { abierta: p.ronda.abierta, ultimaCerrada: null }, porMandar: [] })).toBe(3);
+    // Una tienda con 0 por mandar no cuenta.
+    expect(pasoDeLaRonda({ ronda: { abierta: p.ronda.abierta, ultimaCerrada: null }, porMandar: [{ ...porMandar[0], unidades: 0 }] })).toBe(3);
+  });
+
+  it("la fila dice a qué hora se anotó y la hoja, qué hará Compras (maqueta mis-compras-rediseno-2026-10)", () => {
+    const { actuales } = movimientosDeLaCompradora(p);
+    const [andina, yape, rosa, taxi] = actuales;
+    // 15:05 UTC = 10:05 en Lima (cinco horas detrás todo el año).
+    expect(horaDeMovimiento(andina)).toBe("10:05");
+    expect(horaDeMovimiento({ creadoEn: "" })).toBeNull();
+    expect(queHaraCompras(rosa)).toMatch(/copia el número del papel/);
+    expect(queHaraCompras(yape)).toMatch(/confirma con su banco o su caja/);
+    expect(queHaraCompras(taxi)).toMatch(/pasa a los gastos del viaje/);
+    // Lo que ya está hecho dice lo que ya pasó, no lo que va a pasar.
+    expect(queHaraCompras({ tipo: "compra", estado: { texto: "En los libros", detalle: "Compras ya la pasó a los libros", pendiente: false } })).toBe("Compras ya la pasó a los libros");
+  });
+
+  it("«desde hoy 08:30» junto al título de la lista, con el día de Lima", () => {
+    expect(desdeRonda("2026-10-23T13:30:00Z", "2026-10-23")).toBe("desde hoy 08:30");
+    expect(desdeRonda("2026-10-21T13:30:00Z", "2026-10-23")).toBe("desde el 21/10 08:30");
+    // A las 8 pm de Lima ya es «mañana» en UTC: sigue siendo el día de Lima.
+    expect(desdeRonda("2026-10-24T01:10:00Z", "2026-10-23")).toBe("desde hoy 20:10");
+    expect(desdeRonda("", "2026-10-23")).toBeNull();
   });
 
   it("la franja dice cuántas prendas faltan mandar y a dónde", () => {
     const una = [{ tiendaId: "t", tienda: "Tienda LIM", unidades: 7, prendas: [] }];
-    expect(textoFaltaMandar(una)?.titulo).toBe("Te falta mandar 7 prendas a Tienda LIM");
-    expect(textoFaltaMandar([...una, { tiendaId: "u", tienda: "Tienda AQP", unidades: 30, prendas: [] }])?.titulo).toBe("Te falta mandar 37 prendas a 2 tiendas");
-    expect(textoFaltaMandar([{ ...una[0], unidades: 1 }])?.titulo).toBe("Te falta mandar 1 prenda a Tienda LIM");
+    expect(textoFaltaMandar(una)).toEqual({ titulo: "Falta mandar 7 prendas", detalle: "LIM 7" });
+    expect(textoFaltaMandar([...una, { tiendaId: "u", tienda: "Tienda AQP", unidades: 30, prendas: [] }])).toEqual({ titulo: "Falta mandar 37 prendas", detalle: "LIM 7 · AQP 30" });
+    expect(textoFaltaMandar([{ ...una[0], unidades: 1 }])?.titulo).toBe("Falta mandar 1 prenda");
+    expect(textoFaltaMandar([...una, { tiendaId: "u", tienda: "Tienda AQP", unidades: 0, prendas: [] }])?.detalle).toBe("LIM 7");
     expect(textoFaltaMandar([])).toBeNull();
   });
 });
@@ -394,5 +499,87 @@ describe("compra pagada en parte o después (20261023181000)", () => {
       ["S/ 100.00", "2 prendas · Compras paga S/ 200.00 · Boleta"],
       ["S/ 0.00", "1 prenda · Compras paga S/ 80.00 · Boleta"],
     ]);
+  });
+});
+
+describe("el historial por ronda (Felipe 2026-10-23)", () => {
+  // Dos rondas cerradas: RC-000001 (se quedó con la plata) y RC-000002 (devolvió S/ 80, Compras todavía no lo recibe).
+  const p = leerMiPlata({
+    persona: true,
+    saldo: 0,
+    anotada: [
+      { id: "a1", medio: "yape_plin", monto: 500, estado: "confirmada", fecha: "2026-10-20", creado_en: "2026-10-20T09:00:00Z", ronda_id: "r1", ronda: "RC-000001" },
+      { id: "a2", medio: "efectivo", monto: 200, estado: "por_confirmar", fecha: "2026-10-22", creado_en: "2026-10-22T09:00:00Z", ronda_id: "r2", ronda: "RC-000002" },
+    ],
+    compras: [
+      { id: "c1", proveedor: "Rosa", tipo: "boleta", monto: 300, estado: "completado", fecha: "2026-10-20", creado_en: "2026-10-20T11:00:00Z", prendas: 10, tiendas: ["LIM"], por_mandar: [], ronda_id: "r1", ronda: "RC-000001" },
+      { id: "c2", proveedor: "Andina", tipo: "factura", monto: 250, pagado: 100, estado: "por_completar", fecha: "2026-10-22", creado_en: "2026-10-22T11:00:00Z", prendas: 5, tiendas: ["AQP"], por_mandar: [], ronda_id: "r2", ronda: "RC-000002" },
+    ],
+    gastos: [
+      { id: "g1", concepto: "taxi", monto: 20, estado: "completado", fecha: "2026-10-22", creado_en: "2026-10-22T12:00:00Z", ronda_id: "r2", ronda: "RC-000002" },
+      { id: "g0", concepto: "comida", monto: 15, estado: "completado", fecha: "2026-10-01", creado_en: "2026-10-01T12:00:00Z", ronda_id: null },
+    ],
+    hoy: { fecha: "2026-10-23" },
+    ronda: {
+      abierta: null,
+      ultima_cerrada: { texto: "RC-000002", cerrada_en: "2026-10-22T20:00:00Z", decision: "devuelve", monto: 80 },
+      cerradas: [
+        { id: "r2", texto: "RC-000002", abierta_en: "2026-10-21T15:00:00Z", cerrada_en: "2026-10-22T20:00:00Z", decision: "devuelve", monto: 80, resuelto: false },
+        { id: "r1", texto: "RC-000001", abierta_en: "2026-10-20T08:00:00Z", cerrada_en: "2026-10-20T20:00:00Z", decision: "se_queda", monto: 200, resuelto: false },
+        { id: "r9", texto: "RC-000009", decision: "regala" },
+      ],
+    },
+  })!;
+  const h = historialDeLaCompradora(movimientosDeLaCompradora(p).antes, p.ronda.cerradas ?? []);
+
+  it("lee las rondas cerradas y descarta las ilegibles", () => {
+    expect(p.ronda.cerradas?.map((r) => [r.id, r.decision])).toEqual([["r2", "devuelve"], ["r1", "se_queda"]]);
+  });
+
+  it("arriba solo la plata, lo que devolvió y las rondas, del más nuevo al más viejo", () => {
+    expect(h.map((e) => e.clave)).toEqual(["cierre-r2", "ronda-r2", "plata-a2", "ronda-r1", "plata-a1", "ronda-sin-ronda"]);
+  });
+
+  it("dentro de cada ronda, sus compras y gastos; la plata que le dieron NO entra", () => {
+    const r2 = h.find((e) => e.clave === "ronda-r2");
+    expect(r2?.tipo === "ronda" && r2.movimientos.map((m) => m.clave)).toEqual(["gasto-g1", "compra-c2"]);
+    // Lo que salió de su plata: lo pagado (100 de 250) y el taxi (20).
+    expect(r2?.tipo === "ronda" && [r2.titulo, r2.detalle, r2.monto, r2.pendiente, r2.cierre]).toEqual([
+      "Ronda RC-000002",
+      "21/10 al 22/10 · 1 compra · 1 gasto",
+      soles(120),
+      true,
+      null,
+    ]);
+    const r1 = h.find((e) => e.clave === "ronda-r1");
+    expect(r1?.tipo === "ronda" && [r1.detalle, r1.pendiente, r1.cierre]).toEqual(["20/10 · 1 compra", false, `Te quedaste ${soles(200)} para tu próxima ronda.`]);
+  });
+
+  it("lo que devolvió dice cuánto, dónde y si Compras ya lo recibió", () => {
+    const c = h[0];
+    expect(c.tipo === "cierre" && [c.titulo, c.detalle, c.entra, c.monto, c.estado.texto, c.estado.pendiente]).toEqual([
+      "Devolviste en caja",
+      "RC-000002 · 22/10",
+      false,
+      soles(80),
+      "Entrégalo en caja",
+      true,
+    ]);
+  });
+
+  it("lo de antes de las rondas va en su propio grupo; una ronda sin compras ni gastos igual aparece", () => {
+    const sin = h.at(-1);
+    expect(sin?.tipo === "ronda" && [sin.titulo, sin.movimientos.length]).toEqual(["Antes de las rondas", 1]);
+    const vacia = historialDeLaCompradora([], [{ id: "r5", texto: "RC-000005", abiertaEn: "2026-10-22T08:00:00Z", cerradaEn: "2026-10-22T09:00:00Z", decision: "le_deben", monto: 30, resuelto: true }]);
+    expect(vacia.map((e) => [e.clave, e.tipo === "ronda" ? e.detalle : e.tipo === "cierre" ? e.estado.texto : ""])).toEqual([
+      ["cierre-r5", "Te lo devolvieron"],
+      ["ronda-r5", "22/10 · Sin compras ni gastos"],
+    ]);
+  });
+
+  it("sin la migración (sin `cerradas`), igual agrupa por ronda con el número de sus compras", () => {
+    const sinLista = historialDeLaCompradora(movimientosDeLaCompradora(p).antes, []);
+    expect(sinLista.filter((e) => e.tipo === "ronda").map((e) => e.tipo === "ronda" && e.titulo)).toEqual(["Ronda RC-000002", "Ronda RC-000001", "Antes de las rondas"]);
+    expect(sinLista.some((e) => e.tipo === "cierre")).toBe(false);
   });
 });

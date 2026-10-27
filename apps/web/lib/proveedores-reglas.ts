@@ -90,19 +90,34 @@ export function esSoloDeGastos(p: { rubros?: readonly string[] | null }): boolea
   return claves.length > 0 && claves.every((k) => k === RUBRO_GASTOS);
 }
 
+/** Los dos tipos de proveedor (`retail.proveedores.tipo`, 20261024222000). */
+export type TipoProveedor = "mercaderia" | "servicios";
+
+export const ETIQUETA_TIPO_PROVEEDOR: Record<TipoProveedor, string> = { mercaderia: "Mercadería", servicios: "Servicios" };
+
+/**
+ * ¿Es un proveedor de servicios (Entel, luz, agua, alquiler)? Manda el tipo que dice la base; si la lista todavía no lo trae (una
+ * lectura anterior a 20261024222000), vale la regla de siempre: todos sus rubros son «Gastos». Sin ninguno de los dos, es mercadería.
+ */
+export function esDeServicios(p: { tipo?: string | null; rubros?: readonly string[] | null }): boolean {
+  if (p.tipo === "servicios") return true;
+  if (p.tipo === "mercaderia") return false;
+  return esSoloDeGastos(p);
+}
+
 /**
  * Los proveedores a quienes se les PIDE o se les RECIBE mercadería: todos menos los que son solo de gastos. `conservar` (el elegido en
  * una orden que se edita, o todos los que ya traen una marca) se queda aunque sea de gastos: ocultarlo dejaría un campo vacío o una
  * pareja marca-proveedor a medias con algo que sí existe.
  */
-export function proveedoresParaPedir<P extends { id: string; rubros?: readonly string[] | null }>(
+export function proveedoresParaPedir<P extends { id: string; tipo?: string | null; rubros?: readonly string[] | null }>(
   proveedores: readonly P[],
   conservar?: string | null | Iterable<string | null | undefined>,
 ): P[] {
   const guardados = new Set<string>();
   if (typeof conservar === "string") guardados.add(conservar);
   else if (conservar) for (const id of conservar) if (id) guardados.add(id);
-  return proveedores.filter((p) => guardados.has(p.id) || !esSoloDeGastos(p));
+  return proveedores.filter((p) => guardados.has(p.id) || !esDeServicios(p));
 }
 
 /** Los botones de rubro del alta de un proveedor de mercadería: sin «Gastos», que es lo que este formulario no debe sumar por descuido. */
@@ -689,4 +704,24 @@ export function cambioBancarioLegible(
   const d = mostrar(despues);
   // Un CCI que cambió solo en los dígitos que la máscara tapa se leería «igual → igual»: `cambioOculto` lo avisa.
   return { dato: DATO_BANCARIO[campo] ?? campo, antes: a, despues: d, cambioOculto: a === d && (antes ?? "") !== (despues ?? "") };
+}
+
+/**
+ * Las cifras de arriba de la lista (`fn_proveedores_resumen`) cuentan a TODOS los proveedores; los de servicios (Entel, luz, agua) no
+ * se compran ni se reciben, así que inflaban «Proveedores activos» y, sobre todo, «Sin compras en 90 días» (a Entel nunca se le compra
+ * ropa). Su deuda y su saldo a favor ya son cero —la función solo cuenta comprobantes de mercadería—, de modo que solo hay que
+ * sacarlos de los conteos de personas: activos, desactivados y «sin compras». Con 0 servicios devuelve lo mismo.
+ */
+export function resumenSoloMercaderia<R extends { activos: number; desactivados: number; sinCompras90d: number | null }>(
+  resumen: R,
+  proveedores: readonly { activo: boolean; tipo?: string | null; rubros?: readonly string[] | null; dias_desde_ultima_compra?: number | null }[],
+): R {
+  const servicios = proveedores.filter((p) => esDeServicios(p));
+  const activos = servicios.filter((p) => p.activo);
+  return {
+    ...resumen,
+    activos: Math.max(0, resumen.activos - activos.length),
+    desactivados: Math.max(0, resumen.desactivados - servicios.filter((p) => !p.activo).length),
+    sinCompras90d: resumen.sinCompras90d == null ? null : Math.max(0, resumen.sinCompras90d - activos.filter((p) => (p.dias_desde_ultima_compra ?? 100000) > 90).length),
+  };
 }

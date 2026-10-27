@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeEditarTela, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
 import { problemaDeAnulacion } from "./orden-pagina-reglas";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
@@ -138,5 +138,33 @@ describe("camposDeCierre — la guía coincide con lo que cerrar_produccion exig
   it("lo que dice la guía de lo que falta es lo que dice la base: el primer problema, o cómo completar", () => {
     expect(camposDeCierre({ total: 9, problemas: ["No puedes pasar al stock 9 de X: en Acabado se terminaron 8."], responsableListo: true })[0].pendiente).toBe("No puedes pasar al stock 9 de X: en Acabado se terminaron 8.");
     expect(camposDeCierre({ total: 0, problemas: [], responsableListo: true })[0].pendiente).toBe("Escribe cuántas salieron buenas en cada talla y color.");
+  });
+});
+
+describe("camposDeEditarTela — la guía coincide con lo que guardar_insumos_orden acepta", () => {
+  // La base acepta una lista válida (`problemasTela` + no quitar lo usado) con alguien que firma. «Sin cambios» no es una falta de la base, pero guardar lo mismo no hace nada: la guía no lo da por hecho.
+  const laBaseAcepta = (faltas: readonly string[], hayCambios: boolean, responsableListo: boolean) => faltas.length === 0 && hayCambios && responsableListo;
+
+  it("recorre las combinaciones: «se puede confirmar» es exactamente «hay algo que guardar y la base lo acepta»", () => {
+    for (const faltas of [[], ["Escribe cuánto lleva cada prenda de «Lino», por ejemplo 1.200."]]) {
+      for (const hayCambios of [true, false]) {
+        for (const responsableListo of [true, false]) {
+          expect(sePuedeConfirmar(camposDeEditarTela({ faltas, hayCambios, responsableListo })), `${faltas.length}/${hayCambios}/${responsableListo}`).toBe(laBaseAcepta(faltas, hayCambios, responsableListo));
+        }
+      }
+    }
+  });
+  it("al abrir la hoja sin tocar nada, lo primero que sigue es la lista de tela y avíos", () => {
+    const campos = camposDeEditarTela({ faltas: [], hayCambios: false, responsableListo: false });
+    expect(siguienteDe(campos)?.id).toBe("tela");
+    expect(campos[0].pendiente).toBe("Cambia algo de la tela o de los avíos para guardar.");
+  });
+  it("con una falta, la guía dice la falta (la misma frase que lee la persona bajo el campo)", () => {
+    expect(camposDeEditarTela({ faltas: ["No se quita «Lino»: ya se anotó que se usó en esta orden."], hayCambios: true, responsableListo: true })[0].pendiente).toBe("No se quita «Lino»: ya se anotó que se usó en esta orden.");
+  });
+  it("con la lista lista y los cambios hechos, solo falta quién lo anota", () => {
+    const campos = camposDeEditarTela({ faltas: [], hayCambios: true, responsableListo: false });
+    expect(estadosDe(campos).tela).toBe("hecho");
+    expect(siguienteDe(campos)?.id).toBe("quien");
   });
 });

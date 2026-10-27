@@ -44,6 +44,7 @@ export function useAltaDeProveedor({
   const modal: ReactNode = abierto ? (
     <ProveedorModal
       inicial={{ ...BORRADOR_VACIO, ...abierto }}
+      elegirTipo={false}
       rubros={rubrosSinGastos(rubrosEnUso)}
       existentes={existentes.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, activo: true }))}
       onClose={() => setAbierto(null)}

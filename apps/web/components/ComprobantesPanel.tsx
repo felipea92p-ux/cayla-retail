@@ -48,14 +48,12 @@ function accionComprobante(
     onAnularClick: (c: Comprobante) => void;
     onConsultarAnulacion: (id: string) => void;
     onLiberarClick: (c: Comprobante) => void;
-    /** Anular y «liberar sin espera» son solo del líder (`anular_comprobante`, `marcar_comprobante_no_emitido`). */
-    esLider: boolean;
   }
 ) {
   const numero = `${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
-  const botones = accionesDelComprobante(c)
-    .filter((accion) => handlers.esLider || (accion !== "anular" && accion !== "liberar"))
-    .map((accion) => {
+  // Anular y «liberar sin espera» los hace quien ve Facturación (ADR-0534; antes, solo el líder), que es quien ve esta
+  // pantalla (`exigirPermiso("facturar")`): `anular_comprobante` y `marcar_comprobante_no_emitido` lo vuelven a exigir.
+  const botones = accionesDelComprobante(c).map((accion) => {
     switch (accion) {
       case "reintentar": {
         const enVuelo = handlers.transmitiendoId === c.id;
@@ -161,7 +159,7 @@ export function ComprobantesPanel({
   tiendas: { id: string; nombre: string }[];
   /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
   periodo: string;
-  /** Anular y «liberar sin espera» son solo del líder; la terminal de ventas emite y reintenta. */
+  /** Solo para «Opciones»: el líder busca en Posventa en todas las tiendas. Anular y liberar ya no dependen de esto (ADR-0534). */
   esLider: boolean;
 }) {
   const router = useRouter();
@@ -172,7 +170,7 @@ export function ComprobantesPanel({
   const { transmitiendoId, transmitir: onTransmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016) y liberación (ADR-0093): cada una vive en su modal (abajo), que firma con el combo
-  // «Responsable» (ADR-0161). Solo líder — la pantalla entera ya lo es, y la base lo vuelve a exigir a la cuenta.
+  // «Responsable» (ADR-0161). Quien ve Facturación (ADR-0534): la pantalla entera ya lo exige, y la base lo vuelve a exigir a la cuenta.
   const [anulando, setAnulando] = useState<Comprobante | null>(null);
   const [liberando, setLiberando] = useState<Comprobante | null>(null);
   // Las opciones de un comprobante (ver la venta, WhatsApp, cambio, devolución): la hoja de `OpcionesComprobante`.
@@ -233,7 +231,7 @@ export function ComprobantesPanel({
     setModal(null);
   }
 
-  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick, esLider };
+  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick };
 
   // Filtros de la lista (en memoria: el mes ya está entero en pantalla). Las opciones salen de lo que hay
   // en el mes, así nunca se ofrece un filtro que deja la lista vacía de entrada.

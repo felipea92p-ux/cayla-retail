@@ -184,23 +184,128 @@ export function textoLoNuevo(modo: EnLoNuevo): string {
 
 /* ---------------- Cifras y filtros ---------------- */
 
+/** `total` son los modelos de ropa: el empaque no se muestra en la web ni cuenta en «de N modelos». */
 export type CifrasVitrina = { seVen: number; total: number; sinStock: number };
 
 export function cifrasDe(modelos: readonly ModeloVitrina[]): CifrasVitrina {
   const visibles = modelos.filter(seVeEnLaWeb);
-  return { seVen: visibles.length, total: modelos.length, sinStock: visibles.filter((m) => libreEnTiendas(m) === 0).length };
+  return { seVen: visibles.length, total: modelos.filter((m) => !esEmpaque(m)).length, sinStock: visibles.filter((m) => libreEnTiendas(m) === 0).length };
 }
 
-export type FiltroVitrina = "todos" | "en_la_web" | "sin_stock";
+/** Cuántos modelos entran en una página de la lista (Felipe 2026-10-26: 40 prendas por página). Llena filas completas a 5 y a 8
+ *  columnas, que son las de 1440 y 1920 px; un modelo mide ~390 px de alto y, con ~300 en producción, sin tope eran ~24 000 px de página.
+ *  Las pantallas que ya tenían su paginación (Probador) no cambian. */
+export const MODELOS_POR_PAGINA = 40;
 
-export function filtrarVitrina(modelos: readonly ModeloVitrina[], filtro: FiltroVitrina, busqueda: string): ModeloVitrina[] {
+/* ---------------- Cómo se dibuja la Lista: una columna por tienda, o las filas de siempre ---------------- */
+
+export type ModoLista = "columnas" | "filas";
+
+/** Más tiendas que estas y la tabla de columnas se ve apretada: la Lista vuelve a las filas de siempre, sin importar el ancho
+ *  (Felipe 2026-10-26: «si las tiendas pasan a ser más de 8… realizar modelo A»). */
+const MAX_TIENDAS_EN_COLUMNAS = 8;
+// Lo que miden las columnas de la Lista en modo «columnas» (px): casilla 24, modelo 224, categoría 104, colores 64, estado 112,
+// interruptor 48, y 16 de aire entre cada una; cada tienda suma su columna de 64 y su aire. Más 100 de comodidad, para que el nombre
+// del modelo respire en vez de quedar en su mínimo.
+const COLUMNAS_FIJAS_PX = 24 + 224 + 104 + 64 + 112 + 48 + 5 * 16 + 40;
+const POR_TIENDA_PX = 64 + 16;
+const COMODIDAD_PX = 100;
+
+/** Con qué ancho de tarjeta cabe la Lista con una columna por cada una de estas tiendas. */
+const anchoParaColumnas = (tiendas: number): number => COLUMNAS_FIJAS_PX + tiendas * POR_TIENDA_PX + COMODIDAD_PX;
+
+/** Pantalla grande y pocas tiendas: una columna por tienda, con su título, para comparar el stock de un vistazo. Pantalla angosta, o más
+ *  de 8 tiendas: las filas de siempre, con el nombre grande y todas las tiendas en un renglón. `ancho` es el de la tarjeta de la lista
+ *  (0 si todavía no se midió: filas). */
+export function modoDeLista(ancho: number, tiendas: number): ModoLista {
+  if (tiendas < 1 || tiendas > MAX_TIENDAS_EN_COLUMNAS) return "filas";
+  return ancho >= anchoParaColumnas(tiendas) ? "columnas" : "filas";
+}
+
+/** Los estados por los que se filtra la lista. Los dos primeros son las cifras de arriba; `sin_precio` y `ocultos` son lo que el Resumen
+ *  cuenta como «encendidos que no se ven» y lo que alguien apagó. `todos` es solo ropa (Felipe 2026-10-15: «solo ropa en la web»): el
+ *  empaque —bolsas, cajas— se vende desde el ticket y no se puede prender, así que no ocupa la lista; se ve con `empaque`. */
+export type FiltroVitrina = "todos" | "en_la_web" | "sin_stock" | "sin_precio" | "ocultos" | "empaque";
+const FILTROS_VITRINA: readonly FiltroVitrina[] = ["todos", "en_la_web", "sin_stock", "sin_precio", "ocultos", "empaque"];
+
+/** Lo nuevo, como lo guarda la ficha de la vitrina: solo lo que se decidió a mano se puede filtrar (el «automático» depende de cuándo
+ *  llegó a una tienda, y la lista no trae ese dato). */
+export type FiltroLoNuevo = "todos" | "fijo" | "quitado";
+const FILTROS_LO_NUEVO: readonly FiltroLoNuevo[] = ["todos", "fijo", "quitado"];
+
+export type FiltrosVitrina = { estado: FiltroVitrina; categoria: string | null; loNuevo: FiltroLoNuevo };
+
+/** Encendido pero sin verse porque ninguna tienda de la web le pone precio. Lo cuenta el Resumen («N modelos encendidos no se ven») y lo
+ *  filtra la lista: una sola definición, para que el número de una pantalla sea el de la otra. */
+export const esEncendidoSinPrecio = (m: ModeloVitrina): boolean => Boolean(m.vitrina?.publicado) && !m.publicable && m.porQueNo === "sin_precio";
+
+/** Lo que alguien apagó o nunca encendió: se puede mostrar con un toque. El empaque no cuenta: su interruptor no se puede prender. */
+const estaOculto = (m: ModeloVitrina): boolean => !m.vitrina?.publicado && !esEmpaque(m);
+
+function coincideEstado(m: ModeloVitrina, estado: FiltroVitrina): boolean {
+  switch (estado) {
+    case "en_la_web":
+      return seVeEnLaWeb(m);
+    case "sin_stock":
+      return seVeEnLaWeb(m) && libreEnTiendas(m) === 0;
+    case "sin_precio":
+      return esEncendidoSinPrecio(m);
+    case "ocultos":
+      return estaOculto(m);
+    case "empaque":
+      return esEmpaque(m);
+    default:
+      return !esEmpaque(m);
+  }
+}
+
+type FiltrosExtra = { categoria?: string | null; loNuevo?: FiltroLoNuevo };
+
+/** La categoría y Lo nuevo puestos: lo que se suma al estado. */
+const pasaExtra = (m: ModeloVitrina, extra: FiltrosExtra): boolean =>
+  !(extra.categoria && m.categoria !== extra.categoria) && !(extra.loNuevo && extra.loNuevo !== "todos" && (m.vitrina?.enLoNuevo ?? "automatico") !== extra.loNuevo);
+
+/** La lista según el estado, la categoría, Lo nuevo y lo que se escribió en el buscador. Sin los filtros opcionales, como siempre. */
+export function filtrarVitrina(
+  modelos: readonly ModeloVitrina[],
+  filtro: FiltroVitrina,
+  busqueda: string,
+  extra: FiltrosExtra = {},
+): ModeloVitrina[] {
   const q = normalizarBusqueda(busqueda.trim());
   return modelos.filter((m) => {
-    if (filtro === "en_la_web" && !seVeEnLaWeb(m)) return false;
-    if (filtro === "sin_stock" && !(seVeEnLaWeb(m) && libreEnTiendas(m) === 0)) return false;
+    if (!coincideEstado(m, filtro) || !pasaExtra(m, extra)) return false;
     if (!q) return true;
     return normalizarBusqueda(`${m.nombre} ${m.codigo ?? ""} ${m.categoria ?? ""}`).includes(q);
   });
+}
+
+/** Cuántos modelos trae cada estado, para decirlo en la lista de la píldora («Ocultos · 6»). Cuentan lo que ya dejaron la categoría y Lo nuevo. */
+export function contarPorEstado(modelos: readonly ModeloVitrina[], extra: FiltrosExtra = {}): Record<FiltroVitrina, number> {
+  const base = modelos.filter((m) => pasaExtra(m, extra));
+  return Object.fromEntries(FILTROS_VITRINA.map((f) => [f, base.filter((m) => coincideEstado(m, f)).length])) as Record<FiltroVitrina, number>;
+}
+
+/** Las categorías que hay en la lista, de la A a la Z, con cuántos modelos trae cada una. */
+export function categoriasDe(modelos: readonly ModeloVitrina[]): { nombre: string; modelos: number }[] {
+  const cuenta = new Map<string, number>();
+  for (const m of modelos) if (m.categoria) cuenta.set(m.categoria, (cuenta.get(m.categoria) ?? 0) + 1);
+  return [...cuenta].map(([nombre, n]) => ({ nombre, modelos: n })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Los filtros que trae la dirección (`?filtro=sin_precio&categoria=Blusas&lonuevo=fijo`). Un valor que no existe se ignora: un enlace viejo
+ *  o escrito a mano abre la lista completa, nunca una pantalla rota. */
+export function filtrosDeLaUrl(params: { filtro?: string | string[]; categoria?: string | string[]; lonuevo?: string | string[] }): FiltrosVitrina {
+  const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const estado = FILTROS_VITRINA.find((f) => f === uno(params.filtro));
+  const loNuevo = FILTROS_LO_NUEVO.find((f) => f === uno(params.lonuevo));
+  const categoria = uno(params.categoria)?.trim();
+  return { estado: estado ?? "todos", categoria: categoria ? categoria : null, loNuevo: loNuevo ?? "todos" };
+}
+
+/** La dirección de la Vitrina ya filtrada: la usan los enlaces del Resumen. */
+export function hrefVitrina(filtro: FiltroVitrina): string {
+  return filtro === "todos" ? "/tienda-web/vitrina" : `/tienda-web/vitrina?filtro=${filtro}`;
 }
 
 /* ---------------- La hoja de un modelo ---------------- */
@@ -239,6 +344,37 @@ export function queLePasa(m: ModeloVitrina, modo: ModoLote): { texto: string; ca
     return { texto, cambia: false };
   }
   return { texto: "Se verá en la web", cambia: true };
+}
+
+/** El aviso de la hoja cuando OCULTAR deja la tienda online casi vacía: es reversible («nada se borra»), pero mientras no se vuelva a mostrar el
+ *  cliente encuentra una tienda sin modelos. Avisa si lo elegido deja a la vitrina sin ninguno, o si oculta la mitad o más de lo que se ve (y
+ *  son 10 o más: ocultar 2 de 3 no es un descuido). `seVenAhora` es lo que se ve en la web hoy, de TODA la lista, no solo lo elegido. */
+export function avisoDeLote(modo: ModoLote, elegidos: readonly ModeloVitrina[], seVenAhora: number): { titulo: string; texto: string } | null {
+  if (modo !== "ocultar" || seVenAhora <= 0) return null;
+  const dejanDeVerse = elegidos.filter(seVeEnLaWeb).length;
+  if (dejanDeVerse === 0) return null;
+  const quedan = Math.max(0, seVenAhora - dejanDeVerse);
+  const modelos = (n: number) => `${n} ${n === 1 ? "modelo" : "modelos"}`;
+  if (quedan === 0) {
+    return {
+      titulo: "Con esto la tienda online se queda sin modelos",
+      texto: `Hoy se ${seVenAhora === 1 ? "ve" : "ven"} ${modelos(seVenAhora)} y ${seVenAhora === 1 ? "es el que dejas" : "todos dejarían"} de verse: el cliente encontraría la tienda vacía. Los vuelves a mostrar cuando quieras.`,
+    };
+  }
+  if (dejanDeVerse >= 10 && dejanDeVerse / seVenAhora >= 0.5) {
+    return {
+      titulo: "Vas a ocultar la mitad o más de la tienda online",
+      texto: `Hoy se ven ${modelos(seVenAhora)}; con esto quedarían ${quedan}. Los vuelves a mostrar cuando quieras.`,
+    };
+  }
+  return null;
+}
+
+/** ¿El interruptor de UN modelo puede aplicarse sin abrir la hoja? Solo con un responsable ya resuelto (`responsable.listo`: ADR-0161, quien firma
+ *  es el Admin o la persona de la sesión que está de turno), si el cambio de verdad cambia algo (si no, la hoja explica por qué) y si no deja la
+ *  tienda online sin modelos o casi (el aviso de la hoja). Todo lo demás abre la hoja, como antes. Aplicar sin hoja trae «Deshacer». */
+export function aplicaSinHoja(m: ModeloVitrina, modo: ModoLote, seVenAhora: number, responsableListo: boolean): boolean {
+  return responsableListo && queLePasa(m, modo).cambia && avisoDeLote(modo, [m], seVenAhora) === null;
 }
 
 /* ---------------- Lo que dice la base ---------------- */
