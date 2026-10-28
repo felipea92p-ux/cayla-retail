@@ -6,22 +6,23 @@ import { ESTADO_ENVIO } from "./ordenes-compra-reglas";
 // tarjeta (`components/recepcion-envio/FiltrosDeEnvios.tsx`) solo dibuja las píldoras y llama a estas funciones. La lista es corta (los
 // envíos de UNA sede que aún no se cierran), así que se filtra en el navegador, sin tocar la URL ni la base.
 
-/** Los estados que la persona distingue en la tabla. Son los mismos grupos con que se ordena la lista, en el mismo orden: lo que se puede
- *  seguir recibiendo, lo que va en camino, las órdenes que llegaron sin guía y, al final, lo que esta cuenta no puede recibir. */
-export type EstadoDeFila = "abierto" | "en_camino" | "sin_guia" | "ajeno";
+/** Los estados que la persona distingue en la tabla (Felipe 2026-10-28): «abierto» (alguien ya empezó a contarlo: se sigue recibiendo), «por abrir»
+ *  (va en camino o llegó una orden sin guía: todavía no se abre el fardo) y «ajeno» (lo que esta cuenta no puede abrir porque hizo la orden). */
+export type EstadoDeFila = "abierto" | "por_abrir" | "ajeno";
 
 export const ESTADOS_DE_FILA: readonly { valor: EstadoDeFila; texto: string }[] = [
   { valor: "abierto", texto: ESTADO_ENVIO.abierto.texto },
-  { valor: "en_camino", texto: ESTADO_ENVIO.en_camino.texto },
-  { valor: "sin_guia", texto: "Sin guía" },
-  { valor: "ajeno", texto: "No los puedo recibir yo" },
+  { valor: "por_abrir", texto: "Por abrir" },
+  { valor: "ajeno", texto: "No puedo abrir yo" },
 ];
 
-/** Lo que quien hizo la orden no puede recibir (decisión 17) cuenta como «ajeno» aunque el envío vaya en camino o la orden venga sin guía:
- *  es lo que la persona ve en la fila (el texto «La recibe otra persona» en vez del botón). */
+/** Lo que quien hizo la orden no puede recibir (decisión 17) cuenta como «ajeno» aunque el envío esté abierto, vaya en camino o la orden venga
+ *  sin guía: es lo que la persona ve en la fila (el texto «La recibe otra persona» en vez del botón). Un envío en camino y una orden sin guía
+ *  son «por abrir»: ninguno se abrió todavía. */
 export function estadoDeFila(f: FilaPorRecibir): EstadoDeFila {
-  if (f.tipo === "orden") return f.orden.creadaPorMi ? "ajeno" : "sin_guia";
-  return f.envio.creadoPorMi ? "ajeno" : f.envio.estado;
+  const mio = f.tipo === "orden" ? f.orden.creadaPorMi : f.envio.creadoPorMi;
+  if (mio) return "ajeno";
+  return f.tipo === "envio" && f.envio.estado === "abierto" ? "abierto" : "por_abrir";
 }
 
 /** El día de Lima (`aaaa-mm-dd`) en que salió el envío. Una orden sin guía no tiene envío todavía: `null`. */
