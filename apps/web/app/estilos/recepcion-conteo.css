@@ -72,12 +72,22 @@ button.rc-parada:disabled { cursor: default; }
 
 /* ---- El contador ---- */
 /* La tarjeta de la categoría que se cuenta: encendida, como el campo que sigue en la guía de foco (ADR-0284). */
-.rc-contador { border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--color-hueso) 70%, var(--color-papel)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent); }
-.rc-numero { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 6px 0; }
+.rc-contador { container-type: inline-size; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 20px; background: color-mix(in srgb, var(--color-hueso) 70%, var(--color-papel)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sand) 55%, transparent); }
+.rc-numero { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 2px 0; }
+/* La franja del contador (opción A): número, atajos y barra de «cuadra». Angosta (la tarjeta, no la ventana: junto al papel queda de ~650 px):
+   el número y los atajos van en una fila y la barra baja debajo. Ancha: las tres cosas en una sola fila. */
+.rc-franja { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 24px; }
+.rc-franja .rc-rapidos { justify-content: flex-start; }
+.rc-franja-cuadra { display: flex; flex-direction: column; gap: 8px; min-width: 0; grid-column: 1 / -1; }
+@container (min-width: 820px) {
+  .rc-franja { grid-template-columns: auto auto minmax(0, 1fr); }
+  .rc-franja-cuadra { grid-column: auto; }
+}
+@media (max-width: 639px) { .rc-franja { grid-template-columns: minmax(0, 1fr); } .rc-franja .rc-numero { justify-content: center; } .rc-franja .rc-rapidos { justify-content: center; } }
 /* unificar-fijo: el número del contador es el protagonista de la cara A (la maqueta que eligió Felipe): sin caja, como una cifra. */
-.rc-numero input { width: 170px; border: 0; background: transparent; color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 84px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.rc-numero input { width: 128px; border: 0; background: transparent; color: var(--color-tinta); outline: 0; text-align: center; font-family: var(--font-serif); font-size: 72px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .rc-numero input:focus-visible { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); text-decoration-thickness: 2px; text-underline-offset: 10px; }
-.rc-paso-btn { display: grid; place-items: center; width: 56px; height: 56px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
+.rc-paso-btn { display: grid; place-items: center; width: 48px; height: 48px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-paso-btn:hover:not(:disabled) { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -2px; }
 }
@@ -88,7 +98,7 @@ button.rc-parada:disabled { cursor: default; }
 @media (hover: hover) {
   .rc-rapidos button:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
 }
-@media (max-width: 639px) { .rc-numero input { width: 130px; font-size: 64px; } }
+@media (max-width: 639px) { .rc-numero input { width: 110px; font-size: 60px; } }
 
 /* ---- Lo separado: una fila por prenda ---- */
 .rc-fila-sep { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 8px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }

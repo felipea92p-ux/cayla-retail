@@ -117,6 +117,7 @@ export function SepararPrendas({
   onCrearNueva,
   anotadas = [],
   onAnotada,
+  sinLinea = false,
 }: {
   categoria: CategoriaDeLinea;
   marca: MarcaDeLinea;
@@ -135,6 +136,8 @@ export function SepararPrendas({
   anotadas?: readonly AnotadaDelGrupo[];
   /** Pasa una anotada a esta lista, con las que se esperaban. */
   onAnotada?: (a: AnotadaDelGrupo) => void;
+  /** Sin la línea de arriba: la lista ya vive en su propia tarjeta (Contar, opción A); en «Hacer ahora» sigue separada de lo de arriba. */
+  sinLinea?: boolean;
 }) {
   const [describiendo, setDescribiendo] = useState(false);
   const total = totalSeparado(separado);
@@ -147,7 +150,7 @@ export function SepararPrendas({
   const nombre = categoria.nombre.toLowerCase();
 
   return (
-    <div data-guia="recepcion.separar" data-campo={idCampo} className="space-y-2.5 border-t border-sand pt-4">
+    <div data-guia="recepcion.separar" data-campo={idCampo} className={`space-y-2.5 ${sinLinea ? "" : "border-t border-sand pt-4"}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="label-cayla text-[11px] text-tinta/75">
           ¿Qué {nombre} son?{" "}
