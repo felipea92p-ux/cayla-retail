@@ -52,8 +52,8 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy),
   });
 
-  // El resumen de arriba (un círculo por sede) solo dice algo con dos grupos con plata: con una sede elegida no hay.
-  const reparto = repartoDeDinero(grupos, telar.sedes);
+  // El resumen de arriba (un círculo con toda la plata, partido por cuenta) solo dice algo con dos cuentas con plata.
+  const reparto = repartoDeDinero(grupos);
 
   const sede = sedeDeLaCabecera(ctx.ver, ctx.ubicaciones);
 
@@ -82,7 +82,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
         grupos={
           <>
             {reparto && <RepartoDeDinero reparto={reparto} />}
-            <GruposDeCuentas grupos={grupos} sedes={telar.sedes} />
+            <GruposDeCuentas grupos={grupos} />
             <CierresConDiferencia cierres={cierres} />
           </>
         }

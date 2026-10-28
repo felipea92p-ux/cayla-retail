@@ -1,26 +1,31 @@
-// Cuentas y dinero ▸ Dónde está: el resumen de arriba, un círculo que reparte la plata entre las sedes (Felipe 2026-10-28, que pidió
-// presentarla como un informe y no como una lista). Lógica pura: no suma plata que la base no haya sumado, solo toma los grupos que ya
-// armó `gruposDeDinero` y decide qué porción del círculo le toca a cada uno.
+// Cuentas y dinero ▸ Dónde está: el resumen de arriba, un círculo que es TODA la plata de CAYLA y se parte en los lugares donde está
+// (Felipe 2026-10-28, que pidió presentarla como un informe y, al verla con datos reales, que cada parte se viera con su color y que
+// «CAYLA entera» no fuera un solo bloque). Lógica pura: no suma plata que la base no haya sumado, solo toma las cuentas que ya armó
+// `gruposDeDinero` y decide qué porción del círculo le toca a cada una y de qué color.
 //
-// Un círculo reparte un total entre partes que valen MÁS que cero. Lo que tiene saldo negativo (hoy, «En camino» cuando se anotaron
-// más depósitos que ventas con tarjeta) no cabe en una porción: se dice aparte, y el total resta lo negativo para que coincida con el
-// «Tienes» de la cabecera. Un grupo en cero no se dibuja. Con menos de dos porciones el círculo no dice nada (una sede elegida es
-// un solo grupo): no hay resumen y la pantalla muestra solo las cuentas.
+// Cada porción es una cuenta (un banco, el efectivo de una tienda, lo que está en camino): así el banco grande no se esconde detrás de
+// un rótulo de «CAYLA entera». El color dice a qué familia pertenece: verdes para CAYLA entera (los bancos), terracotas para las
+// tiendas y el Taller (una pareja de tonos por sede) y pizarra para lo que está en camino. Siempre tokens (ADR-0169), nunca un hex.
+//
+// Un círculo reparte un total entre partes que valen MÁS que cero. Una cuenta con saldo negativo no cabe en una porción: se dice aparte, y
+// el total resta lo negativo para que coincida con el «Tienes» de la cabecera. Una cuenta en cero no se dibuja. Con menos de dos
+// porciones el círculo no dice nada y la pantalla muestra solo las cuentas.
 
-import { colorDeGrupo, type GrupoCuentas } from "./dinero-telar-reglas";
-import type { SedeTelar } from "./finanzas-telar-reglas";
+import { GRUPO_CAMINO, GRUPO_EMPRESA, type GrupoCuentas } from "./dinero-telar-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export type PorcionReparto = {
-  clave: string;
+  id: string;
   titulo: string;
+  /** La sede a la que pertenece («Tienda TRU»), o nulo si se explica sola («BCP Empresa»). */
+  lugar: string | null;
   monto: number;
   /** Cuánto del círculo, de 0 a 100, exacto. */
   pct: number;
-  /** El mismo porcentaje en enteros que SUMAN 100 (si no, un círculo de tres tercios diría 33 + 33 + 33). */
+  /** El mismo porcentaje en enteros que SUMAN 100 (si no, un círculo de tres tercios diría 33 + 33 + 33). Cero si pesa menos de 1 %. */
   pctEntero: number;
-  /** Un token de color (`var(--color-sede-*)`), el mismo que la sede tiene en toda Finanzas. */
+  /** Un color hecho con tokens de la paleta, nunca un hex. */
   color: string;
   /** Dónde empieza y termina en grados desde arriba, en el sentido del reloj; la primera empieza en 0 y la última acaba en 360. */
   desde: number;
@@ -28,26 +33,72 @@ export type PorcionReparto = {
 };
 
 export type RepartoDeDinero = {
-  /** De la que más tiene a la que menos: así se lee un informe. */
+  /** Agrupadas por sede (la que más tiene primero) y, dentro de cada una, de la que más tiene a la que menos: así se lee un informe. */
   porciones: PorcionReparto[];
-  /** Los grupos con saldo negativo: no entran al círculo. */
-  aparte: { clave: string; titulo: string; monto: number }[];
+  /** Las cuentas con saldo negativo: no entran al círculo. */
+  aparte: { id: string; titulo: string; lugar: string | null; monto: number }[];
   /** Lo que suman las porciones. */
   enCuentas: number;
   /** Todo, restando lo negativo: es el «Tienes» de la cabecera. */
   neto: number;
-  /** Algún grupo tiene un saldo que no le toca ver a quien mira: lo que suma no lo incluye. */
+  /** Alguna cuenta tiene un saldo que no le toca ver a quien mira: lo que suma no lo incluye. */
   ocultos: boolean;
 };
 
-/** Reparte 100 en enteros por el método del mayor resto: la suma da siempre 100 y a nadie se le quita de más. */
+// ---- El color --------------------------------------------------------------------------------------------------------------------
+
+type Familia = { principal: string; cuentas: readonly string[] };
+
+/** CAYLA entera en verdes: el hondo de los bancos grandes, el verde claro de CAYLA y la menta para lo que suma poco (el efectivo del líder). */
+const VERDES: Familia = { principal: "verde", cuentas: ["reparto-menta", "verde", "reparto-verde-claro"] };
+/** Lo que viene en camino, en pizarra. */
+const PIZARRAS: Familia = { principal: "pizarra", cuentas: ["pizarra", "reparto-pizarra-claro"] };
+/** Una pareja de terracotas por sede, en el orden de la lista de ubicaciones: el cajón y, junto a él, su caja fuerte. Con más sedes que parejas se repiten desde la primera. */
+const PAREJAS_DE_SEDE: readonly (readonly [string, string])[] = [
+  ["rojo", "reparto-arcilla"],
+  ["rojo-profundo", "taupe"],
+  ["reparto-ocre", "reparto-terracota"],
+  ["taupe", "reparto-ocre"],
+];
+
+/** La familia de color de un grupo: CAYLA entera en verdes, lo que está en camino en pizarra y cada sede en su pareja de terracotas. */
+function familiaDe(g: Pick<GrupoCuentas, "clave" | "posicion">): Familia {
+  if (g.clave === GRUPO_EMPRESA) return VERDES;
+  if (g.clave === GRUPO_CAMINO) return PIZARRAS;
+  if (g.posicion < 0) return { principal: "taupe", cuentas: ["taupe"] };
+  const pareja = PAREJAS_DE_SEDE[g.posicion % PAREJAS_DE_SEDE.length]!;
+  return { principal: pareja[0], cuentas: pareja };
+}
+
+const token = (nombre: string) => `var(--color-${nombre})`;
+
+/** El color con el que se distingue un grupo: el más firme de su familia. Es el de su punto en la tarjeta. */
+export function colorDeGrupoEnReparto(g: Pick<GrupoCuentas, "clave" | "posicion">): string {
+  return token(familiaDe(g).principal);
+}
+
+/** El color de la cuenta que ocupa el lugar `indice` (0, 1, 2…, en el orden en que la tarjeta la lista) dentro de su grupo. No depende del saldo: una cuenta no cambia de color porque hoy tenga más o menos plata. */
+export function colorDeCuentaEnReparto(g: Pick<GrupoCuentas, "clave" | "posicion">, indice: number): string {
+  const { cuentas } = familiaDe(g);
+  return token(cuentas[indice % cuentas.length]!);
+}
+
+// ---- El reparto ------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Reparte 100 en enteros por el método del mayor resto: la suma da siempre 100 y a nadie se le quita de más. Lo que pesa menos de
+ * 1 % queda en cero (el círculo dice «<1 %») y no participa del reparto: no se le regala un punto que otra porción necesita.
+ */
 export function porcentajesEnteros(partes: readonly number[]): number[] {
   const total = partes.reduce((a, b) => a + b, 0);
   if (total <= 0) return partes.map(() => 0);
   const exactos = partes.map((p) => (p / total) * 100);
-  const base = exactos.map(Math.floor);
+  const base = exactos.map((e) => (e < 1 ? 0 : Math.floor(e)));
   let faltan = 100 - base.reduce((a, b) => a + b, 0);
-  const porResto = exactos.map((e, i) => ({ i, resto: e - base[i]! })).sort((a, b) => b.resto - a.resto || a.i - b.i);
+  const porResto = exactos
+    .map((e, i) => ({ i, e, resto: e - base[i]! }))
+    .filter((x) => x.e >= 1)
+    .sort((a, b) => b.resto - a.resto || a.i - b.i);
   for (const { i } of porResto) {
     if (faltan <= 0) break;
     base[i]! += 1;
@@ -56,29 +107,46 @@ export function porcentajesEnteros(partes: readonly number[]): number[] {
   return base;
 }
 
-/** El resumen de «Dónde está», o nulo si no hay al menos dos grupos con plata (un círculo de una sola porción no cuenta nada). */
-export function repartoDeDinero(grupos: readonly GrupoCuentas[], sedes: readonly Pick<SedeTelar, "clave" | "color">[]): RepartoDeDinero | null {
-  const conPlata = grupos.filter((g) => g.total > 0).sort((a, b) => b.total - a.total);
-  if (conPlata.length < 2) return null;
-  const enCuentas = r2(conPlata.reduce((a, g) => a + g.total, 0));
-  const enteros = porcentajesEnteros(conPlata.map((g) => g.total));
+/** Lo que dice de dónde es una cuenta: la sede, si es de una; las de CAYLA entera y las que están en camino se explican solas. */
+const lugarDe = (g: Pick<GrupoCuentas, "clave" | "titulo">) => (g.clave === GRUPO_EMPRESA || g.clave === GRUPO_CAMINO ? null : g.titulo);
+
+/** El resumen de «Dónde está», o nulo si no hay al menos dos cuentas con plata (un círculo de una sola porción no cuenta nada). */
+export function repartoDeDinero(grupos: readonly GrupoCuentas[]): RepartoDeDinero | null {
+  type Cuenta = { id: string; titulo: string; lugar: string | null; monto: number; color: string; suma: number };
+  const positivas: Cuenta[][] = [];
+  const aparte: RepartoDeDinero["aparte"] = [];
+  for (const g of grupos) {
+    const lugar = lugarDe(g);
+    const mias: Cuenta[] = [];
+    g.filas.forEach((f, i) => {
+      if (f.saldo === null) return;
+      if (f.saldo < 0) aparte.push({ id: f.id, titulo: f.nombre, lugar, monto: f.saldo });
+      else if (f.saldo > 0) mias.push({ id: f.id, titulo: f.nombre, lugar, monto: f.saldo, color: colorDeCuentaEnReparto(g, i), suma: 0 });
+    });
+    if (mias.length === 0) continue;
+    const suma = r2(mias.reduce((a, c) => a + c.monto, 0));
+    positivas.push(mias.map((c) => ({ ...c, suma })).sort((a, b) => b.monto - a.monto));
+  }
+  const cuentas = positivas.sort((a, b) => b[0]!.suma - a[0]!.suma).flat();
+  if (cuentas.length < 2) return null;
+  const enCuentas = r2(cuentas.reduce((a, c) => a + c.monto, 0));
+  const enteros = porcentajesEnteros(cuentas.map((c) => c.monto));
   let acumulado = 0;
-  const porciones = conPlata.map((g, i) => {
-    const pct = (g.total / enCuentas) * 100;
+  const porciones = cuentas.map((c, i) => {
     const desde = acumulado;
-    acumulado += (g.total / enCuentas) * 360;
+    acumulado += (c.monto / enCuentas) * 360;
     return {
-      clave: g.clave,
-      titulo: g.titulo,
-      monto: g.total,
-      pct,
+      id: c.id,
+      titulo: c.titulo,
+      lugar: c.lugar,
+      monto: c.monto,
+      pct: (c.monto / enCuentas) * 100,
       pctEntero: enteros[i]!,
-      color: colorDeGrupo(g.clave, sedes),
+      color: c.color,
       desde,
-      hasta: i === conPlata.length - 1 ? 360 : acumulado,
+      hasta: i === cuentas.length - 1 ? 360 : acumulado,
     };
   });
-  const aparte = grupos.filter((g) => g.total < 0).map((g) => ({ clave: g.clave, titulo: g.titulo, monto: g.total }));
   return {
     porciones,
     aparte,

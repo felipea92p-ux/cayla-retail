@@ -42,6 +42,8 @@ export type GrupoCuentas = {
   /** El id de la sede, `empresa` o `camino`. */
   clave: string;
   titulo: string;
+  /** El lugar de la sede en la lista de ubicaciones (0, 1, 2…), igual con todas las sedes que con una sola; -1 en CAYLA entera y En camino. De ahí sale su color. */
+  posicion: number;
   /** Lo que suman los saldos que se ven (sin los ocultos). */
   total: number;
   /** Alguna cuenta del grupo no deja ver su saldo. */
@@ -135,6 +137,7 @@ export function gruposDeDinero(
     grupos.push({
       clave,
       titulo,
+      posicion: ubicaciones.findIndex((u) => u.id === clave),
       total: r2(suyas.reduce((a, c) => a + (c.saldo ?? 0), 0)),
       ocultos: suyas.some((c) => c.saldo === null),
       filas: suyas.map((c) => ({ id: c.id, nombre: nombreSinElLugar(c.nombre, titulo), tipo: c.tipo, saldo: c.saldo, escala: escalaDeCuenta(c.saldo, maximo), insignia: insigniaCuenta(c, hoy) ?? avisar(c), detalle: explicar(c) })),
