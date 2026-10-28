@@ -56,69 +56,6 @@ export function proveedoresDeMarca(vinculos: Vinculo[], marcaId: string): string
   return vinculos.filter((v) => v.marcaId === marcaId).map((v) => v.proveedorId);
 }
 
-export function marcasDeProveedor(vinculos: Vinculo[], proveedorId: string): string[] {
-  return vinculos.filter((v) => v.proveedorId === proveedorId).map((v) => v.marcaId);
-}
-
-/** Si la marca la trae un solo proveedor, se elige sola: cero clics de más. Con varios (o ninguno), null. */
-export function proveedorAutomatico(vinculos: Vinculo[], marcaId: string): string | null {
-  const provs = proveedoresDeMarca(vinculos, marcaId);
-  return provs.length === 1 ? provs[0] : null;
-}
-
-export function marcaAutomatica(vinculos: Vinculo[], proveedorId: string): string | null {
-  const marcas = marcasDeProveedor(vinculos, proveedorId);
-  return marcas.length === 1 ? marcas[0] : null;
-}
-
-export type Resultado =
-  | { tipo: "marca"; marca: MarcaOpcion; proveedores: ProveedorOpcion[] }
-  | { tipo: "proveedor"; proveedor: ProveedorOpcion; marcas: MarcaOpcion[] };
-
-/** Una sola caja busca en marcas Y proveedores, sin importar tildes ni mayúsculas. Empieza-con antes que contiene. */
-export function buscarMarcaProveedor(
-  consulta: string,
-  marcas: MarcaOpcion[],
-  proveedores: ProveedorOpcion[],
-  vinculos: Vinculo[],
-  max = 8
-): Resultado[] {
-  const q = sinTildes(consulta);
-  if (!q) return [];
-  const puntaje = (nombre: string): number | null => {
-    const n = sinTildes(nombre);
-    if (n.startsWith(q)) return 0;
-    if (n.split(/\s+/).some((w) => w.startsWith(q))) return 1;
-    if (n.includes(q)) return 2;
-    return null;
-  };
-  const provPorId = new Map(proveedores.map((p) => [p.id, p]));
-  const marcaPorId = new Map(marcas.map((m) => [m.id, m]));
-
-  const encontradas: { r: Resultado; p: number; nombre: string }[] = [];
-  for (const m of marcas) {
-    const p = puntaje(m.nombre);
-    if (p === null) continue;
-    const provs = proveedoresDeMarca(vinculos, m.id)
-      .map((id) => provPorId.get(id))
-      .filter((x): x is ProveedorOpcion => Boolean(x));
-    encontradas.push({ r: { tipo: "marca", marca: m, proveedores: provs }, p, nombre: m.nombre });
-  }
-  for (const pr of proveedores) {
-    const p = puntaje(pr.nombre);
-    if (p === null) continue;
-    const ms = marcasDeProveedor(vinculos, pr.id)
-      .map((id) => marcaPorId.get(id))
-      .filter((x): x is MarcaOpcion => Boolean(x));
-    // A igual puntaje, la marca va antes que el proveedor (es lo que la persona suele buscar).
-    encontradas.push({ r: { tipo: "proveedor", proveedor: pr, marcas: ms }, p: p + 0.5, nombre: pr.nombre });
-  }
-  return encontradas
-    .sort((a, b) => a.p - b.p || a.nombre.localeCompare(b.nombre, "es"))
-    .slice(0, max)
-    .map((x) => x.r);
-}
-
 /** Las parejas más usadas en la categoría, solo las que siguen siendo válidas (una pareja puede haberse desactivado). */
 export function sugerenciasDeCategoria(
   usos: ParejaUso[],
@@ -170,18 +107,7 @@ export function filtroDeMarcaOProveedor(valorUrl?: string): string | undefined {
   return valorUrl && /^[0-9a-f-]{36}$/i.test(valorUrl) ? valorUrl : undefined;
 }
 
-// ---------- Catálogo ▸ Marcas: buscar y editar ----------
-
-/** Lo mínimo que la búsqueda de Catálogo ▸ Marcas necesita de cada fila. */
-type FilaBuscable = { nombre: string; proveedores: { nombre: string }[] };
-
-/** Busca por el nombre de la marca O de quien la trae, sin tildes ni mayúsculas: «¿qué marcas me trae Saavedra?» también se
- *  contesta aquí. Sin texto, todas. */
-export function filtrarMarcas<T extends FilaBuscable>(filas: T[], consulta: string): T[] {
-  const q = sinTildes(consulta);
-  if (!q) return filas;
-  return filas.filter((f) => sinTildes(f.nombre).includes(q) || f.proveedores.some((p) => sinTildes(p.nombre).includes(q)));
-}
+// ---------- Catálogo ▸ Marcas: editar ----------
 
 /** Una marca como la pinta Catálogo ▸ Marcas: con sus proveedores y cuántos productos usan a cada uno. */
 export type MarcaFila = {
@@ -213,14 +139,6 @@ export type BorradorMarca = {
 
 export function sePuedeQuitar(p: ParejaDeMarca): boolean {
   return p.productosTotal === 0;
-}
-
-/** La línea de la tarjeta bajo el nombre. Si no hay productos activos pero sí descontinuados lo dice: es lo que explica por
- *  qué esa marca no ofrece «Eliminar» (un descontinuado sigue citándola). `total` cuenta también los descontinuados. */
-export function textoProductosMarca(activos: number, total: number): string {
-  if (activos > 0) return `${activos} producto${activos === 1 ? "" : "s"} activo${activos === 1 ? "" : "s"}`;
-  if (total > 0) return `Sin productos activos · ${total} descontinuado${total === 1 ? "" : "s"}`;
-  return "Sin productos todavía";
 }
 
 /** ¿Se ofrece «Eliminar»? Solo si ningún producto tiene la marca — activo, descontinuado o archivado como prueba: todos

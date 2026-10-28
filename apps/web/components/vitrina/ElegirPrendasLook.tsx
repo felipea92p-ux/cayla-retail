@@ -13,9 +13,12 @@ import {
   hayModeloEnTienda,
   modelosParaElegir,
   nombreCortoDeTienda,
+  porQueNoSeElige,
   PRENDAS_POR_PAGINA_LOOK,
   SIN_PRENDAS_POR_TIENDA,
+  tiendasEnComun,
   type ModeloParaLook,
+  type PiezaElegida,
   type PrendasPorTienda,
 } from "@/lib/vitrina-looks-reglas";
 
@@ -30,6 +33,7 @@ import {
 export function ElegirPrendasLook({
   modelos,
   elegidos,
+  piezas,
   lleno,
   deshabilitado = false,
   porTienda = SIN_PRENDAS_POR_TIENDA,
@@ -39,12 +43,15 @@ export function ElegirPrendasLook({
   modelos: readonly ModeloParaLook[];
   /** Los ids de las prendas que ya están en el look. */
   elegidos: ReadonlySet<string>;
+  /** Las prendas elegidas, con su color: lo que no hay en ninguna de las tiendas donde están todas ellas no se puede agregar. */
+  piezas: readonly PiezaElegida[];
   /** El look ya tiene el máximo: lo que no está elegido no se puede agregar. */
   lleno: boolean;
   deshabilitado?: boolean;
-  /** Qué hay en cada tienda (vacío: no se sabe, y el filtro no se dibuja). */
+  /** Qué hay en cada tienda (vacío: no se sabe, no se bloquea nada y el filtro no se dibuja). */
   porTienda?: PrendasPorTienda;
-  onElegir: (id: string) => void;
+  /** `tienda`: la tienda por la que se está filtrando (o `null`), para que el color con que entra sea uno que haya ahí. */
+  onElegir: (id: string, tienda: string | null) => void;
   onQuitar: (id: string) => void;
 }) {
   const [categoria, setCategoria] = useState<string | null>(null);
@@ -58,6 +65,8 @@ export function ElegirPrendasLook({
     [modelos, porTienda],
   );
   const lista = modelosParaElegir(modelos, { categoria, texto }).filter((m) => tienda === null || hayModeloEnTienda(porTienda, m, tienda));
+  // Las tiendas donde están todas las prendas ya elegidas: solo se puede agregar lo que hay en alguna de ellas (`null`: no se sabe, nada se bloquea).
+  const comun = useMemo(() => tiendasEnComun(porTienda, piezas), [porTienda, piezas]);
   const pag = paginar(lista, pagina, PRENDAS_POR_PAGINA_LOOK);
   // Cambiar la categoría o lo escrito vuelve a la primera página (se ajusta al dibujar, como pide React).
   const clave = `${categoria ?? ""}|${texto}|${tienda ?? ""}`;
@@ -111,6 +120,8 @@ export function ElegirPrendasLook({
           {pag.filas.map((m) => {
             const elegido = elegidos.has(m.id);
             const bloqueada = lleno && !elegido;
+            // Una prenda ya elegida se puede quitar siempre; una que no hay (en ninguna tienda, o donde están las demás) no se puede agregar.
+            const noHay = elegido ? null : porQueNoSeElige(porTienda, comun, m);
             const foto = m.foto ?? m.colores.find((c) => c.foto)?.foto ?? null;
             const sinFoto = <SinFoto tamano="h-full w-full !rounded-none" colorHex={m.colores[0]?.hex ?? null} prefijo={m.prefijo} familia={m.familia} categoria={m.categoria} conNombre />;
             return (
@@ -119,10 +130,11 @@ export function ElegirPrendasLook({
                   type="button"
                   className="tw-elegir-tile"
                   aria-pressed={elegido}
-                  aria-label={elegido ? `Quitar ${m.nombre} del look` : `Agregar ${m.nombre} al look`}
-                  disabled={deshabilitado || bloqueada}
-                  title={bloqueada ? "El look ya tiene 4 prendas: quita una para cambiarla." : undefined}
-                  onClick={() => (elegido ? onQuitar(m.id) : onElegir(m.id))}
+                  aria-label={elegido ? `Quitar ${m.nombre} del look` : noHay ? `${m.nombre}: ${noHay.largo}` : `Agregar ${m.nombre} al look`}
+                  disabled={deshabilitado || bloqueada || noHay !== null}
+                  data-no-elegible={noHay ? "" : undefined}
+                  title={noHay ? noHay.largo : bloqueada ? "El look ya tiene 4 prendas: quita una para cambiarla." : undefined}
+                  onClick={() => (elegido ? onQuitar(m.id) : onElegir(m.id, tienda))}
                 >
                   <span className="tw-elegir-foto">
                     {foto ? <ImagenDePrenda src={foto} alt="" fill sizes="160px" className="object-cover" fondo={m.colores[0]?.hex ?? null} fallback={sinFoto} /> : sinFoto}
@@ -131,7 +143,11 @@ export function ElegirPrendasLook({
                     </span>
                   </span>
                   <span className="tw-elegir-nombre">{m.nombre}</span>
-                  {categoria === null && m.categoria && <span className="tw-elegir-categoria">{m.categoria}</span>}
+                  {noHay ? (
+                    <span className="tw-elegir-motivo">{noHay.corto}</span>
+                  ) : (
+                    categoria === null && m.categoria && <span className="tw-elegir-categoria">{m.categoria}</span>
+                  )}
                 </button>
               </li>
             );

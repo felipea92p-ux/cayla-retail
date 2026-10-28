@@ -7,7 +7,6 @@ import {
   leerOrdenProductos,
   ordenDeUrl,
   ordenParaBase,
-  ordenPorVentas,
 } from "./productos-orden";
 
 describe("productos-orden", () => {
@@ -40,10 +39,5 @@ describe("productos-orden", () => {
   it("los dos órdenes por ventas dicen la ventana de 30 días en su rótulo (la misma de «Pedir a proveedor»)", () => {
     expect(ROTULO_ORDEN_PRODUCTOS.vendidos_desc).toContain("30 días");
     expect(ROTULO_ORDEN_PRODUCTOS.vendidos_asc).toContain("30 días");
-  });
-
-  it("solo los de ventas cuentan como «por ventas»", () => {
-    expect(ORDENES_PRODUCTOS.filter((o) => ordenPorVentas(o))).toEqual(["vendidos_desc", "vendidos_asc"]);
-    expect(ordenPorVentas(undefined)).toBe(false);
   });
 });

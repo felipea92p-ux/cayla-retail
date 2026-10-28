@@ -325,7 +325,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/cierre": { estado: "aplicada", guia: GUIA_FIN_CIERRE.id },
   "/finanzas/dinero": { estado: "aplicada", guia: GUIA_FIN_CUENTAS.id },
   "/finanzas/dinero/conciliacion": { estado: "aplicada", guia: GUIA_FIN_CONCILIACION.id },
-  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige: Efectivo por tienda se retiró (El telar) y su dirección vieja lleva a Cuentas y dinero ▸ Dónde está, donde los frascos dicen el efectivo de hoy. La guía es la de esa pantalla." },
+  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige: Efectivo por tienda se retiró (El telar) y su dirección vieja lleva a Cuentas y dinero ▸ Dónde está, donde las cuentas dicen el efectivo de hoy. La guía es la de esa pantalla." },
   "/finanzas/dinero/por-pagar": { estado: "aplicada", guia: GUIA_FIN_POR_PAGAR.id },
   "/finanzas/gastos": { estado: "aplicada", guia: GUIA_FIN_GASTOS.id },
   "/finanzas/impuestos": { estado: "aplicada", guia: GUIA_FIN_IMPUESTOS.id },

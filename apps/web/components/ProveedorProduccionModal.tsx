@@ -31,7 +31,27 @@ import { ETIQUETA_FORMA_PAGO, RUBROS_PRODUCCION, type ProveedorProduccion, type 
 //
 // Archivar no borra: los lotes y, más adelante, los comprobantes cuelgan del proveedor.
 
-export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: ProveedorProduccion | null; onClose: () => void }) {
+/** Lo que una pantalla que registró un proveedor desde adentro necesita de inmediato: el id para elegirlo y su nombre y rubro para listarlo. */
+export type ProveedorProduccionNuevo = { id: string; nombre: string; rubro: RubroProduccion };
+
+// Alta DESDE OTRA PANTALLA (la hoja «Nueva orden» y «Cambiar quién» de una fase): con `alGuardar` el formulario no refresca la página (un
+// refresco remontaría la hoja y se perdería lo que ya se llenó); avisa a quien lo abrió y esa pantalla suma el proveedor a su lista y lo elige.
+// `rubros` limita los botones de «¿Qué le vende al Taller?» (para elegir a quién le sale una fase, tela y avíos no sirven) y `rubroInicial` deja uno puesto.
+export function ProveedorProduccionModal({
+  proveedor,
+  onClose,
+  nombreInicial,
+  rubroInicial,
+  rubros,
+  alGuardar,
+}: {
+  proveedor: ProveedorProduccion | null;
+  onClose: () => void;
+  nombreInicial?: string;
+  rubroInicial?: RubroProduccion;
+  rubros?: readonly RubroProduccion[];
+  alGuardar?: (proveedor: ProveedorProduccionNuevo) => void;
+}) {
   const router = useRouter();
   const esAlta = proveedor === null;
   const cuentasIniciales = cuentasDeFila({
@@ -41,8 +61,9 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
     titular_cuenta: proveedor?.titularCuenta ?? null,
   });
 
-  const [nombre, setNombre] = useState(proveedor?.nombre ?? "");
-  const [rubro, setRubro] = useState<RubroProduccion | "">(proveedor?.rubro ?? "");
+  const [nombre, setNombre] = useState(proveedor?.nombre ?? nombreInicial ?? "");
+  const [rubro, setRubro] = useState<RubroProduccion | "">(proveedor?.rubro ?? rubroInicial ?? "");
+  const rubrosOfrecidos = rubros ? RUBROS_PRODUCCION.filter((r) => rubros.includes(r.valor)) : RUBROS_PRODUCCION;
   const [ruc, setRuc] = useState(proveedor?.ruc ?? "");
   const [contacto, setContacto] = useState(proveedor?.contacto ?? "");
   const [telefono, setTelefono] = useState(proveedor?.telefono ?? "");
@@ -82,7 +103,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
       return;
     }
     setCargando(true);
-    const { error } = await firmar(createClient().rpc("guardar_proveedor_produccion", {
+    const { data: idGuardado, error } = await firmar(createClient().rpc("guardar_proveedor_produccion", {
       // p_proveedor_id no tiene DEFAULT en Postgres (hay que pasarlo siempre), pero sí acepta
       // NULL como valor explícito ("id nulo = crear", ver la migración) — el tipo generado no
       // lo refleja porque el generador solo agrega `| null` a parámetros con DEFAULT.
@@ -108,7 +129,11 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
       return;
     }
     avisar.exito(esAlta ? `${nombre.trim()} entró al directorio` : `${nombre.trim()} se actualizó`);
-    router.refresh();
+    if (alGuardar && idGuardado) {
+      alGuardar({ id: idGuardado as string, nombre: nombre.trim(), rubro });
+    } else {
+      router.refresh();
+    }
     onClose();
   }
 
@@ -146,7 +171,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
         <fieldset data-guia="prod-proveedor-modal.rubro">
           <legend className="label-cayla text-[11px] text-tinta/65">¿Qué le vende al Taller?</legend>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {RUBROS_PRODUCCION.map((r) => (
+            {rubrosOfrecidos.map((r) => (
               <button
                 key={r.valor}
                 type="button"

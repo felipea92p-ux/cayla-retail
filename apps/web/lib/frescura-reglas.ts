@@ -848,35 +848,6 @@ export function varaPorVentanas(unidadesEn: (dias: number) => readonly Observaci
 /** Un tramo y si es un piso («al menos»): la prenda ya pasó todo lo que la curva vio y falta el corte siguiente. */
 export type TramoUbicado = { tramo: Tramo; alMenos: boolean };
 
-/**
- * El tramo de una prenda con `segundos` en el piso, por los cortes de su categoría en su sede (en `analizarSede`, los
- * de su categoría SIN ella: `contraElResto`, D5):
- *   · sin P50 (su categoría no vendió ni la mitad): null, «aún sin referencia» (la pantalla muestra el % vendido a N
- *     días, ADR-0208 decisión 6). Sin esta regla, toda prenda con edad conocida de una categoría lenta salía «Nueva»
- *     (el reloj casi siempre queda antes de `tMax`), aunque llevara 60 días sin vender una (revisión 3).
- *   · con P50 pero sin P75 o P90: un corte que la curva no alcanza está MÁS ALLÁ de su observación más larga (`tMax`).
- *     Si la prenda está antes de eso, se sabe que no lo pasó: el tramo es exacto. Si ya pasó todo lo que la curva vio,
- *     igual se sabe que pasó el corte anterior: ese tramo, como piso («al menos Envejecida»). Antes era null, y la prenda
- *     más quieta de la categoría (la de la carga inicial, que siempre tiene el reloj más largo) desaparecía en «aún sin
- *     referencia» sin siquiera «revisa sus ventas» (revisión 4).
- * Las comparaciones llevan `TOL_SEGUNDOS`: el reloj de una prenda puede ser la misma exposición que la observación más
- * larga (otra prenda colgada en el mismo instante), calculada por otro camino, y en coma flotante quedar 1e-11 arriba
- * (revisión 4).
- */
-export function tramoDe(segundos: number, c: Cortes, tMax: number): TramoUbicado | null {
-  if (c.p50 === null) return null;
-  const pasos: [Tramo, number | null][] = [
-    ["nueva", c.p50],
-    ["vigente", c.p75],
-    ["envejecida", c.p90],
-  ];
-  for (const [tramo, corte] of pasos) {
-    if (corte === null) return { tramo, alMenos: segundos > tMax + TOL_SEGUNDOS };
-    if (segundos < corte - TOL_SEGUNDOS) return { tramo, alMenos: false };
-  }
-  return { tramo: "critica", alMenos: false };
-}
-
 // ---------------------------------------------------------------------------
 // El reloj de novedad y la rapidez de una prenda
 // ---------------------------------------------------------------------------
@@ -916,7 +887,7 @@ function tramosColgada(p: EntradaReloj): LineaDelPiso {
   const desdeMs = ms(p.desde);
   const ahoraMs = ms(p.ahora);
   // En milisegundos enteros: sumar tramos ya divididos entre 1000 acumula error de coma flotante, y el reloj de la
-  // prenda más vieja se compara con su propia exposición (`tramoDe`, revisión 4).
+  // prenda más vieja se compara con su propia exposición (`tramoDosRelojes`, revisión 4).
   const tramos: number[] = [];
   const abrir = (a: number, b: number) => {
     if (b <= a) return;
@@ -1038,8 +1009,14 @@ export function relojDeLaUnidad(colgadas: readonly UnidadColgada[]): RelojNoveda
  *     reloj del modelo, que nunca se reinicia, un modelo de 6 unidades que se repone de a una llegaba a «Hay que moverla»
  *     el 97 % de las veces vendiéndose al ritmo de su categoría (simulado, 2026-10-10).
  * Siempre `unidad ≤ modelo` (una unidad no puede llevar colgada más que su modelo), así que los tramos no se pisan. Lo que
- * falta de la curva se trata como en `tramoDe`: un corte que no alcanza queda después de `tMax`, y pasado eso el tramo es un
- * piso («al menos»). Con `unidad === modelo` es exactamente `tramoDe`.
+ * falta de la curva:
+ *   · sin P50 (su categoría no vendió ni la mitad): null, «aún sin referencia» (la pantalla muestra el % vendido a N días,
+ *     ADR-0208 decisión 6). Sin esta regla, toda prenda con edad conocida de una categoría lenta salía «Nueva» (revisión 3).
+ *   · un corte que la curva no alcanza queda después de `tMax`: si la unidad está antes de eso el tramo es exacto; pasado eso
+ *     se sabe que ya pasó el corte anterior, y el tramo es un piso («al menos»; revisión 4).
+ * Las comparaciones llevan `TOL_SEGUNDOS`: el reloj de una prenda puede ser la misma exposición que la observación más larga
+ * (otra prenda colgada en el mismo instante), calculada por otro camino, y en coma flotante quedar 1e-11 arriba (revisión 4).
+ * Con `unidad === modelo` se comporta como un solo reloj.
  */
 export function tramoDosRelojes(modelo: number, unidad: number, c: Cortes, tMax: number): TramoUbicado | null {
   if (c.p50 === null) return null;

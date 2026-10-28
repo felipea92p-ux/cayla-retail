@@ -395,6 +395,11 @@
   }
   .tw-elegir-tile[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta); }
   .tw-elegir-tile:disabled { cursor: not-allowed; opacity: 0.45; }
+  /* Una prenda que no hay (en ninguna tienda, o donde están las ya elegidas) apaga solo su foto: el nombre y el porqué se siguen leyendo. */
+  .tw-elegir-tile[data-no-elegible]:disabled { opacity: 1; }
+  .tw-elegir-tile[data-no-elegible]:disabled .tw-elegir-foto { opacity: 0.4; }
+  .tw-elegir-tile[data-no-elegible]:disabled .tw-elegir-nombre { color: var(--color-taupe); }
+  .tw-elegir-motivo { padding: 0 8px; font-size: 12px; font-weight: 600; line-height: 1.25; color: var(--color-taupe); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .tw-elegir-foto { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; background: var(--color-hueso); }
   .tw-elegir-foto > :first-child { position: absolute; inset: 0; }
   .tw-elegir-visto {

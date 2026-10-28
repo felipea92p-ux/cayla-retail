@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { CheckCheck } from "lucide-react";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Chip } from "@/components/ui/Chip";
@@ -10,6 +10,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { soles } from "@/lib/compras-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
 import { diaMes, diaLima } from "@/lib/fechas-lima";
+import { primerNombre } from "@/lib/fondos-reglas";
 import type { PlataPorConfirmarConFoto } from "@/lib/mi-plata";
 import type { GastoConFoto, PapelConFoto } from "@/lib/revisar-compras";
 import {
@@ -54,12 +55,23 @@ type Datos = {
   cuentas: CuentaOpcion[];
   /** Quién está comprando ahora (20261023210000): la tarjeta «Rondas abiertas» bajo la lista. */
   rondasAbiertas?: RondaAbiertaRevisar[];
+  /** La cuenta es de líder: confirmar la plata «Ya tenía» solo es suyo (20261027231000); a los demás no se les ofrece el botón. */
+  esLider?: boolean;
 };
 
 export function BandejaRevisar(d: Datos) {
   const cuantos: Record<TipoBandeja, number> = { plata: d.plata.length, papel: d.papeles.length, gasto: d.gastos.length, cierre: d.cierres.length };
   const [tipo, setTipo] = useState<TipoBandeja>(() => bandejaInicial(cuantos));
   const [elegido, setElegido] = useState<string | null>(null);
+  const detalleRef = useRef<HTMLDivElement>(null);
+
+  // Bajo 1024 px el detalle queda DEBAJO de la lista: al tocar una fila, la vista baja hasta él (en PC está al lado y ya se ve).
+  const abrir = (id: string) => {
+    setElegido(id);
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023.98px)").matches) return;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => detalleRef.current?.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "start" }));
+  };
 
   // Cada lista con su fila de la bandeja, su miniatura y su detalle.
   const filas: Record<TipoBandeja, { fila: FilaBandeja; mini: ReactNode }[]> = {
@@ -85,7 +97,7 @@ export function BandejaRevisar(d: Datos) {
     if (!actual) return null;
     if (tipo === "plata") {
       const f = d.plata.find((x) => x.id === actual.id);
-      return f && <DetallePlata key={f.id} fila={f} cuentas={d.cuentas} alTerminar={alTerminar} />;
+      return f && <DetallePlata key={f.id} fila={f} cuentas={d.cuentas} alTerminar={alTerminar} esLider={d.esLider ?? true} />;
     }
     if (tipo === "papel") {
       const p = d.papeles.find((x) => x.id === actual.id);
@@ -144,7 +156,7 @@ export function BandejaRevisar(d: Datos) {
                       <button
                         type="button"
                         aria-current={marcado || undefined}
-                        onClick={() => setElegido(fila.id)}
+                        onClick={() => abrir(fila.id)}
                         className={`relative grid w-full items-center gap-3.5 px-5 py-3.5 text-left transition-colors ${mini ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto]"} ${
                           marcado ? "bg-crema" : "hover:bg-hueso/60"
                         }`}
@@ -184,7 +196,7 @@ export function BandejaRevisar(d: Datos) {
                     <AvatarPersona personaId={r.personaId} nombre={r.persona} tamano={32} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-tinta">
-                        {r.texto} · {r.persona.split(" ")[0]}
+                        {r.texto} · {primerNombre(r.persona)}
                       </span>
                       <span className="block truncate text-xs text-taupe">
                         {[r.abiertaEn ? `Desde ${diaMes(diaLima(r.abiertaEn) ?? "")}` : null, r.tienda].filter(Boolean).join(" · ")}
@@ -198,7 +210,9 @@ export function BandejaRevisar(d: Datos) {
           )}
         </div>
         {actual ? (
-          detalle()
+          <div ref={detalleRef} className="min-w-0 scroll-mt-24">
+            {detalle()}
+          </div>
         ) : (
           <div className="card-cayla p-5">
             <Vacio icono={<CheckCheck aria-hidden />} titulo="Todo al día" tamano="chico">

@@ -1,7 +1,7 @@
 import { HORAS_PROFORMA_POR_VENCER } from "@cayla-retail/shared";
 
 // Reglas puras de proformas: ni Supabase ni `next/headers`, para que se puedan
-// probar sin levantar nada — mismo criterio que `lib/registro-contable.ts`.
+// probar sin levantar nada.
 // `lib/proformas.ts` las reexporta, así que quien ya importaba desde ahí no
 // cambia nada.
 

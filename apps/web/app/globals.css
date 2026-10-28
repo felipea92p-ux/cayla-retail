@@ -20,6 +20,8 @@
 @import "./estilos/etiqueta-prendas.css";
 @import "./estilos/campana-hoja.css";
 @import "./estilos/guias.css";
+@import "./estilos/acompanante.css";
+@import "./estilos/roles.css";
 @import "./estilos/alta-parecidas.css";
 @import "./estilos/lista-compra.css";
 @import "./estilos/puntos-avance.css";
@@ -220,6 +222,16 @@
   --color-sede-lim: #1d8a72;
   --color-sede-tal: #8a4fa8;
   --color-sede-emp: #9a8b7b;
+  /* Los colores del círculo de «Dónde está» (Felipe 2026-10-28: «más color, el verde claro y los terracotas de CAYLA»): color de DATO, como los
+     de sede. Verdes para los bancos, terracotas y arcilla para las tiendas, pizarra clara para lo que viene en camino. Son relleno, no texto: el
+     nombre de cada cuenta va escrito al lado, así que no se mide su contraste como texto. Se mezclan con los de la paleta (verde, rojo, rojo-profundo,
+     taupe, pizarra) en `lib/dinero-reparto-reglas.ts`. */
+  --color-reparto-verde-claro: #78b060;
+  --color-reparto-menta: #b7d8a6;
+  --color-reparto-terracota: #cb6a42;
+  --color-reparto-arcilla: #e3ab8d;
+  --color-reparto-ocre: #d7a44a;
+  --color-reparto-pizarra-claro: #9db2c6;
   /* El redondeo del efectivo (ADR-0311) tampoco es un medio ni dinero que entró: es lo que no se cobró por llegar a la moneda
      de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
   --color-metodo-redondeo: var(--color-taupe);

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { createPortal } from "react-dom";
 import { Boton } from "@/components/ui/campos";
 import { Volver } from "@/components/ui/Volver";
-import { esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, type Caja } from "@/lib/guias/reglas";
+import { caminoDelVelo, esperaPorAncla, pasoAplica, posicionTarjeta, recorteDe, totalEstimado, type Caja } from "@/lib/guias/reglas";
 import type { AccionGuia, Guia, PasoGuia } from "@/lib/guias/tipos";
 import { anclasPresentes, ejecutar, esEscapeDelPiloto, esperarAncla, pausa } from "./piloto";
 
@@ -513,15 +513,6 @@ export function GuiaInteractiva({ guia, onTerminar }: { guia: Guia; onTerminar: 
     </div>,
     document.body,
   );
-}
-
-/** El velo: toda la ventana, menos un rectángulo redondeado (el agujero) por donde se ve la pieza. Sin agujero, el velo entero. */
-function caminoDelVelo(v: { ancho: number; alto: number }, a: Caja): string {
-  const fuera = `M0 0H${v.ancho}V${v.alto}H0Z`;
-  if (a.width < 1 || a.height < 1) return fuera;
-  const r = Math.min(14, a.width / 2, a.height / 2);
-  const { left: x, top: y, width: w, height: h } = a;
-  return `${fuera}M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
 }
 
 /** Cuántos modales de la pantalla hay abiertos (la tarjeta de la guía no cuenta). */

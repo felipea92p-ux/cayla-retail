@@ -57,6 +57,7 @@ export function PlanCampana({
   preparacion,
   campanas,
   puedeContar,
+  puedeVerCompras = false,
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
   pedido: pedidoCrudo = null,
@@ -74,6 +75,8 @@ export function PlanCampana({
   preparacion: LecturaMotor;
   campanas: CampanasLeidas | null;
   puedeContar: boolean;
+  /** Ve Compras ▸ Mis compras (`ordenes_compra`): solo entonces «Ver en Compras» lleva a donde se confirman los pedidos; sin el módulo, llevaría a «Sin acceso». */
+  puedeVerCompras?: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
   /** Los hechos para proponer flojo, normal y bueno y el % de lo que sobra (C4–C5), crudos; null = sin propuesta. */
@@ -356,6 +359,7 @@ export function PlanCampana({
               conVersion={plan.conVersion}
               versionConocida={versiones[abierta.id]}
               precioDeLaPlata={derivado.precioDeLaPlata}
+              puedeVerCompras={puedeVerCompras}
               siguiente={siguiente}
               enSerie={hechas.length > 0}
               onGuardado={(seguir, version) => {

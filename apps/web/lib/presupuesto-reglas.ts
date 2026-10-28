@@ -221,10 +221,6 @@ export function fraseSinTope(s: SinTope | null): string | null {
   return `Además, ${solesRedondo(s.aLaFecha)} en rubros sin tope (${s.nombres.join(", ")}).`;
 }
 
-/** Las filas del cuadro que se pasan (la base las marca): para el resumen de arriba. */
-export const filasQueSePasan = (bloques: readonly BloquePpto[]) =>
-  bloques.filter((b) => b.unidad !== "consolidado").flatMap((b) => b.filas.filter((f) => f.sePasa));
-
 /** «Descargar Excel»: un CSV separado por «;», una fila por línea del cuadro. */
 export function csvPresupuesto(bloques: readonly BloquePpto[]): string {
   const filas: (string | number)[][] = [["Unidad", "Rubro", "Meta o tope", "A la fecha", "Al cierre", "Avance", "Estado"]];

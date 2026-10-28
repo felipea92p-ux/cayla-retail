@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 185,
+  "total": 188,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -75,6 +75,8 @@
       "ComboBuscable «{colorCodigo}»",
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
+      "Boton «Corregir el precio»",
+      "Boton «Sí, cobré S/&nbsp;»",
       "ComboResponsable «{corregir.responsable}»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -122,7 +124,7 @@
       "ComboResponsable «{responsable}»",
       "button «Aplicar descuento» #2",
       "button «Quitar descuento»",
-      "button «{loading ? \"Procesando…\" : \"Confirmar cobro\"}»",
+      "button «vender.cobro-confirmar»",
       "button «vender.cobrar»"
     ],
     "components/VentaRegistradaModal.tsx": [
@@ -206,7 +208,7 @@
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
       "button «{icono}»",
-      "button «(sin nombre)»"
+      "button «vender.cobro-confirmar»"
     ],
     "components/punto-de-venta/LineaDelTicket.tsx": [
       "button «{`Descuento para ${nombre}»",
@@ -247,6 +249,9 @@
       "button «{soles(r.total)}»",
       "BotonVer «Historial completo»",
       "BotonVer «Ir a Caja»"
+    ],
+    "components/punto-de-venta/SinRegistrarDeHoy.tsx": [
+      "Link «{TEXTO_ENLACE_MESA}»"
     ],
     "components/punto-de-venta/TarjetaPrenda.tsx": [
       "button «vender.prenda-abrir»",

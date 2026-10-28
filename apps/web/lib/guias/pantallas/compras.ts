@@ -2387,6 +2387,20 @@ export const GUIA_MI_PLATA: Guia = {
       texto: "Cada salida a comprar es una ronda, con su número (RC-…). Ábrela al salir: lo que compres y gastes queda en ella. Sin ronda, solo anotas la plata que te dieron.",
     },
     {
+      id: "ultima",
+      ancla: "mi-plata.ultima",
+      opcional: true,
+      titulo: "Tu última ronda",
+      texto: "Sin ronda abierta, aquí ves cómo terminó la última: cuánto salió de tu plata, cómo cerró y en qué van sus envíos. El sello de arriba dice si falta algo de tu lado o del de Compras.",
+    },
+    {
+      id: "ultima-detalle",
+      ancla: "mi-plata.ultima-detalle",
+      opcional: true,
+      titulo: "Lo que anotaste en ella",
+      texto: "Al tocarlo se abre la hoja de esa ronda: cada compra y cada gasto con su estado, lo que salió de tu plata y los envíos con su código. Solo se lee. En la demo no lo abrimos.",
+    },
+    {
       id: "ronda",
       ancla: "mi-plata.ronda",
       opcional: true,
@@ -2487,7 +2501,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Falta mandar",
-      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues el paquete al transporte (te lo abrimos).",
+      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues los fardos al transporte (te lo abrimos).",
     },
     {
       id: "fardos",
@@ -2495,8 +2509,8 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "mi-plata.mandar" }],
       prepararSoloAlAvanzar: true,
-      titulo: "¿Cuántos paquetes?",
-      texto: "Cuántos paquetes entregas para esa tienda, así la tienda sabe cuántos abrir al recibir.",
+      titulo: "¿Cuántos fardos?",
+      texto: "Cuántos fardos (paquetes) entregas para esa tienda, así la tienda sabe cuántos abrir al recibir.",
     },
     {
       id: "mandar-uno",
@@ -2601,6 +2615,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
     {
       id: "alcance",
       ancla: "mis-envios.alcance",
+      opcional: true,
       titulo: "Esta ronda o anteriores",
       texto: "«Esta ronda» son los paquetes de tu ronda abierta. «Rondas anteriores» guarda, por ronda, los que mandaste antes: un código de hace dos semanas sigue aquí.",
     },
@@ -2623,6 +2638,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
     {
       id: "buscador",
       ancla: "mis-envios.buscador",
+      opcional: true,
       titulo: "Busca un código",
       texto: "Escribe un código, una tienda o una ronda: busca en todas las rondas, así encuentras un código viejo sin saber en cuál salió.",
       demostrar: [{ tipo: "escribir", ancla: "mis-envios.buscador", texto: "ENV" }],
@@ -2630,6 +2646,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
     {
       id: "filtros",
       ancla: "mis-envios.filtros",
+      opcional: true,
       titulo: "Cómo van",
       texto: "«Sin recibir» deja los que la tienda todavía no abre o no termina de contar; «Recibidos», los que ya contó. Sirven en las dos vistas.",
     },
@@ -2657,6 +2674,7 @@ export const GUIA_COMPRA_RAPIDA: Guia = {
     {
       id: "avance",
       ancla: "compra.avance",
+      opcional: true,
       titulo: "En qué paso vas",
       texto: "Arriba ves en qué paso vas (el camino tiene tres: el proveedor, las prendas, y el papel y el pago; los que ya hiciste van en verde) y la flecha para volver. Nada se guarda hasta el final.",
     },
@@ -3131,7 +3149,7 @@ export const GUIA_FONDOS: Guia = {
       ancla: null,
       preparar: [{ tipo: "escape" }],
       titulo: "¡Listo!",
-      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
+      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Revisar compras.",
     },
   ],
 };

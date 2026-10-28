@@ -61,9 +61,10 @@ export const FASES: ReadonlyArray<FaseDelCatalogo> = [
   { clave: "habilitado", nombre: "Habilitado", siempre: true, posicionable: false, ayuda: "Preparar lo cortado para coser: numerar, armar paquetes, sumar avíos y el corte menor de Tricotex", ruta: "nueva", hito: false, enLaHoja: true },
   { clave: "costura", nombre: "Costura", siempre: true, posicionable: false, ayuda: "Armar la prenda: costura, ojal y botón", ruta: "ambas", hito: false, enLaHoja: true },
   { clave: "ojales_botones", nombre: "Ojales y botones", siempre: false, posicionable: false, ayuda: "Solo si el modelo los lleva", ruta: "nueva", hito: false, enLaHoja: true },
-  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: true, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false, enLaHoja: true },
+  // ADR-0551 (Felipe, 2026-10-27): los pasos fijos son cinco. Limpiar hilos y revisar y Etiquetar y embolsar los hace la tienda: siguen en la base y en lo ya abierto, pero la hoja no los ofrece.
+  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: false, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false, enLaHoja: false },
   { clave: "planchado", nombre: "Planchado", siempre: true, posicionable: false, ayuda: "Planchar la prenda terminada", ruta: "nueva", hito: false, enLaHoja: true },
-  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: true, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: false, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false, enLaHoja: false },
   { clave: "acabado", nombre: "Acabado", siempre: true, posicionable: false, ayuda: "Revisión, planchado, etiqueta y embolsado", ruta: "anterior", hito: false, enLaHoja: false },
   { clave: "bordado", nombre: "Bordado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false, enLaHoja: false },
   { clave: "estampado", nombre: "Estampado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false, enLaHoja: false },
@@ -71,8 +72,8 @@ export const FASES: ReadonlyArray<FaseDelCatalogo> = [
 ];
 
 /**
- * Las fases que la hoja «Nueva orden» ofrece (ADR-0400 act. k y l): la ruta nueva —Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Limpiar hilos y revisar ·
- * Planchado · Etiquetar y embolsar—, en el orden del catálogo. Las siete fijas viajan siempre; Ojales y botones se enciende si el modelo lo lleva.
+ * Las fases que la hoja «Nueva orden» ofrece (ADR-0400 act. k y l, ADR-0551): la ruta nueva —Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Planchado—, en el
+ * orden del catálogo. Las cinco fijas viajan siempre; Ojales y botones se enciende si el modelo lo lleva. Limpiar hilos y revisar y Etiquetar y embolsar no se ofrecen (los hace la tienda).
  */
 export const FASES_DE_LA_HOJA: ReadonlyArray<FaseDelCatalogo> = FASES.filter((f) => f.enLaHoja);
 
@@ -127,23 +128,78 @@ export type FaseBorrador = {
   minimo: string;
   fechaPrometida: string;
   posicion: Posicion | null;
+  /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera, pero todavía no se sabe con quién. Sin proveedor; puede llevar su costo (tarifa, fijo, mínimo), que se devenga como el de cualquier servicio, y sin costo no suma nada hasta que se registre. Solo cuenta en un servicio. */
+  pendiente?: boolean;
 };
 
-/** Cómo nace el bloque: la espina encendida y en el Taller; bordado y estampado apagados, sobre pieza; lavandería apagada. En el orden de la ruta. */
-export function fasesIniciales(): FaseBorrador[] {
+/** Lo que la hoja sabe antes de pintar las fases (ADR-0551). Sin él, el bloque nace como siempre: la espina en el Taller y Ojales y botones apagado. */
+export type ContextoDeFases = {
+  /** Lo que el modelo dijo de ojales y botones: `true` prende el paso; `false` y `null` (nadie lo ha preguntado) lo dejan apagado. */
+  ojalesBotones?: boolean | null;
+  /** Las fases que nacen en un servicio de afuera (Ploteo y Corte, `serviciosPorDefecto`) y su proveedor; `null` = hay a quién elegir pero falta elegir. */
+  servicios?: Partial<Record<FaseClave, string | null>>;
+};
+
+/** Cómo nace el bloque: la espina encendida y en el Taller (salvo lo que dice el contexto); bordado y estampado apagados, sobre pieza; lavandería apagada. En el orden de la ruta. */
+export function fasesIniciales(contexto: ContextoDeFases = {}): FaseBorrador[] {
   return ordenarFases(
-    FASES_DE_LA_HOJA.map((f) => ({
-      clave: f.clave,
-      encendida: f.siempre,
-      quien: "taller",
-      proveedorId: null,
-      tarifa: "",
-      fijo: "",
-      minimo: "",
-      fechaPrometida: "",
-      posicion: f.posicionable ? "pieza" : null,
-    }))
+    FASES_DE_LA_HOJA.map((f) => {
+      const afuera = contexto.servicios !== undefined && f.clave in contexto.servicios;
+      return {
+        clave: f.clave,
+        encendida: f.siempre || (f.clave === "ojales_botones" && contexto.ojalesBotones === true),
+        quien: afuera ? ("servicio" as const) : ("taller" as const),
+        proveedorId: afuera ? (contexto.servicios?.[f.clave] ?? null) : null,
+        tarifa: "",
+        fijo: "",
+        minimo: "",
+        fechaPrometida: "",
+        posicion: f.posicionable ? ("pieza" as const) : null,
+      };
+    })
   );
+}
+
+/** Las fases que nacen en un servicio de afuera (Felipe, 2026-10-27: Ploteo y Corte). */
+export const FASES_QUE_NACEN_AFUERA: ReadonlyArray<FaseClave> = ["ploteo", "corte"];
+
+/** ¿La lista de precios de este proveedor le sirve a esta fase? El ploteo se cobra por orden (el fijo); las demás, por prenda. Misma regla que `fn_produccion_fases_normalizar`. */
+function tarifaUsable(t: TarifaDeLista, clave: FaseClave): boolean {
+  return faseDe(clave).hito ? t.fijo > 0 : t.tarifa > 0;
+}
+
+/**
+ * Ploteo y Corte nacen «Afuera» SOLO si ya hay a quién mandarlos: un proveedor activo de servicios con precio vigente para esa fase. Sin él, nacen en el Taller (una orden no
+ * puede abrirse con un servicio sin proveedor: si no, hoy, con un solo proveedor cargado, toda orden nacería bloqueada). Con uno solo, queda elegido; con varios, el valor es
+ * `null` y la hoja pide elegir a quién. Cada fase se resuelve sola: puede haber proveedor de corte y no de ploteo.
+ */
+export function serviciosPorDefecto(proveedores: readonly ProveedorServicio[], lista: readonly TarifaDeLista[], hoy: string): Partial<Record<FaseClave, string | null>> {
+  const salida: Partial<Record<FaseClave, string | null>> = {};
+  for (const clave of FASES_QUE_NACEN_AFUERA) {
+    const con = proveedoresQueSirven(proveedores).filter((p) => {
+      const t = tarifaSugerida(p.id, clave, lista, hoy);
+      return t !== null && tarifaUsable(t, clave);
+    });
+    if (con.length > 0) salida[clave] = con.length === 1 ? con[0].id : null;
+  }
+  return salida;
+}
+
+/** Las filas de `fn_ojales_botones_de_modelos` como las usa la hoja: por modelo que ya contestó. Una fila que no se lee bien no contesta (la hoja vuelve a preguntar, nunca prende el paso a ciegas). */
+export function leerOjalesBotones(data: unknown): Record<string, boolean> {
+  const salida: Record<string, boolean> = {};
+  if (!Array.isArray(data)) return salida;
+  for (const f of data) {
+    if (typeof f !== "object" || f === null) continue;
+    const { producto_id: id, lleva_ojales_botones: lleva } = f as { producto_id?: unknown; lleva_ojales_botones?: unknown };
+    if (typeof id === "string" && typeof lleva === "boolean") salida[id] = lleva;
+  }
+  return salida;
+}
+
+/** Lo que dijo el modelo sobre ojales y botones, puesto en las fases: prende o apaga ese paso y no toca nada más (lo que la persona ya escribió en las demás filas se queda). */
+export function conOjalesDelModelo(fases: readonly FaseBorrador[], lleva: boolean | null): FaseBorrador[] {
+  return fases.map((f) => (f.clave === "ojales_botones" ? { ...f, encendida: lleva === true } : f));
 }
 
 /** Las fases en el orden de la ruta. Un bordado o estampado sin posición se acomoda como si fuera sobre pieza (solo para dibujarlo: la base lo rechaza). */
@@ -173,6 +229,15 @@ export function fasesEncendidas(fases: readonly FaseBorrador[]): FaseBorrador[] 
 
 /** Una fila de `proveedor_tarifas`. `vigenteDesde` es `aaaa-mm-dd`. */
 export type TarifaDeLista = { proveedorId: string; faseClave: FaseClave; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string };
+
+/** Las listas de precios de todos los proveedores, en una sola lista plana (lo que lee `tarifaSugerida`). */
+export function listaDeTarifas(
+  proveedores: readonly { id: string; tarifas: readonly { faseClave: string; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string }[] }[]
+): TarifaDeLista[] {
+  return proveedores.flatMap((p) =>
+    p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))
+  );
+}
 
 /** La tarifa que la base copiaría si la caja va vacía: la del proveedor para esa fase, vigente a `hoy` (`vigente_desde <= hoy`) y la más reciente. */
 export function tarifaSugerida(proveedorId: string | null, clave: FaseClave, lista: readonly TarifaDeLista[], hoy: string): TarifaDeLista | null {
@@ -308,9 +373,10 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     }
     if (f.quien !== "servicio") continue;
 
-    if (!f.proveedorId) {
+    // Pendiente de registrar (ADR-0551): no hay proveedor que juzgar y su costo es OPCIONAL (en blanco no suma nada), pero lo que se escriba pasa los mismos topes de un servicio.
+    if (!f.proveedorId && !f.pendiente) {
       di("fase_sin_proveedor", `Si ${nombre} sale afuera, elige a quién.`);
-    } else {
+    } else if (f.proveedorId && !f.pendiente) {
       const prov = porId.get(f.proveedorId);
       if (!prov || !prov.activo) di("fase_proveedor_inactivo", `Ese proveedor no está activo en el directorio del Taller.`);
       else if (RUBROS_QUE_NO_SIRVEN.includes(prov.rubro)) di("fase_proveedor_rubro", `Ese proveedor vende tela o avíos: un servicio de ${nombre} es de maquila u otro rubro.`);
@@ -321,7 +387,8 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
       // Cobra por orden (el ploteo): el fijo es lo único que se escribe. El orden es el de la base: un texto que no es número, después «falta el fijo», después los topes.
       if (s.fijo.tipo === "coma") di("fase_tarifa_invalida", `Escribe lo que cobra ${nombre} por la orden con punto, por ejemplo 40.00.`);
       else if (s.fijo.tipo === "invalido") di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden tiene que ser un número, por ejemplo 40.00.`);
-      else if (s.fijo.tipo === "negativo" || s.fijoOrden <= 0) {
+      else if (f.pendiente && s.fijo.tipo === "negativo") di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden no puede ser negativo.`);
+      else if (!f.pendiente && (s.fijo.tipo === "negativo" || s.fijoOrden <= 0)) {
         di("fase_sin_fijo", s.fijo.tipo === "negativo" ? `Lo que cobra ${nombre} por la orden tiene que ser mayor que cero.` : `Falta lo que cobra ${nombre} por esta orden: escríbelo o guárdalo en la lista de precios del proveedor.`);
       } else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden no puede pasar de S/\u00a099,999.99.`);
     } else if (s.tarifa.tipo === "coma") di("fase_tarifa_invalida", `Escribe la tarifa de ${nombre} con punto, por ejemplo 4.50.`);
@@ -330,15 +397,15 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     else if (s.fijo.tipo === "invalido") di("fase_tarifa_invalida", `El fijo por orden de ${nombre} tiene que ser un número, por ejemplo 80.00.`);
     else if (s.minimo.tipo === "invalido") di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} es un número entero, por ejemplo 150.`);
     else if (s.tarifa.tipo === "negativo" || (s.tarifa.tipo === "ok" && s.tarifa.valor <= 0)) di("fase_sin_tarifa", `La tarifa por prenda de ${nombre} tiene que ser mayor que cero.`);
-    else if (s.tarifaPrenda === null) di("fase_sin_tarifa", `Falta la tarifa por prenda de ${nombre}: escríbela o guárdala en la lista de precios del proveedor.`);
-    else if (s.tarifaPrenda > TARIFA_MAXIMA) di("fase_tarifa_invalida", `La tarifa de ${nombre} no puede pasar de S/\u00a09,999.99.`);
+    else if (s.tarifaPrenda === null && !f.pendiente) di("fase_sin_tarifa", `Falta la tarifa por prenda de ${nombre}: escríbela o guárdala en la lista de precios del proveedor.`);
+    else if ((s.tarifaPrenda ?? 0) > TARIFA_MAXIMA) di("fase_tarifa_invalida", `La tarifa de ${nombre} no puede pasar de S/\u00a09,999.99.`);
     else if (s.fijo.tipo === "negativo") di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede ser negativo.`);
     else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede pasar de S/\u00a099,999.99.`);
     else if (s.cantidadMinima !== null && s.cantidadMinima <= 0) di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} tiene que ser mayor que cero.`);
 
     const fecha = f.fechaPrometida.trim();
     if (fecha !== "" && !esFechaIso(fecha)) di("fase_fecha_invalida", `La fecha prometida de ${nombre} no es una fecha válida.`);
-    else if (fecha !== "" && fecha < ctx.hoy) di("fase_fecha_pasada", `La fecha prometida de ${nombre} ya pasó: elige una de hoy en adelante.`);
+    else if (fecha !== "" && fecha < ctx.hoy && !f.pendiente) di("fase_fecha_pasada", `La fecha prometida de ${nombre} ya pasó: elige una de hoy en adelante.`);
   }
   return problemas;
 }
@@ -376,7 +443,7 @@ export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPren
 }
 
 /** Una fase que sale afuera con lo que costaría en TODA la orden y a quién (para repartirlo por prenda en la ficha). */
-export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; costo: number };
+export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; /** Sale afuera sin proveedor a propósito (ADR-0551): no es una falta. */ pendiente: boolean; costo: number };
 
 /**
  * Cada fase que sale afuera con su costo de toda la orden (tarifa × prendas + fijo, a dos decimales) y su proveedor, en el orden de la ruta. Es la MISMA cuenta
@@ -398,6 +465,7 @@ export function serviciosConCosto(
         clave: f.clave,
         nombre: faseDe(f.clave).nombre,
         proveedor: proveedores.find((p) => p.id === f.proveedorId)?.nombre ?? null,
+        pendiente: f.pendiente === true,
         costo: aCentimos((s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden),
       };
     });
@@ -414,6 +482,8 @@ export type FaseRpc = {
   cantidad_minima: string | null;
   fecha_prometida: string | null;
   posicion: Posicion | null;
+  /** Solo viaja (en true) en un servicio «pendiente de registrar»: la base lo lee en `fn_produccion_fases_normalizar` (ADR-0551 pendiente de registrar). */
+  proveedor_pendiente?: boolean;
 };
 
 /** Un número leído viaja como texto canónico; uno que no se pudo leer viaja TAL CUAL se escribió, para que sea la base la que lo rechace (nunca se arregla en silencio). */
@@ -441,11 +511,13 @@ export function fasesParaRpc(fases: readonly FaseBorrador[], lista: readonly Tar
       posicion: cat.posicionable ? f.posicion : null,
     };
     if (f.quien !== "servicio") return base;
-    const s = leerServicio(f, lista, hoy);
     const fecha = f.fechaPrometida.trim();
+    // El pendiente lleva lo que se escribió (sin lista de precios: no hay proveedor), el ploteo solo su fijo.
+    const s = leerServicio(f, f.pendiente ? [] : lista, hoy);
     return {
       ...base,
-      proveedor_id: f.proveedorId,
+      ...(f.pendiente ? { proveedor_pendiente: true } : {}),
+      proveedor_id: f.pendiente ? null : f.proveedorId,
       tarifa_prenda: textoDe(s.tarifa, f.tarifa, s.tarifaPrenda),
       fijo_orden: textoDe(s.fijo, f.fijo, s.fijoOrden),
       cantidad_minima: textoDe(s.minimo, f.minimo, s.cantidadMinima),

@@ -514,9 +514,10 @@ export function frasesDeErrores(): { marca: string; frase: string }[] {
  * Lo mismo los del fondo por rendir (ADR-0362 fase 6): `fondo_propio` («Nadie se entrega plata a sí mismo…») y `fondo_ajeno`
  * («Desde tu fondo pagas tú: elige tu nombre en «Responsable».») llegan con `42501` y una frase que dice qué hacer; y los de la rendición
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
- * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
+ * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»). Y `plata_ya_tenia_solo_lider` (20261027231000, Mis compras):
+ * confirmar la plata «Ya tenía» es del líder; llega con `42501` y una frase que dice a quién pedírselo.
  */
-const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion)$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano
@@ -648,6 +649,18 @@ const HINTS_CONTEO: ReadonlyMap<string, string | ((mensajeDeLaBase: string) => s
  * pudo… Vuelve a intentar», que manda a reintentar algo que no se arregla reintentando.
  */
 const HINT_SIN_MODULO = /^[a-z_]+_sin_modulo$/;
+
+/**
+ * Módulos que cambiaron de nombre después de que la base escribiera su mensaje. Las funciones de Compras simple (ADR-0480) dicen «Mi plata para
+ * compras» en el texto del error; el módulo se llama «Mis compras» en el menú y en Roles y accesos, y la persona busca ese nombre. La migración que
+ * dice el nombre viejo ya está en producción (y se pega tal cual), así que el nombre nuevo se pone aquí, al mostrarlo.
+ */
+const NOMBRE_ACTUAL_DEL_MODULO: ReadonlyArray<readonly [viejo: string, nuevo: string]> = [["«Mi plata para compras»", "«Mis compras»"]];
+
+/** El mensaje de un rechazo por módulo, con el nombre de módulo vigente (`NOMBRE_ACTUAL_DEL_MODULO`). */
+export function mensajeSinModulo(mensaje: string): string {
+  return NOMBRE_ACTUAL_DEL_MODULO.reduce((texto, [viejo, nuevo]) => texto.split(viejo).join(nuevo), mensaje);
+}
 
 /**
  * ¿La base rechazó porque el rol de la cuenta no tiene el módulo? (hint `<módulo>_sin_modulo`, ver arriba). Lo usan las
@@ -803,7 +816,7 @@ function fraseDelError(error: ErrorEscritura, contexto: string, opciones: { lect
   // código (el permiso, `42501`), que se reconocen por su `hint`.
   if (error.code === "P0001" && error.message) return error.message;
   if (error.hint && HINT_EN_CASTELLANO.test(error.hint) && error.message) return error.message;
-  if (esSinModulo(error)) return error.message;
+  if (esSinModulo(error)) return mensajeSinModulo(error.message ?? "");
 
   return `No se pudo ${contexto}. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: ${crudo}`;
 }

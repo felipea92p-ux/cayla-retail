@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import * as z from "zod/v4";
-import { preseleccionar } from "@/lib/asistente/preseleccion";
+import { pantallasQueSeAbrenDesde, preseleccionar } from "@/lib/asistente/preseleccion";
 import { erroresParecidos, reglasParecidas } from "@/lib/asistente/conocimiento";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { rutasFueraDelMenu } from "@/lib/asistente/sin-acceso";
@@ -99,6 +99,8 @@ export async function POST(request: Request) {
   const pregunta = limpiarDatosPersonales(cuerpo.data.pregunta);
   const rutaActual = sinConsulta(cuerpo.data.ruta);
   const sugerencias = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu, rutaActual, cuantas: GUIAS_PARA_LA_IA });
+  // Las pantallas con id que se abren desde una de ellas (Editar producto, desde Productos): una tarea puede terminar ahí.
+  const hijas = pantallasQueSeAbrenDesde(sugerencias, GUIAS);
   // Las pantallas de un módulo que su rol no tiene: la IA solo puede decir que existen y a quién pedírselas (actividad 4).
   const modulos = persona.modulos.map((m) => m.clave);
   const ajenas = preseleccionar({ pregunta, guias: GUIAS, rutasDelMenu: rutasFueraDelMenu({ guias: GUIAS, modulos }), rutaActual: "", cuantas: GUIAS_AJENAS_PARA_LA_IA });
@@ -153,9 +155,11 @@ export async function POST(request: Request) {
       max_tokens: 2048,
       // Las instrucciones son siempre las mismas: la API las guarda en su caché y cobra la décima parte al releerlas.
       system: [{ type: "text", text: INSTRUCCIONES, cache_control: { type: "ephemeral" } }],
-      // Elegir de una lista corta no pide pensar mucho, y la persona está esperando: el esfuerzo más bajo.
+      // Elegir de una lista corta no pide pensar, y la persona está esperando: sin pensamiento y con el esfuerzo más bajo. Con el
+      // pensamiento prendido (el de fábrica en Haiku 5.5), una tarea de 6 pasos escribía ~1.500 tokens y tardaba 7,5 s, al borde de los 8.
+      thinking: { type: "disabled" },
       output_config: { format: zodOutputFormat(RespuestaDeLaIA), effort: "low" },
-      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas, conocimiento) }],
+      messages: [{ role: "user", content: mensajeDePregunta(pregunta, sugerencias, ajenas, conocimiento, hijas) }],
     });
   } catch (error) {
     // Lo que se anota lleva el tipo de error y su código, nunca la pregunta (ADR-0424).
@@ -178,5 +182,9 @@ export async function POST(request: Request) {
   // Una respuesta declinada o que no se le puede creer igual costó: se anota con su gasto.
   if (respuesta.stop_reason === "refusal") return basico("rechazo", gasto);
   const cruda = respuesta.parsed_output ?? null;
-  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta, conocimiento), cruda?.tema ?? null, gasto);
+  if (process.env.NODE_ENV !== "production" && cruda) {
+    // En desarrollo: qué pasos propuso la IA (solo ids, nunca la pregunta), para ver por qué una tarea quedó corta.
+    console.info(`[asistente] pasos de la IA: ${cruda.pasos.map((p) => `${p.guia_id}#${p.paso_id}`).join(" · ") || "ninguno"}`);
+  }
+  return responder(revisarRespuesta(cruda, sugerencias, rutaActual, ajenas, pregunta, conocimiento, hijas), cruda?.tema ?? null, gasto);
 }

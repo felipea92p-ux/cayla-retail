@@ -30,6 +30,7 @@ export function SupuestosDelPlan({
   filas,
   hechos,
   pedido,
+  puedeVerCompras = false,
   plazoFijado,
   diasParaLlegar,
   onRecupero,
@@ -40,6 +41,8 @@ export function SupuestosDelPlan({
   /** Los hechos de la propuesta SOLO de esta campaña; null si la base no los manda. */
   hechos: LecturaPropuesta | null;
   pedido: LecturaPedido | null;
+  /** Ve Compras ▸ Mis compras (`ordenes_compra`): sin el módulo, «Ver las órdenes» llevaría a «Sin acceso» y no se dibuja. */
+  puedeVerCompras?: boolean;
   plazoFijado: PlazoFijado | null;
   /** Los días con que se cuenta (el fijado o el supuesto de fábrica). */
   diasParaLlegar: number;
@@ -71,7 +74,7 @@ export function SupuestosDelPlan({
           <Fila
             nombre="Ya pedido en órdenes"
             accion={
-              pedido.ordenes.length > 0 ? (
+              pedido.ordenes.length > 0 && puedeVerCompras ? (
                 <Link href="/compras/ordenes" className="btn-cayla btn-enlace">
                   Ver las órdenes
                 </Link>

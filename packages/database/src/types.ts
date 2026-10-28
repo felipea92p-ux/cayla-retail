@@ -5399,15 +5399,6 @@ export type Database = {
         Args: { p_persona_id: string; p_terminal: string; p_ubicacion_id: string }
         Returns: undefined
       }
-      ajustar_insumo_por_conteo: {
-        Args: {
-          p_cantidad_contada: number
-          p_insumo_id: string
-          p_motivo: string
-          p_ubicacion_id: string
-        }
-        Returns: string
-      }
       anular_compra: {
         Args: { p_compra_id: string; p_motivo: string }
         Returns: undefined
@@ -7277,24 +7268,6 @@ export type Database = {
           faltaron: number
           pendientes: number
           variante_id: string
-        }[]
-      }
-      fn_costo_historial: {
-        Args: { p_variante_id: string }
-        Returns: {
-          cantidad_nueva: number
-          compra_documento: string
-          costo_anterior: number
-          costo_resultante: number
-          costo_unitario_nuevo: number
-          created_at: string
-          id: string
-          lote_guia: string
-          origen: string
-          produccion_referencia: string
-          proveedor_nombre: string
-          stock_previo: number
-          usuario_nombre: string
         }[]
       }
       fn_cotizacion_maquila_vigente: {
