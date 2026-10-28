@@ -43,8 +43,8 @@
 -- CÓMO SE PEGA EN PRODUCCIÓN. DESPUÉS de 20261027222000 y 20261028153000 (aborta con un mensaje si faltan) y ANTES de cerrar octubre: el
 -- diario de un mes cerrado se congela (`diario_cerrado`), y un mes cerrado sin estas reclasificaciones dejaría la 201 desfasada para siempre.
 -- UNA sola parte: solo funciones y una fila de `cuentas` (ni `alter`, ni políticas, ni `drop trigger`: CLAUDE.md «Políticas y deadlocks»).
--- Idempotente (un ancla ya aplicada no hace nada; si un ancla no aparece las veces esperadas, ABORTA sin tocar nada) y sin `select … into`
--- dentro de un texto entre comillas. La última línea dice «QUEDÓ BIEN».
+-- Idempotente (un ancla ya aplicada no hace nada; si un ancla no aparece las veces esperadas, ABORTA sin tocar nada) y sin ninguna lectura
+-- que guarde su resultado en una variable dentro de un texto entre comillas (ADR-0288). La última línea dice «QUEDÓ BIEN».
 --
 -- COMO DESHACERLA (down). Quitar de `fn_asientos` la línea `union all select * from retail.fn_asientos_claure(...)` y de `fn_bal_stock` el CTE
 -- `de_otros` (y su `union all`) y el filtro `fn_dueno_de_la_linea` de `vendido_web`/`anulado_web`; y de `fn_bal_causas_mercaderia` el filtro
