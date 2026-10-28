@@ -504,6 +504,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio, cuánto cobra por prenda (su lista de precios lo sugiere), desde cuántas prendas cobra y para cuándo lo promete. En la demo no guardamos el cambio.",
     },
     {
+      id: "quitar-paso",
+      ancla: "prod-orden.quitar-paso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Quitar un paso que no se hace",
+      texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar porque no se puede volver a agregar. En la demo no lo quitamos.",
+    },
+    {
       id: "tela",
       ancla: "prod-orden.tela",
       preparar: [{ tipo: "escape" }],
