@@ -1,18 +1,32 @@
 # Backlog · 2026-10-28 · Insumos: una tela con sus colores, en metros (ADR-0554)
 
-- [x] Investigación con cinco agentes y su informe (`docs/investigacion/2026-10-28-insumos-tela-colores-y-compra.md`); las cuatro decisiones de Felipe (ADR-0554).
-- [x] **Actividad 0 construida en la rama:** migración `20261028172000_insumos_candados_de_unidad.sql`, prueba `pnpm pruebas:insumos-candados` (24 casos; con los tres candados rotos, 13 se ponen en rojo), web (una tela solo en metros; coma decimal) y guía interactiva al día. Maquetas en `docs/maquetas/insumos-nueva-tela-2026-10/`.
-- [ ] **Felipe: pegar `20261028172000` en producción** (una sola parte, re-ejecutable). Antes: `select codigo, unidad_medida from retail.insumos where tipo = 'tela' and unidad_medida <> 'metro';` y la consulta de códigos del encabezado deben dar 0 filas (si no, la migración se detiene y lo dice). Después: refrescar el volcado (`pnpm datos:generar:produccion`); no cambian tablas ni columnas, sí las restricciones.
-- [ ] **Felipe: mirar el costo del lote de 9 m de `MM-01`** (cargado el 28-oct): el error de la coma pudo dejarlo en S/ 0.00. Si es así, corregir el costo del lote (es dinero).
-- [ ] **Felipe: elegir la cara de «Nueva tela»** (A una hoja / B paso a paso) y confirmar «agregar material» = crear un tejido al vuelo.
-- [ ] **Preguntas abiertas de negocio:** ¿el corte del punto se anota en kilos o en metros?; ¿ancho, gramaje y composición se guardan en el sistema (si no, gana «insumos sueltos en lote» y la tabla sobra)?
-- [x] **Actividad 1 construida en la rama:** migración `20261028175000_materiales_tela_con_colores.sql` (2 partes), prueba `pnpm pruebas:materiales` (40 casos con mutaciones).
-- [x] **Actividad 2 construida en la rama (cara A):** `NuevaTelaModal`, lista agrupada por tela, reglas puras `lib/tela-nueva-reglas.ts`; guía de foco, guía interactiva, huella y escenario de modo oscuro al día.
-- [ ] **Felipe: pegar `20261028175000` en producción** (después de `20261028172000`; parte 1 y luego parte 2). El `MM-01` existente pasará a `MM-01-ARN`. Después: refrescar el volcado y los tipos.
-- [x] **«Nueva tela» vista en el navegador con datos inventados y sin base** (escritorio, 375 px, claro y oscuro; modo «Agregar colores»): la tela repetida avisa, el kilo calcula el rinde con coma decimal, la carta de colores elige y el botón del celular cabe. Salieron dos arreglos (rótulo de «Tejido» y botón cortado a 375 px) y quedaron hechos.
-- [ ] **Lo que esa prueba NO cubre:** el guardado de verdad (`crear_material` / `agregar_colores_a_material` desde la pantalla contra una base con la migración pegada), `pnpm --filter web tema:auditar -- --cuenta admin-taller --ruta /produccion/insumos --escenarios`, `guias:recorrer` de `produccion.insumos` (escritorio y 375 px), `/formidable` con una persona sin contexto y `/chaos` (doble clic en «Crear la tela», dos pestañas).
-- [ ] **Pulido, a 375 px:** la tabla de colores (color, código, kilos, metros, costo, mínimo) se desplaza de lado y los campos de «¿Ya tienes?» quedan fuera de vista; el líder carga el saldo casi siempre en escritorio, pero conviene una fila apilada en el celular.
-- [ ] **Actividades 3 a 6** (ver el ADR, cada una con su OK): «Editar tela» y «Agregar colores»; «Llegó tela» con kilo y rollo; conexión con Nueva orden; cierre con `/formidable`, `/chaos`, `tema:auditar` y guías.
-- [ ] **Otra decisión, de dinero:** qué hace el sistema cuando una orden pasa al stock sin tela anotada (bloquear, marcar «costo sin medir», o restaurar al revertir). Hoy solo avisa (ADR-0510) y el costo promedio se envenena (OP-343: S/ 4,50 en vez de S/ 22,38 en la prueba local).
-- [ ] **Se probó la lógica, no la pantalla corriendo:** el panel no pudo levantar el ERP desde esta ruta. Antes de dar por cerradas las hojas de Insumos: `pnpm --filter web tema:auditar` sobre `/produccion/insumos`, `guias:recorrer` de `produccion.insumos` en escritorio y un vistazo a «Se mide en» (el aviso «Las telas se llevan siempre en metros» puede desalinear la fila de dos columnas).
-- [ ] **Limpieza que no se hizo:** ~10 `replace(",", ".")` sueltos en `lib/` frente a la regla única de plata (`monto-plata-reglas.ts`); `InsumoModales.tsx` sigue en la deuda de `sugerir-archivos.ts`; «Ingresar insumo» abre con el primer insumo A–Z ya elegido (se arregla en la actividad 4); `v_insumo_saldos` sin `security_invoker` (ADR-0090).
+**Estado en producción (28-oct):** la PARTE 1 de `20261028175000` está pegada (el conversor devolvió 1). La PARTE 2 y `20261028172000` se confirman con la consulta de solo lectura. La web publicada es la de antes: **la rama no está subida**.
+
+## Felipe (en este orden)
+- [ ] **Pegar el respaldo de hoy:** `supabase/migrations/pegar-en-produccion-respaldo-materiales-2026-10-28.sql` (solo agrega filas a `respaldo_purgas.filas`; idempotente). Es lo único con fecha de vencimiento: antes de que alguien edite la tela.
+- [ ] **Pegarme el resultado de la consulta de solo lectura** (la del chat; el conector de Supabase me negó el permiso): confirma `20261028172000`, la PARTE 2 y que las 11 funciones son las del repo (md5).
+- [ ] **Pegar lo que falte, por separado** (nunca el archivo entero): `20261028172000`; la PARTE 2 de `20261028175000` (desde su `set lock_timeout`).
+- [ ] **Pegar `20261028203000`** (una sola pegada) **antes de publicar la web** nueva. Hace posible «Editar tela» y cierra lo que la revisión encontró.
+- [ ] **Subir la rama y abrir el PR en borrador con `/abrir-pr`** (producción corre SQL que solo vive en este worktree; la rama está 25 commits atrás de `main`, los choques esperados son `docs/ARQUITECTURA.md`, `docs/SESIONES-ACTIVAS.md`, `package.json` y `scripts/ci/pruebas-postgres.mjs`). Marcar «SQL pegado» solo cuando la consulta salga completa.
+- [ ] **Después de publicar la web:** `select * from retail.fn_materializar_insumos_sueltos();` (ensaya) y, si cuadra, `…(true)`.
+- [ ] **Mirar el costo del lote de 9 m de `MM-01`:** el error de la coma pudo dejarlo en S/ 0.00 (es dinero).
+- [ ] **Decidir una cuestión de permisos** (detalle en el chat del 28-oct; el repo es público y no la documenta).
+- [ ] **Decidir G16:** colores en bloque, código generado y compra por rollo para los avíos (hoy solo la tela).
+- [ ] **Elegir la cara de «Nueva tela»** (A una hoja / B paso a paso) y confirmar «agregar material» = crear un tejido al vuelo.
+- [ ] **Mientras la web vieja siga publicada:** que el Taller no cree insumos nuevos de tela, no use «Editar la ficha» de `MM-01-ARN` y escriba los costos con punto.
+
+## Hecho en la rama
+- [x] Investigación, cuatro decisiones de Felipe y maquetas (`docs/investigacion/…`, `docs/maquetas/insumos-nueva-tela-2026-10/`).
+- [x] Actividad 0 (candados de unidad, `20261028172000`), 1 (la tela en la base, `20261028175000`) y 2 («Nueva tela» y la lista por tela, cara A).
+- [x] **Actividad 3 y la revisión adversarial** (30 hallazgos, 0 refutados): `20261028203000` (`editar_material`, endurecimiento, conversor que ensaya y no aborta), la hoja «Editar tela», las piezas compartidas con «Nueva tela», los costos de céntimos, las cotas del kilo, el respaldo y el deshacer **ensayado** (`pnpm pruebas:materiales` 77 casos, grupo R). Detalle y tabla de hallazgos en el ADR-0554.
+- [x] `tema:auditar` de Insumos (7 escenarios, 0 hallazgos en oscuro), `guias:recorrer` (26 pasos), navegador a 375 px y escritorio, aviario (`materiales` es de Gallito).
+
+## Pendiente (cada actividad, con su OK)
+- [ ] **Actividad 4:** «Llegó tela» con kilo y rollo → metros, el factor medido por lote (envoltorio de `recibir_insumo`; las otras dos puertas de lotes no cambian). Hasta entonces el saldo en kilos o rollos se convierte con el rinde de la ficha y la nota del lote dice lo que se contó.
+- [ ] **Actividad 5:** conexión con Nueva orden y enlaces «Regístralas ahí».
+- [ ] **Actividad 6:** cierre con `/formidable` (una persona sin contexto), `/chaos` formal sobre las pantallas que guardan, `tema:auditar` a 375 px y guías.
+- [ ] **Después de pegar en producción:** refrescar el volcado (`pnpm datos:generar:produccion`, `pnpm datos:comparar`) y los tipos: el diccionario de datos todavía no trae `materiales`. Mientras tanto el aviario solo avisa «en el aviario, pero no en el volcado».
+- [ ] **Archivar una tela o un color** (un color con saldo no se archiva): no existe todavía.
+- [ ] **Otra decisión, de dinero y fuera de este trabajo:** qué hace el sistema cuando una orden pasa al stock sin tela anotada (bloquear, marcar «costo sin medir», o restaurar al revertir). Hoy solo avisa (ADR-0510) y el costo promedio se envenena (OP-343: S/ 4,50 en vez de S/ 22,38 en la prueba local).
+- [ ] **Medir en la pila Supabase** si `drop function … cascade` y `drop table` de la PARTE B del deshacer toman los candados de `auth` y `storage` (la base local no trae sus disparadores de eventos).
+- [ ] **Limpieza que no se hizo:** ~10 `replace(",", ".")` sueltos en `lib/` frente a la regla única de plata (`monto-plata-reglas.ts`); `InsumoModales.tsx` sigue en la deuda de `sugerir-archivos.ts`; «Ingresar insumo» abre con el primer insumo A–Z ya elegido (se arregla en la actividad 4); `v_insumo_saldos` sin `security_invoker` (ADR-0090); un color que se renombra en Catálogo deja el nombre copiado del insumo hasta que alguien edite la tela.

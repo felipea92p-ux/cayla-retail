@@ -318,3 +318,10 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `vitrina_look_piezas` | 02 · Loro |
 | `vitrina_looks` | 02 · Loro |
 | `vitrina_productos` | 02 · Loro |
+
+## En el aviario, pero no en el volcado de producción
+
+Puede ser SQL que todavía no se pegó allá, o un volcado viejo que todavía no la conoce (cómo refrescarlo:
+`COMO-REFRESCAR.md`). Si la tabla ya no existe, sobra en `scripts/datos/aviario.mjs`.
+
+- `materiales`

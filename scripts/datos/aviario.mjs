@@ -338,7 +338,11 @@ export const AVIARIO = [
       "produccion_vueltas", "produccion_vuelta_lineas", "producto_consumos", "proveedor_tarifas",
       // ADR-0513: los avíos de un modelo y lo que de verdad se gastó por orden cerrada (lo declarado vive en `producto_consumos`). Los propone
       // «Nueva orden» y los escribe `cerrar_produccion`: Producción. Asignadas en el refresco del volcado del 2026-10-26.
-      "producto_avios", "producto_consumo_medido"] },
+      "producto_avios", "producto_consumo_medido",
+      // ADR-0554: la TELA (qué es y cómo se compra); sus colores son filas de `insumos`, que ya son de Gallito. La escriben `crear_material`, `agregar_colores_a_material`
+      // y `editar_material` desde Producción ▸ Insumos. En producción desde el 2026-10-28 (20261028175000); el volcado se refresca después, y hasta entonces el aviario solo avisa
+      // «en el aviario, pero no en el volcado». Asignada con el resto de Producción.
+      "materiales"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
