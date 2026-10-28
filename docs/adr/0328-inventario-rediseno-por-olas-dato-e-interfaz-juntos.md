@@ -595,8 +595,9 @@ las dos deja una prenda «con unidades» sin unidades. Con una sola función, el
 **SE ROMPE SI:** alguien cambia la firma de `crear_producto_con_stock_inicial`, `crear_producto_con_empresa` o `recibir_lote` sin tocar la
 nueva (`pnpm pruebas:alta-con-llegada` la llama de punta a punta en el CI); o se agrega otra puerta de alta que vuelva a apagar la tabla.
 
-**Falta:** pegar `20261028221000` en producción (una sola parte, solo una función nueva) ANTES de publicar la web: sin ella, el alta con la
-carga cerrada y unidades responde que no encontró la función. Sin unidades, el alta sigue por la puerta de siempre.
+**En producción desde el 2026-10-28:** `20261028221000` aplicada por Claude con el OK de Felipe (línea de comandos de Supabase, archivo tal cual,
+«QUEDÓ BIEN»), antes de publicar la web. Producción no tiene la lista de la hora declarada en `fn_actor_persona_id` (20261013155000), así que no
+hubo nada que sumar: la hora declarada vale en todas las funciones.
 
 **Corrección del mismo día (/chaos, semilla 2810):** la llegada ya **no le manda el costo a `recibir_lote`**. Con un costo igual o mayor
 que el precio (que el alta solo avisa), `recibir_lote` lo rechazaba como «costo fuera de lo normal» y el alta entera fallaba, o pedía a un

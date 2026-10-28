@@ -22,3 +22,8 @@ Felipe se lleva: un hallazgo nuevo (costo ≥ precio bloquea el alta con «costo
 Qué hice: la llegada ya no manda el costo a `recibir_lote` (costo ≥ precio se crea); `limpiarCantidad` corta un decimal («2,5» → 2) y lee un millar («1,200»); el selector de sede pregunta «¿Salir sin guardar?» si alguna pantalla tiene algo a medias (`antesDeRehacerLaPantalla`); `limpiarPrecio` lee un monto pegado entero («S/. 59», «1.299,50») y Nuevo producto la usa también en precio y costo. Cada uno con su prueba primero.
 Por qué así: Felipe pidió arreglarlos todos; el primero tocaba la función de la base y lo autorizó él.
 Felipe se lleva: los cuatro ataques repetidos con la semilla 2810 en el navegador resisten, invariantes limpias y base restaurada idéntica; 163.938 pruebas web y 16/16 de la base en verde. Queda: «2,5» tecleado letra por letra.
+
+## 2026-10-28 (Migraciones pendientes aplicadas en producción, con el OK de Felipe)
+Qué hice: una consulta de solo lectura comparó con producción las 37 migraciones desde el 26-oct; faltaban 7. Las apliqué una por una y en orden, cada archivo tal cual, por la línea de comandos de Supabase (`supabase db query --linked -f`; nunca `db push`, que reintentaría las registradas con otra versión): `20261026163000`, `20261026180000`, `20261026210000`, `20261026214000`, `20261028065000` (de `main`) y `20261028184000`, `20261028221000` (de esta rama).
+Por qué así: Felipe pidió «aplícalas tú»; el conector de Supabase no ve CAYLA Dynamic, así que Felipe inició sesión en la línea de comandos.
+Felipe se lleva: la verificación da 37 de 37 «ya está» y cada una se comprobó por su marca; la carpeta quedó desvinculada de producción. Falta refrescar el volcado (`docs/datos/generado/`) y anotar las cinco de `main` en sus propios documentos.

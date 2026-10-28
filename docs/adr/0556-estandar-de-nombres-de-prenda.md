@@ -1,8 +1,8 @@
 # ADR-0556 — El estándar de nombres de prenda: «Tipo + nombre», primero el del proveedor si sirve, si no una flor
 
 - **Fecha:** 2026-10-28 · **Estado:** **construido en la rama `claude/fashion-naming-standards-3bd259`**; la migración
-  `20261028184000_nombre_del_proveedor.sql` está aplicada en la base local y **no está en producción** (la pega Felipe, una sola parte; puede ir antes o
-  después de publicar la web: sin la columna, la web sigue funcionando sin el dato).
+  `20261028184000_nombre_del_proveedor.sql` **está en producción desde el 2026-10-28** (aplicada por Claude con el OK de Felipe, por la línea de comandos de
+  Supabase, archivo tal cual; verificado: la columna y la función existen).
 - **Nace de:** la investigación `docs/investigacion/2026-10-28-como-nombran-sus-prendas-las-grandes-tiendas.md` y tres decisiones de Felipe el mismo día:
   el proceso propuesto («me gusta ese proceso»), el tema de los nombres (flores, en vez de ciudades del Perú) y la prioridad del nombre del proveedor
   («Proveedor si sirve»).
@@ -68,7 +68,6 @@ que rechaza la base). Editar producto avisa lo mismo al renombrar; un nombre vie
 
 ## Lo que queda pendiente
 
-- **Pegar `20261028184000` en producción** (OK de Felipe). Hasta entonces la fila de Editar producto no se dibuja y el dato no se guarda (la prenda sí).
 - **Sin conexión, el dato del proveedor no viaja** con el alta en cola: la pantalla lo dice y se completa en Editar producto.
 - **Mostrar el nombre del proveedor en Compras** (órdenes, reposición) **y buscarlo** desde los buscadores del ERP: toca otro módulo; va en su propio paso.
 - **Ordenar los nombres que ya existen** (los que llevan color, descripción o un número): un listado para que Felipe decida cuáles renombrar.
