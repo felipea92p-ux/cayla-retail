@@ -6,7 +6,7 @@ Solo documentación, sin migración ni cambio de código. Cuatro sesiones del gr
 
 Antes de lanzar cualquiera: revisar `docs/SESIONES-ACTIVAS.md` por si otra sesión ya toca `registrar_movimiento_caja` o la producción.
 
-- [ ] **1. «Problema de registro» / «Mismo token deshecho en registrar_movimiento…» (el más urgente: toca inventario y dinero).**
+- [x] **1. «Problema de registro» / «Mismo token deshecho en registrar_movimiento…» — YA RESUELTO en el PR #1419** (`fix(dinero): reintentar un movimiento deshecho ya no responde «registrado» en falso`, ADR-0548, migración `20261028012000`). El bug era de `registrar_movimiento_dinero`, no de `registrar_movimiento_caja`: un reintento con el mismo token tras deshacer un movimiento devolvía el anulado como si fuera nuevo. **Falta pegar la migración en producción** (decisión de Felipe, dinero; ver el PR). El prompt de abajo se conserva solo como historia: no lanzarlo.
 
 ```
 Repo cayla-retail. Antes de tocar nada lee docs/adr/0398-el-envio-sigue-al-contenido-y-los-candados-de-ventas.md y docs/adr/0190*.
