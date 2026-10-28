@@ -4,6 +4,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
@@ -382,42 +383,9 @@ export async function getExistencias(
  */
 export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("variantes")
-    .select(
-      `id, sku, codigo, talla:tallas ( valor ),
-       color:colores ( nombre, hex ),
-       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
-       codigos_barras ( codigo )`
-    )
-    .eq("id", varianteId)
-    .eq("activo", true)
-    .maybeSingle();
+  const { data, error } = await supabase.from("variantes").select(COLUMNAS_FILA_EN_CERO).eq("id", varianteId).eq("activo", true).maybeSingle();
   if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
-  return {
-    varianteId: data.id,
-    productoId: data.producto?.id ?? "",
-    sku: codigoDeEtiqueta(data),
-    talla: data.talla?.valor ?? null,
-    color: data.color?.nombre ?? null,
-    colorHex: data.color?.hex ?? null,
-    referencia: data.producto?.referencia ?? "",
-    categoria: data.producto?.categoria?.nombre ?? null,
-    categoriaPrefijo: data.producto?.categoria?.prefijo ?? null,
-    categoriaFamilia: data.producto?.categoria?.familia ?? null,
-    codigosBarras: (data.codigos_barras ?? []).map((c) => c.codigo),
-    fotoUrl: fotoPrincipal(data.producto?.producto_fotos),
-    total: 0,
-    piso: separaPisoAlmacen ? 0 : null,
-    almacen: separaPisoAlmacen ? 0 : null,
-    danado: separaPisoAlmacen ? 0 : null,
-    apartado: 0,
-    disponible: 0,
-    pisoDisponible: separaPisoAlmacen ? 0 : null,
-    almacenDisponible: separaPisoAlmacen ? 0 : null,
-    enTransito: 0,
-    enRed: [],
-  };
+  return filaEnCero(data, separaPisoAlmacen);
 }
 
 export type ResumenExistencias = ResumenInventario & {
