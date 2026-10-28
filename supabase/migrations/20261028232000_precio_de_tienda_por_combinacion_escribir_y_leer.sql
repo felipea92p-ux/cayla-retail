@@ -371,11 +371,13 @@ $n$retail.fn_precio_en_sede(v.id, p_ubicacion_id) as precio
                               where pv.variante_id = v.id and pv.ubicacion_id = p_ubicacion_id and pv.archivado_en is null))) x$n$,
 1);
 
--- Las excepciones cuentan entre los «precios propios de una tienda» de la prenda (la hacen no eliminable, como su precio de tienda).
+-- Las excepciones cuentan entre los «precios propios de una tienda» de la prenda (la hacen no eliminable, como su precio de tienda). El ancla es
+-- el renglón de ANTES (el de la tabla histórica `precios_sede`) y no toca el del precio de la prenda: otra migración (20261014234000) ancla su
+-- reemplazo sobre ese renglón tal cual, y una prueba que la recarga sobre la base ya migrada lo busca intacto.
 select pg_temp.reemplazar('retail.fn_producto_historia(uuid)',
-$v$        + (select count(*) from retail.precios_sede_prenda x where x.producto_id = p_producto_id), false$v$,
-$n$        + (select count(*) from retail.precios_sede_prenda x where x.producto_id = p_producto_id)
-        + (select count(*) from retail.precios_sede_variante x where x.variante_id in (select id from vs)), false$n$,
+$v$        (select count(*) from retail.precios_sede x where x.variante_id in (select id from vs))$v$,
+$n$        (select count(*) from retail.precios_sede x where x.variante_id in (select id from vs))
+        + (select count(*) from retail.precios_sede_variante y where y.variante_id in (select id from vs))$n$,
 1);
 
 -- El filtro de Productos por precio: la misma regla de cobro, escrita en línea.

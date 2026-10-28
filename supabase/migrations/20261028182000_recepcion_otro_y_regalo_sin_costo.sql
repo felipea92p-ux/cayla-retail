@@ -81,8 +81,10 @@ $v$    if v_k.despacho_item_id is not null then
       v_costo := coalesce(v_costo, v_k.precio_unitario);
     elsif exists$v$,
 $n$    if v_k.despacho_item_id is null and nullif(btrim(coalesce(v_d ->> 'sobrante_causa', '')), '') = 'regalo' then
-      -- ADR-0393 (2026-10-28): un regalo de fuera de la guía no costó nada: entra a S/ 0 (obsequio) sin pedir ni leer el costo.
+      -- ADR-0393 (2026-10-28): un regalo de fuera de la guía no costó nada: entra a S/ 0 (obsequio) sin pedir ni leer el costo, ni el de la línea
+      -- ni los de sus prendas o combinaciones (se descartan aquí, antes de que nadie los lea: así no se toca el texto que ADR-0519 ancló más abajo).
       v_costo := 0;
+      v_d := v_d - 'costos_prendas';
     elsif v_k.despacho_item_id is not null then
       v_costo := coalesce(v_costo, v_k.precio_unitario);
     elsif exists$n$,
@@ -108,17 +110,6 @@ $n$      raise exception 'La nota de % es muy larga: hasta 300 letras', v_k.dond
     end if;
 $n$,
 1);
--- (c) Los costos propios de las prendas de un regalo no cuentan: todo entra a S/ 0.
-select pg_temp.reemplazar('retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)',
-$v$    v_cp := retail.fn_envio_costos_prendas(v_d, v_sep, v_k.donde);
-$v$,
-$n$    v_cp := retail.fn_envio_costos_prendas(v_d, v_sep, v_k.donde);
-    if v_k.despacho_item_id is null and v_sobr = 'regalo' then
-      v_cp := '{}'::jsonb; -- un regalo de fuera de la guía entra todo a S/ 0
-    end if;
-$n$,
-1);
-
 -- ---------- 3. La puerta única al stock: un regalo de fuera de la guía no es un costo atípico ----------
 select pg_temp.reemplazar('retail.fn_recepcion_entrar(uuid,uuid,text,text,uuid,jsonb,uuid[],text)',
 $v$   where (v ->> 'cantidad')::integer > 0
