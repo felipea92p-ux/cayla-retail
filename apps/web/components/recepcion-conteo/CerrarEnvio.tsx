@@ -593,22 +593,14 @@ export function CerrarEnvio({
             })}
       </Tabla>
 
-      <Aviso tono="atencion" titulo="El costo de cada prenda se puede corregir aquí">
-        {sinAviso
-          ? "Lo que llega sin aviso entra sin costo si lo dejas vacío; la factura lo trae después. "
-          : "Viene de la orden: si la factura dice otra cosa, corrígelo. "}
-        Cambia el costo de lo que entra en este envío; lo comprado y recibido antes no se toca. El costo y el precio de venta se cambian por prenda, solo de las que ya identificaste o describiste: abre la fila. El de venta rige
-        desde ahora: lo ya vendido guarda su precio. Los dos quedan en el historial de la prenda.
-      </Aviso>
-
-      <p className="nota-cayla">
-        {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
-        ¿Alguna llegó dañada? Márcala en «Tallas y colores» (va a la cuarentena), o repórtala después en Existencias.
-      </p>
-      {porDetallar > 0 && (
+      {/* UN solo mensaje debajo de la tabla (Felipe 2026-10-28): lo que pasa al apretar «Cerrar». Antes había otros dos: las reglas del costo (la fila abierta
+          ya muestra sus cajas con su «Antes» y la confirmación lista lo que cambia) y «¿Alguna llegó dañada?» (eso se anota al contar, en «Anotar observación»). */}
+      {(porDetallar > 0 || sinAviso) && (
         <p className="nota-cayla">
-          Cerrar el envío deja el conteo oficial y {porDetallar} {porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo
-          nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.
+          {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : ""}
+          {porDetallar > 0
+            ? `Cerrar el envío deja el conteo oficial y ${porDetallar} ${porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.`
+            : ""}
         </p>
       )}
 
