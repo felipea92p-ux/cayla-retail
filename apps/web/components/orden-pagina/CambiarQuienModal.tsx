@@ -6,6 +6,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { FilaFase } from "@/components/orden-produccion/FasesDeLaOrden";
+import { useAltaDeProveedorServicio } from "@/components/orden-produccion/useAltaDeProveedorServicio";
 import { avisar } from "@/components/ui/Avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -65,7 +66,10 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
 
-  const proveedores = useMemo(() => proveedoresQueSirven(opciones?.datos?.proveedores ?? []), [opciones]);
+  const proveedoresDelDirectorio = useMemo(() => proveedoresQueSirven(opciones?.datos?.proveedores ?? []), [opciones]);
+  // Quien todavía no está en el directorio se registra desde aquí (la hoja no se cierra ni se pierde lo elegido).
+  const altaProveedor = useAltaDeProveedorServicio(proveedoresDelDirectorio, (n) => ({ ...n, tarifas: [] }));
+  const proveedores = altaProveedor.proveedores;
   const opcionesProveedor = useMemo(() => proveedores.map((p) => ({ valor: p.id, texto: p.nombre })), [proveedores]);
   const lista = useMemo<TarifaDeLista[]>(
     () => (opciones?.datos?.proveedores ?? []).flatMap((p) => p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))),
@@ -152,6 +156,7 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
                 opcionesProveedor={opcionesProveedor}
                 problemas={problemas}
                 onCambiar={(parche) => setBorrador((b) => ({ ...b, ...parche }))}
+                onAgregarProveedor={altaProveedor.abrir}
               />
             </div>
             {!opciones?.datos && (
@@ -180,6 +185,7 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
           </div>
         </div>
       </form>
+      {altaProveedor.modal}
       {avisoSalida.aviso}
     </Modal>
   );

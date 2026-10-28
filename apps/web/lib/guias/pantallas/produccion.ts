@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges si la hace el Taller o sale afuera: si sale, el servicio, su precio y la fecha (el ploteo cobra una vez por orden).",
+      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos, Planchado y Etiquetar van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿No está en la lista? «+ Registrar proveedor nuevo».",
     },
     {
       id: "tela",
@@ -501,7 +501,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
-      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio, cuánto cobra por prenda (su lista de precios lo sugiere), desde cuántas prendas cobra y para cuándo lo promete. En la demo no guardamos el cambio.",
+      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (si no está, «+ Registrar proveedor nuevo»), cuánto cobra por prenda (su lista de precios lo sugiere), desde cuántas prendas cobra y para cuándo lo promete. En la demo no guardamos el cambio.",
     },
     {
       id: "tela",

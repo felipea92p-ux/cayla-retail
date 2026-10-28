@@ -116,9 +116,11 @@ export type PropsFasesDeLaOrden = {
   guia: GuiaCampos;
   /** Lo que dijo `problemasFases` (el formulario lo calcula una vez y lo comparte con su guía de foco). */
   problemas: ProblemaFase[];
+  /** «+ Registrar proveedor nuevo» bajo el combo de cada fase de afuera (ver `useAltaDeProveedorServicio`). */
+  onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
 };
 
-export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas }: PropsFasesDeLaOrden) {
+export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, onAgregarProveedor }: PropsFasesDeLaOrden) {
   const sirven = proveedoresQueSirven(proveedores);
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
   const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
@@ -157,6 +159,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
               problemas={problemas.filter((p) => p.clave === fase.clave)}
               onCambiar={(parche) => cambiar(fase.clave, parche)}
               onApagar={() => cambiar(fase.clave, { encendida: false })}
+              onAgregarProveedor={onAgregarProveedor}
             />
           ))}
           {apagadas.length > 0 && (
@@ -192,6 +195,7 @@ export function FilaFase({
   problemas,
   onCambiar,
   onApagar,
+  onAgregarProveedor,
 }: {
   fase: FaseBorrador;
   totalPrendas: number;
@@ -202,6 +206,8 @@ export function FilaFase({
   problemas: ProblemaFase[];
   onCambiar: (parche: Partial<FaseBorrador>) => void;
   onApagar?: () => void;
+  /** Abre el alta de un proveedor de servicio; `alRegistrar` recibe el id del nuevo para elegirlo en esta fase. Sin ella, no se ofrece (la hoja que lo usa no lo permite). */
+  onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
 }) {
   const def = faseDe(fase.clave);
   const nombreEnFrase = def.nombre.toLocaleLowerCase("es");
@@ -232,6 +238,27 @@ export function FilaFase({
   const minimoVacio = fase.minimo.trim() === "";
   const pieMinimo = sugerida?.minimo != null && minimoVacio ? "de su lista de precios" : "desde cuántas prendas cobra";
   const idBase = `fase-${fase.clave}`;
+
+  // El combo y, debajo, la salida para quien todavía no está en el directorio (el alta de Producción, sin salir de la hoja).
+  const campoProveedor = (
+    <div>
+      <CampoSelect
+        id={`${idBase}-proveedor`}
+        etiqueta="Proveedor"
+        valor={fase.proveedorId ?? ""}
+        onValor={(v) => onCambiar({ proveedorId: v || null })}
+        opciones={opciones}
+        marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
+        deshabilitado={opciones.length === 0}
+        {...pieDe("proveedor")}
+      />
+      {onAgregarProveedor && (
+        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ proveedorId: id }))} className="btn-cayla btn-enlace mt-1 text-[13px]">
+          + Registrar proveedor nuevo
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-3 px-3.5 py-3">
@@ -266,16 +293,7 @@ export function FilaFase({
 
       {servicio && def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          <CampoSelect
-            id={`${idBase}-proveedor`}
-            etiqueta="Proveedor"
-            valor={fase.proveedorId ?? ""}
-            onValor={(v) => onCambiar({ proveedorId: v || null })}
-            opciones={opciones}
-            marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
-            deshabilitado={opciones.length === 0}
-            {...pieDe("proveedor")}
-          />
+          {campoProveedor}
           <CampoMonto
             id={`${idBase}-fijo`}
             etiqueta="Cobra por esta orden"
@@ -297,16 +315,7 @@ export function FilaFase({
 
       {servicio && !def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          <CampoSelect
-            id={`${idBase}-proveedor`}
-            etiqueta="Proveedor"
-            valor={fase.proveedorId ?? ""}
-            onValor={(v) => onCambiar({ proveedorId: v || null })}
-            opciones={opciones}
-            marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
-            deshabilitado={opciones.length === 0}
-            {...pieDe("proveedor")}
-          />
+          {campoProveedor}
           <CampoMonto
             id={`${idBase}-tarifa`}
             etiqueta="Por prenda"
