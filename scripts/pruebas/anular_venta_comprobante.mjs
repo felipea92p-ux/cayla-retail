@@ -20,7 +20,11 @@
  *      el comportamiento visible, no prueba el código nuevo).
  *   8. La reparación de la migración: un pendiente que YA quedó colgado de una venta anulada
  *      (anulada antes de esta migración) pasa a `no_emitido` con los datos de quien anuló.
- *   9. Quién libera o anula un comprobante (ADR-0534, 20261027164000; antes, solo un líder): sin el módulo
+ *   9. `aceptado` SIN baja pedida sigue frenando la anulación (Historial no anula una venta facturada).
+ *  10. `aceptado` CON la baja ya pedida a SUNAT (`anulacion_solicitada_at`, en trámite) deja anular la venta
+ *      (`20261014165000`, ADR-0016 act. 2026-10-14: la baja anula la venta en el mismo acto); el comprobante sigue
+ *      aceptado con su baja en trámite y, cuando SUNAT la confirma, queda anulado. La prenda vuelve al stock.
+ *  11. Quién libera o anula un comprobante (ADR-0534, 20261027164000; antes, solo un líder): sin el módulo
  *      Facturación, 42501 en `marcar_comprobante_no_emitido` y en `anular_comprobante`, y nada cambia; con
  *      Facturación, una integrante (no líder) lo libera y queda a su nombre.
  *
@@ -230,12 +234,44 @@ do $$ begin
   end;
 end $$;
 
+-- J: comprobante ACEPTADO sin baja pedida → anular se niega (Historial no anula una venta facturada)
+select ${VENTA_CON_BOLETA} as j \\gset
+${ITEM_DE("j")}
+select id as j_cmp from retail.comprobantes where venta_id = :'j' \\gset
+select retail.actualizar_transmision_comprobante(:'j_cmp', 'aceptado', 'sandbox', '{}'::jsonb, null) as _acep_j \\gset
+select set_config('t.j', :'j', true) as _g3 \\gset
+select set_config('t.j_items', (${ITEMS_ANULACION("j")})::text, true) as _g4 \\gset
+do $$ begin
+  begin
+    perform retail.anular_venta(current_setting('t.j')::uuid, 'prueba automatizada', current_setting('t.j_items')::jsonb);
+    insert into _r values ('j_error', '(no falló)');
+  exception when others then
+    insert into _r values ('j_error', sqlerrm);
+  end;
+end $$;
+
+-- K: comprobante ACEPTADO con la baja ya pedida a SUNAT (en trámite) → la venta SÍ se anula y la prenda vuelve al stock;
+--    el comprobante sigue aceptado con su baja en trámite y, al confirmarla SUNAT, queda anulado (ADR-0016 act. 2026-10-14)
+select ${VENTA_CON_BOLETA} as k \\gset
+${ITEM_DE("k")}
+select id as k_cmp from retail.comprobantes where venta_id = :'k' \\gset
+select retail.actualizar_transmision_comprobante(:'k_cmp', 'aceptado', 'sandbox', '{}'::jsonb, null) as _acep_k \\gset
+select retail.anular_comprobante(:'k_cmp', 'se emitió por error', false, '{"estado":"PENDIENTE"}'::jsonb) as _baja_k \\gset
+select retail.anular_venta(:'k', 'prueba automatizada', ${ITEMS_ANULACION("k")}) as _anul_k \\gset
+select 'k_tras_baja|' || estado || '|' || (anulacion_solicitada_at is not null)::text from retail.comprobantes where id = :'k_cmp';
+select retail.anular_comprobante(:'k_cmp', 'se emitió por error', true, '{"estado":"ANULADO"}'::jsonb) as _conf_k \\gset
+select 'k_confirmado|' || estado from retail.comprobantes where id = :'k_cmp';
+select 'k_venta|' || estado from retail.ventas where id = :'k';
+select 'k_stock|' || count(*) from retail.movimientos where venta_item_id = :'k_item' and motivo = 'anulacion_venta' and tipo = 'entrada';
+
 select 'f_error|' || valor from _r where clave = 'f_error';
 select 'f_comprobante|' || estado from retail.comprobantes where id = :'f_cmp';
 select 'f_venta|' || estado from retail.ventas where id = :'f';
 select 'g_error|' || valor from _r where clave = 'g_error';
 select 'g_comprobante|' || estado from retail.comprobantes where venta_id = :'g';
 select 'g_venta|' || estado from retail.ventas where id = :'g';
+select 'j_error|' || valor from _r where clave = 'j_error';
+select 'j_venta|' || estado from retail.ventas where id = :'j';
 rollback;
 `);
 
@@ -257,6 +293,17 @@ rollback;
     (dato2("g_error") ?? "").includes("necesita la condición de cada una") && dato2("g_comprobante") === "pendiente" && dato2("g_venta") === "completada",
     r2.salida
   );
+  esperar(
+    "un comprobante ACEPTADO sin baja pedida sigue frenando la anulación (Historial no anula una venta facturada)",
+    (dato2("j_error") ?? "").includes("comprobante enviado o aceptado") && dato2("j_venta") === "completada",
+    r2.salida
+  );
+  esperar(
+    "con la baja ya pedida a SUNAT, la venta se anula y la prenda vuelve al stock; el comprobante sigue aceptado con su baja en trámite",
+    dato2("k_tras_baja") === "aceptado|true" && dato2("k_venta") === "anulada" && dato2("k_stock") === "1",
+    r2.salida
+  );
+  esperar("y cuando SUNAT confirma la baja, el comprobante queda anulado", dato2("k_confirmado") === "anulado", r2.salida);
 
   // ---- Escenario 3: la reparación de la migración (lo que ya quedó colgado antes de aplicarla) ----
   const reparacion = readFileSync(MIGRACION, "utf8").split("-- Reparación de lo que ya quedó así")[1];
