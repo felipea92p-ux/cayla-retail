@@ -7,11 +7,11 @@ import { alcanzaPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
 import { getProyeccion } from "@/lib/flujo-caja";
 import { verDeLaVista } from "@/lib/vista-global";
 import { explicacionCuenta } from "@/lib/cuentas-dinero-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, detalleCajon, orilloDeDinero, preguntaDeDinero, repisaDe, repisasDeDinero } from "@/lib/dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, detalleCajon, orilloDeDinero, preguntaDeDinero, grupoDe, gruposDeDinero } from "@/lib/dinero-telar-reglas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { SEDE_EMPRESA, SEDE_TODAS, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { Frascos } from "@/components/finanzas/dinero/Frascos";
+import { GruposDeCuentas } from "@/components/finanzas/dinero/GruposDeCuentas";
 import { CierresConDiferencia } from "@/components/finanzas/dinero/CierresConDiferencia";
 
 // Finanzas ▸ Cuentas y dinero ▸ Dónde está (ADR-0195 F3; El telar, Felipe 2026-10-23). Lee en el servidor y deja a una pieza
@@ -42,9 +42,9 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de CAYLA entera y no se le suman.
   const sedeId = ctx.ver.ubicacionId;
-  const tienes = tienesPulso(sedeId ? ctx.cuentas.datos.filter((c) => repisaDe(c) === sedeId) : ctx.cuentas.datos, null);
+  const tienes = tienesPulso(sedeId ? ctx.cuentas.datos.filter((c) => grupoDe(c) === sedeId) : ctx.cuentas.datos, null);
   const esTaller = (c: { ubicacionId: string | null }) => c.ubicacionId !== null && ctx.talleres.includes(c.ubicacionId);
-  const repisas = repisasDeDinero(ctx.cuentas.datos, ctx.ubicaciones, sedeId, hoy, {
+  const grupos = gruposDeDinero(ctx.cuentas.datos, ctx.ubicaciones, sedeId, hoy, {
     explicar: (c) =>
       (c.tipo === "cajon" ? detalleCajon(efectivo.datos.find((f) => f.ubicacionId === c.ubicacionId), esTaller(c)) : null) ?? explicacionCuenta(c, medios.datos, esTaller(c)),
     avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy),
@@ -74,9 +74,9 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       <DineroPulso
         alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)}
         deCaylaEntera={!!sedeId}
-        frascos={
+        grupos={
           <>
-            <Frascos repisas={repisas} sedes={telar.sedes} />
+            <GruposDeCuentas grupos={grupos} sedes={telar.sedes} />
             <CierresConDiferencia cierres={cierres} />
           </>
         }

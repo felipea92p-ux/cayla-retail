@@ -4,7 +4,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
 import { solesRedondo } from "@/lib/gastos-reglas";
-import { colorDeRepisa, type Frasco, type Repisa } from "@/lib/dinero-telar-reglas";
+import { colorDeGrupo, type FilaCuenta, type GrupoCuentas } from "@/lib/dinero-telar-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 
 // Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): cada cuenta es un frasco que se llena hasta su nivel, en la repisa
@@ -14,8 +14,8 @@ import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 
 const JARRA = "M24 4h24v8c0 4 14 6 14 18v58a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V30c0-12 14-14 14-18z";
 
-function DibujoFrasco({ f, i }: { f: Frasco; i: number }) {
-  const y = f.nivel === null ? 96 : 96 - f.nivel * 82 - 8;
+function DibujoCuenta({ f, i }: { f: FilaCuenta; i: number }) {
+  const y = f.escala === null ? 96 : 96 - f.escala * 82 - 8;
   const clip = `din-cl-${f.id}`;
   return (
     <div className="din-frasco" data-oculto={f.saldo === null ? "" : undefined}>
@@ -26,7 +26,7 @@ function DibujoFrasco({ f, i }: { f: Frasco; i: number }) {
           </clipPath>
         </defs>
         <path className="din-vidrio" d={JARRA} />
-        {f.nivel !== null && (
+        {f.escala !== null && (
           <g clipPath={`url(#${clip})`}>
             <g className="din-liquido" style={{ ["--i" as string]: i } as CSSProperties}>
               <rect x="0" y={y} width="72" height="100" />
@@ -50,8 +50,8 @@ function DibujoFrasco({ f, i }: { f: Frasco; i: number }) {
   );
 }
 
-export function Frascos({ repisas, sedes }: { repisas: Repisa[]; sedes: readonly SedeTelar[] }) {
-  if (repisas.length === 0) {
+export function GruposDeCuentas({ grupos, sedes }: { grupos: GrupoCuentas[]; sedes: readonly SedeTelar[] }) {
+  if (grupos.length === 0) {
     return (
       <Superficie>
         <Vacio icono={<Landmark />} titulo="Todavía no hay cuentas: agrega los bancos de CAYLA">
@@ -63,11 +63,11 @@ export function Frascos({ repisas, sedes }: { repisas: Repisa[]; sedes: readonly
   let n = 0;
   return (
     <section className="din-estante" aria-label="Dónde está la plata" data-guia="fin-dinero.cuentas">
-      {repisas.map((r, i) => (
+      {grupos.map((r, i) => (
         <article
           key={r.clave}
           className="din-repisa anim-entra"
-          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeRepisa(r.clave, sedes) } as CSSProperties}
+          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeGrupo(r.clave, sedes) } as CSSProperties}
           aria-label={`${r.titulo}: ${solesRedondo(r.total)}`}
         >
           <header className="din-repisa-cab">
@@ -80,10 +80,10 @@ export function Frascos({ repisas, sedes }: { repisas: Repisa[]; sedes: readonly
               {r.ocultos && <span className="din-repisa-mas"> y lo que no ves</span>}
             </b>
           </header>
-          {r.frascos.length > 0 && (
+          {r.filas.length > 0 && (
             <div className="din-frascos">
-              {r.frascos.map((f) => (
-                <DibujoFrasco key={f.id} f={f} i={n++} />
+              {r.filas.map((f) => (
+                <DibujoCuenta key={f.id} f={f} i={n++} />
               ))}
             </div>
           )}

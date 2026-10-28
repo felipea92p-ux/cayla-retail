@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeRepisa, detalleCajon, preguntaDeDinero, respuestaCuadrar, nivelFrasco, orilloDeDinero, repisaDe, repisasDeDinero, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, detalleCajon, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, ultimoDepositoDe } from "./dinero-telar-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
@@ -29,31 +29,31 @@ const SEDES = [
 const HOY = "2026-10-15";
 const plano = (t: string) => t.replace(/\s/g, " ");
 
-describe("repisaDe", () => {
+describe("grupoDe", () => {
   it("el cajón y la caja fuerte van a su sede; bancos y lo del líder, a CAYLA entera; las máquinas, en camino; la tarjeta no es frasco", () => {
-    expect(repisaDe({ tipo: "cajon", ubicacionId: "tru" })).toBe("tru");
-    expect(repisaDe({ tipo: "caja_fuerte", ubicacionId: "aqp" })).toBe("aqp");
-    expect(repisaDe({ tipo: "banco", ubicacionId: null })).toBe("empresa");
-    expect(repisaDe({ tipo: "por_rendir", ubicacionId: null })).toBe("empresa");
-    expect(repisaDe({ tipo: "por_abonar", ubicacionId: null })).toBe("camino");
-    expect(repisaDe({ tipo: "tarjeta_credito", ubicacionId: null })).toBeNull();
+    expect(grupoDe({ tipo: "cajon", ubicacionId: "tru" })).toBe("tru");
+    expect(grupoDe({ tipo: "caja_fuerte", ubicacionId: "aqp" })).toBe("aqp");
+    expect(grupoDe({ tipo: "banco", ubicacionId: null })).toBe("empresa");
+    expect(grupoDe({ tipo: "por_rendir", ubicacionId: null })).toBe("empresa");
+    expect(grupoDe({ tipo: "por_abonar", ubicacionId: null })).toBe("camino");
+    expect(grupoDe({ tipo: "tarjeta_credito", ubicacionId: null })).toBeNull();
   });
 });
 
-describe("nivelFrasco", () => {
+describe("escalaDeCuenta", () => {
   it("sube con raíz cuadrada, el más lleno llega a 0.93 y lo vacío deja un fondo mínimo", () => {
-    expect(nivelFrasco(18300, 18300)).toBe(0.93);
-    expect(nivelFrasco(4575, 18300)).toBe(0.5); // un cuarto de la plata se ve a la mitad
-    expect(nivelFrasco(0, 18300)).toBe(0.04);
-    expect(nivelFrasco(-50, 18300)).toBe(0.04);
-    expect(nivelFrasco(null, 18300)).toBeNull();
-    expect(nivelFrasco(10, 0)).toBe(0.04);
+    expect(escalaDeCuenta(18300, 18300)).toBe(0.93);
+    expect(escalaDeCuenta(4575, 18300)).toBe(0.5); // un cuarto de la plata se ve a la mitad
+    expect(escalaDeCuenta(0, 18300)).toBe(0.04);
+    expect(escalaDeCuenta(-50, 18300)).toBe(0.04);
+    expect(escalaDeCuenta(null, 18300)).toBeNull();
+    expect(escalaDeCuenta(10, 0)).toBe(0.04);
   });
 });
 
-describe("repisasDeDinero", () => {
+describe("gruposDeDinero", () => {
   it("con todas: una repisa por sede con cuentas, en el orden de las sedes, y después CAYLA entera y En camino", () => {
-    const r = repisasDeDinero(CUENTAS, SEDES, null, HOY);
+    const r = gruposDeDinero(CUENTAS, SEDES, null, HOY);
     expect(r.map((x) => [x.clave, x.titulo, x.total])).toEqual([
       ["tru", "Trujillo", 6700],
       ["aqp", "Arequipa", 3900],
@@ -62,37 +62,37 @@ describe("repisasDeDinero", () => {
       ["camino", "En camino", 2140],
     ]);
     // Lima no tiene cuentas: no sale. La tarjeta y lo archivado no son frascos.
-    expect(r.flatMap((x) => x.frascos.map((f) => f.id))).not.toContain("visa");
-    expect(r.flatMap((x) => x.frascos.map((f) => f.id))).not.toContain("vieja");
+    expect(r.flatMap((x) => x.filas.map((f) => f.id))).not.toContain("visa");
+    expect(r.flatMap((x) => x.filas.map((f) => f.id))).not.toContain("vieja");
   });
   it("el saldo que no se ve no suma, marca la repisa y deja el frasco sin nivel", () => {
-    const aqp = repisasDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "aqp")!;
+    const aqp = gruposDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "aqp")!;
     expect(aqp.ocultos).toBe(true);
-    expect(aqp.frascos.find((f) => f.id === "cAQP")!.nivel).toBeNull();
+    expect(aqp.filas.find((f) => f.id === "cAQP")!.escala).toBeNull();
   });
   it("con una sede: solo su repisa, aunque esté vacía, con la nota que lo dice", () => {
-    expect(repisasDeDinero(CUENTAS, SEDES, "tru", HOY).map((x) => x.clave)).toEqual(["tru"]);
-    const lim = repisasDeDinero(CUENTAS, SEDES, "lim", HOY);
+    expect(gruposDeDinero(CUENTAS, SEDES, "tru", HOY).map((x) => x.clave)).toEqual(["tru"]);
+    const lim = gruposDeDinero(CUENTAS, SEDES, "lim", HOY);
     expect(lim).toHaveLength(1);
-    expect(lim[0].frascos).toEqual([]);
+    expect(lim[0].filas).toEqual([]);
     expect(lim[0].nota).toContain("Todavía no tiene");
   });
   it("el nivel se mide contra el frasco más lleno de TODA la empresa, también con una sede elegida", () => {
-    const tru = repisasDeDinero(CUENTAS, SEDES, "tru", HOY)[0];
-    expect(tru.frascos.find((f) => f.id === "fTRU")!.nivel).toBe(nivelFrasco(6200, 18300));
+    const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY)[0];
+    expect(tru.filas.find((f) => f.id === "fTRU")!.escala).toBe(escalaDeCuenta(6200, 18300));
   });
   it("cada banco trae su insignia de conciliación", () => {
-    const emp = repisasDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "empresa")!;
-    expect(emp.frascos.find((f) => f.id === "bcp")!.insignia?.texto).toContain("conciliada");
-    expect(emp.frascos.find((f) => f.id === "ibk")!.insignia?.texto).toBe("sin conciliar");
+    const emp = gruposDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "empresa")!;
+    expect(emp.filas.find((f) => f.id === "bcp")!.insignia?.texto).toContain("conciliada");
+    expect(emp.filas.find((f) => f.id === "ibk")!.insignia?.texto).toBe("sin conciliar");
   });
 });
 
-describe("repisasDeDinero · el detalle", () => {
+describe("gruposDeDinero · el detalle", () => {
   it("cada frasco lleva lo que dice quien llama, y nada si no dice", () => {
-    const r = repisasDeDinero(CUENTAS, SEDES, "tru", HOY, { explicar: (c) => (c.tipo === "cajon" ? "Caja abierta hoy" : null) })[0];
-    expect(r.frascos.map((f) => f.detalle)).toEqual(["Caja abierta hoy", null]);
-    expect(repisasDeDinero(CUENTAS, SEDES, "tru", HOY)[0].frascos.every((f) => f.detalle === null)).toBe(true);
+    const r = gruposDeDinero(CUENTAS, SEDES, "tru", HOY, { explicar: (c) => (c.tipo === "cajon" ? "Caja abierta hoy" : null) })[0];
+    expect(r.filas.map((f) => f.detalle)).toEqual(["Caja abierta hoy", null]);
+    expect(gruposDeDinero(CUENTAS, SEDES, "tru", HOY)[0].filas.every((f) => f.detalle === null)).toBe(true);
   });
 });
 
@@ -127,8 +127,8 @@ describe("ultimoDepositoDe y avisoCajaFuerte", () => {
     expect(avisoCajaFuerte({ id: "cTRU", tipo: "cajon", saldo: 500 }, MOVS, HOY)).toBeNull();
   });
   it("el aviso llega al frasco cuando la cuenta no trae insignia propia", () => {
-    const tru = repisasDeDinero(CUENTAS, SEDES, "tru", HOY, { avisar: (c) => avisoCajaFuerte(c, MOVS, HOY) })[0];
-    expect(tru.frascos.find((f) => f.id === "fTRU")!.insignia).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
+    const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY, { avisar: (c) => avisoCajaFuerte(c, MOVS, HOY) })[0];
+    expect(tru.filas.find((f) => f.id === "fTRU")!.insignia).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
   });
 });
 
@@ -147,20 +147,20 @@ describe("detalleCajon", () => {
   });
 });
 
-describe("colorDeRepisa", () => {
+describe("colorDeGrupo", () => {
   const TELAR = [
     { clave: "tru", color: "tru" as const },
     { clave: "tal", color: "tal" as const },
     { clave: "alm", color: "otra" as const },
   ];
   it("el hilo de la sede en la barra; la empresa (o sin sede), el de la empresa; lo en camino y lo desconocido, a media voz", () => {
-    expect(colorDeRepisa("tru", TELAR)).toBe("var(--color-sede-tru)");
-    expect(colorDeRepisa("tal", TELAR)).toBe("var(--color-sede-tal)");
-    expect(colorDeRepisa(null, TELAR)).toBe("var(--color-sede-emp)");
-    expect(colorDeRepisa("empresa", TELAR)).toBe("var(--color-sede-emp)");
-    expect(colorDeRepisa("camino", TELAR)).toContain("var(--color-pizarra) 55%");
-    expect(colorDeRepisa("alm", TELAR)).toBe("var(--color-taupe)");
-    expect(colorDeRepisa("nadie", TELAR)).toBe("var(--color-taupe)");
+    expect(colorDeGrupo("tru", TELAR)).toBe("var(--color-sede-tru)");
+    expect(colorDeGrupo("tal", TELAR)).toBe("var(--color-sede-tal)");
+    expect(colorDeGrupo(null, TELAR)).toBe("var(--color-sede-emp)");
+    expect(colorDeGrupo("empresa", TELAR)).toBe("var(--color-sede-emp)");
+    expect(colorDeGrupo("camino", TELAR)).toContain("var(--color-pizarra) 55%");
+    expect(colorDeGrupo("alm", TELAR)).toBe("var(--color-taupe)");
+    expect(colorDeGrupo("nadie", TELAR)).toBe("var(--color-taupe)");
   });
 });
 
