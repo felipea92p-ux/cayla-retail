@@ -40,6 +40,21 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
+// 20261028050000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco). Esta suite recarga 20261019192000 en cada caso y esa migración
+// tiene su candado de md5 sobre la función tal como ella la dejó: se deshace el parche de los cinco pasos antes de cargarla (lo mismo que los `DESHACER_*` de otras suites).
+const DESHACER_CINCO_PASOS = `
+do $deshacer_cinco$
+declare v_def text;
+begin
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'planchado']) then
+      raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura y Planchado'$q$,
+    $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'limpieza_revision', 'planchado', 'etiquetado_embolsado']) then
+      raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar'$q$);
+end
+$deshacer_cinco$;
+`;
 // Las migraciones que dejaron las funciones de fases, avance, cadena, lectura y lista de precios como estaban ANTES (en el orden en que se pegaron).
 const ANTERIORES = [
   "20261014154000_produccion_fases_y_tela_de_la_orden.sql",
@@ -131,6 +146,7 @@ const PRELUDIO = `
 set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_CINCO_PASOS}
 ${MIGRACION}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
