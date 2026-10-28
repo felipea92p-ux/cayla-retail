@@ -305,6 +305,8 @@ export function InventarioPanel({
   // Colgar, Colgar varias y Subir se hacen DENTRO del panel de la talla (`PanelTalla` + `FlujoTalla`, maqueta 2026-10-06): las ventanas
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
+  // Un producto que esta sede nunca movió (sin fila de `stock`): su planilla de ajuste abre con todos sus colores y tallas.
+  const [ajustandoProducto, setAjustandoProducto] = useState<string | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(() => (abrirAjustar && puedeAjustar ? abrirSinFila : null));
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
@@ -1346,6 +1348,17 @@ export function InventarioPanel({
       )}
 
 
+      {ajustandoProducto && (
+        <AjustarInventarioModal
+          productoId={ajustandoProducto}
+          ubicacionId={ubicacionId}
+          sububicaciones={sububicaciones}
+          puedeBajarAlPiso={puedeBajarAlPiso}
+          onClose={() => setAjustandoProducto(null)}
+          alCerrarEnfocar={volverFoco}
+        />
+      )}
+
       {viendoDanados && (
         <ResolverDanadosModal
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
@@ -1383,10 +1396,15 @@ export function InventarioPanel({
         <BuscarPrendaParaAjustar
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
+          sinStock={sinStock}
           onClose={() => setBuscandoAjuste(false)}
           onElegir={(clave, varianteId) => {
             setBuscandoAjuste(false);
             setAbierta({ clave, varianteId, flujo: { tipo: "ajustar" } });
+          }}
+          onElegirSinStock={(productoId) => {
+            setBuscandoAjuste(false);
+            setAjustandoProducto(productoId);
           }}
         />
       )}
