@@ -748,3 +748,20 @@ lo contado entre las líneas (`repartirTotal`, `repartirSeparado`) y las reglas 
 **Lo que se decidió por el camino.** La clase de la barra no puede llamarse `rc-barra`: es una firma de `grafico.avance` en `unificar/familias.mjs` (la barra de avance vieja de «Recibir
 contando»). En el celular el papel sigue ARRIBA del contador, como antes: no se cambió para no mezclar dos decisiones. Probado en el navegador con ENV-000685 (con papel y dos prendas
 anotadas), restaurando la base local con `scripts/flujo-de-negocio/estado.mjs` tras contar.
+
+### «Cerrar»: «Otro», el regalo a S/ 0 y una tabla menos ruidosa (Felipe, 2026-10-28)
+Felipe cerró un envío con 3 Aretes que no venían en el papel y encontró cinco cosas raras en la tabla de «Cerrar».
+- **Mensajes.** Debajo de la tabla había tres. Quedó uno: lo que pasa al cerrar (las prendas «para después» y qué se puede vender hoy), con la frase de «sin aviso». Se quitaron «El costo de cada prenda se
+  puede corregir aquí» (la fila abierta ya muestra «Antes S/ …» y la confirmación lista lo que cambia) y «¿Alguna llegó dañada?» (eso se anota al contar, en «Anotar observación», ADR-0507).
+- **La categoría de fuera de la guía se puede esconder.** Siempre estuvo abierta y sin flecha porque su costo es obligatorio. Ahora arranca abierta pero se contrae; cerrada, dice «Falta el costo»
+  y «Falta: Costo · Aretes» de la guía la reabre.
+- **Una sola caja de costo.** Si una prenda ya identificada o descrita cubre TODO lo que llegó de esa categoría, «Toda la línea» y la caja de la prenda mandaban sobre las mismas unidades. Queda la de
+  la prenda y lo que se escribe vale también para la línea (la base sigue pidiendo el de la línea: es lo mismo que escribir los dos iguales).
+- **«Otro» en «¿Qué pasó?».** Solo para lo de más (los faltantes crean o no una deuda con el proveedor y esa decisión no se tomó). Pide escribir qué fue (hasta 300 letras) en la nota de la línea
+  (`despacho_diferencias.nota` ya existía); sin ella la base no cierra (`recepcion_sobrante_otro`). No crea deuda ni saldo a favor.
+- **Un regalo de fuera de la guía entra a S/ 0 (obsequio) sin pedir costo.** Felipe eligió S/ 0 y no «sin costo»: `despacho_diferencias.costo_unitario` es NOT NULL, una prenda sin costo no entra al
+  promedio y distorsiona el margen, y Compras ya trata un costo 0 como obsequio. La base ignora lo que mande la pantalla (el costo de la línea y los de sus prendas) y `fn_recepcion_entrar` no revisa
+  ese S/ 0 como costo atípico (si no, se lo negaba a quien no ve los costos de Compras). Un regalo de una línea DE la guía conserva el costo de su orden.
+Migración `20261028182000_recepcion_otro_y_regalo_sin_costo.sql`: **SIN PEGAR EN PRODUCCIÓN** (espera el OK de Felipe; una sola parte). Casos O1–O5 de `pruebas:pendientes-de-envio` (C5 ajustado).
+**Pendiente de decisión:** «el precio de venta sería opcional» para una prenda que se creó completa al contar. Hoy el catálogo no deja crear una prenda sin precio (ADR-0384: solo las bolsas pueden ir en 0);
+cambiarlo toca el núcleo del catálogo. Se espera la respuesta de Felipe a qué quiso decir.
