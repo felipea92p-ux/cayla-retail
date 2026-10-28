@@ -10,6 +10,7 @@ import {
   RPC_CERRAR_PRODUCCION,
   RPC_DESHACER_MARCA,
   RPC_MARCAR_FASE,
+  RPC_QUITAR_PASO,
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
   accionesDeFase,
@@ -18,6 +19,7 @@ import {
   buenasAlAnotarExcepcion,
   cantidadConUnidad,
   cantidadesAfuera,
+  cantidadesDeFabricaDeSalida,
   cantidadesQuePuedenSalir,
   cantidadesTerminadas,
   cantidadesQueFaltan,
@@ -47,6 +49,11 @@ import {
   problemasDeSalida,
   problemasDeVuelta,
   puedeCambiarQuien,
+  puedeRegistrarQuien,
+  esPendienteDeRegistrar,
+  fasesSinRegistrar,
+  pendienteConCosto,
+  puedeQuitarPaso,
   queSigue,
   quedanAfuera,
   quienDeFase,
@@ -353,12 +360,52 @@ describe("las fases", () => {
     expect(textoQueSigue({ fase: cortando, accion: "terminar" }, [cortando])).toBe("Sigue: terminar corte (faltan 48).");
   });
 
+  it("«pendiente de registrar» (ADR-0551 pendiente de registrar): un servicio sin proveedor; se dice así, se puede registrar aunque la fase ya empezó y solo con la orden en proceso", () => {
+    const pendiente: FasePagina = { ...costura, proveedorId: null, proveedorNombre: null };
+    expect(esPendienteDeRegistrar(pendiente)).toBe(true);
+    expect(esPendienteDeRegistrar(costura)).toBe(false);
+    expect(esPendienteDeRegistrar(corte)).toBe(false);
+    expect(quienDeFase(pendiente)).toBe("Pendiente de registrar");
+    expect(fasesSinRegistrar([corte, pendiente, acabado])).toEqual([pendiente]);
+    // El pendiente puede llevar su costo (ADR-0551): con tarifa o con fijo se devenga como un servicio; sin ninguno no suma nada.
+    expect(pendienteConCosto({ tarifaPrenda: null, fijoOrden: 0 })).toBe(false);
+    expect(pendienteConCosto({ tarifaPrenda: 4.5, fijoOrden: 0 })).toBe(true);
+    expect(pendienteConCosto({ tarifaPrenda: null, fijoOrden: 40 })).toBe(true);
+    expect(pendienteConCosto({ tarifaPrenda: 0, fijoOrden: 0 })).toBe(false);
+    expect(puedeCambiarQuien(pendiente, p)).toBe(false); // ya empezó: quién la hace no se cambia…
+    expect(puedeRegistrarQuien(pendiente, p)).toBe(true); // …pero SÍ se registra quién fue
+    expect(puedeRegistrarQuien(costura, p)).toBe(false);
+    expect(puedeRegistrarQuien(pendiente, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
+    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+  });
+
   it("puedeCambiarQuien: solo mientras la fase no empezó y la orden está en proceso", () => {
     expect(puedeCambiarQuien(acabado, p)).toBe(true);
     expect(puedeCambiarQuien(costura, p)).toBe(false);
     expect(puedeCambiarQuien(corte, p)).toBe(false);
     expect(puedeCambiarQuien(acabado, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
     expect(puedeCambiarQuien(acabado, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+  });
+
+  it("puedeQuitarPaso: solo un paso opcional que no empezó, en una orden en proceso y para quien opera (la base lo repite)", () => {
+    const limpieza: FasePagina = { ...acabado, clave: "limpieza_revision", nombre: "Limpiar hilos y revisar" };
+    expect(puedeQuitarPaso(limpieza, p)).toBe(true);
+    // Un paso fijo de su ruta no se ofrece (Acabado es de la espina de la ruta anterior; Corte y Costura, de las dos).
+    expect(puedeQuitarPaso(acabado, p)).toBe(false);
+    expect(puedeQuitarPaso(costura, p)).toBe(false);
+    // Con algo anotado, ya hecho, la orden cerrada o sin permiso de operar, tampoco.
+    expect(puedeQuitarPaso({ ...limpieza, empezada: true }, p)).toBe(false);
+    expect(puedeQuitarPaso({ ...limpieza, estado: "hecha" }, p)).toBe(false);
+    expect(puedeQuitarPaso(limpieza, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+    expect(puedeQuitarPaso(limpieza, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
+  });
+
+  it("paridad con la migración 20261028071000: la RPC existe y sus tres motivos son los que la pantalla ya conoce", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261028071000_produccion_quitar_paso_de_la_orden.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_QUITAR_PASO}(p_fase_id uuid, p_motivo text default null)`);
+    for (const hint of ["fase_empezada", "paso_fijo"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    // «Pide firma» como toda escritura del Taller: lo hace `fn_produccion_operar_fase` (ve Producción, está en ese Taller y hay un responsable).
+    expect(sql).toContain("fn_produccion_operar_fase(p_fase_id)");
   });
 
   it("avisoMinimoDeFase: avisa si la orden lleva menos que el mínimo del servicio; no bloquea y no avisa al Taller", () => {
@@ -617,6 +664,43 @@ describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por 
   it("lo que ya salió se descuenta de lo que puede salir, talla por talla", () => {
     const o = orden({ fases: [crudo().fases[0], faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: "pv-1", proveedor_nombre: "X", tarifa_prenda: 4.5 }, { entrada: 8, salieron: 5, afuera: 5 }), crudo().fases[2]] });
     expect(Object.values(cantidadesQuePuedenSalir(costura(o)))).toEqual([3, 3, 3, 3, 3, 3]);
+  });
+
+  describe("cantidadesDeFabricaDeSalida — lo que «Salida» trae escrito", () => {
+    const p = orden();
+    const corte = p.fases.find((f) => f.clave === "corte")!;
+    const costuraListo = (extra: Partial<FasePagina> = {}, v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...costura(p), porVariante: costura(p).porVariante.map((x) => ({ ...x, entrada: 8, salieron: 0, afuera: 0, ...v })), ...extra });
+    /** Corte mandado afuera sin registrar quién (Pendiente de registrar): el plan es 8 por talla y color y la base deja salir hasta 9 (8 + 10 %, hacia arriba). */
+    const corteAfuera = (v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...corte, quien: "servicio", proveedorId: null, proveedorNombre: null, porVariante: corte.porVariante.map((x) => ({ ...x, plan: 8, entrada: 9, hechas: 0, salieron: 0, afuera: 0, ...v })) });
+
+    it("en Corte parte del plan, no del margen del 10 %: 8 por talla y color, no 9 (el 57 que se volvía 72)", () => {
+      const f = corteAfuera();
+      const fases = [f, ...p.fases.slice(1)];
+      expect(cantidadesDeFabricaDeSalida(f, fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
+      // El tope que acepta la base no cambia: se puede mandar el margen escribiéndolo.
+      expect(cantidadesQuePuedenSalir(f)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 9])));
+      expect(problemasDeSalida(f, Object.fromEntries(TODAS.map((id) => [id, "9"])), nombreDe)).toEqual([]);
+    });
+    it("en Corte lo que ya salió se descuenta del plan, y nunca pasa de lo que la base deja", () => {
+      const f = corteAfuera({ salieron: 3 });
+      const fases = [f, ...p.fases.slice(1)];
+      expect(Object.values(cantidadesDeFabricaDeSalida(f, fases))).toEqual([5, 5, 5, 5, 5, 5]);
+      // Si ya salió todo el plan, no queda nada de fábrica aunque el margen todavía deje mandar 1 más por talla y color.
+      const completo = corteAfuera({ salieron: 8 });
+      expect(cantidadesDeFabricaDeSalida(completo, [completo, ...p.fases.slice(1)])).toEqual({});
+      expect(Object.values(cantidadesQuePuedenSalir(completo))).toEqual([1, 1, 1, 1, 1, 1]);
+    });
+    it("una talla y color sin plan cae a lo que puede salir; con el plan mayor que el tope, manda el tope", () => {
+      const sinPlan = corteAfuera({ plan: null });
+      expect(cantidadesDeFabricaDeSalida(sinPlan, [sinPlan, ...p.fases.slice(1)])).toEqual(Object.fromEntries(TODAS.map((id) => [id, 9])));
+      const planGrande = corteAfuera({ plan: 20 });
+      expect(cantidadesDeFabricaDeSalida(planGrande, [planGrande, ...p.fases.slice(1)])).toEqual(Object.fromEntries(TODAS.map((id) => [id, 9])));
+    });
+    it("en las demás fases es lo que puede salir, igual que antes", () => {
+      const f = costuraListo({ quien: "servicio" }, { salieron: 3 });
+      expect(cantidadesDeFabricaDeSalida(f, p.fases)).toEqual(cantidadesQuePuedenSalir(f));
+      expect(Object.values(cantidadesDeFabricaDeSalida(f, p.fases))).toEqual([5, 5, 5, 5, 5, 5]);
+    });
   });
 
   describe("problemasDeSalida", () => {
@@ -1158,5 +1242,23 @@ describe("una fase que se marca (Ploteo, ADR-0400 act. k y l): hecha con un toqu
     for (const hint of ["fase_no_es_hito", "marca_ya_hecha", "marca_inexistente", "fase_es_hito"]) expect(sql, hint).toContain(`hint = '${hint}'`);
     expect(sql).toContain("then 'marca' else 'desmarca'");
     expect(sql).toContain("'hito', true, 'marcada', v_empezada");
+  });
+});
+
+// ---------- Consumo por talla en la página de la orden (ADR-0513, actividad 2) ----------
+
+describe("la tela de la orden con consumo por talla", () => {
+  const lino = (extra: Record<string, unknown>) => ({ id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: "NEG", consumo_por_prenda: 1.333, cantidad_plan: 42, usado: 0, saldo: 100, ...extra });
+  it("lee `consumo_por_talla` como un mapa de números; lo que no es objeto, o no se lee, queda en null (una cifra para todas las tallas)", () => {
+    expect(orden({ insumos: [lino({ consumo_por_talla: { S: 1, M: "1.5" } })] }).insumos[0].consumoPorTalla).toEqual({ S: 1, M: 1.5 });
+    expect(orden({ insumos: [lino({ consumo_por_talla: null })] }).insumos[0].consumoPorTalla).toBeNull();
+    expect(orden({ insumos: [lino({})] }).insumos[0].consumoPorTalla).toBeNull();
+    expect(orden({ insumos: [lino({ consumo_por_talla: [1, 2] })] }).insumos[0].consumoPorTalla).toBeNull();
+    expect(orden({ insumos: [lino({ consumo_por_talla: { S: "x", M: 0 } })] }).insumos[0].consumoPorTalla).toBeNull();
+  });
+  it("la sección Tela de la orden dice lo que lleva cada talla, de la más chica a la más grande, en vez de un promedio", () => {
+    const fila = filasDeTela(orden({ insumos: [lino({ consumo_por_talla: { M: 1.5, S: 1 } })] }).insumos)[0];
+    expect(fila.detalle).toBe("S 1 m · M 1.5 m por prenda");
+    expect(filasDeTela(orden({ insumos: [lino({})] }).insumos)[0].detalle).toBe("1.33 m por prenda");
   });
 });

@@ -68,8 +68,9 @@ import {
    cada respuesta (la misma de la hoja de la campaña, ADR-0488, con el resumen de la oferta). El cuándo y las prendas ya vienen contestados
    con lo más común; las tiendas no (se marcan una por una); quien ya sabe usa el atajo de la pregunta 1.
    ASUME: hoy solo existe «Un % menos» (los otros 14 tipos de la maqueta cambian dinero en la caja y llegan después: se ven apagados con
-   «Pronto»). Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien no es líder deja un borrador; un líder
-   la activa (la base vuelve a exigirlo). Guardar y activar van por /api/productos/campana-reglas; la base valida todo otra vez.
+   «Pronto»). Las tiendas y las prendas de una oferta son un subconjunto de las de su campaña. Quien abre esta hoja tiene la llave de
+   campañas y activa, cambia y retira sin esperar a un líder (ADR-0534; la base vuelve a exigir la llave). Guardar y activar van por
+   /api/productos/campana-reglas; la base valida todo otra vez.
    NO HACE: no cambia precios por su cuenta ni toca el descuento «de siempre» de la campaña (solo se retira desde «Ya registradas»).
    ==================================================================== */
 
@@ -105,7 +106,6 @@ export function OfertasHoja({
   sedeActualId,
   prendasConCosto,
   variantesManuales,
-  esLider,
   hoy,
   puedeDarDescuento,
   alGuardarCampana,
@@ -122,8 +122,6 @@ export function OfertasHoja({
   sedeActualId: string | null;
   prendasConCosto: PrendaConCosto[];
   variantesManuales: string[];
-  /** Un líder activa y cambia lo que ya rige; los demás dejan borradores. */
-  esLider: boolean;
   hoy: string;
   /** Quien configura la campaña puede ponerle su descuento de siempre (si no, el formulario no lo ofrece). */
   puedeDarDescuento: boolean;
@@ -351,7 +349,7 @@ export function OfertasHoja({
     const cuando = o.desde > hoy ? `desde el ${sinPunto(fechaCorta(o.desde))}` : "desde ahora";
     if (activar) avisar.exito("Oferta activada", { detalle: `«${nombre}» rige ${cuando} en caja y en la tienda web.` });
     else if (o.id) avisar.exito("Cambios guardados", { detalle: "Valen desde ahora; lo que ya se vendió se queda como estaba." });
-    else avisar.exito("Oferta guardada como borrador", { detalle: esLider ? "Actívala cuando quieras que empiece a bajar el precio." : "Un líder la activa para que empiece a bajar el precio." });
+    else avisar.exito("Oferta guardada como borrador", { detalle: "Actívala cuando quieras que empiece a bajar el precio." });
     reiniciar();
   }
 
@@ -731,7 +729,7 @@ export function OfertasHoja({
             )}
             {diasSueltos && rige && rige.rige > 0 && (
               <Aviso tono="info" chico titulo="El papel colgado no cambia cada día">
-                {esLider ? "Antes de activarla, decide qué dirá la etiqueta de precio." : "Antes de que un líder la active, decidan qué dirá la etiqueta de precio."}
+                Antes de activarla, decide qué dirá la etiqueta de precio.
               </Aviso>
             )}
           </div>
@@ -895,9 +893,7 @@ export function OfertasHoja({
           <span className="of-falta">
             {edita && estadoEdita === "activa"
               ? "Vale desde ahora; lo que ya se vendió se queda como estaba."
-              : esLider
-                ? `Todo listo: actívala (cambia el precio ${cuando}) o déjala como borrador.`
-                : "Queda como borrador: un líder la activa."}
+              : `Todo listo: actívala (cambia el precio ${cuando}) o déjala como borrador.`}
           </span>
         );
       }
@@ -908,15 +904,13 @@ export function OfertasHoja({
         </Boton>
       ) : (
         <>
-          <Boton peso={esLider ? "fantasma" : "primario"} disabled={!ok || guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
+          <Boton peso="fantasma" disabled={!ok || guardandoAlgo} cargando={guardando === "borrador" || guardando === "cambios"} onClick={() => guardar(false)}>
             {edita ? "Guardar cambios" : "Guardar como borrador"}
           </Boton>
-          {esLider && (
-            <Boton peso="primario" disabled={!ok || guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
-              <Check aria-hidden className="mr-1 inline h-4 w-4" />
-              Activar
-            </Boton>
-          )}
+          <Boton peso="primario" disabled={!ok || guardandoAlgo} cargando={guardando === "activar"} textoCargando="Activando…" onClick={() => guardar(true)} data-guia="sellos.oferta-activar">
+            <Check aria-hidden className="mr-1 inline h-4 w-4" />
+            Activar
+          </Boton>
         </>
       );
     }
@@ -940,7 +934,6 @@ export function OfertasHoja({
     const v = vigenciaDeRegla(r, hoy);
     const chip = CHIP_ESTADO[v];
     const viva = r.estado !== "desactivada" && v !== "terminada";
-    const puedeCambiarla = viva && (r.estado === "borrador" || esLider);
     const antes = r.cambios > 0 ? resumenAntes(r.ultimoCambio) : "";
     const datos = [`−${pct(r.porcentaje)} %`, `${sinPunto(fechaCorta(r.desde))} – ${sinPunto(fechaCorta(r.hasta))}`, textoDiasCorto(r.dias)].filter(Boolean).join(" · ");
     const confirmando = retirando === r.id;
@@ -951,8 +944,8 @@ export function OfertasHoja({
           className="of-reg"
           aria-current={o.id === r.id ? "true" : undefined}
           data-recien={recien === r.id ? "" : undefined}
-          disabled={!puedeCambiarla}
-          title={puedeCambiarla ? "Toca para editarla" : viva ? "Solo un líder cambia una oferta que ya rige" : undefined}
+          disabled={!viva}
+          title={viva ? "Toca para editarla" : undefined}
           onClick={() => editar(r)}
         >
           <b>{r.nombre}</b>
@@ -975,17 +968,14 @@ export function OfertasHoja({
         </button>
         {viva && !confirmando && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {r.estado === "borrador" && esLider && (
+            {r.estado === "borrador" && (
               <Boton peso="fantasma" className="btn-chico" cargando={trabajando === r.id} textoCargando="Activando…" onClick={() => activarRegla(r)}>
                 Activar
               </Boton>
             )}
-            {r.estado === "borrador" && !esLider && <span className="of-espera">espera a un líder</span>}
-            {(r.estado === "borrador" || esLider) && (
-              <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
-                Retirar
-              </button>
-            )}
+            <button type="button" className="btn-cayla btn-enlace text-xs" disabled={trabajando === r.id} onClick={() => setRetirando(r.id)}>
+              Retirar
+            </button>
           </div>
         )}
         {viva && confirmando && (

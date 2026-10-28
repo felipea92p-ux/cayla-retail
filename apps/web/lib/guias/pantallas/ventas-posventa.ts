@@ -107,7 +107,7 @@ export const GUIA_COMPROBANTES_MES: Guia = {
       ancla: "comprobantes.acciones",
       opcional: true,
       titulo: "Lo que haces con cada uno",
-      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Solo el líder ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). En la demo no los tocamos.",
+      texto: "Según su estado: «Reintentar» lo manda a SUNAT ya. Quien tiene Facturación ve «Anular» y «Liberar sin espera» (para uno que nunca se envió: su número queda sin usar). En la demo no los tocamos.",
     },
     {
       id: "opciones",
@@ -426,6 +426,14 @@ export const GUIA_CAJA: Guia = {
       texto: "En una frase, cómo vas comparado con ayer a esta misma hora, con lo vendido, las ventas y la venta promedio. El círculo dice cuánto llevas de lo que se vendió ayer.",
     },
     {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la caja.
+      id: "reparto-empresas",
+      ancla: "caja.reparto-empresas",
+      opcional: true,
+      titulo: "De quién es lo vendido",
+      texto: "Cuánto de lo vendido hoy es de CAYLA y cuánto de CLAURE, prenda por prenda. El efectivo y los demás pagos siguen juntos: es un solo cajón.",
+    },
+    {
       id: "cajon",
       ancla: "caja.cajon",
       opcional: true,
@@ -496,11 +504,28 @@ export const GUIA_CAJA: Guia = {
       texto: "Para un gasto de la tienda (movilidad, limpieza, un arreglo). Abre una hoja corta: tocas uno de los gastos de siempre, el monto y cómo lo pagaste: del cajón, o con el Yape o el Plin de la tienda, que no tocan el cajón. Queda en Finanzas. En la demo no lo tocamos.",
     },
     {
+      // La hoja del gasto (ADR-0536): el asistente que acompaña un gasto real termina aquí; la hoja misma dice qué falta (guía de
+      // foco). La demo no la abre, así que se salta (opcional).
+      id: "gasto-pie",
+      ancla: "gasto-rapido.pie",
+      opcional: true,
+      titulo: "Llena la hoja y registra el gasto",
+      texto: "La hoja te dice qué sigue en cada campo: qué fue, cuánto y cómo lo pagaste. Cuando dice «Todo listo», lo registras tú.",
+    },
+    {
       id: "ingreso",
       ancla: "caja.ingreso",
       opcional: true,
       titulo: "Registrar ingreso",
       texto: "Para la plata que entra al cajón y no es una venta: sencillo que trajeron, un préstamo de otra sede. Si sale plata y no es un gasto (un retiro, un depósito al banco), lo haces desde «Retiro o depósito», dentro de la hoja de gasto. En la demo no lo tocamos.",
+    },
+    {
+      // La hoja del ingreso (ADR-0536), como la del gasto.
+      id: "ingreso-pie",
+      ancla: "ingreso-rapido.pie",
+      opcional: true,
+      titulo: "Llena la hoja y registra el ingreso",
+      texto: "La hoja te dice qué sigue: de dónde viene la plata y cuánto entra. Cuando dice «Todo listo», lo registras tú.",
     },
     {
       id: "historial",
@@ -825,7 +850,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Devolver una compra",
-      texto: "Cuando un cliente devuelve una prenda, se registra aquí y un líder la aprueba: recién ahí vuelve el stock y sale la nota de crédito. Es una demo: no se devuelve nada.",
+      texto: "Cuando un cliente devuelve una prenda, se registra aquí y, al revisarla, se aprueba: recién ahí vuelve el stock y sale la nota de crédito. Es una demo: no se devuelve nada.",
     },
     {
       id: "cifras",
@@ -872,7 +897,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       ancla: "devoluciones.pestanas",
       opcional: true,
       titulo: "Tres vistas",
-      texto: "«Compras» son las ventas recientes que se pueden devolver; «Por aprobar», las devoluciones que esperan a un líder; «Resueltas», las aprobadas y rechazadas.",
+      texto: "«Compras» son las ventas recientes que se pueden devolver; «Por aprobar», las devoluciones que esperan que alguien las revise; «Resueltas», las aprobadas y rechazadas.",
     },
     {
       id: "filtros",
@@ -917,7 +942,51 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Devolver",
-      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que un líder la aprueba. En la demo no lo tocamos.",
+      texto: "Abre la devolución: eliges las prendas, en qué estado vuelven, el motivo y cómo se reembolsa. Queda «por aprobar» y el stock no cambia hasta que alguien la revisa y la aprueba. En la demo no lo tocamos.",
+    },
+    // El flujo que abre «Devolver» (ADR-0536): el asistente que acompaña una devolución real los enciende uno a uno. La demo no abre el
+    // flujo, así que se saltan solos (opcionales).
+    {
+      id: "devolucion-prendas",
+      ancla: "devolucion.prendas",
+      opcional: true,
+      titulo: "Qué prendas devuelve",
+      texto: "Marca las prendas que el cliente trae de vuelta y, si compró varias iguales, cuántas. Cada una dice si se puede devolver.",
+    },
+    {
+      id: "devolucion-pie-prendas",
+      ancla: "devolucion.pie-prendas",
+      opcional: true,
+      titulo: "Continuar",
+      texto: "Pasa a contar por qué la devuelve y en qué estado vuelve.",
+    },
+    {
+      id: "devolucion-motivo",
+      ancla: "devolucion.motivo",
+      opcional: true,
+      titulo: "Por qué la devuelve",
+      texto: "Elige el motivo (no le quedó, tiene un defecto, otro…) y, si quieres, anota algo más.",
+    },
+    {
+      id: "devolucion-pie-motivo",
+      ancla: "devolucion.pie-motivo",
+      opcional: true,
+      titulo: "Revisar la devolución",
+      texto: "Muestra todo junto antes de registrarla: las prendas, el motivo y cuánto se le devuelve.",
+    },
+    {
+      id: "devolucion-responsable",
+      ancla: "devolucion.responsable",
+      opcional: true,
+      titulo: "Quién la registra",
+      texto: "Elige quién atiende: la devolución queda a su nombre.",
+    },
+    {
+      id: "devolucion-registrar",
+      ancla: "devolucion.registrar",
+      opcional: true,
+      titulo: "Registrar la devolución",
+      texto: "La deja por aprobar: el stock y el dinero no se mueven hasta que alguien la revisa y la aprueba. La registras tú.",
     },
     {
       id: "anular",
@@ -932,7 +1001,7 @@ export const GUIA_DEVOLUCIONES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "devoluciones.pestana-pendientes" }],
       titulo: "Por aprobar",
-      texto: "Las devoluciones registradas que esperan. El líder revisa cada una y la aprueba o la rechaza: al aprobarla se mueve el stock y sale la nota de crédito.",
+      texto: "Las devoluciones registradas que esperan. Revisas cada una y la apruebas o la rechazas: al aprobarla se mueve el stock y sale la nota de crédito.",
     },
     {
       id: "resueltas",

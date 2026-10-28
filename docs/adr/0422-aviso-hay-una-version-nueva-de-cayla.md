@@ -83,3 +83,15 @@ un GET a `/api/*` que no es de Next no es una espera (`clasificarPeticion`, con 
 - **Recarga en reposo**: sin teclas ni hojas abiertas por N minutos y sin ticket en curso, recargar sola. Quita la tarea a la colaboradora, pero
   es recargar sin que lo pida: se decide con Felipe pantalla por pantalla.
 - **Publicar en lotes**: el multiplicador es la cadencia (39 al día), no el aviso.
+
+## Actualización 2026-10-28 · la píldora flotante (Felipe eligió la B de `docs/maquetas/version-nueva-2026-10/`)
+
+- **Qué fallaba:** la franja iba DENTRO de la página, encima del contenido. En Finanzas (Impuestos, Gastos…) la barra fija `.mesa-telar`
+  —opaca y con margen negativo para nacer bajo la cabecera— la tapaba a medias, y en cualquier pantalla empujaba el contenido hacia abajo.
+- **Qué es ahora:** `<VersionNueva />` dibuja una píldora oscura `position: fixed` (`.version-nueva`, `app/estilos/avisos.css`): punto,
+  «Hay una versión nueva · actualiza cuando termines», «Actualizar» (el `btn-cayla btn-secundario`, invertido sobre la tinta) y una ✕
+  («Más tarde», calla 30 min). Desde 1024 px se centra sobre el contenido, en la banda de la cabecera (su centro está libre); más abajo,
+  justo bajo la cabecera. Entra bajando 10 px una vez, sin bucle. Ya no usa `<Aviso>`: no empuja ni la tapa nada.
+- **Lo que no cambia:** la lógica (`version-nueva-reglas.ts`), la pregunta a `/api/version`, que nunca recarga sola y los 30 min de «Más tarde».
+- **Se rompe si:** bajo 1024 px la píldora queda sobre las pestañas de Finanzas mientras esté abierta (se quita con la ✕); si el centro de la
+  cabecera deja de estar libre (un buscador más ancho, un botón nuevo), a 1024–1100 px chocaría: mover el `lg:` o centrarla bajo la cabecera.

@@ -37,6 +37,7 @@ import {
   nombreDeMaquinaDeLaPuente,
   saldoConCentimos,
   tituloDelMovimiento,
+  idsSoloTransferencia,
   opcionQuePaso,
   resumenAbono,
   resumenConciliacion,
@@ -202,7 +203,10 @@ export function CuentasPanel({
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
+  // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: la plata del dueño y lo que no dice su cuenta. Lo que se explica
+  // sede por sede (a qué cuenta entra el cobro de cada una) es solo de «todas»: la empresa no es una sede (Felipe 2026-10-28).
   const verTodas = !ver.ubicacionId;
+  const verPorSede = verTodas && !ver.soloEmpresa;
   const dueno = deudaConDueno(plata);
   const totalSinCuenta = sinCuenta.reduce((a, s) => a + s.monto, 0);
 
@@ -272,7 +276,7 @@ export function CuentasPanel({
         </Superficie>
       )}
 
-      {esLider && verTodas && medios.length > 0 && (
+      {esLider && verPorSede && medios.length > 0 && (
         <Superficie className="anim-sube" guia="fin-dinero.medios">
           <Herramientas className="justify-between">
             <div className="fin-herramientas-titulo min-w-0">
@@ -287,7 +291,7 @@ export function CuentasPanel({
             <table className="fin-tabla fin-tabla-medios">
               <thead>
                 <tr>
-                  <th>Tienda</th>
+                  <th>Sede</th>
                   <th>Efectivo</th>
                   {MEDIOS_COBRO.map((m) => (
                     <th key={m}>{TEXTO_MEDIO_COBRO[m]}</th>
@@ -297,19 +301,36 @@ export function CuentasPanel({
               <tbody>
                 {filasMedios(medios).map((f) => (
                   <tr key={f.ubicacionId}>
-                    <td data-l="Tienda">
+                    <td data-l="Sede">
                       <b>{f.ubicacionNombre}</b>
                     </td>
-                    <td data-l="Efectivo">
-                      <span className="fin-metodo" data-m="efectivo" />
-                      {(cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón").replace("Cajón · ", "Cajón ")}
-                    </td>
-                    {MEDIOS_COBRO.map((m) => (
-                      <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className={f.porMedio[m] ? undefined : "fin-tenue"}>
-                        <span className="fin-metodo" data-m={m} />
-                        {f.porMedio[m] ? nombreCorto(f.porMedio[m]) : "Sin cuenta"}
+                    {f.soloTransferencia ? (
+                      <td data-l="Efectivo" className="fin-tenue">
+                        <span role="img" aria-label={`${f.ubicacionNombre} no cobra con Efectivo`}>
+                          —
+                        </span>
                       </td>
-                    ))}
+                    ) : (
+                      <td data-l="Efectivo">
+                        <span className="fin-metodo" data-m="efectivo" />
+                        {(cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón").replace("Cajón · ", "Cajón ")}
+                      </td>
+                    )}
+                    {MEDIOS_COBRO.map((m) =>
+                      f.soloTransferencia && m !== "transferencia" ? (
+                        // El Taller no cobra a clientes: solo guarda la cuenta de donde paga por transferencia. No es una configuración incompleta.
+                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className="fin-tenue">
+                          <span role="img" aria-label={`${f.ubicacionNombre} no cobra con ${TEXTO_MEDIO_COBRO[m]}`}>
+                            —
+                          </span>
+                        </td>
+                      ) : (
+                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className={f.porMedio[m] ? undefined : "fin-tenue"}>
+                          <span className="fin-metodo" data-m={m} />
+                          {f.porMedio[m] ? nombreCorto(f.porMedio[m]) : "Sin cuenta"}
+                        </td>
+                      ),
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -406,9 +427,10 @@ export function CuentasPanel({
 }
 
 function filasMedios(medios: readonly FilaMedio[]) {
-  const porTienda = new Map<string, { ubicacionId: string; ubicacionNombre: string; porMedio: Partial<Record<string, string>> }>();
+  const soloTransferencia = idsSoloTransferencia(medios);
+  const porTienda = new Map<string, { ubicacionId: string; ubicacionNombre: string; soloTransferencia: boolean; porMedio: Partial<Record<string, string>> }>();
   for (const m of medios) {
-    const f = porTienda.get(m.ubicacionId) ?? { ubicacionId: m.ubicacionId, ubicacionNombre: m.ubicacionNombre, porMedio: {} };
+    const f = porTienda.get(m.ubicacionId) ?? { ubicacionId: m.ubicacionId, ubicacionNombre: m.ubicacionNombre, soloTransferencia: soloTransferencia.has(m.ubicacionId), porMedio: {} };
     if (m.cuentaNombre) f.porMedio[m.medio] = m.cuentaNombre;
     porTienda.set(m.ubicacionId, f);
   }

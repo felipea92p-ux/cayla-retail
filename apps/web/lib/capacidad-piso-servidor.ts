@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { leerCapacidadPiso, type CapacidadPiso } from "@/lib/capacidad-piso";
+import { unstable_rethrow } from "next/navigation";
 
 /**
  * La capacidad del piso de una sede (`fn_capacidad_piso`, ADR-0329), para la nota «de 600» de la cabecera de Existencias.
@@ -31,6 +32,7 @@ export async function getCapacidadPisoConEstado(ubicacionId: string): Promise<Le
     const capacidad = leerCapacidadPiso(data);
     return capacidad ? { estado: "ok", capacidad } : { estado: "sin_capacidad" };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Existencias: no se pudo leer la capacidad del piso", e);
     return { estado: "fallo" };
   }

@@ -14,7 +14,7 @@
 // SE DEGRADA, NUNCA ESCONDE DE MÁS. Sin la lista (la base no respondió, o es una base sin empresas) o sin la empresa de una
 // prenda (una copia del catálogo armada antes de esto), se ve todo, como antes: la base sigue rechazando lo que no corresponde.
 
-/** Una empresa que opera aquí: `clave` estable (`cayla`, `claure`), `nombre` como se escribe en pantalla. */
+/** Una empresa que opera aquí: `clave` estable (`cayla`, `claure`) y `nombre` como se escribe en pantalla. */
 export type EmpresaDeSede = { id: string; clave: string; nombre: string };
 
 /** Las empresas que se ven aquí, o `null` si no se pudo saber (entonces no se esconde nada). */

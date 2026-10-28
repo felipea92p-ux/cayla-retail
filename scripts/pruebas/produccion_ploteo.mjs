@@ -40,6 +40,133 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
+// 20261028084000 volvió a cambiar `fn_produccion_fases_normalizar` (el pendiente lleva su costo). 20261028074000 volvió a cambiar `abrir_orden_produccion`, `abrir_produccion` y `abrir_produccion_con_modelo_nuevo` (la entrega pasada vale) y 20261028072000 (pendiente de registrar) cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va AL PRINCIPIO del mismo bloque (antes del de 20261028072000: ambos tocan el mismo texto de `normalizar` y se deshace de lo más nuevo a lo más viejo).
+// 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
+// (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
+// (lo mismo que los `DESHACER_*` de otras suites).
+const DESHACER_CINCO_PASOS = `
+do $deshacer_cinco$
+declare v_def text;
+begin
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'planchado']) then
+      raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura y Planchado'$q$,
+    $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'limpieza_revision', 'planchado', 'etiquetado_embolsado']) then
+      raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar'$q$);
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$      -- ADR-0537: una fecha prometida pasada vale (se registra una orden que ya se hizo); solo una fecha que no existe se rechaza.
+$q$,
+    $q$      if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
+        raise exception 'La fecha prometida de «%» ya pasó', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_pasada';
+      end if;
+$q$);
+  -- Y el de 20261028084000 (el pendiente lleva su costo): vuelve el bloque que fuerza el pendiente a tarifa y fijo vacíos.
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$      end;
+      -- ADR-0551 (pendiente con costo): el pendiente PUEDE llevar tarifa, fijo y mínimo, y devenga como un servicio. Ninguno es obligatorio (sin monto devenga 0, como antes).
+      begin
+        v_tarifa := nullif(btrim(coalesce(v_f ->> 'tarifa_prenda', '')), '')::numeric;
+        v_fijo := coalesce(nullif(btrim(coalesce(v_f ->> 'fijo_orden', '')), '')::numeric, 0);
+        v_min := nullif(btrim(coalesce(v_f ->> 'cantidad_minima', '')), '')::integer;
+      exception when others then
+        raise exception 'La tarifa de «%» no es un número válido', retail.fn_fase_nombre(v_clave) using hint = 'fase_tarifa_invalida';
+      end;
+      if v_clave = 'ploteo' then
+        v_tarifa := null; v_min := null;
+      end if;
+      if (v_tarifa is not null and (v_tarifa <= 0 or v_tarifa > 9999.99)) or v_fijo < 0 or v_fijo > 99999.99 or (v_min is not null and v_min <= 0) then
+        raise exception 'La tarifa de «%» está fuera de rango', retail.fn_fase_nombre(v_clave) using hint = 'fase_tarifa_invalida';
+      end if;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', v_tarifa, 'fijo_orden', v_fijo, 'cantidad_minima', v_min, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+$q$,
+    $q$      end;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', null, 'fijo_orden', 0, 'cantidad_minima', null, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+$q$);
+  -- Y los de «pendiente de registrar» (20261028072000, ADR-0551): el inverso exacto de sus seis reemplazos anclados.
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$    v_prov := null; v_tarifa := null; v_fijo := 0; v_min := null; v_fecha := null;
+    -- ADR-0551 (pendiente de registrar): «pendiente de registrar»: sale afuera, pero todavía no se sabe con quién ni a cuánto. No cobra nada (fijo 0, sin tarifa ni mínimo).
+    -- Solo con la marca explícita: un servicio sin proveedor y SIN la marca sigue siendo \`fase_sin_proveedor\` (un olvido no se vuelve un pendiente).
+    if v_quien = 'servicio' and lower(coalesce(v_f ->> 'proveedor_pendiente', 'false')) = 'true' then
+      begin
+        v_fecha := nullif(v_f ->> 'fecha_prometida', '')::date;
+      exception when others then
+        raise exception 'La fecha prometida de «%» no es válida', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_invalida';
+      end;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', null, 'fijo_orden', 0, 'cantidad_minima', null, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+    end if;
+    if v_quien = 'servicio' then
+$q$,
+    $q$    v_prov := null; v_tarifa := null; v_fijo := 0; v_min := null; v_fecha := null;
+    if v_quien = 'servicio' then
+$q$);
+  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$round(v_buenas * coalesce(v_f.tarifa_prenda, 0) + v_f.fijo_orden, 2)$q$,
+    $q$round(v_buenas * v_f.tarifa_prenda + v_f.fijo_orden, 2)$q$);
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$jsonb_array_elements(v_fases) f left join retail.proveedores_produccion pr$q$,
+    $q$jsonb_array_elements(v_fases) f join retail.proveedores_produccion pr$q$);
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by (f ->> 'secuencia')::int)$q$,
+    $q$' con ' || pr.nombre, ', ' order by (f ->> 'secuencia')::int)$q$);
+  v_def := pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$from retail.produccion_fases f left join retail.proveedores_produccion pr on pr.id = f.proveedor_id$q$,
+    $q$from retail.produccion_fases f join retail.proveedores_produccion pr on pr.id = f.proveedor_id$q$);
+  v_def := pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by f.secuencia)$q$,
+    $q$' con ' || pr.nombre, ', ' order by f.secuencia)$q$);
+  -- Y los de 20261028074000 (la entrega pasada vale, como en producción): vuelve la comprobación \`entrega_pasada\` en las tres funciones.
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo); en la lista se ve como «Entrega pasada».
+$q$,
+    $q$  if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
+    raise exception 'La fecha de entrega ya pasó: elige una de hoy en adelante' using hint = 'entrega_pasada';
+  end if;
+$q$);
+  v_def := pg_get_functiondef('retail.abrir_produccion(uuid, uuid, jsonb, numeric, numeric, numeric, boolean, date, text, uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo).
+$q$,
+    $q$  -- ADR-0415: la entrega es una promesa del Taller; una anterior a hoy no promete nada (entrega_pasada).
+  if p_fecha_entrega is not null and p_fecha_entrega < retail.fn_hoy_lima() then
+    raise exception 'La entrega no puede ser antes de hoy (%): elige el día en que el Taller la va a entregar, o déjala en blanco.',
+      to_char(retail.fn_hoy_lima(), 'DD/MM/YYYY')
+      using errcode = 'P0001', hint = 'entrega_pasada';
+  end if;
+$q$);
+  v_def := pg_get_functiondef('retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo).
+$q$,
+    $q$  -- ADR-0415: la entrega es una promesa del Taller; una anterior a hoy no promete nada (entrega_pasada).
+  if p_fecha_entrega is not null and p_fecha_entrega < retail.fn_hoy_lima() then
+    raise exception 'La entrega no puede ser antes de hoy (%): elige el día en que el Taller la va a entregar, o déjala en blanco.',
+      to_char(retail.fn_hoy_lima(), 'DD/MM/YYYY')
+      using errcode = 'P0001', hint = 'entrega_pasada';
+  end if;
+$q$);
+end
+$deshacer_cinco$;
+`;
 // Las migraciones que dejaron las funciones de fases, avance, cadena, lectura y lista de precios como estaban ANTES (en el orden en que se pegaron).
 const ANTERIORES = [
   "20261014154000_produccion_fases_y_tela_de_la_orden.sql",
@@ -131,6 +258,7 @@ const PRELUDIO = `
 set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
+${DESHACER_CINCO_PASOS}
 ${MIGRACION}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}

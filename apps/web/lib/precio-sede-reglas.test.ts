@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
 import {
+  cambioPrecioAqui,
+  problemaPrecioAqui,
   camposPonerPrecio,
   conPreciosDeSede,
   conPrecioDeLaSede,
@@ -377,5 +379,34 @@ describe("el precio de una sede tiene techo", () => {
   });
   it("S/ 5 000 justos sí", () => {
     expect(camposPonerPrecio({ ...base, monto: "5000" }).find((c) => c.id === "precio")?.hecho).toBe(true);
+  });
+});
+
+describe("cambioPrecioAqui: lo que una terminal escribe en la tabla de Precios", () => {
+  it("sin tocar, o con el precio que ya vende la tienda, no cambia nada", () => {
+    expect(cambioPrecioAqui({ escrito: null, propio: null, general: 89.9 })).toEqual({ que: "nada" });
+    expect(cambioPrecioAqui({ escrito: "89.90", propio: null, general: 89.9 })).toEqual({ que: "nada" });
+    expect(cambioPrecioAqui({ escrito: "79.9", propio: 79.9, general: 89.9 })).toEqual({ que: "nada" });
+  });
+  it("otro precio: la tienda pasa a venderlo, y se dice el de antes", () => {
+    expect(cambioPrecioAqui({ escrito: "79.90", propio: null, general: 89.9 })).toEqual({ que: "poner", precio: 79.9, antes: 89.9 });
+    expect(cambioPrecioAqui({ escrito: "69,90", propio: 79.9, general: 89.9 })).toEqual({ que: "poner", precio: 69.9, antes: 79.9 });
+  });
+  it("el precio de la prenda sobre un precio propio: vuelve al de la prenda (la base no deja uno igual)", () => {
+    expect(cambioPrecioAqui({ escrito: "89.90", propio: 79.9, general: 89.9 })).toEqual({ que: "quitar", antes: 79.9, general: 89.9 });
+  });
+  it("si el precio cambia según la talla, cualquier monto es un precio propio para todas", () => {
+    expect(cambioPrecioAqui({ escrito: "80", propio: null, general: null })).toEqual({ que: "poner", precio: 80, antes: null });
+  });
+  it("lo que no es un monto no se guarda", () => {
+    expect(cambioPrecioAqui({ escrito: "", propio: null, general: 89.9 })).toEqual({ que: "invalido" });
+    expect(cambioPrecioAqui({ escrito: "0", propio: null, general: 89.9 })).toEqual({ que: "invalido" });
+  });
+  it("problemaPrecioAqui dice lo que la base rechazaría", () => {
+    expect(problemaPrecioAqui({ que: "invalido" }, "Tienda TRU", 89.9, null)).toMatch(/TRU/);
+    expect(problemaPrecioAqui({ que: "poner", precio: 30, antes: 89.9 }, "Tienda TRU", 89.9, 40)).toBe(FRASE_BAJO_COSTO);
+    expect(problemaPrecioAqui({ que: "poner", precio: 9000, antes: 89.9 }, "Tienda TRU", 89.9, null)).not.toBeNull();
+    expect(problemaPrecioAqui({ que: "poner", precio: 79.9, antes: 89.9 }, "Tienda TRU", 89.9, 40)).toBeNull();
+    expect(problemaPrecioAqui({ que: "quitar", antes: 79.9, general: 89.9 }, "Tienda TRU", 89.9, 95)).toBeNull();
   });
 });

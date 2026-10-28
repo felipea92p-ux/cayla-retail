@@ -150,7 +150,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "existencias.pendientes" }],
       titulo: "Pendientes de hoy",
-      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (se arreglan o, si llegaron así en un envío, se devuelven al proveedor), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
+      texto: "Cuadrar el piso, ventas sin registrar, prendas dañadas (se arreglan, se liquidan, se botan o se donan; si llegaron así en un envío, se devuelven al proveedor), apartados vencidos… Cada tarea tiene su botón que te lleva a resolverla.",
     },
     {
       id: "atajos",
@@ -246,6 +246,20 @@ export const GUIA_EXISTENCIAS: Guia = {
       opcional: true,
       titulo: "¿No es lo que ves? Ajusta el stock",
       texto: "Si contaste y el número no cuadra, toca aquí: arriba eliges dónde contaste y qué pasó, y debajo va la tabla con todos los colores y tallas. Escribes lo que contaste, Enter pasa al siguiente y guardas todo de una vez. En la demo no lo abrimos.",
+    },
+    {
+      id: "ajuste-dueno",
+      ancla: "existencias.ajuste-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que ajustas?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE. Antes de guardar, marca de cuál es lo que cuentas o sumas: el sistema no lo adivina por la marca ni por el proveedor. En otras tiendas esta pregunta no aparece. En la demo no se toca.",
+    },
+    {
+      id: "modal-ajuste-dueno",
+      ancla: "existencias.modal-ajuste-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que ajustas?",
+      texto: "Si la tienda tiene dos empresas (Lima), aquí marcas si el ajuste es de CAYLA o de CLAURE antes de confirmar. Sin elegir, el botón no se enciende. En la demo no se toca.",
     },
     {
       id: "cajon-acciones",
@@ -479,6 +493,14 @@ export const GUIA_MOVIMIENTOS: Guia = {
       texto: "Para ver solo lo que pasó en el piso, en el almacén o en cuarentena (las dañadas).",
     },
     {
+      // ADR-0532: solo en Lima, donde CAYLA y CLAURE comparten la tienda.
+      id: "tienda",
+      ancla: "movimientos.tienda",
+      opcional: true,
+      titulo: "De qué tienda es",
+      texto: "Para ver por separado lo de CAYLA y lo de CLAURE. En Lima, una prenda de marca CAYLA es de CAYLA y todas las demás son de CLAURE. Con «Ventas» elegido, ves las ventas de cada una.",
+    },
+    {
       id: "limpiar",
       ancla: "movimientos.limpiar",
       opcional: true,
@@ -637,14 +659,14 @@ export const GUIA_POR_REGULARIZAR: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "regularizar.buscador" }],
       titulo: "Pendientes y resueltas",
-      texto: "«Pendientes» son las que faltan, «Regularizadas» las ya unidas a su prenda y «Cerradas» las que el líder cerró sin unir. «Todas» las junta.",
+      texto: "«Pendientes» son las que faltan, «Regularizadas» las ya unidas a su prenda y «Cerradas» las que se cerraron sin unir. «Todas» las junta.",
     },
     {
       id: "herramientas",
       ancla: "regularizar.herramientas",
       opcional: true,
       titulo: "Orden y quién vendió",
-      texto: "Ordena de la más reciente a la más antigua (o al revés) y elige una colaboradora para ver solo sus ventas. El líder tiene más opciones en «Más».",
+      texto: "Ordena de la más reciente a la más antigua (o al revés) y elige una colaboradora para ver solo sus ventas. En «Más» están las acciones en bloque, como identificar con sugerencias.",
     },
     {
       id: "talon",
@@ -1056,6 +1078,13 @@ export const GUIA_CONTEO_CONFIRMAR: Guia = {
       texto: "Cada variante que cambia, con lo que CAYLA decía y lo que contaste. Si alguna dejaría el stock en negativo, te avisa en ámbar.",
     },
     {
+      id: "dueno",
+      ancla: "confirmar.dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que cambia?",
+      texto: "En Tienda Lima, cada prenda que cambia dice de quién es: lo que apareció de más, de quién es; lo que faltó, de quién falta si hay de CAYLA y de CLAURE. Sin marcar no se cierra. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
       id: "quien",
       ancla: "confirmar.quien",
       opcional: true,
@@ -1387,7 +1416,15 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, en una tabla, lo que Compras mandó a tu sede; con muchos, usa el buscador (número, guía o proveedor). «Detalle» abre lo que trae y ahí, «Abrir el fardo» te lleva a contar («Seguir recibiendo» si ya se abrió). Cada orden sin guía va con «Llegó esta orden». Si tú hiciste la orden, la recibe otra persona.",
+      texto: "Lo que Compras mandó a tu sede, con el día en que salió cada envío. Primero lo que ya empezaste y luego lo que va en camino; dentro de cada grupo, lo más antiguo arriba. «Detalle» abre lo que trae; ahí empiezas a recibir. Cada orden sin guía va con «Llegó esta orden». Si hiciste la orden, la recibe otra persona.",
+    },
+    {
+      // Los filtros viven en el navegador y no cambian nada de la base: el piloto no necesita abrirlos, solo se explican.
+      id: "envios-filtros",
+      ancla: "recibir.envios-filtros",
+      opcional: true,
+      titulo: "Hallar un envío entre muchos",
+      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras: «Estado» (abierto, por abrir —en camino o sin guía— o los que no puedes abrir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
@@ -1395,7 +1432,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.pendientes",
       opcional: true,
       titulo: "Lo recibido por terminar",
-      texto: "Prendas que ya se contaron y están en el almacén, pero no en el sistema: falta separarlas, ponerles tallas y colores o crearlas. Cada envío te lleva a su «Para después». Si lo más antiguo pasa de una semana, el aviso cambia de color.",
+      texto: "El resumen: prendas que ya se contaron y están en el almacén, pero no en el sistema (falta separarlas, ponerles tallas o crearlas). Si lo más antiguo pasa de una semana, el aviso cambia de color. Cada envío está más abajo, en «Lo recibido».",
     },
     {
       // ADR-0393: con la base al día, la puerta es «Llegó sin aviso» (reemplaza a «Llegó mercadería»).
@@ -1427,6 +1464,20 @@ export const GUIA_RECIBIR: Guia = {
       texto: "Escanea cada prenda o escribe su nombre y elígela. Cada una aparece abajo con su cantidad: súmale, réstale o quítala. Si una no existe todavía, te lleva a crearla.",
     },
     {
+      id: "dueno",
+      ancla: "recibir.dueno",
+      opcional: true,
+      titulo: "¿De quién es la mercadería?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE: marca de cuál es lo que llegó. Lo marcas tú; la marca o el proveedor de la prenda no deciden. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
+      id: "dueno-envio",
+      ancla: "recibir.envio-dueno",
+      opcional: true,
+      titulo: "¿De quién es la mercadería?",
+      texto: "Si la tienda tiene dos empresas (Lima), marca aquí si el envío que entra es de CAYLA o de CLAURE antes de recibirlo. En la demo no se toca.",
+    },
+    {
       id: "responsable",
       ancla: "recibir.responsable",
       opcional: true,
@@ -1444,8 +1495,24 @@ export const GUIA_RECIBIR: Guia = {
       id: "semana",
       ancla: "recibir.semana",
       opcional: true,
-      titulo: "Llegó esta semana",
-      texto: "Lo que entró a tu sede en los últimos días: de quién, cuántas unidades y quién lo recibió. «Ver todo lo recibido» muestra todo, con y sin factura.",
+      titulo: "Lo recibido en tu sede",
+      texto: "Una tarjeta con dos vistas lado a lado: «Por terminar», lo que ya se contó pero falta terminar, y «Terminados», lo que ya entró al sistema.",
+    },
+    {
+      id: "por-terminar",
+      ancla: "recibir.por-terminar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.vista-por-terminar" }],
+      titulo: "Cada envío por terminar",
+      texto: "Una fila por envío, el más antiguo primero: cuándo se cerró, qué falta (separar, poner tallas, crear) y cuántas prendas son. «Terminar» te lleva a ese envío; en la demo no lo tocamos.",
+    },
+    {
+      id: "terminados",
+      ancla: "recibir.vista-terminados",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.vista-terminados" }],
+      titulo: "Terminados",
+      texto: "Lo que ya entró a tu sede: de quién, cuántas unidades y quién lo recibió. Se ven de 10 en 10, las más recientes primero; para ir más atrás, «Ver todo lo recibido».",
     },
     {
       id: "reciente",
@@ -1468,7 +1535,7 @@ export const GUIA_RECIBIR: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Todo lo recibido",
-      texto: "Para ver más atrás que esta semana, con y sin factura, toca «Ver todo lo recibido» (te lo abrimos).",
+      texto: "Para ver todo lo recibido, más atrás de las últimas y con y sin factura, toca «Ver todo lo recibido» (te lo abrimos).",
     },
     {
       id: "recibidas-sin-factura",
@@ -1530,7 +1597,7 @@ export const GUIA_RECIBIR: Guia = {
 // Recibir en la sede un envío de orden de compra (ADR-0362, fase 4). Pantalla interna: se llega desde «Recibir» en la tarjeta de envíos de
 // Recibir mercadería y no se ofrece sola. Tiene cuatro caras según el envío —en camino, abierto (el formulario), cerrado y anulado— y dos
 // más cuando no se recibe desde aquí (otra sede, o quien hizo la orden): cada paso va atado a la pieza de su cara (`requiere`), así la demo
-// muestra solo lo que hay. Recibir mete stock y mueve el costo, así que la guía EXPLICA: «Abrir el fardo», «Recibir N prendas», crear la
+// muestra solo lo que hay. Recibir mete stock y mueve el costo, así que la guía EXPLICA: «Empezar a recibir», «Recibir N prendas», crear la
 // prenda y «+ Algo que no estaba en la guía» no se tocan. El único toque es abrir la hoja de «Es nueva» (no guarda) y cerrarla con Escape. No
 // elige una prenda ni marca «No llegó nada de esto»: el piloto no podría deshacerlo sin pisar lo que la persona ya contó.
 export const GUIA_RECIBIR_ENVIO: Guia = {
@@ -1543,14 +1610,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Recibir lo que llegó",
-      texto: "Aquí recibes en tu sede lo que llegó: abres el fardo, cuentas cuántas llegaron de cada tipo de prenda y cierras. Qué modelo es cada una, sus tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
+      texto: "Aquí recibes en tu sede lo que llegó: abres un fardo, cuentas cuántas llegaron de cada tipo de prenda y cierras. Qué modelo es cada una, sus tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
     },
     {
       id: "cifra",
       ancla: "recepcion.cifra",
       opcional: true,
       titulo: "Cuántas vienen y cuántas van",
-      texto: "Cuántas dijeron que venían y, mientras cuentas, la balanza: a un lado lo que dijeron, al otro lo que llevas. Se inclina hacia donde hay más y te dice si cuadra, si faltan o si sobran.",
+      texto: "Cuántos fardos vienen (si Compras lo dijo), cuántas prendas dijeron que venían y, mientras cuentas, la balanza: a un lado lo que dijeron, al otro lo que llevas. Se inclina hacia donde hay más y te dice si cuadra, si faltan o si sobran.",
     },
     {
       id: "otra-sede",
@@ -1564,14 +1631,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.quien-compro",
       opcional: true,
       titulo: "Tú hiciste la orden",
-      texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder: nadie da por recibido lo que él mismo pidió.",
+      texto: "Hiciste una de las órdenes de este envío: ves lo que trae, pero lo recibe otra persona de la tienda. Es la regla para todos, también para un líder; solo un Admin puede recibir lo que él mismo compró, y entonces queda anotado.",
     },
     {
       id: "papeles",
       ancla: "recepcion.papeles",
       opcional: true,
       titulo: "El papel de la compra",
-      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas.",
+      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas. Si un papel no trae foto, «Subir foto» te deja subirla o tomarla ahí mismo.",
     },
     {
       id: "papel-foto",
@@ -1581,32 +1648,18 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Tócala y se abre en grande sobre la pantalla, sin perder lo que estás contando.",
     },
     {
+      id: "papel-subir",
+      ancla: "recepcion.papel-subir",
+      opcional: true,
+      titulo: "Sube o toma la foto",
+      texto: "Cuando un papel llegó sin foto, este botón abre la cámara o tus fotos. Queda guardada con la compra y Compras la ve al completarla; una foto ya subida no se cambia.",
+    },
+    {
       id: "anotado",
       ancla: "recepcion.anotado",
       opcional: true,
       titulo: "Lo que anotó la compradora",
-      texto: "Cada prenda que anotó al comprar, con cuántas: «Ahora» es la que sigue, «Contada» la que ya llegó completa.",
-    },
-    {
-      id: "pregunta",
-      ancla: "recepcion.pregunta",
-      opcional: true,
-      titulo: "¿Son estas?",
-      texto: "Arriba, cuánto llevas contado de lo que anotó. Debajo, la prenda que sigue: si es la que tienes en la mano, un toque y queda contada.",
-    },
-    {
-      id: "son-estas",
-      ancla: "recepcion.son-estas",
-      opcional: true,
-      titulo: "Son estas",
-      texto: "Pone en la prenda lo que anotó la compradora, igual que escribirlo en el contador. Se guarda solo. En la demo no lo tocamos.",
-    },
-    {
-      id: "es-otra",
-      ancla: "recepcion.es-otra",
-      opcional: true,
-      titulo: "Es otra prenda",
-      texto: "Si no coincide, la deja para después y la abre en el contador para que la cuentes a mano.",
+      texto: "Cada prenda que anotó al comprar, con cuántas. Se va llenando con lo que identificas de ella en «¿Qué … son?»: «Contada» es la que ya llegó completa y «0 de 4» la que todavía no identificas.",
     },
     // ---- En camino: se lee lo que trae y se abre ----
     {
@@ -1614,14 +1667,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.trae",
       requiere: ["recepcion.empezar"],
       titulo: "Lo que trae",
-      texto: "Lo que dijeron que trae el fardo: cada tipo de prenda con cuántas vienen; arriba, el envío, la guía y quién lo mandó. Léelo antes de abrir la caja.",
+      texto: "Lo que dijeron que trae el envío: cada tipo de prenda con cuántas vienen; arriba, el envío, la guía y quién lo mandó. Léelo antes de empezar a recibir.",
     },
     {
       id: "empezar",
       ancla: "recepcion.empezar",
       requiere: ["recepcion.empezar"],
-      titulo: "Abrir el fardo",
-      texto: "Cuando la caja está en tu sede, eliges quién recibe y tocas el botón para abrirla: se abre el conteo y la compra ya no se puede anular. En la demo no lo tocamos.",
+      titulo: "Empezar a recibir",
+      texto: "Cuando la mercadería está en tu sede, eliges quién recibe y tocas el botón: se abre el conteo y la compra ya no se puede anular. Puedes recibirla por partes: lo contado queda guardado y sigues cuando quieras. En la demo no lo tocamos.",
     },
     {
       id: "otro-sin-aviso",
@@ -1629,7 +1682,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.empezar"],
       titulo: "¿Llegó algo que no está aquí?",
-      texto: "Si viene dentro de este fardo, ábrelo igual y lo sumas al contar. Si es otro paquete que llegó sin aviso de Compras, «Recibir sin aviso» te lleva a recibirlo aparte. Lo que manda otra sede se recibe en Traslados.",
+      texto: "Si viene dentro de este envío, empieza a recibirlo igual y lo sumas al contar. Si es otro paquete que llegó sin aviso de Compras, «Recibir sin aviso» te lleva a recibirlo aparte. Lo que manda otra sede se recibe en Traslados.",
     },
     // ---- Abierto, contando primero (ADR-0393): un número por categoría, lo demás para después ----
     {
@@ -1644,7 +1697,17 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.categorias",
       requiere: ["recepcion.categorias"],
       titulo: "Las categorías del envío",
-      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número, y abajo te dice cuántas separaste y cuántas quedan para después.",
+      texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número y todas sus prendas identificadas; si no, te dice cuántas faltan por identificar.",
+    },
+    {
+      // Solo si alguna categoría trae prendas anotadas al comprar. El «+» pasa la prenda a «¿Qué … son?»: es un cambio que se guarda solo,
+      // así que la demo explica la flecha sin tocarla.
+      id: "desplegar",
+      ancla: "recepcion.desplegar",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que se anotó al comprar",
+      texto: "Si la compra anotó qué prendas eran, la flecha de la categoría las muestra con cuántas eran. Toca el «+» de una y pasa a «¿Qué prendas son?» con esa cantidad; si ya habías contado menos, lo contado sube y un aviso te dice cuántas se agregaron. Allí puedes cambiar el número, también escribiéndolo.",
     },
     {
       id: "numero",
@@ -1668,16 +1731,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.separar",
       opcional: true,
       requiere: ["recepcion.categorias"],
-      titulo: "¿Qué prendas son? (opcional)",
-      texto: "Si te da tiempo: busca una prenda del catálogo y pon cuántas eran; con sus tallas y colores entra al stock al cerrar. De lo nuevo dices cuántas y, si quieres, qué son con «Describir ahora». Lo que no separes queda para después.",
-    },
-    {
-      id: "elegida",
-      ancla: "recepcion.elegida",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "La que anotó la compradora",
-      texto: "Si la compradora eligió la prenda al comprar, aquí te la dice. Si es la que llegó, toca «Son estas» y queda separada sin buscarla. Tú confirmas: lo que cuentas es lo que vale.",
+      titulo: "¿Qué prendas son?",
+      texto: "Di qué prenda es cada una de las que contaste: busca la del catálogo y pon cuántas eran. Si es nueva, anótala con un nombre corto y cuántas. Tienen que sumar lo contado: sin eso no se pasa a «Cerrar». Las tallas y los colores pueden esperar.",
     },
     {
       id: "agregar",
@@ -1693,14 +1748,14 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.categorias"],
       titulo: "Pasar a cerrar",
-      texto: "Cuando todas las categorías tienen su número, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. En la demo no avanzamos.",
+      texto: "Cuando todas las categorías tienen su número y sus prendas identificadas, este botón lleva al cierre: lo que no cuadró, el costo y quién cierra. En la demo no avanzamos.",
     },
     {
       id: "tabla-cierre",
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó. Al final, el precio de compra (corrígelo si la factura dice otro); al tocar la fila, el de venta de cada prenda identificada. En la demo no escribimos.",
+      texto: "Una fila por categoría, con sus prendas juntas: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez. Al abrir la fila, cada prenda identificada con su costo (el de la orden; corrígelo si la factura dice otro) y su precio. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
@@ -1811,6 +1866,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cada una de estas tarjetas es algo que llegó sin estar en la guía: su categoría y marca, el costo, la prenda, cuántas y qué pasa con eso (regalo, se cobra aparte o en la próxima compra). La ✕ la quita.",
     },
     {
+      id: "dueno",
+      ancla: "recepcion.dueno",
+      opcional: true,
+      titulo: "¿De quién es la mercadería?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE: marca de cuál es lo que recibes. Sin elegir, el botón no se enciende. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
       id: "pie",
       ancla: "recepcion.pie",
       requiere: ["recepcion.pie"],
@@ -1847,7 +1909,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.para-despues",
       requiere: ["recepcion.para-despues"],
       titulo: "Para después",
-      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. «Hacer ahora» lo termina con la cantidad ya contada; lo puede hacer cualquiera que tenga Recibir. En la demo no lo tocamos.",
+      texto: "Lo contado que todavía no está en el stock: separar, poner tallas y colores o crear lo nuevo. Cada fila trae su botón («Hacer ahora», «Tallas y colores ahora» o «+ Crear ahora»); al identificar la prenda se puede cambiar su costo y su precio de venta. Lo hace quien tenga Recibir. En la demo no lo tocamos.",
     },
     {
       id: "reabrir",

@@ -33,6 +33,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { laBajaAnulaLaVenta, MAX_MOTIVO_BAJA } from "@/lib/anular-comprobante-reglas";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -48,14 +49,12 @@ function accionComprobante(
     onAnularClick: (c: Comprobante) => void;
     onConsultarAnulacion: (id: string) => void;
     onLiberarClick: (c: Comprobante) => void;
-    /** Anular y «liberar sin espera» son solo del líder (`anular_comprobante`, `marcar_comprobante_no_emitido`). */
-    esLider: boolean;
   }
 ) {
   const numero = `${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
-  const botones = accionesDelComprobante(c)
-    .filter((accion) => handlers.esLider || (accion !== "anular" && accion !== "liberar"))
-    .map((accion) => {
+  // Anular y «liberar sin espera» los hace quien ve Facturación (ADR-0534; antes, solo el líder), que es quien ve esta
+  // pantalla (`exigirPermiso("facturar")`): `anular_comprobante` y `marcar_comprobante_no_emitido` lo vuelven a exigir.
+  const botones = accionesDelComprobante(c).map((accion) => {
     switch (accion) {
       case "reintentar": {
         const enVuelo = handlers.transmitiendoId === c.id;
@@ -161,7 +160,7 @@ export function ComprobantesPanel({
   tiendas: { id: string; nombre: string }[];
   /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
   periodo: string;
-  /** Anular y «liberar sin espera» son solo del líder; la terminal de ventas emite y reintenta. */
+  /** Solo para «Opciones»: el líder busca en Posventa en todas las tiendas. Anular y liberar ya no dependen de esto (ADR-0534). */
   esLider: boolean;
 }) {
   const router = useRouter();
@@ -172,7 +171,7 @@ export function ComprobantesPanel({
   const { transmitiendoId, transmitir: onTransmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016) y liberación (ADR-0093): cada una vive en su modal (abajo), que firma con el combo
-  // «Responsable» (ADR-0161). Solo líder — la pantalla entera ya lo es, y la base lo vuelve a exigir a la cuenta.
+  // «Responsable» (ADR-0161). Quien ve Facturación (ADR-0534): la pantalla entera ya lo exige, y la base lo vuelve a exigir a la cuenta.
   const [anulando, setAnulando] = useState<Comprobante | null>(null);
   const [liberando, setLiberando] = useState<Comprobante | null>(null);
   // Las opciones de un comprobante (ver la venta, WhatsApp, cambio, devolución): la hoja de `OpcionesComprobante`.
@@ -233,7 +232,7 @@ export function ComprobantesPanel({
     setModal(null);
   }
 
-  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick, esLider };
+  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick };
 
   // Filtros de la lista (en memoria: el mes ya está entero en pantalla). Las opciones salen de lo que hay
   // en el mes, así nunca se ofrece un filtro que deja la lista vacía de entrada.
@@ -488,7 +487,11 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
         return;
       }
       responsable.despues(null);
-      avisar.exito("Anulación enviada a SUNAT", { detalle: "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila." });
+      avisar.exito(datos.ventaAnulada ? "Baja enviada a SUNAT y venta anulada" : "Anulación enviada a SUNAT", {
+        detalle: datos.ventaAnulada
+          ? "Las prendas volvieron al stock y la caja lo descontó. La baja queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila."
+          : "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila.",
+      });
       onClose();
       router.refresh();
     } catch {
@@ -516,6 +519,13 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
               ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que queda en “Anulación en trámite” hasta que confirme — no es un error."
               : "Se envía la comunicación de baja. SUNAT también la procesa después, así que queda en “Anulación en trámite”. Si ya pasó el plazo la rechaza, y entonces toca una nota de crédito en vez de anular."}
           </p>
+          {laBajaAnulaLaVenta(comprobante.tipo, comprobante.venta_id) && (
+            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+              Este comprobante documenta una venta: al darlo de baja, la venta se anula en el mismo acto, sus prendas vuelven al stock y
+              la caja lo descuenta. Si la venta fue real y solo el documento estaba mal, vuelve a cobrarla después. Si su caja ya cerró
+              o es de otro día, no se puede: usa Devolución, que sale con su nota de crédito.
+            </p>
+          )}
 
           <CampoTexto
             id="anulacion-motivo"
@@ -530,6 +540,7 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
             }
             required
             minLength={3}
+            maxLength={MAX_MOTIVO_BAJA}
             value={motivoAnulacion}
             onChange={(e) => setMotivoAnulacion(e.target.value)}
             placeholder="Se emitió por error, la venta no se hizo"

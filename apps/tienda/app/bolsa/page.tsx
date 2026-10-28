@@ -1,10 +1,12 @@
 import { BotonDeFormulario } from "@/components/BotonDeFormulario";
+import { TituloConLetras } from "@/components/TituloConLetras";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
 import { CantidadEnLaBolsa } from "@/components/bolsa/CantidadEnLaBolsa";
 import { FormularioSeparar } from "@/components/bolsa/FormularioSeparar";
 import { Miniatura } from "@/components/bolsa/Miniatura";
+import { TotalQueCuenta } from "@/components/bolsa/NumeroQueCuenta";
 import { Promesas } from "@/components/bolsa/Promesas";
 import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { SubirAlLlenar } from "@/components/bolsa/SubirAlLlenar";
@@ -157,9 +159,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
       <div className="t-ancho">
         <header className="t-lista-cab t-bolsa-cab cp-sec-cab">
           <span className="t-ceja">Tu bolsa</span>
-          <h1>
-            {cuantas(totalPrendas)} <em>por separar</em>
-          </h1>
+          <TituloConLetras primera={cuantas(totalPrendas)} cursiva="por separar" />
           <Link className="t-ver" href="/catalogo">
             Seguir mirando <Icono nombre="flecha" />
           </Link>
@@ -167,7 +167,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
         <div className="t-bolsa">
           <div className="t-bolsa-principal">
             <div className="t-bolsa-items">
-              {v.lineas.map(({ linea, marca, importe: monto, antes }) => {
+              {v.lineas.map(({ linea, marca, importe: monto, antes }, orden) => {
                 const texto = textoDeLaMarca(marca);
                 // «Quitar» saca la prenda entera (la cantidad se baja con «−»), y dice cuál para quien usa lector de pantalla. Si la
                 // prenda ya no se puede separar (agotada o fuera de la tienda online), quitarla es lo que toca: va como botón, no enlace.
@@ -184,7 +184,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 );
                 if (yaNoEsta(linea)) {
                   return (
-                    <div key={linea.varianteId} className="t-bolsa-item" data-marca="no_esta">
+                    <div key={linea.varianteId} className="t-bolsa-item" data-marca="no_esta" style={{ "--i": orden } as React.CSSProperties}>
                       <div className="t-bolsa-foto">
                         <Miniatura foto={null} optimizar={false} forma="percha" color={null} />
                       </div>
@@ -199,7 +199,7 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 const href = hrefDePrenda({ id: linea.productoId }, sedeDeLaFicha);
                 const leer = prendaParaLeer(linea);
                 return (
-                  <div key={linea.varianteId} className="t-bolsa-item" data-marca={marca.tipo}>
+                  <div key={linea.varianteId} className="t-bolsa-item" data-marca={marca.tipo} style={{ "--i": orden } as React.CSSProperties}>
                     <Link href={href} tabIndex={-1} aria-hidden="true" className="t-bolsa-foto">
                       <Miniatura
                         foto={linea.foto}
@@ -321,7 +321,10 @@ export default async function Bolsa({ searchParams }: { searchParams: Promise<Re
                 )}
                 <div className="tot">
                   <span>Total de tu pedido</span>
-                  <span className="num">{soles(v.total)}</span>
+                  {/* G · Pasarela (ADR-0524): el total rueda hasta su valor al llegar y cada vez que cambia. */}
+                  <span className="num">
+                    <TotalQueCuenta valor={v.total} />
+                  </span>
                 </div>
               </div>
               {/* Lo que la tienda ya cumple, en corto (el detalle está en la ficha y en «Cómo separar»). */}

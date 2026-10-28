@@ -492,3 +492,241 @@ SE ROMPE SI: nace otra tabla de la recepción que cita a `productos` o `variante
 Probado sobre una base hecha de cero con todo `main`: `pruebas:eliminar-producto` 40/40, `pruebas:eliminar-producto-con-historia` 66/66 y
 `pruebas:pendientes-de-envio` 25/25 (E1 y E2 nuevos).
 **En producción el 2026-10-14** (con el OK de Felipe): la huella de `fn_producto_historia` coincide con la de la base hecha de cero.
+
+### Una nueva ya descrita se puede crear al contar (Felipe, 2026-10-26)
+
+«Describir ahora» anotaba qué era una prenda nueva, pero esa fila solo decía «Por crear»: para crearla había que cerrar el envío y esperar a
+«Para después ▸ + Crear ahora». Quien tiene la prenda en la mano la crea ahí. Ahora la fila descrita lleva «Crear ahora» (en Contar y en
+«Hacer ahora ▸ Separar»), con la misma hoja de la prenda y lo descrito como nombre sugerido.
+
+DECIDÍ: al crearse, la fila deja de ser una «nueva» y pasa a ser una prenda separada sin tallas, con la misma cantidad
+(`prendaCreadaDeNueva`, `lib/recepcion-conteo-reglas.ts`): de ahí en adelante es lo que ya existía —«Tallas y colores ahora» y, con ellas,
+«Entra al stock»—. Se guarda en el momento de crear: si la hoja de tallas se deja «para después», la fila ya dice lo que es. Sin cambio en la
+base: la prenda creada es de la categoría y marca de la línea, y `guardar_conteo_envio` ya acepta una prenda conocida sin tallas.
+DESCARTÉ: un estado «creada» dentro de `NuevaSeparada`, porque habría dos maneras de decir qué es una fila (una nueva «creada» o una prenda)
+y la base solo conoce la segunda; y pasar a la fila el nombre real de la prenda en la descripción, porque la descripción es lo que escribió
+quien contó.
+SE ROMPE SI: nace otro camino que cree una prenda desde una nueva sin pasar por `prendaCreadaDeNueva` (la nueva y la prenda quedarían las dos
+en lo separado y lo contado se duplicaría).
+
+En «Para después», la fila de un pendiente «detalle» dice «Tallas y colores ahora» (`BOTON_DE_PENDIENTE`), como al contar; «crear» sigue en
+«+ Crear ahora» y «separar» en «Hacer ahora». Que un «crear» pase a «detalle» cuando se crea su prenda es de la base (`ligar_prenda_a_pendiente`,
+migración `20261026163000`, rama `prenda-para-despues-save-613e8c`): no se repite aquí.
+
+De paso, la fila de lo separado baja sus acciones bajo el nombre según el ancho de la LISTA (`.rc-filas-sep`, contenedor de 700 px), no el de la
+ventana: junto a «Los papeles de la compra» la lista queda de ~400 px aun en un monitor ancho y el nombre se aplastaba.
+
+### Las categorías se despliegan: lo que se anotó al comprar, de un toque a «¿Qué … son?» (2026-10-26)
+
+Cada categoría de la lista que trae prendas anotadas en la compra (`prendaElegida` o la descripción de la línea, ADR-0480) tiene una flecha que
+muestra la prenda exacta con cuántas eran y un «+» redondo. Al tocarlo la prenda pasa a «¿Qué … son?» como si se hubiera elegido desde el
+buscador: la del catálogo, como prenda conocida; la que solo tiene nombre, como nueva ya descrita. No hay estado nuevo: lo que queda en la lista
+es lo anotado menos lo ya separado (`anotadasSinSeparar`), así que quitarla de «¿Qué … son?» la devuelve sola.
+
+DECIDÍ: la cantidad que entra es siempre la esperada (Felipe, 2026-10-26: con un tope «no más de lo contado» la segunda prenda entraba con 1). Si con eso se
+separa más de lo que ya se había contado, lo contado sube y la pantalla lo avisa («el conteo sube de 8 a 15»): quien cuenta lo puede corregir en el número. Con la categoría en 0 no
+avisa: no había número de nadie que pisar y el número grande se ve pasar de 0 a lo separado. Una prenda anotada
+solo por su nombre sale primero de las «nuevas sin describir» que ya había (quitar una descrita las devuelve ahí), así sacarla y volver a pasarla no duplica.
+La cantidad de una prenda separada también se escribe: se guarda al salir de la caja o con Enter, no con cada tecla, porque una prenda con tallas las suelta si su
+número cambia.
+AGRUPÉ (Felipe, 2026-10-26: «si ambas prendas son vestidos, lo ideal es que se muestren dentro de la misma categoría»): las líneas del mismo proveedor,
+categoría y marca —la llave con la que «Nos debe» suma el reclamo— son UNA categoría en la pantalla: un número, una lista de anotadas, un «¿Qué … son?».
+La base no cambió: sigue una fila por línea (`despacho_conteos`), y `lib/recepcion-grupos-reglas.ts` reparte lo que se escribe cambiando lo mínimo (sube
+llenando las líneas en el orden de la compra, baja desde la última, nunca por debajo de lo separado ni de lo que ya entró al stock). Mientras nada se
+separa ese reparto es de trabajo y no dice de cuál prenda faltó; solo lo separado tiene cantidad exacta por prenda.
+DESCARTÉ: guardar el reparto como dato exacto: separar después del cierre (7 de Sofía con una fila de 5) chocaría con el tope por fila, y el cierre mostraría
+un «faltan 2 de Lima» que nadie dijo. Por eso el cierre por categoría, el reclamo por categoría (sin separar) o por prenda (todo separado) y «Hacer ahora» a
+nivel categoría quedan como el paso siguiente, con migración (zona roja: dinero y stock), cuando la sesión de costos por prenda de Recibir fusione.
+SE ROMPE SI: una línea del envío empieza a traer varias prendas (hoy trae una): `prendasAnotadasDe` ya devuelve una lista, pero la cantidad por
+prenda tendría que salir de la compra y no de `dijeron`.
+
+### La tabla de «Cerrar» también es por categoría (Felipe, 2026-10-27)
+
+Una fila por categoría en el cierre, no por línea de la compra: «Vestidos» con lo que dijeron, lo contado, lo que se puede vender, lo que queda
+para después y una sola pregunta «¿Qué pasó?». Al desplegar la fila salen las prendas ya identificadas (y las nuevas ya descritas), cada una con su
+costo y su precio de venta; las que nadie ha identificado se cuentan al final en una frase. `lineaDelGrupo` arma la categoría como UNA línea solo
+para dibujarla; lo que se guarda y se manda a `cerrar_conteo_envio` sigue siendo por línea.
+
+DECIDÍ: lo que se contesta en una fila vale para todas las líneas a las que toca. La causa de lo que faltó (o de lo que sobró) se elige una vez y se
+escribe en cada línea que faltó (`causasDelGrupo`); el costo y el precio de una prenda se guardan en la línea donde vive esa prenda, así parte del costo
+de SU orden (Sofía a S/ 30 y Antonella a S/ 45 en la misma categoría). La guía de foco pide una causa por categoría (`camposDelCierrePorGrupo`).
+CAMBIÓ: el reparto del total contado entre las líneas ya no arrastra el de antes. Es el mismo para los mismos datos (lo separado en su línea y, sobre eso,
+lo sin separar llenando en el orden de la compra): sin separar nada, la categoría solo puede faltar o solo sobrar, nunca una línea de más y otra de menos.
+Antes, quitar una separación dejaba un reparto torcido (7 y 3 sobre 5 y 7) que habría pedido reclamar de más.
+DESCARTÉ: dejar el cierre por línea con un aviso: mostraría «faltan 2 de Lima» que nadie dijo.
+SE ROMPE SI: se separa de más una prenda (Sofía 7 de 5) y quedan unidades sin separar de otra: la fila pide DOS respuestas («Faltan 7» y «Sobran 2») y el
+reclamo sale por 7 cuando el neto de la categoría es 5, porque la base hoy cuenta cada línea sin compensar. Eso se arregla en la base (el reclamo por
+categoría neto cuando no todo está separado, y por prenda cuando sí): queda para el paso siguiente, con migración y con el OK de Felipe.
+
+### Al contar, toda prenda se identifica: sin eso no se pasa a «Cerrar» (Felipe, 2026-10-27)
+
+**Decisión.** El número grande de «Contar» es el de la categoría completa, y cada prenda contada tiene que saber qué prenda es: una del catálogo, o una nueva
+con al menos su nombre corto (la descripción rápida). La suma de lo identificado tiene que ser igual al número grande, y mientras no lo sea «Pasar a cerrar»
+queda apagado. Lo que sigue pudiendo esperar son las tallas y los colores de cada prenda («por detallar», «Para después»). Reemplaza lo del 2026-10-13
+(«¿Qué … son?» opcional: lo no separado quedaba como pendiente «Separar» y no frenaba nada).
+
+**Qué cambia en la pantalla.** `sinIdentificarDelGrupo` (`lib/recepcion-grupos-reglas.ts`) cuenta lo contado que no es una prenda con nombre: lo no separado y las
+nuevas sin describir (lo que ya entró al stock cuenta como identificado). La categoría solo lleva su ✓ con su número Y sus prendas identificadas; su subtítulo
+dice «8 identificadas · 7 por identificar»; «¿Qué vestidos son?» deja de decir «opcional» y su insignia pasa de «sin separar» a «Faltan 7 por identificar» (ámbar) o
+«Todas identificadas» (verde); la fila de las nuevas pide «descríbelas con un nombre corto» y marca «Falta describirlas». La guía de foco suma, por categoría, un
+campo requerido «Qué … son» (`idCampoIdentificar`, el `data-campo` de «¿Qué … son?»); «Falta: …» de otra categoría la abre primero y después lleva a su caja.
+«Pasar a cerrar» queda apagado con `gruposSinIdentificar(grupos)` (lo dice su `title` y el pie de la guía). Las categorías sin contar no frenan nada aquí: ya las
+frena «Cerrar» con «Contarla» (que vuelve a «Contar»). «Hacer ahora» no cambia (sigue diciendo «sin separar»: es de un envío ya cerrado).
+
+**El aviso del «+»** ya no dice «Pasaste más de las que contaste…»: ahora dice qué se agregó, con el nombre de la prenda («Se agregaron 5 prendas «Vestido Sofía» al
+conteo: ahora son 9.»), solo si lo contado ya era mayor que 0 y sube (`avisoDePrendasAgregadas`).
+
+**Lo que esto simplifica en la base.** Con todo identificado, cada línea de la compra (una prenda) termina con lo identificado de esa prenda, así que lo que falta o
+sobra es por prenda: justo el reclamo que pidió Felipe («si se hizo separación, sobre la prenda específica»). El caso «una prenda de más y otra sin separar»,
+que dejaba «Faltan 7» y «Sobran 2» con un neto de 5, ya no se puede dar al cerrar; tampoco habrá un «Separar» pendiente nuevo que resolver con «Hacer ahora» a nivel
+categoría (las filas viejas sí seguirán). **Sin migración**: es una regla de la pantalla (la base sigue aceptando un cierre con prendas sin separar, y los envíos ya
+cerrados no cambian). Queda para la base, con su OK: que «Nos debe» guarde QUÉ prenda faltó (hoy suma por proveedor, categoría y marca), y, si se quiere,
+que `cerrar_conteo_envio` rechace un cierre con prendas sin identificar para que la regla no dependa de la pantalla.
+
+### Actualización 2026-10-26: «Abrir el fardo» vuelve a ser «Empezar a recibir»
+
+Con varios fardos por envío, que se reciben por partes (hoy uno, mañana otro), «Abrir el fardo» ya no decía qué hace el botón: empieza la recepción del
+envío, no abre «el» fardo. Vuelve «Empezar a recibir» (con «Seguir recibiendo» al día siguiente) y la hoja «Detalle» dice cuántos fardos vienen. La
+frase al contar pasa a «Abre un fardo y cuenta…». Detalle y por qué: ADR-0480, «Actualización 2026-10-26 (d)».
+
+### «Crear ahora» deja la prenda creada en «Para después» (2026-10-26)
+
+Felipe probó «Crear ahora» sobre «6 prendas nuevas · jean» (ENV-000253): la hoja creó la prenda en el catálogo y le abrió «Tallas y colores».
+Como todavía no quería repartir las 6, tocó «Dejar para después»: la prenda aparecía en Catálogo ▸ Productos, pero «Para después» seguía
+diciendo «por crear en el catálogo». La lista mentía, volver a «Crear ahora» chocaba con «ya existe esa prenda», y el aviso de Productos
+(«N prendas por crear») contaba como por crear algo que ya existía. La causa no era la pantalla: `preparar_prenda_al_recibir` crea la prenda
+sin saber de pendientes, y un pendiente «crear» no tenía manera de decir «ya se creó, faltan sus tallas», aunque el «detalle» (la prenda
+conocida, sin tallas) existía justo para eso. Tampoco se releía la lista al cerrar la hoja.
+
+DECIDÍ: el pendiente «crear» **pasa a «detalle»** de la prenda cuando esta se crea (o cuando la persona elige la que «ya existe»), con la
+función nueva `ligar_prenda_a_pendiente(envío, pendiente, prenda)` (migración `20261026163000`). Misma línea, misma cantidad, mismo estado y
+mismo `anotado_por`; la descripción que se anotó al contar se suelta porque la prenda ya tiene nombre. El disparador `despacho_pendientes_fija`
+deja pasar **solo** ese cambio y **solo** con la marca de transacción `retail.ligando_pendiente` que enciende esa función (reemplazo anclado, el
+patrón de 20261013173000): a mano, o cambiando otra cosa, o al revés, sigue siendo «Un pendiente no cambia». La prenda tiene que ser de la
+categoría y marca de la línea, activa y no rechazada (las mismas pistas que `resolver_pendiente_envio`). En la web, `HacerAhora` la llama justo
+después de crear o de «Usar esa prenda» y, al cerrar la hoja de tallas sin meter nada, relee la lista (`onCerrar(huboCambio)` en `EnvioCerrado`).
+Como `fn_recepcion_pendientes` separa por tipo, el aviso de Productos y el del Inicio pasan solos de «por crear» a «por detallar».
+DESCARTÉ: (a) un parámetro `p_pendiente_id` en `preparar_prenda_al_recibir`: es una función larga, ya parchada dos veces, que Compras usa al
+contar; ligar es un paso aparte y, si falla entre uno y otro, queda exactamente lo de antes (sin estado imposible) y el siguiente «Usar esa
+prenda» lo repara. (b) Anular el «crear» y abrir un «detalle» nuevo: «anulado» significa «se reabrió el envío» y se perdería quién lo anotó y
+cuándo. (c) Una columna «prenda creada» en el «crear»: dos maneras de decir lo mismo, y cada lectura (Inicio, Productos, reabrir) tendría que
+mirar las dos.
+SE ROMPE SI: una función nueva cambia el tipo de un pendiente sin pasar por `ligar_prenda_a_pendiente` (el disparador la rechaza), o si alguien
+agrega una tercera clase de pendiente y no decide a qué clase pasa al crearse su prenda.
+
+Probado: `pruebas:pendientes-de-envio` con los casos V1 (la prenda creada queda como «detalle», se termina con tallas y las cifras de la sede se
+mueven de «por crear» a «por detallar»), V2 (ajena, descontinuada, inexistente, pendiente ajeno, envío abierto, sin Recibir; un «detalle» no
+cambia) y V3 (a mano no, ni cambiando otra cosa, ni al revés; la marca no queda encendida); y la forma (F1). En el navegador contra la base local con
+el caso real de Felipe (ENV-000253): «+ Crear ahora» → «Usar esa prenda» → «Dejar para después» → la lista dice «Jean Cuzco · 6 sin tallas ·
+faltan tallas y colores», persiste al recargar y «Hacer ahora» abre directo las tallas de esa prenda. Sin la migración en la base (la web se
+publica antes), `ligar_prenda_a_pendiente` responde PGRST202 y todo sigue como antes, sin avisos.
+**No está en producción**: pegarla es decisión de Felipe (una sola parte, re-pegable, sin políticas ni `alter table`; ver el encabezado de la migración).
+Lo que ya quedó creado antes (un «crear» con su prenda hecha) no se arregla solo: al volver a «Crear ahora» y elegir «Usar esa prenda», se liga.
+
+### El precio de venta también se cambia desde «Para después» (2026-10-26)
+
+Al contar «5 blusas» sin decir cuáles, el paso Cerrar no puede ofrecer el precio de nadie (no se sabe qué prenda es): está bien. Pero una vez
+cerrado, la prenda se identifica en «Para después» → «Hacer ahora», y ahí no había dónde cambiar su precio: `cambiar_precio_en_recepcion`
+(20261024225000) solo aceptaba el envío ABIERTO. Quien identifica la prenda es quien sabe a cuánto se vende, y tenía que ir a Catálogo ▸
+Productos, que no todo el que recibe ve.
+
+DECIDÍ: el precio de venta se ofrece **en la misma hoja donde se identifica la prenda**, con la pieza de siempre (`PrecioDePrenda`: el precio de
+hoy, el nuevo y «Todas las sedes / Solo esta sede»), bajo el título «Precio de venta · opcional»: en «Tallas y colores» de «Hacer ahora» (una
+prenda conocida o recién creada, y sigue a «Cambiar») y en «Separar» (una por cada prenda que se identifica). Al guardar, si algún precio cambió, sale
+la misma confirmación del cierre («Vas a cambiar precios», ahora una pieza compartida: `ConfirmarPrecios`) y recién entonces se guarda. El orden es el
+del cierre: **el precio primero, las prendas después**, porque el aviso de «costo fuera de lo normal» compara el costo con el precio y tiene que ver
+el nuevo (probado en el navegador: con el precio aplicado después, la base avisaba «se vendería con pérdida» usando el precio de antes). Un precio que
+la base rechaza (bajo el costo, fuera de rango) frena el guardado ANTES de meter nada («No se guardó nada») y la hoja conserva lo escrito. La prenda
+que se acaba de identificar y todavía no es de este envío («ajena») se cambia justo después de meterla; si ahí falla, las prendas ya entraron y se dice
+aparte («No se cambió el precio de X… cámbialo en Catálogo ▸ Productos»).
+En la base (migración `20261026180000`), `cambiar_precio_en_recepcion` acepta también el envío CERRADO, pero con una puerta **más estrecha** que «cualquier
+prenda que llegó por aquí»: la prenda tiene que seguir «para después» (un pendiente «detalle» todavía pendiente) o haber entrado por este envío hace
+menos de una hora. Pasado eso, el precio se cambia en Productos como siempre. Todo lo demás de la función no cambió (módulo Recibir, el responsable,
+la sede, el que hizo la orden, tope de S/ 5 000, nunca bajo el costo, «todas» o «solo esta sede», rastro en el historial de la prenda).
+DESCARTÉ: (a) dejar el precio de cualquier prenda de cualquier envío cerrado: quien tiene Recibir en una sede podría llamar a la función contra una prenda
+recibida hace meses, y hoy solo llega a las de los envíos abiertos; ampliarlo es decisión de permisos de Felipe. (b) Poner el precio dentro de
+`resolver_pendiente_envio`: mezclaría dinero de venta con movimiento de inventario en la función más delicada de la recepción. (c) Aplicar el precio
+siempre después de meter las prendas: el aviso de costo mentiría. (d) Un botón de solo precio en cada fila de «Para después» (sin tallas): hoy el precio
+se guarda junto con lo que se identifica; si Felipe lo quiere suelto, es una pantalla más.
+SE ROMPE SI: se agrega un camino que identifique prendas sin pasar por `HacerAhora` y quiera ofrecer precio (usa `usePreciosDeVenta` y
+`cambiosDeVentaDe`, no reescribe la lógica), o se alarga la hora de la puerta sin decidirlo.
+
+Probado: `pruebas:pendientes-de-envio` con los casos W1 (una prenda que sigue «para después» cambia de precio, para todas las sedes y solo esta, con el
+rastro de quien firma), W2 (lo que entró cambia justo después y, pasada la hora, ya no) y W3 (una prenda que no pasó por el envío, el envío en camino,
+sin Recibir y un precio bajo el costo siguen rechazados); sin la migración fallan los tres. Las reglas (`cambiosDeVentaDe`, `resultadoDelPrecio`) con prueba.
+En el navegador contra la base local con tus envíos ENV-000253 y ENV-000255: 65 (bajo el costo) se rechazó «No se guardó nada» con la base intacta; 99.90 pasó
+por la confirmación, entraron 3 prendas y el precio quedó (historial «63.00 → 99.90» por Felipe); en «Separar», al elegir Pantalón Carla apareció el
+precio, se confirmó 99.90 → 109.90 y quedó aplicado con el pendiente «Pantalón Carla · 1 sin tallas». **No está en producción**: pegar la migración es
+decisión de Felipe. Sin ella, la web avisa «Todavía no se puede cambiar el precio desde aquí» y deja guardar sin cambiar el precio (nada se pierde).
+
+#### El precio de venta nace para la sede que recibe, y se valida antes de confirmar (2026-10-26, b)
+
+Dos pedidos de Felipe sobre lo de arriba. (1) **«La opción por defecto debe ser la sede en la que se recibe, primera y preseleccionada».** `PrecioDePrenda`
+(la pieza que comparten «Para después» y la tarjeta «Costos y precios» del cierre) ahora ofrece «Solo Tienda Lima» primero y elegida, y «Todas las sedes»
+después (`ALCANCE_DE_FABRICA = "sede"`). Como el precio vale ahora para esa sede, el «hoy» contra el que se compara lo escrito es **el de esa sede** (el
+propio de la tienda si lo tiene, si no el general: `fn_precios_en_sede`, la misma regla que la caja), con «en las demás sedes, S/ X» cuando son distintos;
+al cambiar de alcance, un campo que nadie tocó pasa al «hoy» del alcance nuevo. Cambia también el cierre (una sola pieza, un solo comportamiento): quien
+quiera el precio general lo elige a propósito. (2) **«Aplicar validaciones; dar información de por qué se rechaza un precio».** Antes un precio mal escrito
+se ignoraba en silencio y uno bajo el costo se descubría recién después de la confirmación. Ahora, al guardar: un precio mal escrito (no es número, cero, más de
+S/ 5 000) se dice y se lleva el cursor al campo; luego la base responde si cada precio se podría guardar y, si no, **por qué**, junto al campo y a todo el
+ancho, y la confirmación ni se abre; recién entonces se pide confirmar. Lo mismo al cerrar el envío (su fila se abre y el cursor va al campo).
+En la base, `validar_precio_en_recepcion(envío, prenda, precio, alcance)` (en `20261026180000`, aún sin pegar) **corre la función real
+`cambiar_precio_en_recepcion` dentro de una subtransacción que siempre se deshace**: las reglas son las mismas porque es el mismo código (piso del costo sin
+decir cuánto cuesta —ADR-0183—, tope, tienda abierta, «ya es el precio de la grilla»…), sin duplicarlas ni que un día digan cosas distintas. Una marca de
+transacción que solo esa función enciende y apaga salta únicamente la pregunta «¿es de este envío?», porque la prenda que se acaba de identificar todavía no
+lo es y su precio igual se puede preguntar. Si no se pudo preguntar (la función todavía no está en la base, un corte), no frena: la base decide al guardar, como antes.
+DESCARTÉ: (a) repetir las reglas en la web o en una segunda función de la base (derivan); (b) validar en cada tecla (muchas llamadas que escriben y deshacen); se
+valida al guardar; (c) un aviso de abajo repetido con el motivo (queda viejo al corregir el precio); el motivo vive junto al campo, que es donde se corrige.
+Probado: casos W4 (dice el motivo y no deja rastro: ni precio, ni historial, ni marca), W5 (también para una prenda que aún no es del envío, sin abrir la puerta
+real) y W6 (la validación dice lo mismo que la función real, caso por caso) en `pruebas:pendientes-de-envio`; las reglas (`hoyDelPrecio`, `problemasDePrecio`,
+`leerValidacionDePrecio`) con prueba; y en el navegador: «abc» se frena con su motivo, 1 sol dice «Ese precio queda por debajo de lo que cuesta la prenda. Para
+liquidar usa una campaña…» antes de la confirmación, 105 pasa y queda **solo para Tienda Lima** (general 99.90, Trujillo sin cambio, motivo «Recepción ENV-000255»).
+
+**Una terminal (ADR-0531, fusionado 2026-10-26):** el precio de venta solo vale en su tienda, así que ni la tarjeta del cierre ni las hojas de «Para después» le ofrecen «Todas las sedes»: dicen «Solo en <su sede>: las otras sedes no cambian» (`soloSede`, que baja de `recibir/envio/[id]/page.tsx` por `RecibirContando` → `CerrarEnvio` y `EnvioCerrado` → `HacerAhora` → `PreciosDeVenta` → `PrecioDePrenda`). El alcance que viaja siempre es `sede`; la base lo respalda con el disparador `variantes_terminal_no_cambia_precio`.
+
+#### El costo de cada prenda también se cambia en «Hacer ahora» (2026-10-27, sobre ADR-0519)
+
+**El problema primero.** ADR-0519 dejó que quien cierra un envío le ponga costo propio a cada prenda que separó. Pero una prenda que al contar solo fue
+«5 blusas» no se puede costear al cerrar (no se cambia el costo de algo que no se sabe qué es): se identifica después, en «Para después» ▸ «Hacer ahora», y ahí
+entraba al stock con el costo de su LÍNEA. Si había costado otra cosa, solo se corregía desde Catálogo cuando ya había entrado. Felipe (2026-10-26/27): «se debe
+poder cambiar tanto el precio de venta (ya está) como el costo (falta)». Esperó a que ADR-0519 estuviera en `main` para no tener dos formas de costo por prenda.
+
+**Qué se hizo** (`20261026210000_costo_por_prenda_en_hacer_ahora.sql`, aún sin pegar en producción; se pega DESPUÉS de `20261026163000` y `20261026180000`).
+En la hoja de la prenda (Tallas y colores, y Separar) el bloque «Costo y precio de venta · opcional» trae el costo con el que la prenda entraría (el suyo propio si
+ya lo tiene, el que se le puso por su descripción si era una nueva, o el de su línea) y se confirma con la misma ventana del precio («Vas a cambiar costos y
+precios»). El costo viaja dentro de lo separado (`p_separado -> 'costos'`, `{producto: costo}`): `resolver_pendiente_envio` mantiene su firma, y la huella del doble clic ya lo
+cubre porque incluye todo `p_separado`. La base lo valida con LA MISMA función del cierre (`fn_envio_costos_prendas`: solo prendas de esa hoja, S/ 0 a 99 999.99 con dos
+decimales, vacío = no cambia), con el mismo permiso (un envío sin aviso: el costo de una línea de fuera de la guía solo lo escribe quien ve el dinero de Compras) y con
+la misma revisión del costo atípico (`fn_recepcion_entrar`), que ahora dice «el costo que escribiste no se parece al que tiene la prenda hoy» cuando lo raro es lo recién escrito.
+
+**Lo que se queda anotado.** El costo se guarda en `despacho_conteos.costos_prendas` (lo de ahora gana sobre lo que había): si esa prenda se detalla por partes, la
+segunda parte entra al mismo costo, y la pantalla lo muestra al volver. Sin eso, la segunda mitad entraría en silencio al costo de la línea. Para poder escribirlo
+con el envío cerrado, el candado de lo contado (`fn_despacho_conteos_fija`, reemplazo anclado) deja pasar **solo la columna `costos_prendas`**, y solo mientras
+`resolver_pendiente_envio` o `ligar_prenda_a_pendiente` tienen encendida su marca de transacción `retail.costo_de_prenda`; lo contado, la línea y el envío siguen sin poder
+cambiar. **Es la única rendija nueva en un candado de lo contado y es de Felipe decidir si la acepta** (la alternativa, no guardar el costo en el conteo, deja el
+descuadre silencioso de arriba).
+
+**Sin la migración, no se miente.** Una base sin `20261026210000` ignora `costos` sin error; por eso, al guardar, la pantalla compara lo mandado con el costo de cada prenda que la respuesta trae en el conteo (`costosSinGuardar`) y, si falta, no lo da por hecho: avisa «No se cambió el costo de …» y dice que la prenda entró al costo de su línea.
+
+**«Crear ahora» no pierde el costo.** El costo puesto a una prenda nueva por su descripción (`nueva:<descripción>`) vivía en el pendiente «crear»; al ligar la prenda creada
+(`ligar_prenda_a_pendiente`) el pendiente deja de tener descripción, así que esa clave pasa al `producto_id` de la prenda (lo que la prenda ya tuviera propio gana; la clave
+vieja se quita solo si no queda otro «crear» de la misma línea con esa descripción).
+
+**Compatibilidad con ADR-0519.** La función lee `v_k.costos_prendas`, el mismo nombre que ADR-0519 escribió: el parche le asigna la mezcla a ese campo en vez de reescribir sus
+líneas, y así `20261026164000` sigue siendo re-aplicable tal cual (su prueba, `pruebas:costo-por-prenda`, lo comprueba: 10/10 con las dos migraciones puestas).
+
+DESCARTÉ: (a) un parámetro nuevo en `resolver_pendiente_envio` (otra firma = otra función para permisos y llamadas); (b) no guardar el costo en el conteo (segunda parte al costo
+de la línea, sin aviso); (c) reescribir las líneas del parche de ADR-0519 (rompía su idempotencia: su migración y su prueba fallaban al re-aplicarse); (d) un campo de costo para las
+nuevas descritas de la hoja «Separar»: no tienen precio de venta ahí tampoco; su costo se escribe al crearlas («Crear ahora» trae el que ya tenían).
+Probado: casos K1–K9 de `pruebas:pendientes-de-envio` (el costo entra y se queda; lo de ahora gana; vacío, nulo y de otra prenda no cambian nada; mal escrito se rechaza sin escribir;
+atípico pide confirmar y no deja rastro al fallar; doble clic; el costo de una nueva pasa a la prenda al ligar; el candado solo deja la columna del costo y solo con la marca; sin
+aviso y sin ver el dinero, no) y las reglas (`costoInicialDePrenda`, `costosDeHacerAhora`, `avisoDeConfirmarHacerAhora`) con prueba; y en el navegador con ENV-000254: Blusa
+Valentina de S/ 19.80 a S/ 18.50 con «Antes S/ 19.80», «abc» se frena junto al campo con el cursor, la confirmación lista el costo, el aviso de costo atípico se confirma y entran 12 y 8 a
+S/ 18.50 con el costo de la línea intacto (S/ 19.80) y la prenda anotada en el conteo.
+
+**Tallas con precios distintos (2026-10-27, c).** El precio de venta vive en cada variante (talla y color), pero cambiarlo desde Recibir pone UN precio: «todas las sedes» iguala todas las tallas y colores activos
+(`cambiar_precio_en_recepcion`), y «solo esta sede» pone un precio de tienda que alcanza a todas las tallas activas (`poner_precio_sede`). Antes, la confirmación decía «sin precio → S/ 75.00» para una prenda
+que valía de S/ 69.90 a S/ 79.90. Ahora el cambio trae el rango (`CambioDePrecio.rango`): «S/ 69.90 a S/ 79.90 → S/ 75.00 · solo Tienda Lima», con la línea «Hoy las tallas valen distinto: en Tienda Lima
+todas pasan a venderse a este precio» (`textoIgualaTallas`). La base no cambia. Además, bajo el campo del precio sale «Antes S/ …» cuando el precio escrito es válido y distinto del de hoy (uno solo), y en la
+hoja de una sola prenda no se repite su nombre ni el precio de hoy cuando el campo ya lo trae.
+

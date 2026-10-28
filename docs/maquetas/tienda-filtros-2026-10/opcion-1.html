@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opción 1 · Filtros que se abren</title>
+<link rel="stylesheet" href="base.css">
+<style>
+/* ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   OPCIÓN 1 · FILTROS QUE SE ABREN  (maqueta de la tienda, 2026-10-25)
+   Idea: color y talla viven detrás de dos palabras de la barra. La lista queda limpia; los filtros solo ocupan lugar cuando se usan.
+   Escritorio: COLOR y TALLA abren un panel flotante bajo la barra (en vivo, sin «Aplicar»).
+   Celular: un botón «Filtros» junto al orden abre una hoja desde abajo (en vivo, con «Ver N prendas»).
+   Solo tokens de base.css. El único color suelto de la página es el de cada muestra, que viene de los datos (--hex).
+   Prefijo propio: .o1-
+   ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Borde de un control: tinta al 60 % sobre lo que haya detrás (mide ≥ 3:1 sobre muro y sobre papel). */
+  --o1-borde: color-mix(in srgb, var(--tinta) 60%, transparent);
+  --o1-vela: color-mix(in srgb, var(--tinta) 6%, transparent);
+}
+[class*="o1-"][hidden] { display: none !important; }
+/* Las capas viven fuera del lienzo: heredan la letra de la tienda desde aquí. Por encima de la barra de revisión de la maqueta (z-index 100):
+   a 390 px esa barra tapaba el asa y el título de la hoja y no dejaba arrastrarla. */
+#capas { z-index: 120; color: var(--tinta); font: 400 15px/1.55 var(--sans); font-variation-settings: "wdth" 100; }
+
+/* Etiqueta de la tienda: versalitas de 11 px, ancha, con aire entre letras. */
+.o1-etq { font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: 0.16em; text-transform: uppercase; }
+
+/* ── Globito con el número (círculo grafito) ── */
+.o1-globo { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 50%; background: var(--tinta); color: var(--papel); font-size: 11px; font-weight: 600; font-variation-settings: "wdth" 100; letter-spacing: 0; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* ══════════════════════════ ESCRITORIO · la fila dentro de la barra pegada ══════════════════════════ */
+.o1-fila { display: flex; align-items: center; min-height: 31px; }
+.o1-pal { gap: 8px; padding-block: 6px 5px; }
+.o1-pal + .o1-pal { margin-left: 22px; }
+.o1-pal { max-width: 220px; transition: color 0.3s, border-color 0.3s, max-width 0.3s var(--ease), margin 0.3s var(--ease), opacity 0.2s var(--ease), visibility 0s; }
+.o1-pal[data-hay] { color: var(--tinta); }
+.o1-pal[aria-expanded="true"] { color: var(--tinta); border-color: var(--tinta); }
+.o1-pal .o1-globo { margin-left: -1px; }
+.o1-caret { width: 10px; height: 10px; flex: none; transition: transform 0.2s var(--ease); }
+.o1-pal[aria-expanded="true"] .o1-caret { transform: rotate(180deg); }
+/* La palabra TALLA se va con suavidad cuando el grupo no usa tallas (bolsos, bisutería, otros accesorios). */
+.o1-pal[data-fuera="true"] { max-width: 0; margin-left: 0; padding-inline: 0; opacity: 0; overflow: hidden; visibility: hidden; transition: color 0.3s, border-color 0.3s, max-width 0.3s var(--ease), margin 0.3s var(--ease), padding 0.3s var(--ease), opacity 0.2s var(--ease), visibility 0s linear 0.3s; }
+
+/* «Quitar todo»: texto con raya fina, como el orden. */
+.o1-qt { position: relative; border: 0; border-bottom: 1px solid var(--sand); background: none; border-radius: 0; padding: 4px 0 3px; color: var(--tinta); white-space: nowrap; transition: border-color 0.3s; }
+.o1-qt::before { content: ""; position: absolute; inset: -9px -6px; }
+@media (hover: hover) { .o1-qt:hover { border-color: var(--tinta); } }
+.o1-fila .o1-qt { margin-left: 30px; }
+
+/* ══════════════════════════ CELULAR · el botón «Filtros» junto al orden ══════════════════════════ */
+.t-orden .o1-filtros-btn { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 4px 0 3px; border: 0; border-bottom: 1px solid var(--sand); background: none; border-radius: 0; color: var(--tinta); white-space: nowrap; }
+.t-orden .o1-filtros-btn::before { content: ""; position: absolute; inset: -10px -6px; }
+.o1-filtros-btn svg { width: 16px; height: 16px; flex: none; overflow: visible; }
+/* El número va después de la palabra (antes se montaba sobre el ícono). */
+.o1-filtros-btn .o1-globo { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; }
+.t-orden .o1-filtros-btn[aria-expanded="true"] { border-color: var(--tinta); }
+@container tienda (max-width: 699px) {
+  /* En el celular la barra son tres hileras: los grupos a todo el ancho, las categorías (si hay un grupo elegido) y, al pie,
+     «Filtros» junto al orden. Antes «Filtros» iba a la derecha de los grupos y estos se quedaban en una ranura de 115 px que había
+     que arrastrar a ciegas. Mide 118 px con categorías (el tope es 120). */
+  .t-filtros { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 2px; align-items: center; padding-block: 8px; }
+  .t-filtros-niveles { display: contents; }
+  .t-pildoras { grid-row: 1; }
+  .t-subcats { grid-row: 2; }
+  .t-subcats[hidden] { display: none; }
+  #slot-filtros { display: none; }
+  .t-orden { grid-row: 3; justify-content: space-between; gap: 14px; }
+  .t-orden #orden::before { inset: -10px -6px; }
+}
+
+/* ══════════════════════════ Los carriles (grupos y categorías) avisan que siguen ══════════════════════════ */
+/* Un fundido en el borde que desborda (se enciende solo con `data-mas-der` / `data-mas-izq`, que pone el script de abajo) y, en
+   escritorio, una flecha para quien solo tiene la rueda vertical del mouse. */
+.t-pildoras[data-mas-der], .t-subcats[data-mas-der] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.t-pildoras[data-mas-izq], .t-subcats[data-mas-izq] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+.t-pildoras[data-mas-der][data-mas-izq], .t-subcats[data-mas-der][data-mas-izq] { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
+.t-filtros-niveles { position: relative; }
+.o1-carril-btn { position: absolute; top: 0; z-index: 1; width: 34px; height: 33px; display: grid; place-items: center; border: 0; background: none; border-radius: 0; padding: 0; color: var(--tinta); }
+.o1-carril-btn[data-dir="1"] { right: 0; }
+.o1-carril-btn[data-dir="-1"] { left: 0; }
+.o1-carril-btn svg { width: 12px; height: 12px; }
+@media (hover: hover) { .o1-carril-btn:hover { color: var(--rojo-profundo); } }
+@container tienda (max-width: 699px) { .o1-carril-btn { display: none !important; } }
+
+/* ══════════════════════════ LO ELEGIDO · fichas bajo la barra (no pegada) ══════════════════════════ */
+.o1-sel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.24s var(--ease); }
+.o1-sel[data-hay] { grid-template-rows: 1fr; }
+.o1-sel-in { min-height: 0; overflow: hidden; padding: 4px; margin: -4px; }
+.o1-sel-pad { padding-bottom: 18px; }
+.o1-fichas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 8px; }
+.o1-ficha { position: relative; display: inline-flex; align-items: center; gap: 9px; min-height: 34px; padding: 0 9px 0 12px; border: 1px solid var(--o1-borde); background: none; border-radius: 0; font: 400 13px/1.2 var(--sans); font-variation-settings: "wdth" 100; color: var(--tinta); text-align: left; transition: border-color 0.3s, background-color 0.3s, opacity 0.2s var(--ease); }
+.o1-ficha::before { content: ""; position: absolute; inset: -5px 0; }
+@media (hover: hover) { .o1-ficha:hover { border-color: var(--tinta); background: var(--o1-vela); } }
+.o1-ficha svg { width: 12px; height: 12px; flex: none; }
+.o1-ficha .o1-pto { width: 12px; height: 12px; flex: none; border-radius: 50%; background: var(--hex); box-shadow: inset 0 0 0 1px var(--o1-borde); }
+.o1-ficha .o1-ficha-nota { color: var(--ambar); font-size: 12px; }
+.o1-ficha[data-muerta] { border-style: dashed; border-color: var(--tinta); }
+.o1-ficha[data-nueva] { animation: o1-aparece 0.24s var(--ease) both; }
+/* Una ficha que quedó bajo el panel abierto se esconde entera (si no, asomaba un pedazo cortado en el borde del panel). */
+.o1-ficha[data-tapada] { opacity: 0; pointer-events: none; }
+.o1-maq, #resultado { transition: opacity 0.2s var(--ease); }
+.o1-maq[data-tapada], #resultado[data-tapada] { opacity: 0; }
+/* «Quitar …» de las fichas solo existe en celular; en escritorio su <li> tampoco se dibuja (antes quedaba un elemento vacío en la lista). */
+.o1-quitar-li, .o1-sel .o1-qt { display: none; }
+.o1-quitar-li .o1-qt { text-align: left; }
+/* Aviso de la maqueta (no es parte del diseño): las fotos son una por prenda y no cambian con el color. */
+.o1-maq { margin: 12px 0 0; max-width: 62ch; font-size: 12px; line-height: 1.45; color: var(--taupe); }
+.o1-maq b { font-weight: 600; font-variation-settings: var(--ancho); letter-spacing: 0.12em; text-transform: uppercase; font-size: 10.5px; color: var(--tinta); margin-right: 6px; }
+@container tienda (max-width: 699px) {
+  .o1-quitar-li { display: block; }
+  .o1-sel .o1-qt { display: inline-block; min-height: 44px; }
+  .o1-sel .o1-qt::before { inset: 0 -6px; }
+  /* 44 px de alto con el dedo: antes medían 36 y la zona de toque, 42,5. */
+  .o1-ficha { font-size: 14px; min-height: 44px; }
+  .o1-ficha::before { inset: -2px 0; }
+}
+@keyframes o1-aparece { from { opacity: 0; transform: translateY(3px); } }
+/* Una opción apagada que se toca responde: se sacude un poco y su nota se enciende un momento (nada se pierde si la nota queda lejos). */
+@keyframes o1-sacude { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.o1-op[data-sacude] { animation: o1-sacude 0.28s var(--ease); }
+
+/* ══════════════════════════ LAS OPCIONES (muestras y chips): iguales en panel y en hoja ══════════════════════════ */
+.o1-op { position: relative; border: 0; background: none; border-radius: 0; padding: 0; color: var(--tinta); text-align: left; font-family: var(--sans); font-variation-settings: "wdth" 100; }
+.o1-mu { position: relative; width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--hex); box-shadow: inset 0 0 0 1px var(--o1-borde), 0 0 0 2px transparent, 0 0 0 3px transparent; transition: box-shadow 0.2s var(--ease); }
+.o1-mu svg { width: 14px; height: 14px; color: var(--marca); opacity: 0; transform: scale(0.6); transition: opacity 0.2s var(--ease), transform 0.2s var(--ease); }
+.o1-nom { font-size: 13.5px; line-height: 1.25; }
+.o1-n { font-size: 12px; color: var(--taupe); font-variant-numeric: tabular-nums lining-nums; }
+.o1-op[aria-pressed="true"] .o1-nom { font-weight: 600; }
+.o1-op[aria-pressed="true"] .o1-mu { box-shadow: inset 0 0 0 1px var(--o1-borde), 0 0 0 2px var(--papel), 0 0 0 3.5px var(--tinta); }
+.o1-op[aria-pressed="true"] .o1-mu svg { opacity: 1; transform: none; }
+/* Apagada: no daría ninguna prenda con lo que ya elegiste. Opaca a medias, raya cruzada y «0»: se entiende sin pasar el mouse. */
+.o1-op[data-estado="apagada"] { cursor: default; }
+.o1-op[data-estado="apagada"] .o1-nom { opacity: 0.58; }
+.o1-op[data-estado="apagada"] .o1-n { opacity: 0.85; }
+.o1-op[data-estado="apagada"] .o1-mu { opacity: 0.55; }
+.o1-op[data-estado="apagada"] .o1-mu::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(to top right, transparent calc(50% - 0.8px), var(--tinta) calc(50% - 0.8px), var(--tinta) calc(50% + 0.8px), transparent calc(50% + 0.8px)); }
+/* Muerta: sigue elegida, pero con lo otro ya no queda ninguna prenda. Anillo discontinuo y «0» en ámbar. */
+.o1-op[data-estado="muerta"] .o1-mu { box-shadow: inset 0 0 0 1px var(--o1-borde); outline: 1.5px dashed var(--tinta); outline-offset: 3px; }
+.o1-op[data-estado="muerta"] .o1-n { color: var(--ambar); font-weight: 600; }
+
+/* Chips de talla */
+.o1-chip { display: flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 8px; border: 1px solid var(--o1-borde); background: none; text-align: center; transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease); }
+.o1-chip .o1-nom { font-size: 14px; }
+@media (hover: hover) { .o1-chip:hover:not([data-estado="apagada"]) { border-color: var(--tinta); } }
+.o1-chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--papel); }
+.o1-chip[aria-pressed="true"] .o1-n { color: color-mix(in srgb, var(--papel) 78%, transparent); }
+.o1-chip[data-estado="apagada"] { border-style: dashed; border-color: color-mix(in srgb, var(--tinta) 34%, transparent); }
+.o1-chip[data-estado="apagada"] .o1-nom { opacity: 0.62; }
+.o1-chip[data-estado="apagada"] .o1-n { opacity: 0.85; }
+.o1-chip[data-estado="muerta"] { outline: 1.5px dashed var(--tinta); outline-offset: 3px; }
+.o1-chip[data-estado="muerta"] .o1-n { color: var(--papel); }
+
+/* Notas: dicen por qué una opción está apagada o «muerta», siempre a la vista. */
+.o1-notas:empty { display: none; }
+.o1-notas { margin-top: 14px; display: grid; gap: 6px; }
+.o1-nota { margin: 0 -6px; padding: 2px 6px; display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.45; color: var(--taupe); transition: background-color 0.3s, color 0.3s; }
+.o1-nota[data-resalta] { background: var(--o1-vela); color: var(--tinta); }
+.o1-ley { width: 11px; height: 11px; flex: none; margin-top: 2px; border-radius: 50%; position: relative; }
+.o1-nota[data-tipo="apagada"] .o1-ley { box-shadow: inset 0 0 0 1px var(--o1-borde); background: linear-gradient(to top right, transparent calc(50% - 0.7px), var(--tinta) calc(50% - 0.7px), var(--tinta) calc(50% + 0.7px), transparent calc(50% + 0.7px)); opacity: 0.7; }
+.o1-nota[data-tipo="muerta"] .o1-ley { border: 1.5px dashed var(--tinta); }
+.o1-nota[data-tipo="muerta"] { color: var(--ambar); }
+
+/* Sistemas de talla */
+.o1-sis + .o1-sis { margin-top: 18px; }
+.o1-sis-t { margin: 0 0 9px; display: flex; align-items: baseline; gap: 10px; color: var(--taupe); }
+.o1-sis-t em { font-style: normal; font-size: 12px; letter-spacing: 0; text-transform: none; font-weight: 400; font-variation-settings: "wdth" 100; }
+.o1-chips { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.o1-sis[data-sis="unica"] .o1-chip { grid-column: span 3; }
+
+/* ══════════════════════════ ESCRITORIO · el panel flotante (vive en #capas) ══════════════════════════ */
+.o1-panel { position: absolute; z-index: 2; display: flex; flex-direction: column; background: var(--papel); border: 1px solid var(--sand); box-shadow: 0 24px 48px -28px var(--sombra), 0 2px 10px -4px var(--sombra); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), visibility 0s linear 0.2s; }
+.o1-panel[data-abierto] { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.o1-p-cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 20px 6px; }
+.o1-lema { margin: 0 0 12px; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 19px; line-height: 1.25; letter-spacing: -0.005em; }
+.o1-lista-color { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.o1-op-color { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; min-height: 40px; padding: 4px 6px 4px 4px; margin-inline: -4px; transition: background-color 0.2s var(--ease); }
+@media (hover: hover) { .o1-op-color:hover:not([data-estado="apagada"]) { background: var(--o1-vela); } }
+.o1-p-pie { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 10px; padding: 13px 20px 15px; border-top: 1px solid var(--sand); }
+.o1-p-pie .o1-qt { margin-right: auto; }
+.o1-p-pie .o1-qt[hidden] { display: none; }
+.o1-cierra { position: relative; border: 0; border-bottom: 1px solid var(--tinta); background: none; border-radius: 0; padding: 4px 0 3px; color: var(--tinta); white-space: nowrap; }
+.o1-cierra::before { content: ""; position: absolute; inset: -9px -6px; }
+
+/* ══════════════════════════ CELULAR · la hoja (vive en #capas) ══════════════════════════ */
+.o1-hoja-raiz { position: absolute; inset: 0; z-index: 3; }
+.o1-velo { position: absolute; inset: 0; background: var(--velo); opacity: 0; transition: opacity 0.32s var(--ease); }
+.o1-hoja-raiz[data-abierta] .o1-velo { opacity: 1; }
+.o1-hoja { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 86%; background: var(--papel); border-top: 1px solid var(--sand); outline: none; transform: translateY(100%); transition: transform 0.32s var(--ease); }
+/* La hoja recibe el foco al abrirse (para que el lector la anuncie) pero no es un control: sin aro rojo alrededor de toda la hoja. */
+#capas .o1-hoja:focus-visible { outline: none; }
+.o1-hoja-raiz[data-abierta] .o1-hoja { transform: none; }
+.o1-hoja-raiz[data-cerrando] .o1-velo { transition-duration: 0.24s; }
+.o1-hoja-raiz[data-cerrando] .o1-hoja { transition-duration: 0.24s; }
+.o1-asa { flex: none; height: 24px; display: grid; place-items: center; touch-action: none; cursor: grab; }
+.o1-asa i { display: block; width: 40px; height: 3px; background: color-mix(in srgb, var(--tinta) 30%, transparent); }
+.o1-h-cab { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 4px 16px; transition: box-shadow 0.2s var(--ease); }
+.o1-hoja[data-rodado] .o1-h-cab { box-shadow: 0 1px 0 var(--sand); }
+.o1-h-cab h2 { margin: 0; font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: 28px; line-height: 1.1; letter-spacing: -0.01em; }
+.o1-x { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; padding: 0; color: var(--tinta); }
+.o1-x svg { width: 18px; height: 18px; }
+.o1-h-cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 16px 20px; }
+.o1-sec + .o1-sec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--sand); }
+.o1-sec-t { margin: 0 0 6px; display: flex; align-items: center; gap: 10px; color: var(--taupe); }
+.o1-sec-t .o1-globo { background: var(--tinta); }
+.o1-h-pie { flex: none; display: flex; align-items: center; gap: 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--sand); background: var(--papel); }
+.o1-limpiar { position: relative; min-height: 48px; padding: 0 6px; border: 0; background: none; color: var(--tinta); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--o1-borde); font-size: 14px; white-space: nowrap; }
+.o1-limpiar[hidden] { display: none; }
+.o1-ver { flex: 1; min-height: 48px; padding: 0 16px; border: 1px solid var(--tinta); border-radius: 0; background: var(--tinta); color: var(--papel); transition: background-color 0.2s var(--ease); }
+
+/* En la hoja las muestras van de a cuatro por fila, con el nombre debajo; los chips, apilados (nombre y número). */
+/* De a cinco por fila (eran cuatro): con 13 colores son tres hileras y la talla ya asoma al abrir la hoja, sin desplazar. */
+.o1-hoja-raiz .o1-lista-color { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; }
+.o1-hoja-raiz .o1-op-color { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 84px; padding: 8px 1px 4px; margin: 0; text-align: center; }
+.o1-hoja-raiz .o1-mu { width: 32px; height: 32px; }
+.o1-hoja-raiz .o1-mu svg { width: 16px; height: 16px; }
+.o1-hoja-raiz .o1-nom { font-size: 12px; line-height: 1.2; min-height: 2.4em; margin-top: 3px; display: flex; align-items: center; justify-content: center; text-align: center; overflow-wrap: anywhere; hyphens: auto; }
+.o1-hoja-raiz .o1-n { font-size: 11px; }
+.o1-hoja-raiz .o1-op-color .o1-n { margin-top: -2px; }
+.o1-hoja-raiz .o1-chips { gap: 8px; }
+.o1-hoja-raiz .o1-chip { flex-direction: column; align-items: center; justify-content: center; gap: 1px; height: 50px; padding: 0 2px; }
+.o1-hoja-raiz .o1-chip .o1-nom { min-height: 0; font-size: 15px; line-height: 1.2; }
+.o1-hoja-raiz .o1-chip .o1-n { font-size: 11px; line-height: 1.1; }
+.o1-hoja-raiz .o1-sis[data-sis="unica"] .o1-chip { flex-direction: row; gap: 8px; height: 44px; }
+.o1-hoja-raiz .o1-sis[data-sis="unica"] .o1-chip .o1-n { font-size: 12px; position: relative; top: 1px; }
+.o1-hoja-raiz .o1-chips { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.o1-hoja-raiz .o1-chip[aria-pressed="true"] .o1-n { color: color-mix(in srgb, var(--papel) 78%, transparent); }
+.o1-hoja-raiz .o1-notas { margin-top: 8px; }
+.o1-hoja-raiz .o1-nota { font-size: 12.5px; }
+
+html[data-o1-bloqueo] { overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .o1-pal, .o1-caret, .o1-sel, .o1-ficha, .o1-qt, .o1-mu, .o1-mu svg, .o1-chip, .o1-op-color, .o1-panel, .o1-velo, .o1-hoja,
+  .o1-h-cab, .o1-ver, .o1-nota, .o1-filtros-btn, .t-orden button, .t-subcat { transition: none !important; }
+  .o1-ficha[data-nueva], .o1-op[data-sacude] { animation: none; }
+}
+</style>
+</head>
+<body>
+<main id="lienzo"></main>
+<div id="capas"></div>
+<script src="datos-filtros.js"></script>
+<script src="logica.js"></script>
+<script>
+/* Decisiones de esta opción (el porqué completo está en el informe de entrega):
+   · Lo elegido: fichas bajo la barra («Negro ✕», «Talla M ✕») que se quitan de un toque; la opción «muerta» se queda, con borde discontinuo y su nota.
+   · Una opción apagada se explica con una nota siempre visible dentro del panel («En gris: sin prendas en talla M») + raya cruzada + «0»; nunca con el mouse.
+   · El panel de escritorio nunca se corta: se pega al borde de la barra, sube la página lo justo si no cabe y, en último caso, scrollea por dentro.
+   · Abrir COLOR y luego tocar otro grupo: el panel se cierra con ese toque (un toque fuera cierra) y el aviso «Quitamos… Deshacer» queda a la vista.
+   · Ronda de correcciones (2026-10-25): el foco nunca cae al <body> tras quitar algo; una talla elegida mantiene su control a la vista aunque el grupo no la pida;
+     los grupos del celular usan todo el ancho; «Quitar …» dice qué quita (color y talla; el grupo y la categoría son navegación y no se tocan). */
+const HASH_INICIAL = location.hash; // el motor la reescribe (ya normalizada) antes de montar: aquí queda lo que la persona escribió
+window.OPCION = {
+  nombre: "Opción 1",
+  montar(m) {
+    "use strict";
+    const T = m.T;
+    const doc = document;
+    const lienzo = doc.getElementById("lienzo");
+    const capas = m.capas();
+    const barra = doc.getElementById("barra");
+    const ordenWrap = barra.querySelector(".t-orden");
+    const slotFiltros = m.slot("filtros");
+    const slotSel = m.slot("seleccion");
+    const famPorId = {};
+    T.familias.forEach((f) => { famPorId[f.id] = f; });
+    const calma = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const esMovil = () => lienzo.getBoundingClientRect().width < 700; // nunca matchMedia: en «Celular» la ventana es ancha pero el lienzo mide 390
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const html = (s) => { const t = doc.createElement("template"); t.innerHTML = s.trim(); return t.content.firstElementChild; };
+    const luma = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
+    const unir = (a, y) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " " + y + " " + a[a.length - 1]);
+    const prendas = (n) => n + (n === 1 ? " prenda" : " prendas");
+
+    const SVG = {
+      caret: '<svg class="o1-caret" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><path d="M1.75 3.75 5 7l3.25-3.25"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M5.5 12.5 10 17l8.5-9.5"/></svg>',
+      x: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m2 2 8 8M10 2 2 10"/></svg>',
+      xGrande: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m3 3 12 12M15 3 3 15"/></svg>',
+      filtros: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 7h10M19 7h2M3 17h2M11 17h10"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg>',
+    };
+
+    // ── Qué mostrar cuando algo no suma ─────────────────────────────────────────────────────────────────────────────────
+    // La talla única se llama igual en el chip, la ficha, los avisos y los lectores: «estándar / única» (en frase) o «Estándar / única» (suelta).
+    const fraseTalla = (k) => (k === "UNICA" ? "talla estándar / única" : "talla " + k);
+    // «sin prendas en talla M»: lo que hay elegido en la OTRA faceta explica por qué esta opción no suma.
+    function otraFrase(faceta, d) {
+      if (faceta === "color") {
+        const ts = d.estado.talla;
+        return ts.length ? (ts.length === 1 ? "talla " : "tallas ") + unir(ts.map((k) => (k === "UNICA" ? "estándar / única" : k)), "o") : "";
+      }
+      return unir(d.estado.color.map((id) => famPorId[id].nombre), "o");
+    }
+    const nombreOpcion = (faceta, id) => (faceta === "color" ? famPorId[id].nombre : m.etiquetaTalla(id));
+
+    // ── Reconciliar una lista por clave (actualiza en sitio: las transiciones y el foco no se pierden) ───────────────
+    function reconciliar(cont, claves, crear, pintar) {
+      const mapa = cont._mapa || (cont._mapa = new Map());
+      const vigentes = new Set(claves);
+      mapa.forEach((el, k) => { if (!vigentes.has(k)) { el.remove(); mapa.delete(k); } });
+      let previo = null;
+      claves.forEach((k) => {
+        let el = mapa.get(k);
+        if (!el) { el = crear(k); mapa.set(k, el); }
+        pintar(el, k);
+        const objetivo = previo ? previo.nextElementSibling : cont.firstElementChild;
+        if (el !== objetivo) cont.insertBefore(el, objetivo);
+        previo = el;
+      });
+    }
+
+    function crearOpcionColor(id) {
+      const f = famPorId[id];
+      const marca = luma(f.hex) > 0.6 ? "var(--t-tinta-fija)" : "var(--t-papel-fijo)";
+      const b = html('<button type="button" class="o1-op o1-op-color" data-id="c-' + id + '" data-faceta="color" data-valor="' + id + '">' +
+        '<span class="o1-mu" style="--hex:' + f.hex + ";--marca:" + marca + '">' + SVG.check + "</span>" +
+        '<span class="o1-nom">' + esc(f.nombre) + '</span><span class="o1-n num"></span></button>');
+      return b;
+    }
+    function crearChip(k) {
+      return html('<button type="button" class="o1-op o1-chip" data-id="t-' + k + '" data-faceta="talla" data-valor="' + k + '"><span class="o1-nom">' + esc(m.etiquetaTalla(k)) + '</span><span class="o1-n num"></span></button>');
+    }
+    function pintarOpcion(b, faceta, id, d) {
+      const n = d.conteos[faceta][id] || 0;
+      const elegido = d.estado[faceta].indexOf(id) >= 0;
+      const muerta = elegido && d.muertas[faceta].indexOf(id) >= 0;
+      const apagada = !elegido && n === 0;
+      const estado = muerta ? "muerta" : elegido ? "elegida" : apagada ? "apagada" : "libre";
+      b.setAttribute("aria-pressed", String(elegido));
+      b.setAttribute("aria-disabled", String(apagada));
+      b.dataset.estado = estado;
+      b.querySelector(".o1-n").textContent = String(n);
+      const nom = nombreOpcion(faceta, id);
+      const otra = otraFrase(faceta, d);
+      b.setAttribute("aria-label",
+        muerta ? nom + ", elegido, pero sin prendas en " + otra + ". Tócalo para quitarlo"
+        : apagada ? nom + ", sin prendas en " + otra
+        : nom + ", " + prendas(n));
+      if (apagada) b.title = "Sin prendas en " + otra; else b.removeAttribute("title");
+    }
+
+    function armarZona(faceta, cont) {
+      if (faceta === "color") {
+        cont.innerHTML = '<div class="o1-lista-color" role="group" aria-label="Colores"></div>';
+        return { lista: cont.firstElementChild };
+      }
+      const refs = {};
+      const sis = [["letra", "Ropa", ""], ["cintura", "Cintura", "pantalones, faldas y shorts"], ["unica", "Talla única", ""]];
+      cont.innerHTML = sis.map((s) => '<div class="o1-sis" data-sis="' + s[0] + '" role="group" aria-label="' + s[1] + '"><p class="o1-sis-t"><span class="o1-etq">' + s[1] + "</span>" + (s[2] ? "<em>" + s[2] + "</em>" : "") + '</p><div class="o1-chips"></div></div>').join("");
+      sis.forEach((s) => { const raiz = cont.querySelector('[data-sis="' + s[0] + '"]'); refs[s[0]] = { raiz, chips: raiz.querySelector(".o1-chips") }; });
+      return refs;
+    }
+    function pintarZona(refs, faceta, d) {
+      if (faceta === "color") {
+        reconciliar(refs.lista, d.opciones.familias.map((f) => f.id), crearOpcionColor, (b, id) => pintarOpcion(b, "color", id, d));
+        return;
+      }
+      ["letra", "cintura", "unica"].forEach((s) => {
+        const claves = d.opciones.sistemas[s];
+        refs[s].raiz.hidden = claves.length === 0;
+        reconciliar(refs[s].chips, claves, crearChip, (b, k) => pintarOpcion(b, "talla", k, d));
+      });
+    }
+    function pintarNotas(cont, faceta, d) {
+      const ids = faceta === "color" ? d.opciones.familias.map((f) => f.id) : d.opciones.tallas;
+      const otra = otraFrase(faceta, d);
+      const muertas = d.muertas[faceta];
+      const apagadas = ids.filter((id) => d.estado[faceta].indexOf(id) < 0 && !(d.conteos[faceta][id] > 0));
+      let h = "";
+      if (muertas.length) h += '<p class="o1-nota" data-tipo="muerta"><i class="o1-ley"></i><span>' + esc(unir(muertas.map((id) => nombreOpcion(faceta, id)), "y")) + ": sin prendas en " + esc(otra) + ". Quítalo con un toque.</span></p>";
+      if (apagadas.length && otra) h += '<p class="o1-nota" data-tipo="apagada"><i class="o1-ley"></i><span>En gris: sin prendas en ' + esc(otra) + ".</span></p>";
+      // Qué cuenta el número de cada opción (antes un «76» suelto no decía nada) y que elegir varias junta sus prendas.
+      const hay = d.estado[faceta].length > 0;
+      h += '<p class="o1-nota" data-tipo="info"><span>El número es cuántas prendas hay en cada ' + (faceta === "color" ? "color" : "talla") + "." +
+        (hay ? (faceta === "color" ? " Si eliges varios, ves las de todos." : " Si eliges varias, ves las de todas.") : "") + "</span></p>";
+      if (cont._h !== h) { cont._h = h; cont.innerHTML = h; }
+    }
+
+    // ══════════════════════════ ESCRITORIO ══════════════════════════
+    const fila = html('<div class="o1-fila" role="group" aria-label="Filtrar por color y talla">' +
+      '<button type="button" class="t-pildora o1-pal" data-id="b-color" data-faceta="color" aria-haspopup="dialog" aria-expanded="false" aria-controls="o1-p-color"><span>Color</span><span class="o1-globo num" hidden></span>' + SVG.caret + "</button>" +
+      '<button type="button" class="t-pildora o1-pal" data-id="b-talla" data-faceta="talla" aria-haspopup="dialog" aria-expanded="false" aria-controls="o1-p-talla"><span>Talla</span><span class="o1-globo num" hidden></span>' + SVG.caret + "</button>" +
+      '<button type="button" class="o1-qt o1-etq" data-id="b-quitar" hidden>Quitar todo</button></div>');
+    slotFiltros.appendChild(fila);
+    const gatillo = { color: fila.querySelector('[data-faceta="color"]'), talla: fila.querySelector('[data-faceta="talla"]') };
+    const quitarTodoBarra = fila.querySelector(".o1-qt");
+
+    const voz = html('<p class="t-sr" role="status" aria-live="polite"></p>');
+    capas.appendChild(voz);
+
+    function crearPanel(faceta) {
+      const nombre = faceta === "color" ? "Color" : "Talla";
+      const p = html('<section class="o1-panel" id="o1-p-' + faceta + '" role="dialog" aria-label="' + nombre + '" data-faceta="' + faceta + '" inert>' +
+        '<div class="o1-p-cuerpo"><p class="o1-lema">' + (faceta === "color" ? "Elige uno o varios colores" : "Elige una o varias tallas") + '</p><div class="o1-zona"></div><div class="o1-notas"></div></div>' +
+        '<div class="o1-p-pie"><button type="button" class="o1-qt o1-etq" data-quitar="' + faceta + '" hidden>Quitar ' + (faceta === "color" ? "colores" : "tallas") + '</button><button type="button" class="o1-cierra o1-etq" data-cerrar>Ver <span class="num"></span></button></div></section>');
+      capas.appendChild(p);
+      return { el: p, zona: armarZona(faceta, p.querySelector(".o1-zona")), notas: p.querySelector(".o1-notas"), ver: p.querySelector(".o1-cierra span"), quitar: p.querySelector("[data-quitar]") };
+    }
+    const panel = { color: crearPanel("color"), talla: crearPanel("talla") };
+    let abierto = null;
+
+    function colocar() {
+      if (!abierto) return;
+      const p = panel[abierto].el, g = gatillo[abierto];
+      const cr = capas.getBoundingClientRect();
+      const br = barra.getBoundingClientRect();
+      const gr = g.getBoundingClientRect();
+      const ancho = Math.min(420, cr.width - 24);
+      const izq = Math.max(12, Math.min(gr.left - cr.left, cr.width - ancho - 12));
+      const arriba = Math.max(0, br.bottom - cr.top - 1);
+      p.style.width = ancho + "px";
+      p.style.left = izq + "px";
+      p.style.top = arriba + "px";
+      p.style.maxHeight = Math.max(200, cr.height - arriba - 12) + "px";
+      marcarTapadas();
+    }
+    // Lo que el panel abierto deja debajo (fichas, la nota de la maqueta y el «N prendas en Trujillo») se esconde entero: así no asoma un
+    // pedazo cortado en su borde.
+    const cuentaPrendas = doc.getElementById("resultado");
+    function marcarTapadas() {
+      const pn = abierto ? panel[abierto].el.getBoundingClientRect() : null;
+      Array.prototype.slice.call(slotSel.querySelectorAll(".o1-ficha, .o1-maq")).concat([cuentaPrendas]).forEach((b) => {
+        let tapada = false;
+        if (pn) { const r = b.getBoundingClientRect(); tapada = r.right > pn.left && r.left < pn.right && r.bottom > pn.top && r.top < pn.bottom; }
+        b.toggleAttribute("data-tapada", tapada);
+      });
+    }
+    let raf = 0;
+    const colocarPronto = () => { if (!abierto || raf) return; raf = requestAnimationFrame(() => { raf = 0; colocar(); }); };
+    addEventListener("scroll", colocarPronto, { passive: true });
+    addEventListener("resize", colocarPronto);
+
+    function primeraOpcion(p) {
+      return p.el.querySelector('.o1-op[aria-pressed="true"]') || p.el.querySelector('.o1-op[aria-disabled="false"]') || p.el.querySelector(".o1-op");
+    }
+    function abrirPanel(faceta) {
+      if (abierto && abierto !== faceta) cerrarPanel(false);
+      abierto = faceta;
+      const p = panel[faceta];
+      colocar();
+      p.el.style.maxHeight = "none"; // se mide cuánto necesita el panel entero
+      const natural = p.el.offsetHeight;
+      // Si debajo de la barra no cabe, se sube la página para que la barra quede arriba (nunca se corta el panel).
+      const br = barra.getBoundingClientRect();
+      const falta = br.bottom + natural + 16 - innerHeight;
+      // Sin animación: con scroll suave el panel iba un cuadro detrás de la barra y se despegaba hasta 57 px mientras la página subía.
+      if (falta > 0 && br.top > 0) scrollBy({ top: Math.min(falta, br.top), behavior: "auto" });
+      colocar();
+      p.el.inert = false;
+      p.el.setAttribute("data-abierto", "");
+      gatillo[faceta].setAttribute("aria-expanded", "true");
+      requestAnimationFrame(() => { const o = primeraOpcion(p); if (o) o.focus({ preventScroll: true }); });
+    }
+    function cerrarPanel(devolverFoco) {
+      if (!abierto) return;
+      const f = abierto;
+      abierto = null;
+      const p = panel[f];
+      p.el.removeAttribute("data-abierto");
+      p.el.inert = true;
+      gatillo[f].setAttribute("aria-expanded", "false");
+      marcarTapadas();
+      if (devolverFoco) gatillo[f].focus({ preventScroll: true });
+    }
+    fila.addEventListener("click", (e) => {
+      const g = e.target.closest(".o1-pal");
+      if (g) { const f = g.dataset.faceta; if (abierto === f) cerrarPanel(true); else abrirPanel(f); return; }
+      if (e.target.closest(".o1-qt")) {
+        const d = m.datos(); const hayAlgo = d.estado.color.length + d.estado.talla.length > 0;
+        cerrarPanel(false); m.limpiar();
+        if (hayAlgo) voz.textContent = "Quitaste los filtros de color y talla.";
+        gatillo.color.focus({ preventScroll: true }); // el botón se oculta: el foco no se queda en el aire
+      }
+    });
+    fila.addEventListener("keydown", (e) => {
+      const g = e.target.closest(".o1-pal");
+      if (g && e.key === "ArrowDown") { e.preventDefault(); if (abierto !== g.dataset.faceta) abrirPanel(g.dataset.faceta); }
+    });
+
+    // ══════════════════════════ CELULAR ══════════════════════════
+    const botonFiltros = html('<button type="button" class="o1-filtros-btn o1-etq" data-id="b-filtros" aria-haspopup="dialog" aria-expanded="false">' + SVG.filtros + "<span>Filtros</span><span class=\"o1-globo num\" hidden></span></button>");
+    ordenWrap.insertBefore(botonFiltros, ordenWrap.firstChild);
+
+    const hojaRaiz = html('<div class="o1-hoja-raiz" data-modo="celular" hidden>' +
+      '<div class="o1-velo" data-cerrar></div>' +
+      '<section class="o1-hoja" role="dialog" aria-modal="true" aria-labelledby="o1-h-t" tabindex="-1">' +
+      '<div class="o1-asa" aria-hidden="true"><i></i></div>' +
+      '<header class="o1-h-cab"><h2 id="o1-h-t">Filtros</h2><button type="button" class="o1-x" data-cerrar aria-label="Cerrar los filtros">' + SVG.xGrande + "</button></header>" +
+      '<div class="o1-h-cuerpo">' +
+      '<section class="o1-sec" data-faceta="color" aria-labelledby="o1-h-color"><h3 class="o1-sec-t o1-etq" id="o1-h-color"><span>Color</span><span class="o1-globo num" hidden></span></h3><div class="o1-zona"></div><div class="o1-notas"></div></section>' +
+      '<section class="o1-sec" data-faceta="talla" aria-labelledby="o1-h-talla"><h3 class="o1-sec-t o1-etq" id="o1-h-talla"><span>Talla</span><span class="o1-globo num" hidden></span></h3><div class="o1-zona"></div><div class="o1-notas"></div></section>' +
+      "</div>" +
+      '<footer class="o1-h-pie"><button type="button" class="o1-limpiar" data-limpiar hidden>Limpiar</button><button type="button" class="o1-ver o1-etq" data-cerrar>Ver <span class="num"></span></button></footer>' +
+      '<p class="t-sr" role="status" aria-live="polite" data-estado-hoja></p>' +
+      "</section></div>");
+    capas.appendChild(hojaRaiz);
+    const hoja = hojaRaiz.querySelector(".o1-hoja");
+    const velo = hojaRaiz.querySelector(".o1-velo");
+    const secc = { color: hojaRaiz.querySelector('[data-faceta="color"]'), talla: hojaRaiz.querySelector('[data-faceta="talla"]') };
+    const zonaHoja = { color: armarZona("color", secc.color.querySelector(".o1-zona")), talla: armarZona("talla", secc.talla.querySelector(".o1-zona")) };
+    const notasHoja = { color: secc.color.querySelector(".o1-notas"), talla: secc.talla.querySelector(".o1-notas") };
+    const botonVer = hojaRaiz.querySelector(".o1-ver span");
+    const botonLimpiar = hojaRaiz.querySelector("[data-limpiar]");
+    const estadoHoja = hojaRaiz.querySelector("[data-estado-hoja]");
+    let hojaAbierta = false, cierreTimer = 0;
+
+    function abrirHoja() {
+      if (hojaAbierta) return;
+      hojaAbierta = true;
+      clearTimeout(cierreTimer);
+      hojaRaiz.hidden = false;
+      hojaRaiz.querySelector(".o1-h-cuerpo").scrollTop = 0;
+      hoja.removeAttribute("data-rodado");
+      hojaRaiz.removeAttribute("data-cerrando");
+      hoja.style.transform = "";
+      velo.style.opacity = "";
+      void hoja.offsetWidth;
+      hojaRaiz.setAttribute("data-abierta", "");
+      botonFiltros.setAttribute("aria-expanded", "true");
+      // Bloquea el scroll de la página sin que se corra el contenido (compensa el ancho de la barra de scroll).
+      const barraScroll = innerWidth - doc.documentElement.clientWidth;
+      doc.documentElement.setAttribute("data-o1-bloqueo", "");
+      if (barraScroll > 0) doc.documentElement.style.paddingRight = barraScroll + "px";
+      lienzo.inert = true;
+      hoja.focus({ preventScroll: true });
+    }
+    function cerrarHoja(devolverFoco) {
+      if (!hojaAbierta) return;
+      hojaAbierta = false;
+      hojaRaiz.setAttribute("data-cerrando", "");
+      hojaRaiz.removeAttribute("data-abierta");
+      hoja.style.transform = "";
+      velo.style.opacity = "";
+      botonFiltros.setAttribute("aria-expanded", "false");
+      lienzo.inert = false;
+      doc.documentElement.removeAttribute("data-o1-bloqueo");
+      doc.documentElement.style.paddingRight = "";
+      if (devolverFoco !== false) botonFiltros.focus({ preventScroll: true });
+      cierreTimer = setTimeout(() => { hojaRaiz.hidden = true; hojaRaiz.removeAttribute("data-cerrando"); }, calma() ? 0 : 260);
+    }
+    botonFiltros.addEventListener("click", () => (hojaAbierta ? cerrarHoja() : abrirHoja()));
+    // Una línea fina bajo el título cuando el contenido ya corrió (así no se ven números cortados contra el borde).
+    hojaRaiz.querySelector(".o1-h-cuerpo").addEventListener("scroll", (e) => { hoja.toggleAttribute("data-rodado", e.target.scrollTop > 2); }, { passive: true });
+
+    // Arrastrar desde el asa: si pasa de un tercio, o de un tirón, se va; si no, vuelve.
+    (function arrastre() {
+      const asa = hojaRaiz.querySelector(".o1-asa");
+      let activo = false, y0 = 0, t0 = 0, dy = 0, alto = 1;
+      asa.addEventListener("pointerdown", (e) => {
+        if (e.button > 0) return;
+        activo = true; y0 = e.clientY; t0 = e.timeStamp; dy = 0; alto = hoja.offsetHeight || 1;
+        hoja.style.transition = "none"; velo.style.transition = "none";
+        asa.setPointerCapture(e.pointerId);
+      });
+      asa.addEventListener("pointermove", (e) => {
+        if (!activo) return;
+        dy = Math.max(0, e.clientY - y0);
+        hoja.style.transform = "translateY(" + dy + "px)";
+        velo.style.opacity = String(Math.max(0, 1 - dy / alto));
+      });
+      const fin = (e) => {
+        if (!activo) return;
+        activo = false;
+        hoja.style.transition = ""; velo.style.transition = "";
+        const v = dy / Math.max(1, e.timeStamp - t0); // px por ms
+        if (dy > alto / 3 || (v > 0.5 && dy > 24)) cerrarHoja();
+        else { hoja.style.transform = ""; velo.style.opacity = ""; }
+      };
+      asa.addEventListener("pointerup", fin);
+      asa.addEventListener("pointercancel", fin);
+    })();
+
+    // ══════════════════════════ LO ELEGIDO (fichas) ══════════════════════════
+    slotSel.innerHTML = '<div class="o1-sel"><div class="o1-sel-in"><div class="o1-sel-pad"><ul class="o1-fichas" aria-label="Filtros puestos"></ul>' +
+      '<p class="o1-maq" hidden><b>Maqueta</b>Cada prenda tiene una sola foto y no cambia con el color: el color que elegiste es el círculo con aro de cada tarjeta.</p></div></div></div>';
+    const selRaiz = slotSel.firstElementChild;
+    const fichasUl = slotSel.querySelector(".o1-fichas");
+    const notaFoto = slotSel.querySelector(".o1-maq");
+    const liQuitar = html('<li class="o1-quitar-li"><button type="button" class="o1-qt o1-etq" data-id="f-quitar">Quitar color y talla</button></li>');
+    const botonQuitarFichas = liQuitar.firstElementChild;
+
+    function pintarFichas(d) {
+      const items = [];
+      d.estado.color.forEach((id) => items.push({ clave: "c-" + id, faceta: "color", id }));
+      d.estado.talla.forEach((k) => items.push({ clave: "t-" + k, faceta: "talla", id: k }));
+      selRaiz.toggleAttribute("data-hay", items.length > 0);
+      selRaiz.inert = items.length === 0;
+      const sinLi = (cont) => { if (liQuitar.parentNode === cont) liQuitar.remove(); };
+      sinLi(fichasUl);
+      reconciliar(fichasUl, items.map((x) => x.clave), (clave) => {
+        const li = doc.createElement("li");
+        li.innerHTML = '<button type="button" class="o1-ficha" data-nueva></button>';
+        return li;
+      }, (li, clave) => {
+        const x = items.filter((y) => y.clave === clave)[0];
+        const b = li.firstElementChild;
+        b.dataset.id = "f-" + clave;
+        b.dataset.faceta = x.faceta; b.dataset.valor = x.id;
+        const muerta = d.muertas[x.faceta].indexOf(x.id) >= 0;
+        b.toggleAttribute("data-muerta", muerta);
+        const otra = otraFrase(x.faceta, d);
+        const nombre = x.faceta === "color" ? famPorId[x.id].nombre : fraseTalla(x.id).replace(/^t/, "T");
+        const lleva = (x.faceta === "color" ? '<i class="o1-pto" style="--hex:' + famPorId[x.id].hex + '"></i>' : "") + "<span>" + esc(nombre) + "</span>" + (muerta ? '<span class="o1-ficha-nota">· sin prendas en ' + esc(otra) + "</span>" : "") + SVG.x;
+        if (b._h !== lleva) { b._h = lleva; b.innerHTML = lleva; }
+        b.setAttribute("aria-label", "Quitar " + nombre + (muerta ? " (sin prendas en " + otra + ")" : ""));
+      });
+      if (items.length) fichasUl.appendChild(liQuitar);
+      Array.prototype.forEach.call(fichasUl.querySelectorAll("[data-nueva]"), (b) => { setTimeout(() => b.removeAttribute("data-nueva"), 400); });
+    }
+    slotSel.addEventListener("click", (e) => {
+      const q = e.target.closest("[data-id='f-quitar']");
+      if (q) { m.limpiar(); (esMovil() ? botonFiltros : gatillo.color).focus({ preventScroll: true }); return; }
+      const b = e.target.closest(".o1-ficha");
+      if (!b) return;
+      const lista = Array.prototype.slice.call(fichasUl.querySelectorAll(".o1-ficha"));
+      const i = lista.indexOf(b);
+      const vecino = lista[i + 1] || lista[i - 1];
+      const claveVecino = vecino ? vecino.dataset.id : null;
+      m.alternar(b.dataset.faceta, b.dataset.valor);
+      const siguiente = claveVecino && slotSel.querySelector('[data-id="' + claveVecino + '"]');
+      (siguiente || (esMovil() ? botonFiltros : gatillo.color)).focus({ preventScroll: true });
+    });
+
+    // ══════════════════════════ ELEGIR (panel y hoja comparten el mismo manejo) ══════════════════════════
+    function alElegir(e) {
+      const q = e.target.closest("[data-quitar]");
+      // Al quitar, el botón se oculta: el foco pasa a donde la persona seguiría (la primera opción del panel; «Ver N prendas» en la hoja).
+      if (q) { m.limpiar(q.dataset.quitar); const o = primeraOpcion(panel[q.dataset.quitar]); if (o) o.focus({ preventScroll: true }); return; }
+      if (e.target.closest("[data-limpiar]")) { m.limpiar(); hojaRaiz.querySelector(".o1-ver").focus({ preventScroll: true }); return; }
+      if (e.target.closest("[data-cerrar]")) { if (hojaAbierta && hojaRaiz.contains(e.target)) cerrarHoja(); else cerrarPanel(true); return; }
+      const b = e.target.closest(".o1-op");
+      if (!b) return;
+      if (b.getAttribute("aria-disabled") === "true") {
+        voz.textContent = ""; estadoHoja.textContent = "";
+        const d = m.datos(); const t = nombreOpcion(b.dataset.faceta, b.dataset.valor) + ": sin prendas en " + otraFrase(b.dataset.faceta, d) + ".";
+        (hojaAbierta ? estadoHoja : voz).textContent = t; // para el lector de pantalla
+        // Y para los ojos: la opción se sacude y su nota («En gris: sin prendas en …») se enciende un momento.
+        b.removeAttribute("data-sacude"); void b.offsetWidth; b.setAttribute("data-sacude", "");
+        setTimeout(() => b.removeAttribute("data-sacude"), 320);
+        const cont = b.closest(".o1-panel, .o1-sec");
+        const nota = cont && cont.querySelector('.o1-nota[data-tipo="apagada"]');
+        if (nota) { nota.setAttribute("data-resalta", ""); clearTimeout(nota._t); nota._t = setTimeout(() => nota.removeAttribute("data-resalta"), 1600); }
+        return;
+      }
+      m.alternar(b.dataset.faceta, b.dataset.valor);
+    }
+    capas.addEventListener("click", alElegir);
+
+    // Flechas dentro de un panel o de la hoja: se mueve entre opciones (las apagadas también se pueden enfocar y leer).
+    function vecinoDe(actual, dir, lista) {
+      const a = actual.getBoundingClientRect();
+      const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+      let mejor = null, mejorD = Infinity;
+      lista.forEach((el) => {
+        if (el === actual) return;
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const dx = cx - ax, dy = cy - ay;
+        const ok = dir === "ArrowRight" ? dx > 4 && Math.abs(dy) < a.height / 2 : dir === "ArrowLeft" ? dx < -4 && Math.abs(dy) < a.height / 2 : dir === "ArrowDown" ? dy > a.height / 2 : dy < -a.height / 2;
+        if (!ok) return;
+        const dist = dir === "ArrowRight" || dir === "ArrowLeft" ? Math.abs(dx) : Math.abs(dy) * 4 + Math.abs(dx);
+        if (dist < mejorD) { mejorD = dist; mejor = el; }
+      });
+      return mejor;
+    }
+    capas.addEventListener("keydown", (e) => {
+      if (!/^Arrow(Right|Left|Up|Down)$/.test(e.key)) return;
+      const b = e.target.closest(".o1-op");
+      if (!b) return;
+      const cont = b.closest(".o1-panel, .o1-hoja");
+      const v = vecinoDe(b, e.key, Array.prototype.slice.call(cont.querySelectorAll(".o1-op")).filter((x) => x.offsetParent !== null));
+      if (v) { e.preventDefault(); v.focus({ preventScroll: false }); }
+    });
+
+    // Escape cierra y devuelve el foco; Tab no se escapa de la hoja ni del panel; un toque fuera cierra el panel.
+    function atrapar(e, cont) {
+      if (e.key !== "Tab") return;
+      const foc = Array.prototype.slice.call(cont.querySelectorAll("button, [tabindex='0']")).filter((x) => !x.hidden && x.offsetParent !== null && !x.closest("[inert]"));
+      if (!foc.length) return;
+      const prim = foc[0], ult = foc[foc.length - 1];
+      if (e.shiftKey && (doc.activeElement === prim || doc.activeElement === cont)) { e.preventDefault(); ult.focus(); }
+      else if (!e.shiftKey && doc.activeElement === ult) { e.preventDefault(); prim.focus(); }
+    }
+    doc.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (hojaAbierta) { e.preventDefault(); cerrarHoja(); return; }
+        if (abierto) { e.preventDefault(); cerrarPanel(true); return; }
+      }
+      if (hojaAbierta) atrapar(e, hoja);
+      else if (abierto) atrapar(e, panel[abierto].el);
+    });
+    doc.addEventListener("pointerdown", (e) => {
+      if (!abierto) return;
+      if (panel[abierto].el.contains(e.target) || fila.contains(e.target)) return;
+      cerrarPanel(false); // el motor atiende el toque (cambiar de grupo suelta lo que no existe y avisa con «Deshacer»: el panel ya no lo tapa)
+    }, true);
+
+    // ══════════════════════════ SINCRONIZAR con el motor ══════════════════════════
+    let modo = esMovil() ? "celular" : "escritorio";
+    function aplicarModo() {
+      fila.hidden = modo !== "escritorio";
+      botonFiltros.hidden = modo !== "celular";
+      hojaRaiz.dataset.modo = modo;
+      if (modo !== "celular" && hojaAbierta) cerrarHoja(false);
+      if (modo !== "escritorio" && abierto) cerrarPanel(false);
+      colocarPronto();
+    }
+
+    function globo(el, n) { el.textContent = String(n); el.hidden = n === 0; }
+
+    // ── Avisos que escribe esta opción (el motor escribe el de «Quitamos… Deshacer»; aquí se aclara su texto) ──
+    // Cuando un cambio de grupo o de categoría suelta algo, el motor dice «Quitamos Verde: … no tiene esa opción», que no aclara qué pasó.
+    function mensajeSoltado(e, s) {
+      const ex = m.L.existe(e);
+      const faltaTodo = s.color.every((id) => !(ex.color[id] > 0)) && s.talla.every((k) => !(ex.talla[k] > 0));
+      const partes = [];
+      if (s.color.length) partes.push(s.color.length === 1 ? "ese color" : "esos colores");
+      if (s.talla.length) partes.push(s.talla.length === 1 ? "esa talla" : "esas tallas");
+      const quitamos = "quitamos " + partes.join(" y ") + ".";
+      if (!faltaTodo) return "Ninguna prenda reúne todo lo que elegiste: " + quitamos;
+      const g = T.grupos.filter((x) => x.id === e.grupo)[0];
+      const cosas = s.color.map((id) => famPorId[id].nombre).concat(s.talla.map(fraseTalla));
+      return "En " + (e.cat || (g && g.nombre) || "esta lista") + " no hay " + unir(cosas, "ni") + ": " + quitamos;
+    }
+    const zonaAviso = doc.getElementById("aviso");
+    let infoTimer = 0;
+    function avisoInfo(texto) { // un aviso sin «Deshacer» (lo que se soltó al leer una dirección escrita a mano)
+      clearTimeout(infoTimer);
+      zonaAviso.innerHTML = '<div class="t-aviso"><p>' + esc(texto) + "</p></div>";
+      infoTimer = setTimeout(() => { zonaAviso.innerHTML = ""; }, 9000);
+    }
+    // La dirección cambió desde afuera (se editó, un enlace, «atrás/adelante»; lo que el motor escribe con replaceState no dispara este evento):
+    // el aviso de antes ya no habla de lo que se ve. Se lee la dirección CRUDA del evento, porque el motor ya la reescribió normalizada.
+    addEventListener("hashchange", (ev) => {
+      clearTimeout(infoTimer);
+      zonaAviso.innerHTML = "";
+      const i = ev.newURL.indexOf("#");
+      const r = m.L.leer(i >= 0 ? ev.newURL.slice(i) : "");
+      if (r.soltoAlgo) avisoInfo(mensajeSoltado(r.estado, r.soltado));
+    });
+    // «Deshacer» quita el botón que tenía el foco: el foco pasa al grupo vigente.
+    zonaAviso.addEventListener("click", (e) => {
+      if (!e.target.closest("[data-deshacer]")) return;
+      const a = doc.querySelector('#grupos [aria-current="true"]');
+      if (a) a.focus({ preventScroll: true });
+    });
+
+    // ── Los carriles de grupos y categorías: avisan que siguen y llevan a la vista el elegido ──
+    function vigilarCarril(car, flechas) {
+      const act = () => {
+        const max = car.scrollWidth - car.clientWidth;
+        car.toggleAttribute("data-mas-der", max > 2 && car.scrollLeft < max - 2);
+        car.toggleAttribute("data-mas-izq", max > 2 && car.scrollLeft > 2);
+        if (flechas) { flechas[0].hidden = !car.hasAttribute("data-mas-izq"); flechas[1].hidden = !car.hasAttribute("data-mas-der"); }
+      };
+      car.addEventListener("scroll", act, { passive: true });
+      new ResizeObserver(act).observe(car);
+      new MutationObserver(act).observe(car, { childList: true, subtree: true, characterData: true });
+      act();
+    }
+    function verActivo(car) {
+      const a = car.querySelector('[aria-current="true"]');
+      if (!a || car.scrollWidth <= car.clientWidth) return;
+      const c = car.getBoundingClientRect(), r = a.getBoundingClientRect();
+      if (r.left < c.left + 4 || r.right > c.right - 4) car.scrollTo({ left: Math.max(0, car.scrollLeft + (r.left + r.width / 2) - (c.left + c.width / 2)), behavior: calma() ? "auto" : "smooth" });
+    }
+    const carrilGrupos = doc.getElementById("grupos"), carrilCats = doc.getElementById("cats");
+    const flechasGrupos = [-1, 1].map((dir) => {
+      const b = html('<button type="button" class="o1-carril-btn" data-dir="' + dir + '" tabindex="-1" aria-hidden="true" hidden><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><path d="' + (dir > 0 ? "M4.5 1.75 8.75 6 4.5 10.25" : "M7.5 1.75 3.25 6 7.5 10.25") + '"/></svg></button>');
+      b.addEventListener("click", () => carrilGrupos.scrollBy({ left: dir * Math.round(carrilGrupos.clientWidth * 0.6), behavior: calma() ? "auto" : "smooth" }));
+      barra.querySelector(".t-filtros-niveles").appendChild(b);
+      return b;
+    });
+    vigilarCarril(carrilGrupos, flechasGrupos);
+    vigilarCarril(carrilCats, null);
+    let previo = null; // lo último que se dibujó: dice si el cambio fue de grupo o de categoría
+
+    function sincronizar(d) {
+      const nC = d.estado.color.length, nT = d.estado.talla.length;
+      const hay = nC + nT > 0;
+      const relevante = d.opciones.tallaRelevante;
+      // Si hay una talla elegida, su control se queda a la vista aunque este grupo no la pida (bolsos, bisutería): antes la talla única elegida
+      // quedaba puesta sin control ni aviso. Se deja de ver cuando la persona la quita.
+      const verTalla = relevante || nT > 0;
+      const quitaTxt = nC && nT ? "Quitar color y talla" : nC ? (nC > 1 ? "Quitar colores" : "Quitar color") : nT ? (nT > 1 ? "Quitar tallas" : "Quitar talla") : "Quitar color y talla";
+      quitarTodoBarra.textContent = quitaTxt;
+      botonQuitarFichas.textContent = quitaTxt;
+      notaFoto.hidden = nC === 0;
+
+      // Cambio de grupo o de categoría: se aclara el aviso del motor y se lleva a la vista lo vigente.
+      if (previo && (previo.grupo !== d.estado.grupo || previo.cat !== d.estado.cat)) {
+        const soltado = { color: previo.color.filter((id) => d.estado.color.indexOf(id) < 0), talla: previo.talla.filter((k) => d.estado.talla.indexOf(k) < 0) };
+        const pAviso = zonaAviso.querySelector(".t-aviso p");
+        if (pAviso && soltado.color.length + soltado.talla.length) pAviso.textContent = mensajeSoltado(d.estado, soltado);
+        verActivo(carrilGrupos);
+        verActivo(carrilCats);
+      }
+      previo = d.estado;
+
+      // La fila de escritorio.
+      globo(gatillo.color.querySelector(".o1-globo"), nC);
+      globo(gatillo.talla.querySelector(".o1-globo"), nT);
+      gatillo.color.toggleAttribute("data-hay", nC > 0);
+      gatillo.talla.toggleAttribute("data-hay", nT > 0);
+      gatillo.color.setAttribute("aria-label", "Color" + (nC ? ", " + nC + (nC === 1 ? " elegido" : " elegidos") : ""));
+      gatillo.talla.setAttribute("aria-label", "Talla" + (nT ? ", " + nT + (nT === 1 ? " elegida" : " elegidas") : ""));
+      gatillo.talla.dataset.fuera = String(!verTalla);
+      gatillo.talla.inert = !verTalla;
+      quitarTodoBarra.hidden = !hay;
+      if (!verTalla && abierto === "talla") { const estabaDentro = panel.talla.el.contains(doc.activeElement); cerrarPanel(false); if (estabaDentro) gatillo.color.focus({ preventScroll: true }); }
+
+      // Los paneles (se mantienen al día aunque estén cerrados: abren ya listos).
+      ["color", "talla"].forEach((f) => {
+        const p = panel[f];
+        if (f === "talla" && !verTalla) return;
+        pintarZona(p.zona, f, d);
+        pintarNotas(p.notas, f, d);
+        p.quitar.hidden = d.estado[f].length === 0;
+        p.ver.textContent = prendas(d.total);
+      });
+
+      // El botón y la hoja de celular.
+      const n = nC + nT;
+      globo(botonFiltros.querySelector(".o1-globo"), n);
+      botonFiltros.setAttribute("aria-label", "Filtros" + (n ? ", " + n + (n === 1 ? " elegido" : " elegidos") : ""));
+      secc.talla.hidden = !verTalla;
+      pintarZona(zonaHoja.color, "color", d);
+      pintarNotas(notasHoja.color, "color", d);
+      globo(secc.color.querySelector(".o1-globo"), nC);
+      if (verTalla) { pintarZona(zonaHoja.talla, "talla", d); pintarNotas(notasHoja.talla, "talla", d); }
+      globo(secc.talla.querySelector(".o1-globo"), nT);
+      botonVer.textContent = prendas(d.total);
+      botonLimpiar.hidden = !hay;
+      if (hojaAbierta) estadoHoja.textContent = prendas(d.total) + ".";
+
+      pintarFichas(d);
+      colocarPronto();
+    }
+
+    new ResizeObserver(() => {
+      const nuevo = esMovil() ? "celular" : "escritorio";
+      if (nuevo !== modo) { modo = nuevo; aplicarModo(); } else colocarPronto();
+    }).observe(lienzo);
+
+    aplicarModo();
+    m.alCambiar(sincronizar);
+    // Una dirección escrita a mano con opciones imposibles se normaliza en silencio: aquí se dice qué se soltó.
+    const r0 = m.L.leer(HASH_INICIAL);
+    if (r0.soltoAlgo) avisoInfo(mensajeSoltado(r0.estado, r0.soltado));
+    requestAnimationFrame(() => { verActivo(carrilGrupos); verActivo(carrilCats); });
+  },
+};
+</script>
+<script src="motor.js"></script>
+</body>
+</html>

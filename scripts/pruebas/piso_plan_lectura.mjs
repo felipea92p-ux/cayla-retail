@@ -563,6 +563,12 @@ caso(
 const CON_COLA = `
 insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'sede', retail.fn_hoy_lima() + 11);
 create function pg_temp.cierra(p_hasta timestamptz) returns uuid language sql as $$
+  -- Cerrar en bloque exige un cuadre del piso guardado después de la última venta que se cierra (20261027174000).
+  -- Uno solo por transacción; con nota, porque la sede puede ya tener un cuadre (cuadre_nota_requerida).
+  insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+    select current_setting('pp.sede')::uuid, (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(),
+           md5('fixture plan del piso'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)'
+     where not exists (select 1 from retail.cuadres_piso c where c.ubicacion_id = current_setting('pp.sede')::uuid and c.created_at >= p_hasta);
   select retail.cerrar_cola_arranque(current_setting('pp.sede')::uuid, p_hasta, 'no_se_sabe', 'Prueba del motor del piso')
 $$;
 `;

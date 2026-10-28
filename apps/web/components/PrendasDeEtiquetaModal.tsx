@@ -257,6 +257,9 @@ export function PrendasDeEtiquetaModal({
   // La hoja mide del alto de la pantalla: lo que ocupa su título se descuenta del alto de la lista (`.eqp-hoja`, etiqueta-prendas.css).
   // `offsetTop` y no `getBoundingClientRect`: la hoja entra con un `transform` que movería la medida. Es una ref de función y no un
   // efecto: el contenido de `<Modal>` llega por el portal de Radix un render después, y un efecto del primer render no lo encuentra.
+  // Con el teclado del celular arriba la hoja NO se mide de nuevo: `<Modal>` le suma abajo el alto del teclado como relleno
+  // (`data-teclado`, useHojaSobreElTeclado) y descontarlo la aplastaba a su mínimo, con la lista encimada al pie (2026-10-26).
+  // El teclado pasa por encima de la hoja; `--eqp-alto` guarda el alto de antes para que tampoco lo achique un `vh` que cambie.
   const hoja = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
     let cuadro = 0;
@@ -266,15 +269,22 @@ export function PrendasDeEtiquetaModal({
         cuadro = requestAnimationFrame(medir);
         return;
       }
+      if (el.closest("[data-teclado]")) return;
       const abajo = parseFloat(getComputedStyle(panel).paddingBottom) || 0;
       el.style.setProperty("--eqp-encima", `${el.offsetTop + abajo + 2}px`);
+      el.style.setProperty("--eqp-alto", `${el.offsetHeight}px`);
     };
     medir();
-    // El título puede pasar a dos líneas al angostar la ventana.
-    window.addEventListener("resize", medir);
+    // El título puede pasar a dos líneas al angostar la ventana. Un cuadro después: el teclado avisa por `visualViewport` y por
+    // `window`, y así `data-teclado` ya está puesto cuando se mide.
+    const alCambiar = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(medir);
+    };
+    window.addEventListener("resize", alCambiar);
     return () => {
       cancelAnimationFrame(cuadro);
-      window.removeEventListener("resize", medir);
+      window.removeEventListener("resize", alCambiar);
     };
   }, []);
 

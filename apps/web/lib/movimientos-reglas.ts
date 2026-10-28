@@ -71,8 +71,8 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
  *  gesto (contar y corregir) pero sin abrir un conteo de verdad. Un motivo
  *  que no esté acá se muestra tal cual — nunca rompe la pantalla.
  *
- *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando un
- *  líder resuelve una prenda dañada — `resolver_prenda_danada`, una por
+ *  `cuarentena_*` (2026-09-17, "Dañado"): la SALIDA de cuarentena cuando se
+ *  resuelve una prenda dañada — `resolver_prenda_danada`, una por
  *  cada uno de los 3 estados de salida. La ENTRADA a cuarentena sigue
  *  usando el motivo `devolucion` de siempre (mismo gesto que una devolución
  *  vendible, solo cambia la sububicación destino). */
@@ -470,6 +470,8 @@ export type FiltrosMovimientos = {
   categoria?: CategoriaFiltro;
   motivo?: string;
   sububicacionId?: string;
+  /** Solo lo de esta empresa EN LA SEDE que se mira (ADR-0532: en Lima, marca CAYLA → CAYLA; lo demás, CLAURE). */
+  empresaId?: string;
 };
 
 /** Parámetros de URL de la pantalla. `mov` es el movimiento abierto en el detalle. */
@@ -484,6 +486,8 @@ export type ParamsMovimientos = {
   cursor?: string;
   ubicacion?: string;
   mov?: string;
+  /** La clave de la empresa (`cayla`, `claure`), ADR-0532. */
+  emp?: string;
 };
 
 export type FiltrosResueltos = FiltrosMovimientos & {
@@ -520,6 +524,8 @@ export function filtrosDesdeParams(
     sububicaciones?: { id: string; tipo: string | null }[];
     /** Qué período rige sin nada en la URL: «hoy» en el celular, 30 días en lo demás (ADR-0241). */
     porDefecto?: "hoy" | "30";
+    /** Las empresas de la sede (ADR-0532), para pasar `?emp=claure` a su id. Con una sola, el filtro no existe. */
+    empresas?: { id: string; clave: string }[] | null;
   } = {}
 ): FiltrosResueltos {
   const hoy = contexto.hoy ?? hoyLima();
@@ -558,6 +564,7 @@ export function filtrosDesdeParams(
     categoria: CATEGORIAS_FILTRO.find((c) => c === p.cat),
     motivo: esMotivo(p.proc) ? p.proc : undefined,
     sububicacionId: sububicacion?.id,
+    empresaId: (contexto.empresas?.length ?? 0) > 1 ? contexto.empresas?.find((e) => e.clave === p.emp)?.id : undefined,
     periodo,
     sub,
   };
@@ -902,11 +909,6 @@ export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; apar
     );
   };
   return { faltaron: cara("salen"), aparecieron: cara("entran") };
-}
-
-/** «unidad» o «unidades», según la cifra. */
-export function unidades(cifra: number): string {
-  return Math.abs(cifra) === 1 ? "unidad" : "unidades";
 }
 
 // ---------------------------------------------------------------------------

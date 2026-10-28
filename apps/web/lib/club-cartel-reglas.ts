@@ -13,7 +13,7 @@ import { formatoSoles } from "./club-registro-reglas";
 
 /** Lo que el cartel dice igual en toda tienda y con cualquier beneficio vigente (diseño C). */
 export const CARTEL_INVITACION = {
-  sello: "CLUB CAYLA",
+  sello: "CLUB",
   titulo: "Te invitamos",
   bajada: "a ser parte del club. Es gratis.",
   escanea: "Escanea y únete en un minuto",

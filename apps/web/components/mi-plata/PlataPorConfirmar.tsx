@@ -44,7 +44,7 @@ type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 export function MiniVoucher({ fila }: { fila: Fila }) {
   if (!fila.fotoUrl) {
     return (
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hueso text-taupe" title={fila.medio === "ya_tenia" ? "Plata que ya tenía" : "Sin foto del voucher"}>
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-hueso text-taupe" title={fila.medio === "ya_tenia" ? "Plata que ya tenía" : fila.fotoNoAbrio ? "No se pudo abrir la foto" : "Sin foto del voucher"}>
         <ImageOff className="h-5 w-5" aria-hidden />
       </span>
     );
@@ -75,7 +75,8 @@ function VoucherGrande({ fila }: { fila: Fila }) {
           ) : (
             <>
               <CameraOff className="h-3 w-3" aria-hidden />
-              Sin foto
+              {/* Con la foto subida pero sin poder abrirla (el enlace firmado falló), no es «sin foto»: se recarga la pantalla. */}
+              {fila.fotoNoAbrio ? "No se pudo abrir la foto" : "Sin foto"}
             </>
           )}
         </Chip>
@@ -99,7 +100,7 @@ function VoucherGrande({ fila }: { fila: Fila }) {
   );
 }
 
-export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuentas: CuentaOpcion[]; alTerminar: () => void }) {
+export function DetallePlata({ fila, cuentas, alTerminar, esLider = true }: { fila: Fila; cuentas: CuentaOpcion[]; alTerminar: () => void; esLider?: boolean }) {
   const router = useRouter();
   const [monto, setMonto] = useState(fila.monto.toFixed(2));
   // Llega elegido el banco que dijo la compradora (si sigue disponible) o, si no, el BCP: Compras lo cambia si la transferencia salió de otro.
@@ -135,7 +136,7 @@ export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuenta
       );
     }
     avisar.exito(`Confirmaste ${soles(montoLeido ?? 0)} de ${nombre}`, {
-      detalle: otroMonto ? `Se anotó ${soles(fila.monto)}: en su plata se ven los dos montos.` : "Ya está en su fondo.",
+      detalle: otroMonto ? `Se anotó ${soles(fila.monto)}: en su fondo se ven los dos montos.` : "Ya está en su fondo.",
     });
     alTerminar();
     router.refresh();
@@ -151,7 +152,12 @@ export function DetallePlata({ fila, cuentas, alTerminar }: { fila: Fila; cuenta
     >
       <div className="grid gap-6 @min-[38rem]:grid-cols-[13rem_minmax(0,1fr)]">
         <VoucherGrande fila={fila} />
-        {fila.esMia ? (
+        {!esLider && yaTenia ? (
+          <div className="flex flex-col items-start gap-2">
+            <Chip tono="pizarra">Solo un líder</Chip>
+            <p className="text-sm text-taupe">La plata que ya tenía antes de usar el sistema la confirma un líder: no sale de ningún banco, solo fija con cuánto empieza su fondo.</p>
+          </div>
+        ) : fila.esMia ? (
           <div className="flex flex-col items-start gap-2">
             <Chip tono="pizarra">Es tuya</Chip>
             <p className="text-sm text-taupe">Que la confirme otra persona de Compras.</p>

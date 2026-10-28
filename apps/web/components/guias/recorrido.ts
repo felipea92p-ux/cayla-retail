@@ -2,7 +2,7 @@
 
 import { leerRecorrido, type Tramo } from "@/lib/asistente/recorrido";
 
-// El recorrido de «Pregúntale a CAYLA» (ADR-0529, actividad 3) mientras pasa de una pantalla a otra: los tramos que faltan viven en el
+// El recorrido de «Pregúntale a CAYLA» (ADR-0536, actividad 3) mientras pasa de una pantalla a otra: los tramos que faltan viven en el
 // navegador de la pestaña (`sessionStorage`), porque navegar desmonta el cajón que los pidió. Es una comodidad: si el navegador no deja
 // guardar (ventana privada), el recorrido llega hasta el primer tramo y nada se rompe.
 

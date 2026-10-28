@@ -19,7 +19,7 @@ import { AroSemanas } from "@/components/existencias/AroSemanas";
 import { navegacionSinEspera } from "@/components/ui/Espera";
 import { FlujoTalla } from "@/components/existencias/FlujoTalla";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste } from "@/components/existencias/AjusteDelModelo";
+import { BandaAjustar, ListoDelAjuste, PieDelAjuste, PlanillaDelAjuste, TalonDelAjuste, useTopeDeLaPlanilla } from "@/components/existencias/AjusteDelModelo";
 import { useAjusteDelModelo, type AjusteGuardado } from "@/components/existencias/useAjusteDelModelo";
 import { anchoDelModalAlAjustar, lugarInicial } from "@/lib/existencias-ajuste-modelo";
 import { sonarConfirmacion } from "@/lib/sonido-confirmar";
@@ -32,6 +32,7 @@ import { estadoTalla, urlEtiquetas, type PrendaAgrupada } from "@/lib/existencia
 import { celdaTarjeta, tallasSinColgar } from "@/lib/existencias-tarjeta-compacta";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
+import { CLAVE_CASA, lineaDeDuenos, textoDeDueno } from "@/lib/stock-por-dueno-reglas";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
 import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
@@ -123,6 +124,7 @@ export function PanelTalla({
   claveInicial,
   varianteInicial,
   flujoInicial = null,
+  volverAEditar = null,
   ubicacionId,
   sedeNombre,
   separa,
@@ -153,6 +155,8 @@ export function PanelTalla({
   varianteInicial?: string;
   /** Abrir directamente en un paso (acción rápida de la tarjeta, «Colgar primero»). Cambia con cada pedido. */
   flujoInicial?: FlujoPedido | null;
+  /** La ficha de Editar producto de donde se llegó (candado → «Ajustar stock»): la vuelta de la planilla va ahí, no a la talla. */
+  volverAEditar?: string | null;
   ubicacionId: string;
   sedeNombre: string;
   separa: boolean;
@@ -228,7 +232,8 @@ export function PanelTalla({
   // «Ajustar stock» (ADR-0494): la planilla del modelo entero. El hook se llama siempre y trabaja solo con la planilla abierta; entra en el
   // lugar donde la talla elegida tiene más unidades (Felipe, ronda 3).
   const modoAjuste = flujo?.tipo === "ajustar";
-  // Con la planilla a la vista, la hoja no se desliza: solo la planilla (ronda 2 de la «Planilla rápida», Felipe 2026-10-26). Las
+  // Con la planilla a la vista, la hoja no se desliza (desde 640 px; en el celular sí, con el pie pegado): solo la planilla (ronda 2 de la
+  // «Planilla rápida», Felipe 2026-10-26). Las
   // etiquetas de lo que entró vuelven a la hoja de siempre.
   const planillaFija = modoAjuste && !listoAjuste;
   // Pasar a la planilla es un cambio de VISTA, no un bloque que se encogió: se suelta <PaginaEstable> antes de pintar (ADR-0185, como
@@ -276,6 +281,8 @@ export function PanelTalla({
   const ultimaTecla = useRef(0);
   // Al abrir, el teclado entra al modal (como la maqueta): ← → ↑ ↓ y 1–7 funcionan sin tocar el mouse.
   const raiz = useRef<HTMLDivElement>(null);
+  // En el celular la hoja de la planilla se desliza entera: la planilla se topa en lo que se ve sobre el pie (Felipe 2026-10-26).
+  useTopeDeLaPlanilla(raiz, planillaFija && !sellando);
   // Quien tenía el foco al abrir (el botón de la talla, la miniatura, «Más»): al cerrar, el foco vuelve ahí y no al inicio de la página.
   // Radix solo lo devuelve si el modal se abrió desde su propio disparador, y este se abre por estado (/chaos TEC-06, 2026-10-12).
   // Se toma UNA vez, al montar (un `useState` perezoso: leer un ref durante el render lo prohíbe el compilador de React).
@@ -404,6 +411,8 @@ export function PanelTalla({
   const codigo = fila.codigosBarras?.[0] ?? fila.sku ?? null;
   // Cuánto tiene cada otra sede de esta talla.
   const otrasSedes = (fila.enRed ?? []).map((s) => `${nombreCortoSede(s.sede)} ${s.cantidad}`).join(" · ");
+  // De quién son las unidades de esta talla aquí (ADR-0542): solo donde conviven dos empresas y solo si alguien que no es la casa tiene.
+  const duenosDeLaTalla = lineaDeDuenos(fila.duenos);
   const insignia = insigniaDeTalla(queToca);
   // «Todas»: las sumas del modelo entero (todos los colores) y cuántas tallas faltan colgar o se acabaron.
   const tallasModelo = colores.flatMap((c) => c.tallas);
@@ -480,6 +489,10 @@ export function PanelTalla({
   // Volver a la talla: si hay algo tocado sin guardar, primero «¿Salir sin guardar?».
   const volverDeAjuste = () =>
     pedirAccion(() => {
+      if (volverAEditar) {
+        router.push(volverAEditar);
+        return;
+      }
       setFlujo(null);
       setFocoAjuste(null);
       setListoAjuste(null);
@@ -893,6 +906,7 @@ export function PanelTalla({
                     foco={focoAjuste}
                     onApagarFoco={() => setFocoAjuste(null)}
                     onVolver={volverDeAjuste}
+                    volverA={volverAEditar ? "Editar producto" : undefined}
                     onAbrirConteo={(id) => {
                       // Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza a ese conteo.
                       const f = colores.flatMap((c) => c.tallas).find((t) => t.varianteId === id);
@@ -978,6 +992,16 @@ export function PanelTalla({
                               Otras sedes: <b className="font-semibold text-tinta">{otrasSedes || "ninguna la tiene"}</b>
                             </span>
                           </p>
+                          {duenosDeLaTalla && (
+                            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-taupe">
+                              <span>De quién es:</span>
+                              {duenosDeLaTalla.map((d) => (
+                                <Chip key={d.empresaId} tono={d.clave === CLAVE_CASA ? "tinta" : "pizarra"} versalitas={false} title={`${d.cantidad} de ${d.nombre} en esta tienda`}>
+                                  {textoDeDueno(d)}
+                                </Chip>
+                              ))}
+                            </p>
+                          )}
                         </div>
 
                         {/* «Ajustar stock» (ADR-0494, Felipe: la banda bajo los números): justo bajo lo que se corrige. Abre la planilla del modelo

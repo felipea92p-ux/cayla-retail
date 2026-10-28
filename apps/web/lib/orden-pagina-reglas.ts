@@ -24,6 +24,10 @@ export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
 export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
+/** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
+export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
+export const RPC_REGISTRAR_PROVEEDOR_DE_FASE = "registrar_proveedor_de_fase";
+export const RPC_QUITAR_PASO = "quitar_paso_orden";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
 export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
@@ -99,6 +103,13 @@ export type FasePagina = {
   porVariante: FaseVariante[];
 };
 
+/** El consumo por talla que devuelve `fn_orden_produccion` ({"S": 1.15, "M": 1.2}) como mapa de números; null si no hay, no es un objeto o ninguna cifra se lee. */
+function porTallaLeida(crudo: unknown): Record<string, number> | null {
+  if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return null;
+  const pares = Object.entries(crudo as Record<string, unknown>).flatMap(([talla, v]) => (v !== null && v !== "" && Number.isFinite(Number(v)) && Number(v) > 0 ? [[talla, Number(v)] as const] : []));
+  return pares.length > 0 ? Object.fromEntries(pares) : null;
+}
+
 export type InsumoPagina = {
   id: string;
   insumoId: string;
@@ -108,6 +119,8 @@ export type InsumoPagina = {
   colorCodigo: string | null;
   colorNombre: string | null;
   consumoPorPrenda: number;
+  /** Una cifra por talla (talla → metros o unidades), si la orden la declaró así; ausente o nulo = una sola cifra para todas las tallas (ADR-0513). */
+  consumoPorTalla?: Record<string, number> | null;
   cantidadPlan: number;
   usado: number;
   saldo: number;
@@ -358,7 +371,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
       const pendiente = pendientes.get(insumoId);
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, consumoPorTalla: porTallaLeida(i.consumo_por_talla), cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -535,9 +548,25 @@ export function previaQueCuenta(fases: readonly FasePagina[], indice: number): F
   return null;
 }
 
-/** Quién la hace, en una palabra: «Taller» o el nombre del servicio. */
+/** Sale afuera pero todavía no se sabe con quién (ADR-0551 pendiente de registrar): un servicio sin proveedor. Puede llevar su costo, que se devenga igual; sin costo, no suma nada hasta que se registre. */
+export function esPendienteDeRegistrar(f: Pick<FasePagina, "quien" | "proveedorId">): boolean {
+  return f.quien === "servicio" && f.proveedorId === null;
+}
+
+/** Quién la hace, en una palabra: «Taller», el nombre del servicio o «Pendiente de registrar». */
 export function quienDeFase(f: FasePagina): string {
-  return f.quien === "servicio" ? (f.proveedorNombre ?? "Un servicio") : "Taller";
+  if (f.quien !== "servicio") return "Taller";
+  return f.proveedorNombre ?? (esPendienteDeRegistrar(f) ? "Pendiente de registrar" : "Un servicio");
+}
+
+/** Las fases que salieron afuera sin registrar quién, en el orden de la ruta (con o sin costo escrito). */
+export function fasesSinRegistrar(fases: readonly FasePagina[]): FasePagina[] {
+  return fases.filter(esPendienteDeRegistrar);
+}
+
+/** ¿Una fase pendiente lleva costo escrito (tarifa por prenda o fijo por orden)? Con costo se devenga como cualquier servicio (ADR-0551); sin él no suma nada hasta que se escriba o se registre. */
+export function pendienteConCosto(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrden">): boolean {
+  return (f.tarifaPrenda ?? 0) > 0 || f.fijoOrden > 0;
 }
 
 /** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
@@ -624,6 +653,19 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
 /** ¿Se puede cambiar quién hace esta fase? Solo mientras no empezó y la orden sigue en proceso (la base lo exige: `fase_empezada`, `orden_cerrada`). */
 export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
   return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
+}
+
+/** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó) mientras la orden siga en proceso (la base: `fase_no_pendiente`, `orden_cerrada`). */
+export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && esPendienteDeRegistrar(f);
+}
+
+/**
+ * ¿Se ofrece «Quitar este paso»? Solo un paso OPCIONAL (no de la espina de su ruta), mientras no empezó y la orden sigue en proceso y quien mira puede operar. La base repite las tres
+ * cosas (`quitar_paso_orden`: `fase_empezada`, `orden_cerrada`, `paso_fijo`) y manda: esto solo evita ofrecer un botón que ya se sabe que va a rechazar.
+ */
+export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return puedeCambiarQuien(f, p) && FASES.some((c) => c.clave === f.clave && !c.siempre);
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */
@@ -747,9 +789,11 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
     const detalle =
       filas.length > 1
         ? filas.map((f) => `${color(f) ?? "toda la orden"} ${cantidadConUnidad(f.cantidadPlan, f.unidad)}`).join(" · ")
-        : base.consumoPorPrenda > 0
-          ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
-          : "";
+        : base.consumoPorTalla && Object.keys(base.consumoPorTalla).length > 0
+          ? `${Object.entries(base.consumoPorTalla).sort(([a], [b]) => compararTallas(a, b)).map(([talla, v]) => `${talla} ${cantidadConUnidad(v, base.unidad)}`).join(" · ")} por prenda`
+          : base.consumoPorPrenda > 0
+            ? `${cantidadConUnidad(base.consumoPorPrenda, base.unidad)} por prenda`
+            : "";
     return {
       id: base.insumoId,
       tipo: base.tipo,
@@ -1012,6 +1056,22 @@ export function cantidadesQuePuedenSalir(f: FasePagina): Record<string, number> 
   const salida: Record<string, number> = {};
   for (const v of f.porVariante) {
     const n = Math.max(v.entrada - v.salieron, 0);
+    if (n > 0) salida[v.varianteId] = n;
+  }
+  return salida;
+}
+
+/**
+ * Lo que «Salida» trae escrito de fábrica. Es lo que puede salir, salvo en la primera fase (Corte): ahí lo que la base deja mandar es el plan más un 10 % redondeado hacia arriba en cada talla
+ * y color (el margen por si se corta de más), y precargarlo entero hacía que 57 prendas pedidas salieran como 72. De fábrica parte del plan (menos lo que ya salió), que es lo que se pidió;
+ * el margen sigue como tope en `cantidadesQuePuedenSalir` y quien cortó de más lo escribe a mano. Es el mismo criterio de `cantidadesQueFaltan` para «Terminé».
+ */
+export function cantidadesDeFabricaDeSalida(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {
+  const tope = cantidadesQuePuedenSalir(f);
+  if (!esPrimeraFase(f, fases)) return tope;
+  const salida: Record<string, number> = {};
+  for (const v of f.porVariante) {
+    const n = Math.min(tope[v.varianteId] ?? 0, Math.max((v.plan ?? v.entrada) - v.salieron, 0));
     if (n > 0) salida[v.varianteId] = n;
   }
   return salida;

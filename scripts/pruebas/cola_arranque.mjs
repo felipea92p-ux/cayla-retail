@@ -2,9 +2,11 @@
 /**
  * Pruebas de «Cerrar la cola de arranque» (ADR-0334) contra el Postgres local — CAYLA V2.
  *
- * Un líder cierra en bloque las ventas sin registrar pendientes de UNA sede (`cerrar_cola_arranque`): pasan a
- * `cerrada_sin_prenda`, sin prenda y sin mover stock. Estas pruebas cuidan tres cosas: que el cierre sea todo-o-nada y
- * solo del líder dentro de su plazo, que cerrado no sea un camino a un stock inventado (devolución bloqueada, regularizar
+ * Quien ve Existencias en la sede (desde ADR-0534, 2026-10-27; antes, solo un líder) cierra en bloque las ventas sin
+ * registrar pendientes de UNA sede (`cerrar_cola_arranque`): pasan a `cerrada_sin_prenda`, sin prenda y sin mover stock.
+ * Estas pruebas cuidan tres cosas: que el cierre sea todo-o-nada y de quien tiene el módulo dentro de su plazo y con un
+ * cuadre del piso guardado después de la última venta que se cierra (sin el módulo, `cola_sin_modulo`; sin cuadre,
+ * `cola_sin_cuadre`, 20261027174000), que cerrado no sea un camino a un stock inventado (devolución bloqueada, regularizar
  * bloqueado) y que los estados imposibles lo sean por el esquema y no por el código.
  *
  * Mismo patrón que `scripts/pruebas/prendas_por_regularizar.mjs` (léelo primero): cada caso corre en su propia transacción
@@ -50,7 +52,7 @@ ${sqlDespues}
  * Sede con piso/almacén, caja abierta y stock de BLU-EMMA-NEG-M. Lo que ya estuviera pendiente en esa sede (restos de otras
  * pruebas o de otra sesión) se aparta un día hacia adelante, dentro de esta transacción: el cierre solo ve lo que la prueba vende.
  */
-function fixture(ubicacionNombre = "Tienda Lima") {
+function fixture(ubicacionNombre = "Tienda Lima", { conCuadre = true } = {}) {
   return `
 select id as ubic from retail.ubicaciones where nombre = '${ubicacionNombre}' \\gset
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
@@ -68,6 +70,10 @@ update retail.prendas_por_regularizar set vendido_en = now() + interval '1 day' 
 -- migraciones, y la siembra de plazos de la migración (que en producción sí encuentra sus tres tiendas) no ve ninguna.
 insert into retail.cola_arranque_plazo (ubicacion_id, hasta) values (:'ubic', retail.fn_hoy_lima() + 11)
   on conflict (ubicacion_id) do update set hasta = excluded.hasta;
+-- Desde 20261027174000 (ADR-0334 act. 2026-10-14, A6) cerrar en bloque exige un cuadre del piso guardado después de la última venta que
+-- se cierra. Dentro de la transacción now() es fijo: el cuadre y las ventas llevan el mismo instante, y created_at >= corte se cumple.
+${conCuadre ? `insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('fixture cola de arranque'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)');` : ""}
 
 select id as v1 from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
@@ -97,6 +103,11 @@ select id as item_${n} from retail.venta_items where venta_id = :'venta_${n}' \\
 /** Cierra la cola de la sede de la prueba; deja :cierre_id. */
 const cerrar = (motivo = "no_se_sabe", hasta = "now()") =>
   `select retail.cerrar_cola_arranque(:'ubic', ${hasta}, '${motivo}', null) as cierre_id \\gset\n`;
+
+/** ADR-0534: cerrar, reabrir, pedir y confirmar sugerencias es de quien ve Existencias (Micaela es Integrante). */
+const SIN_EXISTENCIAS = `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'existencias';\n`;
+const CON_EXISTENCIAS = `insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('integrante'), 'existencias'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'existencias');\n`;
 
 const CASOS = [];
 const exito = (nombre, sql, verificar) => CASOS.push({ nombre, tipo: "exito", sql, verificar });
@@ -164,14 +175,28 @@ rollback;`
 // ---------------------------------------------------------------------------
 
 error(
-  "una colaboradora no puede cerrar la cola (la cuenta decide, no el combo)",
+  "una colaboradora SIN Existencias no puede cerrar la cola de su tienda: cola_sin_modulo (la cuenta decide, no el combo)",
   comoPersona(
     MICAELA,
-    `select id as ubic from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+    `${SIN_EXISTENCIAS}select id as ubic from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select retail.cerrar_cola_arranque(:'ubic', now(), 'no_se_sabe', null);
 rollback;`
   ),
-  "cola_solo_lider"
+  "cola_sin_modulo"
+);
+
+exito(
+  "una colaboradora CON Existencias cierra la cola de SU tienda, sin cuenta de líder (ADR-0534)",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Trujillo")}${venderLibre("a", 50)}${CON_EXISTENCIAS}
+set local request.jwt.claim.sub = '${MICAELA}';
+${cerrar()}
+select (select filas from retail.cierres_cola_arranque where id = :'cierre_id'),
+       (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_a');
+rollback;`
+  ),
+  ([filas, estado]) => filas === "1" && estado === "cerrada_sin_prenda"
 );
 
 error(
@@ -207,6 +232,47 @@ delete from retail.cola_arranque_plazo where ubicacion_id = :'ubic';
 ${cerrar()}rollback;`
   ),
   "cola_sin_plazo"
+);
+
+error(
+  "sin un cuadre del piso de la sede no se cierra en bloque (cola_sin_cuadre, 20261027174000)",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Lima", { conCuadre: false })}${venderLibre("a", 50)}${cerrar()}rollback;`
+  ),
+  "cola_sin_cuadre"
+);
+
+error(
+  "un cuadre guardado ANTES de la última venta que se cierra no vale: hay que cuadrar después",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Lima", { conCuadre: false })}${venderLibre("a", 50)}
+-- Un cuadre registrado no se edita ni se borra (fn_cuadre_piso_es_inmutable): se inserta uno de hace una hora.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, created_at, nota)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('cuadre viejo'), now() - interval '2 hours', '{}'::jsonb, now() - interval '1 hour', 'Cuadre de prueba (fixture)');
+${cerrar()}rollback;`
+  ),
+  "cola_sin_cuadre"
+);
+
+exito(
+  "con el cuadre guardado después de la última venta, cierra; regularizar una venta y reabrir no piden cuadre",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Lima", { conCuadre: false })}${venderLibre("a", 50)}${venderLibre("b", 30)}
+select retail.regularizar_prenda(p.id, :'v1', 'ya_registrada') as _reg from retail.prendas_por_regularizar p where p.venta_item_id = :'item_a' \\gset
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'ubic', (select id from public.personas where auth_user_id = '${FELIPE}'), gen_random_uuid(), md5('cuadre tras vender'), now(), '{}'::jsonb, 'Cuadre de prueba (fixture)');
+${cerrar()}
+select id as pr_b from retail.prendas_por_regularizar where venta_item_id = :'item_b' \\gset
+select retail.reabrir_prenda_cerrada(:'pr_b', 'cierre_por_error') as _reab \\gset
+select (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_a'),
+       (select estado from retail.prendas_por_regularizar where venta_item_id = :'item_b'),
+       (select filas from retail.cierres_cola_arranque where id = :'cierre_id');
+rollback;`
+  ),
+  ([a, b, filas]) => a === "regularizada" && b === "pendiente" && filas === "1"
 );
 
 error(
@@ -399,14 +465,26 @@ rollback;`
 );
 
 error(
-  "una colaboradora no puede reabrir (la cuenta decide)",
+  "una colaboradora SIN Existencias no puede reabrir en su tienda: cola_sin_modulo (la cuenta decide)",
   comoPersona(
     FELIPE,
-    `${fixture()}${venderLibre("a", 50)}${cerrar()}
+    `${fixture("Tienda Trujillo")}${venderLibre("a", 50)}${cerrar()}${SIN_EXISTENCIAS}
 set local request.jwt.claim.sub = '${MICAELA}';
 ${reabrir("item_a")}rollback;`
   ),
-  "cola_solo_lider"
+  "cola_sin_modulo"
+);
+
+exito(
+  "una colaboradora CON Existencias reabre una venta cerrada de SU tienda, sin cuenta de líder (ADR-0534)",
+  comoPersona(
+    FELIPE,
+    `${fixture("Tienda Trujillo")}${venderLibre("a", 50)}${cerrar()}${CON_EXISTENCIAS}
+set local request.jwt.claim.sub = '${MICAELA}';
+${reabrir("item_a")}select estado, cierre_id is null from retail.prendas_por_regularizar where venta_item_id = :'item_a';
+rollback;`
+  ),
+  ([estado, suelto]) => estado === "pendiente" && suelto === "t"
 );
 
 error(
@@ -585,12 +663,12 @@ rollback;`
 );
 
 error(
-  "una colaboradora no puede pedir las sugerencias",
-  comoPersona(FELIPE, `${fixtureSug()}${venderComoV1("a")}
+  "una colaboradora SIN Existencias no puede pedir las sugerencias de su tienda: cola_sin_modulo",
+  comoPersona(FELIPE, `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}${SIN_EXISTENCIAS}
 set local request.jwt.claim.sub = '${MICAELA}';
 select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
 rollback;`),
-  "cola_solo_lider"
+  "cola_sin_modulo"
 );
 
 exito(
@@ -656,11 +734,24 @@ error(
 );
 
 error(
-  "una colaboradora no puede confirmar sugerencias",
-  comoPersona(FELIPE, `${fixtureSug()}${venderComoV1("a")}${paresA("a")}
+  "una colaboradora SIN Existencias no puede confirmar sugerencias de su tienda: cola_sin_modulo",
+  comoPersona(FELIPE, `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}${paresA("a")}${SIN_EXISTENCIAS}
 set local request.jwt.claim.sub = '${MICAELA}';
 ${sugeridas()}rollback;`),
-  "cola_solo_lider"
+  "cola_sin_modulo"
+);
+
+exito(
+  "una colaboradora CON Existencias confirma las sugerencias de SU tienda, sin cuenta de líder (ADR-0534): la venta pasa a su prenda real",
+  comoPersona(
+    FELIPE,
+    `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}${paresA("a")}${CON_EXISTENCIAS}
+set local request.jwt.claim.sub = '${MICAELA}';
+${sugeridas()}select :'n_ident', (select estado from retail.prendas_por_regularizar where id = :'prenda_a'),
+       (select variante_id = :'v1'::uuid from retail.venta_items where id = :'item_a');
+rollback;`
+  ),
+  ([n, estado, linea]) => n === "1" && estado === "regularizada" && linea === "t"
 );
 
 // ---------------------------------------------------------------------------
@@ -754,13 +845,14 @@ rollback;`
   ([propias, lider, ajena]) => propias === "1" && lider === "f" && ajena === "1"
 );
 
-error(
-  "una colaboradora no puede pedir las de bloque aunque opere la tienda",
-  comoPersona(FELIPE, `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}
+exito(
+  "una colaboradora CON Existencias pide las de bloque de SU tienda, sin cuenta de líder (ADR-0534): ve lo mismo que el líder",
+  comoPersona(FELIPE, `${fixtureSug(2, "Tienda Trujillo")}${venderComoV1("a")}${CON_EXISTENCIAS}
+select count(*) as del_lider from retail.fn_cola_arranque_candidatas(:'ubic') \\gset
 set local request.jwt.claim.sub = '${MICAELA}';
-select count(*) from retail.fn_cola_arranque_candidatas(:'ubic');
+select count(*) = :'del_lider'::int, :'del_lider'::int >= 1 from retail.fn_cola_arranque_candidatas(:'ubic');
 rollback;`),
-  "cola_solo_lider"
+  ([igual, alguna]) => igual === "t" && alguna === "t"
 );
 
 error(

@@ -39,8 +39,9 @@ export type Pestana = {
   /** El conteo pide algo (ámbar) y esto es lo que oye quien usa lector de pantalla tras el número: «esperan revisión». */
   pide?: string;
   /** El tono del conteo: sin él, si hay `pide`, va en ámbar (pide algo); «rojo» avisa un problema («SUNAT rechazó»); «neutro»
-   *  solo informa y usa `pide` como su texto para lector («vigentes»). */
-  tono?: "rojo" | "neutro";
+   *  solo informa y usa `pide` como su texto para lector («vigentes»); «nuevo» marca una vista recién llegada con la palabra
+   *  «nuevo» en pizarra (la maqueta del Presupuesto del Plan, Felipe 2026-10-26): quien la pone decide hasta cuándo. */
+  tono?: "rojo" | "neutro" | "nuevo";
   /** Una línea de ayuda al pasar el mouse (`title`): «Cuánto cuesta cada prenda». */
   ayuda?: string;
   /** El ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389): la guía enciende y toca esta pestaña. */

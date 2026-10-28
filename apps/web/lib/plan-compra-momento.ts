@@ -32,7 +32,7 @@ export type Proxima = {
 
 /** La campaña que viene: la primera que todavía no empieza, tenga plan o esté en el calendario sin él. No cuenta la que se mira ni las
  *  archivadas. A igual fecha gana la que ya tiene plan (no hay que armarla). */
-export function proximaCampana(c: Pick<CampanasLeidas, "planes" | "etiquetas">, hoy: string, actualId: string): Proxima | null {
+export function proximaCampana(c: Pick<CampanasLeidas, "planes" | "etiquetas" | "calendario">, hoy: string, actualId: string): Proxima | null {
   const candidatas: (Proxima & { desde: string; orden: number })[] = [
     ...c.planes
       .filter((p) => !p.archivado && p.id !== actualId && p.desde > hoy)

@@ -14,6 +14,7 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
 import { Vacio } from "@/components/ui/Vacio";
@@ -21,7 +22,7 @@ import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { BotonesPendiente, BotonReactivar } from "@/components/atributos/kit";
 import { CampanaModal, NuevaEtiquetaModal, botonCampana, ordenarEtiquetas, type CategoriaOpcion, type Etiqueta } from "@/components/EtiquetasLista";
-import { CambiarDibujoModal } from "@/components/sellos/CambiarDibujoModal";
+import { EditarEtiquetaModal, type CambiosDeEtiqueta } from "@/components/sellos/EditarEtiquetaModal";
 import { SelloTinta } from "@/components/sellos/SelloTinta";
 import { OfertasHoja } from "@/components/sellos/OfertasHoja";
 import { useColumnasDeLaBilletera, useCupoDelLookbook } from "@/components/sellos/useMedidasDeSellos";
@@ -96,7 +97,6 @@ export function SellosPantalla({
   disenoWeb,
   reglas: reglasIniciales,
   reglasDisponibles,
-  esLider,
 }: {
   sede: string;
   etiquetasIniciales: Etiqueta[];
@@ -124,8 +124,6 @@ export function SellosPantalla({
   reglas: ReglaCampana[];
   /** La base responde por las ofertas: si no, «Configurar» abre la hoja de siempre. */
   reglasDisponibles: boolean;
-  /** Un líder activa y retira lo que ya rige; los demás dejan borradores. */
-  esLider: boolean;
 }) {
   const hoy = hoyLima();
   const responsable = useResponsable();
@@ -138,8 +136,8 @@ export function SellosPantalla({
   // El dibujo (o la imagen propia) elegido al crear (ADR-0490); `null` = todavía nada: se queda el que sugiere el nombre. Y el de una que ya
   // existe: su hoja y si está guardando.
   const [eleccion, setEleccion] = useState<EleccionDeDibujo | null>(null);
-  const [cambiandoDibujo, setCambiandoDibujo] = useState<Etiqueta | null>(null);
-  const [guardandoDibujo, setGuardandoDibujo] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [aprobandoAbierto, setAprobandoAbierto] = useState<string | null>(null);
   const [comentarioAprobar, setComentarioAprobar] = useState("");
@@ -183,6 +181,7 @@ export function SellosPantalla({
     else url.searchParams.set("vista", nueva);
     window.history.replaceState(window.history.state, "", url);
   }
+  const editando = editandoId ? (etiquetas.find((x) => x.id === editandoId) ?? null) : null;
   const abrir = (id: string) => setAbiertoPorVista((a) => ({ ...a, [vista]: id }));
 
   // ---- Lo que guarda: lo mismo que la lista de antes, por las mismas puertas --------------------------------------------------
@@ -218,7 +217,7 @@ export function SellosPantalla({
         sedeIds: [],
       };
       // Una imagen propia se sube DESPUÉS de crearla: su ruta lleva el id de la insignia, que antes no existía. Si esa subida falla, la insignia
-      // quedó y se ve por su nombre; se dice, y se puede subir desde «Dibujo» en su pase.
+      // quedó y se ve por su nombre; se dice, y se puede subir desde «Editar» en su pase.
       let avisoImagen: string | null = null;
       if (eleccion?.tipo === "imagen") {
         const puesta = await subirYFijarImagen(nueva.id, eleccion.archivo, eleccion.silueta);
@@ -233,8 +232,8 @@ export function SellosPantalla({
       const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado, esCampanas ? "campanas" : "sellos");
       avisar.exito(titulo, detalle ? { detalle } : undefined);
       // Una campaña se crea y su dibujo se fija después: si esa segunda escritura falló, la campaña quedó y se dice (se ve por su nombre).
-      if (datos.avisoDibujo) avisar.aviso("El dibujo no se guardó", { detalle: `${datos.avisoDibujo} Elígelo desde «Dibujo» en su pase.` });
-      if (avisoImagen) avisar.aviso("La imagen no se guardó", { detalle: `${avisoImagen} Sube otra desde «Dibujo» en su pase.` });
+      if (datos.avisoDibujo) avisar.aviso("El ícono no se guardó", { detalle: `${datos.avisoDibujo} Elígelo desde «Editar» en su pase.` });
+      if (avisoImagen) avisar.aviso("La imagen no se guardó", { detalle: `${avisoImagen} Sube otra desde «Editar» en su pase.` });
       setAgregando(false);
       setNombre("");
       setEleccion(null);
@@ -312,49 +311,73 @@ export function SellosPantalla({
     return { imagen: subida.ruta };
   }
 
-  // Cambiar el dibujo de una que ya existe: un dibujo de la lista es UNA escritura por la función de la base (`fijar_icono_etiqueta`); una imagen
-  // propia, la subida y esa misma escritura. Siempre con la firma del combo.
-  async function guardarDibujo(e: Etiqueta, nuevo: EleccionDeDibujo) {
-    setGuardandoDibujo(true);
+  // Editar una que ya existe: el nombre (una corrección) va por su PATCH y se guarda primero; el dibujo, por la función de la base
+  // (`fijar_icono_etiqueta`; una imagen propia, la subida y esa misma escritura). Solo se escribe lo que cambió, siempre con la firma del combo.
+  // Si el nombre ya quedó y el dibujo falla, la hoja sigue abierta con el nombre nuevo para reintentar solo el dibujo.
+  async function guardarEdicion(e: Etiqueta, cambios: CambiosDeEtiqueta) {
+    setGuardandoEdicion(true);
+    const que = e.estilo === "campana" ? "la campaña" : "la insignia";
     try {
+      let nombreFinal = e.nombre;
+      if (cambios.nombre !== null) {
+        const res = await fetch("/api/productos/etiquetas", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
+          body: JSON.stringify({ id: e.id, nombre: cambios.nombre }),
+        });
+        const datos = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          avisar.error(datos.error ?? `No se pudo cambiar el nombre de ${que}.`);
+          return;
+        }
+        nombreFinal = datos.etiqueta?.nombre ?? cambios.nombre;
+        setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === e.id ? { ...x, nombre: nombreFinal } : x))));
+      }
+      const nuevo = cambios.dibujo;
       let icono = e.icono;
       let imagen = e.imagen;
       let imagenSilueta = e.imagenSilueta;
-      if (nuevo.tipo === "imagen") {
+      let dibujoCambiado = false;
+      if (nuevo?.tipo === "imagen") {
         const puesta = await subirYFijarImagen(e.id, nuevo.archivo, nuevo.silueta);
         if ("error" in puesta) {
-          avisar.error(puesta.error);
+          avisar.error(cambios.nombre !== null ? `El nombre ya quedó como «${nombreFinal}», pero ${puesta.error.charAt(0).toLowerCase()}${puesta.error.slice(1)}` : puesta.error);
           return;
         }
         icono = null;
         imagen = puesta.imagen;
         imagenSilueta = nuevo.silueta;
-      } else if (nuevo.tipo === "dibujo") {
+        dibujoCambiado = true;
+      } else if (nuevo?.tipo === "dibujo") {
         const res = await fetch("/api/productos/etiquetas", {
           method: "PATCH",
           headers: { "Content-Type": "application/json", ...responsable.encabezados() },
           body: JSON.stringify({ id: e.id, icono: nuevo.clave }),
         });
-        const datos = await res.json();
+        const datos = await res.json().catch(() => ({}));
         if (!res.ok) {
-          avisar.error(datos.error ?? `No se pudo cambiar el dibujo ${e.estilo === "campana" ? "de la campaña" : "de la insignia"}.`);
+          const motivo = datos.error ?? `No se pudo cambiar el ícono ${que === "la campaña" ? "de la campaña" : "de la insignia"}.`;
+          avisar.error(cambios.nombre !== null ? `El nombre ya quedó como «${nombreFinal}», pero ${motivo.charAt(0).toLowerCase()}${motivo.slice(1)}` : motivo);
           return;
         }
         icono = nuevo.clave;
         imagen = null;
         imagenSilueta = false;
-      } else {
-        setCambiandoDibujo(null);
-        return;
+        dibujoCambiado = true;
       }
-      setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen, imagenSilueta } : x)));
+      if (dibujoCambiado) setEtiquetas((actual) => actual.map((x) => (x.id === e.id ? { ...x, icono, imagen, imagenSilueta } : x)));
       responsable.despues(null);
-      avisar.exito(`Dibujo de ${e.nombre} cambiado`, { detalle: nuevo.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : "Ahora lleva tu imagen." });
-      setCambiandoDibujo(null);
+      const detalleDibujo =
+        nuevo?.tipo === "dibujo" ? `Ahora lleva: ${NOMBRE_DEL_DIBUJO[nuevo.clave]}.` : nuevo?.tipo === "imagen" && nuevo.silueta ? "Ahora lleva tu imagen, pintada del color del sello." : nuevo?.tipo === "imagen" ? "Ahora lleva tu imagen." : undefined;
+      avisar.exito(
+        cambios.nombre !== null ? `${que === "la campaña" ? "Campaña" : "Insignia"} ahora se llama ${nombreFinal}` : `Ícono de ${nombreFinal} cambiado`,
+        detalleDibujo ? { detalle: detalleDibujo } : undefined,
+      );
+      setEditandoId(null);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
-      setGuardandoDibujo(false);
+      setGuardandoEdicion(false);
     }
   }
 
@@ -399,6 +422,8 @@ export function SellosPantalla({
     const chip = e.activo && e.estado === "aprobado" ? chipDeTarjeta(vigencia, p.modelos.length + e.categoriaIds.length, hoy) : null;
     const dondeRige = e.descuentoPct !== null ? textoSedesDeCampana(e.sedeIds, tiendas) : null;
     const anio = e.vigenteDesde ? e.vigenteDesde.slice(0, 4) : null;
+    // Lo mismo que habilita las acciones del pase (`accionesDelPase`): una aprobada y activa que quien mira puede tocar.
+    const puedeEditarEste = puedeEditar(e) && e.activo && e.estado === "aprobado";
     const ofertas = e.estilo === "campana" && reglasDisponibles ? reglasDeCampana(reglas, e.id) : [];
     const ofertasVivas = reglasVivas(ofertas, hoy);
     const porActivar = ofertasVivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length;
@@ -428,16 +453,25 @@ export function SellosPantalla({
           <div>
             <div className="sl-perfo" />
             <div className="sl-dentro">
-              {(chip || e.estado !== "aprobado" || porActivar > 0) && (
-                <div className="flex flex-wrap gap-1.5" style={{ "--i": 0 } as CSSProperties}>
+              {(chip || e.estado !== "aprobado" || porActivar > 0 || puedeEditarEste) && (
+                <div className="flex flex-wrap items-center gap-1.5" style={{ "--i": 0 } as CSSProperties}>
                   {e.estado === "pendiente" && <Chip tono="ambar">Por aprobar</Chip>}
                   {e.estado === "rechazado" && <Chip tono="apagado" tachado={false}>Rechazado</Chip>}
                   {chip && <Chip tono={chip.tono} title={chip.title}>{chip.texto}</Chip>}
                   {chip?.alerta && <Chip tono="ambar" title={chip.title}>{chip.alerta}</Chip>}
                   {porActivar > 0 && (
-                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: un líder las activa para que bajen el precio.">
+                    <Chip tono="ambar" title="Hay ofertas guardadas como borrador: falta activarlas para que bajen el precio.">
                       {porActivar === 1 ? "1 oferta por activar" : `${porActivar} ofertas por activar`}
                     </Chip>
+                  )}
+                  {puedeEditarEste && (
+                    <BotonEditar
+                      chico
+                      onClick={() => setEditandoId(e.id)}
+                      guia={esAbierto ? "sellos.editar" : undefined}
+                      title={`Corregir el nombre o cambiar el ícono ${e.estilo === "campana" ? "de la campaña" : "de la insignia"}`}
+                      className="ml-auto"
+                    />
                   )}
                 </div>
               )}
@@ -537,9 +571,6 @@ export function SellosPantalla({
         >
           {boton.texto}
         </button>
-        <button type="button" onClick={() => setCambiandoDibujo(e)} data-guia={conGuia ? "sellos.dibujo" : undefined} className="btn-cayla btn-sutil btn-chico">
-          Dibujo
-        </button>
         {imprimir && (
           <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico>
             {vigencia?.estado === "terminada" ? "Precio normal" : "Etiquetas de precio"}
@@ -569,7 +600,7 @@ export function SellosPantalla({
 
   // ---- El pase abierto, en grande --------------------------------------------------------------------------------------------
 
-  /** Cuántas ofertas vivas tiene una campaña y cuántas esperan a un líder (para «Lo que ya tiene»). */
+  /** Cuántas ofertas vivas tiene una campaña y cuántas siguen en borrador (para «Lo que ya tiene»). */
   function ofertasDe(e: Etiqueta) {
     const vivas = reglasVivas(reglasDeCampana(reglas, e.id), hoy);
     return { total: vivas.length, borradores: vivas.filter((r) => vigenciaDeRegla(r, hoy) === "borrador").length };
@@ -801,16 +832,17 @@ export function SellosPantalla({
         />
       )}
 
-      {cambiandoDibujo && (
-        <CambiarDibujoModal
-          nombre={cambiandoDibujo.nombre}
-          actual={eleccionDeLoGuardado({ nombre: cambiandoDibujo.nombre, icono: cambiandoDibujo.icono, imagen: cambiandoDibujo.imagen, silueta: cambiandoDibujo.imagenSilueta })}
-          esDelNombre={!cambiandoDibujo.icono && !esRutaDeImagenDeInsignia(cambiandoDibujo.imagen)}
-          esCampana={cambiandoDibujo.estilo === "campana"}
+      {editando && (
+        <EditarEtiquetaModal
+          key={editando.id}
+          nombre={editando.nombre}
+          actual={eleccionDeLoGuardado({ nombre: editando.nombre, icono: editando.icono, imagen: editando.imagen, silueta: editando.imagenSilueta })}
+          esDelNombre={!editando.icono && !esRutaDeImagenDeInsignia(editando.imagen)}
+          esCampana={editando.estilo === "campana"}
           responsable={responsable}
-          guardando={guardandoDibujo}
-          onGuardar={(nuevo) => guardarDibujo(cambiandoDibujo, nuevo)}
-          onClose={() => setCambiandoDibujo(null)}
+          guardando={guardandoEdicion}
+          onGuardar={(cambios) => guardarEdicion(editando, cambios)}
+          onClose={() => setEditandoId(null)}
         />
       )}
 
@@ -856,7 +888,6 @@ export function SellosPantalla({
           sedeActualId={sedeActualId}
           prendasConCosto={prendasConCosto}
           variantesManuales={manuales[ofertando.id] ?? []}
-          esLider={esLider}
           hoy={hoy}
           puedeDarDescuento={puedeEditar(ofertando)}
           alGuardarCampana={(cambios) => setEtiquetas((actual) => ordenarEtiquetas(actual.map((x) => (x.id === ofertando.id ? { ...x, ...cambios } : x))))}

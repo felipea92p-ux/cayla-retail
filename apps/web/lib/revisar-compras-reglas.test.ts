@@ -38,6 +38,7 @@ import {
   problemaSerie,
   textoFaltan,
   textoLlegada,
+  recibioQuienCompro,
   veredictoPapel,
   type LineaPapel,
 } from "./revisar-compras-reglas";
@@ -67,7 +68,7 @@ describe("leerRevisarCompras", () => {
           tipo: "boleta", monto: "330.00", foto_ruta: "papeles/a.jpg", fecha: "2026-10-23", llego: true,
           lineas: [{ id: "i1", nombre: "Polo", cantidad: 6, costo: 40, subtotal: 240, destino: "Tienda Trujillo", mandadas: 6,
                      faltan: [{ cantidad: 1, causa: "no_vino" }, { cantidad: 1, causa: "inventada" }], sobran: 0 }, { id: null }],
-          envios: [{ id: "e1", numero: 179, estado: "cerrado" }, { id: "e2", numero: 1, estado: "anulado" }],
+          envios: [{ id: "e1", numero: 179, estado: "cerrado", recibio_quien_compro: true }, { id: "e2", numero: 1, estado: "anulado" }],
         },
         { id: "p2", tipo: "papiro", monto: 1, proveedor_id: "pr" },
       ],
@@ -79,7 +80,7 @@ describe("leerRevisarCompras", () => {
     expect(r?.papeles[0].monto).toBe(330);
     expect(r?.papeles[0].lineas).toHaveLength(1);
     expect(r?.papeles[0].lineas[0].faltan).toEqual([{ cantidad: 1, causa: "no_vino" }]);
-    expect(r?.papeles[0].envios).toEqual([{ id: "e1", numero: 179, estado: "cerrado" }]);
+    expect(r?.papeles[0].envios).toEqual([{ id: "e1", numero: 179, estado: "cerrado", recibioQuienCompro: true }]);
     expect(r?.cierres.map((c) => c.id)).toEqual(["k1"]);
     expect(r?.gastos.map((g) => `${g.id}:${g.monto}:${g.tieneCompra}`)).toEqual(["g1:15:true"]);
     expect(r?.proveedores).toEqual([{ id: "pr", nombre: "Confecciones Lupe", ruc: null }]);
@@ -130,11 +131,17 @@ describe("textos del veredicto y de la llegada", () => {
     expect(textoFaltan(l)).toBe("2 no vino: está en «Nos debe» del proveedor · 1 se perdió: lo asume CAYLA");
     expect(textoFaltan(linea())).toBeNull();
   });
+  it("ADR-0517: si algún envío lo cerró quien compró, quien revisa lo ve; sin envíos o sin marca, no", () => {
+    const e = (recibioQuienCompro: boolean) => ({ id: "e", numero: 1, estado: "cerrado" as const, recibioQuienCompro });
+    expect(recibioQuienCompro({ envios: [] })).toBe(false);
+    expect(recibioQuienCompro({ envios: [e(false)] })).toBe(false);
+    expect(recibioQuienCompro({ envios: [e(false), e(true)] })).toBe(true);
+  });
   it("dónde está una compra que no llegó", () => {
     expect(textoLlegada({ llego: true, lineas: [], envios: [] })).toBe("Llegó a la tienda");
     expect(textoLlegada({ llego: false, lineas: [linea({ mandadas: 2 })], envios: [] })).toBe("Falta mandarla a la tienda");
-    expect(textoLlegada({ llego: false, lineas: [linea()], envios: [{ id: "e", numero: 1, estado: "abierto" }] })).toBe("La tienda la está contando");
-    expect(textoLlegada({ llego: false, lineas: [linea()], envios: [{ id: "e", numero: 1, estado: "en_camino" }] })).toBe("En camino a la tienda");
+    expect(textoLlegada({ llego: false, lineas: [linea()], envios: [{ id: "e", numero: 1, estado: "abierto", recibioQuienCompro: false }] })).toBe("La tienda la está contando");
+    expect(textoLlegada({ llego: false, lineas: [linea()], envios: [{ id: "e", numero: 1, estado: "en_camino", recibioQuienCompro: false }] })).toBe("En camino a la tienda");
   });
 });
 
@@ -234,13 +241,15 @@ describe("la bandeja de Revisar compras (rediseño)", () => {
     expect(chipPapel({ llego: true, lineas: [linea(14, 2)], envios: [] })).toEqual({ tono: "ambar", texto: "Faltaron 2" });
     expect(chipPapel({ llego: true, lineas: [linea(3, 1)], envios: [] })).toEqual({ tono: "ambar", texto: "Faltó 1" });
     expect(chipPapel({ llego: true, lineas: [linea(3)], envios: [] })).toEqual({ tono: "verde", texto: "Llegó todo" });
-    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "en_camino" }] })).toEqual({ tono: "pizarra", texto: "En camino" });
+    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "en_camino", recibioQuienCompro: false }] })).toEqual({ tono: "pizarra", texto: "En camino" });
     expect(chipPapel({ llego: false, lineas: [{ ...linea(3), mandadas: 1 }], envios: [] }).texto).toBe("Sin mandar");
-    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "abierto" }] }).texto).toBe("La tienda cuenta");
+    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "abierto", recibioQuienCompro: false }] }).texto).toBe("La tienda cuenta");
   });
   it("cada fila dice qué es, de quién y su estado", () => {
     expect(filaPlata({ id: "a", persona: "Marisol", medio: "yape_plin", monto: 500, fecha: "2026-10-23", fotoRuta: "plata/x.jpg" })).toMatchObject({ titulo: "Yape o Plin · con foto", cuando: "23/10", chip: { texto: "Por confirmar" } });
     expect(filaPlata({ id: "a", persona: "M", medio: "ya_tenia", monto: 1, fecha: "", fotoRuta: null }).titulo).toBe("Ya tenía de antes");
+    // La foto existe pero no se pudo firmar su enlace: no se dice «con foto» como si se pudiera ver.
+    expect(filaPlata({ id: "a", persona: "M", medio: "efectivo", monto: 1, fecha: "", fotoRuta: "plata/x.jpg", fotoNoAbrio: true }).titulo).toBe("Efectivo · no se pudo abrir la foto");
     expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", ronda: "RC-000003", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", cuando: "22/10 · RC-000003", chip: { tono: "verde" } });
     expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null }).titulo).toBe("Taxi · sin papel");
     expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22", ronda: "RC-000002" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });

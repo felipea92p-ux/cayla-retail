@@ -45,7 +45,7 @@ import {
   type Seccion,
 } from "@/lib/plan-piso-grupos";
 
-// Plan del piso ▸ los grupos del mix (ADR-0329 + ADR-0328, actividad 12, primera entrega). El líder revisa a qué grupo va cada
+// Plan del piso ▸ los grupos del mix (ADR-0329 + ADR-0328, actividad 12, primera entrega). Quien ve el módulo revisa a qué grupo va cada
 // categoría —la propuesta viene sembrada y se ve «Por revisar»— y la confirma o la cambia. Nada se guarda al tocar: cada cambio
 // queda PREPARADO en la fila y se guarda todo junto desde la barra de abajo («Tienes N cambios sin guardar», como Editar producto),
 // con la firma del responsable. Es la unidad todo-o-nada de la base (`fijar_grupos_de_categorias`): confirmar las 42 de una vez es
@@ -54,20 +54,21 @@ import {
 // Por qué cada categoría solo ofrece los grupos de su lado del riel (`gruposPermitidos`): un vestido entre los accesorios de la caja es
 // un error que el diseño no debe dejar cometer; la base lo rechazaría igual (`grupo_incoherente_con_familia`).
 //
-// Quien recibe el módulo sin ser líder VE los grupos y su estado, pero no tiene combos ni botones: la base pide al líder.
+// Desde ADR-0534 (20261027164000) los decide quien ve el módulo Plan del piso, no solo el líder: esta pantalla ya exige el módulo y la base lo
+// vuelve a pedir (`grupos_mix_sin_modulo`). Quién lo hizo queda firmado con el «Responsable».
 
 const PLANTILLA = "sm:grid-cols-[minmax(0,1.3fr)_8.5rem_minmax(0,1.2fr)]";
 const COLUMNAS = [{ titulo: "Categoría" }, { titulo: "Estado" }, { titulo: "Grupo del plan" }];
 
 const ESTADO_CHIP: Record<EstadoCategoria, { tono: TonoChip; texto: string; ayuda: string }> = {
-  confirmada: { tono: "verde", texto: "Confirmada", ayuda: "El líder ya revisó y confirmó este grupo." },
-  por_revisar: { tono: "ambar", texto: "Por revisar", ayuda: "Es la propuesta: el líder todavía no la confirmó." },
+  confirmada: { tono: "verde", texto: "Confirmada", ayuda: "Alguien del equipo ya revisó y confirmó este grupo." },
+  por_revisar: { tono: "ambar", texto: "Por revisar", ayuda: "Es la propuesta: todavía nadie la confirmó." },
   sin_grupo: { tono: "ambar", texto: "Sin grupo", ayuda: "Categoría nueva: todavía no tiene grupo. Elige uno." },
 };
 
 const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix[]; categorias: CategoriaMix[]; esLider: boolean }) {
+export function GruposDelMix({ grupos, categorias }: { grupos: GrupoMix[]; categorias: CategoriaMix[] }) {
   const router = useRouter();
   const [pendientes, setPendientes] = useState<Pendientes>(new Map());
   const [hojaAbierta, setHojaAbierta] = useState(false);
@@ -101,7 +102,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
           activas, repartidas en {grupos.length} grupos
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Confirmadas" valor={resumen.confirmadas} className="anim-sube" style={{ "--i": 1 } as React.CSSProperties}>
-          {resumen.confirmadas === resumen.total && resumen.total > 0 ? "todas revisadas por el líder" : "ya revisadas por el líder"}
+          {resumen.confirmadas === resumen.total && resumen.total > 0 ? "todas revisadas" : "ya revisadas"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Por revisar" valor={resumen.porRevisar} acento={resumen.porRevisar > 0} className="anim-sube" style={{ "--i": 2 } as React.CSSProperties}>
           {resumen.porRevisar > 0 ? "propuestas que falta confirmar" : "no queda ninguna propuesta"}
@@ -116,23 +117,19 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
           <div className="min-w-0">
             <TituloSeccion>Grupos del plan</TituloSeccion>
             <p className="mt-0.5 max-w-xl text-[13px] text-tinta/70">
-              {esLider
-                ? "Revisa a qué grupo va cada categoría. Lo que cambies o confirmes queda con tu firma."
-                : "Así quedó cada categoría. Solo el líder decide a qué grupo va."}
+              Revisa a qué grupo va cada categoría. Lo que cambies o confirmes queda con tu firma.
             </p>
           </div>
-          {esLider && (
-            <div className="flex flex-wrap items-center gap-2.5" data-guia="plan-piso.grupos-acciones">
-              {siguiente && (
-                <EnlaceVer onClick={() => irA(siguiente)}>Siguiente por revisar: {siguiente.categoria}</EnlaceVer>
-              )}
-              {porConfirmar > 0 && (
-                <button type="button" className="btn-cayla btn-secundario" onClick={() => setPendientes(confirmarPropuestas(pendientes, categorias))}>
-                  Confirmar {porConfirmar === 1 ? "la propuesta" : `las ${porConfirmar} propuestas`}
-                </button>
-              )}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2.5" data-guia="plan-piso.grupos-acciones">
+            {siguiente && (
+              <EnlaceVer onClick={() => irA(siguiente)}>Siguiente por revisar: {siguiente.categoria}</EnlaceVer>
+            )}
+            {porConfirmar > 0 && (
+              <button type="button" className="btn-cayla btn-secundario" onClick={() => setPendientes(confirmarPropuestas(pendientes, categorias))}>
+                Confirmar {porConfirmar === 1 ? "la propuesta" : `las ${porConfirmar} propuestas`}
+              </button>
+            )}
+          </div>
         </div>
 
         {quitadas.length > 0 && (
@@ -152,14 +149,14 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
           {vista.sinGrupo.length > 0 && (
             <SeccionSinGrupo categorias={vista.sinGrupo}>
               {vista.sinGrupo.map((c) => (
-                <FilaCategoria key={c.categoriaId} c={c} grupos={grupos} pendientes={pendientes} esLider={esLider} onPreparar={setPendientes} />
+                <FilaCategoria key={c.categoriaId} c={c} grupos={grupos} pendientes={pendientes} onPreparar={setPendientes} />
               ))}
             </SeccionSinGrupo>
           )}
           {vista.secciones.map((s) => (
             <SeccionDeGrupo key={s.grupo.clave} s={s}>
               {s.categorias.map((c) => (
-                <FilaCategoria key={c.categoriaId} c={c} grupos={grupos} pendientes={pendientes} esLider={esLider} onPreparar={setPendientes} />
+                <FilaCategoria key={c.categoriaId} c={c} grupos={grupos} pendientes={pendientes} onPreparar={setPendientes} />
               ))}
             </SeccionDeGrupo>
           ))}
@@ -173,7 +170,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
       </p>
 
       <BarraFija
-        visible={esLider && cambios.length > 0}
+        visible={cambios.length > 0}
         resumenMinimo="min-w-[17rem]"
         resumen={
           <div role="status" className="flex items-start gap-3">
@@ -263,13 +260,11 @@ function FilaCategoria({
   c,
   grupos,
   pendientes,
-  esLider,
   onPreparar,
 }: {
   c: CategoriaMix;
   grupos: GrupoMix[];
   pendientes: Pendientes;
-  esLider: boolean;
   onPreparar: (p: Pendientes) => void;
 }) {
   const estado = estadoDe(c);
@@ -296,30 +291,24 @@ function FilaCategoria({
         )}
       </div>
       <div className={celda("izq", "flex flex-wrap items-center gap-2")}>
-        {esLider ? (
-          <>
-            <Desplegable // unificar-fijo: el combo de una fila de la tabla (elige su grupo), no un filtro
-              valor={preparado ?? c.grupoClave ?? ""}
-              onValor={(clave) => onPreparar(conCambio(pendientes, c, clave))}
-              opciones={opciones}
-              marcador="Elegir grupo"
-              forma="cajaBaja"
-              etiquetaAccesible={`Grupo de ${c.categoria}`}
-              className="min-w-[12rem] flex-1"
-            />
-            {estado === "por_revisar" && preparado === undefined && (
-              <button
-                type="button"
-                className="btn-cayla btn-enlace shrink-0 text-[12.5px]"
-                onClick={() => onPreparar(conCambio(pendientes, c, c.grupoClave as string))}
-                aria-label={`Confirmar ${c.categoria} en ${nombreGrupo(c.grupoClave)}`}
-              >
-                Confirmar
-              </button>
-            )}
-          </>
-        ) : (
-          <span className="text-sm text-tinta/80">{nombreGrupo(c.grupoClave) ?? "Sin grupo"}</span>
+        <Desplegable // unificar-fijo: el combo de una fila de la tabla (elige su grupo), no un filtro
+          valor={preparado ?? c.grupoClave ?? ""}
+          onValor={(clave) => onPreparar(conCambio(pendientes, c, clave))}
+          opciones={opciones}
+          marcador="Elegir grupo"
+          forma="cajaBaja"
+          etiquetaAccesible={`Grupo de ${c.categoria}`}
+          className="min-w-[12rem] flex-1"
+        />
+        {estado === "por_revisar" && preparado === undefined && (
+          <button
+            type="button"
+            className="btn-cayla btn-enlace shrink-0 text-[12.5px]"
+            onClick={() => onPreparar(conCambio(pendientes, c, c.grupoClave as string))}
+            aria-label={`Confirmar ${c.categoria} en ${nombreGrupo(c.grupoClave)}`}
+          >
+            Confirmar
+          </button>
         )}
       </div>
     </div>

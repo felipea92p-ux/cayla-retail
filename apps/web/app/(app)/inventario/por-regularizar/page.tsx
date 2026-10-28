@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar";
+import { getPlazosColaArranque, getPorRegularizar, getUltimoCuadrePorSede } from "@/lib/por-regularizar";
 import { getDisponiblePorSede } from "@/lib/por-regularizar-stock";
 import { getLibroPorVenta } from "@/lib/por-regularizar-libro";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -26,17 +26,20 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Si la lista de sedes no responde, la página no se cae: muestra todas, como antes de traer la sede.
   const ubicaciones = esLider && ubicacion ? await getUbicaciones().catch(() => []) : [];
   const unaSede = ubicaciones.find((u) => u.id === ubicacion) ?? null;
-  // Los plazos del cierre de arranque (ADR-0334) solo los necesita el líder: es quien cierra. Sin ellos la pantalla sigue entera.
+  // Los plazos del cierre de arranque (ADR-0334): desde ADR-0534 cierra quien ve Existencias, no solo el líder. RLS deja leer los de las
+  // sedes que la persona opera; sin ellos la pantalla sigue entera (sin el botón de cerrar).
   // Las listas de la hoja con que caja anota la prenda: «Corregir lo anotado» (ADR-0369) usa la misma.
   const [filas, catalogo, plazos, listasLeidas] = await Promise.all([
     getPorRegularizar(esLider ? (unaSede?.id ?? null) : persona.ubicacionId),
     getCatalogo(),
-    esLider ? getPlazosColaArranque() : Promise.resolve({} as Record<string, string>),
+    getPlazosColaArranque(),
     leerListasPrendaLibre(),
   ]);
   // Cuántas unidades libres hay de cada prenda en la tienda de cada venta pendiente (para «3 en TRU» y la sugerida). Es lo accesorio:
   // si no se puede leer, la pantalla sigue y se regulariza igual (`getDisponiblePorSede` nunca lanza).
   const sedesPendientes = filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId);
+  // A6 (ADR-0334 act. 2026-10-14): cerrar en bloque exige un cuadre del piso después de la última venta; el líder ve qué tiendas lo tienen.
+  const cuadres = esLider ? await getUltimoCuadrePorSede(sedesPendientes) : {};
   // El precio OFICIAL de cada venta es el de su tienda (precio propio, Felipe 2026-10-09): así lo guarda `regularizar_prenda`.
   // Y lo que dice el libro de cada prenda a la hora de cada venta: de ahí la mesa sugiere «¿Cómo estaba?» (ADR-0328 act. 5). También es
   // lo accesorio: `getLibroPorVenta` nunca lanza y, si falla, la mesa sigue sin esa sugerencia.
@@ -81,8 +84,8 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         libro={libro}
         ubicacionEtiqueta={etiqueta}
         variasSedes={esLider && !unaSede}
-        esLider={esLider}
         plazos={plazos}
+        cuadres={cuadres}
         sedeInicial={unaSede?.id ?? null}
         abrirItemId={item ?? null}
         listas={armarListasPrendaLibre(listasLeidas, catalogo)}

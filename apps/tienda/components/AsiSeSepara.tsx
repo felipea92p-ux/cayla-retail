@@ -11,8 +11,8 @@ import { leerSedes } from "@/lib/tiendas-servidor";
  */
 export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
   const sedes = await leerSedes();
-  // Los mismos cuatro pasos de «Cómo separar» (`pasosParaSeparar`), con su título y UNA frase corta bajo cada uno (A · Muro: el número
-  // grande en cursiva, el título y una línea); el detalle completo vive en «Cómo separar».
+  // Los mismos cuatro pasos de «Cómo separar» (`pasosParaSeparar`), con su título y UNA frase corta bajo cada uno (Pasarela: el número
+  // grande en Didone, el título y una línea); el detalle completo vive en «Cómo separar».
   const [elige] = pasosParaSeparar(
     sedes.map((s) => s.nombre),
     conCuenta,
@@ -27,21 +27,19 @@ export async function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }
   ];
   return (
     <section className="t-sec t-ancho ay-asi" aria-labelledby="asi-se-separa">
-      <div className="t-sec-cab">
-        <div>
-          <h2 id="asi-se-separa">
-            Así se <em>separa</em>
-          </h2>
-        </div>
-        <Link className="t-sec-nota" href="/como-separar">
+      <div className="t-cab-centro" data-revela>
+        <Link className="t-ceja" href="/como-separar">
           Sin pagar en la web
         </Link>
+        <h2 id="asi-se-separa">
+          Así se <em>separa</em>
+        </h2>
       </div>
-      <ol className="as-pasos" aria-label="Los pasos para separar">
+      <ol className="as-pasos" data-revela-lista aria-label="Los pasos para separar">
         {pasos.map((p, i) => (
           <li key={p.titulo} className="as-paso" data-hecho={p.hecho ? "" : undefined}>
             <span className="as-n" aria-hidden="true">
-              {i + 1}
+              {String(i + 1).padStart(2, "0")}
             </span>
             <b>
               {p.hecho && <span className="t-sr">Hecho: </span>}

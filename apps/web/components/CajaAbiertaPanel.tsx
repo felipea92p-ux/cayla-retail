@@ -50,6 +50,8 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
+import type { RepartoEmpresas as RepartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -110,6 +112,7 @@ export function CajaAbiertaPanel({
   sedesIngreso = [],
   abrirCierre = false,
   comparativa = null,
+  repartoEmpresas = null,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -148,6 +151,8 @@ export function CajaAbiertaPanel({
   sedesIngreso?: { id: string; nombre: string }[];
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
+  /** De quién es lo vendido del turno (ADR-0532): CAYLA y CLAURE en Lima. `null` donde hay una sola empresa o si la base no respondió. */
+  repartoEmpresas?: RepartoDeEmpresas | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
@@ -303,6 +308,16 @@ export function CajaAbiertaPanel({
     </div>
   );
 
+  // De quién es lo vendido (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. Va bajo el titular de «hoy contra ayer».
+  const tarjetaReparto = repartoEmpresas ? (
+    <RepartoEmpresas
+      reparto={repartoEmpresas}
+      guia="caja.reparto-empresas"
+      indice={1}
+      frase="Lo vendido desde que se abrió esta caja, prenda por prenda. Sin las ventas anuladas."
+    />
+  ) : null;
+
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
           <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
@@ -421,6 +436,7 @@ export function CajaAbiertaPanel({
               horaCierreMin={minutosLima(horaCierre)}
               cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
               movimientos={tarjetaMovimientos}
+              reparto={tarjetaReparto}
             />
           </>
         ) : (
@@ -435,6 +451,8 @@ export function CajaAbiertaPanel({
             <RitmoDelDia ventas={ventasHoy} abiertaEn={caja.abiertaEn} idsNuevos={idsNuevos} />
           </div>
         </div>
+
+        {tarjetaReparto}
 
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
@@ -509,12 +527,11 @@ export function CajaAbiertaPanel({
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} soloSalida onClose={() => setModal(null)} />}
       {modal === "ingreso" && (
         <IngresoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
           ubicacionNombre={ubicacionNombre}
-          esLider={personaRol === "lider"}
           sedes={sedesIngreso}
           accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
           onCerrar={() => setModal(null)}

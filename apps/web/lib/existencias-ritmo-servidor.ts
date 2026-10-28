@@ -10,6 +10,7 @@ import {
   type RitmoReciente,
 } from "@/lib/existencias-ritmo";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
+import { unstable_rethrow } from "next/navigation";
 
 // La parte que LEE de Postgres para «Ritmo reciente»/«Cobertura piso» de Existencias
 // (2026-09-25). Todo lo que decide qué significan los eventos vive en `existencias-ritmo.ts`
@@ -56,7 +57,8 @@ export async function getRitmoRecientePorVariante(
       cobertura.set(varianteId, calcularCoberturaPiso(pisoPorVariante.get(varianteId) ?? 0, r));
     }
     return { datos: { ritmo, cobertura }, fallo: null };
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return { datos: null, fallo: "No se pudo calcular el ritmo reciente. Lo demás de esta pantalla sí está al día." };
   }
 }

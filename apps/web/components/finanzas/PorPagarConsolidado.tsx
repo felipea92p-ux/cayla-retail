@@ -13,7 +13,7 @@ import { CabeceraDinero } from "@/components/finanzas/CabeceraDinero";
 import { PieTabla, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
-import { chipsQueDebes, colorDeRepisa, preguntaDeDinero } from "@/lib/dinero-telar-reglas";
+import { chipsQueDebes, colorDeGrupo, preguntaDeDinero } from "@/lib/dinero-telar-reglas";
 import { porSedeDe, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { debesPulso } from "@/lib/dinero-pulso-reglas";
@@ -199,7 +199,7 @@ export function PorPagarConsolidado({
                           key={b.id}
                           className="din-burbuja"
                           data-vencida={b.columna < 0 ? "" : undefined}
-                          style={{ ["--i" as string]: i, ["--c" as string]: colorDeRepisa(x.ubicacionId, sedes) } as CSSProperties}
+                          style={{ ["--i" as string]: i, ["--c" as string]: colorDeGrupo(x.ubicacionId, sedes) } as CSSProperties}
                           {...(pagable
                             ? {
                                 role: "link",
@@ -225,7 +225,7 @@ export function PorPagarConsolidado({
                 {sedesEnBurbujas.length > 0 && (
                   <ul className="din-agenda-leyenda" aria-label="De qué sede es cada color">
                     {sedesEnBurbujas.map((id) => (
-                      <li key={id ?? "empresa"} style={{ ["--c" as string]: colorDeRepisa(id, sedes) } as CSSProperties}>
+                      <li key={id ?? "empresa"} style={{ ["--c" as string]: colorDeGrupo(id, sedes) } as CSSProperties}>
                         <i aria-hidden="true" />
                         {id ? (unidades.find((u) => u.id === id)?.nombre ?? "Tienda") : "De la empresa"}
                       </li>
@@ -321,7 +321,7 @@ export function PorPagarConsolidado({
                               </td>
                               {verTodas && (
                                 <td data-l="Sede">
-                                  <span className="din-sede-chip" style={{ ["--c" as string]: colorDeRepisa(x.ubicacionId, sedes) } as CSSProperties}>
+                                  <span className="din-sede-chip" style={{ ["--c" as string]: colorDeGrupo(x.ubicacionId, sedes) } as CSSProperties}>
                                     <i aria-hidden="true" />
                                     {textoUnidad(x)}
                                   </span>

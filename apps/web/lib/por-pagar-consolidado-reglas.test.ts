@@ -3,7 +3,6 @@ import {
   diasHasta,
   filaAPagar,
   leerFilaPorPagar,
-  ordenarPorVencimiento,
   puedePagar,
   resumenTramos,
   textoUnidad,
@@ -109,13 +108,6 @@ describe("textoVence y textoUnidad", () => {
   it("una factura repartida nombra a todas sin repetir «Tienda»", () => {
     expect(textoUnidad({ unidades: "Tienda Lima · Tienda Trujillo" })).toBe("Lima · Trujillo");
     expect(textoUnidad({ unidades: "Taller · Tienda Lima · Tienda Trujillo" })).toBe("Taller · Lima · Trujillo");
-  });
-});
-
-describe("ordenarPorVencimiento", () => {
-  it("lo más urgente primero; a igual fecha, por proveedor", () => {
-    const orden = ordenarPorVencimiento([fila("2026-10-01", 1, { proveedor: "Zeta" }), fila("2026-09-20", 2), fila("2026-10-01", 3, { proveedor: "Andina" })]);
-    expect(orden.map((f) => f.saldo)).toEqual([2, 3, 1]);
   });
 });
 
