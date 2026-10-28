@@ -294,3 +294,60 @@
 @media (prefers-reduced-motion: reduce) {
   .destacado-trazo { animation: none; stroke-dashoffset: 0; }
 }
+
+/* ====================================================================
+   «Hay una versión nueva de CAYLA» — la píldora flotante (ADR-0422, act. 2026-10-28; Felipe eligió la B de
+   docs/maquetas/version-nueva-2026-10/). Va FUERA del contenido: antes era una franja dentro de la página, y la barra fija de
+   Finanzas (`.mesa-telar`, opaca y con margen negativo) la tapaba a medias. En escritorio ancho se centra sobre el contenido,
+   en la banda de la cabecera (el centro está libre); bajo 1024 px, justo debajo de ella. Entra bajando 10 px, una vez, sin bucle.
+   ==================================================================== */
+@layer components {
+  .version-nueva {
+    position: fixed;
+    z-index: 40;
+    left: 50%;
+    translate: -50% 0;
+    top: calc(env(safe-area-inset-top) + 4.25rem);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    max-width: calc(100vw - 2rem);
+    padding: 0.3125rem 0.3125rem 0.3125rem 0.875rem;
+    border-radius: 999px;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+    font-size: 13px;
+    box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+    animation: cayla-version-nueva-entra 420ms var(--ease-cayla) both;
+  }
+  @media (min-width: 1024px) {
+    .version-nueva {
+      top: calc(env(safe-area-inset-top) + 0.8125rem);
+      /* El centro del contenido: el lateral ocupa `--spacing-lateral` a la izquierda. */
+      left: calc(var(--spacing-lateral) + (100vw - var(--spacing-lateral)) / 2);
+    }
+  }
+  .version-nueva-punto { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-crema); }
+  .version-nueva-texto { margin: 0; font-weight: 500; white-space: nowrap; }
+  .version-nueva-texto span { display: none; font-weight: 400; color: color-mix(in srgb, var(--color-crema) 78%, transparent); }
+  @media (min-width: 640px) { .version-nueva-texto span { display: inline; } }
+  /* El botón sigue siendo `btn-cayla btn-secundario`: aquí solo se le baja el alto para caber en la píldora. */
+  .version-nueva .btn-cayla.btn-secundario {
+    min-height: 2rem; padding: 0 0.875rem; border-radius: 999px;
+    /* Sobre la píldora de tinta el botón se invierte: crema con letra de tinta (en oscuro, al revés, porque los dos tokens se intercambian). */
+    background: var(--color-crema); border-color: var(--color-crema); color: var(--color-tinta);
+  }
+  @media (hover: hover) {
+    .version-nueva .btn-cayla.btn-secundario:hover:not(:disabled) { background: var(--color-hueso); border-color: var(--color-hueso); color: var(--color-tinta); }
+  }
+  .version-nueva-x {
+    flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%;
+    color: color-mix(in srgb, var(--color-crema) 78%, transparent);
+    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .version-nueva-x:hover { background: color-mix(in srgb, var(--color-crema) 16%, transparent); color: var(--color-crema); }
+  }
+}
+@keyframes cayla-version-nueva-entra { from { opacity: 0; transform: translate3d(0, -10px, 0); } }
+@media (prefers-reduced-motion: reduce) { .version-nueva { animation: none; } }
