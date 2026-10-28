@@ -27,10 +27,23 @@ import { useResponsable } from "@/lib/useResponsable";
 /** Unidad que se propone según el tipo: la tela se compra por metro; un avío casi siempre por unidad. */
 const UNIDAD_SUGERIDA: Record<TipoInsumo, UnidadInsumo> = { tela: "metro", avio: "unidad" };
 
-export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onClose }: { existentes: { codigo: string; nombre: string }[]; vocabulario: VocabularioDeTelas; leyoVocabulario: boolean; onClose: () => void }) {
+export function NuevoInsumoModal({
+  existentes,
+  vocabulario,
+  leyoVocabulario,
+  soloAvios = false,
+  onClose,
+}: {
+  existentes: { codigo: string; nombre: string }[];
+  vocabulario: VocabularioDeTelas;
+  leyoVocabulario: boolean;
+  /** Las telas se crean en «Nueva tela» (ADR-0554): con las telas disponibles, esta hoja es solo de avíos. */
+  soloAvios?: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
-  const [tipo, setTipo] = useState<TipoInsumo>("tela");
-  const [unidad, setUnidad] = useState<UnidadInsumo>("metro");
+  const [tipo, setTipo] = useState<TipoInsumo>(soloAvios ? "avio" : "tela");
+  const [unidad, setUnidad] = useState<UnidadInsumo>(soloAvios ? "unidad" : "metro");
   const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState("");
   const [merma, setMerma] = useState("");
@@ -110,10 +123,10 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
   }
 
   return (
-    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" variante="hoja" tamano="mediana" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
+    <Modal titulo={soloAvios ? "Nuevo avío" : "Nuevo insumo"} subtitulo={soloAvios ? "Botón, cierre, hilo o etiqueta que el Taller compra" : "Tela o avío que el Taller compra"} variante="hoja" tamano="mediana" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}>
       <form onSubmit={guardar} className="mt-3.5 space-y-4">
-        <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
-          <CampoSelect etiqueta="Tipo" valor={tipo} onValor={cambiarTipo} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
+        <div data-guia="prod-insumo-nuevo.tipo" className={`grid gap-3 ${soloAvios ? "" : "grid-cols-2"}`}>
+          {!soloAvios && <CampoSelect etiqueta="Tipo" valor={tipo} onValor={cambiarTipo} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />}
           {/* Una tela solo se mide en metros (ADR-0554, `insumos_tela_en_metros`); un avío, en la unidad que elijas. */}
           <CampoSelect
             etiqueta="Se mide en"

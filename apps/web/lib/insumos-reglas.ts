@@ -54,6 +54,65 @@ export function leerCantidad(texto: string): number | null {
   return Number(t.replace(",", "."));
 }
 
+/** Cómo se COMPRA una tela (ADR-0554). El libro va siempre en metros: el kilo y el rollo se convierten al recibir. */
+export type CompraDeTela = "metro" | "kilo" | "rollo";
+
+/** La tela (o el avío): lo que es y cómo se compra. Sus colores son los `InsumoVista` con su `materialId`. */
+export type MaterialVista = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: TipoInsumo;
+  tejidoId: string | null;
+  composicion: string | null;
+  /** La unidad del libro (una tela, siempre metro). */
+  unidad: UnidadInsumo;
+  /** 0 a 0,5. */
+  merma: number;
+  /** Cómo se compra: una tela, metro / kilo / rollo; un avío, su unidad. */
+  compra: UnidadInsumo | "rollo";
+  ancho: number | null;
+  gramaje: number | null;
+  metrosPorRollo: number | null;
+};
+
+/** Metros que salen de un kilo: `1000 ÷ (gramaje en g/m² × ancho en m)`. `null` si falta el ancho o el gramaje. */
+export function metrosPorKilo(anchoCm: number | null, gramaje: number | null): number | null {
+  if (anchoCm === null || gramaje === null || !(anchoCm > 0) || !(gramaje > 0)) return null;
+  return 1000 / (gramaje * (anchoCm / 100));
+}
+
+/** Lo que se dice de cómo se compra una tela: «Se compra por kilo · rinde ≈ 3,47 m/kg». */
+export function textoDeCompra(m: Pick<MaterialVista, "tipo" | "compra" | "ancho" | "gramaje" | "metrosPorRollo">): string {
+  if (m.tipo === "avio") return `Se cuenta en ${m.compra === "unidad" ? "unidades" : UNIDADES_INSUMO[m.compra as UnidadInsumo].larga.toLowerCase()}`;
+  if (m.compra === "kilo") {
+    const r = metrosPorKilo(m.ancho, m.gramaje);
+    return r === null ? "Se compra por kilo" : `Se compra por kilo · rinde ≈ ${r.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m/kg`;
+  }
+  if (m.compra === "rollo") return m.metrosPorRollo ? `Se compra por rollo · ≈ ${m.metrosPorRollo.toLocaleString("es-PE", { maximumFractionDigits: 1 })} m cada uno` : "Se compra por rollo";
+  return "Se compra por metro";
+}
+
+/** Los insumos de una lista juntados por tela, en el orden en que aparece cada una. Un insumo sin tela (o con una tela que no se leyó) queda solo, sin encabezado. */
+export function agruparPorTela<I extends { materialId?: string | null }>(lista: readonly I[], materiales: readonly MaterialVista[]): { material: MaterialVista | null; insumos: I[] }[] {
+  const porId = new Map(materiales.map((m) => [m.id, m]));
+  const grupos: { material: MaterialVista | null; insumos: I[] }[] = [];
+  const lugar = new Map<string, number>();
+  for (const i of lista) {
+    const m = i.materialId ? (porId.get(i.materialId) ?? null) : null;
+    if (!m) {
+      grupos.push({ material: null, insumos: [i] });
+      continue;
+    }
+    const k = lugar.get(m.id);
+    if (k === undefined) {
+      lugar.set(m.id, grupos.length);
+      grupos.push({ material: m, insumos: [i] });
+    } else grupos[k].insumos.push(i);
+  }
+  return grupos;
+}
+
 export type MovimientoInsumo = {
   id: string;
   insumoId: string;

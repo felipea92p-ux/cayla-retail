@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTaller } from "@/lib/produccion";
 import { getInsumosDelTaller } from "@/lib/insumos";
-import { getVocabularioDeTelas } from "@/lib/telas-vocabulario";
+import { getColoresDeLaCarta, getVocabularioDeTelas } from "@/lib/telas-vocabulario";
 import { hoyLima } from "@/lib/fechas-lima";
 import { InsumosPanel } from "@/components/InsumosPanel";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
@@ -37,10 +37,12 @@ export default async function InsumosPage() {
   }
 
   const esLider = persona.rol === "lider";
-  const [datosConCostos, vocabulario] = await Promise.all([
+  const [datosConCostos, vocabulario, carta] = await Promise.all([
     getInsumosDelTaller(taller.id, { conCostos: true, hoy: hoyLima() }),
     // Dato de apoyo (la ficha de la tela): si no se lee, la lista sigue en pie y la ficha lo dice.
     getVocabularioDeTelas(),
+    // La carta de colores de «Nueva tela» (la misma de Catálogo): también de apoyo.
+    getColoresDeLaCarta(),
   ]);
   // `veCostos` lo dice la base (si no entregó costo teniendo lotes, no se dibuja «S/ 0.00» como si fuera un dato). El capital total es solo del líder.
   const veCostos = datosConCostos.veCostos;
@@ -48,7 +50,17 @@ export default async function InsumosPage() {
 
   return (
     <div className="space-y-6">
-      <InsumosPanel sede={persona.ubicacionEtiqueta} datos={datos} tallerId={taller.id} esLider={esLider} veCostos={veCostos} vocabulario={vocabulario.vocabulario} leyoVocabulario={vocabulario.leyo} />
+      <InsumosPanel
+        sede={persona.ubicacionEtiqueta}
+        datos={datos}
+        tallerId={taller.id}
+        esLider={esLider}
+        veCostos={veCostos}
+        vocabulario={vocabulario.vocabulario}
+        leyoVocabulario={vocabulario.leyo}
+        colores={carta.colores}
+        leyoColores={carta.leyo}
+      />
     </div>
   );
 }

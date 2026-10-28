@@ -26,14 +26,20 @@ Hoy un insumo es **un color y una unidad** (`insumos.color_codigo`, `insumos.uni
 - **Web:** una tela solo ofrece «Metros» (`unidadesPermitidas`); la coma decimal se entiende en cantidad, mínimo y merma (`leerCantidad`) y el costo se lee con la regla única de plata (`numeroDeMonto`): lo que no se entiende ya no es 0, se dice y no deja guardar. Guía interactiva actualizada.
 - **Maquetas** (`docs/maquetas/insumos-nueva-tela-2026-10/`): «Nueva tela» en dos caras (A una hoja; B paso a paso con ficha viva), «Llegó tela» (kilo, metro y rollo) y la lista por tela, en claro y oscuro.
 
+## Lo construido (actividades 1 y 2)
+
+- **Base** (`20261028175000_materiales_tela_con_colores.sql`, **sin pegar**, en dos partes: la 1 trae tabla, columnas, disparadores y funciones; la 2, la política y el `grant select`). `retail.materiales` es la tela (código, nombre, tipo, tejido, composición, unidad de libro = metro, merma, cómo se compra —metro, kilo o rollo—, ancho, gramaje y metros por rollo); cada insumo-color apunta a ella con `insumos.material_id` y una llave compuesta `(material_id, tipo, unidad_medida)` que impide que un color cambie de unidad aparte de su tela. El nombre («Tela · Color»), el código (`MIL-01-ARN`), el tejido, la merma, el tipo y la unidad de cada color son **copias** que mantiene un disparador desde la tela. `crear_material` y `agregar_colores_a_material` son todo-o-nada, con `p_token` contra el doble clic, candado por tela, `fn_produccion_exigir_operar` (quien ve Producción en el Taller crea telas y colores) y `fn_es_lider()` para el saldo inicial. El insumo que ya existía (`MM-01`) pasa a ser el color «Arena» de «Milano Melange» y su código pasa a `MM-01-ARN`. Prueba: `pnpm pruebas:materiales` (40 casos, con mutaciones que la ponen en rojo).
+- **Web:** `lib/insumos.ts` lee las telas (y si la migración no está pegada, cae a la lista plana de antes sin romper); `lib/insumos-reglas.ts` agrupa los colores por tela (`agruparPorTela`) y dice cómo se compra (`textoDeCompra`, `metrosPorKilo`); `lib/tela-nueva-reglas.ts` (puro, 48 pruebas) arma el código, detecta la tela repetida o parecida, convierte kilo y rollo a metros y arma lo que viaja a `crear_material`. **La hoja «Nueva tela»** (`components/insumos-taller/NuevaTelaModal.tsx`, cara A, una sola hoja) pide qué tela es (tejido que se puede crear ahí mismo), cómo se compra y los colores con la carta de Catálogo; avisa si ya hay una tela así y deja sumarle colores en vez de repetirla. «+ Nuevo insumo» pasó a «+ Nuevo avío» cuando hay telas (`soloAvios`). Guía de foco, guía interactiva (siete anclas nuevas), huella y escenario de modo oscuro al día.
+- **Degradación:** si la migración todavía no se pegó, `hayTelas` es falso: no aparece «+ Nueva tela» y la pantalla se ve y funciona como antes.
+
 ## Plan (cada actividad, con su OK de Felipe)
 
 | # | Corte | Estado |
 |---|---|---|
 | 0 | Candados de unidad e índices; coma decimal | **construida, sin pegar** |
-| 1 | Base «tela con colores»: `materiales`, `insumos.material_id`, `crear_material` / `agregar_colores` / `editar_material`, códigos generados (`MIL-01`, `MIL-01-ARN`), migrar el insumo existente | pendiente |
-| 2 | Hoja «Nueva tela» (carta de Catálogo, tejido al vuelo, parecidos) y lista por tela | pendiente (se elige A o B) |
-| 3 | «Agregar color» y «Editar tela» | pendiente |
+| 1 | Base «tela con colores»: `materiales`, `insumos.material_id`, `crear_material` / `agregar_colores_a_material`, códigos generados (`MIL-01`, `MIL-01-ARN`), migrar el insumo existente. `editar_material` pasa a la actividad 3 | **construida, sin pegar** (`20261028175000`, 2 partes) |
+| 2 | Hoja «Nueva tela» (carta de Catálogo, tejido al vuelo, parecidos) y lista por tela | **construida con la cara A**; falta verla corriendo y que Felipe elija A o B |
+| 3 | «Editar tela» (`editar_material` + propagar a los colores) y «Agregar colores» desde la hoja de una tela con más opciones | pendiente (el botón «+ Agregar colores» ya abre la hoja con la tela puesta) |
 | 4 | «Llegó tela» con kilo y rollo → metros (envoltorio de `recibir_insumo`; las otras dos puertas de lotes, facturas y órdenes de insumos, no cambian) | pendiente |
 | 5 | Conexión con Nueva orden y enlaces «Regístralas ahí» | pendiente |
 | 6 | Cierre: `/formidable` con una persona sin contexto, `/chaos`, `tema:auditar`, guías | pendiente |
@@ -49,4 +55,4 @@ Hoy un insumo es **un color y una unidad** (`insumos.color_codigo`, `insumos.uni
 
 ## Cómo se verificó
 
-Migración aplicada en una base privada con las 913 migraciones del repo y una fila previa como la de producción, en una sola transacción (`psql -1`) y repegada; `pnpm pruebas:insumos-candados` 24/24 y, con los candados quitados, 13 casos en rojo; vitest (insumos, guías, unificar, sugerir, paridad del CI y guía de foco) 321 pruebas en verde; `tsc` limpio; maquetas probadas en el navegador (claro y oscuro, sin errores de consola).
+Actividades 1 y 2: `20261028175000` aplicada en una base privada con todas las migraciones del repo y repegada; `pnpm pruebas:materiales` 40/40 y con mutaciones en rojo; la hoja «Nueva tela» y la lista por tela están cubiertas por pruebas de lógica y de tipos, **no se vieron corriendo en el navegador**. Actividad 0: migración aplicada en una base privada con las 913 migraciones del repo y una fila previa como la de producción, en una sola transacción (`psql -1`) y repegada; `pnpm pruebas:insumos-candados` 24/24 y, con los candados quitados, 13 casos en rojo; vitest (insumos, guías, unificar, sugerir, paridad del CI y guía de foco) 321 pruebas en verde; `tsc` limpio; maquetas probadas en el navegador (claro y oscuro, sin errores de consola).
