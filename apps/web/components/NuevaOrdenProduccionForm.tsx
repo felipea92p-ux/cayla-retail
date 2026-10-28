@@ -49,7 +49,7 @@ import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumo
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
-import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { conOjalesDelModelo, costoServiciosEstimado, fasesIniciales, fasesParaRpc, listaDeTarifas, problemasFases, proveedoresQueSirven, serviciosConCosto, serviciosPorDefecto, type FaseBorrador, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import {
   aviosSugeridos,
   coloresDeLaOrden,
@@ -140,6 +140,8 @@ type ModoModelo = "existe" | "nuevo";
 
 // La RPC es nueva (migración 20261014154000) y los tipos generados no la conocen: se llama por su nombre, como las de Órdenes de insumos.
 const RPC_ABRIR_ORDEN = "abrir_orden_produccion";
+/** ADR-0551: lo que se elige de ojales y botones al abrir la orden se recuerda en el modelo (migración 20261028051000). */
+const RPC_GUARDAR_OJALES_BOTONES = "guardar_ojales_botones_modelo";
 // Los costos ya no se teclean (ADR-0400): a la función de hoy le viajan en cero y la base los deriva.
 const SIN_COSTOS = { tela: "", avios: "", maquila: "" };
 
@@ -148,6 +150,12 @@ const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"
   filo: { tono: "ambar", texto: TEXTO_SEMAFORO.filo },
   pierde: { tono: "rojo", texto: TEXTO_SEMAFORO.pierde },
 };
+
+/** El bloque de fases como nace (ADR-0551): con lo que el modelo dijo de ojales y botones, y con Ploteo y Corte afuera solo si ya hay a quién mandarlos (un proveedor activo con precio vigente). */
+function fasesDeArranqueDe(opciones: OpcionesNuevaOrden | null, hoy: string, ojalesBotones: boolean | null): FaseBorrador[] {
+  if (!opciones) return fasesIniciales({ ojalesBotones });
+  return fasesIniciales({ ojalesBotones, servicios: serviciosPorDefecto(opciones.proveedores, listaDeTarifas(opciones.proveedores), hoy) });
+}
 
 /** Dónde vive el formulario: recibe el cuerpo (el `<form>` y el aviso de salida) y cómo preguntar «¿Salir sin guardar?» antes de descartarlo. */
 export type MarcoDeLaOrden = ComponentType<{ onClose: () => void; antesDeCerrar: (cerrar: () => void) => void; children: ReactNode }>;
@@ -238,7 +246,8 @@ export function NuevaOrdenProduccionForm({
   // La base dijo «ya existe un modelo así» (o «casi igual»): se muestra con lo que se puede hacer, no como un error cualquiera.
   const [choque, setChoque] = useState<Extract<ErrorModeloNuevo, { tipo: "nombre_duplicado" | "nombre_casi_igual" }> | null>(null);
   // ADR-0400: las fases (quién hace cada una) y la tela de la orden reemplazan a los tres montos tecleados. Nacen válidas: la espina en el Taller, sin tela.
-  const [fases, setFases] = useState<FaseBorrador[]>(() => inicio?.fases ?? fasesIniciales());
+  // ADR-0551: Ojales y botones nace prendido si el modelo ya dijo que los lleva; Ploteo y Corte nacen afuera si hay a quién mandarlos. Un borrador retomado conserva lo que tenía.
+  const [fases, setFases] = useState<FaseBorrador[]>(() => inicio?.fases ?? fasesDeArranqueDe(opciones?.datos ?? null, hoy, productoInicialId ? (opciones?.datos?.ojalesBotones[productoInicialId] ?? null) : null));
   // Lo que la persona eligió de tela (null = no tocó nada: manda la sugerencia). Las filas que se ven se DERIVAN de la sugerencia más esto, sin efectos.
   const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(inicio?.telasManual ?? null);
   // «Dejar este consumo como el del modelo»: apagado de fábrica; solo vale si el modelo ya dice otra cosa y quien abre edita el catálogo (`ofertaConsumo`).
@@ -336,13 +345,11 @@ export function NuevaOrdenProduccionForm({
   // ----- Fases y tela de la orden (ADR-0400) -----
   const opcionesDatos = opciones?.datos ?? null;
   const proveedoresServicio = useMemo(() => proveedoresQueSirven(opcionesDatos?.proveedores ?? []), [opcionesDatos]);
-  const listaDePrecios = useMemo<TarifaDeLista[]>(
-    () =>
-      (opcionesDatos?.proveedores ?? []).flatMap((p) =>
-        p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))
-      ),
-    [opcionesDatos]
-  );
+  const listaDePrecios = useMemo<TarifaDeLista[]>(() => listaDeTarifas(opcionesDatos?.proveedores ?? []), [opcionesDatos]);
+  // Lo que el modelo elegido dijo de ojales y botones: `undefined` sin modelo que exista, `null` si nadie lo ha preguntado (ADR-0551).
+  const ojalesDelModelo: boolean | null | undefined = esNuevo || !productoId ? undefined : (opcionesDatos?.ojalesBotones[productoId] ?? null);
+  // El punto de partida del bloque de fases con ESTE modelo: lo que la persona no tocó no cuenta como trabajo ni como cambio (elegir el modelo no es llenar la orden).
+  const fasesDeArranque = useMemo(() => fasesDeArranqueDe(opcionesDatos, hoy, ojalesDelModelo ?? null), [opcionesDatos, hoy, ojalesDelModelo]);
   const insumosDelTaller = useMemo<InsumoDelTaller[]>(
     () => insumos.map((i) => ({ id: i.id, nombre: i.nombre, tipo: i.tipo, unidad: i.unidad, tejidoId: i.tejidoId, colorCodigo: i.colorCodigo, saldo: i.saldo, mermaPct: i.merma, archivado: false })),
     [insumos]
@@ -476,7 +483,9 @@ export function NuevaOrdenProduccionForm({
   // de cantidades) se perdía sin avisar. Mismo hook que «Registrar gasto». Escape, el clic fuera y la ✕ preguntan por `antesDeCerrar` y NO por `onClose` (que corre después de animar la salida: con «Seguir editando» la hoja quedaba invisible y la pantalla sin responder; /pantalla 2026-10-13, `lib/hojas-salida-sin-guardar.test.ts`). La foto cuenta el TRABAJO (lo escrito y lo elegido para el modelo nuevo), no el tipo, el modo ni el modelo de la
   // lista: abrir la hoja y mirar «Modelo nuevo» no es nada que perder. Guardar bien cierra directo.
   // La tela sugerida por el sistema no cuenta como trabajo (entra sola al elegir el modelo): solo lo que la persona tocó.
-  const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases, telas: telasTocadas ? telas : null, fechaEntrega, nota });
+  // Las fases tal como nacen con ESTE modelo (Ojales y botones prendido si el modelo los lleva, Ploteo y Corte afuera si hay a quién) no son trabajo: se leen como las de fábrica.
+  const fasesDeLaFoto = JSON.stringify(fases) === JSON.stringify(fasesDeArranque) ? fasesIniciales() : fases;
+  const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases: fasesDeLaFoto, telas: telasTocadas ? telas : null, fechaEntrega, nota });
   // Un borrador que se retoma cuenta como trabajo desde el primer instante (`""` nunca es igual a una foto): cerrarlo pregunta y, si la persona confirma, lo descarta.
   const [fotoAlAbrir] = useState(() => (partida?.deBorrador ? "" : fotoActual));
   const hayCambios = fotoActual !== fotoAlAbrir;
@@ -497,8 +506,8 @@ export function NuevaOrdenProduccionForm({
   useEffect(() => {
     if (oferta || !claveDeModelo) return;
     const almacen = almacenDelNavegador();
-    if (hayCambios && tieneTrabajo(fotoDelBorrador)) {
-      const quedo = guardarBorrador(almacen, tallerId, fotoDelBorrador);
+    if (hayCambios && tieneTrabajo(fotoDelBorrador, fasesDeArranque)) {
+      const quedo = guardarBorrador(almacen, tallerId, fotoDelBorrador, new Date(), fasesDeArranque);
       if (quedo) guardadoPara.current.add(claveDeModelo);
       if (quedo === almacenSirve) return;
       // Solo cuando el almacén cambia de estado (casi nunca): la pantalla se entera en el siguiente ciclo, no dentro del efecto.
@@ -506,11 +515,11 @@ export function NuevaOrdenProduccionForm({
       return () => window.clearTimeout(aviso);
     }
     // Lo escrito se borró todo: el borrador que este formulario había guardado ya no tiene qué conservar.
-    if (!tieneTrabajo(fotoDelBorrador) && guardadoPara.current.has(claveDeModelo)) {
+    if (!tieneTrabajo(fotoDelBorrador, fasesDeArranque) && guardadoPara.current.has(claveDeModelo)) {
       borrarBorrador(almacen, tallerId, claveDeModelo);
       guardadoPara.current.delete(claveDeModelo);
     }
-  }, [oferta, claveDeModelo, hayCambios, fotoDelBorrador, tallerId, almacenSirve]);
+  }, [oferta, claveDeModelo, hayCambios, fotoDelBorrador, fasesDeArranque, tallerId, almacenSirve]);
   const guardado = claveDeModelo !== null && almacenSirve && oferta === null;
   const avisoSalida = useSalidaSinGuardar(hayCambios, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.", { soloAlCerrar: guardado });
   const [otraDespues, setOtraDespues] = useState(partida?.otraDespues ?? false);
@@ -587,6 +596,8 @@ export function NuevaOrdenProduccionForm({
     setModoModelo("existe");
     setProductoId(id);
     setCantidades({});
+    // Ojales y botones sigue a lo que dijo el modelo elegido (prendido si los lleva; apagado si no, o si nadie lo ha preguntado). Lo demás que se escribió en las fases se queda.
+    setFases((f) => conOjalesDelModelo(f, id ? (opcionesDatos?.ojalesBotones[id] ?? null) : null));
     setChoque(null);
     setTipo((actual) => tipoAlElegir({ eleccion: "existente", tipoActual: actual, aMano: tipoAMano.current }));
     ofrecerBorrador(id || null);
@@ -596,6 +607,7 @@ export function NuevaOrdenProduccionForm({
     setModoModelo("nuevo");
     setProductoId("");
     setCantidades({});
+    setFases((f) => conOjalesDelModelo(f, null));
     setChoque(null);
     if (nombre) setNombreNuevo(nombre);
     setTipo((actual) => tipoAlElegir({ eleccion: "nuevo", tipoActual: actual, aMano: tipoAMano.current }));
@@ -772,8 +784,20 @@ export function NuevaOrdenProduccionForm({
       avisar.error(traducirError(error, "abrir la orden", { confirmarAntesDeRepetir: true }));
       return;
     }
+    // ADR-0551: lo que se eligió de ojales y botones se recuerda en el MODELO. Es un hecho del modelo y no de la orden: la orden ya está abierta (el error de arriba ya salió), así que si esto falla no se pierde nada (la hoja volverá a preguntar).
+    void recordarOjalesBotones(modelo.productoId);
     avisarCreada(`Orden de ${modelo.referencia} abierta`, `${total} prendas · ${tipo === "muestra" ? "muestra" : "producción"}`, data);
     cerrarTrasGuardar();
+  }
+
+  async function recordarOjalesBotones(idDelModelo: string) {
+    const lleva = fases.some((f) => f.clave === "ojales_botones" && f.encendida);
+    if (opcionesDatos?.ojalesBotones[idDelModelo] === lleva) return;
+    try {
+      await firmar(createClient().rpc(RPC_GUARDAR_OJALES_BOTONES as never, { p_ubicacion_id: tallerId, p_producto_id: idDelModelo, p_lleva: lleva } as never), responsable.firma());
+    } catch {
+      // Sin respuesta (corte de red): el modelo queda sin contestar y la próxima orden vuelve a preguntar.
+    }
   }
 
   const Marco = marco;
@@ -919,7 +943,7 @@ export function NuevaOrdenProduccionForm({
         >
         {modelo && (
           <>
-            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} />
+            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} ojalesDelModelo={ojalesDelModelo} />
             <TelaDeLaOrden
               telas={telas}
               onTelas={setTelasManual}
