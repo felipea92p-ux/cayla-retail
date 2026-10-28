@@ -21,6 +21,8 @@
  *   E  Lo de CLAURE va aparte: CAYLA sigue siendo el resto, y las unidades de CLAURE no suman a su valor.
  *   H  La historia del costo: el valor de una prenda con compra/Producción se separa del que solo salió del alta.
  *   B  Cuadre con el Balance: lo que sube `fn_bal_stock` es exactamente valor + dañado + CLAURE de esta función.
+ *   L  «Ver cuáles»: `fn_tallas_sin_costo` lista las tallas sin costo con las mismas reglas que la suma (sin dañadas ni CLAURE), con la
+ *      misma puerta y sede (sin permiso, NULL), y su total es el mismo número que cuenta la suma.
  *   I  La migración se puede pegar dos veces.
  *
  * USO: pnpm pruebas:valor-inventario-existencias   (necesita el stack local: `npx supabase start`)
@@ -168,7 +170,9 @@ select not retail.fn_puede_ver_dinero_de_compras() and (select count(*) from ret
 );
 caso("solo authenticated la ejecuta: anon y public no", () =>
   psql(`begin;\n${DUENO}\n${MIGRACION}\nselect has_function_privilege('authenticated', 'retail.fn_valor_inventario_existencias()', 'execute')
-   and not has_function_privilege('anon', 'retail.fn_valor_inventario_existencias()', 'execute');\nrollback;`).split("\n").at(-1) === "t"
+   and not has_function_privilege('anon', 'retail.fn_valor_inventario_existencias()', 'execute')
+   and has_function_privilege('authenticated', 'retail.fn_tallas_sin_costo(uuid)', 'execute')
+   and not has_function_privilege('anon', 'retail.fn_tallas_sin_costo(uuid)', 'execute');\nrollback;`).split("\n").at(-1) === "t"
     ? undefined
     : "permisos distintos a los prometidos",
 );
@@ -255,6 +259,51 @@ caso(
 ${ENTRADA_CLAURE(2)}
 select ${DELTA_BAL("lim")} = ${DELTA("lim", "valor")} + ${DELTA("lim", "valor_danadas")} + ${DELTA("lim", "valor_claure")}
    and ${DELTA("lim", "valor_danadas")} = 52 and ${DELTA("lim", "valor_claure")} = 52;`),
+);
+
+console.log("— L · Ver cuáles —");
+/** ¿La talla `v` aparece en la lista de `fn_tallas_sin_costo` de una sede, con esas unidades? */
+const EN_LISTA = (sede, unidades) =>
+  `exists (select 1 from jsonb_array_elements(retail.fn_tallas_sin_costo(:'${sede}')->'filas') e where e->>'variante_id' = :'v' and (e->>'unidades')::int = ${unidades})`;
+caso(
+  "una talla con costo no sale; con costo 0 sale con sus unidades, su modelo, su color y su talla",
+  pasa(`select (retail.fn_tallas_sin_costo(:'lim')->>'total')::int as tot0 \\gset
+select not ${EN_LISTA("lim", 3)} as antes \\gset
+update retail.variantes set costo = 0 where id = :'v';
+select :'antes' = 't' and ${EN_LISTA("lim", 3)}
+   and (select e->>'nombre' is not null and e->>'talla' is not null and e->>'color' is not null
+          from jsonb_array_elements(retail.fn_tallas_sin_costo(:'lim')->'filas') e where e->>'variante_id' = :'v')
+   and (retail.fn_tallas_sin_costo(:'lim')->>'total')::int = :tot0 + 1;`),
+);
+caso(
+  "lo dañado y lo de CLAURE no cuentan como unidades de la talla sin costo (mismas reglas que la suma)",
+  pasa(`update retail.variantes set costo = 0 where id = :'v';
+${DANADAS(2)}
+${ENTRADA_CLAURE(2)}
+select ${EN_LISTA("lim", 3)};`),
+);
+caso(
+  "el total de la lista es el mismo número de tallas que cuenta la suma como «sin costo»",
+  pasa(`update retail.variantes set costo = 0 where id = :'v';
+select (retail.fn_tallas_sin_costo(:'lim')->>'total')::int = (select prendas_sin_costo from retail.fn_valor_inventario_existencias() where ubicacion_id = :'lim');`),
+);
+caso(
+  "una talla inactiva o de un producto de prueba no sale",
+  pasa(`update retail.variantes set costo = 0 where id = :'v';
+update retail.productos set es_prueba = true where id = :'p';
+select not ${EN_LISTA("lim", 3)};`),
+);
+caso(
+  "sin el dinero de Compras devuelve NULL, no una lista vacía",
+  pasa(`update retail.variantes set costo = 0 where id in (:'v', :'vt');
+${COMO_MICAELA("existencias")}
+select retail.fn_tallas_sin_costo(:'tru') is null;`),
+);
+caso(
+  "con Facturas de compra recibe la lista de SU sede y NULL para otra",
+  pasa(`update retail.variantes set costo = 0 where id in (:'v', :'vt');
+${COMO_MICAELA("facturas_compra")}
+select retail.fn_tallas_sin_costo(:'tru') is not null and retail.fn_tallas_sin_costo(:'lim') is null;`),
 );
 
 console.log("— I · La migración —");

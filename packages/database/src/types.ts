@@ -6831,6 +6831,7 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: { variante_id: string; empresa_id: string; clave: string; cantidad: number; cantidad_apartada: number }[]
       }
+      fn_tallas_sin_costo: { Args: { p_ubicacion_id: string }; Returns: Json }
       fn_valor_inventario_existencias: {
         Args: Record<PropertyKey, never>
         Returns: {

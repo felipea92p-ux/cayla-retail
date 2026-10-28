@@ -36,7 +36,14 @@
 --   · Si una sede llega a 1.000+ filas de stock y esto se leyera desde el navegador, PostgREST corta sin avisar: por eso la
 --     suma se hace aquí y viajan cuatro o cinco filas.
 --
--- Una sola parte: crea una función y su permiso, sin políticas ni `alter` de tablas en uso (nada de lo que pide «Políticas y
+-- «VER CUÁLES» (la segunda función de este archivo)
+--   `fn_tallas_sin_costo(sede)` dice cuáles son las tallas que `fn_valor_inventario_existencias` cuenta como «sin costo», para que
+--   quien ve «8 prendas (3 tallas) sin costo» pueda ir a ponerles costo. Mismas reglas que la suma (lo de CAYLA, sin dañadas ni CLAURE,
+--   activas, no de prueba), misma puerta y misma sede: sin permiso devuelve NULL, nunca una lista vacía. Devuelve UN jsonb
+--   {total, filas} y no filas sueltas: PostgREST corta en 1.000 filas sin avisar, y quien ve el total sabe si la lista está completa.
+--   Solo salen nombres (modelo, color, talla), nunca un costo: por definición es cero.
+--
+-- Una sola parte: crea dos funciones y su permiso, sin políticas ni `alter` de tablas en uso (nada de lo que pide «Políticas y
 -- deadlocks» de CLAUDE.md). Idempotente: `create or replace`.
 -- ============================================================================
 
@@ -129,6 +136,63 @@ grant execute on function retail.fn_valor_inventario_existencias() to authentica
 
 comment on function retail.fn_valor_inventario_existencias() is
   'ADR-0557: lo que vale lo que hay en cada sede, a costo, para «Ver el valor a costo» de Existencias. Una fila por sede (todas si es líder, la suya si solo ve el dinero de Compras); sin permiso, CERO filas. Cuenta lo de CAYLA sin dañadas ni CLAURE (van aparte), no suma las prendas con costo 0 (las cuenta) y dice cuánto del valor viene de una compra. No incluye en camino ni por recibir ni descuenta lo vendido por la web sin entregar: el Balance (fn_bal_stock) sí. Solo salen sumas, nunca el costo de una prenda.';
+
+create or replace function retail.fn_tallas_sin_costo(p_ubicacion_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  with
+  lugares as (
+    select s.variante_id, coalesce(sb.tipo, '') = 'cuarentena' as danada, s.cantidad
+      from retail.stock s
+      join retail.variantes v on v.id = s.variante_id and v.activo and v.costo = 0
+      join retail.productos p on p.id = v.producto_id and not coalesce(p.es_prueba, false)
+      left join retail.sububicaciones sb on sb.id = s.sububicacion_id
+     where s.ubicacion_id = p_ubicacion_id
+       and s.variante_id <> '22222222-2222-4222-8222-222222222222'
+  ),
+  ajeno as (
+    select d.variante_id, sum(d.cantidad)::bigint as q
+      from retail.stock_dueno d
+      left join retail.sububicaciones sb on sb.id = d.sububicacion_id
+     where d.ubicacion_id = p_ubicacion_id and coalesce(sb.tipo, '') <> 'cuarentena'
+     group by 1
+  ),
+  sin_costo as (
+    select l.variante_id,
+           coalesce(sum(l.cantidad) filter (where not l.danada), 0)::bigint - coalesce(a.q, 0) as unidades
+      from lugares l
+      left join ajeno a on a.variante_id = l.variante_id
+     group by l.variante_id, a.q
+  ),
+  lista as (
+    select sc.variante_id, v.producto_id, p.referencia as nombre, c.nombre as color, t.valor as talla, v.sku, sc.unidades
+      from sin_costo sc
+      join retail.variantes v on v.id = sc.variante_id
+      join retail.productos p on p.id = v.producto_id
+      left join retail.colores c on c.codigo = v.color_codigo
+      left join retail.tallas t on t.id = v.talla_id
+     where sc.unidades > 0
+  )
+  select case
+    when retail.fn_puede_ver_dinero_de_compras() and (retail.fn_es_lider() or p_ubicacion_id = retail.fn_ubicacion_actual_persona())
+    then jsonb_build_object(
+      'total', (select count(*) from lista),
+      'filas', coalesce((select jsonb_agg(jsonb_build_object('variante_id', x.variante_id, 'producto_id', x.producto_id, 'nombre', x.nombre,
+                                                              'color', x.color, 'talla', x.talla, 'sku', x.sku, 'unidades', x.unidades)
+                                          order by x.unidades desc, x.nombre, x.color, x.talla)
+                           from (select * from lista order by unidades desc, nombre, color, talla limit 200) x), '[]'::jsonb))
+  end;
+$$;
+
+revoke all on function retail.fn_tallas_sin_costo(uuid) from public, anon;
+grant execute on function retail.fn_tallas_sin_costo(uuid) to authenticated;
+
+comment on function retail.fn_tallas_sin_costo(uuid) is
+  'ADR-0557: las tallas de una sede que la suma de fn_valor_inventario_existencias cuenta como «sin costo» (costo 0), para «Ver cuáles». Un jsonb {total, filas} con hasta 200 filas (modelo, color, talla, sku, unidades), de mayor a menor. Misma puerta y misma sede que la suma; sin permiso, NULL. Nunca sale un costo.';
 
 reset lock_timeout;
 notify pgrst, 'reload schema';

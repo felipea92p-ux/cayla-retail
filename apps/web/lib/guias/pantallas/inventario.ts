@@ -29,7 +29,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.valor",
       opcional: true,
       titulo: "Cuánto vale lo que hay",
-      texto: "«Ver el valor a costo» muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman, y la pantalla dice cuántas son. En la demo no lo abrimos.",
+      texto: "«Ver el valor a costo» muestra cuánto vale lo que hay en la sede, a lo que costó cada prenda. Lo ven el líder y quien ve el dinero de Compras. Las prendas sin costo no suman: la pantalla dice cuántas son y «Ver cuáles» te las lista para ponerles su costo. En la demo no lo abrimos.",
     },
     {
       id: "ajustar-stock",

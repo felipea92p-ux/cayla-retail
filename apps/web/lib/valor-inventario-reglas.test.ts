@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   armarVistaValor,
+  fraseDeLasQueFaltan,
   fraseOrigenDelCosto,
   fraseSinCosto,
   leerFilasDeValor,
+  leerTallasSinCosto,
   lineaAparte,
+  nombreDeTalla,
   sumarSoles,
   type SedeConValor,
 } from "./valor-inventario-reglas";
@@ -123,5 +126,47 @@ describe("lineaAparte", () => {
   });
   it("con unidades dice cuántas y cuánto valen", () => {
     expect(lineaAparte("De CLAURE, aparte", 2, 52)).toBe("De CLAURE, aparte: 2 prendas · S/ 52.00");
+  });
+});
+
+describe("leerTallasSinCosto", () => {
+  const fila = { variante_id: "v1", producto_id: "p1", nombre: "Blusa Emma", color: "Beige", talla: "M", sku: "BLU-EMMA-BEI-M", unidades: "3" };
+
+  it("sin respuesta (sin permiso o la base no contestó) es null, nunca una lista vacía que parezca «todo tiene costo»", () => {
+    expect(leerTallasSinCosto(null)).toBeNull();
+    expect(leerTallasSinCosto(undefined)).toBeNull();
+    expect(leerTallasSinCosto([])).toBeNull();
+    expect(leerTallasSinCosto("x")).toBeNull();
+    expect(leerTallasSinCosto({ total: 0 })).toBeNull();
+  });
+
+  it("una lista de verdad sin tallas es una lista vacía, distinta de «no pude leer»", () => {
+    expect(leerTallasSinCosto({ total: 0, filas: [] })).toEqual({ total: 0, filas: [] });
+  });
+
+  it("convierte lo que llega como texto y deja los pedazos que faltan en null", () => {
+    const l = leerTallasSinCosto({ total: "5", filas: [fila, { ...fila, variante_id: "v2", color: null, talla: "", sku: null }] })!;
+    expect(l.total).toBe(5);
+    expect(l.filas[0]).toMatchObject({ varianteId: "v1", productoId: "p1", unidades: 3, color: "Beige" });
+    expect(l.filas[1]).toMatchObject({ color: null, talla: null, sku: null });
+  });
+
+  it("descarta la fila mal formada en vez de inventarla, y el total nunca es menor que lo que se ve", () => {
+    const l = leerTallasSinCosto({ total: 0, filas: [fila, { variante_id: "v9" }, null, 7] })!;
+    expect(l.filas).toHaveLength(1);
+    expect(l.total).toBe(1);
+  });
+});
+
+describe("nombreDeTalla y fraseDeLasQueFaltan", () => {
+  it("une modelo, color y talla sin dejar huecos", () => {
+    expect(nombreDeTalla({ nombre: "Blusa Emma", color: "Beige", talla: "M" })).toBe("Blusa Emma · Beige · M");
+    expect(nombreDeTalla({ nombre: "Blusa Emma", color: null, talla: "M" })).toBe("Blusa Emma · M");
+  });
+  it("dice cuántas faltan por dibujar, con singular y plural, o nada si se ve todo", () => {
+    expect(fraseDeLasQueFaltan(20, 20)).toBeNull();
+    expect(fraseDeLasQueFaltan(3, 5)).toBeNull();
+    expect(fraseDeLasQueFaltan(21, 20)).toBe("y 1 talla más. Corrige estas y vuelve a mirar.");
+    expect(fraseDeLasQueFaltan(27, 20)).toBe("y 7 tallas más. Corrige estas y vuelve a mirar.");
   });
 });

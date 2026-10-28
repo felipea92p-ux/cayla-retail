@@ -123,3 +123,59 @@ export function lineaAparte(etiqueta: string, unidades: number, valor: number): 
 /** Por qué este número no es el de la «Mercadería» del Balance de Finanzas. Una sola vez, a un toque, para quien se pregunte. */
 export const PORQUE_NO_ES_EL_BALANCE =
   "Es lo que hay en la sede, a su costo. No incluye lo dañado ni lo de CLAURE (van aparte), ni lo que viene en camino entre sedes, ni lo facturado que aún no llega. Tampoco descuenta lo vendido por la web que todavía no se entrega. El Balance de Finanzas sí cuenta lo que va en camino y lo facturado por recibir, y suma las dañadas, así que su «Mercadería» puede ser distinta.";
+
+/* ====================================================================
+   «Ver cuáles»: las tallas que la suma cuenta como «sin costo» (`fn_tallas_sin_costo`, ADR-0557)
+   ==================================================================== */
+
+/** Una talla sin costo, con lo que hace falta para reconocerla y para ir a ponerle costo. Nunca un costo: por definición es cero. */
+export type TallaSinCosto = {
+  varianteId: string;
+  productoId: string;
+  nombre: string;
+  color: string | null;
+  talla: string | null;
+  sku: string | null;
+  unidades: number;
+};
+
+/** Lo que devuelve la base: cuántas hay en total y las primeras (hasta 200, de más a menos prendas). */
+export type ListaSinCosto = { total: number; filas: TallaSinCosto[] };
+
+/** Cuántas se dibujan a la vez: la lista es para reconocer y corregir las que más pesan, no para recorrer 200 filas en una tarjeta. */
+export const TOPE_A_LA_VISTA = 20;
+
+const texto = (x: unknown): string | null => (typeof x === "string" && x.trim() !== "" ? x : null);
+
+/**
+ * La respuesta de la base ya validada. `null` si no llegó nada (sin permiso, o la base no respondió): quien llama lo dice, nunca dibuja
+ * una lista vacía que parezca «todo tiene costo». Una fila mal formada se descarta, no se inventa.
+ */
+export function leerTallasSinCosto(json: unknown): ListaSinCosto | null {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return null;
+  const { total, filas } = json as { total?: unknown; filas?: unknown };
+  if (!Array.isArray(filas)) return null;
+  const lista: TallaSinCosto[] = [];
+  for (const f of filas) {
+    if (!f || typeof f !== "object") continue;
+    const r = f as Record<string, unknown>;
+    const varianteId = texto(r.variante_id);
+    const productoId = texto(r.producto_id);
+    const nombre = texto(r.nombre);
+    if (!varianteId || !productoId || !nombre) continue;
+    lista.push({ varianteId, productoId, nombre, color: texto(r.color), talla: texto(r.talla), sku: texto(r.sku), unidades: n(r.unidades as number | string) });
+  }
+  return { total: Math.max(n(total as number | string), lista.length), filas: lista };
+}
+
+/** «Blusa Emma · Beige · M» — sin los pedazos que no hay. */
+export function nombreDeTalla(t: Pick<TallaSinCosto, "nombre" | "color" | "talla">): string {
+  return [t.nombre, t.color, t.talla].filter((x): x is string => !!x).join(" · ");
+}
+
+/** Lo que queda sin dibujar: «y 7 tallas más». `null` si se ve todo. */
+export function fraseDeLasQueFaltan(total: number, dibujadas: number): string | null {
+  const faltan = total - dibujadas;
+  if (faltan <= 0) return null;
+  return `y ${cuenta(faltan)} ${faltan === 1 ? "talla más" : "tallas más"}. Corrige estas y vuelve a mirar.`;
+}
