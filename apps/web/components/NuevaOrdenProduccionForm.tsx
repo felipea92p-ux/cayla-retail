@@ -45,6 +45,7 @@ import { AgregarColor, QuitarColor } from "@/components/orden-produccion/Agregar
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
+import { useAltaDeProveedorServicio } from "@/components/orden-produccion/useAltaDeProveedorServicio";
 import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
@@ -344,7 +345,10 @@ export function NuevaOrdenProduccionForm({
   const total = esNuevo ? resumenNuevo.total : lineas.reduce((s, l) => s + l.cantidad, 0);
   // ----- Fases y tela de la orden (ADR-0400) -----
   const opcionesDatos = opciones?.datos ?? null;
-  const proveedoresServicio = useMemo(() => proveedoresQueSirven(opcionesDatos?.proveedores ?? []), [opcionesDatos]);
+  const proveedoresDelDirectorio = useMemo(() => proveedoresQueSirven(opcionesDatos?.proveedores ?? []), [opcionesDatos]);
+  // Quien hace el corte o la costura y todavía no está en el directorio se registra aquí mismo (sin tarifas: la suya se escribe en la fase).
+  const altaProveedor = useAltaDeProveedorServicio(proveedoresDelDirectorio, (n) => ({ ...n, tarifas: [] }));
+  const proveedoresServicio = altaProveedor.proveedores;
   const listaDePrecios = useMemo<TarifaDeLista[]>(() => listaDeTarifas(opcionesDatos?.proveedores ?? []), [opcionesDatos]);
   // Lo que el modelo elegido dijo de ojales y botones: `undefined` sin modelo que exista, `null` si nadie lo ha preguntado (ADR-0551).
   const ojalesDelModelo: boolean | null | undefined = esNuevo || !productoId ? undefined : (opcionesDatos?.ojalesBotones[productoId] ?? null);
@@ -943,7 +947,7 @@ export function NuevaOrdenProduccionForm({
         >
         {modelo && (
           <>
-            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} ojalesDelModelo={ojalesDelModelo} />
+            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} ojalesDelModelo={ojalesDelModelo} onAgregarProveedor={altaProveedor.abrir} />
             <TelaDeLaOrden
               telas={telas}
               onTelas={setTelasManual}
@@ -1076,6 +1080,7 @@ export function NuevaOrdenProduccionForm({
           </div>
         </FichaOrden>
       </form>
+      {altaProveedor.modal}
       {fichaAbierta && modeloExistente && (
         <FichaDeConsumoHoja tallerId={tallerId} productoId={modeloExistente.productoId} referencia={modeloExistente.referencia} insumos={insumosDelTaller} onClose={() => setFichaAbierta(false)} />
       )}

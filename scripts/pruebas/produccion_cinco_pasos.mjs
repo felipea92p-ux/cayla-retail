@@ -243,12 +243,12 @@ const PLANCHADO_AFUERA = (fecha) =>
   `jsonb_build_object('clave', 'planchado', 'quien', 'servicio', 'proveedor_id', :'plancha', 'tarifa_prenda', '1.20', 'fecha_prometida', ${fecha})`;
 const RUTA_CON_PLANCHADO = (fecha) => `jsonb_build_array(${["ploteo", "corte", "habilitado", "costura"].map(TALLER).join(", ")}, ${PLANCHADO_AFUERA(fecha)})`;
 caso(
-  "E1 una fecha prometida PASADA vale (se registra una orden que ya se hizo); una que no existe se rechaza (`fase_fecha_invalida`); y la fecha de ENTREGA de la orden sigue sin poder ser pasada (`entrega_pasada`)",
+  "E1 una fecha prometida PASADA vale (se registra una orden que ya se hizo); una que no existe se rechaza (`fase_fecha_invalida`); y la fecha de ENTREGA pasada también vale en `abrir_orden_produccion`, como en producción (20261028074000: se alinearon `abrir_orden_produccion` y las dos funciones a las que envuelve)",
   `select concat_ws(',',
      pg_temp.abre(${APERTURA}, ${RUTA_CON_PLANCHADO("(retail.fn_hoy_lima() - 30)::text")}),
      pg_temp.eh(pg_temp.abre(${APERTURA}, ${RUTA_CON_PLANCHADO("'2026-02-30'")})),
-     pg_temp.eh(pg_temp.abre(${APERTURA} || jsonb_build_object('fecha_entrega', (retail.fn_hoy_lima() - 1)::text), ${RUTA(...CINCO)})));`,
-  "OK,P0001|fase_fecha_invalida,P0001|entrega_pasada"
+     pg_temp.abre(${APERTURA} || jsonb_build_object('fecha_entrega', (retail.fn_hoy_lima() - 1)::text), ${RUTA(...CINCO)}));`,
+  "OK,P0001|fase_fecha_invalida,OK"
 );
 
 // D. LA MIGRACIÓN SE PUEDE VOLVER A PEGAR ----------------------------------------------------------------------------------------------

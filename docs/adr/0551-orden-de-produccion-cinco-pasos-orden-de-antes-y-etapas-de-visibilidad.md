@@ -142,3 +142,32 @@ está en tienda cierre **sin movimiento** y con su costo solo en la orden. La vi
 - **Visibilidad:** un modelo sin órdenes sigue visible en todo; un modelo en producción no sale en Vender, vitrina ni Existencias de tienda; al cerrar entra a Existencias del Taller; al llegar a
   una tienda sale en Catálogo, Tienda web y Vender. **Concurrencia:** dos cierres a la vez de la misma orden dejan una sola entrada. **Caída externa:** si la lectura de la etapa falla,
   la pantalla muestra la prenda (nunca la esconde por no poder preguntar).
+
+## Actualización 2026-10-28 · «Pendiente de registrar» y alta de proveedor desde la fase
+
+**Lo que pasó.** En «¿Quién hace corte?» (y en Nueva orden) una fase de afuera solo podía elegir proveedores ya registrados; con `proveedores_produccion` en 1 fila (Multiplaza) y los datos de
+los demás todavía sin juntar, no había salida. Felipe, 2026-10-27: «construye la opción B: "Pendiente de registrar" en el combo de Afuera» (ya existía construida, pero en un commit que nunca se
+subió: `0c442665c`, rama `claude/registrar-producto-trujillo-67e787`, con el ADR-0537 que `main` borró); 2026-10-28: «ahora no tengo los datos de proveedores, quiero dejarlo como pendiente».
+
+**Qué se hizo (dos salidas que se complementan).**
+1. **«Pendiente de registrar»**, primera opción del combo: la fase sale afuera sin proveedor, tarifa ni fijo y **no cobra nada** hasta que se registre quién (`registrar_proveedor_de_fase`, también
+   cuando la fase ya empezó). Sin columna nueva: servicio con `proveedor_id` nulo. El CHECK `produccion_fases_quien` pasa a decir «proveedor y tarifa, **o** nada de eso». Un servicio sin
+   proveedor y **sin la marca** `proveedor_pendiente` sigue rechazado (`fase_sin_proveedor`): un olvido no se vuelve un pendiente. Pasar al stock **avisa**, sin bloquear, que su costo no entra
+   al de las prendas. Migración `20261028072000` (una parte, sin políticas; reemplazos anclados). Medido en producción, solo lectura, 2026-10-28: 0 de las 2 funciones nuevas, el CHECK es el
+   original, 28 filas que cumplen también el nuevo, y las 6 anclas aparecen exactamente una vez en las funciones vivas.
+2. **«+ Registrar proveedor nuevo»** bajo el combo: abre el alta de proveedores de Producción (solo «Servicio de afuera» u «Otro», porque tela y avíos no cosen) sin salir de la hoja y deja al
+   nuevo elegido. Solo web; reutiliza `guardar_proveedor_produccion` (solo Líder).
+
+DECIDÍ: portar el pendiente sobre `main` con una migración renumerada y sin la dependencia de la migración de fechas pasadas.
+DESCARTÉ: inventar un proveedor falso con tarifa S/ 0.01 (deja una deuda y un costo falsos, y una tarifa que no se corrige una vez que la fase empieza); dejar solo «Taller» hasta tener los datos
+(no representa lo que de verdad pasó).
+SE ROMPE SI: una función viva cambia antes de pegar (el ancla cuenta y se detiene sin tocar nada); alguien pega la migración con «Pendiente de registrar» sin haber pegado antes las de «cinco pasos»
+y fecha prometida pasada; o se registra un servicio con la fase ya empezada sin revisar la tarifa (queda fija al empezar).
+
+**Segunda parte (2026-10-28): la fecha de ENTREGA pasada también vale en `main`, como ya vale en producción.** Al pegar `20261028072000`, el check «SQL pegado» halló que `abrir_orden_produccion` tenía en producción
+un cuerpo distinto del de `main`: el ADR-0537 que Felipe pegó el 27-oct también le quitó la comprobación `entrega_pasada`, y `20261028064000` (que trajo a `main` solo la mitad de ese cambio, la de la fecha
+prometida) dio por hecho que la de entrega seguía rechazándose. Felipe eligió «ajustar `main` a producción» (la otra opción era pegar SQL en producción para volver a rechazarla). Migración `20261028074000`
+(reemplazo anclado de tres líneas por el mismo comentario que tiene producción; **no hace nada en producción**). **Se alinean las TRES funciones** (`abrir_orden_produccion` y las dos a las que envuelve, `abrir_produccion` y `abrir_produccion_con_modelo_nuevo`, que tenían la comprobación de ADR-0415):
+la primera versión de esta migración alineó solo la primera y falló en CI, porque la entrega pasada seguía rechazándose por las otras dos; producción tenía las tres sin la comprobación (medido, solo lectura). La
+hoja de Nueva orden sigue pidiendo una fecha de hoy en adelante. Cambian dos pruebas: la E1 de `produccion_cinco_pasos` (la entrega pasada ahora abre) y el bloque que deshace parches en `produccion_ploteo`.
+DESCARTÉ: devolver la comprobación a producción (cambia lo que la gente puede hacer hoy). SE ROMPE SI: alguien lee «la entrega no puede ser pasada» en `064000` y la vuelve a poner en `main` sin pegarla en producción.

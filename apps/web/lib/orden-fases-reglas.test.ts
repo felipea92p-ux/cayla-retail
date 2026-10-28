@@ -328,6 +328,33 @@ describe("avisos y textos", () => {
   });
 });
 
+describe("«pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera sin saber todavía con quién ni a cuánto", () => {
+  const pendiente = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: FaseBorrador[]) => afuera(clave, { proveedorId: null, tarifa: "", pendiente: true, ...cambios }, base);
+  it("no pide proveedor ni tarifa ni fijo: no hay faltas; el mismo servicio SIN la marca sigue pidiendo proveedor (un olvido no es un pendiente)", () => {
+    expect(hints(pendiente("costura"))).toEqual([]);
+    expect(hints(pendiente("ploteo"))).toEqual([]);
+    expect(hints(afuera("costura", { proveedorId: null }))).toContain("fase_sin_proveedor");
+  });
+  it("una fecha prometida pasada vale; una que no es fecha se rechaza como siempre", () => {
+    expect(hints(pendiente("costura", { fechaPrometida: "2026-01-01" }))).toEqual([]);
+    expect(hints(pendiente("costura", { fechaPrometida: "mañana" }))).toEqual(["fase_fecha_invalida"]);
+  });
+  it("viaja a la base con la marca y sin proveedor, tarifa, fijo ni mínimo (aunque las cajas traigan lo que se escribió antes de elegir «pendiente»)", () => {
+    const [r] = fasesParaRpc(pendiente("costura", { tarifa: "9", fijo: "20", minimo: "50", fechaPrometida: "2026-10-01" }).filter((f) => f.clave === "costura"), LISTA, HOY);
+    expect(r).toMatchObject({ clave: "costura", quien: "servicio", proveedor_id: null, tarifa_prenda: null, fijo_orden: null, cantidad_minima: null, fecha_prometida: "2026-10-01", proveedor_pendiente: true });
+  });
+  it("no cobra nada: no suma al costo estimado, no aparece en el reparto por prenda y no avisa de cantidad mínima", () => {
+    expect(costoServiciosEstimado(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY)).toBe(0);
+    expect(serviciosConCosto(pendiente("costura"), 50, LISTA, HOY, PROVEEDORES)).toEqual([]);
+    expect(avisoMinimo(pendiente("costura", { minimo: "500" }).find((f) => f.clave === "costura")!, 50, LISTA, { hoy: HOY, proveedores: PROVEEDORES })).toBeNull();
+  });
+  it("la base lo acepta: la migración lee `proveedor_pendiente` en `fn_produccion_fases_normalizar` y no exige proveedor para esa fase", () => {
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261028072000_produccion_proveedor_pendiente_de_registrar.sql"), "utf8");
+    expect(sql).toContain("v_f ->> 'proveedor_pendiente'");
+    expect(sql).toContain("create or replace function retail.registrar_proveedor_de_fase(");
+  });
+});
+
 describe("serviciosConCosto — la cuenta de los servicios, fase por fase", () => {
   it("parte `costoServiciosEstimado` en una fila por fase de afuera, con su proveedor y en el orden de la ruta; lo que se queda en el Taller no entra", () => {
     expect(serviciosConCosto(iniciales(), 50, LISTA, HOY, PROVEEDORES)).toEqual([]);

@@ -22,6 +22,7 @@ import {
   faltaTerminar,
   previaQueCuenta,
   puedeCambiarQuien,
+  puedeRegistrarQuien,
   puedeQuitarPaso,
   quienDeFase,
   textoDeFase,
@@ -78,7 +79,8 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
           const t = textoDeFase(fase, { previa, terminoEl: fase.estado === "hecha" ? cuandoTerminoLaFase(fase.clave, lineaDeTiempo) : null, totalPlan: orden.cantidadPlan });
           const acciones = accionesDeFase(fase, datos);
           const aviso = avisoMinimoDeFase(fase, orden.cantidadPlan);
-          const cambiar = puedeCambiarQuien(fase, datos);
+          const registrar = puedeRegistrarQuien(fase, datos);
+          const cambiar = registrar || puedeCambiarQuien(fase, datos);
           const quitar = puedeQuitarPaso(fase, datos);
           const servicio = fase.quien === "servicio";
           const estadoTexto = fase.estado === "hecha" ? "hecha" : fase.actual ? "en curso" : "pendiente";
@@ -145,7 +147,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
                   )}
                   {cambiar && (
                     <button type="button" aria-haspopup="dialog" data-guia={fase.id === idDeLaQueCambia ? "prod-orden.cambiar-quien" : undefined} onClick={() => setHoja({ tipo: "quien", faseId: fase.id })} className="btn-cayla btn-enlace text-[12.5px]">
-                      Cambiar quién
+                      {registrar ? "Registrar quién" : "Cambiar quién"}
                     </button>
                   )}
                   {quitar && (
