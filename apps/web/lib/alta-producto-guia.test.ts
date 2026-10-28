@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { problemasAlta, type EstadoAlta, type PasoAlta } from "./alta-producto";
+import { problemasAlta, TEXTO_FALTA_PROVEEDOR_LLEGADA, type EstadoAlta, type PasoAlta } from "./alta-producto";
 import { campoAhora, camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoConfirmado, resumenFaltan, siguienteDelHilo, type ExtraGuia } from "./alta-producto-guia";
 
 // Una prenda completa: nada falta. Cada prueba parte de ella y le quita lo que quiere probar.
@@ -134,6 +134,17 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(conPrecio.stock).toBe("ahora");
   });
 
+  it("carga cerrada (ADR-0328 act. 2026-10-28): «Unidades que llegaron», sin preguntar piso o almacén, y sin proveedor dice dónde elegirlo", () => {
+    const sinProveedor = guia({ llegada: true, proveedorElegido: false, lugarCarga: null }).find((c) => c.id === "stock");
+    expect(sinProveedor?.nombre).toBe("Unidades que llegaron");
+    expect(sinProveedor?.hecho).toBe(false);
+    expect(sinProveedor?.pendiente).toBe(TEXTO_FALTA_PROVEEDOR_LLEGADA);
+    expect(guia({ llegada: true, proveedorElegido: true, lugarCarga: null }).find((c) => c.id === "stock")?.hecho).toBe(true);
+    expect(guia({ llegada: true, stockTotal: 0, sinStock: false }).find((c) => c.id === "stock")?.pendiente).toBe(
+      "Escribe cuántas llegaron, o marca que todavía no tienes."
+    );
+  });
+
   it("«todavía no tengo unidades» también cuenta como decidido; una cantidad inválida no", () => {
     expect(estadosDeCampos(guia({ stockTotal: 0, sinStock: true }), 4).stock).toBe("hecho");
     expect(estadosDeCampos(guia({ stockTotal: 5, stockInvalidas: 1 }), 4).stock).toBe("ahora");
@@ -203,6 +214,10 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["con unidades y sin decir dónde están", { lugarCarga: null }, {}],
     ["sin decir dónde están, en una tienda sin piso y almacén", { lugarCarga: null, separaPiso: false }, {}],
     ["sin decir dónde están y sin unidades", { lugarCarga: null, stockTotal: 0, sinStock: true }, {}],
+    ["carga cerrada: llegaron unidades con proveedor (ADR-0328 act. 2026-10-28)", { llegada: true, proveedorElegido: true, lugarCarga: null }, {}],
+    ["carga cerrada: llegaron unidades SIN proveedor", { llegada: true, proveedorElegido: false }, {}],
+    ["carga cerrada: sin proveedor pero sin unidades (no hace falta)", { llegada: true, proveedorElegido: false, stockTotal: 0, sinStock: true }, {}],
+    ["carga cerrada: sin decidir cuántas llegaron", { llegada: true, proveedorElegido: true, stockTotal: 0 }, {}],
     ["familia sin tela y sin tejido", { exigeTejidoPatron: false, tejidoId: "", patronId: "" }, {}],
     ["sin categoría", { categoriaId: "" }, {}],
   ];

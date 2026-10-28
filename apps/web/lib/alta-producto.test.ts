@@ -493,4 +493,12 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
     expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
   });
+  it("con la carga cerrada (ADR-0328 act. 2026-10-28) dice que llegaron del proveedor, nunca «stock inicial»", () => {
+    const s = { unidades: 5, donde: "almacén de Tienda Trujillo", llegadaDe: "Confecciones del Sur EIRL" };
+    expect(fraseStockCreado(s, false, undefined)).toBe(
+      "5 unidades recibidas de Confecciones del Sur EIRL (almacén de Tienda Trujillo) como una llegada de hoy: ya aparecen en Existencias, donde desde ahora se ajustan."
+    );
+    expect(fraseStockCreado(s, false, undefined)).not.toMatch(/stock inicial/);
+    expect(fraseStockCreado(s, true, "esperando")).not.toMatch(/Existencias/);
+  });
 });

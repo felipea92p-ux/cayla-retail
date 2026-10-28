@@ -14,7 +14,7 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, faltaProveedorLlegada, pasoHecho, textoCeldaSinPrecio, textoFaltaStock, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, TEXTO_FALTA_PROVEEDOR_LLEGADA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
 export type CampoAlta = "empresa" | "categoria" | "marca" | "existe" | "tejido" | "patron" | "descripcion" | "nombre" | "tallas" | "colores" | "precio" | "stock" | "responsable";
@@ -145,16 +145,18 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
     {
       id: "stock",
       paso: 4,
-      nombre: "Unidades de hoy",
+      nombre: e.llegada ? "Unidades que llegaron" : "Unidades de hoy",
       requerido: true,
       sugerido: false,
-      hecho: e.stockInvalidas === 0 && (e.stockTotal > 0 || e.sinStock) && !faltaLugarCarga(e),
+      hecho: e.stockInvalidas === 0 && (e.stockTotal > 0 || e.sinStock) && !faltaLugarCarga(e) && !faltaProveedorLlegada(e),
       pendiente:
         e.stockInvalidas > 0
           ? "Las cantidades son números enteros, de 0 a 9999."
           : faltaLugarCarga(e)
             ? TEXTO_FALTA_LUGAR
-            : "Escribe cuántas tienes hoy, o marca que todavía no tienes.",
+            : faltaProveedorLlegada(e)
+              ? TEXTO_FALTA_PROVEEDOR_LLEGADA
+              : textoFaltaStock(e),
     },
     { id: "responsable", paso: 4, nombre: "Quién lo registra", requerido: true, sugerido: false, hecho: x.responsableListo, pendiente: "Elige quién lo registra." },
   ];

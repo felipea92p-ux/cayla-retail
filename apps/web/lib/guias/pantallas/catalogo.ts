@@ -1473,7 +1473,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-4",
       ancla: "nuevo.punto-4",
       titulo: "4 · Precio y cantidad",
-      texto: "El precio de venta y el costo (con el costo sugerido de la categoría), las insignias y campañas, y cuántas unidades llegaron de cada variante. Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
+      texto: "El precio y el costo, las insignias y campañas, y cuántas llegaron de cada variante: con la carga inicial cerrada entran a nombre del proveedor que elegiste, sin ir a «Llegó mercadería». Ahí mismo está «Crear producto». Para ver estos pasos de verdad hay que elegir una categoría, y la demo no empieza ninguna prenda.",
     },
     {
       id: "quien",

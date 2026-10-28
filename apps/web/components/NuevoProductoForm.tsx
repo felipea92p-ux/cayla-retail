@@ -102,9 +102,6 @@ import { Aviso } from "@/components/ui/Aviso";
 import { MAX_DESCRIPCION_PRODUCTO } from "@/lib/catalogo-topes";
 import { ArrowRight } from "lucide-react";
 
-/** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
-const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
-
 // "Nuevo producto" en 4 PREGUNTAS (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike
 // 2026-09-24, y antes 7 bloques, ADR-0109):
 //   1 ¿A qué categoría pertenece? (familia → categoría) · 2 ¿Cómo es? (nombre, descripción, marca y proveedor, tejido,
@@ -459,17 +456,17 @@ export function NuevoProductoForm({
     coloresElegidos
   );
   const celdasIncluidas = celdas.filter((c) => !excluidas.has(c.clave));
-  // ADR-0328 (actividad 4): la carga inicial de esta sede. Cerrada, el alta va sin unidades —«Cuántas tienes hoy» no se ofrece y
-  // lo escrito antes no viaja; la base lo rechazaría igual (`carga_inicial_cerrada`)—; abierta con fecha, se avisa cuánto falta.
+  // ADR-0328 (actividad 4): la carga inicial de esta sede; abierta con fecha, se avisa cuánto falta. Cerrada, lo que se escribe en la
+  // tabla ya no es «lo que tienes hoy» sino lo que LLEGÓ del proveedor (act. 2026-10-28, Felipe: «se debe poder ingresar unidades por
+  // ahí»): el alta va por `crear_producto_con_llegada`, que crea la prenda y la recibe como «Llegó mercadería», en un solo paso.
   const cargaCerrada = !cargaAbierta(cargaInicial);
   const avisoCarga = avisoCargaInicial(cargaInicial);
-  const cantidadesVigentes = cargaCerrada ? SIN_CANTIDADES : cantidades;
-  const sinStockVigente = sinStock || cargaCerrada;
   const stock = resumenStock(
-    cantidadesVigentes,
+    cantidades,
     celdasIncluidas.map((c) => c.clave)
   );
-  const destinoTexto = textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
+  // Una llegada entra al almacén de entrada, como todo lo que llega de un proveedor (`recibir_lote`): no se pregunta piso o almacén.
+  const destinoTexto = cargaCerrada ? `${destino.separaPiso ? "almacén de " : ""}${destino.etiqueta}` : textoDestinoStock(destino.etiqueta, lugarCarga, destino.separaPiso);
   // ADR-0384: una celda de «Precios» con 0 crearía esa variante a S/ 0. Se nombra como en la tabla, para que se encuentre.
   const celdaEnCero = celdaSinPrecio(celdasIncluidas, overridePrecio);
   const nombreCeldaEnCero = celdaEnCero
@@ -499,9 +496,11 @@ export function NuevoProductoForm({
     celdaSinPrecio: nombreCeldaEnCero,
     stockTotal: stock.total,
     stockInvalidas: stock.invalidas,
-    sinStock: sinStockVigente,
+    sinStock,
     separaPiso: destino.separaPiso,
     lugarCarga,
+    llegada: cargaCerrada,
+    proveedorElegido: Boolean(proveedorId),
   };
   const problemas = problemasAlta(estado);
   const puedeGuardar = problemas.length === 0 && !cargando;
@@ -632,7 +631,7 @@ export function NuevoProductoForm({
       const precio = montoDeCelda(overridePrecio[c.clave], precioNum);
       const costo = montoDeCelda(overrideCosto[c.clave], costoDeTodas);
       // Solo viaja la cantidad de la celda que tiene stock: sin la clave, la base no carga nada (y no inventa un cero).
-      const cantidad = leerCantidad(cantidadesVigentes[c.clave] ?? "") ?? 0;
+      const cantidad = leerCantidad(cantidades[c.clave] ?? "") ?? 0;
       return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     // La misma regla que Editar producto (`precioValido`): mayor que 0. `problemasAlta` ya lo frena; esto es por si llega un envío
@@ -676,12 +675,34 @@ export function NuevoProductoForm({
     };
     const firma = responsable.firma();
     // ADR-0463: desde una sede con dos tiendas (Lima), el alta va por `crear_producto_con_empresa` (la de siempre + la tienda, en la misma
-    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. La cola sin conexión guarda cuál usó.
-    const rpcAlta = exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
-    const paramsAlta = exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
+    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. Con la carga cerrada y unidades, por `crear_producto_con_llegada`
+    // (ADR-0328 act. 2026-10-28), que lleva la tienda adentro. La cola sin conexión guarda cuál usó.
+    const conLlegada = cargaCerrada && conStock;
+    const paramsLlegada = {
+      p_referencia: params.p_referencia,
+      p_categoria_id: params.p_categoria_id,
+      p_variantes: params.p_variantes,
+      p_ubicacion_id: destino.ubicacionId,
+      p_proveedor_id: proveedorId,
+      p_descripcion: params.p_descripcion,
+      p_token: params.p_token,
+      p_tejido_id: params.p_tejido_id,
+      p_patron_id: params.p_patron_id,
+      p_confirmo_distinto: params.p_confirmo_distinto,
+      p_etiqueta_ids: params.p_etiqueta_ids,
+      p_marca_id: params.p_marca_id,
+      p_temporada: params.p_temporada,
+      p_empresa_id: exigeEmpresa ? empresaId : undefined,
+    };
+    const rpcAlta = conLlegada ? "crear_producto_con_llegada" : exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
+    const paramsAlta = conLlegada ? paramsLlegada : exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
     const { data: productoId, error, status } = await firmar(
       conDueno(
-        exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+        conLlegada
+          ? supabase.rpc("crear_producto_con_llegada", paramsLlegada)
+          : exigeEmpresa
+            ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId })
+            : supabase.rpc("crear_producto_con_stock_inicial", params),
         exigeEmpresa ? empresaId : null,
       ),
       firma,
@@ -728,7 +749,7 @@ export function NuevoProductoForm({
         variantes: variantes.length,
         colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
         fotos: { subidas: 0, fallidas: fotosGuardadas ? [] : fotosOrdenadas.map((f) => `${f.archivo.name}: este navegador no pudo guardarla`), coloresConFoto: [] },
-        stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
+        stock: conStock ? { unidades: stock.total, donde: destinoTexto, llegadaDe: conLlegada ? proveedorNombre || "su proveedor" : null } : null,
         sinMarcaProveedor: textoLoQueFalta(marcaId, proveedorId),
         fotosEnEspera: fotosGuardadas ? fotosOrdenadas.length : 0,
         token: op.token,
@@ -800,7 +821,7 @@ export function NuevoProductoForm({
       // Solo los colores que quedaron en alguna variante: uno desmarcado en la tabla no necesita foto.
       colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
       fotos: { subidas, fallidas, coloresConFoto: [...conFoto] },
-      stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
+      stock: conStock ? { unidades: stock.total, donde: destinoTexto, llegadaDe: conLlegada ? proveedorNombre || "su proveedor" : null } : null,
       sinMarcaProveedor: textoLoQueFalta(marcaId, proveedorId),
     });
   }
@@ -875,7 +896,7 @@ export function NuevoProductoForm({
       : "",
     4: [
       precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
-      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
+      stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStock ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
       .join(" · "),
@@ -1259,10 +1280,11 @@ export function NuevoProductoForm({
           )}
         </FilaAlta>
 
-        {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
+        {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) —o, con la carga cerrada, cuántas llegaron (ADR-0328
+            act. 2026-10-28)— o, en su segmento, el precio distinto. */}
         <FilaAlta
-          etiqueta="Unidades de hoy"
-          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Se escribe una sola vez: al crear, queda sellado y después se ajusta en Existencias. Si no tienes, márcalo abajo`}
+          etiqueta={cargaCerrada ? "Unidades que llegaron" : "Unidades de hoy"}
+          ayuda={cargaCerrada ? `Lo que llegó del proveedor a ${destino.etiqueta}. Entra con fecha de hoy y queda como una llegada de mercadería. Si no tienes, márcalo abajo` : `Lo que ya tienes en ${destino.etiqueta}. Se escribe una sola vez: al crear, queda sellado y después se ajusta en Existencias. Si no tienes, márcalo abajo`}
           campo="stock"
           estado={est.stock}
         >
@@ -1284,15 +1306,34 @@ export function NuevoProductoForm({
               costos={overrideCosto}
               onCosto={(clave, valor) => setOverrideCosto((prev) => ({ ...prev, [clave]: valor }))}
               destinoEtiqueta={destino.etiqueta}
-              cantidadesCerradas={cargaCerrada ? avisoCarga : null}
+              llegada={cargaCerrada}
             />
 
-            {cargaCerrada ? (
-              // La salida, dicha donde se iba a escribir: el producto se crea sin unidades y lo que haya entra por otra puerta.
-              <Aviso tono="info">
-                {avisoCarga} Este producto se crea sin unidades: lo que llegue de un proveedor entra por Recibir.
-              </Aviso>
-            ) : stock.total > 0 ? (
+            {cargaCerrada && stock.total > 0 ? (
+              // Una llegada entra a nombre de su proveedor (`lotes.proveedor_id`): sin él, se dice aquí mismo y se lleva a elegirlo.
+              proveedorId ? (
+                <p className="text-[12px] leading-snug text-taupe">
+                  Entran {destino.separaPiso ? `al almacén de ${destino.etiqueta}` : `a ${destino.etiqueta}`} como una llegada de{" "}
+                  {proveedorNombre || "su proveedor"}, con fecha de hoy.{destino.separaPiso ? " Para venderlas, primero hay que bajarlas al piso." : ""}
+                </p>
+              ) : (
+                <Aviso
+                  tono="atencion"
+                  chico
+                  accion={
+                    <button type="button" className="btn-cayla btn-enlace" onClick={() => {
+                        const marca = campos.find((c) => c.id === "marca");
+                        if (marca) irACampo(marca);
+                      }}
+                    >
+                      Elegir proveedor
+                    </button>
+                  }
+                >
+                  Lo que llegó entra a nombre de su proveedor: elígelo en «¿Cómo es?».
+                </Aviso>
+              )
+            ) : !cargaCerrada && stock.total > 0 ? (
               destino.separaPiso && (
                 <div className="space-y-2">
                   <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están hoy?</p>
@@ -1320,7 +1361,12 @@ export function NuevoProductoForm({
               </ChipOpcion>
             )}
 
-            {!cargaCerrada && (
+            {cargaCerrada ? (
+              <p className="nota-cayla text-[12.5px]">
+                La carga inicial de {destino.etiqueta} ya se cerró: lo que escribas aquí entra como una <strong>llegada de mercadería</strong>{" "}
+                del proveedor y queda en Movimientos como «Recepción», igual que en «Llegó mercadería».
+              </p>
+            ) : (
               <p className="nota-cayla text-[12.5px]">
                 Es la <strong>carga inicial</strong>: entra al inventario de {destino.etiqueta} sin comprobante y queda en Movimientos como «Carga
                 inicial». Lo que llegue después se registra al recibirlo.
@@ -1428,7 +1474,7 @@ export function NuevoProductoForm({
                 marca: marcaId ? marcaNombre || null : null,
                 tejido: tejidoTexto,
                 variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
-                hoy: stock.total > 0 ? stock.total : sinStockVigente ? 0 : null,
+                hoy: stock.total > 0 ? stock.total : sinStock ? 0 : null,
                 precio: precioNum > 0 ? precioNum : null,
                 margen,
                 campana: campanaHoy,

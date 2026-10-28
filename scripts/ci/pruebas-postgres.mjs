@@ -535,6 +535,11 @@ export const PRUEBAS = [
   // termina en ROLLBACK.
   "pruebas:alta-con-stock-inicial",
 
+  // Nuevo producto con la carga inicial cerrada (ADR-0328 act. 2026-10-28): las unidades entran como llegada del proveedor
+  // (recibir_lote) en la misma transacción que el alta; sin proveedor, sin unidades o con un nombre repetido no queda nada; el
+  // mismo token no recibe dos veces; los permisos de la sede son los de recibir. Cada caso termina en ROLLBACK.
+  "pruebas:alta-con-llegada",
+
   // Temporadas como atributo (ADR-0246): la lista cerrada de 9, el calendario de SENAMHI (lo que ya empezó no se mueve;
   // solo el líder corre una fecha futura), una temporada por prenda (color → producto → categoría), asignar todo o
   // nada con firma y rastro, el alta con p_temporada, el año por fecha de llegada y la guarda de la migración.

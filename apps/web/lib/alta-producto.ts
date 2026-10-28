@@ -204,6 +204,11 @@ export type EstadoAlta = {
    *  (Felipe 2026-10-04, ADR-0328). Con «almacén» marcado de antemano, TRU se cargó casi entera como guardada estando colgada:
    *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Reponer» marcaba todas las tallas. */
   lugarCarga: LugarCarga | null;
+  /** La carga inicial de la sede ya se cerró (ADR-0328 act. 2026-10-28): lo que se escribe entra como una LLEGADA del proveedor
+   *  (`crear_producto_con_llegada`), al almacén de entrada. Sin la pregunta de piso o almacén y con el proveedor obligatorio. */
+  llegada?: boolean;
+  /** Hay proveedor elegido (paso 2). Solo cuenta con `llegada`: la llegada entra a su nombre (`lotes.proveedor_id`). */
+  proveedorElegido?: boolean;
 };
 
 export type LugarCarga = "piso" | "almacen";
@@ -211,9 +216,23 @@ export type LugarCarga = "piso" | "almacen";
 /** Lo que falta cuando hay unidades en una tienda que separa piso y almacén y nadie dijo dónde están. */
 export const TEXTO_FALTA_LUGAR = "Di si están colgadas en el piso o guardadas en el almacén.";
 
-/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. */
-export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga">): boolean {
-  return e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. Una llegada no lo pregunta:
+ *  entra al almacén, como todo lo que llega de un proveedor («se cuenta allí y luego se cuelga», ADR-0328). */
+export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga" | "llegada">): boolean {
+  return !e.llegada && e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+}
+
+/** Lo que falta cuando llegaron unidades y no hay proveedor: la llegada entra a su nombre (ADR-0328 act. 2026-10-28). */
+export const TEXTO_FALTA_PROVEEDOR_LLEGADA = "Elige el proveedor en «¿Cómo es?»: lo que llegó entra a su nombre.";
+
+/** Escribió unidades que llegaron, pero todavía no eligió de qué proveedor. */
+export function faltaProveedorLlegada(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "llegada" | "proveedorElegido">): boolean {
+  return !!e.llegada && e.stockInvalidas === 0 && e.stockTotal > 0 && !e.proveedorElegido;
+}
+
+/** Lo que falta cuando no se escribió ninguna cantidad ni se dijo que no hay: la frase cambia con la carga cerrada. */
+export function textoFaltaStock(e: Pick<EstadoAlta, "llegada">): string {
+  return e.llegada ? "Escribe cuántas llegaron, o marca que todavía no tienes." : "Escribe cuántas tienes hoy, o marca que todavía no tienes.";
 }
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
@@ -264,8 +283,9 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
-  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." });
+  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: textoFaltaStock(e) });
   else if (faltaLugarCarga(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_LUGAR });
+  else if (faltaProveedorLlegada(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_PROVEEDOR_LLEGADA });
   return p;
 }
 
@@ -450,9 +470,17 @@ export function estadoSubidaSinConexion(o: {
 }
 
 /** La frase del stock en la pantalla de éxito: nunca dice «ya aparecen en Existencias» de algo que todavía no entró. */
-export function fraseStockCreado(stock: { unidades: number; donde: string }, sinConexion: boolean, subida: SubidaSinConexion | undefined): string {
+export function fraseStockCreado(
+  stock: { unidades: number; donde: string; llegadaDe?: string | null },
+  sinConexion: boolean,
+  subida: SubidaSinConexion | undefined
+): string {
   const n = stock.unidades;
   const u = `${n} unidad${n === 1 ? "" : "es"}`;
+  // ADR-0328 act. 2026-10-28: con la carga cerrada, lo escrito entró como una llegada del proveedor, no como stock inicial.
+  if (stock.llegadaDe && !(sinConexion && subida !== "subio")) {
+    return `${u} recibida${n === 1 ? "" : "s"} de ${stock.llegadaDe} (${stock.donde}) como una llegada de hoy: ya aparecen en Existencias, donde desde ahora se ajustan.`;
+  }
   if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
   if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
   if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;

@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 119,
+  "total": 120,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -22,6 +22,7 @@
       "CampoTexto «Detalle»",
       "CampoMonto «Precio de venta»",
       "CampoMonto «Costo»",
+      "button «Elegir proveedor»",
       "button «{quienRegistra ? \"Cambiar\" : \"Elegir\"}»"
     ],
     "components/SelectorColor.tsx": [
