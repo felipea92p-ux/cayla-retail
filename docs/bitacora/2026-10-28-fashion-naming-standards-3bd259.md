@@ -12,3 +12,8 @@ Felipe se lleva: probado en el navegador en Trujillo (dos altas: 5 y 4 unidades,
 Qué hice: en el paso 2 de Nuevo producto el tipo es una pieza con candado y «+» dentro de la caja, «Así se llamará: Polera Dalia» va siempre bajo ella, con un solo tipo la fila de chips se cambió por el enlace «¿No es una polera? Escribe otro nombre», y «Temporada y etiquetas» arranca plegado.
 Por qué así: Felipe no entendía que «Polera» quedaba fijo: era un texto gris igual al ejemplo, y el chip «✓ Polera» lo repetía.
 Felipe se lleva: probado en el navegador con Poleras (escritorio y 375 px, sin scroll lateral), el enlace va y vuelve, y la guía y su huella al día.
+
+## 2026-10-28 (/chaos de Nuevo producto con la llegada y «Cómo lo llama el proveedor», semilla 2810)
+Qué hice: 16 de 23 ataques en la base local y el navegador, con foto antes y la base restaurada idéntica después: doble clic, mismo token con otra cantidad, respuesta perdida, 10 sesiones a la vez, permisos, URLs torcidas y textos hostiles. 0 estados imposibles.
+Por qué así: la llegada mueve stock; lo grave sería una prenda con dos llegadas o una llegada sin prenda, y no pasó.
+Felipe se lleva: un hallazgo nuevo (costo ≥ precio bloquea el alta con «costo fuera de lo normal», en la función: decisión suya) y tres heredados («2,5» → 25 en una cantidad, cambiar de sede borra el alta, «S/ 59» pegado). Informe en `.chaos/informes/` (local).
