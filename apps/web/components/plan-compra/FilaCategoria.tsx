@@ -1,6 +1,8 @@
 import { celda, fila, type Columna } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
+import { frasesDeEnCompras, paso2PorRevisar } from "@/lib/plan-compra-envio";
 import { fraseDelPedido } from "@/lib/plan-compra-pedido";
+import { periodoDeVentas } from "@/lib/plan-compra-periodo";
 import { BarraRango } from "@/components/plan-compra/BarraRango";
 import { enteroES, esAgotada, fraseDeLoReal, margenPorPrenda, solesES, type EstadoCampana, type FilaPlan } from "@/lib/plan-compra-reglas";
 import type { EstadoDelPlazo, PlazoDePedido } from "@/lib/plan-compra-plazo";
@@ -53,7 +55,7 @@ export function FilaCategoria({
   plazo?: PlazoDePedido | null;
   onAbrir: () => void;
 }) {
-  const { c, linea, stock, calculo, vendido, ventas, puesto } = f;
+  const { c, linea, stock, calculo, vendido, ventas, puesto, diasDeVentas } = f;
   const plantilla = plantillaDelPlan(forma);
   const agotada = esAgotada(f);
   // El descuento que se supuso (ADR-0499): con él, lo que se gana por prenda en la campaña; si se come el margen, la fila lo dice.
@@ -75,8 +77,13 @@ export function FilaCategoria({
           {puesto !== null && <Chip tono="pizarra">N.º {puesto}</Chip>}
           {c.nombre}
         </span>
-        <span className={`block text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
-          {agotada ? `Se agotó: vendía ${enteroES.format(ventas)} en 90 días` : ventas > 0 ? `Vendiste ${enteroES.format(ventas)} en 90 días` : "Sin ventas en 90 días"}
+        {/* «Vendiste 366 en los 26 días que lleva el ERP» es el doble de larga que «en 90 días»: la celda no envuelve y la cortaba a 980 px. */}
+        <span className={`block whitespace-normal text-[13px] ${agotada ? "font-medium text-ambar-profundo" : "text-tinta/70"}`}>
+          {agotada
+            ? `Se agotó: vendía ${enteroES.format(ventas)} en ${periodoDeVentas(diasDeVentas)}`
+            : ventas > 0
+              ? `Vendiste ${enteroES.format(ventas)} en ${periodoDeVentas(diasDeVentas)}`
+              : `Sin ventas en ${periodoDeVentas(diasDeVentas)}`}
         </span>
         {margen && (
           <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -90,7 +97,9 @@ export function FilaCategoria({
         )}
       </span>
       {forma.venta && (
-        <span className={celda("izq", "min-w-0")}>
+        // El botón «Armar plan» sube 2 px al pasar el mouse (`.mov-boton`) y la celda recorta lo que se sale (`truncate`): le cortaba el borde de
+        // arriba. Sin plan no hay nada que truncar, así que esa celda deja ver el botón entero; la barra de rango sí se queda recortada.
+        <span className={celda("izq", linea && calculo ? "min-w-0" : "min-w-0 overflow-visible!")}>
           {linea && calculo ? (
             <BarraRango linea={linea} calculo={calculo} vendido={forma.real ? vendido : 0} retraso={paso} enCamino={f.enCamino} />
           ) : (
@@ -111,6 +120,49 @@ export function FilaCategoria({
             {calculo ? enteroES.format(calculo.comprar) : "—"}
             {fraseDelPedido(f.pedido, calculo ?? null) && (
               <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo ?? null)}</span>
+            )}
+            {f.paso2 !== undefined && calculo && calculo.comprar > 0 && (
+              // El paso 2 (ADR-0526): qué modelos, colores y tallas. Si el total del paso 1 cambió después de guardarlo, lo dice: lo repartido ya no es lo que se compra.
+              <span className="mt-1 block font-normal" data-guia="plan.paso2-marca">
+                {f.paso2 === null ? (
+                  <span className="text-xs text-taupe-profundo">Paso 2 por hacer</span>
+                ) : paso2PorRevisar(f.paso2.total, calculo.comprar, f.envio?.confirmadas ?? 0) ? (
+                  <Chip tono="ambar" versalitas={false} title={`El total del paso 1 cambió de ${f.paso2.total} a ${calculo.comprar + (f.envio?.confirmadas ?? 0)} desde que se guardó el paso 2`}>
+                    Paso 2 por revisar
+                  </Chip>
+                ) : (
+                  <Chip tono="verde" versalitas={false} title={`Guardado${f.paso2.por ? ` por ${f.paso2.por}` : ""}: ${f.paso2.unidades} prendas en modelos`}>
+                    Paso 2 hecho
+                  </Chip>
+                )}
+              </span>
+            )}
+            {f.envio && (
+              // Lo que esta categoría tiene en Compras (ADR-0530): pedidos pendientes de confirmar, ya pedidos, y si el plan cambió desde que se enviaron.
+              <span className="mt-1 flex flex-wrap items-center justify-end gap-1 font-normal" data-guia="plan.en-compras">
+                {(() => {
+                  const frases = frasesDeEnCompras(f.envio);
+                  return (
+                    <>
+                      {frases.pendientes && (
+                        <Chip tono="ambar" versalitas={false} title="Enviado desde el Plan: falta confirmarlo en Compras ▸ Órdenes. Nada se ha pedido todavía.">
+                          {frases.pendientes}
+                        </Chip>
+                      )}
+                      {frases.pedidos && (
+                        <Chip tono="verde" versalitas={false} title="Ya es una orden de compra">
+                          {frases.pedidos}
+                        </Chip>
+                      )}
+                      {frases.cambio && (
+                        <Chip tono="ambar" versalitas={false} title="El paso 2 se guardó otra vez después de enviar: lo que está en Compras tiene lo de antes">
+                          {frases.cambio}
+                        </Chip>
+                      )}
+                    </>
+                  );
+                })()}
+              </span>
             )}
             {plazo && plazo.estado !== "termino" && calculo && calculo.comprar > 0 && (
               // La fecha límite para pedir (ADR-0499): solo donde hay algo por pedir.

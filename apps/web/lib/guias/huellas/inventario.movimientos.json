@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 57,
+  "total": 58,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «(sin nombre)»",
@@ -50,6 +50,7 @@
       "button «Todo el historial»",
       "Pastilla «{etiquetaProceso(proc)}»",
       "button «{f.etiqueta}»",
+      "button «{e.nombre}»",
       "Pastilla «Todos»",
       "Pastilla «{etiquetaProceso(p)}»",
       "button «Escanear una etiqueta»",

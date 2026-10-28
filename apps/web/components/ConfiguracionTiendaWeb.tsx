@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ImagePlus, MapPin, X } from "lucide-react";
 import { PuertaDeTienda } from "@/components/tienda-web-conf/PuertaDeTienda";
 import { TelefonoDeTienda } from "@/components/tienda-web-conf/TelefonoDeTienda";
@@ -10,6 +10,7 @@ import { direccionDeFotoDeTienda, prepararFotoDeTienda, subirFotoDeTienda } from
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
+import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { Chip } from "@/components/ui/Chip";
 import { CierresDeTienda } from "@/components/tienda-web-conf/CierresDeTienda";
 import { HorarioSemanal } from "@/components/tienda-web-conf/HorarioSemanal";
@@ -70,9 +71,6 @@ import {
 type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string | null) => Promise<boolean>;
 type CampoTexto = "nombreWeb" | "direccion";
 
-/** Cómo empieza un enlace de «Compartir» de Google Maps: igual para toda tienda. */
-const EJEMPLO_MAPA = "https://maps.app.goo.gl/…"; // sugerir-fijo: el formato de un enlace de Google Maps es el mismo en toda tienda
-
 const listaDe = (sedes: readonly SedeWeb[]) => Object.fromEntries(sedes.map((s) => [s.id, borradorDe(s)])) as Record<string, BorradorSede>;
 
 export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
@@ -95,6 +93,10 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
   // La tienda cuya foto se está preparando y subiendo (la ruta queda en el borrador; recién «Guardar» la manda a la base).
   const [subiendoFotoId, setSubiendoFotoId] = useState<string | null>(null);
   const [encimaId, setEncimaId] = useState<string | null>(null);
+  // Los plazos viven en su propia tarjeta: avisa si tienen algo sin guardar, para que salir de la pantalla también lo cuide.
+  const [plazosSucios, setPlazosSucios] = useState(false);
+  // El guardado de una tarjeta no se repite si llegan dos clics en el mismo instante (el botón se apaga recién al volver a dibujar).
+  const guardandoTarjeta = useRef(false);
   const [vista, setVista] = useState(datos);
   if (vista !== datos) {
     setOrdenIds(datos.sedes.map((x) => x.id));
@@ -190,9 +192,24 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
     return texto || b.whatsapp !== base.whatsapp || b.mapa.trim() !== base.mapa.trim() || b.foto !== base.foto || b.dias !== base.dias || b.cierres !== base.cierres || (mostrar[s.id] ?? s.mostrar) !== s.mostrar;
   };
 
+  // Salir con algo sin guardar (menú, «atrás», recargar) pregunta antes: lo arrastrado en el horario o escrito en una tienda no se pierde en silencio.
+  const salida = useSalidaSinGuardar(
+    plazosSucios || datos.sedes.some((s) => tieneCambios(s)),
+    "Hiciste cambios en Conf. Tienda que todavía no se guardaron. Si sales ahora, se pierden.",
+  );
+
   /** El botón «Guardar» de una tienda: valida todo antes de escribir nada, guarda el WhatsApp (su propia función, la del QR del club) y
    *  después el resto, con un solo aviso al final. Si algo falla, lo escrito se queda para corregirlo y volver a guardar. */
   async function guardarTarjeta(s: SedeWeb) {
+    if (guardandoTarjeta.current) return;
+    guardandoTarjeta.current = true;
+    try {
+      await guardarTarjetaSola(s);
+    } finally {
+      guardandoTarjeta.current = false;
+    }
+  }
+  async function guardarTarjetaSola(s: SedeWeb) {
     const b = borradores[s.id];
     const base = bases[s.id];
     if (!b || !base) return;
@@ -294,11 +311,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <p className="max-w-md text-[13px] text-taupe">
-          Toca una tienda, escribe y guarda con su botón «Guardar», a nombre de quien figure como responsable; la web lo muestra en
-          unos minutos.
-        </p>
+      <div className="flex justify-end">
         <div className="w-full max-w-xs">
           <ComboResponsable control={responsable} deshabilitado={guardando || guardandoEn !== null} />
         </div>
@@ -351,7 +364,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
       />
 
       {datos.parametros ? (
-        <Plazos parametros={datos.parametros} guardar={guardar} />
+        <Plazos parametros={datos.parametros} guardar={guardar} onSucio={setPlazosSucios} />
       ) : (
         <p className="nota-cayla">Falta pegar en la base la migración de la tienda web (20261014231000) para ajustar los plazos.</p>
       )}
@@ -360,6 +373,7 @@ export function ConfiguracionTiendaWeb({ datos }: { datos: Datos }) {
         El WhatsApp de cada tienda es el mismo del QR del club: cambiarlo aquí también lo cambia en Tiendas y caja y en el cartel del
         mostrador. Por ahora no hay envíos: todo pedido web se recoge en la tienda que eligió el cliente.
       </div>
+      {salida.aviso}
     </>
   );
 }
@@ -396,6 +410,8 @@ function TallerDeTienda({
   onGuardar: () => void;
 }) {
   const [sobreFoto, setSobreFoto] = useState(false);
+  // El WhatsApp avisa que está incompleto al salir de la caja (no mientras se escribe), bajo la propia caja.
+  const [whatsappTocado, setWhatsappTocado] = useState(false);
   const ahora = useAhoraEnLima();
   const falta = faltaParaMostrar(b);
   const paraLaFrase = limpiarTexto(b.nombreWeb) ?? nombreCorto(s.nombre);
@@ -426,126 +442,131 @@ function TallerDeTienda({
       <Superficie pad className="anim-sube">
         <CabeceraBloque titulo={s.nombre} />
 
-        <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
-          <CampoFin
-            etiqueta={etiqueta("nombre_web", "Nombre que ve el cliente")}
-            htmlFor={`tw-${s.id}-nombreWeb`}
-            ayuda="La ciudad o el lugar, como lo diría el cliente; no el nombre de la sede en el sistema."
-          >
-            {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
-          </CampoFin>
-        </CampoGuiado>
+        <div className="twc-fila2">
+          <CampoGuiado id={idCampo(s.id, "nombre_web")} guia={guia}>
+            <CampoFin etiqueta={etiqueta("nombre_web", "Nombre")} htmlFor={`tw-${s.id}-nombreWeb`}>
+              {caja("nombreWeb", sugerirNombreWeb(s.nombre), TOPES_SEDE.nombreWeb)}
+            </CampoFin>
+          </CampoGuiado>
 
-        <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
-          <CampoFin
-            etiqueta={etiqueta("whatsapp", "WhatsApp de la tienda")}
-            htmlFor={`tw-${s.id}-whatsapp`}
-            ayuda={`Aquí llegan los pedidos que separan para ${paraLaFrase}. Es el mismo número del QR del club.`}
-          >
-            <div className="fin-con-unidad">
-              <span>+51</span>
+          <CampoGuiado id={idCampo(s.id, "whatsapp")} guia={guia}>
+            <CampoFin
+              etiqueta={etiqueta("whatsapp", "WhatsApp")}
+              htmlFor={`tw-${s.id}-whatsapp`}
+              ayuda={whatsappTocado && b.whatsapp !== "" && !celularValido(b.whatsapp) ? "Son 9 dígitos y empieza en 9." : undefined}
+              tono="aviso"
+            >
+              <div className="fin-con-unidad">
+                <span>+51</span>
+                <InputFin
+                  id={`tw-${s.id}-whatsapp`}
+                  value={b.whatsapp}
+                  inputMode="tel"
+                  autoComplete="off"
+                  placeholder="987 654 321"
+                  onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
+                  onBlur={() => setWhatsappTocado(true)}
+                  onKeyDown={teclas("whatsapp")}
+                  className="fin-num"
+                />
+              </div>
+            </CampoFin>
+          </CampoGuiado>
+        </div>
+
+        <div className="twc-fila2">
+          <div className="twc-col">
+            <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
+              <CampoFin etiqueta={etiqueta("direccion", "Dirección")} htmlFor={`tw-${s.id}-direccion`}>
+                {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
+              </CampoFin>
+            </CampoGuiado>
+
+            <CampoFin etiqueta="Mapa" htmlFor={`tw-${s.id}-mapa`}>
               <InputFin
-                id={`tw-${s.id}-whatsapp`}
-                value={b.whatsapp}
-                inputMode="tel"
+                id={`tw-${s.id}-mapa`}
+                value={b.mapa}
+                inputMode="url"
+                maxLength={400}
+                placeholder="Pega el enlace de Google Maps"
                 autoComplete="off"
-                placeholder="987 654 321"
-                onChange={(e) => onEscribir("whatsapp", ajustarCelular(e.target.value))}
-                onKeyDown={teclas("whatsapp")}
-                className="fin-num"
+                onChange={(e) => onEscribir("mapa", e.target.value)}
+                onKeyDown={teclas("mapa")}
               />
-            </div>
-          </CampoFin>
-        </CampoGuiado>
-
-        <CampoGuiado id={idCampo(s.id, "direccion")} guia={guia}>
-          <CampoFin etiqueta={etiqueta("direccion", "Dirección para recoger")} htmlFor={`tw-${s.id}-direccion`} ayuda="Donde el cliente recoge lo que separó: la calle, el número y una referencia.">
-            {caja("direccion", sugerirDireccion(s.nombre), TOPES_SEDE.direccion)}
-          </CampoFin>
-        </CampoGuiado>
-
-        <CampoFin
-          etiqueta="Mapa"
-          htmlFor={`tw-${s.id}-mapa`}
-          ayuda="Opcional. Pega el enlace de Google Maps («Compartir» ▸ «Copiar enlace») y «Cómo llegar» abre ese lugar exacto."
-          tono={errorDeMapa(b.mapa) ? "aviso" : undefined}
-        >
-          <InputFin
-            id={`tw-${s.id}-mapa`}
-            value={b.mapa}
-            inputMode="url"
-            maxLength={400}
-            placeholder={EJEMPLO_MAPA}
-            autoComplete="off"
-            onChange={(e) => onEscribir("mapa", e.target.value)}
-            onKeyDown={teclas("mapa")}
-          />
-          <span className="twc-mapita" data-vacio={b.mapa.trim() === "" ? "" : undefined}>
-            <span className="twc-mapita-tile" aria-hidden>
-              <MapPin />
-            </span>
-            {errorDeMapa(b.mapa) ? (
-              <Chip tono="ambar" versalitas={false}>No es un enlace de Google Maps</Chip>
-            ) : b.mapa.trim() === "" ? (
-              <Chip tono="neutro" versalitas={false}>Sin enlace: «Cómo llegar» busca la dirección</Chip>
-            ) : (
-              <Chip tono="verde" versalitas={false}>«Cómo llegar» abre este lugar</Chip>
-            )}
-          </span>
-        </CampoFin>
-
-        <CampoFin etiqueta="Foto de la fachada" htmlFor={`tw-${s.id}-foto`} ayuda="Opcional. Horizontal, con la fachada al centro: se reduce sola. Sin foto se ve el dibujo de la fachada.">
-          <label
-            className="twc-foto"
-            data-sobre={sobreFoto || undefined}
-            data-con-foto={fotoUrl ? "" : undefined}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setSobreFoto(true);
-            }}
-            onDragLeave={() => setSobreFoto(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setSobreFoto(false);
-              const archivo = e.dataTransfer.files[0];
-              if (archivo && !subiendoFoto) onFoto(archivo);
-            }}
-          >
-            {fotoUrl && (
-              // La foto ya viene reducida por el ERP y está en el almacén público: no pasa por el optimizador.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoUrl} alt={`Fachada de ${paraLaFrase}`} />
-            )}
-            <span className="twc-foto-texto">
-              <span className="twc-foto-pildora">
-                <ImagePlus aria-hidden />
-                {subiendoFoto ? "Subiendo…" : fotoUrl ? "Cambiar foto" : "Suelta o elige la fachada"}
+              <span className="twc-mapita" data-vacio={b.mapa.trim() === "" ? "" : undefined}>
+                <span className="twc-mapita-tile" aria-hidden>
+                  <MapPin />
+                </span>
+                {errorDeMapa(b.mapa) ? (
+                  <Chip tono="ambar" versalitas={false}>No es un enlace de Google Maps</Chip>
+                ) : b.mapa.trim() === "" ? (
+                  <Chip tono="neutro" versalitas={false}>Sin enlace: busca la dirección</Chip>
+                ) : (
+                  <Chip tono="verde" versalitas={false}>«Cómo llegar» abre este lugar</Chip>
+                )}
               </span>
-            </span>
-            <input
-              id={`tw-${s.id}-foto`}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              disabled={subiendoFoto}
-              onChange={(e) => {
-                const archivo = e.target.files?.[0];
-                e.target.value = "";
-                if (archivo) onFoto(archivo);
+            </CampoFin>
+          </div>
+
+          <CampoFin etiqueta="Foto" htmlFor={`tw-${s.id}-foto`} className="twc-campo-foto">
+            <label
+              className="twc-foto"
+              data-sobre={sobreFoto || undefined}
+              data-con-foto={fotoUrl ? "" : undefined}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setSobreFoto(true);
               }}
-            />
-          </label>
-          {fotoUrl && !subiendoFoto && (
-            <button type="button" className="btn-cayla btn-enlace mt-1.5" onClick={() => onEscribir("foto", "")}>
-              <X aria-hidden className="h-3.5 w-3.5" /> Quitar foto
-            </button>
-          )}
-        </CampoFin>
+              onDragLeave={() => setSobreFoto(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setSobreFoto(false);
+                const archivo = e.dataTransfer.files[0];
+                if (archivo && !subiendoFoto) onFoto(archivo);
+              }}
+            >
+              {fotoUrl && (
+                // La foto ya viene reducida por el ERP y está en el almacén público: no pasa por el optimizador.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt={`Fachada de ${paraLaFrase}`} />
+              )}
+              <span className="twc-foto-texto">
+                <span className="twc-foto-pildora">
+                  <ImagePlus aria-hidden />
+                  {subiendoFoto ? "Subiendo…" : fotoUrl ? "Cambiar foto" : "Suelta o elige la fachada"}
+                </span>
+              </span>
+              <input
+                id={`tw-${s.id}-foto`}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={subiendoFoto}
+                onChange={(e) => {
+                  const archivo = e.target.files?.[0];
+                  e.target.value = "";
+                  if (archivo) onFoto(archivo);
+                }}
+              />
+            </label>
+            {fotoUrl && !subiendoFoto && (
+              <button type="button" className="btn-cayla btn-enlace mt-1.5" onClick={() => onEscribir("foto", "")}>
+                <X aria-hidden className="h-3.5 w-3.5" /> Quitar foto
+              </button>
+            )}
+          </CampoFin>
+        </div>
 
         <CampoGuiado id={idCampo(s.id, "horario")} guia={guia}>
           <CampoFin
-            etiqueta={etiqueta("horario", "Horario")}
-            ayuda="Opcional. Arrastra los bordes o la barra; toca un día para abrirlo o cerrarlo."
+            etiqueta={
+              <>
+                {etiqueta("horario", "Horario")}
+                <Chip tono="neutro" versalitas={false} className="ml-2">
+                  Arrastra los bordes o la barra · la letra cierra el día
+                </Chip>
+              </>
+            }
             guia="config.tienda-web-horario"
           >
             <HorarioSemanal
@@ -558,7 +579,17 @@ function TallerDeTienda({
           </CampoFin>
         </CampoGuiado>
 
-        <CampoFin etiqueta="Cierres" ayuda="Opcional. Un día en que no abre aunque el horario diga que sí: un feriado, un inventario." guia="config.tienda-web-cierres">
+        <CampoFin
+          etiqueta={
+            <>
+              Cierres
+              <Chip tono="neutro" versalitas={false} className="ml-2">
+                Un día que no abre: feriado, inventario
+              </Chip>
+            </>
+          }
+          guia="config.tienda-web-cierres"
+        >
           <CierresDeTienda
             valor={cierresDeSerializados(b.cierres)}
             onCambio={(fechas) => onEscribir("cierres", serializarCierres(fechas))}
@@ -594,7 +625,7 @@ function TallerDeTienda({
 }
 
 /** Para todas las sedes: los plazos de los pedidos web y desde cuántas unidades el cliente ve el número. */
-function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guardar: Guardar }) {
+function Plazos({ parametros, guardar, onSucio }: { parametros: ParametrosTiendaWeb; guardar: Guardar; onSucio: (sucio: boolean) => void }) {
   const [b, setB] = useState<BorradorParametros>(() => borradorParametros(parametros));
   const [base, setBase] = useState<BorradorParametros>(() => borradorParametros(parametros));
   if (JSON.stringify(borradorParametros(parametros)) !== JSON.stringify(base)) {
@@ -603,12 +634,18 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
   }
 
   const sucio = JSON.stringify(b) !== JSON.stringify(base);
+  useEffect(() => {
+    onSucio(sucio);
+  }, [sucio, onSucio]);
   const [guardando, setGuardando] = useState(false);
+  const guardandoYa = useRef(false);
 
   async function guardarPlazos() {
+    if (guardandoYa.current) return;
     const v = validarParametrosTiendaWeb(b);
     if (!v.ok) return avisar.error(v.error);
     const p = v.valor;
+    guardandoYa.current = true;
     setGuardando(true);
     try {
       await guardar(
@@ -626,6 +663,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
         `Plazos guardados: se confirma en ${p.horasParaConfirmar} h, se anula sin pago a las ${p.horasAvisoSinPagar} h y se avisa a los ${p.diasAvisoSinRecoger} días sin recoger.`,
       );
     } finally {
+      guardandoYa.current = false;
       setGuardando(false);
     }
   }
@@ -640,7 +678,7 @@ function Plazos({ parametros, guardar }: { parametros: ParametrosTiendaWeb; guar
       <RelojDelPedido
         valor={b}
         onCambiar={(clave, texto) => setB((x) => ({ ...x, [clave]: texto }))}
-        onRevertir={() => setB(base)}
+        onRevertir={(clave) => setB((x) => ({ ...x, [clave]: base[clave] }))}
       />
       <EscalaDeStock valor={Number(b.quedanPocasDesde)} onValor={(n) => setB((x) => ({ ...x, quedanPocasDesde: String(n) }))} />
       <PieAcciones>

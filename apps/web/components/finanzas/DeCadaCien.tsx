@@ -23,7 +23,7 @@ export function DeCadaCienPieza({ cien, colorDeSede }: { cien: DeCadaCien; color
   const cuadros = cien.partes.flatMap((p, i) => [...Array(p.cuadros)].map(() => ({ clave: p.clave, color: color(cien, i), i: n++ })));
   return (
     <div className="mt-4 border-t border-sand pt-3" data-guia="fin-resumen.cien">
-      <BotonVerMas forma="enlace" abierto={abierto} onCambiar={setAbierto} controla="fin-cien" texto="¿Y de cada S/\u00a0100?" />
+      <BotonVerMas forma="enlace" abierto={abierto} onCambiar={setAbierto} controla="fin-cien" texto={"¿Y de cada S/\u00a0100?"} />
       <FilasDeMas abierto={abierto}>
         <div id="fin-cien" className="fin-cien mt-3">
           <div className="fin-cien-cuadros" data-foco={foco ?? undefined} role="img" aria-label={cien.titular}>
@@ -34,7 +34,7 @@ export function DeCadaCienPieza({ cien, colorDeSede }: { cien: DeCadaCien; color
           <div>
             <p className="m-0 font-serif text-xl leading-snug">{cien.titular}</p>
             <p className="mb-2 mt-1 text-xs text-taupe">Cada cuadro es un sol de cada cien. Toca un renglón para ver dónde están sus cuadros.</p>
-            <ul className="fin-cien-lista" aria-label="A dónde va cada S/\u00a0100">
+            <ul className="fin-cien-lista" aria-label={"A dónde va cada S/\u00a0100"}>
               {cien.partes.map((p, i) => (
                 <li key={p.clave}>
                   <button type="button" aria-pressed={foco === p.clave} onClick={() => setFoco(foco === p.clave ? null : p.clave)} style={{ ["--c" as string]: color(cien, i) } as CSSProperties}>

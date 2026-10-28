@@ -30,6 +30,8 @@
  * `danadas_concurrencia.mjs`, solo contra una base desechable.
  *   A2 idempotencia y estados: el reintento del mismo arreglo devuelve ya_registrada; otra marca sobre una ya resuelta,
  *      «ya se resolvió como Se arregló»; las salidas viejas (Se botó) siguen funcionando sobre una reportada.
+ *   A3 las salidas de siempre (`resolver_prenda_danada`, `liquidar_prenda_danada`) ya no son solo del líder (ADR-0534,
+ *      20261027164000): sin Existencias, 42501 y nada cambia; con Existencias en la sede de la prenda, una integrante la resuelve.
  *
  * CÓMO. Igual que `retirar_del_piso.mjs`: cada caso en su transacción con ROLLBACK (nunca se commitea nada), sesión simulada
  * con `request.jwt.claim.sub` y el encabezado de PostgREST con `request.headers`. Las prendas son NUEVAS en cada caso
@@ -576,6 +578,29 @@ caso(
 ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${cant("va", "cua_t")}, (select estado from retail.prendas_danadas where id = :'did'));`,
   "true,0,se_boto"
 );
+
+// ===========================================================================
+// A3 · Las salidas de siempre: quien ve Existencias en la sede (ADR-0534; antes, solo un líder)
+// ===========================================================================
+
+caso(
+  "A3 · una integrante SIN Existencias no resuelve ni liquida una dañada de su tienda (42501), y sigue en cuarentena",
+  `${REPORTE_DE_VA}${soloModulos("integrante", ["vender"])}
+${sesion(MICAELA)}${COMO_API}select pg_temp.intento(format('select retail.resolver_prenda_danada(%L, ''se_boto'', ''Sin arreglo'')', :'did')) as r \\gset
+select pg_temp.intento(format('select retail.liquidar_prenda_danada(%L, 10, ''efectivo'', null)', :'did')) as l \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'estado', position('necesita el módulo Existencias' in (:'r')::jsonb ->> 'msg') > 0,
+  (:'l')::jsonb ->> 'estado', position('necesita el módulo Existencias' in (:'l')::jsonb ->> 'msg') > 0,
+  (select estado from retail.prendas_danadas where id = :'did'));`,
+  "42501,t,42501,t,en_cuarentena"
+);
+caso(
+  "A3 · una integrante CON Existencias en su tienda la resuelve (Se botó) sin ser líder (ADR-0534)",
+  `${REPORTE_DE_VA}${soloModulos("integrante", ["existencias"])}
+${sesion(MICAELA)}${COMO_API}select pg_temp.intento(format('select retail.resolver_prenda_danada(%L, ''se_boto'', ''Sin arreglo'')', :'did')) as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', (select estado from retail.prendas_danadas where id = :'did'));`,
+  "true,se_boto"
+);
+
 caso(
   "A2 · arreglar una dañada que no existe → «ya no está en la lista»",
   `${sesion(FELIPE)}${COMO_API}select pg_temp.arreglar(gen_random_uuid(), 'Se cosió el botón', :'tok2');`,

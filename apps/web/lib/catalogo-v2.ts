@@ -36,6 +36,11 @@ export type VarianteCatalogo = {
   /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
    *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
   colorCodigo?: string | null;
+  /** `variantes.talla_id` y `productos.categoria_id`: con `colorCodigo`, la llave para que «Prenda sin registrar» ofrezca la prenda
+   *  del catálogo que coincide con lo que caja eligió («¿Es alguna de estas?», A2 de la auditoría 2026-10-14), por id y nunca por
+   *  el nombre visible. Opcionales: un catálogo guardado antes de este cambio no los trae, y entonces no se ofrece nada. */
+  tallaId?: string | null;
+  categoriaId?: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
    *  color todavía no tiene foto. El cliente cae a un tinte del color (o
    *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
@@ -51,6 +56,9 @@ export type VarianteCatalogo = {
   categoriaFamilia?: string | null;
   /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
   marca?: string | null;
+  /** El id de su marca (ADR-0532): en Lima, la marca CAYLA es de CAYLA y cualquier otra, de CLAURE. `null` = sin marca; ausente = un
+   *  catálogo guardado antes de este cambio (entonces manda `empresaId`). */
+  marcaId?: string | null;
   /** De qué empresa es la prenda (`productos.empresa_id`, CAYLA o CLAURE; ADR-0463). Decide en qué sedes se ve (ADR-0505). Opcional: un
    *  catálogo guardado antes de este cambio no la trae, y entonces la prenda se ve en todas, como antes. */
   empresaId?: string | null;
@@ -133,9 +141,9 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
       supabase
         .from("variantes")
         .select(
-          `id, sku, codigo, color_codigo, precio, activo,
+          `id, sku, codigo, color_codigo, talla_id, precio, activo,
            talla:tallas ( valor ),
-           producto:productos ( id, referencia, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+           producto:productos ( id, referencia, categoria_id, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
            color:colores ( nombre, hex ),
            codigos_barras ( codigo )`
         )
@@ -148,12 +156,15 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
     // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
     // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
-    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
+    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
   ]);
   const filas = exigir(resVariantes, "el catálogo");
   const marcaPorProducto = new Map<string, string>();
+  // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
+  const marcaIdPorProducto = new Map<string, string | null>();
   for (const p of resMarcas.error ? [] : (resMarcas.data ?? [])) {
     if (p.marca?.nombre) marcaPorProducto.set(p.id, p.marca.nombre);
+    marcaIdPorProducto.set(p.id, p.marca_id ?? null);
   }
 
   return filas.map((v) => ({
@@ -164,6 +175,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
     colorCodigo: v.color_codigo ?? null,
+    tallaId: v.talla_id ?? null,
+    categoriaId: v.producto?.categoria_id ?? null,
     // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.
@@ -176,6 +189,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
     categoriaFamilia: v.producto?.categoria?.familia ?? null,
     marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
+    marcaId: marcaIdPorProducto.get(v.producto?.id ?? ""),
     empresaId: v.producto?.empresa_id ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
@@ -192,6 +206,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
  */
 export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
   const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
+  // La insignia es la de la FICHA (ADR-0505): una prenda dada de alta como de CLAURE lleva «CLAURE». De quién son las UNIDADES de una prenda
+  // que tiene de las dos lo dice el reparto (ADR-0542, `lib/stock-por-dueno.ts`): Vender pregunta de cuál sale cuando hay duda.
   return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(v.empresaId, empresas) }));
 }
 

@@ -11,6 +11,7 @@ import {
   type MiPlata,
   type PlataPorConfirmar,
 } from "@/lib/mi-plata-reglas";
+import { RPC_MIS_ENVIOS, leerMisEnvios, type EnvioMio } from "@/lib/mis-envios-reglas";
 import type { CuentaOpcion } from "@/lib/fondos-reglas";
 
 // Compras simple (ADR-0480, actividad 2): lectura del servidor de la plata anotada (20261022235000). Si una lectura falla —la web
@@ -44,7 +45,14 @@ export async function getBancosParaPlata(): Promise<CuentaOpcion[]> {
   return leerBancosDePlata(r.data);
 }
 
-export type PlataPorConfirmarConFoto = PlataPorConfirmar & { fotoUrl: string | null };
+export type PlataPorConfirmarConFoto = PlataPorConfirmar & {
+  fotoUrl: string | null;
+  /**
+   * Hay voucher (`fotoRuta`) pero el enlace no se pudo armar (el depósito no respondió o ese archivo no está): la pantalla debe decir «no se pudo abrir la
+   * foto», no «Sin foto», que sería mentira y mandaría a pedirle otra voucher a quien ya la subió. Falso si no había foto.
+   */
+  fotoNoAbrio: boolean;
+};
 
 /**
  * La plata que falta confirmar, con el enlace a cada voucher (10 minutos, firmado en el servidor con la sesión de quien mira: el depósito
@@ -62,7 +70,26 @@ export async function getPlataPorConfirmar(): Promise<PlataPorConfirmarConFoto[]
   const urls = new Map<string, string>();
   if (rutas.length > 0) {
     const firmadas = await supabase.storage.from(BUCKET_FOTOS_GASTO_VIAJE).createSignedUrls(rutas, 600);
+    // Una ayuda: sin los enlaces la lista sale igual (principio 9), pero el aviso se pierde si nadie lo registra. Sin rutas ni datos personales: solo cuántas.
+    if (firmadas.error) console.error(`plata por confirmar: no se firmaron ${rutas.length} fotos de voucher: ${firmadas.error.message}`);
     for (const f of firmadas.data ?? []) if (f.path && f.signedUrl) urls.set(f.path, f.signedUrl);
   }
-  return filas.map((f) => ({ ...f, fotoUrl: f.fotoRuta ? (urls.get(f.fotoRuta) ?? null) : null }));
+  return filas.map((f) => {
+    const fotoUrl = f.fotoRuta ? (urls.get(f.fotoRuta) ?? null) : null;
+    return { ...f, fotoUrl, fotoNoAbrio: f.fotoRuta !== null && fotoUrl === null };
+  });
+}
+
+/**
+ * Los envíos que mandó quien mira, con su código y su ronda (20261026174000). `null` si no se pudo leer —la web publicada antes que la
+ * migración, o la base caída—: la pantalla lo dice, y Mis compras sigue sin «Mis envíos» en vez de caerse (principio 9).
+ */
+export async function getMisEnvios(): Promise<EnvioMio[] | null> {
+  const supabase = await createClient();
+  const r = (await supabase.rpc(RPC_MIS_ENVIOS as never)) as unknown as Awaited<Respuesta>;
+  if (r.error) {
+    console.error(`mis envíos: ${r.error.message}`);
+    return null;
+  }
+  return leerMisEnvios(r.data);
 }

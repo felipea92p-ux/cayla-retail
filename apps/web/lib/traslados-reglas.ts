@@ -298,12 +298,6 @@ export function horaLima(iso: string): string {
   return p ? `${p.hora}:${p.minuto}` : "—";
 }
 
-/** «16/9» — día y mes sin ceros de relleno, como ya se ve en el resto de la pantalla. */
-export function diaMes(iso: string): string {
-  const p = parteLima(iso);
-  return p ? `${p.dia}/${p.mes}` : "—";
-}
-
 /** «hoy 12:12», «mañana 16:15», «ayer 09:00»; más lejos, «20 sep · 16:15». */
 export function diaHora(iso: string, ahoraIso: string): string {
   const p = parteLima(iso);
@@ -314,18 +308,6 @@ export function diaHora(iso: string, ahoraIso: string): string {
   if (d === 1) return `mañana ${hora}`;
   if (d === -1) return `ayer ${hora}`;
   return `${p.dia} ${MESES_CORTOS[p.mes - 1]} · ${hora}`;
-}
-
-/** «hace 25 min», «hace 1 h», «hace 2 días». */
-export function haceTexto(iso: string, ahoraIso: string): string {
-  const ms = new Date(ahoraIso).getTime() - new Date(iso).getTime();
-  if (Number.isNaN(ms) || ms < 60_000) return "hace un momento";
-  const min = Math.floor(ms / 60_000);
-  if (min < 60) return `hace ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `hace ${h} h`;
-  const d = Math.floor(h / 24);
-  return d === 1 ? "hace 1 día" : `hace ${d} días`;
 }
 
 /** «en 40 min», «en 2 h 15 min», «en 5 h» — para lo que falta dentro del mismo día. */
@@ -339,64 +321,6 @@ export function enTexto(iso: string, ahoraIso: string): string {
   if (h < 24) return h < 3 && m > 0 ? `en ${h} h ${m} min` : `en ${h} h`;
   const d = Math.floor(h / 24);
   return d === 1 ? "en 1 día" : `en ${d} días`;
-}
-
-export type TonoTiempo = "urgente" | "aviso" | "normal" | "hecho";
-
-export type TextoLlegada = {
-  principal: string;
-  secundario: string | null;
-  /** urgente = me toca y ya pasó la hora · aviso = algo no cuadra pero no depende de mí · normal = viaja bien · hecho = terminó. */
-  tono: TonoTiempo;
-};
-
-/** El texto de la columna «Llegada estimada». La frase depende de la situación real: un traslado que
- *  ya llegó y quedó con diferencia no debe decir «atrasado», sino desde cuándo espera revisión; uno que viene
- *  hacia acá dice cuándo llega o desde cuándo está atrasado, pero se puede recibir igual (ADR-0239). */
-export function textoLlegada(
-  t: TrasladoLeible & { creadoEn: string; cerradoEn: string | null },
-  s: SituacionTraslado,
-  ahoraIso: string
-): TextoLlegada {
-  const eta = t.fechaEstimadaLlegada;
-
-  if (s === "anulado") {
-    return { principal: `Anulado ${diaMes(t.anuladoEn ?? t.cerradoEn ?? t.creadoEn)}`, secundario: null, tono: "normal" };
-  }
-  if (s === "cerrado" || s === "cerrado_con_diferencia") {
-    // Con diferencia no lleva el visto verde: la insignia ya dice qué pasó y un «✓» lo contradiría.
-    return { principal: `Cerrado ${diaMes(t.cerradoEn ?? t.confirmadoEn ?? t.creadoEn)}`, secundario: null, tono: s === "cerrado" ? "hecho" : "normal" };
-  }
-
-  if (s === "con_diferencia" || s === "requiere_revision") {
-    const desde = t.confirmadoEn ?? eta ?? t.creadoEn;
-    return { principal: `Recibido ${diaHora(desde, ahoraIso)}`, secundario: haceTexto(desde, ahoraIso), tono: "aviso" };
-  }
-
-  const atrasado = debioLlegar(eta, ahoraIso);
-  // Me toca y ya pasó la hora: rojo. De otra sede: solo se sigue de cerca (ámbar). A tiempo: sin drama.
-  const tonoAtrasado: TonoTiempo = s === "requiere_recepcion" ? "urgente" : "aviso";
-
-  if (s === "requiere_recepcion" && (t.lineasContadas ?? 0) > 0) {
-    // Alguien ya guardó conteos: la caja llegó, aunque la hora estimada diga otra cosa. Falta terminar.
-    return {
-      principal: "Conteo empezado",
-      secundario: !eta ? null : atrasado ? `Atrasado desde ${diaHora(eta, ahoraIso)}` : `Llegaba ${diaHora(eta, ahoraIso)}`,
-      tono: "urgente",
-    };
-  }
-
-  if (!eta) {
-    return { principal: "Sin hora estimada", secundario: `Enviado ${diaHora(t.creadoEn, ahoraIso)}`, tono: tonoAtrasado };
-  }
-
-  if (atrasado) {
-    return { principal: `Atrasado desde ${diaHora(eta, ahoraIso)}`, secundario: haceTexto(eta, ahoraIso), tono: tonoAtrasado };
-  }
-
-  const dias = diasDeDiferencia(eta, ahoraIso) ?? 0;
-  const secundario = dias <= 0 ? enTexto(eta, ahoraIso) : dias === 1 ? diaMes(eta) : `en ${dias} días`;
-  return { principal: `Llega ${diaHora(eta, ahoraIso)}`, secundario, tono: "normal" };
 }
 
 // --- Búsqueda ---------------------------------------------------------------

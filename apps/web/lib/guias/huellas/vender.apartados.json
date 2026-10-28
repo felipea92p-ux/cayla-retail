@@ -40,6 +40,10 @@
       "button «Mejor no»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
     "components/apartados/ApartadosPanel.tsx": [
       "Pestanas «→(c) => irA(c as Vista)»",
       "button «apartados.opciones»",
@@ -53,7 +57,7 @@
       "button «→() => agregar(id)»",
       "button «Quitar»",
       "input «Viene el sábado, quiere probársela otra vez…»",
-      "button «Apartar»",
+      "button «{faltaDuenoEn.length > 0 ? \"Marca de quién es lo que apartas.\" : undefined}»",
       "Volver «(sin nombre)»",
       "button «Cambiar»",
       "BotonBuscar «→buscarFicha»",

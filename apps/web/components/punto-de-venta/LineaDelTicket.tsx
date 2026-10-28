@@ -6,6 +6,8 @@ import { filaDelTicket, type DetalleVariante, type TonoStock } from "@/lib/ticke
 import { textoDePrendaEnOtroTicket } from "@/lib/tickets-abiertos-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { PasoCantidad } from "@/components/ui/PasoCantidad";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
+import type { EmpresaElegible } from "@/lib/dueno-reglas";
 
 const PUNTO: Record<TonoStock, string> = { verde: "bg-verde", ambar: "bg-ambar", excedido: "bg-rojo-profundo" };
 
@@ -21,6 +23,10 @@ type Props = {
   /** Los otros tickets abiertos que llevan esta misma prenda cuando no alcanza para todos (`ticketsQueDisputanLaPrenda`); vacío o
    *  ausente = no hay nada que decir. Solo avisa: no reserva ni bloquea, el primero que cobra se la lleva. */
   tambienEn?: readonly string[];
+  /** ADR-0542: los dueños entre los que hay que elegir de cuál sale esta prenda (hay unidades de las dos empresas aquí), o ausente si no hay duda. */
+  duenos?: readonly EmpresaElegible[] | null;
+  duenoElegido?: string;
+  onDueno?: (varianteId: string, empresaId: string) => void;
 };
 
 /**
@@ -39,7 +45,7 @@ type Props = {
  * Sin estado ni hooks: todo llega por props desde `PuntoDeVentaTicket`. Es hija directa de la lista (`listaRef`),
  * que el padre anima con `Flip`.
  */
-export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento, tambienEn }: Props) {
+export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad, onDescuento, tambienEn, duenos, duenoElegido, onDueno }: Props) {
   const f = filaDelTicket(linea, detalle);
   const nombre = linea.referencia;
   return (
@@ -58,6 +64,12 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
               </span>
             )}
           </p>
+          {duenos && onDueno && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
+              <span>¿De quién sale?</span>
+              <ElegirDueno empresas={duenos} duenoId={duenoElegido ?? ""} onElegir={(id) => onDueno(linea.varianteId, id)} deshabilitado={bloqueado} chico guia="vender.dueno" />
+            </div>
+          )}
         </div>
 
         {/* El paso de cantidad del sistema (ADR-0358, ronda 17): la caja del campo con el − y el + adentro. */}

@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 7): qué reglas de tienda y qué errores conocidos se le muestran a la IA para una pregunta.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 7): qué reglas de tienda y qué errores conocidos se le muestran a la IA para una pregunta.
 // Sin red: se prueba en `conocimiento.test.ts`. Como con las guías, la IA no ve todo: ve los pocos que más se parecen y elige uno por su
 // id; el texto que llega a la persona lo pone el sistema (`revisarRespuesta`: la respuesta aprobada o la frase de la pantalla), nunca la IA.
 

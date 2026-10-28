@@ -1,4 +1,4 @@
-// «Pregúntale a CAYLA» (ADR-0529, actividad 7; tensión 3 del ADR): las REGLAS DE TIENDA que el asistente puede contestar.
+// «Pregúntale a CAYLA» (ADR-0536, actividad 7; tensión 3 del ADR): las REGLAS DE TIENDA que el asistente puede contestar.
 //
 // Para responder «¿cuántos días tiene un cliente para cambiar una prenda?» la IA tiene que leer la regla en algún lado. Repartida entre
 // `docs/datos/15-COMO-OPERA-CAYLA.md`, los ADR y el código, mezclaría lo decidido con lo viejo. Por eso viven aquí, cortas y con su fuente,

@@ -37,8 +37,9 @@ export function TarjetaFoto({
   return (
     <label
       data-guia={guia}
-      className={`mov-boton flex w-full cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-3.5 text-left ${
-        archivo ? "border-solid border-verde" : "border-dashed border-taupe/55"
+      // El `<input>` está oculto (`sr-only`): con el teclado, el anillo de foco del sistema se dibuja en la tarjeta entera (`has-…:focus-visible`).
+      className={`mov-boton flex w-full cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] p-3.5 text-left has-[:focus-visible]:[outline-offset:var(--foco-separacion)] has-[:focus-visible]:[outline:var(--foco-ancho)_solid_var(--foco-color)] ${
+        archivo ? "border-solid border-verde" : "border-dashed border-borde-control"
       } ${deshabilitada ? "pointer-events-none opacity-60" : ""}`}
     >
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hueso text-tinta">

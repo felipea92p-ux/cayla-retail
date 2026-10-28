@@ -32,6 +32,8 @@ export type ProductoDeCatalogo = {
   conVariantesActivas: boolean;
   /** De qué empresa es (`productos.empresa_id`, ADR-0463): una de CLAURE no se ofrece «sin stock aquí» fuera de Lima (ADR-0505). */
   empresaId?: string | null;
+  /** La foto principal del producto (si ninguna está marcada, la de menor `orden`): se dibuja al ofrecerlo como «sin stock aquí». Null = sin fotos. */
+  fotoUrl?: string | null;
 };
 
 /** Pone la marca a cada fila por su producto. Una fila cuyo producto no llegó (la lectura falló o el producto es nuevo) queda con `marca: null`. */
@@ -65,7 +67,7 @@ export function productosSinStockEnSede(productos: readonly ProductoDeCatalogo[]
   const conFila = new Set(filas.map((f) => f.productoId));
   return productos
     .filter((p) => p.estado === "activo" && p.conVariantesActivas && !p.esPrueba && !conFila.has(p.id))
-    .map((p) => ({ id: p.id, referencia: p.referencia, marca: p.marca, categoria: p.categoria }))
+    .map((p) => ({ id: p.id, referencia: p.referencia, marca: p.marca, categoria: p.categoria, familia: p.familia, fotoUrl: p.fotoUrl ?? null }))
     .sort((a, b) => a.referencia.localeCompare(b.referencia, "es"));
 }
 

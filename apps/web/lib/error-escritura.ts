@@ -97,9 +97,10 @@ const HUELLAS: Huella[] = [
   // Cierre de la cola de arranque (ADR-0334): 20261005100100.
   {
     marca: "prenda_cerrada_sin_prenda",
-    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide a un líder que la reabra en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
+    frase: "Esta venta se cerró sin identificar la prenda, así que todavía no se puede cambiar ni devolver. Pide que la reabran en Existencias ▸ Ventas sin registrar y vuelve a intentarlo.",
   },
-  { marca: "cola_solo_lider", frase: "Solo un líder puede cerrar o reabrir ventas sin registrar de una tienda." },
+  // ADR-0534 (20261027164000): cerrar, reabrir y las sugerencias de la cola ya no son solo del líder; las hace quien ve Existencias.
+  { marca: "cola_sin_modulo", frase: "Esto se hace desde Existencias: pide que le den ese módulo a tu rol." },
   { marca: "cola_sin_persona", frase: "No se sabe quién cierra la cola. Entra con tu cuenta y vuelve a intentarlo." },
   { marca: "cola_sin_permiso_sede", frase: "No tienes permiso para cerrar la cola de esa tienda." },
   { marca: "cola_motivo_invalido", frase: "Elige por qué se cierran sin identificar la prenda." },
@@ -109,15 +110,20 @@ const HUELLAS: Huella[] = [
   { marca: "cola_corte_invalido", frase: "No se pudo fijar hasta qué venta se cierra. Recarga la página y vuelve a intentarlo." },
   { marca: "cola_sin_plazo", frase: "Esta tienda no tiene plazo abierto para cerrar su cola de ventas sin registrar." },
   { marca: "cola_plazo_vencido", frase: "El plazo para cerrar la cola de esta tienda ya venció." },
+  // ADR-0334 act. 2026-10-14 (A6), en main desde 20261027174000: cerrar en bloque pide un cuadre del piso posterior a la última venta.
+  {
+    marca: "cola_sin_cuadre",
+    frase: "Primero cuadra el piso de esta tienda (Existencias ▸ Cuadrar el piso) después de la última venta sin registrar: cerrar sin contar entierra las prendas que sí están en el sistema.",
+  },
   {
     marca: "cola_vacia",
     frase: "Ya no hay ventas sin registrar pendientes hasta ese momento: otra persona las regularizó o las cerró. Recarga la página para ver cómo quedó.",
   },
   {
-    // ADR-0328 (20261004204000, en producción desde el 5-oct): llega con 42501 y este hint; la frase es la misma de la base.
-    // Sin esta huella caía al genérico con «avisa a Felipe. Código: …», y no es un rechazo del combo «Responsable».
-    marca: "regularizar_propia_venta",
-    frase: "Quien vendió esta prenda no puede regularizarla: que lo haga otra persona del equipo o un líder.",
+    // 20261026224000 (Felipe 2026-10-26): llega con 42501 y este hint. Una terminal no cambia el precio de la prenda, que vale en
+    // todas las tiendas; la ficha ya no se lo ofrece, así que esto solo sale si una pantalla vieja o dos pestañas lo intentan.
+    marca: "terminal_precio_de_la_prenda",
+    frase: "Desde una terminal el precio se cambia solo en su tienda: usa «Precio en tu tienda» en la ficha de la prenda. No se guardó nada.",
   },
   {
     // Desde 20261004204000 «Perdió la etiqueta» descuenta solo de lo DISPONIBLE (como las cifras de la mesa): las apartadas y las
@@ -494,7 +500,7 @@ const HUELLAS: Huella[] = [
 ];
 
 /**
- * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0529, actividad 7): «¿por qué no me
+ * Las frases que ya ve la persona cuando algo no la deja guardar, para «Pregúntale a CAYLA» (ADR-0536, actividad 7): «¿por qué no me
  * deja…?» se contesta con la MISMA frase de la pantalla, nunca con una inventada. Solo las fijas (las que llevan un dato del error no).
  */
 export function frasesDeErrores(): { marca: string; frase: string }[] {
@@ -508,9 +514,10 @@ export function frasesDeErrores(): { marca: string; frase: string }[] {
  * Lo mismo los del fondo por rendir (ADR-0362 fase 6): `fondo_propio` («Nadie se entrega plata a sí mismo…») y `fondo_ajeno`
  * («Desde tu fondo pagas tú: elige tu nombre en «Responsable».») llegan con `42501` y una frase que dice qué hacer; y los de la rendición
  * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
- * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
+ * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»). Y `plata_ya_tenia_solo_lider` (20261027231000, Mis compras):
+ * confirmar la plata «Ya tenía» es del líder; llega con `42501` y una frase que dice a quién pedírselo.
  */
-const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion)$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion|oferta)_[a-z_]+|en_rendicion|plata_ya_tenia_solo_lider)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano
@@ -642,6 +649,18 @@ const HINTS_CONTEO: ReadonlyMap<string, string | ((mensajeDeLaBase: string) => s
  * pudo… Vuelve a intentar», que manda a reintentar algo que no se arregla reintentando.
  */
 const HINT_SIN_MODULO = /^[a-z_]+_sin_modulo$/;
+
+/**
+ * Módulos que cambiaron de nombre después de que la base escribiera su mensaje. Las funciones de Compras simple (ADR-0480) dicen «Mi plata para
+ * compras» en el texto del error; el módulo se llama «Mis compras» en el menú y en Roles y accesos, y la persona busca ese nombre. La migración que
+ * dice el nombre viejo ya está en producción (y se pega tal cual), así que el nombre nuevo se pone aquí, al mostrarlo.
+ */
+const NOMBRE_ACTUAL_DEL_MODULO: ReadonlyArray<readonly [viejo: string, nuevo: string]> = [["«Mi plata para compras»", "«Mis compras»"]];
+
+/** El mensaje de un rechazo por módulo, con el nombre de módulo vigente (`NOMBRE_ACTUAL_DEL_MODULO`). */
+export function mensajeSinModulo(mensaje: string): string {
+  return NOMBRE_ACTUAL_DEL_MODULO.reduce((texto, [viejo, nuevo]) => texto.split(viejo).join(nuevo), mensaje);
+}
 
 /**
  * ¿La base rechazó porque el rol de la cuenta no tiene el módulo? (hint `<módulo>_sin_modulo`, ver arriba). Lo usan las
@@ -797,7 +816,7 @@ function fraseDelError(error: ErrorEscritura, contexto: string, opciones: { lect
   // código (el permiso, `42501`), que se reconocen por su `hint`.
   if (error.code === "P0001" && error.message) return error.message;
   if (error.hint && HINT_EN_CASTELLANO.test(error.hint) && error.message) return error.message;
-  if (esSinModulo(error)) return error.message;
+  if (esSinModulo(error)) return mensajeSinModulo(error.message ?? "");
 
   return `No se pudo ${contexto}. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: ${crudo}`;
 }

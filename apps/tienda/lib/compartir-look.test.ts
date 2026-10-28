@@ -3,6 +3,7 @@ import {
   bordesDe,
   claseDeTarjeta,
   fotoContenida,
+  enlaceParaCompartir,
   hrefTuLook,
   listaDeNombres,
   piezasDeLaImagen,
@@ -43,6 +44,11 @@ describe("el enlace que se comparte", () => {
   it("es la página pública con el look tal cual (los ~ y los . se leen)", () => {
     expect(hrefTuLook("TOP-0053.RPA~PAN-0012.CAM")).toBe("/tu-look?p=TOP-0053.RPA~PAN-0012.CAM");
     expect(textoAlCompartir("https://tienda.cayla.pe/tu-look?p=A.B")).toBe("Mira mi look en CAYLA: https://tienda.cayla.pe/tu-look?p=A.B");
+  });
+  it("lleva la marca de WhatsApp al final, sin tocar el look (ADR-0495)", () => {
+    expect(enlaceParaCompartir("https://tienda.cayla.pe", "TOP-0053.RPA~PAN-0012.CAM")).toBe(
+      "https://tienda.cayla.pe/tu-look?p=TOP-0053.RPA~PAN-0012.CAM&utm_source=whatsapp",
+    );
   });
   it("las prendas en una frase, para la descripción del enlace", () => {
     expect(listaDeNombres([])).toBe("");

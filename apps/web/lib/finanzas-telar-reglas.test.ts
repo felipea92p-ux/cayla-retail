@@ -130,6 +130,34 @@ describe("los hilos", () => {
     ]);
   });
 
+  it("las tiendas con su nombre de verdad, «Tienda TRU», «Tienda AQP» y «Tienda LIM», cada una su color", () => {
+    expect(colorDeSede({ nombre: "Tienda TRU", tipo: "tienda" })).toBe("tru");
+    expect(colorDeSede({ nombre: "Tienda AQP", tipo: "tienda" })).toBe("aqp");
+    expect(colorDeSede({ nombre: "Tienda LIM", tipo: "tienda" })).toBe("lim");
+    expect(colorDeSede({ nombre: "tru" })).toBe("tru");
+    expect(colorDeSede({ nombre: "Tienda Trujillo" })).toBe("tru");
+  });
+
+  it("la sigla va entera: una palabra que solo la contiene no es esa sede", () => {
+    expect(colorDeSede({ nombre: "Tienda Truco", tipo: "tienda" })).toBe("otra");
+    expect(colorDeSede({ nombre: "Limpieza", tipo: "tienda" })).toBe("otra");
+    expect(colorDeSede({ nombre: "Aqpa", tipo: "tienda" })).toBe("otra");
+    expect(colorDeSede({ nombre: "Almacén LIM", tipo: "almacen" })).toBe("otra");
+  });
+
+  it("con los nombres de verdad, la barra sale en el orden del telar y cada hilo con su color", () => {
+    const reales = sedesDelTelar(
+      [
+        { id: "a", nombre: "Tienda AQP", tipo: "tienda" },
+        { id: "l", nombre: "Tienda LIM", tipo: "tienda" },
+        { id: "t", nombre: "Tienda TRU", tipo: "tienda" },
+        { id: "w", nombre: "Taller", tipo: "taller" },
+      ],
+      true,
+    );
+    expect(reales.map((x) => [x.nombre, x.color])).toEqual([["TRU", "tru"], ["AQP", "aqp"], ["LIM", "lim"], ["Taller", "tal"], ["Empresa", "emp"]]);
+  });
+
   it("una sede que no se reconoce no toma el color de otra", () => {
     expect(colorDeSede({ nombre: "Tienda Cusco", tipo: "tienda" })).toBe("otra");
     expect(colorDeSede({ nombre: "Almacén Lima", tipo: "almacen" })).toBe("otra");

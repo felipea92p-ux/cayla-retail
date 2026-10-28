@@ -168,6 +168,8 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
       subtitulo="La puedes usar de una vez. Compras la confirma después."
       onClose={onClose}
       variante="hoja"
+      // En PC la hoja se ensancha para llevar dos columnas (Felipe 2026-10-26, «A», docs/maquetas/mis-compras-envios-pc-2026-10/): el celular y la tablet siguen igual.
+      ancho="max-w-md lg:max-w-3xl" // unificar-fijo: hoja de dos columnas solo desde 1024 px; bajo eso es la hoja angosta de siempre
       alCerrarEnfocar={volverA}
       bloqueado={guardando || congelada}
       antesDeCerrar={salida.pedirAccion}
@@ -180,8 +182,12 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
           }}
           className="space-y-5"
         >
-          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
-            <CampoGuiado id="medio" guia={guia} titulo="¿Cómo te llegó?">
+          <fieldset disabled={congelada} className="campos-congelables min-w-0">
+            {/* En PC: cómo te llegó y de qué banco, a la izquierda; cuánto y la foto, a la derecha. En el celular las cajas «desaparecen» (`contents`). */}
+            <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+            <div className="contents lg:flex lg:flex-col lg:gap-5">
+            {/* Con «Ya tenía de antes» no hay cómo te llegó (no hay fichas): el título lo dice en vez de preguntar algo que ya no se contesta. */}
+            <CampoGuiado id="medio" guia={guia} titulo={yaTenia ? "Plata de antes" : "¿Cómo te llegó?"}>
               {!yaTenia && (
                 <FichasMedio<Ficha>
                   etiqueta="¿Cómo te llegó?"
@@ -217,6 +223,8 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                 <p className="mt-1.5 text-xs text-taupe">La cuenta de la empresa de donde salió la plata: así queda en Finanzas. Compras la confirma.</p>
               </CampoGuiado>
             )}
+            </div>
+            <div className="contents lg:flex lg:flex-col lg:gap-5">
             <CampoGuiado id="monto" guia={guia} titulo={yaTenia ? "¿Cuánto tenías?" : "¿Cuánto te dieron?"}>
               <CampoMonto
                 etiqueta={yaTenia ? "¿Cuánto tenías?" : "¿Cuánto te dieron?"}
@@ -250,6 +258,8 @@ function AnotarPlataModal({ puedeYaTenia, bancos, onClose, volverA }: { puedeYaT
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
             )}
+            </div>
+            </div>
           </fieldset>
           {congelada ? (
             <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />

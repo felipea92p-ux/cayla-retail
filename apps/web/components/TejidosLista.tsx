@@ -31,8 +31,9 @@ import { filtrarPorNombre, GRUPOS_USO, ORDEN_USO, usoDe, type UsoAtributo } from
 
 /**
  * Vocabulario cerrado de tejidos (ADR-0095/0096) — mismo mecanismo que
- * Colores: cualquiera con sesión propone, cualquiera de los Líderes aprueba
- * o rechaza. A diferencia de Colores, tejido no tiene código de 3 letras
+ * Colores: cualquiera con sesión agrega y, desde ADR-0534 (2026-10-27), lo
+ * agregado nace aprobado; lo que quedó pendiente de antes se aprueba o
+ * rechaza aquí. A diferencia de Colores, tejido no tiene código de 3 letras
  * (no se inyecta en el código de barras — es atributo del PRODUCTO, no de
  * la variante), ni hex/tipo/muestra: solo un nombre y el candado de clave
  * única normalizada que ya hace `fn_clave_texto` en la base.
@@ -137,10 +138,7 @@ export function TejidosLista({
         ])
       );
       responsable.despues(null);
-      avisar.exito(
-        datos.tejido.estado === "pendiente" ? `${datos.tejido.nombre} agregado — ya lo puedes usar` : `Tejido ${datos.tejido.nombre} agregado`,
-        datos.tejido.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
-      );
+      avisar.exito(`Tejido ${datos.tejido.nombre} agregado`);
       setAgregando(false);
       setNombre("");
       if (puedeEditar && descripcion.trim()) {

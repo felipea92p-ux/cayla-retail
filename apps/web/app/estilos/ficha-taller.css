@@ -84,6 +84,37 @@
 .matriz-paso[data-tocada="true"] {
   animation: taller-destello 480ms var(--ease-cayla);
 }
+/* El sello: la variante que acaba de guardarse con sus unidades de partida cambia la caja por el candado (ADR-0494). Una sola vez. */
+.matriz-paso[data-sellada="true"] {
+  animation: taller-sellado 900ms var(--ease-cayla) both;
+}
+.matriz-paso[data-sellada="true"] .candado-sellado {
+  animation: taller-candado 620ms var(--ease-cayla) both;
+}
+@keyframes taller-sellado {
+  0% {
+    border-color: var(--color-ambar);
+    background: color-mix(in srgb, var(--color-ambar) 16%, var(--color-papel));
+    transform: scale(1.05);
+  }
+  50% {
+    border-color: var(--color-verde);
+    background: color-mix(in srgb, var(--color-verde) 16%, var(--color-papel));
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes taller-candado {
+  from {
+    opacity: 0.2;
+    transform: translateY(-4px) rotate(-18deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @keyframes taller-destello {
   0%,
   100% {
@@ -416,6 +447,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .matriz-paso[data-tocada="true"],
+  .matriz-paso[data-sellada="true"],
+  .matriz-paso[data-sellada="true"] .candado-sellado,
   .taller-fila-nueva,
   .taller-banner-nueva,
   .taller-panel,

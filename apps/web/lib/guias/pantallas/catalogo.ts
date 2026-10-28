@@ -330,13 +330,13 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
   id: "productos.id.editar",
   ruta: "/productos/[id]/editar",
   titulo: "Editar producto",
-  resumen: "La ficha completa de una prenda: datos, fotos, colores, tallas, precios y stock.",
+  resumen: "La ficha completa de una prenda: datos, fotos, colores, tallas, precios y costos. El stock se ve aquí y se ajusta en Existencias.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "La ficha de una prenda",
-      texto: "Aquí corriges todo de una prenda que ya existe: su nombre y categoría, el tejido, las fotos, los colores y tallas, los precios y el stock de hoy. Nada se guarda hasta que tocas «Revisar y guardar». Es una demo: no se cambia nada.",
+      texto: "Aquí corriges todo de una prenda que ya existe: su nombre y categoría, el tejido, las fotos, los colores y tallas, los precios y los costos. El stock de hoy se ve aquí, con candado: se ajusta en Existencias. Nada se guarda hasta que tocas «Revisar y guardar». Es una demo: no se cambia nada.",
     },
     {
       id: "cabecera",
@@ -374,12 +374,12 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "variantes",
       ancla: "editar.seccion-variantes",
       titulo: "4 · Variantes y precios",
-      texto: "Una fila por color y una columna por talla. En «Stock de hoy» corriges cuántas hay con − y +; una raya es una talla que no existe en ese color. El lápiz corrige un color o una talla mal registrados y el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
+      texto: "Una fila por color y una columna por talla. En «Unidades» ves cuántas hay, con su candado: tócalo para ajustar el stock en Existencias. Una raya es una talla que no existe. El lápiz corrige un color o una talla; el tacho deja de vender ese color. Abajo, «Agregar color» y «Agregar talla».",
     },
     {
       id: "vistas",
       ancla: "editar.vistas",
-      titulo: "Stock, precios, costos, etiquetas",
+      titulo: "Unidades, precios, costos, insignias",
       texto: "La misma tabla con otro dato a la vista. Mira: pasamos a «Precios», donde escribes el precio de cada talla o cambias varias de una vez.",
       demostrar: [{ tipo: "clic", ancla: "editar.vista-precio" }],
     },
@@ -394,15 +394,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "vistas-vuelta",
       ancla: "editar.vistas",
       preparar: [{ tipo: "clic", ancla: "editar.vista-unidades" }],
-      titulo: "Costos, insignias y campañas",
-      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias y campañas» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Stock de hoy».",
+      titulo: "Costos e insignias",
+      texto: "«Costos» muestra lo que te cuesta cada talla y su margen. «Insignias» marca cuáles llevan Nuevo, Para liquidar o una campaña. Volvimos a «Unidades».",
     },
     {
       id: "precio-tienda",
       ancla: "editar.precio-tienda",
       opcional: true,
       titulo: "Precio por tienda",
-      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién lo puso; «Cambiar» y «Quitar» lo ajustan. Esto se guarda aparte, al momento, no con «Revisar y guardar». En la demo no lo tocamos.",
+      texto: "Si todas las tiendas venden igual, lo dice en una línea. Una tienda puede tener su propio precio, con desde cuándo, por qué y quién; «Cambiar» y «Quitar» lo ajustan al momento. En una terminal no sale: su precio se escribe en la tabla de «Precios» y se guarda con «Revisar y guardar». En la demo no lo tocamos.",
     },
     {
       id: "corregir-talla",
@@ -425,7 +425,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Llegó un color o una talla nueva",
-      texto: "«Agregar color» suma una fila con sus tallas; «Agregar talla», una columna en cada color. Las nuevas nacen en cero: el stock entra con el mismo − y + de la tabla. Te abrimos «Agregar color».",
+      texto: "«Agregar color» suma una fila con sus tallas; «Agregar talla», una columna en cada color. Las nuevas nacen con las unidades que les pongas, solo esa vez: después el stock se ajusta en Existencias. Te abrimos «Agregar color».",
     },
     {
       id: "agregar-color",
@@ -434,6 +434,20 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       preparar: [{ tipo: "clic", ancla: "editar.agregar-color" }],
       titulo: "Los colores que llegaron",
       texto: "Elige uno o varios de la lista de colores, o búscalo por nombre. Al elegir, aparecen su foto (opcional), en qué tallas viene y la tabla de las variantes que van a nacer, con su precio.",
+    },
+    {
+      id: "agregar-color-unidades",
+      ancla: "agregar-color.unidades",
+      opcional: true,
+      titulo: "¿Con cuántas unidades nacen?",
+      texto: "Pon cuántas hay de cada talla nueva, o déjalas en 0. Es la única vez que se escribe stock aquí: al guardar, el número se sella con su candado y después solo se ajusta en Existencias.",
+    },
+    {
+      id: "agregar-color-vista",
+      ancla: "agregar-color.vista-previa",
+      opcional: true,
+      titulo: "Así quedará en la tabla",
+      texto: "Lo que ya hay, atenuado, y lo que nace, en ámbar con sus unidades. Míralo antes de sumarlas a la ficha.",
     },
     {
       id: "agregar-color-pie",
@@ -452,6 +466,29 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "Marca las tallas nuevas: cada una nace en los colores que ya vende la prenda. Toca una celda para quitar una combinación que no llegó y pon su precio. Solo ofrece las tallas de su categoría. Cerramos sin agregar.",
     },
     {
+      id: "agregar-talla-unidades",
+      ancla: "agregar-talla.unidades",
+      opcional: true,
+      titulo: "¿Con cuántas unidades nacen?",
+      texto: "Pon cuántas hay de la talla nueva en cada color, o déjalas en 0. Es la única vez que se escribe stock aquí: al guardar se sella y después solo se ajusta en Existencias.",
+    },
+    {
+      id: "agregar-talla-vista",
+      ancla: "agregar-talla.vista-previa",
+      opcional: true,
+      titulo: "Así quedará en la tabla",
+      texto: "La columna nueva, en ámbar y con sus unidades, junto a lo que ya hay. Míralo antes de sumarla a la ficha.",
+    },
+    {
+      // El pie de «Agregar talla», como el de «Agregar color»: el asistente que acompaña una talla nueva lo enciende; la demo cierra la
+      // hoja antes, así que se salta (opcional).
+      id: "agregar-talla-pie",
+      ancla: "agregar-talla.pie",
+      opcional: true,
+      titulo: "Sumarlas a la ficha",
+      texto: "El botón de la derecha suma esas tallas a la tabla de la ficha, todavía sin guardar; «Cancelar» cierra sin tocar nada.",
+    },
+    {
       id: "foto",
       ancla: "editar.foto",
       opcional: true,
@@ -464,7 +501,14 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       ancla: "editar.stock-talla",
       opcional: true,
       titulo: "Stock por talla",
-      texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Con − y + lo corriges aquí mismo; se guarda con «Revisar y guardar».",
+      texto: "Cuántas hay de cada talla del color elegido, con una barra para ver de un vistazo cuál se está acabando. Cada número tiene candado: tócalo y «Ajustar stock» te lleva a esa talla en Existencias.",
+    },
+    {
+      id: "ficha-consumo",
+      ancla: "editar.ficha-consumo",
+      opcional: true,
+      titulo: "La ficha de consumo",
+      texto: "Cuánta tela lleva una prenda de este modelo (por talla si hace falta) y qué avíos: botones, hilo, etiquetas. «Abrir la ficha» la muestra, con las órdenes cerradas; la edita el Taller. Con 3 órdenes manda lo que se gastó de verdad, y «Volver a Audaces» lo deshace.",
     },
     {
       id: "precio",
@@ -479,6 +523,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       opcional: true,
       titulo: "Lo que le falta a la ficha",
       texto: "Te dice qué le falta para quedar completa, como las fotos de algunos colores. Tócalo y te lleva directo a ese campo. No impide guardar: es un recordatorio.",
+    },
+    {
+      // La barra que aparece al cambiar algo: aquí guarda la persona. El asistente que acompaña una tarea la enciende; la demo no cambia
+      // nada, así que no la ve y se salta (opcional).
+      id: "barra-guardar",
+      ancla: "editar.barra-guardar",
+      opcional: true,
+      titulo: "Revisar y guardar",
+      texto: "Te muestra la lista de lo que cambiaste antes de guardar; ahí confirmas. «Descartar» deja la ficha como estaba.",
     },
     {
       id: "guardar",
@@ -641,7 +694,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "cabecera",
       ancla: "atributos.cabecera",
       titulo: "Atributos y su «!»",
-      texto: "El «!» junto al título cuenta la regla de estas listas: cualquiera con sesión propone un valor nuevo y ya lo puede usar; después un líder lo aprueba o lo rechaza. La temporada es distinta: una lista fija de nueve.",
+      texto: "El «!» junto al título cuenta la regla de estas listas: cualquiera con sesión agrega un valor nuevo y ya lo puede usar. La temporada es distinta: una lista fija de nueve.",
     },
     {
       id: "pestanas",
@@ -653,7 +706,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       id: "ayuda",
       ancla: "atributos.ayuda",
       titulo: "Para qué sirve esta lista",
-      texto: "Una línea que explica la lista que tienes abierta. En Colores: quién propone uno nuevo y quién lo aprueba.",
+      texto: "Una línea que explica la lista que tienes abierta. En Colores: quién agrega uno nuevo y qué pasa con lo que quedó pendiente.",
     },
     {
       id: "filtros",
@@ -691,14 +744,14 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vocabulario.buscador" }, { tipo: "clic", ancla: "atributos.pestana-colores" }],
       titulo: "Colores, por familia",
-      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» propone uno nuevo: avisa si se parece mucho a otro que ya existe.",
+      texto: "Las píldoras dejan ver una familia de color (Neutro, Tierra, Azul…). El buscador entiende el nombre, el código y cómo le dicen en tienda. «+ Agregar color» agrega uno nuevo: avisa si se parece mucho a otro que ya existe.",
     },
     {
       id: "color-tarjeta",
       ancla: "vocabulario.tarjeta",
       opcional: true,
       titulo: "Cada color",
-      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también con qué otros colores combina. Uno propuesto dice «Pendiente» hasta que un líder lo aprueba o lo rechaza. «Editar» abre su ficha (te la abrimos).",
+      texto: "Su muestra, su nombre, su código y, si lo tiene, el Pantone para pedir la tela; también con qué otros colores combina. Uno que quedó pendiente de antes dice «Pendiente» hasta que se aprueba o se rechaza. «Editar» abre su ficha (te la abrimos).",
     },
     {
       id: "color-form",
@@ -721,7 +774,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "atributos.pestana-tallas" }],
       titulo: "Tallas, por tipo",
-      texto: "Pasamos a Tallas: letras (S, M, L), numeración (26, 38), única y estándar, y otras. Se ordenan como la curva, no por abecedario. «+ Agregar talla» propone una nueva.",
+      texto: "Pasamos a Tallas: letras (S, M, L), numeración (26, 38), única y estándar, y otras. Se ordenan como la curva, no por abecedario. «+ Agregar talla» agrega una nueva.",
     },
     {
       id: "talla-tarjeta",
@@ -736,7 +789,7 @@ export const GUIA_ATRIBUTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "atributos.pestana-tejidos" }],
       titulo: "Tejidos: en uso o sin prendas",
-      texto: "Pasamos a Tejidos, la tela de la prenda. «En uso» deja los que tienen prendas; «Sin prendas», los que nadie usa todavía. Se buscan por nombre y se proponen con «+ Agregar tejido».",
+      texto: "Pasamos a Tejidos, la tela de la prenda. «En uso» deja los que tienen prendas; «Sin prendas», los que nadie usa todavía. Se buscan por nombre y se agregan con «+ Agregar tejido».",
     },
     {
       id: "tejido-tarjeta",
@@ -878,7 +931,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.nuevo",
       opcional: true,
       titulo: "Una nueva",
-      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen y sus fechas de inicio y fin; nace en la pestaña donde estás. Después le pones sus ofertas y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
       id: "pestanas",
@@ -927,7 +980,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.ofertas-registradas",
       opcional: true,
       titulo: "Las que ya están",
-      texto: "Cada oferta dice su estado: Borrador espera a un líder, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
+      texto: "Cada oferta dice su estado: Borrador todavía no se activó, Programada empieza después, Vigente ya baja el precio. Toca una para editarla: vale desde ese momento, lo que ya se vendió no cambia y queda su historial. El «descuento de siempre» de una campaña antigua sale aquí con «Retirar».",
     },
     {
       id: "oferta-pasos",
@@ -1001,21 +1054,21 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.oferta-activar",
       opcional: true,
       titulo: "Guardar o activar",
-      texto: "Quien no es líder la deja como borrador. Un líder también puede activarla: desde ese momento la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
+      texto: "Puedes dejarla como borrador o activarla: desde que la activas, la caja y la tienda web bajan el precio. En la demo no lo tocamos.",
     },
     {
       id: "ofertas-campana",
       ancla: "sellos.ofertas-campana",
       opcional: true,
       titulo: "Las fechas de la campaña",
-      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. «Cambiar fechas» las mueve aquí mismo, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite con un toque: «Repetir».",
+      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. Las fechas se cambian desde «Editar», en su pase, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite ahí mismo, con «Repetir en» el año que viene.",
     },
     {
-      id: "dibujo",
-      ancla: "sellos.dibujo",
+      id: "editar",
+      ancla: "sellos.editar",
       opcional: true,
-      titulo: "Su dibujo",
-      texto: "Cambia el dibujo de su sello: la calabaza, el pastel, el gato… o sube tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien también en modo oscuro. Quien compra ve lo mismo en la ficha de la prenda. En la demo no lo tocamos.",
+      titulo: "Corregir nombre, ícono y fechas",
+      texto: "«Editar», a la derecha del estado, corrige el nombre, cambia las fechas de una campaña y el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen (si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro). En la demo no lo tocamos.",
     },
     {
       id: "campana-form",
@@ -1065,7 +1118,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.listo",
       opcional: true,
       titulo: "Lo que ya tiene",
-      texto: "Fechas y prendas hacen que la campaña funcione; el descuento es opcional. Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
+      texto: "Fechas y prendas hacen que la campaña funcione; las ofertas y promociones son opcionales (el descuento se arma con ellas). Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
     },
     {
       id: "rotacion",

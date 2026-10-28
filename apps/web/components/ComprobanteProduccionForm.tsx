@@ -25,7 +25,7 @@ import {
 } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO } from "@/lib/insumos-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
-import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/components/finanzas/CampoCuenta";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 import { Vacio } from "@/components/ui/Vacio";
@@ -74,8 +74,10 @@ export function ComprobanteProduccionForm({
   const [lineas, setLineas] = useState<LineaForm[]>([{ ...LINEA_VACIA }]);
   const [totalPapel, setTotalPapel] = useState("");
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo()]);
-  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado (el Taller no cobra: se propone la primera cuenta que sirve).
-  const cuentas = useCuentasParaElegir("pago", null);
+  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado. Se pide con la sede del Taller: así propone la cuenta que el líder
+  // eligió para sus transferencias; si no hay ninguna (o el Taller no responde), la primera cuenta que sirve, como siempre.
+  const taller = useIdDelTaller();
+  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { propuestaSoloDe: PROPUESTA_DEL_TALLER });
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el comprobante firma con quien se elige en el combo (lista de la sede activa).

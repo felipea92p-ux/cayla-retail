@@ -11,6 +11,9 @@ import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { nuevaOperacion } from "@/lib/cola-offline";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useColaRecibir } from "@/lib/useColaRecibir";
 import { useResponsable } from "@/lib/useResponsable";
 import { diaMes } from "@/lib/fechas-lima";
@@ -148,6 +151,11 @@ export function LlegoMercaderia({
   const fueACrear = useRef(false);
   const colaOffline = useColaRecibir();
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+  // ADR-0542: en una sede donde operan dos empresas (Lima), quien recibe dice de quién es lo que llegó. Sin respuesta de fábrica.
+  const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
+  const preguntaDueno = hayQueElegirDueno(empresasDeLaSede);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresasDeLaSede, duenoId);
 
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   // Cuando la página relee el directorio, el recién agregado ya viene en `proveedores`: no se repite. `directorioCompleto` incluye a quien
@@ -176,6 +184,7 @@ export function LlegoMercaderia({
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
     facturaRespondida: susFacturas.length > 0 ? sinFactura.includes(proveedorId) : null,
+    duenoFalta: preguntaDueno ? faltaDueno : null,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
   // Dormida, la guía no marca «Sigue aquí» ni pinta el «Falta: …» del pie: lo que falta sigue diciendo «falta» en cada título. Recibir
@@ -301,7 +310,7 @@ export function LlegoMercaderia({
     setLoading(true);
     const params = pedidoRecibirLote({ ubicacionId, proveedorId, lineas, numeroGuia, token: token.current, confirmadas });
     const firma = responsable.firma();
-    const { data: loteId, error, status } = await firmar(createClient().rpc("recibir_lote", params), firma);
+    const { data: loteId, error, status } = await firmar(conDueno(createClient().rpc("recibir_lote", params), preguntaDueno ? duenoId : null), firma);
     setLoading(false);
 
     // Sin red (ADR-0210): la llegada no se pierde. Entra a la cola con su token y sube sola al volver internet.
@@ -311,6 +320,7 @@ export function LlegoMercaderia({
         rpc: "recibir_lote",
         params,
         firma,
+        dueno: preguntaDueno ? duenoId : null,
         resumen: `${unidades} ${unidades === 1 ? "prenda" : "prendas"} de ${proveedor?.nombre ?? "proveedor"} · ${ubicacionEtiqueta}`,
       });
       if (!colaOffline.encolar(op)) {
@@ -585,6 +595,12 @@ export function LlegoMercaderia({
             )}
           </CampoGuiado>
           </div>
+
+          {preguntaDueno && empresasDeLaSede && (
+            <CampoGuiado id="llegada-dueno" guia={guiaVista} titulo="¿De quién es la mercadería?" ayuda="CAYLA o CLAURE: lo marcas tú, no la marca de la prenda" retiene="fila">
+              <ElegirDueno empresas={empresasDeLaSede} duenoId={duenoId} onElegir={setDuenoId} deshabilitado={loading} guia="recibir.dueno" />
+            </CampoGuiado>
+          )}
 
           <div data-guia="recibir.responsable">
             <CampoGuiado id="llegada-responsable" guia={guiaVista}>

@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Impuestos · maqueta simple</title>
+<style>
+/* Maqueta de Finanzas ▸ Impuestos, versión «pocas palabras» (2026-10-26). Paleta oficial «CAYLA Dynamic» (ADR-0169) y modo oscuro (ADR-0336):
+   los mismos valores de globals.css y tema.css. Movimiento de ADR-0136: una sola vez, sin rebote; el único bucle es el punto de «vence pronto».
+   Todo se apaga con prefers-reduced-motion. Nada se guarda ni toca la base: cifras de EJEMPLO. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0;
+  --tinta:#1a1a18; --taupe:#805c4c; --rojo:#b8412d; --rojo-p:#8b2a1f;
+  --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+  --ease-cayla:cubic-bezier(0.32,0.72,0.24,1);
+  --serif:"EB Garamond",ui-serif,Georgia,serif;
+  --sans:"DM Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --radio:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+    --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-p:#f29a86;
+    --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+  --tinta:#f5f0e8; --taupe:#c4a898; --rojo:#e8806a; --rojo-p:#f29a86;
+  --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;text-wrap:balance;letter-spacing:-.005em}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums}
+.tenue{color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.versalita{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- Barra de la maqueta (no es parte del diseño) ---------- */
+.mq-barra{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 20px;
+  background:color-mix(in srgb,var(--crema) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--sand)}
+.mq-barra b{font-family:var(--serif);font-size:20px;font-weight:500}
+.mq-esp{flex:1}
+.mq-selector{display:inline-flex;padding:4px;border-radius:999px;background:var(--hueso);gap:2px;position:relative}
+.mq-selector button{border:0;background:transparent;padding:6px 12px;border-radius:999px;cursor:pointer;font-size:12.5px;font-weight:600;letter-spacing:.04em;position:relative;z-index:1;color:color-mix(in srgb,var(--tinta) 70%,transparent);transition:color .2s var(--ease-cayla)}
+.mq-selector button[aria-pressed="true"]{color:var(--crema)}
+.mq-pildora{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--tinta);transition:left .35s var(--ease-cayla),width .35s var(--ease-cayla);z-index:0}
+.mq-btn{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
+.mq-btn[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.mq-ejemplo{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ambar);border:1px solid color-mix(in srgb,var(--ambar) 45%,transparent);border-radius:999px;padding:3px 10px;white-space:nowrap}
+.mq-intro{max-width:1180px;margin:18px auto 0;padding-inline:20px;font-size:13.5px}
+
+.pagina{max-width:1180px;margin:0 auto;padding:24px 20px 96px;display:flex;flex-direction:column;gap:28px}
+.variante{display:flex;flex-direction:column;gap:18px}
+.variante[hidden]{display:none!important}
+.idea{font-size:14px}
+.idea b{font-weight:600}
+
+/* ---------- Piezas del ERP (aproximadas) ---------- */
+.encabezado{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.linea-sede{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.linea-sede::after{content:"";width:72px;height:1px;background:var(--taupe);opacity:.55}
+.encabezado h1{font-size:clamp(34px,5vw,46px);line-height:1.02}
+.acciones{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:18px 20px;min-width:0;position:relative}
+.tarjeta.hundida{background:var(--hueso);border-color:transparent}
+.tarjeta.negra{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.tarjeta.negra .versalita{color:color-mix(in srgb,var(--crema) 70%,transparent)}
+.rejilla{display:grid;gap:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:3px 10px 3px 8px;border-radius:999px;white-space:nowrap;background:color-mix(in srgb,var(--c,var(--pizarra)) 13%,transparent);color:var(--c,var(--pizarra))}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.late::before{animation:late 1.6s ease-in-out infinite}
+.c-verde{--c:var(--verde)}.c-ambar{--c:var(--ambar)}.c-rojo{--c:var(--rojo-p)}.c-pizarra{--c:var(--pizarra)}.c-taupe{--c:var(--taupe)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--tinta);background:transparent;cursor:pointer;font-size:13.5px;font-weight:500;position:relative;overflow:hidden;transition:transform .2s var(--ease-cayla),background .2s,color .2s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:scale(.97)}
+.btn.primario{background:var(--tinta);color:var(--crema)}
+.btn.primario:hover{background:var(--rojo-p);border-color:var(--rojo-p);color:var(--crema)}
+.btn.sutil{border-color:var(--sand);background:var(--papel)}
+.btn.chico{height:32px;padding:0 12px;font-size:12.5px}
+.btn.claro{background:var(--crema);color:var(--tinta);border-color:var(--crema)}
+.pildora{border:1px solid var(--sand);background:var(--papel);border-radius:999px;height:32px;padding:0 14px;font-size:13px;cursor:pointer;transition:background .2s,color .2s}
+.pildora[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.mes{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:3px}
+.mes button{width:32px;height:32px;border-radius:50%;border:0;background:none;cursor:pointer;display:grid;place-items:center}
+.mes button:hover{background:var(--hueso)}
+.mes span{padding:0 10px;font-family:var(--serif);font-size:18px}
+.pista{height:10px;border-radius:999px;background:var(--hueso);overflow:hidden;position:relative}
+.pista>i{display:block;height:100%;border-radius:999px;background:var(--c,var(--tinta));width:var(--w,0%)}
+.pista.fina{height:6px}
+.marca-aviso{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ambar)}
+.dashed{border:1.5px dashed color-mix(in srgb,var(--taupe) 55%,transparent);border-radius:var(--radio);background:transparent}
+.aviso-sede{display:none;gap:10px;align-items:center;font-size:13px;padding:10px 14px}
+.sedes{display:flex;flex-direction:column;gap:10px}
+body[data-estado="vacio"] .solo-pend{display:none!important}
+body:not([data-estado="vacio"]) .solo-aldia{display:none!important}
+body:not([data-estado="favor"]) .solo-favor{display:none!important}
+body[data-estado="vacio"] .solo-mov{display:none!important}
+.trozos span.resta{background:transparent;border:1px dashed var(--taupe)}
+.ver-det{background:none;border:0;color:inherit;cursor:pointer;padding:0;font:inherit;text-align:left}
+.ver-det:hover{text-decoration:underline}
+.ver-det::after{content:" ▸";display:inline-block;transition:transform .25s var(--ease-cayla)}
+.ver-det[aria-expanded="true"]::after{transform:rotate(90deg)}
+.suma .det{flex-direction:column;gap:3px;font-size:12.5px;opacity:.82;padding-left:12px;margin-top:-2px}
+.suma .det div{display:flex;justify-content:space-between;gap:12px}
+.nota-falta{display:flex;gap:10px;align-items:center;font-size:13px;padding:10px 14px;margin-top:12px}
+.recomienda{max-width:1180px;margin:10px auto 0;padding:12px 16px;font-size:14px;background:var(--hueso);border-radius:12px}
+.mq-grupo{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.aviso-sede.ver{display:flex}
+
+/* Puntos numerados de la maqueta: explican cada pieza (se prenden y apagan arriba) */
+.pt{display:none;position:absolute;top:-9px;left:-9px;z-index:5;width:22px;height:22px;border-radius:50%;background:var(--rojo);color:var(--crema);font-size:11.5px;font-weight:700;font-style:normal;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--crema)}
+.puntos .pt{display:flex}
+.inline-pt{position:relative}
+
+/* Paso a paso (A) */
+.ruta{list-style:none;display:flex;margin:0;padding:0;gap:6px}
+.ruta li{flex:1;min-width:0}
+.ruta button{width:100%;display:flex;align-items:center;gap:10px;border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;transition:border-color .2s,background .2s;position:relative}
+.ruta .n{width:26px;height:26px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--tinta) 35%,transparent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.ruta .t{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.ruta .t b{font-weight:600;font-size:14px}
+.ruta .t small{font-size:11.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.ruta button[aria-selected="true"]{border-color:var(--tinta);background:var(--tinta);color:var(--crema)}
+.ruta button[aria-selected="true"] .n{border-color:var(--crema);background:var(--crema);color:var(--tinta)}
+.ruta button[aria-selected="true"] .t small{color:color-mix(in srgb,var(--crema) 70%,transparent)}
+.ruta button.hecho .n{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.cols-a{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
+.panel[hidden]{display:none}
+.fila{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--sand)}
+.fila:last-child{border-bottom:0}
+.fila .ico{width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--c,var(--ambar)) 14%,transparent);color:var(--c,var(--ambar));display:grid;place-items:center;flex:none}
+.fila .txt{flex:1;min-width:0;line-height:1.25}
+.fila .txt b{font-weight:600}
+.fila .txt small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.fila .m{font-family:var(--serif);font-size:18px;text-align:right}
+.respuesta .valor{font-variant-numeric:lining-nums tabular-nums;font-family:var(--serif);font-size:clamp(46px,7vw,64px);line-height:1;font-variant-numeric:tabular-nums}
+.suma{display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:14px}
+.suma div{display:flex;justify-content:space-between;gap:12px}
+.suma .total{border-top:1px solid color-mix(in srgb,currentColor 25%,transparent);padding-top:8px;font-weight:600}
+
+/* Una cuenta (B) */
+.cuenta{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1.1fr;gap:10px;align-items:stretch}
+.cuenta .op{display:grid;place-items:center;font-family:var(--serif);font-size:30px;color:var(--taupe)}
+.cuenta .caja{display:flex;flex-direction:column;gap:6px;justify-content:space-between}
+.cuenta .valor{font-family:var(--serif);font-size:clamp(28px,3.4vw,40px);line-height:1;font-variant-numeric:tabular-nums}
+.trozos{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.trozos span{font-size:12px;background:var(--hueso);border-radius:999px;padding:2px 9px}
+.lugar{display:grid;grid-template-columns:90px 1fr 84px;gap:10px;align-items:center;font-size:13.5px;padding:6px 0}
+.lugar .bar{position:relative;height:12px;display:flex;align-items:center}
+.lugar .bar::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--sand)}
+.lugar .bar i{position:absolute;height:12px;border-radius:999px}
+.lugar .bar i.pone{left:50%;background:var(--tinta)}
+.lugar .bar i.baja{right:50%;background:var(--verde)}
+.lugar .m{text-align:right;font-variant-numeric:tabular-nums}
+
+/* Vistazo (C) */
+.cols-c{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cols-c .tarjeta{display:flex;flex-direction:column;gap:10px;min-height:190px}
+.cols-c .valor{font-variant-numeric:lining-nums tabular-nums;font-family:var(--serif);font-size:clamp(34px,4vw,46px);line-height:1;font-variant-numeric:tabular-nums}
+.anillo{width:84px;height:84px;flex:none}
+.anillo circle{fill:none;stroke-width:9}
+.anillo .f{stroke:var(--ambar);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+.anillo .p{stroke:var(--hueso)}
+.hacer{display:flex;flex-direction:column}
+.hacer{counter-reset:paso}.hacer .fila{counter-increment:paso}.hacer .fila .n::before{content:counter(paso)}
+.hacer .fila .n{width:26px;height:26px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--tinta) 35%,transparent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+
+/* Meses */
+.meses{display:flex;gap:8px;overflow-x:auto;padding:2px}
+.meses button{flex:1 0 62px;border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:10px 8px;display:flex;flex-direction:column;gap:6px;align-items:center;cursor:pointer;font-size:13px;transition:transform .2s var(--ease-cayla),border-color .2s}
+.meses button:hover{transform:translateY(-2px)}
+.meses button[aria-current="true"]{border-color:var(--tinta);border-width:1.5px}
+.meses .pt-estado{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.meses .en-curso .pt-estado{background:transparent;border:1.5px dashed var(--taupe)}
+.meses small{font-size:11px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+
+/* ---------- Leyenda y «qué falta» ---------- */
+.seccion{display:flex;flex-direction:column;gap:12px}
+.seccion h2{font-size:26px}
+.leyenda{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:8px 22px}
+.leyenda li{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--sand);font-size:14px}
+.leyenda .n{width:22px;height:22px;border-radius:50%;background:var(--rojo);color:var(--crema);font-size:11.5px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.leyenda b{font-weight:600}
+.falta{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px}
+.falta .tarjeta{display:flex;flex-direction:column;gap:8px}
+.falta ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.falta li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--sand);font-size:14px;line-height:1.35}
+.falta li:last-child{border-bottom:0}
+.falta li small{display:block;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-size:12.5px}
+.falta .chip{margin-top:1px}
+.comp{width:100%;border-collapse:collapse;font-size:14px}
+.comp th{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--sand)}
+.comp td{padding:9px 10px;border-bottom:1px solid var(--sand);vertical-align:top}
+.desliza{overflow-x:auto}
+
+/* ---------- Movimiento (una vez, sin rebote) ---------- */
+.animar [data-entra]{animation:entra .6s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 55ms + 60ms)}
+.animar [data-crece]>i{animation:crece .9s var(--ease-cayla) backwards;animation-delay:.25s}
+@keyframes entra{from{opacity:0;transform:translateY(12px)}}
+@keyframes crece{from{width:0}}
+@keyframes late{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}50%{box-shadow:0 0 0 5px transparent}}
+.onda{position:absolute;border-radius:50%;pointer-events:none;background:currentColor;opacity:.22;transform:scale(0);animation:onda .6s var(--ease-cayla) forwards}
+@keyframes onda{to{transform:scale(1);opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* ---------- Celular ---------- */
+@media (max-width:860px){
+  .cols-a{grid-template-columns:1fr}
+  .cols-c{grid-template-columns:1fr}
+  .cuenta{grid-template-columns:1fr 1fr}
+  .cuenta .op{display:none}
+  .cuenta .caja.res{grid-column:1/-1}
+  .ruta{flex-wrap:wrap}.ruta li{flex:1 1 45%}
+}
+@media (max-width:480px){
+  .pagina{padding-inline:16px}.mq-barra{padding:8px 16px}.mq-ejemplo{display:none}
+  .mq-selector button{padding:6px 9px;font-size:11.5px}
+  .lugar{grid-template-columns:70px 1fr 74px}
+  .ruta li{flex:1 1 100%}
+}
+</style>
+</head>
+<body class="animar puntos" data-estado="pagar">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4zM12 10v4m0 3v.01"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7V3zM14 3v4h4M10 12h5m-5 4h5"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8m4-8v8m6-8v8m4-8v8M3 20h18"/></symbol>
+  <symbol id="i-izq" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-der" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14m-5-5l5 5-5 5"/></symbol>
+  <symbol id="i-mas" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></symbol>
+  <symbol id="i-recibo" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3zM9 8h6m-6 4h6"/></symbol>
+</svg>
+
+<header class="mq-barra">
+  <b>Impuestos · maqueta</b>
+  <span class="mq-ejemplo">Cifras de ejemplo</span>
+  <span class="mq-esp"></span>
+  <div class="mq-selector" role="group" aria-label="Dirección">
+    <span class="mq-pildora" id="pildora"></span>
+    <button data-v="a" aria-pressed="true">A · Ruta</button>
+    <button data-v="b" aria-pressed="false">B · Cuenta</button>
+    <button data-v="c" aria-pressed="false">C · Vistazo</button>
+  </div>
+  <span class="mq-grupo" id="estados" role="group" aria-label="Estado del mes">
+    <button class="mq-btn" data-e="pagar" aria-pressed="true">Por pagar</button>
+    <button class="mq-btn" data-e="favor" aria-pressed="false">A favor</button>
+    <button class="mq-btn" data-e="vacio" aria-pressed="false">Sin movimiento</button>
+  </span>
+  <button class="mq-btn" id="btnPuntos" aria-pressed="true">Puntos ①</button>
+  <button class="mq-btn" id="btnTema">Claro / oscuro</button>
+</header>
+
+<p class="mq-intro tenue">Tres formas de ordenar la misma pantalla, con el mínimo de palabras. Los <b>círculos rojos</b> numeran cada pieza y se explican abajo de cada dirección. Toca los pasos, los meses y las sedes: <b>nada se guarda</b>. Arriba, <b>«Por pagar / A favor / Sin movimiento»</b> cambia la cifra para ver cómo responde cada estado. Debajo de las tres: lo que falta para concluir el módulo.</p>
+<p class="recomienda"><b>Mi recomendación:</b> C como base, porque responde lo esencial sin sugerir un orden que el sistema no hace cumplir, y de A tomar el paso «Al contador», que es lo que de verdad se hace cada mes.</p>
+
+<main class="pagina">
+
+<!-- ============================ A · RUTA DEL MES ============================ -->
+<section class="variante" id="v-a">
+  <p class="idea"><b>A · Ruta del mes.</b> El módulo es un ciclo: revisar → descargar → pagar → listo. La pantalla te dice en qué paso vas y qué sigue.</p>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede versalita">CAYLA · todas las sedes</div>
+      <h1>Impuestos</h1>
+    </div>
+    <div class="acciones">
+      <span class="inline-pt"><i class="pt">1</i>
+        <span class="mes"><button aria-label="Mes anterior"><svg class="i"><use href="#i-izq"/></svg></button><span>Septiembre 2026</span><button aria-label="Mes siguiente"><svg class="i"><use href="#i-der"/></svg></button></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="sedes">
+    <div class="inline-pt"><i class="pt">2</i>
+      <div class="acciones" data-sedes role="group" aria-label="Sede">
+        <button class="pildora" aria-pressed="true">Todas</button><button class="pildora" aria-pressed="false">Trujillo</button><button class="pildora" aria-pressed="false">Arequipa</button><button class="pildora" aria-pressed="false">Lima</button><button class="pildora" aria-pressed="false">Taller</button>
+      </div>
+    </div>
+    <div class="aviso-sede dashed" data-aviso-sede><svg class="i"><use href="#i-alert"/></svg><span>El IGV se declara junto, por el RUC. <b>Por sede: próximamente.</b></span></div>
+  </div>
+
+  <div class="inline-pt" data-entra style="--i:1"><i class="pt">3</i>
+    <ol class="ruta" role="tablist" id="ruta">
+      <li><button role="tab" class="" data-paso="1" aria-selected="true"><span class="n">1</span><span class="t"><b>Revisar</b><small><span class="solo-pend">3 pendientes</span><span class="solo-aldia">Al día</span></small></span></button></li>
+      <li><button role="tab" data-paso="2" aria-selected="false"><span class="n">2</span><span class="t"><b>Al contador</b><small>paquete y declaración</small></span></button></li>
+      <li><button role="tab" data-paso="3" aria-selected="false"><span class="n">3</span><span class="t"><b>Pagar</b><small data-k="vence">vence 20 oct</small></span></button></li>
+      <li><button role="tab" data-paso="4" aria-selected="false"><span class="n">4</span><span class="t"><b>Listo</b><small>sellado</small></span></button></li>
+    </ol>
+  </div>
+
+  <div class="cols-a">
+    <div class="tarjeta" data-entra style="--i:2">
+      <i class="pt">4</i>
+      <div class="panel" data-panel="1">
+        <div class="fila solo-aldia"><span class="ico" style="--c:var(--verde)"><svg class="i"><use href="#i-check"/></svg></span><div class="txt"><b>Al día</b><small>nada que revisar</small></div></div>
+        <div class="fila solo-pend"><span class="ico"><svg class="i"><use href="#i-alert"/></svg></span><div class="txt"><b>2 ventas</b><small>sin comprobante aceptado</small></div><span class="m num">S/ 340</span><button class="btn chico sutil">Ver</button></div>
+        <div class="fila solo-pend"><span class="ico"><svg class="i"><use href="#i-recibo"/></svg></span><div class="txt"><b>3 compras</b><small>con boleta · no descuentan</small></div><span class="m num">S/ 780</span><button class="btn chico sutil">Ver</button></div>
+        <div class="fila solo-pend"><span class="ico"><svg class="i"><use href="#i-bank"/></svg></span><div class="txt"><b>1 factura</b><small>pagada en efectivo · IGV perdido</small></div><span class="m num">S/ 360</span><button class="btn chico sutil">Ver</button></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primario" data-ir="2">Al contador <svg class="i"><use href="#i-flecha"/></svg></button></div>
+      </div>
+      <div class="panel" data-panel="2" hidden>
+        <div class="fila"><span class="ico" style="--c:var(--pizarra)"><svg class="i"><use href="#i-doc"/></svg></span><div class="txt"><b>Registro de ventas</b><small>1,090 comprobantes</small></div></div>
+        <div class="fila"><span class="ico" style="--c:var(--pizarra)"><svg class="i"><use href="#i-doc"/></svg></span><div class="txt"><b>Registro de compras</b><small>62 comprobantes</small></div></div>
+        <div class="fila"><span class="ico" style="--c:var(--pizarra)"><svg class="i"><use href="#i-doc"/></svg></span><div class="txt"><b>Resumen del IGV</b><small>la cuenta de la derecha</small></div></div>
+        <div class="fila"><span class="ico" style="--c:var(--taupe)"><svg class="i"><use href="#i-doc"/></svg></span><div class="txt"><b>Contador declara</b><small>en SUNAT, fuera del ERP</small></div><span class="chip c-taupe">Fuera del ERP</span></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn sutil">Solo uno ▾</button><button class="btn primario" data-ir="3"><svg class="i"><use href="#i-down"/></svg> Descargar paquete</button></div>
+      </div>
+      <div class="panel" data-panel="3" hidden>
+        <div class="fila"><span class="ico" style="--c:var(--rojo-p)"><svg class="i"><use href="#i-bank"/></svg></span><div class="txt"><b>Sin pago registrado</b><small>vence martes 20 oct</small></div><span class="chip c-ambar late">En 5 días</span></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primario" data-ir="4"><svg class="i"><use href="#i-bank"/></svg> Registrar pago</button></div>
+      </div>
+      <div class="panel" data-panel="4" hidden>
+        <div class="fila"><span class="ico" style="--c:var(--verde)"><svg class="i"><use href="#i-check"/></svg></span><div class="txt"><b>Septiembre listo</b><small>pagado el 19 oct</small></div><span class="chip c-verde">Pagado</span></div>
+        <div class="nota-falta dashed tenue"><svg class="i"><use href="#i-alert"/></svg><span><b>Falta:</b> el sello solo es automático cuando el pago diga qué mes paga.</span></div>
+      </div>
+    </div>
+
+    <div class="tarjeta negra respuesta" data-entra style="--i:3">
+      <i class="pt">5</i>
+      <div class="versalita" data-k="lab">Pagas</div>
+      <div class="valor num" data-k="val">S/ 8,980</div>
+      <span class="chip c-ambar late" data-k="chip" style="margin-top:8px;background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)">Vence 20 oct</span>
+      <div class="suma num">
+        <div><span>Cobraste</span><span data-k="cob">21,960</span></div>
+        <div><button class="ver-det" aria-expanded="false">− IGV de tus compras</button><span data-k="des">14,200</span></div><div class="det" data-k="det" hidden></div>
+        <div class="solo-favor"><span>− Saldo que traías</span><span data-k="sal">1,500</span></div>
+        <div><span>+ Renta 1 %</span><span data-k="ren">1,220</span></div>
+        <div class="solo-favor"><span>IGV a favor, pasa a octubre</span><span data-k="fav">8,200</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rejilla" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))">
+    <div class="tarjeta" data-entra style="--i:4"><i class="pt">6</i>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b>Límite del año</b><span class="chip c-ambar">75 %</span></div>
+      <div class="pista" style="--w:75%;--c:var(--ambar);margin:12px 0 6px" data-crece><i></i><span class="marca-aviso" style="left:83%"></span></div>
+      <div class="tenue" style="font-size:12.5px;display:flex;justify-content:space-between"><span class="num">S/ 1.24 M</span><span>Aviso oct</span><span class="num">300 UIT</span></div>
+    </div>
+    <div class="tarjeta" data-entra style="--i:5"><i class="pt">7</i>
+      <b style="display:block;margin-bottom:10px">Meses</b>
+      <div class="meses" data-meses></div>
+    </div>
+  </div>
+
+  <div class="seccion" style="margin-top:6px">
+    <h2>Qué significa cada punto · A</h2>
+    <ol class="leyenda">
+      <li><span class="n">1</span><div><b>Mes.</b> El período que miras. Flechas para cambiar; al volver, sube a la respuesta.</div></li>
+      <li><span class="n">2</span><div><b>Sede.</b> Filtra por tienda o Taller. <i>Falta:</i> hoy el IGV es de la empresa entera, así que avisa en vez de filtrar.</div></li>
+      <li><span class="n">3</span><div><b>Ruta.</b> Guía, no candado: toca cualquier paso. «Al contador» incluye que el contador declara, fuera del ERP. El 3 y el 4 solo se sellan solos cuando el pago diga qué mes paga (falta).</div></li>
+      <li><span class="n">4</span><div><b>Panel del paso.</b> Solo lo que toca ahora: pendientes con su monto, los archivos, el pago o el sello. Con todo en orden dice «Al día».</div></li>
+      <li><span class="n">5</span><div><b>Pagas.</b> La respuesta: IGV cobrado − IGV de compras + renta a cuenta. Siempre cuadra; con saldo a favor, dice cuánto pasa al mes siguiente.</div></li>
+      <li><span class="n">6</span><div><b>Límite.</b> Lo vendido en el año frente a las 300 UIT; la rayita ámbar es el aviso de 250. Al cruzarlo, tu pago a cuenta cambia: habla con el contador.</div></li>
+      <li><span class="n">7</span><div><b>Meses.</b> Punto verde = pagado, ámbar = por declarar, punteado = en curso. Tocar uno lo abre.</div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================ B · LA CUENTA ============================ -->
+<section class="variante" id="v-b" hidden>
+  <p class="idea"><b>B · La cuenta.</b> Una sola operación en pantalla: lo que cobraste, menos el IGV de tus compras, más la renta, igual a lo que pagas. Lo demás es secundario.</p>
+
+  <div class="encabezado">
+    <div><div class="linea-sede versalita">CAYLA · todas las sedes</div><h1>Impuestos</h1></div>
+    <div class="acciones">
+      <span class="inline-pt"><i class="pt">1</i><span class="mes"><button aria-label="Mes anterior"><svg class="i"><use href="#i-izq"/></svg></button><span>Septiembre 2026</span><button aria-label="Mes siguiente"><svg class="i"><use href="#i-der"/></svg></button></span></span>
+      <span class="inline-pt"><i class="pt">2</i><button class="btn primario"><svg class="i"><use href="#i-down"/></svg> Paquete del contador</button></span>
+      <button class="btn sutil" aria-label="Más"><svg class="i"><use href="#i-mas"/></svg></button>
+    </div>
+  </div>
+
+  <div class="cuenta" data-entra style="--i:1">
+    <div class="tarjeta caja"><i class="pt">3</i><span class="versalita">Cobraste</span><span class="valor num" data-k="cob">21,960</span><span class="tenue" style="font-size:12.5px">IGV de ventas</span></div>
+    <div class="op">−</div>
+    <div class="tarjeta caja"><i class="pt">4</i><span class="versalita">IGV de tus compras</span><span class="valor num" data-k="desb">14,200</span>
+      <button class="ver-det solo-mov tenue" data-sig="mismo" aria-expanded="false" style="font-size:12.5px;align-self:flex-start">Ver de dónde</button>
+      <div class="trozos solo-mov" data-k="trozos" hidden><span>Mercadería 11,300</span><span>Gastos 1,900</span><span>Taller 1,000</span></div></div>
+    <div class="op">+</div>
+    <div class="tarjeta caja"><i class="pt">5</i><span class="versalita">Renta</span><span class="valor num" data-k="ren">1,220</span><span class="tenue" style="font-size:12.5px">1 % de ventas</span></div>
+    <div class="op">=</div>
+    <div class="tarjeta negra caja res"><i class="pt">6</i><span class="versalita" data-k="lab">Pagas</span><span class="valor num" data-k="valn">8,980</span><span class="chip c-ambar late" data-k="chip" style="align-self:flex-start;background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)">Vence 20 oct</span></div>
+  </div>
+
+  <div class="rejilla" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))">
+    <div class="tarjeta dashed" data-entra style="--i:2"><i class="pt">7</i>
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px"><b>Por lugar</b><span class="chip c-taupe">Próximamente</span></div>
+      <div class="lugar"><span>Trujillo</span><span class="bar"><i class="pone" style="width:22%"></i></span><span class="m">+3,100</span></div>
+      <div class="lugar"><span>Arequipa</span><span class="bar"><i class="pone" style="width:14%"></i></span><span class="m">+1,950</span></div>
+      <div class="lugar"><span>Lima</span><span class="bar"><i class="baja" style="width:9%"></i></span><span class="m">−1,250</span></div>
+      <div class="lugar"><span>Taller</span><span class="bar"><i class="baja" style="width:7%"></i></span><span class="m">−1,000</span></div>
+      <div class="lugar"><span>Empresa</span><span class="bar"><i class="baja" style="width:5%"></i></span><span class="m">−900</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="tarjeta" data-entra style="--i:3"><i class="pt">8</i>
+        <b style="display:block;margin-bottom:6px">Pendientes</b>
+        <div class="acciones solo-pend">
+          <button class="btn sutil"><span class="chip c-ambar" style="padding:0;background:none">2</span> Sin comprobante</button>
+          <button class="btn sutil"><span class="chip c-ambar" style="padding:0;background:none">3</span> Boletas</button>
+          <button class="btn sutil"><span class="chip c-rojo" style="padding:0;background:none">1</span> IGV perdido</button>
+        </div>
+        <div class="solo-aldia"><span class="chip c-verde">Al día</span></div>
+      </div>
+      <div class="tarjeta" data-entra style="--i:4"><i class="pt">9</i>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><b>Límite del año</b><span class="chip c-ambar">75 %</span></div>
+        <div class="pista fina" style="--w:75%;--c:var(--ambar);margin-top:10px" data-crece><i></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta" data-entra style="--i:5"><i class="pt">10</i>
+    <div class="meses" data-meses></div>
+  </div>
+
+  <div class="seccion" style="margin-top:6px">
+    <h2>Qué significa cada punto · B</h2>
+    <ol class="leyenda">
+      <li><span class="n">1</span><div><b>Mes.</b> El período; las flechas lo cambian.</div></li>
+      <li><span class="n">2</span><div><b>Paquete del contador.</b> Un clic baja los dos registros y el resumen. «Más» guarda cada archivo por separado.</div></li>
+      <li><span class="n">3</span><div><b>Cobraste.</b> El IGV que sumaron tus ventas del mes, ya restadas las notas de crédito.</div></li>
+      <li><span class="n">4</span><div><b>IGV de tus compras.</b> Lo que te dejan restar de lo que cobraste, de tus compras con factura: mercadería, gastos, máquinas y Taller. Las notas de crédito y el IGV que no se descuenta (facturas de S/ 2,000 o más pagadas en efectivo) restan. Si traías saldo a favor del mes anterior, entra aquí.</div></li>
+      <li><span class="n">5</span><div><b>Renta.</b> El pago a cuenta del impuesto a la renta: 1 % de lo vendido sin IGV.</div></li>
+      <li><span class="n">6</span><div><b>Pagas.</b> El resultado y su fecha. Si tus compras pesan más que tus ventas, dice «A favor» y pasa al mes siguiente.</div></li>
+      <li><span class="n">7</span><div><b>Por lugar.</b> Quién pone y quién baja el pago. <i>Falta:</i> la función «IGV del mes por lugar» (decisión tuya).</div></li>
+      <li><span class="n">8</span><div><b>Pendientes.</b> Tres botones con su cantidad; cada uno lleva a donde se arregla. Rojo = frena, ámbar = avisa.</div></li>
+      <li><span class="n">9</span><div><b>Límite.</b> Barra del año contra las 300 UIT; sin texto largo.</div></li>
+      <li><span class="n">10</span><div><b>Meses.</b> El historial, un punto por estado.</div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================ C · DE UN VISTAZO ============================ -->
+<section class="variante" id="v-c" hidden>
+  <p class="idea"><b>C · De un vistazo.</b> Tres tarjetas responden lo único que importa: ¿cuánto pago?, ¿qué me falta?, ¿cómo voy en el año? Abajo, tres acciones en orden.</p>
+
+  <div class="encabezado">
+    <div><div class="linea-sede versalita">CAYLA · todas las sedes</div><h1>Impuestos</h1></div>
+    <div class="acciones">
+      <span class="inline-pt"><i class="pt">1</i><span class="mes"><button aria-label="Mes anterior"><svg class="i"><use href="#i-izq"/></svg></button><span>Septiembre 2026</span><button aria-label="Mes siguiente"><svg class="i"><use href="#i-der"/></svg></button></span></span>
+    </div>
+  </div>
+
+  <div class="cols-c">
+    <div class="tarjeta negra" data-entra style="--i:1"><i class="pt">2</i>
+      <span class="versalita" data-k="lab">Pagas</span>
+      <span class="valor num" data-k="val">S/ 8,980</span>
+      <span class="chip c-ambar late" data-k="chip" style="align-self:flex-start;background:color-mix(in srgb,var(--crema) 16%,transparent);color:var(--crema)">Vence 20 oct</span>
+      <button class="btn claro" style="margin-top:auto;align-self:flex-start" data-porque>¿Por qué? ▾</button>
+      <div class="suma num" data-porque-panel hidden style="margin-top:0;font-size:13.5px">
+        <div><span>Cobraste</span><span data-k="cob">21,960</span></div><div><button class="ver-det" aria-expanded="false">− IGV de tus compras</button><span data-k="des">14,200</span></div><div class="det" data-k="det" hidden></div><div class="solo-favor"><span>− Saldo que traías</span><span data-k="sal">1,500</span></div><div><span>+ Renta</span><span data-k="ren">1,220</span></div><div class="solo-favor"><span>IGV a favor, pasa a octubre</span><span data-k="fav">8,200</span></div>
+      </div>
+    </div>
+    <div class="tarjeta" data-entra style="--i:2"><i class="pt">3</i>
+      <span class="versalita">Pendientes</span>
+      <div class="solo-pend" style="display:flex;align-items:baseline;gap:10px"><span class="valor num" style="color:var(--ambar)">3</span><span class="tenue">por revisar</span></div>
+      <div class="acciones solo-pend"><span class="chip c-ambar">2 sin comprobante</span><span class="chip c-ambar">3 boletas</span><span class="chip c-rojo">1 IGV perdido</span></div>
+      <div class="solo-aldia" style="display:flex;align-items:baseline;gap:10px"><span class="valor num" style="color:var(--verde)">Al día</span></div>
+    </div>
+    <div class="tarjeta" data-entra style="--i:3"><i class="pt">4</i>
+      <span class="versalita">Límite del año</span>
+      <div style="display:flex;align-items:center;gap:14px">
+        <svg class="anillo" viewBox="0 0 100 100" role="img" aria-label="75 %"><circle class="p" cx="50" cy="50" r="40"/><circle class="f" cx="50" cy="50" r="40" stroke-dasharray="251.3" stroke-dashoffset="62.8"/></svg>
+        <div><div class="valor num" style="font-size:34px">75 %</div><div class="tenue" style="font-size:13px">Aviso en oct</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta hacer" data-entra style="--i:4"><i class="pt">5</i>
+    <div class="fila solo-pend"><span class="n"></span><div class="txt"><b>Revisar pendientes</b></div><button class="btn sutil">Revisar 3</button></div>
+    <div class="fila"><span class="n"></span><div class="txt"><b>Al contador</b><small>paquete · él declara</small></div><button class="btn primario"><svg class="i"><use href="#i-down"/></svg> Descargar</button></div>
+    <div class="fila"><span class="n"></span><div class="txt"><b>Registrar pago</b><small>sale de un banco</small></div><button class="btn sutil"><svg class="i"><use href="#i-bank"/></svg> Pagar</button></div>
+  </div>
+
+  <div class="tarjeta" data-entra style="--i:5"><i class="pt">6</i><div class="meses" data-meses></div></div>
+
+  <div class="seccion" style="margin-top:6px">
+    <h2>Qué significa cada punto · C</h2>
+    <ol class="leyenda">
+      <li><span class="n">1</span><div><b>Mes.</b> El período que miras.</div></li>
+      <li><span class="n">2</span><div><b>Pagas.</b> Cifra y fecha. «¿Por qué?» abre la suma de tres líneas; cerrada por defecto. A favor: dice cuánto pasa al mes siguiente. Sin movimiento: dice «Sin movimiento», no «S/ 0 a favor».</div></li>
+      <li><span class="n">3</span><div><b>Pendientes.</b> Cuántas cosas pueden hacerte pagar de más o que SUNAT observe. Cero = tarjeta verde «Al día».</div></li>
+      <li><span class="n">4</span><div><b>Límite.</b> Anillo del año contra las 300 UIT; ámbar desde las 250 UIT (aviso), rojo al cruzar.</div></li>
+      <li><span class="n">5</span><div><b>Qué hacer.</b> Acciones con su botón, sin barra de progreso: «Revisar» solo aparece si hay pendientes. «Al contador» baja el paquete y recuerda que él declara. Es lo único con verbos.</div></li>
+      <li><span class="n">6</span><div><b>Meses.</b> Historial; tocar uno lo abre.</div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================ QUÉ CAMBIA / QUÉ FALTA ============================ -->
+<section class="seccion">
+  <h2>Qué cambia frente a hoy</h2>
+  <div class="tarjeta desliza">
+    <table class="comp">
+      <thead><tr><th>Hoy</th><th>En la maqueta</th></tr></thead>
+      <tbody>
+        <tr><td>Frase de 30 palabras bajo el título</td><td>Sin frase: el título y la respuesta bastan</td></tr>
+        <tr><td>«Antes de declarar» con título y detalle largos</td><td>Cantidad + una palabra («2 ventas · sin comprobante») y su monto</td></tr>
+        <tr><td>Aviso de «se declara ahora» + balanza + lista + límite + sobres + nota de pie</td><td>Una respuesta, un camino (ruta, cuenta o tres acciones) y dos tarjetas chicas</td></tr>
+        <tr><td>Nota de 3 líneas sobre cómo pagar a SUNAT</td><td>Paso «Pagar» con su botón; la explicación va en «¿Por qué?»</td></tr>
+        <tr><td>Límite con 4 frases (proyección, UIT, alcance, ajuste)</td><td>Barra o anillo con 3 palabras: porcentaje, «Aviso oct», 300 UIT. El detalle, en un «¿Por qué?»</td></tr>
+        <tr><td>Descargas escondidas en «Más» y el dock</td><td>Un solo botón «Paquete del contador»; los archivos sueltos en «Más»</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="margin-top:10px">Qué falta para concluir el módulo</h2>
+  <div class="falta">
+    <div class="tarjeta">
+      <b>Ya está hecho</b>
+      <ul>
+        <li><span class="chip c-verde">Listo</span><div>Cálculo del IGV por mes<small>cobrado, compras, notas de crédito, saldo a favor</small></div></li>
+        <li><span class="chip c-verde">Listo</span><div>Renta a cuenta y régimen<small>parámetros en Configuración ▸ Impuestos</small></div></li>
+        <li><span class="chip c-verde">Listo</span><div>Límite de 300 UIT y aviso de 250<small>año calendario, proyección a diciembre</small></div></li>
+        <li><span class="chip c-verde">Listo</span><div>Lista «Antes de declarar»<small>rechazados, sin comprobante, boletas, IGV perdido, honorarios</small></div></li>
+        <li><span class="chip c-verde">Listo</span><div>Descargas para el contador<small>ventas, compras y resumen, en zip</small></div></li>
+      </ul>
+    </div>
+    <div class="tarjeta">
+      <b>Espera tu decisión</b>
+      <ul>
+        <li><span class="chip c-ambar">Decidir</span><div>IGV por sede<small>función «IGV del mes por lugar»; alimenta el punto «Por lugar» de B y el filtro de sede</small></div></li>
+        <li><span class="chip c-ambar">Decidir</span><div>Pagado por mes<small>unir cada pago a SUNAT con el mes que paga; sin eso, los pasos 3 y 4 no se sellan solos</small></div></li>
+        <li><span class="chip c-ambar">Decidir</span><div>Fecha de vencimiento<small>último dígito del RUC + cronograma, como parámetro</small></div></li>
+        <li><span class="chip c-ambar">Decidir</span><div>Retención 8 % en honorarios<small>hoy solo avisa; falta que el contador defina</small></div></li>
+        <li><span class="chip c-ambar">Decidir</span><div>Detracciones, SIRE y PLE oficial<small>hoy el archivo es un CSV de apoyo; son pasos aparte</small></div></li>
+      </ul>
+    </div>
+    <div class="tarjeta">
+      <b>Pendiente técnico</b>
+      <ul>
+        <li><span class="chip c-pizarra">Técnico</span><div>Guía de foco<small>sigue «pendiente» en el registro de pantallas</small></div></li>
+        <li><span class="chip c-pizarra">Técnico</span><div>Guía interactiva<small>recorrerla en escritorio y a 375 px</small></div></li>
+        <li><span class="chip c-pizarra">Técnico</span><div>Probar con la base nueva<small>1440 y 375 px, claro y oscuro</small></div></li>
+        <li><span class="chip c-pizarra">Técnico</span><div>/formidable y /chaos<small>ninguno se pasó por la pantalla terminada</small></div></li>
+        <li><span class="chip c-taupe">Contador</span><div>Confirmar régimen y coeficiente<small>los parámetros siguen «por confirmar»</small></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+
+  /* ?tema=oscuro|claro fuerza el tema (para capturas) */
+  var tq=(location.search.match(/tema=(oscuro|claro)/)||[])[1];
+  if(tq)document.documentElement.dataset.theme=tq==='oscuro'?'dark':'light';
+
+  /* Dirección A · B · C */
+  var botones=$$('.mq-selector button'),pildora=$('#pildora');
+  function pos(){var b=$('.mq-selector button[aria-pressed="true"]');pildora.style.left=b.offsetLeft+'px';pildora.style.width=b.offsetWidth+'px'}
+  function ir(v){
+    botones.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.v===v)});
+    ['a','b','c'].forEach(function(x){$('#v-'+x).hidden=x!==v});
+    pos();document.body.classList.remove('animar');void document.body.offsetWidth;document.body.classList.add('animar');
+    try{history.replaceState(null,'','#'+v)}catch(e){}
+  }
+  botones.forEach(function(b){b.addEventListener('click',function(){ir(b.dataset.v)})});
+  ir((location.hash||'#a').slice(1).replace(/[^abc]/g,'')||'a');
+  window.addEventListener('resize',pos);
+
+  /* Puntos y tema */
+  $('#btnPuntos').addEventListener('click',function(e){var on=document.body.classList.toggle('puntos');e.currentTarget.setAttribute('aria-pressed',on)});
+  $('#btnTema').addEventListener('click',function(){
+    var r=document.documentElement,oscuro=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
+    r.dataset.theme=oscuro?'light':'dark';
+  });
+
+  /* Ruta (A) */
+  var tabs=$$('#ruta button');
+  function paso(n){
+    tabs.forEach(function(t){var k=+t.dataset.paso;t.setAttribute('aria-selected',k===n);t.classList.toggle('hecho',k<n)});
+    $$('[data-panel]').forEach(function(p){p.hidden=+p.dataset.panel!==n});
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){paso(+t.dataset.paso)})});
+  $$('[data-ir]').forEach(function(b){b.addEventListener('click',function(){paso(+b.dataset.ir)})});
+
+  /* Sedes: el mismo selector en A, B y C */
+  var baseSedes=$('#v-a .sedes');
+  ['b','c'].forEach(function(v){var c=baseSedes.cloneNode(true),p=c.querySelector('.pt');if(p)p.remove();$('#v-'+v+' .encabezado').after(c)});
+  $$('.sedes').forEach(function(g){
+    var ps=$$('.pildora',g),av=$('[data-aviso-sede]',g);
+    ps.forEach(function(s,i){s.addEventListener('click',function(){ps.forEach(function(x){x.setAttribute('aria-pressed',x===s)});av.classList.toggle('ver',i>0)})});
+  });
+
+  /* Estado del mes: por pagar / a favor / sin movimiento */
+  var E={
+    pagar:{sal:'0',desb:'14,200',det:[['Mercadería','11,300'],['Gastos','1,900'],['Máquinas y muebles','600'],['Taller','1,000'],['− Notas de crédito','240'],['− IGV no deducible','360']],lab:'Pagas',vence:'vence 20 oct',val:'S/ 8,980',valn:'8,980',cob:'21,960',des:'14,200',ren:'1,220',fav:'',chip:'Vence 20 oct',trozos:['Mercadería 11,300','Gastos 1,900','Máquinas y muebles 600','Taller 1,000','−|Notas de crédito 240','−|IGV no deducible 360']},
+    favor:{sal:'1,500',desb:'19,100',det:[['Mercadería','15,100'],['Gastos','1,500'],['Máquinas y muebles','1,000'],['Taller','1,000'],['− Notas de crédito','640'],['− IGV no deducible','360']],lab:'Pagas',vence:'solo la renta',val:'S/ 520',valn:'520',cob:'9,400',des:'17,600',ren:'520',fav:'9,700',chip:'IGV a favor 9,700',trozos:['Mercadería 15,100','Gastos 1,500','Máquinas y muebles 1,000','Taller 1,000','−|Notas de crédito 640','−|IGV no deducible 360','+|Saldo que traías 1,500']},
+    vacio:{sal:'0',desb:'0',det:[],lab:'Sin movimiento',vence:'nada que pagar',val:'S/ 0',valn:'0',cob:'0',des:'0',ren:'0',fav:'',chip:'Sin ventas ni compras',trozos:[]}
+  };
+  function estado(e){
+    document.body.dataset.estado=e;var d=E[e];
+    $$('#estados .mq-btn').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.e===e)});
+    $$('[data-k]').forEach(function(n){var k=n.dataset.k;if(k==='trozos')n.innerHTML=d.trozos.map(function(t){var m=t.match(/^([−+])\|(.*)$/);return m?'<span class="resta">'+(m[1]==='+'?'+ ':'− ')+m[2]+'</span>':'<span>'+t+'</span>'}).join('');else if(k==='det')n.innerHTML=d.det.map(function(x){return '<div><span>'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('');else n.textContent=d[k]});
+  }
+  $$('#estados .mq-btn').forEach(function(b){b.addEventListener('click',function(){estado(b.dataset.e)})});
+  var eq=(location.search.match(/estado=(pagar|favor|vacio)/)||[])[1];if(eq)estado(eq);
+
+  /* Meses */
+  var M=[['Abr','pagado','verde'],['May','pagado','verde'],['Jun','pagado','verde'],['Jul','pagado','verde'],['Ago','pagado','verde'],['Sep','por declarar','ambar',1],['Oct','en curso','taupe']];
+  var col={verde:'var(--verde)',ambar:'var(--ambar)',taupe:'var(--taupe)'};
+  $$('[data-meses]').forEach(function(c){
+    c.innerHTML=M.map(function(m){return '<button class="'+(m[1]==='en curso'?'en-curso':'')+'" '+(m[3]?'aria-current="true"':'')+' style="--c:'+col[m[2]]+'"><span class="pt-estado"></span><b>'+m[0]+'</b><small>'+m[1]+'</small></button>'}).join('');
+    $$('button',c).forEach(function(b){b.addEventListener('click',function(){$$('button',c).forEach(function(x){x.removeAttribute('aria-current')});b.setAttribute('aria-current','true')})});
+  });
+
+  /* Detalle de «IGV de tus compras» (A y C) */
+  $$('.ver-det').forEach(function(b){b.addEventListener('click',function(){
+    var abierto=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',!abierto);
+    var d=b.dataset.sig==='mismo'?b.nextElementSibling:b.parentNode.nextElementSibling;if(d)d.hidden=abierto;
+  })});
+
+  /* ¿Por qué? (C) */
+  $$('[data-porque]').forEach(function(b){b.addEventListener('click',function(){var p=b.parentNode.querySelector('[data-porque-panel]');p.hidden=!p.hidden;b.textContent=p.hidden?'¿Por qué? ▾':'¿Por qué? ▴'})});
+
+  /* Onda donde se toca */
+  document.addEventListener('pointerdown',function(e){
+    var b=e.target.closest('.btn');if(!b)return;
+    var r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,o=document.createElement('span');
+    o.className='onda';o.style.cssText='width:'+d+'px;height:'+d+'px;left:'+(e.clientX-r.left-d/2)+'px;top:'+(e.clientY-r.top-d/2)+'px';
+    b.appendChild(o);setTimeout(function(){o.remove()},650);
+  });
+})();
+</script>
+</body>
+</html>

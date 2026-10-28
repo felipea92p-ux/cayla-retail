@@ -22,8 +22,8 @@ import { Aviso } from "@/components/ui/Aviso";
 // Antes un color que faltaba se creaba en otra pestaña (Catálogo → Atributos → Colores) y había que volver y recargar:
 // quien estaba llenando una prenda con un tono nuevo la dejaba a medias. Acá es un formulario corto EN LÍNEA —nombre,
 // muestra, familia y código— que escribe en el mismo `POST /api/productos/colores` que usa Atributos, así que las reglas
-// son las mismas: cualquier cuenta lo crea, nace `pendiente` si no es Líder («ya lo puedes usar») y el candado del
-// nombre y del código lo pone la base, no esta pantalla.
+// son las mismas: cualquier cuenta lo crea, nace aprobado (ADR-0534) y el candado del nombre y del código lo pone la
+// base, no esta pantalla.
 //
 // Lo que la pantalla sí hace antes de tocar la base, para no hacer llenar todo en vano:
 //   · si el nombre ya existe (o es sinónimo de uno), ofrece elegir ese en vez de crear otro;
@@ -55,7 +55,7 @@ export function NuevoColorAlta({
   elegidos: string[];
   /** Lo que se escribió en el buscador antes de tocar «+ Crear el color «X»». */
   nombreInicial?: string;
-  onCreado: (color: ColorAlta, pendiente: boolean) => void;
+  onCreado: (color: ColorAlta) => void;
   /** Elegir uno que ya existe (el nombre repetido o el parecido) en vez de crearlo. */
   onElegir: (codigo: string) => void;
   onCerrar: () => void;
@@ -126,7 +126,7 @@ export function NuevoColorAlta({
         return;
       }
       avisar.exito(`${leido.color.nombre} creado y elegido`);
-      onCreado(leido.color, leido.pendiente);
+      onCreado(leido.color);
     } catch {
       setError("No se pudo hablar con el servidor. Revisa la conexión y vuelve a tocar «Crear y elegir».");
     } finally {

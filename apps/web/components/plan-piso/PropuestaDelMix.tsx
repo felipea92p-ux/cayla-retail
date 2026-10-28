@@ -146,14 +146,12 @@ export function PropuestaDelMix({
   capacidadProvisional,
   categoriasPorRevisar,
   categoriasSinGrupo = 0,
-  esLider = false,
 }: {
   propuesta: PropuestaMix;
   capacidadProvisional: boolean;
   /** Categorías con un grupo propuesto que nadie confirmó (la propuesta SÍ lo usa) y categorías nuevas sin grupo (NO entran al reparto): el aviso las separa. */
   categoriasPorRevisar: number;
   categoriasSinGrupo?: number;
-  esLider?: boolean;
 }) {
   const sinGrupo = p.sinGrupo.colgadas > 0 || p.sinGrupo.ventasConfirmadas > 0;
   const hayFuera = p.fueraDelRiel.length > 0;
@@ -280,7 +278,7 @@ export function PropuestaDelMix({
               </div>
             </header>
             {riel}
-            <AvisoPorRevisar guia="plan-piso.aviso-revisar" porRevisar={categoriasPorRevisar} sinGrupo={categoriasSinGrupo} esLider={esLider} />
+            <AvisoPorRevisar guia="plan-piso.aviso-revisar" porRevisar={categoriasPorRevisar} sinGrupo={categoriasSinGrupo} />
           </section>
         </div>
       )}

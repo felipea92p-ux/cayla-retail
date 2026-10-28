@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { leerProvision, type FilaProvision } from "@/lib/planilla-provision-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // La planilla estimada por sede (ADR-0453; contrato en 20261018040000_planilla_provision_por_sede.sql). Solo LEE: la cifra sale de la
 // boleta en vivo de Dynamic, agregada por sede en la base, y la base ya acota a lo que la cuenta ve (el líder, todas las sedes; con
@@ -22,6 +23,7 @@ export async function getProvisionPlanilla(desde: string, hasta: string, ubicaci
     }
     return leerProvision(data);
   } catch (e) {
+    unstable_rethrow(e);
     console.error(`fn_planilla_provision: ${e instanceof Error ? e.message : String(e)}`);
     return [];
   }

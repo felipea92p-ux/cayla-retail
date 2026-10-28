@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 128,
+  "total": 138,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
@@ -141,6 +141,10 @@
       "Volver «→cerrar»",
       "Boton «Confirmar y recibir»"
     ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
       "button «→() => setProveedorId(p.id)»",
       "button «No sé de quién es»",
@@ -152,6 +156,10 @@
     ],
     "components/recepcion-conteo/PendientesDeRecibir.tsx": [
       "Link «{e.numero ?? \"Envío\"}»"
+    ],
+    "components/recepcion-conteo/RecibidoEnLaSede.tsx": [
+      "SegmentoDeslizante «Qué ver de lo recibido»",
+      "BotonEnlace «{`Terminar ${e.numero ?? \"el envío\"}»"
     ],
     "components/recepcion-conteo/SinAvisoContexto.tsx": [
       "Boton «Sin Aviso»"
@@ -167,6 +175,16 @@
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
       "Link «{`/recibir/envio/${e.id}»",
       "BotonEnlace «{`Seguir recibiendo ${e.numero}»"
+    ],
+    "components/recepcion-envio/FiltrosDeEnvios.tsx": [
+      "DesplegablePildora «Estado»",
+      "DesplegablePildora «Proveedor»",
+      "BotonLimpiar «Limpiar todo»",
+      "button «{activa ? `Fechas: ${texto}»",
+      "button «{p.etiqueta}»",
+      "CampoFecha «Desde»",
+      "CampoFecha «Hasta»",
+      "button «Quitar fechas»"
     ],
     "components/recepcion-envio/RecibirSinGuia.tsx": [
       "Boton «Llegó esta orden»",

@@ -136,7 +136,7 @@ describe("lo que encontró la revisión (2026-10-04)", () => {
   });
   it("las dañadas solo piden «tu decisión» a quien puede decidir", () => {
     expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: true })[0].detalle).toMatch(/tu decisión/);
-    expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: false })[0].detalle).toMatch(/un líder decide/);
+    expect(tareasParaHoy({ ...vacia, danadas: 1, resuelveDanadas: false })[0].detalle).toMatch(/en su sede se decide/);
   });
 });
 

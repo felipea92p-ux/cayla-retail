@@ -6,6 +6,7 @@ import {
   pasarAlTicket,
   pestanasDeTickets,
   posicionDelActivo,
+  quitarDeLaEspera,
   siguienteNombreDeCliente,
   textoDePrendaEnOtroTicket,
   ticketsQueDisputanLaPrenda,
@@ -115,6 +116,22 @@ describe("pasar a otra pestaña", () => {
         expect([...ids(r.espera), objetivo].sort()).toEqual(["a", "b", "c", "x"]);
       }
     }
+  });
+});
+
+describe("descartar uno que espera", () => {
+  const espera = [ticket("a", "A"), ticket("b", "B"), ticket("c", "C")];
+  it("la caja conserva su hueco: si se descarta uno a su izquierda, la posición baja uno", () => {
+    expect(quitarDeLaEspera(espera, 2, "a")).toEqual({ espera: [espera[1], espera[2]], posActivo: 1 });
+  });
+  it("si se descarta uno a su derecha, la posición no cambia", () => {
+    expect(quitarDeLaEspera(espera, 1, "c")).toEqual({ espera: [espera[0], espera[1]], posActivo: 1 });
+  });
+  it("con la caja al final se queda al final", () => {
+    expect(quitarDeLaEspera(espera, null, "b").posActivo).toBeNull();
+  });
+  it("un id que no está no cambia nada", () => {
+    expect(quitarDeLaEspera(espera, 1, "z")).toEqual({ espera, posActivo: 1 });
   });
 });
 

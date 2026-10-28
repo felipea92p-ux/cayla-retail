@@ -14,7 +14,7 @@ import { colorDeSede, errorDeMapa, limpiarTexto, type BorradorSede } from "@/lib
  * en el taller. Apagada, se ve atenuada (el cliente no la ve). Solo dibuja: no guarda nada.
  */
 export function TelefonoDeTienda({ nombreSede, borrador, enWeb, fotoUrl }: { nombreSede: string; borrador: BorradorSede; enWeb: boolean; fotoUrl?: string | null }) {
-  const nombre = limpiarTexto(borrador.nombreWeb) ?? "Sin nombre en la web";
+  const nombre = limpiarTexto(borrador.nombreWeb) ?? "Sin nombre";
   const direccion = limpiarTexto(borrador.direccion);
   // El horario que ve el cliente: el de los días pintados; sin días, el texto que se escribió antes.
   const semana = semanaDeSerializada(borrador.dias);
@@ -43,7 +43,7 @@ export function TelefonoDeTienda({ nombreSede, borrador, enWeb, fotoUrl }: { nom
               <h3>{nombre}</h3>
               <div className="twc-dato" data-falta={direccion ? undefined : ""}>
                 <MapPin aria-hidden />
-                <span>{direccion ?? "Falta dónde recoger"}</span>
+                <span>{direccion ?? "Falta la dirección"}</span>
               </div>
               <div className="twc-dato" data-falta={horario ? undefined : ""}>
                 <Clock aria-hidden />

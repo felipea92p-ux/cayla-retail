@@ -153,8 +153,8 @@ export function armarEquipo(e: EntradaEquipo): MiembroEquipo[] {
   return [...activos, ...suspendidos, ...bajas, ...terminalesEquipo];
 }
 
-/** Los atajos de arriba: toda CAYLA, cada sede, los suspendidos y las terminales. */
-export type FiltroEquipo = "todas" | "suspendidas" | "terminales" | { sede: string };
+/** Los atajos de arriba: toda CAYLA, cada sede, quienes están de turno hoy, los suspendidos y las terminales. */
+export type FiltroEquipo = "todas" | "turno" | "suspendidas" | "terminales" | { sede: string };
 
 export const SIN_SEDE = "_todas";
 export const BAJA_DYNAMIC = "_dynamic";
@@ -181,6 +181,7 @@ export function coincide(m: MiembroEquipo, texto: string): boolean {
 function pasaFiltro(m: MiembroEquipo, f: FiltroEquipo): boolean {
   if (f === "todas") return true;
   if (f === "terminales") return m.tipo === "terminal";
+  if (f === "turno") return m.tipo === "persona" && m.estado === "activa" && m.deTurno;
   if (f === "suspendidas") return m.tipo === "persona" && m.estado !== "activa";
   return m.ubicacionId === f.sede;
 }
@@ -217,7 +218,7 @@ export function agruparPorSede(miembros: readonly MiembroEquipo[], ubicaciones: 
 
 export type Atajo = { clave: string; etiqueta: string; filtro: FiltroEquipo; n: number };
 
-/** Los atajos con su número. Una sede sin nadie no sale; «Suspendidos» solo si hay alguno. «Terminales» sale siempre que se
+/** Los atajos con su número. Una sede sin nadie no sale; «De turno» y «Suspendidos» solo si hay alguien. «Terminales» sale siempre que se
  *  pudieron leer (`conTerminales`), aunque no haya ninguna: es desde donde se crea la primera. */
 export function atajosEquipo(miembros: readonly MiembroEquipo[], ubicaciones: readonly UbicacionMin[], conTerminales = true): Atajo[] {
   const personas = miembros.filter((m): m is PersonaEquipo => m.tipo === "persona");
@@ -226,9 +227,11 @@ export function atajosEquipo(miembros: readonly MiembroEquipo[], ubicaciones: re
     .map((u) => ({ clave: u.id, etiqueta: u.nombre, filtro: { sede: u.id } as FiltroEquipo, n: personas.filter((p) => p.ubicacionId === u.id).length }))
     .filter((a) => a.n > 0 || terminales.some((x) => x.ubicacionId === a.clave));
   const suspendidas = personas.filter((p) => p.estado !== "activa").length;
+  const deTurno = personas.filter((p) => p.estado === "activa" && p.deTurno).length;
   return [
     { clave: "todas", etiqueta: "Todas", filtro: "todas", n: personas.length },
     ...sedes,
+    ...(deTurno > 0 ? [{ clave: "turno", etiqueta: "De turno", filtro: "turno" as const, n: deTurno }] : []),
     ...(suspendidas > 0 ? [{ clave: "suspendidas", etiqueta: "Suspendidos", filtro: "suspendidas" as const, n: suspendidas }] : []),
     ...(conTerminales ? [{ clave: "terminales", etiqueta: "Terminales", filtro: "terminales" as const, n: terminales.length }] : []),
   ];
@@ -255,25 +258,17 @@ export function cuandoEntro(iso: string | null, ahoraIso: string): string {
   return fechaLima(iso);
 }
 
-/** La frase de arriba de la ficha: lo importante de la persona en una línea. `fuerte` va en negrita. */
+/** La línea de arriba de la ficha, en palabras clave («Entró hoy 09:12», «Suspendido · Licencia»). `fuerte` va en negrita. */
 export function fraseFicha(p: PersonaEquipo, ahoraIso: string): { texto: string; fuerte?: boolean }[] {
-  if (p.estado === "baja_dynamic")
-    return [{ texto: "Está de baja en Dynamic", fuerte: true }, { texto: ": no puede entrar. Si su cuenta vuelve a estar activa allá, recupera el acceso." }];
+  if (p.estado === "baja_dynamic") return [{ texto: "Baja en Dynamic", fuerte: true }, { texto: " · no puede entrar" }];
   if (p.estado === "suspendida") {
-    const partes = [{ texto: "Acceso suspendido", fuerte: true }, { texto: p.suspendidaEn ? ` el ${fechaLima(p.suspendidaEn)}` : "" }];
-    if (p.suspendidaPor) partes.push({ texto: ` por ${p.suspendidaPor}` });
-    partes.push({ texto: p.motivo ? `. Motivo: ${p.motivo}.` : "." });
-    partes.push({ texto: " Conserva su sede, su rol y su historial." });
+    const partes: { texto: string; fuerte?: boolean }[] = [{ texto: "Suspendido", fuerte: true }];
+    if (p.motivo) partes.push({ texto: ` · ${p.motivo}` });
+    if (p.suspendidaEn) partes.push({ texto: ` · desde el ${fechaLima(p.suspendidaEn)}` });
     return partes;
   }
-  if (p.deTurno) return [{ texto: "Está de turno hoy", fuerte: true }, { texto: p.ubicacionNombre ? ` en ${p.ubicacionNombre}.` : "." }];
-  if (!p.ultimoAcceso) return [{ texto: "Todavía no ha entrado al sistema", fuerte: true }, { texto: "." }];
-  return [{ texto: "Entró por última vez " }, { texto: cuandoEntro(p.ultimoAcceso, ahoraIso), fuerte: true }, { texto: "." }];
-}
-
-/** Lo que gana y pierde una cuenta al pasar de un rol a otro (para «+ Caja · − Existencias» antes de confirmar). */
-export function diferenciaDeModulos(antes: readonly ClaveModulo[], despues: readonly ClaveModulo[]): { suma: ClaveModulo[]; quita: ClaveModulo[] } {
-  return { suma: despues.filter((m) => !antes.includes(m)), quita: antes.filter((m) => !despues.includes(m)) };
+  if (!p.ultimoAcceso) return [{ texto: "Aún no entra", fuerte: true }];
+  return [{ texto: "Entró " }, { texto: cuandoEntro(p.ultimoAcceso, ahoraIso), fuerte: true }];
 }
 
 /** Las personas que la RPC de turno devuelve como presentes hoy en su propia sede (`fn_asesoras_de_turno`). */

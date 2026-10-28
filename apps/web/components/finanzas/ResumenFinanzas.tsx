@@ -28,13 +28,14 @@ import { mesNombre, type FilaER } from "@/lib/resultados-reglas";
 import { hrefTelar, mesDelDia, porSedeDe, SEDE_EMPRESA, type SedeTelar } from "@/lib/finanzas-telar-reglas";
 import { deCadaCien } from "@/lib/de-cada-cien-reglas";
 import { recorridoPlata } from "@/lib/recorrido-plata-reglas";
-import { tresRespuestas } from "@/lib/tres-respuestas-reglas";
+import { desgloseDeTienes, tresRespuestas } from "@/lib/tres-respuestas-reglas";
 import { cambiosDelMes } from "@/lib/resumen-cambios-reglas";
 import { avisosParaDecidir, noRevisado, ordenarAvisos, type Acceso, type ResumenFinanzas } from "@/lib/resumen-finanzas-reglas";
 import { campanasQueSeVen } from "@/lib/ajustes-resumen-reglas";
 import { avisoDeInversion, pagosDeLaCompra, type CampanaInversion } from "@/lib/inversion-mercaderia-reglas";
 import {
   mesAnteriorDe,
+  mesPasadoComparable,
   respuestaResumen,
   vendidoPorSede,
   type DiaVenta,
@@ -49,7 +50,7 @@ import {
 /** La entrada escalonada de cada pieza; esta llena su celda: dos tarjetas lado a lado miden lo mismo. */
 const alto = (i: number) => ({ className: "anim-entra h-full", style: { ["--i" as string]: i } as CSSProperties });
 /** Una tarjeta de las columnas: no se parte entre dos y deja 1 rem hasta la de abajo. */
-const columna = (i: number) => ({ className: "anim-entra mb-4 break-inside-avoid", style: { ["--i" as string]: i } as CSSProperties });
+const columna = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 
 type Props = {
   resumen: ResumenFinanzas | null;
@@ -69,12 +70,14 @@ type Props = {
   flujoProximo: FlujoProximo;
   /** La inversión en mercadería que entrega el Plan de campaña; `null` si esta base aún no la trae (entonces no se ofrece nada). */
   inversion: CampanaInversion[] | null;
+  /** La lectura del Plan de campaña se cayó (ADR-0527): el bloque no se dibuja y se dice, nunca un 0 que parezca un dato. */
+  inversionFalla?: string | null;
   acceso: Acceso;
 };
 
 const FRASE = "Por dónde pasa la plata del mes: de lo que vende cada tienda a lo que te queda.";
 
-export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, acceso }: Props) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, estadoMes, estadoAntes, ventasPorDia, sedes, flujoProximo, inversion, inversionFalla = null, acceso }: Props) {
   const sp = useSearchParams();
   // «Qué se ve»: lo que esta persona esconde de la inversión en mercadería, y qué forma de pagar mira en cada campaña (mirar no guarda nada).
   const [ajustes, ponerAjustes] = useAjustesResumen();
@@ -118,8 +121,9 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       : { estado: "ok", datos: estadoMes.datos },
   };
   const provisional = !confianza.datos || confianza.datos.nivel === "bajo";
-  const resp = respuestaResumen(r, estadoAntes, provisional, enCurso);
   const filas = estadoMes.falla ? [] : estadoMes.datos;
+  const antes = mesPasadoComparable(filas, estadoAntes);
+  const resp = respuestaResumen(r, antes, provisional, enCurso);
   const recorrido = filas.length ? recorridoPlata(filas, r.ver) : null;
   const cien = deCadaCien(recorrido);
   const faltan = noRevisado(resumen);
@@ -130,6 +134,8 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
   const proyeccion = flujoProximo.estado === "ok" ? flujoProximo.datos : null;
   const pagosDeCompra = ajustes.enCaja && proyeccion ? pagosDeLaCompra(campanas, proyeccion, ajustes.conIgv, elegidas) : [];
   const caja = cajaProxima({ flujo: flujoProximo, cuentas: r.cuentas.estado === "ok" ? r.cuentas.datos : null, ver: r.ver, inversion: pagosDeCompra.length ? { pagos: pagosDeCompra, dias: 42 } : null });
+  // «¿Cuánto tienes?» de CAYLA entera dice de qué está hecho; una sede no lleva los bancos ni lo que las máquinas deben, así que ahí no se reparte.
+  const desglose = caja.tipo === "cayla" ? desgloseDeTienes(r.cuentas.estado === "ok" ? r.cuentas.datos : null, caja.saldoHoy) : null;
   // «Hoy te toca» y «Tu caja» cuentan el mismo hecho con el mismo número (el punto más bajo que ve la tarjeta, con la compra si está contada).
   const verReportes = acceso.lider || acceso.modulos.includes("reportes_financieros");
   const avisos = ordenarAvisos([
@@ -145,7 +151,7 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
     <div className="space-y-6">
       <EncabezadoPagina sede={sede} titulo="Resumen" subtitulo={FRASE} />
       {/* Las tres preguntas que una persona sin formación de finanzas se hace al abrir esta pantalla, con la cifra de cada una. */}
-      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar") })} />
+      <TresRespuestas respuestas={tresRespuestas({ r, caja, deja: { ...resp, chips: cien ? [...resp.chips, { texto: cien.chip, tono: "pizarra" as const }] : resp.chips }, hrefDinero: ir("/finanzas/dinero"), hrefPorPagar: ir("/finanzas/dinero/por-pagar"), desglose })} />
       {/* ADR-0417: qué tan cierto es el número que acaba de leer, y qué falta para que lo sea. Si no se pudo medir, se dice (nunca un 0 % falso). */}
       {confianza.datos ? (
         <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
@@ -182,7 +188,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
         </div>
       </section>
 
-      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega (hoy la base no) y se deja ver. */}
+      {/* No es un gasto: sale de la caja cuando se paga. Solo existe si el Plan de campaña la entrega y se deja ver. */}
+      {inversionFalla && (
+        <Aviso tono="atencion" titulo="Inversión en mercadería">
+          {inversionFalla} Lo ya registrado (órdenes, facturas por pagar) sigue contando.
+        </Aviso>
+      )}
       <InversionMercaderia
         campanas={campanas}
         conIgv={ajustes.conIgv}
@@ -196,9 +207,12 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
       />
       <AjustesResumen campanas={todasLasCampanas.filter((c) => c.visible)} ajustes={ajustes} onCambiar={ponerAjustes} />
 
-      {/* Lo demás, en columnas que se llenan una tras otra: cada tarjeta queda pegada a la de arriba, sin aire. Con ancho para dos
-          columnas de 34 rem se reparten (el navegador corta donde las deja más parejas); con menos, van en una sola (Felipe 2026-10-26). */}
-      <div className="columns-[34rem] gap-4">
+      {/* Lo demás, en dos columnas FIJAS: el recorrido a la izquierda y las otras dos tarjetas apiladas a la derecha, cada una pegada a la
+          de arriba, sin aire entre ellas (Felipe 2026-10-26). Con menos de 69 rem (dos columnas de 34 rem) van en una sola, en el mismo orden.
+          Antes eran `columns-[34rem]`, que reparte según las alturas: al abrir «¿Y de cada S/ 100?» el recorrido crecía y el navegador
+          pasaba otra tarjeta a la otra columna a media animación (medido el 2026-10-27: de 401 a 497 px y la tarjeta 2 saltaba de columna).
+          Con columnas fijas, lo que crece solo empuja lo que tiene debajo. */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(34rem,100%),1fr))] items-start gap-4 pb-4">
         <div {...columna(4)}>
           <Superficie pad guia="fin-resumen.recorrido">
             <CabeceraBloque
@@ -222,12 +236,14 @@ export function ResumenFinanzasPanel({ resumen, falla, confianza, mes, hoy, esta
           </Superficie>
         </div>
 
-        <div {...columna(5)}>
-          <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
-        </div>
+        <div className="flex flex-col gap-4">
+          <div {...columna(5)}>
+            <EquilibrioMesPieza eq={equilibrioMes({ r, filas, ventasPorDia, hoy, mes, enCurso })} provisional={provisional} />
+          </div>
 
-        <div {...columna(6)}>
-          <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes: estadoAntes, enCurso })} />
+          <div {...columna(6)}>
+            <CambiosDelMesPieza cambios={cambiosDelMes({ r, ahora: filas, antes, enCurso })} />
+          </div>
         </div>
       </div>
     </div>

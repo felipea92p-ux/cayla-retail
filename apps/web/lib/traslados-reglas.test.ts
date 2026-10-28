@@ -14,17 +14,14 @@ import {
   conteoDelTraslado,
   debioLlegar,
   diaHora,
-  diaMes,
   diasDeDiferencia,
   enTexto,
   esTerminado,
   estaAtrasado,
-  haceTexto,
   horaLima,
   ordenarTraslados,
   requiereAccion,
   situacionTraslado,
-  textoLlegada,
   type ContextoTraslados,
   type SituacionTraslado,
 } from "./traslados-reglas";
@@ -210,76 +207,11 @@ describe("fechas humanas (siempre en Lima)", () => {
     expect(diaHora("2026-09-19T05:05:00.000Z", AHORA)).toBe("mañana 00:05");
   });
 
-  it("diaMes no rellena con ceros", () => {
-    expect(diaMes("2026-09-16T20:00:00.000Z")).toBe("16/9");
-    expect(diaMes("2026-01-05T20:00:00.000Z")).toBe("5/1");
-  });
-
-  it("haceTexto: minutos, horas y días", () => {
-    expect(haceTexto("2026-09-18T18:27:40.000Z", AHORA)).toBe("hace un momento");
-    expect(haceTexto("2026-09-18T18:03:00.000Z", AHORA)).toBe("hace 25 min");
-    expect(haceTexto("2026-09-18T17:12:00.000Z", AHORA)).toBe("hace 1 h");
-    expect(haceTexto("2026-09-16T18:28:00.000Z", AHORA)).toBe("hace 2 días");
-    expect(haceTexto("2026-09-17T15:00:00.000Z", AHORA)).toBe("hace 1 día");
-    expect(haceTexto("2026-09-19T18:28:00.000Z", AHORA)).toBe("hace un momento"); // futuro: nunca «hace -1 h»
-  });
-
   it("enTexto: minutos, horas con minutos si son pocas, días", () => {
     expect(enTexto("2026-09-18T19:08:00.000Z", AHORA)).toBe("en 40 min");
     expect(enTexto("2026-09-18T21:00:00.000Z", AHORA)).toBe("en 2 h 32 min");
     expect(enTexto("2026-09-19T00:28:00.000Z", AHORA)).toBe("en 6 h");
     expect(enTexto("2026-09-20T18:28:00.000Z", AHORA)).toBe("en 2 días");
-  });
-});
-
-describe("textoLlegada", () => {
-  it("el que ya debió llegar y me toca: urgente, «Atrasado desde…» con «hace 1 h»", () => {
-    expect(textoLlegada(t2, "requiere_recepcion", AHORA)).toEqual({ principal: "Atrasado desde hoy 12:12", secundario: "hace 1 h", tono: "urgente" });
-  });
-
-  it("el que viene a tiempo se recibe igual, pero dice «Llega mañana 16:15» sin drama", () => {
-    expect(textoLlegada(t3, "requiere_recepcion", AHORA)).toEqual({ principal: "Llega mañana 16:15", secundario: "19/9", tono: "normal" });
-  });
-
-  it("el que llega hoy más tarde dice cuánto falta", () => {
-    const hoyMasTarde = traslado({ fechaEstimadaLlegada: "2026-09-18T21:00:00.000Z" });
-    expect(textoLlegada(hoyMasTarde, "requiere_recepcion", AHORA)).toEqual({ principal: "Llega hoy 16:00", secundario: "en 2 h 32 min", tono: "normal" });
-  });
-
-  it("el que llega en 3 días dice la fecha y cuántos días", () => {
-    const lejos = traslado({ fechaEstimadaLlegada: "2026-09-21T21:15:00.000Z" });
-    expect(textoLlegada(lejos, "requiere_recepcion", AHORA)).toEqual({ principal: "Llega 21 sep · 16:15", secundario: "en 3 días", tono: "normal" });
-  });
-
-  it("lo saliente que se pasó de hora: aviso (ámbar), no urgencia mía", () => {
-    const saliente = traslado({ ubicacionOrigenId: TRU, ubicacionDestinoId: AQP });
-    expect(textoLlegada(saliente, "en_camino_saliente", AHORA)).toEqual({ principal: "Atrasado desde hoy 12:12", secundario: "hace 1 h", tono: "aviso" });
-  });
-
-  it("con conteos guardados: la caja llegó, falta terminar — aunque la hora estimada sea mañana", () => {
-    expect(textoLlegada({ ...t3, lineasContadas: 2 }, "requiere_recepcion", AHORA)).toEqual({ principal: "Conteo empezado", secundario: "Llegaba mañana 16:15", tono: "urgente" });
-    expect(textoLlegada({ ...t2, lineasContadas: 1 }, "requiere_recepcion", AHORA).secundario).toBe("Atrasado desde hoy 12:12");
-  });
-
-  it("con diferencia habla de cuándo se recibió, NO de si estaba atrasado", () => {
-    const dif = traslado({ estado: "recibido_con_diferencia", confirmadoEn: "2026-09-18T18:10:00.000Z" });
-    expect(textoLlegada(dif, "requiere_revision", AHORA)).toEqual({ principal: "Recibido hoy 13:10", secundario: "hace 18 min", tono: "aviso" });
-    expect(textoLlegada(dif, "con_diferencia", AHORA).principal).toBe("Recibido hoy 13:10");
-  });
-
-  it("el terminado dice «Cerrado» con su fecha; con diferencia, sin el visto verde", () => {
-    expect(textoLlegada(t1, "cerrado", AHORA)).toEqual({ principal: "Cerrado 16/9", secundario: null, tono: "hecho" });
-    expect(textoLlegada(t1, "cerrado_con_diferencia", AHORA)).toEqual({ principal: "Cerrado 16/9", secundario: null, tono: "normal" });
-  });
-
-  it("el anulado dice cuándo se anuló", () => {
-    const anulado = traslado({ estado: "anulada", anuladoEn: "2026-09-17T15:00:00.000Z" });
-    expect(textoLlegada(anulado, "anulado", AHORA)).toEqual({ principal: "Anulado 17/9", secundario: null, tono: "normal" });
-  });
-
-  it("sin hora estimada no inventa una", () => {
-    const sin = traslado({ fechaEstimadaLlegada: null });
-    expect(textoLlegada(sin, "requiere_recepcion", AHORA)).toEqual({ principal: "Sin hora estimada", secundario: "Enviado ayer 12:12", tono: "urgente" });
   });
 });
 

@@ -6,6 +6,8 @@ import { esFalloDeRed, esRespuestaIncierta, traducirError, type ErrorEscritura }
 import { leerVariantesParaAjuste } from "@/components/AjustarInventarioModal";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { conDueno, faltaElegirDueno, hayQueElegirDueno, type EmpresaElegible } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
 import { useCargaInicial } from "@/lib/useCargaInicial";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import {
@@ -83,6 +85,11 @@ export type ControlAjuste = {
   nota: string;
   cambiarNota: (t: string) => void;
   responsable: ControlResponsable;
+  /** ADR-0542: las empresas que operan aquí, de quién es lo que se ajusta (el botón de Lima) y si falta elegirlo. `null` = no se pregunta. */
+  empresas: EmpresaElegible[] | null;
+  duenoId: string;
+  elegirDueno: (id: string) => void;
+  faltaDueno: boolean;
   /** El número de la celda: el stock de hoy en el lugar más lo tocado. */
   numero: (v: VarianteAjuste) => number;
   hoy: (v: VarianteAjuste) => number;
@@ -163,6 +170,10 @@ export function useAjusteDelModelo({
   const [lectura, setLectura] = useState(0);
   const [ubicado, setUbicado] = useState(ubicadoInicial);
   const [motivo, setMotivo] = useState<ClaveMotivoPlanilla>(MOTIVO_INICIAL);
+  // ADR-0542: en una sede donde operan dos empresas (Lima) quien ajusta dice de quién es lo que toca. Sin respuesta de fábrica.
+  const empresas = useEmpresasDeSede(ubicacionId);
+  const [duenoId, setDuenoId] = useState("");
+  const faltaDueno = faltaElegirDueno(empresas, duenoId);
   const [nota, setNota] = useState("");
   const [pendientes, setPendientes] = useState<Pendientes>({});
   const [enviando, setEnviando] = useState(false);
@@ -248,6 +259,7 @@ export function useAjusteDelModelo({
     { id: "cambios", nombre: "una talla", requerido: true, hecho: lineas.length > 0, pendiente: "Toca − o + en una talla, o escribe lo que contaste." },
     { id: "motivo", nombre: "el motivo", requerido: true, hecho: problema?.campo !== "motivo", pendiente: "Elige qué pasó: el motivo no calza con lo que tocaste." },
     ...(pideNota ? [{ id: "nota", nombre: motivoPlanilla(motivo).nota!.etiqueta.replace(/[¿?]/g, "").toLocaleLowerCase("es"), requerido: true, hecho: notaLista(motivo, nota), pendiente: "Escríbelo en una línea." }] : []),
+    ...(hayQueElegirDueno(empresas) ? [{ id: "dueno", nombre: "de quién es", requerido: true, hecho: !faltaDueno, pendiente: "Elige si es de CAYLA o de CLAURE." }] : []),
     { id: "responsable", nombre: "quién lo hace", requerido: true, hecho: responsable.listo, pendiente: "Elige quién hace el ajuste." },
   ]);
 
@@ -311,7 +323,7 @@ export function useAjusteDelModelo({
   }
 
   async function guardar(): Promise<AjusteGuardado | null> {
-    if (enVuelo.current || !variantes || lineas.length === 0 || problema) return null;
+    if (enVuelo.current || !variantes || lineas.length === 0 || problema || faltaDueno) return null;
     const { ajustes, cargaInicial } = repartirLineasAjuste(lineas, abiertaCarga);
     const sububicacionId = separa ? (ubicado === "piso" ? sububicacionPisoId : sububicacionAlmacenId) : null;
     // «Conté» viaja con lo que había al contar (ADR-0494): si una venta lo cambió mientras tanto, la base rechaza y dice qué cambió.
@@ -328,6 +340,7 @@ export function useAjusteDelModelo({
     const huella = JSON.stringify([
       sububicacionId,
       base,
+      duenoId,
       ajustes.map((l) => [l.variante.varianteId, l.delta, conHabia ? hoy(l.variante) : null]),
       cargaInicial.map((l) => [l.variante.varianteId, l.delta]),
     ]);
@@ -341,10 +354,13 @@ export function useAjusteDelModelo({
     let errorRpc: ErrorEscritura = null;
     try {
       const r = await firmar(
-        createClient()
-          .rpc("ajustar_inventario", argumentosDeAjuste({ ...sinMarca, token: intento.current.token }))
-          .abortSignal(control.signal)
-          .setHeader("x-espera", "no"),
+        conDueno(
+          createClient()
+            .rpc("ajustar_inventario", argumentosDeAjuste({ ...sinMarca, token: intento.current.token }))
+            .abortSignal(control.signal)
+            .setHeader("x-espera", "no"),
+          duenoId
+        ),
         responsable.firma()
       );
       data = r.data;
@@ -414,6 +430,12 @@ export function useAjusteDelModelo({
       if (!incierto) setNota(t);
     },
     responsable,
+    empresas,
+    duenoId,
+    elegirDueno: (id: string) => {
+      if (!incierto && !enviando) setDuenoId(id);
+    },
+    faltaDueno,
     numero,
     hoy,
     pendiente,

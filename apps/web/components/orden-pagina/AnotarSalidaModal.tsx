@@ -11,7 +11,7 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { cantidadesQuePuedenSalir, lineasDeSalida, problemasDeSalida, quienDeFase, RPC_REGISTRAR_SALIDA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { cantidadesDeFabricaDeSalida, cantidadesQuePuedenSalir, lineasDeSalida, problemasDeSalida, quienDeFase, RPC_REGISTRAR_SALIDA, textoMandaste, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { camposDeSalida } from "@/lib/orden-pagina-guia";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 
 // «Salida» (ADR-0400, decisión 4; vista D): lo que sale del Taller a un servicio de afuera, por talla y color, con la misma tabla de «Terminé» y de Nueva orden. Nace PRECARGADA con lo
-// que ya puede salir (`cantidadesQuePuedenSalir`: lo que entró a la fase menos lo que ya salió): un clic y se manda todo; lo que todavía no sale, se baja a mano. La base no deja mandar
+// que ya puede salir (`cantidadesDeFabricaDeSalida`: lo que entró a la fase menos lo que ya salió; en Corte, el plan y no su margen del 10 %): un clic y se manda todo; lo que todavía no sale, se baja a mano. La base no deja mandar
 // más de lo que entró (`registrar_salida`, candado por talla y color bajo el candado de la orden) y las prendas no entran ni salen del stock: solo se anota dónde están.
 //
 // Una salida no se edita ni se borra (solo se agrega, como todo lo anotado en una orden): si se anotó mal, se ANULA con su motivo desde la línea de tiempo (actividad 4b) y se anota de nuevo. El número de guía es solo un texto: el
@@ -30,7 +30,8 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId: datos.orden.ubicacionId, etiqueta: datos.orden.ubicacionNombre });
   const puedenSalir = useMemo(() => cantidadesQuePuedenSalir(fase), [fase]);
-  const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(puedenSalir).map(([id, n]) => [id, String(n)])));
+  const deFabrica = useMemo(() => cantidadesDeFabricaDeSalida(fase, datos.fases), [fase, datos.fases]);
+  const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(deFabrica).map(([id, n]) => [id, String(n)])));
   const [guiaDeRemision, setGuiaDeRemision] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -121,7 +122,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
               // Funcional a propósito: «Llenar todas con» llama a esto una vez por celda en el mismo ciclo, y cada llamada tiene que partir de lo que dejó la anterior.
               onCantidad={(clave, valor) => setCantidades((c) => ({ ...c, [clave]: valor }))}
               preguntaCelda="Cuántas mandas de"
-              fantasma={(clave) => String(puedenSalir[clave] ?? 0)}
+              fantasma={(clave) => String(deFabrica[clave] ?? 0)}
               tituloDe={(clave) => {
                 const l = lineasPorId.get(clave);
                 const puede = puedenSalir[clave] ?? 0;

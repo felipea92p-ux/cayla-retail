@@ -15,6 +15,16 @@ export const RUTA_TU_LOOK = "/tu-look";
 /** `/tu-look?p=TOP-0053.RPA~PAN-0012.CAM`: el look que se comparte (el mismo formato del probador). */
 export const hrefTuLook = (codigo: string): string => `${RUTA_TU_LOOK}${busquedaConLook("", codigo)}`;
 
+/**
+ * El enlace que se comparte desde «Compartir tu look», con su marca de camino (ADR-0495): quien lo abre cuenta en Tienda web ▸ Tráfico como
+ * llegado por WhatsApp, donde se comparte casi siempre (sus estados y sus chats). Si se comparte por otra aplicación, igual dirá WhatsApp:
+ * la hoja del celular no cuenta a cuál fue. Se agrega al final, sin volver a escribir el look (sus `~` quedan tal cual).
+ */
+export function enlaceParaCompartir(origen: string, codigo: string): string {
+  const href = hrefTuLook(codigo);
+  return `${origen}${href}${href.includes("?") ? "&" : "?"}utm_source=whatsapp`;
+}
+
 /** La dirección de la tienda, como se ve en las imágenes. */
 export const DOMINIO_A_LA_VISTA = "tienda.cayla.pe";
 

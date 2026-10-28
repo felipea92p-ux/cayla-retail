@@ -14,7 +14,7 @@ import { tipoDocDelComprobante, type TipoDocComprobante } from "./documento-comp
 // "nota_venta" (ADR-0164): documento INTERNO de la tienda, con serie propia (NV01…), sin IGV
 // desglosado y que NUNCA se transmite a SUNAT — por eso nace en su propio estado, "interna".
 export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito" | "nota_venta";
-// "no_emitido" (ADR-0093): un líder liberó un comprobante `pendiente` que nunca se
+// "no_emitido" (ADR-0093): alguien con Facturación (antes, solo un líder: ADR-0534) liberó un comprobante `pendiente` que nunca se
 // transmitió a SUNAT — su número queda sin usar para siempre, nunca se reutiliza. Distinto
 // de "anulado": eso es una baja real ANTE SUNAT de algo que sí llegó a transmitirse.
 /** `pendiente_reintento`: Lucode/SUNAT no respondió al enviarlo y espera en la cola, que se reintenta
@@ -64,28 +64,6 @@ export type SerieComprobante = {
   tipo: TipoComprobante;
   serie: string;
   siguiente_numero: number;
-};
-
-export type ItemVentaDelDia = {
-  referencia: string;
-  talla: string | null;
-  color: string | null;
-  cantidad: number;
-  precio_unitario: number;
-};
-
-export type VentaDelDia = {
-  venta_id: string;
-  hora: string;
-  ubicacion_nombre: string;
-  vendedor: string;
-  cliente_nombre: string;
-  items: ItemVentaDelDia[];
-  total: number;
-  metodos_pago: string | null;
-  comprobante_tipo: TipoComprobante | null;
-  comprobante_texto: string | null;
-  comprobante_estado: EstadoComprobante | null;
 };
 
 export const ETIQUETA_TIPO: Record<TipoComprobante, string> = {

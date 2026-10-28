@@ -22,13 +22,18 @@ export type DatosCompraRapida = {
 
 export async function getDatosCompraRapida(): Promise<DatosCompraRapida> {
   const supabase = await createClient();
-  const [p, c, m, tiendas, plata] = await Promise.all([
+  const [p, c, m, tiendas, plata, f] = await Promise.all([
     supabase.rpc(RPC_PROVEEDORES_PARA_COMPRAR as never) as unknown as Respuesta,
     supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     getDestinosOrden(),
     getMiPlata(),
+    // Qué familias admiten precio de venta 0 (bolsas, cajas, empaque: fuera de los motores, ADR-0377/0384). Una ayuda: si no carga, ninguna lo admite
+    // (lo mismo que la base sin dato) y la pantalla sigue.
+    supabase.from("familias").select("codigo, entra_a_motores"),
   ]);
+  if (f.error) console.error(`compra rápida: familias: ${f.error.message}`);
+  const admitenPrecioCero = new Set((f.data ?? []).filter((x) => x.entra_a_motores === false).map((x) => x.codigo));
   const error = p.error?.message ?? c.error?.message ?? m.error?.message ?? (tiendas === null ? "sin tiendas" : null);
   if (error) {
     console.error(`compra rápida: ${error}`);
@@ -36,7 +41,7 @@ export async function getDatosCompraRapida(): Promise<DatosCompraRapida> {
   }
   return {
     proveedores: leerProveedoresParaComprar(p.data),
-    categorias: (c.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, prefijo: x.prefijo ?? null, familia: x.familia ?? null })),
+    categorias: (c.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre, prefijo: x.prefijo ?? null, familia: x.familia ?? null, admitePrecioCero: x.familia != null && admitenPrecioCero.has(x.familia) })),
     marcas: (m.data ?? []).map((x) => ({ id: x.id, nombre: x.nombre })),
     tiendas: tiendas ?? [],
     tiene: plata?.persona ? plata.tiene : null,
