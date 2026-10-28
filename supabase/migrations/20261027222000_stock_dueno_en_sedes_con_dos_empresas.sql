@@ -19,8 +19,9 @@
 --
 -- LA REGLA QUE APLICA EL DISPARADOR (solo en una sede donde operan dos empresas: `fn_sede_con_dos_empresas`):
 --   · El dueño que traiga el movimiento (`empresa_id`) manda. Si no opera en la sede, o en el destino de un traslado: se rechaza.
---   · ENTRA stock (entrada, ajuste +, traslado que llega): sin dueño elegido, TRANSITORIO: el de la ficha (`fn_dueno_de_entrada_sin_elegir`),
---     hasta que cada pantalla pregunte (actividades 2 a 4 de la obra); un traslado que llega desde otra sede entra como CAYLA.
+--   · ENTRA stock (entrada, ajuste +, traslado que llega): el dueño que traiga el movimiento; si no trae, según de dónde viene: lo devuelto,
+--     cambiado o anulado, el de la línea vendida; lo que llega de otra sede, CAYLA; y un INGRESO de verdad sin dueño, desde la app, se rechaza
+--     («elige si es de CAYLA o de CLAURE»); desde un proceso interno (script, SQL Editor, prueba) vale la ficha, como antes del libro.
 --   · SALE stock (venta, traslado, apartado, ajuste −): sin dueño elegido, se toma el único dueño que tiene unidades disponibles; si
 --     hay de los dos, se rechaza con «elige de cuál es» (hint `elegir_dueno`): la base nunca adivina de quién era lo que sale.
 --   · CLAURE no sale de Lima (ADR-0505, ahora por UNIDAD): un traslado a una sede donde su empresa no opera solo puede llevar unidades de
@@ -30,11 +31,13 @@
 -- LA RED AL CERRAR: dos disparadores de restricción, DIFERIDOS, revisan que en cada fila de stock lo de CLAURE no pase del stock (ni lo
 -- apartado de lo apartado). Si algún camino futuro —o varias filas de un mismo INSERT— dejara un estado imposible, no hace commit.
 --
--- QUÉ NO HACE (cada cosa es una actividad aprobada de la obra):
---   · Ninguna pantalla pregunta todavía el dueño (botón al ingresar o ajustar: actividades 2, 3 y 4).
---   · Vender, Devoluciones, Cambios y Contar no lo piden (actividades 5, 6 y 7): hoy resuelven solos cuando hay un solo dueño.
---   · Caja, Historial y Movimientos siguen con la regla por marca de ADR-0532 hasta la actividad 8.
---   · `recalcular_stock()` (mantenimiento, nadie la llama) no reconstruye `stock_dueno`: si se corriera, el cierre fallaría fuerte.
+-- QUÉ NO HACE:
+--   · No pregunta nada por sí sola: las pantallas mandan el dueño en `x-dueno` / `x-dueno-lineas` (Ajustar stock, Nuevo producto, Recibir, Vender,
+--     Apartados y Contar, en la web); lo derivado (devoluciones, cambios, ventas anuladas, traslados) lo resuelve el disparador desde su origen.
+--   · Cuando nadie puede elegir, no adivina a escondidas: lo que se entrega de un apartado sale del dueño al que se le liberó, soltar un apartado
+--     con duda sale primero de la casa, y quien llama sin ser personal de la tienda (la tienda online) toma primero la casa.
+--   · Caja, Historial y Movimientos leen el dueño en la migración 20261028153000. `recalcular_stock()` (nadie la llama) no reconstruye
+--     `stock_dueno`: si se corriera, el cierre fallaría fuerte.
 --
 -- CARGA INICIAL. Las unidades que hoy hay en una sede con dos empresas arrancan con el dueño con que se dio de alta cada prenda
 -- (`productos.empresa_id`, Felipe 2026-10-27): CAYLA queda como resto (no escribe nada) y las de fichas de CLAURE se escriben en
@@ -145,22 +148,70 @@ $$;
 comment on function retail.fn_sede_con_dos_empresas(uuid) is
   'ADR-0542: ¿operan dos o más empresas en esta sede (empresa_sedes)? Solo ahí el stock se parte por dueño. Hoy: Tienda LIM.';
 
--- TRANSITORIA. Mientras ninguna pantalla pregunta el dueño, una entrada sin elegir toma el de la ficha: todo sigue como antes.
--- Cuando la obra de ADR-0542 llegue a la actividad 9, esta función pasa a RECHAZAR («elige de cuál es»).
+-- Una entrada que nadie marcó, en una sede con dos empresas. Si llegó de la app (por PostgREST: hay `request.headers`), es un INGRESO de verdad
+-- sin dueño y se rechaza: la base nunca adivina de quién es lo que entra (Felipe, 2026-10-27: «lo indica la persona que hace la operación»).
+-- Si no (un script, el SQL Editor, una prueba, un proceso de la base), vale el de la ficha, como antes del libro: no se tumba un proceso interno.
 create or replace function retail.fn_dueno_de_entrada_sin_elegir(p_variante_id uuid)
 returns uuid
-language sql
+language plpgsql
 stable
 security definer
 set search_path = retail, public, extensions
 as $$
-  select coalesce(p.empresa_id, retail.fn_empresa_casa_id())
-    from retail.variantes v join retail.productos p on p.id = v.producto_id
-   where v.id = p_variante_id
+declare
+  v_ref text;
+begin
+  -- Un PostgREST real siempre trae encabezados (`host`, `user-agent`…): vacío, o `{}`, es un proceso interno o una prueba.
+  if coalesce(nullif(btrim(current_setting('request.headers', true)), ''), '{}') <> '{}' then
+    v_ref := (select p.referencia from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = p_variante_id);
+    raise exception '%', format('%s: elige si lo que entra es de CAYLA o de CLAURE.', coalesce(v_ref, 'La prenda'))
+      using hint = 'elegir_dueno';
+  end if;
+  return (select coalesce(p.empresa_id, retail.fn_empresa_casa_id())
+            from retail.variantes v join retail.productos p on p.id = v.producto_id
+           where v.id = p_variante_id);
+end
 $$;
 
 comment on function retail.fn_dueno_de_entrada_sin_elegir(uuid) is
-  'ADR-0542, TRANSITORIA: de quién es una entrada que nadie marcó en una sede con dos empresas = la ficha. Se vuelve un rechazo cuando todas las pantallas pregunten.';
+  'ADR-0542: de quién es un ingreso que nadie marcó en una sede con dos empresas. Desde la app se rechaza (elegir_dueno); desde un proceso interno vale la ficha.';
+
+-- De quién es una entrada que nadie marcó, según de dónde viene: lo devuelto, cambiado o anulado vuelve al dueño de la línea vendida, y lo que llega
+-- de otra sede (o vuelve de un traslado anulado) es de la casa, porque CLAURE solo existe en Lima. Si no viene de ninguno de esos, es un ingreso: lo marca la persona.
+-- (la versión de seis argumentos de una base que ya la tuviera se suelta: `drop function` no toma candados de auth)
+drop function if exists retail.fn_dueno_de_una_entrada(uuid, uuid, uuid, uuid, uuid, uuid);
+
+create or replace function retail.fn_dueno_de_una_entrada(
+  p_variante_id uuid, p_devolucion_item_id uuid, p_cambio_id uuid, p_venta_item_id uuid,
+  p_transferencia_item_id uuid, p_transferencia_recepcion_id uuid, p_motivo text default null)
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_dueno uuid;
+begin
+  if p_transferencia_item_id is not null or p_transferencia_recepcion_id is not null then
+    return retail.fn_empresa_casa_id();
+  end if;
+  v_dueno := retail.fn_dueno_de_lo_vendido(p_devolucion_item_id, p_cambio_id, p_venta_item_id);
+  if v_dueno is not null then
+    return v_dueno;
+  end if;
+  -- Regularizar una «prenda sin registrar» (`ingreso_regularizado`): la entrada y la salida de la misma unidad se anulan entre sí; entra con el
+  -- dueño de la ficha y la salida que la sigue lo hereda (la memoria del disparador).
+  if p_motivo = 'ingreso_regularizado' then
+    return (select coalesce(p.empresa_id, retail.fn_empresa_casa_id())
+              from retail.variantes v join retail.productos p on p.id = v.producto_id where v.id = p_variante_id);
+  end if;
+  return retail.fn_dueno_de_entrada_sin_elegir(p_variante_id);
+end
+$$;
+
+comment on function retail.fn_dueno_de_una_entrada(uuid, uuid, uuid, uuid, uuid, uuid, text) is
+  'ADR-0542: de quién es una entrada sin dueño marcado, según su origen (venta, devolución, cambio, traslado); un ingreso de verdad lo marca la persona.';
 
 -- El dueño que la pantalla eligió para esta llamada, leído de los encabezados de la petición (el mismo camino de `x-responsable`, ADR-0162):
 -- `x-dueno-lineas` = {"<variante_id>": "<empresa_id>"} para una venta con prendas de dueños distintos, o `x-dueno` = "<empresa_id>" para todo lo
@@ -202,25 +253,34 @@ comment on function retail.fn_dueno_de_la_llamada(uuid) is
 -- De quién era lo que se vendió, para que lo devuelto o cambiado vuelva a su dueño sin que nadie lo marque (ADR-0542, Felipe 2026-10-27:
 -- «una devolución vuelve al dueño de la venta original»). Sale del movimiento de la venta de esa línea; si la venta es anterior al libro
 -- (`empresa_id` vacío) vale la ficha, que es lo que Felipe eligió para el historial.
-create or replace function retail.fn_dueno_de_lo_vendido(p_devolucion_item_id uuid, p_cambio_id uuid)
+-- (la versión de dos argumentos de una base que ya la tuviera se suelta: `drop function` no toma candados de auth)
+drop function if exists retail.fn_dueno_de_lo_vendido(uuid, uuid);
+
+create or replace function retail.fn_dueno_de_lo_vendido(p_devolucion_item_id uuid, p_cambio_id uuid, p_venta_item_id uuid default null)
 returns uuid
 language sql
 stable
 security definer
 set search_path = retail, public, extensions
 as $$
-  select coalesce(m.empresa_id, p.empresa_id)
-    from retail.movimientos m
-    join retail.variantes v on v.id = m.variante_id
-    join retail.productos p on p.id = v.producto_id
-   where m.tipo = 'salida'
-     and m.venta_item_id = coalesce(
-           (select di.venta_item_id from retail.devolucion_items di where di.id = p_devolucion_item_id),
-           (select c.venta_item_id from retail.cambios c where c.id = p_cambio_id))
-   limit 1
+  with linea as (
+    select coalesce(
+             (select di.venta_item_id from retail.devolucion_items di where di.id = p_devolucion_item_id),
+             (select c.venta_item_id from retail.cambios c where c.id = p_cambio_id),
+             p_venta_item_id) as id)
+  -- El dueño del movimiento de esa venta; si no tiene (la venta es anterior al libro, o es de una sede con una sola empresa, o todavía no se
+  -- escribió su movimiento: regularizar una «prenda sin registrar»), el de la ficha de la prenda vendida.
+  select coalesce(
+    (select m.empresa_id from retail.movimientos m
+      where m.tipo = 'salida' and m.venta_item_id = (select id from linea) and m.empresa_id is not null
+      order by m.created_at limit 1),
+    (select p.empresa_id from retail.venta_items i
+       join retail.variantes va on va.id = i.variante_id
+       join retail.productos p on p.id = va.producto_id
+      where i.id = (select id from linea)))
 $$;
 
-comment on function retail.fn_dueno_de_lo_vendido(uuid, uuid) is
+comment on function retail.fn_dueno_de_lo_vendido(uuid, uuid, uuid) is
   'ADR-0542: la empresa de la línea que se vendió, para que una devolución o un cambio vuelvan a su dueño. Vacío si el movimiento no viene de una devolución ni de un cambio.';
 
 -- Los candados de una fila de stock y de sus dueños, en el mismo orden que usa fn_aplicar_movimiento (primero stock).
@@ -448,7 +508,7 @@ begin
     if new.tipo = 'salida' and new.empresa_id is null then
       v_preferido := coalesce(nullif(current_setting(v_memoria, true), '')::uuid,
                               -- la prenda nueva de un cambio sale, si hay duda, del dueño de lo que el cliente devolvió
-                              case when new.cambio_id is not null then retail.fn_dueno_de_lo_vendido(null, new.cambio_id) end);
+                              case when new.cambio_id is not null then retail.fn_dueno_de_lo_vendido(null, new.cambio_id, null) end);
     end if;
     v_dueno := retail.fn_dueno_de_una_salida(new.variante_id, new.ubicacion_id, new.sububicacion_id, new.tipo, v_n, new.empresa_id,
                  case when new.tipo = 'traslado' then new.ubicacion_destino_id end, v_preferido);
@@ -460,10 +520,14 @@ begin
     v_dueno := coalesce(
       new.empresa_id,
       case when new.tipo = 'traslado' then v_casa
-           -- una devolución o un cambio vuelve al dueño de la venta original; lo demás, el transitorio de la ficha
-           else coalesce(retail.fn_dueno_de_lo_vendido(new.devolucion_item_id, new.cambio_id), retail.fn_dueno_de_entrada_sin_elegir(new.variante_id)) end);
+           -- según de dónde viene (venta, devolución, cambio, traslado); un ingreso de verdad lo marca la persona (`fn_dueno_de_una_entrada`)
+           else retail.fn_dueno_de_una_entrada(new.variante_id, new.devolucion_item_id, new.cambio_id, new.venta_item_id, new.transferencia_item_id, new.transferencia_recepcion_id, new.motivo) end);
   end if;
 
+  -- Una entrada ligada a una línea vendida (regularizar una «prenda sin registrar») va seguida de su salida: esa salida prefiere el mismo dueño.
+  if v_entra and not v_sale and new.tipo = 'entrada' and (new.venta_item_id is not null or new.motivo = 'ingreso_regularizado') and v_dueno is not null then
+    perform set_config('cayla.liberado_v' || replace(new.variante_id::text, '-', '_'), v_dueno::text, true);
+  end if;
   new.empresa_id := v_dueno;
   -- La casa no se escribe: es el resto. Solo se mueve el reparto de quien NO es la casa.
   if v_dueno is null or v_dueno = v_casa then
@@ -508,7 +572,8 @@ comment on function retail.fn_movimiento_libro_por_dueno() is
 -- Solo las usan los disparadores (que no necesitan EXECUTE para dispararse): nadie las llama por la API.
 revoke all on function retail.fn_sede_con_dos_empresas(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_dueno_de_la_llamada(uuid) from public, anon, authenticated;
-revoke all on function retail.fn_dueno_de_lo_vendido(uuid, uuid) from public, anon, authenticated;
+revoke all on function retail.fn_dueno_de_lo_vendido(uuid, uuid, uuid) from public, anon, authenticated;
+revoke all on function retail.fn_dueno_de_una_entrada(uuid, uuid, uuid, uuid, uuid, uuid, text) from public, anon, authenticated;
 revoke all on function retail.fn_dueno_de_entrada_sin_elegir(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_bloquear_libro(uuid, uuid, uuid) from public, anon, authenticated;
 revoke all on function retail.fn_reparto_de_la_fila(uuid, uuid, uuid) from public, anon, authenticated;

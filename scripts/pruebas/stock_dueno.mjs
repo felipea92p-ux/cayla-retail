@@ -281,6 +281,47 @@ select (select empresa_id from retail.movimientos where id = :'m1') = :'claure' 
    and ${DUENO("v", "claure")} = 1 and ${DUENO("v", "cayla")} = 3;`),
 );
 
+caso(
+  "anular una venta de CLAURE devuelve la unidad a CLAURE, sin que nadie lo marque",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${VENDIDA("claure")}
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id) values (:'v', :'lim', :'alm_lim', 'entrada', 1, 'anulacion_venta', :'vi') returning id as m \\gset
+select retail.fn_aplicar_movimiento(:'m') as _ap \\gset
+select (select empresa_id from retail.movimientos where id = :'m') = :'claure' and ${DUENO("v", "claure")} = 2;`),
+);
+caso(
+  "lo que llega de un traslado (o vuelve de uno anulado) es de la casa: CLAURE solo existe en Lima",
+  pasa(`select retail.fn_dueno_de_una_entrada(:'v', null, null, null, gen_random_uuid(), null, null) = :'cayla'
+   and retail.fn_dueno_de_una_entrada(:'v', null, null, null, null, gen_random_uuid(), null) = :'cayla';`),
+);
+caso(
+  "un ingreso sin dueño que llega de la app (con encabezados de PostgREST) se rechaza: elige si es de CAYLA o de CLAURE",
+  rechaza(`${ENCABEZADOS(`json_build_object('x-responsable', gen_random_uuid())`)}${MOVER("v", "entrada", "lim", "alm_lim", 1)}`, /elige si lo que entra es de CAYLA o de CLAURE\./, "elegir_dueno"),
+);
+caso(
+  "el mismo ingreso desde un proceso interno (sin encabezados: un script, el SQL Editor) toma el de la ficha, como antes del libro",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 1)}select (select empresa_id from retail.movimientos where id = :'m') = :'cayla';`),
+);
+
+caso(
+  "regularizar una prenda vendida sin registrar (entrada ligada a la línea + su salida) funciona aunque haya unidades de los dos, desde la app",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}
+insert into retail.ventas (ubicacion_id) values (:'lim') returning id as vta \\gset
+insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values (:'vta', :'v', 1, 59, 26) returning id as vi \\gset
+${ENCABEZADOS(`json_build_object('x-responsable', gen_random_uuid())`)}
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id) values (:'v', :'lim', :'alm_lim', 'entrada', 1, 'ingreso_regularizado', :'vi') returning id as m1 \\gset
+select retail.fn_aplicar_movimiento(:'m1') as _a1 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id) values (:'v', :'lim', :'alm_lim', 'salida', 1, 'venta', :'vi') returning id as m2 \\gset
+select retail.fn_aplicar_movimiento(:'m2') as _a2 \\gset
+select (select empresa_id from retail.movimientos where id = :'m1') = :'cayla' and (select empresa_id from retail.movimientos where id = :'m2') = :'cayla'
+   and ${DUENO("v", "cayla")} = 3 and ${DUENO("v", "claure")} = 2;`),
+);
+caso(
+  "un cambio cuya venta original no tiene movimiento (de otra sede, o anterior al libro) usa la ficha de la prenda en vez de rechazar",
+  pasa(`insert into retail.ventas (ubicacion_id) values (:'tru') returning id as vta \\gset
+insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values (:'vta', :'v', 1, 59, 26) returning id as vi \\gset
+select retail.fn_dueno_de_lo_vendido(null, null, :'vi') = :'cayla';`),
+);
+
 console.log("\n— Traslados —");
 caso(
   "un traslado de Lima a Trujillo, con unidades de las dos, lleva las de CAYLA y no toca a CLAURE",

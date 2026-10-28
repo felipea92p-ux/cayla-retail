@@ -1,5 +1,7 @@
 # ADR-0505 — CLAURE solo existe en Lima: el candado en la base y lo que ve cada sede
 
+> **Actualización 2026-10-27 ([ADR-0542](0542-stock-de-lima-por-dueno.md)):** el candado sigue (CLAURE solo en Lima), pero ahora también por UNIDAD: un traslado desde Lima solo lleva unidades de las empresas que operan en el destino. La insignia «CLAURE» vuelve a leer la ficha; qué unidades de una prenda son de CLAURE lo dice `stock_dueno`.
+
 **Estado:** aceptada · **migración EN PRODUCCIÓN desde 2026-10-24** (con el OK de Felipe; versión `20261024233234`, la hora del pegado) · la web va en su PR · **Fecha:** 2026-10-24 ·
 **Decidió:** Felipe · **Sigue a:** ADR-0463 (empresas CAYLA y CLAURE), ADR-0465 (tienda online) y ADR-0467 (filtro «Tienda»)
 
