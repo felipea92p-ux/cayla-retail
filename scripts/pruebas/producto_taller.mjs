@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * «Lleva ojales y botones», un dato del MODELO (ADR-0551, actividad 1; migración 20261028051000). CAYLA V2.
+ * «Lleva ojales y botones», un dato del MODELO (ADR-0551, actividad 1; migración 20261028053000). CAYLA V2.
  *
  * LO QUE VIGILA. Que la respuesta viva en `producto_taller` y no en `productos`; que «sin fila» (nadie lo ha preguntado) se distinga de «no lleva»; que guardar lo MISMO no escriba ni anote
  * nada; que cambiar la respuesta quede firmada y en Actividad; que solo quien opera ESE Taller la guarde (y nadie desde afuera ni sin decir sí o no); que la tabla no se lea ni se escriba
@@ -27,7 +27,7 @@ const BASE = arg("--base", "postgres");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
-const MIGRACION = readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261028051000_producto_taller_ojales_y_botones.sql", import.meta.url)), "utf8");
+const MIGRACION = readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261028053000_producto_taller_ojales_y_botones.sql", import.meta.url)), "utf8");
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {

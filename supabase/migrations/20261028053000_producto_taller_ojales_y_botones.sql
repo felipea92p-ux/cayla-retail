@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261028051000_producto_taller_ojales_y_botones.sql — CAYLA V2 (ADR-0551, actividad 1 · 2026-10-28)
+-- 20261028053000_producto_taller_ojales_y_botones.sql — CAYLA V2 (ADR-0551, actividad 1 · 2026-10-28)
 --
 -- EL PROBLEMA PRIMERO. «Ojales y botones» es un paso de la orden con su proveedor y su costo, y solo corresponde a un modelo que lleva botones. Felipe (2026-10-27) decidió que la
 -- orden lo prenda sola cuando el modelo los lleva. Pero la base NO tiene cómo saberlo: en Insumos un botón es solo un «avío» (`insumos.tipo` es `tela` o `avio`, sin forma de
@@ -28,7 +28,7 @@
 --   modelo (la fila se va con él por la cascada: es lo esperado); o alguien lee «sin fila» como «no lleva»: la hoja los distingue (pregunta cuando no hay fila).
 --
 -- PRODUCCIÓN. NO está aplicada. Una sola parte, re-ejecutable, `lock_timeout = 3s`: una tabla nueva con RLS encendido y SIN políticas (solo las funciones la leen; no se tocan las
---   tablas de `auth` ni de `storage`) y dos funciones nuevas. Va DESPUÉS de 20261028050000. Sin `select … into` dentro de un texto entre comillas (ADR-0288).
+--   tablas de `auth` ni de `storage`) y dos funciones nuevas. Va DESPUÉS de 20261028052000. Sin `select … into` dentro de un texto entre comillas (ADR-0288).
 --   Prueba: `pnpm pruebas:producto-taller`.
 -- ============================================================================
 

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261028050000_produccion_cinco_pasos_fijos.sql — CAYLA V2 (ADR-0551, actividad 1 · 2026-10-28)
+-- 20261028052000_produccion_cinco_pasos_fijos.sql — CAYLA V2 (ADR-0551, actividad 1 · 2026-10-28)
 --
 -- EL PROBLEMA PRIMERO. La ruta nueva de una orden exige SIETE pasos (Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar:
 -- `fn_produccion_fases_normalizar`, hint `fases_espina`). Felipe (2026-10-27) decidió que los fijos son CINCO —Ploteo, Corte, Habilitado, Costura y Planchado— y que

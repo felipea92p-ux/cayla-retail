@@ -292,7 +292,7 @@ type OpcionesLeidas = {
 };
 
 export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
-/** Los modelos que ya dijeron si llevan ojales y botones (ADR-0551, migración 20261028051000). */
+/** Los modelos que ya dijeron si llevan ojales y botones (ADR-0551, migración 20261028053000). */
 export const RPC_OJALES_BOTONES_DE_MODELOS = "fn_ojales_botones_de_modelos";
 
 /** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */

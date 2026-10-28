@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Los CINCO pasos fijos de una orden (ADR-0551, actividad 1; migración 20261028050000). CAYLA V2.
+ * Los CINCO pasos fijos de una orden (ADR-0551, actividad 1; migración 20261028052000). CAYLA V2.
  *
  * LO QUE VIGILA. Que una orden se abra con Ploteo · Corte · Habilitado · Costura · Planchado y nada más (Limpiar hilos y revisar y Etiquetar y embolsar son opcionales), que cada
  * uno de los cinco falte con su frase y su hint (`fases_espina`), que una orden de siete pasos (la de hoy) y la ruta anterior (Corte · Costura · Acabado) sigan abriéndose, que
@@ -27,7 +27,7 @@ const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
-const MIGRACION = readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261028050000_produccion_cinco_pasos_fijos.sql", import.meta.url)), "utf8");
+const MIGRACION = readFileSync(fileURLToPath(new URL("../../supabase/migrations/20261028052000_produccion_cinco_pasos_fijos.sql", import.meta.url)), "utf8");
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function psql(sql) {

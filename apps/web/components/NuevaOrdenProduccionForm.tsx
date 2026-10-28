@@ -140,7 +140,7 @@ type ModoModelo = "existe" | "nuevo";
 
 // La RPC es nueva (migración 20261014154000) y los tipos generados no la conocen: se llama por su nombre, como las de Órdenes de insumos.
 const RPC_ABRIR_ORDEN = "abrir_orden_produccion";
-/** ADR-0551: lo que se elige de ojales y botones al abrir la orden se recuerda en el modelo (migración 20261028051000). */
+/** ADR-0551: lo que se elige de ojales y botones al abrir la orden se recuerda en el modelo (migración 20261028053000). */
 const RPC_GUARDAR_OJALES_BOTONES = "guardar_ojales_botones_modelo";
 // Los costos ya no se teclean (ADR-0400): a la función de hoy le viajan en cero y la base los deriva.
 const SIN_COSTOS = { tela: "", avios: "", maquila: "" };

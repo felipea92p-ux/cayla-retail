@@ -40,7 +40,7 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
-// 20261028050000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco). Esta suite recarga 20261019192000 en cada caso y esa migración
+// 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco). Esta suite recarga 20261019192000 en cada caso y esa migración
 // tiene su candado de md5 sobre la función tal como ella la dejó: se deshace el parche de los cinco pasos antes de cargarla (lo mismo que los `DESHACER_*` de otras suites).
 const DESHACER_CINCO_PASOS = `
 do $deshacer_cinco$
