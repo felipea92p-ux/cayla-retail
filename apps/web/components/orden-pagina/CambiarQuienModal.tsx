@@ -15,7 +15,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { camposDeCambiarQuien } from "@/lib/orden-pagina-guia";
-import { RPC_CAMBIAR_QUIEN_FASE, quienDeFase, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { RPC_CAMBIAR_QUIEN_FASE, RPC_DEJAR_FASE_PENDIENTE, RPC_REGISTRAR_PROVEEDOR_DE_FASE, esPendienteDeRegistrar, quienDeFase, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
 import { firmar } from "@/lib/responsable-reglas";
 import type { Tolerado } from "@/lib/resultado";
@@ -42,20 +42,35 @@ function borradorDe(f: FasePagina): FaseBorrador {
     minimo: f.cantidadMinima !== null ? String(f.cantidadMinima) : "",
     fechaPrometida: f.fechaPrometida ?? "",
     posicion: f.posicion,
+    pendiente: esPendienteDeRegistrar(f),
   };
 }
 
-/** Los argumentos de `cambiar_quien_fase` de una fase borrador: el Taller lleva todo en null; un servicio, la tarifa escrita o la sugerida (la misma cuenta de `fasesParaRpc`). */
-function argumentos(faseId: string, b: FaseBorrador, lista: readonly TarifaDeLista[], hoy: string) {
+/**
+ * La llamada que guarda una fase borrador. Tres caminos (ADR-0551 pendiente de registrar): «Pendiente de registrar» → `dejar_fase_pendiente_de_registrar`; una fase que ERA pendiente y ahora tiene proveedor →
+ * `registrar_proveedor_de_fase` (vale aunque la fase ya empezó); todo lo demás → `cambiar_quien_fase`: el Taller lleva todo en null; un servicio, la tarifa escrita o la sugerida (la misma
+ * cuenta de `fasesParaRpc`).
+ */
+function llamada(faseId: string, b: FaseBorrador, eraPendiente: boolean, lista: readonly TarifaDeLista[], hoy: string): { rpc: string; args: Record<string, unknown> } {
   const r = fasesParaRpc([b], lista, hoy)[0];
+  if (r.quien === "servicio" && r.proveedor_pendiente) return { rpc: RPC_DEJAR_FASE_PENDIENTE, args: { p_fase_id: faseId, p_fecha_prometida: r.fecha_prometida } };
+  if (eraPendiente && r.quien === "servicio") {
+    return {
+      rpc: RPC_REGISTRAR_PROVEEDOR_DE_FASE,
+      args: { p_fase_id: faseId, p_proveedor_id: r.proveedor_id, p_tarifa_prenda: r.tarifa_prenda, p_fijo_orden: r.fijo_orden, p_cantidad_minima: r.cantidad_minima, p_fecha_prometida: r.fecha_prometida },
+    };
+  }
   return {
-    p_fase_id: faseId,
-    p_quien: r.quien,
-    p_proveedor_id: r.proveedor_id,
-    p_tarifa_prenda: r.tarifa_prenda,
-    p_fijo_orden: r.fijo_orden,
-    p_cantidad_minima: r.cantidad_minima,
-    p_fecha_prometida: r.fecha_prometida,
+    rpc: RPC_CAMBIAR_QUIEN_FASE,
+    args: {
+      p_fase_id: faseId,
+      p_quien: r.quien,
+      p_proveedor_id: r.proveedor_id,
+      p_tarifa_prenda: r.tarifa_prenda,
+      p_fijo_orden: r.fijo_orden,
+      p_cantidad_minima: r.cantidad_minima,
+      p_fecha_prometida: r.fecha_prometida,
+    },
   };
 }
 
@@ -65,6 +80,8 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
   const [borrador, setBorrador] = useState<FaseBorrador>(() => borradorDe(fase));
   const [cargando, setCargando] = useState(false);
   const enVuelo = useRef(false);
+  // Una fase que ya estaba «pendiente de registrar»: se completa (aunque haya empezado) y la hoja habla de registrar, no de cambiar.
+  const eraPendiente = esPendienteDeRegistrar(fase);
 
   const proveedoresDelDirectorio = useMemo(() => proveedoresQueSirven(opciones?.datos?.proveedores ?? []), [opciones]);
   // Quien todavía no está en el directorio se registra desde aquí (la hoja no se cierra ni se pierde lo elegido).
@@ -105,7 +122,8 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
     const firma = responsable.firma();
     let resultado;
     try {
-      resultado = await firmar(createClient().rpc(RPC_CAMBIAR_QUIEN_FASE as never, argumentos(fase.id, borrador, lista, hoy) as never), firma);
+      const l = llamada(fase.id, borrador, eraPendiente, lista, hoy);
+      resultado = await firmar(createClient().rpc(l.rpc as never, l.args as never), firma);
     } finally {
       enVuelo.current = false;
     }
@@ -118,24 +136,31 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
     }
     const nuevoQuien: Quien = borrador.quien;
     const nombreDelServicio = proveedores.find((p) => p.id === borrador.proveedorId)?.nombre;
-    avisar.exito(nuevoQuien === "servicio" ? `${fase.nombre} sale afuera${nombreDelServicio ? ` con ${nombreDelServicio}` : ""}` : `${fase.nombre} la hace el Taller`, {
+    const texto = nuevoQuien !== "servicio" ? `${fase.nombre} la hace el Taller` : borrador.pendiente ? `${fase.nombre} sale afuera: pendiente de registrar quién` : `${fase.nombre} sale afuera${nombreDelServicio ? ` con ${nombreDelServicio}` : ""}`;
+    avisar.exito(texto, {
       detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}`,
-      accion: {
-        texto: "Deshacer",
-        onClick: async () => {
-          const { error: e2 } = await firmar(createClient().rpc(RPC_CAMBIAR_QUIEN_FASE as never, argumentos(fase.id, borradorDe(fase), lista, hoy) as never), firma);
-          if (e2) avisar.error(traducirError(e2, `volver a como estaba ${nombreMinuscula}`));
-          router.refresh();
-        },
-      },
+      // Registrar quién en una fase que ya empezó no se deshace (la base no cambia quién hace una fase empezada): sin «Deshacer», y la hoja lo avisó antes.
+      ...(eraPendiente && fase.empezada
+        ? {}
+        : {
+            accion: {
+              texto: "Deshacer",
+              onClick: async () => {
+                const l = llamada(fase.id, borradorDe(fase), eraPendiente, lista, hoy);
+                const { error: e2 } = await firmar(createClient().rpc(l.rpc as never, l.args as never), firma);
+                if (e2) avisar.error(traducirError(e2, `volver a como estaba ${nombreMinuscula}`));
+                router.refresh();
+              },
+            },
+          }),
     });
     cerrarTrasGuardar();
   }
 
   return (
     <Modal
-      titulo={`¿Quién hace ${nombreMinuscula}?`}
-      subtitulo={`Ahora: ${quienDeFase(fase)}. Se puede cambiar hasta que ${nombreMinuscula} empiece.`}
+      titulo={eraPendiente ? `Registrar quién hace ${nombreMinuscula}` : `¿Quién hace ${nombreMinuscula}?`}
+      subtitulo={eraPendiente ? `Ahora: ${quienDeFase(fase)}. Cuando sepas quién la hizo y a cuánto, regístralo aquí.` : `Ahora: ${quienDeFase(fase)}. Se puede cambiar hasta que ${nombreMinuscula} empiece.`}
       variante="hoja"
       tamano="mediana"
       onClose={onClose}
@@ -159,6 +184,11 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
                 onAgregarProveedor={altaProveedor.abrir}
               />
             </div>
+            {eraPendiente && fase.empezada && (
+              <Aviso tono="atencion" chico>
+                {nombreMinuscula[0].toLocaleUpperCase("es") + nombreMinuscula.slice(1)} ya empezó: al guardar queda registrado y no se puede cambiar. Revisa bien el proveedor y la tarifa.
+              </Aviso>
+            )}
             {!opciones?.datos && (
               <Aviso tono="info" chico>
                 {opciones?.fallo ?? "No se pudo leer la lista de servicios."}

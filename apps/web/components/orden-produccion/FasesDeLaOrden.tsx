@@ -41,6 +41,8 @@ import {
 // neutro (es un camino, no un error) y lo que está mal escrito —una tarifa con coma, una fecha pasada— en rojo. La cantidad mínima del servicio
 // solo avisa (`avisoMinimo`): la base no bloquea (decisión 5).
 
+/** El valor del combo de proveedor que quiere decir «pendiente de registrar» (no es un id: la hoja lo traduce a `pendiente: true`). */
+const PENDIENTE = "__pendiente__";
 const OPCIONES_QUIEN = [
   { clave: "taller", etiqueta: "Taller" },
   { clave: "servicio", etiqueta: "Afuera" },
@@ -233,32 +235,32 @@ export function FilaFase({
   const elegidoFuera = fase.proveedorId && !opcionesProveedor.some((o) => o.valor === fase.proveedorId) ? proveedores.find((p) => p.id === fase.proveedorId) : null;
   const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} · ya no hace servicios`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
 
-  const tarifaVacia = fase.tarifa.trim() === "";
-  const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/\u00a0${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
-  const minimoVacio = fase.minimo.trim() === "";
-  const pieMinimo = sugerida?.minimo != null && minimoVacio ? "de su lista de precios" : "desde cuántas prendas cobra";
   const idBase = `fase-${fase.clave}`;
-
-  // El combo y, debajo, la salida para quien todavía no está en el directorio (el alta de Producción, sin salir de la hoja).
-  const campoProveedor = (
+  // «Pendiente de registrar» (ADR-0551 pendiente de registrar): la primera opción, siempre. Sale afuera sin saber todavía con quién ni a cuánto; no cobra nada hasta que se registre quién.
+  const opcionesConPendiente: Opcion<string>[] = [{ valor: PENDIENTE, texto: "Pendiente de registrar" }, ...opciones];
+  // Debajo del combo, la salida para quien SÍ se conoce pero todavía no está en el directorio: el alta de Producción, sin salir de la hoja.
+  const comboProveedor = (
     <div>
       <CampoSelect
         id={`${idBase}-proveedor`}
         etiqueta="Proveedor"
-        valor={fase.proveedorId ?? ""}
-        onValor={(v) => onCambiar({ proveedorId: v || null })}
-        opciones={opciones}
-        marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
-        deshabilitado={opciones.length === 0}
-        {...pieDe("proveedor")}
+        valor={fase.pendiente ? PENDIENTE : (fase.proveedorId ?? "")}
+        onValor={(v) => onCambiar(v === PENDIENTE ? { pendiente: true, proveedorId: null } : { pendiente: false, proveedorId: v || null })}
+        opciones={opcionesConPendiente}
+        marcador="Elegir a quién"
+        {...pieDe("proveedor", opcionesProveedor.length === 0 ? "aún no hay proveedores de servicio cargados" : undefined)}
       />
       {onAgregarProveedor && (
-        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ proveedorId: id }))} className="btn-cayla btn-enlace mt-1 text-[13px]">
+        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ pendiente: false, proveedorId: id }))} className="btn-cayla btn-enlace mt-1 text-[13px]">
           + Registrar proveedor nuevo
         </button>
       )}
     </div>
   );
+  const tarifaVacia = fase.tarifa.trim() === "";
+  const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/\u00a0${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
+  const minimoVacio = fase.minimo.trim() === "";
+  const pieMinimo = sugerida?.minimo != null && minimoVacio ? "de su lista de precios" : "desde cuántas prendas cobra";
 
   return (
     <div className="space-y-3 px-3.5 py-3">
@@ -291,9 +293,27 @@ export function FilaFase({
         </div>
       )}
 
-      {servicio && def.hito && (
+      {servicio && fase.pendiente && (
+        <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+          {comboProveedor}
+          <CampoFecha
+            id={`${idBase}-fecha`}
+            etiqueta="Prometido para"
+            valor={fase.fechaPrometida}
+            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
+          />
+          <div className="sm:col-span-2">
+            <Aviso tono="info" chico>
+              No cobra nada todavía. Cuando sepas quién la hizo y a cuánto, lo registras en la orden con «Registrar quién» y su costo se suma solo.
+            </Aviso>
+          </div>
+        </div>
+      )}
+
+      {servicio && def.hito && !fase.pendiente && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          {campoProveedor}
+          {comboProveedor}
           <CampoMonto
             id={`${idBase}-fijo`}
             etiqueta="Cobra por esta orden"
@@ -313,9 +333,9 @@ export function FilaFase({
         </div>
       )}
 
-      {servicio && !def.hito && (
+      {servicio && !def.hito && !fase.pendiente && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          {campoProveedor}
+          {comboProveedor}
           <CampoMonto
             id={`${idBase}-tarifa`}
             etiqueta="Por prenda"

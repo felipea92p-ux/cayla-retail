@@ -271,6 +271,7 @@
     "pruebas:produccion-ficha-consumo": "node scripts/pruebas/produccion_ficha_consumo.mjs",
     "pruebas:produccion-fases-nuevas": "node scripts/pruebas/produccion_fases_nuevas.mjs",
     "pruebas:produccion-ploteo": "node scripts/pruebas/produccion_ploteo.mjs",
+    "pruebas:produccion-proveedor-pendiente": "node scripts/pruebas/produccion_proveedor_pendiente.mjs",
     "pruebas:produccion-ruta-nueva": "node scripts/pruebas/produccion_ruta_nueva.mjs",
     "pruebas:produccion-avances": "node scripts/pruebas/produccion_avances.mjs",
     "pruebas:produccion-anulaciones": "node scripts/pruebas/produccion_anulaciones.mjs",

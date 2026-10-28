@@ -47,6 +47,9 @@ import {
   problemasDeSalida,
   problemasDeVuelta,
   puedeCambiarQuien,
+  puedeRegistrarQuien,
+  esPendienteDeRegistrar,
+  fasesSinRegistrar,
   queSigue,
   quedanAfuera,
   quienDeFase,
@@ -351,6 +354,20 @@ describe("las fases", () => {
     expect(textoQueSigue({ fase: null, accion: "nada" }, p.fases)).toBeNull();
     const cortando: FasePagina = { ...corte, estado: "en_curso", actual: true, porVariante: corte.porVariante.map((v) => ({ ...v, hechas: 0, entrada: 9 })) };
     expect(textoQueSigue({ fase: cortando, accion: "terminar" }, [cortando])).toBe("Sigue: terminar corte (faltan 48).");
+  });
+
+  it("«pendiente de registrar» (ADR-0551 pendiente de registrar): un servicio sin proveedor; se dice así, se puede registrar aunque la fase ya empezó y solo con la orden en proceso", () => {
+    const pendiente: FasePagina = { ...costura, proveedorId: null, proveedorNombre: null };
+    expect(esPendienteDeRegistrar(pendiente)).toBe(true);
+    expect(esPendienteDeRegistrar(costura)).toBe(false);
+    expect(esPendienteDeRegistrar(corte)).toBe(false);
+    expect(quienDeFase(pendiente)).toBe("Pendiente de registrar");
+    expect(fasesSinRegistrar([corte, pendiente, acabado])).toEqual([pendiente]);
+    expect(puedeCambiarQuien(pendiente, p)).toBe(false); // ya empezó: quién la hace no se cambia…
+    expect(puedeRegistrarQuien(pendiente, p)).toBe(true); // …pero SÍ se registra quién fue
+    expect(puedeRegistrarQuien(costura, p)).toBe(false);
+    expect(puedeRegistrarQuien(pendiente, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
+    expect(puedeRegistrarQuien(pendiente, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
   });
 
   it("puedeCambiarQuien: solo mientras la fase no empezó y la orden está en proceso", () => {
