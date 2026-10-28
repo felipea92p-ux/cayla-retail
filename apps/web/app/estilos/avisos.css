@@ -296,10 +296,26 @@
 }
 
 /* ====================================================================
-   «Hay una versión nueva de CAYLA» — la píldora flotante (ADR-0422, act. 2026-10-28; Felipe eligió la B de
-   docs/maquetas/version-nueva-2026-10/). Va FUERA del contenido: antes era una franja dentro de la página, y la barra fija de
-   Finanzas (`.mesa-telar`, opaca y con margen negativo) la tapaba a medias. En escritorio ancho se centra sobre el contenido,
-   en la banda de la cabecera (el centro está libre); bajo 1024 px, justo debajo de ella. Entra bajando 10 px, una vez, sin bucle.
+   «Hay una versión nueva de CAYLA» — la píldora flotante con su gota (ADR-0422, act. 2026-10-28; Felipe eligió la B de
+   docs/maquetas/version-nueva-2026-10/ y después la gota: docs/maquetas/version-nueva-2026-10/gota.html).
+   Va FUERA del contenido: antes era una franja dentro de la página, y la barra fija de Finanzas (`.mesa-telar`, opaca y con margen
+   negativo) la tapaba a medias. En escritorio ancho se centra sobre el contenido, en la banda de la cabecera (el centro está libre); bajo
+   1024 px, justo debajo de ella.
+
+   LA GOTA (excepción de ADR-0136, decidida por Felipe: es la única pieza con un rebote, y solo uno; una sola vez, sin bucle, ~2,2 s):
+       0 –  480 ms  cae suave hasta lo más bajo de la sección del aviso (su borde de abajo)
+     480 –  540 ms  toca y se aplasta apenas
+     540 –  900 ms  rebota UNA vez: sube suave al centro de la sección y ahí se queda
+     950 – 1 700 ms la gota toca el fondo y se riega por el suelo del aviso, con la punta redonda, hasta las dos paredes
+    1 280 – 2 110 ms el nivel sube: la superficie ondula (el centro primero) hasta llenar el aviso
+    1 650 – 2 030 ms el texto y los botones aparecen cuando el líquido los alcanza
+   El líquido son círculos y columnas de borde redondo que un filtro de «goteo» (SVG `#liquido`: blur + contraste del alfa) funde en una masa
+   blanda; las paredes de la píldora (su `border-radius`) la contienen. `--m` es la mitad del ancho de la píldora, que `VersionNueva.tsx` mide al
+   montarla: con él, el charco y las columnas llegan a las paredes sea cual sea el largo del texto (a 375 px no se muestra la frase de ayuda).
+   LA SALIDA (la ✕, «Más tarde»; 1 450 ms): es la entrada al revés y se va como gota. El texto se apaga (0–200); el nivel baja, las orillas primero
+   (0–600); el líquido se recoge desde las paredes al centro hasta ser una gota (200–800); la gota se redondea y sube al centro (800–950) y se
+   desprende: cae acelerando y se desvanece (950–1 450). `VersionNueva.tsx` pone `.version-nueva-sale` y la quita de pantalla al terminar.
+   Con `prefers-reduced-motion` no hay gota: aparece y se va ya hecha.
    ==================================================================== */
 @layer components {
   .version-nueva {
@@ -311,14 +327,18 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
+    height: 42px;
     max-width: calc(100vw - 2rem);
-    padding: 0.3125rem 0.3125rem 0.3125rem 0.875rem;
+    padding: 0 0.3125rem 0 0.875rem;
     border-radius: 999px;
-    background: var(--color-tinta);
+    /* Sin fondo propio: lo pone el líquido (`.agua`), así que al caer solo se ve la gota. */
+    background: transparent;
     color: var(--color-crema);
     font-size: 13px;
-    box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--color-sombra) 45%, transparent);
-    animation: cayla-version-nueva-entra 420ms var(--ease-cayla) both;
+    transform-origin: 50% 100%;
+    animation:
+      cayla-version-cae 1000ms linear both,
+      cayla-version-sombra 400ms var(--ease-cayla) 2050ms both;
   }
   @media (min-width: 1024px) {
     .version-nueva {
@@ -327,7 +347,14 @@
       left: calc(var(--spacing-lateral) + (100vw - var(--spacing-lateral)) / 2);
     }
   }
-  .version-nueva-punto { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-crema); }
+  /* El contenido va sobre el líquido (`position: relative`) y aparece cuando este llega. */
+  .version-nueva > :not(.version-nueva-agua) {
+    position: relative;
+    flex: none;
+    /* Solo `backwards`: al terminar no se queda con un `transform`/`opacity` fijos que taparían el movimiento al pasar el mouse del botón. */
+    animation: cayla-version-contenido 380ms var(--ease-cayla) 1650ms backwards;
+  }
+  .version-nueva-punto { width: 8px; height: 8px; border-radius: 50%; background: var(--color-crema); }
   .version-nueva-texto { margin: 0; font-weight: 500; white-space: nowrap; }
   .version-nueva-texto span { display: none; font-weight: 400; color: color-mix(in srgb, var(--color-crema) 78%, transparent); }
   @media (min-width: 640px) { .version-nueva-texto span { display: inline; } }
@@ -341,13 +368,96 @@
     .version-nueva .btn-cayla.btn-secundario:hover:not(:disabled) { background: var(--color-hueso); border-color: var(--color-hueso); color: var(--color-tinta); }
   }
   .version-nueva-x {
-    flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%;
+    display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%;
     color: color-mix(in srgb, var(--color-crema) 78%, transparent);
     transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla);
   }
   @media (hover: hover) {
     .version-nueva-x:hover { background: color-mix(in srgb, var(--color-crema) 16%, transparent); color: var(--color-crema); }
   }
+
+  /* ---- El recipiente y el líquido. Todo se mide desde el piso de la píldora: `.goo` se pasa 30 px por cada lado, así que el piso está en
+     `bottom: 30px` y el difuminado de los bordes queda fuera de la vista. ---- */
+  .version-nueva-agua { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; pointer-events: none; }
+  .version-nueva-goo { position: absolute; inset: -30px; filter: url(#liquido); }
+  .version-nueva-goo > i { position: absolute; display: block; background: var(--color-tinta); }
+  /* 1 · La gota (18 px) se deja caer al fondo y se aplasta contra el piso */
+  .vn-gota {
+    left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+    animation: cayla-version-gota 260ms cubic-bezier(.4, 0, .3, 1) 950ms both;
+  }
+  /* 2 · El suelo: una franja baja de puntas redondas que se ensancha desde el centro hasta las paredes… */
+  .vn-piso {
+    left: 50%; bottom: 30px; height: 20px; border-radius: 999px; translate: -50% 0;
+    animation: cayla-version-piso 700ms cubic-bezier(.2, .7, .3, 1) 1000ms both;
+  }
+  /* …con una cabeza más gruesa en cada punta, que va un poco adelante y deja el cuello que el filtro estira. */
+  .vn-cab-l, .vn-cab-r {
+    left: 50%; bottom: 30px; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%;
+    animation: cayla-version-cabeza 700ms cubic-bezier(.2, .7, .3, 1) 1000ms both;
+  }
+  .vn-cab-l { --dx: calc(var(--m, 258px) * -1 + 13px); }
+  .vn-cab-r { --dx: calc(var(--m, 258px) - 13px); }
+  /* 3 · El nivel sube: cinco columnas de cima redonda; la superficie ondula porque cada una sube a su hora (el centro primero). */
+  .vn-col {
+    left: 50%; bottom: 30px; width: calc(var(--m, 258px) * .75); margin-left: calc(var(--m, 258px) * -.375);
+    border-radius: 999px 999px 0 0; height: 0; translate: calc(var(--m, 258px) * var(--k)) 0;
+    animation: cayla-version-nivel 700ms cubic-bezier(.3, .55, .3, 1) var(--d) both;
+  }
+  .vn-col-0 { --k: 0; --d: 1280ms; }
+  .vn-col-1 { --k: -.45; --d: 1370ms; }
+  .vn-col-2 { --k: .45; --d: 1370ms; }
+  .vn-col-3 { --k: -.9; --d: 1470ms; }
+  .vn-col-4 { --k: .9; --d: 1470ms; }
+
+  /* ---- La salida: cada pieza arranca desde donde la dejó la entrada (por eso cada `from` repite el estado final) ---- */
+  .version-nueva.version-nueva-sale {
+    animation:
+      cayla-version-sombra-off 200ms var(--ease-cayla) both,
+      cayla-version-cae-sale 500ms cubic-bezier(.55, .05, .9, .5) 950ms both;
+  }
+  .version-nueva.version-nueva-sale > :not(.version-nueva-agua) { animation: cayla-version-apaga 200ms var(--ease-cayla) both; pointer-events: none; }
+  .version-nueva-sale .vn-piso { animation: cayla-version-piso-sale 600ms cubic-bezier(.6, 0, .3, 1) 200ms both; }
+  .version-nueva-sale .vn-cab-l, .version-nueva-sale .vn-cab-r { animation: cayla-version-cabeza-sale 600ms cubic-bezier(.6, 0, .3, 1) 200ms both; }
+  .version-nueva-sale .vn-col { animation: cayla-version-nivel-sale 450ms cubic-bezier(.5, 0, .5, 1) var(--ds) both; }
+  .version-nueva-sale .vn-col-3, .version-nueva-sale .vn-col-4 { --ds: 0ms; }
+  .version-nueva-sale .vn-col-1, .version-nueva-sale .vn-col-2 { --ds: 70ms; }
+  .version-nueva-sale .vn-col-0 { --ds: 150ms; }
+  .version-nueva-sale .vn-gota { animation: cayla-version-gota-sale 150ms var(--ease-cayla) 800ms both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .version-nueva { animation: none; background: var(--color-tinta); box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
+    .version-nueva > :not(.version-nueva-agua) { animation: none; }
+    .version-nueva-agua { display: none; }
+    .version-nueva.version-nueva-sale { animation: none; }
+  }
 }
-@keyframes cayla-version-nueva-entra { from { opacity: 0; transform: translate3d(0, -10px, 0); } }
-@media (prefers-reduced-motion: reduce) { .version-nueva { animation: none; } }
+@keyframes cayla-version-cae {
+  0%   { transform: translate3d(0, -90px, 0) scale(1, 1); animation-timing-function: cubic-bezier(.45, .05, .7, .55); }
+  48%  { transform: translate3d(0, 12px, 0) scale(1, 1); animation-timing-function: cubic-bezier(.2, .6, .3, 1); }
+  54%  { transform: translate3d(0, 12px, 0) scale(1.16, .84); animation-timing-function: cubic-bezier(.3, .1, .25, 1); }
+  90%  { transform: translate3d(0, 0, 0) scale(1, 1); }
+  100% { transform: translate3d(0, 0, 0) scale(1, 1); }
+}
+@keyframes cayla-version-sombra {
+  from { box-shadow: 0 12px 24px -10px transparent; }
+  to   { box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
+}
+@keyframes cayla-version-contenido { from { opacity: 0; transform: translate3d(0, 4px, 0); } }
+@keyframes cayla-version-gota { from { translate: 0 0; scale: 1 1; } to { translate: 0 9px; scale: 1.25 .8; } }
+@keyframes cayla-version-piso { from { width: 18px; opacity: 0; } 1% { opacity: 1; } to { width: calc(var(--m, 258px) * 2 + 40px); opacity: 1; } }
+@keyframes cayla-version-cabeza { from { translate: 0 0; scale: .7; opacity: 0; } 1% { opacity: 1; } to { translate: var(--dx) 0; scale: 1; opacity: 1; } }
+@keyframes cayla-version-nivel { from { height: 0; } to { height: 64px; } }
+@keyframes cayla-version-sombra-off {
+  from { box-shadow: 0 12px 24px -10px color-mix(in srgb, var(--color-sombra) 45%, transparent); }
+  to   { box-shadow: 0 12px 24px -10px transparent; }
+}
+@keyframes cayla-version-apaga { from { opacity: 1; } to { opacity: 0; } }
+@keyframes cayla-version-piso-sale { from { width: calc(var(--m, 258px) * 2 + 40px); opacity: 1; } to { width: 18px; opacity: 1; } }
+@keyframes cayla-version-cabeza-sale { from { translate: var(--dx) 0; scale: 1; opacity: 1; } to { translate: 0 0; scale: .7; opacity: 1; } }
+@keyframes cayla-version-nivel-sale { from { height: 64px; } to { height: 0; } }
+@keyframes cayla-version-gota-sale { from { translate: 0 9px; scale: 1.25 .8; } to { translate: 0 0; scale: 1 1; } }
+@keyframes cayla-version-cae-sale {
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to   { transform: translate3d(0, 110px, 0) scale(.85, 1.15); opacity: 0; }
+}

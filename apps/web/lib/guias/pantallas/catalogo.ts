@@ -480,6 +480,15 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       texto: "La columna nueva, en ámbar y con sus unidades, junto a lo que ya hay. Míralo antes de sumarla a la ficha.",
     },
     {
+      // El pie de «Agregar talla», como el de «Agregar color»: el asistente que acompaña una talla nueva lo enciende; la demo cierra la
+      // hoja antes, así que se salta (opcional).
+      id: "agregar-talla-pie",
+      ancla: "agregar-talla.pie",
+      opcional: true,
+      titulo: "Sumarlas a la ficha",
+      texto: "El botón de la derecha suma esas tallas a la tabla de la ficha, todavía sin guardar; «Cancelar» cierra sin tocar nada.",
+    },
+    {
       id: "foto",
       ancla: "editar.foto",
       opcional: true,
