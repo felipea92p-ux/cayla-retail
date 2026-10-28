@@ -162,6 +162,43 @@ $$;
 comment on function retail.fn_dueno_de_entrada_sin_elegir(uuid) is
   'ADR-0542, TRANSITORIA: de quién es una entrada que nadie marcó en una sede con dos empresas = la ficha. Se vuelve un rechazo cuando todas las pantallas pregunten.';
 
+-- El dueño que la pantalla eligió para esta llamada, leído de los encabezados de la petición (el mismo camino de `x-responsable`, ADR-0162):
+-- `x-dueno-lineas` = {"<variante_id>": "<empresa_id>"} para una venta con prendas de dueños distintos, o `x-dueno` = "<empresa_id>" para todo lo
+-- que mueva la llamada. Así la elección viaja hasta el disparador sin reescribir ninguna de las funciones que escriben movimientos.
+create or replace function retail.fn_dueno_de_la_llamada(p_variante_id uuid)
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_headers json;
+  v_texto text;
+begin
+  begin
+    v_headers := nullif(current_setting('request.headers', true), '')::json;
+  exception when others then
+    return null;
+  end;
+  if v_headers is null then
+    return null;
+  end if;
+  begin
+    v_texto := nullif(trim((v_headers ->> 'x-dueno-lineas')::json ->> p_variante_id::text), '');
+    if v_texto is null then
+      v_texto := nullif(trim(v_headers ->> 'x-dueno'), '');
+    end if;
+    return v_texto::uuid;
+  exception when others then
+    raise exception 'El dueño enviado no es válido' using errcode = '22P02';
+  end;
+end
+$$;
+
+comment on function retail.fn_dueno_de_la_llamada(uuid) is
+  'ADR-0542: la empresa que la pantalla eligió para esta llamada (encabezados x-dueno-lineas / x-dueno), o null. El disparador de movimientos la usa cuando el movimiento no trae dueño.';
+
 -- Los candados de una fila de stock y de sus dueños, en el mismo orden que usa fn_aplicar_movimiento (primero stock).
 create or replace function retail.fn_bloquear_libro(p_variante_id uuid, p_ubicacion_id uuid, p_sububicacion_id uuid)
 returns void
@@ -313,6 +350,8 @@ declare
   v_ubic_entra uuid;
   v_sub_entra uuid;
 begin
+  -- Sin dueño en el movimiento, el que la pantalla eligió para la llamada (encabezado), si lo hay.
+  new.empresa_id := coalesce(new.empresa_id, retail.fn_dueno_de_la_llamada(new.variante_id));
   -- El dueño que viene elegido tiene que operar donde se mueve (y, en un traslado, donde llega).
   if new.empresa_id is not null then
     if not exists (select 1 from retail.fn_empresas_de_sede(new.ubicacion_id) e where e.id = new.empresa_id)
@@ -404,6 +443,7 @@ comment on function retail.fn_movimiento_libro_por_dueno() is
 
 -- Solo las usan los disparadores (que no necesitan EXECUTE para dispararse): nadie las llama por la API.
 revoke all on function retail.fn_sede_con_dos_empresas(uuid) from public, anon, authenticated;
+revoke all on function retail.fn_dueno_de_la_llamada(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_dueno_de_entrada_sin_elegir(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_bloquear_libro(uuid, uuid, uuid) from public, anon, authenticated;
 revoke all on function retail.fn_reparto_de_la_fila(uuid, uuid, uuid) from public, anon, authenticated;

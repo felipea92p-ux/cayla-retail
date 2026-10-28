@@ -248,6 +248,20 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si contaste y el número no cuadra, toca aquí: arriba eliges dónde contaste y qué pasó, y debajo va la tabla con todos los colores y tallas. Escribes lo que contaste, Enter pasa al siguiente y guardas todo de una vez. En la demo no lo abrimos.",
     },
     {
+      id: "ajuste-dueno",
+      ancla: "existencias.ajuste-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que ajustas?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE. Antes de guardar, marca de cuál es lo que cuentas o sumas: el sistema no lo adivina por la marca ni por el proveedor. En otras tiendas esta pregunta no aparece. En la demo no se toca.",
+    },
+    {
+      id: "modal-ajuste-dueno",
+      ancla: "existencias.modal-ajuste-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que ajustas?",
+      texto: "Si la tienda tiene dos empresas (Lima), aquí marcas si el ajuste es de CAYLA o de CLAURE antes de confirmar. Sin elegir, el botón no se enciende. En la demo no se toca.",
+    },
+    {
       id: "cajon-acciones",
       ancla: "existencias.cajon-acciones",
       opcional: true,

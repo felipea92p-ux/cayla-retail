@@ -152,6 +152,27 @@ ${MOVER("v", "ajuste", "lim", "alm_lim", 1)}
 select ${DUENO("v", "claure")} = 1 and ${DUENO("v", "cayla")} = 4 and ${TOTAL("v")} = 5;`),
 );
 
+console.log("\n— El dueño que elige la pantalla viaja en un encabezado —");
+/** Lo que manda la web con `.setHeader("x-dueno", …)`: PostgREST lo deja en `request.headers` y el disparador lo lee. */
+const ENCABEZADOS = (json) => `select set_config('request.headers', ${json}::text, true) as _h \\gset`;
+caso(
+  "x-dueno hace de CLAURE todo lo que mueve la llamada, sin tocar la función que escribe el movimiento",
+  pasa(`${ENCABEZADOS(`json_build_object('x-dueno', :'claure')`)}
+${MOVER("v", "entrada", "lim", "alm_lim", 2)}
+select ${DUENO("v", "claure")} = 2 and ${DUENO("v", "cayla")} = 3 and (select empresa_id from retail.movimientos where id = :'m') = :'claure';`),
+);
+caso(
+  "x-dueno-lineas pone el dueño de cada prenda y le gana al x-dueno general",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}
+${ENCABEZADOS(`json_build_object('x-dueno', :'claure', 'x-dueno-lineas', json_build_object(:'v'::text, :'cayla'))`)}
+${MOVER("v", "salida", "lim", "alm_lim", 1)}
+select ${DUENO("v", "cayla")} = 2 and ${DUENO("v", "claure")} = 2 and (select empresa_id from retail.movimientos where id = :'m') = :'cayla';`),
+);
+caso(
+  "un dueño inválido en el encabezado se rechaza",
+  rechaza(`${ENCABEZADOS(`json_build_object('x-dueno', 'no-es-un-uuid')`)}${MOVER("v", "entrada", "lim", "alm_lim", 1)}`, /El dueño enviado no es válido/),
+);
+
 console.log("\n— Sacar stock —");
 caso(
   "una salida sin elegir, con unidades de las dos empresas, se rechaza: elige de cuál es",

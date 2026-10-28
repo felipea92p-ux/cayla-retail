@@ -14,6 +14,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
+import { hayQueElegirDueno } from "@/lib/dueno-reglas";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Punto } from "@/components/alta-producto/Punto";
 import { TiraDeLoQueEntro, VistoQueSeDibuja } from "@/components/ficha-producto/ImprimirLoQueEntro";
@@ -764,13 +766,18 @@ export function PieDelAjuste({
   return (
     <div className="pie-hoja-fijo mt-3">
       <div className="grid gap-3 border-t border-sand pt-2.5 sm:flex sm:flex-wrap sm:items-center">
+        {hayQueElegirDueno(control.empresas) && control.empresas && (
+          <CampoGuiado id="dueno" guia={guia} titulo="¿De quién es?" retiene="fila">
+            <ElegirDueno empresas={control.empresas} duenoId={control.duenoId} onElegir={control.elegirDueno} deshabilitado={control.enviando || control.incierto} guia="existencias.ajuste-dueno" />
+          </CampoGuiado>
+        )}
         <CampoGuiado id="responsable" guia={guia}>
           <ComboResponsable control={control.responsable} compacto enLinea deshabilitado={control.enviando} />
         </CampoGuiado>
         <div className="min-w-0 flex-1 text-[13px]">
           {n === 0 ? (
             <span className="text-taupe max-sm:hidden">Nada cambia hasta que guardes.</span>
-          ) : problema ? (
+          ) : problema || control.faltaDueno ? (
             <PieGuia guia={guia} />
           ) : (
             <span role="status">
@@ -786,7 +793,7 @@ export function PieDelAjuste({
           <Boton peso="fantasma" onClick={onCancelar} disabled={control.enviando || control.incierto}>
             {n > 0 ? "Descartar" : "Cancelar"}
           </Boton>
-          <Boton peso={secundario ? "fantasma" : "primario"} cargando={control.enviando} disabled={n === 0 || Boolean(problema) || control.enviando} onClick={onGuardar} title={problema ? (guia.frase ?? undefined) : undefined}>
+          <Boton peso={secundario ? "fantasma" : "primario"} cargando={control.enviando} disabled={n === 0 || Boolean(problema) || control.faltaDueno || control.enviando} onClick={onGuardar} title={problema || control.faltaDueno ? (guia.frase ?? undefined) : undefined}>
             {n > 0 ? `Guardar ${n} ${n === 1 ? "cambio" : "cambios"}` : "Guardar"}
           </Boton>
         </PieAcciones>
