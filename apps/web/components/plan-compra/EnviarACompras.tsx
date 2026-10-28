@@ -54,6 +54,7 @@ export function EnviarACompras({
   fila: filaPlan,
   hoy,
   limite,
+  puedeVerCompras = false,
   onIrAlPaso2,
   onCancelar,
 }: {
@@ -64,6 +65,8 @@ export function EnviarACompras({
   hoy: string;
   /** El último día para pedir y que llegue al inicio de la campaña; null = la campaña ya empezó. */
   limite: string | null;
+  /** Ve Compras ▸ Mis compras (`ordenes_compra`): sin el módulo, «Ver en Compras» llevaría a «Sin acceso» y no se dibuja. */
+  puedeVerCompras?: boolean;
   onIrAlPaso2: () => void;
   onCancelar: () => void;
 }) {
@@ -113,7 +116,7 @@ export function EnviarACompras({
       </Aviso>
     );
   }
-  return <EnvioConBase planId={planId} planNombre={planNombre} fila={filaPlan} hoy={hoy} limite={limite} base={base} pedidos={pedidos} recargar={recargar} onIrAlPaso2={onIrAlPaso2} onCancelar={onCancelar} />;
+  return <EnvioConBase planId={planId} planNombre={planNombre} fila={filaPlan} hoy={hoy} limite={limite} puedeVerCompras={puedeVerCompras} base={base} pedidos={pedidos} recargar={recargar} onIrAlPaso2={onIrAlPaso2} onCancelar={onCancelar} />;
 }
 
 function EnvioConBase({
@@ -122,6 +125,7 @@ function EnvioConBase({
   fila: filaPlan,
   hoy,
   limite,
+  puedeVerCompras,
   base,
   pedidos,
   recargar,
@@ -133,6 +137,7 @@ function EnvioConBase({
   fila: FilaPlan;
   hoy: string;
   limite: string | null;
+  puedeVerCompras: boolean;
   base: BaseDeEnvio;
   pedidos: LecturaEnvio["pedidos"];
   recargar: () => void;
@@ -332,7 +337,7 @@ function EnvioConBase({
                     Rectificar el envío
                   </Boton>
                 )}
-                {hayVigentes && <BotonVer href="/compras/ordenes">Ver en Compras</BotonVer>}
+                {hayVigentes && puedeVerCompras && <BotonVer href="/compras/ordenes">Ver en Compras</BotonVer>}
               </>
             ) : undefined
           }

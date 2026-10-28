@@ -14,7 +14,7 @@ export function CaminoDePasos({ pasos, ahora, etiqueta, guia }: { pasos: readonl
           <li
             key={p}
             aria-current={enCurso ? "step" : undefined}
-            className={`flex min-w-0 flex-col items-start gap-1.5 text-[11.5px] leading-tight ${hecho ? "text-verde" : enCurso ? "font-semibold text-tinta" : "text-taupe"}`}
+            className={`flex min-w-0 flex-col items-start gap-1.5 text-xs leading-tight ${hecho ? "text-verde" : enCurso ? "font-semibold text-tinta" : "text-taupe"}`}
           >
             <span aria-hidden className={`block h-1 w-full rounded-full ${hecho ? "bg-verde" : enCurso ? "bg-tinta" : "bg-sand"}`} />
             <span className="inline-flex items-start gap-0.5">

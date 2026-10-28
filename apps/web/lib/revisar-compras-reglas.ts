@@ -1,6 +1,6 @@
 import { soles } from "./compras-reglas";
 import { TIPOS_PAPEL, type MedioPagoCompra, type TipoPapel } from "./compra-rapida-reglas";
-import { campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
+import { MONTO_MAXIMO_PLATA, campoResponsable, primerNombre, problemaDeMonto, type CuentaOpcion } from "./fondos-reglas";
 import { CONCEPTOS_GASTO, MEDIOS_PLATA, nombreGasto, type ConceptoGasto, type PlataPorConfirmar } from "./mi-plata-reglas";
 import { diaMes } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
@@ -426,7 +426,7 @@ export function camposCompletar(
     campos.push({ id: "numero", nombre: "Número", requerido: n !== null, hecho: n === null && v.numero.trim() !== "", pendiente: n ?? "" });
   }
   if (v.cambiaMonto) {
-    const m = problemaDeMonto(v.monto);
+    const m = problemaDeMonto(v.monto, undefined, MONTO_MAXIMO_PLATA);
     campos.push({ id: "monto", nombre: "Lo que dice el papel", requerido: true, hecho: m === null, pendiente: m ?? "" });
   }
   return [...campos, ...campoResponsable({ ...r, quien: "Quién completa" })];
@@ -562,10 +562,10 @@ export function chipPapel(p: Pick<PapelPorCompletar, "llego" | "lineas" | "envio
   return faltan === 0 ? { tono: "verde", texto: "Llegó todo" } : { tono: "ambar", texto: faltan === 1 ? "Faltó 1" : `Faltaron ${faltan}` };
 }
 
-export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta">): FilaBandeja {
+export function filaPlata(f: Pick<PlataPorConfirmar, "id" | "persona" | "medio" | "monto" | "fecha" | "fotoRuta"> & { fotoNoAbrio?: boolean }): FilaBandeja {
   return {
     id: f.id,
-    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? " · con foto" : " · sin foto"}`,
+    titulo: f.medio === "ya_tenia" ? "Ya tenía de antes" : `${MEDIOS_PLATA[f.medio].nombre}${f.fotoRuta ? (f.fotoNoAbrio ? " · no se pudo abrir la foto" : " · con foto") : " · sin foto"}`,
     quien: f.persona,
     cuando: f.fecha ? diaMes(f.fecha) : "",
     monto: f.monto,

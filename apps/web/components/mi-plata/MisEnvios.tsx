@@ -156,7 +156,15 @@ export function MisEnvios({
             </div>
           ) : (
             <>
-            <TablaEnvios grupos={gruposAnteriores} hoy={hoy} />
+            {/* Un filtro que no deja ningún envío: ni tabla con solo su encabezado (PC) ni rondas vacías (celular); lo dice el vacío. */}
+            {gruposAnteriores.length === 0 ? (
+              <Vacio icono={<PackageCheck aria-hidden />} titulo="Nada por aquí" tamano="chico">
+                Nada con ese filtro.
+              </Vacio>
+            ) : (
+              <TablaEnvios grupos={gruposAnteriores} hoy={hoy} />
+            )}
+            {gruposAnteriores.length > 0 && (
             <div className="grid items-start gap-3 lg:hidden">
             {rondas.map((r) => {
               const clave = r.rondaId ?? "sin-ronda";
@@ -186,13 +194,20 @@ export function MisEnvios({
                   </button>
                   {abierta && (
                     <ul id={`envios-${clave}`} className="divide-y divide-sand border-t border-sand px-3.5">
-                      {lista.length > 0 ? lista.map((e) => <FilaEnvio key={e.id} e={e} hoy={hoy} />) : <li className="py-3 text-sm text-taupe">Nada con ese filtro.</li>}
+                      {lista.length > 0 ? lista.map((e) => <FilaEnvio key={e.id} e={e} hoy={hoy} />) : (
+                        <li>
+                          <Vacio icono={<PackageCheck aria-hidden />} titulo="Nada por aquí" tamano="chico" alinear="izquierda">
+                            Nada con ese filtro.
+                          </Vacio>
+                        </li>
+                      )}
                     </ul>
                   )}
                 </div>
               );
             })}
             </div>
+            )}
             </>
           )}
         </section>
