@@ -289,6 +289,17 @@ export function solesBalance(v: number): string {
   return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
+/**
+ * La cifra exacta, con céntimos si los tiene: la que el líder tiene que escribir para que el arranque cuadre. Con
+ * `solesBalance` una diferencia de 67,928.73 se leía «S/ 67,929»; quien la copiaba seguía sin poder guardar.
+ */
+export function solesExactos(v: number): string {
+  const centimos = Math.round(Math.abs(v) * 100);
+  if (centimos % 100 === 0) return solesBalance(v);
+  const cuerpo = (centimos / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${v < 0 ? "−" : ""}S/\u00a0${cuerpo}`;
+}
+
 /** «7,2 % al mes» (coma decimal, como el resto de Reportes). */
 export function textoRinde(r: number | null): string {
   if (r == null || !Number.isFinite(r)) return "—";
