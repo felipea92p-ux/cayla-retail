@@ -2,3 +2,5 @@
 Qué hice: el combo «Proveedor» de «¿Quién hace…?» y de Nueva orden trae «Pendiente de registrar» (la fase sale afuera sin proveedor ni precio y no cobra nada hasta que se registre quién) y «+ Registrar proveedor nuevo» (abre el alta de Producción y deja al nuevo elegido).
 Por qué así: no se tienen aún los datos de los proveedores (solo hay 1 cargado) y la fase se quedaba sin salida; inventar un proveedor falso dejaba una deuda y un costo falsos. El pendiente estaba construido en un commit que nunca se subió; se rehízo sobre main con migración nueva.
 Qué se rompería sin esto: no se podía abrir ni avanzar una orden cuyo corte o costura lo hace alguien todavía no registrado, o se registraba un proveedor falso.
+
+Segunda parte: al pegar la migración, el check «SQL pegado» vio que `abrir_orden_produccion` tenía en producción un cuerpo distinto del de `main` (la entrega pasada ya valía allá por el ADR-0537). Por decisión de Felipe se ajustó `main` a producción (migración 20261028074000, sin efecto en producción).
