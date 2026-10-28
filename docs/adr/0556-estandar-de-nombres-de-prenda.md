@@ -78,9 +78,11 @@ que rechaza la base). Editar producto avisa lo mismo al renombrar; un nombre vie
 
 Felipe, mirando el paso 2: «no se entiende bien que "Polera" queda fijo y saldrá en el nombre del producto». El tipo era un texto gris a la izquierda
 de la caja, igual al ejemplo de al lado, y la fila de chips repetía «✓ Polera». Ahora (`components/alta-producto/NombreDePrenda.tsx`):
-- **El tipo es una pieza fija dentro de la caja**, con su candado y un «+»: lo que se escribe se le suma.
+- **El tipo va fijo dentro de la caja, con la misma letra y el mismo tamaño que lo que se escribe** y solo un candado chico delante
+  (Felipe, segunda vuelta: con el recuadro y el «+» seguía leyéndose como otra cosa): «🔒 Cartera Dalia» se lee como un nombre.
 - **«Así se llamará: Polera Dalia»** va siempre pegado bajo la caja, en la serif, y cambia mientras se escribe; vacía, dice «Polera ____».
-- **Con un solo tipo no hay fila de chips**: la salida al nombre libre es un enlace («¿No es una polera? Escribe otro nombre» / «Volver a
-  «Polera + nombre»»). Con dos («Camisas y Blusas») sigue la fila, ahora con «Empieza con:».
+- **La salida al nombre libre es siempre el mismo enlace**, con uno o con varios tipos: «¿No es una polera? Escribe otro nombre», «¿No es
+  una cartera ni un bolso? Escribe otro nombre» y, de vuelta, «Volver a «Polera + nombre»». Con un solo tipo no hay fila de chips; con
+  varios, «Empieza con: Cartera · Bolso» solo elige el tipo (el chip «Otro nombre» se fue: Felipe lo vio en Carteras y no en Polos).
 - **«Temporada y etiquetas» arranca plegado** (reemplaza el «abierto» del 2026-09-29): con el nombre al final del paso, abierto lo empujaba
   hacia arriba con opciones que casi nunca cambian. Plegado, su línea dice lo elegido.

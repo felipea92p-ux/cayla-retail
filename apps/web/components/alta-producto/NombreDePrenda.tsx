@@ -56,13 +56,14 @@ export function NombreDePrenda({
   pie?: React.ReactNode;
 }) {
   const libre = tipo === TIPO_LIBRE;
-  // Con un solo tipo, una fila de chips repetía «Polera» al lado de la caja que ya lo dice: basta un enlace para salir al nombre libre.
-  const unSoloTipo = tipos.length === 1;
-  const enlaceLibre = unSoloTipo ? (
-    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => onTipo(libre ? tipos[0] : TIPO_LIBRE)}>
-      {libre ? `Volver a «${tipos[0]} + nombre»` : `¿No es ${articulo(tipos[0])} ${tipos[0].toLocaleLowerCase("es")}? Escribe otro nombre`}
-    </button>
-  ) : null;
+  // La salida al nombre libre es SIEMPRE el mismo enlace, con uno o con varios tipos (Felipe 2026-10-28: en Carteras salía un chip
+  // «Otro nombre» y en Polos no). Con varios, los chips de arriba solo eligen el tipo.
+  const enlaceLibre =
+    tipos.length > 0 ? (
+      <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => onTipo(libre ? tipos[0] : TIPO_LIBRE)}>
+        {libre ? `Volver a «${tipos[0]} + nombre»` : `${preguntaNoEs(tipos)} Escribe otro nombre`}
+      </button>
+    ) : null;
   // Así se llamará, siempre a la vista y pegado a la caja: con la caja vacía dice el tipo y un hueco por llenar.
   const asiSeLlamara = (
     <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -92,25 +93,20 @@ export function NombreDePrenda({
               {t}
             </ChipOpcion>
           ))}
-          <ChipOpcion elegido={libre} onClick={() => onTipo(libre ? tipos[0] : TIPO_LIBRE)}>
-            Otro nombre
-          </ChipOpcion>
         </div>
       ) : null}
       <CampoTexto
         id={id}
         etiqueta={libre ? "Nombre" : `Nombre de la ${tipo.toLocaleLowerCase("es")}`}
         caja
-        // El tipo, como una pieza fija dentro de la caja (no un texto gris que parece parte del ejemplo): con su candado y un «+» que
-        // dice que lo que escribas se le suma.
+        // El tipo, fijo dentro de la caja con la MISMA letra y tamaño que lo que se escribe (Felipe 2026-10-28): así «Polo Dalia» se lee
+        // como un solo nombre. Solo el candado, chico y en taupe, dice que esa parte no se escribe. `-mr-3` le quita a la caja su hueco
+        // entre piezas (10 px + 6 px) y deja el de un espacio entre palabras: «Cartera Dalia», no «Cartera   Dalia».
         antes={
           libre ? undefined : (
-            <span className="inline-flex items-center gap-1.5" title="Lo pone la categoría: va al inicio del nombre">
-              <span className="inline-flex items-center gap-1 rounded-md border border-borde-control bg-papel px-2 py-0.5 font-semibold text-tinta">
-                <Lock aria-hidden className="h-3 w-3 text-taupe" />
-                {tipo}
-              </span>
-              <span className="text-taupe">+</span>
+            <span className="-mr-3 inline-flex items-center gap-1 text-base text-tinta" title="Lo pone la categoría: va al inicio del nombre">
+              <Lock aria-hidden className="h-3.5 w-3.5 text-taupe" />
+              {tipo}
             </span>
           )
         }
@@ -163,6 +159,13 @@ export function NombreDePrenda({
       )}
     </div>
   );
+}
+
+/** «¿No es un polo?», «¿No es una cartera ni un bolso?», «¿No es un bralette, un brasier ni una trusa?». */
+function preguntaNoEs(tipos: readonly string[]): string {
+  const con = tipos.map((t) => `${articulo(t)} ${t.toLocaleLowerCase("es")}`);
+  const lista = con.length === 1 ? con[0] : `${con.slice(0, -1).join(", ")} ni ${con[con.length - 1]}`;
+  return `¿No es ${lista}?`;
 }
 
 /** El artículo delante del tipo, para «¿No es una polera?»: los de la lista que terminan en «a» son femeninos y los que terminan en «s»,
