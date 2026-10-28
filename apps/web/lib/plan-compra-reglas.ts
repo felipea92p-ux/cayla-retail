@@ -1149,8 +1149,6 @@ export const vistaDeLaUrl = (v: string | null | undefined): "tabla" | "guiado" =
 // 16. Editar, quitar y restaurar una campaña (ADR-0372, B5; Felipe 2026-10-10: «borrar si está vacía, archivar si no»)
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Las campañas del selector (las archivadas no salen). */
-export const campanasActivas = (c: CampanasLeidas): CampanaPlan[] => c.planes.filter((p) => !p.archivado);
 /** Las archivadas: se ven y se restauran desde «Campañas archivadas». */
 export const campanasArchivadas = (c: CampanasLeidas): CampanaPlan[] => c.planes.filter((p) => p.archivado);
 

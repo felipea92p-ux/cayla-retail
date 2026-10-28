@@ -10,7 +10,6 @@ import {
   ordenarVentas,
   prendaSinCargar,
   resueltasDesde,
-  siguienteOrden,
   tipoDiferencia,
 } from "./por-regularizar-reglas";
 
@@ -105,17 +104,6 @@ describe("ordenarVentas", () => {
   it("con un empate en la columna elegida, la venta más reciente va primero", () => {
     const filas = [venta("vieja", { vendidoEn: "2026-10-01T10:00:00-05:00" }), venta("nueva", { vendidoEn: "2026-10-05T10:00:00-05:00" })];
     expect(ids(ordenarVentas(filas, { campo: "cobrado", dir: "asc" }, hoy))).toEqual(["nueva", "vieja"]);
-  });
-});
-
-describe("siguienteOrden", () => {
-  it("el mismo campo invierte", () => {
-    expect(siguienteOrden({ campo: "cobrado", dir: "desc" }, "cobrado")).toEqual({ campo: "cobrado", dir: "asc" });
-    expect(siguienteOrden({ campo: "cobrado", dir: "asc" }, "cobrado")).toEqual({ campo: "cobrado", dir: "desc" });
-  });
-  it("un campo nuevo arranca de mayor a menor, salvo la prenda (A–Z)", () => {
-    expect(siguienteOrden({ campo: "vendio", dir: "desc" }, "cobrado")).toEqual({ campo: "cobrado", dir: "desc" });
-    expect(siguienteOrden({ campo: "vendio", dir: "desc" }, "prenda")).toEqual({ campo: "prenda", dir: "asc" });
   });
 });
 
