@@ -40,8 +40,9 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
-// 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco). Esta suite recarga 20261019192000 en cada caso y esa migración
-// tiene su candado de md5 sobre la función tal como ella la dejó: se deshace el parche de los cinco pasos antes de cargarla (lo mismo que los `DESHACER_*` de otras suites).
+// 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
+// (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
+// (lo mismo que los `DESHACER_*` de otras suites).
 const DESHACER_CINCO_PASOS = `
 do $deshacer_cinco$
 declare v_def text;
@@ -52,6 +53,14 @@ begin
       raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura y Planchado'$q$,
     $q$if not (v_claves @> array['ploteo', 'corte', 'habilitado', 'costura', 'limpieza_revision', 'planchado', 'etiquetado_embolsado']) then
       raise exception 'La orden necesita sus fases: Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar'$q$);
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$      -- ADR-0537: una fecha prometida pasada vale (se registra una orden que ya se hizo); solo una fecha que no existe se rechaza.
+$q$,
+    $q$      if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
+        raise exception 'La fecha prometida de «%» ya pasó', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_pasada';
+      end if;
+$q$);
 end
 $deshacer_cinco$;
 `;
