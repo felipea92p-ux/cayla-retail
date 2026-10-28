@@ -52,7 +52,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
     avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy),
   });
 
-  // El resumen de arriba (un círculo con toda la plata, partido por cuenta) solo dice algo con dos cuentas con plata.
+  // El resumen de arriba (un círculo con toda la plata, partido por cuenta): está con todas las sedes y con una sola, también si tiene una cuenta con plata o ninguna.
   const reparto = repartoDeDinero(grupos);
 
   const sede = sedeDeLaCabecera(ctx.ver, ctx.ubicaciones);

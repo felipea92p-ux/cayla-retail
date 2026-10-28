@@ -287,6 +287,12 @@
   .din-leyenda-pct:empty {
     display: none;
   }
+  .din-leyenda .din-leyenda-vacia {
+    display: block;
+    padding: 6px 0 13px;
+    font-size: 14px;
+    color: var(--color-taupe);
+  }
   @media (max-width: 720px) {
     .din-reparto {
       grid-template-columns: minmax(0, 1fr);
