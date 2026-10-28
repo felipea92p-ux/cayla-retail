@@ -73,3 +73,14 @@ que rechaza la base). Editar producto avisa lo mismo al renombrar; un nombre vie
 - **Mostrar el nombre del proveedor en Compras** (órdenes, reposición) **y buscarlo** desde los buscadores del ERP: toca otro módulo; va en su propio paso.
 - **Ordenar los nombres que ya existen** (los que llevan color, descripción o un número): un listado para que Felipe decida cuáles renombrar.
 - **La tienda online** puede mostrar la línea descriptiva bajo el nombre.
+
+## Actualización 2026-10-28 (tarde) — que se vea que el tipo queda fijo
+
+Felipe, mirando el paso 2: «no se entiende bien que "Polera" queda fijo y saldrá en el nombre del producto». El tipo era un texto gris a la izquierda
+de la caja, igual al ejemplo de al lado, y la fila de chips repetía «✓ Polera». Ahora (`components/alta-producto/NombreDePrenda.tsx`):
+- **El tipo es una pieza fija dentro de la caja**, con su candado y un «+»: lo que se escribe se le suma.
+- **«Así se llamará: Polera Dalia»** va siempre pegado bajo la caja, en la serif, y cambia mientras se escribe; vacía, dice «Polera ____».
+- **Con un solo tipo no hay fila de chips**: la salida al nombre libre es un enlace («¿No es una polera? Escribe otro nombre» / «Volver a
+  «Polera + nombre»»). Con dos («Camisas y Blusas») sigue la fila, ahora con «Empieza con:».
+- **«Temporada y etiquetas» arranca plegado** (reemplaza el «abierto» del 2026-09-29): con el nombre al final del paso, abierto lo empujaba
+  hacia arriba con opciones que casi nunca cambian. Plegado, su línea dice lo elegido.

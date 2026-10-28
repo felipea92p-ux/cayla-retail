@@ -1461,7 +1461,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-2",
       ancla: "nuevo.punto-2",
       titulo: "2 · Cómo es",
-      texto: "Al elegir la categoría pasas aquí. Primero miras si ya existe: si es una de esas en otro color, no la creas, la abres y le agregas el color. Luego el tejido, el patrón y un detalle, y al final el nombre: el tipo más una flor de la lista, como «Blusa Dalia».",
+      texto: "Al elegir la categoría pasas aquí. Primero miras si ya existe: si es una de esas en otro color, no la creas, la abres y le agregas el color. Luego el tejido, el patrón y un detalle, y al final el nombre: el tipo lo pone la categoría y tú le sumas una flor de la lista, como «Blusa Dalia».",
     },
     {
       id: "punto-3",

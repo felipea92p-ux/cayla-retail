@@ -114,7 +114,7 @@ import { ArrowRight } from "lucide-react";
 // Ahora tejido y patrón van con el nombre; la tabla se arma una vez (paso 3) y en el 4 se llena; y el único marcador de
 // avance son los 4 puntos de arriba (`PuntosAvance`, ADR-0260 act. 2026-10-06): reemplazaron a los números del acordeón y a
 // la lista «Avance» de la ficha.
-// TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», a la vista al abrir el paso pero plegables (plegado, la
+// TEMPORADA y ETIQUETAS van en «Temporada y etiquetas · opcional», plegado al abrir el paso (Felipe 2026-10-28; plegado, la
 // línea dice lo elegido): son opcionales y casi nunca cambian entre prendas de una misma colección. Las etiquetas
 // conservan su selector con dibujo por concepto (`ElegirEtiquetas`, ADR-0109 «Actualización b»); tejido y patrón, su foto
 // o dibujo real (`contexto.imagenes`).
@@ -247,9 +247,10 @@ export function NuevoProductoForm({
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
   const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
   const vocabEtiquetas = useMemo(() => unirEtiquetas(contexto.etiquetas, etiquetasNuevas), [contexto.etiquetas, etiquetasNuevas]);
-  // «Temporada y etiquetas · opcional» (paso 2) arranca ABIERTO (Felipe 2026-09-29): plegado se pasaba de largo y nadie
-  // sabía que ahí se elige la temporada y las etiquetas. Sigue siendo plegable, y plegado la línea dice lo elegido.
-  const [masAbierto, setMasAbierto] = useState(true);
+  // «Temporada y etiquetas · opcional» (paso 2) arranca PLEGADO (Felipe 2026-10-28, que reemplaza el «abierto» del 2026-09-29): con el
+  // nombre al final del paso, abierto empujaba el nombre hacia arriba y llenaba el paso de opciones que casi nunca cambian. Plegado, su
+  // línea dice lo elegido y se abre con un toque.
+  const [masAbierto, setMasAbierto] = useState(false);
   // Paso 4 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
@@ -1113,7 +1114,7 @@ export function NuevoProductoForm({
               pie={lineaBajoNombre ? <span>Se leerá bajo el nombre: <strong className="text-tinta">{lineaBajoNombre}</strong></span> : undefined}
             />
           </FilaAlta>
-          <FilaAlta etiqueta="Nombre" ayuda={tipo === TIPO_LIBRE ? "Como se lo dirías a un cliente" : "El tipo más una flor: elige una libre o escríbela"} campo="nombre" estado={est.nombre}>
+          <FilaAlta etiqueta="Nombre" ayuda={tipo === TIPO_LIBRE ? "Como se lo dirías a un cliente" : "El tipo lo pone la categoría; tú escribes el resto"} campo="nombre" estado={est.nombre}>
             <div className="space-y-2">
               <NombreDePrenda
                 id="nombre-producto"
@@ -1126,8 +1127,10 @@ export function NuevoProductoForm({
                 delProveedor={delProveedor}
                 avisos={avisosNombre}
                 placeholderLibre={sugerirNombre(contextoSugerencia).texto}
+                nombreFinal={nombreFinal}
+                // Con el nombre libre la caja ya es el nombre entero: solo se avisa si la base lo va a escribir distinto (mayúsculas).
                 pie={
-                  nombreFinal && nombreFinal !== referencia.trim() ? (
+                  tipo === TIPO_LIBRE && nombreFinal && nombreFinal !== referencia.trim() ? (
                     <span>
                       Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
                     </span>

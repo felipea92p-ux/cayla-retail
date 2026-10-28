@@ -7,3 +7,8 @@ Felipe se lleva: probado en el navegador con la base local (escritorio y 375 px)
 Qué hice: con la carga inicial de la sede cerrada, la tabla del paso 4 ya no se apaga: pasa a «Cuántas llegaron» y, al crear, `crear_producto_con_llegada` (migración `20261028221000`) da de alta la prenda y la recibe con `recibir_lote` del proveedor elegido, en una transacción. Sin proveedor, el paso 4 lo pide con «Elegir proveedor»; la pantalla de éxito dice «recibidas de <proveedor>».
 Por qué así: Felipe no quiere mandar a la persona a otro módulo para escribir lo mismo dos veces; reabrir la carga inicial habría deshecho el cierre del 15-oct, y dos llamadas desde el navegador podían dejar la prenda sin sus unidades.
 Felipe se lleva: probado en el navegador en Trujillo (dos altas: 5 y 4 unidades, «recepcion» al almacén con el lote del proveedor) y `pnpm pruebas:alta-con-llegada` en verde (15/15). La migración NO está en producción y va antes de publicar la web.
+
+## 2026-10-28 (El nombre deja ver que el tipo queda fijo; «Temporada y etiquetas» plegado — ADR-0556 act. tarde)
+Qué hice: en el paso 2 de Nuevo producto el tipo es una pieza con candado y «+» dentro de la caja, «Así se llamará: Polera Dalia» va siempre bajo ella, con un solo tipo la fila de chips se cambió por el enlace «¿No es una polera? Escribe otro nombre», y «Temporada y etiquetas» arranca plegado.
+Por qué así: Felipe no entendía que «Polera» quedaba fijo: era un texto gris igual al ejemplo, y el chip «✓ Polera» lo repetía.
+Felipe se lleva: probado en el navegador con Poleras (escritorio y 375 px, sin scroll lateral), el enlace va y vuelve, y la guía y su huella al día.

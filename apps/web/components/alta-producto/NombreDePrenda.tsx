@@ -1,6 +1,6 @@
 "use client";
 
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Lock } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
@@ -32,6 +32,7 @@ export function NombreDePrenda({
   delProveedor = null,
   avisos,
   placeholderLibre,
+  nombreFinal,
   pie,
 }: {
   id: string;
@@ -48,14 +49,44 @@ export function NombreDePrenda({
   avisos: readonly AvisoNombre[];
   /** El ejemplo de la caja cuando el nombre es libre (sale de `sugerirNombre`). */
   placeholderLibre: string;
+  /** El nombre entero como se va a guardar («Polera Dalia»): se muestra siempre debajo, mientras se escribe (Felipe 2026-10-28: no se
+   *  entendía que el tipo queda fijo y va en el nombre). Vacío = todavía no se escribió nada. */
+  nombreFinal: string;
   /** Debajo de la caja: «Se guardará como …» y el aviso de la base. */
   pie?: React.ReactNode;
 }) {
   const libre = tipo === TIPO_LIBRE;
+  // Con un solo tipo, una fila de chips repetía «Polera» al lado de la caja que ya lo dice: basta un enlace para salir al nombre libre.
+  const unSoloTipo = tipos.length === 1;
+  const enlaceLibre = unSoloTipo ? (
+    <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => onTipo(libre ? tipos[0] : TIPO_LIBRE)}>
+      {libre ? `Volver a «${tipos[0]} + nombre»` : `¿No es ${articulo(tipos[0])} ${tipos[0].toLocaleLowerCase("es")}? Escribe otro nombre`}
+    </button>
+  ) : null;
+  // Así se llamará, siempre a la vista y pegado a la caja: con la caja vacía dice el tipo y un hueco por llenar.
+  const asiSeLlamara = (
+    <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <span className="flex flex-wrap items-baseline gap-x-2 text-[13px] text-taupe" aria-live="polite">
+        Así se llamará:
+        <strong className="font-serif text-[18px] font-medium text-tinta">
+          {nombreFinal && valor.trim() ? (
+            nombreFinal
+          ) : (
+            <>
+              {tipo} <span aria-hidden className="inline-block w-16 border-b border-dashed border-borde-control align-baseline" />
+              <span className="sr-only">(falta el nombre)</span>
+            </>
+          )}
+        </strong>
+      </span>
+      {enlaceLibre}
+    </span>
+  );
   return (
     <div className="space-y-2.5">
-      {tipos.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Tipo de prenda">
+      {tipos.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Con qué empieza el nombre">
+          <span className="mr-0.5 text-[12px] text-taupe">Empieza con:</span>
           {tipos.map((t) => (
             <ChipOpcion key={t} elegido={tipo === t} onClick={() => onTipo(t)}>
               {t}
@@ -70,14 +101,37 @@ export function NombreDePrenda({
         id={id}
         etiqueta={libre ? "Nombre" : `Nombre de la ${tipo.toLocaleLowerCase("es")}`}
         caja
-        antes={libre ? undefined : tipo}
+        // El tipo, como una pieza fija dentro de la caja (no un texto gris que parece parte del ejemplo): con su candado y un «+» que
+        // dice que lo que escribas se le suma.
+        antes={
+          libre ? undefined : (
+            <span className="inline-flex items-center gap-1.5" title="Lo pone la categoría: va al inicio del nombre">
+              <span className="inline-flex items-center gap-1 rounded-md border border-borde-control bg-papel px-2 py-0.5 font-semibold text-tinta">
+                <Lock aria-hidden className="h-3 w-3 text-taupe" />
+                {tipo}
+              </span>
+              <span className="text-taupe">+</span>
+            </span>
+          )
+        }
         maxLength={libre ? MAX_NOMBRE_PRODUCTO : MAX_NOMBRE_PRODUCTO - tipo.length - 1}
         className="!h-12 text-base"
         placeholder={libre ? placeholderLibre : (delProveedor ?? sugeridas[0] ?? "")}
         value={valor}
         onChange={(e) => onValor(e.target.value)}
         autoComplete="off"
-        pie={pie}
+        pie={
+          libre ? (
+            pie || enlaceLibre ? (
+              <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <span>{pie}</span>
+                {enlaceLibre}
+              </span>
+            ) : undefined
+          ) : (
+            asiSeLlamara
+          )
+        }
       />
       {!libre && delProveedor && (
         <div className="flex flex-wrap items-center gap-1.5">
@@ -109,4 +163,11 @@ export function NombreDePrenda({
       )}
     </div>
   );
+}
+
+/** El artículo delante del tipo, para «¿No es una polera?»: los de la lista que terminan en «a» son femeninos y los que terminan en «s»,
+ *  plurales («unos aretes», «unos lentes»). Basta para `TIPOS_POR_CATEGORIA`; un tipo nuevo raro solo lee un poco forzado. */
+function articulo(tipo: string): "un" | "una" | "unos" {
+  const t = tipo.trim().toLocaleLowerCase("es");
+  return t.endsWith("s") ? "unos" : t.endsWith("a") ? "una" : "un";
 }

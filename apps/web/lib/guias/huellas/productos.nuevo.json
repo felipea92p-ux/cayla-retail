@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 120,
+  "total": 121,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «{RUTA_ORDENES}»",
@@ -120,6 +120,7 @@
       "button «Listo»"
     ],
     "components/alta-producto/NombreDePrenda.tsx": [
+      "button «{libre ? `Volver a «${tipos[0]}»",
       "CampoTexto «{libre ? \"Nombre\" : `Nombre de la ${tipo.toLocaleLowerCase(\"es\")}»"
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
