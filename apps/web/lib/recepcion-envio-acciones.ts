@@ -1,6 +1,7 @@
 import { RPC_DETALLE_ENVIO } from "@/lib/ordenes-compra-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
+import { conDueno } from "@/lib/dueno-reglas";
 import {
   leerDetalleEnvio,
   leerPrendaPreparada,
@@ -56,8 +57,9 @@ export async function prepararPrendaAlRecibir(
 }
 
 /** Cierra la recepción (`recibir_despacho`): el stock entra, el costo se promedia y el envío queda cerrado. */
-export async function recibirDespacho(args: ArgsRecibirDespacho, firma: Firma | null): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
-  const { data, error } = (await firmar(createClient().rpc(RPC_RECIBIR_DESPACHO as never, args as never), firma)) as Respuesta;
+export async function recibirDespacho(args: ArgsRecibirDespacho, firma: Firma | null, dueno: string | null = null): Promise<{ resultado: ResultadoRecepcion | null; error: ErrorDeBase }> {
+  // `dueno` (ADR-0542): de quién es lo que entra, donde operan dos empresas (Lima); `x-dueno` lo lee el disparador de movimientos.
+  const { data, error } = (await firmar(conDueno(createClient().rpc(RPC_RECIBIR_DESPACHO as never, args as never), dueno), firma)) as Respuesta;
   return { resultado: error ? null : leerResultadoRecepcion(data), error: error ?? null };
 }
 
