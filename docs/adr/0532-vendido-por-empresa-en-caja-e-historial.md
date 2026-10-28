@@ -1,5 +1,7 @@
 # ADR-0532 — En Lima manda la marca: CAYLA y CLAURE en Caja, Historial, Movimientos y el alta
 
+> **Actualización 2026-10-27 — reemplazada en lo que decide el dueño por [ADR-0542](0542-stock-de-lima-por-dueno.md).** La regla «en Lima manda la marca» ya no rige: lo marca la persona que opera (stock de Lima partido por dueño). Siguen vigentes aquí el reparto de lo vendido a precio cobrado por línea, el filtro «Tienda» de Movimientos y `<RepartoEmpresas>`; ahora leen el dueño real (`fn_dueno_de_la_linea`, migración 20261028153000). `fn_empresa_de_prenda_en_sede`, `fn_marcas_de_empresas` y `empresaPorMarca` se retiraron.
+
 **Estado:** aceptada · migraciones `20261026232000` y `20261026234000` **EN PRODUCCIÓN desde 2026-10-26** (con el OK de Felipe; registradas como `20261027000005` y `20261027000049`, la hora del pegado) · la web va en su PR · **Fecha:** 2026-10-26 ·
 **Decidió:** Felipe · **Sigue a:** ADR-0463 (empresas CAYLA y CLAURE) y ADR-0505 (CLAURE solo existe en Lima)
 

@@ -2751,6 +2751,7 @@ export type Database = {
           conteo_item_id: string | null
           created_at: string
           devolucion_item_id: string | null
+          empresa_id: string | null
           id: string
           lote_id: string | null
           motivo: string | null
@@ -2774,6 +2775,7 @@ export type Database = {
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           motivo?: string | null
@@ -2797,6 +2799,7 @@ export type Database = {
           conteo_item_id?: string | null
           created_at?: string
           devolucion_item_id?: string | null
+          empresa_id?: string | null
           id?: string
           lote_id?: string | null
           motivo?: string | null
@@ -6823,9 +6826,10 @@ export type Database = {
           ventas: number
         }[]
       }
-      fn_marcas_de_empresas: {
-        Args: Record<PropertyKey, never>
-        Returns: { empresa_id: string; marca_id: string | null }[]
+      // ADR-0542: de quién son las unidades de cada prenda en una sede con dos empresas (solo las prendas con unidades de alguien que no es la casa).
+      fn_stock_por_dueno: {
+        Args: { p_ubicacion_id: string }
+        Returns: { variante_id: string; empresa_id: string; clave: string; cantidad: number; cantidad_apartada: number }[]
       }
       fn_empresa_de_ventas: {
         Args: { p_ventas: string[] }

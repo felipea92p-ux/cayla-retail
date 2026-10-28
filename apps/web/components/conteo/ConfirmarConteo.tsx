@@ -1,5 +1,9 @@
 "use client";
 
+import { conDuenoPorLineas, duenosParaAjustar } from "@/lib/dueno-reglas";
+import { useEmpresasDeSede } from "@/lib/useEmpresasDeSede";
+import { useStockPorDueno } from "@/lib/useStockPorDueno";
+import { ElegirDueno } from "@/components/existencias/ElegirDueno";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -68,6 +72,7 @@ const POR_PAGINA = 20;
 
 export function ConfirmarConteo({
   conteoId,
+  ubicacionId,
   filas,
   correctas,
   yaAjustadas = 0,
@@ -79,6 +84,8 @@ export function ConfirmarConteo({
   notaAtajo = null,
 }: {
   conteoId: string;
+  /** La sede que se cuenta: si operan dos empresas (Lima), cada diferencia dice de quién es (ADR-0542). */
+  ubicacionId: string;
   /** Las variantes que cambian, ya en orden (`diferenciasEnOrden`). */
   filas: FilaConteoVista[];
   /** Las verificadas que coincidieron: no cambian. */
@@ -120,20 +127,30 @@ export function ConfirmarConteo({
   const [pagina, setPagina] = useState(1);
   const tarjeta = useRef<HTMLElement>(null);
 
+  // ADR-0542: en una sede con dos empresas (Lima), cada diferencia dice de quién es: lo que se encontró de más, de quién apareció; lo que falta,
+  // de quién falta si hay unidades de las dos. Sin respuesta de fábrica; la base nunca adivina entre dos dueños.
+  const empresasDeLaSede = useEmpresasDeSede(ubicacionId);
+  const duenosPorVariante = useStockPorDueno(ubicacionId);
+  const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
+  const opcionesDe = (f: (typeof filas)[number]) => duenosParaAjustar(f.diferencia ?? 0, empresasDeLaSede, duenosPorVariante?.[f.varianteId]);
+  const faltanDueno = filas.filter((f) => opcionesDe(f) && !opcionesDe(f)!.some((o) => o.id === duenoDeLinea[f.varianteId])).length;
   const hoja = paginar(filas, pagina, POR_PAGINA);
   const negativas = filas.filter((f) => (existenciaTrasElAjuste(f) ?? 0) < 0).length;
   const urlConteo = `/inventario/conteo/${conteoId}`;
   const urlRevisar = `${urlConteo}/revisar`;
 
   async function cerrar() {
-    if (cerrando || !puedeCerrar) return;
+    if (cerrando || !puedeCerrar || faltanDueno > 0) return;
     setCerrando(true);
     setFallo(null);
     try {
       // Cerrar no pregunta el nombre (ADR-0280) salvo que haga falta: la clave `conteo_cerrar` le dice a la base que lo herede de quien
       // abrió el conteo hoy (ADR-0328). Si el aparato ya sabe quién, o se eligió en el combo, firma esa persona.
       const { error } = await firmar(
-        createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }),
+        conDuenoPorLineas(
+          createClient().rpc("cerrar_conteo", { p_conteo_id: conteoId, p_parcial: parcial }),
+          Object.fromEntries(filas.filter((f) => opcionesDe(f)).flatMap((f) => (duenoDeLinea[f.varianteId] ? [[f.varianteId, duenoDeLinea[f.varianteId]]] : []))),
+        ),
         conNombre ? responsable.firma() : firmaOmitida("conteo_cerrar")
       );
       if (conNombre) responsable.despues(error);
@@ -170,9 +187,11 @@ export function ConfirmarConteo({
   // Lo que dice el pie: si el botón está apagado, la razón —no un botón mudo—.
   const razonApagado = !puedeCerrar
     ? "Solo quien ajusta inventario puede cerrar el conteo."
-    : preguntar && !responsable.listo
-      ? (responsable.motivo ?? "Elige quién cierra el conteo.")
-      : null;
+    : faltanDueno > 0
+      ? `Marca de quién es lo que cambia en ${faltanDueno === 1 ? "1 prenda" : `${faltanDueno} prendas`}: CAYLA o CLAURE.`
+      : preguntar && !responsable.listo
+        ? (responsable.motivo ?? "Elige quién cierra el conteo.")
+        : null;
 
   return (
     <>
@@ -217,6 +236,19 @@ export function ConfirmarConteo({
                       <EstadoLinea estado={f.estado} debeHaber={f.debeHaber} contada={f.contada} diferencia={f.diferencia} />
                     </div>
                   </div>
+                  {opcionesDe(f) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-tinta/65">
+                      <span>{(f.diferencia ?? 0) > 0 ? "¿De quién es lo que apareció?" : "¿De quién falta?"}</span>
+                      <ElegirDueno
+                        empresas={opcionesDe(f)!}
+                        duenoId={duenoDeLinea[f.varianteId] ?? ""}
+                        onElegir={(id) => setDuenoDeLinea((d) => ({ ...d, [f.varianteId]: id }))}
+                        deshabilitado={cerrando}
+                        chico
+                        guia="confirmar.dueno"
+                      />
+                    </div>
+                  )}
                   {negativa && f.actual !== null && quedaria !== null && (
                     <Aviso tono="atencion" chico className="mt-2">
                       {textoAjusteNegativo({ actual: f.actual, quedaria })}

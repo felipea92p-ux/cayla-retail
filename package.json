@@ -376,6 +376,7 @@
     "pruebas:cuarentena-no-se-ajusta": "node scripts/pruebas/cuarentena_no_se_ajusta.mjs",
     "pruebas:empresa-solo-en-sus-sedes": "node scripts/pruebas/empresa_solo_en_sus_sedes.mjs",
     "pruebas:vendido-por-empresa": "node scripts/pruebas/vendido_por_empresa.mjs",
+    "pruebas:stock-dueno": "node scripts/pruebas/stock_dueno.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",
     "pruebas:danadas-reportar-arreglar": "node scripts/pruebas/danadas_reportar_arreglar.mjs",

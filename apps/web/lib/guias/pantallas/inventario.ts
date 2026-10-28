@@ -248,6 +248,20 @@ export const GUIA_EXISTENCIAS: Guia = {
       texto: "Si contaste y el número no cuadra, toca aquí: arriba eliges dónde contaste y qué pasó, y debajo va la tabla con todos los colores y tallas. Escribes lo que contaste, Enter pasa al siguiente y guardas todo de una vez. En la demo no lo abrimos.",
     },
     {
+      id: "ajuste-dueno",
+      ancla: "existencias.ajuste-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que ajustas?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE. Antes de guardar, marca de cuál es lo que cuentas o sumas: el sistema no lo adivina por la marca ni por el proveedor. En otras tiendas esta pregunta no aparece. En la demo no se toca.",
+    },
+    {
+      id: "modal-ajuste-dueno",
+      ancla: "existencias.modal-ajuste-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que ajustas?",
+      texto: "Si la tienda tiene dos empresas (Lima), aquí marcas si el ajuste es de CAYLA o de CLAURE antes de confirmar. Sin elegir, el botón no se enciende. En la demo no se toca.",
+    },
+    {
       id: "cajon-acciones",
       ancla: "existencias.cajon-acciones",
       opcional: true,
@@ -1064,6 +1078,13 @@ export const GUIA_CONTEO_CONFIRMAR: Guia = {
       texto: "Cada variante que cambia, con lo que CAYLA decía y lo que contaste. Si alguna dejaría el stock en negativo, te avisa en ámbar.",
     },
     {
+      id: "dueno",
+      ancla: "confirmar.dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que cambia?",
+      texto: "En Tienda Lima, cada prenda que cambia dice de quién es: lo que apareció de más, de quién es; lo que faltó, de quién falta si hay de CAYLA y de CLAURE. Sin marcar no se cierra. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
       id: "quien",
       ancla: "confirmar.quien",
       opcional: true,
@@ -1443,6 +1464,20 @@ export const GUIA_RECIBIR: Guia = {
       texto: "Escanea cada prenda o escribe su nombre y elígela. Cada una aparece abajo con su cantidad: súmale, réstale o quítala. Si una no existe todavía, te lleva a crearla.",
     },
     {
+      id: "dueno",
+      ancla: "recibir.dueno",
+      opcional: true,
+      titulo: "¿De quién es la mercadería?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE: marca de cuál es lo que llegó. Lo marcas tú; la marca o el proveedor de la prenda no deciden. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
+      id: "dueno-envio",
+      ancla: "recibir.envio-dueno",
+      opcional: true,
+      titulo: "¿De quién es la mercadería?",
+      texto: "Si la tienda tiene dos empresas (Lima), marca aquí si el envío que entra es de CAYLA o de CLAURE antes de recibirlo. En la demo no se toca.",
+    },
+    {
       id: "responsable",
       ancla: "recibir.responsable",
       opcional: true,
@@ -1813,6 +1848,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.extra"],
       titulo: "Lo que no estaba en la guía",
       texto: "Cada una de estas tarjetas es algo que llegó sin estar en la guía: su categoría y marca, el costo, la prenda, cuántas y qué pasa con eso (regalo, se cobra aparte o en la próxima compra). La ✕ la quita.",
+    },
+    {
+      id: "dueno",
+      ancla: "recepcion.dueno",
+      opcional: true,
+      titulo: "¿De quién es la mercadería?",
+      texto: "En Tienda Lima conviven CAYLA y CLAURE: marca de cuál es lo que recibes. Sin elegir, el botón no se enciende. En otras tiendas no se pregunta. En la demo no se toca.",
     },
     {
       id: "pie",
