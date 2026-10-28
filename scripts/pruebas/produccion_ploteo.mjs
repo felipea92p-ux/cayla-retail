@@ -40,6 +40,14 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
+// `fn_produccion_fases_normalizar` tal como la dejó ESTA migración (su sección 8). Una migración posterior que la parche (ADR-0550 acepta «por_definir») cambia su md5, y el candado del
+// principio de la migración la rechazaría con «cambió desde que se escribió»: la prueba la repone a su cuerpo de entonces antes de cargarla (ROLLBACK: nada queda).
+const NORMALIZAR_DE_ENTONCES = (() => {
+  const desde = MIGRACION.indexOf("create or replace function retail.fn_produccion_fases_normalizar(p_fases jsonb)");
+  const hasta = MIGRACION.indexOf("\n$$;", desde);
+  if (desde < 0 || hasta < 0) throw new Error("no encontré fn_produccion_fases_normalizar en la migración de ploteo");
+  return MIGRACION.slice(desde, hasta + 4);
+})();
 // Las migraciones que dejaron las funciones de fases, avance, cadena, lectura y lista de precios como estaban ANTES (en el orden en que se pegaron).
 const ANTERIORES = [
   "20261014154000_produccion_fases_y_tela_de_la_orden.sql",
@@ -131,6 +139,7 @@ const PRELUDIO = `
 set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
+${NORMALIZAR_DE_ENTONCES}
 ${MIGRACION}
 set local search_path = retail, public, extensions;
 ${ENVOLTURAS}
