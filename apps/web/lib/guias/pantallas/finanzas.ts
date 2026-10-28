@@ -78,7 +78,7 @@ const PESTANAS_DINERO: PasoGuia = {
   id: "pestanas",
   ancla: "fin-dinero.pestanas",
   titulo: "Las tres partes",
-  texto: "Cuentas: dónde está la plata, cada lugar como un frasco, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
+  texto: "Cuentas: dónde está la plata, repartida por sede, con el efectivo de hoy. Por pagar: lo que se debe. Conciliación (solo el líder): comparar con lo que dice el banco. El número avisa lo pendiente.",
 };
 
 /** El orillo y el dock de Cuentas y dinero (El telar): lo mismo en sus tres caras. */
@@ -619,11 +619,18 @@ export const GUIA_FIN_CUENTAS: Guia = {
       texto: "Te abrimos el depósito desde el aviso. Son los días cobrados con tarjeta o QR que la máquina todavía no depositó, marcados hasta la fecha del depósito. Lo cobrado esos días menos lo que llegó al banco es la comisión real: sale sola y queda como gasto. En la demo no registramos.",
     },
     {
+      id: "reparto",
+      ancla: "fin-dinero.reparto",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Cómo se reparte",
+      texto: "El círculo reparte la plata entre las sedes y CAYLA entera (los bancos); cada color es una sede. Pasa el mouse por una fila y el círculo la destaca. Lo que tiene saldo negativo no entra al círculo, pero resta en «Tienes hoy».",
+    },
+    {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
-      preparar: [{ tipo: "escape" }],
-      titulo: "Cada lugar, un frasco",
-      texto: "Cada cajón, caja fuerte y banco es un frasco que se llena hasta su saldo, en la fila de su sede. El cajón dice desde qué hora está abierto y cuánto se vendió en efectivo; la caja fuerte, hace cuánto se depositó. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+      titulo: "Cada lugar, con su saldo",
+      texto: "Una tarjeta por sede y, adentro, cada cajón, caja fuerte y banco con su saldo y una barra de cuánto pesa. El cajón dice desde qué hora está abierto y cuánto se vendió en efectivo; la caja fuerte, hace cuánto se depositó. El saldo del cajón solo lo ve quien puede cerrar la caja.",
     },
     {
       id: "diferencias",
