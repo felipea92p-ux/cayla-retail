@@ -804,10 +804,15 @@ export function NuevaEtiquetaModal({
   guardando,
   onGuardar,
   onClose,
+  fechas,
+  onFechas,
 }: {
   modo: ModoEtiquetas;
   nombre: string;
   onNombre: (v: string) => void;
+  /** Solo en campañas: cuándo rige, opcional (Felipe 2026-10-28). Vacías = rige siempre. Una insignia no lleva fechas: no se pasa. */
+  fechas?: { desde: string; hasta: string };
+  onFechas?: (v: { desde: string; hasta: string }) => void;
   /** Lo que eligió como dibujo (ADR-0490: uno de la lista o su imagen propia); `null` = todavía nada: se ve marcado el que sugiere el nombre. Nunca bloquea guardar. */
   eleccion: EleccionDeDibujo | null;
   onEleccion: (v: EleccionDeDibujo) => void;
@@ -818,10 +823,20 @@ export function NuevaEtiquetaModal({
 }) {
   const T = TEXTOS_MODO[modo];
   const delUno = `${T.la === "el" ? "del" : "de la"} ${T.uno}`;
+  // Lo mismo que cierra la base (`crear_campana`: no termina antes de empezar) y la API, dicho antes de ir.
+  const fDesdeNueva = parsearFecha(fechas?.desde ?? "");
+  const fHastaNueva = parsearFecha(fechas?.hasta ?? "");
+  const objecionDeFechas = fDesdeNueva.ok && fHastaNueva.ok ? objecionVigencia(fDesdeNueva.valor, fHastaNueva.valor) : null;
+  const fechasBien = fDesdeNueva.ok && fHastaNueva.ok && !objecionDeFechas;
+  const rangoNuevo = { desde: fDesdeNueva.ok ? fDesdeNueva.valor : null, hasta: fHastaNueva.ok ? fHastaNueva.valor : null };
   const guia = useGuiaCampos([
     { id: "nombre", nombre: `Nombre ${delUno}`, requerido: true, hecho: nombre.trim() !== "", pendiente: `Escribe el nombre ${delUno}.` },
     // Opcional de verdad: sin elegir, se queda el ícono que sugiere el nombre. Se cuenta como hecho cuando se eligió uno.
     { id: "dibujo", nombre: "Ícono", requerido: false, hecho: eleccion !== null, pendiente: "Elige un ícono o sube tu imagen, o deja el que sugiere el nombre." },
+    // Opcional de verdad: sin fechas rige siempre. Solo se pide corregir si «Hasta» queda antes que «Desde» (lo mismo que ya cierra la base).
+    ...(fechas
+      ? [{ id: "vigencia", nombre: "Fechas", requerido: Boolean(fechas.desde || fechas.hasta), hecho: Boolean(fechas.desde || fechas.hasta) && fechasBien, pendiente: "Corrige las fechas: «Hasta» no puede ser antes que «Desde»." }]
+      : []),
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
@@ -836,6 +851,23 @@ export function NuevaEtiquetaModal({
               <ElegirDibujoDeInsignia valor={eleccionEfectiva(eleccion, nombre)} yaElegido={eleccion !== null} onValor={onEleccion} idEtiqueta="dibujo-nuevo" deshabilitado={guardando} />
             </Campo>
           </CampoGuiado>
+          {fechas && onFechas && (
+            <CampoGuiado id="vigencia" guia={guia} titulo="Cuándo rige" ayuda={fechas.desde || fechas.hasta ? undefined : "Opcional: puedes ponerlas después desde «Editar»."} ayudaAbajo>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Cada calendario pinta la temporada entera: se elige una punta viendo dónde está la otra (como en «Configurar»). */}
+                <CampoFecha etiqueta="Desde" valor={fechas.desde} onValor={(v) => onFechas({ ...fechas, desde: v })} tono={fDesdeNueva.ok ? undefined : "error"} rango={rangoNuevo} disabled={guardando} />
+                <CampoFecha
+                  etiqueta="Hasta"
+                  valor={fechas.hasta}
+                  onValor={(v) => onFechas({ ...fechas, hasta: v })}
+                  tono={fHastaNueva.ok && !objecionDeFechas ? undefined : "error"}
+                  pie={objecionDeFechas ?? undefined}
+                  rango={rangoNuevo}
+                  disabled={guardando}
+                />
+              </div>
+            </CampoGuiado>
+          )}
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
@@ -848,7 +880,7 @@ export function NuevaEtiquetaModal({
               peso="primario"
               onClick={onGuardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !responsable.listo}
+              disabled={!nombre.trim() || !responsable.listo || !fechasBien}
               title={responsable.motivo ?? guia.frase ?? undefined}
               className={`flex-1 ${guia.claseConfirmar}`}
             >
