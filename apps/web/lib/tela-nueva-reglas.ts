@@ -37,6 +37,9 @@ export type EntradaTelaNueva = {
   responsableListo: boolean;
 };
 
+/** Lo que describe a la TELA misma (sin sus colores): lo comparten «Nueva tela» y «Editar tela». */
+export type DatosDeLaTela = Pick<EntradaTelaNueva, "nombre" | "tejidoId" | "composicion" | "compra" | "ancho" | "gramaje" | "metrosPorRollo" | "merma">;
+
 const MENSAJE_NOMBRE = "Ponle un nombre a la tela.";
 const MENSAJE_MERMA = "La merma va de 0 % a menos de 50 %.";
 const MENSAJE_KILO = "Para pasar los kilos a metros hace falta el ancho y el gramaje de la tela.";
@@ -128,25 +131,30 @@ const mermaBuena = (e: Pick<EntradaTelaNueva, "merma">): boolean => {
   const m = mermaDe(e);
   return m !== null && m >= 0 && m / 100 < 0.5;
 };
-const compraCompleta = (e: EntradaTelaNueva): boolean =>
+const compraCompleta = (e: DatosDeLaTela): boolean =>
   e.compra === "metro" || (e.compra === "kilo" && rindeEscrito(e) !== null) || (e.compra === "rollo" && (leerCantidad(e.metrosPorRollo) ?? 0) > 0);
 
-/** Lo que la hoja rechaza de lo escrito, en el orden en que lo dice. Vacío = se puede guardar. */
-export function problemasDeTelaNueva(e: EntradaTelaNueva): string[] {
+/** Lo que la hoja rechaza de la TELA misma (nombre, cómo se compra, merma), en el orden en que lo dice. Lo comparten «Nueva tela» y «Editar tela». */
+export function problemasDeLaTela(e: DatosDeLaTela): string[] {
   const p: string[] = [];
   if (!e.nombre.trim()) p.push(MENSAJE_NOMBRE);
   if (e.compra === "kilo" && rindeEscrito(e) === null) p.push(...mensajesDelKilo(e));
   if (e.compra === "rollo" && !((leerCantidad(e.metrosPorRollo) ?? 0) > 0)) p.push(MENSAJE_ROLLO);
   if (!mermaBuena(e)) p.push(MENSAJE_MERMA);
+  return p;
+}
+
+/** Lo que la hoja rechaza de lo escrito, en el orden en que lo dice. Vacío = se puede guardar. */
+export function problemasDeTelaNueva(e: EntradaTelaNueva): string[] {
+  const p = problemasDeLaTela(e);
   if (e.filas.length === 0) p.push(MENSAJE_SIN_COLORES);
   for (const m of new Set(e.filas.flatMap((f) => problemasDeFila(e, f)))) p.push(m);
   return p;
 }
 
-/** Los campos de la guía de foco de la hoja: qué está hecho, qué sigue y qué falta. «Falta» sale de `problemasDeTelaNueva`, nunca de una regla propia. */
-export function camposDeTelaNueva(e: EntradaTelaNueva): CampoDeGuia[] {
+/** Los campos de la guía de foco que describen a la TELA (sin sus colores ni quién la anota). Lo comparten «Nueva tela» y «Editar tela». */
+export function camposDeLaTela(e: DatosDeLaTela): CampoDeGuia[] {
   const mermaEscrita = e.merma.trim() !== "";
-  const problemasDeColores = [...new Set(e.filas.flatMap((f) => problemasDeFila(e, f)))];
   return [
     { id: "nombre", nombre: "Nombre de la tela", requerido: true, hecho: e.nombre.trim() !== "", pendiente: MENSAJE_NOMBRE },
     // Lo recomendado que no bloquea: el tejido alimenta la sugerencia de «Nueva orden»; la composición, la etiqueta de la prenda.
@@ -154,15 +162,23 @@ export function camposDeTelaNueva(e: EntradaTelaNueva): CampoDeGuia[] {
     { id: "composicion", nombre: "La composición", requerido: false, sugerido: true, hecho: e.composicion.trim() !== "", pendiente: "Escribe la composición: sale en la etiqueta de la prenda." },
     { id: "compra", nombre: "Cómo la compras", requerido: true, hecho: compraCompleta(e), pendiente: e.compra === "kilo" ? mensajesDelKilo(e)[0] : MENSAJE_ROLLO },
     { id: "merma", nombre: "Merma al cortar", requerido: mermaEscrita, hecho: mermaEscrita && mermaBuena(e), pendiente: MENSAJE_MERMA },
+  ];
+}
+
+/** Los campos de la guía de foco de la hoja: qué está hecho, qué sigue y qué falta. «Falta» sale de `problemasDeTelaNueva`, nunca de una regla propia. */
+export function camposDeTelaNueva(e: EntradaTelaNueva): CampoDeGuia[] {
+  const problemasDeColores = [...new Set(e.filas.flatMap((f) => problemasDeFila(e, f)))];
+  return [
+    ...camposDeLaTela(e),
     { id: "colores", nombre: "Los colores", requerido: true, hecho: e.filas.length > 0 && problemasDeColores.length === 0, pendiente: e.filas.length === 0 ? MENSAJE_SIN_COLORES : (problemasDeColores[0] ?? MENSAJE_SIN_COLORES) },
     { id: "quien", nombre: "Quién la anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esta tela." },
   ];
 }
 
-/** Lo que se manda a la base: `{ material, colores }`. La merma va como fracción; el saldo, en METROS y con su costo total. Con `agregandoColores` solo van los colores. */
-export function payloadDeTelaNueva(e: EntradaTelaNueva): { material: Record<string, unknown>; colores: Record<string, unknown>[] } {
+/** Los datos de la tela como los espera la base (`crear_material` y `editar_material`): la merma como fracción; el ancho y el gramaje solo si se compra por kilo; los metros solo si es por rollo. */
+export function materialParaLaBase(e: DatosDeLaTela): Record<string, unknown> {
   const merma = (mermaDe(e) ?? 0) / 100;
-  const material: Record<string, unknown> = {
+  return {
     nombre: e.nombre.trim(),
     tipo: "tela",
     tejido_id: e.tejidoId || null,
@@ -172,7 +188,11 @@ export function payloadDeTelaNueva(e: EntradaTelaNueva): { material: Record<stri
     ...(e.compra === "kilo" ? { ancho_cm: leerCantidad(e.ancho), gramaje_gm2: leerCantidad(e.gramaje) } : {}),
     ...(e.compra === "rollo" ? { metros_por_rollo: leerCantidad(e.metrosPorRollo) } : {}),
   };
-  return { material, colores: coloresParaLaBase(e) };
+}
+
+/** Lo que se manda a la base: `{ material, colores }`. La merma va como fracción; el saldo, en METROS y con su costo total. Con `agregandoColores` solo van los colores. */
+export function payloadDeTelaNueva(e: EntradaTelaNueva): { material: Record<string, unknown>; colores: Record<string, unknown>[] } {
+  return { material: materialParaLaBase(e), colores: coloresParaLaBase(e) };
 }
 
 /** Los colores como los espera la base (`[{color_codigo, stock_minimo?, saldo_inicial?: {cantidad, costo_total}}]`). */
@@ -207,7 +227,7 @@ function notaDelSaldo(e: EntradaTelaNueva, f: FilaDeColor): { nota?: string } {
 }
 
 /** Lo que la hoja avisa sin bloquear: un rinde o un rollo que se salen de lo normal suelen ser un número mal puesto (el ancho del tubo en vez del abierto, metros en vez de centímetros). */
-export function avisosDeTelaNueva(e: EntradaTelaNueva): string[] {
+export function avisosDeTelaNueva(e: DatosDeLaTela): string[] {
   const a: string[] = [];
   if (e.compra === "kilo") {
     const r = rindeEscrito(e);
@@ -249,12 +269,12 @@ export function filasTrasCambiarCompra(filas: readonly FilaDeColor[], antes: Com
 /** Las columnas de la tabla de colores y el ancho que piden (G14): Color, Código, [¿Ya tienes?, ≈ metros (si no es por metro), Costo] (solo el líder), Mínimo, ×. Cada una con su mínimo en px (rem × 16); suma + huecos (12) + relleno (24) + borde (2). */
 export function columnasDeLaTabla(e: Pick<EntradaTelaNueva, "compra" | "puedeSaldo">): { plantilla: string; anchoMinimo: number } {
   const cols: { css: string; px: number }[] = [
-    { css: "minmax(8rem,1.4fr)", px: 128 },
-    { css: "minmax(7rem,1.1fr)", px: 112 },
-    ...(e.puedeSaldo ? [{ css: "6.5rem", px: 104 }] : []),
-    ...(e.puedeSaldo && e.compra !== "metro" ? [{ css: "5.5rem", px: 88 }] : []),
-    ...(e.puedeSaldo ? [{ css: "6.5rem", px: 104 }] : []),
-    { css: "5.5rem", px: 88 },
+    { css: "minmax(6.5rem,1.4fr)", px: 104 },
+    { css: "minmax(6rem,1.1fr)", px: 96 },
+    ...(e.puedeSaldo ? [{ css: "6rem", px: 96 }] : []),
+    ...(e.puedeSaldo && e.compra !== "metro" ? [{ css: "5rem", px: 80 }] : []),
+    ...(e.puedeSaldo ? [{ css: "6rem", px: 96 }] : []),
+    { css: "5rem", px: 80 },
     { css: "2rem", px: 32 },
   ];
   return { plantilla: cols.map((c) => c.css).join(" "), anchoMinimo: cols.reduce((suma, c) => suma + c.px, 0) + (cols.length - 1) * 12 + 24 + 2 };

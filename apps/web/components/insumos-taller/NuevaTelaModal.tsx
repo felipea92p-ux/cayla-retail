@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CompraDeLaTela, TejidoYComposicion, useTejidosDeLaTela } from "@/components/insumos-taller/PiezasDeLaTela";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { IdentidadAltaProveedor } from "@/components/alta-producto/IdentidadAlta";
 import { Punto } from "@/components/alta-producto/Punto";
@@ -10,12 +11,10 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, Campo, CampoTexto, Segmentado } from "@/components/ui/campos";
-import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { proponerValorVocabulario } from "@/lib/alta-producto-ejes";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { agruparPorFamilia } from "@/lib/colores-familias";
 import { traducirError } from "@/lib/error-escritura";
@@ -26,23 +25,17 @@ import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
 import {
-  COMPRAS,
-  MENSAJE_ANCHO,
-  MENSAJE_GRAMAJE,
-  anchoFueraDeRango,
-  avisosDeTelaNueva,
   camposDeTelaNueva,
   codigoBaseDeVista,
   columnasDeLaTabla,
   filasTrasCambiarCompra,
-  gramajeFueraDeRango,
   metrosDeFila,
   numeroMalEscrito,
   payloadDeTelaNueva,
   problemasDeTelaNueva,
-  rindeEscrito,
   telaParecida,
   tieneSaldo,
+  type DatosDeLaTela,
   type EntradaTelaNueva,
   type FilaDeColor,
 } from "@/lib/tela-nueva-reglas";
@@ -92,8 +85,8 @@ export function NuevaTelaModal({
 }) {
   const router = useRouter();
   const responsable = useResponsable();
+  const { tejidos, crearTejido } = useTejidosDeLaTela(vocabulario.tejidos, responsable);
   const [nombre, setNombre] = useState("");
-  const [tejidos, setTejidos] = useState(vocabulario.tejidos);
   const [tejidoId, setTejidoId] = useState("");
   const [composicion, setComposicion] = useState("");
   const [compra, setCompra] = useState<CompraDeTela>("metro");
@@ -128,15 +121,14 @@ export function NuevaTelaModal({
         responsableListo: responsable.listo,
       }
     : { nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas, puedeSaldo, responsableListo: responsable.listo };
+  const datosDeLaTela: DatosDeLaTela = { nombre: e.nombre, tejidoId: e.tejidoId, composicion: e.composicion, compra: e.compra, ancho: e.ancho, gramaje: e.gramaje, metrosPorRollo: e.metrosPorRollo, merma: e.merma };
   const problemas = problemasDeTelaNueva(e);
   const campos = camposDeTelaNueva(e);
   const guia = useGuiaCampos(agregarA ? campos.filter((c) => c.id === "colores" || c.id === "quien") : campos);
   const parecida = agregarA ? null : telaParecida(nombre, materiales);
   // En «Agregar colores» el código de cada color sale de la tela elegida (`MM-01-NEG`), no de una tela nueva (G10 de la revisión).
   const codigo = codigoBaseDeVista(agregarA, e.nombre, materiales);
-  const avisosBlandos = avisosDeTelaNueva(e);
   const tabla = columnasDeLaTabla(e);
-  const rinde = rindeEscrito(e);
   const unidadDeCompra = COLUMNAS_SALDO[e.compra];
 
   // Los colores que se pueden elegir: en una tela que ya existe, los que no tiene.
@@ -147,7 +139,10 @@ export function NuevaTelaModal({
   // «¿Salir sin guardar?» (ADR-0136): solo cuenta lo que la persona escribió o eligió.
   const fotoActual = fotoFormulario({ nombre, tejidoId, composicion, compra, ancho, gramaje, metrosPorRollo, merma, filas });
   const [fotoAlAbrir] = useState(fotoActual);
-  const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Empezaste a describir una tela y todavía no se creó. Si cierras ahora, se pierde lo que escribiste.");
+  const avisoSalida = useSalidaSinGuardar(
+    fotoActual !== fotoAlAbrir,
+    agregarA ? "Elegiste colores y todavía no se agregaron a la tela. Si cierras ahora, se pierde lo que elegiste." : "Empezaste a describir una tela y todavía no se creó. Si cierras ahora, se pierde lo que escribiste.",
+  );
   function cerrarTrasGuardar() {
     const guardiaFuera = avisoSalida.retirarYa();
     onClose();
@@ -168,24 +163,6 @@ export function NuevaTelaModal({
     setCompra(nueva);
     setFilas(r.filas);
     if (r.vacio) setAvisoDeCompra(true);
-  }
-
-  // Un tejido que no está en la lista se crea aquí mismo (es el mismo vocabulario de Catálogo: nace aprobado, lo cree quien lo cree, ADR-0534).
-  async function crearTejido(texto: string) {
-    const limpio = texto.trim();
-    if (!limpio) return;
-    if (!responsable.listo) {
-      avisar.error(responsable.motivo ?? "Elige primero quién lo anota.");
-      return;
-    }
-    const { valor, error } = await proponerValorVocabulario("tejidos", limpio, responsable.encabezados());
-    if (error || !valor) {
-      avisar.error(error ?? "No se pudo crear el tejido.");
-      return;
-    }
-    setTejidos((ts) => [...ts, { id: valor.id, nombre: valor.texto }].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
-    setTejidoId(valor.id);
-    avisar.exito(`Tejido «${valor.texto}» creado`, { detalle: "Ya está en la lista de Catálogo." });
   }
 
   async function guardar(ev: React.FormEvent) {
@@ -275,104 +252,30 @@ export function NuevaTelaModal({
                       : "Si es la misma, agrégale los colores que le faltan en vez de crearla otra vez."}
                   </Aviso>
                 )}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <CampoGuiado id="tejido" guia={guia}>
-                    <Campo etiqueta={guia.etiqueta("tejido", "Tejido")} sinPie>
-                      {leyoVocabulario ? (
-                        <ComboBuscable
-                          valor={tejidoId}
-                          onValor={setTejidoId}
-                          opciones={tejidos.map((t) => ({ valor: t.id, texto: t.nombre }))}
-                          marcador="Busca o escribe el tejido"
-                          etiquetaAccesible="Tejido de la tela"
-                          crear={{ etiqueta: (t) => `+ Crear el tejido «${t.trim()}»`, onCrear: (t) => void crearTejido(t), pista: "¿Es nuevo? Escribe su nombre arriba" }}
-                        />
-                      ) : (
-                        <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">No se pudieron cargar los tejidos. Cierra esta ventana y vuelve a abrirla; lo demás se puede guardar igual.</p>
-                      )}
-                    </Campo>
-                  </CampoGuiado>
-                  <CampoGuiado id="composicion" guia={guia}>
-                    <CampoTexto
-                      etiqueta={guia.etiqueta("composicion", "Composición")}
-                      pie="Sale en la etiqueta de la prenda."
-                      value={composicion}
-                      onChange={(ev) => setComposicion(ev.target.value)}
-                      maxLength={160}
-                      placeholder="Escribe lo que dice la etiqueta del proveedor"
-                    />
-                  </CampoGuiado>
-                </div>
+                <TejidoYComposicion
+                  guia={guia}
+                  tejidos={tejidos}
+                  leyoVocabulario={leyoVocabulario}
+                  tejidoId={tejidoId}
+                  onTejido={setTejidoId}
+                  onCrearTejido={(t) => void crearTejido(t, setTejidoId)}
+                  composicion={composicion}
+                  onComposicion={setComposicion}
+                />
               </section>
 
               <section data-guia="prod-tela-nueva.compra" className="space-y-3">
                 <TituloGrupo>Cómo la compras</TituloGrupo>
-                <CampoGuiado id="compra" guia={guia}>
-                  <Segmentado etiqueta={guia.etiqueta("compra", "Se compra")} valor={compra} onValor={cambiarCompra} opciones={COMPRAS} pie="El stock de la tela va siempre en metros; el kilo y el rollo se convierten." />
-                  {compra === "kilo" && (
-                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                      <CampoTexto
-                        etiqueta="Ancho abierto (cm)"
-                        inputMode="decimal"
-                        value={ancho}
-                        onChange={(ev) => setAncho(ev.target.value)}
-                        placeholder="160"
-                        tono={numeroMalEscrito(ancho) || anchoFueraDeRango(ancho) ? "error" : undefined}
-                        pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : anchoFueraDeRango(ancho) ? MENSAJE_ANCHO : "Si viene en tubo, el abierto es el doble del tubo plano."}
-                      />
-                      <CampoTexto
-                        etiqueta="Gramaje (g/m²)"
-                        inputMode="decimal"
-                        value={gramaje}
-                        onChange={(ev) => setGramaje(ev.target.value)}
-                        placeholder="180"
-                        tono={numeroMalEscrito(gramaje) || gramajeFueraDeRango(gramaje) ? "error" : undefined}
-                        pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeFueraDeRango(gramaje) ? MENSAJE_GRAMAJE : undefined}
-                      />
-                      <div>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
-                        <p className="flex h-12 items-center rounded-lg bg-hueso px-3 text-[14px] text-tinta">
-                          {rinde === null ? "Falta el ancho y el gramaje" : `≈ ${rinde.toLocaleString("es-PE", { maximumFractionDigits: 2 })} m por kilo`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {compra === "rollo" && (
-                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                      <CampoTexto
-                        etiqueta="¿Cuántos metros trae un rollo?"
-                        inputMode="decimal"
-                        value={metrosPorRollo}
-                        onChange={(ev) => setMetrosPorRollo(ev.target.value)}
-                        placeholder="80"
-                        tono={numeroMalEscrito(metrosPorRollo) ? "error" : undefined}
-                        pie={numeroMalEscrito(metrosPorRollo) ? CANTIDAD_ILEGIBLE : "Lo habitual; al recibir lo corriges si un rollo trae otra medida."}
-                      />
-                    </div>
-                  )}
-                </CampoGuiado>
-                {avisoDeCompra && (
-                  <Aviso tono="atencion" chico>
-                    Cambiaste cómo la compras: lo que habías escrito en «¿Ya tienes?» y en el costo estaba en la otra unidad. Vuelve a escribirlo.
-                  </Aviso>
-                )}
-                {avisosBlandos.map((t) => (
-                  <Aviso key={t} tono="atencion" chico>
-                    {t}
-                  </Aviso>
-                ))}
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <CampoGuiado id="merma" guia={guia}>
-                    <CampoTexto
-                      etiqueta={guia.etiqueta("merma", "Merma al cortar (%)")}
-                      pie="Lo que se pierde de cada corte"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={merma}
-                      onChange={(ev) => setMerma(ev.target.value)}
-                    />
-                  </CampoGuiado>
-                </div>
+                <CompraDeLaTela
+                  guia={guia}
+                  datos={datosDeLaTela}
+                  onCompra={cambiarCompra}
+                  onAncho={setAncho}
+                  onGramaje={setGramaje}
+                  onMetrosPorRollo={setMetrosPorRollo}
+                  onMerma={setMerma}
+                  avisoDeCompra={avisoDeCompra}
+                />
               </section>
             </>
           )}

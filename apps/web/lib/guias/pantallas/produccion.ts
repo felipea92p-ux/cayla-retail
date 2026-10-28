@@ -725,6 +725,13 @@ export const GUIA_PROD_INSUMOS: Guia = {
       texto: "Cuando llega la misma tela en otro color, «+ Agregar colores» abre la hoja con la tela ya puesta: eliges los colores nuevos y listo. No se repite la tela.",
     },
     {
+      id: "editar-tela",
+      ancla: "prod-insumos.editar-tela",
+      opcional: true,
+      titulo: "Corregir una tela",
+      texto: "Solo el líder. El lápiz de la tela abre la misma hoja con que se creó, con lo que ya dice: corriges el nombre, el tejido, la composición, la merma o cómo se compra, y sus colores la siguen. No mueve stock ni costos.",
+    },
+    {
       id: "ingresar",
       ancla: "prod-insumos.ingresar",
       opcional: true,
@@ -842,6 +849,21 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       titulo: "Crear la tela",
       texto: "Eliges quién la anota y tocas «Crear la tela»: se crea todo junto o no se crea nada. En la demo no la creamos: cerramos la ventana.",
+    },
+    {
+      id: "tela-editar-campos",
+      ancla: "prod-tela-editar.campos",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "prod-insumos.editar-tela" }],
+      titulo: "Los datos de la tela",
+      texto: "Lo mismo que al crearla: nombre, tejido, composición, cómo se compra y merma. Si le faltaba el tejido, es el momento: «Nueva orden» lo usa para proponer la tela. Lo que cambies les llega a todos sus colores al guardar.",
+    },
+    {
+      id: "tela-editar-cierre",
+      ancla: "prod-tela-editar.cierre",
+      opcional: true,
+      titulo: "Guardar los cambios",
+      texto: "Eliges quién lo anota y tocas «Guardar los cambios»: se actualiza la tela y todos sus colores juntos, o ninguno. El botón espera a que cambies algo. En la demo no guardamos: cerramos la ventana.",
     },
     {
       id: "ficha-campos",

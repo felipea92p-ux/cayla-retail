@@ -10,6 +10,7 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { IngresarInsumoModal } from "@/components/InsumoModales";
+import { EditarTelaModal } from "@/components/insumos-taller/EditarTelaModal";
 import { FichaDeLaTelaModal } from "@/components/insumos-taller/FichaDeLaTelaModal";
 import { NuevaTelaModal } from "@/components/insumos-taller/NuevaTelaModal";
 import { NuevoInsumoModal } from "@/components/insumos-taller/NuevoInsumoModal";
@@ -28,6 +29,7 @@ import {
   type MaterialVista,
 } from "@/lib/insumos-reglas";
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -78,6 +80,8 @@ export function InsumosPanel({
   const [nuevaTela, setNuevaTela] = useState<{ agregarA: MaterialVista | null } | null>(null);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
+  // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
+  const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
 
   const { insumos, libro, capital } = datos;
@@ -188,9 +192,14 @@ export function InsumosPanel({
                             {g.material.nombre}
                           </TituloGrupo>
                           {t.valor === "tela" && (
-                            <button type="button" className="btn-enlace text-xs" data-guia={g.material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} onClick={() => setNuevaTela({ agregarA: g.material })}>
-                              + Agregar colores
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button type="button" className="btn-enlace text-xs" data-guia={g.material.id === primeraTelaId ? "prod-insumos.agregar-colores" : undefined} onClick={() => setNuevaTela({ agregarA: g.material })}>
+                                + Agregar colores
+                              </button>
+                              {esLider && g.material && (
+                                <LapizEditar que={`la tela ${g.material.nombre}`} guia={g.material.id === primeraTelaId ? "prod-insumos.editar-tela" : undefined} onClick={() => setEditandoTela({ material: g.material as MaterialVista, colores: g.insumos.length })} />
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
@@ -261,6 +270,17 @@ export function InsumosPanel({
           coloresDeLaTela={insumos.filter((i) => i.materialId && i.materialId === nuevaTela.agregarA?.id && i.colorCodigo).map((i) => i.colorCodigo as string)}
           alElegirExistente={(m) => setNuevaTela({ agregarA: m })}
           onClose={() => setNuevaTela(null)}
+        />
+      )}
+      {editandoTela && (
+        <EditarTelaModal
+          key={editandoTela.material.id}
+          material={editandoTela.material}
+          cuantosColores={editandoTela.colores}
+          tallerId={tallerId}
+          vocabulario={vocabulario}
+          leyoVocabulario={leyoVocabulario}
+          onClose={() => setEditandoTela(null)}
         />
       )}
       {fichando && <FichaDeLaTelaModal insumo={fichando} vocabulario={vocabulario} leyo={leyoVocabulario} onClose={() => setFichando(null)} />}

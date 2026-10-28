@@ -274,10 +274,13 @@ describe("cambiar «Se compra» con cantidades ya escritas (G12)", () => {
 
 describe("la tabla de colores mide lo que sus columnas piden (G14)", () => {
   it("el ancho mínimo es la suma de las columnas, los huecos, el relleno y el borde: así no se recorta el × ni «Mínimo»", () => {
-    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: false }).anchoMinimo).toBe(422);
-    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: true }).anchoMinimo).toBe(654);
-    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).anchoMinimo).toBe(754);
-    expect(columnasDeLaTabla({ compra: "rollo", puedeSaldo: false }).anchoMinimo).toBe(422);
+    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: false }).anchoMinimo).toBe(374);
+    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: true }).anchoMinimo).toBe(590);
+    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).anchoMinimo).toBe(682);
+    expect(columnasDeLaTabla({ compra: "rollo", puedeSaldo: false }).anchoMinimo).toBe(374);
+  });
+  it("cabe sin scroll en la hoja ancha (718 px de contenido) con la tabla más ancha: por kilo y con saldo", () => {
+    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).anchoMinimo).toBeLessThanOrEqual(718);
   });
   it("la plantilla tiene una columna por cada ancho", () => {
     expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).plantilla.split(" ")).toHaveLength(7);

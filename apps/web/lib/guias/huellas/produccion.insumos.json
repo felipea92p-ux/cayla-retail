@@ -2,7 +2,7 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 65,
+  "total": 70,
   "controles": {
     "components/InsumoModales.tsx": [
       "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
@@ -24,6 +24,7 @@
       "button «Ver el capital en insumos»",
       "Boton «→() => (datos.hayTelas ? setNuevaTela({ agregarA: null»",
       "button «{g.material.id === primeraTelaId ? \"prod-insumos.agregar-colores\" : undefined}»",
+      "LapizEditar «{`la tela ${g.material.nombre}»",
       "button «{indice === 0 ? \"prod-insumos.fila-cabecera\" : undefined}»",
       "Boton «+ Ingresar lote»",
       "Boton «{indice === 0 ? \"prod-insumos.editar-ficha\" : undefined}»"
@@ -55,6 +56,12 @@
       "CampoSelect «{foco.etiqueta(\"tejido\", \"Tejido\")}»",
       "CampoSelect «{foco.etiqueta(\"color\", \"Color\")}»"
     ],
+    "components/insumos-taller/EditarTelaModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Guardar los cambios»"
+    ],
     "components/insumos-taller/FichaDeLaTelaModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
@@ -63,12 +70,6 @@
     "components/insumos-taller/NuevaTelaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
       "Boton «Agregar colores a esa»",
-      "ComboBuscable «{tejidoId}»",
-      "CampoTexto «{guia.etiqueta(\"composicion\", \"Composición\")}»",
-      "CampoTexto «Ancho abierto (cm)»",
-      "CampoTexto «Gramaje (g/m²)»",
-      "CampoTexto «¿Cuántos metros trae un rollo?»",
-      "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»",
       "CampoTexto «{`Cuánto hay de ${nombreColor}»",
       "CampoTexto «{`Costo de ${nombreColor}»",
       "CampoTexto «{`Mínimo de ${nombreColor}»",
@@ -88,6 +89,14 @@
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/insumos-taller/PiezasDeLaTela.tsx": [
+      "ComboBuscable «{tejidoId}»",
+      "CampoTexto «{guia.etiqueta(\"composicion\", \"Composición\")}»",
+      "CampoTexto «Ancho abierto (cm)»",
+      "CampoTexto «Gramaje (g/m²)»",
+      "CampoTexto «¿Cuántos metros trae un rollo?»",
+      "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»"
     ]
   }
 }
