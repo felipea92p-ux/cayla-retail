@@ -145,3 +145,24 @@ destaca la elige el mouse en la leyenda.
 
 **Tensión conocida con ADR-0358:** allí la dona de lo cobrado pasó a la barra apilada, y aquí vuelve un círculo. Es una decisión de Felipe
 de este día, para el gráfico propio de este submódulo (ADR-0493); si quiere el mismo reparto como barra, es `BarraApilada`.
+
+## Actualización 2026-10-28 (b) — «Empresa» y «Todas» no son lo mismo
+
+**Decidí:** en «Dónde está», `?sede=empresa` mira solo lo que no es de ninguna sede (grupos `empresa` y `camino`: bancos, lo entregado al líder, lo que viene
+en camino) y suma la deuda de la tarjeta de crédito; `?sede=todas` sigue siendo toda la plata, un grupo por sede, y la empresa es una de esas partes. El
+mismo sentido que la barra común ya le daba a «Empresa» en Gastos (`soloEmpresa`) y en Por pagar. El grupo que se llamaba «CAYLA entera» pasa a llamarse
+«Empresa» (el mismo nombre de su hilo en la barra); «CAYLA entera» queda para el total. «En camino» cuenta dentro de «Empresa»
+(Felipe lo confirmó el 2026-10-28): con los datos de ese día, bancos y lo del líder más lo que las máquinas aún no depositan.
+
+**Descarté:** dejar «Empresa» leída como «todas» porque «la empresa no tiene cajón». Es cierta la premisa y falsa la conclusión: no tiene cajón pero sí
+cuentas, y las dos opciones de la barra mostraban lo mismo. También descarté la otra lectura de «Todas» (solo las sedes, sin los bancos): rompería que las
+partes del orillo sumen el todo y que «Todas» sea el total que Gastos y el Resumen ya usan.
+
+**Se rompe si:** una cuenta de la empresa lleva `ubicacion_id` de una sede (`grupoDe` la manda a su sede y «Empresa» no la ve), o si Felipe quiere que lo
+«en camino» tenga sede (hoy cuenta en la empresa, igual que en el orillo): entonces `GRUPOS_DE_LA_EMPRESA` cambia en un solo lugar.
+
+**Piezas:** `lib/dinero-telar-reglas.ts` (`GRUPOS_DE_LA_EMPRESA`, `gruposDelAlcance`, `cuentasDelAlcance`, `movimientosDeLaEmpresa`; `gruposDeDinero` acepta una
+lista de grupos), `lib/dinero-reparto-reglas.ts` (`textosDelReparto`), `app/(app)/finanzas/dinero/page.tsx` y `CuentasPanel` (la tabla «A qué cuenta entra
+cada cobro» es por sede y solo sale con «Todas»; la plata del dueño y lo que no dice su cuenta salen con «Todas» y con «Empresa»). El efectivo de hoy y los
+cierres con diferencia son del cajón de una tienda y no se leen con «Empresa».
+

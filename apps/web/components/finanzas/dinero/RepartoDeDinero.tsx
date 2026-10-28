@@ -3,9 +3,9 @@
 import { useState, type CSSProperties } from "react";
 import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { montoConSigno } from "@/lib/dinero-telar-reglas";
-import { trazoDeArco, type RepartoDeDinero as Reparto } from "@/lib/dinero-reparto-reglas";
+import { trazoDeArco, type RepartoDeDinero as Reparto, type TextosDelReparto } from "@/lib/dinero-reparto-reglas";
 
-// Cuentas y dinero ▸ Dónde está, el resumen de arriba (Felipe 2026-10-28): un círculo que es TODA la plata de CAYLA (o de la sede que se mira), partido en los lugares
+// Cuentas y dinero ▸ Dónde está, el resumen de arriba (Felipe 2026-10-28): un círculo que es la plata de lo que se mira (TODA la de CAYLA, la de una sede o la de la empresa; `textosDelReparto`), partido en los lugares
 // donde está (cada banco, el efectivo de cada tienda, lo que está en camino), con lo que hay en total al centro, y al lado la leyenda con
 // cada monto y su porcentaje. Los verdes son CAYLA entera (los bancos), los terracotas las tiendas y la pizarra lo que viene en camino.
 // Pasar el mouse por una fila de la leyenda apaga las demás porciones y el centro dice la suya. Qué porción le toca a cada grupo lo decide `lib/dinero-reparto-reglas.ts`; aquí solo se
@@ -15,13 +15,13 @@ import { trazoDeArco, type RepartoDeDinero as Reparto } from "@/lib/dinero-repar
 
 const RADIO = 78;
 
-export function RepartoDeDinero({ reparto }: { reparto: Reparto }) {
+export function RepartoDeDinero({ reparto, textos }: { reparto: Reparto; textos: TextosDelReparto }) {
   const [activa, setActiva] = useState<string | null>(null);
   const mirada = reparto.porciones.find((p) => p.id === activa) ?? null;
   return (
     <section className="anim-entra" style={{ ["--i" as string]: 0 } as CSSProperties} aria-label="Cómo se reparte la plata">
       <Superficie pad guia="fin-dinero.reparto">
-        <CabeceraBloque titulo="Cómo se reparte" bajada={`Toda la plata de ${reparto.alcance ?? "CAYLA"}, repartida por el lugar donde está.`} />
+        <CabeceraBloque titulo="Cómo se reparte" bajada={textos.bajada} />
         <div className="din-reparto">
           <div className="din-anillo" onMouseLeave={() => setActiva(null)}>
             <svg viewBox="0 0 200 200" aria-hidden="true">
@@ -38,7 +38,7 @@ export function RepartoDeDinero({ reparto }: { reparto: Reparto }) {
               ))}
             </svg>
             <div className="din-anillo-centro">
-              <span className="din-anillo-rotulo">{mirada ? mirada.titulo : (reparto.alcance ?? "CAYLA entera")}</span>
+              <span className="din-anillo-rotulo">{mirada ? mirada.titulo : textos.rotulo}</span>
               <b className="din-anillo-cifra">{montoConSigno(mirada ? mirada.monto : reparto.enCuentas)}</b>
               <span className="din-anillo-pie">{mirada ? [mirada.lugar, mirada.pctEntero === 0 ? "menos de 1 %" : `${mirada.pctEntero} %`].filter(Boolean).join(" · ") : "hoy"}</span>
             </div>

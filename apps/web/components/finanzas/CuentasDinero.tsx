@@ -203,7 +203,10 @@ export function CuentasPanel({
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
   // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
   const [decirCuenta, setDecirCuenta] = useState(false);
+  // Sin una sede elegida (todas o la empresa) se ve lo que es de CAYLA: la plata del dueño y lo que no dice su cuenta. Lo que se explica
+  // sede por sede (a qué cuenta entra el cobro de cada una) es solo de «todas»: la empresa no es una sede (Felipe 2026-10-28).
   const verTodas = !ver.ubicacionId;
+  const verPorSede = verTodas && !ver.soloEmpresa;
   const dueno = deudaConDueno(plata);
   const totalSinCuenta = sinCuenta.reduce((a, s) => a + s.monto, 0);
 
@@ -273,7 +276,7 @@ export function CuentasPanel({
         </Superficie>
       )}
 
-      {esLider && verTodas && medios.length > 0 && (
+      {esLider && verPorSede && medios.length > 0 && (
         <Superficie className="anim-sube" guia="fin-dinero.medios">
           <Herramientas className="justify-between">
             <div className="fin-herramientas-titulo min-w-0">
