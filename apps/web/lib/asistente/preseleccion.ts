@@ -252,6 +252,37 @@ export type Sugerencia = {
 };
 
 /**
+ * Las pantallas a las que esta cuenta puede llegar, y por dónde: la entrada de su menú, la dirección de una pantalla que cuelga de una
+ * entrada sin pedir un id y es del mismo módulo (Historial de cierres cuelga de Caja), o `null` si es la pantalla donde ya está (sin
+ * entrada, como una factura). La usan la preselección y las recetas (`recetas.ts`: una receta se ofrece solo si llega a todas sus pantallas).
+ */
+export function pantallasAlcanzables({ guias, rutasDelMenu, rutaActual }: { guias: readonly Guia[]; rutasDelMenu: readonly string[]; rutaActual: string }): Map<string, string | null> {
+  // Qué guía es la de cada entrada del menú, con la misma regla del motor (`guiaDeRuta`: una ruta exacta gana a una con `[id]`). Sin
+  // eso, la guía de `/inventario/traslados/[id]` se colaba por la entrada «/inventario/traslados/nuevo».
+  const entradaDe = new Map<Guia, string>();
+  for (const h of rutasDelMenu) {
+    const g = guiaDeRuta(h.split(/[?#]/)[0] ?? h, guias);
+    if (g && !entradaDe.has(g)) entradaDe.set(g, h);
+  }
+  const deAqui = guiaDeRuta(rutaActual, guias);
+  const entradas = rutasDelMenu.map((h) => h.split(/[?#]/)[0] ?? h).filter((h) => h !== "/");
+  /** La entrada de la que cuelga la pantalla de una guía, si se llega sin un id y es del mismo módulo que esa entrada. */
+  const colgadaDe = (guia: Guia): string | null => {
+    if (guia.ruta.includes("[")) return null;
+    const direccion = guia.ruta.replace(/\/\([^)]+\)/g, "") || "/";
+    const padre = entradas.filter((e) => direccion.startsWith(`${e}/`)).sort((a, b) => b.length - a.length)[0];
+    return padre && !PIDEN_OTRO_MODULO.has(direccion) && moduloDeRuta(direccion) === moduloDeRuta(padre) ? direccion : null;
+  };
+  const salida = new Map<string, string | null>();
+  for (const guia of guias) {
+    const entrada = entradaDe.get(guia) ?? colgadaDe(guia);
+    if (guia === deAqui) salida.set(guia.id, null);
+    else if (entrada) salida.set(guia.id, entrada);
+  }
+  return salida;
+}
+
+/**
  * Las guías que más se parecen a la pregunta, entre las que esta cuenta puede abrir: las de las entradas de su menú (`rutasDelMenu`, ya
  * resueltas por rol), la de la pantalla donde está y las que cuelgan de una entrada sin pedir un id y son del MISMO módulo (Historial de
  * cierres cuelga de Caja; Nuevo traslado, de Traslados). Una que cuelga pero tiene su propio módulo (Por pagar, bajo Compras) no se
@@ -292,28 +323,11 @@ export function preseleccionar({
     return 0;
   };
 
-  // Qué guía es la de cada entrada del menú, con la misma regla del motor (`guiaDeRuta`: una ruta exacta gana a una con `[id]`). Sin
-  // eso, la guía de `/inventario/traslados/[id]` se colaba por la entrada «/inventario/traslados/nuevo».
-  const entradaDe = new Map<Guia, string>();
-  for (const h of rutasDelMenu) {
-    const g = guiaDeRuta(h.split(/[?#]/)[0] ?? h, guias);
-    if (g && !entradaDe.has(g)) entradaDe.set(g, h);
-  }
-  const deAqui = guiaDeRuta(rutaActual, guias);
-  const entradas = rutasDelMenu.map((h) => h.split(/[?#]/)[0] ?? h).filter((h) => h !== "/");
-  /** La entrada de la que cuelga la pantalla de una guía, si se llega sin un id y es del mismo módulo que esa entrada. */
-  const colgadaDe = (guia: Guia): string | null => {
-    if (guia.ruta.includes("[")) return null;
-    const direccion = guia.ruta.replace(/\/\([^)]+\)/g, "") || "/";
-    const padre = entradas.filter((e) => direccion.startsWith(`${e}/`)).sort((a, b) => b.length - a.length)[0];
-    return padre && !PIDEN_OTRO_MODULO.has(direccion) && moduloDeRuta(direccion) === moduloDeRuta(padre) ? direccion : null;
-  };
-
+  const alcanzables = pantallasAlcanzables({ guias, rutasDelMenu, rutaActual });
   const sugerencias: Sugerencia[] = [];
   for (const guia of guias) {
-    const aqui = guia === deAqui;
-    const entrada = entradaDe.get(guia) ?? colgadaDe(guia);
-    if (!aqui && !entrada) continue;
+    if (!alcanzables.has(guia.id)) continue;
+    const entrada = alcanzables.get(guia.id) ?? null;
 
     const { titulo: enTitulo, resumen: enResumen, pasos } = raicesDeGuia(guia);
 
@@ -342,7 +356,7 @@ export function preseleccionar({
         puntosPaso = n;
       }
     }
-    sugerencias.push({ guia, href: aqui ? null : (entrada ?? null), paso, puntos });
+    sugerencias.push({ guia, href: entrada, paso, puntos });
   }
 
   // A igual puntaje gana la pantalla donde está la persona, y después el orden del registro (estable: sin azar).
