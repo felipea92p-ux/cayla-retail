@@ -25,6 +25,7 @@ import {
   textoMontoAnotado,
   textoPorConfirmar,
   cuentaDeLaBilletera,
+  usoDeLaPlata,
   desdeRonda,
   horaDeMovimiento,
   queHaraCompras,
@@ -435,6 +436,26 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     // 1000 de fondo + 500 por confirmar − 624 − 12 = 864; la ronda recibió 500, así que ya tenía 1000 al abrirla.
     expect(cuentaDeLaBilletera(p)).toEqual({ dieron: 500, compraste: 624, gastaste: 12, antes: p.tiene - 500 + 624 + 12 });
     expect(cuentaDeLaBilletera({ tiene: -40, ronda: { abierta: null, ultimaCerrada: null } })).toBeNull();
+  });
+
+  it("la barra de uso: lo usado contra lo que te dieron (y lo que ya tenías), redondeado hacia abajo, y sin base no se dibuja", () => {
+    // Los datos de la maqueta: te dieron 5,700, compraste 198, no gastaste: 3,47 % → «3 %».
+    expect(usoDeLaPlata({ dieron: 5700, compraste: 198, gastaste: 0, antes: 0 })).toEqual({ pct: 3, usado: 198, base: 5700, texto: "Usaste el 3 % de lo que te dieron" });
+    // Lo que ya tenías al abrir la ronda suma a la base y el texto lo dice.
+    expect(usoDeLaPlata({ dieron: 500, compraste: 624, gastaste: 12, antes: 1000 })).toEqual({ pct: 42, usado: 636, base: 1500, texto: "Usaste el 42 % de lo que tenías" });
+    // Si al abrir te debían (antes negativo), eso no suma a la base: no inventa plata.
+    expect(usoDeLaPlata({ dieron: 1000, compraste: 250, gastaste: 0, antes: -300 })?.base).toBe(1000);
+    // Hacia abajo: 99,9 % no es «100 %».
+    expect(usoDeLaPlata({ dieron: 1000, compraste: 999, gastaste: 0, antes: 0 })?.pct).toBe(99);
+    // Nada usado, casi nada, todo y de más.
+    expect(usoDeLaPlata({ dieron: 800, compraste: 0, gastaste: 0, antes: 0 })).toMatchObject({ pct: 0, texto: "Todavía no usas nada de lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 5000, compraste: 10, gastaste: 0, antes: 0 })).toMatchObject({ pct: 0, texto: "Usaste menos del 1 % de lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 100, compraste: 100, gastaste: 0, antes: 0 })).toMatchObject({ pct: 100, texto: "Ya usaste todo lo que te dieron" });
+    expect(usoDeLaPlata({ dieron: 100, compraste: 130, gastaste: 20, antes: 0 })).toMatchObject({ pct: 100, texto: "Ya usaste todo lo que te dieron" });
+    // Sin ronda (la cuenta es null) o sin nada dado ni de antes: no hay qué medir.
+    expect(usoDeLaPlata(null)).toBeNull();
+    expect(usoDeLaPlata({ dieron: 0, compraste: 50, gastaste: 0, antes: 0 })).toBeNull();
+    expect(usoDeLaPlata({ dieron: 0, compraste: 0, gastaste: 0, antes: -40 })).toBeNull();
   });
 
   it("el camino de la ronda: sin ronda 1.º; por mandar, 3.º; con compras y nada por mandar, 4.º; si no, 2.º", () => {

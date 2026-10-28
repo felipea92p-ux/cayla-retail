@@ -630,6 +630,24 @@ export function cuentaDeLaBilletera(plata: Pick<MiPlata, "tiene" | "ronda">): { 
   return { dieron, compraste, gastaste, antes };
 }
 
+/**
+ * La barra bajo la cifra de la billetera (maqueta docs/maquetas/mis-compras-pc-mesa-2026-10/, Felipe 2026-10-28): cuánto de la plata de la
+ * ronda ya se usó. La base es lo que tenía para comprar: lo que le dieron más lo que ya tenía al abrir la ronda (si le debían, eso no suma).
+ * Lo usado es lo comprado más lo gastado. El porcentaje se redondea HACIA ABAJO: nunca dice que usó más de lo que usó. Sin base (nada dado ni
+ * de antes) no hay qué medir y no se dibuja. Pasada de la base, la barra queda llena y la nota de «tienes» dice qué hacer; aquí no se juzga.
+ */
+export function usoDeLaPlata(cuenta: { dieron: number; compraste: number; gastaste: number; antes: number } | null): { pct: number; usado: number; base: number; texto: string } | null {
+  if (!cuenta) return null;
+  const base = redondear(cuenta.dieron + Math.max(0, cuenta.antes));
+  if (base <= 0.004) return null;
+  const usado = redondear(cuenta.compraste + cuenta.gastaste);
+  const deQue = cuenta.antes > 0.004 ? "lo que tenías" : "lo que te dieron";
+  const pct = Math.min(100, Math.max(0, Math.floor((usado / base) * 100)));
+  const texto =
+    usado <= 0.004 ? `Todavía no usas nada de ${deQue}` : usado >= base - 0.004 ? `Ya usaste todo ${deQue}` : pct < 1 ? `Usaste menos del 1 % de ${deQue}` : `Usaste el ${pct} % de ${deQue}`;
+  return { pct, usado, base, texto };
+}
+
 /** Los cuatro tramos del camino de una ronda, en el orden en que se hacen (maqueta mis-compras-rediseno-2026-10). */
 export const PASOS_DE_LA_RONDA = ["Abre tu ronda", "Anota", "Manda", "Ciérrala"] as const;
 
