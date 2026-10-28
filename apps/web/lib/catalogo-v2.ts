@@ -36,6 +36,11 @@ export type VarianteCatalogo = {
   /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
    *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
   colorCodigo?: string | null;
+  /** `variantes.talla_id` y `productos.categoria_id`: con `colorCodigo`, la llave para que «Prenda sin registrar» ofrezca la prenda
+   *  del catálogo que coincide con lo que caja eligió («¿Es alguna de estas?», A2 de la auditoría 2026-10-14), por id y nunca por
+   *  el nombre visible. Opcionales: un catálogo guardado antes de este cambio no los trae, y entonces no se ofrece nada. */
+  tallaId?: string | null;
+  categoriaId?: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
    *  color todavía no tiene foto. El cliente cae a un tinte del color (o
    *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
@@ -136,9 +141,9 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
       supabase
         .from("variantes")
         .select(
-          `id, sku, codigo, color_codigo, precio, activo,
+          `id, sku, codigo, color_codigo, talla_id, precio, activo,
            talla:tallas ( valor ),
-           producto:productos ( id, referencia, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+           producto:productos ( id, referencia, categoria_id, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
            color:colores ( nombre, hex ),
            codigos_barras ( codigo )`
         )
@@ -170,6 +175,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
     colorCodigo: v.color_codigo ?? null,
+    tallaId: v.talla_id ?? null,
+    categoriaId: v.producto?.categoria_id ?? null,
     // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.

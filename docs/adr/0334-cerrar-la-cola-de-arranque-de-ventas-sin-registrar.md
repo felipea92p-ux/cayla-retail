@@ -190,3 +190,46 @@ migración nueva: **`20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql`** 
 - **2026-10-12:** renombrada a `20261005160100` (choque de versión con `20261005160000_movimientos_colgada_y_guardada`) y reescrita como
   reemplazos anclados de sus cuatro tramos, porque `20261010232000` (bolsas de despacho) parcha la misma función y el CI aplica las migraciones
   de un PR después de las de main. Mismo efecto que lo pegado; en cualquier orden la función queda con la huella de producción (`3b9b7a08…`).
+
+## Actualización 2026-10-14: el plazo sigue a la fecha de carga inicial (migración `20261014161000`)
+
+**Qué pasó.** La auditoría del ERP del 2026-10-13 encontró que el plazo de la cola (`cola_arranque_plazo.hasta`, 15-oct en las tres tiendas,
+fijado el 5-oct) vencía antes que la carga inicial de cada sede (`ubicaciones.carga_inicial_hasta`: TRU 18-oct, AQP 21-oct, LIM 31-oct). Desde
+el 16 un líder ya no habría podido cerrar en bloque las ventas sin registrar de una prenda que todavía no se cargó —la razón de ser de esta
+salida— mientras la tienda seguía cargando. Nada se cierra solo al vencer el plazo: lo que vence es el botón, no las ventas (las pendientes
+siguen pendientes y se regularizan una por una o con sugerencias). Decisión 1 de esta ADR ya lo preveía: «cuando se construya la fecha de
+cierre de la carga inicial por sede, esta tabla se une a ella».
+
+**Decisión (Felipe, 2026-10-14).** Una sola fecha por sede: el plazo de la cola ES la fecha de carga inicial. `fijar_cierre_carga_inicial`
+(la única puerta que escribe esa fecha, ADR-0328) deja la misma en `cola_arranque_plazo` al ponerla, adelantarla o correrla; quitarla (carga
+abierta sin tope, solo Admin) deja el plazo como estaba, porque una cola «sin tope» sería una salida de emergencia que nunca vence. La
+migración alinea una vez las sedes que ya tenían fecha y crea la fila a la que no la tenía. Reemplazo anclado: la función es idéntica en
+producción y en el repo (md5 verificado ese día).
+DESCARTÉ: que `cerrar_cola_arranque` y la pantalla leyeran `carga_inicial_hasta` y retirar la tabla —cambia una función con 53 casos y la
+lectura de la pantalla para ganar lo mismo, y una sede sin fecha de carga quedaría sin plazo—. Y dejar vencer el 15-oct como «candado contra
+enterrar sin contar»: ese candado es otra decisión (abajo, A6), no una fecha equivocada.
+
+**Lo que sigue (aprobado el 2026-10-14, bloque 1 de la auditoría):** cerrar en bloque va a exigir un cuadre del piso posterior al corte (A6);
+en la hoja del mostrador, la prenda del catálogo que coincide se ofrece como «Es esta» antes de anotar (A2); el precio anotado se compara con
+el rango de su categoría (A3); el costo de lo cerrado sin prenda deja de ser 0 y lleva su origen (A4, con el contador; revisa la decisión 7).
+
+**Cómo se verifica.** `pnpm pruebas:cierre-carga-inicial`: caso 4d (poner, adelantar, correr y quitar la fecha contra `cola_arranque_plazo`,
+también sin fila previa) y 6c (las cuatro migraciones pegadas dos veces dejan el enlace una sola vez y la sede con fecha con ese plazo).
+En producción, después de aplicar: `select u.nombre, u.carga_inicial_hasta, p.hasta from retail.ubicaciones u join retail.cola_arranque_plazo
+p on p.ubicacion_id = u.id` devuelve la misma fecha en cada tienda.
+
+## Actualización 2026-10-14 (b): cerrar en bloque exige un cuadre del piso (migración `20261015004000`, A6)
+
+**Decisión (Felipe, 2026-10-14, estricta).** `cerrar_cola_arranque` exige un cuadre del piso de esa sede (`cuadres_piso`, ADR-0328)
+**guardado después de la última venta que se cierra** (`created_at >= p_hasta`); si no, `cola_sin_cuadre` con la salida en el hint
+(«Primero cuadra el piso de esta tienda…»). Lo que queda abierto arriba («cerrar TRU después de cuadrar su piso») pasa de consejo a
+candado: lo que sí estaba en el sistema queda cuadrado antes de dar el resto por perdido. Regularizar una por una, identificar con
+sugerencias y reabrir una cerrada no piden cuadre. La pantalla lo dice antes de ofrecer el botón: lee `fn_cuadre_piso_estado.cuadrado_en`
+de cada tienda con pendientes (`getUltimoCuadrePorSede`) y `sedesParaCerrar` marca `sinCuadre`; una tienda cuyo cuadre no se pudo leer
+no se juzga y la base lo vuelve a exigir.
+DESCARTÉ: medir contra `escaneo_desde` (cuándo empezó el escaneo) en vez de `created_at`: es más estricto, pero la pantalla solo puede
+leer `cuadrado_en`, y base y pantalla tienen que decir lo mismo. Y exigir el cuadre solo desde el segundo cierre de una sede: regla con
+dos caras que hay que explicar (opción C de la pregunta).
+**Cómo se verifica.** `pnpm pruebas:cola-arranque` (56 casos: sin cuadre no cierra; un cuadre anterior a la última venta no vale; con
+el cuadre después, cierra, y regularizar y reabrir no lo piden), `lib/cola-arranque-reglas.test.ts` (33), y en el navegador local la
+mesa dice «primero cuadra el piso» en vez de ofrecer «Cerrar la cola de arranque».

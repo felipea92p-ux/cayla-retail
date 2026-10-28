@@ -4,6 +4,9 @@
 import { createClient } from "./supabase/server";
 import { exigir, leerTodas } from "./resultado";
 import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
+// Reglas puras y relativas (no `./cuadre-piso`, que importa por alias `@/` y vitest no lo resuelve al probar este archivo).
+import { RPC_ESTADO, leerEstadoCuadre } from "./cuadre-piso-reglas";
+import type { CuadresPorSede } from "./cola-arranque-reglas";
 
 export type FilaPorRegularizar = {
   id: string;
@@ -159,4 +162,23 @@ export async function getPlazosColaArranque(): Promise<Record<string, string>> {
   const { data, error } = await supabase.from("cola_arranque_plazo").select("ubicacion_id, hasta");
   if (error || !data) return {};
   return Object.fromEntries(data.map((p) => [p.ubicacion_id, p.hasta]));
+}
+
+/**
+ * Cuándo se guardó el último cuadre del piso de cada tienda con ventas pendientes (`fn_cuadre_piso_estado.cuadrado_en`; ADR-0334 act.
+ * 2026-10-14, A6): cerrar la cola en bloque exige uno posterior a la última venta que se cierra. `null` = nunca se cuadró. Una tienda
+ * cuyo estado no se pudo leer NO entra al mapa: la pantalla no la juzga y la base vuelve a exigirlo al cerrar. Nunca lanza.
+ */
+export async function getUltimoCuadrePorSede(ubicacionIds: readonly string[]): Promise<CuadresPorSede> {
+  const unicas = [...new Set(ubicacionIds)];
+  if (unicas.length === 0) return {};
+  const supabase = await createClient();
+  const lecturas = await Promise.all(unicas.map((id) => supabase.rpc(RPC_ESTADO as never, { p_ubicacion_id: id } as never).then((r) => r, () => ({ data: null, error: { message: "sin leer" } }))));
+  const cuadres: Record<string, string | null> = {};
+  unicas.forEach((id, i) => {
+    const { data, error } = lecturas[i]! as { data: unknown; error: unknown };
+    const estado = error ? null : leerEstadoCuadre(data);
+    if (estado) cuadres[id] = estado.cuadradoEn;
+  });
+  return cuadres;
 }
