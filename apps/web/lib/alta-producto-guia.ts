@@ -7,8 +7,8 @@
 //   ASUME:   `problemasAlta` (lib/alta-producto.ts) sigue mandando en qué bloquea crear. Esta guía NO agrega reglas de
 //            negocio: cada campo requerido se decide con los mismos datos de `EstadoAlta`, y una prueba (`alta-producto-guia
 //            .test.ts`) exige que «requerido y sin hacer» y «problema de `problemasAlta`» digan lo mismo.
-//   NO HACE: no bloquea nada por su cuenta. El único campo «sugerido» (colores) avisa y deja seguir: hay productos sin color
-//            (un llavero, un cuaderno) y la base los admite.
+//   NO HACE: no bloquea nada por su cuenta. Los campos «sugeridos» (¿ya existe?, colores) avisan y dejan seguir: hay productos sin
+//            color (un llavero, un cuaderno) y la base los admite; y mirar lo que ya existe es una guía, no un candado.
 //
 // Por qué existe (2026-09-29, prueba con una trabajadora real): el formulario ya decía «qué falta», pero en letra chica al
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
@@ -17,7 +17,7 @@
 import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
-export type CampoAlta = "empresa" | "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
+export type CampoAlta = "empresa" | "categoria" | "marca" | "existe" | "tejido" | "patron" | "descripcion" | "nombre" | "tallas" | "colores" | "precio" | "stock" | "responsable";
 
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
@@ -31,7 +31,7 @@ export type CampoGuia = {
   nombre: string;
   /** Sin él no se puede crear (lo mismo que dice `problemasAlta`). */
   requerido: boolean;
-  /** No bloquea, pero casi siempre se llena: hoy solo los colores. */
+  /** No bloquea, pero casi siempre se llena: «¿ya existe?» y los colores. */
   sugerido: boolean;
   hecho: boolean;
   /** Lo que hay que hacer con él, en una frase: «Elige el tejido.». */
@@ -45,6 +45,10 @@ export type ExtraGuia = {
   /** Marca y proveedor elegidos. Desde ADR-0283 (2026-09-29) un producto se crea sin ellos: es un campo OPCIONAL y ya no vive en `EstadoAlta`. */
   marcaElegida: boolean;
   responsableListo: boolean;
+  /** Hay prendas de esta categoría que mirar (con red y lectura): sin ellas, la pregunta «¿Ya existe?» no está (ADR-0556). */
+  existeAplica: boolean;
+  /** La persona respondió «Ninguna, es un diseño nuevo». */
+  existeRespondido: boolean;
 };
 
 export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
@@ -63,30 +67,15 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       ? [{ id: "empresa" as const, paso: 1 as const, nombre: "Tienda", requerido: true, sugerido: false, hecho: Boolean(e.empresaId), pendiente: TEXTO_FALTA_EMPRESA }]
       : []),
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
-    // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
-    // escriba una letra. Opcional (ADR-0283): nunca se lista como «falta» ni bloquea nada; solo lleva ✓ si se eligió. Pero con el paso 2 recién abierto,
-    // `campoAhora` la hace la primera parada de «Sigue aquí» (Felipe, 2026-10-02): la persona la revisa antes de escribir el nombre, y la pausa termina
-    // sola apenas teclea en el nombre o en cualquier otro campo del paso — nunca le gana a la persona.
+    // Va PRIMERO en el paso 2, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de
+    // mirar «¿Ya existe?» y de escribir una letra. Opcional (ADR-0283): nunca se lista como «falta» ni bloquea nada; solo lleva ✓ si se eligió. Pero con el
+    // paso 2 recién abierto, `campoAhora` la hace la primera parada de «Sigue aquí» (Felipe, 2026-10-02), y la pausa termina sola apenas la persona hace
+    // algo más en el paso — nunca le gana a la persona.
     { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
-    {
-      id: "nombre",
-      paso: 2,
-      nombre: "Nombre",
-      requerido: true,
-      sugerido: false,
-      hecho: nombreOk,
-      // La misma frase que `problemasAlta` da en cada caso: «Revisa el nombre» a secas no dice qué hacer.
-      pendiente: !e.referencia.trim()
-        ? "Escribe el nombre del producto."
-        : claveReferencia(e.referencia) === ""
-          ? "El nombre necesita al menos una letra o un número."
-          : e.nombreBloqueado
-            ? "Ya existe un producto con ese nombre."
-            : e.nombreSinConfirmar
-              ? "Confirma que es otro diseño (mira la prenda parecida), o ábrela."
-              : "Comprobando que el nombre no exista todavía…",
-    },
-    { id: "descripcion", paso: 2, nombre: "Descripción", requerido: false, sugerido: false, hecho: x.descripcionEscrita, pendiente: "Cuéntanos el corte, el largo, los detalles." },
+    // ADR-0556: antes de bautizarla, mirar si ya existe (la misma prenda en otro color no se crea: se le agrega el color). Sugerido: no frena.
+    ...(x.existeAplica
+      ? [{ id: "existe" as const, paso: 2 as const, nombre: "¿Ya existe?", requerido: false, sugerido: true, hecho: x.existeRespondido, pendiente: "Mira si ya existe en esta categoría." }]
+      : []),
     {
       id: "tejido",
       paso: 2,
@@ -104,6 +93,26 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       sugerido: false,
       hecho: Boolean(e.patronId),
       pendiente: e.hayPatronesEnCategoria ? "Elige el patrón (si no tiene diseño, elige Liso)." : configurar("patrones"),
+    },
+    // «Detalle» (antes «Descripción», ADR-0556): pocas palabras de corte, largo y detalle. Con el tejido y el patrón arma la línea que va bajo el nombre.
+    { id: "descripcion", paso: 2, nombre: "Detalle", requerido: false, sugerido: false, hecho: x.descripcionEscrita, pendiente: "Cuéntanos el corte, el largo o un detalle." },
+    {
+      id: "nombre",
+      paso: 2,
+      nombre: "Nombre",
+      requerido: true,
+      sugerido: false,
+      hecho: nombreOk,
+      // La misma frase que `problemasAlta` da en cada caso: «Revisa el nombre» a secas no dice qué hacer.
+      pendiente: !e.referencia.trim()
+        ? "Escribe el nombre del producto."
+        : claveReferencia(e.referencia) === ""
+          ? "El nombre necesita al menos una letra o un número."
+          : e.nombreBloqueado
+            ? "Ya existe un producto con ese nombre."
+            : e.nombreSinConfirmar
+              ? "Confirma que es otro diseño (mira la prenda parecida), o ábrela."
+              : "Comprobando que el nombre no exista todavía…",
     },
     {
       id: "tallas",
@@ -162,14 +171,15 @@ const porHacer = (c: CampoGuia) => !c.hecho && (c.requerido || c.sugerido);
  * siguiente campo a media palabra estorba. La regla es la de los modales (`siguienteDe`, lib/guia-campos.ts).
  *
  * Excepción de marca y proveedor (Felipe, 2026-10-02): aunque son opcionales y `siguienteDe` nunca los retiene (no son requeridos
- * ni sugeridos), la guía hace una PAUSA ahí antes de seguir al nombre — pero solo mientras el paso 2 sigue intacto: si lo que
- * seguiría de verdad es el nombre (nada más se tocó) y nadie está tecleando ya en otro campo. Apenas la persona escribe en el
- * nombre (o en cualquier campo del paso), la pausa termina y la luz sigue como siempre: nunca le gana a la persona.
+ * ni sugeridos), la guía hace una PAUSA ahí antes de seguir — pero solo mientras el paso 2 sigue intacto: si lo que seguiría de
+ * verdad es lo PRIMERO que el paso pide (nada se contestó todavía; desde ADR-0556 es «¿Ya existe?», o el nombre si no hay qué mirar)
+ * y nadie está tecleando ya en otro campo. Apenas la persona hace algo en el paso, la pausa termina: nunca le gana a la persona.
  */
 export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): CampoAlta | null {
   const delPaso = campos.filter((c) => c.paso === pasoAbierto);
   const ahora = siguienteDe(delPaso, enFoco);
-  if (ahora?.id === "nombre" && (!enFoco || enFoco === "marca")) {
+  const nadaContestado = !delPaso.some((c) => (c.requerido || c.sugerido) && c.hecho);
+  if (pasoAbierto === 2 && ahora && nadaContestado && (!enFoco || enFoco === "marca")) {
     const marca = delPaso.find((c) => c.id === "marca");
     if (marca && !marca.hecho) return "marca";
   }

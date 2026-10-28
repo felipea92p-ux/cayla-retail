@@ -348,7 +348,7 @@ export const GUIA_EDITAR_PRODUCTO: Guia = {
       id: "producto",
       ancla: "editar.seccion-producto",
       titulo: "1 · Producto",
-      texto: "Nombre, categoría, marca, proveedor y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
+      texto: "Nombre, categoría, marca, proveedor, cómo llama el proveedor a la prenda (para volver a pedirla) y descripción. Cada sección dice arriba lo que tiene y lleva ✓ cuando está completa. Tócala para abrirla (te la abrimos).",
     },
     {
       id: "producto-abierta",
@@ -1461,7 +1461,7 @@ export const GUIA_NUEVO_PRODUCTO: Guia = {
       id: "punto-2",
       ancla: "nuevo.punto-2",
       titulo: "2 · Cómo es",
-      texto: "Cuando eliges la categoría, pasas aquí: el nombre, la marca y quién la trae, la descripción, el tejido, el patrón y la temporada. Si ya hay prendas parecidas, te las muestra para que no crees la misma dos veces.",
+      texto: "Al elegir la categoría pasas aquí. Primero miras si ya existe: si es una de esas en otro color, no la creas, la abres y le agregas el color. Luego el tejido, el patrón y un detalle, y al final el nombre: el tipo más una flor de la lista, como «Blusa Dalia».",
     },
     {
       id: "punto-3",

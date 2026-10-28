@@ -27,6 +27,9 @@ import { ParecidasBajoNombre, PieConParecidas, RevisaParecidasDelPaso } from "@/
 import { RetencionLuzContexto } from "@/components/guia-de-foco/useRetenerLuz";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo, useGuiaAlta } from "@/components/alta-producto/useGuiaAlta";
 import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
+import { YaExiste } from "@/components/alta-producto/YaExiste";
+import { NombreDePrenda, TIPO_LIBRE } from "@/components/alta-producto/NombreDePrenda";
+import { armarReferencia, avisosDelNombre, floresLibres, lineaDescriptiva, nombreDelProveedorComoNombre, otrosTipos, tiposDeCategoria } from "@/lib/nombre-de-prenda";
 import { PuntosAvance, type PasoConNombre } from "@/components/alta-producto/PuntosAvance";
 import { IdentidadAltaProveedor, QuienRegistra, irAQuienRegistra } from "@/components/alta-producto/IdentidadAlta";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -96,7 +99,7 @@ import { precioValido } from "@/lib/variantes-ficha-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
-import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
+import { MAX_DESCRIPCION_PRODUCTO } from "@/lib/catalogo-topes";
 import { ArrowRight } from "lucide-react";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
@@ -217,7 +220,16 @@ export function NuevoProductoForm({
   const [proveedorId, setProveedorId] = useState("");
   const [marcaNombre, setMarcaNombre] = useState("");
   const [proveedorNombre, setProveedorNombre] = useState("");
+  // Lo que la persona escribe en «Nombre». Con el estándar de ADR-0556 es solo la flor («Dalia»): el tipo («Blusa») lo pone la categoría y el
+  // nombre completo es `referenciaCompleta`. Con «Otro nombre» (o una categoría sin tipo: belleza, papelería) es el nombre entero, como antes.
   const [referencia, setReferencia] = useState("");
+  // El tipo elegido en los chips; `null` = el de fábrica de la categoría. Se olvida al cambiar de categoría.
+  const [tipoElegido, setTipoElegido] = useState<string | null>(null);
+  // La respuesta a «¿Ya existe?» (ADR-0556): `true` = «Ninguna, es un diseño nuevo»; `false` = «Cambiar» (la volvió a abrir); `null` = no dijo nada
+  // aquí, y entonces cuenta lo que respondió en la hoja «Ver y comparar». Guía, no candado.
+  const [existeRespuesta, setExisteRespuesta] = useState<boolean | null>(null);
+  // Cómo llama el proveedor a la prenda (ADR-0556, Felipe 2026-10-28): se guarda aparte para compras y, si sirve como nombre, se sugiere primero.
+  const [nombreProveedor, setNombreProveedor] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
@@ -272,7 +284,7 @@ export function NuevoProductoForm({
   // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
   // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
   const fotoActual = fotoFormulario({
-    empresaId, categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    empresaId, categoriaId, marcaId, proveedorId, referencia: `${tipoElegido ?? ""}|${referencia}|${nombreProveedor}`, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
     overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
@@ -287,6 +299,10 @@ export function NuevoProductoForm({
   const exige = Boolean(familia?.exigeTejidoPatron);
   // Lo que decide los ejemplos de esta pantalla (skill `/sugerir`): la categoría elegida en el paso 1 y su familia.
   const contextoSugerencia = { familia: categoria?.familia ?? null, prefijo: categoria?.prefijo ?? null };
+  // El estándar de nombres (ADR-0556): el tipo sale de la categoría; sin tipo (belleza, papelería, una categoría nueva) el nombre es libre.
+  const tipos = tiposDeCategoria(contextoSugerencia);
+  const tipo = tipos.length === 0 ? TIPO_LIBRE : tipoElegido === TIPO_LIBRE || (tipoElegido && tipos.includes(tipoElegido)) ? tipoElegido : tipos[0];
+  const referenciaCompleta = tipo === TIPO_LIBRE ? referencia : armarReferencia(tipo, referencia);
 
   const tallasCategoria = useMemo(
     () => [...(ejes.tallas[categoriaId] ?? [])].sort((a, b) => compararTallas(a.texto, b.texto)),
@@ -301,10 +317,12 @@ export function NuevoProductoForm({
   // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
-  const nombreFinal = tituloReferencia(referencia);
+  const nombreFinal = tituloReferencia(referenciaCompleta);
   // Lo elegido en tejido y patrón, en palabras: lo usa la comparación con las prendas que ya existen, la ficha y la línea del paso plegado.
   const tejidoTexto = [...tejidosCategoria, ...universo.tejidos].find((t) => t.id === tejidoId)?.texto ?? null;
   const patronTexto = [...patronesCategoria, ...universo.patrones].find((t) => t.id === patronId)?.texto ?? null;
+  // La línea que va bajo el nombre (ADR-0556): el detalle, el tejido y el patrón, armados solos.
+  const lineaBajoNombre = lineaDescriptiva({ detalle: descripcion, tejido: tejidoTexto, patron: patronTexto });
 
   // ---------- ¿ya existe algo así? (la base frena; «Prendas parecidas» avisa y ordena) ----------
   // Devuelve lo mismo que devolvía `useParecidos` (con su espera de 350 ms al tipear) y suma la alerta del resumen, la hoja «Ver y comparar» y el
@@ -321,6 +339,17 @@ export function NuevoProductoForm({
     enLinea,
   });
   const comprobandoNombre = Boolean(categoriaId) && parecidos.comprobando;
+  // «¿Ya existe?» solo pregunta si hay algo que mirar: sin red, sin lectura o en una categoría vacía no hay pregunta (ADR-0556).
+  const existeAplica = parecidos.existentes.disponible && parecidos.existentes.lista.length > 0;
+  // Si en la hoja «Ver y comparar» respondió que ninguna es su prenda, la pregunta queda contestada (y «Cambiar» la vuelve a abrir).
+  const existeRespondido = existeRespuesta ?? parecidos.existentes.todasRevisadas;
+  // Las flores libres de la categoría y los avisos del nombre: lógica pura (`lib/nombre-de-prenda.ts`), sin red.
+  const nombresColores = useMemo(() => colores.flatMap((c) => [c.nombre, ...(c.sinonimos ?? [])]), [colores]);
+  const floresSugeridas = tipo === TIPO_LIBRE ? [] : floresLibres({ referencias: contexto.nombresPorCategoria[categoriaId] ?? [], tipos, colores: nombresColores });
+  const avisosNombre = tipo === TIPO_LIBRE ? [] : avisosDelNombre(referencia, { tipos, colores: nombresColores, otrosTipos: otrosTipos(categoria?.prefijo) });
+  // «Proveedor primero, si sirve» (Felipe 2026-10-28): si lo que trae el proveedor es un nombre de verdad, va antes que las flores.
+  const delProveedor =
+    tipo === TIPO_LIBRE ? null : nombreDelProveedorComoNombre(nombreProveedor, { tipos, otrosTipos: otrosTipos(categoria?.prefijo), colores: nombresColores, marca: marcaNombre });
   const confirmo = parecidos.confirmo;
 
   function irAPaso(n: NumeroPaso) {
@@ -351,6 +380,8 @@ export function NuevoProductoForm({
   // ---------- elegir / cambiar categoría ----------
   function elegirCategoria(id: string) {
     setCategoriaId(id);
+    setTipoElegido(null);
+    setExisteRespuesta(null);
     setTallasElegidas(ejes.habituales[id] ?? []); // la curva habitual viene marcada
     setTejidoId("");
     setPatronId("");
@@ -371,6 +402,8 @@ export function NuevoProductoForm({
   function cambiarCategoria() {
     setCopiadoDe(null);
     setCategoriaId("");
+    setTipoElegido(null);
+    setExisteRespuesta(null);
     setTallasElegidas([]);
     setTejidoId("");
     setPatronId("");
@@ -449,7 +482,7 @@ export function NuevoProductoForm({
     exigeEmpresa: preguntaEmpresa,
     empresaId,
     categoriaId,
-    referencia,
+    referencia: referenciaCompleta,
     comprobandoNombre,
     nombreBloqueado: parecidos.hayIdentico,
     nombreSinConfirmar: parecidos.hayUnaLetra && !confirmo,
@@ -479,6 +512,8 @@ export function NuevoProductoForm({
     descripcionEscrita: descripcion.trim() !== "",
     marcaElegida: Boolean(marcaId && proveedorId),
     responsableListo: responsable.listo,
+    existeAplica: existeAplica,
+    existeRespondido,
   });
   const est = estadosDeCampos(campos, paso, escribiendoEn);
   const ahoraCampo = campoAhora(campos, paso, escribiendoEn);
@@ -681,7 +716,11 @@ export function NuevoProductoForm({
       setFotos([]);
       setCargando(false);
       setCopiadoDe(null);
-      avisar.aviso("Producto guardado sin conexión", { detalle: "Recibe su código cuando vuelva el internet." });
+      avisar.aviso("Producto guardado sin conexión", {
+        detalle: nombreProveedor.trim()
+          ? "Recibe su código cuando vuelva el internet. Cómo lo llama el proveedor no viaja sin conexión: agrégalo después en Editar producto."
+          : "Recibe su código cuando vuelva el internet.",
+      });
       setCreado({
         id: null,
         nombre: nombreFinal,
@@ -717,7 +756,14 @@ export function NuevoProductoForm({
       return;
     }
 
-    // El producto YA existe. Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito.
+    // El producto YA existe. Cómo lo llama el proveedor va aparte (ADR-0556): si falla (o la base todavía no tiene la función), la prenda queda
+    // creada igual y se dice dónde completarlo.
+    if (nombreProveedor.trim()) {
+      const { error: errorProveedor } = await firmar(supabase.rpc("fijar_nombre_proveedor", { p_producto_id: productoId, p_nombre: nombreProveedor.trim() }), firma);
+      if (errorProveedor) avisar.aviso("La prenda se creó, pero no se guardó cómo la llama el proveedor.", { detalle: "Agrégalo en Editar producto." });
+    }
+
+    // Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito.
     const fallidas: string[] = [];
     const conFoto = new Set<string>();
     let subidas = 0;
@@ -765,6 +811,8 @@ export function NuevoProductoForm({
     setCopiadoDe(creado.nombre);
     setCreado(null);
     setReferencia("");
+    setExisteRespuesta(null);
+    setNombreProveedor("");
     setDescripcion("");
     parecidos.reiniciar();
     setColoresElegidos([]);
@@ -913,9 +961,9 @@ export function NuevoProductoForm({
       const ayudaOpcional = (texto: string) => (exige ? texto : `Opcional · ${texto}`);
       return (
         <div>
-          {/* Marca y proveedor va ARRIBA del nombre (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que
-              se escriba una letra, y al teclear el nombre la alerta ya tiene con qué comparar. Sigue siendo OPCIONAL y la guía no la señala: «Sigue aquí»
-              va al nombre, que es lo primero que falta. */}
+          {/* Marca y proveedor va PRIMERO (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de mirar
+              «¿Ya existe?» y de escribir una letra. Sigue siendo OPCIONAL. El orden de abajo es el de ADR-0556: ¿ya existe? → tejido → patrón → detalle →
+              nombre: se bautiza cuando ya se sabe qué es la prenda. */}
           <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién te la trae · opcional" campo="marca" estado={est.marca}>
             <ElegirMarcaProveedor
               opcional
@@ -938,32 +986,37 @@ export function NuevoProductoForm({
               puedeCrear
             />
           </FilaAlta>
-          <FilaAlta etiqueta="Nombre" ayuda="Como se lo dirías a un cliente" campo="nombre" estado={est.nombre}>
-            <div className="space-y-2">
-              <CampoTexto
-                id="nombre-producto"
-                etiqueta="Nombre"
-                maxLength={MAX_NOMBRE_PRODUCTO}
-                caja
-                className="!h-12 text-base"
-                placeholder={sugerirNombre(contextoSugerencia).texto}
-                value={referencia}
-                onChange={(e) => setReferencia(e.target.value)}
-                autoComplete="off"
-                pie={
-                  nombreFinal && nombreFinal !== referencia.trim() ? (
-                    <span>
-                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
-                    </span>
-                  ) : undefined
-                }
+          <FilaAlta etiqueta="Cómo lo llama el proveedor" ayuda="Opcional · el nombre o código de su etiqueta o su guía: así el comprador sabe qué pedir">
+            <CampoTexto
+              etiqueta="Cómo lo llama el proveedor"
+              caja
+              maxLength={80}
+              // sugerir-fijo: muestra las dos formas en que llega (un nombre o un código), no depende de la categoría ni de la marca
+              placeholder="Ej. Evaluna o SS25 311"
+              value={nombreProveedor}
+              onChange={(e) => setNombreProveedor(e.target.value)}
+            />
+          </FilaAlta>
+          {/* ADR-0556: antes de bautizarla, mirar lo que ya existe en la categoría. La misma prenda en otro color no se crea: se abre y se le agrega el color. */}
+          {categoria && (
+            <FilaAlta
+              etiqueta="¿Ya existe?"
+              ayuda="Si es una de estas en otro color, no la crees: ábrela y agrégale el color"
+              campo={existeAplica ? "existe" : undefined}
+              estado={existeAplica ? est.existe : undefined}
+            >
+              <YaExiste
+                lista={parecidos.existentes.lista}
+                cargando={parecidos.existentes.cargando}
+                disponible={parecidos.existentes.disponible}
+                fallo={parecidos.existentes.fallo}
+                categoria={{ nombre: categoria.nombre, prefijo: categoria.prefijo, familia: categoria.familia, categoria: categoria.nombre }}
+                respondido={existeRespondido}
+                onResponder={setExisteRespuesta}
+                onVer={(id) => parecidos.abrirHoja(id)}
               />
-              <ParecidasBajoNombre p={parecidos.bajoNombre} />
-            </div>
-          </FilaAlta>
-          <FilaAlta etiqueta="Descripción" ayuda="Opcional · lo que no dice el nombre: corte, largo, detalles" campo="descripcion" estado={est.descripcion}>
-            <CampoTexto etiqueta="Descripción" caja maxLength={MAX_DESCRIPCION_PRODUCTO} placeholder={sugerirDescripcion(contextoSugerencia).texto} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
-          </FilaAlta>
+            </FilaAlta>
+          )}
 
           {/* Tejido y patrón describen la prenda: van aquí, con el nombre y la marca (spike v2), no con sus variantes. */}
           {(exige || tejidosCategoria.length > 0) && (
@@ -1027,6 +1080,42 @@ export function NuevoProductoForm({
               )}
             </FilaAlta>
           )}
+
+          <FilaAlta etiqueta="Detalle" ayuda="Opcional · corte, largo o un detalle: lo que no dice el nombre" campo="descripcion" estado={est.descripcion}>
+            <CampoTexto
+              etiqueta="Detalle"
+              caja
+              maxLength={MAX_DESCRIPCION_PRODUCTO}
+              placeholder={sugerirDescripcion(contextoSugerencia).texto}
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              pie={lineaBajoNombre ? <span>Se leerá bajo el nombre: <strong className="text-tinta">{lineaBajoNombre}</strong></span> : undefined}
+            />
+          </FilaAlta>
+          <FilaAlta etiqueta="Nombre" ayuda={tipo === TIPO_LIBRE ? "Como se lo dirías a un cliente" : "El tipo más una flor: elige una libre o escríbela"} campo="nombre" estado={est.nombre}>
+            <div className="space-y-2">
+              <NombreDePrenda
+                id="nombre-producto"
+                tipos={tipos}
+                tipo={tipo}
+                onTipo={setTipoElegido}
+                valor={referencia}
+                onValor={setReferencia}
+                sugeridas={floresSugeridas}
+                delProveedor={delProveedor}
+                avisos={avisosNombre}
+                placeholderLibre={sugerirNombre(contextoSugerencia).texto}
+                pie={
+                  nombreFinal && nombreFinal !== referencia.trim() ? (
+                    <span>
+                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
+                    </span>
+                  ) : undefined
+                }
+              />
+              <ParecidasBajoNombre p={parecidos.bajoNombre} />
+            </div>
+          </FilaAlta>
 
           <PlegableAlta titulo="Temporada y etiquetas" resumen={resumenMas} abierto={masAbierto} onAlternar={() => setMasAbierto((v) => !v)}>
             <FilaAlta
