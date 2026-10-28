@@ -46,8 +46,10 @@ const filas = [
 ];
 
 describe("estado de una fila", () => {
-  it("abierto, en camino, sin guía y «no los puedo recibir yo» (lo de quien hizo la orden, sea envío u orden)", () => {
-    expect(filas.map(estadoDeFila)).toEqual(["abierto", "en_camino", "en_camino", "ajeno", "sin_guia", "ajeno"]);
+  it("abierto, por abrir (en camino y órdenes sin guía) y «no puedo abrir yo» (lo de quien hizo la orden, sea envío u orden)", () => {
+    expect(filas.map(estadoDeFila)).toEqual(["abierto", "por_abrir", "por_abrir", "ajeno", "por_abrir", "ajeno"]);
+    // Un envío abierto que hizo quien mira tampoco lo puede abrir: es «ajeno», no «abierto».
+    expect(estadoDeFila(envio("x", { estado: "abierto", creadoPorMi: true }))).toBe("ajeno");
   });
 });
 
@@ -58,8 +60,9 @@ describe("filtrar la tabla", () => {
   });
 
   it("estado: basta uno de los marcados", () => {
-    expect(ids(filtrarFilas(filas, { ...SIN_FILTROS, estados: ["en_camino"] }))).toEqual(["camino", "camino-multi"]);
-    expect(ids(filtrarFilas(filas, { ...SIN_FILTROS, estados: ["abierto", "sin_guia"] }))).toEqual(["abierto", "directa"]);
+    expect(ids(filtrarFilas(filas, { ...SIN_FILTROS, estados: ["abierto"] }))).toEqual(["abierto"]);
+    expect(ids(filtrarFilas(filas, { ...SIN_FILTROS, estados: ["por_abrir"] }))).toEqual(["camino", "camino-multi", "directa"]);
+    expect(ids(filtrarFilas(filas, { ...SIN_FILTROS, estados: ["abierto", "por_abrir"] }))).toEqual(["abierto", "camino", "camino-multi", "directa"]);
     expect(ids(filtrarFilas(filas, { ...SIN_FILTROS, estados: ["ajeno"] }))).toEqual(["mio", "directa-mia"]);
   });
 
@@ -92,7 +95,7 @@ describe("filtrar la tabla", () => {
   });
 
   it("los filtros se suman: tienen que cumplirse todos", () => {
-    const f = { estados: ["en_camino" as const], proveedor: "Hilos del Norte", desde: "2026-10-25", hasta: "" };
+    const f = { estados: ["por_abrir" as const], proveedor: "Hilos del Norte", desde: "2026-10-25", hasta: "" };
     expect(ids(filtrarFilas(filas, f))).toEqual(["camino-multi"]);
     expect(contarFiltros(f)).toBe(3);
     expect(contarFiltros({ ...SIN_FILTROS, desde: "2026-10-01", hasta: "2026-10-31" })).toBe(1);

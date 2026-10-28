@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
+import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -14,6 +15,7 @@ import { esEnvioSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { coincideConBusqueda, ordenarFilasPorRecibir, textoBuscableDeEnvio, textoBuscableDeOrden } from "@/lib/recepcion-envio-busqueda";
 import { contarFiltros, fechaDeEnvioParaTabla, filtrarFilas, proveedoresDeLaLista, SIN_FILTROS, type FiltrosEnvios } from "@/lib/recepcion-envio-filtros";
 import { hoyLima } from "@/lib/fechas-lima";
+import { paginar } from "@/lib/paginacion";
 import { FiltrosDeEnvios } from "./FiltrosDeEnvios";
 import { RecibirSinGuia } from "./RecibirSinGuia";
 import { DetalleEnvioPorRecibir } from "./DetalleEnvioPorRecibir";
@@ -40,6 +42,9 @@ const COLUMNAS: Columna[] = [
   { titulo: "", alinear: "der" },
 ];
 
+/** Cuántos envíos se pintan por página: lo demás se pasa con la paginación. */
+const POR_PAGINA = 10;
+
 const prendas = (n: number) => `${n.toLocaleString("es-PE")} ${n === 1 ? "prenda" : "prendas"}`;
 
 export function EnviosParaRecibir({
@@ -62,6 +67,16 @@ export function EnviosParaRecibir({
 }) {
   const [buscar, setBuscar] = useState("");
   const [filtros, setFiltros] = useState<FiltrosEnvios>(SIN_FILTROS);
+  // La tabla pinta UNA página de 10; buscar o filtrar vuelve a la primera (ajuste durante el render, como Comprobantes) y `paginar` acota
+  // si la lista se achicó.
+  const [pagina, setPagina] = useState(1);
+  const firma = [buscar, filtros.estados.join(","), filtros.proveedor ?? "", filtros.desde, filtros.hasta].join("\u0000");
+  const [firmaPrevia, setFirmaPrevia] = useState(firma);
+  if (firma !== firmaPrevia) {
+    setFirmaPrevia(firma);
+    setPagina(1);
+  }
+  const tarjetaRef = useRef<HTMLElement>(null);
   if (envios.length === 0 && ordenes.length === 0) return null;
   const hoy = hoyLima();
   const proveedorSinAviso = (envioId: string) => proveedoresSinAviso[envioId] ?? null;
@@ -72,13 +87,20 @@ export function EnviosParaRecibir({
   );
   const total = envios.length + ordenes.length;
   const coinciden = filas.length;
+  const paginaActual = paginar(filas, pagina, POR_PAGINA);
+  function irAPagina(n: number) {
+    setPagina(n);
+    // El paginador está al pie: al cambiar de página, la tabla empieza a leerse desde arriba.
+    const tarjeta = tarjetaRef.current;
+    if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
+  }
   const hayFiltros = contarFiltros(filtros) > 0;
   const limpiar = () => {
     setBuscar("");
     setFiltros(SIN_FILTROS);
   };
   return (
-    <section data-guia="recibir.envios-oc" className="space-y-3" aria-labelledby="recibir-envios-oc">
+    <section ref={tarjetaRef} data-guia="recibir.envios-oc" className="space-y-3" aria-labelledby="recibir-envios-oc">
       {/* Dos columnas en la misma fila: a la izquierda, el título con su leyenda; a la derecha, la pregunta con su botón. */}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
@@ -98,7 +120,7 @@ export function EnviosParaRecibir({
       />
       <Tabla className="@container">
         <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
-        {filas.map((f) => {
+        {paginaActual.filas.map((f) => {
           if (f.tipo === "orden") {
             const o = f.orden;
             return (
@@ -185,6 +207,14 @@ export function EnviosParaRecibir({
           <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />} accion={{ texto: hayFiltros ? "Limpiar todo" : "Borrar la búsqueda", onClick: limpiar }}>
             {buscar.trim() ? <>Ningún envío coincide con «{buscar}»{hayFiltros ? " y los filtros puestos" : ""}.</> : "Ningún envío cumple los filtros puestos."}
           </Vacio>
+        )}
+        {paginaActual.totalPaginas > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs text-taupe">
+            <span>
+              Mostrando {paginaActual.desde}–{paginaActual.hasta} de {coinciden}
+            </span>
+            <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
+          </div>
         )}
       </Tabla>
     </section>
