@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 128,
+  "total": 136,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -118,6 +118,16 @@
       "CampoTexto «{`Costo de ${nombre}»",
       "CampoTexto «{`Precio de venta de ${nombre}»",
       "CampoTexto «{`Costo de ${nombre}» #2"
+    ],
+    "components/recepcion-conteo/PrendaConCombinaciones.tsx": [
+      "button «{guia}»",
+      "SegmentoDeslizante «{`Qué cifra editas en ${nombre}»",
+      "Boton «{combinaciones.length === 1 ? `Cambiar el ${palabra}»",
+      "CampoTexto «{`${cifraActiva === \"costo\" ? \"Costo\" : \"Precio de venta\"}»",
+      "BotonDeshacer «→() => onQuitar(cifraActiva, cambiadas)»",
+      "SegmentoDeslizante «Dónde vale este precio»",
+      "Boton «Cancelar»",
+      "Boton «Aplicar»"
     ],
     "components/recepcion-conteo/ReabrirEnvio.tsx": [
       "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",

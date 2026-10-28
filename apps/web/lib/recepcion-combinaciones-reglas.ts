@@ -21,6 +21,7 @@ export type Alcance = "esta" | "color" | "talla" | "todas";
 /** Dónde vale un precio de venta: en todas las sedes (el general) o solo en esta tienda. */
 export type ValeEn = "todas" | "sede";
 
+/** @internal La lista de todos los valores de `Alcance`: la prueba recorre cada uno contra cada casilla de la cuadrícula. */
 export const ALCANCES: readonly Alcance[] = ["esta", "color", "talla", "todas"];
 export const MENSAJE_SIN_CONTEO = "Aún no se realizó el conteo por color y talla de esta prenda.";
 
@@ -71,7 +72,8 @@ export function combinacionesContadas(
     const h = hoy[v.varianteId];
     r.push({ varianteId: v.varianteId, color: v.color, talla: v.talla, cantidad: v.cantidad, precioGeneral: h?.general ?? null, precioSede: h?.sede ?? h?.general ?? null, costoHeredado });
   }
-  return r;
+  // En el orden en que se leen: por color y, dentro de cada color, las tallas como una curva (S · M · L). Así lo que se dice de varias («S, M y L») sale ordenado.
+  return r.sort((x, y) => nombreColor(x).localeCompare(nombreColor(y), "es") || compararTallas(nombreTalla(x), nombreTalla(y)));
 }
 
 /** La matriz que se dibuja: colores en filas (por nombre, «Sin color» al final), tallas en columnas (S · M · L, 36 · 38…), y `null` donde no se contó esa pareja. */
@@ -254,6 +256,16 @@ export function seraPrecioDePrendaEntera(precios: Readonly<Record<string, number
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Lo que se muestra de toda la prenda (su fila) y lo que se manda
 // ---------------------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Lo que ya quedó guardado en el conteo (`costos_prendas`, de un cierre anterior o de un envío reabierto) como costo de COMBINACIONES de estas prendas:
+ * `{ variante_id: costo }` de las que se contaron. Lo que está guardado por prenda (`producto_id`) o por prenda nueva no es de aquí: eso sigue en su caja.
+ */
+export function costosDeCombinacionesGuardados(prendas: readonly Pick<PrendaSeparada, "variantes">[], guardados: Readonly<Record<string, number>>): CambiosDeCosto {
+  const r: Record<string, number> = {};
+  for (const p of prendas) for (const v of p.variantes ?? []) if (v.cantidad > 0 && guardados[v.varianteId] !== undefined) r[v.varianteId] = guardados[v.varianteId];
+  return r;
+}
 
 /** El valor de una prenda como se ve en su fila: «S/ 45.00», o «S/ 45.00 – 52.00» si sus combinaciones valen distinto; `null` si no hay ninguno. */
 export function textoDeRango(valores: readonly (number | null)[]): string | null {

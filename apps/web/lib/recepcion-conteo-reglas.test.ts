@@ -1086,6 +1086,16 @@ describe("ADR-0519: el costo propio de cada prenda al cerrar", () => {
     expect(nueva[0]).toMatchObject({ costo_unitario: 60, costos_prendas: { "p-sofia": 55.5 } });
   });
 
+  it("p_lineas suma el costo de las COMBINACIONES (color y talla) al de las prendas: la combinación va por su variante_id y gana a la prenda", () => {
+    const l = lineaCon();
+    const r = lineasParaCerrar([l], { "item:i1": dec() }, false, { "item:i1": { "p-sofia": "55.50" } }, { "item:i1": { "v-negro-s": 52, "p-sofia": 50 } });
+    expect(r[0].costos_prendas).toEqual({ "p-sofia": 50, "v-negro-s": 52 });
+    // Solo combinaciones, sin costos de prenda escritos.
+    expect(lineasParaCerrar([l], { "item:i1": dec() }, false, {}, { "item:i1": { "v-negro-s": 52 } })[0].costos_prendas).toEqual({ "v-negro-s": 52 });
+    // Otra línea no se mezcla, y sin nada no hay costos_prendas.
+    expect(lineasParaCerrar([l], { "item:i1": dec() }, false, {}, { "item:otra": { "v-x": 9 } })[0]).not.toHaveProperty("costos_prendas");
+  });
+
   it("solo se costea lo que tiene nombre: las prendas identificadas y las nuevas ya descritas; lo demás se cuenta aparte como «sin identificar»", () => {
     // 12 contadas: Sofía 6 + Antonella 4 identificadas, «holaa» 2 nuevas descritas, 0 sin describir… y 0 sueltas.
     const l = lineaCon({ contadas: 12, separado: { prendas: [sofia, antonella], nuevas: [{ cantidad: 2, descripcion: "holaa" }] } });

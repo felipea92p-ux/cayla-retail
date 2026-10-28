@@ -5,6 +5,7 @@ import {
   combinacionesContadas,
   combinacionesDistintas,
   costoEfectivo,
+  costosDeCombinacionesGuardados,
   costosParaLinea,
   describirCambio,
   destinosDelAlcance,
@@ -50,6 +51,11 @@ describe("combinacionesContadas", () => {
     // Sin precio propio de la tienda, vale el general; sin nada leído, null (todavía no se sabe).
     expect(r[1]).toMatchObject({ precioGeneral: 80, precioSede: 80 });
     expect(r[2]).toMatchObject({ precioGeneral: null, precioSede: null });
+  });
+
+  it("salen ordenadas: por color y, dentro de cada color, las tallas como una curva", () => {
+    const r = combinacionesContadas({ variantes: [v("1", 1, "XL", "Negro"), v("2", 1, "M", "Azul marino"), v("3", 1, "S", "Negro"), v("4", 1, "S", "Azul marino")] }, {}, 0);
+    expect(r.map((c) => c.varianteId)).toEqual(["4", "2", "3", "1"]);
   });
 
   it("una prenda separada sin color y talla no tiene combinaciones (la pantalla dice que aún no se contó)", () => {
@@ -365,5 +371,14 @@ describe("etiquetaDe", () => {
   it("«Negro · M»; sin color o sin talla lo dice", () => {
     expect(etiquetaDe({ color: "Negro", talla: "M" })).toBe("Negro · M");
     expect(etiquetaDe({ color: null, talla: null })).toBe("Sin color · Única");
+  });
+});
+
+describe("costosDeCombinacionesGuardados", () => {
+  const v = (varianteId: string, cantidad: number) => ({ varianteId, cantidad, danadas: 0, solucion: null, talla: "S", color: "Negro", codigo: null });
+  it("de lo guardado, solo el costo de las combinaciones contadas de estas prendas", () => {
+    const prendas = [{ variantes: [v("a", 2), v("b", 0)] }, { variantes: null }, { variantes: [v("c", 1)] }];
+    expect(costosDeCombinacionesGuardados(prendas, { a: 35.5, b: 40, c: 12, "producto-1": 30, "nueva:x": 20, otra: 9 })).toEqual({ a: 35.5, c: 12 });
+    expect(costosDeCombinacionesGuardados(prendas, {})).toEqual({});
   });
 });

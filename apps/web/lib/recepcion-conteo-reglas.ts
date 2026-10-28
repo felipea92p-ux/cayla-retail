@@ -45,6 +45,9 @@ export const RPC_CERRAR_CONTEO = "cerrar_conteo_envio";
 export const RPC_PRECIO_RECEPCION = "cambiar_precio_en_recepcion";
 /** ¿Se podría guardar este precio?, con el motivo si no: la misma regla que `cambiar_precio_en_recepcion`, sin guardar nada (`20261026180000`). Lectura. */
 export const RPC_VALIDAR_PRECIO = "validar_precio_en_recepcion";
+/** El precio de varias combinaciones (color y talla) de una prenda del envío, todo o nada (20261028234000). */
+export const RPC_PRECIOS_RECEPCION = "cambiar_precios_en_recepcion";
+export const RPC_VALIDAR_PRECIOS = "validar_precios_en_recepcion";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 /** «Crear ahora» deja la prenda creada en «Para después» (ADR-0393, 2026-10-26; migración `20261026163000`). */
 export const RPC_LIGAR_PRENDA = "ligar_prenda_a_pendiente";
@@ -910,7 +913,7 @@ export type LineaParaCerrar = {
   faltante_causa: CausaFaltante | null;
   sobrante_causa: CausaSobrante | null;
   nota: string | null;
-  /** ADR-0519: el costo propio de las prendas separadas de esta línea que cuestan distinto de la línea ({producto: costo}). Sin nada propio, no va. */
+  /** ADR-0519: el costo propio de las prendas (o, desde 2026-10-28, de las combinaciones) separadas de esta línea que cuestan distinto de la línea ({producto | variante: costo}). Sin nada propio, no va. */
   costos_prendas?: Record<string, number>;
 };
 
@@ -985,6 +988,8 @@ export function lineasParaCerrar(
   decisiones: Readonly<Record<string, DecisionCierre>>,
   sinAviso: boolean,
   costosPrendas: Readonly<Record<string, CostosDePrendas>> = {},
+  /** El costo propio de combinaciones (color y talla), por línea: `{ clave de línea: { variante_id | producto_id: costo } }` (`costosParaLinea`). */
+  costosCombinaciones: Readonly<Record<string, Readonly<Record<string, number>>>> = {},
 ): LineaParaCerrar[] {
   return lineas
     .filter((l) => l.conteo !== null)
@@ -998,7 +1003,7 @@ export function lineasParaCerrar(
       const regalo = !l.linea && sobrante === "regalo";
       // Un regalo de fuera de la guía entra a S/ 0: se manda 0 y ningún costo propio (la base los ignora igual).
       const costo = regalo ? 0 : leerCostoCierre(d.costo).valor;
-      const propios = regalo ? {} : costosPropiosParaCerrar(l, d.costo, costosPrendas[l.clave]);
+      const propios = regalo ? {} : { ...costosPropiosParaCerrar(l, d.costo, costosPrendas[l.clave]), ...(costosCombinaciones[l.clave] ?? {}) };
       return {
         ...(l.linea ? { despacho_item_id: l.linea.id } : { extra_posicion: c.extraPosicion ?? 0 }),
         version: c.version,

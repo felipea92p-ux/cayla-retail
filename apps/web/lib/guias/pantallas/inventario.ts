@@ -1720,7 +1720,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez («Otro» te deja escribirlo; un regalo entra a costo cero). Al abrir la fila, cada prenda con su costo y su precio. En la demo no escribimos.",
+      texto: "Una fila por categoría: lo que dijeron, lo que contaste, cuántas se pueden vender y qué queda para después. Si no cuadró, eliges qué pasó, una vez («Otro» te deja escribirlo; un regalo entra a costo cero). Al abrir la fila salen sus prendas, y cada una se abre para ver su costo y su precio. En la demo no escribimos.",
+    },
+    {
+      // Felipe 2026-10-28: el costo y el precio se ponen por combinación (color y talla). La fila de la primera prenda solo existe con la categoría abierta.
+      id: "prenda-fila",
+      ancla: "recepcion.prenda-fila",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "Costo y precio por color y talla",
+      texto: "Abre una prenda y verás una matriz como la del conteo, con un número por color y talla. «Costo | Precio de venta» elige qué cifra cambias. Al escribir, eliges si llega a esa casilla, a todo el color, a toda la talla o a todas, y te decimos qué va a cambiar. En la demo no escribimos.",
     },
     {
       // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
