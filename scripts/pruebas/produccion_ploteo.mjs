@@ -40,7 +40,7 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
-// 20261028074000 volvió a cambiar `abrir_orden_produccion` (la entrega pasada vale) y 20261028072000 (pendiente de registrar) cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va al final del mismo bloque.
+// 20261028074000 volvió a cambiar `abrir_orden_produccion`, `abrir_produccion` y `abrir_produccion_con_modelo_nuevo` (la entrega pasada vale) y 20261028072000 (pendiente de registrar) cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va al final del mismo bloque.
 // 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
 // (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
 // (lo mismo que los `DESHACER_*` de otras suites).
@@ -104,13 +104,35 @@ $q$);
   execute replace(v_def,
     $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by f.secuencia)$q$,
     $q$' con ' || pr.nombre, ', ' order by f.secuencia)$q$);
-  -- Y el de 20261028074000 (la entrega pasada vale, como en producción): vuelve la comprobación \`entrega_pasada\`.
+  -- Y los de 20261028074000 (la entrega pasada vale, como en producción): vuelve la comprobación \`entrega_pasada\` en las tres funciones.
   v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
   execute replace(v_def,
     $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo); en la lista se ve como «Entrega pasada».
 $q$,
     $q$  if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
     raise exception 'La fecha de entrega ya pasó: elige una de hoy en adelante' using hint = 'entrega_pasada';
+  end if;
+$q$);
+  v_def := pg_get_functiondef('retail.abrir_produccion(uuid, uuid, jsonb, numeric, numeric, numeric, boolean, date, text, uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo).
+$q$,
+    $q$  -- ADR-0415: la entrega es una promesa del Taller; una anterior a hoy no promete nada (entrega_pasada).
+  if p_fecha_entrega is not null and p_fecha_entrega < retail.fn_hoy_lima() then
+    raise exception 'La entrega no puede ser antes de hoy (%): elige el día en que el Taller la va a entregar, o déjala en blanco.',
+      to_char(retail.fn_hoy_lima(), 'DD/MM/YYYY')
+      using errcode = 'P0001', hint = 'entrega_pasada';
+  end if;
+$q$);
+  v_def := pg_get_functiondef('retail.abrir_produccion_con_modelo_nuevo(uuid, text, uuid, jsonb, numeric, numeric, numeric, numeric, boolean, date, text, boolean, uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$  -- ADR-0537: una entrega pasada vale (se registra una orden que ya se hizo).
+$q$,
+    $q$  -- ADR-0415: la entrega es una promesa del Taller; una anterior a hoy no promete nada (entrega_pasada).
+  if p_fecha_entrega is not null and p_fecha_entrega < retail.fn_hoy_lima() then
+    raise exception 'La entrega no puede ser antes de hoy (%): elige el día en que el Taller la va a entregar, o déjala en blanco.',
+      to_char(retail.fn_hoy_lima(), 'DD/MM/YYYY')
+      using errcode = 'P0001', hint = 'entrega_pasada';
   end if;
 $q$);
 end
