@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GUIAS } from "../guias/registro";
 import type { Guia } from "../guias/tipos";
 import type { Sugerencia } from "./preseleccion";
+import { RECETAS } from "./recetas";
 import { moduloDeLaGuia, textoSinAcceso } from "./sin-acceso";
 import { costoEnDolares, INSTRUCCIONES, mensajeDePregunta, revisarRespuesta, seLlegoAlTope, type RespuestaDeLaIA } from "./respuesta";
 
@@ -22,7 +23,7 @@ const sugerencias: Sugerencia[] = [
 ];
 const AQUI = "/compras/9f3a";
 const tramo = (guia_id: string, paso_id = "", rellenar = "") => ({ guia_id, paso_id, rellenar });
-const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], pasos: [], ...r });
+const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], pasos: [], receta: "", datos: { prenda: "", color: "", talla: "", medio: "", comprobante: "", monto: "", destino: "" }, ...r });
 const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {
@@ -207,5 +208,49 @@ describe("revisarRespuesta: una pantalla que se abre desde otra no es un destino
       [{ guia: historial, href: null, paso: null, puntos: 0 }],
     );
     expect(r.tipo === "guia" ? r.tramos.map((t) => [t.guiaId, t.href]) : r).toEqual([["productos", "/productos"]]);
+  });
+});
+
+describe("revisarRespuesta con recetas: el camino escrito manda", () => {
+  const vender = GUIAS.find((g) => g.id === "vender")!;
+  const receta = RECETAS.find((r) => r.id === "vender")!;
+  const ofrecidas = [{ receta, candidatas: [{ guia: vender, href: "/vender" }] }];
+  const pregunta = "vender una blusa emma negro talla m con yape y boleta";
+  const datos = { prenda: "blusa emma", color: "negro", talla: "m", medio: "yape", comprobante: "boleta", monto: "", destino: "" };
+  it("con la receta elegida, la tarea es la de la receta aunque la IA mande otros pasos", () => {
+    const r = revisarRespuesta(
+      ia({ tramos: [tramo("vender", "buscador")], receta: "vender", datos, pasos: [{ guia_id: "vender", paso_id: "cobrar", orden: "Cobra", rellenar: "" }] }),
+      [{ guia: vender, href: "/vender", paso: null, puntos: 5 }],
+      "/",
+      [],
+      pregunta,
+      { reglas: [], errores: [] },
+      [],
+      ofrecidas,
+    );
+    const tarea = r.tipo === "guia" ? (r.tarea ?? []) : [];
+    expect(tarea.find((p) => p.pasoId === "buscador")?.rellenar).toBe("blusa emma");
+    expect(tarea.find((p) => p.pasoId === "cobro-medio")?.orden).toBe("Elige yape");
+    expect(tarea.at(-1)?.pasoId).toBe("cobro-confirmar");
+  });
+  it("si la IA escribe «receta» como tipo, con una receta ofrecida cuenta como guía; sin receta, no se le cree", () => {
+    const sugerencias = [{ guia: vender, href: "/vender", paso: null, puntos: 5 }];
+    const con = revisarRespuesta(ia({ tipo: "receta", tramos: [], receta: "vender", datos }), sugerencias, "/", [], pregunta, { reglas: [], errores: [] }, [], ofrecidas);
+    expect(con.tipo === "guia" ? con.receta : con.tipo).toBe("vender");
+    const sin = revisarRespuesta(ia({ tipo: "receta", receta: "" }), sugerencias, "/", [], pregunta, { reglas: [], errores: [] }, [], ofrecidas);
+    expect(sin).toEqual({ tipo: "basico", motivo: "respuesta_invalida" });
+  });
+  it("una receta que no se le ofreció se ignora (siguen los pasos de la IA, revisados)", () => {
+    const r = revisarRespuesta(
+      ia({ tramos: [tramo("vender", "buscador")], receta: "agregar-color", datos, pasos: [] }),
+      [{ guia: vender, href: "/vender", paso: null, puntos: 5 }],
+      "/",
+      [],
+      "¿dónde está el buscador?",
+      { reglas: [], errores: [] },
+      [],
+      ofrecidas,
+    );
+    expect(r.tipo === "guia" ? r.tarea : undefined).toBeUndefined();
   });
 });

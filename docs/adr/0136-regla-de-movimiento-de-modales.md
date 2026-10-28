@@ -532,3 +532,19 @@ que acaba de guardarse con sus unidades de partida (la caja pasa de ámbar a ver
 nueva de «Así quedará en la tabla» entra con `anim-revelar`. El sello (`.sello-stock-inicial`) vive en `app/estilos/alta-guia.css` y el candado
 (`.matriz-paso[data-sellada]`) en `app/estilos/ficha-taller.css`.
 
+
+## Actualización 2026-10-28 — la gota del aviso «Hay una versión nueva»: un rebote, con nombre propio
+
+Felipe pidió, mirando maquetas (`docs/maquetas/version-nueva-2026-10/gota.html`), que el aviso de versión nueva (ADR-0422) entre como una gota. Es una
+excepción a «sin rebote»: **la única pieza del ERP con un rebote, y es uno solo**, una vez al aparecer y otra al irse, sin bucle.
+
+- **Entrada (~2,2 s):** cae suave hasta lo más bajo de la sección del aviso, **rebota una vez** y sube suave al centro; desde ahí se riega como un
+  líquido —primero por el suelo, con la punta redonda, después sube el nivel ondulado— hasta ser la píldora; el texto aparece al final.
+- **Salida con la ✕ (1,45 s):** la entrada al revés: el texto se apaga, el nivel baja, el líquido se recoge al centro hasta ser una gota, que se desprende
+  y cae desvaneciéndose. «Más tarde» sigue callando 30 min.
+- **Cómo se hace:** círculos y columnas de borde redondo que un filtro SVG de «goteo» (`#liquido`, blur + contraste del alfa) funde en una masa blanda,
+  recortada por la forma de la píldora; `--m` (la mitad del ancho, medida al montar) hace que llegue a las paredes con cualquier texto. Detalle y tiempos
+  en `app/estilos/avisos.css`.
+- **Lo que lo mantiene discreto:** una vez, menos de 2,5 s, nunca en bucle, y con `prefers-reduced-motion` aparece y se va ya hecha.
+- **Se rompe si:** se publican muchas versiones por hora y la gota deja de ser una señal y pasa a ser ruido (ver ADR-0422, «Opciones»); o si alguien reutiliza
+  el rebote en otra pieza: esta excepción es solo del aviso. Pruebas: `lib/version-nueva-reglas.test.ts`.

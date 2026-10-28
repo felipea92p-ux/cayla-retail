@@ -75,6 +75,7 @@ import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/Bo
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { consultarExistencias } from "@/lib/escaner-existencias";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { useSinRegistrarDeHoy } from "@/lib/useSinRegistrarDeHoy";
@@ -947,6 +948,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  almacén: quien arma un aviso en el mismo instante no puede esperar a que el estado se pinte), o null si no se
    *  pudo: la pantalla se queda con lo que ya mostraba. */
   async function releerStock(ids?: string[]): Promise<StockReleido | null> {
+    olvidarDelSondeo();
     const conocidos = variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId);
     const releido = await leerStockDeSede(ubicacionId, conocidos, ids);
     if (!releido) return null;
@@ -963,7 +965,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    * un problema de la cámara, es que esta pantalla nunca se actualizaba sola. Mismo hook que Apartados y
    * Cambios (`lib/useStockEnVivo.ts`) — no sondea con la caja cerrada (bloqueado: no hay nada que cobrar igual).
    */
-  useStockEnVivo(
+  const olvidarDelSondeo = useStockEnVivo(
     ubicacionId,
     useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
     !bloqueado,
@@ -973,6 +975,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       setAjustesApartado((prev) => new Map([...prev, ...apartado]));
     },
   );
+  // `olvidarDelSondeo`: lo que esta pantalla cambia por su cuenta (vender, bajar al piso) el sondeo no lo sabe; se le avisa para
+  // que la próxima vuelta relea de verdad y no se calle porque «la base sigue igual que la última vez que avisé».
 
   /**
    * Precio y descuento en vivo (Felipe, 2026-10-08): cambió el precio de una prenda y le quitó una etiqueta de
@@ -1003,6 +1007,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
    *  prendas y la lista de ventas de hoy. Reemplaza al `router.refresh()` de antes (ADR-0192). */
   function trasVender(vendidas: { varianteId: string; cantidad: number }[]) {
     const stockServidor = new Map(variantes.map((v) => [v.varianteId, v.stockAqui]));
+    olvidarDelSondeo();
     setAjustesStock((prev) => descontarVendido(prev, stockServidor, vendidas));
     setVersionVentas((n) => n + 1);
     void releerStock(vendidas.map((v) => v.varianteId));
@@ -1252,6 +1257,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       return !error || !(esErrorDeResponsable(error) || esFalloDeRed(error));
     }
     // Lo libre DESPUÉS, según la base: queda en el stock de la pantalla sin releer (la base es la que manda).
+    olvidarDelSondeo();
     setAjustesStock((prev) => new Map(prev).set(varianteId, r.piso));
     setAjustesAlmacen((prev) => new Map(prev).set(varianteId, r.almacen));
     // `agregar` del render más reciente: el ticket pudo cambiar mientras la base respondía.
@@ -2678,6 +2684,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {camaraAbierta && (
         <EscanerCamara
           onCodigo={alEscanear}
+          // El interruptor «Al ticket / Existencias» (Felipe 2026-10-28): en «Existencias» la cámara lee la etiqueta y dice cuántas hay de
+          // cada color y talla de esa prenda en el piso y el almacén, sin tocar el ticket. Sobre las variantes con el stock en vivo.
+          consulta={{ leer: (codigo) => consultarExistencias(codigo, variantesVisibles), sede: ubicacionEtiqueta }}
           ticket={{ prendas, total }}
           onBuscarPorNombre={() => {
             cerrarCamara();
