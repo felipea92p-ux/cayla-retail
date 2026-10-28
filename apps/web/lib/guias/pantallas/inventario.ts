@@ -1078,6 +1078,13 @@ export const GUIA_CONTEO_CONFIRMAR: Guia = {
       texto: "Cada variante que cambia, con lo que CAYLA decía y lo que contaste. Si alguna dejaría el stock en negativo, te avisa en ámbar.",
     },
     {
+      id: "dueno",
+      ancla: "confirmar.dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que cambia?",
+      texto: "En Tienda Lima, cada prenda que cambia dice de quién es: lo que apareció de más, de quién es; lo que faltó, de quién falta si hay de CAYLA y de CLAURE. Sin marcar no se cierra. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
       id: "quien",
       ancla: "confirmar.quien",
       opcional: true,

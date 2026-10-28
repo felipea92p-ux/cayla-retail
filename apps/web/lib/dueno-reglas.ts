@@ -66,3 +66,19 @@ export function duenoDeLasLineas(items: readonly { variante_id?: string | null; 
   for (const it of items ?? []) if (it.variante_id && it.empresa_id) mapa[it.variante_id] = it.empresa_id;
   return mapa;
 }
+
+// ---- Un conteo o un ajuste por líneas (Contar, ADR-0542) --------------------------------------------------------------------------
+/**
+ * Entre quiénes hay que elegir para una línea que sube o baja: si SUBE (se encontró más), de quién es lo que apareció; si BAJA, de quién
+ * falta, y solo hay duda si de esa prenda hay unidades de las dos empresas. Sin dos empresas aquí, o sin cambio, no se pregunta.
+ */
+export function duenosParaAjustar(
+  diferencia: number,
+  empresas: readonly EmpresaElegible[] | null | undefined,
+  duenosDeLaPrenda: readonly UnidadesDeDueno[] | null | undefined,
+): EmpresaElegible[] | null {
+  if (!hayQueElegirDueno(empresas)) return null;
+  if (diferencia > 0) return [...empresas!];
+  if (diferencia < 0) return duenosParaElegir(duenosDeLaPrenda);
+  return null;
+}

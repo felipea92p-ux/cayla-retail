@@ -66,3 +66,19 @@ describe("el ticket de Vender (ADR-0542)", () => {
     expect(duenoDeLasLineas(undefined)).toEqual({});
   });
 });
+
+import { duenosParaAjustar } from "./dueno-reglas";
+
+describe("duenosParaAjustar: un conteo en Lima (ADR-0542)", () => {
+  it("lo que se encontró de más siempre pregunta de quién es; lo que falta, solo si hay de los dos", () => {
+    expect(duenosParaAjustar(2, DOS, undefined)?.map((e) => e.clave)).toEqual(["cayla", "claure"]);
+    expect(duenosParaAjustar(-1, DOS, [u("cayla", 3), u("claure", 2)])?.map((e) => e.clave)).toEqual(["cayla", "claure"]);
+    expect(duenosParaAjustar(-1, DOS, [u("cayla", 3)])).toBeNull();
+    expect(duenosParaAjustar(-1, DOS, undefined)).toBeNull();
+  });
+  it("sin cambio, o sin dos empresas aquí, no pregunta", () => {
+    expect(duenosParaAjustar(0, DOS, [u("cayla", 3), u("claure", 2)])).toBeNull();
+    expect(duenosParaAjustar(3, [DOS[0]], undefined)).toBeNull();
+    expect(duenosParaAjustar(3, null, undefined)).toBeNull();
+  });
+});
