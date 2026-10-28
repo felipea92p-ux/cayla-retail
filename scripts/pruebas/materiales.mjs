@@ -21,6 +21,9 @@
  *   N. Dónde y quién. Solo en un Taller activo; un avío lo crea el líder; el código de la tela no se recorta al llegar a 100.
  *   O. Insumos sueltos. El código derivado ocupado por un insumo suelto se dice; una tela con el nombre de un suelto avisa.
  *   P. Medidas. Un ancho en metros («1.60») se rechaza en castellano, al crear y al editar.
+ *   R. El camino de vuelta. El script de producción `pegar-en-produccion-deshacer-materiales-2026-10-28.sql` ENSAYA por defecto y no cambia nada; al aplicar, devuelve cada color a insumo suelto con
+ *      su nombre y su código de antes (del respaldo del conversor, o de su tela si nació de él), deja libre a la web vieja y le quita las funciones de telas a `authenticated`; y su PARTE B (abandonar
+ *      el diseño) corre tal cual, en su orden, sin romper ningún INSERT ni UPDATE de insumos.
  *
  * Los mensajes del servidor salen en el idioma de la base: por eso los casos buscan el NOMBRE de la restricción o el texto propio de la migración.
  *
@@ -29,6 +32,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
@@ -310,6 +314,15 @@ select :'n', m.codigo, i.codigo, i.nombre like 'Tela vieja · %' from retail.ins
   (c) => Number(c[0]) >= 1 && c[1] === "ZZ-VIEJO" && c[2] === `ZZ-VIEJO-${c[2].split("-").at(-1)}` && c[3] === "t"
 );
 ok(
+  "I8 al aplicar, cada insumo deja su fila de ANTES en el respaldo (es lo que usa el deshacer); al ensayar no queda nada",
+  `${SUELTO("ZZ-RESP", "Tela con respaldo", ":'c1'")}
+select count(*) as n from retail.fn_materializar_insumos_sueltos() \\gset
+select count(*) as ensayo from respaldo_purgas.filas where tabla = 'insumos' and purga like 'materializar-insumos-%' and fila ->> 'codigo' = 'ZZ-RESP' \\gset
+select count(*) as n2 from retail.fn_materializar_insumos_sueltos(true) \\gset
+select :'ensayo', (select count(*) from respaldo_purgas.filas where tabla = 'insumos' and purga like 'materializar-insumos-%' and fila ->> 'codigo' = 'ZZ-RESP' and fila ->> 'nombre' = 'Tela con respaldo' and fila ->> 'material_id' is null);`,
+  (c) => Number(c[0]) === 0 && Number(c[1]) === 1
+);
+ok(
   "I2 por defecto ENSAYA: dice qué haría y no escribe nada",
   `${SUELTO("ZZ-E1", "Ensayada", ":'c1'")}
 select count(*) filter (where resultado = 'se convertiría') as n from retail.fn_materializar_insumos_sueltos() \\gset
@@ -581,6 +594,71 @@ ok(
   `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")))} as r \\gset
 select (:'r'::jsonb -> 'material') ? 'token_cliente', (:'r'::jsonb -> 'material') ? 'creado_por', (:'r'::jsonb -> 'material') ? 'codigo';`,
   (c) => c[0] === "f" && c[1] === "f" && c[2] === "t"
+);
+
+// ---------------- R. El camino de vuelta (script de producción, ensayado aquí) ----------------
+const DESHACER = readFileSync(new URL("../../supabase/migrations/pegar-en-produccion-deshacer-materiales-2026-10-28.sql", import.meta.url), "utf8");
+const DESHACER_APLICA = DESHACER.replace("false::boolean as aplicar", "true::boolean as aplicar");
+if (DESHACER_APLICA === DESHACER) throw new Error("El script de deshacer ya no trae la línea APLICAR: la prueba R lo necesita.");
+// La PARTE B vive comentada entre marcas; se corre tal cual (sin los «-- »), así lo que se documenta es lo que se ensaya.
+const PARTE_B = DESHACER.split("-- PARTE-B-INICIO")[1]
+  .split("-- PARTE-B-FIN")[0]
+  .split("\n")
+  .map((l) => l.replace(/^-- ?/, ""))
+  .filter((l) => l.trim() !== "" && !l.startsWith("-- "))
+  .join("\n");
+const SUELTA_CONVERTIDA = `${SUELTO("ZZ-D1", "Tela vieja D", ":'c1'")}
+select count(*) as n from retail.fn_materializar_insumos_sueltos(true) \\gset
+select id as mid from retail.materiales where nombre = 'Tela vieja D' \\gset
+select retail.agregar_colores_a_material(:'mid', :'taller', ${COLORES(COLOR("c2"))}) as x \\gset`;
+mal(
+  "R1 por defecto el deshacer ENSAYA: hace todo, cuenta y termina con un error que lo deshace",
+  "ENSAYO_OK",
+  `${SUELTA_CONVERTIDA}
+${DESHACER}`
+);
+ok(
+  "R2 al aplicar con el respaldo del conversor: el insumo vuelve a ser suelto con su nombre y su código de antes; el color sumado después conserva los suyos",
+  `${SUELTA_CONVERTIDA}
+${DESHACER_APLICA}
+select (select count(*) from retail.insumos where codigo = 'ZZ-D1' and nombre = 'Tela vieja D' and material_id is null),
+  (select count(*) from retail.insumos where nombre like 'Tela vieja D · %' and codigo = 'ZZ-D1-' || :'c2' and material_id is null),
+  (select count(*) from retail.insumos where material_id is not null);`,
+  (c) => Number(c[0]) === 1 && Number(c[1]) === 1 && Number(c[2]) === 0
+);
+ok(
+  "R3 sin respaldo (el MM-01 se convirtió antes de que existiera): el insumo más antiguo de una tela del conversor vuelve con el nombre y el código de su tela",
+  `with n as (insert into retail.materiales (codigo, nombre, tipo, unidad_medida) values ('ZZ-MM', 'Tela sin respaldo', 'tela', 'metro') returning id) select id as mid2 from n \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida, material_id, color_codigo) values ('X', 'X', 'tela', 'metro', :'mid2', :'c1');
+select codigo as derivado from retail.insumos where material_id = :'mid2' \\gset
+${DESHACER_APLICA}
+select (select count(*) from retail.insumos where codigo = 'ZZ-MM' and nombre = 'Tela sin respaldo' and material_id is null), :'derivado' = 'ZZ-MM-' || :'c1';`,
+  (c) => Number(c[0]) === 1 && c[1] === "t"
+);
+ok(
+  "R4 después de deshacer la web vieja trabaja como antes (se crea y se completa un insumo suelto) y la web nueva ya no crea telas",
+  `${SUELTA_CONVERTIDA}
+${DESHACER_APLICA}
+select id as tej from retail.tejidos where activo order by nombre limit 1 \\gset
+update retail.insumos set tejido_id = :'tej' where codigo = 'ZZ-D1';
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-NUEVO', 'Suelto nuevo', 'tela', 'metro');
+select (select tejido_id = :'tej' from retail.insumos where codigo = 'ZZ-D1'),
+  has_function_privilege('authenticated', 'retail.crear_material(uuid,jsonb,jsonb,uuid)', 'execute'),
+  has_function_privilege('authenticated', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
+  (select tgenabled from pg_trigger where tgname = 'insumos_copias_de_la_tela' and tgrelid = 'retail.insumos'::regclass);`,
+  (c) => c[0] === "t" && c[1] === "f" && c[2] === "f" && c[3] === "O"
+);
+ok(
+  "R5 la PARTE B (abandonar el diseño) corre en su orden y deja a insumos sin la columna, sin la tabla de telas y editable como antes",
+  `${SUELTA_CONVERTIDA}
+${DESHACER_APLICA}
+${PARTE_B}
+update retail.insumos set nombre = 'Tela vieja D editada' where codigo = 'ZZ-D1';
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-NUEVO2', 'Otro suelto', 'tela', 'metro');
+select to_regclass('retail.materiales') is null,
+  not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'insumos' and column_name = 'material_id'),
+  (select nombre from retail.insumos where codigo = 'ZZ-D1');`,
+  (c) => c[0] === "t" && c[1] === "t" && c[2] === "Tela vieja D editada"
 );
 
 function main() {

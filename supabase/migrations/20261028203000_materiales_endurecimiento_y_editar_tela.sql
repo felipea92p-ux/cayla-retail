@@ -515,7 +515,8 @@ comment on function retail.editar_material(uuid, uuid, jsonb) is
 
 -- ---------- 7. Lo que ya existe se vuelve tela (sin abortar) ----------
 -- Antes devolvía un número y se detenía con un error si UN insumo chocaba. Ahora cada insumo suelto de TELA va por su cuenta: el informe dice qué pasó con cada uno y lo que no se puede queda suelto.
--- Por defecto ENSAYA (no escribe nada, devuelve qué haría); con `true` aplica. Los avíos se quedan sueltos a propósito y los archivados no se tocan.
+-- Por defecto ENSAYA (no escribe nada, devuelve qué haría); con `true` aplica, y antes de tocar cada insumo guarda su fila en `respaldo_purgas.filas` (purga `materializar-insumos-AAAA-MM-DD-HHMM`).
+-- Los avíos se quedan sueltos a propósito y los archivados no se tocan.
 drop function if exists retail.fn_materializar_insumos_sueltos();
 create or replace function retail.fn_materializar_insumos_sueltos(p_aplicar boolean default false)
 returns table (insumo_codigo text, insumo_nombre text, resultado text, detalle text)
@@ -532,6 +533,8 @@ declare
   v_sufijo text;
   v_cod text;
   v_derivado text;
+  -- Cada corrida que APLICA guarda cómo era cada insumo ANTES de colgarlo de su tela, en el respaldo de siempre (`respaldo_purgas.filas`): es lo que usa el deshacer.
+  v_purga text := 'materializar-insumos-' || to_char(timezone('America/Lima', now()), 'YYYY-MM-DD-HH24MI');
 begin
   perform pg_advisory_xact_lock(hashtextextended('materiales:conversor', 0));
   begin
@@ -575,6 +578,7 @@ begin
         if exists (select 1 from retail.insumos x where x.id <> r.id and retail.fn_clave_texto(x.codigo) = retail.fn_clave_texto(v_derivado)) then
           raise exception 'El código % ya lo usa otro insumo.', v_derivado;
         end if;
+        insert into respaldo_purgas.filas (purga, tabla, fila) values (v_purga, 'insumos', to_jsonb(r));
         update retail.insumos set material_id = m.id where id = r.id;
         v_res := v_res || jsonb_build_array(jsonb_build_object(
           'c', r.codigo, 'n', r.nombre, 'r', case when p_aplicar then 'convertido' else 'se convertiría' end,
