@@ -107,6 +107,20 @@ export function porcentajesEnteros(partes: readonly number[]): number[] {
   return base;
 }
 
+/** Lo que dice la tarjeta del círculo: su bajada y el rótulo del centro. */
+export type TextosDelReparto = { bajada: string; rotulo: string };
+
+/**
+ * Qué dice el círculo según lo que se mira (Felipe 2026-10-28: «Empresa» y «Todas» no son lo mismo): con todas, toda la plata de
+ * CAYLA; con una sede, la suya; con la empresa, solo lo que no es de ninguna sede. El centro nunca dice «CAYLA entera» si el círculo no
+ * es de toda la plata.
+ */
+export function textosDelReparto(sede: string | null, soloEmpresa: boolean): TextosDelReparto {
+  if (soloEmpresa) return { bajada: "La plata de la empresa, la que no es de ninguna sede: sus bancos, lo del líder y lo que viene en camino.", rotulo: "La empresa" };
+  if (sede) return { bajada: `La plata de ${sede}, repartida entre su cajón y su caja fuerte.`, rotulo: sede };
+  return { bajada: "Toda la plata de CAYLA, repartida por el lugar donde está.", rotulo: "CAYLA entera" };
+}
+
 /** Lo que dice de dónde es una cuenta: la sede, si es de una; las de CAYLA entera y las que están en camino se explican solas. */
 const lugarDe = (g: Pick<GrupoCuentas, "clave" | "titulo">) => (g.clave === GRUPO_EMPRESA || g.clave === GRUPO_CAMINO ? null : g.titulo);
 

@@ -624,13 +624,13 @@ export const GUIA_FIN_CUENTAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo se reparte",
-      texto: "El círculo es toda la plata de CAYLA, partido en los lugares donde está: cada banco, el efectivo de cada tienda y lo que viene en camino. Verdes, los bancos; terracotas, las tiendas. Pasa el mouse por una fila y el círculo la destaca. Un saldo negativo no entra, pero resta en «Tienes hoy».",
+      texto: "El círculo es la plata de lo que miras (con «Todas», toda la de CAYLA), partida por lugar: cada banco, el efectivo de cada tienda y lo que viene en camino. Verdes, los bancos; terracotas, las tiendas. Pasa el mouse por una fila y el círculo la destaca. Un saldo negativo no entra, pero resta en «Tienes hoy».",
     },
     {
       id: "cuentas",
       ancla: "fin-dinero.cuentas",
       titulo: "Cada lugar, con su saldo",
-      texto: "Una tarjeta por sede y, adentro, cada cajón, caja fuerte y banco con su saldo y una barra de cuánto pesa. El cajón dice desde qué hora está abierto y cuánto se vendió en efectivo; la caja fuerte, hace cuánto se depositó. El saldo del cajón solo lo ve quien puede cerrar la caja.",
+      texto: "Una tarjeta por sede con su cajón y su caja fuerte, y la tarjeta «Empresa» con los bancos. Con «Todas» en la barra ves todas; con «Empresa», solo la de la empresa y lo que viene en camino. El cajón dice desde qué hora está abierto; su saldo solo lo ve quien puede cerrar la caja.",
     },
     {
       id: "diferencias",
