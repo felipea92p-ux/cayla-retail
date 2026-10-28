@@ -10,6 +10,7 @@ import {
   RPC_CERRAR_PRODUCCION,
   RPC_DESHACER_MARCA,
   RPC_MARCAR_FASE,
+  RPC_QUITAR_PASO,
   RPC_REVERTIR_PRODUCCION,
   RPC_TELA_PENDIENTE,
   accionesDeFase,
@@ -50,6 +51,7 @@ import {
   puedeRegistrarQuien,
   esPendienteDeRegistrar,
   fasesSinRegistrar,
+  puedeQuitarPaso,
   queSigue,
   quedanAfuera,
   quienDeFase,
@@ -376,6 +378,27 @@ describe("las fases", () => {
     expect(puedeCambiarQuien(corte, p)).toBe(false);
     expect(puedeCambiarQuien(acabado, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
     expect(puedeCambiarQuien(acabado, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+  });
+
+  it("puedeQuitarPaso: solo un paso opcional que no empezó, en una orden en proceso y para quien opera (la base lo repite)", () => {
+    const limpieza: FasePagina = { ...acabado, clave: "limpieza_revision", nombre: "Limpiar hilos y revisar" };
+    expect(puedeQuitarPaso(limpieza, p)).toBe(true);
+    // Un paso fijo de su ruta no se ofrece (Acabado es de la espina de la ruta anterior; Corte y Costura, de las dos).
+    expect(puedeQuitarPaso(acabado, p)).toBe(false);
+    expect(puedeQuitarPaso(costura, p)).toBe(false);
+    // Con algo anotado, ya hecho, la orden cerrada o sin permiso de operar, tampoco.
+    expect(puedeQuitarPaso({ ...limpieza, empezada: true }, p)).toBe(false);
+    expect(puedeQuitarPaso({ ...limpieza, estado: "hecha" }, p)).toBe(false);
+    expect(puedeQuitarPaso(limpieza, { ...p, orden: { ...p.orden, estado: "terminada" } })).toBe(false);
+    expect(puedeQuitarPaso(limpieza, { ...p, permisos: { puedeOperar: false, veCostos: true } })).toBe(false);
+  });
+
+  it("paridad con la migración 20261028071000: la RPC existe y sus tres motivos son los que la pantalla ya conoce", () => {
+    const sql = readFileSync(join(__dirname, "../../../supabase/migrations/20261028071000_produccion_quitar_paso_de_la_orden.sql"), "utf8");
+    expect(sql).toContain(`create or replace function retail.${RPC_QUITAR_PASO}(p_fase_id uuid, p_motivo text default null)`);
+    for (const hint of ["fase_empezada", "paso_fijo"]) expect(sql, hint).toContain(`hint = '${hint}'`);
+    // «Pide firma» como toda escritura del Taller: lo hace `fn_produccion_operar_fase` (ve Producción, está en ese Taller y hay un responsable).
+    expect(sql).toContain("fn_produccion_operar_fase(p_fase_id)");
   });
 
   it("avisoMinimoDeFase: avisa si la orden lleva menos que el mínimo del servicio; no bloquea y no avisa al Taller", () => {

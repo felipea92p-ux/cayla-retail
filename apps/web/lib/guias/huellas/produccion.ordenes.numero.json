@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 134,
+  "total": 138,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «/produccion/ordenes»",
@@ -119,6 +119,11 @@
     "components/orden-pagina/PideAtencion.tsx": [
       "button «{abierto ? \"Ocultar\" : \"¿Por qué?\"}»"
     ],
+    "components/orden-pagina/QuitarPasoModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/RevertirLaOrdenModal.tsx": [
       "ComboResponsable «{responsable}»",
       "Boton «Volver»",
@@ -130,7 +135,8 @@
       "Boton «{fase.actual ? \"prod-orden.terminar\" : undefined}»",
       "Boton «{fase.id === idDeLaQueRecibe ? \"prod-orden.vuelta\" : undefined}»",
       "Boton «{fase.id === idDeLaQueSale ? \"prod-orden.salida\" : undefined}»",
-      "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»"
+      "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»",
+      "button «{fase.id === idDeLaQueSeQuita ? \"prod-orden.quitar-paso\" : undefined}»"
     ],
     "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
       "Boton «prod-orden.ficha-modelo»",

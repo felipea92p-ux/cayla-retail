@@ -27,6 +27,7 @@ export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
 /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
 export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
 export const RPC_REGISTRAR_PROVEEDOR_DE_FASE = "registrar_proveedor_de_fase";
+export const RPC_QUITAR_PASO = "quitar_paso_orden";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
 export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
@@ -652,6 +653,14 @@ export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | 
 /** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó) mientras la orden siga en proceso (la base: `fase_no_pendiente`, `orden_cerrada`). */
 export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
   return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && esPendienteDeRegistrar(f);
+}
+
+/**
+ * ¿Se ofrece «Quitar este paso»? Solo un paso OPCIONAL (no de la espina de su ruta), mientras no empezó y la orden sigue en proceso y quien mira puede operar. La base repite las tres
+ * cosas (`quitar_paso_orden`: `fase_empezada`, `orden_cerrada`, `paso_fijo`) y manda: esto solo evita ofrecer un botón que ya se sabe que va a rechazar.
+ */
+export function puedeQuitarPaso(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return puedeCambiarQuien(f, p) && FASES.some((c) => c.clave === f.clave && !c.siempre);
 }
 
 /** El aviso de la cantidad mínima del servicio: «Confecciones del Norte cobra desde 150 prendas; esta orden lleva 48». No bloquea (ADR-0400, decisión 5). */

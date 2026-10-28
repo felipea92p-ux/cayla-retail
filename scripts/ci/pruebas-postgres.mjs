@@ -1608,6 +1608,7 @@ export const PRUEBAS = [
   // Los CINCO pasos fijos de una orden (ADR-0551, actividad 1; migración 20261028052000): una orden se abre con Ploteo, Corte, Habilitado, Costura y Planchado (Limpiar hilos y revisar, Etiquetar y
   // embolsar y Ojales y botones son opcionales); cada uno de los cinco hace falta (`fases_espina`); la de siete pasos y la ruta anterior siguen igual; el cierre mira la última fase que tenga.
   "pruebas:produccion-cinco-pasos",
+  "pruebas:produccion-quitar-paso",
   // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
   // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
   "pruebas:producto-taller",

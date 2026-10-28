@@ -71,6 +71,12 @@ E. **Los datos primero, las funciones después.** Antes de registrar la Blusa y 
 
 0. **Solo lectura del estado de producción.** HECHA el 2026-10-27 (su resultado está arriba, «El problema»). Este ADR es su entrega.
 1. **Bajar los pasos de 7 a 5.** Migración propia en partes (CLAUDE.md, «Políticas y deadlocks»): `fn_produccion_fases_normalizar` y la lista de la web. **Con el OK de Felipe.**
+   **1b (2026-10-28, a pedido de Felipe: «¿por qué lo sigues poniendo ahí, inútil?»).** La actividad 1 solo vale para órdenes NUEVAS: las 4 abiertas en producción se abrieron con siete
+   pasos (0 avances, 0 salidas) y seguían mostrando «Limpiar hilos y revisar» y «Etiquetar y embolsar». La propuesta A («una orden ya abierta sigue válida, nadie reescribe filas») dejó un hueco:
+   no había cómo quitarlos, y esconderlos en la pantalla no sirve (el último paso es el que manda el cierre y nadie lo marcaría). Migración `20261028071000`: `quitar_paso_orden(fase, motivo)`
+   saca un paso que NO tiene nada anotado (ni avances, salidas, vueltas ni marcas, aunque estén deshechos); un paso fijo responde `paso_fijo` porque la ruta que queda tiene que pasar la misma validación
+   que al abrir; queda en Actividad. Web: «Quitar este paso» junto a «Cambiar quién», con su hoja de confirmación (no hay «agregar paso»). Matiza el «Se rompe si» de «Se apaga un paso en una orden con
+   avances ya anotados»: ahora los pasos también se apagan DESPUÉS de abrir, mientras nadie los haya empezado. Prueba: `pnpm pruebas:produccion-quitar-paso` (13 casos).
 2. **Orden «de antes».** Función propia solo del líder, `fecha_real` por paso y la marca de la orden. **Con el OK de Felipe** (toca el costo y el libro de insumos).
 3. **Cierre «ya estaba en stock».** `cerrar_produccion` sin movimiento. **Toca stock y dinero: OK explícito.**
 4. **Pago automático desde BCP Operativa** al registrar la Vuelta con «Pagado». **Toca dinero: OK explícito.**

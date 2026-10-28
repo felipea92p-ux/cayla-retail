@@ -274,6 +274,7 @@
     "pruebas:produccion-proveedor-pendiente": "node scripts/pruebas/produccion_proveedor_pendiente.mjs",
     "pruebas:produccion-ruta-nueva": "node scripts/pruebas/produccion_ruta_nueva.mjs",
     "pruebas:produccion-cinco-pasos": "node scripts/pruebas/produccion_cinco_pasos.mjs",
+    "pruebas:produccion-quitar-paso": "node scripts/pruebas/produccion_quitar_paso.mjs",
     "pruebas:producto-taller": "node scripts/pruebas/producto_taller.mjs",
     "pruebas:produccion-avances": "node scripts/pruebas/produccion_avances.mjs",
     "pruebas:produccion-anulaciones": "node scripts/pruebas/produccion_anulaciones.mjs",
