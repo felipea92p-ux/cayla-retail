@@ -1,4 +1,4 @@
-# ADR-0497 — Cuentas y dinero en El telar: tres caras por sede (frascos, burbujas y pares)
+# ADR-0497 — Cuentas y dinero en El telar: tres caras por sede (cuentas, burbujas y pares)
 
 - **Fecha:** 2026-10-23
 - **Estado:** aceptado. Felipe aprobó la lista de 7 actividades («aprueba a todos y que tenga en cuenta esa barra») y las
@@ -32,11 +32,11 @@ Cada cara es una ruta, para que los enlaces de Resumen, Impuestos, Balance y Con
 
 | Cara | Ruta | Qué muestra |
 |---|---|---|
-| **Dónde está** | `/finanzas/dinero` | Cada cuenta es un frasco que se llena hasta su saldo, con la raíz cuadrada para que un cajón se vea al lado de un banco, en la repisa de su sede. |
+| **Dónde está** | `/finanzas/dinero` | Un círculo reparte la plata entre las sedes y, debajo, una tarjeta por sede con cada cuenta y su saldo (nació como un frasco por cuenta; cambió el 2026-10-28, ver «Actualización 2026-10-28»). |
 | **Qué debes** | `/finanzas/dinero/por-pagar` | Cada factura es una burbuja del color de su sede y del tamaño de su saldo, en un calendario de 30 días. |
 | **Cuadrar con el banco** | `/finanzas/dinero/conciliacion` | Cada línea que anotó CAYLA va junto a «¿está en el extracto?», unidas por un hilo que se vuelve verde al revisarla. |
 
-**Efectivo por tienda se retira.** El frasco del cajón dice lo mismo que esa pestaña (`fn_efectivo_por_tienda`, la cuenta del cierre),
+**Efectivo por tienda se retira.** La fila del cajón dice lo mismo que esa pestaña (`fn_efectivo_por_tienda`, la cuenta del cierre),
 y la caja fuerte dice hace cuánto se depositó: en ámbar pasados 3 días. Su ruta solo redirige, con la sede que traía.
 
 ### 2. De quién es cada peso (D1–D4: con lo que la base ya trae, sin migración)
@@ -75,7 +75,7 @@ sobrantes.
 ### 6. Movimiento (D7, la excepción de Finanzas de ADR-0493)
 
 Una sola vez y sin rebote:
-- el líquido de los frascos sube;
+- las porciones del círculo de «Dónde está» se trazan en cascada (antes, el líquido de los frascos subía);
 - las burbujas caen a su fecha;
 - el hilo de un par se dibuja verde al revisarlo.
 
@@ -99,3 +99,39 @@ Todo se apaga con `prefers-reduced-motion`.
   - la burbuja que abre el pago;
   - «Sí, está» con un banco de prueba, que después se anuló y se archivó;
   - el dock y «Te toca» con la sede.
+
+## Actualización 2026-10-28 — «Dónde está» deja los frascos
+
+Felipe vio la pantalla con datos reales y la rechazó: los frascos con líquido son decoración y no sirven para gestionar. Pidió que se
+presente como un informe de Anthropic o de Apple, con un gráfico circular o algo con estilo, y no como una lista aburrida.
+
+**DECIDÍ:** «Dónde está» abre con un resumen (`RepartoDeDinero`): un círculo que reparte la plata entre las sedes y CAYLA entera, con lo
+que hay al centro y, al lado, una leyenda con monto y porcentaje de cada una. Debajo, una tarjeta por sede con una fila por cuenta
+(nombre, qué es, estado, saldo a la derecha y una barra fina de cuánto pesa). Cada color es el que la sede ya tiene en toda Finanzas.
+
+**DESCARTÉ:**
+- **Seguir con los frascos.** El nivel salía de una raíz cuadrada, así que el dibujo mentía: S/ 500 parecía la mitad de un banco de
+  S/ 18,000. Y lo que sí importa (qué es la cuenta, si lleva 12 días sin depositar, cuánto hay) quedaba en letra chica bajo el dibujo.
+- **Solo la lista de filas.** Era correcta pero fría: no tenía una imagen que se lea de un vistazo.
+- **Una sola tabla con subtotales.** Pierde la tarjeta por sede y los colores que la barra común ya usa. Queda como alternativa si
+  Felipe prefiere un estado de cuenta.
+
+**SE ROMPE SI:** una cuenta con saldo negativo es lo normal y no una anomalía (hoy «En camino» sale en negativo cuando se anotaron más
+depósitos que ventas con tarjeta): un círculo reparte partes mayores que cero, así que lo negativo se dice aparte y el total lo resta.
+
+**Cómo funciona:**
+- El círculo solo aparece con dos o más grupos con plata: con una sede elegida es un solo grupo y no dice nada.
+- Los porcentajes enteros suman 100 (método del mayor resto): tres tercios dan 33 + 33 + 34, no 99.
+- Lo negativo no entra al círculo; «Tienes hoy» lo resta y coincide con la cabecera.
+- La barra de cada fila es lineal contra la cuenta con más plata. La cifra va escrita al lado, así que ya no hace falta deformarla.
+- Dentro de la tarjeta de una sede, el nombre pierde el lugar repetido: «Caja Operativa», no «Caja Operativa · Tienda AQP».
+- Un saldo negativo se escribe siempre igual (por ejemplo `−S/ 24,000`, con el menos de verdad) en la fila y en el total del grupo.
+
+**Piezas y reglas:** `lib/dinero-reparto-reglas.ts` (qué porción le toca a cada grupo), `components/finanzas/dinero/RepartoDeDinero.tsx`
+(el círculo y la leyenda; el único estado es qué porción se mira) y `components/finanzas/dinero/GruposDeCuentas.tsx` (las tarjetas).
+Las barras son `BarraAvance` y los chips, `Chip`. Movimiento (ADR-0136, excepción de Finanzas, D7): las porciones se trazan una vez
+y en cascada, sin rebote ni bucle, y se apagan con `prefers-reduced-motion`. Tampoco se ven con el `:hover` de CSS: la porción que se
+destaca la elige el mouse en la leyenda.
+
+**Tensión conocida con ADR-0358:** allí la dona de lo cobrado pasó a la barra apilada, y aquí vuelve un círculo. Es una decisión de Felipe
+de este día, para el gráfico propio de este submódulo (ADR-0493); si quiere el mismo reparto como barra, es `BarraApilada`.
