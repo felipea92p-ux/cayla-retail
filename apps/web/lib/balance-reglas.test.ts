@@ -208,6 +208,8 @@ describe("cifras, fechas y nombres", () => {
     expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 400, en_transito: 0 } }))).toBe("incluye S/\u00a0400 facturado por recibir");
     expect(notaLinea(linea({ cuenta: "201", detalle: { por_recibir: 0, en_transito: 0 } }))).toBeNull();
     expect(notaLinea(linea({ cuenta: "4011", seccion: "pasivo" }))).toContain("SUNAT");
+    expect(notaLinea(linea({ cuenta: "4699", seccion: "pasivo" }))).toContain("CLAURE");
+    expect(nombreDeCuenta("4699", "x")).toContain("CLAURE");
   });
   it("agrupa y suma: lo que tiene contra lo que debe + lo tuyo", () => {
     const g = agrupar([

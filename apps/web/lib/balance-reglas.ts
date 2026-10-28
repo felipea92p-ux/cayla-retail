@@ -327,6 +327,7 @@ const NOMBRE_LINEA: Record<string, string> = {
   "421": "Facturas por pagar",
   "451": "Tarjeta de crédito",
   "47": "Préstamo del dueño (por devolver)",
+  "4699": "Por liquidar a CLAURE (lo vendido de su mercadería)",
   "122": "Adelantos de clientes",
   "50": "Capital",
   "52": "Aportes del dueño",
@@ -362,6 +363,7 @@ export function notaLinea(l: Pick<LineaBalance, "cuenta" | "detalle" | "seccion"
   }
   if (l.cuenta === "4011" && l.seccion === "pasivo") return "los pagos a SUNAT todavía no se registran: por ahora solo sube";
   if (l.cuenta === "41") return "la paga Dynamic: aquí todavía no baja";
+  if (l.cuenta === "4699") return "lo vendido de la mercadería de CLAURE, a su costo: los pagos a CLAURE todavía no se registran, por ahora solo sube";
   return null;
 }
 
