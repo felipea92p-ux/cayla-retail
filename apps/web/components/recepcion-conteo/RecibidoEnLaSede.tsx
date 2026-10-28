@@ -98,6 +98,7 @@ export function RecibidoEnLaSede({
             recepciones={recibidos}
             costos={costos}
             porPagina={TERMINADOS_POR_PAGINA}
+            conLlegada
             vacio={porTerminar.length > 0 ? "Todavía no hay nada terminado: lo que llegó está en «Por terminar»." : vacio}
           />
           {recibidos.length >= TERMINADOS_MAXIMO && <p className="nota-cayla">Se muestran las {TERMINADOS_MAXIMO} más recientes. Para ver el resto, «Ver todo lo recibido».</p>}

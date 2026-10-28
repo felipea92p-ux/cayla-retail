@@ -637,6 +637,12 @@ export async function getRecepcionesRecientes(
   // embebe entre schemas, así que se resuelve en lote con
   // `fn_nombres_personas` (0009_integracion_dynamic.sql), mismo patrón que
   // ya usan `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts`.
+  // «Llegó el …»: cuando la sede abrió el envío para recibirlo (`despachos.abierto_en`), no cuando salió ni cuando se terminó de contar.
+  // «Llegó el …»: cuándo la sede abrió el envío (`despachos.abierto_en`), no cuando salió ni cuando se terminó de contar. `despachos` no se lee
+  // directo: lo da `fn_llegada_de_lotes`. La función aún no está en los tipos generados, de ahí el molde; si falla, la fila sale sin esa fecha.
+  const llamar = supabase.rpc as unknown as (f: string, a: object) => PromiseLike<{ data: { lote_id: string; abierto_en: string }[] | null }>;
+  const llegadas = new Map<string, string>();
+  for (const x of (await llamar.call(supabase, "fn_llegada_de_lotes", { p_lote_ids: loteIds })).data ?? []) llegadas.set(x.lote_id, x.abierto_en);
   const personaIds = [...new Set(lotes.map((l) => l.recibido_por).filter((id): id is string => !!id))];
   const [movimientosRes, nombresRes] = await Promise.all([
     // 30 lotes de 60–100 líneas pasan las 1.000 filas y PostgREST corta sin error (el lote más viejo salía con menos
@@ -691,6 +697,7 @@ export async function getRecepcionesRecientes(
       return {
         loteId: l.id,
         fecha: l.fecha_recepcion,
+        llegoEn: llegadas.get(l.id) ?? null,
         ubicacion: l.ubicacion?.nombre ?? "",
         proveedorId: l.proveedor_id,
         proveedorNombre: l.proveedor?.nombre ?? "",
