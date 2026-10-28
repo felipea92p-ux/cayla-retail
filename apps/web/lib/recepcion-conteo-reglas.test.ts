@@ -85,8 +85,6 @@ import {
   esEnvioSinAviso,
   marcaDeLinea,
   nombreDeLinea,
-  guardadoDesde,
-  textoGuardadoEstaSemana,
   proveedorDelSinAviso,
   prendasAnotadasDe,
   separarAnotada,
@@ -921,29 +919,6 @@ describe("Felipe 2026-10-14: sin proveedor y sin marca", () => {
     expect(camposDelCierre(base).some((c) => c.id === "proveedor")).toBe(false);
     expect(camposDelCierre({ ...base, proveedorPorConfirmar: true }).find((c) => c.id === "proveedor")).toMatchObject({ requerido: true, hecho: false });
     expect(camposDelCierre({ ...base, proveedorPorConfirmar: true, proveedorElegido: true }).find((c) => c.id === "proveedor")).toMatchObject({ hecho: true });
-  });
-});
-
-describe("lista aparte (2026-10-14): «Llegó esta semana» cuenta lo guardado sin lote", () => {
-  const p = {
-    porSeparar: 0,
-    porDetallar: 0,
-    porCrear: 0,
-    total: 0,
-    desde: null,
-    envios: [
-      { despachoId: "a", numero: "ENV-1", cerradoEn: "2026-10-14T15:00:00Z", porSeparar: 100, porDetallar: 3, porCrear: 15 },
-      { despachoId: "b", numero: "ENV-2", cerradoEn: "2026-10-01T15:00:00Z", porSeparar: 9, porDetallar: 0, porCrear: 0 },
-    ],
-  };
-  it("solo cuenta lo cerrado desde ese día de Lima", () => {
-    expect(guardadoDesde(p, "2026-10-08")).toEqual({ envios: 1, prendas: 118 });
-    expect(guardadoDesde(null, "2026-10-08")).toEqual({ envios: 0, prendas: 0 });
-  });
-  it("dice que no entró nada al stock pero sí llegó, o lo suma abajo de la lista", () => {
-    expect(textoGuardadoEstaSemana({ envios: 1, prendas: 118 }, "Tienda Trujillo", false)).toMatch(/no entró nada al stock de Tienda Trujillo, pero llegaron 118 prendas/);
-    expect(textoGuardadoEstaSemana({ envios: 1, prendas: 1 }, "Tienda Trujillo", true)).toMatch(/^Además llegaron 1 prenda que/);
-    expect(textoGuardadoEstaSemana({ envios: 0, prendas: 0 }, "Tienda Trujillo", false)).toBeNull();
   });
 });
 

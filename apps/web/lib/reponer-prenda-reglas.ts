@@ -159,9 +159,6 @@ export function coloresParaMover(prendas: readonly PrendaParaReponer[]): ColorPa
   }));
 }
 
-/** Lo máximo que se mueve de esta celda: lo libre del lugar de donde salen las prendas. */
-export const topeDeTalla = (t: Pick<TallaParaReponer, "piso" | "almacen">, rumbo: Rumbo): number => (rumbo === "bajar" ? t.almacen : t.piso);
-
 /** Lo que se movió, para el aviso de éxito: «S 1 · M 2» con un solo color; «Azul S 2, M 3 · Blanco S 2» con varios. */
 export function detalleDeLoMovido(colores: readonly ColorParaMover[], lineas: readonly LineaBajada[]): string {
   const cantidad = new Map(lineas.map((l) => [l.varianteId, l.cantidad]));

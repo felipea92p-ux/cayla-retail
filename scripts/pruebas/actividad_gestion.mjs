@@ -45,7 +45,8 @@ function correr(sql) {
 const PRELUDIO = `
 set local request.jwt.claim.sub = '${FELIPE}';
 set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
-select set_config('request.headers', '{}', true) as _h \\gset
+
+select set_config('request.headers', '{"x-dueno":"ca71a000-0000-4000-8000-000000000001"}', true) as _h \\gset
 select id as felipe from public.personas where auth_user_id = '${FELIPE}' \\gset
 select id as micaela from public.personas where auth_user_id = '${MICAELA}' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset

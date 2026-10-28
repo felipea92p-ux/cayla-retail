@@ -3,7 +3,9 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
+import type { DuenoDeStock } from "@/lib/stock-por-dueno-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
@@ -256,6 +258,9 @@ export type FilaExistencias = FilaStock & {
   /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
    *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
   colorFamilia?: string | null;
+  /** De quién son las unidades de esta talla en esta sede (ADR-0542), solo donde conviven dos empresas y solo si alguien que no es la casa
+   *  tiene unidades. La pone la página con `conDuenos`, de una lectura aparte y tolerante. Ausente = nada que decir, o no se pudo leer. */
+  duenos?: DuenoDeStock[];
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -382,42 +387,9 @@ export async function getExistencias(
  */
 export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("variantes")
-    .select(
-      `id, sku, codigo, talla:tallas ( valor ),
-       color:colores ( nombre, hex ),
-       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
-       codigos_barras ( codigo )`
-    )
-    .eq("id", varianteId)
-    .eq("activo", true)
-    .maybeSingle();
+  const { data, error } = await supabase.from("variantes").select(COLUMNAS_FILA_EN_CERO).eq("id", varianteId).eq("activo", true).maybeSingle();
   if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
-  return {
-    varianteId: data.id,
-    productoId: data.producto?.id ?? "",
-    sku: codigoDeEtiqueta(data),
-    talla: data.talla?.valor ?? null,
-    color: data.color?.nombre ?? null,
-    colorHex: data.color?.hex ?? null,
-    referencia: data.producto?.referencia ?? "",
-    categoria: data.producto?.categoria?.nombre ?? null,
-    categoriaPrefijo: data.producto?.categoria?.prefijo ?? null,
-    categoriaFamilia: data.producto?.categoria?.familia ?? null,
-    codigosBarras: (data.codigos_barras ?? []).map((c) => c.codigo),
-    fotoUrl: fotoPrincipal(data.producto?.producto_fotos),
-    total: 0,
-    piso: separaPisoAlmacen ? 0 : null,
-    almacen: separaPisoAlmacen ? 0 : null,
-    danado: separaPisoAlmacen ? 0 : null,
-    apartado: 0,
-    disponible: 0,
-    pisoDisponible: separaPisoAlmacen ? 0 : null,
-    almacenDisponible: separaPisoAlmacen ? 0 : null,
-    enTransito: 0,
-    enRed: [],
-  };
+  return filaEnCero(data, separaPisoAlmacen);
 }
 
 export type ResumenExistencias = ResumenInventario & {

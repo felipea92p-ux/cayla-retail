@@ -2418,7 +2418,7 @@ export const GUIA_MI_PLATA: Guia = {
       id: "compre",
       ancla: "mi-plata.compre",
       opcional: true,
-      titulo: "Compré ropa",
+      titulo: "Apunte de compras",
       texto: "Cuando le compras a un proveedor, tócalo y anota a quién, qué prendas y el papel que te dieron. Una pregunta a la vez.",
     },
     {
@@ -2662,7 +2662,7 @@ export const GUIA_MIS_ENVIOS: Guia = {
 export const GUIA_COMPRA_RAPIDA: Guia = {
   id: "compras.mi-plata.compra",
   ruta: "/compras/mi-plata/compra",
-  titulo: "Compré ropa",
+  titulo: "Apunte de compras",
   resumen: "A quién le compraste, qué prendas y el papel que te dieron.",
   pasos: [
     {

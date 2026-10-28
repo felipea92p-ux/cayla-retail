@@ -6,7 +6,6 @@ import {
   DIAS_SOSTENIDOS,
   UMBRAL_IDENTIFICADA,
   diaAntes,
-  faltasDe,
   fechaCorta,
   fraseDelMotor,
   identificadaEnVentana,
@@ -110,7 +109,6 @@ describe("preparacionDeSede", () => {
   it("con las tres condiciones, el motor habla y no falta nada", () => {
     const p = preparacionDeSede(fila());
     expect(p.puedeHablar).toBe(true);
-    expect(faltasDe(p)).toEqual([]);
     expect(fraseDelMotor(p)).toBe("Ya puedo recomendar en Tienda TRU.");
   });
   it("TRU al 6-oct (sus ventas reales del 30-sep al 5-oct: 58 de 161 con su prenda), piso cuadrado y almacén sin contar", () => {
@@ -140,7 +138,6 @@ describe("preparacionDeSede", () => {
     const p = preparacionDeSede(fila({ primeraVenta: null, dias: [], cuadradoEn: null, almacenContado: false }));
     expect(p.identificada14).toBeNull();
     expect(p.condiciones[0].detalle).toBe("Todavía no hay ventas de esta tienda en el ERP.");
-    expect(faltasDe(p)).toHaveLength(3);
     expect(fraseDelMotor(p)).toBe(
       "Aún no puedo recomendar en Tienda TRU. Falta: 14 días más de ventas con su prenda, cuadrar el piso y contar el almacén."
     );

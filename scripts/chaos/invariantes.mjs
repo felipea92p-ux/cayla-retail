@@ -550,6 +550,16 @@ having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_un
   },
   {
     id: "INV-23",
+    nombre: "stock_por_dueno_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "En una sede donde operan dos empresas (Lima), lo de CLAURE (`stock_dueno`) nunca pasa del stock de su fila, ni lo apartado de lo apartado, y no hay reparto por dueño donde operan una sola empresa (ADR-0542: CAYLA es el resto, así que este es el único descuadre posible).",
+    sql: `select variante_id, ubicacion_id, sububicacion_id, motivo from retail.fn_stock_dueno_descuadres()`,
+    corrompe: `insert into retail.stock_dueno (variante_id, ubicacion_id, sububicacion_id, empresa_id, cantidad)
+select variante_id, ubicacion_id, sububicacion_id, 'c1a07e00-0000-4000-8000-000000000002', cantidad + 5 from retail.stock where cantidad > 0 limit 1;`,
+  },
+  {
+    id: "INV-24",
     nombre: "copias_del_color_iguales_a_su_tela",
     gravedad: 2,
     nivel: "cruzada",

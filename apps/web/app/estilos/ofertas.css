@@ -19,7 +19,6 @@
     font-size: 0.78rem; color: var(--color-tinta);
   }
   .of-camp svg { width: 1rem; height: 1rem; color: var(--color-taupe); flex: none; }
-  .of-camp .of-camp-ir { margin-left: auto; }
 
   /* ── Las ya registradas ── */
   .of-rail { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
@@ -185,6 +184,5 @@
        algo no lleva esta clase y se queda. */
     .of-pie .of-falta { display: none; }
     .of-pie .of-siguiente { flex: 1; }
-    .of-camp .of-camp-ir { margin-left: 0; }
   }
 }

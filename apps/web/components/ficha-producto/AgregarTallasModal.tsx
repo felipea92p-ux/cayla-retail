@@ -217,6 +217,7 @@ export function AgregarTallasModal({
           <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieGuia guia={guia} listo={puedeCargar && nacen > 0 && totalUnidades > 0 ? `Listo: ${totalUnidades} ${totalUnidades === 1 ? "unidad" : "unidades"} de partida.` : "Todo listo."} />
           <PieModal
+            guia="agregar-talla.pie"
             onCancelar={cerrar}
             texto={combos.length === 0 ? "Agregar" : `Agregar ${combos.length} ${combos.length === 1 ? "variante" : "variantes"}`}
             deshabilitado={combos.length === 0 || (nacen > 0 && !precioOk)}

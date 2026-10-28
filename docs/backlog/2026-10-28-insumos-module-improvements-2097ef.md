@@ -20,7 +20,7 @@
 - [x] Investigación, cuatro decisiones de Felipe y maquetas (`docs/investigacion/…`, `docs/maquetas/insumos-nueva-tela-2026-10/`).
 - [x] Actividad 0 (candados de unidad, `20261028172000`), 1 (la tela en la base, `20261028175000`, ya en producción) y 2 («Nueva tela» y la lista por tela, cara A).
 - [x] **Actividad 3 y las dos revisiones adversariales** (30 + 28 hallazgos confirmados): `20261028203000` (`editar_material` con control de versión, endurecimiento, conversor que ensaya, deja su respaldo y no aborta), la hoja «Editar tela» (choque de versión con «Recargar», nombres de color desfasados, avisos de lo que un cambio no hace), las piezas compartidas con «Nueva tela», los costos de céntimos, las cotas del kilo, el respaldo y el deshacer **ensayado** (`pnpm pruebas:materiales` 98 casos, grupo R). Detalle y tabla de hallazgos en el ADR-0554.
-- [x] `tema:auditar` de Insumos (7 escenarios, 0 hallazgos en oscuro), `guias:recorrer`, recorrido real de «Editar tela» en el navegador (20 comprobaciones), aviario (`materiales` es de Gallito) e **INV-23** de `/chaos` (cada color es el reflejo de su tela).
+- [x] `tema:auditar` de Insumos (7 escenarios, 0 hallazgos en oscuro), `guias:recorrer`, recorrido real de «Editar tela» en el navegador (20 comprobaciones), aviario (`materiales` es de Gallito) e **INV-24** de `/chaos` (cada color es el reflejo de su tela).
 
 ## Pendiente (cada actividad, con su OK)
 - [ ] **Actividad 4:** «Llegó tela» con kilo y rollo → metros, el factor medido por lote (envoltorio de `recibir_insumo`; las otras dos puertas de lotes no cambian). Hasta entonces el saldo en kilos o rollos se convierte con el rinde de la ficha y la nota del lote dice lo que se contó.

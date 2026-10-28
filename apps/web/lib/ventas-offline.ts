@@ -45,6 +45,8 @@ export type ItemVentaEncolada = { varianteId: string; cantidad: number };
 /** Un ítem de `p_items`, tal cual lo arma `cobrar()` hoy en `PuntoDeVenta.tsx`. */
 export type ItemRegistrarVenta = {
   variante_id: string;
+  /** ADR-0542: de qué empresa sale esta prenda (solo si en la sede hay de las dos). `registrar_venta` la ignora: viaja en `x-dueno-lineas`. */
+  empresa_id?: string;
   cantidad: number;
   precio_unitario: number;
   descuento_unitario: number;

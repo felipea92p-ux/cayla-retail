@@ -66,28 +66,6 @@ export type SerieComprobante = {
   siguiente_numero: number;
 };
 
-export type ItemVentaDelDia = {
-  referencia: string;
-  talla: string | null;
-  color: string | null;
-  cantidad: number;
-  precio_unitario: number;
-};
-
-export type VentaDelDia = {
-  venta_id: string;
-  hora: string;
-  ubicacion_nombre: string;
-  vendedor: string;
-  cliente_nombre: string;
-  items: ItemVentaDelDia[];
-  total: number;
-  metodos_pago: string | null;
-  comprobante_tipo: TipoComprobante | null;
-  comprobante_texto: string | null;
-  comprobante_estado: EstadoComprobante | null;
-};
-
 export const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
   boleta: "Boleta",
   factura: "Factura",

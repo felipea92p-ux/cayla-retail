@@ -19,6 +19,7 @@ import {
   buenasAlAnotarExcepcion,
   cantidadConUnidad,
   cantidadesAfuera,
+  cantidadesDeFabricaDeSalida,
   cantidadesQuePuedenSalir,
   cantidadesTerminadas,
   cantidadesQueFaltan,
@@ -663,6 +664,43 @@ describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por 
   it("lo que ya salió se descuenta de lo que puede salir, talla por talla", () => {
     const o = orden({ fases: [crudo().fases[0], faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: "pv-1", proveedor_nombre: "X", tarifa_prenda: 4.5 }, { entrada: 8, salieron: 5, afuera: 5 }), crudo().fases[2]] });
     expect(Object.values(cantidadesQuePuedenSalir(costura(o)))).toEqual([3, 3, 3, 3, 3, 3]);
+  });
+
+  describe("cantidadesDeFabricaDeSalida — lo que «Salida» trae escrito", () => {
+    const p = orden();
+    const corte = p.fases.find((f) => f.clave === "corte")!;
+    const costuraListo = (extra: Partial<FasePagina> = {}, v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...costura(p), porVariante: costura(p).porVariante.map((x) => ({ ...x, entrada: 8, salieron: 0, afuera: 0, ...v })), ...extra });
+    /** Corte mandado afuera sin registrar quién (Pendiente de registrar): el plan es 8 por talla y color y la base deja salir hasta 9 (8 + 10 %, hacia arriba). */
+    const corteAfuera = (v: Partial<FasePagina["porVariante"][number]> = {}): FasePagina => ({ ...corte, quien: "servicio", proveedorId: null, proveedorNombre: null, porVariante: corte.porVariante.map((x) => ({ ...x, plan: 8, entrada: 9, hechas: 0, salieron: 0, afuera: 0, ...v })) });
+
+    it("en Corte parte del plan, no del margen del 10 %: 8 por talla y color, no 9 (el 57 que se volvía 72)", () => {
+      const f = corteAfuera();
+      const fases = [f, ...p.fases.slice(1)];
+      expect(cantidadesDeFabricaDeSalida(f, fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
+      // El tope que acepta la base no cambia: se puede mandar el margen escribiéndolo.
+      expect(cantidadesQuePuedenSalir(f)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 9])));
+      expect(problemasDeSalida(f, Object.fromEntries(TODAS.map((id) => [id, "9"])), nombreDe)).toEqual([]);
+    });
+    it("en Corte lo que ya salió se descuenta del plan, y nunca pasa de lo que la base deja", () => {
+      const f = corteAfuera({ salieron: 3 });
+      const fases = [f, ...p.fases.slice(1)];
+      expect(Object.values(cantidadesDeFabricaDeSalida(f, fases))).toEqual([5, 5, 5, 5, 5, 5]);
+      // Si ya salió todo el plan, no queda nada de fábrica aunque el margen todavía deje mandar 1 más por talla y color.
+      const completo = corteAfuera({ salieron: 8 });
+      expect(cantidadesDeFabricaDeSalida(completo, [completo, ...p.fases.slice(1)])).toEqual({});
+      expect(Object.values(cantidadesQuePuedenSalir(completo))).toEqual([1, 1, 1, 1, 1, 1]);
+    });
+    it("una talla y color sin plan cae a lo que puede salir; con el plan mayor que el tope, manda el tope", () => {
+      const sinPlan = corteAfuera({ plan: null });
+      expect(cantidadesDeFabricaDeSalida(sinPlan, [sinPlan, ...p.fases.slice(1)])).toEqual(Object.fromEntries(TODAS.map((id) => [id, 9])));
+      const planGrande = corteAfuera({ plan: 20 });
+      expect(cantidadesDeFabricaDeSalida(planGrande, [planGrande, ...p.fases.slice(1)])).toEqual(Object.fromEntries(TODAS.map((id) => [id, 9])));
+    });
+    it("en las demás fases es lo que puede salir, igual que antes", () => {
+      const f = costuraListo({ quien: "servicio" }, { salieron: 3 });
+      expect(cantidadesDeFabricaDeSalida(f, p.fases)).toEqual(cantidadesQuePuedenSalir(f));
+      expect(Object.values(cantidadesDeFabricaDeSalida(f, p.fases))).toEqual([5, 5, 5, 5, 5, 5]);
+    });
   });
 
   describe("problemasDeSalida", () => {
