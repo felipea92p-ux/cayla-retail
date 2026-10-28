@@ -399,6 +399,10 @@ export function CerrarEnvio({
                         : `: cuestan lo que dice cada orden (de S/\u00a0${costoMin.toFixed(2)} a S/\u00a0${costoMax.toFixed(2)}).`
                       : ".")
                   : null;
+              // Una sola caja de costo (Felipe 2026-10-28): si TODO lo que llegó de una categoría de fuera de la guía es UNA prenda ya identificada o descrita,
+              // «Toda la línea» y la caja de esa prenda mandaban sobre las mismas unidades y no se entendía cuál llenar. Queda la de la prenda y lo que se
+              // escribe vale también para la línea (la base sigue pidiendo el costo de la línea: lo que se guarda es lo mismo que escribir los dos iguales).
+              const unaCaja = costoDeLaLineaObligatorio && sinIdentificar === 0 && conNombre.length === 1;
               const abierta = abiertas.has(g.clave);
               // El costo de una categoría de fuera de la guía no viene de ninguna orden: mientras falte, la fila escondida lo dice (con aviso, es obligatorio).
               const faltaCosto = costoDeLaLineaObligatorio && !sinAviso && costo.valor == null;
@@ -531,7 +535,7 @@ export function CerrarEnvio({
                 {abierta && (
                   <div id={`precios-${idFila}`} className="border-t border-sand bg-tinta/[0.02] px-5 py-4" data-precios-de={g.clave}>
                     <div className="space-y-3">
-                      {costoDeLaLineaObligatorio && (
+                      {costoDeLaLineaObligatorio && !unaCaja && (
                         <CampoGuiado id={idCampoCierre("costo", p.clave)} guia={guia}>
                           <FilaDeCosto
                             marca="linea"
@@ -555,7 +559,7 @@ export function CerrarEnvio({
                         <div className="space-y-3">
                           {prendas.map((pr) => {
                             const v = dondeVive({ clave: pr.productoId, nueva: false, nombre: pr.nombre ?? "" }).clave;
-                            return (
+                            const fila = (
                               <PrecioDePrenda
                                 key={`${g.clave}-${pr.productoId}`}
                                 prenda={pr}
@@ -564,11 +568,21 @@ export function CerrarEnvio({
                                 sedeId={detalle.sede?.id ?? null}
                                 editado={ventas[pr.productoId]}
                                 costo={editaCosto ? costoDePrenda(v, decisionDe(v).costo, pr.productoId) : undefined}
-                                onCosto={(valor) => cambiarCostoPrenda(v, pr.productoId, valor)}
+                                onCosto={(valor) => {
+                                  cambiarCostoPrenda(v, pr.productoId, valor);
+                                  if (unaCaja) cambiar(v, { costo: valor, confirmaCosto: false });
+                                }}
                                 onActual={(general, enSede) => ponerActual(pr.productoId, general, enSede)}
                                 onValor={(valor) => cambiarVenta(pr.productoId, { valor })}
                                 onAlcance={(alcance) => cambiarVenta(pr.productoId, { alcance })}
                               />
+                            );
+                            return unaCaja ? (
+                              <CampoGuiado key={`${g.clave}-${pr.productoId}`} id={idCampoCierre("costo", p.clave)} guia={guia}>
+                                {fila}
+                              </CampoGuiado>
+                            ) : (
+                              fila
                             );
                           })}
                           {/* Las nuevas ya descritas todavía no existen: solo llevan costo; su precio se pone al crearlas. */}
@@ -577,7 +591,7 @@ export function CerrarEnvio({
                               .filter((n) => n.nueva)
                               .map((n) => {
                                 const v = dondeVive(n).clave;
-                                return (
+                                const fila = (
                                   <FilaDeCosto
                                     key={`${g.clave}-${n.clave}`}
                                     marca="nueva"
@@ -587,8 +601,18 @@ export function CerrarEnvio({
                                     nombre={n.nombre}
                                     costo={costoDePrenda(v, decisionDe(v).costo, n.clave)}
                                     placeholder={`S/\u00a0${decisionDe(v).costo.trim() || "0.00"}`}
-                                    onCosto={(valor) => cambiarCostoPrenda(v, n.clave, valor)}
+                                    onCosto={(valor) => {
+                                      cambiarCostoPrenda(v, n.clave, valor);
+                                      if (unaCaja) cambiar(v, { costo: valor, confirmaCosto: false });
+                                    }}
                                   />
+                                );
+                                return unaCaja ? (
+                                  <CampoGuiado key={`${g.clave}-${n.clave}`} id={idCampoCierre("costo", p.clave)} guia={guia}>
+                                    {fila}
+                                  </CampoGuiado>
+                                ) : (
+                                  fila
                                 );
                               })}
                         </div>
