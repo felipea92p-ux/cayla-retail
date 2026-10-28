@@ -36,11 +36,12 @@ import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
-import { esEnvioSinAviso, guardadoDesde, proveedorDelSinAviso, textoGuardadoEstaSemana } from "@/lib/recepcion-conteo-reglas";
+import { esEnvioSinAviso, proveedorDelSinAviso } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
 import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
+import { RecibidoEnLaSede } from "@/components/recepcion-conteo/RecibidoEnLaSede";
+import { TERMINADOS_MAXIMO } from "@/lib/por-terminar-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
@@ -223,7 +224,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando] = await Promise.all([
+    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando, recibidos] = await Promise.all([
       // Lo que se puede recibir AQUÍ (ADR-0505): en Trujillo no se sugiere la blusa de CLAURE que se parece a la de CAYLA.
       getCatalogoDeLaSede(persona.ubicacionId),
       getProveedoresActivos(),
@@ -246,7 +247,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         console.error("Llegó esta semana en Recibir mercadería:", e);
         return [];
       }),
-      costosDeLotes(verMontos, persona.ubicacionId),
+      costosDeLotes(verMontos, persona.ubicacionId, TERMINADOS_MAXIMO),
       // Lo que viene de una orden de compra (ADR-0362, fase 4). Secundario: si falla, la tarjeta no sale y la puerta recibe igual.
       getPorRecibirEnLaSede(persona.ubicacionId).catch((e: unknown) => {
         console.error("Envíos de órdenes de compra en Recibir mercadería:", e);
@@ -254,6 +255,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       }),
       // ADR-0393: si la base ya cuenta primero (llega con sus migraciones), la puerta es «Llegó sin aviso» y avisa lo que quedó por terminar.
       recibirContandoDisponible(persona.ubicacionId),
+      // «Lo recibido» (Terminados): lo que ya entró a esta sede, lo más reciente primero y paginado de 10 en 10 sobre las últimas 50 (Felipe
+      // 2026-10-28); lo demás, en «Ver todo lo recibido». No es la lista de la semana de arriba: esa alimenta el aviso de «este proveedor ya entró hoy» y no se toca.
+      getRecepcionesRecientes({ ubicacionId: persona.ubicacionId, limite: TERMINADOS_MAXIMO }).catch((e: unknown) => {
+        console.error("Lo recibido en Recibir mercadería:", e);
+        return [];
+      }),
     ]);
     const facturasDeLaSede = porRecibir.filas.map((c) => ({
       id: c.id,
@@ -269,33 +276,22 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     const proveedoresSinAviso = Object.fromEntries(
       await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, proveedorDelSinAviso((await getConteosDelEnvio(e.id)).conteos)] as const)),
     );
-    // Lo que llegó esta semana y quedó por terminar no tiene lote: sin esto, la lista diría «no llegó nada» (ADR-0393, lista aparte).
-    const guardadoSemana = textoGuardadoEstaSemana(guardadoDesde(contando.pendientes, haceUnaSemana), persona.ubicacionEtiqueta, recientes.length > 0);
-    // «Llegó esta semana» es la misma en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»).
-    const llegoEstaSemana = (
-      <section data-guia="recibir.semana" className="space-y-2">
-        <TituloSeccion
-          accion={
-            <EnlaceVer href="/recibir?vista=recibidas" guia="recibir.ver-todo">
-              Ver todo lo recibido
-            </EnlaceVer>
-          }
-        >
-          Llegó esta semana · {persona.ubicacionEtiqueta}
-        </TituloSeccion>
-        <RecepcionesRecientes
-          recepciones={recientes}
-          costos={costos}
-          vacio={guardadoSemana ?? `Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
-        />
-        {recientes.length > 0 && guardadoSemana && <p className="nota-cayla">{guardadoSemana}</p>}
-      </section>
+    // Lo recibido en la sede es la misma tarjeta en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»); «Por terminar» solo
+    // existe si la base ya cuenta lo que quedó por terminar (la cara de ADR-0393).
+    const loRecibido = (
+      <RecibidoEnLaSede
+        sede={persona.ubicacionEtiqueta}
+        pendientes={contando.disponible ? contando.pendientes : null}
+        recibidos={recibidos}
+        costos={costos}
+        vacio={`Todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
+      />
     );
     if (contando.disponible) {
       return (
         <div className="space-y-6">
           {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
-          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
+          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} conLista={false} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
           <SinAvisoProvider>
           {deOrdenes && (
@@ -312,7 +308,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
           </SinAvisoProvider>
-          {llegoEstaSemana}
+          {loRecibido}
         </div>
       );
     }
@@ -358,7 +354,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 categoriaFamilia: v.categoriaFamilia,
               }))}
           />
-          {llegoEstaSemana}
+          {loRecibido}
         </div>
       </TrabajoPorSede>
     );
@@ -484,10 +480,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
  * margen sin dato hasta que llegue su factura (ADR-0330, fase 2), y quien paga tiene que verlo. A los demás, ni la columna
  * (`undefined`). Secundario: si no se puede leer, la lista sale igual, sin costos.
  */
-async function costosDeLotes(verMontos: boolean, ubicacionId: string): Promise<Record<string, { costo: number | null; sinCosto: boolean }> | undefined> {
+async function costosDeLotes(verMontos: boolean, ubicacionId: string, limite = 30): Promise<Record<string, { costo: number | null; sinCosto: boolean }> | undefined> {
   if (!verMontos) return undefined;
   try {
-    const filas = await listarRecepcionesSinComprobante({ ubicacionId, limite: 30 });
+    const filas = await listarRecepcionesSinComprobante({ ubicacionId, limite });
     return Object.fromEntries(filas.map((r) => [r.loteId, { costo: r.costoUnitarioPromedio, sinCosto: r.sinCosto }]));
   } catch (e) {
     console.error("Costos de las llegadas sin factura:", e);

@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 136,
+  "total": 138,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «/recibir»",
@@ -152,6 +152,10 @@
     ],
     "components/recepcion-conteo/PendientesDeRecibir.tsx": [
       "Link «{e.numero ?? \"Envío\"}»"
+    ],
+    "components/recepcion-conteo/RecibidoEnLaSede.tsx": [
+      "SegmentoDeslizante «Qué ver de lo recibido»",
+      "BotonEnlace «{`Terminar ${e.numero ?? \"el envío\"}»"
     ],
     "components/recepcion-conteo/SinAvisoContexto.tsx": [
       "Boton «Sin Aviso»"

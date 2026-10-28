@@ -1403,7 +1403,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-filtros",
       opcional: true,
       titulo: "Hallar un envío entre muchos",
-      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras: «Estado» (abierto, en camino, sin guía o los que no puedes recibir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
+      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras: «Estado» (abierto, por abrir —en camino o sin guía— o los que no puedes abrir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
@@ -1411,7 +1411,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.pendientes",
       opcional: true,
       titulo: "Lo recibido por terminar",
-      texto: "Prendas que ya se contaron y están en el almacén, pero no en el sistema: falta separarlas, ponerles tallas y colores o crearlas. Cada envío te lleva a su «Para después». Si lo más antiguo pasa de una semana, el aviso cambia de color.",
+      texto: "El resumen: prendas que ya se contaron y están en el almacén, pero no en el sistema (falta separarlas, ponerles tallas o crearlas). Si lo más antiguo pasa de una semana, el aviso cambia de color. Cada envío está más abajo, en «Lo recibido».",
     },
     {
       // ADR-0393: con la base al día, la puerta es «Llegó sin aviso» (reemplaza a «Llegó mercadería»).
@@ -1460,8 +1460,24 @@ export const GUIA_RECIBIR: Guia = {
       id: "semana",
       ancla: "recibir.semana",
       opcional: true,
-      titulo: "Llegó esta semana",
-      texto: "Lo que entró a tu sede en los últimos días: de quién, cuántas unidades y quién lo recibió. «Ver todo lo recibido» muestra todo, con y sin factura.",
+      titulo: "Lo recibido en tu sede",
+      texto: "Una tarjeta con dos vistas lado a lado: «Por terminar», lo que ya se contó pero falta terminar, y «Terminados», lo que ya entró al sistema.",
+    },
+    {
+      id: "por-terminar",
+      ancla: "recibir.por-terminar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.vista-por-terminar" }],
+      titulo: "Cada envío por terminar",
+      texto: "Una fila por envío, el más antiguo primero: cuándo se cerró, qué falta (separar, poner tallas, crear) y cuántas prendas son. «Terminar» te lleva a ese envío; en la demo no lo tocamos.",
+    },
+    {
+      id: "terminados",
+      ancla: "recibir.vista-terminados",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.vista-terminados" }],
+      titulo: "Terminados",
+      texto: "Lo que ya entró a tu sede: de quién, cuántas unidades y quién lo recibió. Se ven de 10 en 10, las más recientes primero; para ir más atrás, «Ver todo lo recibido».",
     },
     {
       id: "reciente",
@@ -1484,7 +1500,7 @@ export const GUIA_RECIBIR: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Todo lo recibido",
-      texto: "Para ver más atrás que esta semana, con y sin factura, toca «Ver todo lo recibido» (te lo abrimos).",
+      texto: "Para ver todo lo recibido, más atrás de las últimas y con y sin factura, toca «Ver todo lo recibido» (te lo abrimos).",
     },
     {
       id: "recibidas-sin-factura",
