@@ -122,6 +122,7 @@ export function HojaTallas({
             marca={marca}
             colores={colores}
             enviado={sugeridas}
+            antesDelConteo={dueno && <DuenoDeLoQueEntra {...dueno} deshabilitado={guardando} />}
             onPrenda={(p) => {
               setPrenda(p);
               setConteo(conteoDeVariantes(null));
@@ -130,7 +131,6 @@ export function HojaTallas({
             onAbrirHoja={(modo) => onAbrirHoja(modo, prenda)}
           />
           {prenda && precioDe?.(prenda)}
-          {dueno && <DuenoDeLoQueEntra {...dueno} deshabilitado={guardando} />}
           {maximo == null && sugeridas != null && prenda && s.contado > 0 && s.contado !== sugeridas && (
             <p className="text-xs text-taupe">Contaste {sugeridas.toLocaleString("es-PE")} de esta prenda: al guardar, pasan a ser {s.contado.toLocaleString("es-PE")}.</p>
           )}
