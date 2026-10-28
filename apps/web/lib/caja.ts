@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigirOpcional, exigir } from "@/lib/resultado";
+import { exigirOpcional, exigir, leerTodas } from "@/lib/resultado";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { inicioDeDiaLima, diaLima, horaDelDiaLima } from "@/lib/panel-serie";
+import { leerPagos, type PagoDelDia } from "@/lib/caja-comparativa-reglas";
+import { limitesDelMes, type FilaResumen } from "@/lib/historial-cierres-reglas";
+import type { Mes } from "@/lib/facturacion-reglas";
 
 // Caja/POS V2 (2026-09-12) — ver supabase/migrations/0008_caja_y_pagos.sql.
 // `getTableroCaja` alimenta las cifras del TABLERO de Caja (ventas por método, entradas, salidas) desde
@@ -23,6 +26,9 @@ export type CajaAbierta = {
 export type ResumenCaja = {
   ventasEfectivo: number;
   ventasOtros: number;
+  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0311). No es una forma de pago:
+   *  no está en `ventasOtros` ni en `porMetodo`. `ventasEfectivo + ventasOtros + redondeo` es lo vendido (la suma de ítems). */
+  redondeo: number;
   ingresos: number;
   egresos: number;
   /** Devoluciones aprobadas con reembolso en efectivo de ESTA caja (`devoluciones.
@@ -105,6 +111,8 @@ export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta |
 type ResumenCajaDeLaBase = {
   ventas_efectivo: number | string;
   ventas_otros: number | string;
+  /** Falta en una base anterior a `20261003111000_redondeo_lectores.sql`: sin esa clave no hay redondeo. */
+  redondeo?: number | string | null;
   ingresos: number | string;
   egresos: number | string;
   reembolsos_efectivo: number | string;
@@ -129,6 +137,7 @@ export async function getTableroCaja(cajaId: string): Promise<{ resumen: Resumen
     resumen: {
       ventasEfectivo: Number(t.ventas_efectivo),
       ventasOtros: Number(t.ventas_otros),
+      redondeo: Number(t.redondeo ?? 0),
       ingresos: Number(t.ingresos),
       egresos: Number(t.egresos),
       reembolsosEfectivo: Number(t.reembolsos_efectivo),
@@ -251,7 +260,7 @@ const COLUMNA_INEXISTENTE = "42703";
 
 /**
  * Historial de cajas ya cerradas, más recientes primero. Sin filtro de ubicación a
- * propósito — mismo criterio que Facturación (`getVentasDeHoy`): mientras "control
+ * propósito — mismo criterio que las ventas del día (`fn_ventas_del_dia`): mientras "control
  * total temporal" (0012_control_total_temporal.sql) siga vigente, cualquiera puede
  * operar cualquier sede y `cajas_select` ya deja ver todas; filtrar acá sería una
  * frontera que la base no hace cumplir. Cada fila lleva el nombre de la sede para
@@ -259,35 +268,26 @@ const COLUMNA_INEXISTENTE = "42703";
  *
  * `incluirPrueba` (D-54, ADR-0159): apagado por defecto, las cajas `es_prueba` no se piden.
  */
-export async function getHistorialCierres(limite = 60, incluirPrueba = false, ubicacionId?: string): Promise<CierreCaja[]> {
-  const supabase = await createClient();
-  const CAMPOS = "id, ubicacion_id, monto_apertura, abierta_en, abierta_por, monto_cierre_sistema, monto_cierre_real, diferencia, cerrada_en, cerrada_por, nota";
-  const pedir = (conPrueba: boolean) => {
-    let q = supabase
-      .from("cajas")
-      .select(conPrueba ? `${CAMPOS}, es_prueba` : CAMPOS)
-      .eq("estado", "cerrada");
-    if (ubicacionId) q = q.eq("ubicacion_id", ubicacionId);
-    if (conPrueba && !incluirPrueba) q = q.eq("es_prueba", false);
-    return q.order("cerrada_en", { ascending: false }).limit(limite);
-  };
-  let res = await pedir(true);
-  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
-  const filas = exigir(res, "el historial de cierres de caja") as unknown as {
-    id: string;
-    ubicacion_id: string;
-    monto_apertura: number;
-    abierta_en: string;
-    abierta_por: string | null;
-    monto_cierre_sistema: number;
-    monto_cierre_real: number;
-    diferencia: number;
-    cerrada_en: string | null;
-    cerrada_por: string | null;
-    nota: string | null;
-    es_prueba?: boolean;
-  }[];
+type FilaCaja = {
+  id: string;
+  ubicacion_id: string;
+  monto_apertura: number;
+  abierta_en: string;
+  abierta_por: string | null;
+  monto_cierre_sistema: number;
+  monto_cierre_real: number;
+  diferencia: number;
+  cerrada_en: string | null;
+  cerrada_por: string | null;
+  nota: string | null;
+  es_prueba?: boolean;
+};
 
+const CAMPOS_CIERRE = "id, ubicacion_id, monto_apertura, abierta_en, abierta_por, monto_cierre_sistema, monto_cierre_real, diferencia, cerrada_en, cerrada_por, nota";
+
+/** Sedes, nombres de quien abrió y cerró, y lo de ADR-0186: lo que una fila de `cajas` necesita para mostrarse. */
+async function completarCierres(filas: FilaCaja[]): Promise<CierreCaja[]> {
+  const supabase = await createClient();
   const ubicaciones = await getUbicaciones();
   const nombreUbicacion = new Map(ubicaciones.map((u) => [u.id, u.nombre]));
 
@@ -325,6 +325,106 @@ export async function getHistorialCierres(limite = 60, incluirPrueba = false, ub
   }));
 }
 
+export async function getHistorialCierres(limite = 60, incluirPrueba = false, ubicacionId?: string): Promise<CierreCaja[]> {
+  const supabase = await createClient();
+  const pedir = (conPrueba: boolean) => {
+    let q = supabase
+      .from("cajas")
+      .select(conPrueba ? `${CAMPOS_CIERRE}, es_prueba` : CAMPOS_CIERRE)
+      .eq("estado", "cerrada");
+    if (ubicacionId) q = q.eq("ubicacion_id", ubicacionId);
+    if (conPrueba && !incluirPrueba) q = q.eq("es_prueba", false);
+    return q.order("cerrada_en", { ascending: false }).limit(limite);
+  };
+  let res = await pedir(true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
+  const filas = exigir(res, "el historial de cierres de caja") as unknown as FilaCaja[];
+  return completarCierres(filas);
+}
+
+/**
+ * Los cierres de UNA sede en UN mes de Lima, los más recientes primero, sin los de prueba: lo que muestra el modal
+ * «Historial de cierres» al elegir un mes (Felipe 2026-10-12). Son a lo sumo un par por día, así que entran en una
+ * sola lectura; el tope de 200 solo protege de un dato raro.
+ */
+export async function getCierresDelMes(ubicacionId: string, mes: Mes): Promise<CierreCaja[]> {
+  const supabase = await createClient();
+  const { desde, hasta } = limitesDelMes(mes);
+  const pedir = (conPrueba: boolean) => {
+    let q = supabase
+      .from("cajas")
+      .select(conPrueba ? `${CAMPOS_CIERRE}, es_prueba` : CAMPOS_CIERRE)
+      .eq("estado", "cerrada")
+      .eq("ubicacion_id", ubicacionId)
+      .gte("cerrada_en", desde)
+      .lt("cerrada_en", hasta);
+    if (conPrueba) q = q.eq("es_prueba", false);
+    return q.order("cerrada_en", { ascending: false }).limit(200);
+  };
+  let res = await pedir(true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
+  const filas = exigir(res, "los cierres del mes") as unknown as FilaCaja[];
+  return completarCierres(filas);
+}
+
+export type FiltroCierres = { ubicacionId?: string; soloConDiferencia?: boolean; incluirPrueba?: boolean };
+
+/** Menos de un céntimo es «cuadró» (`estadoCierre`): la base lo filtra con el mismo umbral. */
+const CON_DIFERENCIA = "diferencia.gte.0.01,diferencia.lte.-0.01";
+
+/**
+ * Una página del historial (/caja/historial). Paginado por número con `count` exacto: son unas pocas cajas por sede
+ * y día (3 tiendas ≈ 1.100 al año), así que contar es barato y deja ir a una página concreta. Las cifras de arriba no
+ * salen de aquí sino de `getResumenCierres`, que mira todo el filtro y no solo la página.
+ */
+export async function getCierresPagina(filtro: FiltroCierres, pagina: number, porPagina: number): Promise<{ cierres: CierreCaja[]; total: number }> {
+  const supabase = await createClient();
+  const desde = (pagina - 1) * porPagina;
+  const pedir = (conPrueba: boolean) => {
+    let q = supabase
+      .from("cajas")
+      .select(conPrueba ? `${CAMPOS_CIERRE}, es_prueba` : CAMPOS_CIERRE, { count: "exact" })
+      .eq("estado", "cerrada");
+    if (filtro.ubicacionId) q = q.eq("ubicacion_id", filtro.ubicacionId);
+    if (filtro.soloConDiferencia) q = q.or(CON_DIFERENCIA);
+    if (conPrueba && !filtro.incluirPrueba) q = q.eq("es_prueba", false);
+    return q.order("cerrada_en", { ascending: false }).order("id").range(desde, desde + porPagina - 1);
+  };
+  let res = await pedir(true);
+  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
+  const filas = exigir(res, "el historial de cierres de caja") as unknown as FilaCaja[];
+  return { cierres: await completarCierres(filas), total: res.count ?? filas.length };
+}
+
+/**
+ * Lo mínimo de TODOS los cierres (sede, diferencia, cuándo) para las cifras y los números de las píldoras. Tres
+ * columnas por fila: aun con años de historia son unos KB. Sin el filtro «solo con diferencia» a propósito: las cifras
+ * cuentan también los que cuadraron.
+ */
+export async function getResumenCierres(filtro: Omit<FiltroCierres, "soloConDiferencia">): Promise<FilaResumen[]> {
+  const supabase = await createClient();
+  // PostgREST corta cada respuesta en 1.000 filas: se lee por tramos para que la cifra no se quede corta en silencio.
+  const TRAMO = 1000;
+  const pedir = (conPrueba: boolean, desde: number) => {
+    let q = supabase.from("cajas").select("id, ubicacion_id, diferencia, cerrada_en").eq("estado", "cerrada");
+    if (filtro.ubicacionId) q = q.eq("ubicacion_id", filtro.ubicacionId);
+    if (conPrueba && !filtro.incluirPrueba) q = q.eq("es_prueba", false);
+    return q.order("cerrada_en", { ascending: false }).order("id").range(desde, desde + TRAMO - 1);
+  };
+  const salida: FilaResumen[] = [];
+  let conPrueba = true;
+  for (let desde = 0; ; desde += TRAMO) {
+    let res = await pedir(conPrueba, desde);
+    if (res.error?.code === COLUMNA_INEXISTENTE) {
+      conPrueba = false;
+      res = await pedir(false, desde);
+    }
+    const filas = exigir(res, "el resumen de cierres de caja") as unknown as { ubicacion_id: string; diferencia: number; cerrada_en: string | null }[];
+    for (const f of filas) salida.push({ ubicacionId: f.ubicacion_id, diferencia: Number(f.diferencia), cerradaEn: f.cerrada_en ?? "" });
+    if (filas.length < TRAMO) return salida;
+  }
+}
+
 /** El último cierre real de la sede (sin datos de prueba), para mostrarlo con la caja cerrada y verificar la apertura. */
 export async function getUltimoCierre(ubicacionId: string): Promise<CierreCaja | null> {
   return (await getHistorialCierres(1, false, ubicacionId))[0] ?? null;
@@ -347,15 +447,20 @@ export type AperturaPorRevisar = {
  */
 export async function getAperturasPorRevisar(): Promise<AperturaPorRevisar[] | null> {
   const supabase = await createClient();
-  const res = await supabase
-    .from("cajas")
-    .select("id, ubicacion_id, abierta_en, abierta_por, monto_apertura, monto_apertura_esperado, motivo_diferencia_apertura")
-    .not("motivo_diferencia_apertura", "is", null)
-    .is("apertura_revisada_en", null)
-    .eq("es_prueba", false)
-    .order("abierta_en", { ascending: false })
-    .limit(50);
-  if (res.error) return null;
+  // Sin tope de 50: las aperturas con diferencia son plata sin revisar, y con un tope se escondían las más viejas (las que más llevan sin revisión)
+  // sin decir «y N más». Por páginas, que PostgREST corta en 1.000; `id` desempata el orden.
+  const res = await leerTodas((desde, hasta) =>
+    supabase
+      .from("cajas")
+      .select("id, ubicacion_id, abierta_en, abierta_por, monto_apertura, monto_apertura_esperado, motivo_diferencia_apertura")
+      .not("motivo_diferencia_apertura", "is", null)
+      .is("apertura_revisada_en", null)
+      .eq("es_prueba", false)
+      .order("abierta_en", { ascending: false })
+      .order("id")
+      .range(desde, hasta),
+  );
+  if (res.error || !res.data) return null;
   const filas = res.data;
   if (filas.length === 0) return [];
   const [ubicaciones, nombres] = await Promise.all([
@@ -408,4 +513,23 @@ export async function getMovimientosCaja(cajaId: string): Promise<MovimientoCaja
     usuarioId: m.usuario_id,
     registradoPorNombre: m.usuario_id ? (nombrePorId.get(m.usuario_id) ?? null) : null,
   }));
+}
+
+
+/**
+ * Los pagos de las ventas de una sede en un día de Lima (`fn_comparativa_caja`, ADR-0319), para comparar hoy contra ayer.
+ * `null` si la base todavía no tiene la función o falla: la pantalla de Caja vuelve entonces a su diseño anterior, nunca se cae.
+ */
+export async function getPagosDelDia(ubicacionId: string, dia: string): Promise<PagoDelDia[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_comparativa_caja" as never, { p_ubicacion_id: ubicacionId, p_dia: dia } as never);
+  if (error) return null;
+  return leerPagos(data);
+}
+
+/** «2026-10-03» → «2026-10-02». Sobre el texto de la fecha de Lima: sin zonas horarias de por medio. */
+export function diaAnterior(dia: string): string {
+  const d = new Date(`${dia}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
 }

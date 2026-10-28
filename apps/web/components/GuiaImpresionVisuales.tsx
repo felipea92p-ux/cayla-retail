@@ -149,23 +149,6 @@ export function Control({ children, tipo = "combo", resaltado = false }: { child
   );
 }
 
-/** La lista desplegada de un combo, con la opción que hay que elegir marcada. */
-export function ListaAbierta({ opciones, elegida }: { opciones: (string | null)[]; elegida: string }) {
-  return (
-    <span className="mt-1 block w-full max-w-[17rem] overflow-hidden rounded-md border border-sand bg-papel py-1 text-[13px]">
-      {opciones.map((o, i) =>
-        o === null ? (
-          <span key={i} className="my-1 block border-t border-sand" />
-        ) : (
-          <span key={o} className={`block px-3 py-1 ${o === elegida ? "bg-tinta font-semibold text-crema" : "text-tinta/75"}`}>
-            {o}
-          </span>
-        ),
-      )}
-    </span>
-  );
-}
-
 /** La ruta de clics que no tiene foto propia: «Inicio › Configuración › …», cada tramo con su número. */
 export function RutaDeClics({ tramos, activa, onActiva }: { tramos: { n: number; texto: string }[] } & Resaltar) {
   return (

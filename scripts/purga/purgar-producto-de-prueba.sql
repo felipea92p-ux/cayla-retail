@@ -168,7 +168,22 @@ insert into zz_hoja values
   ('stock', 'variante_id', 'variantes'),
   ('variante_etiquetas', 'variante_id', 'variantes'),
   ('producto_color_temporadas', 'producto_id', 'productos'),
+  -- En qué sede se registró el producto (ADR-0292): nace con la ficha y se va con ella.
+  ('producto_origen', 'producto_id', 'productos'),
+  -- Si el producto se ve en la tienda online (ADR-0408): desde el 2026-10-19 (ADR-0457) TODO producto nuevo nace con su fila encendida,
+  -- así que sin esto la purga se negaría a borrar cualquiera. Es configuración de la ficha: se respalda, se va con ella y se devuelve.
+  ('vitrina_productos', 'producto_id', 'productos'),
+  -- La libreta de «Ya decidí» de Frescura del piso (ADR-0208, paso 4b): lo que la tienda anotó sobre su propio piso.
+  ('frescura_decisiones', 'producto_id', 'productos'),
   ('bajada_piso_items', 'movimiento_id', 'movimientos'),
+  -- Una línea del cuadre del piso (ADR-0328): el traslado interno que corrigió el reparto piso/almacén, como una bajada. Su
+  -- cabecera (`cuadres_piso`, la fecha del cuadre de la sede) se queda: es de la sede, no del producto.
+  ('cuadre_piso_items', 'movimiento_id', 'movimientos'),
+  -- La marca de «La tengo en la mano» (ADR-0328, actividad 9): une la bajada con la corrección del almacén (+1) que la hizo
+  -- posible. Se respalda como hoja de esa corrección y se va con ella POR LA CASCADA de su llave (su disparador solo deja
+  -- pasar ese borrado; un `delete` directo lo rechazaría). Si la corrección no hizo falta (`ajuste_movimiento_id` nulo),
+  -- la marca solo cita la cabecera de la bajada, que se queda (como cualquier cabecera sin líneas).
+  ('bajadas_en_mano', 'ajuste_movimiento_id', 'movimientos'),
   ('movimientos_internos_intentos', 'movimiento_id', 'movimientos'),
   ('compra_item_destinos', 'compra_item_id', 'compra_items'),
   ('comprobante_anticipos', 'comprobante_id', 'comprobantes'),
@@ -467,7 +482,9 @@ insert into zz_candado (orden, tabla, disparador) values
   (3, 'movimientos_internos_intentos', 'movimientos_internos_intentos_inmutables'),
   (4, 'costo_historial', 'costo_historial_sin_update'),
   (5, 'compra_reasignaciones', 'compra_reasignaciones_inmutables'),
-  (6, 'compra_item_cierres', 'compra_item_cierres_inmutables');
+  (6, 'compra_item_cierres', 'compra_item_cierres_inmutables'),
+  (7, 'frescura_decisiones', 'frescura_decisiones_inmutable'),
+  (8, 'cuadre_piso_items', 'cuadre_piso_items_inmutables');
 do $$
 declare r record; v_modo "char";
 begin
@@ -488,6 +505,9 @@ update stock s set cantidad = s.cantidad + r.q, updated_at = now()
 
 -- 4b. De hijos a padres.
 delete from bajada_piso_items where movimiento_id in (select id from zz_borrar where tabla = 'movimientos');
+delete from cuadre_piso_items where movimiento_id in (select id from zz_borrar where tabla = 'movimientos');
+-- `bajadas_en_mano` NO se borra aquí: se va en cascada con su corrección, en el `delete from movimientos` de abajo (la
+-- demostración 5a comprueba que no quede ninguna).
 delete from movimientos_internos_intentos where movimiento_id in (select id from zz_borrar where tabla = 'movimientos');
 delete from separacion_items where id in (select id from zz_borrar where tabla = 'separacion_items');
 delete from apartados where id in (select id from zz_borrar where tabla = 'apartados');
@@ -518,11 +538,14 @@ delete from venta_pagos where id in (select id from zz_borrar where tabla = 'ven
 delete from venta_items where id in (select id from zz_borrar where tabla = 'venta_items');
 delete from ventas where id in (select id from zz_borrar where tabla = 'ventas');
 delete from pedidos_no_atendidos where id in (select id from zz_borrar where tabla = 'pedidos_no_atendidos');
+delete from frescura_decisiones where producto_id in (select id from zz_prod);
 delete from stock where variante_id in (select id from zz_var);
 delete from codigos_barras where id in (select id from zz_borrar where tabla = 'codigos_barras');
 delete from variante_etiquetas where variante_id in (select id from zz_var);
 delete from producto_fotos where id in (select id from zz_borrar where tabla = 'producto_fotos');
 delete from producto_color_temporadas where producto_id in (select id from zz_prod);
+delete from producto_origen where producto_id in (select id from zz_prod);
+delete from vitrina_productos where producto_id in (select id from zz_prod);
 delete from variantes where id in (select id from zz_var);
 delete from productos where id in (select id from zz_prod);
 
@@ -617,7 +640,10 @@ create temp table zz_resumen on commit drop as
   union all select 20, 'líneas de bajada al piso', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'bajada_piso_items')
   union all select 21, 'pedidos no atendidos', (select count(*) from zz_borrar where tabla = 'pedidos_no_atendidos')
   union all select 22, 'traslados', (select count(*) from zz_traslado)
-  union all select 23, 'proformas', (select count(*) from zz_proforma);
+  union all select 23, 'proformas', (select count(*) from zz_proforma)
+  union all select 24, 'decisiones de Frescura', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'frescura_decisiones')
+  union all select 25, 'líneas del cuadre del piso', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'cuadre_piso_items')
+  union all select 26, 'correcciones «La tengo en la mano»', (select count(*) from respaldo_purgas.filas where purga = (select nombre from zz_purga) and tabla = 'bajadas_en_mano');
 
 do $$
 declare r record; v_n bigint; v_resumen text; v_libro bigint;

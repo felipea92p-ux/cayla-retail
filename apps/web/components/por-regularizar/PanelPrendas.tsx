@@ -1,0 +1,128 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { buscarPrendas, candidatasDe, sugeridaDe, type Disponible, type IndicePrendas, type PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
+import type { FilaPorRegularizar } from "@/lib/por-regularizar";
+import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
+import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { TarjetaCandidata } from "./TarjetaCandidata";
+import { PorQue } from "./PorQue";
+import { Buscador } from "@/components/ui/Buscador";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+
+/**
+ * Las prendas entre las que se elige (ADR-0360): las seis que más calzan con lo que anotó caja y, debajo, un buscador sobre TODO el
+ * catálogo por si la que se busca no salió. La búsqueda no repite las que ya están arriba (y avisa si la que buscas ya está allí).
+ * Elegir una prenda no guarda nada: la une a la venta en el puente.
+ */
+export function PanelPrendas({
+  venta,
+  prendas,
+  indice,
+  disponible,
+  sede,
+  seleccionadaId,
+  guia,
+  onElegir,
+  onApuntar,
+}: {
+  venta: FilaPorRegularizar;
+  prendas: PrendaParaRegularizar[];
+  indice: IndicePrendas;
+  disponible: Disponible;
+  /** La tienda de la venta, corta («TRU»). */
+  sede: string;
+  seleccionadaId: string | null;
+  guia: GuiaCampos;
+  onElegir: (id: string) => void;
+  onApuntar: (id: string | null) => void;
+}) {
+  const [consulta, setConsulta] = useState("");
+  const arriba = useMemo(() => candidatasDe(venta, prendas, disponible), [venta, prendas, disponible]);
+  const sugerida = useMemo(() => sugeridaDe(venta, prendas, disponible), [venta, prendas, disponible]);
+  const idsArriba = useMemo(() => new Set(arriba.map((c) => c.prenda.id)), [arriba]);
+  const { lista, enLasDeArriba } = useMemo(() => buscarPrendas(indice, consulta, venta, disponible, idsArriba), [indice, consulta, venta, disponible, idsArriba]);
+  const buscando = consulta.trim().length > 0;
+
+  return (
+    <div className="vsr-prendas" data-guia="regularizar.prendas" data-vsr-prendas>
+      <CampoGuiado id="prenda" guia={guia} titulo="¿Qué prenda es?" ayuda={sugerida ? "La sugerida es la única que calza en todo." : "Toca la tuya. Si hay más de una que calza, tú la reconoces."}>
+        <div className="mb-2 flex flex-wrap items-center">
+          <PorQue etiqueta="¿Por qué estas?">
+            <p>Salen primero las prendas que más se parecen a lo que anotó caja: la misma prenda, talla y color. Cada tarjeta dice si calza en todo o qué cambia.</p>
+            <p>
+              <b>Sugerida</b> es la única que calza en todo <b>y</b> tiene unidades libres en esta tienda. Si no sale ninguna, hay más de una que calza (tú la reconoces) o ninguna tiene unidades.
+              Si no ves la tuya, búscala debajo.
+            </p>
+          </PorQue>
+        </div>
+        {disponible === null && (
+          <p className="vsr-aviso-stock mb-2" role="note">
+            No pudimos leer cuántas hay en la tienda ahora, así que no se muestran cifras ni se sugiere ninguna. Puedes regularizar igual: la base revisa el stock al guardar.
+          </p>
+        )}
+        <div className="vsr-rejilla" role="group" aria-label="Prendas que más calzan">
+          {arriba.map((c, i) => (
+            <TarjetaCandidata key={c.prenda.id} candidata={c} sugerida={sugerida?.id === c.prenda.id} seleccionada={seleccionadaId === c.prenda.id} indice={i} sede={sede} onElegir={onElegir} onApuntar={onApuntar} />
+          ))}
+        </div>
+      </CampoGuiado>
+
+      <div data-guia="regularizar.catalogo" className="vsr-busca">
+        <div>
+          <p className="label-cayla text-[11px] text-tinta/65">¿No ves la tuya?</p>
+          <p>Búscala entre todas las prendas del catálogo.</p>
+        </div>
+        <Buscador
+          valor={consulta}
+          onCambio={setConsulta}
+          onKeyDown={(e) => {
+            // Escape lo usa el Buscador (borra y no cierra la hoja de arriba, ADR-0136); Enter elige la primera.
+            if (e.key === "Enter" && lista[0]) {
+              e.preventDefault();
+              onElegir(lista[0].prenda.id);
+            }
+          }}
+          maxLength={120}
+          placeholder="Nombre, color, talla o código" // sugerir-fijo: dice qué se puede escribir, no da el nombre ni el color de una prenda de ejemplo
+          etiqueta="Buscar una prenda en el catálogo"
+        />
+        <div aria-live="polite">
+          {buscando && lista.length > 0 && (
+            <>
+              <p className="vsr-res-n">
+                {lista.length} {lista.length === 1 ? "prenda" : "prendas"} más
+                {enLasDeArriba > 0 && ` · ${enLasDeArriba} ya ${enLasDeArriba === 1 ? "está" : "están"} entre las de arriba`}
+              </p>
+              <div className="vsr-rejilla">
+                {lista.map((c, i) => (
+                  <TarjetaCandidata key={c.prenda.id} candidata={c} sugerida={false} seleccionada={seleccionadaId === c.prenda.id} indice={i} sede={sede} onElegir={onElegir} onApuntar={onApuntar} />
+                ))}
+              </div>
+            </>
+          )}
+          {buscando && lista.length === 0 && (
+            <Vacio
+              tamano="chico"
+              alinear="izquierda"
+              icono={<SearchX />}
+              accion={enLasDeArriba > 0 ? undefined : { texto: "Borrar la búsqueda", onClick: () => setConsulta("") }}
+            >
+              <b>{enLasDeArriba > 0 ? "Ya está entre las de arriba" : `Ninguna prenda coincide con «${consulta.trim()}»`}</b>.{" "}
+              <span>
+                {enLasDeArriba > 0 ? "Tócala ahí. " : "Prueba con otra palabra, o con el código. "}
+                ¿No está en el catálogo?{" "}
+                <Link href="/productos/nuevo" className="btn-enlace">
+                  Dala de alta
+                </Link>{" "}
+                con su precio oficial y vuelve aquí.
+              </span>
+            </Vacio>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

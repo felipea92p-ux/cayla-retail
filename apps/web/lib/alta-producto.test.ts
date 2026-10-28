@@ -9,7 +9,6 @@ import {
   desbloqueos,
   estadoSubidaSinConexion,
   faltaDelPaso,
-  fueraDeLaCategoria,
   fraseStockCreado,
   leerCantidad,
   limpiarCantidad,
@@ -21,6 +20,7 @@ import {
   siguienteDelAlta,
   textoTallas,
   textoDestinoStock,
+  TEXTO_FALTA_LUGAR,
   pasoAlcanzable,
   pasoDeProblema,
   pasoHecho,
@@ -56,6 +56,8 @@ const base: EstadoAlta = {
   stockTotal: 6,
   stockInvalidas: 0,
   sinStock: false,
+  separaPiso: true,
+  lugarCarga: "almacen",
 };
 
 describe("tituloReferencia — espejo del trigger de la base", () => {
@@ -160,10 +162,30 @@ describe("ordenarColores", () => {
     const r = ordenarColores(colores, { NEG: 5, AZM: 4, VIN: 3 }, FAMILIAS_COLOR, 2);
     expect(r.frecuentes).toHaveLength(2);
   });
-  it("agrupa por familia en el orden de la lista y no pierde un color sin familia", () => {
+  it("agrupa por familia en el orden de la lista (el del espectro: rojo antes que azul) y no pierde un color sin familia", () => {
     const r = ordenarColores(colores, {}, FAMILIAS_COLOR);
-    expect(r.grupos.map((g) => g.familia)).toEqual(["neutro", "azul", "rojo", "sin-familia"]);
+    // «inexistente» es una familia que el código no conoce: sale con su propio nombre, no escondida.
+    expect(r.grupos.map((g) => g.familia)).toEqual(["neutro", "rojo", "azul", "inexistente"]);
+    expect(r.grupos[3].texto).toBe("Inexistente");
     expect(r.grupos.flatMap((g) => g.colores)).toHaveLength(colores.length);
+  });
+});
+
+describe("ordenarColores · cada familia va del más claro al más oscuro", () => {
+  const azul = (codigo: string, nombre: string, hex: string | null) => ({ codigo, nombre, hex, familiaColor: "azul" });
+  // Todos de la MISMA gama azul (matiz 259–265°, lejos del corte de 236°): el orden que se prueba es solo el de claridad. Con azules de 236°
+  // —justo en el corte— el resultado dependía del corte y no de la claridad.
+  it("ordena por claridad sin importar cómo llegaron, y los sin tono van al final", () => {
+    const llegada = [azul("MAR", "Marino", "#0b1d3a"), azul("SIN", "Sin tono", null), azul("CEL", "Celeste", "#b9cdf3"), azul("ELE", "Eléctrico", "#1e5fd8"), azul("HIE", "Hielo", "#f0f4fc")];
+    const g = ordenarColores(llegada, {}, FAMILIAS_COLOR).grupos.find((x) => x.familia === "azul")!;
+    expect(g.colores.map((c) => c.codigo)).toEqual(["HIE", "CEL", "ELE", "MAR", "SIN"]);
+  });
+  it("es estable: el mismo resultado con la lista al revés", () => {
+    const llegada = [azul("A", "Uno", "#336699"), azul("B", "Dos", "#336699"), azul("C", "Tres", "#99ccff")];
+    const a = ordenarColores(llegada, {}, FAMILIAS_COLOR).grupos[0].colores.map((c) => c.codigo);
+    const b = ordenarColores([...llegada].reverse(), {}, FAMILIAS_COLOR).grupos[0].colores.map((c) => c.codigo);
+    expect(a).toEqual(b);
+    expect(a[0]).toBe("C");
   });
 });
 
@@ -208,6 +230,16 @@ describe("problemasAlta — qué falta, en frases de la persona", () => {
     // Con unidades escritas, la marca «todavía no» no importa: manda lo escrito.
     expect(problemasAlta({ ...base, stockTotal: 4, sinStock: true })).toEqual([]);
   });
+  it("dónde están no viene marcado: con unidades, en una tienda que separa piso y almacén, hay que decirlo (ADR-0328)", () => {
+    expect(problemasAlta({ ...base, lugarCarga: null })).toEqual([{ bloque: "stock", texto: TEXTO_FALTA_LUGAR }]);
+    expect(problemasAlta({ ...base, lugarCarga: "piso" })).toEqual([]);
+    expect(problemasAlta({ ...base, lugarCarga: "almacen" })).toEqual([]);
+    // Sin unidades no hay nada que ubicar; en una tienda sin piso y almacén (el Taller) la pregunta no sale.
+    expect(problemasAlta({ ...base, lugarCarga: null, stockTotal: 0, sinStock: true })).toEqual([]);
+    expect(problemasAlta({ ...base, lugarCarga: null, separaPiso: false })).toEqual([]);
+    // Una cantidad mal escrita se arregla primero: el aviso de dónde están espera a que las cantidades sean válidas.
+    expect(problemasAlta({ ...base, lugarCarga: null, stockInvalidas: 1 })).toEqual([{ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." }]);
+  });
   it("una celda mal escrita frena aunque haya otras bien", () => {
     expect(problemasAlta({ ...base, stockInvalidas: 1 })[0]).toEqual({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
     expect(problemasAlta({ ...base, stockInvalidas: 1, sinStock: true })).toHaveLength(1);
@@ -239,10 +271,11 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
     expect(resumenStock({ a: "x", b: "4" }, ["a", "b"])).toEqual({ total: 4, invalidas: 1, celdasConStock: 1 });
   });
   it("textoDestinoStock dice dónde quedan, como lo diría la persona", () => {
-    expect(textoDestinoStock("Tienda TRU", true, true)).toBe("piso de venta de Tienda TRU");
-    expect(textoDestinoStock("Tienda TRU", false, true)).toBe("almacén de Tienda TRU");
-    expect(textoDestinoStock("Taller", false, false)).toBe("Taller");
-    expect(textoDestinoStock("Taller", true, false)).toBe("Taller");
+    expect(textoDestinoStock("Tienda TRU", "piso", true)).toBe("piso de venta de Tienda TRU");
+    expect(textoDestinoStock("Tienda TRU", "almacen", true)).toBe("almacén de Tienda TRU");
+    expect(textoDestinoStock("Tienda TRU", null, true)).toBe("Tienda TRU · falta decir si están colgadas o guardadas");
+    expect(textoDestinoStock("Taller", "almacen", false)).toBe("Taller");
+    expect(textoDestinoStock("Taller", null, false)).toBe("Taller");
   });
 });
 
@@ -331,28 +364,6 @@ describe("repartirFamilias — qué familias se ven de entrada y cuáles van tra
       const r = repartirFamilias(entrada);
       expect(codigos([...r.aLaVista, ...r.masFamilias]).sort()).toEqual(codigos(entrada).sort());
     }
-  });
-});
-
-describe("fueraDeLaCategoria — qué tejidos muestra «Ver más» en el paso 3", () => {
-  const catalogo = ["Algodón", "Denim", "Drill", "Licra", "Lino", "Seda"].map((texto) => ({ id: texto.toLowerCase(), texto }));
-  const jeans = [{ id: "denim" }, { id: "drill" }, { id: "licra" }];
-
-  it("muestra los del catálogo que la categoría todavía no ofrece, en el orden del catálogo", () => {
-    expect(fueraDeLaCategoria(catalogo, jeans).map((t) => t.texto)).toEqual(["Algodón", "Lino", "Seda"]);
-  });
-
-  it("si la categoría ya ofrece todo, no hay nada tras «Ver más» (no se pinta el botón)", () => {
-    expect(fueraDeLaCategoria(catalogo, catalogo)).toEqual([]);
-  });
-
-  it("una categoría que todavía no ofrece ninguno los muestra todos", () => {
-    expect(fueraDeLaCategoria(catalogo, [])).toEqual(catalogo);
-  });
-
-  it("INVARIANTE: nunca repite uno de la categoría, así que el tejido elegido jamás queda escondido tras «Ver menos»", () => {
-    const fuera = new Set(fueraDeLaCategoria(catalogo, jeans).map((t) => t.id));
-    for (const t of jeans) expect(fuera.has(t.id)).toBe(false);
   });
 });
 
@@ -496,14 +507,14 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
   });
   it("la frase del stock nunca dice «ya aparecen en Existencias» de algo que no entró", () => {
     const s = { unidades: 12, donde: "almacén de Tienda TRU" };
-    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU): ya aparecen en Existencias.");
+    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
     expect(fraseStockCreado(s, true, "subio")).toMatch(/ya aparecen en Existencias/);
     for (const subida of ["esperando", "rechazada", "descartada"] as const) {
       expect(fraseStockCreado(s, true, subida)).not.toMatch(/Existencias/);
     }
     expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
-    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller): ya aparecen en Existencias.");
+    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
   });
 });
 

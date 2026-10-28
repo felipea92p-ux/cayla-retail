@@ -1,9 +1,9 @@
-import { BarraAvance } from "@/components/ComprobanteAvance";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonReasignar, type LineaReasignable } from "@/components/ReasignarReparto";
-import { fraccion, tonoDeAvance } from "@/lib/comprobante-linea-tiempo";
+import { fraccion } from "@/lib/comprobante-linea-tiempo";
 import { fechaCorta, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 import type { RepartoDeCompra } from "@/lib/compras-reparto";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
 import { estaRepartido, ETIQUETA_MOTIVO_REASIGNACION, etiquetaDeLinea, filasDeLinea, resumenPorTienda, textoDeReasignacion, tiendasDelReparto } from "@/lib/reparto-reglas";
 
 // «Reparto por tienda» en el detalle de un comprobante (ADR-0139): cuánto le toca a cada tienda de cada línea y cuánto ya
@@ -39,7 +39,7 @@ export function RepartoPorTienda({
   const titulo = <p className="label-cayla text-[11px] text-tinta/65">Reparto por tienda</p>;
   if (reparto.fallo) {
     return (
-      <section className="space-y-2">
+      <section className="space-y-2" data-guia="factura.reparto">
         {titulo}
         <p className="card-cayla p-5 text-sm text-tinta/65">{reparto.fallo}</p>
       </section>
@@ -67,7 +67,7 @@ export function RepartoPorTienda({
         <ul className="space-y-1 text-xs leading-relaxed text-tinta/65">
           {reasignaciones.slice(0, 5).map((r) => (
             <li key={r.id}>
-              <span className="tabular-nums">{fechaCorta(hoyLima(new Date(r.creadoEn)))}</span> · {nombreDeLinea.get(r.compraItemId) ?? "Línea del comprobante"}: {textoDeReasignacion(r, nombreDe)} ·{" "}
+              <span className="tabular-nums">{fechaCorta(diaLima(r.creadoEn))}</span> · {nombreDeLinea.get(r.compraItemId) ?? "Línea del comprobante"}: {textoDeReasignacion(r, nombreDe)} ·{" "}
               {ETIQUETA_MOTIVO_REASIGNACION[r.motivo]}
               {r.nota ? ` — «${r.nota}»` : ""}
             </li>
@@ -81,7 +81,7 @@ export function RepartoPorTienda({
   if (!repartido) {
     const unica = tiendasDelReparto(filas, orden)[0];
     return (
-      <section className="space-y-2">
+      <section className="space-y-2" data-guia="factura.reparto">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           {titulo}
           {reasignar()}
@@ -100,7 +100,7 @@ export function RepartoPorTienda({
   const totales = resumenPorTienda(filas, orden);
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-guia="factura.reparto">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         {titulo}
         {reasignar()}
@@ -169,7 +169,7 @@ export function RepartoPorTienda({
                     <span className="text-sm text-tinta">
                       <b className="font-semibold">{t.recibido}</b>/{t.asignado}
                     </span>
-                    <BarraAvance fina avance={avance} tono={tonoDeAvance(avance)} etiqueta={`${nombreDe(t.ubicacionId)}: ${t.recibido} de ${t.asignado}`} />
+                    <BarraAvance pct={avance * 100} alto="fina" etiqueta={nombreDe(t.ubicacionId)} texto={`${t.recibido} de ${t.asignado}`} className="mt-1" />
                     <span className="mt-1 block text-[11px] text-tinta/55">{t.pendiente > 0 ? `faltan ${t.pendiente}` : "completa"}</span>
                   </td>
                 );

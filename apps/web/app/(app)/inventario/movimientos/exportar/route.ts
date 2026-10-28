@@ -1,13 +1,14 @@
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { textoCsv } from "@/lib/exportar-csv";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   ENCABEZADOS_CSV_MOVIMIENTOS,
   filaCsvMovimiento,
   filtrosDesdeParams,
   getSaldosDeMovimientos,
-  hoyEnLima,
   listarMovimientos,
   nombreArchivoMovimientos,
   type CursorMovimientos,
@@ -31,8 +32,9 @@ export async function GET(req: Request) {
   if (!veModulo(persona, "movimientos")) return new Response("Tu rol no incluye Movimientos.", { status: 403 });
 
   const params = Object.fromEntries(new URL(req.url).searchParams.entries()) as ParamsMovimientos;
-  const [ubicaciones, sububicaciones] = await Promise.all([getUbicaciones(), getSububicaciones(persona.ubicacionId)]);
-  const filtros = filtrosDesdeParams(params, { sububicaciones });
+  const [ubicaciones, sububicaciones, empresas] = await Promise.all([getUbicaciones(), getSububicaciones(persona.ubicacionId), getEmpresasAqui(persona.ubicacionId)]);
+  // ADR-0532: el filtro «Tienda» (`?emp=`) también vale en la descarga.
+  const filtros = filtrosDesdeParams(params, { sububicaciones, empresas });
 
   const filas: (string | number)[][] = [];
   let cursor: CursorMovimientos | null = null;
@@ -50,7 +52,7 @@ export async function GET(req: Request) {
   return new Response(textoCsv(ENCABEZADOS_CSV_MOVIMIENTOS, filas.slice(0, TOPE_EXPORTAR)), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${nombreArchivoMovimientos(sede, hoyEnLima(), recortado)}"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoMovimientos(sede, hoyLima(), recortado)}"`,
       "Cache-Control": "no-store",
     },
   });

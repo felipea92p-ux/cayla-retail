@@ -1,0 +1,9 @@
+## ✅ «Subir a almacén» por prenda + «Ver detalle» con icono (2026-10-01, ADR-0300) — migración ya pegada en producción; falta fusionar; rama `claude/subir-a-almacen-por-prenda`
+
+- [x] `retirar_del_piso` (migración `20261001150000`, 28 casos en `pruebas:retirar-del-piso`, enchufada al CI), `lib/retiro-reglas.ts` (16 pruebas), `SubirAAlmacenModal` + `SelectorDeTallas` compartido con «Reponer», botón en la tarjeta y acción en el cajón, «Ver detalle» como icono con tooltip. Se retiró `ReponerPisoModal`. Suite web, `tsc` y eslint en verde.
+- [x] **Pegada en producción el 2026-10-01** (ok de Felipe): ensayo revertido con datos reales, `apply_migration` con el texto exacto y verificada en el catálogo (una firma, `md5(prosrc)` = `2cab85b29c32d45f511e27f33b5eea25` idéntico al archivo, `anon` no / `authenticated` sí). Detalle en ADR-0300, «Aplicación en producción».
+- [ ] Fusionar el PR (publica la web) y después refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y correr `pnpm datos:comparar`: la función entra al diccionario cuando se refresque.
+- [ ] **Sin ver en producción** hasta fusionar: con una prenda de dos tallas en el piso, «Subir a almacén» debe dejar UNA operación (`select count(*) from retail.movimientos_internos_intentos` sube en 2) y la nota en las dos filas de Movimientos.
+- [ ] **Sin probar con una cuenta no administradora** (en local se vio «Eres admin»): una terminal de almacén con el módulo «Bajada al piso» y un responsable presente.
+- [ ] `quedaraPidiendoReponer` solo mira cifras: la subida «a propósito» (fin de temporada) sigue sin marca de «retirada de la venta» (decisión pendiente de Felipe, bloque 3 de ADR-0208).
+- [ ] `mover_entre_piso_y_almacen` ya no tiene ninguna llamada desde la web (solo las pruebas SQL; ADR-0240 la creó para «Reponer» y «Retirar del piso»): decidir si se retira de la base en una migración aparte. No se toca en este PR.

@@ -3,16 +3,17 @@
  *
  * La REGLA de qué se puede eliminar no vive aquí: vive en la base (`fn_producto_historia`, la única definición de
  * «historia» de un producto, que usan `fn_producto_como_eliminar` y las dos funciones que borran). Este archivo solo
- * redacta lo que se le dice al líder o al Admin con lo que la base contestó: qué se borra, o por qué no y qué hacer.
+ * redacta lo que se le dice a quien edita el catálogo con lo que la base contestó: qué se borra, o por qué no y qué hacer.
  */
 
 import { fechaLima } from "./colaboradores-reglas";
 
 /**
  * Los cuatro casos que distingue la base (`fn_producto_como_eliminar`):
- *  - `libre`: nunca se movió. Lo elimina un Líder o un Admin (`eliminar_producto`).
- *  - `con_historia`: su historia es solo de stock (carga, ajustes, bajadas, conteos…). Solo un Admin, con respaldo
+ *  - `libre`: nunca se movió (`eliminar_producto`).
+ *  - `con_historia`: su historia es solo de stock (carga, ajustes, bajadas, conteos…). Con respaldo
  *    (`eliminar_producto_con_historia`).
+ * Los dos los elimina quien edita el catálogo (`fn_puede_editar_catalogo`; ADR-0252, act. 2026-10-03).
  *  - `con_documentos`: tiene ventas, compras, traslados, separaciones… Nadie lo elimina desde aquí: se desactiva.
  *  - `sistema`: la pieza «Monto manual» del punto de venta. Nunca.
  */
@@ -87,7 +88,7 @@ export function textoQuienLoCargo(cargadoPor: string | null, cargadoEl: string |
   return `Lo cargó ${cargadoPor ?? "alguien sin nombre registrado"} el ${fechaLima(cargadoEl)}.`;
 }
 
-/** Qué se borra si un Admin confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. */
+/** Qué se borra si se confirma un producto con historia de stock. `null`: no se sabe cuántas variantes tiene. */
 export function textoSeBorraConHistoria(numVariantes: number | null, prendas: number, movimientos: number): string {
   const cuanto = [prendas > 0 ? plural(prendas, "prenda en stock", "prendas en stock") : null, plural(movimientos, "movimiento", "movimientos")]
     .filter(Boolean)
@@ -112,9 +113,11 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
     case "sistema":
       return `«${referencia}» ${razon}.`;
     case "con_documentos":
-      return `«${referencia}» ${razon}. Del otro lado hay una clienta, un proveedor, otra sede o dinero, y eso no se borra desde aquí.`;
+      return `«${referencia}» ${razon}. Del otro lado hay un cliente, un proveedor, otra sede o dinero, y eso no se borra desde aquí.`;
     case "con_historia": {
-      const quien = "Solo una cuenta Admin puede eliminarlo con su historia.";
+      // Desde el 2026-10-03 quien abre esta ventana ya puede (la base responde `puedes` en true); la frase queda para una
+      // base que todavía no tiene la migración `20261003232000`, donde con historia era solo del Admin.
+      const quien = "Tu cuenta no puede eliminarlo con su historia.";
       if (como.prendas > 0 || !razon.startsWith("tiene ")) return `«${referencia}» ${razon}. ${quien}`;
       return `«${referencia}» no tiene unidades en stock, pero ya tiene historia: ${razon.replace(/^tiene /, "")}. ${quien}`;
     }
@@ -126,11 +129,21 @@ export function textoNoSePuede(referencia: string, como: Pick<ComoEliminar, "niv
 /**
  * La salida que se le ofrece cuando no se puede eliminar. Una pieza del sistema no se retira de ninguna manera. Si ya
  * está descontinuado, no hay nada más que hacer; si no (activo, o no se sabe: en Existencias la lectura del catálogo
- * puede fallar y el estado llega en null), la salida es descontinuarlo desde Editar, el mismo interruptor
- * Activo/Descontinuado que ya existe. `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
+ * puede fallar y el estado llega en null), la salida es descontinuarlo, y de dos maneras:
+ *  - `desactivar`: quien abrió la ventana puede abrir la hoja que cambia el estado (`puedeDesactivar`, la Grilla): el botón
+ *    «Desactivar» hace el cambio ahí mismo (2026-10-09, Felipe: «este producto era una prueba» y ya tenía una venta);
+ *  - `irAEditar`: si no puede (Existencias, la Tabla), el enlace a Editar, donde está el interruptor Activo/Descontinuado.
+ * `productos.estado` solo acepta esos dos valores (0002_esquema.sql).
  */
-export function salidaSinEliminar(estado: string | null, nivel: NivelEliminar): { texto: string; irAEditar: boolean } | null {
+export function salidaSinEliminar(
+  estado: string | null,
+  nivel: NivelEliminar,
+  puedeDesactivar = false
+): { texto: string; irAEditar: boolean; desactivar: boolean } | null {
   if (nivel === "sistema") return null;
-  if (estado === "descontinuado") return { texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false };
-  return { texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.", irAEditar: true };
+  if (estado === "descontinuado") return { texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false, desactivar: false };
+  if (puedeDesactivar) {
+    return { texto: "Si ya no lo quieres a la venta, desactívalo: sale de la lista y su historia se conserva.", irAEditar: false, desactivar: true };
+  }
+  return { texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.", irAEditar: true, desactivar: false };
 }

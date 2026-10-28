@@ -1,25 +1,46 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { baseTraeElCorte, leerInicioFinanzas } from "@/lib/finanzas-arranque-reglas";
 import {
   leerConfiguracion,
+  leerConfiguracionMetas,
   leerParametrosCaja,
   leerParametrosFinanzas,
+  type ConfiguracionMetas,
   type ConfiguracionTiendas,
   type DatosEmpresa,
   type ParametrosCaja,
-  type ParametrosFinanzas,
+  type ParametrosFinanzasConCorte,
 } from "@/lib/configuracion-reglas";
+import { leerConfiguracionTiendaWeb, type ConfiguracionTiendaWeb } from "@/lib/tienda-web-reglas";
 
-export type { CampanaConfig, ConfiguracionTiendas, EfectoCampana, TiendaConfig } from "@/lib/configuracion-reglas";
+export type { ConfiguracionTiendas } from "@/lib/configuracion-reglas";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1, 20260924210000). Todo sale de `fn_configuracion_tiendas` (solo líder)
 // y de `fn_parametros_caja` (la única regla de qué meta y qué fondo rigen un día; la lee también Caja).
 
 export async function getConfiguracionTiendas(): Promise<ConfiguracionTiendas> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_configuracion_tiendas" as never);
+  const [{ data, error }, whatsapp] = await Promise.all([
+    supabase.rpc("fn_configuracion_tiendas" as never),
+    // El WhatsApp de cada tienda (ADR-0288 tanda 1b), leído directo de `ubicaciones`: `fn_configuracion_tiendas` no lo
+    // trae. Si la base todavía no tiene la columna, la pantalla sigue sin él (principio 9) en vez de caerse.
+    supabase.from("ubicaciones").select("id, whatsapp_numero").eq("tipo", "tienda"),
+  ]);
   if (error) throw new Error(`No se pudo leer la configuración: ${error.message}`);
-  return leerConfiguracion(data);
+  const numeros = new Map((whatsapp.data ?? []).map((u) => [u.id, u.whatsapp_numero ?? null]));
+  const config = leerConfiguracion(data);
+  return { ...config, tiendas: config.tiendas.map((t) => ({ ...t, whatsappNumero: numeros.get(t.id) ?? null })) };
+}
+
+/** Configuración ▸ Tiendas y caja ▸ metas por mes y por fecha (ADR-0435, 20261017020000): los próximos 6 meses de cada tienda y sus
+ *  fechas especiales. `null` si la base todavía no tiene la función (web publicada antes de pegar la migración): la pantalla
+ *  sigue con la semana tipo, sin las dos tarjetas nuevas. */
+export async function getConfiguracionMetas(): Promise<ConfiguracionMetas | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_configuracion_metas" as never, { p_meses: 6 } as never);
+  if (error) return null;
+  return leerConfiguracionMetas(data);
 }
 
 /** Lo que rige hoy (o en `fecha`) en una sede: meta del día, fondo y campañas. `null` si la base todavía no tiene la
@@ -34,11 +55,23 @@ export async function getParametrosCaja(ubicacionId: string, fecha: string): Pro
 
 /** Configuración ▸ Caja y avisos (20260925103000): el mínimo de caja y los umbrales de aviso. `null` si la base aún no los
  *  tiene o la cuenta no ve Finanzas. */
-export async function getParametrosFinanzas(): Promise<ParametrosFinanzas | null> {
+export async function getParametrosFinanzas(): Promise<ParametrosFinanzasConCorte | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_parametros_finanzas" as never);
   if (error) return null;
-  return leerParametrosFinanzas(data);
+  const p = leerParametrosFinanzas(data);
+  // `inicioFinanzas` nace con ADR-0332: una base que aún no tiene esa migración no manda la clave y sale «sin corte».
+  return p ? { ...p, inicioFinanzas: leerInicioFinanzas(data), corteDisponible: baseTraeElCorte(data) } : null;
+}
+
+/** Tienda web ▸ Ajustes (ADR-0408, act. 6, 20261014231000): cada tienda abierta con lo que la web le muestra al cliente
+ *  (su WhatsApp es el del QR del club) y los plazos de los pedidos web. `null` si la base todavía no tiene la migración: la
+ *  pestaña lo dice en vez de caerse (principio 9). */
+export async function getConfiguracionTiendaWeb(): Promise<ConfiguracionTiendaWeb | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_configuracion_tienda_web" as never);
+  if (error) return null;
+  return leerConfiguracionTiendaWeb(data);
 }
 
 /** Configuración ▸ Empresa: los datos de la empresa y de cada punto de emisión, tal como los usa Facturación. Solo lectura. */

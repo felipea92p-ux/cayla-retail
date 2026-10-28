@@ -24,11 +24,13 @@ export const NOMBRE_VISTA_GLOBAL = "CAYLA Global";
 
 export type Vista = "sede" | "global";
 
-/** Los módulos que funcionan en CAYLA Global: los que ya leen toda la empresa. El tablero, Clientas (una sola lista para
- *  todas las sedes), las seis pantallas de Finanzas (ya tenían «todas» para el líder), Configuración (metas y presupuesto
- *  de cada tienda) y Actividad (la del líder ya es de todas las sedes). Existencias, Movimientos, Análisis, Traslados y
- *  Producción entran cuando aprendan a sumar la red (ADR-0275, fase 3). */
+/** Los módulos que funcionan en CAYLA Global: los que ya leen toda la empresa. El Inicio (para el Admin es el Observatorio,
+ *  que mira todas las tiendas: ADR-0322), el tablero, Clientas (una sola lista para todas las sedes), las seis pantallas de
+ *  Finanzas (ya tenían «todas» para el líder), Configuración (metas y presupuesto de cada tienda), Actividad (la del líder
+ *  ya es de todas las sedes) y Frescura del piso (una barra por tienda, ADR-0208 act. 2026-10-10 (b)). Existencias, Movimientos,
+ *  Análisis, Traslados y Producción entran cuando aprendan a sumar la red (ADR-0275, fase 3). */
 export const MODULOS_DE_LA_VISTA_GLOBAL = [
+  "inicio",
   "cayla_global",
   "clientas",
   "reportes_financieros",
@@ -37,7 +39,18 @@ export const MODULOS_DE_LA_VISTA_GLOBAL = [
   "impuestos",
   "cierre_mes",
   "configuracion",
+  // Datos y plazos de la tienda web (20261016223000): la web es una sola, así que se abre también en CAYLA Global, como cuando la abría Configuración.
+  "ajustes_web",
+  // Campañas de la tienda web (20261021161000): la web es una sola, así que el diseño de una campaña se arma también en CAYLA Global.
+  "campanas_web",
+  // Beneficios del club (programa de puntos, actividad 8): lo que el club le ofrece al cliente es de la empresa entera (los mismos puntos y cupones en
+  // las 3 tiendas), no de una sede: se abre también en CAYLA Global, como Configuración.
+  "beneficios_club",
   "actividad",
+  // Frescura del piso (ADR-0208, act. 2026-10-10 (b)): en esta vista dibuja una barra por tienda y la suma de CAYLA (`FrescuraRed`).
+  "frescura",
+  // Preguntas del equipo (ADR-0536, act. 9): en esta vista, las de todas las sedes juntas (la base lo exige con CAYLA Global).
+  "preguntas_equipo",
 ] as const satisfies readonly ClaveModulo[];
 
 /** Los módulos que SOLO existen en CAYLA Global: parado en una sede no aparecen (el tablero no es de una sede). */
@@ -45,8 +58,17 @@ export const MODULOS_SOLO_DE_LA_VISTA_GLOBAL = ["cayla_global"] as const satisfi
 
 /** Las rutas que se pueden abrir estando en CAYLA Global (y todo lo que cuelga de ellas). Tienen que coincidir con las
  *  pantallas de los módulos de arriba —lo vigila la prueba contra el árbol del menú—, más dos que no son de un módulo:
- *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). */
-export const RUTAS_DE_LA_VISTA_GLOBAL = ["/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso"] as const;
+ *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). «/» es solo el
+ *  Inicio (nada «cuelga» de la raíz): la página manda a `/global` a quien no es Admin. Tienda web ▸ Ajustes (ADR-0430) es la
+ *  antigua pestaña «Tienda web» de Configuración: de CAYLA entera, con el mismo módulo, así que sigue abriéndose aquí. Tienda web ▸ Campañas
+ *  (20261021161000) también: la web es una sola y una campaña de Etiquetas no es de una sede. */
+export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/gestion/frescura", "/gestion/preguntas", "/tienda-web/ajustes", "/tienda-web/campanas"] as const;
+
+/** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
+ *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde
+ *  dónde enviar, aunque las fichas sí sean de toda la empresa. Recomendaciones vivió aquí, bajo `/clientas`, hasta el 2026-10-16:
+ *  desde ADR-0430 es `/tienda-web/recomendaciones`, que no cuelga de ninguna ruta de la vista y por eso ya manda a elegir sede. */
+export const RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL = ["/clientas/avisos"] as const;
 
 /** Adónde se manda a quien abre, estando en CAYLA Global, una pantalla que trabaja en una sede. */
 export const RUTA_ELEGIR_SEDE = "/global/elige-sede";
@@ -67,10 +89,12 @@ export function modulosEnLaVista<T extends { clave: ClaveModulo }>(vista: Vista,
 }
 
 /** ¿Esta ruta se puede abrir en CAYLA Global? La propia ruta o cualquiera que cuelgue de ella (`/finanzas/gastos`), nunca
- *  una que solo empiece igual (`/finanzasx`). Las de API no son pantallas: las decide cada una. */
+ *  una que solo empiece igual (`/finanzasx`) ni una de las de sede de adentro (`/clientas/avisos`). Las de API no son
+ *  pantallas: las decide cada una. */
 export function rutaDeLaVistaGlobal(pathname: string): boolean {
   if (pathname.startsWith("/api/")) return true;
-  return RUTAS_DE_LA_VISTA_GLOBAL.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+  const cuelga = (r: string) => pathname === r || pathname.startsWith(`${r}/`);
+  return RUTAS_DE_LA_VISTA_GLOBAL.some(cuelga) && !RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL.some(cuelga);
 }
 
 /** El alcance por defecto de una pantalla de Finanzas: en CAYLA Global, «todas» las sedes; parado en una sede, el de

@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   agregarCombinaciones,
-  agruparPorColor,
   alcancesDeBloque,
   anclar,
   anclarFotos,
   aplicarEnBloque,
   asignacionesDeEtiquetas,
   avisoBloqueSinAplicar,
-  avisoDesactivar,
   bloqueoPorVenta,
   cambiarFila,
   choqueDeCorreccion,
@@ -22,6 +20,7 @@ import {
   corregida,
   corregir,
   costoEfectivo,
+  costoMaximoGuardado,
   costosSinComprobar,
   destinoGuardado,
   ejesDeLaPrenda,
@@ -45,14 +44,13 @@ import {
   nombreVariante,
   ordenDeGuardado,
   payloadVariantes,
+  precioValido,
   precioYCostoPorDefecto,
   problemasVariantes,
   puedeQuedarSinColor,
-  quitarNueva,
   tallasParaAgregarColor,
   textoChoque,
   textosCostoFijo,
-  textoSedes,
   textoTallasApagadas,
   todasNuevas,
   ubicar,
@@ -66,10 +64,10 @@ import {
   type NombresFicha,
   type TemporadaElegida,
   type VarianteOrigen,
+  avisoCostoSobrePrecio,
 } from "./variantes-ficha-reglas";
 import {
   agruparCambios,
-  cambiosDeVariante,
   NOTA_CORREGIDAS,
   NOTA_DESACTIVADAS_CON_STOCK,
   resumenDeCambios,
@@ -148,24 +146,15 @@ function cuenta(filas: readonly FilaFicha[], estado: Record<string, EstadoVarian
   return resumenDeCambios(ficha(guardadas), ficha(ahora), NOMBRES_CAMBIOS);
 }
 
-describe("filasDeProducto y agruparPorColor — la prenda por ejes, como en el alta", () => {
+describe("filasDeProducto — la prenda por ejes, como en el alta", () => {
   it("ordena «Sin color» primero y cada color por talla (S, M, L; no alfabético)", () => {
     const filas = filasDeProducto([variante("a", "NEG", "t-l"), variante("b", null, "t-m"), variante("c", "AZU", "t-s"), variante("d", "NEG", "t-s")], N);
     expect(filas.map((f) => nombreVariante(f, N))).toEqual(["Sin color M", "Azul S", "Negro S", "Negro L"]);
   });
 
-  it("un grupo por color; las desactivadas al abrir van aparte, plegadas", () => {
-    const filas = filasDeProducto([variante("a", "NEG", "t-m"), variante("b", "NEG", "t-s"), variante("c", "AZU", "t-s", { activo: false })], N);
-    const { grupos, desactivadas } = agruparPorColor(filas, N);
-    expect(grupos.map((g) => g.colorCodigo)).toEqual(["NEG"]);
-    expect(grupos[0].filas.map((f) => N.talla(f.tallaId))).toEqual(["S", "M"]);
-    expect(desactivadas.map((f) => f.id)).toEqual(["c"]);
-  });
-
   it("una que se desactiva AHORA sigue en su grupo (con su aviso); no salta al final", () => {
     const filas = cambiarFila(BOD(), "v-s", { activo: false });
     expect(enGrupo(filas.find((f) => f.id === "v-s")!)).toBe(true);
-    expect(agruparPorColor(filas, N).desactivadas).toEqual([]);
   });
 
   it("los ejes son lo que se VENDE: variantes activas, tallas ordenadas", () => {
@@ -277,7 +266,7 @@ describe("bloqueoPorVenta (D-136): vendida = solo un líder", () => {
     // Nombra SOLO lo que cuenta (venta, separación con abonos, cambio): «Apartar» de Existencias no bloquea, y la fila que
     // lo muestra («· 1 ap.») queda corrigiéndose al lado (revisión 2026-09-28).
     expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).toBe(
-      "BOD-0003-L ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
+      "BOD-0003-L ya salió con un cliente (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
     );
     expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).not.toMatch(/apartó/);
     expect(bloqueoPorVenta(filas, ESTADO_BOD, true, N)).toBeNull();
@@ -554,7 +543,6 @@ describe("agregar colores y tallas", () => {
     filas = corregir(filas, [filas[0].clave], { tallaId: "t-m" });
     filas = agregarCombinaciones(filas, [{ colorCodigo: "NEG", tallaId: "t-s" }], { precio: "1", costo: "", etiquetaIds: [] });
     expect(new Set(claves(filas)).size).toBe(2);
-    expect(quitarNueva(filas, filas[0].clave)).toHaveLength(1);
   });
 
   it("precio y costo por defecto: los más comunes entre las activas", () => {
@@ -590,6 +578,27 @@ describe("precio y costo en bloque", () => {
     expect(aplicarEnBloque(filas, "precio", "todas", "0").error).toBe("Escribe un precio mayor que 0.");
   });
 
+  it("el monto con coma decimal se entiende y viaja como número (ADR-0419); «12.500» no se adivina", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m")], N);
+    const r = aplicarEnBloque(filas, "precio", "todas", "65,50");
+    expect({ aplicadas: r.aplicadas, error: r.error }).toEqual({ aplicadas: 2, error: null });
+    expect(payloadVariantes(r.filas).map((v) => v.precio)).toEqual([65.5, 65.5]);
+    expect(aplicarEnBloque(filas, "costo", "todas", "12.500").error).toBe("Escribe un costo de 0 o más.");
+  });
+
+  it("el aviso de costo sobre precio y el tope del catálogo leen la coma igual (ADR-0419 con ADR-0415)", () => {
+    expect(avisoCostoSobrePrecio("59,90", "70,00")).toMatch(/pierdes S\/\u00a010\.10/);
+    expect(avisoCostoSobrePrecio("59,90", "50,00")).toBeNull();
+  });
+
+  it("en Empaque (fuera de los motores) el precio puede ser 0, nunca negativo", () => {
+    const filas = filasDeProducto([variante("a", "ARN", "t-s"), variante("b", "ARN", "t-m")], N);
+    const r = aplicarEnBloque(filas, "precio", "todas", "0", true);
+    expect(r.error).toBeNull();
+    expect(r.aplicadas).toBe(2);
+    expect(aplicarEnBloque(filas, "precio", "todas", "-1", true).error).toBe("Escribe un precio de 0 o más.");
+  });
+
   it("los alcances: todas, y cada color o talla solo si hay más de uno", () => {
     const filas = filasDeProducto([variante("a", null, "t-s"), variante("b", null, "t-m")], N);
     expect(alcancesDeBloque(filas, N)).toEqual([
@@ -597,6 +606,41 @@ describe("precio y costo en bloque", () => {
       { valor: "talla:t-s", texto: "Talla: S" },
       { valor: "talla:t-m", texto: "Talla: M" },
     ]);
+  });
+
+  describe("el costo que fija el piso del precio de una tienda (lo guardado, la talla que más cuesta)", () => {
+    const filas = (...vs: VarianteOrigen[]) => filasDeProducto(vs, N);
+    it("es el mayor costo de las tallas activas guardadas", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 35.5 }), variante("c", "NEG", "t-l", { costo: 30 })))).toBe(35.5);
+    });
+    it("una talla desactivada no cuenta (la base mira solo las activas)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 99, activo: false })))).toBe(20);
+    });
+    it("la talla de OBSEQUIO (0 guardado en una categoría que admite el 0) no cuenta: el precio de la tienda no la alcanza (2026-10-15)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })), true)).toBe(1);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })), true)).toBeNull();
+    });
+    it("la talla de ROPA en 0 sí cuenta: en esa tienda se vende al precio de la tienda (2026-10-15); sin decir la categoría, es ropa", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })), false)).toBe(9);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })))).toBe(9);
+    });
+    it("el precio que se está escribiendo no cambia qué talla es de obsequio: manda el guardado", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 }));
+      expect(costoMaximoGuardado([{ ...f!, precio: "50" }], true)).toBeNull();
+    });
+    it("lo que se está escribiendo no cuenta: manda lo guardado", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
+      expect(costoMaximoGuardado([{ ...f!, costo: "500" }])).toBe(20);
+    });
+    it("una variante nueva (todavía no existe para la base) no cuenta", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
+      expect(costoMaximoGuardado([{ ...f!, guardada: null, id: null, costo: "50" }])).toBeNull();
+    });
+    it("quien no ve el dinero (costo vacío) o sin costo cargado: no hay piso que mostrar", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: null as unknown as number })))).toBeNull();
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 0 })))).toBeNull();
+      expect(costoMaximoGuardado([])).toBeNull();
+    });
   });
 
   it("el margen usa el costo guardado si el campo quedó vacío (el vacío no es cero)", () => {
@@ -641,6 +685,28 @@ describe("problemas antes de guardar", () => {
     const p = problemasVariantes(filas, N);
     expect(p).toContainEqual({ texto: "Negro S necesita un precio mayor que 0.", bloquea: true, clave: "a" });
     expect(p.some((x) => x.clave === "b")).toBe(false);
+  });
+
+  // La bolsa de obsequio (ADR-0377, Felipe 2026-10-10): solo una categoría de Empaque admite 0. Si la prenda se pasa a una
+  // categoría de mercadería, el 0 vuelve a bloquear: lo decide la categoría ELEGIDA, no la guardada.
+  it("precio 0 solo pasa en una categoría de Empaque; negativo o vacío bloquean igual", () => {
+    const empaque = { tallasHabilitadas: ["t-s", "t-m"], cambio: false, admitePrecioCero: true };
+    const prenda = { tallasHabilitadas: ["t-s", "t-m"], cambio: true, admitePrecioCero: false };
+    const cero = filasDeProducto([variante("a", "NEG", "t-s", { precio: 0 })], N);
+    expect(problemasVariantes(cero, N, empaque).some((x) => x.clave === "a")).toBe(false);
+    expect(problemasVariantes(cero, N, prenda)).toContainEqual({ texto: "Negro S necesita un precio mayor que 0.", bloquea: true, clave: "a" });
+    const negativa = filasDeProducto([variante("a", "NEG", "t-s", { precio: -1 })], N);
+    expect(problemasVariantes(negativa, N, empaque)).toContainEqual({ texto: "Negro S necesita un precio de 0 o más.", bloquea: true, clave: "a" });
+  });
+
+  it("precioValido: 0 solo con permiso; negativo y NaN nunca", () => {
+    expect([precioValido(0), precioValido(0, true), precioValido(0.5), precioValido(-1, true), precioValido(Number.NaN, true)]).toEqual([
+      false,
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 
   it("«Sin color» junto a colores bloquea con la misma frase que la base", () => {
@@ -754,7 +820,7 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
     expect(r.frases).toEqual(["1 variante se desactiva", "2 variantes se agregan", "3 variantes cambian de color o talla", "1 precio cambia"]);
     expect(agruparCambios(r.cambios)).toEqual([
       { clave: "desactivan", titulo: "Se desactivan", lineas: [{ texto: "Negro S", detalle: "8 u. en stock" }], cantidad: 1, nota: NOTA_DESACTIVADAS_CON_STOCK },
-      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/ 59.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
+      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/\u00a059.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
       {
         clave: "identidad",
         titulo: "Color o talla corregidos",
@@ -762,14 +828,13 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
         cantidad: 3,
         nota: NOTA_CORREGIDAS,
       },
-      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/ 59.90", despues: "S/ 64.90" }], cantidad: 1 },
+      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/\u00a059.90", despues: "S/\u00a064.90" }], cantidad: 1 },
     ]);
   });
 
   it("el índice de cada cambio es el de su fila: la marca de la fila sale de la misma cuenta que la barra", () => {
     const filas = cambiarFila(corregir(BOD(), ["v-m"], { tallaId: "t-xs" }), "v-l", { precio: "70" });
     const r = cuenta(filas);
-    expect(filas.map((f) => cambiosDeVariante(r, filas.indexOf(f)).map((c) => c.tipo))).toEqual([[], ["identidad"], ["precio"]]);
     expect(agruparCambios(r.cambios)[0].lineas).toEqual([{ texto: "1 variante pasa de talla M a XS" }]);
   });
 
@@ -843,19 +908,9 @@ describe("stock visible (fn_variantes_estado)", () => {
     expect(leerEstadoVariantes([{ nada: 1 }])).toBeNull();
   });
 
-  it("las sedes y lo apartado, en una línea; la suma del grupo", () => {
-    expect(textoSedes(ESTADO_BOD["v-l"])).toBe("Tienda TRU 4 · 1 apartada");
+  it("la suma del grupo", () => {
     expect(unidadesEnStock(BOD(), ESTADO_BOD)).toBe(17);
     expect(unidadesEnStock(BOD(), null)).toBeNull();
-  });
-
-  it("desactivar una con unidades lo dice en la fila (no bloquea)", () => {
-    const filas = cambiarFila(BOD(), "v-s", { activo: false });
-    // Desactivar no saca las unidades del inventario: solo deja de venderlas (hallazgo 10 de la revisión 2026-09-28).
-    expect(avisoDesactivar(filas.find((f) => f.id === "v-s")!, ESTADO_BOD)).toBe(
-      "Sus 8 u. en Tienda TRU siguen en el inventario, pero ya no se podrán vender en ninguna sede. Si existen, no la desactives todavía: véndelas o pide un ajuste que las pase a otra variante; si no existen, pide un ajuste para dejarla en 0.",
-    );
-    expect(avisoDesactivar(filas.find((f) => f.id === "v-m")!, ESTADO_BOD)).toBeNull();
   });
 });
 
@@ -893,5 +948,28 @@ describe("conUnReintentoSiChoca — el círculo de candados que T8 no cierra (AD
     }
     expect(esChoqueDeCandados(null)).toBe(false);
     expect(esChoqueDeCandados({ code: "55P03" })).toBe(false);
+  });
+});
+
+// ADR-0415: el precio y el costo de una prenda llegan hasta S/ 5 000, y vender por debajo del costo es un aviso, no un candado.
+describe("el aviso de costo sobre precio", () => {
+  it("dice cuánto se pierde por prenda, con el espacio que no se parte", () => {
+    expect(avisoCostoSobrePrecio("59.90", "70")).toBe(
+      "el costo (S/ 70.00) es mayor que el precio (S/ 59.90): pierdes S/ 10.10 en cada venta. Si es a propósito (para liquidarla), guarda igual.",
+    );
+  });
+  it("sin aviso si el costo no pasa al precio, si falta un dato o si alguno ya pasa del tope", () => {
+    for (const [precio, costo] of [["59.90", "30"], ["59.90", "59.90"], ["", "70"], ["59.90", ""], ["5990", "6000"], ["0", "10"]]) {
+      expect(avisoCostoSobrePrecio(precio, costo)).toBeNull();
+    }
+  });
+});
+
+describe("el tope del precio en la ficha (ADR-0415)", () => {
+  it("un precio o un costo de más de S/ 5 000 bloquea; costo sobre precio solo avisa", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s", { precio: 5990 }), variante("b", "NEG", "t-m", { precio: 59.9, costo: 70 })], N);
+    const p = problemasVariantes(filas, N);
+    expect(p.some((x) => x.clave === "a" && x.bloquea && /pasa de S\/ 5000/.test(x.texto))).toBe(true);
+    expect(p.some((x) => x.clave === "b" && !x.bloquea && /pierdes S\/ 10\.10/.test(x.texto))).toBe(true);
   });
 });

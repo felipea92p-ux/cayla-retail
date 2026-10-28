@@ -2,10 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
-import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
+import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
+import { precioEnLaSede } from "@/lib/precio-sede-reglas";
+import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
-import type { AccionHoy } from "@/lib/existencias-recomendaciones";
+import type { PisoDeTalla } from "@/lib/piso-plan";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
@@ -32,7 +35,16 @@ export type FilaStock = {
    *  (Estampado, Multicolor, Animal print) — la pantalla los dibuja distinto. */
   colorHex: string | null;
   referencia: string;
+  /** El precio de catálogo de la variante (`variantes.precio`), para la tarjeta de Existencias (2026-10-05). Opcional: una fila armada por
+   *  una prueba o por otra lectura no lo trae, y la tarjeta simplemente no lo dibuja. */
+  precio?: number | null;
+  /** El precio de arriba es el de ESTA sede (precio propio, Felipe 2026-10-09): la tarjeta dice «Precio de esta tienda». */
+  precioDeSede?: boolean;
   categoria: string | null;
+  /** `categorias.prefijo` y `categorias.familia`: de ahí sale el ícono de la prenda sin foto (`MosaicoPrenda`, 2026-10-04).
+   *  Opcionales: una fila armada por una prueba o por una lista que no los pidió dibuja la percha, no se cae. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   codigosBarras: string[];
   /** La foto principal del PRODUCTO (`producto_fotos.es_principal`; si
    *  ninguna está marcada, la de menor `orden`). Null si el producto no
@@ -87,9 +99,9 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       `variante_id, cantidad, cantidad_apartada,
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
-         sku, codigo, talla:tallas ( valor ),
+         sku, codigo, precio, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
-         producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+         producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
        )`
     )
@@ -118,9 +130,9 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
               `variante_id, cantidad,
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
-                 sku, codigo, talla:tallas ( valor ),
+                 sku, codigo, precio, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
-                 producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+                 producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
                )`
             )
@@ -135,6 +147,8 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       : exigir(conColumna, "el inventario de esta ubicación");
 
   const cantidades = sumarCantidades(filas);
+  // El precio de ESTA sede (precio propio, Felipe 2026-10-09). Si no se puede leer, el general: nunca se cae por esto.
+  const propios = (await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {};
   const porVariante = new Map<string, Omit<FilaStock, keyof Cantidades>>();
   for (const f of filas) {
     if (porVariante.has(f.variante_id)) continue;
@@ -147,8 +161,12 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       colorHex: f.variante?.color?.hex ?? null,
       referencia: f.variante?.producto?.referencia ?? "",
       categoria: f.variante?.producto?.categoria?.nombre ?? null,
+      categoriaPrefijo: f.variante?.producto?.categoria?.prefijo ?? null,
+      categoriaFamilia: f.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (f.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(f.variante?.producto?.producto_fotos),
+      precio: propios[f.variante_id] ?? f.variante?.precio ?? null,
+      ...(propios[f.variante_id] !== undefined ? { precioDeSede: true } : {}),
     });
   }
   const separaPisoAlmacen = [...cantidades.values()].some((c) => c.piso !== null);
@@ -212,17 +230,17 @@ export type FilaExistencias = FilaStock & {
    *  todavía no llegaron (`en_transito`; un traslado con diferencia ya entró al stock, ADR-0239). */
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
-  enRed: SedeConStock[];
+  enRed: SedeConStockId[];
   /** Ritmo reciente (7 días, ledger único — `existencias-ritmo.ts`, 2026-09-25). Solo tiendas;
    *  ausente o null = no se pudo calcular (falló la RPC; ver `coberturaFallo` en el panel). */
   ritmoReciente?: RitmoReciente | null;
   /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
    *  ausente o null = no se pudo calcular. */
   coberturaPiso?: CoberturaPiso | null;
-  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`) — MISMA fuente que
-   *  la tarjeta «Reponer a piso hoy», el filtro Acción y «Ver recomendaciones». Ausente o null = la sede no
-   *  vende (Taller): no se inventa una acción. No depende del Ritmo reciente. */
-  accionHoy?: AccionHoy | null;
+  /** Lo que el piso pide hoy de esta talla: la decisión del motor del piso (`lib/piso-plan.ts`, ADR-0328 act. 7) — MISMA
+   *  fuente que «Hoy» en el filtro, la tabla, la tarjeta, el cajón y el Inicio. La pone la página. Ausente o null = la sede no
+   *  separa piso y almacén (Taller) o el motor no pudo leer: no se inventa una acción. */
+  planPiso?: PisoDeTalla | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
   /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la
@@ -232,6 +250,12 @@ export type FilaExistencias = FilaStock & {
   /** `productos.estado` («activo»/«descontinuado»), para la ventana «Eliminar» (ADR-0252). Lo pone la página con
    *  `conEstadoProducto`, de la misma lectura que la marca. Ausente o null = no se pudo leer. */
   estadoProducto?: string | null;
+  /** `productos.descripcion`, para la cabecera del panel de la talla. La pone la página con `conDescripcion`, de la misma lectura
+   *  que la marca. Ausente o null = no tiene, o no se pudo leer. */
+  descripcion?: string | null;
+  /** La familia del color (`colores.familia_color`), para el filtro «Color» agrupado por familia (2026-10-03). La pone la
+   *  página con `conFamiliaDeColor`, de una lectura aparte y tolerante. Ausente o null = sin familia o no se pudo leer. */
+  colorFamilia?: string | null;
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -268,7 +292,7 @@ export async function getExistencias(
            variante:variantes (
              sku, codigo, talla:tallas ( valor ),
              color:colores ( nombre, hex ),
-             producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+             producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
              codigos_barras ( codigo )
            )`
         )
@@ -327,6 +351,8 @@ export async function getExistencias(
       colorHex: item.variante?.color?.hex ?? null,
       referencia: item.variante?.producto?.referencia ?? "",
       categoria: item.variante?.producto?.categoria?.nombre ?? null,
+      categoriaPrefijo: item.variante?.producto?.categoria?.prefijo ?? null,
+      categoriaFamilia: item.variante?.producto?.categoria?.familia ?? null,
       codigosBarras: (item.variante?.codigos_barras ?? []).map((c) => c.codigo),
       fotoUrl: fotoPrincipal(item.variante?.producto?.producto_fotos),
       total: 0,
@@ -345,26 +371,72 @@ export async function getExistencias(
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
 
+/**
+ * La fila en cero de UNA talla que esta sede nunca tuvo (ni una fila de `stock`), para abrir «Ajustar stock» en ella.
+ *
+ * Existencias arma sus filas desde `stock`, y una fila de `stock` nace de un movimiento: una prenda recién creada (o una talla que nunca llegó a
+ * esta tienda) no tiene ninguna, así que `?variante=<id>&ajustar=1` —el candado de Editar producto, ADR-0494— no encontraba nada y la pantalla
+ * no abría nada: justo la prenda a la que hay que cargarle su primer stock. El ajuste no necesita la fila (`AjustarInventarioModal` lee las
+ * tallas del producto de la base y marca «sin historia» la que nunca se movió, ADR-0235): solo necesita saber de qué prenda se habla.
+ * `null` si la variante no existe o está apagada. Mismo cuerpo que la fila «en camino» de `getExistencias`.
+ */
+export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("variantes")
+    .select(
+      `id, sku, codigo, talla:tallas ( valor ),
+       color:colores ( nombre, hex ),
+       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+       codigos_barras ( codigo )`
+    )
+    .eq("id", varianteId)
+    .eq("activo", true)
+    .maybeSingle();
+  if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
+  return {
+    varianteId: data.id,
+    productoId: data.producto?.id ?? "",
+    sku: codigoDeEtiqueta(data),
+    talla: data.talla?.valor ?? null,
+    color: data.color?.nombre ?? null,
+    colorHex: data.color?.hex ?? null,
+    referencia: data.producto?.referencia ?? "",
+    categoria: data.producto?.categoria?.nombre ?? null,
+    categoriaPrefijo: data.producto?.categoria?.prefijo ?? null,
+    categoriaFamilia: data.producto?.categoria?.familia ?? null,
+    codigosBarras: (data.codigos_barras ?? []).map((c) => c.codigo),
+    fotoUrl: fotoPrincipal(data.producto?.producto_fotos),
+    total: 0,
+    piso: separaPisoAlmacen ? 0 : null,
+    almacen: separaPisoAlmacen ? 0 : null,
+    danado: separaPisoAlmacen ? 0 : null,
+    apartado: 0,
+    disponible: 0,
+    pisoDisponible: separaPisoAlmacen ? 0 : null,
+    almacenDisponible: separaPisoAlmacen ? 0 : null,
+    enTransito: 0,
+    enRed: [],
+  };
+}
+
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
-  /** Variantes con Acción hoy = «Reponer a piso» (2026-09-25) — SIEMPRE lo calcula quien llama
-   *  (`accionHoyPorVariante`, `existencias-recomendaciones.ts`), nunca acá: una sola fuente de
-   *  verdad para la tarjeta, la tabla y el filtro (nunca un `EstadoStock` calculado aparte). */
-  requierenReposicion: number;
 };
 
-export function resumirExistencias(filas: FilaExistencias[], requierenReposicion: number): ResumenExistencias {
+/** Solo cantidades. Lo que pide cada talla no se cuenta aquí: lo cuenta `hoyDeTalla` (rediseño 2026-10-04; antes este resumen
+ *  llevaba `requierenReposicion` para una tarjeta que ya no existe, y no lo pintaba nadie). */
+export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias {
   return {
     ...resumirInventario(filas),
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
-    requierenReposicion,
   };
 }
 
 // ============================================================================
 // "Dañado" (2026-09-17, ADR-0071): la cola de prendas en cuarentena
-// esperando que un líder decida Liquidada / Se botó / Donada
+// esperando que se decida Liquidada / Se botó / Donada (quien ve Existencias en su sede, ADR-0534)
 // (`retail.resolver_prenda_danada`). Consulta aparte de `getStockPorUbicacion`
 // porque acá SÍ hace falta historial (desde cuándo, resuelta por quién) —
 // `retail.stock` (de donde sale `FilaStock.danado`) es solo el snapshot de
@@ -380,32 +452,64 @@ export type PrendaDanada = {
   referencia: string;
   cantidad: number;
   creadoEn: string;
-  /** Precio de catálogo (`variantes.precio`) — solo un punto de partida para
-   *  que el líder no escriba el precio de liquidación desde cero; el precio
-   *  final es el que él decide, `liquidar_prenda_danada` no aplica ningún
-   *  piso ni lo valida contra este número. */
+  /** El precio al que esta tienda vende la prenda (su precio propio, si lo tiene; si no, el de la prenda: `fn_precio_en_sede`) —
+   *  solo un punto de partida para que el líder no escriba el precio de liquidación desde cero; el precio final es el que él
+   *  decide, `liquidar_prenda_danada` no aplica ningún piso ni lo valida contra este número. La liquidación se cobra en la caja
+   *  de esta misma tienda, así que el punto de partida es el de su caja (Felipe 2026-10-10). */
   precioReferencia: number;
+  /** De dónde llegó (ADR-0328 act. 10): reportada en la tienda, una devolución o un cambio (`origenDeDanada`). */
+  origen: OrigenDanada;
+  /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
+  motivoReporte: string | null;
+  /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
+  devolucion: DevolucionPosible | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
   // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
-  const filas = exigir(
-    await leerTodas((desde, hasta) =>
-      supabase
-        .from("prendas_danadas")
-        .select(
-          `id, cantidad, created_at,
-           variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
-        )
-        .eq("ubicacion_id", ubicacionId)
-        .eq("estado", "en_cuarentena")
-        .order("created_at")
-        .order("id")
-        .range(desde, hasta)
-    ),
-    "las prendas dañadas pendientes"
+  const conMotivo = await leerTodas((desde, hasta) =>
+    supabase
+      .from("prendas_danadas")
+      .select(
+        `id, cantidad, created_at, motivo_reporte, cambio_id,
+         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+      )
+      .eq("ubicacion_id", ubicacionId)
+      .eq("estado", "en_cuarentena")
+      .order("created_at")
+      .order("id")
+      .range(desde, hasta)
   );
+  // TEMPORAL — mientras `20261005140000_danadas_reportar_y_se_arreglo.sql` no esté pegada en producción: esta lectura va en el
+  // `Promise.all` de /inventario y `exigir` lanza, así que una web publicada antes que el SQL tumbaría Existencias ENTERA, no solo
+  // la lista de Dañadas (pasó con #730: la web salió por auto-merge antes que su SQL). Sin la columna se relee sin ella y todo
+  // queda como antes (ninguna dañada viene de un reporte); «Reportar dañada» y «Se arregló» solo fallan al usarse. Mismo patrón
+  // que `getStockPorUbicacion` con `cantidad_apartada`. Retirar el reintento cuando la migración esté aplicada.
+  const filas =
+    conMotivo.error?.code === COLUMNA_INEXISTENTE
+      ? exigir(
+          await leerTodas((desde, hasta) =>
+            supabase
+              .from("prendas_danadas")
+              .select(
+                `id, cantidad, created_at, cambio_id,
+                 variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+              )
+              .eq("ubicacion_id", ubicacionId)
+              .eq("estado", "en_cuarentena")
+              .order("created_at")
+              .order("id")
+              .range(desde, hasta)
+          ),
+          "las prendas dañadas pendientes"
+        ).map((f) => ({ ...f, motivo_reporte: null as string | null }))
+      : exigir(conMotivo, "las prendas dañadas pendientes");
+  // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
+  const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
+  // «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): cuáles llegaron dañadas en una recepción y a quién vuelven. Opcional: si la
+  // base no responde o todavía no tiene la función, la lista sale sin ese botón, como antes.
+  const devolvibles = filas.length === 0 ? new Map<string, DevolucionPosible>() : await leerDevolviblesDeSede(supabase, ubicacionId);
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -415,6 +519,18 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     referencia: f.variante?.producto?.referencia ?? "",
     cantidad: f.cantidad,
     creadoEn: f.created_at,
-    precioReferencia: f.variante?.precio ?? 0,
+    precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
+    origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
+    motivoReporte: f.motivo_reporte,
+    devolucion: devolvibles.get(f.id) ?? null,
   }));
+}
+
+async function leerDevolviblesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, DevolucionPosible>> {
+  try {
+    const { data, error } = await supabase.rpc(RPC_DANADAS_DEVOLVIBLES as never, { p_ubicacion_id: ubicacionId } as never);
+    return error ? new Map() : leerDevolvibles(data);
+  } catch {
+    return new Map();
+  }
 }

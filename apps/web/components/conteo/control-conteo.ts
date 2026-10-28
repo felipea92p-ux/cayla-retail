@@ -77,6 +77,21 @@ export type Puertos = {
 
 export type ResultadoContar = "aplicada" | "sin_cambio" | "fuera_de_alcance";
 
+/** Lo que responde la base a «Aplicar todos completos» (`conteo_aplicar_completos`): `{ aplicadas, lineas }`, o el error. No debe lanzar. */
+export type RespuestaAplicar = { data: unknown; error: ErrorGuardado | null };
+
+/**
+ * Lo que devuelve `aplicarCompletos`: cuántas anotó la base esta vez y, de las líneas pedidas, cuántas quedaron «sin contar» (en un
+ * reintento la base anota 0 porque ya estaban: así la pantalla no dice «no se anotó nada» mientras las filas cambian). O el error.
+ */
+export type ResultadoAplicar = { aplicadas: number; sinContar: number } | { error: ErrorGuardado };
+
+/** Una cantidad del atajo «Completar todo»: lo que CAYLA esperaba que hubiera en esa variante. */
+export type LineaDelAtajo = { varianteId: string; cantidad: number };
+
+/** Lo que resuelve `completar` cuando la base contesta: cuántas contó ella esta vez, o el error (y entonces las líneas volvieron a lo confirmado). */
+export type ResultadoCompletar = { completadas: number } | { error: ErrorGuardado };
+
 /** Una variante que no estaba en la foto y se acaba de encontrar: sin nada esperado en este lugar (regla D3: «foto 0»). */
 function lineaNueva(varianteId: string): LineaConteo {
   return {
@@ -91,6 +106,8 @@ function lineaNueva(varianteId: string): LineaConteo {
     ajusteMovimientoId: null,
     ajustadoTotal: 0,
     ajustadoAntes: 0,
+    hallazgos: 0,
+    aplicadaSinContar: false,
     diferencia: null,
     estado: "pendiente",
   };
@@ -107,8 +124,34 @@ function seVenIguales(a: LineaConteo, b: LineaConteo): boolean {
     a.ajustadoAntes === b.ajustadoAntes &&
     a.estado === b.estado &&
     a.confirmadaEn === b.confirmadaEn &&
-    a.diferencia === b.diferencia
+    a.diferencia === b.diferencia &&
+    a.aplicadaSinContar === b.aplicadaSinContar
   );
+}
+
+/** `{ <clave>, lineas }` de una respuesta por lotes de la base, o `null` si no tiene esa forma (no se pinta nada que no se pudo leer). */
+function leerLote(data: unknown, clave: "aplicadas" | "completadas"): { cuantas: number; lineas: [string, LineaConteo | null][] } | null {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
+  const o = data as Record<string, unknown>;
+  const cuantas = o[clave];
+  if (typeof cuantas !== "number" || !Array.isArray(o.lineas)) return null;
+  try {
+    const lineas: [string, LineaConteo | null][] = [];
+    for (const j of o.lineas) {
+      const id = typeof j === "object" && j !== null ? (j as { variante_id?: unknown }).variante_id : undefined;
+      if (typeof id !== "string") return null;
+      lineas.push([id, lineaDesdeJson(j)]);
+    }
+    return { cuantas, lineas };
+  } catch {
+    return null;
+  }
+}
+
+/** `{ aplicadas, lineas }` de `conteo_aplicar_completos`. */
+function leerAplicadas(data: unknown): { aplicadas: number; lineas: [string, LineaConteo | null][] } | null {
+  const l = leerLote(data, "aplicadas");
+  return l && { aplicadas: l.cuantas, lineas: l.lineas };
 }
 
 export class ControlConteo {
@@ -231,6 +274,86 @@ export class ControlConteo {
     return "aplicada";
   }
 
+  /**
+   * «Aplicar todos completos» (ADR-0328): anota de una vez, en la base, lo que CAYLA espera en las variantes pedidas que siguen sin
+   * cifra, marcadas «sin contar». A diferencia de `contar`, NO se pinta antes de que la base responda: es una afirmación sobre muchas
+   * prendas a la vez, con su marca, y lo que se ve tiene que ser lo que la base guardó (nada optimista). Va en la MISMA fila que los
+   * guardados de cada variante, después de soltar lo que esperaba su turno: nada se cruza. Con la respuesta, cada línea queda como la
+   * dejó la base, salvo las que la persona volvió a tocar mientras tanto (de esas valen solo los hechos de la base, como en
+   * `confirmar`). Devuelve cuántas anotó y cuántas de las pedidas quedaron «sin contar», o el error (y entonces no cambió nada en
+   * pantalla).
+   */
+  async aplicarCompletos(varianteIds: readonly string[], aplicar: (ids: string[]) => Promise<RespuestaAplicar>): Promise<ResultadoAplicar> {
+    const ids = [...varianteIds];
+    this.agrupador.soltarTodo();
+    this.fijarGuardado("guardando");
+    let resultado: ResultadoAplicar = { aplicadas: 0, sinContar: 0 };
+    await this.cola.agregar(async () => {
+      // Las ediciones de cada variante en el instante de enviar: lo que la persona cambie después de esto lo decide su propio guardado.
+      const enviadas = new Map(ids.map((id) => [id, this.ediciones.get(id) ?? 0]));
+      let respuesta: RespuestaAplicar;
+      try {
+        respuesta = await aplicar(ids);
+      } catch (e) {
+        respuesta = { data: null, error: { message: e instanceof Error ? e.message : "No se pudo aplicar." } };
+      }
+      const leida = respuesta.error ? null : leerAplicadas(respuesta.data);
+      if (respuesta.error || !leida) {
+        this.fallos += 1;
+        this.fijarGuardado("error");
+        resultado = { error: respuesta.error ?? { message: "La respuesta del conteo llegó mal formada." } };
+        return;
+      }
+      for (const [id, linea] of leida.lineas) this.confirmar(id, linea, enviadas.get(id) ?? this.ediciones.get(id) ?? 0);
+      resultado = { aplicadas: leida.aplicadas, sinContar: leida.lineas.filter(([, l]) => l?.aplicadaSinContar === true).length };
+    });
+    this.reevaluarGuardado();
+    return resultado;
+  }
+
+  /**
+   * «Completar todo» de una tarjeta (ADR-0328; opción C de Felipe, 2026-10-05): cuenta de una vez las variantes pedidas que SIGUEN
+   * pendientes con lo que CAYLA esperaba, y la base las marca «completadas con el atajo» (cuentan, pero Revisar lo dice). A diferencia de
+   * `aplicarCompletos`, SÍ se pinta YA —como `contar`: es una persona con la tarjeta delante afirmando lo que ve—, pero lo que sale a la
+   * red es UNA petición (`conteo_completar_tarjeta`) y no una por talla, y va en la MISMA fila que los guardados sueltos, después de
+   * soltar lo que esperaba su turno: nada se cruza. La respuesta de la base manda (salvo en las variantes que la persona volvió a tocar
+   * mientras tanto: de esas valen solo los hechos de la base). Si la base rechaza, cada línea vuelve a lo último que confirmó. Devuelve
+   * cuántas pintó (las que ya tenían cifra no entran, igual que en la base) y, aparte, la promesa de lo que conteste la base.
+   */
+  completar(
+    items: readonly LineaDelAtajo[],
+    enviar: (lineas: LineaDelAtajo[]) => Promise<RespuestaAplicar>
+  ): { anotadas: number; resultado: Promise<ResultadoCompletar> } {
+    this.agrupador.soltarTodo();
+    const lote: LineaDelAtajo[] = [];
+    const vistas = new Set<string>();
+    for (const { varianteId, cantidad } of items) {
+      const previa = this.entradas.get(varianteId);
+      if (vistas.has(varianteId) || !previa || previa.contada !== null) continue;
+      vistas.add(varianteId);
+      const siguiente = contarLinea(previa, cantidad, this.ahora());
+      this.ediciones.set(varianteId, (this.ediciones.get(varianteId) ?? 0) + 1);
+      if (siguiente) this.poner(varianteId, siguiente);
+      else this.quitar(varianteId);
+      lote.push({ varianteId, cantidad });
+    }
+    if (lote.length === 0) return { anotadas: 0, resultado: Promise.resolve({ completadas: 0 }) };
+
+    // Las ediciones de cada variante en el instante de pintar: lo que la persona cambie después lo decide su propio guardado.
+    const enviadas = new Map(lote.map((l) => [l.varianteId, this.ediciones.get(l.varianteId) ?? 0]));
+    this.fijarGuardado("guardando");
+    let resultado: ResultadoCompletar = { completadas: 0 };
+    const terminado = this.cola
+      .agregar(async () => {
+        resultado = await this.enviarLote(lote, enviadas, enviar);
+      })
+      .then(() => {
+        this.reevaluarGuardado();
+        return resultado;
+      });
+    return { anotadas: lote.length, resultado: terminado };
+  }
+
   /** Manda YA lo que espera su turno (al salir de la pantalla). No espera la respuesta. */
   soltar(): void {
     this.agrupador.soltarTodo();
@@ -274,6 +397,34 @@ export class ControlConteo {
       return;
     }
     this.confirmar(peticion.varianteId, linea, enviada);
+  }
+
+  private async enviarLote(
+    lote: readonly LineaDelAtajo[],
+    enviadas: ReadonlyMap<string, number>,
+    enviar: (lineas: LineaDelAtajo[]) => Promise<RespuestaAplicar>
+  ): Promise<ResultadoCompletar> {
+    let respuesta: RespuestaAplicar;
+    try {
+      respuesta = await enviar([...lote]);
+    } catch (e) {
+      respuesta = { data: null, error: { message: e instanceof Error ? e.message : "No se pudo completar la tarjeta." } };
+    }
+    const leida = respuesta.error ? null : leerLote(respuesta.data, "completadas");
+    if (respuesta.error || !leida) {
+      this.fallos += 1;
+      // Como `fallar`: cada línea vuelve a lo último que la base confirmó, salvo la que la persona ya volvió a tocar (esa la decide su guardado).
+      for (const { varianteId } of lote) {
+        if ((this.ediciones.get(varianteId) ?? 0) !== (enviadas.get(varianteId) ?? 0)) continue;
+        const confirmada = this.confirmadas.get(varianteId);
+        if (confirmada) this.poner(varianteId, confirmada);
+        else this.quitar(varianteId);
+      }
+      this.fijarGuardado("error");
+      return { error: respuesta.error ?? { message: "La respuesta del conteo llegó mal formada." } };
+    }
+    for (const [id, linea] of leida.lineas) this.confirmar(id, linea, enviadas.get(id) ?? this.ediciones.get(id) ?? 0);
+    return { completadas: leida.cuantas };
   }
 
   private confirmar(varianteId: string, delServidor: LineaConteo | null, enviada: number): void {

@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { useRef, useState } from "react";
 import { validarDocumento } from "@cayla-retail/shared";
 import { createClient } from "@/lib/supabase/client";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
@@ -11,9 +9,9 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos, type TipoProveedor } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
-import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { Modal } from "@/components/ui/Modal";
 import {
   argsGuardarCuentas,
   avisoCuentasNoGuardadas,
@@ -71,6 +69,10 @@ import {
 // registra: la pregunta cuesta un clic, un proveedor partido en dos reparte facturas, Por pagar y notas de crédito en
 // dos fichas. Con el nombre IGUAL no hay «no»: la base no dejaría registrar otro. Si el RUC ya choca, la pregunta
 // no sale: el RUC ya contestó.
+//
+// ADR-0479 (actividad 10, 2026-10-23): la hoja ya no se arma a mano con Radix: es `<Modal>`, así que en el celular llega desde el
+// borde con su asa, se baja con el dedo y aleja lo de atrás, como todas. Su salida es «Cancelar» (no también una ✕, ADR-0358) y,
+// mientras guarda, ni Escape ni el velo ni el dedo la cierran (`bloqueado`).
 
 // Mismo vocabulario y orden que el selector de medio de pago en LineasPago.tsx (compra_pagos.metodo):
 // un solo catálogo de formas de pago en toda la app.
@@ -78,8 +80,6 @@ const FORMAS_PAGO = Object.keys(ETIQUETA_METODO);
 
 // Plazos que se eligen con un toque; cualquier otro número entra por «Otro».
 const PLAZOS = ["15", "30", "45", "60"];
-/** Debe coincidir con `.anim-salida` en globals.css. */
-const MS_SALIDA = 220;
 
 const CHIP = "rounded-full border px-3 py-0.5 text-xs transition-colors duration-200";
 const CHIP_OFF = "border-tinta/15 text-tinta/75 hover:border-rojo hover:text-rojo";
@@ -96,6 +96,8 @@ export type Borrador = {
   rubros: string[];
   plazoCreditoDias: string;
   formaPagoPreferida: string;
+  /** Mercadería (ropa) o servicios (Entel, luz, agua, alquiler); 20261024222000. */
+  tipo: TipoProveedor;
 } & CuentasForm;
 
 export const BORRADOR_VACIO: Borrador = {
@@ -109,6 +111,7 @@ export const BORRADOR_VACIO: Borrador = {
   rubros: [],
   plazoCreditoDias: "",
   formaPagoPreferida: "",
+  tipo: "mercaderia",
   ...CUENTAS_VACIAS,
 };
 
@@ -124,6 +127,7 @@ export function borradorDe(p: {
   rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  tipo?: string | null;
   cci: string | null;
   celular_billetera: string | null;
   billeteras: string[] | null;
@@ -140,6 +144,7 @@ export function borradorDe(p: {
     rubros: p.rubros,
     plazoCreditoDias: p.plazo_credito_dias != null ? String(p.plazo_credito_dias) : "",
     formaPagoPreferida: p.forma_pago_preferida ?? "",
+    tipo: p.tipo === "servicios" ? "servicios" : "mercaderia",
     ...cuentasDeFila(p),
   };
 }
@@ -153,21 +158,23 @@ export function ProveedorModal({
   inicial,
   rubros = [],
   existentes = [],
+  elegirTipo = true,
   onClose,
   onGuardado,
-  onDesactivar,
 }: {
   inicial: Borrador;
+  /** Pregunta primero qué clase de proveedor es. Las pantallas de mercadería (Recibir, Órdenes, Marcas) no la hacen: ahí solo se registra ropa. */
   /** Rubros ya usados en el directorio: los botones que se eligen con un toque. */
   rubros?: string[];
   /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
   existentes?: { id: string; nombre: string; ruc: string | null; activo?: boolean }[];
+  elegirTipo?: boolean;
   onClose: () => void;
-  /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. */
-  onGuardado: (id: string | null) => void;
-  /** Solo al editar: desactivar vive acá y no en la fila (ver ProveedoresPanel). */
-  onDesactivar?: () => Promise<void>;
+  /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. `datos` trae lo
+   *  que se guardó, para quien lo necesita en pantalla sin esperar a que la página vuelva a leer el directorio (Recibir). */
+  onGuardado: (id: string | null, datos?: { nombre: string; ruc: string | null; plazoCreditoDias?: number | null; formaPagoPreferida?: string | null }) => void;
 }) {
+  const [tipo, setTipo] = useState<TipoProveedor>(inicial.tipo);
   const [nombre, setNombre] = useState(inicial.nombre);
   const [ruc, setRuc] = useState(inicial.ruc);
   const [contacto, setContacto] = useState(inicial.contacto);
@@ -197,7 +204,6 @@ export function ProveedorModal({
   const [idGuardado, setIdGuardado] = useState<string | null>(null);
   // reposo → guardando (el botón barre) → listo (✓) → se cierra con la salida animada.
   const [fase, setFase] = useState<"reposo" | "guardando" | "listo">("reposo");
-  const [cerrando, setCerrando] = useState(false);
   const alCerrar = useRef<(() => void) | null>(null);
 
   const idActual = idGuardado ?? inicial.id;
@@ -236,19 +242,6 @@ export function ProveedorModal({
   }
   const alternarBilletera = (b: string) => setBilleteras((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]));
 
-  // Cierre en dos tiempos, igual que `Modal`: se anima la salida y recién ahí se avisa al padre (que lo desmonta).
-  const pedirCierre = useCallback(() => setCerrando(true), []);
-  useEffect(() => {
-    if (!cerrando) return;
-    const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(() => (alCerrar.current ?? onClose)(), reducido ? 0 : MS_SALIDA);
-    return () => clearTimeout(t);
-  }, [cerrando, onClose]);
-  // Escape cierra la hoja solo si ningún control de adentro lo usó (useEscapeLibre.ts); mientras guarda, no la cierra.
-  const alEscape = useEscapeLibre(() => {
-    if (fase !== "guardando") pedirCierre();
-  });
-
   // Los botones: los rubros del directorio y, al final, los elegidos que nadie más usa (el recién escrito).
   const opcionesRubro = opcionesDeRubro(rubros, rubrosElegidos);
   const clavesElegidas = new Set(rubrosElegidos.map(claveRubro));
@@ -264,7 +257,8 @@ export function ProveedorModal({
     setPlazoCreditoDias(clave);
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  /** `cerrar`: el cierre animado de la hoja (lo da `<Modal>`); al terminar, el padre se entera por `alCerrar` o `onClose`. */
+  async function onSubmit(e: React.FormEvent, cerrar: () => void) {
     e.preventDefault();
     if (fase !== "reposo") return;
     if (!nombre.trim()) return void avisar.error("El proveedor necesita un nombre.", { enfocar: "documento-nombre" });
@@ -315,7 +309,20 @@ export function ProveedorModal({
       return;
     }
     const id = editando ? idActual : ((idNuevo as string | null) ?? null);
-    alCerrar.current = () => onGuardado(id);
+    alCerrar.current = () =>
+      onGuardado(id, { nombre: nombre.trim(), ruc: ruc || null, plazoCreditoDias: plazoCreditoDias ? Number(plazoCreditoDias) : null, formaPagoPreferida: formaPagoPreferida || null });
+
+    // Paso 1b: el tipo, solo si no es el de fábrica (un alta de mercadería ya nace así) o si cambió al editar. Si falla, el proveedor
+    // queda guardado como estaba (un estado válido) y se avisa; no se pierde nada.
+    if (id && tipo !== (editando ? inicial.tipo : "mercaderia")) {
+      const { error: errorTipo } = await supabase.rpc("cambiar_tipo_proveedor", { p_proveedor_id: id, p_tipo: tipo });
+      if (errorTipo) {
+        if (!editando) setIdGuardado(id);
+        setFase("reposo");
+        avisar.error(`El proveedor se guardó, pero no se pudo poner su tipo: ${traducirError(errorTipo, "cambiar el tipo del proveedor")}`);
+        return;
+      }
+    }
 
     // Paso 2: las cuentas, solo si algo de ellas cambió (o es un alta con algo escrito).
     if (id && hayQueGuardarCuentas(cuentasIniciales, cuentas, inicial.id === null)) {
@@ -334,306 +341,304 @@ export function ProveedorModal({
     // El ✓ se ve un instante y recién ahí el modal se va: la confirmación es parte del gesto, no un aviso aparte.
     setFase("listo");
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    setTimeout(pedirCierre, reducido ? 0 : 520);
+    setTimeout(cerrar, reducido ? 0 : 520);
   }
 
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && fase !== "guardando" && pedirCierre()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/30 backdrop-blur-[2.5px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
-        {/* La posición vive en este contenedor y no en el panel: la animación de entrada usa `transform`. Anclada arriba
-            en escritorio, como `<Modal>` (ADR-0185): centrada, cada cambio de alto movía el borde de arriba. */}
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]">
-          <Dialog.Content
-            onEscapeKeyDown={alEscape}
-            className={`pointer-events-auto flex max-h-[92dvh] w-full sm:max-h-[calc(100dvh-8vh-1.5rem)] max-w-[35rem] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel shadow-xl outline-none sm:rounded-2xl ${
-              cerrando ? "anim-salida" : "anim-entrada"
-            }`}
-          >
-            <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-              <div className="flex items-start justify-between gap-4 px-6 pb-2 pt-[22px]">
-                <div>
-                  <p className="label-cayla text-[11px] text-tinta/65">Compras · Proveedores</p>
-                  <Dialog.Title asChild>
-                    <h2 className="font-display mt-0.5 text-2xl leading-tight text-tinta">{editando ? "Editar proveedor" : "Registrar proveedor"}</h2>
-                  </Dialog.Title>
-                </div>
-                <button type="button" onClick={pedirCierre} aria-label="Cerrar" className="-mr-1 -mt-1 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo">
-                  <X aria-hidden className="h-4 w-4" />
-                </button>
-              </div>
-              <Dialog.Description className="sr-only">Datos del proveedor: RUC, razón social, contacto, rubros, plazo de crédito, forma de pago y cómo pagarle.</Dialog.Description>
-
-              <div className="scroll-cayla min-h-0 flex-1 space-y-2 overflow-y-auto px-6 pb-5 pt-2">
-                {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
-                    la lógica del padrón). `contador` le agrega «n/11», el hilo verde y el ✓ del spike. */}
-                <ConsultaDocumento
-                  tipo="ruc"
-                  obligatorio={false}
-                  disparo="boton"
-                  contador
-                  problemaExterno={repetido ? <>Ya está registrado: <b className="font-semibold">{repetido.nombre}</b>. Un RUC no puede repetirse.</> : undefined}
-                  numero={ruc}
-                  onNumero={setRuc}
-                  nombre={nombre}
-                  onNombre={setNombre}
+    <Modal
+      titulo={editando ? "Editar proveedor" : "Registrar proveedor"}
+      subtitulo="RUC, contacto, plazo de crédito y cómo pagarle."
+      tamano="mediana"
+      bloqueado={fase === "guardando"}
+      onClose={() => (alCerrar.current ?? onClose)()}
+    >
+      {(cerrar) => (
+        <form onSubmit={(e) => onSubmit(e, cerrar)} className="space-y-2">
+          {elegirTipo && (
+            <div data-guia="proveedor-modal.tipo">
+              <Campo etiqueta="¿Qué clase de proveedor es?" idEtiqueta="etiqueta-tipo-proveedor">
+                <SegmentoDeslizante
+                  etiqueta="Clase de proveedor"
+                  valor={tipo}
+                  onCambio={(c) => setTipo(c as TipoProveedor)}
+                  opciones={[
+                    { clave: "mercaderia", etiqueta: ETIQUETA_TIPO_PROVEEDOR.mercaderia },
+                    { clave: "servicios", etiqueta: ETIQUETA_TIPO_PROVEEDOR.servicios },
+                  ]}
                 />
+                <span className="mt-1 block text-xs text-taupe">
+                  {tipo === "servicios" ? "A quien se le paga un servicio: telefonía, luz, agua, alquiler." : "A quien se le compra ropa o lo que se revende."}
+                </span>
+              </Campo>
+            </div>
+          )}
 
-                {pregunta.igual && (
-                  <PreguntaParecido
-                    id="proveedor-parecido"
-                    titulo={`«${pregunta.igual.nombre}» ya está registrado`}
-                    bajada="Con el mismo nombre no se registra otro. Si le falta algo, complétalo en su ficha."
-                    opciones={[{ id: pregunta.igual.id, nombre: pregunta.igual.nombre, detalle: detalleParecido(pregunta.igual) }]}
-                    si={(o) => ({ texto: "Ver su ficha", href: `/compras/proveedores/${o.id}` })}
-                  />
-                )}
-                {porResponder.length > 0 && (
-                  <PreguntaParecido
-                    id="proveedor-parecido"
-                    titulo="¿No será un proveedor que ya tienes?"
-                    bajada="Si es el mismo, ábrelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
-                    opciones={porResponder.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: detalleParecido(proveedor) }))}
-                    si={(o) => ({ texto: "Sí, es este: ver su ficha", href: `/compras/proveedores/${o.id}` })}
-                    no={{
-                      texto: `No, «${nombre.trim()}» es otro proveedor`,
-                      onClick: () => setDescartados((prev) => new Set([...prev, ...porResponder.map((p) => p.proveedor.id)])),
-                    }}
-                  />
-                )}
+          {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
+              la lógica del padrón). `contador` le agrega «n/11», el hilo verde y el ✓ del spike. */}
+          <div data-guia="proveedor-modal.ruc">
+          <ConsultaDocumento
+            tipo="ruc"
+            obligatorio={false}
+            disparo="boton"
+            contador
+            problemaExterno={repetido ? <>Ya está registrado: <b className="font-semibold">{repetido.nombre}</b>. Un RUC no puede repetirse.</> : undefined}
+            numero={ruc}
+            onNumero={setRuc}
+            nombre={nombre}
+            onNombre={setNombre}
+          />
+          </div>
 
-                <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                  <CampoTexto etiqueta="Contacto" autoComplete="off" placeholder="Con quién se coordina" value={contacto} onChange={(e) => setContacto(e.target.value)} />
-                  <CampoTexto etiqueta="Teléfono" type="tel" autoComplete="off" placeholder="El WhatsApp de los pedidos" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-                </div>
+          {pregunta.igual && (
+            <PreguntaParecido
+              id="proveedor-parecido"
+              titulo={`«${pregunta.igual.nombre}» ya está registrado`}
+              bajada="Con el mismo nombre no se registra otro. Si le falta algo, complétalo en su ficha."
+              opciones={[{ id: pregunta.igual.id, nombre: pregunta.igual.nombre, detalle: detalleParecido(pregunta.igual) }]}
+              si={(o) => ({ texto: "Ver su ficha", href: `/compras/proveedores/${o.id}` })}
+            />
+          )}
+          {porResponder.length > 0 && (
+            <PreguntaParecido
+              id="proveedor-parecido"
+              titulo="¿No será un proveedor que ya tienes?"
+              bajada="Si es el mismo, ábrelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
+              opciones={porResponder.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: detalleParecido(proveedor) }))}
+              si={(o) => ({ texto: "Sí, es este: ver su ficha", href: `/compras/proveedores/${o.id}` })}
+              no={{
+                texto: `No, «${nombre.trim()}» es otro proveedor`,
+                onClick: () => setDescartados((prev) => new Set([...prev, ...porResponder.map((p) => p.proveedor.id)])),
+              }}
+            />
+          )}
 
-                <Campo
-                  etiqueta={
-                    <>
-                      Rubros <span className="normal-case tracking-normal">(elige todos los que vende)</span>
-                    </>
-                  }
-                  idEtiqueta="etiqueta-rubros"
-                >
-                  {opcionesRubro.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-rubros">
-                      {opcionesRubro.map((r) => {
-                        const elegido = clavesElegidas.has(claveRubro(r));
-                        return (
-                          // Tocar de nuevo lo quita: son casillas, no una sola opción.
-                          <button key={r} type="button" aria-pressed={elegido} onClick={() => setRubrosElegidos((v) => alternarRubro(v, r))} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
-                            {r}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div className="mt-3 flex items-end gap-3">
-                    <div className="min-w-0 flex-1">
-                      <CampoTexto
-                        etiqueta="Otro rubro"
-                        autoComplete="off"
-                        placeholder="Si no está arriba, escríbelo"
-                        value={rubroNuevo}
-                        onChange={(e) => setRubroNuevo(e.target.value)}
-                        onKeyDown={(e) => {
-                          // Enter agrega el rubro; no guarda el formulario a medio llenar.
-                          if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
-                          e.preventDefault();
-                          agregarRubroNuevo();
-                        }}
-                      />
-                    </div>
-                    <button type="button" onClick={agregarRubroNuevo} disabled={!claveRubro(rubroNuevo)} className={`${CHIP} ${CHIP_OFF} mb-[1.35rem] shrink-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/15 disabled:hover:text-tinta/75`}>
-                      Agregar
+          <div data-guia="proveedor-modal.contacto" className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+            <CampoTexto etiqueta="Contacto" autoComplete="off" placeholder="Con quién se coordina" value={contacto} onChange={(e) => setContacto(e.target.value)} />
+            <CampoTexto etiqueta="Teléfono" type="tel" autoComplete="off" placeholder="El WhatsApp de los pedidos" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+          </div>
+
+          <div data-guia="proveedor-modal.rubros">
+          <Campo
+            etiqueta={
+              <>
+                Rubros <span className="normal-case tracking-normal">(elige todos los que vende)</span>
+              </>
+            }
+            idEtiqueta="etiqueta-rubros"
+          >
+            {opcionesRubro.length > 0 && (
+              <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-rubros">
+                {opcionesRubro.map((r) => {
+                  const elegido = clavesElegidas.has(claveRubro(r));
+                  return (
+                    // Tocar de nuevo lo quita: son casillas, no una sola opción.
+                    <button key={r} type="button" aria-pressed={elegido} onClick={() => setRubrosElegidos((v) => alternarRubro(v, r))} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
+                      {r}
                     </button>
-                  </div>
-                </Campo>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-3 flex items-end gap-3">
+              <div className="min-w-0 flex-1">
+                <CampoTexto
+                  etiqueta="Otro rubro"
+                  autoComplete="off"
+                  placeholder="Si no está arriba, escríbelo"
+                  value={rubroNuevo}
+                  onChange={(e) => setRubroNuevo(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Enter agrega el rubro; no guarda el formulario a medio llenar.
+                    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                    e.preventDefault();
+                    agregarRubroNuevo();
+                  }}
+                />
+              </div>
+              <button type="button" onClick={agregarRubroNuevo} disabled={!claveRubro(rubroNuevo)} className={`${CHIP} ${CHIP_OFF} mb-[1.35rem] shrink-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/15 disabled:hover:text-tinta/75`}>
+                Agregar
+              </button>
+            </div>
+          </Campo>
+          </div>
 
-                <Campo etiqueta="Plazo de crédito" idEtiqueta="etiqueta-plazo">
-                  <SegmentoDeslizante
-                    etiqueta="Plazo de crédito"
-                    valor={modoPlazo}
-                    onCambio={elegirPlazo}
-                    opciones={[{ clave: "", etiqueta: "Sin definir" }, ...PLAZOS.map((d) => ({ clave: d, etiqueta: `${d} d` })), { clave: "otro", etiqueta: "Otro" }]}
-                  />
-                  {plazoOtro && (
-                    <div className="anim-revelar mt-2 max-w-[12rem]">
-                      <CampoTexto etiqueta="Días" type="number" min={1} step={1} autoComplete="off" placeholder="20" value={plazoCreditoDias} onChange={(e) => setPlazoCreditoDias(e.target.value)} />
-                    </div>
-                  )}
-                </Campo>
+          <div data-guia="proveedor-modal.plazo">
+          <Campo etiqueta="Plazo de crédito" idEtiqueta="etiqueta-plazo">
+            <SegmentoDeslizante
+              etiqueta="Plazo de crédito"
+              valor={modoPlazo}
+              onCambio={elegirPlazo}
+              opciones={[{ clave: "", etiqueta: "Sin definir" }, ...PLAZOS.map((d) => ({ clave: d, etiqueta: `${d} d` })), { clave: "otro", etiqueta: "Otro" }]}
+            />
+            {plazoOtro && (
+              <div className="anim-revelar mt-2 max-w-[12rem]">
+                <CampoTexto etiqueta="Días" type="number" min={1} step={1} autoComplete="off" placeholder="20" value={plazoCreditoDias} onChange={(e) => setPlazoCreditoDias(e.target.value)} />
+              </div>
+            )}
+          </Campo>
+          </div>
 
-                <Campo etiqueta="Forma de pago preferida" idEtiqueta="etiqueta-forma-pago">
-                  <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-forma-pago">
-                    {FORMAS_PAGO.map((m) => {
-                      const elegido = formaPagoPreferida === m;
-                      return (
-                        // Tocar la elegida la quita: «sin definir» es una respuesta válida.
-                        <button key={m} type="button" aria-pressed={elegido} onClick={() => setFormaPagoPreferida(elegido ? "" : m)} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
-                          {ETIQUETA_METODO[m]}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Campo>
+          <div data-guia="proveedor-modal.forma-pago">
+          <Campo etiqueta="Forma de pago preferida" idEtiqueta="etiqueta-forma-pago">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-forma-pago">
+              {FORMAS_PAGO.map((m) => {
+                const elegido = formaPagoPreferida === m;
+                return (
+                  // Tocar la elegida la quita: «sin definir» es una respuesta válida.
+                  <button key={m} type="button" aria-pressed={elegido} onClick={() => setFormaPagoPreferida(elegido ? "" : m)} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
+                    {ETIQUETA_METODO[m]}
+                  </button>
+                );
+              })}
+            </div>
+          </Campo>
+          </div>
 
-                {/* ADR-0134 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
-                <section aria-labelledby="proveedor-pago-titulo" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
-                  <p id="proveedor-pago-titulo" className="label-cayla text-[11px] text-tinta/65">
-                    Cómo pagarle
-                  </p>
-                  <p className="-mt-1 text-xs text-tinta/55">Todo es opcional. Lo que registres aparece al pagar, listo para copiar.</p>
+          {/* ADR-0134 · Cómo pagarle. Todo opcional: sin esto el proveedor se registra igual, y en el pago se avisa que falta. */}
+          <section aria-labelledby="proveedor-pago-titulo" data-guia="proveedor-modal.como-pagarle" className="mt-1 space-y-2 border-t border-tinta/10 pt-4">
+            <p id="proveedor-pago-titulo" className="label-cayla text-[11px] text-tinta/65">
+              Cómo pagarle
+            </p>
+            <p className="-mt-1 text-xs text-tinta/55">Todo es opcional. Lo que registres aparece al pagar, listo para copiar.</p>
 
-                  <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <div>
-                      <CampoTexto etiqueta="Banco" autoComplete="off" list="proveedor-bancos" placeholder="BCP, Interbank…" value={banco} onChange={(e) => setBanco(e.target.value)} />
-                      <datalist id="proveedor-bancos">
-                        {BANCOS_COMUNES.map((b) => (
-                          <option key={b} value={b} />
-                        ))}
-                      </datalist>
-                    </div>
-                    <CampoTexto etiqueta="N.° de cuenta" mono autoComplete="off" inputMode="numeric" placeholder="Para depósito o mismo banco" value={cuentaBancaria} onChange={(e) => setCuentaBancaria(e.target.value)} />
-                  </div>
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <div>
+                <CampoTexto etiqueta="Banco" autoComplete="off" list="proveedor-bancos" placeholder="BCP, Interbank…" value={banco} onChange={(e) => setBanco(e.target.value)} />
+                <datalist id="proveedor-bancos">
+                  {BANCOS_COMUNES.map((b) => (
+                    <option key={b} value={b} />
+                  ))}
+                </datalist>
+              </div>
+              <CampoTexto etiqueta="N.° de cuenta" mono autoComplete="off" inputMode="numeric" placeholder="Para depósito o mismo banco" value={cuentaBancaria} onChange={(e) => setCuentaBancaria(e.target.value)} />
+            </div>
 
-                  <CampoTexto
-                    id="proveedor-cci"
-                    etiqueta={
-                      <>
-                        {/* Igual que «n/11» del RUC: el contador queda a la derecha de la misma línea. */}
-                        <span className={`float-right font-medium normal-case tracking-normal tabular-nums transition-colors duration-200 ${digitosCci === 20 ? "text-verde-profundo" : "text-tinta/45"}`}>{digitosCci}/20</span>
-                        CCI <span className="normal-case tracking-normal">(para transferir desde otro banco)</span>
-                      </>
-                    }
-                    mono
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="000-000-000000000000-00"
-                    value={cci}
-                    onChange={(e) => escribirCciCampo(e.target.value)}
-                    onBlur={() => setTocados((t) => ({ ...t, cci: true }))}
-                    aria-invalid={!!verError("cci")}
-                    valido={digitosCci === 20 && !errores.cci}
-                    tono={verError("cci") ? "error" : lecturaBanco.discrepa ? "aviso" : lecturaBanco.detectado ? "ok" : "neutro"}
-                    pie={
-                      verError("cci") ??
-                      (lecturaBanco.discrepa ? (
-                        <>
-                          Este CCI es de <b className="font-semibold">{lecturaBanco.detectado}</b>, pero en «Banco» dice «{banco.trim()}». Revisa cuál es el correcto.
-                        </>
-                      ) : lecturaBanco.detectado ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-                            <path pathLength={1} d="m5 12.5 4.5 4.5L19 7.5" className="trazo-linea anim-trazo" />
-                          </svg>
-                          Banco detectado: <b className="font-semibold">{lecturaBanco.detectado}</b>
-                        </span>
-                      ) : undefined)
-                    }
-                  />
+            <CampoTexto
+              id="proveedor-cci"
+              etiqueta={
+                <>
+                  {/* Igual que «n/11» del RUC: el contador queda a la derecha de la misma línea. */}
+                  <span className={`float-right font-medium normal-case tracking-normal tabular-nums transition-colors duration-200 ${digitosCci === 20 ? "text-verde-profundo" : "text-tinta/45"}`}>{digitosCci}/20</span>
+                  CCI <span className="normal-case tracking-normal">(para transferir desde otro banco)</span>
+                </>
+              }
+              mono
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="000-000-000000000000-00"
+              value={cci}
+              onChange={(e) => escribirCciCampo(e.target.value)}
+              onBlur={() => setTocados((t) => ({ ...t, cci: true }))}
+              aria-invalid={!!verError("cci")}
+              valido={digitosCci === 20 && !errores.cci}
+              tono={verError("cci") ? "error" : lecturaBanco.discrepa ? "aviso" : lecturaBanco.detectado ? "ok" : "neutro"}
+              pie={
+                verError("cci") ??
+                (lecturaBanco.discrepa ? (
+                  <>
+                    Este CCI es de <b className="font-semibold">{lecturaBanco.detectado}</b>, pero en «Banco» dice «{banco.trim()}». Revisa cuál es el correcto.
+                  </>
+                ) : lecturaBanco.detectado ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                      <path pathLength={1} d="m5 12.5 4.5 4.5L19 7.5" className="trazo-linea anim-trazo" />
+                    </svg>
+                    Banco detectado: <b className="font-semibold">{lecturaBanco.detectado}</b>
+                  </span>
+                ) : undefined)
+              }
+            />
 
-                  <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                    <CampoTexto
-                      id="proveedor-celular"
-                      etiqueta="Celular Yape / Plin"
-                      mono
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="off"
-                      placeholder="987 654 321"
-                      value={celular}
-                      onChange={(e) => setCelular(escribirCelular(e.target.value))}
-                      onBlur={() => setTocados((t) => ({ ...t, celular: true }))}
-                      aria-invalid={!!verError("celular")}
-                      tono={verError("celular") ? "error" : "neutro"}
-                      pie={verError("celular") ?? (faltaApp ? "Elige si lo recibe en Yape, Plin o ambos." : undefined)}
-                    />
-                    {/* «Yape» y «Plin» no son un banco ni un teléfono: son la app que hay que abrir. Un celular sin app (o al revés) no puede existir en la base. */}
-                    <div>
-                      <span id="proveedor-billeteras-etiqueta" className="label-cayla block text-[11px] text-tinta/65">
-                        Lo recibe en
-                      </span>
-                      <div id="proveedor-billeteras" tabIndex={-1} className="mt-1.5 flex flex-wrap items-center gap-1.5 py-1.5 outline-none" role="group" aria-labelledby="proveedor-billeteras-etiqueta">
-                        {BILLETERAS.map((b) => {
-                          const elegido = billeteras.includes(b);
-                          return (
-                            <button key={b} type="button" aria-pressed={elegido} onClick={() => alternarBilletera(b)} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
-                              {ETIQUETA_BILLETERA[b]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-1 min-h-[0.9rem] text-xs leading-tight text-rojo">{verErrorApps && <span className="anim-revelar block">{verErrorApps}</span>}</div>
-                    </div>
-                  </div>
-                  {ofrecerTelefono && (
-                    <p className="anim-revelar -mt-1 text-xs text-tinta/65">
-                      ¿Es el mismo del contacto?{" "}
-                      <button type="button" onClick={() => setCelular(celularDelTelefono ?? "")} className="text-rojo hover:underline">
-                        Usar el teléfono de contacto ({celularDelTelefono})
+            <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+              <CampoTexto
+                id="proveedor-celular"
+                etiqueta="Celular Yape / Plin"
+                mono
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="987 654 321"
+                value={celular}
+                onChange={(e) => setCelular(escribirCelular(e.target.value))}
+                onBlur={() => setTocados((t) => ({ ...t, celular: true }))}
+                aria-invalid={!!verError("celular")}
+                tono={verError("celular") ? "error" : "neutro"}
+                pie={verError("celular") ?? (faltaApp ? "Elige si lo recibe en Yape, Plin o ambos." : undefined)}
+              />
+              {/* «Yape» y «Plin» no son un banco ni un teléfono: son la app que hay que abrir. Un celular sin app (o al revés) no puede existir en la base. */}
+              <div>
+                <span id="proveedor-billeteras-etiqueta" className="campo-etiqueta">
+                  Lo recibe en
+                </span>
+                <div id="proveedor-billeteras" tabIndex={-1} className="mt-1.5 flex flex-wrap items-center gap-1.5 py-1.5 outline-none" role="group" aria-labelledby="proveedor-billeteras-etiqueta">
+                  {BILLETERAS.map((b) => {
+                    const elegido = billeteras.includes(b);
+                    return (
+                      <button key={b} type="button" aria-pressed={elegido} onClick={() => alternarBilletera(b)} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
+                        {ETIQUETA_BILLETERA[b]}
                       </button>
-                    </p>
-                  )}
+                    );
+                  })}
+                </div>
+                <div className="mt-1 min-h-[0.9rem] text-xs leading-tight text-rojo">{verErrorApps && <span className="anim-revelar block">{verErrorApps}</span>}</div>
+              </div>
+            </div>
+            {ofrecerTelefono && (
+              <p className="anim-revelar -mt-1 text-xs text-tinta/65">
+                ¿Es el mismo del contacto?{" "}
+                <button type="button" onClick={() => setCelular(celularDelTelefono ?? "")} className="btn-enlace">
+                  Usar el teléfono de contacto ({celularDelTelefono})
+                </button>
+              </p>
+            )}
 
-                  <CampoTexto
-                    id="proveedor-titular"
-                    etiqueta="Titular de la cuenta"
-                    autoComplete="off"
-                    maxLength={LARGO_TITULAR.max}
-                    placeholder="Como sale en la app del banco o de Yape"
-                    value={titular}
-                    onChange={(e) => setTitular(e.target.value)}
-                    onBlur={() => setTocados((t) => ({ ...t, titular: true }))}
-                    aria-invalid={!!verError("titular")}
-                    tono={verError("titular") ? "error" : "neutro"}
-                    pie={verError("titular") ?? "Quien paga lo compara con el nombre que muestra el banco antes de confirmar."}
-                  />
-                </section>
-
-                {onDesactivar && (
-                  <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-                    ¿Ya no se le compra?{" "}
-                    <button type="button" onClick={onDesactivar} disabled={fase !== "reposo"} className="text-rojo hover:underline">
-                      Desactivar proveedor
-                    </button>
-                    . Deja de aparecer al registrar comprobantes; su historial se conserva.
-                  </p>
+            <CampoTexto
+              id="proveedor-titular"
+              etiqueta="Titular de la cuenta"
+              autoComplete="off"
+              maxLength={LARGO_TITULAR.max}
+              placeholder="Como sale en la app del banco o de Yape"
+              value={titular}
+              onChange={(e) => setTitular(e.target.value)}
+              onBlur={() => setTocados((t) => ({ ...t, titular: true }))}
+              aria-invalid={!!verError("titular")}
+              tono={verError("titular") ? "error" : "neutro"}
+              pie={verError("titular") ?? "Quien paga lo compara con el nombre que muestra el banco antes de confirmar."}
+            />
+          </section>
+          {/* `pie-hoja-fijo`: Cancelar y Guardar quedan a la vista mientras el formulario corre detrás (la línea va en la caja de adentro). */}
+          <div className="pie-hoja-fijo" data-guia="proveedor-modal.pie">
+            <div className="pie-acciones border-t border-tinta/10 pt-4">
+              <Boton type="button" peso="fantasma" onClick={cerrar} disabled={fase !== "reposo"}>
+                Cancelar
+              </Boton>
+              {/* Solo se ve «apagado» en reposo, cuando de verdad falta algo; guardando y listo el botón sigue vivo (onSubmit ya ignora los clics repetidos). */}
+              <Boton type="submit" peso="primario" disabled={fase === "reposo" && !puedeGuardar} className="min-w-[11.5rem]">
+                {fase === "guardando" && (
+                  // El mismo hilo que barre en el spike mientras se guarda: se ve que el sistema trabaja.
+                  <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
+                    <span className="block h-full w-1/3 bg-crema [animation:cayla-hilo-barrido_0.9s_linear_infinite]" />
+                  </span>
                 )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 border-t border-tinta/10 px-6 py-4">
-                <Boton type="button" peso="fantasma" onClick={pedirCierre} disabled={fase !== "reposo"}>
-                  Cancelar
-                </Boton>
-                {/* Solo se ve «apagado» en reposo, cuando de verdad falta algo; guardando y listo el botón sigue vivo (onSubmit ya ignora los clics repetidos). */}
-                <Boton type="submit" peso="primario" disabled={fase === "reposo" && !puedeGuardar} className="min-w-[11.5rem]">
-                  {fase === "guardando" && (
-                    // El mismo hilo que barre en el spike mientras se guarda: se ve que el sistema trabaja.
-                    <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden">
-                      <span className="block h-full w-1/3 bg-crema [animation:cayla-hilo-barrido_0.9s_linear_infinite]" />
-                    </span>
-                  )}
-                  {fase === "listo" ? (
-                    <span className="inline-flex items-center justify-center gap-2">
-                      <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                        <path pathLength={1} d="m5 12.5 4.5 4.5L19 7.5" className="trazo-linea anim-trazo" />
-                      </svg>
-                      Listo
-                    </span>
-                  ) : fase === "guardando" ? (
-                    "Guardando…"
-                  ) : editando ? (
-                    "Guardar cambios"
-                  ) : (
-                    "Registrar proveedor"
-                  )}
-                </Boton>
-              </div>
-            </form>
-          </Dialog.Content>
-        </div>
-      </Dialog.Portal>
-    </Dialog.Root>
+                {fase === "listo" ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                      <path pathLength={1} d="m5 12.5 4.5 4.5L19 7.5" className="trazo-linea anim-trazo" />
+                    </svg>
+                    Listo
+                  </span>
+                ) : fase === "guardando" ? (
+                  "Guardando…"
+                ) : editando ? (
+                  "Guardar cambios"
+                ) : (
+                  "Registrar proveedor"
+                )}
+              </Boton>
+            </div>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }

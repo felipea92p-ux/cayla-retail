@@ -1,4 +1,6 @@
-node_modules/
+# Sin «/» al final: también ignora el node_modules que un worktree enlaza (symlink) al checkout principal; con «/»
+# solo ignoraba carpetas, y el 2026-09-30 dos enlaces entraron a un commit y rompieron `pnpm install` en el CI.
+node_modules
 .next/
 .turbo/
 .vercel/
@@ -31,3 +33,12 @@ supabase/seed-taxonomia/
 # fuera de git a propósito: así jamás puede colarse en un `git archive`
 # ni en un copy/paste al SQL Editor de producción.
 supabase/migrations/0000_local_stub_dynamic.sql
+
+# /flujo-de-negocio: informes, capturas y guías generadas son locales (el repo es público)
+.flujo-de-negocio/
+
+# /chaos: fotos de violaciones, informes y capturas son locales (el repo es público y traen filas de la base local)
+.chaos/
+
+# La medición de la tienda (ADR-0447): lo que `pnpm --filter tienda medicion:leer` baja del registro de Vercel, que guarda un día
+.medicion/

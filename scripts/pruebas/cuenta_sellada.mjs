@@ -506,7 +506,10 @@ select not has_function_privilege('authenticated', 'retail.fn_comprobante_y_pago
   esperar("las internas con firma nueva siguen cerradas", r.ok && internas === "t|t", r);
 }
 
-// 15. La migración se puede volver a pegar: la segunda vez no cambia nada.
+// 15. La migración se puede volver a pegar: la segunda vez no cambia nada. Se compara la PRIMERA pegada contra la SEGUNDA,
+// no el estado de la base contra una pegada: una migración posterior que redefine una de estas funciones (20261002130000
+// suma el QR a `fn_dinero_libro`) hace que repegar esta la devuelva a su versión, y eso es lo esperado de un
+// `create or replace`, no una falta de idempotencia.
 {
   const { readFileSync } = await import("node:fs");
   const { dirname, join } = await import("node:path");
@@ -521,6 +524,7 @@ select not has_function_privilege('authenticated', 'retail.fn_comprobante_y_pago
    'fn_movimientos_dinero_validar', 'fn_dinero_libro');`;
   const r = correr(`begin;
 set local client_min_messages = warning;
+${migracion}
 ${huella}
 ${migracion}
 ${huella}`);

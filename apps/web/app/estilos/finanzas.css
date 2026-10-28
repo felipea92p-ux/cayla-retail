@@ -23,6 +23,12 @@
     }
   }
 
+  /* La vista integrada de los activos (ADR-0335): una tarjeta por sede y el total de CAYLA. Son cinco (cuatro sedes y el total):
+     con cuatro columnas fijas quedaría una huérfana, así que las columnas se acomodan solas al ancho. */
+  .fin-cifras.fin-cifras-activos {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+
   /* Pestañas de una pantalla: subrayado en tinta (el rojo de la cabecera no se gasta aquí) y el conteo en una píldora. */
   .fin-pestanas {
     display: flex;
@@ -43,8 +49,10 @@
     white-space: nowrap;
     transition: color 150ms, border-color 150ms;
   }
-  .fin-pestana:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-pestana:hover {
+      color: var(--color-tinta);
+    }
   }
   .fin-pestana[aria-selected="true"],
   .fin-pestana[aria-current="page"] {
@@ -149,7 +157,7 @@
     color: color-mix(in oklab, var(--color-tinta) 70%, transparent);
   }
   .fin-control::placeholder {
-    color: color-mix(in oklab, var(--color-taupe) 80%, transparent);
+    color: var(--color-taupe); /* taupe pleno: al 80 % daba 3.18:1 sobre el hueso de la caja (2026-10-14) */
   }
   /* El combo (2026-09-26, ADR-0209): `SelectFin` es un `Desplegable` del sistema que cerrado se ve como el <select> del
      spike —esta flecha, este relleno— y abierto es la lista de todo el ERP. El botón lleva `fin-control fin-desplegable`;
@@ -174,25 +182,6 @@
     min-height: 2rem;
     padding-top: 5px;
     padding-bottom: 5px;
-  }
-  .fin-buscar {
-    position: relative;
-    flex: 1 1 240px;
-  }
-  .fin-buscar svg {
-    position: absolute;
-    left: 11px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 15px;
-    height: 15px;
-    stroke: var(--color-taupe);
-    fill: none;
-    stroke-width: 1.6;
-    pointer-events: none;
-  }
-  .fin-buscar .fin-control {
-    padding-left: 34px;
   }
   .fin-num {
     text-align: right;
@@ -387,8 +376,10 @@
   .fin-tabla tbody tr:nth-child(even) {
     background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
   }
-  .fin-tabla tbody tr:hover {
-    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  @media (hover: hover) {
+    .fin-tabla tbody tr:hover {
+      background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+    }
   }
   .fin-tabla tbody tr[data-clic] {
     cursor: pointer;
@@ -404,8 +395,11 @@
     text-decoration: line-through;
     font-weight: 500;
   }
+  /* La fila que ya pasó (una campaña vencida, un mes cerrado): se atenúa solo su texto de tinta, al 64 %. Hasta el 2026-10-14 era toda la
+     fila al 60 % de opacidad, y lo que ya era taupe (el «—», el «%», el «pasó») caía a 2.3–2.5:1; Felipe eligió esto mirando el antes y
+     después (ADR-0336, act. 2026-10-14). Las cajas, el chip y el taupe se ven enteros. */
   .fin-tabla tr.fin-suave td {
-    opacity: 0.6;
+    color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
   }
   .fin-tabla input.fin-control {
     min-height: 32px;
@@ -449,6 +443,13 @@
     gap: 16px;
     align-items: start;
   }
+  /* Las tarjetas de las tiendas (Tienda web ▸ Conf. Tienda): todas en una fila mientras quepan, a 18 rem como mínimo cada una. */
+  .fin-sedes-fila {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
   .fin-columna {
     display: flex;
     flex-direction: column;
@@ -464,7 +465,8 @@
   }
   .fin-fijo {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    /* La última columna mide lo mismo en todas las filas con botón (7,5 rem): así los montos quedan alineados aunque diga «Registrar» o «Registrar monto». */
+    grid-template-columns: 1fr auto minmax(7.5rem, auto);
     gap: 12px;
     align-items: center;
     padding: 12px 0;
@@ -472,6 +474,9 @@
   }
   .fin-fijos .fin-fijo:first-child {
     border-top: 0;
+  }
+  .fin-fijo > :last-child {
+    justify-self: end;
   }
   .fin-fijo b {
     display: block;
@@ -490,26 +495,18 @@
     white-space: nowrap;
     color: var(--color-tinta);
   }
-
-  /* Estado vacío de una pestaña. */
-  .fin-guia {
-    background: var(--color-papel);
-    border: 1px solid var(--color-sand);
-    border-radius: var(--radius-xl);
-    padding: 28px;
+  /* Fijos del mes como cola (2026-10-22): los grupos se separan con aire, y en el celular el botón baja bajo el nombre en vez de partirlo. */
+  .fin-fijos-grupo {
+    margin-top: 18px;
   }
-  .fin-guia h2 {
-    margin: 6px 0;
-    font-family: var(--font-serif);
-    font-weight: 500;
-    font-size: 26px;
-    color: var(--color-tinta);
-  }
-  .fin-guia p {
-    margin: 0;
-    max-width: 62ch;
-    line-height: 1.55;
-    color: var(--color-taupe);
+  @media (max-width: 639px) {
+    .fin-fijo {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .fin-fijo > :last-child {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
   }
 
   /* Par de entradas en una celda (Configuración: «% · fondo»). */
@@ -643,16 +640,6 @@
     font-weight: 600;
     color: var(--color-tinta);
   }
-  .fin-nota-bloque {
-    margin: 12px 0 0;
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--color-taupe);
-  }
-  .fin-nota-bloque b {
-    font-weight: 600;
-    color: var(--color-tinta);
-  }
 
   /* «Para revisar antes de declarar»: punto de color, lo que pasa y, a la derecha, adónde ir. */
   .fin-decidir {
@@ -671,6 +658,11 @@
   .fin-decidir li:first-child {
     border-top: 0;
     padding-top: 4px;
+  }
+  /* Los avisos que «Ver N más» guarda van en una segunda lista (bajan en su lugar, ronda 15 de /unificar): su primero sí lleva la raya. */
+  .fin-decidir-mas li:first-child {
+    border-top: 1px solid var(--color-sand);
+    padding-top: 12px;
   }
   .fin-decidir b {
     font-size: 13.5px;
@@ -758,6 +750,244 @@
   }
 }
 
+/* ---- Finanzas ▸ Impuestos en «El telar» (Felipe 2026-10-23): la balanza del IGV ----
+   Diseño: docs/maquetas/finanzas-telar-2026-10/ (rama claude/finanzas-redesign-filters-d154a4), pantalla «La balanza».
+   Solo tokens (ADR-0169/0336): las pesas usan colores que se invierten en oscuro y su texto va en crema, que también se invierte,
+   así el contraste se mantiene en los dos temas. Movimiento (ADR-0136): la balanza entra con el fundido de siempre y aparece ya
+   inclinada; las pesas que caen y el brazo que se mece esperan la excepción de Finanzas que decide Felipe. */
+@layer components {
+  .fin-balanza-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .fin-balanza-cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .fin-balanza {
+    display: block;
+    width: 100%;
+    max-width: 680px;
+    height: auto;
+    margin: 4px auto 0;
+    overflow: visible;
+  }
+  .fin-balanza text {
+    font-family: var(--font-sans);
+    fill: var(--color-tinta);
+  }
+  .fin-balanza .fin-balanza-brazo {
+    transform-origin: 340px 74px;
+    transform: rotate(var(--ang));
+  }
+  .fin-balanza .fin-balanza-plato-i {
+    transform: translateY(var(--dy));
+  }
+  .fin-balanza .fin-balanza-plato-d {
+    transform: translateY(calc(var(--dy) * -1));
+  }
+  .fin-balanza .fin-balanza-et {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    fill: var(--color-taupe);
+  }
+  .fin-balanza .fin-balanza-total {
+    font-family: var(--font-serif);
+    font-size: 22px;
+  }
+  .fin-balanza .fin-balanza-pesa-texto {
+    font-size: 11.5px;
+    font-weight: 600;
+    fill: var(--color-crema);
+  }
+
+  /* Colores de pesa: dato (qué es cada pesa), no decoración. Cuando haya reparto por sede, cada lugar trae su color. */
+  .fin-pesa-ventas { fill: var(--color-tinta); }
+  .fin-pesa-creditoMercaderia { fill: var(--color-taupe); }
+  .fin-pesa-creditoGastos { fill: var(--color-pizarra); }
+  .fin-pesa-creditoActivos { fill: var(--color-ambar); }
+  .fin-pesa-creditoTaller { fill: var(--color-verde); }
+  .fin-pesa-saldo_anterior { fill: var(--color-sand); }
+  .fin-pesa-saldo_anterior + .fin-balanza-pesa-texto { fill: var(--color-tinta); }
+
+  /* La cuenta que siempre cierra, bajo la balanza. */
+  .fin-balanza-cuenta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .fin-balanza-paso {
+    flex: 1 1 110px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: 12px;
+    background: var(--color-crema);
+  }
+  .fin-balanza-paso .fin-balanza-v {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-balanza-paso.fin-balanza-fin {
+    background: var(--color-tinta);
+    border-color: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .fin-balanza-paso-et {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-balanza-paso.fin-balanza-fin .fin-balanza-paso-et {
+    color: color-mix(in srgb, var(--color-crema) 78%, transparent);
+  }
+  .fin-balanza-op {
+    align-self: center;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--color-taupe);
+  }
+  @media (max-width: 640px) {
+    .fin-balanza-op {
+      flex-basis: 100%;
+      text-align: center;
+      line-height: 0.6;
+    }
+  }
+}
+
+/* ---- Finanzas ▸ Impuestos en «El telar»: un sobre por mes (abierto si falta algo, punteado si corre, apagado si no hubo nada).
+   La tapa se entreabre al pasar el mouse (con mouse de verdad: ADR-0136). Sin lacre todavía: el «pagado» espera a Felipe. */
+@layer components {
+  .fin-sobres {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    /* Fila con aire: la tapa abierta sube por encima de su sobre y no debe pisar la fila de arriba. */
+    gap: 40px 12px;
+    margin-top: 28px;
+  }
+  /* En pantallas angostas, «Otro mes» baja bajo el título en vez de apretarlo. */
+  .fin-sobres-bloque .fin-bloque-cab {
+    flex-wrap: wrap;
+  }
+  @media (max-width: 900px) {
+    .fin-sobres {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-sobres {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .fin-sobre {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px;
+    margin: -8px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+  }
+  .fin-sobre[aria-current="true"] {
+    background: var(--color-hueso);
+  }
+  .fin-sobre:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  .fin-sobre-cuerpo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.45;
+    border-radius: 10px;
+    background: var(--color-hueso);
+    perspective: 500px;
+  }
+  .fin-sobre[aria-current="true"] .fin-sobre-cuerpo {
+    background: var(--color-papel);
+  }
+  /* Los pliegues del sobre: dos diagonales finas. */
+  .fin-sobre-cuerpo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background:
+      linear-gradient(155deg, transparent 49.5%, color-mix(in srgb, var(--color-tinta) 10%, transparent) 50%, transparent 51%),
+      linear-gradient(25deg, transparent 49.5%, color-mix(in srgb, var(--color-tinta) 10%, transparent) 50%, transparent 51%);
+  }
+  .fin-sobre-tapa {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 58%;
+    border-radius: 10px 10px 0 0;
+    background: color-mix(in srgb, var(--color-sand) 85%, var(--color-hueso));
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top;
+    transition: transform 0.6s var(--ease-cayla);
+  }
+  /* Abierta, la tapa sube por encima del sobre; más corta, para no tapar la cabecera del bloque. */
+  .fin-sobre[data-forma="abierto"] .fin-sobre-tapa {
+    transform: rotateX(180deg) scaleY(0.6);
+  }
+  @media (hover: hover) {
+    .fin-sobre[data-forma="cerrado"]:hover .fin-sobre-tapa,
+    .fin-sobre[data-forma="vacio"]:hover .fin-sobre-tapa {
+      transform: rotateX(35deg);
+    }
+  }
+  .fin-sobre[data-forma="curso"] .fin-sobre-cuerpo {
+    background: transparent;
+    border: 1.5px dashed var(--color-sand);
+  }
+  .fin-sobre[data-forma="curso"] .fin-sobre-tapa {
+    background: transparent;
+  }
+  .fin-sobre[data-forma="vacio"] .fin-sobre-cuerpo,
+  .fin-sobre[data-forma="vacio"] .fin-sobre-monto {
+    opacity: 0.55;
+  }
+  .fin-sobre-mes {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .fin-sobre-monto {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-sobre-monto small {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-verde);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-sobre-tapa {
+      transition: none;
+    }
+  }
+}
+
 /* ---- F3 · Cuentas y dinero (ADR-0195; spike `vista-dinero.js` y `vista-config.js` «Cuentas y cobros») ---- */
 @layer components {
   /* Sobretítulo de un grupo de cuentas («BANCOS · CUENTA 104»). */
@@ -787,9 +1017,10 @@
   }
   .fin-cuenta-cab {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 8px;
+    gap: 4px 8px;
   }
   .fin-cuenta-cab b {
     font-size: 13.5px;
@@ -947,8 +1178,10 @@
     cursor: pointer;
     border-radius: 4px;
   }
-  .fin-eerr td:has(> button.fin-eerr-celda):hover {
-    background: var(--color-hueso);
+  @media (hover: hover) {
+    .fin-eerr td:has(> button.fin-eerr-celda):hover {
+      background: var(--color-hueso);
+    }
   }
   .fin-eerr button.fin-eerr-celda:focus-visible {
     outline: 2px solid var(--color-rojo);
@@ -1034,9 +1267,13 @@
   .fin-grafico-barra.fin-grafico-mala path {
     fill: var(--color-rojo);
   }
-  .fin-grafico-barra:hover path,
   .fin-grafico-barra:focus path {
     opacity: 0.8;
+  }
+  @media (hover: hover) {
+    .fin-grafico-barra:hover path {
+      opacity: 0.8;
+    }
   }
   .fin-grafico-barra:focus {
     outline: none;
@@ -1185,8 +1422,10 @@
     color: inherit;
     cursor: pointer;
   }
-  .fin-etq-select:hover {
-    color: var(--color-tinta);
+  @media (hover: hover) {
+    .fin-etq-select:hover {
+      color: var(--color-tinta);
+    }
   }
   /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
   .fin-h-flujo {
@@ -1430,8 +1669,10 @@
   button.fin-unidad {
     transition: border-color 150ms;
   }
-  button.fin-unidad:hover {
-    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  @media (hover: hover) {
+    button.fin-unidad:hover {
+      border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+    }
   }
   button.fin-unidad[aria-pressed="true"] {
     border-color: var(--color-tinta);
@@ -1943,6 +2184,545 @@
   @media (max-width: 480px) {
     .fin-cifras.fin-cinco {
       grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* Los días que cubre un depósito de la máquina (ADR-0429): una lista de renglones con su casilla, el día y la tienda, hace
+   cuánto esperan y lo cobrado. Solo tokens; el modo oscuro los invierte solos. */
+@layer components {
+  .fin-lotes {
+    display: grid;
+    gap: 0.375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-lote {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 0.625rem;
+    align-items: center;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--color-sand);
+    border-radius: 0.5rem;
+    background: var(--color-papel);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-lote-texto {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fin-lote-dias {
+    font-size: 12px;
+    color: var(--color-taupe);
+    white-space: nowrap;
+  }
+  .fin-lote-monto {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  /* En el celular el día no cabe en una línea con su chip «atrasado»: el texto baja a dos líneas (día y hace cuánto) en vez de cortarse. */
+  @media (max-width: 560px) {
+    .fin-lote {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: start;
+    }
+    .fin-lote > :first-child,
+    .fin-lote-monto {
+      align-self: center;
+      grid-row: 1 / span 2;
+    }
+    .fin-lote-texto {
+      grid-column: 2;
+      grid-row: 1;
+      overflow: visible;
+      white-space: normal;
+    }
+    .fin-lote-dias {
+      grid-column: 2;
+      grid-row: 2;
+    }
+    .fin-lote-monto {
+      grid-column: 3;
+    }
+  }
+}
+
+/* ---- El medidor de confianza (ADR-0417; spike 5-A, 2026-10-24): bajo la respuesta, «Seguro al N %» y, a un toque, las piezas. ---- */
+@layer components {
+  .fin-confianza-piezas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 18px;
+  }
+  .fin-confianza-piezas > li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-sand);
+    min-width: 0;
+  }
+  .fin-confianza-piezas > li > div > b {
+    display: block;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .fin-confianza-piezas > li > div > p {
+    font-size: 13px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel y hueso (ADR-0336: desde 64 % pasa) */
+  }
+  @media (max-width: 720px) {
+    .fin-confianza-piezas {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* La animación del arco de «Cierre» (`fin-cierre-valor`) la usa todavía: la del medidor se fue con el arco. */
+  @keyframes fin-confianza-dibuja {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+}
+
+/* ---- El Pulso (Resumen, camino A; Felipe 2026-10-15): la pregunta, la respuesta grande, la cascada, el ritmo y qué deja cada lugar. ---- */
+@layer components {
+  .fin-pulso-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 26px 16px 6px;
+  }
+  .fin-pulso-pregunta {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--color-taupe);
+  }
+  .fin-pulso-si {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+  }
+  .fin-pulso-respuesta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    gap: 6px;
+  }
+  .fin-pulso-verbo {
+    font-family: var(--font-serif);
+    font-size: 26px;
+  }
+  .fin-pulso-monto {
+    font-family: var(--font-serif);
+    font-size: clamp(48px, 8vw, 84px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .fin-pulso-monto[data-estado="pierde"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pulso-explica {
+    max-width: 62ch;
+    font-size: 15px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-porque {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .fin-pulso-cascada {
+    width: 100%;
+    max-width: 640px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .fin-pulso-tramo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    align-items: baseline;
+    font-size: 14px;
+  }
+  .fin-pulso-tramo-nombre small {
+    display: block;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-tramo-monto {
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-pulso-tramo[data-tipo="queda"] {
+    font-weight: 600;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-pulso-tramo-barra {
+    grid-column: 1 / -1;
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+    overflow: hidden;
+  }
+  .fin-pulso-tramo-barra > i {
+    display: block;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    background: var(--color-tinta);
+    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+  .fin-pulso-tramo[data-tipo="sale"] .fin-pulso-tramo-barra > i {
+    background: var(--color-taupe);
+  }
+  .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
+    background: var(--color-verde);
+  }
+  /* Una pérdida no se pinta de verde (auditoría v3 del Resumen, hallazgo 3): el color sigue al signo, como la cifra grande. */
+  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-barra > i {
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-tramo[data-tipo="queda"][data-negativo] .fin-pulso-tramo-monto {
+    color: var(--color-rojo-profundo);
+  }
+  @keyframes fin-pulso-crece {
+    from {
+      width: 0;
+    }
+  }
+
+  /* El ritmo: una pista con lo vendido por día y una marca donde está lo necesario. */
+  .fin-pulso-ritmo {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding-top: 18px;
+  }
+  .fin-pulso-ritmo-pista {
+    position: relative;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+  }
+  .fin-pulso-ritmo-relleno {
+    display: block;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    background: var(--color-verde);
+    animation: fin-pulso-crece 900ms var(--ease-cayla) backwards;
+  }
+  .fin-pulso-ritmo[data-tono="ambar"] .fin-pulso-ritmo-relleno {
+    background: var(--color-ambar);
+  }
+  .fin-pulso-ritmo[data-tono="rojo"] .fin-pulso-ritmo-relleno {
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-ritmo-marca {
+    position: absolute;
+    top: -6px;
+    width: 2px;
+    height: 26px;
+    background: var(--color-tinta);
+  }
+  .fin-pulso-ritmo-marca > span {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-taupe);
+  }
+  .fin-pulso-ritmo-escala {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-pulso-cierre {
+    margin-top: 14px;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    line-height: 1.3;
+  }
+
+  /* Qué deja cada lugar: barras que salen del centro, a la derecha lo que deja y a la izquierda lo que cuesta. */
+  .fin-pulso-lugares {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .fin-pulso-lugar {
+    display: grid;
+    grid-template-columns: minmax(0, 190px) minmax(0, 1fr) 112px;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-pulso-lugar:first-child {
+    border-top: 0;
+  }
+  .fin-pulso-lugar-nombre b {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .fin-pulso-lugar-nombre small {
+    display: block;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-lugar-eje {
+    position: relative;
+    display: block;
+    height: 10px;
+  }
+  .fin-pulso-lugar-eje::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--color-sand);
+  }
+  .fin-pulso-lugar-eje > i {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+  }
+  .fin-pulso-lugar-eje > i[data-signo="mas"] {
+    left: 50%;
+    background: var(--color-verde);
+  }
+  .fin-pulso-lugar-eje > i[data-signo="menos"] {
+    right: 50%;
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-lugar-monto {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .fin-pulso-lugar-monto[data-signo="menos"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pulso-lugar-total {
+    border-top: 2px solid var(--color-tinta);
+    font-family: var(--font-serif);
+  }
+  .fin-pulso-lugar-total .fin-pulso-lugar-nombre b,
+  .fin-pulso-lugar-total .fin-pulso-lugar-monto {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 500;
+  }
+  @media (max-width: 640px) {
+    .fin-pulso-lugar {
+      grid-template-columns: minmax(0, 1fr) 100px;
+    }
+    .fin-pulso-lugar-eje {
+      display: none;
+    }
+    .fin-pulso-ritmo-marca > span {
+      font-size: 10px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-pulso-tramo-barra > i,
+    .fin-pulso-ritmo-relleno,
+    .fin-pulso-lugar-eje > i {
+      animation: none;
+    }
+  }
+}
+
+/* ---- Cuentas y dinero en camino A: las partes de «tienes» y las dos preguntas de al lado. ---- */
+@layer components {
+  .fin-dinero-partes {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .fin-dinero-partes > li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+    font-size: 13px;
+  }
+  .fin-dinero-partes > li > b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-dinero-partes > li[data-deuda] > b {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-dinero-alcanza {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .fin-dinero-alcanza > .nota-cayla {
+    flex-basis: 100%;
+  }
+  .fin-dinero-ver {
+    flex-basis: 100%;
+    font-size: 13.5px;
+    margin-top: 6px;
+  }
+}
+
+/* ---- Gastos en camino A: la cosa por revisar, de a una. ---- */
+@layer components {
+  .fin-gastos-cosa {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--color-hueso);
+  }
+  .fin-gastos-cosa > div > b {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 21px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-top: 4px;
+  }
+  .fin-gastos-cosa > div > p {
+    font-size: 13.5px;
+    margin-top: 4px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre hueso (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-gastos-cosa-der {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex: none;
+  }
+  .fin-gastos-cosa-monto {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-gastos-cosa-mas {
+    margin-top: 10px;
+    font-size: 13.5px;
+  }
+  @media (max-width: 560px) {
+    .fin-gastos-cosa {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .fin-gastos-cosa-der {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+}
+
+/* ---- Cierre de mes en camino A: el anillo de lo que ya pasó. ---- */
+@layer components {
+  .fin-cierre-anillo {
+    position: relative;
+    width: 128px;
+    height: 128px;
+  }
+  .fin-cierre-anillo svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  .fin-cierre-pista,
+  .fin-cierre-valor {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+  }
+  .fin-cierre-pista {
+    stroke: var(--color-hueso);
+  }
+  .fin-cierre-valor {
+    stroke: var(--color-ambar);
+    stroke-dasharray: 1;
+    animation: fin-confianza-dibuja 1100ms var(--ease-cayla) backwards;
+  }
+  .fin-cierre-valor[data-estado="listo"],
+  .fin-cierre-valor[data-estado="cerrado"] {
+    stroke: var(--color-verde);
+  }
+  .fin-cierre-anillo-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .fin-cierre-anillo-num > b {
+    font-family: var(--font-serif);
+    font-size: 40px;
+    font-weight: 500;
+  }
+  .fin-cierre-anillo-num > small {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-taupe);
+    margin-top: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-cierre-valor {
+      animation: none;
     }
   }
 }

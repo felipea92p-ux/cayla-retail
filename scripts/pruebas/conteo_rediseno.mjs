@@ -19,8 +19,9 @@
  *   · CASO P: una salida legítima (venta) ANTES de verificar y DESPUÉS de verificar no da falso faltante, y el ajuste va
  *     como delta sobre el stock ACTUAL (contado − debe haber), sin resucitar la venta. El orden se fija con
  *     `clock_timestamp()` (dentro de una transacción `now()` es siempre el mismo instante);
- *   · trazabilidad: el ajuste es `tipo = 'ajuste'`, `motivo = 'conteo'`, con `conteo_item_id`, y la línea guarda su
- *     `movimiento_id` (Finanzas y Movimientos lo leen así);
+ *   · trazabilidad: el ajuste es `tipo = 'ajuste'`, `motivo = 'conteo'` (o `conteo_arranque` si es el primer conteo completo
+ *     del lugar, ADR-0328: la escena es una tienda nueva), con `conteo_item_id`, y la línea guarda su `movimiento_id`
+ *     (Finanzas y Movimientos lo leen así);
  *   · `fn_conteos_resumen` NO cuenta pendientes en `lineas` (la exactitud no se infla) y no trae `soles_diferencia`;
  *   · sububicación obligatoria en tiendas con piso/almacén, y el Taller (sin sububicación) sigue contando;
  *   · `fn_conteo_alcance` (la cifra «cuántas variantes» de la tarjeta de abrir, migración `20260930040000`): coincide fila por
@@ -59,6 +60,9 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora de Truji
 const EN_SECO = process.argv.includes("--en-seco");
 const leer = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
 const MIGRACIONES_NUEVAS = `${leer("20260930010000_conteo_rediseno_columnas.sql")}\n${leer("20260930010100_conteo_rediseno_funciones.sql")}\n${leer("20260930040000_conteo_alcance_por_lugar.sql")}`;
+// En seco se recrean las funciones de ESTAS migraciones y quedan sin lo que les sumó ADR-0328 (20261004230100: el motivo de
+// arranque y las dos columnas nuevas del historial): los dos casos que lo miran esperan lo de antes cuando se corre en seco.
+const CON_ADR_0328 = !EN_SECO;
 const PRELUDIO = EN_SECO ? MIGRACIONES_NUEVAS : "";
 const MIG_ADR_0189 = leer("20260924120000_concurrencia_cambios_devoluciones_conteo.sql");
 const MIG_VACIO = leer("20260923120000_conteo_vacio_no_se_cierra.sql");
@@ -480,7 +484,9 @@ select concat_ws(',', :l_aj, :u_so, :u_fa, :l_co, :l_pe,
   (select count(*) from retail.conteo_items where conteo_id = :'conteo' and diferencia = 0 and movimiento_id is null),
   (${LINEA("va")} ->> 'estado') || '/' || coalesce(${CAMPO("va", "actual")}, 'NULL') || '/' || ((${CAMPO("va", "ajuste_movimiento_id")}) = :'mov')::text,
   split_part(:'r2', '|', 3));`),
-  ["1", "0", "2", "2", "0", "9", "ajuste/conteo/-2", "t", "t", "cerrado/true", "1", "2", "diferencia_confirmada/NULL/true", "Ese conteo ya está cerrado"]
+  // «ZZ Conteo rediseño» es una tienda nueva: este es el primer conteo completo de su piso y por eso su ajuste es de arranque
+  // (ADR-0328). El camino de un conteo que no es el de arranque (`conteo`) lo prueba `conteo_firma_arranque.mjs`.
+  ["1", "0", "2", "2", "0", "9", CON_ADR_0328 ? "ajuste/conteo_arranque/-2" : "ajuste/conteo/-2", "t", "t", "cerrado/true", "1", "2", "diferencia_confirmada/NULL/true", "Ese conteo ya está cerrado"]
 );
 
 exito(
@@ -703,7 +709,7 @@ control(
 // 7. El historial (fn_conteos_resumen) y la lectura de conteos anteriores al rediseño
 // ---------------------------------------------------------------------------
 exito(
-  "fn_conteos_resumen no cuenta las pendientes como líneas (1 verificada, 2 pendientes); todo pendiente da 0 líneas; sin soles_diferencia y con pendientes/parcial al final",
+  "fn_conteos_resumen no cuenta las pendientes como líneas (1 verificada, 2 pendientes); todo pendiente da 0 líneas; sin soles_diferencia y con pendientes/parcial (y, desde ADR-0328, sin_contar/es_arranque) al final",
   comoFelipe(`${ESCENA}
 ${ABRIR_PISO}
 ${CONTAR("va", 9)}
@@ -717,7 +723,7 @@ select concat_ws(';', :'f1', :'f2',
   (select proargnames::text from pg_proc where oid = 'retail.fn_conteos_resumen(uuid,integer)'::regprocedure),
   (select prosecdef::text from pg_proc where oid = 'retail.fn_conteos_resumen(uuid,integer)'::regprocedure));`),
   [
-    "1,1,11,9,-2,2,f,abierto;0,0,0,0,0,2,f,abierto;{p_ubicacion_id,p_limite,id,numero,estado,created_at,cerrado_en,sububicacion_id,sububicacion_nombre,sububicacion_tipo,alcance,alcance_categoria_nombre,abierto_por,cerrado_por,lineas,lineas_con_diferencia,sistema,contado,diferencia,pendientes,parcial};false",
+    `1,1,11,9,-2,2,f,abierto;0,0,0,0,0,2,f,abierto;{p_ubicacion_id,p_limite,id,numero,estado,created_at,cerrado_en,sububicacion_id,sububicacion_nombre,sububicacion_tipo,alcance,alcance_categoria_nombre,abierto_por,cerrado_por,lineas,lineas_con_diferencia,sistema,contado,diferencia,pendientes,parcial${CON_ADR_0328 ? ",sin_contar,es_arranque" : ""}};false`,
   ]
 );
 

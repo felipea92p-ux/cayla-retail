@@ -166,6 +166,7 @@ function paramsRpc(ubicacionId: string, filtros: FiltrosMovimientos) {
     ...(filtros.motivo ? { p_motivo: filtros.motivo } : {}),
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
     ...(filtros.sububicacionId ? { p_sububicacion_id: filtros.sububicacionId } : {}),
+    ...(filtros.empresaId ? { p_empresa_id: filtros.empresaId } : {}),
   };
 }
 
@@ -179,16 +180,23 @@ export async function listarMovimientos(
 ): Promise<PaginaMovimientos> {
   const supabase = await createClient();
   const limite = opciones.limite ?? TAMANO_PAGINA;
-  const pedir = async (cursor: CursorMovimientos | null, cuantas: number): Promise<Movimiento[]> =>
-    exigir(
-      await supabase.rpc("fn_movimientos", {
-        ...paramsRpc(ubicacionId, filtros),
-        ...(filtros.categoria ? { p_categoria: filtros.categoria } : {}),
-        ...(cursor ? { p_cursor_creado_en: cursor.creadoEn, p_cursor_id: cursor.id } : {}),
-        p_limite: cuantas,
-      }),
-      "los movimientos"
-    ).map((f) => aMovimiento(f as FilaRpc));
+  const llamar = (categoria: string | undefined, cursor: CursorMovimientos | null, cuantas: number) =>
+    supabase.rpc("fn_movimientos", {
+      ...paramsRpc(ubicacionId, filtros),
+      ...(categoria ? { p_categoria: categoria } : {}),
+      ...(cursor ? { p_cursor_creado_en: cursor.creadoEn, p_cursor_id: cursor.id } : {}),
+      p_limite: cuantas,
+    });
+  const pedir = async (cursor: CursorMovimientos | null, cuantas: number): Promise<Movimiento[]> => {
+    let respuesta = await llamar(filtros.categoria, cursor, cuantas);
+    // ADR-0353: «colgada» y «guardada» las entiende la migración 20261005160000. Si la web sale antes que ella, la base
+    // dice «Categoría de movimiento desconocida»: en vez de romper la pantalla, se piden las dos juntas (`interno`) y
+    // cada fila se lee igual por su par. Se pierde el filtro fino, no la lista (principio 9).
+    if ((filtros.categoria === "colgada" || filtros.categoria === "guardada") && respuesta.error?.message?.includes("Categoría de movimiento desconocida")) {
+      respuesta = await llamar("interno", cursor, cuantas);
+    }
+    return exigir(respuesta, "los movimientos").map((f) => aMovimiento(f as FilaRpc));
+  };
 
   // La función devuelve limite+1 filas a propósito: la de más solo dice "hay otra página".
   const filas = await pedir(opciones.cursor ?? null, limite);
@@ -216,35 +224,6 @@ export async function listarMovimientos(
   }
   const ultima = pagina[pagina.length - 1];
   return { filas: pagina, siguiente: hayMas ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
-}
-
-/** Historial de Producto (Sesión A3, 2026-09-15): los movimientos de TODAS
- *  las variantes de un producto en una sede, sede por sede — mismo modelo de
- *  permiso que `/movimientos` (`fn_puede_operar_ubicacion`), sin agregar por
- *  toda la red. `fn_movimientos` resuelve `p_producto_id` a sus variantes
- *  (20260915204457_movimientos_por_producto.sql). Sin filtros de URL: el
- *  panel de un producto no necesita categoría/motivo/búsqueda, ya está
- *  acotado a ESE producto. */
-export async function listarMovimientosProducto(
-  productoId: string,
-  ubicacionId: string,
-  opciones: { cursor?: CursorMovimientos | null; limite?: number } = {}
-): Promise<PaginaMovimientos> {
-  const supabase = await createClient();
-  const limite = opciones.limite ?? TAMANO_PAGINA;
-  const filas = exigir(
-    await supabase.rpc("fn_movimientos", {
-      p_ubicacion_id: ubicacionId,
-      p_producto_id: productoId,
-      ...(opciones.cursor ? { p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id } : {}),
-      p_limite: limite,
-    }),
-    "el historial del producto"
-  );
-  const hayMas = filas.length > limite;
-  const pagina = (hayMas ? filas.slice(0, limite) : filas).map((f) => aMovimiento(f as FilaRpc));
-  const ultima = pagina[pagina.length - 1];
-  return { filas: pagina, siguiente: hayMas && ultima ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
 }
 
 /** Las cifras de la pantalla leídas desde la tienda (ADR-0234, `fn_movimientos_resumen_procesos`): por grupo de filtro y

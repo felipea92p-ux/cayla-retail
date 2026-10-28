@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -10,6 +10,8 @@ import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    CancelarConteoModal · «¿Cancelar el conteo 12?» (Inventario ▸ Conteo, rediseño 2026-09-29)
@@ -29,7 +31,18 @@ import { ComboResponsable } from "@/components/ComboResponsable";
    Los errores se dicen en el mismo modal, con la frase de `traducirError`: un rechazo por el responsable (asistencia)
    o por un conteo que otro ya cerró se lee y se corrige sin salir de la hoja.
    ==================================================================== */
-export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: string; numero: number; onClose: () => void }) {
+export function CancelarConteoModal({
+  conteoId,
+  numero,
+  onClose,
+  alCerrarEnfocar,
+}: {
+  conteoId: string;
+  numero: number;
+  onClose: () => void;
+  /** El botón que lo abrió: al cerrar, el foco vuelve ahí (`<Modal alCerrarEnfocar>`). */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
+}) {
   const router = useRouter();
   // El responsable se eligió al abrir el conteo: cancelar lo reutiliza y solo pregunta si ya no hay uno vigente.
   const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteoId) });
@@ -57,29 +70,27 @@ export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: s
   }
 
   return (
-    <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." ancho="max-w-md" bloqueado={cancelando} onClose={onClose}>
+    <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." bloqueado={cancelando} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => (
         <div className="space-y-4">
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={cancelando} />}
           {error && (
-            <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
-              {error}
-            </p>
+            <Aviso tono="error">{error}</Aviso>
           )}
           {/* En el celular la salida segura («Seguir contando») queda arriba, la más a mano: cancelar tira lo contado y no debe ser el botón más fácil de tocar. */}
           <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-end">
             <button type="button" onClick={cerrar} disabled={cancelando} className="btn-cayla btn-secundario h-11">
               Seguir contando
             </button>
-            <button
+            <Boton peso="peligro" cargando={cancelando} textoCargando="Cancelando…"
               type="button"
               onClick={() => void cancelar(cerrar)}
               disabled={cancelando || !responsable.listo}
               title={responsable.motivo ?? undefined}
-              className="btn-cayla btn-peligro h-11"
+              className="h-11"
             >
-              {cancelando ? "Cancelando…" : "Sí, cancelar conteo"}
-            </button>
+              Sí, cancelar conteo
+            </Boton>
           </div>
         </div>
       )}

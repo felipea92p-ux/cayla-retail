@@ -8,8 +8,11 @@ describe("hijosMenuProduccion (ADR-0133, D-A revertida el 2026-09-20; regrupado 
     expect(hijosMenuProduccion({ esLider: true, ubicacionTipo: "taller" })).toEqual(["resumenProduccion", "ordenes", "insumos", "abastecimiento"]);
   });
 
-  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación y Recibir, pero no Resumen, Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
-    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "recibirProduccion"]);
+  // Desde ADR-0362 fase 7 (decisión 47), «Órdenes de insumos» vive en Abastecimiento sin pedir el dinero del Taller: con la regla fija de
+  // antes (sin módulos) quien trabaja en el Taller la ve junto a Recibir, y el subgrupo ya no se disuelve en «Recibir». Con los módulos de
+  // su rol la ve solo si lo tiene (`menu.test.ts`, «con módulos: …»).
+  it("parado en el Taller, quien trabaja ahí ve las pantallas de fabricación y Abastecimiento (Órdenes de insumos y Recibir), pero no Resumen, Proveedores, Comprobantes ni Por pagar (datos bancarios y montos)", () => {
+    expect(hijosMenuProduccion({ esLider: false, ubicacionTipo: "taller" })).toEqual(["ordenes", "insumos", "abastecimiento"]);
   });
 
   it("un líder que mira desde una tienda o un almacén NO ve Producción", () => {
@@ -39,9 +42,9 @@ describe("puedeVerProduccion", () => {
 });
 
 describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se muestra — Felipe, 2026-09-21)", () => {
-  it("el líder ve las cinco pantallas de Compras desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas", () => {
+  it("el líder ve las cuatro filas de Compras desde una tienda o un almacén, en el orden plan → mi plata → proveedor → historial (ADR-0504: Revisar compras y Por pagar son pestañas del Historial; Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["proveedores", "comprobantes", "recibir", "porPagar", "notasCredito"]);
+      expect(hijosMenuCompras({ esLider: true, ubicacionTipo })).toEqual(["plan", "miPlata", "proveedores", "comprobantes"]);
     }
   });
 
@@ -49,9 +52,18 @@ describe("hijosMenuCompras (Compras es de las tiendas: parado en el Taller no se
     expect(hijosMenuCompras({ esLider: true, ubicacionTipo: "taller" })).toEqual([]);
   });
 
-  it("quien no es líder no ve Compras, esté donde esté", () => {
+  // ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): Plan de campaña y Órdenes de compra piden solo su módulo, no la plata de
+  // Compras. Sin módulos (la forma vieja con que esta vista arma el menú) quien no es líder ve esas dos en una tienda o un almacén;
+  // con módulos, cada cuenta ve solo las de su rol. Las cinco de plata siguen pidiendo `verDineroCompras`. En el Taller, nada.
+  // ADR-0362 fase 6 (decisión 65): Fondos por rendir, igual que esas dos, pide solo su módulo (nace sin rol: con módulos solo la ve el líder).
+  // ADR-0480 (2026-10-22): Órdenes de compra pasa a «Mis compras» y Fondos por rendir a «Revisar compras», con las mismas llaves.
+  // ADR-0504 (2026-10-24): «Revisar compras» ya no es una fila: es una pestaña de «Historial de compras», que se abre con CUALQUIERA de sus tres
+  // módulos y por eso no pide `verDineroCompras` (con él, un rol con solo «Revisar compras» no la vería). Esta vista no trae módulos, así que
+  // quien no es líder ve esa fila donde antes veía «Revisar compras»; con módulos, solo la ve quien tiene uno de los tres, y cada pestaña
+  // pide el suyo.
+  it("quien no es líder ve en Compras solo lo que no pide la plata de Compras (Plan de campaña, Mis compras y la fila del Historial); en el Taller, nada", () => {
     for (const ubicacionTipo of TIPOS) {
-      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual([]);
+      expect(hijosMenuCompras({ esLider: false, ubicacionTipo })).toEqual(ubicacionTipo === "taller" ? [] : ["plan", "miPlata", "comprobantes"]);
     }
   });
 

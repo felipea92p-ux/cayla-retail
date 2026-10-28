@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fotoOptimizable } from "./foto-prenda-reglas";
+import { fondoDeLaFoto, fotoOptimizable } from "./foto-prenda-reglas";
 
 const SUPA = "https://vovjyyiafkxteijimpuy.supabase.co";
 const FOTO = `${SUPA}/storage/v1/object/public/retail-productos-fotos/b6f795a3/BLA.webp`;
@@ -22,5 +22,18 @@ describe("fotoOptimizable", () => {
   it("sin URL de Supabase o con una URL rota, no optimiza", () => {
     expect(fotoOptimizable(FOTO, undefined)).toBe(false);
     expect(fotoOptimizable("no es una url", SUPA)).toBe(false);
+  });
+});
+
+describe("fondoDeLaFoto: el color de la prenda solo mientras la foto carga (ADR-0442, 2026-10-18)", () => {
+  it("antes de cargar se ve el color de la prenda", () => {
+    expect(fondoDeLaFoto("#4B342F", false)).toBe("#4B342F");
+  });
+  it("cuando la foto cargó no queda ningún color detrás: un PNG transparente dejaría ver el chocolate", () => {
+    expect(fondoDeLaFoto("#4B342F", true)).toBeUndefined();
+  });
+  it("sin color registrado no pinta nada en ningún momento", () => {
+    expect(fondoDeLaFoto(null, false)).toBeUndefined();
+    expect(fondoDeLaFoto(undefined, true)).toBeUndefined();
   });
 });

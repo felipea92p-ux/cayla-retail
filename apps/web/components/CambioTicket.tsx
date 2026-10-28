@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { MessageCircle, Plus, Printer, ShoppingBag } from "lucide-react";
+import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { EMISOR } from "@/lib/emisor";
 import { enlaceWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
@@ -11,6 +11,7 @@ import { fechaHoraLima } from "@/lib/recibo-reglas";
 import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -73,11 +74,11 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
   return (
     <Modal
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
       titulo="Cambio registrado"
       subtitulo={
         ticket.vaACuarentena
-          ? "La prenda que trajo quedó en cuarentena, esperando que un líder decida qué hacer con ella."
+          ? "La prenda que trajo quedó en cuarentena, esperando que se decida qué hacer con ella."
           : "El stock ya refleja la prenda que volvió y la que salió."
       }
       onClose={onCerrar}
@@ -103,14 +104,13 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <a href={whatsapp} target="_blank" rel="noreferrer" className={`${boton} bg-tinta text-crema hover:bg-tinta/85`}>
+            <a href={whatsapp} target="_blank" rel="noreferrer" className={`${boton} bg-tinta text-crema hover:bg-rojo-profundo`}>
               <MessageCircle aria-hidden className="h-4 w-4" />
               {ticket.clienta ? `WhatsApp a ${ticket.clienta.split(" · ")[0]!.split(" ")[0]}` : "Enviar por WhatsApp"}
             </a>
-            <button type="button" onClick={() => window.print()} className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>
-              <Printer aria-hidden className="h-4 w-4" />
+            <BotonImprimir onClick={() => window.print()} className="h-12 rounded-xl">
               Imprimir ticket
-            </button>
+            </BotonImprimir>
             <Link href="/vender" className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>
               <ShoppingBag aria-hidden className="h-4 w-4" />
               Se lleva algo más: seguir vendiendo
@@ -127,7 +127,7 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               Nuevo cambio
             </button>
           </div>
-          <p className="mt-3 text-center text-xs text-tinta/55">Es el resumen del cambio para la clienta; no es un comprobante de pago.</p>
+          <p className="mt-3 text-center text-xs text-tinta/55">Es el resumen del cambio para el cliente; no es un comprobante de pago.</p>
 
           {typeof document !== "undefined" && createPortal(<TicketCambioTermico ticket={ticket} />, document.body)}
         </>
@@ -144,8 +144,8 @@ function TicketCambioTermico({ ticket }: { ticket: TicketCambio }) {
   return (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <Image src="/cayla-isotipo.png" alt="" width={221} height={150} priority unoptimized className="rt-logo" />
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-tienda">{ticket.sede}</p>
       </header>
       <div className="rt-doble" />
@@ -165,7 +165,7 @@ function TicketCambioTermico({ ticket }: { ticket: TicketCambio }) {
         )}
         {ticket.clienta && (
           <>
-            <dt>Clienta</dt>
+            <dt>Cliente</dt>
             <dd>{ticket.clienta}</dd>
           </>
         )}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -23,16 +22,18 @@ import {
   textoSeBorraConHistoria,
   type ComoEliminar,
 } from "@/lib/eliminar-producto-reglas";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /**
- * «Eliminar» un producto (ADR-0218: Líder y Admin, sin historia; ADR-0252: solo Admin, con su historia de stock).
+ * «Eliminar» un producto (ADR-0218 sin historia, ADR-0252 con su historia de stock). Lo hace quien edita el catálogo
+ * (`fn_puede_editar_catalogo`; hasta el 2026-10-03 era solo del Líder y, con historia, solo del Admin).
  *
  * Primero PREGUNTA a la base cómo se puede eliminar (`fn_producto_como_eliminar`) y recién con la respuesta muestra algo:
  *  - libre → qué se borra + el combo «Responsable» + Eliminar (`eliminar_producto`, todo o nada);
- *  - con historia de stock y cuenta Admin → cuánto se va, quién lo cargó y cuándo, el respaldo + «Eliminar con su
- *    historia» (`eliminar_producto_con_historia`, todo o nada). Un Líder que no es Admin ve por qué no puede y la salida;
- *  - con documentos (ventas, compras, traslados…) o pieza del sistema → por qué no, y la salida (descontinuarlo desde
- *    Editar). NUNCA un botón que la base va a rechazar;
+ *  - con historia de stock → cuánto se va, quién lo cargó y cuándo, el respaldo + «Eliminar con su historia»
+ *    (`eliminar_producto_con_historia`, todo o nada). Si la base dice que esta cuenta no puede, ve por qué y la salida;
+ *  - con documentos (ventas, compras, traslados…) o pieza del sistema → por qué no, y la salida (desactivarla ahí mismo si
+ *    quien abre la ventana puede, `onDesactivar`; si no, descontinuarlo desde Editar). NUNCA un botón que la base va a rechazar;
  *  - no se pudo preguntar (la base no respondió, o todavía no tiene la función) → se dice, y no se ofrece borrar a ciegas.
  *
  * Quien decide de verdad es la base: aunque esta ventana mintiera, las dos funciones vuelven a comprobar dentro de la
@@ -41,12 +42,16 @@ import {
 export function EliminarProductoModal({
   producto,
   onClose,
+  onDesactivar,
 }: {
   /** `estado` y `numVariantes` solo redactan los textos; `null` = no se sabe (Existencias abre desde un color en una sede
    *  y no sabe cuántas variantes tiene el producto; el estado, si su lectura del catálogo falló). Lo que se puede y lo que
    *  se borra lo decide la base, no estos dos. */
   producto: { productoId: string; referencia: string; estado: string | null; numVariantes: number | null };
   onClose: () => void;
+  /** Si quien abre la ventana puede abrir la hoja que desactiva la prenda (la Grilla): cuando no se puede eliminar, la salida es un botón
+   *  «Desactivar» que la abre, en vez del rodeo por Editar. Debe cerrar ESTA ventana y abrir la hoja (el modal no se cierra solo). */
+  onDesactivar?: () => void;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -93,7 +98,9 @@ export function EliminarProductoModal({
 
   const puede = como ? ofreceEliminar(como) : false;
   const conHistoria = puede && como?.nivel === "con_historia";
-  const salida = como && !puede ? salidaSinEliminar(producto.estado, como.nivel) : null;
+  const salida = como && !puede ? salidaSinEliminar(producto.estado, como.nivel, onDesactivar !== undefined) : null;
+  // Una salida a la vista (ADR-0358, ronda 12): si hay algo que hacer, «Cancelar» al pie; si la hoja solo explica, la ×.
+  const hayAccion = puede || Boolean(salida?.irAEditar) || Boolean(salida?.desactivar && onDesactivar);
   const quien = como && como.nivel !== "libre" ? textoQuienLoCargo(como.cargadoPor, como.cargadoEl) : null;
   // «No se puede» solo cuando la base lo dijo: si no se pudo ni preguntar, el título no afirma nada.
   const titulo = puede
@@ -105,7 +112,7 @@ export function EliminarProductoModal({
       : `Eliminar «${producto.referencia}»`;
 
   return (
-    <Modal titulo={titulo} ancho="max-w-md" bloqueado={eliminando} onClose={onClose}>
+    <Modal titulo={titulo} bloqueado={eliminando} onClose={onClose} conCerrar={!hayAccion}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {comprobacion === "cargando" && <p className="text-sm text-tinta/70">Revisando si tiene ventas o movimientos…</p>}
@@ -136,17 +143,22 @@ export function EliminarProductoModal({
 
           {puede && <ComboResponsable control={responsable} deshabilitado={eliminando} />}
 
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={eliminando}>
-              {puede ? "Cancelar" : "Cerrar"}
-            </Boton>
+          <div className="pie-acciones">
+            {hayAccion && (
+              <Boton peso="fantasma" onClick={cerrar} disabled={eliminando}>
+                Cancelar
+              </Boton>
+            )}
             {salida?.irAEditar && (
-              <Link href={`/productos/${producto.productoId}/editar`} className="label-cayla flex flex-1 items-center justify-center rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo-profundo">
-                Editar
-              </Link>
+              <BotonEditar href={`/productos/${producto.productoId}/editar`} />
+            )}
+            {salida?.desactivar && onDesactivar && (
+              <Boton peso="peligro" onClick={onDesactivar}>
+                Desactivar
+              </Boton>
             )}
             {puede && (
-              <Boton peso="primario" className="flex-1" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
+              <Boton textoCargando="Eliminando…" peso="primario" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
                 {conHistoria ? "Eliminar con su historia" : "Eliminar"}
               </Boton>
             )}

@@ -1,9 +1,11 @@
 "use client";
 
-import { FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
+import { agruparPorFamilia, bordeDeMuestra, enLaCarta, FAMILIAS_COLOR, fondoDeMuestra, textoDeFamilia, type FamiliaColor } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
-import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
-import { useEffect, useState } from "react";
+import { partirEnGamas } from "@/lib/color-escala";
+import { MAX_DESCRIPCION, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { CombinaConCampo, DescripcionColorCampo } from "@/components/CombinaConCampo";
+import { useEffect, useMemo, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -16,7 +18,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
-  AccionTarjeta,
+
   BarraAtributos,
   BotonesPendiente,
   BotonReactivar,
@@ -29,6 +31,9 @@ import {
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
+import { Aviso } from "@/components/ui/Aviso";
+import { LapizEditar } from "@/components/ui/BotonEditar";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -37,9 +42,9 @@ import { filtrarColores } from "@/lib/atributos-buscar";
  * dejaba agregar uno nuevo a mano.
  *
  * "+ Agregar color" es de cualquiera con sesión desde el 2026-09-16
- * (`20260916220000_colores_proponer_aprobar.sql`): un color propuesto nace
- * `pendiente` y queda usable al instante (nunca frena a quien está en medio
- * de un censo), y cualquiera de los Líderes lo aprueba después. Editar,
+ * (`20260916220000_colores_proponer_aprobar.sql`) y, desde ADR-0534
+ * (2026-10-27), lo que se agrega nace aprobado, lo agregue quien lo agregue.
+ * Lo que ya quedó pendiente de antes se aprueba o rechaza aquí. Editar,
  * aprobar y desactivar/reactivar siguen detrás de `puedeEditar` — el candado
  * real vive en la base (`colores_update_lider`), esto solo decide qué se
  * MUESTRA.
@@ -53,6 +58,8 @@ type Color = {
   codigo: string;
   nombre: string;
   familiaColor: string | null;
+  /** `colores.tipo` («solido» | «textura» | «estampado»): una textura (Gris melange) se pinta jaspeada, no como un liso del mismo tono. */
+  tipo: string;
   hex: string | null;
   orden: number;
   activo: boolean;
@@ -62,6 +69,10 @@ type Color = {
   pantoneTcx: string | null;
   /** Cómo le dicen en tienda («plomo» → Gris): el buscador los entiende. */
   sinonimos: string[];
+  /** Qué transmite y dónde funciona (hasta 300 caracteres): lo que la asesora le dice a la cliente. Null = sin escribir. */
+  descripcion: string | null;
+  /** Códigos de los colores con los que se lleva bien (hasta 8). La base rechaza uno que no exista. */
+  combinaCon: string[];
 };
 
 // El código Pantone se escribe como sea («19-1557», «19 1557 tcx») y se guarda como «19-1557 TCX». Dos colores no
@@ -77,8 +88,10 @@ function pieDePantone(texto: string, ocupados: Map<string, string>): string {
   return p ? `Se guarda como ${p}` : "Opcional: el código para pedir la tela al taller o al proveedor.";
 }
 
+// El orden lo da la propia paleta (familia en el espectro, luego gama y claridad: `lib/color-escala.ts`), el mismo de la carta de
+// Nuevo producto. `colores.orden` ya no decide nada aquí: un color recién creado cae en su lugar sin que alguien lo numere.
 function ordenar(lista: Color[]) {
-  return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+  return [...lista].sort(enLaCarta);
 }
 
 // Agrupa la grilla por familia de color (Neutro, Azul, Rojo...) en vez de una
@@ -86,43 +99,60 @@ function ordenar(lista: Color[]) {
 // (2026-09-18): con 34+ colores, un número global deja un color nuevo
 // "colgando" al final en vez de junto a sus parecidos, y la última fila
 // queda a medio llenar sin motivo aparente. Agrupado, cada familia cierra su
-// propia fila — la de "Estampado" con 3 colores se ve completa, no como el
-// resto de una grilla de 5 que faltó llenar. `orden` sigue ordenando DENTRO
-// de cada sección (`ordenar()` ya corrió antes de llamar a esto).
+// propia fila, no el resto de una grilla de 5 que faltó llenar. El orden DENTRO de cada sección ya
+// viene dado por `ordenar()` (escala: gama y de claro a oscuro); cada gama es su propia grilla, así cada fila es una escala
+// pura y la claridad nunca «sube» a mitad de una fila (ADR-0314).
 function gruposPorFamilia(lista: Color[]) {
-  const grupos: { familia: string; texto: string; colores: Color[] }[] = FAMILIAS_COLOR.map((f) => ({
-    familia: f.valor,
-    texto: f.texto,
-    colores: lista.filter((c) => c.familiaColor === f.valor),
-  })).filter((g) => g.colores.length > 0);
-
-  // Defensivo: un color sin familia asignada (dato viejo, o el select vacío
-  // en algún camino que no la exige) no debe desaparecer de la pantalla.
-  const sinFamilia = lista.filter((c) => !FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor));
-  if (sinFamilia.length > 0) {
-    grupos.push({ familia: "sin-familia", texto: "Sin familia", colores: sinFamilia });
-  }
-  return grupos;
+  // Un solo agrupador para todas las pantallas de colores (`agruparPorFamilia`, lib/colores-familias.ts). Una familia que esta pantalla aún
+  // no conoce —la base la agregó antes de que el código se desplegara— sale con su propio nombre, no escondida en «Sin familia»: «Sin
+  // familia» es solo para el color que de verdad no tiene (el 2-oct se vieron «Sin familia 7» que eran Rosado y Naranja).
+  return agruparPorFamilia(lista, (c) => c.familiaColor);
 }
 
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
-// así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, familia, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0" }} aria-hidden />;
+// así que un color es nombre, familia y hex; lo único que se suma es que un
+// color de `tipo` textura (Gris melange: el hilo mismo es jaspeado) se pinta
+// jaspeado sobre su hex, para no verse igual que el liso del mismo tono.
+function Muestra({ hex, familia, tipo, className = "aspect-[3/1] w-full" }: { hex: string | null; familia?: string | null; tipo?: string | null; className?: string }) {
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "var(--color-sand)", borderColor: bordeDeMuestra(hex) }} aria-hidden />;
 }
 
 /** Bajo el nombre: el código de 3 letras (va en el código de barras) y el Pantone para pedir la tela. */
-function DetalleColor({ c }: { c: Color }) {
+function DetalleColor({ c, porCodigo }: { c: Color; porCodigo: ReadonlyMap<string, Color> }) {
+  // Solo se ofrecen como compañeros colores que siguen activos: uno desactivado no se recomienda.
+  const companeros = c.combinaCon.map((cod) => porCodigo.get(cod)).filter((x): x is Color => !!x && x.activo);
   return (
-    <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
-      <span className="font-mono">{c.codigo}</span>
-      {c.pantoneTcx && (
-        <span className="font-mono" title="Código Pantone para pedir la tela">
-          {c.pantoneTcx}
-        </span>
+    <div className="space-y-1.5">
+      <p className="flex justify-between gap-2 text-[11px] text-tinta/60">
+        <span className="font-mono">{c.codigo}</span>
+        {c.pantoneTcx && (
+          <span className="font-mono" title="Código Pantone para pedir la tela">
+            {c.pantoneTcx}
+          </span>
+        )}
+      </p>
+      {c.descripcion && (
+        <p className="line-clamp-4 text-[12px] leading-snug text-tinta/75" title={c.descripcion}>
+          {c.descripcion}
+        </p>
       )}
-    </p>
+      {companeros.length > 0 && (
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-tinta/60">
+          <span className="whitespace-nowrap">Combina con</span>
+          <span className="flex flex-wrap items-center gap-1" aria-label={companeros.map((x) => x.nombre).join(", ")}>
+            {companeros.map((x) => (
+              <span
+                key={x.codigo}
+                title={x.nombre}
+                className="inline-block h-3 w-3 rounded-full border border-tinta/15"
+                style={{ background: fondoDeMuestra(x.hex, x.familiaColor, x.tipo) ?? "transparent", borderColor: bordeDeMuestra(x.hex) }}
+              />
+            ))}
+          </span>
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -146,10 +176,11 @@ function AvisoParecido({
   const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
   const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
   return (
-    <p role="status" className="rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
+    <Aviso tono="atencion" chico>
       Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
       dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
-    </p>
+    </Aviso>
+
   );
 }
 
@@ -183,16 +214,22 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   // Mientras nadie toque el código, sigue al nombre. Si la persona lo escribe,
   // deja de pisarlo; si lo borra por completo, vuelve a seguir al nombre.
   const [codigoTocado, setCodigoTocado] = useState(false);
-  const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
+  const [familiaColor, setFamiliaColor] = useState<FamiliaColor>("neutro");
+  // «Neutro» viene de fábrica: sin esto la guía nunca pasaría por el combo (un valor de fábrica ya cuenta como «lleno») y la
+  // familia quedaría en Neutro sin que nadie la mirara. Elegir en el combo —aunque sea Neutro otra vez— es «ya la miré».
+  const [familiaElegida, setFamiliaElegida] = useState(false);
   const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
   const [pantone, setPantone] = useState("");
   const [sinonimos, setSinonimos] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [combinaCon, setCombinaCon] = useState<string[]>([]);
 
   const activos = colores.filter((c) => c.activo);
+  const porCodigo = useMemo(() => new Map(colores.map((c) => [c.codigo, c])), [colores]);
   const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
-  const familiaDe = (c: Color) => (FAMILIAS_COLOR.some((f) => f.valor === c.familiaColor) ? c.familiaColor : "sin-familia");
+  const familiaDe = (c: Color) => c.familiaColor || "sin-familia";
   const pasaFamilia = (c: Color) => familia === "todas" || familiaDe(c) === familia;
   const activosVisibles = filtrarColores(activos, busqueda).filter(pasaFamilia);
   const desactivadosVisibles = filtrarColores(desactivados, busqueda).filter(pasaFamilia);
@@ -202,15 +239,17 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setBusqueda("");
     setAnimar(true);
   };
-  // Las píldoras: solo las familias que tienen algún color activo, en el orden de siempre (Neutro, Azul, Rojo…).
+  // Las píldoras: solo las familias que tienen algún color activo, en el orden del espectro (Neutro, Tierra, Rosado, Rojo…).
   const familiasConColores = gruposPorFamilia(activos);
   // Incluye los desactivados: el código es la clave primaria y sigue ocupado
   // aunque el color ya no se elija (cada SKU apunta a él).
   const codigosUsados = new Set(colores.map((c) => c.codigo));
   const dueñoDelCodigo = codigo.length === 3 ? colores.find((c) => c.codigo === codigo) : undefined;
 
-  // Guía de foco de «Nuevo color» (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar color». Familia, notas y sinónimos
-  // son opcionales y no entran; el Pantone solo es «requerido» cuando ya se escribió algo (mal escrito o repetido bloquea).
+  // Guía de foco de «Nuevo color» (CLAUDE.md «Guía de foco»): sale de lo que ya apaga «Guardar color». Notas y sinónimos son
+  // opcionales y no entran; el Pantone solo es «requerido» cuando ya se escribió algo (mal escrito o repetido bloquea). La familia
+  // es SUGERIDA, nunca un candado: ordena el color en la lista y en «Se ve casi igual que…», y «Neutro» de fábrica casi nunca es la
+  // correcta para un color nuevo, así que la luz pasa por ella antes del tono.
   const pantoneEscrito = pantone.trim() !== "";
   const guia = useGuiaCampos([
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
@@ -221,6 +260,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       hecho: codigo.length === 3 && !dueñoDelCodigo,
       pendiente: dueñoDelCodigo ? `Ese código ya lo usa «${dueñoDelCodigo.nombre}»: cambia una letra.` : "Escribe las 3 letras del código.",
     },
+    { id: "familia", nombre: "Familia", requerido: false, sugerido: true, hecho: familiaElegida, pendiente: "Elige la familia del color (ahora dice Neutro)." },
     {
       id: "pantone",
       nombre: "Pantone",
@@ -239,10 +279,13 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setCodigo("");
     setCodigoTocado(false);
     setFamiliaColor("neutro");
+    setFamiliaElegida(false);
     setHex(null);
     setNotas("");
     setPantone("");
     setSinonimos("");
+    setDescripcion("");
+    setCombinaCon([]);
   }
 
   async function guardar() {
@@ -251,7 +294,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
+        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -265,6 +308,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             codigo: datos.color.codigo,
             nombre: datos.color.nombre,
             familiaColor: datos.color.familia_color,
+            tipo: datos.color.tipo,
             hex: datos.color.hex,
             orden: 2000,
             activo: true,
@@ -272,14 +316,13 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             estado: datos.color.estado,
             pantoneTcx: datos.color.pantone_tcx ?? null,
             sinonimos: datos.color.sinonimos ?? [],
+            descripcion: datos.color.descripcion ?? null,
+            combinaCon: datos.color.combina_con ?? [],
           },
         ])
       );
       responsable.despues(null);
-      avisar.exito(
-        datos.color.estado === "pendiente" ? `${datos.color.nombre} agregado — ya lo puedes usar` : `Color ${datos.color.nombre} agregado`,
-        datos.color.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
-      );
+      avisar.exito(`Color ${datos.color.nombre} agregado`);
       setAgregando(false);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -373,6 +416,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   return (
     <div className="space-y-6">
       <BarraAtributos
+        guia="atributos.barra-colores"
         etiqueta="Filtrar colores"
         filtros={
           <>
@@ -407,37 +451,39 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             <TituloGrupo punto="bg-tinta/25" cuenta={coloresDeLaFamilia.length}>
               {texto}
             </TituloGrupo>
-            <div className={GRILLA_ATRIBUTOS}>
-              {coloresDeLaFamilia.map((c) => (
-                <TarjetaAtributo
-                  key={c.codigo}
-                  muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
-                  nombre={c.nombre}
-                  notas={c.notas}
-                  insignia={c.estado === "pendiente" ? "Pendiente" : null}
-                  detalle={<DetalleColor c={c} />}
-                >
-                  {puedeEditar && (
-                    <>
-                      {c.estado === "pendiente" && (
-                        <BotonesPendiente
-                          aprobando={aprobandoCodigo === c.codigo}
-                          onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
-                          onRechazar={() => {
-                            setRechazandoAbierto(c.codigo);
-                            setMotivoRechazo("");
-                          }}
-                        />
-                      )}
-                      {/* Desactivar un color vive dentro de Editar: antes de apagarlo se ve qué prendas lo usan. */}
-                      <PieTarjeta>
-                        <AccionTarjeta onClick={() => setEditando(c)}>Editar</AccionTarjeta>
-                      </PieTarjeta>
-                    </>
-                  )}
-                </TarjetaAtributo>
-              ))}
-            </div>
+            {partirEnGamas(coloresDeLaFamilia).map((gama, k) => (
+              <div key={k} className={GRILLA_ATRIBUTOS}>
+                {gama.map((c) => (
+                  <TarjetaAtributo
+                    key={c.codigo}
+                    muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
+                    nombre={c.nombre}
+                    notas={c.notas}
+                    insignia={c.estado === "pendiente" ? "Pendiente" : null}
+                    detalle={<DetalleColor c={c} porCodigo={porCodigo} />}
+                  >
+                    {puedeEditar && (
+                      <>
+                        {c.estado === "pendiente" && (
+                          <BotonesPendiente
+                            aprobando={aprobandoCodigo === c.codigo}
+                            onAprobar={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
+                            onRechazar={() => {
+                              setRechazandoAbierto(c.codigo);
+                              setMotivoRechazo("");
+                            }}
+                          />
+                        )}
+                        {/* Desactivar un color vive dentro de Editar: si todavía lo usa alguna variante activa, la pantalla se bloquea y dice cuántas. */}
+                        <PieTarjeta>
+                          <LapizEditar que={c.nombre} guia="atributos.color-editar" onClick={() => setEditando(c)} />
+                        </PieTarjeta>
+                      </>
+                    )}
+                  </TarjetaAtributo>
+                ))}
+              </div>
+            ))}
           </section>
         ))}
       </div>
@@ -446,7 +492,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         <Modal
           titulo="Nuevo color del vocabulario"
           subtitulo="Queda disponible de inmediato para cualquier prenda nueva o existente."
-          ancho="max-w-md"
           onClose={() => setAgregando(false)}
         >
           {(cerrar) => (
@@ -457,6 +502,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   <CampoGuiado id="nombre" guia={guia}>
                   <CampoTexto
                     etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO}
                     value={nombre}
                     onChange={(e) => {
                       setNombre(e.target.value);
@@ -483,7 +529,17 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   />
                   </CampoGuiado>
                 </div>
-                <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+                <CampoGuiado id="familia" guia={guia}>
+                  <CampoSelect
+                    etiqueta={guia.etiqueta("familia", "Familia")}
+                    valor={familiaColor}
+                    onValor={(v) => {
+                      setFamiliaColor(v);
+                      setFamiliaElegida(true);
+                    }}
+                    opciones={FAMILIAS_COLOR}
+                  />
+                </CampoGuiado>
                 <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
                 <CampoGuiado id="pantone" guia={guia}>
                 <CampoTexto
@@ -504,6 +560,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   onChange={(e) => setSinonimos(e.target.value)}
                   placeholder="plomo, gris medio"
                 />
+                <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
+                <CombinaConCampo colores={activos} valor={combinaCon} onValor={setCombinaCon} propio={codigo} />
               </div>
               <CampoGuiado id="color" guia={guia}>
                 <SelectorColor hex={hex} onHex={setHex} etiqueta={guia.etiqueta("color", "Color")} />
@@ -514,8 +572,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
               <PieGuia guia={guia} listo="Todo listo para guardar." />
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              <div className="pie-acciones pt-3">
+                <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
@@ -523,7 +581,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   peso="primario"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || !responsable.listo}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || !responsable.listo}
                   title={responsable.motivo ?? guia.frase ?? undefined}
                   className={`flex-1 ${guia.claseConfirmar}`}
                 >
@@ -542,7 +600,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             {desactivadosVisibles.map((c) => (
               <TarjetaAtributo
                 key={c.codigo}
-                muestra={<Muestra hex={c.hex} familia={c.familiaColor} />}
+                muestra={<Muestra hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
                 nombre={c.nombre}
                 insignia={c.estado === "rechazado" ? "Rechazado" : null}
                 detalle={
@@ -566,17 +624,17 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       )}
 
       {rechazandoColor && (
-        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoCodigo === rechazandoColor.codigo}
                   onClick={() => rechazar(rechazandoColor)}
                 >
@@ -611,7 +669,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 }
 
 // ---------------------------------------------------------------------------
-// Edición: nombre, familia, orden, hex y notas. El HEX arranca bloqueado detrás de
+// Edición: nombre, familia, hex, Pantone, sinónimos y notas. El orden ya no se edita: lo calcula la escala del color. El HEX arranca bloqueado detrás de
 // "Cambiar color" a propósito — no es un candado técnico (nada en
 // `movimientos`/`ventas` guarda una copia del hex; catálogo, inventario y
 // producción lo resuelven en vivo desde `colores.hex`), es solo para que no
@@ -636,15 +694,14 @@ function ColorEditarModal({
   onDesactivado: (codigo: string) => void;
 }) {
   const [nombre, setNombre] = useState(color.nombre);
-  const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>(
-    (color.familiaColor as (typeof FAMILIAS_COLOR)[number]["valor"]) ?? "neutro"
-  );
-  const [orden, setOrden] = useState(String(color.orden));
-  const [hex, setHex] = useState(color.hex ?? "#c9b79c");
+  const [familiaColor, setFamiliaColor] = useState<FamiliaColor>((color.familiaColor as FamiliaColor) ?? "neutro");
+  const [hex, setHex] = useState(color.hex ?? "#c9b79c"); // tema-fijo: valor inicial del selector de color (un input type=color exige un hex): es un dato
   const [hexAbierto, setHexAbierto] = useState(false);
   const [notas, setNotas] = useState(color.notas ?? "");
   const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
   const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
+  const [descripcion, setDescripcion] = useState(color.descripcion ?? "");
+  const [combinaCon, setCombinaCon] = useState<string[]>(color.combinaCon);
   // Los códigos Pantone de los OTROS colores: el propio no cuenta como ocupado.
   const vocabularioPantone = new Map(vocabulario.filter((c) => c.codigo !== color.codigo && c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const [guardando, setGuardando] = useState(false);
@@ -658,14 +715,10 @@ function ColorEditarModal({
     return () => clearTimeout(t);
   }, [confirmandoDesactivar]);
 
-  const ordenNumero = Number(orden);
-  const ordenValido = Number.isInteger(ordenNumero) && ordenNumero >= 0;
-
-  // Guía de foco de «Editar color»: lo que ya apaga «Guardar» (nombre, orden, Pantone) y quién firma. El color ya viene elegido.
+  // Guía de foco de «Editar color»: lo que ya apaga «Guardar» (nombre, Pantone) y quién firma. El color ya viene elegido.
   const pantoneEscrito = pantone.trim() !== "";
   const guia = useGuiaCampos([
     { id: "nombre", nombre: "Nombre", requerido: true, hecho: nombre.trim() !== "", pendiente: "Escribe el nombre del color." },
-    { id: "orden", nombre: "Orden", requerido: true, hecho: ordenValido, pendiente: "El orden es un número entero de 0 para arriba." },
     {
       id: "pantone",
       nombre: "Pantone",
@@ -677,13 +730,13 @@ function ColorEditarModal({
   ]);
 
   async function guardar() {
-    if (!nombre.trim() || !ordenValido) return;
+    if (!nombre.trim()) return;
     setGuardando(true);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre), descripcion, combinaCon }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -696,6 +749,7 @@ function ColorEditarModal({
         codigo: datos.color.codigo,
         nombre: datos.color.nombre,
         familiaColor: datos.color.familia_color,
+        tipo: datos.color.tipo,
         hex: datos.color.hex,
         orden: datos.color.orden,
         activo: datos.color.activo,
@@ -703,6 +757,8 @@ function ColorEditarModal({
         estado: datos.color.estado,
         pantoneTcx: datos.color.pantone_tcx ?? null,
         sinonimos: datos.color.sinonimos ?? [],
+        descripcion: datos.color.descripcion ?? null,
+        combinaCon: datos.color.combina_con ?? [],
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -740,28 +796,16 @@ function ColorEditarModal({
   const ocupado = guardando || desactivando;
 
   return (
-    <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={`Editar «${color.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
               quedaban el doble de grandes que los de Notas hacia abajo. */}
-          <div className="space-y-1">
-            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-              <CampoGuiado id="nombre" guia={guia}>
-                <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
-              </CampoGuiado>
-              <CampoGuiado id="orden" guia={guia}>
-              <CampoTexto
-                etiqueta={guia.etiqueta("orden", "Orden")}
-                mono
-                inputMode="numeric"
-                value={orden}
-                onChange={(e) => setOrden(e.target.value)}
-                tono={ordenValido ? undefined : "error"}
-                pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
-              />
-              </CampoGuiado>
-            </div>
+          <div data-guia="atributos.color-form" className="space-y-1">
+            <CampoGuiado id="nombre" guia={guia}>
+              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+            </CampoGuiado>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
             <CampoGuiado id="pantone" guia={guia}>
@@ -785,6 +829,9 @@ function ColorEditarModal({
             />
           </div>
 
+          <DescripcionColorCampo valor={descripcion} onValor={setDescripcion} />
+          <CombinaConCampo colores={vocabulario} valor={combinaCon} onValor={setCombinaCon} propio={color.codigo} />
+
           <div>
             {hexAbierto ? (
               <SelectorColor hex={hex} onHex={setHex} />
@@ -794,7 +841,7 @@ function ColorEditarModal({
                 <div className="mt-1.5 flex items-center gap-3">
                   <MuestraEditable hex={hex} />
                   <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>
-                  <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
+                  <button type="button" onClick={() => setHexAbierto(true)} className="btn-cayla btn-enlace text-xs">
                     Cambiar color
                   </button>
                 </div>
@@ -808,36 +855,39 @@ function ColorEditarModal({
             <ComboResponsable control={responsable} deshabilitado={ocupado} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
-              Cancelar
-            </Boton>
-            <Boton
-              type="button"
-              peso="primario"
-              onClick={guardar}
-              cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
-              title={responsable.motivo ?? guia.frase ?? undefined}
-              className={`flex-1 ${guia.claseConfirmar}`}
-            >
-              Guardar
-            </Boton>
+          <div data-guia="atributos.color-pie" className="space-y-2 pt-3">
+            {/* Lo peligroso, rojo desde el principio y en el pie, como en Categorías y Familias (ADR-0358, ronda 9). Sigue pidiendo dos
+                toques: el segundo, ya armado, dice «¿Seguro? Confirmar». */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Boton cargando={desactivando} textoCargando="Desactivando…"
+                type="button"
+                peso="peligro"
+                onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
+                disabled={ocupado || !responsable.listo}
+                title={responsable.motivo ?? undefined}
+                className={confirmandoDesactivar ? "font-semibold" : ""}
+              >
+                {confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
+              </Boton>
+              <div className="pie-acciones">
+                <Boton type="button" peso="fantasma" onClick={cerrar} disabled={ocupado}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  onClick={guardar}
+                  cargando={guardando}
+                  disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || ocupado || !responsable.listo}
+                  title={responsable.motivo ?? guia.frase ?? undefined}
+                  className={guia.claseConfirmar}
+                >
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+            <p className="text-xs text-tinta/55">Desactivar se bloquea si todavía hay una prenda activa con este color.</p>
           </div>
-
-          <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-            ¿Ya no se usa este color?{" "}
-            <button
-              type="button"
-              onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
-              disabled={ocupado || !responsable.listo}
-              title={responsable.motivo ?? undefined}
-              className={confirmandoDesactivar ? "font-medium text-rojo underline" : "text-rojo hover:underline"}
-            >
-              {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
-            </button>
-            . Se bloquea si todavía hay una prenda activa con este color.
-          </p>
         </div>
       )}
     </Modal>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buscador de Vender — tres propuestas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--rojo-p:#8b2a1f;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--ambar:#74501a;--verde:#48603f;--pizarra:#4c5d6e;--taupe:#805c4c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font-family:'DM Sans',system-ui,sans-serif;padding:28px 16px 56px}
+.w{max-width:1120px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}.sub{margin:0 0 28px;color:rgba(26,26,24,.62);font-size:14px;max-width:70ch;line-height:1.5}
+.op{margin-bottom:48px}
+.op>h2{font-size:18px;margin:0 0 2px}.op>p{margin:0 0 14px;font-size:13px;color:rgba(26,26,24,.62);max-width:80ch;line-height:1.5}
+.par{display:grid;gap:24px;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start}
+@media(max-width:820px){.par{grid-template-columns:1fr}}
+.et{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(26,26,24,.55);margin:0 0 8px}
+.celw{max-width:342px}
+.campo{display:flex;align-items:center;gap:12px;height:56px;border:1px solid var(--rojo);box-shadow:0 0 0 2px rgba(184,65,45,.2);background:var(--papel);border-radius:12px;padding:0 16px;font-size:16px}
+.campo svg{width:20px;height:20px;color:var(--rojo)}.campo .x{margin-left:auto;color:rgba(26,26,24,.5)}
+ul.l{list-style:none;margin:8px 0 0;padding:0;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(26,26,24,.10)}
+ul.l>li{border-top:1px solid var(--sand);container-type:inline-size}ul.l>li:first-child{border-top:0}
+.fila{display:flex;align-items:center;gap:12px;padding:10px 12px;width:100%;position:relative}
+.fila.act{background:rgba(232,224,208,.6)}.fila.off .tile,.fila.off .m{opacity:.55}
+.m{flex:1;min-width:0}
+.n{font-weight:600;font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d{font-size:12px;color:rgba(26,26,24,.62);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cod{font-size:11px;letter-spacing:.04em;color:rgba(26,26,24,.5);font-variant-numeric:tabular-nums}
+.der{text-align:right;flex:none}.p{font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;display:block}
+.s{font-size:12px;display:block;color:rgba(26,26,24,.62)}.o{font-size:11px;color:rgba(26,26,24,.55);display:block}
+.ro{color:var(--rojo-p)}.am{color:var(--ambar)}.pi{color:var(--pizarra)}
+.abajo{display:none;margin-top:3px;font-size:12px}.abajo b{font-variant-numeric:tabular-nums}
+@container (max-width:415px){.der{display:none}.abajo{display:block}}
+.tile svg{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid rgba(26,26,24,.25);vertical-align:-1px;margin-right:5px}
+/* A */
+.A .tile{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex:none}
+.A .tile svg{width:30px;height:30px}
+/* B */
+.B .tile{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--c) 22%,var(--papel));border:1px solid color-mix(in srgb,var(--c) 38%,var(--papel));color:color-mix(in srgb,var(--c) 70%,var(--tinta))}
+.B .tile svg{width:30px;height:30px}
+.B .pil{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;border-radius:999px;padding:2px 8px;background:var(--hueso);color:var(--tinta);margin-right:6px}
+/* C */
+.C .tile{width:64px;height:76px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex:none}
+.C .tile svg{width:30px;height:30px}.C .tile span{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;opacity:.85}
+.C .fila{padding:10px 14px 10px 12px;gap:14px}
+.C .act::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--rojo)}
+.C .pil{display:inline-block;font-size:11px;font-weight:600;border:1px solid var(--sand);background:var(--crema);border-radius:6px;padding:1px 7px;margin-right:6px;color:var(--tinta)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;border-radius:999px;padding:3px 10px 3px 8px;margin-top:4px;background:color-mix(in srgb,var(--k) 12%,var(--papel));color:var(--k)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--k)}
+.pie{font-size:13px;color:rgba(26,26,24,.65);line-height:1.55;max-width:80ch}
+</style></head><body><div class="w">
+<h1>Buscador de Vender — tres propuestas</h1>
+<p class="sub">Misma lista de resultados, tres niveles de riqueza. El ícono es el de la grilla de abajo (el de cada categoría: gorra, casaca, camisa), pero el fondo toma el <b>color de la prenda</b>. Texto e ícono cambian solos a claro u oscuro según el color, para que siempre se lean. Cada una, en escritorio (izquierda) y celular a 375 px (derecha).</p>
+
+<svg style="display:none"><symbol id="bar" viewBox="0 0 24 24"><path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol></svg>
+
+<div id="raiz"></div>
+
+<script>
+const ICO={
+ GOR:'<path d="M7 13c0-4.6 1.8-7.5 5-7.5s5 2.9 5 7.5"/><path d="M2.5 14.2c0-1 3-1.2 9.5-1.2s9.5.2 9.5 1.2c0 2.2-4.6 3.4-9.5 3.4s-9.5-1.2-9.5-3.4z"/><path d="M7.3 11.2c3 .8 6.4.8 9.4 0"/>',
+ CAS:'<path d="M8.6 3.8 4.4 6 3 17.6l3.6.6L7.5 11v9.5h9V11l.9 7.2 3.6-.6L19.6 6l-4.2-2.2"/><path d="M8.6 3.8v2.4L12 8l3.4-1.8V3.8"/><path d="M8.6 3.8c1-.9 2.2-1.3 3.4-1.3s2.4.4 3.4 1.3"/><path d="M12 8v12.5"/><path d="M7.5 17.6h9"/>',
+ CMS:'<path d="M9 3.5 3.5 6.7 5 11l2.5-1.2v10.7h9V9.8L19 11l1.5-4.3L15 3.5"/><path d="m9 3.5 3 4.2 3-4.2"/><path d="M12 7.7v12.8"/><path d="M12 11h.01M12 14.5h.01M12 18h.01"/>'};
+const CAT={GOR:'Gorros',CAS:'Casacas',CMS:'Camisas'};
+const D=[
+ {r:'Gorra Urbana',p:'GOR',t:'Única',c:'Azul medio',h:'#4f7cac',cod:'GOR-0003-AME-U',pr:29,st:'aqui',n:1,act:1},
+ {r:'Gorra Urbana',p:'GOR',t:'Única',c:'Negro',h:'#1f1f1d',cod:'GOR-0003-NEG-U',pr:29,st:'agotada',otras:'2 en Trujillo'},
+ {r:'Gorra Urbana',p:'GOR',t:'Única',c:'Celeste',h:'#9fd0ea',cod:'GOR-0003-CEL-U',pr:29,st:'almacen',n:3},
+ {r:'Casaca Aurora',p:'CAS',t:'M',c:'Marrón',h:'#6b4a2f',cod:'CAS-0012-MAR-M',pr:189,st:'aqui',n:4},
+ {r:'Camisa Lino',p:'CMS',t:'S',c:'Beige',h:'#d9c7a8',cod:'CMS-0021-BEI-S',pr:99,st:'apartada'}];
+const lum=h=>{const n=parseInt(h.slice(1),16),f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};return .2126*f(n>>16)+.7152*f(n>>8&255)+.0722*f(n&255)};
+const fg=h=>lum(h)>.32?'#1a1a18':'#f5f0e8';
+const money=v=>'S/'+v.toFixed(2);
+const stTxt=d=>({aqui:d.n+' aquí',agotada:'sin stock aquí',almacen:d.n+' en el almacén',apartada:'apartada para un cliente'})[d.st];
+const stCl=d=>({aqui:'',agotada:'ro',almacen:'am',apartada:'pi'})[d.st];
+const stK=d=>({aqui:'var(--verde)',agotada:'var(--rojo-p)',almacen:'var(--ambar)',apartada:'var(--pizarra)'})[d.st];
+const off=d=>d.st==='agotada'||d.st==='apartada';
+const svg=d=>`<svg viewBox="0 0 24 24" aria-hidden="true">${ICO[d.p]}</svg>`;
+const tileSolido=(d,lab)=>`<div class="tile" style="background:${d.h};color:${fg(d.h)};${d.h==='#1f1f1d'?'':'box-shadow:inset 0 0 0 1px rgba(26,26,24,.08)'}">${svg(d)}${lab?`<span>${CAT[d.p]}</span>`:''}</div>`;
+const tileB=d=>`<div class="tile" style="--c:${d.h}">${svg(d)}</div>`;
+const fila={
+ A:d=>`<div class="fila ${d.act?'act':''} ${off(d)?'off':''}">${tileSolido(d)}<span class="m"><span class="n">${d.r}</span><span class="d">${d.t} · <span class="dot" style="background:${d.h}"></span>${d.c}</span><span class="d cod">${d.cod}</span><span class="abajo"><b>${money(d.pr)}</b> · <span class="${stCl(d)}">${stTxt(d)}</span></span></span><span class="der"><span class="p">${money(d.pr)}</span><span class="s ${stCl(d)}">${stTxt(d)}</span>${d.otras?`<span class="o">${d.otras}</span>`:''}</span></div>`,
+ B:d=>`<div class="fila ${d.act?'act':''} ${off(d)?'off':''}">${tileB(d)}<span class="m"><span class="n">${d.r}</span><span class="d"><span class="pil">Talla ${d.t}</span><span class="dot" style="background:${d.h}"></span>${d.c}</span><span class="d cod">${d.cod}</span><span class="abajo"><b>${money(d.pr)}</b> · <span class="${stCl(d)}">${stTxt(d)}</span></span></span><span class="der"><span class="p">${money(d.pr)}</span><span class="s ${stCl(d)}">${stTxt(d)}</span>${d.otras?`<span class="o">${d.otras}</span>`:''}</span></div>`,
+ C:d=>`<div class="fila ${d.act?'act':''}">${tileSolido(d,1)}<span class="m ${off(d)?'':''}" style="${off(d)?'opacity:.7':''}"><span class="n">${d.r}</span><span class="d"><span class="pil">${d.t}</span><span class="dot" style="background:${d.h}"></span>${d.c}</span><span class="d cod">${d.cod}</span><span class="chip" style="--k:${stK(d)}"><i></i>${stTxt(d)}${d.otras?' · '+d.otras:''}</span></span><span class="der"><span class="p">${money(d.pr)}</span></span></div>`};
+const titulos={
+ A:['A · Color sólido','La miniatura es un bloque del color de la prenda con el ícono de su categoría encima, igual que la grilla. Lo más limpio: se reconoce el color y el tipo de prenda de un vistazo. Suma una tercera línea con el código de la etiqueta.'],
+ B:['B · Tinte del color','Mismo molde que las tarjetas sin foto de la grilla (fondo tenue y trazo más oscuro), pero con el color de la prenda en vez del tono de la familia. Más sobrio y con el estilo de la guía CAYLA. Suma la talla como píldora.'],
+ C:['C · Tarjeta completa','Bloque de color más alto con el ícono y el nombre de la categoría debajo (como la grilla), talla en píldora, el stock como Chip con punto de estado y una barra roja en la fila activa. La más rica; la fila queda más alta.']};
+const casos=D;
+let h='';
+for(const k of ['A','B','C']){
+ const lista=()=>`<ul class="l">${casos.map(d=>`<li>${fila[k](d)}</li>`).join('')}</ul>`;
+ const campo=`<div class="campo"><svg><use href="#bar"/></svg>gorr<span class="x">×</span></div>`;
+ h+=`<section class="op ${k}"><h2>${titulos[k][0]}</h2><p>${titulos[k][1]}</p><div class="par"><div><div class="et">Escritorio</div>${campo}${lista()}</div><div class="celw"><div class="et">Celular · 375 px</div>${campo}${lista()}</div></div></section>`;
+}
+document.getElementById('raiz').innerHTML=h;
+</script>
+<p class="pie">Notas: las filas agotada y apartada se atenúan (en A y B toda la fila; en C solo el contenido, el chip conserva su color). Los colores de las prendas aquí son de ejemplo; en el sistema saldrían del campo <code>colores.hex</code> de cada variante.</p>
+</div></body></html>

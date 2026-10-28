@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Receipt, Search, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -11,8 +11,12 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { enviarVentaASunat } from "@/lib/envio-sunat";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
+import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
+import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
@@ -20,10 +24,18 @@ import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { diaLima } from "@/lib/fechas-lima";
+import { Vacio } from "@/components/ui/Vacio";
+import { Aviso } from "@/components/ui/Aviso";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { Boton } from "@/components/ui/campos";
+import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
+  "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 const BILLETES = [10, 20, 50, 100, 200];
 
 /** «Terracota · M · VES-0012-TER-M»: el apartado solo guarda el `sku`, que en producción está vacío en casi todas las
@@ -34,7 +46,8 @@ function detallePrenda(v: VarianteBusqueda | undefined, sku: string): string {
   return [v.color, v.talla, codigoPrenda(v)].filter(Boolean).join(" · ");
 }
 
-const iniciales = (a: Apartado) => `${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase();
+// La cara del cliente (<AvatarPersona>, ADR-0358 ronda 8) con las mismas iniciales de siempre: el primer nombre y el primer apellido.
+const nombreParaIniciales = (a: Apartado) => `${a.nombres.split(/\s+/)[0] ?? ""} ${a.apellidos.split(/\s+/)[0] ?? ""}`;
 
 export function EntregarVista({
   ubicacionId,
@@ -47,6 +60,7 @@ export function EntregarVista({
   onElegir,
   apagadas = [],
   cabecera,
+  redondeoEfectivo = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -60,26 +74,34 @@ export function EntregarVista({
   apagadas?: string[];
   /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
   cabecera?: React.ReactNode;
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): el saldo en efectivo se cobra al múltiplo
+   *  de S/ 0.10, hacia abajo. Con `false` (la base todavía no lo acepta) se cobra exacto, como antes. */
+  redondeoEfectivo?: boolean;
 }) {
   const router = useRouter();
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
-  const [enviando, setEnviando] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el apartado y los pagos. Si la respuesta se pierde, la vista
+  // se congela (ni otro apartado ni otros pagos) hasta saber si la entrega quedó.
+  const envio = useIntento("entregar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
   const conAbonos = encendida(apagadas, "abonos");
   const conEditar = encendida(apagadas, "editar");
   const conEstante = encendida(apagadas, "estante");
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
-  const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number } | null>(null);
-  const token = useRef<string>(crypto.randomUUID());
+  const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; redondeo: number } | null>(null);
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
   // (módulo Punto de venta: no propone a quien inició sesión).
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
 
   /** Cambiar de clienta es otra operación: el combo vuelve a vacío. */
   function elegir(id: string | null) {
+    // En duda no se cambia de apartado: la entrega en el aire es la del elegido.
+    if (envio.incierto) return;
     responsable.limpiar();
     onElegir(id);
   }
@@ -88,7 +110,7 @@ export function EntregarVista({
   const encontrados = abiertos.filter((a) => coincide(a, texto)).sort((x, y) => x.venceEl.localeCompare(y.venceEl));
   const a = elegido ? abiertos.find((x) => x.id === elegido) ?? null : null;
   const saldo = a ? a.saldo : 0;
-  const cobro = cobroDelSaldo(pagos, saldo);
+  const cobro = cobroDelSaldo(pagos, saldo, redondeoEfectivo);
   const efectivo = pagos.find((p) => p.metodo === "efectivo");
 
   function tocarMedio(m: MetodoPago) {
@@ -102,25 +124,45 @@ export function EntregarVista({
 
   async function entregar() {
     if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
-    setEnviando(true);
-    const { error } = await firmar(
-      createClient().rpc("entregar_separacion", {
-        p_separacion_id: a.id,
-        p_pagos: pagosParaRpcApartado(pagos),
-        p_token: token.current,
-      }),
-      responsable.firma(),
+    // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
+    // saldo exacto. La boleta o factura sale por el TOTAL del apartado y no nombra el adelanto (ADR-0399).
+    const pagosRpc = pagosParaRpcApartado(pagos, redondeoEfectivo);
+    const params = { p_separacion_id: a.id, p_pagos: pagosRpc };
+    const r = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("entregar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
     // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, "entregar el apartado", { confirmarAntesDeRepetir: true }));
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la vista lo dice arriba y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") {
+      avisar.error(traducirError(r.error, "entregar el apartado"));
       return;
     }
-    token.current = crypto.randomUUID();
-    const pagadoHoy = pagos.map((p) => ({ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }));
-    setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto });
+    // Como cualquier venta: la boleta o factura se declara a SUNAT en segundo plano; si Lucode no responde queda en la cola de reintento
+    // (y, si la respuesta quedó en duda, el barrido la recoge). Un apartado VIEJO (con su boleta de anticipo) no se envía solo: la ruta lo
+    // frena hasta que se pruebe el anticipo con Lucode.
+    if (esConstancia(a) && r.tipo === "ok" && typeof r.data === "string") enviarVentaASunat(r.data);
+    entregadoCon(a, pagosRpc);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho" && a) return entregadoCon(a, pagosParaRpcApartado(pagos, redondeoEfectivo));
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La entrega no se registró", { detalle: "El apartado sigue abierto y no se cobró el saldo. Revisa los pagos y vuelve a entregar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function entregadoCon(a: Apartado, pagosRpc: ReturnType<typeof pagosParaRpcApartado>) {
+    const pagadoHoy = pagosRpc.flatMap((p) => (p.metodo === "redondeo" ? [] : [{ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }]));
+    const redondeo = pagosRpc.find((p) => p.metodo === "redondeo")?.monto ?? 0;
+    setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto, redondeo });
     avisar.exito(`Venta de ${money(a.total)} registrada`, { detalle: `Apartado ${a.codigo} entregado` });
     setPagos([]);
     elegir(null);
@@ -130,55 +172,58 @@ export function EntregarVista({
 
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      {envio.incierto && (
+        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+          <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
+        </div>
+      )}
+      {/* En duda, nada se toca: otro apartado u otros pagos podrían entregar dos veces. */}
+      <fieldset disabled={envio.incierto} className="contents">
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
       {cabecera}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
-        <label className="flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
-          <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
-          <input
-            autoFocus
-            value={texto}
-            onChange={(e) => {
-              setTexto(e.target.value);
-              elegir(null);
-              setPagos([]);
-            }}
-            placeholder="Nombre, DNI, celular o N.º de boleta"
-            aria-label="Buscar apartado"
-            className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
-          />
-        </label>
+        {/* El buscador del mostrador (ADR-0358, ronda 5): filtra mientras se escribe. */}
+        <Buscador guia="apartados.entregar-buscador"
+          tamano="mostrador"
+          autoFocus
+          valor={texto}
+          onCambio={(v) => {
+            setTexto(v);
+            elegir(null);
+            setPagos([]);
+          }}
+          placeholder="Nombre, DNI, celular o código APT-"
+          etiqueta="Buscar apartado"
+        />
 
         {a ? (
           <article className="anim-revelar space-y-4 rounded-2xl border border-sand p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3.5">
-                <span className="font-display grid h-12 w-12 place-items-center rounded-full bg-sand/70 text-lg text-tinta">{iniciales(a)}</span>
+                <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
                 <div>
                   <p className="font-display text-2xl leading-tight text-tinta">{a.nombres} {a.apellidos}</p>
                   <p className="text-[12.5px] text-tinta/60 tabular-nums">
-                    {formatoCelular(a.celular)}
-                    {a.dni && ` · DNI ${a.dni}`}
-                    {a.asesora && ` · atendió ${a.asesora}`}
+                    {[a.celular && formatoCelular(a.celular), a.dni && `DNI ${a.dni}`, a.asesora && `atendió ${a.asesora}`].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </div>
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
-                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo} · {a.comprobanteAnticipo}</p>
+                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
                 <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
-                  Otra clienta
+                  Otro cliente
                 </button>
               </div>
             </div>
-            <LineaDeTiempo creadaEl={a.creadaEn.slice(0, 10)} hoy={hoy} venceEl={a.venceEl} />
+            <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
-                  <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} ancho={44} className="w-11" />
+                  <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} colorHex={porVariante.get(pr.varianteId)?.colorHex} categoria={porVariante.get(pr.varianteId)?.categoria} categoriaPrefijo={porVariante.get(pr.varianteId)?.categoriaPrefijo} categoriaFamilia={porVariante.get(pr.varianteId)?.categoriaFamilia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
                     <p className="text-[12px] text-tinta/60">{detallePrenda(porVariante.get(pr.varianteId), pr.sku)} · {pr.cantidad} u.</p>
@@ -189,16 +234,16 @@ export function EntregarVista({
             </ul>
             {conEditar && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditar(true)} className="label-cayla inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand px-3 text-[10.5px] hover:border-taupe">
-                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
-                </button>
+                <BotonEditar chico onClick={() => setEditar(true)}>
+                  Editar prendas
+                </BotonEditar>
                 <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
               </div>
             )}
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-[12.5px] text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
-                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta de la clienta coinciden.
+                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la {esConstancia(a) ? "constancia" : "boleta"} del cliente coinciden.
               </span>
             </p>
           </article>
@@ -206,16 +251,31 @@ export function EntregarVista({
           <>
             <p className="label-cayla text-[11px] text-tinta/60">{texto ? "Coinciden" : `Por recoger en ${ubicacionEtiqueta}`} · {encontrados.length}</p>
             {encontrados.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-sand px-6 py-10 text-center">
-                <p className="font-display text-xl text-tinta">{texto ? `Nadie con «${texto}»` : "No hay apartados por recoger"}</p>
-                {texto && <p className="mt-1 text-sm text-tinta/60">Si ya venció y se liberó, está en «Todos».</p>}
+              <div className="card-cayla">
+                {texto ? (
+                  <Vacio
+                    icono={<SearchX />}
+                    titulo={`Nadie con «${texto}»`}
+                    acciones={
+                      <Boton peso="fantasma" onClick={() => { setTexto(""); elegir(null); setPagos([]); }}>
+                        Borrar la búsqueda
+                      </Boton>
+                    }
+                  >
+                    Si ya venció y se liberó, está en «Historial».
+                  </Vacio>
+                ) : (
+                  <Vacio icono={<ShoppingBag />} titulo="No hay apartados por recoger">
+                    Cuando alguien aparte una prenda en {ubicacionEtiqueta}, aparecerá aquí hasta que la recoja.
+                  </Vacio>
+                )}
               </div>
             ) : (
               <ul className="space-y-2">
                 {encontrados.map((x) => (
                   <li key={x.id}>
                     <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe">
-                      <span className="font-display grid h-9 w-9 place-items-center rounded-full bg-sand/70 text-sm">{iniciales(x)}</span>
+                      <AvatarPersona personaId={null} nombre={nombreParaIniciales(x)} tamano={32} />
                       <span className="min-w-0">
                         <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
                         <span className="block truncate text-[12.5px] text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${detallePrenda(porVariante.get(pr.varianteId), pr.sku)}`).join(" · ")}</span>
@@ -235,11 +295,13 @@ export function EntregarVista({
       </div>
 
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
-      <aside className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
+      <aside data-guia="apartados.entregar-detalle" className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
         <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-          <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
-            <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo
-          </h2>
+          <TituloSeccion>
+            <span className="inline-flex items-center gap-2.5">
+              <Wallet className="h-5 w-5 text-tinta/70" aria-hidden /> Saldo
+            </span>
+          </TituloSeccion>
           {a && <span className="font-mono text-xs text-tinta/60">{a.codigo}</span>}
         </div>
         {!a ? (
@@ -257,7 +319,7 @@ export function EntregarVista({
                   <p className="flex justify-between"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
                   {a.pagos.map((p, i) => (
                     <p key={i} className="flex justify-between">
-                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(p.fecha ?? a.creadaEn)}</span>
+                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(diaLima(p.fecha ?? a.creadaEn))}</span>
                       <span>−{money(p.monto)}</span>
                     </p>
                   ))}
@@ -296,7 +358,22 @@ export function EntregarVista({
                         ))}
                       </div>
                     )}
-                    {efectivo && (
+                    {/* El efectivo del saldo con la ley: lo que se cobra en monedas y lo que no (ADR-0311). Es la misma frase de la hoja de Vender. */}
+                    {cobro.efectivo && cobro.efectivo.redondeo > 0 && cobro.efectivo.aCobrar > 0 && (
+                      <p className="anim-revelar rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-tinta/80" data-redondeo>
+                        Cobra <b className="font-semibold text-tinta tabular-nums">{money(cobro.efectivo.aCobrar)}</b> en efectivo
+                        <span className="block text-[11.5px] text-tinta/60">
+                          {TEXTO_REDONDEO} −{money(cobro.efectivo.redondeo)} · {LEY_REDONDEO}
+                        </span>
+                      </p>
+                    )}
+                    {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado. */}
+                    {cobro.sinMoneda && (
+                      <p className="rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
+                        No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/&nbsp;0.10. Cóbralo con otro medio.
+                      </p>
+                    )}
+                    {efectivo && (cobro.efectivo?.aCobrar ?? 0) > 0 && (
                       <div className="space-y-2">
                         <p className="text-[11px] text-tinta/55">Con cuánto paga en efectivo (toca los billetes)</p>
                         <div className="flex flex-wrap gap-1.5">
@@ -311,9 +388,10 @@ export function EntregarVista({
                         </div>
                       </div>
                     )}
-                    {cobro.excede && <p className="text-xs text-rojo-profundo">Con esos medios no hay vuelto: cobra justo {money(saldo)}.</p>}
-                    {cobro.falta > 0 && pagos.length > 0 && <p className="text-xs text-rojo-profundo tabular-nums">Falta {money(cobro.falta)}</p>}
-                    {efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto && <p className="text-xs text-rojo-profundo">Lo recibido no alcanza.</p>}
+                    {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
+                    {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
+                    {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
+                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/&nbsp;500: revisa cuánto entregó.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (
@@ -328,18 +406,20 @@ export function EntregarVista({
                       <p className="text-sm font-semibold">¿Viene solo a abonar?</p>
                       <p className="text-xs text-tinta/60">Paga una parte; la prenda se queda guardada.</p>
                     </div>
-                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-tinta/25 px-3 text-[10.5px] hover:border-rojo hover:text-rojo disabled:opacity-40">
+                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="btn-cayla btn-secundario inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]">
                       <Wallet className="h-3.5 w-3.5" aria-hidden /> Abonar
                     </button>
                   </div>
                 )}
                 <p className="flex items-start gap-1.5 text-xs text-tinta/60">
                   <Receipt className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {saldo > 0
-                    ? a.pagos.some((p) => p.abono)
-                      ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
-                      : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
-                    : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
+                  {esConstancia(a)
+                    ? `Sale la boleta o factura por el total (${money(a.total)}), sin nombrar el adelanto.${saldo > 0 ? "" : " Ya pagó todo: no se cobra nada más."}`
+                    : saldo > 0
+                      ? a.pagos.some((p) => p.abono)
+                        ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
+                        : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
+                      : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
                 </p>
               </div>
             </div>
@@ -358,15 +438,15 @@ export function EntregarVista({
               {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button
                 type="button"
-                disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+                disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
                 title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined}
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
-              <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
+              <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
             </div>
           </>
         )}
@@ -376,9 +456,9 @@ export function EntregarVista({
         <BarraMovil
           etiqueta={`Saldo · ${a.nombres}`}
           monto={saldo}
-          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
-          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
           onClick={entregar}
         />
       )}
@@ -386,14 +466,14 @@ export function EntregarVista({
       {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
 
-      {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
+      {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
+      </fieldset>
     </div>
   );
 }
 
-function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string; hoy: string; venceEl: string }) {
-  const total = Math.max(1, diasEntre(creadaEl, venceEl));
-  const pasados = Math.min(total, Math.max(0, diasEntre(creadaEl, hoy)));
+function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string | null; hoy: string; venceEl: string }) {
+  const { total, pasados } = avanceDelPlazo(creadaEl, hoy, venceEl);
   return (
     <div className="relative grid grid-cols-3 pt-5 text-xs text-tinta/60">
       <span aria-hidden className="absolute top-[7px] right-2 left-2 h-0.5 bg-sand" />

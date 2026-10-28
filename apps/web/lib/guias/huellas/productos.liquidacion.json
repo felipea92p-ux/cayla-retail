@@ -1,0 +1,53 @@
+{
+  "guia": "productos.liquidacion",
+  "ruta": "/productos/liquidacion",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 33,
+  "controles": {
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/impresion/useImpresionBrother.tsx": [
+      "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
+      "BotonCopiar «la línea»"
+    ],
+    "components/liquidacion/EtiquetarPiezaModal.tsx": [
+      "Boton «+ Etiquetar otra»",
+      "BotonImprimir «Imprimir etiqueta»",
+      "CampoSelect «Categoría»",
+      "CampoTexto «Para reconocerla»",
+      "CampoMonto «Precio»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/liquidacion/LiquidacionPantalla.tsx": [
+      "button «{n}»",
+      "button «{f.texto}»",
+      "Boton «liquidacion.etiquetar»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «+ Etiquetar una prenda»",
+      "button «liquidacion.fila»"
+    ],
+    "components/liquidacion/PiezaLiquidacionModal.tsx": [
+      "CampoMonto «Precio nuevo»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «Cambiar precio»",
+      "CampoTexto «Motivo»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «Retirar»",
+      "Boton «Retirar» #2",
+      "Boton «Bajar el precio»",
+      "BotonImprimir «Imprimir etiqueta»"
+    ],
+    "components/liquidacion/PrecioMinimoLiquidacion.tsx": [
+      "button «Cambiarlo»",
+      "CampoMonto «Precio mínimo»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ]
+  }
+}

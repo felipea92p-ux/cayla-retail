@@ -1,0 +1,14 @@
+/* Análisis v4 (ADR-0357, act. 2026-10-07 b): estilos propios de «Nunca salió al piso» que la hoja base (analisis.css) no trae. Mismas
+   reglas que la base: solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
+
+   La pestaña no anima nada propio: su movimiento es el de la base (`.entra`, `.cx`, `.po`). Aquí van los colores de «Dónde está lo
+   que tienes» (en el piso, guardadas que ya salieron, nunca salieron) y la barra de «Días en el almacén». Las clases llevan `p-` para
+   no chocar con las de las otras pestañas, que viven en el mismo `.analisis`. */
+@layer components {
+  .analisis {
+    .p-piso{background:var(--color-tinta)}
+    .p-guardadas{background:var(--color-grafico-neutro)}
+    .p-nunca{background:color-mix(in srgb,var(--color-ambar) 70%,var(--color-papel))}
+    .pista.almacen .barra{background:color-mix(in srgb,var(--color-ambar) 26%,transparent)}
+  }
+}

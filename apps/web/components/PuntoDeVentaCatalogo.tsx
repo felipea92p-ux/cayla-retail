@@ -1,14 +1,20 @@
 "use client";
 
+import { Buscador } from "@/components/ui/Buscador";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
-import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
-import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
+import type { PrendaCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { motivoNoCobrable, type MotivoCaja, textoStockDeFila } from "@/lib/vender-stock-local";
+import { FotoPrenda } from "@/components/apartados/piezas";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { TarjetaPrenda } from "@/components/punto-de-venta/TarjetaPrenda";
+import { etiquetaPrecioDeSede } from "@/lib/precio-sede-reglas";
+import { Interruptor } from "@/components/ui/campos";
 
 /**
  * Cuántas tarjetas se pintan de entrada y cuántas se suman cada vez que el centinela del fondo entra a la
@@ -18,6 +24,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
  * porque acá cada tarjeta ocupa mucho más que una fila de combo.
  */
 const TANDA_GRILLA = 60;
+
+/** El tono del Chip de stock de cada fila del buscador. Agotada va «apagado» y no rojo: una lista con varias agotadas
+ *  pasaría el máximo de rojo por pantalla (la fila ya se atenúa, y el chip dice el estado con letra). */
+const TONO_STOCK: Record<MotivoCaja, TonoChip> = { cobrable: "verde", en_almacen: "ambar", apartada: "pizarra", agotada: "apagado" };
 
 type Props = {
   ubicacionEtiqueta: string;
@@ -31,9 +41,9 @@ type Props = {
   resultados: VarianteBusqueda[];
   activo: number;
   aviso: string | null;
-  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. `cuando` es la hora de la
-   *  tecla (`timeStamp` del evento): con ella el padre distingue a la pistola de una persona (`lib/lectura-pistola.ts`). */
-  onEscribir: (valor: string, cuando: number) => void;
+  /** Al tipear: el padre resetea el resultado activo y el aviso, además de guardar el texto. La pistola la distingue
+   *  `usePistola` escuchando el campo, no esta prop. */
+  onEscribir: (valor: string) => void;
   /** El botón ×: solo borra el texto (no toca activo ni aviso — así era). */
   onLimpiarBusqueda: () => void;
   onTeclado: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -59,32 +69,25 @@ type Props = {
   /** Filtro «Solo con stock» de la grilla; apagado, las sin stock se ven atenuadas. */
   soloConStock: boolean;
   onSoloConStock: (valor: boolean) => void;
-  /** Cuántas tarjetas esconde el filtro ahora mismo (0 si está apagado). */
+  /** Cuántos COLORES esconde el filtro ahora mismo (0 si está apagado; ADR-0323). */
   ocultasSinStock: number;
-  /** De esas, cuántas tienen prendas en el almacén de esta sede: no están agotadas, falta bajarlas (D-40). */
+  /** De esos, cuántos tienen prendas en el almacén de esta sede: no están agotados, falta bajarlos (D-40). */
   ocultasEnAlmacen: number;
-  /** Tocar el cuerpo de una tarjeta: el padre abre el modal de talla. */
-  onElegirTalla: (clave: string) => void;
+  /** Tocar el cuerpo de una tarjeta: el padre abre «Todo de la prenda» en el color que se estaba viendo. */
+  onAbrirPrenda: (clave: string, colorClave: string | undefined) => void;
   /** Tarjeta a la que se le acaba de pedir más de lo que hay. `pulso` sube en cada intento,
    *  así el resaltado se re-monta y vuelve a sonar aunque sea la misma tarjeta. */
   topeTarjeta: { clave: string; pulso: number } | null;
-  /** Una tarjeta por prenda + color, con sus tallas adentro; ya viene filtrado por
-   *  categoría y por `soloConStock` (`lib/catalogo-grupos.ts`, memo del padre). */
-  grupos: GrupoCatalogo<VarianteBusqueda>[];
+  /** Una tarjeta por PRENDA, con sus colores y tallas adentro (ADR-0323); ya viene filtrado por categoría y por
+   *  `soloConStock` y ordenado por nombre (`lib/catalogo-grupos.ts`, memo del padre). */
+  prendas: PrendaCatalogo<VarianteBusqueda>[];
   /** Solo para el globito "N" de cada tarjeta. */
   carrito: ItemCarrito[];
   // Ventas de hoy (vive dentro del <section>, bajo la grilla)
 };
 
-/** Mismo chip para las categorías y para el filtro de stock: uno "prendido" se ve igual
- *  sea cual sea su tipo, así la encargada de sede lee la fila entera de un vistazo.
- *  `rounded-md`: mismo radio que la "pastilla" del selector de ubicación
- *  (`campos.tsx`, `FORMA_DESPLEGABLE.pastilla`) — un chip de filtro es la misma
- *  familia de control que ese selector, no una tarjeta. */
-const chip = (prendido: boolean) =>
-  `label-cayla h-8 shrink-0 rounded-md border px-3 text-[11px] transition-[background-color,border-color,color,transform] duration-200 ease-[var(--ease-cayla)] active:translate-y-px ${
-    prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
-  }`;
+/* Las categorías del catálogo son un filtro: la píldora del sistema (`pildora-cayla`, ADR-0358 «pestanas»: filtrar = píldora),
+   con `aria-pressed` para la elegida. Antes era un chip propio en versalitas. */
 
 /** Un código QR de línea (brandbook: íconos solo de trazo): tres marcas de esquina y el punteado del centro. */
 function IconoQr({ className }: { className?: string }) {
@@ -97,15 +100,6 @@ function IconoQr({ className }: { className?: string }) {
     </svg>
   );
 }
-
-/** «Blusa Emma» → «BE»: lo que ocupa el hueco de la foto mientras el catálogo no tenga fotos. */
-const iniciales = (referencia: string) =>
-  referencia
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join("");
 
 /**
  * Panel izquierdo de Vender. La encargada de sede tiene lector: su ruta real es
@@ -149,9 +143,9 @@ export function PuntoDeVentaCatalogo({
   onSoloConStock,
   ocultasSinStock,
   ocultasEnAlmacen,
-  onElegirTalla,
+  onAbrirPrenda,
   topeTarjeta,
-  grupos,
+  prendas,
   carrito,
 }: Props) {
   // Colapsado por defecto SOLO en celular (la vendedora escanea; explorar el catálogo a mano
@@ -172,8 +166,8 @@ export function PuntoDeVentaCatalogo({
     setFiltroPrevio({ categoria, soloConStock });
     setCuantas(TANDA_GRILLA);
   }
-  const gruposVisibles = grupos.slice(0, cuantas);
-  const faltanMas = cuantas < grupos.length;
+  const prendasVisibles = prendas.slice(0, cuantas);
+  const faltanMas = cuantas < prendas.length;
   // Centinela propio (no `useEnVista`, pensado para animación de CSS): acá cruzar el umbral debe
   // SUMAR una tanda, y eso es un efecto secundario real sobre un sistema externo (el scroll),
   // no un valor derivado para pintar — por eso `setCuantas` vive en el callback del propio
@@ -184,13 +178,13 @@ export function PuntoDeVentaCatalogo({
     if (!el || !faltanMas) return;
     const io = new IntersectionObserver(
       (entradas) => {
-        if (entradas[0]?.isIntersecting) setCuantas((n) => Math.min(n + TANDA_GRILLA, grupos.length));
+        if (entradas[0]?.isIntersecting) setCuantas((n) => Math.min(n + TANDA_GRILLA, prendas.length));
       },
       { rootMargin: "200px" },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [faltanMas, grupos.length]);
+  }, [faltanMas, prendas.length]);
   return (
     // En escritorio el alto lo fija el padre (pantalla fija, ADR-0044): `lg:min-h-0`
     // deja que esta columna encoja a la fila y la grilla scrollee por dentro, así el
@@ -199,7 +193,9 @@ export function PuntoDeVentaCatalogo({
       aria-label="Escanear o buscar prendas"
       className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:flex-1 lg:border-b-0"
     >
-      <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
+      {/* `@container`: la fila de captura decide por el ancho del PANEL, no de la ventana. En una laptop con el lateral
+          abierto el panel mide ~290 px aunque la ventana sea de escritorio. */}
+      <div className="anim-sube @container px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
             del campo y no entre los chips, donde le robaba ancho a las categorías.
@@ -213,62 +209,43 @@ export function PuntoDeVentaCatalogo({
             // (h-14) y mismo lugar: la encargada busca «escanear» donde siempre estuvo.
             <button
               type="button"
+              data-guia="vender.escanear"
               onClick={onAbrirCamara}
               disabled={bloqueado}
-              className="label-cayla flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-tinta px-3 text-[11px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/90 active:translate-y-px"
+              className="btn-cayla btn-primario flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap"
             >
               <IconoQr className="h-5 w-5 shrink-0" />
               Escanear QR
             </button>
           ) : (
           <div className="relative z-20 min-w-0 flex-1 max-sm:static">
-            <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-              {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                className="h-5 w-5 shrink-0 text-tinta/45 transition-colors group-focus-within:text-rojo"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.75}
-                strokeLinecap="round"
-              >
-                <path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" />
-              </svg>
-              <input
-                id="venta-buscar"
-                ref={buscadorRef}
-                // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
-                autoFocus
-                disabled={bloqueado}
-                value={q}
-                onChange={(e) => onEscribir(e.target.value, e.timeStamp)}
-                onKeyDown={onTeclado}
-                placeholder="Escanea la etiqueta o busca la prenda"
-                aria-label="Escanea la etiqueta o busca la prenda"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={resultados.length > 0}
-                aria-controls="venta-resultados"
-                aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/45"
-              />
-              {q && (
-                <button
-                  type="button"
-                  aria-label="Limpiar búsqueda"
-                  onClick={() => onLimpiarBusqueda()}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40"
-                >
-                  ×
-                </button>
-              )}
-            </label>
+            {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega, con el código de barras que se enciende
+                en rojo («acá se escanea» sin una palabra más). Filtra mientras se escribe. */}
+            <Buscador guia="vender.buscador"
+              tamano="mostrador"
+              icono="barras"
+              id="venta-buscar"
+              ref={buscadorRef}
+              // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
+              autoFocus
+              disabled={bloqueado}
+              valor={q}
+              onCambio={(v) => onEscribir(v)}
+              onBorrar={() => onLimpiarBusqueda()}
+              onKeyDown={onTeclado}
+              placeholder="Escanea la etiqueta o busca la prenda"
+              etiqueta="Escanea la etiqueta o busca la prenda"
+              role="combobox" // unificar-fijo: la búsqueda del mostrador (pistola y fotos), que la pieza no hace
+              aria-expanded={resultados.length > 0}
+              aria-controls="venta-resultados"
+              aria-activedescendant={resultados.length > 0 ? `venta-op-${activo}` : undefined}
+              aria-autocomplete="list"
+            />
             {q && (
               <ul
                 id="venta-resultados"
-                role="listbox"
+                role="listbox" // unificar-fijo: la lista con fotos y stock de la búsqueda del mostrador
+                data-guia="vender.resultados"
                 aria-label="Prendas encontradas"
                 className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
               >
@@ -277,34 +254,55 @@ export function PuntoDeVentaCatalogo({
                     // Con el piso en 0, «sin stock aquí» o, si está guardada en el almacén de esta sede, cuántas hay ahí
                     // (D-40): la colaboradora no le dice «no hay» a la clienta con la prenda en la trastienda.
                     const motivo = motivoNoCobrable(v);
+                    const otras = textoOtrasSedes(v.stockOtrasSedes ?? []);
+                    const apagada = motivo === "agotada" || motivo === "apartada";
                     return (
-                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo} className="anim-entra" style={{ "--i": Math.min(i, 6) } as CSSProperties}>
+                    // Estilo C del spike (`docs/maquetas/buscador-vender-2026-10/`, Felipe 2026-10-03): la prenda como en la
+                    // grilla de abajo —foto, o el ícono de su categoría sobre el COLOR de la prenda—, talla en píldora, punto
+                    // del color y el stock como Chip. Precio a la derecha; por `@container`, bajo 26rem baja bajo el nombre.
+                    <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo} className="anim-entra @container relative" style={{ "--i": Math.min(i, 6) } as CSSProperties}>
                       <button
                         type="button"
                         onMouseEnter={() => onActivo(i)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => onAgregar(v)}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
-                          i === activo ? "bg-sand/60" : ""
-                        } ${motivo === "agotada" || motivo === "apartada" ? "opacity-55" : ""}`}
+                        className={`flex w-full items-center gap-3.5 py-2.5 pr-3.5 pl-3 text-left text-sm transition-colors duration-200 ${i === activo ? "bg-sand/60" : ""}`}
                       >
-                        <span>
-                          <span className="block font-semibold text-tinta">{v.referencia}</span>
-                          <span className="text-xs text-tinta/60">
-                            {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
+                        {/* La barra roja de la fila activa: un solo rojo a la vez en la pantalla. */}
+                        {i === activo && <span aria-hidden className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-sm bg-rojo" />}
+                        {v.fotoUrl ? (
+                          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={64} className={`w-16 ${apagada ? "opacity-55" : ""}`} />
+                        ) : (
+                          <MosaicoPrenda colorHex={v.colorHex} prefijo={v.categoriaPrefijo} familia={v.categoriaFamilia ?? null} categoria={v.categoria} forma="fila" className={`w-16 ${apagada ? "opacity-55" : ""}`} />
+                        )}
+                        <span className={`min-w-0 flex-1 ${apagada ? "opacity-80" : ""}`}>
+                          <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
+                          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-tinta/65">
+                            {v.talla && <span className="shrink-0 rounded-md border border-sand bg-crema px-1.5 py-px font-semibold text-tinta">{v.talla}</span>}
+                            {v.color && (
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/25" style={{ backgroundColor: estiloMosaicoColor(v.colorHex)?.fondo ?? "transparent" }} />
+                                <span className="truncate">{v.color}</span>
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] tracking-wide text-tinta/50">{codigoPrenda(v)}</span>
+                          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <Chip tono={TONO_STOCK[motivo]} tachado={false}>
+                              {textoStockDeFila(v)}
+                            </Chip>
+                            {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
+                            {otras && <span className="text-[11px] text-tinta/55">{otras}</span>}
+                            {/* Lista angosta (celular): el precio sube a esta línea en vez de abrir otra. */}
+                            <span className="ml-auto text-sm font-semibold tabular-nums text-tinta @[26rem]:hidden">
+                              {money(v.precio)}
+                              {v.precioDeSede && <span className="ml-1 text-[10.5px] text-ambar-profundo">· {etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
+                            </span>
                           </span>
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
-                          <span
-                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "apartada" ? "text-pizarra" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
-                          >
-                            {textoStockDeFila(v)}
-                          </span>
-                          {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
-                          {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
-                            <span className="block text-[11px] text-tinta/55">{textoOtrasSedes(v.stockOtrasSedes ?? [])}</span>
-                          )}
+                        <span className="hidden shrink-0 text-right @[26rem]:block">
+                          <span className="block text-sm font-semibold tabular-nums text-tinta">{money(v.precio)}</span>
+                          {v.precioDeSede && <span className="block whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">{etiquetaPrecioDeSede(ubicacionEtiqueta)}</span>}
                         </span>
                       </button>
                     </li>
@@ -324,6 +322,7 @@ export function PuntoDeVentaCatalogo({
             <button
               type="button"
               onClick={modoCamara ? onBuscarPorTexto : onAbrirCamara}
+              data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}
               disabled={bloqueado}
               aria-label={modoCamara ? "Buscar la prenda por nombre" : "Escanear QR con la cámara"}
               className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand bg-papel text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
@@ -341,9 +340,12 @@ export function PuntoDeVentaCatalogo({
           <button
             type="button"
             onClick={() => onPrendaSinRegistrar()}
+            data-guia="vender.sin-registrar"
             disabled={bloqueado}
-            // En el teléfono son tres botones en la fila: el texto se parte en dos líneas en vez de robarle ancho a la cámara.
-            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 max-sm:w-[6.75rem] max-sm:leading-snug transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
+            // En una fila angosta (el teléfono, o el panel de una laptop con el lateral abierto) el texto se parte en dos
+            // líneas en vez de robarle ancho al campo o a la cámara. Por el ancho del panel (`@md`), no de la ventana.
+            // En tinta (Felipe, 2026-10-01): es la vía de captura que la colaboradora busca cuando la prenda no tiene etiqueta.
+            className="btn-cayla btn-primario w-[6.75rem] shrink-0 whitespace-normal px-3 text-center leading-snug @md:w-auto"
           >
             Prenda sin registrar
           </button>
@@ -361,9 +363,10 @@ export function PuntoDeVentaCatalogo({
         <button
           type="button"
           onClick={() => setCatalogoAbierto((v) => !v)}
+          data-guia="vender.ver-catalogo"
           aria-expanded={catalogoAbierto}
           aria-controls="venta-catalogo-filtros venta-catalogo-grilla"
-          className="label-cayla mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-sand bg-papel text-[11px] font-semibold text-tinta transition-colors duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 active:translate-y-px sm:hidden"
+          className="btn-cayla btn-secundario mt-3 flex h-11 w-full items-center justify-center gap-2 sm:hidden"
         >
           {catalogoAbierto ? "Ocultar catálogo" : "Ver catálogo"}
           <span aria-hidden className={`inline-block transition-transform duration-300 ease-[var(--ease-cayla)] ${catalogoAbierto ? "rotate-180" : ""}`}>
@@ -381,51 +384,38 @@ export function PuntoDeVentaCatalogo({
               cuántas tarjetas esconde: sin ese número, una prenda que no aparece parece que
               no existe. */}
           <div className="mt-3 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={soloConStock}
-              onClick={() => onSoloConStock(!soloConStock)}
-              disabled={bloqueado}
-              // `shrink-0`: con el contador largo de al lado, el interruptor se partía en dos líneas y la fila crecía.
-              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
-            >
-              <span
-                aria-hidden
-                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-300 ease-[var(--ease-cayla)] ${
-                  soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform duration-300 ease-[var(--ease-cayla)] ${
-                    soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
-                  }`}
-                />
-              </span>
-              <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
-            </button>
+            {/* El interruptor del sistema (ADR-0358, ronda 6). `shrink-0`: con el contador largo de al lado, se partía en dos líneas. */}
+            <div data-guia="vender.solo-stock" className="shrink-0 py-1">
+              <Interruptor
+                activo={soloConStock}
+                onActivo={onSoloConStock}
+                disabled={bloqueado}
+                etiqueta={<span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>}
+              />
+            </div>
             {soloConStock && ocultasSinStock > 0 && (
-              // Una tarjeta escondida porque su piso está en 0 no está «agotada» si tiene prendas en el almacén de esta
-              // sede (D-40): se dice cuántas, para que se sepa que apagando el filtro aparecen. «N con stock en el
-              // almacén» cuenta PRENDAS (tarjetas), no unidades. `leading-tight`: en dos líneas cabe en el alto del
-              // interruptor, y la fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
+              // Un color escondido porque su piso está en 0 no está «agotado» si tiene prendas en el almacén de esta sede
+              // (D-40): se dice cuántos, para que se sepa que apagando el filtro aparecen. Cuenta COLORES (los puntos de
+              // las tarjetas, ADR-0323), no unidades. `leading-tight`: en dos líneas cabe en el alto del interruptor, y la
+              // fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
               <span className="anim-asentar text-right text-[11px] leading-tight text-tinta/60">
                 {ocultasEnAlmacen > 0
-                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda oculta" : "prendas ocultas"} (${ocultasEnAlmacen} con stock en el almacén)`
-                  : `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}`}
+                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "color oculto" : "colores ocultos"} (${ocultasEnAlmacen} con stock en el almacén)`
+                  : `${ocultasSinStock} ${ocultasSinStock === 1 ? "color agotado oculto" : "colores agotados ocultos"}`}
               </span>
             )}
           </div>
 
           {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-          <div className="scroll-cayla mt-2 flex gap-2 overflow-x-auto pb-3">
+          <div data-guia="vender.categorias" className="scroll-cayla -mx-1 mt-1 flex gap-2 overflow-x-auto px-1 pb-3 pt-1">
             {categorias.map((c, i) => (
               <button
                 key={c}
                 type="button"
                 onClick={() => onCategoria(c)}
                 disabled={bloqueado}
-                className={`anim-entra ${chip(categoria === c)}`}
+                aria-pressed={categoria === c}
+                className="anim-entra pildora-cayla shrink-0"
                 style={{ "--i": Math.min(i, 10) } as CSSProperties}
               >
                 {c}
@@ -441,189 +431,28 @@ export function PuntoDeVentaCatalogo({
             la pantalla — con el lateral abierto o cerrado, cada tarjeta mide lo mismo. */}
         <div id="venta-catalogo-grilla" className={`@container ${catalogoAbierto ? "" : "hidden sm:block"}`}>
         <TooltipProvider delayDuration={250}>
-          {/* Más prendas por pantalla (spike 2026-09-26, hallazgo 10): foto cuadrada y hasta 5 columnas. */}
+          {/* Una tarjeta por prenda (ADR-0323), foto cuadrada y de 2 a 5 columnas según el ancho del catálogo, no de la
+              ventana: con el lateral abierto o cerrado, en una laptop o a 320 px, cada tarjeta mide parecido. */}
           <div className="grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
-            {grupos.length === 0 && (
+            {prendas.length === 0 && (
               <p className="col-span-full py-10 text-center text-sm text-tinta/60">
                 {soloConStock ? `Nada con stock en ${ubicacionEtiqueta}` : "No hay prendas"}
                 {categoria === "Todo" ? "." : ` en ${categoria}.`}
               </p>
             )}
-            {gruposVisibles.map((g, i) => {
-              const sinStock = g.stockTotal === 0;
-              // Sin nada en el piso pero con prendas en el almacén de esta sede: no se cobra todavía, pero no está agotada.
-              const soloEnAlmacen = sinStock && g.almacenTotal > 0;
-              const enCarrito = g.tallas.reduce(
-                (acc, t) => acc + (carrito.find((it) => it.claveLinea === t.variante.varianteId)?.cantidad ?? 0),
-                0
-              );
-              const nombre = [g.referencia, g.color].filter(Boolean).join(" ");
-              return (
-                // Sin reveal al scroll a propósito (decisión de Felipe, 2026-09-14): la
-                // atenuación de "sin stock" es la única de la grilla y no puede confundirse
-                // con una tarjeta a medio entrar. `RevelarAlScroll` sigue en ui/ para tableros.
-                <article
-                  key={g.clave}
-                  aria-label={nombre}
-                  style={{ "--i": Math.min(i, 11) } as CSSProperties}
-                  // «Solo en el almacén» NO se atenúa entera: al 55 % el ámbar sobre crema bajaba de 6,5:1 a ~2,5:1 y la
-                  // tarjeta se leía igual de muerta que una agotada. Se apaga solo la foto; el texto queda legible.
-                  className={`anim-entra group relative flex h-full flex-col rounded-xl border p-3 ${
-                    soloEnAlmacen
-                      ? "border-ambar/60 bg-crema"
-                      : sinStock
-                        ? "border-rojo-profundo/40 bg-crema opacity-55"
-                        : "alza-cayla border-sand bg-papel"
-                  }`}
-                >
-                  {/* Toda la tarjeta es tocable: abre el modal de talla. Antes solo lo eran
-                      los chips y tocar la prenda no hacía nada (`alza-cayla` incluso la
-                      levantaba al pasar, prometiendo un clic). Botón superpuesto y no
-                      `<article onClick>` para que sea alcanzable con teclado y lo lean los
-                      lectores de pantalla; los chips van por encima (`z-10`) y siguen siendo
-                      el atajo de un toque. */}
-                  <button
-                    type="button"
-                    onClick={() => onElegirTalla(g.clave)}
-                    disabled={bloqueado}
-                    aria-label={`Elegir talla de ${nombre}`}
-                    className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-rojo/40 disabled:cursor-default"
-                  />
-                  {/* Foto real por prenda+color (20260917190000) cuando existe; mientras un
-                      color no tenga foto, las iniciales siguen de plan B — nunca un ícono
-                      de "foto rota". */}
-                  {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
-                      de la tarjeta y se comía el clic. */}
-                  {g.fotoUrl ? (
-                    <div className={`pointer-events-none relative mb-2.5 aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
-                      <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
-                    </div>
-                  ) : (
-                    // Sin foto: iniciales discretas y la categoría abajo, en vez de iniciales gigantes que no decían qué era.
-                    <div aria-hidden className={`relative mb-2.5 flex aspect-square items-center justify-center rounded-lg bg-gradient-to-b from-sand/30 to-hueso ${soloEnAlmacen ? "opacity-55" : ""}`}>
-                      <span className="font-display text-xl text-tinta/25">{iniciales(g.referencia)}</span>
-                      {g.tallas[0]?.variante.categoria && (
-                        <span className="label-cayla absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-papel/80 px-1.5 py-0.5 text-[9.5px] text-tinta/60">
-                          {g.tallas[0].variante.categoria}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <p className="line-clamp-1 text-sm font-semibold text-tinta">{g.referencia}</p>
-                  <p className="mt-0.5 text-xs text-tinta/60">{g.color ?? "Sin color"}</p>
-
-                  {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la
-                      tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
-                      «no hay M» que «no existe M». Y una talla con el piso en 0 pero guardada en el
-                      almacén de esta sede no se tacha (D-40): se ve punteada en ámbar y, al tocarla,
-                      el aviso dice cuántas hay y que la bajen — en el celular el tooltip no se ve. */}
-                  <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
-                    {g.tallas.map((t) =>
-                      t.stockAqui <= 0 && t.almacenAqui > 0 ? (
-                        <Tooltip key={t.variante.varianteId}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => onAgregar(t.variante)}
-                              disabled={bloqueado}
-                              aria-label={`Talla ${t.talla} de ${nombre}: ${t.almacenAqui} en el almacén`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-ambar/60 px-1.5 text-[11px] text-ambar-profundo transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-ambar/10 active:translate-y-px"
-                            >
-                              {t.talla}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · que la bajen en ${DONDE_SE_BAJA}`}</TooltipContent>
-                        </Tooltip>
-                      ) : t.stockAqui > 0 ? (
-                        <Tooltip key={t.variante.varianteId}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => onAgregar(t.variante)}
-                              disabled={bloqueado}
-                              aria-label={`Agregar ${nombre} talla ${t.talla}`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-sand bg-crema px-1.5 text-[11px] text-tinta transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] hover:border-tinta/40 hover:bg-sand/50 active:translate-y-px"
-                            >
-                              {t.talla}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>
-                            {[
-                              `${t.stockAqui} aquí`,
-                              textoOtrasSedes(t.variante.stockOtrasSedes ?? []),
-                              t.variante.precio !== g.precioMin ? money(t.variante.precio) : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        // Talla agotada aquí: el tooltip dice dónde sí hay. `tabIndex` para que
-                        // también se lea con teclado; no es un botón porque no agrega nada.
-                        <Tooltip key={t.variante.varianteId}>
-                          <TooltipTrigger asChild>
-                            <span
-                              tabIndex={0}
-                              aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para una clienta" : "sin stock aquí"}`}
-                              className={`label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed px-1.5 text-[11px] outline-none focus-visible:border-rojo/60 ${
-                                // Agotada: tachada. Apartada para una clienta: SIN tachar y en el token informativo — la
-                                // diferencia se ve de un vistazo, no solo en el tooltip (que el celular no muestra).
-                                motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
-                              }`}
-                            >
-                              {t.talla}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>
-                            {tooltipTallaSinPiso(t.variante, textoOtrasSedes(t.variante.stockOtrasSedes ?? []))}
-                          </TooltipContent>
-                        </Tooltip>
-                      )
-                    )}
-                  </div>
-
-                  {/* `flex-wrap` + `whitespace-nowrap`: a 375 px la tarjeta mide ~140 px; si precio y stock no caben en
-                      una fila, el stock baja entero a la siguiente en vez de partirse en dos encima del precio. */}
-                  <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-3">
-                    <span className="text-sm font-bold text-tinta">
-                      {g.precioMin === g.precioMax ? money(g.precioMin) : `desde ${money(g.precioMin)}`}
-                    </span>
-                    {/* En una tienda `stockTotal` es solo el PISO: «3 en sede» junto a una talla «2 en el almacén» hacía
-                        creer que en la tienda había 3 en total. En el Taller (sin almacén) sí es todo lo de la sede. */}
-                    <span className={`whitespace-nowrap text-[11px] ${soloEnAlmacen ? "text-ambar-profundo" : sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                      {soloEnAlmacen ? `${g.almacenTotal} en almacén` : sinStock ? "Sin stock" : `${g.stockTotal} ${g.separaPiso ? "en piso" : "en sede"}`}
-                    </span>
-                  </div>
-
-                  {/* Tope de stock: un velo rojo suave que respira dos veces con un barrido de
-                      luz, y se apaga solo (`anim-tope`). Decorativo — el aviso de arriba es el
-                      que se lee con lector de pantalla —, y sin `pointer-events` para no
-                      estorbar los chips. */}
-                  {topeTarjeta?.clave === g.clave && (
-                    <span
-                      // Prefijo en la `key`: es hermana del globito de abajo; con `pulso` 1 y 1 prenda en el carrito ambas
-                      // valían `1` y React avisaba «two children with the same key».
-                      key={`tope-${topeTarjeta.pulso}`}
-                      aria-hidden
-                      className="anim-tope pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-xl bg-rojo/[0.06] shadow-lg shadow-rojo/25 ring-1 ring-inset ring-rojo/50"
-                    >
-                      <span className="anim-tope-barrido absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-rojo/15 to-transparent" />
-                      <span className="label-cayla absolute top-3 left-3 rounded-full bg-papel/90 px-2 py-0.5 text-[10px] text-rojo-profundo">
-                        Máximo alcanzado
-                      </span>
-                    </span>
-                  )}
-
-                  {/* El globito se re-asienta cada vez que cambia la cantidad (`key`): el ojo
-                      nota que cambió sin releerlo. */}
-                  {enCarrito > 0 && (
-                    <Badge key={`globo-${enCarrito}`} className="anim-pop pointer-events-none absolute top-2 right-2 h-6 min-w-6 rounded-full px-1.5 text-xs">
-                      {enCarrito}
-                    </Badge>
-                  )}
-                </article>
-              );
-            })}
+            {prendasVisibles.map((p, i) => (
+              <TarjetaPrenda
+                key={p.clave}
+                prenda={p}
+                indice={i}
+                bloqueado={bloqueado}
+                carrito={carrito}
+                pulsoTope={topeTarjeta?.clave === p.clave ? topeTarjeta.pulso : null}
+                onAgregar={onAgregar}
+                onAbrir={onAbrirPrenda}
+                etiquetaPrecioSede={etiquetaPrecioDeSede(ubicacionEtiqueta)}
+              />
+            ))}
           </div>
           {/* Centinela mudo: cuando entra a la vista, revela la próxima tanda (auditoría 2026-09-29).
               Sin tamaño propio — solo dispara el efecto de arriba — y no existe si ya se ve todo. */}

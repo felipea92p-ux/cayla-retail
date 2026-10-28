@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ALTO_CONTROL, Campo, Hilo } from "@/components/ui/campos";
+import { createPortal } from "react-dom";
+import { Campo } from "@/components/ui/campos";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 
 /* ====================================================================
    CampoFecha · elegir un día (2026-09-14)
@@ -99,6 +101,12 @@ function conBarras(crudo: string): string {
   return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4)}`;
 }
 
+/** `w-[17rem]` del calendario, en px (con la letra raíz de 16 px), y el aire mínimo que se le deja al borde de la pantalla. */
+const ANCHO_CALENDARIO = 272;
+const MARGEN_PANTALLA = 8;
+/** Alto del calendario abierto (encabezado, 6 semanas y su pie), en px: si no cabe entero abajo, se abre hacia arriba. */
+const ALTO_CALENDARIO = 340;
+
 export function CampoFecha({
   etiqueta,
   ayuda,
@@ -111,6 +119,10 @@ export function CampoFecha({
   id: idPropio,
   estricto = false,
   revelarError = false,
+  diasMarcados,
+  descripcionMarcado = "con datos",
+  caja = false,
+  rango,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -128,6 +140,18 @@ export function CampoFecha({
   estricto?: boolean;
   /** Solo con `estricto`: mostrar el aviso ya, sin esperar a que se salga del campo (al intentar aplicar). */
   revelarError?: boolean;
+  /** Días (ISO `aaaa-mm-dd`) que el calendario marca con un punto: «aquí hay algo» (los días con conteos, en Conteo). Opt-in:
+   *  sin esta propiedad el calendario es el de siempre. El punto de «hoy» manda si coinciden. */
+  diasMarcados?: readonly string[];
+  /** Cómo se dice un día marcado al lector de pantalla: «… de setiembre de 2026, con conteos». */
+  descripcionMarcado?: string;
+  /** Un rango que el calendario pinta (opt-in; la hoja «Configuración» de una campaña, ADR-0488): la franja de los días entre `desde`
+   *  y `hasta` (ISO) y un anillo en el otro extremo, para elegir «Desde» viendo dónde termina y al revés. El día elegido sigue en rojo.
+   *  Sin esta propiedad el calendario es el de siempre. */
+  rango?: { desde: string | null; hasta: string | null };
+  /** Guía oficial para barras de filtros (como `CampoTexto caja`): caja hundida en hueso, sin hilo y con la etiqueta solo para
+   *  lectores de pantalla — quien lo usa dice en pantalla qué es (Conteo: «Otra fecha» junto a las píldoras). */
+  caja?: boolean;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -136,10 +160,20 @@ export function CampoFecha({
   const [abierto, setAbierto] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
   const [tocado, setTocado] = useState(false);
+  // El calendario nace anclado al borde izquierdo del campo. Si el campo está cerca del borde derecho de la pantalla (los filtros de
+  // Conteo van a la derecha de su tarjeta) no cabría: se mide AL ABRIR y, si hace falta y cabe, se ancla al borde derecho.
+  const [haciaIzquierda, setHaciaIzquierda] = useState(false);
   // El día con foco dentro de la grilla (teclado) y el mes que se muestra.
   const [cursor, setCursor] = useState<Dia>(elegido ?? hoy());
   const raiz = useRef<HTMLDivElement>(null);
+  const calendario = useRef<HTMLDivElement>(null);
   const grilla = useRef<HTMLDivElement>(null);
+  // El calendario flota en `fixed`, medido contra el campo y colgado fuera de él (como la lista de un combo, ADR-0211): dibujado en
+  // `absolute` dentro de una hoja de <Modal>, la hoja (que scrollea) lo recortaba por abajo y por la derecha y aparecía una barra
+  // horizontal (Nueva campaña, «Hasta», 2026-10-12). Abre hacia abajo solo si cabe ENTERO (`entero`): el calendario no se desplaza
+  // por dentro, y con la regla de las listas (160 px bastan) quedaba cortado al pie de la pantalla (ADR-0211, act. 2026-10-10).
+  const pos = usePosicionLista(raiz, abierto, ALTO_CALENDARIO, 6, { entero: true });
+  const destino = useDestinoFlotante(raiz, abierto);
   const entrada = useRef<HTMLInputElement>(null);
 
   // Si el valor cambia desde afuera (se limpió el filtro, cambió la
@@ -155,7 +189,8 @@ export function CampoFecha({
   useEffect(() => {
     if (!abierto) return;
     function afuera(e: MouseEvent) {
-      if (!raiz.current?.contains(e.target as Node)) setAbierto(false);
+      // El calendario vive fuera del campo (portal): un clic en él no es «afuera».
+      if (!raiz.current?.contains(e.target as Node) && !calendario.current?.contains(e.target as Node)) setAbierto(false);
     }
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -163,6 +198,8 @@ export function CampoFecha({
 
   function abrir() {
     if (disabled) return;
+    const campo = raiz.current?.getBoundingClientRect();
+    if (campo) setHaciaIzquierda(campo.left + ANCHO_CALENDARIO > window.innerWidth - MARGEN_PANTALLA && campo.right - ANCHO_CALENDARIO >= MARGEN_PANTALLA);
     setCursor(elegido ?? hoy());
     setAbierto(true);
     requestAnimationFrame(() => grilla.current?.focus());
@@ -244,6 +281,7 @@ export function CampoFecha({
 
   const elHoy = hoy();
   const celdas = celdasDelMes(cursor.a, cursor.m);
+  const marcados = diasMarcados ? new Set(diasMarcados) : null;
 
   // Solo `estricto`: sin fecha válida (vacío en un campo obligatorio, a medias o imposible) y ya sea
   // porque se salió del campo o porque el llamador lo pide. Mientras se escribe, sin avisos.
@@ -257,8 +295,10 @@ export function CampoFecha({
       pie={conError ? <span role="alert">{texto === "" ? "Falta la fecha." : "Fecha no válida. Usa dd/mm/aaaa."}</span> : pie}
       tono={conError ? "error" : tono}
       htmlFor={id}
+      etiquetaOculta={caja}
     >
-      <div ref={raiz} className="relative">
+      {/* La caja que se enciende (ADR-0358, ronda 6): también con el calendario abierto (`aria-expanded` del botón). */}
+      <div ref={raiz} className="caja-cayla caja-campo" data-tono={conError ? "error" : undefined}>
         <input
           ref={entrada}
           id={id}
@@ -274,7 +314,7 @@ export function CampoFecha({
           onFocus={() => setEnfocado(true)}
           onBlur={alSalir}
           onKeyDown={tecladoInput}
-          className={`w-full bg-transparent py-2 pl-0.5 pr-7 font-mono text-sm tabular-nums tracking-wider text-tinta outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-tinta/45 disabled:opacity-50 ${ALTO_CONTROL}`}
+          className="self-stretch py-0 font-mono tabular-nums tracking-wider placeholder:font-sans placeholder:tracking-normal disabled:opacity-50"
         />
         <button
           type="button"
@@ -285,20 +325,34 @@ export function CampoFecha({
           aria-expanded={abierto}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => (abierto ? setAbierto(false) : abrir())}
-          className={`absolute right-0.5 top-1/2 -translate-y-1/2 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
+          className={`-mr-1 shrink-0 rounded p-0.5 transition-colors ${abierto || enfocado ? "text-rojo" : "text-tinta/55 hover:text-tinta"} disabled:opacity-50`}
         >
           <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
             <rect x="2" y="3.5" width="12" height="10.5" rx="1.5" />
             <path d="M2 7h12M5.5 2v3M10.5 2v3" strokeLinecap="round" />
           </svg>
         </button>
-        <Hilo activo={enfocado || abierto} />
 
-        {abierto && (
+        {abierto && pos && destino && createPortal(
           <div
+            ref={calendario}
             role="dialog"
             aria-label="Calendario"
-            className="anim-revelar absolute left-0 top-full z-50 mt-1.5 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md"
+            style={{
+              ...("top" in pos ? { top: pos.top } : { bottom: pos.bottom }),
+              // Anclado al borde izquierdo del campo; cerca del borde derecho de la pantalla, a su borde derecho.
+              left: haciaIzquierda ? pos.left + pos.width - ANCHO_CALENDARIO : pos.left,
+            }}
+            // Un Escape con el foco en cualquier parte del calendario (las flechas del mes, «Hoy») cierra SOLO el calendario y devuelve el
+            // foco a la fecha; antes solo lo atendía la grilla de días y, desde una flecha, cerraba también la hoja (useEscapeLibre.ts).
+            onKeyDown={(e) => {
+              if (e.key !== "Escape") return;
+              e.preventDefault();
+              e.stopPropagation();
+              setAbierto(false);
+              entrada.current?.focus();
+            }}
+            className="anim-revelar fixed z-50 w-[17rem] rounded-lg border border-sand bg-papel p-3 shadow-md"
           >
             <div className="mb-2 flex items-center justify-between">
               <button
@@ -324,7 +378,7 @@ export function CampoFecha({
 
             <div className="grid grid-cols-7 text-center">
               {DIAS_SEMANA.map((d, i) => (
-                <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45">
+                <span key={i} className="label-cayla py-1 text-[10px] text-tinta/45 dark:text-tinta/60">
                   {d}
                 </span>
               ))}
@@ -343,6 +397,10 @@ export function CampoFecha({
                 const esElegido = mismoDia(dia, elegido);
                 const esHoy = mismoDia(dia, elHoy);
                 const conCursor = mismoDia(dia, cursor);
+                const marcado = !!marcados?.has(aIso(dia));
+                const iso = aIso(dia);
+                const enRango = !!(rango?.desde && rango.hasta && rango.desde < rango.hasta && iso >= rango.desde && iso <= rango.hasta);
+                const extremo = !!rango && (iso === rango.desde || iso === rango.hasta);
                 return (
                   <button
                     key={aIso(dia)}
@@ -351,32 +409,48 @@ export function CampoFecha({
                     role="gridcell"
                     tabIndex={-1}
                     aria-selected={esElegido}
-                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}`}
+                    aria-label={`${dia.d} de ${MESES[dia.m].toLowerCase()} de ${dia.a}${marcado ? `, ${descripcionMarcado}` : ""}${enRango ? ", dentro del rango" : ""}`}
                     // El cursor también decide qué mes se dibuja: moverlo a un día gris del mes vecino
                     // cambiaba de mes solo al pasar el mouse. Fuera del mes, el hover queda en CSS.
                     onMouseEnter={() => delMes && setCursor(dia)}
                     onClick={() => elegir(dia)}
                     className={`relative mx-auto flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums transition-colors ${
+                      extremo && !esElegido ? "ring-1 ring-inset ring-tinta/40 " : ""
+                    }${
                       esElegido
                         ? "bg-rojo text-crema"
                         : conCursor
                           ? "bg-rojo/10 text-tinta"
                           : delMes
                             ? "text-tinta hover:bg-rojo/10"
-                            : "text-tinta/30 hover:bg-rojo/10"
+                            : "text-tinta/30 hover:bg-rojo/10 dark:text-tinta/55"
                     }`}
                   >
+                    {/* La franja del rango, detrás del día: llega hasta la celda vecina para que no se corte; en un extremo, solo media. */}
+                    {enRango && (
+                      <span
+                        aria-hidden
+                        className={`absolute inset-y-0 -z-10 bg-hueso ${iso === rango?.desde ? "-right-1 left-1/2" : iso === rango?.hasta ? "-left-1 right-1/2" : "-left-1 -right-1"}`}
+                      />
+                    )}
                     {dia.d}
                     {esHoy && !esElegido && <span aria-hidden className="absolute bottom-1 h-1 w-1 rounded-full bg-rojo" />}
+                    {marcado && !(esHoy && !esElegido) && <span aria-hidden className={`absolute bottom-1 h-1 w-1 rounded-full ${esElegido ? "bg-crema" : "bg-taupe"}`} />}
                   </button>
                 );
               })}
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
-              <button type="button" onClick={() => elegir(elHoy)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
+              <button type="button" onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-[13px]">
                 Hoy
               </button>
+              {marcados && (
+                <span className="flex items-center gap-1.5 text-[11px] text-tinta/55">
+                  <span aria-hidden className="h-1 w-1 rounded-full bg-taupe" />
+                  {descripcionMarcado}
+                </span>
+              )}
               {!required && elegido && (
                 <button
                   type="button"
@@ -385,13 +459,14 @@ export function CampoFecha({
                     setAbierto(false);
                     onValor("");
                   }}
-                  className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
+                  className="btn-cayla btn-enlace text-[13px]"
                 >
                   Limpiar
                 </button>
               )}
             </div>
-          </div>
+          </div>,
+          destino
         )}
       </div>
     </Campo>

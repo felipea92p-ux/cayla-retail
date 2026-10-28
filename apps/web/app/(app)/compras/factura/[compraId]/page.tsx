@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { exigirPermiso } from "@/lib/persona-actual";
-import { CompraDetalle, DatosComprobante, TituloComprobante, cargarDetalleCompra } from "@/components/CompraDetalle";
+import { CompraDetalle, DatosComprobante, cargarDetalleCompra, tipoCompra } from "@/components/CompraDetalle";
 import { Volver } from "@/components/ui/Volver";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Página completa del detalle de una factura. Es lo que se ve al entrar por
 // enlace directo o al recargar; viniendo desde una lista de Compras, el
@@ -28,14 +29,16 @@ export default async function CompraDetallePage({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <Volver href="/compras" a="Facturas de proveedor" />
-      <div>
-        <h1 className="font-display text-tinta">
-          <TituloComprobante compra={compra} />
-        </h1>
-        <p className="mt-1 text-xs text-tinta/70">
-          <DatosComprobante compra={compra} destino={detalle.destino} />
-        </p>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el proveedor de título y el documento en la línea
+          de arriba, junto a la fecha. La hoja (el modal) sigue con `TituloComprobante`. */}
+      <div data-guia="factura.cabecera">
+        <EncabezadoPagina
+          sede="Todas las tiendas"
+          detalle={`${tipoCompra(compra)} ${compra.documento}`}
+          volver={<Volver href="/compras" a="Historial de compras" />}
+          titulo={<span className={compra.estado === "anulada" ? "text-tinta/50 line-through" : undefined}>{compra.proveedorNombre}</span>}
+          subtitulo={<DatosComprobante compra={compra} destino={detalle.destino} />}
+        />
       </div>
 
       <CompraDetalle detalle={detalle} adjuntosFallidos={adjuntosFallidos} />

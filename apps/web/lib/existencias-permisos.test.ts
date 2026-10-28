@@ -9,27 +9,27 @@ const TODO: EntradaPermisos = {
   puedeAjustar: true,
   veTraslados: true,
   esTienda: true,
-  esAdmin: true,
+  editaCatalogo: true,
+  tieneCuarentena: true,
 };
 
 describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mismo que la base (ADR-0240)", () => {
   it("con todo, en su tienda, se ofrece todo", () => {
     expect(permisosDelDetalle(TODO)).toEqual({
+      reportarDanada: true,
       reponerYRetirar: true,
       apartar: true,
       ajustar: true,
       trasladar: true,
       etiquetasEHistorial: true,
       pedirAOtraSede: true,
-      explicarSinModuloBajada: false,
       eliminar: true,
     });
   });
 
-  it("sin «Bajada al piso» no hay Reponer ni Retirar, y la talla por colgar lo explica", () => {
+  it("sin poder bajar al piso (otra sede o sin piso y almacén en su tienda) no hay Reponer ni Retirar", () => {
     const p = permisosDelDetalle({ ...TODO, puedeBajarAlPiso: false });
     expect(p.reponerYRetirar).toBe(false);
-    expect(p.explicarSinModuloBajada).toBe(true);
     expect(p.apartar).toBe(true);
   });
 
@@ -42,13 +42,13 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
 
   it("mirando OTRA sede no se ofrece nada que escriba ni nada que trabaje sobre la sede activa", () => {
     expect(permisosDelDetalle({ ...TODO, enSedeActiva: false })).toEqual({
+      reportarDanada: false,
       reponerYRetirar: false,
       apartar: false,
       ajustar: false,
       trasladar: false,
       etiquetasEHistorial: false,
       pedirAOtraSede: false,
-      explicarSinModuloBajada: false,
       eliminar: false,
     });
   });
@@ -57,19 +57,32 @@ describe("permisosDelDetalle (tarea #11): el candado de la pantalla dice lo mism
     const p = permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false });
     expect(p.reponerYRetirar).toBe(false);
     expect(p.apartar).toBe(false);
-    expect(p.explicarSinModuloBajada).toBe(false);
     expect(p.ajustar).toBe(true);
     expect(p.trasladar).toBe(true);
     expect(p.pedirAOtraSede).toBe(false);
   });
 
-  it("Eliminar el producto (ADR-0252): solo un Admin, en su sede, sin importar los módulos ni el Taller", () => {
-    // Un Líder que no es Admin no: todo lo de Existencias ya tiene historia de stock y la base se lo negaría siempre.
-    expect(permisosDelDetalle({ ...TODO, esAdmin: false }).eliminar).toBe(false);
-    expect(permisosDelDetalle({ ...TODO, esAdmin: false }).ajustar).toBe(true);
-    const admin = { ...TODO, puedeBajarAlPiso: false, veApartados: false, puedeAjustar: false, veTraslados: false };
-    expect(permisosDelDetalle(admin).eliminar).toBe(true);
+  it("Eliminar el producto (ADR-0252, act. 2026-10-03): quien edita el catálogo, en su sede, sin importar los otros módulos ni el Taller", () => {
+    // La misma regla que la tarjeta de Catálogo y que la base (`fn_puede_editar_catalogo`): la cuenta de almacén lo ve.
+    expect(permisosDelDetalle({ ...TODO, editaCatalogo: false }).eliminar).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, editaCatalogo: false }).ajustar).toBe(true);
+    const soloCatalogo = { ...TODO, puedeBajarAlPiso: false, veApartados: false, puedeAjustar: false, veTraslados: false };
+    expect(permisosDelDetalle(soloCatalogo).eliminar).toBe(true);
     expect(permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false }).eliminar).toBe(true);
+    // Mirando otra sede, tampoco: borra el producto en todas, pero firma con el Responsable de la sede activa.
+    expect(permisosDelDetalle({ ...TODO, enSedeActiva: false }).eliminar).toBe(false);
+  });
+
+  it("Reportar dañada (ADR-0328 act. 10): quien ve Existencias, en su sede, donde hay piso, almacén y cuarentena", () => {
+    // Es una función de Existencias (ADR-0306), no del líder; lo que se decide con la dañada también (ADR-0534), en Dañadas.
+    expect(permisosDelDetalle(TODO).reportarDanada).toBe(true);
+    expect(permisosDelDetalle({ ...TODO, puedeAjustar: false, veApartados: false, veTraslados: false, editaCatalogo: false }).reportarDanada).toBe(true);
+    // Sin Existencias en su sede (`puedeBajarAlPiso` ya lo dice), mirando otra sede, en el Taller o sin cuarentena: no.
+    expect(permisosDelDetalle({ ...TODO, puedeBajarAlPiso: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, enSedeActiva: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, separaPisoAlmacen: false, esTienda: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, tieneCuarentena: false }).reportarDanada).toBe(false);
+    expect(permisosDelDetalle({ ...TODO, tieneCuarentena: false }).reponerYRetirar).toBe(true);
   });
 
   it("cada módulo apaga solo lo suyo", () => {

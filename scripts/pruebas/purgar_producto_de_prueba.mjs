@@ -26,12 +26,21 @@
  *     otra prenda siguen idénticas.
  *   · RESPALDO: restaurarlo con `restaurar-purga.sql` devuelve la base a como estaba, FILA POR FILA en todas las tablas
  *     (menos Actividad, el historial del producto y la versión del catálogo, que solo avanzan).
+ *   · EN LA MANO (ADR-0328, actividad 9): una prenda corregida y colgada con `bajar_en_mano` no frena la purga; su marca
+ *     (`bajadas_en_mano`) se respalda, se va en cascada con la corrección y vuelve idéntica al restaurar.
  *   · RECHAZOS (no se borra nada, y el mensaje dice qué impide): el producto en otra venta, separación o compra no
  *     nombrada; un documento nombrado que no tiene el producto; una separación o compra con otras prendas; una
  *     separación pagada en efectivo; una compra con un pago; un comprobante que llegó a SUNAT en producción (LA LÍNEA
  *     ROJA); uno que intentó salir sin decir a qué entorno; uno que se está enviando ahora; una venta anulada; un aviso a
  *     la clienta (una tabla que cita la separación); una mención SIN llave foránea (una proforma); un libro que ya no
  *     cuadraba; parámetros faltantes; el producto o la venta inexistentes.
+ *   · UN RESPALDO VIEJO se restaura aunque la tabla haya ganado columnas después (casos 10d–10f): las líneas de conteo sin
+ *     `aplicada_sin_contar` ni `completada_con_atajo` vuelven con `false`; cualquier columna `NOT NULL` con valor de fábrica
+ *     (texto, entero, `now()`, json) vuelve con ese valor; una opcional queda nula; una `NOT NULL` SIN valor de fábrica no se
+ *     inventa: la restauración se niega diciendo tabla y columna. Los casos 10e y 10f agregan columnas de mentira a
+ *     `pedidos_no_atendidos` DENTRO de la transacción (el ROLLBACK las deshace; un `lock_timeout` de 5 s evita que esperen
+ *     eternamente a la tienda si la base es compartida). CONTROL que muerde: `RESTAURAR_SCRIPT=<restaurar-purga.sql anterior al
+ *     arreglo>` pone los 7 comprobantes de esos casos en rojo (el error es el 23502 de la columna que el respaldo no trae).
  *   · LA SERIE de notas no retrocede si la nota purgada NO era la última: sin huecos ni repetidos.
  *   · Repetirla no hace nada: el producto ya no existe.
  *
@@ -51,11 +60,21 @@ import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// Un apartado VIEJO (de antes de ADR-0399): ya tiene su boleta de anticipo con correlativo gastado. Se arma a mano sobre la separación
+// `:'<sep>'` para que el borrado de un producto de prueba siga entendiendo lo que la producción conserva.
+const anticipoViejo = (sep, monto) => `select retail.emitir_comprobante(:'ubic', 'boleta', round(${monto} / 1.18, 2), ${monto} - round(${monto} / 1.18, 2), ${monto}, null, 'sin_documento', null,
+  'Ana Prueba', jsonb_build_array(jsonb_build_object('descripcion', 'Anticipo', 'cantidad', 1, 'precio_unitario', round(${monto} / 1.18, 2)))) as ca_${sep} \\gset
+update retail.comprobantes set separacion_id = :'${sep}', es_anticipo = true where id = :'ca_${sep}';
+update retail.separaciones set comprobante_anticipo_id = :'ca_${sep}' where id = :'${sep}';`;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
 // El script tal cual, sin su begin/commit: la prueba lo envuelve en su propia transacción con ROLLBACK.
 // `PURGA_SCRIPT`: apunta la prueba a una copia mutada del script (prueba de mutación: la prueba TIENE que ponerse en rojo).
 const CUERPO = readFileSync(process.env.PURGA_SCRIPT ?? join(RAIZ, "scripts/purga/purgar-producto-de-prueba.sql"), "utf8").replace(/^(begin|commit);.*\[\[transaccion\]\].*$/gm, "").split("-- [[resumen-final]]")[0];
+// En producción el script corre en su propia transacción, con la escena ya confirmada: se disparan antes los disparadores
+// diferidos de Actividad (ADR-0207), o su «alter table … disable trigger» choca con los eventos pendientes de la escena.
+// Solo esos: las demás comprobaciones diferidas siguen al final, como en producción.
+const CUERPO_TRAS_LA_ESCENA = `set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate;\n${CUERPO}`;
 const RESTAURAR = readFileSync(process.env.RESTAURAR_SCRIPT ?? join(RAIZ, "scripts/purga/restaurar-purga.sql"), "utf8").replace(/^(begin|commit);.*\[\[transaccion\]\].*$/gm, "");
 // Para volver a correrlo dentro de la misma transacción (lo temporal del script ya existe).
 const LIMPIAR = `drop table if exists zz_prod, zz_var, zz_venta, zz_sep, zz_compra, zz_item, zz_compra_item, zz_comp, zz_mov, zz_borrar, zz_hoja,
@@ -214,6 +233,11 @@ select retail.fn_aplicar_movimiento(:'m2') as _2 \\gset
 select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 6), jsonb_build_object('variante_id', :'vb', 'cantidad', 6)), gen_random_uuid()) as bajada \\gset
 -- Un movimiento interno piso → almacén con su marca de reintento (como Blusa Carlita).
 select retail.mover_entre_piso_y_almacen(:'ubic', :'va', 1, :'sub_piso', :'sub_alm', null, gen_random_uuid()) as mint \\gset
+-- Una línea del cuadre del piso (ADR-0328) sobre ese traslado interno: la purga la conoce, la respalda y la devuelve. Su
+-- cabecera (la fecha del cuadre de la sede) no cita al producto y se queda.
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'ubic', :'yo', gen_random_uuid(), md5('purga'), now(), '{}'::jsonb, 'prueba de la purga') returning id as cuadre \\gset
+insert into retail.cuadre_piso_items (movimiento_id, cuadre_id, variante_id, sentido, cantidad) values (:'mint', :'cuadre', :'va', 'al_almacen', 1);
 -- Otras prendas (de otros productos) con su stock.
 select id as o1, precio as p1 from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select id as o2, precio as p2 from retail.variantes where sku <> 'BLU-EMMA-NEG-M' and producto_id <> :'prod' and precio is not null order by sku limit 1 \\gset
@@ -231,6 +255,14 @@ update retail.conteo_items set movimiento_id = :'m5' where id = :'ci';
 insert into retail.conteo_items (conteo_id, variante_id, cantidad_sistema, cantidad_contada) values (:'conteo', :'o1', 5, 5) returning id as ci_otro \\gset
 -- Un pedido que no se pudo atender.
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id) values (:'ubic', :'prod');
+-- Su fila de la vitrina de la tienda online: un producto nuevo ya nace con ella (ADR-0457); sin la purga conociéndola, la frenaría.
+insert into retail.vitrina_productos (producto_id, publicado, publicado_en) values (:'prod', true, now()) on conflict (producto_id) do nothing;
+-- Dos renglones de la libreta de «Ya decidí» (Frescura del piso, ADR-0208 paso 4b): la purga la conoce, la respalda y la
+-- devuelve; sin esto, un producto decidido pararía la purga («otra parte del sistema todavía lo usa»).
+insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, plazo_dias, persona_id, token_cliente)
+  values (:'ubic', :'prod', :'c1', 'cambie_lugar', 7, :'yo', gen_random_uuid()) returning id as fd1 \\gset
+insert into retail.frescura_decisiones (ubicacion_id, producto_id, color_codigo, accion, anterior_id, anterior_accion, plazo_dias, persona_id, token_cliente)
+  values (:'ubic', :'prod', :'c1', 'hasta_agotar', :'fd1', 'cambie_lugar', 12, :'yo', gen_random_uuid());
 -- Venta 1: nota interna, el producto mezclado con otra prenda (esas 2 prendas vuelven a su stock).
 select retail.registrar_venta(:'ubic', jsonb_build_array(
     jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50, 'descuento_unitario', 0),
@@ -242,15 +274,18 @@ select retail.registrar_venta(:'ubic', jsonb_build_array(jsonb_build_object('var
   jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 50)), null, gen_random_uuid(), 'boleta') as v2 \\gset
 update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox', enviado_at = now(), respuesta_sunat = '{"ok": true}' where venta_id = :'v2';
 select serie as serie_bol from retail.comprobantes where venta_id = :'v2' \\gset
--- Separación 1, entregada: boleta de anticipo + boleta de la entrega que lo descuenta (como APT-TRU-0004). Separación 2,
+-- Separación 1, entregada: boleta de anticipo + boleta de la entrega que lo descuenta (como APT-TRU-0004). Desde ADR-0399 un apartado
+-- nuevo ya no emite anticipo; los dos de este escenario se arman «viejos» a mano (la producción conserva uno y el borrado debe seguir entendiéndolos). Separación 2,
 -- abierta con su apartado (como APT-TRU-0005). Los adelantos, por Yape y tarjeta: no entran a la caja.
 select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50)),
   p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 20)), p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Prueba',
   p_clienta_celular => '987111222', p_devolucion_medio => 'yape') as s1 \\gset
+${anticipoViejo("s1", 20)}
 select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 30))) as v3 \\gset
 select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 1, 'precio_unitario', 50)),
   p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 15)), p_clienta_nombres => 'Bea', p_clienta_apellidos => 'Prueba',
   p_clienta_celular => '987111333', p_devolucion_medio => 'yape') as s2 \\gset
+${anticipoViejo("s2", 15)}
 -- Compra: factura a crédito repartida entre Lima y Trujillo, reasignada, recibida en parte en Lima y con un faltante cerrado
 -- (como F001-000022 de Blusa Xd).
 select retail.registrar_compra(:'prov', 'F001', 'N' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), 'credito', :'ubic',
@@ -287,8 +322,8 @@ const DOCS = {
 };
 const paramsDocs = (extra = {}) => params({ ...DOCS, ...extra });
 
-const purgaDefinitiva = () => `${params({ definitivo: true })}${CUERPO}`;
-const purgaDocsDefinitiva = () => `${paramsDocs({ definitivo: true })}${CUERPO}`;
+const purgaDefinitiva = () => `${params({ definitivo: true })}${CUERPO_TRAS_LA_ESCENA}`;
+const purgaDocsDefinitiva = () => `${paramsDocs({ definitivo: true })}${CUERPO_TRAS_LA_ESCENA}`;
 
 // Lo que queda de la ficha y de la venta (todo en cero si la purga corrió).
 const RESTOS = `select concat_ws(',',
@@ -308,7 +343,7 @@ const RESTOS_NADA = "0,0,0,0,0,0,0,0,0";
 
 // Lo mismo para el escenario «con documentos»: producto | variantes | movimientos | stock | ventas | comprobantes |
 // separaciones | apartados | pagos de separación | compra | líneas de compra | reparto | reasignaciones | cierres | lote |
-// envío | costos | línea de conteo | bajadas | marcas de reintento | pedido no atendido | anticipos.
+// envío | costos | línea de conteo | bajadas | marcas de reintento | pedido no atendido | anticipos | líneas del cuadre del piso.
 const RESTOS_DOCS = `select concat_ws(',',
   (select count(*) from retail.productos where id = :'prod'),
   (select count(*) from retail.variantes where producto_id = :'prod'),
@@ -331,12 +366,13 @@ const RESTOS_DOCS = `select concat_ws(',',
   (select count(*) from retail.bajada_piso_items where variante_id in (:'va', :'vb')),
   (select count(*) from retail.movimientos_internos_intentos where movimiento_id in (select id from retail.movimientos where variante_id in (:'va', :'vb'))),
   (select count(*) from retail.pedidos_no_atendidos where producto_id = :'prod'),
-  (select count(*) from retail.comprobante_anticipos where comprobante_id in (select id from retail.comprobantes where venta_id = :'v3')));`;
+  (select count(*) from retail.comprobante_anticipos where comprobante_id in (select id from retail.comprobantes where venta_id = :'v3')),
+  (select count(*) from retail.cuadre_piso_items where variante_id in (:'va', :'vb')));`;
 // Antes: 1 producto, 2 variantes, 12 movimientos del producto (2 cargas, 2 bajadas, 1 interno, 1 ajuste de conteo,
 // 3 salidas por venta, 2 apartados, 1 liberación… más la recepción), sus filas de stock, 3 ventas, 5 comprobantes,
 // 2 separaciones, 2 apartados, 2 pagos de separación, la compra con su línea, 2 destinos, 1 reasignación, 1 cierre, 1 lote,
-// 1 envío, 1 costo, 1 línea de conteo, 2 bajadas, 1 marca de reintento, 1 pedido no atendido, 1 anticipo.
-const RESTOS_DOCS_NADA = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+// 1 envío, 1 costo, 1 línea de conteo, 2 bajadas, 1 marca de reintento, 1 pedido no atendido, 1 anticipo, 1 línea del cuadre.
+const RESTOS_DOCS_NADA = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
 
 const SERIE = `(select siguiente_numero from retail.series_comprobantes where tipo = 'nota_venta' and serie = :'serie_nv')`;
 const SERIE_BOL = `(select siguiente_numero from retail.series_comprobantes s where s.tipo = 'boleta' and s.serie = :'serie_bol' and s.ubicacion_id = :'ubic')`;
@@ -375,7 +411,7 @@ function main() {
 ${RESTOS}
 select pg_temp.foto() as foto_antes \\gset
 savepoint antes_del_ensayo;
-${params()}${CUERPO}
+${params()}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint antes_del_ensayo;
 ${RESTOS}
 select count(*) from respaldo_purgas.filas;
@@ -458,12 +494,67 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) ||
     esperar("respaldo: la base entera vuelve a ser la de antes, tabla por tabla (salvo Actividad, historial y versión del catálogo)", r.ok && distintas === "[]", r);
   }
 
+  // 3b. Una prenda corregida «en la mano» (ADR-0328, actividad 9): la marca que une su bajada con la corrección del almacén
+  // no frena la purga, se respalda, se va con la corrección y vuelve con la restauración. Antes, el candado (f) la veía
+  // como «una tabla que cita movimientos que se borrarían» y la purga no corría.
+  {
+    const enMano = `select set_config('request.headers', '{}', true) as _h \\gset
+-- La prenda tuvo 1 en el almacén de Lima y se fue (historia: no es una primera carga); la asesora la tiene en la mano.
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo) values (:'va', :'ubic', :'sub_alm', 'entrada', 1, 'colchon') returning id as em1 \\gset
+select retail.fn_aplicar_movimiento(:'em1') as _em1 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo) values (:'va', :'ubic', :'sub_alm', 'salida', 1, 'colchon') returning id as em2 \\gset
+select retail.fn_aplicar_movimiento(:'em2') as _em2 \\gset
+select retail.bajar_en_mano(:'ubic', :'va', 'prueba purga', gen_random_uuid()) as en_mano \\gset
+select (:'en_mano'::jsonb ->> 'bajada_id') as bajada_mano, (:'en_mano'::jsonb ->> 'corregida') as corregida_mano \\gset
+`;
+    const MARCA = `(select count(*) from retail.bajadas_en_mano where bajada_id = :'bajada_mano')`;
+    const ensayo = correr(
+      `${escena()}
+${enMano}
+select pg_temp.foto() as foto_antes \\gset
+savepoint antes_del_ensayo;
+${params()}${CUERPO_TRAS_LA_ESCENA}
+rollback to savepoint antes_del_ensayo;
+select concat_ws(',', :'corregida_mano', ${MARCA});
+select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
+      true
+    );
+    const [marcaAntes, distintasEnsayo] = ultimas(ensayo);
+    esperar(
+      "en la mano: el ensayo de un producto corregido en la mano dice ENSAYO OK (la marca no frena) y cuenta la corrección en el resumen",
+      ensayo.ok && marcaAntes === "true,1" && /ENSAYO OK/.test(ensayo.err) && !/NO SE BORRA NADA/.test(ensayo.err) && /correcciones «La tengo en la mano» 1/.test(ensayo.err),
+      `${marcaAntes} · ${ensayo.err.slice(0, 1200)}`
+    );
+    esperar("en la mano: y el ensayo no dejó nada escrito", ensayo.ok && distintasEnsayo === "[]", ensayo);
+
+    const r = correr(
+      `${escena()}
+${enMano}
+select pg_temp.foto(${QUEDAN_IGUAL}) as foto_antes \\gset
+${purgaDefinitiva()}
+select concat_ws(',', ${MARCA}, (select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'bajadas_en_mano'),
+  (select count(*) from retail.fn_verificar_bajadas_en_mano()));
+drop function pg_temp.libro_descuadra();
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}
+select concat_ws(',', ${MARCA},
+  (select bool_and(exists (select 1 from retail.bajadas_en_mano x where to_jsonb(x) = f.fila)) from respaldo_purgas.filas f
+    where f.purga = :'nombre_purga' and f.tabla = 'bajadas_en_mano'),
+  (select count(*) from retail.fn_verificar_bajadas_en_mano()));
+select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) || ']';`
+    );
+    const [trasPurga, trasRestaurar, distintas] = ultimas(r).slice(-3);
+    esperar("en la mano: definitivo — la marca se va con su corrección, queda respaldada y el diagnóstico sigue en 0", r.ok && trasPurga === "0,1,0", r);
+    esperar("en la mano: restaurar devuelve la marca idéntica y el diagnóstico sigue en 0", r.ok && trasRestaurar === "1,t,0", r);
+    esperar("en la mano: la base entera vuelve a ser la de antes, tabla por tabla", r.ok && distintas === "[]", r);
+  }
+
   // 4. Repetirla no hace nada: el producto ya no existe.
   {
     const r = correr(`${escena()}
 ${purgaDefinitiva()}
 ${LIMPIAR}
-${params({ definitivo: true })}${CUERPO}`);
+${params({ definitivo: true })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("repetir la purga: se rechaza — ya no hay un producto con ese código", !r.ok && /No encuentro exactamente un producto con código/.test(r.err), r);
   }
 
@@ -471,7 +562,7 @@ ${params({ definitivo: true })}${CUERPO}`);
   const rechazo = (nombre, preparar, patron, opciones = {}) => {
     const r = correr(`${escena(opciones)}
 ${preparar}
-${params()}${CUERPO}`);
+${params()}${CUERPO_TRAS_LA_ESCENA}`);
     esperar(nombre, !r.ok && patron.test(r.err), r.err.slice(0, 1200));
     // Lo importante: nada quedó borrado. Misma corrida hasta la excepción, con un savepoint, y se compara lo de antes con lo de después.
     const s = correr(
@@ -479,7 +570,7 @@ ${params()}${CUERPO}`);
 ${preparar}
 ${RESTOS}
 savepoint s1;
-${params()}${CUERPO}
+${params()}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint s1;
 ${RESTOS}`,
       true
@@ -549,11 +640,11 @@ select (select siguiente_numero from retail.series_comprobantes where tipo = 'bo
 
   // 6. Parámetros y producto inexistente.
   {
-    const r = correr(`${escena()}\n${params({ producto: null, ventas: null })}${CUERPO}`);
+    const r = correr(`${escena()}\n${params({ producto: null, ventas: null })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("parámetros faltantes: se rechaza con instrucciones", !r.ok && /Faltan parámetros/.test(r.err), r.err.slice(0, 600));
-    const s = correr(`${escena()}\n${params({ producto: "'ZZZ-9999'" })}${CUERPO}`);
+    const s = correr(`${escena()}\n${params({ producto: "'ZZZ-9999'" })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("un código de producto que no existe se rechaza", !s.ok && /No encuentro exactamente un producto con código «ZZZ-9999»/.test(s.err), s.err.slice(0, 600));
-    const t = correr(`${escena()}\n${params({ ventas: "gen_random_uuid()::text" })}${CUERPO}`);
+    const t = correr(`${escena()}\n${params({ ventas: "gen_random_uuid()::text" })}${CUERPO_TRAS_LA_ESCENA}`);
     esperar("un id de venta que no existe se rechaza (pedí 1 y encontré 0)", !t.ok && /Pedí 1 venta\(s\) y encontré 0/.test(t.err), t.err.slice(0, 600));
   }
 
@@ -588,7 +679,7 @@ select ${LIBRO};`
 ${RESTOS_DOCS}
 select pg_temp.foto() as foto_antes \\gset
 savepoint antes_del_ensayo;
-${paramsDocs()}${CUERPO}
+${paramsDocs()}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint antes_del_ensayo;
 ${RESTOS_DOCS}
 select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
@@ -625,7 +716,7 @@ select count(*) from retail.historial_producto_cambios where entidad_id = :'prod
 select count(*) from retail.cajas where id = :'caja_id' and estado = 'abierta';`
     );
     const [restos, o2, libro, candados, real, conteo, serie, serieBol, actividad, historial, caja] = ultimas(r);
-    esperar("docs · definitivo: no queda NADA del producto ni de sus documentos (22 clases de filas en cero)", r.ok && restos === RESTOS_DOCS_NADA, r);
+    esperar("docs · definitivo: no queda NADA del producto ni de sus documentos (23 clases de filas en cero)", r.ok && restos === RESTOS_DOCS_NADA, r);
     esperar("docs · definitivo: la otra prenda de la venta vuelve EXACTAMENTE a su stock de antes", r.ok && o2 === "t", r);
     esperar("docs · definitivo: el libro de movimientos cuadra con el stock en toda la base", r.ok && libro === "0", r);
     esperar("docs · definitivo: los 7 candados de historial quedaron en su modo (movimientos en ALWAYS)", r.ok && candados === candadosAntes, { candados, candadosAntes });
@@ -710,6 +801,81 @@ ${RESTAURAR}`
     esperar("restaurar: se niega con un mensaje claro — ese número ya lo tiene otro comprobante", !r.ok && /Esos números ya los tiene otro comprobante/.test(r.err), r.err.slice(0, 800));
   }
 
+  // 10d. Un respaldo VIEJO: hecho antes de que `conteo_items` ganara columnas `boolean not null default false`
+  // (`aplicada_sin_contar`, `completada_con_atajo`). Esas claves no vienen en el respaldo y `jsonb_populate_recordset` las entrega
+  // como NULL, no como el valor de fábrica: antes del arreglo el insert moría con 23502 y la restauración ENTERA se abortaba.
+  // Se imita quitándole esas claves a lo respaldado (si `completada_con_atajo` aún no existe en la base, quitarla no hace nada).
+  // CONTROL que muerde: `RESTAURAR_SCRIPT=<el restaurar-purga.sql de antes del arreglo>` debe poner este caso en rojo.
+  {
+    const r = correr(
+      `${escenaDocs()}
+select pg_temp.foto(${QUEDAN_IGUAL}) as foto_antes \\gset
+${purgaDocsDefinitiva()}
+drop function pg_temp.libro_descuadra();
+select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'conteo_items';
+update respaldo_purgas.filas set fila = fila - 'aplicada_sin_contar' - 'completada_con_atajo' where purga = :'nombre_purga' and tabla = 'conteo_items';
+select count(*) from respaldo_purgas.filas where purga = :'nombre_purga' and tabla = 'conteo_items' and (fila ? 'aplicada_sin_contar' or fila ? 'completada_con_atajo');
+select count(*) >= 1 from information_schema.columns where table_schema = 'retail' and table_name = 'conteo_items'
+   and column_name in ('aplicada_sin_contar', 'completada_con_atajo') and is_nullable = 'NO' and column_default is not null;
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}
+select to_jsonb(c) ->> 'aplicada_sin_contar', coalesce(to_jsonb(c) ->> 'completada_con_atajo', 'false') from retail.conteo_items c where c.id = :'ci';
+select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto(${QUEDAN_IGUAL})) || ']';
+select ${LIBRO};`
+    );
+    const [enRespaldo, conClaves, muerde, valores, distintas, libro] = ultimas(r);
+    esperar("docs · respaldo viejo: el caso muerde — la línea de conteo está respaldada, ya sin las claves nuevas, y esas columnas son NOT NULL con valor de fábrica", r.ok && enRespaldo === "1" && conClaves === "0" && muerde === "t", r);
+    esperar("docs · respaldo viejo: restaurar NO se aborta — la línea de conteo vuelve con el valor de fábrica (false) en las columnas que el respaldo no trae", r.ok && valores === "false|false", r);
+    esperar("docs · respaldo viejo: y la base entera vuelve a ser la de antes, tabla por tabla", r.ok && distintas === "[]", r);
+    esperar("docs · respaldo viejo: el libro cuadra después de restaurar", r.ok && libro === "0", r);
+  }
+
+  // 10e. Lo mismo, pero PARA CUALQUIER columna futura (no solo las dos de conteo): se agregan, después de la purga, columnas NOT NULL
+  // de varios tipos con valor de fábrica a `pedidos_no_atendidos` (una tabla chica y poco usada, para no estorbar a la tienda si
+  // la prueba corre en una base compartida; el ALTER se deshace con el ROLLBACK). Una columna OPCIONAL (nullable) con valor de
+  // fábrica NO se rellena: para ella un NULL es un dato, y el respaldo no puede distinguir «no la traía» de «era nula».
+  {
+    const r = correr(
+      `${escenaDocs()}
+${purgaDocsDefinitiva()}
+drop function pg_temp.libro_descuadra();
+set local lock_timeout = '5s';
+alter table retail.pedidos_no_atendidos
+  add column zz_texto text not null default 'abierto',
+  add column zz_entero integer not null default 7,
+  add column zz_cuando timestamptz not null default now(),
+  add column zz_json jsonb not null default '{}'::jsonb,
+  add column zz_opcional text default 'x';
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}
+select concat_ws('|', zz_texto, zz_entero, zz_cuando is not null, zz_json::text, coalesce(zz_opcional, '<nulo>')) from retail.pedidos_no_atendidos where producto_id = :'prod';
+select ${LIBRO};`
+    );
+    const [valores, libro] = ultimas(r);
+    esperar("docs · respaldo viejo: cualquier columna NOT NULL con valor de fábrica (texto, entero, fecha de ahora, json) vuelve con ese valor; la opcional queda nula", r.ok && valores === "abierto|7|t|{}|<nulo>", r);
+    esperar("docs · respaldo viejo: con columnas nuevas el libro también cuadra", r.ok && libro === "0", r);
+  }
+
+  // 10f. Una columna NOT NULL SIN valor de fábrica que el respaldo no trae NO se inventa: la restauración se niega y el mensaje dice
+  // qué tabla y qué columna es (en vez del 23502 pelado), y no se restaura nada.
+  {
+    const r = correr(
+      `${escenaDocs()}
+${purgaDocsDefinitiva()}
+drop function pg_temp.libro_descuadra();
+set local lock_timeout = '5s';
+alter table retail.pedidos_no_atendidos add column zz_sin_valor text not null default 'x';
+alter table retail.pedidos_no_atendidos alter column zz_sin_valor drop default;
+select set_config('cayla_purga.nombre', :'nombre_purga', true) as _n \\gset
+${RESTAURAR}`
+    );
+    esperar(
+      "docs · respaldo viejo: una columna NOT NULL sin valor de fábrica no se inventa — se niega diciendo la tabla y la columna",
+      !r.ok && /\[restaurar\] No se restaura nada[^\n]*pedidos_no_atendidos[^\n]*zz_sin_valor/.test(r.err) && !/\[restaurar\] HECHO/.test(r.err),
+      r.err.slice(-900)
+    );
+  }
+
   // 11. RECHAZOS con documentos: no se borra nada, y el mensaje dice qué impide.
   const rechazoDocs = (nombre, preparar, patron, extra = {}) => {
     const r = correr(
@@ -718,7 +884,7 @@ ${preparar}
 ${RESTOS_DOCS}
 select pg_temp.foto() as foto_antes \\gset
 savepoint s1;
-${paramsDocs(extra)}${CUERPO}
+${paramsDocs(extra)}${CUERPO_TRAS_LA_ESCENA}
 rollback to savepoint s1;
 ${RESTOS_DOCS}
 select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
@@ -763,7 +929,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
     "docs · rechazo: una separación que también aparta otra prenda",
     `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50),
         jsonb_build_object('variante_id', :'o1', 'cantidad', 1, 'precio_unitario', :'p1')),
-      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 10)), p_clienta_nombres => 'Cira', p_clienta_apellidos => 'Prueba',
+      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 40)), p_clienta_nombres => 'Cira', p_clienta_apellidos => 'Prueba',
       p_clienta_celular => '987111444', p_devolucion_medio => 'yape') as s3 \\gset`,
     /apartan 2 prenda\(s\) de otros productos/,
     { separaciones: `:'s1' || ',' || :'s2' || ',' || :'s3'` }
@@ -771,7 +937,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
   rechazoDocs(
     "docs · rechazo: una separación pagada en efectivo (ese dinero entró a la caja con su movimiento)",
     `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50)),
-      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 10, 'recibido', 10)), p_clienta_nombres => 'Dora', p_clienta_apellidos => 'Prueba',
+      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 15, 'recibido', 15)), p_clienta_nombres => 'Dora', p_clienta_apellidos => 'Prueba',
       p_clienta_celular => '987111555', p_devolucion_medio => 'yape') as s3 \\gset`,
     /entraron en efectivo a una caja[\s\S]*caja_movimientos citan a separaciones/,
     { separaciones: `:'s1' || ',' || :'s2' || ',' || :'s3'` }

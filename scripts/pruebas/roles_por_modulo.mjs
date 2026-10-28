@@ -12,7 +12,11 @@
  *   · `fn_ve_modulo` para una persona y para una terminal, y `fn_mis_modulos`.
  *   · EL PUNTO DE ENCHUFE: las capacidades `fn_puede_*()` dan al líder y a las dos terminales sembradas lo mismo que las
  *     definiciones fijas del ADR-0160. La integrante es la ÚNICA que cambia, a propósito (B2d): cierra caja, ajusta stock
- *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor ni etiquetas con descuento.
+ *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor. El descuento por etiqueta lo da quien
+ *     ve el módulo Etiquetas (ADR-0293, 20261001130000; antes solo el líder): el rol sembrado de Integrante no lo ve.
+ *   · Las 6 decisiones de Compras (P1–P6, ADR-0161), con lo que cambió ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»):
+ *     con el módulo Proveedores se ven los montos de compras del proveedor (P3; antes no) y el saldo a favor de un proveedor
+ *     lo lee la plata de Proveedores, ya no la llave de los tres (P1).
  *   · Terminales sin tipo (20260923040000): se crean con tienda + nombre + rol; el tipo es legado.
  *   · Suspender y reactivar conservan el rol.
  *
@@ -166,7 +170,7 @@ caso(
     where not delegable and not solo_lider
       and clave in ('vender', 'caja', 'cambios', 'devoluciones', 'historial', 'facturacion', 'clientas', 'existencias',
                     'conteos', 'traslados', 'movimientos', 'productos', 'atributos', 'etiquetas', 'facturas_compra',
-                    'recibir', 'por_pagar', 'proveedores', 'notas_credito', 'produccion', 'analisis', 'colaboradores', 'roles');`,
+                    'recibir', 'por_pagar', 'proveedores', 'produccion', 'analisis', 'colaboradores', 'roles');`,
   ""
 );
 caso(
@@ -342,7 +346,7 @@ caso(
   "f,t,f,t"
 );
 caso(
-  "la etiqueta con descuento sigue siendo solo del líder, aunque el rol vea Productos y Etiquetas",
+  "el descuento por etiqueta lo da quien ve el módulo Etiquetas (ADR-0293): la terminal administrativa sembrada no lo ve, y por eso no lo da",
   como(T_ADMIN_AUTH) + `select fn_puede_dar_descuento_por_etiqueta()::text;`,
   "false"
 );
@@ -371,10 +375,11 @@ caso(
   "t,t,t,t\ntrue\ntrue\ntrue"
 );
 caso(
-  "Facturas de compra y Notas de crédito también abren los montos; un rol SIN esos módulos (Integrante) sigue sin verlos",
+  // «Notas de crédito» ya no es un módulo (ADR-0480, 2026-10-22): el segundo paso cambia el rol a solo Por pagar.
+  "Facturas de compra también abre los montos (y Por pagar sola, después); un rol SIN esos módulos (Integrante) sigue sin verlos",
   conRol("Facturas", ["facturas_compra"]) +
     como(MICAELA_AUTH) + `select concat_ws(',', fn_puede_ver_dinero_de_compras(), fn_puede_registrar_compras());\n` +
-    como(FELIPE_AUTH) + `select guardar_modulos_rol(id, array['notas_credito']) from retail.roles where nombre = 'Facturas' \\g /dev/null\n` +
+    como(FELIPE_AUTH) + `select guardar_modulos_rol(id, array['por_pagar']) from retail.roles where nombre = 'Facturas' \\g /dev/null\n` +
     como(MICAELA_AUTH) + `select concat_ws(',', fn_puede_ver_dinero_de_compras(), fn_puede_registrar_compras());\n` +
     como(FELIPE_AUTH) + `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` + FACTURA +
     como(MICAELA_AUTH) +
@@ -387,7 +392,7 @@ caso(
   }
 );
 caso(
-  "Etiquetas: el rol crea (aprobada), edita y etiqueta prendas con una etiqueta SIN descuento; nada de lo que lleva descuento",
+  "Etiquetas (ADR-0293): el rol crea (aprobada), edita, configura la campaña CON descuento y etiqueta prendas, con o sin descuento",
   conRol("Etiquetas", ["etiquetas"]) +
     `insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ con descuento', 20) returning id as etq_desc \\gset\n` +
     como(MICAELA_AUTH) +
@@ -409,22 +414,24 @@ caso(
   (s) => {
     const l = s.split("\n");
     return (
-      l[0] === "t,f" && // edita etiquetas, no da descuentos
+      l[0] === "t,t" && // edita etiquetas y da descuentos: es lo mismo (ADR-0293)
       l[1] === "aprobado" && // nace aprobada, como la de un líder
-      l[2].startsWith("42501|") && // no crea una con descuento
+      l[2] === "SIN_ERROR" && // crea una ya con descuento
       l[3] === "1" && // edita la suya
-      l[4] === "0" && // la de descuento ni la ve para editar
-      l[5].startsWith("42501|") && // no le pone descuento
-      l[6].startsWith("42501|") && // campaña con descuento: no
+      l[4] === "1" && // y la de descuento también
+      l[5] === "SIN_ERROR" && // le pone descuento a una sin descuento
+      l[6] === "SIN_ERROR" && // campaña con descuento: sí
       l[7] === "SIN_ERROR" && // campaña sin descuento: sí
       l[8] === "SIN_ERROR" && // etiqueta prendas con la suya
-      l[9].startsWith("42501|") && l[9].includes("descuento") && // no con la de descuento
-      l[10].startsWith("42501|") // ni desde la ficha de la prenda
+      l[9] === "SIN_ERROR" && // y con la de descuento
+      l[10] === "SIN_ERROR" // y desde la ficha de la prenda
     );
   }
 );
 caso(
-  "Etiquetas: sin el módulo, una etiqueta nueva es solo una propuesta y no se edita",
+  // ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera (antes, sin el módulo, era solo una propuesta);
+  // editarla y ponerle prendas sigue siendo de quien ve Etiquetas.
+  "Etiquetas: sin el módulo, una etiqueta nueva nace aprobada (ADR-0534), pero no se edita ni se le ponen prendas",
   como(MICAELA_AUTH) +
     `set local role authenticated;\n` +
     `insert into retail.etiquetas (nombre) values ('ZZ propuesta') returning estado \\gset\nselect :'estado';\n` +
@@ -432,7 +439,7 @@ caso(
     intento(`select retail.etiquetar_variantes('[]'::jsonb)`),
   (s) => {
     const l = s.split("\n");
-    return l[0] === "pendiente" && l[1] === "0" && l[2].startsWith("42501|");
+    return l[0] === "aprobado" && l[1] === "0" && l[2].startsWith("42501|");
   }
 );
 caso(
@@ -462,11 +469,11 @@ grant select on rango to authenticated;\n` +
   "t,t,t,t,f,t,t\nt,t\nf,f,t,f"
 );
 caso(
-  "con los 5 módulos encendidos sigue sin dar descuento por etiqueta, sin ser líder y sin Colaboradores ni Roles",
-  conRol("Todo lo abierto", ["etiquetas", "facturas_compra", "por_pagar", "notas_credito", "analisis", "productos"]) +
+  "con los 5 módulos encendidos da descuento por etiqueta (incluye Etiquetas, ADR-0293), pero no es líder ni tiene Colaboradores ni Roles",
+  conRol("Todo lo abierto", ["etiquetas", "facturas_compra", "por_pagar", "analisis", "productos"]) +
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_puede_dar_descuento_por_etiqueta(), fn_es_lider(), fn_ve_modulo('colaboradores'), fn_ve_modulo('roles'));`,
-  "f,f,f,f"
+  "t,f,f,f"
 );
 
 // ---------------- Colaboradores y Roles y accesos abiertos (20260923131000, Felipe 2026-09-22) ----------------
@@ -565,12 +572,14 @@ caso(
     como(MICAELA_AUTH) +
     `select concat_ws(',', fn_ve_modulo('colaboradores'), fn_puede_gestionar_colaboradores(), fn_es_lider());\n` +
     `select pg_temp.intento(format('select retail.agregar_colaborador(%L, %L)', :'nueva', tru)) from ids;\n` +
+    // ADR-0341: quien no es líder deja el alta pendiente; solo la de un líder entra directo.
+    `select estado from retail.colaboradores where persona_id = :'nueva';\n` +
     `select pg_temp.intento(format('select retail.fn_aprobar_alta_colaborador(%L)', :'nueva'));\n` +
     `select estado from retail.colaboradores where persona_id = :'nueva';\n` +
     `select (count(*) > 0)::text from retail.fn_colaboradores();\n` +
     `select (count(*) = 2)::text from retail.fn_terminales() where nombre like 'Terminal % TRU';\n` +
     `set local role authenticated;\nselect (count(*) > 0)::text from retail.colaboradores;`,
-  "t,t,f\nSIN_ERROR\nSIN_ERROR\nactivo\ntrue\ntrue\ntrue"
+  "t,t,f\nSIN_ERROR\npendiente_aprobacion\nSIN_ERROR\nactivo\ntrue\ntrue\ntrue"
 );
 caso(
   "protección 2: quien tiene Colaboradores sin ser líder NO quita, NO suspende y NO reactiva a un líder",
@@ -795,33 +804,30 @@ caso(
     );
   }
 );
+// ADR-0480 (2026-10-22, Felipe: «por ahora no manejaremos notas de crédito»): el módulo se retiró del catálogo. No se le puede dar a
+// un rol, y registrar una nota queda solo del líder; ni Facturas de compra ni Por pagar la abren.
 caso(
-  "P1 · Notas de crédito: registra la nota y adjunta SU PDF; NO paga, NO anula y NO adjunta a la factura",
+  "ADR-0480 · «Notas de crédito» ya no es un módulo: no se le da a un rol, y la nota la registra solo el líder",
   como(FELIPE_AUTH) + FACTURA +
-    conRol("Solo notas", ["notas_credito"]) +
+    conRol("Facturas y pagos", ["facturas_compra", "por_pagar"]) +
+    intento(`select guardar_modulos_rol(id, array['facturas_compra', 'notas_credito']) from retail.roles where nombre = 'Facturas y pagos'`) + "\n" +
     como(MICAELA_AUTH) +
-    `select retail.registrar_nota_credito_compra(:'compra', 'NC-ROL-1', retail.fn_hoy_lima(), 10.00, 'descuento') as nc \\gset\n` +
-    `select pg_temp.intento(format('select retail.registrar_adjunto_compra(%L, %L, %L, %L, 1000, %L)', :'compra', :'compra' || '/nota.pdf', 'nota.pdf', 'application/pdf', :'nc'));\n` +
-    `select pg_temp.intento(format('select retail.archivar_adjunto_compra(%L)', (select id from retail.compra_adjuntos where nota_credito_id = :'nc')));\n` +
-    ADJUNTO_FACTURA + PAGAR + ANULAR +
-    `select (notas_credito = 10)::text from retail.compras where id = :'compra';`,
+    `select concat_ws(',', fn_puede_registrar_notas_credito(), fn_puede_ver_dinero_de_compras());\n` +
+    `select pg_temp.intento(format('select retail.registrar_nota_credito_compra(%L, %L, retail.fn_hoy_lima(), 10.00, %L)', :'compra', 'NC-ROL-1', 'descuento'));\n` +
+    como(FELIPE_AUTH) +
+    `select (retail.registrar_nota_credito_compra(:'compra', 'NC-ROL-2', retail.fn_hoy_lima(), 10.00, 'descuento') is not null)::text;`,
   (s) => {
     const l = s.split("\n");
-    return (
-      l[0] === "SIN_ERROR" && l[1] === "SIN_ERROR" &&
-      l[2].startsWith("42501|") && l[2].includes("Facturas de compra") &&
-      l[3].startsWith("42501|") && l[3].includes("Por pagar") &&
-      l[4].startsWith("42501|") && l[4].includes("Facturas de compra") &&
-      l[5] === "true"
-    );
+    return l[0].includes("No existe el módulo") && l[1] === "f,t" && l[2].startsWith("42501|") && l[3] === "true";
   }
 );
 caso(
-  "P1 · las ESCRITURAS de Compras ya no usan la llave de los tres; la de los tres queda solo para leer (faltantes sin nota, saldo a favor)",
+  "P1 · las ESCRITURAS de Compras ya no usan la llave de los tres; la de los tres queda solo para leer los faltantes sin nota; ADR-0387 (Felipe 2026-10-12): el saldo a favor de un proveedor lo lee la plata de Proveedores (fn_ve_plata_de_proveedores), ya no la llave de los tres",
   `select string_agg(proname, ',' order by proname) from pg_proc
     where pronamespace = 'retail'::regnamespace and prokind = 'f' and proname <> 'fn_puede_registrar_compras'
-      and pg_get_functiondef(oid) like '%fn_puede_registrar_compras()%';`,
-  "compras_nota_pendiente,fn_proveedor_creditos"
+      and pg_get_functiondef(oid) like '%fn_puede_registrar_compras()%';
+   select (pg_get_functiondef('retail.fn_proveedor_creditos(uuid,integer)'::regprocedure) like '%fn_ve_plata_de_proveedores()%')::text;`,
+  "compras_nota_pendiente\ntrue"
 );
 caso(
   "P2 · Recibir: quien ve el dinero de Compras lee los montos de lo que recibe; quien solo recibe, no; y ninguno mira otra sede",
@@ -843,7 +849,7 @@ caso(
   "t,t,t,t,t\n0,t"
 );
 caso(
-  "P3 · Proveedores: con el módulo da de alta, edita, archiva, reactiva y ve devoluciones; NO los montos ni lo del Taller; sin el módulo, nada",
+  "P3 · Proveedores: con el módulo da de alta, edita, archiva, reactiva, ve devoluciones y —ADR-0387 (Felipe 2026-10-12; antes NO)— los montos de compras del proveedor; NO lo del Taller; sin el módulo, nada (tampoco los montos)",
   conRol("Proveedores", ["proveedores"]) +
     como(MICAELA_AUTH) +
     `select retail.registrar_proveedor('ZZ Proveedor del rol') as prov \\gset\n` +
@@ -859,16 +865,19 @@ caso(
     como(FELIPE_AUTH) + `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` +
     como(MICAELA_AUTH) +
     `select pg_temp.intento(format('select retail.desactivar_proveedor(%L)', :'prov'));\n` +
+    `select pg_temp.intento(format('select * from retail.fn_proveedor_metricas_compras(%L)', :'prov'));\n` +
     `set local role authenticated;\n` +
     `with u as (update retail.proveedores set contacto = 'Eva' where id = :'prov' returning 1) select count(*) from u;`,
   (s) => {
     const l = s.split("\n");
     return (
       l[0] === "SIN_ERROR" && l[1] === "SIN_ERROR" && l[2] === "SIN_ERROR" && l[3] === "0" &&
-      l[4].startsWith("42501|") && l[4].includes("Por pagar") && // montos de Compras: no
+      l[4] === "SIN_ERROR" && // ADR-0387 (Felipe 2026-10-12): los montos de compras del proveedor, con su módulo (antes: 42501 «Por pagar»)
       !l[5].startsWith("SIN_ERROR") && l[5].includes("líder") && // insumos del Taller: solo el líder
       l[6] === "1" &&
-      l[7].startsWith("42501|") && l[7].includes("Proveedores") && l[8] === "0"
+      l[7].startsWith("42501|") && l[7].includes("Proveedores") &&
+      l[8].startsWith("42501|") && l[8].includes("Proveedores") && // sin el módulo, tampoco los montos (el aviso nombra Proveedores)
+      l[9] === "0"
     );
   }
 );
@@ -878,7 +887,7 @@ const ETIQUETAS_DE = (extra) =>
      coalesce((select jsonb_agg(ve.etiqueta_id) from retail.variante_etiquetas ve where ve.variante_id = v.id), '[]'::jsonb) || jsonb_build_array(${extra})))))
      from retail.variantes v where v.sku = 'BLU-EMMA-NEG-M';\n`;
 caso(
-  "P4 · Productos (sin Etiquetas) cambia etiquetas SIN descuento desde la ficha de la prenda; con descuento, no; sin Productos, nada",
+  "P4 · Productos (sin Etiquetas) cambia etiquetas, con descuento o sin él, desde la ficha de la prenda (ADR-0293); sin Productos, nada",
   conRol("Catálogo", ["productos"]) +
     // Las crea el líder (la sesión que deja `conRol`): así nacen aprobadas, y la de descuento puede tenerlo.
     `insert into retail.etiquetas (nombre) values ('ZZ P4 sin descuento') returning id as e_sin \\gset\n` +
@@ -895,7 +904,7 @@ caso(
     const l = s.split("\n");
     return (
       l[0] === "f,t" && l[1] === "SIN_ERROR" && l[2] === "1" &&
-      l[3].startsWith("42501|") && l[3].includes("descuento") &&
+      l[3] === "SIN_ERROR" && // con descuento también: ya no es solo del líder
       l[4].startsWith("42501|") && l[4].includes("Productos")
     );
   }

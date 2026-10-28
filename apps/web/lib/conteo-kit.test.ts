@@ -94,11 +94,12 @@ describe("ResumenConteo", () => {
     expect(t).toContain("18 de 37 variantes verificadas");
     expect(t).toContain("37 variantes · 18 verificadas · 19 pendientes · 2 con diferencia");
     expect(html).toContain('role="progressbar"');
-    expect(html).toContain('aria-valuenow="18"');
-    expect(html).toContain('aria-valuemax="37"');
+    // La barra de avance del sistema (ronda 13): el avance en porcentaje y, para el lector, las cantidades en palabras.
+    expect(html).toContain('aria-valuenow="49"');
+    expect(html).toContain('aria-valuemax="100"');
     expect(html).toContain('aria-valuemin="0"');
     expect(html).toContain('aria-valuetext="18 de 37 variantes verificadas"');
-    expect(html).toContain("width:49%");
+    expect(html).toContain("--p:49%");
   });
 
   it("«con diferencia» se omite si no hay, pero su lugar se reserva para que la línea no salte", () => {
@@ -130,7 +131,7 @@ describe("ResumenConteo", () => {
   it("singular: «0 de 1 variante verificada»", () => {
     const html = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 1, verificadas: 0, pendientes: 1, conDiferencia: 0 }, variante: "progreso" }));
     expect(LIMPIO(html)).toBe("0 de 1 variante verificada");
-    expect(html).toContain("width:0%");
+    expect(html).toContain("--p:0%");
   });
 
   it("«revision»: el total y el desglose, con los ceros dichos", () => {
@@ -146,9 +147,9 @@ describe("ResumenConteo", () => {
 
   it("«resultado»: lo verificado, lo que coincidió y lo corregido; el cierre parcial suma lo que quedó sin verificar", () => {
     const completo = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 37, verificadas: 37, pendientes: 0, conDiferencia: 3 }, variante: "resultado" }));
-    expect(LIMPIO(completo)).toBe("37 variantes verificadas · 34 coincidieron · 3 fueron corregidas");
+    expect(LIMPIO(completo)).toBe("37 variantes verificadas · 34 coincidieron · 3 con diferencia");
     const parcial = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 37, verificadas: 25, pendientes: 12, conDiferencia: 3 }, variante: "resultado", parcial: true }));
-    expect(LIMPIO(parcial)).toBe("25 variantes verificadas · 22 coincidieron · 3 fueron corregidas · 12 quedaron sin verificar (conteo parcial)");
+    expect(LIMPIO(parcial)).toBe("25 variantes verificadas · 22 coincidieron · 3 con diferencia · 12 quedaron sin verificar (conteo parcial)");
     // Sin `parcial`, aunque queden pendientes, no se dice «parcial».
     const noParcial = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 37, verificadas: 25, pendientes: 12, conDiferencia: 3 }, variante: "resultado" }));
     expect(LIMPIO(noParcial)).not.toContain("parcial");
@@ -156,8 +157,8 @@ describe("ResumenConteo", () => {
 
   it("la barra nunca pasa de 100 % ni se rompe con cero variantes", () => {
     const de = (resumen: { variantes: number; verificadas: number; pendientes: number; conDiferencia: number }) => renderToStaticMarkup(createElement(ResumenConteo, { resumen, variante: "progreso" }));
-    expect(de({ variantes: 5, verificadas: 9, pendientes: 0, conDiferencia: 0 })).toContain("width:100%");
-    expect(de({ variantes: 0, verificadas: 0, pendientes: 0, conDiferencia: 0 })).toContain("width:0%");
+    expect(de({ variantes: 5, verificadas: 9, pendientes: 0, conDiferencia: 0 })).toContain("--p:100%");
+    expect(de({ variantes: 0, verificadas: 0, pendientes: 0, conDiferencia: 0 })).toContain("--p:0%");
   });
 });
 
@@ -187,6 +188,19 @@ describe("PasosConteo", () => {
     expect((LIMPIO(de("confirmar")).match(/Hecho\./g) ?? []).length).toBe(2);
     expect(LIMPIO(de("contar"))).toContain("Paso 1 de 3");
     expect(LIMPIO(de("confirmar"))).toContain("Paso 3 de 3");
+  });
+
+  it("otra operación (el cuadre del piso) pasa sus pasos y su nombre, y se lee igual", () => {
+    const pasos = [
+      { clave: "escanear", nombre: "Escanear lo guardado" },
+      { clave: "revisar", nombre: "Revisar" },
+      { clave: "confirmar", nombre: "Confirmar" },
+    ];
+    const html = renderToStaticMarkup(createElement(PasosConteo, { actual: "revisar", pasos, etiqueta: "Pasos del cuadre del piso" }));
+    expect(html).toContain('aria-label="Pasos del cuadre del piso"');
+    expect(LIMPIO(html)).toMatch(/Escanear lo guardado Hecho\./);
+    expect(LIMPIO(html)).toContain("Paso 2 de 3");
+    expect((html.match(/aria-current="step"/g) ?? []).length).toBe(1);
   });
 });
 

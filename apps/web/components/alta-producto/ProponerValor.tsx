@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { Modal } from "@/components/ui/Modal";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
 import { sugerirValorNuevo } from "@/lib/sugerencias-alta-producto";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
 
-// "+ Nueva talla / tejido / patrón" dentro del bloque, sin salir del formulario
+// "+ Nueva talla / tejido / patrón" sin salir del formulario
 // (decidido con Felipe, 2026-09-18: salir a Atributos hacía perder lo llenado).
 //
 // Son DOS escrituras y se dicen así, porque la segunda puede fallar sola:
-//   1. crear el valor en el vocabulario (queda aprobado si quien lo crea es Líder);
+//   1. crear el valor en el vocabulario (nace aprobado, lo cree quien lo cree: ADR-0534);
 //   2. ofrecerlo en ESTA categoría (categoria_tallas / _tejidos / _patrones).
 // Si la 2 falla, el valor existe pero no aparece aquí: se avisa con esas
 // palabras y reintentar es seguro: como el valor ya existe, el reintento lo
@@ -32,13 +35,17 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
 //
 // Agregar un valor es un guardado aparte del producto; lo firma quien inició el alta (`useFirmaDeMitad`), sin combo
 // propio desde 2026-09-29. Vive dentro de las hojas de tallas y muestras, de ahí el aviso `enHoja`.
+//
+// Desde 2026-10-02 (Felipe) el botón es un botón de verdad y se pone donde se ve: en la cabecera de la hoja de tejidos y
+// patrones (`<Modal acciones=…>`), no como un enlace al fondo; y abre su propio modal corto en vez de desplegar el campo en
+// línea. El formulario es el mismo; solo cambió dónde se pide.
 
 // El ejemplo de la caja ya no vive aquí: sigue a la familia de la categoría y evita lo que ya existe
 // (`lib/sugerencias-alta-producto.ts`, skill `/sugerir`). «Ej. 44» le decía «talla de zapato» a quien armaba una casaca.
-const TEXTOS: Record<TipoVocabulario, { boton: string; singular: string }> = {
-  tallas: { boton: "+ Nueva talla", singular: "talla" },
-  tejidos: { boton: "+ Nuevo tejido", singular: "tejido" },
-  patrones: { boton: "+ Nuevo patrón", singular: "patrón" },
+const TEXTOS: Record<TipoVocabulario, { boton: string; singular: string; titulo: string }> = {
+  tallas: { boton: "+ Nueva talla", singular: "talla", titulo: "Nueva talla" },
+  tejidos: { boton: "+ Nuevo tejido", singular: "tejido", titulo: "Nuevo tejido" },
+  patrones: { boton: "+ Nuevo patrón", singular: "patrón", titulo: "Nuevo patrón" },
 };
 
 type Props = {
@@ -55,14 +62,24 @@ type Props = {
 
 export function ProponerValor(props: Props) {
   const [abierto, setAbierto] = useState(false);
-  if (!abierto) {
-    return (
-      <button type="button" onClick={() => setAbierto(true)} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-        {TEXTOS[props.tipo].boton}
+  const t = TEXTOS[props.tipo];
+  return (
+    <>
+      <button type="button" onClick={() => setAbierto(true)} className="btn-cayla btn-primario h-9 whitespace-nowrap">
+        {t.boton}
       </button>
-    );
-  }
-  return <ProponerValorAbierto {...props} onCerrar={() => setAbierto(false)} />;
+      {abierto && (
+        <Modal
+          variante="hoja"
+          titulo={t.titulo}
+          subtitulo="¿No está? Agrégalo: queda en el catálogo y se ofrece en esta categoría."
+          onClose={() => setAbierto(false)}
+        >
+          {(cerrar) => <ProponerValorAbierto {...props} onCerrar={cerrar} />}
+        </Modal>
+      )}
+    </>
+  );
 }
 
 function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, universo, onCreado, onCerrar }: Props & { onCerrar: () => void }) {
@@ -95,11 +112,11 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
       setTrabajando(false);
       return;
     }
+    // Desde ADR-0534 todo valor nace aprobado. Si la base todavía no tiene ese cambio y lo dejó por aprobar, no se ofrece en la
+    // categoría (el alta lo rechazaría): se dice dónde quedó, sin cerrar la hoja.
     if (!valor.aprobado) {
-      avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un Líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+      setError(`«${valor.texto}» quedó por aprobar en Catálogo → Atributos: todavía no se puede usar en esta prenda.`);
       setTrabajando(false);
-      setTexto("");
-      onCerrar();
       return;
     }
 
@@ -117,46 +134,41 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="sr-only" htmlFor={`nuevo-${tipo}`}>
-          Nombre de la {t.singular} nueva
-        </label>
-        <input
-          id={`nuevo-${tipo}`}
-          autoFocus
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter NO debe enviar el formulario grande: acá solo agrega este valor.
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void agregar();
-            }
-            if (e.key === "Escape") onCerrar();
-          }}
-          placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
-          disabled={trabajando}
-          className="h-9 w-44 border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-tinta"
-        />
-        <button
+      <CampoTexto
+        etiqueta={`Nombre ${tipo === "tallas" ? "de la" : "del"} ${t.singular} nuev${tipo === "tallas" ? "a" : "o"}`}
+        caja
+        sinPie
+        id={`nuevo-${tipo}`}
+        autoFocus
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          // Enter NO debe enviar el formulario grande: acá solo agrega este valor.
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void agregar();
+          }
+          if (e.key === "Escape") onCerrar();
+        }}
+        placeholder={sugerirValorNuevo(tipo, familia, universo).texto}
+        disabled={trabajando}
+      />
+      <div className="flex flex-wrap items-center gap-2.5">
+        <Boton peso="primario" cargando={trabajando}
           type="button"
           onClick={() => void agregar()}
           disabled={!texto.trim() || trabajando || !firma.listo}
           title={firma.motivo ?? undefined}
-          className="label-cayla rounded-md bg-tinta px-3 py-2 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
         >
-          {trabajando ? "Guardando…" : "Agregar"}
-        </button>
-        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
+          Agregar
+        </Boton>
+        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>
       <AvisoSinIdentidad firma={firma} enHoja />
-      {error && (
-        <p role="alert" className="text-xs text-rojo-profundo">
-          {error}
-        </p>
-      )}
+      {error && <Aviso tono="error">{error}</Aviso>}
+
     </div>
   );
 }

@@ -22,6 +22,8 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Tienda = { id: string; nombre: string };
 
@@ -109,8 +111,8 @@ export function SeriesPanel({
   return (
     <div className="space-y-6">
       <div className="anim-sube flex flex-wrap items-end justify-between gap-3" style={{ "--i": 3 } as CSSProperties}>
-        <div className="min-w-0">
-          <h2 className="font-display text-xl leading-tight text-tinta">
+        <div data-guia="series.titulo" className="min-w-0">
+          <TituloSeccion>
             Series registradas
             <Ayuda titulo="Series de comprobantes">
               La serie identifica desde qué tienda salió el comprobante: una letra según el tipo (B para boleta, F para factura) más tres
@@ -119,11 +121,11 @@ export function SeriesPanel({
               documento que corrigen: BC.. si corrigen boletas y FC.. si corrigen facturas, así que cada tienda lleva las dos. El correlativo
               lo lleva el sistema.
             </Ayuda>
-          </h2>
+          </TituloSeccion>
           <p className="mt-0.5 text-xs text-tinta/65">En qué número va cada una. El siguiente comprobante que emita la tienda sale con ese número.</p>
         </div>
         {esLider && (
-          <BotonCompacto variante="primario" onClick={() => abrir()}>
+          <BotonCompacto variante="primario" data-guia="series.nueva" onClick={() => abrir()}>
             Nueva serie
           </BotonCompacto>
         )}
@@ -133,7 +135,7 @@ export function SeriesPanel({
         <SinCoincidencias />
       ) : (
         grupos.map((g, i) => (
-          <section key={g.tienda.id} className="anim-sube space-y-3" style={{ "--i": 4 + i } as CSSProperties} aria-labelledby={`tienda-${g.tienda.id}`}>
+          <section key={g.tienda.id} data-guia="series.tienda" className="anim-sube space-y-3" style={{ "--i": 4 + i } as CSSProperties} aria-labelledby={`tienda-${g.tienda.id}`}>
             <h3 id={`tienda-${g.tienda.id}`} className="flex items-baseline gap-2">
               <span className="font-display text-lg text-tinta">{g.tienda.nombre}</span>
               <span className="text-xs text-tinta/60">
@@ -145,12 +147,12 @@ export function SeriesPanel({
               {g.series.map((s) => {
                 const usados = numerosUsados(s);
                 return (
-                  <article key={s.id} className="card-cayla flex flex-col gap-2 px-4 py-3.5">
+                  <article key={s.id} data-guia="series.serie" className="card-cayla flex flex-col gap-2 px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="label-cayla text-[11px] text-tinta/65">{nombreDelTipo(s.tipo)}</span>
                       {usados > 0 ? <Chip tono="verde">en uso</Chip> : <Chip tono="neutro">sin emitir</Chip>}
                     </div>
-                    <p className="font-display text-[28px] leading-none tracking-wide text-tinta">{s.serie}</p>
+                    <p data-guia="series.codigo" className="font-display text-[28px] leading-none tracking-wide text-tinta">{s.serie}</p>
                     <p className="text-[13px] text-tinta/70">
                       Próximo: <b className="font-semibold tabular-nums text-tinta">{s.serie}-{String(s.siguiente_numero).padStart(8, "0")}</b>
                     </p>
@@ -175,7 +177,7 @@ export function SeriesPanel({
               })}
               {!busqueda &&
                 g.faltan.map((t) => (
-                  <div key={t} className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-[13px] text-tinta/70">
+                  <div key={t} data-guia="series.falta" className="flex flex-col justify-center gap-2 rounded-[14px] border border-dashed border-tinta/25 px-4 py-3.5 text-[13px] text-tinta/70">
                     <p>
                       Sin serie de <b className="font-semibold text-tinta">{ETIQUETA_TIPO[t].toLowerCase()}</b>
                       {t === "nota_credito" ? ": las devoluciones de esta tienda no pueden emitir su nota de crédito." : "."}
@@ -193,7 +195,7 @@ export function SeriesPanel({
       )}
 
       {archivadas && archivadas.length > 0 && !busqueda && (
-        <details className="anim-sube" style={{ "--i": 4 + grupos.length } as CSSProperties}>
+        <details data-guia="series.archivadas" className="anim-sube" style={{ "--i": 4 + grupos.length } as CSSProperties}>
           <summary className="label-cayla cursor-pointer list-none text-[11px] text-tinta/65 outline-none hover:text-tinta focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-rojo/60 [&::-webkit-details-marker]:hidden">
             {archivadas.length === 1 ? "1 serie archivada" : `${archivadas.length} series archivadas`} ›
           </summary>
@@ -211,16 +213,17 @@ export function SeriesPanel({
       {/* El día de pasar a la SUNAT real (D-60): las pruebas en sandbox gastan la misma numeración, así que
           se arranca con series nuevas. Se muestra solo mientras el envío va al sandbox. */}
       {enPruebas && esLider && !busqueda && (
-        <section className="anim-sube rounded-[14px] border border-ambar/30 bg-ambar/[0.06] px-5 py-4 text-[13px] text-tinta/80" style={{ "--i": 5 + grupos.length } as CSSProperties}>
-          <h3 className="font-display text-base text-tinta">El día de pasar a la SUNAT real</h3>
-          <ol className="mt-2 list-decimal space-y-1 pl-5">
-            <li>
-              En Vercel, cambia <code className="font-mono">LUCODE_ENTORNO</code> a <code className="font-mono">produccion</code> y vuelve a desplegar.
-            </li>
-            <li>Aquí, archiva cada serie usada en pruebas y registra una nueva por tienda y tipo: empieza en 1.</li>
-            <li>Haz una venta chica y revisa en Emitidos que SUNAT la aceptó.</li>
-          </ol>
-        </section>
+        <div className="anim-sube" style={{ "--i": 5 + grupos.length } as CSSProperties}>
+          <Aviso tono="atencion" guia="series.pasar-a-real" titulo="El día de pasar a la SUNAT real">
+            <ol className="mt-1 list-decimal space-y-1 pl-5">
+              <li>
+                En Vercel, cambia <code className="font-mono">LUCODE_ENTORNO</code> a <code className="font-mono">produccion</code> y vuelve a desplegar.
+              </li>
+              <li>Aquí, archiva cada serie usada en pruebas y registra una nueva por tienda y tipo: empieza en 1.</li>
+              <li>Haz una venta chica y revisa en Emitidos que SUNAT la aceptó.</li>
+            </ol>
+          </Aviso>
+        </div>
       )}
 
       {archivando && <ModalArchivarSerie serie={archivando} onClose={() => setArchivando(null)} />}
@@ -228,7 +231,7 @@ export function SeriesPanel({
       {abierto && (
         <Modal titulo="Nueva serie" onClose={cerrarModal}>
           {(cerrar) => (
-            <form onSubmit={onRegistrar} className="mt-5 space-y-2">
+            <form data-guia="series.formulario" onSubmit={onRegistrar} className="mt-5 space-y-2">
               <CampoSelect etiqueta="Tienda" valor={ubicacionId} onValor={setUbicacionId} opciones={tiendas.map((u) => ({ valor: u.id, texto: u.nombre }))} />
               <CampoSelect etiqueta="Tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_CON_SERIE.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] }))} />
               <CampoTexto
@@ -263,12 +266,12 @@ export function SeriesPanel({
                 onChange={(e) => setNumero(e.target.value)}
                 placeholder="1"
               />
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+              <div className="pie-acciones pt-3">
+                <Boton type="button" peso="fantasma" onClick={cerrar}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="primario" className="flex-1" cargando={loading}>
-                  {loading ? "Guardando…" : "Registrar serie"}
+                <Boton type="submit" peso="primario" cargando={loading}>
+                  Registrar serie
                 </Boton>
               </div>
             </form>
@@ -329,19 +332,19 @@ function ModalArchivarSerie({ serie, onClose }: { serie: SerieComprobante; onClo
             placeholder="Serie de pruebas: pasamos a la SUNAT real"
           />
           <ComboResponsable control={responsable} deshabilitado={loading} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Archivando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={loading}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {loading ? "Archivando…" : "Archivar"}
+              Archivar
             </Boton>
           </div>
         </form>

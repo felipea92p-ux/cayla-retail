@@ -1,36 +1,16 @@
 "use client";
 
-import Image from "next/image";
-import { mezclar, type ColorDisponible } from "@/lib/productos-vista";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
+import type { ColorDisponible } from "@/lib/productos-vista";
 
 /* ====================================================================
    Piezas de Productos que comparten la Grilla y la Tabla (ADR-0077,
-   ADR-0254): la percha de una prenda sin foto, los círculos de color y la
-   miniatura. Una sola pieza por idea, para que las dos vistas no se
+   ADR-0254): los círculos de color y la miniatura (sin foto: la categoría
+   sobre el color, ADR-0333). Una sola pieza por idea, para que las dos vistas no se
    separen de a poco.
    ==================================================================== */
-
-export function IconoPercha({ color, size = 36 }: { color?: string; size?: number }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      width={size}
-      height={size}
-      fill="none"
-      stroke={color ?? "#1a1a18"}
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="opacity-45"
-      aria-hidden
-    >
-      <path d="M32 8a5 5 0 1 1 5 5" />
-      <path d="M32 13v6" />
-      <path d="M8 40 L32 19 L56 40" />
-      <path d="M8 40 Q32 52 56 40" />
-    </svg>
-  );
-}
 
 /** Grupo de swatches — vista previa al pasar el mouse o enfocar, se fija con
  *  clic/Enter. `activo` es el nombre del color que se está mostrando ahora
@@ -43,6 +23,7 @@ export function SwatchesColor({
   onFijar,
   tamano = "h-4 w-4",
   max,
+  onMas,
 }: {
   colores: ColorDisponible[];
   activo: string | null;
@@ -50,6 +31,8 @@ export function SwatchesColor({
   onFijar: (nombre: string) => void;
   tamano?: string;
   max?: number;
+  /** Si viene, el «+N» es un botón que lo llama (ej. abrir la vista rápida con todos los colores). */
+  onMas?: () => void;
 }) {
   if (colores.length === 0) return null;
   const visibles = max ? colores.slice(0, max) : colores;
@@ -66,7 +49,7 @@ export function SwatchesColor({
     <div
       role="radiogroup"
       aria-label="Color"
-      className="flex items-center gap-1.5"
+      className="flex shrink-0 items-center gap-1.5"
       onMouseLeave={() => onHover(null)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) onHover(null);
@@ -92,23 +75,33 @@ export function SwatchesColor({
           style={{ background: c.hex }}
         />
       ))}
-      {resto > 0 && <span className="text-[11px] tabular-nums text-tinta/55">+{resto}</span>}
+      {resto > 0 &&
+        (onMas ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMas();
+            }}
+            title="Ver todos los colores"
+            className="text-[11px] tabular-nums text-tinta/55 underline-offset-2 hover:text-tinta hover:underline"
+          >
+            +{resto}
+          </button>
+        ) : (
+          <span className="text-[11px] tabular-nums text-tinta/55">+{resto}</span>
+        ))}
     </div>
   );
 }
 
-/** La foto chica de la fila: la del color que se está mirando o, si ese color no tiene foto, su tinte con la percha. */
-export function MiniaturaPrenda({ color, referencia, className = "h-[50px] w-10" }: { color: ColorDisponible | null; referencia: string; className?: string }) {
+/** La foto chica de la fila: la del color que se está mirando o, si ese color no tiene foto, el ícono de su categoría sobre ese
+ *  color (`MosaicoPrenda`, ADR-0333; antes un tinte con una percha). */
+export function MiniaturaPrenda({ color, referencia, className = "h-[50px] w-10", prefijo, familia, categoria }: { color: ColorDisponible | null; referencia: string; className?: string } & CategoriaDePrenda) {
+  const sinFoto = <MosaicoPrenda forma="relleno" colorHex={color?.hex} prefijo={prefijo} familia={familia} categoria={categoria} className="h-full w-full !rounded-none transition-colors duration-300" />;
   return (
-    <span
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-md transition-colors duration-300 ${className}`}
-      style={color?.fotoUrl ? undefined : { background: color ? mezclar(color.hex, 0.22) : "#efe9dd" }}
-    >
-      {color?.fotoUrl ? (
-        <Image src={color.fotoUrl} alt={`${referencia} — ${color.nombre}`} fill sizes="48px" className="object-cover" unoptimized />
-      ) : (
-        <IconoPercha color={color?.hex} size={20} />
-      )}
+    <span className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-md ${className}`}>
+      {color?.fotoUrl ? <ImagenDePrenda src={color.fotoUrl} alt={`${referencia} — ${color.nombre}`} fill sizes="48px" className="object-cover" fondo={color.hex} fallback={sinFoto} /> : sinFoto}
     </span>
   );
 }

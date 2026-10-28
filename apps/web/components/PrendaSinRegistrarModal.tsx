@@ -1,12 +1,22 @@
 "use client";
 
-import { useId, useMemo, useState, type RefObject } from "react";
-import { Modal, botonPrimario } from "@/components/ui/Modal";
-import { Campo, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
+import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { IconoCategoria } from "@/components/IconoCategoria";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
+import { tonoDeCategoria } from "@/components/MuestraCategoria";
+import { camposGuiaPrenda } from "@/lib/prenda-sin-registrar-guia";
+import { arranqueDeCorreccion, cambioEnCorreccion, type AnotadoPorCaja } from "@/lib/corregir-prenda-sin-registrar-reglas";
+import { sinonimosDeCategoria, sugerenciaParaMostrar } from "@/lib/sugerir-categoria-sin-registrar";
 import {
-  FALTA_DESCRIPCION,
   faltaEnPrendaSinRegistrar,
+  gruposDeTallas,
   opcionesDeColor,
   pasoSiguiente,
   precioEscribible,
@@ -14,51 +24,80 @@ import {
   tallasDeCategoria,
   type DatosPrendaSinRegistrar,
   type ListasPrendaLibre,
+  type OpcionColor,
+  type PasoPrenda,
+  type Talla,
 } from "@/lib/prenda-sin-registrar-reglas";
 
-/** La etiqueta del paso que toca se enciende en rojo: es la ruta que el modal le marca a la colaboradora. */
-function Etiqueta({ texto, toca }: { texto: string; toca: boolean }) {
-  return <span className={`transition-colors duration-300 ease-cayla ${toca ? "text-rojo" : ""}`}>{texto}</span>;
+/** El título de un campo con su ícono: la marca de la guía la pone `CampoGuiado` a la izquierda. */
+function Titulo({ icono, children }: { icono: ReactNode; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span aria-hidden className="text-tinta/55 [&>svg]:h-3.5 [&>svg]:w-3.5">
+        {icono}
+      </span>
+      {children}
+    </span>
+  );
 }
+
+/** El control que se le da el foco al llegar a un campo: su caja, su combo o su primera talla (por `data-campo`, nunca por estilo). */
+function enfocarCampo(paso: PasoPrenda | null) {
+  if (!paso) return;
+  const bloque = document.querySelector<HTMLElement>(`[data-campo="${paso}"]`);
+  bloque?.querySelector<HTMLElement>('input:not([type="hidden"]), [role="combobox"], button[aria-haspopup], button[data-talla]')?.focus(); // unificar-fijo: el selector que lleva el foco, no un combo
+
+}
+
+/** Las tallas que el modal ofrece para una categoría (ver `tallasDeCategoria`: si `categoria_tallas` no cargó, todas). */
+const tallasDe = (listas: ListasPrendaLibre, id: string): Talla[] =>
+  id ? tallasDeCategoria(listas.tallasPorCategoria?.[id], listas.tallas, listas.tallasPorCategoria !== null) : [];
 
 /**
  * «Prenda sin registrar» (ADR-0179): lo que caja anota de una prenda que llegó a piso sin pasar por almacén.
- * Primero categoría → talla (solo las de esa categoría, `categoria_tallas`) → color (los usados en esa categoría
- * arriba, como en «Nuevo producto»); con los tres, se propone la descripción («Pantalones · Negro · Talla 28») y la
- * colaboradora la usa (y le agrega lo que quiera), o simplemente escribe la suya: la sugerencia vive bajo el campo
- * solo mientras está vacío (Felipe, 2026-09-23; sin «Descartar» desde 2026-09-25).
+ * Maqueta C «Etiqueta en vivo» (docs/maquetas/prenda-sin-registrar-2026-10/, Felipe 2026-10-01): a la izquierda se elige
+ * categoría → talla → color → descripción → precio; a la derecha se arma la etiqueta provisional que almacén va a recibir.
+ * Las tallas son SOLO las de la categoría (`categoria_tallas`): las habituales adelante, las otras más tenues y «Estándar»
+ * aparte; si la categoría tiene una sola («Única»), se pone sola. La guía de foco (ADR-0284) enciende el campo que sigue.
+ *
+ * Con `corregir` (ADR-0369) es la misma hoja para cambiar lo anotado DESPUÉS de la venta, desde Ventas sin registrar: arranca con lo
+ * que anotó caja, el precio queda fijo (es dinero: lo dice la venta y el comprobante), pide el «Responsable» y guarda con «Guardar
+ * cambios», que solo se enciende si algo cambió. Una sola hoja para anotar y corregir: lo que se corrige es lo que la caja ofrece.
  */
 export function PrendaSinRegistrarModal({
   listas,
   onAgregar,
   onClose,
   alCerrarEnfocar,
+  corregir,
 }: {
   listas: ListasPrendaLibre;
-  onAgregar: (d: DatosPrendaSinRegistrar) => void;
+  /** Vender: agrega la prenda al ticket. (En modo `corregir` no se usa.) */
+  onAgregar?: (d: DatosPrendaSinRegistrar) => void;
   onClose: () => void;
-  alCerrarEnfocar: RefObject<HTMLInputElement | null>;
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
+  corregir?: {
+    inicial: AnotadoPorCaja;
+    responsable: ControlResponsable;
+    guardando: boolean;
+    onGuardar: (d: DatosPrendaSinRegistrar) => void;
+  };
 }) {
-  const [categoriaId, setCategoriaId] = useState("");
-  const [tallaId, setTallaId] = useState("");
-  const [colorCodigo, setColorCodigo] = useState("");
+  // Al corregir arranca con lo anotado; la descripción sigue a la sugerencia solo si era la sugerencia (si caja la escribió, es suya).
+  const [arranque] = useState(() => (corregir ? arranqueDeCorreccion(corregir.inicial, listas) : null));
+  const [categoriaId, setCategoriaId] = useState(arranque?.categoriaId ?? "");
+  const [tallaId, setTallaId] = useState(arranque?.tallaId ?? "");
+  const [colorCodigo, setColorCodigo] = useState(arranque?.colorCodigo ?? "");
   // La descripción se arma sola con categoría, color y talla (spike del Punto de venta, 2026-09-26): mientras la
-  // colaboradora no la toque, sigue a la sugerencia; apenas escribe, es suya. Antes el campo arrancaba vacío y en rojo
-  // aunque la sugerencia ya estuviera debajo, a un toque de «Usar».
-  const [descripcionEscrita, setDescripcionEscrita] = useState<string | null>(null);
-  const [precio, setPrecio] = useState("");
-  const idTalla = useId();
-  const idCategoria = useId();
-  const idColor = useId();
-  const idColorCampo = useId();
+  // colaboradora no la toque, sigue a la sugerencia; apenas escribe, es suya.
+  const [descripcionEscrita, setDescripcionEscrita] = useState<string | null>(arranque ? arranque.descripcionEscrita : null);
+  const [precio, setPrecio] = useState(corregir ? corregir.inicial.precio.toFixed(2) : "");
   const idDescripcion = useId();
   const idPrecio = useId();
 
   const categoria = listas.categorias.find((c) => c.id === categoriaId) ?? null;
-  const tallas = useMemo(
-    () => (categoriaId ? tallasDeCategoria(listas.tallasPorCategoria[categoriaId], listas.tallas) : []),
-    [categoriaId, listas],
-  );
+  const tallas = useMemo(() => tallasDe(listas, categoriaId), [categoriaId, listas]);
+  const grupos = gruposDeTallas(tallas, listas.habitualesPorCategoria[categoriaId]);
   const colores = useMemo(
     () => opcionesDeColor(listas.colores, categoriaId ? listas.usoColores[categoriaId] : undefined),
     [categoriaId, listas],
@@ -68,51 +107,65 @@ export function PrendaSinRegistrarModal({
 
   const sugerencia = sugerirDescripcion(categoria?.nombre ?? null, color?.texto ?? null, talla?.valor ?? null);
   const descripcion = descripcionEscrita ?? sugerencia ?? "";
-  const setDescripcion = (v: string) => setDescripcionEscrita(v);
-  // Lo de la descripción se dice bajo su campo y solo mientras está vacío: al empezar a escribir se van aviso y
-  // sugerencia, y si lo vacían vuelven (Felipe, 2026-09-25). El pie del modal pregunta solo por el resto.
-  const descripcionVacia = descripcion.trim() === "";
+  // ADR-0328 (decisión 6, rescatada de #788): si lo que la persona ESCRIBIÓ nombra otra prenda («Jean…» con Pantalones elegida), se le
+  // sugiere esa categoría bajo la descripción. Nunca se aplica sola: ella toca «Cambiar a …» o la deja como está. Vale igual al corregir
+  // lo anotado (ADR-0369): ahí es justo el caso de una venta escrita «Jean…» que caja guardó como Pantalones.
+  // Solo cuenta lo que escribió la persona: lo que el sistema armó (la descripción armada, el nombre del color) no delata una prenda.
+  const categoriaSugerida = sugerenciaParaMostrar(descripcionEscrita, categoriaId, listas.categorias, { armada: sugerencia, color: color?.texto ?? null });
+  // Al corregir, la descripción que trae la venta la escribió caja, no quien corrige: el pie lo dice así.
+  const escritaPorCaja = Boolean(corregir && descripcion === corregir.inicial.descripcion);
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
-  const faltaAlPie = faltaEnPrendaSinRegistrar(datos, { sinDescripcion: true });
-  // El paso que toca: su etiqueta se enciende, y al cerrar el anterior el cursor salta a él (Felipe, 2026-09-25).
-  const paso = pasoSiguiente(datos);
+  const cambio = corregir ? cambioEnCorreccion(corregir.inicial, datos) : true;
+  const guia = useGuiaCampos(
+    corregir
+      ? [...camposGuiaPrenda(datos), { id: "responsable", nombre: "Responsable", requerido: true, hecho: corregir.responsable.listo, pendiente: "Elige quién hace la corrección." }]
+      : camposGuiaPrenda(datos),
+  );
+  const puedeConfirmar = falta === null && cambio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
 
-  /** Tras elegir algo, lleva el cursor al paso que sigue: la descripción si hay que escribirla, si no el precio. */
+  const opcionesCategoria = useMemo(
+    () =>
+      listas.categorias.map((c) => {
+        const suyas = tallasDe(listas, c.id);
+        const hab = gruposDeTallas(suyas, listas.habitualesPorCategoria[c.id]);
+        return {
+          valor: c.id,
+          texto: c.nombre,
+          // Lo que se ve al lado de cada categoría: sus tallas de siempre, para reconocerla de un vistazo.
+          detalle: hab.unica ? `Talla ${hab.unica.valor.toLowerCase()}` : hab.habituales.map((t) => t.valor).join(" · "),
+          // Las palabras de tienda también la encuentran al buscar: «correa» → Cinturones, «chompa» → Chompas, «denim» → Jeans.
+          claves: sinonimosDeCategoria(c.prefijo),
+          icono: <IconoCategoria prefijo={c.prefijo} familia={c.familia} className="h-4 w-4 text-tinta/70" />,
+        };
+      }),
+    [listas],
+  );
+
+  /** Tras elegir algo, lleva el cursor al campo que sigue (Felipe, 2026-09-25): ya no hace falta buscarlo. */
   function avanzar(cambio: Partial<DatosPrendaSinRegistrar>) {
     const d = { ...datos, ...cambio };
     // Con la descripción armándose sola, se calcula con lo recién elegido (el render todavía no pasó).
     if (descripcionEscrita === null) {
       const cat = listas.categorias.find((c) => c.id === d.categoriaId)?.nombre ?? null;
-      const tal = tallasDeCategoria(listas.tallasPorCategoria[d.categoriaId], listas.tallas).find((t) => t.id === d.tallaId)?.valor ?? null;
+      const tal = tallasDe(listas, d.categoriaId).find((t) => t.id === d.tallaId)?.valor ?? null;
       const col = colores.find((c) => c.valor === d.colorCodigo)?.texto ?? null;
       d.descripcion = sugerirDescripcion(cat, col, tal) ?? "";
     }
-    const siguiente = pasoSiguiente(d);
-    // Después del render (la talla recién se habilita) y de que el selector devuelva el foco a su propio botón.
-    requestAnimationFrame(() => {
-      const destino =
-        siguiente === "talla"
-          ? document.querySelector<HTMLElement>(`button[aria-labelledby="${idTalla}"]`)
-          : siguiente === "color"
-            ? document.getElementById(idColorCampo)
-            : siguiente === "descripcion"
-              ? document.getElementById(idDescripcion)
-              : siguiente === "precio"
-                ? document.getElementById(idPrecio)
-                : null;
-      destino?.focus();
-    });
+    // Después del render (las tallas recién aparecen) y de que el combo devuelva el foco a su propio botón.
+    requestAnimationFrame(() => requestAnimationFrame(() => enfocarCampo(pasoSiguiente(d))));
   }
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
-    // La talla elegida solo sobrevive si la nueva categoría también la ofrece.
-    const nuevas = tallasDeCategoria(listas.tallasPorCategoria[id], listas.tallas);
-    const tallaSigue = nuevas.some((t) => t.id === tallaId);
-    if (!tallaSigue) setTallaId("");
-    avanzar({ categoriaId: id, tallaId: tallaSigue ? tallaId : "" });
+    const nuevas = tallasDe(listas, id);
+    // Una categoría con una sola talla («Única») la pone sola; si no, la talla elegida solo sobrevive si la nueva categoría
+    // también la ofrece (Vestidos → Pantalones borra la M).
+    const sola = nuevas.length === 1 ? nuevas[0]!.id : null;
+    const queda = sola ?? (nuevas.some((t) => t.id === tallaId) ? tallaId : "");
+    setTallaId(queda);
+    avanzar({ categoriaId: id, tallaId: queda });
   }
 
   function elegirTalla(id: string) {
@@ -125,10 +178,8 @@ export function PrendaSinRegistrarModal({
     avanzar({ colorCodigo: codigo });
   }
 
-  function usarSugerencia() {
-    if (!sugerencia) return;
-    setDescripcion(sugerencia);
-    // El foco al final del texto: para seguir escribiendo («… con botones dorados»).
+  function volverASugerencia() {
+    setDescripcionEscrita(null);
     requestAnimationFrame(() => {
       const el = document.getElementById(idDescripcion) as HTMLInputElement | null;
       if (!el) return;
@@ -137,39 +188,133 @@ export function PrendaSinRegistrarModal({
     });
   }
 
+  // El pie de «Descripción corta»: de dónde salió el texto y, si lo escrito nombra otra prenda, la categoría sugerida.
+  const pieAutoria =
+    descripcionEscrita === null && sugerencia ? (
+      <span className="text-tinta/65">Se armó sola con lo que elegiste. Puedes agregarle detalles.</span>
+    ) : descripcionEscrita !== null && sugerencia && descripcionEscrita.trim() !== sugerencia ? (
+      <span className="flex flex-wrap items-baseline gap-x-2 text-tinta/65">
+        <span>{descripcion.trim() === "" ? "Vacía." : escritaPorCaja ? "Escrita a mano en caja." : "Escrita por ti."}</span>
+        <button type="button" onClick={volverASugerencia} className="btn-cayla btn-enlace">
+          Usar «{sugerencia}»
+        </button>
+      </span>
+    ) : null;
+  const pieCategoria = categoriaSugerida ? (
+    <span key={categoriaSugerida.categoriaId} className="anim-revelar mt-1 flex flex-wrap items-baseline gap-x-2 text-tinta/80" data-sugerencia-categoria>
+      <span>
+        {escritaPorCaja ? "Caja escribió" : "Escribiste"} «{categoriaSugerida.palabra}»: {categoria ? "¿no será" : "parece"}{" "}
+        <span className="font-semibold text-tinta">{categoriaSugerida.nombre}</span>
+        {categoria ? "?" : "."}
+      </span>
+      <button type="button" onClick={() => elegirCategoria(categoriaSugerida.categoriaId)} className="btn-cayla btn-enlace">
+        {categoria ? `Cambiar a ${categoriaSugerida.nombre}` : `Usar ${categoriaSugerida.nombre}`}
+      </button>
+    </span>
+  ) : null;
+  const pieDescripcion =
+    pieAutoria || pieCategoria ? (
+      <>
+        {pieAutoria}
+        {pieCategoria}
+      </>
+    ) : null;
+
+  const agregar = () => {
+    if (!puedeConfirmar) return;
+    const d = { ...datos, descripcion: descripcion.trim() };
+    if (corregir) corregir.onGuardar(d);
+    else onAgregar?.(d);
+  };
+
+  const botonTalla = (t: Talla, menor = false, ancho = false) => (
+    <button
+      key={t.id}
+      type="button"
+      data-talla={t.valor}
+      aria-pressed={tallaId === t.id}
+      onClick={() => elegirTalla(t.id)}
+      className={`h-10 rounded-lg border px-3 text-sm transition-colors duration-200 ease-cayla ${ancho ? "min-w-24" : "min-w-11"} ${
+        tallaId === t.id
+          ? "border-tinta bg-tinta text-crema"
+          : menor
+            ? "border-taupe/30 bg-transparent text-tinta/65 hover:border-tinta/60 hover:text-tinta"
+            : "border-taupe/40 bg-hueso font-medium text-tinta hover:border-tinta/60"
+      }`}
+    >
+      {t.valor}
+    </button>
+  );
+
   return (
     <Modal
-      titulo="Prenda sin registrar"
-      subtitulo="Para una prenda que todavía no tiene etiqueta. Almacén la registra después con estos datos."
+      titulo={corregir ? "Corregir lo anotado" : "Prenda sin registrar"}
+      subtitulo={
+        corregir
+          ? "Cambia categoría, talla, color o descripción si caja se equivocó. El precio, el stock y el comprobante no cambian."
+          : "La etiqueta provisional se arma mientras eliges. Almacén la registra después con estos datos."
+      }
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
+      variante="hoja"
+      ancho="max-w-4xl" /* unificar-fijo: la mesa de Ventas sin registrar es de diseño propio (ADR-0360) */
+      bloqueado={corregir?.guardando ?? false}
+      // Al corregir todo viene lleno: el foco va a la hoja y ninguna lista se abre sola (en Vender sí: se empieza por la categoría).
+      focoEnLaHoja={Boolean(corregir)}
     >
-      <div className="space-y-1">
-        <Campo etiqueta={<Etiqueta texto="Categoría" toca={paso === "categoria"} />} idEtiqueta={idCategoria}>
-          <ComboBuscable
-            valor={categoriaId}
-            onValor={elegirCategoria}
-            opciones={listas.categorias.map((c) => ({ valor: c.id, texto: c.nombre }))}
-            marcador="Busca la categoría"
-            etiquetaAccesible="Categoría"
-            autoFocus
-          />
-        </Campo>
-
-        <div className="grid grid-cols-[7rem_1fr] gap-3">
-          <Campo etiqueta={<Etiqueta texto="Talla" toca={paso === "talla"} />} idEtiqueta={idTalla}>
-            <Desplegable
-              valor={tallaId}
-              onValor={elegirTalla}
-              opciones={tallas.map((t) => ({ valor: t.id, texto: t.valor }))}
-              marcador={categoriaId ? "Elegir" : "Primero la categoría"}
-              deshabilitado={!categoriaId}
-              idEtiqueta={idTalla}
-            />
-          </Campo>
-          <Campo etiqueta={<Etiqueta texto="Color" toca={paso === "color"} />} idEtiqueta={idColor}>
+      {/* Una sola copia de cada pieza, ubicada por áreas: en celular la etiqueta va arriba y el botón al pie; desde md, los campos
+          a la izquierda y la etiqueta con el botón a la derecha.
+          En celular la etiqueta queda pegada arriba de la hoja mientras se baja (2026-10-08): con el teclado abierto se ve muy
+          poco de la hoja y, al pasar de un campo a otro, lo ya elegido salía de la vista. Pegada, siempre se ve lo armado. Por
+          eso todo control de adentro deja ese alto arriba al recibir el foco (`scroll-mt-[8.5rem]`: la etiqueta y el título del
+          campo), y el combo sube su campo hasta ahí para que su lista tenga lugar sobre el teclado (`useAireParaLaLista`).
+          `minmax(0,1fr)`: con «Sigue aquí» junto a «Precio cobrado» la columna medía 370 px en un celular de 375 y la hoja se
+          corría de lado (el precio quedaba cortado a la derecha); ahora el título baja de línea y nada se sale. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-5 [grid-template-areas:'etiqueta'_'campos'_'pie'] max-md:[&_button]:scroll-mt-[8.5rem] max-md:[&_input]:scroll-mt-[8.5rem] md:grid-cols-[minmax(0,1fr)_17.5rem] md:grid-rows-[auto_1fr] md:[grid-template-areas:'campos_etiqueta'_'campos_pie']">
+        <div className="space-y-6 [grid-area:campos]">
+          <CampoGuiado id="categoria" guia={guia} titulo={<Titulo icono={<Tag />}>Categoría</Titulo>}>
             <ComboBuscable
-              id={idColorCampo}
+              valor={categoriaId}
+              onValor={elegirCategoria}
+              opciones={opcionesCategoria}
+              marcador="Busca la categoría"
+              etiquetaAccesible="Categoría"
+              autoFocus={!corregir}
+              caja
+            />
+          </CampoGuiado>
+
+          <CampoGuiado
+            id="talla"
+            guia={guia}
+            titulo={<Titulo icono={<Ruler />}>Talla</Titulo>}
+            ayuda={categoria && !grupos.unica ? `Las de ${categoria.nombre.toLowerCase()}` : undefined}
+          >
+            {!categoria ? (
+              <p className="rounded-lg bg-hueso px-3 py-2.5 text-[13px] text-tinta/60">Primero la categoría: las tallas salen de ella.</p>
+            ) : grupos.unica ? (
+              <p key={categoriaId} className="anim-revelar rounded-lg bg-hueso px-3 py-2.5 text-[13px] text-tinta">
+                <span className="font-semibold">Talla {grupos.unica.valor.toLowerCase()}</span>
+                <span className="text-tinta/70"> · {categoria.nombre} tiene una sola talla: ya quedó puesta.</span>
+              </p>
+            ) : (
+              <div key={categoriaId} className="anim-revelar space-y-2.5" role="group" aria-label="Talla">
+                <div className="flex flex-wrap gap-1.5">
+                  {grupos.habituales.map((t) => botonTalla(t))}
+                  {grupos.estandar && botonTalla(grupos.estandar, false, true)}
+                </div>
+                {grupos.otras.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-[11px] uppercase tracking-[0.08em] text-tinta/55">Otras de {categoria.nombre.toLowerCase()}</p>
+                    <div className="flex flex-wrap gap-1.5">{grupos.otras.map((t) => botonTalla(t, true))}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CampoGuiado>
+
+          <CampoGuiado id="color" guia={guia} titulo={<Titulo icono={<Palette />}>Color</Titulo>}>
+            <ComboBuscable
               valor={colorCodigo}
               onValor={elegirColor}
               opciones={colores.map((c) => ({
@@ -177,77 +322,209 @@ export function PrendaSinRegistrarModal({
                 texto: c.texto,
                 detalle: c.detalle,
                 claves: c.claves,
-                // El color de la prenda es un dato, no la paleta de la interfaz: va tal cual lo guarda el vocabulario.
-                icono: <span aria-hidden className="inline-block h-3 w-3 rounded-full border border-tinta/20" style={{ backgroundColor: c.hex ?? undefined }} />,
+                icono: <Muestra color={c} />,
               }))}
               marcador="Busca el color"
               etiquetaAccesible="Color"
+              caja
             />
-          </Campo>
+          </CampoGuiado>
+
+          <CampoGuiado id="descripcion" guia={guia} titulo={<Titulo icono={<PenLine />}>Descripción corta</Titulo>}>
+            <CampoTexto
+              id={idDescripcion}
+              caja
+              etiqueta="Descripción corta"
+              value={descripcion}
+              onChange={(e) => setDescripcionEscrita(e.target.value)}
+              // sugerir-fijo: no es un ejemplo, es la instrucción mientras falta elegir; con los tres datos el campo ya trae la descripción armada
+              placeholder="Se arma sola con categoría, talla y color"
+              maxLength={80}
+              pie={pieDescripcion}
+            />
+          </CampoGuiado>
+
+          {/* Un campo de verdad en vez del teclado de pantalla (spike 2026-09-26): en escritorio se escribe con el teclado
+              y Enter agrega; en el teléfono `inputMode="decimal"` abre el teclado numérico del propio celular. */}
+          {corregir ? (
+            <CampoGuiado id="precio" guia={guia}>
+              <div className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+                <span className="min-w-0 text-[13px] text-tinta">
+                  <span className="font-semibold">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
+                  <span className="mt-0.5 block text-xs text-tinta/65">No cambia: es lo que entró a caja.</span>
+                </span>
+                <span className="shrink-0 font-display text-3xl text-tinta">S/&nbsp;{corregir.inicial.precio.toFixed(2)}</span>
+              </div>
+            </CampoGuiado>
+          ) : (
+          <CampoGuiado id="precio" guia={guia}>
+            <label htmlFor={idPrecio} className="card-cayla flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+              <span className="min-w-0 text-[13px] font-semibold text-tinta">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
+              {/* El monto en la caja del sistema, alta (ADR-0358, ronda 6). */}
+              <span className="caja-cayla caja-campo caja-campo-alta w-36 shrink-0 sm:w-44">
+                <span aria-hidden className="font-display text-base leading-none text-tinta/55">
+                  S/
+                </span>
+                <input
+                  id={idPrecio}
+                  className="font-display self-stretch py-0 text-right text-2xl max-md:scroll-mb-32"
+                  value={precio}
+                  onChange={(e) => setPrecio(precioEscribible(e.target.value))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && falta === null) {
+                      e.preventDefault();
+                      agregar();
+                    }
+                  }}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  // sugerir-fijo: el formato de un monto en soles, no depende de nada elegido antes
+                  placeholder="0.00"
+                  aria-label="Precio cobrado en soles"
+                  // En celular, al enfocarlo, deja también a la vista lo que sigue (lo que falta y «Agregar al ticket»).
+                />
+              </span>
+            </label>
+          </CampoGuiado>
+          )}
         </div>
 
-        <CampoTexto
-          id={idDescripcion}
-          etiqueta={<Etiqueta texto="Descripción corta" toca={paso === "descripcion"} />}
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          placeholder={sugerencia ?? "Blusa lino beige"}
-          maxLength={80}
-          pie={
-            descripcionVacia ? (
-              <span className="block">
-                <span className="block">
-                  <Etiqueta texto={FALTA_DESCRIPCION} toca={paso === "descripcion"} />
-                </span>
-                {sugerencia ? (
-                  <span className="mt-0.5 flex items-baseline gap-3">
-                    <span className="text-tinta/75">
-                      Sugerencia: <span className="text-tinta">«{sugerencia}»</span>
-                    </span>
-                    <button type="button" onClick={usarSugerencia} className="btn-cayla btn-enlace">
-                      Usar
-                    </button>
-                  </span>
-                ) : null}
-              </span>
-            ) : null
-          }
-        />
+        {/* `-top-6`: la hoja tiene `p-6`, y sin restarlo la etiqueta se pegaba 24 px más abajo, con el texto pasando por encima. */}
+        <div className="sticky -top-6 z-[2] -mx-6 -mt-4 bg-papel px-6 pb-2 pt-4 [grid-area:etiqueta] md:static md:mx-0 md:mt-0 md:bg-transparent md:p-0">
+          <EtiquetaPrevia
+            categoria={categoria}
+            talla={talla?.valor ?? null}
+            color={color}
+            precio={Number(precio)}
+            descripcion={falta === null ? descripcion.trim() : null}
+            lista={falta === null}
+          />
+        </div>
 
-        {/* Un campo de verdad en vez del teclado de pantalla (spike 2026-09-26): en escritorio se escribe con el teclado
-            y Enter agrega; en el teléfono `inputMode="decimal"` abre el teclado numérico del propio celular. */}
-        <label
-          htmlFor={idPrecio}
-          className={`card-cayla flex items-center justify-between gap-3 px-4 py-2 transition-colors duration-300 ease-cayla focus-within:border-rojo/60 ${paso === "precio" ? "border-rojo/60" : ""}`}
-        >
-          <span className="label-cayla text-[11px] text-tinta/65">
-            <Etiqueta texto="Precio cobrado" toca={paso === "precio"} />
-          </span>
-          <span className="flex items-baseline gap-1 font-display text-3xl text-tinta">
-            S/
-            <input
-              id={idPrecio}
-              value={precio}
-              onChange={(e) => setPrecio(precioEscribible(e.target.value))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && falta === null) {
-                  e.preventDefault();
-                  onAgregar({ ...datos, descripcion: descripcion.trim() });
-                }
-              }}
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0.00"
-              aria-label="Precio cobrado en soles"
-              className="w-28 bg-transparent text-right outline-none placeholder:text-tinta/30"
-            />
-          </span>
-        </label>
-        <p className="min-h-5 pt-2 text-xs text-tinta/60">{faltaAlPie}</p>
-        <button type="button" onClick={() => onAgregar({ ...datos, descripcion: descripcion.trim() })} disabled={falta !== null} className={`${botonPrimario} w-full`}>
-          Agregar al ticket
-        </button>
+        <div className="[grid-area:pie] md:self-start">
+          {corregir && (
+            <CampoGuiado id="responsable" guia={guia} className="mb-3">
+              <ComboResponsable control={corregir.responsable} deshabilitado={corregir.guardando} />
+            </CampoGuiado>
+          )}
+          <PieGuia
+            guia={guia}
+            listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
+          />
+          <Boton
+            type="button"
+            peso="primario"
+            cargando={corregir ? corregir.guardando : undefined}
+            onClick={agregar}
+            disabled={!puedeConfirmar}
+            title={guia.frase ?? undefined}
+            className={`mt-3 w-full flex-1 ${guia.claseConfirmar}`}
+          >
+            {corregir ? "Guardar cambios" : "Agregar al ticket"}
+          </Boton>
+        </div>
       </div>
     </Modal>
+  );
+}
+
+/** La muestra de un color de prenda: es un dato del vocabulario (su hex), no la paleta de la interfaz. Sin hex (estampado,
+ *  multicolor), un damero en tokens. */
+function Muestra({ color, className = "h-3 w-3" }: { color: Pick<OpcionColor, "hex">; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-block shrink-0 rounded-full border border-tinta/20 ${className} ${color.hex ? "" : "bg-[conic-gradient(var(--color-hueso)_0_25%,var(--color-sand)_0_50%,var(--color-hueso)_0_75%,var(--color-sand)_0)]"}`}
+      style={color.hex ? { backgroundColor: color.hex } : undefined}
+    />
+  );
+}
+
+/**
+ * La etiqueta provisional: lo que almacén va a recibir, armándose con cada elección. Cada dato entra con `anim-revelar` (una
+ * respuesta a la acción, ADR-0136: 240 ms, sin rebote, apagada con movimiento reducido) y el ícono de la categoría se asienta;
+ * con todo listo el borde pasa a verde. En celular es una franja arriba; desde md, la etiqueta colgada a la derecha.
+ */
+function EtiquetaPrevia({
+  categoria,
+  talla,
+  color,
+  precio,
+  descripcion,
+  lista,
+}: {
+  categoria: ListasPrendaLibre["categorias"][number] | null;
+  talla: string | null;
+  color: OpcionColor | null;
+  precio: number;
+  descripcion: string | null;
+  lista: boolean;
+}) {
+  const tono = categoria ? tonoDeCategoria(categoria.familia) : null;
+  const vacio = "text-tinta/30";
+  const lineaColor = color ? (
+    <span key={color.valor} className="anim-revelar inline-flex items-center gap-1.5">
+      <Muestra color={color} className="h-3.5 w-3.5" />
+      {color.texto}
+    </span>
+  ) : (
+    <span className={vacio}>Color</span>
+  );
+  const textoPrecio = precio > 0 ? `S/\u00a0${precio.toFixed(2)}` : "S/\u00a00.00";
+
+  return (
+    <div
+      aria-label="Etiqueta provisional"
+      className={`relative flex items-center gap-3 rounded-2xl border bg-crema p-3 transition-colors duration-300 ease-cayla md:flex-col md:gap-0 md:px-5 md:pb-5 md:pt-9 md:text-center ${
+        lista ? "border-verde/50" : "border-sand"
+      }`}
+    >
+      {/* El ojal de la etiqueta. */}
+      <span aria-hidden className="absolute left-1/2 top-3 hidden h-3 w-3 -translate-x-1/2 rounded-full border border-sand bg-papel md:block" />
+
+      <span
+        key={categoria?.id ?? "vacia"}
+        aria-hidden
+        className={`anim-asentar grid h-11 w-11 shrink-0 place-items-center rounded-full md:mb-3 md:h-16 md:w-16 ${categoria ? "" : "border border-dashed border-tinta/20 text-tinta/25"}`}
+        style={tono ? { backgroundColor: tono.fondo, color: tono.acento } : undefined}
+      >
+        <IconoCategoria prefijo={categoria?.prefijo} familia={categoria?.familia ?? null} className="h-6 w-6 md:h-8 md:w-8" />
+      </span>
+
+      <div className="min-w-0 flex-1 md:w-full md:flex-none">
+        <p className="truncate text-[11px] uppercase tracking-[0.14em] text-tinta/60">
+          {categoria ? (
+            <span key={categoria.id} className="anim-revelar inline-block">
+              {categoria.nombre}
+            </span>
+          ) : (
+            <span className={vacio}>Categoría</span>
+          )}
+        </p>
+        <p className="mt-0.5 truncate text-[13px] text-tinta md:hidden">{lineaColor}</p>
+      </div>
+
+      <p className={`font-display leading-none text-tinta md:my-2 ${talla && talla.length > 3 ? "text-2xl md:text-4xl" : "text-3xl md:text-6xl"}`}>
+        {talla ? (
+          <span key={talla} className="anim-revelar inline-block">
+            {talla}
+          </span>
+        ) : (
+          <span className={vacio}>—</span>
+        )}
+      </p>
+
+      <p className="hidden min-h-5 items-center justify-center text-[13px] text-tinta md:flex">{lineaColor}</p>
+
+      <p className={`font-display text-xl md:mt-3 md:w-full md:border-t md:border-dashed md:border-sand md:pt-3 md:text-3xl ${precio > 0 ? "text-tinta" : vacio}`}>
+        {textoPrecio}
+      </p>
+
+      {descripcion && (
+        <p key={descripcion} className="anim-revelar mt-2 hidden text-[12px] leading-snug text-tinta/65 md:block">
+          «{descripcion}»
+        </p>
+      )}
+    </div>
   );
 }

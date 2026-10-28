@@ -6,4 +6,4 @@
 - [x] Verificado: `tsc` sin errores, `eslint` limpio en lo tocado, `vitest run` 243 archivos / 153.023 pruebas en verde, y recorrido en la app local a 1440, 1920 y 390 px (las cuatro tarjetas miden lo mismo; la ventana abre y muestra las ventas de la base local). La fusión con `main` se simuló sin conflictos.
 - [ ] **Sin probar con datos reales:** «Sin ventas esta semana» (pide una prenda con stock toda la semana y cero ventas; la base local no tiene) y el valor a precio de venta de la ventana. Sin probar en Safari ni Firefox.
 - [ ] **Decisión de Felipe:** ¿tocar una prenda de «Reponer a piso hoy» debe filtrar la lista de abajo (hoy sí)? ¿Vuelve algún acceso directo a «Bajar al piso» desde la tarjeta (se quitó por pedido)?
-- [ ] `components/DisponibleTotalOverlay.tsx` (el stock por categoría con su cambio de 7 días) quedó sin usar. Borrarlo o recuperar esa vista en otra parte.
+- [x] `components/DisponibleTotalOverlay.tsx` (el stock por categoría con su cambio de 7 días) quedó sin usar. Borrarlo o recuperar esa vista en otra parte. **Borrado el 2026-10-06** con sus agregados de `lib/existencias-categorias.ts` (rama `claude/determined-thompson-f7b8d8`).

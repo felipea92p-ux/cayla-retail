@@ -1,0 +1,8 @@
+## 🏷️ La caja descuenta sin código (2026-10-01, ADR-0162 act. 2026-10-01) — migración EN PRODUCCIÓN (2026-10-02) + web; rama `claude/caja-descuento-sin-codigo-816518`
+
+- [x] `registrar_venta` ya no pide código de descuento a nadie (`20261002100000_descuento_sin_codigo.sql`): candado de versión (md5 «antes» = `156fd99a…`, el de la tanda 1g del club, en producción el 2026-10-02), recorte entre marcas, validación final; idempotente. Rehecha el 2026-10-02 sobre la 1g (la versión del 2026-10-01 partía de la 1c y su número chocaba con `20261001150000_retirar_del_piso.sql`).
+- [x] Vender ▸ Descuento sin el campo «Código»; `pasoDelDescuento` sin el paso `codigo`; `PuntoDeVenta` sin el estado ni la prop `esLider`.
+- [x] Pruebas: `registrar_venta.mjs` (casos 17-22 reescritos, 28/28 con la migración), `club_cumpleanos.mjs` (caso del código reescrito) y `club_registro_cartel.mjs` (md5 de hoy = el de esta migración; pegar HOY la 1g aborta sin pisar). Corridas con toda la cadena dentro de una transacción: en verde salvo las carreras de dos conexiones, que ese arnés no puede correr (las corre el CI).
+- [x] **En producción el 2026-10-02** (Claude, con `apply_migration`, por orden de Felipe): md5 `525479a9…`, una sola firma, permisos intactos. En la misma tanda se aplicó `20261001140000_recibir_envio_ya_no_recibe_traslados.sql`, que estaba en `main` y faltaba en producción.
+- [ ] Después: `pnpm datos:generar:produccion` con el volcado nuevo.
+- [x] Limpieza (rama `claude/descuento-sin-codigo-limpieza`, 2026-10-02): salen las tres frases del código de `lib/error-escritura.ts` y `lib/codigos-descuento.ts` / `lib/facturacion-codigos-reglas.ts` con su prueba, que no tenían pantalla.

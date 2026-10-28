@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Modal } from "@/components/ui/Modal";
@@ -14,6 +15,8 @@ import { camposDeEdicionMarca } from "@/lib/marcas-guia";
 import { firmar } from "@/lib/responsable-reglas";
 import { borradorCambia, problemaEdicionMarca, sePuedeQuitar, sinTildes, type BorradorMarca, type ProveedorOpcion } from "@/lib/marcas";
 import type { MarcaFila } from "@/components/MarcasLista";
+import { Aviso } from "@/components/ui/Aviso";
+import { MAX_NOMBRE_MARCA } from "@/lib/catalogo-topes";
 
 /**
  * Catálogo ▸ Marcas ▸ Editar (Felipe, 2026-09-25): el nombre y quién la trae en UNA ventana y UN guardado
@@ -105,12 +108,13 @@ export function EditarMarcaModal({
   const accion = "label-cayla shrink-0 text-[10.5px] text-tinta/60 underline underline-offset-4 hover:text-rojo";
 
   return (
-    <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} tamano="mediana">
       {(cerrar) => (
-        <div className="mt-4 space-y-4">
+        <div data-guia="marcas.form" className="mt-4 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("nombre", "Nombre de la marca")}
+              maxLength={MAX_NOMBRE_MARCA}
               value={nombre}
               onChange={(e) => cambiar(() => setNombre(e.target.value))}
               disabled={guardando}
@@ -131,9 +135,7 @@ export function EditarMarcaModal({
                       </span>
                     </span>
                     {quitado ? (
-                      <button type="button" onClick={() => cambiar(() => setQuitar((q) => q.filter((x) => x !== p.id)))} className={accion}>
-                        Deshacer
-                      </button>
+                      <BotonDeshacer onClick={() => cambiar(() => setQuitar((q) => q.filter((x) => x !== p.id)))} className="shrink-0 text-xs" />
                     ) : sePuedeQuitar(p) ? (
                       <button type="button" onClick={() => cambiar(() => setQuitar((q) => [...q, p.id]))} className={accion}>
                         Quitar
@@ -167,21 +169,21 @@ export function EditarMarcaModal({
                   </div>
                   <div className="grid gap-2 sm:grid-cols-[1fr_9.5rem]">
                     <input
+                      className="caja-campo-input"
                       aria-label="Razón social o nombre del proveedor nuevo"
                       placeholder="Razón social o nombre"
                       value={n.nombre}
                       autoFocus={!n.nombre}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none"
                     />
                     <input
+                      className="caja-campo-input tabular-nums"
                       aria-label="RUC del proveedor nuevo (opcional)"
                       placeholder="RUC (opcional)"
                       inputMode="numeric"
                       maxLength={11}
                       value={n.ruc}
                       onChange={(e) => cambiar(() => setNuevos((xs) => xs.map((x, j) => (j === i ? { ...x, ruc: e.target.value.replace(/\D/g, "") } : x))))}
-                      className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta outline-none"
                     />
                   </div>
                 </li>
@@ -210,22 +212,19 @@ export function EditarMarcaModal({
             )}
           </CampoGuiado>
 
-          {error && (
-            <p role="alert" className="text-xs text-rojo-profundo">
-              {error}
-            </p>
-          )}
+          {error && <Aviso tono="error">{error}</Aviso>}
+
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex items-center gap-3">
-            <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : "Guardar"}
-            </Boton>
-            <button type="button" onClick={cerrar} disabled={guardando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
+          <div data-guia="marcas.form-pie" className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
-            </button>
+            </Boton>
+            <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Guardar
+            </Boton>
           </div>
         </div>
       )}

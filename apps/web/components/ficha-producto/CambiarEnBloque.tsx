@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Desplegable } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, type NombresFicha } from "@/lib/variantes-ficha-reglas";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Precio o costo en bloque: «Cambiar [Precio|Costo] de [Todas | Color: Negro | Talla: S] a [monto] · Aplicar». Es la
 // fila de grupo de Shopify («si cambias el precio del grupo, cambia en todas sus variantes») y el «Price extra» de Odoo,
@@ -12,6 +13,10 @@ import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, ty
 //
 // Un monto escrito y NO aplicado se avisa hacia afuera (`onPendiente`): «Revisar y guardar» no lo deja perderse en silencio
 // (revisión 2026-09-28: se escribía 79.90 para las XL, se guardaba otro cambio y las XL seguían al precio viejo).
+//
+// Cada campo tiene SU monto (revisión 2026-10-03): antes era uno solo, y un precio escrito en «Precios» sin aplicar aparecía en
+// «Costos» como «Cambiar el costo… a 79.90», a un Enter de volverse el costo de toda la prenda. Si el grupo elegido deja de
+// existir (se quitó o se corrigió ese color) con un monto escrito, no cae en silencio a «Todas»: lo dice y espera.
 
 export function CambiarEnBloque({
   filas,
@@ -20,6 +25,9 @@ export function CambiarEnBloque({
   nombres,
   veCosto,
   deshabilitado,
+  onCampo,
+  campoFijo,
+  admitePrecioCero = false,
 }: {
   filas: FilaFicha[];
   onFilas: (siguiente: FilaFicha[]) => void;
@@ -28,25 +36,43 @@ export function CambiarEnBloque({
   nombres: NombresFicha;
   veCosto: boolean;
   deshabilitado: boolean;
+  /** Precio o Costo: la matriz de la ficha muestra en cada celda lo que aquí se está cambiando. */
+  onCampo?: (campo: CampoBloque) => void;
+  /** Lo decide la pestaña de la matriz («Precios» o «Costos»): sin selector propio, la frase dice cuál se cambia. */
+  campoFijo?: CampoBloque;
+  /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): el precio puede ser 0, la bolsa de obsequio. */
+  admitePrecioCero?: boolean;
 }) {
-  const [campo, setCampo] = useState<CampoBloque>("precio");
+  const [campoPropio, setCampo] = useState<CampoBloque>("precio");
+  const campo = campoFijo ?? campoPropio;
   const [alcance, setAlcance] = useState("todas");
-  const [monto, setMonto] = useState("");
+  const [montos, setMontos] = useState<Record<CampoBloque, string>>({ precio: "", costo: "" });
+  const monto = montos[campo];
   const [resultado, setResultado] = useState<{ texto: string; error: boolean } | null>(null);
   const alcances = alcancesDeBloque(filas, nombres);
-  // Si el alcance elegido dejó de existir (se corrigió ese color), vuelve a «Todas».
-  const alcanceVigente = alcances.some((a) => a.valor === alcance) ? alcance : "todas";
+  // Si el alcance elegido dejó de existir (se corrigió o se quitó ese color), vuelve a «Todas»; con un monto escrito, lo dice.
+  const alcanceExiste = alcances.some((a) => a.valor === alcance);
+  const alcanceVigente = alcanceExiste ? alcance : "todas";
+  const alcancePerdido = !alcanceExiste && alcance !== "todas";
 
-  function escribir(valor: string, en: CampoBloque = campo) {
-    setMonto(valor);
-    onPendiente(valor.trim() === "" ? null : en);
+  // Lo pendiente hacia afuera: el campo que se ve, si tiene monto; si no, el otro (también quedó escrito sin aplicar).
+  const otro: CampoBloque = campo === "precio" ? "costo" : "precio";
+  const pendiente: CampoBloque | null = montos[campo].trim() !== "" ? campo : montos[otro].trim() !== "" ? otro : null;
+  useEffect(() => onPendiente(pendiente), [pendiente, onPendiente]);
+
+  function escribir(valor: string) {
+    setMontos((m) => ({ ...m, [campo]: valor }));
   }
 
   // Si la barra desaparece (todas quedaron desactivadas) con un monto escrito, ya no hay nada pendiente que avisar.
   useEffect(() => () => onPendiente(null), [onPendiente]);
 
   function aplicar() {
-    const r = aplicarEnBloque(filas, campo, alcanceVigente, monto);
+    if (alcancePerdido) {
+      setAlcance("todas");
+      return setResultado({ texto: "Ese grupo ya no está en la tabla: elige a cuáles poner el monto y vuelve a pulsar Aplicar.", error: true });
+    }
+    const r = aplicarEnBloque(filas, campo, alcanceVigente, monto, admitePrecioCero);
     if (r.error) return setResultado({ texto: r.error, error: true });
     if (r.aplicadas === 0 && r.fijas === 0) return setResultado({ texto: "No hay variantes activas en ese grupo.", error: true });
     onFilas(r.filas);
@@ -58,17 +84,19 @@ export function CambiarEnBloque({
   }
 
   return (
-    <div className="rounded-xl border border-sand bg-papel px-3 py-2.5">
+    <div data-guia="editar.bloque" className="rounded-xl border border-sand bg-papel px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2 text-sm text-tinta/80">
         <span>Cambiar</span>
-        {veCosto ? (
+        {campoFijo ? (
+          <span className="font-semibold text-tinta">{campoFijo === "precio" ? "el precio" : "el costo"}</span>
+        ) : veCosto ? (
           <SegmentoDeslizante
             etiqueta="Qué cambiar"
             valor={campo}
             onCambio={(c) => {
               setCampo(c as CampoBloque);
+              onCampo?.(c as CampoBloque);
               setResultado(null);
-              if (monto.trim() !== "") onPendiente(c as CampoBloque);
             }}
             opciones={[
               { clave: "precio", etiqueta: "Precio" },
@@ -80,7 +108,7 @@ export function CambiarEnBloque({
         )}
         <span>de</span>
         <Desplegable
-          forma="caja"
+          forma="campo"
           className="w-auto min-w-[11rem]"
           etiquetaAccesible="A cuáles variantes"
           valor={alcanceVigente}
@@ -91,15 +119,14 @@ export function CambiarEnBloque({
           opciones={alcances}
         />
         <span>a</span>
-        <span className="caja-cayla flex h-10 w-28 items-center gap-1 px-2.5">
+        {/* La caja que se enciende (ADR-0358, ronda 6), con su «S/» adentro. */}
+        <span className="caja-cayla caja-campo w-28 gap-1 px-2.5">
           <span aria-hidden className="text-xs text-taupe">
             S/
           </span>
           <input
-            type="number"
-            min={0}
-            step="0.01"
-            inputMode="decimal"
+            className={`self-stretch py-0 tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
+            {...atributosMontoTexto(monto)}
             id="variantes-bloque-monto"
             aria-label={campo === "precio" ? "Nuevo precio" : "Nuevo costo"}
             placeholder="0.00"
@@ -113,7 +140,6 @@ export function CambiarEnBloque({
                 aplicar();
               }
             }}
-            className="w-full min-w-0 bg-transparent text-sm tabular-nums text-tinta outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </span>
         <button type="button" onClick={aplicar} disabled={deshabilitado || monto.trim() === ""} className="btn-cayla btn-secundario">
@@ -124,7 +150,7 @@ export function CambiarEnBloque({
         {resultado?.texto ??
           (monto.trim() !== ""
             ? "Pulsa Aplicar para ponerlo en las variantes (o bórralo): si no, no se guarda."
-            : "Cambia varias de una vez con Aplicar; también puedes cambiar cada fila abajo.")}
+            : "Cambia varias de una vez con Aplicar (también puedes tocar cada celda abajo). El costo no toca lo que ya viene de Compras.")}
       </p>
     </div>
   );

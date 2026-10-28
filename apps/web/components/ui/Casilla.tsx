@@ -3,20 +3,24 @@
 import { useEffect, useRef } from "react";
 import { Check, Minus } from "lucide-react";
 
-/** La casilla de las listas de Existencias (diseño aprobado, 2026-09-28): cuadrito de 18 px con el borde fino y, marcada, relleno
- *  de tinta con su ✓ (a medias, con un guion). Es un `<input type="checkbox">` de verdad —teclado, lector de pantalla y
- *  formularios siguen igual—; solo cambia cómo se ve. `onClick` no sube: la fila entera abre el cajón, la casilla no. */
+/** La casilla del ERP (ADR-0358, ronda 6: Felipe la eligió tocándola el 2026-10-13): cuadrito de 20 px con esquinas de 6 y, al
+ *  marcarla, el fondo de tinta CRECE desde el centro y el ✓ se DIBUJA (a medias, un guion que se traza). Es un
+ *  `<input type="checkbox">` de verdad —teclado, lector de pantalla y formularios siguen igual—; solo cambia cómo se ve. El foco es
+ *  el anillo común (ADR-0351). `onClick` no sube: la fila entera abre el cajón, la casilla no. Estilos: `app/estilos/campos-y-casillas.css`. */
 export function Casilla({
   marcada,
   aMedias = false,
   onCambio,
   etiqueta,
+  disabled = false,
   className = "",
 }: {
   marcada: boolean;
   aMedias?: boolean;
   onCambio: () => void;
   etiqueta: string;
+  /** No se puede marcar (la prenda no es devolvible): se ve atenuada y no responde. */
+  disabled?: boolean;
   className?: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
@@ -24,18 +28,20 @@ export function Casilla({
     if (ref.current) ref.current.indeterminate = aMedias;
   }, [aMedias]);
   return (
-    <span className={`relative inline-flex h-[18px] w-[18px] shrink-0 ${className}`}>
+    <span className={`casilla ${className}`}>
       <input
         ref={ref}
         type="checkbox"
         checked={marcada}
+        disabled={disabled}
         onChange={onCambio}
         onClick={(e) => e.stopPropagation()}
         aria-label={etiqueta}
-        className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-[5px] border border-tinta/30 bg-papel transition-colors checked:border-tinta checked:bg-tinta indeterminate:border-tinta indeterminate:bg-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
+        className="casilla-input"
       />
-      <Check aria-hidden strokeWidth={3} className="pointer-events-none absolute inset-0 m-auto h-3 w-3 text-crema opacity-0 peer-checked:opacity-100 peer-indeterminate:opacity-0" />
-      <Minus aria-hidden strokeWidth={3} className="pointer-events-none absolute inset-0 m-auto h-3 w-3 text-crema opacity-0 peer-indeterminate:opacity-100" />
+      <span aria-hidden className="casilla-fondo" />
+      <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden strokeWidth={3} className="casilla-marca casilla-visto" />
+      <Minus /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden strokeWidth={3} className="casilla-marca casilla-medio" />
     </span>
   );
 }

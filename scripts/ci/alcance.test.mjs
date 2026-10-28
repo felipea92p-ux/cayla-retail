@@ -1,10 +1,10 @@
-// Pruebas de «qué toca el PR» y de «qué pruebas leen la web» (ADR-0259). `node --test scripts/ci/alcance.test.mjs`.
+// Pruebas de «qué toca el PR», de «qué corre en un push a main» (ADR-0345) y de «qué pruebas leen la web» (ADR-0259). `node --test scripts/ci/alcance.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { clasificar } from "./alcance.mjs";
+import { clasificar, clasificarPush, compilaLaTienda, compilaLaWeb, vieneDeUnPr } from "./alcance.mjs";
 import { leeLaWeb, pruebasQueLeenLaWeb } from "./pruebas-web.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -68,4 +68,120 @@ test("en el repo de hoy: las tres que leen la web, y solo pocas", () => {
     assert.ok(nombres.includes(esperada), `${esperada} lee apps/web y debería estar`);
   }
   assert.ok(nombres.length < 15, `se detectaron ${nombres.length}: el modo «web» ya no ahorraría tiempo, revisar`);
+});
+
+// --- El push a main (ADR-0345) ---------------------------------------------------------------------------------------
+
+test("un push viene de un PR si su asunto lo dice (squash o merge); un commit directo no", () => {
+  assert.equal(vieneDeUnPr("feat(inventario): Existencias táctil — un icono por tarjeta (ADR-0344) (#819)"), true);
+  assert.equal(vieneDeUnPr("Merge pull request #815 from felipea92p-ux/claude/catalog-product-modal-design-c2e80a"), true);
+  // Directos de verdad: sin número de PR al final, o con un «(#12)» a media frase.
+  assert.equal(vieneDeUnPr("docs(inventario): ADR-0328 y backlog — la ola 1 queda publicada"), false);
+  assert.equal(vieneDeUnPr("fix(caja): corrige lo del (#12) y sigue"), false);
+  assert.equal(vieneDeUnPr("Merge branch 'main' into claude/algo"), false);
+  assert.equal(vieneDeUnPr(""), false);
+});
+
+test("push de un commit directo → todo corre, nadie lo revisó antes", () => {
+  for (const archivos of [[], ["docs/a.md"], ["apps/web/lib/a.ts"], ["supabase/migrations/20261005000000_x.sql"]]) {
+    const r = clasificarPush("docs(inventario): ADR-0328 y backlog", archivos);
+    assert.equal(r.alcance, "completo");
+    assert.equal(r.verificar, "si");
+  }
+});
+
+test("push de un PR que ya corrió completo o solo documentos → nada que repetir", () => {
+  for (const archivos of [["supabase/migrations/20261005000000_x.sql", "apps/web/lib/a.ts"], ["package.json"], ["docs/a.md", "CLAUDE.md"], []]) {
+    const r = clasificarPush("feat(x): algo (#800)", archivos);
+    assert.equal(r.alcance, "nada", archivos.join());
+    assert.equal(r.verificar, "no", archivos.join());
+  }
+});
+
+test("push de un PR «solo web» → Postgres ENTERO (la red del ADR-0259), pero sin repetir tipos, lint y pruebas", () => {
+  const r = clasificarPush("Merge pull request #815 from x/y", ["apps/web/components/A.tsx", "docs/bitacora/x.md"]);
+  assert.equal(r.alcance, "completo");
+  assert.equal(r.verificar, "no");
+});
+
+test("el motivo siempre dice algo (sale en el log del CI)", () => {
+  for (const [asunto, archivos] of [["x (#1)", []], ["x (#1)", ["apps/web/a.ts"]], ["x (#1)", ["package.json"]], ["x", []]]) {
+    assert.ok(clasificarPush(asunto, archivos).motivo.length > 20);
+  }
+});
+
+test("ci.yml: `Tipos, lint y pruebas` espera a «Qué toca el PR» y solo se salta con `verificar == 'no'`", () => {
+  const yml = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  const verificar = yml.slice(yml.indexOf("  verificar:"), yml.indexOf("  pruebas-postgres:"));
+  assert.match(verificar, /needs: alcance/);
+  // `!cancelled()` y `!= 'no'`: si «Qué toca el PR» falla, su salida llega vacía y el job corre. Nunca se salta por no saber.
+  assert.match(verificar, /if: \$\{\{ !cancelled\(\) && needs\.alcance\.outputs\.verificar != 'no' \}\}/);
+  assert.match(yml, /verificar: \$\{\{ steps\.medir\.outputs\.verificar \}\}/);
+});
+
+test("compilar: la web, los paquetes, el lockfile y la versión de Node cambian `next build`; documentos, migraciones y scripts no", () => {
+  for (const archivo of [
+    "apps/web/lib/a.ts",
+    "apps/web/next.config.ts",
+    "packages/shared/src/index.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    ".nvmrc",
+    ".github/workflows/ci.yml", // quien edite el job de compilar lo ve correr en su PR
+  ]) {
+    assert.equal(compilaLaWeb(["docs/a.md", archivo]), true, archivo);
+  }
+  for (const archivo of [
+    "docs/adr/0407-x.md",
+    "supabase/migrations/20261014000000_x.sql",
+    "scripts/pruebas/x.mjs",
+    ".github/workflows/sql-pegado.yml",
+    "CLAUDE.md",
+    "apps/webhooks/x.ts", // no es apps/web/
+  ]) {
+    assert.equal(compilaLaWeb([archivo]), false, archivo);
+  }
+  assert.equal(compilaLaWeb([]), false);
+});
+
+test("ci.yml: `Compila la web` espera a «Qué toca el PR», corre `next build` y solo se salta con `compilar == 'no'`", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  const job = ci.slice(ci.indexOf("  compilar-web:"));
+  assert.ok(job.includes("name: Compila la web"), "falta el job «Compila la web»");
+  assert.match(job, /needs: alcance/);
+  // `!= 'no'` y no `== 'si'`: si `alcance` falla su salida llega vacía y el job corre; nunca se salta por no saber.
+  assert.match(job, /needs\.alcance\.outputs\.compilar != 'no'/);
+  assert.match(job, /next build/);
+});
+
+test("compilar la tienda: la tienda y lo que comparten las dos apps; el ERP, documentos, migraciones y scripts no", () => {
+  for (const archivo of [
+    "apps/tienda/app/page.tsx",
+    "apps/tienda/package.json",
+    "packages/shared/src/index.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    ".nvmrc",
+    ".github/workflows/ci.yml",
+  ]) {
+    assert.equal(compilaLaTienda(["docs/a.md", archivo]), true, archivo);
+  }
+  for (const archivo of ["apps/web/lib/a.ts", "docs/adr/0408-x.md", "supabase/migrations/20261014220000_x.sql", "scripts/pruebas/x.mjs"]) {
+    assert.equal(compilaLaTienda([archivo]), false, archivo);
+  }
+  // La tienda no compila el ERP, pero su puerta son funciones de la base: Postgres corre entero.
+  assert.equal(compilaLaWeb(["apps/tienda/app/page.tsx"]), false);
+  assert.equal(clasificar(["apps/tienda/lib/base.ts"]), "completo");
+});
+
+test("ci.yml: `Compila la tienda` espera a «Qué toca el PR», compila apps/tienda y solo se salta con `compilar_tienda == 'no'`", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  assert.match(ci, /compilar_tienda: \$\{\{ steps\.medir\.outputs\.compilar_tienda \}\}/);
+  const job = ci.slice(ci.indexOf("  compilar-tienda:"));
+  assert.ok(job.includes("name: Compila la tienda"), "falta el job «Compila la tienda»");
+  assert.match(job, /needs: alcance/);
+  assert.match(job, /needs\.alcance\.outputs\.compilar_tienda != 'no'/);
+  assert.match(job, /pnpm --filter tienda build/);
 });

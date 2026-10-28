@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inicio del Admin · v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL v2 · Inicio del Admin (2026-10-03)
+   Felipe descartó las tres primeras (inicio-admin-2026-10): el Admin NO
+   vende; quiere ver cómo va el negocio, comparar tiendas y ver lo que hay
+   que revisar, lo más visual posible y con poco texto, con un diseño más
+   sofisticado y animaciones mucho más fuertes.
+   Tres maquetas: A Observatorio · B Carrera · C Reloj.
+   Reglas de gráficos: énfasis (la sede elegida en tinta, las demás en
+   segundo plano) en vez de un color por tienda; etiquetas directas;
+   rejilla en línea fina; punteado solo para la meta y el ritmo ideal.
+   Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados que cuadran.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t15:rgba(26,26,24,.15);--t10:rgba(26,26,24,.1);--t06:rgba(26,26,24,.055);
+--c80:rgba(245,240,232,.82);--c60:rgba(245,240,232,.62);--c40:rgba(245,240,232,.42);--c20:rgba(245,240,232,.2);--c10:rgba(245,240,232,.1);
+--ease:cubic-bezier(.32,.72,.24,1);--salida:cubic-bezier(.4,0,1,1);--spk:46px;--alto:800px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#d8cfbf}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+a{color:inherit;text-decoration:none;cursor:pointer}
+.serif{font-family:'EB Garamond',Georgia,serif}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.s{width:14px;height:14px}svg.ic.l{width:22px;height:22px}
+
+/* ---------- barra del spike (no existe en el ERP) ---------- */
+.spk{position:sticky;top:0;z-index:300;background:var(--tinta);color:var(--crema);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 14px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}.seg button{height:30px;padding:0 11px;font-size:12.5px;color:rgba(245,240,232,.72)}.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk label{display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.78);font-size:12.5px;cursor:pointer}
+.spk .acc{height:30px;padding:0 11px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);color:var(--crema);font-size:12.5px}
+.spk .acc:hover{background:rgba(245,240,232,.08)}
+.spk .acc.lleno{border-style:solid;background:rgba(245,240,232,.1)}
+
+/* ---------- escena y dispositivos ---------- */
+.escena{display:flex;justify-content:center;align-items:flex-start}
+.escena.dev{padding:24px 16px 40px}
+.disp{position:relative;flex:none}
+.disp.escritorio{width:100%;height:calc(100dvh - var(--spk))}
+.disp.tablet{width:834px;max-width:100%;height:max(640px,min(1080px,calc(100dvh - var(--spk) - 48px)));border-radius:30px;background:#1b1a18;padding:12px;box-shadow:0 30px 60px -30px rgba(26,26,24,.55)}
+.disp.celular{width:391px;height:max(640px,min(812px,calc(100dvh - var(--spk) - 48px)));border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px rgba(26,26,24,.55)}
+
+/* ---------- tema: claro (B, C) y oscuro (A) salen de los mismos tokens ---------- */
+.marco{--fondo:var(--crema);--sup:var(--papel);--sup2:var(--hueso);--borde:var(--sand);--linea:var(--t10);--tx:var(--tinta);--tx2:var(--t65);--tx3:var(--t50);
+  --urg:var(--rojo);--ok:var(--verde);--warn:var(--ambar);--info:var(--pizarra);--foco:var(--tinta);--resto:color-mix(in oklab,var(--taupe) 48%,transparent);--fantasma:color-mix(in oklab,var(--sand) 80%,var(--taupe) 20%);--brillo:color-mix(in oklab,var(--taupe) 70%,transparent);--lavado:color-mix(in oklab,var(--tinta) 6%,transparent)}
+.marco.oscuro{--fondo:var(--tinta);--sup:color-mix(in oklab,var(--tinta) 93%,var(--crema));--sup2:color-mix(in oklab,var(--tinta) 86%,var(--crema));--borde:rgba(245,240,232,.11);--linea:rgba(245,240,232,.08);--tx:var(--crema);--tx2:var(--c60);--tx3:var(--c40);
+  --urg:color-mix(in oklab,var(--rojo) 72%,var(--crema));--ok:color-mix(in oklab,var(--verde) 42%,var(--crema));--warn:color-mix(in oklab,var(--ambar) 38%,var(--crema));--info:color-mix(in oklab,var(--pizarra) 42%,var(--crema));--foco:var(--crema);--resto:rgba(245,240,232,.28);--fantasma:rgba(245,240,232,.1);--brillo:rgba(245,240,232,.55);--lavado:rgba(245,240,232,.06)}
+.marco{position:relative;width:100%;height:100%;display:flex;background:var(--fondo);color:var(--tx);overflow:hidden;container:app/inline-size;transition:background .5s var(--ease)}
+.tablet .marco{border-radius:20px}.celular .marco{border-radius:39px}
+
+/* ---------- el ERP: lateral y barra ---------- */
+.lat{width:76px;flex:none;display:flex;flex-direction:column;align-items:center;border-right:1px solid var(--linea);padding:14px 0 16px;background:var(--fondo);z-index:5}
+.lat .logo{height:46px;display:grid;place-items:center;margin-bottom:20px}
+.lat .logo svg{height:27px;width:auto}
+.lat nav{display:flex;flex-direction:column;gap:6px;flex:1}
+.lat nav a{width:48px;height:46px;border-radius:12px;display:grid;place-items:center;color:var(--tx3);position:relative;transition:background .25s var(--ease),color .25s}
+.lat nav a:hover{background:var(--lavado);color:var(--tx)}
+.lat nav a.on{background:var(--sup2);color:var(--tx)}
+.lat nav a.on::before{content:"";position:absolute;left:-14px;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--rojo)}
+.yo{width:38px;height:38px;border-radius:50%;background:var(--taupe);color:var(--crema);display:grid;place-items:center;font-size:12px;font-weight:700;letter-spacing:.03em}
+.col{flex:1;min-width:0;height:100%;overflow-y:auto;overflow-x:hidden;position:relative;scrollbar-width:thin;scrollbar-color:var(--borde) transparent}
+.barra{position:sticky;top:0;z-index:20;height:60px;display:flex;align-items:center;gap:12px;padding:0 24px 0 26px;border-bottom:1px solid var(--linea);background:color-mix(in oklab,var(--fondo) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.barra .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:var(--tx3)}
+.barra .ico:hover{background:var(--lavado);color:var(--tx)}
+.buscar{height:38px;display:flex;align-items:center;gap:10px;padding:0 9px 0 14px;border-radius:999px;background:var(--sup2);color:var(--tx3);font-size:13px}
+.buscar kbd{font:600 10px 'DM Sans';border:1px solid var(--borde);border-radius:5px;padding:1px 5px;background:var(--sup);color:var(--tx3)}
+.barra .der{margin-left:auto;display:flex;align-items:center;gap:14px}
+.barra .act{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.13em;font-weight:600;color:var(--tx3);text-transform:uppercase}
+.barra .sede{height:34px;padding:0 12px;border:1px solid var(--borde);border-radius:8px;background:var(--sup);display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.13em;font-weight:700;text-transform:uppercase}
+.barra .m-only{display:none}
+.cont{container:cont/inline-size;padding:30px 40px 60px}
+.cont>.m{max-width:1880px;margin:0 auto}
+@container app (max-width:760px){
+  .lat{display:none}
+  .barra{padding:0 12px;height:56px;gap:6px}
+  .barra .d-only{display:none}
+  .barra .m-only{display:flex}
+  .cont{padding:20px 16px 48px}
+}
+
+/* ---------- avisos y tooltip ---------- */
+.toasts{position:absolute;top:72px;right:16px;z-index:60;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;max-width:340px;padding:11px 14px;border-radius:12px;background:var(--tinta);color:var(--crema);font-size:13px;box-shadow:0 14px 30px -14px rgba(26,26,24,.55);animation:avisoE .42s var(--ease) both}
+.oscuro .toast{background:var(--crema);color:var(--tinta)}
+.toast.sale{animation:avisoS .22s var(--salida) both}
+@keyframes avisoE{from{opacity:0;transform:translate3d(0,-10px,0) scale(.97)}}
+@keyframes avisoS{to{opacity:0;transform:translate3d(0,-6px,0)}}
+.tip{position:absolute;z-index:70;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:12px;line-height:1.45;padding:8px 11px;border-radius:9px;box-shadow:0 12px 26px -12px rgba(26,26,24,.6);opacity:0;transform:translateY(4px);transition:opacity .16s,transform .16s var(--ease);max-width:260px}
+.oscuro .tip{background:var(--crema);color:var(--tinta)}
+.tip.on{opacity:1;transform:none}
+.tip b{font-weight:700;font-size:13.5px}
+.tip .fila{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.tip .fila i{width:12px;height:0;border-top:2px solid currentColor;opacity:.5}
+.tip .fila.f i{opacity:1}
+
+/* ---------- piezas comunes ---------- */
+.entrando .ent{animation:sube .7s var(--ease) both;animation-delay:calc(var(--i,0) * 70ms + 60ms)}
+@keyframes sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes aparece{from{opacity:0}}
+.revelar{opacity:0;transform:translate3d(0,28px,0) scale(.99)}
+.revelar.visto{opacity:1;transform:none;transition:opacity .8s var(--ease) var(--rd,0ms),transform .9s var(--ease) var(--rd,0ms)}
+.lbl{text-transform:uppercase;letter-spacing:.14em;font-weight:600;font-size:10.5px;color:var(--tx3)}
+.tj{background:var(--sup);border:1px solid var(--borde);border-radius:20px;padding:20px 22px;position:relative;min-width:0}
+.tcab{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-bottom:16px}
+.tcab .lbl{color:var(--tx2)}
+.luz::after{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:radial-gradient(240px circle at var(--mx,-600px) var(--my,-600px),var(--brillo),transparent 70%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .4s;pointer-events:none}
+.luz:hover::after{opacity:1}
+.oscuro .luz::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(420px circle at var(--mx,-600px) var(--my,-600px),rgba(245,240,232,.055),transparent 60%);opacity:0;transition:opacity .4s;pointer-events:none}
+.oscuro .luz:hover::before{opacity:1}
+.inclina{transition:transform .45s var(--ease);transform-style:preserve-3d;will-change:transform}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;background:var(--lavado);color:var(--tx2)}
+.chip>i{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.ok{background:color-mix(in oklab,var(--ok) 14%,transparent);color:var(--ok)}
+.chip.warn{background:color-mix(in oklab,var(--warn) 14%,transparent);color:var(--warn)}
+.chip.urg{background:color-mix(in oklab,var(--urg) 12%,transparent);color:var(--urg)}
+.chip.info{background:color-mix(in oklab,var(--info) 14%,transparent);color:var(--info)}
+.punto{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;position:relative;flex:none}
+.punto.no{background:var(--tx3)}
+.bucle .punto.late::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;animation:late 2.4s var(--ease) infinite}
+@keyframes late{0%{transform:scale(1);opacity:.6}70%,100%{transform:scale(2.8);opacity:0}}
+.k{font-variant-numeric:tabular-nums}
+.k.cambio{animation:destello 1.6s var(--ease)}
+@keyframes destello{0%,35%{color:var(--ok)}}
+[data-a]{transition-property:width,height,left,top,r,transform,stroke-dashoffset,stroke-dasharray,opacity;transition-duration:.95s;transition-timing-function:var(--ease)}
+.rapido [data-a]{transition-duration:110ms!important;transition-timing-function:linear!important;transition-delay:0ms!important}
+.fallo{display:flex;flex-direction:column;align-items:flex-start;gap:6px;color:var(--tx2);font-size:13px}
+.fallo svg{color:var(--warn)}
+.fallo b{color:var(--tx);font-weight:600}
+.fallo button{font-size:12.5px;font-weight:600;color:var(--tx);display:inline-flex;align-items:center;gap:6px;margin-top:4px}
+
+/* odómetro: cada dígito es una tira 0-9 (×3) que rueda */
+.odo{display:inline-flex;align-items:flex-start;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap;line-height:1.08}
+.odo .dg{display:inline-block;height:1.08em;overflow:hidden;-webkit-mask:linear-gradient(transparent,#000 16%,#000 84%,transparent);mask:linear-gradient(transparent,#000 16%,#000 84%,transparent)}
+.odo .tira{display:flex;flex-direction:column}
+.odo .tira span{display:block;height:1.08em;line-height:1.08;text-align:center}
+.odo .sep{display:inline-block;height:1.08em}
+.rapido .odo .tira{transition-duration:110ms!important;transition-delay:0ms!important}
+
+/* controles: periodo + sede, con indicador que se desliza */
+.ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sd{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));padding:4px;border-radius:999px;background:var(--sup2);border:1px solid var(--borde)}
+.sd button{position:relative;z-index:1;height:32px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--tx2);white-space:nowrap;transition:color .35s var(--ease)}
+.sd button.on{color:var(--fondo)}
+.sd button:not(.on):hover{color:var(--tx)}
+.sd-ind{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / var(--n));border-radius:999px;background:var(--foco);z-index:0}
+.sd-ind[data-a]{transition-duration:.55s}
+.repetir{height:42px;display:inline-flex;align-items:center;gap:8px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--borde);font-size:12.5px;font-weight:600;color:var(--tx);transition:background .25s,border-color .25s,opacity .25s}
+.repetir .ic{width:26px;height:26px;padding:6px;border-radius:50%;background:var(--foco);color:var(--fondo);stroke-width:2}
+.repetir:hover{border-color:var(--foco)}
+.repetir:disabled{opacity:.4;cursor:not-allowed}
+.repetir.va{background:var(--foco);color:var(--fondo)}.repetir.va .ic{background:var(--fondo);color:var(--foco)}
+.reloj-rep{font-variant-numeric:tabular-nums}
+
+/* anillo de meta */
+.anillo{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.anillo circle{fill:none}
+.an-f{stroke:var(--linea)}.an-v{stroke:var(--foco);stroke-linecap:round}
+.an-v.ok{stroke:var(--ok)}
+.anillo [data-a]{transition-duration:1.4s}
+
+/* gráficos estirados (svg) con etiquetas en HTML */
+.graf{position:relative}
+.graf>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.graf path,.graf line{vector-effect:non-scaling-stroke;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.graf .rej{stroke:var(--linea);stroke-width:1}
+.graf .meta{stroke:var(--ok);stroke-width:1.3;stroke-dasharray:6 5}
+.graf .ideal{stroke:var(--tx3);stroke-width:1.2;stroke-dasharray:1 5}
+.graf .ln{stroke:var(--resto);stroke-width:1.6;transition:stroke .45s var(--ease),stroke-width .45s}
+.graf .ln.f{stroke:var(--foco);stroke-width:2.6}
+.graf .ar{fill:var(--lavado);stroke:none}
+.revela{clip-path:inset(-30% 100% -30% 0);transition:clip-path 1.7s var(--ease) .15s}
+.revela.ya{clip-path:inset(-30% -4% -30% 0)}
+.rapido .revela{transition:none}
+
+/* ---------- «Por revisar»: detalle compartido ---------- */
+.det{display:grid;gap:14px}
+.det-cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.det-cab b{font-family:'EB Garamond',serif;font-size:26px;font-weight:500;line-height:1}
+.det-cab .cerrar{margin-left:auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--borde);display:grid;place-items:center;color:var(--tx2)}
+.det-cab .cerrar:hover{color:var(--tx);border-color:var(--tx)}
+.dv{display:grid;grid-template-columns:72px minmax(0,1fr) minmax(0,1fr) 60px;align-items:center;gap:6px 0;font-size:12px;color:var(--tx2)}
+.dv .eje{height:22px;border-left:1px solid var(--tx3)}
+.dv i{display:block;height:12px;border-radius:3px}
+.dv .neg{justify-self:end;background:var(--urg);border-radius:4px 0 0 4px}
+.dv .pos{justify-self:start;background:var(--ok);border-radius:0 4px 4px 0}
+.dv .v{text-align:right;font-weight:600;color:var(--tx)}
+.hb{display:grid;grid-template-columns:44px minmax(0,1fr) 40px;align-items:center;gap:8px 10px;font-size:12px;color:var(--tx2)}
+.hb .pista{height:10px;border-radius:5px;background:var(--linea);overflow:hidden}
+.hb .pista i{display:block;height:100%;border-radius:5px;background:var(--foco)}
+.hb b{text-align:right;color:var(--tx);font-weight:600}
+.sem7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-items:end;gap:6px;height:96px;border-bottom:1px solid var(--linea);padding-bottom:6px}
+.sem7 div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;font-size:11px;color:var(--tx3)}
+.sem7 .bola{border-radius:50%;background:var(--warn);display:grid;place-items:center;color:var(--fondo);font-size:10.5px;font-weight:700}
+.sem7 .hoyd{color:var(--tx);font-weight:700}
+.rutas{display:grid;gap:12px}
+.ruta{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--tx)}
+.ruta .via{position:relative;height:2px;background:var(--linea)}
+.ruta .via.camino{background:linear-gradient(90deg,var(--info),var(--info)) no-repeat;background-size:100% 2px}
+.ruta .via em{position:absolute;top:-4px;left:0;width:10px;height:10px;border-radius:50%;background:var(--info)}
+.bucle .ruta .via em{animation:viaje 3.2s var(--ease) infinite}
+@keyframes viaje{0%{left:0;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:calc(100% - 10px);opacity:0}}
+.ruta .via.prep{background:repeating-linear-gradient(90deg,var(--tx3) 0 5px,transparent 5px 10px)}
+.ruta small{grid-column:1/-1;font-weight:400;color:var(--tx3);margin-top:-6px}
+.det-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--tx2)}
+.det-pie b{color:var(--tx)}
+.ir{height:38px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;border-radius:10px;background:var(--foco);color:var(--fondo);font-size:12.5px;font-weight:700;transition:background .25s}
+.ir:hover{background:var(--rojo-p);color:var(--crema)}
+::view-transition-old(root),::view-transition-new(root){animation:none}
+::view-transition-group(*){animation-duration:.6s;animation-timing-function:cubic-bezier(.32,.72,.24,1)}
+
+/* =====================================================================
+   A · OBSERVATORIO — oscuro, el negocio sobre el mapa
+   ===================================================================== */
+.mA{display:grid;gap:22px}
+.a-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:18px 28px;flex-wrap:wrap}
+.a-sobre{display:flex;align-items:center;gap:10px}
+.a-total{font-family:'EB Garamond',serif;font-weight:500;font-size:clamp(58px,6.4cqw,104px);letter-spacing:-.025em;margin-top:6px;display:block}
+.a-meter{margin-top:10px;width:min(520px,100%)}
+.a-meter .pista{position:relative;height:6px;border-radius:3px;background:var(--linea)}
+.a-meter .pista i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--foco)}
+.a-meter .pista em{position:absolute;top:-6px;bottom:-6px;width:1.5px;background:var(--ok)}
+.a-meter .pie{display:flex;align-items:center;gap:12px;margin-top:10px;font-size:13px;color:var(--tx2)}
+.a-meter .pie b{color:var(--tx);font-weight:600}
+.a-grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);grid-template-areas:"mapa" "kpis" "rank" "delta" "taller"}
+.a-mapa{grid-area:mapa;padding:14px;overflow:hidden}.a-kpis{grid-area:kpis}.a-rank{grid-area:rank}.a-delta{grid-area:delta}.a-taller{grid-area:taller}
+.a-mapa-in{position:relative;aspect-ratio:725.7/780;width:min(100%,max(340px,calc((var(--alto) - 340px) * .93)));margin:0 auto}
+.a-mapa-in>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.a-mapa .ret{stroke:rgba(245,240,232,.045);stroke-width:1}
+.a-mapa .peru{fill:url(#tierra);stroke:rgba(245,240,232,.32);stroke-width:1.2;stroke-linejoin:round}
+.entrando .a-mapa .peru{stroke-dasharray:3000;animation:trazo 2.6s var(--ease) .2s both}
+@keyframes trazo{from{stroke-dashoffset:3000;fill-opacity:0}60%{fill-opacity:0}}
+.a-mapa .guia{stroke:rgba(245,240,232,.22);stroke-width:1;fill:none}
+.a-mapa .glow{fill:var(--crema);opacity:.16;filter:url(#halo)}
+.a-mapa .nodo{fill:var(--sup2);stroke:rgba(245,240,232,.55);stroke-width:1.2;cursor:pointer;transition:fill .4s,stroke .4s}
+.a-mapa .nodo.f{fill:var(--crema);stroke:var(--crema)}
+.a-mapa .anr{fill:none;stroke:var(--crema);stroke-width:2.6;stroke-linecap:round;transform-box:fill-box;transform-origin:center;transform:rotate(-90deg)}
+.a-mapa .anr.ok{stroke:var(--ok)}
+.a-mapa .anf{fill:none;stroke:rgba(245,240,232,.12);stroke-width:2.6}
+.a-mapa .onda{fill:none;stroke:var(--crema);stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:onda 1.6s var(--ease) forwards}
+@keyframes onda{from{transform:scale(1);opacity:.9}to{transform:scale(3.2);opacity:0}}
+.bucle .a-mapa .latido{fill:none;stroke:var(--crema);stroke-width:1;transform-box:fill-box;transform-origin:center;animation:latidoMapa 3.4s var(--ease) infinite}
+.a-mapa .latido{opacity:0}
+@keyframes latidoMapa{0%{transform:scale(1);opacity:.45}100%{transform:scale(2.4);opacity:0}}
+.a-mapa .arco{fill:none;stroke:rgba(245,240,232,.16);stroke-width:1.2}
+.a-mapa .arco.prep{stroke-dasharray:3 5}
+.a-mapa .estela{fill:none;stroke:var(--info);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:.16 1.2;stroke-dashoffset:.16}
+.bucle .a-mapa .estela{animation:estela 3.4s linear infinite}
+@keyframes estela{from{stroke-dashoffset:.16}to{stroke-dashoffset:-.84}}
+.a-mapa .cometa{fill:var(--crema)}
+.a-mapa .taller{fill:var(--sup2);stroke:rgba(245,240,232,.5);stroke-width:1.2}
+.a-mapa .mar{font-family:'EB Garamond',serif;font-style:italic;fill:rgba(245,240,232,.16);font-size:22px;letter-spacing:.2em}
+.entrando .a-mapa .nodo-g{animation:nodoE .9s var(--ease) both;animation-delay:calc(1100ms + var(--d) * 160ms);transform-box:fill-box;transform-origin:center}
+@keyframes nodoE{from{opacity:0;transform:scale(.3)}}
+.a-et{position:absolute;transform:translateY(-50%);display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:3px;padding:8px 12px;border-radius:12px;border:1px solid transparent;transition:background .3s,border-color .3s}
+.a-et:hover{background:var(--sup);border-color:var(--borde)}
+.a-et.f{background:var(--sup);border-color:var(--borde)}
+.a-et .lbl{white-space:nowrap}
+.a-et b{font-family:'EB Garamond',serif;font-size:clamp(20px,1.8cqw,26px);font-weight:500;line-height:1.05}
+.a-et .p{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--tx2)}
+.a-et .p i{display:block;width:44px;height:3px;border-radius:2px;background:var(--linea);overflow:hidden}
+.a-et .p i i{height:100%;background:var(--crema);border-radius:2px}
+.entrando .a-et{animation:sube .7s var(--ease) both;animation-delay:calc(1300ms + var(--d) * 160ms)}
+.a-tk{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);overflow:hidden;max-width:calc(100% - 28px)}
+.a-tk span{white-space:nowrap}
+.a-tk .nuevo{animation:sube .6s var(--ease) both}
+.a-et-t{position:absolute;transform:translateY(-50%);font-size:11.5px;color:var(--tx2);white-space:nowrap}
+.a-et-t b{display:block;font-family:'EB Garamond',serif;font-size:18px;font-weight:500;color:var(--tx)}
+.kp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.kp>div{padding:2px 14px 4px 0;min-width:0}
+.kp>div+div{border-left:1px solid var(--linea);padding-left:16px}
+.kp b{display:block;font-family:'EB Garamond',serif;font-size:clamp(26px,2.2cqw,34px);font-weight:500;line-height:1.1;margin-top:6px}
+.kp small{display:block;font-size:12px;color:var(--tx3)}
+.spark{height:30px;margin-top:8px}
+.rk{display:grid;gap:6px;position:relative}
+.rk-f{display:grid;grid-template-columns:30px 56px minmax(0,1fr) 54px;align-items:center;gap:12px;padding:9px 10px;margin:0 -10px;border-radius:12px;text-align:left;transition:background .3s}
+.rk-f:hover{background:var(--lavado)}
+.rk-f.f{background:var(--sup2)}
+.rk-n{font-family:'EB Garamond',serif;font-size:26px;line-height:1;color:var(--tx3)}
+.rk-f.f .rk-n,.rk-f:first-child .rk-n{color:var(--tx)}
+.rk-s{font-size:12px;font-weight:700;letter-spacing:.06em}
+.rk-s small{display:block;font-weight:400;letter-spacing:0;color:var(--tx3);font-size:11px}
+.rk-b{position:relative;height:8px;border-radius:4px;background:var(--linea)}
+.rk-b i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--resto)}
+.rk-f.f .rk-b i{background:var(--foco)}
+.rk-b em{position:absolute;top:-4px;bottom:-4px;width:1.5px;background:var(--ok);opacity:.7}
+.rk-v{text-align:right;font-weight:700;font-size:13.5px}
+.rk-v small{display:block;font-weight:400;color:var(--tx3);font-size:11px}
+.dl{display:grid;gap:10px}
+.dl-f{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 52px;align-items:center;font-size:12px;font-weight:700}
+.dl-f .eje{position:relative;height:14px}
+.dl-f .eje.izq{border-right:1px solid var(--tx3)}
+.dl-f i{position:absolute;top:2px;bottom:2px;border-radius:3px}
+.dl-f .izq i{right:0;background:var(--warn);border-radius:4px 0 0 4px}
+.dl-f .der i{left:0;background:var(--ok);border-radius:0 4px 4px 0}
+.dl-f .v{text-align:right}
+.tl{display:flex;align-items:center;gap:16px}
+.tl .an{width:84px;height:84px;position:relative;flex:none}
+.tl .an b{position:absolute;inset:0;display:grid;place-content:center;font-family:'EB Garamond',serif;font-size:22px;font-weight:500;text-align:center;line-height:1}
+.tl .an b small{display:block;font-family:'DM Sans';font-size:10px;color:var(--tx3);margin-top:3px}
+.tl ul{list-style:none;display:grid;gap:6px;font-size:12.5px;color:var(--tx2)}
+.tl ul b{color:var(--tx);font-weight:600}
+.orbes{display:flex;flex-wrap:wrap;gap:18px 22px;justify-content:center;padding:6px 0 4px}
+.orbe{display:flex;flex-direction:column;align-items:center;gap:8px;width:104px;text-align:center}
+.orbe .c{position:relative;width:96px;height:96px;border-radius:50%;display:grid;place-content:center;justify-items:center;gap:2px;background:var(--sup);border:1px solid var(--borde);transition:transform .45s var(--ease),border-color .3s,background .3s}
+.orbe:hover .c{transform:translateY(-4px) scale(1.04);border-color:var(--tx3)}
+.orbe .c svg.ring{position:absolute;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);transform:rotate(-90deg);overflow:visible}
+.orbe .c svg.ring circle{fill:none;stroke-width:2.5;stroke-linecap:round}
+.orbe .c .ic{color:var(--tx2)}
+.orbe .c b{font-family:'EB Garamond',serif;font-size:30px;font-weight:500;line-height:1}
+.orbe>.t{font-size:11.5px;color:var(--tx2);line-height:1.3}
+.orbe.urg .c{box-shadow:0 0 0 0 color-mix(in oklab,var(--urg) 40%,transparent)}
+.bucle .orbe.urg .c{animation:respira 3s var(--ease) infinite}
+@keyframes respira{0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--urg) 38%,transparent)}70%,100%{box-shadow:0 0 0 14px color-mix(in oklab,var(--urg) 0%,transparent)}}
+.orbe.urg .c .ic{color:var(--urg)}
+.orbe.ok{width:78px}.orbe.ok .c{width:64px;height:64px;opacity:.75}.orbe.ok .c .ic{color:var(--ok)}
+.orbe.abierto .c{border-color:var(--tx)}
+.a-det{margin-top:12px}
+@container cont (min-width:760px){
+  .a-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"mapa mapa" "kpis kpis" "rank delta" "taller taller"}
+}
+@container cont (min-width:1240px){
+  .a-grid{grid-template-columns:minmax(250px,.8fr) minmax(0,1.9fr) minmax(300px,1fr);grid-template-areas:"kpis mapa rank" "kpis mapa delta" "kpis mapa taller"}
+  .a-kpis .kp{grid-template-columns:1fr}
+  .a-kpis .kp>div{padding:16px 0}
+  .a-kpis .kp>div+div{border-left:0;border-top:1px solid var(--linea);padding-left:0}
+  .a-kpis .kp b{font-size:clamp(34px,2.6cqw,44px)}
+  .a-kpis .spark{height:44px}
+}
+@container cont (max-width:700px){.a-et .ciu{display:none}}
+@container cont (max-width:520px){
+  .sd .largo{display:none}
+  .sd button{padding:0 10px}
+  .a-tk{display:none}
+  .orbe{width:88px}.orbe .c{width:80px;height:80px}.orbe .c b{font-size:26px}
+  .kp{grid-template-columns:1fr}.kp>div+div{border-left:0;border-top:1px solid var(--linea);padding:12px 0 0;margin-top:12px}
+  .a-et{padding:4px 6px}.a-et .p i{display:none}
+}
+
+/* =====================================================================
+   B · CARRERA — claro: las tiendas compiten por la meta; retratos 3D
+   ===================================================================== */
+.mB{display:grid;gap:20px}
+.b-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:18px 28px;flex-wrap:wrap}
+.b-total-f{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;margin-top:8px}
+.b-total{font-family:'EB Garamond',serif;font-weight:500;font-size:clamp(56px,6cqw,96px);letter-spacing:-.025em}
+.b-pct{display:flex;flex-direction:column;gap:6px;padding-bottom:12px}
+.b-pct .n{font-family:'EB Garamond',serif;font-size:30px;line-height:1}
+.b-pct small{font-size:12.5px;color:var(--tx3)}
+.b-race{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.b-graf{height:clamp(240px,24cqw,380px);margin:6px 0 30px}
+.b-graf .eje{position:absolute;left:0;right:0;top:calc(100% + 10px);height:14px;font-size:11px;color:var(--tx3)}
+.b-graf .eje span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.b-graf .eje span:first-child{transform:none}.b-graf .eje span:last-child{transform:translateX(-100%)}
+.b-graf .yl{position:absolute;left:0;font-size:10.5px;color:var(--tx3);transform:translateY(-120%)}
+.b-graf .fin{position:absolute;display:flex;align-items:center;gap:8px;transform:translateY(-50%);white-space:nowrap;pointer-events:auto;cursor:pointer}
+.b-graf .fin i{width:11px;height:11px;border-radius:50%;background:var(--resto);border:2px solid var(--sup);flex:none;margin-left:-5.5px}
+.b-graf .fin.f i{background:var(--foco)}
+.b-graf .fin span{font-size:11.5px;font-weight:700;color:var(--tx2)}
+.b-graf .fin.f span{color:var(--tx)}
+.b-graf .fin em{font-style:normal;font-family:'EB Garamond',serif;font-size:18px;font-weight:500;color:var(--tx)}
+.b-graf .fin:not(.f) em{color:var(--tx2)}
+.b-graf .meta-t{position:absolute;right:0;font-size:11px;font-weight:600;color:var(--ok);transform:translateY(calc(-100% - 3px))}
+.b-graf .cruz{position:absolute;top:0;bottom:0;width:0;border-left:1px solid var(--tx3);opacity:0;transition:opacity .15s;pointer-events:none}
+.b-graf .capa{position:absolute;inset:0;cursor:crosshair}
+.b-graf .capa:hover~.cruz{opacity:1}
+.b-graf .ahora{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--tx3)}
+.b-graf .ahora span{position:absolute;top:-20px;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:var(--tx2);white-space:nowrap}
+.podio{display:grid;gap:10px;align-content:start}
+.pd{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--borde);background:var(--fondo);text-align:left;transition:border-color .3s,background .3s}
+.pd:hover{border-color:var(--tx3)}
+.pd.f{border-color:var(--foco);background:var(--sup)}
+.pd .n{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:22px;background:var(--sup2)}
+.pd:first-child .n{background:var(--foco);color:var(--fondo)}
+.pd b{font-size:13px;letter-spacing:.06em;font-weight:700}
+.pd b small{display:block;letter-spacing:0;font-weight:400;font-size:11.5px;color:var(--tx3)}
+.pd .v{text-align:right;font-family:'EB Garamond',serif;font-size:22px;line-height:1}
+.pd .v small{display:block;font-family:'DM Sans';font-size:11px;color:var(--tx3);margin-top:3px}
+.b-ret{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.rt{display:flex;flex-direction:column;gap:14px;cursor:pointer}
+.rt.f{border-color:var(--foco)}
+.rt-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rt-top b{font-size:13px;letter-spacing:.08em;font-weight:700}
+.rt-top b small{display:block;letter-spacing:0;font-weight:400;font-size:11.5px;color:var(--tx3)}
+.rt-mid{display:flex;align-items:center;gap:16px}
+.rt-an{position:relative;width:96px;height:96px;flex:none}
+.rt-an .c{position:absolute;inset:0;display:grid;place-content:center;text-align:center;font-family:'EB Garamond',serif;font-size:24px;line-height:1}
+.rt-an .c small{font-family:'DM Sans';font-size:10px;color:var(--tx3);margin-top:3px}
+.rt-v{font-family:'EB Garamond',serif;font-size:clamp(30px,2.6cqw,38px);font-weight:500;line-height:1}
+.rt-mid small{display:block;font-size:12px;color:var(--tx3);margin-top:6px}
+.mb{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;height:54px;align-items:end}
+.mb div{position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center}
+.mb .g{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0;background:var(--fantasma)}
+.mb .h{position:relative;width:64%;border-radius:3px 3px 0 0;background:var(--resto)}
+.rt.f .mb .h,.mb.f .h{background:var(--foco)}
+.mb .cur .h{background:var(--foco)}
+.rt-pie{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--linea);padding-top:12px}
+.rt-pie div{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--tx3);min-width:0}
+.rt-pie div+div{border-left:1px solid var(--linea);padding-left:12px}
+.rt-pie b{font-size:15px;font-weight:700;color:var(--tx)}
+.rt-pie b.ok{color:var(--ok)}.rt-pie b.warn{color:var(--warn)}
+.avs{display:flex}.avs span{width:22px;height:22px;border-radius:50%;border:2px solid var(--sup);margin-left:-6px;background:var(--sup2);font-size:8.5px;font-weight:700;color:var(--taupe);display:grid;place-items:center}.avs span:first-child{margin-left:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px}
+.tile{position:relative;display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px;border-radius:16px;background:var(--sup);border:1px solid var(--borde);text-align:left;overflow:hidden;transition:border-color .3s,transform .4s var(--ease)}
+.tile:hover{border-color:var(--tx3);transform:translateY(-3px)}
+.tile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--linea)}
+.tile.urg::before{background:var(--urg)}.tile.hoy::before{background:var(--warn)}.tile.semana::before{background:var(--info)}.tile.ok::before{background:var(--ok)}
+.tile .top{display:flex;align-items:center;justify-content:space-between}
+.tile .top .ic{color:var(--tx2)}
+.tile.urg .top .ic{color:var(--urg)}
+.tile b{font-family:'EB Garamond',serif;font-size:40px;font-weight:500;line-height:.9}
+.tile span.t{font-size:12.5px;color:var(--tx2)}
+.dist{display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden}
+.dist i{display:block;height:100%;background:var(--resto)}
+.dist i:first-child{background:var(--foco)}
+.dist-l{display:flex;justify-content:space-between;font-size:10.5px;color:var(--tx3);margin-top:-6px}
+.tile.ok{opacity:.72}.tile.ok b{font-size:26px}
+.tile.ancho{grid-column:1/-1;cursor:default;transform:none}
+.b-top{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:12px;overflow-x:auto;scrollbar-width:none}
+.pr{display:flex;flex-direction:column;gap:8px}
+.pr .sw{height:96px;border-radius:12px;display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:24px;color:var(--t30);position:relative;overflow:hidden}
+.pr .sw em{position:absolute;left:8px;top:8px;font-style:normal;font-family:'EB Garamond',serif;font-size:20px;color:var(--t50)}
+.pr b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr .bar{height:4px;border-radius:2px;background:var(--linea);overflow:hidden}.pr .bar i{display:block;height:100%;background:var(--foco)}
+.pr small{font-size:12px;color:var(--tx3)}
+@container cont (max-width:520px){.b-graf .eje .imp{display:none}.c-dial .hora{font-size:22px}.c-dial .anl{font-size:19px}.c-centro .lbl{display:none}.c-centro .odo{font-size:20px}.c-centro small{font-size:10.5px;margin-top:2px}.c-dial{padding:10px}}
+@container cont (min-width:640px){.b-ret{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container cont (min-width:1000px){.b-race{grid-template-columns:minmax(0,1fr) 260px}}
+@container cont (min-width:1180px){.b-ret{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* =====================================================================
+   C · RELOJ — claro: el día como una esfera; cada anillo, una tienda
+   ===================================================================== */
+.mC{display:grid;gap:20px}
+.c-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 28px;flex-wrap:wrap}
+.c-cab h1{font-family:'EB Garamond',serif;font-weight:500;font-size:clamp(34px,3.4cqw,48px);line-height:1.05;margin-top:8px;letter-spacing:-.01em}
+.c-main{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.c-dial{display:grid;place-items:center;padding:18px}
+.c-dial-in{position:relative;width:min(100%,max(320px,calc(var(--alto) - 320px)),720px);aspect-ratio:1}
+.c-dial-in>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.c-dial .rb{stroke-linecap:round;cursor:pointer;transition:stroke .45s var(--ease),opacity .45s}
+.c-dial .rb.v{stroke:var(--resto)}
+.c-dial .rb.v.f{stroke:var(--foco)}
+.c-dial .rb.g{stroke:var(--fantasma)}
+.c-dial .rb.cur.v.f{stroke:var(--foco)}
+.c-dial .hit{fill:none;stroke:transparent;cursor:pointer}
+.c-dial .marca{stroke:var(--linea);stroke-width:1}
+.c-dial .hora{font-size:12px;fill:var(--tx3);font-weight:600;text-anchor:middle;dominant-baseline:middle}
+.c-dial .anl{font-size:11px;font-weight:700;letter-spacing:.08em;fill:var(--tx3);text-anchor:end;dominant-baseline:middle;cursor:pointer}
+.c-dial .anl.f{fill:var(--tx)}
+.c-dial .pasado{fill:none;stroke:color-mix(in oklab,var(--tinta) 3.5%,transparent)}
+.c-dial .aguja line{stroke:var(--tinta);stroke-width:1.6}
+.c-dial .aguja circle{fill:var(--tinta)}
+.c-dial .aguja[data-a]{transition-duration:1.6s}
+.bucle .c-dial .aguja .eco{fill:none;stroke:var(--tinta);stroke-width:1;transform-box:fill-box;transform-origin:center;animation:latidoMapa 2.8s var(--ease) infinite}
+.c-dial .aguja .eco{opacity:0}
+.c-dial .centro-an circle{fill:none}
+.c-centro{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;pointer-events:none}
+.c-centro .lbl{margin-bottom:6px}
+.c-centro .odo{font-family:'EB Garamond',serif;font-size:calc(clamp(22px,2.6cqw,38px) * var(--esc,1));font-weight:500;letter-spacing:-.02em}
+.c-centro small{font-size:12.5px;color:var(--tx2);margin-top:6px}
+.c-centro small b{color:var(--tx)}
+.entrando .c-dial .rb.v{animation:aparece .3s both;animation-delay:calc(500ms + var(--d) * 1ms)}
+.c-side{display:grid;gap:16px;align-content:start}
+.db{display:grid;gap:14px}
+.db-f{display:grid;grid-template-columns:40px minmax(0,1fr) 48px;align-items:center;gap:12px;font-size:12px;font-weight:700}
+.db-f .pista{position:relative;height:16px}
+.db-f .pista::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--linea)}
+.db-f .une{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--ok);border-radius:1px}
+.db-f .une.baja{background:var(--warn)}
+.db-f .ant,.db-f .act{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%}
+.db-f .ant{border:2px solid var(--tx3);background:var(--sup)}
+.db-f .act{background:var(--foco);border:2px solid var(--sup)}
+.db-f .v{text-align:right}
+.lp{display:grid;gap:12px}
+.lp-f{display:grid;grid-template-columns:40px minmax(0,1fr) 54px;align-items:center;gap:12px;font-size:12px;font-weight:700}
+.lp-f .pista{position:relative;height:14px}
+.lp-f .pista i{position:absolute;left:0;top:50%;height:2px;margin-top:-1px;background:var(--resto)}
+.lp-f .pista em{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--resto);border:2px solid var(--sup)}
+.lp-f.f .pista i,.lp-f.f .pista em{background:var(--foco)}
+.lp-f .prom{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1px dashed var(--tx3)}
+.lp-f .v{text-align:right;font-family:'EB Garamond',serif;font-size:17px;font-weight:500}
+.edades{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ed{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;border-radius:16px;background:var(--sup);border:1px solid var(--borde);text-align:left;transition:border-color .3s,transform .4s var(--ease)}
+.ed:hover{border-color:var(--tx3);transform:translateY(-3px)}
+.ed .an{position:relative;width:58px;height:58px}
+.ed .an>svg:first-child{width:100%;height:100%;transform:rotate(-90deg)}
+.ed .an circle{fill:none;stroke-width:4;stroke-linecap:round}
+.ed .an svg.ic{position:absolute;inset:0;margin:auto;width:20px;height:20px}
+.ed.urg .an .ic{color:var(--urg)}
+.ed b{font-family:'EB Garamond',serif;font-size:34px;font-weight:500;line-height:.9}
+.ed>.t{font-size:12.5px;color:var(--tx2)}
+.ed small{font-size:11px;color:var(--tx3)}
+.ed.ok{opacity:.7}
+.ed.ancho{grid-column:1/-1;transform:none;cursor:default}
+@container cont (min-width:1100px){.c-main{grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr)}}
+@container cont (min-width:700px) and (max-width:1099.98px){.c-side{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---------- panel «La idea» (no existe en el ERP) ---------- */
+.idea{position:fixed;top:var(--spk);right:0;bottom:0;width:min(420px,94vw);z-index:250;background:var(--papel);border-left:1px solid var(--sand);box-shadow:-24px 0 48px -28px rgba(26,26,24,.35);overflow-y:auto;padding:22px 24px 30px;transform:translateX(104%);transition:transform .45s var(--ease)}
+.idea.abierta{transform:none}
+.idea h2{font-family:'EB Garamond',serif;font-weight:500;font-size:28px;line-height:1.1}
+.idea h3{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);margin:18px 0 6px}
+.idea p,.idea li{font-size:13.5px;color:var(--t80);line-height:1.55}
+.idea ul{margin-left:18px;display:grid;gap:5px}
+.idea b{color:var(--tinta);font-weight:600}
+.idea .cerrar{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--sand)}
+.idea .ojo{margin-top:16px;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80)}
+
+.rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;transition-delay:0ms!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important;transition-delay:0ms!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-inicio" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-pulso" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-bolsa" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-caja3d" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+<symbol id="i-capas" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+<symbol id="i-camion" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></symbol>
+<symbol id="i-cartera" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-premio" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></symbol>
+<symbol id="i-barras" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-historia" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+<symbol id="i-abajo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-dolar" viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+<symbol id="i-marca" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+<symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-cambio" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+<symbol id="i-tijera" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></symbol>
+<symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 13h4"/><path d="M10 17h4"/></symbol>
+<symbol id="i-camara" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+<symbol id="i-sunat" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 9h8"/><path d="M8 13h5"/><path d="m14 16 2 2 4-4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></symbol>
+<symbol id="i-pausa" viewBox="0 0 24 24"><path d="M7 4h3v16H7zM14 4h3v16h-3z" fill="currentColor"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena" id="esc"></div>
+<aside class="idea" id="idea" aria-label="La idea de la maqueta"></aside>
+<script>
+/* =====================================================================
+   ESTADO
+   ===================================================================== */
+const S={m:'A',vista:'escritorio',momento:'tarde',periodo:'hoy',foco:'TODAS',vivo:true,bucle:true,rm:false,falla:false,now:1060,sim:0,alerta:null,idea:false,replay:false,rapido:false,vistos:new Set()};
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const ic=(n,c='')=>`<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const reducido=()=>S.rm||matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ISO=`<svg viewBox="0 0 223 150" fill="none" stroke="#b8412d" stroke-width="9" stroke-linejoin="round" aria-hidden="true"><path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102"/><path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87"/><path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12"/><path d="M172,16 C156,22 144,38 134,62"/></svg>`;
+
+/* =====================================================================
+   DATOS INVENTADOS (cuadran entre sí)
+   Hoy es sábado 3 de octubre. Las tiendas abren 10:00–21:00.
+   ===================================================================== */
+const ORDEN=['TRU','AQP','LIM'];
+const SEDES={
+  TRU:{nombre:'Tienda TRU',ciudad:'Trujillo',meta:3000,base:2850,tm:150,tend:.03,lon:-79.03,lat:-8.11},
+  AQP:{nombre:'Tienda AQP',ciudad:'Arequipa',meta:2500,base:2400,tm:145,tend:.05,lon:-71.54,lat:-16.41},
+  LIM:{nombre:'Tienda LIM',ciudad:'Lima',meta:2500,base:2000,tm:158,tend:.08,lon:-77.04,lat:-12.05}};
+const T0=600,T1=1260;           // 10:00 → 21:00
+const HOY=59;                   // índice de hoy en el historial de 60 días
+// Parte del día que un sábado típico ya vendió a las 9, 10, … 21 h.
+const SHARE=[0,0,.04,.10,.19,.30,.40,.50,.61,.72,.82,.91,1];
+const share=t=>{const a=540;if(t<=a)return 0;if(t>=1260)return 1;const h=(t-a)/60,i=Math.floor(h),f=h-i;return SHARE[i]+(SHARE[i+1]-SHARE[i])*f};
+const FDIA=[1.19,.78,.82,.86,.92,1.08,1.35];   // dom, lun, …, sáb
+const GENTE={TRU:['Rosa Quispe','Ana Flores','Diego Ramos'],AQP:['Lucía Mamani','Sofía Torres'],LIM:['Carla Vega','Marco Díaz']};
+const SLOTS={TRU:{10:180,11:320,12:410,13:520,14:380,15:450,16:560,17:360},AQP:{10:150,11:260,12:340,13:420,14:300,15:390,16:380,17:220},LIM:{10:60,11:120,12:210,13:260,14:330,15:240,16:380,17:290}};
+const TICKETS={TRU:21,AQP:17,LIM:12};
+const APERTURA={TRU:592,AQP:605,LIM:620};
+const TONOS=[['#e7dccb','#d9c9b0'],['#ece2d4','#ddd0bc'],['#dfe2dc','#c9cfc4'],['#dde1e6','#c7ced6'],['#e9dfd6','#d8c6b8']];
+const PRENDAS=[{n:'Polo Básico',c:'Arena',precio:39,ini:'PB',tono:0,hoy:11},{n:'Blusa Lucía',c:'Blanco',precio:90,ini:'BL',tono:1,hoy:9},{n:'Jean Baggy',c:'Azul claro',precio:99,ini:'JB',tono:3,hoy:7},{n:'Vestido Mar',c:'Esmeralda',precio:129,ini:'VM',tono:2,hoy:5},{n:'Blazer Sol',c:'Beige',precio:159,ini:'BZ',tono:4,hoy:3},{n:'Bailarina Alba',c:'Coral',precio:79,ini:'BA',tono:0,hoy:2}];
+const COLA=[{sede:'LIM',p:3,q:1},{sede:'TRU',p:1,q:2},{sede:'AQP',p:2,q:1},{sede:'LIM',p:0,q:3},{sede:'TRU',p:4,q:1},{sede:'AQP',p:5,q:1},{sede:'LIM',p:1,q:1},{sede:'TRU',p:0,q:2}];
+const ALERTAS=[
+  {k:'aperturas',niv:'urg',n:5,ic:'dolar',t:'Aperturas con diferencia',por:{TRU:2,AQP:2,LIM:1},edad:7,ir:'Caja ▸ Aperturas por revisar'},
+  {k:'regularizar',niv:'urg',n:31,ic:'etiqueta',t:'Prendas por regularizar',por:{TRU:14,AQP:9,LIM:8},edad:6,ir:'Prendas sin registrar'},
+  {k:'traslados',niv:'hoy',n:2,ic:'flecha',t:'Traslados',por:{TRU:1,LIM:1},edad:1,ir:'Inventario ▸ Traslados'},
+  {k:'apartados',niv:'hoy',n:1,ic:'marca',t:'Apartado por vencer',por:{AQP:1},edad:6,ir:'Ventas ▸ Apartados'},
+  {k:'facturas',niv:'semana',n:3,ic:'doc',t:'Facturas por vencer',por:null,edad:2,ir:'Compras ▸ Por pagar'},
+  {k:'fotos',niv:'semana',n:12,ic:'camara',t:'Fotos que faltan',por:{TRU:5,AQP:4,LIM:3},edad:4,ir:'Catálogo ▸ Fotos que faltan'},
+  {k:'sunat',niv:'ok',n:0,ic:'sunat',t:'SUNAT al día',ir:'Ventas ▸ Comprobantes'},
+  {k:'devoluciones',niv:'ok',n:0,ic:'cambio',t:'Devoluciones al día',ir:'Posventa ▸ Devoluciones'}];
+const NIVEL_COLOR={urg:'var(--urg)',hoy:'var(--warn)',semana:'var(--info)',ok:'var(--ok)'};
+
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+// 60 días por sede: venta y tickets de cada día cerrado (hoy se calcula aparte, en vivo).
+function genHist(){const r=rng(9031),H={};
+  for(const s of ORDEN){const d=SEDES[s];H[s]=[];
+    for(let i=0;i<60;i++){const dow=((6-(HOY-i))%7+7)%7;
+      const v=Math.round(d.base*FDIA[dow]*(1+(r()-.5)*.24)*(1+d.tend*(i-30)/30)/10)*10;
+      H[s].push({v,t:Math.max(1,Math.round(v/(d.tm*(1+(r()-.5)*.1))))})}}
+  // el sábado pasado, fijo, para que la comparación de hoy sea limpia
+  H.TRU[HOY-7]={v:4250,t:28};H.AQP[HOY-7]={v:3190,t:22};H.LIM[HOY-7]={v:2400,t:15};
+  return H}
+const HIST=genHist();
+function generarVentas(apert){
+  const r=rng(20261003),out=[];let id=0;
+  for(const s of ORDEN){
+    if(!apert[s])continue;
+    const sl=SLOTS[s],hs=Object.keys(sl).map(Number),tot=hs.reduce((a,h)=>a+sl[h],0),extra=TICKETS[s]-hs.length;
+    const raw=hs.map(h=>extra*sl[h]/tot),k=raw.map(x=>1+Math.floor(x));
+    raw.map((x,i)=>[x-Math.floor(x),i]).sort((a,b)=>b[0]-a[0]).slice(0,TICKETS[s]-k.reduce((a,b)=>a+b,0)).forEach(([,i])=>k[i]++);
+    hs.forEach((h,i)=>{const n=k[i],w=Array.from({length:n},()=>.55+r()),sw=w.reduce((a,b)=>a+b,0);
+      const desde=Math.max(h*60,apert[s]+3),hasta=Math.min(h*60+59,1059),ts=Array.from({length:n},()=>Math.round(desde+r()*(hasta-desde))).sort((a,b)=>a-b);
+      let resto=sl[h];for(let j=0;j<n;j++){const m=j===n-1?resto:Math.round(sl[h]*w[j]/sw);resto-=m;
+        out.push({id:'v'+(id++),sede:s,t:ts[j],monto:m,prendas:Math.max(1,Math.min(4,Math.round(m/85))),quien:GENTE[s][Math.floor(r()*GENTE[s].length)]})}});
+  }
+  return out.sort((a,b)=>a.t-b.t)}
+function escenario(m){
+  const tarde=m==='tarde';
+  const abiertas=tarde?{TRU:592,AQP:605,LIM:620}:{TRU:572,AQP:null,LIM:null};
+  return {abiertas,ventas:tarde?generarVentas(abiertas):[],unid:PRENDAS.map(p=>tarde?p.hoy:0),nid:100,
+    turno:tarde?{TRU:3,AQP:2,LIM:2}:{TRU:2,AQP:0,LIM:0}};
+}
+let DIA=escenario('tarde');
+
+/* =====================================================================
+   CÁLCULOS: una sede (o toda CAYLA) en un periodo
+   ===================================================================== */
+const sum=(a,f)=>a.reduce((s,x)=>s+(f?x[f]:x),0);
+const fechaDe=i=>{const d=new Date(2026,9,3);d.setDate(d.getDate()-(HOY-i));return d};
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],DSEM=['D','L','M','M','J','V','S'];
+function calc(F,P=S.periodo){
+  const ss=F==='TODAS'?ORDEN:[F],sh=share(S.now);
+  const vh=DIA.ventas.filter(v=>ss.includes(v.sede)&&v.t<=S.now);
+  const hoyV=sum(vh,'monto'),hoyT=vh.length,hoyP=sum(vh,'prendas'),metaD=ss.reduce((a,s)=>a+SEDES[s].meta,0);
+  const dia=i=>i===HOY?hoyV:ss.reduce((a,s)=>a+HIST[s][i].v,0),tk=i=>i===HOY?hoyT:ss.reduce((a,s)=>a+HIST[s][i].t,0);
+  const r={F,ss,metaD,abiertas:ss.filter(s=>DIA.abiertas[s]&&DIA.abiertas[s]<=S.now).length,turno:ss.reduce((a,s)=>a+DIA.turno[s],0)};
+  if(P==='hoy'){
+    const lwF=dia(HOY-7);
+    Object.assign(r,{n:1,total:hoyV,tickets:hoyT,prendas:hoyP,meta:metaD,prev:lwF*sh,
+      slots:Array.from({length:11},(_,i)=>sum(vh.filter(v=>Math.floor(v.t/60)===10+i),'monto')),
+      fant:Array.from({length:11},(_,i)=>lwF*(SHARE[i+2]-SHARE[i+1])),
+      etq:Array.from({length:11},(_,i)=>{const h=10+i;return h===12?'12':String(h>12?h-12:h)}),
+      cur:Math.max(0,Math.min(10,Math.floor(S.now/60)-10)),
+      // carrera: % de la meta del día acumulado, un punto por hora; lo que viene después de «ahora» se junta en «ahora»
+      acum:Array.from({length:12},(_,i)=>{const t=Math.min(T0+60*i,S.now);return [(t-T0)/(T1-T0),sum(vh.filter(v=>v.t<=t),'monto')/metaD*100]}),
+      ideal:Array.from({length:12},(_,i)=>[i/11,share(T0+60*i)*100]),xNow:Math.max(0,(S.now-T0)/(T1-T0))});
+  }else{
+    const n=P==='7d'?7:30,ini=HOY-n+1,idx=Array.from({length:n},(_,i)=>ini+i);
+    const prevIdx=Array.from({length:n},(_,i)=>ini-n+i);
+    const total=sum(idx.map(dia)),prev=sum(prevIdx.slice(0,-1).map(dia))+dia(prevIdx[n-1])*sh;
+    let c=0;const acum=[[0,0]];idx.forEach((i,j)=>{c+=dia(i);acum.push([(j+(i===HOY?Math.max(.02,sh):1))/n,c/(metaD*n)*100])});
+    Object.assign(r,{n,total,prev,tickets:sum(idx.map(tk)),prendas:Math.round(sum(idx.slice(0,-1).map(tk))*1.62)+hoyP,meta:metaD*n,
+      slots:idx.map(dia),fant:prevIdx.map(dia),
+      etq:idx.map(i=>{const d=fechaDe(i);return n===7?DSEM[d.getDay()]:(d.getDate()===1||(HOY-i)%7===0?String(d.getDate()):'')}),
+      cur:n-1,acum,ideal:Array.from({length:n+1},(_,j)=>[j/n,j/n*100]),xNow:(n-1+sh)/n});
+  }
+  r.pct=r.meta?r.total/r.meta*100:0;r.medio=r.tickets?r.total/r.tickets:null;r.delta=r.prev>60?(r.total/r.prev-1)*100:null;r.ppt=r.tickets?r.prendas/r.tickets:null;
+  return r;
+}
+const rankear=()=>ORDEN.map(s=>calc(s)).sort((a,b)=>b.pct-a.pct);
+function eventos(){return DIA.ventas.filter(v=>v.t<=S.now).sort((a,b)=>b.t-a.t)}
+
+/* =====================================================================
+   FORMATO (como lib/resumen-formato.ts)
+   ===================================================================== */
+const fmtS=n=>'S/ '+Math.round(n).toLocaleString('en-US');
+const fmtN=n=>Math.round(n).toLocaleString('en-US');
+const fmtP=n=>Math.round(n)+'%';
+const fmtV=n=>{const r=Math.round(n);return (r>0?'+':r<0?'−':'')+Math.abs(r)+'%'};
+const fmtD=n=>(Math.round(n*10)/10).toFixed(1);
+const fmt=(f,v)=>f==='s'?fmtS(v):f==='n'?fmtN(v):f==='p'?fmtP(v):f==='v'?fmtV(v):f==='d'?fmtD(v):String(v);
+function hora12(min){const h=Math.floor(min/60),m=Math.floor(min%60);return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'p. m.':'a. m.'}`}
+const saludo=()=>S.now<720?'Buenos días':S.now<1140?'Buenas tardes':'Buenas noches';
+const nombreFoco=F=>F==='TODAS'?'Toda CAYLA':SEDES[F].nombre;
+const periodoTxt=()=>S.periodo==='hoy'?`Hoy · sábado 3 de octubre · ${hora12(S.now)}`:S.periodo==='7d'?'Últimos 7 días · 27 sep – 3 oct':'Últimos 30 días · 4 sep – 3 oct';
+const vsTxt=()=>S.periodo==='hoy'?'vs sáb. pasado':S.periodo==='7d'?'vs 7 días antes':'vs 30 días antes';
+const deltaChip=c=>c.delta===null?'<span class="chip"><i></i>Sin comparación</span>':`<span class="chip ${c.delta>=0?'ok':'warn'}"><i></i>${fmtV(c.delta)} ${vsTxt()}</span>`;
+const esFoco=s=>S.foco===s||S.foco==='TODAS';
+
+/* =====================================================================
+   MOTOR DE MOVIMIENTO
+   Antes de repintar se guarda lo que había (cifras, odómetros, estilos,
+   trazos y posiciones); después se anima desde ahí. Una venta nueva, otro
+   periodo u otra sede re-asientan solo lo que cambió (ADR-0128). En la
+   primera entrada, lo que está más abajo espera a verse para animarse.
+   ===================================================================== */
+let ENTRADA=false;
+const K=(k,v,f='s')=>`<span class="k" data-k="${k}" data-v="${v}" data-f="${f}">${fmt(f,v)}</span>`;
+const DIGS=[0,1,2].map(()=>'0123456789'.split('').map(d=>`<span>${d}</span>`).join('')).join('');
+const O=(k,v,f='s')=>{const s=fmt(f,v);return `<span class="odo" data-o="${k}" data-v="${v}" data-f="${f}" aria-label="${s}">${[...s].map(ch=>/\d/.test(ch)?`<span class="dg"><span class="tira" data-d="${ch}" style="transform:translateY(${-(10+ +ch)*100/30}%)">${DIGS}</span></span>`:`<span class="sep">${ch===' '?'&nbsp;':ch}</span>`).join('')}</span>`};
+function A(key,fin,ini,dl,extra=''){const css=Object.entries(fin).map(([p,v])=>p+':'+v).join(';');return `data-a="${key}" data-fin='${JSON.stringify(fin)}' data-ini='${JSON.stringify(ini??fin)}'${dl?` data-dl="${dl}"`:''} style="${css};${extra}"`}
+const r2=p=>[+p[0].toFixed(2),+p[1].toFixed(2)];
+function suave(pts){const p=pts.filter((q,i)=>i===0||Math.abs(q[0]-pts[i-1][0])>.01||Math.abs(q[1]-pts[i-1][1])>.01),n=p.length,f=v=>v.toFixed(2);
+  if(n<3)return 'M'+p.map(q=>f(q[0])+' '+f(q[1])).join(' L');
+  const dx=[],m=[];for(let i=0;i<n-1;i++){dx.push(p[i+1][0]-p[i][0]);m.push(dx[i]>1e-6?(p[i+1][1]-p[i][1])/dx[i]:0)}
+  const t=[m[0]];for(let i=1;i<n-1;i++)t.push(m[i-1]*m[i]<=0?0:(m[i-1]+m[i])/2);t.push(m[n-2]);
+  for(let i=0;i<n-1;i++){if(m[i]===0){t[i]=0;t[i+1]=0;continue}const a=t[i]/m[i],b=t[i+1]/m[i],h=a*a+b*b;if(h>9){const k=3/Math.sqrt(h);t[i]=k*a*m[i];t[i+1]=k*b*m[i]}}
+  let d=`M${f(p[0][0])} ${f(p[0][1])}`;for(let i=0;i<n-1;i++){const h=dx[i]/3;d+=` C${f(p[i][0]+h)} ${f(p[i][1]+t[i]*h)} ${f(p[i+1][0]-h)} ${f(p[i+1][1]-t[i+1]*h)} ${f(p[i+1][0])} ${f(p[i+1][1])}`}return d}
+function trazo(pts,kind){let d=suave(pts);if(kind==='a')d+=` L${pts[pts.length-1][0].toFixed(2)} 100 L${pts[0][0].toFixed(2)} 100 Z`;return d}
+const P=(key,pts,kind,cls,extra='')=>`<path class="${cls}" data-p="${key}" data-kind="${kind}" data-pts='${JSON.stringify(pts.map(r2))}' d="${trazo(pts,kind)}" ${extra}/>`;
+const igual=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function capturar(root){const p={k:{},o:{},a:{},p:{},f:{}};
+  $$('[data-k]',root).forEach(e=>p.k[e.dataset.k]=+e.dataset.v);
+  $$('[data-o]',root).forEach(e=>p.o[e.dataset.o]=+e.dataset.v);
+  $$('[data-a]',root).forEach(e=>p.a[e.dataset.a]=JSON.parse(e.dataset.fin));
+  $$('[data-p]',root).forEach(e=>p.p[e.dataset.p]=JSON.parse(e.dataset.pts));
+  $$('[data-flip]',root).forEach(e=>p.f[e.dataset.flip]=e.getBoundingClientRect());return p}
+const dur=(n)=>S.rapido?110:n;
+function contar(e,from,to,f,d,delay){const t0=performance.now()+delay,ease=x=>1-Math.pow(1-x,3);e.textContent=fmt(f,from);
+  const paso=now=>{const x=Math.min(1,Math.max(0,(now-t0)/d));e.textContent=fmt(f,from+(to-from)*(S.rapido?x:ease(x)));if(x<1)requestAnimationFrame(paso);else e.textContent=fmt(f,to)};requestAnimationFrame(paso)}
+function moverTrazo(e,from,to,kind){const t0=performance.now(),d=dur(800),ease=x=>1-Math.pow(1-x,3);
+  const paso=now=>{const x=Math.min(1,(now-t0)/d),k=S.rapido?x:ease(x);e.setAttribute('d',trazo(from.map((p,i)=>[p[0]+(to[i][0]-p[0])*k,p[1]+(to[i][1]-p[1])*k]),kind));if(x<1)requestAnimationFrame(paso)};
+  e.setAttribute('d',trazo(from,kind));requestAnimationFrame(paso)}
+function rodar(e,prevV,entrada,delay){
+  const tiras=$$('.tira',e),viejo=prevV===undefined?null:[...fmt(e.dataset.f,prevV)].filter(c=>/\d/.test(c)),n=tiras.length,out=[];
+  tiras.forEach((t,i)=>{const d=+t.dataset.d,ri=n-1-i;let from,to;
+    if(entrada){from=0;to=20+d}else{const pv=viejo?viejo[viejo.length-1-ri]:undefined;from=pv===undefined?10:10+ +pv;to=10+d}
+    if(from===to)return;t.style.transition='none';t.style.transform=`translateY(${-from*100/30}%)`;
+    out.push([t,to,entrada?delay+i*85:i*35,entrada?1500+(n-i)*90:dur(900)])});
+  if(!out.length)return;e.getBoundingClientRect();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>out.forEach(([t,to,dl,du])=>{t.style.transition=`transform ${du}ms ${S.rapido?'linear':'cubic-bezier(.16,.84,.28,1)'} ${dl}ms`;t.style.transform=`translateY(${-to*100/30}%)`})));
+}
+function retrasoDe(e){const c=e.closest('[style*="--i"]');const i=c?parseFloat(c.style.getPropertyValue('--i'))||0:0;return 200+i*70}
+// Un elemento dentro de una sección «.revelar» espera a que la sección se vea para animarse.
+function cuando(e,fn,entrada){const sec=entrada&&e.closest('.revelar');if(sec&&!sec.classList.contains('visto')){(sec._cola||(sec._cola=[])).push(fn)}else fn()}
+function animar(root,prev,entrada){
+  const rm=reducido();
+  $$('[data-k]',root).forEach(e=>{const to=+e.dataset.v,ant=prev.k[e.dataset.k],from=entrada?0:(ant??to);
+    if(!entrada&&ant!==undefined&&Math.round(ant)!==Math.round(to)&&!S.rapido)e.classList.add('cambio');
+    if(rm||from===to)return;if(entrada)e.textContent=fmt(e.dataset.f,0);cuando(e,()=>contar(e,from,to,e.dataset.f,entrada?1200:dur(700),entrada?retrasoDe(e):0),entrada)});
+  $$('[data-o]',root).forEach(e=>{if(rm)return;const ant=prev.o[e.dataset.o];if(!entrada&&(ant===undefined||ant===+e.dataset.v))return;
+    if(entrada)$$('.tira',e).forEach(t=>{t.style.transition='none';t.style.transform='translateY(0%)'});
+    cuando(e,()=>rodar(e,ant,entrada,entrada?retrasoDe(e):0),entrada)});
+  $$('[data-a]',root).forEach(e=>{const fin=JSON.parse(e.dataset.fin),from=entrada?JSON.parse(e.dataset.ini):prev.a[e.dataset.a];
+    if(rm||!from||igual(from,fin))return;e.style.transition='none';for(const k in from)e.style.setProperty(k,from[k]);
+    cuando(e,()=>{e.getBoundingClientRect();requestAnimationFrame(()=>requestAnimationFrame(()=>{e.style.transition='';if(entrada&&e.dataset.dl)e.style.transitionDelay=e.dataset.dl+'ms';for(const k in fin)e.style.setProperty(k,fin[k])}))},entrada)});
+  if(!entrada&&!rm)$$('[data-p]',root).forEach(e=>{const from=prev.p[e.dataset.p],to=JSON.parse(e.dataset.pts);
+    if(from&&from.length===to.length){if(!igual(from,to))moverTrazo(e,from,to,e.dataset.kind)}else{const sv=e.closest('.revela');if(sv&&!sv._re){sv._re=1;sv.classList.remove('ya');requestAnimationFrame(()=>requestAnimationFrame(()=>sv.classList.add('ya')))}}});
+  if(entrada)$$('.revela',root).forEach(s=>cuando(s,()=>requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.add('ya'))),true));
+  if(!entrada&&!rm)$$('[data-flip]',root).forEach(e=>{const a=prev.f[e.dataset.flip];if(!a)return;const b=e.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;
+    if(Math.abs(dx)<1&&Math.abs(dy)<1)return;e.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:S.rapido?260:700,easing:'cubic-bezier(.32,.72,.24,1)'})});
+}
+let io=null;
+function observar(root){io&&io.disconnect();const col=$('#col');
+  io=new IntersectionObserver(es=>es.forEach(en=>{if(!en.isIntersecting)return;const s=en.target;s.classList.add('visto');const cola=s._cola||[];s._cola=[];setTimeout(()=>cola.forEach(f=>f()),parseFloat(getComputedStyle(s).getPropertyValue('--rd'))||0);io.unobserve(s)}),{root:col,threshold:.1});
+  $$('.revelar',root).forEach(s=>io.observe(s))}
+function pintar(entrada){
+  const cont=$('#cont');if(!cont)return;
+  const prev=capturar(cont);ENTRADA=entrada;
+  cont.innerHTML=MAQ[S.m].pinta();
+  const root=cont.firstElementChild;
+  if(entrada&&!reducido()){root.classList.add('entrando');$('#col').scrollTop=0;observar(root)}
+  else{$$('.revelar',root).forEach(s=>s.classList.add('visto'));if(reducido())$$('.revela',root).forEach(s=>s.classList.add('ya'))}
+  animar(root,prev,entrada);
+  eventos().forEach(e=>S.vistos.add(e.id));
+  ENTRADA=false;
+}
+const esNuevo=id=>!ENTRADA&&!S.vistos.has(id);
+const rev=(i)=>`${ENTRADA?'revelar':'revelar visto'}" style="--rd:${i*90}ms`;
+
+/* =====================================================================
+   PIEZAS COMUNES
+   ===================================================================== */
+function sd(k,ops,fn){const i=Math.max(0,ops.findIndex(o=>o[0]===S[k]));return `<div class="sd" style="--n:${ops.length}" role="tablist"><i class="sd-ind" ${A('sd-'+k,{transform:`translateX(${i*100}%)`})}></i>${ops.map(([v,t])=>`<button class="${S[k]===v?'on':''}" role="tab" aria-selected="${S[k]===v}" onclick="${fn}('${v}')">${t}</button>`).join('')}</div>`}
+function controles(){return `<div class="ctrl">${sd('periodo',[['hoy','Hoy'],['7d','7 días'],['30d','30 días']],'ponerPeriodo')}${sd('foco',[['TODAS','<span class="largo">Toda </span>CAYLA'],['TRU','TRU'],['AQP','AQP'],['LIM','LIM']],'enfocar')}
+  <button class="repetir ${S.replay?'va':''}" onclick="repetirDia()" ${S.periodo!=='hoy'?'disabled title="Solo en «Hoy»"':''}>${ic(S.replay?'pausa':'play')}<span>${S.replay?`<span class="reloj-rep">${hora12(S.now)}</span>`:'Repetir el día'}</span></button></div>`}
+function anillo(pct,key,r=52,w=8,dl=250){const p=Math.min(100,Math.max(0,pct));return `<svg viewBox="0 0 120 120" class="anillo"><circle cx="60" cy="60" r="${r}" class="an-f" stroke-width="${w}"/><circle cx="60" cy="60" r="${r}" pathLength="100" stroke-width="${w}" class="an-v ${pct>=100?'ok':''}" ${A(key,{'stroke-dasharray':`${p.toFixed(2)} 100`},{'stroke-dasharray':'0 100'},dl)}/></svg>`}
+const sw=p=>`<span class="sw" style="background:linear-gradient(160deg,${TONOS[p.tono][0]},${TONOS[p.tono][1]})">${p.ini}</span>`;
+function tallerHTML(){
+  if(S.falla)return `<div class="fallo">${ic('alerta')}<b>Sin datos del Taller</b><span>No se pudo leer. No mostramos 0.</span><button onclick="reintentar()">Reintentar ${ic('flecha','s')}</button></div>`;
+  const P=S.periodo,hecho=P==='hoy'?(S.momento==='tarde'?38:0):P==='7d'?214:868,meta=P==='hoy'?48:P==='7d'?260:1040;
+  return `<div class="tl"><div class="an">${anillo(hecho/meta*100,'tl-an',50,7,600)}<b>${K('tl-n',hecho,'n')}<small>de ${meta}</small></b></div>
+  <ul><li><b>4</b> órdenes en curso</li><li><span class="chip warn"><i></i>1 atrasada</span></li><li>prendas cosidas</li></ul></div>`;
+}
+function distribucion(a){if(!a.por)return '';const t=ORDEN.map(s=>a.por[s]||0),tot=sum(t)||1;return `<div class="dist">${t.map((v,i)=>v?`<i style="width:${v/tot*100}%;${i?'':''}"></i>`:'').join('')}</div><div class="dist-l">${ORDEN.map((s,i)=>t[i]?`<span>${s} ${t[i]}</span>`:'').join('')}</div>`}
+// El detalle de cada aviso: un gráfico chico que dice lo mismo que la tabla, sin leer.
+function detalleHTML(a){
+  let viz='';
+  if(a.k==='aperturas'){const fs=[['TRU','jue 1',-20],['AQP','jue 1',5],['LIM','vie 2',-50],['TRU','vie 2',-10],['AQP','sáb 26',-5]],mx=50;
+    viz=`<div class="dv">${fs.map(([s,d,v],i)=>`<span>${s} · ${d}</span><span class="eje" style="border:0;display:flex;justify-content:flex-end">${v<0?`<i class="neg" ${A('dv'+i,{width:(-v/mx*100)+'%'},{width:'0%'},i*90)}></i>`:''}</span><span class="eje">${v>0?`<i class="pos" ${A('dv'+i,{width:(v/mx*100)+'%'},{width:'0%'},i*90)}></i>`:''}</span><span class="v">${v<0?'−':'+'}S/ ${Math.abs(v)}</span>`).join('')}</div>
+    <div class="det-pie"><span>Faltan <b>S/ 80</b> en total</span><button class="ir" onclick="irA('${a.ir}')">Revisar ${ic('flecha','s')}</button></div>`}
+  else if(a.k==='regularizar'||a.k==='fotos'){const mx=Math.max(...ORDEN.map(s=>a.por[s]));
+    viz=`<div class="hb">${ORDEN.map((s,i)=>`<span>${s}</span><span class="pista"><i ${A('hb'+i,{width:(a.por[s]/mx*100)+'%'},{width:'0%'},i*110)}></i></span><b>${a.por[s]}</b>`).join('')}</div>
+    <div class="det-pie"><span>${a.k==='regularizar'?'La más antigua: <b>6 días</b>':'Sin foto no se reconocen entre sedes'}</span><button class="ir" onclick="irA('${a.ir}')">Ver ${ic('flecha','s')}</button></div>`}
+  else if(a.k==='facturas'){const ds=[['L',2600],['M',0],['M',980],['J',0],['V',700],['S',0],['D',0]];
+    viz=`<div class="sem7">${ds.map(([d,v],i)=>`<div>${v?`<span class="bola" style="width:${18+v/2600*34}px;height:${18+v/2600*34}px">${v>=1000?Math.round(v/100)/10+'k':v}</span>`:''}<span class="${i===0?'hoyd':''}">${d}</span></div>`).join('')}</div>
+    <div class="det-pie"><span><b>S/ 4,280</b> a 2 proveedores</span><button class="ir" onclick="irA('${a.ir}')">Ver ${ic('flecha','s')}</button></div>`}
+  else if(a.k==='traslados'){viz=`<div class="rutas"><div class="ruta"><span>TRU</span><span class="via camino"><em></em></span><span>LIM</span><small>14 prendas · llega hoy</small></div><div class="ruta"><span>LIM</span><span class="via prep"></span><span>AQP</span><small>8 prendas · por preparar</small></div></div>
+    <div class="det-pie"><span></span><button class="ir" onclick="irA('${a.ir}')">Ver ${ic('flecha','s')}</button></div>`}
+  else if(a.k==='apartados'){viz=`<div class="tl"><div class="an">${anillo(40/129*100,'ap-an',50,7)}<b>31%<small>pagado</small></b></div><ul><li><b>Vestido Mar</b> · AQP</li><li>S/ 40 de S/ 129</li><li><span class="chip warn"><i></i>Vence mañana</span></li></ul></div>
+    <div class="det-pie"><span></span><button class="ir" onclick="irA('${a.ir}')">Ver ${ic('flecha','s')}</button></div>`}
+  return `<div class="det"><div class="det-cab"><b>${a.n}</b><span>${a.t}</span><button class="cerrar" onclick="abrirAlerta('${a.k}')" aria-label="Cerrar">${ic('x','s')}</button></div>${viz}</div>`;
+}
+function abrirAlerta(k){const a=ALERTAS.find(x=>x.k===k);if(a&&a.niv==='ok'){irA(a.ir);return}
+  const go=()=>{S.alerta=S.alerta===k?null:k;pintar(false)};
+  if(document.startViewTransition&&!reducido())document.startViewTransition(go);else go()}
+const vt=k=>`view-transition-name:al-${k}`;
+
+/* =====================================================================
+   A · OBSERVATORIO
+   ===================================================================== */
+const PERU=[[-80.34,-3.39],[-80.15,-3.86],[-79.65,-4.43],[-79.25,-4.95],[-78.95,-4.6],[-78.45,-3.9],[-78.2,-3.4],[-77.85,-2.95],[-76.65,-2.6],[-75.55,-1.55],[-75.25,-.95],[-75.2,-.05],[-74,-.9],[-72.9,-2.4],[-71.6,-2.2],[-70.6,-2.75],[-70.05,-2.75],[-70.7,-3.8],[-69.95,-4.22],[-70.9,-4.9],[-72,-5.3],[-72.9,-6.1],[-73.2,-6.9],[-73.8,-7.4],[-73.7,-7.9],[-74,-8.4],[-73.5,-9.2],[-72.6,-9.4],[-72.2,-10],[-70.6,-9.6],[-70.55,-11],[-69.57,-10.95],[-68.7,-12.5],[-68.9,-13],[-69,-14.2],[-69.2,-14.6],[-69.4,-15.3],[-69.1,-15.9],[-69.04,-16.57],[-69.5,-17.3],[-69.8,-17.7],[-70.37,-18.35],[-71.4,-17.7],[-72.4,-16.9],[-73.3,-16.3],[-74.4,-15.6],[-75.2,-15.3],[-75.9,-14.6],[-76.3,-13.9],[-76.6,-13.2],[-76.9,-12.4],[-77.2,-11.95],[-77.6,-11.2],[-78.1,-10.3],[-78.6,-9.2],[-79,-8.2],[-79.5,-7.4],[-79.9,-6.9],[-80.7,-6.1],[-81.18,-5.93],[-80.95,-5.5],[-81.12,-5.08],[-81.33,-4.68],[-81.05,-4.1],[-80.6,-3.6]];
+const MW=725.7,MH=780,px=(lon,lat)=>[(lon+86.6)*.986*40,(.6-lat)*40];
+const TALLER_XY=px(-75.7,-11.25);
+function mapaA(){
+  const cs=Object.fromEntries(ORDEN.map(s=>[s,calc(s)])),vmax=Math.max(...ORDEN.map(s=>cs[s].total),1);
+  const contorno='M'+PERU.map(p=>px(...p).map(v=>v.toFixed(1)).join(' ')).join(' L')+'Z';
+  let ret='';for(let lo=-86;lo<=-68;lo+=2){const x=px(lo,0)[0];ret+=`<line class="ret" x1="${x}" y1="0" x2="${x}" y2="${MH}"/>`}for(let la=0;la>=-18;la-=2){const y=px(0,la)[1];ret+=`<line class="ret" x1="0" y1="${y}" x2="${MW}" y2="${y}"/>`}
+  const P0=px(SEDES.TRU.lon,SEDES.TRU.lat),P1=px(SEDES.LIM.lon,SEDES.LIM.lat),P2=px(SEDES.AQP.lon,SEDES.AQP.lat);
+  const arco1=`M${P0[0]} ${P0[1]} Q ${P0[0]+150} ${(P0[1]+P1[1])/2-10} ${P1[0]} ${P1[1]}`,arco2=`M${P1[0]} ${P1[1]} Q ${P1[0]+150} ${P1[1]+40} ${P2[0]} ${P2[1]}`;
+  const LX=250;
+  const nodos=ORDEN.map((s,d)=>{const c=cs[s],[x,y]=px(SEDES[s].lon,SEDES[s].lat),r=8+20*Math.sqrt(c.total/vmax),f=S.foco===s,ab=DIA.abiertas[s]&&DIA.abiertas[s]<=S.now;
+    return `<g class="nodo-g" style="--d:${d}" data-pulso="${s}" onclick="enfocar('${s}')" data-tip="${s}">
+      <line class="guia" x1="${LX+6}" y1="${y}" x2="${x-r-10}" y2="${y}"/>
+      <circle class="glow" cx="${x}" cy="${y}" ${A('ng-'+s,{r:(r*1.9).toFixed(1)+'px'},{r:'0px'},1100+d*160)}/>
+      ${ab?`<circle class="latido" cx="${x}" cy="${y}" r="${r.toFixed(1)}"/>`:''}
+      <circle class="anf" cx="${x}" cy="${y}" ${A('nf-'+s,{r:(r+8).toFixed(1)+'px'},{r:'0px'},1100+d*160)}/>
+      <circle class="anr ${c.pct>=100?'ok':''}" cx="${x}" cy="${y}" pathLength="100" ${A('nr-'+s,{r:(r+8).toFixed(1)+'px','stroke-dasharray':`${Math.min(100,c.pct).toFixed(1)} 100`},{r:(r+8).toFixed(1)+'px','stroke-dasharray':'0 100'},1500+d*160)}/>
+      <circle class="nodo ${f?'f':''}" cx="${x}" cy="${y}" ${A('nn-'+s,{r:r.toFixed(1)+'px'},{r:'0px'},1100+d*160)}/>
+    </g>`}).join('');
+  const etiquetas=ORDEN.map((s,d)=>{const c=cs[s],[x,y]=px(SEDES[s].lon,SEDES[s].lat);
+    return `<button class="a-et ${S.foco===s?'f':''}" style="right:${(100-LX/MW*100).toFixed(2)}%;top:${(y/MH*100).toFixed(2)}%;--d:${d}" onclick="enfocar('${s}')" data-tip="${s}"><span class="lbl">${s}<span class="ciu"> · ${SEDES[s].ciudad}</span></span><b>${O('m-'+s,c.total)}</b><span class="p"><i><i ${A('mp-'+s,{width:Math.min(100,c.pct).toFixed(1)+'%'},{width:'0%'},1600+d*160)}></i></i>${K('mpk-'+s,c.pct,'p')}</span></button>`}).join('');
+  const ult=eventos()[0];
+  return `<div class="a-mapa-in">
+    <svg viewBox="0 0 ${MW} ${MH}" aria-label="Mapa de las sedes">
+      <defs><radialGradient id="tierra" cx="55%" cy="45%" r="70%"><stop offset="0" stop-color="#f5f0e8" stop-opacity=".07"/><stop offset="1" stop-color="#f5f0e8" stop-opacity=".015"/></radialGradient>
+      <filter id="halo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="14"/></filter></defs>
+      ${ret}
+      <text class="mar" x="40" y="${MH-60}">Océano Pacífico</text>
+      <path class="peru" d="${contorno}"/>
+      <path class="arco" d="${arco1}"/><path class="estela" pathLength="1" d="${arco1}"/>
+      ${S.bucle&&!reducido()?`<circle class="cometa" r="3.2"><animateMotion dur="3.4s" repeatCount="indefinite" path="${arco1}"/></circle>`:''}
+      <path class="arco prep" d="${arco2}"/>
+      <line class="guia" x1="${P1[0]}" y1="${P1[1]}" x2="${TALLER_XY[0]}" y2="${TALLER_XY[1]}" stroke-dasharray="2 4"/>
+      <rect class="taller" x="${TALLER_XY[0]-6}" y="${TALLER_XY[1]-6}" width="12" height="12" rx="2" data-tip="TALLER"/>
+      ${nodos}
+    </svg>
+    ${etiquetas}
+    <span class="a-et-t" style="left:${(TALLER_XY[0]/MW*100+2.2).toFixed(2)}%;top:${(TALLER_XY[1]/MH*100).toFixed(2)}%">Taller<b>${S.momento==='tarde'?38:0} prendas</b></span>
+    ${ult?`<div class="a-tk"><span class="punto late"></span><span class="${esNuevo(ult.id)?'nuevo':''}">${hora12(ult.t)} · ${ult.sede} · <b>+${fmtS(ult.monto)}</b></span></div>`:''}
+  </div>`;
+}
+function rankingHTML(){const rk=rankear(),mx=Math.max(110,...rk.map(c=>c.pct));
+  return `<div class="rk">${rk.map((c,i)=>`<button class="rk-f ${S.foco===c.F?'f':''}" data-flip="rk-${c.F}" onclick="enfocar('${c.F}')" data-tip="${c.F}"><span class="rk-n">${i+1}</span><span class="rk-s">${c.F}<small>${SEDES[c.F].ciudad}</small></span><span class="rk-b"><i ${A('rb-'+c.F,{width:(c.pct/mx*100).toFixed(1)+'%'},{width:'0%'},400+i*120)}></i><em style="left:${(100/mx*100).toFixed(1)}%"></em></span><span class="rk-v">${K('rv-'+c.F,c.pct,'p')}<small>${fmtS(c.total)}</small></span></button>`).join('')}</div>`}
+function deltasHTML(){const cs=ORDEN.map(s=>calc(s)),mx=Math.max(20,...cs.map(c=>Math.abs(c.delta||0)));
+  return `<div class="dl">${cs.map((c,i)=>{const v=c.delta||0;return `<div class="dl-f" data-tip="${c.F}"><span>${c.F}</span><span class="eje izq">${v<0?`<i ${A('dl-'+c.F,{width:(-v/mx*100).toFixed(1)+'%'},{width:'0%'},300+i*110)}></i>`:''}</span><span class="eje der">${v>0?`<i ${A('dl-'+c.F,{width:(v/mx*100).toFixed(1)+'%'},{width:'0%'},300+i*110)}></i>`:''}</span><span class="v">${c.delta===null?'—':K('dlk-'+c.F,v,'v')}</span></div>`}).join('')}</div>`}
+function sparkHTML(key,vals,cur){const mx=Math.max(...vals,1),n=vals.length;const pts=vals.map((v,i)=>[n===1?50:i/(n-1)*100,100-v/mx*92]);
+  return `<div class="graf spark"><svg viewBox="0 0 100 100" preserveAspectRatio="none" class="revela${ENTRADA?'':' ya'}">${P(key+'a',pts,'a','ar')}${P(key,pts,'l','ln f')}</svg></div>`}
+function orbesHTML(){
+  const ab=S.alerta;
+  return `<div class="orbes">${ALERTAS.map(a=>{const r=a.niv==='ok'?0:Math.min(1,(a.edad||1)/7);
+    return `<button class="orbe ${a.niv} ${ab===a.k?'abierto':''}" onclick="abrirAlerta('${a.k}')" style="${ab===a.k?'':vt(a.k)}" data-tip="AL:${a.k}"><span class="c"><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" stroke="var(--linea)"/>${a.niv!=='ok'?`<circle cx="50" cy="50" r="48" pathLength="100" stroke="${NIVEL_COLOR[a.niv]}" ${A('or-'+a.k,{'stroke-dasharray':`${(r*100).toFixed(1)} 100`},{'stroke-dasharray':'0 100'},500)}/>`:''}</svg>${ic(a.ic,a.niv==='ok'?'':'')}${a.niv==='ok'?'':`<b>${K('on-'+a.k,a.n,'n')}</b>`}</span><span class="t">${a.t}</span></button>`}).join('')}</div>
+  ${ab?`<div class="tj a-det" style="${vt(ab)}">${detalleHTML(ALERTAS.find(x=>x.k===ab))}</div>`:''}`;
+}
+const MAQ={};
+MAQ.A={nombre:'A · Observatorio',oscuro:true,
+  idea:'Una sala de control en oscuro: el negocio sobre el mapa del Perú. Cada tienda es un punto que crece con lo que vende y un anillo que se cierra con su meta; el traslado en camino viaja como un cometa. Casi no hay texto: cifras, formas y movimiento.',
+  mov:['El contorno del Perú se dibuja solo y después se encienden las tres tiendas, una tras otra.','La cifra grande rueda como un odómetro, dígito por dígito.','Los anillos de meta se cierran alrededor de cada tienda; el ranking y las barras de «vs antes» crecen en cascada.','Cuando llega una venta, se abre una onda desde la tienda, su número rueda y el ranking se reordena solo si cambian los puestos.','«Repetir el día» pasa el día de 10:00 a ahora en 7 segundos: las tiendas crecen, los puestos cambian y el total rueda.','Los avisos se tocan y se abren en su lugar, con un gráfico chico; el círculo de color dice cuánto lleva esperando.','Al pasar el mouse, cada tarjeta se ilumina desde el puntero.'],
+  bucle:'el cometa del traslado en camino, el latido de las tiendas abiertas y el halo de los avisos urgentes.',
+  pinta(){
+    const c=calc(S.foco),urg=ALERTAS.filter(a=>a.niv==='urg').length;
+    return `<div class="m mA">
+    <header class="a-cab">
+      <div class="ent" style="--i:0"><p class="a-sobre"><span class="punto late ${S.momento==='tarde'||c.abiertas?'':'no'}"></span><span class="lbl">${nombreFoco(S.foco)} · ${periodoTxt()}</span></p>
+        <span class="a-total">${O('tot',c.total)}</span>
+        <div class="a-meter"><div class="pista"><i ${A('am',{width:Math.min(100,c.pct).toFixed(1)+'%'},{width:'0%'},500)}></i><em style="left:100%"></em></div><div class="pie"><b>${K('pct',c.pct,'p')}</b><span>de ${fmtS(c.meta)}</span>${deltaChip(c)}</div></div></div>
+      <div class="ent" style="--i:1">${controles()}</div>
+    </header>
+    <div class="a-grid">
+      <section class="tj luz a-mapa ent" style="--i:2">${mapaA()}</section>
+      <section class="tj luz a-kpis ent" style="--i:3"><div class="kp">
+        <div><span class="lbl">Tickets</span><b>${K('tk',c.tickets,'n')}</b>${sparkHTML('sp1',c.slots.map((v,i)=>v/(c.medio||150)))}</div>
+        <div><span class="lbl">Ticket medio</span><b>${c.medio?K('md',c.medio):'—'}</b><small>${c.ppt?fmtD(c.ppt)+' prendas por ticket':'sin ventas'}</small></div>
+        <div><span class="lbl">Prendas</span><b>${K('pr',c.prendas,'n')}</b>${sparkHTML('sp2',c.slots)}</div></div></section>
+      <section class="tj luz a-rank ent" style="--i:4"><div class="tcab"><span class="lbl">Ranking · % de la meta</span></div>${rankingHTML()}</section>
+      <section class="tj luz a-delta ent" style="--i:5"><div class="tcab"><span class="lbl">${vsTxt()}</span></div>${deltasHTML()}</section>
+      <section class="tj luz a-taller ent" style="--i:6"><div class="tcab"><span class="lbl">Taller</span></div>${tallerHTML()}</section>
+    </div>
+    <section class="${rev(0)}"><div class="tcab"><span class="lbl">Por revisar · ${urg} urgentes</span></div>${orbesHTML()}</section>
+  </div>`}};
+
+/* =====================================================================
+   B · CARRERA
+   ===================================================================== */
+function carreraHTML(){
+  const cs=Object.fromEntries(ORDEN.map(s=>[s,calc(s)])),mx=Math.max(110,...ORDEN.map(s=>Math.max(...cs[s].acum.map(p=>p[1]))))*1.08,Y=v=>100-v/mx*100;
+  const ideal=cs.TRU.ideal.map(p=>[p[0]*100,Y(p[1])]);
+  const orden=[...ORDEN].sort((a,b)=>(esFoco(a)?1:0)-(esFoco(b)?1:0));
+  const fin=ORDEN.map(s=>{const a=cs[s].acum,l=a[a.length-1];return {s,x:l[0]*100,y:Y(l[1]),v:l[1]}}).sort((a,b)=>a.y-b.y);
+  for(let i=1;i<fin.length;i++)if(fin[i].y-fin[i-1].y<9)fin[i].y=fin[i-1].y+9;
+  const P2=S.periodo,ejes=P2==='hoy'?[[0,'10 a. m.'],[2/11,'12 m.'],[4/11,'2 p. m.'],[6/11,'4 p. m.'],[8/11,'6 p. m.'],[1,'9 p. m.']]:P2==='7d'?[[0,'27 sep'],[3/7,'30 sep'],[1,'3 oct']]:[[0,'4 sep'],[.5,'19 sep'],[1,'3 oct']];
+  window.__carrera={cs,mx};
+  return `<div class="graf b-graf" id="carrera">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="revela${ENTRADA?'':' ya'}">
+      ${[25,50,75,100].map(v=>`<line class="rej" x1="0" x2="100" y1="${Y(v)}" y2="${Y(v)}"/>`).join('')}
+      ${P('ideal',ideal,'l','ideal')}
+      <line class="meta" x1="0" x2="100" y1="${Y(100)}" y2="${Y(100)}"/>
+      ${orden.map(s=>P('c-'+s,cs[s].acum.map(p=>[p[0]*100,Y(p[1])]),'l','ln'+(esFoco(s)?' f':''))).join('')}
+    </svg>
+    <span class="yl" style="top:${Y(50)}%">50%</span><span class="yl" style="top:${Y(100)}%;color:var(--ok);font-weight:600">Meta · 100%</span>
+    ${S.periodo==='hoy'&&cs.TRU.xNow<1?`<div class="ahora" ${A('ahx',{left:(cs.TRU.xNow*100).toFixed(2)+'%'},{left:'0%'})}><span>${hora12(S.now)}</span></div>`:''}
+    ${fin.map(f=>`<span class="fin ${esFoco(f.s)?'f':''}" onclick="enfocar('${f.s}')" ${A('fin-'+f.s,{left:f.x.toFixed(2)+'%',top:f.y.toFixed(2)+'%'},{left:'0%',top:'100%'},300)}><i></i><span>${f.s}</span><em>${fmtP(f.v)}</em></span>`).join('')}
+    <div class="capa" onpointermove="cruzCarrera(event)" onpointerleave="ocultarTip()"></div><i class="cruz" id="cruz"></i>
+    <div class="eje">${ejes.map(([x,t],i)=>`<span class="${i%2&&i<ejes.length-1?'imp':''}" style="left:${x*100}%">${t}</span>`).join('')}</div>
+  </div>`;
+}
+function cruzCarrera(e){const g=$('#carrera'),d=window.__carrera;if(!g||!d)return;const r=g.getBoundingClientRect(),x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  const a0=d.cs.TRU.acum;let j=0,best=9;a0.forEach((p,i)=>{const dd=Math.abs(p[0]-x);if(dd<best){best=dd;j=i}});
+  const cz=$('#cruz');cz.style.left=a0[j][0]*100+'%';
+  const et=S.periodo==='hoy'?hora12(Math.min(T0+60*j,S.now)):j===0?'Inicio':(()=>{const n=d.cs.TRU.n,dd=fechaDe(HOY-n+j);return `${dd.getDate()} ${MES[dd.getMonth()]}`})();
+  const filas=ORDEN.map(s=>[s,d.cs[s].acum[j][1]]).sort((a,b)=>b[1]-a[1]).map(([s,v])=>`<div class="fila ${esFoco(s)?'f':''}"><i></i><b>${fmtP(v)}</b>&nbsp;${s}</div>`).join('');
+  mostrarTip(`<div style="opacity:.7;margin-bottom:4px">${et}</div>${filas}`,e.clientX,e.clientY)}
+function podioHTML(){const rk=rankear();return `<div class="podio">${rk.map((c,i)=>`<button class="pd ${S.foco===c.F?'f':''}" data-flip="pd-${c.F}" onclick="enfocar('${c.F}')"><span class="n">${i+1}</span><b>${c.F}<small>${SEDES[c.F].ciudad}</small></b><span class="v">${K('pv-'+c.F,c.pct,'p')}<small>${fmtS(c.total)}</small></span></button>`).join('')}</div>`}
+function barrasMini(c,key,foco){const mx=Math.max(...c.slots.map((v,i)=>Math.max(v,c.fant[i])),1);
+  return `<div class="mb ${foco?'f':''}" style="--n:${c.slots.length}">${c.slots.map((v,i)=>`<div class="${i===c.cur?'cur':''}" data-tip="BAR:${c.F}:${i}"><i class="g" style="height:${(c.fant[i]/mx*100).toFixed(1)}%"></i><i class="h" ${A(key+i,{height:(v/mx*100).toFixed(1)+'%'},{height:'0%'},300+i*(c.slots.length>12?14:50))}></i></div>`).join('')}</div>`}
+function retratoHTML(s,i){const c=calc(s),f=S.foco===s;
+  return `<article class="tj luz inclina rt ${f?'f':''} ${rev(i+1)}" onclick="enfocar('${s}')" data-pulso="${s}">
+    <div class="rt-top"><b>${s}<small>${SEDES[s].ciudad}</small></b><span style="display:flex;align-items:center;gap:8px"><span class="avs">${GENTE[s].slice(0,DIA.turno[s]).map(n=>`<span>${n.split(' ').map(x=>x[0]).join('')}</span>`).join('')}</span><span class="punto ${DIA.abiertas[s]&&DIA.abiertas[s]<=S.now?'late':'no'}"></span></span></div>
+    <div class="rt-mid"><div class="rt-an">${anillo(c.pct,'ra-'+s,50,8,400)}<span class="c">${K('rp-'+s,c.pct,'p')}<small>meta</small></span></div><div><span class="rt-v">${O('ro-'+s,c.total)}</span><small>de ${fmtS(c.meta)}</small></div></div>
+    ${barrasMini(c,'rb-'+s,f)}
+    <div class="rt-pie"><div>Ticket medio<b>${c.medio?fmtS(c.medio):'—'}</b></div><div>Prendas/ticket<b>${c.ppt?fmtD(c.ppt):'—'}</b></div><div>${vsTxt().replace('vs ','vs ')}<b class="${c.delta===null?'':c.delta>=0?'ok':'warn'}">${c.delta===null?'—':fmtV(c.delta)}</b></div></div>
+  </article>`}
+const alDia=(cls)=>{const ok=ALERTAS.filter(a=>a.niv==='ok');return `<div class="${cls} ok"><span class="top">${ic('check','l')}<span class="chip ok"><i></i>Al día</span></span>${ok.map(a=>`<span class="t" style="display:flex;align-items:center;gap:6px">${ic(a.ic,'s')} ${a.t.replace(' al día','')}</span>`).join('')}</div>`};
+function tilesHTML(){const ab=S.alerta;
+  return `<div class="tiles">${ALERTAS.filter(a=>a.niv!=='ok').map(a=>{if(ab===a.k)return `<div class="tile ancho ${a.niv}" style="${vt(a.k)}">${detalleHTML(a)}</div>`;
+    return `<button class="tile ${a.niv}" style="${vt(a.k)}" onclick="abrirAlerta('${a.k}')" data-tip="AL:${a.k}"><span class="top">${ic(a.ic,'l')}${a.niv==='urg'?'<span class="chip urg"><i></i>Urgente</span>':a.niv==='ok'?'<span class="chip ok"><i></i>Al día</span>':''}</span>${a.niv==='ok'?'':`<b>${K('tn-'+a.k,a.n,'n')}</b>`}<span class="t">${a.t}</span>${distribucion(a)}</button>`}).join('')}${alDia('tile')}</div>`}
+MAQ.B={nombre:'B · Carrera',oscuro:false,
+  idea:'Las tres tiendas compiten por llegar a su meta. El gráfico grande es la carrera: cada línea es una tienda (la elegida en tinta) y la línea punteada es el ritmo ideal. Debajo, un retrato por tienda con las mismas piezas, para comparar de un vistazo.',
+  mov:['El total rueda como un odómetro y la carrera se dibuja de izquierda a derecha; las etiquetas viajan hasta la punta de cada línea.','El podio se reordena con un deslizamiento cuando cambian los puestos (al llegar una venta o al cambiar de periodo).','Los retratos se inclinan en 3D siguiendo el mouse y su borde se ilumina desde el puntero.','Cada barrita del día crece sobre la sombra del periodo anterior; al cambiar de periodo, todo se recalcula sin volver a entrar.','Pasar el mouse por la carrera muestra una línea vertical con las tres tiendas a esa hora.','«Repetir el día» corre la carrera de 10:00 a ahora en 7 segundos.','Los avisos se abren en su lugar, ocupando la fila entera, con un gráfico chico.'],
+  bucle:'el punto de las tiendas abiertas.',
+  pinta(){
+    const c=calc(S.foco),tp=PRENDAS.map((p,i)=>({...p,u:Math.round((S.periodo==='hoy'?DIA.unid[i]:p.hoy*(S.periodo==='7d'?5.4:21.5)))})).sort((a,b)=>b.u-a.u).slice(0,5),mxu=Math.max(...tp.map(p=>p.u),1);
+    return `<div class="m mB">
+    <header class="b-cab ent" style="--i:0">
+      <div><span class="lbl">${saludo()}, Felipe · ${periodoTxt()}</span>
+        <div class="b-total-f"><span class="b-total">${O('tot',c.total)}</span><div class="b-pct"><span class="n">${K('pct',c.pct,'p')}</span><small>de ${fmtS(c.meta)} · ${nombreFoco(S.foco)}</small>${deltaChip(c)}</div></div></div>
+      ${controles()}
+    </header>
+    <section class="tj luz ent" style="--i:1"><div class="tcab"><span class="lbl">La carrera · % de la meta</span><span class="lbl" style="color:var(--tx3)">··· ritmo ideal</span></div>
+      <div class="b-race">${carreraHTML()}${podioHTML()}</div></section>
+    <div class="b-ret">${ORDEN.map(retratoHTML).join('')}
+      <article class="tj luz inclina rt ${rev(4)}"><div class="rt-top"><b>TALLER<small>Lima</small></b>${ic('tijera','s')}</div>${tallerHTML()}</article></div>
+    <section class="${rev(1)}"><div class="tcab"><span class="lbl">Por revisar</span></div>${tilesHTML()}</section>
+    <section class="tj ${rev(2)}"><div class="tcab"><span class="lbl">Lo que más sale · toda CAYLA</span></div>
+      <div class="b-top">${tp.map((p,i)=>`<div class="pr"><span class="sw" style="background:linear-gradient(160deg,${TONOS[p.tono][0]},${TONOS[p.tono][1]})"><em>${i+1}</em>${p.ini}</span><b>${p.n}</b><span class="bar"><i ${A('tp-'+p.ini,{width:(p.u/mxu*100).toFixed(1)+'%'},{width:'0%'},200+i*90)}></i></span><small>${K('tu-'+p.ini,p.u,'n')} vendidas</small></div>`).join('')}</div></section>
+  </div>`}};
+
+/* =====================================================================
+   C · RELOJ
+   ===================================================================== */
+const ANG0=-150,ANG1=150;
+const polar=(r,deg)=>{const a=deg*Math.PI/180;return [r*Math.sin(a),-r*Math.cos(a)]};
+function arcoD(r,a0,a1){const [x0,y0]=polar(r,a0),[x1,y1]=polar(r,a1);return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`}
+function dialHTML(){
+  const cs=Object.fromEntries(ORDEN.map(s=>[s,calc(s)])),n=cs.TRU.slots.length,span=(ANG1-ANG0)/n;
+  const mx=Math.max(...ORDEN.flatMap(s=>cs[s].slots.map((v,i)=>Math.max(v,cs[s].fant[i]))),1);
+  const anillos={TRU:[236,50],AQP:[176,50],LIM:[116,50]};
+  let barras='';
+  ORDEN.forEach(s=>{const [r0,band]=anillos[s],c=cs[s],f=esFoco(s),w=Math.max(2.5,Math.min(16,(2*Math.PI*(r0+band/2)*span/360)*.34));
+    c.slots.forEach((v,i)=>{const a=ANG0+span*(i+.5),[x0,y0]=polar(r0,a),[x1,y1]=polar(r0+band,a);const gv=c.fant[i]/mx,vv=v/mx;
+      const lab=S.periodo==='hoy'?`${hora12((10+i)*60)}`:(()=>{const d=fechaDe(HOY-n+1+i);return `${d.getDate()} ${MES[d.getMonth()]}`})();
+      barras+=`<line class="rb g" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke-width="${w.toFixed(1)}" pathLength="1" style="stroke-dasharray:${gv.toFixed(3)} 1"/>`;
+      barras+=`<line class="rb v ${f?'f':''} ${i===c.cur?'cur':''}" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke-width="${w.toFixed(1)}" pathLength="1" onclick="enfocar('${s}')" data-tip="DIAL:${s}:${lab}:${Math.round(v)}" ${A('db-'+s+'-'+i,{'stroke-dasharray':`${vv.toFixed(3)} 1`},{'stroke-dasharray':'0 1'},500+i*(n>12?18:60)+ORDEN.indexOf(s)*120)}/>`})});
+  const etiquetasAn=ORDEN.map(s=>{const [r0,band]=anillos[s],[x,y]=polar(r0+band/2,ANG0-4);return `<text class="anl ${S.foco===s?'f':''}" x="${(x-4).toFixed(1)}" y="${(y+6).toFixed(1)}" onclick="enfocar('${s}')">${s} ${fmtP(cs[s].pct)}</text>`}).join('');
+  const horas=S.periodo==='hoy'?[10,12,14,16,18,20,21].map(h=>{const a=ANG0+span*(h-10),[x,y]=polar(300,a);return `<text class="hora" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${h===12?'12':h>12?h-12:h}</text>`}).join(''):cs.TRU.etq.map((t,i)=>{if(!t)return '';const a=ANG0+span*(i+.5),[x,y]=polar(300,a);return `<text class="hora" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${t}</text>`}).join('');
+  const marcas=Array.from({length:n+1},(_,i)=>{const a=ANG0+span*i,[x0,y0]=polar(286,a),[x1,y1]=polar(292,a);return `<line class="marca" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`}).join('');
+  const hoyP=S.periodo==='hoy',fr=hoyP?Math.max(0,Math.min(1,(S.now-T0)/(T1-T0))):1,angAhora=ANG0+(ANG1-ANG0)*fr;
+  const tot=calc(S.foco),pct=Math.min(100,tot.pct);
+  return `<div class="c-dial-in">
+    <svg viewBox="-320 -320 640 640" aria-label="Ventas por ${hoyP?'hora':'día'} y por tienda">
+      ${hoyP?`<circle class="pasado" r="200" stroke-width="186" pathLength="100" transform="rotate(${ANG0-90})" ${A('pas',{'stroke-dasharray':`${(fr*300/360*100).toFixed(2)} 100`},{'stroke-dasharray':'0 100'},400)}/>`:''}
+      ${marcas}${horas}${barras}${etiquetasAn}
+      <g class="centro-an"><circle r="98" stroke="var(--linea)" stroke-width="3"/><circle r="98" pathLength="100" stroke="${tot.pct>=100?'var(--ok)':'var(--foco)'}" stroke-width="3" stroke-linecap="round" transform="rotate(-90)" ${A('cpa',{'stroke-dasharray':`${pct.toFixed(2)} 100`},{'stroke-dasharray':'0 100'},600)}/></g>
+      ${hoyP?`<g class="aguja" ${A('agu',{transform:`rotate(${angAhora.toFixed(2)}deg)`},{transform:`rotate(${ANG0}deg)`},400)}><line x1="0" y1="-104" x2="0" y2="-290"/><circle cy="-290" r="4"/><circle class="eco" cy="-290" r="4"/></g>`:''}
+    </svg>
+    <div class="c-centro" style="${tot.total>=100000?'--esc:.74':tot.total>=10000?'--esc:.88':''}"><span class="lbl">${nombreFoco(S.foco)}</span>${O('tot',tot.total)}<small><b>${K('pct',tot.pct,'p')}</b> de la meta</small></div>
+  </div>`;
+}
+function dumbbellHTML(){const cs=ORDEN.map(s=>calc(s)),mx=Math.max(...cs.map(c=>Math.max(c.total,c.prev)),1)*1.08;
+  return `<div class="db">${cs.map((c,i)=>{const a=c.prev/mx*100,b=c.total/mx*100;return `<div class="db-f" data-tip="DB:${c.F}"><span>${c.F}</span><span class="pista"><i class="une ${b<a?'baja':''}" ${A('du-'+c.F,{left:Math.min(a,b).toFixed(1)+'%',width:Math.abs(b-a).toFixed(1)+'%'},{left:a.toFixed(1)+'%',width:'0%'},500+i*120)}></i><i class="ant" style="left:${a.toFixed(1)}%"></i><i class="act" ${A('dd-'+c.F,{left:b.toFixed(1)+'%'},{left:a.toFixed(1)+'%'},500+i*120)}></i></span><span class="v">${c.delta===null?'—':K('dv-'+c.F,c.delta,'v')}</span></div>`}).join('')}</div>`}
+function lollipopHTML(){const cs=ORDEN.map(s=>calc(s)),t=calc('TODAS'),mx=Math.max(...cs.map(c=>c.medio||0),1)*1.15;
+  return `<div class="lp">${cs.map((c,i)=>{const w=(c.medio||0)/mx*100;return `<div class="lp-f ${esFoco(c.F)?'f':''}"><span>${c.F}</span><span class="pista"><i ${A('lpi-'+c.F,{width:w.toFixed(1)+'%'},{width:'0%'},400+i*110)}></i><em ${A('lpe-'+c.F,{left:w.toFixed(1)+'%'},{left:'0%'},400+i*110)}></em>${t.medio?`<span class="prom" style="left:${(t.medio/mx*100).toFixed(1)}%"></span>`:''}</span><span class="v">${c.medio?fmtS(c.medio):'—'}</span></div>`}).join('')}</div>`}
+function edadesHTML(){const ab=S.alerta;
+  return `<div class="edades">${ALERTAS.filter(a=>a.niv!=='ok').map(a=>{if(ab===a.k)return `<div class="ed ancho ${a.niv}" style="${vt(a.k)}">${detalleHTML(a)}</div>`;const r=a.niv==='ok'?1:Math.min(1,(a.edad||1)/7);
+    return `<button class="ed ${a.niv}" style="${vt(a.k)}" onclick="abrirAlerta('${a.k}')" data-tip="AL:${a.k}"><span class="an"><svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" stroke="var(--linea)"/><circle cx="30" cy="30" r="26" pathLength="100" stroke="${NIVEL_COLOR[a.niv]}" ${A('ea-'+a.k,{'stroke-dasharray':`${(r*100).toFixed(1)} 100`},{'stroke-dasharray':'0 100'},300)}/></svg>${ic(a.ic)}</span>${a.niv==='ok'?'':`<b>${K('en-'+a.k,a.n,'n')}</b>`}<span class="t">${a.t}</span>${a.niv==='ok'?'':`<small>${a.edad} ${a.edad===1?'día':'días'} esperando</small>`}</button>`}).join('')}${alDia('ed')}</div>`}
+MAQ.C={nombre:'C · Reloj',oscuro:false,
+  idea:'El día como una esfera de reloj. Cada anillo es una tienda (TRU afuera, LIM adentro) y cada rayo, una hora: su largo es lo que vendió. La sombra detrás de cada rayo es el periodo anterior y la aguja marca la hora. A la derecha, tres comparaciones entre tiendas y abajo, lo que hay que revisar.',
+  mov:['Los rayos crecen hora por hora, anillo por anillo, y la aguja barre hasta ahora mientras la zona del día ya vivido se sombrea.','En el centro, el total rueda como odómetro y el anillo de meta se cierra.','Al cambiar a 7 o 30 días, la esfera pasa a tener un rayo por día.','Las comparaciones (puesto, antes y ahora, ticket medio) crecen y se deslizan; el ranking se reordena con un deslizamiento.','Cuando llega una venta, crece el rayo de esa hora y la aguja avanza.','«Repetir el día» hace girar la aguja de 10:00 a ahora mientras los rayos crecen.','El círculo de cada aviso se llena según cuánto lleva esperando; al tocarlo se abre en su lugar.'],
+  bucle:'el eco de la punta de la aguja y el punto de las tiendas abiertas.',
+  pinta(){
+    const tit=S.periodo==='hoy'?'El día de CAYLA':S.periodo==='7d'?'La semana de CAYLA':'El mes de CAYLA';
+    return `<div class="m mC">
+    <header class="c-cab ent" style="--i:0"><div><span class="lbl">${saludo()}, Felipe · ${periodoTxt()}</span><h1>${tit}</h1></div>${controles()}</header>
+    <div class="c-main">
+      <section class="tj luz c-dial ent" style="--i:1">${dialHTML()}</section>
+      <div class="c-side">
+        <section class="tj luz ent" style="--i:2"><div class="tcab"><span class="lbl">Ranking · % de la meta</span></div>${rankingHTML()}</section>
+        <section class="tj luz ent" style="--i:3"><div class="tcab"><span class="lbl">Antes y ahora · ${vsTxt()}</span><span class="lbl" style="color:var(--tx3)">○ antes ● ahora</span></div>${dumbbellHTML()}</section>
+        <section class="tj luz ent" style="--i:4"><div class="tcab"><span class="lbl">Ticket medio</span><span class="lbl" style="color:var(--tx3)">┊ CAYLA</span></div>${lollipopHTML()}</section>
+        <section class="tj luz ent" style="--i:5"><div class="tcab"><span class="lbl">Taller</span></div>${tallerHTML()}</section>
+      </div>
+    </div>
+    <section class="${rev(0)}"><div class="tcab"><span class="lbl">Por revisar</span></div>${edadesHTML()}</section>
+  </div>`}};
+
+/* =====================================================================
+   TOOLTIP (uno solo, para HTML y SVG)
+   ===================================================================== */
+function mostrarTip(html,x,y){const t=$('#tip'),app=$('#app');if(!t||!app)return;const r=app.getBoundingClientRect();t.innerHTML=html;t.classList.add('on');
+  const w=t.offsetWidth,h=t.offsetHeight;let lx=x-r.left+14,ly=y-r.top-h-12;if(lx+w>r.width-8)lx=x-r.left-w-14;if(ly<8)ly=y-r.top+16;t.style.left=lx+'px';t.style.top=ly+'px'}
+function ocultarTip(){const t=$('#tip');t&&t.classList.remove('on')}
+function textoTip(k){
+  const [tipo,a,b,c]=k.split(':');
+  if(ORDEN.includes(k)){const x=calc(k);return `<b>${fmtS(x.total)}</b> · ${SEDES[k].nombre}<br>${fmtP(x.pct)} de ${fmtS(x.meta)} · ${x.tickets} tickets<br>Ticket medio ${x.medio?fmtS(x.medio):'—'} · ${x.delta===null?'sin comparación':fmtV(x.delta)+' '+vsTxt()}<br>${DIA.turno[k]} en turno`}
+  if(k==='TALLER')return `<b>Taller</b><br>4 órdenes en curso · 1 atrasada`;
+  if(tipo==='AL'){const al=ALERTAS.find(x=>x.k===a);return `<b>${al.n||'✓'}</b> ${al.t}${al.por?'<br>'+ORDEN.filter(s=>al.por[s]).map(s=>`${s} ${al.por[s]}`).join(' · '):''}<br><span style="opacity:.7">Toca para ver</span>`}
+  if(tipo==='BAR'){const x=calc(a),i=+b;const et=S.periodo==='hoy'?`${hora12((10+i)*60)}`:(()=>{const d=fechaDe(HOY-x.n+1+i);return `${d.getDate()} ${MES[d.getMonth()]}`})();return `<b>${fmtS(x.slots[i])}</b> · ${a} · ${et}<br><span style="opacity:.7">Antes: ${fmtS(x.fant[i])}</span>`}
+  if(tipo==='DIAL')return `<b>${fmtS(+c.split(':').pop()||0)}</b> · ${a}`;
+  if(tipo==='DB'){const x=calc(a);return `<b>${fmtS(x.total)}</b> ahora · ${a}<br>${fmtS(x.prev)} ${vsTxt().replace('vs ','')}`}
+  return '';
+}
+
+/* =====================================================================
+   ACCIONES
+   ===================================================================== */
+function enfocar(s){if(S.foco===s)return;S.foco=s;pintar(false)}
+function ponerPeriodo(p){if(S.periodo===p||S.replay)return;S.periodo=p;pintar(false)}
+function reintentar(){S.falla=false;barra();pintar(false)}
+function irA(destino){avisar(`Llevaría a ${destino}`)}
+function avisar(txt){const c=$('#toasts');if(!c)return;const t=document.createElement('div');t.className='toast';t.innerHTML=`${ic('check','s')}<span>${txt}</span>`;c.appendChild(t);setTimeout(()=>{t.classList.add('sale');setTimeout(()=>t.remove(),260)},2600)}
+function llegaVenta(){
+  if(S.replay)return;
+  const ab=ORDEN.filter(s=>DIA.abiertas[s]&&DIA.abiertas[s]<=S.now);if(!ab.length){avisar('Ninguna tienda abrió caja todavía');return}
+  if(S.now>=T1-2){avisar('Las tiendas ya cerraron');return}
+  const q=COLA[S.sim%COLA.length];S.sim++;const sede=ab.includes(q.sede)?q.sede:ab[S.sim%ab.length];
+  S.now=Math.min(T1-2,S.now+2+(S.sim%3));const pr=PRENDAS[q.p],monto=pr.precio*q.q;
+  DIA.ventas.push({id:'v'+(DIA.nid++),sede,t:S.now,monto,prendas:q.q,quien:GENTE[sede][S.sim%GENTE[sede].length]});DIA.unid[q.p]+=q.q;
+  pintar(false);
+  if(!reducido())$$(`[data-pulso="${sede}"]`).forEach(g=>{if(g.tagName==='g'){const c=g.querySelector('.nodo');if(!c)return;const o=document.createElementNS('http://www.w3.org/2000/svg','circle');o.setAttribute('class','onda');o.setAttribute('cx',c.getAttribute('cx'));o.setAttribute('cy',c.getAttribute('cy'));o.setAttribute('r',parseFloat(getComputedStyle(c).r)||10);g.appendChild(o);setTimeout(()=>o.remove(),1700)}else{g.animate([{boxShadow:'0 0 0 0 color-mix(in oklab,var(--ok) 45%,transparent)'},{boxShadow:'0 0 0 14px transparent'}],{duration:1200,easing:'ease-out'})}});
+}
+// «Repetir el día»: la hora corre de 10:00 a ahora en ~7 s y todo se re-asienta en cada paso.
+let repT=null;
+function repetirDia(){
+  if(S.periodo!=='hoy')return;
+  if(S.replay){window.__finRep&&window.__finRep();return}
+  const real=S.now;S.replay=true;S.rapido=true;S.alerta=null;$('#app').classList.add('rapido');ocultarTip();
+  S.now=Math.min(572,real);pintar(false);
+  const paso=Math.max(3,Math.round((real-S.now)/62));
+  repT=setInterval(()=>{S.now=Math.min(real,S.now+paso);pintar(false);if(S.now>=real)fin()},110);
+  function fin(){clearInterval(repT);S.now=real;S.replay=false;S.rapido=false;$('#app').classList.remove('rapido');pintar(false)}
+  window.__finRep=fin;
+}
+let vivoT=null;
+function programarVivo(){clearInterval(vivoT);if(S.vivo)vivoT=setInterval(()=>{if(!document.hidden&&!S.replay)llegaVenta()},9000)}
+
+/* =====================================================================
+   BARRA DEL SPIKE, «LA IDEA» Y MONTAJE
+   ===================================================================== */
+function barra(){
+  const seg=(k,o)=>`<div class="seg">${o.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="cambia('${k}','${v}')">${t}</button>`).join('')}</div>`;
+  const chk=(k,t)=>`<label><input type="checkbox" ${S[k]?'checked':''} onchange="alternar('${k}',this.checked)" style="accent-color:var(--rojo)"> ${t}</label>`;
+  $('#spk').innerHTML=`<span class="tag">Spike v2 · Inicio del Admin</span>
+  ${seg('m',[['A','A · Observatorio'],['B','B · Carrera'],['C','C · Reloj']])}
+  ${seg('vista',[['escritorio','Todo el ancho'],['tablet','Tablet 834'],['celular','Celular 375']])}
+  ${seg('momento',[['manana','9:40 a. m.'],['tarde','5:40 p. m.']])}
+  ${chk('vivo','Ventas en vivo')}${chk('bucle','Movimiento continuo')}${chk('rm','Movimiento reducido')}${chk('falla','Falla una lectura')}
+  <button class="acc lleno" onclick="llegaVenta()">+ Llega una venta</button>
+  <button class="acc" onclick="pintar(true)">↺ Ver la entrada otra vez</button>
+  <button class="acc" onclick="verIdea()">ⓘ La idea de ${S.m}</button>`;
+  medir();
+}
+function cambia(k,v){
+  if(S.replay&&window.__finRep)window.__finRep();
+  S[k]=v;
+  if(k==='momento'){DIA=escenario(v);S.now=v==='tarde'?1060:580;S.sim=0;S.alerta=null;S.vistos=new Set()}
+  barra();if(k==='vista'||k==='m'){S.alerta=null;montar();if(S.idea)ideaHTML()}else pintar(true);
+}
+function alternar(k,v){S[k]=v;if(k==='vivo')programarVivo();if(k==='bucle'||k==='rm'){const a=$('#app');a.classList.toggle('bucle',S.bucle);a.classList.toggle('rm',S.rm);pintar(true)}if(k==='falla')pintar(false)}
+function verIdea(){S.idea=!S.idea;ideaHTML();$('#idea').classList.toggle('abierta',S.idea)}
+function ideaHTML(){const M=MAQ[S.m];$('#idea').innerHTML=`<button class="cerrar" onclick="verIdea()" aria-label="Cerrar">${ic('x','s')}</button>
+  <span class="lbl" style="color:var(--taupe)">La idea</span><h2>${M.nombre}</h2><p style="margin-top:8px">${M.idea}</p>
+  <h3>Movimiento</h3><ul>${M.mov.map(x=>`<li>${x}</li>`).join('')}</ul>
+  <p class="ojo"><b>En bucle</b> (solo con «Movimiento continuo»): ${M.bucle} La regla de movimiento (ADR-0136) solo admite bucles que sean señal; si se elige así, queda escrito como excepción.</p>
+  <h3>Prueba esto</h3><ul>
+    <li><b>Hoy · 7 días · 30 días</b>: todo se recalcula y cambia de forma, sin volver a entrar.</li>
+    <li><b>Toda CAYLA · TRU · AQP · LIM</b>, o tocar una tienda: esa queda en tinta y las demás pasan a segundo plano.</li>
+    <li><b>▶ Repetir el día</b> (en «Hoy»): el día pasa de 10:00 a ahora en 7 segundos.</li>
+    <li>Toca un aviso de «Por revisar»: se abre en su lugar con un gráfico chico.</li>
+    <li>«+ Llega una venta», o deja «Ventas en vivo» (una cada 9 s).</li>
+    <li>Pasa el mouse por las tiendas, las barras y los rayos: cada uno dice su cifra.</li>
+    <li>«Falla una lectura»: el Taller dice que no pudo leer, en vez de mostrar 0.</li></ul>
+  <h3>Igual en las tres</h3><ul>
+    <li>Sin «Vender» ni cajas por abrir: el Admin mira, no opera.</li>
+    <li>Una sola fila de filtros arriba (periodo y tienda) que manda sobre toda la pantalla.</li>
+    <li>Énfasis en vez de un color por tienda: la elegida en tinta, las demás en segundo plano, siempre con su nombre al lado.</li>
+    <li>Rojo solo para lo urgente; verde, ámbar y pizarra solo como estado y con su texto.</li></ul>`}
+function medir(){const s=$('#spk');if(s)document.documentElement.style.setProperty('--spk',s.offsetHeight+'px');const a=$('#app');if(a)a.style.setProperty('--alto',a.clientHeight+'px')}
+function montar(){
+  const esc=$('#esc');esc.className='escena'+(S.vista==='escritorio'?'':' dev');
+  const nav=[['inicio','Inicio',1],['pulso','Salud del negocio'],['bolsa','Ventas'],['caja3d','Inventario'],['capas','Catálogo'],['camion','Compras'],['cartera','Finanzas'],['premio','Clientes'],['barras','Rendimiento']];
+  esc.innerHTML=`<div class="disp ${S.vista}"><div class="marco ${MAQ[S.m].oscuro?'oscuro':''} ${S.bucle?'bucle':''} ${S.rm?'rm':''}" id="app">
+    <aside class="lat"><div class="logo">${ISO}</div><nav>${nav.map(([i,t,on])=>`<a class="${on?'on':''}" title="${t}" onclick="${on?'':`irA('${t}')`}">${ic(i)}</a>`).join('')}</nav><span class="yo" title="Felipe Alvarez">FA</span></aside>
+    <div class="col" id="col">
+      <header class="barra">
+        <button class="ico m-only" aria-label="Menú" onclick="irA('el menú lateral (cajón)')">${ic('menu')}</button>
+        <span class="m-only" style="height:22px">${ISO.replace('<svg','<svg style="height:22px;width:auto"')}</span>
+        <button class="ico d-only" aria-label="Plegar menú">${ic('panel')}</button>
+        <button class="buscar d-only" onclick="irA('Buscar')">${ic('lupa','s')} Buscar… <kbd>Ctrl</kbd><kbd>K</kbd></button>
+        <div class="der"><button class="ico m-only" aria-label="Buscar">${ic('lupa')}</button><a class="act d-only" onclick="irA('Actividad')">${ic('historia','s')} Actividad</a><button class="sede" onclick="avisar('La vista de toda la empresa (CAYLA Global, ADR-0275)')">CAYLA Global ${ic('abajo','s')}</button></div>
+      </header>
+      <main class="cont" id="cont"></main>
+    </div>
+    <div class="toasts" id="toasts"></div><div class="tip" id="tip" role="tooltip"></div>
+  </div></div>`;
+  const app=$('#app');
+  // luz que sigue al puntero, inclinación 3D y tooltip: un solo oyente para todo
+  app.addEventListener('pointermove',e=>{
+    const l=e.target.closest('.luz');if(l){const r=l.getBoundingClientRect();l.style.setProperty('--mx',e.clientX-r.left+'px');l.style.setProperty('--my',e.clientY-r.top+'px')}
+    const t=e.target.closest('.inclina');if(t&&!reducido()&&!S.rapido){const r=t.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;t.style.transform=`perspective(900px) rotateX(${(-y*6).toFixed(2)}deg) rotateY(${(x*7).toFixed(2)}deg) translateZ(0)`}
+    const d=e.target.closest('[data-tip]');if(d&&!e.target.closest('.capa')){const h=textoTip(d.getAttribute('data-tip'));if(h)mostrarTip(h,e.clientX,e.clientY)}else if(!e.target.closest('.capa'))ocultarTip();
+  });
+  app.addEventListener('pointerout',e=>{const t=e.target.closest('.inclina');if(t&&!t.contains(e.relatedTarget))t.style.transform=''},true);
+  app.addEventListener('pointerleave',ocultarTip);
+  medir();pintar(true);
+}
+window.addEventListener('resize',medir);
+barra();montar();programarVivo();
+</script>
+</body>
+</html>

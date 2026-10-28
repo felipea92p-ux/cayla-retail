@@ -1,0 +1,84 @@
+/* ====================================================================
+   Ronda 15 de /unificar (ADR-0358, Felipe eligió P1 el 2026-10-15): el globito con número y «Ver más».
+   ==================================================================== */
+@layer components {
+  /* El globito: la cara del de las pestañas y los títulos (ronda 9), en todas partes. Registro: docs/unificar/contador.md */
+  .globito {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    font-style: normal;
+    letter-spacing: 0;
+    line-height: 1;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .globito[data-pide] {
+    background: color-mix(in srgb, var(--color-ambar) 15%, transparent);
+    color: var(--color-ambar-profundo);
+  }
+  .globito[data-error] {
+    background: color-mix(in srgb, var(--color-rojo) 15%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  .globito[data-oscuro] {
+    background: color-mix(in srgb, var(--color-crema) 18%, transparent);
+    color: var(--color-crema);
+  }
+  /* En la esquina de un ícono o de un botón: lleno, con su anillo del color del fondo. */
+  .globito[data-esquina] {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 10px;
+    background: var(--color-tinta);
+    color: var(--color-crema);
+    box-shadow: 0 0 0 2px var(--color-papel);
+    pointer-events: none;
+  }
+  .globito[data-esquina][data-pide] { background: var(--color-ambar); color: var(--color-crema); }
+  .globito[data-esquina][data-error] { background: var(--color-rojo); color: var(--color-crema); }
+  .globito[data-esquina][data-oscuro] { background: var(--color-crema); color: var(--color-tinta); box-shadow: 0 0 0 2px var(--color-tinta); }
+  .globito-late { display: inline-block; animation: cayla-pop 500ms var(--ease-cayla); }
+
+  /* «Ver más / Ver menos»: la franja al pie de la lista (la de Inicio de Almacén). Registro: docs/unificar/accion.siguiente.md */
+  .ver-mas-pie {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px;
+    border-top: 1px solid var(--color-sand);
+    border-radius: 0;
+    color: var(--color-taupe);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background-color 260ms var(--ease-cayla), color 260ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .ver-mas-pie:hover { background: color-mix(in srgb, var(--color-tinta) 5%, transparent); color: var(--color-tinta); }
+  }
+  /* 24 px de alto como mínimo: el blanco de un control con mouse (Formidable, oficio visual; WCAG 2.5.8). Medía 20. */
+  .ver-mas-enlace { gap: 6px; min-height: 24px; }
+  .ver-mas-flecha { width: 16px; height: 16px; flex-shrink: 0; transition: transform 400ms var(--ease-cayla); }
+  [aria-expanded="true"] > .ver-mas-flecha { transform: rotate(180deg); }
+  /* Las filas de más bajan en su lugar (0fr → 1fr), sin medir alturas; cerradas, no se alcanzan con el teclado (inert). */
+  .filas-de-mas { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 400ms var(--ease-cayla); }
+  .filas-de-mas[data-abierto] { grid-template-rows: 1fr; }
+  .filas-de-mas > div { overflow: hidden; min-height: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .globito-late { animation: none; }
+    .filas-de-mas, .ver-mas-flecha, .ver-mas-pie { transition: none; }
+  }
+}

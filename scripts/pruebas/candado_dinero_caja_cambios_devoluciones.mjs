@@ -8,16 +8,22 @@
  *
  *   1. `registrar_movimiento_caja`: la base decide `es_ajuste` del MOTIVO, no de lo que manda
  *      el navegador (`p_es_ajuste` queda ignorado); el vocabulario de motivos es cerrado; y
- *      "Depósito bancario"/"Otro" exigen una referencia. Los motivos normales de siempre
- *      (Retiro de efectivo, Compra de insumos) siguen funcionando igual para una colaboradora.
+ *      "Depósito bancario"/"Otro" exigen una referencia. El ajuste de efectivo (faltante/sobrante)
+ *      ya no es solo del líder (ADR-0534, 2026-10-27): lo anota quien opera esa caja, y sigue
+ *      siendo la base la que lo marca `es_ajuste`. Los motivos normales de siempre
+ *      (Retiro de efectivo; y, desde ADR-0375, Devolución de un retiro en lugar de Compra de insumos,
+ *      que dejó de ser una salida) siguen funcionando igual para una colaboradora.
  *   2. `registrar_cambio`: el candado de líder para una diferencia NEGATIVA se sumó y se
  *      REVIRTIÓ el mismo día (`20260923110500_cambios_sin_candado_de_lider.sql`, decisión de
  *      Felipe: "0 trabas, agilidad para la clienta"). Esta prueba confirma que hoy una
  *      colaboradora sola completa el cambio igual con diferencia negativa, positiva, o siendo
  *      líder — las tres dan el mismo resultado. El riesgo que eso acepta queda documentado en
  *      esa migración, no aquí: esto solo prueba que la base hace lo que Felipe pidió.
- *   3. `aprobar_devolucion`: quien registró la devolución no puede aprobarla ella misma, y el
- *      reembolso no puede superar lo que la clienta pagó de verdad (con descuento).
+ *   3. `aprobar_devolucion`: el reembolso no puede superar lo que la clienta pagó de verdad (con
+ *      descuento). Desde ADR-0534 (2026-10-27) la aprueba quien ve Devoluciones en la sede de la
+ *      devolución, sin cuenta de líder: sin el módulo o en otra sede, 42501; y salió la regla
+ *      «quien registró la devolución no puede aprobarla» (en una terminal compartida es la misma
+ *      persona, y la líder la valida en persona), así que la misma persona que la registró la aprueba.
  *   4. El `revoke`: sin pasar por ninguna RPC, un `update`/`insert`/`delete` directo sobre
  *      `devoluciones`/`devolucion_items`/`prendas_danadas`/`cambios` con el rol real de la API
  *      (`authenticated`) ya no tiene privilegio de tabla — 42501, "permission denied". Incluye
@@ -29,9 +35,10 @@
  * CÓMO. Mismo patrón que `candado_lider_caja_y_ajuste.mjs` (léelo primero si esto no tiene
  * sentido): cada escenario corre en su propia transacción con ROLLBACK — nunca se commitea
  * nada, corre seguro contra el Postgres local que comparten ~30 worktrees. Simula a Felipe
- * (líder, Lima/global), Sandra (segunda líder — nueva en `seed.sql` desde esta misma migración:
- * antes solo había una líder y el seed no podía probar "otra líder aprueba", el mismo hueco que
- * el candado #3 cierra) y Micaela (colaboradora, fija a Trujillo) con
+ * (líder, Lima/global), Sandra (segunda líder — nueva en `seed.sql` desde esta misma migración,
+ * para probar "otra líder aprueba"; desde ADR-0534 aprobar ya no pide otra persona, pero el caso
+ * de Sandra sigue valiendo como el de cualquier otra cuenta con el módulo) y Micaela
+ * (colaboradora, fija a Trujillo) con
  * `set local request.jwt.claim.sub`. Un helper temporal `pg_temp.intento(sql)` ejecuta la
  * llamada dentro de un sub-bloque y devuelve «estado|mensaje» sin abortar la transacción del
  * escenario, así después se puede verificar que la base quedó intacta. Los escenarios del
@@ -209,9 +216,9 @@ select id as venta_item from retail.venta_items where venta_id = :'venta_id' and
  * `:devolucion_id` y `:valor_pagado` (precio - descuento, lo que la clienta pagó de verdad).
  * Pagada con tarjeta (nunca efectivo) para no necesitar una caja abierta.
  */
-function fixtureDevolucion({ descuento }) {
+function fixtureDevolucion({ descuento, sede = "Tienda Lima" }) {
   return `
-select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select id as ubic from retail.ubicaciones where nombre = '${sede}' \\gset
 
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Piso de venta', 'piso_venta'
@@ -220,6 +227,9 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 ${cambiaA(FELIPE)}select id as v_old from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select precio as precio_viejo from retail.variantes where id = :'v_old' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
+-- Vender pide una caja abierta en la sede: la de la siembra si la hay (Lima), o una de prueba (Trujillo). COALESCE no abre si ya hay.
+select coalesce((select id from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta' limit 1),
+                retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada')) as _caja_venta \\gset
 
 insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
   values (:'v_old', :'ubic', :'sub_piso', 'entrada', 1000, 'colchón de prueba') returning id as mov_old \\gset
@@ -249,15 +259,30 @@ const error = (nombre, sql, contiene) => CASOS.push({ nombre, tipo: "error", sql
 // ===========================================================================
 
 exito(
-  "colaboradora: manda p_es_ajuste=false con un motivo de AJUSTE — igual se rechaza (antes de esta migración SÍ pasaba, ese es el hueco)",
+  "colaboradora: anota un ajuste de efectivo en la caja de SU tienda sin ser líder (ADR-0534), y aunque mande p_es_ajuste=false la base lo marca es_ajuste (el motivo decide)",
   comoPersona(
     FELIPE,
-    `${INTENTO}${CAJA_TRUJILLO_MICAELA}select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''egreso'', 10, ''Ajuste de caja (faltante)'', null, false)', :'caja')) as r \\gset
+    `${CAJA_TRUJILLO_MICAELA}select retail.registrar_movimiento_caja(:'caja', 'egreso', 10, 'Ajuste de caja (faltante)', null, false) as mov_id \\gset
+select es_ajuste, usuario_id = (select id from public.personas where auth_user_id = '${MICAELA}') from retail.caja_movimientos where id = :'mov_id';
+rollback;
+`
+  ),
+  ["t", "t"]
+);
+
+exito(
+  "colaboradora: el ajuste de efectivo sigue pidiendo la sede — en la caja de OTRA tienda (Lima) se rechaza",
+  comoPersona(
+    FELIPE,
+    `${INTENTO}select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select (select count(*) from (select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'lima' and estado = 'abierta') x) as _cerro_lima \\gset
+select retail.abrir_caja(:'lima', 100.00, 'prueba automatizada') as caja_lima \\gset
+${cambiaA(MICAELA)}select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''egreso'', 10, ''Ajuste de caja (faltante)'', null, true)', :'caja_lima')) as r \\gset
 select split_part(:'r', '|', 1), split_part(:'r', '|', 2);
 rollback;
 `
   ),
-  ["P0001", "Solo un líder de equipo puede registrar un ajuste de efectivo"]
+  ["P0001", "No tienes permiso para operar esa caja"]
 );
 
 exito(
@@ -321,18 +346,18 @@ rollback;
 );
 
 exito(
-  "colaboradora: los motivos normales de siempre siguen funcionando igual — Retiro de efectivo (con nota) y Compra de insumos (sin nota, no la exige)",
+  "colaboradora: los motivos normales de siempre siguen funcionando igual — Retiro de efectivo (con nota) y Devolución de un retiro (sin nota, no la exige; ADR-0375)",
   comoPersona(
     FELIPE,
     `${CAJA_TRUJILLO_MICAELA}select retail.registrar_movimiento_caja(:'caja', 'egreso', 20, 'Retiro de efectivo', 'para vuelto') as m1 \\gset
-select retail.registrar_movimiento_caja(:'caja', 'egreso', 15, 'Compra de insumos') as m2 \\gset
+select retail.registrar_movimiento_caja(:'caja', 'ingreso', 15, 'Devolución de un retiro') as m2 \\gset
 select
   (select motivo || '/' || nota || '/' || es_ajuste from retail.caja_movimientos where id = :'m1'),
   (select motivo || '/' || coalesce(nota, '') || '/' || es_ajuste from retail.caja_movimientos where id = :'m2');
 rollback;
 `
   ),
-  ["Retiro de efectivo/para vuelto/false", "Compra de insumos//false"]
+  ["Retiro de efectivo/para vuelto/false", "Devolución de un retiro//false"]
 );
 
 exito(
@@ -398,18 +423,63 @@ rollback;
 );
 
 // ===========================================================================
-// 3. aprobar_devolucion — sin auto-aprobación, y con tope real de reembolso
+// 3. aprobar_devolucion — quien ve Devoluciones en la sede (ADR-0534), y con tope real de reembolso
 // ===========================================================================
 
-error(
-  "la misma líder que registró la devolución (Felipe) no puede aprobarla ella misma, aunque sea líder",
+/** ADR-0534: aprobar una devolución es de quien ve Devoluciones (Micaela es Integrante). */
+const SIN_DEVOLUCIONES = `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'devoluciones';\n`;
+const CON_DEVOLUCIONES = `insert into retail.rol_modulos (rol_id, modulo) select retail.fn_rol_por_clave('integrante'), 'devoluciones'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'devoluciones');\n`;
+
+exito(
+  "la misma persona que registró la devolución (Felipe) SÍ la aprueba (ADR-0534: salió «quien la registró no la aprueba»), y queda firmada por ella",
   comoPersona(
     FELIPE,
-    `${fixtureDevolucion({ descuento: 15 })}
-select retail.aprobar_devolucion(:'devolucion_id', :'valor_pagado', 'yape');
+    `${fixtureDevolucion({ descuento: 15 })}select nota_credito_id is null from retail.aprobar_devolucion(:'devolucion_id', :'valor_pagado', 'yape');
+select estado, aprobado_por = solicitado_por from retail.devoluciones where id = :'devolucion_id';
+rollback;
 `
   ),
-  "Quien registró esta devolución no puede aprobarla"
+  ["aprobada", "t"]
+);
+
+exito(
+  "colaboradora CON Devoluciones aprueba la devolución de SU tienda sin ser líder (ADR-0534), y queda firmada por ella",
+  comoPersona(
+    FELIPE,
+    `${CON_DEVOLUCIONES}${fixtureDevolucion({ descuento: 15, sede: "Tienda Trujillo" })}${cambiaA(MICAELA)}select nota_credito_id is null from retail.aprobar_devolucion(:'devolucion_id', :'valor_pagado', 'yape');
+select estado, aprobado_por = (select id from public.personas where auth_user_id = '${MICAELA}') from retail.devoluciones where id = :'devolucion_id';
+rollback;
+`
+  ),
+  ["aprobada", "t"]
+);
+
+exito(
+  "colaboradora SIN Devoluciones no aprueba ni rechaza la devolución de su tienda (42501), y la devolución sigue pendiente",
+  comoPersona(
+    FELIPE,
+    `${INTENTO}${SIN_DEVOLUCIONES}${fixtureDevolucion({ descuento: 15, sede: "Tienda Trujillo" })}${cambiaA(MICAELA)}select pg_temp.intento(format('select retail.aprobar_devolucion(%L, %s, ''yape'')', :'devolucion_id', :'valor_pagado')) as r \\gset
+select pg_temp.intento(format('select retail.rechazar_devolucion(%L, ''prueba'')', :'devolucion_id')) as r2 \\gset
+select split_part(:'r', '|', 1), split_part(:'r', '|', 2) like 'Aprobar devoluciones de esta tienda necesita el módulo Devoluciones%',
+       split_part(:'r2', '|', 1), split_part(:'r2', '|', 2) like 'Rechazar devoluciones de esta tienda necesita el módulo Devoluciones%',
+       (select estado from retail.devoluciones where id = :'devolucion_id');
+rollback;
+`
+  ),
+  ["42501", "t", "42501", "t", "pendiente"]
+);
+
+exito(
+  "colaboradora CON Devoluciones no aprueba la devolución de OTRA tienda (Lima): 42501, y sigue pendiente",
+  comoPersona(
+    FELIPE,
+    `${INTENTO}${CON_DEVOLUCIONES}${fixtureDevolucion({ descuento: 15 })}${cambiaA(MICAELA)}select pg_temp.intento(format('select retail.aprobar_devolucion(%L, %s, ''yape'')', :'devolucion_id', :'valor_pagado')) as r \\gset
+select split_part(:'r', '|', 1), (select estado from retail.devoluciones where id = :'devolucion_id');
+rollback;
+`
+  ),
+  ["42501", "pendiente"]
 );
 
 exito(

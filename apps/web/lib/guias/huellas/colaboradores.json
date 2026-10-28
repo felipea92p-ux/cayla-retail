@@ -1,0 +1,108 @@
+{
+  "guia": "colaboradores",
+  "ruta": "/colaboradores",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 78,
+  "controles": {
+    "components/ColaboradoresModales.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/ColaboradoresPanel.tsx": [
+      "Boton «colaboradores.actividad»",
+      "Boton «colaboradores.dar-acceso»",
+      "Pestanas «→(c) => setSeccion(c === \"roles\" ? \"roles\" : \"cuentas\")»"
+    ],
+    "components/RolesModales.tsx": [
+      "input «rol-nombre»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "input «rol-renombre»",
+      "input «rol-descripcion»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2",
+      "ComboResponsable «{responsable}» #3",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? undefined}» #3",
+      "ComboBuscable «{idCuenta}»",
+      "CampoSelect «Nuevo rol»",
+      "CampoSelect «Sede donde queda»",
+      "ComboResponsable «{responsable}» #4",
+      "Boton «Cancelar» #4",
+      "Boton «{responsable.motivo ?? undefined}» #4"
+    ],
+    "components/RolesPanel.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Asignar»",
+      "Desplegable «{`pantalla-principal-${rol.id}»",
+      "button «{todoEncendido ? \"Quitar todos\" : \"Todos\"}»",
+      "button «{`${m.nombre}»",
+      "Boton «Descartar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «roles.nuevo»",
+      "button «Archivados (»",
+      "button «{r.nombre}»",
+      "button «{rol.descripcion ?? undefined}»"
+    ],
+    "components/TerminalesModales.tsx": [
+      "BotonCopiar «el correo y la clave»",
+      "Boton «Listo»",
+      "CampoSelect «Tienda»",
+      "CampoTexto «Nombre»",
+      "CampoSelect «Rol»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/actividad/ListaActividad.tsx": [
+      "button «actividad.ver-mas»"
+    ],
+    "components/colaboradores/ActividadEquipo.tsx": [
+      "button «{t.etiqueta}»",
+      "button «{p.etiqueta}»"
+    ],
+    "components/colaboradores/DarAccesoModal.tsx": [
+      "button «{d.nombre}»",
+      "button «{u.nombre}»",
+      "button «{r.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/colaboradores/EquipoLista.tsx": [
+      "button «{guia}»",
+      "button «{guia}» #2",
+      "button «Sí»",
+      "button «No»",
+      "button «{`Aprobar a ${p.nombre}»",
+      "button «{`Rechazar el alta de ${p.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "button «→() => onFiltro(a.filtro)»",
+      "Boton «colaboradores.nueva-terminal»",
+      "SegmentoDeslizante «Vista»",
+      "Boton «Borrar la búsqueda»"
+    ],
+    "components/colaboradores/FichaColaborador.tsx": [
+      "button «{texto}»",
+      "ComboResponsable «{responsable}»",
+      "button «Sí, quitar»",
+      "button «Volver»",
+      "button «Quitar acceso»",
+      "button «→() => setRolElegido(r.id)»",
+      "button «{u.nombre}»",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "button «{u.nombre}» #2",
+      "input «{`motivo-${persona.id}»",
+      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+    ],
+    "components/colaboradores/FichaTerminal.tsx": [
+      "button «{texto}»"
+    ]
+  }
+}

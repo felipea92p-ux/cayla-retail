@@ -1,0 +1,296 @@
+<!-- Propuesta de /unificar · familia «buscador» (ADR-0358) · ronda 5, 2026-10-08. Esperando la elección de Felipe.
+     Fragmento: la lámina lo envuelve con el CSS real del ERP, en claro y en oscuro. Solo tokens (var(--color-…)); lo propio va con
+     prefijo (dz- marco de la demo, pv- vacío, pa- aviso, pb- buscador). La página de elegir (apps/web/unificar/.salida/elegir-ronda5/,
+     fuera de git) tiene además las formas de hoy vivas, las fotos reales antes/después y el comportamiento (demo.js).
+     La pieza: <Buscador> en dos tamaños. Lista (40 px): la caja hundida (caja-cayla, la más usada) + lupa que se oscurece y crece al
+     enfocar, «/» a la vista que se va al escribir, «×» que entra al escribir, «Buscando…» adentro y el hilo rojo que corre por el borde
+     de abajo mientras la base responde (del Hilo), y el conteo al terminar. P2 = el subrayado vivo con lo mismo.
+     Mostrador (60 px): la píldora de Cambios que se despega al enfocar (sombra que crece, anillo), con el ícono que se enciende en rojo
+     de Vender (código de barras en Vender, lupa en Cambios), giro + hilo mientras busca; sin «/» en celular.
+-->
+<style>
+/* Ronda 5 de /unificar (2026-10-07/08): las demos VIVAS de la página de elegir.
+   Solo tokens del ERP (var(--color-…)), así el botón «Ver en oscuro» las invierte como al ERP.
+   h-*  = reproducción fiel de una forma que existe hoy (medidas del código).
+   pv-* = propuesta de vacío · pa-* = propuesta de aviso · pb-* = propuesta de buscador. */
+
+.dz { width: 100%; font-family: var(--font-sans); color: var(--color-tinta); font-size: 14px; line-height: 1.5; }
+.dz * { box-sizing: border-box; }
+.dz-barra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.dz-barra .dz-et { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe); font-weight: 600; margin-right: 4px; }
+.dz-sel { font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--color-sand); background: var(--color-papel); color: var(--color-tinta); cursor: pointer; transition: background-color .2s, color .2s, border-color .2s; }
+.dz-sel[aria-pressed="true"] { background: var(--color-tinta); color: var(--color-crema); border-color: var(--color-tinta); }
+.dz-repetir { margin-left: auto; font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--color-taupe) 55%, transparent); background: transparent; color: var(--color-taupe); cursor: pointer; }
+.dz-repetir:hover { color: var(--color-tinta); border-color: var(--color-tinta); }
+.dz-marco { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; overflow: hidden; }
+.dz-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--color-taupe); background: color-mix(in oklab, var(--color-sand) 70%, transparent); }
+.dz-pie { padding: 12px 16px; font-size: 12px; color: var(--color-taupe); border-top: 1px solid var(--color-sand); }
+.dz-escena[hidden] { display: none !important; }
+.dz-lienzo { padding: 16px; background: var(--color-crema); border-radius: 12px; display: flex; flex-direction: column; gap: 12px; }
+.dz-q { color: var(--color-tinta); font-weight: 600; }
+.dz svg { display: block; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dz kbd { font-family: var(--font-sans); }
+
+/* ================= VACÍO · lo que existe hoy ================= */
+.h-va { padding: 20px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); }
+.h-vb { border-top: 1px solid color-mix(in srgb, var(--color-tinta) 10%, transparent); padding: 32px 20px; text-align: center; }
+.h-vb p { margin: 0; font-family: var(--font-serif); font-style: italic; font-size: 16px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+.h-vb .h-borrar { margin-top: 12px; font: 500 12.5px/1 var(--font-sans); height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--color-sand); background: var(--color-papel); color: var(--color-tinta); cursor: pointer; }
+.h-vc { margin: 16px; border-radius: 12px; background: color-mix(in srgb, var(--color-papel) 60%, transparent); padding: 40px 24px; text-align: center; outline: 1px solid color-mix(in srgb, var(--color-sand) 60%, transparent); }
+.h-vc b { display: block; font-size: 14px; font-weight: 600; }
+.h-vc p { margin: 4px 0 0; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.h-vd { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 36px 20px; text-align: center; }
+.h-vd h4 { margin: 0; font: 400 22px/1.2 var(--font-serif); }
+.h-vd p { margin: 0; max-width: 52ch; font-size: 14px; color: var(--color-taupe); }
+.h-vd .fila { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.h-vf { margin: 16px; border: 1.5px dashed var(--color-sand); border-radius: 18px; padding: 32px 20px; text-align: center; color: var(--color-taupe); font-size: 14px; }
+.h-vf b { display: block; font: 500 21px/1.2 var(--font-serif); color: var(--color-tinta); margin-bottom: 4px; }
+.h-vg { display: flex; flex-direction: column; align-items: center; padding: 44px 20px 48px; text-align: center; }
+.h-vg img { height: 44px; width: auto; opacity: .55; animation: h-flota 2400ms var(--ease-cayla) backwards; }
+.h-vg p { margin: 12px 0 0; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); }
+.h-vg a { margin-top: 12px; font-size: 14px; color: var(--color-rojo); text-decoration: none; }
+.h-vg a:hover { text-decoration: underline; }
+@keyframes h-flota { 0% { opacity: 0; transform: translate3d(0, 10px, 0) rotate(0); } 45% { opacity: .55; transform: translate3d(0, -7px, 0) rotate(-3deg); } 100% { opacity: .55; transform: none; } }
+.h-vh { margin: 16px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; padding: 28px; }
+.h-vh .ov { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-taupe); font-weight: 600; }
+.h-vh h4 { margin: 6px 0 6px; font: 400 26px/1.15 var(--font-serif); }
+.h-vh p { margin: 0; color: var(--color-taupe); max-width: 62ch; font-size: 14px; }
+.h-vi { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px 28px; align-items: center; padding: 30px 28px; animation: h-entra 520ms var(--ease-cayla) backwards; }
+.h-vi .tile { width: 64px; height: 64px; border-radius: 16px; display: grid; place-items: center; background: color-mix(in srgb, var(--color-verde) 14%, var(--color-papel)); color: var(--color-verde-profundo); }
+.h-vi .tile svg { width: 28px; height: 28px; }
+.h-vi .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--color-verde) 12%, transparent); color: var(--color-verde-profundo); }
+.h-vi h4 { margin: 6px 0; font: 500 26px/1.2 var(--font-serif); }
+.h-vi p { margin: 0; color: var(--color-tinta-60); max-width: 52ch; font-size: 14px; }
+@keyframes h-entra { from { opacity: 0; transform: translateY(8px); } }
+.h-vchico { padding: 12px 12px; font-size: 14px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+.h-vit { font-size: 12px; font-style: italic; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); padding: 10px 12px; }
+.h-vcaja { padding: 24px 12px; text-align: center; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); }
+.h-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.h-ex { border-top: 1px solid var(--color-sand); padding: 20px; }
+.h-ex h4 { margin: 0 0 4px; font: 400 18px/1.25 var(--font-serif); }
+.h-ex p { margin: 0; font-size: 13.5px; color: var(--color-taupe); }
+.h-ex .h-chips { justify-content: flex-start; }
+.h-ex .quisiste { margin-top: 10px; font-size: 13.5px; }
+.h-ex .quisiste a { color: var(--color-rojo); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* Píldora de filtro activo (pildora-cayla rellena), con su × para quitarla */
+.dz-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 500; background: var(--color-tinta); color: var(--color-crema); border: 0; cursor: pointer; transition: transform .2s var(--ease-cayla), opacity .2s; }
+.dz-chip svg { width: 14px; height: 14px; opacity: .75; }
+.dz-chip:hover svg { opacity: 1; }
+.dz-chip.sale { opacity: 0; transform: scale(.85); }
+
+/* ================= VACÍO · propuesta (P1: el ícono que se dibuja) ================= */
+.pv { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 24px 44px; }
+.pv > * { animation: pv-sube 460ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 55ms + 60ms); }
+.pv-ic { position: relative; width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center; background: color-mix(in srgb, var(--color-hueso) 92%, transparent); color: var(--color-taupe); }
+.pv-ic svg { width: 26px; height: 26px; stroke-width: 1.5; }
+.pv-ic svg > * { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pv-traza 760ms var(--ease-cayla) 180ms forwards; }
+.pv-ic svg > *:nth-child(2) { animation-delay: 320ms; } .pv-ic svg > *:nth-child(3) { animation-delay: 440ms; } .pv-ic svg > *:nth-child(4) { animation-delay: 540ms; }
+.pv-ic::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 1px solid color-mix(in srgb, var(--color-taupe) 40%, transparent); opacity: 0; animation: pv-onda 1100ms var(--ease-cayla) 420ms; }
+.pv-tit { margin: 16px 0 0; font: 400 22px/1.2 var(--font-serif); color: var(--color-tinta); max-width: 36ch; }
+.pv-frase { margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: var(--color-taupe); max-width: 52ch; }
+.pv-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 14px; }
+.pv-acc { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
+@keyframes pv-sube { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
+@keyframes pv-traza { to { stroke-dashoffset: 0; } }
+@keyframes pv-onda { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
+/* P2: lo mismo dentro de un marco punteado («aquí va algo») */
+.pv.pv-punteado { margin: 16px; border: 1.5px dashed color-mix(in srgb, var(--color-taupe) 35%, transparent); border-radius: 18px; padding: 36px 24px 40px; }
+.pv.pv-punteado .pv-ic { background: transparent; border: 1px solid var(--color-sand); }
+/* El compacto: dentro de una tabla, una hoja o una lista desplegable */
+.pv-c { display: flex; align-items: center; gap: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--color-taupe); animation: pv-sube 300ms var(--ease-cayla) backwards; }
+.pv-c .pv-ic { width: 28px; height: 28px; flex-shrink: 0; }
+.pv-c .pv-ic svg { width: 15px; height: 15px; stroke-width: 1.75; }
+.pv-c .pv-ic::after { animation-duration: 800ms; animation-delay: 200ms; }
+.pv-c .pv-txt { flex: 1; min-width: 0; text-align: left; }
+.pv-c .pv-txt b { color: var(--color-tinta); font-weight: 600; }
+.pv-c .pv-enlace { flex-shrink: 0; font: 500 13px/1 var(--font-sans); color: var(--color-tinta); background: none; border: 0; padding: 6px 8px; border-radius: 8px; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 3px; transition: background-color .2s, text-decoration-color .2s; }
+.pv-c .pv-enlace:hover { background: color-mix(in srgb, var(--color-sand) 55%, transparent); text-decoration-color: currentColor; }
+.pv-c.pv-centro { justify-content: center; }
+.pv-c.pv-centro .pv-txt { flex: 0 1 auto; }
+
+/* ================= AVISOS · lo que existe hoy ================= */
+.h-ab, .h-ae, .h-ad, .h-ah { display: flex; gap: 8px; align-items: flex-start; border-radius: 16px; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
+.h-ab { border: 1px solid color-mix(in srgb, var(--color-ambar) 35%, transparent); background: color-mix(in srgb, var(--color-ambar) 7%, transparent); color: var(--color-ambar-profundo); }
+.h-ab svg, .h-ae svg, .h-ac svg { width: 16px; height: 16px; margin-top: 2px; }
+.h-ac { display: flex; gap: 6px; align-items: flex-start; border-radius: 12px; background: color-mix(in srgb, var(--color-ambar) 10%, transparent); color: var(--color-ambar-profundo); padding: 8px 12px; font-size: 12px; }
+.h-ac svg { width: 14px; height: 14px; margin-top: 1px; }
+.h-ad { border: 1px solid color-mix(in srgb, var(--color-ambar) 35%, transparent); border-left: 2px solid var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 7%, transparent); color: var(--color-ambar-profundo); padding: 12px 16px; animation: h-revela 240ms var(--ease-cayla) both; }
+.h-ad.rojo { border-color: color-mix(in srgb, var(--color-rojo) 40%, transparent); border-left-color: var(--color-rojo); background: color-mix(in srgb, var(--color-rojo) 6%, transparent); color: var(--color-rojo-profundo); }
+.h-ae { gap: 12px; border: 1px solid color-mix(in srgb, var(--color-rojo) 30%, transparent); background: color-mix(in srgb, var(--color-rojo) 6%, transparent); color: var(--color-rojo-profundo); padding: 12px 16px; animation: h-revela 240ms var(--ease-cayla) both; }
+.h-ag { border-radius: 8px; border: 1px solid; padding: 10px 12px; font-size: 14px; }
+.h-ag.ambar { border-color: color-mix(in srgb, var(--color-ambar) 40%, transparent); background: color-mix(in srgb, var(--color-ambar) 8%, transparent); color: var(--color-ambar-profundo); }
+.h-ag.neutro { border-color: color-mix(in srgb, var(--color-tinta) 15%, transparent); background: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
+.h-ah { border: 1px solid color-mix(in srgb, var(--color-verde) 40%, transparent); background: color-mix(in srgb, var(--color-verde) 6%, transparent); color: var(--color-verde-profundo); padding: 16px; animation: h-asienta 320ms var(--ease-cayla) both; }
+.h-af { margin: 0; font-size: 12px; color: var(--color-rojo-profundo); }
+.h-af.revela { animation: h-revela 240ms var(--ease-cayla) both; }
+@keyframes h-revela { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes h-asienta { from { opacity: 0; transform: scale(.98); } }
+.h-finota { font-size: 12.5px; color: var(--color-taupe); line-height: 1.55; }
+
+/* ================= AVISOS · propuesta (P1: con la voz de la esquina) ================= */
+.pa { --c: var(--color-ambar); --cp: var(--color-ambar-profundo); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 12px; align-items: start; padding: 12px 14px 12px 12px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--c) 32%, transparent); background: color-mix(in srgb, var(--c) 7%, var(--color-papel)); color: var(--color-tinta); animation: pa-entra 280ms var(--ease-cayla) both; }
+.pa[data-tono="info"] { --c: var(--color-pizarra); --cp: var(--color-pizarra); }
+.pa[data-tono="error"] { --c: var(--color-rojo); --cp: var(--color-rojo-profundo); animation: pa-entra 280ms var(--ease-cayla) both, pa-destello 900ms var(--ease-cayla) 300ms; }
+.pa[data-tono="exito"] { --c: var(--color-verde); --cp: var(--color-verde-profundo); }
+.pa-ic { position: relative; grid-row: span 2; width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--cp); animation: pa-disco 360ms var(--ease-cayla) 80ms both; }
+.pa-ic svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.pa-ic svg > * { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pv-traza 380ms var(--ease-cayla) 260ms forwards; }
+.pa-ic svg > *:nth-child(2) { animation-delay: 400ms; } .pa-ic svg > *:nth-child(3) { animation-delay: 520ms; }
+.pa-ic::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: color-mix(in srgb, var(--c) 30%, transparent); opacity: 0; animation: pv-onda 640ms var(--ease-cayla) 520ms; }
+.pa-tit { margin: 3px 0 0; font-size: 14px; font-weight: 600; color: var(--cp); line-height: 1.4; }
+.pa-det { margin: 0; font-size: 13.5px; line-height: 1.5; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); }
+.pa-tit, .pa-det { animation: pv-sube 320ms var(--ease-cayla) backwards; }
+.pa-det { animation-delay: 60ms; }
+.pa-acc { grid-row: span 2; align-self: center; font: 500 13px/1 var(--font-sans); color: var(--cp); background: none; border: 0; padding: 7px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--cp) 35%, transparent); text-underline-offset: 3px; transition: background-color .2s; }
+.pa-acc:hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
+.pa.chico { grid-template-columns: auto minmax(0, 1fr) auto; padding: 8px 10px 8px 8px; border-radius: 12px; }
+.pa.chico { align-items: center; }
+.pa.chico .pa-ic { width: 22px; height: 22px; grid-row: auto; }
+.pa.chico .pa-det-in { font-weight: 400; color: color-mix(in srgb, var(--color-tinta) 78%, transparent); } .pa.chico .pa-ic svg { width: 13px; height: 13px; }
+.pa.chico .pa-tit { margin: 1px 0 0; font-size: 13px; }
+.pa.chico .pa-acc { grid-row: auto; }
+@keyframes pa-entra { from { opacity: 0; transform: translate3d(0, -4px, 0); } }
+@keyframes pa-disco { from { transform: scale(.4); opacity: 0; } }
+@keyframes pa-destello { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 0%, transparent); } 35% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 22%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+/* P2: la franja (sin disco) */
+.pa.franja { grid-template-columns: auto minmax(0, 1fr) auto; border-left: 3px solid var(--c); border-radius: 6px 14px 14px 6px; background: color-mix(in srgb, var(--c) 6%, var(--color-papel)); }
+.pa.franja .pa-ic { background: none; width: 18px; height: 22px; animation: none; }
+.pa.franja .pa-ic::after { display: none; }
+.pa.franja { animation: pa-entra 280ms var(--ease-cayla) both, pa-franja 520ms var(--ease-cayla) both; }
+.pa.franja[data-tono="error"] { animation: pa-entra 280ms var(--ease-cayla) both, pa-franja 520ms var(--ease-cayla) both, pa-destello 900ms var(--ease-cayla) 300ms; }
+@keyframes pa-franja { from { border-left-color: transparent; } }
+/* La nota (sin alarma): nota-cayla + un «i» opcional */
+.pn { display: flex; gap: 10px; align-items: flex-start; }
+.pn svg { width: 16px; height: 16px; margin-top: 3px; color: var(--color-taupe); stroke-width: 1.75; }
+/* Error bajo un campo (propuesta: el pie del Campo, con su ícono) */
+.pf { display: flex; gap: 6px; align-items: center; margin-top: 6px; font-size: 12.5px; color: var(--color-rojo-profundo); animation: pa-entra 240ms var(--ease-cayla) both; }
+.pf svg { width: 14px; height: 14px; stroke-width: 2.2; }
+.pf svg > * { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pv-traza 320ms var(--ease-cayla) 120ms forwards; }
+.dz-campo { display: flex; flex-direction: column; gap: 4px; }
+.dz-campo label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--color-taupe); font-weight: 600; }
+.dz-campo .caja { height: 38px; border-radius: 8px; background: var(--color-hueso); border: 1px solid var(--color-sand); padding: 0 12px; display: flex; align-items: center; font-size: 14px; }
+.dz-campo .caja.mal { border-color: color-mix(in srgb, var(--color-rojo) 55%, transparent); }
+.dz-hoja { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.dz-hoja h5 { margin: 0; font: 500 20px/1.2 var(--font-serif); }
+.dz-hoja .pie { display: flex; justify-content: flex-end; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ================= BUSCADOR · lo que existe hoy ================= */
+.dz input { font: inherit; color: var(--color-tinta); }
+.dz input::placeholder { color: color-mix(in srgb, var(--color-tinta) 45%, transparent); }
+.dz input[type="search"]::-webkit-search-cancel-button { display: none; }
+.h-ba { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 8px; background: var(--color-hueso); border: 1px solid var(--color-sand); }
+.h-ba:has(input:focus-visible) { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.h-ba svg.lupa { width: 16px; height: 16px; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); }
+.h-ba input, .h-bb input, .h-be input, .h-bf input, .h-bg input, .h-fin input, .h-an input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.h-x { display: none; place-items: center; width: 28px; height: 28px; border-radius: 999px; border: 0; background: transparent; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); cursor: pointer; transition: background-color .2s, color .2s; }
+.h-x svg { width: 14px; height: 14px; }
+.h-x:hover { background: var(--color-sand); color: var(--color-rojo); }
+[data-buscar].tiene .h-x { display: grid; animation: h-revela 240ms var(--ease-cayla) both; }
+.h-bb { position: relative; display: flex; align-items: center; gap: 10px; padding: 8px 0; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); }
+.h-bb svg.lupa { width: 16px; height: 16px; }
+.h-bb input { height: 26px; }
+.h-kbd { pointer-events: none; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent); padding: 0 6px; font-size: 10.5px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: opacity .2s; line-height: 18px; }
+[data-buscar]:focus-within .h-kbd, [data-buscar].tiene .h-kbd { opacity: 0; }
+.h-bb .h-x { width: 20px; height: 20px; } .h-bb .h-x:hover { background: none; }
+.h-hilo, .h-hilo-r, .h-barrido { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; border-radius: 999px; }
+.h-hilo { height: 1px; background: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+.h-hilo-r { height: 2px; background: var(--color-rojo); transform: scaleX(0); transition: transform 300ms var(--ease-cayla); }
+[data-buscar]:focus-within .h-hilo-r { transform: scaleX(1); }
+.h-barrido { height: 2px; overflow: hidden; opacity: 0; transition: opacity .2s; }
+.h-barrido::before { content: ""; display: block; height: 100%; width: 33%; border-radius: 999px; background: var(--color-rojo); animation: dz-barrido 1.1s linear infinite; }
+[data-buscar].buscando .h-barrido { opacity: 1; }
+@keyframes dz-barrido { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.h-senal { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: var(--color-rojo); white-space: nowrap; opacity: 0; transition: opacity 200ms var(--ease-cayla); }
+[data-buscar].buscando .h-senal { opacity: 1; }
+.h-be { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 12px 0 16px; border-radius: 16px; background: var(--color-hueso); border: 1.5px solid transparent; transition: border-color .2s, background-color .2s; }
+.h-be:focus-within { border-color: var(--color-taupe); background: var(--color-papel); }
+.h-be svg.lupa { width: 16px; height: 16px; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); }
+.h-bf { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; font-size: 13px; background: color-mix(in srgb, var(--color-vidrio) 55%, transparent); backdrop-filter: blur(12px) saturate(1.2); border: 1px solid color-mix(in srgb, var(--color-tinta) 8%, transparent); box-shadow: 0 1px 0 color-mix(in srgb, var(--color-vidrio) 60%, transparent) inset; }
+.h-bf:focus-within { outline: 2px solid color-mix(in srgb, var(--color-rojo) 60%, transparent); }
+.h-bf svg.lupa { width: 15px; height: 15px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); }
+.h-bf input { font-size: 13px; }
+.h-bg { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); background: var(--color-papel); }
+.h-bg:focus-within { border-color: var(--color-rojo); }
+.h-bg svg.lupa { width: 15px; height: 15px; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); }
+.h-fin { position: relative; display: flex; align-items: center; height: 36px; border-radius: 8px; border: 1px solid var(--color-sand); background: var(--color-papel); padding: 0 12px 0 34px; }
+.h-fin svg.lupa { position: absolute; left: 11px; width: 15px; height: 15px; color: var(--color-taupe); }
+.h-fin:focus-within { border-color: var(--color-taupe); }
+.h-an { display: flex; align-items: center; gap: 8px; width: 240px; padding: 8px 12px; border-radius: 10px; background: var(--color-hueso); }
+.h-an:focus-within { outline: 2px solid var(--color-tinta); }
+.h-an svg.lupa { width: 15px; height: 15px; color: var(--color-taupe); }
+.h-an input { font-size: 13.5px; }
+/* Mostrador */
+.h-mv { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--color-sand); background: var(--color-papel); transition: border-color .2s, box-shadow .2s; }
+.h-mv:focus-within { border-color: var(--color-rojo); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-rojo) 20%, transparent); }
+.h-mv svg.lupa { width: 20px; height: 20px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: color .2s; }
+.h-mv:focus-within svg.lupa { color: var(--color-rojo); }
+.h-mv input, .h-mc input, .pbm input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; }
+.h-mv.taupe:focus-within { border-color: var(--color-taupe); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-taupe) 20%, transparent); }
+.h-mv.taupe:focus-within svg.lupa { color: var(--color-tinta); }
+.h-mc { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 10px 0 20px; border-radius: 12px; background: var(--color-papel); box-shadow: 0 20px 42px -28px color-mix(in srgb, var(--color-sombra) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 9%, transparent); transition: box-shadow 300ms, transform 300ms; }
+.h-mc:focus-within { transform: translateY(-1px); box-shadow: 0 26px 52px -26px color-mix(in srgb, var(--color-sombra) 60%, transparent), 0 0 0 2px var(--color-taupe); }
+.h-mc svg.lupa { width: 20px; height: 20px; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); }
+.h-mc .h-kbd2, .pbm .h-kbd2 { display: flex; align-items: center; justify-content: center; height: 24px; min-width: 24px; padding: 0 8px; border-radius: 6px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); font-family: ui-monospace, monospace; font-size: 11px; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); }
+.dz .h-giro { display: none; width: 16px; height: 16px; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); animation: dz-gira 1s linear infinite; }
+.dz [data-buscar].buscando .h-giro { display: block; }
+[data-buscar].buscando .h-x { display: none; }
+@keyframes dz-gira { to { transform: rotate(360deg); } }
+
+/* ================= BUSCADOR · propuestas ================= */
+/* P1 (lista): la caja hundida de siempre, con todo lo bueno de las otras */
+.pb { position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 10px; background: var(--color-hueso); border: 1px solid var(--color-sand); overflow: hidden; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
+.pb:hover { border-color: color-mix(in srgb, var(--color-taupe) 45%, var(--color-sand)); }
+.pb:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+.pb:has(input:focus-visible) { outline: 2px solid var(--color-tinta); outline-offset: 2px; }
+.pb svg.lupa { width: 16px; height: 16px; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); transition: color 200ms, transform 300ms var(--ease-cayla); }
+.pb:focus-within svg.lupa { color: var(--color-tinta); transform: scale(1.08); }
+.pb input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.pb .h-kbd { margin-right: 6px; }
+.pb .h-senal { position: absolute; right: 44px; }
+.pb .h-barrido { bottom: 0; left: 0; right: 0; border-radius: 0; }
+.pb .h-x:hover { background: var(--color-sand); color: var(--color-tinta); }
+.pb-conteo { font-size: 12px; color: var(--color-taupe); margin-top: 6px; min-height: 18px; opacity: 0; transition: opacity 200ms; }
+.pb-conteo.ver { opacity: 1; animation: pv-sube 260ms var(--ease-cayla); }
+/* P2 (lista): el subrayado con el hilo vivo, con lo mismo */
+.pb2 { position: relative; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 2px; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); }
+.pb2 svg.lupa { width: 16px; height: 16px; transition: color 200ms, transform 300ms var(--ease-cayla); }
+.pb2:focus-within svg.lupa { color: var(--color-tinta); transform: scale(1.08); }
+.pb2 input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.pb2:has(input:focus-visible) { outline: none; }
+/* Mostrador: la píldora que se despega (de Cambios) con la lupa que se enciende (de Vender) */
+.pbm { position: relative; display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 8px 0 18px; border-radius: 14px; background: var(--color-papel); overflow: hidden; box-shadow: 0 20px 42px -28px color-mix(in srgb, var(--color-sombra) 50%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-tinta) 10%, transparent); transition: box-shadow 300ms var(--ease-cayla), transform 300ms var(--ease-cayla); }
+.pbm:focus-within { transform: translateY(-1px); box-shadow: 0 26px 52px -26px color-mix(in srgb, var(--color-sombra) 60%, transparent), 0 0 0 2px var(--color-tinta); }
+.pbm svg.lupa { width: 20px; height: 20px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: color 200ms, transform 300ms var(--ease-cayla); }
+.pbm:focus-within svg.lupa { color: var(--color-rojo); transform: scale(1.1); }
+.pbm .h-barrido { border-radius: 0; height: 3px; }
+.pbm .btn-cayla { height: 44px; }
+.pbm .pbm-esc { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 0; background: transparent; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); cursor: pointer; transition: background-color .2s, color .2s; }
+.pbm .pbm-esc:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+.pbm .pbm-esc svg { width: 20px; height: 20px; }
+
+/* Fila de demo con pantalla de fondo (lista falsa) para ver el buscador en su lugar */
+.dz-lista { display: flex; flex-direction: column; }
+.dz-lista > div { display: flex; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--color-sand); font-size: 13.5px; transition: opacity .2s; }
+.dz-lista > div span:last-child { color: var(--color-taupe); }
+[data-buscar].buscando ~ .dz-lista, .dz-marco:has([data-buscar].buscando) .dz-lista { opacity: .45; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dz *, .dz *::before, .dz *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
+/* Sobre una pantalla real (fotos-vivas.mjs) */
+.dz-vivo { width: 100%; }
+/* En celular no hay teclado físico: el atajo «/» no se muestra (como hoy en Cambios y Devoluciones) */
+@media (max-width: 640px) { .dz .h-kbd2, .dz .pb .h-kbd, .dz .pb2 .h-kbd { display: none; } .pbm { padding-left: 14px; gap: 10px; } }
+.pa[data-tono="info"] .pa-ic { color: var(--color-tinta); background: color-mix(in srgb, var(--color-pizarra) 22%, transparent); }
+
+</style>
+<h3 style="font:500 20px/1.2 var(--font-serif);margin:20px 0 8px">P1 · lista</h3>
+<p style="font-size:13px;color:var(--color-taupe);max-width:90ch">Al pasar el mouse el borde se entibia; al enfocar se aclara a papel, la lupa se oscurece y crece un poco (300 ms) y aparece el anillo de foco del sistema. El «×» entra bajando (240 ms). Mientras busca, «Buscando…» aparece en rojo y un hilo corre por debajo (es la señal de espera, como el giro de un botón). El conteo sube y aparece al terminar.</p>
+<div class="dz"><div class="dz-barra"><span class="dz-et"></span><button type="button" class="dz-repetir">↻ Repetir la entrada</button></div><div data-escena="a"><div class="dz-marco"><div class="dz-cab"><span>Comprobantes de compra · Trujillo</span><span>38</span></div><div style="padding:12px 16px 14px"><div><div class="pb" data-buscar><svg viewBox="0 0 24 24" class="lupa"  aria-hidden="true"><circle cx="11" cy="11" r="8" pathLength="1"/><path d="m21 21-4.3-4.3" pathLength="1"/></svg><input type="search" placeholder="Proveedor o número de documento" aria-label="Buscar"><span class="h-senal">Buscando…</span><kbd class="h-kbd">/</kbd><button type="button" class="h-x" data-borrar aria-label="Borrar la búsqueda"><svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M18 6 6 18" pathLength="1"/><path d="m6 6 12 12" pathLength="1"/></svg></button><span class="h-barrido"></span></div><div class="pb-conteo" aria-live="polite"></div></div></div><div class="dz-lista"><div><span>Confecciones del Sur EIRL</span><span>F001-2231</span></div><div><span>Textiles Andinos SAC</span><span>F002-0087</span></div><div><span>Hilados Zárate</span><span>F001-0412</span></div></div></div></div></div>
+<h3 style="font:500 20px/1.2 var(--font-serif);margin:20px 0 8px">P2 · subrayado</h3>
+<p style="font-size:13px;color:var(--color-taupe);max-width:90ch">El hilo rojo crece desde el centro al enfocar (300 ms); mientras busca, un tramo rojo corre a lo largo; lupa, «×» y conteo como P1.</p>
+<div class="dz"><div class="dz-barra"><span class="dz-et"></span><button type="button" class="dz-repetir">↻ Repetir la entrada</button></div><div data-escena="a"><div class="dz-marco"><div class="dz-cab"><span>Comprobantes de compra · Trujillo</span><span>38</span></div><div style="padding:12px 16px 14px"><div><div class="pb2" data-buscar><svg viewBox="0 0 24 24" class="lupa"  aria-hidden="true"><circle cx="11" cy="11" r="8" pathLength="1"/><path d="m21 21-4.3-4.3" pathLength="1"/></svg><input type="search" placeholder="Proveedor o número de documento" aria-label="Buscar"><span class="h-senal">Buscando…</span><kbd class="h-kbd">/</kbd><button type="button" class="h-x" data-borrar aria-label="Borrar la búsqueda"><svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M18 6 6 18" pathLength="1"/><path d="m6 6 12 12" pathLength="1"/></svg></button><span class="h-hilo"></span><span class="h-hilo-r"></span><span class="h-barrido"></span></div><div class="pb-conteo" aria-live="polite"></div></div></div><div class="dz-lista"><div><span>Confecciones del Sur EIRL</span><span>F001-2231</span></div><div><span>Textiles Andinos SAC</span><span>F002-0087</span></div><div><span>Hilados Zárate</span><span>F001-0412</span></div></div></div></div></div>
+<h3 style="font:500 20px/1.2 var(--font-serif);margin:20px 0 8px">Mostrador</h3>
+<p style="font-size:13px;color:var(--color-taupe);max-width:90ch">Al enfocar sube 1 px, la sombra crece y la lupa se enciende en rojo y crece (300 ms). Mientras busca, el giro (la única vuelta permitida, ADR-0136) y el hilo. El botón tiene el movimiento de todo botón y la onda al clic.</p>
+<div class="dz"><div class="dz-barra"><span class="dz-et">Ver</span><button type="button" class="dz-sel" data-ver="c" aria-pressed="true">En Cambios</button><button type="button" class="dz-sel" data-ver="v" aria-pressed="false">En Vender</button><button type="button" class="dz-repetir">↻ Repetir la entrada</button></div><div data-escena="c"><div class="dz-lienzo"><div style="font:400 26px/1.15 var(--font-serif)">Cambios</div><div class="pbm" data-buscar><svg viewBox="0 0 24 24" class="lupa"  aria-hidden="true"><circle cx="11" cy="11" r="8" pathLength="1"/><path d="m21 21-4.3-4.3" pathLength="1"/></svg><input type="text" placeholder="Boleta, DNI, cliente, prenda o código" aria-label="Buscar la venta"><svg viewBox="0 0 24 24" class="h-giro" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><button type="button" class="h-x" data-borrar aria-label="Borrar la búsqueda"><svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M18 6 6 18" pathLength="1"/><path d="m6 6 12 12" pathLength="1"/></svg></button><kbd class="h-kbd2">/</kbd><button type="submit" class="btn-cayla btn-primario">Buscar</button><span class="h-barrido"></span></div></div></div><div data-escena="v" hidden><div class="dz-lienzo"><div style="font:400 26px/1.15 var(--font-serif)">Vender</div><div class="pbm" data-buscar><svg viewBox="0 0 24 24" class="lupa" style="stroke-width:1.75" aria-hidden="true"><path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" pathLength="1"/></svg><input type="text" placeholder="Escanea la etiqueta o busca la prenda" aria-label="Buscar la prenda"><button type="button" class="h-x" data-borrar aria-label="Borrar la búsqueda"><svg viewBox="0 0 24 24" class=""  aria-hidden="true"><path d="M18 6 6 18" pathLength="1"/><path d="m6 6 12 12" pathLength="1"/></svg></button><kbd class="h-kbd2">/</kbd><span class="h-barrido"></span></div></div></div></div>

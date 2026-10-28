@@ -9,7 +9,7 @@ import { useColaOffline } from "@/lib/useColaOffline";
 export const RPCS_RECIBIR = ["recibir_envio", "recibir_lote"] as const;
 
 /**
- * La cola sin conexión de Recibir mercadería: UNA para `/recibir` y `/inventario/recibir`. Las pantallas la usan
+ * La cola sin conexión de Recibir mercadería: UNA para la puerta «Llegó mercadería» y la recepción contra factura de `/recibir`. Las pantallas la usan
  * para pintarla y encolar; `subir` lo pasa solo el sincronizador del layout (`ColasSinConexion`), que al subir
  * cada recepción lo dice y relee la pantalla en la que esté la persona (el stock ya cambió en la base).
  */

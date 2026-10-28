@@ -1,4 +1,4 @@
-import { METODOS_PAGO, redondear2, type MetodoPago } from "./comprobantes-produccion-reglas";
+import { redondear2, type MetodoPago } from "./comprobantes-produccion-reglas";
 import { cuentaEfectiva, type CuentaElegible } from "./cuenta-sellada-reglas";
 
 // Pagar con uno o varios medios (ADR-0133, F4b/F4c). Puro. Un mismo pago se reparte entre medios cuando el dinero sale de más de un
@@ -57,10 +57,6 @@ export function mediosParaRpc(medios: MedioForm[], fecha?: string, cuentas?: rea
       const cuenta = cuentas ? cuentaEfectiva(cuentas, "pago", m.metodo, m.cuentaId) : null;
       return { metodo: m.metodo, monto: redondear2(num(m.monto)), fecha, referencia: m.referencia.trim() || undefined, ...(cuenta ? { cuenta_id: cuenta } : {}) };
     });
-}
-
-export function etiquetaMedio(m: MetodoPago): string {
-  return METODOS_PAGO.find((x) => x.valor === m)?.etiqueta ?? m;
 }
 
 /** Al agregar un medio, propone lo que falta como monto (es lo que casi siempre se quiere). */

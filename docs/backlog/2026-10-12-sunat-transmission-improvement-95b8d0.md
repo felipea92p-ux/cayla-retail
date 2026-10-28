@@ -1,0 +1,7 @@
+## Comprobantes: lo que SUNAT aceptó no retrocede (2026-10-12, ADR-0386)
+- [x] **Una respuesta vieja de Lucode no pisa un aceptado ni un anulado** (`actualizar_transmision_comprobante` con `for update`) y el disparador `comprobantes_estado_no_retrocede` deja solo los pasos que existen. `20261012180000`.
+- [x] **Anular una venta no libera la boleta que ya intentó salir a SUNAT** (opción A de Felipe, confirmada con la corrección: una venta cuya boleta intentó salir ya no se anula, va por Devolución). `20261012180100`.
+- [x] **Pegado en producción el 2026-10-12, 11:37–11:40 (Lima)**, con el OK de Felipe, en orden; huellas y comprobación en el ADR («Producción»). Control en 0 y sin errores en el registro de Postgres.
+- [ ] **El próximo refresco del volcado** (`docs/datos/generado/COMO-REFRESCAR.md`) sumará la firma de `fn_comprobante_estado_no_retrocede()` a `funciones-produccion.txt`. No se refrescó aquí: no hay tablas, columnas, candados ni políticas nuevas, y el diccionario no registra disparadores.
+- [ ] **Ver el mensaje de «Anular venta» en la pantalla** (Devoluciones, también a 375 px) con una venta cuya boleta esté en la cola. La pantalla muestra el mensaje de la base tal cual (`traducirError`, P0001); no se miró en el navegador porque las migraciones no están en la base local compartida.
+- [ ] **Hoy «Anular venta» se ofrece aunque la base lo vaya a negar** (también con una boleta aceptada, desde antes): la tarjeta podría decir de entrada por qué no se puede. Mejora de pantalla, no de datos.

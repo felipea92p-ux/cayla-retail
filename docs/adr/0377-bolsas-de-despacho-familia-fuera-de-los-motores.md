@@ -1,0 +1,154 @@
+# ADR-0377 — Bolsas de despacho: una familia fuera de los motores y «Agregar bolsa» en Vender
+
+- **Fecha:** 2026-10-10 · **Estado:** construido y verificado en local, **SQL todavía NO en producción** (tres migraciones y un script de una sola vez,
+  en el orden de abajo). Decidido con Felipe: «familia fuera de los motores» y «reclasificar en bloque con rastro» (preguntas con opciones, 2026-10-10),
+  más la bolsa de obsequio como línea de S/ 0.00 («ya», contra la recomendación de esperar al contador).
+- **Pedido:** «¿cómo regularizo eso? es una bolsa de despacho que damos por 0.5… puede alterar la categoría de bolsos» y, después: «debe salir en el
+  punto de venta: agregar bolsa»; la de papel CAYLA pequeña a S/ 0.50, la grande a S/ 1.20, las de TNT ecoamigables a S/ 3.90 y una de obsequio a S/ 0.00.
+
+## El problema (cifras de producción, solo lectura, 2026-10-10 y 11)
+
+No existía ningún producto ni categoría de empaque (las familias eran indumentaria, calzado, accesorios, bisutería, belleza y papelería; «crear bolsas,
+cajas y sorpresas como productos» seguía como tarea del equipo desde el ADR-0328). Caja vendía la bolsa como «prenda sin registrar» y anotaba la categoría
+que se le ocurría: **62 ventas de Tienda AQP (S/ 37.69)** anotadas como Bolsos y Carteras (incluso «Bolsos y Carteras · Beige · Talla Única» a S/ 0.50),
+Anillos o Aretes. Regularizarlas contra una cartera habría dado de baja una cartera real (o creado historial de stock y un «descuento» de −S/ 58).
+Peor: el motor del piso, el de demanda, el plan de campaña, Análisis y Frescura **cuentan esas ventas como demanda de su categoría**, y la bolsa a precio
+de lista en casi cada venta diluía además la cifra de «rebaja» de Análisis.
+
+## Decisión
+
+1. **Una marca en la FAMILIA: `familias.entra_a_motores`** (por defecto `true`: ninguna familia existente cambia) y una pregunta única,
+   `retail.fn_categoria_entra_a_motores(categoría)` (sin dato responde `true`: lo que no se sabe sigue contando). Un líder crea la familia «Empaque», le apaga
+   «Cuenta en Análisis, Frescura y el plan del piso» (Catálogo ▸ Familias) y cuelga de ella la categoría «Bolsas»; el tipo de bolsa (papel pequeña, grande,
+   TNT, obsequio) son **productos** de esa categoría. `20261010231000`.
+2. **Los motores de decisión la preguntan; la plata no.** Ignoran lo apagado: `fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_plan_compra`
+   (`20261010232000`), `fn_analisis_sede` (también su cifra «rebaja_de_100») y `fn_frescura_sede` (`20261010233000`), y las dos lecturas directas de la cola
+   que `lib/frescura.ts` hace (`lib/familias-motores.ts`). Caja, comprobante, Ventas, Finanzas y Resumen **siguen contando la bolsa**: es una venta real.
+3. **«Agregar bolsa» en Vender.** Una fila «Bolsas» bajo la del cliente en el ticket (`punto-de-venta/BolsaDelTicket.tsx`) abre una hoja con las bolsas de
+   la sede (las prendas de una familia apagada, `lib/bolsas-reglas.ts`), cada una con el precio DE ESTA TIENDA y su stock; tocar una la agrega por el mismo
+   `agregar()` de siempre y la hoja sigue abierta. Sin bolsas en el catálogo no hay fila. A 375 px el botón mide 44 px.
+4. **La bolsa de obsequio (S/ 0.00) es una línea más del ticket** (la variante acepta precio 0): descuenta stock y sale en el ticket. Un ticket que no cobra
+   nada no se cobra y lo dice (`motivoBloqueoCobro`). **No se declara a SUNAT**: `itemsParaLucode` salta una línea de PRECIO de etiqueta 0 (una prenda regalada
+   con descuento sí se declara) y, si todas lo son, no hay comprobante que transmitir. Ver «Pendientes» (contador).
+5. **Lo ya vendido: el script de una sola vez** `supabase/migrations/pegar-en-produccion-bolsas-reclasificar-aqp-2026-10-10.sql` llama a
+   `corregir_prenda_sin_registrar` (la misma función de «Corregir lo anotado», ADR-0369) para esas 62 ventas: cambia solo categoría, talla «Única» y la
+   descripción automática; deja la foto de antes y después y su línea en Actividad; todo o nada. Los ids salen de producción (huella `59144f00…`).
+
+## Alternativas descartadas
+
+- **La marca en la categoría.** Una categoría exige familia y la bolsa no cabe en ninguna de las seis; colgarla de «Accesorios» obligaría a apagar también
+  carteras y relojes. Con la marca en la familia, «Empaque» agrupa bolsas, cajas y sorpresas con un solo interruptor.
+- **Una lista de categorías excluidas dentro de cada función del motor:** cinco funciones con la misma lista a mano se desincronizan.
+- **Dejar vender la bolsa sin stock cargado** (cambiar `registrar_venta`): es dinero y stock, y `stock.cantidad >= 0` es un candado de la base. Las bolsas
+  se cargan con stock (una carga grande por tienda) como cualquier producto.
+- **Sacar la bolsa también de Finanzas, Resumen y Rentabilidad:** son ventas de S/ 0.50 que sí entraron a caja.
+- **Una función nueva y permanente de «reclasificar en bloque»:** una limpieza de una sola vez no justifica una RPC permanente (principio 3); el script
+  reutiliza la función que ya existe y deja el mismo rastro.
+
+## Los materiales de las bolsas y los tejidos que salían «Sin muestra» (2026-10-11)
+
+Felipe dio de alta seis materiales en Atributos ▸ Tejidos (Papel kraft, Papel couché, Papel opalina, TNT, Organza, Plástico) y salieron «Sin muestra»: la
+muestra y la ficha se reconocen por el NOMBRE (`lib/tejido-visual.ts`), y esos nombres no existían. Al mirar producción (solo lectura) había cuatro más sin
+dibujo, de prendas reales: **ENCAJE, Gamuza, Mesh y catania**. Se agregaron diez familias con su dibujo (`components/MuestraTejido.tsx`), su ficha
+(`lib/tejido-ayuda.ts`) y su textura de «Generar dibujo» (`lib/dibujo-generado.ts`). **«catania» es la excepción:** la búsqueda no encontró una definición
+confiable de esa tela, así que su dibujo es neutro (como «Tela») y su ficha dice que la fibra no está confirmada, en vez de describir otra. Un nombre nuevo
+que no se reconozca sigue saliendo «Sin muestra» (la foto real se sube con «Subir foto»). La cuenta de colores de `MuestraTejido.tsx` en
+`lib/tema-colores-archivos.ts` pasó de 98 a 138: el color de cada hilo es dato.
+
+## Precio S/ 0.00 solo en Empaque (2026-10-11)
+
+La bolsa de obsequio no se podía dejar en S/ 0.00: la ficha exigía «un precio mayor que 0» a toda variante activa, y se dio de alta a S/ 0.01 (un céntimo
+cobrado al cliente, «S/ 0.01» en el ticket en vez de «Obsequio», y declarado a SUNAT como venta). La base nunca lo impidió (`variantes_precio_check` es
+`>= 0` y `catalogo_actualizar_producto` no frena el 0): el candado era solo de la pantalla.
+
+**Decisión (Felipe, 2026-10-11): el 0 vale solo en una categoría cuya familia está fuera de los motores.** `precioValido` (`lib/variantes-ficha-reglas.ts`)
+es la única regla: la usan `problemasVariantes`, «Cambiar en bloque» y los modales «Agregar talla» y «Agregar colores». La ficha lee la familia de la categoría
+ELEGIDA (`productos/[id]/editar/page.tsx`): si la bolsa se pasa a una categoría de mercadería, el 0 vuelve a bloquear. Negativo y vacío bloquean siempre.
+
+- **Descarté** el 0 en cualquier producto: una prenda con el precio olvidado se vendería gratis sin que nadie lo note, y el precio por tienda tampoco lo
+  aceptaría (`precios_sede_precio_positivo`). Para regalar una prenda sigue el descuento.
+- **Queda igual, a propósito:** Nuevo producto sigue pidiendo un precio mayor que 0. Una bolsa de obsequio nueva se da de alta con un precio y se deja
+  en 0 desde su ficha. *(Corregido el 2026-10-12: aquí decía que `crear_producto_con_variantes` también lo exigía en la base; no era así —aceptaba
+  «0 o más»—, y una celda de la tabla de precios en 0 lo dejaba pasar. Desde el ADR-0384 la regla de esta sección vale también en la base: alta,
+  edición, aprobación y venta.)*
+
+## Se rompe si…
+
+- Un motor NUEVO cuenta ventas o stock por categoría sin preguntar `fn_categoria_entra_a_motores`: la bolsa vuelve a contar. Cada motor ya tiene su caso
+  en `pnpm pruebas:motores-familias-apagadas`; uno nuevo debe sumar el suyo.
+- Una migración posterior reescribe una de las cinco funciones copiando un archivo anterior: pierde el filtro. Los parches son reemplazos anclados (fallan sin
+  tocar nada si la función cambió) con el formato que las suites de Frescura leen para deshacerlos (sumados a sus listas `DESHACER_*`).
+- Se apaga una familia que SÍ es mercadería: sus prendas desaparecen de Análisis, Frescura y el plan sin aviso. La tarjeta de la familia lleva el chip
+  «Fuera de Análisis y del piso» para que se vea.
+- La bolsa de obsequio sin stock cargado: la caja dice «sin stock aquí» y no la agrega (como cualquier prenda en cero).
+
+## Cómo se verifica
+
+- `pnpm pruebas:familias-motores` (6 casos), `pnpm pruebas:motores-familias-apagadas` (11) y `pnpm pruebas:reclasificar-bolsas` (10), todas con ROLLBACK, en el
+  CI, y con mutación comprobada (quitar dos anclajes hace fallar exactamente los casos que los vigilan). Las suites vecinas contra la base al día: piso 54/54,
+  demanda 11/11 y 13/13, plan de compra 19/19, plan del piso 17/17 y 27/27, Análisis 26/26, capacidad 34/34, cuadrar piso 40/40, bajadas 183/183.
+- Las 16 anclas de `232000` y `233000` se contaron contra las definiciones REALES de producción (solo lectura): 16 de 16.
+- Punta a punta en local: con la familia apagada, las bolsas valen 0 en los cinco motores y en las listas del plan; con la familia encendida (control) aparecen.
+- Vender en el navegador a 1280 y a 375 px; una venta real (2 pequeñas + 1 obsequio) dentro de una transacción que se deshace: la base acepta la línea de S/ 0.00 y
+  baja el stock de cada una.
+
+## Orden para producción
+
+**Hecho el 2026-10-11** (verificado en producción con consultas de solo lectura): las tres migraciones (filtros 2, 3, 1, 5 y 10), la web (#943), «Empaque»
+apagada y el script (62 movidas, 62 con rastro, 0 mal anotadas después). Falta el paso 3 en parte: hoy solo Tienda TRU tiene stock de bolsas.
+
+1. Pegar `20261010231000`, `20261010232000` y `20261010233000` (una parte cada una, tal cual). Verificar con la consulta de solo lectura del PR (2, 3, 1, 5 y 10).
+2. Merge de la web.
+3. Catálogo: familia «Empaque» (interruptor apagado), categoría «Bolsas» (talla Única), y los productos: bolsa de papel CAYLA pequeña y grande, de TNT y de
+   obsequio, con su precio por tienda (ADR-0370) y **stock cargado** en cada tienda (Recibir / carga inicial).
+4. El script de reclasificación, con el correo de un administrador y la categoría ya creada.
+
+## Pendientes y riesgos conocidos
+
+- **Contador:** (a) la bolsa de obsequio no se declara a SUNAT: confirmar que es correcto o cómo declararla (transferencia gratuita); (b) el ICBPER (S/ 0.50 por
+  bolsa de plástico) no está en el repo: la de papel no lo lleva, la de TNT es de polipropileno.
+- **Captura a 375 px:** el panel del navegador estaba oculto y no se pudo sacar; se midió el DOM (fila 333 px, hoja 375×347, filas de 56 px, sin recortes ni
+  desborde). Falta mirarla con el panel a la vista (regla de celular de Vender).
+- **No corridas:** `/formidable` y `/chaos` (obligatorias) y `tema:auditar` (modo oscuro; solo se usaron tokens). Piden Felipe: lanzan agentes.
+- **Tres suites dan un caso en rojo en la base LOCAL compartida** (`frescura_lectura` 256/257, `frescura_decisiones` 155/156 y `frescura_vara_cayla` 11/12), por filas sucias que dejan otras sesiones: dan la misma cifra sin estos cambios y en el CI, con base limpia, pasan. **Corrección (2026-10-11):** en un primer momento dije que `frescura_vara_cayla` también estaba así de antes; no: con mi parche daba 10/12 y el CI lo atrapó (su guarda por md5 de `fn_frescura_sede` no conocía el parche de `20261010233000`). Ya deshace esa migración al empezar cada caso, como `cuadrar_piso`, `frescura_bajadas` y `frescura_lectura`.
+  `frescura_vara_cayla` 11/12 (datos sucios de la base local compartida).
+- **El volcado del diccionario** (`docs/datos/generado/`) entra con `familias.entra_a_motores` al refrescarlo después de pegar.
+- Una venta anotada de «Anillos · Blanco · Talla 6» a S/ 1.00 quedó fuera del script a propósito.
+
+## Actualización 2026-10-13: la pestaña Grupos del Plan del piso también pregunta
+
+**Lo que se vio.** En Tienda TRU, Plan del piso ▸ Grupos mostraba «Bolsas · Sin grupo · Elegir grupo», la tarjeta «Sin grupo: 1
+categoría nueva por ubicar» en rojo y «Siguiente por revisar: Bolsas». La familia «Empaque» SÍ estaba apagada en producción
+(`entra_a_motores = false`, verificado de solo lectura), y el reparto del plan (`fn_piso_plan_lectura`) ya la ignoraba. Pero la
+pestaña Grupos lee de `fn_categorias_grupo_mix`, que listaba TODA categoría activa, y `fijar_grupos_de_categorias` aceptaba darle
+grupo. Era la séptima lectura que tenía que preguntar y no preguntaba: una categoría que por decisión no va al riel le pedía al líder
+un lugar en el riel.
+
+**Lo que se decidió.** La categoría de una familia apagada **no aparece** en Grupos (no es «Sin grupo»: no tiene grupo que elegir) y la
+base **rechaza** darle uno (`grupos_mix_categoria_fuera_del_plan`, 22023). Se descartó mostrarla en una sección «Fuera del plan»: la
+pantalla ya tiene mucho y esa información vive en Catálogo ▸ Familias, donde se apaga. Es en vivo: al encender la familia reaparece.
+Migración `20261013130000_plan_del_piso_grupos_ignoran_familias_apagadas.sql` (dos reemplazos anclados, una parte, re-ejecutable; anclas
+contadas contra producción: 1 y 1). La web no cambia: el conteo «Categorías» baja solo (46 → 45) y el mensaje del rechazo ya se muestra
+tal cual (todo `hint` que empieza por `grupos_mix_`). Lo vigila `pnpm pruebas:motores-familias-apagadas` (casos G1-G3 y R1).
+
+**En producción desde el 2026-10-13** (Felipe la pegó; verificado de solo lectura: las dos funciones preguntan, 45 categorías en el plan, 0 sin grupo). Pendiente: refrescar el diccionario.
+
+## Actualización 2026-10-13: «¿Qué producir?» del Resumen de Producción también la respeta
+
+**Lo que había.** La lista de motores que preguntan por la familia no incluía a Producción ▸ Resumen: `getModelosProducibles` trataba como producible a
+todo producto con una variante activa y `fn_resumen_variantes`, su fuente, no pregunta `fn_categoria_entra_a_motores`. Una bolsa con ventas y stock podía
+salir «Producir ya» y abrir una orden de corte que el Taller no fabrica. El análisis `docs/pantallas/produccion.md` (§4.2) lo señaló: ningún documento decía
+si esa pantalla estaba exenta, y la letra de `CLAUDE.md` («todo motor de decisión que cuente ventas o stock por categoría») decía que no.
+
+**Lo que se decidió (Felipe, 2026-10-13).** Sí aplica: «¿Qué producir?» **decide qué fabricar**, no es plata. Se resuelve en la web, no en la base:
+`getModelosProducibles({ soloProducibles: true })` quita los modelos de una categoría apagada (`categoriasFueraDeMotores`, la misma lectura de Frescura) junto
+con los descontinuados, los pendientes o rechazados y los de prueba (`esProducible`, `lib/produccion-reglas.ts`; ADR-0270). Se descartó parchar
+`fn_resumen_variantes` con otro reemplazo anclado: la función es de las más tocadas y el filtro por modelo cuesta una consulta chica que ya existe.
+
+**Lo que NO hace.** «Nueva orden» sigue ofreciendo todo el catálogo y `abrir_produccion` no mira el estado ni la familia: quien abre una orden por otra vía
+no encuentra este filtro. El candado en la base es el #6 del backlog (`docs/BACKLOG.md:44`, L, estructural) y es de Felipe. Ante la duda sigue contando
+(ADR-0377 punto 3): sin categoría o con la lectura de familias caída, el modelo se muestra.
+
+**Producción hoy** (volcado de solo lectura del 2026-10-13): 235 productos, todos aprobados y ninguno de prueba; el filtro dejaría fuera 1 descontinuado y
+hasta 2 de familias apagadas. Lo vigilan 7 pruebas de `esProducible` (`lib/produccion-reglas.test.ts`). `pnpm pruebas:motores-familias-apagadas` no tiene caso
+de Producción porque no hay función nueva en la base; la regla vive en la web.

@@ -1,0 +1,94 @@
+/* =====================================================================================================
+   LOS EFECTOS Y LA ENTRADA DE UNA CAMPAÑA (Tienda web ▸ Campañas). Esta hoja es la MISMA en las dos apps: la fuente es
+   `packages/shared/src/campana-efectos.css` y hay una copia en `apps/web/app/estilos/` y otra en `apps/tienda/app/estilos/`
+   (`apps/web/lib/campana-efectos.test.ts` falla si dejan de ser idénticas). Las partículas las arma `particulasDeEfecto`
+   (`packages/shared/src/campana-movimiento.ts`); aquí solo se pintan y se mueven. Todo CSS, sin librerías.
+   Los colores salen del diseño: `--cmp-acento` y `--cmp-texto` (los pone quien viste la pieza). Una vez al llegar o continuo lo decide
+   `--n` (1 o infinite). Con «reducir movimiento» no se mueve nada.
+   ===================================================================================================== */
+
+/* El cuadro donde caen o brillan las partículas: cubre la pieza y no estorba al toque. */
+.cmp-fx { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; container-type: size; }
+.cmp-fx i { position: absolute; display: block; left: var(--x); top: 0; width: var(--s); height: var(--s); opacity: 0; --cc: var(--cmp-acento); }
+.cmp-fx i.cmp-c-texto { --cc: var(--cmp-texto); }
+.cmp-fx i.cmp-c-blanco { --cc: white; }
+.cmp-fx i.cmp-c-hielo { --cc: aliceblue; }
+
+/* Destellos: brillan donde están y se apagan. */
+.cmp-fx-destellos i { top: var(--y); background: var(--cc); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); animation: cmp-tw var(--t) var(--d) ease-in-out var(--n) both; }
+@keyframes cmp-tw {
+  0% { opacity: 0; transform: scale(.2) rotate(0); }
+  40% { opacity: .95; transform: scale(1) rotate(45deg); }
+  100% { opacity: 0; transform: scale(.3) rotate(90deg); }
+}
+
+/* Lo que cae: confeti, pétalos, copos, corazones, estrellas, hojas y patitas. */
+.cmp-fx-confeti i, .cmp-fx-petalos i, .cmp-fx-copos i, .cmp-fx-corazones i, .cmp-fx-estrellas i, .cmp-fx-hojas i, .cmp-fx-patitas i {
+  top: -24px; animation: cmp-caer var(--t) var(--d) linear var(--n) both;
+}
+.cmp-fx-corazones i, .cmp-fx-estrellas i, .cmp-fx-hojas i, .cmp-fx-patitas i, .cmp-fx-petalos i, .cmp-fx-copos i { background: var(--cc); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.cmp-fx-confeti i { background: var(--cc); height: calc(var(--s) * 1.7); }
+/* Lo que cae tiene la forma de su ícono en el editor (un pétalo y un copo de nieve de seis puntas): el líder elige por el dibujo. */
+.cmp-fx-petalos i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C8 6.5 6 10 6 14.5a6 6 0 0 0 12 0C18 10 16 6.5 12 2z'/%3E%3C/svg%3E"); height: calc(var(--s) * 1.3); }
+.cmp-fx-copos i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v20M4.2 7l15.6 10M4.2 17 19.8 7M9.5 4 12 6.5 14.5 4M9.5 20 12 17.5l2.5 2.5'/%3E%3C/svg%3E"); }
+.cmp-fx-patitas i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='4' r='2'/%3E%3Ccircle cx='18' cy='8' r='2'/%3E%3Ccircle cx='20' cy='16' r='2'/%3E%3Cpath d='M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z'/%3E%3C/svg%3E"); }
+.cmp-fx-corazones i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'/%3E%3C/svg%3E"); }
+.cmp-fx-estrellas i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3 6.9 7.5.7-5.7 5 1.7 7.4L12 18l-6.5 4 1.7-7.4-5.7-5 7.5-.7z'/%3E%3C/svg%3E"); }
+.cmp-fx-hojas i { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/%3E%3C/svg%3E"); }
+@keyframes cmp-caer {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0); }
+  10% { opacity: .95; }
+  85% { opacity: .95; }
+  100% { opacity: 0; transform: translate3d(var(--dx), 100cqh, 0) rotate(var(--r)); }
+}
+
+/* Burbujas: suben. */
+.cmp-fx-burbujas i { top: auto; bottom: -24px; border: 1.5px solid var(--cc); border-radius: 50%; background: transparent; animation: cmp-subir var(--t) var(--d) linear var(--n) both; }
+@keyframes cmp-subir {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  12% { opacity: .85; }
+  85% { opacity: .85; }
+  100% { opacity: 0; transform: translate3d(var(--dx), -100cqh, 0); }
+}
+
+/* La entrada de la portada. «Telón»: dos hojas del color del acento se abren hacia los lados. Se pone en la pieza con `data-entrada`. */
+[data-entrada="telon"]::before, [data-entrada="telon"]::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 51%; background: var(--cmp-acento); z-index: 6; pointer-events: none;
+  animation: cmp-telon 1.1s .25s cubic-bezier(.22, 1, .36, 1) both;
+}
+[data-entrada="telon"]::before { left: 0; transform-origin: left center; }
+[data-entrada="telon"]::after { right: 0; transform-origin: right center; }
+/* Las hojas se encogen hacia su borde (no salen de la pieza): así no hace falta recortar lo que sobresale. */
+@keyframes cmp-telon { to { transform: scaleX(0); } }
+/* «Las prendas caen» (en la vista previa del ERP; en la tienda ya caen siempre) y «Sin animación». */
+[data-entrada="caen"] .cmp-pol { animation: cmp-cae .95s calc(.15s + var(--k) * .15s) cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes cmp-cae {
+  from { opacity: 0; transform: translateY(-380px) rotate(calc(var(--rot) - 26deg)); }
+  to { opacity: 1; transform: rotate(var(--rot)); }
+}
+[data-entrada="ninguna"] .cmp-pol, [data-entrada="ninguna"] .t-hero-texto > *, [data-entrada="ninguna"] .t-hero-tit span, [data-entrada="ninguna"] .t-hero-tit em { animation: none; }
+
+/* La franja en marquesina: las frases corren de derecha a izquierda, siempre iguales. */
+.cmp-marquesina { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: flex-start; padding-inline: 0; }
+/* El relleno de la derecha iguala al hueco entre frases: así dos vueltas seguidas miden justo el doble y el salto de la vuelta no se nota. */
+.cmp-marquesina .cmp-pista { display: flex; align-items: center; gap: 48px; padding-right: 48px; width: max-content; white-space: nowrap; animation: cmp-mq 26s linear infinite; }
+@keyframes cmp-mq { to { transform: translateX(-50%); } }
+
+/* La franja que rota las frases (solo la vista previa del ERP; la tienda las turna con su propio reloj): cada una se ve media vuelta. */
+.cmp-rota { display: grid; place-items: center; }
+.cmp-rota > span { grid-area: 1 / 1; opacity: 0; animation: cmp-rota 9s infinite; }
+.cmp-rota > span:nth-child(2) { animation-delay: 4.5s; }
+@keyframes cmp-rota { 0%, 42% { opacity: 1; } 50%, 92% { opacity: 0; } 100% { opacity: 1; } }
+
+/* Con «reducir movimiento» (el aparato del cliente o el botón de la vista previa) queda todo quieto. */
+@media (prefers-reduced-motion: reduce) {
+  .cmp-fx { display: none; }
+  [data-entrada]::before, [data-entrada]::after { display: none; }
+  .cmp-marquesina .cmp-pista { animation: none; transform: none; }
+  .cmp-rota > span { animation: none; }
+  .cmp-rota > span:first-child { opacity: 1; }
+}
+.cmp-quieto .cmp-fx { display: none; }
+.cmp-quieto [data-entrada]::before, .cmp-quieto [data-entrada]::after { display: none; }
+.cmp-quieto *, .cmp-quieto *::before, .cmp-quieto *::after { animation: none !important; transition: none !important; }
+.cmp-quieto .cmp-rota > span:first-child { opacity: 1; }

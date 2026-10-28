@@ -23,14 +23,14 @@ export function ComprobanteEncabezado({
   anulada?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3" data-guia="factura.estado">
       <div>
         <p className="label-cayla text-[11px] text-tinta/65">Total del comprobante</p>
         <p className="font-display mt-1 text-4xl leading-none tabular-nums text-tinta">{total}</p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-3">
         {anulada ? (
-          <p className="text-sm text-rojo">{anulada}</p>
+          <p className="text-sm text-rojo">{/* unificar-fijo: es el estado «Anulada», no un error */}{anulada}</p>
         ) : (
           <p className="flex flex-wrap gap-1.5">
             {chips.map((c) => (

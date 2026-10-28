@@ -8,12 +8,13 @@ import { MUESTRAS_A_LA_VISTA } from "./muestras-alta-reglas";
 // componente (`ElegirEtiquetas`) solo pinta lo que esto calcula.
 //
 // CONTRATO
-//   PROMETE: separar el vocabulario de etiquetas en lo que se puede ELEGIR, lo que YA APLICA solo por campaña, y lo que
-//            este rol no puede dar; y decir, para un texto escrito, si coincide con una etiqueta o si sería una NUEVA.
+//   PROMETE: separar el vocabulario de etiquetas en lo que se puede ELEGIR y lo que YA APLICA solo por campaña; y decir,
+//            para un texto escrito, si coincide con una etiqueta o si sería una NUEVA.
 //   ASUME:   `etiquetas` son las APROBADAS Y ACTIVAS que trae `getContextoAlta` (una pendiente o rechazada no es
 //            vocabulario todavía: la base también lo exige en `crear_producto_con_variantes`).
-//   NO HACE: no crea nada (eso es `proponerEtiqueta`, con su firma) ni decide permisos: la base los vuelve a exigir
-//            (`fn_puede_dar_descuento_por_etiqueta`); acá solo se evita OFRECER lo que la base va a rechazar.
+//   NO HACE: no crea nada (eso es `proponerEtiqueta`, con su firma) ni filtra por rol: desde 2026-09-30 (ADR-0293) quien
+//            da de alta un producto le pone cualquier etiqueta, con descuento o sin él. Antes, quien no era líder no veía
+//            las que llevaban descuento («Para liquidar», «Últimas unidades») y parecía que no existían.
 
 /** El nombre como se guarda: sin espacios de más al borde ni repetidos. Mayúsculas y tildes se respetan (se ven en pantalla). */
 export function nombreDeEtiqueta(texto: string): string {
@@ -31,23 +32,16 @@ export type ReparteEtiquetas = {
   elegibles: EtiquetaAlta[];
   /** Las que la campaña ya aplica sola sobre la categoría de esta prenda: se muestran, no se eligen (sería duplicarlas en cada variante). */
   cubiertas: EtiquetaAlta[];
-  /** Cuántas con descuento NO se ofrecen porque quien crea la prenda no es líder (poner un descuento cambia el precio en caja). */
-  ocultasPorDescuento: number;
 };
 
-export function repartirEtiquetas(
-  etiquetas: readonly EtiquetaAlta[],
-  { categoriaId, daDescuentos }: { categoriaId: string; daDescuentos: boolean }
-): ReparteEtiquetas {
+export function repartirEtiquetas(etiquetas: readonly EtiquetaAlta[], { categoriaId }: { categoriaId: string }): ReparteEtiquetas {
   const elegibles: EtiquetaAlta[] = [];
   const cubiertas: EtiquetaAlta[] = [];
-  let ocultasPorDescuento = 0;
   for (const et of etiquetas) {
     if (categoriaId && et.categoriaIds.includes(categoriaId)) cubiertas.push(et);
-    else if (!daDescuentos && et.descuentoPct !== null) ocultasPorDescuento++;
     else elegibles.push(et);
   }
-  return { elegibles, cubiertas, ocultasPorDescuento };
+  return { elegibles, cubiertas };
 }
 
 /** ¿El nombre contiene lo escrito? Sin tildes ni mayúsculas ni espacios de más; sin texto, todas coinciden. */
@@ -88,7 +82,7 @@ export function agruparEtiquetas(etiquetas: readonly EtiquetaAlta[]): GrupoDeEti
 }
 
 /** «20 % dto», «12.5 % dto»: lo que la campaña descuenta, tal cual (no se redondea: 12.5 no es 13), si descuenta. Mismo formato
- *  que Catálogo ▸ Atributos ▸ Etiquetas (`es-PE`). */
+ *  que Catálogo ▸ Insignias (`es-PE`). */
 export function textoDeDescuento(et: Pick<EtiquetaAlta, "descuentoPct">): string | null {
   if (et.descuentoPct === null) return null;
   return `${et.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % dto`;
@@ -98,16 +92,16 @@ export function textoDeDescuento(et: Pick<EtiquetaAlta, "descuentoPct">): string
  * Qué significa lo que la persona escribió, para decírselo con palabras en vez de dejar un «Crear» que la base rechazaría:
  *   - `vacio`: nada escrito.
  *   - `invalida`: trae una coma (pegar «a, b, c» crearía UNA etiqueta con comas, permanente en el vocabulario): se dice que van de a una.
- *   - `nueva`: no existe ninguna con ese nombre (ni elegible, ni cubierta, ni escondida por rol, ni propuesta antes): se puede crear.
+ *   - `nueva`: no existe ninguna con ese nombre (ni elegible, ni cubierta): se puede crear.
  *   - `existe`: ya hay una así, y `motivo` dice por qué no se agrega como «nueva»:
- *        elegible → está en la lista (Enter la agrega); elegida → ya está puesta; campana → ya aplica sola;
- *        solo_lider → lleva descuento y solo la da un líder; propuesta → ya la propusiste y espera a un líder.
+ *        elegible → está en la lista (Enter la agrega); elegida → ya está puesta; campana → ya aplica sola.
+ *   Desde ADR-0534 lo que se crea nace aprobado y entra a `todas`: ya no hay «propuestas» que esperen a nadie.
  */
 export type SignificadoTexto =
   | { tipo: "vacio" }
   | { tipo: "nueva"; nombre: string }
   | { tipo: "invalida"; nombre: string }
-  | { tipo: "existe"; nombre: string; etiqueta: EtiquetaAlta | null; motivo: "elegible" | "elegida" | "campana" | "solo_lider" | "propuesta" };
+  | { tipo: "existe"; nombre: string; etiqueta: EtiquetaAlta | null; motivo: "elegible" | "elegida" | "campana" };
 
 export function significadoDelTexto(
   texto: string,
@@ -115,8 +109,7 @@ export function significadoDelTexto(
     todas,
     reparto,
     elegidas,
-    propuestas,
-  }: { todas: readonly EtiquetaAlta[]; reparto: ReparteEtiquetas; elegidas: readonly string[]; propuestas: readonly string[] }
+  }: { todas: readonly EtiquetaAlta[]; reparto: ReparteEtiquetas; elegidas: readonly string[] }
 ): SignificadoTexto {
   const nombre = nombreDeEtiqueta(texto);
   const k = claveEtiqueta(nombre);
@@ -127,15 +120,13 @@ export function significadoDelTexto(
   if (igual) {
     if (elegidas.includes(igual.id)) return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "elegida" };
     if (reparto.cubiertas.some((c) => c.id === igual.id)) return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "campana" };
-    if (reparto.elegibles.some((c) => c.id === igual.id)) return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "elegible" };
-    return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "solo_lider" };
+    return { tipo: "existe", nombre: igual.nombre, etiqueta: igual, motivo: "elegible" };
   }
-  if (propuestas.some((p) => claveEtiqueta(p) === k)) return { tipo: "existe", nombre, etiqueta: null, motivo: "propuesta" };
   return { tipo: "nueva", nombre };
 }
 
 /** Lo que se dice cuando lo escrito no se puede crear como etiqueta (hoy: trae comas). */
-export const FRASE_ETIQUETA_INVALIDA = "Las etiquetas se agregan de a una: escribe una y da Enter, sin comas.";
+export const FRASE_ETIQUETA_INVALIDA = "Las insignias se agregan de a una: escribe una y da Enter, sin comas.";
 
 /** La frase de una etiqueta que existe pero no se agrega como nueva (el «por qué» que reemplaza a un botón muerto). */
 export function fraseDeExistente(motivo: Extract<SignificadoTexto, { tipo: "existe" }>["motivo"]): string {
@@ -146,10 +137,6 @@ export function fraseDeExistente(motivo: Extract<SignificadoTexto, { tipo: "exis
       return "Ya la agregaste a esta prenda.";
     case "campana":
       return "Esa campaña ya aplica sola a esta categoría: no hace falta agregarla.";
-    case "solo_lider":
-      return "Esa etiqueta lleva descuento y solo la pone un líder.";
-    case "propuesta":
-      return "Ya la propusiste: falta que un líder la apruebe en Catálogo → Atributos.";
   }
 }
 
@@ -158,4 +145,47 @@ export function unirEtiquetas(delServidor: readonly EtiquetaAlta[], nuevas: read
   const ids = new Set(delServidor.map((e) => e.id));
   const claves = new Set(delServidor.map((e) => claveEtiqueta(e.nombre)));
   return [...delServidor, ...nuevas.filter((e) => !ids.has(e.id) && !claves.has(claveEtiqueta(e.nombre)))];
+}
+
+/** La campaña con descuento que la caja cobrará HOY sobre la prenda que se está creando. */
+export type CampanaDelAlta = {
+  nombre: string;
+  pct: number;
+  hasta: string | null;
+  /** Lo que se rebaja por unidad (el mismo cálculo de la caja) y el precio que paga el cliente. */
+  descuento: number;
+  precioFinal: number;
+  /** Las otras campañas con descuento que rigen hoy y NO se cobran (la caja cobra solo la mayor), de mayor a menor %. */
+  otras: { nombre: string; pct: number }[];
+};
+
+/**
+ * La campaña que el resumen del alta anuncia: la de mayor % entre las elegidas a mano y las que la categoría aplica sola, que
+ * RIGE HOY (sin fechas = permanente; una que aún no empieza o ya terminó no cuenta, igual que la etiqueta de precio impresa y la
+ * caja). Existe para que el resumen diga lo mismo que dirá el papel: si la etiqueta sale con descuento, el resumen también.
+ *
+ * NO HACE: no suma campañas (la caja cobra solo la mayor, ADR-0107) ni toca el precio que se guarda: es solo lo que se muestra.
+ */
+export function campanaDelAlta(
+  etiquetas: readonly EtiquetaAlta[],
+  precio: number | null,
+  hoy: string,
+  descuentoDe: (precio: number, pct: number) => number,
+): CampanaDelAlta | null {
+  if (precio === null || !(precio > 0)) return null;
+  let mejor: EtiquetaAlta | null = null;
+  const rigen: EtiquetaAlta[] = [];
+  for (const e of etiquetas) {
+    if (e.descuentoPct === null || !(e.descuentoPct > 0)) continue;
+    if ((e.vigenteDesde && e.vigenteDesde > hoy) || (e.vigenteHasta && e.vigenteHasta < hoy)) continue;
+    rigen.push(e);
+    if (!mejor || e.descuentoPct > (mejor.descuentoPct ?? 0)) mejor = e;
+  }
+  if (!mejor || mejor.descuentoPct === null) return null;
+  const descuento = descuentoDe(precio, mejor.descuentoPct);
+  return { nombre: mejor.nombre, pct: mejor.descuentoPct, hasta: mejor.vigenteHasta, descuento, precioFinal: Math.round((precio - descuento) * 100) / 100, otras: rigen
+      .filter((e) => e !== mejor)
+      .sort((a, b) => (b.descuentoPct ?? 0) - (a.descuentoPct ?? 0))
+      .map((e) => ({ nombre: e.nombre, pct: e.descuentoPct ?? 0 })),
+  };
 }

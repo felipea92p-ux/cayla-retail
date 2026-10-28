@@ -1,10 +1,12 @@
 "use client";
 
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
+import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
+import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -118,7 +120,10 @@ const sinEspera = new Map<string, number>();
 
 /**
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
- * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta.
+ * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Las otras excepciones: el refresco que sigue a bajar al piso o subir
+ * al almacén desde el panel de Existencias (`PanelTalla`, Felipe 2026-10-08), que ya confirma con el aviso destacado y no debe tapar la
+ * lista, y los dos refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`) y el que sigue a un guardado sin respuesta
+ * (`RefrescoTrasCorte`, ADR-0411), que no deben dejar `inert` la pantalla bajo quien escribe.
  */
 export function navegacionSinEspera(href: string) {
   sinEspera.set(claveNavegacion(new URL(href, window.location.href)), Date.now() + MS_ANUNCIO);
@@ -180,6 +185,7 @@ function instalarInterceptor() {
     if (!clasificacion) return original(input, init);
 
     const soltar = tomarFicha(clasificacion.tipo === "guardado" ? PRIORIDAD.guardado : PRIORIDAD.carga, MENSAJE_ESPERA);
+    const tipo = clasificacion.tipo;
     return original(input, init).then(
       (res) => {
         hastaElFinal(res).then(soltar, soltar);
@@ -187,6 +193,9 @@ function instalarInterceptor() {
       },
       (err) => {
         soltar();
+        // Un guardado que se quedó sin respuesta pudo confirmarse igual en la base (ADR-0410): la pantalla se vuelve a
+        // leer sola cuando la base responda, para que «revisa si ya aparece registrado» mire datos de ahora (ADR-0411).
+        if (tipo === "guardado") anotarEscrituraSinRespuesta(window.location.pathname);
         throw err;
       },
     );
@@ -198,6 +207,9 @@ instalarInterceptor();
 export function EsperaGlobal() {
   const activas = useSyncExternalStore(suscribir, () => instantanea, () => SIN_FICHAS);
   const hay = activas.length > 0;
+  // Mientras vuela el colibrí de la entrada (components/login/EntradaColibri.tsx) el loader se aparta: el vuelo ocupa su lugar y
+  // la capa del colibrí espera a que el loader no tenga nada en curso (`esperaOcupada`) para abrirse.
+  const entrando = useSyncExternalStore(suscribirEntrada, entradaActiva, () => false);
 
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
@@ -288,7 +300,7 @@ export function EsperaGlobal() {
   // Mientras está a la vista, todo lo demás deja de recibir clics, foco y teclado; al irse, el foco vuelve
   // adonde estaba (un elemento vuelto `inert` lo suelta y sin esto la persona quedaría «en ninguna parte»).
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || entrando) return;
     foco.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const bloqueados = [...document.body.children].filter((el) => !el.hasAttribute("data-espera") && !el.hasAttribute("inert"));
     bloqueados.forEach((el) => el.setAttribute("inert", ""));
@@ -297,9 +309,9 @@ export function EsperaGlobal() {
       const previo = foco.current;
       if (previo?.isConnected && (document.activeElement === document.body || document.activeElement === null)) previo.focus({ preventScroll: true });
     };
-  }, [visible]);
+  }, [visible, entrando]);
 
-  if (!visible) return null;
+  if (!visible || entrando) return null;
 
   const { etiqueta, titulo, resalte, detalle } = mensaje.mensaje;
   const linea = tarda ? DETALLE_TARDA : detalle;
@@ -314,12 +326,13 @@ export function EsperaGlobal() {
       }`}
     >
       <div
-        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_rgba(80,50,20,0.5)] ring-1 ring-tinta/[0.07] ${
+        className={`relative w-full max-w-[380px] overflow-hidden rounded-[20px] bg-papel px-6 pb-6 pt-6 text-center shadow-[0_22px_44px_-22px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] ring-1 ring-tinta/[0.07] ${
           saliendo ? "anim-modal-sale" : "anim-modal-entra"
         }`}
       >
         <div className="relative mx-auto mb-3.5 grid h-16 w-16 place-items-center">
-          <Image src="/cayla-isotipo.png" alt="" width={34} height={34} priority className="h-[34px] w-auto" />
+          {/* El colibrí del logo oficial (ADR-0446), el mismo del lateral. */}
+          <LogoCayla soloColibri className="h-6" />
           <svg aria-hidden viewBox="0 0 64 64" fill="none" strokeWidth={2} className="absolute inset-0 h-full w-full">
             <circle cx="32" cy="32" r="29" className="stroke-sand" />
             <circle

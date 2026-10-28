@@ -1,4 +1,4 @@
-import { hoyEnLima } from "./resumen-periodo";
+import { diaLima, hoyLima } from "./fechas-lima";
 import { leerEventosPiso, type EventoPiso } from "./inventario-exposicion";
 
 // Ritmo reciente de Existencias (2026-09-25, pedido de Felipe) — sobre el ledger único.
@@ -30,14 +30,14 @@ import { leerEventosPiso, type EventoPiso } from "./inventario-exposicion";
 // Auditado también (2026-09-25): este repo no tiene un concepto propio de horario comercial/
 // calendario de tienda por sede (`Ubicacion.horaCierre` es solo la hora de cierre para proyectar
 // la venta del día en Caja, sin hora de apertura ni feriados) — «jornada» es, y sigue siendo, el
-// día calendario simple de Lima que ya usa todo el repo (`hoyEnLima`), nunca un horario nuevo
+// día calendario simple de Lima que ya usa todo el repo (`hoyLima` / `diaLima`), nunca un horario nuevo
 // construido para esto.
 //
 // Un día entero en almacén no es una jornada de observación: no castiga ni cuenta. Con menos de
 // `minDiasExposicion` jornadas no se afirma un ritmo — se muestran los hechos crudos (jornada por
 // jornada) para que la persona los lea sin que CAYLA invente una tasa prematura. El mínimo de
-// jornadas y el umbral de reposición son política operativa — `politica-operativa-inventario.ts`,
-// nunca un número local a este archivo.
+// jornadas es política operativa — `politica-operativa-inventario.ts`, nunca un número local a este archivo. Lo que el piso
+// pide hoy NO sale del ritmo: lo decide el motor del piso (`lib/piso-plan.ts`).
 
 /** Ventana operativa de «Ritmo reciente»: últimos N días calendario (no de exposición). */
 export const VENTANA_RITMO_RECIENTE_DIAS = 7;
@@ -97,8 +97,8 @@ export function diasExposicionComercial(eventos: readonly EventoPiso[], desde: D
   const ventasPorDia = new Map<string, number>();
   for (const e of eventos) {
     if (!e.esVenta || e.delta >= 0) continue; // una venta siempre resta del piso
-    const fecha = hoyEnLima(new Date(e.ts));
-    ventasPorDia.set(fecha, (ventasPorDia.get(fecha) ?? 0) + Math.abs(e.delta));
+    const fecha = diaLima(e.ts);
+    if (fecha) ventasPorDia.set(fecha, (ventasPorDia.get(fecha) ?? 0) + Math.abs(e.delta));
   }
 
   return [...diasConPiso].sort().map((fecha) => ({ fecha, ventas: ventasPorDia.get(fecha) ?? 0 }));
@@ -114,7 +114,7 @@ function diasLimaEntre(inicioMs: number, finMs: number): string[] {
   const dias: string[] = [];
   let cursor = inicioMs;
   while (cursor < finMs) {
-    const fecha = hoyEnLima(new Date(cursor));
+    const fecha = hoyLima(new Date(cursor));
     dias.push(fecha);
     cursor = medianocheLimaSiguiente(cursor);
   }
@@ -123,7 +123,7 @@ function diasLimaEntre(inicioMs: number, finMs: number): string[] {
 
 /** El instante UTC de la próxima medianoche de Lima estrictamente después de `ms`. */
 function medianocheLimaSiguiente(ms: number): number {
-  const fecha = hoyEnLima(new Date(ms));
+  const fecha = hoyLima(new Date(ms));
   const [a, m, d] = fecha.split("-").map(Number);
   // Medianoche de Lima de ESTE día calendario, en UTC: 00:00 Lima = 05:00 UTC (Lima es UTC−5).
   const medianocheHoyUtc = Date.UTC(a, m - 1, d) - OFFSET_LIMA_HORAS * MS_POR_HORA;

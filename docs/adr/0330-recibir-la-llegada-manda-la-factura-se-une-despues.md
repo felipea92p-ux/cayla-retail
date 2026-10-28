@@ -1,0 +1,197 @@
+# ADR-0330 · Recibir mercadería: la llegada manda, la factura se une después
+
+- **Fecha:** 2026-10-04 · **Estado:** Aprobado por Felipe (dos preguntas: «Una puerta, factura después» y «Por regularizar en
+  Existencias», las dos recomendadas; y la lista de seis actividades de `/construir`).
+- **Origen:** Felipe, 2026-10-04, con la captura de `/recibir` vacía: «esta parte de recibir mercadería es tan complejo e inútil que
+  ni yo, que soy el fundador y que estoy programando a la vez, lo entiendo». Análisis previo: `docs/pantallas/recibir.md`
+  (2026-10-03, 5,0/10).
+- **Producción:** **la fase 1 no tiene migración.** Usa `recibir_lote` y `recibir_envio` tal como están. La fase 2 (abajo) sí
+  cambia la base y se propone aparte.
+- **Reemplaza:** de ADR-0035, la regla «la factura es el eje de la **recepción**». La parte del **pago** (la deuda sale de la factura)
+  no cambia.
+- **Complementa:** ADR-0111 (Ingreso sin comprobante: deja de ser la excepción y pasa a ser la puerta), ADR-0113 (recibir por envío:
+  queda como la rama «viene con factura»), ADR-0139 (reparto por tienda: vive dentro de esa rama), ADR-0179 (prendas sin registrar),
+  ADR-0299 (los traslados se reciben en Traslados: no cambia), ADR-0328 (lo recibido entra primero al almacén; las ventas sin
+  registrar son limpieza de arranque).
+
+## Problema
+
+Producción, en solo lectura, el 2026-10-04:
+
+| Forma de meter stock a una tienda | Dónde vive | Uso real |
+|---|---|---|
+| Recibir mercadería (contra factura) | Compras / Inventario | **0** (`compras`, `envios`, `lotes` en 0) |
+| Ingreso sin comprobante | enlace gris dentro de Recibir → `/inventario/recibir` | **0** |
+| Nuevo producto con su stock (`carga_inicial`) | Catálogo | **571 filas, 789 prendas** |
+| Ajustar stock «reposición» / «otro» | Existencias | 35 filas (el atajo) |
+| Recibir un traslado | Traslados | 196 filas |
+
+1. **La pantalla empieza por el papel, no por la caja.** Para recibir, alguien que ve Compras tenía que registrar antes la factura;
+   sin factura, `/recibir` decía «No hay comprobantes con mercadería pendiente de recibir» y la salida real era un enlace de 12 px a
+   otra pantalla de otro módulo. En la tienda la pregunta es otra: «llegó una bolsa, ¿cómo la meto?». R-07
+   (`docs/datos/15-COMO-OPERA-CAYLA.md`) ya decía que más del 30 % de las compras llega sin factura y que la factura «se le pega
+   después si llega»; la implementación no siguió esa receta.
+2. **Diez ideas para recibir una caja:** comprobante, envío, guía, reparto por tienda, prendas fuera de comprobante, faltante, cierre
+   con motivo, nota de crédito por reclamar, «Recibiendo en» y montos visibles o no.
+3. **La tercera pestaña no era de recibir.** «Por regularizar» son ventas de prendas que no estaban en el sistema (247 pendientes, 0
+   regularizadas; AQP con 14 prendas cargadas y 170 ventas sin registrar). Es una diferencia de stock que deja Vender.
+
+## Decisiones
+
+```
+DECIDÍ: una sola puerta, «Llegó mercadería», en /recibir. Dos preguntas —¿de quién? (proveedor) y ¿qué llegó? (escanear o
+        buscar, cada lectura suma 1)— y se recibe en la sede de la cabecera. Lo recibido entra al almacén (ADR-0328: primero
+        al almacén) y la pantalla ofrece después «Imprimir etiquetas» y «Bajar al piso». El motor es `recibir_lote`, sin cambios:
+        una transacción, token contra el doble clic, cola sin conexión.
+DESCARTÉ: (a) pulir la pantalla actual —contadores en las pestañas, un estado vacío que explique, sin jerga—: seguía exigiendo
+        que el papel existiera antes que la caja y dejaba dos puertas para lo mismo; (b) esconder Recibir hasta el primer envío
+        real: ese día no habría puerta lista y se seguiría usando Ajustar stock como atajo.
+SE ROMPE SI: una sola factura trae prendas para TRU y AQP y cada tienda recibe su parte sin factura: el líder tendrá que unir una
+        factura a dos llegadas de dos sedes. La fase 2 tiene que aceptar una factura ↔ varias llegadas desde el primer día.
+```
+
+```
+DECIDÍ: la factura es una opción de la puerta, no un requisito. Si el proveedor elegido tiene facturas pendientes para esta
+        sede, la puerta pregunta «¿Viene con la F001-123?»; «Sí» abre el conteo contra factura de hoy (`RecepcionEnvio` y
+        `recibir_envio`, sin cambios: reparto, faltante con motivo y nota de crédito viven ahí); «No» sigue sin factura.
+DESCARTÉ: borrar la recepción contra factura: es lo mejor construido del módulo (una transacción, no deja recibir más de lo
+        facturado con `compras_no_sobrerecibida`) y será la rama normal cuando las facturas se registren a tiempo.
+SE ROMPE SI: quien recibe contesta «No» a una factura que sí venía y después otra persona recibe esa misma factura: la caja entra
+        dos veces. Lo frena el aviso de la actividad 3 (el mismo proveedor ya entró hoy en esta sede) y, del todo, la fase 2.
+```
+
+```
+DECIDÍ: el costo por prenda lo escribe solo quien ve el dinero de Compras (`verDineroCompras`, ADR-0126); los demás reciben sin
+        costo. Una línea sin costo no toca el costo de la prenda (`recibir_lote`, 20260930122000); el costo llega con la factura.
+DESCARTÉ: pedirle el costo a quien recibe en la tienda: no lo conoce, no debe verlo, y un cero de más contamina la prenda en las
+        tres sedes.
+SE ROMPE SI: la factura nunca se une a la llegada: esas prendas quedan con el costo que tenían antes (o sin costo) y su margen es
+        desconocido. La fase 2 es la que lo cierra; mientras no exista, el líder puede recibir con costo desde la misma puerta.
+```
+
+```
+DECIDÍ: «Por regularizar» se muda a Existencias: /inventario/por-regularizar, con la misma lista, un botón con el número en la
+        cabecera de Existencias, y los avisos del Inicio y del Observatorio apuntando ahí. /recibir?vista=por-regularizar
+        redirige.
+DESCARTÉ: ponerla en Ventas junto a Caja: quien vendió terminaría cuadrando su propia venta (ADR-0328: nadie regulariza su
+        propia venta, salvo el líder); y dejarla en Recibir: mezclaba ventas con recepción.
+SE ROMPE SI: la portada «Para hoy» de ADR-0328 (actividad 8) reescribe la cabecera de Existencias y se pierde el botón: la cola
+        vuelve a ser invisible. Se le avisa a esa sesión para que «Para hoy» se quede con la entrada; el Inicio sigue avisando.
+```
+
+```
+DECIDÍ: la sede de Recibir es la de la cabecera (el selector de sede de arriba). Se quitan el selector «Recibiendo en» y el
+        parámetro ?ubicacion=.
+DESCARTÉ: mantener los dos: dos reglas para lo mismo, y la puerta sin factura ya usaba la sede de la cuenta (análisis, tarea #8).
+SE ROMPE SI: un líder recibe para otra tienda sin cambiar la sede de arriba: entra donde está parado. La puerta dice la sede en
+        el botón («Recibir en Tienda TRU»), que es lo último que se lee antes de confirmar.
+```
+
+## Fase 2 · unir la factura a una llegada ya recibida (por proponer)
+
+No se construye en este ADR. Lo que tiene que cumplir, para que la fase 1 no la vuelva imposible:
+
+- **Una tabla nueva** que une llegada (`lotes`) y línea de factura (`compra_items`). No se puede rellenar
+  `movimientos.compra_item_id` después: `movimientos` solo crece y nunca se edita (ADR-0042, ADR-0055).
+- **Una factura ↔ varias llegadas, de varias sedes** (el reparto de ADR-0139), con el mismo candado de no recibir más de lo
+  facturado (`compras_no_sobrerecibida`).
+- **Recalcula el costo** de la prenda al unir, todo o nada, y la firma quien ve el dinero de Compras.
+
+## Lo que no cambia
+
+`recibir_lote`, `recibir_envio`, `regularizar_prenda` y la lista de Por regularizar. Traslados (ADR-0299). El Recibir de Producción
+(`/produccion/recibir`). El módulo `recibir` y sus dos entradas del menú (Compras para quien ve el dinero, Inventario para quien
+no). La deuda con el proveedor sigue saliendo de la factura (ADR-0035).
+
+## Orden de construcción
+
+0. Este ADR y la fila de la sesión.
+1. La puerta «Llegó mercadería» en `/recibir`.
+2. La factura como opción.
+3. «Llegó esta semana» debajo, y el aviso de la misma caja dos veces.
+4. Por regularizar en Existencias.
+5. Cerrar las puertas viejas: `/inventario/recibir` redirige, sin pestañas, sin «Recibiendo en», registros de las pruebas.
+
+## Construido (2026-10-04, cinco commits, uno por actividad)
+
+Todo lo de arriba, sin migración. Lo que se ajustó en el camino:
+
+- **La pregunta de la factura es «sugerida» en la guía de foco**: la luz la marca después del proveedor, pero se puede recibir sin contestarla.
+- **El historial (`?vista=recibidas`) suma «Sin factura»**: solo mostraba lo recibido contra factura, y todo lo que entra por la puerta era
+  invisible ahí. Hereda la lista que tenía «Ingreso sin comprobante».
+- **«Sin costo» se ve en la puerta y en el historial**, solo para quien ve el dinero de Compras (`recepciones_sin_comprobante`): es lo único
+  de la pantalla vieja que valía la pena conservar, porque hasta la fase 2 lo recibido sin factura queda sin costo. La cifra mensual
+  (`getResumenSinComprobante`) salió: nunca tuvo datos y nadie más la leía.
+- **La página nueva se llama «Ventas sin registrar»** (el nombre con que la nombra ADR-0328); la lista de adentro conserva sus textos.
+- **El botón de Existencias cuenta con el mismo alcance que su lista** (`contarPorRegularizar`, solo cuenta): un número que no coincide con la
+  pantalla a la que lleva es lo que le pasó al botón de Apartados.
+
+## Cómo se verifica
+
+Cada actividad, en el navegador local con la base local: recibir 3 prendas de un proveedor en TRU sube 3 en el almacén con su
+movimiento de entrada; con una factura de prueba la puerta la ofrece y sin factura no; el enlace viejo de Por regularizar llega a
+Existencias; `pnpm test` en verde.
+
+## Actualización 2026-10-11 — al cambiar de sede, lo contado queda guardado en SU sede (Felipe)
+
+**El problema.** El selector de sede de la cabecera cambia la sede con `router.refresh()`: la ruta no cambia y React conserva el
+estado de todo componente cliente cuya `key` siga igual. Las dos puertas de Recibir se montaban sin la sede en la key:
+
+- **Contra factura** (`RecepcionEnvio`): la sede vivía además en un `useState(ubicacionInicialId)` que nunca se ponía al día. Tras
+  pasar de Lima a Trujillo, «Entra al almacén de» quedaba en blanco (buscaba Lima en una lista que solo tenía Trujillo), el
+  responsable se elegía entre la gente de Lima, y `recibir_envio` salía con `p_ubicacion_id` de **Lima** junto con las facturas
+  marcadas, las cantidades, lo que llegó fuera de comprobante, las decisiones sobre lo que faltó, la guía y la nota. La base no
+  podía notarlo: Lima tenía su parte de la factura pendiente, así que para ella era una recepción válida en Lima aunque la
+  pantalla dijera Trujillo. Lo contado en una puerta entraba al almacén de otra.
+- **«Llegó mercadería»** (`LlegoMercaderia`): lo escaneado en Lima seguía en pantalla en Trujillo y `recibir_lote` lo recibía en
+  **Trujillo**.
+
+**La decisión (Felipe, entre guardarlo, preguntar antes de cambiar o vaciarlo con aviso):** la sede nueva arranca vacía y lo que
+estaba contado **queda guardado en su sede**: al volver con el selector, está tal como se dejó. Un aviso lo dice al irse («Lo
+contado en Tienda Lima quedó guardado») y otro al volver («Volvió lo que contaste en Tienda Lima»). Mismo criterio que el ticket
+de Vender (ADR-0049, act. 2026-10-11): perder 40 cajas contadas por un clic en el selector es peor que guardarlas.
+
+- **Qué se guarda:** contra factura, las facturas marcadas (las que sigan pendientes al volver), cuáles estaban abiertas, las
+  cantidades, lo de fuera de comprobante, las decisiones sobre lo que faltó, la guía, la nota, la pestaña y el token; en «Llegó
+  mercadería», el proveedor, la guía, lo escaneado (con su costo), los proveedores ya contestados «sin factura», los agregados
+  ahí mismo y el token. **El token viaja con el conteo**: es el mismo envío, y reintentarlo no lo duplica. No se guardan la
+  pantalla de «recibido» ni el resumen previo abierto.
+- **Cuándo cuenta como «algo contado»:** la misma regla que ya usaba «¿Salir sin guardar?» (cantidades, fuera de comprobante,
+  decisiones, guía o nota; marcar facturas no, porque se rehace en un toque). En «Llegó mercadería», lo escaneado o la guía;
+  elegir el proveedor solo, no.
+- **Vive mientras se siga en Recibir.** Salir de la pantalla lo pierde, así que «¿Salir sin guardar?» ahora pregunta también por
+  lo guardado en otra sede y lo nombra («También se pierde lo que dejaste contado en Tienda Lima (12 unidades)»). **«Llegó
+  mercadería» no tenía esa guardia** (lo escaneado se perdía en silencio al tocar el menú): la suma con este cambio, que es lo que
+  se le prometió a Felipe al elegir. Elegir «Toda la empresa» en el selector saca de Recibir (lleva al tablero) y lo pierde sin
+  preguntar, como en Vender.
+- **«¿Salir sin guardar?» compara contra la recepción VACÍA** y no contra la del montaje (antes, `useState(fotoConteo)`): una
+  recepción recuperada al volver a su sede también se protege.
+
+**Cómo está hecho.** `recibir/page.tsx` monta cada puerta con `key={claveDeLaRecepcion(<sede>)}` dentro de
+`<TrabajoPorSede key="llegada"|"factura" ubicacionId>` (`components/ui/TrabajoPorSede.tsx`), que NO cambia de key con la sede y
+por eso sobrevive al cambio. Cada pantalla le reporta su conteo en un efecto (`useTrabajoPorSede`) y lo lee al montarse; cuando la
+sede cambia, el guardián guarda el de la anterior. Guarda uno por sede y no uno solo: los efectos del hijo nuevo corren antes que
+el del padre, y el conteo vacío de la sede nueva pisaría el de la que se deja. En la vista contra factura el guardián va por
+encima del «No hay nada pendiente de recibir»: si la sede nueva no tiene facturas, la recepción no se dibuja y lo guardado de la
+otra no se pierde con ella. La key del guardián es la vista: lo guardado en una puerta no aparece en la otra. La regla es pura en
+`lib/recibir-cambio-de-sede.ts`, con su prueba (`recibir-cambio-de-sede.test.ts`, que además falla si la página vuelve a montar
+una puerta sin la sede en la key o sin su guardián).
+
+**Descartado:** preguntar antes de cambiar de sede (tocaba el selector de la cabecera, que está en todo el ERP, y es un paso más
+cada vez); vaciar con aviso (un clic equivocado borra un conteo largo sin vuelta atrás). **No se tocó la base, y no hace falta:**
+el chequeo temprano de `recibir_envio` (`if not v_es_lider and exists (…)`) se salta para el líder, pero cada línea pasa después por
+`recibir_compras`, cuyo tope por tienda (ADR-0139, `20260919172000_reparto_compra_por_tienda.sql`) vale para todos: rechaza una
+línea sin reparto en esa sede y lo que exceda su parte (consultado en producción el 2026-10-11, solo lectura). Lo que el bug dejaba
+pasar era una recepción dentro de la parte de OTRA sede con la pantalla mostrando la nueva: un error de pantalla, que ya no ocurre.
+
+**Cómo se verificó (2026-10-11, sin base local: Docker se desinstaló a mitad de la sesión).** Una página de ensayo fuera del repo
+montó las dos puertas reales con datos inventados (una factura repartida, 5 para Lima y 3 para Trujillo), la sede en una cookie y
+un selector con el mismo mecanismo que el de la cabecera (acción de servidor + `router.refresh()`); un Supabase falso en el puerto
+de la API anotaba cada llamada. **Antes, sobre `main`:** contadas 2 en Lima y cambiado a Trujillo, la pantalla de Trujillo mostró
+«Entra al almacén de» en blanco con las 2 y la guía de Lima, y `recibir_envio` salió con `p_ubicacion_id` y `x-ubicacion` de **Lima**
+(«Ya suman al stock de , de un proveedor»); en «Llegó mercadería», 3 prendas escaneadas en Lima se recibieron con `recibir_lote` en
+**Trujillo**. **Después, con el arreglo:** Trujillo arrancó vacía con el aviso de lo guardado, lo recibido allí salió con Trujillo,
+al volver a Lima apareció todo (factura marcada, 2 contadas, guía y «Entra al almacén de Tienda Lima») y salió con Lima; lo mismo
+en «Llegó mercadería». «Atrás» con Lima guardada y Trujillo vacía abrió «¿Salir sin guardar?» nombrando «Tienda Lima (2
+unidades)», y «Llegó mercadería» pregunta antes de perder lo escaneado. La pantalla de «recibido» sigue a la vista después del
+refresco en las dos puertas.

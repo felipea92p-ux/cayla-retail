@@ -6,6 +6,7 @@ import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
 // cómo se nombra y se pinta un color, cómo se elige UNO (corregir), cómo se muestra el código que va a tener cada
@@ -13,7 +14,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 
 /** Lo que hace falta para ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es de
  *  la SEDE ACTIVA: el ajuste escribe un movimiento allí, con su motivo y su responsable, como en Existencias. Solo llega si la
- *  cuenta tiene el módulo «Ajustar stock» (`puede(persona, "ajustarStock")`), que es lo mismo que exige la base. */
+ *  cuenta puede ajustar stock (`puede(persona, "ajustarStock")`), que es lo mismo que exige la base. */
 export type AjusteStockFicha = {
   productoId: string;
   ubicacionId: string;
@@ -23,6 +24,9 @@ export type AjusteStockFicha = {
   /** El rol ve «Bajada al piso» y la sede separa piso y almacén: lo nuevo puede entrar al piso (ADR-0212). */
   puedeBajarAlPiso: boolean;
 };
+
+/** De dónde se LEE el stock de la ficha (la sede activa), tenga o no la cuenta «Ajustar stock»: sin el módulo se ve, no se toca. */
+export type LecturaStockFicha = { ubicacionId: string; sububicaciones: Sububicacion[] };
 
 /** Lo que toda la sección necesita saber de la prenda y de quien la edita. */
 export type ContextoFicha = {
@@ -42,8 +46,12 @@ export type ContextoFicha = {
   /** La base sabe corregir el color y la talla (tiene `fn_variantes_estado` y el resto del SQL de ADR-0263). Sin eso no
    *  se ofrece corregir: una base vieja ignoraba la corrección pero guardaba las fotos que se movieron con ella. */
   puedeCorregir: boolean;
-  /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no tiene el módulo «Ajustar stock»: no se ofrece. */
+  /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no puede ajustar stock: no se ofrece. */
   ajusteStock?: AjusteStockFicha | null;
+  /** Una terminal (Felipe 2026-10-26): el precio de la prenda vale en todas las tiendas y la base no se lo deja cambiar
+   *  (`variantes_terminal_no_cambia_precio`). Trae el nombre de su tienda, donde sí pone el suyo («Precio en …»); `""` si la
+   *  terminal no está en una tienda. Ausente = la cuenta cambia el precio de la prenda como siempre. Una talla NUEVA sí lleva su precio. */
+  precioFijoEn?: string | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */
@@ -53,7 +61,7 @@ export const SIN_COLOR = "sin-color";
 export function PuntoColor({ codigo, colores }: { codigo: string | null; colores: readonly ColorAlta[] }) {
   const c = codigo ? colores.find((x) => x.codigo === codigo) : null;
   if (!c) return <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-dashed border-tinta/40" />;
-  return <Punto hex={c.hex} familia={c.familiaColor} />;
+  return <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />;
 }
 
 /** Elegir UN color (para corregir): buscando por nombre o sinónimo, con su punto. «Sin color» solo si se ofrece. */
@@ -75,7 +83,7 @@ export function ElegirUnColor({
 }) {
   const opciones = [
     ...(ofrecerSinColor ? [{ valor: SIN_COLOR, texto: "Sin color", icono: <PuntoColor codigo={null} colores={colores} /> }] : []),
-    ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} /> })),
+    ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre, claves: c.sinonimos, icono: <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} /> })),
   ];
   const elegido = valor && valor !== SIN_COLOR ? colores.find((c) => c.codigo === valor) : null;
   return (
@@ -113,7 +121,7 @@ export function VistaPreviaCodigos({ filas }: { filas: { clave: string; antes: s
 }
 
 const CAMPO_MONTO =
-  "caja-cayla h-10 w-full min-w-0 px-3 text-sm tabular-nums text-tinta outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+  "caja-cayla h-10 w-full min-w-0 px-3 text-sm tabular-nums text-tinta [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 /** Precio y costo con que nacen las variantes nuevas (sin costo si la cuenta no ve el dinero). */
 export function MontosNuevas({
@@ -133,12 +141,12 @@ export function MontosNuevas({
     <div className="grid grid-cols-2 gap-3">
       <label className="block">
         <span className="text-[12.5px] font-semibold text-tinta">Precio de venta</span>
-        <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CAMPO_MONTO}`} />
+        <input {...atributosMontoTexto(precio)} placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
       </label>
       {veCosto && (
         <label className="block">
           <span className="text-[12.5px] font-semibold text-tinta">Costo (opcional)</span>
-          <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CAMPO_MONTO}`} />
+          <input {...atributosMontoTexto(costo)} placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
         </label>
       )}
     </div>
@@ -146,9 +154,22 @@ export function MontosNuevas({
 }
 
 /** Los botones del pie de un modal: cancelar a la izquierda, la acción a la derecha. */
-export function PieModal({ onCancelar, texto, onConfirmar, deshabilitado }: { onCancelar: () => void; texto: string; onConfirmar: () => void; deshabilitado: boolean }) {
+export function PieModal({
+  onCancelar,
+  texto,
+  onConfirmar,
+  deshabilitado,
+  guia,
+}: {
+  onCancelar: () => void;
+  texto: string;
+  onConfirmar: () => void;
+  deshabilitado: boolean;
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
+  guia?: string;
+}) {
   return (
-    <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-sand pt-4">
+    <div data-guia={guia} className="mt-5 pie-acciones border-t border-sand pt-4">
       <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
         Cancelar
       </button>

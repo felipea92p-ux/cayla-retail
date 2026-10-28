@@ -1,0 +1,26 @@
+## 🧾 Nueva orden de compra: entrega 1 (formulario) (2026-10-21, ADR-0362 actualización) — web + 3 migraciones SIN pegar; rama `claude/provider-category-filtering-d73e8b`
+
+- [x] Datos de pago para quien tiene Órdenes de compra (`20261021200000`): prueba de base 23 casos con control del hueco; `CuentasProveedor` con el titular primero y «no puedes verlos» ≠ «no tiene cuenta». Probado en el navegador con una cuenta que solo ve Órdenes de compra.
+- [x] «Cómo pagarle» en Nueva orden (hoja con cuatro estados). Probado en escritorio y a 375 px, con y sin permiso.
+- [x] Prefiltro de categorías y marcas por proveedor (`20261021201000`, `fn_proveedor_categorias`, una fila por proveedor): prueba de base 20 casos, seis mutaciones detectadas (incluida la categoría de la prenda); sin la función la pantalla queda como hoy; proveedor sin historial ve todo.
+- [x] Aviso en la línea que no calza al cambiar de proveedor (derivado; A→B→A lo limpia).
+- [x] «+ Registrar proveedor» (`20261021202000`, `registrar_proveedor_de_orden`; una terminal elige quién): prueba de base 27 casos, siete mutaciones detectadas, carrera de 8 llamadas simultáneas = 1 ficha nueva y 7 la misma; hoja con consulta de RUC, «No tiene RUC», «¿no será…?» y doble clic.
+- [x] Revisión independiente (4 revisores + 1 escéptico por hallazgo): 4 confirmados y 11 menores; se corrigieron los 4 y los menores que eran ciertos (ver el ADR-0362). Quedan como notas: ninguna pantalla muestra el historial de cuentas a Órdenes de compra, pero la función `fn_proveedor_cambios_bancarios` sí lo deja leer; la lista de nuevos proveedores vive solo en la pantalla (se recarga con la página).
+- [ ] **Pegar en producción, en este orden y cada una sola, con el OK de Felipe:** `20261021200000`, `20261021201000`, `20261021202000`. Antes de la segunda, correr la consulta SQL de cobertura del informe (cuántos proveedores tendrían categoría derivada el día 1).
+- [ ] **Sin probar:** `tema:auditar` (modo oscuro; solo se usaron tokens y pasó `tema-colores`/`tema-tokens`), `/chaos` y `/formidable` sobre las dos hojas nuevas; la consulta de RUC contra SUNAT real (en local no hay proveedor de padrón: se registró escribiendo el nombre a mano).
+- [ ] **Choque:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis, líneas «Por revisar») toca los mismos 4 archivos; ver el ADR-0362. Se regeneran las huellas de las guías de Nueva y Editar orden al fusionar la segunda.
+- [ ] **Entrega 2 (estructura del día):** `dias_compra` + historial, `ordenes_compra.dia_compra_id NOT NULL`, `crear_orden_compra` de 7 argumentos con `drop function` de la de 6, atajo «Abrir el día de hoy», y separar quién compra de quién registró en los 5 sitios que leen `creada_por`. Hacerla ANTES de que existan órdenes sueltas (producción tiene 0).
+- [ ] **Entrega 3:** vista «Bitácora», «Pagó X de Y», `completar_papel_de_compra`, aviso de doble pago entre compradoras, ✕ de 44 px con «Deshacer».
+- [ ] Decisiones abiertas de Felipe: ver el ADR-0362 (actualización 2026-10-21).
+- [ ] Aparte (no bloquea): `compras/nueva/page.tsx` arma los datos de pago desde `fn_proveedores`, que devuelve la cuenta en blanco a quien no la ve: ahí «sin cuenta» también puede ser «no puedes verla». Cuenta a quien tiene Facturas de compra sin Por pagar.
+- [ ] Aparte: la columna Categoría queda muy angosta a 1280 px (la lista desplegable envuelve «Ver todas (N)» en tres líneas); la rama de Análisis ya le da 11 rem desde 62 rem de ancho.
+
+## Precio sugerido y avisos de compra (2026-10-22; diseño en `docs/pantallas/compras-ordenes-precio-y-stock.md`)
+- [x] Actividad 1: reglas puras de la ayuda de precio (`lib/orden-compra-precio-ayuda.ts`, 65 pruebas, 17 mutantes detectados). Sin pantalla: `knip.ts` la declara en `ignoreFiles`.
+- [x] Actividad 2 (base): `20261022080000_orden_compra_precio_sugerido.sql`; prueba de base `pruebas:orden-compra-sugerido` (25 casos, 21 mutantes detectados); las 28 suites de órdenes, comprobante, envíos, recepción, compras y fondos dan lo mismo antes y después.
+- [x] **`20261022080000` pegada en producción por Felipe el 2026-10-22** (una parte, después de `20261021202000`); la consulta de verificación del PR #1248 dio las ocho columnas en `true`.
+- [ ] Refrescar el diccionario de datos (`pnpm datos:generar:produccion`) para las dos columnas nuevas (`orden_compra_items.precio_venta_sugerido` y `sugerido_motivos`).
+- [ ] Actividad 3: `fn_categoria_precios` (una fila por categoría: precio del medio, prendas, ganancia típica y el último costo por marca para el aviso «costo distinto al de la última compra»).
+- [ ] Actividad 4: la columna «Precio sugerido», el botón «Usar el precio habitual», la franja de ayuda y los motivos. **La caja no se ofrece si el detalle no trae `precio_venta_sugerido`** (web antes que el SQL = sugerido perdido en silencio). Al importar el archivo de reglas, sacarlo de `ignoreFiles` en `knip.ts`.
+- [ ] Actividades 5 y 6: avisos de stock (ya pediste, ya hay mucho > 3 semanas, campaña cerca, buena compra, sin datos); `fn_orden_compra_stock` con desglose por tienda y plan (decisión de permisos de Felipe).
+- [ ] Actividad 7: cierre (ADR-0362 act., ARQUITECTURA, `/focus`, `tema:auditar`, `/formidable`, `/chaos`, SQL en orden).

@@ -1,58 +1,16 @@
 "use client";
 
-import Image from "next/image";
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
-import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
+import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
-import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
+import { esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
-/** Las iniciales de la prenda cuando su color aún no tiene foto — mismo plan B que el catálogo del Punto de venta. */
-function iniciales(referencia: string) {
-  return referencia.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
-}
-
-/**
- * La foto de la prenda, servida al tamaño en que se VE. `ancho` es el ancho en pantalla (px CSS): el optimizador de
- * Next entrega un WebP de ese ancho (y el doble en pantallas retina), no el original. Medido el 2026-09-22 en
- * producción: 31 fotos, promedio 90 KB y la mayor 199 KB; una miniatura de 44 px pesa unos 5 KB. Sin esto, la lista
- * del buscador bajaba ~0,7 MB por búsqueda. Si la foto no carga (404, host no permitido), quedan las iniciales:
- * nunca una imagen rota. Una foto de otro host se muestra sin optimizar (`fotoOptimizable`): el optimizador la
- * rechazaría tumbando la pantalla.
- */
-export function FotoPrenda({
-  fotoUrl,
-  referencia,
-  ancho,
-  className = "",
-}: {
-  fotoUrl: string | null | undefined;
-  referencia: string;
-  ancho: number;
-  className?: string;
-}) {
-  const [rota, setRota] = useState(false);
-  return (
-    <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg bg-sand/40 ${className}`}>
-      {fotoUrl && !rota ? (
-        <Image
-          src={fotoUrl}
-          alt={referencia}
-          fill
-          sizes={`${ancho}px`}
-          unoptimized={!fotoOptimizable(fotoUrl, process.env.NEXT_PUBLIC_SUPABASE_URL)}
-          className="object-cover"
-          onError={() => setRota(true)}
-        />
-      ) : (
-        <span aria-hidden className={`font-display absolute inset-0 flex items-center justify-center text-tinta/30 ${ancho < 40 ? "text-[11px]" : "text-lg"}`}>
-          {iniciales(referencia)}
-        </span>
-      )}
-    </div>
-  );
-}
+export { FotoPrenda } from "@/components/ui/FotoPrenda";
 
 const TONO_ESTADO: Record<ClaveEstado, string> = {
   vigente: "text-verde-profundo",
@@ -72,8 +30,10 @@ export function EstadoChip({ clave, texto }: { clave: ClaveEstado; texto: string
   );
 }
 
-/** 7 días de plazo + 2 de gracia (en rosa), con el día de hoy marcado. */
-export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string; hoy: string }) {
+/** 7 días de plazo + 2 de gracia (en rosa), con el día de hoy marcado. `creadaEl` es el día de Lima en que se apartó
+ *  (`diaLima(a.creadaEn)`); sin él no se dibuja una barra que no se sabe dónde empieza. */
+export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string | null; hoy: string }) {
+  if (!creadaEl) return null;
   return (
     <div aria-hidden className="grid grid-cols-9 gap-0.5">
       {tramosDelPlazo(creadaEl, hoy).map((t, i) => (
@@ -88,7 +48,10 @@ export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string; hoy: string })
   );
 }
 
-export function fechaCorta(iso: string) {
+/** «lun 13 oct» de una fecha `aaaa-mm-dd`. Un instante pasa antes por `diaLima` (sus 10 primeros caracteres son el día de UTC);
+ *  sin fecha, una raya. */
+export function fechaCorta(iso: string | null) {
+  if (!iso) return "—";
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(/\./g, "");
 }
@@ -98,29 +61,59 @@ export function fechaNumerica(iso: string) {
 }
 
 /**
- * El ticket de 80 mm del apartado (anticipo al apartar, final al entregar). Mismo mecanismo que `ReciboTermico`: un
+ * El ticket de 80 mm del apartado (al apartar, y el final al entregar). Mismo mecanismo que `ReciboTermico`: un
  * `#comprobante-print` pegado a `<body>`; en pantalla no se ve y al imprimir es lo único que sale (globals.css).
- * Mientras el envío de anticipos a SUNAT no esté activo (ADR-0166) no lleva QR: dice que la boleta electrónica queda
- * registrada y se envía después.
+ *
+ * Desde ADR-0399 (Felipe, 2026-10-14) un apartado NUEVO no tiene boleta de anticipo: al apartar el ticket es una CONSTANCIA DE DEPÓSITO
+ * (su número es el código APT-…, no un correlativo de SUNAT) y dice en claro que no es comprobante de pago; al entregar sale la boleta o
+ * factura por el TOTAL, que no nombra el adelanto (es un pacto interno). Un apartado VIEJO, con su boleta de anticipo, conserva el
+ * ticket de antes (`esConstancia(a)` decide). Todavía sin QR: dice que el comprobante queda registrado y se envía a SUNAT después.
  */
-export function ReciboApartado({ apartado, tipo, sede, pagadoHoy }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[] }) {
+export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, copia = false }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0311); el comprobante sigue por el saldo exacto. */ redondeo?: number; /** Reimpresión desde el historial (ADR-0367): dice «COPIA» y, en la final, el saldo en una línea (no se sabe con qué medios se pagó). */ copia?: boolean }) {
   const a = apartado;
+  const constancia = esConstancia(a);
   const cuerpo = (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-negrita">
           {EMISOR.razonSocial} · RUC {EMISOR.ruc}
         </p>
         <p className="rt-tienda">{sede}</p>
       </header>
-      <p className="rt-centro rt-titulo">{tipo === "anticipo" ? "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO" : "BOLETA DE VENTA ELECTRÓNICA"}</p>
-      <p className="rt-centro rt-numero">{tipo === "anticipo" ? a.comprobanteAnticipo : (a.comprobanteFinal ?? "")}</p>
-      <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>
-      <div className="rt-datos">
-        <p>Clienta: {a.nombres} {a.apellidos}{a.dni ? ` · DNI ${a.dni}` : ""}</p>
-        <p>Cel.: {a.celular}{a.asesora ? ` · Atendió: ${a.asesora}` : ""}</p>
-      </div>
+      <p className="rt-centro rt-titulo">{tipo === "anticipo" ? (constancia ? "CONSTANCIA DE APARTADO" : "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO") : "BOLETA DE VENTA ELECTRÓNICA"}</p>
+      <p className="rt-centro rt-numero">{tipo === "anticipo" ? (constancia ? a.codigo : a.comprobanteAnticipo) : (a.comprobanteFinal ?? "")}</p>
+      {(tipo === "final" || !constancia) && <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>}
+      {tipo === "anticipo" && constancia && (
+        <p className="rt-sello">
+          NO ES BOLETA NI FACTURA
+          <small>no sirve para cambios ni como pago</small>
+        </p>
+      )}
+      {copia && <p className="rt-centro rt-negrita">COPIA · REIMPRESA EL {fechaNumerica(hoyLima())}</p>}
+      <dl className="rt-datos">
+        <dt>Cliente</dt>
+        <dd>{a.nombres} {a.apellidos}</dd>
+        {a.dni && (
+          <>
+            <dt>DNI</dt>
+            <dd>{a.dni}</dd>
+          </>
+        )}
+        {a.celular && (
+          <>
+            <dt>Celular</dt>
+            <dd>{a.celular}</dd>
+          </>
+        )}
+        {a.asesora && (
+          <>
+            <dt>Atendió</dt>
+            <dd>{a.asesora}</dd>
+          </>
+        )}
+      </dl>
       {a.prendas.map((p) => (
         <p key={p.varianteId} className="rt-fila">
           <span>{p.cantidad} {p.referencia} {p.sku}</span>
@@ -130,27 +123,41 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy }: { apartado: 
       <p className="rt-fila rt-negrita"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
       {tipo === "anticipo" ? (
         <>
-          <p className="rt-fila"><span>Anticipo (incluye IGV)</span><span>{money(a.adelanto)}</span></p>
-          <p className="rt-fila rt-total"><span>SALDO AL RECOGER</span><span>{money(a.total - a.adelanto)}</span></p>
+          <p className="rt-fila"><span>{constancia ? "Dejaste" : "Anticipo (incluye IGV)"}</span><span>{money(a.adelanto)}</span></p>
+          <p className="rt-fila rt-total"><span>{constancia ? "FALTA PAGAR" : "SALDO AL RECOGER"}</span><span>{money(a.total - a.adelanto)}</span></p>
           <p className="rt-fila rt-negrita"><span>RECOGER HASTA</span><span>{fechaNumerica(a.venceEl)}</span></p>
           <div className="rt-pie">
             <p className="rt-negrita">CONDICIONES DE TU APARTADO</p>
-            <p>1. Tus prendas quedan guardadas hasta el {fechaNumerica(a.venceEl)}.</p>
-            <p>2. Para recogerlas trae este comprobante o tu DNI.</p>
+            <p>1. Guardamos tus prendas hasta el {fechaNumerica(a.venceEl)}.</p>
+            <p>2. Para recogerlas trae {constancia ? "esta constancia" : "este comprobante"} o tu DNI.</p>
             <p>3. Si no las recoges a tiempo vuelven a la tienda y te devolvemos el 100% por {textoDevolucion(a)}, sin que tengas que venir.</p>
             <p>4. El precio queda congelado. Cambios y devoluciones: desde el día que recoges.</p>
           </div>
         </>
       ) : (
         <>
-          <p className="rt-fila"><span>(−) Anticipo {a.comprobanteAnticipo}</span><span>−{money(a.adelanto)}</span></p>
-          {(pagadoHoy ?? []).map((p, i) => (
-            <p key={i} className="rt-fila"><span>Pagado hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
-          ))}
+          {!constancia && <p className="rt-fila"><span>(−) Anticipo {a.comprobanteAnticipo}</span><span>−{money(a.adelanto)}</span></p>}
+          {constancia ? null : pagadoHoy ? (
+            pagadoHoy.map((p, i) => (
+              <p key={i} className="rt-fila"><span>Pagado hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
+            ))
+          ) : (
+            <p className="rt-fila"><span>Saldo pagado al recoger</span><span>{money(a.total - a.adelanto)}</span></p>
+          )}
+          {redondeo > 0 && (
+            <>
+              <p className="rt-fila"><span>{TEXTO_REDONDEO}</span><span>{money(redondeo)}</span></p>
+              <p className="rt-centro">{LEY_REDONDEO_TICKET}</p>
+            </>
+          )}
           <p className="rt-fila rt-total"><span>APARTADO LIQUIDADO</span><span>{money(a.total)}</span></p>
         </>
       )}
-      <p className="rt-centro rt-lema">Comprobante electrónico registrado: su envío a SUNAT se completa después.</p>
+      <p className="rt-centro rt-lema">
+        {tipo === "anticipo" && constancia
+          ? "Tu boleta o factura se emite cuando recoges, por el total de la compra."
+          : "Comprobante electrónico registrado: su envío a SUNAT se completa después."}
+      </p>
     </div>
   );
   return typeof document === "undefined" ? null : createPortal(cuerpo, document.body);
@@ -192,12 +199,10 @@ export function BarraMovil({
 }) {
   return (
     <EnCuerpo>
-    <div
-      className="anim-revelar fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-tinta bg-tinta px-5 py-3 text-crema sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
-      style={{ bottom: `calc(${ALTO_PESTANAS_MOVIL} + env(safe-area-inset-bottom))` }}
-    >
+    {/* La isla oscura de lo que llevas elegido, apoyada en las pestañas (ADR-0479, actividad 12, `barra-abajo`). */}
+    <BarraDeAbajo tono="tinta" sobre={ALTO_PESTANAS_MOVIL} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
       <div className="min-w-0">
-        <p className="label-cayla truncate text-[10px] text-crema/60">{etiqueta}</p>
+        <p className="label-cayla truncate text-[10px] text-crema/60 dark:text-crema/75">{etiqueta}</p>
         <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>
       </div>
       <button
@@ -209,7 +214,7 @@ export function BarraMovil({
         {accion}
         {icono}
       </button>
-    </div>
+    </BarraDeAbajo>
     </EnCuerpo>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conEstadoProducto, conMarca, marcasDeLaSede, productosSinStockEnSede, type ProductoDeCatalogo } from "./existencias-catalogo-reglas";
+import { conDescripcion, conEstadoProducto, conFamiliaDeColor, conMarca, marcasDeLaSede, productosSinStockEnSede, type ProductoDeCatalogo } from "./existencias-catalogo-reglas";
 
 // Los productos reales de producción al 2026-09-26.
 const p = (id: string, referencia: string, marca: string | null, extra: Partial<ProductoDeCatalogo> = {}): ProductoDeCatalogo => ({
@@ -7,7 +7,9 @@ const p = (id: string, referencia: string, marca: string | null, extra: Partial<
   referencia,
   marca,
   categoria: null,
+  familia: null,
   estado: "activo",
+  descripcion: null,
   estadoAlta: "aprobado",
   esPrueba: false,
   conVariantesActivas: true,
@@ -16,14 +18,14 @@ const p = (id: string, referencia: string, marca: string | null, extra: Partial<
 
 const CATALOGO: ProductoDeCatalogo[] = [
   p("prueba", "Producto de Prueba", "CAYLA", { esPrueba: true }),
-  p("aurora", "Top Aurora", "Cayla 2"),
+  p("aurora", "Top Aurora", "Cayla 2", { descripcion: "Top de tiras, largo a la cintura" }),
   p("pantalon-cayla", "Pantalon Cayla", "CAYLA"),
   p("pantalon-sastre", "Pantalon Sastre", "CAYLA"),
-  p("vestido", "Vestido Aurora", "Bella Aldama"),
+  p("vestido", "Vestido Aurora", "Bella Aldama", { descripcion: "   " }),
   p("viejo", "Camisa Vieja", "y.j.j", { estado: "descontinuado" }),
   // El producto del cargo especial: en producción NO tiene variantes activas.
   p("sin-registrar", "Prenda sin Registrar", "CAYLA", { conVariantesActivas: false }),
-  // Dada de alta al vuelo desde un Conteo y todavía sin revisar por un líder.
+  // Dada de alta al vuelo desde un Conteo: queda `pendiente` en la base, pero ya no hay revisión (Felipe, 2026-10-02).
   p("alta-al-vuelo", "Blusa Nueva", "Marca Mal Escrita", { estadoAlta: "pendiente" }),
 ];
 
@@ -35,6 +37,22 @@ describe("conEstadoProducto (ADR-0252)", () => {
 
   it("si la lectura del catálogo falló o el producto es nuevo, queda en null sin romper", () => {
     expect(conEstadoProducto([{ productoId: "aurora", talla: "M" }], [])).toEqual([{ productoId: "aurora", talla: "M", estadoProducto: null }]);
+  });
+});
+
+describe("conDescripcion (panel de la talla, 2026-10-06)", () => {
+  it("pone a cada fila la descripción de su producto; uno sin descripción queda en null", () => {
+    const filas = [{ productoId: "aurora", id: "a" }, { productoId: "pantalon-cayla", id: "b" }];
+    expect(conDescripcion(filas, CATALOGO).map((f) => [f.id, f.descripcion])).toEqual([["a", "Top de tiras, largo a la cintura"], ["b", null]]);
+  });
+
+  it("una descripción en blanco cuenta como ninguna: el panel no dibuja un renglón vacío", () => {
+    const [f] = conDescripcion([{ productoId: "vestido" }], CATALOGO);
+    expect(f.descripcion).toBeNull();
+  });
+
+  it("si la lectura del catálogo falló o el producto es nuevo, queda en null sin romper y conserva el resto de la fila", () => {
+    expect(conDescripcion([{ productoId: "aurora", talla: "M" }], [])).toEqual([{ productoId: "aurora", talla: "M", descripcion: null }]);
   });
 });
 
@@ -61,9 +79,9 @@ describe("conMarca", () => {
 });
 
 describe("productosSinStockEnSede", () => {
-  it("son los activos del catálogo que la sede no tiene: los pantalones CAYLA y el vestido, no Top Aurora", () => {
+  it("son los activos del catálogo que la sede no tiene: la blusa de alta al vuelo, los pantalones CAYLA y el vestido, no Top Aurora", () => {
     const enTru = [{ productoId: "aurora" }, { productoId: "aurora" }];
-    expect(productosSinStockEnSede(CATALOGO, enTru).map((x) => x.referencia)).toEqual(["Pantalon Cayla", "Pantalon Sastre", "Vestido Aurora"]);
+    expect(productosSinStockEnSede(CATALOGO, enTru).map((x) => x.referencia)).toEqual(["Blusa Nueva", "Pantalon Cayla", "Pantalon Sastre", "Vestido Aurora"]);
   });
 
   it("nunca ofrece un producto de prueba ni uno descontinuado, aunque la sede no los tenga", () => {
@@ -76,8 +94,8 @@ describe("productosSinStockEnSede", () => {
     expect(productosSinStockEnSede(CATALOGO, []).map((x) => x.id)).not.toContain("sin-registrar");
   });
 
-  it("no ofrece una prenda dada de alta al vuelo mientras un líder no la apruebe: su nombre y su marca pueden estar mal escritos", () => {
-    expect(productosSinStockEnSede(CATALOGO, []).map((x) => x.id)).not.toContain("alta-al-vuelo");
+  it("ofrece una prenda dada de alta al vuelo igual que cualquier otra: ya no espera la aprobación de un líder (2026-10-02)", () => {
+    expect(productosSinStockEnSede(CATALOGO, []).map((x) => x.id)).toContain("alta-al-vuelo");
   });
 
   it("un producto con fila en la sede, aunque sea en cero, no es «sin stock»: está en la tabla", () => {
@@ -104,5 +122,14 @@ describe("marcasDeLaSede", () => {
 
   it("sin marcas leídas, ninguna", () => {
     expect(marcasDeLaSede([{}, { marca: null }])).toEqual([]);
+  });
+});
+
+describe("conFamiliaDeColor", () => {
+  it("pone la familia por el nombre del color; un color que no llegó, o sin color, queda en null", () => {
+    const colores = [{ nombre: "Azul marino", familia: "azul" }, { nombre: "Estampado", familia: null }];
+    const filas = [{ id: "a", color: "Azul marino" }, { id: "b", color: "Estampado" }, { id: "c", color: "Verde nuevo" }, { id: "d", color: null }];
+    expect(conFamiliaDeColor(filas, colores).map((f) => [f.id, f.colorFamilia])).toEqual([["a", "azul"], ["b", null], ["c", null], ["d", null]]);
+    expect(conFamiliaDeColor(filas, []).every((f) => f.colorFamilia === null)).toBe(true);
   });
 });

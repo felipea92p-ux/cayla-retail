@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BarraAvance } from "../ui/BarraAvance";
 // Rutas relativas a propósito (ver `EstadoLinea.tsx`): la prueba de render corre en vitest, que no resuelve `@/` para valores.
 import { textoProgreso, textoResumen, textoRevision, textoTerminado, type ResumenConteo as ResumenDeConteo } from "../../lib/conteo-reglas";
 
@@ -17,10 +18,11 @@ import { textoProgreso, textoResumen, textoRevision, textoTerminado, type Resume
      · «progreso»  — solo «18 de 37…» y la barra. El pie fijo de Contar (`lateral` va a la derecha del texto: el «Guardado»).
      · «cifras»    — solo la línea de cifras. El encabezado de la lista de Contar, donde la barra ya va en el pie.
      · «revision»  — «37 variantes» y «34 correctas · 3 con diferencia · 0 pendientes» (Revisar conteo).
-     · «resultado» — «37 variantes verificadas · 34 coincidieron · 3 fueron corregidas» (Conteo terminado).
+     · «resultado» — «37 variantes verificadas · 34 coincidieron · 3 con diferencia» (Conteo terminado).
+     Con líneas de «Aplicar todos completos» (ADR-0328) las dos dicen aparte cuántas quedaron «sin contar».
                      `parcial` suma cuántas quedaron sin verificar.
 
-   Una pantalla tiene UNA barra de progreso (`role="progressbar"`): por eso «completo» y «progreso» no se combinan en
+   Una pantalla tiene UNA barra de progreso (la que el lector anuncia como tal): por eso «completo» y «progreso» no se combinan en
    la misma página.
 
    Alto reservado (ADR-0185): la barra mide siempre 6 px y el texto de progreso es de una línea; la línea de cifras
@@ -34,7 +36,7 @@ export type VarianteResumenConteo = "completo" | "progreso" | "cifras" | "revisi
 
 /** Lo que este resumen lee. `ResumenConteo` de la lib lo cumple entero; el historial lo arma con sus cuatro cifras
  *  (`correctas` es opcional: si falta son las verificadas que no tienen diferencia). */
-export type ResumenParaMostrar = Pick<ResumenDeConteo, "variantes" | "verificadas" | "pendientes" | "conDiferencia"> & Partial<Pick<ResumenDeConteo, "correctas">>;
+export type ResumenParaMostrar = Pick<ResumenDeConteo, "variantes" | "verificadas" | "pendientes" | "conDiferencia"> & Partial<Pick<ResumenDeConteo, "correctas" | "sinContar">>;
 
 // Un espacio duro antes del punto medio: al partirse la línea, el «·» se queda al final de la anterior y no abre la siguiente.
 const sinPuntoAlInicio = (t: string) => t.replaceAll(" · ", " · ");
@@ -49,19 +51,9 @@ function Progreso({ resumen, lateral, conPorcentaje = false }: { resumen: Resume
         <p className={`min-w-0 tabular-nums text-tinta ${conPorcentaje ? "text-[15px] font-semibold" : "text-sm font-medium"}`}>{texto}</p>
         {lateral ? <span className="shrink-0 text-xs text-taupe">{lateral}</span> : null}
       </div>
-      {/* Discreta: 6 px, tinta sobre sand, la que ya usaba el conteo. Progreso no es «correcto», por eso no es verde. */}
+      {/* La barra de avance del sistema (ronda 13): tinta mientras se cuenta y verde cuando ya se verificó todo. */}
       <div className={conPorcentaje ? "mt-1.5 flex items-center gap-4" : undefined}>
-      <div
-        role="progressbar"
-        aria-label="Variantes verificadas"
-        aria-valuemin={0}
-        aria-valuemax={variantes}
-        aria-valuenow={Math.min(verificadas, variantes)}
-        aria-valuetext={texto}
-        className={`h-1.5 overflow-hidden rounded-full bg-sand ${conPorcentaje ? "min-w-0 flex-1" : "mt-1.5"}`}
-      >
-        <div className="h-full rounded-full bg-tinta transition-[width] duration-300 ease-cayla" style={{ width: `${porcentaje}%` }} />
-      </div>
+      <BarraAvance pct={porcentaje} etiqueta="Variantes verificadas" texto={texto} className={conPorcentaje ? "min-w-0 flex-1" : "mt-1.5"} />
       {conPorcentaje && <span className="w-9 shrink-0 text-right text-sm tabular-nums text-tinta/70">{porcentaje}%</span>}
       </div>
     </div>
@@ -109,7 +101,7 @@ export function ResumenConteo({
         <p className="font-display text-2xl leading-tight tabular-nums text-tinta">
           {resumen.variantes} {resumen.variantes === 1 ? "variante" : "variantes"}
         </p>
-        <p className="mt-1 text-sm tabular-nums text-taupe">{sinPuntoAlInicio(textoRevision({ correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes }))}</p>
+        <p className="mt-1 text-sm tabular-nums text-taupe">{sinPuntoAlInicio(textoRevision({ correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes, sinContar: resumen.sinContar }))}</p>
       </div>
     );
   }
@@ -117,7 +109,7 @@ export function ResumenConteo({
   if (variante === "resultado") {
     return (
       <p className={`text-sm tabular-nums text-tinta/75 ${className}`}>
-        {sinPuntoAlInicio(textoTerminado({ verificadas: resumen.verificadas, correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes }, parcial))}
+        {sinPuntoAlInicio(textoTerminado({ verificadas: resumen.verificadas, correctas, conDiferencia: resumen.conDiferencia, pendientes: resumen.pendientes, sinContar: resumen.sinContar }, parcial))}
       </p>
     );
   }

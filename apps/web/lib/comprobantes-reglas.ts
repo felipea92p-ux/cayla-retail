@@ -8,10 +8,13 @@
 // rechaza el build entero (se encontró exactamente así, 2026-09-12, al
 // conectar Vender con Facturación).
 
+import type { TipoDocumentoClienta } from "./documento-clienta-reglas";
+import { tipoDocDelComprobante, type TipoDocComprobante } from "./documento-comprobante-reglas";
+
 // "nota_venta" (ADR-0164): documento INTERNO de la tienda, con serie propia (NV01…), sin IGV
 // desglosado y que NUNCA se transmite a SUNAT — por eso nace en su propio estado, "interna".
 export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito" | "nota_venta";
-// "no_emitido" (ADR-0093): un líder liberó un comprobante `pendiente` que nunca se
+// "no_emitido" (ADR-0093): alguien con Facturación (antes, solo un líder: ADR-0534) liberó un comprobante `pendiente` que nunca se
 // transmitió a SUNAT — su número queda sin usar para siempre, nunca se reutiliza. Distinto
 // de "anulado": eso es una baja real ANTE SUNAT de algo que sí llegó a transmitirse.
 /** `pendiente_reintento`: Lucode/SUNAT no respondió al enviarlo y espera en la cola, que se reintenta
@@ -27,7 +30,7 @@ export type Comprobante = {
   tipo: TipoComprobante;
   serie: string;
   numero: number;
-  cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  cliente_tipo_doc: TipoDocComprobante;
   cliente_num_doc: string | null;
   cliente_nombre: string | null;
   total: number;
@@ -93,21 +96,6 @@ export const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
   nota_venta: "Nota de venta",
 };
 
-export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
-  pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  pendiente_reintento: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
-  aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
-  rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
-  anulado: "border-tinta/20 bg-tinta/5 text-tinta/65",
-  // Mismo tono apagado que "anulado" — ambos son estados cerrados que ya no piden
-  // acción — pero es un color, no una palabra: la etiqueta de abajo es la que dice
-  // la diferencia real (nunca se transmitió, nada que ver con SUNAT).
-  no_emitido: "border-tinta/20 bg-tinta/5 text-tinta/65",
-  // La nota de venta: cerrada desde que nace, no pide ninguna acción ante SUNAT.
-  interna: "border-tinta/20 bg-tinta/5 text-tinta/65",
-};
-
 export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   pendiente: "Pendiente de enviar",
   pendiente_reintento: "En cola: se reintenta solo",
@@ -119,17 +107,21 @@ export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   interna: "Interna — no va a SUNAT",
 };
 
-/** El tipo de documento (DNI/RUC/sin documento) no es una decisión aparte
- *  del tipo de comprobante — se deriva de él (una factura SIEMPRE exige
- *  RUC). Vivía copiada, carácter por carácter, en ComprobantesPanel.tsx y
- *  ProformasPanel.tsx; Vender la necesita también — a la tercera vez, se
- *  extrae en vez de copiarse de nuevo. */
+/** El tipo de documento no es una decisión aparte del tipo de comprobante — se deriva de él (una factura SIEMPRE exige
+ *  RUC). Vivía copiada, carácter por carácter, en ComprobantesPanel.tsx y ProformasPanel.tsx; Vender la necesita también —
+ *  a la tercera vez, se extrae en vez de copiarse de nuevo. Desde la tanda 1e del club (ADR-0288 D-3), una boleta o una nota
+ *  de venta lleva el documento de identidad elegido (`identidad`: DNI por defecto, carné de extranjería o pasaporte); la
+ *  regla vive en `documento-comprobante-reglas.ts`. */
 export function tipoDocumentoDeCliente(
   tipo: TipoComprobante,
-  clienteNumDoc: string
-): "dni" | "ruc" | "sin_documento" {
-  return tipo === "factura" ? "ruc" : clienteNumDoc ? "dni" : "sin_documento";
+  clienteNumDoc: string,
+  identidad: TipoDocumentoClienta = "dni"
+): TipoDocComprobante {
+  return tipoDocDelComprobante(tipo, clienteNumDoc, identidad);
 }
+
+/** Cuántos dígitos tiene, como mucho, el número de un comprobante (`comprobantes.numero` es `integer`). */
+const MAX_DIGITOS_COMPROBANTE = 9;
 
 /** Lo que se puede leer de "B001-000010" (o "B001-10", o solo "10") escrito a mano en
  *  Devoluciones o Cambios para encontrar una venta que ya no está entre las últimas 30.
@@ -139,11 +131,15 @@ export function parsearComprobante(texto: string): { serie: string | null; numer
   const limpio = texto.trim().toUpperCase();
   if (!limpio) return { serie: null, numero: null };
 
+  // `comprobantes.numero` es `integer`: con más de 9 dígitos no es un número de comprobante, y compararlo contra esa columna
+  // revienta la consulta («out of range»): «B001-12345678901» tumbaba Cambios, Devoluciones e Historial (/chaos 2026-10-13).
+  const numeroDe = (digitos: string) => (digitos.replace(/^0+/, "").length <= MAX_DIGITOS_COMPROBANTE ? Number(digitos) : null);
+
   const conSerie = limpio.match(/^([A-Z]+\d*)[\s-]+(\d+)$/);
-  if (conSerie) return { serie: conSerie[1], numero: Number(conSerie[2]) };
+  if (conSerie) return { serie: conSerie[1], numero: numeroDe(conSerie[2]) };
 
   const soloNumero = limpio.match(/^(\d+)$/);
-  if (soloNumero) return { serie: null, numero: Number(soloNumero[1]) };
+  if (soloNumero) return { serie: null, numero: numeroDe(soloNumero[1]) };
 
   return { serie: null, numero: null };
 }

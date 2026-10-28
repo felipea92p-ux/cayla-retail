@@ -1,0 +1,10 @@
+/* Análisis v4 (ADR-0357): estilos propios de acaba que la hoja base (analisis.css) no trae. Mismas reglas que la base:
+   solo tokens, `--ease-cayla`, nada en bucle y todo apagado con prefers-reduced-motion (lib/analisis-movimiento.test.ts).
+   Aquí nada se mueve: no hay animación ni transición propia. */
+@layer components {
+  .analisis {
+    /* «o pedir a Arequipa» es texto chico: su zona de toque llega a 24 px de alto sin mover nada (ADR-0350, oficio visual). */
+    .c-acc .alt{position:relative}
+    .c-acc .alt::after{content:"";position:absolute;inset:-3px -4px}
+  }
+}

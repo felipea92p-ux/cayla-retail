@@ -70,9 +70,10 @@ describe("pasoConFlecha — la tecla no es del cajón", () => {
 // con flechas lo hace con `useFlechasDelCajon`, que aplica la regla de arriba. Si un cajón vuelve a leer `ArrowDown`
 // a mano en su `onKeyDown`, el primer modal que abra desde adentro trae de vuelta el bug de Por pagar.
 //
-// Contrato. PROMETE: que ningún `.tsx` con `<Dialog.Content` compara teclas contra "ArrowDown"/"ArrowUp", y que las
-// cuatro vistas rápidas usan el hook. ASUME: las hojas son `.tsx` bajo `components/` o `app/`. NO PROMETE: que el
-// hook esté en el `onKeyDown` correcto; abrir un modal desde el cajón en el navegador sigue siendo la prueba final.
+// Contrato. PROMETE: que ningún `.tsx` con `<Dialog.Content` compara teclas contra "ArrowDown"/"ArrowUp", que la pieza del
+// cajón (`<Cajon>`, ADR-0358 ronda 17) usa el hook en su `Dialog.Content`, y que las cuatro vistas rápidas pasan de registro
+// con su `navegacion` (ya no arman su propio `Dialog.Content`). ASUME: las hojas son `.tsx` bajo `components/` o `app/`. NO
+// PROMETE: que el hook esté en el `onKeyDown` correcto; abrir un modal desde el cajón en el navegador sigue siendo la prueba final.
 // Si una hoja necesita una lista propia con flechas, esa lista va en su propio componente (o es un combo del sistema).
 
 const HOJAS = ["components", "app"].flatMap((raiz) => {
@@ -83,14 +84,21 @@ const HOJAS = ["components", "app"].flatMap((raiz) => {
     .map((f) => ({ ruta: `${raiz}/${f}`, fuente: readFileSync(new URL(f, dir), "utf8") }));
 }).filter(({ fuente }) => fuente.includes("<Dialog.Content"));
 
-const VISTAS_RAPIDAS = ["PorPagarVistaRapida", "ProveedorVistaRapida", "RecepcionVistaRapida", "NotaCreditoVistaRapida"].map((n) => `components/${n}.tsx`);
+const VISTAS_RAPIDAS = ["PorPagarVistaRapida", "ProveedorVistaRapida", "RecepcionVistaRapida"].map((n) => `components/${n}.tsx`);
 
 describe("los cajones pasan sus flechas por useFlechasDelCajon", () => {
-  it.each(VISTAS_RAPIDAS)("%s usa el hook en su Dialog.Content", (ruta) => {
-    const hoja = HOJAS.find((h) => h.ruta === ruta);
-    expect(hoja, `${ruta}: no se encontró como hoja con <Dialog.Content`).toBeDefined();
+  it("la pieza del cajón usa el hook en su Dialog.Content", () => {
+    const hoja = HOJAS.find((h) => h.ruta === "components/ui/Cajon.tsx");
+    expect(hoja, "components/ui/Cajon.tsx: no se encontró como hoja con <Dialog.Content").toBeDefined();
     expect(hoja?.fuente).toContain("useFlechasDelCajon(");
-    expect(hoja?.fuente).toContain("onKeyDown={alFlecha}");
+    expect(hoja?.fuente).toContain("onKeyDown={n ? alFlecha : undefined}");
+  });
+
+  it.each(VISTAS_RAPIDAS)("%s pasa de registro con la navegación de <Cajon>", (ruta) => {
+    const fuente = readFileSync(new URL(`../${ruta}`, import.meta.url), "utf8");
+    expect(fuente, `${ruta}: es un <Cajon>`).toContain("<Cajon");
+    expect(fuente, `${ruta}: las flechas van por la navegación de la pieza`).toContain("navegacion={{");
+    expect(fuente, `${ruta}: no arma su propio Dialog.Content`).not.toContain("<Dialog.Content");
   });
 
   it.each(HOJAS.map((h) => [h.ruta, h.fuente] as const))("%s no lee las flechas a mano", (ruta, fuente) => {

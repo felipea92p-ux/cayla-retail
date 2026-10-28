@@ -1,16 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   aFila,
+  itemsPorRegularizar,
   agruparPorDia,
-  diaDeLima,
   elegirComprobante,
   filtrosDesdeParams,
   limitesUTC,
   agruparEnSemanas,
-  mediaMovil,
   mezclaDePagos,
-  pulsoDeVentas,
-  ventanaDeSuavizado,
   piezasDeVenta,
   resumir,
   serieDiaria,
@@ -380,11 +377,15 @@ describe("mezclaDePagos", () => {
   it("sin ventas, nada", () => {
     expect(mezclaDePagos([])).toEqual([]);
   });
-});
 
-describe("diaDeLima", () => {
-  it("las 9:30 p. m. del 19 en Lima siguen siendo el 19 aunque en UTC ya sea el 20", () => {
-    expect(diaDeLima("2026-09-20T02:30:00+00:00")).toBe("2026-09-19");
+  it("el redondeo del efectivo (ADR-0311) es una fila más de «cómo se pagó», y la lista suma el total vendido", () => {
+    // 79.90 con 0.02 de descuento = 79.88: 79.80 en efectivo y 0.08 de redondeo
+    const lista = mezclaDePagos([{ anulada: false, pagos: [{ metodo: "efectivo", monto: 79.8 }, { metodo: "redondeo", monto: 0.08 }] }]);
+    expect(lista).toEqual([
+      { metodo: "efectivo", monto: 79.8 },
+      { metodo: "redondeo", monto: 0.08 },
+    ]);
+    expect(Math.round(lista.reduce((a, m) => a + m.monto, 0) * 100)).toBe(7988);
   });
 });
 
@@ -417,6 +418,20 @@ describe("piezasDeVenta — lo que hace falta para dibujar cada prenda", () => {
   it("una línea sin variante no rompe", () => {
     expect(piezasDeVenta([item({ variante: null })])).toEqual([{ referencia: "Prenda", detalle: "", cantidad: 1, fotoUrl: null, colorHex: null }]);
   });
+
+  it("con dos fotos del mismo color gana la principal, no la de menor orden (Blusa Alba Rayas, 2026-10-09)", () => {
+    const variante = {
+      ...conFotos("VIN"),
+      producto: {
+        referencia: "Blusa Alba Rayas",
+        producto_fotos: [
+          { url: "https://x/vieja.jpg", color_codigo: "VIN", orden: 0, es_principal: false },
+          { url: "https://x/nueva.jpg", color_codigo: "VIN", orden: 1, es_principal: true },
+        ],
+      },
+    };
+    expect(piezasDeVenta([item({ variante })])[0].fotoUrl).toBe("https://x/nueva.jpg");
+  });
 });
 
 describe("títulos de una venta", () => {
@@ -438,50 +453,6 @@ describe("títulos de una venta", () => {
     expect(subtituloDePrendas([pz("Blusa Emma")], 1)).toBe("M · Negro");
     expect(subtituloDePrendas([pz("Blusa Emma", "M · Negro", 2)], 2)).toBe("M · Negro");
     expect(subtituloDePrendas([pz("A"), pz("B")], 3)).toBe("3 prendas");
-  });
-});
-
-describe("pulsoDeVentas — un hilo por día y una tendencia que los cruza", () => {
-  const medidas = { ancho: 100, alto: 60, margen: { x: 10, arriba: 10, abajo: 10 } };
-  const d = (total: number, i: number) => ({ fecha: `2026-09-${10 + i}`, ventas: total > 0 ? 1 : 0, total });
-
-  it("el mejor día llega arriba, uno a medias a la mitad y uno sin ventas mide cero", () => {
-    const p = pulsoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
-    expect(p.base).toBe(50);
-    expect(p.barras.map((b) => b.alto)).toEqual([0, 40, 20]);
-    expect(p.pico).toMatchObject({ indice: 1, y: 10 });
-    expect(p.barras[0].x).toBeLessThan(p.barras[1].x);
-    expect(p.hilo.startsWith("M")).toBe(true);
-  });
-
-  it("el promedio queda entre el suelo y el mejor día", () => {
-    const p = pulsoDeVentas([d(0, 0), d(100, 1), d(50, 2)], medidas);
-    expect(p.promedioY).toBe(30);
-  });
-
-  it("sin ventas no hay pico ni promedio y todo queda pegado al suelo; sin días, nada", () => {
-    const p = pulsoDeVentas([d(0, 0), d(0, 1)], medidas);
-    expect(p.pico).toBeNull();
-    expect(p.promedioY).toBeNull();
-    expect(p.barras.every((b) => b.alto === 0)).toBe(true);
-    expect(pulsoDeVentas([], medidas)).toEqual({ base: 50, barras: [], anchoBarra: 0, hilo: "", promedioY: null, pico: null });
-  });
-
-  it("el grosor del hilo se adapta a cuántos días hay, sin pasarse de 4 ni bajar de 1.5", () => {
-    expect(pulsoDeVentas([d(1, 0)], medidas).anchoBarra).toBe(4);
-    const muchos = Array.from({ length: 400 }, (_, i) => d(i, 0));
-    expect(pulsoDeVentas(muchos, { ...medidas, ancho: 300 }).anchoBarra).toBe(1.5);
-  });
-});
-
-describe("tendencia", () => {
-  it("la media móvil centrada promedia a los vecinos y, en las puntas, a los que haya", () => {
-    expect(mediaMovil([0, 10, 0], 3)).toEqual([5, 10 / 3, 5]);
-    expect(mediaMovil([4, 8], 1)).toEqual([4, 8]);
-  });
-
-  it("se suaviza más cuantos más días hay; con pocos no se toca el dato", () => {
-    expect([5, 9, 10, 20, 21, 90].map(ventanaDeSuavizado)).toEqual([1, 1, 3, 3, 7, 7]);
   });
 });
 
@@ -595,6 +566,19 @@ describe("posventa y apartado en la fila (ADR-0230)", () => {
       new Map()
     );
     expect(f).toMatchObject({ ventaItemIds: ["vi1", "vi2"], conAnticipo: true, operaciones: ["01234567"], apartado: { codigo: "AP-0012" }, pagos: "Anticipo + Yape" });
+  });
+
+  it("itemsPorRegularizar: solo las líneas cuya fila de la cola sigue pendiente (objeto o lista)", () => {
+    const items = [
+      item({ id: "a", por_regularizar: { estado: "pendiente" } }),
+      item({ id: "b", por_regularizar: { estado: "regularizada" } }),
+      item({ id: "c", por_regularizar: [{ estado: "pendiente" }] }),
+      item({ id: "d", por_regularizar: { estado: "cerrada_sin_prenda" } }),
+      item({ id: "e", por_regularizar: null }),
+      item({ id: "f" }),
+    ];
+    expect(itemsPorRegularizar(items)).toEqual(["a", "c"]);
+    expect(aFila(venta({ venta_items: items }), new Map()).itemsPorRegularizar).toEqual(["a", "c"]);
   });
 
   it("sin datos de posventa (lecturas viejas) la fila no inventa nada", () => {

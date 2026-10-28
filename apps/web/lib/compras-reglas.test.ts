@@ -2,70 +2,16 @@ import { describe, it, expect } from "vitest";
 import {
   codigoDeLinea,
   comprobanteDeFilaOperativa,
-  costoBase,
-  costoParaTipear,
   destinoDesdeParam,
   esFuncionAusente,
+  fechaCorta,
+  hayAlgoQueRecibir,
   MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
+  nombreDeLineaSinPrenda,
   textoChipDestino,
-  totalesCompra,
   type FilaOperativa,
   esRelacionAusente,
 } from "./compras-reglas";
-
-// El costo unitario que se guarda alimenta el costo de la variante y el
-// margen de cada venta. Si el descuento del IGV se hace mal, la mercadería
-// entra un 18 % más cara de lo real y todos los márgenes salen chicos — y
-// nadie lo nota, porque el total de la factura sí cuadra con el papel.
-
-describe("costoBase", () => {
-  it("sin IGV devuelve lo tipeado, redondeado a 2 decimales como la base", () => {
-    expect(costoBase(100, 18, false)).toBe(100);
-    expect(costoBase(38.898, 18, false)).toBe(38.9);
-  });
-
-  it("con IGV descuenta el porcentaje", () => {
-    expect(costoBase(118, 18, true)).toBe(100);
-    expect(costoBase(59, 18, true)).toBe(50);
-    expect(costoBase(45.9, 18, true)).toBe(38.9);
-  });
-
-  it("con IGV pero porcentaje 0 (boleta, nota de venta) no descuenta nada", () => {
-    expect(costoBase(118, 0, true)).toBe(118);
-  });
-
-  it("basura numérica cae a 0, nunca a NaN", () => {
-    expect(costoBase(NaN, 18, true)).toBe(0);
-    expect(costoBase(-5, 18, false)).toBe(0);
-  });
-});
-
-describe("costoParaTipear", () => {
-  it("es el inverso de costoBase para el costo sugerido de la variante", () => {
-    expect(costoParaTipear(100, 18, true)).toBe(118);
-    expect(costoParaTipear(100, 18, false)).toBe(100);
-    expect(costoBase(costoParaTipear(38.9, 18, true), 18, true)).toBe(38.9);
-  });
-});
-
-describe("totalesCompra", () => {
-  it("con IGV incluido, el total es el del papel y el IGV absorbe el redondeo", () => {
-    expect(totalesCompra([{ cantidad: 1, costoTipeado: 10 }], 18, true)).toEqual({ subtotal: 8.47, igv: 1.53, total: 10 });
-    expect(totalesCompra([{ cantidad: 3, costoTipeado: 10 }], 18, true)).toEqual({ subtotal: 25.41, igv: 4.59, total: 30 });
-  });
-
-  it("sin IGV incluido, el IGV se calcula sobre la base como siempre", () => {
-    expect(totalesCompra([{ cantidad: 1, costoTipeado: 100 }], 18, false)).toEqual({ subtotal: 100, igv: 18, total: 118 });
-  });
-
-  it("boleta (IGV 0) con el interruptor prendido: nada que descontar", () => {
-    expect(totalesCompra([{ cantidad: 2, costoTipeado: 10 }], 0, true)).toEqual({ subtotal: 20, igv: 0, total: 20 });
-  });
-
-  it("líneas vacías o basura no aportan", () => {
-    expect(totalesCompra([{ cantidad: 1, costoTipeado: NaN }], 18, true)).toEqual({ subtotal: 0, igv: 0, total: 0 });
-  });
-});
 
 // ADR-0126: quien no es líder lee los comprobantes de `listar_compras_operativo`, que no trae un solo monto. La
 // pantalla de Recibir espera la forma de siempre (`CompraResumen`): si el mapeo inventara un monto, un integrante
@@ -259,5 +205,53 @@ describe("codigoDeLinea", () => {
     expect(codigoDeLinea({ sku: "", codigo: "" })).toBeNull();
     expect(codigoDeLinea(null)).toBeNull();
     expect(codigoDeLinea(undefined)).toBeNull();
+  });
+});
+
+// ---------- la línea sin prenda (la de un comprobante que sale de una orden de compra, ADR-0362) ----------
+describe("nombreDeLineaSinPrenda", () => {
+  it("«categoría · marca · descripción»", () => {
+    expect(nombreDeLineaSinPrenda({ categoria: "Blusas", marca: "Cayla", descripcion: "lino crudo" })).toBe("Blusas · Cayla · lino crudo");
+  });
+
+  it("lo que falta no se inventa ni deja separadores sueltos", () => {
+    expect(nombreDeLineaSinPrenda({ categoria: "Blusas", marca: "Cayla", descripcion: null })).toBe("Blusas · Cayla");
+    expect(nombreDeLineaSinPrenda({ categoria: "Blusas", marca: null, descripcion: "  " })).toBe("Blusas");
+    expect(nombreDeLineaSinPrenda({ categoria: null, marca: "Cayla", descripcion: "lino" })).toBe("Cayla · lino");
+  });
+
+  it("sin nada que decir, no queda en blanco", () => {
+    expect(nombreDeLineaSinPrenda({})).toBe("Prenda por definir");
+  });
+});
+
+describe("hayAlgoQueRecibir", () => {
+  it("un comprobante con una prenda pendiente se recibe en Recibir", () => {
+    expect(hayAlgoQueRecibir([{ productoId: "p1", pendiente: 4 }])).toBe(true);
+  });
+
+  it("uno hecho solo de líneas sin prenda no tiene nada que recibir ahí: llega por guía", () => {
+    expect(hayAlgoQueRecibir([{ productoId: "", pendiente: 10 }, { productoId: null, pendiente: 3 }])).toBe(false);
+  });
+
+  it("mixto: cuenta lo que queda de la prenda, no lo que llega por guía", () => {
+    expect(hayAlgoQueRecibir([{ productoId: "", pendiente: 10 }, { productoId: "p1", pendiente: 0 }])).toBe(false);
+    expect(hayAlgoQueRecibir([{ productoId: "", pendiente: 10 }, { productoId: "p1", pendiente: 2 }])).toBe(true);
+  });
+
+  it("sin líneas, nada que recibir", () => {
+    expect(hayAlgoQueRecibir([])).toBe(false);
+  });
+});
+
+describe("fechaCorta: una fecha o un instante, siempre el día de Lima", () => {
+  it("una fecha sola se escribe tal cual", () => {
+    expect(fechaCorta("2026-10-12")).toBe("12/10/2026");
+    expect(fechaCorta(null)).toBe("—");
+  });
+  it("un instante se lee en Lima: las 22:17 del 12/10 en Lima son las 03:17 del 13/10 en UTC", () => {
+    expect(fechaCorta("2026-10-13T03:17:00+00:00")).toBe("12/10/2026");
+    expect(fechaCorta("2026-10-13 03:17:00+00")).toBe("12/10/2026");
+    expect(fechaCorta("2026-10-12T15:00:00.123+00:00")).toBe("12/10/2026");
   });
 });

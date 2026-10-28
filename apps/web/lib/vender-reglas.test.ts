@@ -1,21 +1,35 @@
 import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
-  atendioCorto,
+  aplicarDescuentoMonto,
+  atendioDelTicket,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoDeCampana,
   descuentoResultante,
+  descuentosPedidos,
+  entraAlDescuento,
   descuentoUnitarioPorPorcentaje,
   desgloseIgv,
   metodoDeAtajo,
+  montosSugeridos,
   esDescuentoDeCampana,
   esperaAlCargar,
+  lecturaDelRecibido,
+  tiposDeComprobanteDeLaSede,
   hayDescuentoManual,
+  cobroEnEfectivo,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
   pasoDelDescuento,
+  pagosCobrados,
   pagosParaRpc,
+  pagoNuevo,
+  cuentaPorDefecto,
+  leerMaquinasDeCobro,
+  maquinasPara,
+  nombreMaquina,
+  preguntaMaquina,
   pagosTrasEditarMonto,
   pasoDelCobro,
   porcentajeDeLinea,
@@ -24,12 +38,15 @@ import {
   SIN_DETALLE_DESCUENTO,
   sinStockPorApartado,
   textoSinStock,
+  totalDeLineas,
   vueltoDe,
   type CampanaLinea,
   type DetalleDescuento,
   type PagoAplicado,
   type Vendedora,
+  sinPrecioParaVender,
 } from "./vender-reglas";
+import { METODOS_PAGO_VENTA } from "@cayla-retail/shared";
 
 // Un solo motivo alimenta tres cosas en el ticket de Vender: el `disabled` del botón
 // principal, la línea que lo explica debajo, y el freno dentro de `cobrar()`. Si el
@@ -55,8 +72,27 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
     expect(motivoBloqueoCobro({ ...listo, cajaAbierta: false })).toBe("Abre la caja para vender.");
   });
 
+  it("un carné o un pasaporte mal escrito frena el cobro, pero solo al cobrar y después del pago (ADR-0288 D-3)", () => {
+    const problema = "El pasaporte tiene de 6 a 12 letras o números, sin guiones.";
+    expect(motivoBloqueoCobro({ ...listo, problemaDocumento: problema })).toBe(problema);
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", problemaDocumento: problema })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], problemaDocumento: problema })).toBe("Elige cómo pagó el cliente.");
+    expect(motivoBloqueoCobro({ ...listo, problemaDocumento: null })).toBeNull();
+  });
+
   it("con el ticket vacío pide una prenda", () => {
     expect(motivoBloqueoCobro({ ...listo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+  });
+
+  it("un ticket que no cobra nada (solo la bolsa de obsequio) no se cobra, y el motivo lo dice desde el armado (Bolsas de despacho)", () => {
+    const solo = { ...listo, prendas: 1, total: 0, pagos: [] };
+    const motivo = "El ticket está en S/\u00a00.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+    expect(motivoBloqueoCobro(solo)).toBe(motivo);
+    expect(motivoBloqueoCobro({ ...solo, momento: "armar" })).toBe(motivo);
+    // La caja cerrada y el ticket vacío siguen mandando antes; con la bolsa de obsequio MÁS una compra, nada cambia.
+    expect(motivoBloqueoCobro({ ...solo, cajaAbierta: false })).toBe("Abre la caja para vender.");
+    expect(motivoBloqueoCobro({ ...solo, prendas: 0 })).toBe("Agrega una prenda para cobrar.");
+    expect(motivoBloqueoCobro({ ...listo, prendas: 3, total: 59.9, pagos: [{ metodo: "efectivo", monto: 59.9 }] })).toBeNull();
   });
 
   it("mientras se arma la venta no exige método de pago: eso se decide al cobrar", () => {
@@ -64,7 +100,7 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
   });
 
   it("al cobrar sin ningún pago dice exactamente qué falta", () => {
-    expect(motivoBloqueoCobro({ ...listo, pagos: [] })).toBe("Elige cómo pagó la clienta.");
+    expect(motivoBloqueoCobro({ ...listo, pagos: [] })).toBe("Elige cómo pagó el cliente.");
   });
 
   it("con pagos que no llegan al total dice cuánto falta cubrir", () => {
@@ -115,12 +151,15 @@ const linea = (claveLinea: string, precioUnitario: number, descuentoUnitario = 0
 
 const cumpleanos: DetalleDescuento = { razon: "cumpleanos_clienta_top", razonOtro: "", argumento: "" };
 
-describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad", () => {
-  it("10 % de S/79.90 son S/7.99", () => {
-    expect(descuentoUnitarioPorPorcentaje(79.9, 10)).toBe(7.99);
+describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad, con el precio sin céntimos sueltos (ADR-0403)", () => {
+  it("10 % de S/79.90 deja S/71.90 (la cuenta exacta da 71.91): descuenta S/8.00", () => {
+    expect(descuentoUnitarioPorPorcentaje(79.9, 10)).toBe(8);
   });
-  it("redondea a 2 decimales (15 % de S/69.90 = 10.485 → 10.49)", () => {
-    expect(descuentoUnitarioPorPorcentaje(69.9, 15)).toBe(10.49);
+  it("15 % de S/69.90 deja S/59.40 (la cuenta exacta da 59.415): descuenta S/10.50", () => {
+    expect(descuentoUnitarioPorPorcentaje(69.9, 15)).toBe(10.5);
+  });
+  it("si la cuenta ya cae en un múltiplo de S/0.10, no hay redondeo: S/39 con 20 % → 7.80", () => {
+    expect(descuentoUnitarioPorPorcentaje(39, 20)).toBe(7.8);
   });
   it("100 % descuenta el precio completo, nunca más (candado de venta_items)", () => {
     expect(descuentoUnitarioPorPorcentaje(79.9, 100)).toBe(79.9);
@@ -133,14 +172,79 @@ describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad", (
   });
 });
 
+describe("descuentosPedidos — en S/ el monto es del total de lo elegido y se reparte según el precio (Felipe, 2026-10-24)", () => {
+  const prenda = (claveLinea: string, precioUnitario: number, cantidad = 1) => ({ claveLinea, precioUnitario, cantidad });
+  const suma = (lineas: { claveLinea: string; cantidad: number }[], m: Map<string, number>) =>
+    lineas.reduce((c, l) => c + l.cantidad * Math.round((m.get(l.claveLinea) ?? 0) * 100), 0) / 100;
+
+  it("el caso que lo pidió: S/ 100 sobre dos prendas que suman S/ 139.80 no deja nada en 0", () => {
+    const lineas = [prenda("a", 79.9), prenda("b", 59.9)];
+    const m = descuentosPedidos("monto", 100, lineas);
+    expect(suma(lineas, m)).toBe(100);
+    expect(m.get("a")).toBe(57.15);
+    expect(m.get("b")).toBe(42.85);
+  });
+  it("una sola prenda: el monto tal cual, recortado a su precio", () => {
+    expect(descuentosPedidos("monto", 15, [prenda("a", 79.9)]).get("a")).toBe(15);
+    expect(descuentosPedidos("monto", 80, [prenda("a", 50)]).get("a")).toBe(50);
+  });
+  it("no se redondea al S/0.10: lo que la colaboradora escribe es lo que se descuenta (ADR-0403)", () => {
+    expect(descuentosPedidos("monto", 13.33, [prenda("a", 79.9)]).get("a")).toBe(13.33);
+  });
+  it("una línea de 2 unidades cuenta como 2 prendas: S/ 100 sobre 2 × 69.50 descuenta 50 a cada una", () => {
+    expect(descuentosPedidos("monto", 100, [prenda("a", 69.5, 2)]).get("a")).toBe(50);
+  });
+  it("nunca descuenta más que lo elegido: S/ 200 sobre S/ 139.80 deja todo en 0, no en negativo", () => {
+    const lineas = [prenda("a", 79.9), prenda("b", 59.9)];
+    const m = descuentosPedidos("monto", 200, lineas);
+    expect([m.get("a"), m.get("b")]).toEqual([79.9, 59.9]);
+  });
+  it("si el resto no se parte por unidades se queda corto por céntimos, nunca se pasa", () => {
+    // S/ 20 entre 3 unidades iguales: 6.66 cada una (19.98).
+    expect(descuentosPedidos("monto", 20, [prenda("a", 50, 3)]).get("a")).toBe(6.66);
+  });
+  it("con cualquier mezcla de precios y cantidades, la suma nunca pasa el monto ni el total", () => {
+    for (const monto of [1, 10, 33.33, 100, 150, 999]) {
+      for (const lineas of [
+        [prenda("a", 79.9), prenda("b", 59.9), prenda("c", 39, 2)],
+        [prenda("a", 129.9, 3), prenda("b", 0.5)],
+        [prenda("a", 89.9, 7)],
+      ]) {
+        const m = descuentosPedidos("monto", monto, lineas);
+        const total = lineas.reduce((c, l) => c + l.cantidad * Math.round(l.precioUnitario * 100), 0) / 100;
+        expect(suma(lineas, m)).toBeLessThanOrEqual(Math.min(monto, total));
+        for (const l of lineas) expect(m.get(l.claveLinea)!).toBeLessThanOrEqual(l.precioUnitario);
+      }
+    }
+  });
+  it("un monto inválido (0, negativo, NaN) no descuenta nada", () => {
+    for (const v of [0, -5, Number.NaN]) expect(descuentosPedidos("monto", v, [prenda("a", 79.9)]).get("a")).toBe(0);
+  });
+  it("en % cada prenda sale de su propio precio, como siempre", () => {
+    const m = descuentosPedidos("porcentaje", 10, [prenda("a", 79.9), prenda("b", 179.9)]);
+    expect([m.get("a"), m.get("b")]).toEqual([8, 18]);
+  });
+});
+
+describe("entraAlDescuento — lo elegido, menos las piezas de liquidación (ADR-0379)", () => {
+  it("todo el ticket (null o vacío) alcanza a todas; con claves, solo a esas", () => {
+    expect(entraAlDescuento({ claveLinea: "a" }, null)).toBe(true);
+    expect(entraAlDescuento({ claveLinea: "a" }, [])).toBe(true);
+    expect(entraAlDescuento({ claveLinea: "a" }, ["b"])).toBe(false);
+  });
+  it("una pieza de liquidación nunca entra", () => {
+    expect(entraAlDescuento({ claveLinea: "a", liquidacion: { codigo: "LQ1" } }, null)).toBe(false);
+  });
+});
+
 describe("aplicarDescuento — a todo el ticket o solo a las prendas elegidas", () => {
   const carrito = [linea("a", 79.9), linea("b", 179.9), linea("c", 50, 5)];
 
   it("sin claves descuenta todas las líneas", () => {
-    expect(aplicarDescuento(carrito, 10, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([7.99, 17.99, 5]);
+    expect(aplicarDescuento(carrito, 10, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([8, 18, 5]);
   });
   it("con claves descuenta solo esas y deja las demás como estaban", () => {
-    expect(aplicarDescuento(carrito, 20, ["b"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([0, 35.98, 5]);
+    expect(aplicarDescuento(carrito, 20, ["b"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([0, 36, 5]);
   });
   it("0 % quita el descuento de las líneas alcanzadas", () => {
     expect(aplicarDescuento(carrito, 0, ["c"], SIN_DETALLE_DESCUENTO).map((l) => l.descuentoUnitario)).toEqual([0, 0, 0]);
@@ -167,6 +271,24 @@ describe("aplicarDescuento — a todo el ticket o solo a las prendas elegidas", 
     const conDescuento = aplicarDescuento(carrito, 25, ["a"], { razon: "cerrar_venta", razonOtro: "", argumento: "Cierre de caja" });
     const sinDescuento = aplicarDescuento(conDescuento, 0, ["a"], SIN_DETALLE_DESCUENTO);
     expect(sinDescuento[0]).toMatchObject({ descuentoUnitario: 0, razonDescuento: "", argumentoDescuento: "" });
+  });
+});
+
+describe("aplicarDescuentoMonto — un monto en S/ para todo lo alcanzado, repartido", () => {
+  const carrito = [{ ...linea("a", 79.9), cantidad: 1 }, { ...linea("b", 59.9), cantidad: 1 }];
+
+  it("reparte el monto entre las líneas alcanzadas según su precio", () => {
+    expect(aplicarDescuentoMonto(carrito, 100, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([57.15, 42.85]);
+  });
+  it("con claves, el monto entero va a las elegidas y las demás quedan como estaban", () => {
+    expect(aplicarDescuentoMonto(carrito, 60, ["a"], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 0]);
+  });
+  it("una pieza de liquidación no recibe parte: todo va a las demás", () => {
+    const conLiquidacion = [...carrito, { ...linea("c", 30), cantidad: 1, liquidacion: { codigo: "LQ1" } }];
+    expect(aplicarDescuentoMonto(conLiquidacion, 100, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([57.15, 42.85, 0]);
+  });
+  it("guarda el motivo igual que la versión por %", () => {
+    expect(aplicarDescuentoMonto(carrito, 10, ["a"], cumpleanos)[0].razonDescuento).toBe("cumpleanos_clienta_top");
   });
 });
 
@@ -230,6 +352,46 @@ describe("metodoDeAtajo — F1 a F5 son los cinco medios, en el orden del select
   it("mantener la tecla (repeat) no repite el atajo", () => {
     expect(metodoDeAtajo(tecla("F2", { repeat: true }))).toBeNull();
   });
+
+  it("con los seis medios de la hoja de cobro (QR incluido), F3 es QR y F6 transferencia", () => {
+    expect(metodoDeAtajo(tecla("F3"), METODOS_PAGO_VENTA)).toBe("qr");
+    expect(metodoDeAtajo(tecla("F4"), METODOS_PAGO_VENTA)).toBe("yape");
+    expect(metodoDeAtajo(tecla("F6"), METODOS_PAGO_VENTA)).toBe("transferencia");
+    expect(metodoDeAtajo(tecla("F7"), METODOS_PAGO_VENTA)).toBeNull();
+  });
+});
+
+describe("montosSugeridos — los billetes con que suele pagarse, por encima del monto", () => {
+  it("los dos montos de la maqueta", () => {
+    expect(montosSugeridos(59.9)).toEqual([60, 70, 100, 200]);
+    expect(montosSugeridos(223.9)).toEqual([230, 240, 250, 300]);
+  });
+  it("nunca el mismo monto ni uno menor, y como mucho cuatro", () => {
+    for (const m of [0.5, 9.9, 10, 19.9, 50, 99, 100, 150, 199.9, 200, 1234.5]) {
+      const s = montosSugeridos(m);
+      expect(s.length).toBeGreaterThan(0);
+      expect(s.length).toBeLessThanOrEqual(4);
+      expect(s.every((v) => v > m)).toBe(true);
+      expect([...s].sort((a, b) => a - b)).toEqual(s);
+      expect(new Set(s).size).toBe(s.length);
+    }
+  });
+  it("sin monto no sugiere nada", () => {
+    expect(montosSugeridos(0)).toEqual([]);
+    expect(montosSugeridos(Number.NaN)).toEqual([]);
+  });
+});
+
+describe("motivoBloqueoCobro — sin comprobante elegido no se cobra", () => {
+  it("cubierto el pago, falta elegir boleta, factura o nota de venta", () => {
+    expect(motivoBloqueoCobro({ ...listo, sinComprobante: true })).toBe("Elige el comprobante.");
+  });
+  it("primero el pago: sin medio, eso es lo que se pide", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [], sinComprobante: true })).toBe("Elige cómo pagó el cliente.");
+  });
+  it("mientras se arma el ticket no se pide", () => {
+    expect(motivoBloqueoCobro({ ...listo, momento: "armar", sinComprobante: true })).toBeNull();
+  });
 });
 
 describe("desgloseIgv — subtotal + IGV = total, igual que el comprobante", () => {
@@ -243,12 +405,17 @@ describe("desgloseIgv — subtotal + IGV = total, igual que el comprobante", () 
     expect(desgloseIgv(0, 0.18)).toEqual({ subtotal: 0, igv: 0 });
   });
 
+  // Junta los totales que descuadran y los compara con UN `expect` al final: 50 000 `expect` sueltos eran el 99 % del
+  // tiempo de la prueba (el cálculo cuesta 1-2 ms) y, con la máquina cargada por otras sesiones (carga ~100, 2026-10-02),
+  // la llevaban a 1,4 s, camino del límite de 5 s que frena el pre-commit. El mensaje sigue nombrando cada total que falla.
   it("nunca descuadra: para cada total de S/0.01 a S/500.00, subtotal + IGV = total al centavo", () => {
+    const descuadran: string[] = [];
     for (let c = 1; c <= 50_000; c++) {
       const total = c / 100;
       const { subtotal, igv } = desgloseIgv(total, 0.18);
-      expect(Math.round((subtotal + igv) * 100)).toBe(c);
+      if (Math.round((subtotal + igv) * 100) !== c) descuadran.push(`S/${total.toFixed(2)}: subtotal ${subtotal} + IGV ${igv}`);
     }
+    expect(descuadran).toEqual([]);
   });
 });
 
@@ -351,8 +518,20 @@ describe("necesitaArgumentoEscrito — pasado el 15 % se escribe el porqué", ()
   it("hasta el 15 % no pide nada", () => {
     expect(necesitaArgumentoEscrito(100, 10)).toBe(false);
     expect(necesitaArgumentoEscrito(100, 15)).toBe(false);
-    // 15 % de 89.90 = 13.485 → el redondeo al céntimo no lo convierte en «pasa el 15 %».
+    // 15 % de 89.90 = 13.485 y el precio sin céntimos deja S/76.40: descuenta 13.50 y eso NO es «pasa el 15 %».
     expect(necesitaArgumentoEscrito(89.9, 13.49)).toBe(false);
+    expect(necesitaArgumentoEscrito(89.9, 13.5)).toBe(false);
+  });
+  it("el botón «15 %» nunca pide argumento, aunque el precio sin céntimos le regale hasta 9 céntimos", () => {
+    const pidieron: string[] = [];
+    for (let c = 100; c <= 40000; c += 7) {
+      const precio = c / 100;
+      if (necesitaArgumentoEscrito(precio, descuentoUnitarioPorPorcentaje(precio, 15))) pidieron.push(String(precio));
+    }
+    expect(pidieron).toEqual([]);
+  });
+  it("un monto en S/ que pasa el 15 % del precio sin céntimos sí lo pide", () => {
+    expect(necesitaArgumentoEscrito(89.9, 13.52)).toBe(true);
   });
   it("pasado el 15 % lo pide", () => {
     expect(necesitaArgumentoEscrito(100, 16)).toBe(true);
@@ -372,8 +551,6 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
     razonOtro: "",
     pideArgumento: false,
     argumento: "",
-    pideCodigo: false,
-    codigo: "",
     prendas: 2,
   };
   it("sin % falta el valor, aunque lo demás esté puesto", () => {
@@ -388,8 +565,7 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
     expect(pasoDelDescuento({ ...completo, pideArgumento: true })).toBe("argumento");
     expect(pasoDelDescuento({ ...completo, pideArgumento: true, argumento: "Se lleva 4 prendas" })).toBe("listo");
   });
-  it("el código solo para quien lo necesita, y luego las prendas", () => {
-    expect(pasoDelDescuento({ ...completo, pideCodigo: true })).toBe("codigo");
+  it("después del argumento, las prendas: nadie pide código (Felipe, 2026-10-01)", () => {
     expect(pasoDelDescuento({ ...completo, prendas: 0 })).toBe("prendas");
   });
   it("con todo puesto, listo para aplicar", () => {
@@ -403,21 +579,24 @@ describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () =
 // que `registrar_venta` (20260918170000) acepta y rechaza — si divergen, la caja
 // mandaría algo que la base rechaza en el mostrador.
 //
-// Desde ADR-0182 el precio de campaña se redondea hacia abajo a .90: con S/ 100 y 20 % no se cobra S/ 80.00 sino
-// S/ 79.90, así que el descuento de campaña de estas pruebas es 20.10 (y 40.10 con 40 %).
+// Desde ADR-0302 (2026-10-01) el descuento de campaña es EXACTO: el % sobre el precio, al céntimo. Con S/ 100 y 20 % se
+// cobra S/ 80.00, así que el descuento de campaña de estas pruebas es 20.00 (y 40.00 con 40 %).
 
-describe("descuentoDeCampana — el precio rebajado baja al .90 (ADR-0182)", () => {
+describe("descuentoDeCampana — el precio queda sin céntimos sueltos (ADR-0403; antes exacto, ADR-0302)", () => {
   // [precio, %, descuento esperado, precio que paga la clienta]
   it.each([
-    [89.9, 20, 18, 71.9], // 71.92 → 71.90: el ejemplo de Felipe
-    [79.9, 30, 24, 55.9], // 55.93 → 55.90
-    [95.8, 25, 24.9, 70.9], // 71.85 → 70.90: siempre hacia abajo, aunque falten 5 céntimos para 71.90
-    [159.8, 50, 79.9, 79.9], // 79.90 exacto: ya es .90, no baja
-    [99.9, 10, 10, 89.9], // 89.91 → 89.90
-    [100, 20, 20.1, 79.9], // 80.00 → 79.90: un precio redondo también baja
-    [89.9, 12.5, 12, 77.9], // % con decimales: 78.6625 → 77.90
-    [89.9, 33.33, 30, 59.9], // 59.93633… → 59.90 (sin error de coma flotante)
-    [199.9, 30, 60, 139.9], // 139.93 → 139.90
+    [39, 20, 7.8, 31.2], // ya cae en múltiplo de S/0.10: el papel dice −20 % y se cobra exactamente eso
+    [89.9, 20, 18, 71.9], // exacto 71.92 → 71.90
+    [79.9, 30, 24, 55.9], // exacto 55.93
+    [95.8, 25, 24, 71.8], // exacto 71.85
+    [159.8, 50, 79.9, 79.9],
+    [100, 20, 20, 80], // un precio redondo queda redondo
+    [22, 10, 2.2, 19.8],
+    [89.9, 12.5, 11.3, 78.6], // % con decimales: exacto 78.66125
+    [89.9, 33.33, 30, 59.9], // exacto 59.93633
+    [199.9, 30, 60, 139.9], // exacto 139.93
+    [69.9, 15, 10.5, 59.4], // exacto 59.415: el medio céntimo baja, nunca sube
+    [19.9, 25, 5, 14.9], // exacto 14.925
   ])("S/ %d con %d %% → descuento %d (paga S/ %d)", (precio, pct, descuento, paga) => {
     expect(descuentoDeCampana(precio, pct)).toBe(descuento);
     expect(Math.round((precio - descuentoDeCampana(precio, pct)) * 100) / 100).toBe(paga);
@@ -433,21 +612,70 @@ describe("descuentoDeCampana — el precio rebajado baja al .90 (ADR-0182)", () 
     expect(descuentoDeCampana(89.9, 100)).toBe(89.9);
   });
 
-  it("un precio rebajado de menos de S/ 0.90 no se redondea (no hay un .90 por debajo)", () => {
+  it("los precios chicos también bajan al S/0.10 de abajo", () => {
     expect(descuentoDeCampana(1, 50)).toBe(0.5);
-    expect(descuentoDeCampana(1.5, 50)).toBe(0.75);
+    expect(descuentoDeCampana(1.5, 50)).toBe(0.8); // exacto 0.75 → 0.70
   });
 
-  it("el precio que paga la clienta siempre termina en .90 cuando pasa de S/ 0.90", () => {
-    for (let c = 90; c <= 30000; c += 37) {
-      for (const pct of [5, 10, 15, 20, 25, 30, 33.33, 40, 50, 70]) {
-        const precio = c / 100;
-        const paga = Math.round((precio - descuentoDeCampana(precio, pct)) * 100);
-        const exacto = (c * (100 - pct)) / 100;
-        if (exacto < 90) continue;
-        expect(paga % 100).toBe(90);
-        expect(paga).toBeLessThanOrEqual(exacto + 1e-6); // nunca por encima del precio exacto
-        expect(exacto - paga).toBeLessThan(100); // nunca baja más de un sol
+  it("una campaña descuenta lo mismo que un % manual: una sola cuenta en la caja", () => {
+    for (const [precio, pct] of [[39, 20], [19.9, 25], [89.9, 33.33], [0.29, 50]]) {
+      expect(descuentoDeCampana(precio, pct)).toBe(descuentoUnitarioPorPorcentaje(precio, pct));
+    }
+  });
+
+  // La propiedad, comprobada contra la cuenta exacta hecha aparte con BigInt (no con la misma fórmula que se prueba): lo que
+  // paga la clienta es un múltiplo de 10 céntimos, nunca más que el precio con el % exacto y a menos de 10 céntimos de él
+  // (el múltiplo de abajo más cercano); y el descuento nunca pasa del precio.
+  it("siempre el múltiplo de S/0.10 de abajo más cercano al precio exacto, en miles de combinaciones", () => {
+    const MILLON = BigInt(1_000_000);
+    const DIEZ_MILLONES = BigInt(10_000_000);
+    const CERO = BigInt(0);
+    // Se juntan los casos que fallan y se comprueba una vez al final: 300 000 `expect` sueltos pasaban de los 5 s de
+    // límite cuando la suite corre en paralelo.
+    const malos: string[] = [];
+    for (let c = 1; c <= 60000; c += 7) {
+      for (const pct of [0.5, 1, 5, 7.5, 10, 12.5, 15, 20, 25, 30, 33.33, 40, 45, 50, 55, 66.67, 70, 99.99]) {
+        const descuentoC = BigInt(Math.round(descuentoDeCampana(c / 100, pct) * 100));
+        const pagaC = BigInt(c) - descuentoC;
+        // exacto × 1 000 000 = céntimos × (1 000 000 − % en diezmilésimas)
+        const exactoPorMillon = BigInt(c) * (MILLON - BigInt(Math.round(pct * 10_000)));
+        const pagaPorMillon = pagaC * MILLON;
+        const multiplo = pagaC % BigInt(10) === CERO;
+        const noMasQueElExacto = pagaPorMillon <= exactoPorMillon;
+        const aMenosDeDiezCentimos = exactoPorMillon - pagaPorMillon < DIEZ_MILLONES;
+        const dentroDelPrecio = descuentoC >= CERO && descuentoC <= BigInt(c);
+        if (!multiplo || !noMasQueElExacto || !aMenosDeDiezCentimos || !dentroDelPrecio) {
+          malos.push(`S/ ${c / 100} con ${pct} % → descuento ${descuentoDeCampana(c / 100, pct)}`);
+        }
+      }
+    }
+    expect(malos).toEqual([]);
+  });
+});
+
+describe("totalDeLineas — el total del ticket, en céntimos exactos", () => {
+  it("99.90 − 14.99 es 84.91, no 84.91000000000001 (la caja lo mostraba y Apartar no aceptaba 84.91 en efectivo)", () => {
+    expect(totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }])).toBe(84.91);
+  });
+  it("suma cantidades y líneas sin arrastrar error: 2 × 71.91 + 3 × 84.91 = 398.55", () => {
+    expect(
+      totalDeLineas([
+        { cantidad: 2, precioUnitario: 79.9, descuentoUnitario: 7.99 },
+        { cantidad: 3, precioUnitario: 99.9, descuentoUnitario: 14.99 },
+      ]),
+    ).toBe(398.55);
+  });
+  it("sin líneas, cero", () => {
+    expect(totalDeLineas([])).toBe(0);
+  });
+  it("con cualquier campaña y cantidad, el total es un número exacto de céntimos", () => {
+    for (let c = 1990; c <= 29990; c += 500) {
+      for (const pct of [5, 10, 15, 20, 25, 33.33]) {
+        for (const cantidad of [1, 2, 3, 7]) {
+          const precio = c / 100;
+          const total = totalDeLineas([{ cantidad, precioUnitario: precio, descuentoUnitario: descuentoDeCampana(precio, pct) }]);
+          expect(String(total)).toMatch(/^\d+(\.\d{1,2})?$/);
+        }
       }
     }
   });
@@ -469,20 +697,20 @@ describe("descuentoResultante — un solo descuento, el mayor", () => {
     expect(descuentoResultante(lineaCampana("a", 100), 15)).toEqual({ monto: 15, prevaleceCampana: false });
   });
   it("un manual MENOR que la campaña no la baja: prevalece la campaña", () => {
-    expect(descuentoResultante(conBF, 15)).toEqual({ monto: 20.1, prevaleceCampana: true });
+    expect(descuentoResultante(conBF, 15)).toEqual({ monto: 20, prevaleceCampana: true });
   });
   it("un manual IGUAL a la campaña tampoco cuenta como manual", () => {
-    expect(descuentoResultante(conBF, 20.1)).toEqual({ monto: 20.1, prevaleceCampana: true });
+    expect(descuentoResultante(conBF, 20)).toEqual({ monto: 20, prevaleceCampana: true });
   });
   it("quitar el descuento (0) devuelve la campaña, no un precio sin descuento", () => {
-    expect(descuentoResultante(conBF, 0)).toEqual({ monto: 20.1, prevaleceCampana: true });
+    expect(descuentoResultante(conBF, 0)).toEqual({ monto: 20, prevaleceCampana: true });
   });
   it("un manual MAYOR reemplaza a la campaña (no se suman)", () => {
     expect(descuentoResultante(conBF, 30)).toEqual({ monto: 30, prevaleceCampana: false });
   });
   it("por un centavo de diferencia sigue siendo la campaña (redondeo del navegador)", () => {
-    expect(descuentoResultante(conBF, 20.11).prevaleceCampana).toBe(true);
-    expect(descuentoResultante(conBF, 20.12).prevaleceCampana).toBe(false);
+    expect(descuentoResultante(conBF, 20.01).prevaleceCampana).toBe(true);
+    expect(descuentoResultante(conBF, 20.02).prevaleceCampana).toBe(false);
   });
 });
 
@@ -492,7 +720,7 @@ describe("aplicarDescuento con campaña", () => {
 
   it("un 10 % manual a todo el ticket deja la campaña (20 %) donde la hay y aplica 10 % donde no", () => {
     const r = aplicarDescuento(carrito, 10, [], cumple);
-    expect(r.map((l) => l.descuentoUnitario)).toEqual([20.1, 10]);
+    expect(r.map((l) => l.descuentoUnitario)).toEqual([20, 10]);
     expect(r.map((l) => l.razonDescuento)).toEqual(["campana", "cumpleanos_clienta_top"]);
   });
   it("un 30 % manual reemplaza a la campaña con su motivo", () => {
@@ -501,7 +729,7 @@ describe("aplicarDescuento con campaña", () => {
   });
   it("«Quitar descuento» (0 %) en una línea con campaña la devuelve a la campaña", () => {
     const r = aplicarDescuento(aplicarDescuento(carrito, 30, ["a"], cumple), 0, ["a"], SIN_DETALLE_DESCUENTO);
-    expect(r[0]).toMatchObject({ descuentoUnitario: 20.1, razonDescuento: "campana" });
+    expect(r[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana" });
   });
 });
 
@@ -510,11 +738,11 @@ describe("conCampanas — un ticket en espera se pone al día", () => {
 
   it("una línea sin descuento recibe la campaña que ahora rige", () => {
     const [l] = conCampanas([lineaCampana("a", 100)], rige);
-    expect(l).toMatchObject({ descuentoUnitario: 20.1, razonDescuento: "campana", campana: blackFriday });
+    expect(l).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana", campana: blackFriday });
   });
   it("si la campaña cambió de %, la línea se ajusta", () => {
     const [l] = conCampanas([conCampanas([lineaCampana("a", 100)], rige)[0]], new Map([["a", liquidacion]]));
-    expect(l.descuentoUnitario).toBe(40.1);
+    expect(l.descuentoUnitario).toBe(40);
   });
   it("si la campaña terminó, su descuento se va", () => {
     const con = conCampanas([lineaCampana("a", 100)], rige);
@@ -527,7 +755,7 @@ describe("conCampanas — un ticket en espera se pone al día", () => {
   });
   it("un descuento manual menor que la campaña cede ante ella", () => {
     const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
-    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20.1, razonDescuento: "campana" });
+    expect(conCampanas([manual], rige)[0]).toMatchObject({ descuentoUnitario: 20, razonDescuento: "campana" });
   });
   it("si la campaña terminó, un descuento manual NO se toca", () => {
     const manual = { ...lineaCampana("a", 100), descuentoUnitario: 10, razonDescuento: "cerrar_venta" };
@@ -608,14 +836,14 @@ describe("pagosTrasEditarMonto — con dos medios, el otro toma lo que falta", (
   ];
 
   it("total 80: Plin baja a 40 y el efectivo se llena con los 40 que faltan", () => {
-    expect(pagosTrasEditarMonto(plinYEfectivo, 0, 40, 80)).toEqual([
+    expect(pagosTrasEditarMonto(plinYEfectivo, 0, 40, 80)).toMatchObject([
       { metodo: "plin", monto: 40 },
       { metodo: "efectivo", monto: 40 },
     ]);
   });
 
   it("también al revés: editar el segundo ajusta el primero", () => {
-    expect(pagosTrasEditarMonto(plinYEfectivo, 1, 30, 80)).toEqual([
+    expect(pagosTrasEditarMonto(plinYEfectivo, 1, 30, 80)).toMatchObject([
       { metodo: "plin", monto: 50 },
       { metodo: "efectivo", monto: 30 },
     ]);
@@ -639,13 +867,33 @@ describe("pagosTrasEditarMonto — con dos medios, el otro toma lo que falta", (
 
   it("no toca el recibido del efectivo", () => {
     const r = pagosTrasEditarMonto([{ metodo: "plin", monto: 80 }, { metodo: "efectivo", monto: 0, recibido: 50 }], 0, 40, 80);
-    expect(r[1]).toEqual({ metodo: "efectivo", monto: 40, recibido: 50 });
+    expect(r[1]).toMatchObject({ metodo: "efectivo", monto: 40, recibido: 50 });
   });
 
-  it("con un solo medio o con tres, solo cambia el editado (no hay a quién repartirle)", () => {
-    expect(pagosTrasEditarMonto([{ metodo: "efectivo", monto: 80 }], 0, 50, 80)).toEqual([{ metodo: "efectivo", monto: 50 }]);
+  it("con un solo medio solo cambia el editado (no hay a quién repartirle)", () => {
+    expect(pagosTrasEditarMonto([{ metodo: "efectivo", monto: 80 }], 0, 50, 80)).toMatchObject([{ metodo: "efectivo", monto: 50 }]);
+  });
+
+  it("con tres o más, el primer medio que no se escribió a mano se queda con el resto", () => {
     const tres: PagoAplicado[] = [{ metodo: "plin", monto: 40 }, { metodo: "yape", monto: 20 }, { metodo: "efectivo", monto: 20 }];
-    expect(pagosTrasEditarMonto(tres, 1, 10, 80).map((p) => p.monto)).toEqual([40, 10, 20]);
+    const r = pagosTrasEditarMonto(tres, 1, 10, 80);
+    expect(r.map((p) => p.monto)).toEqual([50, 10, 20]);
+    expect(r[1].fijo).toBe(true);
+    // Escribir el tercero: el primero sigue siendo el libre y absorbe la diferencia.
+    const r2 = pagosTrasEditarMonto(r, 2, 30, 80);
+    expect(r2.map((p) => p.monto)).toEqual([40, 10, 30]);
+    expect(restanteDePagos(80, r2)).toBe(0);
+  });
+
+  it("con tres o más, si ya se escribieron todos solo cambia el editado y el aviso dice cuánto falta", () => {
+    const todos: PagoAplicado[] = [
+      { metodo: "plin", monto: 40, fijo: true },
+      { metodo: "yape", monto: 20, fijo: true },
+      { metodo: "efectivo", monto: 20, fijo: true },
+    ];
+    const r = pagosTrasEditarMonto(todos, 0, 30, 80);
+    expect(r.map((p) => p.monto)).toEqual([30, 20, 20]);
+    expect(restanteDePagos(80, r)).toBe(10);
   });
 
   it("un índice que no existe no rompe nada", () => {
@@ -689,19 +937,16 @@ const MARIA: Vendedora = { personaId: "p-maria", nombre: "María Pérez Soto" };
 const ROSA: Vendedora = { personaId: "p-rosa", nombre: "Rosa Díaz Luna" };
 const MARIA_L: Vendedora = { personaId: "p-maria-l", nombre: "María López Vera" };
 
-describe("atendioCorto — el nombre que sale en el papel", () => {
-  it("el primer nombre basta cuando no hay otra igual en la fila", () => {
-    expect(atendioCorto([MARIA, ROSA], "p-maria")).toBe("María");
-  });
-
-  it("dos «María» en la fila se distinguen con la inicial del apellido", () => {
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria")).toBe("María P.");
-    expect(atendioCorto([MARIA, MARIA_L], "p-maria-l")).toBe("María L.");
+describe("atendioDelTicket — el nombre que sale en el papel", () => {
+  it("nombre y apellido, como está en su ficha", () => {
+    expect(atendioDelTicket([MARIA, ROSA], "p-maria")).toBe("María Pérez Soto");
+    expect(atendioDelTicket([MARIA, MARIA_L], "p-maria-l")).toBe("María López Vera");
   });
 
   it("sin elegida o con una que no está en la fila no se inventa nadie", () => {
-    expect(atendioCorto([MARIA, ROSA], null)).toBeNull();
-    expect(atendioCorto([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], null)).toBeNull();
+    expect(atendioDelTicket([MARIA, ROSA], "p-otra")).toBeNull();
+    expect(atendioDelTicket([{ personaId: "p-x", nombre: "  " }], "p-x")).toBeNull();
   });
 });
 
@@ -727,7 +972,7 @@ describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
   });
 });
 
-describe("textoSinStock — «agotada» o «apartada para una clienta»", () => {
+describe("textoSinStock — «agotada» o «apartada para un cliente»", () => {
   it("sin nada apartado, agotada es agotada", () => {
     expect(textoSinStock({ stockAqui: 0, apartadoAqui: 0 })).toBe("agotada");
     // Quien no trae `apartadoAqui` (una pantalla sin esta lectura) dice lo de siempre.
@@ -735,18 +980,18 @@ describe("textoSinStock — «agotada» o «apartada para una clienta»", () => 
     expect(sinStockPorApartado({ stockAqui: 0 })).toBe(false);
   });
 
-  it("piso en 0 con 1 apartada para una clienta: no está agotada, está apartada", () => {
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+  it("piso en 0 con 1 apartada para un cliente: no está agotada, está apartada", () => {
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 1 })).toBe("apartada para un cliente");
     expect(sinStockPorApartado({ stockAqui: 0, apartadoAqui: 1 })).toBe(true);
     // Varias apartadas dicen lo mismo: la frase habla de la prenda, no de cuántas.
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 3 })).toBe("apartada para una clienta");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 3 })).toBe("apartada para un cliente");
   });
 
   it("cada pantalla conserva su texto de siempre para agotada, y la frase abre igual que él", () => {
     expect(textoSinStock({ stockAqui: 0 }, "sin stock aquí")).toBe("sin stock aquí");
     expect(textoSinStock({ stockAqui: 0 }, "Sin stock aquí")).toBe("Sin stock aquí");
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "sin stock aquí")).toBe("apartada para una clienta");
-    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para una clienta");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "sin stock aquí")).toBe("apartada para un cliente");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para un cliente");
   });
 
   it("con stock libre en el almacén gana «en el almacén» (motivoNoCobrable): esto NO es «apartada»", () => {
@@ -761,5 +1006,231 @@ describe("textoSinStock — «agotada» o «apartada para una clienta»", () => 
   it("con piso libre no hay nada que explicar, aunque otra unidad esté apartada", () => {
     expect(sinStockPorApartado({ stockAqui: 2, apartadoAqui: 1 })).toBe(false);
     expect(textoSinStock({ stockAqui: 2, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
+  });
+});
+
+// ---- El redondeo del efectivo en Vender (ADR-0311). La pantalla sigue trabajando con los pagos EXACTOS (cubren el total al
+// céntimo); el redondeo —el efectivo al múltiplo de S/ 0.10, hacia abajo, la ley— es del borde: lo que se cobra, el vuelto y lo que
+// viaja a `registrar_venta`. Todo apagado (`redondear = false`) es como era antes: la base todavía no lo acepta.
+
+describe("pagosCobrados — los pagos exactos como se cobran", () => {
+  it("apagado: queda igual y no hay redondeo", () => {
+    const pagos: PagoAplicado[] = [{ metodo: "efectivo", monto: 79.88 }];
+    expect(pagosCobrados(pagos, false)).toEqual({ pagos, redondeo: 0 });
+  });
+  it("activo: el efectivo baja al múltiplo de 0.10 y el redondeo es lo que no se cobra (79.88 → 79.80 y 0.08)", () => {
+    expect(pagosCobrados([{ metodo: "efectivo", monto: 79.88, recibido: 80 }], true)).toEqual({ pagos: [{ metodo: "efectivo", monto: 79.8, recibido: 80 }], redondeo: 0.08 });
+  });
+  it("solo el efectivo se redondea: Yape, tarjeta y transferencia quedan exactos (pago mixto)", () => {
+    const r = pagosCobrados([{ metodo: "yape", monto: 30.05 }, { metodo: "efectivo", monto: 49.83 }, { metodo: "tarjeta", monto: 0.12 }], true);
+    expect(r.pagos.map((p) => [p.metodo, p.monto])).toEqual([["yape", 30.05], ["efectivo", 49.8], ["tarjeta", 0.12]]);
+    expect(r.redondeo).toBe(0.03);
+  });
+  it("sin efectivo, o con un efectivo en cero, no hay nada que redondear", () => {
+    expect(pagosCobrados([{ metodo: "yape", monto: 79.88 }], true).redondeo).toBe(0);
+    expect(pagosCobrados([{ metodo: "efectivo", monto: 0 }, { metodo: "yape", monto: 79.88 }], true).redondeo).toBe(0);
+  });
+});
+
+describe("pagosParaRpc con el redondeo del efectivo", () => {
+  it("apagado, viaja exacto como siempre (lo que hace la caja hasta que la base lo acepte)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 80 }])).toEqual([{ metodo: "efectivo", monto: 79.88, recibido: 80 }]);
+  });
+  it("activo: el efectivo ya cobrado en monedas y, aparte, la fila de redondeo", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 80 }], true)).toEqual([
+      { metodo: "efectivo", monto: 79.8, recibido: 80 },
+      { metodo: "redondeo", monto: 0.08 },
+    ]);
+  });
+  it("lo recibido solo viaja si alcanza para lo que se cobra en monedas (la base rechaza TODA la venta si no)", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 79.7 }], true)[0]).toEqual({ metodo: "efectivo", monto: 79.8 });
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.88, recibido: 79.8 }], true)[0]).toEqual({ metodo: "efectivo", monto: 79.8, recibido: 79.8 }); // exacto en monedas
+  });
+  it("un efectivo que ya es múltiplo de 0.10 no lleva fila de redondeo", () => {
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 79.9 }], true)).toEqual([{ metodo: "efectivo", monto: 79.9 }]);
+  });
+  it("pago mixto: Yape exacto con su operación, efectivo en monedas y el redondeo al final", () => {
+    expect(pagosParaRpc([{ metodo: "yape", monto: 30.05, referencia: "ab-123" }, { metodo: "efectivo", monto: 49.83 }], true)).toEqual([
+      { metodo: "yape", monto: 30.05, referencia: "ab123" }, // el nº de operación se limpia: sin guiones
+      { metodo: "efectivo", monto: 49.8 },
+      { metodo: "redondeo", monto: 0.03 },
+    ]);
+  });
+  it("INVARIANTE: lo que viaja suma EXACTAMENTE el total, en cada total de S/ 0.01 a S/ 99.99 y con el efectivo solo o repartido", () => {
+    for (let c = 1; c <= 9999; c++) {
+      const total = c / 100;
+      const soloEfectivo = pagosParaRpc([{ metodo: "efectivo", monto: total }], true);
+      expect(Math.round(soloEfectivo.reduce((a, p) => a + p.monto * 100, 0))).toBe(c);
+      // la mitad en Yape y el resto en efectivo
+      const yape = Math.round(c / 2) / 100;
+      const resto = Math.round((c - Math.round(c / 2))) / 100;
+      const mixto = pagosParaRpc([{ metodo: "yape", monto: yape }, { metodo: "efectivo", monto: resto }], true);
+      expect(Math.round(mixto.reduce((a, p) => a + p.monto * 100, 0))).toBe(c);
+    }
+  });
+});
+
+describe("vueltoDe y pasoDelCobro con el redondeo", () => {
+  const p: PagoAplicado = { metodo: "efectivo", monto: 79.88, recibido: 80 };
+  it("el vuelto sale de lo que se cobra en monedas: 80.00 − 79.80 = 0.20 (sin redondeo sería 0.12, que no se puede dar)", () => {
+    expect(vueltoDe(p, true)).toBe(0.2);
+    expect(vueltoDe(p)).toBe(0.12);
+  });
+  it("lo recibido alcanza si cubre lo que se cobra en monedas: 79.80 sobre un total de 79.88 ya es «comprobante»", () => {
+    const entrega: PagoAplicado[] = [{ metodo: "efectivo", monto: 79.88, recibido: 79.8 }];
+    expect(pasoDelCobro(entrega, 79.88, true)).toBe("comprobante");
+    expect(pasoDelCobro(entrega, 79.88)).toBe("recibido");
+  });
+});
+
+describe("cobroEnEfectivo — lo que se le dice a la cajera", () => {
+  it("activo: la deuda exacta, lo que cobra en monedas y lo que no se cobra", () => {
+    expect(cobroEnEfectivo([{ metodo: "efectivo", monto: 79.88 }], true)).toEqual({ deuda: 79.88, aCobrar: 79.8, redondeo: 0.08 });
+  });
+  it("apagado: se cobra la deuda tal cual; sin efectivo, nada", () => {
+    expect(cobroEnEfectivo([{ metodo: "efectivo", monto: 79.88 }], false)).toEqual({ deuda: 79.88, aCobrar: 79.88, redondeo: 0 });
+    expect(cobroEnEfectivo([{ metodo: "yape", monto: 79.88 }], true)).toBeNull();
+  });
+});
+
+describe("motivoBloqueoCobro con el redondeo del efectivo", () => {
+  const mixto = (efectivo: number): PagoAplicado[] => [{ metodo: "yape", monto: Math.round((listo.total - efectivo) * 100) / 100 }, { metodo: "efectivo", monto: efectivo }];
+  it("un efectivo de menos de S/ 0.10 (los 0.07 que sobran tras un Yape) no se puede entregar: se cobra con otro medio", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07), redondeoEfectivo: true })).toBe("El efectivo no puede ser menos de S/\u00a00.10: cóbralo con otro medio.");
+  });
+  it("sin el redondeo activo ese efectivo se cobra como siempre", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07) })).toBeNull();
+  });
+  it("desde S/ 0.10 de efectivo ya hay moneda: no bloquea", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.1), redondeoEfectivo: true })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.19), redondeoEfectivo: true })).toBeNull();
+  });
+});
+
+describe("lecturaDelRecibido — vuelto, falta o exacto bajo los billetes (la hoja pinta exacto en verde y falta en rojo)", () => {
+  it("sin recibido no hay lectura: la línea queda invisible", () => {
+    expect(lecturaDelRecibido(undefined, 65, 0)).toBeNull();
+  });
+
+  it("recibido justo: exacto, con el cobro como cifra", () => {
+    expect(lecturaDelRecibido(65, 65, 0)).toEqual({ estado: "exacto", monto: 65 });
+    expect(lecturaDelRecibido(159.9, 159.9, 0)).toEqual({ estado: "exacto", monto: 159.9 });
+  });
+
+  it("recibido de menos: falta, con lo que falta como cifra", () => {
+    expect(lecturaDelRecibido(60, 65, 0)).toEqual({ estado: "falta", monto: 5 });
+    expect(lecturaDelRecibido(0, 65, 0)).toEqual({ estado: "falta", monto: 65 });
+    // sin errores de coma flotante: 0.1 + 0.2 de diferencia no se cuela
+    expect(lecturaDelRecibido(59.7, 59.9, 0)).toEqual({ estado: "falta", monto: 0.2 });
+  });
+
+  it("recibido de más: vuelto, con el vuelto como cifra (neutro, ni verde ni rojo)", () => {
+    expect(lecturaDelRecibido(100, 65, 35)).toEqual({ estado: "vuelto", monto: 35 });
+  });
+
+  it("con el redondeo del efectivo la cuenta es contra lo que se cobra en monedas, no contra la deuda exacta", () => {
+    // deuda S/ 79.88 → se cobran S/ 79.80 en monedas; con 79.80 recibidos es exacto, con 79.70 faltan 0.10
+    expect(lecturaDelRecibido(79.8, 79.8, 0)).toEqual({ estado: "exacto", monto: 79.8 });
+    expect(lecturaDelRecibido(79.7, 79.8, 0)).toEqual({ estado: "falta", monto: 0.1 });
+  });
+});
+
+describe("sinPrecioParaVender — una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384)", () => {
+  it("con precio, entra", () => {
+    expect(sinPrecioParaVender({ precio: 79.9 })).toBe(false);
+    expect(sinPrecioParaVender({ precio: 0.5, fueraDeMotores: true })).toBe(false);
+  });
+
+  it("en 0, no entra (un precio olvidado)", () => {
+    expect(sinPrecioParaVender({ precio: 0 })).toBe(true);
+    expect(sinPrecioParaVender({ precio: 0, fueraDeMotores: false })).toBe(true);
+    expect(sinPrecioParaVender({ precio: Number.NaN })).toBe(true);
+  });
+
+  it("la bolsa de obsequio (familia fuera de los motores) sí entra en 0; un negativo nunca", () => {
+    expect(sinPrecioParaVender({ precio: 0, fueraDeMotores: true })).toBe(false);
+    expect(sinPrecioParaVender({ precio: -1, fueraDeMotores: true })).toBe(true);
+  });
+});
+
+// /chaos 2026-10-13 (ENT-07): el «recibido» no tenía tope y un millón «recibido» dejaba un vuelto de un millón. Felipe fijó S/ 500.
+describe("el tope del vuelto (S/ 500)", () => {
+  it("S/ 500 de vuelto justo se deja cobrar; un céntimo más, no", () => {
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 143.82, recibido: 643.82 }] })).toBeNull();
+    expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 143.82, recibido: 643.83 }] })).toBe(
+      "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente.",
+    );
+  });
+  it("bajo los billetes, un vuelto de más se marca aparte («excede»)", () => {
+    expect(lecturaDelRecibido(1_000_000, 79.9, 999_920.1)).toEqual({ estado: "excede", monto: 999_920.1 });
+    expect(lecturaDelRecibido(579.9, 79.9, 500)).toEqual({ estado: "vuelto", monto: 500 });
+  });
+});
+
+// /chaos 2026-10-13: «Nota de venta» se ofrecía en una sede sin su serie y, al cobrar, la base rechazaba la venta entera.
+describe("tiposDeComprobanteDeLaSede — solo los comprobantes con serie", () => {
+  it("sin serie de nota de venta, no se ofrece; con ella, sí", () => {
+    expect(tiposDeComprobanteDeLaSede([{ tipo: "boleta" }, { tipo: "factura" }])).toEqual(["boleta", "factura"]);
+    expect(tiposDeComprobanteDeLaSede([{ tipo: "boleta" }, { tipo: "factura" }, { tipo: "nota_venta" }, { tipo: "nota_credito" }])).toEqual([
+      "boleta",
+      "factura",
+      "nota_venta",
+    ]);
+  });
+  it("si la lectura falló o la sede no tiene ninguna serie, se ofrecen los tres (cobrar dice qué falta)", () => {
+    expect(tiposDeComprobanteDeLaSede(null)).toEqual(["boleta", "factura", "nota_venta"]);
+    expect(tiposDeComprobanteDeLaSede([])).toEqual(["boleta", "factura", "nota_venta"]);
+  });
+});
+
+describe("la máquina que cobró la tarjeta o el QR (ADR-0429)", () => {
+  const filas = [
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", medio: "tarjeta", por_defecto: false },
+    { maquina_id: "izi", nombre: "Izipay", cuenta_id: "pdi", medio: "qr", por_defecto: true },
+    { maquina_id: "ven", nombre: "Vendemás", cuenta_id: "pdv", medio: "tarjeta", por_defecto: true },
+    { maquina_id: null, nombre: "rara", cuenta_id: "x", medio: "tarjeta", por_defecto: true },
+    { maquina_id: "y", nombre: "otra", cuenta_id: "y", medio: "yape", por_defecto: true },
+  ];
+  const tru = leerMaquinasDeCobro(filas);
+  const lim = leerMaquinasDeCobro(filas.filter((f) => f.maquina_id === "izi")).map((m) => ({ ...m, porDefecto: true }));
+
+  it("las filas de la base se leen; una sin id o con otro medio se descarta sin tumbar la caja", () => {
+    expect(tru.map((m) => `${m.nombre}:${m.medio}:${m.porDefecto}`)).toEqual(["Izipay:tarjeta:false", "Izipay:qr:true", "Vendemás:tarjeta:true"]);
+    expect(leerMaquinasDeCobro(null)).toEqual([]);
+  });
+
+  it("Trujillo pregunta por la tarjeta (dos máquinas), no por el QR ni por Yape; Lima no pregunta nada", () => {
+    expect(preguntaMaquina(tru, "tarjeta")).toBe(true);
+    expect(preguntaMaquina(tru, "qr")).toBe(false);
+    expect(preguntaMaquina(tru, "yape")).toBe(false);
+    expect(preguntaMaquina(lim, "tarjeta")).toBe(false);
+    expect(maquinasPara(tru, "efectivo")).toEqual([]);
+  });
+
+  it("un pago nace con la máquina por defecto de la tienda; sin máquinas, sin cuenta (la base decide sola)", () => {
+    expect(pagoNuevo("tarjeta", 50, tru)).toEqual({ metodo: "tarjeta", monto: 50, cuentaId: "pdv" });
+    expect(pagoNuevo("qr", 50, tru)).toEqual({ metodo: "qr", monto: 50, cuentaId: "pdi" });
+    expect(pagoNuevo("efectivo", 50, tru)).toEqual({ metodo: "efectivo", monto: 50 });
+    expect(pagoNuevo("tarjeta", 50, [])).toEqual({ metodo: "tarjeta", monto: 50 });
+    // Si ninguna está marcada como defecto pero hay una sola, esa.
+    expect(cuentaPorDefecto(tru.map((m) => ({ ...m, porDefecto: false })).filter((m) => m.medio === "qr"), "qr")).toBe("pdi");
+    // Dos sin defecto: ninguna (la cajera elige o la base decide).
+    expect(cuentaPorDefecto(tru.map((m) => ({ ...m, porDefecto: false })), "tarjeta")).toBeUndefined();
+  });
+
+  it("la pista dice en qué máquina cobrar", () => {
+    expect(nombreMaquina(tru, { metodo: "tarjeta", cuentaId: "pdi" })).toBe("Izipay");
+    expect(nombreMaquina(tru, { metodo: "tarjeta" })).toBeNull();
+    expect(nombreMaquina(tru, { metodo: "yape", cuentaId: "pdi" })).toBeNull();
+  });
+
+  it("la máquina viaja a registrar_venta como `cuenta_id`, solo con tarjeta o QR y solo si está puesta", () => {
+    expect(pagosParaRpc([{ metodo: "tarjeta", monto: 60, cuentaId: "pdv" }, { metodo: "qr", monto: 40, cuentaId: "pdi" }])).toEqual([
+      { metodo: "tarjeta", monto: 60, cuenta_id: "pdv" },
+      { metodo: "qr", monto: 40, cuenta_id: "pdi" },
+    ]);
+    expect(pagosParaRpc([{ metodo: "tarjeta", monto: 100 }])).toEqual([{ metodo: "tarjeta", monto: 100 }]);
+    const [yape] = pagosParaRpc([{ metodo: "yape", monto: 100, cuentaId: "pdi", referencia: "123" }]);
+    expect(yape).toEqual({ metodo: "yape", monto: 100, referencia: "123" });
   });
 });

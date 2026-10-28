@@ -1,0 +1,111 @@
+/* =====================================================================
+   LA LÍNEA Y LAS BARRAS POR TIEMPO — las piezas de la ronda 14 de /unificar (ADR-0358, Felipe 2026-10-15, P1 en las dos).
+   <Linea> (components/ui/Linea.tsx) y <BarrasTiempo> (components/ui/BarrasTiempo.tsx). Registros: docs/unificar/grafico.linea.md y
+   grafico.barras.md. Solo tokens (ADR-0169, ADR-0336).
+
+   Movimiento de ADR-0136, sin rebote ni bucle: la línea se dibuja de izquierda a derecha una vez (900 ms), su área aparece detrás y el
+   punto final al llegar; las barras crecen desde abajo en cascada (560 ms, 34 ms entre barras) y su cifra aparece al final. El globito
+   entra en 160 ms. Todo se apaga con `prefers-reduced-motion`.
+   ===================================================================== */
+
+@layer components {
+  /* ---------- La línea ---------- */
+  .linea-rejilla { stroke: var(--color-sand); stroke-width: 1; }
+  .linea-eje { font-size: 10.5px; fill: var(--color-taupe-profundo); font-variant-numeric: tabular-nums; }
+  .linea-eje-fuerte { fill: var(--color-tinta); font-weight: 600; }
+  .linea-area { fill: color-mix(in srgb, var(--color-tinta) 6%, transparent); animation: cayla-linea-aparece 600ms var(--ease-cayla) 500ms backwards; }
+  .linea-trazo {
+    fill: none; stroke: var(--color-tinta); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round;
+    stroke-dasharray: 1; animation: cayla-linea-dibuja 900ms var(--ease-cayla) 150ms backwards;
+  }
+  .linea-referencia { fill: none; stroke: var(--color-taupe); stroke-width: 2; stroke-dasharray: 6 4; stroke-linejoin: round; }
+  .linea-proyeccion { fill: none; stroke: color-mix(in srgb, var(--color-tinta) 40%, transparent); stroke-width: 2; stroke-dasharray: 2 4; stroke-linecap: round; }
+  .linea-ahora { stroke: color-mix(in srgb, var(--color-tinta) 35%, transparent); stroke-width: 1; stroke-dasharray: 2 3; }
+  .linea-punto-fin { fill: var(--color-tinta); stroke: var(--color-papel); stroke-width: 2; animation: cayla-linea-aparece 300ms var(--ease-cayla) 950ms backwards; }
+  .linea-punto { fill: var(--color-tinta); stroke: var(--color-papel); stroke-width: 2; transition: r 150ms var(--ease-cayla);
+    animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(650ms + var(--i, 0) * 110ms); }
+  .linea-punto-ref { fill: var(--color-papel); stroke: var(--color-taupe); stroke-width: 2; }
+  .linea-cifra { font-family: var(--font-serif); font-size: 15px; fill: var(--color-tinta); font-variant-numeric: tabular-nums;
+    animation: cayla-linea-aparece 300ms var(--ease-cayla) 1000ms backwards; }
+  .linea-cifra-chica { font-size: 10.5px; font-weight: 600; fill: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .linea-guia { stroke: color-mix(in srgb, var(--color-rojo) 55%, transparent); stroke-width: 1.5; }
+  /* Los números que se tocan (`marcas`): entran con los puntos, el elegido se llena de tinta. */
+  .linea-marca { cursor: pointer; outline: none; animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(700ms + var(--i, 0) * 120ms); }
+  .linea-marca-toque { fill: transparent; }
+  /* El hilo del número que se corrió de su punto (varias compras casi juntas): fino y de tinta suave. */
+  .linea-marca-hilo { stroke: color-mix(in srgb, var(--color-tinta) 55%, transparent); stroke-width: 1.5; pointer-events: none; /* contraste: gráfico sobre papel */ }
+  .linea-marca-fondo { fill: var(--color-papel); stroke: var(--color-tinta); stroke-width: 2; transition: fill 200ms var(--ease-cayla); }
+  .linea-marca-n { font-size: 11.5px; font-weight: 700; fill: var(--color-tinta); font-variant-numeric: tabular-nums; pointer-events: none; transition: fill 200ms var(--ease-cayla); }
+  .linea-marca-texto { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .linea-marca-sube .linea-marca-texto { fill: var(--color-ambar); }
+  .linea-marca-baja .linea-marca-texto { fill: var(--color-verde); }
+  .linea-marca-neutro .linea-marca-texto { fill: var(--color-taupe-profundo); }
+  .linea-marca-activa .linea-marca-fondo, .linea-marca:focus-visible .linea-marca-fondo { fill: var(--color-tinta); }
+  .linea-marca-activa .linea-marca-n, .linea-marca:focus-visible .linea-marca-n { fill: var(--color-papel); }
+  .linea-marca:focus-visible .linea-marca-fondo { stroke: var(--color-rojo); }
+  /* Los lápices de lo que se corrigió (`arreglos`): punteados en pizarra, sobre la raya del piso. */
+  .linea-arreglo { cursor: pointer; outline: none; animation: cayla-linea-aparece 300ms var(--ease-cayla) backwards; animation-delay: calc(900ms + var(--i, 0) * 120ms); }
+  .linea-arreglo-fondo { fill: var(--color-papel); stroke: var(--color-pizarra); stroke-width: 1.5; stroke-dasharray: 3 2; }
+  .linea-arreglo-lapiz { fill: none; stroke: var(--color-pizarra); stroke-width: 4; stroke-linejoin: round; pointer-events: none; }
+  .linea-arreglo:focus-visible .linea-arreglo-fondo { stroke: var(--color-rojo); stroke-dasharray: none; }
+  @media (hover: hover) {
+    .linea-marca:hover .linea-marca-fondo { stroke-width: 2.5; }
+  }
+  .linea-globo, .barra-t-globo {
+    position: absolute; z-index: 10; padding: 6px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+    background: var(--color-tinta); color: var(--color-crema); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums;
+    box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--color-sombra) 60%, transparent);
+  }
+  .linea-globo { transform: translate(-50%, calc(-100% - 10px)); animation: cayla-linea-aparece 160ms var(--ease-cayla) both; }
+
+  /* ---------- Las barras por tiempo ---------- */
+  .barras-tiempo-zona { position: relative; border-bottom: 1px solid var(--color-sand); }
+  .barras-tiempo-columnas { position: absolute; inset: 0; display: grid; }
+  .barras-tiempo-cero { position: absolute; left: 0; right: 0; border-top: 1px solid var(--color-sand); }
+  .barras-tiempo-ref { position: absolute; left: 0; right: 0; z-index: 1; border-top: 2px dashed var(--color-taupe); pointer-events: none; }
+  .barras-tiempo-ref > span { position: absolute; right: 0; bottom: 3px; font-size: 10.5px; color: var(--color-taupe-profundo); }
+  .barra-t { position: relative; display: block; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: none; text-align: center; cursor: default; transition: opacity 200ms var(--ease-cayla); }
+  button.barra-t { cursor: pointer; }
+  .barra-t[data-apagada] { opacity: .4; }
+  .barra-t-relleno {
+    position: absolute; left: 50%; width: min(78%, 28px); translate: -50% 0; border-radius: 4px 4px 0 0; background: var(--color-grafico-neutro);
+    transform-origin: bottom; animation: cayla-barras-crece 560ms var(--ease-cayla) backwards; animation-delay: calc(140ms + var(--i, 0) * 34ms);
+    transition: background-color 200ms var(--ease-cayla), height 500ms var(--ease-cayla);
+  }
+  .barra-t-relleno[data-baja] { border-radius: 0 0 4px 4px; transform-origin: top; }
+  .barra-t[data-tono="tinta"] .barra-t-relleno { background: var(--color-tinta); }
+  .barra-t[data-tono="rojo"] .barra-t-relleno { background: var(--color-rojo); }
+  .barra-t[data-tono="ambar"] .barra-t-relleno { background: var(--color-ambar); }
+  .barra-t[data-tono="verde"] .barra-t-relleno { background: var(--color-verde); }
+  .barra-t-relleno[data-rayada] {
+    background-image: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--color-papel) 55%, transparent) 3px 6px);
+  }
+  .barra-t:not([data-tono]):focus-visible .barra-t-relleno { background-color: color-mix(in srgb, var(--color-tinta) 70%, var(--color-grafico-neutro)); }
+  @media (hover: hover) {
+    .barra-t:not([data-tono]):hover .barra-t-relleno { background-color: color-mix(in srgb, var(--color-tinta) 70%, var(--color-grafico-neutro)); }
+  }
+  .barra-t[data-tono]:focus-visible .barra-t-relleno { filter: brightness(.92); }
+  @media (hover: hover) {
+    .barra-t[data-tono]:hover .barra-t-relleno { filter: brightness(.92); }
+  }
+  .barra-t-meta { position: absolute; left: 50%; z-index: 1; width: min(100%, 34px); height: 2px; border-radius: 1px; translate: -50% 0; background: var(--color-taupe); }
+  .barra-t-encima { position: absolute; left: 50%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 3px; white-space: nowrap;
+    animation: cayla-linea-aparece 300ms var(--ease-cayla) 600ms backwards; }
+  .barra-t-cifra { font-size: 11px; font-weight: 600; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
+  .barra-t-globo { left: 50%; translate: -50% 0; opacity: 0; transition: opacity 160ms var(--ease-cayla); }
+  .barra-t-globo[data-lado="izq"] { left: 0; translate: 0 0; }
+  .barra-t-globo[data-lado="der"] { left: auto; right: 0; translate: 0 0; }
+  /* hover-tactil: el globito es la lectura de la barra; con el dedo, tocarla lo muestra (ADR-0479). */
+  .barra-t:hover .barra-t-globo, .barra-t:focus-visible .barra-t-globo { opacity: 1; }
+  .barras-tiempo-eje { display: grid; margin-top: 6px; }
+  .barras-tiempo-eje > span { min-width: 0; overflow: visible; white-space: nowrap; text-align: center; font-size: 10.5px; color: var(--color-taupe-profundo); }
+  .barras-tiempo-eje-fuerte { font-weight: 600; color: var(--color-tinta) !important; }
+}
+
+@keyframes cayla-linea-dibuja { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes cayla-linea-aparece { from { opacity: 0; } }
+@keyframes cayla-barras-crece { from { transform: scaleY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .linea-area, .linea-trazo, .linea-punto-fin, .linea-punto, .linea-marca, .linea-arreglo, .linea-cifra, .linea-globo, .barra-t-relleno, .barra-t-encima, .barra-t-globo { animation: none; transition: none; }
+}

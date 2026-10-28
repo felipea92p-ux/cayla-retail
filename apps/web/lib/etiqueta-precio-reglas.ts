@@ -11,6 +11,21 @@ import { iconoDeEtiqueta, rotuloDeEtiqueta, type IconoEtiqueta } from "./etiquet
 import { normalizarNombre } from "./patron-visual";
 import { descuentoDeCampana } from "./vender-reglas";
 
+/** De qué empresa es la prenda y cómo se dice en el papel (ADR-0463): su nombre arriba, el colibrí solo si es CAYLA y el link al pie. */
+export type EmpresaEtiqueta = { nombre: string; conLogo: boolean; web: string };
+
+/** La web que sale en el papel (Felipe, 2026-10-20): la tienda online, no «cayla.pe». */
+export const WEB_DE_LA_ETIQUETA = "tienda.cayla.pe";
+
+/** La empresa de la casa: lo que dice el papel de toda prenda cuya empresa no se conoce (datos viejos, una base sin empresas). */
+export const EMPRESA_CASA: EmpresaEtiqueta = { nombre: "CAYLA", conLogo: true, web: WEB_DE_LA_ETIQUETA };
+
+/** Lo que el papel dice de una empresa. El colibrí es la marca de CAYLA: solo ella lo lleva (se decide por su `clave`, no por si
+ *  tiene `logo_url`: un logo cargado para otra empresa no lo hace salir en el papel de CAYLA ni al revés). Sin web guardada, la de siempre. */
+export function empresaDeEtiqueta(e: { clave: string; nombre: string; web: string | null }): EmpresaEtiqueta {
+  return { nombre: e.nombre.trim() || EMPRESA_CASA.nombre, conLogo: e.clave === "cayla", web: e.web?.trim() || WEB_DE_LA_ETIQUETA };
+}
+
 /** Lo que la base sabe de una prenda que entró (una variante: modelo + talla + color). */
 export type VarianteEtiqueta = {
   id: string;
@@ -23,10 +38,15 @@ export type VarianteEtiqueta = {
   precio: number;
   colorCodigo: string | null;
   color: string | null;
+  /** Con qué se pinta el color en pantalla (`fondoDeMuestra`: el hex, con su brillo si es metálico o su jaspeado si es textura).
+   *  Opcional en el tipo, como `marca`: quien arma variantes sin él no lo dibuja. */
+  colorMuestra?: string | null;
   talla: string | null;
   /** De quién es la prenda (`productos.marca_id`, siempre tiene una). Opcional en el tipo: quien arma variantes sin ella
    *  (pruebas, datos viejos) simplemente no la imprime. */
   marca?: string | null;
+  /** De qué empresa es (`productos.empresa_id`). Ausente = la de la casa, CAYLA. */
+  empresa?: EmpresaEtiqueta | null;
 };
 
 /** Otra talla del mismo modelo: de aquí sale la fila «Tallas del modelo». */
@@ -58,10 +78,16 @@ export type EtiquetaPrecio = {
   codigo: string;
   prenda: string;
   color: string | null;
+  /** Solo para la pantalla (Felipe, 2026-10-03): la franja y la cápsula del color en la lista, para saber de un vistazo qué
+   *  etiqueta se imprime cuando todas las filas son el mismo modelo. El papel no lo usa: la Brother imprime en negro. `null` =
+   *  un color sin hex (Estampado, Multicolor), que se pinta de varios tonos (`CapsulaColor`). */
+  colorMuestra?: string | null;
   talla: string | null;
   /** La marca de la prenda (Felipe, 2026-09-29): va en el pie, a la izquierda del QR y sobre el código, que es el único
    *  hueco que la etiqueta tiene con y sin campaña; sobre el nombre no cabe (con campaña sobra 1,4 mm de alto). */
   marca?: string | null;
+  /** Qué dice el papel de la empresa: nombre arriba, colibrí solo de CAYLA y el link al pie. Siempre trae uno (CAYLA si no se sabe). */
+  empresa: EmpresaEtiqueta;
   /** Las tallas en que se hace el modelo EN ESTE COLOR —no el stock del día: la etiqueta impresa no cambia sola—,
    *  ordenadas como se leen en tienda. Siempre incluye la propia. */
   tallasDelModelo: string[];
@@ -73,6 +99,10 @@ export type EtiquetaPrecio = {
    *  sumo `MAX_ICONOS_EN_PAPEL`. Van al lado del nombre y no cambian el precio: el descuento es siempre uno solo,
    *  el de `campana`. */
   iconos: IconoDePapel[];
+  /** Los mismos íconos, pero SIN las etiquetas que rebajan el precio (`iconosPorVariante(…, sinDescuento)`): los que salen cuando
+   *  se imprime «sin el descuento» (`sinDescuento`). No es `iconos` filtrado: con el tope de `MAX_ICONOS_EN_PAPEL`, las que no
+   *  rebajan (Nuevo, Hecho a mano…) ocupan el lugar que dejan las que sí. */
+  iconosSinDescuento: IconoDePapel[];
   /** Unidades que entraron (o que hay en la tienda): cuántas etiquetas se proponen. */
   cantidad: number;
 };
@@ -141,7 +171,9 @@ export function iconosDelPapel(
 
 /** Los íconos de cada prenda: une las etiquetas que tiene a mano (`directas`) con las que la alcanzan por su categoría
  *  (`porCategoria`) —los dos caminos que reconoce `fn_campanas_por_variante`, y nunca chocan: es la misma etiqueta— y
- *  deja a `iconosDelPapel` elegir. `catalogo` trae solo las etiquetas aprobadas y activas. */
+ *  deja a `iconosDelPapel` elegir. `catalogo` trae solo las etiquetas aprobadas y activas.
+ *  Con `sinDescuento` (Felipe, 2026-10-23), las que rebajan el precio ni compiten por un lugar: salen las demás, como si la
+ *  campaña no existiera. */
 export function iconosPorVariante(
   variantes: readonly { id: string; categoriaId: string | null }[],
   directas: ReadonlyMap<string, readonly string[]>,
@@ -149,6 +181,7 @@ export function iconosPorVariante(
   catalogo: ReadonlyMap<string, Omit<EtiquetaDeLaPrenda, "etiquetaId">>,
   campanas: ReadonlyMap<string, CampanaDeVariante>,
   hoy: string,
+  sinDescuento = false,
 ): Map<string, IconoDePapel[]> {
   const iconos = new Map<string, IconoDePapel[]>();
   for (const v of variantes) {
@@ -156,9 +189,9 @@ export function iconosPorVariante(
     const suyas: EtiquetaDeLaPrenda[] = [];
     for (const etiquetaId of ids) {
       const e = catalogo.get(etiquetaId);
-      if (e) suyas.push({ etiquetaId, ...e });
+      if (e && !(sinDescuento && e.pct !== null)) suyas.push({ etiquetaId, ...e });
     }
-    iconos.set(v.id, iconosDelPapel(suyas, hoy, campanas.get(v.id)?.etiquetaId ?? null));
+    iconos.set(v.id, iconosDelPapel(suyas, hoy, sinDescuento ? null : (campanas.get(v.id)?.etiquetaId ?? null)));
   }
   return iconos;
 }
@@ -170,6 +203,41 @@ export function iconosPorVariante(
 export function campanaSaleEnLaFila(e: Pick<EtiquetaPrecio, "campana" | "iconos">): boolean {
   const campana = e.campana;
   return campana !== null && e.iconos.some((i) => i.nombre === campana.nombre);
+}
+
+/** Las insignias de campaña que lleva el papel: los íconos de etiquetas que rebajan el precio (`iconos` menos `iconosSinDescuento`),
+ *  rija o no esa campaña en la tienda donde se imprime. Aniversario solo en Tienda TRU: en Lima su insignia sale igual, sin descuento. */
+export function insigniasDeCampana(e: Pick<EtiquetaPrecio, "iconos" | "iconosSinDescuento">): IconoDePapel[] {
+  return e.iconos.filter((i) => !e.iconosSinDescuento.some((s) => s.nombre === i.nombre));
+}
+
+/**
+ * La etiqueta tal como sale cuando se imprime «sin el descuento» (Felipe, 2026-10-23: en el aniversario de CAYLA todo rebaja 10 %,
+ * pero el papel tiene que servir también mañana, cuando la campaña ya no esté).
+ *
+ * PROMETE: precio de lista a secas —sin el precio tachado, sin el «−10 %», sin el «Válido hasta» ni el nombre de la campaña—, y
+ *          sin la insignia de campaña, haya o no rebajado el precio aquí: se muestran los íconos que quedan al no contar las
+ *          etiquetas que rebajan (`iconosSinDescuento`). Lo demás (código, QR, tallas, marca, empresa, cantidad) no cambia.
+ * NO HACE: no toca la caja. Ella sigue cobrando la campaña (ADR-0302): el papel dice el precio normal y la caja rebaja al cobrar.
+ *          Una etiqueta sin campaña ni insignia de campaña se devuelve tal cual (misma referencia): no hay nada que esconder.
+ */
+export function sinDescuento(e: EtiquetaPrecio): EtiquetaPrecio {
+  return e.campana === null && insigniasDeCampana(e).length === 0 ? e : { ...e, campana: null, iconos: e.iconosSinDescuento };
+}
+
+/** Las campañas que hoy rebajan las etiquetas de la lista (una por nombre, la de mayor % primero): lo que la pantalla le dice a
+ *  la colaboradora para que sepa QUÉ descuento está a punto de esconder. Vacía = ningún precio rebajado en la lista. */
+export function campanasEnLaLista(etiquetas: readonly Pick<EtiquetaPrecio, "campana">[]): { nombre: string; pct: number }[] {
+  const porNombre = new Map<string, number>();
+  for (const { campana } of etiquetas) if (campana) porNombre.set(campana.nombre, Math.max(porNombre.get(campana.nombre) ?? 0, campana.pct));
+  return [...porNombre].map(([nombre, pct]) => ({ nombre, pct })).sort((a, b) => b.pct - a.pct || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+/** Los nombres de las insignias de campaña que salen en el papel de la lista (una por nombre, por orden alfabético), rebajen o no el
+ *  precio aquí. Con `campanasEnLaLista` decide si «Imprimir sin el descuento» se ofrece: hay algo que quitar si cualquiera de las dos
+ *  trae algo. */
+export function insigniasEnLaLista(etiquetas: readonly Pick<EtiquetaPrecio, "iconos" | "iconosSinDescuento">[]): string[] {
+  return [...new Set(etiquetas.flatMap((e) => insigniasDeCampana(e).map((i) => i.nombre)))].sort((a, b) => a.localeCompare(b, "es"));
 }
 
 /** Qué día mirar para saber qué prendas alcanza una campaña: hoy si rige (o no tiene fechas), su último día si ya
@@ -216,6 +284,8 @@ export function armarEtiquetas(
   hermanas: HermanaEtiqueta[],
   campanas: ReadonlyMap<string, CampanaDeVariante> = new Map(),
   iconos: ReadonlyMap<string, IconoDePapel[]> = new Map(),
+  /** Sin él, se asume que ningún ícono es de campaña (los mismos `iconos`): no hay insignia que quitar. */
+  iconosSinDescuento: ReadonlyMap<string, IconoDePapel[]> = iconos,
 ): { etiquetas: EtiquetaPrecio[]; sinCodigo: string[] } {
   const etiquetas: EtiquetaPrecio[] = [];
   const sinCodigo: string[] = [];
@@ -229,19 +299,22 @@ export function armarEtiquetas(
       continue;
     }
     const c = campanas.get(v.id);
-    // El mismo descuento que cobra la caja (bajado al .90, ADR-0182): el papel nunca dice otro precio.
+    // El mismo descuento exacto que cobra la caja (ADR-0302): el papel nunca dice otro precio ni otro %.
     const descuento = c ? descuentoDeCampana(v.precio, c.pct) : 0;
     etiquetas.push({
       varianteId: v.id,
       codigo,
       prenda: v.prenda,
       color: v.color,
+      colorMuestra: v.colorMuestra ?? null,
       talla: v.talla?.trim() || null,
       marca: v.marca?.trim() || null,
+      empresa: v.empresa ?? EMPRESA_CASA,
       tallasDelModelo: tallasDelModelo(v, hermanas),
       precio: v.precio,
       campana: c && descuento > 0 ? { nombre: c.nombre, pct: c.pct, hasta: c.hasta, descuento } : null,
       iconos: iconos.get(v.id) ?? [],
+      iconosSinDescuento: iconosSinDescuento.get(v.id) ?? iconos.get(v.id) ?? [],
       cantidad,
     });
   }
@@ -255,6 +328,24 @@ export function armarEtiquetas(
 /** La hoja que va a la impresora: cada etiqueta repetida según lo pedido (sin tocar = lo que entró). */
 export function expandir(etiquetas: EtiquetaPrecio[], cantidades: Record<string, number>): EtiquetaPrecio[] {
   return etiquetas.flatMap((e) => Array.from({ length: cantidades[e.varianteId] ?? e.cantidad }, () => e));
+}
+
+/** Las filas de la pantalla, juntas por prenda y en el orden en que llegaron (Felipe, 2026-10-09: diez filas que repetían
+ *  «Blusa Emma» cansaban la vista). Cada grupo dice su nombre UNA vez y debajo van sus colores y tallas. Una prenda que
+ *  reaparece más abajo se suma a su grupo, no abre otro: el orden es el de la primera vez que aparece. */
+export function agruparPorPrenda<T extends { prenda: string }>(filas: T[]): { prenda: string; filas: T[] }[] {
+  const grupos = new Map<string, T[]>();
+  for (const f of filas) {
+    const g = grupos.get(f.prenda);
+    if (g) g.push(f);
+    else grupos.set(f.prenda, [f]);
+  }
+  return [...grupos].map(([prenda, filas]) => ({ prenda, filas }));
+}
+
+/** Cómo se nombra una fila en voz alta (el aviso «Quitaste …», el lector de pantalla): prenda, color y talla, sin huecos. */
+export function nombreDeFila(e: { prenda: string; color: string | null; talla: string | null }): string {
+  return [e.prenda, e.color, e.talla ? `talla ${e.talla}` : null].filter(Boolean).join(" · ");
 }
 
 /** Tope por prenda: 999 etiquetas de una sola talla ya es un error de tipeo, no un envío. */
@@ -314,8 +405,11 @@ export function etiquetasDelAlta(creado: { id: string | null; stock: { unidades:
 export function volverDeEtiquetas(
   origen: { tipo: "lotes" } | { tipo: "produccion"; id: string } | { tipo: "campana" } | { tipo: "producto" } | { tipo: "variantes" } | null,
   desde?: string | null,
+  /** El traslado de donde se salió (`?traslado=`, ya validado como id): vuelve a su detalle, no a Existencias, que quien recibió quizá ni ve. */
+  traslado?: string | null,
 ): { href: string; a: string } {
   if (!origen) return { href: "/", a: "Inicio" };
+  if (origen.tipo === "variantes" && traslado) return { href: `/inventario/traslados/${traslado}`, a: "Traslado" };
   // Producto y variantes salen de la Tabla o la Grilla de Productos: se vuelve a la misma vista, con sus filtros.
   const vuelta = desdeSeguro(desde);
   if (vuelta && (origen.tipo === "producto" || origen.tipo === "variantes")) return { href: vuelta, a: "Productos" };
@@ -325,7 +419,7 @@ export function volverDeEtiquetas(
     case "produccion":
       return { href: `/produccion/ordenes?orden=${origen.id}`, a: "Órdenes" };
     case "campana":
-      return { href: "/productos/atributos?tipo=etiquetas", a: "Atributos" };
+      return { href: "/productos/insignias", a: "Insignias" };
     case "producto":
       return { href: "/productos", a: "Productos" };
     case "variantes":
@@ -341,6 +435,20 @@ export function idsDeParam(param: string | string[] | undefined): string[] {
   return [...new Set(partes.map((p) => p.trim()).filter((p) => UUID.test(p)))];
 }
 
+/** Cuántas etiquetas por talla, como llegan por la URL (`?unidades=id:2,id:3`): las unidades que acaban de entrar desde Editar
+ *  producto, para imprimir justo esas y no todo el stock de la tienda. Solo pasan ids bien formados y enteros de 1 a
+ *  `MAX_POR_PRENDA`; un id repetido se suma. */
+export function unidadesDeParam(param: string | string[] | undefined): Map<string, number> {
+  const salida = new Map<string, number>();
+  for (const parte of (Array.isArray(param) ? param : [param ?? ""]).flatMap((p) => p.split(","))) {
+    const [id, n] = parte.trim().split(":");
+    const cantidad = Number(n);
+    if (!id || !UUID.test(id) || !Number.isInteger(cantidad) || cantidad < 1) continue;
+    salida.set(id, Math.min(MAX_POR_PRENDA, (salida.get(id) ?? 0) + cantidad));
+  }
+  return salida;
+}
+
 /** El origen, en lo que la pantalla necesita para hablar de él. */
 export type OrigenDeTexto =
   | { tipo: "lotes" }
@@ -350,7 +458,7 @@ export type OrigenDeTexto =
   /** Tallas sueltas. `desdeProductos`: se llegó desde la Tabla o la Grilla de Productos (misma regla que «Volver»:
    *  `desdeSeguro`), no desde Existencias. `tallas`: cuántas trae la URL — una sola es la impresora de esa talla, nadie
    *  «marcó» nada. */
-  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number }
+  | { tipo: "variantes"; desdeProductos?: boolean; tallas?: number; entraron?: boolean; desdeTraslado?: boolean; desdeAjuste?: boolean }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -390,6 +498,37 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         vacio: `En ${sede} no hay prendas de este modelo.`,
       };
     case "variantes":
+      // `?unidades=` con `?traslado=`: lo que acaba de llegar en un traslado («Lo siguiente» del detalle, ADR-0242 D-6.1). No hay ficha
+      // que guardar y esas prendas ya venían etiquetadas de la otra sede: se dice como en Recibir.
+      if (o.entraron && o.desdeTraslado) {
+        return {
+          ...base,
+          sobretitulo: "Traslados · Lo que llegó",
+          bajada: `Entraron ${prendas} de ${modelos}. Sale una etiqueta por prenda; si alguna ya venía etiquetada, baja su número.`,
+          columnaCantidad: "Entraron",
+          vacio: "Lo que llegó ya no está en tu sede: no hay nada que etiquetar.",
+        };
+      }
+      // `?unidades=` con `?ajuste=`: lo que entró al ajustar el stock de un modelo en Existencias (ADR-0494); «Volver» ya lleva allí.
+      if (o.entraron && o.desdeAjuste) {
+        return {
+          ...base,
+          sobretitulo: "Existencias · Lo que entró",
+          bajada: `Entraron ${prendas} de ${modelos} al ajustar el stock. Sale una etiqueta por cada prenda nueva.`,
+          columnaCantidad: "Entraron",
+          vacio: "Lo que entró ya no está en tu sede: no hay nada que etiquetar.",
+        };
+      }
+      // `?unidades=`: lo que acaba de entrar al guardar la ficha en Editar producto (una por unidad nueva, no todo el stock).
+      if (o.entraron) {
+        return {
+          ...base,
+          sobretitulo: "Productos · Lo que entró",
+          bajada: `Entraron ${prendas} de ${modelos} al guardar la ficha. Sale una etiqueta por cada prenda nueva.`,
+          columnaCantidad: "Entraron",
+          vacio: "Lo que entró ya no está en tu sede: no hay nada que etiquetar.",
+        };
+      }
       if (o.desdeProductos && o.tallas === 1) {
         return {
           ...base,

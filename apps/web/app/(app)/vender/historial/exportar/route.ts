@@ -1,6 +1,6 @@
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosDesdeParams, idsDeHistorial, listarVentasHistorial, type CursorVentas, type FilaHistorial, type ParamsHistorial } from "@/lib/ventas-historial";
 import { csvDeHistorial, nombreArchivoHistorial } from "@/lib/historial-exportar-reglas";
 
@@ -10,8 +10,9 @@ import { csvDeHistorial, nombreArchivoHistorial } from "@/lib/historial-exportar
 //
 // Un `route.ts` no pasa por el `layout.tsx` que exige el módulo: se pregunta aquí (módulo «historial» + líder).
 
-/** Hasta cuántas ventas se exportan de una vez (un año de las tres tiendas cabe de sobra). */
-const TOPE_EXPORTAR = 5000;
+/** Hasta cuántas ventas se exportan de una vez. Con ~47 ventas al día, un año de las tres tiendas son ~17.000: el tope de antes (5.000)
+ *  cortaba el archivo en silencio a los ~3 meses, sin las ventas más viejas. Si el período aún pasa de este tope, se dice (abajo). */
+const TOPE_EXPORTAR = 20_000;
 const POR_PAGINA = 500;
 
 export async function GET(req: Request) {
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
 
   const params = Object.fromEntries(new URL(req.url).searchParams.entries()) as ParamsHistorial;
   const tiendas = (await getUbicaciones()).filter((u) => u.tipo === "tienda");
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
   const filtros = filtrosDesdeParams(params, {
     esLider: true,
     sedesIds: tiendas.map((t) => t.id),
@@ -37,6 +38,8 @@ export async function GET(req: Request) {
     filas.push(...pagina.filas);
     cursor = pagina.siguiente;
   } while (cursor && filas.length < TOPE_EXPORTAR);
+  // Un archivo cortado que parece completo es peor que ninguno: si quedaron ventas fuera, se dice y no se entrega.
+  if (cursor) return new Response(`El período tiene más de ${TOPE_EXPORTAR.toLocaleString("es-PE")} ventas: acórtalo (por mes) y vuelve a exportar.`, { status: 413 });
 
   const alcance = tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "todas";
   return new Response(csvDeHistorial(filas), {

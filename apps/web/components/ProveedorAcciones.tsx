@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Copy, MessageCircle, Pencil, Plus } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { ProveedorModal, borradorDe } from "@/components/ProveedorModal";
+import { BotonAncla } from "@/components/ui/campos";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { avisar } from "@/components/ui/Avisos";
 import { formatoCci, urlWhatsApp } from "@/lib/proveedores-reglas";
 import type { ProveedorFicha } from "@/lib/proveedores";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 // Las acciones de la ficha (maqueta 09): escribirle por WhatsApp desde el teléfono guardado, copiar el
 // CCI para la transferencia, editar sin volver a la lista y registrar un comprobante con este
@@ -19,44 +21,31 @@ import type { ProveedorFicha } from "@/lib/proveedores";
 // antes copiaba `cuenta_bancaria` rotulada como CCI, que es otro dato. La cuenta y el Yape/Plin se copian desde
 // la tarjeta «Datos para pagar», que tiene un «Copiar» por cada dato.
 
-const BOTON = "label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
 
 export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorFicha; rubros: string[] }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const whatsapp = urlWhatsApp(proveedor.telefono);
 
-  async function copiarCci() {
-    if (!proveedor.cci) return;
-    try {
-      await navigator.clipboard.writeText(proveedor.cci);
-      avisar.exito("CCI copiado", { detalle: proveedor.banco ? `${proveedor.banco} · ${formatoCci(proveedor.cci)}` : formatoCci(proveedor.cci) });
-    } catch {
-      avisar.error("No se pudo copiar el CCI", { detalle: "Ábrelo con «Ver completos» en Datos para pagar y cópialo a mano." });
-    }
-  }
-
   return (
     <>
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2.5" data-guia="proveedor-ficha.acciones">
         {whatsapp && (
-          <a href={whatsapp} target="_blank" rel="noreferrer" className={BOTON}>
+          <BotonAncla href={whatsapp} target="_blank" rel="noreferrer">
             <MessageCircle aria-hidden className="h-3.5 w-3.5" /> WhatsApp
-          </a>
+          </BotonAncla>
         )}
         {proveedor.cci && (
-          <button type="button" onClick={copiarCci} className={BOTON}>
-            <Copy aria-hidden className="h-3.5 w-3.5" /> Copiar CCI
-          </button>
+          // Copiar es la pieza del sistema (ronda 13): el botón mismo dice «✓ Copiado».
+          <BotonCopiar
+            texto={proveedor.cci}
+            que="el CCI"
+            alCopiar={() => avisar.exito("CCI copiado", { detalle: proveedor.banco ? `${proveedor.banco} · ${formatoCci(proveedor.cci!)}` : formatoCci(proveedor.cci!) })}
+          >
+            Copiar CCI
+          </BotonCopiar>
         )}
-        <button type="button" onClick={() => setEditando(true)} className={BOTON}>
-          <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
-        </button>
-        {proveedor.activo && (
-          <Link href={`/compras/nueva?prov=${proveedor.id}`} className="label-cayla inline-flex items-center gap-2 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-            <Plus aria-hidden className="h-3.5 w-3.5" /> Registrar factura
-          </Link>
-        )}
+        <BotonEditar onClick={() => setEditando(true)} guia="proveedor-ficha.editar" />
       </div>
 
       {editando && (

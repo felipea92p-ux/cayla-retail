@@ -1,14 +1,18 @@
 import { Suspense } from "react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { agruparStockPorSede, nombreCortoSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
+import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
 
@@ -39,17 +43,25 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   }
 
   const supabase = await createClient();
-  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones] = await Promise.all([
-    getApartadosDeTienda(persona.ubicacionId),
-    getCatalogo(),
+  const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
+    // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
+    getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
+    // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
-    supabase.rpc("campanas_vigentes"),
+    leerCampanasVigentes(supabase, persona.ubicacionId),
     // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
     // si falla, el buscador sigue funcionando sin esa línea.
     leerStockDeLasSedes(),
     getUbicaciones(),
+    // ¿La base ya recibe el redondeo del efectivo a S/ 0.10, hacia abajo, al entregar el saldo? (20261003135000 y 20261003140000, ADR-0311).
+    // Si la función no existe todavía, o dice false, la entrega cobra exacto como siempre: nunca se ofrece algo que la base rechazaría.
+    supabase.rpc("fn_acepta_redondeo_efectivo"),
+    // Precio propio de esta tienda (Felipe 2026-10-09): el apartado se separa a ese precio (`separar_prendas`).
+    getPreciosPorSede([persona.ubicacionId]),
   ]);
+  const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
 
   if (!datos.instalado) {
     return (
@@ -76,9 +88,13 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
       referencia: v.referencia,
       talla: v.talla,
       color: v.color,
+      // El color de la prenda: es el fondo de su miniatura cuando no tiene foto (`FotoPrenda`, ADR-0333). Vender ya lo traía.
+      colorHex: v.colorHex ?? null,
       categoria: v.categoria,
+      categoriaPrefijo: v.categoriaPrefijo ?? null,
+      categoriaFamilia: v.categoriaFamilia ?? null,
       marca: v.marca,
-      precio: v.precio,
+      precio: preciosAqui[v.varianteId] ?? v.precio,
       campana: campana.get(v.varianteId) ?? null,
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
@@ -88,27 +104,33 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
     }));
 
   return (
-    <ApartadosPanel
-      ubicacionId={persona.ubicacionId}
-      ubicacionEtiqueta={persona.ubicacionEtiqueta}
-      abrir={abrir}
-      hoy={hoyLima()}
-      cajaAbierta={caja !== null}
-      puedeGestionar={puede(persona, "gestionarCaja")}
-      prendas={prendas}
-      apartados={datos.apartados}
-      resumen={datos.resumen}
-      liberadosAhora={datos.liberadosAhora}
-      hayMas={datos.hayMas}
-      avisos={datos.avisos}
-      apagadas={datos.apagadas}
-      // Buscar la ficha de la clienta es del módulo «Clientas» (ADR-0249, 2026-09-28): la base se lo rechaza a quien no lo tiene.
-      veClientas={veModulo(persona, "clientas")}
-      pedidos={datos.pedidos}
-      // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
-      tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
-      esLider={persona.rol === "lider"}
-      lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
-    />
+    // El apartado a medio armar es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`,
+    // sin cambiar la ruta. Apartar lleva la sede en su key (`claveDelApartado`) y `TrabajoPorSede`, que no cambia con la sede, guarda
+    // lo armado en la que se deja para retomarlo al volver.
+    <TrabajoPorSede key="apartados" ubicacionId={persona.ubicacionId}>
+      <ApartadosPanel
+        ubicacionId={persona.ubicacionId}
+        ubicacionEtiqueta={persona.ubicacionEtiqueta}
+        abrir={abrir}
+        hoy={hoyLima()}
+        cajaAbierta={caja !== null}
+        puedeGestionar={puede(persona, "gestionarCaja")}
+        prendas={prendas}
+        apartados={datos.apartados}
+        resumen={datos.resumen}
+        liberadosAhora={datos.liberadosAhora}
+        hayMas={datos.hayMas}
+        avisos={datos.avisos}
+        apagadas={datos.apagadas}
+        // Buscar la ficha de la clienta es del módulo «Clientas» (ADR-0249, 2026-09-28): la base se lo rechaza a quien no lo tiene.
+        veClientas={veModulo(persona, "clientas")}
+        pedidos={datos.pedidos}
+        // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
+        tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
+        esLider={persona.rol === "lider"}
+        lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
+        redondeoEfectivo={resRedondeo.data === true}
+      />
+    </TrabajoPorSede>
   );
 }

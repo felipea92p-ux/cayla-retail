@@ -2,6 +2,8 @@
 // Supabase ni Lucode, para poder probarlas sin levantar nada. Lo que se transmite no se deshace, así
 // que todo lo que pueda frenarlo se decide ANTES de llamar a Lucode, acá.
 
+import { esYaEmitido, NUMERO_OCUPADO, YA_EMITIDO } from "./ya-emitido-reglas";
+
 export type ComprobanteParaTransmitir = {
   /** `nota_venta` nunca se transmite (ADR-0164). Ausente = se decide solo por el estado. */
   tipo?: string;
@@ -91,6 +93,10 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
       items.push({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precio_unitario });
       continue;
     }
+    // Una línea de precio 0 (la bolsa de obsequio, Bolsas de despacho 2026-10-10) no cobra nada: no se declara. SUNAT no acepta una línea sin
+    // valor salvo como transferencia gratuita, y las bolsas de obsequio no se declaran así; la venta y el ticket SÍ la llevan (descuenta stock).
+    // Es el PRECIO de etiqueta en 0, no un descuento que lo deja en 0: una prenda regalada con descuento sigue declarándose.
+    if (it.precio_unitario === 0) continue;
     // Una «Prenda sin registrar» (ADR-0179) se declara con lo que anotó caja; su precio es de etiqueta, CON IGV.
     const nombre =
       typeof it.descripcion_libre === "string" && it.descripcion_libre.trim() !== ""
@@ -102,7 +108,8 @@ export function itemsParaLucode(raw: unknown, nombres: ReadonlyMap<string, strin
     if (!nombre || !esNumero(descuento)) return null;
     items.push({ descripcion: nombre, cantidad: it.cantidad, precio_unitario: Math.round(((it.precio_unitario - descuento) / 1.18) * 1e6) / 1e6 });
   }
-  return items;
+  // Si todo era de precio 0 no queda nada que declarar: no es un comprobante que se pueda transmitir.
+  return items.length === 0 ? null : items;
 }
 
 const ERROR_LEGIBLE: Record<string, string> = {
@@ -110,16 +117,28 @@ const ERROR_LEGIBLE: Record<string, string> = {
   sin_credenciales: "Falta configurar la conexión con Lucode en el servidor.",
   credenciales_invalidas: "Lucode rechazó la clave de conexión: hay que renovarla.",
   rechazado_por_lucode: "Lucode no aceptó el envío",
+  [YA_EMITIDO]: "Lucode ya la tiene: falta confirmar que es esta venta y traer su estado.",
+  [NUMERO_OCUPADO]: "Ese número ya lo usa otro documento en Lucode, con",
 };
+
+/** El motivo de un error crudo de la cola. Un «fue emitido anteriormente» anotado como rechazo común (así quedaban antes
+ *  del ADR-0378, y así siguen en la base hasta su próxima pasada) se lee como lo que es: Lucode ya la tiene. */
+function motivoDelError(crudo: string): { motivo: string; resto: string[] } {
+  const [motivo, ...resto] = crudo.split(": ");
+  if (motivo === "rechazado_por_lucode" && esYaEmitido(resto.join(": "))) return { motivo: YA_EMITIDO, resto: [] };
+  return { motivo, resto };
+}
 
 /** El último error de la cola en palabras de tienda. En la base queda crudo (`motivo: detalle`, lo que
  *  escribe `transmitirComprobante`) para diagnosticar; en pantalla, qué pasó y a quién le toca. Un
  *  motivo desconocido se muestra tal cual: mejor el texto técnico que ninguno. */
 export function errorDeColaLegible(crudo: string | null): string | null {
   if (!crudo) return null;
-  const [motivo, ...resto] = crudo.split(": ");
+  const { motivo, resto } = motivoDelError(crudo);
   const legible = ERROR_LEGIBLE[motivo];
   if (!legible) return crudo;
+  // El rechazo de Lucode y el número ocupado llevan su detalle: es lo único que dice qué dato revisar.
+  if (motivo === NUMERO_OCUPADO) return resto.length > 0 ? `${legible} ${resto.join(": ").replace(/\.?$/, ".")}` : "Ese número ya lo usa otro documento en Lucode.";
   return motivo === "rechazado_por_lucode" && resto.length > 0 ? `${legible}: ${resto.join(": ")}` : legible;
 }
 
@@ -127,14 +146,16 @@ const QUE_HACER: Record<string, string> = {
   sin_respuesta: "No hagas nada: se reintenta solo cuando Lucode vuelva a responder.",
   sin_credenciales: "Carga LUCODE_TOKEN en Vercel y vuelve a desplegar; hasta entonces nada llega a SUNAT.",
   credenciales_invalidas: "Renueva la clave en el panel de Lucode y actualiza LUCODE_TOKEN en Vercel.",
-  rechazado_por_lucode: "Reintentar no lo arregla: revisa el dato que menciona el error (documento de la clienta, serie o montos).",
+  rechazado_por_lucode: "Reintentar no lo arregla: revisa el dato que menciona el error (documento del cliente, serie o montos).",
+  [YA_EMITIDO]: "No se vuelve a enviar: se confirma sola al abrir Comprobantes, o ahora con «Reintentar ahora».",
+  [NUMERO_OCUPADO]: "Reintentar no lo arregla y esta venta todavía no está declarada: el líder de equipo tiene que revisarlo con Lucode.",
 };
 
 /** Qué tiene que hacer alguien con el último error de la cola; `null` si el motivo no se conoce (se
  *  muestra solo el error, sin inventar un consejo). */
 export function queHacerConElError(crudo: string | null): string | null {
   if (!crudo) return null;
-  return QUE_HACER[crudo.split(": ")[0]] ?? null;
+  return QUE_HACER[motivoDelError(crudo).motivo] ?? null;
 }
 
 /** Días calendario que SUNAT da para recibir un comprobante después del día en que se emitió
@@ -148,18 +169,16 @@ export const DIAS_PLAZO_SUNAT = 3;
  *  (`20260924113817_sunat_reintento_por_cron.sql`): cambiar los dos juntos. */
 export const HORAS_REINTENTO_AUTOMATICO = 4;
 
-/** PL-113: por qué el trabajo programado (`GET /api/lucode/reintentar`) NO transmite, o `null` si sí. Sin
- *  `CRON_SECRET` o con otra clave no pasa nadie (401). Fuera del sandbox no transmite: hoy toda venta es de prueba y
- *  ya se fueron 2 boletas a SUNAT REAL por error (2026-09-22). Responde 200 y no un error para que Vercel no lo cuente
- *  como una ejecución fallida. Salir en vivo es decisión de Felipe y es cambiar ESTA regla a propósito, no una
- *  variable que alguien toca sin saber que el cron empieza a declarar solo. */
-export function cronNoTransmite(
+/** PL-113: por qué el trabajo programado (`GET /api/lucode/reintentar`) NO puede correr, o `null` si puede. Sin
+ *  `CRON_SECRET` o con otra clave no pasa nadie (401). Con la clave, transmite en el ambiente que tenga Lucode,
+ *  también en producción: Felipe sacó la regla «solo sandbox» el 2026-10-12 (ADR-0165, «Actualización 2026-10-12»),
+ *  porque con ventas reales la cola quedaba quieta mientras nadie cobrara ni abriera Comprobantes (las boletas
+ *  que Lucode no contestó el 11-oct esperaron ~20 horas). Apagarlo sin publicar: Vercel ▸ Settings ▸ Cron Jobs. */
+export function cronNoAutorizado(
   autorizacion: string | null,
   secreto: string | undefined,
-  entorno: "sandbox" | "produccion",
-): { status: 401 | 200; body: { error: string } | { tomados: 0; omitido: string } } | null {
+): { status: 401; body: { error: string } } | null {
   if (!secreto || autorizacion !== `Bearer ${secreto}`) return { status: 401, body: { error: "No autorizado" } };
-  if (entorno !== "sandbox") return { status: 200, body: { tomados: 0, omitido: "El cron solo transmite al sandbox de Lucode." } };
   return null;
 }
 

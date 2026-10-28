@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { Desplegable } from "@/components/ui/campos";
+import { Campo, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -15,14 +15,15 @@ import { createClient } from "@/lib/supabase/client";
 import { sugerirColor } from "@/lib/sugerencias-alta-producto";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
 
 // «+ Nuevo color» sin salir de Nuevo producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
 // Antes un color que faltaba se creaba en otra pestaña (Catálogo → Atributos → Colores) y había que volver y recargar:
 // quien estaba llenando una prenda con un tono nuevo la dejaba a medias. Acá es un formulario corto EN LÍNEA —nombre,
 // muestra, familia y código— que escribe en el mismo `POST /api/productos/colores` que usa Atributos, así que las reglas
-// son las mismas: cualquier cuenta lo crea, nace `pendiente` si no es Líder («ya lo puedes usar») y el candado del
-// nombre y del código lo pone la base, no esta pantalla.
+// son las mismas: cualquier cuenta lo crea, nace aprobado (ADR-0534) y el candado del nombre y del código lo pone la
+// base, no esta pantalla.
 //
 // Lo que la pantalla sí hace antes de tocar la base, para no hacer llenar todo en vano:
 //   · si el nombre ya existe (o es sinónimo de uno), ofrece elegir ese en vez de crear otro;
@@ -45,13 +46,16 @@ export function NuevoColorAlta({
   onCreado,
   onElegir,
   onCerrar,
+  enModal = false,
 }: {
+  /** Va dentro de una hoja (ya es la tarjeta): sin marco propio y con el nombre en su propia línea. */
+  enModal?: boolean;
   /** Los colores que ya tiene la pantalla: para reconocer un nombre repetido, sugerir la familia y avisar parecidos. */
   colores: ColorAlta[];
   elegidos: string[];
   /** Lo que se escribió en el buscador antes de tocar «+ Crear el color «X»». */
   nombreInicial?: string;
-  onCreado: (color: ColorAlta, pendiente: boolean) => void;
+  onCreado: (color: ColorAlta) => void;
   /** Elegir uno que ya existe (el nombre repetido o el parecido) en vez de crearlo. */
   onElegir: (codigo: string) => void;
   onCerrar: () => void;
@@ -122,7 +126,7 @@ export function NuevoColorAlta({
         return;
       }
       avisar.exito(`${leido.color.nombre} creado y elegido`);
-      onCreado(leido.color, leido.pendiente);
+      onCreado(leido.color);
     } catch {
       setError("No se pudo hablar con el servidor. Revisa la conexión y vuelve a tocar «Crear y elegir».");
     } finally {
@@ -147,23 +151,24 @@ export function NuevoColorAlta({
   const aviso = error ?? (mismoNombre ? null : intento || duenoDelCodigo || !enLinea ? bloqueo : null);
 
   return (
-    <div className="anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto] sm:items-start">
-        <div className="col-span-2 sm:col-span-1">
-          <label htmlFor={`${id}-nombre`} className="mb-1 block text-xs font-semibold text-tinta">
-            Nombre del color
-          </label>
-          <input
+    <div className={enModal ? "space-y-3" : "anim-revelar space-y-3 rounded-xl border border-sand bg-crema px-3.5 py-3"}>
+      <div
+        className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:items-start ${
+          enModal ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_auto]" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)_minmax(0,11rem)_auto]"
+        }`}
+      >
+        <div className={enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
+          <CampoTexto
+            etiqueta="Nombre del color"
+            sinPie
             id={`${id}-nombre`}
             autoFocus
-            autoComplete="off"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onBlur={() => setNombre((n) => nombreDeColor(n))}
             onKeyDown={teclas}
             placeholder={ejemplo.nombre.texto}
             disabled={guardando}
-            className="caja-cayla h-10 w-full px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
           />
         </div>
 
@@ -174,27 +179,25 @@ export function NuevoColorAlta({
         </div>
 
         <div>
-          <span id={`${id}-familia`} className="mb-1 block text-xs font-semibold text-tinta">
-            Familia
-          </span>
-          <Desplegable
-            forma="caja"
-            idEtiqueta={`${id}-familia`}
-            valor={familia}
-            onValor={setFamiliaElegida}
-            opciones={FAMILIAS_COLOR.map((f) => ({ valor: f.valor, texto: f.texto }))}
-            marcador={hex ? "Elige…" : "Sale del tono"}
-            deshabilitado={guardando}
-          />
+          <Campo etiqueta="Familia" idEtiqueta={`${id}-familia`} sinPie>
+            <Desplegable
+              forma="campo"
+              idEtiqueta={`${id}-familia`}
+              valor={familia}
+              onValor={setFamiliaElegida}
+              opciones={FAMILIAS_COLOR.map((f) => ({ valor: f.valor, texto: f.texto }))}
+              marcador={hex ? "Elige…" : "Sale del tono"}
+              deshabilitado={guardando}
+            />
+          </Campo>
         </div>
 
-        <div>
-          <label htmlFor={`${id}-codigo`} className="mb-1 block text-xs font-semibold text-tinta">
-            Código
-          </label>
-          <input
+        <div className="w-[5.5rem]">
+          <CampoTexto
+            etiqueta="Código"
+            sinPie
+            mono
             id={`${id}-codigo`}
-            autoComplete="off"
             value={codigo}
             maxLength={3}
             onChange={(e) => setCodigoEscrito(normalizarCodigo(e.target.value))}
@@ -202,7 +205,7 @@ export function NuevoColorAlta({
             placeholder={ejemplo.codigo.texto}
             disabled={guardando}
             aria-describedby={`${id}-codigo-ayuda`}
-            className="caja-cayla h-10 w-[5.5rem] px-3 font-mono text-sm uppercase tracking-wider text-tinta tabular-nums outline-none placeholder:text-tinta/45"
+            className="uppercase"
           />
           <p id={`${id}-codigo-ayuda`} className="mt-1 text-[11px] text-taupe">
             Va en el SKU
@@ -212,7 +215,7 @@ export function NuevoColorAlta({
 
       {existente && (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-hueso px-3 py-2 text-xs text-tinta">
-          <Punto hex={existente.hex} familia={existente.familiaColor} />
+          <Punto hex={existente.hex} familia={existente.familiaColor} tipo={existente.tipo} />
           <span>
             {mismoNombre ? `«${existente.nombre}» ya está en la lista de colores.` : `«${nombreDeColor(nombre)}» es otro nombre de «${existente.nombre}».`}
           </span>
@@ -221,37 +224,40 @@ export function NuevoColorAlta({
       )}
 
       {parecidos.length > 0 && (
-        <div role="status" className="flex flex-wrap items-center gap-2 rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
-          <span>
-            Se ve casi igual que {parecidos.map((p) => `«${p.color.nombre}»`).join(" y ")}. Si es el mismo color, usa ese: con dos nombres, la
-            misma prenda queda registrada de dos formas.
-          </span>
-          {parecidos.map((p) => (
-            <OfrecerElegir key={p.color.codigo} color={p.color} elegidos={elegidos} onElegir={onElegir} />
-          ))}
-        </div>
+        <Aviso
+          tono="atencion"
+          chico
+          accion={
+            <span className="flex flex-wrap items-center gap-2">
+              {parecidos.map((p) => (
+                <OfrecerElegir key={p.color.codigo} color={p.color} elegidos={elegidos} onElegir={onElegir} />
+              ))}
+            </span>
+          }
+        >
+          Se ve casi igual que {parecidos.map((p) => `«${p.color.nombre}»`).join(" y ")}. Si es el mismo color, usa ese: con dos nombres, la
+          misma prenda queda registrada de dos formas.
+        </Aviso>
       )}
 
       <AvisoSinIdentidad firma={firma} />
       <div className="flex flex-wrap items-center gap-2.5">
-        <button
+        <Boton peso="primario" cargando={guardando} textoCargando="Creando…"
           type="button"
           onClick={() => void crear()}
           disabled={guardando || !enLinea || mismoNombre || !firma.listo}
           title={(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}
-          className="btn-cayla btn-primario"
         >
-          {guardando ? "Creando…" : "Crear y elegir"}
-        </button>
-        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-sutil">
+          Crear y elegir
+        </Boton>
+        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>
 
       {aviso && (
-        <p role="alert" className="anim-revelar text-xs text-rojo-profundo">
-          {aviso}
-        </p>
+        <Aviso tono="error">{aviso}</Aviso>
+
       )}
     </div>
   );

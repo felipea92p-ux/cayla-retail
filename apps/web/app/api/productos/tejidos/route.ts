@@ -8,8 +8,9 @@ import { leerUrlMuestra } from "@/lib/muestra-atributo-reglas";
 
 // POST/PATCH /api/productos/tejidos → vocabulario cerrado de tejidos
 // (ADR-0095/0096), mismo mecanismo y misma forma que
-// /api/productos/colores: cualquiera con sesión propone (nace 'pendiente'
-// y usable al instante, salvo `fn_es_lider()`), un Líder aprueba/rechaza.
+// /api/productos/colores: cualquiera con sesión agrega y nace 'aprobado'
+// (ADR-0534); lo que quedó pendiente de antes lo aprueba o rechaza quien
+// tiene el módulo de catálogo (PATCH).
 // El estado real lo decide el trigger en la base
 // (`fn_tejidos_estado_trigger`), nunca lo que mande este endpoint.
 export async function POST(request: Request) {
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de tejidos." }, { status: 403 });
+    return Response.json({ error: "Editar el vocabulario de tejidos necesita el módulo Productos o Atributos en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);
@@ -112,7 +113,7 @@ export async function PATCH(request: Request) {
         .eq("tejido_id", id)
         .eq("estado", "activo");
       if (errorConteo) {
-        return Response.json({ error: traducirError(errorConteo, "revisar los productos de este tejido") }, { status: 400 });
+        return Response.json({ error: traducirError(errorConteo, "revisar los productos de este tejido", { lectura: true }) }, { status: 400 });
       }
       if ((count ?? 0) > 0) {
         const n = count ?? 0;

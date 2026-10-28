@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { avisar } from "@/components/ui/Avisos";
-import { Campo, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Campo, CampoSelect, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { codigoDePrendaNueva, mensajeMezclaEnCenso, type PrendaConteo } from "@/lib/conteo-reglas";
@@ -13,6 +13,7 @@ import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    AltaAlVuelo · dar de alta una prenda que la etiqueta trae y el catálogo no conoce
@@ -151,7 +152,7 @@ export function AltaAlVuelo({
           La etiqueta <span className="font-mono text-[12px]">{codigoBarras}</span> no es de ninguna prenda del catálogo. Se registra y se cuenta enseguida.
         </>
       }
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onCancelar}
     >
@@ -212,17 +213,15 @@ export function AltaAlVuelo({
           <p className="text-xs text-taupe">Un líder revisa la prenda después y completa su costo y su precio.</p>
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando} />}
           {error && (
-            <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
-              {error}
-            </p>
+            <Aviso tono="error">{error}</Aviso>
           )}
-          <div className="flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end">
+          <div className="pie-acciones pt-1">
             <button type="button" onClick={cerrar} disabled={guardando} className="btn-cayla btn-secundario h-11">
               Cancelar
             </button>
-            <button type="submit" disabled={guardando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario h-11">
-              {guardando ? "Creando…" : "Crear y contar"}
-            </button>
+            <Boton peso="primario" cargando={guardando} textoCargando="Creando…" type="submit" disabled={guardando || !responsable.listo} title={responsable.motivo ?? undefined} className="h-11">
+              Crear y contar
+            </Boton>
           </div>
         </form>
       )}

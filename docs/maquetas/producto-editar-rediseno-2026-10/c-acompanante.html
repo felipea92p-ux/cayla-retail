@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editar producto · C · Riel que acompaña</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA C · «Riel que acompaña» — Editar producto (2026-10-02)
+   Misma pregunta abierta de ADR-0257 que A y B. Aquí el panel derecho no es
+   fijo: CAMBIA de contenido según la sección que se está mirando a la
+   izquierda (scroll-spy con IntersectionObserver), como si te acompañara.
+   3 modos: Identidad (Producto) → Fotos → Variantes. Un indicador de puntos
+   a la derecha marca cuál está activo y lleva directo a esa sección.
+   Guardar sigue siendo SOLO la barra de abajo + hoja (ADR-0257); el riel
+   solo ESPEJA «N cambios sin guardar» para que se note sin bajar la vista,
+   nunca duplica el botón de guardar.
+   Tokens = globals.css (ADR-0169). Movimiento = ADR-0136 + ADR-0284.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;
+  --t75:rgba(26,26,24,.75);--t60:rgba(26,26,24,.6);--t45:rgba(26,26,24,.45);--t25:rgba(26,26,24,.25);
+  --t15:rgba(26,26,24,.15);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.tab{font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.taupe{color:var(--taupe)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+@keyframes revelar{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes entraModo{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+@keyframes saleModo{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,-6px,0)}}
+@keyframes crecebarra{from{width:0}}
+@keyframes pulso{from{transform:scale(1);opacity:.6}to{transform:scale(2.2);opacity:0}}
+@keyframes parpadeoSuave{0%,100%{background:var(--hueso)}30%{background:color-mix(in srgb,var(--ambar) 16%,var(--hueso))}}
+@keyframes conteo{from{opacity:.3;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}
+
+.spike{max-width:1400px;margin:14px auto 0;padding:0 24px}
+.spike>.barra-spike{border:1px dashed var(--t25);border-radius:12px;padding:9px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;color:var(--t60);font-size:12px}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike a{color:var(--rojo);text-decoration:underline;text-underline-offset:2px}
+.spike button{border:1px solid var(--t25);border-radius:8px;padding:4px 10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.spike button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.primario{background:var(--rojo);color:#fff;border-color:var(--rojo)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+.marco{max-width:1400px;margin:0 auto;padding:22px 24px 140px;transition:max-width 280ms var(--ease)}
+.marco.tablet{max-width:820px}
+.marco.celular{max-width:390px}
+.volver{font-size:12.5px;color:var(--taupe);display:inline-flex;gap:6px;margin-bottom:10px}
+.cab h1{font-size:30px;line-height:1.1}
+.cab .cod{font-size:15px;color:var(--t45);font-weight:400;margin-left:8px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px 34px;gap:18px;align-items:start;margin-top:18px}
+.marco.tablet .grid,.marco.celular .grid{grid-template-columns:1fr}
+.marco.tablet aside,.marco.celular aside,.marco.tablet .puntos,.marco.celular .puntos{display:none}
+
+.sec{background:var(--papel);border:1px solid var(--sand);border-radius:16px;margin-bottom:12px;opacity:0;animation:revelar 420ms var(--ease) both;scroll-margin-top:24px}
+.sec-cab{display:flex;align-items:center;gap:12px;padding:15px 18px;width:100%;text-align:left}
+.num{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--t60)}
+.sec.hecho .num{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.sec-tit{font-weight:600;font-size:15px}
+.sec-res{flex:1;min-width:0;color:var(--taupe);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec-in{padding:0 18px 20px 56px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.marco.celular .sec-in{grid-template-columns:1fr;padding-left:18px}
+.campo{display:flex;flex-direction:column;gap:5px}
+.campo.full{grid-column:1/-1}
+.campo label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t60)}
+.caja{background:var(--hueso);border:1px solid var(--sand);border-radius:8px;padding:9px 11px;font-size:13.5px}
+.caja input{width:100%;background:none;border:0;outline:0;font:inherit}
+.seg{display:flex;border:1px solid var(--sand);border-radius:8px;overflow:hidden;width:fit-content}
+.seg button{padding:7px 14px;font-size:13px;font-weight:500;color:var(--taupe)}
+.seg button.on{background:var(--tinta);color:var(--crema)}
+
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.swatch{width:30px;height:30px;border-radius:999px;cursor:pointer;box-shadow:0 0 0 1.5px var(--sand);position:relative}
+.swatch.sinfoto::after{content:"";position:absolute;inset:-4px;border:1.5px dashed var(--ambar);border-radius:999px;animation:gira 7s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.miniaturas{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:12px}
+.mini{aspect-ratio:3/4;border-radius:10px;background:var(--hueso);border:1px solid var(--sand);overflow:hidden}
+.mini img{width:100%;height:100%;object-fit:cover}
+.mini.agregar{display:grid;place-items:center;border-style:dashed;cursor:pointer;color:var(--taupe);font-size:11px}
+
+.matriz{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+.matriz th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--t45);font-weight:600;padding:6px 8px;text-align:center}
+.matriz th:first-child{text-align:left}
+.matriz td{padding:5px}
+.celda{border:1px solid var(--sand);border-radius:8px;padding:7px 4px;text-align:center;background:var(--hueso);cursor:pointer;transition:background-color 180ms var(--ease)}
+.celda.off{opacity:.35;background:transparent}
+.celda b{display:block;font-size:13px}
+.celda .pr{color:var(--taupe);font-size:11px}
+.fila-color{display:flex;align-items:center;gap:8px;font-weight:600}
+.punto{width:13px;height:13px;border-radius:999px;border:1px solid var(--t25);flex:none}
+.agregar-color{margin-top:12px;border:1.5px dashed var(--sand);border-radius:10px;padding:10px;width:100%;color:var(--taupe);font-size:13px;font-weight:500;text-align:center}
+
+/* ---------- riel que acompaña ---------- */
+aside{position:sticky;top:20px;display:flex;flex-direction:column;gap:12px;opacity:0;animation:revelar 420ms var(--ease) 80ms both}
+.riel{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:16px;min-height:300px;position:relative;overflow:hidden}
+.riel-modo{display:none}
+.riel-modo.on{display:block;animation:entraModo 360ms var(--ease) both}
+.riel-eyebrow{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--rojo);margin-bottom:10px}
+
+/* modo identidad */
+.foto-id{height:130px;border-radius:12px;overflow:hidden;position:relative;background:var(--hueso);margin-bottom:10px}
+.foto-id img{width:100%;height:100%;object-fit:cover}
+.id-nombre{font-family:'EB Garamond',serif;font-weight:600;font-size:19px}
+.id-meta{font-size:12.5px;color:var(--taupe);margin-top:1px}
+.dl{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--sand);border-radius:10px;overflow:hidden;margin-top:10px}
+.dl>div{padding:7px 9px}
+.dl>div+div{border-left:1px solid var(--sand)}
+.dl dt{font-size:10px;color:var(--taupe)}
+.dl dd{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* modo fotos */
+.grid-fotos-riel{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:4px}
+.foto-riel{aspect-ratio:3/4;border-radius:10px;background:var(--hueso);overflow:hidden;position:relative;border:1px solid var(--sand)}
+.foto-riel img{width:100%;height:100%;object-fit:cover}
+.foto-riel.falta{display:grid;place-items:center;border:1.5px dashed var(--ambar);background:color-mix(in srgb,var(--ambar) 7%,var(--hueso))}
+.foto-riel.falta span{font-size:10.5px;color:var(--ambar);text-align:center;padding:0 6px}
+.chip-aviso{margin-top:10px;display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ambar);background:color-mix(in srgb,var(--ambar) 8%,var(--papel));border:1px solid color-mix(in srgb,var(--ambar) 30%,var(--sand));border-radius:999px;padding:6px 11px}
+.chip-aviso.ok{color:var(--verde);background:color-mix(in srgb,var(--verde) 8%,var(--papel));border-color:color-mix(in srgb,var(--verde) 30%,var(--sand))}
+
+/* modo variantes */
+.resumen-var{display:flex;flex-direction:column;gap:7px}
+.fila-resumen{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:8px;font-size:12.5px}
+.fila-resumen .pista{grid-column:1/-1;height:6px;background:var(--hueso);border-radius:999px;overflow:hidden;margin-top:2px}
+.fila-resumen .relleno{height:100%;border-radius:999px;background:var(--verde);animation:crecebarra 560ms var(--ease) both}
+.fila-resumen .relleno.bajo{background:var(--ambar)}
+.total-var{margin-top:12px;border-top:1px solid var(--sand);padding-top:10px;display:flex;justify-content:space-between;align-items:baseline}
+.total-var b{font-family:'EB Garamond',serif;font-size:20px;font-weight:600}
+
+/* espejo de cambios (siempre visible arriba del riel) */
+.espejo-cambios{border:1px solid color-mix(in srgb,var(--ambar) 45%,var(--sand));background:color-mix(in srgb,var(--ambar) 7%,var(--papel));border-radius:12px;padding:9px 12px;display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:500;color:var(--ambar);cursor:pointer;opacity:0;max-height:0;overflow:hidden;transition:opacity 260ms var(--ease),max-height 320ms var(--ease),padding 260ms var(--ease),margin 260ms var(--ease)}
+.espejo-cambios.on{opacity:1;max-height:50px;padding:9px 12px;margin-bottom:2px}
+.espejo-cambios .punto-amb{width:7px;height:7px;border-radius:999px;background:var(--ambar);animation:parpadea 1.6s var(--ease) infinite}
+.espejo-cambios b{animation:conteo 260ms var(--ease)}
+@keyframes parpadea{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* puntos de navegación del riel */
+.puntos{position:sticky;top:30px;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:40px}
+.punto-nav{width:9px;height:9px;border-radius:999px;background:var(--t15);transition:background-color 220ms var(--ease),transform 220ms var(--ease);position:relative}
+.punto-nav.on{background:var(--tinta);transform:scale(1.35)}
+.punto-nav .et{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:11px;white-space:nowrap;color:var(--taupe);opacity:0;pointer-events:none;transition:opacity 180ms}
+.punto-nav:hover .et{opacity:1}
+.riel-linea{width:1.5px;flex:1;background:var(--t07);min-height:30px}
+
+.nota-guardar{font-size:11px;color:var(--t45);text-align:center}
+
+.barra-cambios{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;pointer-events:none}
+.barra-cambios .in{pointer-events:auto;width:100%;max-width:1400px;margin:0 24px;background:var(--papel);border:1px solid var(--sand);border-top-width:2px;border-top-color:var(--ambar);border-radius:16px 16px 0 0;box-shadow:0 -14px 34px -14px rgb(26 26 24/.22);padding:12px 20px;display:flex;align-items:center;gap:16px;transform:translateY(110%);transition:transform 320ms var(--ease)}
+.barra-cambios.on .in{transform:translateY(0)}
+.barra-cambios.flash .in{animation:parpadeoSuave 700ms var(--ease)}
+.barra-tit{font-weight:600;font-size:13.5px}
+.barra-tit b{color:var(--ambar)}
+.barra-cambios .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:9px 16px;font-size:13.5px;font-weight:500}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+.btn.sec{border-color:var(--sand);color:var(--tinta)}
+</style>
+</head>
+<body>
+
+<div class="spike">
+  <div class="barra-spike">
+    <span class="tit">Maqueta C · Riel que acompaña</span>
+    <span>— el panel derecho cambia solo según lo que estás mirando (scroll-spy)</span>
+    <span class="sep"></span>
+    <a href="README.md">Ver las 3 maquetas</a>
+    <span class="sep"></span>
+    <a href="a-espejo.html">← A · Ficha espejo</a>
+    <a href="b-taller.html">← B · Panel del taller</a>
+    <span class="sep"></span>
+    <button data-ancho="escritorio" aria-pressed="true">Escritorio</button>
+    <button data-ancho="tablet">Tablet 820</button>
+    <button data-ancho="celular">Celular 390</button>
+    <span class="sep"></span>
+    <button id="btnSimular" class="primario">✎ Simular 2 cambios</button>
+    <button id="btnReset">↺ Reiniciar</button>
+  </div>
+</div>
+
+<div class="marco" id="marco">
+  <a class="volver" href="#">← Productos</a>
+  <div class="cab">
+    <h1 class="disp">Blusa Alba<span class="cod mono tab">CMS-0013</span></h1>
+  </div>
+
+  <div class="grid">
+    <div class="col-izq">
+
+      <div class="sec hecho abierto" id="modo-identidad" data-modo="identidad" style="animation-delay:40ms">
+        <div class="sec-cab">
+          <span class="num">✓</span>
+          <span class="sec-tit">Producto</span>
+          <span class="sec-res">Camisas y Blusas · Strend · Industrias GC SAC</span>
+        </div>
+        <div class="sec-in">
+          <div class="campo"><label>Referencia</label><div class="caja"><input value="Blusa Alba"></div></div>
+          <div class="campo"><label>Categoría</label><div class="caja"><input value="Camisas y Blusas"></div></div>
+          <div class="campo full"><label>Marca y proveedor</label><div class="caja" style="display:flex;justify-content:space-between"><span>Strend</span><span class="taupe">Industrias GC SAC</span></div></div>
+          <div class="campo"><label>Tejido</label><div class="caja"><input value="Tela"></div></div>
+          <div class="campo"><label>Patrón</label><div class="caja"><input value="Rayas"></div></div>
+          <div class="campo"><label>Estado</label><div class="seg"><button class="on">Activo</button><button>Descontinuado</button></div></div>
+          <div class="campo"><label>Stock mínimo (opcional)</label><div class="caja"><input placeholder="Ej. 5"></div></div>
+        </div>
+      </div>
+
+      <div class="sec abierto" id="modo-fotos" data-modo="fotos" style="animation-delay:140ms">
+        <div class="sec-cab">
+          <span class="num" id="numFotos">4</span>
+          <span class="sec-tit">Fotos</span>
+          <span class="sec-res" id="resFotos">Falta Vino</span>
+        </div>
+        <div style="padding:0 18px 20px 56px">
+          <div class="swatches" id="swatchesFotos">
+            <span class="swatch" style="background:#f4ede1" title="Crudo"></span>
+            <span class="swatch" style="background:#1a1a18" title="Negro"></span>
+            <span class="swatch" style="background:#2f4a6b" title="Azul"></span>
+            <span class="swatch sinfoto" style="background:#7a1f2b" title="Vino — sin foto"></span>
+          </div>
+          <div class="miniaturas">
+            <div class="mini"><img src="https://images.unsplash.com/photo-1551803091-e20673f15770?w=200&q=60" alt=""></div>
+            <div class="mini"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=200&q=60" alt=""></div>
+            <div class="mini"><img src="https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=200&q=60" alt=""></div>
+            <div class="mini agregar" onclick="agregarFotoVino()">+ Agregar</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec abierto" id="modo-variantes" data-modo="variantes" style="animation-delay:190ms">
+        <div class="sec-cab">
+          <span class="num">5</span>
+          <span class="sec-tit">Variantes y precios</span>
+          <span class="sec-res">9 variantes activas · S/ 69–89</span>
+        </div>
+        <div style="padding:0 18px 20px 56px;overflow-x:auto">
+          <table class="matriz">
+            <thead><tr><th></th><th>S</th><th>M</th><th>L</th><th>XL</th></tr></thead>
+            <tbody>
+              <tr><td><span class="fila-color"><span class="punto" style="background:#f4ede1"></span>Crudo</span></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>6</b><span class="pr">S/ 69</span></div></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>9</b><span class="pr">S/ 69</span></div></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>4</b><span class="pr">S/ 69</span></div></td>
+                <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 69</span></div></td>
+              </tr>
+              <tr><td><span class="fila-color"><span class="punto" style="background:#1a1a18"></span>Negro</span></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>3</b><span class="pr">S/ 89</span></div></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>7</b><span class="pr">S/ 89</span></div></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>2</b><span class="pr">S/ 89</span></div></td>
+                <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 89</span></div></td>
+              </tr>
+              <tr><td><span class="fila-color"><span class="punto" style="background:#2f4a6b"></span>Azul</span></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>5</b><span class="pr">S/ 79</span></div></td>
+                <td><div class="celda" onclick="toggleCelda(this)"><b>6</b><span class="pr">S/ 79</span></div></td>
+                <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 79</span></div></td>
+                <td><div class="celda off" onclick="toggleCelda(this)"><b>0</b><span class="pr">S/ 79</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="agregar-color">+ Agregar color</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= RIEL: cambia de contenido según la sección en pantalla ================= -->
+    <aside aria-label="Resumen de la sección que estás mirando">
+      <div class="espejo-cambios" id="espejoCambios" onclick="irABarra()">
+        <span class="punto-amb"></span>
+        <span id="textoEspejo">2 cambios sin guardar</span>
+      </div>
+
+      <div class="riel">
+        <div class="riel-modo on" id="riel-identidad">
+          <p class="riel-eyebrow">Identidad</p>
+          <div class="foto-id"><img src="https://images.unsplash.com/photo-1551803091-e20673f15770?w=500&q=70" alt=""></div>
+          <p class="id-nombre">Blusa Alba</p>
+          <p class="id-meta">Camisas y Blusas · Strend · Tela</p>
+          <div class="dl"><div><dt>Variantes</dt><dd>9</dd></div><div><dt>Hoy en sede</dt><dd>42</dd></div></div>
+        </div>
+
+        <div class="riel-modo" id="riel-fotos">
+          <p class="riel-eyebrow">Fotos</p>
+          <div class="grid-fotos-riel" id="gridFotosRiel">
+            <div class="foto-riel"><img src="https://images.unsplash.com/photo-1551803091-e20673f15770?w=300&q=60" alt=""></div>
+            <div class="foto-riel"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=300&q=60" alt=""></div>
+            <div class="foto-riel"><img src="https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=300&q=60" alt=""></div>
+            <div class="foto-riel falta" id="fotoVinoRiel"><span>Falta<br>Vino</span></div>
+          </div>
+          <p class="chip-aviso" id="chipFotos">4 fotos · 1 color sin foto</p>
+        </div>
+
+        <div class="riel-modo" id="riel-variantes">
+          <p class="riel-eyebrow">Variantes</p>
+          <div class="resumen-var" id="resumenVar">
+            <div class="fila-resumen"><span class="punto" style="background:#f4ede1"></span><span>Crudo</span><span class="tab">19 un.</span><div class="pista"><div class="relleno" style="width:79%"></div></div></div>
+            <div class="fila-resumen"><span class="punto" style="background:#1a1a18"></span><span>Negro</span><span class="tab">12 un.</span><div class="pista"><div class="relleno bajo" style="width:50%"></div></div></div>
+            <div class="fila-resumen"><span class="punto" style="background:#2f4a6b"></span><span>Azul</span><span class="tab">11 un.</span><div class="pista"><div class="relleno bajo" style="width:46%"></div></div></div>
+          </div>
+          <div class="total-var"><span class="taupe" style="font-size:12.5px">Precio</span><b>S/ 69 – 89</b></div>
+        </div>
+      </div>
+
+      <p class="nota-guardar">Guardar sigue abajo, en la barra.</p>
+    </aside>
+
+    <!-- puntos de navegación del riel -->
+    <nav class="puntos" aria-label="Ir a una sección">
+      <button class="punto-nav on" data-ir="modo-identidad" onclick="irASeccion('modo-identidad')"><span class="et">Producto</span></button>
+      <div class="riel-linea"></div>
+      <button class="punto-nav" data-ir="modo-fotos" onclick="irASeccion('modo-fotos')"><span class="et">Fotos</span></button>
+      <div class="riel-linea"></div>
+      <button class="punto-nav" data-ir="modo-variantes" onclick="irASeccion('modo-variantes')"><span class="et">Variantes</span></button>
+    </nav>
+  </div>
+</div>
+
+<div class="barra-cambios" id="barra">
+  <div class="in">
+    <span class="barra-tit">Tienes <b id="numCambios">0</b> cambios sin guardar</span>
+    <span class="sp"></span>
+    <button class="btn sec">Descartar</button>
+    <button class="btn prim">Revisar y guardar</button>
+  </div>
+</div>
+
+<script>
+function irASeccion(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'center'})}
+
+// ---- scroll-spy: qué modo del riel mostrar, y qué punto se enciende ----
+const modos=['identidad','fotos','variantes'];
+const obs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting && e.intersectionRatio>0.35){
+      const modo=e.target.dataset.modo;
+      document.querySelectorAll('.riel-modo').forEach(r=>r.classList.remove('on'));
+      document.getElementById('riel-'+modo).classList.add('on');
+      document.querySelectorAll('.punto-nav').forEach(p=>p.classList.toggle('on',p.dataset.ir==='modo-'+modo));
+    }
+  });
+},{threshold:[0,.35,.6],rootMargin:'-15% 0px -45% 0px'});
+document.querySelectorAll('[data-modo]').forEach(s=>obs.observe(s));
+
+function toggleCelda(el){el.classList.toggle('off');marcarCambio()}
+let cambios=0;
+function marcarCambio(){
+  cambios++;
+  document.getElementById('numCambios').textContent=cambios;
+  document.getElementById('barra').classList.add('on');
+  const espejo=document.getElementById('espejoCambios');
+  espejo.classList.add('on');
+  document.getElementById('textoEspejo').textContent=cambios+(cambios===1?' cambio sin guardar':' cambios sin guardar');
+}
+function irABarra(){
+  const barra=document.getElementById('barra');
+  barra.classList.add('flash');
+  barra.scrollIntoView({behavior:'smooth',block:'end'});
+  setTimeout(()=>barra.classList.remove('flash'),750);
+}
+function agregarFotoVino(){
+  document.getElementById('resFotos').textContent='Completa';
+  document.getElementById('numFotos').textContent='✓';
+  document.getElementById('modo-fotos').classList.add('hecho');
+  document.querySelector('.swatch.sinfoto')?.classList.remove('sinfoto');
+  document.getElementById('fotoVinoRiel').outerHTML='<div class="foto-riel"><img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=300&q=60&sat=-70" alt=""></div>';
+  document.getElementById('chipFotos').outerHTML='<p class="chip-aviso ok" id="chipFotos">5 fotos · todos los colores</p>';
+  marcarCambio();
+}
+document.getElementById('btnSimular').onclick=()=>{
+  if(!document.querySelector('.celda.off')) return;
+  document.querySelectorAll('.celda').forEach((c,i)=>{if(i===3){c.classList.toggle('off');marcarCambio()}});
+  agregarFotoVino();
+};
+document.getElementById('btnReset').onclick=()=>location.reload();
+document.querySelectorAll('[data-ancho]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-ancho]').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  document.getElementById('marco').className='marco '+b.dataset.ancho.replace('escritorio','');
+});
+</script>
+</body>
+</html>

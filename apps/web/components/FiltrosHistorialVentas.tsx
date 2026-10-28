@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleCheck, Download, FileText, Plus, Store, UserRound, Wallet } from "lucide-react";
+import { CircleCheck, FileText, Plus, Store, UserRound, Wallet } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
@@ -18,6 +18,8 @@ import {
   leerAtajosElegidos,
   type ClaveAtajo,
 } from "@/lib/historial-acciones-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de Ventas ▸ Historial (ADR-0147), con el mismo patrón que Catálogo y Compras: a la vista el período
 // (los atajos de siempre: 7, 30 y 90 días, o fechas propias) y un botón «Filtros · N» que despliega el panel
@@ -32,13 +34,11 @@ import {
 // suyos en «+ Atajo» (se guardan en su navegador). Un atajo es solo un conjunto de parámetros de la URL: tocarlo es lo
 // mismo que elegir esos filtros en el panel, así que el panel y el atajo nunca se contradicen.
 
-const PASTILLA = "label-cayla inline-flex items-center rounded-full border px-3 py-1 text-[10px] transition-colors";
-const PASTILLA_ACTIVA = "border-tinta bg-tinta text-crema";
-const PASTILLA_INACTIVA = "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo";
-
-function Pastilla({ activa, onClick, children }: { activa: boolean; onClick: () => void; children: ReactNode }) {
+// El período y los atajos son filtros de un valor: la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no la
+// copia a mano de antes (MAYÚSCULAS de 10 px, rojo al pasar el mouse). La elegida se rellena de tinta sola (`aria-pressed`).
+function Pastilla({ activa, onClick, children, guia }: { activa: boolean; onClick: () => void; children: ReactNode; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={activa} className={`${PASTILLA} ${activa ? PASTILLA_ACTIVA : PASTILLA_INACTIVA}`}>
+    <button type="button" onClick={onClick} aria-pressed={activa} data-guia={guia} className="pildora-cayla shrink-0">
       {children}
     </button>
   );
@@ -100,8 +100,9 @@ export function FiltrosHistorialVentas({
   const actual = Object.fromEntries(params.entries());
   const visibles = atajosVisibles(misAtajos).filter((a) => puedeMias || a.clave !== "mias");
   const cubiertoPorAtajo = (k: string) => visibles.some((a) => atajoActivo(a, actual) && k in a.params);
-  // La tienda cuenta como filtro solo si se eligió en la URL: la de la cabecera por defecto no es un filtro puesto.
-  const sedeEnUrl = params.get("sede") ?? "";
+  // La tienda cuenta como filtro solo si se eligió en la URL y es OTRA que la de la cabecera: la misma regla que la píldora
+  // (`valorPorDefecto`). Si después se cambia la cabecera a esa misma tienda, ni el contador ni el chip dicen que hay filtro.
+  const sedeEnUrl = (params.get("sede") ?? "") === sedePorDefecto ? "" : (params.get("sede") ?? "");
   const activos = [
     sedeEnUrl,
     vendedor && !cubiertoPorAtajo("mias") ? vendedor : "",
@@ -148,8 +149,10 @@ export function FiltrosHistorialVentas({
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="-mx-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
-        <div role="group" aria-label="Período" className="flex shrink-0 items-center gap-1.5">
+        {/* En el celular la fila se desliza y sale desde el borde izquierdo de la pantalla (`-ml-4 pl-4`); por la derecha termina
+            antes de «Filtros» (con `-mx-4` se metía 16 px debajo de la píldora). */}
+        <div className="-my-1 -ml-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 pl-4 [scrollbar-width:none] sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pl-0 [&::-webkit-scrollbar]:hidden">
+        <div role="group" aria-label="Período" data-guia="historial.periodos" className="flex shrink-0 items-center gap-1.5">
           <Pastilla
             activa={!mostrarFechas && periodo === "hoy"}
             onClick={() => {
@@ -162,6 +165,7 @@ export function FiltrosHistorialVentas({
           {PERIODOS_RAPIDOS.map((dias) => (
             <Pastilla
               key={dias}
+              guia={`historial.periodo-${dias}`}
               activa={!mostrarFechas && periodo === String(dias)}
               onClick={() => {
                 setPersonalizadoAbierto(false);
@@ -171,12 +175,12 @@ export function FiltrosHistorialVentas({
               {dias} días
             </Pastilla>
           ))}
-          <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
+          <Pastilla guia="historial.personalizado" activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
             Personalizado
           </Pastilla>
         </div>
         <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-tinta/15" />
-        <div role="group" aria-label="Atajos" className="flex shrink-0 items-center gap-1.5">
+        <div role="group" aria-label="Atajos" data-guia="historial.atajos" className="flex shrink-0 items-center gap-1.5">
           {visibles.map((a) => {
             const activo = atajoActivo(a, actual);
             return (
@@ -191,27 +195,33 @@ export function FiltrosHistorialVentas({
           <button
             type="button"
             onClick={() => setEligiendo(true)}
-            className={`${PASTILLA} gap-1 border-dashed border-tinta/30 text-tinta/65 hover:border-rojo hover:text-rojo`}
+            data-guia="historial.atajo-elegir"
+            className="pildora-cayla shrink-0 gap-1 border-dashed"
           >
             <Plus className="h-3 w-3" aria-hidden /> Atajo
           </button>
         </div>
         </div>
-        {/* `BotonFiltros` trae su `mt-1.5` para alinearse con un campo con etiqueta; acá no hay etiqueta. */}
-        <div className="-mt-1.5 flex shrink-0 items-center gap-2">
+        <div data-guia="historial.herramientas" className="flex shrink-0 items-center gap-2">
           {exportarHref && (
-            // Una descarga, no una navegación: `<a download>` y no `Link` (no pasa por el loader de pantalla).
-            // Exportar un Excel es trabajo de computadora: en el celular no ocupa el lugar de los períodos y atajos.
-            <a href={exportarHref} download className="mt-1.5 hidden h-9 items-center gap-1.5 rounded-lg border border-tinta/20 px-3 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo sm:inline-flex">
-              <Download className="h-3.5 w-3.5" aria-hidden /> Exportar
-            </a>
+            // Una descarga, no una navegación (`<a download>`: no pasa por el loader de pantalla). Bajar un Excel es trabajo de
+            // computadora: en el celular no ocupa el lugar de los períodos y atajos. La pieza de descargar (ADR-0358, ronda 10).
+            <span className="hidden sm:inline-flex">
+              <BotonDescargar href={exportarHref}>Descargar Excel</BotonDescargar>
+            </span>
           )}
-          <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          {/* La guía (ADR-0389) abre el panel con «historial.filtros» y lo cierra con «historial.filtros-cerrar»: un ancla por estado,
+              para que cerrar nunca vuelva a abrir. `inline-flex` no cambia nada del lugar del botón. */}
+          <span data-guia={panelAbierto ? "historial.filtros-cerrar" : "historial.filtros"} className="inline-flex">
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          </span>
         </div>
       </div>
 
       {mostrarFechas && (
-        <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
+        /* `relative z-20`: el calendario de «Desde» y «Hasta» se abre HACIA ABAJO, dentro de este bloque; sin su propia capa, las tarjetas de ventas de abajo (que
+            también son `relative`) se pintaban encima y tapaban los días (visto al auditar el modo oscuro, ADR-0336). */
+        <div data-guia="historial.fechas" className="anim-revelar relative z-20 flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-sand/50 px-4 py-2.5">
           {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
               control dice la verdad. Tocarlo la vuelve explícita. */}
           <div className="w-44">
@@ -224,7 +234,7 @@ export function FiltrosHistorialVentas({
             type="button"
             onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
             aria-pressed={periodo === "todo"}
-            className={`label-cayla pb-2 text-[11px] underline-offset-2 hover:text-rojo hover:underline ${periodo === "todo" ? "text-tinta" : "text-tinta/65"}`}
+            className="pildora-cayla mb-1"
           >
             Todo el historial
           </button>
@@ -232,13 +242,15 @@ export function FiltrosHistorialVentas({
       )}
 
       {panelAbierto && (
-        <PanelPildoras>
+        <PanelPildoras guia="historial.filtros-panel">
           {tiendas && (
             <DesplegablePildora
               icono={Store}
               etiqueta="Tienda"
               valor={sede || "todas"}
-              // Volver a la tienda de la cabecera deja la URL limpia; «Todas» se escribe a propósito.
+              // Lo que vale sola es la tienda de la cabecera: así no se ve «puesta» sin que nadie la eligiera (antes siempre lo
+              // parecía), y su ✕ vuelve a esa tienda. Volver a ella deja la URL limpia; «Todas» se escribe a propósito.
+              valorPorDefecto={sedePorDefecto}
               onValor={(v) => aplicar({ sede: v === sedePorDefecto ? "" : v })}
               opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
             />
@@ -304,35 +316,24 @@ export function FiltrosHistorialVentas({
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {chips.map((c) => (
-            <button
-              key={Object.keys(c.quitar).join("|")}
-              type="button"
-              onClick={() => aplicar(c.quitar)}
-              aria-label={`Quitar filtro ${c.texto}`}
-              className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-            >
+            <FiltroPuesto key={Object.keys(c.quitar).join("|")} onQuitar={() => aplicar(c.quitar)} etiqueta={`Quitar filtro ${c.texto}`}>
               {c.texto}
-              <span aria-hidden className="text-sm leading-none">
-                ×
-              </span>
-            </button>
+            </FiltroPuesto>
           ))}
-          <button
-            type="button"
+          <BotonLimpiar
             onClick={() => {
               setPersonalizadoAbierto(false);
               router.push(pathname);
             }}
-            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
             Limpiar todo
-          </button>
+          </BotonLimpiar>
         </div>
       )}
 
       {eligiendo && (
-        <Modal titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} ancho="max-w-sm" variante="hoja">
-          <ul className="divide-y divide-dashed divide-tinta/10">
+        <Modal conCerrar titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} variante="hoja">
+          <ul data-guia="historial.atajos-modal" className="divide-y divide-dashed divide-tinta/10">
             {ATAJOS.filter((a) => puedeMias || a.clave !== "mias").map((a) => (
               <li key={a.clave} className="py-1.5">
                 <Interruptor

@@ -5,9 +5,10 @@ import { Encabezado, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { Casilla } from "@/components/ui/Casilla";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { estadoTalla, queHacerPrenda, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { AYUDA_HOY, textoHoyDePrenda, TONO_HOY } from "@/lib/existencias-hoy";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /* ====================================================================
@@ -15,20 +16,21 @@ import type { FilaExistencias } from "@/lib/inventario-v2";
 
    Una fila por prenda (modelo + color) con su curva de tallas en una línea: «libre en piso · libre en almacén» por
    talla. La tabla COMUNICA el estado y no ofrece acciones: «Qué hacer» es un diagnóstico («4 tallas sin stock en piso»),
-   nunca un botón; tocar la fila abre el cajón de la prenda (`CajonPrendaExistencias`), donde vive cada acción. La vista
+   nunca un botón; tocar la fila abre el panel de la talla (`PanelTalla`), donde vive cada acción. La vista
    «Por talla» (Cobertura, Ritmo, En la red) sigue a un toque en el panel.
    ==================================================================== */
 
-/** Cómo se pinta cada talla de la curva: beige, y en rojo suave solo la que no tiene NADA en ningún lado (0·0). El resto de
- *  los estados (por colgar, poco en piso) los dice el diagnóstico de la fila y las cifras, no un color por chip. */
+/** Cómo se pinta cada talla de la curva: beige, y con borde punteado (un lugar vacío, no un error) la que no tiene NADA en ningún
+ *  lado (0·0); hasta el 2026-10-04 iba en rojo. El resto de
+ *  los estados (por colgar, sin nada atrás) los dice el diagnóstico de la fila y las cifras, no un color por chip. */
 const CLASE_TALLA = {
-  sin_stock: "border-rojo/35 bg-rojo/10 font-semibold text-rojo-profundo",
+  sin_stock: "border-dashed border-taupe/50 bg-transparent font-semibold text-taupe",
   normal: "border-taupe/25 bg-hueso text-tinta",
 } as const;
 
 const AYUDA_TALLA = {
   por_colgar: "por colgar: nada para vender en el piso y sí en el almacén",
-  reponer: "poco en el piso",
+  sin_atras: "falta en el piso y no hay nada libre atrás",
   sin_stock: "sin nada libre en esta sede",
   normal: "en el piso",
 } as const;
@@ -78,22 +80,19 @@ function QueHacer({ prenda, separa }: { prenda: PrendaAgrupada<FilaExistencias>;
   const q = separa ? queHacerPrenda(prenda.tallas) : null;
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      {q?.tipo === "sin_stock_piso" &&
-        (q.critico ? (
-          <ChipAlerta titulo="Alguna talla no tiene nada en ningún lado: no basta con colgar">
-            {q.n} {q.n === 1 ? "talla" : "tallas"} sin stock en piso
-          </ChipAlerta>
-        ) : (
-          <Chip tono="ambar" className="text-xs">
-            {q.n} {q.n === 1 ? "talla" : "tallas"} sin stock en piso
-          </Chip>
-        ))}
-      {q?.tipo === "por_reponer" && (
-        <Chip tono="ambar" className="text-xs">
-          {q.n} {q.n === 1 ? "talla" : "tallas"} por reponer
+      {/* Las mismas palabras y el mismo tono del filtro «Hoy» y de la tarjeta (`lib/existencias-hoy.ts`). */}
+      {q?.tipo === "por_colgar" && <ChipAlerta titulo={AYUDA_HOY.por_colgar}>{textoHoyDePrenda(q.tipo, q.n)}</ChipAlerta>}
+      {q?.tipo === "sin_stock_atras" && (
+        <Chip tono={TONO_HOY[q.tipo]} className="text-xs">
+          <span title={AYUDA_HOY[q.tipo]}>{textoHoyDePrenda(q.tipo, q.n)}</span>
         </Chip>
       )}
-      {q?.tipo === "mantener" && <ChipMantener />}
+      {q?.tipo === "en_pausa" && (
+        <Chip tono="pizarra" className="text-xs">
+          <span title={AYUDA_HOY.en_pausa}>{textoHoyDePrenda(q.tipo, q.n)}</span>
+        </Chip>
+      )}
+      {q?.tipo === "mantener" && <ChipMantener titulo={AYUDA_HOY.mantener} />}
       {/* Otro eje independiente: apartada no es lo mismo que dañada ni que sin stock. */}
       {prenda.apartado > 0 && <Chip tono="ambar">Apartado · {prenda.apartado}</Chip>}
     </span>
@@ -178,8 +177,8 @@ export function ExistenciasPorPrenda({
                 onAbrir(p);
               }
             }}
-            className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors focus-visible:outline-none sm:items-center ${plantilla} ${
-              abierta ? "bg-rojo/[0.07]" : marcada ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
+            className={`grid fila-cayla cursor-pointer gap-x-4 gap-y-2.5 px-5 py-1.5 transition-colors sm:items-center ${plantilla} ${
+              abierta ? "bg-hueso/80" : marcada ? "bg-sand/35" : "hover:bg-sand/25 focus-visible:bg-sand/25"
             }`}
           >
             {/* Celular: tarjeta (casilla + foto + nombre, con piso y almacén a la derecha; debajo la curva y el diagnóstico).
@@ -197,7 +196,7 @@ export function ExistenciasPorPrenda({
                 </span>
               )}
               <span className="flex min-w-0 flex-1 items-center gap-3.5">
-                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" />
+                <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex} tamano="md" {...categoriaDe(p)} />
                 <span className="min-w-0">
                   <span className="block truncate text-[13.5px] font-semibold leading-snug text-tinta">
                     {p.referencia}

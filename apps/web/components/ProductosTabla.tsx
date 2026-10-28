@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, Trash2, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
-import { esFuncionAusente } from "@/lib/compras-reglas";
-import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
-import { ComboResponsable } from "@/components/ComboResponsable";
+import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
 import { describirRotacion } from "@/lib/reorden-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import {
@@ -36,16 +33,24 @@ import {
   UMBRAL_MARGEN_BAJO,
   type ColorDisponible,
   type MargenProducto,
+  variantesQueSeVenden,
 } from "@/lib/productos-vista";
 import { margenPorcentaje } from "@/lib/alta-producto";
-import { useResponsable } from "@/lib/useResponsable";
-import { firmar } from "@/lib/responsable-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { urlRotulos } from "@/lib/rotulos-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
 import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
+import { Vacio } from "@/components/ui/Vacio";
+import { BotonEnlace } from "@/components/ui/campos";
+import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
+import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
+import { precioDeHoy, type CampanaDeVariante, type PrecioDeHoy } from "@/lib/precio-de-hoy";
+import { PrecioConCampana } from "@/components/ficha-producto/PrecioConCampana";
+import { Casilla } from "@/components/ui/Casilla";
+import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -59,7 +64,7 @@ import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
  * vertical); desde ahí, filas, y las columnas menos urgentes entran de a una: colores y costo en `@4xl`, tallas y
  * marca/proveedor en `@6xl` (1.152 px). Lo que no cabe no se pierde: baja a la línea de la prenda o a la ficha.
  *
- * Misma fuente que la Grilla (`ProductoListado[]`, ya filtrada y paginada por `fn_productos`) y las mismas piezas
+ * Misma fuente que la Grilla (`ProductoListado[]`, ya filtrada y paginada por `fn_productos_listado`) y las mismas piezas
  * (`ProductoPiezas`, `productos-vista`): las dos vistas no pueden decir cosas distintas de la misma prenda.
  *
  * Descontinuar/Reactivar en bloque pasa por `cambiar_estado_productos` (20260928235000): todo o nada, y al reactivar
@@ -71,6 +76,8 @@ type Fila = {
   colores: ColorDisponible[];
   tallas: string[];
   precio: string;
+  /** Si una campaña la rebaja hoy, lo que cobra la caja (ADR-0472): la fila tacha `precio` y lo dice. */
+  deHoy: PrecioDeHoy | null;
   costo: string | null;
   margen: MargenProducto | null;
   alerta: ReturnType<typeof alertaDeStock>;
@@ -78,6 +85,8 @@ type Fila = {
   lineas: LineasStock | null;
   rotacion: string | null;
   descontinuado: boolean;
+  /** Tiendas que la venden a otro precio (Felipe 2026-10-09); vacío = un solo precio. */
+  otrosPrecios: PrecioDeTienda[];
 };
 
 type Permisos = {
@@ -96,8 +105,19 @@ export function ProductosTabla({
   puedeEliminar,
   veDinero,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
+  hrefLimpiar,
+  preciosTienda = {},
+  preciosAqui,
+  campanasHoy,
 }: {
   productos: ProductoListado[];
+  /** La campaña que cobra la caja hoy por variante (`campanasQueCobra`, ADR-0472). Ausente = no se pudo leer: el precio de siempre. */
+  campanasHoy?: Record<string, CampanaDeVariante>;
+  /** Por prenda, el precio en cada tienda (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
+  preciosTienda?: Record<string, PrecioDeTienda[]>;
+  /** Los precios propios de la tienda elegida arriba (variante → precio). La fila, sus variantes y el margen usan ESE precio: el que
+   *  cobra la caja aquí (Felipe 2026-10-10). Sin tienda (CAYLA Global), el de la prenda. */
+  preciosAqui?: Record<string, number>;
   /** Lo de la sede elegida por producto (ADR-0270). `null`: no se pudo leer, y la columna dice el total como antes. */
   existencias: Map<string, ExistenciasProducto> | null;
   ubicacionId: string;
@@ -107,28 +127,35 @@ export function ProductosTabla({
   puedeEditar: boolean;
   /** ¿Ve el módulo Existencias? Ahí se ajusta el stock (ADR-0270, decisión 9): el Catálogo solo enlaza. */
   veExistencias: boolean;
-  /** Solo Admin y Líder (`fn_es_lider()`). La ventana pregunta a la base antes de ofrecerlo. */
+  /** Quien edita el catálogo (`fn_puede_editar_catalogo`, ADR-0252 act. 2026-10-03). La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
-  /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos` ya manda el costo vacío: aquí solo se esconden las columnas. */
+  /** Costo y margen (`verDineroCompras`). Sin él, `fn_productos_listado` ya manda el costo vacío: aquí solo se esconden las columnas. */
   veDinero: boolean;
   mensajeVacio?: string;
+  /** «Limpiar filtros» dentro del vacío (Felipe 2026-10-08: deshacerlo ahí mismo). */
+  hrefLimpiar?: string;
 }) {
   const pantalla = usePantallaActual();
   const filas = useMemo<Fila[]>(
     () =>
-      productos.map((p) => ({
-        p,
-        colores: coloresDe(p.variantes),
-        tallas: tallasDe(p.variantes),
-        precio: rangoSoles(p.variantes.map((v) => v.precio)) ?? "—",
-        costo: rangoSoles(p.variantes.map((v) => (tieneCosto(v.costo) ? v.costo : null))),
-        margen: margenDe(p.variantes),
-        alerta: alertaDeStock(p),
-        lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
-        rotacion: describirRotacion(p.demandaDiaria),
-        descontinuado: p.estado !== "activo",
-      })),
-    [productos, existencias],
+      productos.map((original) => {
+        const p = conPrecioAqui(original, preciosAqui);
+        return {
+          p,
+          colores: coloresDe(p.variantes),
+          tallas: tallasDe(p.variantes),
+          precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
+          deHoy: campanasHoy ? precioDeHoy(variantesQueSeVenden(p.variantes).map((v) => ({ id: v.varianteId, precio: v.precio })), (id) => campanasHoy[id]) : null,
+          costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
+          margen: margenDe(variantesQueSeVenden(p.variantes)),
+          alerta: alertaDeStock(p),
+          lineas: existencias && alertaDeStock(p) !== "sin_stock" ? lineasDeStock(existencias.get(p.productoId) ?? SIN_EXISTENCIAS) : null,
+          rotacion: describirRotacion(p.demandaDiaria),
+          descontinuado: p.estado !== "activo",
+          otrosPrecios: preciosTienda[p.productoId] ?? [],
+        };
+      }),
+    [productos, existencias, preciosTienda, preciosAqui, campanasHoy],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -171,7 +198,14 @@ export function ProductosTabla({
   }
 
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
+    // Los filtros (o la búsqueda) dejaron cero: la pieza única del vacío (ADR-0358 ronda 5). Limpiar vive en la barra de filtros.
+    return (
+      <div className="card-cayla">
+        <Vacio icono={<FunnelX />} acciones={hrefLimpiar ? <BotonEnlace href={hrefLimpiar}>Limpiar filtros</BotonEnlace> : null}>
+          {mensajeVacio}
+        </Vacio>
+      </div>
+    );
   }
 
   const acciones = (f: Fila): AccionesFila => ({
@@ -193,10 +227,10 @@ export function ProductosTabla({
 
   return (
     <div className="@container">
-      <div className="card-cayla overflow-hidden">
+      <div data-guia="productos.tabla" className="card-cayla overflow-hidden">
         {/* Marcar la página y la regla del margen: arriba de las dos formas (filas o tarjetas). */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sand px-4 py-3 @3xl:px-5">
-          <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
+          <label data-guia="productos.tabla-marcar" className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta/75">
             <CasillaMarca marcada={todos} parcial={algunos} onCambiar={marcarTodos} etiqueta="Marcar todas las de esta página" />
             {marcados.size > 0 ? (
               <span>
@@ -292,7 +326,7 @@ export function ProductosTabla({
         />
       )}
       {cambiando && (
-        <CambiarEstadoHoja
+        <CambiarEstadoProductosHoja
           estado={cambiando}
           productos={seleccion}
           onClose={() => setCambiando(null)}
@@ -314,22 +348,9 @@ function Th({ children, className = "", title }: { children: ReactNode; classNam
   );
 }
 
-/** Casilla nativa (teclado y lector de pantalla gratis) en tinta: el rojo queda para lo urgente. */
+/** La casilla del sistema (ADR-0358, ronda 6): sigue siendo una casilla nativa, con su «a medias» para la página. */
 function CasillaMarca({ marcada, parcial = false, onCambiar, etiqueta }: { marcada: boolean; parcial?: boolean; onCambiar: () => void; etiqueta: string }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = parcial;
-  }, [parcial]);
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={marcada}
-      onChange={onCambiar}
-      aria-label={etiqueta}
-      className="h-[18px] w-[18px] shrink-0 cursor-pointer accent-tinta"
-    />
-  );
+  return <Casilla marcada={marcada} aMedias={parcial} onCambio={onCambiar} etiqueta={etiqueta} className="shrink-0" />;
 }
 
 /** El color que se está mirando: el que tiene el mouse encima, si no el fijado, si no el primero (como la Grilla). */
@@ -378,9 +399,8 @@ function Margen({ margen }: { margen: MargenProducto | null }) {
   return (
     <span className="inline-flex items-center justify-end gap-2 whitespace-nowrap" title={margen.bajo ? `Alguna talla deja menos de ${UMBRAL_MARGEN_BAJO} %` : undefined}>
       <span className={`tabular-nums ${margen.bajo ? "text-ambar" : "text-tinta"}`}>{textoMargen(margen)}</span>
-      <span aria-hidden className="h-1 w-11 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full ${margen.bajo ? "bg-ambar" : "bg-verde"}`} style={{ width: `${ancho}%` }} />
-      </span>
+      {/* El margen mínimo: una medida, no un avance; el ámbar lo pone un margen bajo. */}
+      <BarraAvance pct={ancho} alto="fina" tono={margen.bajo ? "ambar" : "tinta"} decorativa className="w-11" />
     </span>
   );
 }
@@ -443,17 +463,21 @@ function FilaAncha({
             <button
               type="button"
               onClick={onAbrir}
+              data-guia="productos.tabla-abrir"
               aria-expanded={abierta}
               aria-label={`${abierta ? "Cerrar" : "Ver"} las variantes de ${p.referencia}`}
               className="-ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-tinta/45 transition-colors hover:bg-hueso hover:text-tinta"
             >
               <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
             </button>
-            <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} />
+            <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
             <div className={`min-w-0 ${fila.descontinuado ? "opacity-70" : ""}`}>
-              <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
-                {p.referencia}
-              </p>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
+                  {p.referencia}
+                </p>
+                <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
+              </div>
               <p className="mt-0.5 truncate text-[11px] text-tinta/55">
                 <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"}
               </p>
@@ -476,7 +500,10 @@ function FilaAncha({
         <td className="hidden px-3 py-3 align-middle @6xl:table-cell">
           <Tallas tallas={tallas} />
         </td>
-        <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">{fila.precio}</td>
+        <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">
+          {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} enUnaLinea className="justify-end" /> : fila.precio}
+          <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
+        </td>
         {conMargen && (
           <td className="hidden whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta/65 @4xl:table-cell">
             {fila.costo ?? <span className="text-[12px] text-tinta/45">sin costo</span>}
@@ -528,12 +555,10 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
   const botonNegado = "grid h-8 w-8 place-items-center rounded-md bg-rojo text-crema transition-colors hover:bg-rojo-profundo";
   return (
     <div
-      className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
+      className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
     >
       {acciones.editar && (
-        <Link href={acciones.editar} className={boton} aria-label={`Editar ${referencia}`} title="Editar">
-          <Pencil aria-hidden className="h-4 w-4" />
-        </Link>
+        <LapizEditar href={acciones.editar} que={referencia} />
       )}
       {acciones.existencias && (
         <Link href={acciones.existencias} className={boton} aria-label={`Ver ${referencia} en Existencias`} title="Ver en Existencias">
@@ -549,7 +574,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
         aria-label={`Etiquetas de precio de ${referencia}`}
         title="Etiquetas de precio"
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
       </EnlaceEtiquetas>
       <Link href={acciones.historial} className={boton} aria-label={`Historial de ${referencia}`} title="Historial">
         <History aria-hidden className="h-4 w-4" />
@@ -564,7 +589,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
  *  es justo lo que se quiere ver antes de imprimir. */
 function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: string; unidades: () => Promise<number | null>; descripcion: string; sede: string }) {
   return (
-    <div className="pointer-events-none absolute right-[5.25rem] top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
+    <div className="pointer-events-none absolute right-[5.25rem] top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
       <EnlaceEtiquetas
         href={href}
         unidades={unidades}
@@ -578,7 +603,7 @@ function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: strin
         aria-label={`Etiqueta de precio de ${descripcion}`}
         title="Imprimir la etiqueta de esta variante"
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
       </EnlaceEtiquetas>
     </div>
   );
@@ -611,11 +636,17 @@ function TarjetaFila({
         <div className="pt-1">
           <CasillaMarca marcada={marcada} onCambiar={onMarcar} etiqueta={`Marcar ${p.referencia}`} />
         </div>
-        <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[62px] w-[50px] ${fila.descontinuado ? "opacity-60" : ""}`} />
+        <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[62px] w-[50px] ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
-            <p className="shrink-0 text-[14px] tabular-nums text-tinta">{fila.precio}</p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
+              <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
+            </div>
+            <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
+              {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} className="justify-end" /> : fila.precio}
+              <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
+            </p>
           </div>
           <p className="mt-0.5 truncate text-[11px] text-tinta/55">
             <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"} · {p.marca ?? "sin marca"}
@@ -674,10 +705,10 @@ function FichaVariantes({
   const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, p.variantes.map((v) => v.varianteId)) : null;
 
   return (
-    <div className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
+    <div data-guia="productos.tabla-ficha" className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[10.5px] text-tinta/60">
-          {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
+          {variantesQueSeVenden(p.variantes).length} {variantesQueSeVenden(p.variantes).length === 1 ? "variante" : "variantes"}
           {fila.colores.length > 0 && ` · ${fila.colores.length} ${fila.colores.length === 1 ? "color" : "colores"}`}
           {fila.tallas.length > 0 && ` · ${fila.tallas.length} ${fila.tallas.length === 1 ? "talla" : "tallas"}`}
         </p>
@@ -691,7 +722,7 @@ function FichaVariantes({
         </p>
       </div>
       <ul className="grid gap-2 @xl:grid-cols-2 @5xl:grid-cols-3">
-        {ordenarVariantes(p.variantes).map((v) => {
+        {ordenarVariantes(variantesQueSeVenden(p.variantes)).map((v) => {
           const m = costoPorVariante && tieneCosto(v.costo) ? margenPorcentaje(v.precio, v.costo) : null;
           const descripcion = [v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta variante");
           return (
@@ -699,7 +730,7 @@ function FichaVariantes({
               key={v.varianteId}
               className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel py-2.5 pl-3 pr-2 ${v.activo ? "" : "opacity-50"}`}
             >
-              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "#e8e0d0" }} />
+              <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "var(--color-sand)" }} />
               <span className="min-w-0 truncate text-[13px] text-tinta">
                 <span className="mr-1.5 font-mono font-medium">{v.talla ?? "—"}</span>
                 {v.color ?? "Sin color"}
@@ -734,10 +765,7 @@ function FichaVariantes({
       {/* Todas las acciones de la prenda: en una pantalla táctil (sin hover) este es el único lugar donde están. */}
       <div className="mt-4 flex flex-wrap gap-2">
         {acciones.editar && (
-          <Link href={acciones.editar} className={boton}>
-            <Pencil aria-hidden className="h-4 w-4" />
-            Editar
-          </Link>
+          <BotonEditar href={acciones.editar} className="min-h-10 text-[12.5px]" />
         )}
         {acciones.existencias && (
           <Link href={acciones.existencias} className={boton}>
@@ -752,7 +780,7 @@ function FichaVariantes({
           sede={acciones.sede}
           className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : boton)}
         >
-          <Printer aria-hidden className="h-4 w-4" />
+          <Tag aria-hidden className="h-4 w-4" />
           Etiquetas
         </EnlaceEtiquetas>
         <Link href={acciones.historial} className={boton}>
@@ -760,7 +788,7 @@ function FichaVariantes({
           Historial
         </Link>
         {acciones.eliminar && (
-          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-sutil min-h-10 text-[12.5px] text-rojo-profundo">
+          <button type="button" onClick={acciones.eliminar} className="btn-cayla btn-peligro min-h-10 text-[12.5px]">
             <Trash2 aria-hidden className="h-4 w-4" />
             Eliminar
           </button>
@@ -792,7 +820,9 @@ function StockDeVariante({ stock, varianteId }: { stock: StockDeModelo; variante
 /* ─────────────────────────── Lo marcado ─────────────────────────── */
 
 /** Sube desde abajo cuando hay algo marcado. En el celular ocupa el ancho y los botones van en columnas iguales (con
- *  su palabra: un ícono solo no le dice nada a quien lo ve por primera vez). */
+ *  su palabra: un ícono solo no le dice nada a quien lo ve por primera vez). Con `px-3` en cada botón la barra medía 397 px en 351 y la
+ *  ✕ de «Quitar la marca» quedaba fuera de la pantalla (auditoría del celular, 2026-10-23, hallazgo 7): el relleno lateral baja a `px-1`
+ *  bajo `sm`, y en un teléfono de menos de ~340 px la barra pasa a una segunda fila (`flex-wrap`) en vez de salirse. */
 function BarraMarcadas({
   seleccion,
   puedeEditar,
@@ -816,19 +846,22 @@ function BarraMarcadas({
   const variantes = seleccion.flatMap((p) => p.variantes.filter((v) => v.activo).map((v) => v.varianteId));
   const hayActivas = seleccion.some((p) => p.estado === "activo");
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
+  const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
-    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
+    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:px-3 sm:text-[13px]";
   const boton = `${forma} hover:bg-crema/10`;
   return (
     <div
       role="toolbar"
       aria-label="Acciones sobre las prendas marcadas"
       aria-hidden={n === 0}
-      className={`fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-2xl bg-tinta p-1.5 text-crema shadow-[0_24px_48px_-16px_rgba(26,26,24,0.5)] transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
+      // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
+      data-tono="tinta"
+      className={`barra-abajo z-40 flex-nowrap gap-1 p-1.5 max-sm:flex-wrap transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
         n > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >
-      <span className="flex shrink-0 items-baseline gap-1.5 px-2 sm:mr-2 sm:px-0">
+      <span className="flex shrink-0 items-baseline gap-1.5 px-1 sm:mr-2 sm:px-0">
         <span className="font-display text-xl tabular-nums">{n}</span>
         <span className="hidden text-[12px] text-crema/70 sm:inline">{n === 1 ? "marcada" : "marcadas"}</span>
       </span>
@@ -858,16 +891,23 @@ function BarraMarcadas({
           `${negado ? `${forma} bg-rojo hover:bg-rojo-profundo` : boton} ${variantes.length === 0 ? "pointer-events-none opacity-40" : ""}`
         }
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
         Etiquetas
       </EnlaceEtiquetas>
+      {/* El rótulo del anaquel (ADR-0366): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}
+      {hrefRotulos && (
+        <Link href={hrefRotulos} className={boton} tabIndex={n > 0 ? 0 : -1}>
+          <SignpostBig aria-hidden className="h-4 w-4" />
+          Rótulo
+        </Link>
+      )}
       <span aria-hidden className="mx-1 hidden h-5 w-px bg-crema/20 sm:block" />
       <button
         type="button"
         onClick={onLimpiar}
         aria-label="Quitar la marca"
         tabIndex={n > 0 ? 0 : -1}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 transition-colors hover:bg-crema/10 hover:text-crema"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 transition-colors hover:bg-crema/10 hover:text-crema max-sm:ml-auto dark:text-crema/75"
       >
         <X aria-hidden className="h-4 w-4" />
       </button>
@@ -875,100 +915,8 @@ function BarraMarcadas({
   );
 }
 
-/**
- * Confirmar descontinuar o reactivar lo marcado, con el combo «Responsable» (ADR-0161: cambiar el estado de una prenda
- * es Catálogo, se firma). Se monta solo al abrirse: la lista no lee la asistencia mientras nadie va a guardar nada.
- */
-function CambiarEstadoHoja({
-  estado,
-  productos,
-  onClose,
-  onHecho,
-}: {
-  estado: "activo" | "descontinuado";
-  productos: ProductoListado[];
-  onClose: () => void;
-  onHecho: () => void;
-}) {
-  const router = useRouter();
-  const responsable = useResponsable();
-  const [guardando, setGuardando] = useState(false);
-  const reactivar = estado === "activo";
-  const cambian = productos.filter((p) => (reactivar ? p.estado !== "activo" : p.estado === "activo"));
-  const verbo = reactivar ? "Reactivar" : "Descontinuar";
-  const sustantivo = (n: number) => (n === 1 ? "prenda" : "prendas");
-
-  async function confirmar() {
-    if (!responsable.listo || cambian.length === 0) return;
-    const ids = cambian.map((p) => p.productoId);
-    setGuardando(true);
-    const supabase = createClient();
-    let { error } = await firmar(supabase.rpc("cambiar_estado_productos", { p_producto_ids: ids, p_estado: estado }), responsable.firma());
-    // Web publicada antes que la migración (20260928235000): el camino de antes, sin la revisión de marca al reactivar.
-    if (esFuncionAusente(error)) {
-      ({ error } = await firmar(supabase.from("productos").update({ estado }).in("id", ids), responsable.firma()));
-    }
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, reactivar ? "reactivar las prendas" : "descontinuar las prendas"));
-      return;
-    }
-    avisar.exito(`${ids.length} ${sustantivo(ids.length)} ${reactivar ? "reactivada" : "descontinuada"}${ids.length === 1 ? "" : "s"}`);
-    onHecho();
-    router.refresh();
-  }
-
-  return (
-    <Modal
-      variante="hoja"
-      ancho="max-w-lg"
-      bloqueado={guardando}
-      titulo={`¿${verbo} ${cambian.length} ${sustantivo(cambian.length)}?`}
-      subtitulo={
-        reactivar
-          ? "Vuelven a contar para «Para pedir» y a verse como activas. Antes se revisa que su marca y su proveedor sigan activos."
-          : "Dejan de contar para «Para pedir» y se ven marcadas en la Grilla y en la Tabla. Se pueden reactivar cuando quieras."
-      }
-      onClose={onClose}
-    >
-      {(cerrar) => (
-        <div className="space-y-4">
-          <ul className="max-h-60 divide-y divide-sand overflow-y-auto border-y border-sand">
-            {productos.map((p) => {
-              const queda = reactivar ? p.estado === "activo" : p.estado !== "activo";
-              return (
-                <li key={p.productoId} className="flex items-baseline justify-between gap-3 py-2.5 text-[13.5px]">
-                  <span className={`min-w-0 truncate ${queda ? "text-tinta/50" : "text-tinta"}`}>{p.referencia}</span>
-                  <span className="shrink-0 text-[12px] text-tinta/55">
-                    {queda ? `Ya está ${reactivar ? "activa" : "descontinuada"}: queda igual` : `${p.stockTotal.toLocaleString("es-PE")} en stock`}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <ComboResponsable control={responsable} deshabilitado={guardando} />
-          <p className="nota-cayla">
-            {reactivar
-              ? "Si una prenda tiene su marca o su proveedor dado de baja, no se reactiva ninguna y te decimos cuál corregir."
-              : "Para volver atrás, márcalas y usa «Reactivar». El historial de cada prenda guarda quién hizo el cambio."}
-          </p>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} disabled={guardando} className={botonCancelar}>
-              Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => void confirmar()}
-              disabled={guardando || !responsable.listo || cambian.length === 0}
-              title={responsable.motivo ?? undefined}
-              className={botonPrimario}
-            >
-              {guardando ? "Guardando…" : `${verbo} ${cambian.length}`}
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
+/** La prenda con el precio de la tienda elegida en cada variante que tiene uno propio ahí (la misma regla de `fn_precio_en_sede`). */
+function conPrecioAqui(p: ProductoListado, preciosAqui: Readonly<Record<string, number>> | undefined): ProductoListado {
+  if (!preciosAqui || !p.variantes.some((v) => preciosAqui[v.varianteId] !== undefined)) return p;
+  return { ...p, variantes: p.variantes.map((v) => (preciosAqui[v.varianteId] !== undefined ? { ...v, precio: preciosAqui[v.varianteId]! } : v)) };
 }

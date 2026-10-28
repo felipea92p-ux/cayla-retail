@@ -1,0 +1,112 @@
+import { BarraApilada } from "@/components/ui/BarraApilada";
+import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TONOS_DE_INVERSION as TONOS_TOPE } from "@/components/plan-compra/tonos-de-inversion";
+import { enteroES, segmentosDelTope, solesES, type EstadoCampana, type FilaPlan, type FiltroPlan, type TotalesPlan } from "@/lib/plan-compra-reglas";
+
+// Las cifras del plan de campaña (ADR-0349): cuántas categorías ya tienen plan (y filtra la tabla), cuántas prendas comprar y cuánto
+// cuesta y, la cuarta, la que cambia con el momento: antes, cuántas de las que más venden faltan por llenar; durante y después, lo que
+// se vendió de verdad. Solo dibuja: los totales los saca `totalesDelPlan` (lib/plan-compra-reglas.ts).
+
+export function CifrasPlan({
+  totales,
+  estado,
+  filas,
+  filtro,
+  onFiltro,
+  onSeguirLlenando,
+  tope,
+  onTope,
+}: {
+  totales: TotalesPlan;
+  estado: EstadoCampana;
+  filas: readonly FilaPlan[];
+  filtro: FiltroPlan;
+  onFiltro: (f: FiltroPlan) => void;
+  /** «Por llenar primero» lleva al paso a paso. */
+  onSeguirLlenando: () => void;
+  /** El tope de inversión: `soportado` = la base ya sabe de topes; `valor` null = sin tope. */
+  tope: { soportado: boolean; valor: number | null };
+  /** Abre la hoja del tope; solo se pasa a quien puede fijarlo (quien tiene el módulo Plan de campaña, ADR-0387). Sin esto, el tope se ve pero no se edita. */
+  onTope?: () => void;
+}) {
+  const verReal = estado !== "antes";
+  const excede = tope.valor !== null ? Math.max(0, Math.round((totales.inversion - tope.valor) * 100) / 100) : 0;
+  const lasQueMasVenden = filas.filter((f) => f.puesto !== null);
+  const faltan = lasQueMasVenden.filter((f) => !f.linea).length;
+  // El paso 2 (ADR-0526): de las categorías que piden comprar algo, cuántas ya dijeron qué modelos, colores y tallas. Solo se cuenta si la base sabe del paso 2.
+  const conCompra = filas.filter((f) => f.linea && (f.calculo?.comprar ?? 0) > 0);
+  const conPaso2 = filas.some((f) => f.paso2 !== undefined) && conCompra.length > 0;
+  const hechas = conCompra.filter((f) => f.paso2 && f.paso2.total === (f.calculo?.comprar ?? -1)).length;
+  return (
+    <div data-guia="plan.cifras" className="grid gap-3">
+      {/* Las cifras cuentan una vez al entrar y cuando cambian (al guardar una categoría): el ojo nota qué se movió (maqueta, ADR-0136). */}
+      <TarjetaCifra
+        etiqueta="Categorías con plan"
+        valor={
+          <>
+            <CifraQueCuenta valor={totales.conPlan} alMontar /> de {enteroES.format(totales.total)}
+          </>
+        }
+        activa={filtro === "con"}
+        onClick={() => onFiltro(filtro === "con" ? "todas" : "con")}
+      >
+        {totales.conPlan === 0 ? "Empieza por las que más venden" : "Las demás no suman a la compra"}
+      </TarjetaCifra>
+      <TarjetaCifra etiqueta="Prendas a comprar" valor={<CifraQueCuenta valor={totales.aComprar} alMontar />}>
+        Lo que conviene tener menos lo que hay y lo que ya viene
+      </TarjetaCifra>
+      <TarjetaCifra
+        etiqueta="Inversión al costo"
+        valor={<CifraQueCuenta valor={totales.inversion} formato="soles" alMontar />}
+        detalleTono={excede > 0 ? "text-ambar-profundo" : undefined}
+        accion={tope.soportado && onTope ? { texto: tope.valor === null ? "Poner un tope" : "Editar el tope", onClick: onTope } : undefined}
+        pie={
+          tope.valor !== null ? (
+            <BarraApilada
+              alto={8}
+              total={tope.valor}
+              unidad="al costo"
+              formato={solesES}
+              etiqueta={`${solesES(totales.inversion)} de ${solesES(tope.valor)} de tope`}
+              segmentos={segmentosDelTope(filas).map((x, i) => ({ clave: x.clave, nombre: x.nombre, valor: x.valor, clase: TONOS_TOPE[i] ?? TONOS_TOPE[TONOS_TOPE.length - 1] }))}
+            />
+          ) : undefined
+        }
+      >
+        {tope.valor === null
+          ? "Solo las categorías con plan"
+          : excede > 0
+            ? `Te pasas ${solesES(excede)} del tope de ${solesES(tope.valor)}`
+            : // El «open-to-buy» de los grandes, en palabras de tienda: cuánta plata queda para comprar (Felipe 2026-10-12).
+              `Te quedan ${solesES(Math.round((tope.valor - totales.inversion) * 100) / 100)} para comprar, de ${solesES(tope.valor)}`}
+      </TarjetaCifra>
+      {verReal ? (
+        <TarjetaCifra etiqueta="Vendido en la campaña" valor={enteroES.format(totales.vendido)}>
+          {estado === "durante" ? "Hasta hoy, todas las categorías" : "Todas las categorías"}
+        </TarjetaCifra>
+      ) : lasQueMasVenden.length === 0 ? (
+        <TarjetaCifra etiqueta="Las que más venden, sin plan" valor={null}>
+          Todavía no hay ventas de los últimos 90 días para decir cuáles venden más
+        </TarjetaCifra>
+      ) : (
+        // «Por llenar primero» no se entendía (prueba ciega, 2026-10-10): la etiqueta dice qué se cuenta.
+        <TarjetaCifra etiqueta="Las que más venden, sin plan" valor={<CifraQueCuenta valor={faltan} alMontar />} onClick={faltan > 0 ? onSeguirLlenando : undefined}>
+          {faltan === 0 ? `Las ${lasQueMasVenden.length} ya tienen plan` : `de ${lasQueMasVenden.length} · llénalas una por una`}
+        </TarjetaCifra>
+      )}
+      {conPaso2 && (
+        <TarjetaCifra
+          etiqueta="Paso 2 hecho"
+          valor={
+            <>
+              <CifraQueCuenta valor={hechas} alMontar /> de {enteroES.format(conCompra.length)}
+            </>
+          }
+        >
+          {hechas === conCompra.length ? "Todas ya dicen qué modelos, colores y tallas" : "De qué modelos, colores y tallas comprar cada categoría"}
+        </TarjetaCifra>
+      )}
+    </div>
+  );
+}

@@ -3,6 +3,7 @@ import { estadoDeLinea, type LineaConteo } from "./conteo-reglas";
 import {
   diferenciasEnOrden,
   existenciaTrasElAjuste,
+  conteoYaCerrado,
   mensajeDeCierre,
   pendientesPorPercha,
   textoAjusteNegativo,
@@ -16,7 +17,7 @@ import {
 // falla no puede mentir sobre si las existencias se movieron.
 
 function linea(p: Partial<LineaConteo> & { varianteId: string; debeHaber: number; contada: number | null }): LineaConteo {
-  const base = { foto: p.debeHaber, anterior: null, verificadoEn: null, confirmadaEn: null, actual: null, ajusteMovimientoId: null, ajustadoTotal: 0, ajustadoAntes: 0, ...p };
+  const base = { foto: p.debeHaber, anterior: null, verificadoEn: null, confirmadaEn: null, actual: null, ajusteMovimientoId: null, ajustadoTotal: 0, ajustadoAntes: 0, hallazgos: 0, aplicadaSinContar: false, ...p };
   const estado = estadoDeLinea(base);
   if (estado === null) throw new Error("la línea de prueba está ignorada");
   return { ...base, diferencia: base.contada === null ? null : base.contada - base.debeHaber, estado };
@@ -156,11 +157,37 @@ describe("mensajeDeCierre", () => {
     const m = mensajeDeCierre({ message: "TypeError: Failed to fetch" });
     expect(m.incierto).toBe(true);
     expect(m.texto).not.toContain("no cambió ninguna existencia");
-    expect(m.texto).toContain("no podemos confirmar si llegó a guardarse");
+    expect(m.texto).toContain("No sabemos si el conteo se cerró");
   });
 
   it("un error sin código de Postgres (un 502 del camino) también es incierto", () => {
     expect(mensajeDeCierre({ message: "Bad Gateway" }).incierto).toBe(true);
+  });
+
+  // /chaos de Inventario 2026-10-14: la respuesta del cierre se perdió (la base SÍ cerró). La pantalla decía «Vuelve a intentar», y al
+  // reintentar la base contestó «Ese conteo ya está cerrado» y la pantalla afirmó «no se cerró y no cambió ninguna existencia».
+  it("un 502 no invita a repetir a ciegas: pide mirar cómo quedó antes", () => {
+    const m = mensajeDeCierre({ message: "Bad Gateway" });
+    expect(m.texto).not.toContain("Vuelve a intentar");
+    expect(m.texto).toContain("Ver el conteo");
+    expect(m.texto).not.toContain("no cambió ninguna existencia");
+  });
+
+  it("«ya está cerrado» es un cierre que ya ocurrió: nunca se dice que no se cerró", () => {
+    const error = { message: "Ese conteo ya está cerrado", code: "P0001" };
+    expect(conteoYaCerrado(error)).toBe(true);
+    expect(mensajeDeCierre(error).texto).not.toContain("no se cerró");
+  });
+
+  it("un conteo cancelado dice que se canceló (y ahí sí, que no cambió nada)", () => {
+    const error = { message: "Ese conteo ya está anulado", code: "P0001" };
+    expect(conteoYaCerrado(error)).toBe(false);
+    expect(mensajeDeCierre(error)).toEqual({ texto: "Este conteo se canceló: no se cerró ni cambió ninguna existencia.", incierto: false });
+  });
+
+  it("los demás rechazos no se confunden con un cierre hecho", () => {
+    expect(conteoYaCerrado({ message: "Falta 1 variante por contar", code: "P0001" })).toBe(false);
+    expect(conteoYaCerrado(null)).toBe(false);
   });
 });
 

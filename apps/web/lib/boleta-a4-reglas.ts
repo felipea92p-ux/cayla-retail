@@ -1,12 +1,13 @@
-// Reglas puras de la boleta/factura A4. Sin DOM ni React. El A4 muestra valores SIN IGV
-// (valor unitario, descuento, total por línea) y al pie el desglose: la suma de la columna
-// Total ES la «Op. gravada». Como cada línea se redondea por separado, la suma puede
-// quedar a un centavo de la gravada que calculó la base: ese centavo se le da a la última
-// línea, para que el papel no se contradiga.
+// Reglas puras de la boleta/factura A4. Sin DOM ni React. El A4 muestra la MISMA plata que el
+// ticket de 80 mm: precio unitario, descuento e importe CON IGV incluido, línea por línea — lo
+// que la clienta de verdad pagó por cada prenda. El desglose de SUNAT (Op. gravada/IGV/TOTAL) va
+// aparte, al pie, leído directo de `recibo.subtotal`/`recibo.igv`/`recibo.total`: no tiene que
+// cuadrar con la suma de la columna Importe (que suma el TOTAL, no la gravada), igual que ya pasa
+// en el ticket. Antes el A4 dividía cada línea entre 1+IGV (al estilo del Alegra viejo) y el
+// precio unitario salía distinto al del ticket para la misma prenda — confundía a la clienta
+// que comparaba los dos papeles.
 
 import type { ReciboVenta } from "./recibo-reglas";
-
-const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
 /** `B002-00009380`: el A4 es la representación impresa oficial y lleva el correlativo a 8 dígitos
  *  (el ticket y el resto de la app usan 6 por comodidad; el número es el mismo). */
@@ -20,27 +21,20 @@ export type LineaA4 = {
   descripcion: string;
   detalle: string | null;
   codigo: string | null;
-  valorUnitario: number;
+  precioUnitario: number;
   descuento: number;
   total: number;
 };
 
-export function lineasA4(recibo: ReciboVenta, tasaIgv = 0.18): LineaA4[] {
-  const f = 1 + tasaIgv;
-  const lineas: LineaA4[] = recibo.lineas.map((l) => ({
+export function lineasA4(recibo: ReciboVenta): LineaA4[] {
+  return recibo.lineas.map((l) => ({
     cantidad: l.cantidad,
     unidad: "Unidad",
     descripcion: l.descripcion,
     detalle: l.detalle ?? null,
     codigo: l.codigo,
-    valorUnitario: redondear2(l.precioUnitario / f),
-    descuento: redondear2(l.descuentoUnitario / f),
-    total: redondear2(l.importe / f),
+    precioUnitario: l.precioUnitario,
+    descuento: l.descuentoUnitario,
+    total: l.importe,
   }));
-  const ultima = lineas[lineas.length - 1];
-  if (ultima) {
-    const diferencia = redondear2(recibo.subtotal - lineas.reduce((a, l) => a + l.total, 0));
-    if (diferencia !== 0) ultima.total = redondear2(ultima.total + diferencia);
-  }
-  return lineas;
 }

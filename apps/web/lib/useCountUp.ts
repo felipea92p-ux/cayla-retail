@@ -14,15 +14,17 @@ export function useCountUp(valor: number, duracionMs = 700): number {
   // solo los cambios posteriores — si `mostrado` empezara en `valor`, la
   // carga inicial nunca contaría.
   const [mostrado, setMostrado] = useState(0);
+  // Lo último que se PINTÓ (no lo último pedido): si el efecto se cancela a medias —React en desarrollo lo corre dos veces— la
+  // segunda pasada arranca desde lo pintado y anima, en vez de creer que ya llegó y quedarse en 0.
   const anterior = useRef(0);
 
   useEffect(() => {
     const desde = anterior.current;
     const hasta = valor;
-    anterior.current = valor;
     if (desde === hasta) return;
 
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      anterior.current = hasta;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- salto directo al valor final, no hay cascada: es la única escritura de este efecto en esta rama.
       setMostrado(hasta);
       return;
@@ -35,7 +37,9 @@ export function useCountUp(valor: number, duracionMs = 700): number {
       // ease-out cúbico: arranca rápido, frena llegando — igual de espíritu
       // que `--ease-cayla`, sin depender de la curva CSS dentro de un rAF.
       const avance = 1 - Math.pow(1 - t, 3);
-      setMostrado(desde + (hasta - desde) * avance);
+      const v = desde + (hasta - desde) * avance;
+      anterior.current = v;
+      setMostrado(v);
       if (t < 1) marco = requestAnimationFrame(paso);
     };
     marco = requestAnimationFrame(paso);

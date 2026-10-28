@@ -69,6 +69,8 @@ export type FichaEditable = {
 /**
  * Cada campo de `FichaEditable` tiene que aparecer aquí. Agregar uno al tipo sin agregarlo a esta lista no compila: es el
  * recordatorio de que hay que decidir cómo se compara (y cómo se cuenta) antes de que la pantalla lo deje editar.
+ *
+ * @internal Su trabajo es no compilar si falta un campo; además la prueba compara sus claves con las de la ficha.
  */
 export const CAMPOS_CUBIERTOS: Record<keyof FichaEditable, true> = {
   referencia: true,
@@ -342,7 +344,7 @@ function soles(valor: string, vacio: string): string {
   if (t === "") return vacio;
   const n = Number(t);
   if (!Number.isFinite(n)) return t;
-  return `S/ ${Number.isInteger(n) ? n : n.toFixed(2)}`;
+  return `S/\u00a0${Number.isInteger(n) ? n : n.toFixed(2)}`;
 }
 
 /** «S/ 90», «S/ 90.50», o «sin precio» si el campo está vacío. */
@@ -367,7 +369,7 @@ const TITULO_GRUPO: Record<ClaveGrupo, string> = {
   identidad: "Color o talla corregidos",
   precios: "Precios",
   costos: "Costos",
-  etiquetas: "Etiquetas",
+  etiquetas: "Insignias",
   fotos: "Fotos",
   datos: "Datos de la prenda",
   temporadaColor: "Temporada por color",
@@ -532,28 +534,6 @@ export function agruparCambios(cambios: readonly Cambio[]): GrupoCambios[] {
 export function textoDeSalidaDeFicha(cantidad: number, nombre: string): string {
   const cuantos = cantidad === 1 ? "1 cambio sin guardar" : `${cantidad} cambios sin guardar`;
   return `Tienes ${cuantos} en «${nombre}». Si sales ahora, se pierden.`;
-}
-
-/* ====================== para las filas de la ficha ====================== */
-
-/** Los cambios que le tocan a UNA variante de la tabla (por su posición en la lista de la pantalla). */
-export function cambiosDeVariante(resumen: ResumenCambios, indice: number): Cambio[] {
-  return resumen.cambios.filter((c) => "indice" in c && c.indice === indice);
-}
-
-/** Lo que dice la fila tocada, a la derecha: «Se desactiva al guardar · Precio: antes S/ 90». Vacío si no cambió nada. */
-export function textoPendienteDeVariante(cambios: readonly Cambio[]): string {
-  const partes: string[] = [];
-  for (const c of cambios) {
-    if (c.tipo === "desactiva") partes.push("Se desactiva al guardar");
-    else if (c.tipo === "activa") partes.push("Se activa al guardar");
-    else if (c.tipo === "nueva") partes.push("Se agrega al guardar");
-    else if (c.tipo === "identidad") partes.push(`Color y talla: antes ${c.antes}`);
-    else if (c.tipo === "precio") partes.push(`Precio: antes ${formatoPrecio(c.antes)}`);
-    else if (c.tipo === "costo") partes.push(`Costo: antes ${formatoCosto(c.antes)}`);
-    else if (c.tipo === "etiquetas") partes.push("Etiquetas cambian");
-  }
-  return partes.join(" · ");
 }
 
 /** El cambio de un dato de la prenda (nombre, stock mínimo…), si lo hay: para la línea «antes: …» bajo su campo. */

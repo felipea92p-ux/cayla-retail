@@ -1,0 +1,49 @@
+{
+  "guia": "inventario.bajar",
+  "ruta": "/inventario/bajar",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 33,
+  "controles": {
+    "app/(app)/inventario/bajar/page.tsx": [
+      "Volver «/inventario»"
+    ],
+    "components/BajarAlPisoForm.tsx": [
+      "button «Buscar por nombre»",
+      "button «Comprobar»",
+      "button «{rack.si}»",
+      "button «{rack.no}»",
+      "button «Corregir y colgar»",
+      "button «Continuar»",
+      "button «→empezarDeNuevo»",
+      "input «Escanea o escribe el nombre»",
+      "button «bajar.camara»",
+      "button «→() => elegirPorNombre(p)»",
+      "button «Comprobar» #2",
+      "button «{preguntaDelRack(ofertaVisible).si}»",
+      "button «{preguntaDelRack(ofertaVisible).no}»",
+      "button «La tengo en la mano: corregir y colgar»",
+      "button «Ahora no»",
+      "button «Comprobar» #3",
+      "button «Empezar otra bajada»",
+      "button «Bajar otro fardo»",
+      "button «Quitar»",
+      "ComboResponsable «{responsable}»",
+      "Boton «→confirmar»"
+    ],
+    "components/BajarEnManoModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nota\", \"¿De dónde salió? (opcional)\")}»",
+      "button «{texto}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/EscanerConteo.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Escribir el código»",
+      "button «Dar de alta»",
+      "button «Una menos»",
+      "button «Una más»",
+      "button «Listo»"
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 /* ====================================================================
    GrillaMuestras · el molde visual compartido por Tejido, Patrón, Temporada y Etiquetas (2026-09-29)
@@ -37,6 +37,7 @@ export function TarjetaMuestraBase({
   onClick,
   title,
   children,
+  ...resto
 }: {
   elegido: boolean;
   cubierta?: boolean;
@@ -45,7 +46,9 @@ export function TarjetaMuestraBase({
   onClick: () => void;
   title?: string;
   children: ReactNode;
-}) {
+  // Lo que un `<TooltipTrigger asChild>` le inyecta a su hijo (el `ref` con que ancla la burbuja, los eventos del mouse y del
+  // teclado, `aria-describedby`). Sin pasarlo al `<button>`, la burbuja de una tarjeta envuelta nunca se abre ni sabe dónde ponerse.
+} & Omit<ComponentProps<"button">, "onClick" | "title" | "children" | "disabled" | "className" | "type" | "aria-pressed" | "aria-disabled">) {
   const base = "flex min-w-0 flex-col gap-1 rounded-md border p-1.5 text-left text-[12.5px] transition-colors disabled:cursor-not-allowed";
   const estilo = cubierta
     ? "cursor-default border-dashed border-tinta/30 bg-tinta/[0.03] text-tinta/70"
@@ -54,6 +57,7 @@ export function TarjetaMuestraBase({
       : "border-tinta/15 text-tinta/75 hover:border-tinta/40";
   return (
     <button
+      {...resto}
       type="button"
       onClick={onClick}
       aria-pressed={cubierta ? undefined : elegido}

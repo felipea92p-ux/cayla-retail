@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ReceiptText, Wallet } from "lucide-react";
+import { FunnelX, ReceiptText, SearchX, Wallet } from "lucide-react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getColaboradores, getColaboradoresInactivos, getColaboradoresSuspendidos } from "@/lib/colaboradores";
@@ -7,7 +7,7 @@ import { getResumenPorEnviar } from "@/lib/comprobantes";
 import { getCajaAbierta } from "@/lib/caja";
 import { createClient } from "@/lib/supabase/server";
 import { opcional } from "@/lib/resultado";
-import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   filtrosDesdeParams,
   idsDeHistorial,
@@ -15,12 +15,18 @@ import {
   listarVentasHistorial,
   serializarCursorVentas,
   textoPeriodoHistorial,
+  totalesEnLaBase,
   totalesVentasHistorial,
   type ParamsHistorial,
 } from "@/lib/ventas-historial";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getEmpresaDeVentas, getVendidoPorEmpresaHistorial } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 import { EstadoVacio } from "@/components/ComprasAgrupadas";
+import { BotonEnlace } from "@/components/ui/campos";
 import { BuscadorHistorial } from "@/components/BuscadorHistorial";
 import { FiltrosHistorialVentas } from "@/components/FiltrosHistorialVentas";
 import { HistorialVentasLista } from "@/components/HistorialVentasLista";
@@ -55,7 +61,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
   const params = await searchParams;
   const esLider = persona.rol === "lider";
   const puedeFacturar = puede(persona, "facturar");
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
 
   const [ubicaciones, colaboradores, suspendidos, inactivos] = await Promise.all([
     getUbicaciones(),
@@ -79,7 +85,11 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   const supabase = await createClient();
   const veApartados = veModulo(persona, "apartados") && persona.ubicacionTipo === "tienda";
-  const [{ filas, siguiente }, totales, porEnviar, apartados, caja] = await Promise.all([
+  // De quién es lo vendido (ADR-0532): CAYLA y CLAURE donde conviven (Lima; «Todas las tiendas» las trae a las dos). Solo con los filtros
+  // que también suma la base: con los demás (por enviar, factura, con cliente, posventa) la cabecera se calcula aparte y el reparto no
+  // coincidiría con ella, así que no se muestra.
+  const repartoPosible = totalesEnLaBase({ ...filtros, busqueda: undefined }) && !ids.posventa;
+  const [{ filas, siguiente }, totales, porEnviar, apartados, caja, empresasAqui, vendidoPorEmpresa] = await Promise.all([
     listarVentasHistorial(filtros, { cursor, ids }),
     totalesVentasHistorial(filtros, ids),
     // Lo que acompaña a las ventas es secundario: si algo no carga, su aviso o su enlace no aparece y el historial sigue.
@@ -88,7 +98,13 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
       ? supabase.rpc("resumen_separaciones", { p_ubicacion_id: persona.ubicacionId }).then((r) => (r.error ? null : (r.data?.[0] ?? null)))
       : Promise.resolve(null),
     veModulo(persona, "caja") ? opcional(getCajaAbierta(persona.ubicacionId), "la caja (Historial)") : Promise.resolve(undefined),
+    // Quien no es líder ve solo su tienda (la RLS, sin `sedeId`): sus empresas son las de su sede, nunca «todas».
+    getEmpresasAqui(filtros.sedeId ?? (esLider ? null : persona.ubicacionId)),
+    repartoPosible ? getVendidoPorEmpresaHistorial({ ...filtros, busqueda: undefined }) : Promise.resolve(null),
   ]);
+  const reparto = totales.parcial ? null : repartoDeEmpresas(vendidoPorEmpresa, empresasAqui);
+  // La marca «CLAURE» de cada venta de esta página: solo donde conviven dos empresas.
+  const empresaPorVenta = empresasAqui && empresasAqui.length > 1 ? await getEmpresaDeVentas(filas.map((f) => f.id)) : {};
 
   const alcance = esLider ? (tiendas.find((t) => t.id === filtros.sedeId)?.nombre ?? "Todas las tiendas") : persona.ubicacionEtiqueta;
   const periodoEnPalabras = textoPeriodoHistorial(filtros.periodo, filtros.desde, filtros.hasta);
@@ -140,6 +156,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
   return (
     <div className="space-y-7">
+      <div data-guia="historial.cabecera">
       <EncabezadoPagina sede={alcance} titulo="Historial" subtitulo="Todas las ventas registradas, de cualquier fecha.">
         {/* Las cifras del PERÍODO (el buscador no las cambia), como las de la tienda en Cambios y Devoluciones. Pasado el
             tope de 1000 ventas serían parciales: el trazo de abajo lo dice y acá no se muestran. */}
@@ -153,13 +170,14 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           />
         )}
       </EncabezadoPagina>
+      </div>
 
       {/* Las ventas son lo primero: ocupan la columna principal y el pulso las acompaña en un lateral pegajoso (desde 1280 px).
           Más angosto, el pulso pasa DEBAJO de la lista, no encima: nada se interpone entre la persona y las ventas. */}
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
         <div className="min-w-0 space-y-5">
           {/* En el celular el buscador queda fijo bajo la cabecera del AppShell (61 px) mientras se recorre la lista. */}
-          <div className="sticky top-[61px] z-20 -mx-4 bg-crema/90 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <div data-guia="historial.buscador" className="sticky top-[61px] z-20 -mx-4 bg-crema/90 px-4 py-2 backdrop-blur-md sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <BuscadorHistorial valor={filtros.busqueda ?? ""} />
           </div>
 
@@ -183,6 +201,14 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
 
           <AvisosHistorial avisos={avisos} />
 
+          {reparto && (
+            <RepartoEmpresas
+              reparto={reparto}
+              guia="historial.reparto-empresas"
+              frase={`Lo vendido en ${alcance} · ${periodoEnPalabras.toLowerCase()}, prenda por prenda. Sin las ventas anuladas; el buscador no lo cambia.`}
+            />
+          )}
+
           {buscando && filas.length > 0 && (
             <p className="text-[13px] text-tinta/65">
               <b className="font-semibold text-tinta">
@@ -197,19 +223,27 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
           )}
 
           {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-          <div data-resultados>
+          <div data-resultados data-guia="historial.lista">
             {filas.length === 0 && !cursor ? (
               <EstadoVacio
+                icono={buscando ? <SearchX /> : <FunnelX />}
+                acciones={
+                  buscando ? (
+                    <BotonEnlace href={`/vender/historial${cadenaDeParams(params, ["q", "cursor"])}`}>Borrar la búsqueda</BotonEnlace>
+                  ) : (
+                    <BotonEnlace href="/vender/historial">Limpiar filtros</BotonEnlace>
+                  )
+                }
                 titulo={buscando ? `Ninguna venta con «${filtros.busqueda}»` : "Ninguna venta coincide"}
                 detalle={
                   buscando
-                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC, el nombre de la prenda o el nº de operación."
+                    ? "Se buscó en todas las fechas. Prueba con el número sin ceros (B004-31), el DNI o RUC o el nombre de la prenda."
                     : `No hay ventas con estos filtros (${periodoEnPalabras.toLowerCase()}). Prueba con otro período o quita algún filtro.`
                 }
               />
             ) : (
               // Buscando, los totales por día del período no corresponden a lo encontrado: cada día dice cuántas ventas trajo.
-              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} />
+              <HistorialVentasLista filas={filas} hoyLima={hoy} totalesPorDia={buscando ? {} : totalesPorDia} contexto={contexto} empresas={empresasAqui} porVenta={empresaPorVenta} />
             )}
           </div>
 
@@ -222,13 +256,13 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
             sustantivo={["venta", "ventas"]}
           />
 
-          <p className="max-w-2xl text-xs leading-relaxed text-tinta/60">
+          <p data-guia="historial.nota" className="max-w-2xl text-xs leading-relaxed text-tinta/60">
             <span className="text-tinta">Registro transparente:</span> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de
-            sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
+            sumar a lo vendido; si el cliente cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones y se ve aquí como una marca en la venta.
           </p>
         </div>
 
-        <aside aria-label="Pulso del período" className="xl:sticky xl:top-24">
+        <aside aria-label="Pulso del período" data-guia="historial.pulso" className="xl:sticky xl:top-24">
           <HistorialVentasPulso totales={totales} periodo={periodoEnPalabras} enlaces={enlaces} />
         </aside>
       </div>

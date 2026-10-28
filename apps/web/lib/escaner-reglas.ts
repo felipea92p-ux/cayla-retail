@@ -6,6 +6,8 @@
 // acá: es el camino de siempre (`resolverCodigoV2` + `agregar` en `PuntoDeVenta`). Acá solo vive lo que es propio de la
 // cámara, que sí es distinto del lector: la cámara ve la MISMA etiqueta 8 veces por segundo mientras la tienes delante.
 
+import type { SonidoLectura } from "./conteo-conectado";
+
 /** Un teléfono: puntero táctil y pantalla angosta (o apaisada y baja). Una tablet de mostrador con lector bluetooth queda
  *  fuera a propósito: ahí el lector escribe en el campo de siempre, y cambiarlo por un botón la dejaría sin escáner. */
 export const MQ_TELEFONO = "(pointer: coarse) and (max-width: 639.98px), (pointer: coarse) and (max-height: 500px)";
@@ -18,7 +20,8 @@ export const PAUSA_MISMO_CODIGO_MS = 2000;
  *  y no es lo mismo que `agotada`. `apartada`: lo único que queda en el piso es de una clienta que lo apartó (no hay
  *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
  *  (`lib/vender-stock-local.ts`). */
-export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "no-encontrada";
+/** `sin_precio`: una prenda de mercadería en S/ 0 no entra al ticket (ADR-0384, `sinPrecioParaVender`). */
+export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "sin_precio" | "no-encontrada";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -68,6 +71,20 @@ export function normalizarLectura(crudo: string): string {
   return crudo.trim();
 }
 
+/** Con qué tono pinta una pantalla lo que pasó con una lectura: `verde` entró · `taupe` y `pizarra` la reconoció (se quitó, ya
+ *  estaba, no cambia nada) · `ambar` no entró o no es de ninguna prenda. */
+export type TonoLectura = "verde" | "taupe" | "pizarra" | "ambar";
+
+/**
+ * El bip de una lectura con la cámara del teléfono (Felipe 2026-10-23: «que siempre emita sonido, así como en Bajar en tandas»): el
+ * mismo de Conteo y de la bajada (`PATRON_SONIDO`), para saber que se leyó sin volver a mirar la pantalla. Agudo y corto si la prenda
+ * se reconoció; grave y largo si no entró («mira la pantalla»). Sin tono —la pantalla solo busca lo leído y no sabe todavía si está—,
+ * agudo: el código se leyó.
+ */
+export function sonidoDeLecturaCamara(tono?: TonoLectura): SonidoLectura {
+  return tono === "ambar" ? "desconocida" : "suma";
+}
+
 /** ¿Es la misma etiqueta que se acaba de leer y todavía no pasó la pausa? */
 export function esLecturaRepetida(codigo: string, ultima: { codigo: string; en: number } | null, ahora: number): boolean {
   return ultima !== null && ultima.codigo === codigo && ahora - ultima.en < PAUSA_MISMO_CODIGO_MS;
@@ -83,11 +100,13 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
     case "en_almacen":
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está en el almacén` };
     case "apartada":
-      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está apartada para una clienta` };
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está apartada para un cliente` };
     case "tope":
       return (r.almacen ?? 0) > 0
         ? { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: las del piso ya están en el ticket y las demás en el almacén` }
         : { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} en el ticket` };
+    case "sin_precio":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: no tiene precio en el catálogo` };
     case "no-encontrada":
       return { tono: "ambar", texto: `No encontramos «${r.codigo}» en esta tienda` };
   }
@@ -111,6 +130,8 @@ export function estadoCorto(r: ResultadoEscaneo): string | null {
       return "No entró · apartada";
     case "tope":
       return enAlmacen ? "No entró · en almacén" : "Sin más stock";
+    case "sin_precio":
+      return "No entró · sin precio";
     case "no-encontrada":
       return "No es de esta tienda";
   }

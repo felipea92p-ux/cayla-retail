@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
 import type { CompraResumen } from "@/lib/compras-reglas";
 import {
   errorDeReasignacion,
@@ -32,7 +32,6 @@ import { firmar } from "@/lib/responsable-reglas";
 type Tienda = { id: string; nombre: string };
 export type LineaReasignable = { id: string; producto: string };
 
-const BTN_PRIMARIO = "label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50";
 
 export function BotonReasignar({
   compra,
@@ -55,7 +54,7 @@ export function BotonReasignar({
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-rojo hover:underline">
+      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.reasignar" className="btn-cayla btn-sutil btn-chico gap-1.5">
         <ArrowLeftRight aria-hidden className="h-3.5 w-3.5" />
         {etiqueta}
       </button>
@@ -170,7 +169,7 @@ function ReasignarRepartoModal({
         </>
       }
       subtitulo={`Comprobante ${compra.documento} · ${compra.proveedorNombre}`}
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
     >
       {() =>
@@ -191,56 +190,58 @@ function ReasignarRepartoModal({
               Úsalo cuando la mercadería llegó a una tienda distinta de la que decía el comprobante, o se repartió mal al registrarlo. Solo se mueve lo que <b className="font-semibold">aún no se recibió</b>.
             </p>
 
-            {reasignables.length > 1 ? (
-              <CampoSelect
-                etiqueta="¿De qué línea?"
-                valor={lineaId}
-                onValor={(v) => elegirLinea(v)}
-                opciones={reasignables.map((l) => ({ valor: l.id, texto: l.producto }))}
-              />
-            ) : (
-              <p className="text-sm text-tinta">
-                <span className="label-cayla mr-2 text-[11px] text-tinta/65">Línea</span>
-                {linea?.producto}
-              </p>
-            )}
+            <div className="space-y-5" data-guia="reasignar-modal.tiendas">
+              {reasignables.length > 1 ? (
+                <CampoSelect
+                  etiqueta="¿De qué línea?"
+                  valor={lineaId}
+                  onValor={(v) => elegirLinea(v)}
+                  opciones={reasignables.map((l) => ({ valor: l.id, texto: l.producto }))}
+                />
+              ) : (
+                <p className="text-sm text-tinta">
+                  <span className="label-cayla mr-2 text-[11px] text-tinta/65">Línea</span>
+                  {linea?.producto}
+                </p>
+              )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CampoSelect
-                etiqueta="Sale de"
-                valor={desdeId}
-                onValor={(v) => elegirOrigen(v)}
-                opciones={origenes.map((f) => ({ valor: f.ubicacionId, texto: `${nombreDe(f.ubicacionId)} · le faltan ${f.pendiente}` }))}
-              />
-              <CampoSelect
-                etiqueta="Va a"
-                valor={haciaId}
-                onValor={(v) => setHaciaId(v)}
-                marcador="Elige la tienda…"
-                opciones={ubicaciones
-                  .filter((u) => u.id !== desdeId)
-                  .map((u) => {
-                    const f = propias.find((x) => x.ubicacionId === u.id);
-                    return { valor: u.id, texto: `${u.nombre}${f ? ` · ya le tocan ${f.asignado}` : ""}` };
-                  })}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CampoSelect
+                  etiqueta="Sale de"
+                  valor={desdeId}
+                  onValor={(v) => elegirOrigen(v)}
+                  opciones={origenes.map((f) => ({ valor: f.ubicacionId, texto: `${nombreDe(f.ubicacionId)} · le faltan ${f.pendiente}` }))}
+                />
+                <CampoSelect
+                  etiqueta="Va a"
+                  valor={haciaId}
+                  onValor={(v) => setHaciaId(v)}
+                  marcador="Elige la tienda…"
+                  opciones={ubicaciones
+                    .filter((u) => u.id !== desdeId)
+                    .map((u) => {
+                      const f = propias.find((x) => x.ubicacionId === u.id);
+                      return { valor: u.id, texto: `${u.nombre}${f ? ` · ya le tocan ${f.asignado}` : ""}` };
+                    })}
+                />
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="reasignar-cantidad" className="label-cayla text-[11px] text-tinta/65">
-                ¿Cuántas unidades se mueven?
-              </label>
-              <input
-                id="reasignar-cantidad"
-                type="number"
-                min={1}
-                max={origen?.pendiente ?? 1}
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="ml-3 w-20 border-b border-tinta/25 bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
-              />
-              <span className="ml-2 text-xs text-tinta/55">de {origen?.pendiente ?? 0} pendientes en {nombreDe(desdeId)}</span>
+            <div data-guia="reasignar-modal.cantidad">
+              <div className="max-w-[16rem]">
+                <CampoTexto
+                  etiqueta="¿Cuántas unidades se mueven?"
+                  id="reasignar-cantidad"
+                  type="number"
+                  min={1}
+                  max={origen?.pendiente ?? 1}
+                  value={cantidad}
+                  onChange={(e) => setCantidad(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  className="tabular-nums"
+                  pie={`de ${origen?.pendiente ?? 0} pendientes en ${nombreDe(desdeId)}`}
+                />
+              </div>
               {/* El efecto, antes de confirmar: cómo queda lo que le toca a cada tienda. */}
               {cantidadOk && haciaId && (
                 <p className="mt-2 text-xs tabular-nums text-tinta/70" aria-live="polite">
@@ -250,36 +251,40 @@ function ReasignarRepartoModal({
               )}
             </div>
 
-            <fieldset>
-              <legend className="label-cayla mb-2 text-[11px] text-tinta/65">¿Por qué se mueve?</legend>
-              <div className="space-y-1.5">
-                {MOTIVOS_REASIGNACION.map((m) => (
-                  <label key={m} className="flex cursor-pointer items-center gap-2.5 text-sm text-tinta/80">
-                    <input type="radio" name="motivo-reasignacion" checked={motivo === m} onChange={() => setMotivo(m)} className="accent-rojo" />
-                    {ETIQUETA_MOTIVO_REASIGNACION[m]}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <div className="space-y-5" data-guia="reasignar-modal.motivo">
+              <fieldset>
+                <legend className="label-cayla mb-2 text-[11px] text-tinta/65">¿Por qué se mueve?</legend>
+                <div className="space-y-1.5">
+                  {MOTIVOS_REASIGNACION.map((m) => (
+                    <label key={m} className="flex cursor-pointer items-center gap-2.5 text-sm text-tinta/80">
+                      <input type="radio" name="motivo-reasignacion" checked={motivo === m} onChange={() => setMotivo(m)} className="accent-rojo" />
+                      {ETIQUETA_MOTIVO_REASIGNACION[m]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
-            <CampoTexto
-              etiqueta={motivo === "otro" ? "Nota (cuenta el motivo)" : "Nota (opcional)"}
-              value={nota}
-              onChange={(e) => setNota(e.target.value)}
-              placeholder="Algo que ayude a entenderlo después"
-              maxLength={200}
-            />
+              <CampoTexto
+                etiqueta={motivo === "otro" ? "Nota (cuenta el motivo)" : "Nota (opcional)"}
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+                placeholder="Algo que ayude a entenderlo después"
+                maxLength={200}
+              />
+            </div>
 
             <p className="text-xs leading-relaxed text-tinta/60">
               No se borra nada: queda un registro en el historial del comprobante con quién lo movió, cuánto y por qué. Lo que una tienda ya recibió no se toca.
             </p>
 
-            <ComboResponsable control={responsable} deshabilitado={loading} />
+            <div className="space-y-5" data-guia="reasignar-modal.pie">
+              <ComboResponsable control={responsable} deshabilitado={loading} />
 
-            <div className="flex justify-end border-t border-tinta/10 pt-4">
-              <button type="submit" className={BTN_PRIMARIO} disabled={loading || error !== null} title={error ?? undefined}>
-                {loading ? "Moviendo…" : cantidadOk && haciaId ? `Mover ${n} ${n === 1 ? "unidad" : "unidades"} a ${nombreDe(haciaId)}` : "Mover mercadería"}
-              </button>
+              <div className="flex justify-end border-t border-tinta/10 pt-4">
+                <Boton peso="primario" cargando={loading} textoCargando="Moviendo…" type="submit" disabled={loading || error !== null} title={error ?? undefined}>
+                  {cantidadOk && haciaId ? `Mover ${n} ${n === 1 ? "unidad" : "unidades"} a ${nombreDe(haciaId)}` : "Mover mercadería"}
+                </Boton>
+              </div>
             </div>
           </form>
         )

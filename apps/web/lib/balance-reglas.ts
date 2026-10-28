@@ -5,6 +5,8 @@
 // que se manda al registrar el arranque. La única cuenta es la del modal: sumar lo que el líder escribe para decirle, antes
 // de guardar, si cuadra (la base vuelve a comprobarlo y no deja guardar un arranque que no cuadra).
 
+import { leerMontoPlata } from "./monto-plata-reglas";
+
 type Fila = Record<string, unknown>;
 const n = (v: unknown): number => (v == null || v === "" ? 0 : Number(v));
 const nulo = (v: unknown): number | null => (v == null || v === "" ? null : Number(v));
@@ -237,10 +239,13 @@ const QUE_ES: Record<string, [string, string]> = {
   "104": ["bancos", "el saldo de cada cuenta en Cuentas y dinero"],
   "105": ["tarjeta por abonar", "el POS en Cuentas y dinero"],
   "451": ["tarjeta de crédito", "la tarjeta en Cuentas y dinero"],
+  // ADR-0362 fase 6 · actividad 7.
+  "1413": ["fondos por rendir", "lo que tiene cada persona en Fondos por rendir"],
+  "1419": ["faltantes que debe el personal", "lo que falta pagar de cada rendición con deuda"],
   "201": ["mercaderías", "el stock × costo de cada prenda"],
   "33": ["activos fijos", "la suma de los activos fijos"],
   "421": ["facturas por pagar", "la suma de las facturas"],
-  "122": ["adelantos de clientas", "la suma de las separaciones pendientes"],
+  "122": ["adelantos de clientes", "la suma de las separaciones pendientes"],
 };
 
 /** El texto de una causa sin su aclaración entre paréntesis (para la franja de «Causa probable»). */
@@ -281,7 +286,7 @@ export function solesBalance(v: number): string {
     ? abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : Math.round(abs).toLocaleString("es-PE");
   const cero = conCentimos ? abs === 0 : Math.round(abs) === 0;
-  return `${v < 0 && !cero ? "−" : ""}S/ ${cuerpo}`;
+  return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
 /** «7,2 % al mes» (coma decimal, como el resto de Reportes). */
@@ -307,6 +312,8 @@ const NOMBRE_LINEA: Record<string, string> = {
   "101": "Caja (cajones, cajas fuertes y lo entregado al líder)",
   "104": "Bancos y billeteras",
   "105": "Tarjeta por abonar",
+  "1413": "Fondos por rendir (la plata de quien compra)",
+  "1419": "Faltantes que debe el personal",
   "201": "Mercaderías",
   "211": "Productos terminados del Taller",
   "332": "Mejoras del local",
@@ -320,7 +327,7 @@ const NOMBRE_LINEA: Record<string, string> = {
   "421": "Facturas por pagar",
   "451": "Tarjeta de crédito",
   "47": "Préstamo del dueño (por devolver)",
-  "122": "Adelantos de clientas",
+  "122": "Adelantos de clientes",
   "50": "Capital",
   "52": "Aportes del dueño",
   "591": "Utilidades acumuladas",
@@ -441,12 +448,11 @@ export function cuadreArranque(lineas: readonly { cuenta: string; tipo: string; 
   return { tiene: r(tiene), debe: r(debe), tuyo: r(tuyo), diferencia, cuadra: Math.abs(diferencia) < 0.005 };
 }
 
-/** Un monto escrito por el líder («1,250.50», «−300», vacío = 0). `null` si no es un número. */
+/** Un monto escrito por el líder («1,250.50», «648,50», «−300», vacío = 0), con la regla única de `leerMontoPlata`. `null` si no se entiende. */
 export function leerMontoArranque(texto: string): number | null {
-  const limpio = texto.replace(/\s/g, "").replace(/−/g, "-").replace(/,/g, "");
+  const limpio = texto.replace(/\s/g, "").replace(/−/g, "-");
   if (limpio === "" || limpio === "-") return 0;
-  if (!/^-?\d+(\.\d{1,2})?$/.test(limpio)) return null;
-  return Number(limpio);
+  return leerMontoPlata(limpio);
 }
 
 export type LineaArranque = { cuenta: string; monto: number; origen: "sistema" | "manual"; nota?: string };

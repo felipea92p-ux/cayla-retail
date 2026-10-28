@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { largoDocumento, soloDigitos, validarDocumento } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { Ayuda } from "@/components/Ayuda";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoTexto } from "@/components/ui/campos";
 
 // Campo de identificación de la clienta para un comprobante: se tipea el número
 // y el sistema muestra a quién pertenece ANTES de emitir.
@@ -33,6 +34,10 @@ type Props = {
       registra puede preferir escribir la razón social a mano (decidido con
       Felipe, 2026-09-14). */
   disparo?: "automatico" | "boton";
+  /** Qué pasa si el campo se deja vacío, dicho en una frase (p. ej. «Sin DNI, la boleta sale a nombre de «Cliente varios»»). Se ve debajo del
+      campo mientras está vacío y se repite en su ayuda. Solo lo pasa quien sabe a nombre de quién sale el documento (el ticket de Vender):
+      en un alta de clienta o de proveedor «Cliente varios» no significa nada. Sin él, el campo se ve como siempre. */
+  sinNumero?: string;
   /** Muestra «n/11» junto a la etiqueta y, con el número válido, el hilo en verde y un ✓ en el pie (alta de
       proveedor, 2026-09-19). Vender y Facturación no lo piden: su campo se ve como siempre. */
   contador?: boolean;
@@ -40,6 +45,11 @@ type Props = {
       completo y válido, reemplaza al ✓ y al hilo verde por este mensaje en rojo, para que nunca se digan las
       dos cosas a la vez. Solo tiene efecto junto con `contador`. */
   problemaExterno?: React.ReactNode;
+  /** Un nombre que el sistema ya tiene para el número escrito AHORA, con de dónde salió (en Vender: la ficha del cliente
+      del ticket, cuyo DNI ya pasó por el padrón al registrarlo). Con él no se le pregunta al padrón: se muestra en la
+      tarjeta y es el que se imprime. Quien llama lo calcula con el número de cada momento, así que corregir un dígito lo
+      apaga y se consulta como siempre (Felipe 2026-10-15). */
+  conocido?: { nombre: string; origen: string } | null;
 };
 
 // El resultado guarda A QUÉ NÚMERO pertenece. Así, cambiar de boleta a factura o
@@ -52,7 +62,7 @@ type Consulta =
   | { clave: string; fase: "error"; mensaje: string };
 
 const ETIQUETA = {
-  dni: { campo: "DNI de la clienta", nombre: "Nombre de la clienta", padron: "RENIEC" },
+  dni: { campo: "DNI del cliente", nombre: "Nombre del cliente", padron: "RENIEC" },
   ruc: { campo: "RUC de la empresa", nombre: "Razón social", padron: "SUNAT" },
 } as const;
 
@@ -64,7 +74,7 @@ const MOTIVO_LEGIBLE: Record<string, string> = {
   "El padrón no respondió a tiempo": "El padrón no respondió.",
 };
 
-export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno }: Props) {
+export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno, sinNumero, conocido }: Props) {
   const [consulta, setConsulta] = useState<Consulta | null>(null);
   // Qué se pidió por última vez, para no repetir la misma llamada (cada una se paga).
   const ultima = useRef<string>("");
@@ -74,8 +84,10 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   const validacion = validarDocumento(tipo, numero);
   const vacio = soloDigitos(numero).length === 0;
   const clave = `${tipo}:${numero}`;
+  // Con un nombre ya conocido para este número, el padrón ni se pregunta ni se muestra: una sola tarjeta, un solo origen.
+  const yaConocido = conocido?.nombre.trim() && validacion.valido ? conocido : null;
   // Solo se muestra lo que corresponde a lo que está escrito AHORA.
-  const actual = consulta?.clave === clave ? consulta : null;
+  const actual = !yaConocido && consulta?.clave === clave ? consulta : null;
 
   // La consulta en sí, compartida por los dos modos de disparo.
   async function consultar(control: AbortController) {
@@ -104,7 +116,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   // espera: sin eso, tipear un RUC de 11 dígitos dispararía consultas a medio
   // camino, todas cobradas y todas inútiles.
   useEffect(() => {
-    if (disparo !== "automatico" || !validacion.valido || ultima.current === clave) return;
+    if (disparo !== "automatico" || !validacion.valido || yaConocido || ultima.current === clave) return;
 
     const control = new AbortController();
     const temporizador = setTimeout(() => consultar(control), 500);
@@ -114,7 +126,14 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       control.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave, validacion.valido, disparo]);
+  }, [clave, validacion.valido, disparo, yaConocido !== null]);
+
+  // Lo que se ve es lo que se imprime: con el nombre conocido en la tarjeta (y la caja del nombre escondida), el comprobante
+  // lleva ese, aunque antes se hubiera escrito otro a mano (con el carné, antes de volver al DNI).
+  useEffect(() => {
+    if (yaConocido && nombre !== yaConocido.nombre) onNombre(yaConocido.nombre);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yaConocido?.nombre, nombre]);
 
   // Modo botón: si el formulario se cierra con una consulta en vuelo, se
   // cancela para no escribir sobre un estado que ya no existe.
@@ -172,7 +191,9 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
               }
           : disparo === "boton" && !actual
             ? { pie: `Con los ${largoDocumento(tipo)} dígitos, «Buscar» trae el nombre desde ${etiqueta.padron}. También puedes escribirlo a mano.`, tono: "neutro" }
-            : { pie: null, tono: "neutro" };
+            : vacio && sinNumero
+              ? { pie: sinNumero, tono: "neutro" }
+              : { pie: null, tono: "neutro" };
 
   const campoNumero = (
     <CampoTexto
@@ -197,7 +218,9 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
         <Ayuda titulo={`Consulta de ${tipo.toUpperCase()}`}>
           {disparo === "boton"
             ? `Con el número completo, «Buscar» le pregunta a ${etiqueta.padron} de quién es y trae el nombre oficial. Si prefieres, o si la consulta no está disponible, el nombre se escribe a mano y se guarda igual.`
-            : `Al escribir el número completo, el sistema le pregunta a ${etiqueta.padron} de quién es y muestra el nombre debajo. Sirve para ver, antes de emitir, que el comprobante va a salir a nombre de quien debe. Si la consulta no está disponible, el nombre se escribe a mano y la venta sigue igual.`}
+            : yaConocido
+              ? `${yaConocido.origen}. Como el sistema ya tiene el nombre de este número, no se vuelve a consultar el padrón. Si cambias el número, se consulta de nuevo.`
+              : `Al escribir el número completo, el sistema le pregunta a ${etiqueta.padron} de quién es y muestra el nombre debajo. Sirve para ver, antes de emitir, que el comprobante va a salir a nombre de quien debe. Si la consulta no está disponible, el nombre se escribe a mano y la venta sigue igual.${sinNumero ? ` ${sinNumero}` : ""}`}
         </Ayuda>
       }
       pie={estado.pie}
@@ -233,16 +256,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
         // alto siempre (ver <Campo>), así que se compensa con margen.
         <div className="flex items-end gap-3">
           <div className="flex-1">{campoNumero}</div>
-          <Boton
-            type="button"
-            peso="fantasma"
-            className="mb-[1.15rem] h-9 shrink-0 py-0"
-            onClick={buscar}
-            cargando={actual?.fase === "cargando"}
-            disabled={!puedeBuscar}
-          >
-            {actual?.fase === "cargando" ? "Buscando…" : "Buscar"}
-          </Boton>
+          <BotonBuscar className="mb-[1.15rem] h-9 shrink-0 py-0" onClick={buscar} cargando={actual?.fase === "cargando"} disabled={!puedeBuscar} />
         </div>
       ) : (
         campoNumero
@@ -254,7 +268,12 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
           Sin relleno (2026-09-14): tenía `bg-papel`, que es más claro que el
           crema del modal de proveedores y se veía como un recuadro blanco; un
           tinte al 3% seguía notándose. El canto solo ya marca el bloque. */}
-      {datos && (
+      {yaConocido ? (
+        <div className="anim-revelar border-l-2 border-sand py-2.5 pl-3 pr-3">
+          <p className="font-display text-base leading-tight text-tinta">{yaConocido.nombre}</p>
+          <p className="mt-1.5 text-[11px] text-tinta/65">{yaConocido.origen}</p>
+        </div>
+      ) : datos && (
         <div
           className={`anim-revelar border-l-2 py-2.5 pl-3 pr-3 ${
             datos.advertencias.length > 0 ? "border-rojo" : "border-sand"
@@ -285,8 +304,8 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
             </>
           ) : (
             <p className="text-xs leading-snug text-tinta/70">
-              {MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón."} Escribe el nombre a
-              mano y confírmalo con la clienta antes de emitir.
+              {conPunto(MOTIVO_LEGIBLE[datos.motivo ?? ""] ?? datos.motivo ?? "Sin datos del padrón.")} Escribe el nombre a
+              mano y confírmalo con el cliente antes de emitir.
             </p>
           )}
 
@@ -301,7 +320,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       {/* Solo aparece cuando hay algo que escribir. Con el nombre ya confirmado
           arriba, repetirlo en un campo editable invita a corregir justo el dato
           que SUNAT contrasta contra el documento. */}
-      {!datos?.nombre && (
+      {!yaConocido && !datos?.nombre && (
         <CampoTexto
           id="documento-nombre"
           etiqueta={etiqueta.nombre}
@@ -313,4 +332,11 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
     </div>
   );
 
+}
+
+/** El motivo que llega del padrón a veces viene sin punto final («El padrón respondió algo inesperado»): sin él, la frase
+ *  siguiente («Escribe el nombre…») se pega a la anterior. */
+function conPunto(texto: string): string {
+  const t = texto.trim();
+  return /[.!?…]$/.test(t) ? t : `${t}.`;
 }

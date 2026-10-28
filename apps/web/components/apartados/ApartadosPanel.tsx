@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { Bookmark, Clock, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
@@ -10,6 +11,8 @@ import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
 import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
 import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { claveDelApartado } from "@/lib/apartados-cambio-de-sede";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -43,6 +46,8 @@ type Props = {
   /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Entregar» con ese apartado elegido; ya
    *  cerrado → «Todos» buscándolo por su código. Un id que no está en la lista no cambia nada. */
   abrir?: string | null;
+  /** La base ya recibe el redondeo del efectivo (`fn_acepta_redondeo_efectivo`, ADR-0311): la entrega cobra el saldo en monedas de S/ 0.10. */
+  redondeoEfectivo?: boolean;
 };
 
 /**
@@ -57,6 +62,14 @@ export function ApartadosPanel(props: Props) {
   const [opciones, setOpciones] = useState(false);
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
+  // La sede cambió con el selector de la cabecera (Felipe, 2026-10-11): el apartado elegido para entregar y el pedido por apartar son
+  // de la sede anterior y no están en las listas de esta. Lo que se estaba apartando lo guarda `TrabajoPorSede` (ver `ApartarVista`).
+  const [sedePrevia, setSedePrevia] = useState(props.ubicacionId);
+  if (props.ubicacionId !== sedePrevia) {
+    setSedePrevia(props.ubicacionId);
+    setElegido(null);
+    setPedidoParaApartar(null);
+  }
   const apagadas = props.apagadas ?? [];
   const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
 
@@ -73,7 +86,9 @@ export function ApartadosPanel(props: Props) {
   const pestañas: { id: Vista; etiqueta: string; icono: React.ReactNode; insignia?: number }[] = [
     { id: "apartar", etiqueta: "Apartar", icono: <Bookmark className="h-5 w-5" aria-hidden /> },
     { id: "entregar", etiqueta: "Entregar", icono: <ShoppingBag className="h-5 w-5" aria-hidden /> },
-    { id: "todos", etiqueta: "Todos", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
+    // «Historial» (ADR-0367, Felipe 2026-10-09: «debe haber un apartado donde se vea el historial»): la lista de todos los
+    // apartados de la tienda, con su ticket para reimprimir. La clave sigue siendo «todos».
+    { id: "todos", etiqueta: "Historial", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
   ];
 
   // Pestañas, «Opciones» y avisos, pegados a la izquierda (Felipe, 2026-09-26, spike
@@ -87,26 +102,22 @@ export function ApartadosPanel(props: Props) {
         <p className={`label-cayla text-[11px] text-tinta/80 ${vista === "todos" ? "" : "lg:max-xl:hidden"}`}>Apartados · {props.ubicacionEtiqueta}</p>
         <span aria-hidden className={`h-[22px] w-px bg-sand max-lg:hidden ${vista === "todos" ? "" : "lg:max-xl:hidden"}`} />
         <div className="flex items-center gap-6 lg:max-xl:gap-4">
-        <nav aria-label="Apartados" className="flex items-center gap-6 max-lg:hidden lg:max-xl:gap-4">
-          {pestañas.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => irA(p.id)}
-              aria-current={vista === p.id ? "page" : undefined}
-              className={`label-cayla relative h-11 text-[11px] transition-colors sm:h-16 ${vista === p.id ? "text-tinta after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-tinta" : "text-tinta/55 hover:text-tinta"}`}
-            >
-              {p.etiqueta}
-              {!!p.insignia && (
-                <span className="ml-1.5 inline-grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] tracking-normal text-papel">{p.insignia}</span>
-              )}
-            </button>
-          ))}
-        </nav>
+        {/* La pestaña de vista del ERP (ADR-0358): «Apartar / Entregar / Todos» cambia de sección. Solo en escritorio; el celular lleva las
+            suyas abajo (`ALTO_PESTANAS_MOVIL`). El conteo de «Todos» es el que pide algo (Felipe 2026-10-07). */}
+        <Pestanas
+          className="max-lg:hidden"
+          etiquetaAccesible="Apartados"
+          idIndicador="apartados"
+          guia="apartados.pestanas"
+          activa={vista}
+          onCambio={(c) => irA(c as Vista)}
+          items={pestañas.map((p) => ({ clave: p.id, etiqueta: p.etiqueta, conteo: p.insignia || null, pide: p.insignia ? "necesitan algo" : undefined, guia: `apartados.pestana-${p.id}` }))}
+        />
         {props.esLider && (
           <button
             type="button"
             onClick={() => setOpciones(true)}
+            data-guia="apartados.opciones"
             title="Qué funciones usa Apartados en esta tienda"
             aria-label="Opciones"
             className="label-cayla flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[10.5px] text-tinta/80 hover:border-taupe"
@@ -123,12 +134,12 @@ export function ApartadosPanel(props: Props) {
           {props.liberadosAhora > 0 && (
             <p className="text-rojo-profundo">
               {props.liberadosAhora === 1 ? "Un apartado venció hace más de 2 días y se liberó solo" : `${props.liberadosAhora} apartados vencieron hace más de 2 días y se liberaron solos`}:
-              la prenda volvió al stock y falta devolver el adelanto (ver «Todos»).
+              la prenda volvió al stock y falta devolver el adelanto (ver «Historial»).
             </p>
           )}
           {props.hayMas && (
             <p className="text-tinta/70">
-              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras de «Todos» sí los cuentan.
+              Se muestran los {TOPE_SEPARACIONES} apartados más urgentes (liberados y abiertos primero). Los más antiguos ya cerrados no entran en esta lista; las cifras del Historial sí los cuentan.
             </p>
           )}
           {!props.cajaAbierta && <p className="text-ambar-profundo">No hay caja abierta en {props.ubicacionEtiqueta}: para apartar o entregar, primero abre la caja.</p>}
@@ -151,12 +162,12 @@ export function ApartadosPanel(props: Props) {
           veClientas={props.veClientas}
           tiendas={props.tiendas ?? []}
           pedido={pedidoParaApartar}
-          key={pedidoParaApartar?.id ?? "apartar"}
+          key={claveDelApartado(props.ubicacionId, pedidoParaApartar?.id)}
           onPedidoHecho={() => setPedidoParaApartar(null)}
         />
       )}
       {vista === "entregar" && (
-        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} />
+        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} cabecera={cabecera} redondeoEfectivo={props.redondeoEfectivo} />
       )}
       {vista === "todos" && (
         <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}
@@ -179,22 +190,22 @@ export function ApartadosPanel(props: Props) {
       <EnCuerpo>
       <nav
         aria-label="Apartados"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:pr-[env(safe-area-inset-right)] lg:hidden"
       >
         {pestañas.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => irA(p.id)}
-            aria-current={vista === p.id ? "page" : undefined}
+            // «false» (válido en ARIA) y no ausente: así la guía interactiva reconoce la pestaña también cuando no es la elegida.
+            aria-current={vista === p.id ? "page" : "false"}
+            data-guia={`apartados.pestana-${p.id}`}
             style={{ height: ALTO_PESTANAS_MOVIL }}
             className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
           >
             {p.icono}
             {p.etiqueta}
-            {!!p.insignia && (
-              <span className="absolute top-2 left-[calc(50%+6px)] grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] text-papel">{p.insignia}</span>
-            )}
+            <Globito n={p.insignia ?? 0} pide esquina etiqueta="necesitan algo" className="absolute top-2 left-[calc(50%+6px)]" />
           </button>
         ))}
       </nav>

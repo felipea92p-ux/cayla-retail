@@ -140,7 +140,7 @@ caso(
 caso("persona SIN clave y con el interruptor encendido → pide responsable (no cambia lo de siempre)", como(MICAELA_AUTH) + actor, "42501|responsable_requerido");
 caso(
   "persona + acción soltada + SIN marca de entrada → firma ella misma",
-  como(MICAELA_AUTH) + conEncabezados({ "x-responsable-omitido": "producto_confirmar_cambios" }) + `select (retail.fn_actor_persona_id() = micaela)::text from ids;`,
+  como(MICAELA_AUTH) + conEncabezados({ "x-responsable-omitido": "color_rechazar" }) + `select (retail.fn_actor_persona_id() = micaela)::text from ids;`,
   "true"
 );
 caso("persona con una clave que NO está en la lista → pide responsable", como(MICAELA_AUTH) + conEncabezados({ "x-responsable-omitido": "registrar_venta" }) + actor, "42501|responsable_requerido");
@@ -166,8 +166,39 @@ caso(
 );
 
 // ---------------- La lista ----------------
-caso("la lista tiene las 28 acciones soltadas", `select count(*) from retail.acciones_sin_responsable;`, "28");
-caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
+// 28 de la siembra (20260929230000) y, con todas las migraciones, 3 más de Avisos del club (20261002170000) y 3 de la cola de arranque
+// de ventas sin registrar (cerrar, reabrir e identificar: 20261005100100, 20261005110000 y 20261005120000; ADR-0334). Es el MISMO número que
+// fija `apps/web/lib/responsable-omitido.test.ts`, que lo cuenta leyendo las migraciones: sumar una acción es sumarla en los dos.
+// Menos dos: Editar producto (`producto_confirmar_cambios`) vuelve a pedir responsable desde 20261006180100 (ADR-0354) y Regularizar
+// una prenda (`regularizar_prenda`) desde 20261004204000 (ADR-0328, en producción desde el 5-oct; 20261006200000 repite el borrado).
+// Y tres más de Órdenes de compra (crear, editar y anular: 20261010223500, 20261010235000 y 20261010235500; ADR-0362,
+// decisión 39): con la cuenta de una persona firma ella; desde una terminal, el combo. Y una más: registrar el comprobante de una orden
+// (`orden_compra_comprobante`, 20261012211000; ADR-0362 fase 2, decisión 42), con el mismo trato. Y una más: enviar una orden a una sede
+// (`orden_compra_envio`, 20261012225000; ADR-0362 fase 3). Y tres más de Órdenes de insumos del Taller (`orden_insumo_crear`,
+// `orden_insumo_editar` y `orden_insumo_anular`, 20261013040000; ADR-0362 fase 7): la decisión 39 extendida a la orden del Taller.
+// Y tres más de Fondos por rendir (`fondo_entregar`, `fondo_devolver` y `fondo_anular`, 20261013182000; ADR-0362 fase 6): el mismo trato.
+// Y una más: el gasto del viaje (`gasto_viaje_registrar`, 20261013222000; ADR-0362 fase 6 · actividad 3), que se anota lejos de la tienda.
+// Y cuatro de la rendición (ADR-0362 fase 6 · actividad 5): la foto del papel de un gasto del viaje (`gasto_viaje_foto`, 20261013233000),
+// rendir el propio fondo y aprobar o devolver una rendición (`fondo_rendir`, `fondo_rendicion_aprobar`, `fondo_rendicion_devolver`,
+// 20261013235000). Y dos de la deuda de un faltante (ADR-0362 fase 6 · actividad 7): registrar lo que la persona paga y anularlo
+// (`fondo_deuda_pagar`, `fondo_deuda_anular`, 20261014145000). Y una más: el comprobante de una orden de insumos del Taller
+// (`orden_insumo_comprobante`, 20261015020000; ADR-0362 fase 7 parte 2), con el trato de la orden de tienda. Y una más: el recorte que el
+// ERP guarda solo al subir una foto, para el probador de la tienda online (`recorte_foto`, 20261017013000; ADR-0434, Felipe 2026-10-16). Y una
+// más: deshacer la unión de una cuenta de Google con un miembro (`vinculo_google_desvincular`, 20261021170000; ADR-0469), solo del líder. Y una
+// más: registrar un proveedor nuevo desde una orden de compra (`proveedor_de_orden`, 20261021202000; ADR-0362), con el trato de la orden.
+// Y dos más de Compras simple: anotar la plata que te dieron y confirmarla (`plata_anotar`, `plata_confirmar`, 20261022235000; ADR-0480).
+// Y una más: registrar una compra desde el celular (`compra_rapida`, 20261023005000; ADR-0480).
+// Y tres más del día de compras: el gasto que no es ropa, mandar a la tienda y terminar el día (`gasto_rapido`, `compra_mandar`,
+// `compra_terminar_dia`, 20261023114000; ADR-0480). Y tres de «Revisar compras»: completar el papel, recibir lo del cierre del día y pasar
+// un gasto a los gastos del viaje (`papel_completar`, `compra_cierre_recibir`, `gasto_revisar`, 20261023143000; ADR-0480).
+// Y una más: abrir la ronda de compras (`compra_ronda_abrir`, 20261023183000; ADR-0480).
+const TOTAL = EN_SECO ? "28" : "64";
+caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
+// El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
+// la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`). Su reemplazo en Compras simple,
+// «Gasté en otra cosa» (`gasto_rapido`), se anota en el mismo lugar; y su revisión (`gasto_revisar`) la hace Revisar compras con su cuenta,
+// como confirmar la plata (ADR-0480; la misma excepción que `apps/web/lib/responsable-omitido.test.ts`).
+caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto', 'gasto_rapido', 'gasto_revisar');`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
   `set local role authenticated;\nselect pg_temp.intento('select * from retail.acciones_sin_responsable') || ',' || pg_temp.intento($$delete from retail.acciones_sin_responsable$$);`,
@@ -175,9 +206,9 @@ caso(
   (s) => s.split(",").length >= 2 && s.startsWith("42501|") && s.includes(",42501|")
 );
 caso(
-  "la migración se puede pegar dos veces (re-ejecutable): sigue habiendo 28",
+  `la migración se puede pegar dos veces (re-ejecutable): sigue habiendo ${TOTAL}`,
   (EN_SECO ? MIGRACION : "") + `select count(*) from retail.acciones_sin_responsable;`,
-  "28"
+  TOTAL
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE}${EN_SECO ? ", en seco" : ""})`);

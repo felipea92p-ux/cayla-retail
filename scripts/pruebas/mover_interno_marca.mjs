@@ -8,7 +8,7 @@
  *      interna) y el navegador entra por `mover_entre_piso_y_almacen`, que pasa la marca tal cual; la tabla de marcas con
  *      RLS, sin políticas y sin privilegios de afuera.
  *   Desde ADR-0240 los casos M2 a M7 llaman a la puerta `mover_entre_piso_y_almacen` (lo que usa la pantalla), con la
- *   terminal de prueba en un rol con el módulo «Bajada al piso».
+ *   terminal de prueba en un rol con Existencias (ADR-0306: «Bajada al piso» ya no es módulo, es función de Existencias).
  *   M2 sin marca: igual que antes (dos llamadas mueven dos veces), que es como la llama `bajar_al_piso`.
  *   M3 con marca: el reintento con los mismos datos devuelve el MISMO movimiento y no mueve nada más.
  *   M4 la misma marca con otra cantidad, otra nota u otro sentido: rechazo con hint `mover_interno_token_reusado`, sin mover.
@@ -106,8 +106,8 @@ insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) values
 insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
   values ('${ROSA}', :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date);
 insert into retail.rol_modulos (rol_id, modulo)
-  select retail.fn_rol_por_clave('terminal_administrativa'), 'bajada_piso'
-  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'bajada_piso');
+  select retail.fn_rol_por_clave('terminal_administrativa'), 'existencias'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias');
 \\set rosa '${ROSA}'
 \\set luz '${LUZ}'
 select gen_random_uuid() as tok1 \\gset

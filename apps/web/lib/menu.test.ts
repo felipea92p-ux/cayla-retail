@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { AVIARIO } from "../../../scripts/datos/aviario.mjs";
@@ -12,6 +12,7 @@ import {
   esGrupo,
   esGrupoMenu,
   esMostrador,
+  hermanosDe,
   hojasDe,
   menuPara,
   permisosDe,
@@ -22,6 +23,7 @@ import {
   type FuenteMenu,
   type GrupoMenu,
   type Hoja,
+  type Menu,
   type Nodo,
   type Permiso,
   type PerfilDelMenu,
@@ -124,7 +126,7 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
    entero, a cualquier profundidad (un subgrupo cuenta como hija de su padre Y como cabecera de las suyas). No atrapa la
    repetición entre DOS RAMAS del árbol que nunca se muestran juntas a la vez (Compras/Producción→Abastecimiento,
    Proveedores, Facturas, Recibir, Por pagar: mutuamente excluyentes por ubicación o permiso, a propósito — ver los
-   comentarios de esos íconos en AppShell.tsx) — esa parte queda a criterio de quien agregue una fila nueva.
+   comentarios de esos íconos en lib/menu-iconos.ts) — esa parte queda a criterio de quien agregue una fila nueva.
    ==================================================================== */
 function iconosDeSubarbol(n: Nodo): string[] {
   if (n.estado !== "viva") return [];
@@ -156,6 +158,12 @@ const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS.filter((p) => !FINANZAS_
   .flatMap((base) => [base, [...base, ...FINANZAS_JUNTOS]])
   .flatMap((permisos) => TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })));
 const nombreDe = (p: PerfilDelMenu) => `[${p.permisos.join(", ") || "sin permisos"}] en ${p.ubicacionTipo}`;
+// El menú de cada perfil se arma UNA vez y lo leen todas las pruebas que recorren PERFILES. Son 24 576 perfiles: volver a
+// armarlo dentro de cada prueba que los recorre era el 60 % de su tiempo, y con la máquina cargada por otras sesiones
+// (carga 16-19, 2026-10-02) la de los nodos futuros pasó de 1 s a 8-10 s y el límite de 5 s de vitest frenó commits del
+// pre-commit que solo cambiaban comentarios. Por la misma razón esas pruebas juntan lo que falla y lo comparan con UN
+// `expect` al final (24 576 `expect` sueltos eran otro 27 %): el mensaje sigue nombrando cada perfil que falla.
+const MENUS: readonly { perfil: PerfilDelMenu; menu: Menu }[] = PERFILES.map((perfil) => ({ perfil, menu: menuPara(perfil) }));
 
 function recorrer(nodos: readonly Nodo[]): Nodo[] {
   return nodos.flatMap((n) => [n, ...("hijos" in n && n.hijos ? recorrer(n.hijos) : [])]);
@@ -163,9 +171,14 @@ function recorrer(nodos: readonly Nodo[]): Nodo[] {
 const TODOS = recorrer(ARBOL);
 const VIVOS = TODOS.filter((n) => n.estado === "viva");
 
-// Un destino «vivo» es uno con `page.tsx` real bajo `app/(app)`. Contempla las que solo redirigen (`/produccion`).
-const hayPagina = (ruta: string) =>
-  ["tsx", "ts"].some((ext) => existsSync(fileURLToPath(new URL(`../app/(app)${ruta === "/" ? "" : ruta}/page.${ext}`, import.meta.url))));
+// Un destino «vivo» es uno con `page.tsx` real bajo `app/(app)`. Contempla las que solo redirigen (`/produccion`) y las que
+// viven dentro de un grupo de ruta de Next (una carpeta entre paréntesis no es parte de la URL: Traslados en `(billetera)`).
+const hayPagina = (ruta: string): boolean => {
+  const base = fileURLToPath(new URL(`../app/(app)${ruta === "/" ? "" : ruta}`, import.meta.url));
+  if (["tsx", "ts"].some((ext) => existsSync(`${base}/page.${ext}`))) return true;
+  if (!existsSync(base)) return false;
+  return readdirSync(base, { withFileTypes: true }).some((d) => d.isDirectory() && /^\(.+\)$/.test(d.name) && ["tsx", "ts"].some((ext) => existsSync(`${base}/${d.name}/page.${ext}`)));
+};
 
 describe("permisos", () => {
   it("el líder tiene todos los permisos y el integrante ninguno", () => {
@@ -222,11 +235,31 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   const idsDe = (f: FilaMenu): string[] => [f.id, ...(esGrupoMenu(f) ? f.hijos.flatMap(idsDe) : [])];
 
   it("ningún perfil los ve: ni en el lateral, ni en el celular", () => {
-    for (const perfil of PERFILES) {
-      const menu = menuPara(perfil);
-      const emitidos = [...menu.riel.flatMap(idsDe), ...menu.movil.map((c) => c.id)];
-      expect(emitidos.filter((id) => futuros.has(id)), nombreDe(perfil)).toEqual([]);
+    const losVen = MENUS.flatMap(({ perfil, menu }) => {
+      const vistos = [...menu.riel.flatMap(idsDe), ...menu.movil.map((c) => c.id)].filter((id) => futuros.has(id));
+      return vistos.length ? [`${nombreDe(perfil)}: ${vistos.join(", ")}`] : [];
+    });
+    expect(losVen).toEqual([]);
+  });
+});
+
+// Ningún ícono se repite en el lateral de un mismo perfil (Felipe, 2026-10-13, ADR-0394): «los más referenciales, directos, más
+// entendibles, y que ninguno se repita». Plan del piso y Rendimiento compartían «resumen», y Plan de campaña (Compras) compartía
+// «analisis» con Análisis, dos pantallas que el líder ve a la vez. Se mira POR PERFIL, no en el árbol: Compras y Producción
+// (Abastecimiento) reusan íconos a propósito porque nunca salen juntas (Compras no se ve parado en el Taller, Producción solo
+// ahí), y «Recibir mercadería» sale en Compras o en Inventario, nunca en las dos. Lo que esta prueba cuida es que un perfil
+// real no vea dos filas con el mismo dibujo. La lectura visual (dos íconos distintos que se parecen) se mira en el navegador.
+describe("ningún ícono se repite en el lateral de un mismo perfil", () => {
+  const iconosDe = (f: FilaMenu): { id: string; icono: string }[] => [{ id: f.id, icono: f.icono }, ...(esGrupoMenu(f) ? f.hijos.flatMap(iconosDe) : [])];
+
+  it("ni en las cabeceras ni en las pantallas, a cualquier profundidad", () => {
+    const repetidos = new Map<string, Set<string>>();
+    for (const { menu } of MENUS) {
+      const porIcono = new Map<string, string[]>();
+      for (const { id, icono } of menu.riel.flatMap(iconosDe)) porIcono.set(icono, [...(porIcono.get(icono) ?? []), id]);
+      for (const [icono, ids] of porIcono) if (ids.length > 1) repetidos.set(`${icono}: ${[...ids].sort().join(" + ")}`, new Set());
     }
+    expect([...repetidos.keys()].sort()).toEqual([]);
   });
 });
 
@@ -240,7 +273,10 @@ describe("las rutas del menú existen", () => {
 
 // Los topes del menú (regla de diseño, no de código): más filas o más hijas y el lateral deja de leerse de un vistazo. Si una
 // pantalla nueva no cabe, se REGRUPA (un subgrupo dentro del grupo, D-84); estos números no se suben para que la prueba pase.
-const TOPE_FILAS = 8;
+// 9 desde el 2026-10-16 (Felipe, ADR-0430): pidió el grupo «Tienda web» en el lateral, con todo lo de la tienda online junto. Antes eran
+// 8 y el líder ya llegaba a 8 en una tienda y en el Taller. SE ROMPE SI nace otro grupo de primer nivel: entonces se regrupa (un grupo
+// adentro de otro, D-84), y este número no vuelve a subir.
+const TOPE_FILAS = 9;
 const TOPE_HIJAS = 6;
 // Escape documentado para cuando un grupo necesite más margen que el tope general. Producción lo usó desde #231 hasta que
 // D-84/ADR-0155 (2026-09-21) lo regrupó (un subgrupo, «Abastecimiento», en vez de subir el tope), que es el remedio
@@ -251,15 +287,32 @@ const TOPE_HIJAS = 6;
 // mercadería sin ver Compras (hoy no existe). Se descartó el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba
 // el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
 // Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7 };
+// INVENTARIO, 8 (Felipe, 2026-10-05; ADR-0329, Plan del piso): la cláusula de arriba se cumplió y Felipe eligió SUBIR el tope en
+// vez de regrupar (preguntado con las dos opciones): «Plan del piso» va DIRECTO en Inventario, después de Frescura, para que ni una
+// ni otra queden un clic más adentro. El líder ve 7 (a Existencias, Movimientos, Traslados, Conteo, Análisis y Frescura suma Plan del
+// piso; Recibir mercadería sigue saliendo solo a quien no ve Compras). Llega a 8 únicamente un rol que vea Análisis, Frescura y
+// Plan del piso y reciba mercadería sin ver Compras (hoy no existe). SE ROMPE SI Inventario suma otra pantalla o ese rol aparece:
+// entonces SÍ se regrupa (el subgrupo del piso, Frescura + Plan del piso), y este número no vuelve a subir.
+// INVENTARIO, cerrado (Felipe, 2026-10-13; ADR-0392): se regrupó, pero no en un subgrupo: Análisis, Frescura del piso y Plan del
+// piso son de «Gestión», un grupo de PRIMER nivel debajo de Inicio, junto con Rendimiento (que deja su fila suelta, así el primer
+// nivel sigue en 8). Inventario vuelve a 5 (las cuatro de operar stock y Recibir) y cabe en el tope general: la excepción se
+// borra y no vuelve.
+// COMPRAS, 7 (Felipe, 2026-10-13; ADR-0362, decisión 65): «Fondos por rendir» va DIRECTO en Compras. Se le preguntó con el subgrupo
+// «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
+// mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
+// Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
+// VENTAS, cerrado (ADR-0430, 2026-10-16): fue 7 mientras «Pedidos web» vivió en Ventas (ADR-0408, act. 8); desde que se mudó a
+// «Tienda web», Ventas vuelve a 6 y cabe en el tope general: la excepción se borra y no vuelve.
+// TIENDA WEB, 7 (Felipe, 2026-10-23; ADR-0495): «Tráfico» entra como séptima hija, entre Recomendaciones y Conf. Tienda, con su propio
+// módulo. Se descartó hacerla pestaña del Resumen: una pestaña no es un módulo (ADR-0306) y la vería todo el que ve el Resumen.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, tiendaWeb: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
 // y la misma regla de «con una sola hija no agrupa nada» que un grupo de primer nivel — no hay un caso especial para él.
 const gruposDe = (fs: readonly FilaMenu[]): GrupoMenu[] => fs.filter(esGrupoMenu).flatMap((f) => [f, ...gruposDe(f.hijos)]);
 
-describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú de %s", (_nombre, perfil) => {
-  const menu = menuPara(perfil);
+describe.each(MENUS.map(({ perfil, menu }) => [nombreDe(perfil), perfil, menu] as const))("forma del menú de %s", (_nombre, perfil, menu) => {
   const hrefs = menu.riel.flatMap(hojasDe).map((h) => h.href);
 
   it("ninguna ruta aparece dos veces en el lateral", () => {
@@ -286,16 +339,11 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
     }
   });
 
-  it("«Recibir mercadería» vive como MÁXIMO en un grupo: Compras si ve el dinero de Compras, Inventario si no, y ninguno si lo ve parado en el Taller", () => {
+  it("«Recibir mercadería» vive en UN grupo, Inventario, para todos y en cualquier sede (Felipe, 2026-10-14)", () => {
     const dueños = menu.riel.filter(esGrupoMenu).filter((g) => hojasDe(g).some((h) => h.href === "/recibir")).map((g) => g.id);
-    // Desde 20260923130000 el dinero de Compras es su propio permiso (`verDineroCompras`); `verDinero` quedó para el Taller.
-    const veDinero = perfil.permisos.includes("verDineroCompras");
-    expect(dueños.length).toBeLessThanOrEqual(1);
-    // El único perfil sin grupo es el del hecho de producto que documenta la sección 3 (PR #219, Felipe 2026-09-21).
-    expect(dueños.length === 0).toBe(veDinero && perfil.ubicacionTipo === "taller");
-    if (dueños.length === 1) expect(dueños[0]).toBe(veDinero ? "compras" : "inventario");
-    // Aterrizar en /recibir abre el módulo que la contiene, se le pinte o no (Compras está oculto en el Taller).
-    expect(menu.grupoDe("/recibir")).toBe(veDinero ? "compras" : "inventario");
+    expect(dueños).toEqual(["inventario"]);
+    // Aterrizar en /recibir abre Inventario, también para quien ve el dinero de Compras.
+    expect(menu.grupoDe("/recibir")).toBe("inventario");
   });
 
 });
@@ -334,8 +382,9 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     ]);
   });
 
-  it("Abastecimiento, adentro, tiene las cuatro que antes eran hijas sueltas: Proveedores, Comprobantes, Recibir y Por pagar", () => {
+  it("Abastecimiento, adentro, tiene Órdenes de insumos primero (ADR-0362 fase 7: pedir → factura → recibir → pagar) y las cuatro que antes eran hijas sueltas: Proveedores, Comprobantes, Recibir y Por pagar", () => {
     expect(hijosDeSubgrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
+      "produccion.ordenesInsumos",
       "produccion.proveedoresProduccion",
       "produccion.comprobantesProduccion",
       "produccion.recibirProduccion",
@@ -343,22 +392,27 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     ]);
   });
 
-  it("en el Taller, quien trabaja ahí ve Órdenes, Insumos y Recibir, pero no el Resumen ni las pantallas con datos bancarios y montos (D-G)", () => {
-    const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
-    // Sin `verDinero`, Abastecimiento se queda con una sola hija visible (Recibir) y se disuelve: sube con su propio
-    // nombre (no como «Abastecimiento») — por eso el resultado es idéntico al de antes de D-84, sin el subgrupo de por medio.
-    expect(hijosDeGrupo({ permisos: INTEGRANTE, ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
-    // Administrar no abre nada de esto.
-    expect(hijosDeGrupo({ permisos: ["administrar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
+  // Con la regla fija de antes (un perfil SIN módulos: la fotografía) toda fila que solo depende de su módulo sale; «Órdenes de insumos» no
+  // pide el dinero del Taller (decisión 47), así que Abastecimiento ya no se disuelve en «Recibir»: le quedan dos. Lo que sigue en pie
+  // desde D-G: sin `verDinero` no se ve el Resumen ni ninguna pantalla con datos bancarios y montos del Taller.
+  const OPERATIVAS = ["produccion.ordenes", "produccion.insumos", "produccion.abastecimiento"];
+  const ABASTECIMIENTO_OPERATIVO = ["produccion.ordenesInsumos", "produccion.recibirProduccion"];
+
+  it("en el Taller, quien trabaja ahí ve Órdenes, Insumos y, en Abastecimiento, Órdenes de insumos y Recibir, pero no el Resumen ni las pantallas con datos bancarios y montos (D-G)", () => {
+    for (const permisos of [INTEGRANTE, ["administrar"] as Permiso[]]) {
+      expect(hijosDeGrupo({ permisos, ubicacionTipo: "taller" }, "produccion")).toEqual(OPERATIVAS);
+      expect(hijosDeSubgrupo({ permisos, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
+    }
   });
 
-  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del Taller: Abastecimiento se disuelve en «Recibir»", () => {
-    const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
-    expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
-    expect(hijosDeGrupo({ permisos: ["verDineroCompras"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
+  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del dinero del Taller", () => {
+    for (const permiso of ["analizar", "verDineroCompras"] as const) {
+      expect(hijosDeGrupo({ permisos: [permiso], ubicacionTipo: "taller" }, "produccion")).toEqual(OPERATIVAS);
+      expect(hijosDeSubgrupo({ permisos: [permiso], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
+    }
   });
 
-  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Proveedores, Comprobantes, Recibir y Por pagar", () => {
+  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Órdenes de insumos, Proveedores, Comprobantes, Recibir y Por pagar", () => {
     expect(hijosDeGrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion")).toEqual([
       "produccion.resumenProduccion",
       "produccion.ordenes",
@@ -366,11 +420,29 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
       "produccion.abastecimiento",
     ]);
     expect(hijosDeSubgrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
+      "produccion.ordenesInsumos",
       "produccion.proveedoresProduccion",
       "produccion.comprobantesProduccion",
       "produccion.recibirProduccion",
       "produccion.porPagarProduccion",
     ]);
+  });
+
+  // Órdenes de insumos (ADR-0362 fase 7, decisión 47): con los módulos de la cuenta, la abre SU módulo y nada más. No necesita el de
+  // Órdenes de producción (su ruta, `/ordenes-insumos`, no cuelga del layout de `/produccion`), ni el dinero del Taller.
+  it("con módulos: «Órdenes de insumos» sale solo con su módulo; sin él, Abastecimiento se disuelve en «Recibir» como siempre; con él solo, la fila del Taller lleva a la orden", () => {
+    const integrante = (modulos: ClaveModulo[]): PerfilDelMenu => ({ permisos: INTEGRANTE, ubicacionTipo: "taller", modulos });
+    expect(hijosDeGrupo(integrante(["produccion"]), "produccion")).toEqual(["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"]);
+    expect(hijosDeGrupo(integrante(["produccion", "ordenes_insumos"]), "produccion")).toEqual(OPERATIVAS);
+    expect(hijosDeSubgrupo(integrante(["produccion", "ordenes_insumos"]), "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
+    const sola = menuPara(integrante(["ordenes_insumos"])).riel.find((f) => f.id === "produccion");
+    expect(sola ? hojasDe(sola).map((h) => h.href) : []).toEqual(["/ordenes-insumos"]);
+    // En una tienda o un almacén, Producción no se muestra: tampoco con este módulo.
+    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
+      expect(menuPara({ permisos: LIDER, ubicacionTipo, modulos: ["ordenes_insumos"] }).riel.some((f) => f.id === "produccion")).toBe(false);
+    }
+    // Aterrizar en la orden abre Producción, aunque la ruta no cuelgue de `/produccion`.
+    expect(menuPara({ permisos: LIDER, ubicacionTipo: "taller" }).grupoDe("/ordenes-insumos/ver/x")).toBe("produccion");
   });
 
   it("desde una tienda o un almacén no lo ve nadie, ni el líder", () => {
@@ -383,43 +455,52 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 
   it("el menú y la puerta no pueden discrepar: Producción sale exactamente cuando la página abre", () => {
     expect(TIPOS_UBICACION.filter((t) => puedeVerProduccion({ ubicacionTipo: t }))).toEqual(["taller"]);
-    for (const perfil of PERFILES) {
-      expect(menuPara(perfil).riel.some((f) => f.id === "produccion"), nombreDe(perfil)).toBe(puedeVerProduccion(perfil));
-    }
+    const discrepan = MENUS.flatMap(({ perfil, menu }) => {
+      const enElMenu = menu.riel.some((f) => f.id === "produccion");
+      const abre = puedeVerProduccion(perfil);
+      return enElMenu === abre ? [] : [`${nombreDe(perfil)}: el menú ${enElMenu ? "lo muestra" : "no lo muestra"} y la puerta ${abre ? "abre" : "no abre"}`];
+    });
+    expect(discrepan).toEqual([]);
   });
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los cinco módulos ve las cinco pantallas desde una tienda o un almacén, en el orden proveedor → factura → recepción → pago → notas de crédito", () => {
+  it("con `verDineroCompras` y los módulos de Compras ve cuatro filas desde una tienda o un almacén, en el orden plan → mi plata → proveedores → historial (ADR-0504: Revisar compras y Por pagar son pestañas del Historial; Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
+        "compras.plan",
+        "compras.miPlata",
         "compras.proveedores",
         "compras.comprobantes",
-        "compras.recibir",
-        "compras.porPagar",
-        "compras.notasCredito",
       ]);
     }
+  });
+
+  it("la fila «Historial de compras» (ADR-0504) sale con CUALQUIERA de sus tres módulos, y sin ninguno no sale", () => {
+    // Con una sola hija visible el grupo sale como fila suelta con el nombre del grupo («Compras»): se mira el destino, no la etiqueta.
+    const filas = (modulos: ClaveModulo[]) =>
+      menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href).filter((href) => href === "/compras");
+    expect(filas(["facturas_compra"])).toEqual(["/compras"]);
+    expect(filas(["fondos"])).toEqual(["/compras"]);
+    expect(filas(["por_pagar"])).toEqual(["/compras"]);
+    expect(filas(["fondos", "por_pagar", "facturas_compra"])).toEqual(["/compras"]);
+    expect(filas(["proveedores", "ordenes_compra"])).toEqual([]);
   });
 
   it("parado en el Taller el líder NO ve Compras: allí se trabaja Producción", () => {
     expect(menuPara({ permisos: LIDER, ubicacionTipo: "taller" }).riel.some((f) => f.id === "compras")).toBe(false);
   });
 
-  it("HECHO DE PRODUCTO: el líder parado en el Taller no tiene «Recibir mercadería» (Compras e Inventario, /recibir) en ningún menú — la ruta sigue viva, solo sin un link desde ahí", () => {
-    // Es consecuencia de dos reglas que se cruzan: «Recibir mercadería» vive en Compras para quien ve el dinero, y Compras no se
-    // muestra en el Taller. Quien no ve el dinero lo tiene en Inventario, así que no le pasa. Hasta que se quitó «+ Nuevo» (todas
-    // partes, pedido de Felipe) este perfil llegaba igual por ahí; sin ese atajo, /recibir queda sin ningún link para él. Si Felipe
-    // decide que el líder en el Taller sí debe verlo en el lateral, se revierte a propósito (p. ej. quitando `soloSinPermiso` de
-    // `inventario.recibir`) y esta prueba cambia con esa decisión; no debe ponerse en verde por accidente.
-    const menu = menuPara({ permisos: LIDER, ubicacionTipo: "taller" });
-    const filas = menu.riel.flatMap(hojasDe);
-    expect(filas.map((f) => f.href)).not.toContain("/recibir");
-    expect(filas.map((f) => f.etiqueta)).not.toContain("Recibir mercadería");
-    expect(menu.movil.map((c) => c.href)).not.toContain("/recibir");
-    // Desde una tienda o un almacén sí lo tiene, dentro de Compras.
-    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
-      expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toContain("compras.recibir");
+  it("DECISIÓN DE FELIPE (2026-10-14): «Recibir mercadería» vive en Inventario para todos —líder e integrante, en cualquier sede, el Taller incluido— y nunca en Compras", () => {
+    // Hasta ese día vivía en Compras para quien ve el dinero y en Inventario para quien no (ADR-0113), y el líder parado en el Taller
+    // no lo tenía en ningún menú (Compras no se muestra allí). Felipe pidió una sola puerta, en Inventario, donde entra el stock.
+    for (const permisos of [LIDER, INTEGRANTE]) {
+      for (const ubicacionTipo of ["tienda", "almacen", "taller"] as const) {
+        expect(hijosDeGrupo({ permisos, ubicacionTipo }, "inventario"), `${ubicacionTipo}`).toContain("inventario.recibir");
+        const filas = menuPara({ permisos, ubicacionTipo }).riel.flatMap(hojasDe).filter((f) => f.href === "/recibir");
+        expect(filas.map((f) => f.etiqueta), `${ubicacionTipo}: una sola fila`).toEqual(["Recibir mercadería"]);
+      }
+      expect(hijosDeGrupo({ permisos, ubicacionTipo: "tienda" }, "compras")).not.toContain("compras.recibir");
     }
   });
 
@@ -437,17 +518,27 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(enElTaller(INTEGRANTE).map((f) => f.href)).toContain("/recibir");
   });
 
-  it("«Notas de crédito» va al final y sin insignia (a propósito: el número ya es la primera cifra del módulo)", () => {
-    const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda", contadores: { trasladosPorAtender: 5 } });
+  // ADR-0480 (Compras simple, Felipe 2026-10-22): sin «Órdenes de compra» ni «Notas de crédito». ADR-0504 (2026-10-24): «Revisar compras» y «Por pagar»
+  // pasan a pestañas del Historial; Compras queda en 4.
+  it("Compras tiene 4 opciones: Plan de campaña, Mis compras, Proveedores y Historial de compras", () => {
+    const { riel } = menuPara({ permisos: LIDER, ubicacionTipo: "tienda" });
     const compras = riel.find((f) => f.id === "compras");
-    const notas = compras && esGrupoMenu(compras) ? compras.hijos.at(-1) : undefined;
-    expect(notas).toMatchObject({ id: "compras.notasCredito", href: "/compras/notas-credito" });
-    expect(notas && !esGrupoMenu(notas) ? notas.contador : undefined).toBeUndefined();
+    const hijos = compras && esGrupoMenu(compras) ? compras.hijos : [];
+    expect(hijos.map((h) => h.etiqueta)).toEqual(["Plan de campaña", "Mis compras", "Proveedores", "Historial de compras"]);
+    expect(hijos.find((h) => h.id === "compras.miPlata")).toMatchObject({ href: "/compras/mi-plata" });
   });
 
-  it("sin `verDineroCompras` no ve Compras, esté donde esté", () => {
+  // Hasta el 2026-10-10 decía «sin `verDineroCompras` no ve Compras». La decisión 34 de ADR-0362 (el módulo es la llave) lo cambió a
+  // propósito: Órdenes de compra trae sus precios y no pide el dinero de las facturas. Lo que sigue en pie: sin ese permiso no se ve
+  // NINGUNA pantalla de dinero de Compras, y con los módulos de hoy (sin Órdenes de compra) Compras no aparece.
+  it("sin `verDineroCompras` no ve el dinero de Compras, esté donde esté; con el módulo de quien compra ve solo «Mis compras» (ADR-0362, ADR-0480)", () => {
+    const deHoy = MODULOS_DE_HOY.integrante.map((m) => m.clave);
     for (const ubicacionTipo of TIPOS_UBICACION) {
-      expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo }).riel.some((f) => f.id === "compras")).toBe(false);
+      expect(menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: deHoy }).riel.some((f) => f.id === "compras"), ubicacionTipo).toBe(false);
+      const compras = menuPara({ permisos: INTEGRANTE, ubicacionTipo, modulos: [...deHoy, "ordenes_compra"] }).riel.find((f) => f.id === "compras");
+      const rutas = compras ? (esGrupoMenu(compras) ? hojasDe(compras).map((h) => h.href) : [compras.href]) : [];
+      // En el Taller, Compras no se muestra (es de las tiendas), tenga el módulo que tenga.
+      expect(rutas, ubicacionTipo).toEqual(ubicacionTipo === "taller" ? [] : ["/compras/mi-plata"]);
     }
   });
 
@@ -499,6 +590,25 @@ describe("reglas de menuPara", () => {
     const ids = (perfil: PerfilDelMenu) => menuPara(perfil, fuente(arbol)).riel.map((f) => f.id);
     expect(ids({ permisos: [], ubicacionTipo: "tienda" })).toEqual(["libre", "soloSinDinero"]);
     expect(ids({ permisos: ["verDinero"], ubicacionTipo: "taller" })).toEqual(["libre", "soloConDinero", "soloTaller"]);
+  });
+
+  it("una fila con varias vistas se abre con CUALQUIERA de sus módulos, y sin ninguno no sale (ADR-0504)", () => {
+    const arbol: Nodo[] = [hoja("historial", { modulo: "facturas_compra", modulosAlternos: ["fondos", "por_pagar"] })];
+    const ids = (modulos: ClaveModulo[]) => menuPara({ ...PERFIL_BASE, modulos }, fuente(arbol)).riel.map((f) => f.id);
+    expect(ids(["facturas_compra"])).toEqual(["historial"]);
+    expect(ids(["fondos"])).toEqual(["historial"]);
+    expect(ids(["por_pagar"])).toEqual(["historial"]);
+    expect(ids(["fondos", "por_pagar"])).toEqual(["historial"]);
+    expect(ids(["proveedores"])).toEqual([]);
+    expect(ids([])).toEqual([]);
+  });
+
+  it("Catálogo ▸ Insignias sigue abriéndose con Campañas sola: el alterno de antes no cambió", () => {
+    // Con una sola hija, el grupo sale como fila suelta con el nombre del grupo: se mira el destino, no el id.
+    const destinos = (modulos: ClaveModulo[]) => menuPara({ permisos: LIDER, ubicacionTipo: "tienda", modulos }).riel.flatMap(hojasDe).map((h) => h.href);
+    expect(destinos(["campanas"])).toContain("/productos/insignias");
+    expect(destinos(["etiquetas"])).toContain("/productos/insignias");
+    expect(destinos(["existencias"])).not.toContain("/productos/insignias");
   });
 
   it("las insignias salen solo con un número positivo", () => {
@@ -575,6 +685,7 @@ describe("permisos de una terminal: salen de su rol", () => {
     expect([...permisosDeModulos("integrante", MODULOS_DE_HOY.ventas)].sort()).toEqual(["facturar", "gestionarCaja"]);
     expect([...permisosDeModulos("integrante", MODULOS_DE_HOY.administrativa)].sort()).toEqual([
       "ajustarInventario",
+      "ajustarStock",
       "editarCatalogo",
       "editarCuentasProveedor",
     ]);
@@ -597,8 +708,8 @@ describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
 
   // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
   // Es la caja del mostrador: Ventas le sale SUELTO (Felipe, 2026-09-25), sin la cabecera «Ventas» ni la de «Posventa».
-  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones, Comprobantes y Clientas, en ese orden y sin grupos que abrir", () => {
-    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientas"]);
+  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones, Comprobantes y Clientes, en ese orden y sin grupos que abrir", () => {
+    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientes"]);
     expect(riel.some(esGrupoMenu)).toBe(false);
   });
 
@@ -632,11 +743,10 @@ describe("el menú de una terminal con el rol «Terminal administrativa»", () =
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/proveedores" });
   });
 
-  it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Compras aparece con lo que su rol ve, SIN tocar el árbol", () => {
+  it("si algún día recibe `verDineroCompras` (su rol suma Facturas de compra, Por pagar o Notas de crédito), Recibir sigue en Inventario: vive en UN solo grupo para todos (Felipe, 2026-10-14)", () => {
     const conDinero = menuPara(perfilTerminal("administrativa", "tienda", ["verDineroCompras"])).riel;
-    expect(hijasDe(conDinero, "Compras")).toEqual(["Proveedores", "Recibir mercadería"]);
-    // ...y en Compras pierde el duplicado: «Recibir mercadería» vive en UN solo grupo (ADR-0113).
-    expect(hijasDe(conDinero, "Inventario")).not.toContain("Recibir mercadería");
+    expect(hijasDe(conDinero, "Inventario")).toContain("Recibir mercadería");
+    expect(hijasDe(conDinero, "Compras")).not.toContain("Recibir mercadería");
   });
 
   it("no ve Ventas ni Producción", () => {
@@ -651,7 +761,7 @@ describe("terminales sin tipo: el rol manda", () => {
     // Un grupo con una sola pantalla visible conserva el nombre del módulo (regla de siempre de `menuPara`).
     expect(caja.map((f) => ("href" in f ? f.href : null))).toEqual(["/", "/caja", "/inventario"]);
     expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual([
-      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientas",
+      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientes",
     ]);
   });
 
@@ -691,6 +801,30 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(aterrizajeDe({ modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" })).toBe("/caja");
     expect(aterrizajeDe({ modulos: ["inicio", "vender"], pantallaPrincipal: "caja" })).toBe("/"); // ya no tiene «caja»: vuelve al default
   });
+
+  it("en CAYLA Global, quien iba a quedarse en el Inicio va al tablero; el Admin no, porque su Inicio es el Observatorio (ADR-0275, ADR-0322)", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global" })).toBe("/global");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global", esAdmin: true })).toBe("/");
+    // Parado en una sede, el Inicio es el Inicio, sea o no Admin.
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede" })).toBe("/");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede", esAdmin: true })).toBe("/");
+    // Una pantalla principal que no es el Inicio manda igual en CAYLA Global, y sin ninguna pantalla sigue siendo «Sin acceso».
+    expect(aterrizajeDe({ modulos: ["inicio", "clientas", "cayla_global"], pantallaPrincipal: "clientas", vista: "global" })).toBe("/clientas");
+    expect(aterrizajeDe({ modulos: [], vista: "global" })).toBe("/sin-acceso");
+  });
+
+  it("parada en una sede, la vista y el Admin no le cambian el destino a nadie: es la regla de siempre", () => {
+    const perfiles: { terminal?: boolean; modulos: ClaveModulo[]; pantallaPrincipal?: string }[] = [
+      { modulos: ["inicio", "vender"] },
+      { modulos: ["vender"] },
+      { modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" },
+      { terminal: true, modulos: ["vender", "caja"] },
+      { terminal: true, modulos: ["existencias"] },
+    ];
+    for (const perfil of perfiles) {
+      for (const esAdmin of [false, true]) expect(aterrizajeDe({ ...perfil, vista: "sede", esAdmin })).toBe(aterrizajeDe(perfil));
+    }
+  });
 });
 
 describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
@@ -727,5 +861,75 @@ describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
 
   it("toda pantalla viva declara su módulo (sin eso una terminal no podría verla; Inicio también desde 20260925220000)", () => {
     expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual([]);
+  });
+});
+
+describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre (Felipe, 2026-10-03)", () => {
+  const solo = (tipo: TipoUbicacion): Menu => {
+    const modulos: ClaveModulo[] = ["recibir"];
+    return menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: tipo, modulos });
+  };
+
+  it("la fila dice «Recibir mercadería» y abre /recibir, no «Inventario» (en tienda, almacén y taller)", () => {
+    for (const tipo of ["tienda", "almacen", "taller"] as const) {
+      const riel = solo(tipo).riel;
+      expect(riel.map((f) => f.etiqueta), tipo).toEqual(["Recibir mercadería"]);
+      expect(hojasDe(riel[0]).map((h) => h.href), tipo).toEqual(["/recibir"]);
+    }
+  });
+
+  it("y sigue ubicada en el grupo Inventario (aterrizar en /recibir lo abre)", () => {
+    expect(solo("tienda").grupoDe("/recibir")).toBe("inventario");
+  });
+
+  it("no cambia a quien ve Existencias solo: su fila sigue llamándose «Inventario»", () => {
+    const modulos: ClaveModulo[] = ["existencias"];
+    const m = menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
+    expect(m.riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+  });
+});
+
+describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su nombre (ADR-0392; antes ADR-0208, act. 2026-10-10 (b))", () => {
+  const conModulos = (modulos: ClaveModulo[]) =>
+    menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
+
+  it("en CAYLA Global, Frescura sola dice «Frescura del piso» y abre su pantalla, nunca «Gestión»", () => {
+    const riel = conModulos(["frescura"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/gestion/frescura"]);
+  });
+
+  it("cada una de las cuatro, sola, conserva su nombre (la Terminal de ventas ve Frescura y Plan; el rol Producción, Análisis)", () => {
+    expect(conModulos(["plan_piso"]).riel.map((f) => f.etiqueta)).toEqual(["Plan del piso"]);
+    expect(conModulos(["rendimiento"]).riel.map((f) => f.etiqueta)).toEqual(["Rendimiento"]);
+    expect(conModulos(["analisis"]).riel.map((f) => f.etiqueta)).toEqual(["Análisis"]);
+    expect(conModulos(["frescura", "plan_piso"]).riel.map((f) => f.etiqueta)).toEqual(["Gestión"]);
+  });
+
+  it("Frescura ya no es de Inventario: con Existencias al lado salen dos filas, y Gestión va antes", () => {
+    const riel = conModulos(["frescura", "existencias"]).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso", "Inventario"]);
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/gestion/frescura")).toBe("gestion");
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario")).toBe("inventario");
+  });
+});
+
+describe("hermanosDe (un solo grupo abierto por nivel)", () => {
+  const filas: FilaMenu[] = [
+    { id: "a", etiqueta: "A", icono: "inicio" as never, hijos: [{ id: "a1", etiqueta: "A1", href: "/a1", icono: "inicio" as never }] },
+    { id: "b", etiqueta: "B", icono: "inicio" as never, hijos: [
+      { id: "b-sub", etiqueta: "Sub", icono: "inicio" as never, hijos: [] },
+      { id: "b-sub2", etiqueta: "Sub2", icono: "inicio" as never, hijos: [] },
+    ] },
+    { id: "suelta", etiqueta: "Suelta", href: "/s", icono: "inicio" as never },
+  ];
+  it("los grupos de primer nivel son hermanos entre sí, sin contar las filas sueltas", () => {
+    expect(hermanosDe("a", filas)).toEqual(["b"]);
+  });
+  it("un subgrupo solo cierra a sus hermanos, nunca a su padre", () => {
+    expect(hermanosDe("b-sub", filas)).toEqual(["b-sub2"]);
+  });
+  it("un id desconocido no cierra nada", () => {
+    expect(hermanosDe("zzz", filas)).toEqual([]);
   });
 });

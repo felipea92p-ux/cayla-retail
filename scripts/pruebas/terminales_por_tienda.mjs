@@ -11,7 +11,10 @@
  *   · terminal con rol «Terminal de ventas» ........ cierra caja y mueve caja;
  *   · terminal con rol «Terminal administrativa» ... ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y
  *                                 edita las cuentas bancarias de proveedores;
- *   · lo demás sigue siendo del líder: anular ventas y comprobantes, devoluciones, series, etiquetas con descuento.
+ *   · lo demás sigue siendo del líder: las series. (Las etiquetas con descuento dejaron de serlo el 2026-09-30, ADR-0293: al crear
+ *     una prenda las pone quien puede darla de alta; configurarlas es del módulo Etiquetas. Desde ADR-0534, 2026-10-27, el ajuste
+ *     de efectivo lo anota quien opera la caja, y devoluciones, prendas dañadas y anular o liberar comprobantes piden el módulo
+ *     de su pantalla, no un líder; lo que propone una terminal en el Catálogo nace aprobado.)
  *     El líder (Felipe) sigue pasando por todo. Una integrante (Micaela) hace lo de los módulos que ve su rol (B2d,
  *     Felipe 2026-09-22, `20260923031000`): cierra caja, conteos y traslados y edita el Catálogo; no Proveedores.
  *   · Sin tipo (`20260923040000`): cada terminal es tienda + nombre + ROL; lo de arriba sale del rol que tiene.
@@ -137,13 +140,15 @@ rollback;
 
 /**
  * La escena de inventario (misma que la del candado de líder): una variante y el piso de venta de Trujillo.
- * ADR-0250 (2026-09-27): «Ajustar» dejó de venir de Existencias/Conteos/Traslados — pide su propio módulo, que la
- * siembra de 20260923030000 no le da a ningún rol de terminal (ese módulo no existía todavía). Estos casos SIGUEN
- * probando el candado de responsable (D-13/ADR-0162) sobre `registrar_movimiento`, no el módulo: se le da el módulo
- * nuevo a la terminal administrativa aquí, igual que ya se le daba «Bajada al piso» o «Apartados» en otros arneses.
+ * ADR-0306 (2026-10-02): «Ajustar» es una función de Existencias/Conteos/Traslados (el módulo «Ajustar stock» de
+ * ADR-0250 ya no existe). Estos casos SIGUEN probando el candado de responsable (D-13/ADR-0162) sobre
+ * `registrar_movimiento`, no el módulo: se asegura Existencias en la terminal administrativa aquí, sea cual sea la
+ * siembra, igual que en otros arneses se le daba «Apartados».
  */
 const BASE_INVENTARIO = `
-insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_administrativa'), 'ajustar_stock');
+insert into retail.rol_modulos (rol_id, modulo)
+  select retail.fn_rol_por_clave('terminal_administrativa'), 'existencias'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias');
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'trujillo', 'Piso de venta', 'piso_venta'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'trujillo' and tipo = 'piso_venta');
@@ -239,10 +244,10 @@ select :'r' || '|' || (select estado from retail.cajas where id = :'caja');`)),
 /* ------------------------------------------------------------------ */
 
 verificar(
-  // La terminal de ventas no recibe «Ajustar stock» en BASE_INVENTARIO (solo la administrativa): sigue sin ajustar.
+  // La terminal de ventas no recibe Existencias en BASE_INVENTARIO (solo la administrativa): sigue sin ajustar.
   "inventario: la terminal de ventas NO ajusta stock",
   correr(escena(`${BASE_INVENTARIO}${cambiaA(T_VENTAS)}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''prueba terminales'', ''nota'', %L)', :'var', :'trujillo', :'sub_piso'));`)),
-  /Tu rol no tiene el módulo «Ajustar stock»/
+  /Tu rol no puede ajustar stock/
 );
 
 verificar(
@@ -302,17 +307,20 @@ const PUERTAS = [
   // Lo que SE abrió. `pasan` = quiénes, además del líder, cruzan la puerta.
   { nombre: "cerrar_conteo", previo: FIXTURE_CONTEO, intento: `select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`, mensaje: /Solo un líder puede cerrar un conteo/, pasan: ["admin", "micaela"] },
   { nombre: "cerrar_traslado_con_diferencia", previo: FIXTURE_TRASLADO, intento: `select pg_temp.intento(format('select retail.cerrar_traslado_con_diferencia(%L, ''x'')', :'traslado'));`, mensaje: /Solo un líder puede cerrar un traslado con diferencias/, pasan: ["admin", "micaela"] },
-  // ADR-0166 (20260922235000): el ajuste de efectivo volvió a ser «siempre solo del líder», lo decide el motivo.
-  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''Ajuste de caja (sobrante)'', ''sobrante'', true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo/, pasan: [] },
+  // ADR-0166 (20260922235000) lo había vuelto «siempre solo del líder»; ADR-0534 (20261027164000) lo abrió: el ajuste de efectivo
+  // lo anota quien opera esa caja (las terminales y la integrante de Trujillo, en su tienda). El motivo sigue marcando `es_ajuste`.
+  { nombre: "registrar_movimiento_caja (ajuste de efectivo)", previo: FIXTURE_CAJA, intento: `select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''ingreso'', 10, ''Ajuste de caja (sobrante)'', ''sobrante'', true)', :'caja'));`, mensaje: /Solo un líder de equipo puede registrar un ajuste de efectivo|No tienes permiso para operar esa caja/, pasan: ["ventas", "admin", "micaela"] },
   { nombre: "guardar_cuentas_proveedor", previo: "", intento: LLAMADA(`select retail.guardar_cuentas_proveedor(gen_random_uuid(), null, null, null, null)`), mensaje: /Solo un Líder puede editar las cuentas de un proveedor/, pasan: ["admin"] },
   { nombre: "crear_marca", previo: "", intento: LLAMADA(`select retail.crear_marca('Marca de prueba', gen_random_uuid())`), mensaje: /Solo un Líder puede agregar marcas/, pasan: ["admin", "micaela"] },
   { nombre: "desactivar_categoria", previo: "", intento: LLAMADA(`select retail.desactivar_categoria(gen_random_uuid())`), mensaje: /Solo un Líder puede desactivar una categoría/, pasan: ["admin", "micaela"] },
   { nombre: "actualizar_categoria_ejes", previo: "", intento: LLAMADA(`select retail.actualizar_categoria_ejes(gen_random_uuid(), '{}'::uuid[], '{}'::uuid[], '{}'::uuid[], '{}'::uuid[])`), mensaje: /Solo un Líder puede editar qué tallas/, pasan: ["admin", "micaela"] },
-  // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve.
-  { nombre: "etiquetar_variantes (sin el módulo Etiquetas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Etiquetar prendas necesita el módulo Etiquetas/, pasan: [] },
+  // Etiquetas (20260923130000): se abren a quien ve el módulo Etiquetas; ninguna de estas cuentas lo ve. Desde ADR-0476 también
+  // entra quien ve una de las Campañas, y el mensaje nombra los tres módulos.
+  { nombre: "etiquetar_variantes (sin Insignias ni Campañas)", previo: "", intento: LLAMADA(`select retail.etiquetar_variantes('[]'::jsonb)`), mensaje: /Poner o quitar prendas necesita el módulo «Insignias», «Campañas» o «Campañas de la tienda web»/, pasan: [] },
   { nombre: "actualizar_variantes_etiquetas (P4: también con Productos o Categorías y atributos)", previo: "", intento: LLAMADA(`select retail.actualizar_variantes_etiquetas('[]'::jsonb)`), mensaje: /Cambiar las etiquetas de una prenda necesita el módulo Productos/, pasan: ["admin", "micaela"] },
+  // Anular una venta (20261009182413, Felipe 2026-10-09): quien ve Devoluciones. La terminal administrativa no lo ve.
+  { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Para anular una venta necesitas el módulo Devoluciones/, pasan: ["ventas", "micaela"] },
   // Lo que NO se abrió y cuyo candado va primero: solo el líder.
-  { nombre: "anular_venta", previo: "", intento: LLAMADA(`select retail.anular_venta(gen_random_uuid(), 'x', '[]'::jsonb)`), mensaje: /Solo un líder puede anular una venta/, pasan: [] },
   { nombre: "registrar_serie_comprobante", previo: "", intento: LLAMADA(`select retail.registrar_serie_comprobante(gen_random_uuid(), 'boleta', 'B001', 1)`), mensaje: /Solo un líder puede registrar una serie de comprobantes/, pasan: [] },
 ];
 
@@ -340,20 +348,36 @@ select (select cerrado_por = :'rosa' from retail.conteos where id = :'conteo') |
 
 // Las que NO se abrieron y verifican otras cosas antes del candado: se prueban por su definición. Siguen pidiendo
 // líder y NINGUNA menciona una capacidad de terminal. Las de etiquetas salieron de esta lista (20260923130000): se abren
-// con el módulo Etiquetas y lo que lleva descuento lo cuida `fn_puede_dar_descuento_por_etiqueta` (verificado abajo).
-const SIGUEN_DEL_LIDER = [
-  "aprobar_devolucion", "rechazar_devolucion", "anular_venta", "anular_comprobante", "marcar_comprobante_no_emitido",
-  "registrar_serie_comprobante", "liquidar_prenda_danada", "resolver_prenda_danada",
-];
+// con el módulo Etiquetas, con descuento o sin él (ADR-0293, 20261001130000; verificado abajo). Devoluciones, comprobantes
+// y prendas dañadas salieron con ADR-0534 (20261027164000): piden el módulo de su pantalla (verificado abajo).
+const SIGUEN_DEL_LIDER = ["registrar_serie_comprobante"];
+// ADR-0534: cada una pregunta el módulo donde vive su botón y ya no fn_es_lider().
+const PIDEN_EL_MODULO = {
+  aprobar_devolucion: "devoluciones", rechazar_devolucion: "devoluciones",
+  anular_comprobante: "facturacion", marcar_comprobante_no_emitido: "facturacion",
+  liquidar_prenda_danada: "existencias", resolver_prenda_danada: "existencias",
+};
 verificar(
-  "etiquetas (20260923130000): las 3 funciones que tocan descuentos los dejan al líder (fn_puede_tocar_etiqueta / fn_puede_dar_descuento_por_etiqueta)",
-  correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
-    and p.proname in ('etiquetar_variantes', 'actualizar_variantes_etiquetas', 'actualizar_campana_etiqueta')
-    and pg_get_functiondef(p.oid) ~ 'fn_puede_(tocar_etiqueta|dar_descuento_por_etiqueta)\\(';`)),
-  /^3$/
+  "etiquetas (ADR-0293): configurar una campaña y «Prendas» preguntan fn_puede_tocar_etiqueta (el módulo Etiquetas); la ficha de la prenda ya no tiene guardia de descuento",
+  correr(escena(`select (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+      and p.proname in ('etiquetar_variantes', 'actualizar_campana_etiqueta')
+      and pg_get_functiondef(p.oid) ~ 'fn_puede_tocar_etiqueta\\(')
+    || '|' || (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+      and p.proname = 'actualizar_variantes_etiquetas'
+      and pg_get_functiondef(p.oid) ~ 'fn_puede_(tocar_etiqueta|dar_descuento_por_etiqueta)\\(');`)),
+  /^2\|0$/
 );
 verificar(
-  `siguen del líder (${SIGUEN_DEL_LIDER.length}): devoluciones, anulaciones, series, prendas dañadas`,
+  `ADR-0534 (${Object.keys(PIDEN_EL_MODULO).length}): devoluciones, anular y liberar comprobantes y prendas dañadas piden el módulo de su pantalla, no fn_es_lider()`,
+  correr(escena(`select count(*) from pg_proc p
+    join (values ${Object.entries(PIDEN_EL_MODULO).map(([f, m]) => `('${f}', '${m}')`).join(", ")}) x(f, m) on x.f = p.proname
+    where p.pronamespace = 'retail'::regnamespace
+      and pg_get_functiondef(p.oid) ~ ('fn_ve_modulo\\(''' || x.m || '''\\)')
+      and pg_get_functiondef(p.oid) !~ 'fn_es_lider\\(\\)';`)),
+  new RegExp(`^${Object.keys(PIDEN_EL_MODULO).length}$`)
+);
+verificar(
+  `siguen del líder (${SIGUEN_DEL_LIDER.length}): series`,
   correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and p.proname in (${SIGUEN_DEL_LIDER.map((f) => `'${f}'`).join(", ")})
     and pg_get_functiondef(p.oid) ~ 'fn_es_lider\\(\\)'
@@ -377,7 +401,8 @@ verificar("catálogo (política de fila): una integrante (su rol ve Catálogo) e
 
 verificar("catálogo (disparador): lo que crea la terminal administrativa queda APROBADO, firmado por Rosa", comoApi(T_ADMIN, INSERTAR_COLOR), new RegExp(`^aprobado\\|${ROSA}$`));
 verificar("catálogo (disparador): lo que crea el líder queda APROBADO", comoApi(FELIPE, INSERTAR_COLOR), /^aprobado\|/);
-verificar("catálogo (disparador): lo que propone la terminal de ventas queda PENDIENTE, propuesto por Rosa", comoApi(T_VENTAS, INSERTAR_COLOR), new RegExp(`^pendiente\\|${ROSA}$`));
+// ADR-0534: lo que se crea nace aprobado para cualquiera (antes, la terminal de ventas, sin Catálogo, lo dejaba pendiente).
+verificar("catálogo (disparador): lo que crea la terminal de ventas (sin Catálogo) también queda APROBADO, firmado por Rosa (ADR-0534)", comoApi(T_VENTAS, INSERTAR_COLOR), new RegExp(`^aprobado\\|${ROSA}$`));
 verificar("catálogo (disparador): lo que crea una integrante (su rol ve Catálogo) queda APROBADO", comoApi(MICAELA, INSERTAR_COLOR), /^aprobado\|/);
 verificar(
   "catálogo (disparador): la terminal administrativa SIN responsable no escribe",
@@ -396,22 +421,24 @@ const POLITICAS_CATALOGO = [
   "patrones_update_lider", "producto_fotos_write_lider", "productos_write_lider", "tallas_update_lider", "tejidos_update_lider", "variantes_write_lider",
 ];
 verificar(
-  "políticas: las 15 de Catálogo piden fn_puede_editar_catalogo; las de escritura directa de etiquetas siguen pidiendo líder y la de editar etiquetas deja el descuento al líder",
+  "políticas: las 15 de Catálogo piden fn_puede_editar_catalogo; las de escritura directa de etiquetas siguen pidiendo líder; la de editar y la de crear etiquetas usan la capacidad de descuento (líder o Etiquetas)",
   correr(escena(`select
     (select count(*) from pg_policies where schemaname = 'retail' and policyname in (${POLITICAS_CATALOGO.map((p) => `'${p}'`).join(", ")})
        and (coalesce(qual, '') ~ 'fn_puede_editar_catalogo' or coalesce(with_check, '') ~ 'fn_puede_editar_catalogo'))
     || '|' || (select count(*) from pg_policies where schemaname = 'retail' and policyname in ('etiqueta_categorias_write_lider', 'variante_etiquetas_write_lider')
        and coalesce(qual, '') ~ 'fn_es_lider')
     || '|' || (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'etiquetas' and policyname = 'etiquetas_update'
-       and coalesce(with_check, '') ~ 'fn_puede_dar_descuento_por_etiqueta' and coalesce(with_check, '') ~ 'descuento_pct IS NULL');`)),
-  /^15\|2\|1$/
+       and coalesce(with_check, '') ~ 'fn_puede_dar_descuento_por_etiqueta' and coalesce(with_check, '') ~ 'descuento_pct IS NULL')
+    || '|' || (select count(*) from pg_policies where schemaname = 'retail' and tablename = 'etiquetas' and policyname = 'etiquetas_insert_autenticado'
+       and coalesce(with_check, '') ~ 'fn_puede_dar_descuento_por_etiqueta' and coalesce(with_check, '') !~ 'fn_es_lider');`)),
+  /^15\|2\|1\|1$/
 );
 
 verificar(
-  // registrar_movimiento_caja sale de la lista: desde ADR-0166 su ajuste de efectivo es «siempre solo del líder» a propósito.
-  "candados: ninguna de las funciones tocadas conserva fn_es_lider() suelto (salvo la de etiquetas con descuento)",
+  // registrar_movimiento_caja salió de la lista con ADR-0166 (su ajuste era «siempre solo del líder») y volvió con ADR-0534.
+  "candados: ninguna de las funciones tocadas conserva fn_es_lider() suelto",
   correr(escena(`select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
-    and p.proname in ('cerrar_caja','registrar_movimiento','cerrar_conteo','cerrar_traslado_con_diferencia','guardar_cuentas_proveedor',
+    and p.proname in ('cerrar_caja','registrar_movimiento','registrar_movimiento_caja','cerrar_conteo','cerrar_traslado_con_diferencia','guardar_cuentas_proveedor',
       'actualizar_categoria','actualizar_categoria_ejes','desactivar_categoria','reactivar_categoria','crear_marca','censo_crear_variante','crear_producto_con_variantes',
       'fn_productos_estado_alta_trigger','fn_colores_estado_trigger','fn_patrones_estado_trigger','fn_tallas_estado_trigger','fn_tejidos_estado_trigger')
     and pg_get_functiondef(p.oid) ~ 'fn_es_lider\\(\\)';`)),
@@ -419,7 +446,7 @@ verificar(
 );
 
 verificar(
-  "descuentos: la terminal administrativa no puede dar descuento por etiqueta; el líder sí",
+  "descuentos: la terminal administrativa sembrada (sin el módulo Etiquetas) no configura descuentos; el líder sí",
   correr(escena(`${cambiaA(T_ADMIN)}select retail.fn_puede_dar_descuento_por_etiqueta() as a \\gset
 ${cambiaA(FELIPE)}select retail.fn_puede_dar_descuento_por_etiqueta() as l \\gset
 select :'a' || '|' || :'l';`)),
@@ -427,10 +454,29 @@ select :'a' || '|' || :'l';`)),
 );
 
 verificar(
-  "descuentos: crear_producto_con_variantes lleva el guardia una sola vez",
-  correr(escena(`select (length(d) - length(replace(d, 'Solo un líder puede asignar una etiqueta con descuento.', ''))) / length('Solo un líder puede asignar una etiqueta con descuento.') || '|' || (d ~ 'fn_puede_dar_descuento_por_etiqueta')::text
+  "descuentos (ADR-0293): crear_producto_con_variantes ya no lleva la guardia «solo un líder puede asignar una etiqueta con descuento»",
+  correr(escena(`select (position('Solo un líder puede asignar una etiqueta con descuento' in d) = 0 and position('fn_puede_dar_descuento_por_etiqueta' in d) = 0)::text
     from (select pg_get_functiondef('retail.crear_producto_con_variantes(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid)'::regprocedure) as d) x;`)),
-  /^1\|true$/
+  /^true$/
+);
+
+// Los mismos datos que usa el alta: categoría sin tejido/patrón con dos tallas, una pareja marca-proveedor y un color.
+const FIXTURA_ALTA = `
+select c.id as cat from retail.categorias c join retail.familias f on f.codigo = c.familia
+  where c.activo and not f.exige_tejido_patron
+    and (select count(*) from retail.categoria_tallas ct join retail.tallas t on t.id = ct.talla_id and t.activo where ct.categoria_id = c.id) >= 2
+  order by c.nombre limit 1 \\gset
+select t.id as t1 from retail.categoria_tallas ct join retail.tallas t on t.id = ct.talla_id and t.activo where ct.categoria_id = :'cat' order by t.id limit 1 \\gset
+select marca_id as marca, proveedor_id as prov from retail.marca_proveedores limit 1 \\gset
+select codigo as c1 from retail.colores where activo order by codigo limit 1 \\gset
+`;
+verificar(
+  "descuentos (ADR-0293): la terminal administrativa crea una prenda con una etiqueta CON descuento (antes: «Solo un líder puede asignar una etiqueta con descuento»)",
+  correr(escena(`${cambiaA(FELIPE)}insert into retail.etiquetas (nombre, descuento_pct) values ('ZZ Liquidar ADR-0293', 20) returning id as e_desc \\gset
+${FIXTURA_ALTA}${cambiaA(T_ADMIN)}select pg_temp.intento(format($q$select retail.crear_producto_con_variantes(%L, %L::uuid, %L::jsonb, null, gen_random_uuid(), null, null, false, array[%L]::uuid[], %L::uuid, %L::uuid)$q$,
+  'Prenda ZZ ADR-0293', :'cat', jsonb_build_array(jsonb_build_object('talla_id', :'t1', 'color_codigo', :'c1', 'precio', 59, 'costo', 20))::text, :'e_desc', :'marca', :'prov'));
+${cambiaA(FELIPE)}select count(*) from retail.variante_etiquetas ve where ve.etiqueta_id = :'e_desc';`)),
+  /^SIN_ERROR\n1$/
 );
 
 verificar(

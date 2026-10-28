@@ -1,0 +1,8 @@
+## 📥 Recibir mercadería ▸ Por regularizar: sin tope de 200 filas (2026-10-03, revisión de `/recibir`) — rama `claude/inventory-critical-review-ec7eed`
+
+- [x] `getPorRegularizar` (`lib/por-regularizar.ts`) lee las pendientes completas (más antigua arriba) y lo resuelto desde `resueltasDesde()` (1.º del mes anterior, Lima), cada una por páginas con `leerTodas`. Antes: `.limit(200)` por fecha descendente, que perdía las pendientes más viejas y falseaba las cuatro cifras de la cabecera.
+- [x] Pruebas: `lib/por-regularizar.test.ts` (cliente simulado con el mismo corte de 1.000 filas de PostgREST: 260, 1.250 y 300+50 filas, cifras exactas, por sede, y una prenda que se regulariza entre las dos lecturas sale una sola vez) y `resueltasDesde` en `por-regularizar-reglas.test.ts`. Comprobado que fallan 4 si se reintroduce el tope. Suite completa 320/320, `tsc` y `eslint` limpios.
+- [x] Verificado en el navegador contra PostgREST real y la base local (5 filas marcadas, ya borradas): 2 por regularizar, 1 vencida, S/ 20.00 de descuento; con «Todas», 4 filas y la de hace 100 días fuera.
+- [x] Nota al pie de la pantalla: las pendientes salen todas; las resueltas, las de este mes y el anterior.
+- [ ] **Publicar** (solo web, sin SQL): el volcado de producción del 2026-10-03 tenía 160 filas de `prendas_por_regularizar`, a 40 del tope viejo. Correr el bloque 3 de la consulta de `/recibir` para saber cuántas están pendientes y a qué ritmo entran.
+- [ ] Observado y NO tocado (misma clase de falla, otra lectura): `getRecepcionesRecientes` (`lib/compras.ts`) lee los 80 últimos lotes y filtra en memoria; hoy `lotes` tiene 0 filas en producción, así que no urge.

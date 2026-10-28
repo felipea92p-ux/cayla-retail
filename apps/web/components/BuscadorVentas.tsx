@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState, type MutableRefObject, type ReactNode, type RefObject } from "react";
-import { ArrowRight, Loader2, ReceiptText, ScanLine, Search, X } from "lucide-react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
+import { ArrowRight, ReceiptText, ScanLine } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { MAX_LARGO_BUSQUEDA } from "@/lib/cambios-reglas";
 import { Desplegable } from "@/components/ui/campos";
+import { usePistola } from "@/components/ui/usePistola";
+import { busquedaDesdeLectura } from "@/lib/cambios-atajos-reglas";
 
 /** "/" enfoca la búsqueda desde cualquier parte de la pantalla (como en Linear o GitHub).
  *  Solo fuera de un campo: dentro de uno, "/" es un carácter más. `activo` es false
@@ -33,8 +38,9 @@ const CHIP_ACCION =
  * - Un solo campo entiende boleta ("B001-10"), DNI/RUC, nombre de la clienta, nombre de
  *   la prenda o su etiqueta — `clasificarBusqueda` decide cuál es cuál. El teléfono NO:
  *   ninguna tabla lo guarda, y el texto de ayuda no promete lo que no existe.
- * - "Escanear prenda": en la computadora la pistola de CAYLA teclea el código y un Enter en
- *   el campo que tenga el foco, así que el botón deja el campo listo y lo dice. En el
+ * - "Escanear prenda": la pistola se porta igual que en Vender (`usePistola`): con el foco en
+ *   cualquier botón de la pantalla, su primera tecla vuelve al campo; lo leído reemplaza lo que
+ *   hubiera escrito y busca solo, mande o no Enter. El botón deja el campo listo y lo dice. En el
  *   teléfono (pantalla táctil), si la pantalla pasa `onCamara`, abre la cámara (Cambios,
  *   spike 2026-09-26).
  * - "Buscar en" reemplaza al switch "Buscar en todas las sedes" y solo lo ve un líder:
@@ -55,6 +61,7 @@ export function BuscadorVentas({
   escanearEnBarraMovil = false,
   onCamara,
   extra,
+  pistola = true,
 }: {
   valorInicial: string;
   todasInicial: boolean;
@@ -62,7 +69,8 @@ export function BuscadorVentas({
   sede: string;
   buscando: boolean;
   campoRef: RefObject<HTMLInputElement | null>;
-  onBuscar: (texto: string, todas: boolean) => void;
+  /** `leida`: la búsqueda la disparó la pistola (no lo tecleado): si trae una sola compra, la pantalla la abre directo. */
+  onBuscar: (texto: string, todas: boolean, leida?: boolean) => void;
   onLimpiar: () => void;
   onSinComprobante: () => void;
   /** Deja «Escanear prenda» al alcance de otra pieza (la barra fija del celular en Devoluciones):
@@ -74,6 +82,8 @@ export function BuscadorVentas({
   onCamara?: () => void;
   /** Un dato de contexto en la fila de los botones (Cambios: si la caja está abierta). */
   extra?: ReactNode;
+  /** `false` con una ventana encima (la cámara, anular una venta): la pistola no le roba las teclas. */
+  pistola?: boolean;
 }) {
   const [texto, setTexto] = useState(valorInicial);
   const [todas, setTodas] = useState(todasInicial);
@@ -95,6 +105,19 @@ export function BuscadorVentas({
     campoRef.current?.focus();
   }
 
+  // Lo leído es un código, no lo que la persona tenía escrito: la búsqueda va con la lectura sola (y el QR de una boleta,
+  // como «B004-31», `busquedaDesdeLectura`).
+  usePistola(campoRef, {
+    activa: pistola,
+    fuera: "atraer",
+    alLeer: ({ codigo }) => {
+      const busqueda = busquedaDesdeLectura(codigo);
+      setEscaneando(false);
+      setTexto(busqueda);
+      onBuscar(busqueda, todas, true);
+    },
+  });
+
   useEffect(() => {
     if (!escanearRef) return;
     escanearRef.current = prepararEscaneo;
@@ -105,70 +128,39 @@ export function BuscadorVentas({
 
   return (
     <form role="search" onSubmit={enviar} className="space-y-4">
-      {/* Una sola píldora: la búsqueda y su botón. Al enfocarla se despega un poco y toma el
-          hilo (taupe) como borde. */}
-      <div
-        className={`flex h-16 items-center gap-3 rounded-xl bg-papel pl-5 pr-2.5 shadow-[0_20px_42px_-28px_rgba(80,50,20,0.5)] ring-1 transition-[box-shadow,transform] duration-300 focus-within:-translate-y-px focus-within:shadow-[0_26px_52px_-26px_rgba(80,50,20,0.6)] focus-within:ring-2 focus-within:ring-taupe sm:pl-6 ${
-          escaneando ? "ring-2 ring-taupe" : "ring-tinta/[0.09]"
-        }`}
-      >
-        <label className="flex h-full min-w-0 flex-1 cursor-text items-center gap-3">
-          {escaneando ? <ScanLine className="h-5 w-5 shrink-0 text-tinta" aria-hidden /> : <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />}
-          <input
-            ref={campoRef}
-            type="text"
-            inputMode="search"
-            autoComplete="off"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            onBlur={() => setEscaneando(false)}
-            placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, clienta, prenda o código"}
-            aria-label="Buscar la venta: boleta, DNI o RUC, nombre de la clienta, nombre o código de la prenda"
-            className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/55"
-          />
-        </label>
-        {buscando ? (
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-tinta/60" aria-label="Buscando" />
-        ) : (
-          texto && (
-            <button
-              type="button"
-              onClick={() => {
-                setTexto("");
-                onLimpiar();
-                campoRef.current?.focus();
-              }}
-              aria-label="Limpiar la búsqueda"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-tinta/60 transition-colors duration-200 hover:bg-sand/60 hover:text-tinta"
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </button>
-          )
-        )}
-        <kbd
-          aria-hidden
-          title="Atajo: / enfoca la búsqueda"
-          className="hidden h-6 min-w-6 items-center justify-center rounded-md bg-tinta/[0.06] px-2 font-mono text-[11px] text-tinta/60 sm:flex"
-        >
-          /
-        </kbd>
-        <button
-          type="submit"
-          disabled={buscando}
-          className="boton-brillo label-cayla h-12 shrink-0 rounded-md bg-tinta px-5 text-[11px] text-crema transition-colors duration-300 hover:bg-tinta/85 disabled:opacity-60 sm:px-7"
-        >
-          Buscar
-        </button>
-      </div>
+      {/* El buscador del mostrador (ADR-0358, ronda 5): la píldora que se despega al enfocar, con su botón. Busca al tocar
+          «Buscar» o con Enter (la pistola teclea el código y un Enter). Escaneando, el ícono pasa al código de barras. */}
+      <Buscador guia="posventa.buscador"
+        tamano="mostrador"
+        ref={campoRef}
+        valor={texto}
+        onCambio={setTexto}
+        onBorrar={() => {
+          setTexto("");
+          onLimpiar();
+        }}
+        buscando={buscando}
+        atajo="visible"
+        icono={escaneando ? "barras" : "lupa"}
+        onBlur={() => setEscaneando(false)}
+        inputMode="search"
+        placeholder={escaneando ? "Escanea la etiqueta…" : "Boleta, DNI, cliente, prenda o código"}
+        maxLength={MAX_LARGO_BUSQUEDA}
+        etiqueta="Buscar la venta: boleta, DNI o RUC, nombre del cliente, nombre o código de la prenda"
+        className={escaneando ? "escaneando" : ""}
+        accion={
+          <BotonBuscar type="submit" peso="primario" disabled={buscando} className="h-12 shrink-0" />
+        }
+      />
 
       <div className="flex flex-wrap items-center gap-2.5">
         {/* En el celular este chip repite un botón fijo de abajo (la cámara en Cambios, «Escanear prenda» en
             Devoluciones): se esconde ahí. */}
-        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
+        <button type="button" data-guia="posventa.escanear" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
-        <button type="button" onClick={onSinComprobante} className={CHIP_ACCION}>
+        <button type="button" data-guia="posventa.sin-comprobante" onClick={onSinComprobante} className={CHIP_ACCION}>
           <ReceiptText className="h-4 w-4" aria-hidden />
           Sin comprobante
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -177,7 +169,7 @@ export function BuscadorVentas({
         {extra}
 
         {puedeVerTodas && (
-          <div className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
+          <div data-guia="posventa.buscar-en" className="ml-auto flex items-center gap-2 text-sm text-tinta/70">
             <span>Buscar en</span>
             <Desplegable
               forma="pastilla"

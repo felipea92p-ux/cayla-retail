@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { FunnelX, SearchX, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import { BarraAtributos, GRILLA_ATRIBUTOS, TarjetaAtributo, TituloGrupo } from "@/components/atributos/kit";
 import { MuestraTemporada } from "@/components/MuestraTemporada";
@@ -60,6 +61,10 @@ import {
   type RevisionFecha,
   type VistaTemporadas,
 } from "@/lib/temporadas-pantalla";
+import { Buscador } from "@/components/ui/Buscador";
+import { Casilla } from "@/components/ui/Casilla";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * La pestaña «Temporadas» de Productos ▸ Atributos (ADR-0246). A diferencia de las otras cinco, la lista es CERRADA
@@ -155,16 +160,16 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
   const desfase = 0;
   return (
     <div className="space-y-6">
-      <Vuelta enLista={vista === "lista"} onLista={() => elegir("lista")} />
-
-      <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
-        {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
-        {dibujada === "completar" && (
-          <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
-        )}
-        {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
-        {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
-      </div>
+      <VueltaALaLista.Provider value={() => elegir("lista")}>
+        <div key={dibujada} className={`space-y-6 ${saliendo ? "anim-revelar-salida" : ""}`}>
+          {dibujada === "lista" && <VistaNueve temporadas={datos.temporadas} porTemporada={datos.porTemporada} resumen={resumen} onElegir={elegir} />}
+          {dibujada === "completar" && (
+            <VistaPorCompletar datos={datos} puedeEditar={puedeEditar} abreFicha={abreFicha} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />
+          )}
+          {dibujada === "categorias" && <VistaCategorias datos={datos} puedeEditar={puedeEditar} responsable={responsable} onConfirmar={setConfirmando} desfase={desfase} />}
+          {dibujada === "calendario" && <VistaCalendario calendario={datos.calendario} anioHoy={datos.anioHoy} esLider={esLider} responsable={responsable} desfase={desfase} />}
+        </div>
+      </VueltaALaLista.Provider>
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
@@ -172,35 +177,13 @@ function Pestana({ datos, puedeEditar, esLider, abreFicha }: { datos: DatosPesta
 }
 
 /**
- * Dos pantallas saltan directo a una vista de esta pestaña: «Completar» del aviso de Productos (a «Por completar») y el
- * enlace de Categorías (a «Por categoría»). Su vuelta va arriba, y solo con su `desde=`: Atributos está en el menú, y quien
- * entra por el lateral no vino de ninguna de las dos. Dentro de una vista de trabajo, además, «← Las nueve temporadas»
- * regresa a la grilla (sin ir al servidor: las cuatro vistas ya están cargadas).
+ * La única vuelta de la pestaña: de una vista de trabajo («Por completar», «Por categoría», «Calendario») a la grilla de
+ * «Las nueve temporadas», sin ir al servidor (las cuatro vistas ya están cargadas). Va DENTRO del título de la vista, a la
+ * izquierda de su nombre, no suelta encima. «Completar» de Productos y el enlace de Categorías entran directo a una vista
+ * (`?vista=`), pero ya no ponen su propia flecha de salida: Atributos está en el menú y una segunda flecha igual a esta
+ * no decía cuál era cuál (Felipe 2026-10-07).
  */
-const VUELTAS = {
-  productos: { href: "/productos", a: "Productos" },
-  categorias: { href: "/productos/categorias", a: "Categorías" },
-} as const;
-
-function Vuelta({ enLista, onLista }: { enLista: boolean; onLista: () => void }) {
-  const desde = useSearchParams().get("desde");
-  const afuera = desde === "productos" || desde === "categorias" ? VUELTAS[desde] : null;
-  if (!afuera && enLista) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-      {afuera && <Volver {...afuera} />}
-      {!enLista && (
-        <button
-          type="button"
-          onClick={onLista}
-          className="label-cayla inline-flex items-center gap-1.5 text-[11px] text-tinta/65 transition-[color,transform] duration-300 hover:-translate-x-0.5 hover:text-rojo"
-        >
-          <span aria-hidden>←</span> Las nueve temporadas
-        </button>
-      )}
-    </div>
-  );
-}
+const VueltaALaLista = createContext<(() => void) | null>(null);
 
 // ---- La franja de trabajo -----------------------------------------------------------------------------------------------
 
@@ -213,8 +196,8 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   const falta = r.sinTemporada;
   const cifra = (n: number | string) => <b className="font-semibold tabular-nums text-tinta">{n}</b>;
   return (
-    <div role="group" aria-label="Trabajo de temporadas" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
-      <Atajo accion="Completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
+    <div role="group" aria-label="Trabajo de temporadas" data-guia="temporadas.franja" className="flex flex-wrap items-center gap-x-8 gap-y-2.5 rounded-lg bg-hueso/60 px-4 py-3 text-sm text-tinta/80">
+      <Atajo accion="Completar" guia="temporadas.atajo-completar" punto={falta > 0 ? "bg-rojo-profundo" : "bg-verde"} onClick={() => onElegir("completar")}>
         {falta > 0 ? (
           <>
             {cifra(falta)} {falta === 1 ? "prenda" : "prendas"} sin temporada
@@ -223,7 +206,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
           "Todas las prendas tienen temporada"
         )}
       </Atajo>
-      <Atajo accion="Por categoría" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
+      <Atajo accion="Por categoría" guia="temporadas.atajo-categorias" punto={r.categoriasSinTemporada > 0 ? "bg-ambar" : "bg-verde"} onClick={() => onElegir("categorias")}>
         {r.categoriasSinTemporada > 0 ? (
           <>
             {cifra(r.categoriasSinTemporada)} de {r.categorias} {r.categorias === 1 ? "categoría" : "categorías"} sin temporada
@@ -232,7 +215,7 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
           "Todas las categorías tienen temporada"
         )}
       </Atajo>
-      <Atajo accion="Calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
+      <Atajo accion="Calendario" guia="temporadas.atajo-calendario" punto={r.enCurso ? "bg-verde" : "bg-tinta/25"} onClick={() => onElegir("calendario")}>
         {r.enCurso ? (
           <>
             {cifra(NOMBRE_ESTACION[r.enCurso.estacion])} en curso
@@ -246,9 +229,9 @@ function FranjaTrabajo({ resumen: r, onElegir }: { resumen: ResumenVistas; onEle
   );
 }
 
-function Atajo({ accion, punto, onClick, children }: { accion: string; punto: string; onClick: () => void; children: ReactNode }) {
+function Atajo({ accion, punto, onClick, children, guia }: { accion: string; punto: string; onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (ADR-0389). */ guia?: string }) {
   return (
-    <button type="button" onClick={onClick} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
+    <button type="button" onClick={onClick} data-guia={guia} className="group/atajo inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-left">
       <span aria-hidden className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${punto}`} />
       <span>{children}</span>
       <span className="label-cayla whitespace-nowrap text-[10.5px] text-tinta/75 underline underline-offset-4 transition-colors group-hover/atajo:text-rojo-profundo">
@@ -260,10 +243,14 @@ function Atajo({ accion, punto, onClick, children }: { accion: string; punto: st
 
 function TituloVista({ titulo, bajada, children, desfase }: { titulo: string; bajada: ReactNode; children?: ReactNode; desfase: number }) {
   const { className, style } = entra(desfase);
+  const alLista = useContext(VueltaALaLista);
   return (
-    <div className={`flex flex-wrap items-end justify-between gap-3 ${className}`} style={style}>
-      <div className="space-y-1">
-        <h2 className="font-display text-xl text-tinta">{titulo}</h2>
+    <div className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-3 ${className}`} style={style}>
+      <div className="min-w-0 space-y-1">
+        <div data-guia="temporadas.volver" className="flex items-center gap-3">
+          {alLista && <Volver onClick={alLista} a="Las nueve temporadas" />}
+          <TituloSeccion>{titulo}</TituloSeccion>
+        </div>
         <p className="max-w-3xl text-sm text-taupe">{bajada}</p>
       </div>
       {children}
@@ -301,6 +288,7 @@ function VistaNueve({
   return (
     <>
       <BarraAtributos
+        guia="atributos.barra-temporadas"
         etiqueta="Filtrar temporadas"
         filtros={
           <>
@@ -318,7 +306,7 @@ function VistaNueve({
 
       <FranjaTrabajo resumen={resumen} onElegir={onElegir} />
 
-      <div key={grupo} className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
+      <div key={grupo} data-guia="temporadas.nueve" className={`space-y-6 ${animar ? "anim-asentar" : ""}`}>
         {gruposConAlgo
           .filter((g) => grupo === "todas" || g === grupo)
           .map((g) => (
@@ -386,7 +374,7 @@ function VistaCalendario({
   let pieza = desfase + 2;
 
   return (
-    <section className="space-y-3" aria-label="Calendario de estaciones">
+    <section className="space-y-3" aria-label="Calendario de estaciones" data-guia="temporadas.calendario">
       <TituloVista
         desfase={desfase}
         titulo="Calendario"
@@ -405,9 +393,9 @@ function VistaCalendario({
             {!esLider && " Pídele al líder que lo agregue."}
           </span>
           {esLider && (
-            <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setAgregando(true)}>
+            <Boton type="button" onClick={() => setAgregando(true)}>
               Agregar {anioHoy + 1}
-            </button>
+            </Boton>
           )}
         </div>
       )}
@@ -573,7 +561,6 @@ function ModalFecha({
     <Modal
       titulo={`Cambiar el inicio de ${nombre}`}
       subtitulo={`Fecha guardada: ${textoInstanteLima(evento.inicio)} (${NOMBRE_FUENTE[evento.fuente]}).`}
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -602,8 +589,8 @@ function ModalFecha({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -686,7 +673,6 @@ function ModalAnio({
     <Modal
       titulo={`Agregar el calendario de ${anio}`}
       subtitulo="Vienen con una fecha aproximada, a mediodía. Si tienes las horas de SENAMHI (o del Observatorio Naval de EE. UU. mientras SENAMHI no publique), cópialas y marca de dónde salen."
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -714,8 +700,8 @@ function ModalAnio({
               <PieGuia guia={guia} listo="Todo listo para agregar." />
             </>
           )}
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -796,7 +782,7 @@ function VistaCategorias({
   }
 
   return (
-    <section className="space-y-3" aria-label="La temporada de cada categoría">
+    <section className="space-y-3" aria-label="La temporada de cada categoría" data-guia="temporadas.categorias">
       <TituloVista
         desfase={desfase}
         titulo="Por categoría"
@@ -814,11 +800,17 @@ function VistaCategorias({
         )}
       </TituloVista>
       {datos.categorias.length === 0 ? (
-        <p className="nota-cayla">No hay categorías activas.</p>
+        <Vacio tamano="chico" icono={<Shirt />}>
+          No hay categorías activas.
+        </Vacio>
       ) : (
         <Tabla {...entra(desfase + 1)}>
           <Encabezado columnas={COLUMNAS_CAT} plantilla={PLANTILLA_CAT} />
-          {visibles.length === 0 && <p className={TABLA.vacio}>Ninguna categoría activa tiene prendas todavía.</p>}
+          {visibles.length === 0 && (
+            <Vacio tamano="chico" icono={<FunnelX />} accion={{ texto: "Ver todas", onClick: () => setFiltro("todas") }}>
+              Ninguna categoría activa tiene prendas todavía.
+            </Vacio>
+          )}
           {visibles.map((c, i) => {
             const valor = valorDe(c);
             // Cambiar el filtro no re-anima las filas que ya estaban: React conserva su DOM y la animación no se repite.
@@ -831,7 +823,7 @@ function VistaCategorias({
                       valor={valor}
                       onValor={(v) => pedirCambio(c, v)}
                       opciones={opciones}
-                      forma="caja"
+                      forma="campo"
                       etiquetaAccesible={`Temporada por defecto de ${c.nombre}`}
                     />
                   ) : (
@@ -859,9 +851,23 @@ function VistaCategorias({
 
 // ---- 1. Por completar -------------------------------------------------------------------------------------------------
 
-// En celular la casilla va al lado del nombre (no sola en su renglón) y los colores, debajo del nombre.
-const PLANTILLA_SIN = "grid-cols-[2rem_minmax(0,1fr)] sm:grid-cols-[2rem_minmax(0,1fr)_minmax(0,14rem)]";
-const PLANTILLA_SIN_LECTURA = "sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]";
+// En celular la casilla va al lado del nombre (no sola en su renglón) y los colores, debajo del nombre. La marca y el
+// proveedor tienen cada uno su columna cuando la TARJETA mide 768 px o más (`@3xl`, no la ventana: con el menú lateral
+// abierto una ventana de 1.000 px deja ~800 a la tarjeta); con menos, bajan a una línea rotulada bajo el código.
+const PLANTILLA_SIN =
+  "grid-cols-[2rem_minmax(0,1fr)] sm:grid-cols-[2rem_minmax(0,1fr)_minmax(0,14rem)] @3xl:grid-cols-[2rem_minmax(0,1fr)_minmax(0,8rem)_minmax(0,8rem)_minmax(0,11rem)]";
+const PLANTILLA_SIN_LECTURA =
+  "sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)] @3xl:grid-cols-[minmax(0,1fr)_minmax(0,8rem)_minmax(0,8rem)_minmax(0,11rem)]";
+
+// Los títulos de la lista: sin ellos, un nombre suelto a la derecha («Vino», «Zara») no dice si es color, marca o proveedor.
+const COLUMNAS_MARCA = "hidden @3xl:block";
+const COLUMNAS_SIN: Columna[] = [
+  { titulo: "Prenda" },
+  { titulo: "Marca", clase: COLUMNAS_MARCA },
+  { titulo: "Proveedor", clase: COLUMNAS_MARCA, ayuda: "A quién se le compra habitualmente este modelo." },
+  { titulo: "Colores", ayuda: "Los colores de la prenda que todavía no tienen temporada propia." },
+];
+const COLUMNAS_SIN_EDITA: Columna[] = [{ titulo: <span className="sr-only">Marcar</span> }, ...COLUMNAS_SIN];
 
 function VistaPorCompletar({
   datos,
@@ -988,7 +994,7 @@ function VistaPorCompletar({
 
   if (lista.length === 0) {
     return (
-      <section className="space-y-3" aria-label="Prendas por completar">
+      <section className="space-y-3" aria-label="Prendas por completar" data-guia="temporadas.completar">
         <TituloVista desfase={desfase} titulo="Por completar" bajada="Prendas activas sin temporada propia, de un color ni de su categoría." />
         <div className="card-cayla anim-entra p-6 text-center" style={entra(desfase + 1).style}>
           <p className="font-display text-xl text-verde-profundo">Todas las prendas tienen temporada</p>
@@ -999,7 +1005,7 @@ function VistaPorCompletar({
   }
 
   return (
-    <section className="space-y-3" aria-label="Prendas por completar">
+    <section className="space-y-3" aria-label="Prendas por completar" data-guia="temporadas.completar">
       <TituloVista
         desfase={desfase}
         titulo="Por completar"
@@ -1018,18 +1024,13 @@ function VistaPorCompletar({
       )}
 
       <div className="anim-entra flex flex-wrap items-center gap-2" style={entra(desfase + 2).style}>
-        <div className="caja-cayla relative flex h-10 min-w-[12rem] flex-1 items-center">
-          <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
-          <input
-            type="text"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Nombre, código, categoría o color…"
-            aria-label="Buscar entre las prendas sin temporada"
-            autoComplete="off"
-            className="h-full w-full rounded-lg bg-transparent pl-9 pr-3 text-sm text-tinta outline-none placeholder:text-taupe"
-          />
-        </div>
+        <Buscador
+          valor={texto}
+          onCambio={setTexto}
+          placeholder="Nombre, código, categoría, marca o color…"
+          etiqueta="Buscar entre las prendas sin temporada"
+          className="min-w-[12rem] flex-1"
+        />
         {puedeEditar && (
           <button type="button" className="btn-cayla btn-enlace text-sm" onClick={alternarTodas} disabled={visibles.length === 0}>
             {todasVisiblesMarcadas ? "Desmarcar todas" : texto ? "Marcar las que se ven" : "Marcar todas"}
@@ -1037,7 +1038,11 @@ function VistaPorCompletar({
         )}
       </div>
 
-      {visibles.length === 0 && <p className="nota-cayla">Ninguna prenda sin temporada coincide con «{texto}».</p>}
+      {visibles.length === 0 && (
+        <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setTexto("") }}>
+          Ninguna prenda sin temporada coincide con «{texto}».
+        </Vacio>
+      )}
 
       <div className="flex flex-col">
         {grupos.map((g, i) => (
@@ -1061,16 +1066,17 @@ function VistaPorCompletar({
 
       {puedeEditar && elegidas.length > 0 && (
         // Flota sobre la lista (por eso lleva sombra: ADR-0012) y sube desde abajo UNA vez, al marcar la primera.
-        <div className="card-cayla anim-entrada sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3 shadow-md" role="region" aria-label="Asignar a las marcadas">
-          <p className="text-sm text-tinta">
+        // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`): se pega abajo dentro de la lista.
+        <BarraDeAbajo tono="tinta" pegada className="z-10 justify-between gap-3 px-4 py-3" role="region" aria-label="Asignar a las marcadas">
+          <p className="text-sm">
             <b className="font-semibold">
               {elegidas.length} {elegidas.length === 1 ? "prenda marcada" : "prendas marcadas"}
             </b>
-            <span className="text-taupe">
+            <span className="text-crema/80">
               : la temporada se {elegidas.length === 1 ? "le pone solo a ella" : "les pone solo a ellas"}, no a su categoría.
             </span>
             {marcadasOcultas > 0 && (
-              <span className="block text-xs text-taupe">
+              <span className="block text-xs text-crema/80">
                 {marcadasOcultas} {marcadasOcultas === 1 ? "marcada no se ve" : "marcadas no se ven"} con esta búsqueda: no se{" "}
                 {marcadasOcultas === 1 ? "asigna" : "asignan"}.
               </span>
@@ -1078,7 +1084,7 @@ function VistaPorCompletar({
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-full sm:w-56">
-              <Desplegable valor={temporada} onValor={setTemporada} opciones={opciones} forma="caja" marcador="Elegir temporada" etiquetaAccesible="Temporada que se les pone" />
+              <Desplegable valor={temporada} onValor={setTemporada} opciones={opciones} forma="campo" marcador="Elegir temporada" etiquetaAccesible="Temporada que se les pone" />
             </div>
             <button type="button" className="btn-cayla btn-primario h-10" disabled={!!motivo} title={motivo ?? undefined} onClick={pedirAsignar}>
               Asignar a {elegidas.length}
@@ -1087,7 +1093,7 @@ function VistaPorCompletar({
               Desmarcar
             </button>
           </div>
-        </div>
+        </BarraDeAbajo>
       )}
 
       <p className="nota-cayla">
@@ -1153,7 +1159,7 @@ function GrupoPorCompletar({
     >
       <div className="min-h-0 overflow-hidden">
         <div className="pb-3">
-          <div className="card-cayla overflow-hidden transition-colors hover:border-taupe/35">
+          <div className="card-cayla @container overflow-hidden transition-colors hover:border-taupe/35">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-sand/45 px-5 py-3">
               <p className="text-[15px] font-semibold text-tinta">
                 {g.categoria}
@@ -1164,7 +1170,7 @@ function GrupoPorCompletar({
               {puedeEditar && g.activa && (
                 <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   <div className="w-full sm:w-52">
-                    <Desplegable valor={eleccion} onValor={onEleccion} opciones={opciones} forma="caja" marcador="Elegir temporada" etiquetaAccesible={`Temporada para toda la categoría ${g.categoria}`} />
+                    <Desplegable valor={eleccion} onValor={onEleccion} opciones={opciones} forma="campo" marcador="Elegir temporada" etiquetaAccesible={`Temporada para toda la categoría ${g.categoria}`} />
                   </div>
                   <button type="button" className="btn-cayla btn-secundario btn-chico w-full sm:w-auto" disabled={!eleccion} title={eleccion ? undefined : "Elige primero la temporada."} onClick={onPonerCategoria}>
                     Ponérsela a la categoría
@@ -1177,6 +1183,7 @@ function GrupoPorCompletar({
                 </p>
               )}
             </div>
+            <Encabezado columnas={puedeEditar ? COLUMNAS_SIN_EDITA : COLUMNAS_SIN} plantilla={plantilla} />
             {g.prendas.map((p) => {
               const marcada = marcadas.has(p.productoId);
               const colores = p.todosSusColores ? p.colores.join(", ") : `Solo ${p.colores.join(", ")}`;
@@ -1184,13 +1191,27 @@ function GrupoPorCompletar({
                 <>
                   <span className={celda()}>
                     {abreFicha ? (
-                      <Link href={`/productos/${p.productoId}/editar`} className="block truncate text-tinta hover:text-rojo-profundo hover:underline">
+                      <Link href={`/productos/${p.productoId}/editar`} className="btn-enlace inline-block max-w-full truncate align-bottom">
                         {p.nombre}
                       </Link>
                     ) : (
                       <span className="block truncate text-tinta">{p.nombre}</span>
                     )}
                     {p.codigo && <span className="block truncate font-mono text-xs text-taupe">{p.codigo}</span>}
+                    {/* Sin columnas de marca y proveedor (tarjeta < @3xl), bajan aquí, cada una con su rótulo. */}
+                    <span
+                      className="block truncate text-xs text-taupe @3xl:hidden"
+                      title={`Marca: ${p.marca ?? "sin registrar"} · Proveedor: ${p.proveedor ?? "sin registrar"}`}
+                    >
+                      Marca: {p.marca ?? "sin registrar"} · Proveedor: {p.proveedor ?? "sin registrar"}
+                    </span>
+                  </span>
+                  {/* Lo que falta sale como chip ámbar, igual que en Productos (ADR-0283): una prenda puede no tener marca o proveedor. */}
+                  <span className={celda("izq", "hidden text-tinta/80 @3xl:block")} title={p.marca ?? "Sin marca"}>
+                    {p.marca ?? <Chip tono="ambar" versalitas={false}>Sin marca</Chip>}
+                  </span>
+                  <span className={celda("izq", "hidden text-tinta/80 @3xl:block")} title={p.proveedor ?? "Sin proveedor"}>
+                    {p.proveedor ?? <Chip tono="ambar" versalitas={false}>Sin proveedor</Chip>}
                   </span>
                   <span className={celda("izq", `text-tinta/75 ${puedeEditar ? "col-start-2 sm:col-start-auto" : ""}`)} title={p.colores.join(", ")}>
                     <span className="text-taupe sm:hidden">Colores: </span>
@@ -1219,13 +1240,7 @@ function GrupoPorCompletar({
                   )}
                 >
                   <span className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={marcada}
-                      onChange={() => onAlternar(p.productoId)}
-                      aria-label={`Marcar ${p.nombre}`}
-                      className="h-[18px] w-[18px] cursor-pointer accent-tinta"
-                    />
+                    <Casilla marcada={marcada} onCambio={() => onAlternar(p.productoId)} etiqueta={`Marcar ${p.nombre}`} />
                   </span>
                   {contenido}
                 </label>

@@ -1,0 +1,70 @@
+/* ====================================================================
+   Catálogo ▸ Marcas (ADR-0373, Felipe 2026-10-10) — lo que solo esta pantalla necesita.
+   Todo con tokens (ADR-0169, ADR-0336) y movimiento de ADR-0136: sin rebote, sin bucle; quieto con `prefers-reduced-motion`.
+   ==================================================================== */
+
+/* El resumen (las cuatro cifras que filtran) nace colapsado: las marcas son lo primero que se ve. Se abre con «Resumen ▾» y
+   se despliega con una transición de alto (de 0fr a 1fr: no hay que medir nada). Cerrado, nada de adentro recibe foco ni se lee. */
+.marcas-resumen {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 360ms var(--ease-cayla), visibility 0s linear 360ms;
+}
+.marcas-resumen[data-abierto] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 360ms var(--ease-cayla), visibility 0s;
+}
+/* El recorte lleva un respiro a los lados: la tarjeta que se levanta al pasar el mouse y su anillo de foco no se cortan. */
+.marcas-resumen-clip {
+  min-height: 0;
+  overflow: hidden;
+  margin-inline: -6px;
+  padding-inline: 6px;
+}
+.marcas-resumen-in {
+  padding-block: 1.5rem 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marcas-resumen,
+  .marcas-resumen[data-abierto] {
+    transition: none;
+  }
+}
+
+/* La tarjeta de una marca entra con un empujón corto y escalonado (las primeras doce); la que acaba de guardarse, o a la que se
+   saltó con una letra o una predicción, destella una sola vez. */
+.marca-entra {
+  animation: cayla-sube 420ms var(--ease-cayla) backwards;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+.marca-destello {
+  animation: marca-destello 1100ms var(--ease-cayla) 1;
+}
+@keyframes marca-destello {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-taupe) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+/* La que se desactiva o se elimina se encoge y se apaga antes de salir de la lista (la base ya respondió que sí). */
+.marca-sale {
+  animation: marca-sale 240ms var(--ease-cayla) forwards;
+  pointer-events: none;
+}
+@keyframes marca-sale {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marca-entra,
+  .marca-destello,
+  .marca-sale {
+    animation: none;
+  }
+}

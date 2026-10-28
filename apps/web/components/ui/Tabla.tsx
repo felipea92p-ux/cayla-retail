@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { ArrowDown } from "lucide-react";
 
 /* ====================================================================
    Tabla · listados con encabezado (2026-09-12, módulo de Compras)
@@ -38,7 +39,13 @@ export type Columna = {
   /** Clases extra del título: para mostrarlo solo desde cierto ancho de la TABLA (`hidden @min-[1070px]:block`, con
    *  `@container` en la `Tabla`), la misma condición que esconde la celda de cada fila. */
   clase?: string;
+  /** Con `orden` y `onOrden` en `Encabezado`, el título se vuelve un botón que ordena la tabla por este campo. Sin `campo`, la columna
+   *  no ordena (la de acciones, una que no tiene un valor que comparar). */
+  campo?: string;
 };
+
+/** Cómo está ordenada una tabla: por qué campo y hacia dónde. */
+export type OrdenTabla = { campo: string; dir: "asc" | "desc" };
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
 
@@ -54,8 +61,7 @@ export const TABLA = {
   fila: "fila-cayla gap-x-4 gap-y-1 px-5 py-3",
   /** El renglón de pie (cuántas se muestran, exportar, paginar). */
   pie: "px-5 py-2.5 text-xs text-taupe",
-  /** Sin resultados: una tarjeta aparte, o dentro de la tarjeta de la sección con `border-t`. */
-  vacio: "p-5 text-sm text-tinta/75",
+  // Sin resultados: ya no hay una clase aquí. Un vacío es <Vacio tamano="chico"> (ADR-0358, ronda 5).
 } as const;
 
 // `overflow-x-auto`: encontrado el 2026-09-15 al centrar Inventario — con
@@ -64,9 +70,9 @@ export const TABLA = {
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
-export function Tabla({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+export function Tabla({ children, className = "", style, guia }: { children: ReactNode; className?: string; style?: CSSProperties; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
-    <div className={`${TABLA.contenedor} ${className}`} style={style}>
+    <div data-guia={guia} className={`${TABLA.contenedor} ${className}`} style={style}>
       {children}
     </div>
   );
@@ -80,17 +86,27 @@ export function Encabezado({
   columnas,
   plantilla,
   siempre = false,
+  visible = "hidden sm:grid",
   grande = false,
+  orden,
+  onOrden,
 }: {
   columnas: Columna[];
   plantilla: string;
   siempre?: boolean;
+  /** Desde qué ancho se ve (por defecto, desde `sm`). Una tabla que decide su forma por el ancho de su TARJETA (`@container`) pasa
+   *  su propio corte: `hidden @min-[560px]:grid` (Clientes). */
+  visible?: string;
+  /** El orden vigente y quién lo cambia: las columnas que declaran `campo` ordenan al tocarse (la flecha dice hacia dónde y gira al
+   *  invertir; `aria-sort` para el lector de pantalla). Las filas se ordenan en quien llama, no aquí. */
+  orden?: OrdenTabla;
+  onOrden?: (campo: string) => void;
   /** Un poco más de alto y la segunda línea del mismo tamaño que el título: las listas de Existencias del diseño aprobado
    *  (2026-09-28). Las demás tablas siguen con el encabezado chico de siempre. */
   grande?: boolean;
 }) {
   return (
-    <div className={`${siempre ? "grid items-end" : "hidden sm:grid"} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
+    <div className={`${siempre ? "grid items-end" : visible} ${grande ? "encabezado-tabla-cayla items-center gap-x-4 px-5 py-[11px]" : TABLA.encabezado} ${plantilla}`} role="row">
       {columnas.map((c, i) => (
         <span
           key={i}
@@ -98,7 +114,22 @@ export function Encabezado({
           className={`${grande ? "text-xs font-normal leading-snug text-taupe" : TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""} ${c.clase ?? ""}`}
           role="columnheader"
         >
-          {c.titulo}
+          {c.campo && onOrden ? (
+            <button
+              type="button"
+              onClick={() => onOrden(c.campo!)}
+              aria-sort={orden?.campo === c.campo ? (orden.dir === "desc" ? "descending" : "ascending") : "none"}
+              className={`inline-flex max-w-full items-center gap-1 transition-colors hover:text-rojo ${orden?.campo === c.campo ? "text-tinta" : ""} ${c.alinear === "der" ? "flex-row-reverse" : ""}`}
+            >
+              <span className="truncate">{c.titulo}</span>
+              <ArrowDown
+                aria-hidden
+                className={`h-3 w-3 shrink-0 transition-[opacity,transform] duration-300 ease-cayla ${orden?.campo === c.campo ? "opacity-100" : "opacity-35"} ${orden?.campo === c.campo && orden.dir === "asc" ? "rotate-180" : ""}`}
+              />
+            </button>
+          ) : (
+            c.titulo
+          )}
           {c.subtitulo && <span className={`block truncate ${grande ? "text-xs" : "text-[10px]"} text-taupe`}>{c.subtitulo}</span>}
         </span>
       ))}

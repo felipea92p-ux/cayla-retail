@@ -1,11 +1,15 @@
-import Image from "next/image";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
+import { textoCuponEnElRecibo } from "@/lib/club-puntos-reglas";
+import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import {
   fechaHoraLima,
   montoEnLetras,
+  LEY_REDONDEO_TICKET,
   NOMBRE_METODO,
+  TEXTO_REDONDEO,
   textoNumeroRecibo,
   textoQrSunat,
   TITULO_DOCUMENTO,
@@ -13,7 +17,7 @@ import {
   type ReciboVenta,
 } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /**
  * El comprobante como sale de la térmica de 80 mm: la «representación impresa» de la boleta o
@@ -29,13 +33,20 @@ const s = (n: number) => `S/ ${n.toFixed(2)}`;
  *    La jerarquía sale de tamaño, peso y reglas, no de color.
  *  · Lo que la clienta busca —el TOTAL— va enmarcado entre dos reglas gruesas y es lo más grande;
  *    lo que necesita SUNAT (serie-número, QR) va aparte y no compite con eso.
- *  · El logo es el isotipo del colibrí en negro (`filter: brightness(0)`), no el PNG terracota.
+ *  · El logo es el oficial (colibrí y palabra, ADR-0446) en vector y negro, nunca «CAYLA» escrito con una letra.
  *  · Ancho útil 72 mm (papel de 80 con los márgenes del cabezal).
+ *  · Sin QR del club: el papel lleva solo el QR de SUNAT (Felipe 2026-10-01, ADR-0288 act. j). La clienta se une con el
+ *    QR del cartel del mostrador.
  */
-export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta; emisor?: Emisor }) {
+export function ReciboTermico({ recibo, emisor = EMISOR, apartado }: {
+  recibo: ReciboVenta;
+  emisor?: Emisor;
+  /** La entrega de un apartado (ADR-0399): el papel es la misma boleta o factura, pero en vez de la forma de pago —que mostraría el
+   *  adelanto, un pacto interno— lleva el sello «CANCELADO» y una referencia al apartado, sin plata. */
+  apartado?: { codigo: string };
+}) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
   const fiscal = desglosaIgv(recibo.tipo);
   const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const contacto = [emisor.telefono, emisor.email].filter(Boolean);
@@ -43,10 +54,9 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
   return (
     <div id="comprobante-print" data-testid="recibo-termico">
       <header className="rt-centro">
-        {/* `priority`: la imagen tiene que estar cargada ANTES de imprimir; el recibo está
-            `display:none` en pantalla y un `lazy` no la traería hasta tarde. */}
-        <Image src="/cayla-isotipo.png" alt="" width={221} height={150} priority unoptimized className="rt-logo" />
-        <p className="rt-marca">{emisor.nombreComercial}</p>
+        {/* El logo oficial en vector (ADR-0446), en negro: no espera a cargar una imagen antes de imprimir. */}
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{emisor.nombreComercial}</p>
         <p className="rt-negrita">
           {emisor.razonSocial} · RUC {emisor.ruc}
         </p>
@@ -70,9 +80,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         </dd>
         <dt>Cliente</dt>
         <dd>{cli.nombre?.trim() || "CLIENTE VARIOS"}</dd>
-        {tieneDoc && (
+        {llevaDocumento(cli.tipoDoc, cli.numDoc) && (
           <>
-            <dt>{cli.tipoDoc === "ruc" ? "RUC" : "DNI"}</dt>
+            {/* DNI, RUC, CE (carné de extranjería) o Pasaporte: ADR-0288 D-3. */}
+            <dt>{ETIQUETA_DOCUMENTO_COMPROBANTE[cli.tipoDoc]}</dt>
             <dd>{cli.numDoc}</dd>
           </>
         )}
@@ -104,6 +115,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           <span className="rt-imp">{l.importe.toFixed(2)}</span>
         </div>
       ))}
+      {/* El cupón del Club (programa de puntos): el «Dscto.» de cada prenda ya lo incluye; esto dice cuánto es del cupón. */}
+      {recibo.cupon && <p className="rt-detalle">{textoCuponEnElRecibo(recibo.cupon.monto)}</p>}
 
       <div className="rt-linea" />
       {fiscal && (
@@ -125,7 +138,13 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       <p className="rt-son">SON: {montoEnLetras(recibo.total)}</p>
 
       <div className="rt-linea" />
-      <p className="rt-subtitulo">Forma de pago</p>
+      {apartado ? (
+        <p className="rt-centro">
+          <span className="rt-cancelado">CANCELADO</span>
+        </p>
+      ) : (
+        <p className="rt-subtitulo">Forma de pago</p>
+      )}
       {recibo.pagos.map((p) => (
         <div key={p.metodo}>
           <div className="rt-fila">
@@ -140,6 +159,17 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           )}
         </div>
       ))}
+      {(recibo.redondeo ?? 0) > 0 && (
+        <div>
+          <div className="rt-fila">
+            <span>{TEXTO_REDONDEO}</span>
+            <span>{s(recibo.redondeo ?? 0)}</span>
+          </div>
+          <div className="rt-fila rt-detalle">
+            <span>{LEY_REDONDEO_TICKET}</span>
+          </div>
+        </div>
+      )}
 
       {qr && (
         <div className="rt-centro rt-qr">
@@ -166,7 +196,9 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
         </p>
         <p className="rt-lema">{emisor.lema}</p>
         <p className="rt-negrita">¡Gracias por tu compra!</p>
+        {apartado && <p>Prendas apartadas · ref. {apartado.codigo}</p>}
       </footer>
+
     </div>
   );
 }

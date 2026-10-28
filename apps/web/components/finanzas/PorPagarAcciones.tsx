@@ -1,43 +1,11 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Chip } from "@/components/ui/Chip";
-import { SelectFin } from "@/components/finanzas/kit";
 import { PagarComprobanteProduccionModal } from "@/components/PagarComprobanteProduccionModal";
 import type { ComprobanteProduccion } from "@/lib/comprobantes-produccion-reglas";
-import type { UbicacionGastos, Ver } from "@/lib/gastos-reglas";
 
-// Las dos piezas de Finanzas ▸ Por pagar que necesitan el navegador (ADR-0195 F4): «Ver» y el pago de la tela del Taller
-// abierto por `?pagar=`. El pago de una factura de proveedor usa `PagoDesdeUrl` de Compras tal cual.
-
-/** «Ver»: el líder elige todas, una unidad o la empresa (queda en la URL); quien tiene el módulo ve su tienda y no elige. */
-export function VerPorPagar({ ver, unidades, esLider }: { ver: Ver; unidades: UbicacionGastos[]; esLider: boolean }) {
-  const router = useRouter();
-  const ruta = usePathname();
-  const params = useSearchParams();
-  if (!esLider) return <Chip versalitas={false}>{unidades[0]?.nombre ?? "Tu tienda"}</Chip>;
-  const ir = (valor: string) => {
-    const p = new URLSearchParams(params.toString());
-    p.set("ver", valor);
-    p.delete("pagar");
-    router.push(`${ruta}?${p.toString()}`, { scroll: false });
-  };
-  return (
-    <label className="fin-ver">
-      <span className="label-cayla text-[11px] text-taupe">Ver</span>
-      <SelectFin
-        etiqueta="Qué mirar"
-        valor={ver.clave}
-        onValor={ir}
-        opciones={[
-          { valor: "todas", texto: "Todas las tiendas" },
-          ...unidades.map((u) => ({ valor: u.id, texto: u.nombre })),
-          { valor: "empresa", texto: "De la empresa" },
-        ]}
-      />
-    </label>
-  );
-}
+// La pieza de Finanzas ▸ Por pagar que necesita el navegador (ADR-0195 F4): el pago de la tela del Taller abierto por
+// `?pagar=` («Ver» se fue con El telar: la sede la elige la barra común). El pago de una factura de proveedor usa `PagoDesdeUrl` de Compras tal cual.
 
 /**
  * La tela del Taller se paga con el modal de Producción (ADR-0133), sin tocar su lógica: se abre al llegar con

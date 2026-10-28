@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Search } from "lucide-react";
+import { Flag, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -11,9 +11,11 @@ import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo, recordarResponsableGuardar } from "@/lib/responsable-conteo";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import { textoAlcance, textoLugar } from "@/lib/conteo-reglas";
-import { TODA_LA_UBICACION, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
+import { TODA_LA_UBICACION, avisoDeArranque, categoriasPorVariantes, sufijoVariantes, variantesDelConteo, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
 import { camposDeApertura, type AlcanceElegido } from "@/lib/conteo-inicio-guia";
 import { filtrarCombo } from "@/lib/combo-reglas";
+import { podarElegidas, prendasDelLugar, textoPrendas, type LugarDeConteo } from "@/lib/conteo-por-prenda";
+import { usePrendasParaContar } from "@/lib/usePrendasParaContar";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { avisar } from "@/components/ui/Avisos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -22,6 +24,12 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -29,7 +37,8 @@ import { ComboResponsable } from "@/components/ComboResponsable";
    Tres preguntas a la izquierda y, a la derecha, «Tu conteo»: cuántas variantes trae lo elegido, un resumen de tres líneas y el botón.
      1. «¿Dónde vas a contar?»  — Almacén de tienda o Piso de venta. Solo en una sede que los separa; el Taller no los separa y su
                                  conteo es de toda la ubicación: la pregunta ni aparece.
-     2. «¿Qué vas a contar?»    — Todo, o una categoría (con buscador, a la vista: un toque en vez de abrir una lista).
+     2. «¿Qué vas a contar?»    — Todo, una categoría (con buscador, a la vista: un toque en vez de abrir una lista) o prendas exactas
+                                 («Por prenda», 2026-10-01: el buscador de Existencias sobre lo que hay en el lugar elegido).
      3. «¿Quién cuenta?»        — el responsable (combo de asistencia, ADR-0161/0162): firma la apertura.
 
    La cifra de «Tu conteo» son VARIANTES (modelo · color · talla), nunca unidades: el conteo es a ciegas, y decir cuántas prendas
@@ -47,11 +56,22 @@ import { ComboResponsable } from "@/components/ComboResponsable";
    LA decisión de esta tarjeta y verlas todas ahorra un paso. El filtro es el mismo del sistema (`filtrarCombo`: sin tildes ni
    mayúsculas, tolera un error de tipeo). Si se generaliza, es una decisión de ADR-0209, no de esta pantalla.
 
+   Conteo de ARRANQUE (ADR-0328, actividad 15): si el tramo elegido todavía no tuvo su arranque, la tarjeta lo dice sola, sin que nadie
+   tenga que marcar nada (corrige el stock, pero sus diferencias no son pérdida ni bajan la exactitud). El tramo lo pone la base: en el
+   almacén es el lugar entero (contando «Todo» lo será; una categoría o unas prendas, no); en el piso, cada categoría (contando esa
+   categoría, o «Todo», lo será; unas prendas, no). Un cuadre del piso los reinicia. No es una opción a propósito: quien decide si un
+   cierre es de arranque es `cerrar_conteo` (solo si se contó entero el tramo), y un interruptor dejaría marcar «de arranque» lo que no
+   lo es, o perderlo sin saber. Las dos frases («Todo» y la parte elegida) se apilan en la misma celda (ADR-0185): cambiar «Todo» por
+   «Una categoría» no mueve lo de abajo.
+
    «Debe haber» se congela al abrir (la base toma la foto de lo que hay en el lugar): por eso elegir el lugar no es un detalle. Una
    sede con piso y almacén exige uno de los dos — la base también lo rechaza (`sububicacion_requerida`).
 
    Abrir lleva directo a contar (`router.push`): no se relee este inicio, que ya no es donde se trabaja. `?variantes=`
    («Contar esta prenda» desde Movimientos, ADR-0241) se arrastra a la ruta del conteo para que la lista salga acotada.
+   «Por prenda» usa ese mismo camino: la base abre el conteo del lugar completo (`p_alcance = 'todo'`) y las prendas elegidas viajan
+   como `?variantes=`. Es una vista, no un alcance guardado: el historial lo seguirá llamando «Todo». Convertirlo en alcance de la
+   base (`conteos.alcance = 'prendas'`) es una decisión pendiente, ver `docs/backlog/2026-10-01-search-by-exact-garment-0f2248.md`.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string };
@@ -62,6 +82,7 @@ export function AbrirConteo({
   categorias,
   ultimoPorLugar,
   alcance = null,
+  arranque = null,
   trasladosPorAtender,
   variantes = [],
 }: {
@@ -72,6 +93,8 @@ export function AbrirConteo({
   ultimoPorLugar: Record<string, string>;
   /** Cuántas variantes trae un conteo de cada lugar y categoría; `null` = no se pudo leer (la tarjeta sale sin cifras). */
   alcance?: AlcanceConteo | null;
+  /** Qué lugares todavía no tuvieron su conteo de arranque (ADR-0328); `null` = no se pudo leer: la tarjeta no lo menciona. */
+  arranque?: ArranqueConteo | null;
   /** Traslados hacia esta sede por atender (el mismo número del menú); `null` = no se sabe o no ve Traslados. */
   trasladosPorAtender: number | null;
   /** «Contar esta prenda»: las variantes de `?variantes=`, para arrastrarlas al conteo que se abre. */
@@ -92,13 +115,24 @@ export function AbrirConteo({
   const [lugarId, setLugarId] = useState<string | "">("");
   const [queCuento, setQueCuento] = useState<AlcanceElegido>("todo");
   const [categoriaId, setCategoriaId] = useState<string | "">("");
+  // «Por prenda»: los ids elegidos, en el orden en que se eligieron. Las prendas se leen la primera vez que se toca la opción.
+  const [prendasElegidas, setPrendasElegidas] = useState<string[]>([]);
+  const [quitadasPorLugar, setQuitadasPorLugar] = useState(0);
+  const cargaDePrendas = usePrendasParaContar(queCuento === "prendas");
 
   const lugar = separaPisoAlmacen ? (lugares.find((l) => l.id === lugarId) ?? null) : null;
   const categoria = queCuento === "categoria" && categoriaId ? (categorias.find((c) => c.id === categoriaId) ?? null) : null;
 
   // Lo que la persona ve como «faltante» sale de la guía, y la guía de lo que la base exige (`lib/conteo-inicio-guia.ts`).
   const guia = useGuiaCampos(
-    camposDeApertura({ separaPisoAlmacen, lugarId: lugar?.id ?? "", alcance: queCuento, categoriaId: categoria?.id ?? "", responsableListo: responsable.listo }),
+    camposDeApertura({
+      separaPisoAlmacen,
+      lugarId: lugar?.id ?? "",
+      alcance: queCuento,
+      categoriaId: categoria?.id ?? "",
+      prendasElegidas: prendasElegidas.length,
+      responsableListo: responsable.listo,
+    }),
     { enModal: false }
   );
   const listo = guia.puedeConfirmar;
@@ -106,7 +140,30 @@ export function AbrirConteo({
   // La clave del lugar en `alcance`: el piso o el almacén elegido, o «toda la ubicación» en una sede que no los separa.
   const lugarClave = separaPisoAlmacen ? (lugar?.id ?? null) : TODA_LA_UBICACION;
   const hayCifras = alcance !== null && lugarClave !== null;
-  const cuantas = variantesDelConteo(alcance, lugarClave, queCuento === "categoria" ? (categoria?.id ?? null) : null);
+  // Por prenda la cifra son las prendas elegidas (cada una es una variante); aún sin elegir ninguna, no hay cifra que dar.
+  const cuantas =
+    queCuento === "prendas"
+      ? prendasElegidas.length > 0
+        ? prendasElegidas.length
+        : null
+      : variantesDelConteo(alcance, lugarClave, queCuento === "categoria" ? (categoria?.id ?? null) : null);
+
+  // Las prendas que se pueden elegir son las que tienen stock en el lugar de este conteo (la condición de la foto de `abrir_conteo`):
+  // `ElegirPrendas` las filtra por `lugarDeBusqueda` y las indexa una vez por lista.
+  const lugarDeBusqueda = tipoDeLugar(separaPisoAlmacen, lugar?.tipo);
+
+  /** Elegir piso o almacén: lo que ya estaba elegido y no está registrado en el lugar nuevo se quita, y se dice. */
+  function elegirLugar(id: string) {
+    setLugarId(id);
+    if (prendasElegidas.length === 0 || !cargaDePrendas.prendas) return;
+    const nuevo = tipoDeLugar(true, lugares.find((l) => l.id === id)?.tipo);
+    if (!nuevo) return;
+    const alli = new Set(prendasDelLugar(cargaDePrendas.prendas, nuevo).map((p) => p.varianteId));
+    const { quedan, quitadas } = podarElegidas(prendasElegidas, alli);
+    if (quitadas.length === 0) return;
+    setPrendasElegidas(quedan);
+    setQuitadasPorLugar(quitadas.length);
+  }
 
   // «Cuenta Micaela»: el nombre corto de quien el combo tiene elegido.
   const elegido = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId) ?? null;
@@ -149,14 +206,41 @@ export function AbrirConteo({
     if (quienAbre && typeof data === "string") recordarResponsableGuardar(claveResponsableConteo(data), quienAbre);
     avisar.exito("Conteo abierto", { detalle: "Ya puedes escanear." });
     // Se queda «Abriendo…» hasta que la pantalla de contar reemplaza a esta: soltar el botón dejaría abrir dos veces.
-    router.push(`/inventario/conteo/${data}${sufijoVariantes(variantes)}`);
+    // «Por prenda» manda las suyas; si no, las que traiga `?variantes=` desde Movimientos («Contar esta prenda», ADR-0241).
+    router.push(`/inventario/conteo/${data}${sufijoVariantes(queCuento === "prendas" ? prendasElegidas : variantes)}`);
   }
 
   const idTitulo = useId();
   const textoDonde = separaPisoAlmacen ? (lugar ? textoLugar({ sububicacionTipo: lugar.tipo, sububicacionNombre: lugar.nombre }) : null) : "Toda la ubicación";
-  const textoQue = categoria ? textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: categoria.nombre }) : queCuento === "categoria" ? "Una categoría" : "Todo";
+  // «el Piso de venta» / «el Almacén de tienda» / «esta ubicación»; `null` si falta elegir dónde. Para frases de ayuda.
+  const textoDondeConArticulo = separaPisoAlmacen ? (textoDonde ? `el ${textoDonde.charAt(0).toLowerCase()}${textoDonde.slice(1)}` : null) : "esta ubicación";
+  // El conteo de arranque (ADR-0328): las dos frases posibles para ESTE lugar (contando todo / contando la parte elegida), para
+  // apilarlas. En el piso la de la categoría depende de cuál se eligió.
+  const avisoArranque = (que: AlcanceElegido) =>
+    textoDondeConArticulo ? avisoDeArranque({ arranque, lugarClave, queCuento: que, lugarConArticulo: textoDondeConArticulo, categoria }) : null;
+  const arranqueTodo = avisoArranque("todo");
+  const arranqueParte = avisoArranque(queCuento === "todo" ? "categoria" : queCuento);
+  const arranqueVisible = queCuento === "todo" ? arranqueTodo : arranqueParte;
+  const textoQue =
+    queCuento === "prendas"
+      ? prendasElegidas.length > 0
+        ? textoPrendas(prendasElegidas.length)
+        : "Por prenda"
+      : categoria
+        ? textoAlcance({ alcance: "categoria", alcanceCategoriaNombre: categoria.nombre })
+        : queCuento === "categoria"
+          ? "Una categoría"
+          : "Todo";
   const ayudaQue =
-    queCuento === "todo" ? (
+    queCuento === "prendas" ? (
+      prendasElegidas.length > 0 ? (
+        <>
+          Contarás solo <b className="font-medium text-tinta">{textoPrendas(prendasElegidas.length)}</b>: la lista del conteo mostrará solo ellas.
+        </>
+      ) : (
+        "Busca las prendas exactas que vas a contar: una, varias o todas las tallas de un modelo."
+      )
+    ) : queCuento === "todo" ? (
       textoDonde && separaPisoAlmacen ? (
         <>
           Todas las prendas del <b className="font-medium text-tinta">{textoDonde}</b>.
@@ -173,13 +257,11 @@ export function AbrirConteo({
     );
 
   return (
-    <section className="card-cayla @container" aria-labelledby={idTitulo}>
+    <section data-guia="conteo.abrir" className="card-cayla @container" aria-labelledby={idTitulo}>
       <div className="grid @[46rem]:grid-cols-[minmax(0,1fr)_19.5rem]">
         <div inert={abriendo} className={`min-w-0 space-y-7 p-5 transition-opacity duration-200 @[46rem]:p-8 ${abriendo ? "opacity-60" : ""}`}>
           <div className="space-y-1">
-            <h2 id={idTitulo} className="font-display text-2xl text-tinta">
-              Abrir un conteo
-            </h2>
+            <TituloSeccion id={idTitulo}>Abrir un conteo</TituloSeccion>
             <p className="text-sm text-taupe">
               {separaPisoAlmacen ? "Tres respuestas y empiezas a escanear." : "Aquí se cuenta toda la ubicación: no hay piso y almacén por separado."}
             </p>
@@ -188,43 +270,47 @@ export function AbrirConteo({
           {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
               «de más»; si no, se recibe después y descuadra lo contado. */}
           {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-            <div className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-              <span className="min-w-0 flex-1 text-tinta">
-                <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
-                atender. Recíbelos primero, o esas prendas saldrán como diferencia.
-              </span>
-              <Link href="/inventario/traslados" className="btn-cayla btn-enlace text-sm">
-                Ver traslados →
-              </Link>
-            </div>
+            <Aviso
+              tono="atencion"
+              guia="conteo.aviso-traslados"
+              titulo="Antes de contar"
+              accion={<Link href="/inventario/traslados">Ver traslados</Link>}
+            >
+              Hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por atender. Recíbelos
+              primero, o esas prendas saldrán como diferencia.
+            </Aviso>
           )}
 
           {separaPisoAlmacen && (
+            <div data-guia="conteo.donde">
             <CampoGuiado id="donde" guia={guia} titulo="¿Dónde vas a contar?">
               <TarjetasOpcion
                 etiqueta="Dónde vas a contar"
                 valor={lugarId}
-                onValor={setLugarId}
+                onValor={elegirLugar}
                 deshabilitado={abriendo}
                 opciones={lugares.map((l) => ({
                   valor: l.id,
                   titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
-                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
+                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
                   linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
                   cifra: alcance ? textoVariantesRegistradas(variantesDelConteo(alcance, l.id, null) ?? 0) : null,
                 }))}
               />
             </CampoGuiado>
+            </div>
           )}
 
+          <div data-guia="conteo.que">
           <CampoGuiado id="que" guia={guia} titulo="¿Qué vas a contar?">
             <SegmentoDeslizante
               etiqueta="Qué vas a contar"
               valor={queCuento}
               onCambio={(v) => setQueCuento(v as AlcanceElegido)}
               opciones={[
-                { clave: "todo", etiqueta: "Todo" },
-                { clave: "categoria", etiqueta: "Una categoría" },
+                { clave: "todo", etiqueta: "Todo", guia: "conteo.que-todo" },
+                { clave: "categoria", etiqueta: "Una categoría", guia: "conteo.que-categoria" },
+                { clave: "prendas", etiqueta: "Por prenda", guia: "conteo.que-prendas" },
               ]}
             />
             <p aria-live="polite" className="mt-2.5 min-h-5 text-[13px] text-taupe">
@@ -235,7 +321,7 @@ export function AbrirConteo({
               inert={queCuento !== "categoria"}
               className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "categoria" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
             >
-              <div className="min-h-0 overflow-hidden">
+              <div data-guia="conteo.categorias" className="min-h-0 overflow-hidden">
                 <ElegirCategoria
                   categorias={categorias}
                   valor={categoriaId}
@@ -245,27 +331,78 @@ export function AbrirConteo({
                 />
               </div>
             </div>
+            {/* «Por prenda»: el mismo despliegue dentro de la pregunta, también `inert` mientras está cerrado. */}
+            <div
+              inert={queCuento !== "prendas"}
+              className={`grid transition-[grid-template-rows] duration-[340ms] ease-cayla ${queCuento === "prendas" ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+            >
+              <div data-guia="conteo.prendas" className="min-h-0 overflow-hidden">
+                <ElegirPrendas
+                  estado={cargaDePrendas.estado}
+                  reintentar={cargaDePrendas.reintentar}
+                  activo={queCuento === "prendas"}
+                  lugarTexto={textoDondeConArticulo}
+                  lugar={lugarDeBusqueda}
+                  prendas={cargaDePrendas.prendas}
+                  elegidas={prendasElegidas}
+                  onElegidas={(ids) => {
+                    setPrendasElegidas(ids);
+                    setQuitadasPorLugar(0);
+                  }}
+                  quitadasPorLugar={quitadasPorLugar}
+                />
+              </div>
+            </div>
           </CampoGuiado>
+          </div>
 
-          <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
-            <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
-          </CampoGuiado>
+          {/* Solo si hay algo que decir de lo elegido. Las dos frases ocupan la misma celda (la invisible reserva el alto); van por
+              posición (0 = «Todo», 1 = la parte elegida), no por tipo: en el piso las dos pueden ser «de arranque». */}
+          {arranqueVisible && (
+            <div aria-live="polite" className="grid">
+              {[arranqueTodo, arranqueParte].map((a, posicion) => {
+                if (!a) return null;
+                const visible = posicion === (queCuento === "todo" ? 0 : 1);
+                return (
+                  <div
+                    key={posicion}
+                    aria-hidden={visible ? undefined : true}
+                    className={`col-start-1 row-start-1 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm ${
+                      a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
+                    } ${visible ? "" : "invisible"}`}
+                  >
+                    <Flag aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
+                    <span className="min-w-0">
+                      <b className="font-semibold">{a.titulo}.</b> {a.texto}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div data-guia="conteo.quien">
+            <CampoGuiado id="quien" guia={guia} titulo="¿Quién cuenta?">
+              <ComboResponsable control={responsable} deshabilitado={abriendo} compacto className="w-full @[36rem]:w-80" />
+            </CampoGuiado>
+          </div>
 
           {error && (
-            <p role="alert" className="rounded-xl bg-rojo/10 px-4 py-3 text-sm text-rojo-profundo">
-              {error}
-            </p>
+            <Aviso tono="error">{error}</Aviso>
           )}
         </div>
 
         {/* «Tu conteo»: a la derecha en una tarjeta ancha; en una angosta, la barra pegada abajo con la cifra y el botón. */}
         <aside
+          data-guia="conteo.tu-conteo"
           aria-label="Resumen del conteo"
-          className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
+          // En una tarjeta angosta, la Isla pegada abajo (ADR-0479, actividad 12); en una ancha, la columna de la derecha de siempre.
+          data-pegada
+          className="barra-abajo z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-none @[46rem]:rounded-r-[inherit] @[46rem]:border-0 @[46rem]:border-l @[46rem]:border-sand @[46rem]:bg-hueso/50 @[46rem]:p-7 @[46rem]:shadow-none @[46rem]:animate-none"
         >
           <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
 
-          {alcance && (
+          {(alcance || queCuento === "prendas") && (
             <div aria-live="polite" className="flex min-w-0 items-baseline gap-2 @[46rem]:flex-col @[46rem]:gap-0.5">
               <span className={`font-display text-[26px] leading-none @[46rem]:text-[52px] ${cuantas === null ? "text-taupe/50" : "text-tinta"}`}>
                 {cuantas === null ? "—" : <CifraQueCuenta valor={cuantas} />}
@@ -276,7 +413,11 @@ export function AbrirConteo({
                   <>
                     <span className="@[46rem]:hidden">variantes por contar</span>
                     <span className="hidden @[46rem]:inline">
-                      {separaPisoAlmacen && !lugar ? "Elige dónde para ver cuántas variantes" : "Elige la categoría para ver cuántas variantes"}
+                      {separaPisoAlmacen && !lugar
+                        ? "Elige dónde para ver cuántas variantes"
+                        : queCuento === "prendas"
+                          ? "Elige las prendas para ver cuántas variantes"
+                          : "Elige la categoría para ver cuántas variantes"}
                     </span>
                   </>
                 ) : cuantas === 1 ? (
@@ -300,19 +441,25 @@ export function AbrirConteo({
           <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
             <PieGuia guia={guia} listo="Todo listo para empezar." />
           </div>
-          <button
+          <Boton peso="primario" cargando={abriendo} textoCargando="Abriendo…"
             type="button"
             onClick={() => void abrir()}
             disabled={!listo || abriendo}
             title={guia.frase ?? undefined}
-            className={`btn-cayla btn-primario col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
+            className={`col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
           >
-            {abriendo ? "Abriendo…" : "Empezar conteo"}
-          </button>
+            Empezar conteo
+          </Boton>
         </aside>
       </div>
     </section>
   );
+}
+
+/** El lugar de búsqueda de «Por prenda»: el piso o el almacén elegido, toda la ubicación en una sede que no los separa, o `null` si falta elegir. */
+function tipoDeLugar(separaPisoAlmacen: boolean, tipo: string | null | undefined): LugarDeConteo | null {
+  if (!separaPisoAlmacen) return "toda";
+  return tipo === "piso_venta" || tipo === "almacen_tienda" ? tipo : null;
 }
 
 /** «175 variantes registradas» / «1 variante registrada». */
@@ -442,28 +589,22 @@ function ElegirCategoria({
 
   return (
     <div className="space-y-3 pt-3">
-      <label className="caja-cayla relative flex items-center gap-2 px-3 @[30rem]:max-w-sm">
-        <Search className="h-4 w-4 shrink-0 text-taupe" aria-hidden />
-        <span className="sr-only">Buscar categoría</span>
-        <input
-          ref={buscador}
-          type="text"
-          autoComplete="off"
-          value={consulta}
-          onChange={(e) => setConsulta(e.target.value)}
-          onKeyDown={(e) => {
-            // Un control que usa el Escape (aquí, borra su búsqueda) no lo deja pasar (ADR-0136).
-            if (e.key === "Escape" && consulta) {
-              e.stopPropagation();
-              setConsulta("");
-            }
-          }}
-          placeholder="Buscar categoría"
-          className="h-10 w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/55"
-        />
-      </label>
-      <div role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
-        {visibles.length === 0 && <p className="py-1.5 text-[13px] text-taupe">Ninguna categoría se llama así.</p>}
+      {/* El buscador del sistema (ADR-0358, ronda 5): su Escape borra lo escrito y no cierra la hoja de alrededor (ADR-0136). */}
+      <Buscador
+        guia="conteo.categoria-buscador"
+        ref={buscador}
+        valor={consulta}
+        onCambio={setConsulta}
+        etiqueta="Buscar categoría"
+        placeholder="Buscar categoría"
+        className="@[30rem]:max-w-sm"
+      />
+      <div data-guia="conteo.categoria-lista" role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
+        {visibles.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="px-0 py-1.5" icono={<SearchX />}>
+            Ninguna categoría se llama así.
+          </Vacio>
+        )}
         {visibles.map((c, i) => {
           const activa = c.id === valor;
           return (

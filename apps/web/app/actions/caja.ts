@@ -2,13 +2,38 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getMovimientosCaja } from "@/lib/caja";
+import { getCierresDelMes, getMovimientosCaja, type CierreCaja } from "@/lib/caja";
+import { cobrosPorMedio, type CobroMedio } from "@/lib/historial-cierres-reglas";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getVendidoPorEmpresaDeCajas } from "@/lib/vendido-por-empresa";
+import { repartoDeEmpresas, type RepartoEmpresas } from "@/lib/vendido-por-empresa-reglas";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Los cierres de una sede en un mes, para el modal «Historial de cierres» al cambiar de mes (Felipe 2026-10-12). Solo
+ * lee: la base decide qué cajas ve la cuenta (`cajas_select`); aquí solo se revisa que lo pedido tenga forma.
+ */
+export async function leerCierresDelMes(ubicacionId: string, anio: number, mes: number): Promise<CierreCaja[]> {
+  if (!UUID.test(ubicacionId) || !Number.isInteger(anio) || anio < 2000 || anio > 2100 || !Number.isInteger(mes) || mes < 1 || mes > 12) {
+    throw new Error("Mes o sede no válidos");
+  }
+  return getCierresDelMes(ubicacionId, { anio, mes });
+}
 
 export type EventoCaja =
   | { tipo: "venta"; id: string; hora: string; total: number; unidades: number; metodos: string[]; anulada: boolean; colaboradorNombre: string | null }
   | { tipo: "movimiento"; id: string; hora: string; direccion: "ingreso" | "egreso"; monto: number; motivo: string; nota: string | null; esAjuste: boolean; colaboradorNombre: string | null }
   | { tipo: "devolucion"; id: string; hora: string; monto: number; metodo: string | null }
   | { tipo: "cambio"; id: string; hora: string; diferencia: number; metodo: string | null };
+
+/** Lo que trae el detalle de un cierre: el flujo de la caja y lo cobrado por medio de pago (sin ventas anuladas). */
+export type DetalleCierre = {
+  eventos: EventoCaja[];
+  cobros: { total: number; anticipo: number; medios: CobroMedio[] };
+  /** De quién fue lo vendido en ese turno (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. `null` en las demás o sin lectura. */
+  reparto: RepartoEmpresas | null;
+};
 
 /**
  * Todo lo que pasó por una caja ya cerrada, en orden cronológico — para el botón "ver
@@ -25,14 +50,15 @@ export type EventoCaja =
  * cuando el movimiento de plata es real (`aprobar_devolucion`/`registrar_cambio`) — un
  * `where caja_id = $1` ya excluye devoluciones pendientes/rechazadas sin un filtro aparte.
  */
-export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
+export async function getDetalleCierre(cajaId: string): Promise<DetalleCierre> {
   const supabase = await createClient();
 
-  const [ventasRes, movimientos, devolucionesRes, cambiosRes] = await Promise.all([
+  const [ventasRes, movimientos, devolucionesRes, cambiosRes, reparto] = await Promise.all([
     supabase.from("ventas").select("id, created_at, estado, usuario_id, asesora_id").eq("caja_id", cajaId),
     getMovimientosCaja(cajaId),
     supabase.from("devoluciones").select("id, aprobado_en, reembolso_monto, reembolso_metodo").eq("caja_id", cajaId),
     supabase.from("cambios").select("id, created_at, diferencia, metodo_pago_diferencia").eq("caja_id", cajaId),
+    repartoDelTurno(cajaId),
   ]);
 
   const filasVentas = exigir(ventasRes, "las ventas de esta caja");
@@ -113,5 +139,18 @@ export async function getDetalleCierre(cajaId: string): Promise<EventoCaja[]> {
     });
   }
 
-  return eventos.sort((a, b) => a.hora.localeCompare(b.hora));
+  // Lo cobrado por medio: solo ventas que siguen en pie (una anulada no cobró nada) — mismo criterio que `fn_calcular_esperado_caja`.
+  const enPie = new Set(filasVentas.filter((v) => v.estado !== "anulada").map((v) => v.id));
+  const cobros = cobrosPorMedio(filasPagos.filter((p) => enPie.has(p.venta_id)).map((p) => ({ ventaId: p.venta_id, metodo: p.metodo, monto: Number(p.monto) })));
+
+  return { eventos: eventos.sort((a, b) => a.hora.localeCompare(b.hora)), cobros, reparto };
+}
+
+/** Lo vendido del turno por empresa (ADR-0532). Es un dato de más: si algo no se puede leer, `null` y el detalle sale como antes. */
+async function repartoDelTurno(cajaId: string): Promise<RepartoEmpresas | null> {
+  const supabase = await createClient();
+  const { data: caja } = await supabase.from("cajas").select("ubicacion_id").eq("id", cajaId).maybeSingle();
+  if (!caja) return null;
+  const [empresas, porCaja] = await Promise.all([getEmpresasAqui(caja.ubicacion_id), getVendidoPorEmpresaDeCajas([cajaId])]);
+  return repartoDeEmpresas(porCaja ? (porCaja.get(cajaId) ?? []) : null, empresas);
 }

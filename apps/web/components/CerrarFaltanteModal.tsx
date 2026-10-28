@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelect } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -25,7 +25,6 @@ const MOTIVOS = Object.entries(ETIQUETA_MOTIVO_CIERRE) as [MotivoCierre, string]
 // les falta. Sin ellas (una base sin reparto) el cierre va sin tienda, como siempre, y la base infiere la única que hay.
 export type TiendaConFaltante = { ubicacionId: string; nombre: string; pendiente: number };
 
-const BTN_PRIMARIO = "label-cayla rounded-md bg-tinta px-4 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-50";
 
 export function CerrarFaltanteModal({
   compra,
@@ -91,7 +90,7 @@ export function CerrarFaltanteModal({
         </>
       }
       subtitulo={`Comprobante ${compra.documento} · ${compra.proveedorNombre}`}
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
     >
       {() => (
@@ -118,11 +117,9 @@ export function CerrarFaltanteModal({
             />
           )}
 
-          <div>
-            <label htmlFor="cierre-cantidad" className="label-cayla text-[11px] text-tinta/65">
-              ¿Cuántas unidades se cierran?
-            </label>
-            <input
+          <div data-guia="faltante-modal.cantidad" className="max-w-[16rem]">
+            <CampoTexto
+              etiqueta="¿Cuántas unidades se cierran?"
               id="cierre-cantidad"
               type="number"
               min={1}
@@ -130,14 +127,12 @@ export function CerrarFaltanteModal({
               value={cantidad}
               onChange={(e) => setCantidad(e.target.value)}
               onFocus={(e) => e.target.select()}
-              className="ml-3 w-20 border-b border-tinta/25 bg-transparent px-1 py-1 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
+              className="tabular-nums"
+              pie={`de ${tope} pendientes${tienda ? ` en ${tienda.nombre}` : ""}`}
             />
-            <span className="ml-2 text-xs text-tinta/55">
-              de {tope} pendientes{tienda ? ` en ${tienda.nombre}` : ""}
-            </span>
           </div>
 
-          <div>
+          <div data-guia="faltante-modal.motivo">
             <p className="label-cayla mb-2 text-[11px] text-tinta/65">¿Qué pasó con las {cantidadOk ? n : "que faltan"}?</p>
             <div role="radiogroup" aria-label="Qué pasó con las unidades que faltan" className="inline-flex h-9 overflow-hidden rounded-lg border border-tinta/15">
               {MOTIVOS.map(([valor, texto]) => (
@@ -160,12 +155,14 @@ export function CerrarFaltanteModal({
             No se borra nada: el cierre queda como un registro nuevo en el historial del comprobante. La nota de crédito del proveedor, si emite una, se registra aparte, cuando el comprobante esté resuelto.
           </p>
 
-          <ComboResponsable control={responsable} deshabilitado={loading} />
+          <div className="space-y-5" data-guia="faltante-modal.pie">
+            <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          <div className="flex justify-end border-t border-tinta/10 pt-4">
-            <button type="submit" className={BTN_PRIMARIO} disabled={loading}>
-              {loading ? "Cerrando…" : "Cerrar línea con faltante"}
-            </button>
+            <div className="flex justify-end border-t border-tinta/10 pt-4">
+              <Boton type="submit" peso="primario" cargando={loading} textoCargando="Cerrando…">
+                Cerrar línea con faltante
+              </Boton>
+            </div>
           </div>
         </form>
       )}

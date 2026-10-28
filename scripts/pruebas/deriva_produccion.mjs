@@ -214,7 +214,7 @@ select 'T' || substr(md5(random()::text), 1, 6) as ser \\gset
   const llamada = (numero, token) => `select retail.registrar_compra(
   p_proveedor_id => :'prov', p_serie => :'ser', p_numero => '${numero}', p_condicion => 'credito',
   p_ubicacion_destino_id => :'ubic',
-  p_items => jsonb_build_array(jsonb_build_object('producto_id', :'pid', 'variante_id', :'vid', 'cantidad', 2, 'costo_unitario', 10)),
+  p_items => jsonb_build_array(jsonb_build_object('producto_id', :'pid', 'variante_id', :'vid', 'cantidad', 2, 'costo_unitario', 10, 'confirma_costo', true)),
   p_fecha_vencimiento => current_date + 30${token ? `, p_token => :'${token}'` : ""})`;
 
   const mismoToken = correr(`${FIXTURE_COMPRA}

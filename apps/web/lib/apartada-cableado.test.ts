@@ -31,7 +31,8 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   {
     archivo: "components/PuntoDeVenta.tsx",
     cable: "las variantes de la caja pasan por `conApartadoAjustado` (con el almacén y el stock ya ajustados)",
-    patron: /conStockAjustado\(\s*conApartadoAjustado\(\s*conAlmacenAjustado\(\s*variantes\s*,\s*ajustesAlmacen\s*\)\s*,\s*ajustesApartado\s*\)\s*,\s*ajustesStock\s*\)/,
+    // La base puede ser `variantes` tal cual o con el precio al día (`conPreciosAlDia`, 2026-10-08).
+    patron: /conStockAjustado\(\s*conApartadoAjustado\(\s*conAlmacenAjustado\(\s*(?:variantes|conPreciosAlDia\(\s*variantes\s*,\s*preciosAlDia\s*\))\s*,\s*ajustesAlmacen\s*\)\s*,\s*ajustesApartado\s*\)\s*,\s*ajustesStock\s*,?\s*\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
@@ -89,24 +90,24 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
     patron: /const motivo = motivoNoCobrable\(v\);/,
   },
   {
-    archivo: "components/PuntoDeVentaCatalogo.tsx",
+    archivo: "components/punto-de-venta/TarjetaPrenda.tsx",
     cable: "la casilla de talla apartada NO se tacha y usa el token informativo (agotada sí: `line-through`)",
     patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "border-pizarra\/50 text-pizarra" : "border-sand text-tinta\/35 line-through"/,
   },
   {
-    archivo: "components/PuntoDeVentaCatalogo.tsx",
+    archivo: "components/punto-de-venta/TarjetaPrenda.tsx",
     cable: "la talla sin piso dice su motivo en el aria-label y en el tooltip (`tooltipTallaSinPiso`)",
-    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para una clienta"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
+    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para un cliente"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
   },
   {
-    archivo: "components/ElegirTallaModal.tsx",
+    archivo: "components/punto-de-venta/OpcionesDePrendaModal.tsx",
     cable: "la casilla de talla sabe cuándo es «apartada» (`motivo === \"apartada\"`, no un `false` fijo)",
     patron: /const apartada = motivo === "apartada"/,
   },
   {
-    archivo: "components/ElegirTallaModal.tsx",
-    cable: "la casilla de talla dice «Apartada para una clienta» cuando el motivo es `apartada`",
-    patron: /apartada\s*\?\s*"Apartada para una clienta"/,
+    archivo: "components/punto-de-venta/OpcionesDePrendaModal.tsx",
+    cable: "la casilla de talla dice «Apartada para un cliente» cuando el motivo es `apartada`",
+    patron: /apartada\s*\?\s*"Apartada para un cliente"/,
   },
   // ---- Cambios ----
   {

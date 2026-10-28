@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { armarRecibo, desglosaIgv, fechaHoraLima, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
+import { armarRecibo, desglosaIgv, fechaHoraLima, LEY_REDONDEO_TICKET, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
 
 // El comprobante impreso es lo que la clienta se lleva y lo que SUNAT puede cotejar: si un
 // número acá se descuadra por un centavo, el papel y la base dicen cosas distintas.
@@ -42,6 +42,82 @@ describe("armarRecibo — lo que se imprime sale de la venta que se cobró", () 
   });
 });
 
+// ADR-0311: el redondeo del efectivo. Una venta de 79.88 (79.90 con 0.02 de descuento) pagada con 79.80 en efectivo y 0.08 de
+// redondeo: el papel dice lo que se cobró y lo que no, y el comprobante —el total, el IGV, el QR— sigue por el precio EXACTO.
+describe("armarRecibo con el redondeo del efectivo", () => {
+  const conRedondeo = (redondeo?: number) =>
+    armarRecibo({
+      comprobante,
+      sede: "Tienda Lima",
+      cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
+      lineas: [{ cantidad: 1, referencia: "Blusa Emma", codigo: null, precioUnitario: 79.9, descuentoUnitario: 0.02 }],
+      pagos: [{ metodo: "efectivo", monto: 79.8, recibido: 80 }],
+      ...(redondeo === undefined ? {} : { redondeo }),
+      tasaIgv: 0.18,
+    });
+
+  it("dice el redondeo aparte; el efectivo ya es lo cobrado y el vuelto sale de eso (80.00 − 79.80)", () => {
+    const r = conRedondeo(0.08);
+    expect(r.redondeo).toBe(0.08);
+    expect(r.pagos).toEqual([{ metodo: "efectivo", monto: 79.8, recibido: 80, vuelto: 0.2 }]);
+    expect(r.vueltoTotal).toBe(0.2);
+  });
+
+  it("lo cobrado más el redondeo es el total: nada se pierde en el papel", () => {
+    const r = conRedondeo(0.08);
+    expect(Math.round((r.pagos.reduce((a, p) => a + p.monto, 0) + (r.redondeo ?? 0)) * 100)).toBe(Math.round(r.total * 100));
+  });
+
+  it("el total, el subtotal, el IGV y el QR de SUNAT son por el precio exacto: el redondeo no los toca", () => {
+    const con = conRedondeo(0.08);
+    const sin = conRedondeo();
+    expect([con.total, con.subtotal, con.igv]).toEqual([sin.total, sin.subtotal, sin.igv]);
+    expect(con.total).toBe(79.88);
+    expect(Math.round((con.subtotal + con.igv) * 100)).toBe(Math.round(con.total * 100));
+    expect(textoQrSunat(con, "20123456789")).toBe(textoQrSunat(sin, "20123456789"));
+    expect(textoQrSunat(con, "20123456789")).toContain("|79.88|");
+  });
+
+  it("la línea de la ley cabe en el ticket de 80 mm (medido en el navegador: más de ~44 caracteres se sale del papel)", () => {
+    expect(LEY_REDONDEO_TICKET.length).toBeLessThanOrEqual(44);
+  });
+
+  it("sin redondeo (o con un valor que no es un redondeo) el papel queda como siempre", () => {
+    expect(conRedondeo().redondeo).toBe(0);
+    expect(conRedondeo(0).redondeo).toBe(0);
+    expect(conRedondeo(-0.05).redondeo).toBe(0); // nunca un redondeo negativo: la ley solo permite bajar
+  });
+});
+
+// Programa de puntos: con el cupón del Club, cada línea trae su descuento TOTAL (el de `venta_items`) y el papel dice cuánto de eso
+// es del cupón. El total del papel es el que se cobró.
+describe("armarRecibo con el cupón del Club", () => {
+  const conCupon = (cupon: { monto: number } | null) =>
+    armarRecibo({
+      comprobante,
+      sede: "Tienda Lima",
+      cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
+      // 79.90 + 40.10 con un cupón de S/ 30: 19.98 y 10.02 del cupón.
+      lineas: [
+        { cantidad: 1, referencia: "Blusa Aurora", codigo: null, precioUnitario: 79.9, descuentoUnitario: 19.98 },
+        { cantidad: 1, referencia: "Falda Lía", codigo: null, precioUnitario: 40.1, descuentoUnitario: 10.02 },
+      ],
+      pagos: [{ metodo: "yape", monto: 90 }],
+      tasaIgv: 0.18,
+      cupon,
+    });
+
+  it("el total es lo cobrado, y el papel sabe cuánto fue del cupón", () => {
+    const r = conCupon({ monto: 30 });
+    expect(r.total).toBe(90);
+    expect(r.cupon).toEqual({ monto: 30 });
+  });
+  it("sin cupón (o en 0) no dice nada", () => {
+    expect(conCupon(null).cupon).toBeNull();
+    expect(conCupon({ monto: 0 }).cupon).toBeNull();
+  });
+});
+
 describe("textoNumeroRecibo", () => {
   it("serie y número de 6 dígitos", () => {
     expect(textoNumeroRecibo({ serie: "B001", numero: 2 })).toBe("B001-000002");
@@ -76,6 +152,13 @@ describe("textoQrSunat — el orden que pide SUNAT", () => {
   it("factura con RUC", () => {
     const f = { ...base, tipo: "factura" as const, serie: "F001", cliente: { tipoDoc: "ruc" as const, numDoc: "20555555551", nombre: "ACME SAC" } };
     expect(textoQrSunat(f, "20123456789")).toBe("20123456789|01|F001|00000002|18.00|118.00|2026-09-18|6|20555555551|");
+  });
+  // ADR-0288 D-3 (tanda 1e): catálogo 06 de SUNAT, el mismo código que viaja a Lucode.
+  it("boleta a un carné de extranjería: «4»; a un pasaporte: «7»", () => {
+    const ce = { ...base, cliente: { tipoDoc: "carne_extranjeria" as const, numDoc: "001234567", nombre: "Ana" } };
+    const pas = { ...base, cliente: { tipoDoc: "pasaporte" as const, numDoc: "AB123456", nombre: "Ana" } };
+    expect(textoQrSunat(ce, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|4|001234567|");
+    expect(textoQrSunat(pas, "20123456789")).toBe("20123456789|03|B001|00000002|18.00|118.00|2026-09-18|7|AB123456|");
   });
   it("boleta sin documento usa «-»", () => {
     const s = { ...base, cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null } };
@@ -145,6 +228,11 @@ describe("armarRecibo — quién atendió", () => {
 
   it("sin dato queda en null: no se inventa a nadie", () => {
     expect(armarRecibo(entrada).atendio).toBeNull();
+  });
+
+  // ADR-0288 act. j (Felipe 2026-10-01): el papel ya no lleva QR del club; la clienta se une con el QR del cartel.
+  it("no lleva QR del club", () => {
+    expect("club" in armarRecibo(entrada)).toBe(false);
   });
 });
 

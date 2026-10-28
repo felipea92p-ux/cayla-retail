@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useCallback, type ReactNode } from "react";
-import { Modal } from "@/components/ui/Modal";
+import { Modal, type TamanoHoja } from "@/components/ui/Modal";
 
 // Modal cuyo "abierto/cerrado" lo decide la URL, no un `useState`. Lo usan las
 // rutas interceptadas (`@modal/(.)...`): la página del servidor dibuja el
@@ -12,7 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 // en el velo y el botón Cerrar hacen exactamente lo mismo que la flecha
 // "atrás" del navegador, así nunca quedan desincronizados.
 //
-// `cierre` (opt-in): por defecto el modal se cierra con el botón «Cerrar» del pie. Con `cierre="equis"` se cierra
+// `cierre`: desde la ronda 4 de /unificar (Felipe 2026-10-07, «la × sola, arriba a la derecha») el modal se cierra con la ×; con `cierre="pie"` vuelve el botón «Cerrar» del pie. Antes era al revés: con `cierre="equis"` se cerraba
 // con una X arriba a la derecha (gira 90° al pasar el mouse; estilos en `app/estilos/comprobantes-detalle.css`,
 // clase `cd-equis`) y el pie ya no muestra «Cerrar»: solo lleva `acciones`, y si no hay acciones no hay pie.
 // Así lo pide el detalle de un comprobante (prototipo aprobado). Sin la prop, todo queda como antes.
@@ -20,17 +20,24 @@ import { Modal } from "@/components/ui/Modal";
 // `alCerrar`: adónde ir cuando "atrás" no es el lugar correcto. El caso real
 // es el formulario de nueva factura: al guardar navega al detalle y "atrás"
 // volvería al formulario recién enviado; ahí se cierra hacia la lista.
+//
+// `atrasCierra={false}` (ADR-0528): en el teléfono toda hoja cierra con «atrás» poniendo su propia entrada en el historial; esta ya
+// tiene la suya (la URL que la abrió), y «atrás» la cierra navegando. Una segunda entrada pediría dos «atrás».
 export function ModalRuta({
   titulo,
   subtitulo,
-  ancho = "max-w-4xl",
+  tamano = "ancha",
+  ancho,
   alCerrar,
   acciones,
-  cierre = "pie",
+  cierre = "equis",
   children,
 }: {
   titulo: ReactNode;
   subtitulo?: ReactNode;
+  /** Los tres anchos de toda hoja (ADR-0358, ronda 12); por defecto `ancha`: casi siempre es el detalle de algo (una factura, una orden). */
+  tamano?: TamanoHoja;
+  /** Solo para una hoja de diseño propio (el Historial de la vista rápida), con su `unificar-fijo`. */
   ancho?: string;
   alCerrar?: string;
   /** Botones de la entidad (pagar, anular…): van al pie, a la izquierda de
@@ -46,7 +53,7 @@ export function ModalRuta({
   const cerrar = useCallback(() => (alCerrar ? router.replace(alCerrar) : router.back()), [alCerrar, router]);
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} ancho={ancho} onClose={cerrar}>
+    <Modal titulo={titulo} subtitulo={subtitulo} tamano={tamano} ancho={ancho} onClose={cerrar} atrasCierra={false}>
       {(pedirCierre) => (
         <>
           {cierre === "equis" && (
@@ -63,7 +70,7 @@ export function ModalRuta({
               <button
                 type="button"
                 onClick={pedirCierre}
-                className="label-cayla ml-auto rounded-md border border-tinta/25 px-4 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+                className="btn-cayla btn-secundario ml-auto"
               >
                 Cerrar
               </button>

@@ -29,7 +29,7 @@ export function MovimientosVacio({
   return (
     // Sin caja propia: ocupa el lugar de la lista, dentro de la tarjeta de los filtros.
     <div className="flex flex-col items-center gap-2.5 px-5 py-9 text-center">
-      <h2 className="font-display text-[22px] leading-tight text-tinta">{titulo}</h2>
+      <h2 className="font-display text-[22px] leading-tight text-tinta">{/* unificar-fijo: es el título de un vacío (familia vacio), no de un bloque */}{titulo}</h2>
       <p className="max-w-[52ch] text-sm leading-relaxed text-taupe">
         {en90 > 0 ? (
           <>
@@ -44,7 +44,7 @@ export function MovimientosVacio({
       </p>
       <div className="mt-1.5 flex flex-wrap justify-center gap-2">
         {en90 > 0 && (
-          <Link href={url({ rango: "90", desde: undefined, hasta: undefined })} className="btn-cayla btn-primario">
+          <Link href={url({ rango: "90", desde: undefined, hasta: undefined })} className="btn-cayla btn-primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
             Ver los últimos 90 días
           </Link>
         )}

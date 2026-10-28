@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { FunnelX, SearchX, Truck } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -19,14 +19,44 @@ import {
   type ProveedorProduccion,
   type RubroProduccion,
 } from "@/lib/proveedores-produccion-reglas";
+import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
+import { Casilla } from "@/components/ui/Casilla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Pestanas } from "@/components/ui/Pestanas";
+import { ServiciosYTarifas } from "@/components/proveedores-produccion/ServiciosYTarifas";
+import { TarifaServicioModal } from "@/components/proveedores-produccion/TarifaServicioModal";
+import { serviciosParaTarifar, tarifasPorServicio, type TarifaDeServicio } from "@/lib/tarifas-servicios-reglas";
 
 // Proveedores de Producción (ADR-0133, F4a; D-H): quienes le venden tela, avíos y maquila al Taller. Directorio aparte del de
 // Compras. Solo se muestra lo que la base ya sabe de cada uno —lotes recibidos, total comprado, última entrega—; el saldo y el
 // cumplimiento del spike llegan con los comprobantes y las recepciones de Producción (F4b a F4d) y no se dibujan antes.
+//
+// Dos vistas de la misma pantalla (ADR-0400, actividad 8c): «Proveedores» (el directorio) y «Servicios y tarifas» (la lista de precios de los
+// servicios de afuera por fase, que «Nueva orden» sugiere al elegir quién hace una fase). La vista es estado de la pantalla.
+
+export type VistaProveedores = "proveedores" | "tarifas";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function ProveedoresProduccionPanel({ proveedores }: { proveedores: ProveedorProduccion[] }) {
+type HojaDeTarifa = { tarifa: TarifaDeServicio | null; proveedorId?: string };
+
+export function ProveedoresProduccionPanel({
+  sede,
+  proveedores,
+  tarifas,
+  hoy,
+  vistaInicial = "proveedores",
+}: {
+  sede: string;
+  proveedores: ProveedorProduccion[];
+  /** `null`: la base no pudo leer la lista de precios. */
+  tarifas: TarifaDeServicio[] | null;
+  hoy: string;
+  vistaInicial?: VistaProveedores;
+}) {
+  const [vista, setVista] = useState<VistaProveedores>(vistaInicial);
+  const [hojaTarifa, setHojaTarifa] = useState<HojaDeTarifa | null>(null);
   const [rubro, setRubro] = useState<RubroProduccion | "todos">("todos");
   const [busqueda, setBusqueda] = useState("");
   const [verArchivados, setVerArchivados] = useState(false);
@@ -34,88 +64,157 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
 
   const resumen = resumenProveedores(proveedores);
   const visibles = filtrarProveedores(proveedores, { rubro, busqueda, verArchivados });
+  const servicios = serviciosParaTarifar(proveedores);
+  // Cuántos servicios de afuera todavía no tienen ninguna tarifa: la pestaña lo avisa sin abrirla.
+  const sinTarifa = tarifas === null ? 0 : tarifasPorServicio(tarifas, servicios).filter((s) => s.tarifas.length === 0).length;
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">Quién le vende tela, avíos y maquila al Taller. Es un directorio aparte del de Compras.</p>
-        </div>
-        <Boton peso="primario" onClick={() => setEditando("nuevo")}>
-          + Nuevo proveedor
-        </Boton>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Proveedores"
+        subtitulo="Quién le vende tela y avíos al Taller y quién le hace servicios de afuera. Es un directorio aparte del de Compras."
+        acciones={
+          vista === "tarifas" ? (
+            tarifas !== null && servicios.length > 0 && (
+              <Boton peso="primario" data-guia="prod-proveedores.nueva-tarifa" onClick={() => setHojaTarifa({ tarifa: null })}>
+                + Nueva tarifa
+              </Boton>
+            )
+          ) : (
+            <Boton peso="primario" data-guia="prod-proveedores.nuevo" onClick={() => setEditando("nuevo")}>
+              + Nuevo proveedor
+            </Boton>
+          )
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <TarjetaCifra compacta punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
+      <Pestanas
+        guia="prod-proveedores.pestanas"
+        etiquetaAccesible="Vista de Proveedores"
+        activa={vista}
+        onCambio={(c) => setVista(c as VistaProveedores)}
+        idIndicador="proveedores-produccion"
+        items={[
+          { clave: "proveedores", etiqueta: "Proveedores", conteo: resumen.activos, pide: "activos", tono: "neutro", ayuda: "Quién le vende al Taller", guia: "prod-proveedores.pestana-proveedores" },
+          {
+            clave: "tarifas",
+            etiqueta: "Servicios y tarifas",
+            conteo: sinTarifa > 0 ? sinTarifa : null,
+            pide: "sin tarifa",
+            ayuda: "Cuánto cobra por prenda cada servicio de afuera",
+            guia: "prod-proveedores.pestana-tarifas",
+          },
+        ]}
+      />
+
+      {vista === "tarifas" ? (
+        <ServiciosYTarifas
+          tarifas={tarifas}
+          proveedores={proveedores}
+          hoy={hoy}
+          onNueva={(proveedorId) => setHojaTarifa({ tarifa: null, proveedorId })}
+          onCambiar={(t) => setHojaTarifa({ tarifa: t })}
+          onAgregarServicio={() => {
+            setVista("proveedores");
+            setEditando("nuevo");
+          }}
+        />
+      ) : (
+        <>
+      <div data-guia="prod-proveedores.cifras" className="grid gap-3 sm:grid-cols-3">
+        <TarjetaCifra punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>
           {resumen.archivados > 0 ? `${plural(resumen.archivados, "archivado", "archivados")} aparte` : "ninguno archivado"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           punto="verde"
           etiqueta="Comprado al Taller"
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
-          vacia={resumen.totalComprado === 0}
-          valor={resumen.totalComprado === 0 ? "—" : <CifraQueCuenta valor={resumen.totalComprado} formato="soles" alMontar />}
+          valor={resumen.totalComprado === 0 ? null : <CifraQueCuenta valor={resumen.totalComprado} formato="soles" alMontar />}
         >
           sin IGV, en lotes recibidos
         </TarjetaCifra>
-        <TarjetaCifra compacta punto="verde" etiqueta="Lotes recibidos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.lotes} alMontar />}>
+        <TarjetaCifra punto="verde" etiqueta="Lotes recibidos" className="anim-entra" style={{ ["--i" as string]: 2 }} valor={<CifraQueCuenta valor={resumen.lotes} alMontar />}>
           cada ingreso de insumo abre uno
         </TarjetaCifra>
       </div>
 
       {proveedores.length === 0 ? (
-        <div className="card-cayla space-y-2 p-5 text-sm text-tinta/75">
-          <p>
-            Aquí van quienes le venden al Taller: la tela por metro, los avíos, la maquila. Cada lote de insumo se registra con su proveedor, y de ahí salen cuánto se
-            le compra, cuándo entrega y a qué precio.
-          </p>
-          <p>Empieza agregando al primero.</p>
+        <div className="card-cayla">
+          <Vacio
+            guia="prod-proveedores.lista"
+            icono={<Truck />}
+            titulo="Todavía no hay proveedores del Taller"
+            acciones={
+              <Boton peso="primario" onClick={() => setEditando("nuevo")}>
+                Agregar el primero
+              </Boton>
+            }
+          >
+            Aquí van quienes le venden al Taller: la tela por metro, los avíos, la maquila. De cada lote que entregan salen cuánto se le compra, cuándo entrega y a qué
+            precio.
+          </Vacio>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filtrar por rubro" className="flex flex-wrap gap-1.5">
+            <div data-guia="prod-proveedores.rubros" role="group" aria-label="Filtrar por rubro" className="flex flex-wrap gap-2">
               {[{ valor: "todos" as const, etiqueta: "Todos", n: resumen.activos }, ...RUBROS_PRODUCCION.map((r) => ({ valor: r.valor, etiqueta: r.etiqueta, n: resumen.porRubro[r.valor] }))].map((r) => (
                 <button
                   key={r.valor}
                   type="button"
                   aria-pressed={rubro === r.valor}
                   onClick={() => setRubro(r.valor)}
-                  className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema"
+                  // El mismo filtro de rubro que Compras ▸ Proveedores: la píldora del sistema (ADR-0358).
+                  className="pildora-cayla"
                 >
                   {r.etiqueta}
-                  <small className="ml-1.5 opacity-70">{r.n}</small>
+                  <span className="pildora-cayla__n">{r.n}</span>
                 </button>
               ))}
             </div>
-            <label className="card-cayla ml-auto flex min-w-56 items-center gap-2 px-3 py-1.5">
-              <Search size={15} aria-hidden className="text-tinta/45" />
-              <span className="sr-only">Buscar proveedor</span>
-              <input
-                type="search"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Nombre, RUC o contacto"
-                className="w-full bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
-              />
-            </label>
+            <Buscador guia="prod-proveedores.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Nombre, RUC o contacto" etiqueta="Buscar proveedor" className="ml-auto min-w-56" />
             {resumen.archivados > 0 && (
-              <label className="flex items-center gap-2 text-xs text-tinta/70">
-                <input type="checkbox" checked={verArchivados} onChange={(e) => setVerArchivados(e.target.checked)} />
+              <label data-guia="prod-proveedores.archivados" className="flex items-center gap-2 text-xs text-tinta/70">
+                <Casilla marcada={verArchivados} onCambio={() => setVerArchivados((v) => !v)} etiqueta="Ver archivados" />
                 Ver archivados
               </label>
             )}
           </div>
 
           {visibles.length === 0 ? (
-            <p className="card-cayla p-5 text-sm text-tinta/70">Ningún proveedor coincide con lo que buscas.</p>
+            <div className="card-cayla">
+              {busqueda.trim() ? (
+                <Vacio
+                  icono={<SearchX />}
+                  titulo={`Ningún proveedor coincide con «${busqueda.trim()}»`}
+                  acciones={
+                    <Boton peso="fantasma" onClick={() => setBusqueda("")}>
+                      Borrar la búsqueda
+                    </Boton>
+                  }
+                >
+                  Se busca por nombre, RUC o contacto.
+                </Vacio>
+              ) : (
+                <Vacio
+                  icono={<FunnelX />}
+                  titulo="Ningún proveedor con esos filtros"
+                  filtros={rubro !== "todos" ? [{ texto: etiquetaRubro(rubro), onQuitar: () => setRubro("todos") }] : undefined}
+                  acciones={
+                    <Boton peso="fantasma" onClick={() => setRubro("todos")}>
+                      Limpiar filtros
+                    </Boton>
+                  }
+                >
+                  Quita el filtro para ver a todos los proveedores del Taller.
+                </Vacio>
+              )}
+            </div>
           ) : (
-            <div className="card-cayla overflow-hidden">
+            <div data-guia="prod-proveedores.lista" className="card-cayla overflow-hidden">
               <div className="hidden grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto] gap-4 border-b border-tinta/10 px-4 py-2.5 sm:grid">
                 <span className="label-cayla text-[11px] text-tinta/65">Proveedor</span>
                 <span className="label-cayla text-right text-[11px] text-tinta/65">Comprado</span>
@@ -132,7 +231,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
                       className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 sm:grid-cols-[minmax(0,1.6fr)_7rem_5rem_6.5rem_auto]"
                     >
                       <span className="min-w-0">
-                        <span className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
+                        <span data-guia="prod-proveedores.nombre" className={`block truncate text-[14px] ${p.activo ? "text-tinta" : "text-tinta/55 line-through"}`}>{p.nombre}</span>
                         <span className="block text-xs text-tinta/65">
                           {etiquetaRubro(p.rubro)} · {condicionDePago(p.plazoCreditoDias)}
                           {p.contacto ? ` · ${p.contacto}` : ""}
@@ -151,13 +250,13 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
               </ul>
             </div>
           )}
-          <p className="text-xs text-tinta/65">
-            El saldo por pagar y el cumplimiento de cada proveedor aparecen cuando el Taller registre sus comprobantes y reciba pedidos: se calculan de eso, nunca se digitan.
-          </p>
         </div>
+      )}
+        </>
       )}
 
       {editando && <ProveedorProduccionModal proveedor={editando === "nuevo" ? null : editando} onClose={() => setEditando(null)} />}
+      {hojaTarifa && <TarifaServicioModal tarifa={hojaTarifa.tarifa} proveedorId={hojaTarifa.proveedorId} servicios={servicios} tarifas={tarifas ?? []} onClose={() => setHojaTarifa(null)} />}
     </div>
   );
 }

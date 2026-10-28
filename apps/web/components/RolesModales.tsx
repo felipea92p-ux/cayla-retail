@@ -8,6 +8,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { debeAvisarPerdidaAdmin, pideUbicacion, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Los modales de «Roles y accesos» (ADR-0161 B). Todos con `<Modal>` (ADR-0136): heredan el velo, la hoja que sube y la
 // cascada; no agregan movimiento propio. Cada uno recibe `onConfirmar`, que devuelve `true` si la base aceptó; solo
@@ -15,7 +16,6 @@ import type { Ubicacion } from "@/lib/ubicaciones";
 // 2026-09-23: va en TODA acción que guarda). El modal lo pinta encima del botón y apaga el botón mientras falte; la
 // firma y el `despues` los pone quien llama.
 
-const entrada = "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo";
 
 /** Nuevo rol o Duplicar: un nombre (y, al duplicar, de dónde sale su lista de módulos). */
 export function NuevoRolModal({
@@ -52,15 +52,15 @@ export function NuevoRolModal({
           }}
         >
           <Campo etiqueta="Nombre del rol" htmlFor="rol-nombre" pie="Por ejemplo: Almacén, Finanzas, Vendedora de campaña.">
-            <input id="rol-nombre" className={entrada} value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoFocus autoComplete="off" />
+            <input id="rol-nombre" className="caja-campo-input" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoFocus autoComplete="off" />
           </Campo>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
-              {enviando ? "Guardando…" : "Crear rol"}
+              Crear rol
             </Boton>
           </div>
         </form>
@@ -100,18 +100,18 @@ export function RenombrarRolModal({
           }}
         >
           <Campo etiqueta="Nombre" htmlFor="rol-renombre">
-            <input id="rol-renombre" className={entrada} value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />
+            <input id="rol-renombre" className="caja-campo-input" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />
           </Campo>
           <Campo etiqueta="Descripción" htmlFor="rol-descripcion" pie="Opcional. Para qué es este rol, en una línea.">
-            <input id="rol-descripcion" className={entrada} value={descripcion} maxLength={200} onChange={(e) => setDescripcion(e.target.value)} autoComplete="off" />
+            <input id="rol-descripcion" className="caja-campo-input" value={descripcion} maxLength={200} onChange={(e) => setDescripcion(e.target.value)} autoComplete="off" />
           </Campo>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
-              {enviando ? "Guardando…" : "Guardar"}
+              Guardar
             </Boton>
           </div>
         </form>
@@ -138,11 +138,11 @@ export function ArchivarRolModal({
       {(cerrar) => (
         <div className="mt-6 space-y-4">
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Archivando…"
               type="button"
               peso="primario"
               cargando={enviando}
@@ -156,7 +156,7 @@ export function ArchivarRolModal({
                 if (ok) cerrar();
               }}
             >
-              {enviando ? "Archivando…" : "Archivar rol"}
+              Archivar rol
             </Boton>
           </div>
         </div>
@@ -225,7 +225,7 @@ export function AsignarRolModal({
     <Modal
       titulo={cuentaFija ? `Rol de ${cuentaFija.nombre}` : `Asignar «${rolFijo?.nombre ?? ""}»`}
       subtitulo="Una cuenta tiene un solo rol. El cambio se aplica en su próxima pantalla: el menú y lo que puede hacer salen de su rol."
-      ancho="max-w-lg"
+      tamano="mediana"
       onClose={onClose}
     >
       {(cerrar) => (
@@ -263,12 +263,10 @@ export function AsignarRolModal({
           )}
           {cuenta && rolId && rolId === cuenta.rolId && <p className="text-xs text-tinta/65">Ya tiene ese rol.</p>}
           {cuenta && destino && rolId !== cuenta.rolId && destino.fijo && (
-            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
-              Como líder verá y hará todo en todas las sedes, incluidos Colaboradores y Roles y accesos.
-            </p>
+            <Aviso tono="atencion">Como líder verá y hará todo en todas las sedes, incluidos Colaboradores y Roles y accesos.</Aviso>
           )}
           {cuenta && destino && cuenta.esLider && !destino.fijo && (
-            <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
+            <Aviso tono="atencion">
               Deja de ser líder: solo verá los módulos de «{destino.nombre}»{conSede ? ", en la sede que elijas" : ""}.
               {pierdeAdmin && (
                 <>
@@ -276,15 +274,16 @@ export function AsignarRolModal({
                   <strong className="font-semibold">También deja de ser Admin:</strong> no podrá administrar líderes hasta que otro Admin se lo devuelva.
                 </>
               )}
-            </p>
+            </Aviso>
+
           )}
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
-              {enviando ? "Guardando…" : "Asignar rol"}
+              Asignar rol
             </Boton>
           </div>
         </form>

@@ -12,10 +12,10 @@ import type { ReactNode } from "react";
    cabecera no compite con las cifras que vienen debajo.
 
    Es la hermana sobria de `EncabezadoPagina` (con reloj vivo y título de
-   46 px), que es la que manda en Ventas y, desde el 2026-09-26, también en
-   Inventario (ADR-0220). Esta queda en Finanzas (su spike aprobado,
-   ADR-0195) y en Actividad, Parte de compra, Nuevo producto y Etiquetas.
-   Cuál manda en el resto del ERP está sin decidir.
+   46 px), que desde el 2026-10-14 es la cabecera de TODO el ERP (Felipe,
+   `/unificar`, ADR-0358 y ADR-0220 act.). Esta queda SOLO en Finanzas, su
+   spike aprobado (ADR-0195): `lib/unificar.test.ts` falla si aparece en
+   otra pantalla.
    ==================================================================== */
 export function CabeceraPantalla({
   sobretitulo,
@@ -39,7 +39,7 @@ export function CabeceraPantalla({
   children?: ReactNode;
 }) {
   return (
-    <header className={`anim-sube flex flex-wrap justify-between gap-x-8 gap-y-4 ${accionesAbajo ? "items-end" : "items-start"}`}>
+    <header data-voz="cabecera" className={`anim-sube flex flex-wrap justify-between gap-x-8 gap-y-4 ${accionesAbajo ? "items-end" : "items-start"}`}>
       {/* Con `accionesAbajo`, el texto cede ancho (base 22rem, hasta 36rem) antes de mandar las acciones a otra línea: así
           «Ver» y un botón largo («+ Registrar movimiento», Finanzas F3) quedan a la derecha, como en el spike. */}
       <div className={`min-w-0 ${accionesAbajo ? "max-w-[36rem] grow basis-[22rem]" : "max-w-2xl"}`}>

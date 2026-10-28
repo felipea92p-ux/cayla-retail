@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import { idsDeVentasBuscadas } from "@/lib/ventas-v2";
 import {
   ESTADOS_POR_ENVIAR,
@@ -9,7 +9,6 @@ import {
   totalesEnLaBase,
   aFila,
   quienVendio,
-  diaDeLima,
   limitesUTC,
   mezclaDePagos,
   resumir,
@@ -56,8 +55,9 @@ const embebidosLista = (conReferencia: boolean) => `ubicacion:ubicaciones ( id, 
   cliente:clientas ( nombre ),
   venta_items ( id, cantidad, precio_unitario, descuento_unitario, subtotal,
     variante:variantes ( color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
-      producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ),
-    cambios ( created_at ) ),
+      producto:productos ( referencia, producto_fotos ( url, color_codigo, orden, es_principal ) ) ),
+    cambios ( created_at ),
+    por_regularizar:prendas_por_regularizar ( estado ) ),
   venta_pagos ( metodo, monto${conReferencia ? ", referencia" : ""} ),
   comprobantes ( tipo, serie, numero, estado, created_at, enviado_at ),
   devoluciones ( estado, created_at ),
@@ -260,7 +260,7 @@ export async function totalesVentasHistorial(f: FiltrosHistorial, ids: IdsHistor
   });
   if (res.error && FUNCION_INEXISTENTE.has(res.error.code)) return totalesConTope(supabase, f);
   const t = exigir(res, "los totales del historial de ventas") as unknown as TotalesDeLaBase;
-  return { parcial: false, ...totalesDesdeLaBase(t, { desde: f.desde, hasta: f.hasta, hoy: hoyEnLima() }) };
+  return { parcial: false, ...totalesDesdeLaBase(t, { desde: f.desde, hasta: f.hasta, hoy: hoyLima() }) };
 }
 
 // Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
@@ -284,14 +284,14 @@ async function totalesConTope(supabase: Supabase, f: FiltrosHistorial, ids: stri
     anulada: v.estado === "anulada",
     total: totalDeVenta(v.venta_items),
     unidades: unidadesDeVenta(v.venta_items),
-    fecha: diaDeLima(v.created_at),
+    fecha: diaLima(v.created_at) ?? "",
     pagos: v.venta_pagos,
   }));
   return {
     parcial,
     resumen: resumir(ventas),
     // Con el tope superado solo habría los días más recientes: un trazo así mentiría, y no se dibuja.
-    porDia: parcial ? [] : serieDiaria(ventas, { desde: f.desde, hasta: f.hasta, hoy: hoyEnLima() }),
+    porDia: parcial ? [] : serieDiaria(ventas, { desde: f.desde, hasta: f.hasta, hoy: hoyLima() }),
     porMetodo: parcial ? [] : mezclaDePagos(ventas),
   };
 }

@@ -12,7 +12,15 @@ import type { ReactNode } from "react";
 
    Quien la usa debe dejar aire abajo en su página (`pb-28 sm:pb-24`) para
    que no tape la última fila.
+
+   En el celular es la Isla clara (ADR-0479, actividad 12; /unificar familia `barra-movil`): flota a 12 px
+   de los bordes, como toda barra de abajo. Desde `sm` sigue siendo el vidrio de borde a borde de siempre: sus
+   utilidades `sm:` le ganan a la pieza `barra-abajo`.
    ==================================================================== */
+
+/** El vidrio de borde a borde, desde `sm` (en el celular manda la isla). */
+const ESCRITORIO =
+  "sm:inset-x-0 sm:bottom-0 sm:left-lateral sm:overflow-visible sm:rounded-none sm:border-x-0 sm:border-b-0 sm:border-t sm:bg-crema/95 sm:pb-[env(safe-area-inset-bottom)] sm:pr-[env(safe-area-inset-right)] sm:shadow-none sm:backdrop-blur sm:animate-none sm:supports-[backdrop-filter]:bg-crema/80";
 
 export function BarraFija({
   resumen,
@@ -22,7 +30,10 @@ export function BarraFija({
   className = "",
   visible,
   resumenMinimo,
+  guia,
 }: {
+  /** Ancla de la guía (ADR-0389). */
+  guia?: string;
   resumen: ReactNode;
   acciones: ReactNode;
   /** Una franja de 3 px pegada al borde superior (Recibir: contado · faltante · sin contar). */
@@ -40,15 +51,16 @@ export function BarraFija({
   const animada = visible !== undefined;
   return (
     <div
+      data-guia={guia}
       aria-hidden={animada && !visible ? true : undefined}
       inert={animada && !visible ? true : undefined}
-      // `left` también se anima (menú lateral plegable, ADR-0130): sin `sm:transition-[left]` la barra
-      // saltaría al plegar mientras el contenido se desliza. Con `animada` comparte la transición del
-      // `transform` (`sm:transition-[left,transform]`): dos utilidades `transition-*` no se suman solas.
-      className={`fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:left-lateral ${
+      // `left` NO se anima al plegar el menú (ADR-0130, 2026-10-10): salta a su lugar junto con el contenido, que
+      // tampoco se anima — ver la nota v3.6 de `AppShell`. Animarlo recalculaba la pantalla en cada cuadro.
+      // Escondida baja su alto más el aire de la isla y la barrita del iPhone, para que no asome su borde.
+      className={`barra-abajo z-20 block overflow-hidden p-0 ${ESCRITORIO} ${
         animada
-          ? `sm:transition-[left,transform] ${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida"}`
-          : "sm:transition-[left] sm:duration-300 sm:ease-cayla"
+          ? `${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[calc(100%+3rem+env(safe-area-inset-bottom))] transition-transform duration-[240ms] ease-salida"}`
+          : ""
       } ${className}`}
     >
       {medidor}

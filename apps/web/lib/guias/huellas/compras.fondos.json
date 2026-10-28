@@ -1,0 +1,100 @@
+{
+  "guia": "compras.fondos",
+  "ruta": "/compras/fondos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 70,
+  "controles": {
+    "components/compras/CabeceraDeCompras.tsx": [
+      "Pestanas «{items.map(({ clave, etiqueta, href, conteo, pide, tono}»"
+    ],
+    "components/fondos/AccionesFondos.tsx": [
+      "Boton «fondos.entregar»",
+      "button «{soyYo ? \"Tu fondo: que te la entregue otra persona\" : p.sede ? `${p.nombre}»",
+      "CampoSelect «¿A quién le entregas?»",
+      "CampoMonto «¿Cuánto?»",
+      "CampoTexto «¿Para qué es?»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "Boton «fondos.devolver»",
+      "CampoSelect «¿A dónde vuelve la plata?»",
+      "CampoMonto «¿Cuánto devuelve?»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{guia.frase ?? undefined}» #2",
+      "Boton «fondos.anular»",
+      "CampoTexto «Por qué se anula»",
+      "ComboResponsable «{responsable}» #3",
+      "Boton «Cancelar» #3",
+      "Boton «{guia.frase ?? undefined}» #3",
+      "Boton «fondos.pagar-deuda»",
+      "CampoMonto «¿Cuánto pagó?»",
+      "button «Pagó todo:»",
+      "CampoSelect «¿A dónde entró la plata?»",
+      "CampoTexto «Nota» #2",
+      "ComboResponsable «{responsable}» #4",
+      "Boton «Cancelar» #4",
+      "Boton «{guia.frase ?? undefined}» #4"
+    ],
+    "components/fondos/FichasCuenta.tsx": [
+      "CampoSelect «{etiqueta}»",
+      "button «→() => onValor(c.id)»"
+    ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «(sin nombre)»"
+    ],
+    "components/fondos/HojaDeFondos.tsx": [
+      "Boton «{guia}»"
+    ],
+    "components/fondos/RevisarRendicion.tsx": [
+      "Boton «fondos.revisar»",
+      "button «Volver a intentar»",
+      "SegmentoDeslizante «Quién asume lo que falta»",
+      "CampoTexto «Nota · opcional»",
+      "ComboResponsable «{responsable}»",
+      "CampoTexto «¿Qué tiene que corregir?»",
+      "Boton «Cancelar»",
+      "Boton «Devolver para corregir»",
+      "Boton «Devolver para corregir» #2",
+      "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
+    ],
+    "components/mi-plata/BandejaRevisar.tsx": [
+      "button «→() => setElegido(fila.id)»"
+    ],
+    "components/mi-plata/CierresPorRecibir.tsx": [
+      "CampoMonto «{devuelve ? \"¿Cuánto trajo?\" : \"¿Cuánto le pagas?\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fondos.cierre-recibir»"
+    ],
+    "components/mi-plata/GastosPorRevisar.tsx": [
+      "a «{esPdf ? \"Abrir el PDF\" : \"Ver la foto en grande\"}»",
+      "button «{PAPELES_GASTO[k].ayuda}»",
+      "CampoTexto «Serie y número»",
+      "CampoTexto «RUC»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fondos.gasto-revisar»"
+    ],
+    "components/mi-plata/PapelesPorCompletar.tsx": [
+      "a «Ver la foto en grande»",
+      "BotonVerMas «{papel.lineas.length === 1 ? \"Ver la prenda\" : `Ver las ${papel.lineas.length}»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoTexto «Número» #2",
+      "CampoMonto «Lo que dice el papel»",
+      "ComboBuscable «{proveedorId}»",
+      "button «No es este proveedor: cambiar»",
+      "button «Se anotó mal: cambiar el monto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Más tarde»",
+      "Boton «fondos.papel-completar»"
+    ],
+    "components/mi-plata/PlataPorConfirmar.tsx": [
+      "a «Ver el voucher en grande»",
+      "CampoMonto «fondos.plata-monto»",
+      "ComboResponsable «{responsable}»",
+      "Boton «fondos.plata-confirmar»"
+    ]
+  }
+}

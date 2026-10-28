@@ -1,0 +1,20 @@
+[
+  {
+    "i": 6,
+    "archivo": "fuente-6.woff2",
+    "familia": "EB Garamond",
+    "peso": "400 800",
+    "estilo": "normal",
+    "rango": "U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+    "bytes": 44172
+  },
+  {
+    "i": 9,
+    "archivo": "fuente-9.woff2",
+    "familia": "DM Sans",
+    "peso": "100 1000",
+    "estilo": "normal",
+    "rango": "U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+    "bytes": 36980
+  }
+]

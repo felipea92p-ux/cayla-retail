@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Existencias: tarjeta y cajón</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<!-- Maqueta 2026-10-07. Datos: EJEMPLO INVENTADO salvo «Adelle Wide Leg» (la captura de Felipe). Colores: los tokens de globals.css / tema.css. -->
+<style>
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --verde:#48603f;--ambar:#74501a;--ambar-p:#734f15;--pizarra:#4c5d6e;--rojo:#b8412d;--sombra:#1a1a18;
+  --tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+}
+:root[data-tema="oscuro"]{
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;
+  --verde:#9ccb8d;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--crema);color:var(--tinta);font-family:"DM Sans",system-ui,sans-serif;font-size:14px;padding:32px 32px 80px}
+.serif{font-family:"EB Garamond",Georgia,serif}
+h1{font-family:"EB Garamond",serif;font-weight:500;font-size:40px;line-height:1.05}
+h2{font-family:"EB Garamond",serif;font-weight:500;font-size:28px;margin:44px 0 4px}
+.bajada{color:var(--taupe);max-width:760px;line-height:1.5;margin-top:6px}
+.etq{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe);border:1px solid var(--sand);border-radius:999px;padding:2px 9px;margin-left:8px;vertical-align:middle}
+.barra{display:flex;gap:10px;align-items:center;margin-top:14px}
+.btn{font:inherit;font-size:13px;border:1px solid color-mix(in srgb,var(--tinta) 18%,transparent);background:var(--papel);color:var(--tinta);border-radius:10px;padding:7px 12px;cursor:pointer}
+.opcion{margin-top:26px}
+.opcion > header{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.opcion > header b{font-size:15px}
+.opcion > header span{color:var(--taupe);font-size:13px}
+.letra{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:999px;background:var(--tinta);color:var(--crema);font-weight:700;font-size:13px}
+.gana{font-size:12.5px;color:var(--taupe);margin-top:10px;line-height:1.55;max-width:1180px}
+.gana b{color:var(--tinta);font-weight:600}
+.rejilla{display:grid;grid-template-columns:repeat(3,minmax(0,370px));gap:12px}
+svg{flex-shrink:0}
+
+/* ---------- piezas comunes ---------- */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px;cursor:pointer;transition:border-color .2s;position:relative}
+.card:hover{border-color:color-mix(in srgb,var(--tinta) 25%,transparent)}
+.card.hover{border-color:color-mix(in srgb,var(--tinta) 30%,transparent)}
+.foto{border-radius:10px;display:grid;place-items:center;color:var(--crema-fija);overflow:hidden}
+.nom{font-family:"EB Garamond",serif;font-size:19px;line-height:1.1;font-weight:500}
+.sub{color:var(--taupe);font-size:12.5px}
+.precio{font-family:"EB Garamond",serif;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.colores{display:flex;gap:7px;align-items:center}
+.pto{width:20px;height:20px;border-radius:999px;border:2px solid var(--papel);outline:1.5px solid color-mix(in srgb,var(--tinta) 15%,transparent)}
+.pto.si{outline:2px solid var(--tinta)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px}
+.chip i{width:7px;height:7px;border-radius:99px;display:inline-block}
+.chip.ok{color:var(--verde);background:color-mix(in srgb,var(--verde) 11%,transparent)} .chip.ok i{background:var(--verde)}
+.chip.am{color:var(--ambar-p);background:color-mix(in srgb,var(--ambar) 13%,transparent)} .chip.am i{background:var(--ambar)}
+.chip.pz{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 12%,transparent)} .chip.pz i{background:var(--pizarra)}
+.accion{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:600;border-radius:11px;padding:8px 12px;border:1px solid;cursor:pointer;white-space:nowrap}
+.accion.am{color:var(--ambar-p);border-color:color-mix(in srgb,var(--ambar) 40%,transparent);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+.accion.pz{color:var(--pizarra);border-color:color-mix(in srgb,var(--pizarra) 40%,transparent);background:color-mix(in srgb,var(--pizarra) 12%,transparent)}
+.accion.neutra{color:var(--tinta);border-color:color-mix(in srgb,var(--tinta) 15%,transparent);background:var(--papel);font-weight:500}
+.mas{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:11px;border:1px solid color-mix(in srgb,var(--tinta) 15%,transparent);color:var(--taupe);background:var(--papel)}
+.cursor{position:absolute;width:18px;height:18px;pointer-events:none}
+.nota-clic{position:absolute;top:-10px;right:12px;background:var(--tinta);color:var(--crema);font-size:11px;padding:3px 8px;border-radius:7px}
+
+/* ---------- Tarjeta A: foto grande ---------- */
+.A{display:grid;grid-template-columns:92px minmax(0,1fr);gap:14px}
+.A .foto{height:100%;min-height:150px}
+.A .top{display:flex;justify-content:space-between;gap:8px}
+.A .tallas{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin-top:10px}
+.tA{border:1px solid color-mix(in srgb,var(--tinta) 14%,transparent);border-radius:10px;background:var(--crema);text-align:center;padding:6px 2px}
+.tA b{display:block;font-size:15px}
+.tA small{display:block;font-size:10.5px;color:var(--taupe);margin-top:2px}
+.tA.am{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 12%,transparent)} .tA.am small{color:var(--ambar-p);font-weight:600}
+.tA.vacia{border-style:dashed;background:transparent;color:var(--taupe)}
+.A .pie{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+
+/* ---------- Tarjeta B: tallas a lo ancho con piso/almacén ---------- */
+.B .cab{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center}
+.B .foto{width:56px;height:68px}
+.B .linea{display:flex;align-items:center;gap:8px;margin-top:12px}
+.B .tallas{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:12px}
+.tB{border:1px solid color-mix(in srgb,var(--tinta) 13%,transparent);border-radius:11px;background:var(--crema);padding:7px 6px 6px;text-align:center}
+.tB b{font-size:15px;display:block}
+.tB .pa{display:flex;justify-content:center;gap:8px;margin-top:5px;font-size:11px;color:var(--taupe);font-variant-numeric:tabular-nums}
+.tB .pa span{display:inline-flex;align-items:center;gap:3px}
+.tB.am{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.tB.am .pa .p{color:var(--ambar-p);font-weight:700}
+.tB.vacia{border-style:dashed;background:transparent;color:var(--taupe)}
+.B .pie{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:11px;border-top:1px solid var(--sand)}
+.leyenda{display:flex;gap:12px;font-size:11.5px;color:var(--taupe);margin-top:8px}
+.leyenda span{display:inline-flex;align-items:center;gap:4px}
+
+/* ---------- Tarjeta C: veredicto arriba ---------- */
+.C{padding:0;overflow:hidden}
+.C .banda{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;font-weight:600}
+.C .banda.ok{color:var(--verde);background:color-mix(in srgb,var(--verde) 9%,transparent)}
+.C .banda.am{color:var(--ambar-p);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+.C .banda.pz{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 11%,transparent)}
+.C .banda .accion{margin-left:auto;padding:5px 10px;font-size:12.5px}
+.C .cuerpo{padding:12px 14px 14px;display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px}
+.C .foto{width:70px;height:88px}
+.C .tallas{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+.tC{min-width:46px;border:1px solid color-mix(in srgb,var(--tinta) 13%,transparent);border-radius:9px;background:var(--crema);text-align:center;padding:5px 4px}
+.tC b{display:block;font-size:14px} .tC small{font-size:10.5px;color:var(--taupe)}
+.tC.am{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 12%,transparent)} .tC.am small{color:var(--ambar-p);font-weight:600}
+.tC.vacia{border-style:dashed;background:transparent;color:var(--taupe)}
+
+/* ---------- Cajones ---------- */
+.cajones{display:grid;grid-template-columns:repeat(3,420px);gap:18px;align-items:start}
+.cajon{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:18px;box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 35%,transparent)}
+.cab-cajon{display:grid;grid-template-columns:64px minmax(0,1fr) 36px;gap:12px;align-items:center}
+.cab-cajon .foto{width:64px;height:78px}
+.x{display:grid;place-items:center;width:36px;height:36px;border-radius:99px;background:var(--hueso);color:var(--tinta)}
+.selector{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.tallaSel{display:flex;gap:6px}
+.ts{min-width:48px;padding:7px 8px;border-radius:10px;border:1px solid color-mix(in srgb,var(--tinta) 14%,transparent);background:var(--crema);text-align:center;font-weight:600}
+.ts.si{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.ts.am{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.sep{height:1px;background:var(--sand);margin:16px 0}
+.mini{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.veredicto{display:flex;gap:12px;align-items:center;padding:14px;border-radius:14px}
+.veredicto.ok{background:color-mix(in srgb,var(--verde) 10%,transparent)}
+.veredicto.am{background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+.veredicto .ico{width:38px;height:38px;border-radius:99px;display:grid;place-items:center;color:var(--crema-fija)}
+.veredicto.ok .ico{background:var(--verde)} .veredicto.am .ico{background:var(--ambar)}
+:root[data-tema="oscuro"] .veredicto .ico{color:var(--tinta-fija)}
+.veredicto b{font-size:16px;display:block}
+.veredicto span{font-size:13px;color:var(--taupe)}
+.acc2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.acc4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.acc{border:1px solid var(--sand);border-radius:13px;background:var(--crema);padding:12px 6px 10px;text-align:center;font-size:12.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px}
+.acc.prim{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.acc.off{opacity:.42}
+.links{display:flex;gap:16px;margin-top:12px;font-size:13px;color:var(--taupe)}
+.links span{display:inline-flex;gap:5px;align-items:center}
+.porque{font-size:12.5px;color:var(--taupe);margin-top:10px;display:flex;gap:6px;align-items:center}
+
+/* barra segmentada (cajón 1) */
+.seg{display:flex;height:40px;border-radius:12px;overflow:hidden;margin-top:10px;gap:3px}
+.seg div{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.seg .p{background:var(--verde);color:var(--crema-fija)} .seg .a{background:color-mix(in srgb,var(--taupe) 35%,var(--papel));color:var(--tinta)}
+:root[data-tema="oscuro"] .seg .p{color:var(--tinta-fija)}
+.seg-ley{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--taupe)}
+.seg-ley i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* tienda ↔ almacén (cajón 2) */
+.flujo{display:grid;grid-template-columns:1fr 92px 1fr;gap:8px;align-items:stretch;margin-top:4px}
+.lugar{border:1px solid var(--sand);border-radius:14px;padding:12px;background:var(--crema);text-align:center}
+.lugar .n{font-family:"EB Garamond",serif;font-size:40px;line-height:1}
+.lugar .t{font-size:12.5px;color:var(--taupe);margin-top:2px}
+.lugar .iconos{display:flex;justify-content:center;gap:3px;margin-top:8px;color:var(--taupe);min-height:22px}
+.flechas{display:flex;flex-direction:column;justify-content:center;gap:8px}
+.flecha{border-radius:10px;font-size:12px;font-weight:600;padding:8px 4px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid color-mix(in srgb,var(--tinta) 14%,transparent);background:var(--papel)}
+.flecha.am{color:var(--ambar-p);border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 13%,transparent)}
+.extra{display:flex;gap:8px;margin-top:10px;font-size:12.5px;color:var(--taupe);justify-content:center}
+.extra span{border:1px solid var(--sand);border-radius:99px;padding:3px 10px}
+
+/* lista tipo iPhone (cajón 3) */
+.grande{display:flex;align-items:baseline;gap:10px}
+.grande .n{font-family:"EB Garamond",serif;font-size:56px;line-height:.9}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cuatro{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.cuatro div{border-radius:11px;background:var(--hueso);padding:8px 8px 7px;position:relative}
+.cuatro b{display:block;font-family:"EB Garamond",serif;font-size:22px;line-height:1;font-weight:500}
+.cuatro small{font-size:11.5px;color:var(--taupe)}
+.cuatro .cero{background:transparent;border:1px dashed var(--sand)}
+.cuatro .cero b,.cuatro .cero small{opacity:.55}
+.cuatro .toca{background:color-mix(in srgb,var(--pizarra) 12%,transparent);cursor:pointer}
+.cuatro .toca.dan{background:color-mix(in srgb,var(--rojo) 10%,transparent)}
+.cuatro .toca svg{position:absolute;right:6px;top:8px;color:var(--taupe)}
+.fila.sug{background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.matriz{border:1px solid var(--sand);border-radius:14px;padding:6px;margin-top:14px;background:var(--crema)}
+.matriz table{width:100%;border-collapse:separate;border-spacing:4px;text-align:center}
+.matriz th{font-size:11.5px;color:var(--taupe);font-weight:500}
+.matriz th.c{text-align:left;font-size:13px;color:var(--tinta);font-weight:400;white-space:nowrap}
+.matriz th.c i{display:inline-block;width:12px;height:12px;border-radius:99px;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1px var(--sand)}
+.cel{border:1px solid color-mix(in srgb,var(--tinta) 12%,transparent);border-radius:9px;background:var(--papel);padding:6px 2px;line-height:1;cursor:pointer}
+.cel b{display:block;font-size:16px}
+.cel small{display:block;font-size:10.5px;color:var(--taupe);margin-top:3px}
+.cel.am{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.cel.am b{color:var(--ambar-p)}
+.cel.vacia{border-style:dashed;background:transparent;color:var(--taupe)}
+.cel.si{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.ley2{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--taupe);margin-top:8px}
+.ley2 span{display:inline-flex;align-items:center;gap:5px}
+.ley2 em{display:inline-block;width:14px;height:11px;border-radius:3px}
+.chips span{font-size:12.5px;border-radius:99px;padding:4px 10px;background:var(--hueso)}
+.lista{border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--crema)}
+.fila{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--sand)}
+.fila:first-child{border-top:0}
+.fila .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--hueso);color:var(--tinta)}
+.fila .ic.am{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar-p)}
+.fila b{font-size:14px;font-weight:600;display:block}
+.fila small{font-size:12px;color:var(--taupe)}
+.fila .chev{margin-left:auto;color:var(--taupe)}
+.fila.off{opacity:.45}
+.pest{display:flex;gap:4px;background:var(--hueso);border-radius:12px;padding:3px;margin-top:14px}
+.pest span{flex:1;text-align:center;font-size:12px;font-weight:700;letter-spacing:.06em;padding:7px;border-radius:9px;color:var(--taupe)}
+.pest span.si{background:var(--tinta);color:var(--crema)}
+
+.antes{display:flex;gap:16px;align-items:flex-start;margin-top:14px}
+.antes img{border:1px solid var(--sand);border-radius:12px;max-height:420px}
+</style>
+</head>
+<body>
+
+<!-- Iconos (trazo lucide, 24×24) -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="percha" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M11.3 3a1.3 1.3 0 102 1c0 .5-.3.9-.7 1.1v1.3L4 13.5a1.5 1.5 0 00-.7 1.3V16h17.4v-1.2a1.5 1.5 0 00-.7-1.3l-7.7-6.1V5.4"/></symbol>
+  <!-- Colgar = sacar del almacén (caja) hacia el piso (flecha que sube a la percha) -->
+  <symbol id="colgar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5a1 1 0 101.4.9v.9L6 9.5h12l-5-3.6"/><path d="M12 21v-7"/><path d="m9 16.5 3-3 3 3"/></g></symbol>
+  <symbol id="caja" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v12H3z"/><path d="M2 4h20v4H2z"/><path d="M10 12h4"/></g></symbol>
+  <symbol id="camion" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6H2v12h2"/><path d="M14 9h4l4 4v5h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M9 18h6"/></g></symbol>
+  <symbol id="bolsa" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></g></symbol>
+  <symbol id="lapiz" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></g></symbol>
+  <symbol id="ficha" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M8 11h8M8 15h5"/></g></symbol>
+  <symbol id="pedir" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></g></symbol>
+  <symbol id="subir" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18v9H3z"/><path d="M12 9V2"/><path d="m9 5 3-3 3 3"/></g></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10"/></symbol>
+  <symbol id="alerta" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 7v6"/><path d="M12 17h.01"/></g></symbol>
+  <symbol id="mas" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></g></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></g></symbol>
+  <symbol id="pantalon" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M7 3h10l1.5 18h-4L12 9l-2.5 12h-4z"/><path d="M7 6h10"/></g></symbol>
+  <symbol id="casaca" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 3 4 6 2 13l3 1 1-3v10h12V11l1 3 3-1-2-7-5-3-3 3z"/><path d="M12 6v15"/></g></symbol>
+  <symbol id="vestido" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 2v4L7 10l-3 11h16L17 10l-2-4V2"/><path d="M9 6h6"/></g></symbol>
+  <symbol id="mano" viewBox="0 0 24 24"><path fill="#1a1a18" stroke="#fbf8f2" stroke-width="1.2" d="M5 3l13 8-6 1.4L9.2 18z"/></symbol>
+</svg>
+
+<h1>Existencias: tarjeta y cajón</h1>
+<p class="bajada">Tres tarjetas y tres cajones para elegir. En las tres tarjetas <b>toda la tarjeta abre el cajón</b> (foto, nombre, espacio en blanco);
+solo los colores, las tallas y el botón de acción hacen otra cosa. La percha sola se cambió por un botón que <b>dice lo que hace</b>.
+<span class="etq">datos: ejemplo inventado</span><span class="etq">Adelle = tu captura</span></p>
+<div class="barra"><button class="btn" onclick="document.documentElement.dataset.tema = document.documentElement.dataset.tema==='oscuro'?'':'oscuro'">Cambiar claro / oscuro</button></div>
+
+<!-- =================================================================== TARJETAS -->
+<h2>Tarjetas</h2>
+<p class="bajada">Las tres prendas de cada fila son las mismas: una que está bien, una que tiene que colgarse y una agotada que otra tienda tiene.</p>
+
+<!-- A -->
+<section class="opcion">
+  <header><span class="letra">A</span><b>Foto grande</b><span>la foto ocupa todo el alto; la acción dice su nombre abajo</span></header>
+  <div class="rejilla">
+    <article class="card A hover">
+      <span class="nota-clic">clic en cualquier parte → abre el cajón</span>
+      <div class="foto" style="background:#1f2c4a"><svg width="40" height="40"><use href="#pantalon"/></svg></div>
+      <div>
+        <div class="top"><div><div class="nom">Adelle Wide Leg</div><div class="sub">Pilar · Jeans</div></div><div class="precio">S/ 109.90</div></div>
+        <div class="colores" style="margin-top:10px"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span class="sub" style="margin-left:2px">Azul marino</span></div>
+        <div class="tallas"><div class="tA"><b>28</b><small>1 piso</small></div><div class="tA"><b>30</b><small>2 piso</small></div><div class="tA"><b>32</b><small>1 piso</small></div></div>
+        <div class="pie"><span class="chip ok"><i></i>Todo en el piso</span><span class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span></div>
+      </div>
+    </article>
+    <article class="card A">
+      <div class="foto" style="background:#6b4a32"><svg width="40" height="40"><use href="#casaca"/></svg></div>
+      <div>
+        <div class="top"><div><div class="nom">Casaca Ribera</div><div class="sub">CAYLA · Casacas</div></div><div class="precio">S/ 189.00</div></div>
+        <div class="colores" style="margin-top:10px"><span class="pto si" style="background:#6b4a32"></span><span class="pto" style="background:#2c2c2a"></span><span class="sub">Camel</span></div>
+        <div class="tallas"><div class="tA"><b>S</b><small>1 piso</small></div><div class="tA am"><b>M</b><small>0 piso</small></div><div class="tA am"><b>L</b><small>0 piso</small></div><div class="tA"><b>XL</b><small>1 piso</small></div></div>
+        <div class="pie"><span class="accion am"><svg width="17" height="17"><use href="#colgar"/></svg>Colgar 2 tallas</span><span class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span></div>
+      </div>
+    </article>
+    <article class="card A">
+      <div class="foto" style="background:#8a3a3a"><svg width="40" height="40"><use href="#vestido"/></svg></div>
+      <div>
+        <div class="top"><div><div class="nom">Vestido Nara</div><div class="sub">CAYLA · Vestidos</div></div><div class="precio">S/ 149.90</div></div>
+        <div class="colores" style="margin-top:10px"><span class="pto si" style="background:#8a3a3a"></span><span class="sub">Vino</span></div>
+        <div class="tallas"><div class="tA vacia"><b>S</b><small>—</small></div><div class="tA"><b>M</b><small>2 piso</small></div><div class="tA"><b>L</b><small>1 piso</small></div></div>
+        <div class="pie"><span class="accion pz"><svg width="17" height="17"><use href="#pedir"/></svg>Pedir S a Trujillo</span><span class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span></div>
+      </div>
+    </article>
+  </div>
+  <p class="gana"><b>Ganas:</b> la foto se ve de verdad (hoy es una estampilla de 46 px) y no queda aire a la derecha; la acción se lee sin pasar el mouse. <b>Pagas:</b> la tarjeta es más alta (~170 px vs ~150), caben un poco menos por pantalla.</p>
+</section>
+
+<!-- B -->
+<section class="opcion">
+  <header><span class="letra">B</span><b>Tallas a lo ancho</b><span>cada talla dice piso y almacén; las tallas llenan toda la fila</span></header>
+  <div class="rejilla">
+    <article class="card B hover">
+      <span class="nota-clic">clic en cualquier parte → abre el cajón</span>
+      <div class="cab"><div class="foto" style="background:#1f2c4a"><svg width="30" height="30"><use href="#pantalon"/></svg></div><div><div class="nom">Adelle Wide Leg</div><div class="sub">Pilar · Jeans</div></div><div class="precio">S/ 109.90</div></div>
+      <div class="linea"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span class="sub">Azul marino</span></div>
+      <div class="tallas">
+        <div class="tB"><b>28</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>1</span><span><svg width="12" height="12"><use href="#caja"/></svg>2</span></div></div>
+        <div class="tB"><b>30</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>2</span><span><svg width="12" height="12"><use href="#caja"/></svg>0</span></div></div>
+        <div class="tB"><b>32</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>1</span><span><svg width="12" height="12"><use href="#caja"/></svg>1</span></div></div>
+      </div>
+      <div class="pie"><span class="chip ok"><i></i>Todo en el piso</span><span style="margin-left:auto" class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span></div>
+    </article>
+    <article class="card B">
+      <div class="cab"><div class="foto" style="background:#6b4a32"><svg width="30" height="30"><use href="#casaca"/></svg></div><div><div class="nom">Casaca Ribera</div><div class="sub">CAYLA · Casacas</div></div><div class="precio">S/ 189.00</div></div>
+      <div class="linea"><span class="pto si" style="background:#6b4a32"></span><span class="pto" style="background:#2c2c2a"></span><span class="sub">Camel</span></div>
+      <div class="tallas">
+        <div class="tB"><b>S</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>1</span><span><svg width="12" height="12"><use href="#caja"/></svg>1</span></div></div>
+        <div class="tB am"><b>M</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>0</span><span><svg width="12" height="12"><use href="#caja"/></svg>3</span></div></div>
+        <div class="tB am"><b>L</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>0</span><span><svg width="12" height="12"><use href="#caja"/></svg>2</span></div></div>
+        <div class="tB"><b>XL</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>1</span><span><svg width="12" height="12"><use href="#caja"/></svg>0</span></div></div>
+      </div>
+      <div class="pie"><span class="sub">M y L están solo en almacén</span><span class="accion am" style="margin-left:auto"><svg width="17" height="17"><use href="#colgar"/></svg>Colgar</span><span class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span></div>
+    </article>
+    <article class="card B">
+      <div class="cab"><div class="foto" style="background:#8a3a3a"><svg width="30" height="30"><use href="#vestido"/></svg></div><div><div class="nom">Vestido Nara</div><div class="sub">CAYLA · Vestidos</div></div><div class="precio">S/ 149.90</div></div>
+      <div class="linea"><span class="pto si" style="background:#8a3a3a"></span><span class="sub">Vino</span></div>
+      <div class="tallas">
+        <div class="tB vacia"><b>S</b><div class="pa">no hay</div></div>
+        <div class="tB"><b>M</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>2</span><span><svg width="12" height="12"><use href="#caja"/></svg>1</span></div></div>
+        <div class="tB"><b>L</b><div class="pa"><span class="p"><svg width="12" height="12"><use href="#percha"/></svg>1</span><span><svg width="12" height="12"><use href="#caja"/></svg>0</span></div></div>
+      </div>
+      <div class="pie"><span class="sub">Trujillo tiene 2 en S</span><span class="accion pz" style="margin-left:auto"><svg width="17" height="17"><use href="#pedir"/></svg>Pedir</span><span class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span></div>
+    </article>
+  </div>
+  <div class="leyenda"><span><svg width="13" height="13"><use href="#percha"/></svg>colgadas en el piso</span><span><svg width="13" height="13"><use href="#caja"/></svg>en almacén</span></div>
+  <p class="gana"><b>Ganas:</b> se ve piso y almacén sin abrir nada; la percha deja de ser un botón misterioso y pasa a ser lo que es: «colgadas». La línea de abajo dice el porqué en palabras. <b>Pagas:</b> con 7+ tallas las cajas se achican (bajan a dos filas).</p>
+</section>
+
+<!-- C -->
+<section class="opcion">
+  <header><span class="letra">C</span><b>Lo que toca, arriba</b><span>una franja dice qué hacer hoy con la prenda; si no hay nada, se pone verde</span></header>
+  <div class="rejilla">
+    <article class="card C hover">
+      <span class="nota-clic" style="top:auto;bottom:8px;right:14px">clic en cualquier parte → abre el cajón</span>
+      <div class="banda ok"><svg width="16" height="16"><use href="#check"/></svg>Todo en el piso</div>
+      <div class="cuerpo"><div class="foto" style="background:#1f2c4a"><svg width="34" height="34"><use href="#pantalon"/></svg></div>
+        <div><div style="display:flex;justify-content:space-between;gap:8px"><div><div class="nom">Adelle Wide Leg</div><div class="sub">Pilar · Jeans</div></div><div class="precio">S/ 109.90</div></div>
+          <div class="colores" style="margin-top:8px"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span class="sub">Azul marino</span></div>
+          <div class="tallas"><div class="tC"><b>28</b><small>1 piso</small></div><div class="tC"><b>30</b><small>2 piso</small></div><div class="tC"><b>32</b><small>1 piso</small></div></div></div></div>
+    </article>
+    <article class="card C">
+      <div class="banda am"><svg width="16" height="16"><use href="#alerta"/></svg>M y L, solo en almacén<span class="accion am"><svg width="15" height="15"><use href="#colgar"/></svg>Colgar</span></div>
+      <div class="cuerpo"><div class="foto" style="background:#6b4a32"><svg width="34" height="34"><use href="#casaca"/></svg></div>
+        <div><div style="display:flex;justify-content:space-between;gap:8px"><div><div class="nom">Casaca Ribera</div><div class="sub">CAYLA · Casacas</div></div><div class="precio">S/ 189.00</div></div>
+          <div class="colores" style="margin-top:8px"><span class="pto si" style="background:#6b4a32"></span><span class="pto" style="background:#2c2c2a"></span><span class="sub">Camel</span></div>
+          <div class="tallas"><div class="tC"><b>S</b><small>1 piso</small></div><div class="tC am"><b>M</b><small>0 piso</small></div><div class="tC am"><b>L</b><small>0 piso</small></div><div class="tC"><b>XL</b><small>1 piso</small></div></div></div></div>
+    </article>
+    <article class="card C">
+      <div class="banda pz"><svg width="16" height="16"><use href="#pedir"/></svg>Se acabó la S · Trujillo tiene<span class="accion pz"><svg width="15" height="15"><use href="#pedir"/></svg>Pedir</span></div>
+      <div class="cuerpo"><div class="foto" style="background:#8a3a3a"><svg width="34" height="34"><use href="#vestido"/></svg></div>
+        <div><div style="display:flex;justify-content:space-between;gap:8px"><div><div class="nom">Vestido Nara</div><div class="sub">CAYLA · Vestidos</div></div><div class="precio">S/ 149.90</div></div>
+          <div class="colores" style="margin-top:8px"><span class="pto si" style="background:#8a3a3a"></span><span class="sub">Vino</span></div>
+          <div class="tallas"><div class="tC vacia"><b>S</b><small>—</small></div><div class="tC"><b>M</b><small>2 piso</small></div><div class="tC"><b>L</b><small>1 piso</small></div></div></div></div>
+    </article>
+  </div>
+  <p class="gana"><b>Ganas:</b> en 1 segundo se sabe qué prendas piden algo (la franja de color se ve desde lejos en una lista de 30). <b>Pagas:</b> vuelve un indicador de estado arriba; el 2026-10-05 quitaste la pastilla «3 tallas por colgar» por repetida — aquí la franja reemplaza al icono, no se suma.</p>
+</section>
+
+<!-- =================================================================== CAJONES -->
+<h2>Cajón de la derecha</h2>
+<p class="bajada">Misma talla en los tres (Adelle, Azul marino, 28: 1 colgada y 2 en almacén). Hoy el cajón tiene 4 cifras, una suma, 3 preguntas, una frase de ritmo, 6 tarjetas de acción y una sección de «no se puede»: unas 120 palabras. Los tres de abajo dicen lo mismo con 25 a 40.</p>
+
+<div class="cajones">
+  <!-- 1 -->
+  <div>
+    <div class="opcion" style="margin-top:0"><header><span class="letra">1</span><b>Una respuesta</b><span>veredicto + barra</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#1f2c4a"><svg width="32" height="32"><use href="#pantalon"/></svg></div><div><div class="nom" style="font-size:22px">Adelle Wide Leg</div><div class="sub">Pilar · Jeans · <b style="color:var(--tinta)">S/ 109.90</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="selector"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts si">28</span><span class="ts">30</span><span class="ts">32</span></div></div>
+      <div class="sep"></div>
+      <div class="veredicto ok"><span class="ico"><svg width="20" height="20"><use href="#check"/></svg></span><div><b>Todo bien</b><span>Hay 1 colgada y 2 de reserva.</span></div></div>
+      <div class="mini" style="margin-top:18px">3 en esta sede</div>
+      <div class="seg"><div class="p" style="flex:1">1</div><div class="a" style="flex:2">2</div></div>
+      <div class="seg-ley"><span><i style="background:var(--verde)"></i>en el piso</span><span><i style="background:color-mix(in srgb,var(--taupe) 35%,var(--papel))"></i>en almacén</span><span>0 apartadas · 0 dañadas</span></div>
+      <div class="sep"></div>
+      <div class="acc4">
+        <div class="acc"><svg width="20" height="20"><use href="#colgar"/></svg>Colgar</div>
+        <div class="acc"><svg width="20" height="20"><use href="#subir"/></svg>Guardar</div>
+        <div class="acc"><svg width="20" height="20"><use href="#bolsa"/></svg>Apartar</div>
+        <div class="acc"><svg width="20" height="20"><use href="#camion"/></svg>Enviar</div>
+      </div>
+      <div class="links"><span><svg width="15" height="15"><use href="#lapiz"/></svg>Corregir número</span><span><svg width="15" height="15"><use href="#ficha"/></svg>Ficha</span></div>
+      <div class="porque"><svg width="14" height="14"><use href="#info"/></svg>0 vendidas en 7 días · ¿Por qué?</div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div>
+    <div class="opcion" style="margin-top:0"><header><span class="letra">2</span><b>Tienda ↔ almacén</b><span>las acciones son las flechas</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#1f2c4a"><svg width="32" height="32"><use href="#pantalon"/></svg></div><div><div class="nom" style="font-size:22px">Adelle Wide Leg</div><div class="sub">Pilar · Jeans · <b style="color:var(--tinta)">S/ 109.90</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="selector"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts si">28</span><span class="ts">30</span><span class="ts">32</span></div></div>
+      <div class="sep"></div>
+      <div class="flujo">
+        <div class="lugar"><div class="n">1</div><div class="t">en el piso</div><div class="iconos"><svg width="22" height="22"><use href="#percha"/></svg></div></div>
+        <div class="flechas">
+          <div class="flecha"><svg width="14" height="14" style="transform:rotate(180deg)"><use href="#chev"/></svg>Colgar</div>
+          <div class="flecha">Guardar<svg width="14" height="14"><use href="#chev"/></svg></div>
+        </div>
+        <div class="lugar"><div class="n">2</div><div class="t">en almacén</div><div class="iconos"><svg width="20" height="20"><use href="#caja"/></svg><svg width="20" height="20"><use href="#caja"/></svg></div></div>
+      </div>
+      <div class="extra"><span>0 apartadas</span><span>0 dañadas</span></div>
+      <div class="veredicto ok" style="margin-top:14px;padding:10px 12px"><span class="ico" style="width:28px;height:28px"><svg width="15" height="15"><use href="#check"/></svg></span><div><b style="font-size:14px">No hace falta colgar ni pedir</b></div></div>
+      <div class="sep"></div>
+      <div class="acc2">
+        <div class="acc" style="flex-direction:row;justify-content:center"><svg width="18" height="18"><use href="#bolsa"/></svg>Apartar</div>
+        <div class="acc" style="flex-direction:row;justify-content:center"><svg width="18" height="18"><use href="#camion"/></svg>Enviar a otra sede</div>
+      </div>
+      <div class="links"><span><svg width="15" height="15"><use href="#lapiz"/></svg>Corregir número</span><span><svg width="15" height="15"><use href="#ficha"/></svg>Ficha</span><span style="margin-left:auto"><svg width="14" height="14"><use href="#info"/></svg>¿Cómo se vende?</span></div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div>
+    <div class="opcion" style="margin-top:0"><header><span class="letra">3</span><b>Lista de iPhone</b><span>un número grande y filas que se tocan</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#1f2c4a"><svg width="32" height="32"><use href="#pantalon"/></svg></div><div><div class="nom" style="font-size:22px">Adelle Wide Leg</div><div class="sub">Pilar · Jeans · <b style="color:var(--tinta)">S/ 109.90</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="pest"><span class="si">ESTA TALLA</span><span>TODAS</span></div>
+      <div class="selector"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts si">28</span><span class="ts">30</span><span class="ts">32</span></div></div>
+      <div class="sep"></div>
+      <div class="grande"><span class="n">3</span><span class="sub" style="font-size:14px">en esta sede · <span class="chip ok" style="padding:2px 8px"><i></i>todo bien</span></span></div>
+      <div class="cuatro"><div><b>1</b><small>en el piso</small></div><div><b>2</b><small>en almacén</small></div><div class="cero"><b>0</b><small>apartadas</small></div><div class="cero"><b>0</b><small>dañadas</small></div></div>
+      <div class="lista" style="margin-top:16px">
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#colgar"/></svg></span><div><b>Colgar en el piso</b><small>Hay 2 en almacén</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#subir"/></svg></span><div><b>Guardar en almacén</b><small>Hay 1 colgada</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#bolsa"/></svg></span><div><b>Apartar para un cliente</b></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#camion"/></svg></span><div><b>Enviar a otra sede</b></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#lapiz"/></svg></span><div><b>Corregir el número</b></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+      </div>
+      <div class="links"><span><svg width="15" height="15"><use href="#ficha"/></svg>Ver ficha</span><span style="margin-left:auto"><svg width="14" height="14"><use href="#info"/></svg>¿Cómo se vende?</span></div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,420px);gap:18px;margin-top:6px">
+  <p class="gana"><b>Ganas:</b> una sola frase responde «¿qué hago?»; la barra muestra dónde está la ropa sin leer números. Acciones en 4 botones iguales. <b>Pagas:</b> «¿Pedir?» ya no tiene fila propia: sale en el veredicto solo cuando toca.</p>
+  <p class="gana"><b>Ganas:</b> el más fácil de entender sin explicar: se ve la tienda y el almacén, y colgar o guardar es mover entre los dos. <b>Pagas:</b> el dibujo pide ancho; a 375 px las dos cajas van una sobre otra.</p>
+  <p class="gana"><b>Ganas:</b> el más ordenado y el que más se parece a un iPhone; la acción que toca sube primero y se tiñe de ámbar. <b>Pagas:</b> la lista es más larga hacia abajo (5 filas) aunque cada una sea más corta.</p>
+</div>
+
+<!-- Variante del cajón cuando sí toca algo -->
+<h2>Cuando sí toca algo</h2>
+<p class="bajada">Casaca Ribera, Camel, talla M: 0 colgadas y 3 en almacén. Así se ve el veredicto y la acción principal en el cajón 1 y en el 2.</p>
+<div class="cajones" style="grid-template-columns:repeat(2,420px)">
+  <div class="cajon">
+    <div class="cab-cajon"><div class="foto" style="background:#6b4a32"><svg width="32" height="32"><use href="#casaca"/></svg></div><div><div class="nom" style="font-size:22px">Casaca Ribera</div><div class="sub">CAYLA · Casacas · <b style="color:var(--tinta)">S/ 189.00</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+    <div class="selector"><span class="pto si" style="background:#6b4a32"></span><span class="pto" style="background:#2c2c2a"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts">S</span><span class="ts si">M</span><span class="ts am">L</span><span class="ts">XL</span></div></div>
+    <div class="sep"></div>
+    <div class="veredicto am"><span class="ico"><svg width="20" height="20"><use href="#alerta"/></svg></span><div><b>Cuelga 1</b><span>No hay en el piso y hay 3 en almacén.</span></div></div>
+    <div class="mini" style="margin-top:18px">3 en esta sede</div>
+    <div class="seg"><div class="a" style="flex:1">3 en almacén</div></div>
+    <div class="sep"></div>
+    <div class="acc4">
+      <div class="acc prim"><svg width="20" height="20"><use href="#colgar"/></svg>Colgar</div>
+      <div class="acc off"><svg width="20" height="20"><use href="#subir"/></svg>Guardar</div>
+      <div class="acc"><svg width="20" height="20"><use href="#bolsa"/></svg>Apartar</div>
+      <div class="acc"><svg width="20" height="20"><use href="#camion"/></svg>Enviar</div>
+    </div>
+    <div class="links"><span><svg width="15" height="15"><use href="#lapiz"/></svg>Corregir número</span><span><svg width="15" height="15"><use href="#ficha"/></svg>Ficha</span></div>
+  </div>
+  <div class="cajon">
+    <div class="cab-cajon"><div class="foto" style="background:#6b4a32"><svg width="32" height="32"><use href="#casaca"/></svg></div><div><div class="nom" style="font-size:22px">Casaca Ribera</div><div class="sub">CAYLA · Casacas · <b style="color:var(--tinta)">S/ 189.00</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+    <div class="selector"><span class="pto si" style="background:#6b4a32"></span><span class="pto" style="background:#2c2c2a"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts">S</span><span class="ts si">M</span><span class="ts am">L</span><span class="ts">XL</span></div></div>
+    <div class="sep"></div>
+    <div class="flujo">
+      <div class="lugar" style="border-color:color-mix(in srgb,var(--ambar) 45%,transparent)"><div class="n">0</div><div class="t">en el piso</div><div class="iconos"></div></div>
+      <div class="flechas">
+        <div class="flecha am"><svg width="14" height="14" style="transform:rotate(180deg)"><use href="#chev"/></svg>Colgar 1</div>
+        <div class="flecha" style="opacity:.4">Guardar<svg width="14" height="14"><use href="#chev"/></svg></div>
+      </div>
+      <div class="lugar"><div class="n">3</div><div class="t">en almacén</div><div class="iconos"><svg width="20" height="20"><use href="#caja"/></svg><svg width="20" height="20"><use href="#caja"/></svg><svg width="20" height="20"><use href="#caja"/></svg></div></div>
+    </div>
+    <div class="veredicto am" style="margin-top:14px;padding:10px 12px"><span class="ico" style="width:28px;height:28px"><svg width="15" height="15"><use href="#alerta"/></svg></span><div><b style="font-size:14px">Falta en el piso: cuelga 1</b></div></div>
+    <div class="sep"></div>
+    <div class="acc2">
+      <div class="acc" style="flex-direction:row;justify-content:center"><svg width="18" height="18"><use href="#bolsa"/></svg>Apartar</div>
+      <div class="acc" style="flex-direction:row;justify-content:center"><svg width="18" height="18"><use href="#camion"/></svg>Enviar a otra sede</div>
+    </div>
+    <div class="links"><span><svg width="15" height="15"><use href="#lapiz"/></svg>Corregir número</span><span><svg width="15" height="15"><use href="#ficha"/></svg>Ficha</span></div>
+  </div>
+</div>
+
+<h2>El icono de la acción</h2>
+<p class="bajada">Hoy la percha sola no dice si es «ver», «colgar» o «está colgada». Propuesta para las tres tarjetas: la percha <b>con una flecha que sube desde el almacén</b> y, siempre, la palabra al lado. Sin acción que hacer, no hay botón: hay un «Todo en el piso» verde.</p>
+<div style="display:flex;gap:28px;align-items:center;margin-top:14px">
+  <div style="text-align:center"><span class="mas" style="width:44px;height:44px"><svg width="20" height="20"><use href="#percha"/></svg></span><div class="sub" style="margin-top:6px">Hoy</div></div>
+  <svg width="20" height="20" style="color:var(--taupe)"><use href="#chev"/></svg>
+  <div style="text-align:center"><span class="accion am"><svg width="17" height="17"><use href="#colgar"/></svg>Colgar 2 tallas</span><div class="sub" style="margin-top:6px">Toca colgar</div></div>
+  <div style="text-align:center"><span class="accion pz"><svg width="17" height="17"><use href="#pedir"/></svg>Pedir S a Trujillo</span><div class="sub" style="margin-top:6px">Agotada aquí</div></div>
+  <div style="text-align:center"><span class="chip ok"><i></i>Todo en el piso</span><div class="sub" style="margin-top:6px">Nada que hacer</div></div>
+  <div style="text-align:center"><span class="mas"><svg width="18" height="18"><use href="#mas"/></svg></span><div class="sub" style="margin-top:6px">Más (subir, enviar…)</div></div>
+</div>
+
+<h2 id="elegido">Elegido: tarjeta A + cajón 3</h2>
+<p class="bajada">Vuelven <b>apartadas</b> y <b>dañadas</b>: cuatro casillas bajo el número grande. En cero se ven apagadas (borde punteado); con algo, se tiñen y <b>se tocan</b> para ver cuáles son (apartadas → a quién; dañadas → resolverlas), como hoy. La suma del número grande sigue siendo de las cuatro.</p>
+<div class="cajones" style="grid-template-columns:repeat(2,420px)">
+  <div>
+    <div class="opcion" style="margin-top:0"><header><b>Todo bien</b><span>Adelle · Azul marino · 28</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#1f2c4a"><svg width="32" height="32"><use href="#pantalon"/></svg></div><div><div class="nom" style="font-size:22px">Adelle Wide Leg</div><div class="sub">Pilar · Jeans · <b style="color:var(--tinta)">S/ 109.90</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="pest"><span class="si">ESTA TALLA</span><span>TODAS</span></div>
+      <div class="selector"><span class="pto si" style="background:#1f2c4a"></span><span class="pto" style="background:#9cc3dc"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts si">28</span><span class="ts">30</span><span class="ts">32</span></div></div>
+      <div class="sep"></div>
+      <div class="grande"><span class="n">3</span><span class="sub" style="font-size:14px">en esta sede · <span class="chip ok" style="padding:2px 8px"><i></i>todo bien</span></span></div>
+      <div class="cuatro"><div><b>1</b><small>en el piso</small></div><div><b>2</b><small>en almacén</small></div><div class="cero"><b>0</b><small>apartadas</small></div><div class="cero"><b>0</b><small>dañadas</small></div></div>
+      <div class="lista" style="margin-top:16px">
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#colgar"/></svg></span><div><b>Colgar en el piso</b><small>Hay 2 en almacén</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#subir"/></svg></span><div><b>Subir a almacén</b><small>Hay 1 colgada</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#bolsa"/></svg></span><div><b>Apartar para un cliente</b><small>Con adelanto, en Vender</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#camion"/></svg></span><div><b>Enviar a otra sede</b></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#lapiz"/></svg></span><div><b>Ajustar stock</b><small>Corregir el número</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+      </div>
+      <div class="links"><span><svg width="15" height="15"><use href="#ficha"/></svg>Ver ficha</span><span style="margin-left:auto"><svg width="14" height="14"><use href="#info"/></svg>¿Cómo se vende?</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="opcion" style="margin-top:0"><header><b>Con apartada, dañada y por colgar</b><span>Casaca Ribera · Camel · M</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#6b4a32"><svg width="32" height="32"><use href="#casaca"/></svg></div><div><div class="nom" style="font-size:22px">Casaca Ribera</div><div class="sub">CAYLA · Casacas · <b style="color:var(--tinta)">S/ 189.00</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="pest"><span class="si">ESTA TALLA</span><span>TODAS</span></div>
+      <div class="selector"><span class="pto si" style="background:#6b4a32"></span><span class="pto" style="background:#2c2c2a"></span><span style="width:6px"></span><div class="tallaSel"><span class="ts">S</span><span class="ts si">M</span><span class="ts am">L</span><span class="ts">XL</span></div></div>
+      <div class="sep"></div>
+      <div class="grande"><span class="n">5</span><span class="sub" style="font-size:14px">en esta sede · <span class="chip am" style="padding:2px 8px"><i></i>cuelga 1</span></span></div>
+      <div class="cuatro"><div class="cero"><b>0</b><small>en el piso</small></div><div><b>3</b><small>en almacén</small></div><div class="toca"><b>1</b><small>apartada</small><svg width="13" height="13"><use href="#chev"/></svg></div><div class="toca dan"><b>1</b><small>dañada</small><svg width="13" height="13"><use href="#chev"/></svg></div></div>
+      <div class="lista" style="margin-top:16px">
+        <div class="fila sug"><span class="ic am"><svg width="18" height="18"><use href="#colgar"/></svg></span><div><b>Colgar en el piso</b><small>No hay colgada · 3 en almacén</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila off"><span class="ic"><svg width="18" height="18"><use href="#subir"/></svg></span><div><b>Subir a almacén</b><small>No hay nada colgado</small></div></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#bolsa"/></svg></span><div><b>Apartar para un cliente</b><small>Con adelanto, en Vender</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#camion"/></svg></span><div><b>Enviar a otra sede</b></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#lapiz"/></svg></span><div><b>Ajustar stock</b><small>Corregir el número</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+      </div>
+      <div class="links"><span><svg width="15" height="15"><use href="#ficha"/></svg>Ver ficha</span><span style="margin-left:auto"><svg width="14" height="14"><use href="#info"/></svg>¿Cómo se vende?</span></div>
+    </div>
+  </div>
+</div>
+
+<h2>Cajón 3 · pestaña «Todas»</h2>
+<p class="bajada">Mismo idioma que «Esta talla»: arriba el total del modelo con sus cuatro casillas; abajo, la tabla de colores × tallas con el número grande = <b>colgadas en el piso</b> y debajo «+N alm.» (escrito, no un «+3» suelto). Ámbar = por colgar, punteado = no hay aquí, borde negro = la talla que estabas mirando. Tocar una casilla vuelve a «Esta talla» en esa talla. «Ficha» deja de ser pestaña: queda como enlace abajo.</p>
+<div class="cajones" style="grid-template-columns:repeat(2,420px)">
+  <div>
+    <div class="opcion" style="margin-top:0"><header><b>Todas</b><span>Casaca Ribera · 3 colores × 4 tallas</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#6b4a32"><svg width="32" height="32"><use href="#casaca"/></svg></div><div><div class="nom" style="font-size:22px">Casaca Ribera</div><div class="sub">CAYLA · Casacas · <b style="color:var(--tinta)">S/ 189.00</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="pest"><span>ESTA TALLA</span><span class="si">TODAS</span></div>
+      <div class="sep"></div>
+      <div class="grande"><span class="n">23</span><span class="sub" style="font-size:14px">en esta sede · <span class="chip am" style="padding:2px 8px"><i></i>3 por colgar</span></span></div>
+      <div class="cuatro"><div><b>9</b><small>en el piso</small></div><div><b>12</b><small>en almacén</small></div><div class="toca"><b>1</b><small>apartada</small><svg width="13" height="13"><use href="#chev"/></svg></div><div class="toca dan"><b>1</b><small>dañada</small><svg width="13" height="13"><use href="#chev"/></svg></div></div>
+      <div class="matriz"><table><thead><tr><th></th><th>S</th><th>M</th><th>L</th><th>XL</th></tr></thead><tbody><tr><th class="c"><i style="background:#6b4a32"></i>Camel</th><td><div class="cel "><b>1</b><small>+1 alm.</small></div></td><td><div class="cel am si"><b>0</b><small>+3 alm.</small></div></td><td><div class="cel am"><b>0</b><small>+2 alm.</small></div></td><td><div class="cel "><b>1</b><small>&nbsp;</small></div></td></tr><tr><th class="c"><i style="background:#2c2c2a"></i>Negro</th><td><div class="cel "><b>2</b><small>+1 alm.</small></div></td><td><div class="cel "><b>1</b><small>+2 alm.</small></div></td><td><div class="cel vacia"><b>—</b><small>&nbsp;</small></div></td><td><div class="cel "><b>1</b><small>+1 alm.</small></div></td></tr><tr><th class="c"><i style="background:#5d6340"></i>Oliva</th><td><div class="cel am"><b>0</b><small>+1 alm.</small></div></td><td><div class="cel "><b>1</b><small>&nbsp;</small></div></td><td><div class="cel "><b>1</b><small>+1 alm.</small></div></td><td><div class="cel vacia"><b>—</b><small>&nbsp;</small></div></td></tr></tbody></table></div>
+      <div class="ley2"><span><em style="background:color-mix(in srgb,var(--ambar) 14%,transparent);border:1px solid color-mix(in srgb,var(--ambar) 45%,transparent)"></em>por colgar</span><span><em style="border:1px dashed var(--taupe)"></em>no hay aquí</span><span>grande = en el piso</span></div>
+      <div class="lista" style="margin-top:14px">
+        <div class="fila sug"><span class="ic am"><svg width="18" height="18"><use href="#colgar"/></svg></span><div><b>Colgar varias tallas y colores</b><small>Camel M, Camel L, Oliva S</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+        <div class="fila"><span class="ic"><svg width="18" height="18"><use href="#camion"/></svg></span><div><b>Enviar a otra sede</b><small>Elige tallas y colores</small></div><svg class="chev" width="16" height="16"><use href="#chev"/></svg></div>
+      </div>
+      <div class="links"><span><svg width="15" height="15"><use href="#ficha"/></svg>Ver ficha</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="opcion" style="margin-top:0"><header><b>Así está hoy</b><span>para comparar</span></header></div>
+    <div class="cajon">
+      <div class="cab-cajon"><div class="foto" style="background:#6b4a32"><svg width="32" height="32"><use href="#casaca"/></svg></div><div><div class="nom" style="font-size:22px">Casaca Ribera</div><div class="sub">CAYLA · Casacas · <b style="color:var(--tinta)">S/ 189.00</b></div></div><span class="x"><svg width="16" height="16"><use href="#x"/></svg></span></div>
+      <div class="pest"><span>ESTA TALLA</span><span class="si">TODAS</span><span>FICHA</span></div>
+      <div class="sep"></div>
+      <div class="matriz"><table><thead><tr><th style="text-align:left">Color</th><th>S</th><th>M</th><th>L</th><th>XL</th></tr></thead><tbody>
+      <tr><th class="c"><i style="background:#6b4a32"></i>Camel</th><td><div class="cel"><b>1</b><small>+1</small></div></td><td><div class="cel am si"><b>0</b><small>+3</small></div></td><td><div class="cel am"><b>0</b><small>+2</small></div></td><td><div class="cel"><b>1</b><small>&nbsp;</small></div></td></tr>
+      <tr><th class="c"><i style="background:#2c2c2a"></i>Negro</th><td><div class="cel"><b>2</b><small>+1</small></div></td><td><div class="cel"><b>1</b><small>+2</small></div></td><td><div class="cel vacia"><b>—</b><small>&nbsp;</small></div></td><td><div class="cel"><b>1</b><small>+1</small></div></td></tr>
+      <tr><th class="c"><i style="background:#5d6340"></i>Oliva</th><td><div class="cel am"><b>0</b><small>+1</small></div></td><td><div class="cel"><b>1</b><small>&nbsp;</small></div></td><td><div class="cel"><b>1</b><small>+1</small></div></td><td><div class="cel vacia"><b>—</b><small>&nbsp;</small></div></td></tr>
+      </tbody></table></div>
+      <p class="sub" style="font-size:12px;margin-top:8px">Grande: en piso · «+N»: en almacén · toca una casilla para verla &nbsp;▭ Por colgar &nbsp;┅ Sin stock aquí</p>
+      <div style="margin-top:12px"><span class="accion neutra" style="background:var(--tinta);color:var(--crema)"><svg width="17" height="17"><use href="#percha"/></svg>Colgar varias tallas y colores</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

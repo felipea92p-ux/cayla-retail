@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
+  MAX_LARGO_BUSQUEDA,
   actividadPreviaVenta,
   agruparPorCompra,
   agruparPorDia,
   clasificarBusqueda,
   condicionForzada,
   descripcionEntregada,
+  descripcionEntregadaTodas,
   DIAS_PLAZO_CAMBIO,
   estadoPlazoCambio,
   estadoPlazoVenta,
@@ -13,6 +15,7 @@ import {
   etiquetaDia,
   fechaLimiteCambio,
   impactoCambio,
+  metodosDiferencia,
   primerBloqueo,
   tallasQueNoCalzan,
   totalesVenta,
@@ -268,7 +271,7 @@ describe("validarCambio / primerBloqueo", () => {
     disponible: 1,
     motivo: "talla_chica" as const,
     eligioPrenda: true,
-    nueva: { descripcion: "L / Negro", stockAqui: 3, apartadoAqui: 0, otrasSedes: null },
+    nueva: { descripcion: "L / Negro", stockAqui: 3, apartadoAqui: 0, otrasSedes: null, precio: 79.9 },
     sede: "Tienda Lima",
     diferencia: 0,
     metodo: "efectivo" as const,
@@ -297,27 +300,44 @@ describe("validarCambio / primerBloqueo", () => {
   });
 
   it("sin stock aquí dice dónde más hay", () => {
-    const sinStock = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: "2 en Trujillo" } };
+    const sinStock = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: "2 en Trujillo", precio: 79.9 } };
     expect(primerBloqueo(validarCambio(sinStock))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Hay 2 en Trujillo." });
   });
 
   it("lo que queda en el piso es de otra clienta: dice «apartada», no «no queda»", () => {
-    const apartada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: "2 en Trujillo" } };
+    const apartada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: "2 en Trujillo", precio: 79.9 } };
     expect(primerBloqueo(validarCambio(apartada))).toMatchObject({
       clave: "stock",
       estado: "alerta",
-      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      titulo: "L / Negro está apartada para un cliente en Tienda Lima",
       detalle: "Hay 2 en Trujillo.",
     });
     // Apartada y sin otra sede donde buscar: lo dice sin «tampoco» (no falta la prenda, es de otra clienta).
-    const sinOtrasSedes = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: null } };
+    const sinOtrasSedes = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: null, precio: 79.9 } };
     expect(primerBloqueo(validarCambio(sinOtrasSedes))).toMatchObject({
-      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      titulo: "L / Negro está apartada para un cliente en Tienda Lima",
       detalle: "No hay en otra sede.",
     });
     // Sin nada apartado sigue diciendo lo de siempre.
-    const agotada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: null } };
+    const agotada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: null, precio: 79.9 } };
     expect(primerBloqueo(validarCambio(agotada))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Tampoco hay en otra sede." });
+  });
+
+  it("una prenda sin precio no se entrega en un cambio (ADR-0385): frena antes que el stock y dice qué hacer", () => {
+    for (const precio of [0, -1, Number.NaN]) {
+      const sinPrecio = { ...listo, nueva: { ...listo.nueva, precio } };
+      expect(primerBloqueo(validarCambio(sinPrecio))).toMatchObject({
+        clave: "stock",
+        estado: "alerta",
+        titulo: "L / Negro no tiene precio",
+        detalle: "Elige otra prenda, o pide que le pongan precio en su ficha (Catálogo ▸ Productos).",
+      });
+    }
+    // Sin precio y sin stock: lo que se dice es el precio (sin precio, que haya o no da igual).
+    const ambas = { ...listo, nueva: { ...listo.nueva, precio: 0, stockAqui: 0 } };
+    expect(primerBloqueo(validarCambio(ambas))?.titulo).toBe("L / Negro no tiene precio");
+    // Con un céntimo ya es un precio: la regla de stock vuelve a mandar.
+    expect(primerBloqueo(validarCambio({ ...listo, nueva: { ...listo.nueva, precio: 0.01 } }))).toBeNull();
   });
 
   it("diferencia en efectivo con la caja cerrada frena (registrar_cambio la rechazaría)", () => {
@@ -354,13 +374,31 @@ describe("impactoCambio", () => {
   it("caja: sin diferencia no se mueve; en efectivo sí; con otro método no pasa por el cajón", () => {
     expect(impactoCambio(base).caja.titulo).toBe("Sin diferencia de precio");
     expect(impactoCambio({ ...base, diferencia: 40 }).caja).toEqual({
-      titulo: "+ S/ 40.00 por cobrar",
+      titulo: "+ S/\u00a040.00 por cobrar",
       detalle: "En efectivo: entra al cajón y se suma al cierre de caja.",
     });
     expect(impactoCambio({ ...base, diferencia: -20, metodo: "yape" }).caja).toEqual({
-      titulo: "− S/ 20.00 a devolver",
+      titulo: "− S/\u00a020.00 a devolver",
       detalle: "Por Yape: no pasa por el cajón.",
     });
+  });
+
+  it("caja: la diferencia cobrada con QR no pasa por el cajón y el QR no se escribe en minúsculas", () => {
+    expect(impactoCambio({ ...base, diferencia: 25.9, metodo: "qr" }).caja).toEqual({
+      titulo: "+ S/ 25.90 por cobrar",
+      detalle: "Con QR: no pasa por el cajón.",
+    });
+  });
+});
+
+describe("metodosDiferencia", () => {
+  it("sin que la base acepte el QR, ofrece los cinco de siempre y en el mismo orden", () => {
+    expect(metodosDiferencia(false).map((m) => m.valor)).toEqual(["efectivo", "tarjeta", "yape", "plin", "transferencia"]);
+  });
+
+  it("con el QR aceptado, lo suma al final y nada más cambia", () => {
+    expect(metodosDiferencia(true).map((m) => m.valor)).toEqual(["efectivo", "tarjeta", "yape", "plin", "transferencia", "qr"]);
+    expect(metodosDiferencia(true).find((m) => m.valor === "qr")?.etiqueta).toBe("QR");
   });
 });
 
@@ -388,5 +426,36 @@ describe("tallasQueNoCalzan", () => {
   it("de más a menos, para leer primero lo más repetido", () => {
     const cambios = [emma("M", "L", 3), { ...emma("28", "30", 4), referencia: "Pantalón Carla", productoVendidoId: "p-carla", productoEntregadoId: "p-carla" }];
     expect(tallasQueNoCalzan(cambios).map((t) => t.referencia)).toEqual(["Pantalón Carla", "Blusa Emma"]);
+  });
+});
+
+// /chaos 2026-10-13: un texto pegado de miles de caracteres tumbaba Cambios y Devoluciones (la búsqueda va en la dirección de la consulta).
+describe("clasificarBusqueda — tope de largo y números que no son comprobantes", () => {
+  it("un texto larguísimo se recorta a MAX_LARGO_BUSQUEDA", () => {
+    const b = clasificarBusqueda("ñ".repeat(2000));
+    expect(b).toEqual({ tipo: "texto", texto: "ñ".repeat(MAX_LARGO_BUSQUEDA) });
+  });
+  it("«B001-12345678901» no se busca como comprobante (se busca como texto)", () => {
+    expect(clasificarBusqueda("B001-12345678901")).toEqual({ tipo: "texto", texto: "B001-12345678901" });
+  });
+});
+
+describe("descripcionEntregadaTodas — lo que se llevó en un cambio ya hecho (ADR-0470)", () => {
+  const top = (talla: string, color: string, cantidad = 1) => ({ productoId: "top", referencia: "Top Rib", talla, color, cantidad });
+
+  it("sin renglones (un cambio de una por una) dice lo de siempre", () => {
+    const c = { productoId: "body", referencia: "Body", talla: "L", color: "Negro" };
+    expect(descripcionEntregadaTodas(c, "body")).toBe(descripcionEntregada(c, "body"));
+    expect(descripcionEntregadaTodas({ ...c, salidas: [] }, "body")).toBe("Negro · Talla L");
+  });
+
+  it("con varias prendas las dice todas, con su cantidad cuando es más de una", () => {
+    const c = { productoId: "top", referencia: "Top Rib", talla: "S", color: "Negro", salidas: [top("S", "Negro"), top("M", "Blanco", 2)] };
+    expect(descripcionEntregadaTodas(c, "body")).toBe("Top Rib · Negro · Talla S + Top Rib · Blanco · Talla M (×2)");
+  });
+
+  it("si una de las prendas es la misma que compró, dice solo su talla y color, como el cambio de siempre", () => {
+    const c = { productoId: "top", referencia: "Top Rib", talla: "S", color: "Negro", salidas: [top("S", "Negro"), top("M", "Blanco")] };
+    expect(descripcionEntregadaTodas(c, "top")).toBe("Negro · Talla S + Blanco · Talla M");
   });
 });

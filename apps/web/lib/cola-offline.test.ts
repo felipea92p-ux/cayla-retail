@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { clasificarFalloDeSubida } from "./error-escritura";
 import { claveCola, colaValida, conOperacion, contarPendientes, esOperacionEncolada, MAX_INTENTOS_SERVIDOR, nombreEnCola, nuevaOperacion, porSubir, reconciliar, sinOperacion, subidasEntre, trasFallo, type OperacionEncolada } from "./cola-offline";
 
 // La cola sin conexión genérica (ADR-0210): que un reintento del mismo guardado sea UNA fila, que la firma quede con
@@ -88,6 +89,18 @@ describe("trasFallo — qué pasa cuando una subida falla", () => {
     const r = trasFallo(op("a", { intentos: MAX_INTENTOS_SERVIDOR - 1 }), "pasajero", "Servidor ocupado");
     expect(r?.intentos).toBe(MAX_INTENTOS_SERVIDOR);
     expect(r?.rechazo).toContain(`${MAX_INTENTOS_SERVIDOR} intentos`);
+  });
+});
+
+describe("trasFallo + clasificarFalloDeSubida — la misma regla que la cola de ventas", () => {
+  it("un 504 sin código suma un intento y la operación sigue en la cola, no queda rechazada", () => {
+    const tipo = clasificarFalloDeSubida({ message: "gateway timeout" }, 504);
+    expect(trasFallo(op("a"), tipo, "x")).toMatchObject({ intentos: 1, rechazo: null });
+  });
+
+  it("la base respondió con código de negocio: queda rechazada esperando «Descartar»", () => {
+    const tipo = clasificarFalloDeSubida({ message: "No hay caja", code: "P0001" }, 400);
+    expect(trasFallo(op("a"), tipo, "No hay caja")?.rechazo).toBe("No hay caja");
   });
 });
 

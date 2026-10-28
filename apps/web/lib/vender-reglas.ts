@@ -3,9 +3,13 @@
 // componente cliente `PuntoDeVenta` necesita como VALOR vive en un archivo que
 // ningún fetcher server-only pueda arrastrar al navegador.
 
-import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
-import { nombresCortos } from "./nombre-integrante";
+import { METODOS_PAGO, type MetodoPagoVenta } from "@cayla-retail/shared";
+import { efectivoACobrar, redondeoDelEfectivo, TOPE_VUELTO, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
+
+export { TOPE_VUELTO };
 import { motivoNoCobrable } from "./vender-stock-local";
+import { precioValido } from "./variantes-ficha-reglas";
+import { repartirVale } from "./club-cupon-reparto-reglas";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -42,16 +46,73 @@ export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: st
  *  CUBRE (lo que suma contra los ítems); `recibido` viaja aparte (ver `pagosParaRpc`) y
  *  nunca sustituye a `monto`, o `registrar_venta` rechazaría la venta por no cuadrar. */
 export type PagoAplicado = {
-  metodo: MetodoPago;
+  metodo: MetodoPagoVenta;
   monto: number;
+  /** La cajera escribió este monto a mano (hoja de cobro, 2026-10-02). Con tres o más medios, el primero que NO lo tiene
+   *  se queda con «el resto» (`pagosTrasEditarMonto`). Solo de pantalla: no viaja a la venta. */
+  fijo?: boolean;
   recibido?: number;
   /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230): con él, Ventas ▸ Historial encuentra la venta
    *  aunque la clienta haya perdido la boleta y solo tenga la captura del pago. */
   referencia?: string;
+  /** Con tarjeta o QR: la cuenta «por depositar» de la MÁQUINA que cobró (Izipay, Vendemás; ADR-0429). Nace con la máquina por
+   *  defecto de la tienda y la cajera la cambia con un toque donde hay dos. Viaja como `cuenta_id`; la base la valida. */
+  cuentaId?: string;
 };
 
 /** Los medios que dan un nº de operación que la clienta ve en su celular. */
-export const METODOS_CON_OPERACION: readonly MetodoPago[] = ["yape", "plin", "transferencia"];
+export const METODOS_CON_OPERACION: readonly MetodoPagoVenta[] = ["yape", "plin", "transferencia"];
+
+/** Los medios que cobra una máquina (ADR-0429): la plata espera en su cuenta «por depositar» hasta que la máquina la deposita. */
+export const METODOS_CON_MAQUINA: readonly MetodoPagoVenta[] = ["tarjeta", "qr"];
+
+/** Una máquina de cobro de ESTA tienda para un medio, como la devuelve `fn_pos_maquinas_de_sede` (20261016173000). */
+export type MaquinaDeCobro = {
+  maquinaId: string;
+  nombre: string;
+  /** Su cuenta «por depositar»: lo que viaja en el pago. */
+  cuentaId: string;
+  medio: "tarjeta" | "qr";
+  /** Hoy es a donde entra ese medio en esta tienda («A qué cuenta entra cada cobro»): la que la hoja marca de entrada. */
+  porDefecto: boolean;
+};
+
+/** Las filas de la base → máquinas. Una fila rara (sin id, otro medio) se descarta: nunca tumba la caja. */
+export function leerMaquinasDeCobro(filas: readonly Record<string, unknown>[] | null | undefined): MaquinaDeCobro[] {
+  return (filas ?? []).flatMap((f) => {
+    const medio = f.medio === "tarjeta" || f.medio === "qr" ? f.medio : null;
+    if (!medio || !f.maquina_id || !f.cuenta_id) return [];
+    return [{ maquinaId: String(f.maquina_id), nombre: String(f.nombre ?? ""), cuentaId: String(f.cuenta_id), medio, porDefecto: f.por_defecto === true }];
+  });
+}
+
+/** Las máquinas que cobran con ese medio en esta tienda (vacío para efectivo, Yape, Plin y transferencia). */
+export function maquinasPara(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): MaquinaDeCobro[] {
+  return METODOS_CON_MAQUINA.includes(metodo) ? maquinas.filter((m) => m.medio === metodo) : [];
+}
+
+/** La hoja pregunta con cuál máquina solo donde hay DOS o más para ese medio (Felipe 2026-10-05: Lima no pregunta). */
+export function preguntaMaquina(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): boolean {
+  return maquinasPara(maquinas, metodo).length >= 2;
+}
+
+/** La cuenta que lleva un pago recién tocado: la máquina por defecto de la tienda para ese medio; si ninguna está marcada
+ *  como tal, la única que hay; sin máquinas (o con otro medio), nada: la base decide sola, como antes. */
+export function cuentaPorDefecto(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): string | undefined {
+  const opciones = maquinasPara(maquinas, metodo);
+  return (opciones.find((m) => m.porDefecto) ?? (opciones.length === 1 ? opciones[0] : undefined))?.cuentaId;
+}
+
+/** Un pago nuevo con su máquina puesta (si el medio la tiene). */
+export function pagoNuevo(metodo: MetodoPagoVenta, monto: number, maquinas: readonly MaquinaDeCobro[]): PagoAplicado {
+  const cuentaId = cuentaPorDefecto(maquinas, metodo);
+  return cuentaId ? { metodo, monto, cuentaId } : { metodo, monto };
+}
+
+/** El nombre de la máquina de un pago («Vendemás»), para la pista «Cobra en Vendemás y confirma». Sin máquina, null. */
+export function nombreMaquina(maquinas: readonly MaquinaDeCobro[], pago: Pick<PagoAplicado, "metodo" | "cuentaId">): string | null {
+  return maquinasPara(maquinas, pago.metodo).find((m) => m.cuentaId === pago.cuentaId)?.nombre ?? null;
+}
 
 /** El nº de operación tal como se guarda: sin espacios, solo letras y dígitos, hasta 40. Vacío = no se anotó. */
 export function limpiarOperacion(texto: string): string {
@@ -66,15 +127,29 @@ export function restanteDePagos(total: number, pagos: readonly PagoAplicado[]): 
   return redondear2(total - pagos.reduce((acc, p) => acc + p.monto, 0));
 }
 
-/** Atajos F1–F5 de la caja: cada tecla es un medio de pago, en el MISMO orden en que el selector
- *  los muestra (F1 efectivo, F2 tarjeta, F3 yape, F4 plin, F5 transferencia). `null` si la tecla
+/** Atajos F1–F6 de la caja: cada tecla es un medio de pago, en el MISMO orden en que la hoja de cobro
+ *  los muestra (`medios`; por defecto los cinco de siempre: F1 efectivo, F2 tarjeta, F3 yape, F4 plin, F5
+ *  transferencia; con el QR disponible, F3 es QR y los demás se corren). `null` si la tecla
  *  no es un atajo. Con cualquier modificador (Ctrl+F5 = recarga forzada, Alt+F4 = cerrar…) o con la
  *  tecla mantenida (`repeat`) NO cuenta: un atajo del navegador o del sistema no se le quita a
  *  nadie, y mantener F2 no puede prender y apagar el medio veinte veces por segundo. */
-export function metodoDeAtajo(t: { key: string; ctrlKey: boolean; altKey: boolean; metaKey: boolean; shiftKey: boolean; repeat?: boolean }): MetodoPago | null {
+export function metodoDeAtajo(
+  t: { key: string; ctrlKey: boolean; altKey: boolean; metaKey: boolean; shiftKey: boolean; repeat?: boolean },
+  medios: readonly MetodoPagoVenta[] = METODOS_PAGO,
+): MetodoPagoVenta | null {
   if (t.ctrlKey || t.altKey || t.metaKey || t.shiftKey || t.repeat) return null;
-  const m = /^F([1-5])$/.exec(t.key);
-  return m ? METODOS_PAGO[Number(m[1]) - 1] : null;
+  const m = /^F([1-9])$/.exec(t.key);
+  return m ? (medios[Number(m[1]) - 1] ?? null) : null;
+}
+
+/** Los montos que la hoja de cobro ofrece para «¿Con cuánto paga?» además del exacto (patrón Square/Shopify POS): los
+ *  billetes con que suele pagarse un monto, de menor a mayor y siempre por encima de él. S/59.90 → 60, 70, 100, 200;
+ *  S/223.90 → 230, 240, 250, 300. Un toque deja anotado lo recibido y el vuelto sale solo. Hasta cuatro. */
+export function montosSugeridos(monto: number): number[] {
+  if (!Number.isFinite(monto) || monto <= 0) return [];
+  const arriba = (paso: number) => Math.ceil(monto / paso) * paso;
+  const candidatos = [arriba(10), arriba(10) + 10, arriba(20), arriba(50), arriba(100), arriba(200), arriba(100) + 100];
+  return [...new Set(candidatos)].filter((v) => v > monto + 0.001).sort((a, b) => a - b).slice(0, 4);
 }
 
 /** Separa el IGV de un total que YA lo incluye (los precios de CAYLA son con IGV). Es la
@@ -103,23 +178,47 @@ export function quitarPagoTraspasando(pagos: readonly PagoAplicado[], indice: nu
 /** El vuelto de un pago: lo recibido menos lo que cubre, solo en efectivo (Yape, Plin,
  *  tarjeta y transferencia no dan vuelto). Nunca negativo: si lo recibido no llega, no
  *  hay vuelto que mostrar — lo que falta lo dice `motivoBloqueoCobro`. */
-export function vueltoDe(pago: PagoAplicado): number {
+export function vueltoDe(pago: PagoAplicado, redondear = false): number {
   if (pago.metodo !== "efectivo" || pago.recibido === undefined) return 0;
-  return Math.max(0, redondear2(pago.recibido - pago.monto));
+  // Con el redondeo del efectivo (ADR-0311) lo que se cobra son las monedas: el vuelto sale de eso, no de la deuda exacta.
+  const cobra = redondear ? efectivoACobrar(pago.monto) : pago.monto;
+  return Math.max(0, redondear2(pago.recibido - cobra));
 }
 
-/** Cambia el monto de un medio y, con DOS medios, el otro toma lo que falta para llegar al total:
- *  la cajera parte el cobro (Plin 40) y el efectivo se llena solo con los 40 restantes; después
- *  puede editar cualquiera y el otro se reajusta. Con uno o con tres o más medios solo cambia el
- *  editado: no hay un «otro» evidente a quién repartirle. Un campo vaciado o roto cuenta como 0.
- *  Lo escrito por encima del total deja al otro en 0 y `motivoBloqueoCobro` avisa que se pasa. */
+/** Lo que dice la hoja de cobro bajo los billetes frente a lo que se cobra en efectivo (Felipe 2026-10-05): **vuelto** si lo recibido pasa,
+ *  **falta** si no llega y **exacto** si es justo; `null` mientras no se haya dicho cuánto paga (la línea queda invisible, reservando su
+ *  alto). `monto` es la cifra que se muestra: el vuelto, lo que falta o el cobro exacto. La hoja pinta **exacto en verde** y **falta en
+ *  rojo**; el vuelto queda neutro (es información, no un aviso). `vuelto` es el de `vueltoDe` con el mismo redondeo que `aCobrar`. */
+export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto" | "excede"; monto: number };
+export function lecturaDelRecibido(recibido: number | undefined, aCobrar: number, vuelto: number): LecturaDelRecibido | null {
+  if (recibido === undefined) return null;
+  // Un vuelto de más de S/ 500 es un billete mal escrito: se marca en rojo y `motivoBloqueoCobro` no deja cobrar.
+  if (vuelto > TOPE_VUELTO) return { estado: "excede", monto: vuelto };
+  if (vuelto > 0) return { estado: "vuelto", monto: vuelto };
+  if (recibido < aCobrar) return { estado: "falta", monto: redondear2(aCobrar - recibido) };
+  return { estado: "exacto", monto: aCobrar };
+}
+
+/** Cambia el monto de un medio y reparte «el resto»:
+ *  · con DOS medios, el otro toma lo que falta para llegar al total: la cajera parte el cobro (Plin 40) y el efectivo se
+ *    llena solo con los 40 restantes; después puede editar cualquiera y el otro se reajusta;
+ *  · con TRES o más (hoja de cobro, 2026-10-02), el primer medio que la cajera no escribió a mano (`fijo`) se queda con
+ *    lo que falta; si ya los escribió todos, solo cambia el editado;
+ *  · con uno, solo cambia el editado.
+ *  Un campo vaciado o roto cuenta como 0. Lo escrito por encima del total deja al resto en 0 y `motivoBloqueoCobro`
+ *  avisa que se pasa. */
 export function pagosTrasEditarMonto(pagos: readonly PagoAplicado[], indice: number, monto: number, total: number): PagoAplicado[] {
   if (!pagos[indice]) return [...pagos];
   const limpio = Math.max(0, redondear2(monto || 0));
-  const editados = pagos.map((p, i) => (i === indice ? { ...p, monto: limpio } : p));
-  if (pagos.length !== 2) return editados;
-  const otro = indice === 0 ? 1 : 0;
-  return editados.map((p, i) => (i === otro ? { ...p, monto: Math.max(0, redondear2(total - limpio)) } : p));
+  const editados = pagos.map((p, i) => (i === indice ? { ...p, monto: limpio, fijo: true } : p));
+  const resto = (otro: number) => {
+    const ajenos = editados.reduce((acc, p, i) => (i === otro ? acc : acc + p.monto), 0);
+    return editados.map((p, i) => (i === otro ? { ...p, monto: Math.max(0, redondear2(total - ajenos)) } : p));
+  };
+  if (pagos.length === 2) return resto(indice === 0 ? 1 : 0);
+  if (pagos.length < 2) return editados;
+  const libre = editados.findIndex((p, i) => i !== indice && !p.fijo);
+  return libre === -1 ? editados : resto(libre);
 }
 
 /** Los pasos del cobro que la pantalla resalta: elegir el medio, anotar cuánto entregó la clienta
@@ -130,10 +229,12 @@ export type PasoCobro = "medio" | "recibido" | "comprobante";
  *  el total (o se pasen) falta el medio; con efectivo cubierto falta anotar lo recibido hasta que
  *  alcance; después toca el comprobante, que es opcional. Solo GUÍA: no bloquea nada (lo que
  *  impide cobrar sigue siendo `motivoBloqueoCobro`). */
-export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): PasoCobro {
+export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number, redondear = false): PasoCobro {
   if (pagos.length === 0 || restanteDePagos(total, pagos) !== 0) return "medio";
   const efectivo = pagos.find((p) => p.metodo === "efectivo" && p.monto > 0);
-  if (efectivo && (efectivo.recibido === undefined || efectivo.recibido < efectivo.monto)) return "recibido";
+  // Con el redondeo del efectivo (ADR-0311) alcanza con lo que se cobra en monedas.
+  const cobra = efectivo ? (redondear ? efectivoACobrar(efectivo.monto) : efectivo.monto) : 0;
+  if (efectivo && (efectivo.recibido === undefined || efectivo.recibido < cobra)) return "recibido";
   return "comprobante";
 }
 
@@ -141,16 +242,50 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): Pas
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
  *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
-export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[] {
-  return pagos
+export type PagoParaRpc = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string; cuenta_id?: string };
+
+export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false): PagoParaRpc[] {
+  // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila de redondeo: la suma de todo
+  // sigue igualando los ítems y la base verifica que el redondeo sea el de la ley.
+  const { pagos: cobrados, redondeo } = pagosCobrados(pagos, redondear);
+  const filas = cobrados
     .filter((p) => p.monto > 0)
-    .map(({ metodo, monto, recibido, referencia }) => {
+    .map(({ metodo, monto, recibido, referencia, cuentaId }): PagoParaRpc => {
       if (metodo === "efectivo") return recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto };
+      // La máquina que cobró (ADR-0429) viaja solo con tarjeta o QR y solo si la hoja la puso. Una base anterior a 20261016182000
+      // ignora la clave (lee el pago clave por clave): la venta se registra igual.
+      if (METODOS_CON_MAQUINA.includes(metodo)) return cuentaId ? { metodo, monto, cuenta_id: cuentaId } : { metodo, monto };
       // El nº de operación viaja solo si se anotó. Una base que todavía no tiene `venta_pagos.referencia` lo ignora (lee
       // el pago clave por clave): la venta se registra igual.
       const operacion = METODOS_CON_OPERACION.includes(metodo) ? limpiarOperacion(referencia ?? "") : "";
       return operacion ? { metodo, monto, referencia: operacion } : { metodo, monto };
     });
+  return redondeo > 0 ? [...filas, { metodo: "redondeo", monto: redondeo }] : filas;
+}
+
+/** Los pagos de pantalla —exactos: cubren el total al céntimo— como se COBRAN. Con el redondeo del efectivo activo (ADR-0311) el
+ *  efectivo se cobra al múltiplo de S/ 0.10, hacia abajo, y lo que no se cobra es el `redondeo` (de 0.00 a 0.09). Sin él (la base
+ *  todavía no lo acepta, o no hay efectivo) los pagos quedan como están. La pantalla sigue trabajando con los pagos exactos
+ *  (`restanteDePagos`, `pagosTrasEditarMonto`…): el redondeo es del borde, no del estado que la cajera edita. */
+export function pagosCobrados(pagos: readonly PagoAplicado[], activo: boolean): { pagos: PagoAplicado[]; redondeo: number } {
+  if (!activo) return { pagos: [...pagos], redondeo: 0 };
+  let redondeo = 0;
+  const cobrados = pagos.map((p) => {
+    if (p.metodo !== "efectivo" || p.monto <= 0) return p;
+    redondeo = redondear2(redondeo + redondeoDelEfectivo(p.monto));
+    return { ...p, monto: efectivoACobrar(p.monto) };
+  });
+  return { pagos: cobrados, redondeo };
+}
+
+/** El cobro en efectivo con el redondeo de la ley, para decírselo a la cajera: la deuda exacta, lo que cobra en monedas y lo que no
+ *  se cobra. `null` si no hay efectivo. Sin el redondeo activo, se cobra la deuda tal cual. */
+export function cobroEnEfectivo(pagos: readonly PagoAplicado[], activo: boolean): { deuda: number; aCobrar: number; redondeo: number } | null {
+  const efectivo = pagos.find((p) => p.metodo === "efectivo");
+  if (!efectivo) return null;
+  return activo
+    ? { deuda: efectivo.monto, aCobrar: efectivoACobrar(efectivo.monto), redondeo: redondeoDelEfectivo(efectivo.monto) }
+    : { deuda: efectivo.monto, aCobrar: efectivo.monto, redondeo: 0 };
 }
 
 /**
@@ -173,22 +308,44 @@ export function motivoBloqueoCobro(v: {
   total: number;
   pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
+  /** Qué está mal del carné o del pasaporte de la boleta (`problemaDocumentoComprobante`, ADR-0288 D-3); `null`/ausente = nada.
+   *  La base rechaza uno fuera de formato y, con él, la venta entera: mejor no dejar cobrar hasta corregirlo. */
+  problemaDocumento?: string | null;
   /** Por qué el combo «Responsable» todavía no deja guardar (`ControlResponsable.motivo`, ADR-0161); `null`/ausente = ya
    *  hay responsable. Se pide antes que el pago: primero quién hace la venta, después la plata. */
   motivoResponsable?: string | null;
   /** Se cobra una proforma VENCIDA y aún no se confirmó que va al precio de entonces (ADR-0167). Ausente = no aplica. */
   proformaVencidaSinConfirmar?: boolean;
+  /** Todavía no se eligió boleta, factura ni nota de venta: desde la hoja de cobro ninguno viene marcado (Felipe,
+   *  2026-10-02), para que siempre se elija. Ausente = ya hay uno. */
+  sinComprobante?: boolean;
+  /** El redondeo del efectivo está activo (`fn_acepta_redondeo_efectivo`, ADR-0311): un efectivo menor de S/ 0.10 no se puede entregar. */
+  redondeoEfectivo?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
+  // Un ticket que no cobra nada (solo la bolsa de obsequio, a S/ 0.00) no se puede cobrar ni emitir: la base rechaza una venta en S/ 0
+  // entera. Se dice aquí, con la causa, en vez de dejar «Elige cómo pagó el cliente» para un total que no tiene qué pagar.
+  if (v.total <= 0) return "El ticket está en S/\u00a00.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
-  if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
+  if (v.pagos.length === 0) return "Elige cómo pagó el cliente.";
   const restante = restanteDePagos(v.total, v.pagos);
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
   if (restante < 0) return "Los pagos superan el total.";
+  // Con el redondeo, un efectivo de menos de S/ 0.10 (p. ej. los 0.07 que sobran tras un Yape) no se puede entregar: no hay moneda. Se
+  // cobra con otro medio; regalar el monto de otro medio no es redondear.
+  const efectivo = v.redondeoEfectivo ? v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0) : undefined;
+  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/\u00a0${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+  // Un vuelto de más de S/ 500 es un billete mal escrito (la base tampoco lo acepta, `venta_pagos_recibido_con_tope`).
+  const conRecibido = v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0 && p.recibido !== undefined);
+  if (conRecibido && vueltoDe(conRecibido, !!v.redondeoEfectivo) > TOPE_VUELTO) {
+    return `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
+  }
+  if (v.sinComprobante) return "Elige el comprobante.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";
+  if (v.problemaDocumento) return v.problemaDocumento;
   return null;
 }
 
@@ -198,13 +355,54 @@ export function motivoBloqueoCobro(v: {
 // `venta_items` ya tiene (≥ 0, ≤ precio, subtotal generado) y que `registrar_venta`
 // recibe — así queda medido por prenda en vez de disfrazado de "precio más bajo".
 
-/** Un % (entero o no) convertido a monto por unidad, con 2 decimales. Fuera de 0..100
- *  se recorta: 0 (o inválido) no descuenta; 100 regala la prenda, nunca más — el
- *  candado `venta_items_descuento_no_supera_precio` lo rechazaría igual. */
+/** Un % convertido a monto por unidad, con el precio que queda SIN CÉNTIMOS SUELTOS: la cuenta exacta
+ *  `precio × (100 − %) / 100` se baja al múltiplo de S/ 0.10 de abajo y el descuento es lo que falta para llegar ahí
+ *  (Felipe, 2026-10-14, ADR-0403: «que no se tenga que pagar céntimos; que sea más fácil de pagar y de entender»).
+ *  S/ 39.00 con 20 % da 31.20 (ya es múltiplo) y S/ 89.90 con 20 % da 71.92 → 71.90, así que descuenta 18.00.
+ *  Siempre hacia abajo: nunca se cobra más que el % anunciado (Ley 29571 art. 44; la clienta no paga de más), y el extra que
+ *  se regala es de 0 a 0.09 por unidad. Es la única cuenta de «un % se vuelve soles» de la caja: la usan el descuento
+ *  manual en % y el de campaña (`descuentoDeCampana`). Fuera de 0..100 se recorta: 0 (o inválido) no descuenta; 100 regala
+ *  la prenda, nunca más — el candado `venta_items_descuento_no_supera_precio` lo rechazaría igual.
+ *
+ *  ES LA MISMA CUENTA QUE `retail.fn_descuento_campana` (ADR-0403): la base la usa para verificar las campañas y los topes
+ *  del 15 y del 35 %. Va en enteros (céntimos × diezmilésimas de %), no en coma flotante: en coma flotante el medio
+ *  céntimo de una cuenta cae a un lado u otro según el error de la máquina (medido el 2026-10-01 en ADR-0302: 10 758 de
+ *  5 940 000 combinaciones), y la caja y la base tienen que coincidir al céntimo. El % se toma con hasta 4 decimales; el
+ *  de una campaña tiene 2 (`etiquetas.descuento_pct` es numeric(5,2)). */
 export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaje: number): number {
   if (!Number.isFinite(porcentaje) || porcentaje <= 0) return 0;
   if (porcentaje >= 100) return precioUnitario;
-  return redondear2((precioUnitario * porcentaje) / 100);
+  const precioC = Math.round(precioUnitario * 100);
+  const pct4 = Math.round(porcentaje * 10_000); // 33.33 % → 333 300
+  // precioC × (1 000 000 − pct4) / 1 000 000 es el precio final exacto en céntimos; entre 10 000 000 y × 10 lo baja al
+  // múltiplo de 10 céntimos. Cabe de sobra en un entero de JS: S/ 99 999.99 → 10^13 < 2^53.
+  const finalC = Math.floor((precioC * (1_000_000 - pct4)) / 10_000_000) * 10;
+  return (precioC - finalC) / 100;
+}
+
+/** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio de cada prenda, o en soles del total de
+ *  lo elegido. */
+export type ModoDescuento = "porcentaje" | "monto";
+
+/** Lo mínimo de una línea para saber cuánto le toca de un descuento: su clave, su precio y cuántas unidades son. */
+type LineaParaDescuento = { claveLinea: string; precioUnitario: number; cantidad: number };
+
+/** El descuento por unidad que pide el apartado para cada línea alcanzada (clave de la línea → soles por unidad).
+ *  - En %: el de cada línea sale de su precio (`descuentoUnitarioPorPorcentaje`, sin céntimos sueltos).
+ *  - En S/: el monto es para TODO lo elegido, no para cada prenda (Felipe, 2026-10-24). Antes era «por prenda»: S/ 100 sobre un
+ *    ticket de S/ 139 con dos prendas de menos de S/ 100 dejaba las dos en S/ 0 y la venta no se podía cobrar. Ahora se reparte
+ *    entre las líneas en proporción a su precio, por unidad y al céntimo, con la MISMA regla que el cupón del Club
+ *    (`repartirVale`): nunca más que el precio de una prenda ni que el total de lo elegido, y la suma es exacta salvo cuando el
+ *    resto no se puede partir por unidades (se queda corta por céntimos, nunca se pasa). Con una sola prenda es el monto tal
+ *    cual, recortado a su precio. Lo que se escribe no se redondea al S/ 0.10 (ADR-0403): quien lo escribe ya decidió cuánto. */
+export function descuentosPedidos(modo: ModoDescuento, valor: number, lineas: readonly LineaParaDescuento[]): Map<string, number> {
+  if (modo === "porcentaje") return new Map(lineas.map((l) => [l.claveLinea, descuentoUnitarioPorPorcentaje(l.precioUnitario, valor)]));
+  if (!Number.isFinite(valor) || valor <= 0) return new Map(lineas.map((l) => [l.claveLinea, 0]));
+  const partes = repartirVale(
+    lineas.map((l) => ({ precioUnitario: l.precioUnitario, descuentoUnitario: 0, cantidad: l.cantidad })),
+    valor,
+  );
+  return new Map(lineas.map((l, i) => [l.claveLinea, partes[i]!]));
 }
 
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
@@ -216,7 +414,7 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
 /** Los cinco motivos que `registrar_venta` acepta — la base manda; agregar uno acá sin
  *  agregarlo también en la migración deja a la venta rechazándose con el error genérico. */
 export const RAZONES_DESCUENTO = [
-  { valor: "cumpleanos_clienta_top", etiqueta: "Cumpleaños clienta top" },
+  { valor: "cumpleanos_clienta_top", etiqueta: "Cumpleaños cliente top" },
   { valor: "prenda_con_desperfecto", etiqueta: "Prenda con desperfecto" },
   { valor: "liquidacion_temporada", etiqueta: "Liquidación de temporada" },
   { valor: "cerrar_venta", etiqueta: "Cerrar la venta" },
@@ -244,29 +442,24 @@ export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "
 export const RAZON_CAMPANA = "campana";
 
 /**
- * El descuento por unidad de una campaña, con el precio rebajado REDONDEADO HACIA ABAJO a .90 (Felipe, 2026-09-23,
- * ADR-0182): S/ 89.90 con 20 % da S/ 71.92 y se cobra S/ 71.90 → descuento S/ 18.00. Si el cálculo cae en 71.85, queda
- * 70.90: siempre el .90 más cercano por debajo, nunca por encima. Un precio rebajado de menos de S/ 0.90 no se redondea
- * (no existe un .90 por debajo) y 100 % regala la prenda.
+ * El descuento por unidad de una campaña: el % de la campaña sobre el precio, con el precio que queda bajado al múltiplo de
+ * S/ 0.10 (Felipe, 2026-10-14, ADR-0403; antes era exacto al céntimo, ADR-0302). S/ 39.00 con 20 % se cobra S/ 31.20 y
+ * S/ 89.90 con 20 % se cobra S/ 71.90 (la cuenta exacta da 71.92): como mucho 9 céntimos más de descuento por prenda, nunca
+ * menos que el % del papel.
  *
- * ES LA MISMA REGLA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20260923174100): la caja la calcula y
- * `registrar_venta`/`separar_prendas` la verifican. Si divergen, la venta se rechaza en el mostrador. Por eso va en
- * enteros (diezmilésimas de céntimo): con coma flotante, un 71.8999… en vez de 71.90 bajaría el precio un sol entero.
- * Los % tienen como mucho 2 decimales (`parsearDescuento`).
+ * ES LA MISMA CUENTA, AL CÉNTIMO, QUE `retail.fn_descuento_campana`: la caja la calcula y `registrar_venta`,
+ * `separar_prendas` y `editar_separacion` la verifican. Si divergen, la venta se rechaza en el mostrador.
  */
 export function descuentoDeCampana(precio: number, pct: number): number {
-  if (!Number.isFinite(pct) || pct <= 0) return 0;
-  if (pct >= 100) return precio;
-  const precioC = Math.round(precio * 100);
-  // precio rebajado exacto, en diezmilésimas de céntimo: precio × (100 − pct) / 100, sin redondear. El % con 2
-  // decimales, como `round(p_pct, 2)` en la base.
-  const rebajado = precioC * (10_000 - Math.round(pct * 100));
-  const UN_CENTIMO = 10_000;
-  const finalC =
-    rebajado >= 90 * UN_CENTIMO
-      ? Math.floor((rebajado + 10 * UN_CENTIMO) / (100 * UN_CENTIMO)) * 100 - 10 // el X.90 más alto que no lo pasa
-      : Math.round(rebajado / UN_CENTIMO);
-  return (precioC - finalC) / 100;
+  return descuentoUnitarioPorPorcentaje(precio, pct);
+}
+
+/** Lo que se cobra por unas líneas: Σ cantidad × (precio − descuento), sumado en céntimos exactos (como `ticketConCumple`).
+ *  Es el ÚNICO total de un ticket en la web: caja, apartados, ventas en espera y la cola sin conexión. En coma flotante,
+ *  99.90 − 14.99 da 84.91000000000001: «armar» mostraba ese número y Apartar no aceptaba S/ 84.91 recibidos en efectivo
+ *  contra ese total. Con el descuento de campaña exacto (ADR-0302) esos céntimos dejaron de ser raros. */
+export function totalDeLineas(lineas: readonly { cantidad: number; precioUnitario: number; descuentoUnitario: number }[]): number {
+  return lineas.reduce((c, l) => c + l.cantidad * (Math.round(l.precioUnitario * 100) - Math.round(l.descuentoUnitario * 100)), 0) / 100;
 }
 
 /** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
@@ -280,6 +473,8 @@ type LineaDescontable = {
   razonDescuentoOtro: string;
   argumentoDescuento: string;
   campana?: CampanaLinea | null;
+  /** Una pieza de liquidación tiene precio final: ningún descuento del ticket la toca (ADR-0379). */
+  liquidacion?: { codigo: string } | null;
 };
 
 /** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
@@ -287,7 +482,7 @@ export function esDescuentoDeCampana(l: { descuentoUnitario: number; razonDescue
   return l.descuentoUnitario > 0 && l.razonDescuento === RAZON_CAMPANA;
 }
 
-/** ¿Hay algún descuento puesto A MANO? Solo ese pide código a una colaboradora. */
+/** ¿Hay algún descuento puesto A MANO? Solo ese se puede quitar desde el ticket. */
 export function hayDescuentoManual(carrito: readonly { descuentoUnitario: number; razonDescuento: string }[]): boolean {
   return carrito.some((l) => l.descuentoUnitario > 0 && l.razonDescuento !== RAZON_CAMPANA);
 }
@@ -337,11 +532,22 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
   });
 }
 
-function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: string[], detalle: DetalleDescuento, montoPara: (l: L) => number): L[] {
-  const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
+/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»), menos las
+ *  piezas de liquidación (ADR-0379). */
+export function entraAlDescuento(l: { claveLinea: string; liquidacion?: { codigo: string } | null }, claves: readonly string[] | null): boolean {
+  return !l.liquidacion && (claves === null || claves.length === 0 || claves.includes(l.claveLinea));
+}
+
+function aplicarConMonto<L extends LineaDescontable>(
+  carrito: L[],
+  claves: string[],
+  detalle: DetalleDescuento,
+  montosPara: (alcanzadas: L[]) => Map<string, number>,
+): L[] {
+  const pedidos = montosPara(carrito.filter((l) => entraAlDescuento(l, claves)));
   return carrito.map((l) => {
-    if (!alcanza(l)) return l;
-    const { monto, prevaleceCampana } = descuentoResultante(l, montoPara(l));
+    if (!entraAlDescuento(l, claves)) return l;
+    const { monto, prevaleceCampana } = descuentoResultante(l, pedidos.get(l.claveLinea) ?? 0);
     if (prevaleceCampana) return conDescuentoDeCampana(l);
     return {
       ...l,
@@ -357,7 +563,21 @@ function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: strin
  *  `claves` viene vacío ("todo el ticket"). Las que no entran quedan como estaban. Para
  *  quitar un descuento: `aplicarDescuento(carrito, 0, claves, SIN_DETALLE_DESCUENTO)`. */
 export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porcentaje: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
+  return aplicarConMonto(carrito, claves, detalle, (ls) => new Map(ls.map((l) => [l.claveLinea, descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje)])));
+}
+
+/** Lo mismo que `aplicarDescuento`, pero con un monto en soles para TODO lo alcanzado, repartido entre las prendas según su
+ *  precio (`descuentosPedidos`) — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos).
+ *  Vuelve el 2026-10-14 (Felipe) tras haberse quitado el 2026-09-25; desde el 2026-10-24 el monto es del total, no por prenda.
+ *  Una línea cuya campaña da igual o más que su parte se queda con la campaña (un solo descuento por prenda, el mayor), y su
+ *  parte no pasa a las demás. */
+export function aplicarDescuentoMonto<L extends LineaDescontable & { cantidad: number }>(
+  carrito: L[],
+  monto: number,
+  claves: string[],
+  detalle: DetalleDescuento,
+): L[] {
+  return aplicarConMonto(carrito, claves, detalle, (ls) => descuentosPedidos("monto", monto, ls));
 }
 
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado
@@ -371,18 +591,18 @@ export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario
  *  que pase el 15 % (antes: solo a un Líder, pasado el 20 %). */
 export const UMBRAL_ARGUMENTO_PCT = 15;
 
-/** Si una línea pide el argumento escrito: su descuento por unidad pasa el 15 % del precio.
- *  Misma cuenta que `registrar_venta` (el 15 % redondeado al céntimo, con 1 céntimo de
- *  holgura) — así un 15 % justo que el redondeo deja en 15.003 % no lo pide en la pantalla
- *  y sí en la base, ni al revés. El candado real vive en la base; esto decide cuándo el
- *  apartado MUESTRA el campo. */
+/** Si una línea pide el argumento escrito: su descuento por unidad pasa lo que da el 15 % de ese precio.
+ *  «Lo que da el 15 %» es `descuentoUnitarioPorPorcentaje(precio, 15)`, con su precio sin céntimos (ADR-0403), y la misma
+ *  cuenta que `registrar_venta` (con 1 céntimo de holgura): así el botón «15 %» no pide argumento aunque el redondeo le
+ *  regale 9 céntimos, ni en la pantalla ni en la base. El candado real vive en la base; esto decide cuándo el apartado
+ *  MUESTRA el campo. */
 export function necesitaArgumentoEscrito(precioUnitario: number, descuentoUnitario: number): boolean {
   if (precioUnitario <= 0 || descuentoUnitario <= 0) return false;
-  return redondear2(descuentoUnitario - redondear2((precioUnitario * UMBRAL_ARGUMENTO_PCT) / 100)) > 0.01;
+  return redondear2(descuentoUnitario - descuentoUnitarioPorPorcentaje(precioUnitario, UMBRAL_ARGUMENTO_PCT)) > 0.01;
 }
 
 /** Los campos del apartado «Descuento», en el orden en que se llenan de arriba abajo. */
-export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "codigo" | "prendas" | "listo";
+export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "prendas" | "listo";
 
 /** El primer campo que falta llenar del apartado «Descuento»: la pantalla lo ilumina y, al
  *  terminar uno, lleva el foco al siguiente. Solo GUÍA: lo que impide aplicar sigue siendo
@@ -393,15 +613,12 @@ export function pasoDelDescuento(e: {
   razonOtro: string;
   pideArgumento: boolean;
   argumento: string;
-  pideCodigo: boolean;
-  codigo: string;
   prendas: number;
 }): PasoDescuento {
   if (!e.valorValido) return "valor";
   if (e.razon === "") return "motivo";
   if (e.razon === "otro" && e.razonOtro.trim() === "") return "motivoOtro";
   if (e.pideArgumento && e.argumento.trim() === "") return "argumento";
-  if (e.pideCodigo && e.codigo.trim() === "") return "codigo";
   if (e.prendas === 0) return "prendas";
   return "listo";
 }
@@ -414,14 +631,14 @@ export function pasoDelDescuento(e: {
 /** Una persona que se puede nombrar en el ticket (`PersonaDeTurno` calza con esta forma). */
 export type Vendedora = { personaId: string; nombre: string };
 
-/** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
- *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */
-export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
+/** El nombre que sale en el papel: nombre y apellido, como está en su ficha (Felipe 2026-10-09: con solo el primer nombre no se
+ *  sabía quién atendió). `null` si no hay a quién nombrar. */
+export function atendioDelTicket(vendedoras: readonly Vendedora[], id: string | null): string | null {
   const v = vendedoras.find((x) => x.personaId === id);
-  return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+  return v?.nombre.trim() || null;
 }
 
-// ---- «Agotada» o «apartada para una clienta» ------------------------------------------------------------------------
+// ---- «Agotada» o «apartada para un cliente» ------------------------------------------------------------------------
 // Una prenda con todo el piso apartado NO está agotada: sigue ahí, en el piso, y es de una clienta. Decirle «agotada» a
 // la colaboradora que mira la bodega del piso es decirle que no ve lo que ve. La regla vive en UN solo lugar,
 // `motivoNoCobrable` (`lib/vender-stock-local.ts`, D-40): cobrable > «está en el almacén» > «apartada» > «agotada». Vender
@@ -441,9 +658,9 @@ export function sinStockPorApartado(p: SinStockAqui): boolean {
   return motivoNoCobrable(p) === "apartada";
 }
 
-/** La frase de una prenda que no se puede vender aquí: «apartada para una clienta» si lo único que queda en el piso es
+/** La frase de una prenda que no se puede vender aquí: «apartada para un cliente» si lo único que queda en el piso es
  *  de otra clienta, y si no, `agotada` (el texto de siempre de cada pantalla). Se llama cuando `stockAqui <= 0`. La
- *  frase abre en mayúscula solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para una clienta»), para
+ *  frase abre en mayúscula solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para un cliente»), para
  *  que la pantalla no tenga que cuidar el caso.
  *
  *  La palabra describe el piso —lo que la caja puede cobrar—, igual que «agotada» lo describe cuando el piso está en 0;
@@ -452,5 +669,31 @@ export function sinStockPorApartado(p: SinStockAqui): boolean {
 export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
   if (!sinStockPorApartado(p)) return agotada;
   const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
-  return empiezaEnMayuscula ? "Apartada para una clienta" : "apartada para una clienta";
+  return empiezaEnMayuscula ? "Apartada para un cliente" : "apartada para un cliente";
+}
+
+/**
+ * ¿Esta prenda no puede entrar al ticket porque no tiene precio? (ADR-0384.) Una prenda de mercadería en S/ 0 es un precio
+ * olvidado: la base la rechaza al cobrar (`venta_sin_precio`), y una venta sin conexión recién se rechazaría al subir, con la prenda
+ * ya entregada. Por eso la caja la frena al agregarla, con la misma regla de Editar producto (`precioValido`): solo lo de una familia
+ * fuera de los motores (la bolsa de obsequio) va en 0. `precio` es el que cobra ESTA tienda (su precio propio, si tiene).
+ */
+export function sinPrecioParaVender(v: { precio: number; fueraDeMotores?: boolean }): boolean {
+  return !precioValido(v.precio, v.fueraDeMotores === true);
+}
+
+
+/** Los comprobantes que se cobran en caja. */
+export type TipoComprobanteVenta = "boleta" | "factura" | "nota_venta";
+export const TIPOS_COMPROBANTE_VENTA: readonly TipoComprobanteVenta[] = ["boleta", "factura", "nota_venta"];
+
+/**
+ * Qué comprobantes ofrece la hoja de cobro: los que la sede tiene con una serie activa (/chaos 2026-10-13: «Nota de venta» se
+ * ofrecía en una sede sin su serie y, al cobrar, la base rechazaba la venta entera). Si la lectura de las series falló (`null`) o la
+ * sede no tiene ninguna, se ofrecen los tres como antes: cobrar dice entonces qué falta, en vez de dejar la caja sin opciones.
+ */
+export function tiposDeComprobanteDeLaSede(series: readonly { tipo: string }[] | null): TipoComprobanteVenta[] {
+  if (!series) return [...TIPOS_COMPROBANTE_VENTA];
+  const conSerie = TIPOS_COMPROBANTE_VENTA.filter((t) => series.some((s) => s.tipo === t));
+  return conSerie.length > 0 ? conSerie : [...TIPOS_COMPROBANTE_VENTA];
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparCuentas,
+  ayudaDelFondo,
   claseDePagoSinCuenta,
   leerPagoSinCuenta,
   medioDePagoSinCuenta,
@@ -17,6 +18,8 @@ import {
   mediosDeBanco,
   sigueSirviendo,
   sirveParaMedio,
+  usadoDelFondo,
+  MEDIOS_DEL_FONDO,
   type CuentaElegible,
 } from "./cuenta-sellada-reglas";
 
@@ -132,7 +135,7 @@ describe("cómo se dibuja", () => {
       "Efectivo por rendir",
       "Cajones (resta del cierre de esa caja)",
       "Tarjeta de crédito",
-      "Por abonar (POS)",
+      "Por depositar (máquina de cobro)",
     ]);
     expect(agruparCuentas([c("bcp", "banco")]).length).toBe(1);
   });
@@ -181,5 +184,71 @@ describe("lo pasado: decir de qué cuenta fue", () => {
     expect(claseDePagoSinCuenta("gasto")).toBe("pago");
     expect(medioDePagoSinCuenta({ origen: "traslado", medio: null })).toBe("transferencia");
     expect(medioDePagoSinCuenta({ origen: "pago", medio: null })).toBe("efectivo");
+  });
+});
+
+// ADR-0362 fase 6 · actividad 2: «Mi fondo» en los pagos de Compras. No viene de `fn_cuentas_para_elegir`: lo suma la pantalla
+// (`conMiFondo`) y su regla es la de `retail.fn_fondo_para_pagar`.
+describe("el fondo por rendir en «Sale de»", () => {
+  const FONDO = c("fondo_ana", "fondo", { nombre: "Mi fondo", saldo: 380, propuestaPara: ["efectivo"] });
+  const CON_FONDO = [FONDO, ...CUENTAS];
+
+  it("sirve solo para pagar, y con tarjeta no (la plata de una tarjeta es de CAYLA)", () => {
+    for (const m of ["efectivo", "yape", "plin", "transferencia", "deposito", "otro"]) expect(sirveParaMedio("pago", m, "fondo")).toBe(true);
+    expect(MEDIOS_DEL_FONDO).toEqual(["efectivo", "yape", "plin", "transferencia", "deposito", "otro"]);
+    expect(sirveParaMedio("pago", "tarjeta", "fondo")).toBe(false);
+    expect(sirveParaMedio("cobro", "efectivo", "fondo")).toBe(false);
+    expect(sirveParaMedio("reembolso", "transferencia", "fondo")).toBe(false);
+  });
+
+  it("va primero en el combo, con lo que tiene en la mano o lo que CAYLA le debe", () => {
+    const opciones = opcionesDeCuenta(CON_FONDO, "pago", "efectivo");
+    expect(opciones[0]).toEqual({ valor: "fondo_ana", texto: "Mi fondo · tienes S/\u00a0380.00", grupo: "Tu fondo por rendir", deshabilitada: false });
+    expect(etiquetaCuenta({ ...FONDO, saldo: -120 })).toBe("Mi fondo · CAYLA te debe S/\u00a0120.00");
+    expect(etiquetaCuenta({ ...FONDO, saldo: 0 })).toBe("Mi fondo · sin plata");
+    // Con tarjeta no aparece.
+    expect(opcionesDeCuenta(CON_FONDO, "pago", "tarjeta").some((o) => o.valor === "fondo_ana")).toBe(false);
+  });
+
+  it("con plata, se propone para el efectivo antes que la caja; sin propuesta, el efectivo sigue en la caja y el Yape en el banco", () => {
+    expect(cuentaPropuesta(CON_FONDO, "pago", "efectivo")).toBe("fondo_ana");
+    expect(cuentaPropuesta(CON_FONDO, "pago", "yape")).toBe("bcp");
+    const sinPlata = [{ ...FONDO, saldo: 0, propuestaPara: [] }, ...CUENTAS];
+    expect(cuentaPropuesta(sinPlata, "pago", "efectivo")).toBe("cajon_tru");
+    // Elegido para Yape, sigue sirviendo; con tarjeta, vuelve a la propuesta.
+    expect(cuentaEfectiva(CON_FONDO, "pago", "yape", "fondo_ana")).toBe("fondo_ana");
+    expect(cuentaEfectiva(CON_FONDO, "pago", "tarjeta", "fondo_ana")).toBe("visa");
+  });
+
+  it("nunca se propone por descarte: sin banco, una transferencia queda por elegir (el fondo sigue a un toque)", () => {
+    const sinBanco = [FONDO, c("fuerte_tru", "caja_fuerte")];
+    expect(cuentaPropuesta(sinBanco, "pago", "transferencia")).toBeNull();
+    expect(opcionesDeCuenta(sinBanco, "pago", "transferencia").map((o) => o.valor)).toEqual(["fondo_ana"]);
+    // Sin plata y sin otra caja, el efectivo tampoco sale solo del fondo.
+    expect(cuentaPropuesta([{ ...FONDO, saldo: 0, propuestaPara: [] }], "pago", "efectivo")).toBeNull();
+  });
+
+  it("la frase de abajo dice cuánto le queda y, si no alcanza, que CAYLA se lo devuelve al rendir (nunca frena)", () => {
+    expect(ayudaDelFondo(380, 0)).toBe("Sale de tu fondo por rendir (tienes S/\u00a0380.00): no toca ninguna caja.");
+    expect(ayudaDelFondo(380, 300)).toBe("Sale de tu fondo: te quedan S/\u00a080.00 en la mano.");
+    expect(ayudaDelFondo(380, 380)).toBe("Sale de tu fondo: te quedan S/\u00a00.00 en la mano.");
+    expect(ayudaDelFondo(380, 500)).toBe("Tu fondo tiene S/\u00a0380.00: los S/\u00a0120.00 que faltan los pones tú y CAYLA te los devuelve al rendir.");
+    expect(ayudaDelFondo(0, 0)).toBe("Tu fondo no tiene plata: lo que pagues lo pones tú y CAYLA te lo devuelve al rendir.");
+    expect(ayudaDelFondo(0, 250)).toBe("Lo pones tú: CAYLA te deberá S/\u00a0250.00 y te lo devuelve al rendir.");
+    expect(ayudaDelFondo(-100, 0)).toBe("CAYLA ya te debe S/\u00a0100.00: lo que pagues lo pones tú y se suma a lo que te debe.");
+    expect(ayudaDelFondo(-100, 250)).toBe("Lo pones tú: CAYLA te deberá S/\u00a0350.00 y te lo devuelve al rendir.");
+    expect(ayudaCuenta(FONDO, "sale")).toBe(ayudaDelFondo(380, 0));
+  });
+
+  it("lo que sale del fondo suma solo las líneas que van al fondo, hasta la pedida", () => {
+    const lineas = [
+      { monto: "200", metodo: "efectivo" }, // propuesta: el fondo
+      { monto: "50", metodo: "transferencia" }, // el banco
+      { monto: "30.5", metodo: "yape", cuentaId: "fondo_ana" }, // elegido a mano
+    ];
+    expect(usadoDelFondo(lineas, CON_FONDO, 0)).toBe(200);
+    expect(usadoDelFondo(lineas, CON_FONDO, 1)).toBe(200);
+    expect(usadoDelFondo(lineas, CON_FONDO, 2)).toBe(230.5);
+    expect(usadoDelFondo(lineas, CUENTAS, 2)).toBe(0);
   });
 });

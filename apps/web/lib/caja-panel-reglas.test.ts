@@ -7,6 +7,7 @@ import {
   esMotivoDeAjuste,
   formatoDuracion,
   metodosDe,
+  textoMetodosDeVenta,
   motivosDeMovimiento,
   referenciaObligatoria,
   rangoHorasCaja,
@@ -48,8 +49,16 @@ describe("metodosDe", () => {
     expect(metodosDe(null)).toEqual([]);
     expect(metodosDe("")).toEqual([]);
   });
+  it("el QR es su propio medio: no cae en 'otro' (ni solo ni mezclado)", () => {
+    expect(metodosDe("qr")).toEqual(["qr"]);
+    expect(metodosDe("efectivo + qr")).toEqual(["efectivo", "qr"]);
+  });
   it("lo que no reconoce cae en 'otro', no se pierde", () => {
     expect(metodosDe("cheque")).toEqual(["otro"]);
+  });
+  it("el redondeo del efectivo (ADR-0311) no es una forma de pago: no sale ni como 'otro'", () => {
+    expect(metodosDe("efectivo + redondeo")).toEqual(["efectivo"]);
+    expect(metodosDe("redondeo")).toEqual([]);
   });
 });
 
@@ -215,13 +224,12 @@ describe("turnoLargo", () => {
 });
 
 describe("motivosDeMovimiento", () => {
-  it("el líder ve el ajuste; quien no lo es, no", () => {
-    expect(motivosDeMovimiento("egreso", true)).toContain("Ajuste de caja (faltante)");
-    expect(motivosDeMovimiento("egreso", false)).not.toContain("Ajuste de caja (faltante)");
-    expect(motivosDeMovimiento("ingreso", false)).toEqual(["Otro"]);
+  it("el ajuste lo ve toda cuenta que opera la caja, no solo el líder (ADR-0534)", () => {
+    expect(motivosDeMovimiento("egreso")).toContain("Ajuste de caja (faltante)");
+    expect(motivosDeMovimiento("ingreso")).toEqual(["Ajuste de caja (sobrante)", "Otro"]);
   });
   it("todo motivo de ajuste se reconoce como tal", () => {
-    for (const m of motivosDeMovimiento("egreso", true).concat(motivosDeMovimiento("ingreso", true))) {
+    for (const m of motivosDeMovimiento("egreso").concat(motivosDeMovimiento("ingreso"))) {
       expect(esMotivoDeAjuste(m)).toBe(m.startsWith("Ajuste"));
     }
   });
@@ -232,5 +240,14 @@ describe("referenciaObligatoria", () => {
     expect(referenciaObligatoria("Depósito bancario")).toBe(true);
     expect(referenciaObligatoria("Otro")).toBe(true);
     expect(referenciaObligatoria("Retiro de efectivo")).toBe(false);
+  });
+});
+
+describe("textoMetodosDeVenta", () => {
+  it("escribe QR en mayúscula y deja los demás medios como vienen", () => {
+    expect(textoMetodosDeVenta("qr")).toBe("QR");
+    expect(textoMetodosDeVenta("efectivo + qr")).toBe("efectivo + QR");
+    expect(textoMetodosDeVenta("efectivo")).toBe("efectivo");
+    expect(textoMetodosDeVenta(null)).toBe("");
   });
 });

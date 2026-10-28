@@ -1,28 +1,51 @@
 import Link from "next/link";
+import { getPendientesDeLaSede } from "@/lib/recepcion-conteo";
 import { cookies } from "next/headers";
-import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ChevronDown, LayoutGrid, Rows3, SignpostBig } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
 import {
   filtrosProductosDesdeParams,
+  conSede,
   paginaProductosDesdeParams,
   listarProductos,
-  getResumenProductos,
-  getReposicionPorProveedor,
   getExistenciasProductos,
   getSinTemporadaResumen,
+  getFacetasProductos,
+  getTemporadasCatalogo,
+  getCatalogo,
   type ParamsProductosListado,
 } from "@/lib/catalogo-v2";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { empresaDelListado, insigniaDeEmpresa, opcionesDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
+import { getDisponibleEnSede } from "@/lib/inventario-v2";
+import { cantidadCobrable } from "@/lib/vender-stock-local";
+import { tarjetasDesdeVariantes } from "@/lib/combinar-reglas";
 import { ProductosTabla } from "@/components/ProductosTabla";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
+import { SelectorTamanoGrilla } from "@/components/SelectorTamanoGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { AQuienPedirle } from "@/components/AQuienPedirle";
+import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { Ayuda } from "@/components/Ayuda";
 import { EXPLICACION_STOCK_TOTAL, mensajeSinResultados } from "@/lib/productos-stock";
 import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
+import { limitesRedondeados } from "@/lib/productos-filtro-precio";
+import { COOKIE_PANEL_FILTROS, leerPanelFiltros } from "@/lib/panel-filtros";
+import { compararTallas } from "@/lib/tallas";
+import { BotonEnlace } from "@/components/ui/campos";
+import { urlRotulos } from "@/lib/rotulos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { getPorRevisarResumen } from "@/lib/revisar-productos-datos";
+import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
+import { preciosDeTiendaPorProducto } from "@/lib/precio-sede-reglas";
+import { variantesQueSeVenden } from "@/lib/productos-vista";
+import { campanasQueCobra } from "@/lib/etiquetas-precio";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -43,7 +66,7 @@ import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 //
 // Fase UI 3 (2026-09-15): de filtrar/paginar TODO el catálogo en memoria del
 // cliente (`getCatalogo()`) a filtros en la URL + Postgres
-// (`fn_productos`/`fn_productos_resumen`), mismo patrón que Movimientos —
+// (`fn_productos`/`fn_productos_resumen`; desde 2026-10-02 `fn_productos_listado`/`fn_productos_facetas`, ADR-0308), mismo patrón que Movimientos —
 // ver `20260915160000_productos_listado_filtros.sql` para las decisiones
 // (paginado por número de página, por qué el stock entra acá ahora).
 // `getCatalogo()` sigue existiendo para quien necesite el catálogo entero
@@ -58,12 +81,21 @@ import { COOKIE_TAMANO_GRILLA, leerTamanoGrilla } from "@/lib/tamano-grilla";
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
   const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
-  const filtros = filtrosProductosDesdeParams(params);
+  // «Hay en …» y «Sin stock en …» miran la sede elegida arriba; en CAYLA Global no hay una (ADR-0275) y no se aplican.
+  const enSede = persona.vista !== "global";
+  // ADR-0505: CLAURE solo existe donde opera (Lima). En una sede con una sola empresa la lista pide solo esa, aunque la URL diga
+  // otra; en Lima y en CAYLA Global, la elegida en «Tienda». Va antes de la lista porque la decide. Sin respuesta, como antes.
+  const empresasAqui = await getEmpresasAqui(enSede ? persona.ubicacionId : null).catch(() => null);
+  const desdeUrl = filtrosProductosDesdeParams(params);
+  const filtros = conSede({ ...desdeUrl, empresaId: empresaDelListado(desdeUrl.empresaId, empresasAqui) }, enSede ? persona.ubicacionId : null);
   const pagina = paginaProductosDesdeParams(params);
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   // El tamaño de las tarjetas que esta máquina dejó la última vez (Felipe, 2026-09-29): cookie leída acá para que la primera
   // pintura ya salga con las columnas correctas (ver `lib/tamano-grilla.ts`).
-  const tamanoGrilla = leerTamanoGrilla((await cookies()).get(COOKIE_TAMANO_GRILLA)?.value);
+  const galletas = await cookies();
+  const tamanoGrilla = leerTamanoGrilla(galletas.get(COOKIE_TAMANO_GRILLA)?.value);
+  // Si el panel de filtros nace abierto o cerrado en este equipo (Felipe, 2026-10-02: abierto, salvo que aquí se cerró).
+  const panelFiltros = leerPanelFiltros(galletas.get(COOKIE_PANEL_FILTROS)?.value);
   const supabase = await createClient();
 
   // Grilla ⇄ tabla (ADR-0077): reconstruye la URL con todos los filtros vigentes, solo
@@ -77,46 +109,127 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   }
 
   const editaCatalogo = puede(persona, "editarCatalogo");
+  // «Eliminar» en la tarjeta y en la tabla (ADR-0252, act. 2026-10-03): quien edita el catálogo, igual que la base
+  // (`fn_puede_editar_catalogo`). Antes, solo Líder: la cuenta de almacén creaba productos y no podía deshacer un error.
   // ADR-0246 + ADR-0161: el aviso «N prendas sin temporada · Completar» lleva a Atributos ▸ Temporadas, que se abre con el
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sinTemporada] = await Promise.all([
+  const [resultado, facetas, categorias, colores, resMarcas, resProveedores, sinTemporada, resTallas, temporadas, porRevisar, recibidoPorCrear] = await Promise.all([
     listarProductos(filtros, pagina),
-    getResumenProductos(filtros),
-    supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
-    supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
+    // Cuántas hay en cada opción, el rango real del precio y sus tramos (ADR-0308). `null` si falla: opciones sin número.
+    getFacetasProductos(filtros),
+    supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("nombre"),
+    // Con su ficha (descripción y «combina con», ADR-0316): la vista rápida la lee bajo la foto del color que se mira (Felipe 2026-10-10).
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true).order("nombre"),
     // Marcas y proveedores activos, para los filtros (ADR-0109).
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
+    supabase.from("tallas").select("id, valor").eq("activo", true),
+    // La lista cerrada de temporadas, para su filtro. `null` si no se pudo: la píldora no aparece, el resto sigue.
+    getTemporadasCatalogo().catch(() => null),
+    // ADR-0371: cuántas prendas propuestas esperan que alguien las apruebe. Solo a quien puede revisarlas; `null` si no se pudo saber
+    // (la función aún no está en la base): sin número no se avisa nada, nunca un «0» que diga que no hay.
+    editaCatalogo ? getPorRevisarResumen() : Promise.resolve(null),
+    // ADR-0393 (decisión 4): lo nuevo que llegó a la sede y todavía no existe en el catálogo («por crear»). `null` si la base no lo sabe.
+    getPendientesDeLaSede(persona.ubicacionId),
   ]);
+  // ADR-0467 + ADR-0505: la píldora «Tienda» solo donde conviven dos empresas (Lima, Global); en Trujillo no hay nada que elegir.
+  const empresas = opcionesDeEmpresa(empresasAqui);
 
-  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal). Y lo de la sede elegida
-  // arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Las dos después de la lista, a la vez.
-  const [reposicion, existencias] = await Promise.all([
-    resumen.reponerDeProveedor > 0 ? getReposicionPorProveedor(filtros) : Promise.resolve([]),
+  // Lo de la sede elegida arriba para cada producto de esta página (ADR-0270): la misma cifra que Existencias. Va después de la
+  // lista. «A quién pedirle» se quitó el 2026-10-07 (Felipe): repetía Disponibilidad ▸ «Pedir a proveedor» + Proveedor.
+  // Una página que ya no existe (se descontinuó lo único que había en la 2, se volvió con «← Productos» a una página vieja):
+  // a la primera, con los mismos filtros. Sin esto la pantalla decía «0 productos», escondía la paginación y avisaba de
+  // descontinuadas aunque hubiera activas en la página 1.
+  if (resultado.productos.length === 0 && pagina > 1) {
+    const p = new URLSearchParams();
+    for (const [k, val] of Object.entries(params)) if (val && k !== "pagina") p.set(k, val);
+    redirect(p.size > 0 ? `/productos?${p.toString()}` : "/productos");
+  }
+
+  // Si la lista de activas sale vacía, cuántas descontinuadas sí calzan: ya lo trae el conteo de «Estado» (con los demás
+  // filtros puestos). Sin conteos, no se avisa.
+  const descontinuadas =
+    resultado.totalProductos === 0 && filtros.estado === "activo" ? (facetas?.facetas.estado?.descontinuado ?? 0) : 0;
+  const [existencias, preciosTiendas, catalogoSede, pisoSede, campanas] = await Promise.all([
     getExistenciasProductos(
       resultado.productos.map((p) => p.productoId),
       persona.ubicacionId
     ),
+    // «2 precios» (Felipe 2026-10-09): qué tiendas venden cada prenda a otro precio. Si no se puede leer, no hay insignia.
+    getPreciosDeLasTiendas(),
+    // «Combina bien con un jean o una cartera» en la vista rápida (Felipe 2026-10-10): el catálogo entero (la copia guardada que ya
+    // leen Vender y siete pantallas) y el piso cobrable de esta sede. Secundarios: si alguno falla, la hoja no dice la frase.
+    getCatalogo().catch(() => null),
+    getDisponibleEnSede(persona.ubicacionId).catch(() => null),
+    // Lo que cobra la caja HOY con su campaña (ADR-0472, Felipe 2026-10-21): la misma lectura que la etiqueta de papel. Si no responde,
+    // las tarjetas muestran el precio de lista, como antes de esto: la lista no se cae por una campaña.
+    campanasQueCobra(supabase, hoyLima(), resultado.productos.flatMap((p) => p.variantes.map((v) => v.varianteId))).catch(() => null),
   ]);
+  const campanasHoy = campanas ? Object.fromEntries(campanas) : undefined;
+  // «Combina bien con» tampoco sugiere una prenda de CLAURE fuera de Lima (ADR-0505).
+  const tarjetasLook = catalogoSede && pisoSede ? tarjetasDesdeVariantes(soloLasDeAqui(catalogoSede, empresasAqui), (id) => cantidadCobrable(pisoSede.get(id))) : [];
+  // El precio de cada prenda en CADA tienda (para «2 precios»: cuenta precios distintos, no tiendas), y el de la tienda elegida arriba
+  // para el precio grande de la tarjeta y la fila (Felipe 2026-10-10: en TRU, FAL-0008 decía S/ 79.90 y la caja cobraba 69.90). En
+  // CAYLA Global no hay tienda: el de la prenda.
+  const preciosTienda = preciosDeTiendaPorProducto(
+    resultado.productos.map((p) => {
+      const precios = variantesQueSeVenden(p.variantes).map((v) => v.precio).filter((n) => n > 0);
+      return {
+        productoId: p.productoId,
+        varianteIds: p.variantes.map((v) => v.varianteId),
+        preciosPrenda: precios.length > 0 ? { desde: Math.min(...precios), hasta: Math.max(...precios) } : null,
+      };
+    }),
+    preciosTiendas.porSede,
+    preciosTiendas.nombres,
+  );
+  const preciosAqui = enSede ? preciosTiendas.porSede[persona.ubicacionId] : undefined;
 
-  const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
-  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
+  const categoriasLeidas = exigir(categorias, "las categorías");
+  const categoriasOpciones = categoriasLeidas.map((c) => ({ id: c.id, nombre: c.nombre }));
+  // Cada producto lleva el prefijo y la familia de su categoría (de la misma lectura de arriba, sin otra consulta): de ahí sale el
+  // ícono de su miniatura cuando no tiene foto (ADR-0333). Una categoría desactivada no está en la lectura: esa prenda dibuja la percha.
+  const categoriaPorId = new Map(categoriasLeidas.map((c) => [c.id, c] as const));
+  // Y la insignia de su empresa donde conviven dos (ADR-0505): «CLAURE» en Lima y en Global; nada en Trujillo ni para CAYLA.
+  const productos = resultado.productos.map((p) => {
+    const c = p.categoriaId ? categoriaPorId.get(p.categoriaId) : undefined;
+    const empresa = insigniaDeEmpresa(p.empresaId, empresasAqui);
+    return { ...p, ...(c ? { categoriaPrefijo: c.prefijo, categoriaFamilia: c.familia } : {}), empresa };
+  });
+  const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex, familia: c.familia_color, tipo: c.tipo }));
+  const fichasDeColor: ColorConFicha[] = exigir(colores, "los colores").map((c) => ({
+    codigo: c.codigo,
+    nombre: c.nombre,
+    hex: c.hex,
+    familiaColor: c.familia_color ?? "",
+    tipo: c.tipo,
+    descripcion: c.descripcion ?? null,
+    combinaCon: c.combina_con ?? [],
+  }));
+  // En su orden de curva (S · M · L, 28 · 30 · 32), no alfabético (L, M, S).
+  const tallasOpciones = exigir(resTallas, "las tallas")
+    .map((t) => ({ id: t.id, nombre: t.valor }))
+    .sort((a, b) => compararTallas(a.nombre, b.nombre));
 
-  const botonVista = (v: "grilla" | "tabla", Icono: typeof LayoutGrid, texto: string) => (
-    <Link
-      href={hrefConVista(v)}
-      aria-current={vista === v ? "page" : undefined}
-      className={`label-cayla inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[10.5px] transition-colors ${
-        vista === v ? "bg-papel text-tinta shadow-sm" : "text-tinta/60 hover:text-tinta"
-      }`}
-    >
-      <Icono aria-hidden className="h-3.5 w-3.5" />
-      {texto}
-    </Link>
+  // El «!» con lo que la frase no alcanza a decir. En el celular va junto al título, porque ahí la frase se esconde (Felipe, 2026-10-09).
+  const ayudaProductos = (
+    <Ayuda titulo="Productos">
+      <span className="block">
+        Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
+      </span>
+      <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
+      <span className="mt-2 block">
+        El detalle por talla y sede está en{" "}
+        <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
+          Existencias
+        </Link>
+        .
+      </span>
+    </Ayuda>
   );
 
   return (
@@ -124,47 +237,94 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       {/* La cabecera de Ventas e Inventario (ADR-0220), pedida por Felipe para Productos el 2026-09-28 (ADR-0254). */}
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
-        titulo="Productos"
+        titulo={
+          <>
+            Productos
+            {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 36 px. */}
+            <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal sm:hidden">{ayudaProductos}</span>
+          </>
+        }
         subtitulo={
           // Una frase corta y el «!» con el resto (Felipe, 2026-09-29): el párrafo de cinco líneas de antes explicaba cada cifra
           // de la pantalla y nadie lo leía completo. Lo mismo hacen Marcas, Categorías y Atributos.
           <>
-            Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.
-            <Ayuda titulo="Productos">
-              <span className="block">
-                Aquí está todo el catálogo. Desde aquí creas una prenda nueva, corriges sus datos, la descontinúas o imprimes sus etiquetas.
-              </span>
-              <span className="mt-2 block">{EXPLICACION_STOCK_TOTAL}</span>
-              <span className="mt-2 block">
-                El detalle por talla y sede está en{" "}
-                <Link href="/inventario" className="underline underline-offset-2 hover:no-underline">
-                  Existencias
-                </Link>
-                .
-              </span>
-            </Ayuda>
+            {/* En el celular la frase se esconde (Felipe, 2026-10-09: las prendas primero) y el «!» sube junto al título. */}
+            <span className="max-sm:hidden">Cada prenda del catálogo con sus colores, tallas, precios y cuántas hay en tu sede.</span>
+            <span className="max-sm:hidden">{ayudaProductos}</span>
           </>
         }
         acciones={
           <>
-            <div className="flex gap-0.5 rounded-lg bg-sand p-0.5" role="group" aria-label="Cómo ver el catálogo">
-              {botonVista("grilla", LayoutGrid, "Grilla")}
-              {botonVista("tabla", Rows3, "Tabla")}
-            </div>
+            {/* Grilla o Tabla muestran el mismo catálogo de otra forma: el segmento de modo del sistema, con su icono y su
+                palabra (ADR-0358). */}
+            <SegmentoEnlaces
+              etiquetaAccesible="Cómo ver el catálogo"
+              activo={vista}
+              reemplazar={false}
+              guia="productos.vista"
+              opciones={[
+                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden />, guia: "productos.vista-grilla" },
+                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden />, guia: "productos.vista-tabla" },
+              ]}
+              soloIconoEnCelular
+            />
+            {/* Rótulos de anaquel (ADR-0366) a la vista sin marcar nada (Felipe, 2026-10-09: «no encuentro el botón»): abre su buscador
+                y «Volver» regresa a esta misma vista. Con prendas marcadas, la barra de abajo los lleva ya elegidos. */}
+            {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
+                palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
+            <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
+              <SignpostBig aria-hidden className="h-4 w-4" />
+              <span className="max-sm:sr-only">Rótulos</span>
+            </BotonEnlace>
             {editaCatalogo && (
-              <Link href="/productos/nuevo" className="btn-cayla btn-primario">
+              <BotonEnlace href="/productos/nuevo" peso="primario" data-guia="productos.nuevo">
                 + Nuevo producto
-              </Link>
+              </BotonEnlace>
             )}
           </>
         }
       />
 
 
+      {porRevisar !== null && porRevisar > 0 && (
+        // ADR-0371: una prenda que se creó en un conteo o desde el Taller espera que quien edita el catálogo la apruebe o la rechace. Vive
+        // aquí y no en la ficha: Felipe quitó el aviso de Editar producto el 2026-10-02 («no me sirve»). No es una tarjeta de cifra porque
+        // esta pantalla no tiene fila de cifras; es un aviso que desaparece solo cuando no queda nada.
+        <Aviso
+          guia="productos.por-revisar"
+          tono="atencion"
+          titulo={porRevisar === 1 ? "1 prenda por revisar" : `${porRevisar.toLocaleString("es-PE")} prendas por revisar`}
+          accion={
+            <Link href="/productos/por-revisar" className="btn-cayla btn-enlace text-[13px]">
+              Revisar
+            </Link>
+          }
+        >
+          La propusieron en un conteo o desde el Taller. Mientras tanto se pueden vender.
+        </Aviso>
+      )}
+
+      {recibidoPorCrear && recibidoPorCrear.porCrear > 0 && (
+        // ADR-0393 (decisión 4): lo que llegó y se contó como «nuevo» espera su ficha. Se crea desde Recibir («Crear ahora»), con las
+        // tallas y colores que llegaron: así la prenda nace con su stock contado.
+        <Aviso
+          guia="productos.por-crear"
+          tono="info"
+          titulo={recibidoPorCrear.porCrear === 1 ? "1 prenda recibida por crear" : `${recibidoPorCrear.porCrear.toLocaleString("es-PE")} prendas recibidas por crear`}
+          accion={
+            <Link href="/recibir" className="btn-cayla btn-enlace text-[13px]">
+              Crear desde Recibir
+            </Link>
+          }
+        >
+          Llegaron a {persona.ubicacionEtiqueta} y se contaron como nuevas: están en el almacén, pero no se pueden vender hasta crearlas.
+        </Aviso>
+      )}
+
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
         // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
-        <div className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <div data-guia="productos.sin-temporada" className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <details className="group min-w-0 flex-1">
             <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
               <strong>
@@ -184,47 +344,66 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      {reposicion.length > 0 && (
-        <AQuienPedirle
-          reposicion={reposicion}
-          proveedorId={params.stock === "reponer" ? params.proveedor : undefined}
-        />
-      )}
 
       <FiltrosProductos
         categorias={categoriasOpciones}
         colores={coloresOpciones}
+        tallas={tallasOpciones}
         marcas={exigir(resMarcas, "las marcas")}
         proveedores={exigir(resProveedores, "los proveedores")}
+        totalProductos={resultado.totalProductos}
+        limitesPrecio={limitesRedondeados(facetas?.precio ?? null)}
+        facetas={facetas}
+        panelInicial={panelFiltros}
+        sede={enSede ? persona.ubicacionEtiqueta : null}
+        temporadas={temporadas ? temporadas.lista.map((t) => ({ id: t.clave, nombre: t.nombre })) : null}
+        empresas={empresas}
+        // El tamaño de las tarjetas, al final de la fila del conteo (2026-10-09): en el celular era una fila más entre el orden y las
+        // prendas. Solo en la Grilla: la Tabla no tiene tarjetas. La `key` es porque `FiltrosProductos` lo dibuja entre hermanos y React
+        // pide key a un elemento que llega del servidor (aviso «unique key prop» en la consola, 2026-10-10).
+        junto={vista === "grilla" && resultado.totalProductos > 0 ? <SelectorTamanoGrilla key="tamano-grilla" inicial={tamanoGrilla} /> : null}
       />
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
       <div data-resultados className="space-y-6">
         {vista === "grilla" ? (
           <ProductosGrilla
-            productos={resultado.productos}
+            productos={productos}
             existencias={existencias}
             veExistencias={veModulo(persona, "existencias")}
+            veMovimientos={veModulo(persona, "movimientos")}
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
-            puedeEliminar={persona.rol === "lider"}
-            mensajeVacio={mensajeSinResultados(filtros)}
+            puedeEditar={editaCatalogo}
+            puedeEliminar={editaCatalogo}
+            mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
+            hrefLimpiar="/productos"
             tamanoInicial={tamanoGrilla}
+            preciosTienda={preciosTienda}
+            preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
+            colores={fichasDeColor}
+            tarjetasLook={tarjetasLook}
           />
         ) : (
           <ProductosTabla
-            productos={resultado.productos}
+            productos={productos}
             existencias={existencias}
             ubicacionId={persona.ubicacionId}
             sede={persona.ubicacionEtiqueta}
             puedeEditar={editaCatalogo}
             veExistencias={veModulo(persona, "existencias")}
-            puedeEliminar={persona.rol === "lider"}
+            puedeEliminar={editaCatalogo}
             veDinero={puede(persona, "verDineroCompras")}
-            mensajeVacio={mensajeSinResultados(filtros)}
+            mensajeVacio={mensajeSinResultados(filtros, { descontinuadas })}
+            hrefLimpiar="/productos?vista=tabla"
+            preciosTienda={preciosTienda}
+            preciosAqui={preciosAqui}
+            campanasHoy={campanasHoy}
           />
         )}
 
+        <div data-guia="productos.paginacion">
         <PaginacionPaginas
           pagina={resultado.pagina}
           totalPaginas={resultado.totalPaginas}
@@ -233,6 +412,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           pathname="/productos"
           sustantivo={["producto", "productos"]}
         />
+        </div>
       </div>
     </div>
   );

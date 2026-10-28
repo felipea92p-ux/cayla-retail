@@ -1,5 +1,9 @@
+import { Receipt, ChartColumn } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
-import { TarjetaIndicador } from "@/components/TarjetaIndicador";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
+import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { VentasPorHoraChart } from "@/components/CajaGraficos";
 import { soles } from "@/lib/compras-reglas";
 import type { ColaboradoraComercial, PanelComercial, SedeComercial } from "@/lib/comercial";
@@ -55,12 +59,10 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
   return (
     <div className="space-y-8">
       {/* ---------- Todo CAYLA ---------- */}
-      <section aria-labelledby="titulo-total" className="space-y-3">
-        <h2 id="titulo-total" className="label-cayla text-[11px] text-tinta/65">
-          Todas las tiendas
-        </h2>
+      <section aria-labelledby="titulo-total" className="space-y-3" data-guia="comercial.total">
+        <TituloSeccion id="titulo-total">Todas las tiendas</TituloSeccion>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Ventas de hoy"
             ayuda={
               <Ayuda titulo="Qué cuenta como venta">
@@ -77,7 +79,7 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
               </>
             }
           />
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Ventas de la semana"
             valor={soles(total.ventasSemana)}
             pie={
@@ -87,49 +89,50 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
               </>
             }
           />
-          <TarjetaIndicador
+          <TarjetaCifra
             etiqueta="Ventas del mes"
             ayuda={
               <Ayuda titulo="Ritmo del mes">
-                Compara lo vendido en los días ya cerrados del mes contra lo que prometían las metas diarias. No usa lo de
+                Compara lo vendido en los días ya cerrados del mes contra lo que prometía la meta de cada uno de esos días: la misma que ves en Caja e Inicio. No usa lo de
                 hoy: a las 11 am toda tienda va &quot;atrasada&quot; y una alarma que salta siempre deja de mirarse. La
                 proyección es lineal (promedio diario de los días cerrados × días del mes): una brújula, no una
                 predicción.
               </Ayuda>
             }
             valor={soles(total.ventasMes)}
-            critico={total.ritmo.estado === "bajo"}
-            alerta={
-              total.ritmo.estado === "sin_meta" && total.ritmo.proyeccion === null
-                ? "Ninguna tienda tiene meta diaria configurada."
-                : total.ritmo.ritmo !== null
-                  ? `${textoEstado(total.ritmo.estado)}: ${detalleRitmo(total.ritmo)}${
-                      total.tiendasConMeta < total.tiendas ? ` (${total.tiendasConMeta} de ${total.tiendas} tiendas con meta)` : ""
-                    }.`
-                  : textoEstado(total.ritmo.estado) + "."
-            }
+            tono={total.ritmo.estado === "bajo" ? "text-rojo" : undefined}
             pie={
               <>
                 {total.ticketsMes} {total.ticketsMes === 1 ? "ticket" : "tickets"}
+                {total.metaMes !== null && <span className="block">Meta del mes: {soles(total.metaMes)}</span>}
                 {total.ritmo.proyeccion !== null && <span className="block">Proyección al cierre: {soles(total.ritmo.proyeccion)}</span>}
                 {total.devueltoMes > 0 && <span className="block">Devuelto en el mes: {soles(total.devueltoMes)}</span>}
               </>
             }
-          />
-          <TarjetaIndicador
+          >
+            {total.ritmo.estado === "sin_meta" && total.ritmo.proyeccion === null
+              ? "Ninguna tienda tiene meta diaria configurada."
+              : total.ritmo.ritmo !== null
+                ? `${textoEstado(total.ritmo.estado)}: ${detalleRitmo(total.ritmo)}${
+                    total.tiendasConMeta < total.tiendas ? ` (${total.tiendasConMeta} de ${total.tiendas} tiendas con meta)` : ""
+                  }.`
+                : textoEstado(total.ritmo.estado) + "."}
+          </TarjetaCifra>
+          {/* Sin ventas en el mes no hay ticket: «sin dato», y la línea de abajo pasa a ser su motivo. */}
+          <TarjetaCifra
             etiqueta="Ticket promedio del mes"
-            valor={ticketMes === null ? "—" : soles(ticketMes)}
-            pie={upt === null ? "Aún no hay ventas este mes." : `${num1(upt)} unidades por ticket`}
-          />
+            valor={ticketMes === null ? null : soles(ticketMes)}
+            pie={ticketMes === null ? undefined : upt === null ? "Aún no hay ventas este mes." : `${num1(upt)} unidades por ticket`}
+          >
+            {ticketMes === null ? (upt === null ? "Aún no hay ventas este mes." : `${num1(upt)} unidades por ticket`) : undefined}
+          </TarjetaCifra>
         </div>
       </section>
 
       {/* ---------- Una tarjeta por tienda ---------- */}
-      <section aria-labelledby="titulo-tiendas" className="space-y-3">
+      <section aria-labelledby="titulo-tiendas" className="space-y-3" data-guia="comercial.tiendas">
         <div>
-          <h2 id="titulo-tiendas" className="label-cayla text-[11px] text-tinta/65">
-            Por tienda
-          </h2>
+          <TituloSeccion id="titulo-tiendas">Por tienda</TituloSeccion>
           <p className="mt-1 text-xs text-tinta/60">La tienda que más necesita atención, primero.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -140,11 +143,9 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       </section>
 
       {/* ---------- Ventas por hora, una por tienda ---------- */}
-      <section aria-labelledby="titulo-horas" className="space-y-3">
+      <section aria-labelledby="titulo-horas" className="space-y-3" data-guia="comercial.horas">
         <div>
-          <h2 id="titulo-horas" className="label-cayla text-[11px] text-tinta/65">
-            Ventas por hora, hoy
-          </h2>
+          <TituloSeccion id="titulo-horas">Ventas por hora, hoy</TituloSeccion>
           <p className="mt-1 text-xs text-tinta/60">Hora de Lima. Desde la primera venta del día hasta la hora actual.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -159,7 +160,11 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
                   {pico !== null && <span className="ml-2 text-xs font-normal text-tinta/60">Hora fuerte: {etiquetaHora(pico)}</span>}
                 </p>
                 {serie.length === 0 ? (
-                  <div className="card-cayla p-5 text-sm text-tinta/65">Aún no hay ventas hoy en {s.nombre}.</div>
+                  <div className="card-cayla">
+                    <Vacio tamano="chico" alinear="izquierda" className="px-5 py-4" icono={<ChartColumn />}>
+                      Aún no hay ventas hoy en {s.nombre}.
+                    </Vacio>
+                  </div>
                 ) : (
                   <VentasPorHoraChart datos={serie} horaActual={panel.horaActual} />
                 )}
@@ -170,11 +175,9 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
       </section>
 
       {/* ---------- Colaboradoras ---------- */}
-      <section aria-labelledby="titulo-colab" className="space-y-3">
+      <section aria-labelledby="titulo-colab" className="space-y-3" data-guia="comercial.colaboradoras">
         <div>
-          <h2 id="titulo-colab" className="label-cayla text-[11px] text-tinta/65">
-            Ventas por colaboradora, este mes
-          </h2>
+          <TituloSeccion id="titulo-colab">Ventas por colaboradora, este mes</TituloSeccion>
           <p className="mt-1 max-w-2xl text-xs text-tinta/60">
             El descuento va al lado a propósito: vender más regalando precio no es vender mejor. Es una foto de un mes, no
             una evaluación: una colaboradora que cubre menos turnos vende menos sin hacerlo peor.
@@ -191,8 +194,8 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
         </div>
       </section>
 
-      <details className="card-cayla p-4 text-xs text-tinta/75">
-        <summary className="cursor-pointer font-semibold text-tinta">Cómo se calcula todo esto</summary>
+      <details className="card-cayla p-4 text-xs text-tinta/75" data-guia="comercial.como-se-calcula">
+        <summary className="cursor-pointer font-semibold text-tinta" data-guia="comercial.como-abrir">Cómo se calcula todo esto</summary>
         <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed">
           <li>
             <strong>Venta:</strong> lo cobrado en el mostrador con IGV incluido, sin las ventas anuladas. La diferencia de un
@@ -207,7 +210,8 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
             las 7:30 pm de Lima cuenta como de hoy aunque en UTC ya sea mañana.
           </li>
           <li>
-            <strong>Ritmo y meta:</strong> la meta es una cifra por día por tienda. El semáforo mira los días cerrados del mes,
+            <strong>Ritmo y meta:</strong> la meta de cada día es la misma que ves en Caja e Inicio (cambia con el día de la semana, el mes,
+            las fechas especiales y las campañas), y la del mes es la suma de sus días. El semáforo mira los días cerrados del mes,
             no lo de hoy. Es &quot;bajo su ritmo&quot; por debajo del 85% de lo prometido y &quot;sobre su ritmo&quot; desde el
             100%; esos umbrales son provisionales.
           </li>
@@ -231,11 +235,10 @@ function TarjetaSede({ sede }: { sede: SedeComercial }) {
       : `${textoEstado(sede.ritmo.estado)}.`;
 
   return (
-    <TarjetaIndicador
+    <TarjetaCifra
       etiqueta={`${sede.nombre} · hoy`}
       valor={soles(sede.ventasHoy)}
-      critico={bajo}
-      alerta={alerta}
+      tono={bajo ? "text-rojo" : undefined}
       pie={
         <dl className="mt-1 space-y-0.5 tabular-nums">
           <Fila k="Tickets de hoy" v={`${sede.ticketsHoy} · ${sede.unidadesHoy} u.`} />
@@ -244,12 +247,15 @@ function TarjetaSede({ sede }: { sede: SedeComercial }) {
           )}
           <Fila k="Semana" v={`${soles(sede.ventasSemana)} · ${sede.ticketsSemana} tickets`} />
           <Fila k="Mes" v={`${soles(sede.ventasMes)} · ${sede.ticketsMes} tickets`} />
+          {sede.metaMes !== null && <Fila k="Meta del mes" v={soles(sede.metaMes)} />}
           {sede.ritmo.proyeccion !== null && <Fila k="Proyección al cierre" v={soles(sede.ritmo.proyeccion)} />}
           <Fila k="Ticket promedio (mes)" v={tk === null ? "—" : `${soles(tk)} · ${upt === null ? "—" : num1(upt)} u.`} />
           {sede.devueltoMes > 0 && <Fila k="Devuelto en el mes" v={soles(sede.devueltoMes)} />}
         </dl>
       }
-    />
+    >
+      {alerta}
+    </TarjetaCifra>
   );
 }
 
@@ -262,57 +268,49 @@ function Fila({ k, v }: { k: string; v: string }) {
   );
 }
 
+const PLANTILLA_COLABORADORAS = "grid-cols-[minmax(8rem,1.6fr)_5.5rem_6rem_4rem_6rem_5.5rem]";
+
 function TablaColaboradoras({ sede, filas }: { sede: SedeComercial; filas: ColaboradoraComercial[] }) {
   return (
-    <div className="card-cayla overflow-x-auto p-4">
-      <p className="text-sm font-semibold text-tinta">{sede.nombre}</p>
+    // La tabla del sistema (ADR-0358, ronda 7): el nombre de la tienda arriba, en su tarjeta.
+    <Tabla>
+      <p className="px-5 pt-4 pb-3 text-sm font-semibold text-tinta">{sede.nombre}</p>
       {filas.length === 0 ? (
-        <p className="mt-3 text-sm text-tinta/65">Sin ventas este mes.</p>
+        <Vacio tamano="chico" icono={<Receipt />}>
+          Sin ventas este mes.
+        </Vacio>
       ) : (
-        <table className="mt-3 w-full min-w-[26rem] text-xs tabular-nums">
-          <caption className="sr-only">Ventas por colaboradora en {sede.nombre}, este mes</caption>
-          <thead>
-            <tr className="border-b border-tinta/10 text-left text-tinta/60">
-              <th scope="col" className="py-1.5 pr-3 font-normal">
-                Colaboradora
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Hoy
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Mes
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Tickets
-              </th>
-              <th scope="col" className="px-2 py-1.5 text-right font-normal">
-                Ticket prom.
-              </th>
-              <th scope="col" className="py-1.5 pl-2 text-right font-normal">
-                Descuento
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-tinta/10">
-            {filas.map((c) => {
-              const tk = ticketPromedio(c.ventasMes, c.ticketsMes);
-              const d = descuentoPct(c.brutoMes, c.descuentoMes);
-              return (
-                <tr key={c.personaId ?? "sin-colaboradora"}>
-                  <th scope="row" className={`py-1.5 pr-3 text-left font-normal ${c.personaId === null ? "italic text-tinta/60" : "text-tinta"}`}>
-                    {c.nombre}
-                  </th>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta/85">{c.ventasHoy > 0 ? soles(c.ventasHoy) : "—"}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta">{soles(c.ventasMes)}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta/85">{c.ticketsMes}</td>
-                  <td className="whitespace-nowrap px-2 py-1.5 text-right text-tinta/85">{tk === null ? "—" : soles(tk)}</td>
-                  <td className="whitespace-nowrap py-1.5 pl-2 text-right text-tinta/85">{d === null ? "—" : pct(d)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div role="table" aria-label={`Ventas por colaboradora en ${sede.nombre}, este mes`} className="min-w-[26rem] divide-y divide-sand text-xs tabular-nums">
+          <Encabezado
+            siempre
+            plantilla={PLANTILLA_COLABORADORAS}
+            columnas={[
+              { titulo: "Colaboradora" },
+              { titulo: "Hoy", alinear: "der" },
+              { titulo: "Mes", alinear: "der" },
+              { titulo: "Tickets", alinear: "der" },
+              { titulo: "Ticket prom.", alinear: "der" },
+              { titulo: "Descuento", alinear: "der" },
+            ]}
+          />
+          {filas.map((c) => {
+            const tk = ticketPromedio(c.ventasMes, c.ticketsMes);
+            const d = descuentoPct(c.brutoMes, c.descuentoMes);
+            return (
+              <div key={c.personaId ?? "sin-colaboradora"} role="row" className={fila(PLANTILLA_COLABORADORAS)}>
+                <span role="rowheader" className={celda("izq", c.personaId === null ? "italic text-tinta/60" : "text-tinta")}>
+                  {c.nombre}
+                </span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{c.ventasHoy > 0 ? soles(c.ventasHoy) : "—"}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta")}>{soles(c.ventasMes)}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{c.ticketsMes}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{tk === null ? "—" : soles(tk)}</span>
+                <span role="cell" className={celda("der", "text-right text-tinta/85")}>{d === null ? "—" : pct(d)}</span>
+              </div>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </Tabla>
   );
 }

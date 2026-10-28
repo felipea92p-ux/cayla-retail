@@ -9,6 +9,11 @@ no se regenera (leería la base local y pisaría el de producción).
 tabla nueva `retail.codigos_descuento`, `apps/web/lib/error-escritura.ts`,
 `vender/page.tsx` (prop `esLider`), `PuntoDeVenta.tsx`, `PuntoDeVentaTicket.tsx`.
 
+> **Actualización 2026-10-01 (Felipe):** el código de descuento ya no se pide. `registrar_venta` dejó de exigirlo
+> (`20261002100000_descuento_sin_codigo.sql`) y la caja ya no muestra el campo: lo que frena un descuento a mano es el
+> argumento escrito pasado el 15 % y el costo de la prenda. La mitad del precio fijado por la base sigue vigente. Detalle:
+> ADR-0162, «Actualización 2026-10-01».
+
 ## Contexto
 
 Desde ADR-0044 la caja no edita el precio y los descuentos viajan como

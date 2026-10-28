@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   argumentosDeAjuste,
+  candidatasDeHallazgo,
+  faltantesDesdeJson,
+  resolverHallazgos,
+  textoFaltanteConteo,
+  textoHallazgoConExceso,
+  textoHallazgoSinResponder,
   armarVariantesAjuste,
   cargaInicialAlPiso,
   etiquetaCantidad,
@@ -10,6 +16,10 @@ import {
   MOTIVOS_AJUSTE,
   motivosAjusteDisponibles,
   NOTA_REPOSICION_CERRADA,
+  NOTA_MINIMA_ENCONTRE,
+  motivoPideNota,
+  notaSuficiente,
+  textoProblemaMotivo,
   reposicionCerrada,
   repartirLineasAjuste,
   textoPrendaNueva,
@@ -21,10 +31,15 @@ import {
   soloDeLaPrenda,
   stockEn,
   textoApartadoTalla,
-  textoBajoApartado,
-  textoCambioTalla,
-  textoNegativas,
   textoTotalAjuste,
+  textoQuedara,
+  textoProblemaTalla,
+  preguntaCantidades,
+  minimoDeAjuste,
+  textoTrasPaso,
+  limpiarTextoAjuste,
+  textoStockTalla,
+  detalleDeTalla,
   type FilaAjuste,
 } from "./ajuste-reglas";
 
@@ -92,9 +107,10 @@ describe("las líneas del ajuste: qué de lo escrito se guarda", () => {
     expect(lineasDeAjuste([s], { "1": "1.5" }, "piso", "diferencia")).toEqual([]);
   });
 
-  it("el negativo nombra las tallas y da los números de la primera", () => {
-    const negativas = lineasDeAjuste([s, m], { "1": "-5", "2": "-3" }, "piso", "diferencia");
-    expect(textoNegativas(negativas, "diferencia")).toBe("SKU-1, SKU-2: el ajuste dejaría el stock en negativo — hay 4 y se pide -5.");
+  it("el negativo se dice en la fila de la talla, con los números y sin códigos", () => {
+    const [ls, lm] = lineasDeAjuste([s, m], { "1": "-5", "2": "-3" }, "piso", "diferencia");
+    expect(textoProblemaTalla(ls, "diferencia")).toBe("Solo hay 4: no se pueden restar 5.");
+    expect(textoProblemaTalla(lm, "diferencia")).toBe("Solo hay 2: no se pueden restar 3.");
   });
 });
 
@@ -163,23 +179,24 @@ describe("«Conteo físico» pregunta cuántas hay, no cuánto cambia (Felipe, 2
   it("al contar, la talla muestra también la diferencia, que es lo que queda en Movimientos", () => {
     const [menos] = lineasDeAjuste([s], { "1": "3" }, "piso", "contado");
     const [mas] = lineasDeAjuste([s], { "1": "6" }, "piso", "contado");
-    expect(textoCambioTalla(menos, "contado")).toBe(" → 3 (−1)");
-    expect(textoCambioTalla(mas, "contado")).toBe(" → 6 (+2)");
-    expect(textoCambioTalla(menos, "diferencia")).toBe(" → 3");
-    expect(textoCambioTalla(undefined, "contado")).toBe("");
+    expect(textoQuedara(menos, "contado")).toBe("Quedará en 3 (−1)");
+    expect(textoQuedara(mas, "contado")).toBe("Quedará en 6 (+2)");
+    expect(textoQuedara(menos, "diferencia")).toBe("Quedará en 3");
+    expect(textoQuedara(undefined, "contado")).toBe("");
   });
 
   it("las apartadas se cuentan: siguen en la tienda y en el stock (ADR-0141)", () => {
     expect(textoApartadoTalla(1, "contado")).toBe(" · 1 apartada (cuéntala)");
     expect(textoApartadoTalla(2, "contado")).toBe(" · 2 apartadas (cuéntalas)");
     const [bajo] = lineasDeAjuste([m], { "2": "0" }, "piso", "contado");
-    expect(textoBajoApartado(bajo, "contado")).toBe(
-      "SKU-2: contaste 0 y hay 1 apartada para clientas. Las apartadas siguen en la tienda: cuéntalas también; si de verdad falta, libera ese apartado primero."
+    expect(textoProblemaTalla(bajo, "contado")).toBe(
+      "Contaste 0 y hay 1 apartada para clientes. Cuéntalas también; si de verdad falta, libera ese apartado primero."
     );
   });
 
   it("lo contado negativo se frena con su propio mensaje", () => {
-    expect(textoNegativas(lineasDeAjuste([s], { "1": "-1" }, "piso", "contado"), "contado")).toBe("SKU-1: lo contado no puede ser negativo.");
+    const [neg] = lineasDeAjuste([s], { "1": "-1" }, "piso", "contado");
+    expect(textoProblemaTalla(neg, "contado")).toBe("Lo contado no puede ser negativo.");
   });
 });
 
@@ -215,10 +232,9 @@ describe("lo apartado: la fila de Existencias muestra lo libre, el modal lo fís
     expect(textoApartadoTalla(0, "diferencia")).toBe("");
   });
 
-  it("el ajuste que deja menos que lo apartado se frena con el código de la etiqueta", () => {
-    expect(textoBajoApartado({ variante: { sku: "POL-0005-GRI-M" }, resultado: 0, apartado: 1 }, "diferencia")).toBe(
-      "POL-0005-GRI-M: quedarían 0 y hay 1 apartada para clientas. Libera o resuelve esos apartados primero."
-    );
+  it("el ajuste que deja menos que lo apartado se frena en la fila, sin el código de la etiqueta", () => {
+    const linea = { variante: {} as never, delta: -1, actual: 1, resultado: 0, apartado: 1 };
+    expect(textoProblemaTalla(linea, "diferencia")).toBe("Quedarían 0 y hay 1 apartada para clientes. Libera o resuelve esos apartados primero.");
   });
 
   it("sin la columna de apartados (filas viejas de las pruebas), cuenta 0", () => {
@@ -363,17 +379,19 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
     expect(reposicionCerrada("piso", false)).toBe(false);
   });
 
-  it("la nota nombra los dos caminos que sí sacan del almacén y el motivo para lo encontrado de más", () => {
-    expect(NOTA_REPOSICION_CERRADA).toContain("«Bajar al piso»");
+  it("la nota nombra los dos caminos que mueven prendas entre piso y almacén y el motivo para lo encontrado de más", () => {
     expect(NOTA_REPOSICION_CERRADA).toContain("«Reponer»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Subir a almacén»");
     expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
   });
 
-  it("y el camino de vuelta: guardar prendas del piso en el almacén es «Retirar del piso», y dice dónde está", () => {
+  it("y el camino de vuelta es «Subir a almacén», en Existencias, y no manda a un módulo que no existe; ya no manda al menú «⋯» que no existe", () => {
     // Sin esta frase, quien quiere guardar entra a Ajustar y arma a mano «Otro» −N en el piso y «Reposición» +N en el
     // almacén: un retiro sin rastro ni nota (revisión del bloque 2 de ADR-0208).
-    expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «⋯» ▸ «Retirar del piso».");
-    expect(NOTA_REPOSICION_CERRADA).toContain("Todo en Existencias");
+    expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «Subir a almacén».");
+    expect(NOTA_REPOSICION_CERRADA).toContain("en Existencias");
+    expect(NOTA_REPOSICION_CERRADA).not.toContain("Bajada al piso"); // ADR-0306: ya no es un módulo
+    expect(NOTA_REPOSICION_CERRADA).not.toContain("Retirar del piso");
     // Corta a propósito: la nota ocupa su lugar aunque esté invisible en «Almacén» (ADR-0185).
     expect(NOTA_REPOSICION_CERRADA.length).toBeLessThan(260);
   });
@@ -455,12 +473,258 @@ describe("«Ajustar» de una vez, con marca (ADR-0240)", () => {
   });
 
   it("lee la respuesta de la base, y no inventa nada si no calza", () => {
-    expect(leerResultadoAjuste({ ajustes: 2, cargas: 0, unidades_cargadas: 0, ya_registrado: false })).toEqual({ ajustes: 2, cargas: 0, ya_registrado: false });
+    expect(leerResultadoAjuste({ ajustes: 2, cargas: 0, unidades_cargadas: 0, ya_registrado: false })).toEqual({ ajustes: 2, cargas: 0, enlazados: 0, ya_registrado: false });
     expect(leerResultadoAjuste({ ajustes: "2" })).toBeNull();
     expect(leerResultadoAjuste(null)).toBeNull();
   });
 
   it("el mensaje de respuesta incierta manda a reenviar lo mismo, no a rehacer", () => {
     expect(TEXTO_AJUSTE_INCIERTO).toMatch(/no se repite/);
+  });
+});
+
+
+describe("la prenda que faltó en un conteo y apareció (ADR-0291)", () => {
+  const fila = (p: Record<string, unknown> = {}) => ({
+    variante_id: "v1",
+    conteo_item_id: "item-13",
+    conteo_id: "c13",
+    conteo_numero: 13,
+    cerrado_en: "2026-09-30T14:31:00+00:00",
+    faltaron: 1,
+    encontradas: 0,
+    pendientes: 1,
+    ...p,
+  });
+  const linea = (varianteId: string, delta: number) => ({ variante: { varianteId }, delta });
+
+  it("lee lo que devuelve la base y se queda con UN faltante por prenda: el del conteo más reciente (llegan más recientes primero)", () => {
+    const m = faltantesDesdeJson([fila(), fila({ conteo_item_id: "item-9", conteo_numero: 9 }), fila({ variante_id: "v2", conteo_item_id: "item-x", conteo_numero: 5 })]);
+    expect(m.size).toBe(2);
+    expect(m.get("v1")).toMatchObject({ conteoItemId: "item-13", conteoNumero: 13, faltaron: 1, pendientes: 1 });
+    expect(m.get("v2")?.conteoNumero).toBe(5);
+  });
+
+  it("una respuesta rota, vacía o sin pendientes no pregunta nada (el ajuste sigue como cualquier otro)", () => {
+    expect(faltantesDesdeJson(null).size).toBe(0);
+    expect(faltantesDesdeJson({}).size).toBe(0);
+    expect(faltantesDesdeJson([fila({ conteo_numero: "13" })]).size).toBe(0);
+    expect(faltantesDesdeJson([fila({ pendientes: 0 })]).size).toBe(0);
+    expect(faltantesDesdeJson([null, 3, "x"]).size).toBe(0);
+  });
+
+  it("solo pregunta a las líneas que SUMAN una prenda con falta: una resta o una prenda sin falta no preguntan", () => {
+    const faltantes = faltantesDesdeJson([fila()]);
+    const c = candidatasDeHallazgo([linea("v1", 1), linea("v1b", 1)], faltantes);
+    expect(c.map((x) => x.linea.variante.varianteId)).toEqual(["v1"]);
+    expect(candidatasDeHallazgo([linea("v1", -1)], faltantes)).toHaveLength(0);
+    expect(candidatasDeHallazgo([linea("v1", 1)], new Map())).toHaveLength(0);
+  });
+
+  it("«Sí» enlaza a la línea del conteo; «No» no enlaza; sin responder queda pendiente de responder", () => {
+    const faltantes = faltantesDesdeJson([fila(), fila({ variante_id: "v2", conteo_item_id: "item-v2" }), fila({ variante_id: "v3", conteo_item_id: "item-v3" })]);
+    const c = candidatasDeHallazgo([linea("v1", 1), linea("v2", 1), linea("v3", 1)], faltantes);
+    const r = resolverHallazgos(c, { v1: "si", v2: "no" });
+    expect([...r.enlaces]).toEqual([["v1", "item-13"]]);
+    expect(r.sinResponder.map((x) => x.linea.variante.varianteId)).toEqual(["v3"]);
+    expect(r.conExceso).toHaveLength(0);
+  });
+
+  it("enlazar más de lo que faltó no se deja: dice cuánto se puede", () => {
+    const faltantes = faltantesDesdeJson([fila({ faltaron: 2, encontradas: 1, pendientes: 1 })]);
+    const c = candidatasDeHallazgo([linea("v1", 2)], faltantes);
+    const r = resolverHallazgos(c, { v1: "si" });
+    expect(r.enlaces.size).toBe(0);
+    expect(r.conExceso).toHaveLength(1);
+    expect(textoHallazgoConExceso("Camisa Lara Gris / Estándar", c[0].faltante)).toBe(
+      "En el Conteo 13 solo faltaron 1 de Camisa Lara Gris / Estándar: suma 1 para enlazarla y registra el resto en otro ajuste."
+    );
+    // «No, es otra cosa» sí deja sumar lo que sea.
+    expect(resolverHallazgos(c, { v1: "no" }).conExceso).toHaveLength(0);
+  });
+
+  it("los textos: el faltante dice el conteo y la fecha; el aviso nombra la prenda", () => {
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "2026-09-30T14:31:00+00:00", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13 (30/09).");
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: null, faltaron: 3, encontradas: 1, pendientes: 2 })).toBe("Faltó 3 en el Conteo 13. Ya se encontró 1: quedan 2 por encontrar.");
+    expect(textoHallazgoSinResponder("Gris antracita / Estándar", { conteoNumero: 13 })).toBe("Indica si Gris antracita / Estándar es la prenda que faltó en el Conteo 13.");
+  });
+
+  it("el día del faltante es el de Lima en que se cerró el conteo, no el de UTC", () => {
+    // `cerrado_en` llega en UTC: 2026-10-01 01:00 UTC son las 20:00 del 30 de septiembre en Lima. Con el corte de UTC decía «(01/10)».
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "2026-10-01T01:00:00.123456+00:00", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13 (30/09).");
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "2026-10-01T05:00:00+00:00", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13 (01/10)."); // 00:00 en Lima
+    expect(textoFaltanteConteo({ conteoNumero: 13, cerradoEn: "ayer", faltaron: 1, encontradas: 0, pendientes: 1 })).toBe("Faltó 1 en el Conteo 13.");
+  });
+
+  it("al enviar, el enlace viaja solo en la línea enlazada; sin enlaces el envío es idéntico al de siempre", () => {
+    const base = { ubicacionId: "u", sububicacionId: null, cargaInicial: [], motivo: "otro", alPiso: false, nota: "", token: "t" };
+    const con = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: 1, conteoItemId: "item-13" }, { variante: { varianteId: "v2" }, delta: 2 }] });
+    expect(con.p_ajustes).toEqual([{ variante_id: "v1", cantidad: 1, conteo_item_id: "item-13" }, { variante_id: "v2", cantidad: 2 }]);
+    const sin = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: 1, conteoItemId: null }] });
+    expect(sin.p_ajustes).toEqual([{ variante_id: "v1", cantidad: 1 }]);
+  });
+
+  it("lo que había al contar (ADR-0494) viaja solo en la línea que lo trae, también cuando es 0", () => {
+    const base = { ubicacionId: "u", sububicacionId: "alm", cargaInicial: [], motivo: "conteo_fisico", alPiso: false, nota: "", token: "t" };
+    const r = argumentosDeAjuste({ ...base, ajustes: [{ variante: { varianteId: "v1" }, delta: -1, esperado: 6 }, { variante: { varianteId: "v2" }, delta: 2, esperado: 0 }, { variante: { varianteId: "v3" }, delta: 1 }] });
+    expect(r.p_ajustes).toEqual([
+      { variante_id: "v1", cantidad: -1, esperado: 6 },
+      { variante_id: "v2", cantidad: 2, esperado: 0 },
+      { variante_id: "v3", cantidad: 1 },
+    ]);
+  });
+
+  it("el aviso de éxito cuenta lo enlazado", () => {
+    expect(textoExitoAjuste({ ajustes: 1, cargas: 0, enlazados: 1 })).toBe("1 variante ajustada · 1 enlazada al conteo donde faltaba");
+    expect(leerResultadoAjuste({ ajustes: 1, cargas: 0, enlazados: 1, ya_registrado: false })?.enlazados).toBe(1);
+  });
+});
+
+describe("las filas del modal, en voz de tienda y sin códigos (Felipe, 2026-10-01)", () => {
+  const [s, m, l] = armarVariantesAjuste(
+    [
+      fila("1", "S", { stock: [{ cantidad: 2, cantidad_apartada: 0, sububicacion_id: ALMACEN }] }),
+      fila("2", "M", { stock: [{ cantidad: 5, cantidad_apartada: 2, sububicacion_id: ALMACEN }] }),
+      fila("3", "L"), // nunca estuvo en la tienda
+    ],
+    PISO,
+    ALMACEN
+  );
+
+  it("la pregunta sobre las tallas cambia con el motivo y, al contar, nombra el lugar", () => {
+    expect(preguntaCantidades("diferencia", "almacen")).toBe("¿Cuántas sumas o restas de cada talla?");
+    expect(preguntaCantidades("contado", "piso")).toBe("¿Cuántas contaste en el piso de cada talla?");
+    expect(preguntaCantidades("contado", "almacen")).toBe("¿Cuántas contaste en el almacén de cada talla?");
+    expect(preguntaCantidades("contado", "sede")).toBe("¿Cuántas contaste de cada talla?");
+  });
+
+  it("la primera línea dice cuánto hay en el lugar; con varios colores a la vez, el color va delante", () => {
+    expect(textoStockTalla(s, "almacen", false)).toBe("2 en el almacén");
+    expect(textoStockTalla(l, "almacen", false)).toBe("Nada en el almacén");
+    expect(textoStockTalla(s, "piso", false)).toBe("Nada en el piso");
+    expect(textoStockTalla({ ...s, color: "Blanco" }, "sede", true)).toBe("Blanco · 2 en la sede");
+    expect(textoStockTalla({ ...s, color: null }, "almacen", true)).toBe("2 en el almacén");
+  });
+
+  it("el tope de los botones «−»: no baja del stock libre, ni de lo apartado al contar, ni de cero en una prenda nueva", () => {
+    expect(minimoDeAjuste(s, "almacen", "diferencia")).toBe(-2);
+    expect(minimoDeAjuste(m, "almacen", "diferencia")).toBe(-3); // 5 en el almacén, 2 apartadas: se pueden restar 3
+    expect(minimoDeAjuste(m, "almacen", "contado")).toBe(2);
+    expect(minimoDeAjuste(s, "almacen", "contado")).toBe(0);
+    expect(minimoDeAjuste(l, "almacen", "diferencia")).toBe(0);
+    expect(minimoDeAjuste(l, "almacen", "contado")).toBe(0);
+  });
+
+  it("«+» y «−» al sumar o restar: parten de cero, vuelven a vacío en cero y se detienen en el tope", () => {
+    expect(textoTrasPaso("", 1, "diferencia", 2, -2)).toBe("1");
+    expect(textoTrasPaso("1", -1, "diferencia", 2, -2)).toBe(""); // volver a 0 deja la talla sin ajuste
+    expect(textoTrasPaso("", -1, "diferencia", 2, -2)).toBe("-1");
+    expect(textoTrasPaso("-2", -1, "diferencia", 2, -2)).toBeNull();
+    expect(textoTrasPaso("-", 1, "diferencia", 2, -2)).toBe("1"); // un «−» a medio escribir no es un número
+  });
+
+  it("«+» y «−» al contar: el primer toque parte de lo que dice el sistema, y no baja de lo apartado", () => {
+    expect(textoTrasPaso("", 1, "contado", 5, 2)).toBe("6");
+    expect(textoTrasPaso("", -1, "contado", 5, 2)).toBe("4");
+    expect(textoTrasPaso("2", -1, "contado", 5, 2)).toBeNull();
+    expect(textoTrasPaso("0", 1, "contado", 5, 0)).toBe("1");
+  });
+
+  it("al teclear: al contar solo dígitos; al sumar o restar, un «−» al comienzo y dígitos", () => {
+    expect(limpiarTextoAjuste("a4b", "contado")).toBe("4");
+    expect(limpiarTextoAjuste("-4", "contado")).toBe("4");
+    expect(limpiarTextoAjuste("-12", "diferencia")).toBe("-12");
+    expect(limpiarTextoAjuste("−3", "diferencia")).toBe("-3"); // el menos tipográfico que escribe un teclado en español
+    expect(limpiarTextoAjuste("+2", "diferencia")).toBe("2");
+    expect(limpiarTextoAjuste("1-2", "diferencia")).toBe("12");
+    expect(limpiarTextoAjuste("-", "diferencia")).toBe("-");
+  });
+
+  it("la segunda línea junta cómo queda, lo apartado y, en una prenda nueva, dónde entra; sin nada que decir, queda vacía", () => {
+    const base = { ubicado: "almacen", separaPisoAlmacen: true, puedeBajarAlPiso: true, lugar: "almacen" } as const;
+    const [linea] = lineasDeAjuste([m], { "2": "-1" }, "almacen", "diferencia");
+    expect(detalleDeTalla({ ...base, variante: m, linea, texto: "-1", modo: "diferencia" })).toBe("Quedará en 4 · 2 apartadas");
+    expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "", modo: "diferencia" })).toBe("");
+    expect(detalleDeTalla({ ...base, variante: l, linea: undefined, texto: "", modo: "diferencia" })).toBe("Nueva en esta tienda · entra como stock inicial");
+  });
+
+  it("al contar lo mismo que dice el sistema, la talla dice que coincide (y no queda como «no la conté»)", () => {
+    const base = { ubicado: "almacen", separaPisoAlmacen: true, puedeBajarAlPiso: true, lugar: "almacen" } as const;
+    expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "2", modo: "contado" })).toBe("Coincide con el sistema");
+    expect(detalleDeTalla({ ...base, variante: s, linea: undefined, texto: "", modo: "contado" })).toBe("");
+  });
+});
+
+describe("«Encontré prendas» y la carga inicial cerrada (ADR-0328, actividad 4)", () => {
+  const nueva = { sinHistoria: true };
+  const conHistoria = { sinHistoria: false };
+
+  it("«Reposición» se llama «Encontré prendas»; el código del motivo no cambia (la historia de Movimientos tampoco)", () => {
+    expect(MOTIVOS_AJUSTE.find((m) => m.valor === "reposicion")?.texto).toBe("Encontré prendas");
+    expect(MOTIVOS_AJUSTE.map((m) => m.texto)).not.toContain("Reposición");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Encontré prendas» se registra en el almacén");
+  });
+
+  it("pide una nota de 3 letras o más, y solo «Encontré prendas» (la misma regla que la base)", () => {
+    expect(motivoPideNota("reposicion")).toBe(true);
+    for (const m of ["", "merma", "conteo_fisico", "otro"] as const) {
+      expect(motivoPideNota(m)).toBe(false);
+      expect(notaSuficiente(m, "")).toBe(true);
+    }
+    expect(notaSuficiente("reposicion", "")).toBe(false);
+    expect(notaSuficiente("reposicion", "  ab  ")).toBe(false);
+    expect(notaSuficiente("reposicion", "en una caja")).toBe(true);
+    expect(NOTA_MINIMA_ENCONTRE).toBe(3);
+  });
+
+  it("solo suma: restar con «Encontré prendas» se dice en la talla, y su «−» no baja de lo que hay", () => {
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: -1 }, "reposicion", true)).toMatch(/solo suma/);
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 2 }, "reposicion", true)).toBeNull();
+    const s = armarVariantesAjuste([fila("1", "S", { stock: [{ cantidad: 4, sububicacion_id: ALMACEN }] })], PISO, ALMACEN)[0]!;
+    expect(minimoDeAjuste(s, "almacen", "diferencia", "reposicion")).toBe(0);
+    expect(minimoDeAjuste(s, "almacen", "diferencia", "merma")).toBe(-4);
+  });
+
+  it("con la carga ABIERTA, lo nuevo en la tienda sigue entrando como stock inicial", () => {
+    const { ajustes, cargaInicial } = repartirLineasAjuste([{ variante: nueva, delta: 3 }, { variante: conHistoria, delta: 1 }], true);
+    expect(cargaInicial.map((l) => l.delta)).toEqual([3]);
+    expect(ajustes.map((l) => l.delta)).toEqual([1]);
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "conteo_fisico", true)).toBeNull();
+  });
+
+  it("con la carga CERRADA no hay stock inicial: todo es ajuste, y lo nuevo entra solo con «Encontré prendas»", () => {
+    const { ajustes, cargaInicial } = repartirLineasAjuste([{ variante: nueva, delta: 3 }, { variante: conHistoria, delta: 1 }], false);
+    expect(cargaInicial).toEqual([]);
+    expect(ajustes.map((l) => l.delta)).toEqual([3, 1]);
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "conteo_fisico", false)).toMatch(/elige «Encontré prendas»/);
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "reposicion", false)).toBeNull();
+    // Sin motivo todavía no se marca la talla: la guía pide primero el motivo.
+    expect(textoProblemaMotivo({ variante: nueva, delta: 3 }, "", false)).toBeNull();
+    // Una prenda con historia no depende de la carga inicial.
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 1 }, "merma", false)).toBeNull();
+  });
+
+  it("la fila de una prenda nueva dice por dónde entra, abierta o cerrada", () => {
+    expect(textoPrendaNueva("almacen", true, true, true)).toBe("Nueva en esta tienda · entra como stock inicial");
+    expect(textoPrendaNueva("almacen", true, true, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»");
+    // Revisión adversarial: en el PISO de una tienda que separa piso y almacén «Encontré prendas» no se ofrece; la salida es el almacén.
+    for (const puede of [true, false]) {
+      expect(textoPrendaNueva("piso", true, puede, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra por el almacén con «Encontré prendas»");
+    }
+    // Una tienda sin piso separado no tiene «piso cerrado»: la frase es la de siempre.
+    expect(textoPrendaNueva("piso", false, true, false)).toBe("Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»");
+  });
+
+  it("en el piso cerrado, el problema de la talla manda al almacén, no a un motivo que ahí no está", () => {
+    for (const m of ["merma", "conteo_fisico", "otro"] as const) {
+      expect(motivosAjusteDisponibles("piso", true).some((x) => x.valor === "reposicion")).toBe(false);
+      expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, m, false, true)).toBe(
+        "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, anótala en el almacén con «Encontré prendas»."
+      );
+      expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, m, false, false)).toMatch(/elige «Encontré prendas»\.$/);
+    }
+    // Abierta, o con historia, el piso no cambia nada.
+    expect(textoProblemaMotivo({ variante: nueva, delta: 2 }, "merma", true, true)).toBeNull();
+    expect(textoProblemaMotivo({ variante: conHistoria, delta: 2 }, "merma", false, true)).toBeNull();
   });
 });

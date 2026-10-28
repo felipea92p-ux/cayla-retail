@@ -1,7 +1,19 @@
 "use client";
 
+import { DismissableLayer } from "radix-ui/internal";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  conVisto,
+  duracionDe,
+  ejeDelAviso,
+  opacidadDelAviso,
+  posicionDelAviso,
+  retirarLoVisto,
+  salidaDelAviso,
+  type TonoAviso,
+} from "@/lib/avisos-reglas";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
+import { velocidad, type Muestra } from "@/lib/hoja-gesto";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -50,15 +62,38 @@ import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
      Un `proceso` («Guardando…») cierra el mismo ciclo: mientras el loader
      cubre la pantalla no se ve (el loader ya dice que se está trabajando), y
      lo que se ve al terminar es su éxito o su error.
+   · Lo que ya se vio no vuelve (2026-10-14, ADR-0146 act.): si la pantalla se
+     ocupa de nuevo mientras un aviso está a la vista, ese aviso se retira en
+     vez de volver con el reloj desde cero. La persona ya lo leyó y pasó a lo
+     siguiente; y su «Deshacer» ya sería viejo (en Producción, «Traer de
+     vuelta» + «Enviar a maquila» dejaban dos Deshacer, y el primero volvía a
+     aplicar una etapa vieja). «Visto» = su reloj empezó a correr a la vista
+     (`onAnimationStart` del anillo, a los 520 ms de la entrada: antes de eso
+     es un parpadeo, no una lectura, y el aviso espera como si no se hubiera
+     mostrado). Un proceso nunca se retira. La regla es pura:
+     lib/avisos-reglas.ts.
+   · Un aviso con botón («Deshacer») dura 7 s como mínimo (`duracionDe`), y
+     el reloj cuenta desde que se ve: hay que leer y decidir.
+   · Un clic en un aviso NO es «clic afuera» de la hoja o el cajón abierto:
+     la pila es rama (`DismissableLayer.Branch`) de toda capa de Radix. Antes,
+     con un cajón abierto (`body` con `pointer-events: none`), el pointerdown
+     sobre «Deshacer» cerraba el cajón y el Deshacer no corría. Lo vigila
+     lib/hojas-avisos.test.ts (también que `radix-ui/internal` y
+     `@radix-ui/react-dialog` compartan la misma copia de la capa).
    · Un módulo, no un contexto: el estado vive fuera de React
      (`useSyncExternalStore`), así sobrevive a la navegación —
      registras, `router.push` al detalle, y el aviso sigue ahí. Se monta
      una vez en el layout raíz.
    · Lo que es de un campo puntual ("Supera el saldo" bajo el monto)
      NO pasa por acá: eso es el campo hablando, no una notificación.
+   · En el celular (ADR-0479, actividad 8) no hay mouse que pause ni ✕ que
+     aparezca al pasar por encima: el ✕ está siempre a la vista, el aviso se
+     aparta con el dedo de lado o hacia arriba (como una notificación) y,
+     mientras el dedo lo toca, su reloj se detiene. La pila queda bajo la
+     isla del iPhone (`env(safe-area-inset-top)`). Reglas: lib/avisos-reglas.ts.
    ==================================================================== */
 
-export type TonoAviso = "exito" | "error" | "aviso" | "proceso";
+export type { TonoAviso };
 export type AccionAviso = { texto: string; onClick: () => void };
 export type Aviso = {
   id: number;
@@ -73,9 +108,10 @@ export type Aviso = {
   version: number;
   /** Se transformó desde un proceso que llegó al 100 %: el anillo ya está completo y no se redibuja. */
   continua: boolean;
+  /** Su reloj empezó a correr a la vista: si la pantalla se ocupa de nuevo, ya no vuelve (lib/avisos-reglas.ts). */
+  visto: boolean;
 };
 
-const DURACION: Record<TonoAviso, number | null> = { exito: 4000, aviso: 6000, error: 8000, proceso: null };
 const MAX_AVISOS = 4;
 
 let avisos: Aviso[] = [];
@@ -114,7 +150,7 @@ function abrir(tono: TonoAviso, texto: string, opciones?: Opciones): number {
   // El mismo texto dos veces seguidas (doble clic en "Registrar") no se apila.
   avisos = [
     ...avisos.filter((a) => !(a.tono === tono && a.texto === texto)),
-    { id, tono, texto, detalle: opciones?.detalle, accion: opciones?.accion, duracion: opciones?.duracion, version: 0, continua: false },
+    { id, tono, texto, detalle: opciones?.detalle, accion: opciones?.accion, duracion: opciones?.duracion, version: 0, continua: false, visto: false },
   ];
   // Tope: se va el más viejo que no sea un error sin leer ni un proceso en marcha.
   while (avisos.length > MAX_AVISOS) {
@@ -146,6 +182,8 @@ function transformar(id: number, tono: TonoAviso, texto: string, opciones?: Opci
           duracion: opciones?.duracion,
           version: a.version + 1,
           continua: a.tono === "proceso" && (a.progreso ?? 0) >= 0.99,
+          // El contenido se vuelve a montar (key = version) y su reloj arranca a la vista: se vuelve a «ver».
+          visto: false,
         }
       : a,
   );
@@ -155,6 +193,22 @@ function transformar(id: number, tono: TonoAviso, texto: string, opciones?: Opci
 
 function conProgreso(id: number, fraccion: number, detalle?: string) {
   avisos = avisos.map((a) => (a.id === id && a.tono === "proceso" ? { ...a, progreso: Math.min(1, Math.max(0, fraccion)), detalle: detalle ?? a.detalle } : a));
+  emitir();
+}
+
+/** La tarjeta terminó su entrada y su reloj empezó a correr a la vista (lo llama `Tarjeta`). */
+function marcarVisto(id: number) {
+  const nueva = conVisto(avisos, id);
+  if (nueva === avisos) return;
+  avisos = nueva as Aviso[];
+  emitir();
+}
+
+/** La pantalla se ocupó (ADR-0149): lo que ya se vio se retira; lo que no, espera (lo llama `Avisos`). */
+function alOcuparse() {
+  const nueva = retirarLoVisto(avisos);
+  if (nueva === avisos) return;
+  avisos = nueva as Aviso[];
   emitir();
 }
 
@@ -203,7 +257,9 @@ export const avisar = {
   /** `accion` en un error: el siguiente paso cuando el error tiene uno claro (ADR-0193: «Recargar» cuando otra persona
    *  cambió la ficha mientras se editaba). */
   error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => abrir("error", texto, opciones),
-  aviso: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("aviso", texto, opciones),
+  /** `accion` en una advertencia: el camino para seguir sin salir de la pantalla (ADR-0321: en Vender, «Agregar y registrar
+   *  la bajada» de una prenda que no figura en el piso). Con un botón conviene `duracion` más larga: hay que leer y decidir. */
+  aviso: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso; duracion?: number }) => abrir("aviso", texto, opciones),
   /** Devuelve una función que lo cierra; además `.progreso()`, `.exito()` y `.error()` lo transforman. */
   proceso: (texto: string, opciones?: { detalle?: string }): FinProceso => {
     const id = abrir("proceso", texto, opciones);
@@ -225,6 +281,10 @@ export function Avisos() {
   // no se ocultan) y los avisos siguen en el estado. Al quedar libre se montan de nuevo: la entrada y el reloj arrancan
   // ahí, no bajo el loader. El contenedor `aria-live` sigue montado para que el lector anuncie la tarjeta al aparecer.
   const lista = ocupada ? SIN_AVISOS : guardados;
+  // En el instante en que la pantalla se ocupa (antes de que React vuelva a pintar), lo que ya se vio se retira: así
+  // al liberarse no resucita con el reloj desde cero ni ofrece un «Deshacer» viejo (lib/avisos-reglas.ts). Va en el
+  // oyente, no en un efecto: un efecto corre después del render que ya mostraría la tarjeta vieja un instante.
+  useEffect(() => suscribirEspera(() => esperaOcupada() && alOcuparse()), []);
   useEffect(() => {
     if (ocupada || !enfoquePendiente) return;
     const objetivo = enfoquePendiente;
@@ -233,8 +293,15 @@ export function Avisos() {
   }, [ocupada]);
   // Con 3 o más se ofrece limpiar; un proceso en marcha no se cancela desde acá.
   const cerrables = lista.filter((a) => a.tono !== "proceso");
+  // `DismissableLayer.Branch`: para toda hoja o cajón de Radix abierto, un clic aquí está DENTRO de la hoja (no la
+  // cierra). Es la misma capa que usa `@radix-ui/react-dialog` (lo vigila lib/hojas-avisos.test.ts); dibuja un <div>.
   return (
-    <div aria-live="polite" aria-relevant="additions" className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+    <DismissableLayer.Branch
+      data-avisos
+      aria-live="polite"
+      aria-relevant="additions"
+      className="pointer-events-none fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
+    >
       {lista.length >= 3 && (
         <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-[11px]">
           Cerrar todos
@@ -243,7 +310,7 @@ export function Avisos() {
       {lista.map((a) => (
         <Tarjeta key={a.id} aviso={a} />
       ))}
-    </div>
+    </DismissableLayer.Branch>
   );
 }
 
@@ -270,6 +337,94 @@ function Glifo({ tono }: { tono: TonoAviso }) {
   );
 }
 
+/**
+ * Apartar el aviso con el dedo (ADR-0479, actividad 8): de lado o hacia arriba, como una notificación del celular. Solo
+ * toque y lápiz; con el mouse siguen el ✕ y la pausa al pasar por encima. Mientras el dedo la toca, el reloj se detiene
+ * (`data-tocando`, avisos.css). La posición va en línea con `important`: la entrada (`cayla-aviso-entra … both`) y la
+ * salida son animaciones, y una animación le gana a un estilo en línea normal. Reglas puras: lib/avisos-reglas.ts.
+ */
+function useApartarConElDedo(ref: React.RefObject<HTMLDivElement | null>, apartar: () => void) {
+  const alApartar = useRef(apartar);
+  useEffect(() => {
+    alApartar.current = apartar;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let gesto: { id: number; x0: number; y0: number; eje: "x" | "y" | null; muestras: Muestra[] } | null = null;
+    let arrastro = false;
+    let devolver = 0;
+    const pintar = (x: number, y: number, opacidad: number, ms = 0) => {
+      el.style.setProperty("transition", ms ? `transform ${ms}ms var(--ease-cayla), opacity ${ms}ms var(--ease-cayla)` : "none", "important");
+      el.style.setProperty("transform", `translate3d(${x}px, ${y}px, 0)`, "important");
+      el.style.setProperty("opacity", String(opacidad), "important");
+    };
+    function bajar(e: PointerEvent) {
+      if (e.pointerType === "mouse" || !e.isPrimary || el!.hasAttribute("data-saliendo")) return;
+      window.clearTimeout(devolver);
+      gesto = { id: e.pointerId, x0: e.clientX, y0: e.clientY, eje: null, muestras: [{ t: e.timeStamp, y: 0 }] };
+      arrastro = false;
+      el!.setAttribute("data-tocando", "");
+    }
+    function mover(e: PointerEvent) {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      const dx = e.clientX - gesto.x0;
+      const dy = e.clientY - gesto.y0;
+      if (!gesto.eje) {
+        gesto.eje = ejeDelAviso(dx, dy);
+        if (!gesto.eje) return;
+        arrastro = true;
+        el!.setPointerCapture(e.pointerId);
+      }
+      const d = gesto.eje === "x" ? dx : dy;
+      gesto.muestras.push({ t: e.timeStamp, y: d });
+      const p = posicionDelAviso(gesto.eje, d);
+      const tamano = gesto.eje === "x" ? el!.offsetWidth : el!.offsetHeight;
+      pintar(gesto.eje === "x" ? p : 0, gesto.eje === "y" ? p : 0, opacidadDelAviso(gesto.eje, p, tamano));
+    }
+    function soltar(e: PointerEvent) {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      const { eje, muestras } = gesto;
+      gesto = null;
+      el!.removeAttribute("data-tocando");
+      if (!eje) return;
+      const d = muestras[muestras.length - 1].y;
+      const tamano = eje === "x" ? el!.offsetWidth : el!.offsetHeight;
+      const salida = e.type === "pointercancel" ? null : salidaDelAviso(eje, d, velocidad(muestras), tamano);
+      const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+      if (salida) {
+        // Sigue de largo hacia donde iba y la pila se cierra detrás (la salida de siempre colapsa su alto).
+        if (salida === "arriba") pintar(0, -(el!.offsetHeight + 32), 0, ms);
+        else pintar((salida === "derecha" ? 1 : -1) * (el!.offsetWidth + 32), 0, 0, ms);
+        alApartar.current();
+        return;
+      }
+      pintar(0, 0, 1, ms);
+      devolver = window.setTimeout(() => ["transition", "transform", "opacity"].forEach((p) => el!.style.removeProperty(p)), ms);
+    }
+    // Un arrastre no es un toque: al soltarlo no se dispara el botón de adentro («Deshacer», ✕).
+    function clic(e: MouseEvent) {
+      if (!arrastro) return;
+      arrastro = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    el.addEventListener("pointerdown", bajar);
+    el.addEventListener("pointermove", mover);
+    el.addEventListener("pointerup", soltar);
+    el.addEventListener("pointercancel", soltar);
+    el.addEventListener("click", clic, true);
+    return () => {
+      window.clearTimeout(devolver);
+      el.removeEventListener("pointerdown", bajar);
+      el.removeEventListener("pointermove", mover);
+      el.removeEventListener("pointerup", soltar);
+      el.removeEventListener("pointercancel", soltar);
+      el.removeEventListener("click", clic, true);
+    };
+  }, [ref]);
+}
+
 function Tarjeta({ aviso }: { aviso: Aviso }) {
   const [saliendo, setSaliendo] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -280,6 +435,7 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
     setSaliendo(true);
     setTimeout(() => cerrar(aviso.id), SALIDA_MS);
   }
+  useApartarConElDedo(ref, quitar);
   useEffect(() => {
     if (aviso.tono !== "error") return;
     function esc(e: KeyboardEvent) {
@@ -290,7 +446,8 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aviso.id, aviso.tono]);
 
-  const ms = aviso.duracion ?? DURACION[aviso.tono];
+  // Con botón («Deshacer») no baja de 7 s: hay que leer y decidir. Quien pide `duracion` decide (lib/avisos-reglas.ts).
+  const ms = duracionDe(aviso.tono, { accion: aviso.accion, duracion: aviso.duracion });
   const estilo = { "--ms": `${ms ?? 0}ms`, ...(aviso.progreso !== undefined ? { "--p": aviso.progreso } : {}) } as React.CSSProperties;
   return (
     <div
@@ -312,12 +469,16 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
             <circle className="aviso-pista" cx="18" cy="18" r="17" />
             <circle className="aviso-onda" cx="18" cy="18" r="17" />
             {/* El reloj: se vacía y, al llegar a cero, cierra el aviso. Un proceso no tiene reloj:
-                el mismo círculo hace de medidor (--p) o gira. */}
+                el mismo círculo hace de medidor (--p) o gira. Cuando empieza a correr (a los 520 ms de la
+                entrada, pasado el efecto) el aviso cuenta como VISTO: una sola fuente de tiempo para las dos cosas. */}
             <circle
               className="aviso-reloj"
               cx="18"
               cy="18"
               r="17"
+              onAnimationStart={(e) => {
+                if (e.animationName === "cayla-aviso-reloj") marcarVisto(aviso.id);
+              }}
               onAnimationEnd={(e) => {
                 if (e.animationName === "cayla-aviso-reloj" && ms) quitar();
               }}

@@ -8,7 +8,8 @@
  *   · un producto con historia NO se elimina —movimientos de stock, líneas de venta, un pedido que no se pudo atender…—,
  *     lo dice con palabras del negocio, sugiere desactivar, y no se lleva nada consigo (todo o nada);
  *   · la pieza «Monto manual» del punto de venta NO se elimina aunque no tenga historia (así está en producción);
- *   · solo un líder: sin persona, un integrante —aunque vea Productos y pueda editar el catálogo— y `anon` no eliminan; un Admin sí;
+ *   · quien edita el catálogo (ADR-0252, act. 2026-10-03; antes solo un líder): una integrante con Productos elimina y el
+ *     rastro queda a su nombre; sin persona, un rol sin Productos ni Categorías/atributos y `anon` no eliminan; un Admin sí;
  *   · un producto que ya no existe (doble clic, otra persona lo eliminó) lo dice;
  *   · la red de seguridad: si otra tabla cita al producto y la función no la conoce, la llave lo frena y no queda nada a medias;
  *   · DERIVA: si mañana nace una tabla que cita `productos`/`variantes`, esta prueba falla hasta que alguien decida si es «suya»
@@ -28,6 +29,7 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
 const NADIE = "99999999-9999-4999-8999-000000000009"; // sesión sin persona en retail
 const CENTINELA = "11111111-1111-4111-8111-111111111111"; // el producto de «Monto manual»
+const SIN_PERMISO = "42501|-|No puedes eliminar productos: tu rol no edita el catálogo (módulo «Productos»). Pídele al líder que lo active.";
 
 function psql(sql) {
   return execFileSync(
@@ -197,6 +199,7 @@ select pg_temp.huella(:'va');`);
 {
   const r = correr(`${ESCENA}
 -- Producción no tiene los movimientos de siembra del seed local: se los quito (solo en esta transacción) para reproducirlo.
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 delete from retail.movimientos where variante_id = '22222222-2222-4222-8222-222222222222';
 delete from retail.stock where variante_id = '22222222-2222-4222-8222-222222222222';
@@ -212,12 +215,13 @@ select pg_temp.huella('${CENTINELA}');`);
   esperar("y sigue existiendo con su variante", r.ok && despues.startsWith("1|1|"), r);
 }
 
-// 8. Permisos: solo un líder (y un Admin es un líder). Es más estricto que editar el catálogo.
+// 8. Permisos: quien edita el catálogo (`fn_puede_editar_catalogo`). Un rol que no ve Productos ni Categorías/atributos no
+//    elimina, ni siquiera pregunta; una sesión sin persona y `anon`, tampoco.
 {
   const r = correr(`${ESCENA}
 update retail.roles set limitado_como_hoy = false where clave = 'integrante';
 delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
-insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'productos');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'existencias');
 select pg_temp.huella(:'va');
 ${sesion(NADIE)}
 select pg_temp.intento(format('select retail.eliminar_producto(%L)', :'va'));
@@ -233,16 +237,40 @@ reset role;
 ${sesion(FELIPE)}
 select pg_temp.huella(:'va');`);
   const [antes, nadie, nadieLee, puedeEditar, micaela, micaelaLee, anon, sigue] = lineas(r);
-  esperar("una sesión sin persona no elimina (42501)", r.ok && nadie === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("ni siquiera consulta si se puede", r.ok && nadieLee === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("(contraste) una integrante con Productos SÍ puede editar el catálogo", r.ok && puedeEditar === "true", r);
-  esperar("…y aun así no elimina: borrar un producto es solo del líder", r.ok && micaela === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("…ni consulta si se puede", r.ok && micaelaLee === "42501|-|Solo un líder puede eliminar productos.", r);
+  esperar("una sesión sin persona no elimina (42501)", r.ok && nadie === SIN_PERMISO, r);
+  esperar("ni siquiera consulta si se puede", r.ok && nadieLee === SIN_PERMISO, r);
+  esperar("(contraste) una integrante que solo ve Existencias NO edita el catálogo", r.ok && puedeEditar === "false", r);
+  esperar("…y por eso no elimina (42501)", r.ok && micaela === SIN_PERMISO, r);
+  esperar("…ni consulta si se puede", r.ok && micaelaLee === SIN_PERMISO, r);
   esperar("anon ni siquiera puede llamar la función", r.ok && anon.includes("permission denied for function eliminar_producto"), r);
   esperar("y el producto sigue completo", r.ok && sigue === antes && antes.startsWith("1|2|"), r);
 }
 
-// 9. Un Admin (Líder activo con rol admin en Dynamic) elimina: «adm y líderes» = quienes pasan fn_es_lider().
+// 8b. Una integrante que ve Productos edita el catálogo y, desde el 2026-10-03, también elimina (la cuenta de almacén registró
+//     productos que no eran y no podía deshacerlos). El rastro queda a SU nombre, no al del líder.
+{
+  const r = correr(`${ESCENA}
+update retail.roles set limitado_como_hoy = false where clave = 'integrante';
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'productos');
+select p.id as ella from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
+${sesion(MICAELA)}
+select retail.fn_puede_editar_catalogo()::text || '|' || retail.fn_es_lider()::text;
+select pg_temp.puede(:'va');
+select retail.eliminar_producto(:'va');
+select pg_temp.huella(:'va');
+select pg_temp.huella(:'vb');
+select count(*) || '|' || (max(usuario_id::text) = :'ella')::text
+  from retail.historial_producto_cambios where entidad = 'producto' and entidad_id = :'va' and campo = 'eliminado';`);
+  const [perfil, puede, devuelto, despues, otro, rastro] = lineas(r);
+  esperar("(preparación) la integrante edita el catálogo y no es líder", r.ok && perfil === "true|false", r);
+  esperar("la función le dice que se puede", r.ok && puede === "true|", r);
+  esperar("lo elimina completo", r.ok && devuelto === "Virgen A" && despues === "0|0|0|0|0", r);
+  esperar("el otro producto no se toca", r.ok && /^1\|1\|[1-9]\d*\|0\|0$/.test(otro), r);
+  esperar("el rastro queda a nombre de ella", r.ok && rastro === "1|true", r);
+}
+
+// 9. Un Admin (Líder activo con rol admin en Dynamic) elimina: un Admin es un Líder y un Líder edita el catálogo.
 {
   const r = correr(`${ESCENA}
 update public.personas set rol = 'admin' where auth_user_id = '${FELIPE}';
@@ -284,16 +312,71 @@ select pg_temp.huella(:'va');`);
 // nació una tabla nueva: decide si es SUYA (se borra con la ficha: agrégala a `eliminar_producto`) o HISTORIA (frena el
 // borrado: agrégala a `fn_producto_se_puede_eliminar` y a la lista de abajo).
 {
-  const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas"];
+  // `producto_origen` (ADR-0292) es SUYA: es un dato que nace con la ficha (en qué sede se registró) y se va con ella por su
+  // `on delete cascade`; no es historia y no frena el borrado.
+  // `vitrina_productos` (ADR-0408, actividad 3) es SUYA: si se ve en la tienda online y cómo entra a Lo nuevo son configuración de
+  // la ficha, como sus fotos, y se van con ella por su `on delete cascade` (quién lo cambió y cuándo queda en `actividad`).
+  // `favoritos_web` y `esperas_web` (ADR-0408, actividad 12) también: el corazón y el «Avísame» de un cliente de la tienda online
+  // sobre un modelo que nunca se vendió ni se movió no son historia de la prenda; se van con ella por su `on delete cascade`. Y
+  // `vitrina_look_piezas` (actividad 11): que una prenda salga en un look de la tienda online es configuración de la vitrina y se va
+  // con su ficha (`on delete cascade`); el look guarda cuántas prendas lleva, así que le falta una, no se muestra y el ERP lo dice
+  // (20261015031000).
+  // `look_web_piezas` (ADR-0434, actividad 8, 20261017044000) es SUYA como los favoritos: el look que un cliente guardó con un modelo
+  // que nunca se vendió ni se movió no es historia de la prenda; su fila se va con ella (`on delete cascade`) y el look sigue con las
+  // demás (la tienda dice «Una prenda que guardaste ya no está»).
+  const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen", "vitrina_productos",
+    "favoritos_web", "esperas_web", "vitrina_look_piezas", "look_web_piezas",
+    // ADR-0513: la ficha de consumo (la tela declarada y los avíos del modelo) es configuración suya, como sus fotos, y la escribe Producción SIN orden:
+    // se va con la ficha por su `on delete cascade` (la prueba de forma de `produccion_ficha_consumo.mjs` lo exige).
+    "producto_consumos", "producto_avios"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
-    "pedidos_no_atendidos", "separacion_pedidos",
+    "pedidos_no_atendidos", "separacion_pedidos", "frescura_decisiones", "cuadre_piso_items",
+    // ADR-0328 act. 17: una prenda subida para mandarla a otra sede frena el borrado, como un pedido a otra sede.
+    "prendas_para_enviar",
+    // ADR-0370: el precio propio de una tienda nunca se borra; una prenda que lo tuvo se desactiva, no se elimina. Desde el
+    // 2026-10-10 es de la prenda (`precios_sede_prenda`); la tabla por variante quedó como historia.
+    "precios_sede",
+    "precios_sede_prenda",
+    // ADR-0362 fase 4: lo que una sede contó al recibir un envío de orden de compra (talla por talla) es historia de la prenda.
+    "despacho_recibidos",
+    // ADR-0393: lo contado al recibir que todavía no entró al stock (un pendiente «detalle») también: renglón 23 de
+    // `fn_producto_historia` (20261014234000). Lo recibido frena por su movimiento con lote; un pendiente no deja movimiento.
+    "despacho_pendientes",
+    // ADR-0480 (actividad 3): una prenda en una línea de orden de compra (la compra anotada desde el celular) tiene un proveedor del otro
+    // lado: renglón 26 de `fn_producto_historia` (20261023005000).
+    "orden_compra_items",
+    // ADR-0408: una prenda que un cliente pidió por la web (con su precio, y quizá su pago) es historia: frena el borrado aunque
+    // nunca haya movido stock (se puede separar algo que está por conseguir). Las líneas no se borran (pedido_web_lineas_sin_borrar);
+    // renglón 25 de `fn_producto_historia` (20261015011000, act. 8): Catálogo dice «tiene pedidos web» y no ofrece «Eliminar».
+    "pedido_web_lineas",
+    // ADR-0470: las prendas que se lleva la clienta en un cambio por VARIAS prendas. Es historia de la prenda, como `cambios`; el cambio deja además
+    // un movimiento de salida con su `cambio_id`, que ya frena el borrado, y la llave a `variantes` (sin cascada) lo impediría igual.
+    "cambio_salidas",
+    // ADR-0515: la corrección del costo de una compra. Cuelga de una fila de `costo_historial` de la misma prenda, que ya frena el
+    // borrado, y la llave a `productos` y `variantes` (sin cascada) lo impediría igual.
+    "costo_correcciones",
+    // ADR-0530: lo que el Plan de campaña mandó a Compras («pendiente de campaña», y lo ya pedido o rectificado). Es historia de lo que se decidió comprar de la
+    // prenda y nunca se borra (el pedido es inmutable tras pedido o rectificado); la llave a `productos` (sin cascada) impide borrar una prenda que está en uno.
+    // Pendiente aparte: que Catálogo lo diga con su mensaje («está en un pedido de campaña») en vez del error crudo de la llave: renglón nuevo de `fn_producto_historia`.
+    "pedidos_campana_lineas",
+    // ADR-0495: los pasos de la tienda online (vio la prenda, eligió talla, la puso en la bolsa). Solo se agregan: un disparador impide
+    // borrarlos, así que no pueden irse con la ficha; y sus llaves a `productos` y `variantes` (sin cascada) frenan el borrado de una
+    // prenda que alguien miró en la tienda online. Pendiente aparte, como el de arriba: que Catálogo lo diga con su mensaje («la miraron en
+    // la tienda online») en vez del error de la llave, con su renglón en `fn_producto_historia`.
+    "trafico_web",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados"];
+  // Y lo contado de más al recibir un traslado (`traslado_sobrantes`, ADR-0404), de la recepción de la misma prenda.
+  // Y lo del rediseño de Producción (ADR-0400): el avance, las líneas de una Salida y de una Vuelta cuelgan de una fase de una orden y
+  // solo se anotan contra una línea de ESA orden (`registrar_avance`, `registrar_salida` y `registrar_vuelta` lo piden), así que son de
+  // la misma prenda que la orden; y lo medido de una orden cerrada (`producto_consumo_medido`, ADR-0513) cuelga de ESA orden. La orden
+  // (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
+  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
+    "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

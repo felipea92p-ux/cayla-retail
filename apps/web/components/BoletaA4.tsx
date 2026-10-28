@@ -1,10 +1,12 @@
 import { QRCodeSVG } from "qrcode.react";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
+import { ETIQUETA_DOCUMENTO_COMPROBANTE, llevaDocumento } from "@/lib/documento-comprobante-reglas";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasA4, numeroA4 } from "@/lib/boleta-a4-reglas";
-import { desglosaIgv, fechaHoraLima, montoEnLetras, NOMBRE_METODO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
+import { desglosaIgv, fechaHoraLima, LEY_REDONDEO, montoEnLetras, NOMBRE_METODO, TEXTO_REDONDEO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 // Tinte suave para los encabezados: se imprime con `print-color-adjust: exact` pero, si la
 // impresora es en blanco y negro, el filete y el texto siguen diciendo todo.
 /** El texto chico y de bajo contraste del margen izquierdo, como el que ponía Alegra (allá, a la derecha). */
@@ -32,11 +34,10 @@ export function BoletaA4({
 }) {
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
   const esFactura = recibo.tipo === "factura";
   // La nota de venta (ADR-0164) no separa IGV: sus líneas van al precio cobrado y el pie no lleva nada de SUNAT.
   const fiscal = desglosaIgv(recibo.tipo);
-  const lineas = lineasA4(recibo, fiscal ? 0.18 : 0);
+  const lineas = lineasA4(recibo);
   const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const nombreDoc = esFactura ? "factura" : "boleta de venta";
 
@@ -51,10 +52,10 @@ export function BoletaA4({
       {/* ---------- Cabecera ---------- */}
       <header className="flex items-start justify-between gap-6">
         <div className="flex min-w-0 items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element -- se imprime: una <img> normal se decodifica antes de `print()` */}
-          <img src="/cayla-isotipo.png" alt="" className="h-auto w-16 shrink-0" />
           <div className="min-w-0">
-            <p className="font-display text-[22pt] leading-none tracking-[0.14em] text-rojo">{emisor.nombreComercial}</p>
+            {/* El logo oficial (ADR-0446) en el rojo de marca, nunca «CAYLA» escrito con una letra del sistema. */}
+            <LogoCayla className="h-[12mm] [print-color-adjust:exact]" />
+            <p className="sr-only">{emisor.nombreComercial}</p>
             <p className="mt-1.5 font-semibold">{emisor.razonSocial}</p>
             <p className="text-[8pt] text-black/75">{emisor.direccion.join(" · ")}</p>
             <p className="text-[8pt] text-black/75">{[emisor.telefono, emisor.email, emisor.web].filter(Boolean).join(" · ")}</p>
@@ -74,8 +75,9 @@ export function BoletaA4({
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           <dt className="font-semibold uppercase">Señor(es)</dt>
           <dd>{cli.nombre?.trim() || "Cliente general"}</dd>
-          <dt className="font-semibold uppercase">{cli.tipoDoc === "ruc" ? "RUC" : "DNI"}</dt>
-          <dd>{tieneDoc ? cli.numDoc : "—"}</dd>
+          {/* DNI, RUC, CE (carné de extranjería) o Pasaporte (ADR-0288 D-3). Sin documento, la fila dice «DNI —», como siempre. */}
+          <dt className="font-semibold uppercase">{llevaDocumento(cli.tipoDoc, cli.numDoc) ? ETIQUETA_DOCUMENTO_COMPROBANTE[cli.tipoDoc] : "DNI"}</dt>
+          <dd>{llevaDocumento(cli.tipoDoc, cli.numDoc) ? cli.numDoc : "—"}</dd>
           {esFactura && (
             <>
               <dt className="font-semibold uppercase">Dirección</dt>
@@ -104,7 +106,7 @@ export function BoletaA4({
             <th className={`${cab} w-[11mm] text-center`}>Cant.</th>
             <th className={`${cab} w-[15mm] text-center`}>Unidad</th>
             <th className={`${cab} text-left`}>Descripción</th>
-            <th className={`${cab} w-[23mm] text-right`}>V. unitario</th>
+            <th className={`${cab} w-[23mm] text-right`}>P. unitario</th>
             <th className={`${cab} w-[19mm] text-right`}>Dscto.</th>
             <th className={`${cab} w-[24mm] text-right`}>Total</th>
           </tr>
@@ -118,7 +120,7 @@ export function BoletaA4({
                 {l.descripcion}
                 {(l.detalle || l.codigo) && <span className="block text-[7.5pt] text-black/60">{[l.detalle, l.codigo].filter(Boolean).join(" · ")}</span>}
               </td>
-              <td className="px-2 py-1.5 text-right tabular-nums">{s(l.valorUnitario)}</td>
+              <td className="px-2 py-1.5 text-right tabular-nums">{s(l.precioUnitario)}</td>
               <td className="px-2 py-1.5 text-right tabular-nums">{l.descuento > 0 ? s(l.descuento) : "—"}</td>
               <td className="px-2 py-1.5 text-right tabular-nums">{s(l.total)}</td>
             </tr>
@@ -142,6 +144,11 @@ export function BoletaA4({
                   {p.recibido !== null && p.metodo === "efectivo" && ` · recibió ${s(p.recibido)} · vuelto ${s(p.vuelto)}`}
                 </p>
               ))}
+              {(recibo.redondeo ?? 0) > 0 && (
+                <p>
+                  {TEXTO_REDONDEO} {s(recibo.redondeo ?? 0)} <span className="text-black/55">({LEY_REDONDEO})</span>
+                </p>
+              )}
             </div>
             {vendedor && <p>Atendió: {vendedor}</p>}
             {hash && <p className="break-all text-[6.5pt] text-black/55">Hash: {hash}</p>}

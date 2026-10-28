@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { asegurarVisible, estaEscribiendo, irAlIdCampo } from "@/components/alta-producto/useGuiaAlta";
 import { estadosDe, faltanDe, fraseDeLoQueFalta, sePuedeConfirmar, siguienteDe, type CampoDeGuia, type EstadoCampo } from "@/lib/guia-campos";
@@ -33,6 +33,10 @@ export type GuiaCampos = {
   claseConfirmar: string;
   /** Lleva a un campo (lo deja a la vista, lo destella y, si es de texto, le pone el cursor). */
   ir: (id: string) => void;
+  /** La persona empezó a escribir en una caja de texto de este campo: conserva la luz hasta que salga (lo llama `CampoGuiado`). */
+  enfocar: (id: string) => void;
+  /** Dejó de escribir en ese campo (salió de él, o el campo desapareció): la luz puede pasar al que sigue. */
+  soltar: (id: string) => void;
 };
 
 /**
@@ -41,8 +45,14 @@ export type GuiaCampos = {
  * con la barra de abajo ni con la cabecera.
  */
 export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true }: { enModal?: boolean } = {}): GuiaCampos {
-  const estados = estadosDe(campos);
-  const ahora = siguienteDe(campos)?.id ?? null;
+  // El campo de texto donde la persona está escribiendo: mientras siga ahí conserva la luz (`siguienteDe`). Sin esto, la primera
+  // letra del nombre ya lo daba por «hecho» y la luz se iba al siguiente campo a media palabra.
+  const [escribiendoEn, setEscribiendoEn] = useState<string | null>(null);
+  const enfocar = useCallback((id: string) => setEscribiendoEn(id), []);
+  const soltar = useCallback((id: string) => setEscribiendoEn((actual) => (actual === id ? null : actual)), []);
+
+  const estados = estadosDe(campos, escribiendoEn);
+  const ahora = siguienteDe(campos, escribiendoEn)?.id ?? null;
   const puedeConfirmar = sePuedeConfirmar(campos);
 
   // Cuando lo que sigue cambia, si el nuevo campo quedó fuera de vista dentro del modal se le trae con suavidad. Nunca mientras la
@@ -65,5 +75,7 @@ export function useGuiaCampos(campos: readonly CampoDeGuia[], { enModal = true }
     frase: fraseDeLoQueFalta(campos),
     claseConfirmar: puedeConfirmar ? "hilo-seguir" : "",
     ir: (id) => irAlIdCampo(id, { cursor: true, enModal }),
+    enfocar,
+    soltar,
   };
 }

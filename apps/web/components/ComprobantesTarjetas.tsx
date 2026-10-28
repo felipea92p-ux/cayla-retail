@@ -7,7 +7,7 @@ import { antiguedad, progresoDeEnvio } from "@/lib/facturacion-resumen-reglas";
 import { cuantosPorTipo, type Tramo } from "@/lib/comprobantes-graficos-reglas";
 import { CifraAnimada } from "@/components/ui/CifraAnimada";
 import { TarjetaKpiVidrio } from "@/components/ui/TarjetaKpiVidrio";
-import { BarraApilada, BarrasPorTramo, Puntos } from "@/components/ComprobantesGraficos";
+import { BarraConLeyenda, BarrasPorTramo, Puntos } from "@/components/ComprobantesGraficos";
 
 // Las cuatro tarjetas de arriba de Comprobantes (ADR-0124): el mismo vidrio que las del Resumen,
 // con las cuentas del mes. Emitidos y Monto facturado son DEL MES que se mira; Pendientes y
@@ -58,11 +58,11 @@ export function ComprobantesTarjetas({
   ].filter(Boolean);
 
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div data-guia="comprobantes.cifras" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <TarjetaKpiVidrio
         etiqueta={esHoy ? "Emitidos hoy" : "Emitidos"}
         tono="taupe"
-        icono={<FileText size={15} strokeWidth={1.75} />}
+        icono={<FileText size={16} />}
         indice={2}
         valor={<CifraAnimada valor={m.emitidos} />}
         contexto={
@@ -77,7 +77,7 @@ export function ComprobantesTarjetas({
           </>
         }
       >
-        <BarraApilada
+        <BarraConLeyenda
           partes={[
             { valor: tipos.boletas, clase: "g-tinta", texto: "Boletas" },
             { valor: tipos.facturas, clase: "g-taupe", texto: "Facturas" },
@@ -89,7 +89,7 @@ export function ComprobantesTarjetas({
       <TarjetaKpiVidrio
         etiqueta={esHoy ? "Facturado hoy" : "Monto facturado"}
         tono="taupe"
-        icono={<Banknote size={15} strokeWidth={1.75} />}
+        icono={<Banknote size={16} />}
         indice={3}
         valor={<CifraAnimada valor={m.facturado} formato="soles" />}
         contexto={
@@ -105,7 +105,7 @@ export function ComprobantesTarjetas({
       <TarjetaKpiVidrio
         etiqueta="Pendientes de enviar"
         tono={!porEnviar ? "taupe" : pendientes > 0 ? "ambar" : "verde"}
-        icono={<Send size={15} strokeWidth={1.75} />}
+        icono={<Send size={16} />}
         indice={4}
         colorearCifra
         // Sin `CifraAnimada`, igual que «Por enviar» del Resumen: es una cola que sube y baja.
@@ -136,7 +136,7 @@ export function ComprobantesTarjetas({
         }
       >
         {total > 0 ? (
-          <BarraApilada
+          <BarraConLeyenda
             partes={[
               { valor: enviados, clase: "g-alza", texto: "enviados" },
               { valor: total - enviados, clase: "g-baja", texto: "faltan" },
@@ -150,7 +150,7 @@ export function ComprobantesTarjetas({
       <TarjetaKpiVidrio
         etiqueta="Rechazados"
         tono={!porEnviar ? "taupe" : rechazados > 0 ? "rojo" : "verde"}
-        icono={<OctagonAlert size={15} strokeWidth={1.75} />}
+        icono={<OctagonAlert size={16} />}
         indice={5}
         colorearCifra
         valor={

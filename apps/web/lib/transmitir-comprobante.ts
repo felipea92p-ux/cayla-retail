@@ -1,8 +1,12 @@
+// Rutas relativas (sin `@/`): lo prueba `resolver-ya-emitido.test.ts` en vitest, que no tiene el alias.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
-import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
-import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
-import { capturarError } from "@/lib/errores";
+import { emitirDocumentoLucode, entornoLucode, fechaDeLima, type DatosComprobante, type TipoDocumentoLucode } from "./lucode";
+import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "./transmision-reglas";
+import { capturarError } from "./errores";
+import { esYaEmitido } from "./ya-emitido-reglas";
+import { resolverYaEmitido } from "./resolver-ya-emitido";
+import type { TipoDocComprobante } from "./documento-comprobante-reglas";
 
 // Transmitir UN comprobante a SUNAT por Lucode: la pieza que comparten `/api/lucode/emitir` (el envío
 // al cobrar y «Reintentar ahora») y `/api/lucode/reintentar` (el barrido de la cola, D-60). Solo
@@ -31,11 +35,12 @@ type FilaComprobante = {
   serie: string;
   numero: number;
   moneda: string;
-  cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  cliente_tipo_doc: TipoDocComprobante;
   cliente_num_doc: string | null;
   cliente_nombre: string | null;
   total: number;
   estado: string;
+  created_at: string;
   items: unknown;
   comprobante_original_id: string | null;
   motivo: string | null;
@@ -55,7 +60,7 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
   const { data: comprobante, error: errLectura } = await supabase
     .from("comprobantes")
     .select(
-      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, items, comprobante_original_id, motivo, entorno_transmision, venta_id, venta:ventas(estado)"
+      "id, tipo, serie, numero, moneda, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, created_at, items, comprobante_original_id, motivo, entorno_transmision, venta_id, venta:ventas(estado)"
     )
     .match(comprobanteId ? { id: comprobanteId } : { venta_id: ventaId! })
     // Por venta solo cuenta su boleta o factura: una nota de crédito posterior también lleva `venta_id`.
@@ -114,6 +119,8 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
     clienteNombre: fila.cliente_nombre,
     total: fila.total,
     items,
+    // El día de la venta, no el del reenvío: un comprobante que se reintenta al día siguiente sigue siendo de su día.
+    fechaEmision: fechaDeLima(new Date(fila.created_at)),
   };
 
   if (fila.tipo === "nota_credito" || fila.tipo === "nota_debito") {
@@ -148,6 +155,13 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
   }
 
   const resultado = await emitirDocumentoLucode(datos);
+
+  // «Ese número ya fue emitido» no es un rechazo (ADR-0378): un envío anterior que el ERP dio por perdido (Lucode tardó
+  // más de 15 s) sí llegó. No se reintenta: se le pregunta a Lucode qué tiene, se confirma con su XML que es esta venta
+  // y se guarda lo que dice SUNAT. Sin esto quedaba en la cola para siempre (producción, 9 al 12-oct-2026).
+  if (!resultado.ok && resultado.motivo === "rechazado_por_lucode" && esYaEmitido(resultado.detalle, fila.serie, fila.numero)) {
+    return resolverYaEmitido(supabase, fila, datos, resultado.detalle);
+  }
 
   if (!resultado.ok) {
     // Un problema de red o de credenciales no es un rechazo de SUNAT — no se

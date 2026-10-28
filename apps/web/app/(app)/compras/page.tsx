@@ -1,9 +1,8 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { Download } from "lucide-react";
-import { exigirModulo } from "@/lib/persona-actual";
-import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
-import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
+import { redirect } from "next/navigation";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { exigirModulo, veModulo } from "@/lib/persona-actual";
+import { entradaDeCompras } from "@/lib/compras-pestanas-reglas";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
@@ -16,15 +15,18 @@ import { Chip } from "@/components/ui/Chip";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
-import { Pestanas } from "@/components/ui/Pestanas";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CabeceraHistorialCompras } from "@/components/compras/CabeceraHistorialCompras";
 
-// Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
+// Historial de compras (ADR-0035, rediseño ADR-0111; solo lectura desde el 2026-10-23, ADR-0480 act.): la lista de lo que
+// se compró, con su papel —factura, boleta, nota de venta o sin comprobante—. Aquí ya no se registra nada: la compra nace en
+// «Mis compras» y su comprobante, en «Revisar compras». Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
 // debajo, no solo con un chip. Filtros, vistas y paginado viven en la URL y se resuelven en
 // Postgres (`listar_compras`): la página nunca recibe más de 50 filas, haya 300 comprobantes o
@@ -39,8 +41,8 @@ import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 // pantalla sigue siendo de servidor con su estado en la URL; lo que se mueve es CSS puro
 // (app/estilos/comprobantes-lista.css) más tres piezas cliente mínimas. Al llegar, cabecera, tarjetas,
 // pestañas, filtros y filas entran escalonadas (`anim-entra` con `--i`) y las cifras cuentan una vez
-// (`CifraQueCuenta`); las barras de reparto y de avance se llenan; el subrayado de las pestañas y la
-// pastilla del orden VIAJAN (`IndicadorDeslizante`); y al cambiar de vista u orden las filas que se quedan
+// (`CifraQueCuenta`); las barras de reparto y de avance se llenan (desde el 2026-10-06 los estados son píldoras de
+// filtro y el orden un segmento de modo, sin viaje: ADR-0358); y al cambiar de vista u orden las filas que se quedan
 // se reacomodan en vez de saltar (`ComprobantesListaFilas`, FLIP). Buscar resalta lo encontrado.
 // `/` enfoca la búsqueda; `j`/`k` recorren las filas y `Enter` abre.
 
@@ -53,7 +55,13 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  const persona = await exigirModulo("facturas_compra"); // 20260923130000: la lista de facturas es del módulo Facturas de compra
+  // 20260923130000: la lista es del módulo `facturas_compra` (en pantalla, «Historial de compras»). ADR-0387 (Felipe 2026-10-12): con el módulo se ven
+  // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
+  // ADR-0504: esta ruta es la de la fila «Historial de compras» del menú, que se abre con cualquiera de los tres módulos (Historial, Revisar
+  // compras o Por pagar). Quien no ve el Historial cae en la primera pestaña que sí ve, no en «Sin acceso».
+  const persona = await exigirModulo("facturas_compra", "fondos", "por_pagar");
+  if (!veModulo(persona, "facturas_compra")) redirect(entradaDeCompras(persona.modulos.map((m) => m.clave)) ?? "/");
+  const vePorPagar = veModulo(persona, "por_pagar");
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -63,14 +71,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
   // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
   // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones, misPartes] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
     listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
     getUbicaciones(),
-    // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
-    persona.rol === "lider" ? Promise.resolve([]) : getMisPartesDeCompras(),
   ]);
   // Para decir a qué tiendas va un comprobante repartido (ADR-0139).
   const nombrePorUbicacion = Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]));
@@ -105,32 +111,24 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de proveedor</h1>
-          <p className="mt-1 text-sm text-tinta/65">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
-              quien no es líder exporta lo de sus tiendas). */}
-          <a
-            href={`/compras/exportar?mes=${hoy.slice(0, 7)}`}
-            className="label-cayla inline-flex items-center gap-2 rounded-md border border-tinta/25 px-4 py-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
-          >
-            <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
-          </a>
-          <Link href="/compras/nueva" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-            + Registrar factura
-          </Link>
-        </div>
-      </div>
+      {/* La cabecera de las tres pestañas de «Historial de compras» (ADR-0504). Desde ADR-0387 quien tiene el módulo ve las facturas de
+          todas las tiendas: eso dice la línea de arriba. Esta pantalla ya leyó lo que se debe (`resumen`): no se vuelve a pedir. */}
+      <CabeceraHistorialCompras
+        activa="historial"
+        conteos={{ porPagar: { conSaldo: resumen.conSaldo, vencidas: resumen.vencidas } }}
+        acciones={
+          // El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
+          // quien tiene el módulo descarga las compras de todas las tiendas, como el líder. Registrar ya no vive aquí (ADR-0480 act.).
+          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+            Descargar el mes
+          </BotonDescargar>
+        }
+      />
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
-          directo a las vencidas), «Por recibir» a la pantalla de recepción. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
+      <div data-guia="compras.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <TarjetaCifra
-          compacta
           viva
           className="anim-entra"
           style={{ ["--i" as string]: 1 }}
@@ -138,21 +136,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.vencidas > 0 ? "text-rojo" : undefined}
           etiqueta="Por pagar"
           valor={<CifraQueCuenta valor={resumen.deuda} formato="soles" alMontar />}
-          href={resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar"}
+          href={vePorPagar ? (resumen.vencidas > 0 ? "/compras/por-pagar?vencidas=1" : "/compras/por-pagar") : undefined}
           reparto={{ fraccion: resumen.deuda > 0 ? resumen.vencido / resumen.deuda : 0, tono: "rojo" }}
         >
-          {resumen.vencidas > 0 ? (
-            <>
-              {cifra(resumen.vencidas, "vencida", "vencidas")} · {soles(resumen.vencido)} <span className="cmp-flecha">→</span>
-            </>
-          ) : (
-            <>
-              Sin vencidas <span className="cmp-flecha">→</span>
-            </>
-          )}
+          {resumen.vencidas > 0 ? `${cifra(resumen.vencidas, "vencida", "vencidas")} · ${soles(resumen.vencido)}` : "Sin vencidas"}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           viva
           className="anim-entra"
           style={{ ["--i" as string]: 2 }}
@@ -160,7 +149,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           detalleTono={resumen.porRecibirAtrasadas > 0 ? "text-ambar-profundo" : undefined}
           etiqueta="Por recibir"
           valor={<CifraQueCuenta valor={resumen.porRecibir} alMontar />}
-          unidad={resumen.porRecibir === 1 ? "factura" : "facturas"}
+          unidad={resumen.porRecibir === 1 ? "compra" : "compras"}
           href={resumen.porRecibir > 0 ? "/compras/recibir" : undefined}
           reparto={{ fraccion: resumen.porRecibir > 0 ? resumen.porRecibirAtrasadas / resumen.porRecibir : 0, tono: "ambar" }}
         >
@@ -169,12 +158,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           ) : (
             <>
               {resumen.porRecibirAtrasadas > 0 ? `${cifra(resumen.porRecibirAtrasadas, "atrasada", "atrasadas")} · ` : ""}
-              {soles(extra.valorPorRecibir)} por llegar <span className="cmp-flecha">→</span>
+              {soles(extra.valorPorRecibir)} por llegar
             </>
           )}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 3 }}
           etiqueta={`Compras de ${mesActual}`}
@@ -183,7 +171,6 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           {extra.comprasMesAnterior > 0 ? `${mesAnterior[0].toUpperCase()}${mesAnterior.slice(1)} completo: ${soles(extra.comprasMesAnterior)}` : `Sin compras en ${mesAnterior}`}
         </TarjetaCifra>
         <TarjetaCifra
-          compacta
           className="anim-entra"
           style={{ ["--i" as string]: 4 }}
           punto="verde"
@@ -194,23 +181,24 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
         </TarjetaCifra>
       </div>
 
-      <MisPartesDeCompras partes={misPartes} indice={5} />
-
-      <Pestanas
-        deslizante
-        idIndicador="comprobantes-vistas"
-        className="anim-entra"
-        style={{ ["--i" as string]: 5 }}
-        etiquetaAccesible="Vistas de facturas"
-        activa={vista}
-        items={[
-          { clave: "todos", etiqueta: "Todos", href: hrefVista("todos"), conteo: resumen.registradas },
-          { clave: "por-pagar", etiqueta: "Por pagar", href: hrefVista("por-pagar"), conteo: resumen.conSaldo },
-          { clave: "por-recibir", etiqueta: "Por recibir", href: hrefVista("por-recibir"), conteo: resumen.porRecibir },
-          { clave: "vencidos", etiqueta: "Vencidos", href: hrefVista("vencidos"), conteo: resumen.vencidas },
-          { clave: "pagados", etiqueta: "Pagados", href: hrefVista("pagados"), conteo: pagados },
-        ]}
-      />
+      {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
+          con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
+          maqueta de ADR-0111. La vista sigue en la URL. */}
+      <nav aria-label="Vistas del historial" data-guia="compras.vistas" className="anim-entra pildoras-desliza gap-2 sm:flex-wrap" style={{ ["--i" as string]: 5 }}>
+        {(
+          [
+            { clave: "todos", etiqueta: "Todos", conteo: resumen.registradas },
+            { clave: "por-pagar", etiqueta: "Por pagar", conteo: resumen.conSaldo },
+            { clave: "por-recibir", etiqueta: "Por recibir", conteo: resumen.porRecibir },
+            { clave: "vencidos", etiqueta: "Vencidos", conteo: resumen.vencidas },
+            { clave: "pagados", etiqueta: "Pagados", conteo: pagados },
+          ] as const
+        ).map((p) => (
+          <Link key={p.clave} href={hrefVista(p.clave)} aria-current={vista === p.clave ? "page" : undefined} className="pildora-cayla shrink-0" data-guia={`compras.vista-${p.clave}`}>
+            {p.etiqueta} <span className="pildora-cayla__n">{p.conteo.toLocaleString("es-PE")}</span>
+          </Link>
+        ))}
+      </nav>
 
       <div className="anim-entra" style={{ ["--i" as string]: 6 }}>
         <FiltrosCompras
@@ -220,9 +208,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           visibles={["proveedor", "pago", "recepcion", "destino", "condicion", "tipo", "fechas", "vencidas"]}
           accionesDespues={
             <SegmentoEnlaces
-              deslizante
-              idIndicador="comprobantes-orden"
-              etiquetaAccesible="Ordenar facturas"
+              etiquetaAccesible="Ordenar compras"
+              guia="compras.orden"
               activo={orden}
               opciones={[
                 { valor: "emision", etiqueta: "Emisión", href: hrefOrden("emision") },
@@ -234,7 +221,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
       </div>
 
       {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
-      <div data-resultados>
+      <div data-resultados data-guia="compras.lista">
         {compras.length === 0 && !cursor ? (
           <ComprobantesListaVacia hayFiltros={hayFiltros} busqueda={busqueda} />
         ) : (
@@ -265,14 +252,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   >
                     <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">{diaMes(c.fechaEmision)}</span>
-                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/55"}`}>{subEmision(c)}</span>
+                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
                     </span>
-                    <span className={celda()}>
+                    <span className={celda()} data-guia="compras.proveedor">
                       <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
                         <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                       </span>
                       {c.proveedorRuc && (
-                        <span className="block text-xs tabular-nums text-tinta/55">
+                        <span className="block text-xs tabular-nums text-tinta/70">
                           RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
                         </span>
                       )}
@@ -281,24 +268,24 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <span className="block">
                         <Resaltado texto={c.documento} busqueda={busqueda} />
                       </span>
-                      <span className="block text-xs text-tinta/55">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+                      <span className="block text-xs text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
                     </span>
-                    <span className={celda("izq", "overflow-visible whitespace-normal")}>
+                    <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
+                      <span className="mt-0.5 block text-xs text-tinta/70">{recepcion.sub}</span>
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                       {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                        <span className="mt-0.5 block text-xs text-tinta/70">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                       )}
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
                     </span>
-                    <span className={celda("izq", "overflow-visible whitespace-normal")}>
+                    <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.pago">
                       {/* Solo lo vencido late: es lo único de la lista que pide actuar hoy. */}
                       <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
                         {pago.texto}
                       </Chip>
-                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{pago.sub}</span>
+                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/70">{pago.sub}</span>
                       <AvanceFino pct={pago.pct} />
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />
@@ -320,12 +307,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   );
 }
 
-/** Barra fina de 3 px con el avance real bajo el subtexto de Recepción/Pago. `pct` 0–1; `null` = sin avance parcial, no se dibuja. */
+/** La barra de avance fina (ronda 13) bajo el subtexto de Recepción/Pago. `pct` 0–1; `null` = sin avance parcial, no se dibuja. */
 function AvanceFino({ pct }: { pct: number | null }) {
   if (pct == null) return null;
-  return (
-    <span aria-hidden className="cmp-mini">
-      <i style={{ "--p": pct.toFixed(3) } as CSSProperties} />
-    </span>
-  );
+  return <BarraAvance pct={pct * 100} alto="fina" decorativa className="mt-1.5 w-[88%]" />;
 }

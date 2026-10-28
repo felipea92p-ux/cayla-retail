@@ -1,0 +1,4 @@
+## 2026-10-13 (Plan de campaña: la pantalla dice qué toca hoy según el momento de la campaña)
+Qué hice: el Plan de campaña ya no pide «Armar plan» 42 veces cuando la campaña empezó sin plan. Lleva a «Ver cómo va» y a planificar la próxima. Esconde las columnas y los filtros que no dicen nada, y el aviso de stock sin cuadrar se ve sobre la tabla, ya no solo en un ícono.
+Por qué así: una prueba ciega con la pantalla de antes concluyó que tocaba armar 5 planes a dos días del cierre, y no vio que el stock de dos tiendas no cuadraba. La pantalla respondía la pregunta de antes de la campaña aunque estuviera a mitad de ella.
+Felipe se lleva: el prompt maestro (`docs/pantallas/compras-plan-prompt-maestro.md`), la lógica pura `lib/plan-compra-momento.ts` con su prueba y la actualización 2026-10-13 de ADR-0349. Pendientes: el recordatorio previo en Inicio, dar el módulo a las encargadas en Roles y accesos, y la contradicción de sede en la cabecera.

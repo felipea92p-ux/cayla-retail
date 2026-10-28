@@ -6,6 +6,10 @@
 
 - [ ] Si toca Vender, Cambios o Devoluciones (`/vender`, `/vender/apartados`, `/cambios`, `/devoluciones`, o los componentes `PuntoDeVenta*`, `Cambio*`/`Cambios*`, `Devoluciones*`): **probado a 375 px de ancho, con captura** adjunta aquí. Caja y Almacén siguen siendo de escritorio (PL-105).
 
+- [ ] Si agrega o cambia una pantalla, un modal o una pieza visual: **se ve y se lee en modo oscuro** (CLAUDE.md «Modo oscuro», ADR-0336):
+  solo tokens (nada de hex, `rgba()` ni `bg-white`), velos y sombras con `--color-sombra`, papel físico con `.papel-fijo`, y corrida
+  `pnpm --filter web tema:auditar` con 0 hallazgos «solo en oscuro» y capturas mirando el estado nuevo; o el cuerpo dice por qué no aplica.
+
 - [ ] Si agrega o cambia una pantalla o un modal donde se llenan campos o se avanza por pasos: **lleva su guía de foco** (qué está
   hecho, qué sigue y qué falta; CLAUDE.md «Guía de foco», ADR-0284) y, si es una pantalla nueva, está declarada en
   `lib/guia-de-foco-pantallas.ts`; o el cuerpo dice por qué no aplica. Una pantalla nueva no nace «pendiente».
@@ -14,6 +18,13 @@
   sigue lo que la persona ya eligió** (`/sugerir`; CLAUDE.md «Sugerencias coherentes», ADR-0290), probado en el navegador tocando cada
   control que lo mueve, y a 375 px que no se corte. Si no depende de nada elegido antes, va marcado `// sugerir-fijo: <por qué>`.
   Un archivo nuevo no entra a `lib/sugerir-archivos.ts` (`pnpm sugerir` lo dice).
+- [ ] Si agrega o cambia una pantalla o un modal que **guarda** (llama una RPC o un `.insert/.update/.delete`): **se atacó con `/chaos`**
+  (CLAUDE.md «Caos», ADR-0356): corrida con su semilla, ningún hallazgo de gravedad 1 o 2 abierto (o anotado en el tablero
+  `docs/chaos/README.md` con quién lo decide), y las invariantes de la base limpias tras cada ataque que escribió. Una pantalla de solo
+  lectura lo declara. Un hallazgo de seguridad no se escribe aquí: se le dice a Felipe.
+- [ ] Si agrega, quita o cambia un botón, un campo o una pestaña de una pantalla: **su guía interactiva está al día** (`/guia`; CLAUDE.md
+  «Guías interactivas», ADR-0389): explica lo nuevo con su `data-guia`, ya no menciona lo que se fue, `guias:recorrer` en verde (la demo
+  no escribe en la base) y recién ahí la huella aceptada (`guias:huella <id>`). Una pantalla nueva trae su guía o dice por qué no aplica.
 
 ## SQL para producción
 
@@ -29,4 +40,7 @@
   en el archivo de la rama en `docs/backlog/` como «POR PEGAR» con la fecha.
 
 <!-- El check «SQL pegado» sale rojo si el PR trae una migración nueva y no hay ninguna de las dos casillas marcadas, o si
-     edita o borra una migración que ya está en `main` (la corrección va en un archivo nuevo). -->
+     edita o borra una migración que ya está en `main` (la corrección va en un archivo nuevo). Con «SQL pegado en
+     producción» marcada, además MIRA producción (ADR-0251, act. 2026-10-12): espera a que el CI levante su base y compara
+     lo que deja cada migración; si falta algo, sale rojo nombrando el archivo. Pegaste después de marcarla: vuelve a
+     correr el check (Re-run) o edita este cuerpo. -->

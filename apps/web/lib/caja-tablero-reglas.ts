@@ -11,21 +11,28 @@
 //  - Qué vista del historial y qué tarjetas trae cada quien por defecto.
 
 import type { CierreCaja, ResumenCaja } from "@/lib/caja";
+import { ORDEN_METODOS, type MetodoRitmo } from "./caja-panel-reglas";
 
 /* ------------------------------------------------------------------
    Cobrado en el turno
    ------------------------------------------------------------------ */
 
-export type MetodoCobrado = { clave: "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro"; texto: string; monto: number };
+export type MetodoCobrado = { clave: "efectivo" | "tarjeta" | "yape" | "transferencia" | "qr" | "otro"; texto: string; monto: number };
 
 const TEXTO_METODO: Record<MetodoCobrado["clave"], string> = {
   efectivo: "Efectivo",
   tarjeta: "Tarjeta",
   yape: "Yape / Plin",
   transferencia: "Transferencia",
+  qr: "QR",
   otro: "Otro",
 };
-const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+const ORDEN_METODO: MetodoCobrado["clave"][] = ["efectivo", "tarjeta", "yape", "transferencia", "qr", "otro"];
+
+/** A qué forma de pago de «Cobrado» pertenece un método de `venta_pagos`: Yape y Plin juntos, el QR aparte (es un medio real del mostrador), lo desconocido en «Otro». */
+export function claveDeMetodo(metodo: string): MetodoCobrado["clave"] {
+  return metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" || metodo === "qr" ? metodo : "otro";
+}
 
 /**
  * Lo cobrado HOY por forma de pago, sin el adelanto de separaciones (`anticipo`), que va aparte. Yape y Plin se juntan
@@ -41,12 +48,21 @@ export function cobradoDelTurno(porMetodo: Partial<Record<string, number>>): { t
       anticipo += monto;
       continue;
     }
-    const clave: MetodoCobrado["clave"] =
-      metodo === "plin" || metodo === "yape" ? "yape" : metodo === "efectivo" || metodo === "tarjeta" || metodo === "transferencia" ? metodo : "otro";
+    // El redondeo del efectivo no es una forma de pago ni dinero que entró (ADR-0311): la base ya no lo manda en `por_metodo`,
+    // pero si llegara, no suma a lo cobrado ni cae en «Otro».
+    if (metodo === "redondeo") continue;
+    const clave = claveDeMetodo(metodo);
     suma.set(clave, (suma.get(clave) ?? 0) + monto);
   }
   const metodos = ORDEN_METODO.filter((c) => (suma.get(c) ?? 0) > 0).map((c) => ({ clave: c, texto: TEXTO_METODO[c], monto: redondear(suma.get(c)!) }));
   return { total: redondear(metodos.reduce((a, m) => a + m.monto, 0)), anticipo: redondear(anticipo), metodos };
+}
+
+/** La nota del redondeo del efectivo bajo «Cobrado en el turno» (ADR-0311): solo si hubo, con la cifra en la moneda de la pantalla
+ *  (`soles`). El redondeo no es una forma de pago: no suma a lo cobrado, y la nota lo dice para que nadie busque esos céntimos. */
+export function notaDeRedondeo(redondeo: number, soles: (n: number) => string): string | null {
+  if (!(redondeo > 0)) return null;
+  return `− ${soles(redondeo)} de redondeo en efectivo: se cobra al múltiplo de S/\u00a00.10, hacia abajo, y no suma a lo cobrado.`;
 }
 
 /* ------------------------------------------------------------------
@@ -78,11 +94,47 @@ export function piezasDelCajon(apertura: number, r: Pick<ResumenCaja, "ventasEfe
 
 export type FiltroMovimientos = "todo" | "ventas" | "cajon";
 
+type EventoFiltrable = { icono: "venta" | "ingreso" | "egreso"; titulo: string; metodos?: readonly MetodoRitmo[] };
+
 /** ¿El evento pasa el filtro? «Mueve el cajón» = movimientos manuales y ventas con algo en efectivo. */
-export function pasaFiltroMovimiento(e: { icono: "venta" | "ingreso" | "egreso"; titulo: string }, filtro: FiltroMovimientos): boolean {
+export function pasaFiltroMovimiento(e: EventoFiltrable, filtro: FiltroMovimientos): boolean {
   if (filtro === "todo") return true;
   if (filtro === "ventas") return e.icono === "venta";
   return e.icono !== "venta" || e.titulo.toLowerCase().includes("efectivo");
+}
+
+/**
+ * El filtro de «Movimientos del turno» es UNA sola elección: la vista (Todo / Ventas / Mueve el cajón) y, solo dentro de
+ * «Ventas», el medio de pago. Un ingreso o un egreso del cajón no se pagó con tarjeta ni con Yape: «Mueve el cajón +
+ * Tarjeta» sería siempre una lista vacía. Por eso el estado imposible no se puede armar: elegir un medio lleva a «Ventas»
+ * y elegir otra vista suelta el medio (Norman: si la persona se equivoca, es del diseño).
+ */
+export type FiltroMov = { vista: FiltroMovimientos; metodo: MetodoRitmo | null };
+export const FILTRO_MOV_INICIAL: FiltroMov = { vista: "todo", metodo: null };
+
+export function elegirVista(vista: FiltroMovimientos): FiltroMov {
+  return { vista, metodo: null };
+}
+
+/** Tocar el medio que ya estaba elegido lo suelta (queda «Ventas», sin medio); otro medio lo reemplaza. */
+export function elegirMetodo(actual: FiltroMov, metodo: MetodoRitmo): FiltroMov {
+  return { vista: "ventas", metodo: actual.metodo === metodo ? null : metodo };
+}
+
+/** ¿El evento pasa la vista y el medio? Una venta de pago mixto («efectivo + yape») pasa por cualquiera de sus medios. */
+export function pasaFiltroMov(e: EventoFiltrable, f: FiltroMov): boolean {
+  if (!pasaFiltroMovimiento(e, f.vista)) return false;
+  return f.metodo === null || (e.icono === "venta" && (e.metodos ?? []).includes(f.metodo));
+}
+
+/** Los medios que sí se usaron en el turno, en el orden de siempre, con cuántas ventas pasaron por cada uno. Sin ventas, nada. */
+export function metodosDelTurno(eventos: readonly EventoFiltrable[]): { clave: MetodoRitmo; ventas: number }[] {
+  const cuenta = new Map<MetodoRitmo, number>();
+  for (const e of eventos) {
+    if (e.icono !== "venta") continue;
+    for (const m of e.metodos ?? []) cuenta.set(m, (cuenta.get(m) ?? 0) + 1);
+  }
+  return ORDEN_METODOS.filter((m) => cuenta.has(m)).map((m) => ({ clave: m, ventas: cuenta.get(m)! }));
 }
 
 /* ------------------------------------------------------------------
@@ -99,7 +151,7 @@ export type Cuadre = { clave: ClaveCuadre; texto: string; diferencia: number };
 export function cuadreDe(diferencia: number): Cuadre {
   const d = redondear(diferencia);
   if (Math.abs(d) < 0.01) return { clave: "ok", texto: "Cuadró", diferencia: 0 };
-  const texto = `${d > 0 ? "Sobró" : "Faltó"} S/ ${Math.abs(d).toFixed(2)}`;
+  const texto = `${d > 0 ? "Sobró" : "Faltó"} S/\u00a0${Math.abs(d).toFixed(2)}`;
   return { clave: Math.abs(d) <= TOLERANCIA_CUADRE ? "poco" : "mal", texto, diferencia: d };
 }
 

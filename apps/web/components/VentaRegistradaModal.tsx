@@ -2,14 +2,19 @@
 
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Printer } from "lucide-react";
+import { Ticket } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ReciboTermico } from "@/components/ReciboTermico";
+import { EnviarBoleta } from "@/components/punto-de-venta/EnviarBoleta";
 import { money, type VentaOk } from "@/components/PuntoDeVenta";
 import { EMISOR, emisorCompleto, type Emisor } from "@/lib/emisor";
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "@/lib/comprobantes-reglas";
-import { fechaHoraLima, NOMBRE_METODO, textoNumeroRecibo } from "@/lib/recibo-reglas";
+import { documentoLegibleComprobante } from "@/lib/documento-comprobante-reglas";
+import { fechaHoraLima, NOMBRE_METODO, TEXTO_REDONDEO, textoNumeroRecibo } from "@/lib/recibo-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
+import { textoCuponCobrado } from "@/lib/club-puntos-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 type Props = {
   ok: VentaOk;
@@ -66,7 +71,6 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
       subtitulo={ubicacionEtiqueta}
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      ancho={r ? "max-w-md" : "max-w-sm"}
     >
       {(cerrar) => (
         <div className="space-y-4">
@@ -82,7 +86,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
           </div>
 
           {ok.offline && (
-            <p className="text-center text-xs text-tinta/65">
+            <p className="text-center text-xs text-tinta/65">{/* unificar-fijo: explica qué pasó con la venta sin internet, no es un vacío */}
               Sin internet: quedó guardada en este equipo y sube sola cuando vuelva la conexión. No se puede emitir comprobante todavía.
             </p>
           )}
@@ -105,6 +109,12 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   </span>
                   <span className="text-[11px] text-tinta/60">{ok.estado ? ESTADO_ETIQUETA[ok.estado] : "Emitida"}</span>
                 </div>
+                {/* «Pendiente de enviar» no le dice nada a quien cobra (pasada ciega, 2026-09-30): qué es y qué no es. */}
+                {(ok.estado === "pendiente" || ok.estado === "pendiente_reintento") && (
+                  <p className="text-[11.5px] leading-snug text-tinta/65">
+                    La venta ya quedó guardada y {`la ${ETIQUETA_TIPO[r.tipo].toLowerCase()}`} tiene su número. Todavía no llegó a SUNAT: el sistema la envía solo y, si SUNAT no responde, la reintenta.
+                  </p>
+                )}
                 {/* La nota de venta no desglosa IGV (ADR-0164). */}
                 {r.tipo !== "nota_venta" && <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/70">
                   <p className="flex justify-between tabular-nums">
@@ -123,15 +133,24 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                       <span>{money(p.monto)}</span>
                     </p>
                   ))}
+                  {(r.redondeo ?? 0) > 0 && (
+                    <p className="flex justify-between tabular-nums text-tinta/60">
+                      <span>{TEXTO_REDONDEO}</span>
+                      <span>{money(r.redondeo ?? 0)}</span>
+                    </p>
+                  )}
                 </div>
                 <p className="border-t border-sand pt-2.5 text-xs text-tinta/70">
                   Cliente:{" "}
                   <span className="text-tinta">
                     {r.cliente.nombre?.trim() || "Cliente varios"}
-                    {r.cliente.tipoDoc !== "sin_documento" && r.cliente.numDoc ? ` · ${r.cliente.tipoDoc === "ruc" ? "RUC" : "DNI"} ${r.cliente.numDoc}` : ""}
+                    {documentoLegibleComprobante(r.cliente.tipoDoc, r.cliente.numDoc) ? ` · ${documentoLegibleComprobante(r.cliente.tipoDoc, r.cliente.numDoc)}` : ""}
                   </span>
                 </p>
               </div>
+
+              {/* Si el cliente dejó su celular: «Abrir WhatsApp con la boleta» (ADR-0288, act. 2026-10-03 (o)). No frena nada: la venta ya quedó. */}
+              <EnviarBoleta ventaId={ok.ventaId ?? null} celular={ok.celular ?? null} comprobante={{ tipo: r.tipo, serie: r.serie, numero: r.numero }} enFicha={ok.celularEnFicha ?? null} />
 
               <details className="group rounded-xl border border-sand text-xs">
                 <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-tinta/80">
@@ -151,13 +170,21 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
               </details>
 
               {sinDatosFiscales && (
-                <p role="alert" className="rounded-lg border border-ambar/40 bg-ambar/10 px-3 py-2 text-xs text-ambar-profundo">
+                <Aviso tono="atencion" chico>
                   Faltan el RUC y la razón social de CAYLA en la configuración: el ticket sale sin ellos y no sirve para entregarlo como
                   comprobante. Configura <span className="font-mono">NEXT_PUBLIC_EMISOR_RUC</span> y{" "}
                   <span className="font-mono">NEXT_PUBLIC_EMISOR_RAZON_SOCIAL</span>.
-                </p>
+                </Aviso>
               )}
             </>
+          )}
+
+          {/* El cupón del Club (programa de puntos): se usó, y es de una sola vez. */}
+          {ok.cupon && ok.cupon.monto > 0 && (
+            <p className="flex items-start gap-1.5 text-xs text-taupe-profundo">
+              <Ticket className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>{textoCuponCobrado(ok.cupon.monto)}</span>
+            </p>
           )}
 
           {!ok.offline && !r && (
@@ -173,15 +200,9 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             <div className="space-y-2">
               {/* Lo que se hace en casi todas las ventas, en UN toque y con Enter (el foco ya está
                   acá): imprime y deja la caja lista para la siguiente clienta. */}
-              <button
-                type="button"
-                autoFocus
-                onClick={() => imprimirYSeguir(cerrar)}
-                className={`${botonPrimario} flex w-full items-center justify-center gap-2 whitespace-nowrap`}
-              >
-                <Printer className="h-4 w-4" aria-hidden />
+              <BotonImprimir peso="primario" autoFocus onClick={() => imprimirYSeguir(cerrar)} className="w-full whitespace-nowrap">
                 Imprimir y nueva venta
-              </button>
+              </BotonImprimir>
               {/* Las dos salidas menos comunes, más discretas: reintentar el papel sin salir
                   (se atascó, se acabó el rollo) o seguir sin imprimir (la clienta no lo quiere). */}
               <div className="grid grid-cols-2 gap-2">

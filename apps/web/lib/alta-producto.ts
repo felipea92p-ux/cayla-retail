@@ -13,6 +13,10 @@
 //   NO HACE: no valida contra la base (duplicados, vocabulario aprobado) —
 //            eso lo hacen `buscar_productos_parecidos` y la RPC de alta.
 
+import { enEscala } from "./color-escala";
+import { agruparPorFamilia } from "./colores-familias";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
+
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
 /** Espejo de `retail.fn_titulo_referencia`: "  blusa  CAMILA " → "Blusa Camila". */
@@ -102,8 +106,25 @@ export function codigosRepetidos(codigos: readonly (string | null)[]): number[] 
   return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
 }
 
-/** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. */
-export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string; sinonimos?: readonly string[] };
+/** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. `pantoneTcx`: el código para pedir la tela
+ *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos.
+ *  `tipo`: `colores.tipo` («solido» | «textura» | «estampado»); `fondoDeMuestra` lo usa para que «Gris melange» no se pinte como «Gris».
+ *  Ausente = liso, que es lo que la base pone por defecto. */
+export type ColorAlta = {
+  codigo: string;
+  nombre: string;
+  hex: string | null;
+  familiaColor: string;
+  tipo?: string | null;
+  sinonimos?: readonly string[];
+  pantoneTcx?: string | null;
+  /** La ficha del color (ADR-0316): qué transmite y con qué se combina (códigos). Ausentes = la pantalla no la pidió o el color no la tiene. */
+  descripcion?: string | null;
+  combinaCon?: readonly string[];
+};
+
+// El orden de cada familia de la carta lo da `color-escala.ts` (gama y claridad, calculadas del hex): ya no se confía en `colores.orden`,
+// que un color recién creado dejaba fuera de lugar, ni en el brillo del RGB, que subestima los azules (ADR-0312).
 
 /** Los `max` colores más usados en la categoría (solo los que tienen uso) al frente; el resto agrupado por familia de color, en el orden de `familias`. */
 export function ordenarColores(
@@ -116,13 +137,9 @@ export function ordenarColores(
     .filter((c) => (usoEnCategoria[c.codigo] ?? 0) > 0)
     .sort((a, b) => (usoEnCategoria[b.codigo] ?? 0) - (usoEnCategoria[a.codigo] ?? 0) || a.nombre.localeCompare(b.nombre, "es"))
     .slice(0, max);
-  const grupos = familias
-    .map((f) => ({ familia: f.valor, texto: f.texto, colores: colores.filter((c) => c.familiaColor === f.valor) }))
-    .filter((g) => g.colores.length > 0);
-  const conocidas = new Set(familias.map((f) => f.valor));
-  // Un color sin familia conocida (dato viejo) no debe desaparecer de la pantalla.
-  const huerfanos = colores.filter((c) => !conocidas.has(c.familiaColor));
-  if (huerfanos.length > 0) grupos.push({ familia: "sin-familia", texto: "Otros", colores: huerfanos });
+  // Un solo agrupador para las tres pantallas de colores (`agruparPorFamilia`): una familia que el código aún no conoce sale con su propio
+  // nombre y un color sin familia como «Sin familia»; ninguno desaparece.
+  const grupos = agruparPorFamilia(colores, (c) => c.familiaColor, familias).map((g) => ({ ...g, colores: [...g.colores].sort(enEscala) }));
   return { frecuentes, grupos };
 }
 
@@ -148,21 +165,16 @@ export function repartirFamilias<T extends { codigo: string }>(familias: T[]): {
   return { aLaVista, masFamilias: familias.filter((f) => !FAMILIAS_A_LA_VISTA.includes(f.codigo)) };
 }
 
-/** Lo que el «Ver más» de un eje (hoy, Tejido) muestra: los valores aprobados del catálogo que la categoría todavía NO ofrece, en el
- *  orden del catálogo. Jeans ofrece 3 tejidos de 22 (2026-09-28): sin esto, usar Lino en un jean exigía saber que Lino existe y
- *  escribirlo letra por letra en «+ Nuevo tejido».
- *  Nunca repite uno que la categoría ya ofrece, así que el elegido (que la base exige que sea de la categoría) jamás queda escondido
- *  tras «Ver menos». Vacío si la categoría ya ofrece todo: ahí no se pinta el botón. */
-export function fueraDeLaCategoria<T extends { id: string }>(universo: T[], deLaCategoria: { id: string }[]): T[] {
-  const ofrecidos = new Set(deLaCategoria.map((v) => v.id));
-  return universo.filter((v) => !ofrecidos.has(v.id));
-}
-
 // ---------------------------------------------------------------------------
 // Qué falta para guardar, y qué bloques están desbloqueados.
 // ---------------------------------------------------------------------------
 
 export type EstadoAlta = {
+  /** ADR-0463: el alta pregunta a qué tienda pertenece el producto (CAYLA, CLAURE) ANTES de la categoría. `false` o ausente = la base
+   *  todavía no tiene las tiendas (se pega antes que la web, o aún no): el alta sigue como siempre y el producto nace en CAYLA. */
+  exigeEmpresa?: boolean;
+  /** La tienda elegida. Vacía = todavía sin elegir (no hay valor de fábrica: un producto en la tienda equivocada no se nota hasta tarde). */
+  empresaId?: string;
   categoriaId: string;
   // Marca y proveedor NO están aquí: desde ADR-0283 (2026-09-29) un producto se crea sin ellos y se completan después.
   referencia: string;
@@ -183,26 +195,58 @@ export type EstadoAlta = {
   celdasIncluidas: number;
   precioBase: string;
   costoBase: string;
+  /** La primera celda de la tabla con un precio propio en 0 (o que no es un número), como se lee en pantalla: «Negro en M».
+   *  `null` o ausente = ninguna (`celdaSinPrecio`, lib/tabla-alta-reglas.ts; ADR-0384). */
+  celdaSinPrecio?: string | null;
   /** Paso 4 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
   stockTotal: number;
   /** Celdas con algo que no es un entero de 0 a 9999 (la pantalla no deja escribirlo; la regla no se fía). */
   stockInvalidas: number;
   /** La persona marcó «Todavía no tengo unidades»: el producto se crea sin stock, a sabiendas. */
   sinStock: boolean;
+  /** La tienda de la carga separa piso y almacén: solo ahí se pregunta dónde están las prendas de hoy. */
+  separaPiso: boolean;
+  /** Dónde están hoy las prendas de la carga. `null` = todavía sin responder: la pregunta no trae respuesta de fábrica
+   *  (Felipe 2026-10-04, ADR-0328). Con «almacén» marcado de antemano, TRU se cargó casi entera como guardada estando colgada:
+   *  el sistema veía 138 en el piso y había 600–750, la caja no dejaba cobrar lo colgado y «Reponer» marcaba todas las tallas. */
+  lugarCarga: LugarCarga | null;
 };
+
+export type LugarCarga = "piso" | "almacen";
+
+/** Lo que falta cuando hay unidades en una tienda que separa piso y almacén y nadie dijo dónde están. */
+export const TEXTO_FALTA_LUGAR = "Di si están colgadas en el piso o guardadas en el almacén.";
+
+/** Hay unidades que cargar y la tienda separa piso y almacén, pero la persona todavía no dijo dónde están. */
+export function faltaLugarCarga(e: Pick<EstadoAlta, "stockTotal" | "stockInvalidas" | "separaPiso" | "lugarCarga">): boolean {
+  return e.stockInvalidas === 0 && e.stockTotal > 0 && e.separaPiso && e.lugarCarga === null;
+}
 
 /** El bloque de cada problema dice a qué pregunta del alta pertenece (ver `pasoDeProblema`). `tela` = tejido y patrón: describen
  *  la prenda y viven en «¿Cómo es?»; `tallas` y `variantes` son la forma del modelo, en «¿En qué tallas y colores?». */
-export type Problema = { bloque: "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
+/** Lo que se dice de una celda de la tabla con el precio en 0 (ADR-0384): cuál es, dónde está y qué hacer. Una sola frase para
+ *  `problemasAlta` y la guía, que tienen que decir lo mismo. */
+export function textoCeldaSinPrecio(celda: string): string {
+  return `${celda} tiene el precio en 0 (tabla, pestaña Precios): pon un precio mayor que 0 o déjala vacía para que tome el de todas.`;
+}
+
+/** Lo que falta cuando todavía no se dijo a qué tienda pertenece el producto. Una sola frase para `problemasAlta` y la guía. */
+export const TEXTO_FALTA_EMPRESA = "Elige a qué tienda pertenece el producto.";
+
+export type Problema = { bloque: "empresa" | "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
 
 /** Lo que falta, en el orden en que la persona lo encuentra en pantalla: así `problemas[0]` es siempre lo próximo que va a
  *  ver (nombre → tejido → patrón en el paso 2; tallas y tabla en el 3; precio y stock en el 4). */
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
+  // La tienda va antes que la categoría (ADR-0463): sin ella no se sabe de qué negocio es el producto.
+  if (e.exigeEmpresa && !e.empresaId) return [{ bloque: "empresa", texto: TEXTO_FALTA_EMPRESA }];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
   if (!e.referencia.trim()) p.push({ bloque: "nombre", texto: "Escribe el nombre del producto." });
+  // Sin ni una letra ni un número («...», «✨») la base no tiene con qué formar la clave del nombre y lo rechaza recién al final de los 4 pasos.
+  else if (claveReferencia(e.referencia) === "") p.push({ bloque: "nombre", texto: "El nombre necesita al menos una letra o un número." });
   else if (e.nombreBloqueado) p.push({ bloque: "nombre", texto: "Ya existe un producto con ese nombre." });
-  else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro producto, o abre el que ya existe." });
+  else if (e.nombreSinConfirmar) p.push({ bloque: "nombre", texto: "Confirma que es otro diseño (mira la prenda parecida), o ábrela." });
   else if (e.comprobandoNombre) p.push({ bloque: "nombre", texto: "Comprobando que el nombre no exista todavía…" });
   if (e.exigeTejidoPatron) {
     if (!e.hayTejidosEnCategoria || !e.hayPatronesEnCategoria) {
@@ -217,12 +261,17 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.celdasIncluidas === 0) p.push({ bloque: "variantes", texto: "Deja al menos una variante en la tabla." });
   const precio = Number(e.precioBase);
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
+  if (e.celdaSinPrecio) p.push({ bloque: "precio", texto: textoCeldaSinPrecio(e.celdaSinPrecio) });
   const costo = Number(e.costoBase);
   if (e.costoBase.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) p.push({ bloque: "precio", texto: "El costo no puede ser negativo." });
+  // ADR-0415: hasta S/ 5 000 (la base lo rechaza igual con `variantes_precio_con_tope`).
+  if (precio > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_PRECIO_CON_TOPE });
+  if (costo > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_COSTO_CON_TOPE });
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
   else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." });
+  else if (faltaLugarCarga(e)) p.push({ bloque: "stock", texto: TEXTO_FALTA_LUGAR });
   return p;
 }
 
@@ -263,13 +312,14 @@ export function resumenStock(cantidades: Readonly<Record<string, string>>, clave
 }
 
 /** A dónde entra el stock de hoy: la tienda donde está parada la persona (la de la cabecera), si separa piso y almacén, y si
- *  su cuenta puede dejarlas en el piso (la base las baja con `bajar_al_piso`, que pide el módulo «Bajada al piso»). */
-export type DestinoStock = { ubicacionId: string; etiqueta: string; separaPiso: boolean; puedeBajar: boolean };
+ *  su cuenta puede dejarlas en el piso (la base las baja con `bajar_al_piso`, que pide Existencias, ADR-0306). */
+export type DestinoStock = { ubicacionId: string; etiqueta: string; separaPiso: boolean };
 
-/** Dónde queda el stock de la carga inicial, dicho como lo diría la persona. */
-export function textoDestinoStock(etiquetaSede: string, alPiso: boolean, separaPiso: boolean): string {
+/** Dónde queda el stock de la carga inicial, dicho como lo diría la persona. Sin respuesta todavía, lo dice. */
+export function textoDestinoStock(etiquetaSede: string, lugar: LugarCarga | null, separaPiso: boolean): string {
   if (!separaPiso) return etiquetaSede;
-  return `${alPiso ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
+  if (lugar === null) return `${etiquetaSede} · falta decir si están colgadas o guardadas`;
+  return `${lugar === "piso" ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
 }
 
 export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
@@ -309,6 +359,7 @@ export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4];
 
 export function pasoDeProblema(p: Problema): PasoAlta {
   switch (p.bloque) {
+    case "empresa":
     case "categoria":
       return 1;
     case "nombre":
@@ -434,7 +485,7 @@ export function fraseStockCreado(stock: { unidades: number; donde: string }, sin
   if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
   if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
   if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;
-  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}): ya aparecen en Existencias.`;
+  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.`;
 }
 
 /** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */

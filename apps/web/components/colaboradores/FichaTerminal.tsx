@@ -1,0 +1,94 @@
+"use client";
+
+import { ArrowLeftRight, KeyRound, MapPin, PauseCircle, PlayCircle } from "lucide-react";
+import type { Terminal } from "@/lib/colaboradores";
+import { cuandoEntro } from "@/lib/equipo-reglas";
+import { Chip } from "@/components/ui/Chip";
+import { IconoAparato } from "@/components/ui/IconoAparato";
+import { Cajon } from "@/components/ui/Cajon";
+import { PildoraRol } from "@/components/colaboradores/EquipoLista";
+
+// La ficha de una terminal (Felipe 2026-10-05: «Terminales» se ve igual que «Todas»; antes era otra pantalla con su tabla y dos
+// cajas de texto). Mismo cajón que la de una persona: una frase y sus acciones a la vista. Cada acción abre su modal de siempre
+// (la clave se muestra UNA sola vez, ADR-0162), que vive en `ColaboradoresPanel`, no dentro del cajón (ADR-0128: los eventos de
+// un modal abierto desde un cajón suben por el cajón).
+
+function BotonAccion({ icono: Icono, texto, onClick, peligro = false }: { icono: typeof KeyRound; texto: string; onClick: () => void; peligro?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`grid justify-items-center gap-1.5 rounded-xl border px-2 py-3 text-[13px] font-semibold transition-colors duration-200 ease-cayla ${
+        peligro ? "border-sand text-rojo hover:border-rojo/50" : "border-sand text-tinta hover:border-taupe"
+      }`}
+    >
+      <Icono aria-hidden className={`h-5 w-5 ${peligro ? "text-rojo" : "text-taupe"}`} />
+      {texto}
+    </button>
+  );
+}
+
+export function FichaTerminal({
+  terminal,
+  ahoraIso,
+  onClave,
+  onCambiarRol,
+  onAlternar,
+  onCerrar,
+}: {
+  terminal: Terminal;
+  ahoraIso: string;
+  onClave: () => void;
+  /** Sin ella (roles sin leer), no se ofrece cambiar el rol. */
+  onCambiarRol?: () => void;
+  onAlternar: () => void;
+  onCerrar: () => void;
+}) {
+  const t = terminal;
+  return (
+    <Cajon
+      onCerrar={onCerrar}
+      clave={t.id}
+      marca={
+        <span className={`grid h-10 w-10 place-items-center rounded-xl bg-tinta text-crema ${t.activo ? "" : "opacity-60"}`}>
+          <IconoAparato className="h-5 w-5" />
+        </span>
+      }
+      titulo={t.nombre}
+      frase={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <MapPin aria-hidden className="h-3.5 w-3.5" />
+          {t.ubicacion_nombre}
+          <PildoraRol nombre={t.rol_nombre} lider={false} />
+          {!t.activo && <Chip tono="apagado" tachado={false}>Desactivada</Chip>}
+        </span>
+      }
+      debajo={
+        // Una línea: cuándo inició sesión por última vez y el correo que se escribe en el aparato.
+        <p className="truncate text-xs text-tinta/60" data-guia="colaboradores.terminal-frase">
+          {!t.activo ? (
+            <strong className="font-semibold text-tinta">Desactivada</strong>
+          ) : t.ultimo_acceso ? (
+            <>
+              Última sesión <strong className="font-semibold text-tinta">{cuandoEntro(t.ultimo_acceso, ahoraIso)}</strong>
+            </>
+          ) : (
+            <strong className="font-semibold text-tinta">Aún sin sesión</strong>
+          )}
+          {t.correo ? ` · ${t.correo}` : ""}
+        </p>
+      }
+      claseCuerpo="space-y-5"
+    >
+      <div className="grid grid-cols-3 gap-2" data-guia="colaboradores.terminal-acciones">
+        <BotonAccion icono={KeyRound} texto="Clave nueva" onClick={onClave} />
+        {onCambiarRol && <BotonAccion icono={ArrowLeftRight} texto="Rol" onClick={onCambiarRol} />}
+        {t.activo ? (
+          <BotonAccion icono={PauseCircle} texto="Desactivar" onClick={onAlternar} peligro />
+        ) : (
+          <BotonAccion icono={PlayCircle} texto="Reactivar" onClick={onAlternar} />
+        )}
+      </div>
+    </Cajon>
+  );
+}

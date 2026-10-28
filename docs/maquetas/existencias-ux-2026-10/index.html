@@ -1,0 +1,733 @@
+<title>Existencias · tres spikes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<style>
+/* Layout: un documento de decisión arriba (diagnóstico) y, abajo, una mesa con tres pantallas vivas que se cambian con pestañas.
+   Paleta: los tokens oficiales «CAYLA Dynamic» de apps/web/app/globals.css (ADR-0169). El ERP no tiene modo oscuro (ADR-0169),
+   así que la maqueta se queda en claro a propósito y fija cada color. */
+:root {
+  color-scheme: light;
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+  --tinta: #1a1a18; --taupe: #805c4c; --rojo: #b8412d; --rojo-p: #8b2a1f;
+  --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e;
+  --serif: "EB Garamond", Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+* { box-sizing: border-box; }
+body { background: var(--crema); color: var(--tinta); font: 15px/1.55 var(--sans); margin: 0; }
+.envoltura { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 80px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 46px); line-height: 1.05; }
+h2 { font-size: 28px; line-height: 1.15; }
+h3 { font-size: 21px; line-height: 1.2; }
+p { margin: 0; }
+a { color: inherit; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+.ceja { font: 500 11px/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--taupe); display: flex; align-items: center; gap: 10px; }
+.ceja::before { content: ""; width: 28px; height: 1px; background: var(--taupe); }
+.bajada { color: var(--taupe); max-width: 68ch; margin-top: 10px; }
+.num { font-variant-numeric: tabular-nums; }
+.seccion { margin-top: 44px; display: grid; gap: 16px; }
+.tarjeta { background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; }
+.nota { background: var(--hueso); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--tinta); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.chip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.c-ambar { background: color-mix(in srgb, var(--ambar) 13%, transparent); color: var(--ambar); } .c-ambar i { background: var(--ambar); }
+.c-pizarra { background: color-mix(in srgb, var(--pizarra) 12%, transparent); color: var(--pizarra); } .c-pizarra i { background: var(--pizarra); }
+.c-verde { background: color-mix(in srgb, var(--verde) 12%, transparent); color: var(--verde); } .c-verde i { background: var(--verde); }
+.c-rojo { background: color-mix(in srgb, var(--rojo) 10%, transparent); color: var(--rojo-p); } .c-rojo i { background: var(--rojo); }
+
+/* ---- Diagnóstico ---- */
+.rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.hallazgo { padding: 18px 20px; display: grid; gap: 6px; }
+.hallazgo .cifra { font: 500 34px/1 var(--serif); }
+.hallazgo p { font-size: 14px; color: var(--taupe); }
+.hallazgo strong { color: var(--tinta); font-weight: 600; }
+.tabla-scroll { overflow-x: auto; border: 1px solid var(--sand); border-radius: 12px; background: var(--papel); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--sand); vertical-align: top; }
+th { font: 500 11px/1.2 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--taupe); background: var(--crema); position: sticky; top: 0; }
+tr:last-child td { border-bottom: 0; }
+td.fuerte { font-weight: 600; white-space: nowrap; }
+.veredicto { font-weight: 600; white-space: nowrap; }
+
+/* ---- Mesa de spikes ---- */
+.pestanas { display: flex; gap: 6px; flex-wrap: wrap; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: var(--crema); padding-block: 10px; border-bottom: 1px solid var(--sand); }
+.pestana { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 8px 16px; font-size: 14px; display: inline-flex; gap: 8px; align-items: baseline; }
+.pestana b { font-family: var(--serif); font-size: 18px; font-weight: 500; }
+.pestana[aria-selected="true"] { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.ficha-spike { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 18px; }
+.ficha-spike > div { min-width: 0; }
+@media (max-width: 760px) { .ficha-spike { grid-template-columns: 1fr; } }
+.ficha-spike ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
+.ficha-spike li { margin: 3px 0; }
+.etq { font: 500 11px/1.2 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+
+.pantalla { margin-top: 18px; border: 1px solid var(--sand); border-radius: 18px; background: var(--crema); position: relative; overflow: hidden; min-height: 640px; }
+.barra-nav { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--sand); background: var(--papel); font-size: 12px; color: var(--taupe); }
+.barra-nav span.pt { width: 9px; height: 9px; border-radius: 50%; background: var(--sand); }
+.barra-nav .ruta { margin-left: 8px; }
+.lienzo { padding: 22px clamp(14px, 3vw, 30px) 30px; display: grid; gap: 18px; }
+.ejemplo { position: absolute; right: 14px; top: 8px; font-size: 11px; color: var(--taupe); }
+
+.btn { border-radius: 10px; border: 1px solid var(--sand); background: var(--papel); padding: 9px 14px; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; transition: background .2s var(--ease), border-color .2s var(--ease); }
+.btn:hover { border-color: var(--taupe); }
+.btn.prim { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.btn.sutil { border-color: transparent; background: transparent; color: var(--taupe); }
+.btn.sutil:hover { color: var(--tinta); }
+.btn.grande { padding: 16px 20px; font-size: 17px; border-radius: 14px; min-height: 56px; justify-content: center; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.campo { width: 100%; border: 1px solid var(--sand); background: var(--hueso); border-radius: 12px; padding: 12px 14px 12px 42px; font: 15px var(--sans); color: var(--tinta); }
+.campo::placeholder { color: var(--taupe); }
+.caja-buscar { position: relative; flex: 1; min-width: 0; }
+.caja-buscar svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--taupe); }
+
+/* Cabecera común de los spikes */
+.cab { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 24px; align-items: flex-end; }
+.cab .izq { min-width: 0; display: grid; gap: 8px; }
+.cifras { display: flex; gap: 22px; flex-wrap: wrap; }
+.cifra-m { display: grid; gap: 2px; }
+.cifra-m b { font: 500 32px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.cifra-m small { font-size: 12.5px; color: var(--taupe); }
+.cifra-m small em { font-style: normal; color: var(--ambar); }
+
+/* Tarjetas de prenda */
+.grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.prenda { text-align: left; border: 1px solid var(--sand); background: var(--papel); border-radius: 14px; padding: 14px; display: grid; grid-template-columns: 62px minmax(0,1fr); gap: 12px; align-items: start; transition: border-color .2s var(--ease), transform .2s var(--ease); }
+.prenda:hover { border-color: var(--taupe); }
+.mosaico { width: 62px; height: 76px; border-radius: 10px; display: grid; place-items: center; color: rgba(255,255,255,.92); font-size: 8.5px; letter-spacing: .08em; text-transform: uppercase; text-align: center; line-height: 1.2; padding: 4px; }
+.mosaico.claro { color: var(--tinta); border: 1px solid var(--sand); }
+.mosaico svg { display: block; margin: 0 auto 4px; }
+.prenda h4 { margin: 0; font: 500 19px/1.15 var(--serif); }
+.prenda .sub { font-size: 12.5px; color: var(--taupe); }
+.riel { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; border-top: 2px solid var(--tinta); padding-top: 6px; position: relative; }
+.etqt { min-width: 34px; border-radius: 6px; padding: 3px 4px; text-align: center; font-size: 11px; line-height: 1.15; border: 1px solid var(--sand); background: var(--crema); }
+.etqt b { display: block; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.etqt.porcolgar { background: color-mix(in srgb, var(--ambar) 12%, var(--papel)); border-color: color-mix(in srgb, var(--ambar) 35%, transparent); color: var(--ambar); }
+.etqt.agotada { border-style: dashed; color: var(--taupe); background: transparent; }
+
+/* Opción A */
+.a-acciones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; position: relative; }
+.menu { position: absolute; top: calc(100% + 6px); left: 0; background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 6px; min-width: 220px; z-index: 5; display: grid; box-shadow: 0 10px 30px rgba(26,26,24,.12); }
+.menu button { text-align: left; border: 0; background: transparent; padding: 9px 12px; border-radius: 8px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
+.menu button:hover { background: var(--hueso); }
+.menu small { color: var(--taupe); }
+.a-hoy { display: grid; }
+.a-fila { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 11px 16px; border-top: 1px solid var(--sand); }
+.a-fila:first-child { border-top: 0; }
+.punto { width: 10px; height: 10px; border-radius: 50%; }
+.a-fila .txt { min-width: 0; font-size: 14.5px; }
+.a-fila .txt b { font: 500 22px/1 var(--serif); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.porque { border: 0; background: none; color: var(--taupe); font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; padding: 0 0 0 6px; }
+.explica { grid-column: 2 / -1; font-size: 13px; color: var(--taupe); }
+.a-barra { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--sand); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; background: var(--papel); padding: 9px 12px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--hueso); font-weight: 600; }
+.lista-tabla td, .lista-tabla th { padding: 8px 10px; }
+
+/* Cajón (A) y hoja (B) */
+.velo { position: absolute; inset: 0; background: rgba(26,26,24,.28); backdrop-filter: blur(3px); z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s var(--ease); }
+.velo.abierto { opacity: 1; pointer-events: auto; }
+.cajon { position: absolute; top: 0; right: 0; bottom: 0; width: min(440px, 100%); background: var(--papel); border-left: 1px solid var(--sand); z-index: 21; transform: translateX(102%); transition: transform .3s var(--ease); display: grid; grid-template-rows: auto 1fr auto; }
+.cajon.abierto { transform: none; }
+.hoja { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88%; background: var(--papel); border-top-left-radius: 22px; border-top-right-radius: 22px; z-index: 21; transform: translateY(104%); transition: transform .32s var(--ease); display: grid; grid-template-rows: auto 1fr auto; }
+.hoja.abierto { transform: none; }
+.hoja .asa { width: 44px; height: 5px; border-radius: 99px; background: var(--sand); margin: 10px auto 0; }
+.cuerpo { overflow: auto; padding: 16px 20px; display: grid; gap: 14px; align-content: start; }
+.pie { padding: 14px 20px; border-top: 1px solid var(--sand); display: flex; gap: 8px; flex-wrap: wrap; }
+.cerrar { border: 0; background: var(--hueso); border-radius: 999px; width: 34px; height: 34px; display: grid; place-items: center; }
+.tabla-tallas th { position: static; }
+.donde { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; }
+.donde div { border: 1px solid var(--sand); border-radius: 12px; padding: 10px; background: var(--crema); }
+.donde b { display: block; font: 500 28px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.donde small { font-size: 12px; color: var(--taupe); }
+.donde .vacio b { color: var(--taupe); }
+
+/* Opción B */
+.b-buscar { display: flex; gap: 10px; flex-wrap: wrap; }
+.b-buscar .campo { font-size: 18px; padding: 18px 16px 18px 50px; border-radius: 16px; min-height: 62px; }
+.b-buscar .caja-buscar svg { left: 18px; }
+.b-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.b-chip { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 12px 18px; font-size: 15px; white-space: nowrap; min-height: 48px; display: inline-flex; gap: 8px; align-items: center; }
+.b-chip b { font-variant-numeric: tabular-nums; }
+.b-chip[aria-pressed="true"] { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.b-tareas { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--sand); background: var(--papel); text-align: left; width: 100%; }
+.b-tareas .txt { flex: 1; min-width: 0; }
+.b-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.b-tile { border: 1px solid var(--sand); background: var(--papel); border-radius: 18px; padding: 0; overflow: hidden; text-align: left; display: grid; }
+.b-tile .foto { height: 128px; display: grid; place-items: center; color: rgba(255,255,255,.9); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.b-tile .foto.claro { color: var(--tinta); border-bottom: 1px solid var(--sand); }
+.b-tile .info { padding: 12px 14px 14px; display: grid; gap: 8px; }
+.b-tile h4 { margin: 0; font: 500 19px/1.15 var(--serif); }
+.puntos { display: flex; gap: 5px; flex-wrap: wrap; }
+.pt-t { min-width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 1px solid var(--sand); background: var(--crema); }
+.pt-t.porcolgar { background: color-mix(in srgb, var(--ambar) 14%, var(--papel)); color: var(--ambar); border-color: color-mix(in srgb, var(--ambar) 35%, transparent); }
+.pt-t.agotada { border-style: dashed; color: var(--taupe); background: transparent; text-decoration: line-through; }
+.tallas-b { display: flex; gap: 8px; flex-wrap: wrap; }
+.tallas-b button { min-width: 58px; min-height: 58px; border-radius: 14px; border: 1px solid var(--sand); background: var(--crema); font-size: 18px; font-weight: 600; display: grid; place-items: center; line-height: 1; }
+.tallas-b button small { display: block; font-size: 10.5px; font-weight: 500; color: var(--taupe); margin-top: 3px; }
+.tallas-b button[aria-pressed="true"] { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.tallas-b button[aria-pressed="true"] small { color: var(--sand); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--sand); border-radius: 14px; overflow: hidden; }
+.stepper button { width: 54px; height: 54px; border: 0; background: var(--hueso); font-size: 22px; }
+.stepper output { min-width: 54px; text-align: center; font: 500 26px var(--serif); }
+.aviso { position: absolute; left: 50%; bottom: 22px; transform: translate(-50%, 20px); background: var(--tinta); color: var(--papel); border-radius: 12px; padding: 12px 18px; font-size: 14px; z-index: 40; opacity: 0; transition: opacity .25s var(--ease), transform .25s var(--ease); pointer-events: none; max-width: calc(100% - 32px); }
+.aviso.ver { opacity: 1; transform: translate(-50%, 0); }
+
+/* Opción C */
+.c-rejilla { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .c-rejilla { grid-template-columns: 1fr; } }
+.c-col { display: grid; gap: 12px; min-width: 0; }
+.c-filas { display: grid; }
+.c-fila { border-top: 1px solid var(--sand); }
+.c-fila:first-child { border-top: 0; }
+.c-cabeza { width: 100%; border: 0; background: transparent; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 16px; }
+.c-cabeza h4 { margin: 0; font: 500 18px/1.2 var(--serif); }
+.c-cabeza .sub { font-size: 12.5px; color: var(--taupe); }
+.semaforo { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.sem { display: inline-grid; place-items: center; gap: 1px; font-size: 11px; color: var(--taupe); min-width: 30px; }
+.sem svg { display: block; }
+.c-detalle { padding: 0 16px 16px; display: grid; gap: 12px; }
+.c-tarea { padding: 14px 16px; display: grid; gap: 8px; border-top: 1px solid var(--sand); }
+.c-tarea:first-of-type { border-top: 0; }
+.barra-av { height: 6px; border-radius: 99px; background: var(--hueso); overflow: hidden; }
+.barra-av span { display: block; height: 100%; background: var(--ambar); border-radius: 99px; transition: width .4s var(--ease); }
+.c-tarea .linea { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.c-tarea .linea b { font: 500 22px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.frec { display: grid; gap: 10px; padding: 14px 16px; }
+.frec-fila { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 10px; align-items: center; }
+.frec-fila .etq { font-size: 10.5px; }
+.frec-fila div { display: flex; gap: 6px; flex-wrap: wrap; }
+.leyenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--taupe); }
+.leyenda span { display: inline-flex; gap: 6px; align-items: center; }
+
+/* Vocabulario */
+.voz td:first-child { white-space: nowrap; }
+.alt { display: flex; gap: 6px; flex-wrap: wrap; }
+.alt label { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--sand); border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; background: var(--papel); }
+.alt input { accent-color: var(--tinta); margin: 0; }
+.alt label:has(input:checked) { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.opc { font-size: 12.5px; color: var(--taupe); }
+.opc b { color: var(--tinta); font-weight: 600; }
+.preguntas { display: grid; gap: 10px; counter-reset: q; }
+.pregunta { padding: 14px 18px; display: grid; gap: 4px; }
+.pregunta .etq { color: var(--rojo-p); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (max-width: 520px) { .cifra-m b { font-size: 26px; } .a-fila { grid-template-columns: 10px minmax(0,1fr); } .a-fila .btn { grid-column: 2; justify-self: start; } }
+</style>
+
+<div class="envoltura">
+  <header style="display:grid;gap:10px">
+    <p class="ceja">Inventario ▸ Existencias · análisis y spikes · 5 oct 2026</p>
+    <h1>Existencias, para que una integrante la use sin que nadie le explique</h1>
+    <p class="bajada">Diagnóstico de la pantalla en producción (captura de Tienda TRU, 09:28) contra el código de <code>origin/main</code> 5b028683, lo que se tomó de Shopify POS, Square, Lightspeed y el modelo de tienda de Inditex, tres spikes que se pueden tocar y el vocabulario a elegir. Las prendas de los spikes son de ejemplo: solo las tres primeras salen de la captura.</p>
+  </header>
+
+  <!-- ============ 1. DIAGNÓSTICO ============ -->
+  <section class="seccion" aria-labelledby="diag">
+    <h2 id="diag">1 · Lo que hoy frena a quien la abre</h2>
+    <div class="rejilla-2">
+      <div class="tarjeta hallazgo"><span class="cifra num">~800 px</span><p><strong>Buscar queda debajo de todo.</strong> En una pantalla de 2000 px la primera prenda asoma al borde; en una laptop de 1366 × 768 el buscador ni se ve. La consulta más frecuente en piso («¿hay en M?») es lo último que aparece.</p></div>
+      <div class="tarjeta hallazgo"><span class="cifra num">6 + 1</span><p><strong>Seis botones arriba y uno de ellos se usa una sola vez.</strong> «Cuadrar el piso» es por única vez por sede (ADR-0328) y ocupa el mismo lugar que «Contar», que es semanal. Además aparece otra vez en «Para hoy».</p></div>
+      <div class="tarjeta hallazgo"><span class="cifra num">2×</span><p><strong>El mismo aviso dos veces.</strong> «474 tallas esperan el cuadre» está en «Para hoy» y se repite en la nota ámbar bajo el buscador, con más palabras. Cada fila de «Para hoy» carga además una frase de 20 a 25 palabras.</p></div>
+      <div class="tarjeta hallazgo"><span class="cifra num">4 verbos</span><p><strong>Para dos movimientos.</strong> Del almacén al piso se dice «Bajar al piso», «Reponer» y «colgar»; del piso al almacén, «Subir al almacén». Para corregir hay «Cuadrar», «Contar» y «Ajustar». Quien llega nueva no sabe si son lo mismo.</p></div>
+      <div class="tarjeta hallazgo"><span class="cifra num">«atrás»</span><p><strong>«Sin stock atrás» no dice lo que significa.</strong> En el código es «no queda ninguna, ni colgada ni guardada» (<code>lib/existencias-hoy.ts:18</code>): una talla agotada en la sede. Se lee como «no hay en el almacén, pero sí en el piso».</p></div>
+      <div class="tarjeta hallazgo"><span class="cifra num">118 de 600</span><p><strong>La cifra grande todavía no es verdad.</strong> Felipe contó entre 600 y 750 colgadas, y el sistema dice 118 hasta que la sede cuadre el piso. Ningún diseño arregla eso, pero sí puede dejar de ponerlo como lo primero que se lee.</p></div>
+    </div>
+    <p class="nota">Lo que está bien y ningún spike toca: el libro de movimientos como única fuente, las escrituras de todo o nada, «Hoy» como una sola palabra por talla (<code>hoyDeTalla</code>), los filtros en la URL, el escáner que abre la talla exacta y el estado vacío que explica.</p>
+
+    <h3 style="margin-top:14px">Lo que se toma de los referentes</h3>
+    <div class="tabla-scroll">
+      <table>
+        <thead><tr><th>Patrón</th><th>Dónde se ve</th><th>Qué le resuelve a CAYLA</th><th>Spike</th></tr></thead>
+        <tbody>
+          <tr><td class="fuerte">Buscar o escanear primero</td><td>Shopify POS y las PDA de tienda de Inditex abren con el campo de búsqueda o el lector listos</td><td>La pregunta «¿hay en M?» se contesta sin bajar la página</td><td>B, C</td></tr>
+          <tr><td class="fuerte">Disponibilidad en otras sedes junto a la talla</td><td>Shopify POS («disponible en otras ubicaciones»), PDA de Inditex</td><td>«No hay aquí, pero AQP tiene 2» sin abrir Traslados</td><td>A, B, C</td></tr>
+          <tr><td class="fuerte">Matriz talla × color</td><td>Lightspeed (artículos con matriz), variantes de Shopify</td><td>Un modelo se lee de un vistazo; ya existe como el riel de la tarjeta</td><td>A, C</td></tr>
+          <tr><td class="fuerte">Estados de cantidad con nombre fijo</td><td>Shopify separa disponible, comprometido, entrante y no disponible</td><td>Colgada, guardada, apartada, dañada y en camino nunca se suman sin decirlo</td><td>todas</td></tr>
+          <tr><td class="fuerte">Lista de reposición que sale de lo vendido</td><td>Reposición por ventas en cadenas de moda; alertas de stock bajo en Square</td><td>Ya existe (motor del piso); falta mostrarla como lista con avance y no como frase</td><td>C</td></tr>
+          <tr><td class="fuerte">Acción en hoja que sube, sin cambiar de pantalla</td><td>Square y Shopify POS en tablet y celular</td><td>Colgar, apartar o pedir a otra sede sin perder la búsqueda</td><td>B</td></tr>
+          <tr><td class="fuerte">Botones grandes y pocos</td><td>Square Register: un dedo, sin teclado</td><td>Se usa en la caja con una mano ocupada</td><td>B</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:14px">¿Pantalla propia o ventana dentro de Existencias?</h3>
+    <div class="tabla-scroll">
+      <table>
+        <thead><tr><th>Flujo</th><th>Hoy</th><th>Propuesta</th><th>Por qué</th></tr></thead>
+        <tbody>
+          <tr><td class="fuerte">Bajar al piso</td><td>Pantalla</td><td class="veredicto">Se queda pantalla</td><td>Es una lista con avance y escáner en el celular; en una ventana se perdería el avance al cerrarla.</td></tr>
+          <tr><td class="fuerte">Cuadrar el piso</td><td>Pantalla + botón fijo arriba</td><td class="veredicto">Pantalla, sin botón fijo</td><td>Es una sola vez por sede. Vive en «Para hoy» hasta que se hace y después desaparece.</td></tr>
+          <tr><td class="fuerte">Reponer / Subir / Ajustar una prenda</td><td>Ventanas</td><td class="veredicto">Ventanas (ya lo son)</td><td>Tocan una prenda; quien las abre quiere volver a la misma lista.</td></tr>
+          <tr><td class="fuerte">Apartados</td><td>Botón que salta a Vender ▸ Apartados</td><td class="veredicto">Ventana</td><td>Ya existe <code>ApartadosModal</code>; saltar de módulo para mirar una lista rompe la búsqueda.</td></tr>
+          <tr><td class="fuerte">Pedir a otra sede</td><td>Nuevo traslado (pantalla de Traslados)</td><td class="veredicto">Ventana corta desde la talla</td><td>Con prenda, talla y sede ya sabidas, solo falta la cantidad. El módulo Traslados sigue para armar envíos grandes.</td></tr>
+          <tr><td class="fuerte">Contar</td><td>Pantalla</td><td class="veredicto">Se queda pantalla</td><td>Es un proceso de días, por lotes, con firma.</td></tr>
+          <tr><td class="fuerte">Recibir</td><td>Pantalla de otro módulo</td><td class="veredicto">Se queda, va al menú «Más»</td><td>Pasa cuando llega mercadería, no todos los días.</td></tr>
+          <tr><td class="fuerte">Ventas sin registrar</td><td>Pantalla (lista)</td><td class="veredicto">Se queda hasta el 15-oct</td><td>Es limpieza de arranque (ADR-0328); después de la fecha de cierre, la fila deja de existir.</td></tr>
+          <tr><td class="fuerte">«Ver detalle» (tabla)</td><td>Botón que cambia la vista</td><td class="veredicto">Interruptor Tarjetas / Tabla</td><td>Hoy el nombre promete abrir algo y en realidad cambia toda la lista.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 2. SPIKES ============ -->
+  <section class="seccion" aria-labelledby="spk">
+    <h2 id="spk">2 · Tres spikes que se pueden tocar</h2>
+    <p class="bajada" style="margin-top:0">Toca una prenda, busca («alba», «jeans»), cambia de filtro, abre «Más acciones» o «Tareas». Ninguno cambia la base: todo sale de las lecturas que Existencias ya hace.</p>
+    <div class="pestanas" role="tablist" aria-label="Spikes">
+      <button class="pestana" role="tab" id="tab-a" aria-controls="panel" aria-selected="true" data-op="a"><b>A</b> Evolutiva</button>
+      <button class="pestana" role="tab" id="tab-b" aria-controls="panel" aria-selected="false" data-op="b"><b>B</b> Táctil y rápida</button>
+      <button class="pestana" role="tab" id="tab-c" aria-controls="panel" aria-selected="false" data-op="c"><b>C</b> Por jerarquía de acción</button>
+    </div>
+    <div id="panel" role="tabpanel">
+      <div class="ficha-spike" id="ficha"></div>
+      <div class="pantalla" id="pantalla">
+        <div class="barra-nav"><span class="pt"></span><span class="pt"></span><span class="pt"></span><span class="ruta">cayla-retail · Inventario ▸ Existencias · Tienda TRU</span></div>
+        <span class="ejemplo">Datos de ejemplo</span>
+        <div class="lienzo" id="lienzo"></div>
+        <div class="velo" id="velo"></div>
+        <aside class="cajon" id="cajon" aria-hidden="true"></aside>
+        <aside class="hoja" id="hoja" aria-hidden="true"></aside>
+        <div class="aviso" id="aviso" role="status"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. VOCABULARIO ============ -->
+  <section class="seccion" aria-labelledby="voc">
+    <h2 id="voc">3 · Vocabulario para elegir</h2>
+    <p class="bajada" style="margin-top:0">Cada fila: la palabra de hoy, la de los referentes y dos o tres alternativas. Debajo, lo que usa cada spike. Marca la que prefieras; tu elección queda guardada en este navegador y el botón la copia como texto.</p>
+    <div class="tabla-scroll">
+      <table class="voz">
+        <thead><tr><th>Antes</th><th>Referentes</th><th>Alternativas (elige una)</th></tr></thead>
+        <tbody id="voz"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn prim" id="copiar">Copiar mi elección</button>
+      <span id="copiado" class="opc" role="status"></span>
+    </div>
+    <textarea id="respaldo" aria-label="Elección como texto" hidden style="width:100%;min-height:140px;border:1px solid var(--sand);border-radius:10px;padding:10px;font:13px var(--sans);background:var(--papel);color:var(--tinta)"></textarea>
+  </section>
+
+  <!-- ============ 4. PREGUNTAS ============ -->
+  <section class="seccion" aria-labelledby="preg">
+    <h2 id="preg">4 · Preguntas antes de construir</h2>
+    <div class="preguntas">
+      <div class="tarjeta pregunta"><span class="etq">User Question 1</span><p><b>¿Quién abre Existencias más veces al día: la asesora que pregunta «¿hay en M?» o el encargado que resuelve pendientes?</b> Si es la asesora, gana B o C (buscar arriba). Si es el encargado, gana A.</p></div>
+      <div class="tarjeta pregunta"><span class="etq">User Question 2</span><p><b>¿Con qué aparato se consulta en el piso: la computadora de la caja, una tablet o el celular de la integrante?</b> ADR-0328 dice «celular en Bajar al piso y Conteo; lo demás, primero escritorio». B solo vale la pena si hay tablet o celular en el piso.</p></div>
+      <div class="tarjeta pregunta"><span class="etq">User Question 3</span><p><b>La portada aprobada es «buscar + Para hoy + catálogo», con «Para hoy» antes del buscador. B y C ponen el buscador primero. ¿Se puede cambiar ese orden?</b></p></div>
+      <div class="tarjeta pregunta"><span class="etq">User Question 4</span><p><b>«Pedir a otra sede» desde la talla: ¿abre un traslado de verdad (la otra sede lo ve en «Te piden») o solo avisa?</b> El spike asume lo primero, que ya existe desde ADR-0328 act. 17.</p></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- Datos de ejemplo (las tres primeras prendas salen de la captura) ----------
+  const S = ["S","M","L","XL"];
+  const P = [
+    { id:"adelle", nombre:"Adelle Wide Leg", marca:"Pilar", color:"Azul marino", hex:"#1f2a44", cat:"Jeans",
+      tallas:[["26",0,2,{AQP:1,LIM:0}],["28",0,3,{AQP:2,LIM:1}],["30",0,2,{AQP:0,LIM:0}],["32",0,1,{AQP:1,LIM:0}]] },
+    { id:"alba", nombre:"Blusa Alba", marca:"Strend", color:"Vino", hex:"#6e2230", cat:"Camisas y blusas",
+      tallas:[["S",0,0,{AQP:1,LIM:0}],["M",0,1,{AQP:0,LIM:2}],["L",0,0,{AQP:0,LIM:0}],["XL",0,0,{AQP:1,LIM:0}]] },
+    { id:"albaco", nombre:"Blusa Alba Co.entero", marca:"Strend", color:"Blanco", hex:"#fbf8f2", claro:true, cat:"Camisas y blusas",
+      tallas:[["S",0,0,{AQP:0,LIM:1}],["M",0,1,{AQP:0,LIM:0}],["L",0,0,{AQP:2,LIM:0}]] },
+    { id:"nara", nombre:"Casaca Nara", marca:"Pilar", color:"Camel", hex:"#a0743f", cat:"Casacas",
+      tallas:[["S",1,2,{AQP:0,LIM:0}],["M",2,3,{AQP:1,LIM:1}],["L",1,0,{AQP:0,LIM:0}],["XL",0,1,{AQP:0,LIM:0}]] },
+    { id:"brisa", nombre:"Polo Brisa", marca:"CAYLA", color:"Hueso", hex:"#e3d8c4", claro:true, cat:"Polos",
+      tallas:[["S",1,4,{AQP:2,LIM:2}],["M",1,6,{AQP:3,LIM:1}],["L",0,5,{AQP:1,LIM:0}],["XL",0,0,{AQP:0,LIM:0}]] },
+    { id:"lia", nombre:"Vestido Lía", marca:"Strend", color:"Negro", hex:"#1a1a18", cat:"Vestidos",
+      tallas:[["S",1,0,{AQP:1,LIM:0}],["M",0,0,{AQP:2,LIM:1}],["L",1,1,{AQP:0,LIM:0}]] },
+    { id:"marea", nombre:"Falda Marea", marca:"CAYLA", color:"Verde oliva", hex:"#5a5f36", cat:"Faldas",
+      tallas:[["S",0,2,{AQP:0,LIM:0}],["M",1,2,{AQP:0,LIM:1}],["L",0,0,{AQP:0,LIM:0}]] },
+    { id:"rio", nombre:"Pantalón Sastre Río", marca:"Pilar", color:"Gris", hex:"#6c6e70", cat:"Pantalones",
+      tallas:[["26",0,1,{AQP:0,LIM:0}],["28",1,2,{AQP:1,LIM:0}],["30",1,0,{AQP:0,LIM:2}],["32",0,0,{AQP:1,LIM:0}]] },
+  ].map(p => ({ ...p, tallas: p.tallas.map(([t,piso,alm,otras]) => ({ t, piso, alm, otras })) }));
+
+  const estado = t => t.piso > 0 ? "colgada" : t.alm > 0 ? "porcolgar" : "agotada";
+  const otrasTot = t => Object.values(t.otras).reduce((a,b)=>a+b,0);
+  const sumaDe = (p, k) => p.tallas.reduce((n,t)=>n+t[k],0);
+  const cuenta = (p, e) => p.tallas.filter(t => estado(t) === e).length;
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  const coincide = (p, q) => !q || norm(`${p.nombre} ${p.marca} ${p.color} ${p.cat}`).includes(norm(q));
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  const ICONO_BUSCAR = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+  const ICONO_PERCHA = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 7a2 2 0 1 1 2-2"/><path d="M12 7v2L3 16h18l-9-7"/></svg>';
+  const ICONO_ESCANEAR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 9v6M10 9v6M13 9v6M17 9v6"/></svg>';
+  const X = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+
+  const mosaico = (p, clase="mosaico") => `<div class="${clase}${p.claro?" claro":""}" style="background:${p.hex}">${ICONO_PERCHA}<span>${esc(p.cat)}</span></div>`;
+  const riel = p => `<div class="riel">${p.tallas.map(t => {
+    const e = estado(t);
+    return `<span class="etqt ${e}" title="${t.t}: ${t.piso} colgadas, ${t.alm} guardadas"><b>${e==="agotada"?"—":t.piso}</b>${t.t}${t.alm?` · +${t.alm}`:""}</span>`;
+  }).join("")}</div>`;
+  const pastilla = p => {
+    const pc = cuenta(p,"porcolgar"), ag = cuenta(p,"agotada");
+    if (pc) return `<span class="chip c-ambar"><i></i>${pc} ${pc===1?"talla":"tallas"} por colgar</span>`;
+    if (ag) return `<span class="chip c-pizarra"><i></i>${ag} agotada${ag===1?"":"s"} aquí</span>`;
+    return `<span class="chip c-verde"><i></i>Completa en el piso</span>`;
+  };
+
+  // ---------- Capa: cajón, hoja, aviso ----------
+  const $ = id => document.getElementById(id);
+  const velo = $("velo"), cajon = $("cajon"), hoja = $("hoja"), aviso = $("aviso");
+  let ultimoFoco = null;
+  function abrir(el, html) {
+    ultimoFoco = document.activeElement;
+    el.innerHTML = html; el.classList.add("abierto"); el.setAttribute("aria-hidden","false"); velo.classList.add("abierto");
+    setTimeout(() => el.querySelector("button, input")?.focus({ preventScroll: true }), 60);
+  }
+  function cerrar() {
+    [cajon, hoja].forEach(el => { el.classList.remove("abierto"); el.setAttribute("aria-hidden","true"); });
+    velo.classList.remove("abierto"); ultimoFoco?.focus?.({ preventScroll: true });
+  }
+  velo.addEventListener("click", cerrar);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && velo.classList.contains("abierto")) cerrar(); });
+  let tAviso;
+  function avisar(txt) { aviso.textContent = txt; aviso.classList.add("ver"); clearTimeout(tAviso); tAviso = setTimeout(() => aviso.classList.remove("ver"), 2400); }
+
+  const tablaTallas = p => `<div class="tabla-scroll"><table class="tabla-tallas"><thead><tr><th>Talla</th><th>Piso</th><th>Almacén</th><th>AQP</th><th>LIM</th><th>Hoy</th></tr></thead><tbody>${
+    p.tallas.map(t => { const e = estado(t); return `<tr><td class="fuerte">${t.t}</td><td class="num">${t.piso}</td><td class="num">${t.alm}</td><td class="num">${t.otras.AQP}</td><td class="num">${t.otras.LIM}</td><td>${
+      e==="colgada" ? '<span class="chip c-verde"><i></i>Colgada</span>' : e==="porcolgar" ? '<span class="chip c-ambar"><i></i>Por colgar</span>' : otrasTot(t) ? '<span class="chip c-pizarra"><i></i>Pedir</span>' : '<span class="chip c-pizarra"><i></i>Agotada</span>'}</td></tr>`; }).join("")
+  }</tbody></table></div>`;
+
+  // =====================================================================
+  // OPCIÓN A — evolutiva
+  // =====================================================================
+  const A = { q:"", vista:"tarjetas", menu:false, porque:{} };
+  const TAREAS = [
+    { k:"cuadrar", n:474, tono:"var(--ambar)", txt:"tallas por cuadrar", btn:"Cuadrar el piso", porque:"Hasta cuadrar el piso una vez, el sistema cree guardado lo que ya cuelga y no puede decir qué colgar. Se hace una sola vez." },
+    { k:"unir", n:99, tono:"var(--rojo)", txt:"ventas sin prenda · 21 vencidas", btn:"Unir prendas", porque:"Ventas cobradas sin escanear la prenda: el stock todavía las cuenta. 21 llevan más de 2 días." },
+    { k:"agotadas", n:26, tono:"var(--pizarra)", txt:"tallas agotadas aquí", btn:"Ver cuáles", porque:"No queda ninguna ni colgada ni guardada, y no viene ninguna en camino. Se piden a otra sede o al Taller." },
+  ];
+  function renderA() {
+    const lista = P.filter(p => coincide(p, A.q));
+    $("lienzo").innerHTML = `
+      <div class="cab">
+        <div class="izq">
+          <p class="ceja">Tienda TRU · lunes 5 oct · vista de las 09:28</p>
+          <h1>Existencias</h1>
+          <div class="a-acciones">
+            <button class="btn prim" data-a="bajar">${ICONO_PERCHA} Bajar al piso</button>
+            <button class="btn" data-a="menu" aria-expanded="${A.menu}">Más acciones ▾</button>
+            ${A.menu ? `<div class="menu" role="menu">
+              <button role="menuitem" data-a="ir" data-n="Recibir">Recibir mercadería <small>cuando llega</small></button>
+              <button role="menuitem" data-a="ir" data-n="Contar">Contar <small>cada semana</small></button>
+              <button role="menuitem" data-a="ir" data-n="Enviar a otra sede">Enviar a otra sede</button>
+              <button role="menuitem" data-a="ir" data-n="Apartados">Ver apartadas</button>
+            </div>` : ""}
+          </div>
+        </div>
+        <div class="cifras">
+          <div class="cifra-m"><b>118</b><small>colgadas · <em>sin cuadrar</em></small></div>
+          <div class="cifra-m"><b>862</b><small>guardadas</small></div>
+        </div>
+      </div>
+      <div class="tarjeta a-hoy" aria-label="Para hoy">
+        ${TAREAS.map(t => `<div class="a-fila">
+          <span class="punto" style="background:${t.tono}"></span>
+          <div class="txt"><b>${t.n}</b>${t.txt}<button class="porque" data-a="porque" data-k="${t.k}" aria-expanded="${!!A.porque[t.k]}">¿por qué?</button></div>
+          <button class="btn" data-a="ir" data-n="${t.btn}">${t.btn} →</button>
+          ${A.porque[t.k] ? `<p class="explica">${t.porque}</p>` : ""}
+        </div>`).join("")}
+      </div>
+      <div class="a-barra">
+        <label class="caja-buscar">${ICONO_BUSCAR}<input class="campo" id="a-q" type="search" placeholder="Busca prenda, marca o código" value="${esc(A.q)}" aria-label="Buscar prenda"></label>
+        <button class="btn">Filtros</button>
+        <div class="seg" role="group" aria-label="Vista">
+          <button aria-pressed="${A.vista==="tarjetas"}" data-a="vista" data-v="tarjetas">Tarjetas</button>
+          <button aria-pressed="${A.vista==="tabla"}" data-a="vista" data-v="tabla">Tabla</button>
+        </div>
+      </div>
+      <p class="opc"><b>${lista.length}</b> de ${P.length} prendas · ordenadas por lo que piden hoy</p>
+      ${A.vista==="tarjetas" ? `<div class="grilla">${lista.map(p => `
+        <button class="prenda" data-a="abrir" data-id="${p.id}">
+          ${mosaico(p)}
+          <div style="min-width:0"><h4>${esc(p.nombre)}</h4><p class="sub">${esc(p.marca)} · ${esc(p.color)}</p>${riel(p)}<div style="margin-top:10px">${pastilla(p)}</div></div>
+        </button>`).join("")}</div>`
+      : `<div class="tabla-scroll lista-tabla"><table><thead><tr><th>Prenda</th><th>Colgadas</th><th>Guardadas</th><th>Hoy</th></tr></thead><tbody>${lista.map(p => `<tr data-a="abrir" data-id="${p.id}" style="cursor:pointer"><td class="fuerte">${esc(p.nombre)} <span class="opc">· ${esc(p.color)}</span></td><td class="num">${sumaDe(p,"piso")}</td><td class="num">${sumaDe(p,"alm")}</td><td>${pastilla(p)}</td></tr>`).join("")}</tbody></table></div>`}
+      ${lista.length===0 ? `<p class="nota">Ninguna prenda con «${esc(A.q)}» en Tienda TRU. Revisa cómo está escrita o busca por la marca.</p>` : ""}
+    `;
+  }
+  function cajonA(p) {
+    abrir(cajon, `
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:18px 20px 0;align-items:start">
+        <div style="display:flex;gap:12px;min-width:0">${mosaico(p)}<div style="min-width:0"><h3>${esc(p.nombre)}</h3><p class="opc">${esc(p.marca)} · ${esc(p.color)}</p><div style="margin-top:8px">${pastilla(p)}</div></div></div>
+        <button class="cerrar" data-a="cerrar" aria-label="Cerrar">${X}</button>
+      </div>
+      <div class="cuerpo">
+        <p class="etq">Dónde está cada talla</p>
+        ${tablaTallas(p)}
+        <p class="nota">«Pedir» abre un envío desde la sede que tiene, con la talla ya puesta.</p>
+      </div>
+      <div class="pie">
+        <button class="btn prim" data-a="accion" data-msg="Bajada registrada">Bajar al piso</button>
+        <button class="btn" data-a="accion" data-msg="Pedido enviado a AQP">Pedir a otra sede</button>
+        <button class="btn sutil" data-a="accion" data-msg="Abre Corregir cantidad">Corregir cantidad</button>
+      </div>`);
+  }
+
+  // =====================================================================
+  // OPCIÓN B — táctil y rápida
+  // =====================================================================
+  const B = { q:"", filtro:"todo", sel:null, talla:null, cant:1 };
+  const FILTROS_B = [
+    ["todo","Todo", () => true],
+    ["porcolgar","Falta en el piso", p => cuenta(p,"porcolgar") > 0],
+    ["agotada","Agotadas aquí", p => cuenta(p,"agotada") > 0],
+    ["completa","Completas", p => cuenta(p,"porcolgar")===0 && cuenta(p,"agotada")===0],
+  ];
+  function renderB() {
+    const f = FILTROS_B.find(x => x[0]===B.filtro)[2];
+    const lista = P.filter(p => coincide(p,B.q) && f(p));
+    $("lienzo").innerHTML = `
+      <div class="cab">
+        <div class="izq"><p class="ceja">Tienda TRU · 09:28</p><h1 style="font-size:34px">Existencias</h1></div>
+        <div class="cifras"><div class="cifra-m"><b>118</b><small>colgadas · <em>sin cuadrar</em></small></div><div class="cifra-m"><b>862</b><small>guardadas</small></div></div>
+      </div>
+      <div class="b-buscar">
+        <label class="caja-buscar">${ICONO_BUSCAR}<input class="campo" id="b-q" type="search" placeholder="¿Qué prenda buscas?" value="${esc(B.q)}" aria-label="Buscar prenda"></label>
+        <button class="btn prim grande" data-b="escanear">${ICONO_ESCANEAR} Escanear</button>
+      </div>
+      <div class="b-chips" role="group" aria-label="Filtro rápido">
+        ${FILTROS_B.map(([k,txt,fn]) => `<button class="b-chip" aria-pressed="${B.filtro===k}" data-b="filtro" data-k="${k}">${txt} <b>${P.filter(p=>coincide(p,B.q)&&fn(p)).length}</b></button>`).join("")}
+      </div>
+      <button class="b-tareas" data-b="tareas">
+        <span class="punto" style="background:var(--rojo)"></span>
+        <span class="txt"><b>3 tareas de hoy</b> <span class="opc">· 99 ventas sin prenda, 21 vencidas</span></span>
+        <span aria-hidden="true">›</span>
+      </button>
+      <div class="b-grilla">${lista.map(p => `
+        <button class="b-tile" data-b="abrir" data-id="${p.id}">
+          <div class="foto${p.claro?" claro":""}" style="background:${p.hex}">${ICONO_PERCHA}</div>
+          <div class="info"><h4>${esc(p.nombre)}</h4><span class="opc">${esc(p.color)}</span>
+            <div class="puntos">${p.tallas.map(t => `<span class="pt-t ${estado(t)}">${t.t}</span>`).join("")}</div>
+          </div>
+        </button>`).join("")}</div>
+      ${lista.length===0 ? `<p class="nota">Nada con ese filtro. Toca «Todo» para ver todas.</p>` : ""}
+    `;
+  }
+  function hojaB() {
+    const p = P.find(x => x.id === B.sel); const t = p.tallas.find(x => x.t === B.talla) ?? null;
+    const otrasConStock = t ? Object.entries(t.otras).filter(([,n]) => n>0) : [];
+    abrir(hoja, `
+      <div class="asa"></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 20px 0;align-items:center">
+        <div style="min-width:0"><h3>${esc(p.nombre)}</h3><p class="opc">${esc(p.color)} · elige la talla</p></div>
+        <button class="cerrar" data-b="cerrar" aria-label="Cerrar">${X}</button>
+      </div>
+      <div class="cuerpo">
+        <div class="tallas-b" role="group" aria-label="Talla">${p.tallas.map(x => `<button aria-pressed="${B.talla===x.t}" data-b="talla" data-t="${x.t}">${x.t}<small>${x.piso} piso</small></button>`).join("")}</div>
+        ${t ? `
+          <div class="donde">
+            <div class="${t.piso?"":"vacio"}"><b>${t.piso}</b><small>en el piso</small></div>
+            <div class="${t.alm?"":"vacio"}"><b>${t.alm}</b><small>en el almacén</small></div>
+            <div class="${t.otras.AQP?"":"vacio"}"><b>${t.otras.AQP}</b><small>en AQP</small></div>
+            <div class="${t.otras.LIM?"":"vacio"}"><b>${t.otras.LIM}</b><small>en LIM</small></div>
+          </div>
+          ${t.alm ? `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="etq">Cuántas</span><div class="stepper"><button data-b="menos" aria-label="Una menos">−</button><output>${B.cant}</output><button data-b="mas" aria-label="Una más">+</button></div></div>` : ""}
+        ` : `<p class="nota">Toca una talla para ver dónde hay y qué puedes hacer.</p>`}
+      </div>
+      <div class="pie">
+        ${t ? `
+          ${t.alm ? `<button class="btn prim grande" style="flex:1" data-b="colgar">Colgar ${B.cant}</button>` : ""}
+          ${t.piso ? `<button class="btn grande" style="flex:1" data-b="accion" data-msg="Apartada para el cliente · ${t.t}">Apartar</button>` : ""}
+          ${!t.alm && otrasConStock.length ? `<button class="btn prim grande" style="flex:1" data-b="accion" data-msg="Pedido enviado a ${otrasConStock[0][0]} · ${t.t}">Pedir a ${otrasConStock[0][0]}</button>` : ""}
+          ${!t.piso && !t.alm && !otrasConStock.length ? `<p class="opc">No hay en ninguna sede. Avísale al encargado para pedirla al Taller.</p>` : ""}
+        ` : ""}
+      </div>`);
+  }
+  function hojaTareasB() {
+    abrir(hoja, `
+      <div class="asa"></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 20px 0;align-items:center"><h3>Tareas de hoy</h3><button class="cerrar" data-b="cerrar" aria-label="Cerrar">${X}</button></div>
+      <div class="cuerpo">${TAREAS.slice().sort((a,b)=>a.k==="unir"?-1:b.k==="unir"?1:0).map(t => `
+        <button class="b-tareas" data-b="accion" data-msg="Abre ${t.btn}"><span class="punto" style="background:${t.tono}"></span><span class="txt"><b style="font:500 24px var(--serif)">${t.n}</b> ${t.txt}</span><span>›</span></button>`).join("")}
+      </div>`);
+  }
+
+  // =====================================================================
+  // OPCIÓN C — por jerarquía de acción
+  // =====================================================================
+  const C = { q:"", abierta:"alba", hecho:{ cuadrar:0, unir:0, agotadas:0 } };
+  const semIcono = e => e==="colgada"
+    ? '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="var(--verde)"/></svg>'
+    : e==="porcolgar" ? '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="none" stroke="var(--ambar)" stroke-width="1.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="var(--ambar)"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" fill="none" stroke="var(--taupe)" stroke-width="1.3" stroke-dasharray="2 2"/></svg>';
+  const TAREAS_C = [
+    { k:"unir", n:99, txt:"ventas sin prenda", extra:"21 vencidas · antes del 15-oct", btn:"Empezar", tono:"var(--rojo)" },
+    { k:"cuadrar", n:474, txt:"tallas por cuadrar", extra:"Una sola vez · después desaparece", btn:"Empezar", tono:"var(--ambar)" },
+    { k:"agotadas", n:26, txt:"tallas agotadas aquí", extra:"Pedir a otra sede o al Taller", btn:"Ver cuáles", tono:"var(--pizarra)" },
+  ];
+  function accionC(p) {
+    const pc = p.tallas.filter(t => estado(t)==="porcolgar"), ag = p.tallas.filter(t => estado(t)==="agotada" && otrasTot(t));
+    if (pc.length) return `<button class="btn prim" data-c="accion" data-msg="${pc.length} tallas bajadas al piso">Colgar ${pc.map(t=>t.t).join(", ")}</button>`;
+    if (ag.length) return `<button class="btn prim" data-c="accion" data-msg="Pedido de ${ag.map(t=>t.t).join(", ")} enviado">Pedir ${ag.map(t=>t.t).join(", ")} a otra sede</button>`;
+    return `<span class="chip c-verde"><i></i>Nada que hacer</span>`;
+  }
+  function renderC() {
+    const lista = P.filter(p => coincide(p,C.q));
+    $("lienzo").innerHTML = `
+      <div class="cab">
+        <div class="izq"><p class="ceja">Tienda TRU · lunes 5 oct · 09:28</p><h1>Existencias</h1></div>
+        <div class="leyenda" aria-label="Leyenda">
+          <span>${semIcono("colgada")} Colgada</span><span>${semIcono("porcolgar")} Solo guardada</span><span>${semIcono("agotada")} No hay aquí</span>
+        </div>
+      </div>
+      <div class="c-rejilla">
+        <div class="c-col">
+          <p class="etq">1 · Consultar una prenda</p>
+          <label class="caja-buscar">${ICONO_BUSCAR}<input class="campo" id="c-q" type="search" placeholder="Nombre, marca o escanea la etiqueta" value="${esc(C.q)}" aria-label="Buscar prenda" style="font-size:17px;padding-block:15px"></label>
+          <div class="tarjeta c-filas">${lista.map(p => { const ab = C.abierta===p.id; return `
+            <div class="c-fila">
+              <button class="c-cabeza" data-c="abrir" data-id="${p.id}" aria-expanded="${ab}">
+                <span style="min-width:0"><h4>${esc(p.nombre)}</h4><span class="sub">${esc(p.marca)} · ${esc(p.color)}</span></span>
+                <span class="semaforo">${p.tallas.map(t => `<span class="sem">${semIcono(estado(t))}${t.t}</span>`).join("")}</span>
+              </button>
+              ${ab ? `<div class="c-detalle">${tablaTallas(p)}<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${accionC(p)}<button class="btn sutil" data-c="accion" data-msg="Abre Corregir cantidad">Corregir cantidad</button></div></div>` : ""}
+            </div>`; }).join("") || `<p class="nota" style="margin:12px">Ninguna prenda con «${esc(C.q)}».</p>`}
+          </div>
+        </div>
+        <div class="c-col">
+          <p class="etq">2 · Hacer hoy</p>
+          <div class="tarjeta">${TAREAS_C.map(t => { const h = C.hecho[t.k], pct = Math.round(h/t.n*100); return `
+            <div class="c-tarea">
+              <div class="linea"><span><b>${t.n - h}</b> ${t.txt}</span><span class="punto" style="background:${t.tono}"></span></div>
+              <div class="barra-av" aria-label="Avance ${pct} %"><span style="width:${pct}%"></span></div>
+              <div class="linea"><span class="opc">${t.extra}</span><button class="btn" data-c="avanzar" data-k="${t.k}">${t.btn} →</button></div>
+            </div>`; }).join("")}
+          </div>
+          <p class="etq">3 · Según cada cuánto</p>
+          <div class="tarjeta frec">
+            <div class="frec-fila"><span class="etq">Cada día</span><div><button class="btn prim" data-c="accion" data-msg="Abre Bajar al piso">Bajar al piso</button></div></div>
+            <div class="frec-fila"><span class="etq">Cada semana</span><div><button class="btn" data-c="accion" data-msg="Abre Contar">Contar</button></div></div>
+            <div class="frec-fila"><span class="etq">Cuando llega</span><div><button class="btn" data-c="accion" data-msg="Abre Recibir">Recibir</button></div></div>
+            <div class="frec-fila"><span class="etq">A veces</span><div><button class="btn sutil" data-c="accion" data-msg="Abre Enviar a otra sede">Enviar a otra sede</button><button class="btn sutil" data-c="accion" data-msg="Abre Apartadas">Apartadas</button></div></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Fichas de cada spike ----------
+  const FICHAS = {
+    a: { tesis:"La misma pantalla con la mitad de cosas. Para el encargado que entra a ver qué falta.",
+      cambia:["Un botón oscuro (Bajar al piso) y «Más acciones» con el resto, ordenado por frecuencia; «Cuadrar» sale de la cabecera.","«Para hoy» en una línea por tarea; la explicación larga detrás de «¿por qué?».","La nota ámbar repetida desaparece.","Buscar, filtros e interruptor Tarjetas / Tabla en una sola fila; «Copiar enlace» y «Ordenar» salen de la vista.","Tocar una prenda abre el cajón con piso, almacén y otras sedes."],
+      paga:"El buscador sigue debajo de «Para hoy»: la asesora que solo quiere saber si hay una talla todavía baja la página.", rompe:"Si «Para hoy» tiene 5 filas con plazo vencido, empuja las prendas igual que hoy." },
+    b: { tesis:"Pensada para la tablet o el celular en el piso: buscar o escanear con el pulgar y actuar en una hoja que sube.",
+      cambia:["Buscador de 62 px y botón Escanear como lo primero.","Filtros rápidos grandes con su número (Falta en el piso, Agotadas aquí).","Las tareas se pliegan en una barra; se abren en una hoja.","Tarjetas grandes con las tallas como botones de colores.","Al elegir talla: dónde hay (piso, almacén, AQP, LIM) y UNA acción grande: Colgar, Apartar o Pedir."],
+      paga:"En la computadora de la caja se ven menos prendas por pantalla (8 en vez de 12). Y cambia el orden aprobado (Para hoy antes que buscar).", rompe:"Si el piso no tiene tablet ni celular de trabajo, el beneficio táctil no se usa." },
+    c: { tesis:"Ordena la pantalla por lo que se hace más: consultar, después las tareas con avance, después las acciones según cada cuánto.",
+      cambia:["Dos columnas: Consultar (izquierda, la más ancha) y Hacer hoy (derecha).","Cada prenda muestra sus tallas con un ícono que se entiende sin color: lleno, medio, punteado.","Las tareas son listas con barra de avance y fecha («antes del 15-oct»), no frases.","Las acciones se agrupan por frecuencia: cada día, cada semana, cuando llega, a veces.","Al abrir una prenda, la acción que corresponde ya viene escrita: «Colgar S, M»."],
+      paga:"Más estructura que A: dos columnas no caben en el celular y se apilan (Consultar primero).", rompe:"Si las tareas de hoy son 0, la columna derecha queda casi vacía y conviene que la consulta tome todo el ancho." },
+  };
+
+  function renderFicha(op) {
+    const f = FICHAS[op];
+    $("ficha").innerHTML = `
+      <div class="tarjeta" style="padding:16px 18px"><p class="etq">La idea</p><p style="font:500 20px/1.3 var(--serif);margin-top:6px">${f.tesis}</p><ul>${f.cambia.map(c=>`<li>${c}</li>`).join("")}</ul></div>
+      <div class="tarjeta" style="padding:16px 18px;display:grid;gap:10px;align-content:start"><div><p class="etq">Pagas</p><p style="font-size:14px;margin-top:4px">${f.paga}</p></div><div><p class="etq">Se rompe si</p><p style="font-size:14px;margin-top:4px">${f.rompe}</p></div></div>`;
+  }
+
+  let op = "a";
+  try { const g = localStorage.getItem("ex-spike"); if (g && FICHAS[g]) op = g; } catch {}
+  const RENDER = { a: renderA, b: renderB, c: renderC };
+  function mostrar(nuevo, foco) {
+    op = nuevo; cerrar();
+    try { localStorage.setItem("ex-spike", op); } catch {}
+    document.querySelectorAll(".pestana").forEach(b => b.setAttribute("aria-selected", String(b.dataset.op===op)));
+    renderFicha(op); RENDER[op]();
+    if (foco) document.querySelector(`.pestana[data-op="${op}"]`).focus();
+  }
+  document.querySelectorAll(".pestana").forEach(b => b.addEventListener("click", () => mostrar(b.dataset.op)));
+  document.querySelector(".pestanas").addEventListener("keydown", e => {
+    if (!["ArrowRight","ArrowLeft"].includes(e.key)) return;
+    const ops = ["a","b","c"]; const i = ops.indexOf(op);
+    mostrar(ops[(i + (e.key==="ArrowRight"?1:2)) % 3], true);
+  });
+
+  // Búsqueda: conserva el cursor al repintar.
+  $("pantalla").addEventListener("input", e => {
+    const id = e.target.id; if (!["a-q","b-q","c-q"].includes(id)) return;
+    const pos = e.target.selectionStart;
+    ({ "a-q":A, "b-q":B, "c-q":C })[id].q = e.target.value;
+    RENDER[op]();
+    const nuevo = $(id); nuevo.focus(); nuevo.setSelectionRange(pos, pos);
+  });
+
+  $("pantalla").addEventListener("click", e => {
+    const el = e.target.closest("[data-a],[data-b],[data-c]"); if (!el) return;
+    const d = el.dataset;
+    // A
+    if (d.a === "menu") { A.menu = !A.menu; renderA(); return; }
+    if (d.a === "porque") { A.porque[d.k] = !A.porque[d.k]; renderA(); return; }
+    if (d.a === "vista") { A.vista = d.v; renderA(); return; }
+    if (d.a === "abrir") { cajonA(P.find(p => p.id===d.id)); return; }
+    if (d.a === "cerrar" || d.b === "cerrar") { cerrar(); return; }
+    if (d.a === "ir" || d.a === "bajar") { A.menu = false; renderA(); avisar(`Abre «${d.n ?? "Bajar al piso"}»`); return; }
+    if (d.a === "accion") { cerrar(); avisar(d.msg); return; }
+    // B
+    if (d.b === "filtro") { B.filtro = d.k; renderB(); return; }
+    if (d.b === "escanear") { avisar("Lee la etiqueta y abre la prenda en su talla"); B.sel = "brisa"; B.talla = "L"; B.cant = 1; hojaB(); return; }
+    if (d.b === "abrir") { B.sel = d.id; B.talla = null; B.cant = 1; hojaB(); return; }
+    if (d.b === "talla") { B.talla = d.t; B.cant = 1; hojaB(); return; }
+    if (d.b === "mas" || d.b === "menos") {
+      const t = P.find(p=>p.id===B.sel).tallas.find(x=>x.t===B.talla);
+      B.cant = Math.max(1, Math.min(t.alm, B.cant + (d.b==="mas"?1:-1))); hojaB(); return;
+    }
+    if (d.b === "colgar") {
+      const t = P.find(p=>p.id===B.sel).tallas.find(x=>x.t===B.talla);
+      t.alm -= B.cant; t.piso += B.cant; const n = B.cant; B.cant = 1;
+      cerrar(); renderB(); avisar(`Listo: ${n} colgada${n===1?"":"s"} · talla ${t.t}`); return;
+    }
+    if (d.b === "tareas") { hojaTareasB(); return; }
+    if (d.b === "accion") { cerrar(); avisar(d.msg); return; }
+    // C
+    if (d.c === "abrir") { C.abierta = C.abierta===d.id ? null : d.id; renderC(); return; }
+    if (d.c === "avanzar") { const t = TAREAS_C.find(x=>x.k===d.k); C.hecho[d.k] = Math.min(t.n, C.hecho[d.k] + Math.ceil(t.n/5)); renderC(); avisar("Simulación: avanza un lote"); return; }
+    if (d.c === "accion") { avisar(d.msg); return; }
+  });
+
+  mostrar(op);
+
+  // ---------- Vocabulario ----------
+  const VOZ = [
+    { antes:"Existencias (título)", ref:"Shopify, Square, Lightspeed: «Inventario»", alts:["Existencias","Inventario de la tienda","Stock"], a:"Existencias", b:"Existencias", c:"Existencias" },
+    { antes:"Bajar al piso · Reponer · colgar", ref:"Moda: «reponer»; Shopify: «transferir»", alts:["Colgar","Bajar al piso","Reponer"], a:"Bajar al piso", b:"Colgar", c:"Colgar" },
+    { antes:"Subir al almacén", ref:"Shopify: «transferir»", alts:["Guardar","Llevar al almacén","Retirar del piso"], a:"Llevar al almacén", b:"Guardar", c:"Guardar" },
+    { antes:"Colgadas en el piso / Guardadas en el almacén", ref:"Shopify: «disponible» y «en otra ubicación»", alts:["Colgadas / Guardadas","En piso / En almacén","A la venta / Guardadas"], a:"Colgadas / Guardadas", b:"En el piso / En el almacén", c:"Colgada / Solo guardada" },
+    { antes:"Sin stock atrás", ref:"Shopify y Square: «agotado»", alts:["Agotada aquí","No hay en la tienda","Pedir a otra sede"], a:"Agotadas aquí", b:"Agotadas aquí", c:"No hay aquí" },
+    { antes:"Por colgar", ref:"Moda: «pendiente de reposición»", alts:["Por colgar","Falta en el piso","Solo guardada"], a:"Por colgar", b:"Falta en el piso", c:"Solo guardada" },
+    { antes:"Cuadrar el piso", ref:"Shopify Stocky y Square: «conteo inicial»", alts:["Cuadrar el piso","Revisar el piso (una vez)","Conteo de arranque del piso"], a:"Cuadrar el piso", b:"Cuadrar el piso", c:"Cuadrar el piso" },
+    { antes:"Ajustar stock", ref:"Shopify y Square: «ajustar»", alts:["Corregir cantidad","Ajustar","Arreglar el número"], a:"Corregir cantidad", b:"Corregir cantidad", c:"Corregir cantidad" },
+    { antes:"Ventas sin registrar · Regularizar", ref:"Sin equivalente: Square las llama «artículos personalizados»", alts:["Ventas sin prenda · Unir prenda","Ventas sin escanear · Completar","Ventas pendientes · Identificar prenda"], a:"Ventas sin prenda · Unir prendas", b:"Ventas sin prenda", c:"Ventas sin prenda" },
+    { antes:"Trasladar", ref:"Shopify: «transferencia»", alts:["Enviar a otra sede","Pedir a otra sede","Trasladar"], a:"Enviar a otra sede", b:"Pedir a otra sede", c:"Enviar / Pedir a otra sede" },
+    { antes:"Apartados", ref:"Shopify: «comprometido»; tiendas: «reservado»", alts:["Apartadas","Separadas","Reservadas"], a:"Apartadas", b:"Apartar", c:"Apartadas" },
+    { antes:"Ver detalle (cambia a tabla)", ref:"Shopify: selector de vista", alts:["Tabla","Ver por tallas","Lista"], a:"Tarjetas / Tabla", b:"(no existe)", c:"(abre en la fila)" },
+    { antes:"Copiar enlace", ref:"Shopify: vistas guardadas", alts:["Quitar de la vista","Compartir","Guardar esta vista"], a:"Quitar", b:"Quitar", c:"Quitar" },
+  ];
+  let eleccion = {};
+  try { eleccion = JSON.parse(localStorage.getItem("ex-voz") || "{}"); } catch {}
+  $("voz").innerHTML = VOZ.map((v,i) => `<tr>
+    <td class="fuerte">${esc(v.antes)}</td>
+    <td>${esc(v.ref)}</td>
+    <td><div class="alt" role="radiogroup" aria-label="${esc(v.antes)}">${v.alts.map((a,j) => `<label><input type="radio" id="voz-${i}-${j}" name="voz-${i}" value="${esc(a)}" ${eleccion[i]===a?"checked":""}>${esc(a)}</label>`).join("")}</div>
+      <p class="opc" style="margin-top:6px">A: <b>${esc(v.a)}</b> · B: <b>${esc(v.b)}</b> · C: <b>${esc(v.c)}</b></p></td>
+  </tr>`).join("");
+  $("voz").addEventListener("change", e => {
+    const i = +e.target.name.split("-")[1]; eleccion[i] = e.target.value;
+    try { localStorage.setItem("ex-voz", JSON.stringify(eleccion)); } catch {}
+  });
+  $("copiar").addEventListener("click", () => {
+    const txt = VOZ.map((v,i) => `${v.antes} → ${eleccion[i] ?? "(sin elegir)"}`).join("\n");
+    const respaldo = () => { const t = $("respaldo"); t.hidden = false; t.value = txt; t.select(); $("copiado").textContent = "Selecciona y copia el texto de abajo."; };
+    try { navigator.clipboard.writeText(txt).then(() => { $("copiado").textContent = "Copiado."; }, respaldo); } catch { respaldo(); }
+  });
+})();
+</script>

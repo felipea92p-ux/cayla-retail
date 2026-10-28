@@ -1,27 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-
-/** El rectángulo que de verdad se ve alrededor de `el`: la ventana recortada por cada
- *  ancestro que corta lo que se sale (`overflow` distinto de `visible`, como el panel del
- *  ticket de Vender, que scrollea por dentro). Un globo `absolute` no se ve de ese rectángulo
- *  para afuera. */
-function limitesVisibles(el: HTMLElement) {
-  let left = 0;
-  let top = 0;
-  let right = window.innerWidth;
-  let bottom = window.innerHeight;
-  for (let p = el.parentElement; p; p = p.parentElement) {
-    const e = getComputedStyle(p);
-    if (e.overflowX === "visible" && e.overflowY === "visible") continue;
-    const c = p.getBoundingClientRect();
-    left = Math.max(left, c.left);
-    top = Math.max(top, c.top);
-    right = Math.min(right, c.right);
-    bottom = Math.min(bottom, c.bottom);
-  }
-  return { left, top, right, bottom };
-}
+import { createPortal } from "react-dom";
+import { useDestinoFlotante } from "@/components/ui/useAnclaje";
 
 // Botón de ayuda "(!)" — se toca y explica un concepto en lenguaje CAYLA, sin
 // tecnicismos (protocolo de docencia: dejar a Felipe más capaz de discutir, no de
@@ -45,31 +26,33 @@ export function Ayuda({
   const ref = useRef<HTMLSpanElement>(null);
   const globoRef = useRef<HTMLSpanElement>(null);
 
-  // Al abrir, el globo se acomoda DENTRO de lo visible (2026-09-18): antes iba siempre
-  // pegado al borde izquierdo del botón, con ancho fijo, y cerca del borde derecho del panel
-  // del ticket se cortaba a media frase. Se escribe directo en el estilo (no en estado) y en
-  // `useLayoutEffect`, así el primer cuadro ya sale bien puesto y no hay parpadeo. También
-  // al hacer scroll/redimensionar mientras está abierto.
+  // El globo cuelga fuera de la caja que contiene al «!» (2026-10-13): en `position: fixed`, en la capa flotante de la hoja
+  // si el «!» vive dentro de un <Modal>, o en body si no (`useDestinoFlotante`, ADR-0211). Antes era `absolute` y se recortaba
+  // al borde de la hoja o del panel que scrollea: en «Plan de Polos» la explicación de «Bueno» quedaba cortada contra la
+  // hoja. Ahora solo la pantalla lo limita: se acomoda dentro de la ventana, debajo del botón o, si no cabe, arriba. Se
+  // escribe directo en el estilo (no en estado) y en `useLayoutEffect`, así el primer cuadro ya sale bien puesto; y se
+  // recalcula al hacer scroll (con captura, también el de la hoja) o redimensionar.
+  const destino = useDestinoFlotante(ref, abierto);
   useLayoutEffect(() => {
-    if (!abierto) return;
+    if (!abierto || !destino) return;
     const colocar = () => {
       const raiz = ref.current;
       const globo = globoRef.current;
       if (!raiz || !globo) return;
-      const lim = limitesVisibles(raiz);
       const margen = 8;
-      const ancho = Math.min(288, lim.right - lim.left - 2 * margen);
+      // El ancho del documento y no `window.innerWidth`: en el celular, si algo se sale por la derecha, el navegador agranda la
+      // ventana «visible» y el globo se colocaba contra ese borde nuevo, fuera de la pantalla (2026-10-09, «!» de Productos).
+      const anchoVentana = document.documentElement.clientWidth || window.innerWidth;
+      const ancho = Math.min(288, anchoVentana - 2 * margen);
       globo.style.width = `${ancho}px`;
       const r = raiz.getBoundingClientRect();
-      const left = Math.min(Math.max(lim.left + margen, r.left), lim.right - margen - ancho);
-      globo.style.left = `${left - r.left}px`;
-      // Debajo del botón; si no cabe abajo pero sí arriba, arriba.
+      globo.style.left = `${Math.min(Math.max(margen, r.left), anchoVentana - margen - ancho)}px`;
       const alto = globo.offsetHeight;
-      const cabeAbajo = r.bottom + 8 + alto + margen <= lim.bottom;
-      const cabeArriba = r.top - 8 - alto - margen >= lim.top;
+      const cabeAbajo = r.bottom + 8 + alto + margen <= window.innerHeight;
+      const cabeArriba = r.top - 8 - alto - margen >= 0;
       const arriba = !cabeAbajo && cabeArriba;
-      globo.style.top = arriba ? "auto" : "1.75rem";
-      globo.style.bottom = arriba ? "1.75rem" : "auto";
+      globo.style.top = arriba ? "auto" : `${r.bottom + 8}px`;
+      globo.style.bottom = arriba ? `${window.innerHeight - r.top + 8}px` : "auto";
     };
     colocar();
     window.addEventListener("resize", colocar);
@@ -78,12 +61,13 @@ export function Ayuda({
       window.removeEventListener("resize", colocar);
       window.removeEventListener("scroll", colocar, true);
     };
-  }, [abierto]);
+  }, [abierto, destino]);
 
   useEffect(() => {
     if (!abierto) return;
     const alTocarAfuera = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false);
+      const t = e.target as Node;
+      if (ref.current && !ref.current.contains(t) && !globoRef.current?.contains(t)) setAbierto(false);
     };
     const alEscape = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
     document.addEventListener("mousedown", alTocarAfuera);
@@ -112,15 +96,24 @@ export function Ayuda({
       >
         !
       </button>
-      {abierto && (
+      {abierto && destino && createPortal(
         // normal-case + tracking-normal + font-sans: la explicación no debe heredar las
-        // versalitas ni el tracking de una etiqueta `label-cayla` que la contenga.
+        // versalitas ni el tracking de una etiqueta `label-cayla` que la contenga. Tampoco el
+        // `whitespace-nowrap` de un título que no se parte: sin `whitespace-normal`, el texto corría
+        // de largo y se salía del globo (Resultados ▸ «¿Cómo va?», 2026-10-12).
         // Posición y ancho los pone `useLayoutEffect` de arriba (estilo en línea); acá solo el
         // aspecto. `w-64` es el ancho de respaldo si el efecto no llegara a correr.
-        <span ref={globoRef} className="anim-globo absolute left-0 top-7 z-40 block w-64 rounded-lg border border-sand bg-papel p-3.5 text-left font-sans normal-case tracking-normal shadow-md">
+        // Al estar en un portal, React sube sus clics por el árbol de React: se cortan aquí para que un «!» dentro de una
+        // fila o una tarjeta clicable no la active al tocar la explicación (ADR-0128, 2026-09-26).
+        <span
+          ref={globoRef}
+          onClick={(e) => e.stopPropagation()}
+          className="anim-globo fixed left-0 top-0 z-40 block w-64 whitespace-normal rounded-lg border border-sand bg-papel p-3.5 text-left font-sans normal-case tracking-normal shadow-md"
+        >
           {titulo && <span className="label-cayla mb-1 block text-[11px] text-rojo">{titulo}</span>}
           <span className="block text-xs font-normal leading-relaxed text-tinta/80 normal-case tracking-normal">{children}</span>
-        </span>
+        </span>,
+        destino,
       )}
     </span>
   );

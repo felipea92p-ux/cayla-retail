@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   cierresPorDia,
   cobradoDelTurno,
+  notaDeRedondeo,
   cuadreDe,
+  elegirMetodo,
+  elegirVista,
+  FILTRO_MOV_INICIAL,
+  metodosDelTurno,
   modoCierresPredeterminado,
+  pasaFiltroMov,
   pasaFiltroMovimiento,
   piezasDelCajon,
   resumenCuadres,
@@ -29,6 +35,33 @@ describe("cobradoDelTurno", () => {
 
   it("un método desconocido cae en «Otro»", () => {
     expect(cobradoDelTurno({ credito: 10 }).metodos).toEqual([{ clave: "otro", texto: "Otro", monto: 10 }]);
+    // El QR es un medio real del mostrador (`venta_pagos_metodo_check`): se llama «QR», nunca «Otro».
+    expect(cobradoDelTurno({ qr: 937.21, credito: 10 }).metodos).toEqual([
+      { clave: "qr", texto: "QR", monto: 937.21 },
+      { clave: "otro", texto: "Otro", monto: 10 },
+    ]);
+  });
+
+  it("el redondeo del efectivo (ADR-0311) no es una forma de pago: ni suma a lo cobrado ni cae en «Otro»", () => {
+    const r = cobradoDelTurno({ efectivo: 79.8, tarjeta: 120, redondeo: 0.08 });
+    expect(r.total).toBe(199.8);
+    expect(r.metodos.map((m) => m.clave)).toEqual(["efectivo", "tarjeta"]);
+    expect(cobradoDelTurno({ redondeo: 0.08 })).toEqual({ total: 0, anticipo: 0, metodos: [] });
+  });
+});
+
+describe("notaDeRedondeo", () => {
+  const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+  it("con redondeo, lo dice aparte y avisa que no suma a lo cobrado", () => {
+    const nota = notaDeRedondeo(0.08, soles);
+    expect(nota).toContain("S/\u00a00.08");
+    expect(nota).toContain("de redondeo en efectivo");
+    expect(nota).toContain("múltiplo de S/\u00a00.10, hacia abajo");
+    expect(nota).toContain("no suma a lo cobrado");
+  });
+  it("sin redondeo (o con una base anterior que no lo manda) no hay nota", () => {
+    expect(notaDeRedondeo(0, soles)).toBeNull();
+    expect(notaDeRedondeo(NaN, soles)).toBeNull();
   });
 });
 
@@ -58,11 +91,57 @@ describe("pasaFiltroMovimiento", () => {
   });
 });
 
+describe("filtro por medio de pago", () => {
+  const venta = (titulo: string, metodos: ("efectivo" | "tarjeta" | "yape" | "transferencia" | "otro")[]) => ({ icono: "venta" as const, titulo, metodos });
+  const ef = venta("Venta · efectivo", ["efectivo"]);
+  const tar = venta("Venta · tarjeta", ["tarjeta"]);
+  const yape = venta("Venta · yape", ["yape"]);
+  const mixta = venta("Venta · efectivo + yape", ["efectivo", "yape"]);
+  const ingreso = { icono: "ingreso" as const, titulo: "Depósito" };
+  const todos = [ef, tar, yape, mixta, ingreso];
+
+  it("elegir un medio lleva a «Ventas»: nunca queda «Mueve el cajón + Tarjeta»", () => {
+    expect(elegirMetodo({ vista: "cajon", metodo: null }, "tarjeta")).toEqual({ vista: "ventas", metodo: "tarjeta" });
+    expect(elegirMetodo(FILTRO_MOV_INICIAL, "yape")).toEqual({ vista: "ventas", metodo: "yape" });
+  });
+  it("tocar el medio ya elegido lo suelta y queda en «Ventas»; tocar otro lo reemplaza", () => {
+    expect(elegirMetodo({ vista: "ventas", metodo: "yape" }, "yape")).toEqual({ vista: "ventas", metodo: null });
+    expect(elegirMetodo({ vista: "ventas", metodo: "yape" }, "tarjeta")).toEqual({ vista: "ventas", metodo: "tarjeta" });
+  });
+  it("elegir cualquier vista suelta el medio", () => {
+    expect(elegirVista("todo")).toEqual({ vista: "todo", metodo: null });
+    expect(elegirVista("cajon")).toEqual({ vista: "cajon", metodo: null });
+  });
+  it("filtra las ventas por medio; la de pago mixto sale en cada uno de sus medios; los movimientos manuales no", () => {
+    const con = (m: "efectivo" | "tarjeta" | "yape") => todos.filter((e) => pasaFiltroMov(e, { vista: "ventas", metodo: m }));
+    expect(con("yape")).toEqual([yape, mixta]);
+    expect(con("efectivo")).toEqual([ef, mixta]);
+    expect(con("tarjeta")).toEqual([tar]);
+  });
+  it("sin medio elegido se comporta como antes", () => {
+    expect(todos.filter((e) => pasaFiltroMov(e, FILTRO_MOV_INICIAL))).toEqual(todos);
+    expect(todos.filter((e) => pasaFiltroMov(e, { vista: "cajon", metodo: null }))).toEqual([ef, mixta, ingreso]);
+  });
+  it("una venta sin medio conocido no sale al filtrar por uno, ni cuenta en la lista de medios", () => {
+    const sinDato = { icono: "venta" as const, titulo: "Venta" };
+    expect(pasaFiltroMov(sinDato, { vista: "ventas", metodo: "efectivo" })).toBe(false);
+    expect(metodosDelTurno([sinDato])).toEqual([]);
+  });
+  it("lista solo los medios usados en el turno, en el orden de siempre, con cuántas ventas tuvo cada uno", () => {
+    expect(metodosDelTurno(todos)).toEqual([
+      { clave: "efectivo", ventas: 2 },
+      { clave: "tarjeta", ventas: 1 },
+      { clave: "yape", ventas: 2 },
+    ]);
+    expect(metodosDelTurno([ingreso])).toEqual([]);
+  });
+});
+
 describe("cuadreDe", () => {
   it("cuadra por debajo de un céntimo", () => expect(cuadreDe(0.004).clave).toBe("ok"));
   it("hasta S/ 5 es ámbar, más es rojo, y dice si faltó o sobró", () => {
-    expect(cuadreDe(-2)).toEqual({ clave: "poco", texto: "Faltó S/ 2.00", diferencia: -2 });
-    expect(cuadreDe(12)).toEqual({ clave: "mal", texto: "Sobró S/ 12.00", diferencia: 12 });
+    expect(cuadreDe(-2)).toEqual({ clave: "poco", texto: "Faltó S/\u00a02.00", diferencia: -2 });
+    expect(cuadreDe(12)).toEqual({ clave: "mal", texto: "Sobró S/\u00a012.00", diferencia: 12 });
   });
 });
 

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ventas sin registrar · A3 · Arrastrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<link rel="stylesheet" href="mesa.css">
+<style>
+/* A3 · ARRASTRAR — el talón se agarra y se suelta sobre la prenda. El hilo se vuelve una cuerda elástica que sigue al mouse; las prendas
+   «se acercan» (imán) cuando pasas cerca y se encienden cuando estás encima. Al soltar se abre una tarjeta junto a la prenda con el precio,
+   el «cómo estaba» y el botón. Si sueltas en el aire, el talón vuelve solo a su lugar. Con el dedo (o el teclado) se toca el talón y luego
+   la prenda: el arrastre es un atajo, nunca la única forma. Idea: unir con la mano es lo más cercano a hacerlo en la tienda con el talón y la prenda. */
+.talon{cursor:grab;touch-action:pan-y}
+.talon .tx{position:relative;padding-left:26px}
+.talon:has(.chip.pend) .tx:before,.talon:has(.chip.venc) .tx:before{content:"";position:absolute;left:10px;top:50%;width:6px;height:18px;margin-top:-9px;background:radial-gradient(circle,var(--t50) 1.3px,transparent 1.6px) 0 0/6px 6px;opacity:.75;transition:opacity .25s}
+.talon:hover .tx:before{opacity:1}
+.talon.arrastrando{opacity:.4;transform:none!important;border-style:dashed}
+.mesa.arrastre,.mesa.arrastre *{cursor:grabbing!important;user-select:none}
+/* el hilo ya fijado pasa POR DEBAJO de las tarjetas; mientras arrastras va por ENCIMA para que lo veas seguir al mouse */
+.hilos{z-index:2}.col-e{position:relative;z-index:3}
+.mesa.arrastre .hilos{z-index:6}
+.fantasma{position:absolute;z-index:85;pointer-events:none;width:296px;display:flex;background:var(--papel);border:1px solid var(--tinta);border-radius:14px;overflow:hidden;box-shadow:0 30px 44px -22px color-mix(in srgb,var(--sombra) 60%,transparent);transform:rotate(-2.5deg);animation:levanta .35s var(--ease) both}
+@keyframes levanta{from{opacity:.4;transform:rotate(0) scale(.96)}to{opacity:1;transform:rotate(-2.5deg) scale(1)}}
+.fantasma .baldosa{width:54px;flex:none}
+.fantasma .tx{padding:8px 12px;min-width:0}
+.fantasma b{display:block;font-weight:500;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fantasma small{color:var(--taupe);font-size:12px}
+.vuelve{transition:transform .5s var(--ease),opacity .4s var(--ease)}
+
+.hint{display:flex;align-items:center;gap:12px;background:var(--hueso);border-radius:14px;padding:10px 14px;font-size:13px;color:var(--t80);animation:sube .5s var(--ease) both}
+.hint .mano{width:34px;height:34px;border-radius:10px;background:var(--papel);display:grid;place-items:center;flex:none;overflow:hidden;position:relative}
+.hint .mano i{width:18px;height:12px;border-radius:5px;background:var(--tinta);animation:arrastra 1.4s .8s var(--ease) 1 both}
+@keyframes arrastra{0%{transform:translateX(-7px)}70%,100%{transform:translateX(7px)}}
+.hint b{font-weight:600;color:var(--tinta)}
+.cab-e{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.cab-e p{font-size:12.5px;color:var(--t65)}
+
+.tgd{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding-top:2px}
+.td{position:relative;display:flex;flex-direction:column;gap:6px;background:var(--papel);border:1.5px solid var(--sand);border-radius:16px;padding:8px 8px 11px;text-align:left;transition:border-color .25s,transform .4s var(--ease),box-shadow .4s var(--ease),background .25s;animation:sube .5s var(--ease) both;animation-delay:calc(var(--i,0)*55ms)}
+.td:hover{border-color:var(--taupe);transform:translateY(-3px)}
+.td .baldosa{width:100%;aspect-ratio:1.2;border-radius:11px;--aw:44%}
+.td b{font-weight:600;font-size:13.5px;padding:0 3px}
+.td small{padding:0 3px;font-size:12px;color:var(--taupe)}
+.td .pr{display:flex;justify-content:space-between;align-items:baseline;padding:0 3px;font-size:12.5px}
+.td .pips{display:flex;gap:4px;align-items:center;padding:0 3px;font-size:11px;color:var(--t65)}
+.td .pips i{width:13px;height:4px;border-radius:2px;background:var(--sand)}
+.td .pips i.on{background:var(--verde)}
+.td .sug{position:absolute;left:14px;top:14px;right:auto}
+.td .dif{position:absolute;right:14px;top:14px;z-index:3;background:var(--tinta);color:var(--crema);font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .3s var(--ease)}
+.td.sin-stock{opacity:.55}
+/* mientras arrastras: todas piden el talón, las cercanas se acercan, la de abajo se enciende */
+.mesa.arrastre .td{border-style:dashed;border-color:var(--taupe)}
+.mesa.arrastre .td.cerca{transform:scale(1.035);border-color:var(--tinta)}
+.mesa.arrastre .td.sobre{transform:scale(1.06);border-style:solid;border-color:var(--tinta);box-shadow:0 0 0 4px color-mix(in srgb,var(--tinta) 9%,transparent),0 22px 32px -22px color-mix(in srgb,var(--sombra) 60%,transparent)}
+.mesa.arrastre .td.sobre .dif,.td[aria-pressed=true] .dif{opacity:1;transform:none}
+.td[aria-pressed=true]{border-color:var(--tinta);background:var(--papel);box-shadow:0 0 0 1px var(--tinta)}
+.td .unida{position:absolute;inset:8px 8px auto 8px;aspect-ratio:1.2;border-radius:11px;display:grid;place-items:center;pointer-events:none}
+
+/* Tarjeta que se abre junto a la prenda */
+.pop{position:absolute;z-index:60;width:340px;background:var(--papel);border:1px solid var(--tinta);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 34px 50px -26px color-mix(in srgb,var(--sombra) 65%,transparent);animation:crece .4s var(--ease) both;transform-origin:var(--ox,50%) var(--oy,0)}
+.pop.cierra{animation:sale .22s var(--ease) both}
+@keyframes sale{to{opacity:0;transform:scale(.96)}}
+.pop .ph{display:flex;gap:10px;align-items:center}
+.pop .ph .baldosa{width:46px;height:46px;border-radius:11px;flex:none;--aw:60%}
+.pop .ph b{display:block;font-weight:600;font-size:14.5px}
+.pop .ph small{color:var(--taupe);font-size:12px}
+.pop .ph .x{margin-left:auto;width:30px;height:30px;border-radius:50%;border:1px solid var(--sand);display:grid;place-items:center;flex:none}
+.pop .formas{grid-template-columns:1fr}
+.pop .forma{padding:9px 11px}
+.pop .fin{flex-wrap:nowrap}
+.pop .fin .btn.pri{min-width:0;padding:10px 14px}
+.pop .resp{max-width:150px}
+.pop .resp select{max-width:96px}
+.pop.pop-m{position:static;width:auto;margin-top:6px;animation:sube .45s var(--ease) both}
+.pop .sello{left:50%;top:44%;margin-left:-62px;--c:var(--verde);font-size:13px;padding:5px 14px;z-index:6}
+.vuelo{position:absolute;z-index:88;pointer-events:none;border-radius:12px}
+
+@container vista (max-width:1180px){.tgd{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container vista (max-width:700px){.tgd{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.talon{cursor:pointer}.hint{display:none}}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script src="mesa.js"></script>
+<script>
+(function(){
+const {$, $$, soles} = V, st = Mesa.st;
+const MOV = () => Mesa.movil();
+let drag = null;
+
+function pintarPendiente(v, el, cab){
+  const cands = V.candidatas(v,9), sug = V.sugerida(v);
+  el.innerHTML = cab + `<div class="hint"><span class="mano"><i></i></span><span><b>Arrastra el talón</b> de la izquierda hasta la prenda que es. También puedes tocar la prenda.</span></div>
+    <div class="cab-e"><span class="lbl">¿Qué prenda es?</span><p>${sug?'La sugerida es la única que calza en todo.':'Hay más de una que calza: tú la reconoces.'}</p></div>
+    <div class="tgd">${cands.map(({p,calce},i)=>`<button class="td ${p.stock<=0?'sin-stock':''}" data-p="${p.id}" style="--i:${i}" aria-pressed="false">
+      ${sug&&sug.id===p.id?'<span class="sug">Sugerida</span>':''}<span class="dif num">${V.dif(v,p)===0?'Mismo precio':V.dif(v,p)<0?'−'+soles(-V.dif(v,p)):'+'+soles(V.dif(v,p))}</span>${V.baldosa(p.cat,p.hex)}
+      <b>${p.nombre}</b><small>${p.talla} · ${p.color} · ${p.codigo}</small>
+      <span class="pr num"><b style="padding:0">${soles(p.precio)}</b><span style="color:var(--t65);font-size:11.5px">${p.stock} en TRU</span></span>
+      <span class="pips">${[0,1,2].map(k=>`<i class="${k<calce?'on':''}"></i>`).join('')}<span>calza ${calce}/3</span></span></button>`).join('')}</div>`;
+  $$('.td', el).forEach(b => b.onclick = () => { if (!drag) elegirPrenda(b.dataset.p); });
+  cerrarPop(true);
+}
+
+/* ── Elegir (tocar o soltar): abre la tarjeta junto a la prenda ───────────── */
+function elegirPrenda(pid){
+  st.prenda = pid; st.forma = null;
+  $$('.td').forEach(b => b.setAttribute('aria-pressed', b.dataset.p===pid));
+  abrirPop(); redibujar('cand');
+}
+function abrirPop(){
+  cerrarPop(true);
+  const v = Mesa.actual(), p = V.catalogo.find(x=>x.id===st.prenda), tile = $(`.td[data-p="${st.prenda}"]`); if (!p || !tile) return;
+  const pop = document.createElement('div'); pop.className = 'pop' + (MOV()?' pop-m':''); pop.id = 'pop';
+  pop.innerHTML = `<div class="ph">${V.baldosa(p.cat,p.hex)}<div><b>${p.nombre}</b><small>${p.talla} · ${p.color} · ${p.codigo} · ${p.stock} en TRU</small></div><button class="x" id="pop-x" aria-label="Cerrar">${V.ic('cerrar')}</button></div>
+    ${Mesa.balanza(v,p)}<div><span class="lbl">¿Cómo estaba en el sistema?</span><div style="margin-top:8px">${Mesa.formasHTML()}</div></div><div id="cons"></div>${Mesa.finHTML()}`;
+  (MOV() ? $('#elige') : $('#mesa')).appendChild(pop);
+  Mesa.atarForma(pop, {alForma: posicionarPop});
+  $('#pop-x', pop).onclick = () => { st.prenda=null; st.forma=null; $$('.td').forEach(b=>b.setAttribute('aria-pressed','false')); cerrarPop(); redibujar(); };
+  posicionarPop();
+  if (MOV()) pop.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+function posicionarPop(){
+  const pop = $('#pop'), tile = $(`.td[data-p="${st.prenda}"]`); if (!pop || !tile || pop.classList.contains('pop-m')) return;
+  const m = $('#mesa').getBoundingClientRect(), r = tile.getBoundingClientRect(), W = pop.offsetWidth, H = pop.offsetHeight;
+  let x = Math.max(8, Math.min(m.width - W - 12, r.left - m.left)), y = r.bottom - m.top + 10, ox = r.left - m.left + r.width/2 - x, oy = 0;
+  if (y + H > m.height - 8) {
+    const arriba = r.top - m.top - H - 10;
+    if (arriba >= 8) { y = arriba; oy = H; }
+    else {
+      // no cabe ni abajo ni arriba: se abre AL LADO de la prenda, sin taparla
+      const izq = r.left - m.left - W - 12, der = r.right - m.left + 12;
+      x = izq >= 8 ? izq : Math.min(der, m.width - W - 8); y = Math.max(8, Math.min(r.top - m.top, m.height - H - 8)); ox = izq >= 8 ? W : 0; oy = 24;
+    }
+  }
+  pop.style.left = x+'px'; pop.style.top = y+'px'; pop.style.setProperty('--ox', ox+'px'); pop.style.setProperty('--oy', oy+'px');
+}
+function cerrarPop(ya){
+  const pop = $('#pop'); if (!pop) return;
+  if (ya || V.reducir()) pop.remove(); else { pop.classList.add('cierra'); setTimeout(()=>pop.remove(), 230); }
+}
+addEventListener('pointerdown', e => { const pop=$('#pop'); if (!pop || drag) return; if (pop.contains(e.target) || e.target.closest('.td') || e.target.closest('.talon')) return; st.prenda=null; st.forma=null; $$('.td').forEach(b=>b.setAttribute('aria-pressed','false')); cerrarPop(); redibujar(); });
+addEventListener('keydown', e => { if (e.key==='Escape' && $('#pop') && !Mesa.ocupado()) { st.prenda=null; st.forma=null; $$('.td').forEach(b=>b.setAttribute('aria-pressed','false')); cerrarPop(); redibujar(); } });
+
+/* ── Arrastrar el talón ───────────────────────────────────────────────────── */
+document.addEventListener('pointerdown', e => {
+  const t = e.target.closest('#talones .talon'); if (!t || e.pointerType==='touch' || e.button!==0 || MOV() || Mesa.ocupado()) return;
+  const v = V.ventas.find(x=>x.id===t.dataset.id); if (!v || v.estado!=='pendiente') return;
+  drag = {id:t.dataset.id, x0:e.clientX, y0:e.clientY, activo:false, obj:null};
+});
+addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.activo) { if (Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) < 8) return; empezar(); }
+  mover(e);
+});
+addEventListener('pointerup', e => { if (!drag) return; const d = drag; if (d.activo) soltar(e); else drag = null; });
+function empezar(){
+  drag.activo = true; cerrarPop(true);
+  if (st.sel !== drag.id) Mesa.elegir(drag.id, {auto:true});
+  st.prenda = null; $$('.td').forEach(b=>b.setAttribute('aria-pressed','false'));
+  const t = $(`.talon[data-id="${drag.id}"]`), v = V.ventas.find(x=>x.id===drag.id);
+  t.classList.add('arrastrando'); $('#mesa').classList.add('arrastre');
+  const f = document.createElement('div'); f.className='fantasma'; f.id='fantasma';
+  f.innerHTML = `${V.baldosa(v.cat,v.hex)}<div class="tx"><b>${v.desc}</b><small>${soles(v.precio)} · ${v.por}</small></div>`; $('#vista').appendChild(f);
+}
+function mover(e){
+  const f = $('#fantasma'), vr = $('#vista').getBoundingClientRect(), m = $('#mesa').getBoundingClientRect();
+  f.style.left = (e.clientX - vr.left + 14)+'px'; f.style.top = (e.clientY - vr.top - 24)+'px';
+  let obj = null, cerca = [];
+  $$('.td').forEach(t => {
+    const r = t.getBoundingClientRect(), dx = Math.max(r.left-e.clientX, 0, e.clientX-r.right), dy = Math.max(r.top-e.clientY, 0, e.clientY-r.bottom), d = Math.hypot(dx,dy);
+    t.classList.toggle('sobre', d===0); t.classList.toggle('cerca', d>0 && d<80); if (d===0) obj = t;
+  });
+  drag.obj = obj;
+  const svg = $('#hilos'); svg.innerHTML='';
+  const tal = $(`.talon[data-id="${drag.id}"]`), r = tal.getBoundingClientRect(), p1 = [r.right-m.left+1, Mesa.clamp(r.top+r.height/2-m.top, $('#talones'))];
+  const p2 = obj ? Mesa.punto(obj,'left') : [e.clientX-m.left, e.clientY-m.top];
+  Mesa.curva(svg, p1, p2, 'h-sel', false); Mesa.punta(svg, p2, false);
+}
+async function soltar(e){
+  const d = drag; drag = null;
+  const f = $('#fantasma'), tal = $(`.talon[data-id="${d.id}"]`);
+  $('#mesa').classList.remove('arrastre'); $$('.td').forEach(t => t.classList.remove('sobre','cerca'));
+  if (d.obj) {
+    f.remove(); tal.classList.remove('arrastrando');
+    st.sel = d.id; elegirPrenda(d.obj.dataset.p);
+  } else {
+    // en el aire: el talón vuelve solo a su lugar
+    const vr = $('#vista').getBoundingClientRect(), r = tal.getBoundingClientRect();
+    if (!V.reducir()) { f.classList.add('vuelve'); f.style.left=(r.left-vr.left)+'px'; f.style.top=(r.top-vr.top)+'px'; f.style.opacity='0'; $('#hilos').innerHTML=''; await V.esperar(480); }
+    f.remove(); tal.classList.remove('arrastrando'); redibujar();
+  }
+}
+
+/* ── Hilo ya fijado (talón → prenda) ──────────────────────────────────────── */
+function redibujar(modo){
+  const svg = $('#hilos'); if (!svg || MOV()) { svg && (svg.innerHTML=''); return; }
+  if (drag && drag.activo) return;
+  svg.innerHTML = '';
+  const tal = $(`.talon[data-id="${st.sel}"]`), tile = $(`.td[data-p="${st.prenda}"]`); if (!tal || !tile) { posicionarPop(); return; }
+  const m = $('#mesa').getBoundingClientRect(), r = tal.getBoundingClientRect();
+  const p1 = [r.right-m.left+1, Mesa.clamp(r.top+r.height/2-m.top, $('#talones'))], q = tile.getBoundingClientRect(), p2 = [q.left-m.left-2, Mesa.clamp(q.top+q.height/2-m.top, $('#elige'))];
+  Mesa.curva(svg, p1, p2, 'h-sel', modo==='cand'); Mesa.punta(svg, p2, modo==='cand');
+  posicionarPop();
+}
+
+/* ── Al guardar: el talón viaja por el hilo y se funde con la prenda ──────── */
+async function efecto({talon}){
+  const tile = $(`.td[data-p="${st.prenda}"]`), pop = $('#pop'); if (!tile || !talon) return;
+  const vr = $('#vista').getBoundingClientRect(), a = $('.baldosa', talon).getBoundingClientRect(), b = $('.baldosa', tile).getBoundingClientRect();
+  cerrarPop();
+  const h = $('#hilos .h-sel'); if (h && !V.reducir()) { const L = h.getTotalLength(), l2 = h.cloneNode(); l2.setAttribute('class','luz'); h.after(l2); l2.animate([{strokeDasharray:`0 ${L}`},{strokeDasharray:`${L} 0`}],{duration:600,easing:'cubic-bezier(.32,.72,.24,1)',fill:'forwards'}); }
+  const clon = $('.baldosa', talon).cloneNode(true); clon.classList.add('vuelo');
+  Object.assign(clon.style, {left:(a.left-vr.left)+'px', top:(a.top-vr.top)+'px', width:a.width+'px', height:a.height+'px'}); $('#vista').appendChild(clon);
+  if (!V.reducir()) clon.animate([{transform:'none',opacity:1},{transform:`translate(${b.left-a.left+b.width/2-a.width/2}px,${b.top-a.top+b.height/2-a.height/2}px) scale(${b.width/a.width*.5})`,opacity:1,offset:.8},{transform:`translate(${b.left-a.left+b.width/2-a.width/2}px,${b.top-a.top+b.height/2-a.height/2}px) scale(${b.width/a.width*.5})`,opacity:0}],{duration:900,easing:'cubic-bezier(.32,.72,.24,1)',fill:'forwards'});
+  await V.esperar(950); clon.remove();
+  const s = document.createElement('span'); s.className='sello'; s.textContent='Unida'; s.style.cssText='left:50%;top:38%;margin-left:-40px;--c:var(--verde);z-index:5'; tile.appendChild(s);
+  await V.esperar(500);
+}
+
+const c = V.marco({activa:'a3-arrastrar.html', onRepetir:()=>iniciar(), onReiniciar:()=>iniciar()});
+function iniciar(){ Mesa.iniciar(c, {pintarPendiente, redibujar, efecto}); }
+iniciar();
+$('#seg-modo').addEventListener('click', () => setTimeout(()=>{ $('#pd')?.classList.remove('abierto'); cerrarPop(true); redibujar(); }, 480));
+})();
+</script>
+</body>
+</html>

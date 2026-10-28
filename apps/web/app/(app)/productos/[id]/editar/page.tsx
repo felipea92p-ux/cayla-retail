@@ -1,5 +1,7 @@
+import { dibujoElegido } from "@cayla-retail/shared/insignias-visual";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { notFound, redirect } from "next/navigation";
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -8,9 +10,16 @@ import { getCatalogoMarcas } from "@/lib/marcas-datos";
 import { leerEstadoVariantes } from "@/lib/variantes-ficha-reglas";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { ProductoForm } from "@/components/ProductoForm";
-import { RevisarAltaBanner } from "@/components/RevisarAltaBanner";
 import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
+import { Chip } from "@/components/ui/Chip";
+import { precioUnico } from "@/lib/precio-sede-reglas";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { esUuid } from "@/lib/club-registro-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { getPuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
+import type { CampanaDelVocabulario } from "@/lib/precio-de-hoy";
+
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
 // — la policy `productos_write_lider`/`variantes_write_lider` es la que de
@@ -24,13 +33,15 @@ export default async function EditarProductoPage({
   searchParams: Promise<{ desde?: string | string[] }>;
 }) {
   const { id } = await params;
+  // Un id que no es un uuid no es ningún producto: «no existe», no la pantalla de error (/chaos 2026-10-13, #12).
+  if (!esUuid(id)) notFound();
   // Tabla o Grilla, con sus filtros: de donde se salió a editar (`lib/vuelta-productos.ts`).
   const volverA = vueltaAProductos(desdeDeParams((await searchParams).desde));
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
   const supabase = await createClient();
-  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado] = await Promise.all([
+  const [producto, categorias, colores, ejes, resEtiquetas, marcas, familias, imagenes, resEstado, resTiendas, resSedesCampanas, puertaDeLaFicha] = await Promise.all([
     getProducto(id),
     exigir(
       await supabase.from("categorias").select("id, nombre, prefijo, familia").eq("activo", true).order("familia").order("nombre"),
@@ -38,37 +49,69 @@ export default async function EditarProductoPage({
     ),
     // Con familia y sinónimos, como el alta (lib/alta-producto-datos.ts): «Agregar color» busca «plomo» y encuentra Gris.
     exigir(
-      await supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
+      // Y con Pantone y su ficha (ADR-0316): «Agregar colores» reutiliza la carta del alta y su pie dice lo mismo que allá.
+      await supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden").order("nombre"),
       "los colores del vocabulario"
     ),
     getEjesPorCategoria(),
-    supabase.from("etiquetas").select("id, nombre, vigente_desde, vigente_hasta, descuento_pct").eq("activo", true).eq("estado", "aprobado").order("nombre"),
+    // Con las categorías donde cada campaña rige sola: la ficha dice lo que cobra la caja hoy y al guardar (ADR-0472), con la misma
+    // regla de la caja (marcada a mano o por su categoría).
+    supabase
+      .from("etiquetas")
+      .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+      .eq("activo", true)
+      .eq("estado", "aprobado")
+      .order("nombre"),
     getCatalogoMarcas(),
-    supabase.from("familias").select("codigo, exige_tejido_patron"),
+    supabase.from("familias").select("codigo, exige_tejido_patron, entra_a_motores"),
     getImagenesMuestra(),
     // ADR-0263: unidades y ventas por variante. Tolerante: si falla, la ficha sigue sin la columna de stock y la base
     // decide sola quién corrige una variante vendida. Si la función NO EXISTE, la base tampoco sabe corregir (es el mismo
     // SQL): ver `puedeCorregir`, abajo.
     supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
+    // Precio por tienda (Felipe 2026-10-09): las tiendas abiertas. Tolerante: si falla, el bloque solo se lee.
+    supabase.from("ubicaciones").select("id, nombre").eq("tipo", "tienda").eq("activo", true).order("nombre"),
+    // Las tiendas donde rige cada campaña (ADR-0486; sin filas = todas): el aviso de reimprimir dice en cuáles cambió el precio en caja.
+    // Tolerante: si falla (la base sin la migración), todas rigen en todas las sedes, como antes.
+    supabase.rpc("campanas_sedes"),
+    // La ficha de consumo del modelo (ADR-0513): el Taller y los avíos para su hoja. Tolerante: si falla, la tarjeta no se dibuja.
+    getPuertaDeLaFicha(),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
-  const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
+  const filasFamilias = exigir(familias, "las familias del catálogo");
+  const exigen = new Set(filasFamilias.filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
+  // Las familias fuera de los motores (Empaque, ADR-0377) admiten precio 0: la bolsa de obsequio (Felipe 2026-10-10).
+  const admitenPrecioCero = new Set(filasFamilias.filter((f) => f.entra_a_motores === false).map((f) => f.codigo));
   // Vigencia se filtra acá, no en la consulta: la etiqueta de campaña
   // (Halloween, CyberWow...) deja de OFRECERSE fuera de su ventana, pero
   // nunca se retira sola de una variante que ya la tenía — eso sería
   // perder un dato sin que nadie lo pidiera.
-  const hoy = new Date().toISOString().slice(0, 10);
-  // ADR-0161 P4 (20260923140000): quien edita Productos cambia aquí las etiquetas SIN descuento de la prenda, sin necesitar el
-  // módulo Etiquetas. Poner o quitar una CON descuento cambia el precio en caja y es solo del líder: a los demás no se les
-  // ofrece (la que ya tenga la prenda se conserva tal cual: el selector no la muestra y el guardado no la toca). La base lo
-  // vuelve a exigir en `actualizar_variantes_etiquetas`.
+  // El día de Lima, no el de UTC: pasadas las 7 pm la fecha UTC ya es mañana y una campaña que termina hoy dejaba de ofrecerse.
+  const hoy = hoyLima();
+  // Quien edita Productos cambia aquí las etiquetas de la prenda, con descuento o sin él (ADR-0293, Felipe 2026-09-30: la ficha
+  // perdió su guardia en `actualizar_variantes_etiquetas`, en producción desde ese día). Esta pantalla seguía escondiendo las de
+  // descuento a quien no es líder, con el aviso «las pone un líder», que ya no era cierto (revisión 2026-10-03).
   const esLider = persona.rol === "lider";
   const vocabulario = exigir(resEtiquetas, "las etiquetas del vocabulario");
   const etiquetas = vocabulario
     .filter((e) => (!e.vigente_desde || e.vigente_desde <= hoy) && (!e.vigente_hasta || e.vigente_hasta >= hoy))
-    .filter((e) => esLider || e.descuento_pct == null)
-    .map((e) => ({ id: e.id, texto: e.nombre }));
-  const hayConDescuento = !esLider && vocabulario.some((e) => e.descuento_pct != null);
+    .map((e) => ({ id: e.id, texto: e.nombre, estilo: e.estilo ?? "neutral", icono: dibujoElegido(e.icono), imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null, imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true }));
+  // Las que bajan el precio (ADR-0472): la ficha calcula con ellas lo que cobra la caja, también mientras se cambian etiquetas.
+  const sedesDeCampana = new Map<string, string[]>();
+  for (const f of resSedesCampanas.error ? [] : (resSedesCampanas.data ?? [])) {
+    sedesDeCampana.set(f.etiqueta_id, [...(sedesDeCampana.get(f.etiqueta_id) ?? []), f.ubicacion_id]);
+  }
+  const campanas: CampanaDelVocabulario[] = vocabulario
+    .filter((e) => e.descuento_pct !== null && Number(e.descuento_pct) > 0)
+    .map((e) => ({
+      id: e.id,
+      nombre: e.nombre,
+      descuentoPct: Number(e.descuento_pct),
+      vigenteDesde: e.vigente_desde,
+      vigenteHasta: e.vigente_hasta,
+      categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      sedeIds: sedesDeCampana.get(e.id) ?? [],
+    }));
 
   if (!producto) notFound();
 
@@ -80,10 +123,11 @@ export default async function EditarProductoPage({
 
   // Ajustar el stock desde la ficha (Felipe, 2026-09-29; ADR-0270, actualización de la decisión 9). Es la ventana de Existencias
   // sobre la SEDE ACTIVA, y solo para quien tiene el módulo «Ajustar stock» (`ajustarStock`), que es lo mismo que exige la base
-  // (`ajustar_inventario`). Sin el módulo no se pide ni una consulta más. «Bajada al piso» sigue las mismas reglas que en
-  // Existencias: el rol lo ve y la sede separa piso y almacén.
+  // (`ajustar_inventario`). «Bajada al piso» sigue las mismas reglas que en Existencias: el rol lo ve y la sede separa piso y almacén.
+  // Sin el módulo, el stock de la sede se LEE igual (`lecturaStock`): antes no se pedía y la matriz y el panel mostraban 0 en cada
+  // talla, que se lee como «no hay nada» (revisión del 2026-10-03). Se ve, no se toca.
   const puedeAjustarStock = puede(persona, "ajustarStock");
-  const sububicaciones = puedeAjustarStock ? await getSububicaciones(persona.ubicacionId) : [];
+  const sububicaciones = await getSububicaciones(persona.ubicacionId);
   const separaPisoAlmacen = encontrarPorTipo(sububicaciones, "piso_venta") !== null && encontrarPorTipo(sububicaciones, "almacen_tienda") !== null;
   const ajusteStock = puedeAjustarStock
     ? {
@@ -91,34 +135,81 @@ export default async function EditarProductoPage({
         ubicacionId: persona.ubicacionId,
         sede: persona.ubicacionEtiqueta,
         sububicaciones,
-        puedeBajarAlPiso: veModulo(persona, "bajada_piso") && separaPisoAlmacen,
+        puedeBajarAlPiso: separaPisoAlmacen, // la carga inicial no pide Existencias (ADR-0306 act. 2026-10-03)
       }
     : null;
 
+  // Precio por tienda: quien edita Productos lo pone en SU tienda; el líder, en cualquiera (la base vuelve a exigirlo:
+  // `poner_precio_sede`). El precio de la prenda es uno solo si todas sus tallas activas valen igual (si no, null: «según la talla»,
+  // y ningún monto es «igual al de la prenda», que es lo que la base rechaza). La ficha muestra TODAS las tiendas (`todas`).
+  const tiendas = resTiendas.data ?? [];
+  const tiendasPrecio = esLider ? tiendas : tiendas.filter((t) => t.id === persona.ubicacionId);
+  const preciosActivos = (producto.variantes ?? []).filter((v) => v.activo).map((v) => Number(v.precio)).filter((n) => n > 0);
+  const precioPrenda = precioUnico(preciosActivos);
+
   return (
     <div className="space-y-6">
-      <div>
-        <Volver href={volverA} a="Productos" className="mb-2" />
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          {producto.referencia}
-          {producto.codigo && <span className="ml-2 font-mono text-base text-tinta/45">{producto.codigo}</span>}
-        </h1>
+      <div data-guia="editar.cabecera">
+        {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la prenda de título y su código en la línea de
+            arriba. */}
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          detalle={producto.codigo ? <span className="font-mono normal-case tracking-normal">{producto.codigo}</span> : undefined}
+          volver={<Volver href={volverA} a="Productos" />}
+          titulo={producto.referencia}
+          pie={
+            // ADR-0371: una insignia, no un aviso con botones (Felipe quitó el aviso el 2026-10-02: «no me sirve»). Se aprueba o se rechaza
+            // desde Productos ▸ Por revisar; aquí solo se dice qué es.
+            producto.estadoAlta === "pendiente" && (
+              <span title="Alguien la propuso sin editar el catálogo. Quien edita el catálogo la aprueba o la rechaza en Productos ▸ Por revisar.">
+                <Chip tono="ambar" versalitas={false}>
+                  Pendiente de revisión
+                </Chip>
+              </span>
+            )
+          }
+        />
       </div>
 
-      {producto.estadoAlta === "pendiente" && <RevisarAltaBanner productoId={producto.id} />}
-
       <ProductoForm
-        categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, exigeTejidoPatron: c.familia !== null && exigen.has(c.familia) }))}
-        colores={colores.map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }))}
+        categorias={categorias.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          prefijo: c.prefijo,
+          exigeTejidoPatron: c.familia !== null && exigen.has(c.familia),
+          admitePrecioCero: c.familia !== null && admitenPrecioCero.has(c.familia),
+        }))}
+        colores={colores.map((c) => ({
+          codigo: c.codigo,
+          nombre: c.nombre,
+          hex: c.hex,
+          familiaColor: c.familia_color ?? "",
+          tipo: c.tipo,
+          sinonimos: c.sinonimos ?? [],
+          pantoneTcx: c.pantone_tcx ?? null,
+          descripcion: c.descripcion ?? null,
+          combinaCon: c.combina_con ?? [],
+        }))}
         ejes={ejes}
         imagenes={imagenes}
         etiquetas={etiquetas}
-        avisoEtiquetas={hayConDescuento ? "Las etiquetas con descuento las pone o quita un líder." : undefined}
+        campanas={{ vocabulario: campanas, hoy }}
         marcas={marcas}
         estadoVariantes={resEstado.error ? null : leerEstadoVariantes(resEstado.data)}
         esLider={esLider}
         puedeCorregir={puedeCorregir}
+        fichaConsumo={puertaDeLaFicha}
         ajusteStock={ajusteStock}
+        lecturaStock={{ ubicacionId: persona.ubicacionId, sububicaciones }}
+        preciosSede={{
+          tiendas: tiendasPrecio,
+          todas: tiendas,
+          general: precioPrenda,
+          ubicacionId: persona.ubicacionId,
+          sede: persona.ubicacionEtiqueta,
+          // Una terminal está fija en su tienda: el bloque habla solo de ella (Felipe 2026-10-26).
+          soloAqui: persona.terminal,
+        }}
         producto={producto}
         volverA={volverA}
       />

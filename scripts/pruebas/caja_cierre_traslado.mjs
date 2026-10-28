@@ -10,7 +10,8 @@
  *     (`20260923233000_caja_deposito_sin_numero_de_operacion.sql`, en producción): se guarda igual, sin referencia;
  *   · un cierre con traslado deja la fila en `caja_traslados` y `monto_fondo` = contado − trasladado;
  *   · `abrir_caja` con el mismo fondo abre sin motivo; con otro monto exige motivo y lo guarda;
- *   · `revisar_apertura_caja` solo la usa un líder, y una sola vez.
+ *   · `revisar_apertura_caja` la usa quien gestiona la caja (líder o módulo Caja; Felipe 2026-10-09), solo en su sede,
+ *     y una sola vez (`20261009182444_tienda_revisa_apertura_y_arregla_danada.sql`).
  *
  * CÓMO. Mismo patrón que `candado_lider_caja_y_ajuste.mjs`: cada escenario en su transacción con ROLLBACK (nunca se
  * commitea nada en el Postgres local compartido), sesión simulada con `request.jwt.claim.sub`, y `pg_temp.intento`
@@ -178,16 +179,26 @@ select monto_apertura_esperado, coalesce(motivo_diferencia_apertura, '-') from r
 select monto_fondo from retail.cerrar_caja(:'caja', 90, 60, 'caja_fuerte') \\gset
 select retail.abrir_caja(:'trujillo', 25, 'se usó S/ 5 para vuelto') as dif \\gset
 select monto_apertura_esperado, motivo_diferencia_apertura from retail.cajas where id = :'dif';
+select id as otra_sede from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select (select count(*) from (
+  select retail.cerrar_caja(id, 100) from retail.cajas where ubicacion_id = :'otra_sede' and estado = 'abierta'
+) x) as _previa_otra \\gset
+select retail.abrir_caja(:'otra_sede', 100.00, 'prueba automatizada') as caja_otra \\gset
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'caja';
 ${cambiaA(MICAELA)}
 select pg_temp.intento(format('select retail.revisar_apertura_caja(%L)', :'dif'));
-${cambiaA(FELIPE)}
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'caja') on conflict do nothing;
+select pg_temp.intento(format('select retail.revisar_apertura_caja(%L)', :'caja_otra'));
 select pg_temp.intento(format('select retail.revisar_apertura_caja(%L)', :'dif'));
-select pg_temp.intento(format('select retail.revisar_apertura_caja(%L)', :'dif'));`);
-  const [guardada, colaboradora, primera, segunda] = r.ok ? r.salida.split("\n") : [];
+select pg_temp.intento(format('select retail.revisar_apertura_caja(%L)', :'dif'));
+select apertura_revisada_por = (select id from public.personas where auth_user_id = '${MICAELA}') from retail.cajas where id = :'dif';`);
+  const [guardada, sinModulo, otraSede, primera, segunda, firma] = r.ok ? r.salida.split("\n") : [];
   esperar("abrir con motivo guarda esperado y motivo", r.ok && guardada === "30.00|se usó S/ 5 para vuelto", r);
-  esperar("una colaboradora no marca la apertura como revisada", r.ok && colaboradora.startsWith("Solo un líder"), r);
-  esperar("el líder la marca como revisada", r.ok && primera === "SIN_ERROR", r);
+  esperar("una colaboradora SIN el módulo Caja no marca la apertura como revisada", r.ok && sinModulo.startsWith("Para revisar una apertura necesitas el módulo Caja"), r);
+  esperar("con el módulo Caja, no revisa la apertura de otra sede", r.ok && otraSede.startsWith("Esa caja es de otra sede"), r);
+  esperar("con el módulo Caja, la de su sede sí la marca como revisada", r.ok && primera === "SIN_ERROR", r);
   esperar("no se revisa dos veces", r.ok && segunda.startsWith("Esa apertura no tiene"), r);
+  esperar("queda firmada por quien la revisó", r.ok && firma === "t", r);
 }
 
 // 7. El candado de la tabla: aunque alguien escriba directo, una diferencia sin motivo no entra. Hay que borrar

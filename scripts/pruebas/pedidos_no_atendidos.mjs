@@ -177,7 +177,7 @@ exito(
   comoPersona(
     FELIPE,
     `${RESOLVER}
-select retail.registrar_clienta('90999500', 'Prueba Pedido No Atendido', null, false, null, null) as clienta_real \\gset
+select retail.registrar_clienta(p_documento_numero => '90999500', p_nombre => 'Prueba Pedido No Atendido') as clienta_real \\gset
 ${registrar({ clienta: ":'clienta_real'" })}
 select (select clienta_id from retail.pedidos_no_atendidos where id = :'pedido') = :'clienta_real'::uuid;
 rollback;

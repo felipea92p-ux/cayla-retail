@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { EtiquetaAhora, MarcaCampo, VozDelEstado } from "@/components/alta-producto/guia";
+import { RetencionLuzContexto, useRetenerLuz, type ModoRetencion } from "@/components/guia-de-foco/useRetenerLuz";
 import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 
 // Piezas compartidas del formulario "Nuevo producto" (ADR-0109).
@@ -11,60 +12,6 @@ import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 // dice con tinta (borde y fondo oscuros suaves + marca ✓), el rojo queda para
 // lo que bloquea, y el ámbar para lo que avisa pero deja seguir.
 
-/** Un paso del recorrido. Cerrado = se ve atenuado y no se puede tocar, pero NO se oculta: la persona ve el camino completo. */
-export function Bloque({
-  numero,
-  titulo,
-  ayuda,
-  bloqueado = false,
-  bloqueadoTexto,
-  listo = false,
-  derecha,
-  children,
-}: {
-  numero: number;
-  titulo: string;
-  ayuda?: ReactNode;
-  bloqueado?: boolean;
-  /** Qué falta para abrir este paso, en la voz de la persona ("Elige primero la categoría"). */
-  bloqueadoTexto?: string;
-  listo?: boolean;
-  derecha?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      aria-labelledby={`bloque-${numero}`}
-      className={`card-cayla p-5 transition-opacity ${bloqueado ? "opacity-55" : ""}`}
-    >
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden
-            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] tabular-nums ${
-              listo ? "border-verde bg-verde text-crema" : "border-tinta/30 text-tinta/70"
-            }`}
-          >
-            {listo ? "✓" : numero}
-          </span>
-          <div>
-            <h2 id={`bloque-${numero}`} className="label-cayla text-[11px] text-tinta/80">
-              {titulo}
-            </h2>
-            {ayuda && !bloqueado && <p className="mt-1 text-xs text-tinta/60">{ayuda}</p>}
-            {bloqueado && bloqueadoTexto && <p className="mt-1 text-xs text-tinta/60">{bloqueadoTexto}</p>}
-          </div>
-        </div>
-        {derecha && !bloqueado && <div className="shrink-0">{derecha}</div>}
-      </header>
-      {/* `inert`: un bloque cerrado no recibe foco ni clics, ni con teclado. */}
-      <div className={bloqueado ? "hidden" : "mt-4"} {...(bloqueado ? { inert: true } : {})}>
-        {children}
-      </div>
-    </section>
-  );
-}
-
 /** El chip de elegir/desmarcar. `aria-pressed` para que un lector de pantalla diga "activado". */
 export function ChipOpcion({
   elegido,
@@ -72,12 +19,16 @@ export function ChipOpcion({
   children,
   className = "",
   disabled = false,
+  chico = false,
 }: {
   elegido: boolean;
   onClick: () => void;
   children: ReactNode;
   className?: string;
   disabled?: boolean;
+  /** Dentro de una celda de tabla (las causas del cierre de Recibir): 32 px de alto, letra de 13 px y lo elegido relleno, para que tres opciones quepan
+   *  en dos líneas de la columna y la fila no se estire. */
+  chico?: boolean;
 }) {
   return (
     <button
@@ -85,11 +36,17 @@ export function ChipOpcion({
       onClick={onClick}
       aria-pressed={elegido}
       disabled={disabled}
-      className={`flex min-h-9 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors disabled:opacity-40 ${
-        elegido ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
+      className={`flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-[13px]" : "min-h-9 px-2.5 py-1.5 text-sm"} ${
+        elegido
+          ? chico
+            ? "border-tinta bg-tinta text-crema"
+            : "border-tinta bg-tinta/[0.07] text-tinta"
+          : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
       } ${className}`}
     >
-      {elegido && (
+      {/* La chica marca lo elegido rellenándose (como la maqueta de Recibir), sin el ✓: el ✓ la ensanchaba y empujaba a sus vecinas a
+          otra línea en una celda angosta. */}
+      {elegido && !chico && (
         <span aria-hidden className="text-[11px] leading-none">
           ✓
         </span>
@@ -99,103 +56,50 @@ export function ChipOpcion({
   );
 }
 
-type TonoAvisoInline = "rojo" | "ambar" | "neutro";
-
-const TONOS: Record<TonoAvisoInline, string> = {
-  rojo: "border-rojo/40 bg-rojo/[0.05] text-rojo-profundo",
-  ambar: "border-ambar/40 bg-ambar/[0.06] text-ambar-profundo",
-  neutro: "border-tinta/15 bg-tinta/[0.03] text-tinta/75",
-};
-
-/** Franja de aviso dentro de un bloque. `role=alert` solo cuando bloquea. */
-export function AvisoInline({ tono, children, alerta = false }: { tono: TonoAvisoInline; children: ReactNode; alerta?: boolean }) {
-  return (
-    <div role={alerta ? "alert" : "status"} className={`rounded-md border px-3 py-2.5 text-sm ${TONOS[tono]}`}>
-      {children}
-    </div>
-  );
-}
-
 /**
- * Un paso del alta en acordeón (spike 2026-09-24; 4 preguntas desde el spike v2 del 2026-09-28): reemplaza a `Bloque` en
- * Nuevo producto. Solo uno está abierto; el hecho se pliega en UNA línea con su resumen y «Cambiar»; el que viene es una
- * línea punteada, sin texto que leer. El paso abierto lleva abajo su `pie`: qué le falta (o «Listo…», en verde) y la
- * acción que lo cierra —«Seguir →» en los pasos 2 y 3, «Crear producto» en el 4—. El 1 no lleva pie: avanza solo al
- * elegir la categoría.
+ * El paso abierto del alta (spike 2026-09-24; 4 preguntas desde el spike v2 del 2026-09-28). Desde el 2026-10-06 (ADR-0260,
+ * actualización) se dibuja SOLO el paso abierto, sin número: dónde está la persona, qué hizo y qué le falta lo dicen los puntos de
+ * avance de arriba (`PuntosAvance`), y a un paso hecho se vuelve tocando su punto. Antes los pasos hechos se plegaban en una línea
+ * con «Cambiar» y los que venían eran líneas punteadas: con los puntos, eran dos marcadores para lo mismo. El paso lleva abajo su
+ * `pie`: qué le falta (o «Listo…», en verde) y las acciones que lo cierran —«← Atrás» y «Seguir →» en los pasos 2 y 3,
+ * «← Atrás» y «Crear producto» en el 4—. El 1 no lleva pie: avanza solo al elegir la categoría.
  */
 export function PasoAlta({
   numero,
   titulo,
-  estado,
-  resumen,
-  onAbrir,
   pie,
   children,
 }: {
   numero: number;
   titulo: string;
-  estado: "abierto" | "hecho" | "pendiente";
-  /** La línea del paso plegado («Blusa Lirio · CAYLA · Popelina · Liso»). */
-  resumen?: ReactNode;
-  onAbrir: () => void;
-  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: el botón que cierra el paso.
+  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: los botones que cierran el paso.
    *  `faltan`: «Falta: Marca · Tejido…» tocable (ADR-0284); si viene y el paso no está listo, reemplaza a `texto` a la vista y
    *  `texto` queda solo para el lector de pantalla. */
   pie?: { texto: string; listo: boolean; accion: ReactNode; faltan?: ReactNode };
   children: ReactNode;
 }) {
   const id = `paso-${numero}`;
-  if (estado === "hecho") {
-    return (
-      <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-sand bg-papel">
-        <button type="button" onClick={onAbrir} className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-3.5 text-left sm:flex-nowrap sm:px-5">
-          <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-verde text-[11px] text-crema">
-            ✓
-          </span>
-          <h2 id={id} className="flex-1 text-[14.5px] font-semibold text-tinta sm:flex-none">
-            {titulo}
-          </h2>
-          <span className="order-3 w-full min-w-0 truncate pl-9 text-[13px] text-taupe sm:order-none sm:w-auto sm:flex-1 sm:pl-0 sm:text-[13.5px]">{resumen}</span>
-          <span className="btn-cayla btn-enlace shrink-0 text-[12.5px]">Cambiar</span>
-        </button>
-      </section>
-    );
-  }
-  if (estado === "pendiente") {
-    return (
-      <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-dashed border-sand">
-        <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-          <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] tabular-nums text-tinta/60">
-            {numero}
-          </span>
-          <h2 id={id} className="text-[14.5px] font-medium text-tinta/45">
-            {titulo}
-          </h2>
-        </div>
-      </section>
-    );
-  }
   return (
-    <section aria-labelledby={id} className="scroll-mt-24 rounded-xl border border-sand bg-papel">
-      <div className="flex items-center gap-3 px-4 pt-4 sm:px-5">
-        <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-tinta text-[11px] tabular-nums text-crema">
-          {numero}
-        </span>
-        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">
+    // `scroll-mt`: al abrir el paso la página lo lleva arriba, bajo la cabecera fija de la app Y bajo los puntos de avance pegados
+    // (en el celular los puntos miden ~56 px y no 104: basta 8rem, 2026-10-09).
+    <section aria-labelledby={id} className="scroll-mt-32 rounded-xl sm:scroll-mt-[11.5rem] border border-sand bg-papel">
+      <div className="px-4 pt-4 sm:px-5">
+        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           {titulo}
         </h2>
       </div>
       {/* La entrada SIN `fill-mode: both` (a diferencia de `anim-revelar`): terminada, no le deja un `transform` puesto al
           contenedor. Si se lo dejara, las listas en `position: fixed` de adentro (ComboBuscable, el combo Responsable) se
-          medirían contra este cuadro y no contra la ventana, y abrirían corridas lejos de su campo. */}
-      <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:pl-14 sm:pr-5">
+          medirían contra este cuadro y no contra la ventana, y abrirían corridas lejos de su campo. Sin número a la izquierda, el
+          contenido usa todo el ancho de la tarjeta (antes empezaba 56 px adentro, alineado con el título tras el número). */}
+      <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:px-5">
         {children}
         {pie && (
           // Pegado al borde de abajo de la ventana mientras el paso siga más abajo (ADR-0284): el paso 3 mide varias pantallas, y
           // el «qué falta» y el «Seguir →» no pueden quedar enterrados al fondo. Sale de los márgenes del contenido (`-mx`) y
           // se pega al fondo de la tarjeta (`-mb-5`) para que, en su lugar natural, no deje un hueco. Solo desde `lg`: en celular
           // la barra de la ficha ya va pegada abajo con su «Siguiente: …» tocable, y las dos juntas taparían un cuarto de la pantalla.
-          <div data-pie-alta className="z-10 lg:sticky lg:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-ml-14 sm:-mr-5 sm:pl-14 sm:pr-5">
+          <div data-pie-alta className="z-10 lg:sticky lg:bottom-0 -mx-4 -mb-5 mt-5 flex flex-wrap items-center justify-end gap-3 rounded-b-xl border-t border-sand bg-papel px-4 py-3.5 sm:-mx-5 sm:px-5">
             {pie.faltan && !pie.listo ? (
               <>
                 <p role="status" className="sr-only">
@@ -231,6 +135,7 @@ export function FilaAlta({
   accion,
   campo,
   estado,
+  retiene,
   children,
 }: {
   etiqueta: string;
@@ -239,8 +144,14 @@ export function FilaAlta({
   accion?: ReactNode;
   campo?: CampoAlta;
   estado?: EstadoCampo;
+  /** «texto» (por defecto): la luz espera mientras se teclea en la fila. «fila»: para tallas y colores, donde se eligen VARIAS
+   *  opciones: espera mientras se siga eligiendo dentro de ella. */
+  retiene?: ModoRetencion;
   children: ReactNode;
 }) {
+  // La luz se queda en esta fila mientras la persona la está llenando; ver `useRetenerLuz`. El formulario provee quién escucha; fuera
+  // de él (o sin `campo`) no hace nada.
+  const retener = useRetenerLuz(campo, useContext(RetencionLuzContexto), retiene);
   const titulo = (
     <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
       {campo && estado && (
@@ -266,7 +177,7 @@ export function FilaAlta({
     );
   }
   return (
-    <div data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-24">
+    <div {...retener} data-campo={campo} data-estado={estado} className="hilo-fila scroll-mt-24">
       <div className="hilo-fila-in">
         {titulo}
         <div className="min-w-0">{children}</div>

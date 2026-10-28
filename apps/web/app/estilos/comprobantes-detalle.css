@@ -55,10 +55,12 @@
     outline: none;
     transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), transform 300ms var(--ease-cayla);
   }
-  .cd-equis:hover {
-    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
-    color: var(--color-tinta);
-    transform: rotate(90deg);
+  @media (hover: hover) {
+    .cd-equis:hover {
+      background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+      color: var(--color-tinta);
+      transform: rotate(90deg);
+    }
   }
   .cd-equis:focus-visible { outline: 2px solid color-mix(in srgb, var(--color-rojo) 60%, transparent); outline-offset: 2px; }
   /* El nombre y la línea gris no pasan por debajo de la X. */
@@ -67,7 +69,9 @@
 
   /* El ícono de «Ir a recibir» baja un poco al pasar el mouse sobre el botón (`Boton` es `group`). */
   .cd-ic-abajo { transition: transform 260ms var(--ease-cayla); }
-  .group:hover .cd-ic-abajo { transform: translateY(2px); }
+  @media (hover: hover) {
+    .group:hover .cd-ic-abajo { transform: translateY(2px); }
+  }
 
   /* ---------- Cascada del detalle dentro del modal ----------
      `<Modal>` anima sus hijos directos; el detalle es un solo hijo (con `data-sin-cascada`), así que sus
@@ -128,7 +132,7 @@
     border-radius: 9999px;
     border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
     background: var(--color-papel);
-    color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel */
     transition: background-color 500ms var(--ease-cayla), border-color 500ms var(--ease-cayla), color 500ms var(--ease-cayla);
   }
   .cd-nodo[data-estado="hecho"] .cd-pt {
@@ -163,7 +167,9 @@
     color: var(--color-crema);
     transition: background-color 300ms var(--ease-cayla), opacity 200ms var(--ease-cayla);
   }
-  .cd-btn-confirmar:hover:not(:disabled):not([data-estado="hecho"]) { background: var(--color-rojo); }
+  @media (hover: hover) {
+    .cd-btn-confirmar:hover:not(:disabled):not([data-estado="hecho"]) { background: var(--color-rojo); }
+  }
   .cd-btn-confirmar:disabled { opacity: 0.5; cursor: not-allowed; }
   .cd-btn-confirmar[data-estado="cargando"],
   .cd-btn-confirmar[data-estado="hecho"] { pointer-events: none; }
@@ -222,7 +228,9 @@
       border-color 300ms var(--ease-cayla),
       transform 180ms var(--ease-cayla);
   }
-  .cd-ficha:hover { border-color: var(--color-tinta); }
+  @media (hover: hover) {
+    .cd-ficha:hover { border-color: var(--color-tinta); }
+  }
   .cd-ficha:active { transform: scale(0.95); }
   .cd-ficha[aria-checked="true"] {
     background: var(--color-tinta);
@@ -265,8 +273,10 @@
 @media (prefers-reduced-motion: reduce) {
   .cd-equis,
   .cd-ic-abajo { transition-duration: 1ms !important; }
-  .cd-equis:hover,
-  .group:hover .cd-ic-abajo { transform: none; }
+  @media (hover: hover) {
+    .cd-equis:hover,
+    .group:hover .cd-ic-abajo { transform: none; }
+  }
   .cascada-modal > .cd-detalle > *,
   .cd-pago-nuevo,
   .cd-linea[data-entra] { animation: none !important; }

@@ -1,0 +1,75 @@
+/* =====================================================================
+   LA BARRA DE ABAJO — la Isla. La pieza de la familia `barra-movil` de /unificar (ADR-0479, actividad 12; ADR-0358). Felipe la eligió
+   mirando el 2026-10-23, para las dos preguntas: la barra con lo que toca hacer en la pantalla (clara) y lo que llevas elegido (oscura).
+   Registro: docs/unificar/barra-movil.md. Clase `barra-abajo` (o <BarraDeAbajo>, components/ui/BarraDeAbajo.tsx). Solo tokens.
+
+   Flota a 12 px de los bordes (y de la isla, la muesca y la barrita del iPhone), con esquinas de 18 px y una sombra suave: se separa de lo de
+   atrás sin taparlo de borde a borde. Es la FORMA; lo de adentro (botones, cifra, detalle) lo pone cada pantalla y no cambia qué hace.
+     · `data-tono="tinta"`: oscura, para lo que llevas elegido (el ticket de Vender, las prendas marcadas, lo que vas a apartar).
+     · `data-sola`: una sola acción; la isla ES el botón (sin tarjeta alrededor), de 52 px.
+     · `data-pegada`: va dentro del flujo de un formulario (`sticky`), en vez de flotar sobre la pantalla.
+     · `--sobre`: el alto de unas pestañas de abajo sobre las que se apoya (Apartados).
+   Una pantalla que en escritorio la quiere de otra forma (BarraFija, de borde a borde) lo pone con utilidades `sm:`: le ganan a esta capa.
+   Movimiento de ADR-0136: entra UNA vez subiendo 12 px (260 ms, --ease-cayla, sin rebote); con «reducir movimiento», aparece de una.
+   ===================================================================== */
+
+@layer components {
+  .barra-abajo {
+    position: fixed;
+    z-index: 30;
+    left: max(0.75rem, env(safe-area-inset-left));
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: calc(0.75rem + env(safe-area-inset-bottom) + var(--sobre, 0px));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.625rem 0.625rem 0.625rem 1rem;
+    border: 1px solid var(--color-sand);
+    border-radius: 18px;
+    background: var(--color-papel);
+    color: var(--color-tinta);
+    box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--color-sombra) 38%, transparent);
+    animation: cayla-barra-abajo-entra 260ms var(--ease-cayla) both;
+  }
+  .barra-abajo[data-pegada] { position: sticky; left: auto; right: auto; }
+  .barra-abajo[data-tono="tinta"] { border-color: transparent; background: var(--color-tinta); color: var(--color-crema); }
+
+  /* El resumen a la izquierda (la cifra en serif, el detalle en taupe) y las acciones a la derecha, donde va el pulgar: si no caben
+     juntos, las acciones bajan a su propia fila, pero siguen a la derecha. */
+  .barra-abajo-resumen { min-width: 0; flex: 1 1 auto; }
+  .barra-abajo-cifra { font-family: var(--font-serif); font-size: 1.5rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .barra-abajo-detalle { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--color-taupe); }
+  .barra-abajo[data-tono="tinta"] .barra-abajo-detalle { color: color-mix(in srgb, var(--color-crema) 72%, transparent); }
+  .barra-abajo-acciones { display: flex; flex: 0 0 auto; align-items: center; gap: 0.5rem; margin-left: auto; }
+
+  /* Para el dedo (ADR-0350): los botones del sistema de la isla miden 44 px. En la oscura, el principal va en crema. */
+  .barra-abajo .btn-cayla:not(.btn-enlace) { min-height: 2.75rem; }
+  .barra-abajo[data-tono="tinta"] .btn-primario { background: var(--color-crema); color: var(--color-tinta); }
+  .barra-abajo[data-tono="tinta"] .btn-enlace {
+    color: var(--color-crema);
+    background-image:
+      linear-gradient(var(--color-crema), var(--color-crema)),
+      linear-gradient(color-mix(in srgb, var(--color-crema) 45%, transparent), color-mix(in srgb, var(--color-crema) 45%, transparent));
+  }
+  @media (hover: hover) {
+    .barra-abajo[data-tono="tinta"] .btn-enlace:hover:not(:disabled) { color: var(--color-crema); }
+  }
+
+  /* Una sola acción: el botón es la isla, de 52 px (va después de la regla de 44 px, con su misma fuerza, para ganarle). */
+  .barra-abajo[data-sola] { padding: 0; border: 0; background: none; box-shadow: none; }
+  .barra-abajo[data-sola] > :is(a, button, .btn-cayla) {
+    flex: 1 1 100%;
+    min-height: 3.25rem;
+    border-radius: 18px;
+    font-size: 15px;
+    box-shadow: 0 18px 40px -16px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  }
+}
+
+@keyframes cayla-barra-abajo-entra {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .barra-abajo { animation: none; }
+}

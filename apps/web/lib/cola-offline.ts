@@ -1,7 +1,7 @@
 /**
  * Cola sin conexión GENÉRICA (ADR-0210) — el mecanismo de la venta sin red (ADR-0063, `lib/ventas-offline.ts`)
  * sacado de Vender para que lo use cualquier módulo que guarda con UNA llamada idempotente. Primer cliente:
- * Recibir mercadería (`recibir_envio` en `/recibir`, `recibir_lote` en `/inventario/recibir`).
+ * Recibir mercadería (`recibir_lote` en «Llegó mercadería» y `recibir_envio` contra factura, los dos en `/recibir`).
  *
  * EL PROBLEMA. Llega un envío, se cuentan 60 prendas y justo al confirmar se cae el internet de la tienda. Sin
  * esto, el conteo se pierde o se anota en papel y se vuelve a contar. La base ya sabe no duplicar un reintento
@@ -19,6 +19,8 @@
  * Puro: sin React, sin Supabase, sin `window`. El trío de sincronización vive en `lib/useColaOffline.ts`.
  */
 
+import { claveReferencia } from "./alta-producto";
+import type { TipoFalloSubida } from "./error-escritura";
 import type { Firma } from "./responsable-reglas";
 
 export type OperacionEncolada<P = Record<string, unknown>> = {
@@ -47,7 +49,7 @@ export const MAX_INTENTOS_SERVIDOR = 10;
  * Qué pasa con una operación cuya subida falló. `null` = no se toca (sin red: vuelve a intentarse, sin contar).
  * Pasajero: suma un intento, y al llegar al tope pasa a rechazada con un motivo que lo dice. Definitivo: rechazada.
  */
-export function trasFallo<P>(op: OperacionEncolada<P>, tipo: "red" | "pasajero" | "definitivo", mensaje: string): OperacionEncolada<P> | null {
+export function trasFallo<P>(op: OperacionEncolada<P>, tipo: TipoFalloSubida, mensaje: string): OperacionEncolada<P> | null {
   if (tipo === "red") return null;
   if (tipo === "definitivo") return { ...op, rechazo: mensaje };
   const intentos = (op.intentos ?? 0) + 1;
@@ -147,13 +149,14 @@ export function subidasEntre<P>(previa: OperacionEncolada<P>[], actual: Operacio
 /**
  * ¿Ya hay un alta de producto esperando en la cola con este nombre? Sin red no se puede preguntar a la base si el
  * nombre existe; al menos no se encolan dos iguales (la segunda la rechazaría `crear_producto_con_variantes` al subir).
- * Compara sin mayúsculas ni tildes, como el aviso de parecidos.
+ * Compara como la base (`claveReferencia`, espejo de `fn_clave_referencia`): sin mayúsculas, tildes, espacios ni puntuación. «Polo G44», «Polo G-44» y
+ * «Polo G 44» son el mismo nombre para el índice único; si solo se quitaran mayúsculas y tildes, la segunda entraría a la cola y la base la rechazaría
+ * al subir, cuando la persona ya no está (hallazgo H8 del adversario, 2026-09-30).
  */
 export function nombreEnCola(cola: OperacionEncolada[], nombre: string): boolean {
-  const clave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
-  const buscado = clave(nombre);
+  const buscado = claveReferencia(nombre);
   if (!buscado) return false;
-  return porSubir(cola).some((op) => typeof op.params.p_referencia === "string" && clave(op.params.p_referencia) === buscado);
+  return porSubir(cola).some((op) => typeof op.params.p_referencia === "string" && claveReferencia(op.params.p_referencia) === buscado);
 }
 
 /**

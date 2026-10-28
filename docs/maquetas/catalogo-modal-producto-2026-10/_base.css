@@ -1,0 +1,126 @@
+/* ====================================================================
+   BASE COMPARTIDA de las 3 maquetas de «Vista rápida de producto» (Catálogo ▸ Productos ▸ Grilla)
+   Tokens = apps/web/app/globals.css (ADR-0169). Movimiento del modal = ADR-0136 (REGLA DE MODALES):
+   velo con desenfoque → hoja que sube 18 px y crece de .965 a 1 (420 ms) → contenido en cascada (55 ms de
+   desfase, 120 ms después de la hoja) → salida corta (220 ms). Nada de esto es de la maqueta: es lo que
+   <Modal> ya hace solo, replicado aquí para que lo que se ve sea lo que se construiría.
+   Lo que NO es parte de la pantalla: la barra punteada de arriba (.spike) y el fondo del catálogo (#fondo).
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--verde-p:#44583a;--ambar:#74501a;
+  --t80:rgba(26,26,24,.8);--t75:rgba(26,26,24,.75);--t60:rgba(26,26,24,.6);--t55:rgba(26,26,24,.55);
+  --t45:rgba(26,26,24,.45);--t35:rgba(26,26,24,.35);--t25:rgba(26,26,24,.25);--t15:rgba(26,26,24,.15);
+  --t10:rgba(26,26,24,.10);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);--ease-salida:cubic-bezier(.4,0,1,1);
+  --r-md:8px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55;overflow:hidden}
+button,input,a{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{text-decoration:none}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.tab{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.versal{text-transform:uppercase;letter-spacing:.13em;font-weight:600}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- barra de la maqueta (no es parte de la pantalla) ---------- */
+.spike{position:relative;z-index:80;background:var(--crema);padding:8px 14px;border-bottom:1px dashed var(--t25);
+  display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--t60)}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike .grupo{display:flex;align-items:center;gap:6px}
+.spike .grupo>span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t45)}
+.spike a.nav{padding:4px 10px;border:1px solid var(--t25);border-radius:8px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--t75)}
+.spike a.nav[aria-current=page]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.op{border:1px solid var(--t25);border-radius:8px;padding:4px 10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t75);background:var(--papel)}
+.spike button.op[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.op.rojo{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+/* ---------- escena: marco + fondo del catálogo + velo + hoja ---------- */
+#marco{position:relative;height:calc(100dvh - var(--alto-spike,52px));display:flex;justify-content:center;background:var(--crema)}
+#escena{position:relative;width:100%;height:100%;overflow:hidden;container:escena/inline-size;background:var(--crema)}
+.celular #marco{background:#d9d2c3;padding:14px 0;align-items:flex-start}
+.celular #escena{width:390px;height:min(844px,100%);border-radius:34px;box-shadow:0 0 0 8px var(--tinta),0 24px 60px -20px rgba(0,0,0,.45)}
+
+/* El catálogo de atrás (Grilla de Productos), solo para dar contexto: se ve a través del velo. */
+#fondo{position:absolute;inset:0;padding:22px 28px;pointer-events:none}
+#fondo .fcab{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+#fondo .fcab h2{font-family:'EB Garamond',serif;font-weight:600;font-size:40px;line-height:1.05}
+#fondo .fcab span{font-size:12px;color:var(--taupe)}
+#fondo .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+#fondo .fcard{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);overflow:hidden}
+#fondo .fcard .fm{aspect-ratio:4/5;display:grid;place-items:center}
+#fondo .fcard .ft{padding:10px 12px 12px}
+#fondo .fcard .ft b{font-family:'EB Garamond',serif;font-weight:600;font-size:15px;display:block;line-height:1.2}
+#fondo .fcard .ft i{font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t55);font-weight:600}
+.celular #fondo{padding:16px 14px}
+.celular #fondo .fcab h2{font-size:30px}
+.celular #fondo .fgrid{grid-template-columns:repeat(2,1fr);gap:10px}
+
+.velo{position:absolute;inset:0;z-index:50;background:rgb(26 26 24 / .35);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);opacity:0;pointer-events:none}
+.capa{position:absolute;inset:0;z-index:51;display:flex;justify-content:center;align-items:flex-start;padding:min(8%,64px) 24px 24px;pointer-events:none}
+.hoja{pointer-events:auto;position:relative;width:100%;max-height:100%;outline:none}
+@container escena (max-width:640px){
+  .capa{align-items:flex-end;padding:0}
+  .hoja{border-radius:var(--r-2xl) var(--r-2xl) 0 0!important;max-height:92%}
+}
+
+/* Entrada (ADR-0136) — `backwards`, no `both`: terminada, la hoja vuelve a su estilo natural. */
+@keyframes velo-in{from{opacity:0}to{opacity:1}}
+@keyframes velo-out{from{opacity:1}to{opacity:0}}
+@keyframes hoja-in{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}to{opacity:1;transform:none}}
+@keyframes hoja-in-movil{from{opacity:0;transform:translate3d(0,60px,0)}to{opacity:1;transform:none}}
+@keyframes hoja-out{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+.abierta .velo{opacity:1;animation:velo-in 220ms var(--ease) both;pointer-events:auto}
+.abierta .hoja{animation:hoja-in 420ms var(--ease) backwards}
+.cerrando .velo{animation:velo-out 220ms var(--ease-salida) both}
+.cerrando .hoja{animation:hoja-out 220ms var(--ease-salida) both}
+@container escena (max-width:640px){
+  .abierta .hoja{animation-name:hoja-in-movil;animation-duration:380ms}
+}
+.cascada>:not([data-sin-cascada]){animation:cascada 500ms var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>:nth-child(1){--k:0}.cascada>:nth-child(2){--k:1}.cascada>:nth-child(3){--k:2}.cascada>:nth-child(4){--k:3}
+.cascada>:nth-child(5){--k:4}.cascada>:nth-child(6){--k:5}.cascada>:nth-child(n+7){--k:6}
+
+/* ---------- piezas del sistema que las 3 usan ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.04em;line-height:1.3;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.verde{background:color-mix(in srgb,var(--verde) 12%,var(--papel));color:var(--verde-p)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 12%,var(--papel));color:var(--ambar)}
+.chip.neutro{background:var(--sand);color:var(--t75)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 12%,var(--papel));color:var(--pizarra)}
+.chip.sinpunto::before{display:none}
+
+/* Botones: btn-cayla + primario|secundario|peligro|sutil|enlace (globals.css) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:var(--r-md);
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;white-space:nowrap;border:1px solid transparent;
+  transition:background-color 220ms var(--ease),color 220ms var(--ease),border-color 220ms var(--ease),transform 220ms var(--ease)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.sec{background:var(--papel);border-color:var(--t25);color:var(--tinta)}
+.btn.sec:hover{background:var(--hueso)}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.pri:hover{background:var(--rojo)}
+.btn.sut{color:var(--rojo-p)}
+.btn.sut:hover{background:color-mix(in srgb,var(--rojo) 8%,transparent)}
+.btn[aria-disabled=true]{opacity:.45;cursor:not-allowed}
+.btn:active{transform:translateY(1px)}
+
+/* El mosaico de la prenda sin foto (ADR-0333): ícono de su categoría sobre el color. */
+.mosaico{position:relative;display:grid;place-items:center;overflow:hidden}
+.mosaico svg{width:42%;max-width:96px;height:auto;aspect-ratio:1;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.mosaico .rot{position:absolute;left:0;right:0;bottom:18%;text-align:center;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;opacity:.85}
+.mosaico.filo{box-shadow:inset 0 0 0 1px rgb(26 26 24 / .1)}
+.muestra{position:absolute;right:10px;top:10px;background:rgb(251 248 242 / .85);color:var(--t75);border-radius:999px;padding:3px 9px;font-size:9px;letter-spacing:.13em;text-transform:uppercase;font-weight:700}
+
+/* Swatch de color: filo por dentro (ring inset) para que Blanco/Beige no se pierdan sobre el papel. */
+.sw{display:inline-block;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgb(26 26 24 / .16)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+}

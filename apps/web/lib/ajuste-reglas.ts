@@ -14,6 +14,7 @@
 // ya no estaba y solo lo supo la base, en vivo.
 
 import { compararTallas } from "./tallas";
+import { diaLima, diaMes } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 
 /** Lo mínimo que el modal lee de cada variante. La talla llega anidada porque la columna
@@ -24,7 +25,10 @@ export type FilaAjuste = {
   /** El código de la etiqueta: es el que casi todas las variantes tienen (el `sku` es NULL, ADR-0058). */
   codigo?: string | null;
   talla: { valor: string } | null;
-  color: { nombre: string | null } | null;
+  /** El #hex lo usa la planilla de Existencias (el círculo de un color que la tienda nunca tuvo); el modal y la ficha, no. */
+  color: { nombre: string | null; hex?: string | null } | null;
+  /** `false`: ya no se vende (se desactivó). La planilla de Existencias la muestra solo si todavía tiene algo en la sede. */
+  activo?: boolean;
   /** `cantidad_apartada` es opcional solo para las pruebas: el modal siempre la pide. */
   stock: { cantidad: number; cantidad_apartada?: number; sububicacion_id: string | null }[] | null;
 };
@@ -88,7 +92,18 @@ export function armarVariantesAjuste(
 /** La prenda desde la que se abre el modal. En Existencias y Movimientos cada fila es UNA prenda: un modelo en un color
  *  (`clavePercha`). Si el modal cargaba el modelo entero, la fila decía «12 en el piso» y adentro aparecían los cuatro
  *  colores con 78 (Felipe, 2026-09-28). Productos lo abre sin prenda: su fila es el modelo con todos sus colores. */
-export type PrendaAjuste = { color: string | null };
+export type PrendaAjuste = {
+  color: string | null;
+  /** El color en #hex, solo para el puntito junto al nombre de la prenda: no decide qué tallas se muestran. */
+  colorHex?: string | null;
+  /** La foto de la prenda, para el costado de la ventana. `undefined` = quien lo abre no la tiene (la ficha del producto en edición):
+   *  la ventana va sin foto y con su ancho de antes; `null` = la prenda no tiene foto (se dibuja el marcador). */
+  fotoUrl?: string | null;
+  /** Su categoría, para dibujar la prenda sin foto (`FotoDePrenda`): el ícono sale del prefijo (o de la familia) y el nombre se escribe debajo. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
+  categoria?: string | null;
+};
 
 /** Solo las variantes del color de la prenda; sin prenda, todas. Compara por NOMBRE porque es lo que trae la fila de
  *  Existencias, y en la base es único (`colores_clave_unica`). Deja pasar las tallas del color que nunca estuvieron en la
@@ -196,20 +211,101 @@ function conSigno(n: number): string {
   return n > 0 ? `+${n}` : `−${-n}`;
 }
 
-/** Cómo queda la talla, al lado de su stock: «→ 6». Al contar, también la diferencia, que es lo que queda en Movimientos
- *  («→ 3 (−1)»). */
-export function textoCambioTalla(l: LineaAjuste | undefined, modo: ModoAjuste): string {
+/** Lo que se ve bajo una talla cuando ya se escribió algo: cómo queda. Al contar, también la diferencia, que es lo que queda en
+ *  Movimientos («Quedará en 3 (−1)»). */
+export function textoQuedara(l: LineaAjuste | undefined, modo: ModoAjuste): string {
   if (!l) return "";
-  return modo === "contado" ? ` → ${l.resultado} (${conSigno(l.delta)})` : ` → ${l.resultado}`;
+  return modo === "contado" ? `Quedará en ${l.resultado} (${conSigno(l.delta)})` : `Quedará en ${l.resultado}`;
 }
 
-/** Las tallas que quedarían en negativo: `fn_aplicar_movimiento` las rechaza; el modal lo dice antes, con los números de
- *  la primera. */
-export function textoNegativas(negativas: readonly LineaAjuste[], modo: ModoAjuste): string {
-  const codigos = negativas.map((l) => l.variante.sku).join(", ");
-  if (modo === "contado") return `${codigos}: lo contado no puede ser negativo.`;
-  const [primera] = negativas;
-  return `${codigos}: el ajuste dejaría el stock en negativo — hay ${primera.actual} y se pide ${primera.delta}.`;
+/** Por qué una talla no se puede ajustar con lo escrito, en voz de tienda y SIN códigos: son las dos reglas que
+ *  `fn_aplicar_movimiento` también exige (no dejar el stock en negativo ni por debajo de lo apartado para clientas), dichas
+ *  antes de confirmar y en la fila de la talla. `null`: está bien. */
+export function textoProblemaTalla(l: LineaAjuste, modo: ModoAjuste): string | null {
+  if (l.resultado < 0) {
+    return modo === "contado" ? "Lo contado no puede ser negativo." : `Solo hay ${l.actual}: no se pueden restar ${-l.delta}.`;
+  }
+  if (l.resultado < l.apartado) {
+    // Al contar, lo más probable es que la apartada esté guardada aparte y no se contó: se dice antes de mandar a liberar nada.
+    return modo === "contado"
+      ? `Contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientes. Cuéntalas también; si de verdad falta, libera ese apartado primero.`
+      : `Quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientes. Libera o resuelve esos apartados primero.`;
+  }
+  return null;
+}
+
+/** La pregunta sobre las tallas, en voz de tienda: lo que se escribe en cada una depende del motivo (`modoDeAjuste`). Al contar
+ *  nombra el lugar: contar el piso con el almacén elegido SUMARÍA al almacén lo que está colgado. */
+export function preguntaCantidades(modo: ModoAjuste, lugar: LugarAjuste): string {
+  if (modo === "diferencia") return "¿Cuántas sumas o restas de cada talla?";
+  const donde = lugar === "piso" ? " en el piso" : lugar === "almacen" ? " en el almacén" : "";
+  return `¿Cuántas contaste${donde} de cada talla?`;
+}
+
+/** El piso de cada talla en los botones «−»: más abajo la base lo rechazaría. Una prenda nueva en la tienda no baja de cero y lo
+ *  apartado para clientas no se puede dejar de contar. Al sumar o restar es un cambio (negativo o cero); al contar, una cantidad. */
+export function minimoDeAjuste(v: VarianteAjuste, lugar: LugarAjuste, modo: ModoAjuste, motivo: MotivoAjuste | "" = ""): number {
+  if (v.sinHistoria) return 0;
+  // «Encontré prendas» solo suma (ADR-0328; la base: `encontre_prendas_resta`).
+  if (motivo === "reposicion") return 0;
+  const apartado = apartadoEn(v, lugar);
+  return modo === "contado" ? apartado : 0 - Math.max(0, stockEn(v, lugar) - apartado);
+}
+
+/** Lo que queda escrito en una talla al tocar «−» (paso −1) o «+» (paso +1); `null`: ya no se puede bajar más. Al sumar o
+ *  restar, vacío es 0 y volver a 0 deja la talla sin ajuste (vacía). Al contar, vacío es «no la conté»: el primer toque parte de lo
+ *  que dice el sistema, no de cero. */
+export function textoTrasPaso(texto: string, paso: 1 | -1, modo: ModoAjuste, actual: number, minimo: number): string | null {
+  const t = texto.trim();
+  const escrito = t !== "" && Number.isInteger(Number(t)) ? Number(t) : null;
+  const siguiente = (escrito ?? (modo === "contado" ? actual : 0)) + paso;
+  if (siguiente < minimo) return null;
+  if (modo === "diferencia" && siguiente === 0) return "";
+  return String(siguiente);
+}
+
+/** Lo que se acepta al teclear en la cajita de una talla: al contar solo dígitos; al sumar o restar, un «−» al comienzo y dígitos. */
+export function limpiarTextoAjuste(crudo: string, modo: ModoAjuste): string {
+  const normal = crudo.replace(/[−–]/g, "-");
+  const digitos = normal.replace(/\D/g, "");
+  if (modo === "contado") return digitos;
+  return normal.trimStart().startsWith("-") ? `-${digitos}` : digitos;
+}
+
+/** La primera línea de una talla: cuánto hay en el lugar que se ajusta («2 en el almacén», «Nada en el piso»). Si el modal muestra
+ *  varios colores a la vez (sin prenda), el color va delante: sin él, dos «M» no se distinguen. */
+export function textoStockTalla(v: VarianteAjuste, lugar: LugarAjuste, conColor: boolean): string {
+  const n = stockEn(v, lugar);
+  const donde = lugar === "piso" ? "el piso" : lugar === "almacen" ? "el almacén" : "la sede";
+  const base = n > 0 ? `${n} en ${donde}` : `Nada en ${donde}`;
+  return conColor && v.color ? `${v.color} · ${base}` : base;
+}
+
+/** La segunda línea de una talla: lo que pasa con ella y lo que hay que saber. Cómo queda (o que coincide con el sistema, al
+ *  contar), lo apartado para clientas y, si nunca estuvo en la tienda, dónde entra su primera cantidad. */
+export function detalleDeTalla(o: {
+  variante: VarianteAjuste;
+  linea: LineaAjuste | undefined;
+  /** Lo escrito en la talla, tal cual. */
+  texto: string;
+  modo: ModoAjuste;
+  lugar: LugarAjuste;
+  ubicado: "piso" | "almacen";
+  separaPisoAlmacen: boolean;
+  puedeBajarAlPiso: boolean;
+  /** ADR-0328: la carga inicial de la sede sigue abierta (sin dato, sí). */
+  cargaAbierta?: boolean;
+}): string {
+  const { variante, linea, texto, modo, lugar } = o;
+  const escrito = texto.trim();
+  const coincide = !linea && modo === "contado" && escrito !== "" && Number.isInteger(Number(escrito)) && Number(escrito) === stockEn(variante, lugar);
+  const partes = [
+    textoQuedara(linea, modo),
+    coincide ? "Coincide con el sistema" : "",
+    textoApartadoTalla(apartadoEn(variante, lugar), modo).replace(/^ · /, ""),
+    variante.sinHistoria ? textoPrendaNueva(o.ubicado, o.separaPisoAlmacen, o.puedeBajarAlPiso, o.cargaAbierta ?? true) : "",
+  ];
+  return partes.filter(Boolean).join(" · ");
 }
 
 /** Lo apartado de una talla, al lado de su stock («stock 2 · 1 apartada»); vacío si no tiene. Al contar, pide contarlas:
@@ -220,24 +316,13 @@ export function textoApartadoTalla(apartado: number, modo: ModoAjuste): string {
   return ` · ${apartadas(apartado)}`;
 }
 
-/** Un ajuste no puede dejar menos prendas que las apartadas: `fn_aplicar_movimiento` lo rechaza. El modal lo dice antes, con
- *  el código de la etiqueta (el error de la base usa el `sku`, que casi siempre es NULL, ADR-0058). Al contar, lo más
- *  probable es que la apartada esté guardada aparte y no se contó: lo dice antes de mandar a liberar nada. */
-export function textoBajoApartado(
-  l: { variante: Pick<VarianteAjuste, "sku">; resultado: number; apartado: number },
-  modo: ModoAjuste
-): string {
-  if (modo === "contado") {
-    return `${l.variante.sku}: contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Las apartadas siguen en la tienda: cuéntalas también; si de verdad falta, libera ese apartado primero.`;
-  }
-  return `${l.variante.sku}: quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Libera o resuelve esos apartados primero.`;
-}
-
-// Motivos del ajuste. «Reposición» no se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
+// Motivos del ajuste. «Encontré prendas» (antes «Reposición»; ADR-0328: en la tienda «reponer» es colgar una prenda del almacén
+// en el piso, y se confundían) es el que SUMA prendas que aparecieron sin papeles. Su código sigue siendo `reposicion`: la
+// historia de Movimientos no se reescribe. No se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
 // almacén se baja (Bajar al piso / Reponer, en Existencias) para que salga del almacén y el reloj de piso de Frescura tenga
 // hora de colgado. La base lo rechaza igual (20260926000400, hint reposicion_piso_cerrada); aquí solo se evita el viaje.
 export const MOTIVOS_AJUSTE = [
-  { valor: "reposicion", texto: "Reposición" },
+  { valor: "reposicion", texto: "Encontré prendas" },
   { valor: "merma", texto: "Merma" },
   { valor: "conteo_fisico", texto: "Conteo físico" },
   { valor: "otro", texto: "Otro" },
@@ -256,14 +341,57 @@ export function motivosAjusteDisponibles(
   return reposicionCerrada(ubicado, separaPisoAlmacen) ? MOTIVOS_AJUSTE.filter((m) => m.valor !== "reposicion") : MOTIVOS_AJUSTE;
 }
 
-// Nombra el retiro: sin él, quien guarda prendas del piso lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
+// Nombra los dos caminos: sin ellos, quien sube o guarda prendas lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
+// «Subir a almacén» es el botón de la tarjeta de Existencias (ADR-0300); antes decía «⋯ ▸ Retirar del piso», un menú que ya no existe.
 export const NOTA_REPOSICION_CERRADA =
-  "Subir al piso: «Bajar al piso» o «Reponer». Guardar en el almacén: «⋯» ▸ «Retirar del piso». Todo en Existencias (si no ves «Bajar al piso», pídele al líder ese módulo). Prendas de más al contar: «Conteo físico».";
+  "«Encontré prendas» se registra en el almacén. Subir al piso: «Reponer». Guardar en el almacén: «Subir a almacén». Los dos, en Existencias. Prendas de más al contar: «Conteo físico».";
+
+/** El motivo que pide nota (ADR-0328): «Encontré prendas» dice dónde estaban o por qué aparecieron. La base exige lo mismo
+ *  (`registrar_movimiento`, hint `encontre_prendas_sin_nota`): al menos 3 letras, sin contar los espacios de los bordes. */
+export const NOTA_MINIMA_ENCONTRE = 3;
+
+export function motivoPideNota(motivo: MotivoAjuste | ""): boolean {
+  return motivo === "reposicion";
+}
+
+export function notaSuficiente(motivo: MotivoAjuste | "", nota: string): boolean {
+  return !motivoPideNota(motivo) || nota.trim().length >= NOTA_MINIMA_ENCONTRE;
+}
+
+/** Bajo el motivo, para que «Encontré prendas» no se confunda con «Reponer» (colgar una prenda del almacén en el piso). */
+export const AYUDA_ENCONTRE_PRENDAS =
+  "Prendas que aparecieron y el sistema no tenía: solo suma, al almacén, y cuenta dónde estaban. Para colgar en el piso lo que está en el almacén, es «Reponer», en Existencias.";
+
+/** Por qué una talla no se puede guardar con este motivo, ANTES de ir a la base: «Encontré prendas» solo suma
+ *  (`encontre_prendas_resta`) y, con la carga inicial de la sede cerrada, una prenda que nunca estuvo en ella entra SOLO con
+ *  «Encontré prendas» (`carga_inicial_cerrada`). `null`: está bien.
+ *  `enPisoCerrado`: se ajusta el PISO de una tienda que separa piso y almacén, donde «Encontré prendas» no se ofrece
+ *  (`reposicionCerrada`): la salida dicha es «en el almacén», no un motivo que aquí no está. */
+export function textoProblemaMotivo(
+  l: { delta: number; variante: Pick<VarianteAjuste, "sinHistoria"> },
+  motivo: MotivoAjuste | "",
+  cargaAbierta: boolean,
+  enPisoCerrado = false
+): string | null {
+  if (motivo === "reposicion" && l.delta < 0) return "«Encontré prendas» solo suma: para quitar, elige otro motivo.";
+  if (!cargaAbierta && l.variante.sinHistoria && motivo !== "" && motivo !== "reposicion") {
+    return enPisoCerrado
+      ? "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, anótala en el almacén con «Encontré prendas»."
+      : "Nunca estuvo en esta tienda y su carga inicial ya se cerró: si la encontraste, elige «Encontré prendas».";
+  }
+  return null;
+}
 
 /** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
  *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad
- *  negativa no es stock inicial: el modal la frena antes (dejaría el stock en negativo). */
-export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, "sinHistoria">; delta: number }>(lineas: readonly L[]): { ajustes: L[]; cargaInicial: L[] } {
+ *  negativa no es stock inicial: el modal la frena antes (dejaría el stock en negativo).
+ *  ADR-0328: con la carga inicial de la sede CERRADA no hay stock inicial: todo va como ajuste, y una prenda nueva entra con
+ *  «Encontré prendas» (`textoProblemaMotivo` frena cualquier otro motivo antes de ir a la base). */
+export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, "sinHistoria">; delta: number }>(
+  lineas: readonly L[],
+  cargaAbierta = true
+): { ajustes: L[]; cargaInicial: L[] } {
+  if (!cargaAbierta) return { ajustes: [...lineas], cargaInicial: [] };
   return {
     ajustes: lineas.filter((l) => !l.variante.sinHistoria),
     cargaInicial: lineas.filter((l) => l.variante.sinHistoria && l.delta > 0),
@@ -271,15 +399,21 @@ export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, 
 }
 
 /** ¿El stock inicial de las prendas nuevas queda colgado en el piso? Una prenda «colgada» entra al almacén y se BAJA en
- *  la misma operación (`cargar_stock_inicial` → `bajar_al_piso`), y bajar pide el módulo «Bajada al piso» (ADR-0212,
- *  decidido para el alta de producto). Quien no lo tiene no queda trabado con un error al confirmar: sus prendas nuevas
+ *  la misma operación (`cargar_stock_inicial` → `bajar_al_piso`), y bajar pide Existencias (ADR-0306; antes «Bajada al piso»).
+ *  Quien no lo tiene no queda trabado con un error al confirmar: sus prendas nuevas
  *  entran al almacén, igual que en «Nuevo producto», y la fila lo dice antes (`textoPrendaNueva`). */
 export function cargaInicialAlPiso(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): boolean {
   return separaPisoAlmacen && ubicado === "piso" && puedeBajarAlPiso;
 }
 
-/** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial. */
-export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): string {
+/** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial (o, con la carga cerrada, por dónde entra). */
+export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean, cargaAbierta = true): string {
+  if (!cargaAbierta) {
+    // En el piso de una tienda que separa piso y almacén «Encontré prendas» no se ofrece: la salida es el almacén.
+    return reposicionCerrada(ubicado, separaPisoAlmacen)
+      ? "Nueva en esta tienda · la carga inicial se cerró: entra por el almacén con «Encontré prendas»"
+      : "Nueva en esta tienda · la carga inicial se cerró: entra con «Encontré prendas»";
+  }
   if (separaPisoAlmacen && ubicado === "piso" && !puedeBajarAlPiso) {
     return "Nueva en esta tienda · entra al almacén: tu rol no baja prendas al piso";
   }
@@ -290,7 +424,7 @@ export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen:
 export type ArgumentosDeAjuste = {
   p_ubicacion_id: string;
   p_sububicacion_id: string | null;
-  p_ajustes: { variante_id: string; cantidad: number }[];
+  p_ajustes: { variante_id: string; cantidad: number; conteo_item_id?: string; esperado?: number }[];
   p_motivo: string | null;
   p_cargas: { variante_id: string; cantidad: number }[];
   p_al_piso: boolean;
@@ -298,7 +432,14 @@ export type ArgumentosDeAjuste = {
   p_token: string;
 };
 
-type LineaParaEnviar = { variante: Pick<VarianteAjuste, "varianteId">; delta: number };
+type LineaParaEnviar = {
+  variante: Pick<VarianteAjuste, "varianteId">;
+  delta: number;
+  /** La línea de conteo donde esta prenda faltó y con la que este ajuste se enlaza (solo una suma). */
+  conteoItemId?: string | null;
+  /** Lo que había en ese lugar cuando se contó (ADR-0494): con él, la base rechaza si otra venta o movimiento lo cambió. */
+  esperado?: number;
+};
 
 /** Arma la llamada con las dos listas del modal (`repartirLineasAjuste`). El motivo solo viaja si hay ajustes (las prendas
  *  nuevas entran como stock inicial y no lo llevan) y la nota vacía viaja como null: así el reintento con lo mismo da la
@@ -313,7 +454,15 @@ export function argumentosDeAjuste(o: {
   nota: string;
   token: string;
 }): ArgumentosDeAjuste {
-  const aItems = (ls: readonly LineaParaEnviar[]) => ls.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta }));
+  // `conteo_item_id` solo viaja cuando hay enlace y `esperado` solo con un conteo (ADR-0494): sin ellos el envío es idéntico al de
+  // siempre (misma huella del reintento).
+  const aItems = (ls: readonly LineaParaEnviar[]) =>
+    ls.map((l) => ({
+      variante_id: l.variante.varianteId,
+      cantidad: l.delta,
+      ...(l.conteoItemId ? { conteo_item_id: l.conteoItemId } : {}),
+      ...(l.esperado !== undefined ? { esperado: l.esperado } : {}),
+    }));
   return {
     p_ubicacion_id: o.ubicacionId,
     p_sububicacion_id: o.sububicacionId,
@@ -332,18 +481,123 @@ export const TEXTO_AJUSTE_INCIERTO =
   "Se cortó la conexión y no sabemos si el ajuste llegó a guardarse. Vuelve a tocar «Confirmar»: con la misma marca, si ya se guardó no se repite.";
 
 /** El aviso de éxito: «2 variantes ajustadas · 1 cargada como stock inicial»; si era un reintento de algo ya guardado, lo dice. */
-export function textoExitoAjuste(r: { ajustes: number; cargas: number; ya_registrado?: boolean }): string {
+export function textoExitoAjuste(r: { ajustes: number; cargas: number; enlazados?: number; ya_registrado?: boolean }): string {
   const partes = [
     r.ajustes > 0 && `${r.ajustes} ${r.ajustes === 1 ? "variante ajustada" : "variantes ajustadas"}`,
+    (r.enlazados ?? 0) > 0 && `${r.enlazados} ${r.enlazados === 1 ? "enlazada" : "enlazadas"} al conteo donde faltaba`,
     r.cargas > 0 && `${r.cargas} ${r.cargas === 1 ? "cargada" : "cargadas"} como stock inicial`,
   ].filter(Boolean);
   return `${r.ya_registrado ? "Ya estaba guardado: " : ""}${partes.join(" · ")}`;
 }
 
 /** Lee el jsonb que devuelve `ajustar_inventario`; si no calza, null (y el modal usa lo que envió). */
-export function leerResultadoAjuste(data: unknown): { ajustes: number; cargas: number; ya_registrado: boolean } | null {
+export function leerResultadoAjuste(data: unknown): { ajustes: number; cargas: number; enlazados: number; ya_registrado: boolean } | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
   if (!Number.isInteger(d.ajustes) || !Number.isInteger(d.cargas) || typeof d.ya_registrado !== "boolean") return null;
-  return { ajustes: d.ajustes as number, cargas: d.cargas as number, ya_registrado: d.ya_registrado };
+  return { ajustes: d.ajustes as number, cargas: d.cargas as number, enlazados: Number.isInteger(d.enlazados) ? (d.enlazados as number) : 0, ya_registrado: d.ya_registrado };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// La prenda que faltó en un conteo y apareció (ADR-0291, Felipe 2026-09-30)
+// ---------------------------------------------------------------------------------------------------------------
+//
+// Contrato — PROMETE: dado lo que la base dice que faltó en conteos cerrados (`fn_faltantes_de_conteo`) y las líneas de
+// suma del modal, decide a cuáles hay que preguntarles «¿es la que faltó?», y con lo respondido arma los enlaces que
+// viajan a `ajustar_inventario`. ASUME: la base vuelve a validar todo (`registrar_hallazgo_de_conteo`); esto solo evita
+// el viaje para enterarse. NO decide qué es una falta: eso lo dijo el cierre del conteo.
+
+/** Lo que faltó en un conteo cerrado y todavía no se recupera: una fila de `fn_faltantes_de_conteo`. */
+export type FaltanteConteo = {
+  varianteId: string;
+  conteoItemId: string;
+  conteoNumero: number;
+  /** Cuándo se cerró ese conteo (ISO). */
+  cerradoEn: string | null;
+  faltaron: number;
+  encontradas: number;
+  /** Lo que aún se puede enlazar: faltaron − encontradas. */
+  pendientes: number;
+};
+
+/** Lee lo que devuelve `fn_faltantes_de_conteo` (más reciente primero) y se queda con UN faltante por prenda: el del conteo
+ *  más reciente. Una fila mal armada se ignora: sin pregunta, el ajuste sigue como cualquier otro. */
+export function faltantesDesdeJson(data: unknown): Map<string, FaltanteConteo> {
+  const salida = new Map<string, FaltanteConteo>();
+  if (!Array.isArray(data)) return salida;
+  for (const fila of data) {
+    if (!fila || typeof fila !== "object") continue;
+    const f = fila as Record<string, unknown>;
+    if (typeof f.variante_id !== "string" || typeof f.conteo_item_id !== "string") continue;
+    if (!Number.isInteger(f.conteo_numero) || !Number.isInteger(f.faltaron) || !Number.isInteger(f.pendientes)) continue;
+    if ((f.pendientes as number) < 1 || salida.has(f.variante_id)) continue;
+    salida.set(f.variante_id, {
+      varianteId: f.variante_id,
+      conteoItemId: f.conteo_item_id,
+      conteoNumero: f.conteo_numero as number,
+      cerradoEn: typeof f.cerrado_en === "string" ? f.cerrado_en : null,
+      faltaron: f.faltaron as number,
+      encontradas: Number.isInteger(f.encontradas) ? (f.encontradas as number) : 0,
+      pendientes: f.pendientes as number,
+    });
+  }
+  return salida;
+}
+
+export type EleccionHallazgo = "si" | "no";
+
+/** Una línea que SUMA una prenda que faltó en un conteo: a ella se le pregunta. */
+export type CandidataHallazgo<L> = { linea: L; faltante: FaltanteConteo };
+
+/** Las líneas de suma cuya prenda faltó en un conteo cerrado. Una resta, una carga inicial o una prenda sin falta no preguntan. */
+export function candidatasDeHallazgo<L extends { variante: Pick<VarianteAjuste, "varianteId">; delta: number }>(
+  lineas: readonly L[],
+  faltantes: ReadonlyMap<string, FaltanteConteo>
+): CandidataHallazgo<L>[] {
+  const salida: CandidataHallazgo<L>[] = [];
+  for (const linea of lineas) {
+    const faltante = faltantes.get(linea.variante.varianteId);
+    if (faltante && linea.delta > 0) salida.push({ linea, faltante });
+  }
+  return salida;
+}
+
+/** Con lo respondido: qué líneas quedan enlazadas (y a qué línea de conteo), cuáles siguen sin respuesta y cuáles dijeron
+ *  «sí» pero suman más de lo que faltó (la base no deja recuperar más de lo que faltó). */
+export function resolverHallazgos<L extends { variante: Pick<VarianteAjuste, "varianteId">; delta: number }>(
+  candidatas: readonly CandidataHallazgo<L>[],
+  elecciones: Readonly<Record<string, EleccionHallazgo | undefined>>
+): { enlaces: Map<string, string>; sinResponder: CandidataHallazgo<L>[]; conExceso: CandidataHallazgo<L>[] } {
+  const enlaces = new Map<string, string>();
+  const sinResponder: CandidataHallazgo<L>[] = [];
+  const conExceso: CandidataHallazgo<L>[] = [];
+  for (const c of candidatas) {
+    const e = elecciones[c.linea.variante.varianteId];
+    if (e === undefined) sinResponder.push(c);
+    else if (e === "si") {
+      if (c.linea.delta > c.faltante.pendientes) conExceso.push(c);
+      else enlaces.set(c.linea.variante.varianteId, c.faltante.conteoItemId);
+    }
+  }
+  return { enlaces, sinResponder, conExceso };
+}
+
+/** «Faltó 1 en el Conteo 13 (30/09).» — y, si ya se recuperó parte, cuánto queda. El día es el de Lima en que se cerró el conteo:
+ *  `cerradoEn` es un instante que la base manda en UTC, y sus 10 primeros caracteres corrían al día siguiente lo cerrado de 7 pm a
+ *  medianoche. */
+export function textoFaltanteConteo(f: Pick<FaltanteConteo, "conteoNumero" | "cerradoEn" | "faltaron" | "encontradas" | "pendientes">): string {
+  const dia = diaLima(f.cerradoEn);
+  const cuando = dia ? ` (${diaMes(dia)})` : "";
+  const ya = f.encontradas > 0 ? ` Ya se encontró ${f.encontradas}: quedan ${f.pendientes} por encontrar.` : "";
+  return `Faltó ${f.faltaron} en el Conteo ${f.conteoNumero}${cuando}.${ya}`;
+}
+
+/** El aviso al confirmar con una pregunta sin responder: nombra la prenda para que se encuentre en la lista. */
+export function textoHallazgoSinResponder(nombre: string, f: Pick<FaltanteConteo, "conteoNumero">): string {
+  return `Indica si ${nombre} es la prenda que faltó en el Conteo ${f.conteoNumero}.`;
+}
+
+/** El aviso cuando se enlaza más de lo que faltó. */
+export function textoHallazgoConExceso(nombre: string, f: Pick<FaltanteConteo, "conteoNumero" | "pendientes">): string {
+  return `En el Conteo ${f.conteoNumero} solo faltaron ${f.pendientes} de ${nombre}: suma ${f.pendientes} para enlazarla y registra el resto en otro ajuste.`;
 }

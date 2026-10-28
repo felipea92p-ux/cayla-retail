@@ -1,4 +1,4 @@
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { EstadoComprobante, TipoComprobante } from "./comprobantes-reglas";
 import {
   filtrosDesdeParams as filtrosDeMovimientos,
@@ -10,6 +10,8 @@ import {
   type PeriodoMovimientos,
 } from "./movimientos-reglas";
 import { NOMBRE_METODO, textoNumeroRecibo } from "./recibo-reglas";
+import { diaLima, horaLima, hoyLima } from "./fechas-lima";
+import { fotoDeVariante } from "./producto-fotos-reglas";
 
 // Historial de ventas (Ventas ▸ Historial, ADR-0147): reglas puras — lo que decide qué se
 // pide, qué se muestra y qué se suma. Sin Supabase ni React: las importan la página, los
@@ -35,7 +37,7 @@ export type ComprobanteFiltro = "todos" | "con" | "sin" | "por_enviar" | "factur
 /** El período de Historial: los de Movimientos más «hoy» (el atajo que más usa el mostrador). */
 export type PeriodoHistorial = PeriodoMovimientos | "hoy";
 /** Los pagos que se filtran: los del mostrador más el «anticipo» de un apartado entregado (ADR-0196). */
-export type MetodoFiltro = MetodoPago | "anticipo";
+export type MetodoFiltro = MetodoPagoVenta | "anticipo";
 
 /** Parámetros de la URL. `sede` y `vendedor` solo los honra un líder (una integrante ve su tienda: lo decide la RLS). */
 export type ParamsHistorial = {
@@ -50,7 +52,7 @@ export type ParamsHistorial = {
   cursor?: string;
   /** «1» incluye los datos de prueba (D-54) en la lista; ausente o cualquier otro valor los deja fuera. */
   prueba?: string;
-  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda, código o nº de operación). Busca en TODAS las fechas. */
+  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda o código). Busca en TODAS las fechas. */
   q?: string;
   /** «1»: solo las ventas de quien mira (atajo «Mis ventas»). Sirve a cualquiera, no solo al líder. */
   mias?: string;
@@ -90,7 +92,7 @@ export type CursorVentas = CursorMovimientos;
 export const leerCursorVentas = leerCursorMovimientos;
 export const serializarCursorVentas = serializarCursorMovimientos;
 
-const METODOS: MetodoFiltro[] = [...(Object.keys(NOMBRE_METODO) as MetodoPago[]), "anticipo"];
+const METODOS: MetodoFiltro[] = [...(Object.keys(NOMBRE_METODO) as MetodoPagoVenta[]), "anticipo"];
 const COMPROBANTES: ComprobanteFiltro[] = ["con", "sin", "por_enviar", "factura"];
 
 /** El nombre de cada forma de pago en Historial: las del mostrador y el anticipo de un apartado. */
@@ -136,8 +138,6 @@ export function filtrosDesdeParams(
   };
 }
 
-const hoyLima = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
-
 /** El período en palabras. «Hoy» no existe en Movimientos: se dice aquí. */
 export function textoPeriodoHistorial(periodo: PeriodoHistorial, desde?: string, hasta?: string): string {
   return periodo === "hoy" ? "Hoy" : textoPeriodoMovimientos(periodo, desde, hasta);
@@ -180,10 +180,16 @@ export type ItemCrudo = {
     color_codigo?: string | null;
     talla: { valor: string } | null;
     color: { nombre: string; hex?: string | null } | null;
-    producto: { referencia: string; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
+    producto: {
+      referencia: string;
+      producto_fotos?: { url: string; color_codigo: string | null; orden?: number; es_principal?: boolean }[] | null;
+    } | null;
   } | null;
   /** Los cambios hechos sobre esta línea (`cambios.venta_item_id`). */
   cambios?: { created_at: string }[] | null;
+  /** La fila de la cola «Por regularizar» de esta línea (`prendas_por_regularizar.venta_item_id`, única): solo la tiene una prenda
+   *  vendida como «Prenda sin registrar» (ADR-0179). PostgREST la entrega como objeto (la FK es única); se acepta también lista. */
+  por_regularizar?: { estado: string } | { estado: string }[] | null;
 };
 
 export type VentaCruda = {
@@ -235,7 +241,13 @@ export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
       referencia: v?.producto?.referencia ?? "Prenda",
       detalle: [v?.talla?.valor, v?.color?.nombre].filter(Boolean).join(" · "),
       cantidad: i.cantidad,
-      fotoUrl: v?.color_codigo ? (v.producto?.producto_fotos?.find((f) => f.color_codigo === v.color_codigo)?.url ?? null) : null,
+      // La principal antes que el orden (`fotoDeVariante`): con dos fotos del mismo color, la que se marcó, no la más vieja.
+      fotoUrl: v?.color_codigo
+        ? fotoDeVariante(
+            (v.producto?.producto_fotos ?? []).map((f) => ({ url: f.url, color_codigo: f.color_codigo, orden: f.orden ?? 0, es_principal: f.es_principal ?? false })),
+            v.color_codigo
+          )
+        : null,
       colorHex: v?.color?.hex ?? null,
     };
     const igual = piezas.find((p) => p.referencia === pieza.referencia && p.detalle === pieza.detalle);
@@ -327,6 +339,8 @@ export type FilaHistorial = {
   posventa: MarcaPosventa[];
   /** El apartado que terminó en esta venta (ADR-0196), o null. */
   apartado: { codigo: string; creadoEn: string } | null;
+  /** Las líneas vendidas como «Prenda sin registrar» que siguen pendientes de regularizar (`prendas_por_regularizar.estado = 'pendiente'`). */
+  itemsPorRegularizar: string[];
   /** Se cobró con el anticipo de un apartado (aunque sea un apartado viejo, sin código). */
   conAnticipo: boolean;
   /** Los nº de operación anotados al cobrar (Yape, Plin, transferencia). */
@@ -344,12 +358,6 @@ export function posventaDeVenta(v: Pick<VentaCruda, "venta_items" | "devolucione
   return [...cambios, ...devoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
-const FORMATO_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" });
-const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-
-/** El día de Lima de un instante, `aaaa-mm-dd`. */
-export const diaDeLima = (iso: string): string => FORMATO_DIA.format(new Date(iso));
-
 /** Quién vendió: quien atendió (`asesora_id`) y, si no se eligió a nadie, la sesión que cobró (`usuario_id`). */
 export const quienVendio = (v: { asesora_id?: string | null; usuario_id: string | null }): string | null => v.asesora_id ?? v.usuario_id;
 
@@ -358,13 +366,21 @@ function nombreDeQuienVendio(v: VentaCruda, nombres: ReadonlyMap<string, string>
   return id ? (nombres.get(id) ?? null) : null;
 }
 
+/** Las líneas de la venta que son una prenda sin registrar todavía pendiente de regularizar. Una ya regularizada pasó a su prenda real, y
+ *  una cerrada sin prenda o de una venta anulada ya no tiene nada que hacer: ninguna cuenta. */
+export function itemsPorRegularizar(items: Pick<ItemCrudo, "id" | "por_regularizar">[]): string[] {
+  return items.flatMap((i) => {
+    const filas = Array.isArray(i.por_regularizar) ? i.por_regularizar : i.por_regularizar ? [i.por_regularizar] : [];
+    return i.id && filas.some((f) => f.estado === "pendiente") ? [i.id] : [];
+  });
+}
+
 export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): FilaHistorial {
-  const instante = new Date(v.created_at);
   return {
     id: v.id,
     creadoEn: v.created_at,
-    fecha: diaDeLima(v.created_at),
-    hora: FORMATO_HORA.format(instante),
+    fecha: diaLima(v.created_at) ?? "",
+    hora: horaLima(v.created_at) ?? "",
     ubicacionId: v.ubicacion?.id ?? "",
     ubicacion: v.ubicacion?.nombre ?? "—",
     vendedor: nombreDeQuienVendio(v, nombres),
@@ -380,6 +396,7 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     esPrueba: v.es_prueba === true,
     anuladaEn: v.anulado_en ?? null,
     ventaItemIds: v.venta_items.map((i) => i.id).filter((id): id is string => !!id),
+    itemsPorRegularizar: itemsPorRegularizar(v.venta_items),
     posventa: posventaDeVenta(v),
     apartado: v.separaciones?.[0] ? { codigo: v.separaciones[0].codigo, creadoEn: v.separaciones[0].created_at } : null,
     conAnticipo: v.venta_pagos.some((p) => p.metodo === "anticipo"),
@@ -528,63 +545,3 @@ export function agruparEnSemanas(dias: DiaResumen[]): DiaResumen[] {
   return [...semanas.values()].sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
-/** Media móvil centrada: cada punto es el promedio de sus vecinos dentro de la ventana (en las puntas, de los que haya). */
-export function mediaMovil(valores: number[], ventana: number): number[] {
-  const medio = Math.floor(ventana / 2);
-  return valores.map((_, i) => {
-    const tramo = valores.slice(Math.max(0, i - medio), Math.min(valores.length, i + medio + 1));
-    return tramo.reduce((s, v) => s + v, 0) / tramo.length;
-  });
-}
-
-/** Cuánto se suaviza el hilo de tendencia según cuántos puntos hay: con pocos, nada (suavizar sería borrar el dato). */
-export const ventanaDeSuavizado = (n: number): number => (n >= 21 ? 7 : n >= 10 ? 3 : 1);
-
-export type Pulso = {
-  /** La línea de suelo, en el dibujo. */
-  base: number;
-  /** Un hilo vertical por día: dónde va (x), hasta dónde sube (y) y cuánto mide (alto). */
-  barras: { x: number; y: number; alto: number }[];
-  anchoBarra: number;
-  /** La tendencia (media móvil) como una curva suave que cruza los hilos. */
-  hilo: string;
-  /** Altura del promedio diario, para la línea punteada; null si no hubo ventas. */
-  promedioY: number | null;
-  /** El día que más vendió (con su posición), o null si no hubo ventas. */
-  pico: { x: number; y: number; indice: number } | null;
-};
-
-const redondear1 = (n: number) => Math.round(n * 10) / 10;
-
-/** La geometría del gráfico del período: cada día es un hilo vertical —la urdimbre— y una curva de tendencia lo cruza —la trama—.
- *  El eje va de 0 al mejor día; sin ventas todo queda pegado al suelo. */
-export function pulsoDeVentas(
-  dias: DiaResumen[],
-  { ancho, alto, margen }: { ancho: number; alto: number; margen: { x: number; arriba: number; abajo: number } }
-): Pulso {
-  const base = alto - margen.abajo;
-  if (dias.length === 0) return { base, barras: [], anchoBarra: 0, hilo: "", promedioY: null, pico: null };
-  const totales = dias.map((d) => d.total);
-  const max = Math.max(...totales);
-  const util = alto - margen.arriba - margen.abajo;
-  const paso = (ancho - 2 * margen.x) / dias.length;
-  const x = (i: number) => redondear1(margen.x + paso * (i + 0.5));
-  const y = (v: number) => redondear1(max > 0 ? base - (v / max) * util : base);
-  const barras = totales.map((t, i) => ({ x: x(i), y: y(t), alto: redondear1(base - y(t)) }));
-  const tendencia = mediaMovil(totales, ventanaDeSuavizado(dias.length)).map((v, i) => ({ x: x(i), y: y(v) }));
-  let hilo = `M${tendencia[0].x} ${tendencia[0].y}`;
-  for (let i = 1; i < tendencia.length; i++) {
-    const medio = redondear1((tendencia[i - 1].x + tendencia[i].x) / 2);
-    hilo += `C${medio} ${tendencia[i - 1].y} ${medio} ${tendencia[i].y} ${tendencia[i].x} ${tendencia[i].y}`;
-  }
-  const indice = max > 0 ? totales.indexOf(max) : -1;
-  const promedio = totales.reduce((s, v) => s + v, 0) / totales.length;
-  return {
-    base,
-    barras,
-    anchoBarra: redondear1(Math.max(1.5, Math.min(4, paso * 0.5))),
-    hilo,
-    promedioY: max > 0 ? y(promedio) : null,
-    pico: indice >= 0 ? { x: barras[indice].x, y: barras[indice].y, indice } : null,
-  };
-}

@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A · Hilo del tiempo — Historial de la prenda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<script src="_datos.js"></script>
+<script src="_comun.js"></script>
+</head>
+<body>
+<script>
+/* A · HILO DEL TIEMPO
+   La evolución directa de la lista de hoy: un hilo vertical (el hilo taupe de la cabecera del ERP) con cada GUARDADO como una
+   tarjeta colgada de un nudo. Arriba lo último, abajo donde nació. Cada tarjeta dice primero QUIÉN (cara y nombre), después QUÉ
+   (el cambio dibujado, no escrito: el precio que cuenta hacia abajo, el color que aparece, la etiqueta que cae) y CUÁNDO.
+   Filtros por tipo de cambio y por persona. Un clic abre el detalle (dónde, desde qué pantalla, qué variantes).
+   Movimiento (una vez, al verse; sin rebote, sin bucle): el hilo se dibuja de arriba abajo, los nudos se encienden en orden,
+   las tarjetas llegan desde la derecha, lo viejo se tacha y lo nuevo entra, el precio cuenta. */
+const { icono, avatar, esc, colores, soles, familias, ORDEN_FAMILIAS } = HP;
+
+const ESTILOS = `
+.h-barra{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;padding:16px 28px 12px;border-bottom:1px solid var(--sand)}
+.h-pildoras{display:flex;gap:6px;flex-wrap:wrap}
+.h-pil{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--t15);font-size:13px;color:var(--t75);background:var(--papel);
+  transition:background-color 220ms var(--ease),color 220ms var(--ease),border-color 220ms var(--ease),opacity 220ms var(--ease)}
+.h-pil:hover{border-color:var(--t45);color:var(--tinta)}
+.h-pil .pt{width:8px;height:8px;border-radius:50%;background:var(--tono)}
+.h-pil .n{font-size:11.5px;color:var(--t45);font-variant-numeric:tabular-nums}
+.h-pil[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.h-pil[aria-pressed=true] .n{color:color-mix(in srgb,var(--crema) 70%,transparent)}
+.h-pil[disabled]{opacity:.4;cursor:default}
+.h-gente{display:flex;align-items:center;gap:4px}
+.h-gente>span{font-size:11px;color:var(--t45);margin-right:6px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.h-per{position:relative;border-radius:50%;padding:2px;transition:transform 220ms var(--ease),opacity 220ms var(--ease)}
+.h-per:hover{transform:translateY(-2px)}
+.h-per .b{position:absolute;right:-3px;bottom:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--tinta);color:var(--crema);font-size:10px;font-weight:700;display:grid;place-items:center}
+.h-per[aria-pressed=true] .av{box-shadow:0 0 0 2px var(--papel),0 0 0 4px var(--tinta)}
+.h-gente.filtrando .h-per[aria-pressed=false]{opacity:.38}
+
+.h-scroll{flex:1;min-height:0;overflow:auto;padding:8px 28px 28px;scroll-behavior:smooth}
+.h-hilo{position:relative;max-width:780px}
+.h-linea{position:absolute;left:79px;top:14px;bottom:30px;width:2px;border-radius:2px;background:linear-gradient(var(--taupe),color-mix(in srgb,var(--taupe) 25%,transparent));transform-origin:top;transform:scaleY(0)}
+.h-hilo.listo .h-linea{animation:dibuja 1100ms var(--ease) 120ms forwards}
+@keyframes dibuja{to{transform:scaleY(1)}}
+
+.h-dia{position:sticky;top:-8px;z-index:3;display:flex;align-items:center;gap:10px;padding:14px 0 8px 64px;background:linear-gradient(var(--papel) 70%,transparent)}
+.h-dia b{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t60);background:var(--papel);padding:3px 10px;border:1px solid var(--sand);border-radius:999px}
+.h-dia small{font-size:12px;color:var(--t45)}
+
+.h-ev{position:relative;display:grid;grid-template-columns:52px 56px 1fr;align-items:start;margin:6px 0 10px;opacity:0}
+.h-ev.visto{animation:ev-entra 520ms var(--ease) forwards;animation-delay:var(--d,0ms)}
+@keyframes ev-entra{from{opacity:0;transform:translate3d(14px,0,0)}to{opacity:1;transform:none}}
+.h-hora{padding-top:17px;font-size:12px;color:var(--t45);text-align:right;font-variant-numeric:tabular-nums}
+.h-nudo{position:relative;justify-self:center;margin-top:10px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--tono);
+  background:color-mix(in srgb,var(--tono) 14%,var(--papel));box-shadow:0 0 0 4px var(--papel),inset 0 0 0 1.5px color-mix(in srgb,var(--tono) 50%,transparent);
+  transform:scale(.4);opacity:0;transition:box-shadow 260ms var(--ease)}
+.h-ev.visto .h-nudo{animation:nudo 460ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 80ms)}
+@keyframes nudo{to{transform:none;opacity:1}}
+.h-nudo svg{width:16px;height:16px}
+.h-ev:hover .h-nudo,.h-ev.abierto .h-nudo{box-shadow:0 0 0 4px var(--papel),0 0 0 7px color-mix(in srgb,var(--tono) 22%,transparent),inset 0 0 0 1.5px var(--tono)}
+.h-hilo.enfoque .h-ev:not(:hover){opacity:.5;transition:opacity 260ms var(--ease)}
+.h-hilo.enfoque .h-ev{transition:opacity 260ms var(--ease)}
+
+.h-card{position:relative;border:1px solid var(--sand);border-radius:var(--r-xl);background:var(--papel);padding:14px 16px 14px;cursor:pointer;text-align:left;width:100%;
+  transition:border-color 220ms var(--ease),background-color 220ms var(--ease),transform 220ms var(--ease)}
+.h-card:hover{border-color:var(--t25);background:color-mix(in srgb,var(--hueso) 30%,var(--papel))}
+.h-quien{display:flex;align-items:center;gap:10px}
+.h-quien .txt{min-width:0;flex:1;font-size:14.5px;line-height:1.35}
+.h-quien .txt b{font-weight:600}
+.h-quien .txt small{display:block;font-size:12px;color:var(--t55)}
+.h-quien .nadie-txt{color:var(--t60)}
+.h-flecha{color:var(--t35);transition:transform 260ms var(--ease)}
+.abierto .h-flecha{transform:rotate(90deg)}
+
+.h-cambios{display:flex;flex-direction:column;gap:10px;margin:12px 0 0 42px}
+.h-cam{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:14px}
+.h-campo{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--t55);min-width:86px}
+.h-antes{position:relative;color:var(--t45)}
+.h-antes::after{content:"";position:absolute;left:-1px;right:-1px;top:54%;height:1.5px;background:currentColor;transform:scaleX(0);transform-origin:left}
+.visto .h-antes::after{animation:tacha 380ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 420ms)}
+@keyframes tacha{to{transform:scaleX(1)}}
+.h-a{color:var(--t35)}
+.h-a svg{width:14px;height:14px;vertical-align:-2px}
+.h-despues{font-weight:600;opacity:0}
+.visto .h-despues{animation:despues 420ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 560ms)}
+@keyframes despues{from{opacity:0;transform:translate3d(-6px,0,0)}to{opacity:1;transform:none}}
+.h-precio .h-despues{font-family:'EB Garamond',serif;font-size:26px;line-height:1;font-weight:600}
+.h-delta{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar);opacity:0}
+.visto .h-delta{animation:despues 360ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 1250ms)}
+.h-alcance{font-size:12.5px;color:var(--t55);width:100%}
+.h-texto .h-despues{font-weight:500}
+.h-largo{flex-direction:column;align-items:flex-start;gap:3px}
+.h-privado{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--t55)}
+.h-privado svg{width:12px;height:12px}
+
+.h-sws{display:flex;gap:10px;flex-wrap:wrap}
+.h-sw{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;padding:4px 11px 4px 5px;border-radius:999px;border:1px solid var(--sand);opacity:0}
+.h-sw .sw{width:20px;height:20px}
+.visto .h-sw{animation:pop 380ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 420ms + var(--j,0) * 90ms)}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+.h-mas{font-weight:700;color:var(--verde);margin-right:-2px}
+.h-morph{display:inline-flex;align-items:center;gap:10px}
+.h-morph .sw{width:26px;height:26px}
+.h-morph .uno{position:relative;width:26px;height:26px}
+.h-morph .uno .sw{position:absolute;inset:0}
+.h-morph .uno .nuevo{opacity:0}
+.visto .h-morph .uno .nuevo{animation:aparece 600ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 500ms)}
+@keyframes aparece{to{opacity:1}}
+
+.h-etq{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:3px 11px 3px 9px;border-radius:7px;border:1px solid color-mix(in srgb,var(--taupe) 45%,transparent);color:var(--taupe);background:color-mix(in srgb,var(--taupe) 10%,var(--papel));opacity:0}
+.h-etq svg{width:13px;height:13px}
+.visto .h-etq{animation:cae 420ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 420ms + var(--j,0) * 120ms)}
+@keyframes cae{from{opacity:0;transform:translate3d(0,-10px,0)}to{opacity:1;transform:none}}
+.h-etq.fuera{color:var(--t45);border-color:var(--t15);background:transparent;text-decoration:line-through}
+
+.h-fotos{display:flex;gap:8px}
+.h-foto{width:46px;height:58px;border-radius:9px;opacity:0}
+.h-foto svg{width:46%}
+.visto .h-foto{animation:pop 420ms var(--ease) forwards;animation-delay:calc(var(--d,0ms) + 420ms + var(--j,0) * 110ms)}
+
+.h-alta{display:grid;grid-template-columns:auto 1fr;gap:12px 14px;align-items:center;padding:12px;border-radius:var(--r-lg);background:color-mix(in srgb,var(--rojo) 6%,var(--papel));border:1px dashed color-mix(in srgb,var(--rojo) 30%,transparent)}
+.h-alta .mosaico{width:54px;height:66px;border-radius:9px}
+.h-alta b{font-family:'EB Garamond',serif;font-size:20px;font-weight:600}
+.h-alta p{font-size:13px;color:var(--t60)}
+.h-alta .h-sws{margin-top:6px;gap:5px}
+.h-alta .sw{width:16px;height:16px}
+
+.h-det{display:grid;grid-template-rows:0fr;transition:grid-template-rows 380ms var(--ease)}
+.abierto .h-det{grid-template-rows:1fr}
+.h-det>div{overflow:hidden}
+.h-det dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:14px 0 2px 42px;padding-top:12px;border-top:1px dashed var(--sand);font-size:13px}
+.h-det dt{color:var(--t55)}
+.h-det dd{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.h-det .sw{width:14px;height:14px}
+.h-porque{grid-column:1/-1;display:flex;gap:8px;padding:10px 12px;border-radius:var(--r-md);background:var(--hueso);color:var(--t75);font-size:12.5px;line-height:1.45}
+.h-porque svg{width:15px;height:15px;flex:none;margin-top:1px;color:var(--t55)}
+
+.m-falta{position:absolute;right:12px;top:-9px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t55);background:var(--papel);border:1px dashed var(--t35);border-radius:999px;padding:1px 8px}
+.h-nacio .h-nudo{width:40px;height:40px;margin-top:6px}
+.h-nacio .h-nudo svg{width:19px;height:19px}
+
+.h-fin{display:flex;gap:10px;align-items:center;margin:18px 0 0 64px;padding:12px 14px;border-radius:var(--r-lg);background:var(--hueso);font-size:13px;color:var(--t75)}
+.h-fin svg{width:16px;height:16px;color:var(--t55);flex:none}
+.h-fin a{color:var(--tinta);font-weight:600;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--t35)}
+.h-vacio{margin:30px 0 0 64px;color:var(--t60);font-size:14px}
+
+@container escena (max-width:640px){
+  .h-barra{padding:12px 16px 10px;gap:10px}
+  .h-pildoras{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none;width:calc(100% + 32px)}
+  .h-pil{flex:none}
+  .h-scroll{padding:4px 14px 24px}
+  .h-linea{left:15px}
+  .h-ev{grid-template-columns:32px 1fr}
+  .h-hora{display:none}
+  .h-nudo{width:28px;height:28px;margin-top:12px}
+  .h-nudo svg{width:14px;height:14px}
+  .h-dia{padding-left:38px}
+  .h-cambios{margin-left:0}
+  .h-det dl{margin-left:0}
+  .h-fin,.h-vacio{margin-left:38px}
+  .h-card{padding:12px}
+  .h-campo{min-width:0;width:100%}
+}
+`;
+
+Comun.iniciar({
+  letra: "a",
+  estilos: ESTILOS,
+  dibujar(cont, ctx) {
+    const ev = [...ctx.eventos].reverse();
+    let fam = "todo", per = null, pintadoEn = 0;
+    const cuenta = (f) => ev.filter((e) => e.fam === f).length;
+    const gente = [...new Map(ev.map((e) => [e.persona ? e.persona.id : "nadie", e.persona])).entries()];
+    const cuentaPer = (id) => ev.filter((e) => (e.persona ? e.persona.id : "nadie") === id).length;
+
+    cont.innerHTML = `${ctx.cabecera(ctx)}
+      <div class="h-barra">
+        <div class="h-pildoras" role="group" aria-label="Qué cambios ver">
+          <button class="h-pil" data-f="todo" aria-pressed="true">Todo <span class="n">${ev.length}</span></button>
+          ${ORDEN_FAMILIAS.map((f) => `<button class="h-pil" data-f="${f}" aria-pressed="false" style="--tono:${familias[f].tono}" ${cuenta(f) ? "" : "disabled"}><span class="pt"></span>${familias[f].nombre} <span class="n">${cuenta(f)}</span></button>`).join("")}
+        </div>
+        <div class="h-gente" role="group" aria-label="Quién lo hizo"><span>Quién</span>
+          ${gente.map(([id, p]) => `<button class="h-per" data-p="${id}" aria-pressed="false" title="${p ? esc(p.nombre) : "Nadie quedó anotado"}">${avatar(p, 30)}<span class="b">${cuentaPer(id)}</span></button>`).join("")}
+        </div>
+      </div>
+      <div class="h-scroll"><div class="h-hilo"></div></div>`;
+
+    const hilo = cont.querySelector(".h-hilo");
+    const scroll = cont.querySelector(".h-scroll");
+
+    function pintar() {
+      const lista = ev.filter((e) => (fam === "todo" || e.fam === fam || e.fam === "alta") && (!per || (e.persona ? e.persona.id : "nadie") === per || (e.fam === "alta" && fam === "todo" && false)));
+      let html = '<span class="h-linea"></span>', diaPrevio = null, k = 0;
+      for (const e of lista) {
+        const d = HP.dia(e.t);
+        if (d !== diaPrevio) {
+          html += `<div class="h-dia"><b>${d}</b>${d === "Hoy" || d === "Ayer" ? `<small>${HP.diaLargo(e.t)}</small>` : ""}</div>`;
+          diaPrevio = d;
+        }
+        html += tarjeta(e, k++);
+      }
+      if (!lista.length) html += `<p class="h-vacio">Nadie con ese filtro cambió esta prenda.</p>`;
+      if (ctx.caso === "recien") html += `<div class="h-fin">${icono("info")}<span>Cuando alguien le cambie el precio, un color, una etiqueta o la ficha, aparecerá aquí arriba, con su nombre.</span></div>`;
+      html += `<div class="h-fin">${icono("caja")}<span>Las ventas, traslados y ajustes de stock de esta prenda no están aquí: viven en <a href="#">Movimientos</a>.</span></div>`;
+      hilo.innerHTML = html;
+      pintadoEn = performance.now();
+      hilo.classList.remove("listo");
+      hilo.offsetHeight;
+      hilo.classList.add("listo");
+      observar();
+      hilo.querySelectorAll(".h-card").forEach((c) => {
+        const alternar = () => {
+          const ev = c.closest(".h-ev");
+          ev.classList.toggle("abierto");
+          c.setAttribute("aria-expanded", String(ev.classList.contains("abierto")));
+        };
+        c.addEventListener("click", alternar);
+        c.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); alternar(); } });
+      });
+      hilo.querySelectorAll(".h-ev").forEach((x) => {
+        x.addEventListener("mouseenter", () => hilo.classList.add("enfoque"));
+        x.addEventListener("mouseleave", () => hilo.classList.remove("enfoque"));
+      });
+    }
+
+    // Cada tarjeta se anima cuando entra a la vista (una vez).
+    function observar() {
+      const io = new IntersectionObserver((ents) => {
+        ents.forEach((en) => {
+          if (!en.isIntersecting) return;
+          const el = en.target;
+          // La cascada es solo de la primera vista; lo que aparece al bajar entra sin esperar su turno.
+          if (performance.now() - pintadoEn > 900) el.style.setProperty("--d", "0ms");
+          el.classList.add("visto");
+          el.querySelectorAll("[data-cuenta]").forEach((n) => {
+            const [a, b] = n.dataset.cuenta.split(":").map(Number);
+            n.textContent = soles(a);
+            setTimeout(() => HP.contar(n, a, b, { ms: 700, quieto: ctx.quieto }), (parseInt(el.style.getPropertyValue("--d")) || 0) + (ctx.quieto ? 0 : 560));
+          });
+          io.unobserve(el);
+        });
+      }, { root: scroll, threshold: 0.15 });
+      hilo.querySelectorAll(".h-ev").forEach((el) => io.observe(el));
+    }
+
+    function tarjeta(e, k) {
+      const f = familias[e.fam];
+      const p = e.persona;
+      const quien = p
+        ? `${avatar(p, 32)}<span class="txt"><b>${esc(p.nombre)}</b> ${esc(e.titulo)}<small>${esc(p.rol)} · ${esc(e.donde)}</small></span>`
+        : `${avatar(null, 32)}<span class="txt nadie-txt"><b>Nadie quedó anotado</b> · ${esc(e.titulo)}<small>Se guardó desde una terminal sin elegir quién</small></span>`;
+      const variantes = ["Cereza", "Crudo", "Crema", "Marrón", "Turquesa"].map((n) => `<span class="sw" style="background:${colores[n].hex}" title="${n}"></span>`).join("");
+      const conAlcance = e.cambios.some((c) => c.alcance);
+      return `<article class="h-ev${e.fam === "alta" ? " h-nacio" : ""}" style="--d:${Math.min(k, 8) * 70}ms;--tono:${f.tono}">
+        <span class="h-hora">${HP.hora(e.t)}</span>
+        <span class="h-nudo" title="${f.nombre}">${icono(f.icono)}</span>
+        <div class="h-card" role="button" tabindex="0" aria-expanded="false">
+          ${e.guarda === "falta" && ctx.caso === "completo" ? '<span class="m-falta" title="Solo en la maqueta: la base aún no guarda este cambio">hoy no se guarda</span>' : ""}
+          <div class="h-quien">${quien}<span class="h-flecha">${icono("chevron")}</span></div>
+          <div class="h-cambios">${e.cambios.map((c, j) => cambio(c, j, e)).join("")}</div>
+          <div class="h-det"><div><dl>
+            <dt>Cuándo</dt><dd>${HP.diaLargo(e.t)}, ${HP.hora(e.t)}</dd>
+            <dt>Dónde</dt><dd>${icono("lugar")} ${esc(e.donde)}</dd>
+            <dt>Desde</dt><dd>${esc(HP.origen(e))}</dd>
+            ${conAlcance ? `<dt>Variantes</dt><dd>${variantes} <span style="color:var(--t55)">las 5</span></dd>` : ""}
+            ${!p ? `<div class="h-porque">${icono("pregunta")}<span><b>¿Por qué no hay nombre?</b> «Editar producto» no pide «Responsable», y en una terminal de tienda eso deja el cambio sin firma. Se arregla pidiendo el responsable al guardar (decisión tuya).</span></div>` : ""}
+          </dl></div></div>
+        </div>
+      </article>`;
+    }
+
+    function cambio(c, j, e) {
+      const flecha = `<span class="h-a">${icono("flecha")}</span>`;
+      switch (c.k) {
+        case "precio":
+        case "costo": {
+          const dif = c.despues - c.antes, pct = Math.round((dif / c.antes) * 100);
+          return `<div class="h-cam h-precio"><span class="h-campo">${c.k === "precio" ? "Precio" : "Costo"}</span>
+            <span class="h-antes num">${soles(c.antes)}</span>${flecha}<span class="h-despues num" data-cuenta="${c.antes}:${c.despues}">${soles(c.despues)}</span>
+            <span class="h-delta num">${dif < 0 ? "−" : "+"}${soles(Math.abs(dif))} · ${dif < 0 ? "−" : "+"}${Math.abs(pct)} %</span>
+            ${c.alcance ? `<span class="h-alcance">${c.alcance}${c.k === "costo" ? ` · <span class="h-privado">${icono("candado")} solo lo ve quien ve el costo</span>` : ""}</span>` : ""}</div>`;
+        }
+        case "texto":
+        case "ref": {
+          const largo = (c.antes + c.despues).length > 34;
+          return `<div class="h-cam h-texto${largo ? " h-largo" : ""}"><span class="h-campo">${esc(c.campo)}</span>
+            <span class="h-antes">${esc(c.antes)}</span>${largo ? "" : flecha}<span class="h-despues">${esc(c.despues)}</span></div>`;
+        }
+        case "col+":
+          return `<div class="h-cam"><span class="h-campo">Colores</span><span class="h-sws">${c.colores.map((n, i) => `<span class="h-sw" style="--j:${i}"><span class="sw" style="background:${colores[n].hex}"></span><span class="h-mas">+</span>${n}</span>`).join("")}</span>
+            <span class="h-alcance">${esc(c.detalle)}</span></div>`;
+        case "col~":
+          return `<div class="h-cam"><span class="h-campo">Color</span><span class="h-morph">
+              <span class="uno"><span class="sw" style="background:${colores[c.antes].hex}"></span><span class="sw nuevo" style="background:${colores[c.despues].hex}"></span></span>
+              <span class="h-antes">${c.antes}</span>${flecha}<span class="h-despues">${c.despues}</span></span>
+              <span class="h-alcance">Se corrigió el nombre del color: las prendas siguen siendo las mismas.</span></div>`;
+        case "etq+":
+        case "etq-":
+          return `<div class="h-cam"><span class="h-campo">${c.k === "etq+" ? "Puso" : "Quitó"}</span><span class="h-etq${c.k === "etq-" ? " fuera" : ""}" style="--j:${j}">${icono("etiqueta")}${esc(c.nombre)}</span>${c.alcance ? `<span class="h-alcance">${c.alcance}</span>` : ""}</div>`;
+        case "foto+":
+          return `<div class="h-cam"><span class="h-campo">${c.colores.length === 1 ? "Foto" : "Fotos"}</span><span class="h-fotos">${c.colores.map((n, i) => `<span class="h-foto mosaico" style="--j:${i};background:${colores[n].hex};color:${colores[n].oscuro ? "var(--crema-fija)" : "var(--tinta-fija)"}" title="${n}">${icono("vestido")}</span>`).join("")}</span>
+            <span class="h-alcance">${c.colores.join(" y ")}${e.origen ? ` · desde ${esc(e.origen)}` : ""}</span></div>`;
+        case "alta":
+          return `<div class="h-alta"><span class="mosaico" style="background:${colores[c.colores[0]].hex};color:var(--crema-fija)">${icono("vestido")}</span>
+            <div><b>${esc(c.nombre)}</b><p>${esc(c.categoria)} · ${c.colores.length} colores · ${c.tallas.join(", ")} · ${soles(c.precio)} · ${c.stock} prendas de stock inicial</p>
+            <span class="h-sws">${c.colores.map((n) => `<span class="sw" style="background:${colores[n].hex}" title="${n}"></span>`).join("")}</span></div></div>`;
+        default:
+          return "";
+      }
+    }
+
+    cont.querySelectorAll(".h-pil").forEach((b) =>
+      b.addEventListener("click", () => {
+        fam = b.dataset.f;
+        cont.querySelectorAll(".h-pil").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        pintar();
+        scroll.scrollTop = 0;
+      })
+    );
+    cont.querySelectorAll(".h-per").forEach((b) =>
+      b.addEventListener("click", () => {
+        per = per === b.dataset.p ? null : b.dataset.p;
+        cont.querySelectorAll(".h-per").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.p === per)));
+        cont.querySelector(".h-gente").classList.toggle("filtrando", !!per);
+        pintar();
+        scroll.scrollTop = 0;
+      })
+    );
+    pintar();
+  },
+});
+</script>
+</body>
+</html>

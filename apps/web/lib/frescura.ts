@@ -1,16 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { enLaTabla } from "@/lib/frescura-pantalla";
+import { categoriasFueraDeMotores, sinCategoriasApagadas } from "@/lib/familias-motores";
+import { contarPendientes, leerVendidoSinRegistrar } from "@/lib/vendido-sin-registrar";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
+  type CargarDudas,
   type FilaConfianza,
+  type FrescuraDeSede,
   type FrescuraSede,
   type LlamarRpcFrescura,
+  type RespuestaRpc,
   type VaraCategoria,
 } from "@/lib/frescura-reglas";
+import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
+import { avisoDatosDeHoy, META_CON_PRENDA, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
+import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
+import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
+import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
+import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
+import { pisoFrescuraParaElInicio, type LecturaParaElInicio, type PisoFrescuraInicio } from "@/lib/inicio-piso-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
+import { unstable_rethrow } from "next/navigation";
 
 // La parte que LEE de Postgres para Frescura del piso (ADR-0208, pasos 3 y 4 del 3c): solo dice a quién preguntar. Qué se
 // pide, en qué orden, cómo falla cada bloque y qué significan los datos vive en `frescura-reglas.ts` (`armarFrescuraLider`,
@@ -23,27 +39,34 @@ import type { PersonaActualV2 } from "@/lib/persona-actual";
 //   · quien tiene el módulo SIN ser líder lee solo su sede, entera. El registro al colgar y la referencia de CAYLA no se le
 //     piden: las dos necesitan las otras tiendas, que no opera (DECIDÍ en ADR-0208, «Actualización 2026-09-28 — paso 4»).
 
-export type { FrescuraDeSede, FrescuraLider } from "@/lib/frescura-reglas";
-
 /** Los días de historia que lee cada sede: la ventana más larga de la vara (`VENTANAS_VARA_DIAS`). */
 export const FRESCURA_DIAS_LECTURA = 120;
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * Las dos lecturas, cada una por su NOMBRE LITERAL (no `supabase.rpc(fn, …)` con el nombre en una variable):
+ * Las tres lecturas, cada una por su NOMBRE LITERAL (no `supabase.rpc(fn, …)` con el nombre en una variable):
  * `scripts/pruebas/roles_cobertura_modulos.mjs` lee del código de la web qué funciones llama la pantalla, y así sabe que el
- * módulo «frescura» tiene su guardián en la base (`fn_frescura_sede` y `fn_confianza_registro` preguntan por él).
+ * módulo «frescura» tiene su guardián en la base (`fn_frescura_sede`, `fn_confianza_registro` y, desde el paso 4b,
+ * `fn_frescura_decisiones` preguntan por él).
  */
 function rpcFrescura(supabase: Supabase): LlamarRpcFrescura {
   return (fn, args) =>
     fn === "fn_frescura_sede"
       ? supabase.rpc("fn_frescura_sede", args as { p_ubicacion_id: string; p_dias: number })
-      : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
+      : fn === "fn_frescura_decisiones"
+        ? supabase.rpc("fn_frescura_decisiones", args as { p_ubicacion_id: string; p_dias: number })
+        : fn === "fn_frescura_vara_cayla"
+          ? // La vara de CAYLA (20261008120000): los tipos generados todavía no la traen, se llama por nombre.
+            (supabase.rpc("fn_frescura_vara_cayla" as never) as unknown as PromiseLike<RespuestaRpc>)
+          : supabase.rpc("fn_confianza_registro", args as { p_ubicacion_id?: string; p_meses?: number });
 }
 
-/** Las cifras de una tienda para «Las N tiendas», o `{ separaPiso: false }` si no separa piso y almacén. */
-export type CifrasDeTienda = FrescuraSede["cifras"] | { separaPiso: false };
+
+/** El color y la foto de una prenda (modelo+color): la misma fuente y regla que Existencias (`getAparienciaVariantes`). */
+export type AparienciaPrenda = { colorHex: string | null; fotoUrl: string | null };
+/** Lo que decide el ícono de una prenda sin foto (`SinFoto`, ADR-0333): `categorias.prefijo` y `categorias.familia`. */
+export type CategoriaVisual = { prefijo: string | null; familia: string | null };
 
 /** Lo que la pantalla necesita, en una vuelta. Todo es serializable: viaja del servidor al navegador tal cual. */
 export type DatosFrescura = {
@@ -56,12 +79,216 @@ export type DatosFrescura = {
   registro: Tolerado<FilaConfianza[]> | null;
   /** Solo el líder: la referencia de CAYLA (todas las tiendas juntas). */
   cayla: Tolerado<VaraCategoria[]> | null;
-  /** Solo el líder: cada tienda con sus cifras, para «Las N tiendas». */
-  tiendas: { id: string; nombre: string; lectura: Tolerado<CifrasDeTienda> }[] | null;
+  /** La vara de CAYLA de respaldo (ADR-0208, act. 2026-10-07): de cuándo es (null = ninguna vigente) o por qué no se leyó. Lo
+   *  que decidió con ella viaja en cada prenda (`juzgadaContra`) y en cada categoría (`respaldo`). */
+  respaldoCayla: { calculadaEn: string | null; fallo: string | null };
   /** clave → nombre de cada temporada y la estación en que empieza. Vacío si no se pudo leer (la pantalla dice «su
    *  estación» en las frases y muestra la clave junto al color). */
   temporadas: NombresDeTemporadas;
+  /** clave de la prenda → su color y su foto. Decorativo: si no se pudo leer viene vacío y la miniatura dibuja la percha. */
+  apariencias: Record<string, AparienciaPrenda>;
+  /** id de la categoría → lo que decide el ícono de su miniatura. Decorativo, como `apariencias`. De aquí sale también la familia de cada
+   *  categoría para la barra de la tienda (si no se pudo leer, la barra va entera, sin partir por familia). */
+  categoriasVisuales: Record<string, CategoriaVisual>;
+  /** Las familias del catálogo (Indumentaria, Bisutería…), en su orden: la barra de la tienda va una por familia (ADR-0208, act.
+   *  2026-10-10 (b)). Vacío si no se pudo leer. */
+  familias: Familia[];
+  /** variante → su precio en esta tienda (el general, o el propio de la tienda): los soles de la barra. Vacío si no se pudo leer (la
+   *  barra no dice plata que no sabe entera). */
+  precios: Record<string, number>;
+  /** La puerta compartida con Análisis y el motor (`preparacionDeSede`): si la tienda ya registra lo que vende. Sin ella la barra se ve
+   *  pero la frase no afirma nada. Null si no se pudo leer o la sede no es tienda. */
+  puerta: PuertaPiso;
+  /** Lo vendido «sin registrar» en la tienda (anotado en caja: trae categoría, no prenda), por categoría, en los últimos 14 y 28 días. Es
+   *  el control de la acogida y, sin piso cuadrado, lo que se dice que se llevan los clientes. Vacío si no se pudo leer. */
+  anotadas: AnotadasCategoria[];
 };
+
+export type AnotadasCategoria = {
+  categoriaId: string;
+  nombre: string;
+  d14: number;
+  d28: number;
+  /** Cuándo se vendió cada una (para contar en la rapidez solo las vendidas con el piso ya cuadrado: antes no hay con qué medir lo
+   *  colgado, revisión adversaria). */
+  fechas: string[];
+};
+
+/**
+ * La miniatura de cada prenda de la tabla (ADR-0333: sin foto, el ícono de su categoría sobre su color; nunca el isotipo). La
+ * lectura de Frescura trae el NOMBRE del color pero no su hex ni la foto ni el prefijo de la categoría, así que se piden aquí,
+ * por la talla de cada prenda, sin tocar la función SQL. Es un dato decorativo (`lib/resultado.ts`, `tolerar`): nadie decide
+ * mirando una miniatura, así que si falla la pantalla sigue entera y cada prenda se dibuja con la percha.
+ */
+async function miniaturasDeLaTabla(supabase: Supabase, lectura: DatosFrescura["lectura"]): Promise<Pick<DatosFrescura, "apariencias" | "categoriasVisuales">> {
+  const vacio = { apariencias: {}, categoriasVisuales: {} };
+  const sede = lectura.datos;
+  if (!sede || !sede.separaPiso) return vacio;
+  try {
+    const prendas = sede.prendas.filter(enLaTabla);
+    const idsPorClave = new Map(prendas.map((p) => [p.clave, p.tallas[0]?.varianteId ?? null] as const));
+    // Las categorías de TODO el piso, el de hoy y el de hace 4 semanas: de aquí sale también la familia de cada una para la barra.
+    const categoriaIds = [
+      ...new Set([...sede.prendas.map((p) => p.categoriaId), ...(sede.haceUnMes?.porCategoria ?? []).map((c) => c.categoriaId)].filter((id) => id !== "")),
+    ];
+    const [apariencia, categorias] = await Promise.all([
+      getAparienciaVariantes(supabase, [...idsPorClave.values()].filter((id): id is string => id !== null)),
+      categoriaIds.length > 0 ? supabase.from("categorias").select("id, prefijo, familia").in("id", categoriaIds) : Promise.resolve({ data: [], error: null }),
+    ]);
+    const apariencias: Record<string, AparienciaPrenda> = {};
+    for (const [clave, varianteId] of idsPorClave) {
+      const a = varianteId ? apariencia.get(varianteId) : undefined;
+      if (a) apariencias[clave] = { colorHex: a.colorHex, fotoUrl: a.fotoUrl };
+    }
+    const categoriasVisuales: Record<string, CategoriaVisual> = {};
+    if (!categorias.error) for (const c of categorias.data ?? []) categoriasVisuales[c.id] = { prefijo: c.prefijo ?? null, familia: c.familia ?? null };
+    return { apariencias, categoriasVisuales };
+  } catch {
+    return vacio;
+  }
+}
+
+/** Las familias del catálogo, en su orden. Si la lectura falla, ninguna: la barra de la tienda va entera. Nunca lanza. */
+async function familiasDelCatalogo(supabase: Supabase): Promise<Familia[]> {
+  try {
+    const { data, error } = await supabase.from("familias").select("codigo, nombre, orden");
+    if (error || !data) return [];
+    return data.map((f) => ({ codigo: f.codigo, nombre: f.nombre, orden: Number(f.orden) || 0 }));
+  } catch {
+    return [];
+  }
+}
+
+/** Ids por consulta: viajan en la URL, y una tienda grande cuelga cientos de tallas. */
+const IDS_POR_CONSULTA = 100;
+
+/**
+ * El precio en esta tienda de cada talla colgada (`variantes.precio`, con el propio de la tienda encima: `fn_precios_en_sede`, la regla de
+ * `fn_precio_en_sede`). Si algo falla, ninguno: la barra no dice soles que no sabe enteros. Nunca lanza.
+ */
+async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: DatosFrescura["lectura"]): Promise<Record<string, number>> {
+  const sede = lectura.datos;
+  if (!sede || !sede.separaPiso) return {};
+  const ids = [...new Set(sede.prendas.flatMap((p) => p.tallas.filter((t) => t.pisoHoy > 0).map((t) => t.varianteId)))];
+  if (ids.length === 0) return {};
+  try {
+    const trozos: string[][] = [];
+    for (let i = 0; i < ids.length; i += IDS_POR_CONSULTA) trozos.push(ids.slice(i, i + IDS_POR_CONSULTA));
+    const [lecturas, propios] = await Promise.all([
+      Promise.all(trozos.map((t) => supabase.from("variantes").select("id, precio").in("id", t))),
+      leerPreciosPropiosDeSede(supabase, sedeId),
+    ]);
+    if (lecturas.some((l) => l.error)) return {};
+    const generales = new Map<string, number>();
+    for (const l of lecturas) for (const v of l.data ?? []) if (v.precio !== null && Number.isFinite(Number(v.precio))) generales.set(v.id, Number(v.precio));
+    // Sin la lectura de los propios, el general: la base cobra con `fn_precio_en_sede` igual; aquí solo se pesa la barra.
+    return Object.fromEntries(propios.error ? generales : conPreciosDeSede(generales, leerPreciosEnSede(propios.data)));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * La puerta compartida (ADR-0346; la misma de Análisis, `avisoDatosDeHoy`): si la tienda ya registra lo que vende, con el piso cuadrado y
+ * el almacén contado. Sin ella, lo vendido sin registrar sigue «colgado» y envejece en falso, así que la frase de Frescura no afirma nada.
+ * Null si no se pudo leer. Nunca lanza.
+ */
+/** Cuál de los tres casos de «ventas con su prenda» le falta (los mismos de `avisoDatosDeHoy`, para que Frescura y Análisis digan lo mismo). */
+function casoDeVenta(p: Parameters<typeof ventasConPrendaDe100>[0] & { dias: unknown[] }): "sin_ventas" | "sin_prenda" | "racha" {
+  const de100 = ventasConPrendaDe100(p);
+  if (de100 === null && p.dias.length === 0) return "sin_ventas";
+  if (de100 !== null && de100 < META_CON_PRENDA) return "sin_prenda";
+  return "racha";
+}
+
+/** La puerta de una tienda desde su fila de preparación: si habla, el aviso compartido con Análisis, si el piso está cuadrado y lo primero que falta. */
+function puertaDeFila(fila: ReturnType<typeof leerPreparacion>[number]): NonNullable<PuertaPiso> {
+  const p = { ...preparacionDeSede(fila), dias: fila.dias, hoy: fila.hoy, primeraVenta: fila.primeraVenta };
+  return {
+    puedeHablar: p.puedeHablar,
+    aviso: avisoDatosDeHoy(p),
+    pisoCuadrado: p.condiciones.some((c) => c.clave === "piso_cuadrado" && c.cumple),
+    cuadradoEn: fila.cuadradoEn,
+    falta: p.condiciones.find((c) => !c.cumple)?.clave ?? null,
+    sinPrenda: ventas30(p).sinPrenda,
+    venta: casoDeVenta(p),
+  };
+}
+
+async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<PuertaPiso> {
+  try {
+    const { data, error } = await supabase.rpc(RPC_PREPARACION as never, { p_ubicacion_id: sedeId } as never);
+    if (error) return null;
+    const fila = leerPreparacion(data).find((f) => f.ubicacionId === sedeId);
+    if (!fila) return null;
+    // Lo que «Registrar N sin prenda» puede registrar de verdad: las pendientes (la misma cuenta que Análisis).
+    return { ...puertaDeFila(fila), pendientes: await contarPendientes(supabase, sedeId) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lo vendido sin registrar que sigue PENDIENTE en una tienda (`prendas_por_regularizar`), con su categoría, talla y color: cada una aparta
+ * en la lectura la unidad colgada que puede ser la vendida (ADR-0208, act. 2026-10-10 (c)). La RLS deja leer la propia sede (el líder, todas).
+ * Nunca lanza: si falla, ninguna, y la pantalla juzga como antes.
+ */
+function cargarDudasCon(supabase: Supabase): CargarDudas {
+  // Paginado y ordenado: PostgREST corta en 1.000 filas sin avisar (lo documenta `lib/por-regularizar.ts`), y un corte al azar cambiaría
+  // qué unidades se dudan. Si falla, LANZA: quien lo llama lo dice en la pantalla en vez de juzgar en silencio como si no hubiera dudas.
+  const PAGINA = 1000;
+  const TOPE = 5000;
+  return async (sedeId) => {
+    const filas: { categoria_id: string; color_codigo: string; vendido_en: string; tallas: { valor: string } | null }[] = [];
+    for (let desde = 0; desde < TOPE; desde += PAGINA) {
+      const { data, error } = await supabase
+        .from("prendas_por_regularizar")
+        .select("categoria_id, color_codigo, vendido_en, tallas ( valor )")
+        .eq("ubicacion_id", sedeId)
+        .eq("estado", "pendiente")
+        .order("vendido_en", { ascending: true })
+        .order("id", { ascending: true })
+        .range(desde, desde + PAGINA - 1);
+      if (error || !data) throw new Error(error?.message ?? "sin respuesta");
+      filas.push(...(data as unknown as typeof filas));
+      if (data.length < PAGINA) break;
+    }
+    // Una venta anotada de una familia apagada (la bolsa de despacho) no aparta ninguna prenda colgada: no es mercadería de piso. La base ya
+    // hace lo mismo en sus lecturas (`fn_categoria_entra_a_motores`); aquí se lee directo de la cola y se quita igual.
+    const fuera = await categoriasFueraDeMotores(supabase);
+    return sinCategoriasApagadas(filas, fuera, (r) => r.categoria_id).map((r) => ({
+      categoriaId: r.categoria_id,
+      colorCodigo: r.color_codigo,
+      talla: r.tallas?.valor ?? null,
+      vendidoEn: r.vendido_en,
+    }));
+  };
+}
+
+/**
+ * Lo vendido «sin registrar» de los últimos 28 días en la tienda, por categoría (`prendas_por_regularizar`: lo pendiente y lo cerrado sin
+ * prenda; lo regularizado ya es una venta con su prenda y lo anulado no se vendió). La RLS deja leer la propia sede. Nunca lanza.
+ */
+async function anotadasDeLaSede(supabase: Supabase, sedeId: string): Promise<AnotadasCategoria[]> {
+  try {
+    const ahora = Date.now();
+    const desde = new Date(ahora - 28 * 86_400_000).toISOString();
+    const corte14 = ahora - 14 * 86_400_000;
+    // La misma lectura que usa Análisis (`lib/vendido-sin-registrar.ts`), ya sin las familias apagadas: la bolsa de despacho no cuenta en
+    // la rapidez de una categoría de prendas.
+    const porCategoria = new Map<string, AnotadasCategoria>();
+    for (const f of await leerVendidoSinRegistrar(supabase, sedeId, desde)) {
+      const c = porCategoria.get(f.categoriaId) ?? { categoriaId: f.categoriaId, nombre: f.categoria, d14: 0, d28: 0, fechas: [] };
+      c.d28 += 1;
+      c.fechas.push(f.vendidoEn);
+      if (Date.parse(f.vendidoEn) >= corte14) c.d14 += 1;
+      porCategoria.set(f.categoriaId, c);
+    }
+    return [...porCategoria.values()];
+  } catch {
+    return [];
+  }
+}
 
 async function nombresDeTemporadas(supabase: Supabase): Promise<NombresDeTemporadas> {
   try {
@@ -84,35 +311,163 @@ export async function getFrescuraPantalla(
 ): Promise<DatosFrescura> {
   const supabase = await createClient();
   const rpc = rpcFrescura(supabase);
-  const ubicaciones = await getUbicaciones();
+  // Las tres lecturas chicas a la vez —las sedes, la vara de CAYLA de respaldo y los nombres de las temporadas— y recién después
+  // las tiendas: `analizarSede` necesita la vara al juzgar cada prenda. Si la vara falla no frena nada: se juzga contra la tienda y
+  // la pantalla lo dice.
+  const [ubicaciones, { respaldo, calculadaEn, fallo: falloRespaldo }, temporadas, familias] = await Promise.all([
+    getUbicaciones(),
+    leerRespaldoCayla(rpc, new Date().toISOString()),
+    nombresDeTemporadas(supabase),
+    familiasDelCatalogo(supabase),
+  ]);
   const activa = ubicaciones.find((u) => u.id === persona.ubicacionId);
   const sede = { id: persona.ubicacionId, nombre: activa?.nombre ?? persona.ubicacionEtiqueta, tienda: activa?.tipo === "tienda" };
   const sinPiso: Tolerado<{ separaPiso: false }> = { datos: { separaPiso: false }, fallo: null };
+  const respaldoCayla = { calculadaEn, fallo: falloRespaldo };
+  // Lo que acompaña a la lectura de la sede, todo a la vez y tolerante: miniaturas, precios y la puerta.
+  const deLaSede = async (lectura: DatosFrescura["lectura"]) => {
+    const [miniaturas, precios, puerta, anotadas] = await Promise.all([
+      miniaturasDeLaTabla(supabase, lectura),
+      preciosDelPiso(supabase, sede.id, lectura),
+      sede.tienda ? puertaDelPiso(supabase, sede.id) : Promise.resolve(null),
+      sede.tienda ? anotadasDeLaSede(supabase, sede.id) : Promise.resolve([]),
+    ]);
+    return { ...miniaturas, familias, precios, puerta, anotadas };
+  };
 
   if (persona.rol !== "lider") {
-    const [lectura, temporadas] = await Promise.all([
-      sede.tienda ? armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias).then((f) => f.lectura) : Promise.resolve(sinPiso),
-      nombresDeTemporadas(supabase),
-    ]);
-    return { sede, esLider: false, lectura, registro: null, cayla: null, tiendas: null, temporadas };
+    const lectura = sede.tienda ? (await armarFrescuraSede({ id: sede.id, nombre: sede.nombre }, rpc, dias, respaldo, pisoAnterior, cargarDudasCon(supabase))).lectura : sinPiso;
+    return { sede, esLider: false, lectura, registro: null, cayla: null, respaldoCayla, temporadas, ...(await deLaSede(lectura)) };
   }
 
   const tiendas = ubicaciones.filter((u) => u.tipo === "tienda");
-  const [lider, temporadas] = await Promise.all([armarFrescuraLider(tiendas, rpc, dias), nombresDeTemporadas(supabase)]);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior, cargarDudasCon(supabase));
   const propia = lider.sedes.find((s) => s.ubicacionId === sede.id);
+  const lecturaDeSede = propia ? propia.lectura : sinPiso;
   return {
     sede,
     esLider: true,
-    lectura: propia ? propia.lectura : sinPiso,
+    lectura: lecturaDeSede,
     registro: lider.confianza,
     cayla: lider.referenciaCayla,
-    tiendas: lider.sedes.map((s) => ({
-      id: s.ubicacionId,
-      nombre: s.nombre,
-      lectura: s.lectura.datos
-        ? { datos: s.lectura.datos.separaPiso ? s.lectura.datos.cifras : { separaPiso: false as const }, fallo: null }
-        : { datos: null, fallo: s.lectura.fallo },
-    })),
+    respaldoCayla,
     temporadas,
+    ...(await deLaSede(lecturaDeSede)),
   };
 }
+
+// ---------------------------------------------------------------------------
+// CAYLA Global ▸ Frescura del piso (ADR-0208, act. 2026-10-10 (b), decisión 4)
+// ---------------------------------------------------------------------------
+
+/** Lo que dibuja la vista de CAYLA entera: un resumen por tienda (nunca sus prendas), o por qué no se lee. */
+export type DatosRed = { tiendas: ResumenTienda[]; esLider: boolean };
+
+/**
+ * Las tres tiendas para la vista CAYLA Global. Solo el líder las lee: `fn_frescura_sede` deja leer una sede a quien la opera, y el líder
+ * opera todas. Un gerente que no es líder con CAYLA Global necesita que esa función también pregunte por `cayla_global` (una migración,
+ * con OK de Felipe: fuera de esta ronda); mientras tanto la pantalla lo dice. Cada tienda falla por su cuenta; la suma de CAYLA no afirma
+ * nada si falta una (`resumenCayla`).
+ */
+/**
+ * La lectura de Frescura que pide la tarjeta «Tu piso» del Inicio (ADR-0395): UNA tienda, la que la persona mira, y solo lo que la tarjeta
+ * dice. NO es `getFrescuraPantalla`: para un líder esa lee las tres tiendas, el registro al colgar y la referencia de CAYLA (unas 24 consultas
+ * y tres análisis), y el Inicio es la pantalla que más se abre. Esta hace las MISMAS cuentas de la pantalla para la tienda activa (la vara de
+ * CAYLA de respaldo, las dudas de ventas sin registrar, la puerta y lo ya decidido: lo que cambia el veredicto) y deja lo decorativo
+ * (miniaturas, precios, temporadas, anotadas, familias, el registro de las otras tiendas).
+ *
+ * PROMETE: nunca lanza. «no aplica» si la sede no es una tienda o no separa piso y almacén; «falló» si la lectura no respondió.
+ * ASUME: la llama el servidor con la sesión de quien mira y SOLO si ve el módulo `frescura` (la base lo exige: sin él, las lecturas dan 42501).
+ * NO TIENE CACHÉ: va dentro de un `<Suspense>` para no frenar el resto del Inicio. Si en producción pesa, se mide antes de cachear (el candado
+ * de las RPC es por persona, así que una caché compartida por sede no es trivial).
+ */
+export async function getPisoDeFrescuraParaElInicio(persona: Pick<PersonaActualV2, "ubicacionId" | "ubicacionEtiqueta" | "ubicacionTipo">): Promise<LecturaParaElInicio<PisoFrescuraInicio>> {
+  if (persona.ubicacionTipo !== "tienda") return { estado: "no_aplica" };
+  try {
+    const supabase = await createClient();
+    const rpc = rpcFrescura(supabase);
+    const sede = { id: persona.ubicacionId, nombre: persona.ubicacionEtiqueta };
+    // La vara y la puerta no dependen una de otra: a la vez. La lectura de la sede necesita la vara al juzgar cada prenda.
+    const [{ respaldo }, puerta] = await Promise.all([leerRespaldoCayla(rpc, new Date().toISOString()), puertaDelPiso(supabase, sede.id)]);
+    const { lectura } = await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, pisoAnterior, cargarDudasCon(supabase));
+    if (lectura.fallo !== null || lectura.datos === null) return { estado: "fallo" };
+    if (!lectura.datos.separaPiso) return { estado: "no_aplica" };
+    return { estado: "ok", datos: pisoFrescuraParaElInicio(lectura.datos, puerta) };
+  } catch (e) {
+    unstable_rethrow(e);
+    console.error("Inicio: no se pudo leer el piso de Frescura", e);
+    return { estado: "fallo" };
+  }
+}
+
+/**
+ * La lectura de Frescura de UNA tienda, con lo que cambia el veredicto (la vara de CAYLA de respaldo y las dudas de ventas sin registrar),
+ * para Análisis (ADR-0357, act. 2026-10-14): qué unidades colgadas pueden ser una venta sin registrar y la vara de cada categoría. Las
+ * mismas cuentas de la pantalla, sin lo decorativo ni la comparación con hace 4 semanas (Análisis no la usa).
+ *
+ * PROMETE: nunca lanza; la falla vuelve en `fallo`. ASUME: la llama el servidor con la sesión de quien mira y solo si ve `frescura` (la base
+ * lo exige: sin él, `fn_frescura_sede` da 42501).
+ */
+export async function getLecturaFrescuraDeTienda(sede: { id: string; nombre: string }): Promise<FrescuraDeSede["lectura"]> {
+  try {
+    const supabase = await createClient();
+    const rpc = rpcFrescura(supabase);
+    const { respaldo } = await leerRespaldoCayla(rpc, new Date().toISOString());
+    return (await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, undefined, cargarDudasCon(supabase))).lectura;
+  } catch (e) {
+    unstable_rethrow(e);
+    return { datos: null, fallo: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function getFrescuraRed(persona: Pick<PersonaActualV2, "rol">, dias: number = FRESCURA_DIAS_LECTURA): Promise<DatosRed> {
+  if (persona.rol !== "lider") return { tiendas: [], esLider: false };
+  const supabase = await createClient();
+  const rpc = rpcFrescura(supabase);
+  const [ubicaciones, { respaldo }, familias, puertas] = await Promise.all([
+    getUbicaciones(),
+    leerRespaldoCayla(rpc, new Date().toISOString()),
+    familiasDelCatalogo(supabase),
+    puertasDeLasTiendas(supabase),
+  ]);
+  const tiendas = ubicaciones.filter((u) => u.tipo === "tienda" && u.activo);
+  const lider = await armarFrescuraLider(tiendas, rpc, dias, respaldo, pisoAnterior, cargarDudasCon(supabase));
+  const sedes = lider.sedes.map((s) => ({
+    id: s.ubicacionId,
+    nombre: s.nombre,
+    sede: s.lectura.datos && s.lectura.datos.separaPiso ? s.lectura.datos : null,
+    fallo: s.lectura.fallo,
+  }));
+  // La familia de cada categoría de las tres tiendas (hoy y hace 4 semanas). Si falla, todo va en una sola barra por tienda.
+  const ids = [...new Set(sedes.flatMap((t) => [...(t.sede?.prendas ?? []).map((p) => p.categoriaId), ...(t.sede?.haceUnMes?.porCategoria ?? []).map((c) => c.categoriaId)]).filter((id) => id !== ""))];
+  const familiaDe = await familiasDeCategorias(supabase, ids);
+  const registro = lider.confianza.datos;
+  return { esLider: true, tiendas: sedes.map((t) => resumenDeTienda(t, { familiaDe, familias, puerta: puertas.get(t.id) ?? null, registro })) };
+}
+
+/** La familia de cada categoría, por id. Si la lectura falla, ninguna (la barra no se parte por familia). Nunca lanza. */
+async function familiasDeCategorias(supabase: Supabase, ids: string[]): Promise<(categoriaId: string) => string | null> {
+  if (ids.length === 0) return () => null;
+  try {
+    const { data, error } = await supabase.from("categorias").select("id, familia").in("id", ids);
+    if (error || !data) return () => null;
+    const m = new Map(data.map((c) => [c.id, c.familia ?? null]));
+    return (id) => m.get(id) ?? null;
+  } catch {
+    return () => null;
+  }
+}
+
+/** La puerta de cada tienda que la cuenta puede leer (la misma de Análisis, sin sede: todas las del líder). Nunca lanza. */
+async function puertasDeLasTiendas(supabase: Supabase): Promise<Map<string, PuertaPiso>> {
+  try {
+    const { data, error } = await supabase.rpc(RPC_PREPARACION as never, {} as never);
+    if (error) return new Map();
+    return new Map(
+      leerPreparacion(data).map((f) => [f.ubicacionId, puertaDeFila(f)] as const),
+    );
+  } catch {
+    return new Map();
+  }
+}
+

@@ -1,0 +1,574 @@
+# ADR-0328 · Inventario: rediseño por olas, dato e interfaz juntos
+
+- **Fecha:** 2026-10-04 · **Estado:** Aprobado por Felipe. Las decisiones salen de cuatro tandas de preguntas (2026-10-03 y 2026-10-04); la
+  lista de actividades la aprobó con «Sí, empieza por la 1».
+- **Pedido:** «rediseñamos, corregimos, mejoramos y hacemos formidable todo el módulo de inventario, sobre todo Existencias,
+  Movimientos, Traslados, Conteo, Análisis. Frescura del piso también necesita lucir ultra cool, ayudar a la gestión comercial en cómo
+  se renueva cada piso y cómo se entiende la rotación de piso».
+- **Insumos:** los artefactos «Inventario contra los mejores» (comparación con Square, Shopify POS, Lightspeed, Loyverse, Sortly y
+  grandes cadenas) y «Rápido por diseño» (medir → simplificar → acelerar); los análisis `/pantalla` del 2026-10-03
+  (`docs/pantallas/inventario.md`, `inventario-bajar.md`, `inventario-movimientos.md`, `traslados.md`, `recibir.md`); y tres
+  lecturas de solo lectura sobre el código y producción (2026-10-03 a las 21:29 y 23:40, y 2026-10-04).
+- **Usa y complementa:** ADR-0329 (capacidad del piso y primer mix), ADR-0208 (Frescura), ADR-0270 (una sola cifra de stock),
+  ADR-0306 (bajar, subir y ajustar son funciones de Existencias), ADR-0326 («Hoy»), ADR-0327 (Movimientos), ADR-0321 (Vender
+  registra la bajada olvidada), ADR-0280 (acciones sin el combo Responsable), ADR-0282 (Conteo), ADR-0299 (Recibir), ADR-0242
+  (Traslados conectado).
+- **Investigación de respaldo:** `docs/investigacion/2026-10-04-mix-inicial-del-piso.md`.
+
+## El problema, de lo simple a lo complejo
+
+Si se sigue una prenda desde que llega hasta que envejece, cada paso es una pantalla de Inventario, y en cada una algo falla. Las cifras
+son de producción, en solo lectura, del 2026-10-03:
+
+1. **Llega** (Recibir y Traslados). Nunca llegó nada así: 0 compras, 0 producciones y 4 traslados, todos vacíos. El 100 % del stock
+   entró por la carga inicial.
+2. **Se guarda** (Existencias). El sistema dice que TRU tiene **138 prendas colgadas y 635 guardadas**; Felipe contó **600 a 750
+   colgadas** el 2026-09-30, todo en percha. El alta trae marcado «almacén» (Felipe, 2026-09-28) y así se cargó casi todo.
+3. **Se cuelga** (Bajar al piso). La regla «reponer con 4 o menos en el piso» marca **las 510 tallas** de TRU, porque ninguna
+   tiene más de 4 colgadas: nunca puede decir «Mantener». La caja no deja vender una prenda que está colgada, porque el sistema la
+   cree guardada (Felipe lo reportó el 2026-10-03; ADR-0321 lo parcha en Vender).
+4. **Se vende.** En 14 días, AQP vendió 170 prendas y 169 salieron «sin registrar»; TRU, 67 de 98. Hay **236 por regularizar y 0
+   regularizadas**. No descuentan stock y quedan con costo 0.
+5. **Se mueve** (Movimientos). El libro cuadra con el stock. Pero «lo que perdimos» tiene tres definiciones (Finanzas, resumen y
+   Movimientos) y una diferencia de traslado no deja rastro.
+6. **Se cuenta** (Conteo). Quien cuenta aprueba su propia diferencia; 9 de 12 conteos cerrados no tienen nombre (las 4 acciones
+   de inventario que ADR-0280 soltó del combo quedan sin persona desde una terminal). Del 1 al 3-oct se «contó» 37 veces desde
+   Ajustar, sin «debe haber».
+7. **Envejece** (Análisis y Frescura). Los motores son sólidos, pero ven un tercio de lo vendido en TRU y casi nada de AQP, y la
+   misma pregunta —¿falta o sobra en el piso?— tiene **cinco reglas distintas**: piso ≤ 4 (`politica-operativa-inventario.ts:41`),
+   0 en el piso y algo atrás (`inventario-reglas.ts:56`), 14 días de cobertura (`inventario-reglas.ts:155`), «estancada» a los 14
+   días (`resumen-lectura.ts:40`) y la vara de Frescura con «callada» a los 30 días (`frescura-reglas.ts:66`).
+
+Y Felipe agregó lo que más le duele: **«la interfaz está horrible y no estoy seguro si se comunica bien con los demás módulos y es
+entendible para cualquier integrante»**.
+
+En una frase: la estructura es sólida, pero el dato que le entra está mal y la interfaz no se explica sola. Rediseñar la fachada sin
+arreglar el dato da pantallas lindas que mienten; arreglar el dato sin la fachada no le cambia el día a nadie. Por eso se hacen juntos.
+
+## Una corrección
+
+En la primera tanda se le dijo a Felipe que las ventas «sin registrar» no guardaban talla ni color. **Es falso:**
+`prendas_por_regularizar.categoria_id`, `talla_id` y `color_codigo` son obligatorias (`20260923161700_prendas_por_regularizar.sql`).
+Les falta solo el modelo exacto. Por eso la lectura comercial de Felipe se puede construir ya, con datos reales.
+
+## Decisiones de Felipe
+
+### El norte (2026-10-03)
+
+| Tema | Decisión |
+|---|---|
+| Qué duele | Todo: cifras que no se creen, ventas que se escapan, nadie sabe qué hacer, el piso no se renueva; y sobre todo la interfaz. |
+| Para quién | El encargado de sede, la asesora en el piso y la cuenta Almacén. Los líderes después. |
+| Formidable | Cifras que dicen la verdad, nadie necesita capacitación y se ve espectacular. |
+| Decisión comercial | Qué **categoría, talla y color** se vendieron rápido y hoy faltan. Los modelos van variando, así que la señal para el Taller es el atributo, no el modelo. |
+| Orden | Dato e interfaz juntos, por olas. La ola 0 (datos) va antes del 15-oct. |
+| Éxito | La prueba de 5 minutos (una integrante nueva hace 7 tareas sin ayuda), la cola sin registrar en 2 días o menos y el % vendido a precio completo. |
+| Tiempo | Una hora al día por tienda, fuera de la hora punta. |
+| Aparato | Celular en Bajar al piso y en Conteo; lo demás, primero escritorio. |
+| Ritmo | Por partes, con cada parte mostrada funcionando antes de seguir (2026-10-04; reemplaza «todo junto en un mes»). |
+| Dueño del piso | Un encargado por sede, que revisa una vez por semana que el piso del sistema sea el real. |
+| Quién ve Análisis y Frescura | **Todas las cuentas**, incluidas Caja y Almacén: «ayudan a plantear estrategias de equipo sin importar el rango». En soles se ven los totales; el costo por prenda, solo el líder. Los módulos los marca Felipe en Roles y accesos (ADR-0161). |
+| Conexiones | Primero con Vender y con Catálogo/Productos. |
+
+### Existencias y Movimientos (2026-10-04)
+
+| Tema | Decisión |
+|---|---|
+| Número grande | **Colgadas contra lo que cabe** («583 de 600»), con la marca «por cuadrar» mientras la sede no haya cuadrado su piso. |
+| Portada | **Buscar + «Para hoy»** (hasta 3 frases con su cifra y su botón) y debajo el catálogo. La lista con avance vive dentro de Bajar al piso; el plano del piso llega como franja en la ola 2. |
+| Cuadre de TRU | Arreglarlo una sola vez. Como hay **más de 200 prendas guardadas de verdad**, primero se escanea lo guardado y lo que nadie escaneó pasa a colgado (ver «Decisiones técnicas»). |
+| Prenda en la mano | Si el sistema no deja bajarla, **se corrige y se cuelga en un paso**, y si la etiqueta no se lee se elige por nombre. |
+| Dañadas | Un arreglo menor (un botón descosido) **se reporta y puede volver a la venta**; el daño mayor sigue con las tres salidas de ADR-0071. |
+| Razones al quitar | **Razones de tienda:** No aparece, Se dañó, Error al cobrar, Uso interno, Otro con nota. |
+| Quitar mucho | **El líder confirma** cuando se quitan más de 5 de una talla o se deja en 0 una talla que tenía 3 o más. |
+| Sumar a mano | «Reposición» pasa a llamarse **«Encontré prendas»** y queda abierta, con motivo: «eso sí ocurre, y más cuando estamos recopilando los datos desde cero». |
+| Por persona | Las correcciones **no se agrupan por persona por ahora** (se respeta ADR-0127). |
+| Qué es perder | **Todo lo que salió sin venderse**: faltantes, dañadas que se botaron o donaron y lo que faltó en un traslado, contado aparte de lo que apareció; lo liquidado es venta. |
+| Talla cruzada | El sistema sugiere «probable talla cruzada» y quien cierra el conteo lo confirma. |
+| Dónde se ve | Pestaña **«Pérdidas»** en Movimientos. |
+| Cuándo avisa | **Cuando se repite**: la misma prenda o la misma zona pierde dos veces en 30 días, o hay una resta grande sin nota. |
+
+### El plan del piso (2026-10-04, detalle en ADR-0329)
+
+- «Reponer» depende del espacio, del mix por categoría y de lo que se vende rápido: **dos relojes**. El mix decide el lugar y se
+  mueve una vez al mes; la lista del día ordena por velocidad desde el primer día.
+- **Mínimo por modelo colgado: 1 por talla y color, solo en las tallas centrales.** «Me basta con 1 por color porque mi tienda es
+  pequeña».
+- **Primer mix:** lo propone el sistema a partir de la industria y lo aprueba Felipe. Ritmo mensual con tope de ±3 puntos. Mix
+  distinto por sede según el clima. Accesorios fuera del riel. Reserva para novedad según el rol. Jeans en 9–10 % durante 4 semanas.
+- **Piso lleno: entra una, sale una.**
+- **Contar AQP** una vez antes de confiar en sus 1.800.
+- Bolsas de papel, cajas y sorpresas: **se crean como productos** (lo hace el equipo en el Catálogo).
+
+### Traslados, Recibir y Conteo (2026-10-04, parcial)
+
+| Tema | Decisión |
+|---|---|
+| Traslados | **Primero una caja real** del Taller a TRU con gente real; después se corrige donde se trabaron. |
+| Pedidos de otra sede | Número en el menú desde que llega y **aviso a los líderes de las dos tiendas a las 48 h** sin respuesta. |
+| Mandar lo colgado | **No en un paso: primero al almacén** (decisión de Felipe, distinta de la recomendada). |
+| Desde Vender | La asesora **pide y aparta** la prenda de otra sede para el cliente que la espera. |
+| Cada cuánto se cuenta | **Piso cada semana, almacén cada quince días.** El almacén se cuenta con la tienda abierta; el piso, **por categorías o lotes** a lo largo de la semana, sin cerrar la tienda. |
+| Contar desde Ajustar | Ajustar abre **«Por prenda»** en Conteo: un solo camino, con «debe haber» y firma. |
+| Primer conteo | **De arranque**: corrige el stock sin contar como merma ni entrar en la exactitud. |
+| Firma | **El nombre se pide una vez por operación**, no en cada paso: «si ya se colocó un nombre en el manejo de una operación no creo necesario estar pidiéndolo varias veces». |
+| Ventas sin registrar | Es **algo temporal de la adopción** («no podíamos dejar de vender y había prendas sin etiquetar»): limpieza de arranque, no una rutina permanente. Nadie regulariza su propia venta, salvo el líder. |
+| Cierre de la carga inicial | **Fecha por sede y cierre automático**: el 15-oct en TRU, AQP y LIM (Felipe, 2026-10-04 noche; ver «Actualización 2026-10-04 (tarde)»); el Taller, sin carga de tienda. |
+
+## Decisiones técnicas
+
+**1. Un solo motor del piso.**
+DECIDÍ: una función pura (`lib/piso-plan.ts`, con su prueba) sobre una lectura SQL de solo lectura por sede y temporada. Existencias,
+Análisis, Frescura e Inicio leen la misma salida: meta por categoría, hueco, velocidad, mínimo y acción por talla.
+DESCARTÉ: una regla por pantalla. Hoy son cinco y dan 510 de 510 tallas «reponer»; además, el Inicio dice «Sube» cuando en
+Existencias «Subir» es del piso al almacén (`inicio-avisos.ts:271`).
+SE ROMPE SI: una venta sin registrar se cuenta dos veces cuando se regulariza, una en la cola y otra como venta escaneada, y Polos
+parece vender el doble esa semana. La cola cuenta solo mientras está pendiente, y una prueba lo vigila.
+
+**2. Velocidad = ventas escaneadas + ventas anotadas a mano que siguen pendientes**, por categoría × talla × familia de color y por
+sede. Cada cifra dice cuántas ventas la respaldan y cuántas son anotadas.
+DESCARTÉ: contar solo las escaneadas (AQP quedaría ciega semanas: 1 de 141).
+SE ROMPE SI: en la caja anotan una correa como «Collares»: la velocidad cae en la categoría equivocada. Por eso la categoría se
+sugiere desde la descripción (decisión 6).
+
+**3. El alta pregunta «¿colgada o guardada?» sin valor de fábrica.**
+DESCARTÉ: dejar «almacén» marcado (así se desordenó TRU y AQP lo repetiría) o marcar «colgada» (lo guardado entraría mal).
+SE ROMPE SI: alguien elige sin mirar para avanzar; por eso cada opción dice lo que cambia («la caja las puede cobrar desde ya» /
+«para venderlas, primero hay que bajarlas al piso»). Se descartó mostrar «lo que elige la mayoría en esta tienda»: con el piso de TRU
+sin cuadrar, la mayoría registrada es «almacén», justo el error. Construida en el PR #783.
+
+**4. Cuadre del piso, una vez por sede:** se escanea lo que de verdad está guardado; lo que el sistema tiene en almacén y nadie
+escaneó pasa al piso en un solo movimiento, y queda la fecha del cuadre de la sede. En producción, solo con el «dale» de Felipe.
+DESCARTÉ: escanear el piso entero (600 a 750 prendas) y marcar todo colgado primero (obliga a subir más de 200 después).
+SE ROMPE SI: hay prendas guardadas sin etiqueta, que no se pueden escanear y quedan como colgadas. Las cifras de Felipe lo sugieren:
+600–750 colgadas más de 200 guardadas es más que las 773 que el sistema conoce. Esas se cargan antes.
+
+**5. Puerta de confianza en «Para hoy».** Sin cuadre, «Por colgar» queda en pausa y la frase 1 es «Cuadra el piso». Si las ventas
+sin registrar pendientes de la sede superan la venta de un día normal, la frase 1 pasa a ser «Confirma lo vendido».
+DESCARTÉ: publicar «Por colgar» con el piso sin cuadrar (380 tallas que ya cuelgan).
+SE ROMPE SI: el encargado ve «Cuadra el piso» tres días seguidos porque nadie lo hizo; la frase más útil se vuelve ruido. Por eso el
+cuadre de TRU va antes del 15-oct.
+
+**6. Categoría sugerida desde la descripción** en la venta sin registrar («Jean…» → Jeans), que la asesora confirma.
+DESCARTÉ: dejar la categoría solo a mano (hay ventas «Jean…» guardadas como Pantalones, y el mix aprendería de eso).
+SE ROMPE SI: la descripción engaña («jean» en «chaqueta jean»); por eso es sugerencia y no se aplica sola.
+
+**7. El nombre se pide una vez por operación y lo heredan sus pasos.** Quien abrió o contó el conteo firma su cierre; quien empezó a
+recibir el traslado firma al terminar.
+DESCARTÉ: dejarlo como está (9 de 12 conteos sin dueño) y pedirlo en cada paso.
+SE ROMPE SI: un conteo lo abre una persona y lo cierra otra en otro turno; en ese caso (otra persona, otro día) se vuelve a preguntar.
+
+**8. Limpieza de arranque de las ventas sin registrar**, con la prenda candidata sugerida (en TRU, 35 de 67 tenían una prenda de la
+misma categoría, talla y color en stock), después de que AQP etiquete y cargue.
+DESCARTÉ: una tarea diaria fija para el almacén (carga permanente para algo de la adopción) y regularizar antes de cargar (la base
+rechaza después la carga inicial de esa prenda, `carga_con_historia`).
+SE ROMPE SI: siguen llegando prendas sin etiqueta después del cierre de la carga y la cola vuelve a crecer; si dos semanas después
+sigue habiendo más de un día de venta esperando, se revisa.
+
+**9. Al revisar un conteo, cada faltante se cruza con las ventas sin registrar de esa tienda** y se regulariza en el mismo cierre.
+DESCARTÉ: no dejar cerrar con pendientes (TRU no cerraría ninguno) y un aviso que nadie lee.
+SE ROMPE SI: la prenda que falta coincide con una venta sin registrar pero de verdad se perdió; por eso confirma una persona.
+
+**10. «Aplicar todos completos» dice la verdad sobre sí mismo:** «12 contadas · 40 sin contar», y lo aplicado sin mirar no sube la
+exactitud.
+DESCARTÉ: quitar el atajo y dejarlo como hoy.
+SE ROMPE SI: alguien lo usa en todo para terminar rápido; aparece «40 sin contar», que es justo lo que el líder necesita ver.
+
+**11. La banda del día de Movimientos pasa a un tono claro que se pega arriba.** Es reversible en minutos.
+
+**12. Mandar lo colgado a otra sede (Felipe eligió dos pasos):** cuando Frescura sugiere trasladar algo, la prenda entra a una lista
+de «subidas para enviar» hasta que sale el traslado, para que el segundo paso no se olvide.
+
+## Lo que no se volvió a preguntar (ya estaba decidido)
+
+Conteo no es a ciegas (ADR-0282). «Hoy» tiene cuatro estados con las mismas palabras en toda la pantalla (ADR-0326). Bajar, subir y
+ajustar son funciones de Existencias (ADR-0306). Análisis sugiere y nunca mueve stock (ADR-0121, ADR-0245). Una sola cifra de stock
+(ADR-0270). El libro de movimientos no se borra (ADR-0042, ADR-0055). La caja nunca se frena (ADR-0321, D-40). Recibir es solo de
+proveedores (ADR-0299). El despacho del Taller es un traslado (D-31). Lo de Frescura del 2026-09-24 al 2026-09-29: Edad del piso,
+unidad modelo + color por sede, «Envejecida» = más lenta que su categoría en su sede, sin tope de novedad hasta medir la vuelta del
+cliente, «Ya decidí» (ADR-0208). La capacidad en prendas, m² y 30 por m² (ADR-0329).
+
+## Orden de construcción
+
+Cada actividad es un corte que se puede ver funcionando, con su propio commit, y se publica cuando Felipe la aprueba. Las que
+cambian la base se muestran antes de pegarlas en producción.
+
+**Tramo 1A · Urgente, antes del 15-oct**
+1. Dejar escrito lo decidido (este ADR, ADR-0329 y la investigación del mix).
+2. El alta pregunta «¿colgada o guardada?» sin valor de fábrica.
+3. Cuadrar el piso: escanear lo guardado y pasar el resto al piso en un movimiento; fecha de cuadre por sede.
+4. Cierre automático de la carga inicial por sede; «Reposición» pasa a «Encontré prendas», con motivo.
+5. Ventas sin registrar: categoría sugerida, nadie regulariza su propia venta salvo el líder, y limpieza de arranque con candidata.
+
+**Tramo 1B · Existencias**
+
+6. Capacidad de cada sede (m² × 30) y el número «colgadas de las que caben» con «por cuadrar».
+7. Un solo motor del piso: «Por colgar» (1 por color, tallas centrales, primero lo vendido) y «se vendió rápido y falta».
+8. Portada «Buscar + Para hoy».
+9. «La tengo en la mano» en Bajar al piso.
+10. Dañadas: reportar desde la ficha y «Se arregló».
+
+**Tramo 1C · Lectura comercial**
+
+11. Análisis «Se vendió rápido y falta» por categoría × talla × color, con «Pedir al Taller» y «Pedir a otra sede».
+12. Plan del piso: mix por sede con candado, propuesta investigada que aprueba Felipe, ajuste con motivo, franja y «entra una, sale una».
+
+**Tramo 1D · Control**
+
+13. Ajustar con razones de tienda y confirmación del líder en lo grande.
+14. Una sola definición de pérdida, pestaña «Pérdidas» y aviso cuando se repite.
+15. Conteo I: firma una vez por operación, conteo de arranque y atajo honesto.
+16. Conteo II: cruce con ventas sin registrar y talla cruzada al revisar, Ajustar abre «Por prenda», «Toca contar».
+17. Traslados: «Te piden» con número y aviso a las 48 h, «Pedir y apartar» desde Vender, lista de «subidas para enviar».
+
+**Tramo 2 · Después de la ronda 4:** Frescura como herramienta de renovación (cómo se renueva cada piso y cómo se entiende la
+rotación), el resto de Análisis, y lo complejo de Traslados: diferencias resueltas en las dos tiendas, quién aprueba una pérdida, a
+quién se carga la pérdida en el camino y cómo llega lo del Taller.
+
+**Del equipo, sin código:** la primera caja real del Taller a TRU, contar el piso de AQP, etiquetar y cargar AQP antes de su cierre,
+y crear las bolsas, cajas y sorpresas como productos.
+
+## Lo que queda abierto
+
+- **Ronda 4 (Análisis y Frescura).** Entre otras: el 2026-09-26 se decidió que la comparación entre sedes es del líder y que los
+  equipos ven su propia evolución; el 2026-10-04 Felipe decidió que todos ven Análisis y Frescura. Falta saber si eso incluye la
+  comparación entre sedes.
+- **Traslados complejos** (diferencias, aprobación de pérdidas, pérdida en el camino, el Taller).
+- **Contar AQP y LIM** para su capacidad.
+
+## Cómo se verifica
+
+Cada actividad trae su verificación (prueba, comando o pantalla en el navegador). El rediseño entero se mide con los tres números de
+éxito de Felipe: la prueba de 5 minutos con una integrante de TRU antes y después, la cola sin registrar en 2 días o menos, y el %
+vendido a precio completo por sede (ADR-0208).
+
+## Actualización 2026-10-04 (tarde) — rondas 3 y 4, la estadística de Frescura y la ola 1
+
+### Lo que decidió Felipe
+
+**Cuadre, carga y ventas sin registrar**
+- El cuadre del piso es **una sola vez por sede**, no una rutina: corrige el arranque y no se repite («no puede ser que eso se haga todos los días»).
+- Lo guardado sin etiqueta **se etiqueta y se carga antes del cuadre** (si no, el cuadre lo da por colgado).
+- Cierre de la carga inicial: **el 15-oct en las tres sedes** (TRU, AQP y LIM; Felipe, 2026-10-04 noche, igual que la cola de arranque de ADR-0334: «todos los días vamos a subir todo, máximo hasta el 15»; antes había dicho «AQP y LIM sin fecha»); correr una fecha hacia adelante, **solo el Admin**.
+- Las ventas sin registrar son **algo de la adopción** («no podíamos dejar de vender y había prendas sin etiquetar»): limpieza de arranque, no rutina. Nadie regulariza su propia venta, salvo el líder.
+- Mínimo por modelo colgado: 1 por talla y color, **solo tallas centrales**.
+
+**La mercadería y la edad del piso.** «Por lo general llega la mercadería a almacén, se cuenta allí y luego se cuelga en piso». La forma normal de decir
+«se colgó» es **Bajar al piso**; la edad del piso empieza en esa bajada; la caja es solo red de seguridad. La edad la da la entrada real (Recibir, traslado
+del Taller): lo de la carga inicial cuenta como «al menos N días», sin pregunta nueva en el alta.
+
+**Frescura (ronda 4)**
+- El encargado revisa el piso **los lunes, 20 minutos, en Frescura**.
+- La rotación se dice **en días por categoría** («los polos se venden en el piso en ~6 días»), y cada prenda se compara con lo típico de su categoría.
+- La cifra grande es el **% del piso a tiempo** (prendas colgadas que no van lentas ÷ prendas colgadas que se pueden medir; al lado, «N sin medir»).
+- Las tres piezas de la maqueta (tablero de renovación, perchero, matriz) van como **tres vistas de los mismos datos**: el tablero es la portada, el perchero la vista del encargado y la matriz la del líder.
+- «Qué renovar esta semana» se ordena por **la más cerca de Crítica**, con «Ya decidí» en cada fila.
+- La comparación entre sedes la ven todos, **lado a lado y sin ranking** (reemplaza «la comparación es del líder», 2026-09-26).
+- Metas: **contra sí misma** (el % a tiempo frente a hace 4 semanas, marcado solo si supera el ruido de la cifra).
+- La señal de registro la ve **el equipo, después del cuadre** de su sede.
+- La caja conserva su botón principal y suma el enlace «La traje del almacén para el cliente».
+- **Evidencia para «va lenta»: 9 a 1.**
+
+**Análisis (ronda 4).** Es **la mesa del lunes** (se va a agotar, está quieto, qué pedir al Taller), la ven todos; «vendido» es **lo cobrado, con la
+brecha** a la vista («N sin prenda identificada → Regularizar»); el Taller ve **el % vendido por tienda** de lo que mandó; el pedido al Taller lleva
+**la proporción por talla y color** (la cantidad la pone el Taller); el **margen por prenda solo lo ve el líder**, dentro de Análisis.
+
+### La estadística de Frescura (investigación con simulación del 2026-10-04)
+
+Pedido de Felipe: «investiga si existe un mejor método matemático y estadístico», «qué es lo mejor para decir cuándo una prenda va lenta» y «¿por qué 8
+semanas?». Siete agentes (supervivencia, detección, ventana, código y datos, simulación Monte Carlo con 2.000 réplicas por escenario, síntesis y un
+escéptico que la reprodujo por separado). Detalle completo en el PR de la actividad 18.
+
+- **Las «8 semanas» no salían de ningún cálculo** (ADR-0208 «Lo que falta decidir», línea 218, copiada a cuatro documentos). La precisión la da el número
+  de ventas (±39 % con 5, ±19 % con 20, ±12 % con 50), no las semanas; con 8 semanas la cifra tarda 13 días más en ver un cambio de temporada.
+  **Ventana: 28 días** (la referencia de CAYLA, hasta 84 si junta menos de 20 ventas).
+- **Lo típico = la mediana de Kaplan-Meier** (cuenta también lo que sigue colgado), **contraída hacia CAYLA con el peso de 5 ventas** mientras la sede
+  tenga pocas: m̃ = exp(w·ln m_sede + (1−w)·ln m_CAYLA), w = n/(n+5). Con 5 ventas propias, el error en el peor caso baja de 70 % a 45 %. Si con 20 o más
+  ventas la sede se aparta de CAYLA más que el azar, sale «tu sede vende distinto» y manda su cifra. El rango «tu sede sola: entre X e Y» (Brookmeyer-Crowley).
+- **Va lenta = vendidas contra esperadas** (la cuenta «observados contra esperados» de salud pública, Clayton y Kaldor 1987): E = riesgo acumulado de su
+  categoría a su edad (con la cola prestada de CAYLA más allá de la última venta de la sede); P(lenta) = P(Poisson(E+2) ≥ O+2); va lenta si ≥ 0,9.
+  Mirar solo los días colgada acertaba 37 % de lo que marcaba; esta regla, 72 % a los 14 días (79 % a los 21), con 12 % de falsas alarmas.
+- **% a tiempo = no va lenta** (no «edad ≤ lo típico», que en un piso sano daba 31–63 % por la paradoja de la inspección: lo lento se queda colgado).
+- **Edad conocida** solo desde una llegada real o una bajada posterior al cuadre de la sede; todo lo anterior, «al menos». Hoy la Frescura publicada pinta
+  «Crítica» todo polo de más de 2,1 días porque las 187 bajadas de TRU son registros de prendas que ya colgaban: esto lo corrige.
+
+### Decisiones técnicas de la ola 1 (tomadas por Claude; Felipe pidió decidir lo que no es de dueño)
+
+Lo eliminable con historia incluye lo que pasó por un cuadre (es historia de stock, ADR-0252). La limpieza de las ventas sin registrar es una operación:
+el nombre se pide una vez y se recuerda mientras la pantalla está abierta. El líder que vendió desde la terminal regulariza su propia venta entrando con su
+cuenta. El conteo de arranque del piso es por categoría (el primero de cada una); el del almacén, el primero completo; los conteos viejos de TRU quedan como
+están (el cuadre es su reinicio). «Devolver al proveedor» es reclamo, no pérdida. Talla única: 1 por color; los accesorios se miden fuera del riel. Un
+cambio de talla cuenta como venta en la fecha de la venta. «Error al cobrar» es talla cruzada (no pérdida); «Uso interno» es **pérdida con su propio rótulo** (clase a_mano por ahora; Felipe lo respondió directo en la sesión «Rediseñar flujo de corrección de cantidad», 2026-10-04, y reemplaza la decisión técnica previa de tratarlo como gasto);
+«Se dañó» va a Dañadas. Lo que faltó en un traslado se carga a la tienda que recibe, después de que la que envía confirme si salió. «Por reponer» se activa
+cuando se acaba lo colgado de esa talla y color, ordenado por lo que más se vende. Tallas centrales de calzado 37·38·39 y de anillos 7·8. «Es otra:
+corregir y colgar», cualquier integrante con Existencias, tope de 5 por prenda al día.
+
+### Coordinación con otras sesiones
+
+- **La cara de Existencias es de ADR-0331** (sesión «UI/UX», PR #790): cabecera, «Para hoy», tarjetas, umbral. **La actividad 8 sale de esta lista** y la
+  parte de pantalla de la 6 también: el cuadre entra por «Para hoy» (`EntradaParaHoy.piso` → tarea «cuadrar_piso» primero, «por colgar» en pausa) y la
+  capacidad como nota «de 600» en `ResumenSede`. El Inicio de Almacén lo alinea otra sesión: el motor del piso no toca el Inicio.
+- **Por regularizar vive en /inventario/por-regularizar** (ADR-0330).
+
+### Estado de la ola 1 (7 PR, construidos en paralelo, cada uno con revisión adversarial y corrección)
+
+#792 (3, cuadrar el piso) · #785 (4, cierre de la carga y «Encontré prendas») · #788 (5, ventas sin registrar) · #787 (7, motor del piso) · #786 (9, «La
+tengo en la mano») · #784 (14, pérdidas; cambia las Mermas de los meses abiertos en Finanzas: Felipe ve la sonda antes de pegar) · #789 (15, Conteo I).
+Ninguno pegado ni fusionado; el orden de pegado sale de la prueba de integración.
+
+**Actualización (2026-10-05): la ola 1 y la 2a están publicadas, salvo #788.** Felipe pegó el SQL de todas (verificado por
+efectos en producción) y se fusionaron en este orden: #792 → #785 → #787 → #784 → #789 → #786 → #799 (17, traslados) → #795 (6,
+capacidad) → #796 (10, dañadas), más #804 (este reparto). Cada una pasó por la regla `strict` de `main` (al día con `main` antes
+de fusionar). Una pantalla de la web no llama a ninguna función que producción no tenga, ni con parámetros que no acepte:
+comprobado con `datos:comparar` y las firmas vivas de las 28 funciones nuevas. Lo que la publicación destapó y quedó resuelto:
+- **Dos migraciones con la misma versión** (`20261004200000`: el cuadre y los activos de #802). Se renombró la de activos a
+  `20261004195000`, solo el nombre: ninguna de las dos estaba en `supabase_migrations.schema_migrations`.
+- **Un estado nuevo de las dañadas («se arregló», #796) que la prueba de pérdidas (#784) tomaba por una salida**: «se arregló»
+  vuelve al almacén por `mover_interno` y `resolver_prenda_danada` no lo acepta, así que la salida `cuarentena_se_arreglo` no
+  puede existir; la prueba lo excluye y un guardián lo vigila.
+- **Una prueba de capacidad (#795) que cuadraba dos veces la misma sede sin nota**, lo que la regla de #792 rechaza.
+- **El build de #796** importaba en un componente de cliente una función que lee `next/headers`.
+
+Lo que sigue abierto: **#788** (5, ventas sin registrar) se rehízo sobre #800 —una sola definición de candidata exacta,
+`fn_candidatas_de_venta`, y el buscador de «Regularizar prenda» por la tienda DE LA VENTA, que Felipe reportó mostrando todo el
+catálogo— y su parte 2 (`20261004204000`) está sin pegar. **El contrato con ADR-0334** (el motor cuenta `pendiente` y
+`cerrada_sin_prenda`) no se cumplió porque #800 entró antes que #787. Lo cerró otra sesión («Motor del piso: contar las ventas
+cerradas sin prenda», PR #806): su SQL ya está en producción (`fn_piso_plan_lectura` cuenta `cerrada_sin_prenda`, verificado en
+vivo el 5-oct), y ese mismo día se cerraron las colas de arranque de AQP (170) y TRU (99); en TRU quedan 2 pendientes.
+
+### Actividades nuevas
+
+18. **Frescura con estadística:** lo típico contraído, «va lenta» por vendidas contra esperadas, % del piso a tiempo, ventana de 28 días, edad desde la
+    bajada o la llegada real (va sobre la actividad 3).
+19. **Frescura que luce:** tablero de renovación (portada, con la película de 8 semanas), perchero (encargado) y matriz (líder); «Qué renovar esta semana».
+
+### Reparto de la actividad 13 (2026-10-04, noche)
+
+La parte «razones al quitar y el motivo decide si suma o resta» la toma la sesión «Rediseñar flujo de corrección de cantidad», con
+estos códigos: `reposicion` («Encontré prendas», suma, nota obligatoria), `no_aparece` (pérdida), `error_al_cobrar`
+(reclasificación, no pérdida), `uso_interno` (pérdida con su rótulo) y `otro` (pérdida, con nota). «Se dañó» abre «Reportar
+dañada» (#796) en vez de ajustar. «Conteo físico» sigue en Ajustar como «Conté y no coincide» hasta la actividad 16 («Ajustar abre
+Por prenda»). La tabla `retail.motivos_movimiento` es decisión estructural pendiente de Felipe en esa sesión. Aquí queda solo la
+confirmación del líder cuando se quitan más de 5 de una talla o se deja en 0 una que tenía 3 o más.
+
+**Actualización (2026-10-04, madrugada del 5):** esa confirmación tampoco queda aquí. La toma la sesión «Confirmación de
+correcciones grandes de stock» (rama `claude/stock-correction-approval-5a9a71`, ADR propio, tentativamente el 0337), que la
+decidió con Felipe así:
+- **Se mide lo acumulado del día, no cada corrección.** Cuenta lo quitado de esa talla en esa sede durante el día de Lima. Es
+  grande si pasa de 5, o si la talla queda en 0 y ese día se quitaron 3 o más. Con el umbral por corrección, dos correcciones de 4
+  lo esquivaban. Solo cuentan las restas: sumar («Encontré prendas») no pide nada.
+- **No es una clave.** La corrección grande queda pendiente, sin mover el stock, y la aprueba una líder desde su propia sesión: la
+  que eligió quien pide, o cualquier líder de esa sede. Si nadie la aprueba en 24 h, vence sin aplicarse. El lote espera completo
+  (todo o nada). Una líder que corrige desde su propia cuenta (`fn_es_lider()`) pasa directo. No es un módulo nuevo: es una
+  función de Existencias (ADR-0306).
+- **El candado vive en `ajustar_inventario`**, después de `fn_bloquear_en_orden` (dos terminales no leen el acumulado a la vez), y
+  la puerta de atrás se cierra: `registrar_movimiento` deja de poder llamarse desde el navegador (`revoke … from authenticated`;
+  hoy solo la llaman `ajustar_inventario` y `bajar_en_mano`, las dos `security definer`, consultado en producción). Va por ancla
+  sobre el cuerpo vivo, encima de lo que ya le agregaron #784 y #785.
+- **Qué no cuenta ni se frena:** lo que quita un conteo (`cerrar_conteo` escribe `conteo` y `conteo_arranque` por su cuenta) y
+  `error_al_cobrar` no suman al acumulado; el cuadre del piso, Reportar dañada (mueve a cuarentena) y «La tengo en la mano» (solo
+  suma) no pasan por el candado. «Conté y no coincide» (`conteo_fisico`) sí, porque es una corrección a mano.
+
+## Actualización 2026-10-04 (noche) — la «limpieza de arranque» de la actividad 5 se construyó aparte (ADR-0334)
+
+De la actividad 5 («Ventas sin registrar: categoría sugerida, nadie regulariza su propia venta salvo el líder, y limpieza de arranque con
+candidata») se construyó **solo la tercera parte**, desde otra rama, el mismo día en que Felipe pidió «una opción de lo doy por hecho»:
+ADR-0334. La decisión 8 se cumple así: las ventas con **una** sola prenda posible se identifican con la confirmación de un líder («Identificar con
+sugerencias») y las demás se cierran sin prenda, en bloque, dentro de un plazo (15-oct) y con un motivo. La decisión 9 («al revisar un conteo, cada
+faltante se cruza con las ventas sin registrar») **no cambia**: aplica a las pendientes; una venta cerrada ya no aparece en ese cruce.
+
+Siguen pendientes de la actividad 5, y no se tocaron: la **categoría sugerida** desde la descripción y la regla **«nadie regulariza su propia
+venta salvo el líder»** (hoy `regularizar_prenda` lo puede hacer quien opera la tienda). **Contrato para el motor del piso (decisión 1):** la
+velocidad cuenta las ventas `pendiente` y las `cerrada_sin_prenda` (ninguna mueve stock, así que no se duplican). Construido en
+`20261005160100_piso_plan_cuenta_cerradas_sin_prenda.sql` (ADR-0334, «Actualización 2026-10-05»), pegado en producción el 2026-10-05 antes del
+primer cierre de cola.
+
+## Enmienda 2026-10-06 — Análisis: la encargada ve lo mismo que el líder (ADR-0357)
+
+- **Qué cambia:** dentro de Análisis no hay diferencias por rol. Quien tiene el módulo (`fn_puede_analizar`: el líder o un rol con Análisis) ve:
+  - las tres tiendas (act. 2026-10-06, noche: Análisis pasó a ser solo de la tienda elegida y la comparación entre tiendas vive en CAYLA
+    Global; ver ADR-0357, decisión 3);
+  - el dinero: lo que costaron las prendas quietas y lo que más rinde;
+  - **el costo y la ganancia por prenda**, en la ficha;
+  - «Liquidar desde».
+- **Reemplaza, solo para Análisis, dos frases de este ADR:**
+  - «el costo por prenda, solo el líder» (tabla «El norte», fila «Quién ve Análisis y Frescura»);
+  - «el **margen por prenda solo lo ve el líder**, dentro de Análisis» (ronda 4).
+
+  También responde lo que quedó abierto en la ronda 4: en Análisis, la comparación entre tiendas la ven todos.
+- **Lo que no cambia:**
+  - Frescura y las demás pantallas siguen con su regla.
+  - El dinero de Compras sigue siendo de quien lo ve (ADR-0126): «Comprar» a un proveedor de terceros y «Plan de campaña» solo se dibujan para
+    quien ve Compras con su dinero.
+  - El costo no se abre en otras lecturas: `variantes.costo` sigue cerrada y `fn_resumen_variantes` (la que lee Existencias) sigue dándolo solo al
+    líder. Análisis lo recibe por su propia lectura.
+- **En la base:** `20261006213000` da las tres tiendas del motor de demanda a quien puede analizar, y `20261006214000` (`fn_analisis_sede`) le
+  entrega las prendas de cada tienda —ventas, precio y costo— sin pedirle que opere esa sede: es `security definer` y su candado es la puerta de
+  Análisis (`fn_puede_analizar`). Las dos están en producción desde el 2026-10-06.
+- **Por qué:** lo decidió Felipe el 2026-10-06, al aprobar la maqueta de Análisis v4. Es su propia razón de «El norte» (Análisis y Frescura
+  «ayudan a plantear estrategias de equipo sin importar el rango») llevada al dinero: quien decide comprar, mandar o liquidar no decide bien sin
+  ver el costo ni las otras tiendas.
+
+## Actualización 2026-10-12 — lo que se rescató de #788 y lo que quedó superado por la mesa (ADR-0360)
+
+**El hecho que lo ordena todo:** las dos migraciones de #788 **están en producción desde el 2026-10-05** y no estaban en `main`
+(verificado en vivo el 2026-10-12, solo lectura): `20261004203000_candidatas_por_regularizar.sql` (sus comentarios llegaron con
+las tildes dañadas, Mac Roman; el código es idéntico) y `20261004204000_nadie_regulariza_su_propia_venta.sql`
+(`regularizar_prenda` conserva sus cuatro marcas; `acciones_sin_responsable` ya no tiene `regularizar_prenda`). Lo que dice
+arriba («su parte 2 está sin pegar», 2026-10-05) quedó viejo ese mismo día. El repo tiene que reflejar producción, así que
+entraron a `main` **byte a byte** como estaban en la rama de #788 (el mismo contenido, comprobado por su huella), en un PR nuevo
+desde `origin/main` (rama `claude/inventario-788-rescate`). #788 no se fusiona.
+
+**Por qué no se fusiona #788.** Mientras estuvo abierto (una semana), `main` rediseñó la misma pantalla: la **mesa del Puente**
+(ADR-0360, elegida por Felipe el 6 y 7-oct: talones · puente · prendas, seis tarjetas con su stock en la tienda de la venta, un
+buscador aparte sobre todo el catálogo, y la sugerida con la definición de `fn_candidatas_de_venta`), «Corregir lo anotado»
+(ADR-0369), el «Responsable» de vuelta en regularizar (20261006200000), el precio por sede y `<Vacio>`/`<Aviso>`/`<Buscador>`
+(ADR-0358). El modal de #788, con su combo y sus tramos rotulados, quedó superado por la mesa que eligió Felipe, y chocaba en 12
+archivos con `main`.
+
+**Lo que se rescató:**
+- **Las dos migraciones**, tal cual, y su prueba `pnpm pruebas:ventas-sin-registrar` (65 casos, ahora en el CI), más lo que #788
+  cambió en `prendas_por_regularizar.mjs` y `actor_firma_las_operaciones.mjs`. Reconstruida la base desde cero en orden (todas
+  las migraciones de `main` más estas dos, cada una en su transacción, y el seed): 0 errores, y `regularizar_prenda` queda con el
+  mismo `md5(prosrc)` que producción (`87ecfea29dcd387b642c4d8ac23edcbe`). Ninguna migración posterior de `main` choca con sus
+  anclas: la única que vuelve a tocar `regularizar_prenda` por ancla (`20261010100300`, el precio por sede) ancla en
+  `v_var.precio`, que la parte 2 no cambia.
+- **La cara del error de las reglas que ya estaban vivas:** «Quien vendió esta prenda no puede regularizarla…» caía al genérico
+  «avisa a Felipe. Código: …»; ahora dice la frase de la base. Y «sin stock para descontar» explica que las apartadas y las de
+  Cuarentena no cuentan.
+- **Vender ▸ «Prenda sin registrar» sugiere la categoría que nombra lo escrito** (decisión técnica 6): «Escribiste «Jean»: ¿no será
+  Jeans? · Cambiar a Jeans». Nunca se aplica sola. `lib/sugerir-categoria-sin-registrar.ts` (de #788), enganchada en el modal de
+  `main`; vale igual en «Corregir lo anotado» (ADR-0369), y el combo de categorías encuentra por las palabras de tienda («correa» →
+  Cinturones).
+- **En la mesa, «¿Cómo estaba?» trae la respuesta DEDUCIDA del libro** (decisión técnica 8): el sistema no tenía ninguna a la hora
+  de la venta → «Llegó nueva»; tenía y después no llegó ni se ajustó nada → «Perdió la etiqueta»; tenía y después llegó o se ajustó
+  algo → no deduce y lo dice con la fecha. La sugerida se marca sin elegirla; si se elige la contraria, un aviso en ámbar dice qué
+  pasaría. `lib/por-regularizar-deduccion.ts` (el `deducirForma` de #788) y `lib/por-regularizar-libro.ts`.
+
+**Lo que quedó superado (no se portó):** el modal «Regularizar prenda» con combo y tramos rotulados («igual a lo anotado», «color
+parecido», «lo que escribió la caja»), el buscador por la tienda de la venta, el orden por grupo, el «Probable: …» de la lista y
+la línea que agrupaba las ventas de prendas sin cargar: la mesa ya ofrece las seis que más calzan con su stock, la sugerida con la
+misma definición de la base y un buscador sobre todo el catálogo; y lo anotado mal se corrige con ADR-0369 en vez de pedir una
+segunda lectura por la categoría escrita. En la base quedan sin pantalla que las lea `fn_por_regularizar_sin_cargar` y el parámetro
+`p_categoria_de` de `fn_candidatas_por_regularizar`; `fn_prenda_cargada_en_sede` trabaja dentro de `regularizar_prenda` y, desde la
+revisión de abajo, también la lee la mesa.
+
+**Revisión adversarial del rescate (#975, 2026-10-12): dos avisos de #788 NO estaban superados.** El primer corte del rescate los
+descartó junto con su modal, pero la mesa de ADR-0360 no los cubría, y la base (en producción desde el 5-oct) sí rechaza esos casos:
+- **Una prenda que nunca entró a la tienda.** La nota del puente para una prenda sin unidades libres decía «Si nunca se contó en un
+  lote, elige «Llegó nueva»»: justo lo que `fn_exigir_prenda_cargada_en_sede` rechaza con cualquier respuesta. Y el comentario de
+  `20261004204000` (que ya no se edita) promete que «la web dice las MISMAS frases antes del botón (`prendaSinCargar`,
+  lib/por-regularizar-reglas.ts)». Ahora es cierto: con una prenda sin unidades libres, la mesa pregunta `fn_prenda_cargada_en_sede` y
+  la carga de la sede (`fn_carga_inicial_sedes`) y, si nunca entró, la nota dice la frase de la base (cárgala, o «Encontré prendas» si
+  la carga ya se cerró); `por-regularizar-reglas.test.ts` arma esas frases desde el texto de la migración y las compara al carácter.
+- **La venta propia.** «Nadie regulariza su propia venta, salvo el líder firmando él mismo» se descubría al tocar «Regularizar»,
+  después de elegir la prenda, contestar y firmar. Ahora, bajo el «Responsable», una línea en ámbar lo dice antes
+  (`motivoPropiaVenta`, los mismos casos C1–C14 de la prueba SQL; la lista trae `vendidoPorId`).
+
+Los dos **solo avisan**: el botón y la guía de foco no cambian, y si la web y la base no coinciden, manda la base. La misma revisión
+corrigió que «Escribiste «denim»» citara el nombre del color (ahora solo cuenta lo que la persona agregó: ni la descripción armada ni
+el color elegido), que el porqué de «Sugerida» quedara bajo el pie fijo en el celular, que la hoja del celular se animara con
+movimiento reducido, y que el porqué dijera «ese conteo» a una recepción o un traslado. Y sumó `lib/sugerencia-nunca-elige.test.ts`:
+ningún mutante que eligiera solo la forma o la categoría sobrevive.
+
+**DECIDÍ:** la respuesta deducida es una sugerencia marcada, nunca una elección ni un candado.
+**DESCARTÉ:** preelegir la respuesta (o rechazar la contraria en `regularizar_prenda`), porque la deducción falla cuando la carga se
+contó en papel y se registró días después, o cuando una venta sin conexión se fechó al sincronizar: ahí la regla invertiría la
+respuesta y la persona, que sí sabe, no podría corregirla.
+**SE ROMPE SI** una llegada se registra días después de colgar la prenda (el saldo a la venta sale de menos y sugiere «Llegó nueva»
+de una que sí estaba contada) o si alguien cambia `fn_ledger_puntos` y su cubeta `total` deja de ser «todo menos Cuarentena».
+
+## Actualización 2026-10-14 — «La cuarentena no se ajusta a mano» llega a `main` (estaba en producción sin archivo)
+
+**El hecho:** producción tiene desde ~2026-10-05 la función `retail.fn_movimiento_no_ajusta_cuarentena()` y el disparador
+`movimientos_no_se_ajusta_la_cuarentena` (`before insert on retail.movimientos`), y ningún archivo de `main` los creaba. La revisión
+de deriva del 2026-10-14 (solo lectura) los encontró como huérfanos. Su única fuente era el commit `021def2a6` («la cuarentena no se
+ajusta a mano», actividad 10, 2026-10-04), en una rama local que nunca se subió: #796 (Dañadas) se fusionó el 5-oct sin él. El cuerpo
+vivo es idéntico al del archivo (md5 del cuerpo normalizado como en `deriva.sql`: `d14f8102b614bbfbb9e79c714d931296` en los dos).
+
+**La regla, que ya regía en las tiendas:** un movimiento `ajuste` cuyo lugar es una sububicación `cuarentena` se rechaza («La
+cuarentena no se ajusta a mano…», pista `cuarentena_no_se_ajusta`). Lo que hay en la cuarentena y lo que dice `prendas_danadas` son la
+misma cosa, y `ajustar_inventario` aceptaba cualquier sububicación: un ajuste ahí movía el stock sin tocar la lista de Dañadas, y desde
+ese momento Existencias y Dañadas decían cantidades distintas. Las puertas propias de la cuarentena (devolución, cambio, reportar,
+resolver, liquidar, «Se arregló») no son `ajuste` y siguen; el Conteo no llega porque `abrir_conteo` ya rechaza la cuarentena.
+
+**Qué entró a `main`:** la migración tal cual, con otra versión (`20261014171000_cuarentena_no_se_ajusta_a_mano.sql`, reservada con
+`pnpm reservar migracion`; antes `20261005150000`) y una cabecera que dice que ya está pegada; su prueba `pnpm
+pruebas:cuarentena-no-se-ajusta` (12 casos, con control sin el disparador), ahora en la lista `PRUEBAS` del CI. No se pega de nuevo en
+producción (si alguien la pega, es idempotente).
+
+**DECIDÍ:** traer el archivo con una versión nueva reservada, sin cambiar una línea de SQL.
+**DESCARTÉ:** conservar `20261005150000`, porque una versión en medio de la historia no se puede reservar (la reserva solo da la
+siguiente libre) y quedaría avisada como «sin reserva»; se pegó en el SQL Editor y producción no guarda el nombre del archivo (0 filas
+con `20261005150000` ni con su nombre en `supabase_migrations.schema_migrations`, consultado el 2026-10-14), así que la fecha vieja no
+protegía nada, y con la nueva el CI la corre después de todas las de `main`, igual que en producción.
+**SE ROMPE SI** alguien recrea `fn_movimiento_no_ajusta_cuarentena` o el disparador en otra migración sin partir de este archivo, o si
+una función nueva necesita escribir un `ajuste` en la cuarentena a propósito: el disparador la rechaza entera (todo o nada) y
+`pruebas:cuarentena-no-se-ajusta` lo dice.
+
+## Actualización 2026-10-22 — «Completar todo» de una tarjeta cuenta, pero lo dice (decisión 10, segunda mitad)
+
+**El problema, primero.** La decisión 10 le puso la verdad a «Aplicar todos completos» (el atajo de TODO el conteo): lo aplicado sin
+mirar queda como «Sin contar» y no sube la exactitud. Pero cada tarjeta (un modelo y un color, con sus tallas) tiene su propio botón
+«Completar todo» que hace lo mismo de a una tarjeta —anota, en las tallas pendientes, lo que CAYLA esperaba— y la pantalla lo mandaba
+a la base como si la persona hubiera escrito cada número: una llamada a `conteo_contar` por talla, sin rastro de que fue un atajo.
+Eso importa por la actividad 15 (migración `20261004230100`): el primer conteo completo de un lugar es «de arranque» y fija el punto de partida; uno que
+nadie miró deja los errores de la carga inicial para el conteo siguiente, donde entran como merma (cuenta 659) en un libro que no se
+corrige.
+
+**Lo que decidió Felipe (2026-10-05, entre dejarlo, marcarlo «sin contar» o contarlo pero decirlo):** contarlo pero decirlo.
+
+**DECIDÍ:** la tarjeta completada con el atajo SIGUE contando (sube la exactitud, vale para el arranque y puede tener diferencia, porque
+la persona tenía la tarjeta delante y afirmó lo que veía) y queda MARCADA: `conteo_items.completada_con_atajo`. Revisar y Confirmar
+dicen «N de M variantes contadas se completaron con «Completar todo», con lo que CAYLA esperaba». Solo informa: no bloquea ni cambia
+qué se aplica, y si no hubo ninguna no dice nada. La pantalla manda UNA llamada por tarjeta, `conteo_completar_tarjeta(conteo, líneas)`,
+que en una sola transacción llama a `conteo_contar` línea por línea (mismos candados y mismo orden) y marca lo que ella contó.
+Estados que dejan de ser posibles (`conteo_items_atajo_coherente` + un disparador): una marca sin cifra, una línea a la vez «con el
+atajo» y «aplicada sin contar» (son dos historias: una contó, la otra no) y una línea que se volvió a verificar en la base (otra llamada
+a `conteo_contar`) y sigue diciendo «con el atajo».
+**DESCARTÉ:** (1) marcarla `aplicada_sin_contar` (opción B): el atajo perdería su razón de ser —habría que escribir cada talla— y se
+frenaría el conteo en la semana más cargada; (2) deducirla de los datos («contada = esperada»): casi todas las líneas bien contadas
+coinciden con lo esperado, y el atajo quedaría confundido con el conteo honesto; (3) recordarlo solo en el navegador: no viaja entre
+aparatos (se cuenta en el celular y se revisa en la computadora) ni sobrevive a cerrar la pestaña, y es justo en Revisar donde se
+necesita; (4) un parámetro nuevo en `conteo_contar`: recrearla entera arrastra sus parches vivos, así que la función nueva la LLAMA y
+no la toca; (5) que el atajo escriba el stock de ahora, como `conteo_aplicar_completos`: cambiaría lo que el botón ya hace (quien ve 3 y
+confirma 3 tiene una diferencia si entre tanto se vendió una); (6) un respaldo en la web «talla por talla» para el día en que la web
+saliera antes que el SQL: se escribió y se quitó el mismo día, porque el SQL se pegó antes de publicar y dos revisores independientes
+lo marcaron como código muerto con un fallo propio (si fallaba a medias, la pantalla mostraba pendiente lo que la base ya había contado).
+**Esto reemplaza un descarte anterior:** la ADR-0282 (act. 2026-09-29 b) había descartado «una acción de servidor completar producto:
+sería otra puerta que escribe conteos y habría que blindarla igual». La función nueva NO es otra puerta: llama a `conteo_contar` con sus
+mismos permisos y candados (`fn_puede_operar_ubicacion`, `fn_actor_persona_id(true)`) y no escribe stock ni movimientos; lo único nuevo
+que escribe es la marca.
+**SE ROMPE SI** alguien usa «Completar todo» en las 30 tarjetas para terminar rápido y quien cierra no lee la frase: informa, no frena.
+Si pasa en un arranque real, el paso siguiente es pedir confirmación en Confirmar cuando la mayoría de lo contado vino del atajo
+(decisión de Felipe, no se hizo). También se rompe si `conteo_contar` cambia de firma y `conteo_completar_tarjeta` no se rehace con ella.
+Y la marca puede quedar puesta sobre una línea que alguien sí miró: teclear encima el MISMO número que dejó el atajo no llega a la base
+(la pantalla descarta una cifra igual a la anotada), así que no pasa por el disparador. Por eso la frase dice «con lo que CAYLA
+esperaba» y no «nadie escribió su cantidad»: tiene que ser cierta también en ese caso.
+
+**Orden de despliegue.** El SQL va antes que la web (ya está pegado). En una base que no tenga la función (una local atrasada),
+«Completar todo» recibe un error de la base y la pantalla lo avisa; las tallas se cuentan a mano, como siempre. No hay camino de
+respaldo (ver DESCARTÉ 6).
+
+**Conocido y no arreglado aquí** (todo BAJA, sin pérdida ni corrupción de datos; en el backlog): (a) si el lote falla, el aviso es un texto
+que se va solo y la tarjeta reaparece pendiente (lo mismo hace «Aplicar todos completos»: mejorarlo es un pulido conjunto);
+(b) `scripts/purga/restaurar-purga.sql` reinserta respaldos viejos con `jsonb_populate_recordset`, y la columna nueva es `not null`
+(como `aplicada_sin_contar`): un respaldo anterior a ella no trae la clave y la restauración falla con 23502; se arregla en ese script;
+(c) reabrir un conteo cerrado y completar una tarjeta mientras otra persona envía un ajuste de «Ajustar inventario» enlazado a una línea de
+ese conteo puede dar un deadlock (40P01): el atajo toma conteo y luego stock, y `ajustar_inventario` toma el stock (línea 286 de
+`20261001120000`) y luego llama a `registrar_hallazgo_de_conteo`, que toma la línea y el conteo; el orden inverso ya existía con
+`conteo_contar` suelto y el atajo solo alarga la ventana (retiene los candados de toda la tarjeta). Postgres cancela una, no hay
+corrupción y ese ajuste habría fallado igual por `hallazgo_conteo_no_cerrado`; el arreglo va en `registrar_hallazgo_de_conteo` (validar el
+estado antes de tomar candados); (d) la base no comprueba que la cantidad del atajo sea la
+esperada: es informativo y quien puede llamar la función también puede contar a mano esa cifra.
+
+**Estado.** La migración (`20261022145000_conteo_atajo_por_tarjeta.sql`, creada el 5-oct como `20261005233700` y renombrada el 22-oct a su versión
+reservada, sin cambiar una línea de SQL, igual que la de la cuarentena el 14-oct; una sola parte, sin políticas, idempotente) ya la pegó Felipe
+en producción (lo confirmó el 2026-10-22); comprobada ese día por efectos (solo lectura): columna `boolean not null default false`, restricción, disparador y su
+función, `conteo_completar_tarjeta` con `security definer` ejecutable por `authenticated` y no por `anon`, firmas de `conteo_contar` y
+`fn_conteo_lineas_json` idénticas a las que llama, 0 filas marcadas. Prueba SQL de 15 casos con controles por mutación
+(`pnpm pruebas:conteo-atajo-tarjeta`, en el runner de tandas del CI). Verificado en el navegador contra una base propia con las 807
+migraciones de `main`: una sola petición por tarjeta, la marca solo en las líneas del atajo (la escrita a mano no la lleva), la frase en
+Revisar y en Confirmar y 375 px sin desborde. Revisión independiente de solo lectura (tres lentes —SQL, web, integración con `main`— y un
+escéptico por hallazgo): ninguno bloquea ni corrompe; lo confirmado quedó en BAJA y se atendió aquí (respaldo quitado, frase,
+comentarios y referencias) o quedó listado arriba.

@@ -1,8 +1,9 @@
 /* «EL HILO» DEL ALTA DE PRODUCTO (ADR-0284)
    Cómo se ve la guía de «Nuevo producto»: una marca en el título de cada campo (hecha, sigue aquí, falta, opcional), un tinte
    suave en el campo que sigue y una etiqueta «Sigue aquí». El movimiento es de RESPUESTA a lo que la persona hace (ADR-0136):
-   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle, sin
-   rebote, con `--ease-cayla`, y todo se apaga con `prefers-reduced-motion`. Los colores salen solo de los tokens de
+   un solo pulso al llegar, un ✓ que se dibuja al completar, un destello cuando la llevan a un campo. Nunca en bucle —salvo
+   las rayas del círculo punteado de un campo opcional, que giran—, sin rebote, con `--ease-cayla`, y todo se apaga con
+   `prefers-reduced-motion`. Los colores salen solo de los tokens de
    globals.css (ADR-0169); el rojo no se usa: aquí nada es un error, es un camino. */
 
 /* ---- La marca de un campo: 18 px, a la izquierda de su título ---- */
@@ -45,6 +46,10 @@
 }
 .hilo-marca[data-estado="opcional"] {
   border: 1.5px dashed color-mix(in srgb, var(--color-tinta) 26%, transparent);
+  /* Las rayas dan la vuelta, despacio y sin parar: un círculo punteado quieto pasaba por «decoración» y nadie lo leía como «esto es
+     opcional, puedes saltarlo». Es un borde, sin contenido: girar el propio círculo hace correr las rayas. Única marca en bucle de la guía
+     (Felipe, 2026-09-30; excepción a «nunca en bucle», ADR-0136 act. c); con movimiento reducido queda quieto. */
+  animation: hilo-gira 8s linear infinite;
 }
 /* El ✓ se dibuja una vez, al pasar a «hecho» (la marca se vuelve a montar con su estado). */
 .hilo-tilde {
@@ -52,6 +57,9 @@
   animation: hilo-trazo 320ms var(--ease-cayla) 60ms backwards;
 }
 
+@keyframes hilo-gira {
+  to { transform: rotate(360deg); }
+}
 @keyframes hilo-pulso {
   from { transform: scale(1); opacity: 0.6; }
   to { transform: scale(2.2); opacity: 0; }
@@ -135,9 +143,11 @@
   color: var(--color-tinta);
   transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
 }
-.hilo-chip:hover {
-  border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
-  background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+@media (hover: hover) {
+  .hilo-chip:hover {
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
+    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+  }
 }
 .hilo-chip .hilo-marca {
   width: 14px;
@@ -174,6 +184,7 @@
     transition: none;
   }
   .hilo-marca[data-estado="ahora"]::after,
+  .hilo-marca[data-estado="opcional"],
   .hilo-tilde,
   .hilo-etiqueta,
   [data-campo][data-llamado],
@@ -233,13 +244,13 @@
    un rectángulo claro dentro del marco en hueso. */
 :is(.hilo-fila, .hilo-luz)[data-estado="ahora"] :is(
     .caja-cayla,
-    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not(.caja-cayla input):not([data-matriz-mover] input),
     textarea:not(.caja-cayla textarea),
     [role="combobox"]:not(.caja-cayla [role="combobox"]),
     button[aria-haspopup]:not(.caja-cayla button)
   ) {
   background-color: var(--color-papel);
-  border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+  border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); /* P2 de la familia: el reposo ya es el borde de control (3:1); el control que sigue sube un escalón */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -270,5 +281,27 @@
 @media (prefers-reduced-motion: reduce) {
   .hilo-tarjeta {
     transition: none;
+  }
+}
+
+/* ---- El sello del stock inicial (ADR-0494, actividad 3) ----
+   Al crear la prenda, sus unidades de partida quedan selladas: se estampa UNA vez, sin rebote ni bucle (ADR-0136). */
+.sello-stock-inicial {
+  transform: rotate(-8deg);
+  animation: sello-stock-inicial 780ms var(--ease-cayla) 250ms both;
+}
+@keyframes sello-stock-inicial {
+  from {
+    opacity: 0;
+    transform: scale(1.7) rotate(-22deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sello-stock-inicial {
+    animation: none;
   }
 }

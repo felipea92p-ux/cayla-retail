@@ -1,5 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { avisoSinStock, unidadesEnSede } from "./stock-en-sede-reglas";
+import { sumarEntradas } from "./etiqueta-precio-reglas";
+import { avisoSinStock, lugaresEnSede, unidadesEnSede, type FilaStockConLugar } from "./stock-en-sede-reglas";
+
+describe("lugaresEnSede · dónde está cada unidad dentro de la sede", () => {
+  const fila = (variante_id: string, cantidad: number, tipo: string | null | undefined): FilaStockConLugar => ({
+    variante_id,
+    cantidad,
+    sububicacion: tipo === undefined ? null : { tipo },
+  });
+
+  it("reparte piso, almacén, dañadas y sin lugar por prenda", () => {
+    const l = lugaresEnSede([fila("m", 4, "piso_venta"), fila("m", 3, "almacen_tienda"), fila("m", 1, "cuarentena"), fila("s", 2, undefined)]);
+    expect(l.get("m")).toEqual({ piso: 4, almacen: 3, danadas: 1, sinLugar: 0 });
+    expect(l.get("s")).toEqual({ piso: 0, almacen: 0, danadas: 0, sinLugar: 2 });
+  });
+
+  it("una sububicación de otro tipo (un rack del Taller) o sin tipo cuenta como «sin lugar»: no se pierde", () => {
+    const l = lugaresEnSede([fila("x", 5, "rack"), fila("x", 1, null)]);
+    expect(l.get("x")).toEqual({ piso: 0, almacen: 0, danadas: 0, sinLugar: 6 });
+  });
+
+  it("las cuatro partes suman EXACTAMENTE lo que `sumarEntradas` cuenta con las mismas filas (el «Todo» no cambia)", () => {
+    const filas = [fila("a", 2, "piso_venta"), fila("a", 5, "almacen_tienda"), fila("b", 1, "cuarentena"), fila("b", 3, null), fila("c", 7, "piso_venta")];
+    const total = sumarEntradas(filas);
+    for (const [id, l] of lugaresEnSede(filas)) expect(l.piso + l.almacen + l.danadas + l.sinLugar).toBe(total.get(id));
+  });
+});
 
 describe("unidadesEnSede", () => {
   const stock = new Map([

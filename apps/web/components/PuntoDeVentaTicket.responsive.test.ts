@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 //  1. `min-w-0` en el `<aside>`: le permite encogerse al ancho real del viewport en vez de
 //     imponerle su contenido mínimo a toda la pantalla.
 //  2. `flex-wrap` en las tres filas cuyo contenido no cabe en un ancho angosto (cantidad/precio/
-//     importe de cada prenda; descuento + «Dejar en espera»; subtotal+IGV + Total): sin esto,
+//     importe de cada prenda; descuento + «Código de cupón»; subtotal+IGV + Total): sin esto,
 //     encoger el `<aside>` con (1) simplemente movería el recorte de «toda la pantalla» a
 //     «esta fila» — cada una necesita poder bajar a una segunda línea en vez de recortarse.
 //
@@ -29,24 +29,60 @@ const codigo = readFileSync(ruta, "utf8");
 
 describe("PuntoDeVentaTicket — el ticket no se desborda en móvil angosto", () => {
   it("el <aside> raíz puede encogerse al ancho real del viewport (min-w-0)", () => {
-    expect(codigo).toMatch(/<aside className="[^"]*\bmin-w-0\b[^"]*">/);
+    expect(codigo).toMatch(/<aside[^>]*\bclassName="[^"]*\bmin-w-0\b[^"]*"[^>]*>/);
   });
 
-  it("la fila cantidad/precio unitario/importe de cada prenda puede bajar a una segunda línea", () => {
-    const inicio = codigo.indexOf('mt-3 flex');
-    expect(inicio).toBeGreaterThan(-1);
-    const fila = codigo.slice(inicio, inicio + 80);
-    expect(fila).toContain("flex-wrap");
-    // Confirma que es la fila correcta: la que sigue trae el stepper de Cantidad.
-    expect(codigo.slice(inicio, inicio + 400)).toContain("Cantidad");
+  // Desde el 2026-09-30 cada prenda es UNA fila compacta (`punto-de-venta/LineaDelTicket.tsx`, spike del club):
+  // nombre | − 1 + | importe | quitar. Lo que no puede encogerse (paso, importe, basurero) lleva `shrink-0`; lo que
+  // cede el ancho es el bloque del nombre (`min-w-0 flex-1`), que corta el nombre en 2 líneas y deja bajar a otra
+  // línea el «color · talla · stock». Sin esas clases, a 320-375 px la fila empuja al ticket fuera de la pantalla.
+  // Desde el 2026-10-23 (auditoría del celular, hallazgo 10), bajo `sm` la fila ocupa DOS filas —arriba el nombre con la papelera, abajo la
+  // cantidad y el importe—: el bloque del nombre conserva `min-w-0 flex-1` y suma sus clases `max-sm:`.
+  it("la fila de cada prenda cede el ancho por el nombre y el detalle baja de línea", () => {
+    const linea = readFileSync(join(__dirname, "punto-de-venta", "LineaDelTicket.tsx"), "utf8");
+    expect(codigo).toContain("<LineaDelTicket");
+    expect(linea).toMatch(/<div className="min-w-0 flex-1[^"]*" title=/);
+    expect(linea).toMatch(/flex items-center gap-2 max-sm:flex-wrap/);
+    expect(linea).toContain("line-clamp-2");
+    expect(linea).toMatch(/<p className="[^"]*\bflex-wrap\b[^"]*">\s*<span>\{f\.detalle\}/);
+    // El paso, el importe y el basurero no se encogen: se encoge el nombre.
+    expect(linea.match(/\bshrink-0\b/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
   });
 
-  it("la fila «Descuento» + «Dejar en espera» puede bajar a una segunda línea", () => {
-    const inicio = codigo.indexOf('mb-3 flex');
+  it("la fila «Descuento» + «Código de cupón» puede bajar a una segunda línea", () => {
+    // Arriba de ella van la del cupón del Club y la de los puntos que gana: se busca a partir de su comentario.
+    const comentario = codigo.indexOf("{/* Fila «Descuento», solo mientras");
+    expect(comentario).toBeGreaterThan(-1);
+    const inicio = codigo.indexOf("mb-2 flex", comentario);
     expect(inicio).toBeGreaterThan(-1);
     const fila = codigo.slice(inicio, inicio + 90);
     expect(fila).toContain("flex-wrap");
-    expect(codigo.slice(inicio, inicio + 2200)).toContain("Dejar en espera");
+    expect(codigo.slice(inicio, inicio + 3600)).toContain(">cupón");
+    // En un ticket angosto las dos frases se acortan («Descuento · Cupón») para no partir la fila en dos líneas.
+    expect(codigo.slice(inicio, inicio + 3600)).toContain("@max-[21rem]:hidden");
+  });
+
+  // «Dejar en espera» vive en la cabecera desde el 2026-10-22, junto al título. En un ticket angosto (o con el chip
+  // «En espera · N» al lado) se queda en su ícono: con texto empujaría la cabecera fuera del ticket de 320 px.
+  it("«Dejar en espera» va en la cabecera y se achica a su ícono en un ticket angosto", () => {
+    const cabecera = codigo.indexOf('className="@container flex min-h-[4.5rem]');
+    expect(cabecera).toBeGreaterThan(-1);
+    const bloque = codigo.slice(cabecera, codigo.indexOf("<form", cabecera));
+    expect(bloque).toContain("onClick={onDejarEnEspera}");
+    expect(bloque).toContain('aria-label="Dejar en espera"');
+    expect(bloque).toContain("@max-[20rem]:w-8");
+    expect(bloque).toContain("shrink-0");
+  });
+
+  // Programa de puntos (2026-10-19): «Cupón del Club CAY-XXXX-XXXX · S/ 10 en compras desde S/ 30  −S/ 10  Quitar» sobre el total
+  // (reemplaza la línea del 10 % de cumpleaños). A 320 px el texto y el monto no caben en una línea: el monto baja, no empuja el ticket
+  // fuera de la pantalla.
+  it("la línea del cupón del club puede bajar a una segunda línea", () => {
+    const inicio = codigo.indexOf("{vale && vale.monto > 0 && (");
+    expect(inicio).toBeGreaterThan(-1);
+    const fila = codigo.slice(inicio, inicio + 160);
+    expect(fila).toContain("flex-wrap");
+    expect(codigo.slice(inicio, inicio + 700)).toContain("TEXTO_PIE_CUPON");
   });
 
   it("la fila subtotal/IGV + Total puede bajar a una segunda línea, y el Total sigue a la derecha", () => {

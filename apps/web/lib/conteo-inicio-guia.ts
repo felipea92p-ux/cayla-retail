@@ -9,7 +9,9 @@
 
 import type { CampoDeGuia } from "./guia-campos";
 
-export type AlcanceElegido = "todo" | "categoria";
+/** «Prendas» (2026-10-01): una o varias prendas exactas. Hoy la base abre el conteo del lugar completo y la elección acota la LISTA
+ *  (ADR-0241), así que `abrir_conteo` no sabe de este valor: la pantalla lo traduce a `todo` al llamarla. */
+export type AlcanceElegido = "todo" | "categoria" | "prendas";
 
 export type EleccionApertura = {
   /** ¿La sede separa piso y almacén? El Taller no: su conteo es de toda la ubicación y la pregunta «dónde» ni aparece. */
@@ -19,13 +21,16 @@ export type EleccionApertura = {
   alcance: AlcanceElegido;
   /** La categoría elegida (solo importa con `alcance: "categoria"`); vacía si aún no. */
   categoriaId: string;
+  /** Cuántas prendas exactas se eligieron (solo importa con `alcance: "prendas"`). */
+  prendasElegidas: number;
   /** Ya hay quién cuenta (el combo «Responsable», ADR-0161/0162). */
   responsableListo: boolean;
 };
 
 /**
  * Los campos, en el orden de la pantalla. «Qué vas a contar» nace hecho (por defecto es «Todo», que ya es una respuesta válida) y
- * deja de estarlo solo al pedir una categoría sin elegirla; «Quién cuenta» está hecho cuando el combo ya tiene a alguien.
+ * deja de estarlo solo al pedir una categoría sin elegirla o «por prenda» sin ninguna prenda; lo que quedó elegido de otra opción
+ * (una categoría al volver a «Todo») no cuenta. «Quién cuenta» está hecho cuando el combo ya tiene a alguien.
  */
 export function camposDeApertura(e: EleccionApertura): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [];
@@ -34,10 +39,10 @@ export function camposDeApertura(e: EleccionApertura): CampoDeGuia[] {
   }
   campos.push({
     id: "que",
-    nombre: "Categoría",
+    nombre: e.alcance === "prendas" ? "Prendas" : "Categoría",
     requerido: true,
-    hecho: e.alcance === "todo" || e.categoriaId !== "",
-    pendiente: "Elige la categoría que vas a contar.",
+    hecho: e.alcance === "todo" || (e.alcance === "categoria" && e.categoriaId !== "") || (e.alcance === "prendas" && e.prendasElegidas > 0),
+    pendiente: e.alcance === "prendas" ? "Elige al menos una prenda." : "Elige la categoría que vas a contar.",
   });
   campos.push({ id: "quien", nombre: "Quién cuenta", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién cuenta." });
   return campos;

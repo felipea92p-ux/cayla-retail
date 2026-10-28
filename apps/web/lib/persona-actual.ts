@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { direccionDeSinBase, esFalloDeLaBase } from "@/lib/base-caida-reglas";
 import type { Permiso } from "@/lib/menu";
 import {
   accionesDeCompra,
@@ -13,6 +15,7 @@ import {
   type ClaveModulo,
   type ModuloDeCuenta,
   type TipoTerminalLegado,
+  veFinanzasDeTodo,
 } from "@/lib/modulos";
 import { funcionaEnVistaGlobal, modulosEnLaVista, NOMBRE_VISTA_GLOBAL, RUTA_ELEGIR_SEDE, VALOR_VISTA_GLOBAL, type Vista } from "@/lib/vista-global";
 
@@ -27,6 +30,10 @@ export type PersonaActualV2 = {
   nombre: string;
   rol: "lider" | "integrante";
   ubicacionId: string;
+  /** La sede donde TRABAJA la persona (su sede de partida, `fn_persona_actual_resumen`), aunque un líder esté mirando otra
+   *  con el selector. Decide los avisos que son «de los líderes de esa sede» (ADR-0328 act. 17, decisión del 2026-10-04: el
+   *  de 48 h sin respuesta va a los líderes de las DOS sedes del pedido, no a cualquier líder que se pare en una). */
+  sedePropiaId: string;
   ubicacionEtiqueta: string;
   /** Producción (2026-09-15): `taller` deja de aplastarse a "tienda" — es el
    *  tipo que decide si la persona ve el módulo del Taller sin ser líder. */
@@ -57,6 +64,11 @@ export type PersonaActualV2 = {
   /** ¿La sesión es de un ADMIN (ADR-0178, `fn_es_admin()`)? El Admin firma a su nombre sin marcar asistencia
    *  (20260924171300): en vez del combo «Responsable», la pantalla le dice que no necesita autorización. */
   esAdmin: boolean;
+  /** ADR-0454 (temporal, hasta integrar Lima con Dynamic): si la sesión es una terminal con firma de respaldo
+   *  (`terminales.firma_respaldo_id`: hoy Caja Lima y Almacén Lima), la persona a cuyo nombre firma SIEMPRE. Esa terminal no
+   *  pide el combo «Responsable» en ningún módulo. `null` en una persona y en una terminal sin respaldo (pide responsable, como
+   *  siempre). No da poderes: los permisos son de la cuenta. */
+  firmaRespaldo: { personaId: string; nombre: string } | null;
   /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde sus módulos (`permisosDeModulos`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
@@ -64,10 +76,9 @@ export type PersonaActualV2 = {
    *  la puerta `exigirModulo`. Si la base aún no tiene la función, son los de hoy (`modulosDeHoy`): nada cambia.
    *  Ya filtrados por la vista (ADR-0275, `modulosEnLaVista`): lo que la cuenta usa AHORA, parada donde está. */
   modulos: readonly ModuloDeCuenta[];
-  /** ADR-0184 (Compras por tienda): las tiendas cuyas Compras ve, registra y paga esta cuenta — `fn_compras_ubicaciones()`:
-   *  su tienda si su rol ve un módulo de Compras, más las que el líder le sumó en `compradores_de_tienda` (la persona de
-   *  Compras que atiende varias, R-10). Vacía para el líder (ve todas, no necesita la lista) y para quien no ve Compras. */
-  tiendasCompra: { id: string; nombre: string }[];
+  // `tiendasCompra` (ADR-0184, `fn_compras_ubicaciones()`) se fue con ADR-0387 y su decisión 45 (Felipe 2026-10-12): quien tiene
+  // un módulo de plata de Compras ve todas las tiendas y paga a nombre de la empresa, en Compras y en Finanzas, así que ninguna
+  // pantalla pregunta ya «con qué tienda pagas» ni la pide (era una RPC y una lectura más en cada carga de quien no es líder).
   /** A qué módulo aterriza esta cuenta al abrir `/` (20260925220000): lo que su rol eligió, o `null` sin preferencia
    *  (la web calcula la primera pantalla que ve, `aterrizajeDe` en `lib/menu.ts`). `null` también si la base todavía
    *  no tiene `fn_mi_pantalla_principal()`: nada cambia, sigue como hoy. Ausente para una terminal (no participa). */
@@ -95,18 +106,23 @@ function tipoUbicacion(tipo: string | null | undefined): PersonaActualV2["ubicac
 export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> => {
   const supabase = await createClient();
 
-  const { data: claims } = await supabase.auth.getClaims();
-  if (!claims?.claims?.sub) redirect("/login");
+  const { data: claims, error: errorDeSesion } = await supabase.auth.getClaims();
+  // «No pude comprobar la sesión» no es «no hay sesión»: si el access token venció y renovarlo falló porque el servicio de Auth no
+  // respondió, la persona sigue con su sesión abierta y se queda esperando aquí, no se la manda a escribir su contraseña (ADR-0450).
+  if (!claims?.claims?.sub) {
+    redirect(errorDeSesion && isAuthRetryableFetchError(errorDeSesion) ? await direccionSinBase() : "/login");
+  }
 
   // «¿Es un aparato?» se pide EN PARALELO con el resumen: no suma una espera. `fn_mi_terminal()` devuelve el nombre del
   // aparato (una base vieja, su tipo); vacío o error = una persona. Falla cerrado (principio 9).
   // Los módulos del rol también van en paralelo (ADR-0161). Si la función aún no existe (web publicada antes de pegar
   // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
-  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): con `p_de_tienda = false`
-  // `fn_actor_persona_id` devuelve el id propio sin mirar encabezados. En una terminal falla (exige responsable): null.
+  // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): `fn_mi_persona_id` (ADR-0533) devuelve el id propio y
+  // NULL en una terminal, sin rechazar: antes se leía con `fn_actor_persona_id(false)`, que a una terminal la rechazaba y llenaba el
+  // registro de Postgres (4 258 errores al día). Web publicada antes de pegar 20261027140000: se usa esa lectura de antes (abajo).
   // ¿Admin? También en paralelo; un error = no es admin (falla cerrado: se le pide el combo como a todos).
   const [
-    { data, error },
+    { data, error, status: estadoDelResumen },
     { data: miTerminal, error: errorTerminal },
     { data: filasModulos, error: errorModulos },
     { data: miPersonaId, error: errorPersonaId },
@@ -116,18 +132,25 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
     supabase.rpc("fn_mi_terminal"),
     supabase.rpc("fn_mis_modulos"),
-    supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
+    supabase.rpc("fn_mi_persona_id"),
     supabase.rpc("fn_es_admin"),
     supabase.rpc("fn_mi_pantalla_principal"),
   ]);
 
+  // Un error de la base NO es «sin acceso» (2026-10-17: la base se cayó y a todos los mandó al login con «pide a un Líder que te dé de
+  // alta»). Solo una respuesta de la base sin fila dice que la cuenta no entra; si la base no respondió, se espera (ADR-0450).
+  if (error && esFalloDeLaBase({ error, status: estadoDelResumen })) redirect(await direccionSinBase());
   if (error || !data || !data.ubicacion_id) {
     redirect(`/login?error=${await motivoSinAcceso(supabase, claims.claims.sub)}`);
   }
 
   const textoTerminal = !errorTerminal && typeof miTerminal === "string" ? miTerminal.trim() : "";
   const terminal = textoTerminal !== "";
+  // Sin `fn_mi_persona_id` todavía en esa base (PGRST202): la lectura de antes, para que la persona no pierda su propuesta en el combo.
+  const personaPropia =
+    errorPersonaId?.code === "PGRST202" ? await supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }) : { data: miPersonaId, error: errorPersonaId };
   const rol = data.es_lider ? "lider" : "integrante";
+  const firmaRespaldo = terminal ? await leerFirmaRespaldo(supabase) : null;
   const deLaBase = !errorModulos && Array.isArray(filasModulos);
   // Sin `fn_mis_modulos()` (base anterior a los roles): una terminal ve lo de su tipo viejo, si la base aún lo devuelve.
   const legado = (TIPOS_TERMINAL_LEGADO as readonly string[]).includes(textoTerminal) ? (textoTerminal as TipoTerminalLegado) : null;
@@ -172,35 +195,39 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   const permisos = permisosDeModulos(rol, modulosDeLaCuenta);
   const modulos = modulosEnLaVista(vista, modulosDeLaCuenta);
 
-  // ADR-0184: solo para quien no es líder y su rol ve un módulo de Compras (el líder ve todas; el resto, ninguna): una
-  // llamada menos en el camino más transitado de la app. Quién entra lo dice el rol; de QUÉ TIENDAS, la base.
-  let tiendasCompra: PersonaActualV2["tiendasCompra"] = [];
-  if (!data.es_lider && permisos.includes("verDineroCompras")) {
-    const { data: ids } = await supabase.rpc("fn_compras_ubicaciones");
-    if (ids && ids.length > 0) {
-      const { data: tiendas } = await supabase.from("ubicaciones").select("id, nombre").in("id", ids).eq("activo", true).order("nombre");
-      tiendasCompra = tiendas ?? [];
-    }
-  }
-
   return {
     nombre: data.nombre ?? "",
     rol,
     ubicacionId,
+    sedePropiaId: data.ubicacion_id,
     ubicacionEtiqueta,
     ubicacionTipo,
     puedeCambiarUbicacion: !!data.es_lider,
     vista,
     puedeVerGlobal,
     terminal,
-    personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
+    personaId: !terminal && !personaPropia.error && typeof personaPropia.data === "string" ? personaPropia.data : null,
     esAdmin: !terminal && soyAdmin === true,
+    firmaRespaldo,
     permisos,
     modulos,
-    tiendasCompra,
     pantallaPrincipal: !terminal && !errorPantallaPrincipal && typeof pantallaPrincipal === "string" ? pantallaPrincipal : null,
   };
 });
+
+/** ADR-0454: ¿esta terminal firma a nombre de una persona de respaldo? Solo se pregunta cuando la sesión ES una terminal (una persona
+ *  no suma una espera). Falla CERRADO (principio 9): si la función aún no existe (web publicada antes de pegar 20261019185000) o la
+ *  base no responde, la terminal sigue pidiendo el combo como siempre; nunca se supone un respaldo que la base no confirmó. */
+async function leerFirmaRespaldo(supabase: Awaited<ReturnType<typeof createClient>>): Promise<PersonaActualV2["firmaRespaldo"]> {
+  const { data, error } = await supabase.rpc("fn_terminal_firma_respaldo");
+  const fila = !error && Array.isArray(data) ? data[0] : undefined;
+  return fila?.persona_id ? { personaId: fila.persona_id, nombre: fila.nombre ?? "" } : null;
+}
+
+/** A `/sin-base`, con la pantalla de la que se salió (la anota `proxy.ts` en `x-cayla-ruta`) para volver a ella cuando la base responda. */
+async function direccionSinBase(): Promise<string> {
+  return direccionDeSinBase((await headers()).get("x-cayla-ruta"));
+}
 
 /** Por qué una cuenta sin fila en `fn_persona_actual_resumen()` no entra. Una terminal desactivada (ADR-0162) se ve a sí
  *  misma en `retail.terminales` (RLS: `auth_user_id = auth.uid()`, activa o no) y merece un aviso que diga qué pasó —«pide
@@ -233,6 +260,13 @@ export function veModulo(persona: Pick<PersonaActualV2, "modulos">, clave: Clave
 /** Qué puede hacer esta cuenta con un comprobante de compra, módulo por módulo (ADR-0161 P1): facturas, pagos, notas. */
 export function accionesDeCompraDe(persona: Pick<PersonaActualV2, "rol" | "modulos">): AccionesDeCompra {
   return accionesDeCompra(persona.rol, persona.modulos);
+}
+
+/** ¿Ve las finanzas de todas las tiendas y de la empresa? La única pregunta de alcance de Finanzas (`veFinanzasDeTodo`, G16).
+ *  `persona.modulos` ya viene filtrado por la vista (en la de sede se quita CAYLA Global), pero la base no mira la vista: quien tiene
+ *  CAYLA Global ve todo estando donde esté, y eso lo dice `puedeVerGlobal`. */
+export function veFinanzasDeTodoDe(persona: Pick<PersonaActualV2, "rol" | "modulos" | "puedeVerGlobal">): boolean {
+  return veFinanzasDeTodo(persona.rol, persona.modulos) || persona.puedeVerGlobal;
 }
 
 /** La puerta de pantalla por MÓDULO (ADR-0161 B2): quien llega por URL directa a un módulo que su rol no ve, cae en

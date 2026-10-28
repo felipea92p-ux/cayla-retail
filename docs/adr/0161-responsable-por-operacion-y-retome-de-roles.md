@@ -39,7 +39,7 @@ ADR-0150 (roles a medida), que se había abandonado esta misma mañana en la fas
 |---|---|
 | B1 | **Se retoma el ADR-0150** para todas las cuentas. Las terminales son una cuenta más con su rol: «Terminal de ventas», «Terminal administrativa». |
 | B2 | **Un rol decide solo «ve / no ve» por módulo** (Felipe, 2026-09-22: «no hay que complicarnos»). Se probó una matriz Ver/Crear/Editar/Eliminar con acciones internas y se descartó ese mismo día. **Quien ve un módulo hace todo lo que hay en él**; en el editor, cada módulo dice qué incluye. Esto es la decisión 2 del ADR-0150, pero por **módulo** en vez de por pantalla. |
-| B2b | **Excepción fija: siempre solo del líder**, aunque el rol vea el módulo. Todas son decisiones ya tomadas antes: anular una venta o un comprobante y las series de SUNAT (ADR-0150, 4); autorizar un descuento sobre el tope (D-67); aprobar devoluciones y poner etiquetas con descuento (ADR-0160); ver costos, márgenes y montos de Compras (ADR-0126); y Colaboradores, y Roles y accesos (ADR-0150, 3). |
+| B2b | **Excepción fija: siempre solo del líder**, aunque el rol vea el módulo. Todas son decisiones ya tomadas antes: anular una venta o un comprobante y las series de SUNAT (ADR-0150, 4); autorizar un descuento sobre el tope (D-67); aprobar devoluciones y ~~poner etiquetas con descuento~~ (salió de esta lista el 2026-09-30, ADR-0293) (ADR-0160); ver costos, márgenes y montos de Compras (ADR-0126); y Colaboradores, y Roles y accesos (ADR-0150, 3). |
 | B2c | **Solo el rol Líder es fijo.** **Integrante se edita** como cualquier otro rol; lo único que no se puede es archivarlo, porque es el que recibe una persona nueva. **Cambia al ADR-0150**, que dejaba fijos los dos roles de sistema. |
 | B2d | **Consecuencia que Felipe debe confirmar:** encender un módulo da todo lo que hay en él. Hoy un integrante ve Existencias, Productos y Caja, pero no puede ajustar stock, editar precios ni cerrar caja (ADR-0143). Con esta regla, si su rol ve esos módulos, podrá. |
 | B3 | «Pide Responsable» **no** es configurable (A7). |
@@ -364,3 +364,43 @@ cargada), no puede guardar nada. **Cómo se ve mal hecho:** saltarse el candado 
 igual («Elige quién hace esta operación»); o hacerlo por `fn_es_lider()` — las terminales y los líderes perderían el rastro.
 Pruebas: 4 casos en `pnpm pruebas:terminales-sin-persona` (Admin sin responsable, Admin eligiéndose, Admin eligiendo a otra
 persona ausente, líder no admin sigue bloqueado) y `estadoCombo` en `lib/responsable-reglas.test.ts`.
+
+
+## Actualización 2026-10-12 — P5 cerró el costo y la red de `fn_resumen_variantes`, no el stock de otras sedes
+
+**El problema primero.** El punto 5 de «Las 6 preguntas» y su fila en «P1–P6 construidas» dicen que quien no es líder «no ve costo ni
+stock de otras sedes en Existencias» («Existencias ya pintaba costo y red solo al líder»), y el comentario de `SIEMPRE_SOLO_LIDER`
+(`apps/web/lib/modulos.ts`) lo repetía como una regla vigente. Quien lee eso concluye que una integrante con Existencias no puede
+saber si otra tienda tiene una prenda. No es así, y la lista de «lo que sigue siendo solo del líder» se estaba leyendo más ancha de lo
+que la base hace cumplir. Medido el 2026-10-12 contra producción (`cayla-dynamic`, solo lectura) y contra el código:
+
+| Qué | Quién lo ve hoy | Evidencia |
+|---|---|---|
+| **Costo** (`costo`, `estado_costo`) de `fn_resumen_variantes` | solo el líder | `case when (select ok from lider)`, con `lider = select retail.fn_es_lider()` (`20260923140000`) |
+| **`en_red`** de `fn_resumen_variantes` (la red con sus ventas, días con stock y ledger) | solo el líder | `en_red_agg` filtra con `and (select ok from lider)` |
+| **Stock de las otras sedes** en Existencias («Dónde más hay», «En la red», «Pedir a otra sede») | **toda cuenta con acceso a retail** | `fn_existencias` y `fn_stock_por_sede` solo piden `retail.fn_tiene_acceso_retail()` (cuerpos vivos leídos el 2026-10-12; `fn_stock_por_sede`: ADR-0270 sección C, `20260929020000`, y ADR-0289, `20261004110000`) |
+
+**Cómo llega a la pantalla.** La web llena `enRed` de cada fila con `fn_stock_por_sede_json` (`lib/inventario-v2.ts`, `leerStockDeLasSedes`),
+que no pregunta el rol, y `InventarioPanel` lo pinta con `resumenRed(f.enRed)` sin condición de líder (`esLider` solo gobierna las
+dañadas). Lo que sí viaja es **cifra por prenda y sede** (`variante`, `sede`, `cantidad` disponible): sin dinero, sin personas. La
+función nunca tuvo un candado de líder (su migración original, `20260914220001`, no menciona `fn_es_lider`): P5 no lo abrió, porque
+nunca estuvo cerrado, y lo que P5 construyó (`20260923140000`) solo tocó `fn_resumen_variantes`.
+
+**Qué no cambia.** Ni una función, ni un permiso, ni un dato: esta actualización corrige el texto. La lista `SIEMPRE_SOLO_LIDER` de
+`lib/modulos.ts` queda **igual** (su línea «Ver el costo y el stock de las otras sedes en Existencias» sigue ahí y se muestra tal cual
+en Roles y accesos); se corrigió solo su comentario, que ahora dice lo de arriba. Reescribir esa línea para que diga «el costo y la
+red de `fn_resumen_variantes`» es una decisión sobre qué ve el equipo en Roles y accesos, y queda para Felipe. Tampoco se decide
+aquí si el stock de otras sedes **debería** ser solo del líder: hoy Vender, Cambios, Apartados y «Pedir a otra sede» leen esa lista
+(ADR-0270, ADR-0289) para toda cuenta que ve esas pantallas, y cambiarlo es una decisión de Felipe.
+
+**Lo que se rompería si se «arregla» al revés.** Cerrar `fn_stock_por_sede` al líder dejaría a Vender, Cambios y Apartados diciendo
+«ninguna otra sede tiene stock» a toda integrante, sin error: la misma falla silenciosa que el ADR-0289 corrigió para las terminales.
+
+
+## Actualización 2026-10-22 — `fn_cuentas_con_rol` solo lista personas activas: la versión de producción llega a `main` (20261022200000)
+
+**`fn_cuentas_con_rol()` en producción no es la de `main`.** Origen: se aplicó el 2026-10-08 con `apply_migration` (versión registrada `20261008010408`, `cuentas_con_rol_solo_personas_activas`) desde la rama `claude/user-removal-dynamic-retail-8ba721` (commit `e47c681c3`, su ADR-0003); esa rama nació de una base vieja (2026-07-23, esquema V1), no tiene PR y nunca llegó a `main`. La deriva del 2026-10-14 la había visto como «otra versión» sin origen conocido; el 2026-10-22 se encontró buscando por el nombre de la migración. La diferencia son dos `where p.estado = 'activo'` (la rama de colaboradores y la de suspendidos): una persona que Dynamic dio de baja no aparece en «Roles y accesos» para asignarle rol. Las terminales no se filtran (no hay persona detrás).
+
+**DECIDÍ:** copiar el cuerpo de producción a `main` tal cual (`20261022200000_cuentas_con_rol_solo_personas_activas.sql`, «YA ESTÁ EN PRODUCCIÓN, NO SE VUELVE A PEGAR»), con `pnpm pruebas:arreglos-en-vivo-roles-observatorio` (la persona inactiva no aparece, ni como colaboradora ni como suspendida; el control con la versión de antes sí la deja pasar).
+**DESCARTÉ:** (a) *dejarlo solo en producción*: `20260923030000_roles_por_modulo.sql`, que `scripts/pruebas/roles_por_modulo.mjs` vuelve a cargar, devolvería a la lista a quien ya no trabaja en CAYLA, sin error; (b) *filtrar por `colaboradores.estado`*: es otra pregunta (pendientes y suspendidas SÍ deben verse) y no es lo que corre en producción.
+**SE ROMPE SI:** alguien re-pega `20260923030000` entero (el caso de la persona inactiva sale rojo) o Dynamic deja de escribir `'activo'` en `public.personas.estado` para quien trabaja (la lista saldría vacía).

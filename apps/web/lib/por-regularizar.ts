@@ -1,44 +1,101 @@
 // Lectura de la cola «Por regularizar» (ADR-0179): prendas vendidas en caja antes de estar en el
 // sistema. RLS deja ver solo las sedes que la persona puede operar; el líder, todas.
-import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
-import { vencidasDesde } from "@/lib/por-regularizar-reglas";
+// Rutas relativas (como `candidatas-alta-lector.ts`): vitest no resuelve `@/`, y esta lectura se prueba con un cliente simulado.
+import { createClient } from "./supabase/server";
+import { exigir, leerTodas } from "./resultado";
+import { resueltasDesde, vencidasDesde } from "./por-regularizar-reglas";
 
 export type FilaPorRegularizar = {
   id: string;
+  /** La línea de venta que originó la fila: Historial llega aquí con ella (`?item=`) para abrir su hoja. */
+  ventaItemId: string;
   descripcion: string;
   categoria: string;
   talla: string;
   color: string;
+  /** Lo anotado por caja, como ids: con esto la hoja «Corregir lo anotado» (ADR-0369) arranca con lo que hay. */
+  categoriaId: string;
+  tallaId: string;
+  colorCodigo: string;
+  /** Si lo anotado se corrigió después de la venta (ADR-0369): cuántas veces, la última (cuándo y quién) y lo que anotó caja al vender.
+   *  `null` = nunca se corrigió, o no se pudo leer (la pantalla sigue igual, sin esa línea). */
+  correccion: { veces: number; ultimaEn: string; ultimaPor: string; original: string } | null;
+  /** Lo que dibuja la prenda cuando la venta aún no tiene prenda real: el ícono de su categoría sobre su color (ADR-0333). Opcional: nulo = la percha. */
+  colorHex: string | null;
+  categoriaPrefijo: string | null;
+  categoriaFamilia: string | null;
   precioCobrado: number;
   vendidoPor: string;
   vendidoEn: string;
   ubicacionId: string;
   sede: string;
-  estado: "pendiente" | "regularizada" | "anulada";
+  /** `cerrada_sin_prenda` (ADR-0334): se dio por hecha en el cierre de arranque, sin identificar la prenda ni mover stock. */
+  estado: "pendiente" | "regularizada" | "anulada" | "cerrada_sin_prenda";
+  /** Solo cerrada (o anulada después de cerrada): por qué se cerró y cuándo. */
+  cierre: { motivo: string; cerradoEn: string } | null;
   /** Solo regularizada: la prenda real y la diferencia (cobrado − oficial). */
   prendaReal: string | null;
   forma: "ya_registrada" | "llego_nueva" | null;
   diferencia: number | null;
 };
 
-/** Pendientes primero (las más antiguas arriba), después lo ya resuelto, de lo más nuevo a lo más viejo. */
-export async function getPorRegularizar(ubicacionId: string | null): Promise<FilaPorRegularizar[]> {
+const COLUMNAS = `id, venta_item_id, ubicacion_id, descripcion, categoria_id, talla_id, color_codigo, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
+       categoria:categorias ( nombre, prefijo, familia ), talla:tallas ( valor ), color:colores ( nombre, hex ),
+       ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) ),
+       cierre:cierres_cola_arranque!prendas_por_regularizar_cierre_fk ( motivo, cerrado_en )`;
+
+/**
+ * La cola entera: las PENDIENTES (las más antiguas arriba, sin tope ni ventana) y, después, lo ya resuelto de este mes y el
+ * anterior (`resueltasDesde`), de lo más nuevo a lo más viejo.
+ *
+ * Antes era un solo `.limit(200)` por fecha descendente. Pasadas 200 filas lo primero que se perdía eran las pendientes más
+ * viejas —las vencidas, que son las que hay que ver— y las cuatro cifras de la cabecera (`cifrasPorRegularizar`, que cuenta
+ * lo que llega) salían de menos sin avisar, mientras el inicio (`contarVencidas`, con conteo exacto) decía otro número. Son tres
+ * lecturas porque son tres cosas: la cola de trabajo no se corta nunca; el historial sí, por fecha y no por cantidad; y las cerradas sin prenda tampoco. Cada una
+ * va por páginas (`leerTodas`): PostgREST corta en 1.000 filas sin dar error.
+ */
+export async function getPorRegularizar(ubicacionId: string | null, ahora: Date = new Date()): Promise<FilaPorRegularizar[]> {
   const supabase = await createClient();
-  let consulta = supabase
-    .from("prendas_por_regularizar")
-    .select(
-      `id, ubicacion_id, descripcion, precio_cobrado, vendido_por, vendido_en, estado, forma, diferencia,
-       categoria:categorias ( nombre ), talla:tallas ( valor ), color:colores ( nombre ),
-       ubicacion:ubicaciones ( nombre ), variante:variantes ( sku, producto:productos ( referencia ) )`,
-    )
-    .order("vendido_en", { ascending: false })
-    .limit(200);
-  if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
-  const filas = exigir(await consulta, "las prendas por regularizar");
+  const ventana = resueltasDesde(ahora);
+  // Lo normal es que cada lectura quepa en una página: en serie, la 2.ª solo se pide si la 1.ª vino llena.
+  // Tres lecturas, porque son tres cosas: la COLA de trabajo (pendientes, sin ventana, la más vieja arriba), el HISTORIAL resuelto (por
+  // fecha) y las CERRADAS sin prenda (ADR-0334), que van SIN ventana: son pocas, no crecen y el botón «Reabrir» solo existe en esta lista;
+  // con la ventana del historial, una venta cerrada de hace más de un mes dejaría de poder reabrirse aunque la base lo permita.
+  const leer = (cual: "pendientes" | "resueltas" | "cerradas") =>
+    leerTodas(
+      (desde, hasta) => {
+        let consulta = supabase.from("prendas_por_regularizar").select(COLUMNAS);
+        if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
+        if (cual === "pendientes") consulta = consulta.eq("estado", "pendiente");
+        else if (cual === "cerradas") consulta = consulta.eq("estado", "cerrada_sin_prenda");
+        else consulta = consulta.neq("estado", "pendiente").neq("estado", "cerrada_sin_prenda").gte("vendido_en", ventana);
+        // `id` desempata: sin un orden único, dos páginas pueden repetir o saltarse filas.
+        return consulta.order("vendido_en", { ascending: cual === "pendientes" }).order("id").range(desde, hasta);
+      },
+      { enParalelo: 1 },
+    );
+  const [pendientes, resueltas, cerradas] = await Promise.all([leer("pendientes"), leer("resueltas"), leer("cerradas")]);
+  const yaResueltas = [...exigir(resueltas, "las prendas ya regularizadas"), ...exigir(cerradas, "las ventas cerradas sin prenda")].sort(
+    (a, b) => Date.parse(b.vendido_en) - Date.parse(a.vendido_en) || a.id.localeCompare(b.id),
+  );
+  // Las lecturas no comparten foto de la base: una prenda que almacén regulariza (o alguien cierra) justo entre las lecturas saldría en
+  // dos y se pintaría dos veces. Gana la resuelta, que es la más nueva. (En el sentido contrario, que no salga en ninguna, solo dura
+  // hasta el siguiente refresco.)
+  const idsResueltas = new Set(yaResueltas.map((f) => f.id));
+  const filas = [...exigir(pendientes, "las prendas por regularizar").filter((f) => !idsResueltas.has(f.id)), ...yaResueltas];
+
+  // Las correcciones de lo anotado (ADR-0369), solo de lo que todavía se puede corregir. Es lo accesorio: si la función no existe aún
+  // en producción o falla, la lista sale igual, sin la línea «Corregido» (principio 9).
+  const corregibles = filas.filter((f) => f.estado === "pendiente" || f.estado === "cerrada_sin_prenda").map((f) => f.id);
+  const correcciones = new Map<string, { veces: number; ultimaEn: string; ultimaPor: string | null; antes: unknown }>();
+  if (corregibles.length > 0) {
+    const { data } = await supabase.rpc("fn_correcciones_prenda_sin_registrar", { p_ids: corregibles });
+    // Vienen de la más nueva a la más vieja: la primera de cada venta es la última corrección.
+    for (const c of data ?? []) if (!correcciones.has(c.prenda_id)) correcciones.set(c.prenda_id, { veces: c.veces, ultimaEn: c.ultima_en, ultimaPor: c.ultima_por, antes: c.antes });
+  }
 
   // `personas` vive en `public` (Dynamic): PostgREST no la embebe; se nombra con la misma función que Historial.
-  const ids = [...new Set(filas.flatMap((f) => (f.vendido_por ? [f.vendido_por] : [])))];
+  const ids = [...new Set([...filas.flatMap((f) => (f.vendido_por ? [f.vendido_por] : [])), ...[...correcciones.values()].flatMap((c) => (c.ultimaPor ? [c.ultimaPor] : []))])];
   const nombres = new Map<string, string>();
   if (ids.length > 0) {
     for (const n of exigir(await supabase.rpc("fn_nombres_personas", { p_ids: ids }), "quién vendió cada prenda")) nombres.set(n.id, n.nombre);
@@ -46,23 +103,37 @@ export async function getPorRegularizar(ubicacionId: string | null): Promise<Fil
 
   const aFila = (f: (typeof filas)[number]): FilaPorRegularizar => ({
     id: f.id,
+    ventaItemId: f.venta_item_id,
     descripcion: f.descripcion,
     categoria: f.categoria?.nombre ?? "",
     talla: f.talla?.valor ?? "",
     color: f.color?.nombre ?? "",
+    categoriaId: f.categoria_id,
+    tallaId: f.talla_id,
+    colorCodigo: f.color_codigo,
+    correccion: aCorreccion(correcciones.get(f.id), nombres),
+    colorHex: f.color?.hex ?? null,
+    categoriaPrefijo: f.categoria?.prefijo ?? null,
+    categoriaFamilia: f.categoria?.familia ?? null,
     precioCobrado: Number(f.precio_cobrado),
     vendidoPor: (f.vendido_por && nombres.get(f.vendido_por)) || "—",
     vendidoEn: f.vendido_en,
     ubicacionId: f.ubicacion_id,
     sede: f.ubicacion?.nombre ?? "",
     estado: f.estado as FilaPorRegularizar["estado"],
+    cierre: f.cierre ? { motivo: f.cierre.motivo, cerradoEn: f.cierre.cerrado_en } : null,
     prendaReal: f.variante ? `${f.variante.producto?.referencia ?? ""} · ${f.variante.sku}` : null,
     forma: f.forma as FilaPorRegularizar["forma"],
     diferencia: f.diferencia === null ? null : Number(f.diferencia),
   });
-  const todas = filas.map(aFila);
-  const pendientes = todas.filter((f) => f.estado === "pendiente").reverse();
-  return [...pendientes, ...todas.filter((f) => f.estado !== "pendiente")];
+  return filas.map(aFila);
+}
+
+/** La línea «Corregido» de una venta: lo que anotó caja al vender sale de la primera foto «antes». */
+function aCorreccion(c: { veces: number; ultimaEn: string; ultimaPor: string | null; antes: unknown } | undefined, nombres: Map<string, string>): FilaPorRegularizar["correccion"] {
+  if (!c) return null;
+  const antes = (c.antes ?? {}) as { descripcion?: unknown };
+  return { veces: c.veces, ultimaEn: c.ultimaEn, ultimaPor: (c.ultimaPor && nombres.get(c.ultimaPor)) || "—", original: typeof antes.descripcion === "string" ? antes.descripcion : "" };
 }
 
 /** Para el aviso del inicio: pendientes que ya pasaron el plazo. Solo lo pide el líder. null = no se pudo leer. */
@@ -75,4 +146,17 @@ export async function contarVencidas(): Promise<number | null> {
     .lte("vendido_en", vencidasDesde());
   // Nunca lanza: si no se puede leer, el inicio lo dice en la tarjeta en vez de dibujar un 0.
   return error ? null : (count ?? 0);
+}
+
+/**
+ * Hasta cuándo cada tienda puede cerrar su cola de arranque (ADR-0334): `ubicacion_id → AAAA-MM-DD`. RLS deja ver solo las tiendas que la
+ * persona opera. Una tienda sin fila no tiene plazo, y sin plazo la pantalla no ofrece el cierre.
+ * Nunca lanza: si no se puede leer, devuelve `{}` y la pantalla sigue entera, solo sin ese botón (principio 9: lo accesorio no tumba lo
+ * principal). La base vuelve a exigir el plazo al cerrar.
+ */
+export async function getPlazosColaArranque(): Promise<Record<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("cola_arranque_plazo").select("ubicacion_id, hasta");
+  if (error || !data) return {};
+  return Object.fromEntries(data.map((p) => [p.ubicacion_id, p.hasta]));
 }

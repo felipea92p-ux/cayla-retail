@@ -1,0 +1,53 @@
+name: Vigía de Vercel
+
+# ¿Vercel recibió el último commit de main? (ADR-0425). Vercel publica producción cuando GitHub le avisa del push, y si
+# ese aviso se pierde nadie lo reintenta: el 2026-10-15 la fusión del PR #1115 quedó 47 min sin publicar, en verde en
+# todas partes. Después de cada push a main, este job mira el ÚLTIMO commit de main (no el del push: si llegaron tres
+# fusiones, publicar la tercera publica las tres). Si Vercel no lo marcó en 3 min, pide la publicación al Deploy Hook y
+# deja un aviso «Producción atrás de main (vigía de Vercel)»; si el filtro se saltó producción, solo avisa. Lo que falla
+# DESPUÉS de que Vercel lo marcó ya avisa solo (X roja en el commit y correo de Vercel): el vigía no lo toca. Toda la
+# lógica, con sus pruebas, en scripts/ci/vigia-vercel.mjs.
+#
+# Costo: lo normal es una mirada de segundos (Vercel marca el commit en ~5 s), 1 minuto facturado por fusión. Un push
+# nuevo cancela la corrida anterior: siempre se mira el último.
+#
+# Lo que hay que configurar una vez: el secreto VERCEL_DEPLOY_HOOK (Settings ▸ Secrets and variables ▸ Actions) con la
+# URL de un Deploy Hook de la rama `main` (Vercel ▸ cayla-retail ▸ Settings ▸ Git ▸ Deploy Hooks). La URL ES el permiso
+# de publicar: nunca va en el código, ni en un aviso, ni en el registro (el repo es público). Para probarla: Actions ▸
+# Vigía de Vercel ▸ Run workflow ▸ «Probar el Deploy Hook» (publica main otra vez, ~3 min en la fila de Vercel).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      probar_hook:
+        description: "Probar el Deploy Hook: pedir la publicación de main aunque Vercel ya la tenga"
+        type: boolean
+        default: false
+
+concurrency:
+  group: vigia-vercel
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  statuses: read
+  issues: write
+
+jobs:
+  vigia:
+    name: ¿Vercel recibió main?
+    runs-on: ubuntu-latest
+    # 3 min esperando la marca + 3 min confirmando la publicación pedida + holgura.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ci
+      # Corre con el Node del runner: el script no tiene dependencias. Las pruebas corren en el CI («Qué construye Vercel»).
+      - name: Mirar el último commit de main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+          PROBAR_HOOK: ${{ inputs.probar_hook }}
+        run: node scripts/ci/vigia-vercel.mjs --proyecto cayla-retail

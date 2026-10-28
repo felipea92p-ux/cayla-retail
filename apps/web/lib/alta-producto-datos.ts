@@ -1,3 +1,6 @@
+import { dibujoElegido, type DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
+import { getMarcasDeEmpresas } from "@/lib/empresas-de-sede";
+import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
@@ -10,7 +13,8 @@ import {
   type TemporadasCatalogo,
   type ValorVocabulario,
 } from "@/lib/catalogo-v2";
-import { hoyLima, vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 
@@ -22,19 +26,28 @@ import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 //            antes (colores más usados y último costo por categoría).
 //   ASUME:   quien llama ya verificó que es Líder; esto no decide permisos.
 //   NO HACE: no escribe, y "último costo"/"más usados" son SUGERENCIAS sobre
-//            las últimas 2.000 variantes creadas — no un dato contable.
+//            las últimas 1.000 variantes creadas — no un dato contable.
 //
-// POR QUÉ 2.000 Y NO TODO: hoy hay ~150 variantes; en 3 años, unas 10.000.
+// POR QUÉ 1.000 Y NO TODO: hoy hay ~2.500 variantes; en 3 años, unas 10.000. 1.000 es lo que PostgREST entrega por consulta (un `.limit(2000)`
+// traía lo mismo, sin avisar: el comentario y la ventana no coincidían).
 // Traerlas todas en cada apertura del formulario para contar colores sería
 // trabajo tirado, y lo reciente pesa más que lo viejo (un color que se usó
 // hace dos años no debería competir con el de esta temporada).
 
 export type FamiliaAlta = { codigo: string; nombre: string; exigeTejidoPatron: boolean };
+/** Una tienda a la que puede pertenecer un producto (ADR-0463): CAYLA, CLAURE. */
+export type EmpresaAlta = { id: string; clave: string; nombre: string; /** ADR-0532: su marca (la marca CAYLA es de CAYLA). */ marcaId?: string | null };
 export type CategoriaAlta = { id: string; nombre: string; familia: string | null; prefijo: string | null; padreNombre: string | null };
 export type EtiquetaAlta = {
   id: string;
   nombre: string;
   estilo: string;
+  /** El dibujo que se eligió al crearla (ADR-0490); null = el de su nombre. */
+  icono: DibujoDeInsignia | null;
+  /** Su imagen propia (la ruta en el almacén de insignias, ADR-0490); null = no tiene. Manda sobre `icono`. */
+  imagen: string | null;
+  /** La imagen propia es un molde que se pinta con el color del lugar (ADR-0490 act. b). */
+  imagenSilueta: boolean;
   /** Descuento de campaña en % (20260918160000). Null = etiqueta informativa. */
   descuentoPct: number | null;
   /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
@@ -63,17 +76,31 @@ export type ContextoAlta = CatalogoMarcas & {
   /** La lista de temporadas y la de cada categoría (ADR-0246). `null` = la base todavía no la tiene: el alta sigue
    *  sin la fila de temporada (lo dice en una nota), nunca se cae por eso. */
   temporadas: TemporadasCatalogo | null;
+  /** Las tiendas entre las que se elige ANTES de la categoría (ADR-0463): solo si la sede desde donde se registra opera más de una
+   *  (Lima). `null` = una sola (Trujillo, Arequipa) o la base todavía no las tiene (la migración se pega antes o después de la web): el
+   *  alta sigue como siempre y el producto nace en CAYLA, nunca se cae por eso. */
+  empresas: EmpresaAlta[] | null;
 };
 
-const VENTANA_VARIANTES = 2000;
-
-export async function getContextoAlta(): Promise<ContextoAlta> {
+/** Las tiendas que operan en la sede desde donde se registra (ADR-0463). Con UNA sola (Trujillo, Arequipa: solo CAYLA) o sin respuesta,
+ *  `null`: el alta no pregunta nada y el producto nace en CAYLA. Solo Lima, donde conviven CAYLA y CLAURE, trae dos. */
+async function getEmpresasAlta(sedeId: string): Promise<EmpresaAlta[] | null> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes] =
+  const [{ data, error }, marcas] = await Promise.all([supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId }), getMarcasDeEmpresas()]);
+  if (error || !data || data.length < 2) return null;
+  return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre, marcaId: marcas?.get(t.id) ?? null }));
+}
+
+const VENTANA_VARIANTES = 1000;
+
+export async function getContextoAlta(sedeId: string): Promise<ContextoAlta> {
+  const supabase = await createClient();
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas, imagenes, empresas] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
-      supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden"),
+      // Con su ficha (descripción y «combina con», ADR-0316): el pie de la carta la lee al señalar un color (Felipe 2026-10-10).
+      supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx, descripcion, combina_con").eq("activo", true).order("orden"),
       supabase
         .from("variantes")
         .select("id, color_codigo, created_at, producto:productos!inner ( categoria_id, referencia )")
@@ -82,7 +109,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
       supabase
         .from("etiquetas")
-        .select("id, nombre, estilo, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
+        .select("id, nombre, estilo, icono, icono_imagen, icono_imagen_silueta, vigente_desde, vigente_hasta, descuento_pct, etiqueta_categorias ( categoria_id )")
         .eq("activo", true)
         .eq("estado", "aprobado")
         .order("nombre"),
@@ -93,6 +120,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       getCatalogoMarcas(),
       getTemporadasCatalogo(),
       getImagenesMuestra(),
+      getEmpresasAlta(sedeId),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -130,6 +158,9 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       estilo: e.estilo,
       descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      icono: dibujoElegido(e.icono),
+      imagen: esRutaDeImagenDeInsignia(e.icono_imagen) ? e.icono_imagen : null,
+      imagenSilueta: esRutaDeImagenDeInsignia(e.icono_imagen) && e.icono_imagen_silueta === true,
       vigenteDesde: e.vigente_desde,
       vigenteHasta: e.vigente_hasta,
     }));
@@ -153,7 +184,11 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       nombre: c.nombre,
       hex: c.hex,
       familiaColor: c.familia_color ?? "",
+      tipo: c.tipo,
       sinonimos: c.sinonimos ?? [],
+      pantoneTcx: c.pantone_tcx ?? null,
+      descripcion: c.descripcion ?? null,
+      combinaCon: c.combina_con ?? [],
     })),
     usoColores,
     costoSugerido,
@@ -167,5 +202,6 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
     },
     imagenes,
     temporadas,
+    empresas,
   };
 }

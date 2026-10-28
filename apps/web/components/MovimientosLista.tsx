@@ -4,14 +4,15 @@ import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
 import { CajonMovimiento } from "@/components/CajonMovimiento";
+import { EncabezadoDia } from "@/components/movimientos/EncabezadoDia";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
-import type { ContextoCajon } from "@/lib/movimientos-cajon";
+import { vistaDeOperacion, type ContextoCajon, type VistaCajon } from "@/lib/movimientos-cajon";
 import type { AccesosAtajos, ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import { etiquetaDia, plegarBajadas, type ItemLista, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
 // La lista del historial, agrupada por día y, dentro del día, por OPERACIÓN (ADR-0234): lo que se guardó de una sola
 // vez —un traslado de 16 variantes, una venta de dos prendas, una bajada al piso escaneada de una vez— es una fila que
-// dice qué pasó y cuánto, y que al tocarla se despliega en sus prendas. Así el día se lee como lo que pasó en la tienda
+// dice qué pasó y cuánto, y que al tocarla abre el cajón con sus prendas. Así el día se lee como lo que pasó en la tienda
 // y un envío grande no tapa todo lo demás (antes, el Traslado 2 ocupaba 16 de 18 filas).
 //
 // Muestra el EFECTO sobre el stock de la sede que se mira (qué prenda, cuánto, de dónde a dónde) y el proceso que lo
@@ -55,7 +56,6 @@ export function MovimientosLista({
   const params = useSearchParams();
   const pathname = usePathname();
   const [abiertoId, setAbiertoId] = useState<string | null>(() => params.get("mov"));
-  const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(() => new Set());
   const [venta, setVenta] = useState<Movimiento | null>(null);
   // La operación abierta se reconstruye a partir de UN id de sus filas (`abiertoId`, la misma URL `?mov=` de
   // siempre): así una fila suelta y una operación de muchas prendas comparten el mismo estado, sin uno nuevo — abrir
@@ -80,14 +80,6 @@ export function MovimientosLista({
   function cerrar() {
     setAbiertoId(null);
     sincronizarUrl(null);
-  }
-  function alternar(clave: string) {
-    setDesplegadas((previas) => {
-      const nuevas = new Set(previas);
-      if (nuevas.has(clave)) nuevas.delete(clave);
-      else nuevas.add(clave);
-      return nuevas;
-    });
   }
 
   // Sin `mov`: la vuelta desde un traslado reabre la lista, no el detalle que se estaba mirando.
@@ -114,7 +106,7 @@ export function MovimientosLista({
     enlaceVentas,
     enlaceCompras,
     modulosVisibles: accesos.modulos,
-    volverA: ctx.volverA,
+    hoyLima,
   };
 
   // Agrupar por día de Lima (`fecha` ya viene calculada en SQL): las operaciones llegan ordenadas por hora desc, así que
@@ -125,6 +117,9 @@ export function MovimientosLista({
     if (ultimo && ultimo.fecha === op.fecha) ultimo.operaciones.push(op);
     else dias.push({ fecha: op.fecha, operaciones: [op] });
   }
+  const itemsPorDia = dias.map((dia) => ({ ...dia, items: plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op })) }));
+  // Lo que muestra el cajón: la operación abierta (una colgada suelta, o una de las de un mazo abierto en abanico).
+  const vistaCajon: VistaCajon | null = operacionAbierta ? vistaDeOperacion(operacionAbierta, ctxCajon) : null;
 
   return (
     <>
@@ -144,18 +139,16 @@ export function MovimientosLista({
 
       {/* Sin caja propia: comparte la tarjeta con los filtros (la pone la página). */}
       <div className="px-4 pb-2 sm:px-5">
-        {dias.map((dia) => (
+        {itemsPorDia.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
-            <h3 className="flex items-baseline justify-between gap-3 border-b border-sand pb-2 pt-4">
-              <span className="label-cayla text-[11px] font-bold text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
-              <span className="label-cayla text-[10.5px] font-bold text-taupe">
-                {dia.operaciones.length} {dia.operaciones.length === 1 ? "movimiento" : "movimientos"}
-              </span>
-            </h3>
+            {/* El día y su franja de operaciones, SIN «N movimientos» (2026-10-03): esa cifra contaba la página cargada (50 filas),
+                no el día —en TRU decía «14» con unas 90 operaciones a esa hora—. Cuánto pasó en el día lo dicen los botones de
+                la derecha con el período «Hoy», que sí lo cuentan en la base. */}
+            <EncabezadoDia fecha={dia.fecha} hoyLima={hoyLima} operaciones={dia.operaciones} />
             <ul className="divide-y divide-sand">
-              {(plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op }))).map((item) =>
+              {dia.items.map((item) =>
                 item.tipo === "bajadas" ? (
-                  <FilaBajadas key={item.clave} clave={item.clave} operaciones={item.operaciones} prendas={prendas} ctx={ctx} abierta={desplegadas.has(item.clave)} onAlternar={() => alternar(item.clave)} />
+                  <FilaBajadas key={item.clave} operaciones={item.operaciones} prendas={prendas} ctx={ctx} />
                 ) : item.op.filas.length === 1 ? (
                   <FilaMovimiento key={item.op.clave} m={item.op.filas[0]} prenda={prendas[item.op.filas[0].varianteId]} ctx={ctx} />
                 ) : (
@@ -167,10 +160,9 @@ export function MovimientosLista({
         ))}
       </div>
 
-      {operacionAbierta && (
+      {vistaCajon && (
         <CajonMovimiento
-          operacion={operacionAbierta}
-          contexto={ctxCajon}
+          vista={vistaCajon}
           onVerVenta={
             enlaceVentas && abierto
               ? () => {

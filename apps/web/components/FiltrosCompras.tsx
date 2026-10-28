@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt, Search, Store, X } from "lucide-react";
-import { Popover } from "radix-ui";
-import { CampoTexto, Hilo } from "@/components/ui/campos";
+import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck, Receipt, Store } from "lucide-react";
+import { Buscador } from "@/components/ui/Buscador";
+import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { CapaDeFiltro } from "@/components/ui/CapaDeFiltro";
 import {
   destinoDesdeParam,
   ETIQUETA_ESTADO_PAGO,
@@ -19,6 +20,7 @@ import {
   type EstadoRecepcion,
   type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de las tablas de Compras. Viven en la URL (?q=…&pago=…): así la
 // página es un Server Component que filtra en Postgres, el enlace se puede
@@ -85,22 +87,8 @@ export function FiltrosCompras({
   const params = useSearchParams();
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const [panelAbierto, setPanelAbierto] = useState(false);
-  const [enfocado, setEnfocado] = useState(false);
   const primera = useRef(true);
   const { buscando, buscar } = useBusquedaEnUrl();
-
-  useEffect(() => {
-    if (!atajoBuscar && !estiloSpike) return;
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
-      const el = document.activeElement;
-      if (el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || (el as HTMLElement).isContentEditable)) return;
-      e.preventDefault();
-      document.getElementById(ID_BUSCADOR)?.focus();
-    };
-    window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
-  }, [atajoBuscar, estiloSpike]);
 
   function ver(f: FiltroVisible) {
     return visibles.includes(f);
@@ -170,85 +158,30 @@ export function FiltrosCompras({
 
   return (
     <div className="space-y-2">
-      <div className={`flex gap-3 ${estiloSpike ? "flex-wrap items-center gap-x-5" : "items-start"}`}>
-        {estiloSpike ? (
-          // Buscador del spike: lupa, sin etiqueta, «/» a la vista y ✕ para borrar; el hilo vivo del sistema debajo.
-          <div className="group relative flex min-w-[15rem] flex-1 items-center gap-2.5 py-2 text-tinta/45">
-            <Search aria-hidden className="h-4 w-4 shrink-0" />
-            <input
-              id={ID_BUSCADOR}
-              type="search"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              onFocus={() => setEnfocado(true)}
-              onBlur={() => setEnfocado(false)}
-              placeholder="Proveedor o número de documento"
-              aria-label="Buscar por proveedor o número de documento"
-              autoComplete="off"
-              className="h-[26px] min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45 [&::-webkit-search-cancel-button]:hidden"
-            />
-            <kbd aria-hidden className={`pointer-events-none rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity duration-200 max-sm:hidden group-focus-within:opacity-0 ${busqueda ? "opacity-0" : ""}`}>
-              /
-            </kbd>
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => {
-                  setBusqueda("");
-                  document.getElementById(ID_BUSCADOR)?.focus();
-                }}
-                aria-label="Borrar la búsqueda"
-                className="anim-revelar rounded-full p-0.5 text-tinta/55 transition-colors hover:text-rojo"
-              >
-                <X aria-hidden className="h-3.5 w-3.5" />
-              </button>
-            )}
-            <SenalBuscando activo={buscando} />
-            <Hilo activo={enfocado} trabajando={buscando} />
-          </div>
-        ) : (
-        <div className="group relative min-w-0 flex-1">
-          {atajoBuscar && (
-            // La tecla que abre el buscador se ve mientras no se usa y se va al enfocar o al escribir.
-            <kbd
-              aria-hidden
-              className={`pointer-events-none absolute bottom-2 right-1 rounded-[5px] border border-tinta/15 px-1.5 text-[10.5px] font-semibold text-tinta/55 transition-opacity duration-200 group-focus-within:opacity-0 ${busqueda ? "opacity-0" : ""}`}
-            >
-              /
-            </kbd>
-          )}
-          <CampoTexto
-            id={atajoBuscar ? ID_BUSCADOR : undefined}
-            etiqueta={
-              <span className="flex items-baseline justify-between gap-2">
-                Buscar
-                <SenalBuscando activo={buscando} />
-              </span>
-            }
-            trabajando={buscando}
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Número de documento o proveedor"
-            autoComplete="off"
-            type="search"
-          />
-        </div>
-        )}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* El buscador único (ADR-0358, ronda 5): busca mientras se escribe; «Buscando…» solo si la base tarda. */}
+        <Buscador guia="filtros-compras.buscador"
+          id={ID_BUSCADOR}
+          valor={busqueda}
+          onCambio={setBusqueda}
+          buscando={buscando}
+          atajo={atajoBuscar || estiloSpike}
+          placeholder="Proveedor o número de documento"
+          etiqueta="Buscar por proveedor o número de documento"
+          className="min-w-[15rem] flex-1"
+        />
         {/* Mismo ritmo vertical que `Campo` (etiqueta + mt-1.5 + control) para
             que el botón quede a la altura del input, no de toda la columna. */}
         {[
           accionesAntes,
-          <BotonFiltros key="filtros" abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />,
+          <span key="filtros" data-guia="filtros-compras.boton" className="inline-flex">
+            <BotonFiltros abierto={panelAbierto} activos={activos} onClick={() => setPanelAbierto((v) => !v)} />
+          </span>,
           accionesDespues,
         ].map(
           (control, i) =>
             control && (
               <div key={i} className="shrink-0">
-                {!estiloSpike && (
-                  <span aria-hidden className="label-cayla block text-[11px] text-transparent">
-                    {" "}
-                  </span>
-                )}
                 {control}
               </div>
             ),
@@ -256,6 +189,7 @@ export function FiltrosCompras({
       </div>
 
       {panelAbierto && (
+        <div data-guia="filtros-compras.panel">
         <PanelPildoras>
           {ver("proveedor") && (
             <DesplegablePildora
@@ -315,7 +249,7 @@ export function FiltrosCompras({
               onValor={(v) => aplicar({ tipo: v === TODOS ? "" : v })}
               opciones={[
                 { valor: TODOS, texto: "Todos" },
-                ...(["factura", "boleta", "nota_venta"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
+                ...(["factura", "boleta", "nota_venta", "sin_comprobante"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
               ]}
             />
           )}
@@ -345,37 +279,31 @@ export function FiltrosCompras({
 
           {ver("fechas") && <PildoraFechas desde={desde ?? ""} hasta={hasta ?? ""} onCambiar={(d, h) => aplicar({ desde: d, hasta: h })} />}
         </PanelPildoras>
+        </div>
       )}
 
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-guia="filtros-compras.chips">
           {chips.map((c) => (
-            <button
+            <FiltroPuesto
               key={c.texto}
-              type="button"
-              onClick={() => {
+              onQuitar={() => {
                 if ("q" in c.quitar) setBusqueda("");
                 aplicar(c.quitar);
               }}
-              className="label-cayla anim-entrada inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-              aria-label={`Quitar filtro ${c.texto}`}
+              etiqueta={`Quitar filtro ${c.texto}`}
             >
               {c.texto}
-              <span aria-hidden className="text-sm leading-none">
-                ×
-              </span>
-            </button>
+            </FiltroPuesto>
           ))}
-          <button
-            type="button"
+          <BotonLimpiar
             onClick={() => {
               setBusqueda("");
               router.push(pathname);
             }}
-            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
             Limpiar todo
-          </button>
+          </BotonLimpiar>
         </div>
       )}
     </div>
@@ -391,25 +319,28 @@ function PildoraFechas({ desde, hasta, onCambiar }: { desde: string; hasta: stri
   const activa = Boolean(desde || hasta);
   const texto = activa ? `${desde ? fechaCorta(desde) : "…"} – ${hasta ? fechaCorta(hasta) : "…"}` : "Emisión";
   return (
-    <Popover.Root open={abierto} onOpenChange={setAbierto}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
-            activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
-          }`}
-        >
-          <CalendarRange aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
-          {texto}
-          <Hilo activo={abierto} reposo={false} />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content sideOffset={6} align="start" className="anim-revelar z-50 w-64 space-y-3 rounded-lg border border-sand bg-papel p-3 shadow-md">
-          <CampoFecha etiqueta="Emitida desde" valor={desde} onValor={(v) => onCambiar(v, hasta)} />
-          <CampoFecha etiqueta="Emitida hasta" valor={hasta} onValor={(v) => onCambiar(desde, v)} />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+    // En escritorio, el globo junto a la píldora; en el celular, la hoja del sistema (CapaDeFiltro, ADR-0479).
+    <CapaDeFiltro
+      abierta={abierto}
+      onAbierta={setAbierto}
+      titulo="Fecha de emisión"
+      disparador={
+          <button
+            type="button"
+            className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
+              activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
+            }`}
+          >
+            <CalendarRange aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
+            {texto}
+            <Hilo activo={abierto} reposo={false} />
+          </button>
+      }
+    >
+      <div className="space-y-3 p-3">
+        <CampoFecha etiqueta="Emitida desde" valor={desde} onValor={(v) => onCambiar(v, hasta)} />
+        <CampoFecha etiqueta="Emitida hasta" valor={hasta} onValor={(v) => onCambiar(desde, v)} />
+      </div>
+    </CapaDeFiltro>
   );
 }

@@ -1,0 +1,101 @@
+{
+  "guia": "inicio",
+  "ruta": "/",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 59,
+  "controles": {
+    "app/(app)/page.tsx": [
+      "Link «inicio.vender»",
+      "Link «inicio.fijo»",
+      "Link «{a.titulo}»",
+      "input «(sin nombre)»",
+      "Link «{a.etiqueta}»"
+    ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «(sin nombre)»"
+    ],
+    "components/fondos/RendirFondo.tsx": [
+      "button «Volver a intentar»",
+      "CampoMonto «¿Cuánto tienes en la mano?»",
+      "CampoTexto «¿Qué pasó con lo que falta?»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «Volver a intentar» #2",
+      "CampoTexto «¿Por qué la retiras?»",
+      "Boton «Retirar para corregir»",
+      "Boton «Retirar para corregir» #2"
+    ],
+    "components/inicio-almacen/BloquesLaterales.tsx": [
+      "Link «{v.de.sigla}»",
+      "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
+      "Link «Bajar al piso»",
+      "Link «{a.etiqueta}»"
+    ],
+    "components/inicio-almacen/CabinaAlmacen.tsx": [
+      "Link «Crear producto»",
+      "Link «Colgar en tandas»",
+      "a «Ver los»",
+      "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
+      "Link «{a.titulo}»",
+      "Link «Empezar»",
+      "Link «{a.titulo}» #2"
+    ],
+    "components/inicio-almacen/DockAlmacen.tsx": [
+      "Link «Nuevo producto»",
+      "Link «Recibir mercadería»",
+      "Link «Colgar al piso en tandas»",
+      "Link «Escanear o buscar»"
+    ],
+    "components/inicio-almacen/NuevoEnOtrasSedes.tsx": [
+      "button «Anteriores»",
+      "button «Siguientes»",
+      "button «{c.etiqueta}»",
+      "Link «Ver ficha»",
+      "Link «Tomar foto»"
+    ],
+    "components/inicio-almacen/ReintentarLectura.tsx": [
+      "button «Reintentar»"
+    ],
+    "components/inicio-almacen/TeTocaAlmacen.tsx": [
+      "Link «{a.titulo}»"
+    ],
+    "components/inicio-almacen/VerMas.tsx": [
+      "BotonVerMas «{`Ver ${cantidad}»"
+    ],
+    "components/inicio/AjustarInicio.tsx": [
+      "button «→() => setAbierto(true)»",
+      "button «{a.titulo}»",
+      "button «Volver a lo recomendado para»",
+      "button «Listo»"
+    ],
+    "components/observatorio/Abajo.tsx": [
+      "button «Reintentar»",
+      "button «Cerrar»",
+      "Link «{d.tipo === \"diferencias\" ? \"Revisar\" : \"Ver\"}»",
+      "button «→() => tocar(x)»"
+    ],
+    "components/observatorio/Mapa.tsx": [
+      "button «Toda CAYLA»",
+      "button «{t.sigla}»"
+    ],
+    "components/observatorio/Observatorio.tsx": [
+      "button «inicio.obs-repetir»"
+    ],
+    "components/observatorio/PanelGlobal.tsx": [
+      "button «{n + 1}»"
+    ],
+    "components/observatorio/PanelTienda.tsx": [
+      "button «Reintentar»",
+      "button «{t}»",
+      "button «{x.cat}»",
+      "button «{`Ir a ${anterior.nombre}»",
+      "button «{`Ir a ${siguiente.nombre}»",
+      "button «Volver a toda CAYLA»",
+      "button «{x.porTienda?.[tienda.id]}»"
+    ],
+    "components/observatorio/piezas.tsx": [
+      "button «{guiaDe?.(v, n)}»"
+    ]
+  }
+}

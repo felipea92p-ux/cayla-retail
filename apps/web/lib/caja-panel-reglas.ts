@@ -36,8 +36,19 @@ export function minutosDeHora(hora: string): number {
   return (h || 0) * 60 + (m || 0);
 }
 
-export type MetodoRitmo = "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro";
-const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+export type MetodoRitmo = "efectivo" | "tarjeta" | "yape" | "transferencia" | "qr" | "otro";
+export const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "qr", "otro"];
+
+/** Los métodos de una venta tal como se leen en una fila: `"efectivo + qr"` → `"efectivo + QR"`. QR es una sigla y va en mayúscula;
+ *  los demás medios quedan como los manda la base. */
+export function textoMetodosDeVenta(texto: string | null): string {
+  return (texto ?? "")
+    .split("+")
+    .map((t) => t.trim())
+    .map((t) => (t.toLowerCase() === "qr" ? "QR" : t))
+    .filter(Boolean)
+    .join(" + ");
+}
 
 /** Los métodos de una venta: `"efectivo + yape"` → `["efectivo", "yape"]`. Sin repetir, y con Yape y
  *  Plin juntos, igual que la dona ("Yape / Plin"). Sin dato no inventa uno: lista vacía. */
@@ -46,7 +57,8 @@ export function metodosDe(texto: string | null): MetodoRitmo[] {
     .toLowerCase()
     .split("+")
     .map((t) => t.trim())
-    .filter(Boolean)
+    // El redondeo del efectivo no es una forma de pago (ADR-0311): la base ya no lo manda aquí, pero si llegara no sería «Otro».
+    .filter((t) => Boolean(t) && !t.includes("redondeo"))
     .map((t): MetodoRitmo =>
       t.includes("efectivo")
         ? "efectivo"
@@ -56,7 +68,9 @@ export function metodosDe(texto: string | null): MetodoRitmo[] {
             ? "yape"
             : t.includes("transferencia")
               ? "transferencia"
-              : "otro"
+              : /\bqr\b/.test(t)
+                ? "qr"
+                : "otro"
     );
   return Array.from(new Set(claves));
 }
@@ -273,19 +287,20 @@ export function turnoLargo(minutosAbierta: number, umbralHoras = HORAS_TURNO_LAR
 export const MOTIVO_AJUSTE_INGRESO = "Ajuste de caja (sobrante)";
 export const MOTIVO_AJUSTE_EGRESO = "Ajuste de caja (faltante)";
 
-const MOTIVOS_EGRESO = ["Retiro de efectivo", "Depósito bancario", MOTIVO_AJUSTE_EGRESO, "Compra de insumos", "Otro"];
+// «Compra de insumos» ya no es una salida (Felipe 2026-10-10, ADR-0375): es un gasto y va por el gasto rápido. La base la rechaza
+// desde 20261010223118; lo ya registrado con ese motivo no cambia (Gastos lo sigue sugiriendo como gasto al clasificarlo).
+const MOTIVOS_EGRESO = ["Retiro de efectivo", "Depósito bancario", MOTIVO_AJUSTE_EGRESO, "Otro"];
 const MOTIVOS_INGRESO = [MOTIVO_AJUSTE_INGRESO, "Otro"];
 
-/** El motivo es de ajuste: la base lo exige de líder (`registrar_movimiento_caja`, ADR-0056). */
+/** El motivo es de ajuste: marca `es_ajuste` en `registrar_movimiento_caja`. Desde ADR-0534 lo anota quien opera la caja, no solo el
+ *  líder (la líder lo valida en persona). */
 export function esMotivoDeAjuste(motivo: string): boolean {
   return motivo === MOTIVO_AJUSTE_INGRESO || motivo === MOTIVO_AJUSTE_EGRESO;
 }
 
-/** Los motivos que el modal ofrece. A quien no es líder no se le muestra «Ajuste»: la base lo rechazaría
- *  recién al enviar. Solo esconde lo que la base ya rechaza — el candado real sigue siendo la RPC. */
-export function motivosDeMovimiento(tipo: "ingreso" | "egreso", esLider: boolean): string[] {
-  const todos = tipo === "egreso" ? MOTIVOS_EGRESO : MOTIVOS_INGRESO;
-  return esLider ? todos : todos.filter((m) => !esMotivoDeAjuste(m));
+/** Los motivos que el modal ofrece. Desde ADR-0534 el ajuste lo ve toda cuenta que opera la caja. */
+export function motivosDeMovimiento(tipo: "ingreso" | "egreso"): string[] {
+  return tipo === "egreso" ? MOTIVOS_EGRESO : MOTIVOS_INGRESO;
 }
 
 /** «Depósito bancario» y «Otro» necesitan un rastro (N.º de operación o explicación) para poder revisarse después. */

@@ -28,10 +28,12 @@ export type PerfilMenu = {
  *  (`lib/menu.ts`) — esta lista ya NO las nombra una por una: quien quiera vive «dentro» de Abastecimiento se disuelve
  *  a esta misma clave cuando a un perfil solo le queda una hija visible ahí (Recibir, para quien no ve el dinero). La
  *  clave es lo que sigue al punto del id del nodo (`produccion.ordenes`, `produccion.abastecimiento`…). Eficiencia se
- *  suma en `lib/menu.ts` cuando exista (fase F7). */
-export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion";
+ *  suma en `lib/menu.ts` cuando exista (fase F7). «Órdenes de insumos» (ADR-0362 fase 7) vive dentro de Abastecimiento: a quien
+ *  solo le queda ella ahí, se disuelve a `ordenesInsumos`. */
+export type ClaveMenuProduccion = "resumenProduccion" | "ordenes" | "insumos" | "abastecimiento" | "recibirProduccion" | "ordenesInsumos";
 
-export type ClaveMenuCompras = "proveedores" | "comprobantes" | "recibir" | "porPagar" | "notasCredito";
+// ADR-0504: «Revisar compras» (`fondos`) y «Por pagar» (`porPagar`) dejaron de ser filas: son pestañas de «Historial de compras» (`comprobantes`).
+export type ClaveMenuCompras = "plan" | "miPlata" | "proveedores" | "comprobantes";
 
 /** Compras es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra (decisión de Felipe, 2026-09-21), del
  *  mismo modo que Producción no se muestra parado en una tienda. Se decide por el TIPO de la ubicación activa, no por su
@@ -53,8 +55,8 @@ export function hijosMenuProduccion(perfil: PerfilMenu): ClaveMenuProduccion[] {
 }
 
 /** Compras es solo de quien ve el dinero (su layout redirige al resto) y solo en tiendas y almacenes (`puedeVerCompras`).
- *  Proveedor → factura → recepción → pago → notas de crédito. El «Recibir mercadería» de quien no es líder vive en
- *  Inventario, donde está el stock. */
+ *  Plan → mi plata → proveedor → historial (ADR-0504: Revisar compras y Por pagar son pestañas de esta última fila). El «Recibir
+ *  mercadería» de quien no es líder vive en Inventario, donde está el stock. */
 export function hijosMenuCompras(perfil: PerfilMenu): ClaveMenuCompras[] {
   return hijosDe("compras", perfil) as ClaveMenuCompras[];
 }

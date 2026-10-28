@@ -8,6 +8,7 @@ import { BusquedaFacturacionContext } from "@/lib/useFacturacionBusqueda";
 import { CajaDeBusqueda, FacturacionCabecera, type CifrasCabecera } from "@/components/FacturacionCabecera";
 import { FacturacionPestanas } from "@/components/FacturacionPestanas";
 import { PestanasComprobantesMovil } from "@/components/PestanasComprobantesMovil";
+import { Aviso } from "@/components/ui/Aviso";
 
 // El marco de /vender/comprobantes (ADR-0124; «Facturación» hasta 2026-09-22): cabecera, aviso de la cola,
 // pestañas y búsqueda. No dibuja modales (2026-09-22): «Emitir comprobante» se quitó (cada venta declara su
@@ -50,26 +51,22 @@ export function FacturacionShell({
         {/* D-60: si algo pasa más de una hora sin llegar a SUNAT, el reintento solo no alcanzó — se dice
             arriba, en todas las vistas, con el camino a la cola. */}
         {atrasadosEnCola > 0 && (
-          <Link
-            href="/vender/comprobantes/por-reintentar"
-            role="alert"
-            className="anim-sube flex items-center justify-between gap-3 rounded-[12px] border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-[14px] text-rojo-profundo outline-none transition-colors duration-200 hover:bg-rojo/[0.1] focus-visible:outline focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
-            style={{ "--i": 1 } as CSSProperties}
-          >
-            <span>
-              <b className="font-semibold">
-                {atrasadosEnCola === 1 ? "1 comprobante lleva" : `${atrasadosEnCola} comprobantes llevan`} más de 1 hora sin llegar a SUNAT.
-              </b>{" "}
+          <div className="anim-sube" style={{ "--i": 1 } as CSSProperties}>
+            <Aviso
+              tono="error"
+              guia="comprobantes.aviso-sunat"
+              titulo={`${atrasadosEnCola === 1 ? "1 comprobante lleva" : `${atrasadosEnCola} comprobantes llevan`} más de 1 hora sin llegar a SUNAT.`}
+              accion={<Link href="/vender/comprobantes/por-reintentar">Ver Por enviar</Link>}
+            >
               El reintento automático no alcanzó: revisa el error.
-            </span>
-            <span className="shrink-0 font-semibold">Ver Por enviar →</span>
-          </Link>
+            </Aviso>
+          </div>
         )}
         <div className="anim-sube flex flex-wrap items-center justify-between gap-x-4 gap-y-3" style={{ "--i": 2 } as CSSProperties}>
           {/* `useSearchParams` (en las pestañas) exige un <Suspense>. Como el layout es
               dinámico nunca llega a mostrarse el respaldo; `null` basta. */}
           {/* En celular y tablet las pestañas van abajo (`PestanasComprobantesMovil`); arriba queda la búsqueda. */}
-          <div className="max-lg:hidden">
+          <div className="max-lg:hidden" data-guia="comprobantes.pestanas">
             <Suspense fallback={null}>
               <FacturacionPestanas conteos={conteos} />
             </Suspense>

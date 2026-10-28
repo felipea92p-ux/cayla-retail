@@ -1,16 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
-import { Copy, X } from "lucide-react";
-import { avisar } from "@/components/ui/Avisos";
+import { useEffect, type ReactNode } from "react";
+import { X } from "lucide-react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
-import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion, avisoBancarizacionLote } from "@/lib/no-deducible-reglas";
 
 // Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
@@ -58,17 +62,6 @@ export function Tilde() {
   );
 }
 
-// El acuse de que se copió es el propio botón (✓ Copiado, `DatoCopiable`); solo un fallo merece un aviso.
-async function copiarAlPortapapeles(valor: string, que: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(valor);
-    return true;
-  } catch {
-    avisar.error(`No se pudo copiar ${que.toLowerCase()}`, { detalle: "Selecciónalo y cópialo a mano." });
-    return false;
-  }
-}
-
 /**
  * La franja de arriba: cómo suele pagársele a este proveedor y a cuántos días. Los DATOS para pagar (cuenta, CCI, celular…) ya no
  * están aquí, todos juntos: aparecen debajo del medio que se elige (`DatosDelMedio`), que es cuando hacen falta. No dibuja nada si
@@ -77,7 +70,7 @@ async function copiarAlPortapapeles(valor: string, que: string): Promise<boolean
 export function DatosDelProveedor({ datos }: { datos?: DatosPagoProveedor }) {
   if (!datos || (!datos.formaPagoPreferida && datos.plazoCreditoDias == null)) return null;
   return (
-    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand bg-sand/40 px-4 py-3">
+    <div data-guia="pago-modal.datos" className="flex flex-wrap items-baseline gap-x-8 gap-y-1 rounded-xl border border-sand bg-sand/40 px-4 py-3">
       <div>
         <p className="label-cayla text-[10px] text-tinta/55">Paga por</p>
         <p className="mt-0.5 text-sm text-tinta">
@@ -126,9 +119,9 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
     <p className="text-sm text-tinta/75">
       Todavía no se cargó {que} de este proveedor.{" "}
       {ficha && (
-        <Link href={ficha} target="_blank" className="label-cayla text-[11px] text-rojo hover:underline">
-          Agregarlo en su ficha →
-        </Link>
+        <EnlaceVer href={ficha} target="_blank">
+          Agregarlo en su ficha
+        </EnlaceVer>
       )}
     </p>
   );
@@ -143,8 +136,8 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {datos?.banco && <DatoSimple etiqueta="Banco" valor={datos.banco} />}
         {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota="Compáralo con el nombre que muestra el banco antes de confirmar." />}
-        {cuenta && <DatoCopiable etiqueta="Cuenta" valor={cuenta} onCopiar={() => copiarAlPortapapeles(cuenta, "Cuenta")} />}
-        {cci && <DatoCopiable etiqueta="CCI" valor={cciConGuiones(cci)} onCopiar={() => copiarAlPortapapeles(cci, "CCI")} />}
+        {cuenta && <DatoCopiable etiqueta="Cuenta" que="la cuenta" valor={cuenta} copiar={cuenta} />}
+        {cci && <DatoCopiable etiqueta="CCI" que="el CCI" valor={cciConGuiones(cci)} copiar={cci} />}
       </div>
     ) : (
       falta(medio === "transferencia" ? "la cuenta ni el CCI" : "el número de cuenta")
@@ -155,7 +148,7 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
     const otra = medio === "yape" ? "plin" : "yape";
     cuerpo = tiene ? (
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} valor={celularConEspacios(celular!)} onCopiar={() => copiarAlPortapapeles(celular!, "Celular")} />
+        <DatoCopiable etiqueta={`Celular ${ETIQUETA_METODO_PAGO[medio]}`} que="el celular" valor={celularConEspacios(celular!)} copiar={celular!} />
         {datos?.titular && <DatoSimple etiqueta="Titular" valor={datos.titular} nota={`Compáralo con el nombre que muestra ${ETIQUETA_METODO_PAGO[medio]} antes de confirmar.`} />}
       </div>
     ) : celular && datos?.billeteras?.includes(otra) ? (
@@ -181,33 +174,14 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
   );
 }
 
-function DatoCopiable({ etiqueta, valor, onCopiar }: { etiqueta: string; valor: string; onCopiar: () => Promise<boolean> }) {
-  // «✓ Copiado» durante un momento y vuelve el ícono: el gesto se confirma donde se hizo, sin un aviso aparte.
-  const [copiado, setCopiado] = useState(false);
-  useEffect(() => {
-    if (!copiado) return;
-    const t = setTimeout(() => setCopiado(false), 1700);
-    return () => clearTimeout(t);
-  }, [copiado]);
+// Copiar es la pieza del sistema (<BotonCopiar>, ronda 13): el ícono junto al dato, que se vuelve ✓ y dice «Copiado» donde se tocó.
+function DatoCopiable({ etiqueta, que, valor, copiar }: { etiqueta: string; que: string; valor: string; copiar: string }) {
   return (
     <div className="min-w-0">
       <p className="label-cayla text-[10px] text-tinta/55">{etiqueta}</p>
       <p className="mt-1 flex items-center gap-2 text-sm tabular-nums text-tinta">
         <span className="truncate">{valor}</span>
-        <button
-          type="button"
-          onClick={async () => setCopiado(await onCopiar())}
-          aria-label={`Copiar ${etiqueta.toLowerCase()}`}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-[11px] transition-colors duration-200 ${copiado ? "bg-verde/10 text-verde-profundo" : "text-tinta/55 hover:text-rojo"}`}
-        >
-          {copiado ? (
-            <>
-              <Tilde /> Copiado
-            </>
-          ) : (
-            <Copy aria-hidden className="h-3.5 w-3.5" />
-          )}
-        </button>
+        <BotonCopiar forma="icono" texto={copiar} que={que} className="-my-1.5" />
       </p>
     </div>
   );
@@ -344,6 +318,8 @@ export function MediosDePago({
   id = "pago",
   exacto = false,
   cuentas,
+  totalComprobante,
+  aplicaciones,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -364,6 +340,10 @@ export function MediosDePago({
   exacto?: boolean;
   /** ADR-0195 F3b: con las cuentas, cada medio pregunta «Sale de» (propuesta según el medio y la tienda). */
   cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  /** ADR-0362 (fase 6 · actividad 6): el total del COMPROBANTE que se paga; de S/ 2 000 o más avisa lo que queda «no deducible». */
+  totalComprobante?: number;
+  /** Pagar juntos: cada comprobante con su total y lo que recibe de este pago (el aviso de lo no deducible mira a cada uno). */
+  aplicaciones?: readonly { total: number; monto: number }[];
 }) {
   const suma = sumaLineasPago(lineas);
   const falta = Math.round((objetivo - suma) * 100) / 100;
@@ -401,6 +381,19 @@ export function MediosDePago({
     onLineas([{ monto: usar.toFixed(2), metodo: METODO_SALDO_A_FAVOR, referencia: "" }, ...(resto > 0 ? [{ monto: resto.toFixed(2), metodo: lineas[0]?.metodo === METODO_SALDO_A_FAVOR ? "transferencia" : (lineas[0]?.metodo ?? "transferencia"), referencia: "" }] : [])]);
   };
   const fechaCampo = <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={onFecha} required />;
+  // Lo que de verdad sale por cada línea: en «Pagar juntos» con un solo medio el monto no se escribe, es todo el pago.
+  const conMontos = exacto && !varios ? [{ ...lineas[0], monto: objetivo.toFixed(2) }] : lineas;
+  // Lo que queda «no deducible» (ADR-0362, fase 6): cada medio con el tipo de la cuenta de la que sale (un fondo cuenta con cualquiera).
+  const tipoCuentaDe = (l: LineaPago) => {
+    if (!cuentas || l.metodo === METODO_SALDO_A_FAVOR) return null;
+    const idCuenta = cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId);
+    return cuentas.lista.find((c) => c.id === idCuenta)?.tipo ?? null;
+  };
+  const lineasAviso = conMontos.map((l) => ({ monto: l.monto, medio: l.metodo, tipoCuenta: tipoCuentaDe(l) }));
+  const avisoNoDeducible = aplicaciones ? avisoBancarizacionLote(aplicaciones, lineasAviso) : avisoBancarizacion(totalComprobante, lineasAviso);
+  const reservarAviso = aplicaciones
+    ? aplicaciones.some((a) => a.monto > 0 && a.total >= UMBRAL_BANCARIZACION)
+    : (totalComprobante ?? 0) >= UMBRAL_BANCARIZACION;
   // «Sale de» (F3b). Con saldo a favor no sale de ninguna cuenta: el campo queda invisible y conserva su alto (ADR-0185).
   const saleDe = (l: LineaPago, i: number) =>
     cuentas ? (
@@ -415,12 +408,13 @@ export function MediosDePago({
           valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
           onValor={(v) => cambiar(i, { cuentaId: v })}
           deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+          montoDelFondo={usadoDelFondo(conMontos, cuentas.lista, i)}
         />
       </div>
     ) : null;
 
   return (
-    <div className="space-y-3" id={id}>
+    <div className="space-y-3" id={id} data-guia="pago-modal.medios">
       {!varios ? (
         <div className="grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr]">
           <div>
@@ -444,8 +438,8 @@ export function MediosDePago({
           <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
             {lineas.map((l, i) => (
               <div key={i} className="anim-revelar relative grid items-start gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-[7.5rem_1fr_9.5rem_1.75rem]">
-                <label className="block">
-                  <span className="label-cayla mb-1 block text-[10px] text-tinta/55">{`Monto ${i + 1}`}</span>
+                <label className="campo block">
+                  <span className="campo-etiqueta mb-1">{`Monto ${i + 1}`}</span>
                   <input
                     id={`${id}-monto-${i}`}
                     inputMode="decimal"
@@ -454,7 +448,7 @@ export function MediosDePago({
                     onFocus={(e) => e.target.select()}
                     placeholder="0.00"
                     aria-label={`Monto del medio ${i + 1}`}
-                    className="w-full rounded-lg border border-tinta/25 bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-rojo"
+                    className="caja-campo-input text-right tabular-nums"
                   />
                 </label>
                 <div>
@@ -478,12 +472,14 @@ export function MediosDePago({
               </div>
             ))}
           </div>
-          {/* Cómo se reparte el pago: un tramo por medio; crece y se reacomoda al escribir. */}
-          <div aria-hidden className="flex h-[5px] gap-0.5">
-            {lineas.map((l, i) => (
-              <i key={i} className={`block h-full min-w-0 basis-0 rounded-sm transition-[flex-grow] duration-500 ease-cayla ${COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)]}`} style={{ flexGrow: Math.max(0, Number(l.monto) || 0) }} />
-            ))}
-          </div>
+          {/* Cómo se reparte el pago: un tramo por medio; crece y se reacomoda al escribir. Es `<BarraApilada>` (ADR-0358), decorativa:
+              los montos ya están escritos en los campos de arriba. */}
+          <BarraApilada
+            decorativa
+            viva
+            alto={4}
+            segmentos={lineas.map((l, i) => ({ clave: String(i), nombre: `Medio ${i + 1}`, valor: Math.max(0, Number(l.monto) || 0), clase: COLORES_REPARTO[Math.min(i, COLORES_REPARTO.length - 1)] }))}
+          />
           <div className="w-full sm:w-44">{fechaCampo}</div>
         </>
       )}
@@ -518,8 +514,11 @@ export function MediosDePago({
             Completar con el último medio
           </button>
         )}
-        {favorUsado > saldoFavor + 0.005 && <p className="w-full text-xs text-rojo">Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.</p>}
+        {favorUsado > saldoFavor + 0.005 && <Aviso tono="error" chico className="w-full">
+            Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.
+          </Aviso>}
       </div>
+      <AvisoNoDeducible aviso={avisoNoDeducible} reservar={reservarAviso} />
     </div>
   );
 }

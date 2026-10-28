@@ -4,15 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 // viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
-import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { normalizarCombinaCon, normalizarDescripcion, normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+import { esFamiliaDeColor } from "@/lib/colores-familias";
 
 // Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
 function mensajeDeError(error: ErrorEscritura, accion: string) {
   if (error?.code === "23505" && (error.message ?? "").includes("pantone")) return "Ese código Pantone ya lo tiene otro color.";
+  // El disparador `colores_valida_combina_con` (20261003190000) ya habla en español y nombra el código: «El color ZZZ no existe…».
+  if ((error?.code === "23503" || error?.code === "23514") && /combina/i.test(error.message ?? "")) return error.message ?? "Revisa los colores con que combina.";
   return traducirError(error, accion);
 }
 
 const ERROR_PANTONE = "El código Pantone tiene la forma 19-1557 TCX (o solo 19-1557).";
+const ERROR_DESCRIPCION = "La descripción tiene como máximo 300 caracteres.";
+const ERROR_COMBINA_CON = "«Combina con» son hasta 8 colores, cada uno con su código de 3 letras.";
 
 // POST /api/productos/colores → agrega un color al vocabulario cerrado.
 //
@@ -23,33 +28,20 @@ const ERROR_PANTONE = "El código Pantone tiene la forma 19-1557 TCX (o solo 19-
 // PROMETE: el color queda disponible de inmediato para cualquier prenda
 //   nueva o existente — es la misma tabla que ya usa `getCatalogo()`
 //   (lib/catalogo-v2.ts) para la pantalla de Productos.
-// ASUME: sesión válida (cualquier persona activa, no solo Líder — decisión
-//   2026-09-16: "cualquiera propone, un Líder aprueba"). Quién propone no se
-//   valida acá: el estado real (`pendiente`/`aprobado`) lo decide un trigger
-//   en la base (`retail.fn_colores_estado_trigger`,
-//   `20260916220000_colores_proponer_aprobar.sql`) mirando si quien llama es
-//   Líder — nunca lo que mande este endpoint.
+// ASUME: sesión válida (cualquier persona activa — decisión 2026-09-16:
+//   "cualquiera propone"). Quién agrega no se valida acá: el estado lo pone un
+//   trigger en la base (`retail.fn_colores_estado_trigger`), que desde
+//   ADR-0534 (2026-10-27) lo deja `aprobado` lo cree quien lo cree — nunca lo
+//   que mande este endpoint.
 // NO HACE: no normaliza duplicados por su cuenta. Si "Azul marino" ya
 //   existe, `colores_clave_unica` lo rechaza y el mensaje se lo dice a la
 //   persona — no se le oculta silenciosamente ni se fusiona con el existente.
 //   Tampoco hace falta una pantalla de "fusionar": ese mismo candado hace
 //   imposible que dos colores equivalentes convivan como filas distintas.
-const FAMILIAS_COLOR = [
-  "neutro",
-  "azul",
-  "rojo",
-  "amarillo",
-  "verde",
-  "morado",
-  "tierra",
-  "metalico",
-  "estampado",
-] as const;
-
 export async function POST(request: Request) {
   // Sin `requirePersonaActualV2()` guardando la puerta, esta ruta sería
-  // alcanzable sin sesión — sigue siendo la puerta de entrada, solo dejó de
-  // exigir Líder. El resultado (`estado`) no lo elige nadie de acá.
+  // alcanzable sin sesión — sigue siendo la puerta de entrada. El resultado
+  // (`estado`) no lo elige nadie de acá.
   await requirePersonaActualV2();
 
   const cuerpo = await request.json().catch(() => null);
@@ -60,6 +52,8 @@ export async function POST(request: Request) {
   const notas = typeof cuerpo?.notas === "string" && cuerpo.notas.trim() ? cuerpo.notas.trim() : null;
   const pantoneTcx = normalizarPantone(typeof cuerpo?.pantoneTcx === "string" ? cuerpo.pantoneTcx : null);
   const sinonimos = normalizarSinonimos(Array.isArray(cuerpo?.sinonimos) || typeof cuerpo?.sinonimos === "string" ? cuerpo.sinonimos : null, nombre);
+  const descripcion = normalizarDescripcion(typeof cuerpo?.descripcion === "string" ? cuerpo.descripcion : null);
+  const combinaCon = normalizarCombinaCon(cuerpo?.combinaCon, codigo);
 
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
@@ -67,7 +61,7 @@ export async function POST(request: Request) {
   if (!/^[A-Z]{3}$/.test(codigo)) {
     return Response.json({ error: "El código tiene que ser exactamente 3 letras (ej. VEB)." }, { status: 400 });
   }
-  if (!FAMILIAS_COLOR.includes(familiaColor as (typeof FAMILIAS_COLOR)[number])) {
+  if (!esFamiliaDeColor(familiaColor)) {
     return Response.json({ error: "Elige una familia de color de la lista." }, { status: 400 });
   }
   // Un color nuevo sin hex se veía como el beige de relleno: obligarlo acá
@@ -78,15 +72,21 @@ export async function POST(request: Request) {
   if (pantoneTcx === "invalido") {
     return Response.json({ error: ERROR_PANTONE }, { status: 400 });
   }
+  if (descripcion === "invalido") {
+    return Response.json({ error: ERROR_DESCRIPCION }, { status: 400 });
+  }
+  if (combinaCon === "invalido") {
+    return Response.json({ error: ERROR_COMBINA_CON }, { status: 400 });
+  }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  // orden=2000: los de CAYLA usan una centena por familia (neutro 100-190 …
-  // metálico 800-890, de claro a oscuro: 20260926210000); un color agregado
-  // desde esta pantalla entra al final de su familia y de cualquier lista.
+  // orden=2000: un color agregado desde esta pantalla entra al final de cualquier lista que todavía ordene por
+  // `colores.orden`. Las pantallas de colores ya no lo usan: la carta y Atributos ordenan por la escala del color
+  // (`lib/color-escala.ts`, ADR-0312), así que el nuevo cae en su lugar solo, por su familia y su claridad.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos })
-    .select("codigo, nombre, familia_color, hex, notas, estado, pantone_tcx, sinonimos")
+    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos, descripcion, combina_con: combinaCon })
+    .select("codigo, nombre, familia_color, tipo, hex, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
     .single();
 
   if (error) {
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
   if (!puede(persona, "editarCatalogo")) {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de colores." }, { status: 403 });
+    return Response.json({ error: "Editar el vocabulario de colores necesita el módulo Productos o Atributos en tu rol." }, { status: 403 });
   }
 
   const cuerpo = await request.json().catch(() => null);
@@ -127,6 +127,8 @@ export async function PATCH(request: Request) {
     estado?: string;
     pantone_tcx?: string | null;
     sinonimos?: string[];
+    descripcion?: string | null;
+    combina_con?: string[];
   } = {};
 
   // Aprobar (pendiente→aprobado, o rechazado→aprobado = "reactivar retira
@@ -150,7 +152,7 @@ export async function PATCH(request: Request) {
   }
 
   if ("familiaColor" in cuerpoObj) {
-    if (!FAMILIAS_COLOR.includes(cuerpoObj.familiaColor as (typeof FAMILIAS_COLOR)[number])) {
+    if (!esFamiliaDeColor(cuerpoObj.familiaColor)) {
       return Response.json({ error: "Elige una familia de color de la lista." }, { status: 400 });
     }
     patch.familia_color = cuerpoObj.familiaColor as string;
@@ -192,6 +194,22 @@ export async function PATCH(request: Request) {
     );
   }
 
+  if ("descripcion" in cuerpoObj) {
+    const descripcion = normalizarDescripcion(typeof cuerpoObj.descripcion === "string" ? cuerpoObj.descripcion : null);
+    if (descripcion === "invalido") {
+      return Response.json({ error: ERROR_DESCRIPCION }, { status: 400 });
+    }
+    patch.descripcion = descripcion;
+  }
+
+  if ("combinaCon" in cuerpoObj) {
+    const combinaCon = normalizarCombinaCon(cuerpoObj.combinaCon, codigo);
+    if (combinaCon === "invalido") {
+      return Response.json({ error: ERROR_COMBINA_CON }, { status: 400 });
+    }
+    patch.combina_con = combinaCon;
+  }
+
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
@@ -203,7 +221,7 @@ export async function PATCH(request: Request) {
         .eq("color_codigo", codigo)
         .eq("activo", true);
       if (errorConteo) {
-        return Response.json({ error: traducirError(errorConteo, "revisar las variantes de este color") }, { status: 400 });
+        return Response.json({ error: traducirError(errorConteo, "revisar las variantes de este color", { lectura: true }) }, { status: 400 });
       }
       if ((count ?? 0) > 0) {
         const n = count ?? 0;
@@ -226,7 +244,7 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
+    .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
     .single();
 
   if (error) {

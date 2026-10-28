@@ -2,6 +2,8 @@
 // `CerrarCajaModalV2`, `AbrirCajaFormV2`, el historial de cierres y sus pruebas. Los mismos candados viven en la base
 // (`cerrar_caja`, `abrir_caja`, `caja_traslados`); aquí solo se adelantan para que la pantalla explique antes de enviar.
 
+import { leerMontoPlata } from "./monto-plata-reglas";
+
 export type DestinoTraslado = "caja_fuerte" | "banco" | "lider";
 
 export const DESTINOS_TRASLADO: {
@@ -21,12 +23,10 @@ export function etiquetaDestino(destino: string): string {
   return DESTINOS_TRASLADO.find((d) => d.valor === destino)?.etiqueta ?? destino;
 }
 
-/** Un monto escrito por la persona («1,950.50», «1950», «»). Vacío o ilegible → null. */
+/** Un monto escrito por la persona («1,950.50», «1299,50», «1950», «»). Vacío o ilegible → null. Desde ADR-0419 (Felipe 2026-10-15) lee
+ *  con la regla única de plata (`leerMontoPlata`): antes borraba todas las comas y «1299,50» se contaba como 129 950 en el arqueo. */
 export function leerMonto(texto: string): number | null {
-  const limpio = texto.replace(/\s/g, "").replace(/,/g, "");
-  if (limpio === "") return null;
-  const n = Number(limpio);
-  return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+  return leerMontoPlata(texto);
 }
 
 export const cuadra = (a: number, b: number) => Math.abs(a - b) < 0.01;
@@ -47,7 +47,7 @@ export function motivoTrasladoInvalido(p: {
   referencia: string;
 }): string | null {
   if (p.trasladado < 0) return "El monto a trasladar no puede ser negativo.";
-  if (p.trasladado > p.contado + 0.001) return `No puedes trasladar más de lo que contaste (S/ ${p.contado.toFixed(2)}).`;
+  if (p.trasladado > p.contado + 0.001) return `No puedes trasladar más de lo que contaste (S/\u00a0${p.contado.toFixed(2)}).`;
   if (p.trasladado === 0) return null;
   if (!p.destino) return "Elige a dónde va el efectivo que trasladas.";
   const elegido = DESTINOS_TRASLADO.find((d) => d.valor === p.destino);

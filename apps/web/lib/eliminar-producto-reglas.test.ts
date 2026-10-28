@@ -38,18 +38,18 @@ describe("leerComoEliminar", () => {
 });
 
 describe("ofreceEliminar y rpcParaEliminar", () => {
-  it("sin historia: eliminar_producto (Líder o Admin)", () => {
+  it("sin historia: eliminar_producto", () => {
     expect(ofreceEliminar(base)).toBe(true);
     expect(rpcParaEliminar(base)).toBe("eliminar_producto");
   });
 
-  it("con historia de stock y cuenta Admin: eliminar_producto_con_historia", () => {
+  it("con historia de stock y la base dice que puede: eliminar_producto_con_historia", () => {
     const c = { ...base, nivel: "con_historia" as const };
     expect(ofreceEliminar(c)).toBe(true);
     expect(rpcParaEliminar(c)).toBe("eliminar_producto_con_historia");
   });
 
-  it("con historia de stock y un Líder que no es Admin: ningún botón", () => {
+  it("con historia de stock y la base dice que esta cuenta no puede (una base sin 20261003232000): ningún botón", () => {
     const c = { ...base, nivel: "con_historia" as const, puedes: false };
     expect(ofreceEliminar(c)).toBe(false);
     expect(rpcParaEliminar(c)).toBeNull();
@@ -94,7 +94,7 @@ describe("textos", () => {
 
   it("por qué no, según el caso", () => {
     expect(textoNoSePuede("Polo Básico", { nivel: "con_documentos", razon: "tiene líneas de venta (4), líneas de conteo (4)", prendas: 2 })).toBe(
-      "«Polo Básico» tiene líneas de venta (4), líneas de conteo (4). Del otro lado hay una clienta, un proveedor, otra sede o dinero, y eso no se borra desde aquí."
+      "«Polo Básico» tiene líneas de venta (4), líneas de conteo (4). Del otro lado hay un cliente, un proveedor, otra sede o dinero, y eso no se borra desde aquí."
     );
     expect(textoNoSePuede("Prenda sin Registrar", { nivel: "sistema", razon: "es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita", prendas: 0 })).toBe(
       "«Prenda sin Registrar» es una pieza del sistema: el cobro de «Monto manual» del punto de venta la necesita."
@@ -104,13 +104,13 @@ describe("textos", () => {
 
   it("con historia y en 0: dice primero que no hay unidades, para que el número no se lea como stock (caso «Fdhh», 2026-09-28)", () => {
     expect(textoNoSePuede("Fdhh", { nivel: "con_historia", razon: "tiene movimientos de stock (6)", prendas: 0 })).toBe(
-      "«Fdhh» no tiene unidades en stock, pero ya tiene historia: movimientos de stock (6). Solo una cuenta Admin puede eliminarlo con su historia."
+      "«Fdhh» no tiene unidades en stock, pero ya tiene historia: movimientos de stock (6). Tu cuenta no puede eliminarlo con su historia."
     );
   });
 
   it("con historia y con unidades: la razón se dice tal cual", () => {
     expect(textoNoSePuede("Fhfh", { nivel: "con_historia", razon: "tiene movimientos de stock (3)", prendas: 15 })).toBe(
-      "«Fhfh» tiene movimientos de stock (3). Solo una cuenta Admin puede eliminarlo con su historia."
+      "«Fhfh» tiene movimientos de stock (3). Tu cuenta no puede eliminarlo con su historia."
     );
   });
 });
@@ -120,12 +120,32 @@ describe("salidaSinEliminar", () => {
     expect(salidaSinEliminar("activo", "con_documentos")).toEqual({
       texto: "Si ya no lo quieres a la venta, márcalo como descontinuado: su historia se conserva.",
       irAEditar: true,
+      desactivar: false,
     });
     expect(salidaSinEliminar("activo", "con_historia")?.irAEditar).toBe(true);
   });
 
+  it("activo y quien abrió la ventana puede abrir la hoja: se ofrece «Desactivar» ahí mismo, no el rodeo por Editar", () => {
+    expect(salidaSinEliminar("activo", "con_documentos", true)).toEqual({
+      texto: "Si ya no lo quieres a la venta, desactívalo: sale de la lista y su historia se conserva.",
+      irAEditar: false,
+      desactivar: true,
+    });
+    // Sin saber el estado (Existencias) y con la hoja a mano, se trata como activo.
+    expect(salidaSinEliminar(null, "con_historia", true)?.desactivar).toBe(true);
+  });
+
+  it("ya descontinuado o pieza del sistema: no se ofrece desactivar aunque se pueda", () => {
+    expect(salidaSinEliminar("descontinuado", "con_documentos", true)).toEqual({
+      texto: "Ya está descontinuado: su historia se conserva.",
+      irAEditar: false,
+      desactivar: false,
+    });
+    expect(salidaSinEliminar("activo", "sistema", true)).toBeNull();
+  });
+
   it("descontinuado: ya está retirado, no hay nada que sugerir", () => {
-    expect(salidaSinEliminar("descontinuado", "con_documentos")).toEqual({ texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false });
+    expect(salidaSinEliminar("descontinuado", "con_documentos")).toEqual({ texto: "Ya está descontinuado: su historia se conserva.", irAEditar: false, desactivar: false });
   });
 
   it("una pieza del sistema no tiene salida: no se retira de ninguna manera", () => {

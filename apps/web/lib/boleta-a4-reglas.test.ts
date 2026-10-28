@@ -2,32 +2,30 @@ import { describe, it, expect } from "vitest";
 import { lineasA4, numeroA4 } from "./boleta-a4-reglas";
 import { armarRecibo } from "./recibo-reglas";
 
-// El A4 muestra los valores SIN IGV (como el original de Alegra) y la suma de la columna
-// Total tiene que ser «Op. gravada» al centavo: si no, el papel se contradice a simple vista.
+// El A4 muestra la misma plata que el ticket: precio unitario, descuento e importe CON IGV
+// incluido, línea por línea. El desglose de SUNAT (Op. gravada/IGV/TOTAL) va aparte, al pie.
 
 const cliente = { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null };
 const comprobante = { tipo: "boleta" as const, serie: "B002", numero: 9380, created_at: "2026-09-05T19:40:51Z" };
 const linea = (precioUnitario: number, extra: object = {}) => ({ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario, descuentoUnitario: 0, ...extra });
 
 describe("lineasA4", () => {
-  it("valor unitario y total van sin IGV, a 2 decimales (no «S/42.288136»)", () => {
+  it("el precio unitario y el total van CON IGV incluido, igual que el ticket (P.U. 49.90, no 42.29)", () => {
     const r = armarRecibo({ comprobante, sede: "Tienda TRU", cliente, lineas: [linea(49.9)], pagos: [{ metodo: "efectivo", monto: 49.9 }], tasaIgv: 0.18 });
     const [l] = lineasA4(r);
-    expect(l).toMatchObject({ cantidad: 1, unidad: "Unidad", valorUnitario: 42.29, total: 42.29 });
+    expect(l).toMatchObject({ cantidad: 1, unidad: "Unidad", precioUnitario: 49.9, total: 49.9 });
   });
 
-  it("la columna Total suma exactamente la Op. gravada, aunque el redondeo por línea no cuadre", () => {
-    // 3 × 10.00 con IGV: 10/1.18 = 8.47 por línea (25.41) pero la gravada es 25.42.
+  it("la columna Total suma exactamente el TOTAL del recibo (no la Op. gravada)", () => {
     const r = armarRecibo({ comprobante, sede: "Tienda TRU", cliente, lineas: [linea(10), linea(10), linea(10)], pagos: [{ metodo: "efectivo", monto: 30 }], tasaIgv: 0.18 });
     const ls = lineasA4(r);
-    expect(r.subtotal).toBe(25.42);
-    expect(ls.map((l) => l.total)).toEqual([8.47, 8.47, 8.48]); // el centavo de ajuste cae en la última línea
-    expect(Math.round(ls.reduce((a, l) => a + l.total, 0) * 100) / 100).toBe(r.subtotal);
+    expect(ls.map((l) => l.total)).toEqual([10, 10, 10]);
+    expect(Math.round(ls.reduce((a, l) => a + l.total, 0) * 100) / 100).toBe(r.total);
   });
 
-  it("el descuento es el importe por unidad sin IGV (no un %)", () => {
+  it("el descuento es el importe por unidad CON IGV (el mismo que descuenta el ticket)", () => {
     const r = armarRecibo({ comprobante, sede: "Tienda TRU", cliente, lineas: [linea(49.9, { descuentoUnitario: 2.5 })], pagos: [{ metodo: "efectivo", monto: 47.4 }], tasaIgv: 0.18 });
-    expect(lineasA4(r)[0]?.descuento).toBe(2.12); // 2.50 / 1.18
+    expect(lineasA4(r)[0]?.descuento).toBe(2.5);
   });
 
   it("lleva el código y el detalle (talla · color) a la línea", () => {

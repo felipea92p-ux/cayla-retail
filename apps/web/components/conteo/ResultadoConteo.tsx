@@ -1,23 +1,25 @@
 import Link from "next/link";
-import { agruparConteo, codigosDeConteo, textoAlcance, textoLugar, textoResultadoConteo, type DetalleConteo } from "@/lib/conteo-reglas";
+import { agruparConteo, codigosDeConteo, notaDeArranque, textoAlcance, textoLugar, textoHallazgoDeLinea, textoResultadoConteo, type DetalleConteo } from "@/lib/conteo-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { MuestraColor } from "@/components/ui/MuestraColor";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import { Volver } from "@/components/ui/Volver";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EditarConteo } from "@/components/conteo/EditarConteo";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /* ====================================================================
    ResultadoConteo · «Conteo terminado» (Inventario ▸ Conteo, rediseño 2026-09-29)
 
-   Lo que se ve al abrir un conteo ya cerrado: cómo salió (todo correcto, N diferencias corregidas, parcial), cuántas
+   Lo que se ve al abrir un conteo ya cerrado: cómo salió (todo correcto, N diferencias encontradas, parcial), cuántas
    variantes se verificaron, y tres salidas —Existencias para ver cómo quedó el stock, Movimientos para ver cada ajuste,
-   y la vuelta a Conteo— más «Editar conteo», que lo reabre para corregirlo (`EditarConteo`). Sin confeti, sin ilustración, sin modal: terminar un conteo es trabajo hecho, no un premio.
+   y la vuelta a Conteo— más «Corregir conteo», que lo reabre para corregirlo (`EditarConteo`). Sin confeti, sin ilustración, sin modal: terminar un conteo es trabajo hecho, no un premio.
 
-   «Variantes corregidas» da el rastro sin ir a Movimientos: cada variante que se ajustó, con lo que CAYLA esperaba y lo
+   «Variantes con diferencia» da el rastro sin ir a Movimientos: cada variante que se ajustó, con lo que CAYLA esperaba y lo
    que se contó («11 → 9»). Solo las que tienen su movimiento de ajuste (`ajusteMovimientoId`): lo que el cierre de verdad
    escribió. Con muchas (la primera cuenta de una tienda puede traer cientos) se muestran las primeras y el resto se
    dice con su número y el camino a Movimientos, para no dibujar cientos de fotos.
@@ -32,7 +34,13 @@ const MAX_CORREGIDAS = 60;
 export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: { detalle: DetalleConteo; sede: string; volverA: string | null; puedeEditar: boolean }) {
   const { conteo, resumen, lineas } = detalle;
   const parcial = resumen.pendientes > 0;
-  const titulo = textoResultadoConteo({ estado: conteo.estado, lineas: resumen.verificadas, lineasConDiferencia: resumen.conDiferencia, parcial });
+  const titulo = textoResultadoConteo({ estado: conteo.estado, lineas: resumen.verificadas, lineasConDiferencia: resumen.conDiferencia, parcial, sinContar: resumen.sinContar });
+  // ADR-0328: si fue el conteo de arranque, se dice qué hizo; y sus ajustes en Movimientos llevan su propio motivo. En el piso el
+  // arranque es por categoría y el motivo se decide línea por línea: un conteo de arranque del piso puede tener ajustes de los dos
+  // motivos (las categorías que ya habían arrancado van como `conteo`), así que el enlace lleva a todos sus ajustes.
+  const arranque = notaDeArranque(conteo, parcial);
+  const filtroMovimientos = !conteo.esArranque ? "proc=conteo" : conteo.arranquePorCategoria ? "cat=ajuste" : "proc=conteo_arranque";
+  const hrefMovimientos = `/inventario/movimientos?${filtroMovimientos}&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`;
 
   const corregidas = lineas.filter((l) => l.ajusteMovimientoId !== null && l.contada !== null);
   const catalogo = corregidas.length > 0 ? new Map((await getCatalogo()).map((v) => [v.varianteId, v])) : null;
@@ -49,6 +57,9 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
         color: v?.color ?? null,
         colorHex: v?.colorHex ?? null,
         fotoUrl: v?.fotoUrl ?? null,
+        categoria: v?.categoria ?? null,
+        categoriaPrefijo: v?.categoriaPrefijo ?? null,
+        categoriaFamilia: v?.categoriaFamilia ?? null,
         talla: v?.talla ?? null,
         sku: v ? codigosDeConteo(v).sku : "",
       };
@@ -65,32 +76,29 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
         sede={sede}
         titulo="Conteo terminado"
         subtitulo={`Conteo ${conteo.numero} · ${textoLugar(conteo)} · ${textoAlcance(conteo)}`}
-        pie={volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/conteo" a="Conteo" />}
+        volver={volverA ? <Volver href={volverA} a="Movimientos" /> : <Volver href="/inventario/conteo" a="Conteo" />}
       />
 
-      <section className="card-cayla space-y-3 p-5 sm:p-6" aria-labelledby="resultado-conteo">
-        <h2 id="resultado-conteo" className="font-display text-2xl text-tinta">
-          {titulo}
-        </h2>
+      <section data-guia="conteo-resultado.tarjeta" className="card-cayla space-y-3 p-5 sm:p-6" aria-labelledby="resultado-conteo">
+        <TituloSeccion id="resultado-conteo">{titulo}</TituloSeccion>
         <ResumenConteo resumen={resumen} variante="resultado" parcial={parcial} />
-        <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
-          <Link href="/inventario" className="btn-cayla btn-primario h-11">
+        {arranque && <p className="nota-cayla">{arranque.texto}</p>}
+        <div data-guia="conteo-resultado.salidas" className="flex flex-col gap-2.5 pt-1 sm:flex-row">
+          <BotonVer href="/inventario" className="h-11">
             Ver Existencias
-          </Link>
-          <Link href={`/inventario/movimientos?proc=conteo&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`} className="btn-cayla btn-secundario h-11">
+          </BotonVer>
+          <BotonVer href={hrefMovimientos} className="h-11">
             Ver movimientos del conteo
-          </Link>
+          </BotonVer>
           {/* Los conteos de antes del rediseño (sin foto) no se pueden reabrir: no traen confirmaciones. */}
           {conteo.fotoEn !== null && <EditarConteo conteoId={conteo.id} puedeEditar={puedeEditar} variantesCorregidas={corregidas.map((l) => l.varianteId)} />}
         </div>
       </section>
 
       {visibles.length > 0 && (
-        <section className="card-cayla @container overflow-hidden" aria-labelledby="variantes-corregidas">
+        <section data-guia="conteo-resultado.diferencias" className="card-cayla @container overflow-hidden" aria-labelledby="variantes-con-diferencia">
           <div className="space-y-0.5 px-4 py-3.5 @[36rem]:px-5">
-            <h2 id="variantes-corregidas" className="font-display text-lg text-tinta">
-              Variantes corregidas
-            </h2>
+            <TituloSeccion id="variantes-con-diferencia">Variantes con diferencia</TituloSeccion>
             <p className="text-sm text-taupe">Lo que CAYLA esperaba y lo que se contó. El stock quedó ajustado.</p>
           </div>
           <ul className="divide-y divide-sand border-t border-sand">
@@ -99,7 +107,7 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
                 key={linea.varianteId}
                 className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 px-4 py-3 @[36rem]:grid-cols-[auto_minmax(0,1fr)_auto_9rem] @[36rem]:gap-x-4 @[36rem]:px-5"
               >
-                <MiniaturaPrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} tamano="sm" />
+                <MiniaturaPrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} tamano="sm" {...categoriaDe(prenda)} />
                 <span className="min-w-0">
                   <span className="block truncate text-sm text-tinta">{prenda.referencia}</span>
                   <span className="mt-0.5 flex items-center gap-2 text-xs text-taupe">
@@ -121,21 +129,23 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
                   </span>
                   <EstadoLinea estado={linea.estado} debeHaber={linea.debeHaber} contada={linea.contada} diferencia={linea.diferencia} />
                 </div>
+                {/* La prenda que faltó y apareció después: el conteo conserva lo que se contó, y aquí se ve que ya se recuperó. */}
+                {textoHallazgoDeLinea(linea) && <p className="col-start-2 text-xs text-verde @[36rem]:col-span-full @[36rem]:col-start-2">✓ {textoHallazgoDeLinea(linea)}</p>}
               </li>
             ))}
           </ul>
           {filas.length > visibles.length && (
             <p className="border-t border-sand px-4 py-3 text-sm text-taupe @[36rem]:px-5">
               Y {filas.length - visibles.length} {filas.length - visibles.length === 1 ? "variante más" : "variantes más"}.{" "}
-              <Link href={`/inventario/movimientos?proc=conteo&q=${encodeURIComponent(`Conteo ${conteo.numero}`)}`} className="text-tinta underline underline-offset-2 hover:text-taupe">
-                Míralas todas en Movimientos →
+              <Link href={hrefMovimientos} className="btn-cayla btn-enlace">
+                Míralas todas en Movimientos
               </Link>
             </p>
           )}
         </section>
       )}
 
-      <p className="nota-cayla">
+      <p data-guia="conteo-resultado.firmas" className="nota-cayla">
         Abrió <b>{conteo.abiertoPorNombre}</b> el {abrio.dia} a las {abrio.hora}
         {cerro ? (
           <>

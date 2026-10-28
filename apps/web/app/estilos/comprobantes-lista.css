@@ -10,9 +10,8 @@
      · .cmp-reparto   barra de 4 px bajo «Por pagar» (parte vencida) y «Por recibir» (parte atrasada).
      · .cmp-ind       el indicador que VIAJA entre pestañas / entre Emisión y Vencimiento.
      · .cmp-fila      fila de la tabla: entra escalonada, barrita de acento y flecha al pasar el mouse.
-     · .cmp-mini      barra de 3 px con el avance real de recepción / pago.
+                      Con `data-recien`, la orden recién guardada: barrita verde puesta y un tinte suave.
      · .cmp-punto-vivo el punto que late en el chip «Vencida» (única animación en bucle de la lista).
-     · .cmp-flota     el isotipo del estado vacío, una sola vez.
      · .cmp-sk        esqueleto brillante de la carga (loading.tsx).
    `backwards` en todas las entradas: al terminar no retienen `transform`, que pisaría el reacomodo
    (FLIP, Web Animations) y el hover. ---- */
@@ -23,12 +22,6 @@
 @keyframes cmp-latido {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-rojo) 45%, transparent); }
   70%, 100% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-rojo) 0%, transparent); }
-}
-/* Una sola vez: sube desde abajo, alcanza el punto alto, se asienta. Termina quieto y visible. */
-@keyframes cmp-flota {
-  0% { opacity: 0; transform: translate3d(0, 10px, 0) rotate(0deg); }
-  45% { opacity: 0.55; transform: translate3d(0, -7px, 0) rotate(-3deg); }
-  100% { opacity: 0.55; transform: none; }
 }
 @keyframes cmp-brilla {
   to { background-position: -200% 0; }
@@ -56,28 +49,29 @@
     width: 36%;
     opacity: 0;
     pointer-events: none;
-    background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.55), transparent);
+    background: linear-gradient(105deg, transparent, color-mix(in srgb, var(--luz-especular) 65%, transparent), transparent);
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
   }
-  .cmp-viva:hover::after { animation: cayla-brillo 900ms var(--ease-cayla); }
+  @media (hover: hover) {
+    .cmp-viva:hover::after { animation: cayla-brillo 900ms var(--ease-cayla); }
+  }
   .cmp-flecha {
     display: inline-block;
     transition: transform 260ms var(--ease-cayla);
   }
-  .cmp-viva:hover .cmp-flecha { transform: translateX(4px); }
+  @media (hover: hover) {
+    .cmp-viva:hover .cmp-flecha { transform: translateX(4px); }
+  }
 
-  /* ---------- Barras: reparto (4 px) y avance (3 px) ---------- */
-  .cmp-reparto,
-  .cmp-mini {
+  /* ---------- Barra: reparto (4 px). El avance de cada fila es la barra de avance del sistema (<BarraAvance>, ronda 13). ---------- */
+  .cmp-reparto {
     display: block;
     overflow: hidden;
     border-radius: 999px;
     background: var(--color-sand);
   }
   .cmp-reparto { height: 4px; margin-top: 0.625rem; }
-  .cmp-mini { height: 3px; width: 88%; margin-top: 0.375rem; }
-  .cmp-reparto > i,
-  .cmp-mini > i {
+  .cmp-reparto > i {
     display: block;
     height: 100%;
     border-radius: 999px;
@@ -87,7 +81,6 @@
     transition: transform 560ms var(--ease-cayla);
   }
   .cmp-reparto > i { animation: cmp-llena 560ms var(--ease-cayla) 380ms backwards; }
-  .cmp-mini > i { background: var(--color-ambar); animation: cmp-llena 560ms var(--ease-cayla) 250ms backwards; }
   .cmp-reparto-rojo { background: var(--color-rojo); }
   .cmp-reparto-ambar { background: var(--color-ambar); }
 
@@ -104,13 +97,11 @@
       transform 500ms var(--ease-cayla),
       width 500ms var(--ease-cayla);
   }
-  .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-rojo); }
+  /* Desde el 2026-10-06 (ADR-0358) solo queda el subrayado en tinta de la pestaña de vista (`Pestanas`): la línea roja, la
+     pastilla oscura del segmento y sus marcas estáticas (`cmp-tab-activa`, `cmp-seg-activa`) ya no las usaba nadie. La marca
+     estática de la pestaña vive con su pieza, en app/estilos/pestanas-y-segmentos.css. */
+  .cmp-ind-linea { bottom: 0; height: 2px; border-radius: 2px; background: var(--color-tinta); }
   .cmp-ind-tinta { background: var(--color-tinta); }
-  .cmp-ind-pastilla { top: 0; bottom: 0; background: var(--color-tinta); transition-duration: 450ms; }
-  .cmp-tab-activa { border-bottom-color: var(--color-rojo); }
-  .cmp-seg-activa { background: var(--color-tinta); }
-  [data-indicador] > .cmp-tab-activa { border-bottom-color: transparent; }
-  [data-indicador] > .cmp-seg-activa { background: transparent; }
 
   /* ---------- Filas ---------- */
   /* Entrada escalonada: la de la regla de movimiento (`cayla-entrada`, 420 ms, ≤ 40 ms entre filas). El
@@ -139,25 +130,43 @@
     pointer-events: none;
     transition: transform 350ms var(--ease-cayla);
   }
-  .cmp-fila:hover,
   .cmp-fila:focus-visible { background-color: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
-  .cmp-fila:hover::before,
+  @media (hover: hover) {
+    .cmp-fila:hover { background-color: color-mix(in srgb, var(--color-tinta) 3%, transparent); }
+  }
   .cmp-fila:focus-visible::before { transform: scaleY(1); }
+  @media (hover: hover) {
+    .cmp-fila:hover::before { transform: scaleY(1); }
+  }
+  /* La orden recién guardada (Órdenes de compra, Formidable 2026-10-10): la barrita queda puesta, en verde —lo que quedó guardado—, y
+     la fila con un tinte suave, para que se vea al volver a la lista. Sin animación propia: entra como las demás. */
+  /* `:nth-child(n of .fila-cayla)` le gana al rayado de la tabla (`.fila-cayla:nth-child(even of .fila-cayla)`, globals.css): sin él,
+     una orden recién guardada que caía en una fila par quedaba con el rayado y sin su tinte. */
+  .cmp-fila[data-recien]:nth-child(n of .fila-cayla) { background: color-mix(in srgb, var(--color-verde) 8%, transparent); }
+  .cmp-fila[data-recien]::before { transform: scaleY(1); background: var(--color-verde); }
   /* El foco de teclado (j/k, Tab) se ve igual que el hover más un contorno: no depende solo de un tinte. */
   .cmp-fila:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--color-tinta) 40%, transparent);
     outline-offset: -2px;
   }
+  /* La flecha del final de la fila (Facturas, Órdenes, Notas de crédito): un elemento GRÁFICO, así que su piso es 3:1 (WCAG
+     1.4.11), no el 4.5:1 del texto. La tinta al 50 % lo pasa en los dos temas sobre papel, la fila rayada y la recién guardada
+     (claro 3.2–3.3:1, oscuro 4.1–4.5:1; al 30 % daba 1.9 y 2.5) y queda un escalón bajo el texto de apoyo (`text-tinta/55`), para
+     no competir con él. Sin color propio en la lista que la use: una utilidad (`text-tinta/40`) le gana también al rojo del hover. */
   .cmp-flecha-fila {
-    color: color-mix(in srgb, var(--color-tinta) 30%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, hueso */
     transition:
       transform 260ms var(--ease-cayla),
       color 260ms var(--ease-cayla);
   }
-  .cmp-fila:hover .cmp-flecha-fila,
   .cmp-fila:focus-visible .cmp-flecha-fila { transform: translateX(4px); color: var(--color-rojo); }
+  @media (hover: hover) {
+    .cmp-fila:hover .cmp-flecha-fila { transform: translateX(4px); color: var(--color-rojo); }
+  }
   .cmp-total { transition: transform 260ms var(--ease-cayla); }
-  .cmp-fila:hover .cmp-total { transform: translateX(-2px); }
+  @media (hover: hover) {
+    .cmp-fila:hover .cmp-total { transform: translateX(-2px); }
+  }
 
   /* ---------- «Vencida»: el punto que late ---------- */
   .cmp-punto-vivo {
@@ -168,9 +177,6 @@
     background: var(--color-rojo);
     animation: cmp-latido 2s var(--ease-cayla) infinite;
   }
-
-  /* ---------- Estado vacío ---------- */
-  .cmp-flota { opacity: 0.55; animation: cmp-flota 2400ms var(--ease-cayla) backwards; }
 
   /* ---------- Esqueleto de carga ---------- */
   .cmp-sk {
@@ -185,14 +191,11 @@
   @media (prefers-reduced-motion: reduce) {
     /* El resultado sin el viaje: entradas y llenados a un instante, lo que se repite se detiene. */
     .cmp-fila,
-    .cmp-reparto > i,
-    .cmp-mini > i,
-    .cmp-flota {
+    .cmp-reparto > i {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
     .cmp-reparto > i,
-    .cmp-mini > i,
     .cmp-ind,
     .cmp-flecha,
     .cmp-flecha-fila,
@@ -200,8 +203,10 @@
     .cmp-fila,
     .cmp-fila::before { transition-duration: 1ms; }
     .cmp-viva::after { display: none; }
-    .cmp-viva:hover .cmp-flecha,
-    .cmp-fila:hover .cmp-total { transform: none; }
+    @media (hover: hover) {
+      .cmp-viva:hover .cmp-flecha,
+      .cmp-fila:hover .cmp-total { transform: none; }
+    }
     .cmp-punto-vivo,
     .cmp-sk { animation: none; }
   }

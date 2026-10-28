@@ -7,7 +7,8 @@
 // aparte: `subtotal + IGV = total` al centavo con la misma cuenta que emite el comprobante
 // (`desgloseIgv`), y la suma de los importes de las líneas ES el total.
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
+import { CODIGO_SUNAT_DOCUMENTO, llevaDocumento, type TipoDocComprobante } from "./documento-comprobante-reglas";
 import { desgloseIgv, vueltoDe, type PagoAplicado } from "./vender-reglas";
 
 /** Solo lo que Vender emite hoy. Una nota de venta (sin valor tributario) no existe todavía
@@ -18,7 +19,8 @@ export type TipoReciboFiscal = "boleta" | "factura" | "nota_venta";
 
 /** Si el papel separa el IGV y lleva lo que SUNAT pide (QR, «representación impresa»). La nota de venta no. */
 export const desglosaIgv = (tipo: TipoReciboFiscal): boolean => tipo !== "nota_venta";
-export type TipoDocCliente = "dni" | "ruc" | "sin_documento";
+/** El documento de quien compra, como lo guarda el comprobante (con carné y pasaporte desde ADR-0288 D-3). */
+export type TipoDocCliente = TipoDocComprobante;
 
 export type LineaRecibo = {
   cantidad: number;
@@ -32,7 +34,7 @@ export type LineaRecibo = {
   importe: number;
 };
 
-export type PagoRecibo = { metodo: MetodoPago; monto: number; recibido: number | null; vuelto: number };
+export type PagoRecibo = { metodo: MetodoPagoVenta; monto: number; recibido: number | null; vuelto: number };
 
 export type ReciboVenta = {
   tipo: TipoReciboFiscal;
@@ -48,21 +50,35 @@ export type ReciboVenta = {
   igv: number;
   total: number;
   pagos: PagoRecibo[];
+  /** Lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (ADR-0311): de 0.00 a 0.09, y 0 o ausente sin
+   *  redondeo. NO es una forma de pago ni toca el comprobante: `total`, `igv`, `subtotal` y el QR de SUNAT son por el precio exacto.
+   *  `pagos` trae el efectivo ya redondeado, así que `Σ pagos + redondeo = total`. */
+  redondeo?: number;
   vueltoTotal: number;
   /** Quién atendió a la clienta (nombre corto), si la caja lo sabe. Ausente/`null` en las ventas anteriores o sin elección. */
   atendio?: string | null;
+  /** El cupón del Club que usó la venta (programa de puntos): el descuento de cada prenda ya lo trae (es el TOTAL de `venta_items`), y
+   *  el papel dice cuánto de eso es del cupón. Ausente/`null` sin cupón o en una reimpresión (el historial no lo lee todavía). */
+  cupon?: { monto: number } | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Cómo se llama cada medio de pago frente a la clienta (en pantalla y en el papel). */
-export const NOMBRE_METODO: Record<MetodoPago, string> = {
+export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
   efectivo: "Efectivo",
   tarjeta: "Tarjeta",
+  qr: "QR",
   yape: "Yape",
   plin: "Plin",
   transferencia: "Transferencia",
 };
+
+/** Cómo se dice el redondeo del efectivo en el papel y en las pantallas de la venta (ADR-0311). */
+export const TEXTO_REDONDEO = "Redondeo de efectivo";
+export const LEY_REDONDEO = "Ley 29571: el efectivo se cobra al múltiplo de S/\u00a00.10, hacia abajo";
+/** Lo mismo, corto: una línea del ticket de 80 mm no pasa de ~44 caracteres sin salirse del papel. */
+export const LEY_REDONDEO_TICKET = "Ley 29571: múltiplo de S/\u00a00.10, hacia abajo";
 
 /** `B001-000002`: el mismo formato de 6 dígitos que ya muestra el resto de la app. */
 export function textoNumeroRecibo(r: { serie: string; numero: number }): string {
@@ -80,10 +96,15 @@ export function armarRecibo(entrada: {
   sede: string;
   cliente: ReciboVenta["cliente"];
   lineas: { cantidad: number; referencia: string; codigo: string | null; precioUnitario: number; descuentoUnitario: number; detalle?: string }[];
+  /** Los pagos TAL COMO SE REGISTRARON: con el efectivo ya redondeado si hubo redondeo. */
   pagos: readonly PagoAplicado[];
+  /** Lo que no se cobró por redondear el efectivo (ADR-0311). Ausente o 0 sin redondeo. */
+  redondeo?: number;
   tasaIgv: number;
-  /** Nombre corto de quien atendió; ver `atendioCorto` en `vender-reglas.ts`. */
+  /** Nombre y apellido de quien atendió; ver `atendioDelTicket` en `vender-reglas.ts`. */
   atendio?: string | null;
+  /** El cupón del Club usado en esta venta: las líneas ya traen su descuento total (con la parte del cupón). */
+  cupon?: { monto: number } | null;
 }): ReciboVenta {
   const lineas: LineaRecibo[] = entrada.lineas.map((l) => ({
     cantidad: l.cantidad,
@@ -113,8 +134,10 @@ export function armarRecibo(entrada: {
     igv,
     total,
     pagos,
+    redondeo: redondear2(Math.max(0, entrada.redondeo ?? 0)),
     vueltoTotal: redondear2(pagos.reduce((acc, p) => acc + p.vuelto, 0)),
     atendio: entrada.atendio ?? null,
+    cupon: entrada.cupon && entrada.cupon.monto > 0 ? entrada.cupon : null,
   };
 }
 
@@ -132,12 +155,14 @@ export function fechaHoraLima(iso: string): { fecha: string; hora: string; fecha
 /**
  * Texto del QR del comprobante, en el orden que SUNAT pide para su representación impresa:
  * RUC emisor | tipo (01 factura, 03 boleta) | serie | correlativo | IGV | total | fecha |
- * tipo de documento del cliente (6 RUC, 1 DNI, «-» sin documento) | número | (cierra con «|»).
+ * tipo de documento del cliente (catálogo 06: 1 DNI, 4 carné de extranjería, 6 RUC, 7 pasaporte; «-» sin documento) |
+ * número | (cierra con «|»).
  * Con esto quien escanee puede cotejar el documento aunque nuestro sistema no responda.
  */
 export function textoQrSunat(r: ReciboVenta, rucEmisor: string): string {
   const cli = r.cliente;
-  const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
+  // La guarda va dentro del ternario (y no en una constante aparte) para que TypeScript sepa que el tipo no es «sin documento».
+  const codigoDoc = llevaDocumento(cli.tipoDoc, cli.numDoc) ? CODIGO_SUNAT_DOCUMENTO[cli.tipoDoc] : null;
   return [
     rucEmisor,
     r.tipo === "factura" ? "01" : "03",
@@ -146,8 +171,8 @@ export function textoQrSunat(r: ReciboVenta, rucEmisor: string): string {
     r.igv.toFixed(2),
     r.total.toFixed(2),
     fechaHoraLima(r.emitidoEn).fechaIso,
-    tieneDoc ? (cli.tipoDoc === "ruc" ? "6" : "1") : "-",
-    tieneDoc ? cli.numDoc : "-",
+    codigoDoc ?? "-",
+    codigoDoc ? cli.numDoc : "-",
     "",
   ].join("|");
 }

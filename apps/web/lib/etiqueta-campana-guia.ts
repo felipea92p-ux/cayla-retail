@@ -1,11 +1,11 @@
-// La guía de foco de la ventana «Campaña» de una etiqueta (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
+// La guía de foco de la ventana «Configuración» (antes «Campaña») de una etiqueta (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
 //
 // CONTRATO
 //   PROMETE: decir, campo por campo, qué está hecho y qué hay que corregir, con la MISMA regla que apaga «Guardar»
-//            (`valido` de `CampanaModal`): descuento, fechas y fechas entre sí bien escritos.
+//            (`campanaValida`, que `CampanaModal` usa tal cual): descuento, fechas y fechas entre sí bien escritos.
 //   ASUME:   nada de esto es obligatorio llenarlo (una campaña puede ser solo informativa, sin descuento ni fechas). Por eso un
 //            campo solo es «requerido» cuando la persona YA escribió algo en él: escribirlo mal bloquea, dejarlo vacío no.
-//            Si «hecho» sale de aquí, «se puede guardar» sale de aquí también: una prueba exige que coincida con `valido`.
+//            Si «hecho» sale de aquí, «se puede guardar» sale de aquí también: una prueba exige que coincida con `campanaValida`.
 //   NO HACE: no agrega reglas (no vuelve obligatorio el descuento), no mira las categorías (siempre opcionales).
 import type { CampoDeGuia } from "./guia-campos";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "./etiqueta-campana";
@@ -16,11 +16,18 @@ export type EntradaCampana = {
   hasta: string;
   /** Cuántas categorías eligió la persona (opcional). */
   categorias: number;
+  /** Cuántas tiendas eligió la persona (opcional; ninguna = todas las sedes). `undefined` = la hoja no ofrece sedes (una sola tienda, o
+   *  la base sin la migración): el campo no existe. */
+  sedes?: number;
   /** Sin él (un rol que no es líder) el descuento no se escribe: la campaña se configura solo con fechas y categorías. */
   puedeDarDescuento: boolean;
+  /** A cuántas prendas a la venta llega con lo elegido (`alcanceCampana`). Con un descuento y en cero, «Categorías» queda «sugerido»
+   *  (ADR-0488, Felipe 2026-10-23): un descuento que no llega a ninguna prenda no baja ningún precio. Sugerido nunca bloquea. */
+  alcance?: number;
 };
 
-/** Lo que hoy apaga «Guardar» en `CampanaModal`: el descuento, las dos fechas y su orden. */
+/** Lo que apaga «Guardar» en `CampanaModal` (`components/EtiquetasLista.tsx`, que la llama tal cual): el descuento, las dos
+ *  fechas y su orden. */
 export function campanaValida(e: Pick<EntradaCampana, "descuento" | "desde" | "hasta">): boolean {
   const pct = parsearDescuento(e.descuento);
   const d = parsearFecha(e.desde);
@@ -36,6 +43,8 @@ export function camposDeCampana(e: EntradaCampana): CampoDeGuia[] {
     const h = parsearFecha(e.hasta);
     return d.ok && h.ok && !objecionVigencia(d.valor, h.valor);
   })();
+  const pct = parsearDescuento(e.descuento);
+  const conDescuentoValido = e.puedeDarDescuento && pct.ok && pct.valor !== null;
   return [
     ...(e.puedeDarDescuento
       ? [
@@ -55,6 +64,14 @@ export function camposDeCampana(e: EntradaCampana): CampoDeGuia[] {
       hecho: conFechas && fechasBien,
       pendiente: "Corrige las fechas: «Hasta» no puede ser antes que «Desde».",
     },
-    { id: "categorias", nombre: "Categorías", requerido: false, hecho: e.categorias > 0, pendiente: "" },
+    {
+      id: "categorias",
+      nombre: "Categorías",
+      requerido: false,
+      sugerido: conDescuentoValido && e.alcance === 0,
+      hecho: e.categorias > 0,
+      pendiente: "Elige categorías: con descuento y sin prendas, la campaña no baja ningún precio.",
+    },
+    ...(e.sedes === undefined ? [] : [{ id: "sedes", nombre: "Sedes", requerido: false, hecho: e.sedes > 0, pendiente: "" }]),
   ];
 }

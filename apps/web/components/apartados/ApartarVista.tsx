@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Volver } from "@/components/ui/Volver";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -17,10 +21,15 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe, type InstantaneaIntento } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
+import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
+import { nombreDePersona } from "@cayla-retail/shared";
+import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
@@ -30,6 +39,7 @@ import {
   adelantoDe,
   apartadoDeFila,
   erroresDelApartado,
+  esConstancia,
   moverActivo,
   encendida,
   resultadosDelBuscador,
@@ -45,8 +55,16 @@ import {
   type PedidoApartado,
 } from "@/lib/separaciones-reglas";
 import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { PedirOtraSedeModal } from "@/components/apartados/ModalesApartado";
+import { PedirYApartarModal } from "@/components/PedirYApartarModal";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
+import { Aviso } from "@/components/ui/Aviso";
+import { Buscador } from "@/components/ui/Buscador";
+import { usePistola } from "@/components/ui/usePistola";
+import { Vacio } from "@/components/ui/Vacio";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Casilla } from "@/components/ui/Casilla";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -72,13 +90,26 @@ const OPCION = "rounded-lg transition-colors";
 const OPCION_ACTIVA = "bg-papel text-tinta shadow-sm";
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
-  "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
-const CAMPO = "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
+  "mov-boton flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 
 /** El descuento de la campaña que rige HOY, por prenda (la base lo vuelve a exigir al apartar). */
-// Misma regla que la caja y que `separar_prendas`: el precio rebajado se redondea hacia abajo a .90 (ADR-0182).
+// Misma cuenta que la caja y que `separar_prendas`: el % exacto sobre el precio, al céntimo (ADR-0302).
 const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampana(p.precio, p.campana.pct) : 0);
-const precioFinal = (p: VarianteBusqueda) => p.precio - descuentoCampana(p);
+const precioFinal = (p: VarianteBusqueda) => totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) }]);
+
+/** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11): lo escaneado, los datos del cliente, el
+ *  adelanto, la nota y el paso. La marca del envío viaja con él (y si quedó en duda, sigue en duda): es el mismo apartado, y
+ *  reintentarlo no lo duplica. */
+type ApartadoArmado = {
+  lineas: Linea[];
+  f: typeof FORMULARIO_VACIO;
+  nota: string;
+  paso: Paso;
+  clientaQ: string;
+  clientaId: string | null;
+  sinFicha: null | "padron" | "nada";
+  intento: InstantaneaIntento | null;
+};
 
 const FORMULARIO_VACIO = {
   nombres: "",
@@ -131,6 +162,10 @@ export function ApartarVista({
   onPedidoHecho?: () => void;
 }) {
   const router = useRouter();
+  // El apartado a medio armar es de SU sede (Felipe, 2026-10-11): el panel monta Apartar con la sede en la key, y lo armado en otra
+  // sede quedó guardado en `TrabajoPorSede`. Si se vuelve a una sede con algo armado, se arranca desde ahí. Uno de un pedido, no.
+  const { inicial: guardadoDeLaSede, reportar: reportarApartado } = useTrabajoPorSede<ApartadoArmado>(ubicacionId);
+  const guardado = pedido ? undefined : guardadoDeLaSede;
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
   // foto del servidor al entrar o tras un `router.refresh()`; `ajustesStock` la corrige con lo que releyó el
   // sondeo mientras la pantalla sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la
@@ -159,30 +194,32 @@ export function ApartarVista({
     ),
   );
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(() =>
-    pedido
+    guardado
+      ? null
+      : pedido
       ? { tono: "info", texto: `Llegó de ${pedido.otraSede} para ${pedido.nombres} y está guardada. Cobra su adelanto: al confirmar pasa al piso y queda apartada.` }
       : desdeTicket.noEntraron.length > 0
       ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
       : desdeTicket.lineas.length > 0
-        ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos de la clienta." }
+        ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos del cliente." }
         : null,
   );
   const [activo, setActivo] = useState(0);
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
   // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
-  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : desdeTicket.lineas));
+  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : (guardado?.lineas ?? desdeTicket.lineas)));
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
-  const [nota, setNota] = useState("");
-  const [paso, setPaso] = useState<Paso>("ticket");
+  const [nota, setNota] = useState(guardado?.nota ?? "");
+  const [paso, setPaso] = useState<Paso>(guardado?.paso ?? "ticket");
   const [f, setF] = useState(() =>
-    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : FORMULARIO_VACIO,
+    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : (guardado?.f ?? FORMULARIO_VACIO),
   );
   const conOtraSede = encendida(apagadas, "otra_sede");
-  const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string } } | null>(null);
+  const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string; cantidad: number } } | null>(null);
   const [intento, setIntento] = useState(false);
   const [tocados, setTocados] = useState<ReadonlySet<string>>(() => new Set());
   const apilado = useConsultaMedia(MQ_APILADO);
@@ -191,24 +228,64 @@ export function ApartarVista({
   const esTelefono = useConsultaMedia(MQ_TELEFONO) && encendida(apagadas, "qr");
   const conClienta = veClientas && encendida(apagadas, "clienta");
   // Clienta por DNI o celular (Apartados v2): si ya tiene ficha, sus datos se llenan solos y el apartado queda ligado a ella.
-  const [clientaQ, setClientaQ] = useState("");
-  const [clientaId, setClientaId] = useState<string | null>(null);
+  const [clientaQ, setClientaQ] = useState(guardado?.clientaQ ?? "");
+  const [clientaId, setClientaId] = useState<string | null>(guardado?.clientaId ?? null);
   const [buscandoClienta, setBuscandoClienta] = useState(false);
-  const [sinFicha, setSinFicha] = useState(false);
+  // Qué pasó al buscar y no haber ficha: «padron» = el nombre vino de SUNAT; «nada» = hay que escribirlo (ADR-0367).
+  const [sinFicha, setSinFicha] = useState<null | "padron" | "nada">(guardado?.sinFicha ?? null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);
-  const [enviando, setEnviando] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la vista se congela hasta saber si
+  // el apartado quedó; cambiar algo y reenviar con la marca vieja devolvía el apartado anterior.
+  const envio = useIntento(pedido ? "separar_pedido_para_apartar" : "separar_prendas", guardado?.intento ?? null);
+  const [leyendo, setLeyendo] = useState(false);
+  const [revisando, setRevisando] = useState(false);
+  const enviando = envio.enviando || leyendo;
   const [registrado, setRegistrado] = useState<{ apartado: Apartado; vuelto: number } | null>(null);
-  const token = useRef<string>(crypto.randomUUID());
   const escaner = useRef<HTMLInputElement>(null);
   // Apartar guarda en la tienda (cobra un adelanto y deja las prendas no disponibles): pide Responsable (ADR-0161).
   // Viene vacío en cada apartado —como todo el módulo Punto de venta, no propone a quien inició sesión—; el elegido
   // queda como asesora del apartado (`p_asesora_id`), igual que en la venta.
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
 
-  const total = lineas.reduce((a, l) => a + precioFinal(porId.get(l.varianteId)!) * l.cantidad, 0);
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, queda guardado en ESTA sede (Felipe, 2026-10-11).
+  const armado = apartadoArmado({
+    lineas,
+    nombres: f.nombres,
+    apellidos: f.apellidos,
+    celular: f.celular,
+    dni: f.dni,
+    ruc: f.ruc,
+    razonSocial: f.razonSocial,
+    pagos: f.pagos,
+    nota,
+    buscado: clientaQ,
+  });
+  // La marca del envío viaja con lo guardado (y si quedó en duda, sigue en duda al volver).
+  const instantaneaDelEnvio = envio.instantanea;
+  const faseDelEnvio = envio.fase;
+  useEffect(() => {
+    const prendas = lineas.reduce((a, l) => a + l.cantidad, 0);
+    reportarApartado(
+      !pedido && armado
+        ? {
+            etiqueta: ubicacionEtiqueta,
+            unidades: prendas,
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio() },
+            ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
+          }
+        : null,
+    );
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio]);
+
+  const total = totalDeLineas(
+    lineas.map((l) => {
+      const p = porId.get(l.varianteId)!;
+      return { cantidad: l.cantidad, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) };
+    }),
+  );
   const prendasEnTicket = lineas.reduce((a, l) => a + l.cantidad, 0);
   const vence = sumarDiasIso(hoy, PLAZO_DIAS);
   // Quién atiende ya no se valida como campo del formulario: lo exige el combo «Responsable», que apaga el botón.
@@ -239,7 +316,7 @@ export function ApartarVista({
     setRecientes((r) => [varianteId, ...r.filter((x) => x !== varianteId)].slice(0, 4));
     const enTicket = lineas.find((l) => l.varianteId === varianteId)?.cantidad ?? 0;
     if (p.stockAqui - enTicket <= 0) {
-      if (!silencioso) setMensaje({ tono: "error", texto: `${p.referencia} ${variante(p)}: no queda disponible en ${ubicacionEtiqueta} (lo que hay ya está vendido o apartado para otra clienta).` });
+      if (!silencioso) setMensaje({ tono: "error", texto: `${p.referencia} ${variante(p)}: no queda disponible en ${ubicacionEtiqueta} (lo que hay ya está vendido o apartado para otro cliente).` });
       return enTicket > 0 ? "tope" : (p.almacenAqui ?? 0) > 0 ? "en_almacen" : "agotada";
     }
     setLineas((ls) => (enTicket ? ls.map((l) => (l.varianteId === varianteId ? { ...l, cantidad: l.cantidad + 1 } : l)) : [...ls, { varianteId, cantidad: 1 }]));
@@ -261,6 +338,26 @@ export function ApartarVista({
       almacen: v.almacenAqui,
     };
   }
+
+  // La pistola, igual que en Vender (`usePistola`): lo que entra a ritmo de pistola es un código exacto o nada (nunca la fila
+  // resaltada), lee aunque la pistola no mande Enter y el campo queda vacío para la siguiente lectura, la haya encontrado o no.
+  // Con el foco en un botón del ticket, la primera tecla suelta vuelve al campo; en los pasos de la clienta y el adelanto no
+  // (ahí un combo enfocado es dueño de sus teclas), y nunca con una ventana encima.
+  const sinVentana = !pedir && !camaraAbierta && !registrado;
+  usePistola(escaner, {
+    activa: sinVentana,
+    fuera: paso === "ticket" ? "atraer" : "nada",
+    alLeer: ({ codigo }) => {
+      setTexto("");
+      setActivo(0);
+      const v = resolverCodigoV2(codigo, prendas);
+      if (!v) {
+        setMensaje({ tono: "error", texto: `No encontramos «${codigo}» en ${ubicacionEtiqueta}. Revisa el código de la etiqueta.` });
+        return;
+      }
+      agregar(v.varianteId);
+    },
+  });
 
   // La lista se arma mientras se escribe, como en el Punto de venta: lo que se puede apartar arriba, lo agotado al
   // final y sin poder elegirse (ADR-0168). El lector de código no la usa: escribe el código y manda Enter.
@@ -303,23 +400,32 @@ export function ApartarVista({
     const otras = textoOtrasSedes(v.stockOtrasSedes ?? []);
     const atras = !puede && (v.almacenAqui ?? 0) > 0 ? v.almacenAqui : 0;
     return (
-      <li key={v.varianteId} id={puede ? `apt-op-${i}` : undefined} role="option" aria-selected={puede && i === activo} aria-disabled={!puede}>
+      // `@container`: la fila decide por SU ancho. En un celular la lista mide ~180 px y la columna del precio dejaba al
+      // nombre en «B…» y partía el código en pedazos; ahí el precio y el stock bajan bajo el nombre.
+      <li key={v.varianteId} id={puede ? `apt-op-${i}` : undefined} role="option" aria-selected={puede && i === activo} aria-disabled={!puede} className="@container">
         <button
           type="button"
           disabled={!puede}
           onMouseEnter={() => puede && setActivo(i)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => agregar(v.varianteId)}
-          className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors duration-200 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
+          className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors duration-200 @[19rem]:px-4 ${puede && i === activo ? "bg-sand/60" : ""} ${puede ? "" : "cursor-not-allowed opacity-55"}`}
         >
-          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} ancho={44} className="w-11" />
+          <FotoPrenda fotoUrl={v.fotoUrl} referencia={v.referencia} colorHex={v.colorHex} categoria={v.categoria} categoriaPrefijo={v.categoriaPrefijo} categoriaFamilia={v.categoriaFamilia} ancho={44} className="w-11" />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold text-tinta">{v.referencia}</span>
-            <span className="text-xs text-tinta/60">
+            <span className="block truncate text-xs text-tinta/60">
               {[v.talla, v.color].filter(Boolean).join("/")} · {codigoPrenda(v)}
             </span>
+            <span className="mt-0.5 block text-xs @[19rem]:hidden">
+              <span className="font-semibold tabular-nums text-tinta">{money(precioFinal(v))}</span>
+              <span className={puede ? "text-tinta/60" : atras ? "text-ambar-profundo" : "text-rojo-profundo"}>
+                {" · "}
+                {puede ? `${v.stockAqui} disp.` : atras ? `${atras} en el almacén` : "sin disponible aquí"}
+              </span>
+            </span>
           </span>
-          <span className="shrink-0 text-right">
+          <span className="hidden shrink-0 text-right @[19rem]:block">
             <span className="block text-sm font-semibold tabular-nums text-tinta">
               {v.campana && <span className="mr-1.5 text-xs font-normal text-tinta/45 line-through">{money(v.precio)}</span>}
               {money(precioFinal(v))}
@@ -349,37 +455,73 @@ export function ApartarVista({
     setF((x) => ({ ...x, pagos: x.pagos.length ? [{ ...x.pagos[0], monto, recibido: undefined }] : [{ metodo: "yape", monto }] }));
   }
 
+  /** Los largos que acepta el buscador: con el módulo Clientas, DNI (8) o celular (9); sin él, solo DNI, que va al padrón. */
+  const largosBuscables = conClienta ? [8, 9] : [8];
+
   async function buscarFicha() {
     const t = soloDigitos(clientaQ);
-    if (t.length !== 8 && t.length !== 9) return;
+    if (!largosBuscables.includes(t.length)) return;
     setBuscandoClienta(true);
-    const { clientas, error } = await buscarClienta(t);
-    setBuscandoClienta(false);
-    if (error) return avisar.error(traducirError(error, "buscar la clienta"));
-    const c = clientas[0];
-    if (!c) {
-      setClientaId(null);
-      setSinFicha(true);
-      setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
-      return;
+    // 1) La ficha de clientes, si la cuenta la ve: trae nombre, celular y liga el apartado a su historial.
+    if (conClienta) {
+      const { clientas, error } = await buscarClienta(t);
+      if (error) {
+        setBuscandoClienta(false);
+        return avisar.error(traducirError(error, "buscar al cliente", { lectura: true }));
+      }
+      // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
+      // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
+      const exacta = clientas.find((x) =>
+        t.length === 8 ? x.documentoTipo === "dni" && x.documentoNumero === t : soloDigitos(x.telefonoWhatsapp ?? "") === t,
+      );
+      const c = exacta ?? clientas[0];
+      if (c) {
+        // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
+        const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
+        setClientaId(c.id);
+        setSinFicha(null);
+        setBuscandoClienta(false);
+        setF((x) => ({
+          ...x,
+          nombres: nombres || x.nombres,
+          apellidos: resto.join(" ") || x.apellidos,
+          celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
+          // El apartado guarda solo DNI (`separaciones.clienta_dni`): un carné o un pasaporte no se copia ahí.
+          dni: c.documentoTipo === "dni" && c.documentoNumero ? c.documentoNumero : x.dni,
+        }));
+        return;
+      }
     }
-    // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
-    const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
-    setClientaId(c.id);
-    setSinFicha(false);
-    setF((x) => ({
-      ...x,
-      nombres: nombres || x.nombres,
-      apellidos: resto.join(" ") || x.apellidos,
-      celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
-      dni: c.dni ?? x.dni,
-    }));
+    setClientaId(null);
+    setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
+    // 2) Sin ficha y con DNI: el padrón (SUNAT público primero, el de pago si no responde; `app/api/padron`, ADR-0008).
+    //    Si no contesta o no lo conoce, se escribe a mano: un tercero caído nunca frena el apartado (principio 9).
+    const nombre = t.length === 8 ? await nombreDelPadron(t) : null;
+    setBuscandoClienta(false);
+    if (nombre) {
+      setF((x) => ({ ...x, nombres: nombre.nombres, apellidos: nombre.apellidos }));
+    }
+    setSinFicha(nombre ? "padron" : "nada");
+  }
+
+  /** El nombre de un DNI según el padrón, en las dos cajas. null si no responde o no lo conoce. */
+  async function nombreDelPadron(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
+    try {
+      const r = await fetch(`/api/padron?tipo=dni&numero=${dni}`);
+      if (!r.ok) return null;
+      const datos = (await r.json()) as RespuestaPadron;
+      // Del padrón, ya partido y con los nombres primero (`packages/shared/src/nombre-del-padron.ts`); de una boleta anterior, junto:
+      // se parte con la misma regla (los apellidos primero, como lo escribe el padrón).
+      if (datos.nombres) return { nombres: datos.nombres, apellidos: datos.apellidos ?? "" };
+      return nombreDePersona({ junto: datos.nombre });
+    } catch {
+      return null;
+    }
   }
 
   async function confirmar() {
     setIntento(true);
     if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
-    setEnviando(true);
     const supabase = createClient();
     const args = {
       p_ubicacion_id: ubicacionId,
@@ -401,30 +543,55 @@ export function ApartarVista({
       p_asesora_id: responsable.elegidoId ?? undefined,
       p_clienta_id: clientaId ?? undefined,
       p_nota: nota.trim() || undefined,
-      p_token: token.current,
     };
-    const { data: id, error } = await firmar(
-      pedido
-        ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: args })
-        : supabase.rpc("separar_prendas", args),
-      responsable.firma(),
+    const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : args), (token, senal) =>
+      firmar(
+        pedido
+          ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
+          : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
     // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
-    responsable.despues(error);
-    if (error || !id) {
-      setEnviando(false);
-      avisar.error(traducirError(error, "registrar el apartado", { confirmarAntesDeRepetir: true }));
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la vista lo dice arriba y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") {
+      avisar.error(traducirError(r.error, "registrar el apartado"));
       return;
     }
-    // Lo que se muestra en el modal es lo que quedó en la base (código, boleta, fecha), no lo que se mandó.
+    const id = r.tipo === "ok" ? r.data : typeof r.datos.id === "string" ? r.datos.id : null;
+    if (!id) {
+      avisar.error("No se pudo leer el apartado recién guardado. Búscalo en la lista de apartados antes de volver a apartar.");
+      return;
+    }
+    await registradoCon(id);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho" && typeof res.datos.id === "string") return registradoCon(res.datos.id);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El apartado no se registró", { detalle: "No quedó nada guardado ni se cobró el adelanto. Revisa los datos y vuelve a confirmar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  async function registradoCon(id: string) {
+    const supabase = createClient();
+    // Lo que se muestra en el modal es lo que quedó en la base (código, fecha), no lo que se mandó.
+    setLeyendo(true);
     const leido = await supabase.rpc("buscar_separaciones", { p_ubicacion_id: ubicacionId, p_texto: id });
-    setEnviando(false);
+    setLeyendo(false);
     const fila = leido.data?.[0];
-    token.current = crypto.randomUUID();
     if (fila) {
       const a = apartadoDeFila(fila as unknown as Record<string, unknown>);
       setRegistrado({ apartado: a, vuelto });
-      avisar.exito(`Apartado de ${money(a.adelanto)} registrado`, { detalle: `${a.comprobanteAnticipo ?? ""} · ${a.codigo}` });
+      avisar.exito(`Apartado de ${money(a.adelanto)} registrado`, { detalle: esConstancia(a) ? `Constancia ${a.codigo}` : `${a.comprobanteAnticipo} · ${a.codigo}` });
     } else {
       avisar.exito("Apartado registrado");
     }
@@ -435,7 +602,7 @@ export function ApartarVista({
     setTocados(new Set());
     setClientaId(null);
     setClientaQ("");
-    setSinFicha(false);
+    setSinFicha(null);
     setPaso("ticket");
     setUltima(null);
     setMensaje(null);
@@ -455,6 +622,13 @@ export function ApartarVista({
 
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      {envio.incierto && (
+        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+          <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={confirmar} reintentando={enviando} />
+        </div>
+      )}
+      {/* En duda, nada se toca: cambiar una prenda o el adelanto y reenviar podría apartar dos veces. */}
+      <fieldset disabled={envio.incierto} className="contents">
       {/* Izquierda: la cabecera de la hoja y, debajo, solo lo escaneado, nunca el catálogo entero. En el celular, en los
           pasos de la clienta y el adelanto se esconde lo escaneado, no la cabecera. */}
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
@@ -462,34 +636,31 @@ export function ApartarVista({
       <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
-            <label className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
-              <ScanBarcode className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
-              <input
-                ref={escaner}
-                autoFocus
-                value={texto}
-                onChange={(e) => escribir(e.target.value)}
-                onKeyDown={teclado}
-                placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
-                aria-label="Escanea la etiqueta o busca la prenda por nombre"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={abierta}
-                aria-controls="apt-resultados"
-                aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
-                aria-autocomplete="list"
-                className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
-              />
-              {texto && (
-                <button type="button" aria-label="Limpiar búsqueda" onClick={() => escribir("")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base text-tinta/50 hover:bg-sand/40">
-                  ×
-                </button>
-              )}
-            </label>
+            {/* El buscador del mostrador (ADR-0358, ronda 5): el código de barras que se enciende, filtra mientras se escribe. */}
+            <Buscador guia="apartados.buscador"
+              tamano="mostrador"
+              icono="barras"
+              ref={escaner}
+              autoFocus
+              valor={texto}
+              onCambio={(v) => escribir(v)}
+              onKeyDown={teclado}
+              placeholder={esTelefono ? "Busca la prenda por nombre" : "Escanea la etiqueta o busca la prenda por nombre"}
+              etiqueta="Escanea la etiqueta o busca la prenda por nombre"
+              role="combobox" // unificar-fijo: la búsqueda del mostrador (pistola y fotos), que la pieza no hace
+              aria-expanded={abierta}
+              aria-controls="apt-resultados"
+              aria-activedescendant={abierta && disponibles.length ? `apt-op-${activo}` : undefined}
+              aria-autocomplete="list"
+            />
             {abierta && (
-              <ul id="apt-resultados" role="listbox" aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
+              <ul id="apt-resultados" role="listbox" /* unificar-fijo: la lista con fotos y stock del mostrador */ aria-label="Prendas encontradas" className="card-cayla anim-globo scroll-cayla absolute top-16 right-0 left-0 max-h-[430px] divide-y divide-sand overflow-y-auto !p-0 shadow-lg">
                 {disponibles.length + agotadas.length === 0 ? (
-                  <li className="px-4 py-5 text-sm text-tinta/65">No encontramos «{texto.trim()}» en {ubicacionEtiqueta}.</li>
+                  <li>
+                    <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                      No encontramos <b>«{texto.trim()}»</b> en {ubicacionEtiqueta}.
+                    </Vacio>
+                  </li>
                 ) : (
                   <>
                     {disponibles.map((v, i) => filaResultado(v, i))}
@@ -522,13 +693,18 @@ export function ApartarVista({
         )}
 
         {p ? (
-          <article className="anim-revelar grid gap-5 rounded-2xl border border-sand bg-papel p-4 sm:grid-cols-[200px_minmax(0,1fr)]">
-            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} ancho={200} className="w-full max-w-[200px]" />
+          // `@container`: foto y datos lado a lado solo si la TARJETA tiene ancho (≥ 32rem), no la ventana. Con el lateral
+          // abierto o en un celular, se apilan: la foto más chica y centrada, y el encabezado y las tallas centrados con ella.
+          <div className="@container">
+          <article className="anim-revelar grid gap-4 rounded-2xl border border-sand bg-papel p-4 @lg:grid-cols-[200px_minmax(0,1fr)] @lg:gap-5">
+            <FotoPrenda fotoUrl={p.fotoUrl} referencia={p.referencia} colorHex={p.colorHex} categoria={p.categoria} categoriaPrefijo={p.categoriaPrefijo} categoriaFamilia={p.categoriaFamilia} ancho={200} className="mx-auto w-full max-w-[150px] @lg:mx-0 @lg:max-w-[200px]" />
             <div className="flex min-w-0 flex-col">
-              <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
-              <h3 className="font-display mt-1 text-2xl text-tinta">{p.referencia}</h3>
-              <p className="text-sm text-tinta/60">{p.color ?? "Sin color"}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Tallas">
+              <div className="text-center @lg:text-left">
+                <p className="label-cayla text-[11px] text-tinta/60">Recién escaneada</p>
+                <h3 className="font-display mt-1 text-2xl text-tinta">{/* unificar-fijo: el nombre de la prenda es un dato, no un título */}{p.referencia}</h3>
+                <p className="text-sm text-tinta/60">{p.color ?? "Sin color"}</p>
+              </div>
+              <div className="mt-3 flex flex-wrap justify-center gap-1.5 @lg:justify-start" role="group" aria-label="Tallas">
                 {hermanas.map((h) => (
                   <button key={h.varianteId} type="button" title={codigoPrenda(h)} onClick={() => agregar(h.varianteId)} className={`h-9 min-w-9 rounded-lg border px-2 text-xs font-semibold ${h.varianteId === p.varianteId ? "border-tinta bg-tinta text-papel" : h.stockAqui <= 0 ? "border-sand text-tinta/35 line-through" : "border-sand text-tinta hover:border-tinta/40"}`}>
                     {h.talla ?? "—"}
@@ -536,7 +712,7 @@ export function ApartarVista({
                 ))}
               </div>
               <dl className="mt-3 divide-y divide-sand border-t border-sand text-[13px]">
-                <div className="flex justify-between py-2"><dt className="text-tinta/60">Código</dt><dd className="font-mono">{codigoPrenda(p)}</dd></div>
+                <div className="flex justify-between gap-3 py-2"><dt className="shrink-0 text-tinta/60">Código</dt><dd className="min-w-0 break-all text-right font-mono">{codigoPrenda(p)}</dd></div>
                 <div className="flex justify-between py-2">
                   <dt className="text-tinta/60">Precio</dt>
                   <dd className="tabular-nums font-semibold">
@@ -544,19 +720,19 @@ export function ApartarVista({
                     {money(precioFinal(p))}
                   </dd>
                 </div>
-                <div className="flex justify-between py-2"><dt className="text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="tabular-nums">{p.stockAqui} disponibles</dd></div>
+                <div className="flex justify-between gap-3 py-2"><dt className="min-w-0 text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="shrink-0 tabular-nums">{p.stockAqui} disponibles</dd></div>
               </dl>
               {tiendasConPrenda.length > 0 ? (
                 <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-[12.5px] text-ambar-profundo">
                   <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
                   <div className="flex flex-wrap gap-1.5">
                     {tiendasConPrenda.map((t) => (
-                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="label-cayla h-8 rounded-lg border border-ambar/40 bg-papel px-3 text-[10.5px] text-tinta hover:border-tinta/40">
+                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="btn-cayla btn-secundario h-8 px-2.5 text-[12.5px]">
                         Pedir a {t.nombre} para apartar
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la envía por traslado; al llegar queda guardada para la clienta y aquí se cobra su adelanto.</p>
+                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la aparta al instante y la envía en el próximo traslado; al llegar queda guardada para el cliente y aquí se cobra su adelanto.</p>
                 </div>
               ) : (
                 <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
@@ -565,19 +741,14 @@ export function ApartarVista({
               )}
             </div>
           </article>
+          </div>
         ) : (
-          <div className="flex min-h-[260px] flex-1 items-center justify-center rounded-2xl border border-dashed border-sand p-6 text-center">
-            <div>
-              <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-sand/60">
-                <ScanBarcode className="h-7 w-7 text-tinta/70" aria-hidden />
-              </div>
-              <p className="font-display text-2xl text-tinta">Escanea la prenda que la clienta quiere apartar</p>
-              <p className="mx-auto mt-2 max-w-md text-sm text-tinta/60">
-                {esTelefono
-                  ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
-                  : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
-              </p>
-            </div>
+          <div className="flex min-h-[260px] flex-1 items-center justify-center">
+            <Vacio icono={<ScanBarcode />} titulo="Escanea la prenda que el cliente quiere apartar">
+              {esTelefono
+                ? "Toca la cámara y apunta al QR de la etiqueta. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."
+                : "Pasa la etiqueta por la pistola. Si no la tienes, escribe el nombre o el color: la lista muestra la foto de cada prenda."}
+            </Vacio>
           </div>
         )}
 
@@ -589,7 +760,7 @@ export function ApartarVista({
                 const r = porId.get(id)!;
                 return (
                   <button key={id} type="button" onClick={() => agregar(id)} className="flex items-center gap-2.5 rounded-xl border border-sand bg-papel p-2 text-left hover:border-taupe">
-                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} ancho={44} className="w-11" />
+                    <FotoPrenda fotoUrl={r.fotoUrl} referencia={r.referencia} colorHex={r.colorHex} categoria={r.categoria} categoriaPrefijo={r.categoriaPrefijo} categoriaFamilia={r.categoriaFamilia} ancho={44} className="w-11" />
                     <span className="min-w-0 text-xs">
                       <b className="block truncate text-[13px] font-semibold">{r.referencia}</b>
                       <span className="text-tinta/60">{r.color ?? "—"} · {r.talla ?? "—"} · {r.stockAqui} disp.</span>
@@ -605,21 +776,22 @@ export function ApartarVista({
 
       {/* Derecha: el ticket y, al tocar «Apartar», el formulario — como el cobro del Punto de venta. Va de arriba abajo
           de la hoja; su cabecera mide lo mismo que la fila de pestañas (64 px más su raya: 65) y queda en la misma raya. */}
-      <aside className="flex min-h-0 flex-col">
+      <aside data-guia="apartados.ticket" className="flex min-h-0 flex-col">
         {paso === "ticket" ? (
           <>
             <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-              <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
-                <Bookmark className="h-6 w-6 text-tinta/70" aria-hidden /> Por apartar
-              </h2>
+              <TituloSeccion>
+                <span className="inline-flex items-center gap-2.5">
+                  <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Por apartar
+                </span>
+              </TituloSeccion>
               {prendasEnTicket > 0 && <span className="text-xs text-tinta/60">{prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"}</span>}
             </div>
             <div className="scroll-cayla min-h-40 flex-1 overflow-y-auto">
               {lineas.length === 0 ? (
-                <div className="px-5 py-10 text-center">
-                  <p className="font-display text-xl text-tinta">Nada por apartar todavía</p>
-                  <p className="mt-1 text-sm text-tinta/60">Escanea la etiqueta de la prenda.</p>
-                </div>
+                <Vacio icono={<Bookmark />} titulo="Nada por apartar todavía">
+                  Escanea la etiqueta de la prenda.
+                </Vacio>
               ) : (
                 <>
                   {lineas.map((l, i) => {
@@ -641,17 +813,14 @@ export function ApartarVista({
                           <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Cantidad</span>
                           <span className="text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Precio</span>
                           <span className="text-right text-[10px] tracking-[0.06em] text-tinta/55 uppercase">Importe</span>
-                          <span className="inline-flex h-9 items-center rounded-lg border border-sand">
-                            <button type="button" aria-label="Una menos" onClick={() => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : [])))} className="grid h-9 w-8 place-items-center text-tinta/60">
-                              <Minus className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                            <span className="min-w-6 text-center text-sm font-semibold tabular-nums">{l.cantidad}</span>
-                            <button type="button" aria-label="Una más" onClick={() => agregar(l.varianteId)} className="grid h-9 w-8 place-items-center text-tinta/60">
-                              <Plus className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                          </span>
+                          <PasoCantidad
+                            menos={{ onClick: () => setLineas((ls) => ls.flatMap((x, j) => (j !== i ? [x] : x.cantidad > 1 ? [{ ...x, cantidad: x.cantidad - 1 }] : []))), etiqueta: "Una menos" }}
+                            mas={{ onClick: () => agregar(l.varianteId), etiqueta: "Una más" }}
+                          >
+                            {l.cantidad}
+                          </PasoCantidad>
                           <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
-                          <span className="text-right text-sm font-semibold tabular-nums">{money(precioFinal(pr) * l.cantidad)}</span>
+                          <span className="text-right text-sm font-semibold tabular-nums">{money(totalDeLineas([{ cantidad: l.cantidad, precioUnitario: pr.precio, descuentoUnitario: descuentoCampana(pr) }]))}</span>
                         </div>
                         <p className="mt-2 text-[11px] text-taupe-profundo">
                           {pedido && l.varianteId === pedido.varianteId
@@ -665,7 +834,7 @@ export function ApartarVista({
                     <span className="mb-2 flex items-center gap-1.5 text-[11.5px] text-tinta/60">
                       <StickyNote className="h-3.5 w-3.5" aria-hidden /> Nota del apartado (opcional)
                     </span>
-                    <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Viene el sábado, quiere probársela otra vez…" className="h-11 w-full rounded-xl border border-sand bg-transparent px-3 text-sm outline-none focus:border-taupe" />
+                    <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Viene el sábado, quiere probársela otra vez…" className="caja-campo-input h-11 w-full text-sm" />
                   </label>
                 </>
               )}
@@ -691,13 +860,17 @@ export function ApartarVista({
         ) : (
           <>
             <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-              <button type="button" onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")} className="label-cayla -ml-2 h-8 shrink-0 rounded-md px-2 text-[11px] whitespace-nowrap text-tinta/70 hover:bg-sand/40 hover:text-tinta">
-                ← {apilado ? "Atrás" : "Ticket"}
-              </button>
+              <Volver
+                onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")}
+                a={apilado && paso === "adelanto" ? "Volver a los datos del cliente" : "Volver al ticket"}
+                className="-ml-2 shrink-0"
+              />
               <div className="anim-revelar text-right">
-                <h2 className="font-display flex items-center justify-end gap-2.5 text-2xl leading-none text-tinta">
-                  <Bookmark className="h-6 w-6 text-tinta/70" aria-hidden /> Apartado
-                </h2>
+                <TituloSeccion className="justify-end">
+                  <span className="inline-flex items-center gap-2.5">
+                    <Bookmark className="h-5 w-5 text-tinta/70" aria-hidden /> Apartado
+                  </span>
+                </TituloSeccion>
                 <p className="mt-1 text-xs text-tinta/60">
                   {prendasEnTicket} {prendasEnTicket === 1 ? "prenda" : "prendas"} · recoger hasta el {fechaCorta(vence)}
                 </p>
@@ -715,41 +888,47 @@ export function ApartarVista({
                 </div>
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> La clienta</legend>
-                  {conClienta && (
-                    <div className="space-y-1.5">
-                      {clientaId ? (
-                        <p className="flex items-center justify-between gap-2 rounded-xl border border-verde/30 bg-verde/5 px-3 py-2 text-[12.5px] text-verde-profundo">
-                          <span>Ficha encontrada: el apartado queda ligado a su historial.</span>
-                          <button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }} className="label-cayla text-[10px] text-tinta/70">Cambiar</button>
-                        </p>
-                      ) : (
-                        <div className="flex gap-2">
-                          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-hueso px-3 focus-within:ring-1 focus-within:ring-taupe">
-                            <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
-                            <input
-                              value={clientaQ}
-                              onChange={(e) => { setClientaQ(e.target.value); setSinFicha(false); }}
-                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
-                              inputMode="numeric"
-                              placeholder="DNI (8) o celular (9) de la clienta"
-                              aria-label="Buscar a la clienta por DNI o celular"
-                              className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
-                            />
-                          </label>
-                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="label-cayla h-11 shrink-0 rounded-xl border border-sand px-3 text-[10.5px] disabled:opacity-45">
-                            {buscandoClienta ? "Buscando…" : "Buscar"}
-                          </button>
-                        </div>
-                      )}
-                      {sinFicha && <p className="text-xs text-tinta/60">No tiene ficha todavía: completa sus datos abajo.</p>}
-                    </div>
-                  )}
+                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> El cliente</legend>
+                  {/* Sin el módulo Clientas (o con la ficha apagada) el buscador sigue: solo por DNI, al padrón de SUNAT. */}
+                  <div className="space-y-1.5">
+                    {clientaId ? (
+                      <Aviso
+                        tono="exito"
+                        chico
+                        accion={<button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }}>Cambiar</button>}
+                      >
+                        Ficha encontrada: el apartado queda ligado a su historial.
+                      </Aviso>
+                    ) : (
+                      <div className="flex gap-2">
+                        {/* La cara del buscador único (ADR-0358, ronda 5), pero busca con su botón o Enter: trae la ficha exacta de un
+                            cliente por DNI o celular, no filtra una lista (Felipe 2026-10-08). */}
+                        <Buscador
+                          valor={clientaQ}
+                          onCambio={(v) => { setClientaQ(v); setSinFicha(null); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                          inputMode="numeric"
+                          placeholder={conClienta ? "DNI (8) o celular (9) del cliente" : "DNI del cliente (8 dígitos)"}
+                          etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
+                          className="min-w-0 flex-1"
+                        />
+                        <BotonBuscar cargando={buscandoClienta} onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0" />
+                      </div>
+                    )}
+                    {sinFicha === "padron" && (
+                      <p className="text-xs text-tinta/60">{conClienta ? "No tiene ficha: su nombre vino de SUNAT. " : "Su nombre vino de SUNAT. "}Revísalo y completa lo que falta.</p>
+                    )}
+                    {sinFicha === "nada" && (
+                      <p className="text-xs text-tinta/60">
+                        {soloDigitos(clientaQ).length === 8 ? `${conClienta ? "No tiene ficha y " : ""}SUNAT no devolvió su nombre: escríbelo abajo.` : "No tiene ficha todavía: completa sus datos abajo."}
+                      </p>
+                    )}
+                  </div>
                   <div className="grid gap-3.5 sm:grid-cols-2">
-                    <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
-                    <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
-                    <Campo etiqueta="Celular · WhatsApp" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${CAMPO} font-mono`} /></Campo>
-                    <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
+                    <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className="caja-campo-input mt-1.5" /></Campo>
+                    <Campo etiqueta="Celular · WhatsApp (opcional)" error={ver("celular")} onBlur={tocar("celular")}><input value={f.celular} onChange={(e) => cambiar("celular", e.target.value)} inputMode="numeric" placeholder="9 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                    <Campo etiqueta={total > 700 ? "DNI" : "DNI (recomendado)"} error={ver("dni")} onBlur={tocar("dni")}><input value={f.dni} onChange={(e) => cambiar("dni", e.target.value)} inputMode="numeric" placeholder="8 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   </div>
                   <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
                     {(["boleta", "factura"] as const).map((k) => (
@@ -759,16 +938,17 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
+                  <p className="-mt-1 text-xs text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
                   {f.comprobante === "factura" && (
                     <div className="grid gap-3.5 sm:grid-cols-2">
-                      <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className={`${CAMPO} font-mono`} /></Campo>
-                      <Campo etiqueta="Razón social" error={ver("razonSocial")} onBlur={tocar("razonSocial")}><input value={f.razonSocial} onChange={(e) => cambiar("razonSocial", e.target.value)} className={CAMPO} /></Campo>
+                      <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
+                      <Campo etiqueta="Razón social" error={ver("razonSocial")} onBlur={tocar("razonSocial")}><input value={f.razonSocial} onChange={(e) => cambiar("razonSocial", e.target.value)} className="caja-campo-input mt-1.5" /></Campo>
                     </div>
                   )}
                 </fieldset>
 
                 <fieldset className={`space-y-2 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó la clienta</legend>
+                  <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><Wallet className="h-3.5 w-3.5" aria-hidden /> Adelanto · cómo pagó el cliente</legend>
                   <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
                     {METODOS_PAGO.map((m, i) => {
                       const puesto = f.pagos.some((x) => x.metodo === m);
@@ -812,11 +992,9 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${total ? Math.min(100, (adelanto / total) * 100) : 0}%` }} />
-                  </div>
+                  <BarraAvance pct={total ? (adelanto / total) * 100 : 0} decorativa />
                   <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
-                  {ver("pago") && <p className="text-xs text-rojo-profundo">{ver("pago")}</p>}
+                  {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (
                     <div className="anim-revelar flex items-baseline justify-between rounded-xl border border-tinta/15 bg-papel px-4 py-2.5">
                       <span className="label-cayla text-[11px] text-tinta/70">Entregar vuelto</span>
@@ -835,17 +1013,17 @@ export function ApartarVista({
                     ))}
                   </div>
                   {f.devolucionMedio === "transferencia" ? (
-                    <Campo etiqueta="CCI de la clienta" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta="CCI del cliente" error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionCci} onChange={(e) => cambiar("devolucionCci", e.target.value)} inputMode="numeric" placeholder="20 dígitos" className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   ) : (
-                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "el mismo celular"} className={`${CAMPO} font-mono`} /></Campo>
+                    <Campo etiqueta={`Número de ${f.devolucionMedio === "yape" ? "Yape" : "Plin"}`} error={ver("devolucion")} onBlur={tocar("devolucion")}><input value={f.devolucionNumero} onChange={(e) => cambiar("devolucionNumero", e.target.value)} inputMode="numeric" placeholder={f.celular || "9 dígitos"} className="caja-campo-input mt-1.5 font-mono" /></Campo>
                   )}
                   <p className="text-xs text-tinta/60">Así no tiene que volver a la tienda. Efectivo, solo si viene antes de que se le transfiera.</p>
                 </fieldset>
 
                 <label className={`flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
-                  <input type="checkbox" checked={f.acepta} onChange={(e) => cambiar("acepta", e.target.checked)} className="mt-1 accent-tinta" />
+                  <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
                   <span>
-                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su boleta o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
+                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
                     {ver("acepta") && <span className="block text-xs text-rojo-profundo">{ver("acepta")}</span>}
                   </span>
                 </label>
@@ -866,7 +1044,7 @@ export function ApartarVista({
                   hacia arriba: debajo solo está el botón. Sin caja abierta no se muestra: no hay nada que firmar. */}
               {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button type="button" disabled={enviando || !cajaAbierta || !responsable.listo} title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined} onClick={confirmar} className={`${BOTON_PRINCIPAL} max-lg:hidden`}>
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
               <p className={`text-center text-xs ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
@@ -885,7 +1063,7 @@ export function ApartarVista({
         <BarraMovil
           etiqueta={`${prendasEnTicket} ${prendasEnTicket === 1 ? "prenda" : "prendas"} · por apartar`}
           monto={total}
-          accion="Clienta"
+          accion="Cliente"
           icono={<ArrowRight className="h-4 w-4" aria-hidden />}
           onClick={() => irAPaso("clienta")}
         />
@@ -909,18 +1087,28 @@ export function ApartarVista({
         <BarraMovil
           etiqueta={`Adelanto hoy · saldo ${money(total - adelanto)}`}
           monto={adelanto}
-          accion={enviando ? "Guardando…" : "Confirmar"}
+          accion={enviando ? "Guardando…" : "Confirmar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<Check className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cajaAbierta || !responsable.listo}
           onClick={confirmar}
         />
       )}
 
+      {/* ADR-0328 act. 17: la misma ventana que Vender («Pedir y apartar»): allá la apartan al pedir. */}
       {pedir && (
-        <PedirOtraSedeModal
-          prenda={pedir.prenda}
-          tienda={pedir.tienda}
+        <PedirYApartarModal
           ubicacion={{ ubicacionId, etiqueta: ubicacionEtiqueta }}
+          referencia={pedir.prenda.referencia}
+          color={pedir.prenda.color ?? null}
+          candidatos={[
+            {
+              varianteId: pedir.prenda.varianteId,
+              talla: pedir.prenda.talla ?? "Única",
+              tiendas: [{ id: pedir.tienda.id, nombre: pedir.tienda.nombre, corto: pedir.tienda.nombre, cantidad: pedir.tienda.cantidad }],
+            },
+          ]}
+          cliente={f.nombres.trim() || f.celular.trim() ? { nombre: null, nombres: f.nombres, apellidos: f.apellidos, celular: f.celular } : null}
+          responsable={responsable}
           onClose={() => setPedir(null)}
         />
       )}
@@ -948,14 +1136,15 @@ export function ApartarVista({
           }}
         />
       )}
+      </fieldset>
     </div>
   );
 }
 
 function Campo({ etiqueta, error, onBlur, children }: { etiqueta: string; error?: string; onBlur?: () => void; children: React.ReactNode }) {
   return (
-    <label className="block" onBlur={onBlur}>
-      <span className="label-cayla text-[10.5px] text-tinta/70">{etiqueta}</span>
+    <label className="campo block" onBlur={onBlur}>
+      <span className="campo-etiqueta">{etiqueta}</span>
       {children}
       {error && <span className="mt-0.5 block text-xs text-rojo-profundo">{error}</span>}
     </label>

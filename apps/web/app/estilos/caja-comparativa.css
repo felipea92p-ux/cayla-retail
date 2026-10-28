@@ -1,0 +1,61 @@
+/* ==================================================================
+   Caja compara hoy contra ayer (ADR-0319). Solo tokens de globals.css.
+   Movimiento (ADR-0136): responde a algo (abrir, cambiar un valor); sin rebote y sin bucles. Con reduced-motion todo pasa en un instante.
+   ================================================================== */
+.cmp-heroe {
+  position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center;
+  background: var(--color-tinta); color: var(--color-crema); border-radius: 18px; padding: 26px 30px;
+}
+.cmp-heroe::before {
+  content: ""; position: absolute; right: -80px; top: -120px; width: 380px; height: 380px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-metodo-efectivo) 22%, transparent), transparent 70%);
+}
+.cmp-sobre { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; color: color-mix(in srgb, var(--color-crema) 62%, transparent); }
+.cmp-frase { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 52px; line-height: 1.04; margin-top: 8px; }
+.cmp-frase em { font-style: normal; color: var(--color-metodo-efectivo); }
+.cmp-det { margin-top: 12px; max-width: 580px; font-size: 14px; color: color-mix(in srgb, var(--color-crema) 80%, transparent); }
+.cmp-det b { color: var(--color-crema); }
+.cmp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.cmp-chips span { border: 1px solid color-mix(in srgb, var(--color-crema) 22%, transparent); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: color-mix(in srgb, var(--color-crema) 86%, transparent); }
+.cmp-chips b { color: var(--color-crema); font-weight: 700; }
+/* El anillo es la pieza del sistema (<Anillo tamano="grande" sobreTinta>, ronda 13 de /unificar); aquí solo su lugar y su cifra. */
+.cmp-anillo { flex: none; }
+.cmp-anillo-monto { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 30px; line-height: 1; }
+.cmp-anillo-de { margin-top: 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25; color: color-mix(in srgb, var(--color-crema) 70%, transparent); max-width: 110px; }
+/* En oscuro el héroe se invierte con el tema (`tinta` pasa a ser la crema) y el dorado del efectivo, que es color de DATO y no
+   cambia, quedaba en 2.2:1 sobre él. La cifra se oscurece hacia el texto del héroe (`crema`, que en oscuro es la tinta de fondo):
+   4.6:1, el mismo recurso que la ventanita del gráfico (`.cmp-tip-baja`). En claro sigue el dorado puro (ADR-0336). */
+@media screen {
+  :root[data-tema="oscuro"] .cmp-frase em { color: color-mix(in srgb, var(--color-metodo-efectivo) 60%, var(--color-crema)); }
+}
+@container (max-width: 900px) { .cmp-heroe { grid-template-columns: 1fr; padding: 22px 20px; } .cmp-frase { font-size: 40px; } }
+/* En el celular el anillo solo repite lo que dicen el titular y las etiquetas: se oculta y queda un titular más compacto. */
+@container (max-width: 560px) { .cmp-anillo { display: none; } .cmp-frase { font-size: 34px; } }
+
+/* Cambios: ▲ verde si sube, ▼ ámbar si baja ("aún no llegas" no es "vas mal": nunca rojo). */
+.cmp-delta { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.cmp-delta-sube { background: color-mix(in srgb, var(--color-verde) 12%, transparent); color: var(--color-verde-profundo); }
+.cmp-delta-baja { background: color-mix(in srgb, var(--color-ambar) 12%, transparent); color: var(--color-ambar); }
+.cmp-delta-eq { background: color-mix(in srgb, var(--color-tinta) 7%, transparent); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+.cmp-delta-info { background: color-mix(in srgb, var(--color-pizarra) 12%, transparent); color: var(--color-pizarra); }
+
+/* Gráfico */
+.cmp-tip-sube { color: color-mix(in srgb, var(--color-verde) 40%, var(--color-crema)); }
+.cmp-tip-baja { color: color-mix(in srgb, var(--color-metodo-efectivo) 55%, var(--color-crema)); }
+.cmp-leyenda { display: inline-block; width: 18px; border-top: 2.5px solid; margin-right: 6px; vertical-align: middle; }
+.cmp-leyenda-raya { border-top-style: dashed; }
+
+/* Cómo te pagaron */
+.cmp-metodo { display: grid; grid-template-columns: 96px minmax(0, 1fr) 82px; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--color-sand); }
+.cmp-metodo:first-child { border-top: 0; }
+/* «carril», no «pista»: `.cmp-pista` es la de la marquesina de Campañas (campana-efectos.css) y el CSS es global: con el mismo nombre,
+   la franja en marquesina se llevaba este fondo hueso redondeado de 12 px detrás de las letras. */
+.cmp-carril { position: relative; height: 12px; background: var(--color-hueso); border-radius: 99px; }
+.cmp-carril-barra { position: absolute; left: 0; top: 0; height: 100%; border-radius: 99px; transition: width 0.9s var(--ease-cayla); }
+.cmp-carril-marca { position: absolute; top: -3px; width: 2px; height: 18px; background: var(--color-tinta); border-radius: 1px; transition: left 0.6s var(--ease-cayla); }
+
+/* El gráfico de la venta acumulada y «Dónde ganas y dónde pierdes» son la línea y las barras por tiempo del sistema (ronda 14 de /unificar). */
+
+@media (prefers-reduced-motion: reduce) {
+  .cmp-carril-barra, .cmp-carril-marca { transition-duration: 1ms !important; }
+}

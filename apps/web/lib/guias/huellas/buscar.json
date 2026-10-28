@@ -1,0 +1,12 @@
+{
+  "guia": "buscar",
+  "ruta": "/buscar",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 2,
+  "controles": {
+    "app/(app)/buscar/page.tsx": [
+      "CampoTexto «Buscar»",
+      "BotonBuscar «buscar.boton»"
+    ]
+  }
+}

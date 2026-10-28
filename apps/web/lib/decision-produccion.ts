@@ -1,11 +1,14 @@
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getFilasRecientesDeSede } from "@/lib/resumen-inventario";
 import { loteMasAntiguoConSaldo } from "@/lib/insumos-reglas";
-import { demandaDeLaRed, enProduccionPorVariante, rendimientoMedido, type DemandaVariante, type Rendimiento } from "@/lib/produccion-decision-reglas";
+import { demandaPorSede, type DemandaDeSede } from "@/lib/produccion-por-tienda";
+import { demandaDeLaRed, enProduccionPorVariante, productosParaRendimiento, rendimientoMedido, type DemandaVariante, type Rendimiento } from "@/lib/produccion-decision-reglas";
 import type { InsumoVista, ConsumoDeOrden } from "@/lib/insumos";
 import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { Tolerado } from "@/lib/resultado";
+import { getMotorDeLaRed, type MotorDeLaRed } from "@/lib/motor-demanda";
+import { unstable_rethrow } from "next/navigation";
 
 // Nueva orden con decisión (ADR-0133, F5): lo que se calcula en el servidor para que el formulario aconseje ANTES de abrir la orden. Solo para el
 // líder (ventas y stock de toda la red, costos de insumos). Es información SECUNDARIA: si falla, «Nueva orden» sigue funcionando como siempre y avisa.
@@ -23,6 +26,12 @@ export type DecisionProduccion = {
   rendimientoPorModelo: Record<string, Rendimiento[]>;
   /** Saldo, lo que viene y el costo del lote que se usaría, por insumo. */
   insumos: SaldoInsumoDecision[];
+  /** Lo que dice el motor de demanda (ADR-0347), AL LADO de la curva de arriba, sin reemplazarla (Felipe, 2026-10-05). Solo hablan las
+   *  tiendas que cumplen ADR-0346. Si no se pudo leer, `null`: la curva de siempre sigue igual. */
+  motor: MotorDeLaRed | null;
+  /** Lo de CADA sede por variante (la hoja «Ver el modelo» del Resumen: «¿qué tienda lo vende?»). Solo viene si se pide con `conSedes`: «Nueva orden» manda esta decisión entera al
+   *  navegador y no lo necesita. */
+  sedes?: DemandaDeSede[];
 };
 
 export async function getDecisionProduccion(args: {
@@ -31,17 +40,26 @@ export async function getDecisionProduccion(args: {
   insumos: InsumoVista[];
   consumosPorOrden: Record<string, ConsumoDeOrden[]>;
   lineasPorRecibir: LineaPorRecibir[];
+  /** Suma `sedes` (lo de cada sede, por variante) al resultado. */
+  conSedes?: boolean;
 }): Promise<Tolerado<DecisionProduccion>> {
   try {
     const sedes = await getUbicaciones();
-    const conFilas = await Promise.all(sedes.map(async (u) => ({ tipo: u.tipo, filas: await getFilasRecientesDeSede(u.id) })));
+    // El motor va aparte y tolera su propia falla: si se cae, la curva de siempre no se pierde.
+    const motor = getMotorDeLaRed().catch((e: unknown) => {
+      console.error("motor de demanda:", e);
+      return null;
+    });
+    const conFilas = await Promise.all(sedes.map(async (u) => ({ id: u.id, nombre: u.nombre, tipo: u.tipo, filas: await getFilasRecientesDeSede(u.id) })));
     const variantesDeModelos = new Set(args.modelos.flatMap((m) => m.variantes.map((v) => v.varianteId)));
     const demanda = [...demandaDeLaRed(conFilas).values()].filter((d) => variantesDeModelos.has(d.varianteId));
 
     const rendimientoPorModelo: Record<string, Rendimiento[]> = {};
-    for (const m of args.modelos) {
-      const r = rendimientoMedido(m.productoId, args.ordenes, args.consumosPorOrden);
-      if (r.length > 0) rendimientoPorModelo[m.productoId] = r;
+    // Los modelos que se ofrecen más todo producto con una orden: el Resumen ofrece solo lo producible, pero una orden abierta de un modelo que dejó de
+    // ofrecerse igual necesita su tela (ver `productosParaRendimiento`).
+    for (const productoId of productosParaRendimiento(args.modelos, args.ordenes)) {
+      const r = rendimientoMedido(productoId, args.ordenes, args.consumosPorOrden);
+      if (r.length > 0) rendimientoPorModelo[productoId] = r;
     }
 
     const porLlegar = new Map<string, number>();
@@ -56,10 +74,13 @@ export async function getDecisionProduccion(args: {
           const lote = loteMasAntiguoConSaldo(i.lotes) ?? i.lotes[i.lotes.length - 1] ?? null;
           return { insumoId: i.id, nombre: i.nombre, unidad: i.unidad, saldo: i.saldo, porLlegar: porLlegar.get(i.id) ?? 0, costoUnitario: lote?.costoUnitario ?? null };
         }),
+        motor: await motor,
+        ...(args.conSedes ? { sedes: demandaPorSede(conFilas, variantesDeModelos) } : {}),
       },
       fallo: null,
     };
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return { datos: null, fallo: "No se pudo calcular la sugerencia de la red. Puedes abrir la orden igual, con tus cantidades." };
   }
 }

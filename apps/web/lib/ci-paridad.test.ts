@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 //   2. Ninguna excluida corre ya en ci.yml (se arregló y se cableó: hay que sacarla de la lista) y toda excluida existe.
 //   3. Todo `pnpm pruebas:*` de ci.yml existe en package.json: un paso con el nombre viejo no correría nada, y como el job
 //      de Postgres es `continue-on-error` nadie lo notaría.
+// Desde el 2026-10-12 (ADR-0381) el job de Postgres corre en tandas y su lista vive en `scripts/ci/pruebas-postgres.mjs`
+// (`PRUEBAS`), no en pasos de ci.yml: «cableada» es estar en esa lista o en un paso de ci.yml.
 
 /**
  * Lo que package.json declara y ci.yml NO corre, a propósito, con su porqué. Cablear una prueba roja enseña a ignorar el
@@ -32,6 +34,11 @@ const EXCLUIDAS: Record<string, string> = {
   // y sale de aquí.
   "pruebas:categorias-candados": "falta cablearla en ci.yml: la sesión que la escribió no podía tocar workflows (2026-09-26)",
   "pruebas:bajada-al-piso-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez) y `movimientos` no se puede borrar: sus filas quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0208)",
+  "pruebas:danadas-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez: reportes y «Se arregló» de Dañadas) y `movimientos` no se puede borrar: sus filas quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0328 act. 10)",
+  "pruebas:bajar-en-mano-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez: el candado de la prenda y el de la marca de `bajar_en_mano`) y `movimientos` no se puede borrar. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0328, actividad 9)",
+  "pruebas:pago-produccion-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez pagando el mismo comprobante del Taller con el mismo token): sus proveedores, comprobantes y pagos quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1` y sin `--base`; se corre contra una copia desechable de la base (20261012214000). En el CI la forma la vigila `pruebas:produccion-punta-a-punta`",
+  "pruebas:sunat-estado-no-retrocede-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez sobre la misma boleta, para ver la espera del `for update`): mientras corre, otra prueba del job vería sus boletas de prueba (serie ZPRU), aunque las borra al terminar. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0386)",
+  "pruebas:cola-arranque-concurrencia":"hace COMMIT de verdad (dos sesiones a la vez): deja ventas sin registrar, un cierre y una regularización confirmados que las pruebas siguientes del job verían (p. ej. `eliminar-producto` cuenta las líneas de venta de «Blusa Emma»). Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0334)",
 };
 
 const leer = (ruta: string) => readFileSync(new URL(`../../../${ruta}`, import.meta.url), "utf8");
@@ -51,12 +58,21 @@ function cableadas(yml: string): Set<string> {
   return new Set([...vivo.matchAll(/\bpnpm\s+(?:run\s+)?(pruebas:[\w:-]+)/g)].map((m) => m[1]));
 }
 
+/** Los `pruebas:*` de la lista `PRUEBAS` de las tandas: cada uno es un texto entre comillas fuera de un comentario. */
+function listadas(script: string): Set<string> {
+  const vivo = script
+    .split("\n")
+    .filter((linea) => !linea.trimStart().startsWith("//") && !linea.trimStart().startsWith("*"))
+    .join("\n");
+  return new Set([...vivo.matchAll(/^\s*"(pruebas:[\w:-]+)",\s*$/gm)].map((m) => m[1]));
+}
+
 /** Todo lo que rompe la paridad, en frases que dicen qué hacer. */
 function problemas(declared: string[], wired: Set<string>, excluidas: Record<string, string>): string[] {
   const salida: string[] = [];
   for (const nombre of declared) {
     if (!wired.has(nombre) && !(nombre in excluidas)) {
-      salida.push(`\`pnpm ${nombre}\` está en package.json pero ni corre en ci.yml ni está en EXCLUIDAS: cablea un paso en el job pruebas-postgres, o agrégalo a EXCLUIDAS con su motivo.`);
+      salida.push(`\`pnpm ${nombre}\` está en package.json pero ni corre en ci.yml ni está en EXCLUIDAS: agrégalo a PRUEBAS de scripts/ci/pruebas-postgres.mjs, o a EXCLUIDAS con su motivo.`);
     }
   }
   for (const [nombre, motivo] of Object.entries(excluidas)) {
@@ -72,7 +88,7 @@ function problemas(declared: string[], wired: Set<string>, excluidas: Record<str
 
 describe("paridad package.json ↔ ci.yml", () => {
   const declared = declaradas(leer("package.json"));
-  const wired = cableadas(leer(".github/workflows/ci.yml"));
+  const wired = new Set([...cableadas(leer(".github/workflows/ci.yml")), ...listadas(leer("scripts/ci/pruebas-postgres.mjs"))]);
 
   it("lee de verdad las dos listas (no compara vacío con vacío)", () => {
     expect(declared.length).toBeGreaterThan(50);
@@ -112,6 +128,11 @@ describe("el detector de paridad muerde (entradas sintéticas)", () => {
     expect(problemas(declaradas(paquete), cableadas(sola), { "pruebas:b": " " })).toEqual([expect.stringContaining("sin motivo")]);
     expect(problemas(declaradas(paquete), cableadas(yml), { "pruebas:b": "está rota" })).toEqual([expect.stringContaining("ya se cableó")]);
     expect(problemas(declaradas(paquete), cableadas(yml), { "pruebas:z": "borrada" })).toEqual([expect.stringContaining("ya no existe")]);
+  });
+
+  it("una prueba en la lista de las tandas cuenta como cableada; una comentada, no", () => {
+    const lista = 'export const PRUEBAS = [\n  // "pruebas:b",\n  "pruebas:a",\n];\n';
+    expect([...listadas(lista)]).toEqual(["pruebas:a"]);
   });
 
   it("un paso del ci.yml con un nombre que package.json no declara se delata", () => {

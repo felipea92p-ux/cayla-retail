@@ -25,7 +25,7 @@ describe("escaner-reglas", () => {
     expect(mensajeEscaneo({ estado: "agregada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "verde", texto: "Blusa Emma · M · al ticket" });
     expect(mensajeEscaneo({ estado: "agotada", codigo: "C1", nombre: "Blusa Emma · M" }).tono).toBe("ambar");
     // Apartada para una clienta no es agotada: la que escanea no debe creer que no hay ninguna.
-    expect(mensajeEscaneo({ estado: "apartada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "ambar", texto: "Blusa Emma · M no entró: está apartada para una clienta" });
+    expect(mensajeEscaneo({ estado: "apartada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "ambar", texto: "Blusa Emma · M no entró: está apartada para un cliente" });
     expect(mensajeEscaneo({ estado: "tope", codigo: "C1", nombre: "Blusa Emma · M" }).texto).toContain("Ya están todas");
     expect(mensajeEscaneo({ estado: "no-encontrada", codigo: "XYZ" }).texto).toBe("No encontramos «XYZ» en esta tienda");
     expect(mensajeEscaneo({ estado: "en_almacen", codigo: "C1", nombre: "Blusa Emma · M", almacen: 2 })).toEqual({
@@ -64,5 +64,13 @@ describe("el vuelo de la tarjeta al ticket", () => {
   it("los tramos van en orden", () => {
     const offsets = keyframesVuelo(0, 0).map((f) => f.offset as number);
     expect(offsets).toEqual([...offsets].sort((a, b) => a - b));
+  });
+});
+
+describe("una prenda sin precio que la cámara lee (ADR-0384)", () => {
+  it("dice que no entró y por qué, en la bandeja y en la tarjeta", () => {
+    const r = { estado: "sin_precio" as const, codigo: "C1", nombre: "Blusa Emma · M" };
+    expect(mensajeEscaneo(r)).toEqual({ tono: "ambar", texto: "Blusa Emma · M no entró: no tiene precio en el catálogo" });
+    expect(estadoCorto(r)).toBe("No entró · sin precio");
   });
 });

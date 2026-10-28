@@ -1,7 +1,7 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
-import { Ayuda } from "@/components/Ayuda";
+import { exigir, leerTodas } from "@/lib/resultado";
+import { proveedoresParaPedir } from "@/lib/proveedores-reglas";
 import { MarcasLista, type MarcaFila } from "@/components/MarcasLista";
 
 // Marcas del catálogo y qué proveedores las traen (ADR-0109, 20260918231000).
@@ -15,16 +15,22 @@ export default async function MarcasPage() {
 
   const [resMarcas, resProveedores, resVinculos, resProductos] = await Promise.all([
     supabase.from("marcas").select("id, nombre, activo").order("nombre"),
-    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("proveedores").select("id, nombre, rubros").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
-    supabase.from("productos").select("marca_id, proveedor_id, estado"),
+    // Por páginas: los contadores «N productos» por marca salen de TODOS los productos y PostgREST corta en 1.000 sin avisar (hoy ~450).
+    leerTodas((desde, hasta) => supabase.from("productos").select("marca_id, proveedor_id, estado").order("id").range(desde, hasta), { enParalelo: 1 }),
   ]);
   const marcas = exigir(resMarcas, "las marcas");
-  const proveedores = exigir(resProveedores, "los proveedores");
+  const activos = exigir(resProveedores, "los proveedores");
   const vinculos = exigir(resVinculos, "los proveedores de cada marca");
   const productos = exigir(resProductos, "los productos");
 
-  const nombreProveedor = new Map(proveedores.map((p) => [p.id, p.nombre]));
+  // Los nombres salen de TODOS los activos: una marca ya vinculada a un proveedor se lee con su nombre, sea cual sea su rubro.
+  const nombreProveedor = new Map(activos.map((p) => [p.id, p.nombre]));
+  // A quién se le puede sumar una marca: sin quien es solo de gastos (ADR-0452, act. 2026-10-21), salvo el que ya trae alguna marca (de
+  // mercadería por definición; todo producto con marca y proveedor tiene su vínculo, así que los vínculos alcanzan).
+  const enUso = new Set<string>(vinculos.map((v) => v.proveedor_id));
+  const proveedores = proveedoresParaPedir(activos, enUso).map((p) => ({ id: p.id, nombre: p.nombre }));
   // Cuántos productos ACTIVOS hay por pareja: es lo que dice si una marca se puede desactivar sin fricción. Y cuántos en
   // TOTAL (también descontinuados): mientras haya uno, la llave de `productos` no deja quitar esa pareja en «Editar».
   const usoPareja = new Map<string, number>();
@@ -56,23 +62,5 @@ export default async function MarcasPage() {
       })),
   }));
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Marcas
-          <Ayuda titulo="Marcas">
-            De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca:
-            la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un
-            proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece
-            solo cuando ningún producto tiene la marca —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos
-            en Productos.
-          </Ayuda>
-        </h1>
-      </div>
-
-      <MarcasLista marcasIniciales={filas} proveedores={proveedores} puedeEditar={puede(persona, "editarCatalogo")} />
-    </div>
-  );
+  return <MarcasLista marcasIniciales={filas} proveedores={proveedores} puedeEditar={puede(persona, "editarCatalogo")} sede={persona.ubicacionEtiqueta} />;
 }

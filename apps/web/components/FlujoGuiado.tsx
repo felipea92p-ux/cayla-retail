@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { AlertTriangle, ArrowLeft, Check, Clock } from "lucide-react";
+import { Anillo } from "@/components/ui/Anillo";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { Volver } from "@/components/ui/Volver";
 import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -68,22 +72,15 @@ export function EncabezadoFlujo({
 }) {
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onVolver}
-          disabled={deshabilitado}
-          className="inline-flex h-10 items-center gap-2 rounded-lg px-2 text-sm font-medium text-tinta/75 transition-colors duration-200 hover:bg-papel hover:text-tinta disabled:opacity-50"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          {volverA}
-        </button>
+      <div data-guia="posventa.flujo-volver" className="flex flex-wrap items-center justify-between gap-3">
+        {/* La salida del flujo es la vuelta de siempre (ADR-0358): cierra el estado, por eso va en su forma de botón. */}
+        <Volver onClick={onVolver} deshabilitado={deshabilitado} a={volverA} />
         <p className="text-sm text-tinta/70" aria-live="polite">
           Paso {actual} de {pasos.length} · <span className="font-semibold text-tinta">{pasos[actual - 1]}</span>
         </p>
       </div>
       <Pasos pasos={pasos} actual={actual} onIr={onIrAPaso} />
-      <h2 ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-2xl text-tinta outline-none">
+      <h2 ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-2xl text-tinta outline-none">{/* unificar-fijo: el título del paso, que recibe el foco al avanzar */}
         {titulo}
       </h2>
     </>
@@ -100,11 +97,11 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   const largo = 100 - 100 / total;
   const avance = ((actual - 1) / (total - 1)) * largo;
   return (
-    <ol className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
+    <ol data-guia="posventa.pasos" className="relative grid pt-0.5" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label="Pasos">
       <span
         aria-hidden
         className="absolute top-[17px] h-0.5 rounded-full"
-        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, rgba(164,120,101,0.5) 0 6px, transparent 6px 11px)" }}
+        style={{ left: `${inicio}%`, width: `${largo}%`, backgroundImage: "repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-taupe) 50%, transparent) 0 6px, transparent 6px 11px)" }}
       />
       <span
         aria-hidden
@@ -112,7 +109,7 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
         style={{ left: `${inicio}%`, width: `${avance}%` }}
       />
       <span aria-hidden className="pointer-events-none absolute top-3 h-3 transition-[width] duration-700" style={{ left: `${inicio}%`, width: `${avance}%` }}>
-        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,#fff,rgba(255,255,255,0)_70%)]" />
+        <i className="aguja-hilo absolute top-0 -ml-1.5 h-3 w-3 rounded-full bg-[radial-gradient(circle,var(--color-crema-fija),transparent_70%)]" />
       </span>
       {pasos.map((nombre, i) => {
         const n = i + 1;
@@ -132,9 +129,9 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
                 style={hecho ? { animationDelay: `${i * 260 + 500}ms` } : undefined}
                 className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 ${
                   hecho
-                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80"
+                    ? "anim-pop bg-tinta text-crema group-hover:bg-tinta/80" // unificar-fijo: el círculo de un paso hecho, no un botón principal
                     : esActual
-                      ? "bg-papel text-tinta shadow-[0_0_0_8px_rgba(26,26,24,0.06)] ring-2 ring-tinta"
+                      ? "bg-papel text-tinta shadow-[0_0_0_8px_color-mix(in_srgb,var(--color-tinta)_6%,transparent)] ring-2 ring-tinta"
                       : "bg-crema text-tinta/65 ring-[1.5px] ring-taupe/60"
                 }`}
               >
@@ -152,52 +149,27 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   );
 }
 
-/** El anillo de «cuántas revisiones van»: se llena solo al ir cumpliéndose. */
-function AnilloProgreso({ pct }: { pct: number }) {
-  return (
-    <svg viewBox="0 0 36 36" className="anillo-progreso h-full w-full" aria-hidden>
-      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeOpacity=".16" strokeWidth="3" />
-      <circle
-        className="rg"
-        cx="18"
-        cy="18"
-        r="15.9155"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        transform="rotate(-90 18 18)"
-        style={{ strokeDasharray: `${pct} 100` }}
-      />
-    </svg>
-  );
-}
-
 /** "Lo que el sistema revisa": las validaciones en vivo, pegadas al costado en escritorio.
  *  Arriba, un anillo con cuántas van cumplidas (un aviso —como el plazo vencido en una
  *  devolución— no frena, así que cuenta como revisado) y el plazo de la compra, verde o
  *  rojo. Con `impacto`, debajo una segunda tarjeta con lo que va a pasar en el inventario
  *  y en la caja: se ve mientras se elige, no solo al final. */
-export function PanelValidaciones({ validaciones, impacto }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null }) {
+export function PanelValidaciones({ validaciones, impacto, guia }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   const total = validaciones.length;
   const cumplidas = validaciones.filter((v) => v.estado === "ok" || v.estado === "aviso").length;
-  const completo = cumplidas === total;
   const plazo = validaciones.find((v) => v.clave === "plazo");
   return (
-    <aside className="grid gap-4 self-start lg:sticky lg:top-24">
+    <aside data-guia={guia} className="grid gap-4 self-start lg:sticky lg:top-24">
       <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
         <div className="mb-5 flex items-center gap-4">
-          <div className={`relative h-[68px] w-[68px] shrink-0 transition-colors duration-500 ${completo ? "text-verde" : "text-ambar"}`}>
-            <AnilloProgreso pct={total ? (cumplidas / total) * 100 : 0} />
-            <span aria-hidden className="font-display absolute inset-0 grid place-items-center text-xl tabular-nums text-tinta">
+          {/* El anillo del sistema (ronda 13): en tinta mientras faltan revisiones y verde cuando están todas. */}
+          <Anillo pct={total ? (cumplidas / total) * 100 : 0} tamano="mediano" etiqueta={`${cumplidas} de ${total} revisiones cumplidas`}>
+            <span className="font-display text-xl font-normal">
               {cumplidas}/{total}
             </span>
-            <span className="sr-only">
-              {cumplidas} de {total} revisiones cumplidas
-            </span>
-          </div>
+          </Anillo>
           <div className="min-w-0 space-y-1.5">
-            <h3 className="font-display text-[22px] leading-tight text-tinta">Lo que revisa el sistema</h3>
+            <TituloSeccion nivel={3}>Lo que revisa el sistema</TituloSeccion>
             {plazo &&
               (plazo.tono === "rojo" ? (
                 <Chip tono="rojo" versalitas={false}>
@@ -216,7 +188,7 @@ export function PanelValidaciones({ validaciones, impacto }: { validaciones: rea
       </div>
       {impacto && (
         <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
-          <h3 className="font-display mb-4 text-xl text-tinta">Impacto</h3>
+          <TituloSeccion nivel={3} className="mb-4">Impacto</TituloSeccion>
           <ImpactoVista impacto={impacto} compacto />
         </div>
       )}
@@ -235,9 +207,9 @@ export function Dato({ titulo, children }: { titulo: string; children: ReactNode
 }
 
 /** Los botones del paso, y debajo —pegado a ellos— el motivo por el que no se puede seguir. */
-export function PieDelPaso({ aviso, children }: { aviso: string | null; children: ReactNode }) {
+export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; children: ReactNode; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   return (
-    <div className="space-y-2">
+    <div data-guia={guia} className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-3">{children}</div>
       {aviso && (
         <p className="anim-revelar flex items-start justify-end gap-1.5 text-sm text-ambar-profundo" role="alert">
@@ -253,24 +225,39 @@ export function PieDelPaso({ aviso, children }: { aviso: string | null; children
 // la etiqueta en mayúsculas chicas con aire entre las letras (`label-cayla`) y, si hay un
 // monto, a la derecha y en la serif de la casa — la etiqueta dice qué se hace; el monto,
 // cuánto. Sin monto, la etiqueta va centrada.
-function ContenidoBoton({ children, monto }: { children: ReactNode; monto?: string }) {
+// Mientras espera (ADR-0358, ronda 12): la etiqueta pasa a `textoCargando` sin cambiar el ancho, corre el hilo y el botón se apaga, como en
+// todo botón que guarda (`Boton`); el monto se queda a la vista.
+type Espera = { cargando?: boolean; textoCargando?: string };
+function ContenidoBoton({ children, monto, cargando, textoCargando }: { children: ReactNode; monto?: string } & Espera) {
+  const etiqueta = <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>;
   return (
     <>
-      <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>
+      {cargando !== undefined ? (
+        <PalabraEnEspera cargando={cargando} texto={textoCargando}>
+          {etiqueta}
+        </PalabraEnEspera>
+      ) : (
+        etiqueta
+      )}
       {monto && <strong className="font-display text-lg">{monto}</strong>}
+      {cargando && <HiloEnEspera claro />}
     </>
   );
 }
 
-export function BotonPrincipal({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
+export function BotonPrincipal({ onClick, children, disabled = false, monto, guia, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0389). */ guia?: string } & Espera) {
   return (
     <button
       type="button"
+      data-guia={guia}
       onClick={onClick}
-      disabled={disabled}
-      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema transition-colors duration-200 hover:bg-tinta/85 disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
-      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
+      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
+        {children}
+      </ContenidoBoton>
     </button>
   );
 }
@@ -281,7 +268,8 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 transition-colors duration-200 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      // El secundario del sistema (ADR-0358, ronda 11: «Cancelar» y sus vecinos hablan en letra normal), con el alto de 48 px del flujo.
+      className="btn-cayla btn-secundario h-12 gap-2 px-5"
     >
       {children}
     </button>
@@ -289,36 +277,19 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
 }
 
 /** El único rojo del flujo: la acción que mueve stock o plata de verdad. */
-export function BotonRojo({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
+export function BotonRojo({ onClick, children, disabled = false, monto, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string } & Espera) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
-      className={`boton-brillo alza-cayla flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema transition-colors duration-200 hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
-      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
+      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
+        {children}
+      </ContenidoBoton>
     </button>
   );
 }
 
-/** El aviso de que la base rechazó la operación. Recibe el foco (por su `refAviso`) para
- *  que se lea y se oiga sin buscarlo. `traducirError` abre con "No se pudo …" cuando no
- *  reconoce el error; con un mensaje de la base ("Stock insuficiente…") hay que decir además
- *  que no se guardó nada. */
-export function AvisoDeError({ error, refAviso, queNoSeHizo }: { error: string; refAviso: RefObject<HTMLDivElement | null>; queNoSeHizo: string }) {
-  return (
-    <div
-      ref={refAviso}
-      tabIndex={-1}
-      role="alert"
-      className="anim-revelar flex gap-3 rounded-xl border border-rojo/30 bg-rojo/[0.06] px-4 py-3 text-sm text-rojo-profundo outline-none"
-    >
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <p>
-        {!error.startsWith("No se pudo") && <span className="font-semibold">{queNoSeHizo} </span>}
-        {error}
-      </p>
-    </div>
-  );
-}

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
+import { MARCA_HOJA } from "@/lib/hojas-atras";
+import { cuandoSinHojas, hojasEnElHistorial, useHojasEnElHistorial } from "@/components/ui/useAtrasCierraLaHoja";
 
 /* ====================================================================
    useSalidaSinGuardar · «¿Salir sin guardar?» (2026-09-28)
@@ -20,6 +22,14 @@ import { destinoQueSaleDeLaPantalla } from "@/lib/salida-sin-guardar";
    y la pantalla se limpió, o el modal se cerró), para que «atrás» no pida dos toques.
 
    Quien guarda y NAVEGA llama a `soltar()` antes, para que su propia salida no pregunte ni toque el historial.
+
+   `{ soloAlCerrar: true }`: solo la puerta 3, para una hoja que vive dentro de una pantalla que ya cuida el «atrás» con su propia
+   guardia (la hoja de la prenda de «Compré ropa»). Dos guardias en el historial a la vez preguntaban dos veces por el mismo gesto.
+
+   La puerta 4 cede ante las hojas del teléfono (ADR-0528): mientras haya una hoja que cierra con «atrás» (toda `<Modal>` y `<Cajon>`
+   bajo 640 px) o una entrada suya en el historial, la guardia no se pone ni se retira, y su `popstate` no pregunta. Así un formulario
+   que vive en una hoja no pone guardia nunca en el teléfono: su «atrás» cierra la hoja y pregunta por la puerta 3 (`antesDeCerrar`).
+   Y la guardia de una pantalla entera (Nuevo producto) espera a que se cierre la hoja que se abrió encima para ponerse.
    ==================================================================== */
 
 type Destino = { tipo: "ruta"; ruta: string } | { tipo: "atras" } | { tipo: "accion"; hacer: () => void };
@@ -30,11 +40,56 @@ const QUE_SE_PIERDE = "Hiciste cambios en esta ficha que todavía no se guardaro
 /** Marca de la entrada de guardia en `history.state`: solo se retira una entrada que pusimos nosotros. */
 const MARCA = "__guardiaSalida";
 const esGuardia = () => Boolean((window.history.state as Record<string, unknown> | null)?.[MARCA]);
+/** El estado de la guardia: el de Next (para que su router no pierda el árbol) con la MARCA. Sin la marca de una hoja: copiada,
+ *  la entrada pasaría por la de esa hoja (ADR-0528). */
+function estadoDeGuardia() {
+  const estado: Record<string, unknown> = { ...(window.history.state ?? {}), [MARCA]: true };
+  delete estado[MARCA_HOJA];
+  return estado;
+}
 /** El `popstate` que provoca retirar la guardia no es la persona pulsando «atrás»: se ignora una vez. */
 let ignorarProximoPop = false;
+/** Quien espera a que la guardia termine de irse (`retirarYa`): se avisa con ESE popstate. */
+let alRetirarse: (() => void) | null = null;
+function guardiaRetirada() {
+  ignorarProximoPop = false;
+  const avisar = alRetirarse;
+  alRetirarse = null;
+  avisar?.();
+}
 
-export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_SE_PIERDE) {
+/* Ese `popstate` propio tampoco le llega al router de Next (2026-10-08). Retirar la guardia vuelve a la MISMA URL, así que no
+   hay nada que restaurar; pero Next restaura el árbol guardado en la entrada de abajo, y esa entrada puede ser vieja: Existencias
+   cambia sus filtros con `history.replaceState`, sin navegar, y la entrada sigue con el árbol de antes de la búsqueda. Con ese
+   árbol Next volvía a montar la pantalla entera (se perdía la vista elegida, la página, lo abierto) y, si en ese instante corría
+   el `router.refresh()` del guardado, recargaba la página completa. Visto al bajar al piso: el panel se cerraba solo, la lista
+   volvía a las tarjetas y el aviso de «listo» se perdía con la recarga.
+   Se escucha en la CAPTURA de `window`: en el destino, los escuchadores de captura corren antes que el de Next (que escucha sin
+   captura), y `stopImmediatePropagation` corta a todos los demás, también a los `alVolver` de los formularios montados, que de
+   todos modos lo ignoraban. Se instala una sola vez, al cargar el módulo. */
+if (typeof window !== "undefined") {
+  window.addEventListener(
+    "popstate",
+    (e) => {
+      if (!ignorarProximoPop) return;
+      guardiaRetirada();
+      e.stopImmediatePropagation();
+    },
+    { capture: true }
+  );
+}
+
+export function useSalidaSinGuardar(
+  conCambios: boolean,
+  mensaje: string = QUE_SE_PIERDE,
+  { soloAlCerrar = false }: { soloAlCerrar?: boolean } = {}
+) {
   const router = useRouter();
+  // Con `soloAlCerrar`, las puertas del historial, los enlaces y la pestaña no se instalan: no hay cambios que cuidar ahí.
+  const vigilaSalidas = conCambios && !soloAlCerrar;
+  const vigilaAtras = vigilaSalidas;
+  // Con una hoja del teléfono abierta, «atrás» es suyo: la guardia espera (ver arriba).
+  const conHojas = useHojasEnElHistorial();
   const [pendiente, setPendiente] = useState<Destino | null>(null);
   // Refs y no estado: los escuchadores se registran una vez y leen siempre el valor del momento.
   const hayCambios = useRef(conCambios);
@@ -44,8 +99,9 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
   useEffect(() => {
     hayCambios.current = conCambios;
   }, [conCambios]);
-  /** ¿Hay algo que perder ahora mismo? Se pregunta en el momento del gesto, no al dibujar. */
-  const debePreguntar = useCallback(() => hayCambios.current && !saliendo.current, []);
+  /** ¿Hay algo que perder ahora mismo? Se pregunta en el momento del gesto, no al dibujar. Con una guía interactiva en curso no hay nada que
+   *  perder: lo que el piloto escribió o eligió es de la demo (que nunca guarda), y preguntar dejaba la hoja abierta bajo el resto de la guía. */
+  const debePreguntar = useCallback(() => hayCambios.current && !saliendo.current && !document.querySelector("[data-guia-motor]"), []);
 
   const soltar = useCallback(() => {
     saliendo.current = true;
@@ -69,7 +125,7 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
 
   // 5. Cerrar o recargar la pestaña.
   useEffect(() => {
-    if (!conCambios) return;
+    if (!vigilaSalidas) return;
     const alDescargar = (e: BeforeUnloadEvent) => {
       if (!debePreguntar()) return;
       e.preventDefault();
@@ -77,10 +133,11 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     };
     window.addEventListener("beforeunload", alDescargar);
     return () => window.removeEventListener("beforeunload", alDescargar);
-  }, [conCambios, debePreguntar]);
+  }, [vigilaSalidas, debePreguntar]);
 
   // 1. Enlaces. En la captura de `window`: corre antes que el `onClick` de <Link> (React escucha en su raíz).
   useEffect(() => {
+    if (soloAlCerrar) return;
     const alClic = (e: MouseEvent) => {
       if (!debePreguntar()) return;
       const enlace = (e.target as Element | null)?.closest?.("a");
@@ -103,40 +160,56 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     };
     window.addEventListener("click", alClic, true);
     return () => window.removeEventListener("click", alClic, true);
-  }, [debePreguntar]);
+  }, [debePreguntar, soloAlCerrar]);
 
   // 4. Atrás. La guardia se pone con el primer cambio y se retira cuando ya no hay cambios. Copia el `history.state` de
   //    Next (para que su router no pierda el árbol de la pantalla) y le suma la MARCA.
   const retirarGuardia = useCallback(() => {
-    if (!conGuardia.current) return;
+    // Encima está la entrada de una hoja: un «atrás» se la llevaría a ella. Se retira cuando la hoja se va (el efecto de abajo).
+    if (!conGuardia.current || hojasEnElHistorial()) return;
     conGuardia.current = false;
     if (esGuardia() && window.location.href === urlGuardia.current) {
+      // La bandera la apaga ESE popstate, en el escuchador de captura de arriba, aunque ya no quede ningún formulario
+      // escuchando (un modal que se cerró): sin eso, el primer «atrás» del próximo formulario se tragaba sin preguntar.
       ignorarProximoPop = true;
-      // La bandera se apaga con ESE popstate aunque ya no quede ningún formulario escuchando (un modal que se cerró):
-      // sin esto, el primer «atrás» del próximo formulario se tragaba sin preguntar. Se registra después de los
-      // escuchadores de los formularios montados, así que ellos la ven prendida y recién después se apaga.
-      window.addEventListener("popstate", () => void (ignorarProximoPop = false), { once: true });
       window.history.back();
     }
   }, []);
+  /** Retira la guardia AHORA y avisa cuando el navegador terminó de volver. Para quien guardó y va a refrescar: el
+   *  `router.refresh()` tiene que correr DESPUÉS de ese «atrás», nunca a la vez. Si corren juntos, Next puede caer a una
+   *  recarga completa de la página (visto al bajar al piso en Existencias con una búsqueda recién escrita, 2026-10-08). */
+  const retirarYa = useCallback((): Promise<void> => {
+    hayCambios.current = false;
+    if (!conGuardia.current) return Promise.resolve();
+    return new Promise<void>((listo) => {
+      alRetirarse = listo;
+      retirarGuardia();
+      // No había entrada que retirar (otra navegación ya la sacó), o el popstate nunca llega: no se espera para siempre.
+      if (!ignorarProximoPop) return guardiaRetirada();
+      window.setTimeout(() => {
+        if (alRetirarse === listo) guardiaRetirada();
+      }, 600);
+    });
+  }, [retirarGuardia]);
   useEffect(() => {
-    if (saliendo.current) return;
-    if (conCambios && !conGuardia.current) {
+    if (saliendo.current || conHojas) return;
+    if (vigilaAtras && !conGuardia.current) {
       urlGuardia.current = window.location.href;
-      window.history.pushState({ ...(window.history.state ?? {}), [MARCA]: true }, "", window.location.href);
+      window.history.pushState(estadoDeGuardia(), "", window.location.href);
       conGuardia.current = true;
-    } else if (!conCambios) {
+    } else if (!vigilaAtras) {
       retirarGuardia();
     }
-  }, [conCambios, retirarGuardia]);
+  }, [vigilaAtras, conHojas, retirarGuardia]);
   useEffect(() => {
     const alVolver = () => {
+      // Respaldo: el escuchador de captura ya corta este popstate; un navegador que no corra la captura primero lo deja pasar.
       if (ignorarProximoPop) {
-        ignorarProximoPop = false;
+        guardiaRetirada();
         return;
       }
-      if (!conGuardia.current || !debePreguntar()) return;
-      window.history.pushState({ ...(window.history.state ?? {}), [MARCA]: true }, "", window.location.href);
+      if (!conGuardia.current || !debePreguntar() || hojasEnElHistorial()) return;
+      window.history.pushState(estadoDeGuardia(), "", window.location.href);
       setPendiente({ tipo: "atras" });
     };
     window.addEventListener("popstate", alVolver);
@@ -157,9 +230,12 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     // Descartar sin salir (cerrar el modal): la guardia se retira sola cuando el formulario se va.
     if (destino.tipo === "accion") return void destino.hacer();
     soltar();
-    if (destino.tipo === "ruta") router.push(destino.ruta);
-    // Dos pasos: la guardia repuesta y la entrada de esta pantalla.
-    else window.history.go(-2);
+    // La pregunta es una hoja: en el teléfono tiene su entrada encima de la guardia. Se sale cuando la retiró (ADR-0528).
+    cuandoSinHojas(() => {
+      if (destino.tipo === "ruta") router.push(destino.ruta);
+      // Dos pasos: la guardia repuesta y la entrada de esta pantalla.
+      else window.history.go(-2);
+    });
   }
 
   const aviso = pendiente ? (
@@ -180,5 +256,5 @@ export function useSalidaSinGuardar(conCambios: boolean, mensaje: string = QUE_S
     </Modal>
   ) : null;
 
-  return { pedirSalir, pedirAccion, soltar, aviso };
+  return { pedirSalir, pedirAccion, soltar, retirarYa, aviso };
 }

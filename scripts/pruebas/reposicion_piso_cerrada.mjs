@@ -8,6 +8,10 @@
  * (`mover_interno`) y el mensaje de permiso para quien no puede ajustar. Además, que la migración se pega dos veces sin
  * duplicar el bloque y sin borrar los parches en vivo (firma del responsable y candado por capacidad).
  *
+ * DESDE ADR-0328 (actividad 4, 20261004210200) «Reposición» se llama «Encontré prendas»: el mensaje del piso lo dice así, y
+ * en el almacén el motivo pide una nota (dónde o por qué aparecieron). Por eso cada ajuste de esta prueba lleva una nota; la
+ * regla de la nota en sí la prueba `cierre_carga_inicial.mjs`.
+ *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK (seguro contra una base compartida), como Felipe (líder) o
  * Micaela (colaboradora de Tienda Trujillo) con `set local request.jwt.claim.sub`. `pg_temp.intento` devuelve
  * «SQLSTATE|hint|mensaje» sin abortar la transacción, para verificar después que el stock no se movió.
@@ -32,8 +36,8 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260926000
 const PRELUDIO = process.argv.includes("--en-seco") ? MIGRACION : "";
 const HINT = "reposicion_piso_cerrada";
 // Mensaje del candado de permiso (registrar_movimiento), que va ANTES de este candado de negocio. Cambió el
-// 2026-09-27 (ADR-0250: «Ajustar stock» se separa de Existencias/Conteos/Traslados como módulo propio).
-const PERMISO = "Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste";
+// 2026-10-02 (ADR-0306: «Ajustar stock» deja de ser módulo; ajusta el líder o quien ve Existencias/Conteos/Traslados).
+const PERMISO = "Tu rol no puede ajustar stock — pídele a una líder de tu sede que lo ajuste";
 
 function psql(sql) {
   return execFileSync(
@@ -79,7 +83,7 @@ select count(*) as mov0 from retail.movimientos where variante_id = :'va' \\gset
 set local request.jwt.claim.sub = '${quien}';
 `;
 const AJUSTE = (cantidad, motivo, sub = ":'piso'", ubic = ":'tru'") =>
-  `pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', ${cantidad}, %L, null, %L)', :'va', ${ubic}, '${motivo}', ${sub === "null" ? "null::uuid" : sub}))`;
+  `pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', ${cantidad}, %L, ''nota de la prueba'', %L)', :'va', ${ubic}, '${motivo}', ${sub === "null" ? "null::uuid" : sub}))`;
 const PISO = `(select coalesce(sum(cantidad), 0) from retail.stock where variante_id = :'va' and ubicacion_id = :'tru' and sububicacion_id = :'piso')`;
 const ALM = `(select coalesce(sum(cantidad), 0) from retail.stock where variante_id = :'va' and ubicacion_id = :'tru' and sububicacion_id = :'alm')`;
 const MOVS = `(select count(*) from retail.movimientos where variante_id = :'va')`;
@@ -88,9 +92,9 @@ const CASOS = [];
 const caso = (nombre, sql, esperado) => CASOS.push({ nombre, sql, esperado });
 
 caso(
-  "líder: «Reposición» +2 en el piso se rechaza con su hint y el stock no se mueve",
+  "líder: «Encontré prendas» (código «reposicion») +2 en el piso se rechaza con su hint y el stock no se mueve",
   `${ESCENA(FELIPE)}select ${AJUSTE(2, "reposicion")} as r \\gset
-select split_part(:'r', '|', 1), split_part(:'r', '|', 2), split_part(:'r', '|', 3) like '«Reposición» no se usa en el piso:%',
+select split_part(:'r', '|', 1), split_part(:'r', '|', 2), split_part(:'r', '|', 3) like '«Encontré prendas» se registra en el almacén, no en el piso:%',
   ${PISO} = :piso0, ${MOVS} = :mov0;
 rollback;`,
   [`P0001|${HINT}|t|t|t`]
@@ -146,11 +150,11 @@ rollback;`,
   ["42501|t"]
 );
 caso(
-  // Desde ADR-0250 (2026-09-27) Existencias sola ya no basta para ajustar (ver `existencias_candados_y_ajuste.mjs`,
-  // casos 10a/10b): el rol de esta prueba necesita el módulo «Ajustar stock» para llegar hasta este candado de negocio.
-  "colaboradora con «Ajustar stock»: se topa con el candado nuevo, con su mismo texto",
-  `${ESCENA(FELIPE)}insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-0000000000a2', 'Ve Ajustar stock (prueba reposición)', 'temporal');
-insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-0000000000a2', 'ajustar_stock');
+  // Desde ADR-0306 (2026-10-02) ajustar stock es una función de Existencias (o Conteos/Traslados; ver
+  // `existencias_candados_y_ajuste.mjs`, casos 10a/10b): con Existencias la colaboradora llega hasta este candado de negocio.
+  "colaboradora con Existencias: se topa con el candado nuevo, con su mismo texto",
+  `${ESCENA(FELIPE)}insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-0000000000a2', 'Ve Existencias (prueba reposición)', 'temporal');
+insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-0000000000a2', 'existencias');
 update retail.colaboradores set rol_id = '44444444-4444-4444-8444-0000000000a2' where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
 set local request.jwt.claim.sub = '${MICAELA}';
 select split_part(${AJUSTE(1, "reposicion")}, '|', 2);
@@ -163,7 +167,7 @@ caso(
 ${MIGRACION}
 ${MIGRACION}
 select (length(d) - length(replace(d, 'ADR-0208: «Reposición» no sube', ''))) / length('ADR-0208: «Reposición» no sube'),
-  -- El candado por capacidad pasó de fn_puede_ajustar_inventario() a fn_puede_ajustar_stock() el 2026-09-27 (ADR-0250).
+  -- El candado por capacidad es fn_puede_ajustar_stock() desde el 2026-09-27 (ADR-0250); ADR-0306 (2026-10-02) le cambió la regla, no el nombre.
   position('fn_actor_persona_id(true)' in d) > 0, position('fn_puede_ajustar_stock()' in d) > 0,
   (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_movimiento')
 from (select pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure) d) x;

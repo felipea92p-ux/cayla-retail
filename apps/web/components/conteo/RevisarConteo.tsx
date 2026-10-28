@@ -9,7 +9,8 @@ import { ResumenConteo } from "@/components/conteo/ResumenConteo";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
-import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import { textoAtajoEnRevision } from "@/lib/conteo-atajo";
 import { bloqueoDeCierre, lineaDesdeJson, notaDeLinea, resumirLineas, textoFaltanPorContar } from "@/lib/conteo-reglas";
 import { diferenciasEnOrden, pendientesPorPercha, textoConfirmaPrimero, type FilaConteoVista } from "@/lib/conteo-revision";
 import { traducirError } from "@/lib/error-escritura";
@@ -18,6 +19,9 @@ import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
+import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    Revisar conteo · lo que no coincide, antes de tocar las existencias
@@ -75,7 +79,18 @@ function ColorYTalla({ color, colorHex, talla, conTalla = false }: { color: stri
   );
 }
 
-export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: { conteoId: string; filas: FilaConteoVista[]; generadoEn: string }) {
+export function RevisarConteo({
+  conteoId,
+  filas: filasIniciales,
+  generadoEn,
+  conAtajo = null,
+}: {
+  conteoId: string;
+  filas: FilaConteoVista[];
+  generadoEn: string;
+  /** Cuántas variantes se completaron con «Completar todo» al cargar la página; `null` si no se pudo leer (no se dice nada). */
+  conAtajo?: number | null;
+}) {
   const router = useRouter();
 
   // Frescura: «Volver a contar» lleva a Contar y de allí se regresa a Revisar; el enrutador puede devolver esta pantalla desde su
@@ -107,6 +122,8 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
   const tarjetaPend = useRef<HTMLElement>(null);
 
   const resumen = useMemo(() => resumirLineas(filas), [filas]);
+  // ADR-0328 (opción C): lo completado con el atajo CUENTA, pero se dice. «Contadas» = las que alguien contó (sin las «sin contar»).
+  const textoAtajo = textoAtajoEnRevision(conAtajo ?? 0, resumen.verificadas - resumen.sinContar);
   const diferencias = useMemo(() => diferenciasEnOrden(filas), [filas]);
   const perchas = useMemo(() => pendientesPorPercha(filas), [filas]);
   const sinConfirmar = resumen.conDiferencia - resumen.confirmadas;
@@ -199,20 +216,19 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
 
   return (
     <>
-      <section id="revisar-resumen" tabIndex={-1} className="card-cayla space-y-3 p-4 outline-none sm:p-5">
+      <section id="revisar-resumen" data-guia="revisar.resumen" tabIndex={-1} className="card-cayla space-y-3 p-4 outline-none sm:p-5">
         <ResumenConteo resumen={resumen} variante="revision" />
+        {textoAtajo && <p className="text-sm text-taupe">{textoAtajo}</p>}
         {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={alguienOcupado} className="w-full sm:w-72" />}
       </section>
 
       {conPendientes && (
         <>
-          <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-            {textoFaltanPorContar(resumen.pendientes)}
-          </p>
+          <Aviso tono="atencion">{textoFaltanPorContar(resumen.pendientes)}</Aviso>
 
-          <section ref={tarjetaPend} className="card-cayla @container scroll-mt-24 overflow-hidden">
+          <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
-              <h2 className="font-display text-lg text-tinta">Pendientes de contar</h2>
+              <TituloSeccion>Pendientes de contar</TituloSeccion>
               <p className="text-sm text-taupe">Estas variantes todavía no fueron verificadas.</p>
             </div>
             <ul className="divide-y divide-sand">
@@ -222,7 +238,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                   <li key={g.clave} className="space-y-2.5 px-4 py-3 @[36rem]:flex @[36rem]:items-center @[36rem]:gap-6 @[36rem]:space-y-0 @[36rem]:px-5">
                     {/* Ancho fijo en la tarjeta ancha: las tallas quedan junto al nombre de su percha, no a un metro de él. */}
                     <div className="flex min-w-0 items-center gap-2.5 @[36rem]:w-64 @[36rem]:shrink-0">
-                      <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="sm" />
+                      <MiniaturaPrenda fotoUrl={g.fotoUrl} colorHex={g.colorHex} tamano="sm" {...categoriaDe(g)} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-tinta">{g.referencia}</p>
                         <ColorYTalla color={g.color} colorHex={g.colorHex} talla={null} />
@@ -263,11 +279,12 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
       )}
 
       {diferencias.length > 0 ? (
-        <section ref={tarjetaDif} className="card-cayla @container scroll-mt-24 overflow-hidden">
+        <section ref={tarjetaDif} data-guia="revisar.diferencias" className="card-cayla @container scroll-mt-24 overflow-hidden">
           <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">
-            <h2 id="revisar-diferencias" tabIndex={-1} className="font-display text-lg text-tinta outline-none">
-              Diferencias
-            </h2>
+            {/* Aquí vuelve el foco cuando la fila tocada se va (ver `actuar`): el id y el tabIndex van en la caja del título. */}
+            <div id="revisar-diferencias" tabIndex={-1} className="outline-none">
+              <TituloSeccion>Diferencias</TituloSeccion>
+            </div>
             <p className="text-sm text-taupe">Confirma lo que contaste, o vuelve a contar la variante.</p>
           </div>
           <ul className="divide-y divide-sand">
@@ -283,7 +300,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                       Una sola fila necesita ~900 px: con menos, la prenda quedaba en «Blus…». La última columna es fija (15 rem): con `auto`, las cifras se corrían de una fila a otra según hubiera uno o dos botones. */}
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2.5 @[56rem]:grid-cols-[minmax(0,1fr)_7rem_7rem_8.5rem_15rem] @[56rem]:gap-x-4">
                     <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2.5 @[56rem]:col-auto @[56rem]:row-auto">
-                      <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" />
+                      <MiniaturaPrenda fotoUrl={f.fotoUrl} colorHex={f.colorHex} tamano="sm" {...categoriaDe(f)} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-tinta">{f.referencia}</p>
                         <ColorYTalla color={f.color} colorHex={f.colorHex} talla={f.talla} conTalla />
@@ -316,23 +333,23 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
                         {ocupada === "recontar" ? "Un momento…" : "Volver a contar"}
                       </button>
                       {f.estado === "con_diferencia" && (
-                        <button
+                        <Boton peso="primario" cargando={ocupada === "confirmar"} textoCargando="Confirmando…"
                           type="button"
                           disabled={!puedeActuar}
                           title={responsable.motivo ?? undefined}
                           onClick={() => void actuar(f.varianteId, "confirmar")}
-                          className="btn-cayla btn-chico btn-primario min-w-0 flex-1 @[36rem]:flex-none"
+                          className="btn-chico min-w-0 flex-1 @[36rem]:flex-none"
                         >
-                          {ocupada === "confirmar" ? "Confirmando…" : `Confirmar ${f.contada}`}
-                        </button>
+                          {`Confirmar ${f.contada}`}
+                        </Boton>
                       )}
                     </div>
                   </div>
                   {nota && <p className="mt-2 text-[11px] leading-[15px] text-taupe">{nota}</p>}
                   {error && (
-                    <p role="alert" className="mt-2 text-xs text-rojo-profundo">
+                    <Aviso tono="error" chico className="mt-2">
                       {error}
-                    </p>
+                    </Aviso>
                   )}
                 </li>
               );
@@ -362,7 +379,7 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
       <BarraFija
         resumen={<p>{textoPie}</p>}
         acciones={
-          <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <div data-guia="revisar.pie" className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
             {conPendientes ? (
               <>
                 {bloqueoParcial === null ? (

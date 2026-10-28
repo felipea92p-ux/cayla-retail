@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { textoAlcance, textoLugar, type ConteoResumen } from "@/lib/conteo-reglas";
-import { textoUltimoConteo, type AlcanceConteo } from "@/lib/conteo-inicio-reglas";
+import { textoUltimoConteo, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
+import { agruparPorDia, hrefRecientes, textoDiaLargo, textoPieRecientes, textoTotalRecientes, type VistaRecientes } from "@/lib/conteo-recientes-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
-import { TABLA } from "@/components/ui/Tabla";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AbrirConteo } from "@/components/AbrirConteo";
 import { ConteosLista } from "@/components/ConteosLista";
+import { FiltroConteosRecientes } from "@/components/conteo/FiltroConteosRecientes";
 import { AccionesEnCurso } from "@/components/conteo/AccionesEnCurso";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
+import { ClipboardList } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // El INICIO de Conteo (Inventario ▸ Conteo, rediseño 2026-09-29). Responde una sola pregunta: «¿qué hago ahora?».
 //   · Hay un conteo abierto en esta sede → la tarjeta «Conteo N en curso» (cuántas variantes lleva, seguir o cancelar).
@@ -26,9 +30,11 @@ export function ConteoVista({
   ubicacionId,
   abierto,
   conteos,
+  recientes,
   sububicaciones,
   categorias,
   alcance = null,
+  arranque = null,
   trasladosPorAtender = null,
   soloPrendas = [],
   variantes = [],
@@ -37,12 +43,16 @@ export function ConteoVista({
   ubicacionId: string;
   /** El conteo abierto de esta sede (es el primero de `conteos` cuando lo hay), o `null`. */
   abierto: ConteoResumen | null;
-  /** El historial de la sede, el abierto primero y después del más reciente al más antiguo. */
+  /** El historial de la sede, el abierto primero y después del más reciente al más antiguo (los de «Último conteo», no los filtrados). */
   conteos: ConteoResumen[];
+  /** Lo que dibuja «Conteos recientes»: los más recientes, o los del día pedido (`?dia=`). Ver `vistaDeRecientes`. */
+  recientes: VistaRecientes;
   sububicaciones: Sububicacion[];
   categorias: { id: string; nombre: string }[];
   /** Cuántas variantes trae un conteo de cada lugar y categoría (`fn_conteo_alcance`); `null` = no se pudo leer: la tarjeta sale sin cifras. */
   alcance?: AlcanceConteo | null;
+  /** Qué lugares todavía no tuvieron su conteo de arranque (`fn_conteo_arranque`, ADR-0328); `null` = no se pudo leer: no se menciona. */
+  arranque?: ArranqueConteo | null;
   /** Traslados hacia esta sede por atender: el aviso «antes de contar». `null` = no se sabe o no ve Traslados. */
   trasladosPorAtender?: number | null;
   /** Las prendas de «Contar esta prenda» (`?variantes=`, ADR-0241), ya con su nombre. Vacío = la lista de siempre. */
@@ -72,11 +82,9 @@ export function ConteoVista({
       {/* `#contar`: `/inventario/conteo#contar` sigue llegando aquí (enlaces de Movimientos, Existencias y el menú). */}
       <div id="contar" className="scroll-mt-24">
         {abierto ? (
-          <section className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
+          <section data-guia="conteo.en-curso" className="card-cayla space-y-4 p-5 sm:p-6" aria-labelledby="conteo-en-curso">
             <div className="space-y-1">
-              <h2 id="conteo-en-curso" className="font-display text-xl text-tinta">
-                Conteo {abierto.numero} en curso
-              </h2>
+              <TituloSeccion id="conteo-en-curso">Conteo {abierto.numero} en curso</TituloSeccion>
               <p className="text-sm text-taupe">
                 {textoLugar(abierto)} · {textoAlcance(abierto)}
               </p>
@@ -94,24 +102,73 @@ export function ConteoVista({
             categorias={categorias}
             ultimoPorLugar={ultimoPorLugar}
             alcance={alcance}
+            arranque={arranque}
             trasladosPorAtender={trasladosPorAtender}
             variantes={variantes}
           />
         )}
       </div>
 
-      <section className="card-cayla @container overflow-hidden" aria-labelledby="conteos-recientes">
-        <h2 id="conteos-recientes" className="px-4 py-3.5 font-display text-lg text-tinta @[36rem]:px-5">
-          Conteos recientes
-        </h2>
-        {conteos.length > 0 ? <ConteosLista conteos={conteos} /> : <p className={`${TABLA.vacio} border-t border-sand`}>Todavía no hay conteos en esta ubicación.</p>}
+      {/* Sin `overflow-hidden` en la tarjeta: el calendario del filtro se abre hacia abajo y una tarjeta que recorta lo cortaría. La
+          lista lleva su propio recorte para sus esquinas. */}
+      <section data-guia="conteo.recientes" className="card-cayla @container" aria-labelledby="conteos-recientes">
+        {/* Título y filtro en UNA fila (se acomodan en dos cuando no caben). El total de conteos ya no va arriba a la derecha: cada
+            día dice cuántos trae y el pie dice qué se está viendo; aquí queda solo para el lector de pantalla, que oye el cambio. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 pb-4 pt-4 @[36rem]:px-5">
+          <TituloSeccion id="conteos-recientes">Conteos recientes</TituloSeccion>
+          {recientes.mostrados.length > 0 && (
+            <p className="sr-only" aria-live="polite">
+              {textoTotalRecientes(recientes)}
+            </p>
+          )}
+          {(conteos.length > 0 || recientes.dia !== null) && (
+            <FiltroConteosRecientes
+              dia={recientes.dia}
+              hoy={recientes.hoy}
+              ayer={recientes.ayer}
+              deHoy={recientes.deHoy}
+              deAyer={recientes.deAyer}
+              diasConConteos={recientes.diasConConteos}
+              variantes={variantes}
+            />
+          )}
+        </div>
+        <div className="overflow-hidden rounded-b-xl">
+          {recientes.mostrados.length > 0 ? (
+            <>
+              <ConteosLista grupos={agruparPorDia(recientes.mostrados)} hoy={recientes.hoy} />
+              <p className="border-t border-sand px-4 py-2.5 text-xs text-taupe @[36rem]:px-5">{textoPieRecientes(recientes)}</p>
+            </>
+          ) : recientes.dia !== null ? (
+            <div className="border-t border-sand px-5 py-8 text-center">
+              <p className="font-display text-lg text-tinta">No hubo conteos el {textoDiaLargo(recientes.dia, recientes.hoy)}.</p>
+              <p className="mt-1 text-sm text-tinta/75">
+                {recientes.anterior ? `El conteo anterior fue el ${textoDiaLargo(recientes.anterior.dia, recientes.hoy)} (Conteo ${recientes.anterior.numero}).` : "No hay conteos de antes de esa fecha."}
+              </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {recientes.anterior && (
+                  <Link href={hrefRecientes(recientes.anterior.dia, variantes)} scroll={false} className="btn-cayla btn-secundario">
+                    Ir a ese día
+                  </Link>
+                )}
+                <Link href={hrefRecientes(null, variantes)} scroll={false} className="btn-cayla btn-primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
+                  Ver todos
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <Vacio tamano="chico" icono={<ClipboardList />} className="border-t border-sand">
+              Todavía no hay conteos en esta ubicación.
+            </Vacio>
+          )}
+        </div>
       </section>
 
-      <p className="nota-cayla">
+      <p data-guia="conteo.nota" className="nota-cayla">
         <b>Cómo se cuenta:</b> se escanea o se escribe lo que encuentras en la tienda y se compara con lo que CAYLA esperaba. Cada diferencia se confirma antes de cerrar y
         cada ajuste queda como movimiento.{" "}
-        <Link href="/inventario/movimientos?proc=conteo" className="text-tinta underline underline-offset-2 hover:text-taupe">
-          Ver ajustes por conteo →
+        <Link href="/inventario/movimientos?proc=conteo" className="btn-cayla btn-enlace">
+          Ver ajustes por conteo
         </Link>
       </p>
     </div>

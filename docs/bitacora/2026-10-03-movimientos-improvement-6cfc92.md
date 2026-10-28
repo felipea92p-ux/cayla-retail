@@ -1,0 +1,9 @@
+## 2026-10-03 (Movimientos: por qué se ve mal y qué cifras mienten — análisis `/pantalla`)
+Qué hice: re-analicé `/inventario/movimientos` con la captura de Felipe y producción en solo lectura (agregados, sin datos personales); reemplaza el análisis vencido del 26-09 en `docs/pantallas/inventario-movimientos.md`, con 12 tareas. Sin código ni migraciones.
+Por qué así: la pantalla se ve mal por acumulación (sede ×5, cada cifra dos veces en unidades distintas, cuatro estilos de filtro), pero lo grave son tres cifras que llevan a conclusiones falsas: «Ajustes +52» es un neto que esconde 35 prendas que faltaron (+87/−35), la banda «HOY · 14 movimientos» cuenta solo la página (el día llevaba ~90) y «30 vendidas» incluye 2 anuladas.
+Felipe se lleva: decidir la banda negra del día (#10), recuperar o borrar los atajos del detalle que se perdieron con el cajón del 28-09 (#12) y, fuera de la pantalla, si un ajuste a mano exige nota y si «Reposición» se cierra también en el almacén (80 de 94 ajustes de TRU sin documento, 5 con nota).
+
+## 2026-10-03 (Movimientos: las cifras dicen la verdad — tareas #1 a #5, ADR-0327)
+Qué hice: la tarjeta Ajustes ya no suma y resta (+52): dice «−35 faltaron · +87 aparecieron» y cada cara, «a mano» o «en un conteo»; el ajuste hecho en Ajustar stock se llama «Ajuste a mano» y su fila dice «Sin documento» con su nota; la banda del día dejó de decir una cifra que no era del día; «30 vendidas (2 se anularon)»; y una prueba exige la frase de todo proceso de Entró/Salió (falla si falta). Sin migración.
+Por qué así: el neto es la lectura que más engaña (35 prendas faltantes se leían como 52 de más), y en TRU 80 de 94 ajustes no tienen documento: la pantalla tiene que decirlo donde se mira. Las palabras las eligió Felipe.
+Felipe se lleva: lo que falta de la pantalla son las tareas #6 a #12 del análisis; y, fuera de ella, decidir si un ajuste a mano exige nota o si «Reposición» se cierra también en el almacén.

@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
+import { ResultadoPulso } from "@/components/finanzas/ResultadoPulso";
 import { Herramientas, ListaDatos, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { fechaCorta, mesDe, mesesRecientes, rangoMes } from "@/lib/gastos-reglas";
 import {
@@ -20,8 +22,10 @@ import {
   leerVerER,
   mesNombre,
   mesTitulo,
+  NOTA_MES_CERRADO,
   montoNatural,
   nombreCorto,
+  ORDEN_DIARIO,
   origenDeCifra,
   porcentaje,
   solesER,
@@ -29,6 +33,10 @@ import {
   type FilaER,
   type LineaDiario,
 } from "@/lib/resultados-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CalendarX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
@@ -45,24 +53,27 @@ type Origen = { concepto: ConceptoER; columna: FilaER };
 export function EstadoResultadosPanel({
   filas,
   anteriores,
-  esLider,
+  veTodo,
   sedeActual,
   verParam,
   mes,
   mesPrevio,
   hoy,
   comparar,
+  cerradas,
   fallas,
 }: {
   filas: FilaER[];
   anteriores: FilaER[] | null;
-  esLider: boolean;
+  veTodo: boolean;
   sedeActual: string | null;
   verParam: string | undefined;
   mes: string;
   mesPrevio: string;
   hoy: string;
   comparar: boolean;
+  /** Las unidades de este mes que ya están cerradas (llave de `claveUnidad`): su columna es la foto congelada. */
+  cerradas: string[];
   fallas: string[];
 }) {
   const router = useRouter();
@@ -70,12 +81,13 @@ export function EstadoResultadosPanel({
   const params = useSearchParams();
   const [origen, setOrigen] = useState<Origen | null>(null);
 
-  const ver = leerVerER(verParam, filas, esLider, sedeActual);
+  const ver = leerVerER(verParam, filas, veTodo, sedeActual);
   const columnas = useMemo(() => columnasER(filas, ver), [filas, ver]);
   const conceptos = useMemo(() => conceptosER(columnas), [columnas]);
   const previas = useMemo(() => new Map((anteriores ?? []).map((f) => [claveUnidad(f), f])), [anteriores]);
   const enCurso = mes === mesDe(hoy);
-  const avisos = avisosER(columnas, enCurso);
+  const cerrada = (c: FilaER) => cerradas.includes(claveUnidad(c));
+  const avisos = [...avisosER(columnas, enCurso), ...(columnas.some(cerrada) ? [{ tono: "pizarra" as const, texto: NOTA_MES_CERRADO }] : [])];
   const unidades = filas.filter((f) => f.unidad !== "consolidado");
   const ventasDe = (f: FilaER) => f.ventas;
 
@@ -109,8 +121,8 @@ export function EstadoResultadosPanel({
         bajada="Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento."
         acciones={
           <>
-            {esLider ? (
-              <label className="fin-ver">
+            {veTodo ? (
+              <label className="fin-ver" data-guia="fin-ver.combo">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
                 <SelectFin
                   etiqueta="Qué mirar"
@@ -126,9 +138,9 @@ export function EstadoResultadosPanel({
             ) : (
               <Chip versalitas={false}>{columnas[0]?.nombre ?? "Tu tienda"}</Chip>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!columnas.length}>
+            <BotonDescargar onClick={descargar} disabled={!columnas.length} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -139,16 +151,19 @@ export function EstadoResultadosPanel({
         </p>
       ))}
 
+      {/* Camino A (Felipe 2026-10-15): la respuesta grande de lo que se mira, antes del cuadro. CAYLA entera es la columna del consolidado. */}
+      <ResultadoPulso fila={(ver === "todas" ? filas.find((f) => f.unidad === "consolidado") : columnas[0]) ?? null} mes={mes} enCurso={mes === mesDe(hoy)} />
+
       <div {...entra(1)}>
         <Superficie>
-          <Herramientas>
+          <Herramientas guia="fin-resultados.herramientas">
             <SelectFin
               etiqueta="Mes"
               valor={mes}
               onValor={(v) => ir({ mes: v })}
               opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · a la fecha" : ""}` }))}
             />
-            <label className="btn-cayla btn-sutil gap-2">
+            <label className="btn-cayla btn-sutil gap-2" data-guia="fin-resultados.comparar">
               <input type="checkbox" checked={comparar} onChange={(e) => ir({ comparar: e.target.checked ? "1" : null })} />
               Comparar con {mesNombre(mesPrevio)}
             </label>
@@ -156,7 +171,7 @@ export function EstadoResultadosPanel({
           </Herramientas>
 
           {columnas.length ? (
-            <div className="fin-tabla-wrap">
+            <div className="fin-tabla-wrap" data-guia="fin-resultados.tabla">
               <table className="fin-eerr">
                 <thead>
                   <tr>
@@ -167,7 +182,7 @@ export function EstadoResultadosPanel({
                     {columnas.map((c) => (
                       <th key={claveUnidad(c)} scope="col" className={c.unidad === "consolidado" ? "fin-eerr-cons" : undefined}>
                         {nombreCorto(c)}
-                        <span className="fin-delta">{subtituloColumna(c, enCurso)}</span>
+                        <span className="fin-delta">{[subtituloColumna(c, enCurso), cerrada(c) ? "cerrado" : ""].filter(Boolean).join(" · ")}</span>
                       </th>
                     ))}
                   </tr>
@@ -211,12 +226,12 @@ export function EstadoResultadosPanel({
               </table>
             </div>
           ) : (
-            <p className="px-5 py-8 text-sm text-taupe">No hay números que mostrar para este mes.</p>
+            <Vacio tamano="chico" className="py-8" icono={<CalendarX />}>No hay números que mostrar para este mes.</Vacio>
           )}
 
           {avisos.length > 0 && (
             <PieTabla>
-              <ul className="fin-avisos">
+              <ul className="fin-avisos" data-guia="fin-resultados.avisos">
                 {avisos.map((a) => (
                   <li key={a.texto}>
                     <Chip tono={a.tono}>{a.tono === "rojo" ? "No cuadra" : a.tono === "ambar" ? "Ojo" : "Nota"}</Chip>
@@ -229,8 +244,8 @@ export function EstadoResultadosPanel({
         </Superficie>
       </div>
 
-      {esLider ? (
-        <div {...entra(2, "fin-dos-col")}>
+      {veTodo ? (
+        <div {...entra(2, "fin-dos-col")} data-guia="fin-resultados.notas">
           <div className="nota-cayla">
             <b>El Taller no le vende a las tiendas</b> (D-31): lo que cuesta la tela, los avíos y la maquila de cada prenda entra en el
             «costo de lo vendido» de la tienda que la vende. Su columna muestra lo que el Taller gasta para producir (su planilla, su local,
@@ -242,7 +257,7 @@ export function EstadoResultadosPanel({
           </div>
         </div>
       ) : (
-        <div {...entra(2, "nota-cayla")}>
+        <div {...entra(2, "nota-cayla")} data-guia="fin-resultados.notas">
           Estos son los números de <b>tu tienda</b>. Los gastos que no son de ninguna tienda (contador, publicidad, oficina) y los del
           Taller no se reparten entre las tiendas: los ve el líder, en CAYLA.
         </div>
@@ -281,16 +296,25 @@ function Celda({
   }
   const delta = previa && (k.tipo !== "linea" || k.clave === "ventas") ? deltaTexto(v, k.valor(previa), mesPrevio) : null;
   const neg = k.tipo !== "linea" && v < 0 ? "fin-eerr-neg" : "";
+  // Los sueldos que todavía no pagó Dynamic están provisionados con sus boletas (ADR-0453): se dice en la misma celda.
+  const estimado = k.clave === "g62" && c.planillaEstimada > 0 ? (c.planilla - c.planillaEstimada > 0.5 ? "en parte provisionado" : "provisionado") : null;
   const contenido = (
     <>
       {solesER(v)}
+      {estimado && <span className="fin-delta">{estimado}</span>}
       {delta && <span className="fin-delta">{delta}</span>}
     </>
   );
   return (
     <td className={`${cons} ${neg}`}>
       {k.tipo === "linea" ? (
-        <button type="button" className="fin-eerr-celda" onClick={onAbrir} aria-label={`De dónde sale: ${k.nombre}, ${nombreCorto(c)}`}>
+        <button
+          type="button"
+          className="fin-eerr-celda"
+          onClick={onAbrir}
+          aria-label={`De dónde sale: ${k.nombre}, ${nombreCorto(c)}`}
+          data-guia={k.clave === "ventas" ? "fin-resultados.celda" : undefined}
+        >
           {contenido}
         </button>
       ) : (
@@ -308,20 +332,12 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
   useEffect(() => {
     let vivo = true;
     const { desde, hasta } = rangoMes(mes);
-    createClient()
-      .rpc(
-        "fn_asientos" as never,
-        {
-          p_desde: desde,
-          p_hasta: hasta,
-          p_ubicacion_id: c.ubicacionId,
-        } as never,
-      )
-      .then(({ data, error: e }) => {
-        if (!vivo) return;
-        if (e) setError(e.message);
-        else setLineas(((data ?? []) as Record<string, unknown>[]).map(leerLineaDiario));
-      });
+    // Por páginas: un mes de ventas da unas 5.400 líneas de diario y PostgREST corta en 1.000 sin error; «De dónde sale» sumaba solo los primeros días.
+    leerRpcPorPaginas(createClient(), "fn_diario", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: c.ubicacionId }, ORDEN_DIARIO).then(({ data, error: e }) => {
+      if (!vivo) return;
+      if (e) setError(e.message);
+      else setLineas((data ?? []).map(leerLineaDiario));
+    });
     return () => {
       vivo = false;
     };
@@ -330,7 +346,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
   const o = lineas ? origenDeCifra(lineas, k.cuentas, claveUnidad(c)) : null;
   const fuentes = fuentesDe(k.clave);
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo={
         <>
@@ -340,11 +356,18 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       }
       subtitulo={`${mesTitulo(mes)} · ${solesER(Math.abs(k.valor(c)))}`}
       onClose={onCerrar}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
-      <p className="text-[13px] leading-relaxed text-taupe">
+      <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.
       </p>
+      {k.clave === "g62" && c.planillaEstimada > 0 && (
+        <Aviso tono="info" chico className="mt-3">
+          {solesER(c.planillaEstimada)} de esta cifra están provisionados: lo que corresponde pagar hasta hoy según las boletas de Dynamic ({c.planillaPersonas}{" "}
+          {c.planillaPersonas === 1 ? "persona" : "personas"}). Las horas de hoy son un cálculo con lo que lleva cada persona y se corrigen cuando cierra su jornada.
+          Todavía no está en el diario, por eso estas líneas no lo suman; cuando Dynamic pague el período, entra lo pagado de verdad.
+        </Aviso>
+      )}
       {o && o.porRegla.length > 0 && (
         <ListaDatos
           filas={o.porRegla.map((g) => ({
@@ -353,7 +376,11 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
           }))}
         />
       )}
-      {error && <p className="mt-3 text-sm text-rojo-profundo">No se pudieron leer las líneas: {error}</p>}
+      {error && (
+        <Aviso tono="error" chico className="mt-3">
+          No se pudieron leer las líneas: {error}
+        </Aviso>
+      )}
       {!o && !error && (
         <ul className="fin-lista mt-3" aria-hidden>
           {[0, 1, 2].map((i) => (
@@ -378,11 +405,6 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       <p className="mt-3 text-[12.5px] text-taupe">
         Cada cifra es la suma de líneas del diario, y cada línea sabe de qué fila salió. Nada se tipea aquí.
       </p>
-      <div className="fin-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
-          Cerrar
-        </button>
-      </div>
     </Modal>
   );
 }

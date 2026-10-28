@@ -1,0 +1,9 @@
+## 🔔 Avisos: no cierran la hoja, lo visto no vuelve, 7 s con botón (2026-10-14) — solo web, sin migración; rama `claude/sad-cerf-0f2eda`
+
+- [x] **Un clic en un aviso no cierra la hoja ni el cajón abierto:** la pila es `DismissableLayer.Branch` (`radix-ui/internal`); candado `lib/hojas-avisos.test.ts` (rama + copia única de `react-dismissable-layer`). Verificado en el navegador con el cajón de una orden de Producción: el centro de «Deshacer» ejecuta el Deshacer y el cajón sigue abierto.
+- [x] **Lo que ya se vio no vuelve** al ocuparse la pantalla (`retirarLoVisto`, `lib/avisos-reglas.ts`); «visto» = `animationstart` del anillo (520 ms). Verificado: «Enviar a maquila» + «Traer de vuelta» deja UN solo «Deshacer».
+- [x] **Un aviso con botón dura 7 s como mínimo** (`duracionDe`); medido 7,8 s desde que se ve.
+- [ ] **La ventana de < 520 ms** (un guardado nuevo antes de que el aviso anterior cuente como visto: vuelve con su Deshacer, que podría ser viejo). Improbable con el loader `inert` de por medio; si alguna vez se ve, la salida es un contador de guardados en `lib/espera-estado.ts` que retire el aviso con acción pedido antes del último guardado.
+- [ ] **`radix-ui/internal` es una entrada «interna» del paquete paraguas.** Si una versión futura la quita, la salida es una dependencia directa a `@radix-ui/react-dismissable-layer` pinneada a la misma versión que trae `@radix-ui/react-dialog`; `lib/hojas-avisos.test.ts` ya avisa si las dos copias se separan.
+- [ ] **Seis pantallas pasan `duracion: 7000` a mano con su acción** (`ColaboradoresPanel`, `ImprimirEtiquetasPrecio`…): ya no hace falta; se puede quitar al tocarlas (no cambia nada mientras tanto).
+- [ ] **La línea base Formidable de Producción** (`docs/formidable/produccion-modulo.md`) no existe en `main` al 2026-10-14: la pasada del escéptico que encontró estos dos defectos no dejó su archivo; cuando la rama del rediseño (ADR-0400) la escriba, enlazar esta entrada.

@@ -1,0 +1,339 @@
+// Plan de campaña ▸ Historial (ADR-0372, C3 · Felipe 2026-10-12): cuánto vendió cada tienda en cada campaña de cada año, cuánto más que
+// un día normal y cuánto creció contra el año anterior. Lógica pura, sin React ni red.
+//
+// EL PROBLEMA. «Diciembre triplica un mes» era una frase sin respaldo: Sinatra (2017–2026) dice que en Trujillo diciembre vende ~1,8 veces
+// un mes normal y que en Arequipa casi lo mismo que un mes normal. Esta pantalla pone esa historia a la vista, una campaña por fila, un año
+// a la vez (Felipe: «ordenarlas por año para que no sobrecargue»).
+//
+// LAS REGLAS (una sola vara para todo, la misma que usa «Resultados»):
+//   · Una campaña del año A son las fechas de su etiqueta (Catálogo ▸ Etiquetas guarda cada campaña UNA vez, con fechas de un año)
+//     llevadas al año A: mismo día y mes. Única excepción, porque es del calendario y no nuestra: Día de la Madre (en el Perú, el segundo
+//     domingo de mayo) se mueve con su domingo. «Diciembre» (1–31) siempre está, aunque no sea una etiqueta.
+//   · El multiplicador = soles por día dentro de la campaña ÷ soles por día de los 60 días anteriores. Un día sin venta cuenta como día
+//     (la tienda cerrada un domingo también es parte de «un día normal»).
+//   · Sin dato (y nunca un cero inventado) si la tienda no tenía historia en esas fechas: antes de abrir, la pandemia de 2020 o un archivo
+//     que no se cargó. La base de 60 días necesita al menos 20 días con venta.
+//   · Sinatra sabe soles, no unidades: todo aquí es en soles.
+
+export const RPC_HISTORIAL = "fn_historial_ventas";
+/** Los días antes de la campaña que hacen de «día normal». */
+export const DIAS_BASE = 60;
+/** Cuántos de esos días tienen que tener venta para que la base valga. */
+export const MIN_DIAS_CON_VENTA_BASE = 20;
+
+export type TiendaHistorial = { id: string; nombre: string; erpDesde: string | null; historiaDesde: string | null };
+export type LecturaHistorial = {
+  hoy: string;
+  tiendas: TiendaHistorial[];
+  /** tienda → «aaaa-mm» → soles. */
+  meses: Map<string, Map<string, number>>;
+  /** tienda → fecha → soles (solo los días del rango pedido). */
+  dias: Map<string, Map<string, number>>;
+};
+
+const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+const fechaIso = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+const numero = (v: unknown): number | null => {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+const lista = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter(esObjeto) : []);
+
+/** Lo que devuelve `fn_historial_ventas`, sin confiar en su forma; null si no se entiende. */
+export function leerHistorial(v: unknown): LecturaHistorial | null {
+  if (!esObjeto(v)) return null;
+  const hoy = fechaIso(v.hoy);
+  if (!hoy) return null;
+  const tiendas = lista(v.tiendas).flatMap((t): TiendaHistorial[] => {
+    const id = texto(t.id);
+    const nombre = texto(t.nombre);
+    return id && nombre ? [{ id, nombre, erpDesde: fechaIso(t.erp_desde), historiaDesde: fechaIso(t.historia_desde) }] : [];
+  });
+  const meses = new Map<string, Map<string, number>>();
+  for (const m of lista(v.meses)) {
+    const u = texto(m.u);
+    const mes = typeof m.mes === "string" && /^\d{4}-\d{2}$/.test(m.mes) ? m.mes : null;
+    const s = numero(m.soles);
+    if (u && mes && s !== null) (meses.get(u) ?? meses.set(u, new Map()).get(u)!).set(mes, s);
+  }
+  const dias = new Map<string, Map<string, number>>();
+  for (const d of lista(v.dias)) {
+    const u = texto(d.u);
+    const f = fechaIso(d.f);
+    const s = numero(d.s);
+    if (u && f && s !== null) (dias.get(u) ?? dias.set(u, new Map()).get(u)!).set(f, s);
+  }
+  return { hoy, tiendas, meses, dias };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Fechas
+// ---------------------------------------------------------------------------------------------------------------------
+
+const aUtc = (iso: string) => new Date(`${iso}T12:00:00Z`);
+const aIso = (d: Date) => d.toISOString().slice(0, 10);
+export const sumarDias = (iso: string, n: number): string => {
+  const d = aUtc(iso);
+  d.setUTCDate(d.getUTCDate() + n);
+  return aIso(d);
+};
+export const diasEntre = (a: string, b: string) => Math.round((aUtc(b).getTime() - aUtc(a).getTime()) / 86_400_000);
+
+/** El segundo domingo de mayo del año: Día de la Madre en el Perú. */
+export function segundoDomingoDeMayo(anio: number): string {
+  const primero = new Date(Date.UTC(anio, 4, 1, 12));
+  const hastaDomingo = (7 - primero.getUTCDay()) % 7;
+  return aIso(new Date(Date.UTC(anio, 4, 1 + hastaDomingo + 7, 12)));
+}
+
+/** La misma fecha (día y mes) en otro año; el 29 de febrero cae al 28 en un año que no es bisiesto. */
+export function mismaFechaEn(iso: string, anio: number): string {
+  const [, m, d] = iso.split("-").map(Number);
+  const ultimo = new Date(Date.UTC(anio, m, 0, 12)).getUTCDate();
+  return `${anio}-${String(m).padStart(2, "0")}-${String(Math.min(d, ultimo)).padStart(2, "0")}`;
+}
+
+export type EtiquetaHistorial = { id: string; nombre: string; desde: string; hasta: string };
+export type CampanaDelAnio = { clave: string; nombre: string; desde: string; hasta: string };
+
+/** ¿Su fecha se mueve de un año a otro? Hoy, una: Día de la Madre (en el Perú, el segundo domingo de mayo); las demás caen el mismo día y mes. */
+export const esDeFechaMovil = (e: Pick<EtiquetaHistorial, "hasta">): boolean => e.hasta === segundoDomingoDeMayo(Number(e.hasta.slice(0, 4)));
+
+/** Las fechas de una campaña llevadas a otro año (se mueve con el año de su fin). Día de la Madre conserva su segundo domingo de mayo. */
+export function proyectarCampana(e: Pick<EtiquetaHistorial, "desde" | "hasta">, anio: number): { desde: string; hasta: string } {
+  const largo = diasEntre(e.desde, e.hasta);
+  // El año del fin manda: San Valentín (31 ene – 14 feb) es del año de su 14 de febrero.
+  const hasta = esDeFechaMovil(e) ? segundoDomingoDeMayo(anio) : mismaFechaEn(e.hasta, anio);
+  return { desde: sumarDias(hasta, -largo), hasta };
+}
+
+/** Las campañas de un año, por fecha: cada etiqueta llevada a ese año, más «Diciembre» completo. */
+export function campanasDelAnio(etiquetas: readonly EtiquetaHistorial[], anio: number): CampanaDelAnio[] {
+  const proyectadas = etiquetas.map((e) => ({ clave: e.id, nombre: e.nombre, ...proyectarCampana(e, anio) }));
+  const diciembre = { clave: "diciembre", nombre: "Diciembre", desde: `${anio}-12-01`, hasta: `${anio}-12-31` };
+  return [...proyectadas, diciembre].sort((a, b) => a.desde.localeCompare(b.desde) || a.hasta.localeCompare(b.hasta) || a.nombre.localeCompare(b.nombre, "es"));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Medir
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Desde qué día hay historia de la tienda (Sinatra o, si no, el ERP). */
+export const inicioDeDatos = (t: TiendaHistorial): string | null => [t.historiaDesde, t.erpDesde].filter((x): x is string => !!x).sort()[0] ?? null;
+
+function sumaDias(dias: ReadonlyMap<string, number> | undefined, desde: string, hasta: string): { soles: number; conVenta: number } {
+  let soles = 0;
+  let conVenta = 0;
+  if (!dias) return { soles, conVenta };
+  for (let f = desde; f <= hasta; f = sumarDias(f, 1)) {
+    const s = dias.get(f);
+    if (s && s > 0) {
+      soles += s;
+      conVenta += 1;
+    }
+  }
+  return { soles, conVenta };
+}
+
+export type Medida =
+  | { estado: "por-venir" }
+  | { estado: "sin-dato"; motivo: string }
+  | { estado: "medida"; soles: number; dias: number; enCurso: boolean; multiplicador: number | null };
+
+/**
+ * Lo que vendió una tienda en una ventana. «por-venir» si empieza después de hoy; «sin-dato» si la tienda no tenía historia esos días (o
+ * no se vendió nada: en Sinatra un hueco es un mes sin cargar, no una tienda que no vendió); si está en curso, cuenta hasta ayer.
+ */
+export function medir(l: Pick<LecturaHistorial, "hoy" | "dias">, t: TiendaHistorial, desde: string, hasta: string): Medida {
+  if (desde >= l.hoy) return { estado: "por-venir" };
+  const inicio = inicioDeDatos(t);
+  if (!inicio || desde < inicio) return { estado: "sin-dato", motivo: inicio ? `La historia de ${t.nombre} empieza el ${inicio}.` : `${t.nombre} no tiene historia cargada.` };
+  const enCurso = hasta >= l.hoy;
+  const fin = enCurso ? sumarDias(l.hoy, -1) : hasta;
+  const dias = l.dias.get(t.id);
+  const { soles, conVenta } = sumaDias(dias, desde, fin);
+  if (conVenta === 0) return { estado: "sin-dato", motivo: "No hay ventas cargadas en esas fechas." };
+  const largo = diasEntre(desde, fin) + 1;
+  const baseDesde = sumarDias(desde, -DIAS_BASE);
+  const base = baseDesde >= inicio ? sumaDias(dias, baseDesde, sumarDias(desde, -1)) : null;
+  const multiplicador = base && base.conVenta >= MIN_DIAS_CON_VENTA_BASE && base.soles > 0 ? soles / largo / (base.soles / DIAS_BASE) : null;
+  return { estado: "medida", soles, dias: largo, enCurso, multiplicador };
+}
+
+/** El crecimiento contra el año anterior (0,12 = +12 %); null si alguna de las dos no se pudo medir o la anterior está en curso. */
+export function crecimiento(actual: Medida, anterior: Medida): number | null {
+  if (actual.estado !== "medida" || anterior.estado !== "medida" || actual.enCurso || anterior.soles <= 0) return null;
+  return actual.soles / anterior.soles - 1;
+}
+
+export type CeldaHistorial = { tienda: TiendaHistorial; medida: Medida; crecimiento: number | null };
+export type FilaHistorial = { campana: CampanaDelAnio; celdas: CeldaHistorial[] };
+
+/** La tabla de un año: una fila por campaña, una celda por tienda. */
+export function filasDelAnio(l: LecturaHistorial, etiquetas: readonly EtiquetaHistorial[], anio: number): FilaHistorial[] {
+  const antes = new Map(campanasDelAnio(etiquetas, anio - 1).map((c) => [c.clave, c]));
+  return campanasDelAnio(etiquetas, anio).map((campana) => ({
+    campana,
+    celdas: l.tiendas.map((tienda) => {
+      const medida = medir(l, tienda, campana.desde, campana.hasta);
+      const previa = antes.get(campana.clave);
+      return { tienda, medida, crecimiento: previa ? crecimiento(medida, medir(l, tienda, previa.desde, previa.hasta)) : null };
+    }),
+  }));
+}
+
+export type OrdenHistorial = "ahora" | "fecha" | "az" | "za" | "mas" | "menos";
+export const ORDENES_HISTORIAL: { valor: OrdenHistorial; texto: string }[] = [
+  { valor: "ahora", texto: "La de ahora y las que vienen" },
+  { valor: "fecha", texto: "Por fecha, de enero a diciembre" },
+  { valor: "mas", texto: "Más vendidas primero" },
+  { valor: "menos", texto: "Menos vendidas primero" },
+  { valor: "az", texto: "Nombre, A a Z" },
+  { valor: "za", texto: "Nombre, Z a A" },
+];
+
+const comparable = (t: string) => t.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+/** Lo vendido en la campaña sumando las tiendas con dato (para ordenar por «más vendidas»). */
+const solesDeLaFila = (f: FilaHistorial) => f.celdas.reduce((a, c) => a + (c.medida.estado === "medida" ? c.medida.soles : 0), 0);
+
+/**
+ * Cuánto falta en el calendario para una campaña, mirando solo el día y el mes (las filas de cualquier año caen en el mismo calendario):
+ * 0 si `hoy` cae dentro de ella; si no, los días hasta que empiece, dando la vuelta al año. Así «la de ahora y las que vienen» arranca por
+ * la que está en curso (Aniversario CAYLA en octubre) y sigue con Halloween, Black Friday y Navidad (Felipe 2026-10-12).
+ */
+export function faltaEnElCalendario(c: Pick<CampanaDelAnio, "desde" | "hasta">, hoy: string): number {
+  const md = (iso: string) => iso.slice(5);
+  const h = md(hoy), d = md(c.desde), f = md(c.hasta);
+  // Una campaña que cruza el año (del 20 dic al 6 ene) está en curso si hoy cae a un lado u otro del cambio.
+  const enCurso = d <= f ? d <= h && h <= f : h >= d || h <= f;
+  if (enCurso) return 0;
+  const anio = Number(hoy.slice(0, 4));
+  const inicio = `${anio}-${d}`;
+  const falta = diasEntre(hoy, inicio);
+  return falta > 0 ? falta : diasEntre(hoy, `${anio + 1}-${d}`);
+}
+
+/**
+ * Las filas del año que calzan con lo buscado (sin tildes ni mayúsculas), en el orden pedido (Felipe 2026-10-12). «La de ahora y las que vienen»
+ * (el de entrada) necesita `hoy`; por fecha es el de enero a diciembre.
+ */
+export function filtrarYOrdenar(filas: readonly FilaHistorial[], q: string, orden: OrdenHistorial, hoy?: string): FilaHistorial[] {
+  const busca = comparable(q.trim());
+  const quedan = busca ? filas.filter((f) => comparable(f.campana.nombre).includes(busca)) : [...filas];
+  const porNombre = (a: FilaHistorial, b: FilaHistorial) => a.campana.nombre.localeCompare(b.campana.nombre, "es");
+  if (orden === "az") return quedan.sort(porNombre);
+  if (orden === "za") return quedan.sort((a, b) => porNombre(b, a));
+  if (orden === "mas") return quedan.sort((a, b) => solesDeLaFila(b) - solesDeLaFila(a) || porNombre(a, b));
+  if (orden === "menos") return quedan.sort((a, b) => solesDeLaFila(a) - solesDeLaFila(b) || porNombre(a, b));
+  if (orden === "ahora" && hoy) return quedan.sort((a, b) => faltaEnElCalendario(a.campana, hoy) - faltaEnElCalendario(b.campana, hoy) || porNombre(a, b));
+  return quedan;
+}
+
+/** El total del año por tienda y su crecimiento contra el anterior (solo si los dos años están completos y con datos). */
+export function totalDelAnio(l: LecturaHistorial, tiendaId: string, anio: number): { soles: number; completo: boolean; crecimiento: number | null } {
+  const meses = l.meses.get(tiendaId);
+  const suma = (a: number) => [...(meses ?? new Map<string, number>()).entries()].filter(([m]) => m.startsWith(`${a}-`));
+  const este = suma(anio);
+  const previo = suma(anio - 1);
+  const soles = este.reduce((s, [, v]) => s + v, 0);
+  const completo = este.length === 12;
+  const anterior = previo.reduce((s, [, v]) => s + v, 0);
+  return { soles, completo, crecimiento: completo && previo.length === 12 && anterior > 0 ? soles / anterior - 1 : null };
+}
+
+/**
+ * El año de toda CAYLA: la suma de las tiendas, y su crecimiento solo si TODAS las que vendieron tienen los dos años completos (si una tienda
+ * abrió este año, sumarla haría «crecer» a CAYLA sin que nadie vendiera más). null = no hay con qué comparar parejo.
+ */
+export function totalDeCayla(l: LecturaHistorial, anio: number): { soles: number; crecimiento: number | null } {
+  const tiendas = l.tiendas.map((t) => totalDelAnio(l, t.id, anio)).filter((t) => t.soles > 0);
+  const soles = tiendas.reduce((s, t) => s + t.soles, 0);
+  if (tiendas.length === 0 || tiendas.some((t) => t.crecimiento === null)) return { soles, crecimiento: null };
+  const anterior = tiendas.reduce((s, t) => s + t.soles / (1 + (t.crecimiento as number)), 0);
+  return { soles, crecimiento: anterior > 0 ? soles / anterior - 1 : null };
+}
+
+/** Los años con historia, del más nuevo al más viejo. */
+export function aniosConHistoria(l: Pick<LecturaHistorial, "meses" | "hoy">): number[] {
+  const anios = new Set<number>();
+  for (const meses of l.meses.values()) for (const m of meses.keys()) anios.add(Number(m.slice(0, 4)));
+  anios.add(Number(l.hoy.slice(0, 4)));
+  return [...anios].sort((a, b) => b - a);
+}
+
+/**
+ * Cuántas píldoras de año caben en una fila de `ancho` px (Felipe 2026-10-12: «¿qué pasa si hay 30 años?»). Si caben todas, todas; si no, las
+ * que caben dejando lugar a «Más años». Nunca menos de una: el año elegido siempre se ve.
+ */
+export function aniosQueCaben(total: number, medidas: { ancho: number; pildora: number; separacion: number; mas: number }): number {
+  const { ancho, pildora, separacion, mas } = medidas;
+  if (pildora <= 0) return total;
+  const sinMas = Math.floor((ancho + separacion) / (pildora + separacion));
+  if (total <= sinMas) return total;
+  return Math.max(1, Math.floor((ancho - mas) / (pildora + separacion)));
+}
+
+/**
+ * La fila de años cuando no caben todos (Felipe 2026-10-12): se ven `caben` años SEGUIDOS con el elegido al medio —a sus costados, los que le
+ * siguen y los que le preceden— y el resto va a «Más años». En los extremos la ventana se apoya en el borde (el más nuevo o el más viejo). `anios`
+ * viene del más nuevo al más viejo, como `aniosConHistoria`.
+ */
+export function ventanaDeAnios(anios: readonly number[], elegido: number, caben: number): { visibles: number[]; resto: number[] } {
+  if (anios.length <= caben) return { visibles: [...anios], resto: [] };
+  const n = Math.max(1, caben);
+  const i = Math.max(0, anios.indexOf(elegido));
+  const desde = Math.min(Math.max(0, i - Math.floor((n - 1) / 2)), anios.length - n);
+  const visibles = anios.slice(desde, desde + n);
+  return { visibles, resto: anios.filter((a) => !visibles.includes(a)) };
+}
+
+/** La década de un año, para agrupar «Más años»: «2030–2039». */
+export const decadaDe = (anio: number) => `${Math.floor(anio / 10) * 10}–${Math.floor(anio / 10) * 10 + 9}`;
+
+/** El rango de días que hay que leer para un año: ese año y el anterior entero (para comparar), más la base de su primera campaña. */
+export function rangoDelAnio(anio: number): { desde: string; hasta: string } {
+  return { desde: sumarDias(`${anio - 1}-01-01`, -DIAS_BASE - 31), hasta: `${anio}-12-31` };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// El detalle de una campaña (Felipe 2026-10-12: «al darle clic a una fila, los detalles»). Sinatra no sabe de prendas: el detalle de
+// antes del ERP es el día a día y la misma campaña año por año; el de prendas y colores vive en Resultados (solo desde el ERP).
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type DiaDeCampana = { fecha: string; soles: number };
+export type DetalleDias = {
+  dias: DiaDeCampana[];
+  /** Soles de un día normal: el promedio por día de los 60 días de antes; null si no hay base suficiente. */
+  diaNormal: number | null;
+  mejor: DiaDeCampana | null;
+  /** El día que menos vendió (de los que tuvieron venta: un día cerrado no es «flojo»). */
+  flojo: DiaDeCampana | null;
+};
+
+/** Cada día de la campaña (hasta ayer si sigue), con 0 los días sin venta, y la vara de un día normal. */
+export function diasDeLaCampana(l: Pick<LecturaHistorial, "hoy" | "dias">, t: TiendaHistorial, desde: string, hasta: string): DetalleDias {
+  const fin = hasta >= l.hoy ? sumarDias(l.hoy, -1) : hasta;
+  const delDia = l.dias.get(t.id);
+  const dias: DiaDeCampana[] = [];
+  for (let f = desde; f <= fin; f = sumarDias(f, 1)) dias.push({ fecha: f, soles: delDia?.get(f) ?? 0 });
+  const conVenta = dias.filter((d) => d.soles > 0);
+  const inicio = inicioDeDatos(t);
+  const baseDesde = sumarDias(desde, -DIAS_BASE);
+  const base = inicio && baseDesde >= inicio ? sumaDias(delDia, baseDesde, sumarDias(desde, -1)) : null;
+  const ordenados = [...conVenta].sort((a, b) => b.soles - a.soles || a.fecha.localeCompare(b.fecha));
+  return {
+    dias,
+    diaNormal: base && base.conVenta >= MIN_DIAS_CON_VENTA_BASE ? base.soles / DIAS_BASE : null,
+    mejor: ordenados[0] ?? null,
+    flojo: ordenados.length > 1 ? ordenados[ordenados.length - 1] : null,
+  };
+}
+
+/** El rango que hay que leer para medir una campaña en un año: sus días y los 60 de antes. */
+export const rangoDeCampana = (c: Pick<CampanaDelAnio, "desde" | "hasta">) => ({ desde: sumarDias(c.desde, -DIAS_BASE), hasta: c.hasta });
+
+/** «×1.8» (es-PE: punto decimal, como los soles del ERP). */
+export const textoMultiplicador = (m: number) => `×${m.toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+/** «+12 %» / «−8 %». */
+export const textoCrecimiento = (c: number) => `${c >= 0 ? "+" : "−"}${Math.round(Math.abs(c) * 100)} %`;

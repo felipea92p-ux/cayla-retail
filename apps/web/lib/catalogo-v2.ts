@@ -1,13 +1,19 @@
-import { contarProductosPorProveedor, filtroDeMarcaOProveedor, type FilaReposicion, type ReposicionProveedor } from "@/lib/marcas";
+import { filtroDeMarcaOProveedor } from "@/lib/marcas";
 import { unstable_cache } from "next/cache";
 import { createClient as crearClienteSupabase, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { empresaDePrendaAqui, insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
 import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
+import { disponibilidadDeUrl, empresaDeUrl, estadoDeUrl, estadoParaBase, faltaDeUrl, listaDeUrl, temporadaDeUrl, type Disponibilidad, type Falta } from "@/lib/productos-filtros";
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { leerMonto } from "@/lib/productos-filtro-precio";
+import { leerFacetas, type FacetasProductos } from "@/lib/productos-facetas";
 import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
@@ -17,7 +23,7 @@ import { leerOrdenProductos, type OrdenProductos } from "@/lib/productos-orden";
 // `supabase/migrations/0002_esquema.sql`). `productos.stock_minimo` sí se
 // sumó (20260915160000_productos_listado_filtros.sql, decisión de Felipe)
 // como umbral de "stock bajo" en /productos — lo usan `listarProductos`/
-// `getResumenProductos` más abajo, y se edita desde `ProductoForm.tsx`.
+// `getFacetasProductos` más abajo, y se edita desde `ProductoForm.tsx`.
 export type VarianteCatalogo = {
   varianteId: string;
   sku: string;
@@ -27,17 +33,32 @@ export type VarianteCatalogo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
+  /** `variantes.color_codigo`: la llave para cruzar con la ficha del color (`colores.combina_con`, ADR-0316) en Vender.
+   *  Opcional: un catálogo guardado antes de este cambio no lo trae, y entonces no hay ficha, nunca un error. */
+  colorCodigo?: string | null;
   /** Foto de ESTA variante, por su color (20260917190000) — null si ese
-   *  color todavía no tiene foto. El cliente cae a un tinte del color (o a
-   *  las iniciales, en Vender) cuando falta, nunca a un ícono de "sin foto". */
+   *  color todavía no tiene foto. El cliente cae a un tinte del color (o
+   *  al dibujo de su categoría, en Vender) cuando falta, nunca a un ícono de "sin foto". */
   fotoUrl: string | null;
   precio: number;
   activo: boolean;
   productoId: string;
   referencia: string;
   categoria: string | null;
+  /** Prefijo y familia de su categoría: dibujan su ícono (`IconoCategoria`, por prefijo, nunca por nombre) donde la
+   *  prenda no tiene foto, como la tarjeta de Vender. Opcionales: un catálogo guardado antes de este cambio no los trae. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** De qué marca es (ADR-0109). Opcional: la caja la usa solo para BUSCAR («adidas»); un catálogo guardado antes de este cambio no la trae. */
   marca?: string | null;
+  /** El id de su marca (ADR-0532): en Lima, la marca CAYLA es de CAYLA y cualquier otra, de CLAURE. `null` = sin marca; ausente = un
+   *  catálogo guardado antes de este cambio (entonces manda `empresaId`). */
+  marcaId?: string | null;
+  /** De qué empresa es la prenda (`productos.empresa_id`, CAYLA o CLAURE; ADR-0463). Decide en qué sedes se ve (ADR-0505). Opcional: un
+   *  catálogo guardado antes de este cambio no la trae, y entonces la prenda se ve en todas, como antes. */
+  empresaId?: string | null;
+  /** La insignia de su empresa EN LA SEDE que lo pidió (`getCatalogoDeLaSede`): «CLAURE» en Lima, `null` en el resto. */
+  empresa?: string | null;
   codigosBarras: string[];
 };
 
@@ -117,7 +138,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
         .select(
           `id, sku, codigo, color_codigo, precio, activo,
            talla:tallas ( valor ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
+           producto:productos ( id, referencia, empresa_id, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
            color:colores ( nombre, hex ),
            codigos_barras ( codigo )`
         )
@@ -130,12 +151,15 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     // base todavía no conoce (el SQL de marcas, 20260918231000, aún sin pegar en producción)
     // haría fallar TODA esa consulta y con ella siete pantallas. Sin la marca, la caja
     // sigue vendiendo: solo deja de encontrar por «adidas» hasta que el SQL entre.
-    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
+    leerTodas((desde, hasta) => supabase.from("productos").select("id, marca_id, marca:marcas ( nombre )").order("id").range(desde, hasta)),
   ]);
   const filas = exigir(resVariantes, "el catálogo");
   const marcaPorProducto = new Map<string, string>();
+  // El id de la marca decide, en Lima, si la prenda es de CAYLA o de CLAURE (ADR-0532). Sin la consulta, queda ausente (no «sin marca»).
+  const marcaIdPorProducto = new Map<string, string | null>();
   for (const p of resMarcas.error ? [] : (resMarcas.data ?? [])) {
     if (p.marca?.nombre) marcaPorProducto.set(p.id, p.marca.nombre);
+    marcaIdPorProducto.set(p.id, p.marca_id ?? null);
   }
 
   return filas.map((v) => ({
@@ -145,6 +169,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
+    colorCodigo: v.color_codigo ?? null,
     // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
     // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
     // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.
@@ -154,9 +179,29 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     productoId: v.producto?.id ?? "",
     referencia: v.producto?.referencia ?? "(sin referencia)",
     categoria: v.producto?.categoria?.nombre ?? null,
+    categoriaPrefijo: v.producto?.categoria?.prefijo ?? null,
+    categoriaFamilia: v.producto?.categoria?.familia ?? null,
     marca: marcaPorProducto.get(v.producto?.id ?? "") ?? null,
+    marcaId: marcaIdPorProducto.get(v.producto?.id ?? ""),
+    empresaId: v.producto?.empresa_id ?? null,
     codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),
   }));
+}
+
+/**
+ * El catálogo que se puede vender, recibir y contar en ESTA sede (ADR-0505): sin las prendas de una empresa que no opera aquí
+ * (CLAURE fuera de Lima), y cada una con la insignia de su empresa donde conviven dos (Lima). Es la misma copia guardada de
+ * `getCatalogo()`, filtrada después: la copia se comparte entre todas las sedes. Si no se pueden leer las empresas de la sede,
+ * el catálogo entero, como antes (la base igual rechaza mover una prenda donde su empresa no opera).
+ *
+ * Para Vender, Apartados, Cambios, Buscar, Recibir: lo que se OFRECE. Una pantalla que solo busca el nombre o la foto de una
+ * variante que ya está en un documento (una proforma, un traslado, un conteo cerrado) sigue con `getCatalogo()`.
+ */
+export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
+  const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
+  // La insignia dice de quién es la prenda AQUÍ (ADR-0532): en Lima, por su marca; una blusa Strend que también está en Trujillo lleva
+  // «CLAURE» en Lima. Qué se ofrece sigue decidiéndolo el dato de la prenda (ADR-0505: CLAURE no sale de Lima).
+  return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(empresaDePrendaAqui(v, empresas), empresas) }));
 }
 
 // ============================================================================
@@ -165,8 +210,8 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
 // `getCatalogo()` arriba sigue existiendo tal cual — trae TODO sin filtrar,
 // y lo siguen usando flujos que de verdad necesitan el catálogo entero (el
 // escáner de Vender). Esto es aparte: filtros en la URL, resueltos en
-// Postgres (`fn_productos`/`fn_productos_resumen`,
-// `20260915160000_productos_listado_filtros.sql`), paginado por PRODUCTO
+// Postgres (nació en `fn_productos`/`fn_productos_resumen`, 20260915160000; desde el
+// 2026-10-02 `fn_productos_listado`/`fn_productos_facetas`, ADR-0308), paginado por PRODUCTO
 // (no por fila de variante) y por número de página — no cursor, decisión de
 // Felipe documentada en la migración: el catálogo no crece como un ledger.
 // ============================================================================
@@ -177,17 +222,29 @@ export type FiltrosProductos = {
   /** De qué marca y/o qué proveedor lo trae (20260918231300). Los dos se pueden combinar: la base solo deja parejas válidas. */
   marcaId?: string;
   proveedorId?: string;
-  colorCodigo?: string;
+  /** Varios colores y familias a la vez (ADR-0308): la prenda pasa si tiene UNA variante de alguno de esos colores o de
+   *  alguna de esas familias, que además cumpla talla, precio y stock (`fn_productos_listado`, 20261002200000). */
+  colores: string[];
+  familias: string[];
+  tallas: string[];
+  /** Clave de `fn_temporadas()` o `sin`: la temporada de cada color (la del color, si no la del producto, si no la de su
+   *  categoría), exigida a la misma variante que los demás filtros. */
+  temporada?: string;
+  /** De qué empresa es (CAYLA o CLAURE, `fn_empresas()`): en pantalla «Tienda» (ADR-0467). Con ella, la lista y los conteos solo ven esa empresa. */
+  empresaId?: string;
+  /** Lo que le falta a la ficha («Por completar»). */
+  falta?: Falta;
   estado?: "activo" | "descontinuado";
   precioMin?: number;
   precioMax?: number;
-  /** "reponer" = punto de reorden (20260916100000): demanda × tiempo de
-   *  entrega + stock_minimo. Distinto de "bajo" — reponer suele encenderse
-   *  antes, ya que el punto de reorden incluye stock_minimo como piso. */
-  stock?: "sin_stock" | "bajo" | "reponer";
+  /** Disponibilidad (ADR-0308): en la sede elegida (`en_sede`, `sin_sede`) o en la red (`sin_red`, `bajo`, `reponer`). «reponer» =
+   *  punto de reorden (20260916100000): demanda × tiempo de entrega + stock_minimo. */
+  stock?: Disponibilidad;
+  /** La sede elegida arriba: la que miran `en_sede` y `sin_sede`. La pone la página (no viene de la URL). */
+  ubicacionId?: string;
   /** Orden del catálogo (20260917180000; recientes, antiguos y vendidos: 20260929180000) — null/undefined = por
-   *  referencia, el de siempre. Solo `fn_productos` lo entiende; `fn_productos_resumen` no pagina, así que nunca le llega
-   *  (ver `paramsFiltrosProductos`). Las opciones y sus rótulos: `lib/productos-orden.ts`. */
+   *  referencia, el de siempre. Solo lo entiende el listado; los conteos (`fn_productos_facetas`) no paginan, así que
+   *  nunca les llega. Las opciones y sus rótulos: `lib/productos-orden.ts`. */
   orden?: OrdenProductos;
 };
 
@@ -197,7 +254,14 @@ export type ParamsProductosListado = {
   cat?: string;
   marca?: string;
   proveedor?: string;
+  /** Una o varias, separadas por coma (`color=NEG,AZM`); lo mismo `familia` y `talla` (ids). */
   color?: string;
+  familia?: string;
+  talla?: string;
+  temporada?: string;
+  /** El id de la empresa (`fn_empresas()`), como `cat` y `marca` llevan el suyo. */
+  empresa?: string;
+  falta?: string;
   estado?: string;
   precioMin?: string;
   precioMax?: string;
@@ -212,7 +276,12 @@ export type ParamsProductosListado = {
 export const PRODUCTOS_POR_PAGINA = 20;
 
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
-const esNumeroPositivo = (v?: string) => !!v && /^\d+(\.\d+)?$/.test(v);
+
+/** La sede elegida, para los filtros que la miran. Sin sede (CAYLA Global), «Hay en …» y «Sin stock en …» no se aplican. */
+export function conSede(filtros: FiltrosProductos, ubicacionId: string | null): FiltrosProductos {
+  if (ubicacionId) return { ...filtros, ubicacionId };
+  return filtros.stock === "en_sede" || filtros.stock === "sin_sede" ? { ...filtros, stock: undefined } : filtros;
+}
 
 /** Traduce la URL a filtros, descartando cualquier valor que no calce con su forma. */
 export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosProductos {
@@ -222,12 +291,19 @@ export function filtrosProductosDesdeParams(p: ParamsProductosListado): FiltrosP
     // `sin` = los que no tienen (ADR-0283): a la base llega como el uuid nulo, que `fn_productos` entiende como «sin marca».
     marcaId: filtroDeMarcaOProveedor(p.marca),
     proveedorId: filtroDeMarcaOProveedor(p.proveedor),
-    colorCodigo: p.color?.trim() || undefined,
-    estado: p.estado === "activo" || p.estado === "descontinuado" ? p.estado : undefined,
-    precioMin: esNumeroPositivo(p.precioMin) ? Number(p.precioMin) : undefined,
-    precioMax: esNumeroPositivo(p.precioMax) ? Number(p.precioMax) : undefined,
-    stock:
-      p.stock === "sin_stock" || p.stock === "bajo" || p.stock === "reponer" ? p.stock : undefined,
+    colores: listaDeUrl(p.color).filter((c) => /^[A-Za-z0-9_-]{1,20}$/.test(c)),
+    familias: listaDeUrl(p.familia).filter((f) => FAMILIAS_COLOR.some((x) => x.valor === f)),
+    tallas: listaDeUrl(p.talla).filter(esUuid),
+    temporada: temporadaDeUrl(p.temporada),
+    empresaId: empresaDeUrl(p.empresa),
+    falta: faltaDeUrl(p.falta),
+    // Sin `estado` en la URL = solo activas (Felipe, 2026-10-02); `todos` = activas y descontinuadas (`lib/productos-filtros.ts`).
+    estado: estadoParaBase(estadoDeUrl(p.estado)),
+    // La misma regla que el cliente (`leerMonto`): el chip, el contador y la lista leen el precio igual.
+    precioMin: leerMonto(p.precioMin ?? "") ?? undefined,
+    precioMax: leerMonto(p.precioMax ?? "") ?? undefined,
+    // Las de la sede se validan otra vez en la página, que sabe si hay sede elegida (`conSede`).
+    stock: disponibilidadDeUrl(p.stock, true),
     orden: leerOrdenProductos(p.orden),
   };
 }
@@ -240,12 +316,27 @@ export function paginaProductosDesdeParams(p: ParamsProductosListado): number {
 export type ProductoListado = {
   productoId: string;
   referencia: string;
+  /** Lo que se escribió en «Descripción» al crear o editar la prenda (corte, largo, detalles). No viene de la RPC: lo pega
+   *  `listarProductos` con una consulta aparte. `null` = no tiene, o no se pudo leer. */
+  descripcion: string | null;
+  /** Nombre del tejido y del patrón de la prenda (`productos.tejido_id` / `patron_id`), pegados por la misma consulta que la
+   *  descripción, para la vista rápida. `null` = sin registrar, o no se pudo leer. */
+  tejido: string | null;
+  patron: string | null;
   codigo: string | null;
   categoriaId: string | null;
   categoria: string | null;
+  /** `categorias.prefijo` y `familia`, pegados por la página desde la lista de categorías que ya lee (no vienen de la RPC):
+   *  dibujan la prenda sin foto con el ícono de su categoría (`SinFoto`, ADR-0333). Sin ellos, la percha. */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   /** De quién es y quién lo trae (20260918231000). `null` = todavía sin registrar (ADR-0283). */
   marca: string | null;
   proveedor: string | null;
+  /** De qué empresa es (`productos.empresa_id`, ADR-0463), pegada por la consulta de la descripción. Ausente si no se pudo leer. */
+  empresaId?: string | null;
+  /** La insignia de su empresa en la sede que se mira («CLAURE» en Lima; `null` en el resto). La pone la página (ADR-0505). */
+  empresa?: string | null;
   estado: string;
   stockMinimo: number | null;
   stockTotal: number;
@@ -267,39 +358,50 @@ export type PaginaProductos = {
   pagina: number;
 };
 
-export type ResumenProductos = {
-  totalProductos: number;
-  totalVariantes: number;
-  stockBajo: number;
-  sinStock: number;
-  reponerDeProveedor: number;
-};
 
-/** Los `p_*` que `fn_productos` y `fn_productos_resumen` comparten. Se
- *  omite la clave en vez de mandar `null`: los Args generados los tipan
- *  `string | undefined` (opcionales), no `string | null`. `orden` se excluye
- *  a propósito (como `stock`): `fn_productos_resumen` no lo acepta — no
- *  pagina, no hay nada que "ordenar". */
-function paramsFiltrosProductos(filtros: Omit<FiltrosProductos, "stock" | "orden">) {
+
+
+
+/** Los `p_*` de `fn_productos_listado` (20261002200000, ADR-0308): el listado que filtra por VARIANTE (color, precio y
+ *  stock se exigen a la misma), sin variantes desactivadas. Se omite la clave en vez de mandar `null` (Args opcionales). */
+function paramsListado(filtros: FiltrosProductos) {
   return {
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
     ...(filtros.categoriaId ? { p_categoria_id: filtros.categoriaId } : {}),
     ...(filtros.marcaId ? { p_marca_id: filtros.marcaId } : {}),
     ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-    ...(filtros.colorCodigo ? { p_color_codigo: filtros.colorCodigo } : {}),
+    ...(filtros.colores.length ? { p_colores: filtros.colores } : {}),
+    ...(filtros.familias.length ? { p_familias: filtros.familias } : {}),
+    ...(filtros.tallas.length ? { p_tallas: filtros.tallas } : {}),
+    ...(filtros.temporada ? { p_temporada: filtros.temporada } : {}),
+    // Solo si hay una elegida: la base de antes del ADR-0467 no conoce el parámetro y sin la clave sigue funcionando.
+    ...(filtros.empresaId ? { p_empresa_id: filtros.empresaId } : {}),
+    ...(filtros.falta ? { p_falta: filtros.falta } : {}),
     ...(filtros.estado ? { p_estado: filtros.estado } : {}),
     ...(filtros.precioMin != null ? { p_precio_min: filtros.precioMin } : {}),
     ...(filtros.precioMax != null ? { p_precio_max: filtros.precioMax } : {}),
+    ...(filtros.stock ? { p_disponibilidad: filtros.stock } : {}),
+    ...(filtros.ubicacionId ? { p_ubicacion_id: filtros.ubicacionId } : {}),
   };
+}
+
+/** Cuántas prendas hay en cada opción del filtro, el rango real del precio y sus tramos (`fn_productos_facetas`,
+ *  20261002200100; ADR-0308), con los MISMOS filtros que la lista. Reemplaza al resumen viejo (`fn_productos_resumen`) y a
+ *  la consulta provisoria de los límites de precio. `null` si no se pudo: la pantalla muestra todas las opciones sin número
+ *  y el precio solo con sus cajas (se degrada, nunca se cae). */
+export async function getFacetasProductos(filtros: FiltrosProductos): Promise<FacetasProductos | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_productos_facetas", paramsListado(filtros));
+  if (error) return null;
+  return leerFacetas(data);
 }
 
 /** Catálogo filtrado y paginado (por producto) server-side, para /productos. */
 export async function listarProductos(filtros: FiltrosProductos, pagina: number): Promise<PaginaProductos> {
   const supabase = await createClient();
   const filas = exigir(
-    await supabase.rpc("fn_productos", {
-      ...paramsFiltrosProductos(filtros),
-      ...(filtros.stock ? { p_stock: filtros.stock } : {}),
+    await supabase.rpc("fn_productos_listado", {
+      ...paramsListado(filtros),
       ...(filtros.orden ? { p_orden: filtros.orden } : {}),
       p_pagina: pagina,
       p_por_pagina: PRODUCTOS_POR_PAGINA,
@@ -316,6 +418,9 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       p = {
         productoId: f.producto_id,
         referencia: f.referencia,
+        descripcion: null,
+        tejido: null,
+        patron: null,
         codigo: f.codigo,
         categoriaId: f.categoria_id,
         categoria: f.categoria_nombre,
@@ -355,12 +460,33 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   // tuviera foto (pasó con «Blusa V», 2026-09-26). Se completa con la General de la prenda, nunca con la de otro color
   // — la misma regla de `fotoDeVariante`. Una consulta más, solo si en la página falta alguna foto.
   const sinFoto = [...porProducto.values()].filter((p) => p.variantes.some((v) => v.fotoUrl === null)).map((p) => p.productoId);
+  // La descripción, el tejido y el patrón de cada prenda de la página, para la vista rápida (Grilla): `fn_productos_listado` no
+  // los trae y no vale una migración en producción por textos que solo se leen. Una consulta de ≤ 20 filas, a la vez que la de
+  // las fotos. Si falla, la vista rápida se abre igual, sin esos datos. De paso, la empresa: la insignia «CLAURE» de Lima (ADR-0505).
+  const [{ data: generales }, { data: descripciones }] = await Promise.all([
+    sinFoto.length > 0
+      ? supabase
+          .from("producto_fotos")
+          .select("producto_id, url, orden, es_principal, color_codigo")
+          .in("producto_id", sinFoto)
+          .is("color_codigo", null)
+      : Promise.resolve({ data: null }),
+    porProducto.size > 0
+      ? supabase
+          .from("productos")
+          .select("id, descripcion, empresa_id, tejido:tejidos ( nombre ), patron:patrones ( nombre )")
+          .in("id", [...porProducto.keys()])
+      : Promise.resolve({ data: null }),
+  ]);
+  for (const d of descripciones ?? []) {
+    const p = porProducto.get(d.id);
+    if (!p) continue;
+    p.descripcion = d.descripcion?.trim() || null;
+    p.empresaId = d.empresa_id;
+    p.tejido = d.tejido?.nombre ?? null;
+    p.patron = d.patron?.nombre ?? null;
+  }
   if (sinFoto.length > 0) {
-    const { data: generales } = await supabase
-      .from("producto_fotos")
-      .select("producto_id, url, orden, es_principal, color_codigo")
-      .in("producto_id", sinFoto)
-      .is("color_codigo", null);
     // Si esta consulta falla, la página se dibuja igual con lo que trajo `fn_productos`: la foto es un extra.
     const porId = new Map<string, FotoCruda[]>();
     for (const f of generales ?? []) porId.set(f.producto_id, [...(porId.get(f.producto_id) ?? []), f]);
@@ -379,40 +505,6 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
   };
 }
 
-/** "A quién pedirle" (ADR-0109): los productos que hoy cumplen la señal «Pedir a proveedor»,
- *  agrupados por proveedor, de más a menos. NO recalcula la señal: le pregunta a `fn_productos`
- *  con `stock = reponer` (demanda × tiempo de entrega + mínimo, 20260916100000), así hay UNA sola
- *  definición de "hay que reponer".
- *
- *  Recibe LOS MISMOS filtros que la tarjeta «Pedir a proveedor» (`getResumenProductos`), para que
- *  la suma de este bloque sea exactamente el número de esa tarjeta: dos cifras distintas para lo
- *  mismo en una misma pantalla es lo que hace que nadie confíe en ninguna.
- *
- *  Es un complemento de la pantalla, no la pantalla: si la consulta falla (p. ej. el SQL de
- *  proveedores todavía no está en producción y `fn_productos` no devuelve `proveedor_id`), el bloque
- *  se omite en vez de tumbar Productos. Trae hasta 300 productos (3 páginas de 100): el catálogo
- *  activo es de decenas, no de miles; si algún día pasara de eso, los números serían un piso. */
-export async function getReposicionPorProveedor(
-  filtros: Omit<FiltrosProductos, "stock" | "orden">
-): Promise<ReposicionProveedor[]> {
-  const supabase = await createClient();
-  const filas: FilaReposicion[] = [];
-  for (let pagina = 1; pagina <= 3; pagina++) {
-    const { data, error } = await supabase.rpc("fn_productos", {
-      ...paramsFiltrosProductos(filtros),
-      p_stock: "reponer",
-      p_pagina: pagina,
-      p_por_pagina: 100,
-    });
-    if (error) return [];
-    const pag = data ?? [];
-    if (pag.length === 0) break;
-    filas.push(...pag);
-    if (Number(pag[0].total_productos) <= pagina * 100) break;
-  }
-  return contarProductosPorProveedor(filas);
-}
-
 /**
  * Lo de la sede elegida, las otras tiendas, el Taller y lo que viene en camino, por producto de la página (ADR-0270):
  * la tarjeta del Catálogo dice lo mismo que Existencias. `null` si no se pudo leer (p. ej. la función todavía no está
@@ -429,26 +521,6 @@ export async function getExistenciasProductos(productoIds: string[], ubicacionId
   return leerExistenciasProductos(data);
 }
 
-/** Tarjetas de resumen de /productos — mismos filtros que `listarProductos`
- *  menos `stock`/`orden`: esas dos cifras (stock bajo/sin stock) son lo que
- *  el resumen calcula, no algo que ya llega filtrado (igual que Movimientos
- *  no le pasa la categoría a su propio resumen), y "orden" no significa nada
- *  sin paginado. */
-export async function getResumenProductos(filtros: Omit<FiltrosProductos, "stock" | "orden">): Promise<ResumenProductos> {
-  const supabase = await createClient();
-  const filas = exigir(
-    await supabase.rpc("fn_productos_resumen", paramsFiltrosProductos(filtros)),
-    "el resumen del catálogo"
-  );
-  const r = filas[0];
-  return {
-    totalProductos: Number(r?.total_productos ?? 0),
-    totalVariantes: Number(r?.total_variantes ?? 0),
-    stockBajo: Number(r?.stock_bajo ?? 0),
-    sinStock: Number(r?.sin_stock ?? 0),
-    reponerDeProveedor: Number(r?.reponer_de_proveedor ?? 0),
-  };
-}
 
 /** Una variante dentro de la ficha de edición — a diferencia de
  *  `VarianteCatalogo`, trae `colorCodigo`/`codigo` (hacen falta para

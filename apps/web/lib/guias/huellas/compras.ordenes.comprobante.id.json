@@ -1,0 +1,55 @@
+{
+  "guia": "compras.ordenes.comprobante.id",
+  "ruta": "/compras/ordenes/comprobante/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 37,
+  "controles": {
+    "app/(app)/compras/ordenes/comprobante/[id]/page.tsx": [
+      "Volver «/compras/ordenes»",
+      "BotonEnlace «Ver las órdenes de compra»",
+      "BotonEnlace «Ver la orden»",
+      "BotonEnlace «Editar la orden»"
+    ],
+    "components/DestinoDelMedio.tsx": [
+      "Link «Agregar en su ficha ↗»",
+      "BotonCopiar «{que}»"
+    ],
+    "components/LineasPago.tsx": [
+      "button «Usar»",
+      "button «{ETIQUETA_METODO_PAGO[m]}»",
+      "CampoTexto «{i === 0 ? \"Monto\" : `Monto ${i + 1}»",
+      "CampoTexto «N.° de operación»",
+      "button «Quitar»",
+      "Boton «+ Agregar otro medio de pago»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ],
+    "components/ordenes-compra/RegistrarComprobanteOrden.tsx": [
+      "Volver «/compras/ordenes»",
+      "SegmentoDeslizante «Tipo de papel»",
+      "CampoSelect «Tipo de papel»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoFecha «{palabras.emision}»",
+      "SegmentoDeslizante «Cómo se paga»",
+      "CampoFecha «Vence el»",
+      "button «Volver al sugerido (»",
+      "Boton «{palabras.poner}»",
+      "Boton «comprobante.fuera»",
+      "CampoTexto «Total que dice el papel, en soles»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{`Quitar el renglón ${numero}»",
+      "ComboBuscable «{l.categoriaId}»",
+      "ComboBuscable «{l.marcaId}»",
+      "CampoTexto «{`Descripción del renglón ${numero}»",
+      "CampoTexto «{`Cantidad del renglón ${numero}»",
+      "CampoTexto «{`Costo por unidad del renglón ${numero}»",
+      "CampoTexto «{`Precio de venta sugerido del renglón ${numero}»"
+    ]
+  }
+}

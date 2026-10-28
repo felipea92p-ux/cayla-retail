@@ -20,12 +20,14 @@ import {
   textoPeriodo,
   listasDelFlujo,
   proyectar,
+  queFaltaEnLaProyeccion,
   puntoMasBajo,
   queVence,
   salidasConPalancas,
   soles,
   solesConSigno,
   sumarMesesIso,
+  textoCategoria,
   textoSinCuenta,
   tiendaInicial,
   tiendasDeLaProyeccion,
@@ -52,6 +54,12 @@ const CHICA: Proyeccion = {
   salidasDiarias: 500,
   diasDeCaja: 20,
   salidas30: { conCuenta: 12_000, sinCuenta: 0, planilla: 3_000 },
+  historiaDias: null,
+  saldoInicialDeclarado: null,
+  hayFacturasDeProveedor: null,
+  incluyeImpuestos: null,
+  saldoFavorIgvDeclarado: null,
+  diasDeCajaConfiable: null,
   planillaVisible: true,
   semanas: [
     { desde: "2026-09-25", hasta: "2026-10-01", entra: 0, sale: 0, saldo: 0, bajoMinimo: false },
@@ -100,12 +108,13 @@ describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
         { clave: "efectivo", lado: "entra", monto: 5 },
         { clave: "dueno_pone", lado: "entra", monto: 99 },
         { clave: "yape", lado: "entra", monto: 0.001 },
+        { clave: "qr", lado: "entra", monto: 40 },
         { clave: "gastos", lado: "sale", monto: 30 },
         { clave: "mercaderia", lado: "sale", monto: 80 },
         { clave: "faltantes_caja", lado: "ajuste", monto: -12 },
       ],
     });
-    expect(l.entradas.map((c) => c.clave)).toEqual(["efectivo", "plin", "dueno_pone"]);
+    expect(l.entradas.map((c) => c.clave)).toEqual(["efectivo", "plin", "qr", "dueno_pone"]);
     expect(l.salidas.map((c) => c.clave)).toEqual(["mercaderia", "gastos"]);
     expect(l.ajustes.map((c) => c.clave)).toEqual(["faltantes_caja"]);
   });
@@ -113,27 +122,31 @@ describe("Lo que ya pasó (fn_flujo_caja_real)", () => {
   it("la frase dice por qué: salió más que entró por pagar mercadería, o entró más y el saldo subió", () => {
     const baja = fraseDelFlujo({ ...REAL, entro: 100, salio: 180, saldoInicial: 500, saldoFinal: 420, categorias: [{ clave: "mercaderia", lado: "sale", monto: 150 }] });
     expect(baja.tono).toBe("aviso");
-    expect(baja.partes).toContainEqual({ b: "S/ 80 más de lo que entró" });
+    expect(baja.partes).toContainEqual({ b: "S/\u00a080 más de lo que entró" });
     expect(String(baja.partes.at(-1))).toContain("mercadería antes de venderla");
     const sube = fraseDelFlujo({ ...REAL, entro: 300, salio: 100, saldoInicial: 500, saldoFinal: 700 });
     expect(sube.tono).toBe("neutro");
-    expect(String(sube.partes.at(-1))).toContain("de S/ 500 a S/ 700");
+    expect(String(sube.partes.at(-1))).toContain("de S/\u00a0500 a S/\u00a0700");
   });
 
   it("lo «sin cuenta» se dice aparte, de mayor a menor, sin ceros", () => {
     expect(textoSinCuenta([{ origen: "cobros", n: 3, monto: 384.6 }, { origen: "pago", n: 22, monto: -29596.08 }, { origen: "gasto", n: 1, monto: 0.2 }])).toBe(
-      "S/ 29,596 en 22 movimientos de pagos a proveedores (en efectivo o de la empresa) · S/ 385 en 3 movimientos de cobros de un medio que su tienda no dice a qué cuenta entra",
+      "S/\u00a029,596 en 22 movimientos de pagos a proveedores (en efectivo o de la empresa) · S/\u00a0385 en 3 movimientos de cobros de un medio que su tienda no dice a qué cuenta entra",
     );
     expect(textoSinCuenta([])).toBeNull();
   });
 });
 
 describe("Rótulos", () => {
+  it("el QR tiene su rótulo y su lugar entre los medios de cobro (auditoría de Finanzas 2026-10-16, G05)", () => {
+    expect(textoCategoria("qr")).toBe("QR");
+  });
+
   it("soles con el signo delante del símbolo, sin céntimos", () => {
-    expect(soles(-2484.4)).toBe("−S/ 2,484");
-    expect(soles(38200)).toBe("S/ 38,200");
-    expect(solesConSigno(8300)).toBe("+S/ 8,300");
-    expect(solesConSigno(-41300)).toBe("−S/ 41,300");
+    expect(soles(-2484.4)).toBe("−S/\u00a02,484");
+    expect(soles(38200)).toBe("S/\u00a038,200");
+    expect(solesConSigno(8300)).toBe("+S/\u00a08,300");
+    expect(solesConSigno(-41300)).toBe("−S/\u00a041,300");
   });
 
   it("semanas: «5 – 11 oct», «28 sep – 4 oct», un día; y el eje con el mes solo al cambiar", () => {
@@ -144,8 +157,8 @@ describe("Rótulos", () => {
   });
 
   it("qué vence: la planilla junta, los más grandes primero y el primero con su monto", () => {
-    expect(queVence(CHICA.salidas, "2026-10-02", "2026-10-08")).toBe("Alquiler Dos S/ 2,000 · Planilla");
-    expect(queVence(CHICA.salidas, "2026-09-25", "2026-10-01")).toBe("Distribuidora Norte S/ 4,000 · Alquiler Uno");
+    expect(queVence(CHICA.salidas, "2026-10-02", "2026-10-08")).toBe("Alquiler Dos S/\u00a02,000 · Planilla");
+    expect(queVence(CHICA.salidas, "2026-09-25", "2026-10-01")).toBe("Distribuidora Norte S/\u00a04,000 · Alquiler Uno");
     expect(queVence([], "2026-09-25", "2026-10-01")).toBe("Nada vence");
   });
 
@@ -176,8 +189,8 @@ describe("La cuenta de la proyección (la misma de la base)", () => {
 
   it("de dónde sale lo que se espera cobrar de cada tienda: su meta o su promedio", () => {
     expect(tiendasDeLaProyeccion(CHICA)).toEqual([
-      { id: "t2", nombre: "Tienda Dos", origen: "promedio" },
-      { id: "t1", nombre: "Tienda Uno", origen: "meta" },
+      { id: "t2", nombre: "Tienda Dos", origen: "promedio", corto: false },
+      { id: "t1", nombre: "Tienda Uno", origen: "meta", corto: false },
     ]);
   });
 
@@ -322,16 +335,16 @@ describe("Escenarios: la utilidad (sobre el estado de resultados de F5)", () => 
       minimo: CHICA.minimoCaja,
       pagoMovido: { titulo: "Distribuidora Norte", monto: 4_000, de: "2026-09-28", a: "2026-10-05" },
     }).map((l) => l.map((p) => (typeof p === "string" ? p : p.b)).join(""));
-    expect(texto[0]).toBe("CAYLA pasaría de −S/ 1,971 a S/ 716 al mes (+S/ 2,687).");
-    expect(texto[1]).toContain("Tienda LIM dejaría S/ 203 al mes; necesitaría vender");
+    expect(texto[0]).toBe("CAYLA pasaría de −S/\u00a01,971 a S/\u00a0716 al mes (+S/\u00a02,687).");
+    expect(texto[1]).toContain("Tienda LIM dejaría S/\u00a0203 al mes; necesitaría vender");
     expect(texto[2]).toContain("La caja seguiría bajando del mínimo");
-    expect(texto[3]).toBe("Pasar S/ 4,000 de Distribuidora Norte del 28 sep al 5 oct: hay que hablarlo con el proveedor.");
+    expect(texto[3]).toBe("Pasar S/\u00a04,000 de Distribuidora Norte del 28 sep al 5 oct: hay que hablarlo con el proveedor.");
   });
 
   it("sin estado de resultados (F5 no disponible), solo habla de la caja", () => {
     const texto = conclusiones({ utilidad: null, palancas: PALANCAS_INICIALES, nombreTienda: null, semanasBase: proyectar(PROY), semanasNuevas: proyectar(PROY), minimo: PROY.minimoCaja, pagoMovido: null });
     expect(texto).toHaveLength(1);
-    expect(texto[0]!.map((p) => (typeof p === "string" ? p : p.b)).join("")).toContain("seguiría bajando del mínimo: lo más bajo sería S/ 12,405");
+    expect(texto[0]!.map((p) => (typeof p === "string" ? p : p.b)).join("")).toContain("seguiría bajando del mínimo: lo más bajo sería S/\u00a012,405");
   });
 });
 
@@ -356,5 +369,73 @@ describe("La URL y la descarga", () => {
     expect(t.split("\r\n").filter((l) => l.includes(";sí;")).length).toBe(PROY.semanas.filter((w) => w.bajoMinimo).length);
     const e = csvEscenario(proyectar(CHICA), proyectar(CHICA, con({ ventasTodas: 10 })), null);
     expect(e.split("\r\n")[1]).toBe("25 sep – 1 oct;4500.00;4650.00;150.00");
+  });
+});
+
+describe("La proyección dice con qué se apoya (ADR-0433, actividad 4)", () => {
+  const base = {
+    hoy: "2026-10-16", desde: "2026-10-17", hasta: "2026-11-27", saldo_hoy: 57000, minimo_caja: 15000, salidas_diarias: 600, dias_de_caja: 95,
+    semanas: [], cobros: [], salidas: [],
+  };
+  it("lee lo que la base dice de su propia base: días de historia, saldos, facturas, impuestos y el veredicto", () => {
+    const p = leerProyeccion({
+      ...base, historia_dias: 16, saldo_inicial_declarado: false, hay_facturas_de_proveedor: false, incluye_impuestos: true, dias_de_caja_confiable: false,
+    });
+    expect(p).toMatchObject({ historiaDias: 16, saldoInicialDeclarado: false, hayFacturasDeProveedor: false, incluyeImpuestos: true, diasDeCajaConfiable: false });
+  });
+  it("una base más vieja que la web (sin esos campos) no dice nada: ni provisional ni lista, no inventa", () => {
+    const p = leerProyeccion(base);
+    expect(p.diasDeCajaConfiable).toBeNull();
+    expect(queFaltaEnLaProyeccion(p)).toEqual({ provisional: false, faltan: [] });
+  });
+  it("provisional: dice qué falta, en este orden, y a dónde ir a cargarlo", () => {
+    const q = queFaltaEnLaProyeccion(
+      leerProyeccion({ ...base, historia_dias: 16, saldo_inicial_declarado: false, hay_facturas_de_proveedor: false, incluye_impuestos: false, dias_de_caja_confiable: false }),
+    );
+    expect(q.provisional).toBe(true);
+    expect(q.faltan.map((f) => f.clave)).toEqual(["saldos", "historia", "facturas", "impuestos"]);
+    expect(q.faltan[1]!.texto).toContain("Faltan 12 días de ventas");
+    expect(q.faltan[0]!.href).toBe("/finanzas/dinero");
+    expect(q.faltan[2]!.href).toBe("/finanzas/dinero/por-pagar");
+  });
+  it("con 27 días falta uno solo, y lo dice en singular", () => {
+    const q = queFaltaEnLaProyeccion(leerProyeccion({ ...base, historia_dias: 27, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: true, dias_de_caja_confiable: false }));
+    expect(q.faltan.map((f) => f.texto)).toEqual(["Falta 1 día de ventas: con menos de 4 semanas el promedio de cada día se apoya en pocos datos."]);
+  });
+  it("confiable: ya no es provisional (y lo que aún mejoraría igual se lista)", () => {
+    const q = queFaltaEnLaProyeccion(leerProyeccion({ ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: false, incluye_impuestos: true, dias_de_caja_confiable: true }));
+    expect(q.provisional).toBe(false);
+    expect(q.faltan.map((f) => f.clave)).toEqual(["facturas"]);
+  });
+  it("ADR-0433, actividad 4b: sin el saldo a favor de IGV declarado lo lista (si el IGV entra a la proyección), con ruta a Configuración ▸ Impuestos", () => {
+    const completo = { ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: true, dias_de_caja_confiable: true };
+    const sin = queFaltaEnLaProyeccion(leerProyeccion({ ...completo, saldo_favor_igv_declarado: false }));
+    expect(sin.provisional).toBe(false);
+    expect(sin.faltan.map((f) => f.clave)).toEqual(["saldo_igv"]);
+    expect(sin.faltan[0]!.href).toBe("/configuracion?tab=impuestos");
+    expect(sin.faltan[0]!.texto).toMatch(/contador/);
+    expect(queFaltaEnLaProyeccion(leerProyeccion({ ...completo, saldo_favor_igv_declarado: true })).faltan).toEqual([]);
+  });
+  it("y no lo pide si la proyección ni incluye el IGV (la cuenta no ve Impuestos) ni si la base es más vieja que la web (no dice nada)", () => {
+    const sinImpuestos = { ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: false, dias_de_caja_confiable: true, saldo_favor_igv_declarado: false };
+    expect(queFaltaEnLaProyeccion(leerProyeccion(sinImpuestos)).faltan.map((f) => f.clave)).toEqual(["impuestos"]);
+    const vieja = { ...base, historia_dias: 40, saldo_inicial_declarado: true, hay_facturas_de_proveedor: true, incluye_impuestos: true, dias_de_caja_confiable: true };
+    expect(leerProyeccion(vieja).saldoFavorIgvDeclarado).toBeNull();
+    expect(queFaltaEnLaProyeccion(leerProyeccion(vieja)).faltan).toEqual([]);
+  });
+  it("lee el IGV y la renta como salidas «impuesto», los cobros de pocos días como «promedio_corto», y los nombra en «qué vence»", () => {
+    const p = leerProyeccion({
+      ...base,
+      cobros: [{ fecha: "2026-10-17", ubicacion_id: "lim", tienda: "Tienda Lima", monto: 342.86, origen: "promedio_corto", meta_pct: 0, campanas: [] }],
+      salidas: [{ tipo: "impuesto", id: "igv:2026-10", fecha: "2026-11-15", vence: "2026-11-15", titulo: "IGV de octubre (hasta hoy)", detalle: "", clase: "impuestos", ubicacion_id: null, unidad: null, monto: 3200, atrasada: false }],
+    });
+    expect(p.cobros[0]!.origen).toBe("promedio_corto");
+    expect(p.salidas[0]!.tipo).toBe("impuesto");
+    expect(queVence(p.salidas, "2026-11-10", "2026-11-16")).toBe("IGV de octubre (hasta hoy) S/\u00a03,200");
+    expect(tiendasDeLaProyeccion(p)).toEqual([{ id: "lim", nombre: "Tienda Lima", origen: "promedio", corto: true }]);
+  });
+  it("los pagos de la planilla y de SUNAT tienen su rótulo en lo que salió", () => {
+    expect(textoCategoria("planilla")).toBe("Pago de la planilla");
+    expect(textoCategoria("impuestos")).toBe("Pago a SUNAT (IGV)");
   });
 });

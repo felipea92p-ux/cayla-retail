@@ -33,11 +33,145 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ apartados: { vencidos: 0, hoy: 0, manana: 0, primeraClienta: null } })[0]!.nivel).toBe("aldia");
   });
 
+  it("ADR-0328 act. 17: un pedido entre sedes con 48 h sin respuesta es urgente para el líder y sale aunque lo oculte", () => {
+    const [a] = avisosInicio({ pedidosSinRespuesta: { tePiden: 1, pediste: 1, detalle: "Tienda Lima te pidió hace 50 h y nadie respondió.", ahora: "Responde 1 pedido de otra sede" } });
+    expect(a).toMatchObject({ clave: "pedidosSede", cantidad: 2, nivel: "urgente", href: "/inventario/traslados", ahora: "Responde 1 pedido de otra sede" });
+    expect(avisosVisibles([a!], { pedidosSede: false }, true).activos[0]!.forzado).toBe(true);
+    expect(avisosInicio({ pedidosSinRespuesta: { tePiden: 0, pediste: 0, detalle: "Ningún pedido…", ahora: "" } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ pedidosSinRespuesta: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("decisión del 2026-10-04: la tienda que pidió para un cliente se entera de lo que llegó y de lo que no va a llegar, y va a Vender", () => {
+    const [a] = avisosInicio({ pedidosCliente: { llegaron: 1, noLlegaron: 2, sigueEnPie: 0, primero: "Ana Lozano" } });
+    expect(a).toMatchObject({ clave: "pedidosCliente", cantidad: 3, nivel: "toca", href: "/vender", ahora: "Avisa a 3 clientes cómo terminó su pedido" });
+    expect(a!.detalle).toBe("2 no van a llegar · 1 llegó · Ana Lozano: avísales por WhatsApp desde Vender.");
+    expect(avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 1, sigueEnPie: 0, primero: "Ana Lozano" } })[0]!.detalle).toBe("1 no va a llegar · Ana Lozano: avísale por WhatsApp desde Vender.");
+    expect(avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, sigueEnPie: 0, primero: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ pedidosCliente: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("ADR-0393: lo recibido por terminar lleva a Recibir; si lo más antiguo pasa de 7 días, es urgente", () => {
+    const base = { porSeparar: 5, porDetallar: 0, porCrear: 3, total: 8, envios: [] };
+    const [a] = avisosInicio({ recibidoPorTerminar: { ...base, desde: null } });
+    expect(a).toMatchObject({ clave: "porTerminar", cantidad: 8, nivel: "toca", href: "/recibir", ahora: "Termina 8 prendas recibidas" });
+    expect(a!.detalle).toBe("Contadas y en el almacén, pero sin poder venderse: 5 por separar, 3 por crear.");
+    expect(avisosInicio({ recibidoPorTerminar: { ...base, desde: "2020-01-01T10:00:00Z" } })[0]!.nivel).toBe("urgente");
+    expect(avisosInicio({ recibidoPorTerminar: { ...base, porSeparar: 0, porCrear: 0, total: 0, desde: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ recibidoPorTerminar: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("decisión del 2026-10-04: a los 7 días el Inicio pregunta si el pedido sigue en pie (la reserva allá no vence sola)", () => {
+    const [a] = avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, sigueEnPie: 2, primero: "Ana Lozano" } });
+    expect(a).toMatchObject({ cantidad: 2, nivel: "toca", ahora: "Confirma si 2 pedidos siguen en pie" });
+    expect(a!.detalle).toBe("2 llevan 7 días o más: ¿sigue en pie? · Ana Lozano: pregúntale al cliente y responde en Vender.");
+    const [b] = avisosInicio({ pedidosCliente: { llegaron: 1, noLlegaron: 0, sigueEnPie: 1, primero: "Ana Lozano" } });
+    expect(b).toMatchObject({ cantidad: 2, ahora: "Avisa a 1 cliente cómo terminó su pedido" });
+    expect(b!.detalle).toBe("1 llegó · 1 lleva 7 días o más: ¿sigue en pie? · Ana Lozano: avísale por WhatsApp desde Vender.");
+  });
+
+  it("la reserva de un pedido de otra sede (sin fecha) no cuenta como apartado que vence", () => {
+    expect(resumirApartados([{ venceEl: null, clienta: "Pedido de Tienda Trujillo" }, { venceEl: "2026-10-01", clienta: "Rosa" }], "2026-10-05")).toEqual({ vencidos: 1, hoy: 0, manana: 0, primeraClienta: "Rosa" });
+    expect(resumirApartados([{ venceEl: null, clienta: "Pedido de Tienda Trujillo" }], "2026-10-05")).toEqual({ vencidos: 0, hoy: 0, manana: 0, primeraClienta: null });
+  });
+
+  it("decisión del 2026-10-04: lo que lleva más de 3 días «para enviar» se avisa en el Inicio de la sede", () => {
+    const [a] = avisosInicio({ paraEnviar: { prendas: 3, destinos: ["Tienda Arequipa", "Tienda Lima"], dias: 6 } });
+    expect(a).toMatchObject({ clave: "paraEnviar", grupo: "Inventario", cantidad: 3, nivel: "toca", href: "/inventario/traslados", ahora: "Envía 3 prendas que esperan en el almacén" });
+    expect(a!.detalle).toBe("3 prendas subidas para Tienda Arequipa y Tienda Lima llevan hasta 6 días en tu almacén: arma el envío.");
+    expect(avisosInicio({ paraEnviar: { prendas: 1, destinos: ["Tienda Lima"], dias: 3 } })[0]!.detalle).toBe("1 prenda subida para Tienda Lima lleva más de 3 días en tu almacén: arma el envío.");
+    expect(avisosInicio({ paraEnviar: { prendas: 0, destinos: [], dias: 0 } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ paraEnviar: null })[0]!.nivel).toBe("sinleer");
+  });
+
+  it("el número de Traslados dice que suma lo que llega y lo que te piden", () => {
+    expect(avisosInicio({ traslados: 3 })[0]!.detalle).toBe("3 esperan a tu sede: recibir lo que llegó o enviar lo que te piden.");
+  });
+
+  it("pérdidas que se repiten (ADR-0328 act. 14): por hacer, ocultable, con la frase y el enlace de la regla; sin leer no es «al día»", () => {
+    const href = "/inventario/movimientos?vista=perdidas&p=30&variante=x";
+    const [a] = avisosInicio({ perdidas: { cantidad: 1, detalle: "Polo Básico · M · Negro perdió 2 prendas en 2 días distintos.", href } });
+    expect(a).toMatchObject({ clave: "perdidas", grupo: "Inventario", nivel: "toca", ocultable: true, cantidad: 1, href });
+    expect(a!.ahora).toBe("Revisa 1 pérdida que se repite");
+    expect(a!.detalle).toContain("2 días distintos");
+    expect(avisosInicio({ perdidas: { cantidad: 0, detalle: "", href } })[0]!.nivel).toBe("aldia");
+    const sinLeer = avisosInicio({ perdidas: null })[0]!;
+    expect(sinLeer.nivel).toBe("sinleer");
+    expect(sinLeer.href).toBe("/inventario/movimientos?vista=perdidas&p=30");
+  });
+
   it("una factura vencida es urgente; una que vence en la semana, por hacer", () => {
     const vencida = avisosInicio({ porPagar: { vencidas: 2, montoVencido: 3480, semana: 1, montoSemana: 500 } })[0]!;
     expect(vencida.nivel).toBe("urgente");
-    expect(vencida.titulo).toBe("Facturas de proveedor vencidas");
+    expect(vencida.titulo).toBe("Compras por pagar vencidas");
     expect(avisosInicio({ porPagar: { vencidas: 0, montoVencido: 0, semana: 1, montoSemana: 500 } })[0]!.nivel).toBe("toca");
+  });
+
+  // Felipe 2026-10-13 (auditoría, punto 18): la cuenta bancaria de un proveedor cambió esta semana.
+  it("una cuenta de proveedor que cambió avisa al líder, lleva a su ficha y no se puede ocultar", () => {
+    const uno = avisosInicio({ cuentasBancarias: { cambios: 2, proveedores: 1, ultimoProveedorId: "p1", ultimoProveedor: "Textiles Andina SAC" } })[0]!;
+    expect(uno.clave).toBe("cuentasBancarias");
+    expect(uno.nivel).toBe("toca");
+    expect(uno.ocultable).toBe(false);
+    expect(uno.href).toBe("/compras/proveedores/p1");
+    expect(uno.detalle).toContain("Textiles Andina SAC");
+    expect(uno.ahora).toBe("Confirma la cuenta nueva antes de pagar");
+  });
+  it("varios proveedores con cuenta nueva llevan al directorio; ninguno queda al día; sin leer no se finge «al día»", () => {
+    expect(avisosInicio({ cuentasBancarias: { cambios: 3, proveedores: 3, ultimoProveedorId: "p9", ultimoProveedor: "X" } })[0]!.href).toBe("/compras/proveedores");
+    expect(avisosInicio({ cuentasBancarias: { cambios: 0, proveedores: 0, ultimoProveedorId: null, ultimoProveedor: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ cuentasBancarias: null })[0]!.nivel).toBe("sinleer");
+    expect(avisosInicio({})).toEqual([]);
+  });
+
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta.
+  it("las prendas de factura que no llegaron llevan a la ficha del proveedor (o al directorio) y no se ocultan", () => {
+    const [a] = avisosInicio({ prendasSinLlegar: { prendas: 3, facturas: 1, igv: 10.8, proveedores: 1, proveedorId: "p1" } });
+    expect(a).toMatchObject({ clave: "prendasSinLlegar", grupo: "Compras", cantidad: 3, nivel: "toca", href: "/compras/proveedores/p1", ocultable: false });
+    expect(a!.ahora).toBe("Resuelve 3 prendas que te deben");
+    expect(avisosInicio({ prendasSinLlegar: { prendas: 4, facturas: 2, igv: 14.4, proveedores: 2, proveedorId: null } })[0]!.href).toBe("/compras/proveedores");
+    expect(avisosInicio({ prendasSinLlegar: { prendas: 0, facturas: 0, igv: 0, proveedores: 0, proveedorId: null } })[0]!.nivel).toBe("aldia");
+    // Ninguno de los dos se apaga desde «Ajustar».
+    const todos = avisosInicio({ prendasSinLlegar: { prendas: 1, facturas: 1, igv: 3.6, proveedores: 1, proveedorId: "p1" } });
+    expect(avisosVisibles(todos, { prendasSinLlegar: false }, true).activos.map((x) => x.clave)).toEqual(["prendasSinLlegar"]);
+  });
+
+  // «Por colgar» (ADR-0331 act. b) con la decisión del motor del piso (ADR-0328 act. 7): cuenta TALLAS, como «Para hoy» de
+  // Existencias (`porColgarDeLaSede`), y habla como Existencias: «Baja al piso», nunca «Sube» (en Existencias «Subir» es del piso al
+  // almacén). Que la cifra sea la misma que la de «Para hoy» y la del filtro «Hoy» lo prueba `inicio-almacen-reglas.test.ts`.
+  it("lo que hay que colgar dice «Baja al piso N tallas» y lleva a la lista «Hoy ▸ Por colgar»; nunca «Sube»", () => {
+    const [a] = avisosInicio({ porColgar: { tallas: 12, unidades: 20, enPausa: 0 } });
+    expect(a).toMatchObject({ clave: "reponer", titulo: "Por colgar", cantidad: 12, nivel: "toca", href: "/inventario?hoy=por_colgar" });
+    expect(a!.ahora).toBe("Baja al piso 12 tallas por colgar");
+    expect(a!.detalle).toBe("20 guardadas y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.");
+    expect(avisosInicio({ porColgar: { tallas: 1, unidades: 1, enPausa: 0 } })[0]!.ahora).toBe("Baja al piso 1 talla por colgar");
+    for (const p of [{ tallas: 1, unidades: 1, enPausa: 0 }, { tallas: 0, unidades: 0, enPausa: 4 }, { tallas: 0, unidades: 0, enPausa: 0 }]) {
+      const [x] = avisosInicio({ porColgar: p });
+      expect(`${x!.titulo} ${x!.ahora} ${x!.detalle}`).not.toMatch(/\bsub[eai]/i);
+    }
+  });
+
+  it("con el piso sin cuadrar no manda a colgar: pide cuadrar primero, con las tallas que esperan (ADR-0328, decisión 5)", () => {
+    const [a] = avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 4 } });
+    expect(a).toMatchObject({ titulo: "Cuadrar el piso", cantidad: 4, ahora: "Cuadra el piso antes de colgar", nivel: "toca", href: "/inventario" });
+    expect(a!.detalle).toBe("4 tallas esperan el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.");
+    expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 1 } })[0]!.detalle).toBe(
+      "1 talla espera el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar."
+    );
+  });
+
+  it("«Fotos que faltan» lleva a Productos ya filtrado por «Sin foto», no a la lista entera", () => {
+    const [a] = avisosInicio({ fotosQueFaltan: 19 });
+    expect(a).toMatchObject({ clave: "fotos", cantidad: 19, href: "/productos?falta=foto" });
+  });
+
+  it("nada que colgar ni que esperar es «al día»; si el motor no se pudo leer es «sin leer», nunca un cero", () => {
+    expect(avisosInicio({ porColgar: { tallas: 0, unidades: 0, enPausa: 0 } })[0]).toMatchObject({
+      titulo: "Por colgar",
+      nivel: "aldia",
+      ahora: "",
+      detalle: "El piso de venta está al día.",
+    });
+    expect(avisosInicio({ porColgar: null })[0]).toMatchObject({ nivel: "sinleer", cantidad: null });
   });
 });
 
@@ -108,7 +242,7 @@ describe("resumirApartados", () => {
 describe("accesosRapidos", () => {
   it("solo de módulos que ve, sin «Vender», máximo 4", () => {
     const vendedora = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["vender", "apartados", "existencias", "cambios"] });
-    expect(vendedora.map((a) => a.etiqueta)).toEqual(["Apartados", "Stock", "Cambios", "Buscar"]);
+    expect(vendedora.map((a) => a.etiqueta)).toEqual(["Stock", "Cambios", "Apartados", "Buscar"]);
     const lider = accesosRapidos({ esLider: true, ubicacionTipo: "tienda", modulos: ["vender", "caja", "apartados", "traslados", "cambios", "existencias"] });
     expect(lider).toHaveLength(4);
     expect(lider.map((a) => a.etiqueta)).not.toContain("Vender");
@@ -116,7 +250,60 @@ describe("accesosRapidos", () => {
 
   it("la terminal administrativa (no vende): lo que su rol ve, como antes en «Ir a»", () => {
     const admin = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["existencias", "conteos", "traslados", "movimientos", "recibir", "productos"] });
-    expect(admin.map((a) => a.etiqueta)).toEqual(["Stock", "Traslados", "Recibir", "Buscar"]);
+    expect(admin.map((a) => a.etiqueta)).toEqual(["Recibir", "Traslados", "Stock", "Conteo"]);
+  });
+
+  describe("«Nuevo producto»", () => {
+    const integrante = ["vender", "caja", "apartados", "existencias", "cambios", "traslados", "productos"] as const;
+
+    it("a quien puede escribir en el catálogo se lo ofrece en el lugar de Apartados (Felipe, 2026-10-03)", () => {
+      const r = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: integrante, permisos: ["editarCatalogo"] });
+      expect(r.map((a) => a.etiqueta)).toEqual(["Stock", "Cambios", "Nuevo producto", "Caja"]);
+      expect(r.map((a) => a.etiqueta)).not.toContain("Apartados");
+      expect(r.find((a) => a.etiqueta === "Nuevo producto")!.href).toBe("/productos/nuevo");
+    });
+
+    it("ver Productos sin poder escribir (rol limitado) no basta: el guardado fallaría al final", () => {
+      const r = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: integrante, permisos: [] });
+      expect(r.map((a) => a.etiqueta)).toEqual(["Stock", "Cambios", "Apartados", "Caja"]);
+      // Sin la lista de permisos (quien llama no la pasó) se comporta igual: nunca se ofrece por defecto.
+      expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: integrante }).map((a) => a.etiqueta)).not.toContain("Nuevo producto");
+    });
+
+    it("poder editar por «Categorías y atributos» sin ver Productos no lo muestra: la ruta caería en «Sin acceso»", () => {
+      const r = accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["apartados", "existencias", "atributos"], permisos: ["editarCatalogo"] });
+      expect(r.map((a) => a.etiqueta)).not.toContain("Nuevo producto");
+    });
+
+    it("la terminal de almacén (no vende) lo tiene a mano junto a lo que recibe", () => {
+      const admin = accesosRapidos({
+        esLider: false,
+        ubicacionTipo: "tienda",
+        modulos: ["existencias", "conteos", "traslados", "movimientos", "recibir", "productos"],
+        permisos: ["editarCatalogo"],
+      });
+      expect(admin.map((a) => a.etiqueta)).toEqual(["Recibir", "Traslados", "Stock", "Nuevo producto"]);
+    });
+
+    it("la líder lo tiene en lugar de Apartados; el almacén no cambia", () => {
+      const lider = accesosRapidos({ esLider: true, ubicacionTipo: "tienda", modulos: [...integrante], permisos: ["editarCatalogo"] });
+      expect(lider.map((a) => a.etiqueta)).toEqual(["Caja", "Nuevo producto", "Traslados", "Cambios"]);
+      // Si por algún motivo no puede escribir en el catálogo, no se le ofrece y Apartados recupera su lugar.
+      const sinPermiso = accesosRapidos({ esLider: true, ubicacionTipo: "tienda", modulos: [...integrante], permisos: [] });
+      expect(sinPermiso.map((a) => a.etiqueta)).toEqual(["Caja", "Traslados", "Cambios", "Stock"]);
+      const almacen = accesosRapidos({ esLider: false, ubicacionTipo: "almacen", modulos: ["traslados", "recibir", "productos"], permisos: ["editarCatalogo"] });
+      expect(almacen.map((a) => a.etiqueta)).toEqual(["Traslados", "Recibir", "Buscar"]);
+    });
+  });
+
+  it("la lista sale de lo que hace el rol, no de su nombre: si vende es del mostrador, si no, de la trastienda", () => {
+    const mismos = ["existencias", "traslados", "cambios", "apartados", "recibir"] as const;
+    expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: [...mismos, "vender"] }).map((a) => a.etiqueta)).toEqual(["Stock", "Cambios", "Apartados", "Traslados"]);
+    expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: [...mismos] }).map((a) => a.etiqueta)).toEqual(["Recibir", "Traslados", "Stock", "Buscar"]);
+  });
+
+  it("un rol nuevo sin nada que coincida no se queda sin lista: al menos «Buscar»", () => {
+    expect(accesosRapidos({ esLider: false, ubicacionTipo: "tienda", modulos: ["analisis"] }).map((a) => a.etiqueta)).toEqual(["Buscar"]);
   });
 
   it("sin módulos, al menos «Buscar»", () => {
@@ -145,7 +332,7 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T15:00:00Z", accion: "caja_abierta", descripcion: "abrió la caja", persona_id: "f", persona_nombre: "Felipe Alvarez", detalle: {} },
     ]);
     const micaela = e.find((m) => m.personaId === "m")!;
-    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([2, 289, "vendió 2 prendas por S/ 189"]);
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([2, 289, "vendió 2 prendas por S/\u00a0189"]);
     const felipe = e.find((m) => m.personaId === "f")!;
     expect([felipe.nombre, felipe.estado]).toEqual(["Felipe A.", null]);
   });
@@ -157,9 +344,9 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T21:00:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 100", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 100 }, tabla: "ventas", registro_id: "v-anulada" },
     ]);
     const micaela = e.find((m) => m.personaId === "m")!;
-    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/ 189"]);
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/\u00a0189"]);
     // Quien anuló sí muestra que anuló (es una acción suya, no una venta).
-    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/ 100");
+    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/\u00a0100");
   });
 
   it("una venta de prueba anulada desaparece del todo: ni venta, ni «vendió…», ni «anuló…»", () => {

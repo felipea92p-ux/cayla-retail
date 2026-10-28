@@ -41,6 +41,8 @@
 import { execFileSync } from "node:child_process";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// Otra base del mismo Postgres (p. ej. una copia desechable con las migraciones de esta rama): `PRUEBAS_BASE=mi_copia node …`.
+const BASE = process.env.PRUEBAS_BASE ?? "postgres";
 
 // Mismas credenciales obvias que supabase/seed.sql.
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualquier ubicación
@@ -49,7 +51,7 @@ const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a
 function psql(sql) {
   return execFileSync(
     "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
+    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
   );
 }
@@ -89,7 +91,7 @@ ${sqlDespues}
  * "compra" no falle) y en la NUEVA salvo que `toparStockNuevo` sea falso — el
  * escenario de "sin stock suficiente" necesita la variante nueva sin ese colchón.
  */
-function fixture({ cantidad = 1, diferenciaUnitaria = 0, toparStockNuevo = true }) {
+function fixture({ cantidad = 1, diferenciaUnitaria = 0, toparStockNuevo = true, descuentoUnitario = 0 }) {
   const colchonViejo = Math.max(1000, cantidad + 10);
   return `
 select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
@@ -140,8 +142,10 @@ update retail.variantes set precio = :'precio_viejo' where id = :'v_old';
 -- cerrar_caja y contaminaría la aserción del escenario 12 (que solo quiere ver la
 -- diferencia del CAMBIO, no la de la venta original).
 select retail.registrar_venta(:'ubic',
-  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', ${cantidad}, 'precio_unitario', :'precio_viejo', 'descuento_unitario', 0)),
-  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'precio_viejo')::numeric * ${cantidad})),
+  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', ${cantidad}, 'precio_unitario', :'precio_viejo', 'descuento_unitario', ${descuentoUnitario}${
+    descuentoUnitario > 0 ? `, 'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'prueba automatizada'` : ""
+  })),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', ((:'precio_viejo')::numeric - ${descuentoUnitario}) * ${cantidad})),
   null, gen_random_uuid()) as venta_id \\gset
 
 select id as venta_item from retail.venta_items where venta_id = :'venta_id' and variante_id = :'v_old' \\gset
@@ -488,6 +492,134 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
+// 20261012120100 (ADR-0380): la diferencia se mide contra lo que la clienta PAGÓ (precio − descuento), no contra el precio de
+// lista. Ejemplo de Felipe: polera de lista S/ X con S/ 20 de campaña. Antes, cambiarla por otra de la misma lista daba «diferencia
+// 0» y la tienda regalaba los S/ 20; cambiarla por una más barata devolvía de más.
+// ---------------------------------------------------------------------------
+
+exito(
+  "con descuento: cambiarla por una de la misma lista cobra lo que se descontó",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, c.metodo_pago_diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia, metodo]) => Number(diferencia) === 20 && metodo === "efectivo"
+);
+
+exito(
+  "con descuento: por una prenda más barata se devuelve solo lo que sobra de lo pagado, no de la lista",
+  // Lista de la vieja = nueva + 60; pagó nueva + 40; se lleva la nueva → se le devuelven 40 (antes: 60, más de lo que sobraba).
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: -60, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia]) => Number(diferencia) === -40
+);
+
+exito(
+  "con descuento: si la prenda nueva vale justo lo que pagó, no hay diferencia ni método de pago",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: -20, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, coalesce(c.metodo_pago_diferencia, '') from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia, metodo]) => Number(diferencia) === 0 && metodo === ""
+);
+
+exito(
+  "con descuento y varias unidades: la diferencia es por unidad × cantidad",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 3, diferenciaUnitaria: 0, descuentoUnitario: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 2, 'efectivo', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia]) => Number(diferencia) === 40
+);
+
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// El plazo de cambio vive en la base (20261012222000), con la misma cuenta que la pantalla: días calendario de Lima.
+// ---------------------------------------------------------------------------
+const VENTA_DE_HACE = (dias) => `update retail.ventas set created_at = ((retail.fn_hoy_lima() - ${dias})::timestamp + interval '12 hours') at time zone 'America/Lima'
+  where id = :'venta_id';`;
+
+error(
+  "una compra de hace 16 días ya no se cambia (el plazo es de 15): lo dice la base, no solo la pantalla",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+${VENTA_DE_HACE(16)}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid());
+`
+  ),
+  "el plazo de cambio de 15 días ya venció"
+);
+
+exito(
+  "una compra de hace exactamente 15 días todavía se cambia (el último día cuenta)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+${VENTA_DE_HACE(15)}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid()) as cambio_id \\gset
+select count(*) from retail.cambios where id = :'cambio_id';
+rollback;
+`
+  ),
+  ([n]) => Number(n) === 1
+);
+
+// ---------------------------------------------------------------------------
+// QR como medio de la diferencia (20261021183000 + 20261021184000). El 2026-10-21 una clienta pagó la diferencia de un
+// cambio con el QR de Izipay; el cambio no lo aceptaba, la colaboradora anotó «transferencia» y quedaron dos cuentas
+// (Por depositar Izipay e Interbank) mal por la misma plata.
+// ---------------------------------------------------------------------------
+
+exito(
+  "la diferencia de un cambio se puede cobrar con QR: queda sellada en la máquina de la tienda y entra a «Cobros con QR» del libro",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 20 })}
+select coalesce(sum(l.monto), 0) as qr_antes from retail.fn_dinero_libro(retail.fn_hoy_lima()) l
+  where l.ubicacion_id = :'ubic' and l.detalle ilike 'Cobros con QR%' \\gset
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'qr', gen_random_uuid()) as cambio_id \\gset
+select c.diferencia, c.metodo_pago_diferencia,
+  (select d.nombre from retail.cuentas_dinero d where d.id = c.cuenta_dinero_id),
+  (select coalesce(sum(l.monto), 0) from retail.fn_dinero_libro(retail.fn_hoy_lima()) l
+    where l.ubicacion_id = :'ubic' and l.detalle ilike 'Cobros con QR%') - :'qr_antes'
+from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([diferencia, metodo, cuenta, entraAlLibro]) =>
+    Number(diferencia) === 20 && metodo === "qr" && cuenta === "Por depositar Izipay" && Number(entraAlLibro) === 20
+);
+
+error(
+  "un medio que no existe sigue rechazado por el candado, aunque ahora se acepte el QR",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 20 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'bitcoin', gen_random_uuid());
+`
+  ),
+  "cambios_metodo_pago_diferencia_check"
+);
 
 function main() {
   try {

@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerTodas, opcional, type Tolerado } from "@/lib/resultado";
 import { compararTallas } from "@/lib/tallas";
+import { categoriasFueraDeMotores } from "@/lib/familias-motores";
+import type { OrdenParaMolde } from "@/lib/orden-modelo-reglas";
+import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 
 // Producción del Taller (restaurada 2026-09-15 sobre V2). Solo lecturas: toda
 // escritura pasa por las RPC de `20260915130000_produccion_del_taller.sql`
@@ -10,7 +13,9 @@ import { compararTallas } from "@/lib/tallas";
 // se muestra es stock que nadie sabe que existe.
 
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
-import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden } from "@/lib/produccion-reglas";
+import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
+import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
+import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -39,9 +44,13 @@ export type OrdenProduccion = {
   cantidadBuenas: number | null;
   /** Generado por la base: costos ÷ buenas (o ÷ plan mientras no cierre). */
   costoUnitario: number;
-  /** Precio de venta del modelo (el mayor entre sus variantes), para el
-   *  semáforo de margen. 0 si el modelo aún no tiene precio. */
+  /** Precio de venta del modelo (el mayor entre sus variantes), el de la grilla. 0 si el modelo aún no tiene precio. */
   precioVenta: number;
+  /** Las tallas del modelo: con ellas se busca el precio propio más bajo de una tienda (ADR-0370). */
+  varianteIdsDelModelo: string[];
+  /** Solo el líder lo recibe (`conPreciosMasBajos` en la página): el precio propio más bajo que alguna tienda le pone al modelo, si queda bajo la grilla.
+   *  Con él se mide el margen (`precioParaMargen`); `precioVenta` no cambia. */
+  precioMasBajo?: PrecioMasBajo;
   fechaEntrega: string | null;
   nota: string | null;
   inventariadoEn: string | null;
@@ -81,7 +90,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
       .select(
         `id, producto_id, estado, es_muestra, etapas,
          cantidad_plan, cantidad_buenas, fecha_entrega, nota, inventariado_at, created_at,
-         producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( precio ) ),
+         producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( id, precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
            variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ) )
@@ -108,6 +117,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     cantidadBuenas: p.cantidad_buenas,
     costoUnitario: Number(costos.get(p.id)?.costo_unitario ?? 0),
     precioVenta: Math.max(0, ...(p.producto?.variantes ?? []).map((v) => Number(v.precio))),
+    varianteIdsDelModelo: (p.producto?.variantes ?? []).map((v) => v.id),
     fechaEntrega: p.fecha_entrega,
     nota: p.nota,
     inventariadoEn: p.inventariado_at,
@@ -130,6 +140,8 @@ export type VarianteDeModelo = {
   talla: string | null;
   color: string | null;
   colorHex: string | null;
+  /** El código del color en el vocabulario (ADR-0400): la orden propone la tela de ese color. */
+  colorCodigo: string | null;
   precio: number;
 };
 
@@ -137,36 +149,58 @@ export type ModeloProducible = {
   productoId: string;
   referencia: string;
   categoria: string | null;
+  /** Para leer lo que el motor de demanda dice de su categoría (ADR-0347). */
+  categoriaId: string | null;
+  /** Lo que su miniatura necesita cuando no hay foto (ADR-0333): el ícono sale del prefijo, nunca del nombre visible. Faltan en un modelo virtual (un borrador de «Modelo nuevo»). */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
+  /** El tejido del modelo (ADR-0400): filtra las telas que la orden ofrece. Falta en un modelo virtual. */
+  tejidoId?: string | null;
+  tejidoNombre?: string | null;
   variantes: VarianteDeModelo[];
+  /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
+  precioMasBajo?: PrecioMasBajo;
 };
 
 /** Modelos con sus variantes activas, para el formulario de nueva orden. Un
  *  modelo sin variantes activas no se puede producir (no habría a qué talla
- *  sumarle stock), así que no se lista. */
-export async function getModelosProducibles(): Promise<ModeloProducible[]> {
+ *  sumarle stock), así que no se lista.
+ *
+ *  `soloProducibles` (el Resumen de Producción): además deja fuera lo que no se le debe ofrecer a la líder para fabricar —un
+ *  descontinuado, un alta pendiente o rechazada, un producto de prueba, una familia fuera de los motores (`esProducible`)—. «Nueva
+ *  orden» NO lo pide: sigue ofreciendo todo el catálogo hasta que la base cierre la puerta (candado #6 del backlog). */
+export async function getModelosProducibles(opciones: { soloProducibles?: boolean } = {}): Promise<ModeloProducible[]> {
   const supabase = await createClient();
   // Por páginas con orden único (ADR-0192): los modelos crecen con el catálogo y PostgREST corta en 1.000 sin avisar —
   // un modelo fuera de la página no se podría producir. Las variantes embebidas no cuentan para el tope.
-  const filas = exigir(
-    await leerTodas((desde, hasta) =>
+  const [filasLeidas, apagadas] = await Promise.all([
+    leerTodas((desde, hasta) =>
       supabase
         .from("productos")
         .select(
-          `id, referencia, categoria:categorias ( nombre ),
-           variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
+          `id, referencia, categoria_id, estado, estado_alta, es_prueba, tejido_id, categoria:categorias ( nombre, prefijo, familia ), tejido:tejidos ( nombre ),
+           variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( codigo, nombre, hex ) )`
         )
         .order("referencia")
         .order("id")
         .range(desde, hasta)
     ),
-    "los modelos del catálogo"
-  );
+    // Nunca lanza: si no responde, devuelve vacío y todo cuenta como antes (ADR-0377).
+    opciones.soloProducibles ? categoriasFueraDeMotores(supabase) : Promise.resolve(new Set<string>()),
+  ]);
+  const filas = exigir(filasLeidas, "los modelos del catálogo");
 
   return filas
+    .filter((p) => !opciones.soloProducibles || esProducible(p, apagadas))
     .map((p) => ({
       productoId: p.id,
       referencia: p.referencia,
       categoria: p.categoria?.nombre ?? null,
+      categoriaId: p.categoria_id ?? null,
+      categoriaPrefijo: p.categoria?.prefijo ?? null,
+      categoriaFamilia: p.categoria?.familia ?? null,
+      tejidoId: p.tejido_id ?? null,
+      tejidoNombre: p.tejido?.nombre ?? null,
       variantes: (p.variantes ?? [])
         .filter((v) => v.activo)
         .map((v) => ({
@@ -185,4 +219,138 @@ function compararLineas(a: { color: string | null; talla: string | null }, b: { 
   const porColor = (a.color ?? "").localeCompare(b.color ?? "", "es");
   if (porColor !== 0) return porColor;
   return compararTallas(a.talla ?? "", b.talla ?? "");
+}
+
+/** Categorías (con sus tallas habilitadas), colores y familias que el formulario de «Modelo nuevo» ofrece (ADR-0361). Es un dato SECUNDARIO: si no se lee, la orden
+ *  de siempre sigue abriéndose y solo «Modelo nuevo» avisa que no tiene con qué armarse (principio 9). Son tablas de vocabulario, de lectura abierta a toda sesión. */
+export async function getVocabularioModeloNuevo(): Promise<Tolerado<VocabularioModeloNuevo>> {
+  const fallo = "No se pudieron cargar las tallas y los colores. Lo demás de esta pantalla sí está al día.";
+  const leido = await opcional(
+    (async () => {
+      const supabase = await createClient();
+      const [categorias, colores, familias] = await Promise.all([
+        supabase
+          .from("categorias")
+          .select("id, nombre, prefijo, familia, categoria_padre_id, categoria_tallas ( habitual, talla:tallas ( id, valor, activo ) )")
+          .eq("activo", true)
+          .order("nombre"),
+        supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, sinonimos, pantone_tcx").eq("activo", true).order("orden").order("nombre"),
+        supabase.from("familias").select("codigo, nombre").order("nombre"),
+      ]);
+      if (categorias.error || colores.error || familias.error) return null;
+      return armarVocabulario(categorias.data as unknown as FilaCategoria[], colores.data, familias.data);
+    })(),
+    "las tallas y los colores del modelo nuevo",
+  );
+  return leido ? { datos: leido, fallo: null } : { datos: null, fallo };
+}
+
+/** El historial mínimo de órdenes del Taller para saber qué modelos ya tienen molde (`moldeDelModelo`): solo producto, estado, tipo y fases, sin joins ni tope de 60 como el tablero.
+ *  Dato SECUNDARIO: si no se lee, devuelve `null` y la hoja pregunta «¿ya tienen el molde?» en vez de deducirlo. */
+export async function getHistorialDeMoldes(tallerId: string): Promise<OrdenParaMolde[] | null> {
+  return opcional(
+    (async () => {
+      const supabase = await createClient();
+      const filas = exigir(await supabase.from("producciones").select("producto_id, estado, es_muestra, etapas").eq("ubicacion_id", tallerId).neq("estado", "anulada").limit(5000), "el historial de moldes");
+      return filas.map((f) => ({ productoId: f.producto_id, estado: f.estado, esMuestra: f.es_muestra, etapas: (f.etapas ?? null) as OrdenParaMolde["etapas"] }));
+    })(),
+    "el historial de moldes",
+  );
+}
+
+/** Lo que la hoja «Nueva orden» ofrece elegir (ADR-0400, actividad 2): los proveedores que hacen servicios con su lista de precios, cuánta tela lleva cada modelo
+ *  (declarado desde Audaces o medido al cerrar) y los metros de cada tela ya comprometidos por las órdenes en proceso. Una sola RPC (`fn_nueva_orden_opciones`),
+ *  que responde a quien puede leer Producción en ese Taller. Es dato SECUNDARIO: si no se lee, la orden se abre igual con sus fases en el Taller y sin tela. */
+export type OpcionesNuevaOrden = {
+  proveedores: { id: string; nombre: string; rubro: string; activo: boolean; tarifas: { faseClave: string; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string }[] }[];
+  /** Por modelo: metros de tela por prenda y de dónde sale el número. */
+  consumos: Record<string, ConsumoDelModelo>;
+  /** Por modelo: los avíos que ya tiene (botones, hilo, etiquetas), para que Nueva orden los proponga sola (ADR-0513). */
+  aviosModelo: Record<string, AvioDelModelo[]>;
+  /** Por tela: metros que las órdenes en proceso ya tienen comprometidos (plan − descontado). */
+  comprometido: Record<string, number>;
+  /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados; `fn_tela_en_camino`, regla de Felipe del 2026-10-16). Sin ello, nada viene. */
+  enCamino: Record<string, number>;
+};
+
+type OpcionesLeidas = {
+  proveedores?: { id: string; nombre: string; rubro: string; activo: boolean; tarifas?: { fase_clave: string; tarifa_prenda: number | string; cantidad_minima: number | null; fijo_orden: number | string; vigente_desde: string }[] }[];
+  consumos?: {
+    producto_id: string;
+    tela_por_prenda: number | string;
+    fuente: "declarado" | "medido";
+    por_talla?: Record<string, number | string> | null;
+    declarado_por_prenda?: number | string | null;
+    medido_por_prenda?: number | string | null;
+    ordenes_medidas?: number | string | null;
+  }[];
+  comprometido?: { insumo_id: string; cantidad: number | string }[];
+  avios_modelo?: { producto_id: string; insumo_id: string; color_codigo: string | null; cantidad_por_prenda: number | string }[];
+};
+
+export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
+
+/** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */
+function aviosPorModelo(filas: NonNullable<OpcionesLeidas["avios_modelo"]>): Record<string, AvioDelModelo[]> {
+  const salida: Record<string, AvioDelModelo[]> = {};
+  for (const f of filas) {
+    const cantidad = Number(f.cantidad_por_prenda);
+    if (!Number.isFinite(cantidad) || cantidad <= 0) continue;
+    (salida[f.producto_id] ??= []).push({ insumoId: f.insumo_id, colorCodigo: f.color_codigo, cantidadPorPrenda: cantidad });
+  }
+  return salida;
+}
+
+/** Un consumo de `fn_nueva_orden_opciones` como lo usa la hoja: lo que manda, la forma por talla (si la hay) y de dónde sale (ADR-0513). Un campo que no llega queda sin dato, nunca en cero. */
+function consumoDelModelo(c: NonNullable<OpcionesLeidas["consumos"]>[number]): ConsumoDelModelo {
+  const numeroONulo = (v: number | string | null | undefined) => (v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
+  const porTalla = c.por_talla && typeof c.por_talla === "object" ? Object.fromEntries(Object.entries(c.por_talla).flatMap(([t, v]) => (numeroONulo(v) !== null ? [[t, Number(v)] as const] : []))) : null;
+  return {
+    telaPorPrenda: Number(c.tela_por_prenda),
+    fuente: c.fuente,
+    porTalla: porTalla && Object.keys(porTalla).length > 0 ? porTalla : null,
+    declaradoPorPrenda: numeroONulo(c.declarado_por_prenda),
+    medidoPorPrenda: numeroONulo(c.medido_por_prenda),
+    ordenesMedidas: numeroONulo(c.ordenes_medidas) ?? 0,
+  };
+}
+
+export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<OpcionesNuevaOrden>> {
+  const fallo = "No se pudieron cargar los servicios ni las telas para la orden. La orden igual se puede abrir con sus fases en el Taller.";
+  const leido = await opcional(
+    (async () => {
+      const supabase = await createClient();
+      // La RPC es nueva (migración 20261014154000) y los tipos generados todavía no la conocen: se llama por su nombre, como las de Órdenes de insumos.
+      const { data, error } = await (supabase.rpc(RPC_NUEVA_ORDEN_OPCIONES as never, { p_ubicacion_id: tallerId } as never) as unknown as PromiseLike<{
+        data: OpcionesLeidas | null;
+        error: { message: string } | null;
+      }>);
+      if (error || !data) return null;
+      const o = data;
+      // Lo que viene en camino es dato SECUNDARIO de lo secundario: si la lectura falla, la hoja sigue (sin contar nada en camino).
+      const camino = await (supabase.rpc(RPC_TELA_EN_CAMINO as never, { p_ubicacion_id: tallerId } as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
+      const enCamino = camino.error ? null : leerTelaEnCamino(camino.data);
+      return {
+        proveedores: (o.proveedores ?? []).map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          rubro: p.rubro,
+          activo: p.activo,
+          tarifas: (p.tarifas ?? []).map((t) => ({
+            faseClave: t.fase_clave,
+            tarifa: Number(t.tarifa_prenda),
+            minimo: t.cantidad_minima === null ? null : Number(t.cantidad_minima),
+            fijo: Number(t.fijo_orden),
+            vigenteDesde: t.vigente_desde,
+          })),
+        })),
+        consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, consumoDelModelo(c)])),
+        aviosModelo: aviosPorModelo(o.avios_modelo ?? []),
+        comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
+        enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
+      } satisfies OpcionesNuevaOrden;
+    })(),
+    "los servicios y las telas de la orden",
+  );
+  return leido ? { datos: leido, fallo: null } : { datos: null, fallo };
 }

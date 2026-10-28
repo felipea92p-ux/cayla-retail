@@ -1,6 +1,7 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Globito } from "@/components/ui/Globito";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -14,8 +15,10 @@ import {
   keyframesVuelo,
   mensajeEscaneo,
   normalizarLectura,
+  sonidoDeLecturaCamara,
   type ResultadoEscaneo,
 } from "@/lib/escaner-reglas";
+import { avisarLectura } from "@/lib/sonido-conteo";
 
 /* ====================================================================
    EscanerCamara · leer el QR de la etiqueta con la cámara del teléfono (2026-09-25)
@@ -33,7 +36,8 @@ import {
        el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, en el almacén, apartada para una
        clienta, no es de la tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo
        del almacén dice «No entró · en almacén» y lo apartado «No entró · apartada» (`estadoCorto`): aquí no sale el
-       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`).
+       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`);
+     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`).
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Cómo lee: con el `BarcodeDetector` del navegador cuando existe (Chrome en Android: rápido, y lee también el Code 128
@@ -112,7 +116,7 @@ const iniciales = (referencia: string) =>
 function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado: number }) {
   return (
     <span className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-sand font-display text-tinta/55" style={{ width: lado, height: lado, fontSize: lado * 0.34 }}>
-      {prenda?.fotoUrl ? <Image src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" unoptimized /> : prenda ? iniciales(prenda.referencia) : "?"}
+      {prenda?.fotoUrl ? <ImagenDePrenda src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" fallback={iniciales(prenda.referencia)} /> : prenda ? iniciales(prenda.referencia) : "?"}
     </span>
   );
 }
@@ -126,6 +130,7 @@ export function EscanerCamara({
   onCodigo,
   ticket,
   onBuscarPorNombre,
+  onVerTicket,
   onClose,
 }: {
   /** El camino del lector: decide qué prenda es y si entra al ticket. */
@@ -134,6 +139,8 @@ export function EscanerCamara({
   ticket: { prendas: number; total: number };
   /** Sin cámara: cerrar y dejar el campo de búsqueda listo. */
   onBuscarPorNombre: () => void;
+  /** «Ver ticket»: además de cerrar, abre el ticket (en el celular vive en una hoja aparte). Corre después de `onClose`. */
+  onVerTicket?: () => void;
   onClose: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -142,6 +149,9 @@ export function EscanerCamara({
   const bolsaRef = useRef<HTMLSpanElement | null>(null);
   const tarjetaRef = useRef<HTMLDivElement | null>(null);
   const pistaRef = useRef<MediaStreamTrack | null>(null);
+  // «Ver ticket» cierra con la misma salida animada que la ✕, y al terminar abre el ticket (antes solo cerraba: en el
+  // celular volvía a Vender y había que tocar «Ver ticket» otra vez).
+  const irAlTicket = useRef(false);
 
   const [estado, setEstado] = useState<Estado>("abriendo");
   const [historial, setHistorial] = useState<Lectura[]>([]);
@@ -181,7 +191,8 @@ export function EscanerCamara({
       const tono = mensajeEscaneo(r).tono;
       setHistorial((h) => [lectura, ...h].slice(0, 3));
       setDestello({ id: n, tono });
-      navigator.vibrate?.(tono === "verde" ? 35 : [30, 70, 30]);
+      // Suena y vibra en cada lectura (el bip de Conteo): quien vende mira la prenda y al cliente, no la pantalla.
+      avisarLectura(sonidoDeLecturaCamara(tono));
       if (moverse()) {
         setVuelo(lectura);
         if (r.estado === "agregada") setEnVuelo(true);
@@ -299,7 +310,10 @@ export function EscanerCamara({
     "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-crema/15 text-crema backdrop-blur-md transition-[background-color,transform] duration-200 ease-cayla hover:bg-crema/25 active:scale-95";
 
   return (
-    <Modal variante="camara" titulo="Escanear prenda" subtitulo="Apunta la cámara al QR de la etiqueta. Puedes pasar varias prendas seguidas." onClose={onClose}>
+    <Modal variante="camara" titulo="Escanear prenda" subtitulo="Apunta la cámara al QR de la etiqueta. Puedes pasar varias prendas seguidas." onClose={() => {
+        onClose();
+        if (irAlTicket.current) onVerTicket?.();
+      }}>
       {(cerrar) => (
         <>
           {/* La cámara, a sangre. Fuera de la cascada: es el fondo sobre el que entra todo lo demás. */}
@@ -309,7 +323,7 @@ export function EscanerCamara({
           </div>
 
           {/* Barra de arriba: sobre un degradé para que la ✕ se lea sobre cualquier imagen. */}
-          <div className="relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+          <div className="papel-fijo relative z-10 flex items-center justify-between bg-gradient-to-b from-tinta/70 to-transparent px-4 pb-6 pt-[calc(0.75rem+env(safe-area-inset-top))]">
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
@@ -330,7 +344,7 @@ export function EscanerCamara({
           </div>
 
           {/* El visor: todo se oscurece salvo el cuadro (la sombra de 200vmax ES el velo con recorte). */}
-          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
+          <div className="papel-fijo relative flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6">
             {sinCamara ? (
               <div className="relative z-10 flex max-w-xs flex-col items-center gap-5 text-center text-crema">
                 <p className="text-[15px] leading-relaxed">
@@ -346,7 +360,7 @@ export function EscanerCamara({
               <>
                 <div
                   ref={marcoRef}
-                  className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-tinta)_62%,transparent)]"
+                  className="relative aspect-square w-[min(72vw,19rem,40dvh)] rounded-[28px] shadow-[0_0_0_200vmax_color-mix(in_srgb,var(--color-sombra)_62%,transparent)]"
                 >
                   {/* Lo que se mueve con cada lectura va en esta capa (re-montada por `destello.id`): el marco que lleva
                       la sombra se queda quieto, así el velo no «respira» con el visor. */}
@@ -372,7 +386,7 @@ export function EscanerCamara({
 
           {/* La bandeja: lo que ya se leyó y el ticket. Alto fijo para las filas (ADR-0185): la hoja no salta al llegar la
               primera prenda. En pantallas bajas caben dos filas; desde 700 px de alto, tres. */}
-          <div className="relative z-10 rounded-t-[28px] bg-crema px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
+          <div className="relative z-10 rounded-t-[28px] bg-crema dark:border-t dark:border-sand px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
             <p className="label-cayla text-[10px] text-taupe">Escaneadas</p>
             <ul aria-live="polite" className="mt-1 h-[6.5rem] overflow-hidden [@media(min-height:700px)]:h-[9.75rem]">
               {historial.length === 0 ? (
@@ -404,12 +418,8 @@ export function EscanerCamara({
             <div className="mt-3 flex items-center gap-3 border-t border-sand pt-3">
               {/* La bolsa: adonde vuela cada prenda. Late cuando una entra (y recién ahí cambia su número). */}
               <span ref={bolsaRef} key={latidoBolsa} className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-tinta text-crema ${latidoBolsa > 0 ? "anim-pop" : ""}`}>
-                <ShoppingBag aria-hidden className="h-5 w-5" strokeWidth={1.6} />
-                {ticketMostrado.prendas > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-medium tabular-nums text-crema ring-2 ring-crema">
-                    {ticketMostrado.prendas}
-                  </span>
-                )}
+                <ShoppingBag aria-hidden className="h-5 w-5" />
+                <Globito n={ticketMostrado.prendas} esquina sobreOscuro etiqueta="prendas en el ticket" className="absolute -right-1.5 -top-1.5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="label-cayla block text-[10px] text-taupe">
@@ -419,7 +429,14 @@ export function EscanerCamara({
                   <CifraQueCuenta valor={ticketMostrado.total} formato="soles" />
                 </span>
               </span>
-              <button type="button" onClick={cerrar} className="btn-cayla btn-primario shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  irAlTicket.current = true;
+                  cerrar();
+                }}
+                className="btn-cayla btn-primario shrink-0"
+              >
                 Ver ticket
               </button>
             </div>

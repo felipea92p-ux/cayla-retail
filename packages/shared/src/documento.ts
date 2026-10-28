@@ -10,7 +10,9 @@
 // del padrón — y peor, en una factura emitida a un RUC que no existe, con el
 // correlativo ya quemado y sin forma de deshacerlo.
 
-export const TIPOS_DOCUMENTO_CLIENTE = ["dni", "ruc", "sin_documento"] as const;
+// Lo que acepta `comprobantes.cliente_tipo_doc` (carné y pasaporte desde ADR-0288 D-3). Sus códigos del catálogo 06 de
+// SUNAT y cómo se leen viven en `apps/web/lib/documento-comprobante-reglas.ts`.
+export const TIPOS_DOCUMENTO_CLIENTE = ["dni", "ruc", "carne_extranjeria", "pasaporte", "sin_documento"] as const;
 export type TipoDocumentoCliente = (typeof TIPOS_DOCUMENTO_CLIENTE)[number];
 
 export const LARGO_DNI = 8;

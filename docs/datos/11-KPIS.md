@@ -193,6 +193,9 @@ tablero **es el Taller, no la tienda**. La función que lo arregla ya existe —
 `etiquetaSede` en `apps/web/lib/etiqueta-sede.ts:41`, devuelve "TND LIM" y
 "TLL LIM" — pero hoy solo se usa en el menú y en `persona.ts`, no en los números.
 Arreglarlo es cambiar `s.codigo` por `etiquetaSede(s)` en esos dos lugares.
+*Actualización 2026-10-06: esto describe V1. `panel.ts`, `persona.ts` y
+`lib/etiqueta-sede.ts` ya no existen; V2 rotula cada sede con `ubicaciones.nombre`,
+que se lee sin traducir.*
 
 **d) El año pasado es editable, y sembrar dos veces duplica.**
 `ventas_historicas_mensuales` se sembró a mano y se sigue editando desde

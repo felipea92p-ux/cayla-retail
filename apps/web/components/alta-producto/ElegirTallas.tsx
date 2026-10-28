@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
@@ -12,6 +12,9 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { agruparTallas, alternar, curvaCambiada, faltanDeLaCategoria, porOfrecer, textoCurva, unirSinRepetir } from "@/lib/muestras-alta-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/IdentidadAlta";
+import { Aviso } from "@/components/ui/Aviso";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La fila «Tallas» del paso 3 de «Nuevo producto» (spike producto-nuevo-v2-2026-09, «Cuando hay mucho»).
 //
@@ -79,6 +82,8 @@ export function AtajosTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
 
 export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, habituales, categoriaId, categoriaNombre, familia, ejesActuales, onOfrecido, sinAtajos = false }: Props) {
   const [hoja, setHoja] = useState(false);
+  /** La talla recién creada desde la cabecera de la hoja: la hoja la marca para que «Listo» no la suelte. */
+  const [agregada, setAgregada] = useState<string | null>(null);
   const todas = unirSinRepetir(deLaCategoria, universo);
   const porId = (id: string) => todas.find((t) => t.id === id);
 
@@ -117,20 +122,34 @@ export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Agrega otra talla"
           subtitulo={`${todas.length} tallas en el catálogo. Las que elijas se suman a esta prenda.`}
           onClose={() => setHoja(false)}
+          // «+ Nueva talla» arriba a la derecha, igual que tejido, patrón y etiqueta (Felipe 2026-10-02).
+          acciones={
+            <ProponerValor
+              tipo="tallas"
+              categoriaId={categoriaId}
+              familia={familia}
+              ejesActuales={ejesActuales}
+              universo={universo}
+              onCreado={(v) => {
+                // ProponerValor ya la ofreció en la categoría: se suma a la fila y la hoja la deja marcada.
+                onOfrecido(v);
+                setAgregada(v.id);
+              }}
+            />
+          }
         >
           {(cerrar) => (
             <HojaTallas
+              agregada={agregada}
               deLaCategoria={deLaCategoria}
               todas={todas}
-              universo={universo}
               elegidas={elegidas}
               categoriaId={categoriaId}
               categoriaNombre={categoriaNombre}
-              familia={familia}
               ejesActuales={ejesActuales}
               onOfrecido={onOfrecido}
               onListo={(ids) => {
@@ -149,29 +168,33 @@ export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
 function HojaTallas({
   deLaCategoria,
   todas,
-  universo,
   elegidas,
   categoriaId,
   categoriaNombre,
-  familia,
   ejesActuales,
   onOfrecido,
   onListo,
   onCancelar,
+  agregada,
 }: {
+  agregada: string | null;
   deLaCategoria: ValorVocabulario[];
   todas: ValorVocabulario[];
-  universo: ValorVocabulario[];
   elegidas: string[];
   categoriaId: string;
   categoriaNombre: string;
-  familia?: string | null;
   ejesActuales: EjeIds;
   onOfrecido: (v: ValorVocabulario) => void;
   onListo: (ids: string[]) => void;
   onCancelar: () => void;
 }) {
   const [marcadas, setMarcadas] = useState(elegidas);
+  // Una talla recién creada desde la cabecera se marca sola (ajuste durante el render, no en un efecto).
+  const [yaMarcada, setYaMarcada] = useState<string | null>(null);
+  if (agregada && agregada !== yaMarcada) {
+    setYaMarcada(agregada);
+    setMarcadas((prev) => (prev.includes(agregada) ? prev : [...prev, agregada]));
+  }
   const [busqueda, setBusqueda] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -232,14 +255,12 @@ function HojaTallas({
         />
       </div>
 
-      <div
-        className="scroll-cayla -mx-1 mt-3 max-h-[46vh] overflow-y-auto px-1 pb-1"
-        // ProponerValor cierra su campo con Escape pero no corta el evento: sin esto, el mismo Escape cerraría la hoja entera.
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && (e.target as HTMLElement).tagName === "INPUT") e.stopPropagation();
-        }}
-      >
-        {grupos.length === 0 && <p className="py-4 text-[13px] text-taupe">Ninguna talla se llama así.</p>}
+      <div className="scroll-cayla -mx-1 mt-3 max-h-[46vh] overflow-y-auto px-1 pb-1">
+        {grupos.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="px-0 py-4" icono={<SearchX />}>
+            Ninguna talla se llama así.
+          </Vacio>
+        )}
         {grupos.map((g, i) => (
           <section key={g.grupo} className={i > 0 ? "mt-4" : ""}>
             <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{g.grupo}</h3>
@@ -258,21 +279,6 @@ function HojaTallas({
             </div>
           </section>
         ))}
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <p className="text-[12.5px] text-taupe">¿No está? Propón una. Si no eres Líder, queda pendiente hasta que un Líder la apruebe.</p>
-          <ProponerValor
-            tipo="tallas"
-            categoriaId={categoriaId}
-            familia={familia}
-            ejesActuales={ejesActuales}
-            universo={universo}
-            onCreado={(v) => {
-              // ProponerValor ya la ofreció en la categoría: queda marcada también aquí, para que «Listo» no la suelte.
-              onOfrecido(v);
-              setMarcadas((prev) => (prev.includes(v.id) ? prev : [...prev, v.id]));
-            }}
-          />
-        </div>
       </div>
 
       <div className="mt-3 space-y-2 border-t border-sand pt-3">
@@ -285,28 +291,24 @@ function HojaTallas({
             <AvisoSinIdentidad firma={firma} enHoja />
           </div>
         )}
-        {error && (
-          <p role="alert" className="text-xs text-rojo-profundo">
-            {error}
-          </p>
-        )}
+        {error && <Aviso tono="error">{error}</Aviso>}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[12.5px] tabular-nums text-taupe">
             {marcadas.length} {marcadas.length === 1 ? "talla elegida" : "tallas elegidas"}
           </p>
-          <div className="flex gap-2">
-            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-sutil">
+          <div className="pie-acciones">
+            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button
+            <Boton peso="primario" cargando={guardando}
               type="button"
               onClick={() => void listo()}
               disabled={guardando || (nuevas.length > 0 && !firma.listo)}
               title={nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}
-              className="btn-cayla btn-primario"
             >
-              {guardando ? "Guardando…" : "Listo"}
-            </button>
+              Listo
+            </Boton>
           </div>
         </div>
       </div>

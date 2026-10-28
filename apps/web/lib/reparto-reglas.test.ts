@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { LineaCompra, TiendaEnLinea } from "@/lib/compras-reglas";
 import {
-  destinosParaRpc,
   errorDeReasignacion,
   estaRepartido,
   etiquetaDeLinea,
   estadoDeMiTienda,
-  estadoDelReparto,
   filasDeLinea,
   lineaEnMiTienda,
   MOTIVOS_REASIGNACION,
@@ -14,69 +12,16 @@ import {
   nombresDeDestinos,
   otrasTiendasDeJson,
   pendienteDeMiTienda,
-  puedeQuitarseDelReparto,
-  repartirEnPartesIguales,
-  repartoSoloDe,
   resumenPorTienda,
   textoDeLaParte,
-  textoDelReparto,
   textoDeReasignacion,
   textoOtrasTiendas,
   textoTeToca,
-  tiendaGestora,
   tiendasConPendiente,
   tiendasDelReparto,
-  unidadesPorTienda,
   valorPorRecibirDeMiTienda,
   type FilaReparto,
 } from "./reparto-reglas";
-
-describe("reparto de una línea (Registrar)", () => {
-  it("12 + 12 de 24 cuadra y lo dice con las dos cifras", () => {
-    expect(estadoDelReparto(24, { trujillo: 12, taller: 12 })).toEqual({ asignado: 24, faltan: 0, sobran: 0, cuadra: true });
-    expect(textoDelReparto(24, { trujillo: 12, taller: 12 })).toEqual({ tono: "ok", texto: "Repartidas 24 de 24" });
-  });
-
-  it("dice LO QUE FALTA, no solo que hay un error", () => {
-    expect(textoDelReparto(24, { trujillo: 12, taller: 8 })).toEqual({ tono: "falta", texto: "Faltan 4 por repartir" });
-    expect(textoDelReparto(24, {})).toEqual({ tono: "falta", texto: "Faltan 24 por repartir" });
-  });
-
-  it("dice cuánto se pasó", () => {
-    expect(textoDelReparto(24, { trujillo: 14, taller: 12 })).toEqual({ tono: "sobra", texto: "Sobran 2" });
-  });
-
-  it("lo que se teclea mal (vacío, decimales, negativos) no rompe la cuenta", () => {
-    expect(estadoDelReparto(10, { a: Number.NaN, b: -3, c: 4.9, d: "6" as unknown as number })).toEqual({ asignado: 10, faltan: 0, sobran: 0, cuadra: true });
-  });
-
-  it("una línea de 0 unidades nunca «cuadra»", () => {
-    expect(estadoDelReparto(0, {}).cuadra).toBe(false);
-  });
-
-  it("partes iguales: el resto va de a una unidad a las primeras y la suma siempre cuadra", () => {
-    expect(repartirEnPartesIguales(24, ["a", "b", "c"])).toEqual({ a: 8, b: 8, c: 8 });
-    expect(repartirEnPartesIguales(25, ["a", "b", "c"])).toEqual({ a: 9, b: 8, c: 8 });
-    expect(repartirEnPartesIguales(1, ["a", "b", "c"])).toEqual({ a: 1, b: 0, c: 0 });
-    for (const [cant, n] of [[7, 2], [100, 3], [5, 5], [3, 7]] as const) {
-      const ids = Array.from({ length: n }, (_, i) => `t${i}`);
-      expect(estadoDelReparto(cant, repartirEnPartesIguales(cant, ids)).cuadra).toBe(true);
-    }
-  });
-
-  it("partes iguales sin tiendas o sin unidades no inventa nada", () => {
-    expect(repartirEnPartesIguales(24, [])).toEqual({});
-    expect(repartirEnPartesIguales(0, ["a"])).toEqual({});
-    expect(repartirEnPartesIguales(10, ["a", "a"])).toEqual({ a: 10 });
-  });
-
-  it("a la RPC solo van las tiendas con unidades, en enteros", () => {
-    expect(destinosParaRpc({ trujillo: 12, taller: 0, lima: 12.7 })).toEqual([
-      { ubicacion_id: "trujillo", cantidad: 12 },
-      { ubicacion_id: "lima", cantidad: 12 },
-    ]);
-  });
-});
 
 describe("lo que ve una tienda (Recibir)", () => {
   it("«Te toca 12 · Recibidas aquí 4 · Faltan 8»", () => {
@@ -186,24 +131,6 @@ describe("la parte de una línea repartida", () => {
   });
 });
 
-describe("Registrar: lo que se lleva cada tienda", () => {
-  it("suma las unidades de cada tienda a través de las líneas y descarta lo que no es una cantidad", () => {
-    expect(
-      unidadesPorTienda([
-        { cantidad: 24, reparto: { trujillo: 12, taller: 12 } },
-        { cantidad: 10, reparto: { trujillo: 4, taller: 6, lima: 0 } },
-        { cantidad: 3, reparto: { trujillo: Number.NaN, taller: -2 } },
-      ])
-    ).toEqual({ trujillo: 16, taller: 18 });
-  });
-
-  it("al desmarcar una tienda su parte se va de cada línea (y la línea vuelve a «faltan»)", () => {
-    const sin = repartoSoloDe({ trujillo: 12, taller: 12 }, ["trujillo"]);
-    expect(sin).toEqual({ trujillo: 12 });
-    expect(textoDelReparto(24, sin)).toEqual({ tono: "falta", texto: "Faltan 12 por repartir" });
-  });
-});
-
 describe("El detalle: cómo va cada tienda", () => {
   const f = (compraItemId: string, ubicacionId: string, asignado: number, recibido: number, cerrado = 0): FilaReparto => ({
     compraItemId,
@@ -296,47 +223,12 @@ describe("nombre de una línea", () => {
     // una línea «sin desglose» no muestra la variante aunque llegue con datos sueltos
     expect(etiquetaDeLinea({ referencia: "Blusa Emma", varianteId: null, talla: "M", color: "Arena" })).toBe("Blusa Emma");
   });
-});
 
-describe("la tienda gestora al registrar (ADR-0184, F3)", () => {
-  describe("puedeQuitarseDelReparto", () => {
-    it("sin restricción (líder): tiene que quedar al menos una, cualquiera", () => {
-      expect(puedeQuitarseDelReparto("lima", ["lima", "trujillo"])).toBe(true);
-      expect(puedeQuitarseDelReparto("lima", ["lima"])).toBe(false);
-    });
-
-    it("con restricción (comprador): tiene que quedar al menos UNA de sus tiendas, no cualquiera", () => {
-      const misTiendas = ["lima"];
-      // Quitar Trujillo (no es mía): Lima (mía) sigue, se puede.
-      expect(puedeQuitarseDelReparto("trujillo", ["lima", "trujillo"], misTiendas)).toBe(true);
-      // Quitar Lima (mi única tienda) dejando solo Trujillo: no queda ninguna mía, no se puede.
-      expect(puedeQuitarseDelReparto("lima", ["lima", "trujillo"], misTiendas)).toBe(false);
-      // Con DOS tiendas propias, quitar una deja la otra: sí se puede.
-      expect(puedeQuitarseDelReparto("lima", ["lima", "taller", "trujillo"], ["lima", "taller"])).toBe(true);
-    });
-  });
-
-  describe("tiendaGestora", () => {
-    it("sin repartir: la única tienda elegida, con o sin restricción", () => {
-      expect(tiendaGestora(false, [], "lima")).toBe("lima");
-      expect(tiendaGestora(false, [], "lima", ["lima"])).toBe("lima");
-    });
-
-    it("repartiendo sin restricción (líder): la primera del reparto, sea cual sea", () => {
-      expect(tiendaGestora(true, ["taller", "trujillo"], "lima")).toBe("taller");
-      // Vacío (no debería pasar en la práctica): cae a `ubicacionId`.
-      expect(tiendaGestora(true, [], "lima")).toBe("lima");
-    });
-
-    it("repartiendo CON restricción (comprador): nunca la posición 0 a ciegas — la primera tienda del reparto que sea suya", () => {
-      // Lima es la tienda del comprador, pero el reparto la puso SEGUNDA (el orden sigue todas las ubicaciones, no
-      // el orden en que las marcó): sin la corrección, tiendaGestora daría "taller" y la base rechazaría el registro.
-      expect(tiendaGestora(true, ["taller", "lima"], "lima", ["lima"])).toBe("lima");
-      // Si por algún motivo ninguna del reparto es suya (no debería pasar: `puedeQuitarseDelReparto` lo impide en la
-      // UI), cae a `ubicacionId` en vez de mandar una tienda ajena.
-      expect(tiendaGestora(true, ["taller", "trujillo"], "lima", ["lima"])).toBe("lima");
-      // Con dos tiendas propias, usa la primera del reparto que sea suya.
-      expect(tiendaGestora(true, ["trujillo", "taller", "lima"], "lima", ["lima", "taller"])).toBe("taller");
-    });
+  it("una línea sin prenda (la de un comprobante de orden) se nombra «categoría · marca · descripción»", () => {
+    const sinPrenda = { referencia: "", varianteId: null, talla: null, color: null };
+    expect(etiquetaDeLinea({ ...sinPrenda, categoria: "Blusas", marca: "Cayla", descripcion: "lino crudo" })).toBe("Blusas · Cayla · lino crudo");
+    expect(etiquetaDeLinea({ ...sinPrenda, categoria: "Blusas", marca: "Cayla", descripcion: null })).toBe("Blusas · Cayla");
+    // con prenda manda la prenda, aunque llegue con categoría y marca sueltas
+    expect(etiquetaDeLinea({ referencia: "Blusa Emma", varianteId: null, talla: null, color: null, categoria: "Blusas", marca: "Cayla" })).toBe("Blusa Emma");
   });
 });

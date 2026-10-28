@@ -1,9 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Avisos } from "@/components/ui/Avisos";
+import { AvisoDestacado } from "@/components/ui/AvisoDestacado";
 import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
+import { OndaBotones } from "@/components/ui/OndaBotones";
+import { FilasQueSeDeslizan } from "@/components/ui/FilasQueSeDeslizan";
+import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
+import { EntradaColibri } from "@/components/login/EntradaColibri";
+import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
 // (títulos, cifras hero), DM Sans es "el sistema" (interfaz, cuerpo, etiquetas).
@@ -20,18 +26,38 @@ export const metadata: Metadata = {
   // el equivocado.
 };
 
+// `viewport-fit=cover` (ADR-0479, actividad 9): la página llega hasta los bordes del iPhone, con el fondo crema bajo la isla, la
+// muesca de lado y la barrita de abajo. Sin esto Safari dejaba esos bordes en blanco y todo `env(safe-area-inset-*)` valía 0. Lo que
+// se toca vive dentro: la cabecera, el lateral, el contenido, las barras fijas y las hojas se apartan solos (AppShell, Modal, Cajon).
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${serif.variable} ${sans.variable}`}>
+    // `suppressHydrationWarning`: el script de abajo pone `data-tema` en <html> antes de que React hidrate (ADR-0336).
+    <html lang="es" className={`${serif.variable} ${sans.variable}`} suppressHydrationWarning>
+      <head>
+        {/* El tema guardado se aplica ANTES de la primera pintura: sin esto, quien eligió oscuro vería un destello claro en cada carga. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_ANTES_DE_PINTAR }} />
+      </head>
       <body className="antialiased">
         {children}
         {/* Avisos globales (arriba a la derecha): montado una sola vez, acá,
             para que valga también en /login y sobreviva a la navegación. */}
         <Avisos />
+        {/* La confirmación grande y centrada (hoy, bajar al piso): una vez, acá, para que sobreviva al refresco que sigue al guardado. */}
+        <AvisoDestacado />
         {/* El loader general (ADR-0149): una vez, acá, para que valga en toda la app y también en /login. */}
         <EsperaGlobal />
         {/* La página no se encoge bajo el mouse (ADR-0185): una vez, acá, para toda la app y sus ventanas. */}
         <PaginaEstable />
+        {/* La onda de un clic en un botón (ADR-0358, ronda 4): una vez, acá, para todos los botones del ERP. */}
+        <OndaBotones />
+        {/* Las filas de pestañas o de píldoras que se deslizan avisan que hay más con un degradado en el borde (Felipe 2026-10-23, ADR-0358): una vez, acá, para todas. */}
+        <FilasQueSeDeslizan />
+        {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}
+        <SesionEntrePestanas />
+        {/* La entrada al ERP (Felipe 2026-10-13): el colibrí que cruza al centro y se abre sobre la pantalla de destino. Una vez, acá, para que sobreviva a la navegación del login. */}
+        <EntradaColibri />
       </body>
     </html>
   );

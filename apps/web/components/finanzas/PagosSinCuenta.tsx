@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { GuiaVacia, SelectFin } from "@/components/finanzas/kit";
+import { SelectFin } from "@/components/finanzas/kit";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -22,6 +22,9 @@ import {
   opcionesDeCuenta,
   type PagoSinCuenta,
 } from "@/lib/cuenta-sellada-reglas";
+import { Vacio } from "@/components/ui/Vacio";
+import { Check } from "lucide-react";
+import { Boton } from "@/components/ui/campos";
 
 // Lo pasado (ADR-0195 F3b): lo que movió plata antes de que se sellara la cuenta —el hueco de los pagos en efectivo a
 // proveedores, sobre todo— se completa UNA vez, a mano, desde aquí. No crea salidas de caja ni toca cierres ya hechos: si
@@ -43,7 +46,7 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
       .rpc("fn_pagos_sin_cuenta" as never)
       .then(({ data, error }) => {
         if (!vivo) return;
-        if (error) avisar.error(traducirError(error, "leer lo que no dice su cuenta"));
+        if (error) avisar.error(traducirError(error, "leer lo que no dice su cuenta", { lectura: true }));
         setFilas(error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerPagoSinCuenta));
       });
     return () => {
@@ -67,21 +70,21 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
 
   const pendientes = (filas ?? []).filter((p) => !hechas.includes(p.clave));
   return (
-    <Modal
+    <Modal conCerrar
       variante="hoja"
       titulo="Decir de qué cuenta fue"
       subtitulo="Lo que se guardó antes de que cada pago dijera su cuenta. Se dice una sola vez: no crea salidas de caja ni toca cierres ya hechos."
       onClose={onClose}
-      ancho="max-w-[680px]"
+      tamano="ancha"
     >
       {filas === null ? (
         <p className="fin-ayuda">Buscando…</p>
       ) : pendientes.length === 0 ? (
-        <GuiaVacia sobre="Nada pendiente" titulo="Todo dice de qué cuenta es">
+        <Vacio icono={<Check />} titulo="Nada pendiente: todo dice de qué cuenta es">
           Desde ahora cada cobro y cada pago sella su cuenta al guardarse.
-        </GuiaVacia>
+        </Vacio>
       ) : (
-        <ul className="fin-sin-cuenta">
+        <ul className="fin-sin-cuenta" data-guia="fin-dinero.sin-cuenta-lista">
           {pendientes.map((p) => {
             const clase = claseDePagoSinCuenta(p.origen);
             const medio = medioDePagoSinCuenta(p);
@@ -104,20 +107,15 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
                   opciones={hay ? opcionesDeCuenta(cuentas.cuentas, clase, medio) : []}
                   marcador={!cuentas.listo ? "…" : hay ? "Elige…" : "Sin cuentas para este medio"}
                 />
-                <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={!elegidas[p.clave] || guardando !== null || !responsable.listo} onClick={() => guardar(p)}>
-                  {guardando === p.clave ? "Guardando…" : "Guardar"}
-                </button>
+                <Boton cargando={guardando === p.clave} type="button" className="btn-chico" disabled={!elegidas[p.clave] || guardando !== null || !responsable.listo} onClick={() => guardar(p)}>
+                  Guardar
+                </Boton>
               </li>
             );
           })}
         </ul>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando !== null} />
-      <div className="fin-botones mt-4">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onClose}>
-          Cerrar
-        </button>
-      </div>
     </Modal>
   );
 }

@@ -16,7 +16,7 @@
 // «por ejemplo») se resuelve con `sugerir-fijo`, no agregando el archivo a la deuda.
 
 /** Cuántos archivos siguen con un ejemplo estático sin resolver. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 69;
+export const PENDIENTES_HOY = 53;
 
 /** Rutas relativas a `apps/web/`. */
 export const ARCHIVOS_PENDIENTES: readonly string[] = [
@@ -24,41 +24,30 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "app/(app)/buscar/page.tsx",
   // ---- components/ ----
   "components/AbrirCajaFormV2.tsx",
-  "components/ApartarModal.tsx",
   "components/BuscadorGlobal.tsx",
   "components/BuscadorHistorial.tsx",
   "components/CategoriasLista.tsx",
   "components/ClientaFichaModal.tsx",
-  "components/ClientasPanel.tsx",
-  "components/ColaboradoresModales.tsx",
   "components/ColoresLista.tsx",
   "components/CompraDetallePanel.tsx",
-  "components/CompraFormV2.tsx",
   "components/ComprobanteProduccionForm.tsx",
   "components/ComprobantesPanel.tsx",
   "components/ComprobantesProduccionPanel.tsx",
   "components/CotizacionesMaquilaPanel.tsx",
   "components/EditarMarcaModal.tsx",
-  "components/EtiquetasLista.tsx",
   "components/FamiliasLista.tsx",
   "components/FiltrosCompras.tsx",
   "components/FiltrosMovimientos.tsx",
-  "components/FiltrosProductos.tsx",
   "components/FiltrosRecibidas.tsx",
   "components/GastosFijosYActivos.tsx",
   "components/GastosPanel.tsx",
   "components/InsumoModales.tsx",
-  "components/MarcasLista.tsx",
   "components/MediosDePago.tsx",
   "components/MovimientoCajaModal.tsx",
   "components/MovimientosLista.tsx",
-  "components/NotasCreditoPanel.tsx",
-  "components/NuevaOrdenProduccionForm.tsx",
   "components/NuevaProformaModal.tsx",
   "components/PagoPiezas.tsx",
   "components/PatronesLista.tsx",
-  "components/PedirAOtraSedeModal.tsx",
-  "components/PrendasDeEtiquetaModal.tsx",
   "components/ProductoForm.tsx",
   "components/ProveedorModal.tsx",
   "components/ProveedorProduccionModal.tsx",
@@ -66,10 +55,8 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/PuntoDeVentaTicket.tsx",
   "components/ReasignarReparto.tsx",
   "components/RecepcionEnvio.tsx",
-  "components/RecepcionFormV2.tsx",
   "components/RecibirComprobanteModal.tsx",
   "components/RegistrarGastoModal.tsx",
-  "components/RegistrarNotaCreditoModal.tsx",
   "components/RolesModales.tsx",
   "components/SaldoFavorAcciones.tsx",
   "components/SaldoFavorProveedor.tsx",
@@ -79,7 +66,6 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/TejidosLista.tsx",
   "components/TemporadasLista.tsx",
   "components/TerminalesModales.tsx",
-  "components/TrasladoAnularModal.tsx",
   // ---- components/apartados/ ----
   "components/apartados/ApartarVista.tsx",
   "components/apartados/EntregarVista.tsx",
@@ -93,6 +79,4 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   // ---- components/frescura/ ----
   "components/frescura/FrescuraPanel.tsx",
   // ---- components/punto-de-venta/ ----
-  "components/punto-de-venta/ClientaDelTicket.tsx",
-  "components/punto-de-venta/Esperas.tsx",
 ];

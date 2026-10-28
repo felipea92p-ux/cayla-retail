@@ -107,3 +107,10 @@ todas las familias, así que siguen alineadas.
 **Corrección a «Qué queda aceptado a propósito»:** con el hex oficial de chromafinder, Moka–Tostado mide **7,9**,
 no 8,0. Blanco–Crudo ya supera 8, porque el Bright White oficial es azulado. Quedan bajo 8 solo Beige–Arena (6,0)
 y Moka–Tostado (7,9), los dos aceptados.
+
+## Actualización 2026-10-02 (ADR-0317) — Eléctrico y Violeta vuelven a su hex vivo, sin Pantone
+
+Felipe revirtió la premisa de este ADR para **Azul eléctrico** y **Violeta**: las prendas de Eléctrico (9 variantes en 5 prendas) son un azul vivo
+y el ancla a Pantone 18-3945 las pintaba apagadas. Vuelven a `#2E5BF2` y `#7A3FB6` **sin código Pantone** (no existe uno honesto: el azul vivo
+más intenso de Pantone TCX en ese matiz llega a croma 0,137 contra 0,231). El costo, que este ADR ya anticipaba, es que el círculo puede ser
+más saturado de lo que un tinte textil alcanza. Cobalto no cambia. Detalle y verificación: `docs/adr/0317-replantear-los-azules-y-beige-arena-topo-a-tierra.md`.

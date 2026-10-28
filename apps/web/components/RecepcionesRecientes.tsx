@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { fechaCorta, type RecepcionReciente } from "@/lib/compras-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 const PLANTILLA = "sm:grid-cols-[6rem_1fr_7rem]";
 // Con la columna de costo (Ingreso sin comprobante, ADR-0111): fecha · proveedor/nota · unidades · costo.
@@ -42,6 +42,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
           <button
             key={r.loteId}
             type="button"
+            data-guia="recibir.reciente"
             onClick={() => setAbierta(r)}
             className={`${fila(plantilla)} w-full text-left transition-colors hover:bg-tinta/[0.03]`}
           >
@@ -67,7 +68,7 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
                 {costos[r.loteId]?.sinCosto ? (
                   <Chip tono="ambar">Sin costo</Chip>
                 ) : costos[r.loteId]?.costo != null ? (
-                  <Chip tono="verde">{`S/ ${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
+                  <Chip tono="verde">{`S/\u00a0${costos[r.loteId].costo!.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u`}</Chip>
                 ) : (
                   <span className="text-xs text-tinta/45">—</span>
                 )}
@@ -79,14 +80,15 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
 
       {abierta && (
         <Modal
+          conCerrar
           titulo={abierta.proveedorNombre}
           subtitulo={`${fechaCorta(abierta.fecha)} · ${abierta.numeroGuia ? `Guía ${abierta.numeroGuia}` : "Sin guía"} · ${abierta.ubicacion}${
             abierta.recibidoPor ? ` · Recibido por ${abierta.recibidoPor}` : ""
           }`}
-          ancho="max-w-lg"
+          tamano="mediana"
           onClose={() => setAbierta(null)}
         >
-          <div className="mt-4 space-y-4">
+          <div data-guia="recibir.detalle" className="mt-4 space-y-4">
             <Tabla>
               <Encabezado plantilla={PLANTILLA_DETALLE} columnas={[{ titulo: "Prenda" }, { titulo: "Cantidad", alinear: "der" }]} />
               {abierta.detalle.map((l, i) => (
@@ -115,13 +117,9 @@ export function RecepcionesRecientes({ recepciones, vacio, costos }: { recepcion
               {abierta.conFactura && abierta.compraId && (
                 // Cierra este modal antes de navegar: la ruta de factura abre SU
                 // propio modal interceptado, y sin esto quedaban los dos apilados.
-                <Link
-                  href={`/compras/factura/${abierta.compraId}`}
-                  onClick={() => setAbierta(null)}
-                  className="label-cayla text-[11px] text-rojo hover:underline"
-                >
-                  Ver factura completa →
-                </Link>
+                <EnlaceVer href={`/compras/factura/${abierta.compraId}`} alNavegar={() => setAbierta(null)}>
+                  Ver factura completa
+                </EnlaceVer>
               )}
             </div>
           </div>

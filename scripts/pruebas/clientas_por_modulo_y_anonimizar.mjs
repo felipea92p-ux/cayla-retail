@@ -27,20 +27,29 @@
  *      actividad (Clientas ni Apartados) los lleva; y las cinco ramas de la actividad de un apartado (apartó, entregó,
  *      liberó, devolvió, extendió) dicen «la clienta» sin su nombre, celular ni DNI.
  *   5. Estructura: las 11 empiezan por `fn_exigir_modulo('clientas')` (lo primero que corre); el vigilante nombra toda
- *      función security definer nueva que toque la ficha sin él; otro vigilante nombra toda función que anota actividad
+ *      función security definer nueva que toque la ficha sin él (salvo las dos de la página pública del club, declaradas en
+ *      DE_LA_PAGINA con su razón); otro vigilante nombra toda función que anota actividad
  *      leyendo las columnas de la clienta de un apartado; el ayudante no lo ejecuta nadie de la API; y los md5 «después»
- *      escritos en la PARTE 1 son los de las funciones vivas.
- *   6. CONTROL y pegado: se deshace el cambio dentro de la transacción (las funciones y la política que tiene producción hoy,
- *      verificadas por md5 contra los «antes» de la PARTE 1) y el ataque PASA; se pegan los archivos tal como están en disco
- *      y el ataque se cierra; pegarlos dos veces, o en el orden equivocado, deja lo mismo; con una función cambiada en vivo
- *      la PARTE 1 aborta sin pisar nada; la limpieza de la actividad vieja (Clientas y Apartados) la deja sin nombres, con
- *      las mismas filas, una sola vez; y una clienta anonimizada con las funciones de antes pierde, al pegar, el motivo
- *      escrito y las fotos de sus fusiones (sin tocar la de una fusión cuya persona sigue viva).
+ *      escritos en la PARTE 1 son los de las funciones vivas (las cinco que la tanda 1a del club volvió a cambiar —ADR-0288,
+ *      20260930160000—, con los «después» de la 1a; y las tres de ellas que la 1b volvió a cambiar —20260930200000—, con los
+ *      de la 1b). Desde la 1b, las funciones security definer que tocan la ficha son las 11 y las 5 del club, todas con el
+ *      candado del módulo; y la persona de la sección 4 es socia con publicidad: anonimizar tampoco deja rastro en
+ *      `club_permisos` y escribe sus dos `revoca`.
+ *   6. CONTROL y pegado: a las 11 funciones vivas se les quita su primera línea (el candado del módulo) y la tabla vuelve a
+ *      la política de antes: el ataque PASA (los casos de 1 y 2 muerden); la PARTE 2 pegada, una o dos veces, cierra la
+ *      lectura directa y deja las funciones como estaban; con la actividad de Apartados de antes, el vigilante y las cinco
+ *      ramas la delatan; y pegar HOY la PARTE 1 aborta sin pisar nada. Hasta el 2026-09-30 esta sección reproducía
+ *      producción ANTES de la PARTE 1 y la pegaba encima: por qué eso dejó de ser reproducible, al principio de la sección 6.
  *   7. Dos cajas a la vez con el mismo DNI, en dos conexiones reales: la segunda espera en la lectura de la ficha
  *      (`for update`), antes de decidir si «vuelve» (ROLLBACK). Con BASE_DESECHABLE=1, además la misma carrera con COMMIT
  *      sobre una ficha archivada: una sola línea «reactivó» (deja una ficha de prueba; no corre en el CI).
  *
  * FUERA A PROPÓSITO: los datos que un apartado o un comprobante copiaron al hacerse (documentos de esa operación; ADR-0249).
+ *
+ * DESDE EL 2026-10-14 (Felipe: el documento y el correo son de una sola persona; `20261015054000`): `unir_clientas` se borró. Las
+ * funciones de la ficha son 10 (`LAS_DE_LA_FICHA`, sin unir), su md5 «después» de hoy sale también de la tabla de versiones de esa
+ * migración (la de unir: que no exista), y las fichas unidas de las secciones 3 y 4 se arman como las dejaba una unión de ANTES
+ * (`union-de-fichas-de-antes.mjs`): lo que se sigue cuidando es lo que esa historia deja en la base, no la función.
  *
  * USO
  *   pnpm pruebas:clientas-modulo                  → contra la base `postgres` del stack local (la del CI)
@@ -52,6 +61,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -75,6 +85,192 @@ if (VERSIONES.length !== 14) {
   process.exit(1);
 }
 
+// La tanda 1a del club (ADR-0288, 20260930160000) volvió a cambiar cinco de las 14: registrar_clienta y editar_clienta
+// cambiaron de firma (las de arriba ya no existen: «después» nulo) y buscar, archivar y unir, de cuerpo. Su propia tabla
+// de versiones: firma → «antes» (= el «después» de la PARTE 1) y «después» (null = que la firma ya no exista).
+const PASO_1A = leer("20260930160000_club_paso1a_venta_ligada_y_documento.sql");
+const VERSIONES_1A = [...PASO_1A.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+'([0-9a-f]{32})',\s+(null|'([0-9a-f]{32})')\)/g)].map((m) => ({
+  firma: m[1],
+  antes: m[2],
+  despues: m[4] ?? null,
+}));
+// La cadena no se corta: cada una de las cinco que la 1a tocó partió de lo que dejó la PARTE 1.
+const cortadas = VERSIONES.filter((v) => VERSIONES_1A.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (VERSIONES_1A.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).length !== 5 || cortadas.length) {
+  console.error(
+    `✗ La tabla de versiones de la 1a debería repetir 5 firmas de la PARTE 1 con su «después» como «antes»; no calzan: ${cortadas.map((v) => v.firma).join(", ") || "(faltan firmas)"}.`
+  );
+  process.exit(1);
+}
+// La tanda 1b del club (ADR-0288, 20260930200000) volvió a cambiar tres de esas cinco (buscar, archivar y unir, de cuerpo)
+// y soltó las dos firmas de registrar_clienta y editar_clienta que había creado la 1a. Su tabla: firma → «antes» (null = la
+// firma todavía no existía) y «después» (null = la firma deja de existir).
+const PASO_1B = leer("20260930200000_club_paso1b_parte1_whatsapp_tienda.sql") + "\n" + leer("20260930200100_club_paso1b_parte2_permisos_y_qr.sql");
+const VERSIONES_1B = [
+  ...PASO_1B.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+// Tampoco se corta aquí: cada una de las 14 que la 1b tocó partió de lo que dejó la 1a.
+const cortadas1b = VERSIONES_1B.filter((w) => VERSIONES_1A.some((v) => v.firma === w.firma && v.despues !== w.antes));
+if (VERSIONES_1B.filter((w) => VERSIONES.some((v) => v.firma === w.firma)).length !== 3 || cortadas1b.length) {
+  console.error(
+    `✗ La tabla de versiones de la 1b debería repetir 3 firmas de la PARTE 1 con el «después» de la 1a como «antes»; no calzan: ${cortadas1b.map((v) => v.firma).join(", ") || "(faltan firmas)"}.`
+  );
+  process.exit(1);
+}
+// La tanda 1g del club (ADR-0288 act. g, 20261001210700) volvió a cambiar archivar_clienta (la rutina de anonimizar pasó a
+// fn_clienta_anonimizar, la misma que usa el cron de conservación). Su tabla, igual; y tampoco se corta: partió de la 1b.
+const PASO_1G = leer("20261001210700_club_paso1g_parte8_funciones.sql");
+const VERSIONES_1G = [
+  ...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+
+// Tandas posteriores a la 1g que vuelven a tocar una de sus funciones, con su propia tabla de versiones (ADR-0416: anonimizar
+// es de un líder). El «después» de HOY es el de la última; y la cadena no se corta: su «antes» es el «después» de la 1g.
+for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+  const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+  for (const m of texto.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)) {
+    const v = VERSIONES_1G.find((x) => x.firma === m[1]);
+    if (!v || v.despues !== (m[3] ?? null)) throw new Error(`${archivo}: su «antes» de ${m[1]} no es el «después» de la 1g`);
+    v.despues = m[5] ?? null;
+  }
+}
+const cortadas1g = VERSIONES_1G.filter((w) => w.antes && VERSIONES_1B.some((v) => v.firma === w.firma && v.despues !== w.antes));
+if (!VERSIONES_1G.some((w) => w.firma === "retail.archivar_clienta(uuid,text,boolean,integer)") || cortadas1g.length) {
+  console.error(`✗ La tabla de versiones de la 1g debería tener archivar_clienta con el «después» de la 1b como «antes»; no calzan: ${cortadas1g.map((v) => v.firma).join(", ")}.`);
+  process.exit(1);
+}
+// Y el 2026-10-14 (Felipe: el documento y el correo son de una sola persona), 20261015054000 BORRÓ unir_clientas («después»: que
+// no exista). Su tabla, igual; tampoco se corta: partió del «después» de la 1b.
+const CORREO_UNICO = leer("20261015054000_clientas_correo_unico_y_sin_unir_fichas.sql");
+const VERSIONES_CORREO = [
+  ...CORREO_UNICO.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+const UNIR = "retail.unir_clientas(uuid,uuid,integer,integer)";
+if (
+  VERSIONES_CORREO.find((w) => w.firma === UNIR)?.despues !== null ||
+  VERSIONES_CORREO.find((w) => w.firma === UNIR)?.antes !== VERSIONES_1B.find((v) => v.firma === UNIR)?.despues
+) {
+  console.error("✗ La tabla de versiones de 20261015054000 debería borrar unir_clientas partiendo del «después» de la 1b.");
+  process.exit(1);
+}
+/**
+ * El md5 que cada una de las 14 tiene que tener HOY: el de 20261015054000 si la tocó (unir: que no exista); si no, el «después» de
+ * la 1g si la 1g la tocó; si no, el de la 1b si la 1b la tocó; si no, el de la 1a si la 1a la tocó; si no, el de la PARTE 1.
+ */
+const DESPUES_HOY = VERSIONES.map((v) => {
+  const c = VERSIONES_CORREO.find((x) => x.firma === v.firma);
+  if (c) return c.despues ?? "NO_EXISTE";
+  const g = VERSIONES_1G.find((x) => x.firma === v.firma);
+  if (g) return g.despues ?? "NO_EXISTE";
+  const b = VERSIONES_1B.find((x) => x.firma === v.firma);
+  if (b) return b.despues ?? "NO_EXISTE";
+  const w = VERSIONES_1A.find((x) => x.firma === v.firma);
+  return w ? (w.despues ?? "NO_EXISTE") : v.despues;
+});
+/** La firma de registrar_clienta que vive hoy (la de la 1b). */
+const REGISTRAR_HOY = "registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
+// Las funciones del club de la 1b que tocan la ficha: security definer y con el candado del módulo, como las 11 (con la de
+// la caja del camino B, crear_invitacion_club).
+const DEL_CLUB = ["crear_invitacion_club", "registrar_baja_whatsapp", "registrar_desde_whatsapp", "registrar_mensaje_publicidad", "resumen_clienta_caja", "unirse_al_club"];
+// La página pública del club (camino B, ADR-0288 «Actualización 2026-09-30 (c)»): tocan la ficha SIN el módulo A PROPÓSITO,
+// porque las llama `anon` desde el celular de la clienta con un enlace de un solo uso (el token es la llave).
+// fn_invitacion_club devuelve solo su nombre de pila, el celular a medias y el código, y solo con el enlace vigente;
+// confirmar_invitacion_club solo le da la publicidad (medio qr_web). Las prueba club_permisos.mjs, sección (o). El vigilante
+// las cuenta entre las que tocan la ficha y deja pasar sin el candado SOLO a estas dos.
+const DE_LA_PAGINA = ["confirmar_invitacion_club", "fn_invitacion_club"];
+// Las de la tanda 1f (20260930210000, la lista y la ficha): cinco lecturas y el guardado de las preferencias, todas con el
+// candado del módulo (las prueba a fondo scripts/pruebas/club_lista_y_ficha.mjs).
+const DE_LA_1F = ["fn_cifras_clientas", "fn_clienta_permisos", "fn_clienta_su_sede", "fn_clientas_lista", "fn_club_etiquetas", "guardar_preferencias_clienta"];
+// Las de la tanda 1g (ADR-0288 act. g, 20261001210700) que tocan la ficha:
+//  · fn_club_aniversario: con el candado de «Clientas», como las demás;
+//  · las de Avisos del club (fn_club_avisos_pendientes, registrar_aviso_enviado): con el candado de SU módulo, avisos_club
+//    (la encargada de los avisos no necesita ver la ficha entera; solo nombre, celular y el texto del aviso);
+//  · las del servidor (registrarse_en_el_club, fn_club_anonimizar_inactivas): SIN módulo A PROPÓSITO, porque no hay sesión
+//    (las llama el servidor de la web con la llave de servicio: ni anon ni authenticated tienen EXECUTE; lo prueba
+//    club_registro_cartel.mjs). El vigilante las cuenta y les deja pasar eso, y solo eso.
+const DE_LA_1G = ["fn_club_aniversario"];
+const DE_AVISOS = ["fn_club_avisos_pendientes", "registrar_aviso_enviado"];
+const DEL_SERVIDOR = ["fn_club_anonimizar_inactivas", "registrarse_en_el_club"];
+// La del cobro (ADR-0288 act. 2026-10-03 (o), 20261004100000): `agregar_celular_clienta` guarda en la ficha el celular que se escribió
+// para mandarle la boleta, SOLO si no tenía uno. Con el candado del módulo, como las demás (la prueba a fondo es
+// scripts/pruebas/agregar_celular_clienta.mjs).
+const DEL_COBRO = ["agregar_celular_clienta"];
+// Las de la tienda online (ADR-0408, actividad 2, 20261014224000): SIN módulo A PROPÓSITO, como las del servidor del club. Las
+// llama el servidor de la tienda con el rol `tienda_web`, que no es una cuenta del ERP (el candado del módulo siempre diría que
+// no); solo `tienda_web` las ejecuta (ni anon ni authenticated: lo prueba tienda_puerta.mjs) y cada una devuelve lo justo de la
+// ficha de quien crea o tiene su cuenta (lo prueba a fondo scripts/pruebas/tienda_cuentas.mjs). El vigilante las cuenta y les deja
+// pasar eso, y solo eso.
+const DE_LA_TIENDA = ["tienda_consultar_documento", "tienda_mi_cuenta", "tienda_registrar_cuenta", "tienda_revisar_registro"];
+// Y la de «Mi cuenta» del Club (ADR-0408, actividad 12, 20261015025000): `tienda_mi_club` le devuelve a quien tiene la cuenta SU
+// cumpleaños (día y mes), si es miembro y lo de su aniversario, para mostrarle sus beneficios con las reglas que cobra la caja. Igual
+// que las de arriba: sin módulo a propósito, solo `tienda_web` la ejecuta, y la prueba a fondo scripts/pruebas/tienda_club.mjs.
+DE_LA_TIENDA.push("tienda_mi_club");
+// Y el aviso del Club al entrar (ADR-0408, integración de la tienda, 20261015045000; Felipe 2026-10-14: «si no le llegan los avisos
+// por WhatsApp, cuando inicie sesión igual le debe salir algún mensaje»): `tienda_mis_avisos_del_club` lee de la ficha de quien entra
+// SU cumpleaños y lo de su aniversario, con las mismas reglas que `tienda_mi_club`, y no escribe nada. Sin módulo a propósito, solo
+// `tienda_web` la ejecuta, y la prueba a fondo scripts/pruebas/tienda_avisos_al_entrar.mjs.
+DE_LA_TIENDA.push("tienda_mis_avisos_del_club");
+// Y «Mi cuenta» (Felipe 2026-10-15, 20261015132000): `tienda_eliminar_mi_cuenta` toma la ficha de quien la elimina y la anonimiza a
+// pedido suyo (con la rutina de siempre, sin persona del ERP), y `tienda_correo_confirmado` anota en la actividad de Clientes que cambió
+// el correo de entrada (sin datos suyos). Sin módulo a propósito, como las de arriba: solo `tienda_web` las ejecuta (lo prueba
+// tienda_puerta.mjs) y las prueba a fondo scripts/pruebas/tienda_mi_cuenta.mjs.
+DE_LA_TIENDA.push("tienda_correo_confirmado", "tienda_eliminar_mi_cuenta");
+// Y la cuenta simple y el Club al separar (ADR-0438, 20261017175000): crear la cuenta con lo mínimo, revisar y completar los datos del Club, y
+// el candado de «Separar» (`tienda_separar` ahora pregunta si la ficha es del Club). Sin módulo a propósito, como las de arriba: las llama el
+// servidor de la tienda con el rol `tienda_web` (la persona que las usa no es una cuenta del ERP) y solo `tienda_web` las ejecuta. La prueba a
+// fondo es scripts/pruebas/tienda_cuenta_simple.mjs.
+DE_LA_TIENDA.push("tienda_registrar_cuenta_simple", "tienda_revisar_registro_simple", "tienda_revisar_club", "tienda_unirse_al_club", "tienda_separar");
+
+// Las de los pedidos web (ADR-0408, 20261014235000) que muestran al cliente de un pedido: el detalle y la lista de una tienda.
+// Con el candado de SU módulo, `pedidos_web` (`fn_pedido_web_exigir`), como las de Avisos: quien atiende el pedido ve solo lo que
+// necesita para coordinarlo por WhatsApp —nombre, celular, el DNI a medias (••••1234) y si es del club, como la maqueta
+// aprobada—, nunca la ficha entera. Las prueba a fondo scripts/pruebas/pedidos_web_motor.mjs.
+const DE_PEDIDOS_WEB = ["fn_pedido_web", "fn_pedidos_web_sede"];
+
+// Y la de la ficha y la tienda online (Felipe 2026-10-15, 20261015123000): `fn_clienta_tienda_online` le dice a la hoja de la ficha si
+// el cliente tiene cuenta en la tienda online (sí o no, sin su correo de entrada) y sus pedidos web en curso, para avisar al archivar.
+// Con el candado del módulo, como las demás lecturas de la ficha (la prueba a fondo scripts/pruebas/clientas_correo_en_la_ficha.mjs).
+const DE_LA_FICHA_Y_LA_TIENDA = ["fn_clienta_tienda_online"];
+// Y «Restablecer acceso a la tienda web» (Felipe 2026-10-15, 20261015132000): `restablecer_acceso_tienda_web` (deja pedido el cambio del
+// correo de entrada, firma el Responsable) y `fn_clienta_acceso_web` (lo que la hoja muestra del restablecimiento pendiente), con el
+// candado del módulo como las demás (las prueba a fondo scripts/pruebas/tienda_mi_cuenta.mjs, sección G).
+DE_LA_FICHA_Y_LA_TIENDA.push("fn_clienta_acceso_web", "restablecer_acceso_tienda_web");
+
+// Y la de Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15, 20261015135000): `fn_recomendaciones` le da a quien tiene el módulo
+// «Recomendaciones» lo que los clientes recomiendan desde la tienda online, SIEMPRE con su nombre y el id de su ficha (para responderle;
+// sin nombre ni ficha si se anonimizó). Con el candado de SU módulo, `recomendaciones` (como las de Avisos y las de los pedidos web):
+// lo justo para responderle, nunca la ficha entera. La prueba a fondo es scripts/pruebas/recomendaciones_web.mjs.
+const DE_RECOMENDACIONES = ["fn_recomendaciones"];
+
+// Y los puntos del Club (ADR-0459, 2026-10-19). Tres grupos, cada uno con lo que el vigilante le exige (no solo su nombre en una lista):
+//  · DE_LOS_PUNTOS_EN_CAJA: canjear_puntos (20261019203000: crea el cupón en la caja), validar_cupon (20261019204000: lee un cupón por su
+//    código para cobrarlo; devuelve el nombre de pila de su dueña) y resumen_puntos_caja (20261019205000: saldo, regalo, cupones vivos y el
+//    día y el mes del cumpleaños de una miembro). Las usa la caja: su candado es «Vender o Clientas» (`fn_ve_modulo('vender') or
+//    fn_ve_modulo('clientas')` y un 42501 si no), escrito en el código; el vigilante exige las dos preguntas. Las prueban
+//    club_puntos_cupones.mjs, club_puntos_cobrar_cupon.mjs y club_puntos_resumen_caja.mjs. OJO: con «Vender» sin «Clientas» se leen el
+//    día y el mes del cumpleaños (resumen_puntos_caja) que resumen_clienta_caja solo da con «Clientas»: es una decisión de permisos de
+//    Felipe, no de esta prueba.
+//  · Las de la tienda online: tienda_mis_puntos (20261019213000, «Mi Club»): solo `tienda_web` y solo los puntos de la cuenta que entra,
+//    como las demás de DE_LA_TIENDA (la prueba a fondo es club_puntos_tienda.mjs).
+//  · DE_LOS_PUNTOS_INTERNAS: fn_club_puntos_anotar (20261019201000, el libro), fn_club_puntos_por_venta (20261019202000, lo que gana una
+//    venta) y fn_club_conservacion_hasta (20261019213000, la fecha de los 3 años). Sin módulo a propósito porque nadie de la API las
+//    ejecuta: las llaman registrar_venta, los cupones, la conservación y «Mi Club», que ya pidieron su candado. El vigilante no les cree
+//    por el nombre: exige que ni anon, ni authenticated, ni tienda_web tengan EXECUTE.
+const DE_LOS_PUNTOS_EN_CAJA = ["canjear_puntos", "resumen_puntos_caja", "validar_cupon"];
+DE_LA_TIENDA.push("tienda_mis_puntos");
+const DE_LOS_PUNTOS_INTERNAS = ["fn_club_conservacion_hasta", "fn_club_puntos_anotar", "fn_club_puntos_por_venta"];
+
+// Y entrar con Google que une la cuenta a la ficha que ya tenía ese correo (ADR-0469, 20261021170000). Tres funciones tocan la ficha:
+//  · tienda_vincular_cuenta_google: la llama el servidor de la tienda con el rol `tienda_web` (no es una cuenta del ERP): sin módulo a
+//    propósito, como las de DE_LA_TIENDA, y solo `tienda_web` la ejecuta (lo prueba tienda_vincular_google.mjs);
+//  · fn_vinculos_google_recientes (lista, nombre y celular de la ficha para avisarle a su dueña): con el candado de Avisos, `avisos_club`
+//    (DE_AVISOS); y registrar_vinculo_google_avisado, que no lee la ficha, lo lleva igual;
+//  · desvincular_cuenta_google: cierra la cuenta web y anota en la actividad de Clientes. No es de ningún módulo: es SOLO del líder
+//    (`fn_es_lider()` y un 42501 si no, escrito en el código); el vigilante exige esa pregunta.
+DE_LA_TIENDA.push("tienda_vincular_cuenta_google");
+DE_AVISOS.push("fn_vinculos_google_recientes");
+const DEL_LIDER = ["desvincular_cuenta_google"];
+
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -85,7 +281,7 @@ const ROSA = "33333333-3333-4333-8333-0000000000c3";
 // Tres fichas con id fijo (los textos de `pg_temp.intento` van entre $q$, donde psql no reemplaza variables).
 const FICHA = "77777777-7777-4777-8777-000000000001"; // activa, con DNI
 const ARCHIVADA = "77777777-7777-4777-8777-000000000002"; // archivada, con DNI
-const OTRA = "77777777-7777-4777-8777-000000000003"; // activa, solo celular (para unir)
+const OTRA = "77777777-7777-4777-8777-000000000003"; // activa, solo celular (antes, para unir: hoy, que nadie la una a nada)
 
 const SIN_MODULO = "42501|clientas_sin_modulo";
 const SIN_RESPONSABLE = "42501|responsable_requerido";
@@ -166,50 +362,60 @@ insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id) value
   (:'tru', 'Terminal Ventas clientas-modulo', retail.fn_rol_por_clave('terminal_ventas'), '${T_VENTAS}');
 
 -- Las tres fichas de la prueba.
-insert into retail.clientas (id, dni, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes) values
+insert into retail.clientas (id, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, cumple_mes) values
   ('${FICHA}', '90777001', 'Ficha Protegida Prueba', '987777001', now(), 7, 3),
   ('${OTRA}', null, 'Otra Ficha Prueba', '987777003', null, null, null);
-insert into retail.clientas (id, dni, nombre, archivada_en, motivo_archivo) values
+insert into retail.clientas (id, documento_numero, nombre, archivada_en, motivo_archivo) values
   ('${ARCHIVADA}', '90777002', 'Ficha Archivada Prueba', now(), 'prueba');
 
 -- Cuántas líneas de actividad de Clientas había antes del caso (la base la comparten otras pruebas).
 select count(*) as act0 from retail.actividad where modulo = 'clientas' \\gset
+-- Tanda 1g (ADR-0288 act. g): unirse_al_club, registrar_mensaje_publicidad, registrar_desde_whatsapp y crear_invitacion_club
+-- ya no las ejecuta authenticated, ni fn_invitacion_club y confirmar_invitacion_club anon (retiro SIN borrarlas). Esta
+-- prueba las usa para armar a sus socias: se les devuelve el EXECUTE dentro de la transacción del caso (termina en ROLLBACK).
+grant execute on function retail.unirse_al_club(uuid, text, smallint, smallint, smallint, text, uuid, uuid, integer),
+  retail.registrar_mensaje_publicidad(uuid, text, uuid), retail.registrar_desde_whatsapp(text, text, text, text, uuid),
+  retail.crear_invitacion_club(uuid, uuid) to authenticated;
+grant execute on function retail.fn_invitacion_club(text), retail.confirmar_invitacion_club(text, integer) to anon, authenticated;
 `;
 
 /** Cambia de cuenta. `responsable`: el uuid que viaja en `x-responsable` (el combo de la terminal), o nada. */
+// El rol va en los dos claims: el auth.role() de Supabase lee `claim.role` o `claims->>'role'`, y un stub local de Dynamic
+// puede leer solo el primero (la política de antes, que usa el control de la sección 6, pregunta por auth.role()).
 const como = (auth, { responsable = null } = {}) =>
   `reset role;
 set local request.jwt.claim.sub = '${auth}';
+set local request.jwt.claim.role = 'authenticated';
 set local request.jwt.claims = '{"sub":"${auth}","role":"authenticated"}';
 select set_config('request.headers', ${responsable ? `json_build_object('x-responsable', '${responsable}')::text` : "'{}'"}, true) as _h \\gset
 set local role authenticated;
 `;
-const comoAnon = `reset role;\nset local request.jwt.claims = '{"role":"anon"}';\nset local role anon;\n`;
+const comoAnon = `reset role;\nset local request.jwt.claim.role = 'anon';\nset local request.jwt.claims = '{"role":"anon"}';\nset local role anon;\n`;
 const intento = (sql) => `select pg_temp.intento($q$${sql}$q$);\n`;
 
-// Las 11, en un orden que deja pasar a quien tiene el módulo (archivar va al final: después la ficha ya no se edita).
+// Las 10 (eran 11 hasta que 20261015054000 borró unir_clientas), en un orden que deja pasar a quien tiene el módulo (archivar va al
+// final: después la ficha ya no se edita).
 const LLAMADAS = {
-  registrar_clienta: `select retail.registrar_clienta('90777010', 'Alta Prueba Modulo', null, false, null, null)`,
+  registrar_clienta: `select retail.registrar_clienta('dni', '90777010', 'Alta Prueba Modulo', null, null, null)`,
   buscar_clienta: `select * from retail.buscar_clienta('90777001')`,
-  editar_clienta: `select retail.editar_clienta('${FICHA}', '90777001', 'Ficha Protegida Prueba', '987777001', false, false, null, null, null, null)`,
+  editar_clienta: `select retail.editar_clienta('${FICHA}', 'dni', '90777001', 'Ficha Protegida Prueba', '987777001', null, null, null, null, null)`,
   fn_clienta_compras: `select * from retail.fn_clienta_compras('${FICHA}')`,
   fn_clienta_cambios: `select * from retail.fn_clienta_cambios('${FICHA}')`,
   fn_clienta_devoluciones: `select * from retail.fn_clienta_devoluciones('${FICHA}')`,
   fn_clienta_separaciones: `select * from retail.fn_clienta_separaciones('${FICHA}')`,
   reactivar_clienta: `select retail.reactivar_clienta('${ARCHIVADA}', null)`,
-  unir_clientas: `select retail.unir_clientas('${FICHA}', '${OTRA}', null, null)`,
   exportar_clientas: `select * from retail.exportar_clientas()`,
   archivar_clienta: `select retail.archivar_clienta('${FICHA}', 'motivo de prueba', false, null)`,
 };
-const LAS_11 = Object.keys(LLAMADAS);
+const LAS_DE_LA_FICHA = Object.keys(LLAMADAS);
 const TODAS = Object.values(LLAMADAS).map(intento).join("");
 const LEEN = new Set(["buscar_clienta", "fn_clienta_compras", "fn_clienta_cambios", "fn_clienta_devoluciones", "fn_clienta_separaciones"]);
 /** Lo esperado, función por función, en el orden de LLAMADAS. */
-const esperado = (f) => LAS_11.map(f).join("\n");
+const esperado = (f) => LAS_DE_LA_FICHA.map(f).join("\n");
 
 /** Como postgres: ¿cambió algo? «nuevas|ficha activa|archivada sigue|otra sin unir|actividad nueva». */
 const NADA_CAMBIO = `reset role;
-select (select count(*) from retail.clientas where dni = '90777010')
+select (select count(*) from retail.clientas where documento_numero = '90777010')
     || '|' || (select (archivada_en is null)::text from retail.clientas where id = '${FICHA}')
     || '|' || (select (archivada_en is not null)::text from retail.clientas where id = '${ARCHIVADA}')
     || '|' || (select (fusionada_en_id is null)::text from retail.clientas where id = '${OTRA}')
@@ -247,20 +453,34 @@ const MD5_VIVOS = VERSIONES.map(
   (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
 ).join("");
 
-// ---- El estado de producción ANTES de la PARTE 1 y la PARTE 2 (control) ----
-// Las funciones del paso 2 tal como están en main y en producción (los archivos de #543), y `registrar_clienta` como está
-// viva: su cuerpo de 20260922140000 con el reemplazo de 20260923100000. La prueba (6) exige que sus md5 sean los «antes» de
-// la PARTE 1: si no, este control no reproduciría producción.
-const REGISTRAR_ANTES = (() => {
-  const t = leer("20260922140000_ficha_de_clienta_v1_backend.sql");
-  const ini = t.indexOf("create or replace function retail.registrar_clienta(");
-  const fin = t.indexOf("$$;", ini) + 3;
-  const cuerpo = t.slice(ini, fin);
-  const viejo = "select id into v_persona from public.personas where auth_user_id = auth.uid();";
-  if (ini < 0 || !cuerpo.includes(viejo)) throw new Error("No encontré registrar_clienta en 20260922140000 con su búsqueda de persona");
-  return cuerpo.replace(viejo, "v_persona := retail.fn_actor_persona_id(true);") + "\n";
-})();
-// Las dos funciones de la actividad de Apartados, tal cual las dejó 20260927120000 (así están en producción).
+// ---- CONTROL: la ficha SIN el candado del módulo (lo que la PARTE 1 y la PARTE 2 cerraron) ----
+// Desde la tanda 1a del club ya no se puede recrear la versión de ANTES de cada función (por qué, al principio de la
+// sección 6). Lo que la PARTE 1 cerró en las 11 fue su primera línea, `fn_exigir_modulo('clientas')`: aquí se le quita esa
+// línea a la versión VIVA de cada una (pg_get_functiondef, dentro de la transacción del caso) y la tabla vuelve a la
+// política de antes de la PARTE 2 («cualquiera con sesión»). Aborta si alguna no la tiene exactamente una vez: el control
+// nunca «pasa» por no haber quitado nada.
+const SIN_CANDADO = `reset role;
+do $sin_candado$
+declare
+  r record;
+  v_def text;
+  v_linea constant text := 'retail.fn_exigir_modulo(''clientas'');';
+begin
+  for r in select p.oid from pg_proc p
+            where p.pronamespace = 'retail'::regnamespace and p.proname in (${LAS_DE_LA_FICHA.map((n) => `'${n}'`).join(", ")}) loop
+    v_def := pg_get_functiondef(r.oid);
+    if (length(v_def) - length(replace(v_def, v_linea, ''))) / length(v_linea) <> 1 then
+      raise exception '% no lleva el candado del módulo exactamente una vez', r.oid::regprocedure;
+    end if;
+    execute replace(replace(v_def, 'perform ' || v_linea, ''), 'select ' || v_linea, '');
+  end loop;
+end
+$sin_candado$;
+drop policy if exists clientas_select on retail.clientas;
+create policy clientas_select on retail.clientas for select using ((select auth.role()) = 'authenticated');
+`;
+// Las dos funciones de la actividad de Apartados, tal cual las dejó 20260927120000 (así estaban en producción antes de la
+// PARTE 1). No leen `clientas`: la tanda 1a no las toca y siguen pudiéndose recrear.
 const funcionDe = (archivo, firma) => {
   const t = leer(archivo);
   const ini = t.indexOf(`create or replace function ${firma}`);
@@ -268,21 +488,9 @@ const funcionDe = (archivo, firma) => {
   return t.slice(ini, t.indexOf("$$;", ini) + 3) + "\n";
 };
 const APARTADOS_ANTES =
+  "reset role;\n" +
   funcionDe("20260927120000_apartados_actividad_y_editar.sql", "retail.fn_actividad_separacion(") +
   funcionDe("20260927120000_apartados_actividad_y_editar.sql", "retail.trg_actividad_separacion_hijas(");
-const DESHACER = `reset role;
-${leer("20260928160000_editar_archivar_reactivar_clienta.sql")}
-${leer("20260928170000_unir_clientas.sql")}
-${leer("20260928180000_clienta_actividad_y_exportar.sql")}
-${REGISTRAR_ANTES}
-${APARTADOS_ANTES}
-drop function if exists retail.fn_exigir_modulo(text);
-alter table retail.clientas drop constraint if exists clientas_fusionada_implica_anonimizada;
-grant select, insert, update, delete on retail.clientas_fusiones to authenticated;
-drop policy if exists clientas_fusiones_select on retail.clientas_fusiones;
-drop policy if exists clientas_select on retail.clientas;
-create policy clientas_select on retail.clientas for select using ((select auth.role()) = 'authenticated');
-`;
 const PEGAR = (archivo) => `reset role;\n${archivo}\nset local search_path = retail, public, extensions;\n`;
 
 let fallas = 0;
@@ -305,35 +513,35 @@ function caso(nombre, sql, esperadoCaso) {
 // 1. Las 11 funciones, cuenta por cuenta
 // =====================================================================================================================
 caso(
-  "(1) Terminal Almacén (rol SIN Clientas), sin responsable: 42501 clientas_sin_modulo en las 11 —antes que «elige quién»— y no cambia nada",
+  "(1) Terminal Almacén (rol SIN Clientas), sin responsable: 42501 clientas_sin_modulo en las 10 —antes que «elige quién»— y no cambia nada",
   como(T_ALMACEN) + TODAS + NADA_CAMBIO,
   esperado(() => SIN_MODULO) + "\n0|true|true|true|0"
 );
 caso(
-  "(1) Terminal Almacén CON un responsable presente: igual, 42501 clientas_sin_modulo en las 11 (decide la cuenta, no el responsable)",
+  "(1) Terminal Almacén CON un responsable presente: igual, 42501 clientas_sin_modulo en las 10 (decide la cuenta, no el responsable)",
   como(T_ALMACEN, { responsable: ROSA }) + TODAS + NADA_CAMBIO,
   esperado(() => SIN_MODULO) + "\n0|true|true|true|0"
 );
 caso(
-  "(1) una persona (Micaela) a la que se le quitó Clientas de su rol: lo mismo en las 11 — decide el módulo, no el tipo de cuenta",
+  "(1) una persona (Micaela) a la que se le quitó Clientas de su rol: lo mismo en las 10 — decide el módulo, no el tipo de cuenta",
   `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
     como(MICAELA) + TODAS + NADA_CAMBIO,
   esperado(() => SIN_MODULO) + "\n0|true|true|true|0"
 );
 caso(
-  "(1) el líder (Felipe, también Admin): pasan las 11",
+  "(1) el líder (Felipe, también Admin): pasan las 10",
   como(FELIPE) + TODAS,
   esperado(() => "SIN_ERROR")
 );
 caso(
-  "(1) una integrante CON el módulo (Micaela): pasan las 11; exportar sigue siendo solo del Admin",
+  "(1) una integrante CON el módulo (Micaela): pasan las 10; exportar sigue siendo solo del Admin",
   como(MICAELA) + TODAS,
   esperado((f) => (f === "exportar_clientas" ? SOLO_ADMIN : "SIN_ERROR"))
 );
 caso(
-  "(1) Terminal de ventas CON el módulo y responsable presente (Rosa): pasan las 11; exportar, solo el Admin; y firma Rosa",
+  "(1) Terminal de ventas CON el módulo y responsable presente (Rosa): pasan las 10; exportar, solo el Admin; y firma Rosa",
   como(T_VENTAS, { responsable: ROSA }) + TODAS +
-    `reset role;\nselect (select created_por from retail.clientas where dni = '90777010') = '${ROSA}'::uuid;\n`,
+    `reset role;\nselect (select created_por from retail.clientas where documento_numero = '90777010') = '${ROSA}'::uuid;\n`,
   esperado((f) => (f === "exportar_clientas" ? SOLO_ADMIN : "SIN_ERROR")) + "\nt"
 );
 caso(
@@ -342,9 +550,9 @@ caso(
   esperado((f) => (f === "exportar_clientas" ? SOLO_ADMIN : LEEN.has(f) ? "SIN_ERROR" : SIN_RESPONSABLE))
 );
 caso(
-  "(1) anon: no ejecuta ninguna de las 11",
+  "(1) anon: no ejecuta ninguna de las 10",
   comoAnon + TODAS,
-  (s) => s.split("\n").length === 11 && s.split("\n").every((l) => /^42501\|permission denied for (function|schema)/.test(l))
+  (s) => s.split("\n").length === LAS_DE_LA_FICHA.length && s.split("\n").every((l) => /^42501\|permission denied for (function|schema)/.test(l))
 );
 
 // =====================================================================================================================
@@ -379,11 +587,11 @@ caso(
 caso(
   "(3) registrar con el DNI de una ficha archivada la REACTIVA: mismo id, sin archivo, version+1, completa lo nuevo, conserva su venta y vuelve al buscador",
   como(FELIPE) +
-    `select retail.registrar_clienta('90777600', 'Rebeca Vuelve Prueba', null, false, null, null) as id1 \\gset
+    `select retail.registrar_clienta('dni', '90777600', 'Rebeca Vuelve Prueba', null, null, null) as id1 \\gset
 reset role;
 insert into retail.ventas (id, ubicacion_id, cliente_id, estado, es_prueba) values (gen_random_uuid(), :'tru', :'id1', 'completada', true) returning id as venta \\gset
 ${como(FELIPE)}select retail.archivar_clienta(:'id1', 'ya no compra', false, null) as v_archivada \\gset
-select retail.registrar_clienta('90777600', null, '987776000', false, null, null) as id2 \\gset
+select retail.registrar_clienta('dni', '90777600', null, '987776000', null, null) as id2 \\gset
 reset role;
 select :'id1' = :'id2',
        archivada_en is null and archivada_por is null and motivo_archivo is null,
@@ -398,10 +606,10 @@ ${como(FELIPE)}select count(*) from retail.buscar_clienta('90777600');
 caso(
   "(3) la reactivación deja UNA línea de actividad, sin nombre ni DNI; registrarla otra vez (ya activa) no deja otra",
   como(FELIPE) +
-    `select retail.registrar_clienta('90777601', 'Rebeca Dos Prueba', '987776001', false, null, null) as id1 \\gset
+    `select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', '987776001', null, null) as id1 \\gset
 select retail.archivar_clienta(:'id1', 'ya no compra', false, null) as _v \\gset
-select retail.registrar_clienta('90777601', 'Rebeca Dos Prueba', null, false, null, null) as _r1 \\gset
-select retail.registrar_clienta('90777601', 'Rebeca Dos Prueba', null, false, null, null) as _r2 \\gset
+select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', null, null, null) as _r1 \\gset
+select retail.registrar_clienta('dni', '90777601', 'Rebeca Dos Prueba', null, null, null) as _r2 \\gset
 reset role;
 select count(*), string_agg(descripcion, ','), bool_and(a::text !~* '(rebeca|90777601|987776001)')
   from retail.actividad a where a.modulo = 'clientas' and a.accion = 'reactivar' and a.registro_id = :'id1';
@@ -411,35 +619,24 @@ select count(*), string_agg(descripcion, ','), bool_and(a::text !~* '(rebeca|907
 caso(
   "(3) la anonimizada que vuelve con su DNI es una ficha NUEVA (pidió que la olvidaran)",
   como(FELIPE) +
-    `select retail.registrar_clienta('90777602', 'Olvidada Prueba', null, false, null, null) as id1 \\gset
+    `select retail.registrar_clienta('dni', '90777602', 'Olvidada Prueba', null, null, null) as id1 \\gset
 select retail.archivar_clienta(:'id1', 'pedido de la clienta', true, null) as _v \\gset
-select retail.registrar_clienta('90777602', 'Olvidada Prueba', null, false, null, null) as id2 \\gset
+select retail.registrar_clienta('dni', '90777602', 'Olvidada Prueba', null, null, null) as id2 \\gset
 reset role;
 select :'id1' <> :'id2', (select anonimizada from retail.clientas where id = :'id1'), (select archivada_en is null from retail.clientas where id = :'id2');
 `,
   "t|t|t"
 );
+// «La que se unió a otra: su DNI la lleva a la que se conservó» probaba lo que hacía unir_clientas (pasarle el documento a la que
+// quedaba): sin la función, ya no hay nada que probar ahí (la reactivación por DNI la prueba el primer caso de esta sección). El
+// candado de una unión de antes sí sigue: una ficha unida nunca vuelve a tener datos.
 caso(
-  "(3) la que se unió a otra: su DNI la lleva a la ficha que se CONSERVÓ, y si esa estaba archivada, la reactiva",
+  "(3) estado imposible: una ficha unida a otra (una unión de antes) que deja de estar anonimizada viola clientas_fusionada_implica_anonimizada",
   como(FELIPE) +
-    `select retail.registrar_clienta(null, 'Unida Celular Prueba', '987776100', false, null, null) as queda \\gset
-select retail.registrar_clienta('90777603', 'Unida DNI Prueba', null, false, null, null) as se_va \\gset
-select (retail.unir_clientas(:'queda', :'se_va', null, null)).dni as dni_que_queda \\gset
-select retail.archivar_clienta(:'queda', 'se fue de viaje', false, null) as _v \\gset
-select retail.registrar_clienta('90777603', null, null, false, null, null) as vuelve \\gset
+    `select retail.registrar_clienta('dni', null, 'Imposible Uno', '987776200', null, null) as a \\gset
+select retail.registrar_clienta('dni', null, 'Imposible Dos', '987776201', null, null) as b \\gset
 reset role;
-select :'dni_que_queda', :'vuelve' = :'queda', (select archivada_en is null from retail.clientas where id = :'queda');
-`,
-  "90777603|t|t"
-);
-caso(
-  "(3) estado imposible: una ficha unida a otra que deja de estar anonimizada viola clientas_fusionada_implica_anonimizada",
-  como(FELIPE) +
-    `select retail.registrar_clienta(null, 'Imposible Uno', '987776200', false, null, null) as a \\gset
-select retail.registrar_clienta(null, 'Imposible Dos', '987776201', false, null, null) as b \\gset
-select (retail.unir_clientas(:'a', :'b', null, null)).id as _u \\gset
-reset role;
-` + intento(`update retail.clientas set anonimizada = false, nombre = 'Imposible Dos' where fusionada_en_id is not null and nombre = 'Clienta anonimizada' and id <> '${FICHA}'`),
+${unionDeAntes(":'a'", ":'b'")}` + intento(`update retail.clientas set anonimizada = false, nombre = 'Imposible Dos' where fusionada_en_id is not null and nombre = 'Clienta anonimizada' and id <> '${FICHA}'`),
   (s) => s.startsWith("23514|") && s.includes("clientas_fusionada_implica_anonimizada")
 );
 
@@ -452,16 +649,22 @@ reset role;
 const RASTRO = ["90777555", "zorayda", "pruebaclientas", "huamanchumo", "987770001", "987770002", "987770003"];
 const cuentaRastro = (tabla) =>
   `(select count(*) from retail.${tabla} x where x::text ~* '(${RASTRO.join("|")})')`;
-/** Las tres fichas de la misma persona: Z se une a Y, e Y a X (la que se conserva). Corre igual con las funciones de hoy y con las de producción. */
-const TRES_FICHAS = `${como(FELIPE)}select retail.registrar_clienta(null, 'Zorayda Q', '987770003', false, null, null) as z \\gset
-select retail.registrar_clienta(null, 'Zorayda Pruebaclientas', '987770002', true, 12::smallint, 5::smallint) as y \\gset
-select (retail.unir_clientas(:'y', :'z', null, null)).id as _u1 \\gset
-select retail.registrar_clienta('90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', true, 12::smallint, 5::smallint) as x \\gset
-select (retail.unir_clientas(:'x', :'y', null, null)).id as _u2 \\gset
-`;
-const RECORRIDO = `${TRES_FICHAS}select retail.editar_clienta(:'x', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', false, false, 12::smallint, 5::smallint, '{"superior": "M"}'::jsonb, null) as _e \\gset
+/**
+ * Las tres fichas de la misma persona: Z se unió a Y, e Y a X (la que se conserva). X es socia del club con publicidad (ADR-0288
+ * tanda 1b; antes de la 1b, X e Y tenían el permiso de WhatsApp marcado al registrarlas). Desde 20261015054000 no se unen fichas:
+ * las dos uniones son de ANTES (lo que dejaba unir_clientas, armado a mano), y anonimizar a X tiene que seguir limpiándolas.
+ */
+const TRES_FICHAS = `${como(FELIPE)}select retail.registrar_clienta('dni', null, 'Zorayda Q', '987770003', null, null) as z \\gset
+select retail.registrar_clienta('dni', null, 'Zorayda Pruebaclientas', '987770002', 12::smallint, 5::smallint) as y \\gset
+reset role;
+${unionDeAntes(":'y'", ":'z'")}${como(FELIPE)}select retail.registrar_clienta('dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', 12::smallint, 5::smallint) as x \\gset
+select codigo_club as _cx from retail.unirse_al_club(:'x', '987770001') \\gset
+select retail.registrar_mensaje_publicidad(:'x', '987770001') as _px \\gset
+reset role;
+${unionDeAntes(":'x'", ":'y'")}${como(FELIPE)}`;
+const RECORRIDO = `${TRES_FICHAS}select retail.editar_clienta(:'x', 'dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', 12::smallint, 5::smallint, null, '{"superior": "M"}'::jsonb, null) as _e \\gset
 select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas se mudó a Arequipa (DNI 90777555)', false, null) as _a \\gset
-select retail.registrar_clienta('90777555', 'Zorayda Pruebaclientas Huamanchumo', null, false, null, null) as _r \\gset
+select retail.registrar_clienta('dni', '90777555', 'Zorayda Pruebaclientas Huamanchumo', null, null, null) as _r \\gset
 ${APARTADO({ codigo: "APT-TRU-9955", clienta: ":'x'", nombres: "Zorayda", apellidos: "Pruebaclientas Huamanchumo", celular: "987770001" })}reset role;
 `;
 caso(
@@ -477,29 +680,32 @@ caso(
   "t|t|4|0|0"
 );
 caso(
-  "(4) anonimizar deja CERO rastro del DNI, del nombre y de los tres celulares en clientas, clientas_fusiones y actividad (y el motivo escrito no se guarda)",
+  "(4) anonimizar deja CERO rastro del DNI, del nombre y de los tres celulares en clientas, clientas_fusiones, actividad y club_permisos (y el motivo escrito no se guarda); escribe los dos `revoca` del club",
   RECORRIDO +
     `${como(FELIPE)}select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas pidió que la borren, DNI 90777555', true, null) as _anon \\gset
 reset role;
-select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")}, ${cuentaRastro("actividad")},
+select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")}, ${cuentaRastro("actividad")}, ${cuentaRastro("club_permisos")},
+       (select count(*) from retail.club_permisos where clienta_id = :'x' and accion = 'revoca' and medio = 'anonimizar'),
        (select motivo_archivo from retail.clientas where id = :'x'),
        (select count(*) from retail.clientas_fusiones where clienta_mantiene_id in (:'x', :'y') and ficha_fusionada ? 'anonimizada_en'),
        (select detalle ->> 'fusiones_limpiadas' from retail.actividad where modulo = 'clientas' and accion = 'anonimizar' and registro_id = :'x'),
        (select count(*) from retail.actividad a where ${DEL_APARTADO()});
 `,
-  "0|0|0|Anonimizada (Ley 29733)|2|2|4"
+  "0|0|0|0|2|Anonimizada (Ley 29733)|2|2|4"
 );
+// La frase de «unir» (la de unir_clientas, que se borró en 20261015054000) ya no la escribe nadie: las uniones de este recorrido son
+// de antes, armadas a mano y sin su línea.
 caso(
-  "(4) las frases de la actividad de Clientas dicen «una clienta» (editar, archivar, reactivar, unir, anonimizar)",
+  "(4) las frases de la actividad de Clientas dicen «una clienta» (editar, archivar, reactivar, anonimizar, y las del club: unirse y su publicidad)",
   RECORRIDO +
     `${como(FELIPE)}select retail.archivar_clienta(:'x', 'pedido', true, null) as _anon \\gset
 reset role;
 select string_agg(distinct accion || '=' || descripcion, ' ; ' order by accion || '=' || descripcion)
-  from retail.actividad where modulo = 'clientas' and registro_id in (:'x', :'y', :'z') and accion <> 'unir';
-select count(*) from retail.actividad where modulo = 'clientas' and registro_id in (:'x', :'y') and accion = 'unir'
-   and descripcion ~ '^unió dos fichas de una misma clienta: ';
+  from retail.actividad where modulo = 'clientas' and registro_id in (:'x', :'y', :'z');
 `,
-  "anonimizar=anonimizó la ficha de una clienta (Ley 29733) ; archivar=archivó la ficha de una clienta ; editar=editó la ficha de una clienta ; reactivar=reactivó una clienta archivada al volver a registrarla\n2"
+  "anonimizar=anonimizó la ficha de una clienta (Ley 29733) ; archivar=archivó la ficha de una clienta ; editar=editó la ficha de una clienta ; " +
+    "publicidad_whatsapp=registró que una clienta escribió a la tienda pidiendo publicidad por WhatsApp ; reactivar=reactivó una clienta archivada al volver a registrarla ; " +
+    "unirse_club=unió a una clienta al club (su «sí» en caja)"
 );
 // Las cinco ramas de fn_actividad_separacion, una por una: apartó, entregó, liberó (sola y a mano), devolvió el adelanto
 // y extendió. El recorrido de arriba solo pasa por apartar, abonar, avisar y editar; aquí se llama a la función directo
@@ -532,34 +738,83 @@ caso(
 // =====================================================================================================================
 const SIN_COMENTARIOS = `regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g')`;
 caso(
-  "(5) las 11 empiezan por fn_exigir_modulo('clientas'): es lo primero que corre (antes de leer o de resolver quién firma)",
+  "(5) las 10 empiezan por fn_exigir_modulo('clientas'): es lo primero que corre (antes de leer o de resolver quién firma)",
   `select coalesce(string_agg(p.proname, ',' order by p.proname), 'todas')
      from pg_proc p
     where p.pronamespace = 'retail'::regnamespace
-      and p.proname in (${LAS_11.map((n) => `'${n}'`).join(", ")})
+      and p.proname in (${LAS_DE_LA_FICHA.map((n) => `'${n}'`).join(", ")})
       and regexp_replace(${SIN_COMENTARIOS}, '\\s+', '', 'g') !~ '^(select|(declare.*)?beginperform)retail\\.fn_exigir_modulo\\(''clientas''\\);';\n` +
-    `select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in (${LAS_11.map((n) => `'${n}'`).join(", ")});\n`,
-  "todas\n11"
+    `select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in (${LAS_DE_LA_FICHA.map((n) => `'${n}'`).join(", ")});\n`,
+  `todas\n${LAS_DE_LA_FICHA.length}`
 );
 // LISTA BLANCA: funciones security definer que citan la tabla o sus columnas y NO son una puerta a la ficha (leídas el
 // 2026-09-28): fn_ventas_del_dia (solo cli.nombre, o «Cliente varios»), separar_prendas (solo pregunta si la ficha existe),
-// bajar_al_piso, fn_aplicar_movimiento y fn_conciliacion_contable («clientas» en un mensaje o un título).
-const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable"];
+// bajar_al_piso, fn_aplicar_movimiento y fn_conciliacion_contable («clientas» en un mensaje o un título). Y desde el
+// 2026-10-01 (ADR-0300) retirar_del_piso, la hermana de bajar_al_piso: no lee la tabla de clientas ni ninguna de sus columnas, solo
+// dice «(3 apartadas para clientas)» en el mensaje de lo que no alcanza (lo apartado se cuenta en `stock`). Y desde la tanda 1a
+// del club (ADR-0288 D-1, 2026-09-30), registrar_venta: lee solo id, anonimizada y fusionada_en_id de la ficha que manda
+// Cobrar, para ligarle la venta, y no devuelve nada de ella. No exige el módulo a propósito (cabecera de 20260930160000,
+// «DECIDÍ»): el id solo sale de buscar_clienta, que sí lo exige, y exigirlo aquí haría fallar una venta entera encolada sin
+// conexión si al rol le quitaron el módulo en el camino.
+const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "retirar_del_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable", "registrar_venta"];
+// Y desde los pedidos web (ADR-0408, 20261014235000), dos que nombran la ficha sin ser una puerta a ella: crear_pedido_web solo
+// pregunta si la ficha existe y no está archivada (como separar_prendas); fn_pedidos_web_de_clienta devuelve los PEDIDOS de una
+// ficha («Mis pedidos»), sin ninguna columna de ella. Ninguna de las dos la ejecuta nadie de la API. (fn_pedido_web_reglas leía
+// fusionada_en_id para que el pedido siguiera a su ficha al unirla; desde 20261015054000 no se unen fichas y ya no la lee.)
+LISTA_BLANCA.push("crear_pedido_web", "fn_pedidos_web_de_clienta");
+// Y desde el correo de una sola persona (20261015054000 y 20261015055000), dos DISPARADORES que nombran la ficha sin ser una puerta a
+// ella: fn_correo_de_una_persona (¿ese correo ya es de otra ficha o de la cuenta web de otra?) y fn_cuenta_web_reglas (¿la ficha de
+// esta cuenta abierta está anonimizada?). Corren dentro de la escritura de una función que ya pidió su candado, devuelven `trigger`
+// (nadie los llama por la API) y no devuelven nada de la ficha: solo rechazan. Los prueba clientas_correo_y_cuenta_web.mjs.
+LISTA_BLANCA.push("fn_correo_de_una_persona", "fn_cuenta_web_reglas");
+// Y desde el Club en la cuenta (ADR-0408, actividad 12, 20261015024000), dos que solo preguntan si la ficha de la cuenta está
+// archivada (con la ficha archivada la cuenta ya no agrega favoritos ni esperas) y no devuelven nada de ella: tienda_favorito y
+// tienda_avisame. Solo las ejecuta `tienda_web` (lo prueba scripts/pruebas/tienda_club.mjs).
+LISTA_BLANCA.push("tienda_favorito", "tienda_avisame");
+// Y los looks guardados de «Arma el tuyo» (ADR-0434, actividad 8, 20261017044000): tienda_guardar_look solo pregunta si la ficha de la
+// cuenta está archivada (con la ficha archivada la cuenta no guarda looks, como no agrega favoritos), igual que tienda_favorito, y no
+// devuelve nada de ella. Solo la ejecuta `tienda_web` (lo prueba scripts/pruebas/tienda_looks_guardados.mjs, sección 1).
+LISTA_BLANCA.push("tienda_guardar_look");
+// Y la venta de un pedido web (ADR-0408, actividad 10, 20261015051000): fn_pedido_web_vender lee el DNI y el nombre de la ficha del
+// pedido para emitir su boleta (como registrar_venta con el cliente del cobro) y no devuelve nada de ella. No la ejecuta nadie de la
+// API: solo la llama registrar_pago_pedido_web, que ya exige el módulo «Pedidos web» (lo prueba scripts/pruebas/pedidos_web_entregar.mjs).
+LISTA_BLANCA.push("fn_pedido_web_vender");
+// Y el disparador de las recomendaciones al anonimizar (ADR-0408, 20261015134000): fn_recomendaciones_al_anonimizar lee de la ficha que
+// se anonimiza SUS datos de antes (`old.nombre`, `old.documento_numero`, `old.telefono_whatsapp`, `old.correo`) solo para QUITARLOS del
+// texto de sus recomendaciones. Devuelve `trigger` (nadie la llama por la API) y no devuelve nada de la ficha. La prueba a fondo es
+// scripts/pruebas/recomendaciones_web.mjs (sección A).
+LISTA_BLANCA.push("fn_recomendaciones_al_anonimizar");
+// Y el ayudante de la cuenta simple (ADR-0438): fn_ficha_minima_de_cuenta lee de la ficha si es una «tarjeta en blanco» de la web (origen, sin
+// documento, celular ni Club) y devuelve solo un sí o un no. Nadie de la API la ejecuta (lo prueba tienda_cuenta_simple.mjs) y solo la llama el
+// disparador de `cuentas_web`.
+LISTA_BLANCA.push("fn_ficha_minima_de_cuenta");
+/** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
+const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR, ...DE_LA_TIENDA].map((n) => `'${n}'`).join(", ")})
+  and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
+  and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')
+  and not (x.proname in (${DE_RECOMENDACIONES.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''recomendaciones''\\)')
+  and not (x.proname in (${DEL_LIDER.map((n) => `'${n}'`).join(", ")})
+           and x.src ~ 'if\\s+not\\s+retail\\.fn_es_lider\\(\\)\\s+then\\s+raise\\s+exception[^;]*errcode\\s*=\\s*''42501''')
+  and not (x.proname in (${DE_LOS_PUNTOS_EN_CAJA.map((n) => `'${n}'`).join(", ")})
+           and x.src ~ 'if\\s+not\\s*\\(\\s*retail\\.fn_ve_modulo\\(''vender''\\)\\s+or\\s+retail\\.fn_ve_modulo\\(''clientas''\\)\\s*\\)\\s+then\\s+raise\\s+exception[^;]*errcode\\s*=\\s*''42501''')
+  and not (x.proname in (${DE_LOS_PUNTOS_INTERNAS.map((n) => `'${n}'`).join(", ")})
+           and not has_function_privilege('anon', x.oid, 'execute') and not has_function_privilege('authenticated', x.oid, 'execute')
+           and not has_function_privilege('tienda_web', x.oid, 'execute'))`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
-  from (select p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
+  from (select p.oid, p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
           from pg_proc p
          where p.pronamespace = 'retail'::regnamespace and p.prosecdef
            and p.proname not in (${LISTA_BLANCA.map((n) => `'${n}'`).join(", ")})) x
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, y todas llevan el candado del módulo",
-  VIGILANTE("true") + VIGILANTE(`x.src !~ 'fn_exigir_modulo\\(''clientas''\\)'`),
-  `${[...LAS_11].sort().join(",")}\nninguna`
+  `(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las ${DE_LA_TIENDA.length} de la tienda online, las 2 de los pedidos web, las ${DE_LA_FICHA_Y_LA_TIENDA.length} de la ficha y la tienda online (fn_clienta_tienda_online y las de «Restablecer acceso»), la 1 de Recomendaciones (fn_recomendaciones) y las ${DE_LOS_PUNTOS_EN_CAJA.length + DE_LOS_PUNTOS_INTERNAS.length} de los puntos del Club, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las ${DE_LA_TIENDA.length} de la tienda (las de Avisos, las de los pedidos web y la de Recomendaciones, el de su módulo; las de los puntos en caja, «Vender o Clientas»; las internas de los puntos, sin EXECUTE para nadie de la API)`,
+  VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
+  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES, ...DE_LOS_PUNTOS_EN_CAJA, ...DE_LOS_PUNTOS_INTERNAS, ...DEL_LIDER].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
-  `create function retail.zz_vigilante_sin_candado() returns text language plpgsql security definer as $fn$ begin return (select dni from retail.clientas limit 1); end; $fn$;
+  `create function retail.zz_vigilante_sin_candado() returns text language plpgsql security definer as $fn$ begin return (select documento_numero from retail.clientas limit 1); end; $fn$;
 create function retail.zz_vigilante_comentario() returns text language plpgsql security definer as $fn$
 begin
   -- perform retail.fn_exigir_modulo('clientas');
@@ -568,9 +823,9 @@ end; $fn$;
 create function retail.zz_vigilante_con_candado() returns text language plpgsql security definer as $fn$
 begin
   perform retail.fn_exigir_modulo('clientas');
-  return (select dni from retail.clientas limit 1);
+  return (select documento_numero from retail.clientas limit 1);
 end; $fn$;
-` + VIGILANTE(`x.src !~ 'fn_exigir_modulo\\(''clientas''\\)'`),
+` + VIGILANTE(SIN_EL_CANDADO),
   "zz_vigilante_comentario,zz_vigilante_sin_candado"
 );
 // Toda función que anota actividad (llama a fn_actividad_anotar) y lee las columnas de la clienta que un apartado copió al
@@ -607,149 +862,103 @@ caso(
     `create function pg_temp.mensaje(p_sql text) returns text language plpgsql as $f$ declare m text; begin execute p_sql; return 'SIN_ERROR'; exception when others then get stacked diagnostics m = message_text; return m; end; $f$;\n` +
     `grant execute on function pg_temp.mensaje(text) to authenticated;\n` +
     como(T_ALMACEN) + `select pg_temp.mensaje($q$select retail.buscar_clienta('x')$q$);\n`,
-  "f|f\nTu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y accesos."
+  // El nombre sale de retail.modulos: «Clientes» desde 20261002160000 (ADR-0288 act. k) y «Fichas de clientes» desde
+  // 20261004010000 (grupo propio «Clientes» en Roles y accesos).
+  "f|f\nTu rol no tiene el módulo «Fichas de clientes». Pídele al líder que lo active en Roles y accesos."
 );
 caso(
-  "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas (si alguien edita una sin actualizar la tabla, esto lo dice)",
+  "(5) los md5 «después» escritos en la PARTE 1 son los de las funciones vivas; las que las tandas 1a y 1b del club volvieron a cambiar, con el «después» de la última que las tocó (si alguien edita una sin actualizar su tabla, esto lo dice)",
   MD5_VIVOS,
-  VERSIONES.map((v) => v.despues).join("\n")
+  DESPUES_HOY.join("\n")
 );
 
 // =====================================================================================================================
-// 6. CONTROL y pegado (desde el estado de producción de hoy)
+// 6. CONTROL y pegado
 // =====================================================================================================================
-caso(
-  "(6) el control reproduce producción: las 11 con los md5 «antes» de la PARTE 1, y sin el ayudante",
-  DESHACER + MD5_VIVOS,
-  VERSIONES.map((v) => v.antes ?? "NO_EXISTE").join("\n")
-);
+// POR QUÉ ESTA SECCIÓN CAMBIÓ EL 2026-09-30. Hasta la tanda 1a del club (ADR-0288, 20260930160000), aquí se reproducía
+// producción ANTES de la PARTE 1 —recreando desde sus archivos las 11 funciones de antes (20260928160000 a 180000 y
+// registrar_clienta de 20260922140000), sin el ayudante ni el candado nuevo— y se pegaban encima la PARTE 1 y la PARTE 2
+// tal como están en disco: el ataque pasaba, y se cerraba; pegarlas dos veces o al revés dejaba lo mismo; el candado de
+// versión abortaba con una función cambiada en vivo; y la PARTE 1 limpiaba la actividad y las anonimizadas de antes
+// (sus secciones 13 y 14). Con la 1a eso dejó de ser reproducible, por el esquema y no por la prueba:
+//   - `clientas.dni` pasó a llamarse `documento_numero`: el `buscar_clienta` de antes (language sql) ya ni se crea
+//     («column "dni" does not exist»), y las de antes en plpgsql se crearían pero fallarían al correr;
+//   - la PARTE 1 aborta en su candado de versión, a propósito: la firma que conocía de registrar_clienta ya no existe.
+// Reconstruir ese «antes» obligaría a deshacer la 1a dentro de la prueba (y mañana la 1b, y así): una cadena de migraciones
+// al revés para volver a probar un archivo que producción ya tiene (lo confirma la 1a: sus «antes» son los «después» de la
+// PARTE 1, y el arranque de esta prueba lo exige). Por eso se retiraron: el control por md5 de las funciones de antes,
+// pegar la PARTE 1 (una o dos veces, antes o después de la 2, o sola), su candado con una función cambiada en vivo, y la
+// limpieza de la actividad y de las anonimizadas de antes (una sola vez, y en producción no había nada que limpiar).
+// Lo que la 1a pega hoy —candado de versión, pegarla dos veces, una función cambiada en vivo— lo prueba
+// scripts/pruebas/club_venta_ligada.mjs (casos «g»).
+// Lo que sigue siendo reproducible, y es lo que hace de esta prueba una prueba (que sus casos muerden), se queda:
+// - el ataque con las funciones vivas SIN su candado y la política de antes (SIN_CANDADO, arriba);
+// - la PARTE 2 (solo políticas: no nombra `dni`), pegada sobre la política de antes;
+// - el vigilante de la actividad y las cinco ramas con la actividad de Apartados de antes;
+// - y que pegar HOY la PARTE 1 por error no pisa nada (ni deshace la 1a).
 const ATAQUE = `${como(T_ALMACEN)}${LEE_DIRECTO}${intento(LLAMADAS.buscar_clienta)}${intento(LLAMADAS.fn_clienta_separaciones)}`;
+const QUEDAN_CON_CANDADO = `reset role;
+select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in (${LAS_DE_LA_FICHA.map((n) => `'${n}'`).join(", ")})
+   and p.prosrc ~ 'fn_exigir_modulo';
+`;
 caso(
-  "(6) CONTROL con el cambio deshecho: Terminal Almacén lee la ficha por la tabla y por las funciones (el ataque PASA)",
-  DESHACER + ATAQUE,
-  "3\nSIN_ERROR\nSIN_ERROR"
+  "(6) CONTROL sin el candado del módulo (ninguna de las 10 lo conserva) y con la política de antes: Terminal Almacén lee la ficha por la tabla y por las funciones (el ataque PASA)",
+  SIN_CANDADO + QUEDAN_CON_CANDADO + ATAQUE,
+  "0\n3\nSIN_ERROR\nSIN_ERROR"
 );
 caso(
-  "(6) CONTROL con el cambio deshecho: Micaela sin Clientas registra una ficha (el ataque PASA)",
-  DESHACER +
+  "(6) CONTROL de (1): sin el candado, Terminal Almacén ya no recibe clientas_sin_modulo en ninguna de las 10 (lee, y lo que guarda pide «elige quién»)",
+  SIN_CANDADO + como(T_ALMACEN) + TODAS,
+  (s) => s.split("\n").length === LAS_DE_LA_FICHA.length && !s.split("\n").includes(SIN_MODULO)
+);
+caso(
+  "(6) CONTROL sin el candado: Micaela sin Clientas registra una ficha (el ataque PASA)",
+  SIN_CANDADO +
     `delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
-    como(MICAELA) + intento(LLAMADAS.registrar_clienta) + `reset role;\nselect count(*) from retail.clientas where dni = '90777010';\n`,
+    como(MICAELA) + intento(LLAMADAS.registrar_clienta) + `reset role;\nselect count(*) from retail.clientas where documento_numero = '90777010';\n`,
   "SIN_ERROR\n1"
 );
-const DESPUES_DE_PEGAR =
-  ATAQUE + como(FELIPE) + LEE_DIRECTO + intento(LLAMADAS.buscar_clienta) + `reset role;\n` + MD5_VIVOS +
-  `select string_agg(polname || ':' || replace(pg_get_expr(polqual, polrelid), 'retail.', ''), ',' order by polname) from pg_policy where polrelid in ('retail.clientas'::regclass, 'retail.clientas_fusiones'::regclass);\n`;
-const CERRADO = ["0", SIN_MODULO, SIN_MODULO, "3", "SIN_ERROR", ...VERSIONES.map((v) => v.despues), "clientas_select:( SELECT fn_ve_modulo('clientas'::text) AS fn_ve_modulo)"].join("\n");
+const POLITICAS = `reset role;
+select string_agg(polname || ':' || replace(pg_get_expr(polqual, polrelid), 'retail.', ''), ',' order by polname) from pg_policy where polrelid in ('retail.clientas'::regclass, 'retail.clientas_fusiones'::regclass);
+`;
 caso(
-  "(6) pegar la PARTE 1 y la PARTE 2 (tal como están en disco) sobre producción cierra las dos puertas y deja pasar al líder",
-  DESHACER + PEGAR(PARTE_1) + PEGAR(PARTE_2) + DESPUES_DE_PEGAR,
-  CERRADO
+  "(6) pegar la PARTE 2 (tal como está en disco) sobre la política de antes cierra la lectura directa y deja pasar al líder; las funciones siguen abiertas hasta tener su candado (por eso eran dos partes)",
+  SIN_CANDADO + PEGAR(PARTE_2) + ATAQUE + como(FELIPE) + LEE_DIRECTO + POLITICAS,
+  "0\nSIN_ERROR\nSIN_ERROR\n3\nclientas_select:( SELECT fn_ve_modulo('clientas'::text) AS fn_ve_modulo)"
 );
 caso(
-  "(6) pegarlas dos veces cada una deja lo mismo",
-  DESHACER + PEGAR(PARTE_1) + PEGAR(PARTE_1) + PEGAR(PARTE_2) + PEGAR(PARTE_2) + DESPUES_DE_PEGAR,
-  CERRADO
+  "(6) pegar la PARTE 2 dos veces deja lo mismo: una sola política, la del módulo",
+  SIN_CANDADO + PEGAR(PARTE_2) + PEGAR(PARTE_2) + ATAQUE + como(FELIPE) + LEE_DIRECTO + POLITICAS,
+  "0\nSIN_ERROR\nSIN_ERROR\n3\nclientas_select:( SELECT fn_ve_modulo('clientas'::text) AS fn_ve_modulo)"
 );
 caso(
-  "(6) pegarlas en el orden equivocado (PARTE 2 antes que la 1) deja lo mismo",
-  DESHACER + PEGAR(PARTE_2) + PEGAR(PARTE_1) + DESPUES_DE_PEGAR,
-  CERRADO
+  "(6) pegar HOY la PARTE 1 (ya superada por la 1a) aborta con un mensaje claro: su candado no encuentra la firma vieja de registrar_clienta",
+  PEGAR(PARTE_1),
+  (o) =>
+    o.startsWith("ERROR_DE_SCRIPT") &&
+    o.includes("retail.registrar_clienta(text,text,text,boolean,smallint,smallint) no existe en esta base")
 );
 caso(
-  "(6) solo la PARTE 1: cierra las funciones; la lectura directa sigue abierta hasta la PARTE 2 (por eso van las dos)",
-  DESHACER + PEGAR(PARTE_1) + ATAQUE,
-  `3\n${SIN_MODULO}\n${SIN_MODULO}`
-);
-caso(
-  "(6) solo la PARTE 2: cierra la lectura directa; las funciones siguen abiertas hasta la PARTE 1",
-  DESHACER + PEGAR(PARTE_2) + ATAQUE,
-  "0\nSIN_ERROR\nSIN_ERROR"
-);
-// Una función cambiada en vivo (md5 que no es ni «antes» ni «después»): la PARTE 1 aborta con un mensaje claro y NO la pisa.
-const CAMBIADA_EN_VIVO = `create or replace function retail.buscar_clienta(p_termino text, p_incluir_archivadas boolean default false)
-returns setof retail.clientas language sql stable security definer set search_path = retail, public, extensions as $q$
-  select * from retail.clientas where nullif(btrim(p_termino), '') is not null and dni = btrim(p_termino) limit 5;
-$q$;\n`;
-caso(
-  "(6) candado de versión: con buscar_clienta cambiada en vivo, la PARTE 1 aborta con un mensaje claro",
-  DESHACER + CAMBIADA_EN_VIVO + PEGAR(PARTE_1),
-  (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("buscar_clienta(text,boolean) cambió desde que se escribió esta migración")
-);
-caso(
-  "(6) …y no pisa NADA: ni esa función ni las otras 10 (todo el pegado se deshace)",
+  "(6) …y no pisa NADA: las 14 siguen con los md5 de hoy, y la registrar_clienta de hoy (la de la 1b) sigue siendo la única",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y las funciones ya reemplazadas lo delatan.
-  DESHACER + CAMBIADA_EN_VIVO +
-    `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
+  `\\set ON_ERROR_STOP off\nsavepoint antes_de_pegar;\n${PARTE_1}\n\\if :ERROR\nrollback to savepoint antes_de_pegar;\n\\endif\n\\set ON_ERROR_STOP on\n` +
     `set local search_path = retail, public, extensions;\n` +
-    `select position('limit 5' in prosrc) > 0 from pg_proc where oid = 'retail.buscar_clienta(text,boolean)'::regprocedure;\n` +
-    `select to_regprocedure('retail.fn_exigir_modulo(text)') is null;\n` +
-    `select ${md5Norm("prosrc")} from pg_proc where oid = 'retail.registrar_clienta(text,text,text,boolean,smallint,smallint)'::regprocedure;\n` +
-    `select ${md5Norm("prosrc")} from pg_proc where oid = 'retail.fn_actividad_separacion(uuid,text,text)'::regprocedure;\n`,
-  `t\nt\n${VERSIONES.find((v) => v.firma.startsWith("retail.registrar_clienta")).antes}\n${VERSIONES.find((v) => v.firma.startsWith("retail.fn_actividad_separacion")).antes}`
-);
-// La actividad que las funciones de hoy escriben con el nombre (las de Clientas y las de un apartado suyo): la PARTE 1 la
-// reescribe una vez, sin tocar cuántas filas hay.
-const ACTIVIDAD_VIEJA = `${como(FELIPE)}${intento(LLAMADAS.editar_clienta)}${intento(`select retail.archivar_clienta('${FICHA}', 'Ficha Protegida se mudó', false, null)`)}${intento(`select retail.reactivar_clienta('${FICHA}', null)`)}${APARTADO({ codigo: "APT-TRU-9902", clienta: `'${FICHA}'`, nombres: "Ficha", apellidos: "Protegida Prueba", celular: "987777001", como: "sepv" })}reset role;
-select count(*) from retail.actividad a where a.modulo = 'clientas' and a.registro_id = '${FICHA}' and a::text ~* '(protegida|90777001)';
-select count(*) from retail.actividad a where ${DEL_APARTADO("sepv")} and a::text ~* 'protegida';
-`;
-const ACTIVIDAD_LIMPIA = `select count(*) from retail.actividad a where a.modulo = 'clientas' and a.registro_id = '${FICHA}' and a::text ~* '(protegida|90777001)';
-select count(*) from retail.actividad a where a.modulo = 'clientas' and a.registro_id = '${FICHA}';
-select string_agg(descripcion, ',' order by id) from retail.actividad a where a.modulo = 'clientas' and a.registro_id = '${FICHA}';
-select count(*) from retail.actividad a where ${DEL_APARTADO("sepv")} and (a::text ~* 'protegida' or a.detalle ? 'clienta');
-select count(*) from retail.actividad a where ${DEL_APARTADO("sepv")};
-select count(*) from retail.actividad a where ${DEL_APARTADO("sepv")} and a.descripcion ~ ' la clienta( |:|$)';
-select tgenabled from pg_trigger where tgrelid = 'retail.actividad'::regclass and tgname = 'trg_actividad_inmutable';
-`;
-const VIEJA = "SIN_ERROR\nSIN_ERROR\nSIN_ERROR\n3\n4\n";
-const LIMPIA = "0\n3\neditó la ficha de una clienta,archivó la ficha de una clienta,reactivó la ficha de una clienta\n0\n4\n4\nO";
-caso(
-  "(6) la actividad vieja (Clientas con el nombre y el motivo escrito, Apartados con el nombre) queda sin datos de la clienta al pegar la PARTE 1, con las mismas filas y el candado igual",
-  DESHACER + ACTIVIDAD_VIEJA + PEGAR(PARTE_1) + ACTIVIDAD_LIMPIA,
-  VIEJA + LIMPIA
+    MD5_VIVOS +
+    `select string_agg(p.oid::regprocedure::text, ',') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_clienta';\n`,
+  `${DESPUES_HOY.join("\n")}\n${REGISTRAR_HOY}`
 );
 caso(
-  "(6) …y pegarla otra vez no vuelve a tocar la actividad (idempotente), ni el candado queda apagado",
-  DESHACER + ACTIVIDAD_VIEJA + PEGAR(PARTE_1) + PEGAR(PARTE_1) + ACTIVIDAD_LIMPIA +
-    intento(`update retail.actividad set descripcion = 'x' where modulo in ('clientas', 'apartados')`),
-  (o) => o.startsWith(VIEJA + LIMPIA + "\n42501|La actividad no se edita ni se borra")
-);
-caso(
-  "(6) CONTROL del vigilante de la actividad: con las funciones de producción nombra las dos de Apartados",
-  DESHACER + VIGILANTE_ACTIVIDAD,
+  "(6) CONTROL del vigilante de la actividad: con las funciones de Apartados de antes de la PARTE 1 nombra las dos",
+  APARTADOS_ANTES + VIGILANTE_ACTIVIDAD,
   "fn_actividad_separacion,trg_actividad_separacion_hijas"
 );
 caso(
-  "(6) CONTROL de las cinco ramas: con las funciones de producción, las 6 líneas del apartado llevan su nombre",
-  `${DESHACER}${RAMAS_DEL_APARTADO}select count(*), count(*) filter (where a::text ~* '(${RASTRO.join("|")})')
+  "(6) CONTROL de las cinco ramas: con las funciones de Apartados de antes de la PARTE 1, las 6 líneas del apartado llevan su nombre",
+  `${APARTADOS_ANTES}${RAMAS_DEL_APARTADO}select count(*), count(*) filter (where a::text ~* '(${RASTRO.join("|")})')
   from retail.actividad a where ${LINEAS_DE_LAS_RAMAS};
 `,
   "6|6"
-);
-// Una clienta anonimizada ANTES de pegar, con las funciones de producción: la de antes guardaba el motivo escrito a mano y
-// no vaciaba la foto de sus fusiones. La PARTE 1 (sección 14) la deja como la dejaría la de hoy, una sola vez; y la foto de
-// una fusión cuya persona sigue viva (P se quedó con Q) no se toca: es la evidencia para deshacerla a mano.
-const ANONIMIZADA_ANTES = `${DESHACER}${TRES_FICHAS}select retail.registrar_clienta(null, 'Viva Queda Prueba', '987770091', false, null, null) as p \\gset
-select retail.registrar_clienta('90777591', 'Viva Se Une Prueba', null, false, null, null) as q \\gset
-select (retail.unir_clientas(:'p', :'q', null, null)).id as _u3 \\gset
-select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas pidió que la borren, DNI 90777555', true, null) as _anon \\gset
-reset role;
-select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")};
-select version as v_antes from retail.clientas where id = :'x' \\gset
-`;
-caso(
-  "(6) una clienta anonimizada ANTES de pegar (motivo con su nombre, fotos de Z→Y→X con DNI y celulares): la PARTE 1 la deja sin rastro, una sola vez, y no toca la foto de una fusión viva",
-  ANONIMIZADA_ANTES + PEGAR(PARTE_1) + PEGAR(PARTE_1) +
-    `select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")}, ${cuentaRastro("actividad")},
-       (select motivo_archivo from retail.clientas where id = :'x'),
-       (select version - :v_antes from retail.clientas where id = :'x'),
-       (select count(*) from retail.clientas_fusiones f join retail.clientas c on c.id = :'x'
-         where f.clienta_mantiene_id in (:'x', :'y') and f.ficha_fusionada = jsonb_build_object('anonimizada_en', c.archivada_en)),
-       (select ficha_fusionada ->> 'dni' from retail.clientas_fusiones where clienta_fusionada_id = :'q'),
-       (select string_agg(distinct motivo_archivo, ',') from retail.clientas where id in (:'y', :'z', :'q'));
-`,
-  "1|2\n0|0|0|Anonimizada (Ley 29733)|1|2|90777591|Se unió a otra ficha de clienta (unir_clientas)"
 );
 
 // =====================================================================================================================
@@ -764,7 +973,7 @@ const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const cajaA = (app, dni, fin) => `set application_name = '${app}';
 begin;
 set local search_path = retail, public, extensions;
-${como(FELIPE)}select retail.registrar_clienta('${dni}', null, null, false, null, null);
+${como(FELIPE)}select retail.registrar_clienta('dni', '${dni}', null, null, null, null);
 select pg_sleep(3);
 ${fin};
 `;
@@ -794,8 +1003,10 @@ async function carrera(nombre, fn) {
 await carrera(
   "(7a) dos cajas a la vez con el mismo DNI: la segunda ESPERA en la lectura de la ficha (`for update`), antes de decidir si estaba archivada (sin COMMIT: las dos terminan en ROLLBACK)",
   async () => {
-    const dni = correr(`select dni from retail.clientas where dni is not null and not anonimizada order by dni limit 1;`);
-    if (!dni.ok || !dni.salida) return [false, `no hay ninguna ficha con DNI en la base (el seed trae 9): ${dni.mensaje ?? ""}`];
+    const dni = correr(
+      `select documento_numero from retail.clientas where documento_tipo = 'dni' and documento_numero is not null and not anonimizada order by documento_numero limit 1;`
+    );
+    if (!dni.ok || !dni.salida) return [false, `no hay ninguna ficha con DNI en la base (el seed trae 8): ${dni.mensaje ?? ""}`];
     const app = `clientas_modulo_a_${Date.now()}`;
     const a = psqlEnParalelo(cajaA(app, dni.salida, "rollback"));
     await dormir(100);
@@ -813,7 +1024,7 @@ exception when others then
 end $f$;
 grant execute on function pg_temp.donde_espera(text) to authenticated;
 set local lock_timeout = '1s';
-${como(FELIPE)}select pg_temp.donde_espera($q$select retail.registrar_clienta('${dni.salida}', null, null, false, null, null)$q$);
+${como(FELIPE)}select pg_temp.donde_espera($q$select retail.registrar_clienta('dni', '${dni.salida}', null, null, null, null)$q$);
 rollback;
 `);
     const ra = await a;
@@ -831,9 +1042,9 @@ if (process.env.BASE_DESECHABLE === "1") {
     "(7b) con COMMIT: dos cajas registran a la vez a la misma clienta ARCHIVADA → la misma ficha, reactivada, y una sola línea «reactivó»",
     async () => {
       const prep = correr(`select d from (select '8' || lpad(floor(random() * 1e7)::int::text, 7, '0') as d from generate_series(1, 50)) x
- where not exists (select 1 from retail.clientas c where c.dni = x.d) limit 1 \\gset
-insert into retail.clientas (dni, nombre, archivada_en, motivo_archivo)
-  values (:'d', 'Prueba de concurrencia clientas-modulo', now(), 'prueba de concurrencia') returning id || '|' || dni;`);
+ where not exists (select 1 from retail.clientas c where c.documento_tipo = 'dni' and c.documento_numero = x.d) limit 1 \\gset
+insert into retail.clientas (documento_numero, nombre, archivada_en, motivo_archivo)
+  values (:'d', 'Prueba de concurrencia clientas-modulo', now(), 'prueba de concurrencia') returning id || '|' || documento_numero;`);
       if (!prep.ok) return [false, prep.mensaje];
       const [id, dni] = prep.salida.split("|");
       const app = `clientas_modulo_a_${Date.now()}`;
@@ -841,12 +1052,12 @@ insert into retail.clientas (dni, nombre, archivada_en, motivo_archivo)
       await dormir(100);
       const b = await psqlEnParalelo(`${esperarA(app)}begin;
 set local search_path = retail, public, extensions;
-${como(FELIPE)}select retail.registrar_clienta('${dni}', null, null, false, null, null);
+${como(FELIPE)}select retail.registrar_clienta('dni', '${dni}', null, null, null, null);
 commit;
 `);
       const ra = await a;
       const fin = correr(`select count(*) from retail.actividad a where a.modulo = 'clientas' and a.accion = 'reactivar' and a.registro_id = '${id}';
-select count(*) || '|' || bool_and(archivada_en is null) from retail.clientas where dni = '${dni}';`);
+select count(*) || '|' || bool_and(archivada_en is null) from retail.clientas where documento_tipo = 'dni' and documento_numero = '${dni}';`);
       const obtenido = [ra.ok ? ra.salida : `A falló: ${ra.mensaje}`, b.ok ? b.salida : `B falló: ${b.mensaje}`, fin.ok ? fin.salida : fin.mensaje]
         .join("\n")
         .replace(/\n+/g, "\n");

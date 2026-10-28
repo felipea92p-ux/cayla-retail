@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Historial de cierres</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* Maqueta 2026-10-08 — tokens copiados de apps/web/app/globals.css (ADR-0169). Solo para mirar: no es código del ERP. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--verde:#48603f;--verde-profundo:#44583a;--ambar:#74501a;--pizarra:#4c5d6e;
+  --tinta-60:#5b544c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#d9d2c5;font-family:"DM Sans",system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased}
+.serif{font-family:"EB Garamond",Georgia,serif}
+.lam{width:1228px;margin:32px auto;background:var(--crema);border-radius:14px;padding:40px 74px 48px;position:relative}
+.rotulo{position:absolute;top:-22px;left:0;font:600 11px/1 "DM Sans";letter-spacing:.13em;text-transform:uppercase;color:#4a443d}
+.label{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase}
+.sede{display:flex;align-items:center;gap:14px;color:var(--taupe)}
+.sede:before{content:"";width:32px;height:1px;background:var(--taupe)}
+h1{font-family:"EB Garamond";font-weight:500;font-size:46px;line-height:1;margin:14px 0 8px;letter-spacing:-.01em}
+.frase{color:rgba(26,26,24,.65);font-size:15px;margin:0}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;border:1px solid var(--sand);background:transparent;color:var(--tinta);font:600 11px "DM Sans";letter-spacing:.13em;text-transform:uppercase;cursor:pointer}
+.btn.prim{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn svg{width:16px;height:16px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px}
+.fila{display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--sand);font-size:15px;color:rgba(26,26,24,.7)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.c-verde{background:color-mix(in srgb,var(--verde) 12%,transparent);color:var(--verde-profundo)}
+.c-rojo{background:color-mix(in srgb,var(--rojo) 12%,transparent);color:var(--rojo-profundo)}
+.c-ambar{background:color-mix(in srgb,#a8741f 16%,transparent);color:var(--ambar)}
+.c-piz{background:color-mix(in srgb,var(--pizarra) 10%,transparent);color:var(--pizarra)}
+.c-piz:before{display:none}
+.pild{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:6px 14px;font-size:13px;font-weight:600;color:rgba(26,26,24,.7)}
+.pild.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pild .n{opacity:.6;font-weight:500}
+.cifra{padding:16px 18px}
+.cifra .v{font-family:"EB Garamond";font-size:34px;line-height:1.05;margin-top:8px}
+.cifra .s{font-size:12.5px;color:rgba(26,26,24,.6);margin-top:2px}
+.num{font-variant-numeric:tabular-nums}
+.punto{width:14px;height:14px;border-radius:4px}
+.nota{background:var(--hueso);border-radius:10px;padding:12px 16px;font-size:13px;color:rgba(26,26,24,.75)}
+.globo{position:absolute;background:var(--rojo);color:#fff;font:600 11px/1.3 "DM Sans";padding:6px 10px;border-radius:8px;max-width:220px}
+.globo b{display:block;letter-spacing:.1em;text-transform:uppercase;font-size:10px;margin-bottom:2px;opacity:.85}
+
+/* Tabla A */
+.ta-cab,.ta-f{display:grid;grid-template-columns:84px 104px 1.25fr 1fr 112px 112px 160px 20px;align-items:center;gap:16px;padding:0 20px}
+.ta-cab{height:42px;background:var(--hueso);font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:rgba(26,26,24,.6)}
+.ta-dia{padding:14px 20px 6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--taupe);display:flex;justify-content:space-between;border-top:1px solid var(--sand)}
+.ta-f{min-height:62px;border-top:1px solid color-mix(in srgb,var(--sand) 70%,transparent);font-size:14.5px;position:relative}
+.ta-f:hover{background:color-mix(in srgb,var(--sand) 35%,transparent)}
+.ta-f .barra{position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0}
+.der{text-align:right}
+.av{width:30px;height:30px;border-radius:50%;background:var(--hueso);display:inline-grid;place-items:center;font-size:12px;font-weight:700;color:var(--taupe);flex:none}
+.sub{font-size:12px;color:rgba(26,26,24,.55)}
+.q-cab,.q-f{display:grid;grid-template-columns:1fr 1fr 1fr 1.25fr 92px;gap:24px;align-items:center;padding:0 22px}
+.q-cab{height:46px;background:var(--hueso);font-size:13px;font-weight:600;color:rgba(26,26,24,.7)}
+.q-f{padding-top:16px;padding-bottom:16px;border-top:1px solid var(--sand);font-size:15px}
+.q-dia{padding:16px 22px 8px;font-size:13px;font-weight:700;color:var(--tinta);border-top:1px solid var(--sand)}
+.ver{font-size:13px;font-weight:600;color:var(--rojo);text-align:right;white-space:nowrap}
+.t-f{display:grid;grid-template-columns:110px minmax(0,1fr) 120px 120px 210px 90px;gap:24px;align-items:center;padding:0 24px}
+.t-cab{height:44px;background:var(--hueso);font-size:13px;font-weight:600;color:rgba(26,26,24,.7)}
+.t-fila{min-height:66px;border-top:1px solid color-mix(in srgb,var(--sand) 70%,transparent);font-size:14.5px}
+.t-fila:hover{background:color-mix(in srgb,var(--sand) 35%,transparent)}
+.res{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14.5px}
+.res i{font-style:normal;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:13px;flex:none}
+</style>
+</head>
+<body>
+
+<!-- ========================== LÁMINA 1: CAJA SIN ABRIR ========================== -->
+<section class="lam" id="l1">
+  <div class="rotulo">Lámina 1 · Caja (sin abrir) — el historial se ve</div>
+  <div class="cab">
+    <div>
+      <div class="sede label">Tienda TRU · jueves, 8 de octubre · 09:06</div>
+      <h1>Caja</h1>
+      <p class="frase">Abre la caja para empezar a vender.</p>
+    </div>
+    <button class="btn" style="margin-top:22px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+      Historial de cierres
+    </button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-top:26px;align-items:start">
+    <div class="card" style="padding:26px 20px 18px">
+      <div class="label" style="color:var(--taupe)">Último cierre</div>
+      <div class="serif num" style="font-size:46px;line-height:1.1;margin-top:10px">S/ 282.50</div>
+      <div style="color:rgba(26,26,24,.65);font-size:14.5px;margin:6px 0 16px">quedaron en el cajón · mié, 07/10, 08:13 p. m. · cerró Janis Revilla</div>
+      <div class="fila"><span>El sistema esperaba</span><span class="num" style="color:var(--tinta)">S/ 1,138.10</span></div>
+      <div class="fila"><span>Se contó en físico <span class="chip c-rojo" style="margin-left:6px">Faltó S/ 5.60</span></span><span class="num" style="color:var(--tinta)">S/ 1,132.50</span></div>
+      <div class="fila"><span>Trasladado · Caja fuerte de la sede</span><span class="num" style="color:var(--tinta)">− S/ 850.00</span></div>
+      <div class="fila" style="font-weight:600;color:var(--tinta)"><span>Quedó en el cajón</span><span class="num">S/ 282.50</span></div>
+
+      <!-- La racha: solo informa. El camino al historial es UNO: el botón de la cabecera. -->
+      <div style="margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--hueso)">
+          <div style="display:flex;gap:5px" id="racha"></div>
+          <div style="font-size:12.5px;color:rgba(26,26,24,.65);margin-top:7px">Últimos 5 cierres de esta tienda: <b style="color:var(--tinta)">2 cuadraron</b>, 2 faltaron, 1 sobró</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:26px 20px 20px">
+      <div class="label" style="color:var(--taupe)">Abrir caja</div>
+      <div class="serif" style="font-size:24px;margin:6px 0 14px">Antes de abrir, cuenta el cajón</div>
+      <div style="background:#f6ead3;border:1px solid #e9cf9f;border-radius:12px;padding:14px 16px;font-size:14.5px;color:#6e4a12;line-height:1.5">⚠&nbsp; Según el último cierre, en el cajón deberían estar <b>S/ 282.50</b>. Cuéntalo ahora: si abres con un monto que no está, cualquier faltante de hoy va a parecer tuyo.</div>
+      <div style="border:1px solid var(--sand);border-radius:12px;padding:14px 16px;margin-top:14px;font-size:15px">◯&nbsp;&nbsp; Conté y hay <b>S/ 282.50</b></div>
+      <div style="border:1px solid var(--sand);border-radius:12px;padding:14px 16px;margin-top:8px;font-size:15px">◯&nbsp;&nbsp; Hay otro monto</div>
+      <div style="height:34px;border-radius:8px;background:#8a8780;margin-top:16px;display:grid;place-items:center;color:#f5f0e8;font-size:14px">Abrir caja</div>
+    </div>
+  </div>
+
+  <div class="globo" style="top:96px;right:250px"><b>Cambio 1</b>Botón con borde e ícono, del mismo alto que los de la cabecera de Caja abierta</div>
+  <div class="globo" style="top:520px;left:-6px;transform:translateX(-100%)"><b>Cambio 2</b>La racha solo informa cómo vienen los cierres. Al historial se entra por un solo botón: el de arriba</div>
+</section>
+
+<section class="lam" id="l2">
+  <div class="rotulo">Lámina 2 · Historial de cierres</div>
+  <div class="cab">
+    <div>
+      <div class="sede label" style="gap:10px"><span style="width:28px;height:28px;border:1px solid var(--sand);border-radius:50%;display:inline-grid;place-items:center;color:var(--tinta);font-size:14px;margin-right:4px;letter-spacing:0">←</span>Caja · todas las sedes</div>
+      <h1>Historial de cierres</h1>
+      <p class="frase">Cada noche se cuenta la plata del cajón. Si es la misma que el sistema calculó, la caja <b style="color:var(--verde-profundo)">cuadró</b>.</p>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px">
+    <div class="card cifra"><div class="label" style="color:var(--taupe)">Cuadraron</div><div class="v num" style="color:var(--verde-profundo)">3 <span style="font-size:20px;color:rgba(26,26,24,.45)">de 8 cierres</span></div><div class="s">del 3 al 7 de octubre</div></div>
+    <div class="card cifra" style="background:color-mix(in srgb,var(--rojo) 6%,var(--papel))"><div class="label" style="color:var(--rojo-profundo)">Faltó plata</div><div class="v num" style="color:var(--rojo-profundo)">S/ 873.40</div><div class="s">en 4 de los 8 cierres</div></div>
+    <div class="card cifra"><div class="label" style="color:var(--taupe)">Sobró plata</div><div class="v num" style="color:var(--ambar)">S/ 31.40</div><div class="s">en 1 cierre</div></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-top:18px">
+    <span class="pild on">Todas las tiendas</span><span class="pild">TRU <span class="n">5</span></span><span class="pild">AQP <span class="n">3</span></span>
+    <span style="width:1px;height:22px;background:var(--sand);margin:0 6px"></span>
+    <span class="pild">Solo los que no cuadraron <span class="n">5</span></span>
+  </div>
+  <div class="card" style="margin-top:14px;overflow:hidden">
+    <div class="t-f t-cab"><span>Tienda</span><span>Quién atendió la caja</span><span class="der">Debía haber</span><span class="der">Se contó</span><span>¿Cuadró?</span><span></span></div>
+    <div id="filas"></div></div>
+</section>
+
+<script>
+// Datos de la captura de Felipe (2026-10-08). Los apellidos cortados en la captura van con inicial.
+const C=[
+ {d:7,ds:"Miércoles",h:"08:13 p. m.",s:"TRU",ab:"Janis Revilla",q:"Janis Revilla",a:296,e:1138.10,c:1132.50},
+ {d:6,ds:"Martes",h:"10:09 p. m.",s:"AQP",ab:"Sandra R.",q:"Sandra R.",a:188.10,e:392.20,c:179.20},
+ {d:6,ds:"Martes",h:"08:07 p. m.",s:"TRU",ab:"Janis Revilla",q:"Janis Revilla",a:317,e:1446,c:1446},
+ {d:5,ds:"Lunes",h:"09:38 p. m.",s:"AQP",ab:"Sandra R.",q:"Sandra R.",a:178.40,e:438.10,c:438.10},
+ {d:5,ds:"Lunes",h:"07:43 p. m.",s:"TRU",ab:"Melany E.",q:"Janis Revilla",a:300,e:1047,c:1047},
+ {d:4,ds:"Domingo",h:"04:55 p. m.",s:"TRU",ab:"Janis Revilla",q:"Janis Revilla",a:300,e:1361.20,c:1392.60},
+ {d:4,ds:"Domingo",h:"11:32 a. m.",s:"TRU",ab:"Melany E.",q:"Melany E.",a:300,e:2061.40,c:1550},
+ {d:3,ds:"Sábado",h:"12:29 p. m.",s:"AQP",ab:"Sandra R.",q:"Lizzelott R.",a:13.60,e:282.70,c:139.30},
+];
+const m=n=>"S/ "+Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const est=c=>{const df=+(c.c-c.e).toFixed(2);return Math.abs(df)<.01?["cuadro",df]:df>0?["sobro",df]:["falto",df]};
+const COL={cuadro:"var(--verde)",sobro:"#a8741f",falto:"var(--rojo)"};
+const chip=(k,df)=>k==="cuadro"?'<span class="chip c-verde">Cuadró</span>':k==="sobro"?`<span class="chip c-ambar">Sobró ${m(df)}</span>`:`<span class="chip c-rojo">Faltó ${m(df)}</span>`;
+const ini=n=>n.split(" ").map(x=>x[0]).slice(0,2).join("");
+const chev='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,24,.4)" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>';
+
+// Racha de la lámina 1 (TRU, últimos 7)
+document.getElementById("racha").innerHTML=C.filter(c=>c.s==="TRU").slice(0,7).reverse().map(c=>`<span class="punto" style="background:${COL[est(c)[0]]}"></span>`).join("");
+
+// Lámina 2: preguntas como títulos
+const nombreDia=c=>`${c.ds} ${c.d} de octubre`;
+const resp=(k,df,c)=>k==="cuadro"
+ ?`<span style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;line-height:1.2;color:var(--verde)">✓</span><span><b style="color:var(--verde-profundo);font-size:16px">Sí, cuadró</b><span class="sub" style="display:block;font-size:13px">Se contaron ${m(c.c)}, lo justo</span></span></span>`
+ :`<span style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;line-height:1.2;color:${k==="falto"?"var(--rojo)":"#a8741f"}">${k==="falto"?"✕":"!"}</span><span><b style="color:${TXT2[k]};font-size:16px">No, ${k==="falto"?"faltaron":"sobraron"} ${m(df)}</b><span class="sub" style="display:block;font-size:13px">Debían haber ${m(c.e)} y se contaron ${m(c.c)}</span></span></span>`;
+const TXT2={falto:"var(--rojo-profundo)",sobro:"var(--ambar)"};
+
+// Lámina 2: una fila por cierre, con columnas parejas
+let hf="",df0=null;
+for(const c of C){
+  if(c.d!==df0){df0=c.d;hf+=`<div style="padding:16px 24px 8px;font-size:13.5px;font-weight:700;border-top:1px solid var(--sand)">${nombreDia(c)}</div>`;}
+  const [k,df]=est(c);
+  const base=k==="cuadro"?"var(--verde)":k==="falto"?"var(--rojo)":"#a8741f";
+  const color=k==="cuadro"?"var(--verde-profundo)":TXT2[k];
+  const txt=k==="cuadro"?"Sí, cuadró":k==="falto"?`Faltaron ${m(df)}`:`Sobraron ${m(df)}`;
+  const ico=k==="cuadro"?"✓":k==="falto"?"✕":"↑";
+  const quien=c.ab===c.q?`<b>${c.q}</b> abrió y cerró`:`Abrió <b>${c.ab}</b>, cerró <b>${c.q}</b>`;
+  hf+=`<div class="t-f t-fila">
+    <span><b>${c.s}</b><span class="sub" style="display:block">cerró ${c.h}</span></span>
+    <span>${quien}<span class="sub" style="display:block">empezó con ${m(c.a)} en el cajón</span></span>
+    <span class="der num" style="color:rgba(26,26,24,.7)">${m(c.e)}</span>
+    <span class="der num" style="font-weight:700">${m(c.c)}</span>
+    <span class="res" style="color:${color}"><i style="background:${base}">${ico}</i>${txt}</span>
+    <span class="ver">Ver detalle ›</span></div>`;
+}
+document.getElementById("filas").innerHTML=hf;
+</script>
+</body>
+</html>

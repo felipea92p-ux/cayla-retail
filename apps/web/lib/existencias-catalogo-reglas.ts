@@ -15,15 +15,23 @@ export type ProductoDeCatalogo = {
   referencia: string;
   marca: string | null;
   categoria: string | null;
+  /** `categorias.familia` (`indumentaria`, `calzado`, `accesorios`…): la capacidad del piso cuenta solo ropa colgada (ADR-0329), y la
+   *  cabecera dice cuántas de las colgadas no lo son. Null si el producto no tiene categoría o su categoría no tiene familia. */
+  familia: string | null;
   /** `productos.estado`: solo un producto «activo» se ofrece como «en el catálogo, sin stock aquí». */
   estado: string;
-  /** `productos.estado_alta`: una prenda dada de alta al vuelo (Conteo) queda `pendiente` hasta que un líder la revisa; su nombre
-   *  y su marca pueden estar mal escritos, así que las otras sedes no la ven como «del catálogo» hasta que se apruebe. */
+  /** `productos.descripcion` (corte, largo, detalles), para la cabecera del panel de la talla. Null si no tiene. */
+  descripcion: string | null;
+  /** `productos.estado_alta`: una prenda dada de alta al vuelo (Conteo) queda `pendiente` en la base. Ya no se lee para filtrar:
+   *  Felipe quitó la revisión de esas altas el 2026-10-02 («no me sirve»), así que una pendiente se trata como cualquier otra. Si
+   *  se creó por error, se descontinúa en su ficha y ahí sí deja de ofrecerse (filtro por `estado`). */
   estadoAlta: string;
   /** Dato de prueba (D-54, ADR-0159): nunca se ofrece ni se nombra. */
   esPrueba: boolean;
   /** ¿Tiene al menos una variante activa? Sin ella no hay nada que tener ni pedir (p. ej. «Prenda sin Registrar», el producto del cargo especial). */
   conVariantesActivas: boolean;
+  /** De qué empresa es (`productos.empresa_id`, ADR-0463): una de CLAURE no se ofrece «sin stock aquí» fuera de Lima (ADR-0505). */
+  empresaId?: string | null;
 };
 
 /** Pone la marca a cada fila por su producto. Una fila cuyo producto no llegó (la lectura falló o el producto es nuevo) queda con `marca: null`. */
@@ -40,15 +48,23 @@ export function conEstadoProducto<T extends { productoId: string }>(filas: reado
   return filas.map((f) => ({ ...f, estadoProducto: estadoDe.get(f.productoId) ?? null }));
 }
 
+/** Pone a cada fila la descripción de su producto (Felipe, 2026-10-06: se escribía al crear la prenda y no se veía en ninguna
+ *  parte; el panel de la talla la muestra bajo el nombre). Una descripción en blanco cuenta como ninguna. Una fila cuyo producto
+ *  no llegó queda con `descripcion: null` y el panel no dibuja nada. */
+export function conDescripcion<T extends { productoId: string }>(filas: readonly T[], productos: readonly ProductoDeCatalogo[]): (T & { descripcion: string | null })[] {
+  const descripcionDe = new Map(productos.map((p) => [p.id, p.descripcion?.trim() || null]));
+  return filas.map((f) => ({ ...f, descripcion: descripcionDe.get(f.productoId) ?? null }));
+}
+
 /**
- * Los productos activos y aprobados del catálogo, con alguna variante activa, que ESTA sede no tiene (ni una fila de
+ * Los productos activos del catálogo, con alguna variante activa, que ESTA sede no tiene (ni una fila de
  * stock, ni siquiera en cero), sin los de prueba, por nombre. `filas` son las de la sede ANTES de ocultar los de prueba:
  * da igual, un producto de prueba nunca sale de aquí.
  */
 export function productosSinStockEnSede(productos: readonly ProductoDeCatalogo[], filas: readonly { productoId: string }[]): ProductoSinStock[] {
   const conFila = new Set(filas.map((f) => f.productoId));
   return productos
-    .filter((p) => p.estado === "activo" && p.estadoAlta === "aprobado" && p.conVariantesActivas && !p.esPrueba && !conFila.has(p.id))
+    .filter((p) => p.estado === "activo" && p.conVariantesActivas && !p.esPrueba && !conFila.has(p.id))
     .map((p) => ({ id: p.id, referencia: p.referencia, marca: p.marca, categoria: p.categoria }))
     .sort((a, b) => a.referencia.localeCompare(b.referencia, "es"));
 }
@@ -56,4 +72,14 @@ export function productosSinStockEnSede(productos: readonly ProductoDeCatalogo[]
 /** Las marcas que hay en las filas de la sede, sin repetir y por nombre (para el combo «Marca»). */
 export function marcasDeLaSede(filas: readonly { marca?: string | null }[]): string[] {
   return Array.from(new Set(filas.map((f) => f.marca).filter((m): m is string => !!m))).sort((a, b) => a.localeCompare(b, "es"));
+}
+
+/** Pone a cada fila la familia de su color (por el nombre del color, que es único en la base). Un color que no llegó (la lectura
+ *  falló o es nuevo) queda con `colorFamilia: null`: se filtra solo por su nombre, nunca se pierde. */
+export function conFamiliaDeColor<T extends { color: string | null }>(
+  filas: readonly T[],
+  colores: readonly { nombre: string; familia: string | null }[]
+): (T & { colorFamilia: string | null })[] {
+  const familiaDe = new Map(colores.map((c) => [c.nombre, c.familia]));
+  return filas.map((f) => ({ ...f, colorFamilia: (f.color && familiaDe.get(f.color)) || null }));
 }

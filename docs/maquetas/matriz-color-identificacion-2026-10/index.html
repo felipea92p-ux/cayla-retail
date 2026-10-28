@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matriz de cantidades — identificación de fila</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+  :root {
+    --rojo:#b8412d; --rojo-p:#8b2a1f; --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --tinta-60:#5b544c;
+    --sand:#e8e0d0; --taupe:#805c4c; --hueso:#eae1d2; --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+    --ease:cubic-bezier(.32,.72,.24,1);
+    --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --serif:"EB Garamond",ui-serif,Georgia,serif;
+    color-scheme:light;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; line-height:1.45; padding-bottom:80px; }
+  .wrap { max-width:1040px; margin:0 auto; padding:24px 20px 0; }
+  h1,h2,h3 { font-family:var(--serif); font-weight:400; margin:0; text-wrap:balance; }
+  h1 { font-size:28px; }
+  h2 { font-size:20px; margin-bottom:4px; }
+  .eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--tinta-60); font-weight:600; }
+  .muted { color:var(--tinta-60); }
+  p { margin:0; }
+  .intro { display:flex; flex-direction:column; gap:8px; padding-bottom:18px; border-bottom:1px solid var(--sand); }
+
+  /* Nav pegajosa para saltar entre maquetas */
+  nav { position:sticky; top:0; z-index:20; background:color-mix(in oklab, var(--crema) 92%, transparent); backdrop-filter:blur(6px); border-bottom:1px solid var(--sand); padding:10px 20px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  nav a { font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--tinta-60); text-decoration:none; border:1px solid var(--sand); background:var(--papel); border-radius:999px; padding:6px 14px; transition:background .15s var(--ease), color .15s var(--ease); }
+  nav a:hover { color:var(--tinta); background:var(--hueso); }
+
+  section.maqueta { max-width:1040px; margin:0 auto; padding:40px 20px 8px; scroll-margin-top:60px; }
+  .cabecera-maqueta { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px 20px; margin-bottom:4px; }
+  .letra { display:inline-grid; place-items:center; width:34px; height:34px; border-radius:50%; background:var(--tinta); color:var(--crema); font-family:var(--serif); font-size:17px; flex:none; }
+  .titulo-maqueta { display:flex; align-items:center; gap:12px; }
+  .desc { color:var(--tinta-60); font-size:13px; max-width:62ch; margin:6px 0 18px; }
+
+  /* Mesa de la tabla, estilo CAYLA real */
+  .marco { border:1px solid var(--sand); border-radius:14px; background:var(--papel); overflow:hidden; }
+  .barra-superior { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; padding:14px 16px; border-bottom:1px solid var(--sand); }
+  .segmentado { display:inline-flex; border-radius:9px; border:1px solid var(--sand); background:var(--crema); padding:3px; }
+  .segmentado button { border:0; background:transparent; font:inherit; font-size:12.5px; font-weight:500; color:var(--tinta-60); padding:6px 12px; border-radius:7px; }
+  .segmentado button[aria-pressed="true"] { background:var(--papel); color:var(--tinta); box-shadow:inset 0 0 0 1px var(--sand); }
+
+  .relleno { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--taupe); }
+  .relleno label { font-size:13px; color:var(--tinta-60); }
+  .caja-relleno { height:38px; width:76px; border-radius:9px; border:1px solid var(--sand); background:var(--hueso); text-align:center; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--tinta); outline:none; }
+  .caja-relleno:focus { border-color:var(--taupe); background:var(--papel); }
+  .caja-relleno::placeholder { color:color-mix(in oklab, var(--tinta) 28%, transparent); }
+  .auto-aviso { font-size:11px; color:var(--taupe); display:flex; align-items:center; gap:4px; }
+  .auto-aviso svg { width:12px; height:12px; }
+
+  .leyenda { padding:10px 16px 0; font-size:12.5px; color:var(--tinta-60); }
+
+  .scroll-tabla { max-height:420px; overflow:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+  thead th { position:sticky; top:0; z-index:2; background:var(--hueso); text-align:center; font-size:11.5px; font-weight:600; color:var(--tinta); padding:10px 6px; white-space:nowrap; }
+  thead th:first-child { position:sticky; left:0; top:0; z-index:3; text-align:left; padding-left:16px; border-right:1px solid var(--sand); }
+  th.col-total { text-align:right; padding-right:14px; color:var(--tinta-60); border-left:1px solid var(--sand); }
+
+  td, th.fila-color { border-top:1px solid var(--sand); }
+  th.fila-color { position:sticky; left:0; text-align:left; padding:10px 14px; font-size:13.5px; font-weight:600; color:var(--tinta); white-space:nowrap; z-index:1; }
+  .punto { display:inline-block; width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,.15); margin-right:7px; vertical-align:-1px; }
+  td.celda { text-align:center; padding:6px 8px; }
+  td.col-total { text-align:right; padding-right:14px; color:var(--tinta-60); font-variant-numeric:tabular-nums; border-left:1px solid var(--sand); }
+
+  /* Stepper +/- común a las 3 maquetas */
+  .stepper { display:inline-flex; align-items:stretch; border:1px solid var(--sand); border-radius:8px; background:var(--hueso); overflow:hidden; height:32px; }
+  .stepper button { border:0; background:transparent; width:24px; font:inherit; font-size:14px; color:var(--taupe); cursor:pointer; line-height:1; }
+  .stepper button:hover { background:var(--sand); color:var(--tinta); }
+  .stepper input { width:34px; border:0; background:transparent; text-align:center; font-size:13.5px; font-variant-numeric:tabular-nums; color:var(--tinta); outline:none; padding:0; }
+  .stepper input::placeholder { color:color-mix(in oklab, var(--tinta) 25%, transparent); }
+
+  tfoot th, tfoot td { position:sticky; bottom:0; background:var(--hueso); border-top:1px solid var(--sand); font-weight:600; font-size:12px; padding:10px 8px; }
+  tfoot th { text-align:left; padding-left:16px; left:0; z-index:2; }
+  tfoot td { text-align:center; }
+  tfoot td.col-total { text-align:right; padding-right:14px; border-left:1px solid var(--sand); }
+
+  /* A: zebra oficial */
+  .m-a tbody tr:nth-child(even) th.fila-color,
+  .m-a tbody tr:nth-child(even) td { background:color-mix(in oklab, var(--hueso) 55%, transparent); }
+  .m-a tbody tr:hover th.fila-color,
+  .m-a tbody tr:hover td { background:color-mix(in oklab, var(--crema) 70%, transparent); }
+
+  /* B: franja de color + zebra sutil */
+  .m-b tbody tr:nth-child(even) th.fila-color,
+  .m-b tbody tr:nth-child(even) td { background:color-mix(in oklab, var(--hueso) 35%, transparent); }
+  .m-b tbody tr:hover th.fila-color,
+  .m-b tbody tr:hover td { background:color-mix(in oklab, var(--crema) 70%, transparent); }
+  .m-b th.fila-color { box-shadow: inset 4px 0 0 0 var(--franja, var(--sand)); padding-left:12px; }
+
+  /* C: fila en tarjeta */
+  .m-c .scroll-tabla { padding:10px; display:flex; flex-direction:column; gap:7px; max-height:460px; }
+  .m-c table { display:none; }
+  .fila-tarjeta { display:grid; grid-template-columns:1fr repeat(3, 104px) 76px; align-items:center; background:var(--papel); border:1px solid var(--sand); border-radius:11px; padding:9px 8px 9px 14px; gap:4px; }
+  .fila-tarjeta:hover { border-color:var(--taupe); background:var(--crema); }
+  .fila-tarjeta .nombre { font-weight:600; font-size:13.5px; display:flex; align-items:center; }
+  .fila-tarjeta .celda { display:flex; justify-content:center; }
+  .fila-tarjeta .total { text-align:right; padding-right:8px; color:var(--tinta-60); font-variant-numeric:tabular-nums; font-size:13px; border-left:1px solid var(--sand); }
+  .cab-tarjetas { display:grid; grid-template-columns:1fr repeat(3, 104px) 76px; padding:0 8px 0 14px; margin-bottom:4px; }
+  .cab-tarjetas span { text-align:center; font-size:11px; font-weight:600; color:var(--tinta-60); }
+  .cab-tarjetas span:first-child { text-align:left; }
+  .cab-tarjetas span:last-child { text-align:right; padding-right:8px; }
+
+  .trade { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px; }
+  @media (max-width:640px){ .trade { grid-template-columns:1fr; } }
+  .trade .caja { border-radius:11px; padding:12px 14px; font-size:12.5px; }
+  .trade .ganas { background:color-mix(in oklab, var(--verde) 10%, var(--papel)); border:1px solid color-mix(in oklab, var(--verde) 30%, var(--sand)); }
+  .trade .pagas { background:color-mix(in oklab, var(--ambar) 10%, var(--papel)); border:1px solid color-mix(in oklab, var(--ambar) 30%, var(--sand)); }
+  .trade .etiqueta { font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; margin-bottom:5px; display:block; }
+  .trade .ganas .etiqueta { color:var(--verde); }
+  .trade .pagas .etiqueta { color:var(--ambar); }
+  .trade ul { margin:0; padding-left:16px; }
+  .trade li + li { margin-top:3px; }
+
+  .recomendada { display:inline-block; margin-left:10px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; color:var(--verde); background:color-mix(in oklab, var(--verde) 14%, var(--papel)); border:1px solid color-mix(in oklab, var(--verde) 35%, var(--sand)); border-radius:999px; padding:3px 10px; }
+
+  footer.nota { max-width:1040px; margin:40px auto 0; padding:16px 20px; border-top:1px solid var(--sand); font-size:12px; color:var(--tinta-60); }
+</style>
+</head>
+<body>
+
+<div class="wrap intro">
+  <span class="eyebrow">Nuevo producto · paso 4 · Cuántas tienes hoy</span>
+  <h1>Tres formas de que la fila no se pierda</h1>
+  <p class="muted">Con el color y el nombre pegados a la izquierda y las cantidades lejos a la derecha, al mirar la tabla de reojo
+  es fácil engancharse en la línea de al lado. Las tres maquetas resuelven lo mismo —anclar visualmente cada fila de punta a
+  punta— con una estrategia distinta. Las tres ya incluyen los otros dos cambios pedidos: «Llenar todas con» más grande y sin
+  botón «Aplicar» (se aplica y se borra solo, apenas se escribe), y un par de botones <b>−</b> / <b>+</b> junto a cada cantidad.</p>
+</div>
+
+<nav>
+  <a href="#maqueta-a">A · Zebra oficial</a>
+  <a href="#maqueta-b">B · Franja de color</a>
+  <a href="#maqueta-c">C · Fila en tarjeta</a>
+</nav>
+
+<!-- ============================================================ MAQUETA A ============================================================ -->
+<section class="maqueta m-a" id="maqueta-a">
+  <div class="cabecera-maqueta">
+    <div class="titulo-maqueta"><span class="letra">A</span><h2>Zebra oficial<span class="recomendada">Recomendada</span></h2></div>
+  </div>
+  <p class="desc">La misma zebra que ya usa <code>Tabla</code> en el resto del ERP (<code>.fila-cayla</code>, hueso al 55% en las filas
+  pares) pero extendida a la columna de color pegajosa, para que el tinte cruce TODA la fila sin cortarse al hacer scroll lateral.
+  Es el cambio más chico: una clase, cero conceptos nuevos que aprender.</p>
+
+  <div class="marco">
+    <div class="barra-superior">
+      <div class="segmentado" role="group" aria-label="Qué escribes en la tabla">
+        <button aria-pressed="true">Cuántas tienes hoy</button>
+        <button aria-pressed="false">¿Alguna cuesta distinto?</button>
+      </div>
+      <div class="relleno">
+        <label for="relleno-a">Llenar todas con</label>
+        <input id="relleno-a" class="caja-relleno" type="text" inputmode="numeric" placeholder="1" value="3">
+        <span class="auto-aviso">⏎ se aplica sola · vacía = borra todo</span>
+      </div>
+    </div>
+    <p class="leyenda">Lo que hay hoy en Tienda TRU. Lo que no tengas, déjalo vacío. — = no existe.</p>
+    <div class="scroll-tabla">
+      <table>
+        <thead>
+          <tr><th>Color</th><th>S</th><th>M</th><th>L</th><th class="col-total">Total</th></tr>
+        </thead>
+        <tbody id="filas-a"></tbody>
+        <tfoot>
+          <tr><th>Total</th><td>6</td><td>9</td><td>3</td><td class="col-total">18</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="trade">
+    <div class="caja ganas"><span class="etiqueta">Ganas</span><ul>
+      <li>Coherente con el resto del sistema (misma clase que toda tabla CAYLA)</li>
+      <li>Cero curva de aprendizaje, cero riesgo visual</li>
+      <li>Funciona igual de bien con 3 colores o con 30</li>
+    </ul></div>
+    <div class="caja pagas"><span class="etiqueta">Pagas</span><ul>
+      <li>El ancla es sutil — ayuda, pero no es un «no te puedes confundir»</li>
+      <li>En pantallas muy anchas con pocas tallas, el tinte por sí solo no acorta la distancia visual</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ MAQUETA B ============================================================ -->
+<section class="maqueta m-b" id="maqueta-b">
+  <div class="cabecera-maqueta">
+    <div class="titulo-maqueta"><span class="letra">B</span><h2>Franja de color + zebra sutil</h2></div>
+  </div>
+  <p class="desc">Además de la zebra (más suave aquí), el nombre del color lleva una franja de 4&nbsp;px pegada a su propio tono
+  —el mismo hex que ya usa el punto de color, no un color inventado— que se extiende como fondo tenue bajo TODA la fila. El ojo
+  asocia «esta franja verde = esta línea de números», sin tener que leer el nombre.</p>
+
+  <div class="marco">
+    <div class="barra-superior">
+      <div class="segmentado" role="group" aria-label="Qué escribes en la tabla">
+        <button aria-pressed="true">Cuántas tienes hoy</button>
+        <button aria-pressed="false">¿Alguna cuesta distinto?</button>
+      </div>
+      <div class="relleno">
+        <label for="relleno-b">Llenar todas con</label>
+        <input id="relleno-b" class="caja-relleno" type="text" inputmode="numeric" placeholder="1" value="3">
+        <span class="auto-aviso">⏎ se aplica sola · vacía = borra todo</span>
+      </div>
+    </div>
+    <p class="leyenda">Lo que hay hoy en Tienda TRU. Lo que no tengas, déjalo vacío. — = no existe.</p>
+    <div class="scroll-tabla">
+      <table>
+        <thead>
+          <tr><th>Color</th><th>S</th><th>M</th><th>L</th><th class="col-total">Total</th></tr>
+        </thead>
+        <tbody id="filas-b"></tbody>
+        <tfoot>
+          <tr><th>Total</th><td>6</td><td>9</td><td>3</td><td class="col-total">18</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="trade">
+    <div class="caja ganas"><span class="etiqueta">Ganas</span><ul>
+      <li>El ancla más fuerte de las tres: asocia color de verdad, no solo posición</li>
+      <li>Útil también para «¿ya hice esta fila?» de un vistazo al cerrar la tabla</li>
+    </ul></div>
+    <div class="caja pagas"><span class="etiqueta">Pagas</span><ul>
+      <li>Colores pastel (Hueso, Crema, Blanco) casi no se ven — necesitan un gris de respaldo</li>
+      <li>Es la más «de color» de las tres frente al resto del ERP, deliberadamente sobrio (ADR-0169)</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============================================================ MAQUETA C ============================================================ -->
+<section class="maqueta m-c" id="maqueta-c">
+  <div class="cabecera-maqueta">
+    <div class="titulo-maqueta"><span class="letra">C</span><h2>Fila en tarjeta</h2></div>
+  </div>
+  <p class="desc">Cada color es su propia tarjeta redondeada con aire alrededor, en vez de una línea entre líneas. No hace falta
+  tinte ni franja: el espacio en blanco mismo separa una prenda de la siguiente. Es el cambio más grande — menos filas caben en
+  pantalla sin hacer scroll.</p>
+
+  <div class="marco">
+    <div class="barra-superior">
+      <div class="segmentado" role="group" aria-label="Qué escribes en la tabla">
+        <button aria-pressed="true">Cuántas tienes hoy</button>
+        <button aria-pressed="false">¿Alguna cuesta distinto?</button>
+      </div>
+      <div class="relleno">
+        <label for="relleno-c">Llenar todas con</label>
+        <input id="relleno-c" class="caja-relleno" type="text" inputmode="numeric" placeholder="1" value="3">
+        <span class="auto-aviso">⏎ se aplica sola · vacía = borra todo</span>
+      </div>
+    </div>
+    <p class="leyenda">Lo que hay hoy en Tienda TRU. Lo que no tengas, déjalo vacío. — = no existe.</p>
+    <div class="scroll-tabla">
+      <table><thead><tr><th>Color</th><th>S</th><th>M</th><th>L</th><th class="col-total">Total</th></tr></thead></table>
+      <div class="cab-tarjetas"><span>Color</span><span>S</span><span>M</span><span>L</span><span>Total</span></div>
+      <div id="filas-c"></div>
+    </div>
+  </div>
+
+  <div class="trade">
+    <div class="caja ganas"><span class="etiqueta">Ganas</span><ul>
+      <li>Imposible confundir de fila incluso lejos de la pantalla — la separación es física, no de color</li>
+      <li>Cada tarjeta se siente «tocable», bien para dedo en tablet de almacén</li>
+    </ul></div>
+    <div class="caja pagas"><span class="etiqueta">Pagas</span><ul>
+      <li>Caben ~30% menos colores por pantalla que A o B → más scroll con 8+ colores</li>
+      <li>Más distinto a como se ven hoy todas las demás tablas del ERP</li>
+    </ul></div>
+  </div>
+</section>
+
+<footer class="nota">
+  Datos de ejemplo. El par − / + junto a cada cantidad y el «Llenar todas» auto-aplicado son los mismos en las tres —
+  solo cambia cómo se ancla la fila. Prueba a entrecerrar los ojos o alejarte de la pantalla con cada una: esa es la prueba real.
+</footer>
+
+<script>
+  const COLORES = [
+    { nombre: "Coral", hex: "#e2654f" },
+    { nombre: "Pistacho", hex: "#b8c48a" },
+    { nombre: "Esmeralda", hex: "#2f8f6a" },
+    { nombre: "Verde militar", hex: "#5c6b3f" },
+    { nombre: "Verde botella", hex: "#2e4d33" },
+    { nombre: "Verde oliva", hex: "#6b6b3a" },
+    { nombre: "Verde", hex: "#3f7a44" },
+    { nombre: "Rojo", hex: "#b8412d" },
+  ];
+  // Cantidades fijas de ejemplo, solo para que las tres tablas se vean con datos reales.
+  const DATA = [
+    [2, 1, "—"], [0, 3, 1], ["", 2, 0], [1, 1, 1], [0, 0, 2], [1, "", 0], [2, 2, "—"], [0, 1, 0],
+  ];
+
+  function stepper(valor, aria) {
+    if (valor === "—") return `<span class="muted" style="padding:0 10px" title="Esta combinación no existe">—</span>`;
+    return `<span class="stepper">
+      <button type="button" tabindex="-1" aria-label="Restar">−</button>
+      <input type="text" inputmode="numeric" value="${valor}" placeholder="0" aria-label="${aria}">
+      <button type="button" tabindex="-1" aria-label="Sumar">+</button>
+    </span>`;
+  }
+
+  function filasTabla(destino, conFranja) {
+    const tbody = document.getElementById(destino);
+    tbody.innerHTML = COLORES.map((c, i) => {
+      const [s, m, l] = DATA[i];
+      const total = [s, m, l].filter((v) => v !== "—" && v !== "").reduce((a, v) => a + Number(v || 0), 0);
+      const estilo = conFranja ? ` style="--franja:${c.hex}"` : "";
+      return `<tr>
+        <th class="fila-color"${estilo}><span class="punto" style="background:${c.hex}"></span>${c.nombre}</th>
+        <td class="celda">${stepper(s, c.nombre + " talla S")}</td>
+        <td class="celda">${stepper(m, c.nombre + " talla M")}</td>
+        <td class="celda">${stepper(l, c.nombre + " talla L")}</td>
+        <td class="col-total">${total || ""}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function tarjetas() {
+    const cont = document.getElementById("filas-c");
+    cont.innerHTML = COLORES.map((c, i) => {
+      const [s, m, l] = DATA[i];
+      const total = [s, m, l].filter((v) => v !== "—" && v !== "").reduce((a, v) => a + Number(v || 0), 0);
+      return `<div class="fila-tarjeta">
+        <span class="nombre"><span class="punto" style="background:${c.hex}"></span>${c.nombre}</span>
+        <span class="celda">${stepper(s, c.nombre + " talla S")}</span>
+        <span class="celda">${stepper(m, c.nombre + " talla M")}</span>
+        <span class="celda">${stepper(l, c.nombre + " talla L")}</span>
+        <span class="total">${total || ""}</span>
+      </div>`;
+    }).join("");
+  }
+
+  filasTabla("filas-a", false);
+  filasTabla("filas-b", true);
+  tarjetas();
+
+  // Segmentado: puramente visual en la maqueta (cambia el pressed, no hay datos de precio aquí).
+  document.querySelectorAll(".segmentado").forEach((grupo) => {
+    grupo.querySelectorAll("button").forEach((b) => {
+      b.addEventListener("click", () => {
+        grupo.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", "false"));
+        b.setAttribute("aria-pressed", "true");
+      });
+    });
+  });
+
+  // «Llenar todas»: demuestra el auto-aplicar / auto-borrar (visual, sin estado real por celda en la maqueta).
+  document.querySelectorAll(".caja-relleno").forEach((input) => {
+    input.addEventListener("input", () => {
+      const tabla = input.closest("section").querySelectorAll(".stepper input");
+      tabla.forEach((celda) => { celda.value = input.value; });
+    });
+  });
+</script>
+</body>
+</html>

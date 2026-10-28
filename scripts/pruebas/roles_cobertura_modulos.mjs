@@ -60,7 +60,7 @@
  *     3. los comentarios y los textos: `-- fn_ve_modulo('x')` en un comentario no protege, y un `--` dentro de un texto no
  *        se confunde con un comentario (una sola pasada los separa);
  *     4. mirar la sede (`fn_puede_operar_ubicacion`) o exigir «solo líder» (`fn_es_lider`): no son guardianes de módulo.
- *        Por eso Cambios, Devoluciones, Recibir… están en SOLO_PANTALLA aunque sus funciones sí comprueben la sede;
+ *        Por eso Cambios, Recibir… están en SOLO_PANTALLA aunque sus funciones sí comprueben la sede;
  *     5. leer `retail.rol_modulos` a mano, o un módulo cuyo nombre se arma en tiempo de ejecución
  *        (`fn_ve_modulo(v_clave)`): una sola forma de preguntar, la oficial y con literal, para que se pueda auditar;
  *     6. una función a la que no se llega: sin `.rpc` en la pantalla (o solo como sonda), sin otra función, política, vista
@@ -139,19 +139,21 @@ const SOLO_PANTALLA = {
     "página lo redirige a su primera pantalla o a /sin-acceso antes de leer nada. Lo que sí lee (fn_ventas_del_dia, " +
     "fn_actividad, fn_asesoras_de_turno) son funciones compartidas que ya comprueban la sede, no el módulo — las mismas que " +
     "usan Caja e Historial.",
-  vender:
-    "registrar_venta y emitir_comprobante solo comprueban que la cuenta opere esa sede (fn_puede_operar_ubicacion); fn_es_lider() " +
-    "solo decide el tope de descuento. El módulo lo nombra únicamente fn_es_terminal, que lo usa para clasificar un aparato.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
-  devoluciones: "crear_devolucion solo mira la sede; devoluciones_select y devoluciones_write son «líder o su sede».",
-  historial:
-    "Módulo de lectura: ventas_select, comprobantes_select, cambios_select y devoluciones_select dejan leer a líder o a la sede, sin preguntar por el módulo.",
-  facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
-  movimientos: "Módulo de lectura: movimientos_select deja leer a líder o a quien opera la sede de origen o de destino, sin preguntar por el módulo.",
-  recibir: "recibir_lote, recibir_compras y recibir_insumo solo comprueban la sede (fn_puede_operar_ubicacion).",
-  produccion:
-    "abrir_produccion, cerrar_produccion y set_etapa_produccion solo comprueban la sede; producciones_select es «líder o su sede». " +
-    "La palabra 'produccion' de fn_por_pagar_consolidado es la etiqueta de origen de una fila, no un candado.",
+  // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
+  // facturacion salió el 2026-10-27: anular_comprobante y marcar_comprobante_no_emitido la exigen (ADR-0534, 20261027164000).
+  // Una decisión, no una deuda (ADR-0430, 2026-10-16): el Resumen no guarda nada ni lee nada propio.
+  tienda_web:
+    "es un tablero, no un candado (ADR-0430): el Resumen de la tienda web no guarda nada y no tiene lectura propia. Cada " +
+    "parte la lee la función de SU módulo, que ya lo exige (fn_pedidos_web_tablero → fn_pedido_web_exigir, fn_vitrina_* → " +
+    "vitrina_web, fn_recomendaciones → recomendaciones, fn_configuracion_tienda_web → ajustes_web), y la página solo pide " +
+    "la parte cuyo módulo ve la cuenta. Apagarlo esconde la vista de conjunto; no abre ni cierra ningún dato.",
+  // recibir salió el 2026-10-12: fn_ve_costos_al_recibir lo pide para confirmar un costo fuera de lo normal al recibir
+  // (20261012202000, ADR-0387: «el módulo es la llave»); recibir_lote, recibir_compras y recibir_insumo siguen mirando solo la sede.
+  // produccion salió el 2026-10-15: fn_ordenes_insumo_por_recibir y recibir_orden_insumo lo piden para recibir en el Taller contra la orden
+  // de insumos (20261015040000, ADR-0362 fase 7 parte 2), y desde el rediseño del módulo (ADR-0400, 20261014154000) fn_produccion_puede_leer y
+  // fn_produccion_exigir_operar lo piden para leer y anotar las fases de una orden. abrir_produccion, cerrar_produccion y set_etapa_produccion
+  // siguen mirando solo la sede.
 };
 
 /**
@@ -187,6 +189,15 @@ const SOLO_LIDER_GRUPOS = [
     razon:
       "Flujo de caja y Escenarios (app/(app)/finanzas/reportes/flujo y /escenarios): quien no es líder ve <SoloLiderFlujo> en lugar de la " +
       "pantalla. El mensaje de fn_flujo_exigir_lider dice «por ahora lo ve el líder»: es una decisión provisional, no un olvido.",
+  },
+  {
+    modulo: "liquidacion",
+    funciones: ["crear_pieza_liquidacion", "cambiar_precio_pieza_liquidacion"],
+    razon:
+      "Liquidación (ADR-0379, Felipe 2026-10-10): las dos piden el módulo (fn_exigir_modulo('liquidacion')) y solo exigen líder en UNA rama, " +
+      "un precio bajo el mínimo (fn_exigir_precio_liquidacion, `parametros_liquidacion.precio_minimo`, S/ 10). Quien ve el módulo etiqueta y " +
+      "rebaja; bajo el mínimo la hoja dice «Desde S/ 10» y la guía no deja confirmar (lib/liquidacion-guia.ts, problemaDePrecio), y si igual " +
+      "llega, la base responde «Ese precio necesita un líder».",
   },
 ];
 const SOLO_LIDER = {};
@@ -597,7 +608,7 @@ const WEB_PUERTA = ["zz_cobertura_guarda"];
   );
   caso(
     "CONTROL (b): una entrada sin razón hace fallar",
-    evaluar({ modulos, soloPantalla: { ...SOLO_PANTALLA, vender: "" } }).some((p) => p.includes("«vender»") && p.includes("sin razón"))
+    evaluar({ modulos, soloPantalla: { ...SOLO_PANTALLA, cambios: "" } }).some((p) => p.includes("«cambios»") && p.includes("sin razón"))
   );
 }
 {

@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="es" data-tema="claro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nueva orden de producción — el modelo primero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@400;500&display=swap">
+<style>
+  /* Tokens reales de apps/web/app/globals.css (claro) y estilos/tema.css (oscuro). Datos inventados. NO es la implementación. */
+  :root {
+    --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0;
+    --tinta:#1a1a18; --tinta-60:#5b544c; --taupe:#805c4c;
+    --rojo:#b8412d; --rojo-p:#8b2a1f; --verde:#48603f; --ambar:#74501a; --pizarra:#4c5d6e;
+    --sombra:#1a1a18; --tinta-fija:#1a1a18; --crema-fija:#f5f0e8;
+    --ease:cubic-bezier(.32,.72,.24,1);
+    --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif; --serif:"EB Garamond",ui-serif,Georgia,serif;
+    color-scheme:light;
+  }
+  :root[data-tema="oscuro"] {
+    --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38;
+    --tinta:#f5f0e8; --tinta-60:#b9b2a7; --taupe:#c4a898;
+    --rojo:#e8806a; --rojo-p:#f29a86; --verde:#9ccb8d; --ambar:#e4b968; --pizarra:#a2b8cd;
+    --sombra:#000000; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,p{margin:0}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .mix{--m:0}
+  .tt60{color:var(--tinta-60)} .tp{color:var(--taupe)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  :focus-visible{outline:2px solid color-mix(in oklab,var(--rojo) 55%,transparent);outline-offset:2px}
+
+  /* ── barra del spike ── */
+  .spike{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 20px;background:color-mix(in oklab,var(--crema) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px dashed var(--taupe)}
+  .spike b{font-size:12px;letter-spacing:.04em}
+  .spike .grp{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .spike .sep{width:1px;height:20px;background:var(--sand)}
+  .pil{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);background:transparent;padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+  .pil:hover{color:var(--tinta);background:color-mix(in oklab,var(--sand) 40%,transparent)}
+  .pil[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+  .pil.chica{padding:3px 11px;font-size:12.5px}
+  .pil.dash{border-style:dashed}
+
+  /* ── el tablero que queda detrás ── */
+  .escena{position:relative;min-height:calc(100vh - 57px);overflow:hidden}
+  .fondo{max-width:1180px;margin:0 auto;padding:36px 32px}
+  .eyebrow{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60)}
+  .fondo h1{font:400 30px/1.1 var(--serif);margin:4px 0 4px}
+  .fondo .cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+  .cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}
+  .cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+  .cifra .n{font:400 30px/1 var(--serif);margin-top:6px}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .colum{background:color-mix(in oklab,var(--hueso) 45%,transparent);border-radius:14px;padding:12px;min-height:150px}
+  .colum h4{margin:0 0 10px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60);font-weight:600}
+  .tarj{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:center}
+  .tarj .nm{font:400 16px/1.2 var(--serif)} .tarj small{color:var(--tinta-60);font-size:12px}
+  .tarj.recien{animation:recien 1600ms var(--ease) both}
+  @keyframes recien{0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--verde) 55%,transparent);background:color-mix(in oklab,var(--verde) 16%,var(--papel))}100%{box-shadow:0 0 0 10px transparent;background:var(--papel)}}
+
+  /* ── botones ── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:0 16px;height:40px;font-size:13.5px;font-weight:500;white-space:nowrap;background:transparent;transition:background-color .15s,border-color .15s,color .15s,translate .2s var(--ease)}
+  .btn:disabled{cursor:not-allowed;opacity:.5}
+  .prim{background:var(--tinta);color:var(--crema)}
+  .prim:hover:not(:disabled){background:var(--rojo-p);color:var(--crema-fija)}
+  .sec{border-color:var(--sand);color:var(--tinta)}
+  .sec:hover:not(:disabled){border-color:color-mix(in oklab,var(--taupe) 40%,transparent);background:color-mix(in oklab,var(--sand) 50%,transparent)}
+  .btn.chico{height:32px;padding:0 12px;font-size:13px}
+  .enlace{background:none;border:0;padding:0;color:var(--tinta);font-size:13px;text-decoration:underline;text-decoration-color:color-mix(in oklab,var(--tinta) 30%,transparent);text-underline-offset:3px;transition:color .15s,text-decoration-color .15s}
+  .enlace:hover{color:var(--rojo-p);text-decoration-color:var(--rojo-p)}
+
+  /* ── la hoja ── */
+  .velo{position:absolute;inset:0;background:color-mix(in oklab,var(--sombra) 28%,transparent);backdrop-filter:blur(3px);animation:vela .24s var(--ease) both}
+  :root[data-tema="oscuro"] .velo{background:color-mix(in oklab,var(--sombra) 55%,transparent)}
+  .hoja-wrap{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-start;padding:4vh 24px 0;pointer-events:none}
+  .hoja{pointer-events:auto;position:relative;width:min(1080px,100%);max-height:calc(100vh - 57px - 6vh);overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:20px;animation:sube .34s var(--ease) both}
+  .hoja.sale{animation:baja .22s var(--ease) both}
+  @keyframes vela{from{opacity:0}} @keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}} @keyframes baja{to{opacity:0;transform:translateY(10px)}}
+  @keyframes revela{from{opacity:0;transform:translateY(-4px)}}
+  .hoja-in{padding:20px 28px 18px}
+  .hoja-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+  .hoja-cab h2{font:400 26px/1.1 var(--serif)}
+  .cerrar{width:32px;height:32px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;color:var(--tinta-60)}
+  .cerrar:hover{background:color-mix(in oklab,var(--sand) 60%,transparent);color:var(--tinta)}
+  .cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 332px;gap:32px;align-items:start}
+  .izq{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+  /* título de grupo (TituloGrupo): versalitas con la raya, y el estado de la guía a la derecha */
+  .grupo-t{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .grupo-t .t{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60);white-space:nowrap}
+  .grupo-t .raya{flex:1;height:1px;background:var(--sand)}
+  .est{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .est.ok{color:var(--verde)} .est.falta{color:var(--taupe)} .est.opc{color:var(--tinta-60);font-weight:500}
+  .est.sigue{background:var(--tinta);color:var(--crema);border-radius:999px;padding:2px 10px;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px}
+  .grupo.sigue .caja,.grupo.sigue .celda{background:var(--papel)}
+
+  /* campos (la caja que se enciende) */
+  .et{display:block;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60);margin-bottom:6px}
+  .et i{font-style:normal;font-weight:500;letter-spacing:.02em;text-transform:none;color:var(--tinta-60);margin-left:6px;font-size:12px}
+  .caja{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;background:var(--hueso);border:1px solid var(--sand);border-radius:8px;transition:border-color .15s,background .15s}
+  .caja:focus-within{background:var(--papel);border-color:color-mix(in oklab,var(--tinta) 55%,transparent);outline:2px solid color-mix(in oklab,var(--rojo) 40%,transparent);outline-offset:2px}
+  .caja input,.caja button.v{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:inherit;outline:0;padding:0;text-align:left}
+  .caja input::placeholder{color:color-mix(in oklab,var(--taupe) 60%,transparent)}
+  .caja .pre{font:400 15px var(--serif);color:var(--taupe)}
+  .caja kbd{font:600 11px var(--sans);border:1px solid var(--sand);border-radius:5px;padding:0 6px;color:var(--tinta-60);background:var(--papel)}
+  .caja svg{flex:none;color:var(--taupe)}
+  .fila2{display:grid;grid-template-columns:minmax(0,1fr) 200px 160px;gap:14px}
+  .pie{font-size:12.5px;color:var(--tinta-60);margin-top:6px}
+
+  /* tile de prenda (MosaicoPrenda: el ícono de su categoría sobre el color) */
+  .tile{flex:none;display:grid;place-items:center;border-radius:10px;border:1px solid color-mix(in oklab,var(--tinta) 14%,transparent);width:40px;height:40px}
+  .tile svg{width:55%;height:55%}
+  .tile.g{width:48px;height:48px;border-radius:11px} .tile.xl{width:100%;aspect-ratio:1/0.82;border-radius:14px}
+  .pts{display:flex;gap:5px;flex-wrap:wrap}
+  .pt{width:11px;height:11px;border-radius:50%;border:1px solid color-mix(in oklab,var(--tinta) 20%,transparent)}
+
+  /* buscador y resultados */
+  .res{margin-top:8px;border:1px solid var(--sand);border-radius:14px;overflow:hidden;background:var(--papel)}
+  .res .gt{padding:10px 14px 6px;font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60);display:flex;justify-content:space-between}
+  .fm{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;padding:9px 14px;transition:background .15s}
+  .fm:hover,.fm:focus-visible{background:color-mix(in oklab,var(--sand) 45%,transparent)}
+  .fm .nm{font:400 17px/1.15 var(--serif)} .fm .sub{font-size:12.5px;color:var(--tinta-60)}
+  .fm .cuerpo-fm{flex:1;min-width:0}
+  .fm.crear{border-top:1px solid var(--sand);font-weight:500}
+  .fm.crear .mas{width:40px;height:40px;border-radius:10px;border:1px dashed var(--taupe);display:grid;place-items:center;font-size:20px;color:var(--taupe)}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap;background:color-mix(in oklab,var(--sand) 70%,transparent);color:var(--tinta-60)}
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .chip.amb{background:color-mix(in oklab,var(--ambar) 14%,transparent);color:var(--ambar)}
+  .chip.ver{background:color-mix(in oklab,var(--verde) 14%,transparent);color:var(--verde)}
+  .chip.piz{background:color-mix(in oklab,var(--pizarra) 14%,transparent);color:var(--pizarra)}
+  .chip.sin::before{display:none}
+
+  /* el modelo elegido */
+  .mcard{display:flex;align-items:center;gap:14px;padding:10px 14px;border:1px solid var(--sand);border-radius:14px;background:color-mix(in oklab,var(--hueso) 40%,transparent)}
+  .mcard .nm{font:400 22px/1.1 var(--serif)} .mcard .sub{font-size:12.5px;color:var(--tinta-60);margin-top:2px}
+  .tipo{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px}
+  .seg{display:inline-flex;background:var(--hueso);border-radius:10px;padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--taupe);transition:background .2s var(--ease),color .2s}
+  .seg button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+  .tipo .consec{font-size:12.5px;color:var(--tinta-60);flex:1;min-width:200px}
+  .nuevo-box{display:flex;flex-direction:column;gap:16px}
+  .tallas-fila{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+  /* la tabla única */
+  .mx-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .llenar{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--tinta-60)}
+  .llenar input{width:54px;height:30px;text-align:center;font:600 13px var(--sans);background:var(--hueso);border:1px solid var(--sand);border-radius:8px;color:var(--tinta)}
+  .sug{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:8px 8px 8px 14px;border:1px solid var(--sand);border-radius:14px;margin-bottom:12px;background:color-mix(in oklab,var(--hueso) 35%,transparent)}
+  .sug .tx{font-size:13.5px} .sug .tx b{font-weight:600}
+  .sug .acc{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .dias{display:inline-flex;gap:4px}
+  .cubrir{display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--tinta-60);font-size:12.5px}
+  .porque{border:1px solid var(--sand);border-radius:14px;padding:12px 14px;margin:-4px 0 12px;font-size:13px;display:none;animation:revela .24s var(--ease)}
+  .porque.abre{display:block}
+  .porque ul{list-style:none;margin:8px 0 0;padding:0}
+  .porque li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid var(--sand)}
+  .porque li small{color:var(--tinta-60)}
+  .porque .motor{margin-top:10px;color:var(--tinta-60)}
+  .mx-wrap{overflow-x:auto;padding:2px}
+  .matriz{border-collapse:separate;border-spacing:0;width:100%}
+  .matriz th{font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60);padding:0 4px 8px;text-align:center;white-space:nowrap}
+  .matriz th:first-child{text-align:left}
+  .matriz th.r,.matriz td.r{text-align:right;padding-right:6px}
+  .matriz td{padding:4px}
+  .matriz td.col{padding-left:0;white-space:nowrap}
+  .matriz td.col .lab{display:flex;align-items:center;gap:10px;font-size:14px}
+  .sw{flex:none;width:20px;height:20px;border-radius:50%;border:1px solid color-mix(in oklab,var(--tinta) 20%,transparent)}
+  .sw.sin{border-style:dashed;background:transparent}
+  .celda{display:block;margin:0 auto;width:66px;height:40px;text-align:center;font:600 15px var(--sans);font-variant-numeric:tabular-nums;background:var(--hueso);border:1px solid var(--sand);border-radius:8px;color:var(--tinta);transition:background .15s,border-color .15s}
+  .celda::placeholder{color:color-mix(in oklab,var(--taupe) 55%,transparent);font-weight:500}
+  .celda:focus{background:var(--papel);border-color:color-mix(in oklab,var(--tinta) 55%,transparent);outline:2px solid color-mix(in oklab,var(--rojo) 40%,transparent);outline-offset:2px}
+  .celda.llena{background:var(--papel);border-color:color-mix(in oklab,var(--tinta) 45%,transparent)}
+  .no{display:grid;place-items:center;margin:0 auto;width:66px;height:40px;border-radius:8px;border:1px dashed var(--sand);background:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in oklab,var(--sand) 80%,transparent) 5px 6px);color:var(--taupe);cursor:pointer}
+  .tf{font:600 14px var(--sans);font-variant-numeric:tabular-nums;text-align:center;color:var(--tinta)}
+  .matriz td.r.tf{text-align:right}
+  .matriz tfoot td{border-top:1px solid var(--sand);padding-top:10px}
+  .matriz tfoot .gran{font:400 22px/1 var(--serif)}
+  .x{border:0;background:transparent;color:var(--tinta-60);width:26px;height:26px;border-radius:6px;font-size:16px;line-height:1}
+  .x:hover{background:color-mix(in oklab,var(--sand) 60%,transparent);color:var(--tinta)}
+  .vacio-m{border:1px dashed var(--sand);border-radius:14px;padding:22px;text-align:center;color:var(--tinta-60);font-size:13.5px}
+  .nota-no{margin-top:10px;font-size:12.5px;color:var(--tinta-60);display:none}
+  .nota-no.abre{display:block;animation:revela .24s var(--ease)}
+
+  /* entrega y costo */
+  .dos{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px}
+  .plazos{display:flex;flex-wrap:wrap;gap:6px}
+  .costo{border:1px solid var(--sand);border-radius:14px;padding:12px 14px;display:flex;gap:10px 16px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+  .costo .tx{font-size:13.5px;flex:1;min-width:230px} .costo .tx small{display:block;color:var(--tinta-60);font-size:12.5px;margin-top:2px}
+  .costos3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;margin-top:6px}
+  .costo .caja{height:40px}
+
+  /* la ficha viva */
+  .ficha{position:sticky;top:0;background:color-mix(in oklab,var(--hueso) 55%,var(--papel));border:1px solid var(--sand);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .f-nombre{font:400 24px/1.1 var(--serif)} .f-nombre.vacio{color:color-mix(in oklab,var(--tinta) 38%,transparent)}
+  .f-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .f-num{display:flex;align-items:baseline;gap:8px} .f-num .n{font:400 48px/1 var(--serif);font-variant-numeric:tabular-nums} .f-num .u{color:var(--tinta-60);font-size:14px}
+  .f-sub{color:var(--tinta-60);font-size:12.5px;margin-top:-8px}
+  .f-datos{margin:0;display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13.5px;border-top:1px solid var(--sand);padding-top:12px}
+  .f-datos dt{color:var(--tinta-60)} .f-datos dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+  .f-sig{font-size:13px;color:var(--tinta-60);min-height:36px}
+  .f-sig.listo{color:var(--verde)}
+  .f-sig .fr{display:block;margin-top:4px;font-size:12.5px;color:var(--tinta-60)}
+  .f-resp .et{margin-bottom:4px}
+  .persona{display:flex;align-items:center;gap:10px;width:100%;height:44px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--hueso);text-align:left}
+  .av{width:28px;height:28px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font:400 14px var(--serif);flex:none}
+  .f-bot{display:flex;gap:8px} .f-bot .prim{flex:1}
+  .f-bot .btn{height:44px}
+
+  /* popovers y aviso */
+  .pop{position:fixed;z-index:80;background:var(--papel);border:1px solid var(--sand);border-radius:12px;box-shadow:0 12px 32px color-mix(in oklab,var(--sombra) 24%,transparent);padding:6px;max-height:320px;overflow:auto;animation:revela .24s var(--ease)}
+  .pop .busca{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:2px 2px 6px;background:var(--hueso);border-radius:8px}
+  .pop .busca input{border:0;background:transparent;outline:0;font:inherit;color:inherit;width:100%}
+  .pop .g{padding:8px 10px 4px;font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-60)}
+  .pop button.o{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;border-radius:8px;padding:8px 10px;text-align:left}
+  .pop button.o:hover,.pop button.o:focus-visible{background:color-mix(in oklab,var(--sand) 55%,transparent)}
+  .pop button.o small{color:var(--tinta-60);margin-left:auto}
+  .pop .ya{opacity:.45;cursor:default}
+  .toast{position:fixed;z-index:90;top:72px;right:24px;width:min(340px,calc(100vw - 48px));background:var(--papel);border:1px solid var(--sand);border-left:3px solid var(--verde);border-radius:12px;padding:12px 16px;animation:sube .34s var(--ease) both}
+  .toast b{display:block;font-weight:600} .toast span{color:var(--tinta-60);font-size:13px}
+  .toast .enlace{margin-top:6px;display:inline-block}
+
+  .leyenda{max-width:1080px;margin:0 auto;padding:18px 24px 40px;color:var(--tinta-60);font-size:12.5px}
+
+  @media (max-width:980px){
+    .cuerpo{grid-template-columns:1fr}
+    .ficha{position:sticky;bottom:0;top:auto;order:2;display:grid;grid-template-columns:1fr auto;gap:8px 16px;align-items:center;border-radius:14px}
+    .ficha .tile,.ficha .f-datos,.ficha .f-chips,.ficha .f-sub,.ficha .f-resp,.ficha .pts{display:none}
+    .ficha .f-nombre{font-size:18px} .ficha .f-num .n{font-size:30px}
+    .ficha .f-sig{grid-column:1/-1;min-height:0}
+    .ficha .f-bot{grid-column:1/-1}
+    .fila2{grid-template-columns:1fr 1fr} .fila2>:first-child{grid-column:1/-1}
+    .dos{grid-template-columns:1fr} .costos3{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="spike">
+  <b>Spike · Nueva orden de producción</b><span class="tt60" style="font-size:12px">propuesta sin aprobar · datos inventados</span>
+  <div class="sep"></div>
+  <div class="grp" id="presets" role="group" aria-label="Estados">
+    <button class="pil chica" data-preset="resumen" aria-pressed="false">Desde «Qué producir»</button>
+    <button class="pil chica" data-preset="boton" aria-pressed="false">«+ Nueva orden» vacío</button>
+    <button class="pil chica" data-preset="nuevo" aria-pressed="false">Modelo nuevo</button>
+    <button class="pil chica" data-preset="taller" aria-pressed="false">Colaborador del Taller</button>
+    <button class="pil chica" data-preset="listo" aria-pressed="false">Listo para abrir</button>
+  </div>
+  <div class="sep"></div>
+  <div class="grp"><button class="pil chica" id="tema" aria-pressed="false">Oscuro</button></div>
+</div>
+
+<div class="escena" id="escena">
+  <div class="fondo" aria-hidden="false">
+    <div class="cab">
+      <div><p class="eyebrow">Producción</p><h1>Órdenes de producción</h1><p class="tt60">Dónde está cada corrida, cuánto lleva costando y si llega a tiempo.</p></div>
+      <button class="btn prim" id="btn-nueva">+ Nueva orden</button>
+    </div>
+    <div class="cifras">
+      <div class="cifra"><span class="eyebrow">Órdenes en curso</span><div class="n" id="c-ordenes">2</div><small class="tt60" id="c-prendas">34 prendas planeadas</small></div>
+      <div class="cifra"><span class="eyebrow">Entregas por atender</span><div class="n">0</div><small class="tt60">todas con tiempo</small></div>
+      <div class="cifra"><span class="eyebrow">Margen promedio</span><div class="n">62 %</div><small class="tt60">sobre el precio de venta más bajo</small></div>
+    </div>
+    <div class="cols">
+      <div class="colum"><h4>Por cortar</h4><div id="col-corte"><div class="tarj"><span class="tile" style="background:#46628a;color:#f5f0e8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5a2 2 0 1 1 2 2c-1 .4-2 1-2 2v1"/><path d="M12 10.5 3.6 16.2a1.3 1.3 0 0 0 .8 2.3h15.2a1.3 1.3 0 0 0 .8-2.3z"/></svg></span><div><div class="nm">Short Denim</div><small>12 prendas · entrega 23 oct</small></div></div></div></div>
+      <div class="colum"><h4>En confección</h4><div class="tarj"><span class="tile" style="background:#6e2a35;color:#f5f0e8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5a2 2 0 1 1 2 2c-1 .4-2 1-2 2v1"/><path d="M12 10.5 3.6 16.2a1.3 1.3 0 0 0 .8 2.3h15.2a1.3 1.3 0 0 0 .8-2.3z"/></svg></span><div><div class="nm">Vestido Midi Floral</div><small>22 prendas · entrega 30 oct</small></div></div></div>
+      <div class="colum"><h4>En acabados</h4><small class="tt60">Nada por ahora.</small></div>
+    </div>
+  </div>
+
+  <div class="velo" id="velo" hidden></div>
+  <div class="hoja-wrap" id="hoja-wrap" hidden>
+    <div class="hoja" id="hoja" role="dialog" aria-modal="true" aria-labelledby="h-titulo">
+      <div class="hoja-in">
+        <div class="hoja-cab">
+          <div><h2 id="h-titulo">Nueva orden de producción</h2></div>
+          <button class="cerrar" id="cerrar" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l10 10M13 3L3 13"/></svg></button>
+        </div>
+        <div class="cuerpo">
+          <div class="izq" id="izq"></div>
+          <aside class="ficha" id="ficha" aria-label="La orden, tal como va a quedar"></aside>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="leyenda">Spike del 2026-10-13. Lo que se ve: la misma función de la base (<code>abrir_produccion</code> / <code>abrir_produccion_con_modelo_nuevo</code>), sin migración. «Hoy vs propuesta», las decisiones que pide y el plan por actividades están en el <code>README.md</code> de esta carpeta. Escape cierra la lista abierta primero y la hoja después.</p>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const soles = n => 'S/ ' + n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const HOY = new Date(2026,9,13);
+const DIAS = ['dom','lun','mar','mié','jue','vie','sáb'], MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+/** Un monto se lee estricto (solo dígitos y un punto): «12,50» o «S/ 50» NO se aceptan, se explican (Felipe, 2026-10-10). */
+const monto = v => /^\d+(\.\d{1,2})?$/.test(String(v).trim()) ? Number(v) : NaN;
+const fechaCorta = d => `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}`;
+const sumaDias = n => { const d = new Date(HOY); d.setDate(d.getDate()+n); return d; };
+const PERCHA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5a2 2 0 1 1 2 2c-1 .4-2 1-2 2v1"/><path d="M12 10.5 3.6 16.2a1.3 1.3 0 0 0 .8 2.3h15.2a1.3 1.3 0 0 0 .8-2.3z"/></svg>';
+const LUPA = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>';
+const FLECHA = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 5.5 3.5 3.5 3.5-3.5"/></svg>';
+
+/* ── datos inventados ── */
+const COLORES = {
+  celeste:{n:'Celeste',hex:'#9dc3d9',fam:'Azules'}, crudo:{n:'Crudo',hex:'#eadfc9',fam:'Neutros'}, negro:{n:'Negro',hex:'#262624',fam:'Neutros'},
+  blanco:{n:'Blanco',hex:'#f4f1ea',fam:'Neutros'}, arena:{n:'Arena',hex:'#d3bd96',fam:'Tierras'}, terracota:{n:'Terracota',hex:'#b5654a',fam:'Tierras'},
+  verdemil:{n:'Verde militar',hex:'#5c6b4a',fam:'Verdes'}, azulmar:{n:'Azul marino',hex:'#243b5a',fam:'Azules'}, vino:{n:'Vino',hex:'#6e2a35',fam:'Rojos'},
+  mostaza:{n:'Mostaza',hex:'#cf9b2e',fam:'Amarillos'}, rosa:{n:'Rosa palo',hex:'#e4bdb6',fam:'Rosas'}, petroleo:{n:'Petróleo',hex:'#2f5d62',fam:'Verdes'},
+  gris:{n:'Gris perla',hex:'#c4c2bd',fam:'Neutros'}, denim:{n:'Denim',hex:'#46628a',fam:'Azules'}
+};
+const CATEGORIAS = [
+  {id:'faldas',n:'Faldas',g:'Indumentaria',tallas:['XS','S','M','L','XL'],hab:['S','M','L'],ej:'Falda Plisada Marina'},
+  {id:'blusas',n:'Blusas',g:'Indumentaria',tallas:['XS','S','M','L','XL'],hab:['S','M','L'],ej:'Blusa Manga Globo'},
+  {id:'casacas',n:'Casacas',g:'Indumentaria',tallas:['S','M','L','XL'],hab:['S','M','L','XL'],ej:'Casaca Bomber Corta'},
+  {id:'vestidos',n:'Vestidos',g:'Indumentaria',tallas:['XS','S','M','L','XL'],hab:['S','M','L'],ej:'Vestido Camisero'},
+  {id:'shorts',n:'Shorts',g:'Indumentaria',tallas:['XS','S','M','L','XL'],hab:['S','M','L'],ej:'Short Paperbag'},
+  {id:'bolsos',n:'Bolsos',g:'Accesorios',tallas:['Única'],hab:['Única'],ej:'Bolso Tote Lona'},
+  {id:'cinturones',n:'Cinturones',g:'Accesorios',tallas:['S','M','L'],hab:['S','M'],ej:'Cinturón Trenzado'}
+];
+const MODELOS = [
+  {id:'falda',nm:'Falda Celeste',cat:'Faldas',cod:'FAL-0008',precio:109.90,tallas:['S','M','L'],colores:['celeste','crudo','negro'],faltan:['negro|L'],urge:'Se acaba en 9 días',abierta:0,
+   sug:{'celeste|S':[4,1],'celeste|M':[8,2],'celeste|L':[4,1],'crudo|S':[2,1],'crudo|M':[4,2],'crudo|L':[2,1],'negro|S':[3,1],'negro|M':[6,2]},hist:{costo:38.40,alcanza:'hay tela para 120 prendas'}},
+  {id:'blusa',nm:'Blusa Lino',cat:'Blusas',cod:'BLU-0031',precio:89.90,tallas:['S','M','L'],colores:['blanco','arena','terracota'],faltan:[],urge:'Se acaba en 16 días',abierta:0,
+   sug:{'blanco|S':[3,1],'blanco|M':[6,2],'blanco|L':[3,1],'arena|S':[2,1],'arena|M':[4,1],'arena|L':[2,1],'terracota|S':[0,0],'terracota|M':[2,1],'terracota|L':[1,0]},hist:null},
+  {id:'casaca',nm:'Casaca Bomber',cat:'Casacas',cod:'CAS-0012',precio:189.90,tallas:['S','M','L','XL'],colores:['negro','verdemil'],faltan:[],urge:null,abierta:0,sug:null,hist:null},
+  {id:'short',nm:'Short Denim',cat:'Shorts',cod:'SHO-0019',precio:79.90,tallas:['S','M','L'],colores:['denim','negro'],faltan:[],urge:null,abierta:1,sug:null,hist:null},
+  {id:'vestido',nm:'Vestido Midi Floral',cat:'Vestidos',cod:'VES-0027',precio:159.90,tallas:['S','M','L'],colores:['vino','azulmar'],faltan:[],urge:null,abierta:1,sug:null,hist:null},
+  {id:'bolso',nm:'Bolso Tote',cat:'Bolsos',cod:'BOL-0004',precio:99.90,tallas:['Única'],colores:['arena','negro'],faltan:[],urge:null,abierta:0,sug:null,hist:null}
+];
+const PERSONAS = {lider:[['felipe','Felipe Álvarez','Líder · Taller'],['camila','Camila Soto','Líder · Taller']], taller:[['micaela','Micaela R.','Taller'],['rosa','Rosa Q.','Taller']]};
+const PLAZOS = [['1sem','1 semana',7],['2sem','2 semanas',14],['1mes','1 mes',30]];
+
+/* ── estado ── */
+let S;
+const base = () => ({rol:'lider',modeloId:null,nuevo:false,tipo:'lote',nombre:'',catId:'',precio:'',tallasSel:[],coloresSel:[],cant:{},dias:30,usoSug:false,porqueAbierto:false,
+  plazo:null,fechaOtra:'',nota:'',costoUsado:false,costoAbierto:false,costos:{tela:'',avios:'',maquila:''},q:'',resp:'felipe',nuevaId:0});
+const modelo = () => MODELOS.find(m => m.id === S.modeloId) || null;
+const cat = () => CATEGORIAS.find(c => c.id === S.catId) || null;
+const esLider = () => S.rol === 'lider';
+const clave = (c,t) => `${c||'_'}|${t}`;
+function ejes(){
+  if (S.nuevo) return (cat() && S.tallasSel.length) ? {tallas:CATEGORIAS.find(c=>c.id===S.catId).tallas.filter(t=>S.tallasSel.includes(t)), colores:S.coloresSel.length?S.coloresSel:[null], faltan:new Set()} : null;
+  const m = modelo(); return m ? {tallas:m.tallas, colores:m.colores, faltan:new Set(m.faltan||[])} : null;
+}
+function total(){ const e = ejes(); if(!e) return 0; let n=0; for(const c of e.colores) for(const t of e.tallas){ if(e.faltan.has(clave(c,t))) continue; n += +S.cant[clave(c,t)]||0; } return n; }
+function sugCelda(m,c,t){ const x = m && m.sug && m.sug[clave(c,t)]; if(!x) return null; const [s30,d]=x; return Math.max(0, Math.ceil(((s30+d)/30)*S.dias - d - 1e-9)); }
+function sugTotal(m){ if(!m||!m.sug) return 0; let n=0; for(const c of m.colores) for(const t of m.tallas){ const v=sugCelda(m,c,t); if(v) n+=v; } return n; }
+function nombreModelo(){ return S.nuevo ? S.nombre.trim() : (modelo()?.nm || ''); }
+function precioModelo(){ if(S.nuevo){ const p=monto(S.precio); return p>=0.01?p:0 } return modelo()?.precio||0; }
+function fechaEntrega(){ if(S.plazo==='otra') return S.fechaOtra ? new Date(S.fechaOtra+'T12:00:00') : null; const p=PLAZOS.find(x=>x[0]===S.plazo); return p?sumaDias(p[2]):null; }
+function costoPorPrenda(){
+  if (!esLider()) return null;
+  const n = total(); const m = modelo();
+  const manual = ['tela','avios','maquila'].reduce((s,k)=>s+(monto(S.costos[k])||0),0);
+  if (manual>0 && n>0) return Math.round(manual/n*100)/100;
+  if (S.costoUsado && m && m.hist) return m.hist.costo;
+  return null;
+}
+function faltas(){
+  const f=[];
+  if(!S.nuevo && !S.modeloId) f.push({id:'modelo',zona:'modelo',t:'Elige el modelo',fr:'Busca el modelo que se va a fabricar, o crea uno nuevo.'});
+  if(S.nuevo){
+    if(S.nombre.trim().length<2) f.push({id:'nombre',zona:'modelo',t:'Ponle nombre al modelo',fr:'Escribe cómo se llamará, por ejemplo «'+(cat()?.ej||'Blusa Lino')+'».'});
+    if(!S.catId) f.push({id:'cat',zona:'modelo',t:'Elige la categoría',fr:'La categoría decide las tallas que puedes elegir.'});
+    const pm=monto(S.precio);
+    if(S.tipo==='lote' && !(pm>=0.01)) f.push({id:'precio',zona:'modelo',t:'Escribe el precio de venta',fr: S.precio.trim()==='' ? 'Una producción necesita precio, con punto: 109.90.' : 'Escribe el precio con punto, por ejemplo 109.90.'});
+    else if(S.tipo==='muestra' && S.precio.trim()!=='' && !(pm>=0.01)) f.push({id:'precio',zona:'modelo',t:'Corrige el precio',fr:'Escribe el precio con punto, por ejemplo 109.90, o déjalo vacío.'});
+    if(S.catId && S.tallasSel.length===0) f.push({id:'tallas',zona:'modelo',t:'Elige al menos una talla',fr:'Marca las tallas que se van a fabricar.'});
+  }
+  if(ejes() && total()===0) f.push({id:'cant',zona:'cant',t:'Cuántas prendas',fr:'Escribe cuántas prendas de cada talla y color.'});
+  return f;
+}
+function estadoZona(z){
+  const f=faltas(); const mias=f.filter(x=>x.zona===z);
+  if(mias.length===0) return z==='cant' && !ejes() ? 'falta' : 'ok';
+  return f[0].zona===z ? 'sigue' : 'falta';
+}
+const ETQ = {ok:'<span class="est ok">✓ Listo</span>',sigue:'<span class="est sigue">Sigue aquí</span>',falta:'<span class="est falta">Falta</span>',opc:'<span class="est opc">Opcional</span>'};
+
+/* ── vistas ── */
+function tileDe(m, cls=''){ const hex = COLORES[m.colores[0]]?.hex || '#d3c8b4'; return `<span class="tile ${cls}" style="background:${hex};color:${lum(hex)>.55?'var(--tinta-fija)':'var(--crema-fija)'}" data-color-dato>${PERCHA}</span>`; }
+function lum(hex){ const n=parseInt(hex.slice(1),16); const r=(n>>16)&255,g=(n>>8)&255,b=n&255; return (0.2126*r+0.7152*g+0.0722*b)/255; }
+function puntos(codes){ return `<span class="pts">${codes.slice(0,8).map(c=>`<span class="pt" style="background:${COLORES[c]?.hex||'#ccc'}" title="${esc(COLORES[c]?.n||'')}"></span>`).join('')}</span>`; }
+
+function filaModelo(m){
+  const chips = [];
+  if (esLider() && m.urge) chips.push(`<span class="chip amb">${m.urge}</span>`);
+  if (m.abierta) chips.push(`<span class="chip piz">${m.abierta} orden abierta</span>`);
+  return `<button type="button" class="fm" data-acc="elegir" data-id="${m.id}">${tileDe(m)}<span class="cuerpo-fm"><span class="nm">${esc(m.nm)}</span><br><span class="sub">${m.cat} · ${m.cod} · ${m.colores.length} color${m.colores.length>1?'es':''} ${puntos(m.colores)}</span></span>${chips.join('')}</button>`;
+}
+function resultados(){
+  const q = norm(S.q.trim());
+  let lista = MODELOS.filter(m => !q || norm(m.nm+' '+m.cod+' '+m.cat).includes(q));
+  let h='';
+  if(!q){
+    if (esLider()){
+      const urg = lista.filter(m=>m.urge && !m.abierta); const resto = lista.filter(m=>!urg.includes(m));
+      if(urg.length) h += `<div class="gt"><span>Se están acabando</span><span>${urg.length}</span></div>` + urg.map(filaModelo).join('');
+      h += `<div class="gt"><span>Los demás</span><span>${resto.length} de 234</span></div>` + resto.slice(0,3).map(filaModelo).join('');
+    } else {
+      h += `<div class="gt"><span>Recientes</span><span>${lista.length} de 234</span></div>` + lista.slice(0,5).map(filaModelo).join('');
+    }
+  } else if (lista.length){
+    h += `<div class="gt"><span>Resultados</span><span>${lista.length}</span></div>` + lista.map(filaModelo).join('');
+  } else {
+    h += `<div class="gt"><span>Ningún modelo se llama «${esc(S.q.trim())}»</span></div>`;
+  }
+  h += `<button type="button" class="fm crear" data-acc="crear-nuevo"><span class="mas">+</span><span class="cuerpo-fm"><span class="nm" style="font-family:var(--sans);font-size:14px;font-weight:600">${q?`Crear «${esc(S.q.trim())}» como modelo nuevo`:'Crear un modelo nuevo'}</span><br><span class="sub">Se arma aquí mismo, con su orden.</span></span></button>`;
+  return h;
+}
+function vistaModelo(){
+  const e = estadoZona('modelo');
+  let cuerpo='';
+  if(!S.nuevo && !S.modeloId){
+    cuerpo = `<label class="sr" for="q">Buscar modelo</label><div class="caja">${LUPA}<input id="q" placeholder="Busca un modelo por nombre o código" autocomplete="off" value="${esc(S.q)}"><kbd>/</kbd></div><div class="res" id="res">${resultados()}</div>`;
+  } else if(!S.nuevo){
+    const m = modelo();
+    cuerpo = `<div class="mcard">${tileDe(m,'g')}<div style="flex:1;min-width:0"><div class="nm">${esc(m.nm)}</div><div class="sub">${m.cat} · ${m.cod} · se vende a ${soles(m.precio)}</div></div><button type="button" class="enlace" data-acc="cambiar">Cambiar</button></div>`;
+  } else {
+    const c = cat();
+    cuerpo = `<div class="nuevo-box"><div class="fila2">
+      <div><label class="et" for="nombre">Nombre del modelo</label><div class="caja"><input id="nombre" placeholder="${esc(c?c.ej:'Nombre del modelo')}" maxlength="80" autocomplete="off" value="${esc(S.nombre)}"></div></div>
+      <div><span class="et">Categoría</span><div class="caja"><button type="button" class="v" id="cat-b" data-acc="pop-cat" style="${c?'':'color:color-mix(in oklab,var(--taupe) 70%,transparent)'}">${c?c.n:'Elige la categoría'}</button>${FLECHA}</div></div>
+      <div><label class="et" for="precio">Precio de venta</label><div class="caja"><span class="pre">S/</span><input id="precio" inputmode="decimal" placeholder="0.00" autocomplete="off" value="${esc(S.precio)}"></div></div>
+    </div>
+    ${S.tipo==='muestra'?'<p class="pie" style="margin-top:-8px">Una muestra puede ir sin precio: se completa al aprobarla.</p>':''}
+    ${c?`<div><span class="et">Tallas<i>vienen marcadas las habituales</i></span><div class="tallas-fila">${c.tallas.map(t=>`<button type="button" class="pil" data-acc="talla" data-t="${t}" aria-pressed="${S.tallasSel.includes(t)}">${t}</button>`).join('')}</div></div>`:''}
+    <div><button type="button" class="enlace" data-acc="cambiar">Mejor elegir uno que ya existe</button></div></div>`;
+  }
+  const tipoUI = (S.nuevo || S.modeloId) ? `<div class="tipo"><span class="et" style="margin:0">Tipo de orden</span><div class="seg" role="group" aria-label="Tipo de orden"><button type="button" data-acc="tipo" data-v="lote" aria-pressed="${S.tipo==='lote'}">Lote de producción</button><button type="button" data-acc="tipo" data-v="muestra" aria-pressed="${S.tipo==='muestra'}">Muestra</button></div><p class="consec">${S.tipo==='lote'?'Fabrica el lote. Al cerrarlo entra al stock del Taller.':'Desarrolla el modelo: patronaje, aprobación y escalado. No entra al stock.'}</p></div>` : '';
+  return `<section class="grupo ${e==='sigue'?'sigue':''}" id="g-modelo"><div class="grupo-t"><span class="t">Modelo</span><span class="raya"></span>${ETQ[e]}</div>${cuerpo}${tipoUI}</section>`;
+}
+function vistaSugerencia(){
+  const m = modelo(); if(!esLider() || S.nuevo || !m) return '';
+  if(!m.sug) return `<p class="pie" style="margin:-4px 0 12px">La red todavía no tiene ventas de este modelo: tú decides cuántas.</p>`;
+  const n = sugTotal(m);
+  return `<div class="sug" id="sug"><div class="tx"><b>La red sugiere ${n} prendas</b> para cubrir ${S.dias} días</div>
+    <div class="acc"><button type="button" class="enlace" data-acc="porque" aria-expanded="${S.porqueAbierto?'true':'false'}">¿Por qué?</button><button type="button" class="btn chico prim" data-acc="usar-sug">${S.usoSug?'Volver a usar la sugerencia':'Usar la sugerencia'}</button></div></div>
+    <div class="porque ${S.porqueAbierto?'abre':''}" id="porque"><div class="cubrir"><span>Cubrir</span><span class="dias" role="group" aria-label="Días a cubrir">${[15,30,45,60].map(d=>`<button type="button" class="pil chica" data-acc="dias" data-d="${d}" aria-pressed="${S.dias===d}">${d} días</button>`).join('')}</span></div>
+    Ritmo de venta y stock de las tres tiendas, con lo que ya hay en el Taller. Las que más pesan:<ul>${m.colores.flatMap(c=>m.tallas.map(t=>[c,t])).filter(([c,t])=>sugCelda(m,c,t)).sort((a,b)=>sugCelda(m,b[0],b[1])-sugCelda(m,a[0],a[1])).slice(0,4).map(([c,t])=>{const [s,d]=m.sug[clave(c,t)];return `<li><span>${COLORES[c].n} · ${t}<br><small>vende ~${((s+d)/30*7).toFixed(1).replace('.',',')} por semana · hay ${d}</small></span><b>${sugCelda(m,c,t)}</b></li>`}).join('')}</ul>
+    <p class="motor">Segunda opinión del motor: todavía no recomienda, le faltan 14 días de ventas con esta prenda en las tres tiendas.</p></div>`;
+}
+function vistaMatriz(){
+  const e = ejes();
+  if(!e) return `<div class="vacio-m">${S.nuevo ? 'La tabla de cantidades aparece cuando eliges la categoría y las tallas.' : 'La tabla de cantidades aparece cuando eliges el modelo.'}</div>`;
+  const m = modelo(); const ver = esLider() && !S.nuevo && m;
+  let h = `<div class="mx-wrap"><table class="matriz"><thead><tr><th scope="col">Color</th>${e.tallas.map(t=>`<th scope="col">${t}</th>`).join('')}<th scope="col" class="r">Total</th>${S.nuevo&&S.coloresSel.length?'<th></th>':''}</tr></thead><tbody>`;
+  for(const c of e.colores){
+    const col = c ? COLORES[c] : null;
+    h += `<tr data-fila="${c||'_'}"><td class="col"><span class="lab"><span class="sw ${col?'':'sin'}" ${col?`style="background:${col.hex}" data-color-dato`:''}></span>${col?col.n:'Sin color'}</span></td>`;
+    for(const t of e.tallas){
+      const k = clave(c,t);
+      if(e.faltan.has(k)){ h += `<td><button type="button" class="no" data-acc="no-existe" data-c="${c}" data-t="${t}" aria-label="${col.n} en ${t} no existe en el catálogo">—</button></td>`; continue; }
+      const v = S.cant[k] ?? ''; const sg = ver ? sugCelda(m,c,t) : null;
+      h += `<td><input class="celda ${+v>0?'llena':''}" inputmode="numeric" maxlength="4" data-cel="${k}" data-c="${c||'_'}" data-t="${t}" aria-label="${col?col.n:'Sin color'} ${t}" placeholder="${sg ?? 0}" value="${esc(v)}"></td>`;
+    }
+    h += `<td class="r tf" data-tot-fila="${c||'_'}"></td>${S.nuevo&&S.coloresSel.length?`<td><button type="button" class="x" data-acc="quitar-color" data-c="${c}" aria-label="Quitar ${col?.n||''}">×</button></td>`:''}</tr>`;
+  }
+  h += `</tbody><tfoot><tr><td class="col tp" style="font-size:12.5px">${e.colores.length>1?'Total por talla':'Total'}</td>${e.tallas.map(t=>`<td class="tf" data-tot-col="${t}"></td>`).join('')}<td class="r tf gran" id="gran"></td>${S.nuevo&&S.coloresSel.length?'<td></td>':''}</tr></tfoot></table></div>
+    <p class="nota-no" id="nota-no"></p>`;
+  if(S.nuevo) h += `<div style="margin-top:12px"><button type="button" class="pil dash" data-acc="pop-color" id="add-color">+ Agregar color${S.coloresSel.length?'':' <span class="tt60" style="font-weight:500">· si no tiene color, déjalo así</span>'}</button></div>`;
+  return h;
+}
+function vistaCantidades(){
+  const e = estadoZona('cant');
+  const hayTabla = !!ejes();
+  return `<section class="grupo ${e==='sigue'?'sigue':''}" id="g-cant"><div class="grupo-t"><span class="t">Cuántas prendas</span><span class="raya"></span>${hayTabla?`<label class="llenar" for="llenar">Llenar todas con <input id="llenar" inputmode="numeric" maxlength="4" placeholder="12" autocomplete="off"></label>`:''}${ETQ[e]}</div>${vistaSugerencia()}${vistaMatriz()}</section>`;
+}
+function vistaEntrega(){
+  const f = fechaEntrega();
+  return `<section class="grupo" id="g-entrega"><div class="grupo-t"><span class="t">Entrega y nota</span><span class="raya"></span>${ETQ.opc}</div><div class="dos">
+    <div><span class="et">Entrega</span><div class="plazos">${PLAZOS.map(p=>`<button type="button" class="pil" data-acc="plazo" data-v="${p[0]}" aria-pressed="${S.plazo===p[0]}">${p[1]}</button>`).join('')}<button type="button" class="pil" data-acc="plazo" data-v="otra" aria-pressed="${S.plazo==='otra'}">Otra fecha</button></div>
+      ${S.plazo==='otra'?`<div class="caja" style="margin-top:8px;max-width:200px"><input type="date" id="fecha-otra" min="2026-10-13" value="${esc(S.fechaOtra)}"></div>`:''}
+      <p class="pie" id="pie-fecha">${f?`Entrega el ${fechaCorta(f)}.`:'Sin fecha: la orden no avisa de atrasos.'}</p></div>
+    <div><label class="et" for="nota">Nota</label><div class="caja"><input id="nota" placeholder="${S.tipo==='muestra'?'Qué se prueba, quién la aprueba…':'Tela, cliente, urgencia…'}" maxlength="200" value="${esc(S.nota)}" autocomplete="off"></div></div></div></section>`;
+}
+function vistaCosto(){
+  if(!esLider()) return '';
+  const m = modelo(); const hist = !S.nuevo && m && m.hist;
+  const abre = S.costoAbierto;
+  let tx, acc='';
+  if(hist){
+    tx = S.costoUsado
+      ? `<b>Se usará ${soles(hist.costo)} por prenda</b><small>Medido con la última orden cerrada de este modelo. Cuando descuentes tela y avíos de Insumos, el costo real lo reemplaza.</small>`
+      : `<b>≈ ${soles(hist.costo)} por prenda</b><small>Medido con la última orden cerrada de este modelo.</small>`;
+    acc = `<span style="display:flex;gap:12px;align-items:center"><button type="button" class="enlace" data-acc="costo-abrir">${abre?'Ocultar':'Poner otro'}</button><button type="button" class="btn chico ${S.costoUsado?'sec':'prim'}" data-acc="costo-usar">${S.costoUsado?'Quitar':'Usar este costo'}</button></span>`;
+  } else {
+    tx = `<b>Sin estimar todavía</b><small>El costo real se mide al cerrar la orden, con la tela y los avíos que descuentes de Insumos.</small>`;
+    acc = `<button type="button" class="enlace" data-acc="costo-abrir">${abre?'Ocultar':'Poner un costo estimado'}</button>`;
+  }
+  const campos = abre ? `<div class="costos3">${[['tela','Tela','de toda la corrida'],['avios','Avíos','botones, cierres, hilo'],['maquila','Maquila','lo que se manda afuera']].map(([k,n,p])=>`<div><label class="et" for="c-${k}">${n}<i>opcional</i></label><div class="caja"><span class="pre">S/</span><input id="c-${k}" inputmode="decimal" placeholder="0.00" value="${esc(S.costos[k])}" data-costo="${k}" autocomplete="off"></div><p class="pie" data-p="${p}">${p}</p></div>`).join('')}</div>` : '';
+  return `<section class="grupo" id="g-costo"><div class="grupo-t"><span class="t">Costo estimado</span><span class="raya"></span>${ETQ.opc}</div><div class="costo"><div class="tx">${tx}</div>${acc}${campos}</div></section>`;
+}
+
+/* ── la ficha viva ── */
+function vistaFicha(){
+  const m = modelo(); const n = total(); const f = faltas(); const e = ejes();
+  const nom = nombreModelo();
+  const ref = S.nuevo ? {colores:S.coloresSel.length?S.coloresSel:[], cat:cat()?.n} : m;
+  const hex = ref && ref.colores && ref.colores[0] ? COLORES[ref.colores[0]].hex : '#d3c8b4';
+  const nCol = e ? e.colores.filter(Boolean).length : 0, nTal = e ? e.tallas.length : 0;
+  const precio = precioModelo(); const cpp = costoPorPrenda();
+  let margen = '';
+  if(esLider() && precio>0 && cpp){ const mg=(precio-cpp)/precio; const tono = mg>=.6?['ver','Gana']:mg>=.4?['amb','Al filo']:['amb','Margen bajo']; margen = `<dt>Margen</dt><dd>${Math.round(mg*100)} % <span class="chip ${tono[0]} sin" style="margin-left:6px">${tono[1]}</span></dd>`; }
+  const fe = fechaEntrega(); const resp = PERSONAS[esLider()?'lider':'taller'].find(p=>p[0]===S.resp) || PERSONAS[esLider()?'lider':'taller'][0];
+  const sig = f.length ? `<button type="button" class="enlace" data-acc="ir" data-id="${f[0].id}" style="text-align:left">Siguiente: ${f[0].t}.</button><small class="fr">${esc(f[0].fr)}</small>` : 'Todo listo para abrir la orden.';
+  const alcanza = esLider() && !S.nuevo && m?.hist && n>0 ? `<dt>Tela y avíos</dt><dd style="color:var(--verde)">Alcanzan ✓</dd>` : '';
+  return `${S.nuevo || S.modeloId ? `<span class="tile xl" style="background:${hex};color:${lum(hex)>.55?'var(--tinta-fija)':'var(--crema-fija)'}" data-color-dato>${PERCHA}</span>` : `<span class="tile xl" style="background:var(--hueso);color:var(--taupe)">${PERCHA}</span>`}
+    ${ref&&ref.colores&&ref.colores.length?puntos(ref.colores):''}
+    <div><h3 class="f-nombre ${nom?'':'vacio'}">${nom?esc(nom):'Sin modelo todavía'}</h3></div>
+    ${S.nuevo||S.modeloId?`<div class="f-chips"><span class="chip ${S.tipo==='lote'?'piz':'amb'}">${S.tipo==='lote'?'Lote de producción':'Muestra · no entra al stock'}</span>${S.nuevo?'<span class="chip sin" style="background:var(--tinta);color:var(--crema)">Modelo nuevo</span>':''}</div>`:''}
+    <div class="f-num"><span class="n" id="f-n">${n}</span><span class="u">prendas</span></div>
+    ${n>0?`<div class="f-sub">${nCol?nCol+' color'+(nCol>1?'es':'')+' · ':''}${nTal} talla${nTal>1?'s':''}</div>`:''}
+    <dl class="f-datos">
+      ${precio>0?`<dt>Se vende a</dt><dd>${soles(precio)}</dd>`:(S.nuevo?`<dt>Se vende a</dt><dd class="tt60">${S.tipo==='muestra'?'al aprobarla':'—'}</dd>`:'')}
+      ${esLider()&&cpp&&n>0?`<dt>Costo estimado</dt><dd>${soles(cpp*n)} <span class="tt60">· ${soles(cpp)} c/u</span></dd>`:''}
+      ${margen}${alcanza}
+      <dt>Entrega</dt><dd>${fe?fechaCorta(fe):'<span class="tt60">sin fecha</span>'}</dd>
+    </dl>
+    <div class="f-sig ${f.length?'':'listo'}" role="status">${sig}</div>
+    <div class="f-resp"><span class="et">Abre</span><button type="button" class="persona" data-acc="pop-resp"><span class="av">${resp[1][0]}</span><span style="flex:1"><b style="font-weight:600">${resp[1]}</b> <span class="tt60" style="font-size:12.5px">· ${resp[2]}</span></span>${FLECHA}</button></div>
+    <div class="f-bot"><button type="button" class="btn sec" data-acc="cancelar">Cancelar</button><button type="button" class="btn prim" data-acc="abrir" ${f.length?'disabled':''} title="${f.length?esc(f[0].fr):''}">${S.nuevo?'Crear y abrir orden':'Abrir orden'}</button></div>`;
+}
+
+/* ── pintar ── */
+function render(){
+  cerrarPop();
+  $('#izq').innerHTML = vistaModelo() + vistaCantidades() + vistaEntrega() + vistaCosto();
+  actualizar();
+}
+function actualizar(){
+  // totales de la tabla, ficha y estados sin reconstruir (no se pierde el cursor)
+  const e = ejes();
+  if(e){
+    for(const c of e.colores){ let s=0; for(const t of e.tallas){ if(!e.faltan.has(clave(c,t))) s+= +S.cant[clave(c,t)]||0; } const el=$(`[data-tot-fila="${c||'_'}"]`); if(el) el.textContent = s||''; }
+    for(const t of e.tallas){ let s=0; for(const c of e.colores){ if(!e.faltan.has(clave(c,t))) s+= +S.cant[clave(c,t)]||0; } const el=$(`[data-tot-col="${t}"]`); if(el) el.textContent = s||''; }
+    const g=$('#gran'); if(g) g.textContent = total()||'0';
+  }
+  const ficha = $('#ficha'); if(ficha){ ficha.innerHTML = vistaFicha(); }
+  for(const [id,z] of [['g-modelo','modelo'],['g-cant','cant']]){
+    const sec=$('#'+id); if(!sec) continue; const est=estadoZona(z);
+    sec.classList.toggle('sigue', est==='sigue');
+    const lugar=$('.grupo-t > .est', sec); if(lugar) lugar.outerHTML = ETQ[est];
+  }
+  const pf=$('#pie-fecha'); if(pf){ const f=fechaEntrega(); pf.textContent = f?`Entrega el ${fechaCorta(f)}.`:'Sin fecha: la orden no avisa de atrasos.'; }
+}
+
+/* ── popovers (listas flotantes) ── */
+let pop=null, popAncla=null;
+function cerrarPop(){ if(pop){ pop.remove(); pop=null; popAncla=null; } }
+function abrirPop(ancla, html, ancho){
+  cerrarPop(); const r=ancla.getBoundingClientRect();
+  pop=document.createElement('div'); pop.className='pop'; pop.innerHTML=html; popAncla=ancla;
+  pop.style.minWidth=(ancho||Math.max(r.width,240))+'px'; pop.style.left=Math.min(r.left, innerWidth-(ancho||Math.max(r.width,240))-12)+'px';
+  document.body.appendChild(pop);
+  const alto=pop.offsetHeight; pop.style.top = (r.bottom+6+alto>innerHeight ? Math.max(8,r.top-6-alto) : r.bottom+6)+'px';
+  return pop;
+}
+function popCategorias(a){
+  const grupos=[...new Set(CATEGORIAS.map(c=>c.g))];
+  abrirPop(a, grupos.map(g=>`<div class="g">${g}</div>`+CATEGORIAS.filter(c=>c.g===g).map(c=>`<button type="button" class="o" data-acc="set-cat" data-id="${c.id}">${c.n}${S.catId===c.id?'<small>✓</small>':''}</button>`).join('')).join(''), 230);
+}
+function popColores(a, q=''){
+  const ya=new Set(S.coloresSel); const lista=Object.entries(COLORES).filter(([k,c])=>!q||norm(c.n+' '+c.fam).includes(norm(q)));
+  const html = `<div class="busca">${LUPA}<input id="pq" placeholder="Busca entre los 95 colores" autocomplete="off" value="${esc(q)}"></div>`+
+    (lista.length?lista.slice(0,7).map(([k,c])=>`<button type="button" class="o ${ya.has(k)?'ya':''}" data-acc="${ya.has(k)?'':'set-color'}" data-id="${k}"><span class="sw" style="background:${c.hex}" data-color-dato></span>${c.n}<small>${ya.has(k)?'ya está':c.fam}</small></button>`).join(''):`<div class="g">Ningún color se llama «${esc(q)}»</div>`)+
+    `<div style="border-top:1px solid var(--sand);margin-top:4px;padding-top:4px"><button type="button" class="o" data-acc="nada">Ver los 95 colores</button><button type="button" class="o" data-acc="nada">+ Nuevo color${q?` «${esc(q)}»`:''}</button></div>`;
+  const nuevo = !pop || !$('#pq',pop);
+  if(nuevo) abrirPop(a, html, 280); else { pop.innerHTML = html; }
+  const i=$('#pq',pop); i.focus(); i.setSelectionRange(q.length,q.length);
+}
+function popResp(a){
+  abrirPop(a, PERSONAS[esLider()?'lider':'taller'].map(p=>`<button type="button" class="o" data-acc="set-resp" data-id="${p[0]}"><span class="av">${p[1][0]}</span>${p[1]}<small>${p[2]}</small></button>`).join(''), 300);
+}
+
+/* ── acciones ── */
+function elegirCategoria(id){
+  S.catId=id; const c=cat(); S.tallasSel=[...c.hab]; S.cant={}; S.coloresSel=[]; render();
+  setTimeout(()=>$('#precio')?.focus(),30);
+}
+function aplicarSugerencia(){
+  const m=modelo(); S.cant={}; for(const c of m.colores) for(const t of m.tallas){ const v=sugCelda(m,c,t); if(v) S.cant[clave(c,t)]=String(v); } S.usoSug=true; render();
+}
+const ACC = {
+  elegir(el){ S.modeloId=el.dataset.id; S.nuevo=false; S.tipo='lote'; S.cant={}; S.usoSug=false; S.q=''; render(); setTimeout(()=>{const p=$('.celda'); p&&p.focus()},40); },
+  'crear-nuevo'(){ const q=S.q.trim(); Object.assign(S,{modeloId:null,nuevo:true,tipo:'muestra',nombre:q,catId:'',tallasSel:[],coloresSel:[],cant:{},precio:'',q:''}); render(); setTimeout(()=>$(q?'#cat-b':'#nombre')?.focus(),40); },
+  cambiar(){ Object.assign(S,{modeloId:null,nuevo:false,q:'',cant:{},usoSug:false,tipo:'lote'}); render(); $('#q')?.focus(); },
+  tipo(el){ S.tipo=el.dataset.v; render(); },
+  'pop-cat'(el){ popCategorias(el); },
+  'set-cat'(el){ elegirCategoria(el.dataset.id); },
+  talla(el){ const t=el.dataset.t; S.tallasSel = S.tallasSel.includes(t)? S.tallasSel.filter(x=>x!==t) : [...S.tallasSel,t]; S.cant={}; render(); },
+  'pop-color'(el){ popColores(el); },
+  'set-color'(el){ const k=el.dataset.id; if(!S.coloresSel.length) S.cant={}; S.coloresSel.push(k); const a=popAncla; cerrarPop(); render(); setTimeout(()=>{const f=$(`[data-fila="${k}"] .celda`); f&&f.focus()},40); },
+  'quitar-color'(el){ const k=el.dataset.c; S.coloresSel=S.coloresSel.filter(x=>x!==k); for(const key of Object.keys(S.cant)) if(key.startsWith(k+'|')) delete S.cant[key]; render(); },
+  dias(el){ S.dias=+el.dataset.d; S.usoSug=false; render(); },
+  porque(el){ S.porqueAbierto=!S.porqueAbierto; $('#porque').classList.toggle('abre',S.porqueAbierto); el.setAttribute('aria-expanded',String(S.porqueAbierto)); },
+  'usar-sug'(){ aplicarSugerencia(); },
+  'no-existe'(el){ const n=$('#nota-no'); n.textContent=`${COLORES[el.dataset.c].n} en ${el.dataset.t} no existe en el catálogo. Se agrega en Editar producto${esLider()?'':' (pídeselo a quien edita el catálogo)'}, no desde la orden.`; n.classList.add('abre'); },
+  plazo(el){ S.plazo = S.plazo===el.dataset.v ? null : el.dataset.v; render(); if(S.plazo==='otra') setTimeout(()=>$('#fecha-otra')?.focus(),30); },
+  'costo-abrir'(){ S.costoAbierto=!S.costoAbierto; render(); },
+  'costo-usar'(){ S.costoUsado=!S.costoUsado; render(); },
+  'pop-resp'(el){ popResp(el); },
+  'set-resp'(el){ S.resp=el.dataset.id; cerrarPop(); actualizar(); },
+  ir(el){ const id=el.dataset.id; const dest = {modelo:'#q',nombre:'#nombre',cat:'#cat-b',precio:'#precio',tallas:'#g-modelo .tallas-fila button',cant:'.celda'}[id]; const n=$(dest)||$('#g-modelo'); n.scrollIntoView({block:'center',behavior:'smooth'}); if(n.focus && id!=='cant') n.focus({preventScroll:true}); else if(id==='cant') { const v=$$('.celda').find(i=>!i.value); (v||n).focus({preventScroll:true}); } },
+  nada(){ cerrarPop(); },
+  cancelar(){ cerrarHoja(); },
+  abrir(){ if(faltas().length) return; abrirOrden(); }
+};
+document.addEventListener('click', ev=>{
+  const el = ev.target.closest('[data-acc]');
+  if(pop && !ev.target.closest('.pop') && !el) cerrarPop();
+  if(el && el.dataset.acc && ACC[el.dataset.acc]) ACC[el.dataset.acc](el);
+});
+document.addEventListener('input', ev=>{
+  const t=ev.target;
+  if(t.id==='q'){ S.q=t.value; $('#res').innerHTML=resultados(); return; }
+  if(t.id==='pq'){ popColores(popAncla, t.value); return; }
+  if(t.id==='nombre'){ S.nombre=t.value; actualizar(); return; }
+  if(t.id==='precio'){ S.precio=t.value; actualizar(); return; }
+  if(t.id==='nota'){ S.nota=t.value; return; }
+  if(t.id==='fecha-otra'){ S.fechaOtra=t.value; actualizar(); return; }
+  if(t.dataset.costo){ S.costos[t.dataset.costo]=t.value; const mal=t.value.trim()!=='' && isNaN(monto(t.value)); t.setAttribute('aria-invalid',String(mal)); const pie=t.closest('div').parentNode.querySelector('.pie'); if(pie){ pie.textContent = mal ? 'Escribe solo números, con punto: 12.50' : pie.dataset.p; pie.style.color = mal ? 'var(--ambar)' : ''; } actualizar(); return; }
+  if(t.id==='llenar'){ const v=t.value.replace(/\D/g,'').slice(0,4); t.value=v; const e=ejes(); S.cant={}; if(v) for(const c of e.colores) for(const tl of e.tallas) if(!e.faltan.has(clave(c,tl))) S.cant[clave(c,tl)]=v; $$('.celda').forEach(i=>{ i.value=S.cant[i.dataset.cel]||''; i.classList.toggle('llena',+i.value>0); }); S.usoSug=false; actualizar(); return; }
+  if(t.dataset.cel){ const v=t.value.replace(/\D/g,'').slice(0,4); t.value=v; if(v) S.cant[t.dataset.cel]=v; else delete S.cant[t.dataset.cel]; t.classList.toggle('llena',+v>0); actualizar(); }
+});
+document.addEventListener('keydown', ev=>{
+  const t=ev.target;
+  if(ev.key==='Escape'){ if(pop){ ev.stopPropagation(); ev.preventDefault(); const a=popAncla; cerrarPop(); a&&a.focus&&a.focus(); } else if(!$('#hoja-wrap').hidden){ cerrarHoja(); } return; }
+  if(ev.key==='/' && !/INPUT|TEXTAREA/.test(t.tagName) && $('#q')){ ev.preventDefault(); $('#q').focus(); return; }
+  if(t.dataset && t.dataset.cel && ['Enter','ArrowDown','ArrowUp'].includes(ev.key)){
+    ev.preventDefault(); const col=$$(`.celda[data-t="${t.dataset.t}"]`); const i=col.indexOf(t); const dir = (ev.key==='ArrowUp'||(ev.key==='Enter'&&ev.shiftKey))?-1:1;
+    const sig=col[i+dir] || (dir===1 ? $$(`.celda`).find(c=>c.dataset.t!==t.dataset.t && $$('.celda').indexOf(c)>$$('.celda').indexOf(t)) : null); if(sig) sig.focus();
+  }
+  if(t.id==='q' && ev.key==='Enter'){ const p=$('#res .fm:not(.crear)'); if(p){ ev.preventDefault(); p.click(); } }
+});
+
+/* ── abrir, cerrar, estados ── */
+function mostrarHoja(){ $('#velo').hidden=false; const w=$('#hoja-wrap'); w.hidden=false; $('#hoja').classList.remove('sale'); $('#hoja').scrollTop=0; render(); }
+function cerrarHoja(){ const h=$('#hoja'); h.classList.add('sale'); setTimeout(()=>{ $('#hoja-wrap').hidden=true; $('#velo').hidden=true; h.classList.remove('sale'); },200); cerrarPop(); }
+function abrirOrden(){
+  const nom=nombreModelo(), n=total(), fe=fechaEntrega(); const hex = (S.nuevo? COLORES[S.coloresSel[0]]?.hex : COLORES[modelo().colores[0]].hex) || '#d3c8b4';
+  cerrarHoja();
+  const tarj=document.createElement('div'); tarj.className='tarj recien';
+  tarj.innerHTML=`<span class="tile" style="background:${hex};color:${lum(hex)>.55?'var(--tinta-fija)':'var(--crema-fija)'}">${PERCHA}</span><div><div class="nm">${esc(nom)}</div><small>${n} prendas${fe?' · entrega '+fechaCorta(fe).replace(/^\S+ /,''):''}${S.tipo==='muestra'?' · muestra':''}</small></div>`;
+  $('#col-corte').prepend(tarj);
+  const c=$('#c-ordenes'); c.textContent=(+c.textContent)+1; const p=$('#c-prendas'); p.textContent=((parseInt(p.textContent)||0)+n)+' prendas planeadas';
+  const old=$('.toast'); old&&old.remove();
+  const to=document.createElement('div'); to.className='toast'; to.setAttribute('role','status');
+  to.innerHTML=`<b>Orden de ${esc(nom)} abierta</b><span>${S.nuevo?'Modelo nuevo · ':''}${n} prendas · ${S.tipo==='muestra'?'muestra':'producción'}</span><br><button type="button" class="enlace" onclick="this.parentNode.remove()">Ver la orden</button>`;
+  document.body.appendChild(to); setTimeout(()=>to.remove(),6500);
+}
+const PRESETS = {
+  resumen(){ S=base(); S.modeloId='falda'; },
+  boton(){ S=base(); },
+  nuevo(){ S=base(); S.nuevo=true; S.tipo='muestra'; },
+  taller(){ S=base(); S.rol='taller'; S.resp='micaela'; S.modeloId='blusa'; },
+  listo(){ S=base(); S.modeloId='falda'; S.usoSug=true; const m=modelo(); for(const c of m.colores) for(const t of m.tallas){ const v=sugCelda(m,c,t); if(v) S.cant[clave(c,t)]=String(v); } S.plazo='2sem'; S.costoUsado=true; }
+};
+function irA(p){ PRESETS[p](); $$('#presets .pil').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.preset===p))); if($('#hoja-wrap').hidden){ mostrarHoja(); } else { render(); } setTimeout(()=>{ const f=$('#q')||$('#nombre'); if(f && document.activeElement && !/INPUT/.test(document.activeElement.tagName)) f.focus({preventScroll:true}); },60); }
+$('#presets').addEventListener('click', e=>{ const b=e.target.closest('[data-preset]'); if(b) irA(b.dataset.preset); });
+$('#btn-nueva').addEventListener('click', ()=>irA('boton'));
+$('#cerrar').addEventListener('click', cerrarHoja);
+$('#velo').addEventListener('click', cerrarHoja);
+$('#tema').addEventListener('click', e=>{ const oscuro=document.documentElement.dataset.tema!=='oscuro'; document.documentElement.dataset.tema=oscuro?'oscuro':'claro'; e.currentTarget.setAttribute('aria-pressed',String(oscuro)); e.currentTarget.textContent=oscuro?'Claro':'Oscuro'; });
+
+// arranque: el hash elige el estado (#resumen, #boton, #nuevo, #taller, #listo; con ,oscuro para el tema)
+const [h0,h1]=(location.hash||'#resumen').slice(1).split(',');
+if(h1==='oscuro') $('#tema').click();
+irA(PRESETS[h0]?h0:'resumen');
+</script>
+</body>
+</html>

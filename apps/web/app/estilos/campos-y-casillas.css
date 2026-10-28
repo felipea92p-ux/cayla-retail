@@ -1,0 +1,565 @@
+/* =====================================================================
+   CAMPOS, COMBOS, LISTAS, FILTROS Y CASILLAS — las piezas de la ronda 6 de /unificar (ADR-0358, Felipe 2026-10-13).
+
+   Felipe eligió tocándolas en la página de elegir (docs/unificar/campo-combo.md, etiqueta-campo.md, casilla.md):
+   · La CAJA QUE SE ENCIENDE: todo campo y todo combo de una hoja es la caja hundida en hueso (`caja-cayla caja-campo`, 40 px). Con el
+     cursor adentro o la lista abierta sube a papel, su borde se afirma y su borde de abajo DIBUJA el hilo rojo desde el centro; el hilo
+     conserva lo que hacía sobre la línea: verde cuando el dato está bien, barre mientras consulta. La etiqueta de arriba (versalitas de
+     `Campo`) se oscurece con ella.
+   · La casilla que se DIBUJA: el fondo de tinta crece desde el centro y el ✓ se traza; el interruptor se prende en TINTA, no en
+     rojo (el rojo es el acento de la pantalla, máximo 2, ADR-0169), y su perilla se estira al presionar.
+
+   Movimiento de ADR-0136: sin rebote ni bucle; con `prefers-reduced-motion` se ve el resultado, no el viaje. Solo tokens
+   (ADR-0169, ADR-0336). El foco es el anillo común de globals.css (ADR-0351): ninguna pieza dibuja el suyo.
+   ===================================================================== */
+
+@layer components {
+  /* ---------- La caja que se enciende (CampoTexto, CampoMonto, CampoFecha, Desplegable, ComboBuscable, ComboResponsable) ---------- */
+  .caja-campo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 2.5rem;
+    padding: 0 0.75rem;
+    font-size: 14px;
+    color: var(--color-tinta);
+    transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    /* P2 de la familia (2026-10-26): en reposo el borde ya es el de control (3:1), así que hover y encendida suben UN escalón: una mezcla de
+       tinta (el mismo para los dos). Antes subían desde el sand (hover taupe al 60 %, encendida tinta al 38 %), que ahora quedaría MÁS débil que
+       el reposo. Encendida NO usa la tinta plena: con el cursor adentro ya se suman el anillo de foco de 2 px, el papel y el hilo rojo, y un borde
+       negro además se leía como un doble marco (visto en el ERP, no en la lámina, que no dibuja el anillo). */
+    .caja-campo:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
+  }
+  /* Encendida: con el cursor adentro o la lista abierta. */
+  .caja-campo:has(:is(input, textarea):focus),
+  .caja-campo[aria-expanded="true"],
+  .caja-campo:has([aria-expanded="true"]) {
+    background: var(--color-papel);
+    border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
+  }
+  /* El hilo: se dibuja desde el centro en el borde de abajo. */
+  .caja-campo::after {
+    content: "";
+    position: absolute;
+    left: 0.625rem;
+    right: 0.625rem;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--color-rojo);
+    transform: scaleX(0);
+    transform-origin: center;
+    pointer-events: none;
+    transition: transform 320ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+  }
+  .caja-campo:has(:is(input, textarea):focus)::after,
+  .caja-campo[aria-expanded="true"]::after,
+  .caja-campo:has([aria-expanded="true"])::after { transform: scaleX(1); }
+  /* El dato ya está bien: el hilo se queda en verde y nace de la izquierda. */
+  .caja-campo[data-valido]::after { background: var(--color-verde); transform: scaleX(1); transform-origin: left; }
+  /* Consultando (el padrón, la base): el hilo barre. */
+  .caja-campo[data-trabajando] { overflow: hidden; }
+  .caja-campo[data-trabajando]::after {
+    right: auto;
+    width: 33%;
+    transform: none;
+    animation: cayla-hilo-barrido 1.1s linear infinite;
+  }
+  .caja-campo[data-tono="error"] { border-color: color-mix(in srgb, var(--color-rojo) 55%, transparent); }
+  .caja-campo:has(:disabled) { opacity: 0.55; }
+  /* El control de adentro: transparente, sin su propio contorno (el anillo es el de la caja, ADR-0351). */
+  /* `width: 100%` además de `flex: 1`: un <input> con ancho en porcentaje se deja encoger (su ancho natural, ~20 letras, no empuja la
+     columna de una grilla `1fr`; pasó en Registrar cliente). */
+  .caja-campo :is(input, textarea) {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: var(--color-tinta);
+    font-size: 14px;
+    outline: none;
+  }
+  .caja-campo :is(input, textarea)::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
+  /* Un combo es la caja misma (un <button>): su texto a la izquierda, su flecha a la derecha. */
+  button.caja-campo { width: 100%; justify-content: space-between; text-align: left; cursor: pointer; }
+  button.caja-campo:disabled { cursor: not-allowed; }
+  /* La flecha de un combo: chevron de 16 px; con el mouse se oscurece; abierta gira media vuelta y se pone roja. */
+  .caja-campo .combo-flecha { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); transition: transform 320ms var(--ease-cayla), color 200ms; } /* contraste: gráfico sobre hueso, papel */
+  @media (hover: hover) {
+    .caja-campo:hover .combo-flecha { color: var(--color-tinta); }
+  }
+  .caja-campo[aria-expanded="true"] .combo-flecha,
+  .caja-campo:has([aria-expanded="true"]) .combo-flecha { transform: rotate(-180deg); color: var(--color-rojo); }
+  /* Un <input> o <textarea> suelto que ES la caja (sin contenedor: `campoTexto` de Modal.tsx y las celdas de una fila): la misma caja,
+     con el hilo dibujado como imagen de fondo (un input no tiene ::after). No lleva `caja-cayla` a propósito: su `background` le
+     borraría el hilo. */
+  .caja-campo-input {
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--color-borde-control);
+    border-radius: var(--radius-md);
+    background-color: var(--color-hueso);
+    background-image: linear-gradient(var(--color-rojo), var(--color-rojo));
+    background-repeat: no-repeat;
+    background-position: 50% 100%;
+    background-size: 0 2px;
+    font-size: 14px;
+    color: var(--color-tinta);
+    transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), background-size 320ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .caja-campo-input:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
+  }
+  .caja-campo-input:focus {
+    background-color: var(--color-papel);
+    border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
+    background-size: calc(100% - 1.25rem) 2px;
+  }
+  .caja-campo-input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
+  .caja-campo-input:disabled { opacity: 0.55; cursor: not-allowed; }
+  textarea.caja-campo-input { min-height: 4rem; padding-block: 0.625rem; line-height: 1.45; }
+  /* La lupa de un combo donde se escribe para buscar (ComboBuscable): se oscurece con la caja encendida. */
+  .caja-campo .combo-lupa { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); transition: color 200ms; } /* contraste: gráfico sobre hueso, papel */
+  .caja-campo:has([aria-expanded="true"]) .combo-lupa,
+  .caja-campo:has(input:focus) .combo-lupa { color: var(--color-tinta); }
+  /* El valor elegido entra subiendo (no salta). */
+  .combo-valor { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .combo-valor-entra { animation: cayla-valor-entra 260ms var(--ease-cayla) both; }
+  /* Tamaños: el monto y el Responsable, 48 px; la de una barra de filtros de Existencias, 36 px. */
+  .caja-campo-alta { min-height: 3rem; }
+  .caja-campo-baja { min-height: 2.25rem; font-size: 13px; }
+  .caja-campo-texto-largo { align-items: flex-start; padding-block: 0.625rem; }
+
+  /* ---------- El paso de cantidad («− 1 +», <PasoCantidad>, ronda 17 del 2026-10-17) ----------
+     La caja del campo con el − y el + adentro: con el cursor en el número se enciende y dibuja su hilo como cualquier campo. «celda»
+     (26 px) va dentro de una matriz; «fila» (36 px) crece sola a 44 px con el dedo. */
+  .caja-campo.paso-cantidad { display: inline-flex; flex: none; gap: 0; height: 2.25rem; min-height: 0; padding: 0 3px; }
+  .caja-campo.paso-cantidad[data-tam="celda"] { height: 1.625rem; padding: 0 2px; border-radius: 7px; }
+  .caja-campo.paso-cantidad::after { left: 0.5rem; right: 0.5rem; }
+  .paso-cantidad-b {
+    display: grid; place-items: center; flex: none;
+    height: calc(100% - 6px); aspect-ratio: 1; border-radius: 8px;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent); /* contraste: gráfico sobre hueso, papel */
+    transition: background-color 200ms var(--ease-cayla), color 200ms var(--ease-cayla), transform 120ms var(--ease-cayla);
+  }
+  .paso-cantidad[data-tam="celda"] .paso-cantidad-b { height: calc(100% - 4px); border-radius: 5px; }
+  .paso-cantidad-b svg { width: 14px; height: 14px; }
+  .paso-cantidad[data-tam="celda"] .paso-cantidad-b svg { width: 12px; height: 12px; }
+  @media (hover: hover) {
+    .paso-cantidad-b:hover { background: color-mix(in srgb, var(--color-sand) 60%, transparent); color: var(--color-tinta); }
+  }
+  .paso-cantidad-b:active { transform: scale(0.9); }
+  .paso-cantidad-b:disabled { opacity: 0.3; pointer-events: none; }
+  /* Apagado pero tocable (`bloqueado`): la pantalla dice por qué al tocarlo. */
+  .paso-cantidad-b[aria-disabled="true"] { opacity: 0.3; cursor: not-allowed; }
+  /* `.paso-cantidad` delante: le gana a la regla de todo control dentro de una caja (`.caja-campo :is(input)`, ancho completo). */
+  .paso-cantidad .paso-cantidad-n {
+    width: 2.25rem; flex: none; align-self: stretch; display: grid; place-items: center;
+    padding: 0; border: 0; background: transparent; outline: none;
+    text-align: center; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-tinta);
+    appearance: textfield;
+  }
+  .paso-cantidad-n::-webkit-inner-spin-button,
+  .paso-cantidad-n::-webkit-outer-spin-button { appearance: none; margin: 0; }
+  .paso-cantidad-n::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso, papel */
+  .paso-cantidad-n:disabled { cursor: not-allowed; }
+  /* Un botón apagado (el «−» en 1) no apaga la caja entera, como haría en un campo: solo el número deshabilitado la apaga. */
+  .caja-campo.paso-cantidad:has(:disabled) { opacity: 1; }
+  .caja-campo.paso-cantidad:has(.paso-cantidad-n:disabled) { opacity: 0.55; }
+  .paso-cantidad[data-tam="celda"] .paso-cantidad-n { width: 1.75rem; font-size: 13px; }
+  /* El dato habla por el borde y el número (lo que llegó en Recibir): se pasó, está completo, falta. */
+  .caja-campo.paso-cantidad[data-tono="error"] { border-color: var(--color-rojo); background: color-mix(in srgb, var(--color-rojo) 8%, var(--color-hueso)); }
+  .caja-campo.paso-cantidad[data-tono="exito"] { border-color: var(--color-verde); background: color-mix(in srgb, var(--color-verde) 9%, var(--color-hueso)); }
+  .caja-campo.paso-cantidad[data-tono="atencion"] { border-color: var(--color-ambar); background: color-mix(in srgb, var(--color-ambar) 10%, var(--color-hueso)); }
+  .paso-cantidad[data-tono="error"] .paso-cantidad-n { color: var(--color-rojo-profundo); }
+  .paso-cantidad[data-tono="exito"] .paso-cantidad-n { color: var(--color-verde-profundo); }
+  .paso-cantidad[data-tono="atencion"] .paso-cantidad-n { color: var(--color-ambar-profundo); }
+  @media (pointer: coarse) {
+    .caja-campo.paso-cantidad[data-tam="fila"] { height: 2.75rem; }
+    /* 16 px: con menos, el iPhone agranda la pantalla al tocar el número. */
+    .paso-cantidad[data-tam="fila"] .paso-cantidad-n { width: 2.75rem; font-size: 16px; }
+    .paso-cantidad[data-tam="fila"] .paso-cantidad-b svg { width: 16px; height: 16px; }
+  }
+  /* «grande» (la hoja «Configuración» de una campaña, ADR-0488, Felipe 2026-10-23): 68 px, − y + de 44 px (también con el dedo) y el
+     número en la serif de 36 px con su unidad al lado (`sufijo`), los dos sobre la misma línea base y al centro de la caja. */
+  .caja-campo.paso-cantidad[data-tam="grande"] { display: grid; grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem; align-items: center; height: 4.25rem; padding: 0 0.75rem; border-radius: 14px; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-b { height: 2.75rem; border-radius: 10px; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-b svg { width: 16px; height: 16px; }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-n { width: auto; min-width: 1ch; display: inline-block; align-self: auto; font-family: var(--font-serif); font-size: 36px; font-weight: 500; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+  .paso-cantidad-c { display: inline-flex; align-items: baseline; justify-content: center; gap: 3px; justify-self: center; min-width: 0; }
+  /* El centro óptico de la serif: el de la tinta de «10» cae 1,3 px bajo el de la caja (medido en el navegador). */
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-c { transform: translateY(-1px); }
+  .paso-cantidad-s { color: var(--color-taupe); line-height: 1; }
+  /* «planilla» («Ajustar stock» en el modal de la prenda de Existencias, ADR-0494; «Planilla rápida», ronda 2, Felipe 2026-10-26): 36 px,
+     el número contado en la serif de 20 px y − y + redondos de 24 px (su ícono, de 14); con el dedo, 44 px y − y + de 32. Va en una tabla
+     de colores × tallas: la caja mide ~92 px y su columna 104 (`PLANILLA.columnaTalla`). */
+  .caja-campo.paso-cantidad[data-tam="planilla"] { height: 2.25rem; padding: 0 4px; border-radius: 10px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-b { width: 1.5rem; height: 1.5rem; border-radius: 999px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-b svg { width: 14px; height: 14px; }
+  .paso-cantidad[data-tam="planilla"] .paso-cantidad-n { width: 2.25rem; font-family: var(--font-serif); font-size: 20px; font-weight: 500; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+  @media (pointer: coarse) {
+    .caja-campo.paso-cantidad[data-tam="planilla"] { height: 2.75rem; }
+    .paso-cantidad[data-tam="planilla"] .paso-cantidad-b { width: 2rem; height: 2rem; }
+  }
+  .paso-cantidad[data-tam="grande"] .paso-cantidad-s { font-family: var(--font-serif); font-size: 26px; }
+
+  /* ---------- La lista que se abre (Desplegable, ComboBuscable, ComboResponsable, las píldoras de filtro) ----------
+     La elegida lleva el hilo rojo de canto y su ✓ que se DIBUJA; con más de 8 opciones, el buscador fijo arriba con su lupa. */
+  .combo-tilde { width: 15px; height: 15px; flex-shrink: 0; margin-left: 0.5rem; color: var(--color-rojo); }
+  .combo-tilde :is(path, polyline) { stroke-dasharray: 24; stroke-dashoffset: 24; animation: cayla-tilde-dibuja 300ms var(--ease-cayla) 140ms forwards; }
+  .combo-buscar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
+  }
+  .combo-buscar svg { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); } /* contraste: gráfico sobre papel */
+  .combo-buscar input {
+    min-width: 0;
+    flex: 1;
+    padding: 0.5rem 0;
+    border: 0;
+    background: transparent;
+    font-size: 14px;
+    color: var(--color-tinta);
+    outline: none;
+  }
+  .combo-buscar input::placeholder { color: color-mix(in srgb, var(--color-tinta) 62%, transparent); } /* contraste: texto sobre papel */
+
+  /* ---------- La píldora de filtro que se abre (DesplegablePildora, components/ui/FiltrosPildora.tsx) ---------- */
+  .pildora-filtro {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid var(--color-sand);
+    background: var(--color-papel);
+    color: color-mix(in srgb, var(--color-tinta) 78%, transparent);
+    transition: background-color 220ms var(--ease-cayla), border-color 220ms var(--ease-cayla), color 220ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .pildora-filtro:hover { border-color: color-mix(in srgb, var(--color-taupe) 70%, transparent); color: var(--color-tinta); }
+  }
+  .pildora-filtro[data-abierta] { border-color: var(--color-tinta); color: var(--color-tinta); }
+  .pildora-filtro[data-puesta] { background: var(--color-tinta); border-color: var(--color-tinta); color: var(--color-crema); }
+  .pildora-filtro-boton {
+    display: inline-flex;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px 0 11px;
+    border: 0;
+    border-radius: inherit;
+    background: none;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .pildora-filtro[data-quitable] .pildora-filtro-boton { padding-right: 4px; }
+  .pildora-filtro-icono { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; transition: opacity 220ms; }
+  .pildora-filtro[data-puesta] .pildora-filtro-icono { opacity: 0.8; }
+  @media (hover: hover) {
+    .pildora-filtro:hover .pildora-filtro-icono { opacity: 0.8; }
+  }
+  .pildora-filtro[data-puesta] .pildora-filtro-nombre { opacity: 0.75; }
+  .pildora-filtro-valor { display: flex; min-width: 0; max-width: 16rem; align-items: center; gap: 6px; font-weight: 600; }
+  .pildora-filtro-flecha { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.55; transition: transform 320ms var(--ease-cayla), color 200ms, opacity 200ms; }
+  .pildora-filtro[data-abierta] .pildora-filtro-flecha { transform: rotate(-180deg); color: var(--color-rojo); opacity: 1; }
+  .pildora-filtro-quitar {
+    display: inline-grid;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    place-items: center;
+    margin-right: 6px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: color-mix(in srgb, var(--color-crema) 75%, transparent);
+    cursor: pointer;
+    transition: background-color 150ms, color 150ms;
+  }
+  .pildora-filtro-quitar svg { width: 12px; height: 12px; }
+  @media (hover: hover) {
+    .pildora-filtro-quitar:hover { background: color-mix(in srgb, var(--color-crema) 18%, transparent); color: var(--color-crema); }
+  }
+  /* «Filtros» (BotonFiltros, ronda 10): cuántos hay puestos, en el globito de los títulos, pegado al nombre. */
+  .pildora-filtro .pildora-filtro-cuenta { margin-left: -2px; }
+  .pildora-filtro-punto { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  /* «Ordenar» de Productos junto al buscador del celular: solo el ícono, en un círculo de 38 px, con un punto si está puesta. */
+  @media (max-width: 639.98px) {
+    .pildora-filtro-icono-celular { width: 38px; height: 38px; justify-content: center; }
+    .pildora-filtro-icono-celular .pildora-filtro-boton { width: 100%; justify-content: center; padding: 0; }
+    .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar, .pildora-filtro-cuenta) { display: none; }
+    .pildora-filtro-icono-celular .pildora-filtro-icono { width: 16px; height: 16px; }
+  }
+  @media (min-width: 640px) {
+    .pildora-filtro-punto { display: none; }
+  }
+
+  /* ---------- La etiqueta de un campo (Campo): versalitas que se oscurecen con su caja ---------- */
+  .campo-etiqueta {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    transition: color 200ms var(--ease-cayla);
+  }
+  .campo:has(:is(input, textarea):focus, [aria-expanded="true"]) .campo-etiqueta { color: var(--color-tinta); }
+
+  /* ---------- <Casilla> (components/ui/Casilla.tsx) ---------- */
+  .casilla {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .casilla-input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    appearance: none;
+    cursor: pointer;
+    border-radius: 6px;
+    border: 1.5px solid var(--color-borde-control); /* P2 de la familia: antes tinta al 35 % (2.2:1 en claro) */
+    background: var(--color-papel);
+    transition: border-color 150ms, scale 120ms var(--ease-cayla);
+  }
+  @media (hover: hover) {
+    .casilla-input:hover:not(:disabled) { border-color: var(--color-tinta); }
+  }
+  .casilla-input:active:not(:disabled) { scale: 0.92; }
+  .casilla-input:disabled { cursor: not-allowed; opacity: 0.5; }
+  /* El fondo de tinta crece desde el centro al marcar. */
+  .casilla-fondo {
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    background: var(--color-tinta);
+    scale: 0.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: scale 220ms var(--ease-cayla), opacity 160ms var(--ease-cayla);
+  }
+  .casilla-input:is(:checked, :indeterminate) ~ .casilla-fondo { scale: 1; opacity: 1; }
+  /* El ✓ (o el guion de «a medias») se traza después de que el fondo llega. */
+  .casilla-marca {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 13px;
+    height: 13px;
+    color: var(--color-crema);
+    pointer-events: none;
+  }
+  .casilla-marca :is(path, polyline, line) {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    transition: stroke-dashoffset 260ms var(--ease-cayla);
+  }
+  .casilla-input:checked:not(:indeterminate) ~ .casilla-visto :is(path, polyline),
+  .casilla-input:indeterminate ~ .casilla-medio :is(path, line) {
+    stroke-dashoffset: 0;
+    transition-delay: 90ms;
+  }
+
+  /* ---------- <Interruptor> (components/ui/campos.tsx) ---------- */
+  .interruptor {
+    position: relative;
+    width: 38px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-tinta) 22%, transparent);
+    /* Apagado: el aro de control (P2 de la familia; el relleno solo daba 1.6:1). Prendido: el relleno de tinta ya lo identifica. */
+    box-shadow: inset 0 0 0 1.5px var(--color-borde-control);
+    transition: background-color 280ms var(--ease-cayla), box-shadow 280ms var(--ease-cayla);
+  }
+  .interruptor[aria-checked="true"] { background: var(--color-tinta); box-shadow: none; }
+  .interruptor:disabled { cursor: not-allowed; }
+  /* La perilla: se desliza al cambiar y se ESTIRA mientras se presiona (como un dedo que la empuja). */
+  .interruptor-perilla {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--color-papel);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--color-sombra) 30%, transparent);
+    transition: translate 280ms var(--ease-cayla), width 160ms var(--ease-cayla);
+  }
+  .interruptor[aria-checked="true"] .interruptor-perilla { translate: 16px 0; }
+  .interruptor:active:not(:disabled) .interruptor-perilla { width: 21px; }
+  .interruptor[aria-checked="true"]:active:not(:disabled) .interruptor-perilla { translate: 11px 0; }
+
+  /* ---------- La lista que sugiere mientras se escribe o se escanea (ListaSugerencias, ADR-0358 ronda 9) ----------
+     La superficie de toda lista (`lista-flotante`) o, si la lista es el contenido del paso, la misma en línea con su borde. Cada fila:
+     su miniatura, título y detalle, un dato a la derecha. La activa (la que toma el Enter) lleva el hilo rojo de canto y la tecla. */
+  .lista-sugerencias { display: flex; flex-direction: column; overflow-y: auto; padding: 6px 0; border-radius: var(--radius-lg); }
+  .lista-sugerencias-en-linea { border: 1px solid var(--color-sand); border-radius: var(--radius-xl); background: var(--color-papel); }
+  .sugerencia {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 12px;
+    width: calc(100% - 12px);
+    margin: 0 6px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    text-align: left;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--color-tinta) 85%, transparent);
+    cursor: pointer;
+    transition: background-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla);
+    animation: cayla-entrada 360ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 30ms);
+  }
+  @media (hover: hover) {
+    .sugerencia:hover { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); color: var(--color-tinta); }
+  }
+  .sugerencia[data-activa] { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-tinta); }
+  .sugerencia-canto {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 2px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: var(--color-rojo);
+    transform: scaleY(0);
+    transition: transform 200ms var(--ease-cayla);
+  }
+  .sugerencia[data-activa] .sugerencia-canto { transform: scaleY(1); }
+  .sugerencia-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+  .sugerencia-titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+  .sugerencia-detalle { overflow: hidden; margin-top: 2px; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 1.35; color: var(--color-taupe); }
+  .sugerencia-derecha { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; font-size: 12px; color: var(--color-taupe); font-variant-numeric: tabular-nums; text-align: right; }
+  .sugerencia-tecla {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 6px;
+    border: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent);
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 10.5px;
+    color: var(--color-taupe);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
+  }
+  .sugerencia-tecla svg { width: 12px; height: 12px; }
+  .sugerencia[data-activa] .sugerencia-tecla { opacity: 1; transform: none; }
+}
+
+@keyframes cayla-tilde-dibuja {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes cayla-valor-entra {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caja-campo-input,
+  .caja-campo,
+  .caja-campo::after,
+  .caja-campo .combo-flecha,
+  .pildora-filtro,
+  .pildora-filtro-flecha,
+  .combo-valor-entra,
+  .combo-tilde :is(path, polyline),
+  .campo-etiqueta,
+  .casilla-input,
+  .casilla-fondo,
+  .casilla-marca :is(path, polyline, line),
+  .interruptor,
+  .interruptor-perilla,
+  .sugerencia,
+  .sugerencia-canto,
+  .sugerencia-tecla,
+  .paso-cantidad-b {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sugerencia,
+  .combo-tilde :is(path, polyline),
+  .combo-valor-entra,
+  .caja-campo[data-trabajando]::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* =====================================================================
+   LETRA DE 16 PX EN EL CELULAR — auditoría de modales en celular, hallazgo 1 (2026-10-23)
+
+   Safari de iPhone amplía la pantalla solo al tocar un campo cuya letra mide menos de 16 px, y no la devuelve al salir: la hoja queda
+   cortada de un lado hasta que la persona pellizca. Los campos del ERP miden 13, 13,5, 14 y 15 px (medido: 324 de 343 campos en 205
+   pantallas a 375 px), así que esta regla los sube a 16 px en el teléfono y en cualquier pantalla táctil (`pointer: coarse`: también
+   el teléfono girado, que mide más de 640 px). En un escritorio con mouse no cambia nada. No usar `maximum-scale=1` en el viewport:
+   quita el zoom de accesibilidad.
+
+   Va SIN capa a propósito, como `pie-acciones.css`: una regla sin capa les gana a las utilidades de Tailwind (`text-sm`, `text-[13px]`)
+   y a lo que cada pieza hereda de `.caja-campo` (14 px). Con `:where` su especificidad es cero: una regla SIN capa de una pieza con
+   letra propia y más grande (`.rc-numero input`, el conteo de 64 px; `.tp-contador input`, 20 px) le sigue ganando.
+
+   Solo SUBE: un campo grande a propósito no debe achicarse. Los que traen su tamaño en una clase de Tailwind (`text-base`, `text-lg`…
+   `text-4xl`, `text-[16px]`…`text-[3Npx]`) y el monto del gasto rápido (`.gr-monto-input`, 36 px, que vive en una capa) quedan
+   afuera (y a su ejemplo no se le toca la letra). Un campo nuevo con letra grande propia que no entre en esa lista se verá de 16 px: se le
+   suma su clase aquí.
+   ===================================================================== */
+@media (max-width: 639.98px), (pointer: coarse) {
+  :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"], [type="button"], [type="submit"], [type="reset"], [type="image"]),
+    textarea,
+    select
+  ):where(
+    :not(
+      .gr-monto-input,
+      [class*="text-base"], [class*="text-lg"], [class*="text-xl"], [class*="text-2xl"], [class*="text-3xl"], [class*="text-4xl"],
+      [class*="text-[16"], [class*="text-[17"], [class*="text-[18"], [class*="text-[19"], [class*="text-[2"], [class*="text-[3"]
+    )
+  ) {
+    font-size: 16px;
+  }
+  /* El ejemplo (placeholder) se queda en 14 px: iOS decide el zoom por la letra del campo, no por la del ejemplo, y los topes de largo de los
+     ejemplos (`MAX_DESCRIPCION` = 36 caracteres en `lib/sugerencias-alta-producto.ts`, y los de ajuste, gasto fijo, tienda web y orden de
+     producción) se midieron con 14 px: a 16 px un ejemplo de 36 caracteres no cabe en los 279 px de la caja a 375 px. */
+  :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"], [type="file"], [type="color"], [type="button"], [type="submit"], [type="reset"], [type="image"]),
+    textarea
+  ):where(
+    :not(
+      .gr-monto-input,
+      [class*="text-base"], [class*="text-lg"], [class*="text-xl"], [class*="text-2xl"], [class*="text-3xl"], [class*="text-4xl"],
+      [class*="text-[16"], [class*="text-[17"], [class*="text-[18"], [class*="text-[19"], [class*="text-[2"], [class*="text-[3"]
+    )
+  )::placeholder {
+    font-size: 14px;
+  }
+}

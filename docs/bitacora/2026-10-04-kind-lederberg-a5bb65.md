@@ -1,0 +1,9 @@
+## 2026-10-04 (Existencias deja de decir cosas que no son verdad y dice por dónde empezar)
+Qué hice: rehíce la cara de Existencias en 8 partes aprobadas por Felipe (ADR-0331, análisis `docs/pantallas/inventario.md`): una talla con al menos una colgada ya está «bien» (reponer pasa de 4 a 0); «Para hoy» reemplaza las cuatro tarjetas y muestra por primera vez las ventas sin registrar; arriba se leen colgadas y guardadas con un solo botón oscuro; el rojo quedó para lo que falló; cada prenda cuelga sus tallas de un riel con un solo botón; los filtros esperan a que los pidan; en el celular «Para hoy» entra en una línea.
+Por qué así: la pantalla decía «reponer» en las 538 tallas de TRU, «Incidencias 0» con 78 ventas sin registrar, «795 uds» cuando la caja cobra solo lo colgado, y tenía más de 30 rojos y 15 botones negros: nadie podía saber qué creer ni por dónde empezar.
+Felipe se lleva: que el número de «por colgar» todavía es casi todo prendas colgadas que el sistema cree guardadas (TRU necesita 539 lugares de 600 para el mínimo y ya cuelgan 600–750): hasta cuadrar el piso, la frase lo dice; el cuadre lo construye la otra sesión del rediseño (ADR-0328).
+
+## 2026-10-04 (integración con Recibir antes de fusionar)
+Qué hice: al traer `main` (#791, ADR-0330, las ventas sin registrar se mudaron a Existencias) dejé un solo contador y una sola puerta: la fila «Ventas sin registrar» de «Para hoy» lleva a `/inventario/por-regularizar` con la sede, y la lista la respeta para el líder; salió el botón duplicado de la cabecera.
+Por qué así: con los dos PR juntos había dos contadores y dos accesos para lo mismo, y «Regularizar» apuntaba a la ruta vieja, cuya redirección perdía la sede (la cifra decía una tienda y la lista mostraba todas).
+Felipe se lleva: que las ventas sin registrar se resuelven desde Existencias, y quien ve Existencias puede resolverlas aunque no vea Recibir.

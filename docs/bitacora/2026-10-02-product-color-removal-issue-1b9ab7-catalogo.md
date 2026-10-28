@@ -1,0 +1,4 @@
+## 2026-10-02 (El catálogo ya no cuenta los colores y tallas desactivados)
+Qué hice: `variantesQueSeVenden` (`lib/productos-vista.ts`) deja fuera las variantes desactivadas en Productos (tabla y tarjetas): colores, tallas, rango de precio, costo y margen, «N variantes» y las filas de la ventana rápida y del detalle. Un modelo con todas desactivadas las conserva.
+Por qué así: Felipe desactivó «Verde oliva» de Blusa con Lazo y seguía saliendo en la muestra de colores y en la lista, solo atenuado. Desactivar significa «ya no se vende»: lo que no se vende no se cuenta. El stock total de la sede sigue sumando todas las variantes, porque las unidades siguen en el inventario.
+Felipe se lleva: la prenda muestra solo los colores y tallas que se venden. Lo desactivado sigue en la ficha de edición, en «Mostrar desactivadas».

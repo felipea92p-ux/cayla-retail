@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { hoyLima } from "@/lib/fechas-lima";
-import { marcasPorProveedor, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
+import { marcasPorProveedor, rubrosConConteo, serie12Meses, esDeServicios, type MarcasDeProveedor, type TipoProveedor } from "@/lib/proveedores-reglas";
+import type { PrendaDeProveedor, RendimientoProveedor } from "@/lib/proveedor-prendas-reglas";
+import type { PrendaConProveedor } from "@/lib/proveedor-analisis-reglas";
+import { celdaDeFila, type CeldaTallaSede } from "@/lib/proveedor-tallas-sedes-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -47,6 +50,8 @@ export type Proveedor = {
   facturas_atrasadas: number | null;
   /** Todo lo que vende (Polos, Casacas…), texto libre; `[]` = sin rubro, nunca null (ADR-0213). */
   rubros: string[];
+  /** Mercadería (ropa) o servicios (Entel, luz, agua, alquiler): `proveedores.tipo`, 20261024222000. */
+  tipo: TipoProveedor;
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
   /** Facturado en los últimos 12 meses (la lista dejó de mostrar «desde siempre»). */
@@ -60,15 +65,29 @@ export type Proveedor = {
   saldo_favor: number | null;
 };
 
+async function leerTipos(supabase: Awaited<ReturnType<typeof createClient>>, soloId?: string): Promise<Map<string, TipoProveedor>> {
+  const consulta = supabase.from("proveedores").select("id, tipo");
+  const { data, error } = await (soloId ? consulta.eq("id", soloId) : consulta);
+  if (error) {
+    console.error("[proveedores] no se pudo leer el tipo; se infiere del rubro «Gastos»:", error.message);
+    return new Map();
+  }
+  return new Map((data ?? []).map((f) => [f.id, f.tipo === "servicios" ? "servicios" : "mercaderia"] as const));
+}
+
 export async function getProveedores(): Promise<Proveedor[]> {
   const supabase = await createClient();
   const filas = exigir(await supabase.rpc("fn_proveedores"), "el directorio de proveedores");
+  // El tipo se lee aparte (la función de la lista no cambia de forma). Secundario: si la base todavía no tiene la columna (20261024222000
+  // se pega aparte del despliegue), todos salen como «mercadería» y las reglas caen a «solo Gastos» (esDeServicios).
+  const tipos = await leerTipos(supabase);
   // Los `numeric` de Postgres viajan como texto por JSON — se normalizan acá, preservando `null` tal
   // cual (Number(null) da 0, que acá significaría «sin deuda» en vez de «no te corresponde verlo»: son
   // cosas distintas, no se pueden confundir).
   const num = (v: number | string | null | undefined) => (v == null ? null : Number(v));
   return filas.map((p) => ({
     ...p,
+    tipo: tipos.get(p.id) ?? (esDeServicios(p) ? "servicios" : "mercaderia"),
     saldo: num(p.saldo),
     total_facturado: num(p.total_facturado),
     facturado_12m: num(p.facturado_12m),
@@ -112,6 +131,19 @@ export async function getProveedoresSerie(): Promise<Record<string, number[]> | 
 // pinta igual, sin marcas ni búsqueda por marca — principio 9: una lectura secundaria nunca tumba la pantalla.
 // El tope por defecto de PostgREST (`max_rows` en supabase/config.toml).
 const TOPE_FILAS = 1000;
+
+// Los rubros que ya usan los proveedores activos: los botones de «Registrar proveedor» (así «Tela», «tela» y «Telas» no
+// terminan siendo tres rubros). Para quien registra desde fuera de Proveedores (Recibir mercadería). Secundaria: si la
+// lectura falla devuelve `[]` y el formulario se abre igual, con el rubro escrito a mano.
+export async function getRubrosEnUso(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("proveedores").select("rubros").eq("activo", true);
+  if (error) {
+    console.error("[proveedores] no se pudieron leer los rubros en uso; el formulario se abre sin sugerencias:", error.message);
+    return [];
+  }
+  return rubrosConConteo(data ?? []).map((r) => r.etiqueta);
+}
 
 export async function getMarcasPorProveedor(): Promise<MarcasDeProveedor | null> {
   const supabase = await createClient();
@@ -177,6 +209,8 @@ export async function getProveedoresResumen(): Promise<ResumenProveedores> {
 // hace `notFound()`, no es un error de lectura.
 export type ProveedorFicha = {
   id: string;
+  /** Mercadería o servicios (20261024222000). */
+  tipo: TipoProveedor;
   nombre: string;
   ruc: string | null;
   contacto: string | null;
@@ -191,18 +225,84 @@ export type ProveedorFicha = {
   rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
+  /** `false` = la base no le entregó los datos bancarios a esta cuenta (no tiene permiso): los seis campos vienen en null por eso, NO
+   *  porque el proveedor no tenga cuenta. Las pantallas de pago lo dicen («no puedes verlos»), nunca «no tiene cuenta». */
+  bancarios_visibles: boolean;
 };
+
+// Los datos bancarios ya no se leen de la tabla (20261013161000, Felipe 2026-10-13): solo los ve quien ve Proveedores, Por
+// pagar o Cuentas y dinero, y la base los entrega por `fn_proveedor_datos_bancarios` (cero filas a quien no puede verlos:
+// la ficha queda «sin datos para pagar», nunca rota).
+const SIN_DATOS_BANCARIOS = { banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null };
 
 export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   const supabase = await createClient();
-  return exigirOpcional(
-    await supabase
+  const [general, bancarios] = await Promise.all([
+    supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubros, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, activo, rubros, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
-    "la ficha del proveedor"
-  );
+    supabase.rpc("fn_proveedor_datos_bancarios", { p_proveedor_id: id }),
+  ]);
+  const generalFicha = exigirOpcional(general, "la ficha del proveedor");
+  if (!generalFicha) return null;
+  // El tipo se lee aparte y sin tumbar la ficha: si la base todavía no tiene la columna, vale la regla de «solo Gastos».
+  const tipoLeido = (await leerTipos(supabase, id)).get(id);
+  const ficha = { ...generalFicha, tipo: tipoLeido ?? (esDeServicios(generalFicha) ? ("servicios" as const) : ("mercaderia" as const)) };
+  // La web se publica ANTES de pegar la migración (20261013161000): mientras la función no exista en esa base (PGRST202), la cuenta
+  // se lee de la tabla como siempre. Nunca `SIN_DATOS_BANCARIOS` por un error: la edición mandaría la cuenta en blanco al guardar
+  // y `actualizar_proveedor` borraría la real.
+  if (bancarios.error?.code === "PGRST202") {
+    const comoAntes = await supabase
+      .from("proveedores")
+      .select("banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta")
+      .eq("id", id)
+      .maybeSingle();
+    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS), bancarios_visibles: true };
+  }
+  // Cero filas = la cuenta no puede verlos (`fn_proveedor_datos_bancarios` no devuelve nada sin permiso); una fila con todo en null =
+  // sí puede y el proveedor no tiene cuenta cargada. Son dos cosas distintas y la pantalla las dice distinto.
+  const fila = exigir(bancarios, "los datos para pagar del proveedor")[0];
+  return { ...ficha, ...(fila ?? SIN_DATOS_BANCARIOS), bancarios_visibles: fila !== undefined };
+}
+
+/**
+ * Lo que necesita el aviso del Inicio del líder (Felipe 2026-10-13): cuántos proveedores cambiaron su cuenta bancaria en los
+ * últimos 7 días y cuál fue el último. `null` si no se pudo leer (el aviso dice «no se pudo leer», nunca «al día»).
+ */
+export async function getCuentasBancariasCambiadas(): Promise<{
+  cambios: number;
+  proveedores: number;
+  ultimoProveedorId: string | null;
+  ultimoProveedor: string | null;
+  ultimoEn: string | null;
+  primeroEn: string | null;
+} | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_cuentas_bancarias_cambiadas", { p_dias: 7 });
+  // Sin la migración todavía (PGRST202) no hay historial: nada cambió que se haya podido anotar.
+  if (error?.code === "PGRST202") return { cambios: 0, proveedores: 0, ultimoProveedorId: null, ultimoProveedor: null, ultimoEn: null, primeroEn: null };
+  if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+  const d = data as { cambios?: number; proveedores?: number; ultimo_proveedor_id?: string | null; ultimo_proveedor?: string | null; ultimo_en?: string | null; primero_en?: string | null };
+  return {
+    cambios: Number(d.cambios ?? 0),
+    proveedores: Number(d.proveedores ?? 0),
+    ultimoProveedorId: d.ultimo_proveedor_id ?? null,
+    ultimoProveedor: d.ultimo_proveedor ?? null,
+    ultimoEn: d.ultimo_en ?? null,
+    primeroEn: d.primero_en ?? null,
+  };
+}
+
+/** Un cambio del CCI, la cuenta, el Yape o el titular (el historial de 20261013161000), del más nuevo al más viejo. */
+export type CambioBancario = { campo: string; antes: string | null; despues: string | null; cambiadoPor: string | null; cambiadoEn: string };
+
+/** Los últimos 50 cambios de cuenta de un proveedor. Vacío para quien no puede ver datos bancarios. */
+export async function getCambiosBancarios(id: string): Promise<CambioBancario[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_cambios_bancarios", { p_proveedor_id: id }), "los cambios de cuenta del proveedor");
+  return filas.map((f) => ({ campo: f.campo, antes: f.antes, despues: f.despues, cambiadoPor: f.cambiado_por_nombre, cambiadoEn: f.cambiado_en }));
 }
 
 // Prenda terminada, vía `compras` (fn_proveedor_metricas_compras,
@@ -294,4 +394,144 @@ export async function getProveedorMetricasInsumos(id: string): Promise<MetricasI
     total_comprado: string | number;
   };
   return { ...fila, total_comprado: Number(fila.total_comprado) };
+}
+
+// Lo que se le compró a ESTE proveedor, prenda por prenda (fn_proveedor_prendas, 20261024221000): unidades y gasto
+// salen de las entradas de inventario al costo de la prenda (las líneas de factura mandan cuando existen); lo vendido,
+// de las ventas completadas. Solo lectura. Las reglas que lo agrupan y lo interpretan viven en `proveedor-prendas-reglas.ts`.
+export async function getProveedorPrendas(id: string): Promise<PrendaDeProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_prendas", { p_proveedor_id: id }), "las prendas compradas al proveedor");
+  return filas.map((f) => ({
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    codigo: f.codigo,
+    marca: f.marca,
+    categoria: f.categoria,
+    unidadesCompradas: Number(f.unidades_compradas),
+    unidadesCompras: Number(f.unidades_compras),
+    unidadesSinFactura: Number(f.unidades_sin_factura),
+    unidadesCarga: Number(f.unidades_carga),
+    unidadesEstimadas: Number(f.unidades_estimadas),
+    gasto: Number(f.gasto),
+    gastoCompras: Number(f.gasto_compras),
+    gastoCarga: Number(f.gasto_carga),
+    costoPromedio: f.costo_promedio == null ? null : Number(f.costo_promedio),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    stockActual: Number(f.stock_actual),
+    primeraEntrada: f.primera_entrada,
+    ultimaVenta: f.ultima_venta,
+    conFactura: f.con_factura,
+  }));
+}
+
+// Las tallas y las sedes de un proveedor (fn_proveedor_tallas_sedes, 20261026193000): una fila por prenda, talla y sede. Las cuentas las hace
+// `proveedor-tallas-sedes-reglas.ts`.
+export async function getProveedorTallasSedes(id: string): Promise<CeldaTallaSede[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_tallas_sedes", { p_proveedor_id: id }), "las tallas y las sedes del proveedor");
+  return filas.map(celdaDeFila);
+}
+
+// El ranking de la lista (fn_proveedores_rendimiento): lo comprado, lo vendido y lo parado de cada proveedor al que se le compró algo.
+// Las ventas por día de cada proveedor (fn_proveedores_ventas_diarias, 20261026172000, ADR-0521): la línea chica de cada fila del ranking. Solo
+// los días con ventas; la web rellena el resto con cero (`seriesDeVentas`). Misma llave que el rendimiento.
+export async function getProveedoresVentasDiarias(dias = 28): Promise<{ proveedor_id: string; dia: string; vendidas: number }[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_ventas_diarias", { p_dias: dias }), "las ventas por día de los proveedores");
+  return filas.map((f) => ({ proveedor_id: f.proveedor_id, dia: f.dia, vendidas: Number(f.vendidas) }));
+}
+
+export async function getProveedoresRendimiento(): Promise<RendimientoProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_rendimiento"), "el rendimiento de los proveedores");
+  return filas.map((f) => ({
+    proveedorId: f.proveedor_id,
+    nombre: f.nombre,
+    esTaller: f.es_taller,
+    prendas: Number(f.prendas),
+    unidadesCompradas: Number(f.unidades_compradas),
+    unidadesCompras: Number(f.unidades_compras),
+    unidadesSinFactura: Number(f.unidades_sin_factura),
+    unidadesCarga: Number(f.unidades_carga),
+    unidadesEstimadas: Number(f.unidades_estimadas),
+    gasto: Number(f.gasto),
+    gastoCompras: Number(f.gasto_compras),
+    gastoCarga: Number(f.gasto_carga),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    plataEnStock: Number(f.plata_en_stock),
+    prendasSinVenta: Number(f.prendas_sin_venta),
+    plataSinVenta: Number(f.plata_sin_venta),
+    // Con la base de antes de 20261024234000 estas dos no llegan: el veredicto no puede medir el ritmo y cae a lo demás (no se rompe nada).
+    primeraEntrada: f.primera_entrada ?? null,
+    unidadesEnEstantes: Number(f.unidades_en_estantes ?? 0),
+  }));
+}
+
+// Todas las prendas de todos los proveedores (fn_proveedores_prendas): la materia prima del análisis «Lo que quizá no ves».
+export async function getProveedoresPrendas(): Promise<PrendaConProveedor[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedores_prendas"), "las prendas compradas a los proveedores");
+  return filas.map((f) => ({
+    proveedorId: f.proveedor_id,
+    proveedorNombre: f.proveedor,
+    esTaller: f.es_taller,
+    productoId: f.producto_id,
+    referencia: f.referencia,
+    codigo: f.codigo,
+    marca: f.marca,
+    categoria: f.categoria,
+    unidadesCompradas: Number(f.unidades_compradas),
+    unidadesCompras: Number(f.unidades_compras),
+    unidadesSinFactura: Number(f.unidades_sin_factura),
+    unidadesCarga: Number(f.unidades_carga),
+    unidadesEstimadas: Number(f.unidades_estimadas),
+    gasto: Number(f.gasto),
+    gastoCompras: Number(f.gasto_compras),
+    gastoCarga: Number(f.gasto_carga),
+    costoPromedio: f.costo_promedio == null ? null : Number(f.costo_promedio),
+    unidadesVendidas: Number(f.unidades_vendidas),
+    ingresoVendido: Number(f.ingreso_vendido),
+    costoVendido: Number(f.costo_vendido),
+    stockActual: Number(f.stock_actual),
+    primeraEntrada: f.primera_entrada,
+    ultimaVenta: f.ultima_venta,
+    conFactura: f.con_factura,
+  }));
+}
+
+// Lo que se le PAGA a un proveedor de servicios (Entel, luz, agua, alquiler): los comprobantes de gasto
+// (fn_proveedor_servicio_resumen, 20261024222000). Las métricas de mercadería no los cuentan.
+export type ResumenServicio = {
+  comprobantes: number;
+  total: number;
+  total12m: number;
+  mesesConPago12m: number;
+  saldo: number;
+  vencido: number;
+  ultimaFecha: string | null;
+  meses: { mes: string; monto: number }[];
+  ultimos: { id: string; documento: string | null; fecha: string; total: number; saldo: number; estado: string }[];
+};
+
+export async function getProveedorServicioResumen(id: string): Promise<ResumenServicio> {
+  const supabase = await createClient();
+  const f = exigir(await supabase.rpc("fn_proveedor_servicio_resumen", { p_proveedor_id: id }), "lo que se le paga al proveedor") as unknown as Record<string, unknown>;
+  const n = (v: unknown) => Number(v ?? 0);
+  const lista = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+  return {
+    comprobantes: n(f.comprobantes),
+    total: n(f.total),
+    total12m: n(f.total_12m),
+    mesesConPago12m: n(f.meses_con_pago_12m),
+    saldo: n(f.saldo),
+    vencido: n(f.vencido),
+    ultimaFecha: (f.ultima_fecha as string | null) ?? null,
+    meses: lista<{ mes: string; monto: unknown }>(f.meses).map((m) => ({ mes: m.mes, monto: n(m.monto) })),
+    ultimos: lista<{ id: string; documento: string | null; fecha: string; total: unknown; saldo: unknown; estado: string }>(f.ultimos).map((u) => ({ ...u, total: n(u.total), saldo: n(u.saldo) })),
+  };
 }

@@ -57,3 +57,74 @@ describe("faltanDe, sePuedeConfirmar y fraseDeLoQueFalta", () => {
     expect(fraseDeLoQueFalta([campo("a", { hecho: true }), campo("s", { requerido: false, sugerido: true })])).toBeNull();
   });
 });
+
+describe("enFoco — la luz espera a que la persona termine de escribir", () => {
+  // «Nuevo color»: con una letra el nombre ya es «hecho», pero la persona sigue tecleando.
+  const nuevoColor = (o: { nombre?: string; codigo?: string; familiaElegida?: boolean; hex?: boolean } = {}) => [
+    campo("nombre", { hecho: (o.nombre ?? "") !== "" }),
+    campo("codigo", { hecho: (o.codigo ?? "").length === 3 }),
+    campo("familia", { requerido: false, sugerido: true, hecho: o.familiaElegida ?? false }),
+    campo("color", { hecho: o.hex ?? false }),
+    campo("responsable"),
+  ];
+
+  it("sin foco, con una letra el nombre ya es ✓ y la luz salta al código (lo de antes)", () => {
+    expect(estadosDe(nuevoColor({ nombre: "V" })).nombre).toBe("hecho");
+    expect(estadosDe(nuevoColor({ nombre: "V" })).codigo).toBe("ahora");
+  });
+
+  it("escribiendo en el nombre, este conserva la luz aunque ya tenga una letra: sin ✓ y nada más se enciende", () => {
+    const e = estadosDe(nuevoColor({ nombre: "V" }), "nombre");
+    expect(e.nombre).toBe("ahora");
+    expect(Object.values(e).filter((s) => s === "ahora")).toHaveLength(1);
+    expect(e.codigo).toBe("falta");
+  });
+
+  it("al salir del nombre (sin foco), la luz pasa al siguiente y el nombre lleva ✓", () => {
+    const e = estadosDe(nuevoColor({ nombre: "Verde botella", codigo: "VEB" }), null);
+    expect(e.nombre).toBe("hecho");
+    expect(e.codigo).toBe("hecho");
+    expect(e.familia).toBe("ahora");
+  });
+
+  it("con el código sugerido puesto, la luz pasa por Familia (sugerida) antes de Color; elegirla la deja ✓", () => {
+    expect(siguienteDe(nuevoColor({ nombre: "Verde botella", codigo: "VEB" }))?.id).toBe("familia");
+    expect(siguienteDe(nuevoColor({ nombre: "Verde botella", codigo: "VEB", familiaElegida: true }))?.id).toBe("color");
+  });
+
+  it("Familia sin elegir no bloquea: solo lo requerido cuenta", () => {
+    const listos = [campo("nombre", { hecho: true }), campo("familia", { requerido: false, sugerido: true })];
+    expect(sePuedeConfirmar(listos)).toBe(true);
+    expect(fraseDeLoQueFalta(listos)).toBeNull();
+  });
+
+  it("un campo opcional con foco no le quita la luz a lo que sigue", () => {
+    const campos = [campo("nombre"), campo("nota", { requerido: false })];
+    expect(estadosDe(campos, "nota")).toEqual({ nombre: "ahora", nota: "opcional" });
+  });
+
+  it("un id que no existe en la lista no cambia nada", () => {
+    expect(estadosDe(nuevoColor({ nombre: "V" }), "fantasma")).toEqual(estadosDe(nuevoColor({ nombre: "V" })));
+  });
+
+  it("escribiendo en un campo sin hacer que no es el primero, la luz lo acompaña", () => {
+    const e = estadosDe(nuevoColor(), "color");
+    expect(e.color).toBe("ahora");
+    expect(e.nombre).toBe("falta");
+  });
+
+  it("el foco no cambia lo que falta ni lo que se puede confirmar", () => {
+    const campos = nuevoColor({ nombre: "V" });
+    expect(faltanDe(campos).map((c) => c.id)).toEqual(["codigo", "familia", "color", "responsable"]);
+    expect(sePuedeConfirmar(campos)).toBe(false);
+  });
+});
+
+describe("campos de varias opciones (tallas, colores) con el foco retenido", () => {
+  it("con la luz retenida en Tallas —ya hecha con una elegida— no salta a Colores; al soltarla, sí", () => {
+    const campos = [campo("tallas", { hecho: true }), campo("colores", { requerido: false, sugerido: true })];
+    expect(estadosDe(campos).colores).toBe("ahora");
+    expect(estadosDe(campos, "tallas")).toEqual({ tallas: "ahora", colores: "falta" });
+    expect(estadosDe(campos, null)).toEqual({ tallas: "hecho", colores: "ahora" });
+  });
+});

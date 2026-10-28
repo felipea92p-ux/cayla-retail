@@ -57,8 +57,26 @@ describe("lineasDelCarritoDesdeProforma", () => {
   it("si la campaña del día deja la prenda más barata, gana la campaña", () => {
     const campana = { etiquetaId: "e", nombre: "Black Friday", pct: 30 };
     const { lineas } = lineasDelCarritoDesdeProforma(proforma([linea({ precio_unitario: 199.9 })]), [variante({ campana })]);
-    // 199.90 con 30 % = 139.93 → se cobra 139.90 (ADR-0182: el precio de campaña baja al .90).
+    // 199.90 con 30 % = 59.97 exacto: el precio 139.93 baja a 139.90, así que se descuenta 60.00 (ADR-0403).
     expect(lineas[0]).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 60 });
+  });
+
+  // Con el descuento exacto (ADR-0302) una proforma al 20 % y una campaña de 20 % dan el MISMO monto. Si ganaba la proforma,
+  // la línea viajaba como descuento a mano y `registrar_venta` la rechazaba (venta_descuento_no_supera_campana).
+  const paraLiquidar = { etiquetaId: "e", nombre: "Para liquidar", pct: 20 };
+  const deLuna = (descuento: number) =>
+    lineasDelCarritoDesdeProforma(
+      proforma([linea({ precio_unitario: 39, descuento_unitario: descuento, motivo_descuento: "cerrar_venta" })]),
+      [variante({ precio: 39, campana: paraLiquidar })],
+    ).lineas[0];
+
+  it("si la proforma da lo MISMO que la campaña, gana la campaña", () => {
+    expect(deLuna(7.8)).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 7.8 });
+  });
+
+  it("la proforma solo gana si supera a la campaña por más de un céntimo, como exige la base", () => {
+    expect(deLuna(7.81)).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 7.8 });
+    expect(deLuna(7.82)).toMatchObject({ razonDescuento: "cerrar_venta", descuentoUnitario: 7.82 });
   });
 
   it("una prenda que no está en esta tienda (o sin stock) queda en «faltan»", () => {
@@ -109,7 +127,7 @@ describe("lineasDelCarritoDesdeProforma", () => {
   it("lo único que queda en el piso está apartado para otra clienta: lo dice, no «no hay en esta tienda»", () => {
     const { lineas, faltan, faltanEnAlmacen } = lineasDelCarritoDesdeProforma(proforma([linea()]), [variante({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })]);
     expect(lineas).toEqual([]);
-    expect(faltan).toEqual(["Casaca Ximena · M · Negro (apartada para una clienta)"]);
+    expect(faltan).toEqual(["Casaca Ximena · M · Negro (apartada para un cliente)"]);
     // No hay nada en el almacén que pedir que bajen: el aviso no manda a buscar ahí.
     expect(faltanEnAlmacen).toBe(false);
     // Sin lo apartado (o sin el dato) sigue diciendo lo de siempre.
@@ -125,10 +143,10 @@ describe("lineasDelCarritoDesdeProforma", () => {
   it("piden 2, hay 1 libre y 1 apartada: dice cuántas están apartadas (no «solo hay 1» a secas)", () => {
     const { lineas, faltan } = lineasDelCarritoDesdeProforma(proforma([linea({ cantidad: 2 })]), [variante({ stockAqui: 1, almacenAqui: 0, apartadoAqui: 1 })]);
     expect(lineas[0].cantidad).toBe(1);
-    expect(faltan).toEqual(["Casaca Ximena · M · Negro (solo hay 1 de 2; 1 apartada para una clienta)"]);
+    expect(faltan).toEqual(["Casaca Ximena · M · Negro (solo hay 1 de 2; 1 apartada para un cliente)"]);
     // Plural, y solo cuenta lo que de verdad está apartado: piden 4, hay 1 libre y 2 apartadas (la otra ni existe).
     expect(lineasDelCarritoDesdeProforma(proforma([linea({ cantidad: 4 })]), [variante({ stockAqui: 1, almacenAqui: 0, apartadoAqui: 2 })]).faltan).toEqual([
-      "Casaca Ximena · M · Negro (solo hay 1 de 4; 2 apartadas para una clienta)",
+      "Casaca Ximena · M · Negro (solo hay 1 de 4; 2 apartadas para un cliente)",
     ]);
   });
 

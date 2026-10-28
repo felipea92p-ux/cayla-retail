@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { exigirModulo, puede } from "@/lib/persona-actual";
-import { getCatalogoConteo, getDetalleConteo } from "@/lib/conteos";
-import { bloqueoDeCierre, textoLugar } from "@/lib/conteo-reglas";
+import { getCatalogoConteo, getCompletadasConAtajo, getDetalleConteo } from "@/lib/conteos";
+import { opcional } from "@/lib/resultado";
+import { textoAtajoEnRevision } from "@/lib/conteo-atajo";
+import { bloqueoDeCierre, notaDeArranque, textoLugar, yaAjustadaSinTocar } from "@/lib/conteo-reglas";
+import { firmaDelPaso } from "@/lib/firma-heredada";
 import { diferenciasEnOrden, unirLineasConPrendas } from "@/lib/conteo-revision";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
@@ -18,7 +21,7 @@ import { ConfirmarConteo } from "@/components/conteo/ConfirmarConteo";
 export default async function ConfirmarConteoPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ parcial?: string | string[] }> }) {
   const [{ id }, { parcial: pedidoParcial }] = await Promise.all([params, searchParams]);
   const persona = await exigirModulo("conteos");
-  const [detalle, prendas] = await Promise.all([getDetalleConteo(id), getCatalogoConteo()]);
+  const [detalle, prendas, conAtajo] = await Promise.all([getDetalleConteo(id), getCatalogoConteo(), opcional(getCompletadasConAtajo(id), "lo completado con el atajo")]);
   if (!detalle) notFound();
   const c = detalle.conteo;
   if (c.estado !== "abierto") redirect(`/inventario/conteo/${c.id}`);
@@ -28,8 +31,22 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
   const parcial = (Array.isArray(pedidoParcial) ? pedidoParcial[0] : pedidoParcial) === "1" && r.pendientes > 0;
   if (bloqueoDeCierre(r, parcial) !== null) redirect(`/inventario/conteo/${c.id}/revisar`);
 
-  // Al navegador solo viajan las variantes que cambian: son las que esta pantalla lista.
-  const aActualizar = diferenciasEnOrden(unirLineasConPrendas(detalle.lineas, prendas));
+  // Al navegador solo viajan las variantes que cambian: son las que esta pantalla lista. Una línea que el cierre anterior ya ajustó
+  // y nadie volvió a contar (conteo reabierto para corregir) NO cambia: cerrar no la toca, y anunciarla con «quedará en N» era falso.
+  const conDiferencia = diferenciasEnOrden(unirLineasConPrendas(detalle.lineas, prendas));
+  const aActualizar = conDiferencia.filter((f) => !yaAjustadaSinTocar(f));
+  const yaAjustadas = conDiferencia.length - aActualizar.length;
+
+  // Quién firma el cierre (ADR-0328): en una terminal, quien abrió el conteo si fue hoy y sigue de turno (lo pone la base); si no, se
+  // pregunta una vez. «Hoy» y «de turno» los dice la base (`abierto_hoy`, `abierto_por_presente`); sin esos datos (la web antes que el
+  // SQL) no se adivina: se cierra sin nombre y, si la base lo pide, la pantalla pregunta. Lo que el aparato recuerda lo suma la pantalla.
+  const firma = firmaDelPaso({
+    terminal: persona.terminal,
+    firma:
+      c.abiertoHoy === null
+        ? null
+        : { personaId: c.abiertoPor, nombre: c.abiertoPorNombre === "—" ? null : c.abiertoPorNombre, deHoy: c.abiertoHoy, presente: c.abiertoPorPresente },
+  });
 
   return (
     <div className="space-y-6 pb-56 sm:pb-28">
@@ -37,16 +54,22 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
         sede={persona.ubicacionEtiqueta}
         titulo="Confirmar conteo"
         subtitulo={`Conteo ${c.numero} · ${textoLugar(c)}`}
-        pie={<Volver forma="boton" href={`/inventario/conteo/${c.id}/revisar`} a="Revisar" />}
+        volver={<Volver href={`/inventario/conteo/${c.id}/revisar`} a="Revisar" />}
       />
-      <PasosConteo actual="confirmar" />
+      <div data-guia="conteo.pasos">
+        <PasosConteo actual="confirmar" />
+      </div>
       <ConfirmarConteo
         conteoId={c.id}
         filas={aActualizar}
         correctas={r.correctas}
+        yaAjustadas={yaAjustadas}
         pendientes={r.pendientes}
         parcial={parcial}
         puedeCerrar={puede(persona, "ajustarInventario")}
+        firma={firma}
+        notaArranque={notaDeArranque(c, parcial, r.sinContar)}
+        notaAtajo={textoAtajoEnRevision(conAtajo ?? 0, r.verificadas - r.sinContar)}
       />
     </div>
   );

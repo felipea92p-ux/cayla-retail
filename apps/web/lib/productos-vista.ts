@@ -11,20 +11,37 @@ import { compararTallas } from "./tallas";
 
 export type ColorDisponible = { nombre: string; hex: string; fotoUrl: string | null };
 
-/** Los colores en que existe el modelo, en el orden en que llegan, con la foto de la primera variante de cada uno. */
+/** Las variantes que el catálogo muestra y cuenta: las que se venden. Una desactivada (un color o una talla que se quitó de
+ *  la ficha) no cuenta ni se lista; sus unidades, si las tiene, siguen en el inventario. Un modelo con TODAS desactivadas
+ *  (descontinuado) las conserva para no quedar sin colores, tallas ni precio. */
+export function variantesQueSeVenden<V extends { activo: boolean }>(variantes: readonly V[]): readonly V[] {
+  const activas = variantes.filter((v) => v.activo);
+  return activas.length > 0 ? activas : variantes;
+}
+
+/** Los colores en que existe el modelo, en el orden en que llegan, con la foto de la primera variante de cada uno que la tenga
+ *  (una talla sin foto no le quita la foto al color). */
 export function coloresDe(variantes: readonly VarianteCatalogo[]): ColorDisponible[] {
   const vistos = new Map<string, ColorDisponible>();
-  for (const v of variantes) {
+  for (const v of variantesQueSeVenden(variantes)) {
     if (!v.color) continue;
-    if (!vistos.has(v.color)) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
+    const visto = vistos.get(v.color);
+    if (!visto) vistos.set(v.color, { nombre: v.color, hex: v.colorHex ?? "#8A8A8A", fotoUrl: v.fotoUrl });
+    else visto.fotoUrl ??= v.fotoUrl;
   }
   return [...vistos.values()];
+}
+
+/** El color que la tarjeta muestra si nadie eligió otro (Felipe, 2026-10-08): el primero con foto, para que la foto principal sea
+ *  la prenda real; si ningún color tiene foto, el primero. */
+export function colorPrincipal<C extends { fotoUrl: string | null }>(colores: readonly C[]): C | undefined {
+  return colores.find((c) => c.fotoUrl) ?? colores[0];
 }
 
 /** Las tallas del modelo, sin repetir, en su orden de curva (XS · S · M · L): las variantes llegan en el orden en
  *  que se crearon, y «L, M, S» confunde a quien busca la M. */
 export function tallasDe(variantes: readonly VarianteCatalogo[]): string[] {
-  return [...new Set(variantes.flatMap((v) => (v.talla ? [v.talla] : [])))].sort(compararTallas);
+  return [...new Set(variantesQueSeVenden(variantes).flatMap((v) => (v.talla ? [v.talla] : [])))].sort(compararTallas);
 }
 
 /** Las variantes agrupadas por color (en el orden de `coloresDe`) y, dentro de cada color, por curva de talla. */
@@ -42,19 +59,6 @@ export function rangoSoles(valores: readonly (number | null)[]): string | null {
   const min = Math.min(...nums);
   const max = Math.max(...nums);
   return min === max ? `S/${min.toFixed(2)}` : `S/${min.toFixed(2)}–${max.toFixed(2)}`;
-}
-
-/** Tinte de fondo de un color, mezclado hacia crema: el placeholder honesto de una prenda sin foto. */
-export function mezclar(hex: string, pct: number): string {
-  const n = parseInt(hex.slice(1), 16) || 0;
-  const r = (n >> 16) & 255,
-    g = (n >> 8) & 255,
-    b = n & 255;
-  const base = { r: 245, g: 240, b: 232 }; // crema
-  const mr = Math.round(r * pct + base.r * (1 - pct));
-  const mg = Math.round(g * pct + base.g * (1 - pct));
-  const mb = Math.round(b * pct + base.b * (1 - pct));
-  return `rgb(${mr}, ${mg}, ${mb})`;
 }
 
 /**

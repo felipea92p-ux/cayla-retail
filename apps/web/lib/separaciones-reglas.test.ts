@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   adelantoDe,
+  avisoDeAbono,
+  textoPagosDeFila,
+  AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
+  avanceDelPlazo,
   cobroDelSaldo,
   coincide,
   enlaceWhatsapp,
@@ -13,6 +17,7 @@ import {
   FUNCIONES_APARTADOS,
   mensajeWhatsapp,
   erroresDelApartado,
+  esConstancia,
   estadoVisible,
   moverActivo,
   resultadosDelBuscador,
@@ -24,7 +29,11 @@ import {
   vueltoDelAdelanto,
   type Apartado,
   type FormularioApartado,
+  pedidoDeFila,
+  paraQuienPedido,
 } from "./separaciones-reglas";
+import { totalDeLineas } from "./vender-reglas";
+import { diaLima } from "./fechas-lima";
 
 const formulario = (extra: Partial<FormularioApartado> = {}): FormularioApartado => ({
   nombres: "Ana",
@@ -76,6 +85,36 @@ describe("tramosDelPlazo", () => {
   });
 });
 
+describe("el plazo cuenta desde el día de LIMA en que se apartó", () => {
+  // Como lo manda `buscar_separaciones`: `creada_en` es un instante en UTC. Ejemplo inventado: apartado el 13 de octubre a las
+  // 20:00 de Lima (2026-10-14 01:00 UTC); la base le puso `vence_el` = 13 + 7 = 20 de octubre.
+  const apartoEl = diaLima("2026-10-14T01:00:00.123456+00:00");
+
+  it("lo apartado a las 20:00 del 13 es del 13, aunque en UTC ya sea el 14", () => {
+    expect(apartoEl).toBe("2026-10-13");
+  });
+
+  it("al día siguiente, la barra marca el segundo tramo", () => {
+    const t = tramosDelPlazo(apartoEl!, "2026-10-14");
+    expect(t.map((x) => x.momento).slice(0, 3)).toEqual(["pasado", "hoy", "futuro"]); // con el corte de UTC, «hoy» caía en el primero
+  });
+
+  it("la línea de tiempo de Entregar tiene los 7 días del plazo y ya pasó uno", () => {
+    expect(avanceDelPlazo(apartoEl, "2026-10-14", "2026-10-20")).toEqual({ total: 7, pasados: 1 }); // con el corte de UTC, 6 y 0
+    expect(avanceDelPlazo(apartoEl, "2026-10-25", "2026-10-20")).toEqual({ total: 7, pasados: 7 }); // vencido: la línea llega al final
+  });
+
+  it("sin un día de apartado que se lea, la línea no avanza", () => {
+    expect(avanceDelPlazo(diaLima("ayer"), "2026-10-14", "2026-10-20")).toEqual({ total: 1, pasados: 0 });
+  });
+
+  it("un aviso de las 20:00 de Lima es de ese día para la tienda", () => {
+    const aviso = { avisos: 1, ultimoEn: "2026-10-14T01:00:00Z", ultimoPor: "Rosa" };
+    expect(avisadaHoy(aviso, "2026-10-13")).toBe(true);
+    expect(avisadaHoy(aviso, "2026-10-14")).toBe(false);
+  });
+});
+
 describe("erroresDelApartado", () => {
   it("un formulario completo no tiene errores y está en el último paso", () => {
     const e = erroresDelApartado(formulario(), 179);
@@ -106,6 +145,25 @@ describe("erroresDelApartado", () => {
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 50, recibido: 40 }] }), 179).pago).toMatch(/no alcanza/);
     expect(pasoDelApartado(erroresDelApartado(formulario({ pagos: [] }), 179))).toBe(1);
   });
+  it("el adelanto es al menos el 30 % del total, redondeado hacia arriba al céntimo (D1, 20261016003000); el atajo «30 %» lo cumple", () => {
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 23.96 }] }), 79.9).pago).toBe("El adelanto mínimo es S/23.97 (el 30 % del total).");
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 23.97 }] }), 79.9).pago).toBeUndefined();
+    // 30 % de 99.99 = 29.997 → S/30.00 (hacia arriba, como la base).
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 29.99 }] }), 99.99).pago).toMatch(/S\/30\.00/);
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: Math.ceil(179 * 0.3) }] }), 179).pago).toBeUndefined();
+    // Dos medios suman.
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "yape", monto: 20 }, { metodo: "plin", monto: 4 }] }), 79.9).pago).toBeUndefined();
+  });
+  it("«Todo» en efectivo justo pasa aunque el total salga de un descuento con céntimos (99.90 − 14.99 = 84.91)", () => {
+    const total = totalDeLineas([{ cantidad: 1, precioUnitario: 99.9, descuentoUnitario: 14.99 }]);
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: total, recibido: 84.91 }] }), total).pago).toBeUndefined();
+  });
+  it("el celular es opcional (ADR-0367); sin él, el número de Yape o Plin va aparte", () => {
+    expect(erroresDelApartado(formulario({ celular: "", devolucionNumero: "987111222" }), 179)).toEqual({});
+    expect(erroresDelApartado(formulario({ celular: "", devolucionNumero: "" }), 179).devolucion).toMatch(/Sin celular.*Yape/);
+    expect(erroresDelApartado(formulario({ celular: "", devolucionMedio: "plin" }), 179).devolucion).toMatch(/Plin/);
+    expect(erroresDelApartado(formulario({ celular: "", devolucionMedio: "transferencia", devolucionCci: "00219300123456789012" }), 179)).toEqual({});
+  });
   it("devolución: transferencia pide CCI de 20; Yape vacío usa el celular", () => {
     expect(erroresDelApartado(formulario({ devolucionMedio: "transferencia" }), 179).devolucion).toMatch(/CCI/);
     expect(erroresDelApartado(formulario({ devolucionMedio: "transferencia", devolucionCci: "002-193-00123456789012" }), 179).devolucion).toBeUndefined();
@@ -127,6 +185,63 @@ describe("dinero", () => {
     expect(cobroDelSaldo([{ metodo: "efectivo", monto: 89, recibido: 100 }], 89)).toMatchObject({ falta: 0, vuelto: 11, listo: true });
     expect(cobroDelSaldo([{ metodo: "yape", monto: 100 }], 89)).toMatchObject({ excede: true, listo: false });
     expect(cobroDelSaldo([], 0).listo).toBe(true);
+  });
+});
+
+describe("redondeo del efectivo al entregar el saldo (ADR-0311)", () => {
+  const efectivo = (monto: number, recibido?: number) => ({ metodo: "efectivo" as const, monto, ...(recibido !== undefined ? { recibido } : {}) });
+
+  it("el saldo de 29.88 en efectivo se cobra 29.80 y viaja la fila de redondeo de 0.08", () => {
+    expect(pagosParaRpcApartado([efectivo(29.88, 30)], true)).toEqual([{ metodo: "efectivo", monto: 29.8, recibido: 30 }, { metodo: "redondeo", monto: 0.08 }]);
+  });
+  it("solo el efectivo se redondea: el Yape del mismo saldo va exacto", () => {
+    expect(pagosParaRpcApartado([{ metodo: "yape", monto: 10 }, efectivo(19.88)], true)).toEqual([
+      { metodo: "yape", monto: 10 },
+      { metodo: "efectivo", monto: 19.8 },
+      { metodo: "redondeo", monto: 0.08 },
+    ]);
+  });
+  it("un saldo que ya es múltiplo de 0.10 no lleva fila de redondeo", () => {
+    expect(pagosParaRpcApartado([efectivo(29.9)], true)).toEqual([{ metodo: "efectivo", monto: 29.9 }]);
+  });
+  it("sin el redondeo activo (la base todavía no lo acepta) los pagos viajan exactos, como siempre", () => {
+    expect(pagosParaRpcApartado([efectivo(29.88, 30)])).toEqual([{ metodo: "efectivo", monto: 29.88, recibido: 30 }]);
+    expect(pagosParaRpcApartado([efectivo(29.88, 30)], false)).toEqual([{ metodo: "efectivo", monto: 29.88, recibido: 30 }]);
+  });
+  it("lo recibido solo viaja si supera lo que se cobra en monedas (la base rechaza un recibido menor)", () => {
+    expect(pagosParaRpcApartado([efectivo(29.88, 29.8)], true)).toEqual([{ metodo: "efectivo", monto: 29.8 }, { metodo: "redondeo", monto: 0.08 }]);
+  });
+  it("el vuelto sale de las monedas que se cobran, no de la deuda exacta: 29.88 con 30 → vuelto 0.20", () => {
+    expect(cobroDelSaldo([efectivo(29.88, 30)], 29.88, true)).toMatchObject({ falta: 0, vuelto: 0.2, listo: true, sinMoneda: false, noAlcanza: false });
+    expect(cobroDelSaldo([efectivo(29.88, 30)], 29.88, true).efectivo).toEqual({ deuda: 29.88, aCobrar: 29.8, redondeo: 0.08 });
+    // sin redondeo, el mismo caso da el vuelto de siempre
+    expect(cobroDelSaldo([efectivo(29.88, 30)], 29.88)).toMatchObject({ vuelto: 0.12, listo: true });
+  });
+  it("30 en la mano para un efectivo de 29.88 alcanza (29.80); 29.70 no", () => {
+    expect(cobroDelSaldo([efectivo(29.88, 29.8)], 29.88, true).noAlcanza).toBe(false);
+    expect(cobroDelSaldo([efectivo(29.88, 29.7)], 29.88, true).noAlcanza).toBe(true);
+  });
+  it("un efectivo menor de S/ 0.10 no se puede entregar (no hay moneda): hay que cobrarlo con otro medio", () => {
+    const c = cobroDelSaldo([{ metodo: "yape", monto: 29.81 }, efectivo(0.07)], 29.88, true);
+    expect(c).toMatchObject({ sinMoneda: true, listo: false, falta: 0 });
+    expect(AVISO_EFECTIVO_SIN_MONEDA).toContain("S/\u00a00.10");
+    // sin el redondeo activo, el mismo cobro se entrega como siempre
+    expect(cobroDelSaldo([{ metodo: "yape", monto: 29.81 }, efectivo(0.07)], 29.88).listo).toBe(true);
+  });
+  it("un efectivo sin otro medio que cubra el saldo sigue faltando lo que falta", () => {
+    expect(cobroDelSaldo([efectivo(10)], 29.88, true)).toMatchObject({ falta: 19.88, listo: false });
+  });
+  it("PROPIEDAD: en los 29 999 saldos de S/ 0.01 a S/ 299.99 la suma de lo que viaja es el saldo exacto y el efectivo es múltiplo de 0.10", () => {
+    for (let c = 1; c < 30000; c++) {
+      const saldo = c / 100;
+      const filas = pagosParaRpcApartado([efectivo(saldo)], true);
+      const suma = filas.reduce((a, f) => a + Math.round(f.monto * 100), 0);
+      const ef = filas.find((f) => f.metodo === "efectivo");
+      const red = filas.find((f) => f.metodo === "redondeo");
+      expect(suma).toBe(c);
+      expect(ef === undefined || Math.round(ef.monto * 100) % 10 === 0).toBe(true);
+      expect(red === undefined || (red.monto > 0 && red.monto < 0.1)).toBe(true);
+    }
   });
 });
 
@@ -255,3 +370,67 @@ describe("abonos y opciones", () => {
   });
 });
 
+describe("pedidoDeFila — Apartados lee los pedidos con dónde quedó la prenda (ADR-0328 act. 17)", () => {
+  const base = { id: "p1", direccion: "me_piden", otra_sede: "Tienda Lima", variante_id: "v1", cantidad: 1, nota: null, estado: "pedido", created_at: "2026-10-04T15:00:00Z", guardada_hasta: null, traslado_numero: null, cancelado_motivo: null };
+  it("lee fn_pedidos_con_cliente (cliente_*) y su reserva en el origen", () => {
+    const p = pedidoDeFila({ ...base, cliente_nombres: "Ana", cliente_apellidos: "Lozano", cliente_celular: "987111222", reserva_en: "piso" });
+    expect(p).toMatchObject({ nombres: "Ana", apellidos: "Lozano", celular: "987111222", reservaEn: "piso", direccion: "me_piden" });
+  });
+  it("una reserva que no conoce, o la fila vieja sin reserva (clienta_*), queda en null", () => {
+    expect(pedidoDeFila({ ...base, cliente_nombres: "Ana", reserva_en: "otra" }).reservaEn).toBeNull();
+    expect(pedidoDeFila({ ...base, clienta_nombres: "Ana", clienta_apellidos: "Lozano" })).toMatchObject({ nombres: "Ana", apellidos: "Lozano", reservaEn: null });
+  });
+  it("privacidad (decisión del 2026-10-04): la sede que tiene la prenda no recibe al cliente y lo ve como «Pedido de …»", () => {
+    const p = pedidoDeFila({ ...base, cliente_nombres: null, cliente_apellidos: null, cliente_celular: null, reserva_en: "almacen" });
+    expect(p).toMatchObject({ nombres: "", apellidos: "", celular: "" });
+    expect(paraQuienPedido(p)).toBe("Pedido de Tienda Lima para un cliente");
+    expect(paraQuienPedido({ ...p, nombres: "Ana", apellidos: "Lozano" })).toBe("Pedido de Tienda Lima para un cliente");
+    expect(paraQuienPedido({ ...p, direccion: "pedi", nombres: "Ana", apellidos: "Lozano" })).toBe("Para Ana Lozano");
+  });
+});
+
+describe("esConstancia (ADR-0399: el adelanto no emite boleta de anticipo)", () => {
+  it("un apartado nuevo no tiene boleta de anticipo: su comprobante es la constancia (el código APT-…)", () => {
+    expect(esConstancia(apartado({ comprobanteAnticipo: null }))).toBe(true);
+  });
+  it("un apartado viejo, con su boleta de anticipo ya emitida, NO se trata como constancia", () => {
+    expect(esConstancia(apartado())).toBe(false);
+  });
+  it("se busca por su código aunque no tenga comprobante, y también por la boleta final una vez entregado", () => {
+    const nuevo = apartado({ comprobanteAnticipo: null });
+    expect(coincide(nuevo, "APT-TRU-0007")).toBe(true);
+    expect(coincide(apartado({ comprobanteAnticipo: null, comprobanteFinal: "B005-000301" }), "b005-000301")).toBe(true);
+    expect(coincide(nuevo, "B005-000301")).toBe(false);
+  });
+});
+
+// /chaos 2026-10-13 (ENT-07): el vuelto del efectivo tiene tope (S/ 500), en el adelanto y en el saldo, igual que en Vender y en la base.
+describe("el tope del vuelto en Apartados", () => {
+  it("el saldo con un vuelto de más no queda listo", () => {
+    expect(cobroDelSaldo([{ metodo: "efectivo", monto: 89, recibido: 589 }], 89)).toMatchObject({ vuelto: 500, vueltoExcede: false, listo: true });
+    expect(cobroDelSaldo([{ metodo: "efectivo", monto: 89, recibido: 589.01 }], 89)).toMatchObject({ vueltoExcede: true, listo: false });
+  });
+});
+
+describe("el tope del vuelto en el adelanto", () => {
+  it("un adelanto en efectivo con más de S/ 500 de vuelto pide revisar", () => {
+    // S/60 de adelanto: más que el 30 % de S/179 (20261016003000), para que lo que se mire sea el vuelto.
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 60, recibido: 560 }] }), 179).pago).toBeUndefined();
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 60, recibido: 560.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/\u00a0500/);
+  });
+});
+
+describe("lo que se lee de los pagos no miente (chaos y prueba ciega 2026-10-15)", () => {
+  const pago = (abono: boolean) => ({ metodo: "yape" as const, monto: 10, fecha: "2026-10-15T15:00:00Z", abono });
+  it("la fila cuenta TODOS los pagos (adelanto y abonos), no solo los abonos: «1 abono» con dos pagos confundía", () => {
+    expect(textoPagosDeFila([pago(false)])).toBeNull();
+    expect(textoPagosDeFila([pago(false), pago(true)])).toBe("2 pagos");
+    expect(textoPagosDeFila([pago(false), pago(true), pago(true)])).toBe("3 pagos");
+  });
+  it("el aviso del abono solo nombra una boleta de anticipo si el apartado es de los viejos que la emiten (ADR-0399)", () => {
+    const nuevo = apartado({ comprobanteAnticipo: null });
+    expect(avisoDeAbono(nuevo, { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90.");
+    expect(avisoDeAbono(nuevo, { saldo: 0, venceEl: "2026-10-25" })).toBe("Ana: ya pagó todo · recoge hasta el 25/10.");
+    expect(avisoDeAbono(apartado(), { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90. Sale su boleta de anticipo.");
+  });
+});

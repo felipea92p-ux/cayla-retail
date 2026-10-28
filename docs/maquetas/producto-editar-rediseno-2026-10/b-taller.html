@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editar producto · B · Panel del taller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   MAQUETA B · «Panel del taller» — Editar producto (2026-10-02)
+   Misma pregunta abierta de ADR-0257 que la maqueta A, pero el panel derecho
+   no es un resumen de texto: es la IDENTIDAD VISUAL de la prenda en vivo —
+   la foto por color (FotosPorColor.tsx) y el stock por talla de ese color
+   (VariantesFicha.tsx / fn_variantes_estado), para que quien ajusta precios o
+   stock en la izquierda vea de un vistazo qué le falta sin bajar a buscarlo.
+   Es más útil en el piso (Taller/Almacén) que un simple espejo de datos.
+   Guardar sigue siendo SOLO la barra de abajo + hoja (ADR-0257): este panel
+   no tiene botón de guardar.
+   Tokens = globals.css (ADR-0169). Movimiento = ADR-0136 + ADR-0284.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;
+  --t75:rgba(26,26,24,.75);--t60:rgba(26,26,24,.6);--t45:rgba(26,26,24,.45);--t25:rgba(26,26,24,.25);
+  --t15:rgba(26,26,24,.15);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.tab{font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.taupe{color:var(--taupe)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+
+@keyframes revelar{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes crecebarra{from{width:0}}
+@keyframes pulso{from{transform:scale(1);opacity:.6}to{transform:scale(2.2);opacity:0}}
+@keyframes parpadeoSuave{0%,100%{background:var(--hueso)}30%{background:color-mix(in srgb,var(--ambar) 16%,var(--hueso))}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}
+
+.spike{max-width:1360px;margin:14px auto 0;padding:0 24px}
+.spike>.barra-spike{border:1px dashed var(--t25);border-radius:12px;padding:9px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;color:var(--t60);font-size:12px}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike a{color:var(--rojo);text-decoration:underline;text-underline-offset:2px}
+.spike button{border:1px solid var(--t25);border-radius:8px;padding:4px 10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.spike button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.primario{background:var(--rojo);color:#fff;border-color:var(--rojo)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+.marco{max-width:1360px;margin:0 auto;padding:22px 24px 140px;transition:max-width 280ms var(--ease)}
+.marco.tablet{max-width:820px}
+.marco.celular{max-width:390px}
+.volver{font-size:12.5px;color:var(--taupe);display:inline-flex;gap:6px;margin-bottom:10px}
+.cab h1{font-size:30px;line-height:1.1}
+.cab .cod{font-size:15px;color:var(--t45);font-weight:400;margin-left:8px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:26px;align-items:start;margin-top:18px}
+.marco.tablet .grid,.marco.celular .grid{grid-template-columns:1fr}
+.marco.tablet aside,.marco.celular aside{position:static}
+
+.sec{background:var(--papel);border:1px solid var(--sand);border-radius:16px;margin-bottom:12px;opacity:0;animation:revelar 420ms var(--ease) both}
+.sec-cab{display:flex;align-items:center;gap:12px;padding:15px 18px;width:100%;text-align:left}
+.num{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--t60)}
+.sec.hecho .num{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.sec-tit{font-weight:600;font-size:15px}
+.sec-res{flex:1;min-width:0;color:var(--taupe);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{transition:transform 220ms var(--ease);color:var(--t45);flex:none}
+.sec.abierto .chev{transform:rotate(180deg)}
+.sec-cuerpo{overflow:hidden;max-height:0;transition:max-height 320ms var(--ease)}
+.sec.abierto .sec-cuerpo{max-height:900px}
+.sec-in{padding:0 18px 20px 56px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.marco.celular .sec-in{grid-template-columns:1fr;padding-left:18px}
+.campo{display:flex;flex-direction:column;gap:5px}
+.campo.full{grid-column:1/-1}
+.campo label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t60)}
+.caja{background:var(--hueso);border:1px solid var(--sand);border-radius:8px;padding:9px 11px;font-size:13.5px}
+.caja input{width:100%;background:none;border:0;outline:0;font:inherit}
+.pie{font-size:11.5px;color:var(--t45)}
+.seg{display:flex;border:1px solid var(--sand);border-radius:8px;overflow:hidden;width:fit-content}
+.seg button{padding:7px 14px;font-size:13px;font-weight:500;color:var(--taupe)}
+.seg button.on{background:var(--tinta);color:var(--crema)}
+
+.matriz{width:100%;border-collapse:separate;border-spacing:5px;font-size:12.5px;margin:0 -5px}
+.matriz th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--t45);font-weight:600;padding:6px 8px;text-align:center}
+.matriz th:first-child{text-align:left}
+.matriz th.col-total{color:var(--taupe)}
+.matriz td{padding:0}
+
+/* celda = cantidad (stepper, igual a MatrizCantidades.tsx del alta) + precio/costo debajo, chico */
+.celda-stock{position:relative;border:1px solid var(--sand);border-radius:10px;padding:7px 6px 6px;text-align:center;background:var(--hueso);display:flex;flex-direction:column;align-items:center;gap:4px;transition:background-color 200ms var(--ease)}
+.celda-stock.tocada{animation:parpadeoSuave 480ms var(--ease)}
+.celda-stock.nueva{outline:1.5px dashed var(--ambar);outline-offset:-1.5px;background:color-mix(in srgb,var(--ambar) 7%,var(--hueso))}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--sand);border-radius:999px;background:var(--papel);overflow:hidden}
+.stepper button{width:22px;height:22px;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--taupe);line-height:1;transition:background-color 150ms,color 150ms}
+.stepper button:hover:not(:disabled){background:var(--hueso);color:var(--tinta)}
+.stepper button:disabled{opacity:.3;cursor:not-allowed}
+.stepper .val{min-width:22px;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.celda-stock .pr{color:var(--taupe);font-size:10.5px;cursor:default;border-bottom:1px dashed transparent}
+.celda-stock .co{display:none;font-size:9.5px;color:var(--t45)}
+.matriz.ver-costo .celda-stock .pr{opacity:.4}
+.matriz.ver-costo .celda-stock .co{display:block}
+.col-total{font-weight:600;color:var(--taupe);font-variant-numeric:tabular-nums;text-align:center;transition:color 200ms var(--ease)}
+.col-total.tocada{color:var(--tinta);animation:parpadeoSuave 480ms var(--ease)}
+.fila-total td{padding-top:9px;border-top:1.5px solid var(--sand);font-weight:700;color:var(--tinta);text-align:center;font-variant-numeric:tabular-nums}
+.fila-total td:first-child{text-align:left}
+
+.fila-color{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;border-radius:8px;padding:3px 5px;margin:-3px -5px;transition:background-color 160ms}
+.fila-color:hover{background:var(--hueso)}
+.punto{width:13px;height:13px;border-radius:999px;border:1px solid var(--t25);flex:none}
+.agregar-color{margin-top:12px;border:1.5px dashed var(--sand);border-radius:10px;padding:10px;width:100%;color:var(--taupe);font-size:13px;font-weight:500;text-align:center;transition:border-color 160ms,color 160ms}
+.agregar-color:hover{border-color:var(--taupe);color:var(--tinta)}
+.etq-nueva{font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--ambar);margin-left:5px;text-transform:uppercase}
+
+/* ---------- cambiar precio/costo en bloque (CambiarEnBloque.tsx) ---------- */
+.bloque-cambio{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--hueso);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:13px;color:var(--t75)}
+.seg-chico{display:flex;border:1px solid var(--sand);border-radius:7px;overflow:hidden}
+.seg-chico button{padding:5px 11px;font-size:12px;font-weight:500;color:var(--taupe);background:var(--papel)}
+.seg-chico button.on{background:var(--tinta);color:var(--crema)}
+.bloque-cambio select{background:var(--papel);border:1px solid var(--sand);border-radius:7px;padding:6px 8px;font-size:12.5px;color:var(--tinta)}
+.caja-monto{display:flex;align-items:center;gap:4px;padding:5px 9px;width:96px;background:var(--papel);border:1px solid var(--sand);border-radius:7px}
+.caja-monto span{font-size:11px;color:var(--taupe)}
+.caja-monto input{width:100%;background:none;border:0;outline:0;font-size:13px;font-variant-numeric:tabular-nums}
+.btn-aplicar{border:1px solid var(--sand);border-radius:7px;padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--tinta);background:var(--papel);transition:background-color 150ms,border-color 150ms}
+.btn-aplicar:hover{border-color:var(--taupe)}
+.btn-aplicar:disabled{opacity:.45;cursor:not-allowed}
+.bloque-nota{font-size:11.5px;color:var(--t45);margin:-4px 0 12px}
+.bloque-nota.ok{color:var(--verde)}
+.bloque-nota.error{color:var(--rojo-p)}
+
+/* ---------- motivo del ajuste (AjusteDeStock.tsx / AjustarInventarioModal): un selector de sesión, no un
+   formulario por cada clic — el stepper queda tan directo como el de Nuevo producto y el motivo sigue viajando. ---------- */
+.motivo-sesion{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--taupe);margin:10px 0 2px}
+.motivo-sesion select{background:var(--papel);border:1px solid var(--sand);border-radius:7px;padding:5px 8px;font-size:12px;color:var(--tinta)}
+.toast-ajuste{position:fixed;right:24px;bottom:104px;z-index:40;max-width:300px;background:var(--verde);color:var(--crema);border-radius:10px;padding:10px 14px;font-size:12px;font-weight:500;box-shadow:0 10px 24px -8px rgb(26 26 24/.3);animation:revelar 220ms var(--ease) both}
+.toast-ajuste .toast-accion{display:block;margin-top:7px;background:var(--crema);color:var(--verde);border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;text-align:center}
+
+.banner-sin-stock{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border:1px solid color-mix(in srgb,var(--ambar) 40%,var(--sand));background:color-mix(in srgb,var(--ambar) 8%,var(--papel));border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12.5px;color:var(--ambar);animation:revelar 300ms var(--ease) both}
+.banner-sin-stock[hidden]{display:none}
+.banner-sin-stock span{flex:1 1 220px;min-width:0}
+.banner-sin-stock button{flex:none;margin-left:auto;background:var(--ambar);color:var(--crema);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap}
+
+/* ---------- aside: Panel del taller ---------- */
+aside{position:sticky;top:20px;display:flex;flex-direction:column;gap:12px;opacity:0;animation:revelar 420ms var(--ease) 80ms both}
+.panel-foto{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.foto-grande{height:210px;position:relative;background:var(--hueso)}
+.foto-grande img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.03);transition:opacity 340ms var(--ease),transform 340ms var(--ease)}
+.foto-grande img.on{opacity:1;transform:scale(1)}
+.foto-grande .vacio{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;color:var(--ambar);text-align:center;padding:0 28px;background:color-mix(in srgb,var(--ambar) 6%,var(--hueso))}
+.foto-grande .tagcolor{position:absolute;left:12px;bottom:12px;background:rgba(251,248,242,.94);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.foto-grande .tagcolor i{width:9px;height:9px;border-radius:999px;display:inline-block}
+.swatches-grande{display:flex;gap:8px;padding:12px 14px 14px;flex-wrap:wrap}
+.btn-cambiar-foto{position:absolute;right:10px;bottom:10px;z-index:2;background:rgba(26,26,24,.74);color:var(--crema);border:1px solid rgba(251,248,242,.35);border-radius:999px;padding:6px 13px;font-size:11.5px;font-weight:600;backdrop-filter:blur(2px);transition:background-color 150ms var(--ease),transform 150ms var(--ease)}
+.btn-cambiar-foto:hover{background:rgba(26,26,24,.9);transform:translateY(-1px)}
+.btn-cambiar-foto.sin-foto{background:var(--ambar);border-color:transparent}
+@keyframes pulsoFoto{0%,100%{box-shadow:inset 0 0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px var(--papel)}}
+.foto-grande.flash{animation:pulsoFoto 460ms var(--ease)}
+.swatch{width:28px;height:28px;border-radius:999px;cursor:pointer;transition:box-shadow 180ms var(--ease),transform 180ms var(--ease);box-shadow:0 0 0 1.5px var(--sand);position:relative}
+.swatch:hover{transform:translateY(-2px)}
+.swatch.activo{box-shadow:0 0 0 2px var(--tinta)}
+.swatch.sinfoto::after{content:"";position:absolute;inset:-4px;border:1.5px dashed var(--ambar);border-radius:999px;animation:gira 7s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+.panel-stock{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px}
+.panel-stock .tit{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t60);margin-bottom:10px;display:flex;justify-content:space-between}
+.barra-talla{display:grid;grid-template-columns:28px 1fr 22px auto;align-items:center;gap:9px;margin-bottom:8px}
+.barra-talla:last-child{margin-bottom:0}
+.barra-talla b{font-size:12px;color:var(--taupe)}
+.pista{height:8px;background:var(--hueso);border-radius:999px;overflow:hidden}
+.relleno{height:100%;border-radius:999px;background:var(--verde);animation:crecebarra 560ms var(--ease) both}
+.relleno.bajo{background:var(--ambar)}
+.relleno.cero{background:var(--t15)}
+.barra-talla span{font-size:12px;text-align:right;font-variant-numeric:tabular-nums;color:var(--tinta)}
+.stepper-mini{display:inline-flex;align-items:center;border:1px solid var(--sand);border-radius:999px;background:var(--hueso);overflow:hidden}
+.stepper-mini button{width:18px;height:18px;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--taupe);line-height:1;transition:background-color 150ms,color 150ms}
+.stepper-mini button:hover:not(:disabled){background:var(--papel);color:var(--tinta)}
+.stepper-mini button:disabled{opacity:.3;cursor:not-allowed}
+
+.panel-precio{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between}
+.panel-precio .tit{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t60)}
+.panel-precio .rango{font-family:'EB Garamond',serif;font-weight:600;font-size:20px}
+
+.panel-guia{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--taupe)}
+.panel-guia .hilo{width:15px;height:15px;border-radius:999px;background:var(--tinta);flex:none;position:relative}
+.panel-guia .hilo::before{content:"";position:absolute;inset:4px;border-radius:999px;background:var(--crema)}
+.panel-guia .hilo::after{content:"";position:absolute;inset:0;border-radius:999px;border:1.5px solid var(--tinta);animation:pulso 900ms var(--ease) .12s 1 both}
+.panel-guia b{color:var(--tinta)}
+.panel-guia.completo{color:var(--verde)}
+.panel-guia.completo .hilo{background:var(--verde)}
+.panel-guia.completo .hilo::after{display:none}
+
+.nota-guardar{font-size:11.5px;color:var(--t45);text-align:center}
+
+.barra-cambios{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;pointer-events:none}
+.barra-cambios .in{pointer-events:auto;width:100%;max-width:1360px;margin:0 24px;background:var(--papel);border:1px solid var(--sand);border-top-width:2px;border-top-color:var(--ambar);border-radius:16px 16px 0 0;box-shadow:0 -14px 34px -14px rgb(26 26 24/.22);padding:12px 20px;display:flex;align-items:center;gap:16px;transform:translateY(110%);transition:transform 320ms var(--ease)}
+.barra-cambios.on .in{transform:translateY(0)}
+.barra-cambios.flash .in{animation:parpadeoSuave 700ms var(--ease)}
+.barra-tit{font-weight:600;font-size:13.5px}
+.barra-tit b{color:var(--ambar)}
+.barra-cambios .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:9px 16px;font-size:13.5px;font-weight:500}
+.btn.prim{background:var(--tinta);color:var(--crema)}
+.btn.sec{border-color:var(--sand);color:var(--tinta)}
+</style>
+</head>
+<body>
+
+<div class="spike">
+  <div class="barra-spike">
+    <span class="tit">Maqueta B · Panel del taller</span>
+    <span>— identidad visual + stock por talla en vivo mientras editas</span>
+    <span class="sep"></span>
+    <a href="README.md">Ver las 3 maquetas</a>
+    <span class="sep"></span>
+    <a href="a-espejo.html">← A · Ficha espejo</a>
+    <a href="c-acompanante.html">C · Riel que acompaña →</a>
+    <span class="sep"></span>
+    <button data-ancho="escritorio" aria-pressed="true">Escritorio</button>
+    <button data-ancho="tablet">Tablet 820</button>
+    <button data-ancho="celular">Celular 390</button>
+    <span class="sep"></span>
+    <button id="btnSimular" class="primario">✎ Simular 2 cambios</button>
+    <button id="btnReset">↺ Reiniciar</button>
+  </div>
+</div>
+
+<div class="marco" id="marco">
+  <a class="volver" href="#">← Productos</a>
+  <div class="cab">
+    <h1 class="disp">Blusa Alba<span class="cod mono tab">CMS-0013</span></h1>
+  </div>
+
+  <div class="grid">
+    <div class="col-izq">
+
+      <div class="sec hecho abierto" style="animation-delay:40ms">
+        <button class="sec-cab" onclick="this.parentElement.classList.toggle('abierto')">
+          <span class="num">✓</span>
+          <span class="sec-tit">Producto</span>
+          <span class="sec-res">Camisas y Blusas · Strend · Industrias GC SAC</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo"><div class="sec-in">
+          <div class="campo"><label>Referencia</label><div class="caja"><input value="Blusa Alba"></div></div>
+          <div class="campo"><label>Categoría</label><div class="caja"><input value="Camisas y Blusas"></div></div>
+          <div class="campo full"><label>Marca y proveedor</label><div class="caja" style="display:flex;justify-content:space-between"><span>Strend</span><span class="taupe">Industrias GC SAC</span></div></div>
+        </div></div>
+      </div>
+
+      <div class="sec hecho abierto" style="animation-delay:90ms">
+        <button class="sec-cab" onclick="this.parentElement.classList.toggle('abierto')">
+          <span class="num">✓</span>
+          <span class="sec-tit">Tejido, patrón y estado</span>
+          <span class="sec-res">Tela · Rayas · Activo</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo"><div class="sec-in">
+          <div class="campo"><label>Tejido</label><div class="caja"><input value="Tela"></div></div>
+          <div class="campo"><label>Patrón</label><div class="caja"><input value="Rayas"></div></div>
+          <div class="campo"><label>Estado</label><div class="seg"><button class="on">Activo</button><button>Descontinuado</button></div></div>
+          <div class="campo"><label>Stock mínimo (opcional)</label><div class="caja"><input placeholder="Ej. 5"></div></div>
+        </div></div>
+      </div>
+
+      <div class="sec abierto" id="secFotos" style="animation-delay:140ms">
+        <button class="sec-cab" onclick="this.parentElement.classList.toggle('abierto')">
+          <span class="num" id="numFotos">4</span>
+          <span class="sec-tit">Fotos</span>
+          <span class="sec-res" id="resFotos">Falta Vino — mira el panel de la derecha</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo">
+          <div style="padding:0 18px 20px 56px">
+            <p class="pie">La vista grande y el selector de color viven en el panel del taller, a la derecha: usa «Cambiar foto»
+              (o «+ Agregar foto» si al color le falta) sobre la imagen grande, ahí mismo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec abierto" style="animation-delay:190ms">
+        <button class="sec-cab" onclick="this.parentElement.classList.toggle('abierto')">
+          <span class="num">5</span>
+          <span class="sec-tit">Variantes y precios</span>
+          <span class="sec-res">9 variantes activas · S/ 69–89</span>
+          <svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="sec-cuerpo">
+          <div style="padding:0 18px 20px 56px;overflow-x:auto">
+
+            <!-- Cambiar en bloque (igual a components/ficha-producto/CambiarEnBloque.tsx: ya existe en producción) -->
+            <div class="bloque-cambio">
+              <span>Cambiar</span>
+              <div class="seg-chico" id="bloqueCampo">
+                <button type="button" class="on" data-campo="precio" onclick="elegirCampoBloque(this)">Precio</button>
+                <button type="button" data-campo="costo" onclick="elegirCampoBloque(this)">Costo</button>
+              </div>
+              <span>de</span>
+              <select id="bloqueAlcance">
+                <option value="todas">Todas</option>
+                <option value="color:Crudo">Color: Crudo</option>
+                <option value="color:Negro">Color: Negro</option>
+                <option value="color:Azul">Color: Azul</option>
+                <option value="color:Vino">Color: Vino</option>
+                <option value="talla:S">Talla: S</option>
+                <option value="talla:M">Talla: M</option>
+                <option value="talla:L">Talla: L</option>
+                <option value="talla:XL">Talla: XL</option>
+              </select>
+              <span>a</span>
+              <span class="caja-monto"><span>S/</span><input type="number" min="0" step="0.01" id="bloqueMonto" placeholder="0.00" oninput="revisarBloque()" onkeydown="if(event.key==='Enter'){event.preventDefault();aplicarBloque()}"></span>
+              <button type="button" class="btn-aplicar" id="bloqueBtn" disabled onclick="aplicarBloque()">Aplicar</button>
+            </div>
+            <p class="bloque-nota" id="bloqueNota">Cambia varias de una vez con Aplicar (también puedes tocar cada celda abajo). El costo no toca lo que ya viene de Compras.</p>
+
+            <!-- La cantidad es un stepper directo — el mismo control que ya usa Nuevo producto (MatrizCantidades.tsx) —
+                 nunca un clic ambiguo sobre la celda entera. Lo que cambia, se ve: el número ES el stock de hoy, nunca
+                 arranca en 0 para «no confundir con que no hay nada» (pedido de Felipe, 2026-10-02). -->
+            <table class="matriz" id="matrizVariantes">
+              <thead><tr><th></th><th>S</th><th>M</th><th>L</th><th>XL</th><th class="col-total">Total</th></tr></thead>
+              <tbody>
+                <tr><td><span class="fila-color" onmouseenter="verColor('Crudo')" onclick="elegirColor('Crudo')"><span class="punto" style="background:#f4ede1"></span>Crudo</span></td>
+                  <td><div class="celda-stock" data-color="Crudo" data-talla="S"><div class="stepper"><button type="button" onclick="step('Crudo','S',-1)">−</button><span class="val" id="val-Crudo-S">6</span><button type="button" onclick="step('Crudo','S',1)">+</button></div><span class="pr">S/ 69</span><span class="co">costo S/ 32</span></div></td>
+                  <td><div class="celda-stock" data-color="Crudo" data-talla="M"><div class="stepper"><button type="button" onclick="step('Crudo','M',-1)">−</button><span class="val" id="val-Crudo-M">9</span><button type="button" onclick="step('Crudo','M',1)">+</button></div><span class="pr">S/ 69</span><span class="co">costo S/ 32</span></div></td>
+                  <td><div class="celda-stock" data-color="Crudo" data-talla="L"><div class="stepper"><button type="button" onclick="step('Crudo','L',-1)">−</button><span class="val" id="val-Crudo-L">4</span><button type="button" onclick="step('Crudo','L',1)">+</button></div><span class="pr">S/ 69</span><span class="co">costo S/ 32</span></div></td>
+                  <td><div class="celda-stock" data-color="Crudo" data-talla="XL"><div class="stepper"><button type="button" disabled onclick="step('Crudo','XL',-1)">−</button><span class="val" id="val-Crudo-XL">0</span><button type="button" onclick="step('Crudo','XL',1)">+</button></div><span class="pr">S/ 69</span><span class="co">costo S/ 32</span></div></td>
+                  <td class="col-total" id="total-Crudo">19</td>
+                </tr>
+                <tr><td><span class="fila-color" onmouseenter="verColor('Negro')" onclick="elegirColor('Negro')"><span class="punto" style="background:#1a1a18"></span>Negro</span></td>
+                  <td><div class="celda-stock" data-color="Negro" data-talla="S"><div class="stepper"><button type="button" onclick="step('Negro','S',-1)">−</button><span class="val" id="val-Negro-S">3</span><button type="button" onclick="step('Negro','S',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td><div class="celda-stock" data-color="Negro" data-talla="M"><div class="stepper"><button type="button" onclick="step('Negro','M',-1)">−</button><span class="val" id="val-Negro-M">7</span><button type="button" onclick="step('Negro','M',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td><div class="celda-stock" data-color="Negro" data-talla="L"><div class="stepper"><button type="button" onclick="step('Negro','L',-1)">−</button><span class="val" id="val-Negro-L">2</span><button type="button" onclick="step('Negro','L',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td><div class="celda-stock" data-color="Negro" data-talla="XL"><div class="stepper"><button type="button" disabled onclick="step('Negro','XL',-1)">−</button><span class="val" id="val-Negro-XL">0</span><button type="button" onclick="step('Negro','XL',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td class="col-total" id="total-Negro">12</td>
+                </tr>
+                <tr><td><span class="fila-color" onmouseenter="verColor('Azul')" onclick="elegirColor('Azul')"><span class="punto" style="background:#2f4a6b"></span>Azul</span></td>
+                  <td><div class="celda-stock" data-color="Azul" data-talla="S"><div class="stepper"><button type="button" onclick="step('Azul','S',-1)">−</button><span class="val" id="val-Azul-S">5</span><button type="button" onclick="step('Azul','S',1)">+</button></div><span class="pr">S/ 79</span><span class="co">costo S/ 36</span></div></td>
+                  <td><div class="celda-stock" data-color="Azul" data-talla="M"><div class="stepper"><button type="button" onclick="step('Azul','M',-1)">−</button><span class="val" id="val-Azul-M">6</span><button type="button" onclick="step('Azul','M',1)">+</button></div><span class="pr">S/ 79</span><span class="co">costo S/ 36</span></div></td>
+                  <td><div class="celda-stock" data-color="Azul" data-talla="L"><div class="stepper"><button type="button" disabled onclick="step('Azul','L',-1)">−</button><span class="val" id="val-Azul-L">0</span><button type="button" onclick="step('Azul','L',1)">+</button></div><span class="pr">S/ 79</span><span class="co">costo S/ 36</span></div></td>
+                  <td><div class="celda-stock" data-color="Azul" data-talla="XL"><div class="stepper"><button type="button" disabled onclick="step('Azul','XL',-1)">−</button><span class="val" id="val-Azul-XL">0</span><button type="button" onclick="step('Azul','XL',1)">+</button></div><span class="pr">S/ 79</span><span class="co">costo S/ 36</span></div></td>
+                  <td class="col-total" id="total-Azul">11</td>
+                </tr>
+                <tr><td><span class="fila-color" onmouseenter="verColor('Vino')" onclick="elegirColor('Vino')"><span class="punto" style="background:#7a1f2b"></span>Vino</span></td>
+                  <td><div class="celda-stock" data-color="Vino" data-talla="S"><div class="stepper"><button type="button" onclick="step('Vino','S',-1)">−</button><span class="val" id="val-Vino-S">2</span><button type="button" onclick="step('Vino','S',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td><div class="celda-stock" data-color="Vino" data-talla="M"><div class="stepper"><button type="button" onclick="step('Vino','M',-1)">−</button><span class="val" id="val-Vino-M">3</span><button type="button" onclick="step('Vino','M',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td><div class="celda-stock" data-color="Vino" data-talla="L"><div class="stepper"><button type="button" disabled onclick="step('Vino','L',-1)">−</button><span class="val" id="val-Vino-L">0</span><button type="button" onclick="step('Vino','L',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td><div class="celda-stock" data-color="Vino" data-talla="XL"><div class="stepper"><button type="button" disabled onclick="step('Vino','XL',-1)">−</button><span class="val" id="val-Vino-XL">0</span><button type="button" onclick="step('Vino','XL',1)">+</button></div><span class="pr">S/ 89</span><span class="co">costo S/ 41</span></div></td>
+                  <td class="col-total" id="total-Vino">5</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="fila-total">
+                  <td>Total en esta sede</td>
+                  <td id="total-S">16</td>
+                  <td id="total-M">25</td>
+                  <td id="total-L">6</td>
+                  <td id="total-XL">0</td>
+                  <td id="total-total">47</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <div class="motivo-sesion">
+              <span>Registrar los ajustes de stock de esta visita como</span>
+              <select id="motivoSesion">
+                <option>Conteo físico</option>
+                <option>Corrección de ingreso</option>
+                <option>Merma</option>
+                <option>Traslado recibido</option>
+              </select>
+            </div>
+
+            <button type="button" class="agregar-color" onclick="agregarColorDemo()">+ Agregar color</button>
+
+            <!-- «Nacen sin unidades» (lib/variantes-ficha-reglas.ts, NACEN_SIN_UNIDADES): una variante nueva arranca en 0 a
+                 propósito — el stock real entra por un movimiento (Recibir / Ajustar), nunca escrito a mano aquí (principio 4,
+                 CLAUDE.md). El banner hace el siguiente paso obvio en vez de dejarlo para que lo encuentres solo. -->
+            <div class="banner-sin-stock" id="bannerNueva" hidden>
+              <span aria-hidden>●</span>
+              <span><b>Beige</b> nació sin unidades: así entra el stock real, con el mismo stepper de arriba. Toca «+».</span>
+              <button type="button" onclick="irABeige()">Ir a Beige</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= COLUMNA DERECHA: Panel del taller — identidad visual + stock en vivo ================= -->
+    <aside aria-label="Identidad y stock de la prenda">
+      <div class="panel-foto">
+        <div class="foto-grande" id="fotoGrande">
+          <img class="on" id="imgGrande" src="https://images.unsplash.com/photo-1551803091-e20673f15770?w=600&q=70" alt="">
+          <span class="tagcolor" id="tagColor"><i style="background:#f4ede1"></i>Crudo</span>
+          <button type="button" class="btn-cambiar-foto" id="btnFoto" onclick="cambiarFoto()">Cambiar foto</button>
+        </div>
+        <div class="swatches-grande" id="swatchesGrande">
+          <span class="swatch activo" style="background:#f4ede1" title="Crudo" onclick="elegirColor('Crudo')"></span>
+          <span class="swatch" style="background:#1a1a18" title="Negro" onclick="elegirColor('Negro')"></span>
+          <span class="swatch" style="background:#2f4a6b" title="Azul" onclick="elegirColor('Azul')"></span>
+          <span class="swatch sinfoto" style="background:#7a1f2b" title="Vino — sin foto" onclick="elegirColor('Vino')"></span>
+        </div>
+      </div>
+
+      <div class="panel-stock">
+        <p class="tit"><span>Stock por talla</span><span id="tituloColorStock">Crudo</span></p>
+        <div id="barrasStock"></div>
+      </div>
+
+      <div class="panel-precio">
+        <span class="tit">Precio de la prenda</span>
+        <span class="rango">S/ 69 – 89</span>
+      </div>
+
+      <div class="panel-guia" id="panelGuia" onclick="elegirColor('Vino')" style="cursor:pointer">
+        <span class="hilo"></span>
+        Falta <b>foto de Vino</b> — no hace falta para guardar
+      </div>
+
+      <p class="nota-guardar">Guardar sigue abajo, en la barra.</p>
+    </aside>
+  </div>
+</div>
+
+<div class="barra-cambios" id="barra">
+  <div class="in">
+    <span class="barra-tit">Tienes <b id="numCambios">0</b> cambios sin guardar</span>
+    <span class="sp"></span>
+    <button class="btn sec">Descartar</button>
+    <button class="btn prim" id="btnRevisarGuardar">Revisar y guardar</button>
+  </div>
+</div>
+
+<!-- Ajustar stock: cada +/- del stepper escribe YA (AjustarInventarioModal, vía AjusteDeStock.tsx) — INMEDIATO y aparte de
+     «Revisar y guardar», porque un stock que se movió es un hecho, no un borrador (principio 4, CLAUDE.md). El motivo lo
+     fija el selector «Registrar los ajustes de esta visita como», no un formulario por cada clic. -->
+<div class="toast-ajuste" id="toastAjuste" hidden></div>
+
+<script>
+const datos = {
+  Crudo:{hex:"#f4ede1",foto:"https://images.unsplash.com/photo-1551803091-e20673f15770?w=600&q=70",stock:{S:6,M:9,L:4,XL:0}},
+  Negro:{hex:"#1a1a18",foto:"https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&q=70",stock:{S:3,M:7,L:2,XL:0}},
+  Azul:{hex:"#2f4a6b",foto:"https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=600&q=70",stock:{S:5,M:6,L:0,XL:0}},
+  Vino:{hex:"#7a1f2b",foto:null,stock:{S:2,M:3,L:0,XL:0}}
+};
+function pintarStock(color){
+  const max = 9;
+  const box = document.getElementById('barrasStock');
+  box.innerHTML = Object.entries(datos[color].stock).map(([talla,u])=>{
+    const pct = Math.round((u/max)*100);
+    const clase = u===0?'cero':(u<=3?'bajo':'');
+    return `<div class="barra-talla"><b>${talla}</b><div class="pista"><div class="relleno ${clase}" style="width:${pct}%"></div></div><span>${u}</span>`+
+      `<div class="stepper-mini"><button type="button" ${u<=0?'disabled':''} onclick="step('${color}','${talla}',-1)">−</button><button type="button" onclick="step('${color}','${talla}',1)">+</button></div></div>`;
+  }).join('');
+  document.getElementById('tituloColorStock').textContent = color;
+}
+function verColor(color){
+  // hover: solo refresca el stock, no mueve el swatch activo permanente
+  pintarStock(color);
+}
+let colorActual='Crudo';
+function refrescarBotonFoto(color){
+  const btn=document.getElementById('btnFoto');
+  const tiene=!!datos[color].foto;
+  btn.textContent=tiene?'Cambiar foto':'+ Agregar foto';
+  btn.classList.toggle('sin-foto',!tiene);
+}
+function elegirColor(color){
+  colorActual=color;
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('activo'));
+  [...document.querySelectorAll('.swatch')].find(s=>s.title.startsWith(color))?.classList.add('activo');
+  const img = document.getElementById('imgGrande');
+  const d = datos[color];
+  const tag = document.getElementById('tagColor');
+  tag.innerHTML = `<i style="background:${d.hex}"></i>${color}`;
+  if(d.foto){
+    img.style.opacity=0;
+    setTimeout(()=>{img.src=d.foto;img.classList.add('on');img.style.opacity='';},160);
+    document.querySelector('.foto-grande .vacio')?.remove();
+  } else {
+    img.classList.remove('on');
+    if(!document.querySelector('.foto-grande .vacio')){
+      const v=document.createElement('div');v.className='vacio';v.textContent='Sin foto de '+color+' todavía';
+      document.getElementById('fotoGrande').appendChild(v);
+    }
+  }
+  pintarStock(color);
+  refrescarBotonFoto(color);
+}
+pintarStock('Crudo');
+
+/** El botón sobre la foto grande: agrega la foto que falta, o «cambia» la que ya hay (aquí, un pulso — en el ERP real abriría el
+ *  mismo selector de archivos que «Fotos»). Opera siempre sobre el color elegido en ese momento (`colorActual`). */
+function cambiarFoto(){
+  const color=colorActual, d=datos[color];
+  if(!d.foto){
+    d.foto="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&q=70&sat=-60";
+    document.querySelector(`.swatch[title^="${color}"]`)?.classList.remove('sinfoto');
+    if(color==='Vino'){
+      document.getElementById('resFotos').textContent='Completa';
+      document.getElementById('numFotos').textContent='✓';
+      document.getElementById('secFotos').classList.add('hecho');
+      document.getElementById('panelGuia').outerHTML='<div class="panel-guia completo" id="panelGuia"><span class="hilo"></span>Ficha completa</div>';
+    }
+  } else {
+    const fg=document.getElementById('fotoGrande');
+    fg.classList.add('flash');
+    setTimeout(()=>fg.classList.remove('flash'),480);
+  }
+  elegirColor(color);
+  marcarCambio();
+}
+
+let cambios=0;
+function marcarCambio(){
+  cambios++;
+  document.getElementById('numCambios').textContent=cambios;
+  document.getElementById('barra').classList.add('on');
+}
+let simulado=false;
+document.getElementById('btnSimular').onclick=()=>{
+  if(simulado) return;
+  simulado=true;
+  step('Azul','L',1); // una talla que no tenía: ahora hay una unidad más sin etiquetar
+  elegirColor('Vino');
+  cambiarFoto(); // el mismo botón que usaría la persona, no un atajo aparte
+};
+document.getElementById('btnReset').onclick=()=>location.reload();
+document.querySelectorAll('[data-ancho]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-ancho]').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  document.getElementById('marco').className='marco '+b.dataset.ancho.replace('escritorio','');
+});
+
+/* ================= Cambiar en bloque (precio/costo) — CambiarEnBloque.tsx ================= */
+function elegirCampoBloque(btn){
+  document.querySelectorAll('#bloqueCampo button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('matrizVariantes').classList.toggle('ver-costo', btn.dataset.campo==='costo');
+  document.getElementById('bloqueNota').classList.remove('ok','error');
+  document.getElementById('bloqueNota').textContent='Cambia varias de una vez con Aplicar (también puedes tocar cada celda abajo). El costo no toca lo que ya viene de Compras.';
+}
+function revisarBloque(){
+  document.getElementById('bloqueBtn').disabled = document.getElementById('bloqueMonto').value.trim()==='';
+}
+function aplicarBloque(){
+  const campo = document.querySelector('#bloqueCampo button.on').dataset.campo;
+  const alcance = document.getElementById('bloqueAlcance').value;
+  const nota = document.getElementById('bloqueNota');
+  const montoStr = document.getElementById('bloqueMonto').value.trim();
+  if(montoStr===''){ return; }
+  const monto = Number(montoStr);
+  if(!(monto>0)){
+    nota.textContent='Pon un monto mayor a 0.';
+    nota.classList.add('error'); nota.classList.remove('ok');
+    return;
+  }
+  let n=0;
+  document.querySelectorAll('.celda-stock[data-color]').forEach(c=>{
+    const color=c.dataset.color, talla=c.dataset.talla;
+    const coincide = alcance==='todas' || alcance===`color:${color}` || alcance===`talla:${talla}`;
+    if(!coincide) return;
+    n++;
+    const span = c.querySelector(campo==='precio' ? '.pr' : '.co');
+    span.textContent = (campo==='precio' ? 'S/ ' : 'costo S/ ') + monto.toFixed(0);
+    c.classList.add('tocada');
+    setTimeout(()=>c.classList.remove('tocada'),520);
+  });
+  if(n===0){
+    nota.textContent='No hay variantes en ese grupo.';
+    nota.classList.add('error'); nota.classList.remove('ok');
+    return;
+  }
+  nota.textContent=`${campo==='precio'?'Precio':'Costo'} puesto en ${n} ${n===1?'variante':'variantes'}. Se guarda con «Revisar y guardar».`;
+  nota.classList.add('ok'); nota.classList.remove('error');
+  document.getElementById('bloqueMonto').value='';
+  revisarBloque();
+  marcarCambio();
+}
+
+/* ================= Ajustar stock: el stepper ES el ajuste — AjustarInventarioModal, vía AjusteDeStock.tsx =================
+   Cada +/- escribe YA (no espera a «Revisar y guardar») porque el stock es un snapshot derivado de `movimientos`
+   (principio 4, CLAUDE.md) — nunca un campo que se pisa. El motivo no se pregunta en cada clic (eso sí sería
+   confuso y lento): lo fija el selector «Registrar los ajustes de esta visita como», una vez, arriba de la matriz.
+   La SUGERENCIA de imprimir etiqueta es otra cosa: subir una cantidad no interrumpe con un aviso por cada clic —
+   se junta en `aumentos` y se ofrece UNA vez, recién al cerrar la visita con «Revisar y guardar» (Felipe, 2026-10-02:
+   «debe salir luego de guardar los cambios, no antes»), con el mismo patrón que ya usa el aviso de éxito al
+   corregir color/talla en producción (`avisar.exito({accion:{texto:'Imprimir etiquetas',…}})`, ProductoForm.tsx). */
+let aumentos = {}; // 'Color|Talla' -> cuánto subió NETO en esta visita (baja si se corrige para abajo otra vez)
+function step(color, talla, delta){
+  const el = document.getElementById(`val-${color}-${talla}`);
+  if(!el) return;
+  let v = parseInt(el.textContent,10);
+  if(delta<0 && v<=0) return;
+  v = Math.max(0, v+delta);
+  el.textContent = v;
+  const celda = el.closest('.celda-stock');
+  celda.classList.remove('nueva');
+  celda.classList.add('tocada');
+  setTimeout(()=>celda.classList.remove('tocada'),480);
+  const menos = celda.querySelector('.stepper button:first-child, .stepper-mini button:first-child');
+  if(menos) menos.disabled = v===0;
+  // el panel del taller refleja el mismo número si está mostrando este color
+  if(datos[color]){
+    datos[color].stock[talla] = v;
+    if(colorActual===color) pintarStock(color);
+  }
+  recalcularTotales();
+  const clave = color+'|'+talla;
+  aumentos[clave] = (aumentos[clave]||0) + delta;
+  if(aumentos[clave]<=0) delete aumentos[clave];
+  const motivo = document.getElementById('motivoSesion').value;
+  avisarAjuste(`${delta>0?'+1':'−1'} ${talla} · ${color} (${motivo}) — ahora ${v}`);
+}
+function recalcularTotales(){
+  const tallas=['S','M','L','XL'];
+  let gran=0;
+  document.querySelectorAll('#matrizVariantes tbody tr').forEach(tr=>{
+    let suma=0;
+    tr.querySelectorAll('.celda-stock .val').forEach(v=>suma+=parseInt(v.textContent,10));
+    const color = tr.querySelector('.celda-stock')?.dataset.color;
+    const totalCell = document.getElementById('total-'+color);
+    if(totalCell){ totalCell.textContent=suma; totalCell.classList.add('tocada'); setTimeout(()=>totalCell.classList.remove('tocada'),480); }
+    gran+=suma;
+  });
+  tallas.forEach(t=>{
+    let suma=0;
+    document.querySelectorAll(`.celda-stock[data-talla="${t}"] .val`).forEach(v=>suma+=parseInt(v.textContent,10));
+    const el=document.getElementById('total-'+t);
+    if(el) el.textContent=suma;
+  });
+  const granEl=document.getElementById('total-total');
+  if(granEl) granEl.textContent=gran;
+}
+function avisarAjuste(texto){
+  const t=document.getElementById('toastAjuste');
+  t.textContent = texto+' · Guardado ya — no es parte de «Revisar y guardar».';
+  t.hidden=false;
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(()=>{t.hidden=true;},3000);
+}
+/** «Revisar y guardar»: en la ficha real abre la hoja de confirmación (ConfirmarCambios) y guarda todo lo demás del
+ *  borrador. Aquí, al confirmar, es el momento de ofrecer imprimir — una vez, con todo lo que subió en la visita. */
+document.getElementById('btnRevisarGuardar').onclick = () => {
+  const claves = Object.keys(aumentos);
+  document.getElementById('barra').classList.remove('on');
+  cambios = 0;
+  document.getElementById('numCambios').textContent = 0;
+  const t = document.getElementById('toastAjuste');
+  if(claves.length === 0){
+    t.textContent = 'Blusa Alba guardado.';
+  } else {
+    const detalle = claves.map(c => c.replace('|', ' · ')).join(', ');
+    t.innerHTML = `Blusa Alba guardado · ${claves.length} ${claves.length===1?'prenda nueva':'prendas nuevas'} sin etiquetar (${detalle}).` +
+      `<button type="button" class="toast-accion" onclick="imprimirEtiquetas()">Imprimir etiquetas</button>`;
+  }
+  t.hidden=false;
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(()=>{t.hidden=true;}, claves.length?6000:3000);
+  aumentos = {};
+};
+function imprimirEtiquetas(){
+  avisarAjuste('Etiquetas enviadas a imprimir.');
+}
+
+/* ================= + Agregar color (demo) — AgregarColoresModal.tsx ================= */
+let coloresAgregados = 0;
+function agregarColorDemo(){
+  if(coloresAgregados>0) return; // un solo color de ejemplo en esta maqueta
+  coloresAgregados++;
+  const tbody = document.querySelector('#matrizVariantes tbody');
+  const fila = document.createElement('tr');
+  fila.id = 'fila-Beige';
+  fila.style.animation = 'revelar 320ms var(--ease) both';
+  fila.innerHTML = `<td><span class="fila-color"><span class="punto" style="background:#cbb89a"></span>Beige<span class="etq-nueva">nueva</span></span></td>` +
+    ['S','M','L','XL'].map(t=>`<td><div class="celda-stock nueva" data-color="Beige" data-talla="${t}"><div class="stepper"><button type="button" disabled onclick="step('Beige','${t}',-1)">−</button><span class="val" id="val-Beige-${t}">0</span><button type="button" onclick="step('Beige','${t}',1)">+</button></div><span class="pr">S/ 69</span><span class="co">costo S/ 0</span></div></td>`).join('') +
+    `<td class="col-total" id="total-Beige">0</td>`;
+  tbody.appendChild(fila);
+  document.querySelector('#bloqueAlcance').insertAdjacentHTML('beforeend', '<option value="color:Beige">Color: Beige</option>');
+  document.getElementById('bannerNueva').hidden = false;
+  marcarCambio();
+}
+function irABeige(){
+  const fila = document.getElementById('fila-Beige');
+  if(!fila) return;
+  fila.scrollIntoView({behavior:'smooth',block:'center'});
+  fila.querySelectorAll('.celda-stock').forEach(c=>{c.classList.add('tocada');setTimeout(()=>c.classList.remove('tocada'),480);});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+{
+  "guia": "vender",
+  "ruta": "/vender",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 183,
+  "controles": {
+    "components/AbrirCajaFormV2.tsx": [
+      "input «0.00»",
+      "input «Ej.: se usó para vuelto antes de abrir»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
+      "button «→onElegir»"
+    ],
+    "components/CampoDocumentoClienta.tsx": [
+      "CampoSelect «{etiqueta}»",
+      "CampoTexto «{<> {etiqueta}»"
+    ],
+    "components/CerrarCajaModalV2.tsx": [
+      "button «Listo»",
+      "input «0.00»",
+      "input «{`Cantidad de ${d >= 1 ? `billetes o monedas de ${d}»",
+      "button «Cancelar»",
+      "button «Continuar»",
+      "input «0.00» #2",
+      "CampoSelect «¿A dónde va?»",
+      "CampoSelect «¿A qué banco?»",
+      "CampoTexto «{destinoElegido.referencia}»",
+      "button «Volver y dejar»",
+      "button «Cerrar igual»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→() => setPaso(\"contar\")»",
+      "Boton «{responsable.motivo ?? invalido ?? undefined}»"
+    ],
+    "components/ConsultaDocumento.tsx": [
+      "CampoTexto «{contador ? ( <> {}»",
+      "BotonBuscar «→buscar»",
+      "CampoTexto «{etiqueta.nombre}»"
+    ],
+    "components/EscanerCamara.tsx": [
+      "button «Cerrar la cámara»",
+      "button «{linterna.encendida ? \"Apagar la linterna\" : \"Encender la linterna\"}»",
+      "button «Buscar por nombre»",
+      "button «Ver ticket»"
+    ],
+    "components/PedidoClienteModales.tsx": [
+      "ComboResponsable «{responsable}»",
+      "button «Mejor no»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «{responsable}» #2",
+      "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
+      "a «{responsable.motivo ?? undefined}»",
+      "ComboResponsable «{responsable}» #3",
+      "Boton «{responsable.motivo ?? undefined}» #3",
+      "Boton «{responsable.motivo ?? undefined}» #4"
+    ],
+    "components/PedirYApartarModal.tsx": [
+      "button «{c.talla}»",
+      "button «{t.corto}»",
+      "input «{nombres}»",
+      "input «{apellidos}»",
+      "input «9 dígitos»",
+      "input «{nota}»",
+      "ComboResponsable «{responsable}»",
+      "button «Mejor no»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/PrendaSinRegistrarModal.tsx": [
+      "button «Usar «»",
+      "button «{categoria ? `Cambiar a ${categoriaSugerida.nombre}»",
+      "button «{t.valor}»",
+      "ComboBuscable «{categoriaId}»",
+      "ComboBuscable «{colorCodigo}»",
+      "CampoTexto «Descripción corta»",
+      "input «Precio cobrado en soles»",
+      "ComboResponsable «{corregir.responsable}»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/PuntoDeVenta.tsx": [
+      "button «Cerrar caja»",
+      "Casilla «{`${proformaActiva.confirmacion.titulo}»",
+      "button «Soltar»",
+      "button «vender.barra-ticket»"
+    ],
+    "components/PuntoDeVentaCatalogo.tsx": [
+      "button «vender.escanear»",
+      "button «→() => onAgregar(v)»",
+      "button «{modoCamara ? \"vender.buscar-por-nombre\" : \"vender.camara\"}»",
+      "button «vender.sin-registrar»",
+      "button «vender.ver-catalogo»",
+      "button «{c}»"
+    ],
+    "components/PuntoDeVentaColaOffline.tsx": [
+      "button «Cancelar»",
+      "button «Sí, descartar»",
+      "button «Descartar»"
+    ],
+    "components/PuntoDeVentaTicket.tsx": [
+      "button «Dejar en espera»",
+      "button «En espera ·»",
+      "button «Volver al catálogo»",
+      "Volver «→onVolverATicket»",
+      "button «Retomar»",
+      "button «{`Descartar el ticket de ${nombreDeEspera(t.nombre, i)}»",
+      "SegmentoDeslizante «Cómo escribir el descuento»",
+      "button «S/»",
+      "input «Monto de descuento»",
+      "button «{p}»",
+      "input «Porcentaje de descuento»",
+      "button «{r.etiqueta}»",
+      "input «Detalle del motivo»",
+      "textarea «Argumento del descuento»",
+      "button «{todoElTicket && <IconoCheck />}»",
+      "button «{marcada && <IconoCheck />}»",
+      "input «Lo recoge el sábado, va con arreglo de bastilla…»",
+      "button «Quitar»",
+      "button «Cambiar»",
+      "button «Aplicar descuento»",
+      "button «vender.codigo-cupon-boton»",
+      "ComboResponsable «{responsable}»",
+      "button «Aplicar descuento» #2",
+      "button «Quitar descuento»",
+      "button «{loading ? \"Procesando…\" : \"Confirmar cobro\"}»",
+      "button «vender.cobrar»"
+    ],
+    "components/VentaRegistradaModal.tsx": [
+      "BotonImprimir «Imprimir y nueva venta»",
+      "button «Solo imprimir»",
+      "button «Sin imprimir»",
+      "button «Nueva venta»"
+    ],
+    "components/apartados/piezas.tsx": [
+      "button «{accion}»"
+    ],
+    "components/clientas/NombreDelPadron.tsx": [
+      "button «Volver a intentar»",
+      "CampoTexto «{padron.estado === \"consultando\" ? \"Consultando el padrón…\" : \"Lo trae el padrón\"}»",
+      "button «Actualizar desde el padrón»"
+    ],
+    "components/clientas/club-piezas.tsx": [
+      "CampoTexto «{etiqueta}»",
+      "CampoTexto «Día del cumpleaños»",
+      "CampoSelect «Mes del cumpleaños»",
+      "CampoTexto «Año del cumpleaños (opcional)»",
+      "button «Omitir por ahora»"
+    ],
+    "components/punto-de-venta/AccesosVenta.tsx": [
+      "button «vender.mas»",
+      "Link «{a.texto}»",
+      "button «vender.apartados»",
+      "Link «vender.apartados»"
+    ],
+    "components/punto-de-venta/AnotarNoHabia.tsx": [
+      "Boton «→anotar»",
+      "button «{t}»",
+      "ComboResponsable «{responsable}»"
+    ],
+    "components/punto-de-venta/BolsaDelTicket.tsx": [
+      "Boton «{lleva > 0 ? `Agregar bolsa, ya lleva ${lleva}»",
+      "Boton «vender.bolsas»",
+      "button «{`Agregar ${nombreDeBolsa(b)}»"
+    ],
+    "components/punto-de-venta/CajaCerrada.tsx": [
+      "button «vender.abrir-caja»"
+    ],
+    "components/punto-de-venta/ClientaDelTicket.tsx": [
+      "button «{linea.titulo}»",
+      "button «{abiertaLaCaja ? \"Ocultar lo del club\" : \"Ver lo del club\"}»",
+      "button «Quitar al cliente de esta venta»",
+      "button «{ayuda}»",
+      "button «Búscalo por documento, celular o nombre. Es opcional.»",
+      "button «{boton.texto}»",
+      "Boton «Actualizar»",
+      "Boton «Registrarlo»",
+      "Boton «Seguir sin cliente»",
+      "button «{l.titulo}»",
+      "button «Registrar cliente»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre completo\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/punto-de-venta/DocumentoDelComprobante.tsx": [
+      "CampoTexto «{ID_NUMERO_DOC_COMPROBANTE}»",
+      "CampoTexto «Nombre del cliente»"
+    ],
+    "components/punto-de-venta/EnviarBoleta.tsx": [
+      "a «Abrir WhatsApp con la boleta»"
+    ],
+    "components/punto-de-venta/Esperas.tsx": [
+      "Boton «Cancelar»",
+      "Boton «Seguir con el cierre»",
+      "Boton «Cancelar» #2",
+      "Boton «Descartar ticket»"
+    ],
+    "components/punto-de-venta/HojaDeCobro.tsx": [
+      "Volver «→onVolver»",
+      "CampoMonto «{`Monto en ${NOMBRE_METODO[m]}»",
+      "button «→() => onMaquina?.(indice, m.cuentaId)»",
+      "button «{i === 0 ? \"Exacto\" : undefined}»",
+      "input «Otro monto recibido»",
+      "button «{icono}»",
+      "button «(sin nombre)»"
+    ],
+    "components/punto-de-venta/LineaDelTicket.tsx": [
+      "button «{`Descuento para ${nombre}»",
+      "button «{`Quitar ${nombre}»"
+    ],
+    "components/punto-de-venta/OpcionesDePrendaModal.tsx": [
+      "button «→() => setFijo(c.clave)»",
+      "Casilla «(sin nombre)»",
+      "button «Listo»",
+      "button «{t.referencia}»",
+      "button «{porQueDe === clave ? \"Cerrar\" : \"¿Por qué?\"}»",
+      "Casilla «(sin nombre)» #2",
+      "button «{bajable ? `Agregar ${nombre}»",
+      "button «{`Quitar ${nombre}»"
+    ],
+    "components/punto-de-venta/PedidosParaClientes.tsx": [
+      "button «{llego ? \"Avisar por WhatsApp\" : \"Avisar que no llegó\"}»",
+      "button «Responder»"
+    ],
+    "components/punto-de-venta/PedirEnOtraTienda.tsx": [
+      "button «Pedir y apartar para este cliente»"
+    ],
+    "components/punto-de-venta/PuntosYCuponModales.tsx": [
+      "Boton «Cancelar»",
+      "Boton «Aplicar»",
+      "CampoTexto «Código del cupón»",
+      "button «{solesDelCupon(c.valor)}»",
+      "Boton «Cancelar» #2",
+      "Boton «Aplicar al ticket»"
+    ],
+    "components/punto-de-venta/RegistrarBajadaModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/punto-de-venta/ResumenDeHoy.tsx": [
+      "button «{r.pctMeta !== null ? `${r.pctMeta}»",
+      "button «{soles(r.total)}»",
+      "BotonVer «Historial completo»",
+      "BotonVer «Ir a Caja»"
+    ],
+    "components/punto-de-venta/TarjetaPrenda.tsx": [
+      "button «vender.prenda-abrir»",
+      "button «{`${c.color ?? \"Sin color\"}»",
+      "button «{`Ver los ${prenda.colores.length}»",
+      "button «{`Agregar ${t.variante.referencia}»",
+      "button «{`${t.variante.referencia}»",
+      "button «{`Talla ${t.talla}»",
+      "button «{`Agregar ${nombre}»"
+    ]
+  }
+}

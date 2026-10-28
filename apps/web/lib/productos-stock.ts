@@ -120,7 +120,7 @@ export function leerExistenciasProductos(datos: unknown): Map<string, Existencia
 }
 
 /** «Tienda Trujillo» → «Trujillo» (el mismo criterio que «Dónde más hay», `stock-por-sede.ts`). */
-const corta = (sede: string) => sede.replace(/^tienda\s+/i, "").trim();
+export const corta = (sede: string) => sede.replace(/^tienda\s+/i, "").trim();
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Cuántas otras sedes se nombran una por una antes de agruparlas: en una tarjeta de teléfono no caben más. */
@@ -176,9 +176,18 @@ export const MENSAJE_SIN_RESULTADOS = "Ningún producto calza con esos filtros."
  * devolver nada (una descontinuada no es una alerta): se dice por qué, en vez del «no hay» genérico que
  * dejaría a una persona sin contexto pensando que el catálogo está vacío.
  */
-export function mensajeSinResultados(filtros: { estado?: string; stock?: string }): string {
-  if (filtros.estado === "descontinuado" && filtros.stock) {
-    return "Las prendas descontinuadas no cuentan como sin stock, con stock bajo ni para pedir. Quita el filtro de stock para verlas.";
+export function mensajeSinResultados(filtros: { estado?: string; stock?: string }, { descontinuadas = 0 }: { descontinuadas?: number } = {}): string {
+  // Solo las disponibilidades que exigen una prenda que se vende (sin stock aquí o en la red, bajo, pedir): «Hay en [sede]»
+  // sí trae descontinuadas con stock.
+  if (filtros.estado === "descontinuado" && filtros.stock && filtros.stock !== "en_sede") {
+    return "Las prendas descontinuadas no cuentan como sin stock, con stock bajo ni para pedir. Quita el filtro de Disponibilidad para verlas.";
+  }
+  // Desde el 2026-10-02 la lista abre solo con las activas: si lo buscado está descontinuado, se dice, en vez de dejar creer
+  // que la prenda no existe.
+  if (descontinuadas > 0) {
+    return descontinuadas === 1
+      ? "Ninguna prenda activa calza con esos filtros, pero hay 1 descontinuada que sí. Elige «Estado: Todos» para verla."
+      : `Ninguna prenda activa calza con esos filtros, pero hay ${descontinuadas} descontinuadas que sí. Elige «Estado: Todos» para verlas.`;
   }
   return MENSAJE_SIN_RESULTADOS;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw, Wand2 } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2, Shirt, ChevronRight } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -17,7 +17,9 @@ import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { ordenarPrendas, textoPrendas, type PrendaDeMuestra, type TipoMuestra } from "@/lib/muestra-atributo-reglas";
 import { reducirMuestra, subirMuestra } from "@/lib/muestra-atributo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
+import { ayudaDeTejido } from "@/lib/tejido-ayuda";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * El detalle de un tejido o de un patrón (ADR-0256): se abre al hacer clic en su tarjeta de Atributos.
@@ -26,6 +28,9 @@ import type { ColorDibujo } from "@/lib/dibujo-generado";
  * `GeneradorDibujo`), o el dibujo automático que sale del nombre. Quien puede editar el catálogo sube una foto, genera
  * un dibujo o quita la imagen; nada se guarda al elegir: primero se ve cómo queda y recién «Guardar» la sube y la deja
  * en la base (sin responsable: Felipe, 2026-09-29).
+ *
+ * En un tejido, bajo la muestra, «Sobre este tejido» (`lib/tejido-ayuda.ts`): qué es, para qué prendas sirve y cómo se cuida, para que
+ * cualquier integrante lo reconozca y se lo explique al cliente. La ve todo el que abre el detalle, no solo quien edita.
  *
  * Abajo, las prendas que usan este tejido o patrón (las activas primero: son las que impiden desactivarlo). Se leen al
  * abrir, no con la pantalla: la grilla no necesita la foto de cada prenda.
@@ -101,7 +106,7 @@ export function DetalleMuestraModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const prendas = (data ?? []).map((p) => ({
@@ -182,18 +187,19 @@ export function DetalleMuestraModal({
   // Con el generador abierto se ve en grande la propuesta marcada.
   const imagenVisible = pendiente ? (pendiente.tipo === "subir" ? pendiente.vista : null) : generador !== null && propuesta ? propuesta : muestra.imagenUrl;
   const Muestra = tipo === "tejido" ? MuestraTejido : MuestraPatron;
+  const ayuda = tipo === "tejido" ? ayudaDeTejido(muestra.nombre) : null;
   const cantidad = carga.estado === "listo" ? carga.prendas.length : null;
 
   return (
     <Modal
       titulo={muestra.nombre}
       subtitulo={cantidad === null ? (tipo === "tejido" ? "Tejido" : "Patrón") : `${tipo === "tejido" ? "Tejido" : "Patrón"} · ${textoPrendas(cantidad)}`}
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onClose}
     >
       <div className="mt-2 space-y-5">
-        <section className="space-y-2">
+        <section data-guia="muestra.dibujo" className="space-y-2">
           <Muestra nombre={muestra.nombre} imagenUrl={imagenVisible} className="aspect-[2/1] w-full" />
           <p className="text-xs text-tinta/60">
             {pendiente
@@ -224,7 +230,7 @@ export function DetalleMuestraModal({
 
           {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
+              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Subir foto
@@ -263,13 +269,13 @@ export function DetalleMuestraModal({
 
           {pendiente && (
             <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={() => setPendiente(null)} disabled={guardando}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={() => setPendiente(null)} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={guardando}
                   onClick={guardar}
                 >
@@ -280,7 +286,26 @@ export function DetalleMuestraModal({
           )}
         </section>
 
-        <section className="space-y-2">
+        {/* Qué es el tejido, para qué prendas sirve y cómo se cuida: lo que una integrante necesita para reconocerlo y explicárselo al
+            cliente. Lo ve cualquiera que abra el detalle (no solo quien edita). Los patrones no la llevan: su dibujo ya dice qué son. */}
+        {ayuda && (
+          <section data-guia="muestra.sobre" className="space-y-2">
+            <p className="label-cayla text-[11px] text-tinta/65">Sobre este tejido</p>
+            <div className="rounded-lg border border-sand bg-hueso/60 p-3 text-sm text-tinta/85">
+              <p>{ayuda.queEs}</p>
+              <dl className="mt-2 space-y-1.5">
+                {ayuda.datos.map((d) => (
+                  <div key={d.etiqueta}>
+                    <dt className="inline font-medium text-tinta">{d.etiqueta}: </dt>
+                    <dd className="inline">{d.texto}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        )}
+
+        <section data-guia="muestra.prendas" className="space-y-2">
           <p className="label-cayla text-[11px] text-tinta/65">Prendas con {palabra.el}</p>
           {carga.estado === "cargando" && (
             <ul className="space-y-2" aria-label="Buscando prendas">
@@ -301,7 +326,7 @@ export function DetalleMuestraModal({
             </div>
           )}
           {carga.estado === "listo" && carga.prendas.length === 0 && (
-            <p className="rounded-lg border border-dashed border-tinta/15 p-3 text-sm text-tinta/60">Ninguna prenda usa {palabra.el} todavía.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Shirt />}>Ninguna prenda usa {palabra.el} todavía.</Vacio>
           )}
           {carga.estado === "listo" && carga.prendas.length > 0 && (
             <ul className="max-h-72 divide-y divide-sand overflow-y-auto rounded-lg border border-sand">
@@ -310,7 +335,7 @@ export function DetalleMuestraModal({
                   <MiniaturaPrenda fotoUrl={p.fotoUrl} />
                   <div className="min-w-0 flex-1">
                     {veProductos ? (
-                      <Link href={`/productos/${p.id}/editar`} className="block truncate text-sm text-tinta hover:text-rojo-profundo hover:underline">
+                      <Link href={`/productos/${p.id}/editar`} className="btn-enlace inline-block max-w-full truncate align-bottom text-sm">
                         {p.referencia}
                       </Link>
                     ) : (
@@ -339,7 +364,10 @@ export function PieTarjetaMuestra({ prendas }: { prendas: number }) {
   return (
     <span className="flex flex-wrap items-center justify-between gap-x-2 text-xs text-tinta/60">
       <span className="whitespace-nowrap">{textoPrendas(prendas)}</span>
-      <span className="whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">Ver ›</span>
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap transition-colors group-hover/muestra:text-rojo-profundo">
+        Ver
+        <ChevronRight aria-hidden className="h-3 w-3" />
+      </span>
     </span>
   );
 }

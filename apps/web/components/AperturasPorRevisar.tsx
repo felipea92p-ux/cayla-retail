@@ -9,9 +9,11 @@ import type { AperturaPorRevisar } from "@/lib/caja";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function cuando(iso: string) {
@@ -21,12 +23,12 @@ function cuando(iso: string) {
 }
 
 /**
- * El aviso al líder de ADR-0186: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
- * escribió quien abrió. «Marcar como revisada» la saca de aquí y de la cola de Inicio (`revisar_apertura_caja`,
- * solo líder). No corrige ningún monto: el efectivo se corrige con un movimiento de caja, como siempre.
+ * El aviso de ADR-0186: aperturas que no coincidieron con lo que dejó el cierre anterior, con el motivo que
+ * escribió quien abrió. «Marcar como revisada» la saca de aquí y de la cola de Inicio (`revisar_apertura_caja`:
+ * quien gestiona la caja —líder o módulo Caja, Felipe 2026-10-09—, y solo las de su sede, que es lo único que le muestra la base). No corrige ningún monto: el efectivo se corrige con un movimiento de caja, como siempre.
  *
  * Quién la revisó sale del combo «Responsable» (ADR-0161/0162; Felipe 2026-09-23: TODA acción que guarda lo pide):
- * uno solo encima de la lista, porque cada fila guarda de un clic. Poder revisar lo sigue decidiendo la cuenta (líder).
+ * uno solo encima de la lista, porque cada fila guarda de un clic. Poder revisar lo sigue decidiendo la cuenta, no el responsable.
  */
 export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevisar[] }) {
   const router = useRouter();
@@ -51,11 +53,9 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
   }
 
   return (
-    <section className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
+    <section data-guia="caja-historial.aperturas" className="card-cayla space-y-3 p-5" aria-labelledby="aperturas-por-revisar">
       <div>
-        <h2 id="aperturas-por-revisar" className="font-display text-xl text-tinta">
-          Aperturas con diferencia por revisar
-        </h2>
+        <TituloSeccion id="aperturas-por-revisar">Aperturas con diferencia por revisar</TituloSeccion>
         <p className="text-sm text-tinta/65">Abrieron con un monto distinto del que dejó el cierre anterior de su sede.</p>
       </div>
       <ComboResponsable control={responsable} deshabilitado={revisando !== null} className="max-w-sm" />
@@ -77,15 +77,15 @@ export function AperturasPorRevisar({ aperturas }: { aperturas: AperturaPorRevis
                 </p>
                 <p className="text-xs italic text-tinta/60">«{a.motivo}»</p>
               </div>
-              <button
+              <Boton cargando={revisando === a.cajaId}
                 type="button"
                 onClick={() => revisar(a.cajaId)}
                 disabled={revisando !== null || !responsable.listo}
                 title={responsable.motivo ?? undefined}
-                className="label-cayla shrink-0 rounded-md border border-tinta/25 px-3 py-2 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-50"
+                className="shrink-0"
               >
-                {revisando === a.cajaId ? "Guardando…" : "Marcar como revisada"}
-              </button>
+                Marcar como revisada
+              </Boton>
             </li>
           );
         })}

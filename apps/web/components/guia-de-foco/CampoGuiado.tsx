@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { FaltanDelPaso } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
+import { useRetenerLuz, type ModoRetencion } from "./useRetenerLuz";
 import type { GuiaCampos } from "./useGuiaCampos";
 
 // Las dos piezas de la guía de foco para un modal (CLAUDE.md «Guía de foco», ADR-0284). Sus estilos: `app/estilos/alta-guia.css`
@@ -15,10 +16,30 @@ import type { GuiaCampos } from "./useGuiaCampos";
  * (los `CampoTexto` ya traen la suya: pásale `guia.etiqueta(id, "Nombre")`). Sin `guia.estado(id)` conocido es «opcional».
  * No cambia el tamaño de nada: la luz se pinta por detrás y por fuera.
  */
-export function CampoGuiado({ id, guia, titulo, ayuda, className = "", children }: { id: string; guia: GuiaCampos; titulo?: ReactNode; ayuda?: ReactNode; className?: string; children: ReactNode }) {
+export function CampoGuiado({
+  id,
+  guia,
+  titulo,
+  ayuda,
+  retiene,
+  className = "",
+  children,
+}: {
+  id: string;
+  guia: GuiaCampos;
+  titulo?: ReactNode;
+  ayuda?: ReactNode;
+  /** `"fila"` para un campo de VARIAS opciones (chips que se marcan de a uno): la luz espera mientras se siga eligiendo aquí. Por defecto
+   *  espera solo mientras se teclea en una caja de texto. */
+  retiene?: ModoRetencion;
+  className?: string;
+  children: ReactNode;
+}) {
   const estado = guia.estado(id);
+  const retener = useRetenerLuz(id, guia, retiene);
+
   return (
-    <div data-campo={id} data-estado={estado} className={`hilo-luz ${className}`}>
+    <div {...retener} data-campo={id} data-estado={estado} className={`hilo-luz ${className}`}>
       {titulo && (
         <p className="mb-1.5 flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta">
           <ConMarca estado={estado}>{titulo}</ConMarca>
@@ -30,12 +51,20 @@ export function CampoGuiado({ id, guia, titulo, ayuda, className = "", children 
   );
 }
 
-/** «Falta: ● Nombre ○ Motivo» sobre el botón principal, cada cosa tocable (lleva a su campo); con todo listo, «Todo listo.». */
-export function PieGuia({ guia, listo = "Todo listo." }: { guia: GuiaCampos; listo?: string }) {
+/** «Falta: ● Nombre ○ Motivo» sobre el botón principal, cada cosa tocable (lleva a su campo); con todo listo, «Todo listo.».
+ *  `conFrase`: además, escribe A LA VISTA qué hacer con el campo que sigue («El precio va con punto, por ejemplo 12.50.»). Sin esto la frase solo vive en el
+ *  `title` de cada chip (pasar el mouse), que no se ve con el dedo ni con el teclado (ley 6 de Formidable). Por defecto no cambia nada para los demás modales. */
+export function PieGuia({ guia, listo = "Todo listo.", conFrase = false }: { guia: GuiaCampos; listo?: string; conFrase?: boolean }) {
   if (guia.faltan.length > 0) {
+    const siguiente = guia.faltan.find((c) => c.id === guia.ahora) ?? guia.faltan[0];
     return (
-      <div className="pt-1">
+      <div className="space-y-1 pt-1">
         <FaltanDelPaso faltan={guia.faltan} ahora={guia.ahora} onIr={(c) => guia.ir(c.id)} />
+        {conFrase && siguiente?.pendiente && (
+          <p role="status" className="text-[12.5px] text-tinta/80">
+            {siguiente.pendiente}
+          </p>
+        )}
       </div>
     );
   }

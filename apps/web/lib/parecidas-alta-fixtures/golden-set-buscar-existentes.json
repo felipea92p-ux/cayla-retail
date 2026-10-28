@@ -1,0 +1,30 @@
+{
+  "nota": "18 casos tipeados a mano sobre los 8 productos reales de produccion (2026-09-29). Sirve de prueba de aceptacion del mecanismo, no mide precision: las reglas se afinaron mirando estos mismos casos. Recalibrar con las decisiones reales (Es el mismo / Es otro) cuando haya 100-200.",
+  "esperado_avisa_true": [1,2,3,4,6,7,8,9,11,12,16,18],
+  "esperado_no_avisa": [13,14,15,17],
+  "solo_informa_otra_marca": [5,10],
+  "hoy_avisa": [6,8,9,11,12,16,18],
+  "hoy_no_avisa_y_deberia": [1,2,3,4,7],
+  "prototipo_avisa": [1,2,3,4,6,7,8,9,11,12,16,18],
+  "resultado": "hoy 7 de 12 (58 %); prototipo 12 de 12; falsos positivos en los 4 negativos: 0 y 0",
+  "casos": [
+    {"id":1,"tipeado":"Blusa Lara","marca":"La Femme 21","categoria":"Camisas y Blusas","existente":"Camisa Lara"},
+    {"id":2,"tipeado":"Top Lara","marca":"La Femme 21","categoria":"Tops","existente":"Camisa Lara"},
+    {"id":3,"tipeado":"Lara","marca":"La Femme 21","categoria":"Camisas y Blusas","existente":"Camisa Lara"},
+    {"id":4,"tipeado":"Camisa Lara Crop Rayas Manga Larga Blanca","marca":"La Femme 21","categoria":"Camisas y Blusas","existente":"Camisa Lara"},
+    {"id":5,"tipeado":"Lara","marca":"Wayi","categoria":"Camisas y Blusas","existente":"Camisa Lara (otra marca: solo informa)"},
+    {"id":6,"tipeado":"Pantalón Palazo Billie","marca":"Wayi","categoria":"Pantalones","existente":"Palazo Billie (Jeans)"},
+    {"id":7,"tipeado":"Palazo Yani","marca":"Wayi","categoria":"Jeans","existente":"Culotte Petit Yani"},
+    {"id":8,"tipeado":"Wide Leg Comfo","marca":"Jirish","categoria":"Jeans","existente":"Wide Leg Corto Comfo"},
+    {"id":9,"tipeado":"Wide Leg Corto","marca":"Jirish","categoria":"Jeans","existente":"Wide Leg / Wide Leg Corto Comfo"},
+    {"id":10,"tipeado":"Wide Leg Corto","marca":"Pilar","categoria":"Jeans","existente":"Adelle Wide Leg (propia); Wide Leg de Jirish solo informa"},
+    {"id":11,"tipeado":"Polo Evalunna","marca":"Krisstell","categoria":"Polos","existente":"Polo Evaluna"},
+    {"id":12,"tipeado":"Polera Evaluna","marca":"Krisstell","categoria":"Poleras","existente":"Polo Evaluna"},
+    {"id":13,"tipeado":"Polo Nuevo Mia","marca":"Krisstell","categoria":"Polos","existente":null},
+    {"id":14,"tipeado":"Culotte Sara","marca":"Wayi","categoria":"Jeans","existente":null},
+    {"id":15,"tipeado":"Camisa Nueva Rosa","marca":"La Femme 21","categoria":"Camisas y Blusas","existente":null},
+    {"id":16,"tipeado":"Polo G-44","marca":"Krisstell","categoria":"Polos","existente":"Polo G44 (identico)"},
+    {"id":17,"tipeado":"Polo Mia","marca":"Krisstell","categoria":"Polos","existente":null},
+    {"id":18,"tipeado":"Yani Petit Culotte","marca":"Wayi","categoria":"Jeans","existente":"Culotte Petit Yani"}
+  ]
+}

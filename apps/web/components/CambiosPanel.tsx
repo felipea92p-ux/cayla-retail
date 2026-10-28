@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ScanLine } from "lucide-react";
+import { FunnelX, ScanLine } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import { Chip } from "@/components/ui/Chip";
@@ -18,7 +18,11 @@ import {
 import type { VarianteCatalogo } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
-import { busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
+import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import type { CambioArmado } from "@/lib/cambios-cambio-de-sede";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -63,6 +67,7 @@ export function CambiosPanel({
   colaboradora,
   cajaAbierta,
   catalogo,
+  aceptaQr,
   tallasQueNoCalzan,
   abrirItemId,
   sedes,
@@ -76,6 +81,8 @@ export function CambiosPanel({
   colaboradora: string;
   cajaAbierta: boolean;
   catalogo: VarianteCatalogo[];
+  /** `fn_acepta_qr_en_cambios` (20261021184000): si la base ya acepta el QR como medio de la diferencia. */
+  aceptaQr: boolean;
   tallasQueNoCalzan: TallaQueNoCalza[];
   abrirItemId?: string;
   /** Todas las sedes, para prellenar un traslado cuando la talla está en otra (`sedesDeOrigen`). */
@@ -85,13 +92,24 @@ export function CambiosPanel({
   const pathname = usePathname();
   const ahora = useMemo(() => new Date(), []);
   const [buscando, startTransition] = useTransition();
+  // El cambio a medio armar es de SU sede (Felipe, 2026-10-11): la página monta el panel con la sede en la key, y el de otra sede quedó
+  // guardado en `TrabajoPorSede`. Al volver a una sede con un cambio guardado, se retoma; si el panel se montó por un cambio de sede,
+  // no se reabre desde cero la venta del enlace (`?item=`): esa ya es de la sede que se dejó, o se busca de nuevo aquí.
+  const { inicial: guardado, reportar: reportarCambio, vieneDeOtraSede } = useTrabajoPorSede<CambioArmado>(ubicacionId);
   const [flujo, setFlujo] = useState<{ venta: LineaVentaReciente[]; lineaId: string | null } | null>(() => {
+    if (guardado) return { venta: guardado.venta, lineaId: guardado.lineaInicialId };
+    if (vieneDeOtraSede) return null;
     const l = abrirItemId ? lineas.find((x) => x.ventaItemId === abrirItemId) : undefined;
     if (!l) return null;
     // Una prenda que ya no se puede cambiar (fuera de plazo, ya devuelta…) abre el flujo en
     // el paso de elegir prenda, donde cada una dice por qué sí o por qué no.
     return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaVendida(l, ahora).cambiable ? l.ventaItemId : null };
   });
+  // Sin cambio abierto no hay nada armado: un cambio cancelado o terminado no se guarda al cambiar de sede (el flujo, que es quien
+  // reporta, se desmonta sin decirlo).
+  useEffect(() => {
+    if (!flujo) reportarCambio(null);
+  }, [flujo, reportarCambio]);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [camara, setCamara] = useState(false);
   const campoBusqueda = useRef<HTMLInputElement>(null);
@@ -108,11 +126,31 @@ export function CambiosPanel({
 
   useAtajoBusqueda(campoBusqueda, !flujo);
 
+  // Una lectura (pistola o cámara) que trae UNA sola compra la abre directo (`abrirDesdeLectura`, Felipe 2026-10-09). La
+  // búsqueda va por la URL: se recuerda qué se leyó y, cuando llegan sus resultados, se decide.
+  const lecturaPendiente = useRef<string | null>(null);
+  useEffect(() => {
+    if (lecturaPendiente.current === null || lecturaPendiente.current !== busqueda) return;
+    lecturaPendiente.current = null;
+    const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaVendida(l, ahora).cambiable);
+    if (!abrir) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- responde a los resultados que trajo la navegación, no a un render
+    setFlujo(abrir);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [lineas, busqueda, ahora]);
+
   function navegar(parametros: URLSearchParams | null) {
     startTransition(() => router.push(parametros ? `${pathname}?${parametros}` : pathname));
   }
 
-  function buscar(texto: string, todas: boolean) {
+  function buscar(texto: string, todas: boolean, leida = false) {
+    if (leida) lecturaPendiente.current = texto;
+    // La misma búsqueda que ya está en pantalla no vuelve a navegar: se decide con lo que ya hay.
+    if (leida && texto === busqueda) {
+      lecturaPendiente.current = null;
+      const abrir = abrirDesdeLectura(lineas, (l) => estadoPrendaVendida(l, ahora).cambiable);
+      if (abrir) return setFlujo(abrir);
+    }
     const parametros = new URLSearchParams({ q: texto });
     if (todas) parametros.set("todas", "1");
     navegar(parametros);
@@ -155,6 +193,7 @@ export function CambiosPanel({
         esLider={puedeVerTodas}
         sedes={sedes}
         catalogo={catalogo}
+        aceptaQr={aceptaQr}
         ahora={ahora}
         onCerrar={cerrarFlujo}
         onNuevo={() => {
@@ -173,16 +212,14 @@ export function CambiosPanel({
   /** Lo leído con la cámara se busca como si se hubiera escrito: la etiqueta tal cual, la boleta por su QR de SUNAT. */
   function alLeerCodigo(codigo: string) {
     setCamara(false);
-    buscar(busquedaDesdeLectura(codigo), todasLasSedes);
+    buscar(busquedaDesdeLectura(codigo), todasLasSedes, true);
   }
 
   return (
     // `pb-28` en el celular: la barra fija de abajo («Escanear prenda o boleta») no tapa la última compra.
     <div className="space-y-12 pb-28 sm:pb-0">
       <section aria-labelledby="iniciar-cambio" className="space-y-4">
-        <h2 id="iniciar-cambio" className="text-[15px] font-semibold text-tinta">
-          Iniciar un cambio
-        </h2>
+        <TituloSeccion id="iniciar-cambio">Iniciar un cambio</TituloSeccion>
         <BuscadorVentas
           key={`${busqueda}|${todasLasSedes}`}
           valorInicial={busqueda}
@@ -195,9 +232,10 @@ export function CambiosPanel({
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
           onCamara={() => setCamara(true)}
+          pistola={!camara}
           extra={
             // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
-            <span className="flex items-center gap-2 text-sm text-tinta/70">
+            <span data-guia="cambios.caja" className="flex items-center gap-2 text-sm text-tinta/70">
               <Chip tono={cajaAbierta ? "verde" : "ambar"}>{cajaAbierta ? "Caja abierta" : "Caja cerrada"}</Chip>
               <span className="hidden lg:inline">{cajaAbierta ? "una diferencia en efectivo entra a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
             </span>
@@ -250,6 +288,7 @@ export function CambiosPanel({
             <CambiosVentas lineas={lineasVisibles} ahora={ahora} resumen onIniciar={iniciar} />
           ) : (
             <EstadoVacio
+              icono={filtro === "todas" ? undefined : <FunnelX />}
               titulo={
                 filtro === "todas"
                   ? `No hay ventas de los últimos 15 días en ${sede}.`
@@ -259,7 +298,7 @@ export function CambiosPanel({
               }
               detalle={
                 filtro === "sin_comprobante"
-                  ? "Si la clienta no trae la boleta, escanea la prenda o busca su nombre arriba."
+                  ? "Si el cliente no trae la boleta, escanea la prenda o busca su nombre arriba."
                   : "Si la compra es más antigua, búscala por su boleta."
               }
             />
@@ -271,16 +310,12 @@ export function CambiosPanel({
 
       {/* Celular (spike 2026-09-26, opción A): lo primero que hace la colaboradora es escanear, así que va fijo abajo, al
           alcance del pulgar. Es una acción de esta pantalla, no navegación (ADR-0206). */}
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-        <button
-          type="button"
-          onClick={() => setCamara(true)}
-          className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
-        >
-          <ScanLine size={19} aria-hidden />
+      <BarraDeAbajo data-guia="cambios.barra-movil" sola className="sm:hidden">
+        <button type="button" onClick={() => setCamara(true)} className="btn-cayla btn-primario gap-2.5">
+          <ScanLine size={20} aria-hidden />
           Escanear prenda o boleta
         </button>
-      </div>
+      </BarraDeAbajo>
 
       {camara && (
         <EscanerBusqueda
@@ -301,9 +336,9 @@ function TallasQueNoCalzan({ tallas }: { tallas: TallaQueNoCalza[] }) {
   return (
     <section className="space-y-3 pt-6" aria-labelledby="tallas-que-no-calzan">
       <div>
-        <h2 id="tallas-que-no-calzan" className="text-[15px] font-semibold text-tinta">
-          Tallas que no calzan · últimos 90 días
-        </h2>
+        <TituloSeccion id="tallas-que-no-calzan" dato="últimos 90 días">
+          Tallas que no calzan
+        </TituloSeccion>
         <p className="mt-0.5 text-sm text-tinta/70">
           Prendas que se cambian seguido a otra talla, en todas las sedes. Si una va casi siempre a la talla de arriba, la horma puede estar calzando chica.
         </p>

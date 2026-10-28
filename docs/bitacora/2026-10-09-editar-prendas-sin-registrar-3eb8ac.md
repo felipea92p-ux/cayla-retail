@@ -1,0 +1,4 @@
+## 2026-10-09 (Ventas sin registrar: se corrige lo que caja anotó, después de la venta — ADR-0369)
+Qué hice: botón «Corregir lo anotado» en la mesa de Ventas sin registrar (pendientes y cerradas sin prenda) que abre la misma hoja de la caja en modo corregir; función `corregir_prenda_sin_registrar` con foto de antes/después y línea en Actividad. Precio, stock y comprobante no cambian.
+Por qué así: la anotación (categoría, talla, color) es a ojo y de ella dependen las prendas que ofrece la mesa y la demanda por talla/color; el comprobante guarda su propio texto, así que corregirla no toca nada legal.
+Cómo se verificó: `pnpm pruebas:corregir-prenda-sin-registrar` 12/12, vitest completo en verde, y en el navegador (escritorio y 375 px): corregir talla y color de una venta cambió el talón, las candidatas y dejó «Corregido por …»; la base local quedó como estaba. Migración en producción el mismo día (versión `20261009234924`), huellas iguales al repo.

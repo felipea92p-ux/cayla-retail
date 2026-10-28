@@ -12,6 +12,42 @@ export function resumenDeHoy(ventas: readonly { total: number | string }[], meta
   return { ventas: ventas.length, total, pctMeta };
 }
 
+/**
+ * De qué lectura salen las ventas que la píldora «Hoy» suma, y de QUÉ sede son (hallazgo 2026-10-10: con la cabecera en
+ * «Tienda AQP», «Hoy» decía S/ 5830.08, el total de TRU). El selector de sede solo hace `router.refresh()`: `PuntoDeVenta` no se
+ * monta de nuevo y las ventas de la sede nueva le llegan como props nuevas a un componente que ya tenía las de la otra. La regla:
+ * manda la lectura más nueva de la sede que se mira. Una del servidor reemplaza todo lo anterior apenas llega (otra sede, o la
+ * misma releída al abrir o cerrar caja); una del navegador (tras vender, `useVentasDeHoy`) solo cuenta si es de esa misma sede.
+ */
+export type LecturaDeHoy<V> = {
+  ubicacionId: string;
+  /** La lista que mandó el servidor: su identidad dice si llegó otra lectura (cada `router.refresh()` trae una nueva). */
+  delServidor: readonly V[];
+  ventas: readonly V[];
+  fallo: string | null;
+};
+
+export function lecturaDelServidor<V>(ubicacionId: string, ventas: readonly V[], fallo: string | null): LecturaDeHoy<V> {
+  return { ubicacionId, delServidor: ventas, ventas, fallo };
+}
+
+/** La lectura vigente ante lo que manda el servidor ahora: la MISMA (por identidad) si no llegó nada nuevo; si llegó, la del servidor. */
+export function alDiaConElServidor<V>(actual: LecturaDeHoy<V>, ubicacionId: string, delServidor: readonly V[], fallo: string | null): LecturaDeHoy<V> {
+  if (actual.ubicacionId === ubicacionId && actual.delServidor === delServidor) return actual;
+  return lecturaDelServidor(ubicacionId, delServidor, fallo);
+}
+
+/** Lo que respondió una relectura del navegador para `ubicacionId`. De otra sede (se cambió mientras volaba) no toca nada; si
+ *  falló, se conserva la lista con el aviso: la venta ya quedó bien en la base. */
+export function conRelectura<V>(
+  actual: LecturaDeHoy<V>,
+  ubicacionId: string,
+  respuesta: { ventas: readonly V[] } | { fallo: string },
+): LecturaDeHoy<V> {
+  if (ubicacionId !== actual.ubicacionId) return actual;
+  return "fallo" in respuesta ? { ...actual, fallo: respuesta.fallo } : { ...actual, ventas: respuesta.ventas, fallo: null };
+}
+
 /** El ancho de la barrita, de 0 a 100: pasada la meta se queda llena. */
 export function anchoBarraMeta(pct: number | null): number {
   if (pct === null) return 0;
@@ -29,6 +65,36 @@ export function nombreDeEspera(nombre: string | undefined | null, indice: number
 
 /** Tope del nombre de un ticket en espera: es una etiqueta, no una nota (la nota del ticket ya existe). */
 export const NOMBRE_ESPERA_MAX = 30;
+
+/**
+ * Arma lo que se guarda de un ticket al dejarlo en espera. Las DOS puertas por las que un ticket entra a la espera
+ * («Dejar en espera» y el intercambio de `retomar()`, que manda el ticket de la caja al lugar del que se retoma) pasan
+ * por acá a propósito: mientras cada una lo armaba por su cuenta, el intercambio se olvidó del `nombre` y el ticket de
+ * «María» volvía a la tira llamado «Ticket 2» (bug 2026-10-12). Un campo nuevo del ticket se agrega una vez, acá, y las
+ * dos puertas lo llevan.
+ *
+ * `id` y `creadoEn` se reciben hechos: el reloj y el generador de UUID no entran a una función pura.
+ *
+ * `cobro` (2026-10-25) es lo del cobro que viaja con el ticket (`lib/ticket-cobro-reglas.ts`: quién atendió, comprobante,
+ * documento, pagos y cupón). Va genérico (`B`) como `L` y `C`: esta función no necesita saber su forma, solo no perderlo.
+ */
+export function ticketParaEspera<L, C, B = undefined>(
+  datos: { carrito: L[]; nota: string; nombre: string; clienta: C | null; cobro?: B },
+  id: string,
+  creadoEn: string,
+): { id: string; creadoEn: string; carrito: L[]; nota: string; nombre: string | undefined; clienta: C | null; cobro: B | undefined } {
+  return {
+    id,
+    creadoEn,
+    carrito: datos.carrito,
+    nota: datos.nota,
+    // Sin nombre se guarda AUSENTE, no como "": así `nombreDeEspera` cae a «Ticket N» igual que con un ticket viejo
+    // del navegador, que nació antes de que la espera llevara nombre.
+    nombre: datos.nombre.trim() || undefined,
+    clienta: datos.clienta,
+    cobro: datos.cobro,
+  };
+}
 
 /** Hace cuánto se dejó un ticket en espera, legible (spike «el ticket a lo alto»): la tira decía «3216 min» de un
  *  ticket de hace dos días. Menos de una hora en minutos, menos de un día en horas, y después en días. */

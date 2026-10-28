@@ -1,0 +1,182 @@
+/* ==================================================================
+   La orden de compra en papel (ADR-0362, fase 1 · actividad 6; `components/ordenes-compra/HojaOrdenCompra.tsx`), y la orden de insumos
+   del Taller (fase 7; `components/ordenes-insumo/HojaOrdenInsumo.tsx`), que es el mismo papel
+
+   Lo que se imprime o se guarda en PDF para mandarle al proveedor. A4, tinta sobre blanco, sin grises ni fondos —Chrome no imprime
+   fondos—, como la guía de traslado: la jerarquía sale del tamaño, del peso y de las reglas. Colores, solo los fijos del papel
+   (`--color-tinta-fija`, `--color-vidrio` vale blanco dentro de `.papel-fijo` en los dos temas).
+
+   Al imprimir, como la boleta A4 y la guía: `#orden-compra-print` va pegado a <body> con un portal y se oculta TODO lo demás con
+   `display:none` (no `visibility`: lo oculto seguiría ocupando alto y saldrían hojas en blanco). Usa la página nombrada `a4` de
+   `globals.css` (A4 con 12 mm). En pantalla no se ve.
+   ================================================================== */
+
+.oc-papel {
+  box-sizing: border-box;
+  background: var(--color-vidrio);
+  color: var(--color-tinta-fija);
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 10pt;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+/* Sin márgenes del navegador. Con `:where`, este reinicio pesa lo mismo que una clase sola: cada bloque de abajo (`.oc-anulada`,
+   `.oc-datos`, `.oc-nota`…) pone el suyo y gana por orden. Con `.oc-papel p` a secas ganaba siempre y el aviso «ANULADA» quedaba
+   pegado a los datos. */
+.oc-papel :where(p, dl, dd) {
+  margin: 0;
+}
+
+.oc-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16pt;
+  padding-bottom: 10pt;
+  border-bottom: 1.5pt solid var(--color-tinta-fija);
+}
+.oc-marca {
+  font-size: 18pt;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+}
+.oc-empresa {
+  margin-top: 3pt;
+  font-size: 9pt;
+}
+.oc-titulo {
+  text-align: right;
+}
+.oc-titulo-tipo {
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.oc-titulo-numero {
+  margin-top: 2pt;
+  font-size: 20pt;
+  font-weight: 700;
+}
+.oc-titulo-fecha {
+  margin-top: 2pt;
+  font-size: 9pt;
+}
+
+.oc-anulada {
+  margin-top: 10pt;
+  padding: 6pt 8pt;
+  border: 2pt solid var(--color-tinta-fija);
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.oc-datos {
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 1fr;
+  gap: 8pt 16pt;
+  margin-top: 12pt;
+}
+.oc-datos dt {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.oc-datos dd {
+  margin-top: 2pt;
+}
+.oc-suave {
+  font-weight: 400;
+}
+/* El RUC del proveedor, en su renglón bajo el nombre (al lado, un nombre largo lo partía en dos). */
+.oc-ruc {
+  display: block;
+  font-size: 9pt;
+  white-space: nowrap;
+}
+
+.oc-tabla {
+  width: 100%;
+  margin-top: 14pt;
+  border-collapse: collapse;
+}
+.oc-tabla th {
+  padding: 4pt 4pt 5pt;
+  border-bottom: 1pt solid var(--color-tinta-fija);
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.oc-tabla td {
+  padding: 5pt 4pt;
+  border-bottom: 0.5pt solid var(--color-tinta-fija);
+  vertical-align: top;
+}
+.oc-tabla tfoot td {
+  border-bottom: 0;
+  border-top: 1.5pt solid var(--color-tinta-fija);
+  padding-top: 7pt;
+  font-weight: 700;
+}
+.oc-tabla .oc-der {
+  text-align: right;
+  white-space: nowrap;
+}
+.oc-tabla .oc-num {
+  width: 18pt;
+}
+.oc-descripcion {
+  display: block;
+  margin-top: 1pt;
+  font-size: 9pt;
+}
+.oc-total {
+  font-size: 12pt;
+}
+/* Una tabla larga: la fila no se parte entre dos hojas, y los títulos se repiten arriba de cada una. */
+.oc-tabla tr {
+  break-inside: avoid;
+}
+.oc-tabla thead {
+  display: table-header-group;
+}
+
+.oc-nota {
+  margin-top: 12pt;
+}
+.oc-pie {
+  margin-top: 16pt;
+  font-size: 8.5pt;
+}
+
+/* ---- Impresión ----
+   La orden de insumos del Taller (ADR-0362, fase 7: `components/ordenes-insumo/HojaOrdenInsumo.tsx`) es el MISMO papel: usa estas
+   clases y su propio contenedor, `#orden-insumo-print`, con las mismas reglas. */
+#orden-compra-print,
+#orden-insumo-print {
+  display: none;
+}
+@media print {
+  body:has(#orden-compra-print) > *:not(#orden-compra-print),
+  body:has(#orden-insumo-print) > *:not(#orden-insumo-print) {
+    display: none !important;
+  }
+  html:has(#orden-compra-print),
+  body:has(#orden-compra-print),
+  html:has(#orden-insumo-print),
+  body:has(#orden-insumo-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: none !important;
+    margin: 0 !important;
+  }
+  #orden-compra-print,
+  #orden-insumo-print {
+    display: block;
+    page: a4;
+  }
+}

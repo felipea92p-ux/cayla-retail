@@ -158,6 +158,22 @@ const MIGRACION_RETIROS = migracion("20260928120200_bajadas_netear_retiros.sql")
 const MIGRACION_P4 = migracion("20260929100000_frescura_modulo_y_candado.sql");
 /** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
 const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
+/** El cuadre del piso (ADR-0328, 20261004200050) cambia el núcleo (y fn_frescura_sede) por reemplazo anclado. Esto lo deshace
+ *  (sus anclas, leídas del archivo, en orden inverso) para los casos que prueban el orden de pegado de las migraciones
+ *  ANTERIORES (T22, T37), que se escribieron sobre el núcleo de la 120200. El cuadre se prueba en cuadrar_piso.mjs (C11, C12). */
+const deshacer = (archivo) =>
+  [...migracion(archivo).matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .reverse()
+    .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+    .join("\n");
+const DESHACER_CUADRE = deshacer("20261004200050_cuadre_piso_frescura.sql");
+/** La vara de CAYLA (ADR-0208 act. 2026-10-07, 20261008120000) parcha fn_frescura_sede por reemplazo anclado DESPUÉS del cuadre: se
+ *  deshace ANTES que el cuadre (el último parche primero), por lo mismo. Cada parche posterior a la 120200 se suma aquí, el más
+ *  nuevo primero; si no, deshacer solo el cuadre deja un cuerpo que ninguna guarda anterior reconoce. */
+const DESHACER_VARA = deshacer("20261008120000_frescura_vara_cayla.sql");
+/** Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera las familias apagadas. El parche más nuevo se deshace PRIMERO. */
+const DESHACER_FAMILIAS_APAGADAS = deshacer("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
+const DESHACER_POSTERIORES = [DESHACER_FAMILIAS_APAGADAS, DESHACER_VARA, DESHACER_CUADRE].join("\n");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -522,6 +538,7 @@ select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('varia
 -- hasta)): en la vida real la lectura es otra transacción, posterior. Se corre 1 minuto hacia atrás por fuera de los
 -- disparadores (solo postgres y solo en esta transacción, que termina en ROLLBACK); el stock no cambia. El candado se
 -- apaga A LA VISTA y no con el modo réplica: desde 20260926160000 está en ALWAYS y el modo réplica ya no lo salta (D-22).
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute'
  where id = :'mov_reponer' or id in (select movimiento_id from retail.bajada_piso_items where bajada_id = :'bid');
@@ -655,6 +672,7 @@ correr(
 select pg_temp.llega(:'v', 5, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
 select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 2)), gen_random_uuid()) ->> 'bajada_id' as bid \\gset
 -- Como en T7: lo recién escrito se corre 1 minuto atrás para que la lectura, que va hasta now(), lo vea.
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute'
  where id in (select movimiento_id from retail.bajada_piso_items where bajada_id = :'bid');
@@ -961,7 +979,8 @@ const intento = (sql) => `pg_temp.intento(${comoLiteral(sql)})`;
 const abortaCon = (r, texto) => `((:'${r}')::jsonb ->> 'ok') || ',' || (position('${texto}' in (:'${r}')::jsonb ->> 'msg') > 0)`;
 correr(
   "T22 · la guarda de 20260928120100: acepta solo el cuerpo de 20260926000300; un parche en vivo la hace abortar; después de la 120200, avisa y no deshace nada",
-  `select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
+  `${DESHACER_POSTERIORES}
+select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
 -- 1. Pegada otra vez sobre la base de hoy (ya con la 120200): se niega con su aviso y no toca nada.
 select ${intento(MIGRACION_NUCLEO)} as r1 \\gset
 select 'TARDE|' || ${abortaCon("r1", "Ya está pegada la 20260928120200")} || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_hoy')
@@ -1224,6 +1243,7 @@ select pg_temp.variante('ZZ-FRE-T26-NORMAL') as vn \\gset
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vp', 'cantidad', 4)), null, true, gen_random_uuid()) as _1 \\gset
 -- Como en T7: lo recién escrito tiene created_at = now() y la lectura va hasta now() sin incluirlo; se corre 1 minuto
 -- atrás, las DOS filas igual (siguen en el mismo instante), por fuera de los disparadores y solo en esta transacción.
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute' where variante_id = :'vp';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
@@ -2253,7 +2273,8 @@ const FILAS_TEXTO = `(select coalesce(string_agg(concat_ws(':', r.movimiento_id,
   r.es_carga_inicial), ',' order by r.movimiento_id), '') from retail.fn_bajadas_del_piso(:'ubic') r)`;
 correr(
   "T37 · la guarda de 20260929100000 (paso 4): desde la 120200 entra y deja su puerta con las mismas filas para el líder; otra vez no cambia nada; con la puerta o el núcleo parchados aborta y no los pisa; la 120200 después aborta",
-  `select pg_temp.variante('ZZ-FRE-T37') as v \\gset
+  `${DESHACER_POSTERIORES}
+select pg_temp.variante('ZZ-FRE-T37') as v \\gset
 select pg_temp.llega(:'v', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
 select pg_temp.bajada(:'v', 3, :'t0'::timestamptz) as _2 \\gset
 select pg_temp.vende(:'v', 1, :'t0'::timestamptz + interval '3 minutes') as _3 \\gset

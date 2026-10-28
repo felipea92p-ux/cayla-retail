@@ -2,7 +2,7 @@
    Notas de crédito de compra (2026-09-19)
    Spike de referencia: docs/maquetas/notas-credito-spike-2026-09/notas-credito-vivo.html
 
-   Solo lo que el módulo necesita y NO existía: la barra de tres tramos que además filtra, la banda
+   Solo lo que el módulo necesita y NO existía: la banda
    de cada grupo, el bloque de «Qué pasa con el dinero» y las dos fichas de destino, y la sección que
    se abre y se cierra sin medir alturas. Todo lo demás (filas, cifras que cuentan, pestañas con
    pulgar, modales, cajón, destellos) se reutiliza de globals.css y de comprobantes-lista.css: acá no
@@ -13,34 +13,7 @@
    ==================================================================== */
 
 @layer components {
-  /* La barra de «Por reclamar»: cada tramo de antigüedad ocupa lo que le toca y, al tocarlo, filtra la
-     lista. No es decoración: ES el dato. Crece una vez al llegar (`anim-crece-x`, ya en globals). */
-  .nc-conc {
-    display: flex;
-    gap: 3px;
-    height: 8px;
-    margin-top: 0.6875rem;
-  }
-  .nc-conc > button,
-  .nc-conc > span {
-    height: 100%;
-    min-width: 4px;
-    flex: 1 1 0;
-    border-radius: 3px;
-    transform-origin: left;
-    transition:
-      flex-grow 700ms var(--ease-cayla),
-      opacity 200ms var(--ease-cayla),
-      transform 200ms var(--ease-cayla);
-  }
-  .nc-conc > button:hover,
-  .nc-conc > button:focus-visible {
-    transform: scaleY(1.7);
-  }
-  /* Con un tramo elegido, los demás se apagan: se ve qué parte de la cifra se está mirando. */
-  .nc-conc[data-elegido] > button:not([data-on]) {
-    opacity: 0.35;
-  }
+  /* Las barras de «Por reclamar», de saldos a favor y de «Qué pasa con el dinero» son `<BarraApilada>` (ADR-0358, 2026-10-09): ya no viven aquí. */
 
   /* La banda que encabeza cada grupo de la lista (por urgencia o por proveedor). */
   .nc-banda {
@@ -68,21 +41,6 @@
     padding: 0.75rem 0.875rem;
     background: color-mix(in srgb, var(--color-sand) 30%, transparent);
   }
-  .nc-barra {
-    grid-column: 1 / -1;
-    display: flex;
-    height: 8px;
-    margin-top: 0.625rem;
-    overflow: hidden;
-    border-radius: 99px;
-    background: var(--color-sand);
-  }
-  .nc-barra > i {
-    display: block;
-    height: 100%;
-    transition: width 500ms var(--ease-cayla);
-  }
-
   /* Las dos fichas de destino del dinero. Deshabilitadas cuando no sobra nada: se ven, con su porqué. */
   .nc-opc {
     display: flex;
@@ -98,7 +56,9 @@
       background-color 220ms var(--ease-cayla),
       opacity 220ms var(--ease-cayla);
   }
-  .nc-opc:hover:not([aria-disabled="true"]) { border-color: var(--color-rojo); }
+  @media (hover: hover) {
+    .nc-opc:hover:not([aria-disabled="true"]) { border-color: var(--color-rojo); }
+  }
   .nc-opc[aria-checked="true"] {
     border-color: var(--color-tinta);
     background: color-mix(in srgb, var(--color-tinta) 3.5%, transparent);
@@ -144,29 +104,6 @@
       visibility 0s linear 380ms;
   }
 
-  /* Una opción del buscador de facturas: la activa lleva el mismo filete rojo que una fila de lista. */
-  .nc-fb-op {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 2px 1rem;
-    width: 100%;
-    padding: 0.625rem 0.875rem;
-    text-align: left;
-    transition: background-color 160ms var(--ease-cayla);
-  }
-  .nc-fb-op[aria-selected="true"] { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
-  .nc-fb-op[aria-selected="true"]::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    border-radius: 2px;
-    background: var(--color-rojo);
-  }
-
   /* El formulario se atenúa mientras no haya factura elegida: se ve que existe, y que todavía no toca. */
   .nc-tenue { opacity: 0.4; transition: opacity 300ms var(--ease-cayla); }
 
@@ -204,17 +141,13 @@
 
 /* Movimiento reducido: mismo estado final, sin viaje. */
 @media (prefers-reduced-motion: reduce) {
-  .nc-conc > button,
-  .nc-barra > i,
   .nc-opc,
   .nc-radio,
   .nc-radio::after,
   .nc-colapsa,
-  .nc-tenue,
-  .nc-fb-op {
+  .nc-tenue {
     transition-duration: 1ms !important;
   }
-  .nc-conc > span { transition-duration: 1ms !important; }
   .nc-paso[data-hilo="true"]::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;

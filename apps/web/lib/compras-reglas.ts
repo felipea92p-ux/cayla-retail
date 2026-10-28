@@ -4,13 +4,19 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
+import { diaLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
-import { estadoDeMiTienda } from "./reparto-reglas";
+import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
+import type { NoDeducible } from "./no-deducible-reglas";
+
+// La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
+export { nombreDeLineaSinPrenda };
 
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
 export type EstadoRecepcion = "sin_recibir" | "parcial" | "recibida" | "anulada";
 export type Condicion = "contado" | "credito";
-export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta";
+/** «Sin comprobante» (ADR-0362, decisión 50): una compra de una orden sin ningún papel; la base le pone el número interno SC-000001. */
+export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
 export type CompraResumen = {
   id: string;
@@ -92,6 +98,10 @@ export type LineaCompra = {
   talla: string | null;
   color: string | null;
   descripcion: string | null;
+  /** Solo en una línea SIN prenda (`productoId` vacío: la de un comprobante que sale de una orden de compra, ADR-0362): la
+   *  categoría y la marca con que se pidió. Con prenda no vienen: la categoría y la marca son las de la prenda. */
+  categoria?: string | null;
+  marca?: string | null;
   cantidad: number;
   costoUnitario: number;
   subtotal: number;
@@ -123,15 +133,26 @@ export type TiendaEnLinea = {
   pendiente: number;
 };
 
+/**
+ * ¿Queda algo de este comprobante que Recibir mercadería pueda recibir? Una línea sin prenda (`productoId` vacío) no se recibe ni se
+ * cierra por ahí: llega por guía (ADR-0362, fase 4). Un comprobante hecho solo de ellas no tiene nada que recibir en Recibir.
+ */
+export function hayAlgoQueRecibir(lineas: readonly { productoId?: string | null; pendiente: number }[]): boolean {
+  return lineas.some((l) => !!l.productoId && l.pendiente > 0);
+}
+
 export type PagoCompra = {
   id: string;
   fecha: string;
   monto: number;
   metodo: string;
   referencia: string | null;
+  /** Lo que la base dice no deducible de este pago (ADR-0362, fase 6 · actividad 6; `fn_no_deducibles`): lo ponen los cargadores. */
+  noDeducible?: NoDeducible | null;
 };
 
-export type ProveedorResumen = { id: string; nombre: string; ruc: string | null };
+/** `rubros`: para separar a quien es solo de gastos (`proveedoresParaPedir`, ADR-0452): lo usan las pantallas que ELIGEN a quién se le recibe mercadería. */
+export type ProveedorResumen = { id: string; nombre: string; ruc: string | null; rubros: string[] };
 
 export type AdjuntoCompra = {
   id: string;
@@ -165,7 +186,7 @@ export type RecepcionCompra = {
 };
 
 // Un lote (`retail.lotes`) es la unidad real de "una recepción" — con
-// factura (ADR-0035, `/compras/recibir`) o sin ella (`/inventario/recibir`).
+// factura (`RecepcionEnvio`) o sin ella («Llegó mercadería»), las dos en `/recibir` (ADR-0330).
 // A diferencia de `RecepcionCompra` (acotado a la factura de un detalle ya
 // conocido), este tipo es para el listado cruzado — "qué se recibió
 // últimamente, venga de donde venga" — que hasta el 2026-09-17 ninguna
@@ -184,6 +205,8 @@ export type RecepcionReciente = {
   loteId: string;
   fecha: string;
   ubicacion: string;
+  /** De quién llegó: la puerta «Llegó mercadería» avisa si ese proveedor ya entró hoy en la sede (ADR-0330). */
+  proveedorId: string | null;
   proveedorNombre: string;
   numeroGuia: string | null;
   nota: string | null;
@@ -201,6 +224,7 @@ export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumentoCompra, string> = {
   factura: "Factura",
   boleta: "Boleta",
   nota_venta: "Nota de venta",
+  sin_comprobante: "Sin comprobante",
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
@@ -259,77 +283,23 @@ export const ETIQUETA_MOTIVO_CIERRE: Record<MotivoCierre, string> = {
   error_proveedor: "Error del proveedor",
 };
 
-/** Motivos de una nota de crédito del proveedor (D2, ADR-0111): lo que acepta `registrar_nota_credito_compra`. */
-export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
-  faltante: "Faltante",
-  devolucion: "Devolución",
-  descuento: "Descuento",
-  otro: "Otro",
-};
-
+/**
+ * «S/ 1,234.50». Entre «S/» y la cifra va un espacio que no se parte (`\u00a0`, como lo escribe el propio `Intl` en es-PE): un renglón
+ * nunca deja «S/» sola al final y la cifra en el siguiente («su deuda pasa de S/ ⏎ 25.00»). Así se escribe todo monto del ERP
+ * (`lib/montos-sin-corte.test.ts`, ADR-0413).
+ */
 export function soles(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function fechaCorta(iso: string | null): string {
   if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
+  // Un INSTANTE (con hora: la llegada de un lote, un pago) se lee en Lima: de 7 pm a medianoche de Lima, en UTC ya es «mañana», y
+  // cortar los 10 primeros caracteres ponía la recepción de las 22:17 del 12/10 con fecha 13/10 (prueba ciega del 2026-10-12).
+  // Una FECHA sola (`aaaa-mm-dd`) se usa tal cual.
+  const dia = diaLima(iso) ?? iso.slice(0, 10);
+  const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
-}
-
-// ---------------------------------------------------------------------------
-// Costo tipeado con o sin IGV (lo pidió Felipe, 2026-09-14).
-//
-// EL PROBLEMA: muchos proveedores listan el precio unitario ya con IGV, y el
-// formulario solo aceptaba el costo sin IGV — Felipe tenía que dividir entre
-// 1.18 a mano por cada línea. LA BASE NO CAMBIA: `compra_items.costo_unitario`
-// sigue siendo sin IGV y `registrar_compra` sigue armando subtotal + igv =
-// total desde ahí (principio 4). El switch es interpretación en pantalla: si
-// el costo viene con IGV, acá se descuenta ANTES de mandarlo.
-//
-// El redondeo a 2 decimales imita `numeric(12, 2)`: lo que la pantalla suma
-// es exactamente lo que la base va a guardar. El centavo que se pierde al
-// redondear la base (10 / 1.18 = 8.4746 → 8.47) NO se traslada al total:
-// con precios con IGV, `totalesCompra` toma el total del papel y el IGV es
-// la diferencia — misma regla que `registrar_compra` con `p_total`.
-// ---------------------------------------------------------------------------
-function a2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-/** Costo sin IGV que se guarda, a partir de lo tipeado y de cómo se tipeó. */
-export function costoBase(costoTipeado: number, igvPorcentaje: number, conIgv: boolean): number {
-  if (!Number.isFinite(costoTipeado) || costoTipeado < 0) return 0;
-  if (!conIgv || !(igvPorcentaje > 0)) return a2(costoTipeado);
-  return a2(costoTipeado / (1 + igvPorcentaje / 100));
-}
-
-/** Inverso: el último costo conocido (sin IGV) sugerido en el modo en que se está tipeando. */
-export function costoParaTipear(costoSinIgv: number, igvPorcentaje: number, conIgv: boolean): number {
-  if (!conIgv || !(igvPorcentaje > 0)) return a2(costoSinIgv);
-  return a2(costoSinIgv * (1 + igvPorcentaje / 100));
-}
-
-/**
- * Totales de la factura tal como los va a guardar `registrar_compra`
- * (20260914190000_compras_total_del_papel.sql). Con precios sin IGV, el
- * IGV se calcula sobre la base; con precios con IGV, el total es la suma de
- * lo tipeado (lo que dice el papel) y el IGV es la diferencia con la base:
- * el redondeo lo absorbe el IGV, nunca el total. 1 × S/ 10.00 con IGV da
- * base 8.47, IGV 1.53, total 10.00 — no 9.99.
- */
-export function totalesCompra(
-  lineas: readonly { cantidad: number; costoTipeado: number }[],
-  igvPorcentaje: number,
-  conIgv: boolean,
-): { subtotal: number; igv: number; total: number } {
-  const subtotal = a2(lineas.reduce((acc, l) => acc + l.cantidad * costoBase(l.costoTipeado, igvPorcentaje, conIgv), 0));
-  if (conIgv && igvPorcentaje > 0) {
-    const total = a2(lineas.reduce((acc, l) => acc + a2(l.cantidad * (Number.isFinite(l.costoTipeado) && l.costoTipeado > 0 ? l.costoTipeado : 0)), 0));
-    return { subtotal, igv: a2(total - subtotal), total };
-  }
-  const igv = a2((subtotal * igvPorcentaje) / 100);
-  return { subtotal, igv, total: a2(subtotal + igv) };
 }
 
 // ---------- Lectura operativa: recibir SIN ver dinero (ADR-0126) ----------
@@ -450,3 +420,4 @@ export const MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE =
 export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST205" || error?.code === "42P01";
 }
+

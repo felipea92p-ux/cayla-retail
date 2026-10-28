@@ -19,8 +19,8 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración que manda cada una (20260929100000 para fn_frescura_sede y fn_confianza_registro,
- *       20260928120310 para las otras cuatro) nombra su md5 vivo (de las seis: también
+ *       de la migración que manda cada una (20261008120000, la vara de CAYLA, encima del cuadre 20261004200050, para fn_frescura_sede; 20260929100000 para
+ *       fn_confianza_registro; 20260928120310 para las otras cuatro) nombra su md5 vivo (de las seis: también
  *       fn_temporada_efectiva_nucleo, sin EXECUTE para nadie de afuera, fn_temporada_efectiva, que conserva sus
  *       permisos, y fn_es_llegada_a_cayla, immutable, sin search_path propio y sin EXECUTE para nadie de afuera);
  *       fn_confianza_registro lee el mes en hora de Lima.
@@ -175,8 +175,29 @@ const MIGRACION_R9 = leerMigracion("20260928120330_frescura_lectura_revision9.sq
 /** Paso 4 (la pantalla, 2026-09-28): el módulo «Frescura del piso» y el candado nuevo de fn_frescura_sede y
  *  fn_confianza_registro (el líder, o el módulo en su rol, en una sede que opera). Manda en esas dos. */
 const MIGRACION_P4 = leerMigracion("20260929100000_frescura_modulo_y_candado.sql");
+/** El cuadre del piso (ADR-0328, 2026-10-04): reemplazo anclado en fn_frescura_sede (la bajada del cuadre lleva la marca 4) y
+ *  en el núcleo de las bajadas. Manda en fn_frescura_sede; su guarda nombra el md5 de antes (el del paso 4) y el de después. */
+const MIGRACION_CUADRE = leerMigracion("20261004200050_cuadre_piso_frescura.sql");
+/** Deshace ese reemplazo (sus anclas, leídas del archivo, en orden inverso): deja fn_frescura_sede y el núcleo como los dejó
+ *  el paso 4. Para los casos que prueban el orden de pegado de las migraciones ANTERIORES al cuadre (T12, T12b). */
+const deshacer = (texto) =>
+  [...texto.matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$n\$([\s\S]*?)\$n\$\s*\)/g)]
+    .reverse()
+    .map(([, firma, viejo, nuevo]) => `do $dd$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $nn$${nuevo}$nn$, $vv$${viejo}$vv$); end $dd$;`)
+    .join("\n");
+const DESHACER_CUADRE = deshacer(MIGRACION_CUADRE);
+/** La vara de CAYLA (ADR-0208 act. 2026-10-07, 2026-10-08): reemplazo anclado en fn_frescura_sede, ENCIMA del cuadre (deja pasar a la
+ *  llave de servicio). Manda hoy en fn_frescura_sede: su guarda nombra los dos md5 de antes (el del paso 4 y el del cuadre) y los
+ *  dos de después. Se deshace ANTES que el cuadre (el último parche primero): si se deshace solo el cuadre queda un cuerpo que
+ *  ninguna guarda anterior reconoce. Cada parche posterior se suma aquí, el más nuevo primero. */
+const MIGRACION_VARA = leerMigracion("20261008120000_frescura_vara_cayla.sql");
+const DESHACER_VARA = deshacer(MIGRACION_VARA);
+/** Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera las familias apagadas. Es el parche más nuevo: se deshace
+ *  ANTES que la vara, y antes de medir «la base de hoy» de la cadena (T12, T12b), que es la de la vara. */
+const MIGRACION_FAMILIAS_APAGADAS = leerMigracion("20261010233000_analisis_y_frescura_ignoran_familias_apagadas.sql");
+const DESHACER_FAMILIAS_APAGADAS = deshacer(MIGRACION_FAMILIAS_APAGADAS);
 /** La migración cuya guarda nombra el cuerpo vivo de cada función. */
-const GUARDA_DE = (f) => (f === "fn_frescura_sede" || f === "fn_confianza_registro" ? MIGRACION_P4 : MIGRACION);
+const GUARDA_DE = (f) => (f === "fn_frescura_sede" ? MIGRACION_VARA : f === "fn_confianza_registro" ? MIGRACION_P4 : MIGRACION);
 /** El cuerpo de fn_temporada_efectiva de 20260928100000 (el que tiene producción antes de pegar 20260928120310). */
 const TEMPORADA_EFECTIVA_0100 = (() => {
   const t = leerMigracion("20260928100000_temporadas_como_atributo.sql");
@@ -469,6 +490,8 @@ ${k("LIBRO_CON_LISTA", `(select d ~ 'fn_ledger_puntos\\(p_ubicacion_id, v_desde,
     and d !~ 'v_ids\\s*:='
   from (select pg_get_functiondef('${FIRMA_SEDE}'::regprocedure) as d) x)`)}
 ${k("COLUMNAS_CONF", `(select array_to_string(p.proargnames, ',') from pg_proc p where p.oid = '${FIRMA_CONF}'::regprocedure)`)}
+-- La guarda nombra el cuerpo de la migración que MANDA cada función: se mide sin los parches posteriores (las familias apagadas, 20261010233000).
+${DESHACER_FAMILIAS_APAGADAS}
 ${k("MD5", `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc where pronamespace = 'retail'::regnamespace and proname in (${EN_FUNCIONES}))`)}`,
   (o) => {
     afirmar(
@@ -801,6 +824,7 @@ select retail.fn_aplicar_movimiento(:'ot2') as _19 \\gset
 -- frescura_bajadas T26, se corre 1 minuto atrás (las DOS filas, siguen en el mismo instante): el núcleo lee hasta now()
 -- sin incluirlo.
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vcp', 'cantidad', 4)), null, true, gen_random_uuid()) as _20 \\gset
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute' where variante_id = :'vcp';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
@@ -1738,6 +1762,7 @@ select pg_temp.producto('T4i Bikini solo carga', 'verano') as pc \\gset
 select pg_temp.variante('ZZ-FL-T4I-C-S', :'pc', :'c1') as vcs \\gset
 select pg_temp.variante('ZZ-FL-T4I-C-M', :'pc', :'c1') as vcm \\gset
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vcs', 'cantidad', 2)), null, true, gen_random_uuid()) as _5 \\gset
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = '2026-01-15 10:00-05' where variante_id = :'vcs';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
@@ -2330,14 +2355,15 @@ select pg_temp.blusa('ZZ-FL-T4J-REVERTIDA') as vc \\gset
 select pr.id as oa from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'va' \\gset
 select pr.id as ob from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'vb' \\gset
 select pr.id as oc from retail.producciones pr join retail.variantes v on v.producto_id = pr.producto_id where v.id = :'vc' \\gset
--- Las órdenes, con las funciones reales y como el líder (las tres están en la pantalla de Producción).
-${sesion(FELIPE)}select retail.cerrar_produccion(:'oa', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 10)), 0, 0, 0) as _a1 \\gset
+-- Las órdenes, con las funciones reales y como el líder (las tres están en la pantalla de Producción). Esta prueba habla de la
+-- frescura, no del costo: se cierra con costo 0 y el líder confirma el costo atípico (último parámetro; 20260930121000).
+${sesion(FELIPE)}select retail.cerrar_produccion(:'oa', jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 10)), 0, 0, 0, true) as _a1 \\gset
 select retail.revertir_produccion(:'oa') as _a2 \\gset
 select retail.anular_produccion(:'oa', 'se cargó al modelo equivocado') as _a3 \\gset
-select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 10)), 0, 0, 0) as _b1 \\gset
+select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 10)), 0, 0, 0, true) as _b1 \\gset
 select retail.revertir_produccion(:'ob') as _b2 \\gset
-select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 8)), 0, 0, 0) as _b3 \\gset
-select retail.cerrar_produccion(:'oc', jsonb_build_array(jsonb_build_object('variante_id', :'vc', 'cantidad', 10)), 0, 0, 0) as _c1 \\gset
+select retail.cerrar_produccion(:'ob', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 8)), 0, 0, 0, true) as _b3 \\gset
+select retail.cerrar_produccion(:'oc', jsonb_build_array(jsonb_build_object('variante_id', :'vc', 'cantidad', 10)), 0, 0, 0, true) as _c1 \\gset
 select retail.revertir_produccion(:'oc') as _c2 \\gset
 ${COMO_POSTGRES}select pg_temp.lectura() as j \\gset
 select (select inicio from retail.temporada_fechas where anio = 2025 and estacion = 'verano') as fin25 \\gset
@@ -2408,7 +2434,11 @@ rollback to savepoint ${prefijo}${i};`;
 const VIGILA_P4 = new Set(["fn_frescura_sede", "fn_confianza_registro"]);
 correr(
   "T12 · la guarda de la que manda fn_frescura_sede y fn_confianza_registro (20260929100000, paso 4): pegada otra vez deja lo mismo; con una de las dos parchada en vivo aborta y no la pisa; las que no toca siguen con su parche; la de revisión 9 después aborta",
-  `select ${MD5S} as antes \\gset
+  `-- Como quedó el paso 4, antes del cuadre del piso (el cuadre se prueba en cuadrar_piso.mjs, C12).
+${DESHACER_FAMILIAS_APAGADAS}
+${DESHACER_VARA}
+${DESHACER_CUADRE}
+select ${MD5S} as antes \\gset
 ${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
 ${k("MISMOS", `${MD5S} = :'antes'`)}
 ${k("R9_DESPUES", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
@@ -2419,7 +2449,8 @@ ${parches(MIGRACION_P4, "s")}`,
   (o) => {
     afirmar("pegada otra vez: ok", json(o.OTRA_VEZ)?.ok === true, `OTRA_VEZ=${o.OTRA_VEZ}`);
     afirmar("…y los seis md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
-    afirmar("…y el módulo sigue siendo UNO, de Inventario, orden 115, delegable, sin rol", o.MODULO === "1,Inventario,115,false,true" && o.SIN_ROL === "0", `MODULO=${o.MODULO} SIN_ROL=${o.SIN_ROL}`);
+    // Grupo «Gestión», orden 212 desde ADR-0392 (20261013134000); nació en «Inventario», 115 (20260929100000).
+    afirmar("…y el módulo sigue siendo UNO, de «Gestión», orden 212, delegable, sin rol", o.MODULO === "1,Gestión,212,false,true" && o.SIN_ROL === "0", `MODULO=${o.MODULO} SIN_ROL=${o.SIN_ROL}`);
     afirmar(
       "la de revisión 9 pegada DESPUÉS del paso 4 aborta («fn_frescura_sede tiene otro cuerpo») y no deshace nada",
       json(o.R9_DESPUES)?.ok === false && (json(o.R9_DESPUES)?.msg ?? "").includes("fn_frescura_sede tiene otro cuerpo") && o.MISMOS_TRAS_R9 === "true",
@@ -2456,7 +2487,14 @@ const MD5_P4 = MD5_0330
   .replace(/fn_confianza_registro=[0-9a-f]{32}/, `fn_confianza_registro=${/'8c6f5e6c27916b99be10020b772bd6e0', '([0-9a-f]{32})'/.exec(MIGRACION_P4)?.[1]}`);
 correr(
   "T12b · desde producción antes del paso 3: 120300 → 120310 (dos veces) → 120320 (dos veces) → 120330 (dos veces) → paso 4 (dos veces), cada una con sus md5; una fuera de orden o una anterior otra vez aborta sin deshacer nada; sin la de antes, cada una la pide",
-  `select ${MD5S} as nuevos \\gset
+  `-- La base de hoy (con el cuadre del piso y la vara de CAYLA encima), la del cuadre (sin la vara) y la del paso 4 (sin él):
+-- la cadena llega a la tercera; el cuadre, a la segunda; la vara, a la primera.
+${DESHACER_FAMILIAS_APAGADAS}
+select ${MD5S} as hoy \\gset
+${DESHACER_VARA}
+select ${MD5S} as tras_cuadre \\gset
+${DESHACER_CUADRE}
+select ${MD5S} as nuevos \\gset
 -- Producción antes de pegar nada del paso 3: sin las lecturas ni el núcleo de temporadas, fn_temporada_efectiva de
 -- 20260928100000. (Las funciones SQL y plpgsql no dejan dependencias de cuerpo: se pueden quitar en cualquier orden.)
 drop function retail.fn_frescura_sede(uuid, integer);
@@ -2502,6 +2540,19 @@ ${k("CORREGIDA_TRAS_R9", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
 ${k("R7_TRAS_R9", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
 ${k("R9_TRAS_P4", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
 ${k("MD5_SIGUEN", `${MD5S} = :'nuevos'`)}
+-- El cuadre del piso (2026-10-04) entra encima del paso 4 y deja la base del cuadre; después, el paso 4 otra vez aborta.
+${k("CUADRE", `pg_temp.intento(${comoLiteral(MIGRACION_CUADRE)})`)}
+${k("CUADRE_ES_EL_TRAS_CUADRE", `${MD5S} = :'tras_cuadre'`)}
+${k("P4_TRAS_CUADRE", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
+${k("MD5_TRAS_CUADRE", `${MD5S} = :'tras_cuadre'`)}
+-- La vara de CAYLA (2026-10-08) entra encima del cuadre y deja la base de hoy; otra vez no cambia nada; el paso 4 y el cuadre
+-- pegados después abortan y no deshacen nada.
+${k("VARA", `pg_temp.intento(${comoLiteral(MIGRACION_VARA)})`)}
+${k("VARA_ES_EL_DE_HOY", `${MD5S} = :'hoy'`)}
+${k("VARA_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_VARA)})`)}
+${k("P4_TRAS_VARA", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
+${k("CUADRE_TRAS_VARA", `pg_temp.intento(${comoLiteral(MIGRACION_CUADRE)})`)}
+${k("MD5_TRAS_VARA", `${MD5S} = :'hoy'`)}
 -- Sin la de main: las otras tres la piden.
 drop function retail.fn_es_llegada(text, text, uuid, uuid, uuid);
 ${k("SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
@@ -2564,6 +2615,21 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
       `CORREGIDA_TRAS_R9=${o.CORREGIDA_TRAS_R9} R7_TRAS_R9=${o.R7_TRAS_R9} R9_TRAS_P4=${o.R9_TRAS_P4} MD5_SIGUEN=${o.MD5_SIGUEN}`,
     );
     afirmar(
+      "el cuadre del piso (20261004200050) entra encima del paso 4 y deja la base del cuadre; el paso 4 pegado después aborta y no deshace nada",
+      json(o.CUADRE)?.ok === true && o.CUADRE_ES_EL_TRAS_CUADRE === "true" && aborta(o.P4_TRAS_CUADRE, "fn_frescura_sede tiene otro cuerpo") && o.MD5_TRAS_CUADRE === "true",
+      `CUADRE=${o.CUADRE} CUADRE_ES_EL_TRAS_CUADRE=${o.CUADRE_ES_EL_TRAS_CUADRE} P4_TRAS_CUADRE=${o.P4_TRAS_CUADRE} MD5_TRAS_CUADRE=${o.MD5_TRAS_CUADRE}`,
+    );
+    afirmar(
+      "la vara de CAYLA (20261008120000) entra encima del cuadre y deja la base de hoy; otra vez no cambia nada; el paso 4 y el cuadre pegados después abortan y no deshacen nada",
+      json(o.VARA)?.ok === true &&
+        o.VARA_ES_EL_DE_HOY === "true" &&
+        json(o.VARA_OTRA_VEZ)?.ok === true &&
+        aborta(o.P4_TRAS_VARA, "fn_frescura_sede tiene otro cuerpo") &&
+        aborta(o.CUADRE_TRAS_VARA, "fn_frescura_sede tiene otro cuerpo") &&
+        o.MD5_TRAS_VARA === "true",
+      `VARA=${o.VARA} VARA_ES_EL_DE_HOY=${o.VARA_ES_EL_DE_HOY} VARA_OTRA_VEZ=${o.VARA_OTRA_VEZ} P4_TRAS_VARA=${o.P4_TRAS_VARA} CUADRE_TRAS_VARA=${o.CUADRE_TRAS_VARA} MD5_TRAS_VARA=${o.MD5_TRAS_VARA}`,
+    );
+    afirmar(
       "sin la de main, la 120310, la de revisión 7 y la de revisión 9 abortan pidiendo pegarla antes",
       aborta(o.SIN_MAIN, "pega antes 20260928120300") && aborta(o.R7_SIN_MAIN, "pega antes 20260928120300") && aborta(o.R9_SIN_MAIN, "pega antes 20260928120300"),
       `SIN_MAIN=${o.SIN_MAIN} R7_SIN_MAIN=${o.R7_SIN_MAIN} R9_SIN_MAIN=${o.R9_SIN_MAIN}`,
@@ -2579,6 +2645,12 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
 // sin rehacer el archivo, falla aquí, no en producción. Para rehacerlo (y volver a correr la prueba de la web):
 //   FRESCURA_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-lectura
 const FIXTURE = join(RAIZ, "apps", "web", "lib", "__fixtures__", "frescura-sede.json");
+
+/** Las rutas que el contrato de la web declara `| null` (`Crudo` en `apps/web/lib/frescura-contrato.test.ts`). Que traigan
+ *  un null o no depende del día y no es un cambio de forma: el 1.º de cada mes `fn_confianza_registro` trae el mes recién
+ *  empezado sin bajadas (confianza y nivel en null), y este caso se cayó solo el 2026-10-01. En ellas la forma cuenta
+ *  «null» siempre; un cambio de tipo (number → string) o una clave que falta o sobra sigue fallando. */
+const ANULABLES = new Set(["confianza.confianza", "confianza.nivel", "evento[3]"]);
 
 /** La forma de un valor, sin sus datos: por cada ruta, los tipos que aparecen («string|null»). Los eventos y lo apartado
  *  van por variante (la clave es un uuid): se describen como un solo arreglo de tuplas. */
@@ -2613,6 +2685,7 @@ function forma(sede, conf) {
     }
   }
   for (const f of conf ?? []) objeto("confianza", f);
+  for (const ruta of ANULABLES) tipos.get(ruta)?.add("null");
   return [...tipos].map(([ruta, s]) => `${ruta}: ${[...s].sort().join("|")}`).sort();
 }
 
@@ -2656,6 +2729,7 @@ select pg_temp.bajada(:'vvi', 2, now() - interval '40 days') as _v2 \\gset
 -- Blusa de la carga inicial: por la puerta real, hace 5 días (edad desconocida).
 select pg_temp.talla(pg_temp.variante('ZZ-FX-CARGA-M', pg_temp.producto('FX Blusa carga inicial', null, :'cat_a'), :'c2'), :'t_m') as vca \\gset
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vca', 'cantidad', 2)), null, true, gen_random_uuid()) as _c1 \\gset
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate; -- Actividad (ADR-0207): sin eventos pendientes, el alter no choca
 alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '5 days' where variante_id = :'vca';
 alter table retail.movimientos enable always trigger movimientos_inmutables;
@@ -2818,6 +2892,8 @@ ${k("FX_CONF", "(select coalesce(jsonb_agg(to_jsonb(c) order by c.mes), '[]'::js
       faltan.length === 0 && sobran.length === 0,
       `en el archivo y no hoy: ${faltan.join(" / ") || "—"} · hoy y no en el archivo: ${sobran.join(" / ") || "—"}`,
     );
+    // Nada de esto depende del día: la siembra es relativa a now() y «meses» cuenta las filas de fn_confianza_registro,
+    // que son siempre p_meses (2) por sede, tenga o no bajadas el mes en curso (no los meses con datos).
     afirmar(
       "la siembra da lo mismo que cuando se escribió el archivo (prendas, tardías, dudosas y meses)",
       sede.prendas.length === guardado.fn_frescura_sede.prendas.length &&

@@ -29,9 +29,9 @@ export function colorConEseNombre(texto: string, colores: readonly ColorAlta[]):
   return colores.find((c) => clave(c.nombre) === k) ?? colores.find((c) => (c.sinonimos ?? []).some((s) => clave(s) === k));
 }
 
-// Un tono plano rara vez es metálico o estampado: esas dos familias no se sugieren por cercanía (una muestra plana de
-// «Plata vieja» siempre queda cerca de «Gris» y arrastraría la sugerencia).
-const FAMILIAS_POR_TONO: ReadonlySet<string> = new Set(FAMILIAS_COLOR.map((f) => f.valor).filter((v) => v !== "metalico" && v !== "estampado"));
+// Un tono plano rara vez es metálico: esa familia no se sugiere por cercanía (una muestra plana de «Plata vieja» siempre
+// queda cerca de «Gris» y arrastraría la sugerencia).
+const FAMILIAS_POR_TONO: ReadonlySet<string> = new Set(FAMILIAS_COLOR.map((f) => f.valor).filter((v) => v !== "metalico"));
 
 /**
  * La familia del color existente que más se parece al tono elegido (ΔE2000, `lib/color-parecido.ts`). Se deduce de
@@ -61,10 +61,10 @@ export function faltaParaCrear(b: BorradorColor): string | null {
 }
 
 /**
- * Lo que devuelve `POST /api/productos/colores` (`{ color: { codigo, nombre, familia_color, hex, estado, sinonimos } }`)
- * como lo usa el alta. `pendiente`: lo creó alguien que no es Líder; ya se puede usar, falta que un Líder lo apruebe.
+ * Lo que devuelve `POST /api/productos/colores` (`{ color: { codigo, nombre, familia_color, hex, estado, sinonimos, pantone_tcx } }`)
+ * como lo usa el alta. Desde ADR-0534 todo color nace aprobado, lo cree quien lo cree: el estado ya no se lee.
  */
-export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente: boolean } | null {
+export function colorDeRespuesta(datos: unknown): { color: ColorAlta } | null {
   const c = (datos as { color?: Record<string, unknown> } | null)?.color;
   if (!c || typeof c.codigo !== "string" || typeof c.nombre !== "string") return null;
   return {
@@ -73,8 +73,12 @@ export function colorDeRespuesta(datos: unknown): { color: ColorAlta; pendiente:
       nombre: c.nombre,
       hex: typeof c.hex === "string" ? c.hex : null,
       familiaColor: typeof c.familia_color === "string" ? c.familia_color : "",
+      tipo: typeof c.tipo === "string" ? c.tipo : undefined,
       sinonimos: Array.isArray(c.sinonimos) ? c.sinonimos.filter((s): s is string => typeof s === "string") : [],
+      pantoneTcx: typeof c.pantone_tcx === "string" ? c.pantone_tcx : null,
+      // La ficha (ADR-0316) también llega en la respuesta: un color recién creado se señala en la carta como cualquier otro.
+      descripcion: typeof c.descripcion === "string" ? c.descripcion : null,
+      combinaCon: Array.isArray(c.combina_con) ? c.combina_con.filter((s): s is string => typeof s === "string") : [],
     },
-    pendiente: c.estado === "pendiente",
   };
 }

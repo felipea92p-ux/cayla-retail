@@ -1,0 +1,357 @@
+/* =====================================================================
+   B · «De cada 100» (prefijo cc-): las personas se cuentan, no se miden.
+   Un tono secuencial (la tinta: llena = siguió, contorno = se fue en este paso, tenue = se fue antes) y un acento (el rojo de
+   «aquí se atora», una sola vez).
+   ===================================================================== */
+.cc-recorrido {
+  margin-top: 16px;
+  padding: 12px 18px 10px;
+}
+.cc-cab {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 16px;
+}
+.cc-cab .tr-veredicto {
+  margin: 0;
+}
+.cc-grillas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) 30px minmax(0, 1fr) 30px minmax(0, 1fr) 30px minmax(0, 1fr) 30px minmax(0, 1fr);
+  align-items: start;
+  margin-top: 8px;
+}
+.cc-paso {
+  margin: 0;
+  min-width: 0;
+}
+.cc-grilla {
+  display: block;
+  width: 100%;
+  max-width: 118px;
+  height: auto;
+  overflow: visible;
+}
+/* Una persona: llena (siguió), contorno (se fue en este paso) o tenue (se fue antes). */
+.cc-f {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 200ms var(--ease-cayla);
+}
+.cc-f[data-e="sigue"] {
+  fill: var(--color-tinta);
+  stroke: none;
+}
+.cc-f[data-e="sale"] {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+  stroke-width: 0.9;
+}
+/* «Se fue antes» al 33 %: el paso más tenue de la escala se queda en 2:1 contra el papel (validate_palette --ordinal). */
+.cc-f[data-e="fuera"] {
+  fill: color-mix(in srgb, var(--color-tinta) 33%, transparent);
+  stroke: none;
+}
+.cc-velo-lleno {
+  fill: var(--color-tinta);
+  opacity: 0;
+  pointer-events: none;
+}
+/* Al pasar por un camino o una ciudad, quedan encendidas sus personas. */
+.cc-grillas[data-resalta] .cc-f {
+  opacity: 0.16;
+}
+.cc-grillas[data-resalta="c0"] .cc-f[data-c="0"],
+.cc-grillas[data-resalta="c1"] .cc-f[data-c="1"],
+.cc-grillas[data-resalta="c2"] .cc-f[data-c="2"],
+.cc-grillas[data-resalta="c3"] .cc-f[data-c="3"],
+.cc-grillas[data-resalta="c4"] .cc-f[data-c="4"],
+.cc-grillas[data-resalta="c5"] .cc-f[data-c="5"],
+.cc-grillas[data-resalta="c6"] .cc-f[data-c="6"],
+.cc-grillas[data-resalta="u0"] .cc-f[data-u="0"],
+.cc-grillas[data-resalta="u1"] .cc-f[data-u="1"],
+.cc-grillas[data-resalta="u2"] .cc-f[data-u="2"],
+.cc-grillas[data-resalta="u3"] .cc-f[data-u="3"],
+.cc-grillas[data-resalta="u4"] .cc-f[data-u="4"],
+.cc-grillas[data-resalta="u5"] .cc-f[data-u="5"],
+.cc-grillas[data-resalta="u6"] .cc-f[data-u="6"] {
+  opacity: 1;
+}
+.cc-pie {
+  display: grid;
+  gap: 0;
+  margin-top: 8px;
+}
+.cc-pie__nombre {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  color: var(--color-taupe-profundo);
+  min-height: 2.5em;
+}
+.cc-pie__cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+.cc-pie__cifra b {
+  font-variant-numeric: proportional-nums;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1;
+}
+.cc-pie__cifra span {
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 72%, transparent);
+}
+.cc-pie__personas {
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 68%, transparent);
+}
+.cc-pie__atora {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-rojo);
+}
+.cc-salto {
+  align-self: start;
+  margin-top: 42%;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.cc-salto svg {
+  width: 14px;
+  height: 14px;
+}
+.cc-salto[data-atora] {
+  color: var(--color-tinta);
+  font-weight: 700;
+}
+.cc-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-left: auto;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}
+.cc-leyenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cc-leyenda svg {
+  width: 10px;
+  height: 12px;
+}
+
+/* La fila de abajo: cuatro tarjetas que se leen igual, «de cada 100». */
+.cc-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+@container pantalla (max-width: 1060px) {
+  .cc-fila {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container pantalla (max-width: 760px) {
+  .cc-grillas {
+    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr);
+  }
+  .cc-pie__cifra b {
+    font-size: 24px;
+  }
+  .cc-pie__cifra span {
+    display: none;
+  }
+}
+.cc-bloque {
+  padding: 14px 18px;
+  min-width: 0;
+}
+.cc-filas {
+  display: grid;
+  gap: 0;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cc-fila-btn {
+  display: grid;
+  grid-template-columns: minmax(64px, 7.2em) 1fr 24px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  transition: background-color 180ms var(--ease-cayla);
+}
+.cc-fila-btn__nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cc-fila-btn__nombre svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.cc-fila-btn__n {
+  text-align: right;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) {
+  .cc-fila-btn:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+}
+.cc-fila-btn[aria-pressed="true"] {
+  background: var(--color-hueso);
+  font-weight: 600;
+}
+.cc-fila-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Los puntos: cada uno es 1 de cada 100. Se agrupan de a 5 para contarlos de un vistazo. */
+.cc-puntos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px 0;
+}
+.cc-puntos i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-tinta) 78%, transparent);
+}
+.cc-puntos i:nth-child(5n) {
+  margin-right: 3px;
+}
+.cc-fila-btn[aria-pressed="true"] .cc-puntos i {
+  background: var(--color-tinta);
+}
+.cc-horas {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+  height: 124px;
+  margin-top: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent);
+}
+.cc-hora {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  align-items: center;
+  align-self: stretch;
+  gap: 2px;
+  padding-bottom: 3px;
+}
+.cc-hora i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+}
+.cc-hora[data-pico] i {
+  background: var(--color-tinta);
+}
+.cc-ejes {
+  position: relative;
+  height: 16px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--color-tinta) 66%, transparent);
+}
+.cc-ejes span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.cc-ejes span:first-child {
+  transform: none;
+}
+.cc-prendas {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.cc-prenda {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 13px;
+  transition: background-color 180ms var(--ease-cayla);
+}
+@media (hover: hover) {
+  .cc-prenda:hover {
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+}
+.cc-prenda__nombre {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-prenda__n {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.cc-prenda--1 {
+  padding: 6px;
+  background: var(--color-hueso);
+}
+.cc-prenda--1 .cc-prenda__nombre {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 17px;
+  white-space: normal;
+  line-height: 1.15;
+}
+.cc-prenda--1 .cc-prenda__n {
+  font-size: 26px;
+}
+.cc-prenda__sub {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
+}

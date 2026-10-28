@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useAireParaLaLista } from "@/components/ui/useAireParaLaLista";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-reglas";
+import { Check, ChevronDown, Search, SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ComboBuscable · elegir una opción entre muchas, tipeando (2026-09-14)
@@ -40,10 +43,17 @@ import { coincidenciaCombo, filtrarCombo, mismoNombreCombo } from "@/lib/combo-r
    CAYLA y no abra «crear». Sin la prop, todo queda como estaba (al final).
    ==================================================================== */
 
+/** El valor de la fila de `alEscribir`: ninguna opción real lo usa. */
+const VALOR_ACCION = "\u0000accion";
+
 /** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
 /** `claves`: otras palabras que también encuentran la opción (sinónimos: «plomo» → Gris). No se muestran, salvo cuando
  *  la opción aparece solo por una de ellas: entonces la lista dice cuál. */
 export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode; claves?: readonly string[] };
+
+/** Una opción que solo aparece por LO ESCRITO (2026-10-09: «sin proveedor» → «Dejar sin proveedor»). Va primera, ocupa el
+ *  lugar de «crear» (no se ofrece registrar «sin proveedor») y al elegirla el campo queda vacío: no es un valor, es una acción. */
+export type OpcionAlEscribir = { texto: string; detalle?: string; onElegir: () => void };
 
 export function ComboBuscable<T extends string>({
   valor,
@@ -57,7 +67,9 @@ export function ComboBuscable<T extends string>({
   limite,
   crear,
   crearArriba = false,
-  caja = false,
+  alEscribir,
+  ampliar,
+  campoRef,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -83,8 +95,17 @@ export function ComboBuscable<T extends string>({
   };
   /** La opción de crear va PRIMERA y fija arriba al desplazar la lista, no al final (spike Nuevo producto v2). */
   crearArriba?: boolean;
-  /** Campo en caja hundida (`caja-cayla`) en vez de línea: el de los formularios con caja. */
+  /** Sin efecto desde la ronda 6 de /unificar (ADR-0358): todo combo es la caja que se enciende. Se acepta para no romper a quien la pasa. */
   caja?: boolean;
+  /** Una acción que aparece primera solo cuando lo escrito la pide (ver `OpcionAlEscribir`). */
+  alEscribir?: (texto: string) => OpcionAlEscribir | null;
+  /** Una fila fija al PIE de la lista, después de todas, que AMPLÍA lo que se ofrece sin cerrarla («Ver todas (45)»: Nueva orden de
+   *  compra muestra primero lo que maneja el proveedor, 2026-10-21). Quien la pasa cambia `opciones` en `onAmpliar` y deja de pasarla;
+   *  la lista sigue abierta y la búsqueda sigue en pie. Se alcanza con las flechas y Enter como cualquier fila, y no se pierde con
+   *  «Nada coincide»: justo ahí hace falta. Sin la prop, todo queda como estaba. */
+  ampliar?: { texto: string; onAmpliar: () => void };
+  /** El input, para quien lo escucha desde afuera (la pistola de Cambios: `usePistola` necesita saber cuál es su campo). */
+  campoRef?: RefObject<HTMLInputElement | null>;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -96,8 +117,12 @@ export function ComboBuscable<T extends string>({
   const lista = useRef<HTMLUListElement>(null);
   // La lista va en `fixed`, medida contra el input: dentro de un <Modal> o de una tabla con scroll, una lista
   // `absolute` queda recortada por esa caja (ver `usePosicionLista`).
-  const posLista = usePosicionLista(input, abierto, 256, 4);
-  const destino = useDestinoFlotante(input, abierto);
+  // La lista se mide contra la CAJA entera (lupa, texto y flecha), no contra el input de adentro (ADR-0358, ronda 6).
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const posLista = usePosicionLista(cajaRef, abierto, 256, 4);
+  const destino = useDestinoFlotante(cajaRef, abierto);
+  // En el celular, con el teclado abierto, la hoja sube el campo para que la lista tenga lugar debajo.
+  useAireParaLaLista(input, abierto);
 
   // Si el valor cambia desde afuera (se limpió la línea, se cargó otra),
   // el texto acompaña. Se ajusta durante el render —el patrón de React para
@@ -109,12 +134,17 @@ export function ComboBuscable<T extends string>({
     if (!abierto) setTexto(elegida?.texto ?? "");
   }
 
-  const filtradas = useMemo(() => {
+  // La acción pedida por lo escrito (si la hay) va como una fila más, la primera, con un valor que ninguna opción usa.
+  const accion = abierto && alEscribir ? alEscribir(texto) : null;
+  const encontradas = useMemo(() => {
     const k = clave(texto);
     // Con el texto de la opción elegida sin tocar, se muestra todo: el
     // usuario abrió para cambiar, no para buscar lo que ya tiene.
     return !k || (elegida && k === clave(elegida.texto)) ? opciones : filtrarCombo(opciones, texto, (o) => o);
   }, [texto, opciones, elegida]);
+  const filtradas: readonly OpcionCombo<T>[] = accion
+    ? [{ valor: VALOR_ACCION as T, texto: accion.texto, detalle: accion.detalle }, ...encontradas]
+    : encontradas;
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   // La clave (sinónimo) por la que una opción respondió a lo escrito, si fue solo por ella: la lista la muestra.
   const porClave = (o: OpcionCombo<T>) => coincidenciaCombo(o, texto) || null;
@@ -124,13 +154,16 @@ export function ComboBuscable<T extends string>({
   // corren uno: la opción `i` es la fila `i + base`). Se alcanza con las flechas como cualquier otra. Con `pista` y el
   // campo vacío no hay opción de crear: hay un texto que no se elige.
   const hayCrearPara = (t: string) =>
-    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => mismoNombreCombo(o.texto, t));
+    Boolean(crear) && !(crear?.pista && t.trim() === "") && !opciones.some((o) => mismoNombreCombo(o.texto, t)) && !alEscribir?.(t);
   const hayCrear = hayCrearPara(texto);
   const pistaVisible = Boolean(crear?.pista) && texto.trim() === "";
   const base = hayCrear && crearArriba ? 1 : 0;
   const indiceCrear = hayCrear ? (crearArriba ? 0 : mostradas.length) : -1;
   const opcionEn = (fila: number) => mostradas[fila - base];
   const ultimo = mostradas.length - 1 + (hayCrear ? 1 : 0);
+  // La fila de «ampliar» es la ÚLTIMA de todas (después de la de crear, si va abajo).
+  const indiceAmpliar = ampliar ? ultimo + 1 : -1;
+  const ultimoTotal = ampliar ? ultimo + 1 : ultimo;
   // Lo resaltado al abrir o al tipear: la primera opción real, aunque crear vaya arriba (Enter elige, no crea); si no
   // hay ninguna, la de crear.
   // (Lo que se acaba de tipear todavía no está en `filtradas`: se pregunta si ALGUNA opción responde a ese texto.)
@@ -150,9 +183,23 @@ export function ComboBuscable<T extends string>({
   }
 
   function elegir(o: OpcionCombo<T>) {
+    if (o.valor === VALOR_ACCION) {
+      // Una acción, no un valor: el campo muestra lo que tiene, no lo escrito. Si la acción lo vacía, el cambio de `valor`
+      // lo deja en blanco (arriba); si no pudo vaciarlo (lo ya guardado), sigue diciendo lo de antes.
+      setAbierto(false);
+      setTexto(elegida?.texto ?? "");
+      accion?.onElegir();
+      return;
+    }
     onValor(o.valor);
     setTexto(o.texto);
     setAbierto(false);
+  }
+
+  /** Pide ver más opciones SIN cerrar la lista (a diferencia de elegir o crear): la lista crece y lo resaltado vuelve a la primera. */
+  function ampliarLista() {
+    ampliar?.onAmpliar();
+    setActivo(primeraFila(texto));
   }
 
   function crearDesdeTexto() {
@@ -174,13 +221,14 @@ export function ComboBuscable<T extends string>({
     if (!abierto) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActivo((a) => Math.min(ultimo, a + 1));
+      setActivo((a) => Math.min(ultimoTotal, a + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActivo((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (hayCrear && activo === indiceCrear) crearDesdeTexto();
+      if (ampliar && activo === indiceAmpliar) ampliarLista();
+      else if (hayCrear && activo === indiceCrear) crearDesdeTexto();
       else if (opcionEn(activo)) elegir(opcionEn(activo));
     } else if (e.key === "Escape") {
       e.preventDefault();
@@ -190,8 +238,11 @@ export function ComboBuscable<T extends string>({
       cerrarSinElegir();
     } else if (e.key === "Tab") {
       // Tab elige lo resaltado si hay una sola coincidencia clara: es lo
-      // que uno espera al tipear "lino" y saltar al siguiente campo.
-      if (filtradas.length === 1) elegir(filtradas[0]);
+      // que uno espera al tipear "lino" y saltar al siguiente campo. Solo si se
+      // ESCRIBIÓ algo: con el campo vacío y una sola opción (el prefiltro de Nueva
+      // orden deja una sola categoría a un proveedor), pasar por él con Tab no
+      // debe elegir nada por la persona (revisión independiente, 2026-10-21).
+      if (filtradas.length === 1 && clave(texto) !== "") elegir(filtradas[0]);
       else cerrarSinElegir();
     }
   }
@@ -226,14 +277,21 @@ export function ComboBuscable<T extends string>({
 
   return (
     <div className={`relative ${className}`}>
+      {/* La caja que se enciende (ADR-0358, ronda 6), con su lupa —aquí se escribe para buscar— y su flecha. Antes, una raya
+          suelta (o la caja sin hilo con `caja`). */}
+      <div ref={cajaRef} className="caja-cayla caja-campo">
+      <Search aria-hidden className="combo-lupa" />
       <input
-        ref={input}
+        ref={(el) => {
+          input.current = el;
+          if (campoRef) campoRef.current = el;
+        }}
         id={id}
         role="combobox"
         aria-label={etiquetaAccesible}
         aria-expanded={abierto}
         aria-controls={`${id}-lista`}
-        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear) ? `${id}-op-${activo}` : undefined}
+        aria-activedescendant={abierto && (opcionEn(activo) || activo === indiceCrear || activo === indiceAmpliar) ? `${id}-op-${activo}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         autoFocus={autoFocus}
@@ -253,12 +311,10 @@ export function ComboBuscable<T extends string>({
         }}
         onKeyDown={alTeclado}
         onBlur={() => cerrarSinElegir()}
-        className={
-          caja
-            ? "caja-cayla h-10 w-full min-w-0 px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
-            : "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
-        }
+        className="self-stretch py-0"
       />
+      <ChevronDown aria-hidden className="combo-flecha" />
+      </div>
       {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
@@ -275,11 +331,15 @@ export function ComboBuscable<T extends string>({
             onScroll={limite == null ? alHacerScroll : undefined}
             // `anim-revelar`: la misma entrada que el resto de los combos y que el selector de sede (240 ms, sin espera).
             // Era el único que aparecía de golpe; la lista se monta una vez por apertura, así que tipear no la repite.
-            className="anim-revelar lista-flotante z-50 overflow-y-auto rounded-xl"
+            className="anim-revelar lista-flotante z-50 overflow-y-auto rounded-xl py-1.5"
           >
           {crearArriba && filaCrear}
           {mostradas.length === 0 && (hayCrear || pistaVisible) && texto.trim() === "" ? null : mostradas.length === 0 ? (
-            <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
+            <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{texto.trim()}»</b>.
+                </Vacio>
+              </li>
           ) : (
             mostradas.map((o, j) => {
               const i = j + base;
@@ -298,12 +358,20 @@ export function ComboBuscable<T extends string>({
                   elegir(o);
                 }}
                 // Con la fila de crear fija arriba, `scroll-mt` deja que la opción resaltada con flechas no quede tapada por ella.
-                className={`cursor-pointer px-3 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "opcion-activa text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-semibold" : ""}`}
+                // La lista de todo combo (ADR-0358, ronda 6): la elegida con el hilo rojo de canto y su ✓ que se dibuja.
+                className={`relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm ${crearArriba ? "scroll-mt-11" : ""} ${i === activo ? "opcion-activa text-tinta" : "text-tinta/85"} ${o.valor === valor ? "font-medium text-tinta" : ""}`}
               >
-                {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
-                <span className="align-middle">{o.texto}</span>
-                {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
-                {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
+                <span
+                  aria-hidden
+                  className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${o.valor === valor ? "scale-y-100" : "scale-y-0"}`}
+                />
+                <span className="min-w-0 flex-1">
+                  {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
+                  <span className="align-middle">{o.texto}</span>
+                  {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
+                  {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
+                </span>
+                {o.valor === valor && <Check aria-hidden className="combo-tilde" />}
               </li>
               );
             })
@@ -312,6 +380,23 @@ export function ComboBuscable<T extends string>({
             <li className="px-3 py-2 text-xs text-tinta/55">+{filtradas.length - mostradas.length} más: sigue escribiendo</li>
           )}
           {!crearArriba && filaCrear}
+          {ampliar && (
+            <li
+              id={`${id}-op-${indiceAmpliar}`}
+              data-i={indiceAmpliar}
+              role="option"
+              aria-selected={false}
+              onMouseEnter={() => setActivo(indiceAmpliar)}
+              // mousedown y no click (el blur del input cerraría la lista antes), y sin cerrarla: es una acción, no un valor.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                ampliarLista();
+              }}
+              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === indiceAmpliar ? "opcion-activa text-tinta" : "text-tinta/70"}`}
+            >
+              {ampliar.texto}
+            </li>
+          )}
         </ul>,
           destino
         )}

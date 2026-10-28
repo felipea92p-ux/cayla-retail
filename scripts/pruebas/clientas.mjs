@@ -21,6 +21,16 @@
  * QUÉ DA POR SENTADO. Que `retail.clientas` existe (20260922140000 aplicada) y que
  * `supabase/seed.sql` corrió (usa DNIs que el seed no siembra, así que no choca con él).
  *
+ * DESDE ADR-0288 (tanda 1a, 20260930160000). El documento tiene tipo: `clientas.dni` pasó a
+ * `documento_numero` + `documento_tipo`, y `registrar_clienta`/`editar_clienta` reciben
+ * `p_documento_tipo` antes del número. Aquí todas las fichas son con DNI ('dni'); los otros tipos,
+ * el formato, CL-27 y la venta ligada a la ficha los prueba `club_venta_ligada.mjs`.
+ *
+ * DESDE ADR-0288 (tanda 1b, 20260930200000). Registrarse ya NO da el permiso de WhatsApp: `registrar_clienta` y
+ * `editar_clienta` perdieron `p_acepta_whatsapp`/`p_revoca_whatsapp` y ganaron `p_cumple_anio`. El club (su «sí») y la
+ * publicidad (solo si ella escribió) los prueba `club_permisos.mjs`; aquí queda que registrar y editar no dan ni quitan
+ * ningún permiso, y que un upsert nunca revoca uno ya dado (LA OBJECIÓN, ahora sobre el legado y el club).
+ *
  * USO
  *   pnpm pruebas:clientas    → necesita el stack local (`npx supabase start`)
  */
@@ -67,36 +77,35 @@ function error(nombre, sql, contiene) {
 }
 
 // ---------------------------------------------------------------------------
-// 1: alta con consentimiento — el permiso queda con fecha
+// 1: alta con celular y cumpleaños — registrarse NO da ningún permiso (ADR-0288 D-4, tanda 1b)
 // ---------------------------------------------------------------------------
 
 exito(
-  "alta con p_acepta_whatsapp=true guarda whatsapp_consentimiento_en",
+  "alta con celular y cumpleaños (y año): guarda la ficha y NO da ningún permiso — ni club, ni publicidad, ni el whatsapp_consentimiento_en de antes",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90111222', 'Prueba Uno', '987000111', true, 15::smallint, 3::smallint) as id \\gset
-select (whatsapp_consentimiento_en is not null), dni, nombre, cumple_dia, cumple_mes from retail.clientas where id = :'id'::uuid;
+    `select retail.registrar_clienta('dni', '90111222', 'Prueba Uno', '987000111', 15::smallint, 3::smallint, 1994::smallint) as id \\gset
+select (whatsapp_consentimiento_en is null), documento_tipo || ':' || documento_numero, nombre, cumple_dia, cumple_mes, cumple_anio,
+       club_desde is null and publicidad_desde is null and codigo_club is null
+  from retail.clientas where id = :'id'::uuid;
 rollback;
 `
   ),
-  ([tienePermiso, dni, nombre, dia, mes]) =>
-    tienePermiso === "t" && dni === "90111222" && nombre === "Prueba Uno" && dia === "15" && mes === "3"
+  ([sinPermiso, dni, nombre, dia, mes, anio, sinClub]) =>
+    sinPermiso === "t" && dni === "dni:90111222" && nombre === "Prueba Uno" && dia === "15" && mes === "3" && anio === "1994" && sinClub === "t"
 );
 
 // ---------------------------------------------------------------------------
-// 2: alta sin consentimiento — aunque venga el teléfono, no se asume permiso
+// 2: el permiso ya no se marca al registrar — la firma vieja no existe
 // ---------------------------------------------------------------------------
 
-exito(
-  "alta con p_acepta_whatsapp=false deja whatsapp_consentimiento_en NULL aunque venga el teléfono",
+error(
+  "registrar_clienta ya no recibe p_acepta_whatsapp: la publicidad solo nace de un mensaje de ella (ADR-0288 D-4)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90111223', 'Prueba Dos', '987000112', false, null, null) as id \\gset
-select whatsapp_consentimiento_en is null from retail.clientas where id = :'id'::uuid;
-rollback;
-`
+    `select retail.registrar_clienta(p_documento_numero => '90111223', p_nombre => 'Prueba Dos', p_telefono_whatsapp => '987000112', p_acepta_whatsapp => true);\n`
   ),
-  ([esNulo]) => esNulo === "t"
+  "does not exist"
 );
 
 // ---------------------------------------------------------------------------
@@ -107,9 +116,9 @@ exito(
   "el mismo DNI dos veces no duplica: la segunda llamada actualiza la fila",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90111224', 'Prueba Tres', null, false, null, null) as id1 \\gset
-select retail.registrar_clienta('90111224', 'Prueba Tres Actualizada', null, false, null, null) as id2 \\gset
-select (:'id1' = :'id2'), (select count(*) from retail.clientas where dni = '90111224'), nombre
+    `select retail.registrar_clienta('dni', '90111224', 'Prueba Tres', null, null, null) as id1 \\gset
+select retail.registrar_clienta('dni', '90111224', 'Prueba Tres Actualizada', null, null, null) as id2 \\gset
+select (:'id1' = :'id2'), (select count(*) from retail.clientas where documento_numero = '90111224'), nombre
   from retail.clientas where id = :'id2'::uuid;
 rollback;
 `
@@ -118,52 +127,43 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
-// 4: LA OBJECIÓN — un upsert que no vuelve a preguntar por WhatsApp (default
-// false) NO debe revocar un consentimiento ya dado
+// 4: LA OBJECIÓN — un upsert NUNCA revoca un permiso ya dado: ni el de antes (whatsapp_consentimiento_en,
+// legado) ni el club ni la publicidad (ADR-0288: la ficha no da ni quita permisos)
 // ---------------------------------------------------------------------------
 
 exito(
-  "un upsert con p_acepta_whatsapp=false (el default) conserva un consentimiento ya dado",
+  "un upsert conserva el permiso de antes (legado) y el club con su publicidad",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90111225', 'Prueba Cuatro', '987000113', true, null, null) as id \\gset
-select retail.registrar_clienta('90111225', 'Prueba Cuatro Editada', null, false, null, null) as id2 \\gset
-select (:'id' = :'id2'), (whatsapp_consentimiento_en is not null), nombre from retail.clientas where id = :'id2'::uuid;
+    `insert into retail.clientas (documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en)
+  values ('90111225', 'Prueba Cuatro', '987000113', now()) returning id as id \\gset
+select retail.registrar_clienta('dni', '90111225', 'Prueba Cuatro Editada', null, null, null) as id2 \\gset
+select retail.registrar_clienta('dni', '90111226', 'Prueba Cinco', '987000114', null, null) as socia \\gset
+select codigo_club as _c from retail.unirse_al_club(:'socia'::uuid, '987000114') \\gset
+select retail.registrar_mensaje_publicidad(:'socia'::uuid, '987000114') as _p \\gset
+select retail.registrar_clienta('dni', '90111226', 'Prueba Cinco', null, null, null) as socia2 \\gset
+select (:'id' = :'id2'), (whatsapp_consentimiento_en is not null), nombre,
+       (select club_desde is not null and publicidad_desde is not null and :'socia' = :'socia2' from retail.clientas where id = :'socia'::uuid)
+  from retail.clientas where id = :'id2'::uuid;
 rollback;
 `
   ),
-  ([mismoId, siguePermiso, nombre]) => mismoId === "t" && siguePermiso === "t" && nombre === "Prueba Cuatro Editada"
-);
-
-exito(
-  "un upsert con p_acepta_whatsapp=true SÍ (re)confirma el consentimiento (nunca lo deja NULL)",
-  comoPersona(
-    FELIPE,
-    // `now()` es fijo dentro de una misma transacción (transaction_timestamp): dos llamadas acá
-    // adentro comparten el mismo instante, así que esto prueba "sigue confirmado, nunca NULL",
-    // no "con fecha más nueva" — esa parte solo se ve entre transacciones distintas (uso real).
-    `select retail.registrar_clienta('90111226', 'Prueba Cinco', '987000114', true, null, null) as id \\gset
-select retail.registrar_clienta('90111226', 'Prueba Cinco', '987000114', true, null, null) as id2 \\gset
-select (:'id' = :'id2'), (whatsapp_consentimiento_en is not null) from retail.clientas where id = :'id2'::uuid;
-rollback;
-`
-  ),
-  ([mismoId, siguePermiso]) => mismoId === "t" && siguePermiso === "t"
+  ([mismoId, siguePermiso, nombre, sigueSocia]) => mismoId === "t" && siguePermiso === "t" && nombre === "Prueba Cuatro Editada" && sigueSocia === "t"
 );
 
 // ---------------------------------------------------------------------------
-// 5: dni vacío o solo espacios se normaliza a NULL — no choca con otra clienta sin dni
+// 5: documento vacío o solo espacios se normaliza a NULL — no choca con otra clienta sin documento
 // ---------------------------------------------------------------------------
 
 exito(
   "un DNI vacío o solo espacios se guarda como NULL, sin chocar con otra clienta sin DNI",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('   ', 'Sin Dni Uno', null, false, null, null) as id1 \\gset
-select retail.registrar_clienta('', 'Sin Dni Dos', null, false, null, null) as id2 \\gset
+    `select retail.registrar_clienta('dni', '   ', 'Sin Dni Uno', null, null, null) as id1 \\gset
+select retail.registrar_clienta('dni', '', 'Sin Dni Dos', null, null, null) as id2 \\gset
 select
-  (select dni from retail.clientas where id = :'id1'::uuid),
-  (select dni from retail.clientas where id = :'id2'::uuid);
+  (select documento_numero from retail.clientas where id = :'id1'::uuid),
+  (select documento_numero from retail.clientas where id = :'id2'::uuid);
 rollback;
 `
   ),
@@ -176,29 +176,30 @@ rollback;
 
 error(
   "cumple_dia fuera de 1-31 se rechaza (candado clientas_cumple_dia_valido)",
-  comoPersona(FELIPE, `select retail.registrar_clienta(null, 'Prueba Rango', null, false, 32::smallint, null);\n`),
+  comoPersona(FELIPE, `select retail.registrar_clienta('dni', null, 'Prueba Rango', null, 32::smallint, null);\n`),
   "clientas_cumple_dia_valido"
 );
 
 error(
   "cumple_mes fuera de 1-12 se rechaza (candado clientas_cumple_mes_valido)",
-  comoPersona(FELIPE, `select retail.registrar_clienta(null, 'Prueba Rango', null, false, null, 13::smallint);\n`),
+  comoPersona(FELIPE, `select retail.registrar_clienta('dni', null, 'Prueba Rango', null, null, 13::smallint);\n`),
   "clientas_cumple_mes_valido"
 );
 
 // ---------------------------------------------------------------------------
-// 7: un DNI repetido por INSERT directo (sin pasar por la RPC) también choca
+// 7: un DNI repetido por INSERT directo (sin pasar por la RPC) también choca. Desde ADR-0288 el único es
+// (documento_tipo, documento_numero): el mismo número con otro tipo es otra persona (club_venta_ligada.mjs).
 // ---------------------------------------------------------------------------
 
 error(
-  "un DNI repetido por insert directo se rechaza (candado clientas_dni_unico)",
+  "un DNI repetido por insert directo se rechaza (candado clientas_documento_unico)",
   comoPersona(
     FELIPE,
-    `insert into retail.clientas (dni, nombre) values ('90111299', 'Directo Uno');
-insert into retail.clientas (dni, nombre) values ('90111299', 'Directo Dos');
+    `insert into retail.clientas (documento_numero, nombre) values ('90111299', 'Directo Uno');
+insert into retail.clientas (documento_tipo, documento_numero, nombre) values ('dni', '90111299', 'Directo Dos');
 `
   ),
-  "clientas_dni_unico"
+  "clientas_documento_unico"
 );
 
 // ---------------------------------------------------------------------------
@@ -206,10 +207,10 @@ insert into retail.clientas (dni, nombre) values ('90111299', 'Directo Dos');
 // ---------------------------------------------------------------------------
 
 exito(
-  "buscar_clienta encuentra por DNI exacto",
+  "buscar_clienta encuentra por DNI exacto (el número, sin importar el tipo)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90222111', 'Buscable Uno', '987222001', false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90222111', 'Buscable Uno', '987222001', null, null) as id \\gset
 select count(*), (select nombre from retail.buscar_clienta('90222111') limit 1) from retail.buscar_clienta('90222111');
 rollback;
 `
@@ -221,7 +222,7 @@ exito(
   "buscar_clienta encuentra por WhatsApp exacto",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta(null, 'Buscable Dos', '987222002', false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', null, 'Buscable Dos', '987222002', null, null) as id \\gset
 select count(*) from retail.buscar_clienta('987222002');
 rollback;
 `
@@ -233,7 +234,7 @@ exito(
   "buscar_clienta encuentra por nombre parcial, sin distinguir mayúsculas",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta(null, 'Buscable Tres Rodríguez', null, false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', null, 'Buscable Tres Rodríguez', null, null, null) as id \\gset
 select count(*) from retail.buscar_clienta('rodríguez');
 rollback;
 `
@@ -255,7 +256,7 @@ exito(
   "Micaela (colaboradora, no líder) también puede registrar y buscar — retail no tiene noción de \"mi clienta\"",
   comoPersona(
     MICAELA,
-    `select retail.registrar_clienta('90333111', 'De Micaela', null, false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90333111', 'De Micaela', null, null, null) as id \\gset
 select count(*) from retail.buscar_clienta('90333111');
 rollback;
 `
@@ -295,8 +296,8 @@ exito(
   "editar_clienta con la version correcta guarda y sube la version",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444111', 'Editar Antes', '987444111', true, null, null) as id \\gset
-select retail.editar_clienta(:'id'::uuid, '90444111', 'Editar Después', '987444111', false, false, 5::smallint, 8::smallint, null, 1) as v \\gset
+    `select retail.registrar_clienta('dni', '90444111', 'Editar Antes', '987444111', null, null) as id \\gset
+select retail.editar_clienta(:'id'::uuid, 'dni', '90444111', 'Editar Después', '987444111', 5::smallint, 8::smallint, null, null, 1) as v \\gset
 select nombre, version from retail.clientas where id = :'id'::uuid;
 rollback;
 `
@@ -308,34 +309,35 @@ error(
   "editar_clienta con una version vieja rechaza con PT409 (alguien más editó entre medio)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444112', 'Version Vieja', null, false, null, null) as id \\gset
-select retail.editar_clienta(:'id'::uuid, '90444112', 'Primer Cambio', null, false, false, null, null, null, 1) as v1 \\gset
-select retail.editar_clienta(:'id'::uuid, '90444112', 'Segundo Cambio Con Version Vieja', null, false, false, null, null, null, 1);
+    `select retail.registrar_clienta('dni', '90444112', 'Version Vieja', null, null, null) as id \\gset
+select retail.editar_clienta(:'id'::uuid, 'dni', '90444112', 'Primer Cambio', null, null, null, null, null, 1) as v1 \\gset
+select retail.editar_clienta(:'id'::uuid, 'dni', '90444112', 'Segundo Cambio Con Version Vieja', null, null, null, null, null, 1);
 `
   ),
   "Alguien más editó esta ficha"
 );
 
 exito(
-  "editar_clienta con p_revoca_whatsapp=true apaga el consentimiento a propósito",
+  "editar_clienta ya no toca el permiso: el de antes (legado) sigue; la BAJA es registrar_baja_whatsapp (ADR-0288)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444113', 'Con Permiso', '987444113', true, null, null) as id \\gset
-select retail.editar_clienta(:'id'::uuid, '90444113', 'Con Permiso', '987444113', false, true, null, null, null, 1) as v \\gset
-select whatsapp_consentimiento_en is null from retail.clientas where id = :'id'::uuid;
+    `insert into retail.clientas (documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en)
+  values ('90444113', 'Con Permiso', '987444113', now()) returning id as id \\gset
+select retail.editar_clienta(:'id'::uuid, 'dni', '90444113', 'Con Permiso', '987444113', null, null, null, null, 1) as v \\gset
+select whatsapp_consentimiento_en is not null from retail.clientas where id = :'id'::uuid;
 rollback;
 `
   ),
-  ([esNulo]) => esNulo === "t"
+  ([sigue]) => sigue === "t"
 );
 
 error(
   "editar_clienta sobre una ficha archivada se rechaza",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444114', 'Sera Archivada', null, false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90444114', 'Sera Archivada', null, null, null) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, 'motivo de prueba', false, 1) as v \\gset
-select retail.editar_clienta(:'id'::uuid, null, 'No Debería Poder', null, false, false, null, null, null, :v);
+select retail.editar_clienta(:'id'::uuid, 'dni', null, 'No Debería Poder', null, null, null, null, null, :v);
 `
   ),
   "Esta ficha está archivada"
@@ -349,7 +351,7 @@ error(
   "archivar_clienta sin motivo se rechaza",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444115', 'Sin Motivo', null, false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90444115', 'Sin Motivo', null, null, null) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, '', false, 1);
 `
   ),
@@ -360,7 +362,7 @@ exito(
   "archivar_clienta simple conserva sus datos; reactivar_clienta la devuelve",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444116', 'Ida Y Vuelta', '987444116', false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90444116', 'Ida Y Vuelta', '987444116', null, null) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, 'ya no compra', false, 1) as v1 \\gset
 select retail.reactivar_clienta(:'id'::uuid, :v1) as v2 \\gset
 select archivada_en is null, telefono_whatsapp from retail.clientas where id = :'id'::uuid;
@@ -374,9 +376,9 @@ exito(
   "archivar_clienta con p_anonimizar=true borra todo dato personal (Ley 29733)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444117', 'A Anonimizar', '987444117', true, 5::smallint, 8::smallint) as id \\gset
+    `select retail.registrar_clienta('dni', '90444117', 'A Anonimizar', '987444117', 5::smallint, 8::smallint) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, 'pedido de la clienta', true, 1) as v \\gset
-select dni, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, anonimizada from retail.clientas where id = :'id'::uuid;
+select documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, anonimizada from retail.clientas where id = :'id'::uuid;
 rollback;
 `
   ),
@@ -387,7 +389,7 @@ error(
   "reactivar_clienta sobre una ficha anonimizada se rechaza — sus datos ya no existen",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444118', 'No Se Reactiva', null, false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90444118', 'No Se Reactiva', null, null, null) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, 'pedido de la clienta', true, 1) as v \\gset
 select retail.reactivar_clienta(:'id'::uuid, :v);
 `
@@ -399,7 +401,7 @@ error(
   "estado imposible: un UPDATE directo que deje anonimizada=true con un nombre real viola el CHECK",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444119', 'Se Cuela', null, false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', '90444119', 'Se Cuela', null, null, null) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, 'pedido de la clienta', true, 1) as v \\gset
 update retail.clientas set nombre = 'se coló un nombre real' where id = :'id'::uuid;
 `
@@ -408,42 +410,34 @@ update retail.clientas set nombre = 'se coló un nombre real' where id = :'id'::
 );
 
 // ---------------------------------------------------------------------------
-// 13: unir_clientas — D-99, una transacción que mueve ventas/separaciones/pedidos
+// 13: ya no se unen fichas (Felipe 2026-10-14, 20261015054000) — el documento y el correo son de una sola persona
 // ---------------------------------------------------------------------------
+// «Unir fichas» (D-99) se borró: con el documento y el correo únicos no nacen fichas repetidas. Lo que cuidaba (no perder la
+// historia) lo cuida ahora no dejar repetir: el documento de otra ficha se rechaza diciendo de cuál es. La historia de las uniones
+// de antes (`clientas_fusiones`) se queda. Lo prueba a fondo `clientas_correo_y_cuenta_web.mjs`.
 
 exito(
-  "unir_clientas mueve una venta y un pedido no atendido a la ficha que se queda, y anonimiza a la perdedora",
+  "ya no se unen fichas: unir_clientas no existe y clientas_fusiones (la historia) sigue",
   comoPersona(
     FELIPE,
-    `select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
-select retail.registrar_clienta('90444120', 'Se Queda', '987444120', false, null, null) as mantiene \\gset
-select retail.registrar_clienta(null, 'Se Une', '987444121', false, null, null) as fusiona \\gset
-insert into retail.ventas (id, ubicacion_id, cliente_id, estado, es_prueba) values (gen_random_uuid(), :'ubic'::uuid, :'fusiona'::uuid, 'completada', true) returning id as venta \\gset
-insert into retail.pedidos_no_atendidos (id, ubicacion_id, descripcion_libre, clienta_id, created_at, resuelto)
-  values (gen_random_uuid(), :'ubic'::uuid, 'prueba clientas.mjs', :'fusiona'::uuid, now(), false);
-select (retail.unir_clientas(:'mantiene'::uuid, :'fusiona'::uuid, 1, 1)).dni as dni_ganadora \\gset
-select
-  (select cliente_id from retail.ventas where id = :'venta'::uuid) = :'mantiene'::uuid,
-  (select dni is null and nombre = 'Clienta anonimizada' and anonimizada and fusionada_en_id = :'mantiene'::uuid from retail.clientas where id = :'fusiona'::uuid),
-  (select ventas_movidas from retail.clientas_fusiones where clienta_fusionada_id = :'fusiona'::uuid);
+    `select to_regprocedure('retail.unir_clientas(uuid,uuid,integer,integer)') is null, to_regclass('retail.clientas_fusiones') is not null;
 rollback;
 `
   ),
-  ([ventaMovida, perdedoraOk, ventasMovidas]) => ventaMovida === "t" && perdedoraOk === "t" && ventasMovidas === "1"
+  ([sinUnir, conHistoria]) => sinUnir === "t" && conHistoria === "t"
 );
 
 error(
-  "unir_clientas contra una ficha que ya se unió a otra se rechaza (no se fusiona dos veces)",
+  "editar una ficha con el documento de OTRA ficha se rechaza y dice de cuál es (ya no ofrece «Unir con otra ficha»)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('90444122', 'Primera', null, false, null, null) as a \\gset
-select retail.registrar_clienta('90444123', 'Segunda', null, false, null, null) as b \\gset
-select retail.registrar_clienta(null, 'Tercera', '987444124', false, null, null) as c \\gset
-select retail.unir_clientas(:'a'::uuid, :'c'::uuid, 1, 1) as v1 \\gset
-select retail.unir_clientas(:'b'::uuid, :'c'::uuid, 1, 1);
+    `update retail.configuracion_empresa set exige_responsable = false;
+select retail.registrar_clienta('dni', '90444122', 'Primera Con Documento', null, null, null) as a \\gset
+select retail.registrar_clienta('dni', null, 'Segunda Sin Documento', '987444124', null, null) as b \\gset
+select retail.editar_clienta(:'b'::uuid, 'dni', '90444122', 'Segunda Sin Documento', '987444124', null, null, null, null, null);
 `
   ),
-  "ya está archivada o ya se unió a otra"
+  "Ese documento ya es de la ficha de Primera Con Documento"
 );
 
 // ---------------------------------------------------------------------------
@@ -454,7 +448,7 @@ exito(
   "buscar_clienta no muestra archivadas por defecto, sí con p_incluir_archivadas=true",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta(null, 'Buscar Archivada', '987444125', false, null, null) as id \\gset
+    `select retail.registrar_clienta('dni', null, 'Buscar Archivada', '987444125', null, null) as id \\gset
 select retail.archivar_clienta(:'id'::uuid, 'motivo', false, 1) as v \\gset
 select
   (select count(*) from retail.buscar_clienta('987444125')),

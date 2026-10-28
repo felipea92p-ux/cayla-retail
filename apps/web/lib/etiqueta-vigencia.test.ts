@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hoyLima, vigenciaDe } from "./etiqueta-vigencia";
+import { avisoDiaDeSemana, ordenarPorTemporada, repetirTemporada, vigenciaDe } from "./etiqueta-vigencia";
 
 describe("vigenciaDe", () => {
   it("sin fechas es permanente: no hay temporada", () => {
@@ -27,13 +27,76 @@ describe("vigenciaDe", () => {
   });
 });
 
-describe("hoyLima", () => {
-  it("a las 8 pm de Lima todavía es el mismo día (en UTC ya es el siguiente)", () => {
-    // 2026-09-19 01:00 UTC = 2026-09-18 20:00 en Lima (UTC-5, sin horario de verano).
-    expect(hoyLima(new Date("2026-09-19T01:00:00Z"))).toBe("2026-09-18");
+describe("repetirTemporada — las mismas fechas, un año después", () => {
+  const HOY = "2026-10-17";
+  it("solo se repite lo que ya pasó", () => {
+    expect(repetirTemporada("2026-10-17", "2026-10-31", HOY)).toBeNull();
+    expect(repetirTemporada("2026-11-09", "2026-11-30", HOY)).toBeNull();
+    expect(repetirTemporada(null, null, HOY)).toBeNull();
   });
+  it("Día de la Madre 2026: propone 2027 y, aparte, el mismo 2.º domingo de mayo con la temporada corrida entera", () => {
+    const r = repetirTemporada("2026-04-26", "2026-05-10", HOY)!;
+    expect(r).toMatchObject({ anio: 2027, desde: "2027-04-26", hasta: "2027-05-10" });
+    expect(r.mismoDia).toMatchObject({ desde: "2027-04-25", hasta: "2027-05-09", regla: "2.º domingo de mayo" });
+  });
+  it("el quinto de un mes es «el último» (Black Friday cierra el último lunes de noviembre)", () => {
+    const r = repetirTemporada("2026-11-09", "2026-11-30", "2026-12-05")!;
+    expect(r.mismoDia).toMatchObject({ hasta: "2027-11-29", regla: "último lunes de noviembre" });
+  });
+  it("si pasaron varios años, salta hasta la próxima que no haya pasado", () => {
+    expect(repetirTemporada("2024-04-26", "2024-05-10", HOY)).toMatchObject({ anio: 2027, hasta: "2027-05-10" });
+  });
+  it("el 29 de febrero, en un año sin él, pasa al 28", () => {
+    expect(repetirTemporada(null, "2028-02-29", "2028-03-10")).toMatchObject({ anio: 2029, desde: null, hasta: "2029-02-28" });
+  });
+});
 
-  it("a las 8 am de Lima es el día calendario normal", () => {
-    expect(hoyLima(new Date("2026-09-18T13:00:00Z"))).toBe("2026-09-18");
+describe("avisoDiaDeSemana — lo que dice la hoja al repetir", () => {
+  const r = repetirTemporada("2026-04-26", "2026-05-10", "2026-10-17")!;
+  it("con las fechas de sumar un año, dice que cambió el día y ofrece el mismo", () => {
+    expect(avisoDiaDeSemana(r, { desde: "2027-04-26", hasta: "2027-05-10" })).toEqual({
+      modo: "sumando-un-anio",
+      titulo: "En 2027, el 10 may. cae lunes",
+      detalle: "En 2026 fue domingo. Si la fiesta va siempre el mismo día de la semana, usa el domingo 9: toda la temporada se corre igual.",
+      boton: "Usar el domingo 9",
+    });
+  });
+  it("con las del mismo día, dice qué regla siguió", () => {
+    expect(avisoDiaDeSemana(r, { desde: "2027-04-25", hasta: "2027-05-09" })).toMatchObject({
+      modo: "mismo-dia",
+      titulo: "Termina el domingo 9 de mayo",
+      detalle: "El 2.º domingo de mayo, como en 2026.",
+    });
+  });
+  it("con otras fechas escritas a mano, calla: la persona ya decidió", () => {
+    expect(avisoDiaDeSemana(r, { desde: "2027-05-01", hasta: "2027-05-09" })).toBeNull();
+  });
+});
+
+describe("ordenarPorTemporada — lo que rige, lo que viene, lo que pasó y lo que no tiene fechas", () => {
+  it("ordena las festividades de producción como se viven, no por abecedario", () => {
+    const e = (nombre: string, vigenteDesde: string | null, vigenteHasta: string | null) => ({ nombre, vigenteDesde, vigenteHasta });
+    const lista = [
+      e("Aniversario CAYLA", "2026-10-01", "2026-10-14"),
+      e("Black Friday", "2026-11-09", "2026-11-30"),
+      e("CyberWow", null, null),
+      e("Día de la Madre", "2026-04-26", "2026-05-10"),
+      e("Galentine's Day", "2026-02-06", "2026-02-13"),
+      e("Halloween", "2026-10-17", "2026-10-31"),
+      e("Navidad", "2026-12-11", "2026-12-25"),
+    ];
+    expect(ordenarPorTemporada(lista, "2026-10-17").map((x) => x.nombre)).toEqual([
+      "Halloween", // rige hoy
+      "Black Friday", // viene primero
+      "Navidad",
+      "Galentine's Day", // ya pasó: vuelve en feb. 2027
+      "Día de la Madre",
+      "Aniversario CAYLA", // pasó hace 3 días: vuelve en oct. 2027
+      "CyberWow", // sin fechas
+    ]);
+  });
+  it("las que no tienen fechas quedan por nombre, y no se pierde ninguna", () => {
+    const lista = [{ nombre: "Top ventas", vigenteDesde: null, vigenteHasta: null }, { nombre: "Nuevo", vigenteDesde: null, vigenteHasta: null }];
+    expect(ordenarPorTemporada(lista, "2026-10-17").map((x) => x.nombre)).toEqual(["Nuevo", "Top ventas"]);
   });
 });

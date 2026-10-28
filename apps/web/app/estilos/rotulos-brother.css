@@ -1,0 +1,436 @@
+/* ==================================================================
+   Rótulos de anaquel ▸ la Brother y su tira (ADR-0366, act. 2026-10-12: Felipe eligió la maqueta A «Rollo»,
+   docs/maquetas/rotulos-2026-10/). La pantalla dibuja la impresora y los rótulos saliendo uno bajo otro, como del rollo,
+   cada uno con sus copias al costado (en angosto, debajo). Componente: components/rotulos/TiraBrother.tsx.
+
+   Color: solo tokens (ADR-0169, ADR-0336). La Brother es un objeto físico oscuro en los dos temas: se pinta con
+   `tinta-fija`/`crema-fija` y `sombra` (en oscuro, más honda que el fondo). La tira es papel: va en `.papel-fijo`.
+   Movimiento (ADR-0136): entra una vez (la impresora baja, se enciende la luz y la tira se imprime rótulo por rótulo) y
+   después solo responde a lo que se toca: sumar, quitar, juntar, imprimir. Sin rebote ni bucle; quieto con
+   `prefers-reduced-motion`. El cabezal rojo que baja es señal («esto es lo que sale»), no adorno.
+   ================================================================== */
+@layer components {
+  .rot-maquina {
+    container: rotulos / inline-size;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.25rem 0 0.5rem;
+    min-width: 0;
+  }
+  /* La Brother y su tira, centradas en lo que queda después de reservar 200 px a la derecha para las copias. */
+  .rot-maquina__escena {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: stretch;
+    padding-right: 200px;
+  }
+
+  /* ---------- la Brother ---------- */
+  .rot-brother {
+    position: relative;
+    z-index: 2;
+    width: calc(62mm * var(--z, 1) + 104px);
+    max-width: 100%;
+    animation: rot-brother-baja 750ms var(--ease-cayla) both 200ms;
+  }
+  .rot-brother__tapa {
+    height: 30px;
+    margin: 0 16px;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta-fija) 84%, var(--color-crema-fija)), color-mix(in srgb, var(--color-tinta-fija) 92%, var(--color-crema-fija)));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-crema-fija) 16%, transparent);
+  }
+  .rot-brother__frente {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 62px;
+    margin-top: -4px;
+    padding: 0 18px 8px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-tinta-fija) 86%, var(--color-crema-fija)) 0%, color-mix(in srgb, var(--color-tinta-fija) 75%, var(--color-sombra)) 100%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--color-crema-fija) 14%, transparent),
+      0 22px 34px -20px color-mix(in srgb, var(--color-sombra) 70%, transparent);
+  }
+  /* La boca por donde sale el papel. */
+  .rot-brother__frente::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: calc(62mm * var(--z, 1) + 18px);
+    max-width: calc(100% - 24px);
+    height: 8px;
+    translate: -50% 0;
+    border-radius: 5px 5px 0 0;
+    background: color-mix(in srgb, var(--color-tinta-fija) 55%, var(--color-sombra));
+    box-shadow: inset 0 2px 3px color-mix(in srgb, var(--color-sombra) 80%, transparent);
+  }
+  .rot-brother__luz {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-crema-fija) 22%, var(--color-tinta-fija));
+    animation: rot-luz-enciende 450ms var(--ease-cayla) forwards 950ms;
+    transition: background-color 300ms var(--ease-cayla), box-shadow 300ms var(--ease-cayla);
+  }
+  /* Imprimiendo: la luz pasa a ámbar mientras el cabezal recorre la tira. */
+  .rot-maquina[data-recorriendo] .rot-brother__luz {
+    animation: none;
+    background: color-mix(in srgb, var(--color-ambar) 45%, var(--color-crema-fija));
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--color-ambar) 30%, transparent),
+      0 0 14px 2px color-mix(in srgb, var(--color-ambar) 60%, transparent);
+  }
+  .rot-brother__nombre {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-crema-fija) 45%, transparent);
+  }
+  .rot-brother__perilla {
+    margin-left: auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--color-tinta-fija) 65%, var(--color-crema-fija)), color-mix(in srgb, var(--color-tinta-fija) 80%, var(--color-sombra)) 70%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-crema-fija) 10%, transparent);
+  }
+
+  /* ---------- la tira ---------- */
+  .rot-tira {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: calc(62mm * var(--z, 1));
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-sombra) 8%, transparent),
+      0 18px 30px -18px color-mix(in srgb, var(--color-sombra) 40%, transparent);
+  }
+  /* La sombra que deja la boca de la impresora sobre el papel. */
+  .rot-tira::before {
+    content: "";
+    position: absolute;
+    z-index: 6;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 18px;
+    pointer-events: none;
+    background: linear-gradient(color-mix(in srgb, var(--color-sombra) 22%, transparent), transparent);
+  }
+  .rot-tira:empty {
+    box-shadow: none;
+  }
+
+  .rot-seg {
+    position: relative;
+  }
+  /* Su alto es el del rótulo (40,1 mm por el zoom): con ese número exacto la tira se alarga y se cierra sin saltos
+     (animar las filas de una grilla dejaba al contenedor más alto que el papel: huecos crema entre rótulos). */
+  .rot-seg__papel {
+    --alto-papel: calc(40.1mm * var(--z, 1));
+    position: relative;
+    max-height: var(--alto-papel);
+    overflow: hidden;
+    background: var(--color-vidrio);
+  }
+  .rot-seg__papel .rotulo-anaquel {
+    zoom: var(--z, 1);
+    transition: opacity 350ms var(--ease-cayla);
+  }
+  /* El corte de la Brother entre un rótulo y el siguiente. */
+  .rot-seg + .rot-seg > .rot-seg__papel::before {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    right: 0;
+    top: 0;
+    border-top: 1px dashed color-mix(in srgb, var(--color-taupe) 40%, var(--color-vidrio));
+  }
+  .rot-seg__tijera {
+    position: absolute;
+    z-index: 3;
+    left: -28px;
+    top: -9px;
+    width: 16px;
+    height: 16px;
+    rotate: -90deg;
+    color: color-mix(in srgb, var(--color-taupe) 80%, transparent);
+  }
+
+  /* Sale de la Brother: la tira se alarga y el cabezal deja la tinta mientras baja. */
+  .rot-seg--nace > .rot-seg__papel {
+    animation: rot-papel-crece 700ms cubic-bezier(0.45, 0.05, 0.25, 1) both var(--espera, 0ms);
+  }
+  .rot-seg--nace > .rot-seg__papel::after {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    left: -3px;
+    right: -3px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-rojo);
+    box-shadow: 0 0 12px 3px color-mix(in srgb, var(--color-rojo) 45%, transparent);
+    opacity: 0;
+    animation: rot-cabezal-al-crecer 700ms linear both var(--espera, 0ms);
+  }
+  .rot-seg--nace .rot-seg__copias {
+    animation: rot-copias-aparecen 320ms var(--ease-cayla) both calc(var(--espera, 0ms) + 520ms);
+  }
+
+  /* La primera prenda se imprime sobre el papel de ejemplo: el cabezal baja y la tinta aparece de arriba abajo. */
+  .rot-seg--en-sitio .rot-seg__cubre {
+    animation: rot-cubre 560ms linear both 60ms;
+  }
+  .rot-seg--en-sitio .rot-seg__cabezal {
+    animation: rot-cabezal 560ms linear both 60ms;
+  }
+  /* Antes de mandar a la Brother: el cabezal recorre cada rótulo, uno tras otro (`--r` lo pone en su turno). */
+  .rot-seg--recorre .rot-seg__cubre {
+    animation: rot-cubre var(--d, 300ms) linear forwards var(--r, 0ms);
+  }
+  .rot-seg--recorre .rot-seg__cabezal {
+    animation: rot-cabezal var(--d, 300ms) linear forwards var(--r, 0ms);
+  }
+  .rot-seg__cubre {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: var(--color-vidrio);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .rot-seg__cabezal {
+    position: absolute;
+    z-index: 4;
+    left: -3px;
+    right: -3px;
+    top: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-rojo);
+    box-shadow: 0 0 12px 3px color-mix(in srgb, var(--color-rojo) 45%, transparent);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Se quita: sale de la tira hacia la derecha y la tira se cierra. */
+  .rot-seg--sale {
+    pointer-events: none;
+  }
+  .rot-seg--sale > .rot-seg__papel {
+    animation: rot-papel-se-cierra 360ms var(--ease-salida) forwards;
+  }
+  .rot-seg--sale .rot-seg__papel .rotulo-anaquel {
+    animation: rot-papel-sale 300ms var(--ease-salida) forwards;
+  }
+  .rot-seg--sale .rot-seg__copias,
+  .rot-seg--sale .rot-seg__tijera {
+    opacity: 0;
+    transition: opacity 120ms;
+  }
+
+  /* En 0 copias no sale: se apaga y lo dice. */
+  .rot-seg__no-sale {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+    background: repeating-linear-gradient(-45deg, transparent 0 7px, color-mix(in srgb, var(--color-taupe) 14%, transparent) 7px 8px);
+    opacity: 0;
+    transition: opacity 350ms var(--ease-cayla);
+    pointer-events: none;
+  }
+  .rot-seg__no-sale > span {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-vidrio);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-taupe) 30%, transparent);
+  }
+  .rot-seg--cero .rot-seg__papel .rotulo-anaquel {
+    opacity: 0.15;
+  }
+  .rot-seg--cero .rot-seg__no-sale {
+    opacity: 1;
+  }
+
+  /* Las copias, al costado del rótulo, unidas por una línea fina. */
+  .rot-seg__copias {
+    position: absolute;
+    left: calc(100% + 16px);
+    top: 50%;
+    translate: 0 -50%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .rot-seg__guia {
+    width: 16px;
+    height: 1px;
+    background: color-mix(in srgb, var(--color-taupe) 55%, transparent);
+  }
+  .rot-seg__etiqueta {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+
+  /* Sin prendas: un rótulo de ejemplo, en gris, asoma de la Brother. */
+  .rot-seg--ejemplo .rot-seg__papel {
+    animation: rot-asoma 900ms cubic-bezier(0.45, 0.05, 0.25, 1) both 700ms;
+  }
+  .rot-seg--ejemplo .rotulo-anaquel {
+    color: color-mix(in srgb, var(--color-taupe) 22%, var(--color-sand));
+  }
+  .rot-seg--ejemplo .rot-tallas span {
+    border-color: currentColor;
+  }
+  .rot-seg--ejemplo .rot-seg__copias {
+    animation: rot-copias-aparecen 500ms var(--ease-cayla) both 1.5s;
+  }
+  .rot-sello {
+    padding: 6px 11px;
+    border: 1px dashed color-mix(in srgb, var(--color-taupe) 50%, transparent);
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+
+  .rot-pie {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 0;
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    animation: rot-copias-aparecen 400ms var(--ease-cayla) both 300ms;
+  }
+  .rot-pie b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+
+  /* Angosto (celular, columna chica): las copias bajan bajo cada rótulo. */
+  @container rotulos (max-width: 560px) {
+    .rot-maquina__escena {
+      padding-right: 0;
+    }
+    .rot-seg__copias {
+      position: static;
+      translate: none;
+      justify-content: center;
+      padding: 10px 0 14px;
+      background: var(--color-crema);
+    }
+    .rot-seg__guia,
+    .rot-seg__tijera {
+      display: none;
+    }
+    .rot-tira {
+      box-shadow: none;
+    }
+    .rot-seg__papel {
+      box-shadow: 0 10px 16px -12px color-mix(in srgb, var(--color-sombra) 35%, transparent);
+    }
+    .rot-seg--sale .rot-seg__copias {
+      animation: rot-copias-se-van 300ms var(--ease-salida) forwards;
+    }
+  }
+
+  /* Las fichas de las prendas elegidas entran (las saca el ×; «Quitar todas» se perdona con «Deshacer»). */
+  .rot-ficha {
+    animation: rot-ficha-entra 380ms var(--ease-cayla) both;
+  }
+}
+
+@keyframes rot-brother-baja {
+  from { opacity: 0; transform: translateY(-18px); }
+}
+@keyframes rot-luz-enciende {
+  to {
+    background: color-mix(in srgb, var(--color-verde) 40%, var(--color-crema-fija));
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--color-verde) 22%, transparent),
+      0 0 12px 1px color-mix(in srgb, var(--color-verde) 55%, transparent);
+  }
+}
+@keyframes rot-papel-crece {
+  from { max-height: 0; }
+  to { max-height: var(--alto-papel); }
+}
+@keyframes rot-cabezal-al-crecer {
+  0%, 88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes rot-copias-aparecen {
+  from { opacity: 0; }
+}
+@keyframes rot-cubre {
+  0% { opacity: 1; clip-path: inset(0 0 0 0); }
+  98% { opacity: 1; clip-path: inset(100% 0 0 0); }
+  100% { opacity: 0; clip-path: inset(100% 0 0 0); }
+}
+@keyframes rot-cabezal {
+  0% { top: 0; opacity: 1; }
+  94% { top: calc(100% - 2px); opacity: 1; }
+  100% { top: calc(100% - 2px); opacity: 0; }
+}
+@keyframes rot-papel-se-cierra {
+  from { max-height: var(--alto-papel); }
+  to { max-height: 0; }
+}
+@keyframes rot-copias-se-van {
+  from { max-height: 80px; }
+  to { max-height: 0; padding-block: 0; opacity: 0; }
+}
+@keyframes rot-papel-sale {
+  to { opacity: 0; transform: translateX(42px); }
+}
+@keyframes rot-asoma {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes rot-ficha-entra {
+  from { opacity: 0; transform: scale(0.6) translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rot-maquina *,
+  .rot-maquina *::before,
+  .rot-maquina *::after,
+  .rot-brother,
+  .rot-ficha {
+    animation: none !important;
+    transition: none !important;
+  }
+  /* Quieta, la luz igual queda encendida. */
+  .rot-brother__luz {
+    background: color-mix(in srgb, var(--color-verde) 40%, var(--color-crema-fija));
+  }
+  .rot-seg--sale {
+    display: none;
+  }
+}

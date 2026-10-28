@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
  * Prueba de ADR-0240 y ADR-0250 contra el Postgres LOCAL:
- *   · «Una puerta, un candado» (20260927180000 y 20260927180200): `mover_entre_piso_y_almacen` pide «Bajada al piso» y
- *     `apartar_prenda` pide «Apartados»; `mover_interno` y `apartar_stock` ya no se llaman desde el navegador, pero las
- *     funciones que las usan por dentro (`bajar_al_piso`) siguen funcionando.
+ *   · «Una puerta, un candado» (20260927180000 y 20260927180200): `mover_entre_piso_y_almacen` pide el módulo de reponer
+ *     y `apartar_prenda` pide «Apartados»; `mover_interno` y `apartar_stock` ya no se llaman desde el navegador, pero las
+ *     funciones que las usan por dentro (`bajar_al_piso`) siguen funcionando. Desde ADR-0306 (20261002120000) el módulo
+ *     de reponer es Existencias: «Bajada al piso» ya no existe como módulo.
  *   · «Ajustar de una vez» (20260927180100): `ajustar_inventario` es todo o nada y con marca de reintento.
- *   · «Ajustar stock, módulo propio» (20260928110000, ADR-0250): Existencias/Conteos/Traslados YA NO alcanza para
- *     ajustar — hace falta el módulo «Ajustar stock» — y el módulo solo, sin los otros tres, alcanza.
+ *   · «Ajustar stock» (ADR-0250 lo hizo módulo propio; ADR-0306, 20261002120000, lo devolvió a función de los módulos de
+ *     inventario): ajusta el líder o quien ve Existencias, Conteos o Traslados — cualquiera de los tres alcanza solo —,
+ *     y quien no ve ninguno (p. ej. solo Caja) no.
  *
  * CÓMO. Como `ajuste_no_es_primera_carga.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
  * compartido), sesión simulada con `request.jwt.claim(s)`, y `pg_temp.intento` que devuelve el resultado o el error
@@ -137,26 +139,37 @@ const j = (texto) => JSON.parse(texto ?? "null");
 // ---------------------------------------------------------------------------------------------------------------------
 
 correr(
-  "1. Sin «Bajada al piso» ni «Apartados»: las puertas de la pantalla frenan, y las piezas internas no se alcanzan",
+  "1. Con SOLO Existencias: «Reponer» pasa, «Apartar» frena (pide «Apartados»), y las piezas internas no se alcanzan",
   `${soloModulos("integrante", ["existencias"])}${sesion(INTEGRANTE)}${COMO_API}${K("bajar", mover("v1", 1, "alm", "piso"))}
 ${K("apartar", apartar("v1"))}
 ${K("interno", directo("select retail.mover_interno('00000000-0000-4000-8000-000000000000', '00000000-0000-4000-8000-000000000000', 1, null, null)::text"))}
 ${K("apartar_stock", directo("select retail.apartar_stock('00000000-0000-4000-8000-000000000000', '00000000-0000-4000-8000-000000000000', 1, 'x', 'x', current_date)::text"))}
 ${COMO_POSTGRES}${K("piso", stock("v1", "piso"))}`,
   (d) => {
-    const b = j(d.bajar);
-    afirmar("«Reponer al piso» se rechaza con `bajada_sin_modulo`", b?.ok === false && b.hint === "bajada_sin_modulo", d.bajar);
+    afirmar("«Reponer al piso» pasa (es una función de Existencias, ADR-0306)", j(d.bajar)?.ok === true, d.bajar);
     const a = j(d.apartar);
     afirmar("«Apartar» se rechaza con `apartar_sin_modulo`", a?.ok === false && a.hint === "apartar_sin_modulo", d.apartar);
     afirmar("mover_interno ya no se llama desde el navegador (42501)", j(d.interno)?.estado === "42501", d.interno);
     afirmar("apartar_stock tampoco (42501)", j(d.apartar_stock)?.estado === "42501", d.apartar_stock);
+    afirmar("y el piso quedó en 1 (lo que repuso la puerta, nada más)", d.piso === "1", `piso=${d.piso}`);
+  },
+);
+
+correr(
+  "1b. SIN Existencias (solo Caja y Apartados): «Reponer» y bajar_al_piso frenan con `bajada_sin_modulo`, nada se mueve",
+  `${soloModulos("integrante", ["caja", "apartados"])}${sesion(INTEGRANTE)}${COMO_API}${K("bajar", mover("v1", 1, "alm", "piso"))}
+${K("bajada", `pg_temp.intento(format('select retail.bajar_al_piso(%L::uuid, %L::jsonb, gen_random_uuid())::text', :'tru', ${items(["v1", 1])}))`)}
+${COMO_POSTGRES}${K("piso", stock("v1", "piso"))}`,
+  (d) => {
+    afirmar("«Reponer» se rechaza con `bajada_sin_modulo`", j(d.bajar)?.ok === false && j(d.bajar).hint === "bajada_sin_modulo", d.bajar);
+    afirmar("bajar_al_piso también", j(d.bajada)?.ok === false && j(d.bajada).hint === "bajada_sin_modulo", d.bajada);
     afirmar("y el piso quedó en 0", d.piso === "0", `piso=${d.piso}`);
   },
 );
 
 correr(
-  "2. Con los módulos, las puertas hacen lo mismo que antes",
-  `${soloModulos("integrante", ["existencias", "bajada_piso", "apartados"])}${sesion(INTEGRANTE)}${COMO_API}${K("bajar", mover("v1", 2, "alm", "piso"))}
+  "2. Con Existencias y Apartados, las puertas hacen lo mismo que antes",
+  `${soloModulos("integrante", ["existencias", "apartados"])}${sesion(INTEGRANTE)}${COMO_API}${K("bajar", mover("v1", 2, "alm", "piso"))}
 ${K("retirar", mover("v1", 1, "piso", "alm"))}
 ${K("apartar", apartar("v2"))}
 ${COMO_POSTGRES}${K("piso", stock("v1", "piso"))}
@@ -172,7 +185,7 @@ ${K("apartada", "(select coalesce(sum(cantidad_apartada), 0) from retail.stock w
 
 correr(
   "3. La puerta de piso solo mueve entre el piso y el almacén de la misma tienda",
-  `${soloModulos("integrante", ["existencias", "bajada_piso"])}${sesion(INTEGRANTE)}${COMO_API}${K("cuarentena", mover("v1", 1, "alm", "cuar"))}
+  `${soloModulos("integrante", ["existencias"])}${sesion(INTEGRANTE)}${COMO_API}${K("cuarentena", mover("v1", 1, "alm", "cuar"))}
 ${COMO_POSTGRES}${K("alm", stock("v1", "alm"))}`,
   (d) => {
     const r = j(d.cuarentena);
@@ -183,7 +196,7 @@ ${COMO_POSTGRES}${K("alm", stock("v1", "alm"))}`,
 
 correr(
   "4. Las funciones que usan mover_interno por dentro no perdieron nada: bajar_al_piso sigue bajando",
-  `${soloModulos("integrante", ["existencias", "bajada_piso"])}${sesion(INTEGRANTE)}${COMO_API}${K("bajada", `pg_temp.intento(format('select retail.bajar_al_piso(%L::uuid, %L::jsonb, gen_random_uuid())::text', :'tru', ${items(["v1", 3])}))`)}
+  `${soloModulos("integrante", ["existencias"])}${sesion(INTEGRANTE)}${COMO_API}${K("bajada", `pg_temp.intento(format('select retail.bajar_al_piso(%L::uuid, %L::jsonb, gen_random_uuid())::text', :'tru', ${items(["v1", 3])}))`)}
 ${COMO_POSTGRES}${K("piso", stock("v1", "piso"))}`,
   (d) => {
     afirmar("bajar_al_piso pasa", j(d.bajada)?.ok === true, d.bajada);
@@ -272,7 +285,7 @@ ${K("repetida", ajustar({ ajustes: items(["v1", 1]), cargas: items(["v1", 1]) })
 );
 
 correr(
-  "9. Quien no puede ajustar, no ajusta (el candado de registrar_movimiento, hoy ADR-0250)",
+  "9. Quien no puede ajustar, no ajusta (el candado de registrar_movimiento: fn_puede_ajustar_stock, ADR-0306)",
   `select gen_random_uuid() as tok \\gset
 ${soloModulos("integrante", ["vender"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
 ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
@@ -282,40 +295,40 @@ ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
   },
 );
 
-// ---------------------------------------------------------------------------------------------------------------------
-// ADR-0250: «Ajustar stock» se separa de Existencias/Conteos/Traslados
+// ADR-0306: «Ajustar stock» es una función de Existencias/Conteos/Traslados, ya no un módulo propio (ADR-0250)
 // ---------------------------------------------------------------------------------------------------------------------
 
+for (const modulos of [["existencias", "conteos", "traslados"], ["existencias"], ["conteos"], ["traslados"]]) {
+  correr(
+    `10a. Con ${modulos.join(" + ")} alcanza para ajustar (fn_puede_ajustar_stock: líder o Existencias/Conteos/Traslados)`,
+    `select gen_random_uuid() as tok \\gset
+${soloModulos("integrante", modulos)}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
+${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
+    (d) => {
+      afirmar("pasa", j(d.r)?.ok === true, d.r);
+      afirmar("y v1 quedó en 6", d.alm1 === "6", `alm=${d.alm1}`);
+    },
+  );
+}
+
 correr(
-  "10a. Existencias + Conteos + Traslados YA NO alcanza para ajustar (antes sí; ADR-0250)",
+  "10b. Sin Existencias, Conteos ni Traslados (solo Caja y Apartados) NO alcanza para ajustar",
   `select gen_random_uuid() as tok \\gset
-${soloModulos("integrante", ["existencias", "conteos", "traslados"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
+${soloModulos("integrante", ["caja", "apartados"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
 ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
   (d) => {
-    afirmar("se rechaza con `ajuste_sin_modulo`", j(d.r)?.ok === false && j(d.r).hint === "ajuste_sin_modulo", d.r);
+    afirmar("se rechaza con `ajuste_sin_modulo` y el mensaje ya no nombra un módulo «Ajustar stock»", j(d.r)?.ok === false && j(d.r).hint === "ajuste_sin_modulo" && !String(j(d.r).msg).includes("«Ajustar stock»"), d.r);
     afirmar("y v1 sigue en 5", d.alm1 === "5", `alm=${d.alm1}`);
   },
 );
 
 correr(
-  "10b. Solo «Ajustar stock» (sin Existencias, Conteos ni Traslados) alcanza para ajustar",
-  `select gen_random_uuid() as tok \\gset
-${soloModulos("integrante", ["ajustar_stock"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
-${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
-  (d) => {
-    afirmar("pasa", j(d.r)?.ok === true, d.r);
-    afirmar("y v1 quedó en 6", d.alm1 === "6", `alm=${d.alm1}`);
-  },
-);
-
-correr(
-  "10c. Cerrar conteo y cerrar traslado con diferencia NO cambiaron: siguen pidiendo Existencias/Conteos/Traslados, no «Ajustar stock»",
-  `${soloModulos("integrante", ["ajustar_stock"])}${sesion(INTEGRANTE)}${COMO_API}${K("conteo", directo("select retail.cerrar_conteo('00000000-0000-4000-8000-000000000000')::text"))}
+  "10c. Cerrar conteo y cerrar traslado con diferencia siguen pidiendo Existencias/Conteos/Traslados: con solo Caja se rechazan",
+  `${soloModulos("integrante", ["caja"])}${sesion(INTEGRANTE)}${COMO_API}${K("conteo", directo("select retail.cerrar_conteo('00000000-0000-4000-8000-000000000000')::text"))}
 ${K("traslado", directo("select retail.cerrar_traslado_con_diferencia('00000000-0000-4000-8000-000000000000', null)::text"))}`,
   (d) => {
-    // Con solo «Ajustar stock» (sin Conteos/Traslados), las dos deben frenar ANTES de buscar el id — mismo mensaje de
-    // siempre («Solo un líder puede cerrar…»), no `ajuste_sin_modulo`: es el candado de fn_puede_ajustar_inventario(),
-    // que este ADR no tocó.
+    // Con solo Caja las dos deben frenar ANTES de buscar el id — mismo mensaje de siempre («Solo un líder puede
+    // cerrar…»), no `ajuste_sin_modulo`: es el candado de fn_puede_ajustar_inventario(), la misma capacidad.
     afirmar("cerrar_conteo se rechaza (no por `ajuste_sin_modulo`)", j(d.conteo)?.ok === false && j(d.conteo).hint !== "ajuste_sin_modulo", d.conteo);
     afirmar("cerrar_traslado_con_diferencia se rechaza (no por `ajuste_sin_modulo`)", j(d.traslado)?.ok === false && j(d.traslado).hint !== "ajuste_sin_modulo", d.traslado);
   },

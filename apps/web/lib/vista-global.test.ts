@@ -24,7 +24,7 @@ function hojas(nodos: readonly Nodo[]): { id: string; ruta: string; modulo?: Cla
 /** Lo que se hace parado en una sede: cada uno deja un movimiento que tiene que quedar anotado EN una sede. */
 const DE_OPERACION: ClaveModulo[] = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "facturacion",
-  "bajada_piso", "ajustar_stock", "conteos", "recibir", "notas_credito", "facturas_compra",
+  "conteos", "recibir", "facturas_compra",
 ];
 
 describe("CAYLA Global es para decidir, no para operar", () => {
@@ -56,15 +56,26 @@ describe("la barrera de rutas y el menú dicen lo mismo", () => {
     expect(abiertas).toEqual([]);
   });
 
-  it("la ruta cuenta entera: /finanzas/gastos sí, /finanzasx no; el inicio de una sede no; elegir sede sí", () => {
+  it("la ruta cuenta entera: /finanzas/gastos sí, /finanzasx no; el Inicio sí, pero nada «cuelga» de él; elegir sede sí", () => {
     expect(rutaDeLaVistaGlobal("/finanzas/gastos")).toBe(true);
     expect(rutaDeLaVistaGlobal("/finanzas")).toBe(true);
     expect(rutaDeLaVistaGlobal("/finanzasx")).toBe(false);
-    expect(rutaDeLaVistaGlobal("/")).toBe(false);
+    // ADR-0322: el Inicio del Admin es el Observatorio, que mira toda CAYLA. Que «/» esté en la lista no abre lo demás.
+    expect(rutaDeLaVistaGlobal("/")).toBe(true);
     expect(rutaDeLaVistaGlobal("/vender")).toBe(false);
     expect(rutaDeLaVistaGlobal("/inventario")).toBe(false);
+    // Frescura del piso sí (ADR-0208, act. 2026-10-10 (b): una barra por tienda); lo demás de Inventario, no.
+    expect(rutaDeLaVistaGlobal("/gestion/frescura")).toBe(true);
+    expect(rutaDeLaVistaGlobal("/inventario/movimientos")).toBe(false);
     expect(rutaDeLaVistaGlobal(RUTA_ELEGIR_SEDE)).toBe(true);
     expect(rutaDeLaVistaGlobal("/global")).toBe(true);
+  });
+
+  it("Clientas sí, pero Clientas ▸ Avisos no: manda desde el WhatsApp de UNA tienda (ADR-0288 act. g)", () => {
+    expect(rutaDeLaVistaGlobal("/clientas")).toBe(true);
+    expect(rutaDeLaVistaGlobal("/clientas/cartel")).toBe(true);
+    expect(rutaDeLaVistaGlobal("/clientas/avisos")).toBe(false);
+    expect(rutaDeLaVistaGlobal("/clientas/avisosx")).toBe(true);
   });
 
   it("las rutas de API no son pantallas: la barrera no las toca", () => {
@@ -88,12 +99,12 @@ describe("lo que la cuenta usa en cada vista", () => {
     expect(enSede).toHaveLength(CLAVES_MODULO.length - 1);
   });
 
-  it("el menú en CAYLA Global empieza por «Salud del negocio» y no trae Punto de venta, Caja ni Inicio", () => {
+  it("el menú en CAYLA Global empieza por Inicio (el Observatorio, ADR-0322) y «Salud del negocio», sin Punto de venta ni Caja", () => {
     const modulos = modulosEnLaVista("global", todo).map((m) => m.clave);
     const menu = menuPara({ ubicacionTipo: "tienda", permisos: PERMISOS, modulos });
     const hrefs = JSON.stringify(menu.riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)) ?? [];
-    expect(hrefs[0]).toBe("/global");
-    for (const r of ["/", "/vender", "/caja", "/inventario/conteo", "/recibir"]) expect(hrefs).not.toContain(r);
+    expect(hrefs.slice(0, 2)).toEqual(["/", "/global"]);
+    for (const r of ["/vender", "/caja", "/inventario/conteo", "/recibir"]) expect(hrefs).not.toContain(r);
   });
 
   it("parado en una sede, el menú no trae «Salud del negocio» aunque la cuenta vea CAYLA Global", () => {

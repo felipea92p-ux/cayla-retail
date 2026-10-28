@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
-import { entornoLucode } from "@/lib/lucode";
 import { transmitirComprobante, type Cliente } from "@/lib/transmitir-comprobante";
-import { cronNoTransmite } from "@/lib/transmision-reglas";
+import { consultarComprobante } from "@/lib/consultar-comprobante";
+import { cronNoAutorizado } from "@/lib/transmision-reglas";
 import { capturarError } from "@/lib/errores";
 
 // Cada comprobante puede tardar hasta 15 s en Lucode (timeout de `lib/lucode.ts`).
@@ -11,18 +11,54 @@ export const maxDuration = 60;
 // Toma lo vencido de la cola con `fn_tomar_comprobantes_para_reintento` —que lo reserva 5 minutos en la misma
 // operación, así dos pasadas a la vez (el cron y una pantalla) nunca envían el mismo comprobante— y lo transmite
 // de a uno. Hasta 3 por llamada: 3 × 15 s entra en `maxDuration`, y ninguna pantalla espera mucho.
+//
+// Un comprobante que Lucode ya tenía (ADR-0378) suma dos lecturas más (su estado y su XML): con Lucode lento, tres así
+// podrían pasar de 60 s. Por eso, pasados `PRESUPUESTO_MS`, no se empieza otro: lo que quedó tomado espera su reserva de
+// 5 minutos y lo recoge la próxima pasada. Cortar ENTRE comprobantes nunca deja uno a medias; cortar dentro de uno (lo
+// que haría Vercel al llegar a `maxDuration`) podría dejar un envío hecho sin guardar.
+const PRESUPUESTO_MS = 30_000;
+
 async function barrer(supabase: Cliente, ubicacionId: string | null) {
+  const inicio = Date.now();
+  const resultados = [];
   const { data: ids, error } = await supabase.rpc("fn_tomar_comprobantes_para_reintento", {
     p_ubicacion_id: ubicacionId ?? undefined,
     p_limite: 3,
   });
   if (error) return { error: error.message };
-  const resultados = [];
   for (const id of ids ?? []) {
+    if (Date.now() - inicio > PRESUPUESTO_MS) break;
     const r = await transmitirComprobante(supabase, { comprobanteId: id });
-    resultados.push({ id, status: r.status, estado: r.body.estado ?? null });
+    resultados.push({ id, status: r.status, estado: r.body.estado ?? null, motivo: r.body.motivo ?? null });
   }
-  return { tomados: resultados.length, resultados };
+  // Sin tiempo, la consulta espera a la próxima pasada (no reserva nada que no vaya a preguntar).
+  const consultas = Date.now() - inicio > PRESUPUESTO_MS ? { consultados: 0, actualizados: 0 } : await consultarLoQueQuedoEnTramite(supabase, ubicacionId, inicio);
+  return { tomados: resultados.length, resultados, ...consultas };
+}
+
+// Lo que quedó esperando a SUNAT —un envío que respondió PENDIENTE, una baja sin confirmar— se pregunta en la
+// misma pasada (`20261007200000`): sin esto, B001-113…192 pasaron una semana «enviado» estando RECHAZADAS.
+// Hasta 3 por pasada, como el reintento. Si la base todavía no tiene la función, no frena el reintento.
+async function consultarLoQueQuedoEnTramite(supabase: Cliente, ubicacionId: string | null, inicio: number) {
+  const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: string[] | null; error: { message: string } | null }>;
+  const { data: ids, error } = await rpcLibre("fn_tomar_comprobantes_para_consultar", {
+    p_ubicacion_id: ubicacionId ?? undefined,
+    p_limite: 3,
+  });
+  if (error) {
+    capturarError("lucode/reintentar: no se pudo tomar lo que espera a SUNAT", error);
+    return { consultados: 0, actualizados: 0 };
+  }
+  let actualizados = 0;
+  for (const id of ids ?? []) {
+    if (Date.now() - inicio > PRESUPUESTO_MS) break;
+    const r = await consultarComprobante(supabase, id);
+    if (r.accion === "actualizar" || r.accion === "confirmar_baja") actualizados++;
+  }
+  return { consultados: (ids ?? []).length, actualizados };
 }
 
 // POST /api/lucode/reintentar  { ubicacion_id?: string }
@@ -51,14 +87,11 @@ export async function POST(request: Request) {
 // para que la cola avance aunque nadie tenga una pantalla abierta (una caída de Lucode de noche). Vercel manda
 // `Authorization: Bearer $CRON_SECRET`; sin esa variable, o con otra clave, no pasa nadie. No trae sesión de
 // persona: entra con la llave de servicio, que la base deja tomar la cola de todas las sedes pero solo lo emitido
-// en las últimas 4 horas (`20260924113817`); lo más viejo lo avisa el Inicio del líder (PL-114).
+// en las últimas 4 horas (`20260924113817`); lo más viejo lo avisa el Inicio del líder (PL-114). Transmite en el
+// ambiente que tenga Lucode, también en producción (ADR-0165, «Actualización 2026-10-12»): ver `cronNoAutorizado`.
 export async function GET(request: Request) {
-  // Clave del cron y SOLO sandbox: la regla y su porqué, en `cronNoTransmite`.
-  const no = cronNoTransmite(request.headers.get("authorization"), process.env.CRON_SECRET, entornoLucode());
-  if (no) {
-    if (no.status === 200) console.warn("Cron de SUNAT: LUCODE_ENTORNO no es sandbox, no se transmite nada.");
-    return Response.json(no.body, { status: no.status });
-  }
+  const no = cronNoAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET);
+  if (no) return Response.json(no.body, { status: no.status });
 
   let supabase: Cliente;
   try {

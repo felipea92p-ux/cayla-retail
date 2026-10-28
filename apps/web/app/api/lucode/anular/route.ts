@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/lucode";
 import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
 import { capturarError } from "@/lib/errores";
+import { motivoParaNoPedirBaja } from "@/lib/anular-comprobante-reglas";
+import type { EstadoComprobante } from "@/lib/comprobantes-reglas";
 
 // POST /api/lucode/anular  { comprobante_id: string, motivo: string }
 //
@@ -10,9 +12,12 @@ import { capturarError } from "@/lib/errores";
 //            exige según su tipo (resumen diario para boletas, comunicación de
 //            baja para facturas y notas) y guarda el resultado real —
 //            distinguiendo "confirmada" de "en trámite".
-//   ASUME:   sesión válida y persona líder (la RPC lo vuelve a exigir; una
-//            pantalla no es un permiso), y el responsable del combo en los
-//            encabezados `x-responsable`/`x-ubicacion` (ADR-0161).
+//   ASUME:   sesión válida y el responsable del combo en los encabezados
+//            `x-responsable`/`x-ubicacion` (ADR-0161). Que vea Facturación
+//            (antes, que fuera líder: ADR-0534), que no haya nota vigente ni
+//            una baja en trámite se revisa ANTES de
+//            llamar a Lucode (`motivoParaNoPedirBaja`); la RPC lo vuelve a
+//            exigir al guardar.
 //   NO HACE: no decide el plazo. La documentación de Lucode se contradice
 //            (3 vs 5 días) y SUNAT habla de 7: bloquear por una fecha
 //            inventada acá negaría anulaciones legítimas. Se intenta, y si el
@@ -57,7 +62,7 @@ export async function POST(request: Request) {
 
   const { data: comprobante, error: errComprobante } = await supabase
     .from("comprobantes")
-    .select("id, tipo, serie, numero, estado, entorno_transmision")
+    .select("id, tipo, serie, numero, estado, entorno_transmision, anulacion_solicitada_at")
     .eq("id", comprobanteId)
     .maybeSingle();
 
@@ -70,12 +75,29 @@ export async function POST(request: Request) {
   if (!comprobante) {
     return Response.json({ error: "Comprobante no encontrado o sin permiso para verlo" }, { status: 404 });
   }
-  if (comprobante.estado !== "aceptado") {
-    return Response.json(
-      { error: `Solo se anula un comprobante aceptado por SUNAT (este está "${comprobante.estado}").` },
-      { status: 409 }
-    );
+
+  // Lo que `anular_comprobante` exige (el módulo Facturación, sin nota vigente) y la baja ya en trámite se revisan ANTES de Lucode: lo
+  // que llega a SUNAT no se deshace, y si la base lo rechazara recién al guardar, la baja quedaría pedida sin
+  // registrarse. Si no se puede saber (la base no responde), no se pide: 503, nunca «adelante».
+  const [{ data: veFacturacion, error: errModulo }, { count: notasVigentes, error: errNotas }] = await Promise.all([
+    supabase.rpc("fn_ve_modulo", { p_clave: "facturacion" }),
+    supabase
+      .from("comprobantes")
+      .select("id", { count: "exact", head: true })
+      .eq("comprobante_original_id", comprobante.id)
+      .neq("estado", "anulado"),
+  ]);
+  if (errModulo || errNotas || notasVigentes === null) {
+    capturarError("lucode/anular: no se pudo revisar el permiso o las notas", errModulo ?? errNotas, { comprobante_id: comprobante.id });
+    return Response.json({ error: "No se pudo comprobar si se puede anular. Reintenta en un momento." }, { status: 503 });
   }
+  const rechazo = motivoParaNoPedirBaja({
+    veFacturacion: veFacturacion === true,
+    estado: comprobante.estado as EstadoComprobante,
+    anulacion_solicitada_at: comprobante.anulacion_solicitada_at,
+    notasVigentes,
+  });
+  if (rechazo) return Response.json({ error: rechazo.error }, { status: rechazo.status });
   // Mismo criterio que las notas (ADR-0015): no se pide una baja real de algo
   // que solo existe en el sandbox, ni al revés.
   if (comprobante.entorno_transmision && comprobante.entorno_transmision !== entornoLucode()) {

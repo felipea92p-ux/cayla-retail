@@ -9,25 +9,30 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { CierrePulso } from "@/components/finanzas/CierrePulso";
+import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
+import { diaLima } from "@/lib/fechas-lima";
+import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import {
   avisosPendientes,
   bajadaUnidad,
   deUnidad,
   deUnidadLarga,
-  diaDe,
   enlaceChequeo,
   estadoConsolidado,
   estadoTarjeta,
+  etiquetaEnlace,
   historiaDe,
   huellaCorta,
   nombreMes,
   primerNombre,
   puedeCerrar,
+  resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
   textoOpcionMes,
@@ -38,6 +43,7 @@ import {
   type PanelCierre,
   type Unidad,
 } from "@/lib/cierre-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-cierre.js`): cabecera con «CAYLA entera» y el mes → la matriz de unidades con su estado y su huella → los chequeos
@@ -49,19 +55,36 @@ const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as stri
 
 type Accion = { tipo: "cerrar"; unidad: Unidad } | { tipo: "consolidado" } | { tipo: "reabrir"; unidad: Unidad } | null;
 
-export function CierreMes({ panel, falla, unidadPedida }: { panel: PanelCierre | null; falla: string | null; unidadPedida: string | null }) {
+/**
+ * `inicioFinanzas` (ADR-0332): desde cuándo cuenta Finanzas; los meses anteriores no se ofrecen para cerrar (cerrar un mes que no
+ * se cuenta congelaría un diario vacío y bloquearía mover el corte). `avisoCorte`: el mes que se pidió es anterior al corte;
+ * en vez de un panel vacío se dice por qué.
+ */
+export function CierreMes({
+  panel,
+  falla,
+  unidadPedida,
+  inicioFinanzas = null,
+  avisoCorte = null,
+}: {
+  panel: PanelCierre | null;
+  falla: string | null;
+  unidadPedida: string | null;
+  inicioFinanzas?: string | null;
+  avisoCorte?: string | null;
+}) {
   if (!panel) {
     return (
       <div className="space-y-6">
         <CabeceraPantalla sobretitulo="Finanzas · Cierre de mes" titulo="Cierre de mes" />
-        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla ?? "No se pudo leer el cierre de mes."}</p>
+        <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{avisoCorte ?? falla ?? "No se pudo leer el cierre de mes."}</p>
       </div>
     );
   }
-  return <Pantalla panel={panel} unidadPedida={unidadPedida} />;
+  return <Pantalla panel={panel} unidadPedida={unidadPedida} inicioFinanzas={inicioFinanzas} />;
 }
 
-function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: string | null }) {
+function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre; unidadPedida: string | null; inicioFinanzas: string | null }) {
   const router = useRouter();
   const { mes, unidades, consolidado } = panel;
   const [elegida, setElegida] = useState<string | null>(() => unidadInicial(unidades, unidadPedida));
@@ -86,17 +109,27 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
               className="w-fit min-w-[150px]"
               valor={mes}
               onValor={irMes}
-              opciones={panel.meses.map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
+              opciones={panel.meses.filter((m) => m.mes === mes || !mesAntesDelCorte(m.mes, inicioFinanzas)).map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
             />
           </>
         }
       />
 
-      <div className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
-        {unidades.map((x) => {
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
+      <CierrePulso pulso={pulsoCierre(panel)} />
+
+      <div data-guia="fin-cierre.matriz" className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
+        {unidades.map((x, i) => {
           const e = estadoTarjeta(x);
           return (
-            <button key={x.clave} type="button" className="fin-unidad" aria-pressed={u?.clave === x.clave} onClick={() => setElegida(x.clave)}>
+            <button
+              key={x.clave}
+              type="button"
+              className="fin-unidad"
+              aria-pressed={u?.clave === x.clave}
+              onClick={() => setElegida(x.clave)}
+              data-guia={i === 0 ? "fin-cierre.primera-unidad" : i === 1 ? "fin-cierre.otra-unidad" : undefined}
+            >
               <span className="fin-unidad-n">{x.nombre}</span>
               <Chip tono={e.tono} className="self-start">
                 {e.texto}
@@ -104,19 +137,19 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
               {x.estado === "cerrado" && x.cierre ? (
                 <>
                   <span className="fin-unidad-sub">
-                    {fechaCorta(diaDe(x.cierre.cerradoEn))} · {primerNombre(x.cierre.cerradoPor)}
+                    {fechaCorta(diaLima(x.cierre.cerradoEn))} · {primerNombre(x.cierre.cerradoPor)}
                   </span>
                   <span className="fin-unidad-h" title={x.cierre.huella}>
                     {huellaCorta(x.cierre.huella)}
                   </span>
                 </>
               ) : x.estado === "reabierto" && x.cierre?.reabiertoEn ? (
-                <span className="fin-unidad-sub">reabierto el {fechaCorta(diaDe(x.cierre.reabiertoEn))}</span>
+                <span className="fin-unidad-sub">reabierto el {fechaCorta(diaLima(x.cierre.reabiertoEn))}</span>
               ) : null}
             </button>
           );
         })}
-        <div className="fin-unidad fin-unidad-cons">
+        <div className="fin-unidad fin-unidad-cons" data-guia="fin-cierre.consolidado">
           <span className="fin-unidad-n">CAYLA entera</span>
           {cons.estado === "cerrado" ? (
             <>
@@ -146,7 +179,7 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
 
       <section className="fin-dos-col fin-cierre-cols">
         {u ? <Chequeos panel={panel} u={u} onCerrar={() => setAccion({ tipo: "cerrar", unidad: u })} onReabrir={() => setAccion({ tipo: "reabrir", unidad: u })} /> : <div />}
-        <Superficie pad className="anim-sube">
+        <Superficie pad className="anim-sube" guia="fin-cierre.rutina">
           <p className="label-cayla text-[11px] text-taupe">La rutina de fin de mes</p>
           <div className="fin-pasos-cierre">
             <div>
@@ -191,11 +224,11 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
   const historia = historiaDe(panel, u);
   const cerrada = u.estado === "cerrado";
   return (
-    <Superficie pad className="anim-sube">
+    <Superficie pad className="anim-sube" guia="fin-cierre.chequeos">
       <CabeceraBloque titulo={tituloUnidad(panel.mes, u)} bajada={bajadaUnidad(u)} />
       <ul className="fin-chequeos">
         {u.chequeos.map((c, i) => {
-          const t = textoChequeo(c, panel.mes);
+          const t = textoChequeo(c, panel.mes, u);
           const href = cerrada ? null : enlaceChequeo(c, u, panel.mes);
           return (
             <li key={c.clave} {...entra(i + 1)}>
@@ -207,8 +240,8 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
                 <p>{t.detalle}</p>
               </div>
               {href ? (
-                <Link href={href} className="btn-cayla btn-sutil btn-chico">
-                  Resolver
+                <Link href={href} className="btn-cayla btn-sutil btn-chico" data-guia="fin-cierre.resolver">
+                  {etiquetaEnlace(c)}
                 </Link>
               ) : (
                 <span />
@@ -224,7 +257,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
           ))}
         </ul>
       )}
-      <div className="fin-botones mt-4">
+      <div className="fin-botones mt-4" data-guia="fin-cierre.boton">
         {cerrada ? (
           <button type="button" className="btn-cayla btn-secundario" onClick={onReabrir}>
             Reabrir…
@@ -266,7 +299,9 @@ function useEjecutar() {
 
 function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad: Unidad; onCerrar: () => void; alCerrar: () => void }) {
   const { responsable, guardando, ejecutar } = useEjecutar();
+  // Lo que falta, dicho por lo que falta («conteos de inventario sin cerrar»), no por el título del chequeo, que dice el estado bueno.
   const avisos = avisosPendientes(unidad);
+  const resumen = resumenAvisos(avisos);
   const titulo = `Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`;
   async function cerrar() {
     const ok = await ejecutar(
@@ -286,12 +321,11 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
       titulo={titulo}
       subtitulo={`Desde ahora nadie podrá registrar ni cambiar gastos, facturas, pagos ni movimientos ${deUnidad(unidad)} con fecha de ese mes. Se guarda el diario con su huella.`}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
-          <b>Cierras con {avisos.length === 1 ? "un aviso" : `${avisos.length} avisos`}:</b>{" "}
-          {avisos.map((c) => textoChequeo(c, mes).titulo.toLowerCase()).join(" · ")}. Quedan guardados en la historia del cierre.
+          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. Quedan guardados en la historia del cierre.
         </div>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando} />
@@ -299,9 +333,9 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar el mes"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar el mes
+        </Boton>
       </div>
     </Modal>
   );
@@ -324,16 +358,16 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
       subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar consolidado"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar consolidado
+        </Boton>
       </div>
     </Modal>
   );
@@ -361,7 +395,7 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
       titulo={`Reabrir ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`}
       subtitulo="Los números de ese mes pueden volver a cambiar. Queda en la historia quién, cuándo y por qué; CAYLA entera también se reabre."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <CampoFin etiqueta="Motivo (obligatorio)" htmlFor="reabrir-motivo" ayuda={tocado && error ? error : undefined} tono={tocado && error ? "aviso" : undefined}>
         <InputFin id="reabrir-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={`Ej. llegó una factura de ${nombreMes(mes)} tarde`} />
@@ -371,9 +405,9 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={reabrir} disabled={guardando || !responsable.listo}>
-          {guardando ? "Reabriendo…" : "Reabrir"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Reabriendo…" type="button" onClick={reabrir} disabled={guardando || !responsable.listo}>
+          Reabrir
+        </Boton>
       </div>
     </Modal>
   );

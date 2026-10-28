@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Check, Copy } from "lucide-react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { ETIQUETA_METODO } from "@/lib/compras-reglas";
 import {
   billeterasTexto,
@@ -13,10 +13,16 @@ import {
   formatoCelular,
   type DatosPagoProveedor,
 } from "@/lib/proveedores-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 // «Cómo se le paga a este proveedor» (ADR-0134): cuenta, CCI, Yape/Plin y titular, cada uno con su «Copiar».
 // UNA sola fuente para la ficha del proveedor y para los modales de pago (antes eran tres copias distintas,
 // y el «Yape / Plin» del pago mostraba el WhatsApp del contacto — plata mandada al celular equivocado).
+//
+// El TITULAR va primero (Felipe 2026-10-21): es lo que se compara con el nombre que muestra el banco o Yape ANTES de confirmar, y
+// pagar al celular equivocado no se revierte. Y si la cuenta que mira no puede ver los datos (`datos.ocultos`), se dice «no puedes
+// verlos», nunca «sin cuenta»: no se sabe si el proveedor la tiene.
 //
 // Los datos salen enmascarados y «Ver completos» los destapa (son datos de un tercero); «Copiar» copia
 // siempre el valor completo, sin guiones ni espacios, listo para pegar en la app del banco. Sin cuenta, sin CCI
@@ -50,33 +56,30 @@ export function CuentasProveedor({
   onEditar,
   titulo = "Paga por",
   className = "",
+  mostrarPlazo = true,
+  etiquetaForma,
 }: {
   datos: DatosPagoProveedor;
   /** Si se pasa, aparece «Editar» y, cuando no hay datos, «Agregar…». */
   onEditar?: () => void;
   titulo?: string;
   className?: string;
+  /** «Contado» o «Crédito a N días»: es de un proveedor de Compras; un gasto fijo no lo tiene (ADR-0452). */
+  mostrarPlazo?: boolean;
+  /** Dice la forma de pago con sus palabras (la ficha de un gasto fijo), en vez de la «preferida» de un proveedor. */
+  etiquetaForma?: string;
 }) {
   const [ver, setVer] = useState(false);
-  const [copiado, setCopiado] = useState<string | null>(null);
   const filas = filasDe(datos, ver);
   const cobraEnEfectivo = datos.formaPagoPreferida === "efectivo";
   const sinNada = filas.length === 0;
-  const forma = datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null;
-
-  async function copiar(f: Fila) {
-    try {
-      await navigator.clipboard.writeText(f.copiar);
-      setCopiado(f.clave);
-      window.setTimeout(() => setCopiado((c) => (c === f.clave ? null : c)), 1500);
-    } catch {
-      // Sin permiso del portapapeles el valor sigue a la vista con «Ver completos»: se puede copiar a mano.
-      setVer(true);
-    }
-  }
+  const ocultos = datos.ocultos === true;
+  // Ámbar solo si de verdad falta la cuenta: lo que no se puede ver no se acusa de faltar.
+  const faltaCuenta = sinNada && !cobraEnEfectivo && !ocultos;
+  const forma = etiquetaForma ?? (datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null);
 
   return (
-    <div className={`anim-revelar rounded-xl border p-4 ${sinNada && !cobraEnEfectivo ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
+    <div className={`anim-revelar rounded-xl border p-4 ${faltaCuenta ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <p className="label-cayla text-[10px] text-tinta/55">{titulo}</p>
@@ -84,7 +87,7 @@ export function CuentasProveedor({
             {forma ?? "Sin medio preferido"}
             {datos.banco ? ` · ${datos.banco}` : ""}
           </p>
-          <p className="text-xs text-tinta/55">{datos.plazoCreditoDias ? `Crédito a ${datos.plazoCreditoDias} días` : "Contado"}</p>
+          {mostrarPlazo && <p className="text-xs text-tinta/55">{datos.plazoCreditoDias ? `Crédito a ${datos.plazoCreditoDias} días` : "Contado"}</p>}
         </div>
         <div className="flex items-center gap-4">
           {filas.length > 0 && (
@@ -92,41 +95,34 @@ export function CuentasProveedor({
               type="button"
               onClick={() => setVer((v) => !v)}
               aria-pressed={ver}
-              className="label-cayla text-[11px] text-tinta/65 underline decoration-tinta/25 underline-offset-4 transition-colors hover:text-tinta"
+              className="btn-cayla btn-enlace text-xs"
             >
               {ver ? "Ocultar" : "Ver completos"}
             </button>
           )}
           {onEditar && (
-            <button type="button" onClick={onEditar} className="label-cayla text-[11px] text-tinta/65 underline decoration-tinta/25 underline-offset-4 transition-colors hover:text-rojo">
-              Editar
-            </button>
+            <LapizEditar que="la cuenta" onClick={onEditar} />
           )}
         </div>
       </div>
 
-      {filas.length > 0 && (
+      {(filas.length > 0 || datos.titular) && (
         <dl className="mt-3 divide-y divide-tinta/10 border-t border-tinta/10">
+          {datos.titular && <FilaTitular titular={datos.titular} />}
           {filas.map((f) => (
-            <FilaDato key={f.clave} etiqueta={f.etiqueta} valor={f.mostrar} copiado={copiado === f.clave} onCopiar={() => copiar(f)} />
+            <FilaDato key={f.clave} etiqueta={f.etiqueta} valor={f.mostrar} copiar={f.copiar} alFallar={() => setVer(true)} />
           ))}
         </dl>
       )}
-      {datos.titular && (
-        <p className="mt-2 border-t border-tinta/10 pt-2 text-xs text-tinta/65">
-          Titular: <b className="font-semibold text-tinta">{datos.titular}</b> <span className="text-tinta/45">· compáralo con el nombre que muestra el banco antes de confirmar</span>
-        </p>
-      )}
 
-      {sinNada && (
+      {ocultos && <p className="mt-3 text-sm text-tinta/70">No puedes ver los datos de pago de este proveedor. Pídeselos a quien paga.</p>}
+      {sinNada && !ocultos && (
         <p className={`mt-3 text-sm ${cobraEnEfectivo ? "text-tinta/70" : "text-ambar-profundo"}`}>
           {cobraEnEfectivo ? "Cobra en efectivo: no necesita cuenta." : "Sin cuenta, CCI ni Yape / Plin registrados."}
           {onEditar && !cobraEnEfectivo && (
             <>
               {" "}
-              <button type="button" onClick={onEditar} className="text-rojo hover:underline">
-                Agregar →
-              </button>
+              <EnlaceVer onClick={onEditar}>Agregar</EnlaceVer>
             </>
           )}
         </p>
@@ -135,22 +131,30 @@ export function CuentasProveedor({
   );
 }
 
-function FilaDato({ etiqueta, valor, copiado, onCopiar }: { etiqueta: string; valor: ReactNode; copiado: boolean; onCopiar: () => void }) {
+// El titular, primera fila: lo que se compara con el nombre que muestra el banco antes de mandar la plata. No lleva «Copiar» (no es
+// un dato que se pegue en la app del banco).
+function FilaTitular({ titular }: { titular: string }) {
+  return (
+    <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2">
+      <dt className="label-cayla text-[10px] text-tinta/55">Titular</dt>
+      <dd className="min-w-0 break-words text-sm text-tinta">
+        <b className="font-semibold">{titular}</b>
+        <span className="block text-xs text-tinta/45">Compáralo con el nombre que muestra el banco antes de confirmar.</span>
+      </dd>
+    </div>
+  );
+}
+
+// Copiar es la pieza del sistema (<BotonCopiar>, ronda 13): el ícono junto al dato. Sin permiso del portapapeles, además del aviso,
+// se muestran los datos completos («Ver completos») para copiarlos a mano.
+function FilaDato({ etiqueta, valor, copiar, alFallar }: { etiqueta: string; valor: ReactNode; copiar: string; alFallar: () => void }) {
+  const nombre = etiqueta.toLowerCase();
+  const que = nombre === "cuenta" ? "la cuenta" : nombre === "cci" ? "el CCI" : `el ${etiqueta}`;
   return (
     <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2">
       <dt className="label-cayla text-[10px] text-tinta/55">{etiqueta}</dt>
       <dd className="min-w-0 break-all text-sm tabular-nums tracking-[0.02em] text-tinta">{valor}</dd>
-      <button
-        type="button"
-        onClick={onCopiar}
-        aria-label={`Copiar ${etiqueta.toLowerCase()}`}
-        className={`label-cayla inline-flex min-w-[5.5rem] items-center justify-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] transition-colors duration-300 ${
-          copiado ? "anim-pop border-verde/55 bg-verde/10 text-verde-profundo" : "border-tinta/15 text-tinta/65 hover:border-tinta hover:text-tinta"
-        }`}
-      >
-        {copiado ? <Check aria-hidden className="h-3 w-3" /> : <Copy aria-hidden className="h-3 w-3" />}
-        <span aria-live="polite">{copiado ? "Copiado" : "Copiar"}</span>
-      </button>
+      <BotonCopiar forma="icono" texto={copiar} que={que} alFallar={alFallar} className="-my-1" />
     </div>
   );
 }

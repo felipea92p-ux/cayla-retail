@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { problemasAlta, type EstadoAlta, type PasoAlta } from "./alta-producto";
-import { camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoConfirmado, resumenFaltan, siguienteDelHilo, type ExtraGuia } from "./alta-producto-guia";
+import { campoAhora, camposDelAlta, estadosDeCampos, faltanDelPaso, faltanHastaElPaso, pasoConfirmado, resumenFaltan, siguienteDelHilo, type ExtraGuia } from "./alta-producto-guia";
 
 // Una prenda completa: nada falta. Cada prueba parte de ella y le quita lo que quiere probar.
 const completo: EstadoAlta = {
@@ -22,6 +22,8 @@ const completo: EstadoAlta = {
   stockTotal: 6,
   stockInvalidas: 0,
   sinStock: false,
+  separaPiso: true,
+  lugarCarga: "almacen",
 };
 const extraCompleto: ExtraGuia = { coloresElegidos: 2, descripcionEscrita: false, marcaElegida: true, responsableListo: true };
 
@@ -37,11 +39,11 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(Object.values(est).filter((s) => s === "ahora")).toHaveLength(1);
   });
 
-  it("paso 2 recién abierto: el nombre sigue, tejido y patrón faltan, y la descripción y la marca son opcionales", () => {
+  it("paso 2 recién abierto: la guía se detiene en marca y proveedor antes del nombre; tejido y patrón faltan después", () => {
     const est = estadosDeCampos(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false }), 2);
-    expect(est.nombre).toBe("ahora");
+    expect(est.marca).toBe("ahora");
+    expect(est.nombre).toBe("falta");
     expect(est.descripcion).toBe("opcional");
-    expect(est.marca).toBe("opcional");
     expect(est.tejido).toBe("falta");
     expect(est.patron).toBe("falta");
   });
@@ -61,6 +63,23 @@ describe("estadosDeCampos — cuál está hecho, cuál sigue y cuál falta", () 
     expect(sin.some((c) => c.id === "marca" && (c.requerido || c.sugerido))).toBe(false);
     expect(idsPorHacer(sin, 2)).toEqual([]);
     expect(estadosDeCampos(guia({}, { marcaElegida: true }), 2).marca).toBe("hecho");
+  });
+
+  it("la marca va ANTES del nombre en pantalla y la guía pasa por ahí antes de saltar al nombre (Felipe, 2026-10-02)", () => {
+    const campos = guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: false });
+    const ids = campos.filter((c) => c.paso === 2).map((c) => c.id);
+    expect(ids.indexOf("marca")).toBeLessThan(ids.indexOf("nombre"));
+    // Paso 2 recién abierto, nada tocado todavía: la pausa en marca y proveedor va ANTES que «Sigue aquí» llegue al nombre.
+    expect(campoAhora(campos, 2)).toBe("marca");
+    expect(estadosDeCampos(campos, 2).marca).toBe("ahora");
+    expect(estadosDeCampos(campos, 2).nombre).toBe("falta");
+    // Apenas la persona teclea en el nombre, la pausa termina: la luz no le gana a la persona.
+    expect(campoAhora(campos, 2, "nombre")).toBe("nombre");
+    expect(estadosDeCampos(campos, 2, "nombre").marca).toBe("opcional");
+    // Con la marca ya elegida no hay pausa: la guía va directa al nombre, como antes de esta excepción.
+    expect(campoAhora(guia({ referencia: "", tejidoId: "", patronId: "" }, { marcaElegida: true }), 2)).toBe("nombre");
+    // Y el orden no cambia lo que falta ni lo que bloquea: la marca nunca está por hacer ni se lista como «falta».
+    expect(idsPorHacer(campos, 2)).toEqual(["nombre", "tejido", "patron"]);
   });
 
   it("mientras se comprueba el nombre (o es un duplicado) el nombre sigue siendo «ahora», no «hecho»", () => {
@@ -123,6 +142,28 @@ describe("la frase de lo que hay que hacer con el nombre es la de `problemasAlta
   });
 });
 
+describe("una celda en 0 (ADR-0384): la guía y `problemasAlta` la nombran con la misma frase", () => {
+  it("el precio queda por hacer, y dice qué celda y qué hacer", () => {
+    const estado = { ...completo, celdaSinPrecio: "Negro en M" };
+    const precio = camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio");
+    const problema = problemasAlta(estado).find((p) => p.bloque === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(problema?.texto).toMatch(/^Negro en M tiene el precio en 0/);
+    expect(precio?.pendiente).toBe(problema?.texto);
+  });
+
+  it("sin precio de todas, eso va primero (es lo que la persona ve antes)", () => {
+    const estado = { ...completo, precioBase: "", celdaSinPrecio: "Negro en M" };
+    expect(camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio")?.pendiente).toBe("Pon el precio de venta.");
+    expect(problemasAlta(estado).filter((p) => p.bloque === "precio").map((p) => p.texto)[0]).toBe("Pon el precio de venta.");
+  });
+
+  it("sin celda en 0 (o ausente, como antes de la regla), nada cambia", () => {
+    expect(problemasAlta({ ...completo, celdaSinPrecio: null })).toEqual([]);
+    expect(problemasAlta(completo)).toEqual([]);
+  });
+});
+
 describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", () => {
   // Cada caso quita una cosa. «Requerido y sin hacer» en la guía ⇔ hay un problema en `problemasAlta`.
   const casos: [string, Partial<EstadoAlta>, Partial<ExtraGuia>][] = [
@@ -139,9 +180,13 @@ describe("la guía y `problemasAlta` dicen lo mismo de lo que bloquea crear", ()
     ["categoría sin tallas", { categoriaSinTallas: true, tallasElegidas: 0 }, {}],
     ["sin precio", { precioBase: "" }, {}],
     ["precio cero", { precioBase: "0" }, {}],
+    ["una celda de la tabla con el precio en 0 (ADR-0384)", { celdaSinPrecio: "Negro en M" }, {}],
     ["costo negativo", { costoBase: "-1" }, {}],
     ["sin decidir stock", { stockTotal: 0 }, {}],
     ["stock inválido", { stockInvalidas: 2 }, {}],
+    ["con unidades y sin decir dónde están", { lugarCarga: null }, {}],
+    ["sin decir dónde están, en una tienda sin piso y almacén", { lugarCarga: null, separaPiso: false }, {}],
+    ["sin decir dónde están y sin unidades", { lugarCarga: null, stockTotal: 0, sinStock: true }, {}],
     ["familia sin tela y sin tejido", { exigeTejidoPatron: false, tejidoId: "", patronId: "" }, {}],
     ["sin categoría", { categoriaId: "" }, {}],
   ];
@@ -231,5 +276,113 @@ describe("pasoConfirmado — el ✓ es de un paso que la persona visitó", () =>
     expect(pasoConfirmado({ paso: 3, abierto: 2, vistos: vistos(1, 2, 3), problemas })).toBe(false);
     // Con el 4 abierto y el nombre roto, el 3 (anterior, visitado, sin problemas propios) conserva su ✓.
     expect(pasoConfirmado({ paso: 3, abierto: 4, vistos: vistos(1, 2, 3, 4), problemas })).toBe(true);
+  });
+});
+
+describe("enFoco — «Sigue aquí» espera a que la persona termine de escribir", () => {
+  // La prueba de Felipe (2026-09-30): con UNA letra en el nombre, apenas terminaba la comprobación la luz saltaba al tejido.
+  const sinTela = { tejidoId: "", patronId: "" };
+
+  it("sin foco, con el nombre ya comprobado la luz salta al tejido (lo de antes)", () => {
+    const est = estadosDeCampos(guia(sinTela, { marcaElegida: false }), 2);
+    expect(est.nombre).toBe("hecho");
+    expect(est.tejido).toBe("ahora");
+  });
+
+  it("escribiendo en el nombre, este conserva la luz aunque ya cuente como hecho: sin ✓ y nada más se enciende", () => {
+    const est = estadosDeCampos(guia(sinTela, { marcaElegida: false }), 2, "nombre");
+    expect(est.nombre).toBe("ahora");
+    expect(est.tejido).toBe("falta");
+    expect(est.patron).toBe("falta");
+    expect(Object.values(est).filter((e) => e === "ahora")).toHaveLength(1);
+  });
+
+  it("al salir del nombre (sin foco) la luz pasa al tejido y el nombre lleva ✓", () => {
+    const est = estadosDeCampos(guia(sinTela), 2, null);
+    expect(est.nombre).toBe("hecho");
+    expect(est.tejido).toBe("ahora");
+  });
+
+  it("lo mismo en el paso 4: con un dígito el precio ya es «hecho», pero mientras se escribe sigue siendo «ahora»", () => {
+    const campos = guia({ precioBase: "8", stockTotal: 0 });
+    expect(estadosDeCampos(campos, 4).precio).toBe("hecho");
+    expect(estadosDeCampos(campos, 4).stock).toBe("ahora");
+    const escribiendo = estadosDeCampos(campos, 4, "precio");
+    expect(escribiendo.precio).toBe("ahora");
+    expect(escribiendo.stock).toBe("falta");
+  });
+
+  it("un campo opcional con foco (la descripción) no le quita la luz a lo que sigue de verdad", () => {
+    expect(campoAhora(guia(sinTela), 2, "descripcion")).toBe("tejido");
+    expect(estadosDeCampos(guia(sinTela), 2, "descripcion").descripcion).toBe("opcional");
+  });
+
+  it("el foco en un campo de OTRO paso no cambia nada: solo el paso abierto tiene un lugar donde estar parado", () => {
+    expect(campoAhora(guia(sinTela), 2, "precio")).toBe("tejido");
+    expect(estadosDeCampos(guia(sinTela), 2, "precio").precio).toBe("hecho");
+  });
+
+  it("el foco no cambia lo que falta, lo que bloquea ni lo que sigue en todo el hilo", () => {
+    const campos = guia(sinTela);
+    expect(idsPorHacer(campos, 2)).toEqual(["tejido", "patron"]);
+    expect(siguienteDelHilo(campos)?.campo.id).toBe("tejido");
+  });
+
+  it("escribiendo en un campo por hacer que no es el primero, la luz lo acompaña", () => {
+    const campos = guia({ precioBase: "", stockTotal: 0 });
+    expect(campoAhora(campos, 4, "stock")).toBe("stock");
+    expect(estadosDeCampos(campos, 4, "stock").precio).toBe("falta");
+  });
+});
+
+// ADR-0415: un precio o un costo de más de S/ 5 000 deja el precio por hacer, con la misma frase que `problemasAlta`.
+describe("el tope del precio (ADR-0415): la guía y `problemasAlta` lo dicen igual", () => {
+  it.each([
+    ["precio de 5990 (el punto que falta)", { precioBase: "5990" }, /^El precio pasa de S\/ 5000/],
+    ["costo de 5990", { costoBase: "5990" }, /^El costo pasa de S\/ 5000/],
+  ] as const)("%s", (_caso, e, frase) => {
+    const estado = { ...completo, ...e };
+    const precio = camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio");
+    const problema = problemasAlta(estado).find((p) => p.bloque === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(problema?.texto).toMatch(frase);
+    expect(precio?.pendiente).toBe(problema?.texto);
+  });
+  it("S/ 5 000 justos sí", () => {
+    const estado = { ...completo, precioBase: "5000", costoBase: "5000" };
+    expect(problemasAlta(estado).some((p) => p.bloque === "precio")).toBe(false);
+  });
+});
+
+describe("la tienda va antes de la categoría (ADR-0463)", () => {
+  it("sin tiendas en la base (exigeEmpresa ausente) el alta es la de siempre: ni problema ni campo", () => {
+    expect(problemasAlta({ ...completo, categoriaId: "" })[0].bloque).toBe("categoria");
+    expect(guia({ categoriaId: "" }).some((c) => c.id === "empresa")).toBe(false);
+  });
+
+  it("con tiendas y sin elegir una, lo primero que falta es la tienda — antes que la categoría — y ya hay campo para ella", () => {
+    const e = { ...completo, exigeEmpresa: true, empresaId: "", categoriaId: "" };
+    expect(problemasAlta(e)).toEqual([{ bloque: "empresa", texto: "Elige a qué tienda pertenece el producto." }]);
+    const campos = camposDelAlta(e, extraCompleto);
+    expect(campos.map((c) => c.id).slice(0, 2)).toEqual(["empresa", "categoria"]);
+    const est = estadosDeCampos(campos, 1);
+    expect(est.empresa).toBe("ahora");
+    expect(est.categoria).toBe("falta");
+  });
+
+  it("elegida la tienda, la luz pasa a la categoría y el campo lleva ✓", () => {
+    const e = { ...completo, exigeEmpresa: true, empresaId: "claure", categoriaId: "" };
+    expect(problemasAlta(e)[0].bloque).toBe("categoria");
+    const est = estadosDeCampos(camposDelAlta(e, extraCompleto), 1);
+    expect(est.empresa).toBe("hecho");
+    expect(est.categoria).toBe("ahora");
+  });
+
+  it("«requerido y sin hacer» dice lo mismo que problemasAlta, con y sin tienda elegida", () => {
+    for (const empresaId of ["", "cayla"]) {
+      const e = { ...completo, exigeEmpresa: true, empresaId };
+      const sinHacer = camposDelAlta(e, extraCompleto).filter((c) => c.requerido && !c.hecho).map((c) => c.pendiente);
+      expect(sinHacer).toEqual(problemasAlta(e).map((p) => p.texto));
+    }
   });
 });

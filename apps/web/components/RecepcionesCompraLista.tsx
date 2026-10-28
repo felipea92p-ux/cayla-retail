@@ -1,16 +1,18 @@
 "use client";
 
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
-import { Check, ChevronRight } from "lucide-react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { Check, ChevronRight, FunnelX } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
-import { Tabla, fila, celda } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, fila, celda, type Columna } from "@/components/ui/Tabla";
 import { RecepcionVistaRapida } from "@/components/RecepcionVistaRapida";
-import { diaMes, hoyLima } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { useFlip } from "@/lib/useFlip";
 import type { LineaRecepcion } from "@/lib/compras-reglas";
 import type { RecepcionDeCompra } from "@/lib/compras-indicadores";
 import type { ResultadoRecibidas } from "@/lib/recibidas-filtros-reglas";
 import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/envio-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Pestaña «Recibidas recientemente» (maqueta 06): qué llegó contra cada comprobante, con su
 // resultado (completa o cuánto faltó) y la demora entre la emisión y la llegada. Antes esta
@@ -32,6 +34,16 @@ import { agruparPorEnvio, type EnvioDeLote, type GrupoRecepcion } from "@/lib/en
 // de 1024 px deja ~670 px a la tabla, y las 7 columnas dejaban al proveedor en «Textiles Andin…» (ADR-0128). Angosta: sin
 // «Recibió» ni la flecha (lo menos decisivo); ancha: completa.
 const PLANTILLA = "sm:grid-cols-[5rem_1fr_8.5rem_6rem_5.5rem] @5xl:grid-cols-[6rem_1fr_9.5rem_5.75rem_7.5rem_6.25rem_1rem]";
+// Los títulos (<Encabezado>, ADR-0358): «Recibió» y la columna de la flecha solo caben desde @5xl, como sus celdas.
+const COLUMNAS: Columna[] = [
+  { titulo: "Fecha" },
+  { titulo: "Proveedor · comprobante · guía" },
+  { titulo: "Llegó / facturado", alinear: "der" },
+  { titulo: "Resultado" },
+  { titulo: "Demora", alinear: "der" },
+  { titulo: "Recibió", clase: "hidden @5xl:block" },
+  { titulo: "", clase: "hidden @5xl:block" },
+];
 const SOLO_ANCHA = "hidden max-sm:block @5xl:block";
 
 export function RecepcionesCompraLista({
@@ -97,10 +109,12 @@ export function RecepcionesCompraLista({
         key={id}
         ref={refFila(id)}
         type="button"
+        data-guia="recibidas.fila"
         onClick={() => setAbierta(r)}
+        aria-current={abierta && idFila(abierta) === id ? "true" : undefined}
         className={`${fila(PLANTILLA)} group relative w-full text-left transition-colors before:absolute before:inset-y-2.5 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded before:bg-rojo before:transition-transform before:duration-300 before:ease-cayla hover:bg-tinta/[0.03] hover:before:scale-y-100 ${dentroDeEnvio ? "border-l-2 border-tinta/15" : ""} ${nuevaId === id ? "anim-destello-fila" : ""}`}
       >
-        <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(hoyLima(new Date(r.fechaRecepcion)))}</span>
+        <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(diaLima(r.fechaRecepcion))}</span>
         <span className={celda("izq")}>
           <span className="text-sm text-tinta">
             {r.proveedorNombre} <span className="ml-1 text-xs tabular-nums text-tinta/65">{r.documento}</span>
@@ -112,13 +126,12 @@ export function RecepcionesCompraLista({
         <span className={celda("der", "text-sm text-tinta")}>
           {r.unidadesLlegaron} / {r.unidadesFacturadas}
           {/* cuánto de lo facturado llegó, sin leer el número */}
-          <span aria-hidden className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
-            <span className={`anim-crece-x block h-full rounded-full ${completa ? "bg-verde" : "bg-ambar"}`} style={{ width: `${pct}%`, "--i": i } as CSSProperties} />
-          </span>
+          {/* Llegó menos de lo facturado: el ámbar lo pone la pantalla (un faltante); completa, la barra pasa sola a verde. */}
+          <BarraAvance pct={pct} alto="fina" tono={completa ? undefined : "ambar"} decorativa indice={i} className="mt-1" />
         </span>
         <span className={celda("izq", "overflow-visible")}>
           <Chip tono={completa ? "verde" : "ambar"}>
-            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "0ms" } as CSSProperties} />}
             {completa ? "Completa" : `Faltan ${r.faltante}`}
           </Chip>
         </span>
@@ -142,7 +155,7 @@ export function RecepcionesCompraLista({
         onClick={() => setPlegados((p) => ({ ...p, [g.envioId]: abierto }))}
         className={`${fila(PLANTILLA)} w-full bg-tinta/[0.035] text-left transition-colors hover:bg-tinta/[0.06]`}
       >
-        <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(hoyLima(new Date(g.fechaRecepcion)))}</span>
+        <span className={celda("izq", "text-sm tabular-nums text-tinta")}>{diaMes(diaLima(g.fechaRecepcion))}</span>
         <span className={celda("izq")}>
           <span className="flex items-center gap-1.5 text-sm font-medium text-tinta">
             <ChevronRight aria-hidden className={`h-3.5 w-3.5 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
@@ -166,26 +179,11 @@ export function RecepcionesCompraLista({
   return (
     <>
       <Tabla className="@container">
-        <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${PLANTILLA}`} role="row">
-          {[
-            ["Fecha", "", ""],
-            ["Proveedor · comprobante · guía", "", ""],
-            ["Llegó / facturado", "text-right", ""],
-            ["Resultado", "", ""],
-            ["Demora", "text-right", ""],
-            ["Recibió", "", "hidden @5xl:block"],
-            ["", "", "hidden @5xl:block"],
-          ].map(([t, alinea, ancha], i) => (
-            <span key={i} role="columnheader" className={`label-cayla text-[11px] text-tinta/55 ${alinea} ${ancha}`}>
-              {t}
-            </span>
-          ))}
-        </div>
+        <Encabezado plantilla={PLANTILLA} columnas={COLUMNAS} />
         {filtradas.length === 0 && (
-          <div className="px-5 py-8 text-center">
-            <p className="font-display text-[17px] italic text-tinta/65">Ninguna recepción {resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista.</p>
-            <p className="mt-1 text-xs text-tinta/55">Cambia «Con faltante / Completas» arriba para ver el resto.</p>
-          </div>
+          <Vacio icono={<FunnelX />} titulo={`Ninguna recepción ${resultado === "faltante" ? "llegó con faltante" : "llegó completa"} en esta lista`}>
+            Cambia «Con faltante / Completas» arriba para ver el resto.
+          </Vacio>
         )}
         {grupos.map((g) =>
           g.tipo === "suelta" ? (

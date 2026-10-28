@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
@@ -28,6 +28,7 @@ import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/li
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Alta de un comprobante de Producción (ADR-0133, F4b; D-H): la factura del proveedor de tela, avíos o maquila. Con `<Modal>` del
 // sistema (ADR-0136). Las reglas duras las hace cumplir la base (`registrar_comprobante_produccion`): contado ⇒ pago por el total
@@ -139,7 +140,7 @@ export function ComprobanteProduccionForm({
     responsable.despues(err);
     setCargando(false);
     if (err) {
-      avisar.error(traducirError(err, "registrar el comprobante"));
+      avisar.error(traducirError(err, "registrar el comprobante", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${serie.trim().toUpperCase()}-${numero.trim()} registrado`, {
@@ -150,8 +151,9 @@ export function ComprobanteProduccionForm({
   }
 
   return (
-    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} tamano="ancha">
       <form onSubmit={guardar} className="space-y-5">
+        <div data-guia="prod-factura-nueva.proveedor">
         <CampoSelect
           etiqueta="Proveedor"
           valor={proveedorId}
@@ -159,9 +161,14 @@ export function ComprobanteProduccionForm({
           opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
           marcador="Elige un proveedor…"
         />
-        {proveedores.length === 0 && <p className="-mt-3 text-xs text-tinta/65">Todavía no hay proveedores de Producción. Agrégalos en Proveedores.</p>}
+        </div>
+        {proveedores.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="-mt-3 px-0" icono={<Truck />}>
+            Todavía no hay proveedores de Producción. Agrégalos en Proveedores.
+          </Vacio>
+        )}
 
-        <div>
+        <div data-guia="prod-factura-nueva.documento">
           <p className="label-cayla text-[11px] text-tinta/65">Documento</p>
           <div className="mt-1.5 grid gap-3 sm:grid-cols-[auto_6rem_1fr_9.5rem]">
             <SegmentoDeslizante
@@ -185,7 +192,7 @@ export function ComprobanteProduccionForm({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-guia="prod-factura-nueva.condicion" className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="label-cayla text-[11px] text-tinta/65">¿Cómo se paga?</p>
             <SegmentoDeslizante
@@ -194,8 +201,8 @@ export function ComprobanteProduccionForm({
               valor={condicion}
               onCambio={(c) => setCondicion(c as CondicionComprobante)}
               opciones={[
-                { clave: "credito", etiqueta: "Crédito" },
-                { clave: "contado", etiqueta: "Contado" },
+                { clave: "credito", etiqueta: "Crédito", guia: "prod-factura-nueva.credito" },
+                { clave: "contado", etiqueta: "Contado", guia: "prod-factura-nueva.contado" },
               ]}
             />
           </div>
@@ -216,15 +223,17 @@ export function ComprobanteProduccionForm({
           )}
         </div>
 
-        <fieldset>
+        <fieldset data-guia="prod-factura-nueva.lineas">
           <legend className="label-cayla text-[11px] text-tinta/65">Qué se compró · costo unitario sin IGV</legend>
-          <ul className="mt-2 space-y-2">
+          <ul className="mt-2 space-y-2 max-sm:space-y-3">
             {lineas.map((l, i) => {
               const insumo = insumos.find((x) => x.id === l.insumoId);
               const subtotalLinea = Number(l.cantidad.replace(",", ".")) > 0 && l.costo.trim() !== "" ? redondear2(Number(l.cantidad.replace(",", ".")) * Number(l.costo.replace(",", "."))) : null;
               return (
-                <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_5rem_5rem_auto]">
-                  <div className="space-y-1.5">
+                // En el celular la línea ocupa dos filas: arriba qué se compró (a todo el ancho) y abajo cantidad, costo y ✕. Con las cuatro
+                // columnas en una fila la descripción se quedaba con ~105 px: el combo decía «Otro c…» y «Qué se compró» salía cortado.
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] max-sm:border-b max-sm:border-tinta/10 max-sm:pb-3 max-sm:last:border-b-0 max-sm:last:pb-0">
+                  <div className="space-y-1.5 max-sm:col-span-3">
                     <Desplegable
                       valor={l.insumoId ?? (l.descripcion || l.insumoId === null ? CONCEPTO_LIBRE : "")}
                       onValor={(v) => cambiarLinea(i, v === CONCEPTO_LIBRE ? { insumoId: null } : { insumoId: v, descripcion: "" })}
@@ -233,7 +242,7 @@ export function ComprobanteProduccionForm({
                         ...insumos.map((x) => ({ valor: x.id, texto: `${x.nombre} · ${UNIDADES_INSUMO[x.unidad].corta}` })),
                       ]}
                       etiquetaAccesible={`Línea ${i + 1}: insumo`}
-                      forma="caja"
+                      forma="campo"
                     />
                     {!l.insumoId && (
                       <input
@@ -241,7 +250,7 @@ export function ComprobanteProduccionForm({
                         placeholder="Qué se compró"
                         value={l.descripcion}
                         onChange={(e) => cambiarLinea(i, { descripcion: e.target.value })}
-                        className="h-9 w-full rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
+                        className="caja-campo-input"
                       />
                     )}
                     {subtotalLinea !== null && <p className="text-xs tabular-nums text-tinta/65">Línea: {soles(subtotalLinea)}</p>}
@@ -252,7 +261,7 @@ export function ComprobanteProduccionForm({
                     placeholder={insumo ? UNIDADES_INSUMO[insumo.unidad].corta : "Cant."}
                     value={l.cantidad}
                     onChange={(e) => cambiarLinea(i, { cantidad: e.target.value })}
-                    className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                    className="caja-campo-input text-right tabular-nums"
                   />
                   <input
                     aria-label={`Línea ${i + 1}: costo unitario sin IGV`}
@@ -260,7 +269,7 @@ export function ComprobanteProduccionForm({
                     placeholder="S/ c/u"
                     value={l.costo}
                     onChange={(e) => cambiarLinea(i, { costo: e.target.value })}
-                    className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+                    className="caja-campo-input text-right tabular-nums"
                   />
                   <button
                     type="button"
@@ -278,13 +287,13 @@ export function ComprobanteProduccionForm({
           <button
             type="button"
             onClick={() => setLineas((ls) => [...ls, { ...LINEA_VACIA }])}
-            className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-tinta/75 underline-offset-2 outline-none hover:text-rojo hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
+            className="btn-cayla btn-enlace mt-2 gap-1.5 text-[13px]"
           >
             <Plus size={14} aria-hidden /> Agregar línea
           </button>
         </fieldset>
 
-        <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
+        <dl data-guia="prod-factura-nueva.totales" className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
           <div className="flex justify-between gap-3 px-3 py-2">
             <dt>Subtotal</dt>
             <dd className="tabular-nums">{soles(totales.subtotal)}</dd>
@@ -299,9 +308,13 @@ export function ComprobanteProduccionForm({
           </div>
         </dl>
 
-        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />}
+        {condicion === "contado" && (
+          <div data-guia="prod-factura-nueva.medios">
+            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} totalComprobante={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+          </div>
+        )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-guia="prod-factura-nueva.papel" className="grid gap-3 sm:grid-cols-2">
           <CampoTexto
             etiqueta="Total impreso en el papel"
             inputMode="decimal"
@@ -313,13 +326,13 @@ export function ComprobanteProduccionForm({
           <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} />
         </div>
 
-        <div className="space-y-1.5">
+        <div data-guia="prod-factura-nueva.registrar" className="space-y-1.5">
           <p className="min-h-4 text-xs text-tinta/65" role="status">
             {error && (proveedorId || serie || numero || totales.lineasCompletas > 0) ? error : ""}
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!!error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
+            {condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
           </Boton>
         </div>
       </form>

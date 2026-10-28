@@ -1,10 +1,13 @@
 "use client";
 
-import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { Children, Fragment, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { Check, ChevronDown, CircleAlert, Plus, Search, SearchX } from "lucide-react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -53,7 +56,7 @@ export function Hilo({
       {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
           el paso del comprobante); sin definirla es el mismo gris de siempre. */}
       {reposo && (
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,color-mix(in_srgb,var(--color-tinta)_25%,transparent))] transition-colors duration-500" />
       )}
       <span
         aria-hidden
@@ -94,6 +97,10 @@ type CampoProps = {
   idEtiqueta?: string;
   /** La etiqueta existe (para lectores de pantalla) pero no se ve: la caja ya dice qué es con su marcador. */
   etiquetaOculta?: boolean;
+  /** Sin el renglón del pie reservado (cuando no hay `pie`). Para una caja que vive en una FILA de tabla junto a combos: con el
+   *  renglón vacío medía 18 px más que ellos y la fila quedaba desalineada (Nueva orden de compra, Felipe 2026-10-10). Ahí los
+   *  mensajes no van bajo cada caja: los dice la guía de la fila. */
+  sinPie?: boolean;
   children: ReactNode;
 };
 
@@ -104,25 +111,39 @@ const TONO_PIE = {
   ok: "text-verde-profundo",
 } as const;
 
-export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, children }: CampoProps) {
+export function Campo({ etiqueta, ayuda, pie, tono = "neutro", htmlFor, idEtiqueta, etiquetaOculta = false, sinPie = false, children }: CampoProps) {
   return (
-    <div>
-      <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "label-cayla block text-[11px] text-tinta/65"}>
+    // `campo`: la etiqueta se oscurece mientras su caja está encendida (ADR-0358, ronda 6; app/estilos/campos-y-casillas.css).
+    <div className="campo">
+      <label id={idEtiqueta} htmlFor={htmlFor} className={etiquetaOculta ? "sr-only" : "campo-etiqueta"}>
         {etiqueta}
         {ayuda}
       </label>
       <div className={etiquetaOculta ? "" : "mt-1.5"}>{children}</div>
-      <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
-        {pie ? <span className="anim-revelar block">{pie}</span> : null}
-      </div>
+      {sinPie && !pie ? null : <div className={`mt-1 min-h-[0.9rem] text-xs leading-tight ${TONO_PIE[tono]}`}>
+        {/* El error de UN dato va aquí, bajo su campo, con su «!» que se dibuja (ADR-0358, ronda 5: lo de la hoja va en <Aviso>). */}
+        {pie ? (
+          tono === "error" ? (
+            <span className="pie-error trazo-dibuja anim-revelar">
+              <CircleAlert aria-hidden />
+              <span>{pie}</span>
+            </span>
+          ) : (
+            <span className="anim-revelar block">{pie}</span>
+          )
+        ) : null}
+      </div>}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------
-   CampoTexto — input de una línea sobre el hilo vivo.
-   Acepta todas las props nativas de <input>: quien lo use sigue
-   controlando type, required, maxLength, inputMode, etc.
+   CampoTexto — input de una línea en la CAJA QUE SE ENCIENDE (ADR-0358,
+   ronda 6: Felipe la eligió tocándola el 2026-10-13): hueso de 40 px que,
+   con el cursor adentro, sube a papel y dibuja el hilo rojo en su borde de
+   abajo. Antes era una línea suelta (el hilo vivo) y, en las barras de
+   filtros, la caja sin hilo. Acepta todas las props nativas de <input>:
+   quien lo use sigue controlando type, required, maxLength, inputMode, etc.
    ------------------------------------------------------------------ */
 type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiqueta: ReactNode;
@@ -136,16 +157,12 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   trabajando?: boolean;
   /** El valor ya está bien: el hilo de abajo se queda en verde. */
   valido?: boolean;
-  /** Guía oficial: caja hundida en hueso, sin hilo, y la etiqueta solo para lectores de pantalla (barras de filtros). */
+  /** La etiqueta solo para lectores de pantalla: la caja ya dice qué es (una barra de filtros, un bloque con su título). Desde la
+   *  ronda 6 toda caja se ve igual; esto ya solo esconde la etiqueta. */
   caja?: boolean;
+  /** Sin el renglón del pie reservado: para una caja en una FILA de tabla junto a combos (ver `Campo`). */
+  sinPie?: boolean;
 };
-
-/* Altura única de todo control de una línea (input, fecha, combo): 36px, que
-   es lo que ya medía un input `text-sm` + `py-2`. Se fija explícita porque
-   Safari le da a `type="date"` su propia altura y letra internas, y un combo
-   con `appearance-none` pierde la altura nativa — sin un número común, cada
-   uno mide distinto al lado del otro. */
-export const ALTO_CONTROL = "h-9";
 
 /* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
    (::-webkit-datetime-edit), con relleno y tamaño de letra propios. Se le
@@ -156,14 +173,20 @@ const FECHA_COMO_TEXTO =
   "[&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-date-and-time-value]:min-h-0 [&::-webkit-date-and-time-value]:text-left " +
   "[&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
-export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, className = "", ...props }: CampoTextoProps) {
+export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valido, caja = false, sinPie = false, className = "", ...props }: CampoTextoProps) {
   // Un `id` propio permite enfocarlo desde un aviso (`avisar.error(…, { enfocar: id })`).
   const idPropio = useId();
   const id = props.id ?? idPropio;
-  const [enfocado, setEnfocado] = useState(false);
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja}>
-      <div className={caja ? "caja-cayla relative px-3" : "relative"}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={caja} sinPie={sinPie}>
+      {/* El hilo y el encendido son CSS (`caja-campo`, app/estilos/campos-y-casillas.css): verde si el dato ya está bien, barre mientras
+          consulta, borde rojo suave si el dato falta o está mal. */}
+      <div
+        className="caja-cayla caja-campo"
+        data-valido={valido || undefined}
+        data-trabajando={trabajando || undefined}
+        data-tono={tono === "error" ? "error" : undefined}
+      >
         <input
           id={id}
           // Sin esto, Safari lee la etiqueta («Nombre», «Dirección», «Teléfono») y ofrece llenar el campo con la ficha
@@ -171,19 +194,10 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
           // propio en un campo de catálogo o de clienta. Un campo que sí quiera autocompletar pasa su `autoComplete`.
           autoComplete="off"
           {...props}
-          onFocus={(e) => {
-            setEnfocado(true);
-            props.onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setEnfocado(false);
-            props.onBlur?.(e);
-          }}
-          className={`w-full bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 ${caja ? "h-10" : ALTO_CONTROL} ${
-            mono ? "font-mono tabular-nums tracking-wider" : ""
-          } ${props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""} ${className}`}
+          className={`self-stretch py-0 ${mono ? "font-mono tabular-nums tracking-wider" : ""} ${
+            props.type === "date" || props.type === "time" ? FECHA_COMO_TEXTO : ""
+          } ${className}`}
         />
-        {!caja && <Hilo activo={enfocado} trabajando={trabajando} valido={valido} />}
       </div>
     </Campo>
   );
@@ -201,32 +215,27 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   pie?: ReactNode;
   tono?: CampoProps["tono"];
   moneda?: string;
+  /** La etiqueta solo para el lector de pantalla: el bloque de arriba ya la dice a la vista (un `CampoGuiado` con su título). */
+  etiquetaOculta?: boolean;
+  /** Sin el renglón reservado para un error bajo la caja: la hoja dice lo que falta en otro lado (su «Falta: …»). */
+  sinPie?: boolean;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", ...props }: CampoMontoProps) {
   const id = useId();
-  const [enfocado, setEnfocado] = useState(false);
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
-      <div className="relative flex items-baseline gap-2">
-        <span aria-hidden className="font-display select-none pb-1 text-lg leading-none text-tinta/65">
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta} sinPie={sinPie}>
+      {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
+      <div className="caja-cayla caja-campo caja-campo-alta" data-tono={tono === "error" ? "error" : undefined}>
+        <span aria-hidden className="font-display select-none text-base leading-none text-tinta/55">
           {moneda}
         </span>
         <input
           id={id}
           {...props}
-          onFocus={(e) => {
-            setEnfocado(true);
-            props.onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setEnfocado(false);
-            props.onBlur?.(e);
-          }}
           // Las flechitas del type=number rompen la lectura de instrumento.
-          className={`font-display w-full bg-transparent pb-1 text-[1.75rem] leading-none tabular-nums text-tinta outline-none placeholder:text-tinta/55 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
+          className={`font-display self-stretch py-0 text-2xl leading-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
         />
-        <Hilo activo={enfocado} />
       </div>
     </Campo>
   );
@@ -259,9 +268,10 @@ export function Interruptor({ activo, onActivo, etiqueta, pie, disabled = false 
           aria-checked={activo}
           disabled={disabled}
           onClick={() => onActivo(!activo)}
-          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300 ease-cayla ${activo ? "bg-rojo" : "bg-tinta/25"}`}
+          // Se prende en TINTA y la perilla se estira al presionar (ADR-0358, ronda 6): `app/estilos/campos-y-casillas.css`.
+          className="interruptor"
         >
-          <span aria-hidden className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-crema shadow-sm transition-transform duration-300 ease-cayla ${activo ? "translate-x-4" : "translate-x-0"}`} />
+          <span aria-hidden className="interruptor-perilla" />
         </button>
         <span>{etiqueta}</span>
       </label>
@@ -278,6 +288,9 @@ export type Opcion<T extends string> = {
   grupo?: string;
   /** Se ve pero no se elige (un cajón con la caja cerrada): ni con el mouse ni con el teclado. Solo `Desplegable`/`CampoSelect`. */
   deshabilitada?: boolean;
+  /** Cómo se lee con el combo CERRADO, cuando la caja es angosta (una columna de una tabla): la lista sigue mostrando `texto`.
+   *  Nueva compra: «Sin desglose» en la fila, «Sin desglose (se reparte al recibir)» en la lista. Solo `Desplegable`/`CampoSelect`. */
+  corto?: string;
 };
 
 /* ------------------------------------------------------------------
@@ -442,6 +455,8 @@ type FormaDesplegable = {
   flecha: boolean;
   /** Se para sobre el hilo vivo. */
   hilo: boolean;
+  /** Sin nada elegido, el marcador se lee como el resto del control (no atenuado): «Más años · 12» es una acción, no un hueco. */
+  marcadorComoTexto?: boolean;
   /** Como el <select> del navegador, que es lo que dibuja el spike de Finanzas: mide lo que su opción MÁS LARGA (no
    *  baila al elegir otra) y su lista puede ser más ancha que el control. */
   comoNativo: boolean;
@@ -449,19 +464,18 @@ type FormaDesplegable = {
 
 const FORMA_DESPLEGABLE = {
   /** Dentro de un formulario, sobre el hilo vivo. */
-  campo: {
-    boton: "w-full justify-between rounded-t-md bg-transparent px-0.5 py-2 text-sm text-tinta hover:bg-tinta/[0.03] disabled:hover:bg-transparent",
-    flecha: true,
-    hilo: true,
-    comoNativo: false,
-  },
+  /** Dentro de un formulario: la caja que se enciende (ADR-0358, ronda 6). Hasta el 2026-10-13 iba sobre el hilo vivo. */
+  campo: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
+  /** La `pildora-cayla` de una fila de píldoras que eligen un período (Historial: «Más años», 2026-10-12): la última píldora de la
+   *  fila abre la lista de lo que no cupo. */
+  pildora: { boton: "pildora-cayla", flecha: true, hilo: false, comoNativo: false, marcadorComoTexto: true },
   /** Sola con su borde, en la cabecera (la sede). */
   pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
   /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
    *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
-  caja: { boton: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm text-tinta", flecha: true, hilo: false, comoNativo: false },
+  caja: { boton: "caja-cayla caja-campo", flecha: true, hilo: false, comoNativo: false },
   /** La misma caja hundida, de 36 px y con la letra un punto más grande: los filtros de Existencias del diseño aprobado (2026-09-28). */
-  cajaBaja: { boton: "caja-cayla h-9 w-full justify-between gap-3 px-3.5 text-[13px] text-tinta", flecha: true, hilo: false, comoNativo: false },
+  cajaBaja: { boton: "caja-cayla caja-campo caja-campo-baja", flecha: true, hilo: false, comoNativo: false },
   /** Finanzas (ADR-0195): cerrado, el control en caja de su spike (`fin-control`, app/estilos/finanzas.css). */
   fin: { boton: "fin-control fin-desplegable", flecha: false, hilo: false, comoNativo: true },
   /** Finanzas, dentro de un sobretítulo («Lo que ya pasó · SETIEMBRE DE 2026»): sin caja, hereda la letra. El contorno de
@@ -485,6 +499,7 @@ export function Desplegable<T extends string>({
   // su contenido y la pega al borde derecho: en la cabecera el disparador
   // dice "TRU" y mide 60px, y una lista de 60px no se puede leer.
   alineacion = "campo",
+  conBuscador = false,
   trabajando = false,
   idEtiqueta,
   etiquetaAccesible,
@@ -499,6 +514,9 @@ export function Desplegable<T extends string>({
   marcador?: string;
   forma?: keyof typeof FORMA_DESPLEGABLE;
   alineacion?: "campo" | "derecha";
+  /** El buscador aparece aunque haya 8 opciones o menos (la regla de ADR-0209 lo pone solo desde 9). Para una lista que crece con el
+   *  tiempo y que se busca por algo que no es su orden, como las campañas del plan («2027», «madre»). */
+  conBuscador?: boolean;
   trabajando?: boolean;
   /** Id de un <label> existente (lo pasa `CampoSelect`). */
   idEtiqueta?: string;
@@ -515,7 +533,7 @@ export function Desplegable<T extends string>({
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
-  const f = FORMA_DESPLEGABLE[forma];
+  const f: FormaDesplegable = FORMA_DESPLEGABLE[forma];
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
   const [busqueda, setBusqueda] = useState("");
@@ -532,7 +550,7 @@ export function Desplegable<T extends string>({
   // Regla global de combos (ADR-0209): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
   // cambio para los cientos de Desplegable de 2 a 6 opciones que ya funcionaban. El grupo también se busca: «banco»
   // trae todas las cuentas de «Bancos y billeteras».
-  const mostrarBuscador = comboNecesitaBuscador(opciones.length);
+  const mostrarBuscador = conBuscador || comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
     return filtrarCombo(opciones, busqueda, (o) => ({ texto: o.texto, detalle: o.grupo }));
@@ -547,6 +565,20 @@ export function Desplegable<T extends string>({
   const destino = useDestinoFlotante(contenedor, abierto && flotante);
   // La lista en `fixed` se pinta recién cuando tiene posición (un render después de abrir).
   const listaVisible = abierto && (!flotante || !!posLista);
+  // `derecha` pega la lista al borde derecho del control y la deja crecer hacia la izquierda. Si el control quedó a la izquierda (la
+  // cabecera baja sus acciones bajo la frase cuando la derecha está ocupada), la lista se salía de la pantalla y se leía «OR VENIR · 2026»
+  // (Felipe 2026-10-12, Plan de campaña). Medida al abrir: si se sale por la izquierda, se pega al borde izquierdo del control.
+  // Se corrige en el DOM antes de pintar (sin estado: no hay un cuadro con la lista cortada).
+  useLayoutEffect(() => {
+    const el = capa.current;
+    if (!listaVisible || flotante || !el) return;
+    el.style.left = "";
+    el.style.right = "";
+    if (el.getBoundingClientRect().left < 8) {
+      el.style.left = "0";
+      el.style.right = "auto";
+    }
+  }, [listaVisible, flotante]);
 
   const indiceActual = opciones.findIndex((o) => o.valor === valor);
   const elegida = indiceActual >= 0 ? opciones[indiceActual] : null;
@@ -567,9 +599,13 @@ export function Desplegable<T extends string>({
     if (devolverFoco) disparador.current?.focus();
   }
 
+  // Cuántas veces se eligió algo distinto: el valor nuevo entra subiendo (ADR-0358, ronda 6). Al cargar no anima.
+  const [cambio, setCambio] = useState(0);
+
   function elegir(o: Opcion<T> | undefined) {
     // Una opción bloqueada se ve, pero ni el clic ni Enter la eligen (el <option disabled> del navegador).
     if (!o || o.deshabilitada) return;
+    if (o.valor !== valor) setCambio((c) => c + 1);
     onValor(o.valor);
     cerrar();
   }
@@ -681,14 +717,15 @@ export function Desplegable<T extends string>({
         o.deshabilitada ? "cursor-not-allowed text-tinta/40" : i === activo ? "cursor-pointer bg-rojo/10 text-tinta" : "cursor-pointer text-tinta/80"
       }`}
     >
-      {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
+      {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto, y su ✓ que se dibuja (ADR-0358, ronda 6). */}
       <span
         aria-hidden
         className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
           o.valor === valor ? "scale-y-100" : "scale-y-0"
         }`}
       />
-      {o.texto}
+      <span className="min-w-0 flex-1">{o.texto}</span>
+      {o.valor === valor && <Check aria-hidden className="combo-tilde" />}
     </li>
   );
 
@@ -705,9 +742,10 @@ export function Desplegable<T extends string>({
         aria-label={idEtiqueta ? undefined : etiquetaAccesible}
         aria-controls={`${id}-lista`}
         disabled={deshabilitado}
+        data-trabajando={trabajando && !esPastilla ? "" : undefined}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`flex items-center text-left outline-none transition-colors disabled:cursor-not-allowed ${f.boton} ${
+        className={`flex items-center text-left transition-colors disabled:cursor-not-allowed ${f.boton} ${
           esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""
         }`}
       >
@@ -716,25 +754,31 @@ export function Desplegable<T extends string>({
           // control el ancho de la más larga —cerrado mide igual que el del spike y no baila al elegir otra—; en una
           // columna angosta, lo elegido se corta con «…» y lo invisible no desborda (`overflow-hidden`).
           <span className="grid min-w-0 overflow-hidden">
-            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.texto ?? marcador}</span>
-            {[marcador, ...opciones.map((o) => o.texto)].map((t, k) => (
+            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.corto ?? elegida?.texto ?? marcador}</span>
+            {[marcador, ...opciones.map((o) => o.corto ?? o.texto)].map((t, k) => (
               <span key={k} aria-hidden className="invisible col-start-1 row-start-1 h-0 whitespace-nowrap">
                 {t}
               </span>
             ))}
           </span>
         ) : (
-          <span className={elegida ? "" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
+          <span key={cambio} className={`combo-valor ${cambio ? "combo-valor-entra" : ""} ${elegida || f.marcadorComoTexto ? "" : "text-tinta/65"}`}>
+            {elegida?.corto ?? elegida?.texto ?? marcador}
+          </span>
         )}
-        {f.flecha && (
-          <svg
-            aria-hidden
-            viewBox="0 0 10 6"
-            className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
-          >
-            <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
-          </svg>
-        )}
+        {f.flecha &&
+          (esPastilla ? (
+            <svg
+              aria-hidden
+              viewBox="0 0 10 6"
+              className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
+            >
+              <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+            </svg>
+          ) : (
+            // La caja que se enciende: el chevron gira media vuelta y se pone rojo al abrir (CSS, por `aria-expanded`).
+            <ChevronDown aria-hidden className="combo-flecha" />
+          ))}
         {/* La pastilla no se para sobre el hilo, así que el "estoy trabajando"
             se dibuja adentro, igual que en `Boton cargando`. Es lo que le dice
             a quien está en el mostrador que el sistema no se colgó. */}
@@ -770,26 +814,29 @@ export function Desplegable<T extends string>({
                 : undefined
             }
             className={`anim-revelar lista-flotante z-50 flex flex-col overflow-hidden rounded-lg ${
-              flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
+              flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full max-w-[calc(100vw-16px)]"
             }`}
           >
           {mostrarBuscador && (
-            <input
-              ref={buscador}
-              value={busqueda}
-              onChange={(e) => {
-                setBusqueda(e.target.value);
-                setActivo(0);
-                reiniciar();
-              }}
-              onKeyDown={alTeclado}
-              placeholder="Buscar…"
-              aria-label={etiquetaAccesible ?? "Buscar"}
-              aria-controls={`${id}-lista`}
-              aria-activedescendant={mostradas[activo] ? `${id}-op-${activo}` : undefined}
-              autoComplete="off"
-              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
-            />
+            // El buscador de la lista (más de 8 opciones, ADR-0209), con su lupa (ADR-0358, ronda 6).
+            <div className="combo-buscar">
+              <Search aria-hidden />
+              <input
+                ref={buscador}
+                value={busqueda}
+                onChange={(e) => {
+                  setBusqueda(e.target.value);
+                  setActivo(0);
+                  reiniciar();
+                }}
+                onKeyDown={alTeclado}
+                placeholder="Buscar…"
+                aria-label={etiquetaAccesible ?? "Buscar"}
+                aria-controls={`${id}-lista`}
+                aria-activedescendant={mostradas[activo] ? `${id}-op-${activo}` : undefined}
+                autoComplete="off"
+              />
+            </div>
           )}
           <ul
             id={`${id}-lista`}
@@ -804,7 +851,11 @@ export function Desplegable<T extends string>({
             className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
           >
             {mostradas.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+              <li>
+                <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                  Nada coincide con <b>«{busqueda.trim()}»</b>.
+                </Vacio>
+              </li>
             ) : (
               // Los grupos (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin grupo, las filas sueltas
               // de siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay grupos.
@@ -895,54 +946,123 @@ export function CampoSelect<T extends string>({
    vuelo, que es lo que le dice a quien está en el mostrador que el
    sistema NO se colgó.
    ------------------------------------------------------------------ */
+// Cada peso es una variante de `btn-cayla` (globals.css): el mismo botón que el resto del ERP, con su movimiento y su onda. La VOZ
+// no la decide el peso sino el lugar (ADR-0358, ronda 4, Felipe 2026-10-07: «dos voces»): dentro de una cabecera de pantalla
+// (`data-voz="cabecera"`) habla en versalitas de 11 px; en una hoja o una tarjeta, en letra normal.
 const PESO_BOTON = {
   // Guía oficial (2026-09-22): el hover del primario es rojo PROFUNDO — el rojo de marca no se gasta en un hover.
-  primario: "bg-tinta text-crema hover:bg-rojo-profundo disabled:bg-tinta/30",
-  fantasma: "border border-tinta/25 text-tinta hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
-  discreto: "border border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo disabled:border-tinta/10 disabled:text-tinta/65",
+  primario: "btn-primario",
+  fantasma: "btn-secundario",
+  discreto: "btn-sutil",
+  // Lo que borra, anula o desactiva: rojo desde el principio (ronda 4, la A).
+  peligro: "btn-peligro",
 } as const;
+
+/* El botón del ERP (ADR-0358). Su movimiento es el ÚNICO de los botones (`.btn-cayla` / `.mov-boton` en globals.css): sube con su
+   sombra y cruza una luz al pasar el mouse, el «+» da un cuarto de vuelta y la flecha se adelanta, se encoge al presionar y una onda
+   nace donde tocaste; mientras guarda corre un hilo abajo. El foco del teclado es el anillo único (ADR-0351). Con `href` es
+   `<BotonEnlace>`; con un archivo o un enlace afuera, `<BotonAncla>`. */
+const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) => `btn-cayla ${PESO_BOTON[peso]} ${className}`;
+
+/**
+ * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:
+ * «le falta animación en el +»). El lector de pantalla oye «Registrar gasto», sin el signo. Lo demás del texto va en un solo bloque,
+ * así un `Agregar {año}` no se separa con el espacio de la fila. La caja es `flex` (de bloque), no `inline-flex`: dentro del
+ * <span> de <Boton> una `inline-flex` armaba su propia línea de texto y el botón con «+» medía 43 px junto a sus vecinos de 40
+ * (ronda 10 de /unificar, 2026-10-13).
+ */
+function conMas(children: ReactNode): ReactNode {
+  const partes = Children.toArray(children);
+  const primero = partes[0];
+  if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
+  return (
+    <span className="flex items-center gap-1.5">
+      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" />
+      <span>
+        {primero.replace(/^\s*\+\s*/, "")}
+        {partes.slice(1)}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Mientras guarda (ADR-0358, ronda 12, Felipe eligió P1 el 2026-10-14): con `cargando`, la palabra pasa a «Guardando…» (u otro verbo,
+ * `textoCargando`: «Abriendo…», «Cerrando…»), corre el hilo de abajo y el botón se apaga para que un doble clic no guarde dos veces.
+ * Las dos palabras ocupan la MISMA celda (una invisible): el botón no cambia de ancho y nada se corre. Solo si se pasa `cargando`
+ * (un botón que no guarda no reserva el lugar de «Guardando…»). Lo usan `Boton`, `BotonCompacto` y los botones del flujo del mostrador.
+ */
+export function PalabraEnEspera({ cargando, texto = "Guardando…", children }: { cargando: boolean; texto?: string; children: ReactNode }) {
+  return (
+    <span className="relative grid">
+      <span className={`[grid-area:1/1] ${cargando ? "invisible" : ""}`}>{children}</span>
+      <span className={`[grid-area:1/1] text-center ${cargando ? "" : "invisible"}`}>{texto}</span>
+    </span>
+  );
+}
+
+/** El hilo que barre abajo mientras la base responde (el mismo en todo botón que guarda): crema sobre un botón oscuro, rojo sobre uno claro. */
+export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
+  return (
+    <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
+      <span className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
+    </span>
+  );
+}
 
 export function Boton({
   peso = "fantasma",
-  cargando = false,
+  cargando,
+  textoCargando = "Guardando…",
   className = "",
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   peso?: keyof typeof PESO_BOTON;
+  /** Está guardando: «Guardando…», el hilo y el botón apagado. Un botón que guarda SIEMPRE lo pasa (también en `false`). */
   cargando?: boolean;
+  /** Otro verbo mientras espera, si lo que hace no es guardar («Abriendo…», «Cerrando…», «Anulando…»). */
+  textoCargando?: string;
 }) {
+  const guarda = cargando !== undefined;
   return (
-    <button
-      {...props}
-      disabled={props.disabled || cargando}
-      className={`label-cayla group relative overflow-hidden rounded-md px-4 py-3 text-[11px] outline-none transition-all ease-cayla active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:active:scale-100 ${PESO_BOTON[peso]} ${className}`}
-    >
-      {/* Barrido de luz al pasar el mouse: cruza una vez y no deja nada
-          pintado. Es el único gradiente del sistema, y existe solo como
-          movimiento — un botón que solo cambia de color de golpe es
-          justamente el "seco" que había que sacar.
-          En reposo la barra es INVISIBLE (`opacity-0`), no solo "fuera de
-          cuadro": está inclinada y una inclinación de 12° mete su esquina
-          ~4-5px dentro del botón (mitad del alto × tan 12°), y eso se veía como
-          una esquina rosada en el borde inferior izquierdo de todos los botones
-          aun sin mouse. La animación la enciende (`cayla-brillo` fija
-          `opacity: 1`) y al terminar vuelve a apagarse. */}
-      <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
-        <span
-          className={`absolute inset-y-0 left-0 w-1/3 -translate-x-full skew-x-12 opacity-0 group-hover:[animation:cayla-brillo_650ms_ease-out] motion-reduce:group-hover:[animation:none] ${
-            peso === "primario" ? "bg-crema/20" : "bg-rojo/10"
-          }`}
-        />
-      </span>
-      <span className="relative">{children}</span>
-      {cargando && (
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-          <span
-            className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${peso === "primario" ? "bg-crema" : "bg-rojo"}`}
-          />
-        </span>
+    <button {...props} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={claseBoton(peso, className)}>
+      {guarda ? (
+        <PalabraEnEspera cargando={Boolean(cargando)} texto={textoCargando}>
+          {conMas(children)}
+        </PalabraEnEspera>
+      ) : (
+        <span className="relative">{conMas(children)}</span>
       )}
+      {cargando && <HiloEnEspera claro={peso === "primario" || peso === "peligro"} />}
     </button>
+  );
+}
+
+/** `<Boton>` como un `<a>` de verdad: una descarga (`Link` pediría el archivo por adelantado) o un enlace que sale del ERP (WhatsApp). */
+export function BotonAncla({
+  peso = "fantasma",
+  className = "",
+  children,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { peso?: keyof typeof PESO_BOTON }) {
+  return (
+    <a {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
+      <span className="relative inline-flex items-center gap-2">{conMas(children)}</span>
+    </a>
+  );
+}
+
+/** `<Boton>` para lo que navega: la acción principal de una cabecera («+ Registrar factura», «+ Nueva orden»). Mismo movimiento. */
+export function BotonEnlace({
+  peso = "fantasma",
+  className = "",
+  children,
+  ...props
+}: React.ComponentProps<typeof Link> & { peso?: keyof typeof PESO_BOTON }) {
+  return (
+    <Link {...props} className={claseBoton(peso, `inline-flex items-center justify-center ${className}`)}>
+      <span className="relative inline-flex items-center gap-1.5">{conMas(children)}</span>
+    </Link>
   );
 }

@@ -1,0 +1,4 @@
+## 2026-10-01 (Movimientos: las bajadas al piso del día se ven en el cajón)
+Qué hice: la fila plegada «Bajadas al piso» ya no se despliega hacia abajo: al tocarla abre el cajón lateral con cuántas bajadas hubo, entre qué horas, cada prenda con su hora y cuánto se bajó, y quién las hizo. Antes, en la lista, la hora de cada fila pasó a su propia columna (PR #676).
+Por qué así: el cajón ya era el lugar donde Movimientos cuenta qué pasó (ADR-0241, diseño del 2026-09-28); abrirlo sin cerrar ni volver a deslizar al pasar de las bajadas a otra fila obligó a separar el marco del contenido (commit de preparación aparte). Una bajada suelta ya no se abre desde esa lista: se busca por su prenda.
+Felipe se lleva: lo que pidió, probado a 1440 y 375 px con datos inventados (Docker/Postgres local estaba colgado por el disco lleno). Falta verlo con las bajadas reales de una sede.

@@ -274,6 +274,14 @@ permite de forma dinámica registrar mis asesores de atención al cliente»*.
 > la gratificación y la CTS (R-13): el mes de mayor venta es también el de mayor salida
 > de caja.
 
+> **Actualización (2026-10-13, Felipe; ADR-0372 act. 2026-10-13):** «triplica un mes» no se
+> sostiene contra el historial de Sinatra que ya está en el ERP: diciembre vende entre ×1,59
+> y ×2,30 un día normal en Trujillo (mediana ×2,04, 2017–2025) y ×1,1 en Arequipa (2024 y
+> 2025). El Plan de campaña usa el multiplicador de cada tienda medido en su historial
+> cuando el ERP no tiene la campaña del año anterior, y el × 3 queda solo para la tienda
+> que no tiene ni lo uno ni lo otro. *El texto de arriba se conserva como quedó el
+> 2026-09-12.*
+
 **R-20 · CAYLA rota rápido: pasados 30 días sin venderse ya es mala señal.** Pero el
 umbral correcto **depende de la categoría** — una blusa de campaña no es un básico
 atemporal. *Criterio de Felipe.*
@@ -286,6 +294,11 @@ atemporal. *Criterio de Felipe.*
 > (`LECTURA_SIN_VENTAS_DIAS_MIN`, `apps/web/lib/resumen-lectura.ts:40`). El umbral por categoría se fija cuando haya
 > 8 semanas de ventas reales: al 2026-09-25 hay 4, y un umbral sin historial sería una suposición. La consecuencia de
 > diseño de arriba sigue siendo el destino. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
+> **Actualización (2026-10-06):** `resumen-lectura.ts` se borró junto con el Análisis de antes de la v4. En Análisis v4
+> lo quieto desde un mes va a «Vigílalas» y desde «Liquidar desde» a enviar o liquidar; «Liquidar desde» es uno solo para
+> todas las categorías (`retail.parametros_analisis`, 60 días de fábrica, ADR-0357). El umbral por categoría sigue siendo
+> el destino.
 
 **R-21 · Lo que no rota se le busca salida.** Se baja de precio, se manda a otra sede, o
 se remata. **Solo se guarda si es básico y atemporal.** *Dato duro.*
@@ -657,7 +670,9 @@ Y dos reglas que van encima del porcentaje:
 > de campaña no lo piden. Y la fila «Más de 35% → lo autoriza Felipe» tampoco es así. Desde el
 > 2026-09-15, por decisión explícita de Felipe, **la base no autoriza un descuento mayor a 35% para nadie, ni
 > siquiera para Felipe** (la razón de entonces: la base solo distinguía líder de colaborador; desde el 2026-09-23
-> sí distingue al Admin con `fn_es_admin()`, ADR-0178, pero la regla de más de 35% no se volvió a revisar); superarlo de verdad se resuelve fuera del sistema, en Studio, igual que los códigos de descuento. Además,
+> sí distingue al Admin con `fn_es_admin()`, ADR-0178, pero la regla de más de 35% no se volvió a revisar); superarlo de verdad se resuelve fuera del sistema, en Studio. **Desde el 2026-10-01 ya no hay código de descuento**
+> (`20261002100000_descuento_sin_codigo.sql`, Felipe: «con el argumento bastaba»): una colaboradora o una terminal de caja
+> descuenta con motivo y, pasado el 15 %, argumento; sin tope de %, solo el costo de la prenda. Además,
 > desde el 2026-09-22 (D-67) existe un segundo candado, a nivel de VENTA y no de línea: `colaboradores.tope_descuento_pct`
 > (10% por defecto para cada colaboradora, sin tope para el líder), que exige autorización de un líder activo para
 > superarse. **Los dos mecanismos conviven hoy sin validarse entre sí y el mostrador todavía no manda ese segundo

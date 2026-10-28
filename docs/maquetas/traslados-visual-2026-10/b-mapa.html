@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados · B · Mapa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comun.css">
+<style>
+/* ====================================================================
+   OPCIÓN B · «MAPA» — las cuatro sedes sobre la costa (Trujillo arriba, Lima y el Taller al medio,
+   Arequipa abajo) y cada caja como un camión que va por su arco. Se ve DÓNDE está cada traslado
+   antes de leer una palabra. Tocar una sede es «verla como esa sede»; el reloj adelanta el tiempo
+   para ver qué llega y cuándo. A la derecha, «Hoy te toca» y la lista corta.
+   Pariente del Observatorio del Admin (ADR-0322: «el cometa de un traslado en camino»).
+   ==================================================================== */
+.mapa-cols{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:18px;align-items:start;margin-top:24px}
+.mapa-card{position:relative;overflow:hidden;padding:0}
+.mapa-top{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap;padding:16px 18px 0}
+.mapa-top h2{font-family:var(--serif);font-weight:400;font-size:22px}
+.leyenda{display:flex;gap:6px;flex-wrap:wrap}
+.lienzo{position:relative}
+svg.mapa{display:block;width:100%;height:auto;max-height:600px;margin:0 auto;overflow:hidden}
+.mar{fill:color-mix(in srgb,var(--pizarra) 7%,var(--papel))}
+.mar-raya{stroke:color-mix(in srgb,var(--pizarra) 16%,var(--papel));stroke-width:1}
+.costa{fill:none;stroke:color-mix(in srgb,var(--pizarra) 35%,var(--sand));stroke-width:1.4;stroke-dasharray:1200;stroke-dashoffset:1200}
+.mapa.go .costa{animation:costa 1.6s var(--ease) forwards}
+@keyframes costa{to{stroke-dashoffset:0}}
+.oceano{font-family:var(--serif);font-style:italic;font-size:15px;fill:color-mix(in srgb,var(--pizarra) 55%,var(--papel));letter-spacing:.12em}
+.andes{fill:none;stroke:var(--sand);stroke-width:1.2;stroke-linecap:round}
+
+/* Arcos y camiones */
+.arco .base{fill:none;stroke:var(--c-ln);stroke-width:2;stroke-dasharray:3 5}
+.arco .hecho{fill:none;stroke:var(--c);stroke-width:2.6;stroke-linecap:round}
+.arco .toque{fill:none;stroke:transparent;stroke-width:22;cursor:pointer}
+.arco{transition:opacity .3s var(--ease)}
+.mapa.foco .arco:not(.on){opacity:.18}
+.mapa.foco .nodo:not(.on){opacity:.45}
+.cam-m{cursor:pointer}
+.cam-m .disco{fill:var(--papel);stroke:var(--c);stroke-width:1.6}
+.cam-m .ico{color:var(--c)}
+.cam-m .ico *{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cam-m .etq rect{fill:var(--c);rx:7}
+.cam-m .etq text{fill:var(--papel);font-size:10.5px;font-weight:700;font-family:'DM Sans'}
+.cam-m.atraso .disco{stroke:var(--ambar);stroke-width:2.2}
+.cam-m .halo{fill:none;stroke:var(--ambar);stroke-width:2;opacity:0}
+.mapa.go .cam-m.atraso .halo{animation:halo 1.4s 1.3s 3 var(--ease)}
+@keyframes halo{0%{opacity:.7;r:14}100%{opacity:0;r:26}}
+.cam-m:hover .disco{stroke-width:2.6}
+.cam-m.llego .disco{fill:var(--c)}
+.cam-m.llego .ico{color:var(--papel)}
+
+/* Sedes */
+.nodo{cursor:pointer;transition:opacity .3s var(--ease)}
+.nodo .halo-n{fill:var(--c-bg);transition:r .4s var(--ease)}
+.nodo .disco{fill:var(--papel);stroke:var(--c-ln);stroke-width:1.5}
+.nodo .ico{color:var(--t80)}
+.nodo .ico *{stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nodo .nom{font-family:var(--serif);font-size:19px;fill:var(--tinta)}
+.nodo .ciu{font-size:10.5px;fill:var(--t65);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.nodo.mio .disco{fill:var(--tinta);stroke:var(--tinta)}
+.nodo.mio .ico{color:var(--crema)}
+.nodo.mio .halo-n{fill:color-mix(in srgb,var(--tinta) 9%,transparent)}
+.nodo:hover .halo-n{r:34}
+.nodo .bd rect{fill:var(--ambar)}
+.nodo .bd text{fill:var(--papel);font-size:11px;font-weight:700;font-family:'DM Sans'}
+.nodo{opacity:0;transform-box:fill-box;transform-origin:center}
+.mapa.go .nodo{animation:nodo .6s var(--ease) forwards;animation-delay:calc(var(--k,0)*90ms + 300ms)}
+.mapa.quieto .nodo{opacity:1}
+.mapa.quieto .costa{stroke-dashoffset:0}
+@keyframes nodo{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+.mapa.foco .nodo:not(.on){opacity:.45}
+
+/* Ficha flotante al pasar sobre un camión */
+.ficha{position:absolute;z-index:6;pointer-events:none;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:10px 12px;min-width:220px;box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 45%,transparent);opacity:0;transform:translateY(6px);transition:opacity .2s var(--ease),transform .25s var(--ease)}
+.ficha.in{opacity:1;transform:none}
+.ficha .que{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.ficha b{display:block;font-family:var(--serif);font-weight:400;font-size:19px;line-height:1.15}
+.ficha .fr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.ficha .fr span{font-size:12px;color:var(--t65)}
+.ficha .ci{font-family:var(--serif);font-size:22px;color:var(--c);line-height:1}
+
+/* El reloj: adelanta el tiempo para ver qué llega */
+.reloj{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 18px 16px;border-top:1px solid var(--sand);background:color-mix(in srgb,var(--hueso) 45%,var(--papel))}
+.reloj .play{width:38px;height:38px;border-radius:50%;background:var(--tinta);color:var(--crema);display:grid;place-items:center}
+.reloj .play svg{width:16px;height:16px;fill:currentColor;stroke:none}
+.reloj .pista{position:relative}
+.reloj input[type=range]{width:100%;appearance:none;-webkit-appearance:none;background:transparent;height:24px;cursor:pointer}
+.reloj input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--tinta) var(--v,0%),var(--sand) var(--v,0%))}
+.reloj input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:var(--sand)}
+.reloj input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:var(--tinta)}
+.reloj input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--papel);border:2px solid var(--tinta);margin-top:-7px}
+.reloj input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--papel);border:2px solid var(--tinta)}
+.reloj .marcas{display:flex;justify-content:space-between;font-size:10.5px;color:var(--t50);letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-top:-2px}
+.reloj .hora-r{text-align:right;min-width:112px}
+.reloj .hora-r b{display:block;font-family:var(--serif);font-weight:400;font-size:22px;line-height:1}
+.reloj .hora-r small{font-size:11px;color:var(--t65)}
+.reloj .volver{font-size:12px;font-weight:600;color:var(--taupe);text-decoration:underline;text-underline-offset:3px;opacity:0;pointer-events:none;transition:opacity .2s}
+.reloj .volver.v{opacity:1;pointer-events:auto}
+
+/* Columna derecha */
+.lado{display:grid;gap:18px;align-content:start}
+.lado h2{font-family:var(--serif);font-weight:400;font-size:22px;display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.lado h2 .n{color:var(--t50)}
+.lado .tareas{grid-template-columns:1fr}
+.mini{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);text-align:left;transition:border-color .2s,background .2s,transform .25s var(--ease)}
+.mini+.mini{margin-top:6px}
+.mini:hover,.mini.on{border-color:var(--c-ln);background:var(--c-bg);transform:translateX(-3px)}
+.mini .sello{--sz:36px}
+.mini .r1{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+.mini .r2{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden}
+.mini .r2 svg{width:13px;height:13px;color:var(--t50)}
+.mini .ci{font-family:var(--serif);font-size:24px;color:var(--c);line-height:1;text-align:right;white-space:nowrap}
+.mini .ci small{display:block;font-family:'DM Sans';font-size:10.5px;color:var(--t65);margin-top:2px}
+.sellos-fin{display:flex;flex-wrap:wrap;gap:8px}
+.estampa{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);font-size:12px;font-weight:600;transition:border-color .2s,transform .25s var(--ease)}
+.estampa:hover{border-color:var(--c-ln);transform:translateY(-2px)}
+.estampa .sello{--sz:28px}
+.estampa span small{display:block;font-weight:500;color:var(--t65);font-size:11px}
+
+@container vista (max-width:1100px){
+  .mapa-cols{grid-template-columns:1fr}
+  .lado .tareas{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+}
+@container vista (max-width:760px){
+  .mapa-cols{margin-top:18px}
+  svg.mapa{max-height:470px}
+  .mapa-top{padding:14px 14px 0}
+  .leyenda{display:none}
+  .reloj{padding:10px 14px 14px;grid-template-columns:auto minmax(0,1fr)}
+  .reloj .hora-r{grid-column:1/-1;text-align:left;display:flex;align-items:baseline;gap:8px}
+}
+</style>
+</head>
+<body>
+<script src="comun.js"></script>
+<script>
+/* Dónde va cada sede en el lienzo (la costa peruana, de norte a sur) */
+const POS = { tru:{ x:168, y:86 }, lim:{ x:250, y:318 }, taller:{ x:404, y:246 }, aqp:{ x:508, y:446 } };
+/* dónde va el nombre de cada sede, para que ningún arco lo tape */
+const ETQ = { tru:'arriba', lim:'abajo', taller:'derecha', aqp:'derecha' };
+const COSTA = 'M20 -20 C 50 40, 80 95, 102 140 S 170 268, 214 334 S 330 448, 420 486 S 560 530, 660 540';
+const est = { h:0, foco:null, corriendo:false };
+let animando = null;
+
+M.montar({ opcion:'B', nombre:'Mapa', dibujar(raiz){
+  const s = M.sede, tareas = M.tareas(s);
+  const abiertos = M.TR.filter(M.abierto);
+  const mios = M.ordenar(M.mios(s));
+  const enCurso = mios.filter(M.abierto), terminados = mios.filter(t => !M.abierto(t));
+  raiz.innerHTML = M.encabezado({ frase: 'Dónde va cada caja, ahora mismo.' }) + `
+    <div class="mapa-cols">
+      <section class="tarjeta mapa-card rev" id="mc">
+        <div class="mapa-top"><h2>Ahora en camino</h2>
+          <div class="leyenda"><span class="chip s-llega">Viene hacia ti</span><span class="chip s-sale">Sale de ti</span><span class="chip s-camino">Entre otras sedes</span></div></div>
+        <div class="lienzo" id="lienzo"></div>
+        <div class="reloj">
+          <button class="play" id="play" aria-label="Ver cómo avanzan las cajas"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></button>
+          <div class="pista"><input type="range" id="rango" min="0" max="54" step="0.5" value="${est.h}" aria-label="Adelantar el tiempo"><div class="marcas"><span>Ahora</span><span>Esta noche</span><span>Mañana</span><span>Jueves</span></div></div>
+          <div class="hora-r"><b class="num" id="hr"></b><small id="hs"></small> <button class="volver" id="volver">Volver a ahora</button></div>
+        </div>
+      </section>
+      <aside class="lado">
+        <section class="rev"><h2>Hoy te toca <span class="n num">${tareas.length || ''}</span></h2>
+          ${tareas.length ? `<div class="tareas compactas">${tareas.map((x, i) => M.tareaHTML(x, i)).join('')}</div>` : `<div class="tareas-vacio s-cerrado"><span class="sello" data-go>${M.glifo('cerrado')}</span><b style="font-family:var(--serif);font-weight:400;font-size:19px">Nada pendiente en ${M.SEDES[s].corto}</b></div>`}</section>
+        <section class="rev"><h2>En curso <span class="n num">${enCurso.length}</span></h2><div id="minis"></div></section>
+        ${terminados.length ? `<section class="rev"><h2>Terminados</h2><div class="sellos-fin">${terminados.map(t => { const sit = M.situacion(t, s); return `<button class="estampa s-${sit}" data-num="${t.num}" data-go-hover><span class="sello" data-go>${M.glifo(sit)}</span><span>Traslado ${t.num}<small>${M.SEDES[t.de].corto} → ${M.SEDES[t.a].corto} · ${M.cifra(t, s).big}</small></span></button>`; }).join('')}</div></section>` : ''}
+      </aside>
+    </div>`;
+
+  /* ── Lista corta: cada traslado en curso, con su cifra ── */
+  const minis = M.$('#minis', raiz);
+  minis.innerHTML = enCurso.map(t => {
+    const sit = M.situacion(t, s), c = M.cifra(t, s), cls = sit === 'llega' && M.atrasado(t) ? 'atraso' : sit;
+    return `<button class="mini s-${cls}" data-num="${t.num}" data-foco="${t.num}" data-go-hover>
+      <span class="sello" data-go>${M.glifo(sit === 'camino' ? 'sale' : sit)}</span>
+      <span style="min-width:0"><span class="r1">${M.nombreSit(t, s)}</span><span class="r2">${M.SEDES[t.de].corto} ${M.ic('flecha')} ${M.SEDES[t.a].corto} <span style="font-weight:400;color:var(--t65)">· ${t.num}</span></span></span>
+      <span class="ci num">${c.big}<small>${c.small}</small></span></button>`;
+  }).join('') || `<div class="tareas-vacio">Nada en camino desde o hacia ${M.SEDES[s].corto}.</div>`;
+
+  /* ── El mapa ── */
+  const lienzo = M.$('#lienzo', raiz);
+  const NS = 'http://www.w3.org/2000/svg';
+  const svgIco = (d, x, y, sz) => `<svg class="ico" x="${x - sz / 2}" y="${y - sz / 2}" width="${sz}" height="${sz}" viewBox="0 0 24 24">${d}</svg>`;
+  /* arcos: curva que se abre tierra adentro; dos cajas por el mismo par se separan */
+  const pares = {};
+  const arcoD = t => {
+    const a = POS[t.de], b = POS[t.a], k = [t.de, t.a].sort().join('-');
+    pares[k] = (pares[k] || 0) + 1;
+    const n = pares[k], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+    const sentido = t.de < t.a ? 1 : -1, curva = (0.16 + (n - 1) * 0.12) * L * sentido;
+    return `M${a.x} ${a.y} Q ${mx - dy / L * curva} ${my + dx / L * curva} ${b.x} ${b.y}`;
+  };
+  const vivos = abiertos.map(t => ({ t, d: arcoD(t) }));
+  lienzo.innerHTML = `
+    <svg class="mapa" id="mapa" viewBox="0 0 600 540" role="img" aria-label="Mapa de las sedes con las cajas en camino">
+      <defs><clipPath id="mar-c"><path d="${COSTA} L 660 600 L -40 600 L -40 -20 Z"/></clipPath></defs>
+      <g clip-path="url(#mar-c)"><rect class="mar" x="-40" y="-20" width="720" height="600"/>${Array.from({ length: 48 }, (_, i) => `<path class="mar-raya" d="M-40 ${i * 18 - 120} l 300 260"/>`).join('')}</g>
+      <path class="costa" d="${COSTA}"/>
+      <path class="andes" d="M300 70 q 12 -10 24 0 q 12 -12 24 0 M470 150 q 10 -9 20 0 q 10 -9 20 0 M540 320 q 10 -9 20 0 q 10 -9 20 0 M250 170 q 10 -9 20 0"/>
+      <text class="oceano" x="120" y="440" transform="rotate(42 120 440)">OCÉANO PACÍFICO</text>
+      <g id="arcos">${vivos.map(({ t, d }) => { const sit = M.situacion(t, s), cls = (sit === 'llega' && M.atrasado(t)) ? 'atraso' : sit; return `<g class="arco s-${cls === 'atraso' ? 'llega' : cls}" data-arco="${t.num}"><path class="base" d="${d}"/><path class="hecho" d="${d}"/><path class="toque" d="${d}"/></g>`; }).join('')}</g>
+      <g id="nodos">${Object.values(M.SEDES).map((x, k) => { const p = POS[x.id], mio = x.id === s, n = mio ? tareas.length : 0, lado = ETQ[x.id];
+        const tx = lado === 'derecha' ? p.x + 30 : p.x, ty = lado === 'arriba' ? p.y - 44 : lado === 'abajo' ? p.y + 42 : p.y - 2, an = lado === 'derecha' ? 'start' : 'middle';
+        return `<g class="nodo ${mio ? 'mio' : ''} s-${mio ? 'sale' : 'camino'}" data-nodo="${x.id}" style="--k:${k}" tabindex="0" role="button" aria-label="${mio ? x.n + ' (tu sede)' : 'Ver como ' + x.n}">
+          <circle class="halo-n" cx="${p.x}" cy="${p.y}" r="${mio ? 34 : 28}"/><circle class="disco" cx="${p.x}" cy="${p.y}" r="19"/>${svgIco(M.PT[x.tipo], p.x, p.y, 18)}
+          <text class="nom" x="${tx}" y="${ty}" text-anchor="${an}">${x.corto}</text>
+          <text class="ciu" x="${tx}" y="${ty + 14}" text-anchor="${an}">${mio ? 'tu sede' : x.ciudad}</text>
+          ${n ? `<g class="bd"><rect x="${p.x + 9}" y="${p.y - 25}" width="18" height="18" rx="9"/><text x="${p.x + 18}" y="${p.y - 12.5}" text-anchor="middle">${n}</text></g>` : ''}</g>`; }).join('')}</g>
+      <g id="camiones"></g>
+    </svg>`;
+  const svg = M.$('#mapa', lienzo), gCam = M.$('#camiones', svg);
+  const ficha = M.el('div', 'ficha'); lienzo.append(ficha);
+
+  /* los camiones: uno por traslado abierto, en su punto del arco */
+  const items = vivos.map(({ t }) => {
+    const g = M.$(`[data-arco="${t.num}"]`, svg), hecho = M.$('.hecho', g), L = hecho.getTotalLength();
+    hecho.style.strokeDasharray = `${L}`; hecho.style.strokeDashoffset = `${L}`;
+    const sit = M.situacion(t, s), cls = sit === 'llega' && M.atrasado(t) ? 'atraso' : sit;
+    const enCamino = sit === 'llega' || sit === 'sale' || sit === 'camino';
+    const ico = enCamino ? M.GL[sit] : M.GL[sit];
+    const c = document.createElementNS(NS, 'g');
+    c.setAttribute('class', `cam-m s-${cls === 'atraso' ? 'llega' : cls} ${cls === 'atraso' ? 'atraso' : ''}`);
+    c.dataset.num = t.num; c.setAttribute('tabindex', '0'); c.setAttribute('role', 'button'); c.setAttribute('aria-label', `Traslado ${t.num}`);
+    c.innerHTML = `<circle class="halo" r="14"/><circle class="disco" r="14"/><svg class="ico" x="-8.5" y="-8.5" width="17" height="17" viewBox="0 0 24 24">${ico}</svg>
+      <g class="etq"><rect x="12" y="-22" width="${t.num > 99 ? 30 : 24}" height="15" rx="7.5"/><text x="${12 + (t.num > 99 ? 15 : 12)}" y="-11" text-anchor="middle">${t.num}</text></g>`;
+    gCam.append(c);
+    return { t, g, hecho, L, c };
+  });
+  /* f = fracción del arco donde se dibuja la marca: nunca encima de una sede (entre 12 % y 88 %) */
+  const ponerEn = (it, f) => {
+    const pt = it.hecho.getPointAtLength(it.L * f);
+    it.c.setAttribute('transform', `translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`);
+    it.hecho.style.strokeDashoffset = `${it.L * (1 - f)}`;
+  };
+  /* dónde queda cada marca a una hora dada; si choca con otra ya puesta, se corre por su propio arco */
+  const destinos = at => {
+    const puestos = [];
+    return items.map(it => {
+      let f = 0.16 + M.progreso(it.t, at) * 0.56;
+      const dir = f < 0.45 ? 1 : -1;
+      for (let i = 0; i < 9; i++) {
+        const pt = it.hecho.getPointAtLength(it.L * f);
+        if (i === 8 || puestos.every(q => Math.hypot(q.x - pt.x, q.y - pt.y) > 31)) { puestos.push(pt); break; }
+        f = Math.min(0.88, Math.max(0.12, f + dir * 0.05));
+      }
+      return f;
+    });
+  };
+  const enHora = h => new Date(M.AHORA.getTime() + h * 3600e3);
+  const pintarHora = (h, animar) => {
+    const at = enHora(h);
+    M.$('#hr', raiz).textContent = h === 0 ? 'Ahora' : M.hora(at);
+    M.$('#hs', raiz).textContent = h === 0 ? `martes ${M.hora(M.AHORA)}` : M.dia(at);
+    M.$('#volver', raiz).classList.toggle('v', h > 0);
+    const r = M.$('#rango', raiz); r.value = h; r.style.setProperty('--v', (h / +r.max * 100) + '%');
+    const fs = destinos(at);
+    /* atrasada es solo la que YA pasó su hora hoy; al adelantar el reloj, la que pasa su hora «llegaría» (se pinta llena, en la puerta) */
+    items.forEach((it, i) => {
+      it.c.classList.toggle('atraso', M.atrasado(it.t));
+      it.c.classList.toggle('llego', h > 0 && !M.atrasado(it.t) && M.atrasado(it.t, at));
+      if (!animar) ponerEn(it, fs[i]);
+    });
+  };
+  /* entrada: el arco se dibuja y el camión viaja desde su sede hasta donde va hoy (una vez) */
+  const entrar = () => {
+    svg.classList.add('go');
+    const fs = destinos(enHora(est.h));
+    if (M.quieto || M.reducir()) { svg.classList.add('quieto'); items.forEach((it, i) => ponerEn(it, fs[i])); return; }
+    items.forEach(it => ponerEn(it, 0.12));
+    const t0 = performance.now() + 450, dur = 1400;
+    const paso = now => {
+      const k = Math.max(0, Math.min(1, (now - t0) / dur));
+      items.forEach((it, i) => { const kk = Math.max(0, Math.min(1, (now - t0 - i * 70) / dur)), ee = 1 - Math.pow(1 - kk, 3); ponerEn(it, 0.12 + (fs[i] - 0.12) * ee); });
+      if (k < 1 || (now - t0 - items.length * 70) < dur) requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+  };
+  pintarHora(est.h, true);
+  if (M.quieto) entrar(); else setTimeout(entrar, 120);
+
+  /* el reloj */
+  const rango = M.$('#rango', raiz);
+  rango.oninput = () => { est.h = +rango.value; parar(); pintarHora(est.h); };
+  M.$('#volver', raiz).onclick = () => { parar(); irA(0, 700); };
+  const parar = () => { if (animando) cancelAnimationFrame(animando); animando = null; };
+  const irA = (h2, ms) => {
+    parar(); const h1 = est.h, t0 = performance.now();
+    const paso = now => { const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; est.h = Math.round((h1 + (h2 - h1) * e) * 10) / 10; pintarHora(est.h); if (k < 1) animando = requestAnimationFrame(paso); else animando = null; };
+    animando = requestAnimationFrame(paso);
+  };
+  M.$('#play', raiz).onclick = () => irA(est.h >= 50 ? 0 : 52, est.h >= 50 ? 800 : 4200);
+
+  /* foco: pasar por un camión o su fila resalta su arco y sus sedes */
+  const enfocar = num => {
+    svg.classList.toggle('foco', num != null);
+    M.$$('.arco', svg).forEach(a => a.classList.toggle('on', +a.dataset.arco === num));
+    const t = num != null ? M.porNumero(num) : null;
+    M.$$('.nodo', svg).forEach(n => n.classList.toggle('on', !!t && (n.dataset.nodo === t.de || n.dataset.nodo === t.a)));
+    M.$$('.mini', raiz).forEach(m => m.classList.toggle('on', +m.dataset.num === num));
+  };
+  const mostrarFicha = (it, ev) => {
+    const t = it.t, sit = M.situacion(t, s), c = M.cifra(t, s);
+    ficha.className = `ficha s-${sit === 'llega' && M.atrasado(t) ? 'atraso' : sit}`;
+    ficha.innerHTML = `<div class="que">${M.nombreSit(t, s)}</div><b>Traslado ${t.num}</b><div class="fr">${M.pila(t.lineas, 26)}<span class="ci num">${c.big}</span></div><div class="fr"><span>${M.SEDES[t.de].corto} → ${M.SEDES[t.a].corto} · ${M.prendasTexto(t, s).split(' · ')[0]}</span><span>${c.small}</span></div>`;
+    const r = lienzo.getBoundingClientRect(), cr = it.c.getBoundingClientRect();
+    let x = cr.left - r.left + 24, y = cr.top - r.top - 20;
+    if (x + 240 > r.width) x = cr.left - r.left - 250;
+    ficha.style.left = Math.max(8, x) + 'px'; ficha.style.top = Math.max(8, y) + 'px';
+    requestAnimationFrame(() => ficha.classList.add('in'));
+  };
+  items.forEach(it => {
+    const entra = ev => { enfocar(it.t.num); mostrarFicha(it, ev); };
+    const sale = () => { enfocar(null); ficha.classList.remove('in'); };
+    [it.c, M.$('.toque', it.g)].forEach(x => { x.addEventListener('pointerenter', entra); x.addEventListener('pointerleave', sale); x.addEventListener('click', () => { sale(); M.cajon(it.t); }); });
+    it.c.addEventListener('keydown', e => { if (e.key === 'Enter') M.cajon(it.t); });
+  });
+  M.$$('.mini', raiz).forEach(m => { m.addEventListener('pointerenter', () => enfocar(+m.dataset.num)); m.addEventListener('pointerleave', () => enfocar(null)); });
+  /* tocar otra sede = verla como esa sede (es el selector de sede, dibujado) */
+  M.$$('.nodo', svg).forEach(n => {
+    const ir = () => { if (n.dataset.nodo !== s) { est.h = 0; M.cambiarSede(n.dataset.nodo); M.avisar(`Ahora ves Traslados como ${M.SEDES[n.dataset.nodo].n}.`, 'info'); } };
+    n.addEventListener('click', ir); n.addEventListener('keydown', e => { if (e.key === 'Enter') ir(); });
+  });
+}});
+</script>
+</body>
+</html>

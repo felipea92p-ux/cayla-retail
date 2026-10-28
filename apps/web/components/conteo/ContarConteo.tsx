@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { useRouter } from "next/navigation";
-import { Camera, Clock, Info, ScanBarcode, UserRound, X } from "lucide-react";
+import { Camera, Clock, Info, ScanBarcode, UserRound, X, ScanLine, SearchX } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
-import { ControlConteo, type EstadoGuardado, type FalloDeGuardado } from "@/components/conteo/control-conteo";
+import { BotonAplicarTodos, ConfirmarAplicarTodos } from "@/components/conteo/AplicarTodosCompletos";
+import { ControlConteo, type EstadoGuardado, type FalloDeGuardado, type LineaDelAtajo } from "@/components/conteo/control-conteo";
 import { ListaConteo } from "@/components/conteo/ListaConteo";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
@@ -14,15 +16,21 @@ import { BarraFija } from "@/components/ui/BarraFija";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Volver } from "@/components/ui/Volver";
+import { usePistola } from "@/components/ui/usePistola";
 import { resolverCodigoV2 } from "@/lib/buscar-prenda-v2";
 import { guionDeLaPistola } from "@/lib/escaner-guion";
 import { sonidoDeLectura } from "@/lib/conteo-conectado";
 import {
   acotarALista,
   agruparConteo,
+  avisoArranqueAlAplicar,
   coincidenciasPorCodigo,
   filtrarConteo,
+  pendientesParaAplicar,
+  pendientesParaCompletar,
   sumarLectura,
+  textoAplicadas,
+  textosAplicarTodos,
   type DetalleConteo,
   type PrendaConteo,
 } from "@/lib/conteo-reglas";
@@ -33,6 +41,7 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ContarConteo · la pantalla donde se cuenta (Inventario ▸ Conteo ▸ Contar, rediseño 2026-09-29)
@@ -283,21 +292,97 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   );
 
   /**
-   * «Completar todo» de una tarjeta: «encontré todo este producto tal como CAYLA esperaba». Cada talla que SIGUE pendiente se
-   * cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo responsable,
-   * mismo guardado agrupado y en serie, mismo estado y progreso). Las tallas que ya tienen número no se tocan. Si falta el
-   * responsable, se avisa una sola vez y no se anota ninguna.
+   * Lo que sale a la red con «Completar todo»: UNA llamada (`conteo_completar_tarjeta`) que cuenta las tallas con la misma `conteo_contar`
+   * y las marca «completadas con el atajo» (cuentan, pero Revisar lo dice; ADR-0328, opción C de Felipe). Un solo camino: la función
+   * está en la base desde antes de publicar esta pantalla, así que no hay respaldo talla por talla (ADR-0328, act. 2026-10-22).
+   */
+  const enviarCompletar = useCallback(
+    async (lineas: LineaDelAtajo[]) =>
+      await firmar(
+        createClient()
+          .rpc("conteo_completar_tarjeta", { p_conteo_id: conteo.id, p_lineas: lineas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })) })
+          .setHeader("x-espera", "no"),
+        responsableRef.current.firma()
+      ),
+    [conteo.id]
+  );
+
+  /**
+   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante que SIGUE pendiente se
+   * cuenta con lo que debe haber: se pinta YA (como cualquier cantidad escrita) y sale UNA sola petición (`control.completar`). Las que
+   * ya tienen número no se tocan (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Si la
+   * base rechaza, las líneas vuelven a pendiente y se dice por qué. Devuelve cuántas pintó.
    */
   const completarTodo = useCallback(
-    (varianteIds: string[]) => {
-      for (const id of varianteIds) {
-        const l = control.linea(id);
-        if (!l || l.contada !== null) continue;
-        if (!alConfirmar(id, l.debeHaber)) break;
+    (varianteIds: string[]): number => {
+      const r = responsableRef.current;
+      if (!r.listo) {
+        setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de anotar." });
+        return 0;
       }
+      const items = pendientesParaCompletar(varianteIds, control.linea).flatMap((id) => {
+        const l = control.linea(id);
+        return l ? [{ varianteId: id, cantidad: l.debeHaber }] : [];
+      });
+      const { anotadas, resultado } = control.completar(items, enviarCompletar);
+      void resultado.then((res) => {
+        if (!("error" in res)) return;
+        // Un rechazo por el responsable (asistencia) vacía el combo y relee la lista, como al contar.
+        responsableRef.current.despues(res.error);
+        setAviso({ tipo: "texto", texto: traducirError(res.error, "completar esa tarjeta") });
+      });
+      return anotadas;
     },
-    [control, alConfirmar]
+    [control, enviarCompletar]
   );
+
+  // «Aplicar todos completos»: las que SIGUEN pendientes y nadie contó, entre las que se ven (la lista acotada y, si hay texto, lo que deja
+  // el buscador). Las «en reconteo» no entran (`pendientesParaAplicar`, la misma regla de la base): ahí alguien ya vio una diferencia.
+  // La pregunta de confirmación lleva las cuentas reales: `porAplicar` son las variantes que se anotarían y las en reconteo que se dejan.
+  const [porAplicar, setPorAplicar] = useState<{ ids: string[]; enReconteo: number; contadas: number; sinContar: number } | null>(null);
+  const pedirAplicarTodos = useCallback(() => {
+    const visibles = coincidencias === null ? acotadas : acotadas.filter((p) => coincidencias.has(p.varianteId));
+    const { ids, enReconteo } = pendientesParaAplicar(
+      visibles.map((p) => p.varianteId),
+      control.linea
+    );
+    if (ids.length === 0) {
+      setAviso({
+        tipo: "texto",
+        texto:
+          enReconteo > 0
+            ? `No queda ninguna variante por aplicar en esta lista: ${enReconteo === 1 ? "la que está en reconteo hay que volver a contarla" : `las ${enReconteo} en reconteo hay que volver a contarlas`} a mano.`
+            : "No queda ninguna variante pendiente en esta lista.",
+      });
+      return;
+    }
+    // Cómo se leería el resultado si se termina así: las de todo el conteo, no solo las de la lista a la vista.
+    const r = control.resumen();
+    setPorAplicar({ ids, enReconteo, contadas: r.verificadas - r.sinContar, sinContar: r.sinContar });
+  }, [acotadas, coincidencias, control]);
+  // ADR-0328 (actividad 15): ya no es la ráfaga de `conteo_contar` de cada tarjeta, sino UNA llamada (`conteo_aplicar_completos`) que
+  // anota lo que hay AHORA y marca cada línea «sin contar». Nada se pinta antes de que la base responda (`aplicarCompletos`); mientras
+  // tanto el loader general cubre la pantalla (no lleva `x-espera: no`: es un guardado de muchas prendas a la vez).
+  const aplicarTodos = useCallback(async () => {
+    const ids = porAplicar?.ids ?? [];
+    const r = responsableRef.current;
+    if (!r.listo) {
+      setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de aplicar." });
+      return;
+    }
+    const res = await control.aplicarCompletos(ids, async (lista) => {
+      const consulta = createClient().rpc("conteo_aplicar_completos", { p_conteo_id: conteo.id, p_variantes: lista });
+      const { data, error } = await firmar(consulta, responsableRef.current.firma());
+      return { data, error };
+    });
+    if ("error" in res) {
+      // Un rechazo por el responsable (asistencia) vacía el combo y relee la lista, como al contar.
+      responsableRef.current.despues(res.error);
+      setAviso({ tipo: "texto", texto: traducirError(res.error, "aplicar los completos") });
+      return;
+    }
+    setAviso({ tipo: "texto", texto: textoAplicadas(res.aplicadas, res.sinContar) });
+  }, [porAplicar, control, conteo.id]);
 
   const alInvalido = useCallback((t: string) => setAviso({ tipo: "texto", texto: `«${t.trim()}» no es una cantidad. Escribe un número entero: 0 o más.` }), []);
 
@@ -338,6 +423,18 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
     },
     [control]
   );
+
+  // La pistola, la misma pieza de Vender (`usePistola`): lo leído es un código exacto o nada (nunca la única sugerencia de lo
+  // escrito), no se pega a lo que había en el campo y se lee aunque la pistola no mande Enter. El campo queda vacío.
+  usePistola(escanerRef, {
+    alLeer: ({ codigo }) => {
+      setTexto("");
+      const exacta = resolverCodigoV2(codigo, catalogoRef.current);
+      if (exacta) return leerPrenda(exacta);
+      avisarLectura("desconocida");
+      setAviso({ tipo: "no_encontrado", codigo });
+    },
+  });
 
   function alEnterEscaner() {
     const t = texto.trim();
@@ -499,23 +596,23 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         sede={sede}
         titulo={`Conteo ${conteo.numero}`}
         subtitulo={lugar}
-        pie={
-          <>
-            <Volver forma="boton" href={volver.href} a={volver.a} />
-            <Chip tono="pizarra">En curso</Chip>
-          </>
-        }
+        volver={<Volver href={volver.href} a={volver.a} />}
+        pie={<Chip tono="pizarra">En curso</Chip>}
       >
         <CifrasCabecera control={control} />
       </EncabezadoPagina>
-      <PasosConteo actual="contar" />
+      <div data-guia="conteo.pasos">
+        <PasosConteo actual="contar" />
+      </div>
       {notaAcotada}
 
       <div ref={tarjetaRef} role="region" aria-label="Contar" className="space-y-3">
         {/* Escanear o buscar: UN campo de ancho completo. La cámara vive en la barra de abajo del celular. */}
-        <div className="relative">
-          <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-rojo-profundo" />
+        {/* La caja que se enciende (ADR-0358, ronda 6), con el código de barras adentro: aquí se escanea (la pistola escribe y da Enter). */}
+        <div data-guia="contar.escaner" className="caja-cayla caja-campo min-h-[42px] [@media(pointer:coarse)]:min-h-12">
+          <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-rojo-profundo" />
           <input
+            className="self-stretch py-0 text-base placeholder:text-ellipsis"
             ref={escanerRef}
             type="text"
             value={texto}
@@ -532,7 +629,6 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
             autoCapitalize="off"
             spellCheck={false}
             enterKeyHint="search"
-            className="h-[42px] w-full min-w-0 rounded-lg border border-taupe/25 bg-papel pl-11 pr-3 text-base text-tinta outline-none transition-colors placeholder:text-taupe placeholder:text-ellipsis focus:border-rojo-profundo/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta/40 [@media(pointer:coarse)]:h-12"
           />
         </div>
 
@@ -552,13 +648,28 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
               <span>Los productos se muestran en tarjetas. Cada tarjeta crece según el número de tallas del producto.</span>
             )}
           </p>
-          {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            {ultimaId && <UltimaLectura control={control} prenda={porId.get(ultimaId) ?? prendaSinFicha(ultimaId)} />}
+            {hayVariantes && !vaciaPorAcotar && (
+              <span data-guia="contar.aplicar-todos" className="inline-flex">
+                <BotonAplicarTodos control={control} alPedir={pedirAplicarTodos} />
+              </span>
+            )}
+          </div>
         </div>
 
         {!hayVariantes ? (
-          <p className="card-cayla px-5 py-6 text-sm text-taupe">No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.</p>
+          <div className="card-cayla">
+            <Vacio tamano="chico" alinear="izquierda" className="px-5 py-5" icono={<ScanLine />}>
+              No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.
+            </Vacio>
+          </div>
         ) : vaciaPorAcotar ? (
-          <p className="card-cayla px-5 py-6 text-sm text-taupe">Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.</p>
+          <div className="card-cayla">
+            <Vacio tamano="chico" alinear="izquierda" className="px-5 py-5" icono={<ScanLine />}>
+              Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.
+            </Vacio>
+          </div>
         ) : (
           <>
             {nCoincidencias === 0 && (
@@ -572,7 +683,7 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
               />
             )}
             {/* Aunque no coincida nada la lista sigue montada (escondida): volver a dibujarla al borrar el buscador costaría medio segundo. */}
-            <div hidden={nCoincidencias === 0}>
+            <div data-guia="contar.lista" hidden={nCoincidencias === 0}>
               <ListaConteo
                 grupos={grupos}
                 coincidencias={coincidencias}
@@ -588,6 +699,16 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
       </div>
 
       <PieContar control={control} aviso={contenidoAviso} preparando={preparando} alRevisar={() => void revisar()} alCamara={abrirCamara} />
+
+      {porAplicar && (
+        <ConfirmarAplicarTodos
+          textos={textosAplicarTodos({ cuantas: porAplicar.ids.length, contadas: porAplicar.contadas, sinContar: porAplicar.sinContar, enReconteo: porAplicar.enReconteo })}
+          avisoArranque={avisoArranqueAlAplicar(conteo)}
+          cuantas={porAplicar.ids.length}
+          alConfirmar={() => void aplicarTodos()}
+          onClose={() => setPorAplicar(null)}
+        />
+      )}
 
       {alta && (
         <AltaAlVuelo
@@ -650,7 +771,7 @@ function CifrasCabecera({ control }: { control: ControlConteo }) {
     { valor: r.conDiferencia, etiqueta: "Con diferencia", color: r.conDiferencia > 0 ? "text-rojo-profundo" : "text-verde" },
   ];
   return (
-    <section aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
+    <section data-guia="contar.cifras" aria-label="Resumen del conteo" className="anim-sube flex w-full divide-x divide-sand rounded-2xl border border-sand bg-papel lg:w-auto">
       {celdas.map((c) => (
         <div key={c.etiqueta} className="min-w-0 flex-1 px-4 py-4 lg:w-[8.75rem] lg:flex-none">
           <p className={`font-display text-2xl leading-none tabular-nums ${c.color}`}>{c.valor}</p>
@@ -669,28 +790,6 @@ function textoInicio(iso: string): string {
   return `${de("day")}/${de("month")}/${de("year")} · ${de("hour")}:${de("minute")}`;
 }
 
-/** El anillo del progreso: pista en sand y avance en terracota (el mismo que el hilo de CAYLA), sin animación de más. */
-function Anillo({ porcentaje }: { porcentaje: number }) {
-  const r = 16;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg aria-hidden viewBox="0 0 40 40" className="h-10 w-10 shrink-0 -rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-sand" />
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - porcentaje / 100)}
-        className="stroke-rojo transition-[stroke-dashoffset] duration-300 ease-cayla"
-      />
-    </svg>
-  );
-}
-
 /**
  * La barra de información bajo el buscador: quién cuenta, cómo va y desde cuándo. Solo tres bloques (los pendientes ya
  * están arriba a la derecha). El responsable se eligió al abrir el conteo: aquí solo se ve su nombre, sin «Cambiar». Solo si
@@ -706,7 +805,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   return (
     <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       <div className={bloque}>
-        <UserRound aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-tinta/70">Responsable</p>
           {mostrarCombo ? (
@@ -717,7 +816,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Anillo porcentaje={porcentaje} />
+        <Anillo pct={porcentaje} tamano="chico" decorativa />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Progreso</p>
           <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
@@ -729,7 +828,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Clock aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Inicio del conteo</p>
           <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>
@@ -743,7 +842,9 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
 function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeridas: PrendaConteo[]; alSumar: (p: PrendaConteo) => void }) {
   return (
     <div className="card-cayla space-y-3 px-5 py-6">
-      <p className="text-sm text-taupe">Ninguna variante coincide con «{texto}».</p>
+      <Vacio tamano="chico" alinear="izquierda" className="p-0" icono={<SearchX />}>
+        Ninguna variante coincide con <b>«{texto}»</b>.
+      </Vacio>
       {sugeridas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-sand bg-papel px-3.5 py-3 text-sm text-tinta">
           <p>No estaba en la lista de este conteo. ¿Es alguna de estas?</p>
@@ -814,13 +915,13 @@ function PieContar({
           lateral={
             // Discreto: la ÚNICA confirmación por lectura. Sin modales ni avisos flotantes.
             <span role="status" aria-live="polite" className="inline-block min-w-[5.5rem] text-right">
-              {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "✓ Guardado" : null}
+              {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "✓ Guardado" : null /* unificar-fijo: el estado de la planilla mientras se guarda sola, no un botón */}
             </span>
           }
         />
       }
       acciones={
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+        <div data-guia="contar.pie" className="flex w-full items-center gap-2 sm:w-auto">
           <button type="button" onClick={alCamara} aria-label="Escanear con la cámara" className="btn-cayla btn-secundario h-11 w-11 shrink-0 p-0 sm:hidden">
             <Camera aria-hidden className="h-5 w-5" />
           </button>

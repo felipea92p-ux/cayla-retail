@@ -1,5 +1,5 @@
 {
- "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve).",
+ "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso». 2026-10-13 (ADR-0392; Felipe, preguntado con las opciones): «Gestión» es un grupo de PRIMER nivel debajo de Inicio (en el Taller, después de Producción) con Análisis, Frescura del piso, Plan del piso y Rendimiento; las tres salen de Inventario (que vuelve a 4) y Rendimiento deja su fila suelta. Aterrizar en sus rutas abre «gestion». 2026-10-13 (ADR-0362 fase 7, decisión 47): «Órdenes de insumos» entra PRIMERA en Producción ▸ Abastecimiento (pedir → factura → recibir → pagar), sin `exige` (el módulo es la llave): el líder del Taller ve cinco hijas en Abastecimiento, y quien trabaja en el Taller la ve junto a Recibir, así que su Abastecimiento ya no se disuelve en «Recibir». Su ruta, /ordenes-insumos, abre el grupo de Producción. 2026-10-13 (ADR-0362 fase 6, decisión 65; Felipe: «Compras, directo»): «Fondos por rendir» entra en Compras después de «Por pagar», como octava hija (sube el tope de Compras a 8; baja a 7 cuando «Recibir mercadería» se mude a Existencias). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Plan de campaña y Órdenes de compra. Su ruta, /compras/fondos, abre el grupo de Compras. 2026-10-14 (ADR-0393; Felipe: «asegúrate que Recibir mercadería esté en inventario, en el menú lateral también»): «Recibir mercadería» vive solo en Inventario, después de Conteo, para todo perfil y en cualquier sede (sale de Compras, que baja de 8 a 7; el líder en el Taller ahora lo tiene). 2026-10-15 (ADR-0408; Felipe: «se leen en un módulo nuevo del ERP, Recomendaciones»): «Recomendaciones» entra en Clientes después de «Avisos» (lo que los clientes recomiendan desde la tienda online). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Avisos. Su ruta, /clientas/recomendaciones, abre el grupo de Clientes. 2026-10-16 (ADR-0430; Felipe: «Hazlo»): nace el grupo «Tienda web», justo después de Ventas, con Pedidos, Vitrina y Recomendaciones, que salen de Ventas, Catálogo y Clientes (Ajustes no sale en esta foto: es `soloConModulo`, y estos perfiles no traen módulos). Sus rutas cuelgan de /tienda-web. El mismo día (ADR-0430, actividad 2): «Resumen» entra primero en «Tienda web» (módulo tienda_web, ruta /tienda-web). 2026-10-19 (programa de puntos, actividad 8; Felipe: módulo nuevo «Beneficios del club» dentro de Clientes): «Beneficios» entra en Clientes después de «Avisos» (cuánto valen los puntos, cuándo se canjean, cuánto dura un cupón). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Avisos. Su ruta, /clientas/beneficios, abre el grupo de Clientes. 2026-10-21 (Tienda web ▸ Campañas; Felipe aprobó la maqueta y la lista de actividades): «Campañas» entra en «Tienda web» justo después de «Vitrina» (cómo se ve la tienda online durante cada campaña). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Vitrina. Su ruta, /tienda-web/campanas, abre el grupo de Tienda web. 2026-10-22 (ADR-0473; Felipe eligió «Catálogo ▸ Campañas, junto a Liquidación» entre tres opciones): «Campañas» entra en Catálogo después de «Atributos» y antes de «Liquidación» (las fechas, el descuento y dónde rige cada campaña; antes era un grupo de la pestaña «Etiquetas» de Atributos, que pasa a llamarse «Sellos»). Solo pide su módulo, `campanas` (nació en Tienda web con el PR #1190 y se muda a Catálogo), que en una base sin ese PR nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Liquidación. Su ruta, /productos/campanas, abre el grupo de Catálogo. 2026-10-22, por la tarde (Felipe: «separar sellos del módulo de atributos, que se convierta en un submódulo más de catálogo; dentro debe estar también campañas, campañas ya no sería un submódulo, sellos la debería reemplazar»): «Sellos» ocupa el lugar de «Campañas», después de «Atributos» y antes de «Liquidación», con el sello de goma (desde el 2026-10-23 se llama «Insignias», con una medalla). Lo abre el módulo Sellos (`etiquetas`) o el de Campañas (`campanas`, su `moduloAlterno`); en esta foto (sin módulos) lo ve todo perfil, como lo veía «Campañas». Su ruta, /productos/insignias, abre el grupo de Catálogo; /productos/campanas redirige ahí. 2026-10-22 (ADR-0480, Compras simple; Felipe aprobó el menú): Compras queda en 6 — Plan de campaña, Mis compras (antes Órdenes de compra), Revisar compras (antes Fondos por rendir), Proveedores, Facturas de proveedor y Por pagar; Notas de crédito se retira. 2026-10-23 (ADR-0480 act.; Felipe: «no debe llamarse facturas de proveedor», el papel puede ser factura, boleta, nota de venta o ninguno): «Facturas de proveedor» se llama «Historial de compras» y es solo lectura; misma ruta, mismo módulo. 2026-10-24 (ADR-0504; Felipe: opción A): «Revisar compras» y «Por pagar» dejan de ser filas y pasan a pestañas de «Historial de compras» (una fila, `modulosAlternos`, sin `exige`); Compras baja de 6 a 4 filas para quien ve todo. Un perfil sin módulos ya no ve «Revisar compras» sino «Historial de compras». 2026-10-27 (ADR-0536, actividad 9; Felipe: «sigue con la actividad 9»): «Preguntas del equipo» entra en Gestión después de «Rendimiento» (lo que el equipo le pregunta a «Pregúntale a CAYLA»). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Rendimiento. Su ruta, /gestion/preguntas, abre el grupo de Gestión.",
  "capturadoDe": {
   "archivo": "apps/web/components/AppShell.tsx",
   "commit": "e14ef82c",
@@ -17,6 +17,33 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -61,6 +88,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -85,11 +144,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -123,18 +177,62 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "grupo": "compras",
+      "etiqueta": "Compras",
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
+        "etiqueta": "Historial de compras",
+        "href": "/compras",
+        "icono": "facturas"
+       }
+      ]
      },
      {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -169,6 +267,33 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -213,6 +338,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -236,11 +393,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -273,18 +425,62 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
+      "grupo": "compras",
+      "etiqueta": "Compras",
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
+        "etiqueta": "Historial de compras",
+        "href": "/compras",
+        "icono": "facturas"
+       }
+      ]
      },
      {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -322,6 +518,7 @@
     "/productos": "catalogo",
     "/productos/categorias": "catalogo",
     "/productos/atributos": "catalogo",
+    "/productos/insignias": "catalogo",
     "/productos/marcas": "catalogo",
     "/productos/nuevo": "catalogo",
     "/productos/familias": "catalogo",
@@ -337,6 +534,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -350,8 +549,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -359,7 +559,8 @@
     "/buscar": null,
     "/perfil": null,
     "/vendedor": null,
-    "/productosx": null
+    "/productosx": null,
+    "/compras/fondos": "compras"
    }
   },
   "lider-tienda": {
@@ -371,6 +572,38 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -422,6 +655,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -448,14 +713,9 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ],
       "insignia": 3
@@ -484,6 +744,16 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -493,29 +763,24 @@
       "icono": "compras",
       "hijos": [
        {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
        },
        {
-        "etiqueta": "Facturas de proveedor",
+        "etiqueta": "Historial de compras",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
-       },
-       {
-        "etiqueta": "Por pagar",
-        "href": "/compras/por-pagar",
-        "icono": "porPagar"
-       },
-       {
-        "etiqueta": "Notas de crédito de proveedor",
-        "href": "/compras/notas-credito",
-        "icono": "notasCredito"
        }
       ]
      },
@@ -557,14 +822,26 @@
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -599,6 +876,38 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -648,6 +957,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -673,14 +1014,9 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ]
      },
@@ -708,6 +1044,16 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -717,29 +1063,24 @@
       "icono": "compras",
       "hijos": [
        {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
         "etiqueta": "Proveedores",
         "href": "/compras/proveedores",
         "icono": "proveedores"
        },
        {
-        "etiqueta": "Facturas de proveedor",
+        "etiqueta": "Historial de compras",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
-       },
-       {
-        "etiqueta": "Por pagar",
-        "href": "/compras/por-pagar",
-        "icono": "porPagar"
-       },
-       {
-        "etiqueta": "Notas de crédito de proveedor",
-        "href": "/compras/notas-credito",
-        "icono": "notasCredito"
        }
       ]
      },
@@ -781,14 +1122,26 @@
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -826,6 +1179,7 @@
     "/productos": "catalogo",
     "/productos/categorias": "catalogo",
     "/productos/atributos": "catalogo",
+    "/productos/insignias": "catalogo",
     "/productos/marcas": "catalogo",
     "/productos/nuevo": "catalogo",
     "/productos/familias": "catalogo",
@@ -841,6 +1195,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -848,14 +1204,15 @@
     "/compras/nueva": "compras",
     "/compras/factura/123": "compras",
     "/compras/exportar": "compras",
-    "/recibir": "compras",
+    "/recibir": "inventario",
     "/inventario": "inventario",
     "/inventario/movimientos": "inventario",
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -863,7 +1220,8 @@
     "/buscar": null,
     "/perfil": null,
     "/vendedor": null,
-    "/productosx": null
+    "/productosx": null,
+    "/compras/fondos": "compras"
    }
   },
   "colaborador-taller": {
@@ -892,9 +1250,48 @@
         "icono": "insumos"
        },
        {
-        "etiqueta": "Recibir",
-        "href": "/produccion/recibir",
-        "icono": "recibir"
+        "grupo": "produccion.abastecimiento",
+        "etiqueta": "Abastecimiento",
+        "icono": "compras",
+        "hijos": [
+         {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
+          "etiqueta": "Recibir",
+          "href": "/produccion/recibir",
+          "icono": "recibirInsumos"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
        }
       ]
      },
@@ -943,6 +1340,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -967,11 +1396,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -1005,18 +1429,40 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -1066,9 +1512,48 @@
         "icono": "insumos"
        },
        {
-        "etiqueta": "Recibir",
-        "href": "/produccion/recibir",
-        "icono": "recibir"
+        "grupo": "produccion.abastecimiento",
+        "etiqueta": "Abastecimiento",
+        "icono": "compras",
+        "hijos": [
+         {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
+          "etiqueta": "Recibir",
+          "href": "/produccion/recibir",
+          "icono": "recibirInsumos"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
        }
       ]
      },
@@ -1117,6 +1602,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -1140,11 +1657,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
        },
        {
         "etiqueta": "Recibir mercadería",
@@ -1177,18 +1689,40 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -1226,6 +1760,7 @@
     "/productos": "catalogo",
     "/productos/categorias": "catalogo",
     "/productos/atributos": "catalogo",
+    "/productos/insignias": "catalogo",
     "/productos/marcas": "catalogo",
     "/productos/nuevo": "catalogo",
     "/productos/familias": "catalogo",
@@ -1241,6 +1776,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -1254,8 +1791,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1263,7 +1801,8 @@
     "/buscar": null,
     "/perfil": null,
     "/vendedor": null,
-    "/productosx": null
+    "/productosx": null,
+    "/compras/fondos": "compras"
    }
   },
   "lider-taller": {
@@ -1302,6 +1841,11 @@
         "icono": "compras",
         "hijos": [
          {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
           "etiqueta": "Proveedores",
           "href": "/produccion/proveedores",
           "icono": "proveedores"
@@ -1314,7 +1858,7 @@
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          },
          {
           "etiqueta": "Por pagar",
@@ -1322,6 +1866,38 @@
           "icono": "porPagar"
          }
         ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
        }
       ]
      },
@@ -1375,6 +1951,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -1401,14 +2009,9 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ],
       "insignia": 3
@@ -1437,6 +2040,16 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -1478,14 +2091,26 @@
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -1545,6 +2170,11 @@
         "icono": "compras",
         "hijos": [
          {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
           "etiqueta": "Proveedores",
           "href": "/produccion/proveedores",
           "icono": "proveedores"
@@ -1557,7 +2187,7 @@
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          },
          {
           "etiqueta": "Por pagar",
@@ -1565,6 +2195,38 @@
           "icono": "porPagar"
          }
         ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
        }
       ]
      },
@@ -1618,6 +2280,38 @@
       ]
      },
      {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
       "grupo": "inventario",
       "etiqueta": "Inventario",
       "icono": "inventario",
@@ -1643,14 +2337,9 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ]
      },
@@ -1678,6 +2367,16 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -1719,14 +2418,26 @@
       ]
      },
      {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
      }
     ],
     "movil": [
@@ -1764,6 +2475,7 @@
     "/productos": "catalogo",
     "/productos/categorias": "catalogo",
     "/productos/atributos": "catalogo",
+    "/productos/insignias": "catalogo",
     "/productos/marcas": "catalogo",
     "/productos/nuevo": "catalogo",
     "/productos/familias": "catalogo",
@@ -1779,362 +2491,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
-    "/compras": "compras",
-    "/compras/proveedores": "compras",
-    "/compras/por-pagar": "compras",
-    "/compras/notas-credito": "compras",
-    "/compras/nueva": "compras",
-    "/compras/factura/123": "compras",
-    "/compras/exportar": "compras",
-    "/recibir": "compras",
-    "/inventario": "inventario",
-    "/inventario/movimientos": "inventario",
-    "/inventario/traslados": "inventario",
-    "/inventario/traslados/abc": "inventario",
-    "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/mover": "inventario",
-    "/inventario/recibir": "inventario",
-    "/colaboradores": null,
-    "/movimientos": null,
-    "/buscar": null,
-    "/perfil": null,
-    "/vendedor": null,
-    "/productosx": null
-   }
-  },
-  "colaborador-almacen": {
-   "rol": "integrante",
-   "ubicacionTipo": "almacen",
-   "conTraslados3": {
-    "escritorio": [
-     {
-      "etiqueta": "Inicio",
-      "href": "/",
-      "icono": "inicio"
-     },
-     {
-      "grupo": "venta",
-      "etiqueta": "Ventas",
-      "icono": "venta",
-      "hijos": [
-       {
-        "etiqueta": "Punto de Venta",
-        "href": "/vender",
-        "icono": "vender"
-       },
-       {
-        "etiqueta": "Apartados",
-        "href": "/vender/apartados",
-        "icono": "apartados"
-       },
-       {
-        "etiqueta": "Caja",
-        "href": "/caja",
-        "icono": "caja"
-       },
-       {
-        "etiqueta": "Historial",
-        "href": "/vender/historial",
-        "icono": "historial"
-       },
-       {
-        "grupo": "venta.posventa",
-        "etiqueta": "Posventa",
-        "icono": "posventa",
-        "hijos": [
-         {
-          "etiqueta": "Cambios",
-          "href": "/cambios",
-          "icono": "cambios"
-         },
-         {
-          "etiqueta": "Devoluciones",
-          "href": "/devoluciones",
-          "icono": "devoluciones"
-         }
-        ]
-       }
-      ]
-     },
-     {
-      "grupo": "inventario",
-      "etiqueta": "Inventario",
-      "icono": "inventario",
-      "hijos": [
-       {
-        "etiqueta": "Existencias",
-        "href": "/inventario",
-        "icono": "existencias"
-       },
-       {
-        "etiqueta": "Movimientos",
-        "href": "/inventario/movimientos",
-        "icono": "movimientos"
-       },
-       {
-        "etiqueta": "Traslados",
-        "href": "/inventario/traslados",
-        "icono": "traslados",
-        "insignia": 3
-       },
-       {
-        "etiqueta": "Conteo",
-        "href": "/inventario/conteo",
-        "icono": "conteo"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
-       }
-      ],
-      "insignia": 3
-     },
-     {
-      "grupo": "catalogo",
-      "etiqueta": "Catálogo",
-      "icono": "catalogo",
-      "hijos": [
-       {
-        "etiqueta": "Productos",
-        "href": "/productos",
-        "icono": "productos"
-       },
-       {
-        "etiqueta": "Categorías",
-        "href": "/productos/categorias",
-        "icono": "categorias"
-       },
-       {
-        "etiqueta": "Marcas",
-        "href": "/productos/marcas",
-        "icono": "marcas"
-       },
-       {
-        "etiqueta": "Atributos",
-        "href": "/productos/atributos",
-        "icono": "atributos"
-       }
-      ]
-     },
-     {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
-     }
-    ],
-    "movil": [
-     {
-      "etiqueta": "Inicio",
-      "href": "/",
-      "icono": "inicio"
-     },
-     {
-      "etiqueta": "Punto de Venta",
-      "href": "/vender",
-      "icono": "vender"
-     },
-     {
-      "etiqueta": "Inventario",
-      "href": "/inventario",
-      "icono": "inventario",
-      "insignia": 3
-     },
-     {
-      "etiqueta": "Caja",
-      "href": "/caja",
-      "icono": "caja"
-     }
-    ]
-   },
-   "sinTraslados": {
-    "escritorio": [
-     {
-      "etiqueta": "Inicio",
-      "href": "/",
-      "icono": "inicio"
-     },
-     {
-      "grupo": "venta",
-      "etiqueta": "Ventas",
-      "icono": "venta",
-      "hijos": [
-       {
-        "etiqueta": "Punto de Venta",
-        "href": "/vender",
-        "icono": "vender"
-       },
-       {
-        "etiqueta": "Apartados",
-        "href": "/vender/apartados",
-        "icono": "apartados"
-       },
-       {
-        "etiqueta": "Caja",
-        "href": "/caja",
-        "icono": "caja"
-       },
-       {
-        "etiqueta": "Historial",
-        "href": "/vender/historial",
-        "icono": "historial"
-       },
-       {
-        "grupo": "venta.posventa",
-        "etiqueta": "Posventa",
-        "icono": "posventa",
-        "hijos": [
-         {
-          "etiqueta": "Cambios",
-          "href": "/cambios",
-          "icono": "cambios"
-         },
-         {
-          "etiqueta": "Devoluciones",
-          "href": "/devoluciones",
-          "icono": "devoluciones"
-         }
-        ]
-       }
-      ]
-     },
-     {
-      "grupo": "inventario",
-      "etiqueta": "Inventario",
-      "icono": "inventario",
-      "hijos": [
-       {
-        "etiqueta": "Existencias",
-        "href": "/inventario",
-        "icono": "existencias"
-       },
-       {
-        "etiqueta": "Movimientos",
-        "href": "/inventario/movimientos",
-        "icono": "movimientos"
-       },
-       {
-        "etiqueta": "Traslados",
-        "href": "/inventario/traslados",
-        "icono": "traslados"
-       },
-       {
-        "etiqueta": "Conteo",
-        "href": "/inventario/conteo",
-        "icono": "conteo"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
-       }
-      ]
-     },
-     {
-      "grupo": "catalogo",
-      "etiqueta": "Catálogo",
-      "icono": "catalogo",
-      "hijos": [
-       {
-        "etiqueta": "Productos",
-        "href": "/productos",
-        "icono": "productos"
-       },
-       {
-        "etiqueta": "Categorías",
-        "href": "/productos/categorias",
-        "icono": "categorias"
-       },
-       {
-        "etiqueta": "Marcas",
-        "href": "/productos/marcas",
-        "icono": "marcas"
-       },
-       {
-        "etiqueta": "Atributos",
-        "href": "/productos/atributos",
-        "icono": "atributos"
-       }
-      ]
-     },
-     {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
-     }
-    ],
-    "movil": [
-     {
-      "etiqueta": "Inicio",
-      "href": "/",
-      "icono": "inicio"
-     },
-     {
-      "etiqueta": "Punto de Venta",
-      "href": "/vender",
-      "icono": "vender"
-     },
-     {
-      "etiqueta": "Inventario",
-      "href": "/inventario",
-      "icono": "inventario"
-     },
-     {
-      "etiqueta": "Caja",
-      "href": "/caja",
-      "icono": "caja"
-     }
-    ]
-   },
-   "grupoActivoPorRuta": {
-    "/": null,
-    "/vender": "venta",
-    "/vender/facturacion": "venta",
-    "/vender/descuentos": "venta",
-    "/caja": "venta",
-    "/caja/historial": "venta",
-    "/cambios": "venta",
-    "/devoluciones": "venta",
-    "/productos": "catalogo",
-    "/productos/categorias": "catalogo",
-    "/productos/atributos": "catalogo",
-    "/productos/marcas": "catalogo",
-    "/productos/nuevo": "catalogo",
-    "/productos/familias": "catalogo",
-    "/productos/abc-123": "catalogo",
-    "/produccion": "produccion",
-    "/produccion/ordenes": "produccion",
-    "/produccion/insumos": "produccion",
-    "/produccion/proveedores": "produccion",
-    "/produccion/comprobantes": "produccion",
-    "/produccion/recibir": "produccion",
-    "/produccion/por-pagar": "produccion",
-    "/produccion/resumen": "produccion",
-    "/produccion/ordenes/abc": "produccion",
-    "/produccion/proveedores/x": "produccion",
-    "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -2148,8 +2506,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2157,11 +2516,12 @@
     "/buscar": null,
     "/perfil": null,
     "/vendedor": null,
-    "/productosx": null
+    "/productosx": null,
+    "/compras/fondos": "compras"
    }
   },
-  "lider-almacen": {
-   "rol": "lider",
+  "colaborador-almacen": {
+   "rol": "integrante",
    "ubicacionTipo": "almacen",
    "conTraslados3": {
     "escritorio": [
@@ -2169,6 +2529,33 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -2211,11 +2598,38 @@
           "icono": "devoluciones"
          }
         ]
+       }
+      ]
+     },
+     {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
        },
        {
-        "etiqueta": "Comprobantes",
-        "href": "/vender/comprobantes",
-        "icono": "facturacion"
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
        }
       ]
      },
@@ -2246,14 +2660,9 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ],
       "insignia": 3
@@ -2282,6 +2691,16 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -2291,78 +2710,43 @@
       "icono": "compras",
       "hijos": [
        {
-        "etiqueta": "Proveedores",
-        "href": "/compras/proveedores",
-        "icono": "proveedores"
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
        },
        {
-        "etiqueta": "Facturas de proveedor",
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
+        "etiqueta": "Historial de compras",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
-       },
-       {
-        "etiqueta": "Por pagar",
-        "href": "/compras/por-pagar",
-        "icono": "porPagar"
-       },
-       {
-        "etiqueta": "Notas de crédito de proveedor",
-        "href": "/compras/notas-credito",
-        "icono": "notasCredito"
        }
       ]
      },
      {
-      "grupo": "finanzas",
-      "etiqueta": "Finanzas",
-      "icono": "finanzas",
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
       "hijos": [
        {
-        "etiqueta": "Resumen",
-        "href": "/finanzas/resumen",
-        "icono": "panorama"
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
        },
        {
-        "etiqueta": "Gastos",
-        "href": "/finanzas/gastos",
-        "icono": "gastos"
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
        },
        {
-        "etiqueta": "Cuentas y dinero",
-        "href": "/finanzas/dinero",
-        "icono": "dinero"
-       },
-       {
-        "etiqueta": "Reportes",
-        "href": "/finanzas/reportes",
-        "icono": "reportes"
-       },
-       {
-        "etiqueta": "Impuestos",
-        "href": "/finanzas/impuestos",
-        "icono": "impuestos"
-       },
-       {
-        "etiqueta": "Cierre de mes",
-        "href": "/finanzas/cierre",
-        "icono": "cierre"
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
        }
       ]
-     },
-     {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -2397,6 +2781,33 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -2437,11 +2848,38 @@
           "icono": "devoluciones"
          }
         ]
+       }
+      ]
+     },
+     {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
        },
        {
-        "etiqueta": "Comprobantes",
-        "href": "/vender/comprobantes",
-        "icono": "facturacion"
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
        }
       ]
      },
@@ -2471,14 +2909,9 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ]
      },
@@ -2506,6 +2939,16 @@
         "etiqueta": "Atributos",
         "href": "/productos/atributos",
         "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
        }
       ]
      },
@@ -2515,78 +2958,43 @@
       "icono": "compras",
       "hijos": [
        {
-        "etiqueta": "Proveedores",
-        "href": "/compras/proveedores",
-        "icono": "proveedores"
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
        },
        {
-        "etiqueta": "Facturas de proveedor",
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
+        "etiqueta": "Historial de compras",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
-       },
-       {
-        "etiqueta": "Por pagar",
-        "href": "/compras/por-pagar",
-        "icono": "porPagar"
-       },
-       {
-        "etiqueta": "Notas de crédito de proveedor",
-        "href": "/compras/notas-credito",
-        "icono": "notasCredito"
        }
       ]
      },
      {
-      "grupo": "finanzas",
-      "etiqueta": "Finanzas",
-      "icono": "finanzas",
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
       "hijos": [
        {
-        "etiqueta": "Resumen",
-        "href": "/finanzas/resumen",
-        "icono": "panorama"
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
        },
        {
-        "etiqueta": "Gastos",
-        "href": "/finanzas/gastos",
-        "icono": "gastos"
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
        },
        {
-        "etiqueta": "Cuentas y dinero",
-        "href": "/finanzas/dinero",
-        "icono": "dinero"
-       },
-       {
-        "etiqueta": "Reportes",
-        "href": "/finanzas/reportes",
-        "icono": "reportes"
-       },
-       {
-        "etiqueta": "Impuestos",
-        "href": "/finanzas/impuestos",
-        "icono": "impuestos"
-       },
-       {
-        "etiqueta": "Cierre de mes",
-        "href": "/finanzas/cierre",
-        "icono": "cierre"
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
        }
       ]
-     },
-     {
-      "etiqueta": "Clientas",
-      "href": "/clientas",
-      "icono": "clientas"
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -2624,6 +3032,7 @@
     "/productos": "catalogo",
     "/productos/categorias": "catalogo",
     "/productos/atributos": "catalogo",
+    "/productos/insignias": "catalogo",
     "/productos/marcas": "catalogo",
     "/productos/nuevo": "catalogo",
     "/productos/familias": "catalogo",
@@ -2639,6 +3048,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -2646,14 +3057,15 @@
     "/compras/nueva": "compras",
     "/compras/factura/123": "compras",
     "/compras/exportar": "compras",
-    "/recibir": "compras",
+    "/recibir": "inventario",
     "/inventario": "inventario",
     "/inventario/movimientos": "inventario",
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2661,7 +3073,669 @@
     "/buscar": null,
     "/perfil": null,
     "/vendedor": null,
-    "/productosx": null
+    "/productosx": null,
+    "/compras/fondos": "compras"
+   }
+  },
+  "lider-almacen": {
+   "rol": "lider",
+   "ubicacionTipo": "almacen",
+   "conTraslados3": {
+    "escritorio": [
+     {
+      "etiqueta": "Inicio",
+      "href": "/",
+      "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
+     },
+     {
+      "grupo": "venta",
+      "etiqueta": "Ventas",
+      "icono": "venta",
+      "hijos": [
+       {
+        "etiqueta": "Punto de Venta",
+        "href": "/vender",
+        "icono": "vender"
+       },
+       {
+        "etiqueta": "Apartados",
+        "href": "/vender/apartados",
+        "icono": "apartados"
+       },
+       {
+        "etiqueta": "Caja",
+        "href": "/caja",
+        "icono": "caja"
+       },
+       {
+        "etiqueta": "Historial",
+        "href": "/vender/historial",
+        "icono": "historial"
+       },
+       {
+        "grupo": "venta.posventa",
+        "etiqueta": "Posventa",
+        "icono": "posventa",
+        "hijos": [
+         {
+          "etiqueta": "Cambios",
+          "href": "/cambios",
+          "icono": "cambios"
+         },
+         {
+          "etiqueta": "Devoluciones",
+          "href": "/devoluciones",
+          "icono": "devoluciones"
+         }
+        ]
+       },
+       {
+        "etiqueta": "Comprobantes",
+        "href": "/vender/comprobantes",
+        "icono": "facturacion"
+       }
+      ]
+     },
+     {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
+      "grupo": "inventario",
+      "etiqueta": "Inventario",
+      "icono": "inventario",
+      "hijos": [
+       {
+        "etiqueta": "Existencias",
+        "href": "/inventario",
+        "icono": "existencias"
+       },
+       {
+        "etiqueta": "Movimientos",
+        "href": "/inventario/movimientos",
+        "icono": "movimientos"
+       },
+       {
+        "etiqueta": "Traslados",
+        "href": "/inventario/traslados",
+        "icono": "traslados",
+        "insignia": 3
+       },
+       {
+        "etiqueta": "Conteo",
+        "href": "/inventario/conteo",
+        "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
+       }
+      ],
+      "insignia": 3
+     },
+     {
+      "grupo": "catalogo",
+      "etiqueta": "Catálogo",
+      "icono": "catalogo",
+      "hijos": [
+       {
+        "etiqueta": "Productos",
+        "href": "/productos",
+        "icono": "productos"
+       },
+       {
+        "etiqueta": "Categorías",
+        "href": "/productos/categorias",
+        "icono": "categorias"
+       },
+       {
+        "etiqueta": "Marcas",
+        "href": "/productos/marcas",
+        "icono": "marcas"
+       },
+       {
+        "etiqueta": "Atributos",
+        "href": "/productos/atributos",
+        "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
+       }
+      ]
+     },
+     {
+      "grupo": "compras",
+      "etiqueta": "Compras",
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
+        "etiqueta": "Proveedores",
+        "href": "/compras/proveedores",
+        "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Historial de compras",
+        "href": "/compras",
+        "icono": "facturas"
+       }
+      ]
+     },
+     {
+      "grupo": "finanzas",
+      "etiqueta": "Finanzas",
+      "icono": "finanzas",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/finanzas/resumen",
+        "icono": "panorama"
+       },
+       {
+        "etiqueta": "Gastos",
+        "href": "/finanzas/gastos",
+        "icono": "gastos"
+       },
+       {
+        "etiqueta": "Cuentas y dinero",
+        "href": "/finanzas/dinero",
+        "icono": "dinero"
+       },
+       {
+        "etiqueta": "Reportes",
+        "href": "/finanzas/reportes",
+        "icono": "reportes"
+       },
+       {
+        "etiqueta": "Impuestos",
+        "href": "/finanzas/impuestos",
+        "icono": "impuestos"
+       },
+       {
+        "etiqueta": "Cierre de mes",
+        "href": "/finanzas/cierre",
+        "icono": "cierre"
+       }
+      ]
+     },
+     {
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
+     }
+    ],
+    "movil": [
+     {
+      "etiqueta": "Inicio",
+      "href": "/",
+      "icono": "inicio"
+     },
+     {
+      "etiqueta": "Punto de Venta",
+      "href": "/vender",
+      "icono": "vender"
+     },
+     {
+      "etiqueta": "Inventario",
+      "href": "/inventario",
+      "icono": "inventario",
+      "insignia": 3
+     },
+     {
+      "etiqueta": "Caja",
+      "href": "/caja",
+      "icono": "caja"
+     }
+    ]
+   },
+   "sinTraslados": {
+    "escritorio": [
+     {
+      "etiqueta": "Inicio",
+      "href": "/",
+      "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       },
+       {
+        "etiqueta": "Preguntas del equipo",
+        "href": "/gestion/preguntas",
+        "icono": "preguntas"
+       }
+      ]
+     },
+     {
+      "grupo": "venta",
+      "etiqueta": "Ventas",
+      "icono": "venta",
+      "hijos": [
+       {
+        "etiqueta": "Punto de Venta",
+        "href": "/vender",
+        "icono": "vender"
+       },
+       {
+        "etiqueta": "Apartados",
+        "href": "/vender/apartados",
+        "icono": "apartados"
+       },
+       {
+        "etiqueta": "Caja",
+        "href": "/caja",
+        "icono": "caja"
+       },
+       {
+        "etiqueta": "Historial",
+        "href": "/vender/historial",
+        "icono": "historial"
+       },
+       {
+        "grupo": "venta.posventa",
+        "etiqueta": "Posventa",
+        "icono": "posventa",
+        "hijos": [
+         {
+          "etiqueta": "Cambios",
+          "href": "/cambios",
+          "icono": "cambios"
+         },
+         {
+          "etiqueta": "Devoluciones",
+          "href": "/devoluciones",
+          "icono": "devoluciones"
+         }
+        ]
+       },
+       {
+        "etiqueta": "Comprobantes",
+        "href": "/vender/comprobantes",
+        "icono": "facturacion"
+       }
+      ]
+     },
+     {
+      "grupo": "tiendaWeb",
+      "etiqueta": "Tienda web",
+      "icono": "tiendaWeb",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/tienda-web",
+        "icono": "resumenWeb"
+       },
+       {
+        "etiqueta": "Pedidos",
+        "href": "/tienda-web/pedidos",
+        "icono": "pedidosWeb"
+       },
+       {
+        "etiqueta": "Vitrina",
+        "href": "/tienda-web/vitrina",
+        "icono": "vitrina"
+       },
+       {
+        "etiqueta": "Campañas",
+        "href": "/tienda-web/campanas",
+        "icono": "paleta"
+       },
+       {
+        "etiqueta": "Recomendaciones",
+        "href": "/tienda-web/recomendaciones",
+        "icono": "recomendaciones"
+       }
+      ]
+     },
+     {
+      "grupo": "inventario",
+      "etiqueta": "Inventario",
+      "icono": "inventario",
+      "hijos": [
+       {
+        "etiqueta": "Existencias",
+        "href": "/inventario",
+        "icono": "existencias"
+       },
+       {
+        "etiqueta": "Movimientos",
+        "href": "/inventario/movimientos",
+        "icono": "movimientos"
+       },
+       {
+        "etiqueta": "Traslados",
+        "href": "/inventario/traslados",
+        "icono": "traslados"
+       },
+       {
+        "etiqueta": "Conteo",
+        "href": "/inventario/conteo",
+        "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
+       }
+      ]
+     },
+     {
+      "grupo": "catalogo",
+      "etiqueta": "Catálogo",
+      "icono": "catalogo",
+      "hijos": [
+       {
+        "etiqueta": "Productos",
+        "href": "/productos",
+        "icono": "productos"
+       },
+       {
+        "etiqueta": "Categorías",
+        "href": "/productos/categorias",
+        "icono": "categorias"
+       },
+       {
+        "etiqueta": "Marcas",
+        "href": "/productos/marcas",
+        "icono": "marcas"
+       },
+       {
+        "etiqueta": "Atributos",
+        "href": "/productos/atributos",
+        "icono": "atributos"
+       },
+       {
+        "etiqueta": "Insignias",
+        "href": "/productos/insignias",
+        "icono": "insignias"
+       },
+       {
+        "etiqueta": "Liquidación",
+        "href": "/productos/liquidacion",
+        "icono": "liquidacion"
+       }
+      ]
+     },
+     {
+      "grupo": "compras",
+      "etiqueta": "Compras",
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Mis compras",
+        "href": "/compras/mi-plata",
+        "icono": "fondos"
+       },
+       {
+        "etiqueta": "Proveedores",
+        "href": "/compras/proveedores",
+        "icono": "proveedores"
+       },
+       {
+        "etiqueta": "Historial de compras",
+        "href": "/compras",
+        "icono": "facturas"
+       }
+      ]
+     },
+     {
+      "grupo": "finanzas",
+      "etiqueta": "Finanzas",
+      "icono": "finanzas",
+      "hijos": [
+       {
+        "etiqueta": "Resumen",
+        "href": "/finanzas/resumen",
+        "icono": "panorama"
+       },
+       {
+        "etiqueta": "Gastos",
+        "href": "/finanzas/gastos",
+        "icono": "gastos"
+       },
+       {
+        "etiqueta": "Cuentas y dinero",
+        "href": "/finanzas/dinero",
+        "icono": "dinero"
+       },
+       {
+        "etiqueta": "Reportes",
+        "href": "/finanzas/reportes",
+        "icono": "reportes"
+       },
+       {
+        "etiqueta": "Impuestos",
+        "href": "/finanzas/impuestos",
+        "icono": "impuestos"
+       },
+       {
+        "etiqueta": "Cierre de mes",
+        "href": "/finanzas/cierre",
+        "icono": "cierre"
+       }
+      ]
+     },
+     {
+      "grupo": "clientas",
+      "etiqueta": "Clientes",
+      "icono": "club",
+      "hijos": [
+       {
+        "etiqueta": "Fichas",
+        "href": "/clientas",
+        "icono": "clientas"
+       },
+       {
+        "etiqueta": "Avisos",
+        "href": "/clientas/avisos",
+        "icono": "avisos"
+       },
+       {
+        "etiqueta": "Beneficios",
+        "href": "/clientas/beneficios",
+        "icono": "puntos"
+       }
+      ]
+     }
+    ],
+    "movil": [
+     {
+      "etiqueta": "Inicio",
+      "href": "/",
+      "icono": "inicio"
+     },
+     {
+      "etiqueta": "Punto de Venta",
+      "href": "/vender",
+      "icono": "vender"
+     },
+     {
+      "etiqueta": "Inventario",
+      "href": "/inventario",
+      "icono": "inventario"
+     },
+     {
+      "etiqueta": "Caja",
+      "href": "/caja",
+      "icono": "caja"
+     }
+    ]
+   },
+   "grupoActivoPorRuta": {
+    "/": null,
+    "/vender": "venta",
+    "/vender/facturacion": "venta",
+    "/vender/descuentos": "venta",
+    "/caja": "venta",
+    "/caja/historial": "venta",
+    "/cambios": "venta",
+    "/devoluciones": "venta",
+    "/productos": "catalogo",
+    "/productos/categorias": "catalogo",
+    "/productos/atributos": "catalogo",
+    "/productos/insignias": "catalogo",
+    "/productos/marcas": "catalogo",
+    "/productos/nuevo": "catalogo",
+    "/productos/familias": "catalogo",
+    "/productos/abc-123": "catalogo",
+    "/produccion": "produccion",
+    "/produccion/ordenes": "produccion",
+    "/produccion/insumos": "produccion",
+    "/produccion/proveedores": "produccion",
+    "/produccion/comprobantes": "produccion",
+    "/produccion/recibir": "produccion",
+    "/produccion/por-pagar": "produccion",
+    "/produccion/resumen": "produccion",
+    "/produccion/ordenes/abc": "produccion",
+    "/produccion/proveedores/x": "produccion",
+    "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
+    "/compras": "compras",
+    "/compras/proveedores": "compras",
+    "/compras/por-pagar": "compras",
+    "/compras/notas-credito": "compras",
+    "/compras/nueva": "compras",
+    "/compras/factura/123": "compras",
+    "/compras/exportar": "compras",
+    "/recibir": "inventario",
+    "/inventario": "inventario",
+    "/inventario/movimientos": "inventario",
+    "/inventario/traslados": "inventario",
+    "/inventario/traslados/abc": "inventario",
+    "/inventario/conteo": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
+    "/inventario/mover": "inventario",
+    "/inventario/recibir": "inventario",
+    "/colaboradores": null,
+    "/movimientos": null,
+    "/buscar": null,
+    "/perfil": null,
+    "/vendedor": null,
+    "/productosx": null,
+    "/compras/fondos": "compras"
    }
   }
  }

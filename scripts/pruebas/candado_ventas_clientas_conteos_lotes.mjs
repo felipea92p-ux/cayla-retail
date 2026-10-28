@@ -128,8 +128,8 @@ caso("con la migración, authenticated sigue leyendo las 8 tablas", () => {
 
 caso("con la migración, registrar_clienta (RPC) sigue creando la clienta", () => {
   const salida = dentro(`
-select retail.registrar_clienta('90119001', 'Prueba Candado', null, false, null, null) is not null;
-select count(*) = 1 from retail.clientas where dni = '90119001';`);
+select retail.registrar_clienta(p_documento_numero => '90119001', p_nombre => 'Prueba Candado') is not null;
+select count(*) = 1 from retail.clientas where documento_tipo = 'dni' and documento_numero = '90119001';`);
   if (salida !== "t\nt") return `salida: ${salida}`;
 });
 

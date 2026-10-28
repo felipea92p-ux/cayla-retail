@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Clock, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -13,7 +13,7 @@ import { formatearHora } from "@/components/ComprasAgrupadas";
 import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
 import type { DevolucionPendiente } from "@/lib/devoluciones";
 import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
-import { etiquetaCondicion, revisarAprobacion } from "@/lib/devoluciones-reglas";
+import { etiquetaCondicion, medioSugeridoReembolso, revisarAprobacion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -21,31 +21,35 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
- * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
- * todavía no resolvió. Un líder ve las acciones; quien no lo es ve que están esperando —
- * `aprobar_devolucion` y `rechazar_devolucion` exigen líder y lo vuelven a validar.
+ * «Por aprobar» (2026-09-18): las devoluciones registradas que todavía nadie resolvió. Desde
+ * ADR-0534 (2026-10-27) las aprueba o rechaza cualquiera que ve Devoluciones en la tienda —en
+ * una terminal compartida, la líder la valida en persona, no con su cuenta—, también quien la
+ * registró; `aprobar_devolucion` y `rechazar_devolucion` lo vuelven a validar en la base.
  *
  * Aprobar es lo que mueve las cosas (stock, nota de crédito, reembolso), así que la
- * tarjeta le pone delante al líder lo que necesita para decidir: qué prendas y en qué estado
- * vuelven, cuánto pagó la clienta, y si la compra ya venció el plazo (que no bloquea: lo
- * decide él). El reembolso es opcional y es la última opción (R-37).
+ * tarjeta pone delante lo que se necesita para decidir: qué prendas y en qué estado
+ * vuelven, cuánto pagó el cliente, y si la compra ya venció el plazo (que no bloquea: lo
+ * decide quien la revisa). El reembolso es opcional y es la última opción (R-37).
  *
- * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso sigue siendo del líder (lo pregunta
- * la base a la cuenta), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
+ * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso lo pregunta la base a la cuenta
+ * (módulo y sede), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
  * Aprobar/Rechazar, no en cada tarjeta, para no leer la asistencia una vez por devolución pendiente.
  */
 export function DevolucionesPendientes({
   pendientes,
-  esLider,
   cajaAbierta,
   ahora,
   ubicacionId,
   sede,
 }: {
   pendientes: DevolucionPendiente[];
-  esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   /** La tienda de estas devoluciones: la lista de «De turno» del combo es la de aquí. */
@@ -56,16 +60,17 @@ export function DevolucionesPendientes({
   // solo la lista, o una nota si no hay ninguna (la pestaña se ve igual, vacía o no).
   if (pendientes.length === 0) {
     return (
-      <p className="nota-cayla flex items-start gap-2.5">
-        <Check className="mt-0.5 h-4 w-4 shrink-0 text-verde" aria-hidden />
-        <span>No hay devoluciones esperando. Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.</span>
-      </p>
+      <div className="card-cayla">
+        <Vacio icono={<Check />} titulo="No hay devoluciones esperando">
+          Las que se registren aparecen aquí hasta que alguien las revise y las apruebe o las rechace.
+        </Vacio>
+      </div>
     );
   }
   return (
-    <div className="space-y-3">
+    <div data-guia="devoluciones.pendientes" className="space-y-3">
       {pendientes.map((d) => (
-        <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
+        <TarjetaPendiente key={d.id} devolucion={d} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
       ))}
     </div>
   );
@@ -75,13 +80,11 @@ type Ubicacion = { ubicacionId: string; etiqueta: string };
 
 function TarjetaPendiente({
   devolucion: d,
-  esLider,
   cajaAbierta,
   ahora,
   ubicacion,
 }: {
   devolucion: DevolucionPendiente;
-  esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   ubicacion: Ubicacion;
@@ -112,6 +115,13 @@ function TarjetaPendiente({
             Dentro del plazo · {plazo.diasRestantes === 0 ? "hoy es el último día" : `quedan ${plazo.diasRestantes} día${plazo.diasRestantes === 1 ? "" : "s"}`}
           </Chip>
         )}
+        {/* La boleta todavía no llega a SUNAT: se ve antes de abrir «Aprobar», no recién al apretarlo (20261012221000). */}
+        {d.sinAceptar && (
+          <Chip tono="ambar" versalitas={false}>
+            <Clock className="h-3.5 w-3.5" aria-hidden />
+            {d.sinAceptar.estado === "rechazado" ? "SUNAT rechazó la boleta" : "La boleta aún no llega a SUNAT"}
+          </Chip>
+        )}
       </header>
 
       <ul className="space-y-1 px-2 pt-2">
@@ -139,27 +149,22 @@ function TarjetaPendiente({
           <span className="font-semibold text-tinta">Motivo:</span> {d.motivo}
         </p>
         <p className="text-xs text-tinta/70">
-          La clienta pagó {soles(d.valorPagado)} por esto.
+          El cliente pagó {soles(d.valorPagado)} por esto.
           {d.comprobanteAceptado && " Al aprobarla se emite la nota de crédito."}
         </p>
       </div>
 
       {!resolviendo && (
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-tinta/[0.07] px-5 py-3.5">
-          {esLider ? (
-            <>
-              <p className="text-xs text-tinta/70">Al aprobarla, las prendas vuelven al piso o entran a cuarentena.</p>
-              <div className="flex items-center gap-2">
-                <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
-                <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
-              </div>
-            </>
-          ) : (
-            <Chip tono="ambar" versalitas={false}>
-              <Clock className="h-3.5 w-3.5" aria-hidden />
-              Esperando aprobación de un líder
-            </Chip>
-          )}
+          <p className="text-xs text-tinta/70">
+            {d.sinAceptar
+              ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
+              : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
+          </p>
+          <div className="flex items-center gap-2">
+            <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
+            <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
+          </div>
         </footer>
       )}
 
@@ -189,7 +194,10 @@ function PanelResolver({
 }) {
   const router = useRouter();
   const [monto, setMonto] = useState("");
-  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>("efectivo");
+  // Propone el medio con que se pagó la venta (Felipe 2026-10-12: «libre, con aviso»); se puede cambiar.
+  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>(
+    () => medioSugeridoReembolso(d.pagos, METODOS_DIFERENCIA.map((m) => m.valor)) as (typeof METODOS_DIFERENCIA)[number]["valor"],
+  );
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,12 +207,20 @@ function PanelResolver({
   const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId, modo === "aprobar");
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
 
-  const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const montoNumero = monto.trim() === "" ? null : numeroDeMonto(monto);
   const hayReembolso = montoNumero !== null && montoNumero > 0;
   const conCuenta = hayReembolso && metodo !== "efectivo";
   const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
   const cuentaSale = conCuenta && hayCuentas ? cuentaEfectiva(cuentas.cuentas, "cobro", metodo, cuentaElegida) : null;
-  const revision = revisarAprobacion({ monto: montoNumero, metodo, cajaAbierta, valorPagado: d.valorPagado });
+  const revision = revisarAprobacion({
+    monto: montoNumero,
+    metodo,
+    cajaAbierta,
+    valorPagado: d.valorPagado,
+    sinAceptar: d.sinAceptar,
+    pagos: d.pagos,
+    etiquetaMedio: (m) => METODOS_DIFERENCIA.find((x) => x.valor === m)?.etiqueta ?? m,
+  });
 
   async function aprobar() {
     if (revision.bloqueo) return;
@@ -277,28 +293,25 @@ function PanelResolver({
       {modo === "aprobar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
           <div>
-            <h3 className="text-sm font-semibold text-tinta">¿Se le reembolsa algo?</h3>
+            <TituloGrupo>¿Se le reembolsa algo?</TituloGrupo>
             <p className="mt-0.5 text-xs text-tinta/70">
               Opcional, y es la última opción: primero un cambio, después una nota de crédito. Déjalo vacío si no hay reembolso.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label htmlFor={`monto-${d.id}`} className="text-xs font-semibold text-tinta/70">
+            <div className="campo">
+              <label htmlFor={`monto-${d.id}`} className="campo-etiqueta">
                 Monto
               </label>
               <div className="mt-1 flex items-center gap-2">
                 <input
                   id={`monto-${d.id}`}
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  inputMode="decimal"
+                  {...atributosMontoTexto(monto)}
                   autoFocus
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
                   placeholder="S/ 0.00"
-                  className="h-10 w-36 rounded-lg border border-tinta/15 bg-papel px-3 text-sm tabular-nums text-tinta outline-none transition-colors duration-200 placeholder:text-tinta/55 focus:border-tinta"
+                  className={`caja-campo-input w-36 text-sm tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                 />
                 <button
                   type="button"
@@ -345,32 +358,29 @@ function PanelResolver({
           )}
 
           {revision.bloqueo && (
-            <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="alert">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="atencion" chico>
               {revision.bloqueo}
-            </p>
+            </Aviso>
           )}
           {revision.aviso && (
-            <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="status">
-              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="info" chico>
               {revision.aviso}
-            </p>
+            </Aviso>
           )}
           {error && (
-            <p className="flex items-start gap-1.5 text-sm text-rojo-profundo" role="alert">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="error" chico>
               {error}
-            </p>
+            </Aviso>
           )}
 
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="pie-acciones">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonRojo onClick={aprobar} disabled={cargando || !!revision.bloqueo || !responsable.listo}>
-              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-              {cargando ? "Aprobando…" : "Aprobar devolución"}
+            <BotonRojo onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
+              <Check className="h-4 w-4" aria-hidden />
+              Aprobar devolución
             </BotonRojo>
           </div>
         </div>
@@ -378,8 +388,8 @@ function PanelResolver({
 
       {modo === "rechazar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
-          <div>
-            <label htmlFor={`rechazo-${d.id}`} className="text-sm font-semibold text-tinta">
+          <div className="campo">
+            <label htmlFor={`rechazo-${d.id}`} className="campo-etiqueta">
               ¿Por qué se rechaza?
             </label>
             <p className="mt-0.5 text-xs text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
@@ -389,23 +399,21 @@ function PanelResolver({
               autoFocus
               value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)}
-              className="mt-2 h-10 w-full max-w-lg rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+              className="caja-campo-input mt-2 w-full max-w-lg text-sm"
             />
           </div>
           {error && (
-            <p className="flex items-start gap-1.5 text-sm text-rojo-profundo" role="alert">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <Aviso tono="error" chico>
               {error}
-            </p>
+            </Aviso>
           )}
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="pie-acciones">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonPrincipal onClick={rechazar} disabled={cargando || !responsable.listo}>
-              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {cargando ? "Rechazando…" : "Rechazar devolución"}
+            <BotonPrincipal onClick={rechazar} cargando={cargando} textoCargando="Rechazando…" disabled={!responsable.listo}>
+              Rechazar devolución
             </BotonPrincipal>
           </div>
         </div>

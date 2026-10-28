@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J · Vuelo — Rediseño de la tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="marco.css">
+<style>
+/* ── J · VUELO ─ la marca tal cual: los colores oficiales de CAYLA (crema, papel, hueso, sand, tinta, taupe y el rojo como acento
+   sagrado, nunca más de dos por pantalla), EB Garamond y DM Sans. La firma es el colibrí, con sus mismos cuatro trazos: se dibuja,
+   aletea, cruza por detrás del lema y tiñe «transforma.», cose las dos tiendas con su hilo y lleva cada prenda a la bolsa. ── */
+#lienzo {
+  --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0; --tinta: #1a1a18; --taupe: #805c4c;
+  --rojo: #b8412d; --rojo-profundo: #8b2a1f; --verde: #48603f; --ambar: #74501a;
+  --gutter: clamp(16px, 4cqi, 64px);
+  background: var(--crema); color: var(--tinta); overflow-x: clip;
+  font: 400 15px/1.65 "DM Sans", system-ui, sans-serif;
+}
+#lienzo *, #lienzo *::before, #lienzo *::after { box-sizing: border-box; }
+#lienzo a { color: inherit; }
+#lienzo :focus-visible { outline: 2px solid var(--tinta); outline-offset: 3px; }
+#lienzo img { display: block; max-width: 100%; }
+:where(#lienzo) button { font: inherit; color: inherit; }
+
+.j-cap { font-weight: 600; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+.j-display { margin: 0; font-family: "EB Garamond", Georgia, serif; font-weight: 400; line-height: .9; letter-spacing: -.02em; font-size: clamp(78px, 13cqi, 210px); }
+.j-titulo { margin: 0; font-family: "EB Garamond", Georgia, serif; font-weight: 400; line-height: 1; letter-spacing: -.01em; font-size: clamp(36px, 4.6cqi, 66px); }
+.j-titulo em, .j-display em { font-style: italic; }
+.j-nombre { font-family: "EB Garamond", Georgia, serif; font-weight: 500; }
+.j-taupe { color: var(--taupe); }
+.j-num { font-variant-numeric: tabular-nums; }
+.j-hay { color: var(--verde); }
+.j-ultima { color: var(--ambar); }
+
+/* El colibrí de la marca: sus cuatro trazos, en rojo. Se dibuja (cada trazo mide 1) y aletea (el ala son los dos primeros). */
+.j-ave { position: absolute; left: 0; top: 0; width: 120px; height: auto; overflow: visible; fill: none; stroke: var(--rojo); stroke-width: 9; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; z-index: 3; }
+.j-ave path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+
+.j-cab { position: sticky; top: 0; z-index: 10; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 74px; padding: 0 var(--gutter); background: color-mix(in srgb, var(--crema) 92%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
+.j-cab nav { display: flex; gap: clamp(14px, 2.4cqi, 32px); }
+.j-cab nav:last-child { justify-content: flex-end; }
+.j-cab a { text-decoration: none; }
+.j-cab nav a { position: relative; padding: 4px 0; }
+.j-cab nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--tinta); transform: scaleX(0); transform-origin: 0 50%; }
+.j-cab nav a:hover::after { transform: scaleX(1); }
+.j-logo { display: flex; align-items: center; gap: 10px; }
+.j-logo img { width: 32px; height: auto; }
+.j-logo span { font-family: "EB Garamond", serif; font-weight: 500; font-size: 22px; letter-spacing: .22em; margin-right: -.22em; }
+.j-menu { display: none; width: 40px; height: 40px; border: 0; background: none; padding: 10px 8px; }
+.j-menu i { display: block; height: 1px; background: currentColor; margin: 5px 0; }
+.j-ir-bolsa b { display: inline-block; font-weight: 600; }
+
+/* Los botones de la marca: tinta, y al pasar el mouse, rojo profundo (nunca el rojo de marca) */
+.j-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 0 30px; border: 1px solid var(--tinta); border-radius: 999px; background: var(--tinta); color: var(--crema) !important; font-weight: 500; text-decoration: none; cursor: pointer; }
+.j-btn:hover { background: var(--rojo-profundo); border-color: var(--rojo-profundo); }
+.j-btn--claro { background: transparent; color: var(--tinta) !important; border-color: var(--taupe); }
+.j-btn--claro:hover { background: var(--tinta); border-color: var(--tinta); color: var(--crema) !important; }
+.j-btn[data-hecho="si"] { background: var(--rojo-profundo); border-color: var(--rojo-profundo); }
+.j-link { text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid var(--sand); }
+.j-link:hover { border-color: var(--tinta); }
+
+.j-papel { position: relative; display: block; aspect-ratio: 4 / 5; background: var(--papel); border-radius: 4px; overflow: hidden; text-decoration: none; }
+.j-papel img { width: 100%; height: 100%; object-fit: contain; padding: 11%; mix-blend-mode: multiply; }
+.j-fig { margin: 0; }
+.j-pie-foto { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; padding-top: 14px; }
+.j-pie-foto .j-nombre { font-size: 21px; line-height: 1.2; text-decoration: none; }
+.j-pie-foto .j-cap { grid-column: 1 / -1; color: var(--taupe); }
+.j-dispo { grid-column: 1 / -1; font-size: 13px; color: var(--taupe); }
+
+.j-seccion { padding: clamp(80px, 11cqi, 160px) var(--gutter) 0; }
+.j-seccion-cab { display: grid; justify-items: center; gap: 14px; margin-bottom: clamp(36px, 5cqi, 64px); text-align: center; }
+.j-acciones { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 26px; }
+
+/* Portada */
+.j-hero { position: relative; display: grid; justify-items: center; padding: clamp(56px, 8cqi, 120px) var(--gutter) 0; text-align: center; }
+/* El colibrí vuela por detrás del texto, como en el login */
+.j-hero > :not(.j-ave) { position: relative; z-index: 1; }
+.j-hero > .j-ave { z-index: 0; }
+.j-hero .j-cap { margin-bottom: 26px; }
+.j-lema { margin: 22px 0 0; font-family: "EB Garamond", serif; font-size: clamp(24px, 2.8cqi, 40px); }
+.j-lema em { font-style: italic; }
+.j-lema em.tenida { color: var(--rojo); }
+.j-hero p { max-width: 40ch; margin: 26px 0 30px; color: var(--taupe); font-size: 17px; }
+.j-vitrina { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(16px, 3cqi, 48px); width: 100%; margin-top: clamp(56px, 7cqi, 100px); }
+.j-vitrina > :nth-child(2) { margin-top: clamp(40px, 6cqi, 90px); }
+.j-rejilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(40px, 5cqi, 72px) clamp(20px, 3cqi, 48px); }
+.j-rejilla [hidden] { display: none; }
+.j-pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(16px, 2.4cqi, 36px); }
+.j-paso { padding: 30px 26px; border-radius: 4px; background: var(--papel); text-align: center; }
+.j-paso .j-titulo { display: block; font-style: italic; font-size: 54px; margin-bottom: 14px; }
+.j-paso h3 { margin: 0 0 8px; font-family: "EB Garamond", serif; font-weight: 500; font-size: 21px; }
+.j-paso p { margin: 0; color: var(--taupe); }
+.j-club { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6cqi, 112px); align-items: center; margin-top: clamp(80px, 11cqi, 160px); padding: clamp(56px, 8cqi, 120px) var(--gutter); background: var(--hueso); }
+.j-club ul { list-style: none; margin: 26px 0 32px; padding: 0; }
+.j-club li { padding: 16px 0; border-top: 1px solid var(--sand); }
+.j-club li b { display: block; font-family: "EB Garamond", serif; font-weight: 500; font-size: 20px; }
+.j-tarjeta { justify-self: center; display: grid; align-content: space-between; width: min(440px, 100%); aspect-ratio: 1.586; padding: 30px; border-radius: 14px; background: var(--tinta); color: var(--crema); }
+.j-tarjeta img { width: 40px; }
+.j-tarjeta .j-nombre { font-size: 30px; font-weight: 400; }
+/* Las tiendas: dos ojales que el colibrí cose con su hilo */
+.j-sedes { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 4cqi, 64px); text-align: center; }
+.j-sede { display: grid; justify-items: center; gap: 4px; }
+.j-ojal { width: 18px; height: 18px; margin-bottom: 18px; border-radius: 50%; border: 2px solid var(--tinta); background: var(--crema); position: relative; z-index: 2; }
+.j-sede h3 { margin: 0 0 12px; font-family: "EB Garamond", serif; font-weight: 400; font-size: clamp(48px, 6.4cqi, 100px); line-height: .95; }
+.j-sede p { margin: 0 0 4px; }
+.j-sede .j-acciones { margin-top: 20px; }
+.j-hilo { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+.j-hilo .punteado { fill: none; stroke: var(--rojo); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 1 7; }
+.j-pie { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; padding: clamp(56px, 8cqi, 112px) var(--gutter) 40px; margin-top: clamp(80px, 11cqi, 160px); border-top: 1px solid var(--sand); }
+.j-pie ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.j-pie a { text-decoration: none; }
+.j-pie a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Catálogo */
+.j-cat-cab { display: grid; justify-items: center; gap: 10px; padding: clamp(40px, 6cqi, 80px) var(--gutter) 24px; text-align: center; }
+.j-filtros { display: grid; justify-items: center; gap: 10px; padding: 0 var(--gutter) 10px; }
+.j-filtros [role="group"] { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.j-filtros button { position: relative; z-index: 1; height: 38px; padding: 0 16px; border: 1px solid var(--sand); border-radius: 999px; background: transparent; cursor: pointer; color: var(--taupe); }
+.j-filtros button:hover { color: var(--tinta); border-color: var(--taupe); }
+.j-filtros button[aria-pressed="true"] { color: var(--crema); border-color: transparent; }
+.j-filtros .indicador { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--tinta); pointer-events: none; }
+
+/* Prenda */
+.j-ficha { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(28px, 6cqi, 120px); padding: clamp(28px, 4cqi, 56px) var(--gutter) 0; align-items: start; }
+.j-panel { position: sticky; top: 108px; display: grid; gap: 24px; }
+.j-panel h1 { margin: 6px 0 0; font-family: "EB Garamond", serif; font-weight: 400; font-size: clamp(42px, 5cqi, 72px); line-height: 1; letter-spacing: -.015em; }
+.j-panel .j-precio { font-family: "EB Garamond", serif; font-size: 28px; }
+.j-campo { display: grid; gap: 10px; }
+.j-campo-cab { display: flex; justify-content: space-between; }
+.j-opciones { position: relative; display: flex; flex-wrap: wrap; gap: 8px; }
+.j-talla { position: relative; z-index: 1; min-width: 54px; height: 46px; padding: 0 16px; border: 1px solid var(--sand); border-radius: 999px; background: transparent; cursor: pointer; }
+.j-talla:hover { border-color: var(--taupe); }
+.j-talla[aria-pressed="true"] { color: var(--crema); border-color: transparent; }
+[data-grupo="talla"] .indicador { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--tinta); pointer-events: none; }
+.j-color { display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 6px; border: 1px solid var(--sand); border-radius: 999px; background: transparent; cursor: pointer; }
+.j-color i { width: 32px; height: 32px; border-radius: 50%; box-shadow: inset 0 0 0 1px #0002; }
+.j-color[aria-pressed="true"] { border-color: var(--tinta); }
+.j-stock { display: grid; margin: 0; }
+.j-stock div { display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--sand); }
+.j-stock div:last-child { border-bottom: 1px solid var(--sand); }
+.j-stock dd { margin: 0; font-weight: 500; }
+.j-aviso { min-height: 1.6em; margin: -10px 0 0; font-size: 14px; }
+.j-vacon { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 3cqi, 48px); }
+
+/* Bolsa */
+.j-bolsa-cuerpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: clamp(28px, 6cqi, 112px); padding: 0 var(--gutter); align-items: start; }
+.j-linea { display: grid; grid-template-columns: 112px 1fr auto; gap: 22px; padding: 22px 0; border-bottom: 1px solid var(--sand); align-items: start; }
+.j-linea:first-child { border-top: 1px solid var(--sand); }
+.j-linea .j-nombre { font-size: 23px; text-decoration: none; }
+.j-linea .j-cap { display: block; margin-top: 6px; color: var(--taupe); }
+.j-linea [data-hay-aqp] { display: block; margin-top: 8px; font-size: 13px; color: var(--taupe); }
+.j-linea [data-falta="true"] { color: var(--ambar); }
+.j-quitar { margin-top: 10px; border: 0; background: none; padding: 0; color: var(--taupe); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.j-resumen { position: sticky; top: 108px; display: grid; gap: 22px; padding: 30px; border-radius: 4px; background: var(--papel); }
+.j-tienda-op { display: grid; grid-template-columns: 18px 1fr; gap: 2px 14px; align-items: center; width: 100%; padding: 16px 18px; border: 1px solid var(--sand); border-radius: 4px; background: var(--crema); text-align: left; cursor: pointer; }
+.j-tienda-op i { grid-row: span 2; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--tinta); }
+.j-tienda-op:hover { border-color: var(--taupe); }
+.j-tienda-op[aria-pressed="true"] { border-color: var(--tinta); }
+.j-tienda-op[aria-pressed="true"] i { background: radial-gradient(circle, var(--tinta) 0 38%, transparent 40%); }
+.j-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 18px; border-top: 1px solid var(--sand); }
+.j-total b { font-family: "EB Garamond", serif; font-weight: 400; font-size: 34px; }
+.j-listo { position: relative; display: grid; gap: 14px; justify-items: center; padding-top: 70px; text-align: center; }
+.j-listo .j-ave { left: calc(50% - 42px); top: 0; width: 84px; }
+.j-listo h2 { margin: 0; font-family: "EB Garamond", serif; font-weight: 400; font-size: 36px; line-height: 1.05; }
+.j-listo p { margin: 0; }
+.j-mensaje { margin: 0; padding: 14px 16px; border-radius: 4px; background: var(--hueso); font-size: 14px; text-align: left; white-space: pre-line; }
+
+/* Entrar: como el login, el colibrí en su lugar */
+.j-entrar { position: relative; display: grid; justify-items: center; padding: clamp(56px, 7cqi, 104px) var(--gutter) 0; text-align: center; }
+.j-entrar .j-ave { position: relative; display: block; width: 110px; margin: 0 auto 22px; }
+.j-form { display: grid; gap: 18px; width: min(440px, 100%); padding: clamp(28px, 4cqi, 44px); border-radius: 4px; background: var(--papel); text-align: left; }
+.j-form label { display: grid; gap: 6px; }
+.j-form input { height: 50px; padding: 0 16px; border: 1px solid var(--sand); border-radius: 4px; background: var(--hueso); font: inherit; color: inherit; }
+.j-form input:focus { outline: none; border-color: var(--tinta); background: var(--papel); }
+.j-form .j-btn { width: 100%; }
+
+/* El colibrí que lleva la prenda a la bolsa vuela sobre toda la página */
+.j-mensajero { position: fixed; left: 0; top: 0; z-index: 400; width: 46px; height: auto; overflow: visible; fill: none; stroke: #b8412d; stroke-width: 10; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .j-cab nav a::after { transition: transform .6s cubic-bezier(.76,0,.24,1); }
+  .j-btn { transition: background-color .4s, border-color .4s, color .4s; }
+  .j-link { transition: border-color .4s; }
+  .j-papel img { transition: transform 1.3s cubic-bezier(.2,.7,.2,1); }
+  .j-fig:hover .j-papel img { transform: scale(1.04); }
+  .j-filtros .indicador, [data-grupo="talla"] .indicador { transition: transform .6s cubic-bezier(.2,.7,.2,1), width .6s cubic-bezier(.2,.7,.2,1); }
+  .j-filtros button, .j-talla { transition: color .45s, border-color .3s; }
+  .j-lema em { transition: color .9s ease; }
+  /* El colibrí parte sin dibujar: se dibuja trazo a trazo cuando le toca */
+  .j-hero > .j-ave path, .j-entrar > .j-ave path { stroke-dashoffset: 1; }
+  .j-letras .letra { display: inline-block; opacity: 0; transform: translateY(.35em); transition: opacity 1s, transform 1.3s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.2s + var(--l, 0) * 65ms); }
+  .listo .j-letras .letra { opacity: 1; transform: none; }
+  .j-entra { opacity: 0; transform: translateY(14px); transition: opacity 1s, transform 1.1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.8s + var(--s, 0) * 110ms); }
+  .listo .j-entra { opacity: 1; transform: none; }
+  .j-vitrina > * { opacity: 0; transform: translateY(40px); transition: opacity 1.2s, transform 1.6s cubic-bezier(.2,.7,.2,1); transition-delay: calc(1.1s + var(--c, 0) * 170ms); }
+  .listo .j-vitrina > * { opacity: 1; transform: none; }
+  [data-revela].j-sube { opacity: 0; transform: translateY(26px); transition: opacity 1s, transform 1.1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--i, 0) * 110ms); }
+  [data-revela].j-sube.visto { opacity: 1; transform: none; }
+  .j-fig[data-revela] .j-papel { clip-path: inset(100% 0 0 0); transition: clip-path 1.2s cubic-bezier(.76,0,.24,1); transition-delay: calc(var(--i, 0) * 110ms); }
+  .j-fig.visto .j-papel { clip-path: inset(0); }
+  .j-fig[data-revela] .j-pie-foto { opacity: 0; transition: opacity .9s; transition-delay: calc(.5s + var(--i, 0) * 110ms); }
+  .j-fig.visto .j-pie-foto { opacity: 1; }
+  .j-panel > * { opacity: 0; transform: translateY(14px); transition: opacity .9s, transform 1s cubic-bezier(.2,.7,.2,1); transition-delay: calc(.25s + var(--f, 0) * 75ms); }
+  .listo .j-panel > * { opacity: 1; transform: none; }
+  .j-bolsa-cuerpo .j-linea { animation: j-sube-k 1s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(.15s + var(--i, 0) * 110ms); }
+  .j-resumen { animation: j-sube-k 1s .3s cubic-bezier(.2,.7,.2,1) both; }
+  .j-listo:not([hidden]) > :not(.j-ave) { animation: j-sube-k .9s .9s cubic-bezier(.2,.7,.2,1) both; }
+  .j-form { animation: j-sube-k 1s 1.2s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes j-sube-k { from { opacity: 0; transform: translateY(24px); } }
+  ::view-transition-old(root) { animation: .45s ease both j-vt-sale; }
+  ::view-transition-new(root) { animation: .8s cubic-bezier(.2,.7,.2,1) .1s both j-vt-entra; }
+  @keyframes j-vt-sale { to { opacity: 0; } }
+  @keyframes j-vt-entra { from { opacity: 0; transform: translateY(16px); } }
+}
+
+@container lienzo (max-width: 760px) {
+  .j-hero > .j-ave { width: 84px; }
+  .j-cab { grid-template-columns: 40px 1fr auto; height: 60px; }
+  .j-cab nav:first-child { display: none; }
+  .j-menu { display: block; grid-column: 1; grid-row: 1; }
+  .j-logo { grid-column: 2; justify-self: center; }
+  .j-cab nav:last-child a:not(.j-ir-bolsa) { display: none; }
+  .j-vitrina { grid-template-columns: 1fr 1fr; }
+  .j-vitrina > :nth-child(3) { display: none; }
+  .j-vitrina > :nth-child(2) { margin-top: 40px; }
+  .j-rejilla, .j-vacon { grid-template-columns: 1fr 1fr; gap: 30px 14px; }
+  .j-vacon > :nth-child(3) { display: none; }
+  .j-pasos { grid-template-columns: 1fr 1fr; }
+  .j-club, .j-ficha, .j-bolsa-cuerpo { grid-template-columns: 1fr; }
+  .j-sedes { grid-template-columns: 1fr; gap: 56px; }
+  .j-pie { grid-template-columns: 1fr 1fr; }
+  .j-pie > :first-child { grid-column: 1 / -1; }
+  .j-pie-foto { grid-template-columns: 1fr; }
+  .j-pie-foto .j-nombre { font-size: 18px; }
+  .j-dispo { display: none; }
+  .j-filtros [role="group"]:first-child { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; max-width: 100%; scrollbar-width: none; }
+  .j-filtros button { white-space: nowrap; }
+  .j-panel, .j-resumen { position: static; }
+  .j-linea { grid-template-columns: 84px 1fr; }
+  .j-linea > .j-precio-linea { grid-column: 2; }
+}
+</style>
+</head>
+<body>
+<main id="lienzo"></main>
+<script src="datos.js"></script>
+<script src="movimiento.js"></script>
+<script>
+(function () {
+  const C = window.CAYLA, M = window.MOV;
+  // ── El colibrí de la marca (lib/login-vuelo.ts): mismos trazos, en su lienzo de 223×150. El ala son los dos primeros. ──
+  const HOMBRO = { x: 116, y: 62 };
+  const girar = (x, y, g) => { const r = (g * Math.PI) / 180, dx = x - HOMBRO.x, dy = y - HOMBRO.y; return `${(HOMBRO.x + dx * Math.cos(r) - dy * Math.sin(r)).toFixed(1)},${(HOMBRO.y + dx * Math.sin(r) + dy * Math.cos(r)).toFixed(1)}`; };
+  const ala = (g) => [
+    `M${girar(3, 6, g)} C${girar(45, 14, g * 0.7)} ${girar(95, 28, g * 0.3)} 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102`,
+    `M${girar(3, 6, g)} C${girar(10, 40, g * 0.85)} ${girar(40, 70, g * 0.5)} ${girar(70, 80, g * 0.2)} C85,85 100,87 112,87`,
+  ];
+  const ave = (clase = "j-ave") => `<svg class="${clase}" viewBox="0 0 223 150" aria-hidden="true"><path d="${ala(0)[0]}" pathLength="1"/><path d="${ala(0)[1]}" pathLength="1"/><path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" pathLength="1"/><path d="M172,16 C156,22 144,38 134,62" pathLength="1"/></svg>`;
+
+  const logo = `<a class="j-logo" href="#portada" aria-label="CAYLA, ir a la portada"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></a>`;
+  const cab = () => `
+    <header class="j-cab j-cap">
+      <nav aria-label="Tienda"><a href="#catalogo">Lo nuevo</a><a href="#catalogo">Ropa</a><a href="#catalogo">Looks</a></nav>
+      <button class="j-menu" aria-label="Abrir el menú"><i></i><i></i></button>
+      ${logo}
+      <nav aria-label="Tu cuenta"><a href="#portada">Tiendas</a><a href="#entrar">Entrar</a><a class="j-ir-bolsa" href="#bolsa">Bolsa <b data-cuenta-bolsa>0</b></a></nav>
+    </header>`;
+  const pie = () => `
+    <footer class="j-pie">
+      <div>${logo}<p class="j-taupe" style="max-width:30ch;margin-top:16px">Donde el estilo transforma. Separa online, confirma por WhatsApp y recoge en tu tienda.</p></div>
+      <div><span class="j-cap">Ayuda</span><ul><li><a href="#portada">Cómo separar</a></li><li><a href="#portada">Cambios y devoluciones</a></li><li><a href="#portada">Nuestras tiendas</a></li></ul></div>
+      <div><span class="j-cap">Tu cuenta</span><ul><li><a href="#entrar">Crear mi cuenta</a></li><li><a href="#entrar">Entrar</a></li><li><a href="#entrar">Olvidé mi contraseña</a></li></ul></div>
+      <div><span class="j-cap">CAYLA</span><ul><li><a href="#portada">Club CAYLA</a></li><li><a href="#portada">Privacidad</a></li><li><a href="#portada">Términos del Club</a></li></ul></div>
+    </footer>`;
+  const stockClase = (n) => (n <= 0 ? "j-taupe" : n === 1 ? "j-ultima" : "j-hay");
+  const obra = (p, i, conCuenta) => `
+    <figure class="j-fig" data-revela data-id="${p.id}" style="--i:${i}" data-cat="${p.cat}" data-aqp="${p.stock.aqp}" data-tru="${p.stock.tru}">
+      <a class="j-papel" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}" loading="lazy"></a>
+      <figcaption class="j-pie-foto">
+        <a class="j-nombre" href="#prenda/${p.id}">${p.nombre}</a>
+        ${conCuenta ? `<span class="j-num">${C.precio(p.precio)}</span>` : `<a class="j-link" href="#entrar">Ver precio</a>`}
+        <span class="j-cap">${C.nombreCat(p.cat)}</span>
+        ${conCuenta ? `<span class="j-dispo">Arequipa <span class="${stockClase(p.stock.aqp)}">${C.stockTexto(p.stock.aqp)}</span> · Trujillo <span class="${stockClase(p.stock.tru)}">${C.stockTexto(p.stock.tru)}</span></span>` : ""}
+      </figcaption>
+    </figure>`;
+
+  const pantallas = {
+    portada() {
+      return `${cab()}
+      <section class="j-hero" data-cielo>
+        ${ave()}
+        <span class="j-cap j-taupe j-entra">Llegó en los últimos 30 días</span>
+        <h1 class="j-display j-letras" data-letras>Lo nuevo</h1>
+        <p class="j-lema j-entra" style="--s:-4">Donde el estilo <em data-transforma>transforma.</em></p>
+        <p class="j-entra" style="--s:1">Lo que llegó a Arequipa y Trujillo. Crea tu cuenta para ver precios, tallas y cuánto hay en cada tienda.</p>
+        <div class="j-acciones j-entra" style="--s:2"><a class="j-btn" href="#entrar">Crear mi cuenta</a><a class="j-link" href="#entrar">Ya tengo cuenta</a></div>
+        <div class="j-vitrina">${["tiana", "kalessi", "luna"].map((x, c) => { const p = C.prenda(x); return `<figure class="j-fig" style="--c:${c};margin:0"><a class="j-papel" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}"></a><figcaption class="j-pie-foto"><a class="j-nombre" href="#prenda/${p.id}">${p.nombre}</a><a class="j-link" href="#entrar">Ver precio</a></figcaption></figure>`; }).join("")}</div>
+      </section>
+      <section class="j-seccion">
+        <div class="j-seccion-cab"><span class="j-cap j-taupe">En las tiendas</span><h2 class="j-titulo j-sube" data-revela>Recién <em>llegado</em></h2></div>
+        <div class="j-rejilla">${["alba", "strend", "cuello-v"].map((x, i) => obra(C.prenda(x), i, false)).join("")}</div>
+        <div class="j-acciones" style="margin-top:48px"><a class="j-btn j-btn--claro" href="#catalogo">Ver las ${C.prendas.length} prendas</a></div>
+      </section>
+      <section class="j-seccion">
+        <div class="j-seccion-cab"><span class="j-cap j-taupe">Sin pagar en la web</span><h2 class="j-titulo j-sube" data-revela>Así se <em>separa</em></h2></div>
+        <div class="j-pasos">${C.pasos.map(([t, d], i) => `<div class="j-paso j-sube" data-revela style="--i:${i}"><span class="j-titulo">${i + 1}</span><h3>${t}</h3><p>${d}</p></div>`).join("")}</div>
+      </section>
+      <section class="j-club">
+        <div class="j-sube" data-revela><span class="j-cap j-taupe">Club CAYLA</span><h2 class="j-titulo" style="margin-top:16px">Tu cuenta ya es <em>tu membresía</em></h2>
+          <ul>${C.club.map(([t, d]) => `<li><b>${t}</b><span class="j-taupe">${d}</span></li>`).join("")}</ul>
+          <a class="j-btn" href="#entrar">Crear mi cuenta</a></div>
+        <div class="j-tarjeta j-sube" data-revela aria-hidden="true" style="--i:1"><div style="display:flex;justify-content:space-between;align-items:center"><span class="j-cap">CAYLA</span><img src="cayla-isotipo.png" alt=""></div><div><span class="j-cap" style="opacity:.7">Miembro del Club</span><div class="j-nombre">Tu nombre aquí</div></div></div>
+      </section>
+      <section class="j-seccion">
+        <div class="j-seccion-cab"><span class="j-cap j-taupe">Recoge en la que te quede cerca</span><h2 class="j-titulo j-sube" data-revela>Nuestras <em>tiendas</em></h2></div>
+        <div class="j-sedes" data-sedes>
+          <svg class="j-hilo" aria-hidden="true"></svg>
+          ${C.tiendas.slice().reverse().map((t) => `<div class="j-sede"><i class="j-ojal" data-ojal></i><span class="j-cap j-taupe">${t.id.toUpperCase()}</span><h3>${t.ciudad}</h3><p>${t.direccion}</p><p class="j-taupe">${t.horario}</p><div class="j-acciones"><a class="j-btn j-btn--claro" href="#portada">WhatsApp ${t.whatsapp}</a><a class="j-link" href="#portada">Cómo llegar</a></div></div>`).join("")}
+          ${ave()}
+        </div>
+      </section>
+      ${pie()}`;
+    },
+
+    catalogo() {
+      return `${cab()}
+      <div class="j-cat-cab"><span class="j-cap j-taupe"><b data-cuenta-prendas>${C.prendas.length}</b> prendas</span><h1 class="j-display j-letras" data-letras style="font-size:clamp(64px,10cqi,150px)">Ropa</h1></div>
+      <div class="j-filtros j-cap" data-filtros>
+        <div role="group" aria-label="Qué buscas">${C.categorias.map(([k, n], i) => `<button data-filtro="${k}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
+        <div role="group" aria-label="En qué tienda">${[["todas", "Todas las tiendas"], ["aqp", "Arequipa"], ["tru", "Trujillo"]].map(([k, n], i) => `<button data-filtro-tienda="${k}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
+      </div>
+      <div class="j-rejilla" style="padding:36px var(--gutter) 0">${C.prendas.map((p, i) => obra(p, i % 3, true)).join("")}</div>
+      <p class="j-seccion j-taupe" data-sin-resultados hidden style="padding-top:24px;text-align:center">No hay prendas de este tipo en esa tienda. Prueba con «Todas las tiendas»: la tienda puede pedirla a la otra.</p>
+      ${pie()}`;
+    },
+
+    prenda({ id }) {
+      const p = C.prenda(id);
+      const va = [...new Set((C.looks.find((l) => l.prendas.includes(p.id)) || C.looks[0]).prendas.concat(C.prendas.filter((x) => x.cat !== p.cat).map((x) => x.id)))].filter((x) => x !== p.id).slice(0, 3);
+      return `${cab()}
+      <section class="j-ficha">
+        <div><div class="j-papel"><img src="${C.foto(p)}" alt="${p.nombre}"></div></div>
+        <div class="j-panel">
+          <div><a class="j-cap j-taupe" href="#catalogo" style="text-decoration:none">${C.nombreCat(p.cat)}</a><h1>${p.nombre}</h1></div>
+          <div class="j-precio j-num">${C.precio(p.precio)}</div>
+          <div class="j-campo"><span class="j-cap">Color</span>
+            <div class="j-opciones" data-grupo="color">${p.colores.map(([n, hex], i) => `<button class="j-color" data-valor="${n}" aria-pressed="${i === 0}"><i style="background:${hex}"></i>${n}</button>`).join("")}</div></div>
+          <div class="j-campo"><div class="j-campo-cab"><span class="j-cap">Talla</span><a class="j-link j-taupe" href="#prenda/${p.id}">Guía de tallas</a></div>
+            <div class="j-opciones" data-grupo="talla" role="group" aria-label="Talla">${p.tallas.map((t) => `<button class="j-talla" data-valor="${t}" aria-pressed="false">${t}</button>`).join("")}</div></div>
+          <dl class="j-stock"><span class="j-cap" style="margin-bottom:8px">En tienda</span>${C.tiendas.map((t) => `<div><dt>${t.ciudad}</dt><dd class="${stockClase(p.stock[t.id])}">${C.stockFrase(p.stock[t.id])}</dd></div>`).join("")}</dl>
+          <button class="j-btn" data-agregar="${p.id}"><span data-texto>Agregar a la bolsa</span></button>
+          <p class="j-aviso" data-aviso role="status" aria-live="polite"></p>
+          <p class="j-taupe" style="margin:-14px 0 0">No pagas nada en la web: separas, la tienda te la guarda y pagas al recoger.</p>
+        </div>
+      </section>
+      <section class="j-seccion"><div class="j-seccion-cab"><span class="j-cap j-taupe">Para completar</span><h2 class="j-titulo j-sube" data-revela>Va <em>con</em></h2></div><div class="j-vacon">${va.map((x, i) => obra(C.prenda(x), i, true)).join("")}</div></section>
+      ${pie()}`;
+    },
+
+    bolsa({ bolsa }) {
+      const total = bolsa.reduce((s, l) => s + C.prenda(l.id).precio, 0);
+      return `${cab()}
+      <div class="j-cat-cab"><span class="j-cap j-taupe">${bolsa.length} ${bolsa.length === 1 ? "prenda" : "prendas"}</span><h1 class="j-display j-letras" data-letras style="font-size:clamp(60px,9cqi,136px)">Tu bolsa</h1></div>
+      <section class="j-bolsa-cuerpo">
+        <div>${bolsa.length === 0 ? `<p style="padding:22px 0;border-top:1px solid var(--sand)">Tu bolsa está vacía. <a class="j-link" href="#catalogo">Ver la ropa</a></p>` : bolsa.map((l, i) => { const p = C.prenda(l.id); return `
+          <div class="j-linea" style="--i:${i}">
+            <a class="j-papel" href="#prenda/${p.id}"><img src="${C.foto(p)}" alt="${p.nombre}"></a>
+            <div><a class="j-nombre" href="#prenda/${p.id}">${p.nombre}</a><span class="j-cap">${l.color} · Talla ${l.talla}</span>
+              <span data-hay-aqp="${p.stock.aqp}" data-hay-tru="${p.stock.tru}">Elige la tienda para ver si hay</span>
+              <button class="j-quitar" data-quitar="${i}">Quitar</button></div>
+            <span class="j-num j-precio-linea">${C.precio(p.precio)}</span>
+          </div>`; }).join("")}</div>
+        <aside class="j-resumen">
+          <div data-antes-de-separar style="display:grid;gap:22px">
+            <div class="j-campo"><span class="j-cap">Recógelo en</span>
+              <div data-grupo="tienda" style="display:grid;gap:8px">${C.tiendas.map((t) => `<button class="j-tienda-op" data-valor="${t.id}" aria-pressed="false"><i aria-hidden="true"></i><b class="j-nombre" style="font-size:20px">${t.ciudad}</b><span class="j-taupe">${t.direccion}</span></button>`).join("")}</div></div>
+            <div class="j-total"><span>Total <span class="j-taupe">· pagas al recoger</span></span><b class="j-num" data-total="${total}">${C.precio(total)}</b></div>
+            <button class="j-btn" data-separar ${bolsa.length ? "" : "disabled"}>Separar</button>
+            <p class="j-aviso" data-aviso role="status" aria-live="polite" style="margin:-10px 0 0"></p>
+            <p class="j-taupe" style="margin:0;font-size:13px">Puedes tener hasta 3 separaciones abiertas a la vez.</p>
+          </div>
+          <div class="j-listo" data-confirmacion hidden>
+            ${ave()}
+            <span class="j-cap j-taupe">Separación N.º <span data-numero>${C.deEjemplo.numero}</span> · por confirmar</span>
+            <h2 tabindex="-1">Te la guardamos en <em data-tienda-elegida></em></h2>
+            <p class="j-taupe">Mándala por WhatsApp: la tienda la confirma y te guarda las prendas. Pagas al recoger.</p>
+            <button class="j-btn" data-whatsapp>Mandar por WhatsApp</button>
+            <p class="j-mensaje" data-mensaje hidden>Hola, CAYLA <span data-tienda-elegida></span>. Quiero confirmar mi separación N.º ${C.deEjemplo.numero}:
+${bolsa.map((l) => `· ${C.prenda(l.id).nombre} (${l.color}, talla ${l.talla})`).join("\n")}</p>
+          </div>
+        </aside>
+      </section>
+      ${pie()}`;
+    },
+
+    entrar() {
+      return `${cab()}
+      <section class="j-entrar">
+        ${ave()}
+        <h1 class="j-display j-letras" data-letras style="font-size:clamp(56px,7cqi,104px);margin-bottom:10px">Entrar</h1>
+        <p class="j-lema" style="margin:0 0 30px">Donde el estilo <em>transforma.</em></p>
+        <form class="j-form" novalidate>
+          <p class="j-taupe" style="margin:0 0 4px;text-align:center">Con tu cuenta ves precios, tallas y cuánto hay en cada tienda.</p>
+          <label><span class="j-cap">Correo</span><input type="email" autocomplete="email" placeholder="tucorreo@gmail.com"></label>
+          <label><span class="j-cap">Contraseña</span><input type="password" autocomplete="current-password"></label>
+          <button class="j-btn" type="submit">Entrar</button>
+          <a class="j-link j-taupe" href="#entrar" style="justify-self:center">Olvidé mi contraseña</a>
+          <p style="margin:6px 0 0;padding-top:18px;border-top:1px solid var(--sand);text-align:center">¿Todavía no tienes cuenta?</p>
+          <a class="j-btn j-btn--claro" href="#entrar">Crear mi cuenta</a>
+        </form>
+      </section>
+      ${pie()}`;
+    },
+  };
+
+  // ── Movimiento de J ──
+  let quitar = [];
+  const limpiar = () => { quitar.forEach((f) => f()); quitar = []; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Aletea: mueve los dos trazos del ala desde el hombro. Devuelve con qué detenerlo.
+  function aletear(svg, amplitud = 22, hz = 2.6) {
+    if (M.calma() || !svg) return () => {};
+    const [a, b] = svg.querySelectorAll("path");
+    let vivo = true, t0 = performance.now(), amp = amplitud;
+    const paso = (t) => { if (!vivo) return; const g = Math.sin(((t - t0) / 1000) * hz * 2 * Math.PI) * amp; const [d1, d2] = ala(g); a.setAttribute("d", d1); b.setAttribute("d", d2); requestAnimationFrame(paso); };
+    requestAnimationFrame(paso);
+    const parar = () => { vivo = false; const [d1, d2] = ala(0); a.setAttribute("d", d1); b.setAttribute("d", d2); };
+    parar.calmar = (n) => (amp = n);
+    return parar;
+  }
+
+  // Se dibuja trazo por trazo, como la firma de la marca.
+  function dibujar(svg, ms = 1400) {
+    if (!svg || M.calma()) return Promise.resolve();
+    const ps = [...svg.querySelectorAll("path")];
+    return Promise.all(ps.map((p, i) => p.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: ms * 0.6, delay: i * ms * 0.13, easing: "cubic-bezier(.65,0,.35,1)", fill: "both" }).finished));
+  }
+
+  // Vuela por un camino (offset-path) dentro de su caja, y avisa en cada cuadro dónde va.
+  function volarPor(svg, d, ms, alPasar) {
+    svg.style.offsetPath = `path("${d}")`;
+    svg.style.offsetRotate = "0deg";
+    svg.style.offsetAnchor = "50% 50%";
+    const an = svg.animate([{ offsetDistance: "0%" }, { offsetDistance: "100%" }], { duration: ms, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
+    let vivo = true;
+    const mirar = () => { if (!vivo) return; if (alPasar) alPasar(svg.getBoundingClientRect()); requestAnimationFrame(mirar); };
+    requestAnimationFrame(mirar);
+    return an.finished.then(() => (vivo = false));
+  }
+
+  // La portada: el colibrí se dibuja a la izquierda del titular, aletea, cruza por detrás del lema tiñendo «transforma.» y se posa.
+  async function vueloDePortada(lienzo) {
+    const cielo = lienzo.querySelector("[data-cielo]");
+    if (!cielo) return;
+    const svg = cielo.querySelector(":scope > .j-ave"), titulo = cielo.querySelector("h1"), palabra = cielo.querySelector("[data-transforma]");
+    const c = cielo.getBoundingClientRect(), h = titulo.getBoundingClientRect(), w = palabra.getBoundingClientRect();
+    const rel = (x, y) => [x - c.left, y - c.top];
+    // El ave mide lo que diga su CSS (120 px en escritorio, 84 en celular); el centro de su cuerpo es (ancho/2, ancho/3).
+    const bw = svg.getBoundingClientRect().width, ox = bw / 2, oy = bw / 3;
+    // Se posa a la derecha del título si cabe; si no (celular), junto a «transforma.», la palabra que acaba de teñir.
+    const cabeAlLado = h.right + 70 + ox <= c.right - 8;
+    const [ix, iy] = cabeAlLado ? rel(h.left - bw, h.top + h.height * 0.2) : rel(c.left + ox + 6, h.top - oy), [px, py] = rel(w.left + w.width * 0.5, w.top + w.height * 0.55);
+    const [fx, fy] = cabeAlLado ? rel(h.right + 70, h.top + 10) : rel(Math.min(w.right + 8 + ox, c.right - ox - 6), w.top + w.height * 0.15);
+    if (M.calma()) { palabra.classList.add("tenida"); svg.style.transform = `translate(${fx - ox}px, ${fy - oy}px)`; return; }
+    svg.style.transform = `translate(${ix - ox}px, ${iy - oy}px)`;
+    await espera(400);
+    await dibujar(svg, 1500);
+    const parar = aletear(svg, 24, 2.8);
+    quitar.push(parar);
+    svg.style.transform = "";
+    const k = Math.min(1, c.width / 900); // en celular el rizo se encoge para no salirse de la pantalla
+    const d = `M ${ix} ${iy} C ${ix + 60 * k} ${iy - 120 * k}, ${px - 260 * k} ${py + 120 * k}, ${px - 60 * k} ${py + 6} S ${px + 200 * k} ${py - 40 * k}, ${px + 260 * k} ${py - 120 * k} S ${fx - 40 * k} ${fy + 40 * k}, ${fx} ${fy}`;
+    await volarPor(svg, d, 3600, (r) => { const centro = r.left + r.width / 2; if (centro > w.left + w.width * 0.3) palabra.classList.add("tenida"); });
+    parar.calmar(8); await espera(500); parar.calmar(3); await espera(500); parar();
+  }
+
+  // Las tiendas: cuando aparecen, el colibrí sale del ojal de Trujillo y vuela al de Arequipa, cosiendo con su hilo punteado.
+  function coserSedes(lienzo) {
+    const caja = lienzo.querySelector("[data-sedes]");
+    if (!caja) return;
+    const [o1, o2] = caja.querySelectorAll("[data-ojal]"), hilo = caja.querySelector(".j-hilo"), svg = caja.querySelector(":scope > .j-ave");
+    const armar = () => {
+      const c = caja.getBoundingClientRect(), a = o1.getBoundingClientRect(), b = o2.getBoundingClientRect();
+      const x1 = a.left + a.width / 2 - c.left, y1 = a.top + a.height / 2 - c.top, x2 = b.left + b.width / 2 - c.left, y2 = b.top + b.height / 2 - c.top;
+      const alto = Math.abs(x2 - x1) > 100 ? -120 : 0;
+      const d = Math.abs(x2 - x1) > 100 ? `M ${x1} ${y1} C ${x1 + 80} ${y1 + alto}, ${x2 - 80} ${y2 + alto}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1 + 120} ${y1 + 60}, ${x2 + 120} ${y2 - 60}, ${x2} ${y2}`;
+      hilo.setAttribute("viewBox", `0 0 ${c.width} ${c.height}`);
+      return d;
+    };
+    const d = armar();
+    const id = "j-m" + Math.random().toString(36).slice(2, 7);
+    hilo.innerHTML = `<defs><mask id="${id}" maskUnits="userSpaceOnUse"><path d="${d}" fill="none" stroke="#fff" stroke-width="8"/></mask></defs><path class="punteado" d="${d}" mask="url(#${id})"/>`;
+    const m = hilo.querySelector("mask path"), L = m.getTotalLength();
+    if (M.calma()) { svg.style.transform = `translate(${0}px, ${0}px)`; svg.style.display = "none"; return; }
+    m.style.strokeDasharray = L; m.style.strokeDashoffset = L;
+    svg.style.opacity = "0";
+    const io = new IntersectionObserver(async (es) => {
+      if (!es[0].isIntersecting) return;
+      io.disconnect();
+      svg.style.opacity = "1";
+      const parar = aletear(svg, 22, 3);
+      quitar.push(parar);
+      m.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 2400, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" });
+      await volarPor(svg, d, 2400);
+      parar.calmar(6); await espera(500); parar();
+    }, { threshold: 0.45 });
+    io.observe(caja);
+    quitar.push(() => io.disconnect());
+  }
+
+  // Al agregar: un colibrí pequeño sale del botón y lleva la prenda a la bolsa.
+  function mensajero(desde) {
+    const destino = document.querySelector("#lienzo .j-ir-bolsa b");
+    if (M.calma() || !destino) return Promise.resolve();
+    const a = desde.getBoundingClientRect(), b = destino.getBoundingClientRect();
+    const caja = document.createElement("div");
+    caja.innerHTML = ave("j-mensajero");
+    const svg = caja.firstElementChild;
+    document.body.appendChild(svg);
+    const x1 = a.left + a.width / 2, y1 = a.top, x2 = b.left + b.width / 2, y2 = b.top + b.height / 2;
+    const parar = aletear(svg, 26, 4);
+    const d = `M ${x1} ${y1} C ${x1 - 140} ${y1 - 220}, ${x2 - 220} ${y2 + 160}, ${x2} ${y2}`;
+    svg.style.offsetPath = `path("${d}")`; svg.style.offsetRotate = "0deg"; svg.style.offsetAnchor = "50% 50%";
+    return svg.animate([{ offsetDistance: "0%", opacity: 0, scale: ".6" }, { opacity: 1, scale: "1", offset: 0.15 }, { offsetDistance: "100%", opacity: 0.2, scale: ".4" }], { duration: 1300, easing: "cubic-bezier(.45,.05,.35,1)", fill: "forwards" }).finished.then(() => { parar(); svg.remove(); });
+  }
+
+  function montar(pantalla, lienzo) {
+    limpiar();
+    lienzo.classList.remove("listo");
+    lienzo.querySelectorAll("[data-letras]").forEach((h) => M.letras(h));
+    lienzo.querySelectorAll(".j-panel > *").forEach((x, i) => x.style.setProperty("--f", i));
+    requestAnimationFrame(() => requestAnimationFrame(() => lienzo.classList.add("listo")));
+    M.revelar(lienzo);
+    lienzo.querySelectorAll('.j-filtros [role="group"], [data-grupo="talla"]').forEach((g) => M.indicador(g));
+    document.fonts.ready.then(() => { vueloDePortada(lienzo); coserSedes(lienzo); });
+    if (pantalla === "entrar") { const s = lienzo.querySelector(".j-entrar > .j-ave"); dibujar(s, 1500).then(() => { const p = aletear(s, 14, 2.4); quitar.push(p); setTimeout(() => p.calmar(4), 900); setTimeout(p, 1700); }); }
+    if (pantalla === "bolsa") { const t = lienzo.querySelector("[data-total]"); if (t) M.contar(t, Number(t.dataset.total), 1300, (n) => C.precio(Math.round(n))); }
+  }
+
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-filtro],[data-filtro-tienda]")) M.flipAntes(document.querySelectorAll("#lienzo [data-cat]")); }, true);
+  document.addEventListener("cayla:filtrado", (e) => { M.flipDespues(document.querySelectorAll("#lienzo [data-cat]")); M.indicador(e.detail.boton.closest('[role="group"]')); });
+  document.addEventListener("cayla:elegido", (e) => { const g = e.detail.boton.closest("[data-grupo]"); if (g.dataset.grupo === "talla") M.indicador(g); });
+  document.addEventListener("cayla:agregado", (e) => {
+    const b = e.detail.boton, texto = b.querySelector("[data-texto]");
+    texto.textContent = "Agregada a tu bolsa";
+    mensajero(b).then(() => M.latir(document.querySelector("#lienzo .j-ir-bolsa b")));
+    setTimeout(() => { texto.textContent = "Agregar a la bolsa"; delete b.dataset.hecho; }, 2600);
+  });
+  // Al separar: el colibrí se dibuja sobre la confirmación y aletea un momento, y el número cuenta hasta el suyo.
+  document.addEventListener("cayla:separado", (e) => {
+    const s = e.detail.listo.querySelector(".j-ave");
+    dibujar(s, 1200).then(() => { const p = aletear(s, 16, 2.6); setTimeout(() => p.calmar(5), 700); setTimeout(p, 1400); });
+    M.contar(e.detail.listo.querySelector("[data-numero]"), Number(C.deEjemplo.numero), 1500, (n) => String(Math.round(n)).padStart(4, "0"));
+  });
+  addEventListener("resize", () => document.querySelectorAll('#lienzo .j-filtros [role="group"], #lienzo [data-grupo="talla"]').forEach((g) => M.indicador(g)));
+
+  window.DIRECCION = { nombre: "J · Vuelo", pantallas, montar, transicion: true };
+})();
+</script>
+<script src="marco.js"></script>
+</body>
+</html>

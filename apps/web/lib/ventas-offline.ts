@@ -34,8 +34,10 @@
  * componente con estado del módulo), con el mismo patrón que ya usa `enEspera`.
  */
 
-import type { MetodoPago } from "@cayla-retail/shared";
+import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
+import type { TipoDocComprobante } from "./documento-comprobante-reglas";
+import type { TipoFalloSubida } from "./error-escritura";
 import type { Firma } from "./responsable-reglas";
 
 export type ItemVentaEncolada = { varianteId: string; cantidad: number };
@@ -51,25 +53,40 @@ export type ItemRegistrarVenta = {
   argumento_descuento?: string;
   /** La etiqueta de campaña que dio el descuento; solo con `motivo_descuento: "campana"`. */
   descuento_etiqueta_id?: string;
+  /** La parte de `descuento_unitario` (que sigue siendo el TOTAL) que es del cupón del Club (programa de puntos, con su código en
+   *  `p_codigo_descuento`; reparto de `ticketConVale`, la base lo recalcula y rechaza si no coincide, `cupon_descuento_distinto`). Se
+   *  arma con `descuentosParaRegistrar` de `lib/club-cupon-reparto-reglas.ts`. */
+  descuento_club_unitario?: number;
   /** Solo en una «Prenda sin registrar» (ADR-0179): lo que almacén necesita para regularizarla. */
   descripcion_libre?: string;
   categoria_id?: string;
   talla_id?: string;
   color_codigo?: string;
+  /** Solo en una pieza de liquidación (ADR-0379): el código de su etiqueta vigente. */
+  pieza_liquidacion_codigo?: string;
 };
 
-/** El payload completo de `registrar_venta` (16 parámetros, hoy; la caja usa los 12 primeros). Se guarda entero en la
- *  cola y se reenvía sin cambios al subir — el `p_token` adentro es el mismo que dejó el
- *  envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. */
+/** El payload de `registrar_venta` que manda la caja (`p_cliente_id` se sumó en la tanda 1a del club, ADR-0288; el cupón del Club
+ *  viaja en `p_codigo_descuento`. `p_canjear_cumpleanos` y `p_canjear_aniversario` siguen en la firma de la base, pero el 10 % y el
+ *  vale se retiraron el 2026-10-19 y la caja ya no los manda). Se guarda entero en la cola y se reenvía sin cambios al subir — el
+ *  `p_token` adentro es el mismo que dejó el envío que falló, así que un reintento (desde esta pestaña o desde otra) no duplica. Una
+ *  venta con cupón NUNCA entra a la cola (`llevaCanje`). */
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
-  p_pagos: { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[];
+  /** Los pagos como viajan a `registrar_venta`, con la fila `redondeo` cuando el efectivo se cobró redondeado (ADR-0311). */
+  p_pagos: { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string }[];
   p_token: string;
   p_tipo_comprobante: "boleta" | "factura" | "nota_venta";
-  p_cliente_tipo_doc: "dni" | "ruc" | "sin_documento";
+  p_cliente_tipo_doc: TipoDocComprobante;
   p_cliente_num_doc?: string;
   p_cliente_nombre?: string;
+  /** La ficha de la clienta del ticket (ADR-0288 D-1): la venta queda en su ficha. Viaja también en la cola sin conexión;
+   *  si al subir la ficha ya se unió a otra, la base la liga a la que quedó, y si se anonimizó, la rechaza
+   *  (`clienta_anonimizada`) y la cola la muestra como rechazo, igual que una caja cerrada (ADR-0036). */
+  p_cliente_id?: string;
+  /** Ya no se manda (Felipe, 2026-10-01: el descuento no pide código). Queda opcional porque una venta encolada antes
+   *  puede traerlo; la base lo acepta y no lo lee. */
   p_codigo_descuento?: string;
   p_nota?: string;
   /** El RESPONSABLE de la venta (combo del ADR-0161; antes, la fila «Atendió» del ADR-0163). Es el mismo uuid que
@@ -154,6 +171,16 @@ export function carritoPasaElUmbral(items: readonly ItemVentaEncolada[], stockPi
   return true;
 }
 
+/** ¿Esta venta usa un cupón del Club? Entonces NO se encola (programa de puntos): el cupón es de una sola vez y, sin conexión, otra
+ *  caja podría gastarlo a la vez; cuando la venta subiera y la base la rechazara, el cliente ya se habría ido con el precio rebajado.
+ *  Mira las dos señales (el código y la parte del club de cada ítem): la base exige que vayan juntas. */
+export function llevaCanje(params: Pick<ParamsRegistrarVenta, "p_items" | "p_codigo_descuento">): boolean {
+  return (
+    Boolean(params.p_codigo_descuento) ||
+    params.p_items.some((it) => (it.descuento_club_unitario ?? 0) > 0)
+  );
+}
+
 /** Cuánto de lo encolado sin subir es en EFECTIVO. Importa porque `retail.cerrar_caja`
  *  solo suma `ventas.metodo_pago = 'efectivo'` que YA está en la base para calcular el
  *  "esperado" del cajón — una venta en efectivo atrapada en la cola no entra en ese
@@ -182,4 +209,30 @@ export function firmaDeVentaEncolada(venta: Pick<VentaEncolada, "ubicacionId" | 
   const responsableId = venta.params.p_asesora_id;
   if (!responsableId) return null;
   return { responsableId, ubicacionId: venta.ubicacionId, momento: venta.creadoEn };
+}
+
+/**
+ * Qué queda en la cola cuando subir una venta falló. `null` = no se toca: sigue en la cola con `rechazo: null` y la
+ * próxima pasada (latido de 30 s, evento `online`) la repite tal cual, con el mismo token. Solo un fallo `definitivo`
+ * —la base respondió con código de Postgres y no es «intenta de nuevo»— la deja rechazada, esperando «Descartar».
+ *
+ * POR QUÉ LO PASAJERO NO SE RECHAZA (cobro a mano duplicado). Vuelve la red y el servidor responde 504 o un deadlock: la
+ * venta pudo haberse guardado igual. Si aquí se marcara «rechazada», la cajera la descartaría y la cobraría de nuevo a
+ * mano: dos ventas, dos comprobantes y el stock baja dos veces. Sin tope de intentos a propósito (Felipe, 2026-10-12):
+ * un «Descartar» que aparezca por un fallo del camino es justo lo que invita a duplicar; la venta sigue contada como
+ * pendiente en la cabecera, así que no se esconde.
+ */
+export function ventaTrasFallo(venta: VentaEncolada, tipo: TipoFalloSubida, mensaje: string): VentaEncolada | null {
+  return tipo === "definitivo" ? { ...venta, rechazo: mensaje } : null;
+}
+
+/**
+ * Las ventas que SUBIERON entre dos fotos de la cola: esperaban (sin rechazo) y ya no están. Lo usa una pestaña de
+ * Vender cuando OTRA pestaña del mismo navegador subió la cola (evento `storage`): sus prendas ya salieron de `stock`
+ * y esta pantalla tiene que descontarlas como si las hubiera subido ella. Un descarte no cuenta (lo descartado estaba
+ * rechazado: la base no lo registró).
+ */
+export function ventasSubidasEntre(previa: readonly VentaEncolada[], actual: readonly VentaEncolada[]): VentaEncolada[] {
+  const siguen = new Set(actual.map((v) => v.token));
+  return previa.filter((v) => v.rechazo === null && !siguen.has(v.token));
 }

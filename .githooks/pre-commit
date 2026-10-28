@@ -20,7 +20,7 @@ cd "$RAIZ" || exit 1
 
 # A=añadido C=copiado M=modificado R=renombrado. Los borrados no se revisan.
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR \
-  | grep -E '^(apps/web|packages/[^/]+/src)/.*\.(ts|tsx|js|jsx|mjs)$')
+  | grep -E '^(apps/(web|tienda)|packages/[^/]+/src)/.*\.(ts|tsx|js|jsx|mjs)$')
 
 # Un commit de solo documentación, SQL o configuración no paga el peaje.
 if [ -z "$STAGED" ]; then
@@ -34,7 +34,7 @@ fi
 if ! command -v pnpm >/dev/null 2>&1; then
   printf '\n  ! No encuentro `pnpm` en el PATH: me salto la revisión previa.\n'
   printf '    Suele pasar al commitear desde una app gráfica de git.\n'
-  printf '    Revisa a mano con: pnpm lint && pnpm --filter web test\n\n'
+  printf '    Revisa a mano con: pnpm lint && pnpm --filter web test && pnpm --filter tienda test\n\n'
   exit 0
 fi
 
@@ -46,6 +46,10 @@ AVISO=0
 # Rutas relativas a apps/web (eslint y tsc corren con ese cwd para tomar su
 # propia configuración).
 echo "$STAGED" | sed -n 's|^apps/web/||p' > "$TMP/web.txt"
+# La tienda online (ADR-0408) es otra app, con su propia configuración: se revisa aparte y solo si el commit la toca.
+echo "$STAGED" | sed -n 's|^apps/tienda/||p' > "$TMP/tienda.txt"
+# Los paquetes los importa la web: un cambio ahí corre las pruebas de la web, como siempre.
+echo "$STAGED" | grep '^packages/' > "$TMP/paquetes.txt"
 
 printf '\n  Revisando %s archivo(s) antes de commitear…\n\n' "$(echo "$STAGED" | wc -l | tr -d ' ')"
 
@@ -73,12 +77,32 @@ if [ -s "$TMP/web.txt" ]; then
   fi
 fi
 
+if [ -s "$TMP/tienda.txt" ]; then
+  (cd apps/tienda && pnpm exec tsc --noEmit) > "$TMP/tsc-tienda.txt" 2>&1
+  if [ -s "$TMP/tsc-tienda.txt" ]; then
+    printf '  ✗ Errores de tipos en la tienda:\n\n'
+    sed 's/^/    /' "$TMP/tsc-tienda.txt" | head -20
+    printf '\n'
+    FALLO=1
+  fi
+fi
+
 # ---------- 2. Tests ----------
-if ! (cd apps/web && pnpm vitest run) > "$TMP/test.txt" 2>&1; then
-  printf '  ✗ Tests en rojo:\n\n'
-  sed 's/^/    /' "$TMP/test.txt" | tail -25
-  printf '\n'
-  FALLO=1
+if [ -s "$TMP/web.txt" ] || [ -s "$TMP/paquetes.txt" ]; then
+  if ! (cd apps/web && pnpm vitest run) > "$TMP/test.txt" 2>&1; then
+    printf '  ✗ Tests en rojo:\n\n'
+    sed 's/^/    /' "$TMP/test.txt" | tail -25
+    printf '\n'
+    FALLO=1
+  fi
+fi
+if [ -s "$TMP/tienda.txt" ]; then
+  if ! (cd apps/tienda && pnpm exec vitest run) > "$TMP/test-tienda.txt" 2>&1; then
+    printf '  ✗ Tests de la tienda en rojo:\n\n'
+    sed 's/^/    /' "$TMP/test-tienda.txt" | tail -25
+    printf '\n'
+    FALLO=1
+  fi
 fi
 
 # ---------- 3. Lint, solo de los archivos del commit ----------
@@ -87,6 +111,14 @@ if [ -s "$TMP/web.txt" ]; then
   if ! (cd apps/web && xargs pnpm exec eslint < "$TMP/web.txt") > "$TMP/lint.txt" 2>&1; then
     printf '  ✗ Lint:\n\n'
     sed 's/^/    /' "$TMP/lint.txt" | head -40
+    printf '\n'
+    FALLO=1
+  fi
+fi
+if [ -s "$TMP/tienda.txt" ]; then
+  if ! (cd apps/tienda && xargs pnpm exec eslint < "$TMP/tienda.txt") > "$TMP/lint-tienda.txt" 2>&1; then
+    printf '  ✗ Lint de la tienda:\n\n'
+    sed 's/^/    /' "$TMP/lint-tienda.txt" | head -40
     printf '\n'
     FALLO=1
   fi

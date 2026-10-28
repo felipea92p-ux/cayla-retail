@@ -1,0 +1,5 @@
+## Fila de Vercel: saltar la vista previa de traer main (2026-10-12, ADR-0383)
+- [x] **`ignoreCommand` en `apps/web/vercel.json`** + `scripts/ci/vercel-ignorar.mjs` y su prueba en el CI («Qué construye Vercel»). Regla: se salta solo si todo lo que la rama sumó desde su última versión construida son merges de main. Repetido sobre las 60 versiones del 2026-10-12: se saltan 30, se construyen 30 (cuenta pesimista).
+- [ ] **Verificar en Vercel después de fusionar:** la primera rama que traiga main debe salir cancelada con el log «No se construye: … (ADR-0383)» (`vercel inspect <url> --logs --scope cayla`). Si sigue construyéndose, mirar en ese log desde qué carpeta corrió la orden.
+- [ ] **Reconectar Vercel dentro de Claude con acceso al equipo `cayla`** (lo hace Felipe en Configuración ▸ Conectores): hoy la conexión ve despliegues pero responde 403 en logs, equipo y proyecto. Mientras tanto, la CLI alcanza.
+- [ ] **Aviso por correo cuando falla un despliegue de producción** (ajuste de Vercel, lo hace Felipe): el #970 falló con `git_info_fail` y nadie se enteró; se salvó porque el #973 llegó 9 minutos después.

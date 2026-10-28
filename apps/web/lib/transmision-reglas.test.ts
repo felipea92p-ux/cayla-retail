@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cronNoTransmite, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
+import { cronNoAutorizado, diasParaElPlazo, queHacerConElError, errorDeColaLegible, itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar, type ComprobanteParaTransmitir } from "./transmision-reglas";
 
 function comprobante(extra: Partial<ComprobanteParaTransmitir> = {}): ComprobanteParaTransmitir {
   return { estado: "pendiente", venta_id: "v1", venta: { estado: "completada" }, ...extra };
@@ -90,6 +90,27 @@ describe("itemsParaLucode", () => {
     expect(variantesPorNombrar(raw)).toEqual([]);
   });
 
+  it("la bolsa de obsequio (precio 0) no se declara a SUNAT, y el total con IGV sigue siendo el cobrado", () => {
+    const raw = [
+      { variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 0 },
+      { variante_id: "obsequio", cantidad: 2, precio_unitario: 0, descuento_unitario: 0 },
+    ];
+    const items = itemsParaLucode(raw, nombres)!;
+    expect(items).toHaveLength(1);
+    expect(items[0].descripcion).toBe("Blusa Emma · CMS-0001-BEI-M");
+    // No hace falta nombrar la de obsequio para transmitir (no llega a Lucode), pero tampoco estorba si se nombra.
+    expect(itemsParaLucode(raw, new Map([...nombres, ["obsequio", "Bolsa de obsequio"]]))).toEqual(items);
+  });
+
+  it("solo se salta el precio de ETIQUETA en 0: una prenda regalada con descuento sigue declarándose (con su valor en 0)", () => {
+    const raw = [{ variante_id: "v1", cantidad: 1, precio_unitario: 79.9, descuento_unitario: 79.9 }];
+    expect(itemsParaLucode(raw, nombres)).toEqual([{ descripcion: "Blusa Emma · CMS-0001-BEI-M", cantidad: 1, precio_unitario: 0 }]);
+  });
+
+  it("si todas las líneas son de precio 0 no queda nada que declarar: no se transmite", () => {
+    expect(itemsParaLucode([{ variante_id: "obsequio", cantidad: 1, precio_unitario: 0, descuento_unitario: 0 }], nombres)).toBeNull();
+  });
+
   it("sin nombre para una variante, o con datos rotos, no se transmite", () => {
     expect(itemsParaLucode([{ variante_id: "otra", cantidad: 1, precio_unitario: 10 }], nombres)).toBeNull();
     expect(itemsParaLucode([{ variante_id: "v1", cantidad: "1", precio_unitario: 10 }], nombres)).toBeNull();
@@ -161,21 +182,50 @@ describe("diasParaElPlazo (3 días calendario de Lima)", () => {
   });
 });
 
-describe("cronNoTransmite (PL-113: quién puede correr el cron, y solo al sandbox)", () => {
+describe("cronNoAutorizado (PL-113: quién puede correr el cron; ADR-0165 act. 2026-10-12: transmite también en producción)", () => {
   it("sin CRON_SECRET no pasa nadie, tampoco quien manda «Bearer undefined» o «Bearer »", () => {
-    expect(cronNoTransmite("Bearer undefined", undefined, "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite("Bearer ", "", "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite(null, undefined, "sandbox")?.status).toBe(401);
+    expect(cronNoAutorizado("Bearer undefined", undefined)?.status).toBe(401);
+    expect(cronNoAutorizado("Bearer ", "")?.status).toBe(401);
+    expect(cronNoAutorizado(null, undefined)?.status).toBe(401);
   });
   it("con otra clave, o sin encabezado, no pasa", () => {
-    expect(cronNoTransmite("Bearer otra", "clave", "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite(null, "clave", "sandbox")?.status).toBe(401);
-    expect(cronNoTransmite("clave", "clave", "sandbox")?.status).toBe(401);
+    expect(cronNoAutorizado("Bearer otra", "clave")?.status).toBe(401);
+    expect(cronNoAutorizado(null, "clave")?.status).toBe(401);
+    expect(cronNoAutorizado("clave", "clave")).toEqual({ status: 401, body: { error: "No autorizado" } });
   });
-  it("con la clave pero fuera del sandbox no transmite nada (y no cuenta como fallo)", () => {
-    expect(cronNoTransmite("Bearer clave", "clave", "produccion")).toEqual({ status: 200, body: { tomados: 0, omitido: "El cron solo transmite al sandbox de Lucode." } });
+  it("con la clave, pasa: la regla ya no pregunta por el ambiente de Lucode (el cron transmite en producción)", () => {
+    expect(cronNoAutorizado("Bearer clave", "clave")).toBeNull();
+    // «Solo sandbox» se fue a propósito (Felipe, 2026-10-12): si alguien vuelve a pedirle el ambiente a esta regla, la prueba lo marca.
+    expect(cronNoAutorizado.length).toBe(2);
   });
-  it("con la clave y en el sandbox, transmite", () => {
-    expect(cronNoTransmite("Bearer clave", "clave", "sandbox")).toBeNull();
+});
+
+// ADR-0378: «ya fue emitido» no es un rechazo. Las filas que quedaron anotadas como rechazo antes del arreglo (41 en
+// producción el 2026-10-12) se leen bien desde ya, sin esperar a su próxima pasada.
+describe("la cola cuando Lucode ya tiene el número (ADR-0378)", () => {
+  const VIEJA = "rechazado_por_lucode: ERROR: La boleta B005-262 fue emitido anteriormente.";
+
+  it("una fila vieja anotada como rechazo se lee como «ya la tiene», sin el consejo equivocado", () => {
+    expect(errorDeColaLegible(VIEJA)).toBe("Lucode ya la tiene: falta confirmar que es esta venta y traer su estado.");
+    expect(queHacerConElError(VIEJA)).toMatch(/No se vuelve a enviar/);
+    expect(queHacerConElError(VIEJA)).not.toMatch(/Reintentar no lo arregla/);
+  });
+
+  it("la que no se pudo confirmar todavía", () => {
+    const e = "ya_emitido: Lucode ya tiene B005-262, pero no se pudo consultar su estado (Lucode no respondió a tiempo).";
+    expect(errorDeColaLegible(e)).toBe("Lucode ya la tiene: falta confirmar que es esta venta y traer su estado.");
+    expect(queHacerConElError(e)).toMatch(/se confirma sola/);
+  });
+
+  it("el número ocupado dice qué es distinto y a quién avisar", () => {
+    const e = "numero_ocupado: otro total (S/ 89.90 en Lucode, S/ 15.00 aquí), otro cliente";
+    expect(errorDeColaLegible(e)).toBe("Ese número ya lo usa otro documento en Lucode, con otro total (S/ 89.90 en Lucode, S/ 15.00 aquí), otro cliente.");
+    expect(errorDeColaLegible("numero_ocupado")).toBe("Ese número ya lo usa otro documento en Lucode.");
+    expect(queHacerConElError(e)).toMatch(/Reintentar no lo arregla.*líder de equipo/);
+  });
+
+  it("un rechazo de verdad sigue con su detalle y su consejo", () => {
+    expect(errorDeColaLegible("rechazado_por_lucode: El DNI no existe")).toBe("Lucode no aceptó el envío: El DNI no existe");
+    expect(queHacerConElError("rechazado_por_lucode: El DNI no existe")).toMatch(/Reintentar no lo arregla/);
   });
 });

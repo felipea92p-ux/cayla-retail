@@ -80,3 +80,61 @@ Bajar al piso.
 `tsc` limpio, `vitest` completo en verde (219 archivos), reglas nuevas con pruebas (`muestras-alta-reglas`,
 `color-alta-reglas`, `marca-proveedor-reglas`, `tabla-alta-reglas`, `alta-producto`). Recorrido completo en el navegador
 (escritorio y 375 px) con una página temporal y un catálogo de ejemplo, sin sesión: por eso no se probó guardar.
+
+## Actualización 2026-10-06 — los 4 puntos de avance en lugar de los números, las líneas plegadas y la lista «Avance»
+
+**Pedido de Felipe** (mockup aprobado en la lámina «E · El registro de hoy, con la barra de avance» del lienzo
+https://claude.ai/artifact/WSGQs3a9bH2L5hLtqakSh6): quitar el marcador de avance de hoy y poner arriba una barra de puntos,
+**sin cambiar nada más del formulario** («la información del formulario no quiero que cambie en nada»).
+
+**Qué cambió (solo esto):**
+- **Arriba de los pasos, 4 puntos** unidos por una línea (`components/alta-producto/PuntosAvance.tsx`, lógica pura en
+  `lib/puntos-avance.ts` con su prueba, estilos en `app/estilos/puntos-avance.css`). Van de borde a borde del formulario y quedan
+  pegados bajo la cabecera de la app mientras se baja. Debajo de cada punto, su nombre (Categoría · Cómo es · Tallas y colores ·
+  Precio y cantidad; en celular «Tallas» y «Precio») y su estado: **Listo** (verde con ✓, que se dibuja una vez), **Estás aquí**
+  (verde, más grande, **late todo el tiempo**: excepción de ADR-0136, act. 2026-10-06), **Sigue** (el próximo, con borde verde) o
+  **Por revisar** (viene armado tras «Crear otro parecido»). La línea verde se llena hasta el punto donde está la persona.
+- **Un punto hecho se toca para volver a su paso**; al dejar el mouse encima dice lo contestado («Indumentaria › Vestidos»), que antes
+  decía la línea plegada.
+- **Se dibuja solo el paso abierto**, sin número: se quitaron el círculo 1–4, las líneas plegadas de los pasos hechos («… Cambiar») y
+  las punteadas de los que vienen. El contenido del paso usa todo el ancho de la tarjeta (antes empezaba 56 px adentro, alineado con
+  el título tras el número).
+- **«← Atrás»** al pie de los pasos 2, 3 y 4, antes de «Seguir →» / «Crear producto»: vuelve al anterior sin borrar nada.
+- **Sin la lista «Avance» de la ficha** (escritorio y la hoja «Ver» del celular): repetía lo mismo que los puntos.
+- **La vuelta a Productos es la flecha junto a la sede** (ADR-0220, act. 2026-10-06), igual que en las demás pantallas con esa cabecera.
+
+**Lo que NO cambió:** los campos, su orden y sus textos; lo que arranca abierto («Temporada y etiquetas» y la carta de colores); la guía
+de foco (marcas, «Sigue aquí», «Falta: …» tocable); las reglas de qué falta y qué se puede abrir (`lib/alta-producto.ts`, sin tocar);
+la ficha de la derecha («Cancelar», «Crear producto», «Siguiente: …»); y el guardado (misma RPC, sin migración).
+
+**Descarté:**
+- **Rayas en vez de puntos** (la primera versión de la lámina): Felipe pidió puntos que se iluminen con su texto al lado.
+- **Dejar las líneas plegadas de los pasos hechos:** con los puntos eran dos marcadores para lo mismo; lo contestado se lee en la ficha
+  y en el `title` de cada punto. Lo que se pierde a la vista es el resumen de tallas y patrón de un paso hecho (está en su punto y al
+  volver a él).
+- **Un latido de unos segundos y quieto:** Felipe eligió que lata todo el tiempo.
+
+**Cómo se verificó:** `tsc` y `eslint` limpios; `lib/puntos-avance.test.ts` (8 casos) y la suite completa de `vitest`. Recorrido en
+el navegador contra el ERP local con la cuenta de prueba `admin` (Playwright, sin crear el producto): paso 1 → 2 → 3, «← Atrás»
+conserva el nombre, 3 → 4, el punto «Categoría» vuelve al 1; la barra queda pegada bajo la cabecera (62 px en escritorio, 56 en
+celular) y el título del paso abierto cae bajo ella (`scroll-mt-[11.5rem]`). A 1440 px y a 375 px, en claro y en oscuro, sin
+desborde ni nombres encimados. `tema:auditar` en `/productos/nuevo`: 0 hallazgos solo en oscuro (los 6 «heredados» son del buscador
+de la cabecera y de las tarjetas de familia, anteriores a este cambio). La base local no tiene patrones en ninguna categoría, así que
+el recorrido completo se hizo con Bisutería (no exige tejido ni patrón).
+
+## Actualización 2026-10-09 — los puntos en el celular, más bajos (Felipe)
+
+En el celular la barra de puntos medía 104 px; pegada bajo la cabecera ocupaba de 56 a 160 px de una pantalla de 812, y la guía de
+foco, que calculaba lo libre con 96 px fijos, dejaba debajo de ella el campo que decía «Sigue aquí» (lo vio Felipe con «Unidades de
+hoy»). Pidió «que no sea tan invasiva y no le quite tanto espacio al contenido». Bajo `sm` (`app/estilos/puntos-avance.css`):
+
+- **~58 px en vez de 104:** puntos más chicos (`--marca: 26px`), nombre de 11,5 px, y sin el rótulo «Estás aquí / Sigue / Listo».
+  El punto que late y el nombre en negrita ya dicen dónde se está. Escritorio no cambia.
+- **La guía mide lo que tapa** (`arribaTapado` en `useGuiaAlta.ts`): cabecera + la barra pegada, en vivo, y centra el campo en el hueco
+  entre ella y la barra de abajo (antes, `scrollIntoView` centraba en la ventana y ponía el campo bajo una de las dos). El título del
+  paso cae con `scroll-mt-32` en el celular.
+
+En el mismo cambio, del mismo recorrido de Felipe: tras elegir marca y proveedor el cursor va al nombre (un combo con el foco ya no
+cuenta como «escribiendo»); la luz que vuelve a un campo porque la persona lo toca no mueve la página (la carta de colores subía a su
+inicio); el nombre del color tocado se lee pegado sobre la barra de abajo; y el segmento de «Unidades de hoy» parte su texto en dos
+líneas en vez de ensanchar la página 23 px.

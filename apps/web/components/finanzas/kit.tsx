@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { Pestanas } from "@/components/ui/Pestanas";
 
 // Las piezas de las pantallas de Finanzas (ADR-0195), tal como las dibuja el spike aprobado
 // (docs/maquetas/finanzas-2026-09/). Solo presentación: reciben valores y avisan cambios; la lógica vive en lib/*-reglas.ts.
@@ -8,42 +8,43 @@ import { Desplegable, type Opcion } from "@/components/ui/campos";
 
 // ---- Pestañas -----------------------------------------------------------------------------------------------------------
 
-export type PestanaFin = { clave: string; etiqueta: string; conteo?: number | null; href?: string };
+export type PestanaFin = { clave: string; etiqueta: string; conteo?: number | null; href?: string; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string };
 
-/** Pestañas con subrayado en tinta y el conteo en una píldora. Con `href` son enlaces (la vista vive en la URL);
- *  sin él, botones que avisan `onCambio`. */
-export function PestanasFin({ items, valor, onCambio, etiqueta }: { items: PestanaFin[]; valor: string; onCambio?: (clave: string) => void; etiqueta: string }) {
+/** Las pestañas de Finanzas y Configuración: desde el 2026-10-06 son la pestaña de vista del sistema (`<Pestanas>`, el vidrio con
+ *  la píldora oscura, ADR-0358), por decisión de Felipe al elegir mirando («también Finanzas»). Esta función solo traduce
+ *  la forma de los datos del kit, para no tocar las pantallas. Con `href` son enlaces (la vista vive en la URL); sin él, botones
+ *  que avisan `onCambio`. */
+export function PestanasFin({ items, valor, onCambio, etiqueta, guia }: { items: PestanaFin[]; valor: string; onCambio?: (clave: string) => void; etiqueta: string; /** Ancla de la guía interactiva para la fila (ADR-0389). */ guia?: string }) {
   return (
-    <div role="tablist" aria-label={etiqueta} className="fin-pestanas">
-      {items.map((p) => {
-        const contenido = (
-          <>
-            {p.etiqueta}
-            {p.conteo ? <span className="fin-cuenta-tab">{p.conteo}</span> : null}
-          </>
-        );
-        return p.href ? (
-          <Link key={p.clave} href={p.href} role="tab" aria-selected={valor === p.clave} className="fin-pestana" scroll={false}>
-            {contenido}
-          </Link>
-        ) : (
-          <button key={p.clave} type="button" role="tab" aria-selected={valor === p.clave} className="fin-pestana" onClick={() => onCambio?.(p.clave)}>
-            {contenido}
-          </button>
-        );
-      })}
-    </div>
+    <Pestanas
+      etiquetaAccesible={etiqueta}
+      activa={valor}
+      onCambio={items.some((p) => p.href) ? undefined : onCambio}
+      idIndicador={`fin-${etiqueta}`}
+      className="fin-pestanas-sistema"
+      guia={guia}
+      items={items.map((p) => ({ clave: p.clave, etiqueta: p.etiqueta, href: p.href, conteo: p.conteo ? p.conteo : undefined, guia: p.guia }))}
+    />
   );
 }
 
 // ---- Superficie, herramientas y pie ---------------------------------------------------------------------------------------
 
-export function Superficie({ children, className = "", pad = false }: { children: ReactNode; className?: string; pad?: boolean }) {
-  return <div className={`fin-superficie ${pad ? "fin-pad" : ""} ${className}`}>{children}</div>;
+/** `guia`: solo el ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389); no cambia nada de cómo se ve. */
+export function Superficie({ children, className = "", pad = false, guia }: { children: ReactNode; className?: string; pad?: boolean; guia?: string }) {
+  return (
+    <div className={`fin-superficie ${pad ? "fin-pad" : ""} ${className}`} data-guia={guia}>
+      {children}
+    </div>
+  );
 }
 
-export function Herramientas({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`fin-herramientas ${className}`}>{children}</div>;
+export function Herramientas({ children, className = "", guia }: { children: ReactNode; className?: string; guia?: string }) {
+  return (
+    <div className={`fin-herramientas ${className}`} data-guia={guia}>
+      {children}
+    </div>
+  );
 }
 
 /** La franja de arriba de una tarjeta cuando lleva un título (Configuración): título y bajada; a la derecha, la acción. */
@@ -77,18 +78,6 @@ export function CabeceraBloque({ titulo, bajada, children }: { titulo: ReactNode
 }
 
 // ---- Controles ------------------------------------------------------------------------------------------------------------
-
-export function Buscador({ valor, onValor, placeholder }: { valor: string; onValor: (v: string) => void; placeholder: string }) {
-  return (
-    <div className="fin-buscar">
-      <svg viewBox="0 0 24 24" aria-hidden>
-        <circle cx="11" cy="11" r="7" />
-        <path d="M20 20l-4-4" />
-      </svg>
-      <input className="fin-control" type="search" value={valor} onChange={(e) => onValor(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
-    </div>
-  );
-}
 
 /** El combo de Finanzas (ADR-0195 + ADR-0209, 2026-09-26): cerrado es el control en caja del spike (`fin-control`, su
  *  flecha, su relleno, el ancho de su opción más larga); abierto, la lista de todo el ERP —con buscador pasadas 8
@@ -141,9 +130,26 @@ export function InputFin({ className = "", ...resto }: InputHTMLAttributes<HTMLI
 }
 
 /** Un campo: etiqueta chica, el control y (si hay) una ayuda debajo. `tono="aviso"` pinta la ayuda en ámbar. */
-export function CampoFin({ etiqueta, htmlFor, ayuda, tono, children, className = "" }: { etiqueta: ReactNode; htmlFor?: string; ayuda?: ReactNode; tono?: "aviso"; children: ReactNode; className?: string }) {
+export function CampoFin({
+  etiqueta,
+  htmlFor,
+  ayuda,
+  tono,
+  children,
+  className = "",
+  guia,
+}: {
+  etiqueta: ReactNode;
+  htmlFor?: string;
+  ayuda?: ReactNode;
+  tono?: "aviso";
+  children: ReactNode;
+  className?: string;
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
+  guia?: string;
+}) {
   return (
-    <div className={`fin-campo ${className}`}>
+    <div className={`fin-campo ${className}`} data-guia={guia}>
       {htmlFor ? <label htmlFor={htmlFor}>{etiqueta}</label> : <span className="fin-etiqueta">{etiqueta}</span>}
       {children}
       {ayuda && (
@@ -193,15 +199,18 @@ export function OpcionesFin<T extends string>({
   onValor,
   opciones,
   etiqueta,
+  guia,
 }: {
   nombre: string;
   valor: T;
   onValor: (v: T) => void;
   opciones: { valor: T; titulo: string; detalle: string }[];
   etiqueta: string;
+  /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */
+  guia?: string;
 }) {
   return (
-    <div className="fin-opciones" role="radiogroup" aria-label={etiqueta}>
+    <div className="fin-opciones" role="radiogroup" aria-label={etiqueta} data-guia={guia}>
       {opciones.map((o) => (
         <label key={o.valor}>
           <input type="radio" name={nombre} value={o.valor} checked={valor === o.valor} onChange={() => onValor(o.valor)} />
@@ -214,9 +223,9 @@ export function OpcionesFin<T extends string>({
 }
 
 /** Lista de pares «dato · valor» (el detalle de un gasto o de un activo). */
-export function ListaDatos({ filas }: { filas: { dato: ReactNode; valor: ReactNode; tenue?: boolean }[] }) {
+export function ListaDatos({ filas, guia }: { filas: { dato: ReactNode; valor: ReactNode; tenue?: boolean }[]; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
   return (
-    <ul className="fin-lista">
+    <ul className="fin-lista" data-guia={guia}>
       {filas.map((f, i) => (
         <li key={i}>
           <span>{f.dato}</span>
@@ -224,17 +233,6 @@ export function ListaDatos({ filas }: { filas: { dato: ReactNode; valor: ReactNo
         </li>
       ))}
     </ul>
-  );
-}
-
-/** Estado vacío de una pestaña: sobretítulo, título serif y una línea de ayuda. */
-export function GuiaVacia({ sobre, titulo, children }: { sobre: string; titulo: string; children: ReactNode }) {
-  return (
-    <div className="fin-guia">
-      <p className="label-cayla text-[11px] text-taupe">{sobre}</p>
-      <h2>{titulo}</h2>
-      <p>{children}</p>
-    </div>
   );
 }
 

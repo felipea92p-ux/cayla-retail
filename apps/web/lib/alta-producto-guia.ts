@@ -14,14 +14,15 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { faltaDelPaso, pasoHecho, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
-export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
+export type CampoAlta = "empresa" | "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
 
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
-import type { EstadoCampo } from "./guia-campos";
+import { siguienteDe, type EstadoCampo } from "./guia-campos";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 export type CampoGuia = {
   id: CampoAlta;
@@ -51,11 +52,22 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   const precioOk = e.precioBase.trim() !== "" && Number.isFinite(precio) && precio > 0;
   const costo = Number(e.costoBase);
   const costoOk = e.costoBase.trim() === "" || (Number.isFinite(costo) && costo >= 0);
-  const nombreOk = e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
+  const precioSobreTope = precioOk && precio > MAX_PRECIO_PRENDA;
+  const costoSobreTope = e.costoBase.trim() !== "" && costo > MAX_PRECIO_PRENDA;
+  const nombreOk = e.referencia.trim() !== "" && claveReferencia(e.referencia) !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const configurar = (tipo: "tejidos" | "patrones") => `Habilita los ${tipo} de esta categoría.`;
 
   return [
+    // ADR-0463: solo existe como campo cuando la base ya tiene tiendas (`exigeEmpresa`); si no, la guía queda como era.
+    ...(e.exigeEmpresa
+      ? [{ id: "empresa" as const, paso: 1 as const, nombre: "Tienda", requerido: true, sugerido: false, hecho: Boolean(e.empresaId), pendiente: TEXTO_FALTA_EMPRESA }]
+      : []),
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
+    // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
+    // escriba una letra. Opcional (ADR-0283): nunca se lista como «falta» ni bloquea nada; solo lleva ✓ si se eligió. Pero con el paso 2 recién abierto,
+    // `campoAhora` la hace la primera parada de «Sigue aquí» (Felipe, 2026-10-02): la persona la revisa antes de escribir el nombre, y la pausa termina
+    // sola apenas teclea en el nombre o en cualquier otro campo del paso — nunca le gana a la persona.
+    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "nombre",
       paso: 2,
@@ -66,15 +78,15 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       // La misma frase que `problemasAlta` da en cada caso: «Revisa el nombre» a secas no dice qué hacer.
       pendiente: !e.referencia.trim()
         ? "Escribe el nombre del producto."
-        : e.nombreBloqueado
-          ? "Ya existe un producto con ese nombre."
-          : e.nombreSinConfirmar
-            ? "Confirma que es otro producto, o abre el que ya existe."
-            : "Comprobando que el nombre no exista todavía…",
+        : claveReferencia(e.referencia) === ""
+          ? "El nombre necesita al menos una letra o un número."
+          : e.nombreBloqueado
+            ? "Ya existe un producto con ese nombre."
+            : e.nombreSinConfirmar
+              ? "Confirma que es otro diseño (mira la prenda parecida), o ábrela."
+              : "Comprobando que el nombre no exista todavía…",
     },
     { id: "descripcion", paso: 2, nombre: "Descripción", requerido: false, sugerido: false, hecho: x.descripcionEscrita, pendiente: "Cuéntanos el corte, el largo, los detalles." },
-    // Opcional (ADR-0283): nunca es «Sigue aquí» ni se lista como «falta»; solo lleva ✓ si se eligió.
-    { id: "marca", paso: 2, nombre: "Marca y proveedor", requerido: false, sugerido: false, hecho: x.marcaElegida, pendiente: "Elige la marca y el proveedor, o déjalo para después." },
     {
       id: "tejido",
       paso: 2,
@@ -103,15 +115,37 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       pendiente: e.categoriaSinTallas ? "Habilita las tallas de esta categoría." : "Elige al menos una talla.",
     },
     { id: "colores", paso: 3, nombre: "Colores", requerido: false, sugerido: true, hecho: x.coloresElegidos > 0, pendiente: "Elige los colores, o sigue así si no lleva." },
-    { id: "precio", paso: 4, nombre: "Precio", requerido: true, sugerido: false, hecho: precioOk && costoOk, pendiente: costoOk ? "Pon el precio de venta." : "El costo no puede ser negativo." },
+    {
+      id: "precio",
+      paso: 4,
+      nombre: "Precio",
+      requerido: true,
+      sugerido: false,
+      hecho: precioOk && costoOk && !e.celdaSinPrecio && !precioSobreTope && !costoSobreTope,
+      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0384), el costo y el tope de S/ 5 000 (ADR-0415).
+      pendiente: !precioOk
+        ? "Pon el precio de venta."
+        : e.celdaSinPrecio
+          ? textoCeldaSinPrecio(e.celdaSinPrecio)
+          : !costoOk
+            ? "El costo no puede ser negativo."
+            : precioSobreTope
+              ? FRASE_PRECIO_CON_TOPE
+              : FRASE_COSTO_CON_TOPE,
+    },
     {
       id: "stock",
       paso: 4,
       nombre: "Unidades de hoy",
       requerido: true,
       sugerido: false,
-      hecho: e.stockInvalidas === 0 && (e.stockTotal > 0 || e.sinStock),
-      pendiente: e.stockInvalidas > 0 ? "Las cantidades son números enteros, de 0 a 9999." : "Escribe cuántas tienes hoy, o marca que todavía no tienes.",
+      hecho: e.stockInvalidas === 0 && (e.stockTotal > 0 || e.sinStock) && !faltaLugarCarga(e),
+      pendiente:
+        e.stockInvalidas > 0
+          ? "Las cantidades son números enteros, de 0 a 9999."
+          : faltaLugarCarga(e)
+            ? TEXTO_FALTA_LUGAR
+            : "Escribe cuántas tienes hoy, o marca que todavía no tienes.",
     },
     { id: "responsable", paso: 4, nombre: "Quién lo registra", requerido: true, sugerido: false, hecho: x.responsableListo, pendiente: "Elige quién lo registra." },
   ];
@@ -120,18 +154,36 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
 /** Lo que aún le falta a un campo para dejar de estar pendiente: requerido o sugerido, y sin hacer. */
 const porHacer = (c: CampoGuia) => !c.hecho && (c.requerido || c.sugerido);
 
-/** El campo que sigue DENTRO del paso abierto (el primero por hacer), o null si el paso no tiene nada pendiente. */
-export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta): CampoAlta | null {
-  return campos.find((c) => c.paso === pasoAbierto && porHacer(c))?.id ?? null;
+/**
+ * El campo que sigue DENTRO del paso abierto (el primero por hacer), o null si el paso no tiene nada pendiente.
+ *
+ * `enFoco` es el campo donde la persona está escribiendo AHORA (una caja de texto: nombre, precio, una cantidad). Mientras siga ahí
+ * conserva la luz aunque ya cuente como hecho: con una letra el nombre ya lo es, y con un dígito el precio, y una luz que salta al
+ * siguiente campo a media palabra estorba. La regla es la de los modales (`siguienteDe`, lib/guia-campos.ts).
+ *
+ * Excepción de marca y proveedor (Felipe, 2026-10-02): aunque son opcionales y `siguienteDe` nunca los retiene (no son requeridos
+ * ni sugeridos), la guía hace una PAUSA ahí antes de seguir al nombre — pero solo mientras el paso 2 sigue intacto: si lo que
+ * seguiría de verdad es el nombre (nada más se tocó) y nadie está tecleando ya en otro campo. Apenas la persona escribe en el
+ * nombre (o en cualquier campo del paso), la pausa termina y la luz sigue como siempre: nunca le gana a la persona.
+ */
+export function campoAhora(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): CampoAlta | null {
+  const delPaso = campos.filter((c) => c.paso === pasoAbierto);
+  const ahora = siguienteDe(delPaso, enFoco);
+  if (ahora?.id === "nombre" && (!enFoco || enFoco === "marca")) {
+    const marca = delPaso.find((c) => c.id === "marca");
+    if (marca && !marca.hecho) return "marca";
+  }
+  return ahora ? (ahora.id as CampoAlta) : null;
 }
 
 /** El estado de cada campo del paso ABIERTO: el primero por hacer es «ahora» (Sigue aquí), los demás por hacer «falta». Un campo
- *  de otro paso no lleva «ahora»: solo el paso abierto tiene un lugar donde estar parado. */
-export function estadosDeCampos(campos: readonly CampoGuia[], pasoAbierto: PasoAlta): Record<CampoAlta, EstadoCampo> {
-  const ahora = campoAhora(campos, pasoAbierto);
+ *  de otro paso no lleva «ahora»: solo el paso abierto tiene un lugar donde estar parado. El que se está escribiendo (`enFoco`)
+ *  sigue siendo «ahora», sin ✓ todavía. */
+export function estadosDeCampos(campos: readonly CampoGuia[], pasoAbierto: PasoAlta, enFoco?: CampoAlta | null): Record<CampoAlta, EstadoCampo> {
+  const ahora = campoAhora(campos, pasoAbierto, enFoco);
   const out = {} as Record<CampoAlta, EstadoCampo>;
   for (const c of campos) {
-    out[c.id] = c.hecho ? "hecho" : c.id === ahora ? "ahora" : c.requerido || c.sugerido ? "falta" : "opcional";
+    out[c.id] = c.id === ahora ? "ahora" : c.hecho ? "hecho" : c.requerido || c.sugerido ? "falta" : "opcional";
   }
   return out;
 }

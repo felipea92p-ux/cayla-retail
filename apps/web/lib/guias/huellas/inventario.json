@@ -1,0 +1,222 @@
+{
+  "guia": "inventario",
+  "ruta": "/inventario",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 162,
+  "controles": {
+    "components/AjustarInventarioModal.tsx": [
+      "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
+      "button «{o.texto}»",
+      "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
+      "BotonDescargar «Descargar reporte del ajuste»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/ApartadosModal.tsx": [
+      "CampoSelect «¿Por qué se libera?»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Volver»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "a «{a.contacto}»",
+      "button «Liberar»"
+    ],
+    "components/BotonSonidoConfirmar.tsx": [
+      "button «Sonido al confirmar:»",
+      "button «Sonido al confirmar»"
+    ],
+    "components/EnlaceEtiquetas.tsx": [
+      "Link «{children}»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "SegmentoDeslizante «Qué hacer con la cámara»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
+    ],
+    "components/ExistenciasPorPrenda.tsx": [
+      "button «{`Ver la talla ${f.talla ?? \"Única\"}»",
+      "Casilla «Marcar todas las prendas de esta página»",
+      "Casilla «{`Marcar ${p.referencia}»"
+    ],
+    "components/ExistenciasTarjetas.tsx": [
+      "button «{`${lectura}»",
+      "button «{`${h.color ?? \"Sin color\"}»"
+    ],
+    "components/ExistenciasVacio.tsx": [
+      "Link «{`Ver «${producto.referencia}»",
+      "button «{relajacion.texto}»",
+      "button «{etiquetaLimpiar}»",
+      "button «{`Buscar «${quisisteDecir.consulta}»"
+    ],
+    "components/FiltrosExistencias.tsx": [
+      "DesplegablePildora «Categoría»",
+      "DesplegablePildora «Talla»",
+      "DesplegablePildora «Color»",
+      "DesplegablePildora «Marca»",
+      "DesplegablePildora «Hoy»",
+      "DesplegablePildora «Condición»",
+      "button «{`existencias.ver-${valor}»",
+      "DesplegablePildora «Ordenar por»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "FiltroPuesto «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
+      "FiltroPuesto «{`Volver a las tarjetas (ahora: ${vistaDistinta}»",
+      "BotonLimpiar «Limpiar todo»",
+      "button «existencias.escanear»",
+      "BotonFiltros «→alTocarFiltros»",
+      "BotonLimpiar «Limpiar filtros»",
+      "BotonCopiar «el enlace de esta lista»",
+      "button «Limpiar»",
+      "button «Ver»"
+    ],
+    "components/InventarioPanel.tsx": [
+      "button «existencias.pendientes»",
+      "button «Ver todas»",
+      "Link «{p.referencia}»",
+      "Link «Cuadrar el piso»",
+      "Link «Cuadrar el piso» #2",
+      "BotonDescargar «Descargar CSV»",
+      "BotonDescargar «Descargar CSV» #2",
+      "Casilla «Marcar todas las tallas de esta página»",
+      "Casilla «{`Marcar ${f.referencia}»",
+      "BotonDescargar «Descargar CSV» #3",
+      "button «{resumen.apartado}»",
+      "button «Resumen por categoría»",
+      "Link «Bajar al piso»",
+      "Link «Trasladar»",
+      "Link «Etiquetas»",
+      "Link «Rótulo»",
+      "button «Quitar las marcas»",
+      "button «existencias.escanear-celular»"
+    ],
+    "components/ResolverDanadosModal.tsx": [
+      "ComboResponsable «{responsable}»",
+      "CampoTexto «Nota (opcional)»",
+      "Boton «{responsable.motivo ?? \"Vuelve al almacén de la tienda\"}»",
+      "Boton «{responsable.motivo ?? `Vuelve a ${p.devolucion.proveedor}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
+      "CampoTexto «{guia.etiqueta(\"arreglo\", \"¿Qué se arregló?\")}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «{guia.etiqueta(\"devolucion\", \"Nota\")}»",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
+      "CampoMonto «0.00»",
+      "CampoSelect «{guia.etiqueta(\"metodo\", \"Forma de pago\")}»",
+      "Boton «Cancelar» #3",
+      "Boton «{responsable.motivo ?? undefined}» #3"
+    ],
+    "components/ResumenStockOverlay.tsx": [
+      "button «Reintentar»"
+    ],
+    "components/RitmoRecientePopover.tsx": [
+      "button «{textoRitmoRecienteCelda(ritmo)}»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/existencias/AjusteDelModelo.tsx": [
+      "button «existencias.cajon-ajustar»",
+      "Volver «→onVolver»",
+      "button «→() => elegirLugar(u)»",
+      "Desplegable «{control.motivo}»",
+      "CampoTexto «{m.nota.etiqueta}»",
+      "Boton «{control.problema ? (guia.frase ?? undefined) : undefined}»",
+      "Boton «Descartar y pasar»",
+      "Boton «Seguir»",
+      "button «Reintentar»",
+      "ComboResponsable «{control.responsable}»",
+      "Boton «{n > 0 ? \"Descartar\" : \"Cancelar\"}»",
+      "Boton «{problema ? (guia.frase ?? undefined) : undefined}»",
+      "Boton «Más tarde»",
+      "BotonImprimir «Imprimir»"
+    ],
+    "components/existencias/AnilloMision.tsx": [
+      "button «existencias.pendientes»"
+    ],
+    "components/existencias/BotonAjustarStock.tsx": [
+      "BotonEditar «Ajustar stock»"
+    ],
+    "components/existencias/FiltrosRapidos.tsx": [
+      "button «{rotulo}»"
+    ],
+    "components/existencias/FlujoTalla.tsx": [
+      "button «{titulo}»",
+      "button «Una menos»",
+      "input «{etiqueta}»",
+      "button «Una más»",
+      "textarea «Ej. no cabe en el riel»",
+      "button «Todas (»",
+      "button «¿Más tallas o colores? Subir varias»",
+      "button «¿Más tallas o colores? Colgar varias»",
+      "input «1»",
+      "button «Todo lo que está colgado de cada talla»",
+      "button «1 en cada talla sin ninguna colgada»",
+      "button «Vaciar»",
+      "input «Nombres»",
+      "input «Apellidos»",
+      "input «Celular»",
+      "button «{x}»",
+      "textarea «O escríbelo aquí»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Volver «→atras»",
+      "Boton «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
+    ],
+    "components/existencias/PanelTalla.tsx": [
+      "button «{`${valor}»",
+      "button «{valor}»",
+      "Link «El rótulo del anaquel de este modelo (no depende del stock)»",
+      "Link «Los movimientos de esta prenda en esta sede»",
+      "Link «La ficha completa en Catálogo: tejido, patrón, proveedor, fotos»",
+      "Pestanas «(sin nombre)»",
+      "button «{`${c.color ?? \"Sin color\"}»",
+      "button «{lectura}»",
+      "BotonCopiar «el código de esta talla»",
+      "button «→() => alAccionar(a.clave)»",
+      "button «Ver piso y almacén»",
+      "button «{lectura}» #2",
+      "button «{lectura}» #3",
+      "button «existencias.cajon-colgar-varias»"
+    ],
+    "components/existencias/ParaHoy.tsx": [
+      "Link «{contenido}»",
+      "button «{contenido}»",
+      "button «Ver cuáles»",
+      "Boton «(sin nombre)»",
+      "button «→() => setAbiertoMovil((v) => !v)»",
+      "BotonVerMas «{`Ver ${guardadas.length}»"
+    ],
+    "components/existencias/PieTarjeta.tsx": [
+      "button «existencias.colgar»",
+      "button «existencias.mas»",
+      "button «{o.clave === \"ficha\" ? \"existencias.ver-ficha\" : undefined}»"
+    ],
+    "components/ficha-producto/ImprimirLoQueEntro.tsx": [
+      "button «Más tarde»",
+      "BotonImprimir «Imprimir»"
+    ]
+  }
+}

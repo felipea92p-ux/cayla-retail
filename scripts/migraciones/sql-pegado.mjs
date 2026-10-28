@@ -18,15 +18,17 @@
  *     línea vacía. Un `--` más abajo no basta: dentro de un cuerpo `$$ … $$` el comentario es parte de la función
  *     guardada (cambia su huella en `deriva.mjs`), y dentro de un texto entre comillas ni siquiera es comentario.
  *
- * QUÉ NO PUEDE DECIR. No mira producción: cree lo que dice la casilla. Si alguien la marca sin pegar, el check queda
- * verde; eso lo atrapa la revisión diaria de producción contra `main`. Y como `main` no está protegida, un check rojo
- * avisa pero no impide fusionar.
+ * LA CASILLA SE COMPRUEBA (2026-10-12). Este script no mira producción: decide si hay que mirarla. Si el PR trae
+ * migraciones y marcó «SQL pegado en producción», escribe `verificar=si` para el paso siguiente del workflow, que compara
+ * producción con lo que el CI vio cambiar a cada migración (`sql-en-produccion.sh`). Con «se pega después de fusionar» no
+ * se mira nada: lo cubre la revisión diaria. `main` está protegida y este check es obligatorio (ADR-0251).
  *
  * USO (lo corre `.github/workflows/sql-pegado.yml`)
- *   node scripts/migraciones/sql-pegado.mjs <archivos.json> <cuerpo.md>
+ *   node scripts/migraciones/sql-pegado.mjs <archivos.json> <cuerpo.md> [<nuevas.txt>]
  *   archivos.json = la respuesta de `gh api repos/<dueño>/<repo>/pulls/<n>/files --paginate --slurp`
+ *   nuevas.txt    = dónde escribir las migraciones que el PR agrega, una por línea (las coteja la comprobación)
  */
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const MIGRACION = /^supabase\/migrations\/[^/]+\.sql$/;
@@ -90,14 +92,28 @@ export function revisarSqlPegado(archivos, cuerpo) {
   return { nuevas, editadas, casilla, motivos };
 }
 
+/** ¿Hay que mirar producción? Solo si el PR trae migraciones, marcó «SQL pegado en producción» y no tiene otro problema. */
+export function hayQueComprobar({ nuevas, casilla, motivos }) {
+  return motivos.length === 0 && nuevas.length > 0 && casilla === "pegado";
+}
+
 function main() {
-  const [rutaArchivos, rutaCuerpo] = process.argv.slice(2);
+  const [rutaArchivos, rutaCuerpo, rutaNuevas] = process.argv.slice(2);
   // `--slurp` junta las páginas en un arreglo de arreglos.
   const archivos = JSON.parse(readFileSync(rutaArchivos, "utf8")).flat();
   const cuerpo = rutaCuerpo ? readFileSync(rutaCuerpo, "utf8") : "";
-  const { nuevas, casilla, motivos } = revisarSqlPegado(archivos, cuerpo);
+  const revision = revisarSqlPegado(archivos, cuerpo);
+  const { nuevas, casilla, motivos } = revision;
+  const comprobar = hayQueComprobar(revision);
+  if (rutaNuevas) writeFileSync(rutaNuevas, nuevas.map((n) => `${n}\n`).join(""));
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `verificar=${comprobar ? "si" : "no"}\n`);
   if (motivos.length === 0) {
-    const detalle = nuevas.length === 0 ? "no trae migraciones nuevas" : `trae ${nuevas.length} y marcó «${casilla === "pegado" ? "SQL pegado en producción" : "se pega después de fusionar"}»`;
+    const detalle =
+      nuevas.length === 0
+        ? "no trae migraciones nuevas"
+        : casilla === "pegado"
+          ? `trae ${nuevas.length} y marcó «SQL pegado en producción»: ahora se comprueba en producción`
+          : `trae ${nuevas.length} y marcó «se pega después de fusionar»: no se comprueba en producción (lo mira la revisión diaria)`;
     console.log(`✓ SQL pegado: el PR ${detalle}.`);
     return;
   }

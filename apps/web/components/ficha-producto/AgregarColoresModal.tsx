@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
-import { AvisoInline, ChipOpcion } from "@/components/alta-producto/piezas";
+import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { construirCeldas, ordenarColores, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
@@ -18,8 +18,10 @@ import {
   ejesDeLaPrenda,
   ejesDeReferencia,
   filasDelEje,
+  llaveDeUnidades,
   NACEN_SIN_UNIDADES,
   nombreVariante,
+  precioValido,
   precioYCostoPorDefecto,
   tallasParaAgregarColor,
   textoChoque,
@@ -31,6 +33,12 @@ import {
 } from "@/lib/variantes-ficha-reglas";
 import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, PuntoColor, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 import { useSubirFotos } from "./useSubirFotos";
+import { Aviso } from "@/components/ui/Aviso";
+import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { camposDeAgregarVariante } from "@/lib/agregar-variantes-guia";
+import { numeroDeLaSede, PasosDeAgregar, UnidadesDeLasNuevas, VistaPreviaDeLaTabla, YaEstan, type FilaDeVistaPrevia } from "./UnidadesDePartida";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -54,6 +62,8 @@ export type ResultadoAgregarColores = {
   costo: string;
   /** Las fotos elegidas (ya subidas) de los colores que de verdad se crean, una por color. */
   fotos: { colorCodigo: string; url: string }[];
+  /** Con cuántas unidades nace cada variante (`llaveDeUnidades`: `color|talla`). Vacío si la cuenta no puede cargar stock. */
+  unidades: Record<string, number>;
 };
 
 export function AgregarColoresModal({
@@ -65,6 +75,7 @@ export function AgregarColoresModal({
   onColorCreado,
   onConfirmar,
   onClose,
+  admitePrecioCero = false,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
@@ -77,6 +88,8 @@ export function AgregarColoresModal({
   onColorCreado: (color: ColorAlta) => void;
   onConfirmar: (r: ResultadoAgregarColores) => void;
   onClose: () => void;
+  /** La categoría elegida es de Empaque (fuera de los motores, ADR-0377): las nuevas pueden nacer a S/ 0.00 (la bolsa de obsequio). */
+  admitePrecioCero?: boolean;
 }) {
   const n = ctx.nombres;
   const ejes = ejesDeLaPrenda(filas, n);
@@ -97,9 +110,11 @@ export function AgregarColoresModal({
   const [montos] = useState(() => precioYCostoPorDefecto(filas));
   const [precio, setPrecio] = useState(montos.precio);
   const [costo, setCosto] = useState(montos.costo);
+  // Con cuántas unidades nace cada variante (ADR-0494): la única ocasión en que se escribe stock desde Editar producto.
+  const [porVariante, setPorVariante] = useState<Record<string, number>>({});
   // La foto de referencia de cada color nuevo (una por color: volver a elegir la reemplaza).
   const [fotoDe, setFotoDe] = useState<Record<string, string>>({});
-  const { elegir: elegirFoto, ocupado: subiendoFoto, revision } = useSubirFotos({
+  const { elegir: elegirFoto, ocupado: subiendoFoto } = useSubirFotos({
     onSubidas: (nuevas) =>
       setFotoDe((a) => {
         const b = { ...a };
@@ -129,7 +144,7 @@ export function AgregarColoresModal({
   const clasificadas = clasificarCombinaciones(base, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = Number(precio) > 0;
+  const precioOk = precio.trim() !== "" && precioValido(numeroDeMonto(precio), admitePrecioCero);
 
   const faltaPrimero = eraSinColor && !colorDeLasQueTiene;
   const puede = !noSePuedeCorregir && !faltaPrimero && !choque && !bloqueo && (combos.length > 0 || !!destinoPrimero) && (nacen === 0 || precioOk);
@@ -148,10 +163,58 @@ export function AgregarColoresModal({
     setNuevos((a) => (a.includes(codigo) ? a.filter((c) => c !== codigo) : [...a, codigo]));
   }
 
+  // Lo que de verdad nace (no lo que solo reactiva una variante desactivada) lleva unidades de partida.
+  const puedeCargar = !!ctx.ajusteStock;
+  const nuevasCombos = clasificadas.filter((c) => c.queHace === "nueva");
+  const unidadesDe = (color: string | null, talla: string | null) => porVariante[llaveDeUnidades({ colorCodigo: color, tallaId: talla })] ?? 0;
+  const totalUnidades = nuevasCombos.reduce((s, c) => s + unidadesDe(c.colorCodigo, c.tallaId), 0);
+  const coloresQueNacen = nuevos.filter((c) => nuevasCombos.some((x) => x.colorCodigo === c));
+  const columnasQueNacen = tallasOrdenadas.length > 0 ? tallasOrdenadas.map((t) => ({ id: t.id as string | null, texto: t.texto })) : [{ id: null, texto: "Única" }];
+  const guia = useGuiaCampos(
+    camposDeAgregarVariante({
+      que: "color",
+      eraSinColor,
+      colorDeLasQueTiene,
+      elegidos: nuevos.length,
+      pideTallas: tallasDeLaPrenda.length > 0,
+      tallasMarcadas: tallasOrdenadas.length,
+      nacen,
+      precioOk,
+      puedeCargar,
+      unidades: totalUnidades,
+    })
+  );
+  // «Así quedará en la tabla»: lo que ya hay (atenuado) y lo que nace (ámbar, con sus unidades).
+  const columnasDeVista = tallasDeLaPrenda
+    .filter((t) => ejes.tallas.includes(t.id) || tallasOrdenadas.some((x) => x.id === t.id))
+    .map((t) => ({ id: t.id as string | null, texto: n.talla(t.id), nueva: !ejes.tallas.includes(t.id) }));
+  const columnasVista = columnasDeVista.length > 0 ? columnasDeVista : [{ id: null as string | null, texto: "Única", nueva: false }];
+  const filasDeVista: FilaDeVistaPrevia[] = [
+    ...ejes.colores.map((c) => ({
+      nombre: n.color(c),
+      punto: <PuntoColor codigo={c} colores={ctx.colores} />,
+      nueva: false,
+      celdas: columnasVista.map((col) => {
+        const f = filas.find((x) => x.activo && x.colorCodigo === c && x.tallaId === col.id);
+        return { texto: f ? numeroDeLaSede(f, ctx) : "—", nueva: false };
+      }),
+    })),
+    ...coloresQueNacen.map((c) => ({
+      nombre: n.color(c),
+      punto: <PuntoColor codigo={c} colores={ctx.colores} />,
+      nueva: true,
+      celdas: columnasVista.map((col) => {
+        const nace = nuevasCombos.some((x) => x.colorCodigo === c && x.tallaId === col.id);
+        return { texto: nace ? String(unidadesDe(c, col.id)) : "—", nueva: nace };
+      }),
+    })),
+  ];
+
   return (
-    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} tamano="ancha">
       {(cerrar) => (
         <div className="space-y-5">
+          <PasosDeAgregar primero="Elige el color" segundo={puedeCargar ? "Unidades de partida" : "Cómo nacen"} hechoPrimero={nuevos.length > 0 && (!eraSinColor || !!colorDeLasQueTiene)} />
           {eraSinColor && (
             <section className="space-y-2">
               <p className="text-[12.5px] font-semibold text-tinta">1 · ¿De qué color son las que ya tienes?</p>
@@ -161,48 +224,52 @@ export function AgregarColoresModal({
                 historia.
               </p>
               {noSePuedeCorregir ? (
-                <AvisoInline tono="ambar">
+                <Aviso tono="atencion">
                   Corregir el color todavía no está disponible, y sin eso no se le pueden sumar colores a una prenda «Sin color».
-                </AvisoInline>
+                </Aviso>
               ) : (
-                <ElegirUnColor
-                  valor={colorDeLasQueTiene}
-                  onValor={(c) => {
-                    setColorDeLasQueTiene(c);
-                    setNuevos((a) => a.filter((x) => x !== c));
-                  }}
-                  colores={ctx.colores}
-                  ofrecerSinColor={false}
-                  etiqueta="Color de las que ya tienes"
-                />
+                <CampoGuiado id="color-previo" guia={guia}>
+                  <ElegirUnColor
+                    valor={colorDeLasQueTiene}
+                    onValor={(c) => {
+                      setColorDeLasQueTiene(c);
+                      setNuevos((a) => a.filter((x) => x !== c));
+                    }}
+                    colores={ctx.colores}
+                    ofrecerSinColor={false}
+                    etiqueta="Color de las que ya tienes"
+                  />
+                </CampoGuiado>
               )}
               {bloqueo && (
-                <AvisoInline tono="ambar" alerta>
+                <Aviso tono="atencion">
                   {bloqueo}
-                </AvisoInline>
+                </Aviso>
               )}
               {choque && destinoPrimero && (
-                <AvisoInline tono="rojo" alerta>
+                <Aviso tono="error">
                   {textoChoque(choque, destinoPrimero, filas, ctx)}
-                </AvisoInline>
+                </Aviso>
               )}
               <VistaPreviaCodigos filas={vista} />
             </section>
           )}
 
-          <section className="space-y-2">
-            <p className="text-[12.5px] font-semibold text-tinta">{eraSinColor ? "2 · Los colores que llegaron" : "Los colores que llegaron"}</p>
-            <ElegirColores
-              colores={disponibles}
-              grupos={grupos}
-              elegidos={nuevos}
-              onAlternar={alternarColor}
-              onCreado={(color) => {
-                // Como en el alta: el color recién creado se suma al vocabulario de la ficha y queda elegido.
-                onColorCreado(color);
-                setNuevos((a) => (a.includes(color.codigo) ? a : [...a, color.codigo]));
-              }}
-            />
+          <section data-guia="agregar-color.colores" className="space-y-2">
+            <CampoGuiado id="elegidos" guia={guia} retiene="fila" titulo={eraSinColor ? "2 · Los colores que llegaron" : "Los colores que llegaron"}>
+              <ElegirColores
+                colores={disponibles}
+                grupos={grupos}
+                elegidos={nuevos}
+                onAlternar={alternarColor}
+                onCreado={(color) => {
+                  // Como en el alta: el color recién creado se suma al vocabulario de la ficha y queda elegido.
+                  onColorCreado(color);
+                  setNuevos((a) => (a.includes(color.codigo) ? a : [...a, color.codigo]));
+                }}
+              />
+            </CampoGuiado>
+            <YaEstan items={ejes.colores.filter((c): c is string => c !== null).map((c) => ({ clave: c, texto: n.color(c), punto: <PuntoColor codigo={c} colores={ctx.colores} /> }))} />
           </section>
 
           {nuevos.length > 0 && (
@@ -217,7 +284,7 @@ export function AgregarColoresModal({
                     <li key={codigo} className="flex items-center gap-3 rounded-xl border border-sand p-2.5">
                       {url ? (
                         <span className="relative block aspect-[4/5] w-10 shrink-0 overflow-hidden rounded-md border border-sand bg-papel">
-                          <Image src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" unoptimized />
+                          <ImagenDePrenda src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" fallback={null} />
                         </span>
                       ) : (
                         <BotonFoto
@@ -226,7 +293,7 @@ export function AgregarColoresModal({
                           etiqueta={`Agregar foto de ${n.color(codigo)}`}
                           className="grid aspect-[4/5] w-10 shrink-0 place-items-center rounded-md border-[1.5px] border-dashed border-taupe/55 bg-hueso/35 text-taupe transition-colors hover:border-tinta hover:text-tinta disabled:opacity-50"
                         >
-                          <Camera aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                          <Camera aria-hidden className="h-4 w-4" />
                         </BotonFoto>
                       )}
                       <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-tinta">
@@ -254,7 +321,7 @@ export function AgregarColoresModal({
 
           {tallasDeLaPrenda.length > 0 && (
             <section className="space-y-1.5">
-              <p className="text-[12.5px] font-semibold text-tinta">En qué tallas</p>
+              <CampoGuiado id="tallas" guia={guia} retiene="fila" titulo="En qué tallas">
               <div className="flex flex-wrap gap-1.5">
                 {tallasDeLaPrenda.map((t) => (
                   <ChipOpcion
@@ -268,6 +335,7 @@ export function AgregarColoresModal({
                   </ChipOpcion>
                 ))}
               </div>
+              </CampoGuiado>
               {apagadas.length > 0 && <p className="text-[12.5px] text-taupe">{textoTallasApagadas(apagadas, n, categoriaNombre)}</p>}
               {tallasDeDesactivadas && <p className="text-[12.5px] text-taupe">Todas sus variantes están desactivadas: se proponen las tallas que tuvo.</p>}
             </section>
@@ -293,8 +361,16 @@ export function AgregarColoresModal({
                   venderse (no se crea otra).
                 </p>
               )}
-              {nacen > 0 && <MontosNuevas precio={precio} costo={costo} onPrecio={setPrecio} onCosto={setCosto} veCosto={ctx.veCosto} />}
-              {nacen > 0 && !precioOk && <p className="text-[12.5px] text-rojo-profundo">Pon el precio de venta de las nuevas.</p>}
+              {nacen > 0 && (
+                <CampoGuiado id="precio" guia={guia}>
+                  <MontosNuevas precio={precio} costo={costo} onPrecio={setPrecio} onCosto={setCosto} veCosto={ctx.veCosto} />
+                </CampoGuiado>
+              )}
+              {nacen > 0 && !precioOk && (
+                <Aviso tono="error" chico>
+                  Pon el precio de venta de las nuevas.
+                </Aviso>
+              )}
               {nacen > 0 && etiquetasTexto && (
                 <p className="text-[12.5px] text-taupe">Nacen con las etiquetas que tienen todas las activas ({etiquetasTexto}); se pueden cambiar en cada fila.</p>
               )}
@@ -303,9 +379,36 @@ export function AgregarColoresModal({
 
           {faltaPrimero && nuevos.length > 0 && <p className="text-[12.5px] text-ambar-profundo">Primero di de qué color son las que ya tienes (arriba).</p>}
 
-          {nacen > 0 && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
+          {/* ADR-0494: con cuántas unidades NACE cada variante. Es la única vez que se escribe stock desde Editar: al guardar se sella y
+              después solo se ajusta en Existencias. Sin «Ajustar stock» nacen en 0 y la línea de siempre lo dice. */}
+          {nacen > 0 && puedeCargar && (
+            <section data-guia="agregar-color.unidades" className="space-y-2">
+              <CampoGuiado id="unidades" guia={guia} titulo="¿Con cuántas unidades nacen?" ayuda="Es la única vez que se escriben aquí: después, el stock se ajusta en Existencias.">
+                <UnidadesDeLasNuevas
+                  filas={coloresQueNacen.map((c) => ({ id: c, nombre: n.color(c), punto: <PuntoColor codigo={c} colores={ctx.colores} /> }))}
+                  columnas={columnasQueNacen}
+                  incluida={(c, t) => nuevasCombos.some((x) => x.colorCodigo === c && x.tallaId === t)}
+                  valor={unidadesDe}
+                  onFijar={(c, t, v) => setPorVariante((a) => ({ ...a, [llaveDeUnidades({ colorCodigo: c, tallaId: t })]: v }))}
+                  onPaso={(c, t, p) => setPorVariante((a) => { const k = llaveDeUnidades({ colorCodigo: c, tallaId: t }); return { ...a, [k]: Math.min(9999, Math.max(0, (a[k] ?? 0) + p)) }; })}
+                  onTodas={() => setPorVariante((a) => Object.fromEntries([...nuevasCombos.map((c) => llaveDeUnidades(c)), ...Object.keys(a)].map((k) => [k, Math.min(9999, (a[k] ?? 0) + 1)])))}
+                  onCeros={() => setPorVariante({})}
+                  total={totalUnidades}
+                />
+              </CampoGuiado>
+            </section>
+          )}
+          {nacen > 0 && !puedeCargar && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
+          {celdas.length > 0 && (
+            <section data-guia="agregar-color.vista-previa" className="space-y-2">
+              <p className="text-[12.5px] font-semibold text-tinta">Así quedará en la tabla</p>
+              <VistaPreviaDeLaTabla columnas={columnasVista} filas={filasDeVista} />
+            </section>
+          )}
           <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
+          <PieGuia guia={guia} listo={puedeCargar && nacen > 0 && totalUnidades > 0 ? `Listo: ${totalUnidades} ${totalUnidades === 1 ? "unidad" : "unidades"} de partida.` : "Todo listo."} />
           <PieModal
+            guia="agregar-color.pie"
             onCancelar={cerrar}
             texto={texto}
             deshabilitado={!puede || subiendoFoto}
@@ -315,11 +418,10 @@ export function AgregarColoresModal({
               const fotos = Object.entries(fotoDe)
                 .filter(([codigo]) => creados.has(codigo))
                 .map(([colorCodigo, url]) => ({ colorCodigo, url }));
-              onConfirmar({ colorDeLasQueTiene: colorDeLasQueTiene || null, combos, precio, costo, fotos });
+              onConfirmar({ colorDeLasQueTiene: colorDeLasQueTiene || null, combos, precio, costo, fotos, unidades: puedeCargar ? porVariante : {} });
               cerrar();
             }}
           />
-          {revision}
         </div>
       )}
     </Modal>

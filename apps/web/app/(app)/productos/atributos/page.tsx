@@ -1,7 +1,6 @@
-import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
-import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -15,6 +14,7 @@ import {
   type DatosPestanaTemporadas,
   type ProductoParaTemporadas,
 } from "@/lib/temporadas-pantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -34,7 +34,7 @@ async function cargarTemporadas(supabase: Supabase): Promise<{ datos: DatosPesta
 }
 
 async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestanaTemporadas } | { nota: string }> {
-  const [resTemporadas, resCalendario, resEfectiva, resCategorias, resProductos, resColores] = await Promise.all([
+  const [resTemporadas, resCalendario, resEfectiva, resCategorias, resProductos, resColores, resMarcas, resProveedores] = await Promise.all([
     supabase.rpc("fn_temporadas"),
     supabase.rpc("fn_calendario_estaciones"),
     // Una fila por modelo+color: pasa de 1.000 con el catálogo completo, así que se pide por páginas (`leerTodas`), en
@@ -43,20 +43,45 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
     // Todas (no solo las activas): el nombre de la categoría de una prenda de «Sin temporada» puede ser de una desactivada.
     supabase.from("categorias").select("id, nombre, temporada, categoria_padre_id, activo").order("nombre"),
     leerTodas((desde, hasta) =>
-      supabase.from("productos").select("id, referencia, codigo, categoria_id").eq("estado", "activo").order("id").range(desde, hasta)
+      supabase.from("productos").select("id, referencia, codigo, categoria_id, marca_id, proveedor_id").eq("estado", "activo").order("id").range(desde, hasta)
     ),
     // Los nombres de color de la lista «Sin temporada» (con los desactivados: una prenda vieja puede tener uno).
     supabase.from("colores").select("codigo, nombre"),
+    // Marca y proveedor de cada prenda de esa lista (con los desactivados, igual que los colores). Se leen aparte y por
+    // nombre, como los colores y las categorías: si alguna de las dos lecturas falla, la pestaña lo dice (nota) en vez de
+    // mostrar «Sin marca», que afirma otra cosa: que nadie la registró (ADR-0283).
+    supabase.from("marcas").select("id, nombre"),
+    supabase.from("proveedores").select("id, nombre"),
   ]);
-  const error = resTemporadas.error ?? resCalendario.error ?? resEfectiva.error ?? resCategorias.error ?? resProductos.error ?? resColores.error;
-  if (error || !resTemporadas.data || !resCalendario.data || !resEfectiva.data || !resCategorias.data || !resProductos.data || !resColores.data) {
+  const error =
+    resTemporadas.error ?? resCalendario.error ?? resEfectiva.error ?? resCategorias.error ?? resProductos.error ?? resColores.error ?? resMarcas.error ?? resProveedores.error;
+  if (
+    error ||
+    !resTemporadas.data ||
+    !resCalendario.data ||
+    !resEfectiva.data ||
+    !resCategorias.data ||
+    !resProductos.data ||
+    !resColores.data ||
+    !resMarcas.data ||
+    !resProveedores.data
+  ) {
     if (error) console.error("Temporadas (Atributos):", error.message);
     return { nota: motivoSinTemporadas(error) };
   }
 
   const filas = resEfectiva.data as TemporadaEfectiva[];
   const categorias = resCategorias.data.map((c) => ({ id: c.id, nombre: c.nombre, temporada: c.temporada, padreId: c.categoria_padre_id, activo: c.activo }));
-  const productos: ProductoParaTemporadas[] = resProductos.data.map((p) => ({ id: p.id, nombre: p.referencia, codigo: p.codigo, categoriaId: p.categoria_id }));
+  const nombreMarca = new Map(resMarcas.data.map((m) => [m.id, m.nombre]));
+  const nombreProveedor = new Map(resProveedores.data.map((x) => [x.id, x.nombre]));
+  const productos: ProductoParaTemporadas[] = resProductos.data.map((p) => ({
+    id: p.id,
+    nombre: p.referencia,
+    codigo: p.codigo,
+    categoriaId: p.categoria_id,
+    marca: p.marca_id ? (nombreMarca.get(p.marca_id) ?? null) : null,
+    proveedor: p.proveedor_id ? (nombreProveedor.get(p.proveedor_id) ?? null) : null,
+  }));
   return {
     datos: {
       temporadas: resTemporadas.data as Temporada[],
@@ -82,62 +107,26 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
 // aprueba/rechaza. Una sola carga de datos, una sola pantalla, 5 pestañas.
 // Las rutas viejas siguen funcionando vía `redirects()` en next.config.ts.
 export default async function AtributosPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
-  const persona = await requirePersonaActualV2();
-  const supabase = await createClient();
   const { tipo: tipoParam } = await searchParams;
+  // `?tipo=etiquetas` (los sellos, la primera pestaña hasta el 2026-10-22) lo redirige next.config.ts a Catálogo ▸ Insignias.
+  // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
+  const persona = await exigirModulo("atributos");
+  const supabase = await createClient();
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
-  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
-  // Un rol con Etiquetas y sin Categorías/atributos (20260923130000) ve SOLO la pestaña de etiquetas; uno con Categorías/
-  // atributos y sin Etiquetas, las otras cinco (Temporadas incluida, ADR-0246). El líder, todas.
-  const veEtiquetas = veModulo(persona, "etiquetas");
-  const veAtributos = veModulo(persona, "atributos");
-  const tipos = TIPOS.filter((t) => (t === "etiquetas" ? veEtiquetas : veAtributos));
-  const tipo = tipos.find((t) => t === tipoParam) ?? tipos[0] ?? TIPOS[0];
-  const puedeEditarEtiquetas = puede(persona, "editarEtiquetas");
-  const puedeDarDescuento = persona.rol === "lider"; // fn_puede_dar_descuento_por_etiqueta: solo el líder
+  const TIPOS = ["colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
+  const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
   // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
   const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
 
-  const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales, resUsos] = await Promise.all([
+  const [resColores, resTallas, resTejidos, resPatrones, resUsos] = await Promise.all([
     supabase
       .from("colores")
-      .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
+      .select("codigo, nombre, familia_color, tipo, hex, orden, activo, notas, estado, pantone_tcx, sinonimos, descripcion, combina_con")
       .order("orden")
       .order("nombre"),
     supabase.from("tallas").select("id, valor, activo, notas, estado").order("valor"),
     supabase.from("tejidos").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
     supabase.from("patrones").select("id, nombre, activo, notas, estado, imagen_muestra_url, descripcion_dibujo").order("nombre"),
-    // Etiquetas (y lo que necesita su editor de campaña) solo se pide al abrir esa pestaña:
-    // así un despliegue que llegue antes que el SQL de producción no tumba Colores/Tallas/etc.
-    tipo === "etiquetas"
-      ? supabase
-          .from("etiquetas")
-          .select("id, nombre, activo, notas, estado, estilo, vigente_desde, vigente_hasta, descuento_pct")
-          .order("nombre")
-      : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas"
-      ? supabase.from("categorias").select("id, nombre, familia").eq("activo", true).order("nombre")
-      : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas"
-      ? supabase.from("etiqueta_categorias").select("etiqueta_id, categoria_id")
-      : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
-    // Costos y precios SOLO para un Líder, y solo para avisarle al configurar una campaña
-    // qué prendas quedarían por debajo de su costo — el costo no viaja a otros roles.
-    tipo === "etiquetas" && puedeDarDescuento
-      ? leerTodas((desde, hasta) =>
-          supabase.from("variantes").select("id, sku, precio, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
-        )
-      : Promise.resolve({ data: [], error: null }),
-    // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
-    // Las dos por páginas: más de 1.000 variantes desde sep-2026 y PostgREST corta en 1.000 (`leerTodas`).
-    tipo === "etiquetas" && puedeEditarEtiquetas
-      ? leerTodas((desde, hasta) =>
-          supabase.from("variante_etiquetas").select("etiqueta_id, variante_id").order("variante_id").order("etiqueta_id").range(desde, hasta)
-        )
-      : Promise.resolve({ data: [], error: null }),
-    // Cuántas prendas usan cada tejido y cada patrón (ADR-0256): lo que dice cada tarjeta. Solo al abrir esas pestañas;
-    // por páginas, porque el catálogo crece (`leerTodas`).
     tipo === "tejidos" || tipo === "patrones"
       ? leerTodas((desde, hasta) => supabase.from("productos").select("id, tejido_id, patron_id").order("id").range(desde, hasta))
       : Promise.resolve({ data: [], error: null }),
@@ -147,6 +136,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     codigo: c.codigo,
     nombre: c.nombre,
     familiaColor: c.familia_color,
+    tipo: c.tipo,
     hex: c.hex,
     orden: c.orden,
     activo: c.activo,
@@ -154,6 +144,8 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     estado: c.estado as "pendiente" | "aprobado",
     pantoneTcx: c.pantone_tcx,
     sinonimos: c.sinonimos ?? [],
+    descripcion: c.descripcion ?? null,
+    combinaCon: c.combina_con ?? [],
   }));
   const tallas = exigir(resTallas, "las tallas del vocabulario").map((t) => ({
     id: t.id,
@@ -186,57 +178,30 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     if (u.tejido_id) prendasPorTejido[u.tejido_id] = (prendasPorTejido[u.tejido_id] ?? 0) + 1;
     if (u.patron_id) prendasPorPatron[u.patron_id] = (prendasPorPatron[u.patron_id] ?? 0) + 1;
   }
-  const etiquetaCategorias = new Map<string, string[]>();
-  for (const f of exigir(resEtiquetaCategorias, "las categorías de cada etiqueta")) {
-    etiquetaCategorias.set(f.etiqueta_id, [...(etiquetaCategorias.get(f.etiqueta_id) ?? []), f.categoria_id]);
-  }
-  const etiquetas = exigir(resEtiquetas, "las etiquetas del vocabulario").map((e) => ({
-    id: e.id,
-    nombre: e.nombre,
-    activo: e.activo,
-    notas: e.notas,
-    estado: e.estado as "pendiente" | "aprobado" | "rechazado",
-    estilo: e.estilo as "neutral" | "urgencia" | "positivo" | "campana",
-    vigenteDesde: e.vigente_desde,
-    vigenteHasta: e.vigente_hasta,
-    descuentoPct: e.descuento_pct,
-    categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
-  }));
-  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre.
-  const costos = puedeDarDescuento ? await getCostosVariantes() : null;
-  const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => ({
-    id: v.id,
-    categoriaId: v.producto?.categoria_id ?? null,
-    precio: Number(v.precio),
-    costo: costos?.get(v.id) ?? 0,
-    nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
-  }));
-  const variantesManuales: Record<string, string[]> = {};
-  for (const f of exigir(resManuales, "las prendas etiquetadas a mano")) {
-    (variantesManuales[f.etiqueta_id] ??= []).push(f.variante_id);
-  }
-  const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
   const temporadas = await cargaTemporadas;
-  const categorias = exigir(resCategorias, "las categorías").map((c) => ({
-    id: c.id,
-    nombre: c.nombre,
-    familia: (c.familia && nombreFamilia.get(c.familia)) || "Sin familia",
-  }));
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Atributos
-          <Ayuda titulo="Atributos">
-            Los vocabularios cerrados que describen una prenda además de su categoría: color,
-            talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
-            con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
-            lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
-            calendario y se completan las prendas que todavía no la tienen.
-          </Ayuda>
-        </h1>
+      <div data-guia="atributos.cabecera">
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          titulo={
+            <>
+              Atributos
+              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
+              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
+                <Ayuda titulo="Atributos">
+                  Los vocabularios cerrados que describen una prenda además de su categoría: color,
+                  talla, tejido, patrón y temporada. En los cuatro primeros, cualquiera con sesión
+                  agrega un valor nuevo y lo puede usar de inmediato. La temporada es una lista
+                  fija de nueve: en su pestaña se ve el
+                  calendario y se completan las prendas que todavía no la tienen. Las insignias (Nuevo,
+                  Top ventas, las campañas) viven en Catálogo ▸ Insignias.
+                </Ayuda>
+              </span>
+            </>
+          }
+        />
       </div>
 
       <AtributosHub
@@ -247,17 +212,10 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         patrones={patrones}
         prendasPorTejido={prendasPorTejido}
         prendasPorPatron={prendasPorPatron}
-        etiquetas={etiquetas}
-        categorias={categorias}
-        prendasConCosto={prendasConCosto}
-        variantesManuales={variantesManuales}
         puedeEditar={puede(persona, "editarCatalogo")}
-        puedeEditarEtiquetas={puedeEditarEtiquetas}
-        puedeDarDescuento={puedeDarDescuento}
         temporadas={temporadas}
         esLider={persona.rol === "lider"}
         veProductos={veModulo(persona, "productos")}
-        tipos={tipos}
       />
     </div>
   );

@@ -1,0 +1,331 @@
+import { describe, expect, it } from "vitest";
+import {
+  renglonesCuaderno,
+  porRecibirDe,
+  detalleRondaAbierta,
+  pagoPapel,
+  notaNoCuadra,
+  sobrePapel,
+  subtituloPapel,
+  destinosDePapel,
+  totalBandeja,
+  CIFRA_BANDEJA,
+  TIPOS_BANDEJA,
+  type PagoPapel,
+  diaYRonda,
+  PAPELES_GASTO,
+  botonCierre,
+  camposRevisarGasto,
+  ejemploSerieNumero,
+  papelSugerido,
+  papelesParaGasto,
+  problemaRuc,
+  camposCierre,
+  camposCompletar,
+  ejemploSerie,
+  fraseCompletar,
+  bandejaInicial,
+  chipPapel,
+  elegidoDeBandeja,
+  filaCierre,
+  filaGasto,
+  filaPapel,
+  filaPlata,
+  llegadaDePapel,
+  siguienteDeBandeja,
+  leerRevisarCompras,
+  problemaNumero,
+  problemaSerie,
+  textoFaltan,
+  textoLlegada,
+  recibioQuienCompro,
+  veredictoPapel,
+  type LineaPapel,
+} from "./revisar-compras-reglas";
+import { TIPOS_PAPEL, type TipoPapel } from "./compra-rapida-reglas";
+import { CONCEPTOS_GASTO, type ConceptoGasto } from "./mi-plata-reglas";
+
+const linea = (o: Partial<LineaPapel> = {}): LineaPapel => ({
+  id: "l1",
+  nombre: "Polo",
+  cantidad: 6,
+  costo: 40,
+  subtotal: 240,
+  destino: "Tienda Trujillo",
+  mandadas: 6,
+  faltan: [],
+  sobran: 0,
+  ...o,
+});
+const PERSONA = { esPersona: true, listo: true, motivo: null };
+
+describe("leerRevisarCompras", () => {
+  it("lee papeles, cierres y proveedores, y descarta lo ilegible sin caerse", () => {
+    const r = leerRevisarCompras({
+      papeles: [
+        {
+          id: "p1", persona_id: "x", persona: "Marisol Quispe", es_mia: false, proveedor_id: "pr", proveedor: "Confecciones Lupe",
+          tipo: "boleta", monto: "330.00", foto_ruta: "papeles/a.jpg", fecha: "2026-10-23", llego: true,
+          lineas: [{ id: "i1", nombre: "Polo", cantidad: 6, costo: 40, subtotal: 240, destino: "Tienda Trujillo", mandadas: 6,
+                     faltan: [{ cantidad: 1, causa: "no_vino" }, { cantidad: 1, causa: "inventada" }], sobran: 0 }, { id: null }],
+          envios: [{ id: "e1", numero: 179, estado: "cerrado", recibio_quien_compro: true }, { id: "e2", numero: 1, estado: "anulado" }],
+        },
+        { id: "p2", tipo: "papiro", monto: 1, proveedor_id: "pr" },
+      ],
+      gastos: [{ id: "g1", persona: "Marisol", concepto: "taxi", monto: "15", fecha: "2026-10-23", tiene_compra: true }, { id: "g2", concepto: "avion", monto: 1 }],
+      cierres: [{ id: "k1", persona: "Marisol", decision: "devuelve", monto: 200, plata_por_confirmar: 0 }, { id: "k2", decision: "se_queda", monto: 1 }],
+      proveedores: [{ id: "pr", nombre: "Confecciones Lupe", ruc: null }, { nombre: "sin id" }],
+    });
+    expect(r?.papeles).toHaveLength(1);
+    expect(r?.papeles[0].monto).toBe(330);
+    expect(r?.papeles[0].lineas).toHaveLength(1);
+    expect(r?.papeles[0].lineas[0].faltan).toEqual([{ cantidad: 1, causa: "no_vino" }]);
+    expect(r?.papeles[0].envios).toEqual([{ id: "e1", numero: 179, estado: "cerrado", recibioQuienCompro: true }]);
+    expect(r?.cierres.map((c) => c.id)).toEqual(["k1"]);
+    expect(r?.gastos.map((g) => `${g.id}:${g.monto}:${g.tieneCompra}`)).toEqual(["g1:15:true"]);
+    expect(r?.proveedores).toEqual([{ id: "pr", nombre: "Confecciones Lupe", ruc: null }]);
+  });
+
+  it("una respuesta que no es la esperada es null (la base sin la migración)", () => {
+    expect(leerRevisarCompras(null)).toBeNull();
+    expect(leerRevisarCompras({ papeles: [] })).toBeNull();
+    expect(leerRevisarCompras([])).toBeNull();
+  });
+});
+
+describe("veredictoPapel: los cuatro casos", () => {
+  const dos = [linea(), linea({ id: "l2", cantidad: 2, costo: 10, subtotal: 20, mandadas: 2 })];
+  it("cuadra todo: el papel dice lo que suman las prendas y no faltó nada", () => {
+    expect(veredictoPapel({ monto: 260, lineas: dos })).toMatchObject({ caso: "cuadra", anotado: 260, unidades: 8, faltan: 0 });
+  });
+  it("la plata no cuadra: el papel dice otra cosa", () => {
+    expect(veredictoPapel({ monto: 250, lineas: dos }).caso).toBe("plata");
+  });
+  it("faltan prendas: la plata cuadra pero la tienda dijo que algo faltó", () => {
+    const faltan = [dos[0], { ...dos[1], faltan: [{ cantidad: 1, causa: "no_vino" as const }] }];
+    expect(veredictoPapel({ monto: 260, lineas: faltan })).toMatchObject({ caso: "faltan", faltan: 1 });
+    expect(veredictoPapel({ monto: 250, lineas: faltan }).caso).toBe("nada");
+  });
+  it("con el monto que corrige Compras, el veredicto se mueve", () => {
+    expect(veredictoPapel({ monto: 250, lineas: dos }, 260).caso).toBe("cuadra");
+  });
+  it("un medio céntimo de redondeo no descuadra", () => {
+    expect(veredictoPapel({ monto: 100, lineas: [linea({ cantidad: 3, costo: 33.33, subtotal: 99.999 })] }).caso).toBe("cuadra");
+  });
+});
+
+describe("textos del veredicto y de la llegada", () => {
+  it("manda el papel: dice qué queda en el comprobante, con IGV en factura", () => {
+    expect(notaNoCuadra("boleta")).toBe("Queda por lo del papel");
+    expect(notaNoCuadra("factura")).toBe("Queda por lo del papel, con su IGV");
+  });
+  it("la cabecera del detalle: el papel y su ronda; quién, cuándo y cuántas prendas; a qué tiendas iban", () => {
+    expect(sobrePapel({ tipo: "boleta", ronda: "RC-000012" })).toBe("Boleta · RC-000012");
+    expect(sobrePapel({ tipo: "sin_comprobante", ronda: null })).toBe("Sin papel");
+    expect(subtituloPapel({ persona: "Marisol Rojas", fecha: "2026-10-23", lineas: [linea({ cantidad: 7 }), linea({ cantidad: 5 })] })).toBe("Marisol Rojas · 23/10 · 12 prendas");
+    expect(subtituloPapel({ persona: "Rosa", fecha: "", lineas: [linea({ cantidad: 1 })] })).toBe("Rosa · 1 prenda");
+    expect(destinosDePapel({ lineas: [linea({ destino: "Tienda Lima" }), linea({ destino: "Tienda AQP" }), linea({ destino: "Tienda Lima" })] })).toBe("Tienda Lima · Tienda AQP");
+  });
+  it("lo que faltó lo dijo la tienda", () => {
+    const l = linea({ faltan: [{ cantidad: 2, causa: "no_vino" }, { cantidad: 1, causa: "se_perdio" }] });
+    expect(textoFaltan(l)).toBe("2 no vino: está en «Nos debe» del proveedor · 1 se perdió: lo asume CAYLA");
+    expect(textoFaltan(linea())).toBeNull();
+  });
+  it("ADR-0517: si algún envío lo cerró quien compró, quien revisa lo ve; sin envíos o sin marca, no", () => {
+    const e = (recibioQuienCompro: boolean) => ({ id: "e", numero: 1, estado: "cerrado" as const, recibioQuienCompro });
+    expect(recibioQuienCompro({ envios: [] })).toBe(false);
+    expect(recibioQuienCompro({ envios: [e(false)] })).toBe(false);
+    expect(recibioQuienCompro({ envios: [e(false), e(true)] })).toBe(true);
+  });
+  it("dónde está una compra que no llegó", () => {
+    expect(textoLlegada({ llego: true, lineas: [], envios: [] })).toBe("Llegó a la tienda");
+    expect(textoLlegada({ llego: false, lineas: [linea({ mandadas: 2 })], envios: [] })).toBe("Falta mandarla a la tienda");
+    expect(textoLlegada({ llego: false, lineas: [linea()], envios: [{ id: "e", numero: 1, estado: "abierto", recibioQuienCompro: false }] })).toBe("La tienda la está contando");
+    expect(textoLlegada({ llego: false, lineas: [linea()], envios: [{ id: "e", numero: 1, estado: "en_camino", recibioQuienCompro: false }] })).toBe("En camino a la tienda");
+  });
+});
+
+describe("completar el papel: lo mismo que rechaza la base", () => {
+  it("serie: letras y números, hasta 8; número: solo números, hasta 12 (en nota de venta, opcional)", () => {
+    expect(problemaSerie("f001")).toBeNull();
+    expect(problemaSerie("")).toMatch(/Copia la serie/);
+    expect(problemaSerie("F-001")).toMatch(/hasta 8/);
+    expect(problemaNumero("00012345", "boleta")).toBeNull();
+    expect(problemaNumero("12a", "factura")).toMatch(/solo números/);
+    expect(problemaNumero("", "boleta")).toMatch(/Copia el número/);
+    expect(problemaNumero("", "nota_venta")).toBeNull();
+    expect(problemaNumero("NV-12", "nota_venta")).toBeNull();
+  });
+
+  it("los campos siguen al papel, para todos los tipos", () => {
+    const vacio = { serie: "", numero: "", cambiaMonto: false, monto: "" };
+    const ids = (t: TipoPapel) => camposCompletar(vacio, t, PERSONA).map((c) => `${c.id}:${c.requerido}`);
+    expect(ids("factura")).toEqual(["serie:true", "numero:true"]);
+    expect(ids("boleta")).toEqual(["serie:true", "numero:true"]);
+    expect(ids("nota_venta")).toEqual(["numero:false"]);
+    expect(ids("sin_comprobante")).toEqual([]);
+    for (const t of Object.keys(TIPOS_PAPEL) as TipoPapel[]) expect(ejemploSerie(t)).toMatch(/^Ej\. [FB]001$/);
+  });
+
+  it("cambiar el monto lo vuelve un campo, y desde una terminal se pide quién completa", () => {
+    const c = camposCompletar({ serie: "B001", numero: "1", cambiaMonto: true, monto: "" }, "boleta", { esPersona: false, listo: false, motivo: null });
+    expect(c.map((x) => `${x.id}:${x.hecho}`)).toEqual(["serie:true", "numero:true", "monto:false", "responsable:false"]);
+  });
+
+  it("el botón dice qué se guarda", () => {
+    expect(fraseCompletar()).toBe("Completar");
+  });
+});
+
+describe("los cierres del día", () => {
+  it("lo que espera a Compras y su botón", () => {
+    expect(botonCierre({ decision: "devuelve", persona: "Marisol Quispe" }, 200)).toMatch(/^Recibir S\/\s200\.00$/);
+    expect(botonCierre({ decision: "le_deben", persona: "Marisol Quispe" }, 50)).toMatch(/^Pagarle S\/\s50\.00 a Marisol$/);
+  });
+
+  it("pide la cuenta y el monto", () => {
+    const cuentas = [{ id: "b", nombre: "BCP", tipo: "banco" as const, sede: null }];
+    expect(camposCierre({ cuentaId: "", monto: "200" }, "devuelve", cuentas, PERSONA).map((c) => `${c.nombre}:${c.hecho}`)).toEqual([
+      "A dónde vuelve:false",
+      "Cuánto:true",
+    ]);
+    expect(camposCierre({ cuentaId: "b", monto: "" }, "le_deben", cuentas, PERSONA)[0].nombre).toBe("De dónde sale");
+  });
+});
+
+describe("los gastos que no son ropa", () => {
+  const conceptos = Object.keys(CONCEPTOS_GASTO) as ConceptoGasto[];
+
+  it("sin papel solo pasan el taxi y el cargador (planilla de movilidad); todos aceptan boleta, factura y ticket", () => {
+    for (const c of conceptos) {
+      const papeles = papelesParaGasto(c);
+      expect(papeles.slice(0, 3)).toEqual(["boleta", "factura", "ticket"]);
+      expect(papeles.includes("planilla_movilidad")).toBe(c === "taxi" || c === "cargador");
+    }
+  });
+
+  it("el papel que llega elegido: sin foto, el taxi y el cargador van en la planilla; con foto o lo demás, lo elige quien revisa", () => {
+    expect(papelSugerido({ concepto: "taxi", fotoRuta: null })).toBe("planilla_movilidad");
+    expect(papelSugerido({ concepto: "cargador", fotoRuta: null })).toBe("planilla_movilidad");
+    expect(papelSugerido({ concepto: "taxi", fotoRuta: "gastos/a.jpg" })).toBeNull();
+    expect(papelSugerido({ concepto: "comida", fotoRuta: null })).toBeNull();
+  });
+
+  it("el ejemplo de la serie sigue al papel, para todos los papeles", () => {
+    expect(ejemploSerieNumero("factura")).toBe("Ej. F001-123");
+    expect(ejemploSerieNumero("boleta")).toBe("Ej. B001-123");
+    for (const p of [null, "ticket", "planilla_movilidad"] as const) expect(ejemploSerieNumero(p)).toBe("Como dice el papel");
+    expect(Object.keys(PAPELES_GASTO)).toHaveLength(4);
+  });
+
+  it("los campos: el papel es obligatorio; serie y RUC opcionales (el RUC, sugerido en factura); sin papel no hay número", () => {
+    const ids = (papel: Parameters<typeof camposRevisarGasto>[0]["papel"], c: ConceptoGasto = "taxi") =>
+      camposRevisarGasto({ papel, serieNumero: "", ruc: "" }, c, PERSONA).map((x) => `${x.id}:${x.requerido}${x.sugerido ? ":sugerido" : ""}`);
+    expect(ids(null)).toEqual(["papel:true"]);
+    expect(ids("planilla_movilidad")).toEqual(["papel:true"]);
+    expect(ids("factura")).toEqual(["papel:true", "serie:false", "ruc:false:sugerido"]);
+    expect(ids("planilla_movilidad", "comida")).toEqual(["papel:true"]);
+    expect(camposRevisarGasto({ papel: "planilla_movilidad", serieNumero: "", ruc: "" }, "comida", PERSONA)[0].hecho).toBe(false);
+    expect(problemaRuc("2060")).toMatch(/11 números/);
+    expect(problemaRuc("20601234567")).toBeNull();
+    expect(problemaRuc("")).toBeNull();
+  });
+});
+
+describe("la bandeja de Revisar compras (rediseño)", () => {
+  const linea = (cantidad: number, faltan = 0) => ({ id: "l", nombre: "x", cantidad, costo: 1, subtotal: cantidad, destino: "AQP", mandadas: cantidad, faltan: faltan ? [{ cantidad: faltan, causa: "no_vino" as const }] : [], sobran: 0 });
+  it("lo que llegó: todo, o cuántos faltaron; antes de llegar, dónde está", () => {
+    expect(llegadaDePapel({ llego: true, lineas: [linea(20), linea(15)] })).toEqual({ llegaron: 35, total: 35, completa: true });
+    expect(llegadaDePapel({ llego: true, lineas: [linea(14, 2)] })).toEqual({ llegaron: 12, total: 14, completa: false });
+    expect(llegadaDePapel({ llego: false, lineas: [linea(14)] })).toBeNull();
+    expect(chipPapel({ llego: true, lineas: [linea(14, 2)], envios: [] })).toEqual({ tono: "ambar", texto: "Faltaron 2" });
+    expect(chipPapel({ llego: true, lineas: [linea(3, 1)], envios: [] })).toEqual({ tono: "ambar", texto: "Faltó 1" });
+    expect(chipPapel({ llego: true, lineas: [linea(3)], envios: [] })).toEqual({ tono: "verde", texto: "Llegó todo" });
+    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "en_camino", recibioQuienCompro: false }] })).toEqual({ tono: "pizarra", texto: "En camino" });
+    expect(chipPapel({ llego: false, lineas: [{ ...linea(3), mandadas: 1 }], envios: [] }).texto).toBe("Sin mandar");
+    expect(chipPapel({ llego: false, lineas: [linea(3)], envios: [{ id: "e", numero: 1, estado: "abierto", recibioQuienCompro: false }] }).texto).toBe("La tienda cuenta");
+  });
+  it("cada fila dice qué es, de quién y su estado", () => {
+    expect(filaPlata({ id: "a", persona: "Marisol", medio: "yape_plin", monto: 500, fecha: "2026-10-23", fotoRuta: "plata/x.jpg" })).toMatchObject({ titulo: "Yape o Plin · con foto", cuando: "23/10", chip: { texto: "Por confirmar" } });
+    expect(filaPlata({ id: "a", persona: "M", medio: "ya_tenia", monto: 1, fecha: "", fotoRuta: null }).titulo).toBe("Ya tenía de antes");
+    expect(filaPapel({ id: "p", persona: "M", proveedor: "Textiles Rosa", tipo: "factura", monto: 525, fecha: "2026-10-22", ronda: "RC-000003", llego: true, lineas: [linea(35)], envios: [] })).toMatchObject({ titulo: "Textiles Rosa · Factura", cuando: "22/10 · RC-000003", chip: { tono: "verde" } });
+    expect(filaGasto({ id: "g", persona: "M", concepto: "taxi", nota: null, monto: 12, fecha: "2026-10-23", ronda: null, fotoRuta: null }).titulo).toBe("Taxi · sin papel");
+    expect(filaCierre({ id: "c", persona: "L", decision: "le_deben", monto: 20, fecha: "2026-10-22", ronda: "RC-000002" }).chip).toEqual({ tono: "ambar", texto: "Le debemos" });
+    // Lo de antes de las rondas, solo el día.
+    expect(diaYRonda("2026-10-22", null)).toBe("22/10");
+    expect(diaYRonda("", "RC-000002")).toBe("RC-000002");
+  });
+  it("al entrar se abre la primera lista con algo; el detalle es el elegido o el primero, y «Más tarde» pasa al siguiente", () => {
+    expect(bandejaInicial({ plata: 0, papel: 2, gasto: 3, cierre: 0 })).toBe("papel");
+    expect(bandejaInicial({ plata: 0, papel: 0, gasto: 0, cierre: 0 })).toBe("plata");
+    const l = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    expect(elegidoDeBandeja(l, "b")?.id).toBe("b");
+    expect(elegidoDeBandeja(l, "z")?.id).toBe("a");
+    expect(elegidoDeBandeja([], "a")).toBeNull();
+    expect(siguienteDeBandeja(l, "b")).toBe("c");
+    expect(siguienteDeBandeja(l, "c")).toBe("a");
+    expect(siguienteDeBandeja([], "a")).toBeNull();
+  });
+});
+
+describe("cómo se le pagó al proveedor (20261023181000)", () => {
+  const P = { monto: 300 };
+  const plano = (x: PagoPapel) => ({ ...x, titulo: x.titulo.replace(/\u00a0/g, " "), detalle: x.detalle.replace(/\u00a0/g, " ") });
+  it("todo, una parte o nada", () => {
+    expect(pagoPapel({ ...P, pagado: 300, medioPago: "yape" })).toEqual({ titulo: "Pagó todo con Yape", detalle: "Compras no paga nada", fraccion: 1 });
+    expect(plano(pagoPapel({ ...P, pagado: 100, medioPago: "efectivo" }))).toEqual({ titulo: "Pagó S/ 100.00 en efectivo", detalle: "Compras paga S/ 200.00 desde Por pagar", fraccion: 1 / 3 });
+    expect(plano(pagoPapel({ ...P, pagado: 0, medioPago: null }))).toEqual({ titulo: "No le pagó al proveedor", detalle: "Compras paga S/ 300.00 desde Por pagar", fraccion: 0 });
+    expect(pagoPapel({ ...P, pagado: 300, medioPago: "otro" }).titulo).toBe("Pagó todo");
+  });
+});
+
+describe("las cifras de la bandeja (diseño A)", () => {
+  it("cada una con su nombre corto y su cabecera, y el total en soles sin decimales sueltos", () => {
+    expect(TIPOS_BANDEJA.map((t) => CIFRA_BANDEJA[t].corto)).toEqual(["Plata", "Compras", "Gastos", "Rondas"]);
+    expect(TIPOS_BANDEJA.every((t) => CIFRA_BANDEJA[t].cabecera.length > 0)).toBe(true);
+    expect(totalBandeja([{ monto: 0.1 }, { monto: 0.2 }])).toBe(0.3);
+    expect(totalBandeja([])).toBe(0);
+  });
+});
+
+describe("las rondas en Revisar compras (20261023210000)", () => {
+  const cuaderno = { dieron: 500, compras: 2, compraste: 380, gastos: 2, gastaste: 35, prendas: 20 };
+  it("el cuaderno de una ronda cerrada cierra: lo de antes se despeja del final", () => {
+    const r = renglonesCuaderno({ cuaderno, decision: "devuelve", monto: 85 });
+    expect(r.map((x) => [x.clave, x.titulo, x.detalle, x.monto, x.signo])).toEqual([
+      ["dieron", "Le dieron", null, 500, "+"],
+      ["compro", "Compró", "2 compras", 380, "-"],
+      ["gasto", "Gastó", "2 gastos", 35, "-"],
+    ]);
+    // Si tenía plata al abrirla, aparece su renglón para que la cuenta cierre.
+    expect(renglonesCuaderno({ cuaderno, decision: "devuelve", monto: 185 })[0]).toMatchObject({ clave: "antes", titulo: "Tenía al abrirla", monto: 100, signo: "+" });
+    // Le debemos: el final es negativo.
+    expect(renglonesCuaderno({ cuaderno: { ...cuaderno, dieron: 0 }, decision: "le_deben", monto: 415 }).map((x) => x.clave)).toEqual(["dieron", "compro", "gasto"]);
+    expect(renglonesCuaderno({ cuaderno: null, decision: "devuelve", monto: 85 })).toEqual([]);
+  });
+  it("lo que tiene por recibir cada persona: lo que devuelve menos lo que le debemos", () => {
+    const cierres = [
+      { personaId: "a", decision: "devuelve" as const, monto: 85 },
+      { personaId: "b", decision: "le_deben" as const, monto: 20 },
+    ];
+    expect(porRecibirDe(cierres, "a")).toEqual({ decision: "devuelve", monto: 85 });
+    expect(porRecibirDe(cierres, "b")).toEqual({ decision: "le_deben", monto: 20 });
+    expect(porRecibirDe(cierres, "c")).toBeNull();
+  });
+  it("una ronda abierta dice cuánto lleva", () => {
+    expect(detalleRondaAbierta({ compras: 3, prendas: 47 })).toBe("3 compras · 47 prendas");
+    expect(detalleRondaAbierta({ compras: 1, prendas: 0 })).toBe("1 compra");
+    expect(detalleRondaAbierta({ compras: 0, prendas: 0 })).toBe("Todavía sin compras");
+  });
+  it("lee las rondas abiertas, la tienda y el cuaderno de cada cierre; sin el dato, nada", () => {
+    const d = leerRevisarCompras({
+      papeles: [],
+      cierres: [{ id: "k", persona_id: "p", persona: "Lucía Paredes", decision: "devuelve", monto: 85, tienda: "Tienda Trujillo", cuaderno: { dieron: "500", compras: 2, compraste: 380, gastos: 1, gastaste: 35, prendas: 20 } }],
+      rondas_abiertas: [{ id: "r", texto: "RC-000012", persona_id: "m", persona: "Marisol Rojas", tienda: null, abierta_en: "2026-10-21T10:00:00Z", cuenta: { compras: 3, prendas: 47 } }, { texto: "sin id" }],
+    })!;
+    expect(d.cierres[0]).toMatchObject({ tienda: "Tienda Trujillo", cuaderno: { dieron: 500, compras: 2 } });
+    expect(d.rondasAbiertas).toHaveLength(1);
+    expect(d.rondasAbiertas[0]).toMatchObject({ texto: "RC-000012", cuenta: { compras: 3, prendas: 47, compraste: 0 } });
+    expect(leerRevisarCompras({ papeles: [], cierres: [{ id: "k", decision: "devuelve", monto: 1 }] })?.cierres[0]).toMatchObject({ tienda: null, cuaderno: null });
+  });
+});

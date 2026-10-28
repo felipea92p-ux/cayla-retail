@@ -9,8 +9,16 @@
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
 import type { ClaveModulo } from "./modulos";
+import { diasDesde, type PendientesDeLaSede } from "./recepcion-conteo-reglas";
+import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
+import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
+import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
+import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
+import { hrefPrendasSinLlegar, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
+import { soles as solesConCentimos } from "./compras-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -21,15 +29,29 @@ export type ClaveAviso =
   | "devoluciones"
   | "pedidos"
   | "traslados"
+  | "pedidosSede"
+  | "pedidosCliente"
+  | "paraEnviar"
   | "conteo"
+  | "perdidas"
   | "regularizar"
-  | "porPagar";
+  | "porPagar"
+  | "cuentasBancarias"
+  | "prendasSinLlegar"
+  | "recibir"
+  | "porTerminar"
+  | "reponer"
+  | "fotos"
+  | "completar";
 
 export type Aviso = {
   clave: ClaveAviso;
-  grupo: "Ventas y posventa" | "Inventario" | "Compras";
+  grupo: "Ventas y posventa" | "Inventario" | "Compras" | "Catálogo";
   titulo: string;
   detalle: string;
+  /** La frase de «Sigue ahora» (Inicio de Almacén): lo mismo que el aviso, dicho como tarea («Atiende 2 traslados»).
+   *  Vacía si no hay nada que hacer o no se pudo leer. */
+  ahora: string;
   /** null = no se pudo leer. Nunca se dibuja como 0: una cola que no se lee no está «al día». */
   cantidad: number | null;
   nivel: NivelAviso;
@@ -51,14 +73,46 @@ export type FuentesAvisos = {
   devoluciones?: number | null;
   pedidos?: number | null;
   traslados?: number | null;
+  /** ADR-0328 act. 17: los pedidos entre sedes que llevan 48 h o más sin respuesta, de los dos lados (solo para los líderes
+   *  de esa sede, en el Inicio de su sede: `leAvisaSinRespuesta`).
+   *  Ya resumidos por `pedidos-por-atender-reglas.ts`: cuántos, el detalle y la frase de «Sigue ahora». */
+  pedidosSinRespuesta?: { tePiden: number; pediste: number; detalle: string; ahora: string } | null;
+  /** ADR-0328 act. 17 (decisión del 2026-10-04): los pedidos que esta tienda hizo a otra para un cliente y que piden un paso
+   *  de quien atiende: avisarle que llegó o que no va a llegar, o preguntarle si el pedido sigue en pie (a los 7 días). Ya
+   *  resumidos por `resumenParaElInicio`. */
+  pedidosCliente?: { llegaron: number; noLlegaron: number; sigueEnPie: number; primero: string | null } | null;
+  /** ADR-0328 act. 17 (decisión del 2026-10-04): lo subido al almacén «para enviar» a otra sede que lleva más de 3 días sin
+   *  salir. Se avisa aquí y no en el número del menú. Ya resumido por `paraEnviarAtrasadas`. */
+  paraEnviar?: { prendas: number; destinos: string[]; dias: number } | null;
   /** true = hay un conteo abierto en la sede. */
   conteoAbierto?: boolean | null;
+  /** Pérdidas que se repiten en los últimos 30 días (ADR-0328 act. 14): solo del líder, con la regla de `perdidas-reglas`. */
+  perdidas?: AvisoPerdidas | null;
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
+  /** Proveedores que cambiaron su cuenta bancaria en los últimos 7 días (20261013161000). Solo se lee para el líder. */
+  cuentasBancarias?: { cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn?: string | null } | null;
+  /** ADR-0362 fase 5b (actividad 4): facturas cuya plata ya volvió con un documento interno y esperan la nota del proveedor (su IGV, en la
+   *  cuenta puente). `dias`: lo que lleva esperando la más antigua. Para quien ve Notas de crédito. */
+  /** ADR-0362 fase 5b (actividad 4): prendas de una factura que no llegaron y siguen sin resolver (su IGV, en el crédito fiscal sin la
+   *  mercadería). Para quien ve Proveedores. */
+  prendasSinLlegar?: { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null } | null;
+  /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
+  porRecibir?: { facturas: number; primera: string | null } | null;
+  /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
+  recibidoPorTerminar?: PendientesDeLaSede | null;
+  /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
+   *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
+   *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
+  porColgar?: { tallas: number; unidades: number; enPausa: number } | null;
+  /** Productos activos sin ninguna foto. */
+  fotosQueFaltan?: number | null;
+  /** Productos activos sin marca o sin proveedor (ADR-0283). */
+  porCompletar?: number | null;
 };
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 const SIN_LEER = "No se pudo leer. Lo demás de esta pantalla sí está al día.";
 
@@ -81,6 +135,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Comprobantes sin llegar a SUNAT",
       cantidad: n,
       nivel: nivelDe(n, "urgente"),
+      ahora: n ? `Manda a SUNAT ${n} ${plural(n, "comprobante atascado", "comprobantes atascados")}` : "",
       detalle:
         n === null ? SIN_LEER : n === 0 ? "Todos llegaron o se están reintentando solos."
           : `${n} ${plural(n, "lleva", "llevan")} más de ${HORAS_REINTENTO_AUTOMATICO} horas: ya no se reintenta solo.`,
@@ -97,6 +152,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Aperturas de caja con diferencia",
       cantidad: n,
       nivel: nivelDe(n, "urgente"),
+      ahora: n ? `Revisa ${n} ${plural(n, "apertura de caja con diferencia", "aperturas de caja con diferencia")}` : "",
       detalle:
         n === null ? SIN_LEER : n === 0 ? "Todas coinciden con su cierre."
           : `${n} ${plural(n, "abrió", "abrieron")} con un monto distinto del último cierre.`,
@@ -116,6 +172,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Apartados que vencen",
       cantidad: n,
       nivel: n === null ? "sinleer" : urgentes > 0 ? "urgente" : nivelDe(n, "toca"),
+      ahora: n ? `Atiende ${n} ${plural(n, "apartado que vence", "apartados que vencen")}` : "",
       detalle:
         a === null ? SIN_LEER
           : urgentes > 0
@@ -134,8 +191,42 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Devoluciones por resolver",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
+      ahora: n ? `Resuelve ${n} ${plural(n, "devolución", "devoluciones")}` : "",
       detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna espera respuesta." : `${n} ${plural(n, "espera", "esperan")} que se aprueben o rechacen.`,
       href: "/devoluciones",
+      ocultable: true,
+    });
+  }
+  // ADR-0328 act. 17 (decisión del 2026-10-04): la tienda que pidió una prenda a otra para un cliente se entera aquí (y en
+  // la franja de Vender, adonde lleva) de lo que le toca: avisarle al cliente que llegó, o que no va a llegar porque la otra
+  // sede no la tenía o el envío se cerró sin ella, y preguntarle si el pedido sigue en pie cuando lleva 7 días apartado allá
+  // (la reserva no vence sola: la sostiene esta tienda).
+  if (f.pedidosCliente !== undefined) {
+    const p = f.pedidosCliente;
+    const avisar = p === null ? 0 : p.llegaron + p.noLlegaron;
+    const n = p === null ? null : avisar + p.sigueEnPie;
+    const partes = p
+      ? [
+          p.noLlegaron ? `${p.noLlegaron} no ${plural(p.noLlegaron, "va", "van")} a llegar` : "",
+          p.llegaron ? `${p.llegaron} ${plural(p.llegaron, "llegó", "llegaron")}` : "",
+          p.sigueEnPie ? `${p.sigueEnPie} ${plural(p.sigueEnPie, "lleva", "llevan")} ${DIAS_PARA_PREGUNTAR} días o más: ¿sigue en pie?` : "",
+        ].filter(Boolean)
+      : [];
+    const accion = avisar > 0 ? `${plural(avisar, "avísale", "avísales")} por WhatsApp desde Vender` : "pregúntale al cliente y responde en Vender";
+    avisos.push({
+      clave: "pedidosCliente",
+      grupo: "Ventas y posventa",
+      titulo: "Pedidos para clientes",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !p || !n ? ""
+        : avisar > 0 ? `Avisa a ${avisar} ${plural(avisar, "cliente", "clientes")} cómo terminó su pedido`
+          : `Confirma si ${p.sigueEnPie} ${plural(p.sigueEnPie, "pedido sigue", "pedidos siguen")} en pie`,
+      detalle:
+        p === null ? SIN_LEER
+          : n === 0 ? "Ningún cliente espera noticias de una prenda pedida a otra sede."
+            : `${partes.join(" · ")}${p.primero ? ` · ${p.primero}` : ""}: ${accion}.`,
+      href: "/vender",
       ocultable: true,
     });
   }
@@ -147,7 +238,8 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Pedidos no atendidos",
       cantidad: n,
       nivel: nivelDe(n, "info"),
-      detalle: n === null ? SIN_LEER : n === 0 ? "Ninguna clienta pidió algo que no había." : "Clientas que pidieron una talla o un color que no había.",
+      ahora: n ? `Mira ${n} ${plural(n, "pedido no atendido", "pedidos no atendidos")}` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Ningún cliente pidió algo que no había." : "Clientes que pidieron una talla o un color que no había.",
       href: "/pedidos-no-atendidos",
       ocultable: true,
     });
@@ -160,7 +252,49 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Traslados por atender",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
-      detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} tu confirmación.`,
+      ahora: n ? `Atiende ${n} ${plural(n, "traslado", "traslados")}` : "",
+      // ADR-0328 act. 17: el número suma lo que llega por recibir y lo que otras sedes te piden enviar.
+      detalle: n === null ? SIN_LEER : n === 0 ? "Nada pendiente." : `${n} ${plural(n, "espera", "esperan")} a tu sede: recibir lo que llegó o enviar lo que te piden.`,
+      href: "/inventario/traslados",
+      ocultable: true,
+    });
+  }
+  // ADR-0328 act. 17 (Felipe: «a las 48 h sin respuesta, aviso a los líderes de las dos tiendas»). Solo cuenta lo que ya
+  // pasó las 48 h, así que si hay alguno es urgente: un cliente espera, o la otra sede espera una respuesta.
+  if (f.pedidosSinRespuesta !== undefined) {
+    const p = f.pedidosSinRespuesta;
+    const n = p === null ? null : p.tePiden + p.pediste;
+    avisos.push({
+      clave: "pedidosSede",
+      grupo: "Inventario",
+      titulo: "Pedidos entre sedes sin respuesta",
+      cantidad: n,
+      nivel: nivelDe(n, "urgente"),
+      ahora: p?.ahora ?? "",
+      detalle: p === null ? SIN_LEER : p.detalle,
+      href: "/inventario/traslados",
+      ocultable: true,
+      urgenteSi: "Cuando un pedido lleva 48 h sin respuesta",
+    });
+  }
+  // ADR-0328 act. 17 (decisión del 2026-10-04): lo colgado se manda en dos pasos (subir, después el traslado) y el segundo
+  // se olvida. Lo que lleva más de 3 días «para enviar» se avisa en el Inicio de ESA sede; no suma al número del menú, que
+  // es lo que otros esperan de ella.
+  if (f.paraEnviar !== undefined) {
+    const p = f.paraEnviar;
+    const n = p === null ? null : p.prendas;
+    const destinos = p ? (p.destinos.length <= 2 ? p.destinos.join(" y ") : `${p.destinos.slice(0, -1).join(", ")} y ${p.destinos.at(-1)}`) : "";
+    avisos.push({
+      clave: "paraEnviar",
+      grupo: "Inventario",
+      titulo: "Para enviar",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Envía ${n} ${plural(n, "prenda que espera", "prendas que esperan")} en el almacén` : "",
+      detalle:
+        p === null ? SIN_LEER
+          : !n ? `Nada lleva más de ${DIAS_PARA_ENVIAR} días esperando salir.`
+            : `${n} ${plural(n, "prenda subida", "prendas subidas")} para ${destinos} ${plural(n, "lleva", "llevan")} ${p.dias === DIAS_PARA_ENVIAR ? "más de" : "hasta"} ${p.dias} días en tu almacén: arma el envío.`,
       href: "/inventario/traslados",
       ocultable: true,
     });
@@ -174,8 +308,27 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Conteo abierto",
       cantidad: n,
       nivel: nivelDe(n, "info"),
+      ahora: c ? "Cierra el conteo que está abierto" : "",
       detalle: c === null ? SIN_LEER : c ? "Hay un conteo sin cerrar en esta sede." : "No hay conteos abiertos.",
       href: "/inventario/conteo",
+      ocultable: true,
+    });
+  }
+  // ADR-0328 act. 14 (Felipe, 2026-10-04): se avisa CUANDO SE REPITE —la misma prenda o la misma zona pierde en dos días
+  // distintos de los últimos 30, o se quitaron muchas sin nota—, no cada faltante. Sin un tope en % inventado. Lleva a la
+  // pestaña «Pérdidas» de Movimientos, filtrada si es un solo hallazgo. Por hacer, no urgente: no es plata que no cuadra.
+  if (f.perdidas !== undefined) {
+    const p = f.perdidas;
+    const n = p === null ? null : p.cantidad;
+    avisos.push({
+      clave: "perdidas",
+      grupo: "Inventario",
+      titulo: "Pérdidas que se repiten",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Revisa ${n} ${plural(n, "pérdida que se repite", "pérdidas que se repiten")}` : "",
+      detalle: p === null ? SIN_LEER : n === 0 ? "Ninguna prenda ni zona perdió dos veces en 30 días." : p.detalle,
+      href: p?.href ?? hrefPerdidas({ periodo: "30" }),
       ocultable: true,
     });
   }
@@ -189,10 +342,11 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       titulo: "Prendas por regularizar",
       cantidad: n,
       nivel: nivelDe(n, "urgente"),
+      ahora: n ? `Regulariza ${n} ${plural(n, "prenda que se vendió", "prendas que se vendieron")} sin registrar` : "",
       detalle:
         n === null ? SIN_LEER : n === 0 ? `Ninguna lleva más de ${DIAS_PARA_VENCER} días.`
           : `${n} ${plural(n, "lleva", "llevan")} más de ${DIAS_PARA_VENCER} días sin regularizar.`,
-      href: "/recibir?vista=por-regularizar",
+      href: "/inventario/por-regularizar",
       ocultable: true,
       urgenteSi: `Cuando pasa de ${DIAS_PARA_VENCER} días`,
     });
@@ -204,9 +358,10 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     avisos.push({
       clave: "porPagar",
       grupo: "Compras",
-      titulo: p && p.vencidas > 0 ? "Facturas de proveedor vencidas" : "Facturas que vencen esta semana",
+      titulo: p && p.vencidas > 0 ? "Compras por pagar vencidas" : "Compras que vencen esta semana",
       cantidad: n,
       nivel: p === null ? "sinleer" : p.vencidas > 0 ? "urgente" : nivelDe(p.semana, "toca"),
+      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "compra vencida", "compras vencidas")}` : `Revisa ${n} ${plural(n, "compra que vence", "compras que vencen")} esta semana`,
       detalle:
         p === null ? SIN_LEER
           : p.vencidas > 0 ? `${soles(p.montoVencido)} ya vencido${p.semana > 0 ? ` · y ${p.semana} más vencen esta semana` : ""}.`
@@ -214,6 +369,149 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/compras/por-pagar",
       ocultable: true,
       urgenteSi: "Cuando ya venció",
+    });
+  }
+  // Felipe 2026-10-13 (auditoría, punto 18): un proveedor cambió su cuenta bancaria esta semana. El pago no se bloquea: se le
+  // avisa al líder para que la confirme con el proveedor antes de pagar. No se oculta: es plata que puede salir a la cuenta
+  // equivocada, y cambiar la cuenta justo antes de un pago es la forma más común de desviarlo.
+  if (f.cuentasBancarias !== undefined) {
+    const c = f.cuentasBancarias;
+    const n = c === null ? null : c.proveedores;
+    avisos.push({
+      clave: "cuentasBancarias",
+      grupo: "Compras",
+      titulo: "Cuentas de proveedor que cambiaron",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !n ? "" : `Confirma ${n === 1 ? "la cuenta nueva" : `${n} cuentas nuevas`} antes de pagar`,
+      detalle:
+        c === null ? SIN_LEER
+          : n === 0 ? "Ningún proveedor cambió su cuenta esta semana."
+            : n === 1 ? `${c.ultimoProveedor ?? "Un proveedor"} cambió su cuenta para cobrar: confírmala con él antes de pagarle.`
+              : `${n} proveedores cambiaron su cuenta esta semana; el último, ${c.ultimoProveedor ?? "uno sin nombre"}.`,
+      href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
+      ocultable: false,
+    });
+  }
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta: es crédito
+  // fiscal que no cuadra con la mercadería. El aviso hermano, «Notas de crédito por pedir», se retiró con su módulo (ADR-0480).
+  if (f.prendasSinLlegar !== undefined) {
+    const p = f.prendasSinLlegar;
+    const n = p === null ? null : p.prendas;
+    const t = p === null ? null : textoPrendasSinLlegar(p, solesConCentimos);
+    avisos.push({
+      clave: "prendasSinLlegar",
+      grupo: "Compras",
+      titulo: "Prendas de factura que te deben",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: t?.ahora ?? "",
+      detalle: t?.detalle ?? SIN_LEER,
+      href: p ? hrefPrendasSinLlegar(p) : "/compras/proveedores",
+      ocultable: false,
+    });
+  }
+  // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.
+  if (f.porRecibir !== undefined) {
+    const r = f.porRecibir;
+    const n = r === null ? null : r.facturas;
+    avisos.push({
+      clave: "recibir",
+      grupo: "Inventario",
+      titulo: "Mercadería por recibir",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Recibe ${n} ${plural(n, "factura de mercadería", "facturas de mercadería")}` : "",
+      detalle:
+        r === null ? SIN_LEER : r.facturas === 0 ? "No falta recibir ninguna factura."
+          : `${r.primera ?? "Una factura"}${r.facturas > 1 ? ` y ${r.facturas - 1} más` : ""} ${plural(r.facturas, "espera", "esperan")} su recepción.`,
+      // ADR-0330: las facturas se reciben en la vista contra factura; `/recibir` a secas es la puerta «Llegó mercadería».
+      href: "/recibir?vista=factura",
+      ocultable: true,
+    });
+  }
+  // ADR-0393 (decisión 4): lo contado al recibir que todavía no se puede vender (sin tallas, sin separar o por crear). Más de 7 días
+  // es urgente: es lo que el ADR vigila («los pendientes se vuelven el cajón donde se olvida la mercadería»).
+  if (f.recibidoPorTerminar !== undefined) {
+    const r = f.recibidoPorTerminar;
+    const n = r === null ? null : r.total;
+    const dias = r ? diasDesde(r.desde) : null;
+    const partes = r
+      ? [r.porSeparar ? `${r.porSeparar} por separar` : null, r.porDetallar ? `${r.porDetallar} por poner tallas` : null, r.porCrear ? `${r.porCrear} por crear` : null].filter(Boolean)
+      : [];
+    avisos.push({
+      clave: "porTerminar",
+      grupo: "Inventario",
+      titulo: "Recibido por terminar",
+      cantidad: n,
+      nivel: nivelDe(n, dias != null && dias > 7 ? "urgente" : "toca"),
+      ahora: n ? `Termina ${n} ${plural(n, "prenda recibida", "prendas recibidas")}` : "",
+      detalle:
+        r === null ? SIN_LEER
+          : !n ? "Todo lo recibido ya está en el stock."
+            : `Contadas y en el almacén, pero sin poder venderse: ${partes.join(", ")}${dias != null && dias > 0 ? `. Lo más antiguo, de hace ${dias === 1 ? "1 día" : `${dias} días`}` : ""}.`,
+      href: "/recibir",
+      ocultable: true,
+      urgenteSi: "Cuando lo más antiguo pasa de 7 días",
+    });
+  }
+  // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión
+  // del motor del piso) y su misma palabra. Antes decía «Sube N modelos al piso»: otro número (modelos, con las agotadas incluidas) y
+  // el verbo al revés, porque en Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Bajar al piso». Lleva a la lista
+  // filtrada por «Hoy ▸ Por colgar», donde están las mismas tallas y el botón «Bajar al piso». El detalle repite la honestidad de
+  // «Para hoy»: si ya cuelgan y el sistema las cree guardadas, lo que toca es registrarlas al bajar.
+  // Con el piso sin cuadrar (ADR-0328, decisión 5) el motor no manda a colgar nada: el aviso dice «Cuadrar el piso» con las tallas
+  // que esperan —la misma cifra de la fila «esperan el cuadre del piso» de «Para hoy»— y lleva a Existencias, donde está su botón.
+  // La clave sigue siendo «reponer»: es la que guarda la elección de «Ajustar» de cada persona (cookie), y cambiarla le volvería a
+  // mostrar un aviso que ya había ocultado.
+  if (f.porColgar !== undefined) {
+    const p = f.porColgar;
+    // «Cuadrar el piso» solo si algo espera el cuadre: sin nada en pausa el piso está al día, y el título no puede contradecir al detalle.
+    const enPausa = p !== null && p.tallas === 0 && p.enPausa > 0;
+    const n = p === null ? null : enPausa ? p.enPausa : p.tallas;
+    avisos.push({
+      clave: "reponer",
+      grupo: "Inventario",
+      titulo: enPausa ? "Cuadrar el piso" : "Por colgar",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !n ? "" : enPausa ? "Cuadra el piso antes de colgar" : `Baja al piso ${n} ${plural(n, "talla", "tallas")} por colgar`,
+      detalle:
+        p === null ? SIN_LEER
+          : enPausa ? `${p.enPausa} ${plural(p.enPausa, "talla espera", "tallas esperan")} el cuadre del piso: hasta cuadrarlo no se sabe qué falta colgar.`
+            : p.tallas === 0 ? "El piso de venta está al día."
+              : `${p.unidades} ${plural(p.unidades, "guardada", "guardadas")} y ninguna colgada. ¿Ya cuelgan? Regístralas al bajar.`,
+      href: enPausa ? "/inventario" : "/inventario?hoy=por_colgar",
+      ocultable: true,
+    });
+  }
+  if (f.fotosQueFaltan !== undefined) {
+    const n = f.fotosQueFaltan;
+    avisos.push({
+      clave: "fotos",
+      grupo: "Catálogo",
+      titulo: "Fotos que faltan",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: n ? `Toma la foto de ${n} ${plural(n, "modelo", "modelos")}` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Todos los modelos tienen foto." : `${n} ${plural(n, "modelo sin foto", "modelos sin foto")}: sin ella no se reconoce la prenda entre sedes.`,
+      // Lista filtrada por «Por completar: Sin foto» (`falta=foto`): la misma regla de la cifra, productos sin ninguna fila en `producto_fotos`.
+      href: "/productos?falta=foto",
+      ocultable: true,
+    });
+  }
+  if (f.porCompletar !== undefined) {
+    const n = f.porCompletar;
+    avisos.push({
+      clave: "completar",
+      grupo: "Catálogo",
+      titulo: "Productos por completar",
+      cantidad: n,
+      nivel: nivelDe(n, "info"),
+      ahora: n ? `Completa ${n} ${plural(n, "producto", "productos")} sin marca o proveedor` : "",
+      detalle: n === null ? SIN_LEER : n === 0 ? "Todos tienen marca y proveedor." : `${n} ${plural(n, "producto sin marca o proveedor", "productos sin marca o proveedor")}.`,
+      href: "/productos?marca=sin",
+      ocultable: true,
     });
   }
   return avisos;
@@ -291,13 +589,15 @@ export function cookieEleccion(personaId: string | null): string {
 // ── Apartados: de la lista a lo que el aviso necesita ────────────────────────────────────────────
 
 /** `venceEl` es una fecha `YYYY-MM-DD` de Lima; `hoy` también (`hoyLima()`). */
-export function resumirApartados(apartados: { venceEl: string; clienta: string }[], hoy: string): ResumenApartados {
+/** `venceEl` null = la reserva de un pedido de otra sede: no vence sola (decisión del 2026-10-04), así que no cuenta aquí. */
+export function resumirApartados(apartados: { venceEl: string | null; clienta: string }[], hoy: string): ResumenApartados {
   const manana = new Date(`${hoy}T12:00:00Z`);
   manana.setUTCDate(manana.getUTCDate() + 1);
   const diaManana = manana.toISOString().slice(0, 10);
   let vencidos = 0, deHoy = 0, deManana = 0;
   let primeraClienta: string | null = null;
-  for (const a of [...apartados].sort((x, y) => x.venceEl.localeCompare(y.venceEl))) {
+  const conFecha = apartados.filter((a): a is { venceEl: string; clienta: string } => a.venceEl !== null);
+  for (const a of conFecha.sort((x, y) => x.venceEl.localeCompare(y.venceEl))) {
     const dia = a.venceEl.slice(0, 10);
     if (dia < hoy) vencidos++;
     else if (dia === hoy) deHoy++;
@@ -310,10 +610,14 @@ export function resumirApartados(apartados: { venceEl: string; clienta: string }
 
 // ── Accesos rápidos ──────────────────────────────────────────────────────────────────────────────
 
-export type ClaveAccesoIcono = "caja" | "apartados" | "stock" | "traslados" | "cambios" | "recibir" | "conteo" | "produccion" | "buscar";
+export type ClaveAccesoIcono = "caja" | "apartados" | "stock" | "traslados" | "cambios" | "recibir" | "conteo" | "produccion" | "buscar" | "nuevoProducto";
 export type AccesoRapido = { href: string; etiqueta: string; icono: ClaveAccesoIcono };
 
-const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null }> = {
+// `modulo`: la pantalla a la que lleva (si no lo ve, caería en «Sin acceso»). `permiso`: lo que además hace falta para que la
+// acción funcione al final. «Nuevo producto» pide los dos: ver Productos no basta, el rol tiene que poder ESCRIBIR en el
+// catálogo (un rol `limitado_como_hoy` lo ve pero la base rechaza el guardado, y un acceso que termina en un error es peor
+// que no tenerlo).
+export const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null; permiso?: Permiso }> = {
   caja: { href: "/caja", etiqueta: "Caja", icono: "caja", modulo: "caja" },
   apartados: { href: "/vender/apartados", etiqueta: "Apartados", icono: "apartados", modulo: "apartados" },
   stock: { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },
@@ -323,19 +627,55 @@ const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | n
   conteo: { href: "/inventario/conteo", etiqueta: "Conteo", icono: "conteo", modulo: "conteos" },
   produccion: { href: "/produccion", etiqueta: "Órdenes", icono: "produccion", modulo: "produccion" },
   buscar: { href: "/buscar", etiqueta: "Buscar", icono: "buscar", modulo: null },
+  nuevoProducto: { href: "/productos/nuevo", etiqueta: "Nuevo producto", icono: "nuevoProducto", modulo: "productos", permiso: "editarCatalogo" },
 };
 
-/** Hasta 4 accesos, en el orden que más usa cada perfil, SOLO de módulos que ve. «Vender» no está: tiene su lugar propio
- *  (cabecera en computadora, botón fijo en celular). «Buscar» no pide módulo: cierra la fila si queda lugar. */
-export function accesosRapidos(perfil: { esLider: boolean; ubicacionTipo: "tienda" | "almacen" | "taller"; modulos: readonly ClaveModulo[] }): AccesoRapido[] {
-  const orden: ClaveAccesoIcono[] =
-    perfil.ubicacionTipo === "taller" ? ["produccion", "recibir", "stock", "buscar"]
-      : perfil.ubicacionTipo === "almacen" ? ["traslados", "recibir", "conteo", "stock", "buscar"]
-        : perfil.esLider ? ["caja", "apartados", "traslados", "cambios", "stock", "buscar"]
-          : ["apartados", "stock", "cambios", "caja", "traslados", "recibir", "buscar"];
-  return orden
+/** Qué hace la cuenta, y de ahí su lista (Felipe, 2026-09-29: «cada rol con una lista genérica de lo que va a usar»). Se lee
+ *  de los MÓDULOS del rol y no de su nombre: un rol nuevo que vende recibe la lista del mostrador sin que nadie la escriba,
+ *  y una terminal es lo que su rol le deja hacer (ADR-0161, ADR-0162). El orden importa: solo caben 4. */
+/** La líder: «Nuevo producto» en lugar de Apartados (Felipe, 2026-09-29). Apartados sigue a un toque: el aviso «Apartados que
+ *  vencen» de «Te toca» lleva ahí, y el menú de Ventas también. */
+const LISTA_LIDER: ClaveAccesoIcono[] = ["caja", "nuevoProducto", "traslados", "cambios", "stock", "apartados", "buscar"];
+/** Quien vende: lo que el cliente le pide en el mostrador. «Nuevo producto» ocupa el lugar de «Apartados» para quien puede cargar
+ *  catálogo (Felipe, 2026-10-03; Apartados sigue a un toque: el aviso «Apartados que vencen» de «Te toca» y el menú de Ventas); quien
+ *  no puede, conserva Apartados. Ver `LUGAR_DE`. */
+const LISTA_MOSTRADOR: ClaveAccesoIcono[] = ["stock", "cambios", "nuevoProducto", "apartados", "caja", "traslados", "recibir", "buscar"];
+/** «X ocupa el lugar de Y»: si X llegó a la lista, Y se retira (no se suman los dos). Solo en la lista del mostrador. */
+const LUGAR_DE: Partial<Record<ClaveAccesoIcono, ClaveAccesoIcono>> = { nuevoProducto: "apartados" };
+/** Quien no vende y está en una tienda (la terminal de almacén, un rol administrativo): la mercadería que entra y se mueve.
+ *  «Conteo» va después porque se hace por temporadas, no cada día. */
+const LISTA_TRASTIENDA: ClaveAccesoIcono[] = ["recibir", "traslados", "stock", "nuevoProducto", "conteo", "buscar"];
+const LISTA_ALMACEN: ClaveAccesoIcono[] = ["traslados", "recibir", "conteo", "stock", "buscar"];
+const LISTA_TALLER: ClaveAccesoIcono[] = ["produccion", "recibir", "stock", "buscar"];
+
+/** Hasta 4 accesos, en el orden que más usa cada perfil, SOLO de módulos que ve (y, si la acción escribe, de permisos que
+ *  tiene). «Vender» no está: tiene su lugar propio (cabecera en computadora, botón fijo en celular). «Buscar» no pide módulo:
+ *  cierra la fila si queda lugar. La terminal del mostrador (ve el Punto de venta) nunca llega aquí: aterriza en `/vender`,
+ *  donde «Más» ya ofrece Caja, Cambios, Devoluciones e Historial según su rol (`lib/vender-accesos.ts`).
+ *
+ *  Con solo 4 lugares, meter uno saca a otro: por eso, y no por gusto, esta lista debería poder elegirse por rol (pendiente,
+ *  `docs/backlog/2026-09-29-accesos-rol-terminal-3e62ba.md`). */
+export function accesosRapidos(perfil: {
+  esLider: boolean;
+  ubicacionTipo: "tienda" | "almacen" | "taller";
+  modulos: readonly ClaveModulo[];
+  /** Lo que la cuenta puede hacer (`persona.permisos`). Sin él, ningún acceso que exija un permiso se muestra. */
+  permisos?: readonly Permiso[];
+}): AccesoRapido[] {
+  const orden =
+    perfil.ubicacionTipo === "taller" ? LISTA_TALLER
+      : perfil.ubicacionTipo === "almacen" ? LISTA_ALMACEN
+        : perfil.esLider ? LISTA_LIDER
+          : perfil.modulos.includes("vender") ? LISTA_MOSTRADOR
+            : LISTA_TRASTIENDA;
+  const disponibles = orden.filter((k) => {
+    const a = ACCESOS[k];
+    return (a.modulo === null || perfil.modulos.includes(a.modulo)) && (!a.permiso || !!perfil.permisos?.includes(a.permiso));
+  });
+  const reemplazados = orden === LISTA_MOSTRADOR ? new Set(disponibles.map((k) => LUGAR_DE[k]).filter(Boolean)) : new Set();
+  return disponibles
+    .filter((k) => !reemplazados.has(k))
     .map((k) => ACCESOS[k])
-    .filter((a) => a.modulo === null || perfil.modulos.includes(a.modulo))
     .slice(0, 4)
     .map(({ href, etiqueta, icono }) => ({ href, etiqueta, icono }));
 }
@@ -399,7 +739,7 @@ export function armarEquipo(turno: FilaTurno[], actividad: FilaActividad[] | nul
       m = { personaId: a.persona_id, nombre: primerNombre(a.persona_nombre), estado: null, ventas: 0, monto: 0, ultima: null };
       porId.set(a.persona_id, m);
     }
-    m.ultima ??= { hora: a.ocurrio_at, texto: a.descripcion };
+    m.ultima ??= { hora: a.ocurrio_at, texto: montosSinCorte(a.descripcion) }; // la descripción la escribe Postgres
     if (a.accion === "venta_registrada") {
       const total = Number((a.detalle as { total?: unknown } | null)?.total ?? 0);
       m.ventas = (m.ventas ?? 0) + 1;

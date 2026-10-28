@@ -92,3 +92,26 @@ suma, porque el catálogo de Vender lo necesita:
   Turbopack (`apps/web/.next`) puede seguir sirviendo el CSS compilado sin el import** —
   el CLI de Tailwind lo compilaba bien y el navegador no veía `.animate-in` ni
   `@keyframes enter`. La cura es borrar `apps/web/.next` y volver a levantar.
+
+## Actualización 2026-10-06 — se borran las piezas que ninguna pantalla usaba
+
+Rama `claude/determined-thompson-f7b8d8` (limpieza de código muerto de `apps/web`). El puente sigue en pie:
+`components.json`, los tokens de `globals.css`, `lib/motion-gsap.ts` y los componentes shadcn que sí se dibujan
+(`badge`, `tooltip`). Lo que sale:
+
+- **`components/ui/RevelarAlScroll.tsx`.** Desde que el POS lo dejó (arriba) ningún tablero lo montó en tres semanas.
+  GSAP se queda para el reflujo `Flip` del ticket; `motion-gsap.ts` no cambia y sigue registrando `ScrollTrigger`, así
+  que volver a revelar al hacer scroll es recuperar el componente de la historia de git, sin instalar nada.
+- **`components/ui/toggle.tsx` y `lib/utils.ts`.** El primero se instaló con el CLI en la adenda de arriba y nadie lo
+  dibujó; el segundo (el reexport de `cn`) no lo importa nadie: los componentes que genera el CLI importan `cn` del
+  paquete, como `badge` y `tooltip`. `components.json` sigue apuntando su alias `utils` a `@/lib/utils`; si un
+  componente generado llegara a importarlo, basta con volver a crear esa línea (`export { cn } from "cn";`).
+- **Ninguna dependencia queda sin uso**: `cn`, `class-variance-authority` y `radix-ui` siguen en `badge`, `tooltip` y
+  los filtros; `package.json` no se toca.
+
+## Actualización 2026-10-14 — sale `@radix-ui/react-slot`
+
+Knip (ADR-0406) la encontró sin uso: el `Slot` de `components/ui/badge.tsx` viene del paquete `radix-ui` (`import { Slot } from
+"radix-ui"`), que es lo que genera hoy el CLI de shadcn, y nada importa `@radix-ui/react-slot`. Sale de `apps/web/package.json`. El
+puente no cambia: `radix-ui` la trae por dentro, así que un componente generado que la pidiera por su nombre viejo es volver a
+agregar una línea.

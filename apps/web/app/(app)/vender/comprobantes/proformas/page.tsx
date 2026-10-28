@@ -2,14 +2,15 @@ import { exigirPermiso } from "@/lib/persona-actual";
 import { getProformasMes, type FotoDePrenda } from "@/lib/proformas";
 import { lineasDeLaProforma } from "@/lib/proformas-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
+import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
+import { mesActualLima, mesLimaUTC } from "@/lib/fechas-lima";
 import { mesDeParametro, montoPorVencer, periodoDelMes, resumenProformas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { conversionDelMes } from "@/lib/facturacion-proformas-reglas";
 import { ProformasPanel } from "@/components/ProformasPanel";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 import { ProformasTarjetas } from "@/components/ProformasTarjetas";
-import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
+import { SelectorMesEnUrl } from "@/components/ui/SelectorMes";
 import type { PrendaParaProforma } from "@/components/NuevaProformaModal";
 
 // Proformas (ADR-0167): la lista del mes (`getProformasMes` suma además todas las vigentes, sin filtro de mes,
@@ -49,11 +50,13 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
   );
 
   const tiendas = tiendasOperativas(ubicaciones).map(({ id, nombre }) => ({ id, nombre }));
+  // Precio propio de cada tienda (Felipe 2026-10-09): la hoja cotiza al precio de la tienda elegida, como `crear_proforma`.
+  const preciosPorSede = await getPreciosPorSede(tiendas.map((t) => t.id));
 
   return (
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
-      <SelectorMesFacturacion ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} />
+      <SelectorMesEnUrl ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} guia="comprobantes.mes" guiaAnterior="comprobantes.mes-anterior" />
       <ProformasTarjetas resumen={resumenProformas(proformas, ahora.getTime())} montoPorVencer={montoPorVencer(proformas, ahora.getTime())} />
       <ProformasPanel
         proformas={proformas}
@@ -65,6 +68,7 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
         ubicacionActualId={ubicacionActualDe(tiendas, persona.ubicacionId)}
         esLider={persona.rol === "lider"}
         fotos={fotos}
+        preciosPorSede={preciosPorSede}
       />
     </div>
   );

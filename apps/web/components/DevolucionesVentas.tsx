@@ -4,10 +4,10 @@ import Link from "next/link";
 import { ArrowLeftRight, ArrowRight, Check, Clock, ReceiptText, Undo2 } from "lucide-react";
 import { CLASE_BOTON_FILA, ChipEstado, ComprasAgrupadas, FilaPrendaVenta, formatearHora, type CompraAgrupada } from "@/components/ComprasAgrupadas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
+import { actividadPreviaVenta, descripcionEntregadaTodas, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
 import { estadoPlazoDevolucion, estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 
 /**
  * Las compras de Devoluciones (2026-09-18), en dos modos (2026-09-22, ver
@@ -19,15 +19,14 @@ import { hoyLima } from "@/lib/fechas-lima";
  *   con su propia historia y su propio botón, porque ahí la colaboradora ya encontró UNA
  *   prenda puntual (por SKU escaneado o nombre) y ese es el punto de partida natural.
  *
- * «Anular venta» es de la compra entera, no de una prenda, y solo de un líder: va en el
- * encabezado de cada compra en los dos modos (lo pinta `ComprasAgrupadas`). Solo se ofrece
+ * «Anular venta» es de la compra entera, no de una prenda, y la hace quien ve Devoluciones
+ * (la caja incluida, Felipe 2026-10-09; lo exige `anular_venta`): va en el encabezado de cada compra en los dos modos (lo pinta `ComprasAgrupadas`). Solo se ofrece
  * el mismo día de Lima en que se vendió (PL-29, lo exige `anular_venta`): después, Cambio o
  * Devolución.
  */
 export function DevolucionesVentas({
   lineas,
   ahora,
-  esLider,
   resumen = false,
   onIniciar,
   onAnular,
@@ -36,7 +35,6 @@ export function DevolucionesVentas({
 }: {
   lineas: LineaVentaReciente[];
   ahora: Date;
-  esLider: boolean;
   /** Abre el detalle de la venta (prendas, pago, comprobante y reimpresión). */
   onVerVenta?: (linea: LineaVentaReciente) => void;
   /** La cuenta ve el módulo Cambios: la tarjeta ofrece «Cambiar» (R-37, ADR-0161). */
@@ -49,11 +47,12 @@ export function DevolucionesVentas({
   onAnular: (linea: LineaVentaReciente) => void;
 }) {
   const accionCompra = (compra: LineaVentaReciente) =>
-    esLider && !compra.anulada && hoyLima(new Date(compra.creadoEn)) === hoyLima(ahora) ? (
+    !compra.anulada && diaLima(compra.creadoEn) === hoyLima(ahora) ? (
       <button
         type="button"
         onClick={() => onAnular(compra)}
-        className="rounded-md px-2 py-1 text-xs font-medium text-tinta/70 underline decoration-tinta/25 underline-offset-4 transition-colors duration-200 hover:text-rojo-profundo hover:decoration-rojo-profundo"
+        data-guia="devoluciones.anular"
+        className="btn-cayla btn-peligro"
       >
         Anular venta
       </button>
@@ -100,7 +99,7 @@ export function DevolucionesVentas({
                 {linea.cambiosHechos.map((c, i) => (
                   <p key={`c${i}`} className="mt-1 flex items-center gap-1.5 text-xs text-verde-profundo">
                     <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregada(c, linea.productoId)}
+                    {linea.cantidad > 1 ? `${c.cantidad} cambiada${c.cantidad === 1 ? "" : "s"}` : "Cambiada"} por {descripcionEntregadaTodas(c, linea.productoId)}
                   </p>
                 ))}
               </>
@@ -158,7 +157,7 @@ function ResumenCompraVenta({
       {(onVerVenta || devolvible) && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-sand pt-3">
           {onVerVenta && (
-            <button type="button" onClick={() => onVerVenta(primera)} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+            <button type="button" data-guia="devoluciones.ver-venta" onClick={() => onVerVenta(primera)} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
               <ReceiptText className="h-3.5 w-3.5" aria-hidden />
               Ver venta
             </button>
@@ -167,12 +166,12 @@ function ResumenCompraVenta({
             <span className="ml-auto flex items-center gap-4">
               {veCambios && (
                 // Con la prenda que todavía se puede tocar: Cambios abre su flujo sobre ella.
-                <Link href={`/cambios?item=${devolvible.ventaItemId}`} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+                <Link data-guia="devoluciones.cambiar" href={`/cambios?item=${devolvible.ventaItemId}`} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
                   <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
                   Cambiar
                 </Link>
               )}
-              <button type="button" onClick={() => onIniciar(primera, false)} className="btn-cayla btn-secundario h-10 border-taupe/50 px-4">
+              <button type="button" data-guia="devoluciones.devolver" onClick={() => onIniciar(primera, false)} className="btn-cayla btn-secundario h-10 border-taupe/50 px-4">
                 <Undo2 className="h-4 w-4" aria-hidden />
                 Devolver
               </button>

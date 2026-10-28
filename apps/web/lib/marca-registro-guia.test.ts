@@ -28,15 +28,24 @@ describe("guía de «Registrar marca o proveedor»", () => {
     expect(campos[1].pendiente).toMatch(/ya la trae/);
   });
 
+  it("«sin proveedor» o «-» no son nombres: la guía dice que se deje el campo vacío (2026-10-09)", () => {
+    const campos = camposDeRegistroMarca({ nombre: "SIN PROVEEDOR", existe: false }, { tipo: "nuevo", razonSocial: "-" }, sinPreguntas);
+    expect(campos[0].hecho).toBe(false);
+    expect(campos[0].pendiente).toMatch(/no es una marca/);
+    expect(campos[1].hecho).toBe(false);
+    expect(campos[1].pendiente).toMatch(/no es un proveedor/);
+  });
+
   // La coherencia que importa: «se puede registrar» según la guía ⇔ `registroListo`.
   it("coincide con registroListo en cada combinación", () => {
-    const marcas: (MarcaDelFormulario | null)[] = [null, nueva, existente, { nombre: "  ", existe: false }];
+    const marcas: (MarcaDelFormulario | null)[] = [null, nueva, existente, { nombre: "  ", existe: false }, { nombre: "SIN PROVEEDOR", existe: false }];
     const proveedores: ProveedorDelFormulario[] = [
       null,
       { tipo: "existente", nombre: "Jacard" },
       { tipo: "existente", nombre: "Taller Lima" },
       { tipo: "nuevo", razonSocial: "" },
       { tipo: "nuevo", razonSocial: "Textil Andina SAC" },
+      { tipo: "nuevo", razonSocial: "-" },
     ];
     for (const m of marcas)
       for (const p of proveedores)

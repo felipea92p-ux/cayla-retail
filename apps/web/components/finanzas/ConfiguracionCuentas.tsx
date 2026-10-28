@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoFin, InputFin, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { EditarCuentaModal } from "@/components/finanzas/EditarCuentaModal";
+import { TarifaMaquinaModal } from "@/components/finanzas/TarifaMaquinaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { parsearMonto, solesRedondo } from "@/lib/gastos-reglas";
@@ -19,29 +20,52 @@ import {
   TEXTO_TIPO_CUENTA,
   TIPOS_AUTOMATICOS,
   TIPOS_QUE_SE_AGREGAN,
+  mediosDeMaquina,
   nombreCorto,
+  textoDondeCobra,
   textoRecibe,
+  textoTarifa,
   tiposParaMedio,
   type CuentaDinero,
   type FilaMedio,
+  type MaquinaPos,
   type MedioCobro,
   type TipoCuenta,
 } from "@/lib/cuentas-dinero-reglas";
+import { Boton } from "@/components/ui/campos";
+import { CreditCard, Store } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
+import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
 // qué cuenta entra cada medio de cobro en cada tienda. Como en Tiendas y caja, CADA CASILLA SE GUARDA SOLA al cambiar,
 // firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve. Cada cuenta se
-// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25).
+// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25). Desde el ADR-0429, también las
+// máquinas de cobro (Izipay, Vendemás): en qué tiendas cobran con tarjeta y QR y en qué cuenta «por depositar» espera esa plata.
+// Se leen, no se editan aquí: el destino por defecto de cada tienda se cambia en «A qué cuenta entra cada cobro».
 
 type Consulta = PromiseLike<{ error: unknown }>;
 
-export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: CuentaDinero[]; medios: FilaMedio[]; hoy: string }) {
+export function ConfiguracionCuentas({
+  cuentas,
+  medios,
+  maquinas,
+  hoy,
+}: {
+  cuentas: CuentaDinero[];
+  medios: FilaMedio[];
+  /** Nulo = la base todavía no conoce las máquinas (falta pegar 20261016173000): la tarjeta no se dibuja. */
+  maquinas: MaquinaPos[] | null;
+  hoy: string;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
   const [agregar, setAgregar] = useState(false);
   const [editar, setEditar] = useState<CuentaDinero | null>(null);
+  const [tarifaDe, setTarifaDe] = useState<MaquinaPos | null>(null);
 
   const guardar = async (hacer: () => Consulta, que: string, listo: string) => {
     if (!responsable.listo) {
@@ -73,11 +97,11 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
         </div>
       </div>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.cuentas-lista">
         <TituloDeTarjeta titulo="Cuentas de CAYLA" bajada="Cada lugar donde hay plata. Una cuenta sin movimientos se elimina; con movimientos, se archiva.">
-          <button type="button" className="btn-cayla btn-primario btn-chico" onClick={() => setAgregar(true)}>
+          <Boton type="button" peso="primario" onClick={() => setAgregar(true)}>
             + Agregar cuenta
-          </button>
+          </Boton>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla" style={{ minWidth: 640 }}>
@@ -110,9 +134,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
                         <Chip tono={c.archivada ? "apagado" : "verde"} tachado={false}>
                           {c.archivada ? "archivada" : "activa"}
                         </Chip>
-                        <button type="button" className="btn-enlace text-[12px]" disabled={guardando} onClick={() => setEditar(c)} aria-label={`Editar ${c.nombre}`}>
-                          Editar
-                        </button>
+                        <LapizEditar que={c.nombre} disabled={guardando} onClick={() => setEditar(c)} />
                       </span>
                     </td>
                   </tr>
@@ -126,10 +148,12 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
         </PieTabla>
       </Superficie>
 
-      <Superficie className="anim-sube">
+      <Superficie className="anim-sube" guia="config.cuentas-cobros">
         <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una tienda a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
         {tiendas.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-taupe">No hay tiendas activas.</p>
+          <Vacio tamano="chico" icono={<Store />}>
+            No hay tiendas activas.
+          </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla fin-tabla-medios">
@@ -172,10 +196,69 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
           </div>
         )}
         <PieTabla>
-          <span>El efectivo siempre cae al cajón de la tienda.</span>
+          <span>El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.</span>
         </PieTabla>
       </Superficie>
 
+      {maquinas && (
+        <Superficie className="anim-sube" guia="config.maquinas">
+          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra con tarjeta y QR en cada tienda, y en qué cuenta espera lo cobrado hasta que la máquina lo deposita, sin su comisión." />
+          {maquinas.length === 0 ? (
+            <Vacio tamano="chico" icono={<CreditCard />}>
+              No hay máquinas de cobro.
+            </Vacio>
+          ) : (
+            <div className="fin-tabla-wrap">
+              <table className="fin-tabla">
+                <thead>
+                  <tr>
+                    <th>Máquina</th>
+                    <th>Lo cobrado espera en</th>
+                    <th>Dónde cobra</th>
+                    <th>Tarifa (solo estima y avisa)</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {maquinas.map((m) => (
+                    <tr key={m.id} className={m.archivada ? "fin-suave" : undefined}>
+                      <td data-l="Máquina">
+                        <b>{m.nombre}</b>
+                      </td>
+                      <td data-l="Espera en">{nombreCorto(m.cuentaNombre)}</td>
+                      <td data-l="Dónde cobra">{textoDondeCobra(m)}</td>
+                      <td className="fin-ancha" data-l="Tarifa">
+                        {mediosDeMaquina(m).map((x) => (
+                          <span key={x.medio} className="block">
+                            <b className="font-semibold">{TEXTO_MEDIO_COBRO[x.medio]}:</b> {textoTarifa(x.tarifa)}
+                          </span>
+                        ))}
+                      </td>
+                      <td data-l="Estado">
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <Chip tono={m.archivada ? "apagado" : "verde"} tachado={false}>
+                            {m.archivada ? "archivada" : "activa"}
+                          </Chip>
+                          {!m.archivada && mediosDeMaquina(m).length > 0 && (
+                            <span data-guia="config.maquina-tarifa">
+                              <LapizEditar que={`la tarifa de ${m.nombre}`} disabled={guardando} onClick={() => setTarifaDe(m)} />
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <PieTabla>
+            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». La tarifa solo sirve para estimar la comisión y avisar si la máquina se atrasa: la comisión real sale de cada depósito.</span>
+          </PieTabla>
+        </Superficie>
+      )}
+
+      {tarifaDe && <TarifaMaquinaModal maquina={tarifaDe} onCerrar={() => setTarifaDe(null)} />}
       {agregar && <AgregarCuentaModal hoy={hoy} onCerrar={() => setAgregar(false)} />}
       {editar && <EditarCuentaModal cuenta={editar} hoy={hoy} onCerrar={() => setEditar(null)} />}
     </>
@@ -260,16 +343,16 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
   }
 
   return (
-    <Modal variante="hoja" titulo="Agregar cuenta" subtitulo="Un banco, una billetera que no cae a un banco, el POS de tarjeta o la tarjeta de crédito de CAYLA." onClose={onCerrar} ancho="max-w-[520px]">
+    <Modal variante="hoja" titulo="Agregar cuenta" subtitulo="Un banco, una billetera que no cae a un banco, el POS de tarjeta o la tarjeta de crédito de CAYLA." onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Nombre" htmlFor="cta-nombre">
-        <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" />
+        <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" maxLength={MAX_NOMBRE_CUENTA} />
       </CampoFin>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Tipo" htmlFor="cta-tipo">
           <SelectFin<TipoCuenta> id="cta-tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_QUE_SE_AGREGAN.map((t) => ({ valor: t.tipo, texto: t.texto }))} />
         </CampoFin>
         <CampoFin etiqueta="Número (opcional)" htmlFor="cta-numero">
-          <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" />
+          <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
         </CampoFin>
       </div>
       <div className="fin-dos-campos">
@@ -286,9 +369,9 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={agregar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Agregando…" : "Agregar"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Agregando…" type="button" onClick={agregar} disabled={guardando || !responsable.listo}>
+          Agregar
+        </Boton>
       </div>
     </Modal>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReceiptText } from "lucide-react";
+import { CalendarDays, ReceiptText } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { formatearHora } from "@/components/ComprasAgrupadas";
 import type { DevolucionResuelta } from "@/lib/devoluciones";
@@ -9,10 +9,11 @@ import { destinoPrendaResuelta } from "@/lib/devoluciones-reglas";
 import { etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * «Resueltas» (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0232): lo que ya aprobó o
- * rechazó un líder en los últimos 15 días. Cierra el círculo de la colaboradora que la registró —qué
+ * rechazó alguien en los últimos 15 días. Cierra el círculo de la colaboradora que la registró —qué
  * pasó con la devolución de la clienta— y dice adónde fue cada prenda (al piso o a cuarentena), la nota
  * de crédito y el reembolso. La nota de crédito lleva a Comprobantes ▸ Emitidos solo si la cuenta ve ese
  * módulo (ADR-0161).
@@ -27,10 +28,16 @@ export function DevolucionesResueltas({
   veComprobantes: boolean;
 }) {
   if (resueltas.length === 0) {
-    return <p className="nota-cayla">Ninguna devolución aprobada ni rechazada en los últimos 15 días.</p>;
+    return (
+      <div className="card-cayla">
+        <Vacio tamano="chico" icono={<CalendarDays />}>
+          Ninguna devolución aprobada ni rechazada en los últimos 15 días.
+        </Vacio>
+      </div>
+    );
   }
   return (
-    <ul className="divide-y divide-sand overflow-hidden rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
+    <ul data-guia="devoluciones.resueltas" className="divide-y divide-sand overflow-hidden rounded-[20px] bg-papel ring-1 ring-tinta/[0.07]">
       {resueltas.map((d) => (
         <li
           key={d.id}

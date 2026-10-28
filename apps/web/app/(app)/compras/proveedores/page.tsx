@@ -1,6 +1,11 @@
 import { exigirModulo, puede } from "@/lib/persona-actual";
-import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
+import { usaModulo } from "@/lib/modulos";
+import { getMarcasPorProveedor, getProveedores, getProveedoresPrendas, getProveedoresRendimiento, getProveedoresResumen, getProveedoresSerie, getProveedoresVentasDiarias } from "@/lib/proveedores";
+import { seriesDeVentas } from "@/lib/proveedores-ranking-reglas";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
+import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
+import { hallazgosDeCartera } from "@/lib/proveedor-analisis-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Directorio de proveedores (20260914150000_proveedores_administrables.sql).
 // Cualquiera con acceso ve el directorio (a quién se le compra); lo
@@ -24,16 +29,31 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 // igual que la serie: si falla, la lista se pinta sin marcas.
 export default async function ProveedoresPage() {
   // La puerta del módulo Proveedores. ADR-0161 P3 (20260923140000): con el módulo se da de alta, se edita y se archiva
-  // (`fn_puede_gestionar_proveedores` en la base); lo financiero, con los montos de Compras (`verDineroCompras`).
+  // (`fn_puede_gestionar_proveedores` en la base). Los montos, desde ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»):
+  // también con el módulo, completo (`fn_ve_plata_de_proveedores` en la base); antes, solo con los montos de Compras.
   const persona = await exigirModulo("proveedores");
-  const verMontos = puede(persona, "verDineroCompras");
+  const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
   const puedeEditar = puede(persona, "editarCuentasProveedor");
-  const [proveedores, resumen, series, marcas] = await Promise.all([
+  const [proveedores, resumen, series, marcas, rendimiento, prendas, ventasDiarias] = await Promise.all([
     getProveedores(),
     verMontos ? getProveedoresResumen() : null,
     verMontos ? getProveedoresSerie() : null,
     getMarcasPorProveedor(),
+    // Qué le deja cada proveedor (2026-10-24): plata, así que con la misma llave que las cifras. Opcional: si la base no tiene la función, la lista sale como antes.
+    verMontos ? getProveedoresRendimiento().catch(() => null) : null,
+    verMontos ? getProveedoresPrendas().catch(() => null) : null,
+    // La línea de ventas de cada fila del ranking (ADR-0521): opcional como el rendimiento; sin la función en la base, las filas van sin línea.
+    verMontos ? getProveedoresVentasDiarias().catch(() => null) : null,
   ]);
 
-  return <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} />;
+  const hallazgos = prendas ? hallazgosDeCartera(prendas, hoyLima()) : null;
+  const ventas = ventasDiarias ? seriesDeVentas(ventasDiarias, hoyLima()) : null;
+  return (
+    <div className="space-y-6">
+      {/* Mercadería es el ranking (dirección «C», Felipe 2026-10-26): reemplaza a la tabla «A quién le compro y qué me deja», que contaba lo mismo. */}
+      {/* Con el ranking, los avisos van a su columna derecha; sin él (la base todavía sin el rendimiento), debajo como antes. */}
+      <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} rendimiento={rendimiento} hoy={hoyLima()} hallazgos={hallazgos} ventas={ventas} />
+      {hallazgos && !rendimiento && <LoQueQuizaNoVes guia="proveedores.analisis" hallazgos={hallazgos} />}
+    </div>
+  );
 }

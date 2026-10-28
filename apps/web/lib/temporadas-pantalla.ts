@@ -63,13 +63,26 @@ export type PrendaSinTemporada = {
    *  categoría» de la vista «Por completar». */
   categoriaId: string | null;
   categoria: string | null;
+  /** De qué marca es y quién la trae, o `null` si todavía no se registró (ADR-0283: pueden faltar, y son independientes).
+   *  Dos prendas pueden llamarse igual si son de marcas distintas (la clave única es marca + nombre): la marca es lo que
+   *  las distingue en la lista. El proveedor no identifica la prenda, pero es lo que la persona ya conoce del pedido. */
+  marca: string | null;
+  proveedor: string | null;
   /** Los colores que quedaron sin temporada (nombre del vocabulario; «Sin color» si la variante no tiene). */
   colores: string[];
   /** `false` si algún otro color de la prenda ya tiene la suya (una excepción por color puesta en la ficha). */
   todosSusColores: boolean;
 };
 
-export type ProductoParaTemporadas = { id: string; nombre: string; codigo: string | null; categoriaId: string | null };
+export type ProductoParaTemporadas = {
+  id: string;
+  nombre: string;
+  codigo: string | null;
+  categoriaId: string | null;
+  /** Nombres ya resueltos (la pantalla los busca en `marcas` y `proveedores`); `null` = la prenda no tiene. */
+  marca: string | null;
+  proveedor: string | null;
+};
 export type CategoriaParaTemporadas = { id: string; nombre: string; temporada: string | null; padreId: string | null };
 
 /** El nombre visible de cada categoría: la subcategoría lleva delante el de su padre. */
@@ -128,6 +141,8 @@ export function armarSinTemporada(
         codigo: p?.codigo ?? null,
         categoriaId: p?.categoriaId ?? null,
         categoria: p?.categoriaId ? (nombreCategoria.get(p.categoriaId) ?? null) : null,
+        marca: p?.marca ?? null,
+        proveedor: p?.proveedor ?? null,
         colores: colores.map((c) => (c ? (nombreColor.get(c) ?? c) : "Sin color")).sort((a, b) => a.localeCompare(b, "es")),
         todosSusColores: colores.length >= (coloresActivos.get(producto_id) ?? 0),
       };
@@ -153,11 +168,14 @@ export function prendasPorTemporada(filas: readonly TemporadaEfectiva[]): Record
   return Object.fromEntries([...porClave].map(([k, v]) => [k, v.size]));
 }
 
-/** Busca en la lista «Sin temporada» por nombre, código, categoría o color, sin tildes ni mayúsculas. */
+/** Busca en la lista «Sin temporada» por nombre, código, categoría, marca, proveedor o color, sin tildes ni mayúsculas:
+ *  todo lo que la lista muestra se puede buscar. */
 export function filtrarSinTemporada(prendas: readonly PrendaSinTemporada[], texto: string): PrendaSinTemporada[] {
   const k = clave(texto);
   if (!k) return [...prendas];
-  return prendas.filter((p) => clave([p.nombre, p.codigo, p.categoria, ...p.colores].filter(Boolean).join(" ")).includes(k));
+  return prendas.filter((p) =>
+    clave([p.nombre, p.codigo, p.categoria, p.marca, p.proveedor, ...p.colores].filter(Boolean).join(" ")).includes(k),
+  );
 }
 
 /** El año de hoy en Perú (a las 20:00 del 31 de diciembre en Lima, ya es el 1 de enero en UTC). */

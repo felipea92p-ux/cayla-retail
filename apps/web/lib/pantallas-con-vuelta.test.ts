@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ARBOL, type Nodo } from "./menu";
 
 // Toda pantalla interna tiene cómo volver (Felipe, 2026-09-26). Una pantalla interna es la que NO está en el lateral:
-// se llega a ella desde otra (Registrar factura desde Facturas de proveedor). Sin una vuelta, la única salida es el
+// se llega a ella desde otra (el detalle de una compra desde el Historial de compras). Sin una vuelta, la única salida es el
 // «atrás» del navegador, que en la tablet de la tienda nadie encuentra. La vuelta es `components/ui/Volver.tsx`.
 //
 // Esta prueba recorre TODAS las `page.tsx` de `app/(app)` y le exige a cada una que no esté en el menú una vuelta: un
@@ -19,7 +19,10 @@ const COMPONENTES = fileURLToPath(new URL("../components", import.meta.url));
 const EXCEPCIONES: Record<string, string> = {
   "/sin-acceso": "es el destino de un candado, no una pantalla a la que se entra",
   "/movimientos": "solo redirige a /inventario/movimientos",
+  "/inventario/mover": "solo redirige a /inventario/traslados/nuevo (ADR-0242 D-4); el formulario nuevo sí tiene su «← Traslados»",
   "/finanzas": "solo redirige a Resumen o Gastos",
+  "/compras/notas-credito": "solo redirige a /compras: las notas de crédito se retiraron (ADR-0480)",
+  "/gestion": "solo redirige a la primera de sus cuatro pantallas que la cuenta ve (ADR-0392)",
   "/buscar": "la abre la lupa de la cabecera, desde cualquier pantalla: no cuelga de un submódulo",
   "/produccion/cotizaciones-maquila": "no se llega desde ninguna pantalla todavía (URL directa, D-82)",
   // Raíces propias fuera del lateral: se abren desde la cabecera o el perfil, estando en cualquier pantalla.
@@ -42,6 +45,13 @@ const EXCEPCIONES: Record<string, string> = {
   "/vender/comprobantes/proformas": "pestaña de Comprobantes",
   "/vender/comprobantes/series": "pestaña de Comprobantes",
   "/produccion/eficiencia": "pestaña del Resumen de Producción",
+  "/compras/fondos": "pestaña de Historial de compras (ADR-0504)",
+  "/compras/por-pagar": "pestaña de Historial de compras (ADR-0504)",
+  "/compras/plan/historial": "pestaña del Plan de campaña",
+  "/compras/plan/presupuesto": "pestaña del Plan de campaña",
+  "/compras/plan/presupuesto/pagos": "parte del Presupuesto, pestaña del Plan de campaña (su selector «Costos y tope» queda arriba)",
+  "/compras/plan/calendario": "pestaña del Plan de campaña",
+  "/compras/plan/resultados": "pestaña del Plan de campaña",
 };
 
 function rutasDelMenu(nodos: readonly Nodo[], salida = new Set<string>()): Set<string> {
@@ -75,8 +85,9 @@ const TIENE_VUELTA = /<Volver\b|←/;
 function tieneVuelta(archivo: string): boolean {
   const texto = readFileSync(archivo, "utf8");
   if (TIENE_VUELTA.test(texto)) return true;
-  // La vuelta puede vivir en el componente que la página dibuja (Etiquetas de precio, el detalle de un conteo).
-  for (const [, nombre] of texto.matchAll(/from "@\/components\/([\w/]+)"/g)) {
+  // La vuelta puede vivir en el componente que la página dibuja (Etiquetas de precio, el detalle de un conteo). Con guion en la
+  // ruta también (`components/ordenes-compra/…`, 2026-10-10): sin él, la prueba no seguía las carpetas con nombre compuesto.
+  for (const [, nombre] of texto.matchAll(/from "@\/components\/([\w/-]+)"/g)) {
     const comp = join(COMPONENTES, `${nombre}.tsx`);
     if (existsSync(comp) && TIENE_VUELTA.test(readFileSync(comp, "utf8"))) return true;
   }

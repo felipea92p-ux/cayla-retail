@@ -63,9 +63,8 @@ describe("armarDetalleVenta", () => {
     expect(d.recibo?.lineas[0]?.detalle).toBe("M · Negro");
   });
 
-  it("el recibo dice quién atendió (primer nombre) y sin vendedor no se inventa", () => {
-    expect(d.recibo?.atendio).toBe("Rosa");
-    expect(armarDetalleVenta(filas, { ...ctx, vendedor: "Rosa Díaz Luna" }).recibo?.atendio).toBe("Rosa");
+  it("el recibo dice quién atendió (nombre y apellido) y sin vendedor no se inventa", () => {
+    expect(armarDetalleVenta(filas, { ...ctx, vendedor: "Rosa Díaz Luna" }).recibo?.atendio).toBe("Rosa Díaz Luna");
     expect(armarDetalleVenta(filas, { ...ctx, vendedor: null }).recibo?.atendio).toBeNull();
     expect(armarDetalleVenta(filas, { ...ctx, vendedor: "—" }).recibo?.atendio).toBeNull();
   });
@@ -123,5 +122,51 @@ describe("puedeImprimir — un papel que parece válido y no lo es, es peor que 
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.motivo.length).toBeGreaterThan(10);
     }
+  });
+});
+
+// ADR-0311: reimprimir una venta con redondeo da el MISMO papel que salió al cobrarla. La fila de redondeo de `venta_pagos` no es
+// una forma de pago: se separa de los pagos reales y se dice aparte.
+describe("armarDetalleVenta con el redondeo del efectivo", () => {
+  const blusa = { sku: "BLU-EMMA-NEG-M", codigo: null, talla: { valor: "M" }, color: { nombre: "Negro" }, producto: { referencia: "Blusa Emma" } };
+  const conRedondeo: FilasVenta = {
+    ...filas,
+    id: "v2",
+    items: [{ cantidad: 1, precio_unitario: 79.9, descuento_unitario: 0.02, variante: blusa }],
+    pagos: [
+      { metodo: "efectivo", monto: 79.8, recibido: 80 },
+      { metodo: "redondeo", monto: 0.08, recibido: null },
+    ],
+  };
+  const d = armarDetalleVenta(conRedondeo, ctx);
+
+  it("el redondeo sale aparte y NO es un pago: la lista de pagos trae solo el efectivo ya cobrado", () => {
+    expect(d.redondeo).toBe(0.08);
+    expect(d.pagos.map((p) => p.metodo)).toEqual(["efectivo"]);
+    expect(d.pagos[0]).toMatchObject({ monto: 79.8, recibido: 80, vuelto: 0.2 });
+    expect(d.vueltoTotal).toBe(0.2);
+  });
+
+  it("el total sigue siendo la suma de las líneas (79.88) y lo cobrado más el redondeo lo iguala", () => {
+    expect(d.total).toBe(79.88);
+    expect(Math.round((d.pagos.reduce((a, p) => a + p.monto, 0) + d.redondeo) * 100)).toBe(7988);
+  });
+
+  it("el recibo de la reimpresión trae el mismo redondeo, y el comprobante exacto", () => {
+    expect(d.recibo?.redondeo).toBe(0.08);
+    expect(d.recibo?.total).toBe(79.88);
+    expect(d.recibo?.pagos.map((p) => p.metodo)).toEqual(["efectivo"]);
+  });
+
+  it("una venta sin redondeo no cambia: redondeo 0 y los mismos pagos de siempre", () => {
+    expect(armarDetalleVenta(filas, ctx).redondeo).toBe(0);
+    expect(armarDetalleVenta(filas, ctx).pagos.map((p) => p.metodo)).toEqual(["efectivo", "yape"]);
+  });
+
+  it("sin comprobante imprimible igual separa el redondeo de los pagos", () => {
+    const sinComprobante = armarDetalleVenta({ ...conRedondeo, comprobante: null }, ctx);
+    expect(sinComprobante.recibo).toBeNull();
+    expect(sinComprobante.redondeo).toBe(0.08);
+    expect(sinComprobante.pagos.map((p) => p.metodo)).toEqual(["efectivo"]);
   });
 });

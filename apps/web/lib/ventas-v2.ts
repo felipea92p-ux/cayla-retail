@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
+import { documentoLegibleComprobante, esTipoDocComprobante } from "@/lib/documento-comprobante-reglas";
 import { clasificarBusqueda, DIAS_PLAZO_CAMBIO, type Busqueda } from "@/lib/cambios-reglas";
 import { diaLima, inicioDeDiaLima } from "@/lib/panel-serie";
+import { fotoDeVariante } from "@/lib/producto-fotos-reglas";
 
 // Prioridad 1 (2026-09-12) — historial mínimo de ventas, necesario para que
 // la pantalla de Cambios pueda encontrar QUÉ línea de QUÉ venta se está
@@ -82,20 +84,8 @@ async function ventasPorClienta(ubicacionId: string, campo: "documento" | "nombr
   let query = supabase.from("comprobantes").select("venta_id").not("venta_id", "is", null);
   query = campo === "documento" ? query.eq("cliente_num_doc", texto) : query.ilike("cliente_nombre", `%${literalParaIlike(texto)}%`);
   if (!todasLasSedes) query = query.eq("ubicacion_id", ubicacionId);
-  const filas = exigir(await query.order("created_at", { ascending: false }).limit(LIMITE_BUSQUEDA), "las compras de esa clienta");
+  const filas = exigir(await query.order("created_at", { ascending: false }).limit(LIMITE_BUSQUEDA), "las compras de ese cliente");
   return [...new Set(filas.map((f) => f.venta_id as string))];
-}
-
-/** Ventas pagadas con ese nº de operación (Yape, Plin o transferencia; `venta_pagos.referencia`, ADR-0230): la clienta
- *  perdió la boleta pero tiene la captura del pago. Mientras la columna no esté en la base (42703) no encuentra nada, sin
- *  error: la búsqueda por boleta o DNI sigue igual. */
-async function ventasPorOperacion(ubicacionId: string, texto: string, todasLasSedes: boolean): Promise<string[]> {
-  const supabase = await createClient();
-  let query = supabase.from("venta_pagos").select("venta_id, venta:ventas!inner ( ubicacion_id )").eq("referencia", texto);
-  if (!todasLasSedes) query = query.eq("venta.ubicacion_id", ubicacionId);
-  const res = await query.limit(LIMITE_BUSQUEDA);
-  if (res.error?.code === "42703") return [];
-  return [...new Set(exigir(res, "las ventas de ese nº de operación").map((f) => f.venta_id as string))];
 }
 
 /** Variantes de las prendas cuyo nombre contiene el texto ("blusa emma"). Tope de 10
@@ -139,13 +129,13 @@ async function buscarVentas(
   if (busqueda.tipo === "comprobante") {
     (await buscarVentaIdsPorComprobante(ubicacionId, busqueda.serie, busqueda.numero, todasLasSedes)).forEach((id) => candidatas.add(id));
   } else if (busqueda.tipo === "numero") {
-    // "45879632" puede ser el N° de una boleta, el DNI de la clienta o el nº de operación de su Yape: se buscan los tres.
-    const [porNumero, porDocumento, porOperacion] = await Promise.all([
+    // "45879632" puede ser el N° de una boleta o el DNI de la clienta: se buscan los dos. El nº de operación de Yape o Plin
+    // ya no (Felipe, 2026-10-02, ADR-0307): la caja dejó de pedirlo porque nunca se anotaba.
+    const [porNumero, porDocumento] = await Promise.all([
       busqueda.numero !== null ? buscarVentaIdsPorComprobante(ubicacionId, null, busqueda.numero, todasLasSedes) : Promise.resolve([]),
       ventasPorClienta(ubicacionId, "documento", busqueda.texto, todasLasSedes),
-      ventasPorOperacion(ubicacionId, busqueda.texto, todasLasSedes),
     ]);
-    [...porNumero, ...porDocumento, ...porOperacion].forEach((id) => candidatas.add(id));
+    [...porNumero, ...porDocumento].forEach((id) => candidatas.add(id));
   } else {
     // Una etiqueta exacta gana: si se escaneó una prenda, no hace falta adivinar más.
     variantesQueCalzan = await buscarVarianteIdsPorCodigo(busqueda.texto);
@@ -188,12 +178,15 @@ export async function idsDeVentasBuscadas(ubicacionId: string, texto: string, to
 
 /** Un cambio ya hecho sobre una línea: lo que se le entregó a la clienta y cuándo. */
 export type CambioHecho = {
+  /** Cuántas unidades de la línea se devolvieron en este cambio (no cuántas prendas se llevó: eso es `salidas`). */
   cantidad: number;
   creadoEn: string;
   productoId: string;
   referencia: string;
   talla: string | null;
   color: string | null;
+  /** Un cambio por VARIAS prendas (ADR-0470): todas las que se llevó, cada una con su cantidad. Ausente en un cambio de una por una. */
+  salidas?: { productoId: string; referencia: string; talla: string | null; color: string | null; cantidad: number }[];
 };
 
 /** Una devolución ya registrada sobre una línea — pendiente de aprobar o aprobada. Las
@@ -245,6 +238,9 @@ export type LineaVentaReciente = {
   /** Nombre de la sede donde se vendió, solo si NO es la sede desde la que se mira
    *  (resultado de buscar en todas las tiendas). */
   sedeVenta: string | null;
+  /** La tienda donde se vendió (siempre): un cambio de talla o color de la misma prenda se cobra al precio de ESA tienda
+   *  (`fn_precio_para_cambio`, Felipe 2026-10-10: «vale lo que pagó»). Opcional para quien arma una línea a mano. */
+  ubicacionVentaId?: string | null;
   /** Una venta anulada ya devolvió sus prendas al stock: se muestra si se la busca,
    *  pero no se puede cambiar (`registrar_cambio` también lo rechaza). */
   anulada: boolean;
@@ -309,7 +305,7 @@ export async function getVentasRecientes(
         `id, venta_id, variante_id, cantidad, precio_unitario, descuento_unitario,
          venta:ventas!inner ( ubicacion_id, created_at, usuario_id, asesora_id, estado, ubicacion:ubicaciones ( nombre ) ),
          variante:variantes ( sku, codigo, color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, producto_fotos ( url, color_codigo ) ) )`
+           producto:productos ( id, referencia, producto_fotos ( url, color_codigo, orden, es_principal ) ) )`
       )
       .in("venta_id", ventaIds),
     "las prendas de esas ventas"
@@ -331,7 +327,8 @@ export async function getVentasRecientes(
       .from("cambios")
       .select(
         `venta_item_id, cantidad, created_at,
-         variante_nueva:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( id, referencia ) )`
+         variante_nueva:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( id, referencia ) ),
+         salidas:cambio_salidas ( cantidad, variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( id, referencia ) ) )`
       )
       .in("venta_item_id", ids)
       .order("created_at"),
@@ -364,6 +361,17 @@ export async function getVentasRecientes(
       referencia: c.variante_nueva?.producto?.referencia ?? "",
       talla: c.variante_nueva?.talla?.valor ?? null,
       color: c.variante_nueva?.color?.nombre ?? null,
+      ...(c.salidas && c.salidas.length > 0
+        ? {
+            salidas: c.salidas.map((x) => ({
+              cantidad: x.cantidad,
+              productoId: x.variante?.producto?.id ?? "",
+              referencia: x.variante?.producto?.referencia ?? "",
+              talla: x.variante?.talla?.valor ?? null,
+              color: x.variante?.color?.nombre ?? null,
+            })),
+          }
+        : {}),
     });
     cambiosPorItem.set(c.venta_item_id, lista);
   }
@@ -386,8 +394,7 @@ export async function getVentasRecientes(
   for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
     if (!c.venta_id) continue;
     if (c.estado === "aceptado") ventasConComprobanteAceptado.add(c.venta_id);
-    const documento =
-      c.cliente_num_doc && c.cliente_tipo_doc !== "sin_documento" ? `${c.cliente_tipo_doc === "ruc" ? "RUC" : "DNI"} ${c.cliente_num_doc}` : null;
+    const documento = esTipoDocComprobante(c.cliente_tipo_doc) ? documentoLegibleComprobante(c.cliente_tipo_doc, c.cliente_num_doc) : null;
     const clienta = [c.cliente_nombre?.trim() || null, documento].filter(Boolean).join(" · ") || null;
     comprobantePorVenta.set(c.venta_id, {
       texto: `${ETIQUETA_TIPO[c.tipo as TipoComprobante] ?? c.tipo} ${c.serie}-${String(c.numero).padStart(6, "0")}`,
@@ -414,7 +421,7 @@ export async function getVentasRecientes(
       talla: f.variante?.talla?.valor ?? null,
       color: f.variante?.color?.nombre ?? null,
       colorHex: f.variante?.color?.hex ?? null,
-      fotoUrl: f.variante?.producto?.producto_fotos.find((p) => p.color_codigo === f.variante?.color_codigo)?.url ?? null,
+      fotoUrl: fotoDeVariante(f.variante?.producto?.producto_fotos ?? [], f.variante?.color_codigo ?? null),
       cantidad: f.cantidad,
       precioUnitario: Number(f.precio_unitario),
       descuentoUnitario: Number(f.descuento_unitario ?? 0),
@@ -427,6 +434,7 @@ export async function getVentasRecientes(
       comprobanteAceptado: ventasConComprobanteAceptado.has(f.venta_id),
       clienta: comprobante?.clienta ?? null,
       sedeVenta: f.venta && f.venta.ubicacion_id !== ubicacionId ? (f.venta.ubicacion?.nombre ?? null) : null,
+      ubicacionVentaId: f.venta?.ubicacion_id ?? null,
       anulada: f.venta?.estado === "anulada",
       coincideConBusqueda: variantesQueCalzan.has(f.variante_id),
     };

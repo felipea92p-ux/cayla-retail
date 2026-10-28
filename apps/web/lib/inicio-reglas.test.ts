@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mostrarHoy, nombreDiaLima, resumirHoy } from "./inicio-reglas";
+import { fuenteVentasDeHoy, mostrarHoy, nombreDiaLima, resumirHoy } from "./inicio-reglas";
 
 describe("mostrarHoy", () => {
   it("solo las tiendas venden", () => {
@@ -24,6 +24,17 @@ describe("Inicio de una terminal que no vende (sin tipo: lo que ve sale de su RO
 
 
 
+});
+
+describe("fuenteVentasDeHoy", () => {
+  it("la líder lee el día de toda la sede", () => {
+    expect(fuenteVentasDeHoy(true)).toBe("fn_ventas_del_dia");
+  });
+
+  it("una integrante lee solo lo que ella atendió: nunca el día de su tienda", () => {
+    // fn_ventas_del_dia le devolvía a una integrante TODAS las ventas de su tienda y el Inicio las mostraba como «Tus ventas».
+    expect(fuenteVentasDeHoy(false)).toBe("fn_mis_ventas_del_dia");
+  });
 });
 
 describe("nombreDiaLima", () => {

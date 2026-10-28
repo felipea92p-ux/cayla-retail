@@ -4,6 +4,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { FamiliasLista, type Familia } from "@/components/FamiliasLista";
 import { Volver } from "@/components/ui/Volver";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Familias del negocio (Indumentaria, Calzado, Accesorios y Complementos...).
 // Nace 2026-09-18 (20260918010000_familias_tabla_propia.sql) porque hasta
@@ -14,7 +15,7 @@ export default async function FamiliasPage() {
   const supabase = await createClient();
 
   const [resFamilias, resCategorias] = await Promise.all([
-    supabase.from("familias").select("codigo, nombre, activo, orden").order("orden"),
+    supabase.from("familias").select("codigo, nombre, activo, orden, entra_a_motores").order("orden"),
     supabase.from("categorias").select("familia").eq("activo", true),
   ]);
   const filas = exigir(resFamilias, "las familias del catálogo");
@@ -31,24 +32,34 @@ export default async function FamiliasPage() {
     nombre: f.nombre,
     activo: f.activo,
     orden: f.orden,
+    entraAMotores: f.entra_a_motores,
     categoriasActivas: conteoPorFamilia.get(f.codigo) ?? 0,
   }));
 
   return (
     <div className="space-y-6">
-      <div>
-        {/* Se llega desde Categorías (cada categoría cuelga de una familia): la vuelta es allá. */}
-        <Volver href="/productos/categorias" a="Categorías" className="mb-2" />
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Familias
-          <Ayuda titulo="Familias">
-            El agrupador grande del catálogo — Indumentaria, Calzado, Accesorios y Complementos...
-            — cada categoría (Blusas, Jeans, Carteras) pertenece a exactamente una. A diferencia de
-            Colores/Tallas/Tejidos/Patrones/Etiquetas: agregar una familia no es de un clic al
-            catalogar una prenda, es una decisión de marca — solo un Líder la agrega, edita o
-            desactiva. No se puede desactivar una con categorías activas colgando.
-          </Ayuda>
-        </h1>
+      <div data-guia="familias.cabecera">
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          volver={<Volver href="/productos/categorias" a="Categorías" />}
+          titulo={
+            <>
+              Familias
+              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
+              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
+                <Ayuda titulo="Familias">
+                  El agrupador grande del catálogo — Indumentaria, Calzado, Accesorios y Complementos...
+                  — cada categoría (Blusas, Jeans, Carteras) pertenece a exactamente una. A diferencia de
+                  Colores/Tallas/Tejidos/Patrones/Etiquetas: agregar una familia no es de un clic al
+                  catalogar una prenda, es una decisión de marca — solo un Líder la agrega, edita o
+                  desactiva. No se puede desactivar una con categorías activas colgando. Una familia
+                  también puede dejar de contar en Análisis, Frescura y el plan del piso (bolsas, cajas):
+                  sus ventas siguen entrando a caja, pero no se piden ni se cuentan como demanda.
+                </Ayuda>
+              </span>
+            </>
+          }
+        />
       </div>
 
       <FamiliasLista familiasIniciales={familias} puedeEditar={puede(persona, "editarCatalogo")} />

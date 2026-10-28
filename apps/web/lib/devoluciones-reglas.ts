@@ -4,7 +4,8 @@
 // dos: el plazo (R-38), el estado visual de una prenda, las validaciones y el impacto.
 //
 // Una devolución tiene DOS tiempos, y de ahí sale casi todo lo distinto a Cambios: la
-// colaboradora la REGISTRA (`crear_devolucion`, queda pendiente) y un líder la APRUEBA
+// colaboradora la REGISTRA (`crear_devolucion`, queda pendiente) y al revisarla la APRUEBA
+// quien ve Devoluciones en la tienda (ADR-0534: la líder la valida en persona, no con su cuenta)
 // (`aprobar_devolucion`: recién ahí se mueve el stock, se emite la nota de crédito y sale
 // el reembolso). Por eso lo que se valida al registrar es la solicitud, y lo de la caja se
 // valida al aprobar.
@@ -51,7 +52,7 @@ export function textoMotivo(motivo: MotivoDevolucion | null, detalle: string): s
 // Estado en que vuelve la prenda (R-39). Los valores son los del `check` de
 // `devolucion_items.condicion`. Las tres no vendibles hacen LO MISMO al aprobar (entran a
 // cuarentena); lo que cambia es la intención que queda anotada, y el destino final lo
-// decide después un líder con `resolver_prenda_danada`.
+// decide después quien ve Existencias en la tienda, con `resolver_prenda_danada` (ADR-0534).
 // ============================================================================
 
 export type CondicionDevolucion = "vendible" | "danada_reparacion" | "danada_donar" | "devolver_proveedor";
@@ -90,8 +91,8 @@ export function condicionDeItem(item: ItemElegido): CondicionDevolucion | null {
 
 // ============================================================================
 // Estado de una prenda vendida frente a una devolución (2026-09-18). A diferencia de
-// Cambios, FUERA DE PLAZO NO BLOQUEA: toda devolución ya pasa por la aprobación de un
-// líder, y él es quien decide (R-38 dice que dentro de los 15 días lo aplica cualquiera en
+// Cambios, FUERA DE PLAZO NO BLOQUEA: toda devolución ya pasa por una aprobación, y
+// quien la revisa es quien decide (R-38 dice que dentro de los 15 días lo aplica cualquiera en
 // caja; después, no está escrito quién). El plazo se muestra —en la lista, en la solicitud
 // y a quien aprueba— pero no se inventa un bloqueo nuevo sobre algo que hoy la base permite.
 // ============================================================================
@@ -104,7 +105,7 @@ export type EstadoPrendaDevolucion = EstadoVisual & { devolvible: boolean };
  *  boleta, no de la línea (`docs/pantallas/devoluciones.md` tarea #8). */
 export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisual {
   const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
-  // Rojo al vencer, y NO bloquea: solo dice que un líder tiene que decidir. Dentro del plazo el chip
+  // Rojo al vencer, y NO bloquea: solo dice que se decide al revisarla. Dentro del plazo el chip
   // dice cuántos días quedan (spike 2026-09-26, docs/maquetas/devoluciones-2026-09): es lo que la
   // colaboradora le contesta a la clienta, sin sacar la cuenta. Ámbar los últimos 3 días.
   if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
@@ -119,7 +120,7 @@ export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisu
  *  vuelve al piso y toda la que no, a cuarentena (`aprobar_devolucion` la manda a `prendas_danadas`,
  *  también la de «devolver al proveedor»). Rechazada: no se movió nada, sigue con la clienta. */
 export function destinoPrendaResuelta(estado: "aprobada" | "rechazada", condicion: string): { texto: string; tono: EstadoVisual["tono"] } {
-  if (estado === "rechazada") return { texto: "Se queda con la clienta", tono: "neutro" };
+  if (estado === "rechazada") return { texto: "Se queda con el cliente", tono: "neutro" };
   return condicion === "vendible" ? { texto: "Al piso", tono: "verde" } : { texto: "En cuarentena", tono: "ambar" };
 }
 
@@ -199,7 +200,7 @@ export function validarDevolucion(e: {
           estado: "aviso",
           tono: "rojo",
           titulo: "Fuera del plazo",
-          detalle: `La compra fue hace ${diasDesdeLaCompra} días; el plazo es de ${DIAS_PLAZO_CAMBIO}. Puedes registrarla: un líder decide si la acepta.`,
+          detalle: `La compra fue hace ${diasDesdeLaCompra} días; el plazo es de ${DIAS_PLAZO_CAMBIO}. Puedes registrarla: quien la revise decide si la acepta.`,
         }
       : {
           clave: "plazo",
@@ -255,7 +256,7 @@ export function validarDevolucion(e: {
 
 // ============================================================================
 // Impacto de la devolución, dicho ANTES de registrarla y sin prometer lo que todavía no
-// pasa: registrar no mueve nada; todo ocurre cuando un líder la aprueba
+// pasa: registrar no mueve nada; todo ocurre cuando se aprueba
 // (`aprobar_devolucion`): la prenda entra al piso o a cuarentena, se emite la nota de
 // crédito si la venta tiene un comprobante aceptado por SUNAT (ADR-0100), y el reembolso
 // —solo si lo decide quien aprueba— sale de la caja si es en efectivo.
@@ -277,7 +278,7 @@ export function impactoDevolucion(e: {
     })),
     caja: {
       titulo: "Al registrarla, la caja no se mueve",
-      detalle: `La clienta pagó ${soles(e.valorPagado)} por lo que devuelve. Si se le reembolsa, lo decide quien la apruebe.`,
+      detalle: `El cliente pagó ${soles(e.valorPagado)} por lo que devuelve. Si se le reembolsa, lo decide quien la apruebe.`,
     },
     documento: e.comprobanteAceptado
       ? {
@@ -289,23 +290,74 @@ export function impactoDevolucion(e: {
 }
 
 // ============================================================================
-// Aprobación (solo un líder). El reembolso es opcional y es la ÚLTIMA opción (R-37:
+// Aprobación (quien ve Devoluciones en la tienda, ADR-0534). El reembolso es opcional y es la ÚLTIMA opción (R-37:
 // primero un cambio, después nota de crédito o vale). `aprobar_devolucion` rechaza el
 // efectivo sin caja abierta (20260916180000): mejor decirlo antes de apretar el botón.
 // ============================================================================
+
+/** Una boleta o factura de la venta que todavía no está aceptada por SUNAT. */
+export type ComprobanteSinAceptar = { documento: string; estado: "pendiente" | "pendiente_reintento" | "enviado" | "rechazado" };
+
+const ESTADOS_EN_CAMINO = new Set<string>(["pendiente", "pendiente_reintento", "enviado", "rechazado"]);
+
+/** La boleta o factura de la venta que todavía no llega a SUNAT, si hay una (la más reciente). Espejo del candado de
+ *  `aprobar_devolucion` (20261012221000, Felipe 2026-10-12): mientras exista, la devolución no se aprueba —sin una boleta
+ *  aceptada no sale la nota de crédito, y la boleta llegaría después por el total—. Una nota de venta, una boleta liberada
+ *  (no_emitido) o anulada no van a SUNAT: no cuentan. */
+export function comprobanteSinAceptar(
+  comprobantes: readonly { tipo: string; estado: string; documento: string; creadoEn: string }[],
+): ComprobanteSinAceptar | null {
+  const enCamino = comprobantes
+    .filter((c) => (c.tipo === "boleta" || c.tipo === "factura") && ESTADOS_EN_CAMINO.has(c.estado))
+    .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))[0];
+  return enCamino ? { documento: enCamino.documento, estado: enCamino.estado as ComprobanteSinAceptar["estado"] } : null;
+}
+
+/** Lo que dice la pantalla (y la base, con las mismas palabras) cuando la boleta todavía no está aceptada. */
+export function textoEsperaSunat(c: ComprobanteSinAceptar): string {
+  const como = c.estado === "rechazado" ? "SUNAT la rechazó" : c.estado === "enviado" ? "se envió y SUNAT aún no responde" : "todavía no se envía";
+  const queHacer =
+    c.estado === "rechazado"
+      ? "Reintenta su envío en Comprobantes y, cuando SUNAT la acepte, vuelve a aprobar: así sale su nota de crédito."
+      : "Espera a que SUNAT la acepte y vuelve a aprobar: así sale su nota de crédito.";
+  return `La ${c.documento} de esta venta todavía no está aceptada por SUNAT (${como}). ${queHacer}`;
+}
+
+/** Cómo se pagó la venta, por medio (sin el anticipo de un apartado, que no es un medio con que se pueda devolver). */
+export type PagoDeLaVenta = { metodo: string; monto: number };
+
+/** El medio que la pantalla propone para el reembolso: con el que se pagó más (Felipe 2026-10-12: «libre, con aviso»). Si la
+ *  venta no trae pagos conocidos, efectivo, como antes. */
+export function medioSugeridoReembolso(pagos: readonly PagoDeLaVenta[], disponibles: readonly string[]): string {
+  const elegible = pagos.filter((p) => disponibles.includes(p.metodo) && p.monto > 0).sort((a, b) => b.monto - a.monto)[0];
+  return elegible?.metodo ?? "efectivo";
+}
 
 export function revisarAprobacion(e: {
   monto: number | null;
   metodo: string;
   cajaAbierta: boolean;
   valorPagado: number;
+  /** La boleta de la venta que todavía no llega a SUNAT: mientras haya una, no se aprueba (la base también lo exige). */
+  sinAceptar?: ComprobanteSinAceptar | null;
+  /** Cómo se pagó la venta. Elegir otro medio para devolver se permite (Felipe 2026-10-12), pero se avisa. */
+  pagos?: readonly PagoDeLaVenta[];
+  /** Cómo se llama cada medio en pantalla («Tarjeta», «Yape»). */
+  etiquetaMedio?: (metodo: string) => string;
 }): { bloqueo: string | null; aviso: string | null } {
+  if (e.sinAceptar) return { bloqueo: textoEsperaSunat(e.sinAceptar), aviso: null };
   if (e.monto !== null && (Number.isNaN(e.monto) || e.monto < 0)) return { bloqueo: "El monto del reembolso no puede ser negativo.", aviso: null };
   if (e.monto !== null && e.monto > 0 && e.metodo === "efectivo" && !e.cajaAbierta) {
     return { bloqueo: "La caja está cerrada: ábrela en Caja, o reembolsa con otro método.", aviso: null };
   }
   if (e.monto !== null && e.monto > e.valorPagado) {
-    return { bloqueo: null, aviso: `Es más de lo que pagó la clienta (${soles(e.valorPagado)}).` };
+    return { bloqueo: null, aviso: `Es más de lo que pagó el cliente (${soles(e.valorPagado)}).` };
+  }
+  const pagados = (e.pagos ?? []).filter((p) => p.monto > 0);
+  if (e.monto !== null && e.monto > 0 && pagados.length > 0 && !pagados.some((p) => p.metodo === e.metodo)) {
+    const nombre = e.etiquetaMedio ?? ((m: string) => m);
+    const como = pagados.map((p) => `${nombre(p.metodo)} (${soles(p.monto)})`).join(" y ");
+    return { bloqueo: null, aviso: `Esta venta se pagó con ${como}. Vas a devolver en ${nombre(e.metodo)}: confírmalo con el cliente.` };
   }
   return { bloqueo: null, aviso: null };
 }

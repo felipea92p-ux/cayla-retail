@@ -1,0 +1,56 @@
+{
+  "guia": "produccion.proveedores",
+  "ruta": "/produccion/proveedores",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 38,
+  "controles": {
+    "components/ProduccionSoloLider.tsx": [
+      "BotonVer «Ir a Órdenes»"
+    ],
+    "components/ProveedorProduccionModal.tsx": [
+      "CampoTexto «Nombre o razón social»",
+      "button «{r.ayuda}»",
+      "CampoTexto «RUC»",
+      "CampoTexto «Contacto»",
+      "CampoTexto «Teléfono»",
+      "CampoTexto «Plazo de crédito (días)»",
+      "CampoSelect «Forma de pago»",
+      "CampoTexto «Banco»",
+      "CampoTexto «N.° de cuenta»",
+      "CampoTexto «CCI (transferencia de otro banco)»",
+      "CampoTexto «Celular Yape / Plin»",
+      "button «{ETIQUETA_BILLETERA[b]}»",
+      "CampoTexto «Titular de la cuenta»",
+      "ComboResponsable «{responsable}»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/ProveedoresProduccionPanel.tsx": [
+      "Boton «prod-proveedores.nueva-tarifa»",
+      "Boton «prod-proveedores.nuevo»",
+      "Pestanas «→(c) => setVista(c as VistaProveedores)»",
+      "Boton «Agregar el primero»",
+      "button «{r.etiqueta}»",
+      "Casilla «Ver archivados»",
+      "Boton «Borrar la búsqueda»",
+      "Boton «Limpiar filtros»",
+      "button «{p.nombre}»"
+    ],
+    "components/proveedores-produccion/ServiciosYTarifas.tsx": [
+      "Boton «Agregar un servicio»",
+      "Boton «Cargar tarifa»",
+      "Boton «Cambiar»"
+    ],
+    "components/proveedores-produccion/TarifaServicioModal.tsx": [
+      "CampoSelect «{guia.etiqueta(\"servicio\", \"Servicio\")}»",
+      "CampoSelect «{guia.etiqueta(\"fase\", \"Fase\")}»",
+      "CampoMonto «{guia.etiqueta(\"tarifa\", \"Cuánto cobra por prenda\")}»",
+      "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo de prendas\")}»",
+      "CampoTexto «{guia.etiqueta(\"fijo\", \"Fijo por orden\")}»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ]
+  }
+}

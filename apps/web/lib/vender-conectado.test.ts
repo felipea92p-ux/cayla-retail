@@ -4,7 +4,7 @@ import { buscarVendiblePrimero, grupoDeResultado } from "./vender-buscador-regla
 import { hrefApartarDesdeTicket, leerPrendasDeUrl, lineasApartables } from "./apartar-desde-ticket";
 import { dniEnmascarado, lineaDeClienta, terminoBuscable } from "./clienta-ticket-reglas";
 import { precioEscribible } from "./prenda-sin-registrar-reglas";
-import { anchoBarraMeta, haceCuanto, nombreDeEspera, resumenDeHoy } from "./vender-hoy-reglas";
+import { alDiaConElServidor, anchoBarraMeta, conRelectura, haceCuanto, lecturaDelServidor, nombreDeEspera, resumenDeHoy, ticketParaEspera } from "./vender-hoy-reglas";
 
 const prenda = (id: string, referencia: string, stockAqui: number, almacenAqui: number | null = 0) => ({
   varianteId: id,
@@ -89,6 +89,44 @@ describe("resumen de hoy", () => {
   });
 });
 
+// Hallazgo 2026-10-10: con la cabecera en AQP, «Hoy» sumaba las ventas de TRU. La regla de qué lectura manda (el hook real, con el
+// cambio de sede de punta a punta, se prueba en `useVentasDeHoy.test.ts`).
+describe("de qué sede son las ventas de «Hoy»", () => {
+  const TRU = "tru";
+  const AQP = "aqp";
+  const deTru = [{ total: 5830.08 }];
+  const deAqp = [{ total: 1096.5 }];
+
+  it("sin nada nuevo del servidor, la MISMA lectura (no hace dibujar de nuevo)", () => {
+    const l = lecturaDelServidor(TRU, deTru, null);
+    expect(alDiaConElServidor(l, TRU, deTru, null)).toBe(l);
+  });
+
+  it("llega la lectura de otra sede: manda ella, con su fallo", () => {
+    const l = alDiaConElServidor(lecturaDelServidor(TRU, deTru, null), AQP, deAqp, null);
+    expect(l).toEqual({ ubicacionId: AQP, delServidor: deAqp, ventas: deAqp, fallo: null });
+    expect(alDiaConElServidor(l, TRU, [], "no cargó").fallo).toBe("no cargó");
+  });
+
+  it("una lectura nueva del servidor en la misma sede pisa lo releído en el navegador", () => {
+    const releida = conRelectura(lecturaDelServidor(AQP, deAqp, null), AQP, { ventas: [{ total: 1 }] });
+    const nueva = [{ total: 1176.4 }];
+    expect(alDiaConElServidor(releida, AQP, nueva, null).ventas).toBe(nueva);
+  });
+
+  it("una relectura de la sede de antes no toca nada", () => {
+    const l = lecturaDelServidor(AQP, deAqp, null);
+    expect(conRelectura(l, TRU, { ventas: deTru })).toBe(l);
+    expect(conRelectura(l, TRU, { fallo: "sin red" })).toBe(l);
+  });
+
+  it("una relectura que falla conserva la lista y pone el aviso; la siguiente que responde lo quita", () => {
+    const conAviso = conRelectura(lecturaDelServidor(AQP, deAqp, null), AQP, { fallo: "sin red" });
+    expect(conAviso).toMatchObject({ ventas: deAqp, fallo: "sin red" });
+    expect(conRelectura(conAviso, AQP, { ventas: deAqp }).fallo).toBeNull();
+  });
+});
+
 describe("nombre de un ticket en espera", () => {
   it("usa el que se escribió, sin espacios de sobra", () => {
     expect(nombreDeEspera("  Probador 2 ", 0)).toBe("Probador 2");
@@ -99,6 +137,44 @@ describe("nombre de un ticket en espera", () => {
   });
 });
 
+describe("un ticket en espera conserva su nombre", () => {
+  const linea = { cantidad: 1, precioUnitario: 120, descuentoUnitario: 0 };
+  const armar = (datos: Parameters<typeof ticketParaEspera<typeof linea, { id: string }>>[0], n: string) =>
+    ticketParaEspera(datos, `id-${n}`, `2026-10-12T1${n}:00:00.000Z`);
+
+  it("guarda el nombre que se escribió, sin espacios de sobra", () => {
+    const t = armar({ carrito: [linea], nota: "lo recoge el sábado", nombre: "  María ", clienta: null }, "0");
+    expect(t.nombre).toBe("María");
+    expect(nombreDeEspera(t.nombre, 1)).toBe("María");
+  });
+
+  it("sin nombre lo deja ausente, no como cadena vacía (así vuelve a ser «Ticket N»)", () => {
+    const t = armar({ carrito: [linea], nota: "", nombre: "   ", clienta: null }, "0");
+    expect(t.nombre).toBeUndefined();
+    expect(nombreDeEspera(t.nombre, 1)).toBe("Ticket 2");
+  });
+
+  // El bug del 2026-10-12: «María» se dejaba en espera, se retomaba, y al dejarla otra vez el intercambio de
+  // `retomar()` armaba el ticket sin `nombre` — la tira la mostraba como «Ticket 2» y la cajera perdía la referencia
+  // de qué clienta era cada ticket.
+  it("sobrevive el viaje completo: se deja, se retoma y se vuelve a dejar", () => {
+    const maria = armar({ carrito: [linea], nota: "", nombre: "María", clienta: { id: "c1" } }, "0");
+    const otra = armar({ carrito: [linea], nota: "", nombre: "Probador 1", clienta: null }, "1");
+    const enEspera = [maria, otra];
+
+    // Se retoma a María: su ticket pasa a la caja con nombre y clienta, y el que estaba en la caja (otra clienta,
+    // con SU nombre) ocupa su lugar en la tira.
+    const retomado = enEspera[0];
+    const deLaCaja = armar({ carrito: [linea, linea], nota: "paga en dos", nombre: "Probador 3", clienta: null }, "2");
+    const traselIntercambio = enEspera.map((t) => (t.id === retomado.id ? deLaCaja : t));
+    expect(traselIntercambio.map((t, i) => nombreDeEspera(t.nombre, i))).toEqual(["Probador 3", "Probador 1"]);
+
+    // Y María, que ahora está en la caja, se deja en espera otra vez: vuelve llamándose María, no «Ticket 3».
+    const deVuelta = armar({ carrito: retomado.carrito, nota: retomado.nota, nombre: retomado.nombre ?? "", clienta: retomado.clienta }, "3");
+    expect(nombreDeEspera(deVuelta.nombre, 2)).toBe("María");
+    expect(deVuelta.clienta).toEqual({ id: "c1" });
+  });
+});
 
 describe("apartar desde el ticket", () => {
   const A = "11111111-1111-4111-8111-111111111111";
@@ -130,11 +206,26 @@ describe("clienta del ticket", () => {
     expect(dniEnmascarado(null)).toBeNull();
   });
   it("sin nombre en la ficha, se muestra el documento", () => {
-    expect(lineaDeClienta({ id: "1", nombre: null, dni: "71234482", celular: null }).titulo).toBe("DNI 71•••482");
-    expect(lineaDeClienta({ id: "1", nombre: "María Quispe", dni: "71234482", celular: "987654321" })).toEqual({
+    expect(lineaDeClienta({ id: "1", nombre: null, documentoTipo: "dni", documentoNumero: "71234482", celular: null }).titulo).toBe("DNI 71•••482");
+    expect(lineaDeClienta({ id: "1", nombre: "María Quispe", documentoTipo: "dni", documentoNumero: "71234482", celular: "987654321" })).toEqual({
       titulo: "María Quispe",
       detalle: "DNI 71•••482 · Cel. 987654321",
     });
+  });
+  it("el carné de extranjería y el pasaporte salen con su tipo, también a medias (ADR-0288 D-2)", () => {
+    expect(lineaDeClienta({ id: "1", nombre: null, documentoTipo: "carne_extranjeria", documentoNumero: "001234567", celular: null }).titulo).toBe(
+      "CE 00•••567",
+    );
+    expect(lineaDeClienta({ id: "1", nombre: "Lucía Rossi", documentoTipo: "pasaporte", documentoNumero: "AB123456", celular: "987654321" })).toEqual({
+      titulo: "Lucía Rossi",
+      detalle: "Pasaporte AB•••456 · Cel. 987654321",
+    });
+    // Nunca dice «DNI» de un documento que no lo es.
+    expect(lineaDeClienta({ id: "1", nombre: "Lucía Rossi", documentoTipo: "pasaporte", documentoNumero: "AB123456", celular: null }).detalle).not.toContain("DNI");
+  });
+  it("sin documento, el celular; sin nada, «Cliente sin nombre»", () => {
+    expect(lineaDeClienta({ id: "1", nombre: null, documentoTipo: "dni", documentoNumero: null, celular: "987654321" }).titulo).toBe("Cel. 987654321");
+    expect(lineaDeClienta({ id: "1", nombre: "  ", documentoTipo: "pasaporte", documentoNumero: null, celular: null }).titulo).toBe("Cliente sin nombre");
   });
   it("no busca con menos de 3 caracteres", () => {
     expect(terminoBuscable(" 71 ")).toBeNull();

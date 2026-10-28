@@ -10,7 +10,7 @@
  *   · atomicidad: si algo falla DESPUÉS de haber recibido un comprobante, no queda nada;
  *   · quién cuenta: cualquier colaborador de la sede, y solo comprobantes de su sede;
  *   · lo fuera de comprobante con su origen (proveedor) y el regalo (no toca el costo);
- *   · el envío interno: confirma un traslado en tránsito, no crea stock de la nada;
+ *   · lo de otra sede NO se recibe aquí (ADR-0299): un traslado se rechaza ANTES de escribir nada y se recibe en Traslados;
  *   · los cierres y la nota de crédito conservan las reglas de sus RPC;
  *   · RLS: lectura por sede, escritura ninguna.
  *
@@ -20,9 +20,9 @@
  * comparten ~20 worktrees. Simula a Felipe (líder, cualquier sede) y a Micaela (integrante,
  * fija a Tienda Trujillo) con `set local request.jwt.claim.sub`, sin JWT real.
  *
- * `--en-seco`: antes de cada escenario carga DENTRO de su transacción las migraciones del
- * envío, así se prueban SIN haberlas aplicado a la base compartida. Sin el flag asume que
- * ya están aplicadas.
+ * `--en-seco`: antes de cada escenario carga DENTRO de su transacción la migración de ADR-0299
+ * (`recibir_envio` ya no recibe traslados), así se prueba SIN haberla aplicado a la base compartida.
+ * Sin el flag asume que ya está aplicada.
  *
  * DATOS. Del seed solo lo estable: los proveedores `Textiles Andina SAC` y
  * `Confecciones del Sur EIRL`, las ubicaciones `Taller` y `Tienda Trujillo` y la variante
@@ -46,7 +46,11 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — fija a Tienda Trujillo
 
 const EN_SECO = process.argv.includes("--en-seco");
-const MIGRACIONES = ["20260919120000_envios_recepcion_multiproveedor.sql", "20260919121000_recibir_envio.sql"];
+// Las migraciones del envío (multiproveedor y `recibir_envio`) llevan semanas aplicadas en el local, y `recibir_envio` ya no es
+// el del archivo original (candados, costo atípico): cargarlo de nuevo pisaría el cuerpo vivo. Lo único que `--en-seco` carga es la
+// migración que se está probando, que es un reemplazo anclado sobre la función que YA está en la base.
+const MIGRACION_TRASLADOS = "20261001140000_recibir_envio_ya_no_recibe_traslados.sql";
+const MIGRACIONES = [MIGRACION_TRASLADOS];
 const PRELUDIO = EN_SECO ? MIGRACIONES.map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")).join("\n") : "";
 
 function psql(sql) {
@@ -421,7 +425,7 @@ select retail.recibir_envio(:'taller', ${LISTA(ITEM("c1_item", 5))},
 );
 
 // ===========================================================================
-// EL ENVÍO INTERNO: confirma un traslado en tránsito, no crea stock de la nada
+// LO DE OTRA SEDE NO SE RECIBE AQUÍ (ADR-0299): un traslado se recibe en Traslados
 // ===========================================================================
 
 const TRASLADO_EN_CAMINO = (cantidad) => `
@@ -432,62 +436,102 @@ ${compra("cb", { prov: "prov2", lineas: [10], destino: "trujillo" })}
 select ${STOCK("trujillo")} as antes \\gset
 `;
 
-exito(
-  "envío interno: Micaela cuenta lo que vino del Taller y el traslado se confirma en el mismo envío (stock = comprobante + traslado)",
-  comoPersona(
-    FELIPE,
-    `${BASE}${TRASLADO_EN_CAMINO(5)}${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("cb_item", 10))},
-  p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', :'tr', 'lineas', ${LISTA(`jsonb_build_object('variante_id', :'var', 'cantidad', 5)`)})`)},
-  p_token => ${TOKEN}) as r \\gset
-${ENV()}select
-  (select estado from retail.transferencias where id = :'tr'),
-  (select count(*) from retail.envio_traslados where envio_id = :'env' and transferencia_id = :'tr'),
-  ${STOCK("trujillo")} - :antes,
-  (:'r'::jsonb -> 'traslados' -> 0 ->> 'resultado');
-rollback;
-`
-  ),
-  ["cerrada", "1", "15", "cerrada"]
-);
+const TRASLADO_5 = `p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', :'tr', 'lineas', ${LISTA(`jsonb_build_object('variante_id', :'var', 'cantidad', 5)`)})`)}`;
+const MENSAJE_VA_POR_TRASLADOS = "se recibe en Traslados";
 
-exito(
-  "envío interno con diferencia: lo contado no coincide con lo enviado → queda para que un líder lo cierre y no suma stock",
+error(
+  "un traslado se rechaza aunque venga con el comprobante de un proveedor: se recibe en Traslados",
   comoPersona(
     FELIPE,
     `${BASE}${TRASLADO_EN_CAMINO(5)}${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("cb_item", 10))},
-  p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', :'tr', 'lineas', ${LISTA(`jsonb_build_object('variante_id', :'var', 'cantidad', 4)`)})`)},
-  p_token => ${TOKEN}) as r \\gset
-${ENV()}select
-  (select estado from retail.transferencias where id = :'tr'),
-  (select count(*) from retail.envio_traslados where envio_id = :'env'),
-  ${STOCK("trujillo")} - :antes,
-  (:'r'::jsonb -> 'traslados' -> 0 ->> 'resultado');
-rollback;
+  ${TRASLADO_5}, p_token => ${TOKEN});
 `
   ),
-  ["recibido_con_diferencia", "1", "10", "recibido_con_diferencia"]
+  MENSAJE_VA_POR_TRASLADOS
 );
 
 error(
-  "un traslado que no viene hacia esta ubicación se rechaza",
-  comoPersona(
-    FELIPE,
-    `${BASE}${TRASLADO_EN_CAMINO(5)}${compra("cx", { prov: "prov1", lineas: [10], destino: "taller" })}select retail.recibir_envio(:'taller', ${LISTA(ITEM("cx_item", 1))},
-  p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', :'tr', 'lineas', ${LISTA(`jsonb_build_object('variante_id', :'var', 'cantidad', 5)`)})`)});
-`
-  ),
-  "no viene hacia esta ubicación o ya no está en tránsito"
+  "un traslado solo, sin ningún comprobante, también se rechaza con el mismo aviso",
+  comoPersona(FELIPE, `${BASE}${TRASLADO_EN_CAMINO(5)}${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${TRASLADO_5});\n`),
+  MENSAJE_VA_POR_TRASLADOS
 );
 
 error(
-  "un traslado sin líneas contadas se rechaza (cuenta aunque sea 0)",
+  "quien no puede recibir en la sede ve primero el aviso de permiso, no el del traslado",
+  comoPersona(
+    MICAELA,
+    `${BASE}select retail.recibir_envio(:'taller', p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', gen_random_uuid(), 'lineas', '[]'::jsonb)`)});\n`
+  ),
+  "No tienes permiso para recibir mercadería en esa ubicación"
+);
+
+// El rechazo ocurre ANTES de escribir nada: ni envío, ni lote, ni stock, ni el token consumido. Es lo que protege a quien tenga la
+// pantalla vieja abierta: ve el mensaje, quita el traslado y reintenta con el MISMO token y lo mismo que había contado.
+// `ON_ERROR_STOP off` + savepoint: el error no corta el script y se puede mirar qué quedó. `:ERROR` exige que el intento SÍ haya fallado
+// (si no, la prueba pasaría también con la puerta abierta: un éxito revertido por el savepoint también "no deja nada").
+exito(
+  "el rechazo no deja nada (ni envío, ni lote, ni stock, ni token gastado) y el mismo token después recibe lo del proveedor",
   comoPersona(
     FELIPE,
-    `${BASE}${TRASLADO_EN_CAMINO(5)}${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("cb_item", 10))},
-  p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', :'tr', 'lineas', '[]'::jsonb)`)});
+    `${BASE}${TRASLADO_EN_CAMINO(5)}${cambiaA(MICAELA)}select gen_random_uuid() as tok \\gset
+\\set ON_ERROR_STOP off
+savepoint intento;
+select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("cb_item", 10))}, ${TRASLADO_5}, p_token => :'tok');
+\\set fallo :ERROR
+\\set aviso :LAST_ERROR_MESSAGE
+rollback to savepoint intento;
+\\set ON_ERROR_STOP on
+select
+  (select count(*) from retail.envios where token_cliente = :'tok')                                                        as envios_tras_rechazo,
+  ${STOCK("trujillo")} - :antes                                                                                              as stock_tras_rechazo,
+  (select estado from retail.transferencias where id = :'tr')                                                                as traslado_sigue
+\\gset
+select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("cb_item", 10))}, p_token => :'tok') as r \\gset
+select :'fallo', position('se recibe en Traslados' in :'aviso') > 0, :envios_tras_rechazo, :stock_tras_rechazo, :'traslado_sigue',
+  ${STOCK("trujillo")} - :antes,
+  (select count(*) from retail.envios where token_cliente = :'tok'),
+  (:'r'::jsonb -> 'traslados')::text,
+  (select estado from retail.transferencias where id = :'tr');
+rollback;
 `
   ),
-  "Cuenta las prendas del traslado"
+  ["true", "t", "0", "0", "en_transito", "10", "1", "[]", "en_transito"]
+);
+
+// Lo que se rechaza aquí tiene su puerta: Traslados cuenta lo que llegó y pregunta si va al piso de venta o al almacén (ADR-0239, D-131).
+const SUMA_EN = (tipo) =>
+  `(select coalesce(sum(s.cantidad), 0) from retail.stock s join retail.sububicaciones u on u.id = s.sububicacion_id where s.variante_id = :'var' and s.ubicacion_id = :'trujillo' and u.tipo = '${tipo}')`;
+for (const [destino, enPiso, enAlmacen] of [
+  ["piso_venta", "5", "0"],
+  ["almacen_tienda", "0", "5"],
+]) {
+  exito(
+    `el traslado se recibe en Traslados y la ropa queda donde se eligió (${destino === "piso_venta" ? "piso de venta" : "almacén"})`,
+    comoPersona(
+      FELIPE,
+      `${BASE}${TRASLADO_EN_CAMINO(5)}${cambiaA(MICAELA)}select ${SUMA_EN("piso_venta")} as piso_antes, ${SUMA_EN("almacen_tienda")} as almacen_antes \\gset
+select retail.registrar_recepcion_traslado(:'tr', :'var', 5) \\gset
+select resultado as res from retail.confirmar_traslado(:'tr', '${destino}') \\gset
+select :'res', (select estado from retail.transferencias where id = :'tr'), ${STOCK("trujillo")} - :antes,
+  ${SUMA_EN("piso_venta")} - :piso_antes, ${SUMA_EN("almacen_tienda")} - :almacen_antes;
+rollback;
+`
+    ),
+    ["cerrada", "cerrada", "5", enPiso, enAlmacen]
+  );
+}
+
+exito(
+  "pegar la migración de ADR-0299 otra vez es inocuo: la función sigue con el guardia y sin el bloque viejo",
+  comoPersona(
+    FELIPE,
+    `${readFileSync(join(RAIZ, "supabase", "migrations", MIGRACION_TRASLADOS), "utf8")}
+select position('ADR-0299' in prosrc) > 0, position('confirmar_traslado' in prosrc) > 0, position('lo que vino de otra sede' in prosrc) > 0
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'recibir_envio';
+rollback;
+`
+  ),
+  ["t", "f", "f"]
 );
 
 // ===========================================================================
@@ -573,7 +617,7 @@ function main() {
     process.exit(1);
   }
 
-  if (EN_SECO) console.log("Modo --en-seco: las migraciones del envío se cargan dentro de cada escenario (no se aplican a la base).\n");
+  if (EN_SECO) console.log("Modo --en-seco: la migración de ADR-0299 se carga dentro de cada escenario (no se aplica a la base).\n");
 
   let fallos = 0;
   for (const caso of CASOS) {

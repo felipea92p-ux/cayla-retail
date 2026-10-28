@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { direccionDeSinBase } from "@/lib/base-caida-reglas";
 import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib/vista-global";
+import { esRutaPublica } from "@/lib/rutas-publicas";
+import { pasaComoCron } from "@/lib/rutas-cron";
 
 // Este archivo se llamaba `middleware.ts` hasta Next 16, que renombró la convención a
 // `proxy` (el nombre viejo sigue funcionando pero avisa en cada build que está deprecado).
@@ -20,13 +24,25 @@ import { RUTA_ELEGIR_SEDE, rutaDeLaVistaGlobal, VALOR_VISTA_GLOBAL } from "@/lib
 // archivo la haya cubierto. Toda escritura real de stock pasa además por RPC con
 // fn_puede_operar_sede (0012), que es la barrera que de verdad protege los datos.
 export async function proxy(request: NextRequest) {
-  // El trabajo programado de Vercel (PL-113) no trae sesión: trae `Bearer $CRON_SECRET`. Pasa sin tocar cookies y
-  // la ruta vuelve a comprobar la clave (esta barrera puede dejar de cubrirla si alguien cambia el matcher). Solo
-  // para SU ruta: la clave no abre ninguna otra pantalla ni API.
-  const cron = process.env.CRON_SECRET;
-  if (cron && request.nextUrl.pathname === "/api/lucode/reintentar" && request.headers.get("authorization") === `Bearer ${cron}`) {
+  // Los trabajos programados de Vercel (PL-113, la cola de SUNAT; ADR-0288 G-15, la conservación del club) no traen sesión:
+  // traen `Bearer $CRON_SECRET`. Pasan sin tocar cookies y cada ruta vuelve a comprobar la clave (esta barrera puede dejar de
+  // cubrirla si alguien cambia el matcher). Solo SUS rutas (`RUTAS_DE_CRON`): la clave no abre ninguna otra pantalla ni API.
+  if (pasaComoCron(request.nextUrl.pathname, request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.next();
   }
+
+  // Las páginas públicas del Club CAYLA (ADR-0288 act. g): el registro de cada tienda (`/club/<uuid>`, al que llevan el QR
+  // del cartel y el del ticket), la política y los términos. Las abre una clienta sin cuenta. Pasan antes de tocar la
+  // sesión —ni la piden ni la refrescan— y antes de la barrera de CAYLA Global (un aparato de la tienda con la cookie
+  // «global» las abriría igual). También las acciones del registro, que viajan como POST a esa misma ruta y se validan
+  // solas (`app/actions/club-registro.ts`). Solo esas tres formas: ver `lib/rutas-publicas.ts`.
+  if (esRutaPublica(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
+  // La pantalla que se pidió, para que quien la necesite del lado del servidor sepa a dónde volver (`/sin-base` cuando la base no
+  // responde: `lib/persona-actual.ts`). Se pisa siempre: lo que llegue de afuera con este nombre no vale.
+  request.headers.set("x-cayla-ruta", request.nextUrl.pathname + request.nextUrl.search);
 
   let response = NextResponse.next({ request });
 
@@ -59,12 +75,32 @@ export async function proxy(request: NextRequest) {
   // de validar, igual que antes; el setAll() de arriba sigue escribiendo las cookies
   // nuevas. Y si algún día el proyecto volviera a firmar con secreto simétrico, getClaims()
   // cae solo al viaje de red — se comporta como hoy, no se rompe.
-  const { data: verificado } = await supabase.auth.getClaims();
+  const { data: verificado, error: errorDeSesion } = await supabase.auth.getClaims();
   const haySesion = verificado?.claims != null;
+  // «No pude comprobar la sesión» no es «no hay sesión» (ADR-0450). Si el access token venció y renovarlo falló porque Auth no
+  // respondió (la base caída, un corte), la persona sigue con su sesión abierta: mandarla al login la hacía escribir su contraseña
+  // en una pantalla que tampoco podía hablar con la base. Lo mismo hace la tienda (`apps/tienda/proxy.ts`, «no_se»).
+  const noSePudoComprobar = !haySesion && errorDeSesion != null && isAuthRetryableFetchError(errorDeSesion);
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
   const isAuthCallback = request.nextUrl.pathname.startsWith("/auth");
   const isApi = request.nextUrl.pathname.startsWith("/api/");
+
+  if (noSePudoComprobar && !isLoginPage && !isAuthCallback) {
+    // A una ruta de API, un 503 que quien llama distingue de «sesión vencida» (el 401 de abajo hace que se pida volver a entrar).
+    if (isApi) {
+      return NextResponse.json(
+        { error: "No hay conexión con la base. Tu sesión sigue abierta; vuelve a intentarlo en un momento.", codigo: "base_no_responde" },
+        { status: 503, headers: { "Retry-After": "15", "Cache-Control": "no-store" } },
+      );
+    }
+    // A una pantalla, la que espera y vuelve sola. Una acción de servidor (POST) sigue de largo: falla con su propio aviso y lo que
+    // la persona escribió se queda en la pantalla.
+    if (request.method === "GET" || request.method === "HEAD") {
+      return NextResponse.redirect(new URL(direccionDeSinBase(request.nextUrl.pathname + request.nextUrl.search), request.url));
+    }
+    return response;
+  }
 
   if (!haySesion && !isLoginPage && !isAuthCallback) {
     // A una pantalla se la manda al login; a una ruta de API, no. Un `fetch()`
@@ -91,8 +127,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // ADR-0275: en CAYLA Global (la cookie de la sede dice «global») una pantalla que trabaja en UNA sede no se abre con
-  // los datos de la sede donde trabaja la persona bajo el título «CAYLA Global»: el inicio lleva al tablero y el resto, a
-  // elegir sede. Una sola barrera para todas las rutas, tengan o no `exigirModulo`. Solo navegaciones GET: una Server
+  // los datos de la sede donde trabaja la persona bajo el título «CAYLA Global»: lleva a elegir sede. El Inicio sí se abre
+  // (ADR-0322: para el Admin es el Observatorio, de toda CAYLA; a quien no es Admin la página lo manda al tablero). Una sola barrera para todas las rutas, tengan o no `exigirModulo`. Solo navegaciones GET: una Server
   // Action viaja como POST a la ruta donde se usa y se valida sola. No es un permiso —la cookie «global» solo la escribe
   // `cambiarUbicacionActiva` después de preguntarle a la base, y cada pantalla vuelve a preguntar—, es la perspectiva.
   const ruta = request.nextUrl.pathname;
@@ -106,12 +142,8 @@ export async function proxy(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.search = "";
-    if (ruta === "/") {
-      url.pathname = "/global";
-    } else {
-      url.pathname = RUTA_ELEGIR_SEDE;
-      url.searchParams.set("desde", ruta);
-    }
+    url.pathname = RUTA_ELEGIR_SEDE;
+    url.searchParams.set("desde", ruta);
     const redireccion = NextResponse.redirect(url);
     // Si getClaims() refrescó la sesión en esta misma petición, las cookies nuevas viajan con la redirección.
     response.cookies.getAll().forEach((c) => redireccion.cookies.set(c));
@@ -124,7 +156,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // `sw.js` y `sin-conexion.html` (ADR-0210) tampoco pasan por la sesión: el navegador pide el service worker sin
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
-  // `quitar-fondo.worker.js` (ADR-0228), igual: es código público; redirigido al login, el navegador recibía HTML
-  // donde esperaba JavaScript y el recortador no arrancaba.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `mac-etiquetas/` (ADR-0304), igual: el instalador del ayudante se baja con `curl`, sin sesión; redirigido al login,
+  // Terminal recibía HTML y la instalación fallaba. Son dos scripts públicos, sin datos.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|mac-etiquetas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

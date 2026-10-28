@@ -1,0 +1,74 @@
+{
+  "guia": "cambios",
+  "ruta": "/cambios",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 44,
+  "controles": {
+    "components/BuscadorVentas.tsx": [
+      "BotonBuscar «(sin nombre)»",
+      "button «posventa.escanear»",
+      "button «posventa.sin-comprobante»",
+      "Desplegable «{todas ? \"todas\" : \"aqui\"}»"
+    ],
+    "components/CambioReemplazo.tsx": [
+      "button «{hay ? `Talla ${t}»",
+      "button «{hay ? `Color ${nombre}»",
+      "button «{m.etiqueta}»",
+      "ComboBuscable «{`${idBase}»",
+      "button «Escanear»",
+      "Link «¿Nada de su agrado? Pasar a devolución»",
+      "button «{`Quitar la ${cual}»",
+      "ComboBuscable «{`${idBase}» #2",
+      "button «→onAgregarExtra»",
+      "button «{o.titulo}»",
+      "input «{`${idBase}»",
+      "Desplegable «{`${idBase}»"
+    ],
+    "components/CambioSalidas.tsx": [
+      "Link «{cuerpo}»"
+    ],
+    "components/CambioTicket.tsx": [
+      "a «(sin nombre)»",
+      "BotonImprimir «Imprimir ticket»",
+      "Link «Se lleva algo más: seguir vendiendo»",
+      "button «Nuevo cambio»"
+    ],
+    "components/CambiosFlujo.tsx": [
+      "input «prenda-a-cambiar»",
+      "Volver «→onCerrar»",
+      "Volver «→retroceder»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→retroceder» #2"
+    ],
+    "components/CambiosPanel.tsx": [
+      "button «Escanear prenda o boleta»"
+    ],
+    "components/CambiosVentas.tsx": [
+      "button «Iniciar cambio»",
+      "button «cambios.iniciar»"
+    ],
+    "components/ComprasAgrupadas.tsx": [
+      "button «{f.texto}»",
+      "Boton «Buscar en todas las tiendas»"
+    ],
+    "components/EscanerBusqueda.tsx": [
+      "button «Cerrar la cámara»",
+      "button «Buscar escribiendo»",
+      "SegmentoDeslizante «Qué hacer con la cámara»",
+      "button «Listo ·»",
+      "button «Mejor buscar escribiendo»"
+    ],
+    "components/FlujoGuiado.tsx": [
+      "Volver «→onVolver»",
+      "button «{hecho ? `Volver a «${nombre}»",
+      "button «{guia}»",
+      "button «{children}»",
+      "button «{children}» #2"
+    ],
+    "components/punto-de-venta/AnotarNoHabia.tsx": [
+      "Boton «→anotar»",
+      "button «{t}»",
+      "ComboResponsable «{responsable}»"
+    ]
+  }
+}

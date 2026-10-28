@@ -1,0 +1,4 @@
+## 2026-10-03 (Roles y accesos: Clientes con su propio grupo)
+Qué hice: en Roles y accesos, «Clientes» y «Avisos del club» salen de Ventas y forman su propio grupo «Clientes», igual que en el menú izquierdo; el módulo `clientas` se llama ahora «Fichas de clientes». Migración `20261004010000_modulos_grupo_clientes.sql` (dos `update` en `modulos`) + `lib/modulos.ts`. Nadie gana ni pierde un módulo.
+Por qué así: D-92 creó el grupo del MENÚ y dejó el módulo en «Ventas», así que las dos pantallas decían cosas distintas. El nombre no es «Fichas» a secas porque también aparece fuera del grupo (errores de roles, Actividad y el combo de pantalla principal).
+Felipe se lleva: con la migración pegada, en Colaboradores ▸ Roles y accesos aparece el grupo «Clientes» bajo Ventas, con «Fichas de clientes» y «Avisos del club», y cada rol conserva lo que tenía encendido.

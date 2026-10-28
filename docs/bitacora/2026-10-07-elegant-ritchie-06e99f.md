@@ -1,0 +1,4 @@
+## 2026-10-07 (Existencias: «Pedir a otra sede» ya ve a Trujillo)
+Qué hice: el cajón de una talla agotada decía «Otras sedes: Taller 15 · Trujillo 4» y, al lado, «Pedir a otra sede» apagado con «Ninguna tienda tiene». La red de stock guarda el nombre corto («Trujillo») y `sedesParaPedir` el completo («Tienda Trujillo»): se cruzaban por nombre y nunca coincidían. Ahora `enRed` lleva `ubicacionId` (`SedeConStockId`) y los cuatro cruces de Existencias (cajón, «¿Pedir?», `mejorOrigen`, misión del día) comparan por id; `origenesDeTalla` es pura y probada.
+Cómo verificas: Existencias en Tienda Lima → Blusa Valentina Blanco → talla L: «Pedir a otra sede · Trujillo tiene 4» encendido; la tarjeta ofrece «Pedir talla L». Prueba de regresión en `lib/existencias-panel-talla.test.ts`.
+Qué falta: nada en la base (sin migración ni RPC). Vender, Cambios y Apartados siguen usando el nombre solo para mostrar.

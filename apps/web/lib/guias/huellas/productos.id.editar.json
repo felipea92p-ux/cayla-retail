@@ -1,0 +1,215 @@
+{
+  "guia": "productos.id.editar",
+  "ruta": "/productos/[id]/editar",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 145,
+  "controles": {
+    "app/(app)/productos/[id]/editar/page.tsx": [
+      "Volver «{volverA}»"
+    ],
+    "components/BarraDeCambios.tsx": [
+      "Boton «Descartar»",
+      "Boton «Recargar la prenda»",
+      "Boton «Revisar y guardar»"
+    ],
+    "components/ConfirmarCambios.tsx": [
+      "ComboResponsable «{responsable}»",
+      "Volver «→cerrar»",
+      "Boton «Confirmar y guardar»",
+      "Casilla «{`Igualar ${t.sede}»"
+    ],
+    "components/ProductoForm.tsx": [
+      "BotonDeshacer «→() => deshacerCampo(campo)»",
+      "CampoTexto «Referencia»",
+      "ComboBuscable «{categoriaId}»",
+      "CampoTexto «Descripción (opcional)»",
+      "ComboBuscable «{tejidoId}»",
+      "ComboBuscable «{patronId}»",
+      "CampoTexto «Stock mínimo (opcional)»",
+      "CampoSelect «Temporada (opcional)»",
+      "button «Temporada por color»",
+      "CampoSelect «{temporadaColor[codigo] ?? SIN_PROPIA}»",
+      "BotonDeshacer «→() => deshacerCorreccion(c.claves, c.destino)»",
+      "BotonDeshacer «→() => setFilas((actual) => devolverColor(actual, c))»",
+      "BotonDeshacer «→() => setFilas((actual) => devolverTalla(actual, t))»",
+      "button «editar.agregar-color»",
+      "button «editar.agregar-talla»",
+      "button «Ir a»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/AvisoParecidos.tsx": [
+      "Link «Abrir»",
+      "Link «{p.referencia}»",
+      "Casilla «Es otro producto distinto, créalo igual.»",
+      "Link «{p.referencia}» #2"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «(sin nombre)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/ElegirMarcaProveedor.tsx": [
+      "button «Quitar»",
+      "ComboBuscable «buscar-marca»",
+      "button «Quitar» #2",
+      "ComboBuscable «buscar-proveedor»",
+      "button «+ Registrar una marca o un proveedor nuevo»"
+    ],
+    "components/alta-producto/FotosAlta.tsx": [
+      "button «{etiqueta}»",
+      "input «(sin nombre)»",
+      "button «{etiqueta}» #2"
+    ],
+    "components/alta-producto/GrillaMuestras.tsx": [
+      "button «{title}»",
+      "button «Ver todos»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevaMarcaForm.tsx": [
+      "button «Cambiar»",
+      "ComboBuscable «nm-marca»",
+      "button «+ Proveedor nuevo»",
+      "button «Cambiar» #2",
+      "CampoTexto «Razón social»",
+      "CampoTexto «11 dígitos»",
+      "button «Mejor elijo uno que ya existe»",
+      "ComboBuscable «nm-prov»",
+      "button «Cancelar»",
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «{familia}»",
+      "CampoTexto «Código»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/ficha-producto/AgregarColoresModal.tsx": [
+      "button «Quitar»"
+    ],
+    "components/ficha-producto/CambiarEnBloque.tsx": [
+      "SegmentoDeslizante «Qué cambiar»",
+      "Desplegable «{alcanceVigente}»",
+      "input «{campo === \"precio\" ? \"Nuevo precio\" : \"Nuevo costo\"}»",
+      "button «Aplicar»"
+    ],
+    "components/ficha-producto/EtiquetasDeLaMatriz.tsx": [
+      "button «Poner en todas»",
+      "button «Quitar de todas»"
+    ],
+    "components/ficha-producto/FotosPorColor.tsx": [
+      "Desplegable «{opcionesPasar(f.colorCodigo)}»",
+      "button «Quitar»",
+      "button «{`Ver o cambiar las fotos de ${titulo}»",
+      "button «Principal»",
+      "button «Quitar» #2",
+      "button «Ponerla primera»",
+      "Desplegable «{opcionesPasar}»",
+      "button «Listo»"
+    ],
+    "components/ficha-producto/ImprimirLoQueEntro.tsx": [
+      "button «Más tarde»",
+      "BotonImprimir «Imprimir»"
+    ],
+    "components/ficha-producto/MatrizStockFicha.tsx": [
+      "SegmentoDeslizante «Qué se escribe en la tabla»",
+      "button «Reintentar»",
+      "button «editar.corregir-talla»",
+      "button «{quitarTitulo}»",
+      "button «{`Ver ${nombreColor}»",
+      "button «{b.corregir.titulo}»",
+      "button «{b.quitar.titulo}»",
+      "button «{h.puede ? `Agregar ${donde}»",
+      "button «{`${nombreElegida}»",
+      "input «{`Precio de ${etiqueta}»",
+      "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»"
+    ],
+    "components/ficha-producto/PanelDelTaller.tsx": [
+      "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
+      "input «(sin nombre)»",
+      "button «{n.color(c)}»",
+      "Boton «Abrir la ficha»",
+      "button «editar.falta»"
+    ],
+    "components/ficha-producto/PrecioSedeModal.tsx": [
+      "CampoSelect «Tienda»",
+      "CampoTexto «Precio (S/)»",
+      "CampoTexto «Por qué esta tienda tiene otro precio»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "CampoTexto «Por qué (opcional)»",
+      "ComboResponsable «{responsable}» #2",
+      "Boton «Cancelar» #2",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+    ],
+    "components/ficha-producto/PreciosPorSede.tsx": [
+      "Boton «{textoPoner}»",
+      "Boton «{`Cambiar el precio de ${f.sede}»",
+      "Boton «{`Quitar el precio de ${f.sede}»",
+      "Boton «{`Poner un precio propio en ${f.sede}»"
+    ],
+    "components/ficha-producto/PuertaAjustarStock.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Ajustar stock»"
+    ],
+    "components/ficha-producto/QuitarVarianteHoja.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Llevarlo a 0 en Existencias»",
+      "Boton «Cancelar» #2",
+      "Boton «Archivar»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/ficha-producto/SeccionFicha.tsx": [
+      "button «{hecho ? \"✓\" : numero}»"
+    ],
+    "components/ficha-producto/UnidadesDePartida.tsx": [
+      "button «+1 a todas»",
+      "button «En 0»"
+    ],
+    "components/ficha-producto/piezas.tsx": [
+      "ComboBuscable «{id}»",
+      "input «0.00»",
+      "input «0.00» #2",
+      "button «Cancelar»",
+      "button «{texto}»",
+      "button «{fuera ? `${etiqueta}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/FichaDeConsumoHoja.tsx": [
+      "Pestanas «{[ { clave: \"tela\", etiqueta: \"Tela\"}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»",
+      "SegmentoDeslizante «Cuántas cifras»",
+      "CampoTexto «{`Talla ${t}»",
+      "CampoTexto «{variasTallas ? \"Todas las tallas\" : \"Metros por prenda\"}»",
+      "CampoSelect «Avío»",
+      "CampoSelect «Para»",
+      "CampoTexto «{`${(insumo?.unidad ?? delModelo?.unidad) === \"cono\" ? \"conos\" : \"unid.\"}»",
+      "Boton «{delEstante.length === 0 ? \"Todavía no hay avíos en Insumos\" : undefined}»",
+      "Boton «{oferta.etiqueta}»",
+      "Boton «Sí,»",
+      "Boton «Mejor no»"
+    ]
+  }
+}

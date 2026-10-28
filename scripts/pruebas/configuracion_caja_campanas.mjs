@@ -17,6 +17,11 @@
  * CÓMO. Igual que `caja_cierre_traslado.mjs`: cada escenario en su transacción con ROLLBACK (nunca se commitea nada en el
  * Postgres local compartido), sesión simulada con `request.jwt.claim.sub`, `pg_temp.intento` para leer el error.
  *
+ * LAS FECHAS. Cada fecha escrita a mano pide la meta de UN día o de UN mes concretos de 2026: `fn_parametros_caja` y
+ * `fn_meta_mes` no miran el día de hoy y las campañas de la semilla tienen fechas fijas. Por eso no vencen. «La meta de
+ * hoy» de los casos 5 y 8 es la del jueves 24-sep (1,700, sin campaña) a propósito: lo que afirman es que se puede leer,
+ * no qué día es. Revisado el 2026-10-01 con «hoy» simulado en cinco fechas (ver la bitácora de ese día).
+ *
  * USO
  *   pnpm pruebas:configuracion-caja    → con la migración ya aplicada en el local
  */
@@ -128,7 +133,7 @@ select pg_temp.intento('insert into retail.campana_efecto_caja (etiqueta_id, ubi
   const r = correr(`${ESCENA}
 select retail.guardar_efecto_campana(:'gato', :'tru', 0, null) as _c \\gset
 select count(*) from retail.campana_efecto_caja where etiqueta_id = :'gato';
-select count(*) from retail.configuracion_historial where hecho_en >= now() - interval '1 minute';`);
+select count(*) from retail.configuracion_historial where hecho_en >= now() - interval '1 minute' and que in ('metas_tienda', 'efecto_campana');`);
   const [quedan, hist] = r.ok ? r.salida.split("\n") : [];
   esperar("0 % y sin fondo = volver a lo normal: la fila se quita", r.ok && Number(quedan) === 0, r);
   esperar("los 4 cambios quedan en el historial", r.ok && Number(hist) === 4, r);

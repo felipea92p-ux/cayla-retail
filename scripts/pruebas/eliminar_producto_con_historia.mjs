@@ -11,13 +11,17 @@
  *   · el RESPALDO es real: `scripts/purga/restaurar-purga.sql` lo devuelve fila por fila, idéntico;
  *   · lo que pregunta la ventana (`fn_producto_como_eliminar`): nivel, si ESTA cuenta puede, la razón, cuántas prendas y
  *     movimientos se van, y quién lo cargó;
- *   · solo un Admin: un Líder que no es Admin ve «con historia» pero no puede; una integrante y `anon` ni preguntan;
- *     `fn_producto_historia` no se puede llamar desde la API;
+ *   · quien edita el catálogo (ADR-0252, act. 2026-10-03; antes solo un Admin): un Líder que no es Admin y una integrante con
+ *     Productos lo eliminan (rastro y Actividad a su nombre); un rol sin Productos ni Categorías/atributos y `anon` ni
+ *     preguntan; `fn_producto_historia` no se puede llamar desde la API;
  *   · DOCUMENTOS frenan hasta al Admin, sin llevarse nada: una venta (el seed), un apartado abierto, un ingreso de proveedor;
  *   · sin historia también funciona (es un superconjunto de `eliminar_producto`); la pieza «Monto manual» nunca; un
  *     producto que ya no existe lo dice;
  *   · red de seguridad: si una tabla nueva cita un movimiento y la función no la conoce, la llave lo frena, no queda nada a
  *     medias y los candados siguen como estaban;
+ *   · el cuadre del piso (ADR-0328): un producto cuyas prendas pasaron por el cuadre se elimina con su línea del cuadre (historia
+ *     de stock, como una bajada), la cabecera del cuadre de la sede se queda, el candado vuelve a su modo y restaurar la
+ *     devuelve idéntica;
  *   · DERIVA: toda tabla que cite `movimientos` está clasificada (la función la borra, o su historia frena el borrado).
  *
  * CÓMO. Igual que `eliminar_producto.mjs`: cada escenario en su transacción con ROLLBACK y sesión simulada con
@@ -39,6 +43,7 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (y Admin en el seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante
 const CENTINELA = "11111111-1111-4111-8111-111111111111"; // el producto de «Monto manual»
+const SIN_PERMISO = "42501|-|No puedes eliminar productos: tu rol no edita el catálogo (módulo «Productos»). Pídele al líder que lo active.";
 
 function psql(sql) {
   return execFileSync(
@@ -194,6 +199,10 @@ insert into retail.apartados (variante_id, ubicacion_id, sububicacion_id, cantid
 select pg_temp.mov(:'a2', :'tienda', :'piso', 'entrada', 5, 'carga_inicial', :'yo') as _m \\gset
 insert into retail.pedidos_no_atendidos (ubicacion_id, producto_id) values (:'tienda', :'pa');
 select pg_temp.mov(:'b1', :'tienda', :'almacen', 'entrada', 4, 'carga_inicial', :'yo') as m_b \\gset
+-- En producción la escena ya estaría confirmada cuando el Admin elimina: se disparan aquí los disparadores diferidos
+-- (Actividad, ADR-0207), o el «alter table … disable trigger» del borrado choca con sus eventos pendientes. Solo los de
+-- Actividad: las demás comprobaciones diferidas siguen al final, como en producción.
+set constraints retail.trg_actividad_movimientos, retail.trg_actividad_conteo_nuevo, retail.trg_actividad_traslado_nuevo immediate;
 `;
 
 let fallos = 0;
@@ -304,25 +313,32 @@ select count(*) || '|' || max(modulo) from retail.actividad where accion = 'purg
   esperar("Actividad cuenta la restauración en el módulo Productos", r.ok && actividad === "1|productos", r);
 }
 
-// 5. Un Líder que NO es Admin: la ventana le dice que hay historia y que él no puede; la función lo frena.
+// 5. Un Líder que NO es Admin: desde el 2026-10-03 también puede (edita el catálogo). La ventana se lo dice y lo elimina.
 {
   const r = correr(`${ESCENA}
 update public.personas set rol = 'integrante' where auth_user_id = '${FELIPE}';
 select retail.fn_es_lider()::text || '|' || retail.fn_es_admin()::text;
 select pg_temp.como(:'pa');
-select pg_temp.intento(format('select retail.eliminar_producto_con_historia(%L)', :'pa'));
-select pg_temp.huella(:'pa');`);
-  const [perfil, como, intento, despues] = lineas(r);
+select retail.eliminar_producto_con_historia(:'pa');
+select pg_temp.huella(:'pa');
+select pg_temp.candados();`);
+  const [perfil, como, devuelto, despues, cand] = lineas(r);
   esperar("(preparación) la cuenta es Líder y no Admin", r.ok && perfil === "true|false", r);
-  esperar("la ventana: con historia, pero esta cuenta NO puede", r.ok && como === `con_historia|false|${HISTORIA_A}|13|7|Felipe Alvarez|true`, r);
-  esperar("eliminar con su historia: 42501, solo una cuenta Admin", r.ok && intento === "42501|-|Solo una cuenta Admin puede eliminar un producto con su historia.", r);
-  esperar("y no se llevó nada", r.ok && HUELLA_A.test(despues), r);
+  esperar("la ventana: con historia, y esta cuenta SÍ puede", r.ok && como === `con_historia|true|${HISTORIA_A}|13|7|Felipe Alvarez|true`, r);
+  esperar("lo elimina con su historia", r.ok && devuelto === "Prueba A", r);
+  esperar("no queda nada suyo", r.ok && despues === "0|0|0|0|0|0|0|0|0|0|0", r);
+  esperar("y cada candado volvió a su modo", r.ok && cand === CANDADOS, r);
 }
 
-// 6. Una integrante y anon ni preguntan; la definición de historia no se llama desde la API.
+// 6. Un rol que no ve Productos ni Categorías/atributos (no edita el catálogo) y anon ni preguntan; la definición de historia
+//    no se llama desde la API.
 {
   const r = correr(`${ESCENA}
+update retail.roles set limitado_como_hoy = false where clave = 'integrante';
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'existencias');
 ${sesion(MICAELA)}
+select retail.fn_puede_editar_catalogo()::text;
 select pg_temp.intento(format('select * from retail.fn_producto_como_eliminar(%L)', :'pa'));
 select pg_temp.intento(format('select retail.eliminar_producto_con_historia(%L)', :'pa'));
 set local role authenticated;
@@ -332,12 +348,39 @@ set local role anon;
 select pg_temp.intento(format('select retail.eliminar_producto_con_historia(%L)', :'pa'));
 reset role;
 select pg_temp.huella(:'pa');`);
-  const [como, eliminar, historia, anon, despues] = lineas(r);
-  esperar("una integrante no consulta la ventana (42501)", r.ok && como === "42501|-|Solo un líder puede eliminar productos.", r);
-  esperar("ni elimina con historia (42501)", r.ok && eliminar === "42501|-|Solo una cuenta Admin puede eliminar un producto con su historia.", r);
+  const [edita, como, eliminar, historia, anon, despues] = lineas(r);
+  esperar("(preparación) una integrante que solo ve Existencias no edita el catálogo", r.ok && edita === "false", r);
+  esperar("no consulta la ventana (42501)", r.ok && como === SIN_PERMISO, r);
+  esperar("ni elimina con historia (42501)", r.ok && eliminar === SIN_PERMISO, r);
   esperar("fn_producto_historia no se puede llamar desde la API", r.ok && historia.includes("permission denied for function fn_producto_historia"), r);
   esperar("anon ni siquiera puede llamar la función", r.ok && anon.includes("permission denied for function eliminar_producto_con_historia"), r);
   esperar("y el producto sigue completo", r.ok && HUELLA_A.test(despues), r);
+}
+
+// 6b. La cuenta de almacén (2026-10-03): una integrante que ve Productos elimina con su historia lo que se registró por
+//     error. El rastro y la línea de Actividad quedan a SU nombre, y la ventana igual le dice quién lo cargó.
+{
+  const r = correr(`${ESCENA}
+update retail.roles set limitado_como_hoy = false where clave = 'integrante';
+delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante');
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'productos');
+select p.id as ella from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
+${sesion(MICAELA)}
+select retail.fn_puede_editar_catalogo()::text || '|' || retail.fn_es_lider()::text;
+select pg_temp.como(:'pa');
+select retail.eliminar_producto_con_historia(:'pa');
+select pg_temp.huella(:'pa');
+select pg_temp.libro_cuadra_no();
+select count(*) || '|' || (max(usuario_id::text) = :'ella')::text
+  from retail.historial_producto_cambios where entidad = 'producto' and entidad_id = :'pa' and campo = 'eliminado';
+select count(*) || '|' || (max(persona_id::text) = :'ella')::text from retail.actividad where tabla = 'productos' and registro_id = :'pa' and accion = 'producto_eliminado';`);
+  const [perfil, como, devuelto, despues, libro, rastro, actividad] = lineas(r);
+  esperar("(preparación) la integrante edita el catálogo y no es líder", r.ok && perfil === "true|false", r);
+  esperar("la ventana: con historia, puede, y dice que lo cargó Felipe Alvarez", r.ok && como === `con_historia|true|${HISTORIA_A}|13|7|Felipe Alvarez|true`, r);
+  esperar("lo elimina con su historia", r.ok && devuelto === "Prueba A" && despues === "0|0|0|0|0|0|0|0|0|0|0", r);
+  esperar("el libro sigue cuadrando", r.ok && libro === "0", r);
+  esperar("el rastro queda a nombre de ella", r.ok && rastro === "1|true", r);
+  esperar("y la línea de Actividad también", r.ok && actividad === "1|true", r);
 }
 
 // 7. Un producto con ventas (el seed): ni el Admin; se nombra el documento y no se lleva nada.
@@ -447,10 +490,29 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
 // BORRA con el producto (agrégala a `eliminar_producto_con_historia` y a su respaldo, y a restaurar-purga.sql) o si su
 // historia FRENA el borrado (agrégala a `fn_producto_historia` con borrable = false).
 {
-  const LAS_BORRA = ["conteo_items", "bajada_piso_items", "apartados", "movimientos_internos_intentos"];
+  const LAS_BORRA = ["conteo_items", "bajada_piso_items", "cuadre_piso_items", "apartados", "movimientos_internos_intentos"];
   // Frenan: devoluciones y cambios (vienen de una venta), traslados entre sedes, prendas dañadas, envíos de proveedor, costos.
-  const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial"];
-  const conocidas = [...LAS_BORRA, ...FRENAN].map((t) => `'retail.${t}'`).join(", ");
+  // despacho_recibidos (ADR-0362 fase 4): lo contado al recibir un envío de orden de compra; la prenda ya la frena «ingresos recibidos
+  // de un proveedor» (movimientos con lote), así que nunca llega a borrarse.
+  // traslado_sobrantes (ADR-0404): lo contado de más al recibir un traslado cita los movimientos de su revisión; cuelga de una
+  // recepción de traslado de la misma prenda, que ya frena el borrado, así que nunca llega a borrarse.
+  // costo_correcciones (ADR-0515): la corrección del costo de una compra cita el movimiento de esa compra; cuelga de una fila de
+  // costo_historial de la misma prenda, que ya frena el borrado, así que nunca llega a borrarse.
+  const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial", "costo_correcciones", "despacho_recibidos", "traslado_sobrantes"];
+  // Se van solas, en cascada, cuando la función borra su movimiento: una marca que solo une filas que ya se borran (la
+  // corrección «en la mano» con su bajada, ADR-0328). No se respaldan: restaurar una purga devuelve la corrección y la
+  // bajada, sin la marca que las unía.
+  const EN_CASCADA = ["bajadas_en_mano"];
+  const conocidas = [...LAS_BORRA, ...FRENAN, ...EN_CASCADA].map((t) => `'retail.${t}'`).join(", ");
+  const cascada = correr(`select coalesce(string_agg(c.conrelid::regclass::text, ', '), 'NINGUNA')
+    from pg_constraint c
+   where c.contype = 'f' and c.confrelid = 'retail.movimientos'::regclass and c.confdeltype <> 'c'
+     and c.conrelid::regclass::text in (${EN_CASCADA.map((t) => `'retail.${t}'`).join(", ")});`);
+  esperar(
+    `las que se van en cascada de verdad tienen «on delete cascade» hacia movimientos${cascada.ok && cascada.salida !== "NINGUNA" ? ` — SIN CASCADA: ${cascada.salida}` : ""}`,
+    cascada.ok && cascada.salida === "NINGUNA",
+    cascada
+  );
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c
    where c.contype = 'f' and c.confrelid = 'retail.movimientos'::regclass
@@ -466,9 +528,9 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
 // historial) tiene que estar en su lista `c_candados`: si no, el borrado falla entero en producción con «no se borra».
 // Si esta prueba falla, nació un candado nuevo: agrégalo a `c_candados` (y a CANDADOS arriba) o saca esa tabla del borrado.
 {
-  const BORRA = ["movimientos", "movimientos_internos_intentos", "bajada_piso_items", "conteo_items", "apartados", "pedidos_no_atendidos",
+  const BORRA = ["movimientos", "movimientos_internos_intentos", "bajada_piso_items", "cuadre_piso_items", "conteo_items", "apartados", "pedidos_no_atendidos",
     "stock", "codigos_barras", "producto_fotos", "variantes", "variante_etiquetas", "producto_color_temporadas", "productos"];
-  const APAGA = ["movimientos_inmutables", "movimientos_internos_intentos_inmutables", "bajada_piso_items_inmutables"];
+  const APAGA = ["movimientos_inmutables", "movimientos_internos_intentos_inmutables", "bajada_piso_items_inmutables", "cuadre_piso_items_inmutables"];
   // Los que no frenan: cuentan la versión del catálogo (después de la sentencia) o solo miran inserciones y ediciones.
   const r = correr(`select coalesce(string_agg(t.tgrelid::regclass::text || '.' || t.tgname::text, ', ' order by 1), 'NINGUNO')
     from pg_trigger t
@@ -480,6 +542,38 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
     r.ok && r.salida === "NINGUNO",
     r
   );
+}
+
+// 15. El cuadre del piso (ADR-0328, revisión adversarial del 2026-10-04): un producto cuyas prendas pasaron por el cuadre
+// es historia de STOCK (un traslado interno de la misma tienda, como una bajada). Se elimina con su línea del cuadre; la
+// cabecera del cuadre (la fecha del cuadre de la sede) se queda; el candado vuelve a su modo; restaurar la devuelve idéntica.
+{
+  const r = correr(`${ESCENA}
+-- Lo que cuadrar_piso deja de un cuadre: el traslado interno almacén → piso, la cabecera de la sede y la línea.
+select pg_temp.mov(:'a1', :'tienda', :'almacen', 'traslado', 1, 'movimiento_interno', :'yo', :'piso') as m_cuadre \\gset
+insert into retail.cuadres_piso (ubicacion_id, persona_id, token_cliente, huella, escaneo_desde, resumen, nota)
+  values (:'tienda', :'yo', gen_random_uuid(), md5('prueba'), now(), '{}'::jsonb, 'prueba de eliminar') returning id as cuadre \\gset
+insert into retail.cuadre_piso_items (movimiento_id, cuadre_id, variante_id, sentido, cantidad) values (:'m_cuadre', :'cuadre', :'a1', 'al_piso', 1);
+set constraints retail.trg_actividad_movimientos immediate;
+select string_agg(t.tgname::text || '=' || t.tgenabled::text, ',') as candado_antes from pg_trigger t where t.tgname = 'cuadre_piso_items_inmutables' \\gset
+select pg_temp.como(:'pa');
+select retail.eliminar_producto_con_historia(:'pa');
+select (select count(*) from retail.cuadre_piso_items where variante_id in (:'a1', :'a2')) || '|' || (select count(*) from retail.cuadres_piso where id = :'cuadre')
+    || '|' || ((select string_agg(t.tgname::text || '=' || t.tgenabled::text, ',') from pg_trigger t where t.tgname = 'cuadre_piso_items_inmutables') = :'candado_antes')::text
+    || '|' || pg_temp.libro_cuadra_no();
+select purga from respaldo_purgas.filas where purga like 'eliminado %' order by id desc limit 1 \\gset
+select count(*) from respaldo_purgas.filas where purga = :'purga' and tabla = 'cuadre_piso_items';
+reset role;
+select set_config('cayla_purga.nombre', :'purga', true) as _c \\gset
+${RESTAURAR}
+select (select count(*) from retail.cuadre_piso_items where movimiento_id = :'m_cuadre' and cuadre_id = :'cuadre' and variante_id = :'a1' and sentido = 'al_piso' and cantidad = 1)
+    || '|' || pg_temp.libro_cuadra_no();`);
+  const [como, devuelto, despues, respaldo, restaurado] = lineas(r).filter((x) => !/^\s*$/.test(x)).slice(-5);
+  esperar("cuadre · la ventana lo cuenta como historia de stock: con historia, puede, y dice «cuadres del piso (1)»", r.ok && /^con_historia\|true\|.*cuadres del piso \(1\)/.test(como), r);
+  esperar("cuadre · se elimina con su línea del cuadre", r.ok && devuelto === "Prueba A", r);
+  esperar("cuadre · no queda su línea; la cabecera del cuadre de la sede se queda; el candado volvió a su modo; el libro cuadra", r.ok && despues === "0|1|true|0", r);
+  esperar("cuadre · el respaldo guarda la línea del cuadre", r.ok && respaldo === "1", r);
+  esperar("cuadre · restaurar la devuelve idéntica y el libro sigue cuadrando", r.ok && restaurado === "1|0", r);
 }
 
 console.log(`\n${casos - fallos}/${casos} casos pasaron.`);

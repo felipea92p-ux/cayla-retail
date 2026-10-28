@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ACCIONES_SIN_RESPONSABLE, ENCABEZADO_OMITIDO, encabezadosOmitidos, firmaOmitida } from "./responsable-omitido";
 import { encabezadosResponsable, firmaDeEncabezados, firmar } from "./responsable-reglas";
@@ -9,23 +9,51 @@ import { encabezadosResponsable, firmaDeEncabezados, firmar } from "./responsabl
 //  2. La firma omitida sale como UN encabezado con la clave; la firma de siempre no cambió.
 
 const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20260929230000_acciones_sin_responsable.sql", import.meta.url), "utf8");
+// La descripción vigente de cada clave: la de la siembra, con los `update … set descripcion` de migraciones posteriores encima
+// (20261002160000: «clienta» → «cliente», ADR-0288 act. k).
+const DIR = new URL("../../../supabase/migrations/", import.meta.url);
+const DESCRIPCION_VIGENTE = new Map([...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'([^']*)'\)/gm)].map((m) => [m[1]!, m[2]!]));
+for (const f of readdirSync(DIR).filter((x) => /^\d{14}_.+\.sql$/.test(x) && x > "20260929230000").sort()) {
+  const sql = readFileSync(new URL(f, DIR), "utf8");
+  for (const m of sql.matchAll(/update retail\.acciones_sin_responsable set descripcion = '([^']*)' where clave = '([a-z0-9_]+)'/g)) {
+    DESCRIPCION_VIGENTE.set(m[2]!, m[1]!);
+  }
+  // Las acciones que se suman después (20261002170000: los tres de Avisos del club; 20261005100100, 20261005110000 y 20261005120000: cerrar, reabrir e identificar en la cola de arranque).
+  for (const ins of sql.matchAll(/insert into retail\.acciones_sin_responsable \(clave, descripcion\) values([\s\S]*?);/g)) {
+    for (const m of ins[1]!.matchAll(/\('([a-z0-9_]+)',\s*'([^']*)'\)/g)) DESCRIPCION_VIGENTE.set(m[1]!, m[2]!);
+  }
+  // Las que vuelven a pedir responsable (20261004204000 y 20261006200000: Regularizar prenda, ADR-0328; 20261006180100: Editar producto, ADR-0354).
+  for (const m of sql.matchAll(/^delete from retail\.acciones_sin_responsable where clave = '([a-z0-9_]+)';/gm)) DESCRIPCION_VIGENTE.delete(m[1]!);
+}
 
 describe("acciones sin responsable", () => {
   const clavesBase = [...MIGRACION.matchAll(/^\s+\('([a-z0-9_]+)',\s*'/gm)].map((m) => m[1]);
 
-  it("la web y la migración tienen exactamente las mismas 28 claves", () => {
+  it("la web y las migraciones tienen exactamente las mismas claves: las 28 de la siembra, las 3 de Avisos del club, las tres de la cola de arranque (cerrar, reabrir e identificar), crear, editar y anular una orden de compra, registrar o anular su comprobante y enviarla a una sede o anular el envío (ADR-0362), crear, editar y anular una orden de insumos del Taller y registrar su comprobante (ADR-0362, fase 7), entregar, devolver y anular la plata de un fondo, registrar un gasto del viaje y sumarle la foto de su papel, rendir el propio fondo y aprobar o devolver una rendición, y pagar o anular el pago de la deuda de un faltante (ADR-0362, fase 6), el recorte de una foto al subirla (ADR-0434) deshacer la unión de una cuenta de Google con un miembro (ADR-0469) anotar o confirmar la plata para compras, registrar una compra desde el celular, anotar un gasto que no es ropa, mandar a la tienda, terminar el día de compras y abrir la ronda (ADR-0480), menos Editar producto (ADR-0354) y Regularizar prenda", () => {
     expect(clavesBase).toHaveLength(28);
-    expect([...clavesBase].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
+    expect([...DESCRIPCION_VIGENTE.keys()].sort()).toEqual(Object.keys(ACCIONES_SIN_RESPONSABLE).sort());
+    expect(DESCRIPCION_VIGENTE.size).toBe(64);
+    expect(DESCRIPCION_VIGENTE.has("producto_confirmar_cambios")).toBe(false);
+    expect(DESCRIPCION_VIGENTE.has("regularizar_prenda")).toBe(false);
   });
 
-  it("cada clave lleva la misma descripción en la web y en la base", () => {
+  it("cada clave lleva la misma descripción en la web y en la base (la siembra, con sus cambios posteriores)", () => {
     for (const [clave, texto] of Object.entries(ACCIONES_SIN_RESPONSABLE)) {
-      expect(MIGRACION, clave).toContain(`('${clave}', '${texto}')`);
+      expect(DESCRIPCION_VIGENTE.get(clave), clave).toBe(texto);
     }
   });
 
-  it("ninguna acción de dinero, caja ni venta está soltada", () => {
-    for (const clave of Object.keys(ACCIONES_SIN_RESPONSABLE)) expect(clave).not.toMatch(/caja|venta|gasto|cierre_mes|devolucion|pago/);
+  // Una excepción, con su motivo: el gasto del viaje (ADR-0362 fase 6 · actividad 3, provisional hasta que Felipe lo revise) se anota en
+  // Gamarra, lejos de toda tienda, donde nadie puede «marcar su entrada»; con su cuenta firma ella, como las órdenes de compra (decisión 39).
+  // La foto de su papel (actividad 5) no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).
+  // Su reemplazo en Compras simple (ADR-0480, actividad 5), «Gasté en otra cosa», se anota en el mismo lugar y no mueve plata en los libros.
+  // Y su revisión (actividad 7, «Revisar compras»): como confirmar la plata o completar el papel, la hace quien tiene el módulo con su cuenta.
+  const SOLTADAS_LEJOS_DEL_KIOSCO = new Set(["gasto_viaje_registrar", "gasto_viaje_foto", "gasto_rapido", "gasto_revisar"]);
+  it("ninguna acción de dinero, caja ni venta está soltada (salvo el gasto del viaje, que se anota lejos de la tienda)", () => {
+    for (const clave of Object.keys(ACCIONES_SIN_RESPONSABLE)) {
+      if (SOLTADAS_LEJOS_DEL_KIOSCO.has(clave)) continue;
+      expect(clave).not.toMatch(/caja|venta|gasto|cierre_mes|devolucion|pago/);
+    }
   });
 
   it("firmar(consulta, firmaOmitida(clave)) manda solo el encabezado de la clave", () => {

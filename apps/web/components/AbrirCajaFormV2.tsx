@@ -6,14 +6,17 @@ import { TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { diferenciaApertura, leerMonto, motivoAperturaValido } from "@/lib/caja-cierre-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 /**
@@ -21,15 +24,24 @@ function money(n: number) {
  * cajón antes de abrir: con un toque si coincide, o escribiendo cuánto hay y por qué no coincide. La diferencia queda
  * guardada y le aparece al líder en Inicio. Sin `esperado` (cierres anteriores a ADR-0186) se escribe el monto como
  * siempre. El candado real está en `abrir_caja`: esto solo lo explica antes de enviar.
+ *
+ * `enHoja` (Vender, ADR-0301): dentro de la hoja «Abrir caja» de Vender no dibuja su propia tarjeta (la hoja ya lo es) ni repite «Abrir
+ * caja» encima del título, y pone las dos opciones lado a lado. Con «Nadie de turno» la hoja angosta pasaba los 800 px
+ * de alto; así, más ancha, cabe en un laptop (Felipe 2026-10-01).
  */
 export function AbrirCajaFormV2({
   ubicacionId,
   ubicacionEtiqueta,
   esperado,
+  enHoja = false,
+  onCancelar,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   esperado: number | null;
+  enHoja?: boolean;
+  /** Dentro de la hoja de Vender: «Cancelar» antes de «Abrir caja», la salida a la vista de toda hoja que guarda (ADR-0358, ronda 12). */
+  onCancelar?: () => void;
 }) {
   const router = useRouter();
   const [opcion, setOpcion] = useState<"igual" | "otro" | null>(esperado === null ? "otro" : null);
@@ -73,12 +85,12 @@ export function AbrirCajaFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card-cayla space-y-4 p-5">
+    <form data-guia="caja.abrir" onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
       <div>
-        <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>
-        <h2 className="font-display mt-0.5 text-2xl text-tinta">
+        {!enHoja && <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>}
+        <TituloSeccion className="mt-0.5">
           {esperado === null ? `${ubicacionEtiqueta} no tiene una caja abierta` : "Antes de abrir, cuenta el cajón"}
-        </h2>
+        </TituloSeccion>
       </div>
 
       {esperado !== null && (
@@ -90,7 +102,7 @@ export function AbrirCajaFormV2({
               ahora: si abres con un monto que no está, cualquier faltante de hoy va a parecer tuyo.
             </p>
           </div>
-          <div role="radiogroup" aria-label="¿Cuánto hay en el cajón?" className="grid gap-2">
+          <div role="radiogroup" aria-label="¿Cuánto hay en el cajón?" className={`grid gap-2 ${enHoja ? "sm:grid-cols-2" : ""}`}>
             <Opcion
               activa={opcion === "igual"}
               onElegir={() => setOpcion("igual")}
@@ -117,8 +129,8 @@ export function AbrirCajaFormV2({
             <label className={campoEtiqueta} htmlFor="apertura-monto">
               {esperado === null ? "Monto con el que abres (efectivo en el cajón)" : "¿Cuánto hay en el cajón?"}
             </label>
-            <div className="flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-              <span className="font-display text-xl text-tinta/50">S/</span>
+            <div className="caja-cayla caja-campo caja-campo-alta">
+              <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
               <input
                 id="apertura-monto"
                 inputMode="decimal"
@@ -127,21 +139,21 @@ export function AbrirCajaFormV2({
                 placeholder="0.00"
                 value={montoTexto}
                 onChange={(e) => setMontoTexto(e.target.value)}
-                className="font-display w-full bg-transparent py-1 text-2xl tabular-nums text-tinta outline-none"
+                className="font-display self-stretch py-0 text-2xl tabular-nums"
               />
             </div>
           </div>
           {diferencia === 0 && esperado !== null && (
-            <p className="rounded-lg bg-verde/10 px-3 py-2 text-sm text-verde-profundo">Coincide con el último cierre.</p>
+            <Aviso tono="exito" chico>
+              Coincide con el último cierre.
+            </Aviso>
           )}
           {pideMotivo && (
             <>
-              <p
-                className={`rounded-lg px-3 py-2 text-xs ${diferencia! < 0 ? "bg-rojo/10 text-rojo-profundo" : "bg-ambar/10 text-ambar-profundo"}`}
-              >
+              <Aviso tono={diferencia! < 0 ? "error" : "atencion"} chico>
                 {diferencia! < 0 ? "Faltan" : "Sobran"} <b>{money(Math.abs(diferencia!))}</b> respecto al último cierre. Se
                 abrirá con {money(monto!)} y el líder de equipo lo verá en Inicio.
-              </p>
+              </Aviso>
               <div className="space-y-1.5">
                 <label className={campoEtiqueta} htmlFor="apertura-motivo">
                   ¿Qué pasó? <span className="normal-case tracking-normal text-tinta/50">(obligatorio si no coincide)</span>
@@ -160,14 +172,25 @@ export function AbrirCajaFormV2({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={loading} />
-      <button
-        type="submit"
-        disabled={loading || !listo || !responsable.listo}
-        title={responsable.motivo ?? undefined}
-        className={`${botonPrimario} w-full`}
-      >
-        {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
-      </button>
+      {enHoja && onCancelar ? (
+        <div className="pie-acciones">
+          <Boton type="button" onClick={onCancelar} disabled={loading}>
+            Cancelar
+          </Boton>
+          <Boton peso="primario" cargando={loading} textoCargando="Abriendo…" type="submit" disabled={loading || !listo || !responsable.listo} title={responsable.motivo ?? undefined} className="flex-1">
+            {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+          </Boton>
+        </div>
+      ) : (
+        <Boton peso="primario" cargando={loading} textoCargando="Abriendo…"
+          type="submit"
+          disabled={loading || !listo || !responsable.listo}
+          title={responsable.motivo ?? undefined}
+          className={`flex-1 w-full`}
+        >
+          {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+        </Boton>
+      )}
     </form>
   );
 }

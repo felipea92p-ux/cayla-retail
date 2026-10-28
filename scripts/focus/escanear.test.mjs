@@ -38,16 +38,17 @@ test("tieneCampos: un control en JSX cuenta; un comentario o un texto no", () =>
   assert.equal(tieneCampos("<input type='text' />"), true);
   assert.equal(tieneCampos("<ComboBuscable valor={v} />"), true);
   assert.equal(tieneCampos("<form onSubmit={x}>"), true);
+  assert.equal(tieneCampos("<Buscador valor={q} onCambio={setQ} />"), true);
   assert.equal(tieneCampos("// un Campo de texto y un input, sin JSX"), false);
   assert.equal(tieneCampos("<Tabla filas={f} />"), false);
 });
 
 test("tieneGuia: cuenta el USO de las piezas, no clases ni nombres parecidos", () => {
   assert.equal(tieneGuia("<FaltanDelPaso faltan={f} />"), true);
-  assert.equal(tieneGuia("<TiraFicha pendientes={p} />"), true);
   assert.equal(tieneGuia("<EtiquetaAhora />"), true);
   assert.equal(tieneGuia("const g = useGuiaAlta();"), true);
   assert.equal(tieneGuia("irAlIdCampo(id)"), true);
+  assert.equal(tieneGuia("const retener = useRetenerLuz(id, guia);"), true);
   assert.equal(tieneGuia('import { x } from "@/lib/compra-guia";'), true);
   // las piezas de los modales
   assert.equal(tieneGuia("const guia = useGuiaCampos([]);"), true);
@@ -90,6 +91,8 @@ test("esModal y contarControles", () => {
   assert.equal(esModal('<Modal titulo="x" onClose={c}>'), true);
   assert.equal(esModal("<ModalRuta titulo='x' />"), true);
   assert.equal(esModal("<Dialog.Content>"), true);
+  assert.equal(esModal('<Cajon titulo="x" onCerrar={c}>'), true);
+  assert.equal(esModal("<CajonMovimiento mov={m} />"), false);
   assert.equal(esModal("// un modal cualquiera, sin JSX"), false);
   assert.equal(contarControles('<CampoTexto etiqueta="a" /><CampoSelect /><input /><Tabla />'), 3);
   assert.equal(contarControles("<Tabla />"), 0);
@@ -218,6 +221,7 @@ test("modales: un modal que no se tocó no aparece en el alcance «tocadas» per
 test("modales: los archivos que definen las piezas no cuentan como modales ni como «tener guía»", () => {
   assert.ok(DEFINEN_LA_GUIA.has(`${W}components/guia-de-foco/CampoGuiado.tsx`));
   assert.ok(DEFINEN_LA_GUIA.has(`${W}components/guia-de-foco/useGuiaCampos.tsx`));
+  assert.ok(DEFINEN_LA_GUIA.has(`${W}components/guia-de-foco/useRetenerLuz.ts`));
 });
 
 test("informe: lista los modales sin guía y dice cuántos controles trae cada uno", () => {

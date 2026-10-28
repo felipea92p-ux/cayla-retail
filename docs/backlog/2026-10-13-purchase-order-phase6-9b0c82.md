@@ -1,0 +1,97 @@
+## Compras ▸ fase 6 de las órdenes de compra: fondo por rendir y gastos del viaje (2026-10-13) — rama `claude/purchase-order-phase6-9b0c82`
+
+ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–76). Lista de 8 actividades aprobada por Felipe el 2026-10-13; el
+2026-10-14 la de contabilidad se partió en dos y quedaron 9 (decisión 73). PR #1055
+(borrador). Con la autorización de Felipe de esa noche, cada actividad se sube y sus migraciones se pegan en producción al cerrarla (no se
+fusiona).
+
+- [x] Actividad 1 · base del fondo y Compras ▸ Fondos por rendir (`20261013181000`, `20261013182000`). En producción.
+- [x] Actividad 2 · pagar desde «Mi fondo» (`20261013212000`). En producción.
+- [x] Actividad 3 · gastos del viaje (`20261013221000`, `20261013222000`). En producción.
+- [x] Actividad 4 · «Tu fondo» en Órdenes de compra y en el Inicio (`20261013231000`). En producción.
+- [x] Actividad 5 · rendición (`20261013233000`, `234000` —bucket y políticas, solas— y `235000`): rendir, aprobar (faltante asumido →
+  6599 o deuda → 1419), devolver o retirar, lo rendido congelado y las fotos de los gastos del viaje. En producción.
+- [ ] Felipe (actividad 5, provisional): un sobrante no se rinde; 1419 y 6599 hasta el contador; la dueña puede retirar su rendición; el
+  tablero cuenta el faltante dentro de «Gastó». La deuda se ve y, desde la actividad 7, se salda cuando la persona devuelve la plata.
+- [x] Actividad 6 · lo «no deducible» (`20261014002000`, decisiones 55, 56, 57, 68 y 70): la regla de la bancarización y el tope de la
+  planilla de movilidad (parámetro tributario con vigencias, en Configuración ▸ Impuestos; vacío hasta el contador), el aviso en todas
+  las formas de pagar a un proveedor y la marca en la rendición, «Traerla costó» y los pagos de un comprobante. En producción.
+- [ ] Felipe (actividad 6, provisional): en «Pagar juntos» el aviso dice «hasta S/ X» si no todos los comprobantes son grandes; la persona
+  del tope es quien registró la planilla; un comprobante con nota de crédito se mira por su total original. El tope de la planilla lo
+  tiene que fijar el contador (mientras no haya, nada se marca por la planilla).
+- [x] Actividad 7 · saldar la deuda de un faltante (`20261014145000`, decisiones 54 y 71): «Registrar su pago» en Fondos por rendir (lo
+  registra quien recibe la plata; la más vieja primero; se anula con su motivo) y la 1413 y la 1419 por dos caminos en «¿Cuadra?» del
+  Balance. En producción. Nada de descontar del sueldo (71).
+- [ ] Felipe (actividad 7, provisional): la deuda se paga a un banco, una caja fuerte o al líder (no a un cajón); una deuda no se perdona
+  desde el sistema después de aprobada.
+- [x] Actividad 8 · el IGV (`20261014153000`, decisiones 56, 70 y 72): la factura con RUC de un gasto del viaje va al crédito fiscal (la
+  hoja dice cuánto IGV se descuenta, o por qué no) y el IGV de lo pagado en efectivo o desde un fondo se pierde en el mes del PAGO, igual
+  en Impuestos (crédito, «Para revisar», registro de compras y resumen para el contador), el Diario (64 contra 4011) y el Balance. En
+  producción; ningún mes ya declarado cambió (en producción no había IGV perdido en ningún mes).
+- [ ] Felipe y el contador (actividad 8, provisional): el IGV perdido va a la 64; el ticket no da crédito; la factura de un gasto del
+  viaje va al registro sin razón social si ningún proveedor tiene su RUC; con nota de crédito, la proporción se calcula sobre el total
+  original de la factura.
+- [x] Finanzas ▸ Gastos dice «Sin comprobante» (y «Sin proveedor») en un gasto del viaje con factura, junto a su IGV: `fn_gastos_lista`
+  solo mira `compras` y el papel vive en `gastos_viaje`. Viene de la actividad 3. Lo arregló la sesión «Finanzas ▸ Gastos: el papel real
+  del gasto del viaje» (`5ce8bb965`, traído con cherry-pick) y su migración `20261014164000` está en producción con el OK de Felipe.
+- [x] Finanzas ▸ Gastos llamaba «IGV descontable» a un IGV perdido por pagar sin banco: lo hizo la sesión «Decir en Gastos cuándo el IGV
+  de una factura se perdió» (chip `task_9e4c3306`) con lo que Felipe eligió el 2026-10-14, y entró con cherry-pick (`a079c035d`): la
+  decisión 76 del ADR, la migración `20261014174000` y `pruebas:gastos-igv-perdido`.
+- [x] Producción: `20261014174000` pegada con el OK de Felipe (2026-10-14 ~14:14, como `20261014191419`): el ancla de `fn_gastos_panel`
+  contada antes (una vez, huella `c8b2c412…`) y, después, las tres funciones con la misma huella y los mismos permisos que el banco. Los 3
+  cambios de `/formidable` de Gastos y la tarjeta que nunca dice un negativo (Felipe los aprobó en esa sesión) entraron con cherry-pick
+  (`4ba53b3a5`), sin cambios en la base.
+- [x] Hoja del gasto del viaje (decisión 74, Felipe 2026-10-14): solo la orden desde la que se abrió; las demás con «+ Agregar otra
+  orden» (el combo con buscador) y cada una con su «×». Probado en el banco a 1280 y 375 px, con el teclado (Enter elige, Escape vuelve
+  al botón sin cerrar la hoja) y abriéndola desde la lista (ninguna orden: «+ Agregar una orden»).
+- [x] Al menos una orden (decisión 75, Felipe 2026-10-14): la «×» sale solo con dos o más órdenes; abierta desde la lista, la orden es lo
+  que falta; la base frena un gasto sin orden (`20261014170000`, `gasto_viaje_sin_orden`). Pruebas de base: gastos-viaje 12/12 (con el
+  rechazo), igv-fase6 4/4, no-deducible 5/5 y deuda-fondo 4/4 (ahora registran sus gastos con una orden).
+- [x] Producción: `20261014170000` pegada con el OK de Felipe (2026-10-14 ~11:35, como `20261014163520`): ancla contada antes (una vez) y,
+  después, `registrar_gasto_viaje` con la misma huella que el banco y los mismos permisos.
+- [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable`.
+  - [x] `tema:auditar` (2026-10-14, banco `cayla-oc`, `localhost:3048`): Fondos por rendir y sus cuatro hojas, Órdenes de compra con la hoja
+    del gasto del viaje (y su combo abierto) y «Rendir», una orden con «Traerla costó», Impuestos, Gastos, Configuración (con el tope de la
+    planilla) y el Inicio, como líder; el Inicio y Órdenes de compra como integrante. **0 hallazgos solo en oscuro.** Heredados del claro,
+    ninguno de la fase 6: las campañas pasadas de Configuración ▸ Tiendas y caja, el cargador global y la nota de un título de grupo
+    (tarea aparte `task_16231c3d`). Los escenarios nuevos quedan en `tema/escenarios/registro.mjs`; «Revisar» una rendición va solo por id
+    (necesita una por aprobar).
+  - [x] `guias:recorrer` (2026-10-14, banco, como líder): Fondos por rendir, Órdenes de compra, una orden, Impuestos, Gastos, el Inicio y
+    Configuración en escritorio, y las de Compras y el Inicio a 375 px: cada paso encontró su pieza, ninguna escribió en la base y no
+    quedó nada abierto. Capturas miradas; el paso de los movimientos de Fondos ahora se titula como su sección («…y pagos de deuda»).
+  - [x] `/chaos` con plata (2026-10-14, banco `cayla-oc`, semilla 1014, 12 del núcleo + 8 sorteados; tablero en `docs/chaos/README.md`,
+    informe local en `.chaos/`). Resistieron el doble clic, recargar al guardar, la red cortada, el Tab, cerrar a mitad del guardado, los
+    permisos de la API y 11 carreras entre dos cuentas sobre el mismo fondo (y una ráfaga de 8 sesiones): el candado por persona los pone
+    en fila y las invariantes del fondo quedan limpias. El banco quedó idéntico a su foto.
+  - [x] Los hallazgos de `/chaos`, arreglados con el OK de Felipe (2026-10-14), cada uno con su prueba y repetido con la misma semilla:
+    - [x] (g1) Un monto NaN o infinito no entra a la plata: candados en las tablas (`20261014192000`) y las funciones del fondo lo dicen
+      (`193000`); INV-17 en el detector de `/chaos`. También cierra el aporte NaN de «Cuentas y dinero».
+    - [x] (g1) El token sigue al contenido en las cinco funciones del fondo (`194000`) y sus hojas usan `useIntento`: si la respuesta se
+      pierde, la hoja se congela y pregunta antes de reintentar.
+    - [x] (g2) La coma decimal en las hojas del fondo (`leerMontoPlata`, decisión 78); Caja sigue con su lector.
+    - [x] (g2) Fechas no antes del 13/10/2026 (decisión 77), 2 decimales en entregar y devolver, textos invisibles y el motivo de anular de
+      200 letras (`193000`).
+    - [x] (g3) El tope de la planilla no se edita mientras guarda.
+    - [x] (g4) El gasto del viaje propone la caja de la tienda del gasto (`fn_gasto_viaje_sede`, `200000`) y, si igual llega el rechazo,
+      dice qué elegir; los montos enormes dicen «demasiado grande».
+    - [x] Hallazgo de seguridad: cerrado (`195000`; detalle en el chat del 2026-10-14).
+    - [x] Producción: las cinco migraciones pegadas (2026-10-14, `20261014193506` … `20261014195408`), con sus anclas contadas antes y las
+      huellas de las funciones iguales a las del banco después.
+  - [ ] Felipe: ¿Caja también entiende la coma decimal? (`leerMonto` de `lib/caja-cierre-reglas.ts` sigue borrando las comas.)
+  - [x] `/formidable` (2026-10-14): leyes 6,2 → 6,3 y oficio 8 (`docs/formidable/compras-fondos.md`). Hechos con el OK de Felipe: «Rendir»
+    desde la tarjeta del Inicio (decisión 80) y el tope de la devolución con una rendición por aprobar (decisión 79, `20261014212000`,
+    `pruebas:fondos-entradas` 6/7 sin la migración y 7/7 con ella).
+    - [x] Producción: `20261014212000` pegada con el OK de Felipe (2026-10-14, versión de allá `20261014213308`); la huella de
+      `devolver_fondo` quedó igual a la del banco (`05e87e25…`).
+    - [x] CI del PR: `pruebas:actor-firma` y `pruebas:terminales-red` contaban dos funciones de los arreglos de `/chaos` que buscaban la
+      cuenta con su propia consulta a `auth.uid()`. `20261014221000` las pasa a `fn_persona_de_la_cuenta` (lo que responden no cambia);
+      pegada con el OK de Felipe (versión de allá `20261014214750`), con las huellas iguales al banco.
+    - [ ] Felipe: los cambios 2 («Revisar»: primero la lista) y 3 (la cuenta de cada persona en una frase) que no se eligieron, y la lista
+      aparte del informe (a quién se le entrega plata, «Gastó» con el faltante, la cabecera de Compras, «viaje», el ejemplo del taxi…).
+- [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
+  el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).
+- [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone
+  «Mi fondo»; de dónde sale y a dónde vuelve la plata de un fondo; «Tu fondo» no sale en el Observatorio del Admin).
+- [ ] Felipe: **«Lo recibí»** (la compradora confirma en su tarjeta que recibió la plata; sin confirmar, al líder le aparece «sin
+  confirmar»). Está en el mapa de módulos (`docs/compras/ordenes-de-compra-2026-10/mapa-de-modulos.md`, paso 2) pero no en la lista de 8
+  actividades: no se construyó. Pediría guardar quién y cuándo confirmó cada entrega.

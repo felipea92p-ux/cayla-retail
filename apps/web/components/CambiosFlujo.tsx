@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
 import { ImpactoVista, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
 import {
-  AvisoDeError,
   BotonPrincipal,
   BotonRojo,
   BotonSecundario,
@@ -24,13 +26,29 @@ import {
   useFocoAlCambiarDePaso,
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import type { TonoLectura } from "@/lib/escaner-reglas";
+import { usePistola } from "@/components/ui/usePistola";
+import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import { CambioTicketHoja, type TicketCambio } from "@/components/CambioTicket";
 import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import {
   agruparCatalogo,
+  derivarExtra,
   derivarReemplazo,
+  describirSalidas,
+  extrasDe,
+  opcionesDeOtraPrenda,
   opcionesDePrenda,
+  pagadoPorUnidad,
+  prendaExtraNueva,
+  salidasParaBase,
+  seleccionDesdeLectura,
   seleccionInicial,
+  textoPagoConDescuento,
+  totalesDelCambio,
+  validarPrendasExtra,
+  type PrendaExtra,
   type Seleccion,
   type VarianteCatalogo,
 } from "@/lib/cambio-reemplazo-reglas";
@@ -50,6 +68,10 @@ import {
 } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { avisosDelCambio, type CambioArmado } from "@/lib/cambios-cambio-de-sede";
 
 const PASOS = ["Venta", "Prenda", "Reemplazo", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -61,8 +83,8 @@ const TITULOS: Record<Paso, string> = {
   exito: "Cambio registrado",
 };
 
-function ficha(p: { referencia: string; talla: string | null; color: string | null; colorHex: string | null; fotoUrl: string | null }, precio: number): PrendaFicha {
-  return { referencia: p.referencia, talla: p.talla, color: p.color, colorHex: p.colorHex, fotoUrl: p.fotoUrl, precio };
+function ficha(p: { referencia: string; talla: string | null; color: string | null; colorHex: string | null; fotoUrl: string | null }, precio: number, detalle: string | null = null): PrendaFicha {
+  return { referencia: p.referencia, talla: p.talla, color: p.color, colorHex: p.colorHex, fotoUrl: p.fotoUrl, precio, detalle };
 }
 
 /**
@@ -84,6 +106,7 @@ export function CambiosFlujo({
   esLider,
   sedes,
   catalogo: catalogoProp,
+  aceptaQr,
   ahora,
   onCerrar,
   onNuevo,
@@ -100,17 +123,22 @@ export function CambiosFlujo({
   esLider: boolean;
   sedes: SedeConId[];
   catalogo: VarianteCatalogo[];
+  /** `fn_acepta_qr_en_cambios`: ofrece el QR entre los medios de la diferencia. */
+  aceptaQr: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // El cambio a medio armar es de SU sede (Felipe, 2026-10-11): si se vuelve a una sede con un cambio guardado, se sigue en el mismo
+  // paso (el panel ya retomó la venta).
+  const { inicial: guardado, reportar: reportarCambio } = useTrabajoPorSede<CambioArmado>(ubicacionId);
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `catalogoProp` es
   // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
   // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
   // Lo apartado en el piso se corrige igual (`ajustesApartado`): con el stock al día pero lo apartado de la carga, una
-  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para una clienta».
+  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para un cliente».
   const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
   const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [catalogoPropPrevio, setCatalogoPropPrevio] = useState(catalogoProp);
@@ -136,18 +164,43 @@ export function CambiosFlujo({
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
-  const [lineaId, setLineaId] = useState<string | null>(lineaInicialId);
-  const [paso, setPaso] = useState<Paso>(lineaInicialId ? 3 : 2);
+  const [lineaId, setLineaId] = useState<string | null>(guardado ? guardado.lineaId : lineaInicialId);
+  const [paso, setPaso] = useState<Paso>(guardado ? guardado.paso : lineaInicialId ? 3 : 2);
   const linea = venta.find((l) => l.ventaItemId === lineaId) ?? null;
-  const [seleccion, setSeleccion] = useState<Seleccion | null>(linea ? seleccionInicial(linea) : null);
-  const [enviando, setEnviando] = useState(false);
+  const [seleccion, setSeleccion] = useState<Seleccion | null>(guardado ? guardado.seleccion : linea ? seleccionInicial(linea) : null);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): la prenda que vuelve, la que se lleva, la cantidad, el motivo y
+  // el pago de la diferencia. Si la respuesta se pierde, el paso se congela (ni volver ni cambiar nada) hasta saber si el cambio
+  // quedó; con otra prenda y la marca vieja, la base devolvía el cambio anterior. La marca viaja con lo guardado al cambiar de sede.
+  // Una prenda por VARIAS (ADR-0470) tiene su propia operación: la base anota y revisa cada envío por (operación, token). Con el envío en duda
+  // la pantalla está congelada, así que la operación no puede cambiar a mitad de un envío.
+  const envio = useIntento(extrasDe(seleccion ?? {}).length > 0 ? "registrar_cambio_varias" : "registrar_cambio", guardado?.intento ?? null);
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<TicketCambio | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
-  // Reintento (doble clic, o red que se corta después del commit y antes de la
-  // respuesta — ADR-0032) debe mandar el MISMO token para que el índice único de
-  // `retail.cambios.token_cliente` lo reconozca como el mismo envío.
-  const token = useRef<string>(crypto.randomUUID());
+  const [camara, setCamara] = useState(false);
+  const [esperandoPistola, setEsperandoPistola] = useState(false);
+  const [lectura, setLectura] = useState<{ tono: TonoAvisoLinea; texto: string } | null>(null);
+  const campoPrenda = useRef<HTMLInputElement>(null);
+
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, el cambio queda guardado en ESTA sede. Registrado, ya no hay nada que
+  // guardar.
+  // La marca del envío viaja con lo guardado (y si quedó en duda, sigue en duda al volver).
+  const instantaneaDelEnvio = envio.instantanea;
+  const faseDelEnvio = envio.fase;
+  useEffect(() => {
+    reportarCambio(
+      paso !== "exito"
+        ? {
+            etiqueta: sede,
+            unidades: seleccion?.cantidad ?? 1,
+            trabajo: { venta, lineaInicialId, lineaId, paso, seleccion, intento: instantaneaDelEnvio() },
+            ...avisosDelCambio({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
+          }
+        : null,
+    );
+  }, [reportarCambio, paso, sede, seleccion, venta, lineaInicialId, lineaId, compra.clienta, compra.comprobante, faseDelEnvio, instantaneaDelEnvio]);
 
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -156,8 +209,13 @@ export function CambiosFlujo({
   const refMetodo = useRef<HTMLButtonElement>(null);
 
   const porProducto = useMemo(() => agruparCatalogo(catalogo), [catalogo]);
-  const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto) : []), [linea, porProducto]);
+  const elegidoId = seleccion?.productoId;
+  const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto, elegidoId) : []), [linea, porProducto, elegidoId]);
   const r = linea && seleccion ? derivarReemplazo(linea, porProducto, seleccion) : null;
+  // Las otras prendas que se lleva (ADR-0470) y el total de lo que se lleva: la diferencia que se cobra sale de aquí, no de una sola prenda.
+  const extras = seleccion ? extrasDe(seleccion) : [];
+  const extrasR = linea && seleccion ? extras.map((x) => derivarExtra(linea, porProducto, seleccion, x)) : [];
+  const totales = linea && seleccion && r ? totalesDelCambio(linea, seleccion, r, extrasR) : null;
 
   const validaciones: Validacion[] =
     linea && seleccion && r
@@ -169,26 +227,35 @@ export function CambiosFlujo({
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
           nueva: r.varianteNueva
-            ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, apartadoAqui: r.varianteNueva.apartadoAqui, otrasSedes: r.otrasSedes }
+            ? {
+                descripcion: r.descripcionNueva,
+                stockAqui: r.varianteNueva.stockAqui,
+                apartadoAqui: r.varianteNueva.apartadoAqui,
+                otrasSedes: r.otrasSedes,
+                precio: r.precioNueva ?? r.varianteNueva.precio,
+              }
             : null,
           sede,
-          diferencia: r.diferencia,
+          diferencia: totales!.diferencia,
           metodo: seleccion.metodo,
           cajaAbierta,
-        })
+        }).concat(validarPrendasExtra({ extras, extrasR, salidas: totales!.salidas, sede }))
       : [];
   const bloqueo = primerBloqueo(validaciones);
 
   const devueltaTexto = linea ? `${linea.referencia} · ${varianteLegible(linea)}` : "";
   const nuevaTexto = r?.varianteNueva ? `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}` : "";
   const impacto =
-    linea && seleccion && r
+    linea && seleccion && r && totales
       ? impactoCambio({
           devuelta: devueltaTexto,
           entregada: nuevaTexto,
           cantidad: seleccion.cantidad,
+          entregadas: totales.esVarias
+            ? totales.salidas.map((x) => ({ prenda: `${x.variante.referencia} · ${varianteLegible(x.variante)}`, cantidad: x.cantidad }))
+            : undefined,
           condicion: r.condicion,
-          diferencia: r.diferencia,
+          diferencia: totales.diferencia,
           metodo: seleccion.metodo,
           sede,
         })
@@ -199,19 +266,71 @@ export function CambiosFlujo({
   useFocoAlCambiarDePaso(errorRef, error);
 
   function retroceder() {
+    // En duda no se vuelve: cambiar la prenda o el pago y reenviar podría registrar el cambio dos veces.
+    if (envio.incierto) return;
     setAvisoContinuar(null);
     setError(null);
     if (paso === 4) setPaso(3);
     else if (paso === 3) setPaso(2);
     else onCerrar();
   }
-  useEscapeRetrocede(retroceder, !enviando && paso !== "exito");
+  useEscapeRetrocede(retroceder, !enviando && !envio.incierto && paso !== "exito" && !camara);
+
+  // Escanear la prenda que se lleva (Felipe 2026-10-09: «que se escanee y se seleccione automáticamente»). La pistola
+  // escucha todo el paso 3, dentro del combo de prenda o con el foco en cualquier botón (`fuera: "leer"`, sin robar
+  // teclas a «¿Cuántas cambia?»); en el celular, la cámara. Lo leído elige prenda, talla y color de una vez.
+  // Devuelve el tono para el bip de la cámara (`EscanerBusqueda`): agudo si la eligió, grave si no la encontró.
+  function alLeerPrenda(codigo: string): { tono: TonoLectura } {
+    setCamara(false);
+    setEsperandoPistola(false);
+    const r = seleccionDesdeLectura(codigo, catalogo);
+    if (r.tipo === "no-encontrada") {
+      setLectura({ tono: "atencion", texto: `No encontramos «${r.codigo}» en el catálogo. Revisa la etiqueta o búscala por su nombre.` });
+      return { tono: "ambar" };
+    }
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, ...r.cambio } : actual));
+    const detalle = varianteLegible(r.variante);
+    setLectura({ tono: "exito", texto: `Escaneada: ${r.variante.referencia}${detalle ? ` · ${detalle}` : ""}` });
+    return { tono: "verde" };
+  }
+  usePistola(campoPrenda, {
+    activa: paso === 3 && !camara,
+    fuera: "leer",
+    alLeer: ({ codigo, dentro }) => {
+      // Lo que la pistola escribió en el combo no es una búsqueda: se suelta el campo y vuelve a mostrar la prenda elegida.
+      if (dentro) campoPrenda.current?.blur();
+      alLeerPrenda(codigo);
+    },
+  });
+  function escanearPrenda() {
+    setLectura(null);
+    // Un teléfono no tiene pistola: con pantalla táctil, se lee con la cámara (mismo criterio que `BuscadorVentas`).
+    if (window.matchMedia?.("(pointer: coarse)").matches) return setCamara(true);
+    setEsperandoPistola(true);
+    campoPrenda.current?.focus();
+  }
+
+  // Las otras prendas que se lleva (ADR-0470): agregar, cambiar una y quitarla. Lo que ya se eligió de las demás no se toca.
+  function agregarExtra() {
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, extras: [...extrasDe(actual), prendaExtraNueva(crypto.randomUUID())] } : actual));
+  }
+  function cambiarExtra(id: string, cambio: Partial<PrendaExtra>) {
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, extras: extrasDe(actual).map((x) => (x.id === id ? { ...x, ...cambio } : x)) } : actual));
+  }
+  function quitarExtra(id: string) {
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, extras: extrasDe(actual).filter((x) => x.id !== id) } : actual));
+  }
 
   function elegirLinea(id: string) {
     const nueva = venta.find((l) => l.ventaItemId === id);
     if (!nueva) return;
     setLineaId(id);
     setSeleccion(seleccionInicial(nueva));
+    setLectura(null);
   }
 
   function continuarDesdePrenda() {
@@ -243,7 +362,7 @@ export function CambiosFlujo({
   }
 
   async function confirmar() {
-    if (!linea || !seleccion || !r || !r.varianteNueva || !seleccion.motivo || bloqueo) {
+    if (!linea || !seleccion || !r || !totales || !r.varianteNueva || !seleccion.motivo || bloqueo) {
       setPaso(3);
       return;
     }
@@ -251,43 +370,69 @@ export function CambiosFlujo({
       setError(responsable.motivo);
       return;
     }
-    setEnviando(true);
     setError(null);
-    const { data, error: fallo } = await firmar(
-      createClient().rpc("registrar_cambio", {
-        p_venta_item_id: linea.ventaItemId,
-        p_ubicacion_id: ubicacionId,
-        p_variante_nueva_id: r.varianteNueva.varianteId,
-        p_cantidad: seleccion.cantidad,
-        p_metodo_pago_diferencia: r.diferencia !== 0 ? seleccion.metodo : undefined,
-        p_token: token.current,
-        p_motivo: seleccion.motivo,
-        p_condicion: r.condicion,
-      }),
-      responsable.firma(),
+    const comun = {
+      p_venta_item_id: linea.ventaItemId,
+      p_ubicacion_id: ubicacionId,
+      p_cantidad: seleccion.cantidad,
+      p_metodo_pago_diferencia: totales.diferencia !== 0 ? seleccion.metodo : undefined,
+      p_motivo: seleccion.motivo,
+      p_condicion: r.condicion,
+    };
+    // Con una sola prenda, el cambio de siempre (`registrar_cambio`, sin tocar). Con varias (ADR-0470), `registrar_cambio_varias`: todas
+    // las prendas, la diferencia total y el stock en un solo guardado.
+    const params = totales.esVarias
+      ? { ...comun, p_salidas: salidasParaBase(totales.salidas) }
+      : { ...comun, p_variante_nueva_id: r.varianteNueva.varianteId };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(
+        totales.esVarias
+          ? createClient().rpc("registrar_cambio_varias", { ...(params as typeof comun & { p_salidas: ReturnType<typeof salidasParaBase> }), p_token: token })
+          : createClient().rpc("registrar_cambio", { ...(params as typeof comun & { p_variante_nueva_id: string }), p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(fallo);
-    if (fallo) {
-      setError(traducirError(fallo, "registrar el cambio"));
+    if (res.tipo === "ocupado" || res.tipo === "congelado") return;
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: el paso lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") {
+      setError(traducirError(res.error, "registrar el cambio"));
       return;
     }
+    registrado(res.tipo === "ok" ? res.data : res.datos.id);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrado(res.datos.id);
+    if (res.tipo === "no_llego") {
+      setError("El cambio no se registró: no se movió ninguna prenda ni plata. Revisa los datos y vuelve a confirmar.");
+      return;
+    }
+    if (res.tipo === "sin_respuesta") setError("Todavía no hay respuesta. Revisa el internet y vuelve a tocar «Revisar si se guardó».");
+  }
+
+  function registrado(data: unknown) {
+    if (!linea || !seleccion || !r || !totales || !r.varianteNueva) return;
     // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
     // combo se vacíe tras guardar.
     setResultado({
       operacion: String(data ?? "").slice(0, 8).toUpperCase(),
       comprobante: compra.comprobante,
       clienta: compra.clienta,
-      devolvio: `${linea.referencia} · ${varianteLegible(linea)}`,
-      sellevo: `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}`,
-      cantidad: seleccion.cantidad,
-      diferencia: r.diferencia,
+      // Una prenda por varias (ADR-0470): cada prenda lleva su cantidad en el texto, y la del ticket queda en 1 para que no se repita en las dos.
+      devolvio: `${linea.referencia} · ${varianteLegible(linea)}${totales.esVarias && seleccion.cantidad > 1 ? ` (×${seleccion.cantidad})` : ""}`,
+      sellevo: totales.esVarias ? describirSalidas(totales.salidas) : `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}`,
+      cantidad: totales.esVarias ? 1 : seleccion.cantidad,
+      diferencia: totales.diferencia,
       vaACuarentena: r.condicion === "no_vendible",
       sede,
       atendio: nombreResponsable,
       registradoEn: new Date().toISOString(),
     });
-    token.current = crypto.randomUUID();
     setPaso("exito");
     // La actividad y las cifras de arriba se ponen al día por detrás.
     router.refresh();
@@ -299,10 +444,10 @@ export function CambiosFlujo({
         <EncabezadoFlujo
           volverA="Volver a Cambios"
           onVolver={onCerrar}
-          deshabilitado={enviando}
+          deshabilitado={enviando || envio.incierto}
           pasos={PASOS}
           actual={paso}
-          onIrAPaso={(n) => (n === 1 ? onCerrar() : setPaso(n as Paso))}
+          onIrAPaso={(n) => (envio.incierto ? undefined : n === 1 ? onCerrar() : setPaso(n as Paso))}
           titulo={TITULOS[paso]}
           refTitulo={titulo}
         />
@@ -310,10 +455,10 @@ export function CambiosFlujo({
 
       {paso === 2 && (
         <div className="anim-revelar space-y-5">
-          <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
+          <div data-guia="cambios.flujo-prendas" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
-              <legend className="sr-only">Prenda que la clienta quiere cambiar</legend>
+              <legend className="sr-only">Prenda que el cliente quiere cambiar</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
                   const estado = estadoPrendaVendida(l, ahora);
@@ -321,6 +466,7 @@ export function CambiosFlujo({
                   return (
                     <label
                       key={l.ventaItemId}
+                      data-guia="cambios.prenda-elegir"
                       // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta).
                       className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
                         estado.cambiable ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
@@ -339,7 +485,7 @@ export function CambiosFlujo({
                         <span className="block text-[15px] font-semibold text-tinta">{l.referencia}</span>
                         <span className="block text-sm text-tinta/75">{varianteLegible(l)}</span>
                         <span className="mt-0.5 block text-xs text-tinta/70">
-                          <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
+                          <span className="font-mono">{codigoPrenda(l)}</span> · {soles(pagadoPorUnidad(l))}
                         </span>
                       </span>
                       <span className="max-sm:basis-full max-sm:pl-8">
@@ -351,12 +497,9 @@ export function CambiosFlujo({
               </div>
             </fieldset>
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={onCerrar}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Otra venta
-            </BotonSecundario>
-            <BotonPrincipal onClick={continuarDesdePrenda}>
+          <PieDelPaso aviso={avisoContinuar} guia="cambios.pie-prenda">
+            <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
+            <BotonPrincipal guia="cambios.continuar" onClick={continuarDesdePrenda}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
             </BotonPrincipal>
@@ -367,7 +510,7 @@ export function CambiosFlujo({
       {paso === 3 && linea && seleccion && r && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
+            <div data-guia="cambios.reemplazo" className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
               <CambioReemplazo
                 linea={linea}
                 seleccion={seleccion}
@@ -378,20 +521,42 @@ export function CambiosFlujo({
                 refMetodo={refMetodo}
                 onCambio={(cambio) => {
                   setAvisoContinuar(null);
+                  // Elegir a mano otra prenda deja viejo lo que dijo la última lectura.
+                  if (cambio.productoId !== undefined) setLectura(null);
                   setSeleccion((actual) => (actual ? { ...actual, ...cambio } : actual));
                 }}
                 salidas={{ sedes, ubicacionId, sede, esLider, responsable }}
+                campoPrenda={campoPrenda}
+                onEscanear={escanearPrenda}
+                lectura={lectura}
+                esperandoPistola={esperandoPistola}
+                aceptaQr={aceptaQr}
+                totales={totales!}
+                extrasR={extrasR}
+                opcionesOtraPrenda={(elegidoId) => opcionesDeOtraPrenda(porProducto, elegidoId)}
+                onExtra={cambiarExtra}
+                onAgregarExtra={agregarExtra}
+                onQuitarExtra={quitarExtra}
               />
+              {camara && (
+                <EscanerBusqueda
+                  titulo="Escanear la prenda nueva"
+                  pista="Centra la etiqueta de la prenda que se lleva en el cuadro"
+                  onCodigo={alLeerPrenda}
+                  onEscribir={() => {
+                    setCamara(false);
+                    requestAnimationFrame(() => campoPrenda.current?.focus());
+                  }}
+                  onClose={() => setCamara(false)}
+                />
+              )}
             </div>
             {/* Con la prenda nueva ya elegida, el panel muestra también qué pasará en el
                 inventario y en la caja: se ve mientras se elige, no solo en la confirmación. */}
-            <PanelValidaciones validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
+            <PanelValidaciones guia="cambios.validaciones" validaciones={validaciones} impacto={r.varianteNueva && !r.sinStockAqui ? impacto : null} />
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={retroceder}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+          <PieDelPaso aviso={avisoContinuar} guia="cambios.pie-reemplazo">
+            <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar el cambio
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -400,7 +565,7 @@ export function CambiosFlujo({
         </div>
       )}
 
-      {paso === 4 && linea && seleccion && r && r.varianteNueva && impacto && (
+      {paso === 4 && linea && seleccion && r && totales && r.varianteNueva && impacto && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
@@ -408,7 +573,7 @@ export function CambiosFlujo({
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
                 </Dato>
-                <Dato titulo="Clienta">{compra.clienta ?? "No quedó registrada en la venta"}</Dato>
+                <Dato titulo="Cliente">{compra.clienta ?? "No quedó registrado en la venta"}</Dato>
                 <Dato titulo="Se registra en">{sede}</Dato>
                 {/* Con el combo (ADR-0161) lo registra el responsable elegido, no la cuenta de la sesión. */}
                 <Dato titulo="Lo registra">{nombreResponsable ?? "Elige abajo en «Responsable»"}</Dato>
@@ -416,10 +581,11 @@ export function CambiosFlujo({
                 <Dato titulo="La prenda que trae">{r.condicion === "vendible" ? "Impecable: vuelve al piso" : "Con defecto o uso: va a cuarentena"}</Dato>
               </dl>
               <ComparacionPrendas
-                devuelta={ficha(linea, linea.precioUnitario)}
-                nueva={ficha(r.varianteNueva, r.varianteNueva.precio)}
+                devuelta={ficha(linea, r.pagadoUnitario, textoPagoConDescuento(linea))}
+                nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
                 cantidad={seleccion.cantidad}
-                diferencia={r.diferencia}
+                diferencia={totales.diferencia}
+                otras={totales.salidas.slice(1).map((x) => ({ ...ficha(x.variante, x.precio), cantidad: x.cantidad }))}
               />
               <div className="border-t border-tinta/[0.08] pt-7">
                 <ImpactoVista impacto={impacto} />
@@ -428,24 +594,29 @@ export function CambiosFlujo({
             <PanelValidaciones validaciones={validaciones} />
           </div>
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+          <ComboResponsable control={responsable} deshabilitado={enviando || envio.incierto} className="max-w-sm" />
 
-          {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró el cambio." />}
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
+
+          {error && (
+            // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
+            // «No se pudo …» cuando no reconoce el error; con un mensaje de la base hay que decir además que no se guardó nada.
+            <Aviso tono="error" ref={errorRef} enfocable titulo={error.startsWith("No se pudo") ? undefined : "No se registró el cambio."}>
+              {error}
+            </Aviso>
+          )}
 
           <PieDelPaso aviso={null}>
-            <BotonSecundario onClick={retroceder} disabled={enviando}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} deshabilitado={enviando || envio.incierto} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
-              <BotonSecundario onClick={onCerrar} disabled={enviando}>
+              <BotonSecundario onClick={onCerrar} disabled={enviando || envio.incierto}>
                 Cancelar
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} disabled={enviando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : "Confirmar cambio"}
+              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={totales.diferencia !== 0 ? soles(Math.abs(totales.diferencia)) : undefined}>
+                <Check className="h-4 w-4" aria-hidden />
+                {envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
               </BotonRojo>
             </div>
           </PieDelPaso>

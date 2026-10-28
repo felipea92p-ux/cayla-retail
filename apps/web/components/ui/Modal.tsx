@@ -3,10 +3,19 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { alejarFondo, devolverFondo, moverFondo } from "@/components/ui/fondoDeLaHoja";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useHojaArrastre } from "@/components/ui/useHojaArrastre";
+import { useHojaSobreElTeclado } from "@/components/ui/useHojaSobreElTeclado";
+import { useAtrasCierraLaHoja } from "@/components/ui/useAtrasCierraLaHoja";
+import { CELULAR } from "@/components/ui/useEnCelular";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
+/** En el celular la hoja baja entera hasta el borde (ADR-0479): debe coincidir con `cayla-hoja-movil-sale` en globals.css. */
+const MS_SALIDA_CELULAR = 300;
+/** Y llega desde el borde en lo mismo que `cayla-hoja-movil-entra`: lo de atrás se aleja a su ritmo. */
+const MS_ENTRADA_CELULAR = 460;
 
 type Props = {
   titulo: ReactNode;
@@ -16,7 +25,12 @@ type Props = {
       "Cancelar" propio del formulario sale con la misma animación que Escape,
       en vez de desaparecer de golpe. */
   children: ReactNode | ((cerrar: () => void) => ReactNode);
-  /** Ancho del panel en escritorio (Tailwind max-w-*). Por defecto el tamaño estándar de formulario corto. */
+  /** El ancho de la hoja (ADR-0358, ronda 12, Felipe 2026-10-14): tres, con nombre, para que nadie invente otra medida.
+      `angosta` 448 px (un formulario corto: un gasto, una categoría, un pago; la de fábrica), `mediana` 576 px (un formulario con una
+      lista o una tabla chica) y `ancha` 768 px (una ficha que se lee: un cliente, un cierre, una orden). */
+  tamano?: TamanoHoja;
+  /** Solo para una hoja con DISEÑO PROPIO (la vista rápida de un producto, Nueva orden de producción): un `max-w-*` a medida. Manda
+      sobre `tamano` y lleva su `unificar-fijo` con el motivo (lo vigila `lib/unificar.test.ts`, familia `modal`). */
   ancho?: string;
   /** A qué elemento devolver el foco al cerrar. Sin esto, Radix intenta volver al
       trigger del diálogo — que estos modales controlados no tienen — y el foco cae al
@@ -24,16 +38,52 @@ type Props = {
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   /** Escape, el velo y la ✕ no cierran mientras guarda algo sin token: cerrar y reabrir dejaría enviarlo dos veces. */
   bloqueado?: boolean;
+  /** Antes de que Escape, el velo o la ✕ cierren la hoja: recibe el cierre animado y decide si llamarlo. Para preguntar «¿Salir sin
+      guardar?» con la hoja TODAVÍA a la vista (`useSalidaSinGuardar().pedirAccion`): pasado por `onClose`, la pregunta llegaba
+      después de animar la salida y, con «Seguir editando», la hoja quedaba invisible (2026-10-10, Plan de campaña). El `cerrar`
+      que reciben los hijos no pasa por aquí: un botón propio decide por su cuenta. */
+  antesDeCerrar?: (cerrar: () => void) => void;
   /** Al abrir, el foco va a la hoja y no a su primer campo. Para una hoja cuya primera línea hay que LEER antes de elegir:
       un combo (`ComboBuscable`) abre su lista al recibir el foco y, en el celular, la abre hacia arriba tapando esa línea
       («Corregir color», ADR-0263). El foco sigue atrapado en la hoja y Tab entra al primer campo. */
   focoEnLaHoja?: boolean;
-  /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
-      espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
+  /** Algo a la IZQUIERDA de toda la hoja (título, bajada y contenido quedan a su derecha, exactamente como sin él): hoy la foto de la
+      prenda en Reponer, Subir a almacén y Ajustar (2026-10-01). La hoja se ensancha justo lo que ocupa (`.hoja-con-lateral`,
+      globals.css) y el resto no se mueve. Solo escritorio: en celular, donde la hoja sube desde abajo, no se muestra. Funciona con los tres
+      tamaños (`tamano`). No entra a la cascada: llega con la hoja. */
+  lateral?: ReactNode;
+  /** Botones de la cabecera, arriba a la DERECHA de la hoja, siempre a la vista (hoy, «+ Nuevo tejido / patrón / etiqueta» en las hojas de
+      «Nuevo producto», 2026-10-02). No en una hoja con la ✕, que usa esa esquina. Sale de la cascada y se coloca
+      con `position: absolute`; el título deja libre el ancho que ocupa (`pr-40`). */
+  acciones?: ReactNode;
+  /** Solo en el celular: la hoja abre a media altura y se estira hacia arriba con el dedo (ADR-0479). Para una lista de
+      opciones que se aplican al momento (Filtros de Productos y de Existencias): se ve lo primero y su botón, y lo de atrás.
+      Si la hoja es baja (menos del 62 % de la pantalla), abre entera. */
+  mediaAltura?: boolean;
+  /** La ✕ de cerrar arriba a la derecha, en cualquier variante (la «papel» ya la trae). Hoy: la vista rápida de producto, que se abre
+      también en el celular, donde el velo no siempre se alcanza a tocar. Sale de la cascada (`data-sin-cascada`) para no correr el turno. */
+  conCerrar?: boolean;
+  /** Algo ENCIMA del título, dentro de la cascada: la vuelta a la hoja de atrás cuando un modal pasa de una vista a otra dentro de la misma
+      hoja (hoy, el detalle de un cierre de caja dentro de «Historial de cierres»: flecha + a dónde vuelve, 2026-10-10). */
+  arriba?: ReactNode;
+  /** La hoja no se desliza: crece hasta su alto máximo y su contenido se reparte ese alto (columna flexible), así lo que importa —arriba
+      las opciones, abajo los botones— queda siempre a la vista y solo se desliza lo que el contenido decida (una tabla). Hoy: «Ajustar
+      stock» en el modal de la prenda de Existencias (Felipe 2026-10-26, ronda 2 de la «Planilla rápida»). Lo de adentro pone su
+      `min-h-0` y su `overflow-auto`; si nada lo hace, se corta. Es `overflow: clip` y no `hidden`: una caja `hidden` igual se deja desplazar
+      por código o cuando el navegador lleva un campo a la vista, y quedaba corrida sin forma de volver (/chaos 2026-10-26, H1).
+      Solo desde 640 px: en el celular la hoja se desliza entera, como cualquier otra, con su pie pegado abajo (`pie-hoja-fijo`). Repartir
+      90 dvh entre título, opciones, avisos y pie dejaba la tabla en una fila (Felipe 2026-10-26); lo de adentro se pone su propio tope. */
+  altoFijo?: boolean;
+  /** «Atrás» del navegador (el botón o el gesto desde el borde del teléfono) cierra la hoja en vez de ir a la pantalla anterior,
+      por la misma puerta que la ✕ (pasa por `antesDeCerrar`; mientras guarda, `bloqueado`, no la cierra). Es lo de fábrica en el
+      teléfono (bajo 640 px) en TODA hoja; desde 640 px, no (ADR-0528, `useAtrasCierraLaHoja`). `false` lo apaga: solo `<ModalRuta>`,
+      que ya vive en la URL y cierra con el «atrás» de la navegación. Se lee al abrir: girar el teléfono con la hoja abierta no lo cambia. */
+  atrasCierra?: boolean;
+  /** La cara de toda hoja es UNA desde el 2026-10-14 (ADR-0358, ronda 12, Felipe eligió P1): el panel en `papel` con borde fino y SIN
+      sombra —la profundidad la da el velo—, el título serif de 24 px y la frase en taupe, la de Finanzas (spike 2026-09-24) y Gasto
+      rápido. Antes había tres: crema con sombra y título de 18 px (la de fábrica), «hoja» (esta) y «papel» (esta con la ✕). `hoja` y
+      `papel` quedan como nombres que ya no cambian la cara: «papel» todavía pone la ✕ (como `conCerrar`). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
-  /* «hoja» (Finanzas, 2026-09-24, spike docs/maquetas/finanzas-2026-09/): el panel en `papel` sin sombra ni ✕, con el
-     título en serif grande y la bajada en taupe —la hoja del spike—. Los campos de adentro van en caja (`fin-control`,
-     app/estilos/finanzas.css). */
   /* «camara» (Vender en el teléfono, 2026-09-25): pantalla completa, sin padding ni borde, fondo tinta; el título queda
      para lectores de pantalla y el contenido dibuja su propia barra (EscanerCamara). Hereda igual el velo, la entrada,
      la cascada de sus piezas y el foco atrapado. */
@@ -51,9 +101,24 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, variante }: Props) {
+export type TamanoHoja = "angosta" | "mediana" | "ancha";
+export const ANCHO_HOJA: Record<TamanoHoja, string> = { angosta: "max-w-md", mediana: "max-w-xl", ancha: "max-w-3xl" };
+
+export function Modal({ titulo, subtitulo, onClose, children, tamano = "angosta", ancho: anchoPropio, alCerrarEnfocar, bloqueado = false, antesDeCerrar, focoEnLaHoja = false, lateral, acciones, conCerrar = false, arriba, variante, mediaAltura = false, altoFijo = false, atrasCierra }: Props) {
+  const ancho = anchoPropio ?? ANCHO_HOJA[tamano];
+  // La cámara y el ticket dibujan su propia hoja; todas las demás tienen la misma cara (ronda 12).
+  const deCara = variante !== "camara" && variante !== "ticket";
   const [cerrando, setCerrando] = useState(false);
+  // La hoja se fue con el dedo (ADR-0479): ya está abajo, así que la salida de siempre no se pone encima, y el
+  // desmontaje espera lo que tarda en llegar (`msSalidaPropia`) y no los 220 ms de la animación de salida.
+  const [salidaPropia, setSalidaPropia] = useState(false);
+  const msSalidaPropia = useRef<number | null>(null);
   const hoja = useRef<HTMLDivElement>(null);
+  const velo = useRef<HTMLDivElement>(null);
+  // La llave de lo de atrás (fondoDeLaHoja.ts): solo la tiene la hoja que lo alejó.
+  const fondo = useRef<symbol | null>(null);
+  // En el celular la hoja va pegada abajo: con el teclado abierto se apoya sobre él (la cámara no tiene campos).
+  const contenedor = useHojaSobreElTeclado<HTMLDivElement>(variante !== "camara");
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
   // que desmonte. Sin esto, un modal que entra suave se iba de un corte seco —
@@ -75,25 +140,97 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
   useEffect(() => {
     onCloseActual.current = onClose;
   }, [onClose]);
+
+  // Escape, el velo y la ✕ pasan por `antesDeCerrar` si lo hay (de una ref, como `onClose`: suele llegar como flecha nueva).
+  const antesDeCerrarActual = useRef(antesDeCerrar);
   useEffect(() => {
-    if (!cerrando) return;
-    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : MS_SALIDA);
-    return () => clearTimeout(temporizador);
-  }, [cerrando]);
+    antesDeCerrarActual.current = antesDeCerrar;
+  }, [antesDeCerrar]);
+  const pedirCierreDesdeFuera = useCallback(() => {
+    const decidir = antesDeCerrarActual.current;
+    if (decidir) decidir(pedirCierre);
+    else pedirCierre();
+  }, [pedirCierre]);
 
   // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
   // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no
   // alcanza). El clic en el velo sigue por `onOpenChange`.
+  // «Atrás» cierra la hoja como la ✕; mientras guarda (`bloqueado`), no hace nada y la hoja sigue. Sale de la pila apenas empieza a
+  // cerrarse: su entrada se retira mientras anima la salida y el próximo «atrás» ya es de la hoja de abajo (o de la pantalla).
+  const [conAtras] = useState(() => atrasCierra ?? (typeof window !== "undefined" && window.matchMedia?.(CELULAR).matches === true));
+  useAtrasCierraLaHoja(
+    conAtras && !cerrando,
+    useCallback(() => {
+      if (!bloqueado) pedirCierreDesdeFuera();
+    }, [bloqueado, pedirCierreDesdeFuera])
+  );
+
   const alEscape = useEscapeLibre(() => {
-    if (!bloqueado) pedirCierre();
+    if (!bloqueado) pedirCierreDesdeFuera();
   });
 
+  // En el celular la hoja se baja con el dedo (ADR-0479). Soltarla para cerrar pasa por `antesDeCerrar`, como Escape,
+  // el velo y la ✕: sin cambios sale desde donde quedó; con cambios vuelve a su lugar y pregunta «¿Salir sin guardar?».
+  // El ticket de Vender también es una hoja que sube desde abajo (su lista corre por dentro, y el gesto lo respeta).
+  const conAsa = deCara || variante === "ticket";
+  const arrastre = useHojaArrastre({
+    activo: conAsa,
+    aMedia: mediaAltura,
+    bloqueado,
+    velo,
+    alSoltarParaCerrar: (salir) => {
+      const decidir = antesDeCerrarActual.current;
+      if (decidir) decidir(salir);
+      else salir();
+    },
+    alSalir: (ms) => {
+      msSalidaPropia.current = ms;
+      setSalidaPropia(true);
+      setCerrando(true);
+    },
+    alMoverse: (progreso, ms) => moverFondo(fondo.current, progreso, ms),
+  });
+
+  // Lo de atrás se aleja mientras la hoja está abierta (la «B» de ADR-0479): solo en el celular y sin «reducir movimiento».
+  // Si la hoja se desmonta sin su salida (una navegación), lo de atrás vuelve de una.
+  useEffect(() => {
+    if (!conAsa || !window.matchMedia?.(CELULAR).matches || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const llave = alejarFondo(MS_ENTRADA_CELULAR);
+    fondo.current = llave;
+    // Una hoja que abre a media altura aleja lo de atrás solo en esa proporción (si no, saltaría al primer toque).
+    if (arrastre.progresoActual() > 0) moverFondo(llave, arrastre.progresoActual(), MS_ENTRADA_CELULAR);
+    return () => {
+      devolverFondo(llave, 0);
+      fondo.current = null;
+    };
+  }, [conAsa, arrastre]);
+  const ponerHoja = useCallback(
+    (el: HTMLDivElement | null) => {
+      hoja.current = el;
+      arrastre.enlazar(el);
+    },
+    [arrastre]
+  );
+
+  useEffect(() => {
+    if (!cerrando) return;
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const enCelular = variante !== "camara" && window.matchMedia?.(CELULAR).matches;
+    const ms = msSalidaPropia.current ?? (enCelular ? MS_SALIDA_CELULAR : MS_SALIDA);
+    // Una hoja que quedó movida (a media altura) sale desde ahí: su estilo le gana a la salida de la clase.
+    if (msSalidaPropia.current === null) arrastre.salirDesdeDondeEsta(sinMovimiento ? 0 : ms);
+    // Lo de atrás vuelve a su lugar mientras la hoja se va, en el mismo tiempo.
+    devolverFondo(fondo.current, sinMovimiento ? 0 : ms);
+    const temporizador = setTimeout(() => onCloseActual.current(), sinMovimiento ? 0 : ms);
+    return () => clearTimeout(temporizador);
+  }, [cerrando, variante, arrastre]);
+
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
+    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierreDesdeFuera()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 z-50 bg-tinta/35 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
+          ref={velo}
+          className={`fixed inset-0 z-50 bg-sombra/35 dark:bg-sombra/60 backdrop-blur-[2px] ${cerrando ? (salidaPropia ? "" : "anim-velo-salida") : "anim-velo"}`}
         />
         {/* La posición vive en este contenedor y NO en el panel: una animación
             de entrada usa `transform`, y si la posición también fuera un
@@ -105,24 +242,29 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
             abajo. En celular sigue siendo una hoja pegada abajo. */}
         <div
+          ref={contenedor}
           className={`pointer-events-none fixed inset-0 z-50 flex ${
-            variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]"
+            variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:px-[max(1.5rem,env(safe-area-inset-left),env(safe-area-inset-right))] sm:pt-[8vh]"
           }`}
         >
           <Dialog.Content
-            ref={hoja}
+            ref={ponerHoja}
+            data-variante={variante ?? "normal"}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
-                ? "flex h-dvh flex-col overflow-hidden bg-tinta"
+                ? "flex h-dvh flex-col overflow-hidden bg-tinta-fija" // la cámara es negra en los dos temas: lo que va encima (`papel-fijo`) conserva sus tokens claros
                 : variante === "ticket"
                   ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
-                    `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
-                  : `scroll-cayla max-h-[90vh] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
-                    variante === "papel" || variante === "hoja" ? "bg-papel" : "bg-crema shadow-xl"
-                  } ${ancho}`
+                    `flex h-[min(92dvh,92%)] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel max-sm:pb-[env(safe-area-inset-bottom)] [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
+                  : // `--fondo-hoja` lo lee `.pie-hoja-fijo` (globals.css) para que el pie pegado pinte el mismo fondo que la hoja.
+                    // En el celular el alto se mide en `dvh` (con la barra de Safari a la vista, `vh` cortaba la hoja) y lo
+                    // que corre no arrastra a la página de atrás al llegar al final (`overscroll-contain`, ADR-0479). Con
+                    // `viewport-fit=cover` la hoja llega a la barrita del iPhone: suma ese margen abajo y el pie pegado
+                    // (`.pie-hoja-fijo`, que lee `--borde-abajo`) lo absorbe igual que absorbe el `p-6` (ADR-0479, actividad 9).
+                    `${altoFijo ? "scroll-cayla overflow-y-auto sm:flex sm:flex-col sm:overflow-clip" : "scroll-cayla overflow-y-auto"} max-h-[min(90dvh,90%)] rounded-t-2xl border border-sand bg-papel p-6 [--fondo-hoja:var(--color-papel)] max-sm:overscroll-contain max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-sm:[--borde-abajo:env(safe-area-inset-bottom)] sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${ancho}`
             } ${
-              cerrando ? "anim-modal-sale" : "anim-modal-entra"
-            } cascada-modal`}
+              cerrando ? (salidaPropia ? "" : "anim-modal-sale") : "anim-modal-entra"
+            } cascada-modal${lateral ? " hoja-con-lateral" : ""}`}
             onEscapeKeyDown={alEscape}
             // Radix enfoca el primer control al abrir; con `focoEnLaHoja`, la hoja misma (Radix le da tabIndex -1).
             onOpenAutoFocus={
@@ -144,35 +286,53 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
                 : undefined
             }
           >
-          {variante === "papel" && (
+          {(variante === "papel" || conCerrar) && (
             <button
               type="button"
-              onClick={pedirCierre}
+              onClick={pedirCierreDesdeFuera}
               disabled={bloqueado}
               aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+              {...(variante === "papel" ? {} : { "data-sin-cascada": true })}
+              className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
             >
               <X aria-hidden className="h-4 w-4" />
             </button>
           )}
+          {arriba}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${deCara ? "text-2xl leading-tight" : "sr-only"} ${variante === "papel" || conCerrar ? "pr-8" : ""} ${deCara && acciones ? "pr-44 sm:pr-48" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
-              <p className={variante === "camara" || variante === "ticket" ? "sr-only" : variante === "hoja" ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "mb-4 mt-1 text-xs text-tinta/70"}>{subtitulo}</p>
+              <p className={deCara ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "sr-only"}>{subtitulo}</p>
             </Dialog.Description>
           ) : (
             // Radix exige una Description por accesibilidad aunque el modal no muestre una visualmente.
             <Dialog.Description className="sr-only">{titulo}</Dialog.Description>
           )}
           {typeof children === "function" ? children(pedirCierre) : children}
+          {/* Va DESPUÉS del contenido para no correr el orden de la cascada (`nth-child`), y fuera de ella (`data-sin-cascada`): se coloca
+              a la izquierda con `position: absolute` (globals.css, `.hoja-con-lateral`), así que su lugar en el DOM no importa. */}
+          {acciones && deCara && (
+            <div data-sin-cascada className="absolute right-6 top-6 z-10 flex items-center gap-2">
+              {acciones}
+            </div>
+          )}
+          {lateral && (
+            <div data-lateral data-sin-cascada>
+              {lateral}
+            </div>
+          )}
           {/* La capa de las listas flotantes (2026-09-26): aquí cuelga `useDestinoFlotante` la lista de todo combo de esta
               hoja. Colgada como hija DIRECTA de la hoja, la cascada de arriba (`.cascada-modal > *`, globals.css) la tomaba
               por una pieza más del contenido: invisible hasta medio segundo y entrando en otro medio. Abrir un combo en
               «Registrar gasto» tardaba 1 s en verse entero; el selector de sede de la cabecera, 0,33 s. `data-sin-cascada`
               saca a la capa y lo que cuelga de ella ya no es hijo directo: la lista entra con su propio movimiento, el de
               la sede. Va al final para no correr el turno (`--k`) de ninguna pieza; vacía no ocupa lugar. */}
+          {/* El asa del celular (ADR-0479): dice que la hoja se baja con el dedo. Va al final y fuera de la cascada por lo
+              mismo que la capa de abajo, y se dibuja arriba de la hoja con `position: absolute` (globals.css, `.asa-hoja`).
+              No es un control: la salida para el teclado y el lector sigue siendo Escape, la ✕ o «Cancelar». */}
+          {conAsa && <div aria-hidden data-asa-hoja data-sin-cascada className="asa-hoja" />}
           <div data-capa-flotante data-sin-cascada />
           </Dialog.Content>
         </div>
@@ -184,10 +344,10 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
 // Estilos de campo compartidos — el mismo patrón que ya usaba EfectivoPanel
 // (el primer modal migrado al sistema v3), para que un formulario nuevo no
 // tenga que reinventar la etiqueta/input/botón de cada modal.
-export const campoEtiqueta = "label-cayla text-[11px] text-tinta/70";
-export const campoTexto =
-  "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
+// Desde la ronda 6 de /unificar (ADR-0358) son la etiqueta de `Campo` y la caja que se enciende (antes, versalitas al 70 % y una raya).
+export const campoEtiqueta = "campo-etiqueta";
+export const campoTexto = "caja-campo-input";
 export const botonCancelar =
-  "label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
+  "btn-cayla btn-secundario flex-1";
 export const botonPrimario =
-  "label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50";
+  "btn-cayla btn-primario flex-1";

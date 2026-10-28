@@ -18,6 +18,9 @@ import {
   veredictoCampana,
   type CampanaFila,
 } from "@/lib/resultados-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { Megaphone } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Campañas (ADR-0195 K2, PLAN-FINANZAS §7 ter), dibujado como el spike aprobado (`vistaCampanas`):
 // a la izquierda el margen extra de cada campaña que pasó, a la derecha su tabla; abajo las que vienen, con cuánto más hay
@@ -77,9 +80,9 @@ export function CampanasPanel({
         acciones={
           <>
             <Chip versalitas={false}>{esLider ? "CAYLA entera" : tiendaNombre}</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar}>
+            <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -91,7 +94,7 @@ export function CampanasPanel({
       ))}
 
       <section className="fin-dos-col fin-der">
-        <div {...entra(1)}>
+        <div {...entra(1)} data-guia="fin-campanas.grafico">
           <Superficie pad>
             <CabeceraBloque titulo="Margen extra de cada campaña" bajada="Lo que dejó contra lo que habría dejado en días normales." />
             {conExtra.length ? (
@@ -109,13 +112,15 @@ export function CampanasPanel({
                 }))}
               />
             ) : (
-              <p className="text-sm text-taupe">Todavía no terminó ninguna campaña con ventas y días normales para comparar.</p>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Megaphone />}>
+                Todavía no terminó ninguna campaña con ventas y días normales para comparar.
+              </Vacio>
             )}
             {malas && <p className="mt-2.5 text-[13px] text-taupe">{malas}</p>}
           </Superficie>
         </div>
 
-        <div {...entra(2)}>
+        <div {...entra(2)} data-guia="fin-campanas.pasadas">
           <Superficie>
             <div className="fin-tabla-wrap">
               <table className="fin-tabla" style={{ minWidth: 520 }}>
@@ -175,7 +180,7 @@ export function CampanasPanel({
         </div>
       </section>
 
-      <div {...entra(3)}>
+      <div {...entra(3)} data-guia="fin-campanas.vienen">
         <Superficie>
           <Herramientas>
             <b className="text-[14px]">Las que vienen</b>
@@ -245,7 +250,7 @@ export function CampanasPanel({
                 {!vienen.length && (
                   <tr>
                     <td colSpan={6} className="fin-tenue">
-                      No hay campañas con fechas por venir. Se crean en Catálogo ▸ Etiquetas.
+                      No hay campañas con fechas por venir. Se crean en Catálogo ▸ Insignias.
                     </td>
                   </tr>
                 )}
@@ -265,10 +270,10 @@ export function CampanasPanel({
         </Superficie>
       </div>
 
-      <div {...entra(4, "nota-cayla")}>
-        Una campaña también puede valer por otras cosas (clientas nuevas, sacar mercadería que no rota). El sistema no decide por ti: te
+      <div {...entra(4, "nota-cayla")} data-guia="fin-campanas.nota">
+        Una campaña también puede valer por otras cosas (clientes nuevos, sacar mercadería que no rota). El sistema no decide por ti: te
         dice <b>cuánto cuesta</b> en margen, para que la decisión sea a sabiendas. Las fechas, el descuento y las categorías se cambian en
-        Catálogo ▸ Etiquetas; la meta y el fondo, en{" "}
+        Catálogo ▸ Insignias; la meta y el fondo, en{" "}
         {esLider ? (
           <Link href="/configuracion?tab=tiendas" className="underline underline-offset-2">
             Configuración ▸ Tiendas y caja

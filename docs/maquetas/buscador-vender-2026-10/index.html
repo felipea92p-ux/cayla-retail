@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buscador de Vender — antes y después</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--rojo:#b8412d;--crema:#f5f0e8;--tinta:#1a1a18;--rojo-p:#8b2a1f;--sand:#e8e0d0;--papel:#fbf8f2;--ambar-p:#734f15;--pizarra:#4c5d6e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font-family:'DM Sans',system-ui,sans-serif;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}p.sub{margin:0 0 24px;color:rgba(26,26,24,.6);font-size:14px}
+.grid{display:grid;gap:28px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));max-width:1100px}
+h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px;color:rgba(26,26,24,.6)}
+h2 b{color:var(--rojo)}
+.campo{display:flex;align-items:center;gap:12px;height:56px;border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:0 16px;font-size:16px}
+.campo svg{width:20px;height:20px;color:rgba(26,26,24,.45)}.campo .x{margin-left:auto;color:rgba(26,26,24,.5)}
+.campo.foco{border-color:var(--rojo);box-shadow:0 0 0 2px rgba(184,65,45,.2)}.campo.foco svg{color:var(--rojo)}
+ul{list-style:none;margin:8px 0 0;padding:0;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(26,26,24,.10)}
+li{border-top:1px solid var(--sand)}li:first-child{border-top:0}
+.fila{display:flex;align-items:center;gap:12px;padding:10px 12px;font-size:14px}
+.fila.act{background:rgba(232,224,208,.6)}.fila.off{opacity:.55}
+.vieja{justify-content:space-between;padding:12px 16px}
+.n{font-weight:600;display:block}.d{font-size:12px;color:rgba(26,26,24,.6);display:block}
+.m{flex:1;min-width:0}.m .n,.m .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foto{width:44px;aspect-ratio:4/5;border-radius:8px;flex:none;display:grid;place-items:center;overflow:hidden}
+.foto svg{width:55%;height:55%;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.der{text-align:right;flex:none}.p{font-weight:600;font-variant-numeric:tabular-nums;display:block}
+.s{font-size:12px;display:block;color:rgba(26,26,24,.6)}.ro{color:var(--rojo-p)}.am{color:var(--ambar-p)}.o{font-size:11px;color:rgba(26,26,24,.55);display:block}
+.cel{max-width:375px}.cel .der{display:none}.cel .abajo{display:block;margin-top:2px;font-size:12px}
+.abajo{display:none}.abajo b{font-variant-numeric:tabular-nums}
+.pie{max-width:1100px;margin-top:28px;font-size:13px;color:rgba(26,26,24,.65);line-height:1.5}
+</style></head><body>
+<h1>Buscador de Vender</h1>
+<p class="sub">Búsqueda «gorr» · colores y piezas reales del sistema (tokens de globals.css, <code>FotoPrenda</code> de Apartados)</p>
+
+<svg style="display:none"><symbol id="bar" viewBox="0 0 24 24"><path d="M3 5v14M6.5 5v14M8.5 5v14M12 5v14M15 5v14M17 5v14M21 5v14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+<symbol id="gorra" viewBox="0 0 24 24"><path d="M5 15c0-4 3-7 7-7s7 3 7 7M3 15h18M4 18h16"/></symbol></svg>
+
+<div class="grid">
+ <section>
+  <h2>Antes</h2>
+  <div class="campo foco"><svg><use href="#bar"/></svg>gorr<span class="x">×</span></div>
+  <ul>
+   <li><div class="fila vieja act"><span><span class="n">Gorra Urbana</span><span class="d">Única/Azul medio · GOR-0003-AME-U</span></span><span class="der"><span class="p">S/29.00</span><span class="s">1 aquí</span></span></div></li>
+   <li><div class="fila vieja off"><span><span class="n">Gorra Urbana</span><span class="d">Única/Negro · GOR-0003-NEG-U</span></span><span class="der"><span class="p">S/29.00</span><span class="s ro">sin stock aquí</span><span class="o">2 en Trujillo</span></span></div></li>
+   <li><div class="fila vieja"><span><span class="n">Gorra Urbana</span><span class="d">Única/Celeste · GOR-0003-CEL-U</span></span><span class="der"><span class="p">S/29.00</span><span class="s am">3 en el almacén</span></span></div></li>
+  </ul>
+ </section>
+
+ <section>
+  <h2><b>Después</b> · escritorio</h2>
+  <div class="campo foco"><svg><use href="#bar"/></svg>gorr<span class="x">×</span></div>
+  <ul>
+   <li><div class="fila act"><div class="foto" style="background:#8aa6c1"><div style="width:55%;aspect-ratio:1;border-radius:50%;background:#d9e4ee"></div></div><span class="m"><span class="n">Gorra Urbana</span><span class="d">Única/Azul medio · GOR-0003-AME-U</span></span><span class="der"><span class="p">S/29.00</span><span class="s">1 aquí</span></span></div></li>
+   <li><div class="fila off"><div class="foto" style="background:#eae1d2;color:#805c4c"><svg><use href="#gorra"/></svg></div><span class="m"><span class="n">Gorra Urbana</span><span class="d">Única/Negro · GOR-0003-NEG-U</span></span><span class="der"><span class="p">S/29.00</span><span class="s ro">sin stock aquí</span><span class="o">2 en Trujillo</span></span></div></li>
+   <li><div class="fila"><div class="foto" style="background:#eae1d2;color:#805c4c"><svg><use href="#gorra"/></svg></div><span class="m"><span class="n">Gorra Urbana</span><span class="d">Única/Celeste · GOR-0003-CEL-U</span></span><span class="der"><span class="p">S/29.00</span><span class="s am">3 en el almacén</span></span></div></li>
+  </ul>
+ </section>
+
+ <section class="cel">
+  <h2><b>Después</b> · celular (375 px)</h2>
+  <div class="campo foco"><svg><use href="#bar"/></svg>gorr<span class="x">×</span></div>
+  <ul>
+   <li><div class="fila act"><div class="foto" style="background:#8aa6c1"><div style="width:55%;aspect-ratio:1;border-radius:50%;background:#d9e4ee"></div></div><span class="m"><span class="n">Gorra Urbana</span><span class="d">Única/Azul medio · GOR-0003-AME-U</span><span class="abajo"><b>S/29.00</b> · 1 aquí</span></span></div></li>
+   <li><div class="fila off"><div class="foto" style="background:#eae1d2;color:#805c4c"><svg><use href="#gorra"/></svg></div><span class="m"><span class="n">Gorra Urbana</span><span class="d">Única/Negro · GOR-0003-NEG-U</span><span class="abajo"><b>S/29.00</b> · <span class="ro">sin stock aquí</span></span></span></div></li>
+   <li><div class="fila"><div class="foto" style="background:#eae1d2;color:#805c4c"><svg><use href="#gorra"/></svg></div><span class="m"><span class="n">Gorra Urbana</span><span class="d">Única/Celeste · GOR-0003-CEL-U</span><span class="abajo"><b>S/29.00</b> · <span class="am">3 en el almacén</span></span></span></div></li>
+  </ul>
+ </section>
+</div>
+<p class="pie">La miniatura es la foto de la prenda por color; si no tiene, el dibujo de su categoría en el tono de su familia. Agotada y apartada se atenúan; «en el almacén» va en ámbar. En una lista angosta el precio y el stock bajan bajo el nombre para que el código de la etiqueta se lea completo.</p>
+</body></html>

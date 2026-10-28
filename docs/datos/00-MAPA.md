@@ -25,8 +25,9 @@ lugares reales y uno administrativo:
 
 **Por qué los códigos quedaron así:** vienen del sistema de personal, que los asignó con
 su propio criterio antes de la unificación. Por eso el código **no** sirve para saber
-qué es una sede. El Taller se busca siempre por `tipo = 'fabrica'`, nunca por su código
-— y para eso existe `apps/web/lib/etiqueta-sede.ts`.
+qué es una sede. El Taller se busca siempre por `tipo = 'fabrica'`, nunca por su código.
+La pantalla tampoco lo muestra: rotula con `ubicaciones.nombre`, que sí se lee («Tienda Lima»).
+`apps/web/lib/etiqueta-sede.ts`, que traducía el código en V1, se borró sin uso el 2026-10-06.
 
 **Y por qué una sede puede ser invisible:** `retail.sedes` no es una tabla, es una vista
 que cruza las sedes del sistema de personal contra `retail.sede_meta`. El cruce es
@@ -238,8 +239,9 @@ stateDiagram-v2
     end note
     note right of Vendida
         D-40: si estaba en almacén,
-        el sistema registra solo
-        el paso por el piso
+        la caja registra el paso
+        por el piso con un clic
+        (ADR-0321)
     end note
 ```
 

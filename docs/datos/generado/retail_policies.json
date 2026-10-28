@@ -2,7 +2,7 @@
  {
   "cmd": "SELECT",
   "policyname": "activos_fijos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "activos_fijos",
@@ -55,6 +55,15 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "cambio_salidas_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.cambios c\n  WHERE (c.id = cambio_salidas.cambio_id)))",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "cambio_salidas",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "cambios_select",
   "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
   "roles": "{public}",
@@ -65,7 +74,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categoria_patrones_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_patrones",
@@ -83,7 +92,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categoria_tallas_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_tallas",
@@ -101,7 +110,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categoria_tejidos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_tejidos",
@@ -119,7 +128,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categorias_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categorias",
@@ -136,6 +145,15 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "cierres_cola_arranque_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cierres_cola_arranque",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "clientas_select",
   "qual": "( SELECT retail.fn_ve_modulo('clientas'::text) AS fn_ve_modulo)",
   "roles": "{public}",
@@ -146,7 +164,7 @@
  {
   "cmd": "SELECT",
   "policyname": "codigos_barras_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_barras",
@@ -164,7 +182,7 @@
  {
   "cmd": "SELECT",
   "policyname": "codigos_correlativos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_correlativos",
@@ -182,7 +200,7 @@
  {
   "cmd": "SELECT",
   "policyname": "codigos_descuento_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_descuento",
@@ -196,6 +214,15 @@
   "schemaname": "retail",
   "tablename": "codigos_descuento",
   "with_check": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
+ },
+ {
+  "cmd": "SELECT",
+  "policyname": "cola_arranque_plazo_select",
+  "qual": "COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false)",
+  "roles": "{public}",
+  "schemaname": "retail",
+  "tablename": "cola_arranque_plazo",
+  "with_check": null
  },
  {
   "cmd": "SELECT",
@@ -231,12 +258,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "colores",
-  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
+  "with_check": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)"
  },
  {
   "cmd": "SELECT",
   "policyname": "colores_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "colores",
@@ -254,7 +281,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_adjuntos_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_adjuntos",
@@ -263,7 +290,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_cierres_select",
-  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1\n   FROM retail.compra_items i\n  WHERE ((i.id = compra_item_cierres.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))",
+  "qual": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_cierres",
@@ -272,7 +299,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_item_destinos_select",
-  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1\n   FROM retail.compra_items i\n  WHERE ((i.id = compra_item_destinos.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))",
+  "qual": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_item_destinos",
@@ -281,7 +308,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_items_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_items",
@@ -290,7 +317,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_notas_credito_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_notas_credito",
@@ -299,7 +326,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_pagos_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_pagos",
@@ -308,7 +335,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compra_reasignaciones_select",
-  "qual": "(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))",
+  "qual": "(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false) OR COALESCE((hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compra_reasignaciones",
@@ -326,7 +353,7 @@
  {
   "cmd": "SELECT",
   "policyname": "compras_select",
-  "qual": "(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))",
+  "qual": "( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "compras",
@@ -389,7 +416,7 @@
  {
   "cmd": "SELECT",
   "policyname": "configuracion_empresa_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "configuracion_empresa",
@@ -443,7 +470,7 @@
  {
   "cmd": "SELECT",
   "policyname": "cotizaciones_maquila_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "cotizaciones_maquila",
@@ -524,7 +551,7 @@
  {
   "cmd": "SELECT",
   "policyname": "etiqueta_categorias_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiqueta_categorias",
@@ -546,12 +573,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "((( SELECT auth.role() AS role) = 'authenticated'::text) AND ((descuento_pct IS NULL) OR ( SELECT retail.fn_es_lider() AS fn_es_lider)))"
+  "with_check": "(( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail) AND ((descuento_pct IS NULL) OR ( SELECT retail.fn_puede_dar_descuento_por_etiqueta() AS fn_puede_dar_descuento_por_etiqueta)))"
  },
  {
   "cmd": "SELECT",
   "policyname": "etiquetas_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
@@ -569,7 +596,7 @@
  {
   "cmd": "SELECT",
   "policyname": "familias_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "familias",
@@ -587,7 +614,7 @@
  {
   "cmd": "SELECT",
   "policyname": "gastos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "gastos_legado_2026_09",
@@ -614,7 +641,7 @@
  {
   "cmd": "SELECT",
   "policyname": "insumos_select_autenticado",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "insumos",
@@ -650,7 +677,7 @@
  {
   "cmd": "SELECT",
   "policyname": "marca_proveedores_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "marca_proveedores",
@@ -668,7 +695,7 @@
  {
   "cmd": "SELECT",
   "policyname": "marcas_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "marcas",
@@ -686,7 +713,7 @@
  {
   "cmd": "SELECT",
   "policyname": "modulos_select",
-  "qual": "true",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{authenticated}",
   "schemaname": "retail",
   "tablename": "modulos",
@@ -726,12 +753,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "patrones",
-  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
+  "with_check": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)"
  },
  {
   "cmd": "SELECT",
   "policyname": "patrones_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "patrones",
@@ -803,7 +830,7 @@
  {
   "cmd": "SELECT",
   "policyname": "producto_fotos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "producto_fotos",
@@ -821,7 +848,7 @@
  {
   "cmd": "SELECT",
   "policyname": "productos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "productos",
@@ -857,7 +884,7 @@
  {
   "cmd": "SELECT",
   "policyname": "proveedores_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proveedores",
@@ -956,7 +983,7 @@
  {
   "cmd": "SELECT",
   "policyname": "sububicaciones_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "sububicaciones",
@@ -978,12 +1005,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tallas",
-  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
+  "with_check": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)"
  },
  {
   "cmd": "SELECT",
   "policyname": "tallas_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tallas",
@@ -1005,12 +1032,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tejidos",
-  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
+  "with_check": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)"
  },
  {
   "cmd": "SELECT",
   "policyname": "tejidos_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tejidos",
@@ -1091,7 +1118,7 @@
  {
   "cmd": "SELECT",
   "policyname": "ubicacion_datos_fiscales_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ubicacion_datos_fiscales",
@@ -1100,7 +1127,7 @@
  {
   "cmd": "SELECT",
   "policyname": "ubicaciones_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ubicaciones",
@@ -1118,7 +1145,7 @@
  {
   "cmd": "SELECT",
   "policyname": "variante_etiquetas_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "variante_etiquetas",
@@ -1136,7 +1163,7 @@
  {
   "cmd": "SELECT",
   "policyname": "variantes_select",
-  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
+  "qual": "( SELECT retail.fn_tiene_acceso_retail() AS fn_tiene_acceso_retail)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "variantes",

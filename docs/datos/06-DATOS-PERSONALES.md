@@ -75,7 +75,7 @@ Ver §9.
 
 | Dato | Columna | Qué es | Quién lo ve hoy | Para qué se usa | Cuánto debería guardarse |
 |---|---|---|---|---|---|
-| Tipo de documento | `cliente_tipo_doc` | `dni`, `ruc` o `sin_documento` (por defecto) | Quien opere la sede **o** cualquier Líder de equipo | Decide si la ley permite boleta o exige factura | Lo mismo que el comprobante |
+| Tipo de documento | `cliente_tipo_doc` | `dni`, `ruc` o `sin_documento` (por defecto); `carne_extranjeria` y `pasaporte` con `20260930250000` (ADR-0288 D-3, por pegar) | Quien opere la sede **o** cualquier Líder de equipo | Decide si la ley permite boleta o exige factura | Lo mismo que el comprobante |
 | Número de documento | `cliente_num_doc` | DNI de la clienta o RUC de la empresa | Igual | Obligatorio en la factura; SUNAT lo exige | **5 años** (propuesta, §8) |
 | Nombre | `cliente_nombre` | Nombre o razón social | Igual | Se imprime en el comprobante | **5 años** (propuesta, §8) |
 

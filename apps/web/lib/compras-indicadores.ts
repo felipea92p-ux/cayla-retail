@@ -237,31 +237,6 @@ export async function listarRecepcionesCompras(opciones: { proveedorId?: string;
 }
 
 // ---------------------------------------------------------------- ingreso sin comprobante
-export type ResumenSinComprobante = {
-  unidadesMes: number;
-  recepcionesMes: number;
-  /** Unidades del mes que entraron sin costo unitario registrado (distorsionan el margen). */
-  unidadesSinCostoMes: number;
-  ultimaRecepcion: string | null;
-  ultimaUbicacion: string | null;
-};
-
-export async function getResumenSinComprobante(ubicacionId?: string): Promise<ResumenSinComprobante> {
-  const supabase = await createClient();
-  const filas = exigir(
-    await supabase.rpc("resumen_sin_comprobante", ubicacionId ? { p_ubicacion_id: ubicacionId } : {}),
-    "el resumen de ingresos sin comprobante"
-  );
-  const r = filas[0];
-  return {
-    unidadesMes: n(r?.unidades_mes),
-    recepcionesMes: n(r?.recepciones_mes),
-    unidadesSinCostoMes: n(r?.unidades_sin_costo_mes),
-    ultimaRecepcion: (r?.ultima_recepcion as string | null) ?? null,
-    ultimaUbicacion: (r?.ultima_ubicacion as string | null) ?? null,
-  };
-}
-
 export type RecepcionSinComprobante = {
   loteId: string;
   fechaRecepcion: string;

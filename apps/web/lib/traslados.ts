@@ -2,8 +2,13 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
-import { conteoDelTraslado, contarRequierenAccion, separarVacios } from "@/lib/traslados-reglas";
+import { conteoDelTraslado, contarRequierenAccion, etiquetaDePrenda, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
+import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
+import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
+import type { FirmaVigente } from "@/lib/firma-heredada";
+import { esEstadoSobrante, type SobranteTraslado } from "@/lib/traslados-sobrantes-reglas";
+import { unstable_rethrow } from "next/navigation";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -54,11 +59,19 @@ export type TrasladoResumen = {
   /** Solo de un anulado (ADR-0239 D-132); `null` en los demás (y en las lecturas que no traen anulados). */
   anuladoEn: string | null;
   motivoAnulacion: string | null;
+  /** Lo contado y guardado de todas las prendas (suma de lo recibido). El pase dice «faltó 1» con esto. */
+  unidadesRecibidas: number;
+  /** Quién envió la caja (el pase dice «Envía Marco A.»). Solo lo trae `getTrasladosDeLaSede`; `null` en las demás lecturas o si
+   *  el nombre no se pudo leer. */
+  creadoPorNombre: string | null;
+  /** Unidades contadas de más que esperan revisión, fuera del stock (ADR-0404). Solo lo trae `getTrasladosDeLaSede`; 0 en las
+   *  demás lecturas o si no se pudo leer. */
+  sobrantesPorRevisar: number;
 };
 
 export type { FotoTraslado };
 
-const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota,
+const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota, creado_por,
   origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
   destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre ),
   transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, color:colores ( hex ), producto:productos ( referencia ) ) ),
@@ -79,6 +92,7 @@ type FilaResumen = {
   confirmado_en: string | null;
   cerrado_en: string | null;
   nota: string | null;
+  creado_por?: string | null;
   origen: { nombre: string } | null;
   destino: { nombre: string } | null;
   transferencia_items:
@@ -101,7 +115,12 @@ type FilaResumen = {
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
-function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = new Map()): TrasladoResumen {
+function aResumen(
+  f: FilaResumen,
+  fotosPorProducto: Map<string, FotoCruda[]> = new Map(),
+  nombres: Map<string, string> = new Map(),
+  sobrantes: Map<string, SobrantesDeUnTraslado> = new Map()
+): TrasladoResumen {
   const items = f.transferencia_items ?? [];
   // Un producto con tres tallas en el mismo traslado se nombra una vez.
   const referencias = Array.from(new Set(items.map((i) => i.variante?.producto?.referencia).filter((r): r is string => !!r)));
@@ -143,7 +162,58 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
     lineasContadas: conteo.contadas,
     anuladoEn: f.anulado_en ?? null,
     motivoAnulacion: f.motivo_anulacion ?? null,
+    unidadesRecibidas: (f.transferencia_recepciones ?? []).reduce((acc, r) => acc + r.cantidad_recibida, 0),
+    creadoPorNombre: f.creado_por ? (nombres.get(f.creado_por) ?? null) : null,
+    sobrantesPorRevisar: sobrantes.get(f.id)?.unidades ?? 0,
   };
+}
+
+type SobrantesDeUnTraslado = { unidades: number; recibe: boolean };
+
+/** Lo contado de más que espera revisión en la sede (ADR-0404), por traslado. Tolerante: si la lectura falla (o la función todavía
+ *  no está en la base), vacío y el pase se lee como antes; el error queda en el log. */
+async function leerSobrantesPorRevisar(supabase: Cliente, ubicacionId: string): Promise<Map<string, SobrantesDeUnTraslado>> {
+  try {
+    const { data, error } = await supabase.rpc("fn_sobrantes_por_revisar" as never, { p_ubicacion_id: ubicacionId } as never);
+    if (error || !Array.isArray(data)) {
+      if (error) console.error("Sobrantes por revisar:", error.message);
+      return new Map();
+    }
+    return new Map(
+      (data as { transferencia_id: string; unidades: number; recibe: boolean }[]).map((r) => [r.transferencia_id, { unidades: r.unidades, recibe: r.recibe === true }] as const)
+    );
+  } catch (e) {
+    console.error("Sobrantes por revisar:", e);
+    return new Map();
+  }
+}
+
+/** Los traslados con algo por revisar que quedaron fuera del historial reciente: tienen que seguir a la vista hasta revisarse. */
+async function filasPorIds(supabase: Cliente, ids: string[]): Promise<FilaResumen[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("transferencias").select(SELECT_TERMINADOS).in("id", ids.slice(0, IDS_POR_CONSULTA));
+  if (error || !data) {
+    console.error("Traslados con algo de más por revisar:", error?.message);
+    return [];
+  }
+  return data as FilaResumen[];
+}
+
+/** Los nombres de quienes enviaron. Decorativo: si la lectura falla, el pase sale sin «Envía…», nunca sin pase. */
+async function leerNombres(supabase: Cliente, ids: string[]): Promise<Map<string, string>> {
+  const unicos = Array.from(new Set(ids));
+  if (unicos.length === 0) return new Map();
+  try {
+    const { data, error } = await supabase.rpc("fn_nombres_personas", { p_ids: unicos });
+    if (error || !data) {
+      console.error("Nombres de quienes enviaron:", error?.message);
+      return new Map();
+    }
+    return new Map((data as { id: string; nombre: string }[]).map((n) => [n.id, n.nombre] as const));
+  } catch (e) {
+    console.error("Nombres de quienes enviaron:", e);
+    return new Map();
+  }
 }
 
 async function filasEnCurso(supabase: Cliente, ubicacionId: string): Promise<FilaResumen[]> {
@@ -180,15 +250,6 @@ async function filasCerradas(supabase: Cliente, ubicacionId: string, limite: num
 export async function getTrasladosEnCurso(ubicacionId: string): Promise<TrasladoResumen[]> {
   const supabase = await createClient();
   return separarVacios((await filasEnCurso(supabase, ubicacionId)).map((f) => aResumen(f))).conPrendas;
-}
-
-/** Los últimos traslados que YA terminaron (cerrados, anulados, o «completada» del
- *  modelo atómico anterior), para el historial de la pantalla. Aparte de los
- *  en curso a propósito: los en curso se traen todos (son pocos y hay que
- *  verlos todos); el historial se acota. */
-export async function getTrasladosCerrados(ubicacionId: string, limite = 30): Promise<TrasladoResumen[]> {
-  const supabase = await createClient();
-  return separarVacios((await filasCerradas(supabase, ubicacionId, limite)).map((f) => aResumen(f))).conPrendas;
 }
 
 /** Las fotos de los productos que van en estos traslados, en UNA consulta por lote de 100
@@ -231,13 +292,73 @@ export async function getTrasladosDeLaSede(
   limiteCerrados = 30
 ): Promise<{ enCurso: TrasladoResumen[]; cerrados: TrasladoResumen[]; vacios: number; cerradosLeidos: number }> {
   const supabase = await createClient();
-  const [abiertas, cerradas] = await Promise.all([filasEnCurso(supabase, ubicacionId), filasCerradas(supabase, ubicacionId, limiteCerrados)]);
+  const [abiertas, cerradasRecientes, sobrantes] = await Promise.all([
+    filasEnCurso(supabase, ubicacionId),
+    filasCerradas(supabase, ubicacionId, limiteCerrados),
+    leerSobrantesPorRevisar(supabase, ubicacionId),
+  ]);
+  const leidos = new Set([...abiertas, ...cerradasRecientes].map((f) => f.id));
+  const viejosPorRevisar = await filasPorIds(supabase, [...sobrantes.keys()].filter((id) => !leidos.has(id)));
+  const cerradas = [...cerradasRecientes, ...viejosPorRevisar];
   const productoIds = [...abiertas, ...cerradas].flatMap((f) => (f.transferencia_items ?? []).map((i) => i.variante?.producto_id).filter((id): id is string => !!id));
-  const fotos = await leerFotosPorProducto(supabase, productoIds);
-  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos)));
-  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos)));
+  const [fotos, nombres] = await Promise.all([
+    leerFotosPorProducto(supabase, productoIds),
+    leerNombres(supabase, [...abiertas, ...cerradas].flatMap((f) => (f.creado_por ? [f.creado_por] : []))),
+  ]);
+  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos, nombres, sobrantes)));
+  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos, nombres, sobrantes)));
   // `cerradosLeidos` cuenta también los vacíos: es lo que dice si la consulta llegó al tope de `limiteCerrados`.
-  return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
+  return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradasRecientes.length };
+}
+
+/** Cuántos ids viajan por consulta: van en la URL (`.in("id", …)`), y con cientos de uuid de 36 letras se pasaría del largo
+ *  que aguanta el camino hasta la base. */
+const IDS_POR_CONSULTA = 80;
+
+/**
+ * El nombre de cada prenda («Blusa Emma · L · Beige»), por id, para listar lo que otra tienda puede ofrecer («Pedir a otra
+ * sede» desde Traslados). Pide los ids por tandas y en paralelo. A diferencia de las lecturas de apoyo de este archivo,
+ * FALLA en voz alta: una tanda que se pierde en silencio dejaría una lista incompleta que parece completa («esa tienda no
+ * tiene la talla M») y la persona dejaría de pedir lo que sí hay.
+ */
+export async function getEtiquetasDeVariantes(ids: readonly string[]): Promise<Map<string, string>> {
+  const unicos = [...new Set(ids)];
+  if (unicos.length === 0) return new Map();
+  const supabase = await createClient();
+  const tandas: string[][] = [];
+  for (let i = 0; i < unicos.length; i += IDS_POR_CONSULTA) tandas.push(unicos.slice(i, i + IDS_POR_CONSULTA));
+  const respuestas = await Promise.all(
+    tandas.map(async (tanda) =>
+      exigir(
+        await supabase.from("variantes").select("id, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia )").in("id", tanda),
+        "los nombres de las prendas"
+      )
+    )
+  );
+  return new Map(
+    respuestas.flat().map((v) => [v.id, etiquetaDePrenda({ referencia: v.producto?.referencia ?? "", talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null })] as const)
+  );
+}
+
+/**
+ * El WhatsApp de cada sede (solo las tiendas lo tienen: `ubicaciones.whatsapp_numero`, 9 dígitos), para que, al enviar un
+ * traslado, el aviso a la sede destino abra su chat directo. Tolerante (principio 9): si la lectura falla —la columna
+ * todavía no existe en esa base, la red— devuelve vacío y el aviso se arma igual, solo que WhatsApp pregunta a quién.
+ */
+export async function getWhatsappDeSedes(): Promise<Map<string, string>> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("ubicaciones").select("id, whatsapp_numero").not("whatsapp_numero", "is", null);
+    if (error || !data) {
+      console.error("WhatsApp de las sedes:", error?.message);
+      return new Map();
+    }
+    return new Map(data.flatMap((u) => (u.whatsapp_numero ? [[u.id, u.whatsapp_numero] as const] : [])));
+  } catch (e) {
+    unstable_rethrow(e);
+    console.error("WhatsApp de las sedes:", e);
+    return new Map();
+  }
 }
 
 type FilaContador = {
@@ -266,6 +387,9 @@ type FilaContador = {
  *
  * `transferencia_items!inner`: un traslado sin prendas (las cabeceras vacías de la limpieza de datos,
  * ver `esTrasladoVacio`) no cuenta — si no, la sede destino tendría un «por recibir» de nada.
+ *
+ * Es lo que LLEGA: Conteo («recíbelos primero») y Caja («traslados por recibir») lo usan solo. El número del menú le suma
+ * los pedidos de otras sedes: `getNumeroDelMenuTraslados`.
  */
 export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
@@ -279,7 +403,7 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
       console.error("Contador de traslados:", error?.message);
       return null;
     }
-    return contarRequierenAccion(
+    const porRecibir = contarRequierenAccion(
       (data as FilaContador[]).map((f) => ({
         estado: f.estado,
         ubicacionOrigenId: f.ubicacion_origen_id,
@@ -289,10 +413,27 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
       })),
       { miUbicacionId: ubicacionId, puedeCerrarDiferencia, ahoraIso: new Date().toISOString() }
     );
+    // ADR-0404: lo de más que me toca revisar (la sede que recibió y quien puede cerrar la diferencia), con la misma regla del pase.
+    const deMas = puedeCerrarDiferencia ? [...(await leerSobrantesPorRevisar(supabase, ubicacionId)).values()].filter((x) => x.recibe).length : 0;
+    return porRecibir + deMas;
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Contador de traslados:", e);
     return null;
   }
+});
+
+/**
+ * El número junto a «Traslados» en el menú y en el aviso «Traslados» del Inicio (ADR-0328 act. 17, Felipe: «"Te piden"
+ * lleva número en el menú desde que llega el pedido»): lo que llega por recibir (`getTrasladosPorAtender`) más lo que
+ * otras sedes le pidieron a esta y todavía no sale (`fn_pedidos_por_atender`). La suma es `numeroDelMenuTraslados`.
+ * «Para enviar» NO suma aquí (decisión del 2026-10-04): es un paso que la sede se debe a sí misma, y lo que lleva más de
+ * 3 días se avisa en su Inicio (`paraEnviarAtrasadas`).
+ * Total como su vecina: nunca lanza. `cache()`: el layout y el Inicio lo piden en el mismo request.
+ */
+export const getNumeroDelMenuTraslados = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
+  const [porRecibir, pedidos] = await Promise.all([getTrasladosPorAtender(ubicacionId, puedeCerrarDiferencia), getPedidosPorAtender(ubicacionId)]);
+  return numeroDelMenuTraslados(porRecibir, pedidos);
 });
 
 export type LineaTraslado = {
@@ -309,7 +450,7 @@ export type LineaTraslado = {
   diferencia: number | null;
   /** Esa prenda ya entró al stock (ADR-0239 D-129): no se vuelve a contar. */
   ingresado: boolean;
-  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer): ver `ProductoVarianteCelda`. */
+  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer). */
   colorHex: string | null | undefined;
   fotoUrl: string | null;
 };
@@ -340,7 +481,61 @@ export type TrasladoDetalle = {
   anuladoPorNombre: string | null;
   motivoAnulacion: string | null;
   lineas: LineaTraslado[];
+  /** Lo contado de más al recibir (ADR-0404): por revisar (fuera del stock) o ya revisado. Vacío si la lectura falla. */
+  sobrantes: SobranteTraslado[];
 };
+
+type FilaSobrante = {
+  id: string;
+  variante_id: string;
+  cantidad: number;
+  estado: string;
+  creado_en: string;
+  revisado_en: string | null;
+  revisado_por: string | null;
+  nota_revision: string | null;
+};
+
+/** Los sobrantes de un traslado. Decorativo para el resto del pase: si la lectura falla, el pase sale sin la sección (nunca
+ *  sin pase) y el error queda en el log. */
+async function leerSobrantes(supabase: Cliente, id: string): Promise<FilaSobrante[]> {
+  try {
+    const { data, error } = await supabase.rpc("fn_sobrantes_de_traslado" as never, { p_transferencia_id: id } as never);
+    if (error || !Array.isArray(data)) {
+      if (error) console.error("Sobrantes del traslado:", error.message);
+      return [];
+    }
+    return data as FilaSobrante[];
+  } catch (e) {
+    console.error("Sobrantes del traslado:", e);
+    return [];
+  }
+}
+
+/**
+ * La firma vigente de la recepción de un traslado (ADR-0328): quién firmó por última vez un paso de recibir, si fue hoy (lo dice la
+ * base, en día de Lima) y si sigue de turno en la sede que recibe. Con ella una terminal sabe ANTES de contar si tiene que preguntar quién recibe o si la base ya lo pone. Es un
+ * dato de apoyo: si la función no está todavía en la base o falla, devuelve `null` y la pantalla no adivina (se recibe sin nombre y,
+ * si la base lo pide, se pregunta).
+ */
+export async function getFirmaRecepcion(id: string): Promise<FirmaVigente> {
+  const supabase = await createClient();
+  const res = await supabase.rpc("fn_traslado_firma_recepcion", { p_transferencia_id: id });
+  if (res.error) {
+    console.warn(`fn_traslado_firma_recepcion no respondió; la recepción pregunta el nombre solo si la base lo pide. ${res.error.message}`);
+    return null;
+  }
+  const j = res.data;
+  if (typeof j !== "object" || j === null || Array.isArray(j)) return null;
+  const o = j as { persona_id?: unknown; nombre?: unknown; de_hoy?: unknown; presente?: unknown };
+  return {
+    personaId: typeof o.persona_id === "string" ? o.persona_id : null,
+    nombre: typeof o.nombre === "string" ? o.nombre : null,
+    deHoy: o.de_hoy === true,
+    // Si ya marcó su salida, la base no hereda su firma: la pantalla pregunta desde ya. Sin el dato, decide la base.
+    presente: typeof o.presente === "boolean" ? o.presente : null,
+  };
+}
 
 export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | null> {
   const supabase = await createClient();
@@ -358,9 +553,10 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   if (!t) return null;
 
   const ids = Array.from(new Set([t.creado_por, t.confirmado_por, t.cerrado_por, t.anulado_por].filter((x): x is string => !!x)));
-  const [lineasRes, nombreRes] = await Promise.all([
+  const [lineasRes, nombreRes, filasSobrantes] = await Promise.all([
     supabase.rpc("fn_traslado_lineas", { p_transferencia_id: id }),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
+    leerSobrantes(supabase, id),
   ]);
   const lineas = exigir(lineasRes, "las líneas del traslado");
   const nombres = exigir(nombreRes, "los nombres de quienes enviaron y recibieron");
@@ -368,6 +564,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   // Color y foto de cada prenda. Decorativos: `getAparienciaVariantes` tolera el fallo y la celda cae al
   // nombre del color en texto, nunca tumba la pantalla donde se confirma una recepción.
   const apariencia = await getAparienciaVariantes(supabase, lineas.map((l) => l.variante_id));
+  const revisores = await leerNombres(supabase, filasSobrantes.map((f) => f.revisado_por).filter((x): x is string => !!x));
 
   return {
     id: t.id,
@@ -404,5 +601,17 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
       colorHex: apariencia.has(l.variante_id) ? apariencia.get(l.variante_id)!.colorHex : undefined,
       fotoUrl: apariencia.get(l.variante_id)?.fotoUrl ?? null,
     })),
+    sobrantes: filasSobrantes
+      .filter((f) => esEstadoSobrante(f.estado))
+      .map((f) => ({
+        id: f.id,
+        varianteId: f.variante_id,
+        cantidad: f.cantidad,
+        estado: f.estado as SobranteTraslado["estado"],
+        creadoEn: f.creado_en,
+        revisadoEn: f.revisado_en,
+        revisadoPorNombre: f.revisado_por ? (revisores.get(f.revisado_por) ?? null) : null,
+        nota: f.nota_revision,
+      })),
   };
 }

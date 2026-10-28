@@ -39,17 +39,6 @@ export type Atajo = {
   principal?: boolean;
 };
 
-const ESTADO_APARTADO: Record<string, string> = {
-  abierta: "Abierto",
-  entregada: "Recogido",
-  liberada: "Liberado",
-  devuelta: "Adelanto devuelto",
-};
-
-export function textoEstadoApartado(estado: string): string {
-  return ESTADO_APARTADO[estado] ?? estado;
-}
-
 /** Lo que entró a la sede y se puede bajar o etiquetar: lo que llegó de afuera (proveedor, Taller, producción, stock
  *  inicial). Una devolución o un cambio también suman, pero la prenda vuelve al piso con su etiqueta: no aplica. */
 function esLlegada(m: Pick<Movimiento, "delta" | "categoria" | "motivo">): boolean {
@@ -97,7 +86,7 @@ export function atajosDeMovimiento(m: Movimiento, accesos: AccesosAtajos, aparta
 
   // Lo que llegó: colgarlo (si quedó en el almacén) y etiquetarlo.
   if (esLlegada(m)) {
-    const bajar = zonaDeLaSede(m) === "almacen_tienda" && ve("bajada_piso") ? hrefBajarAlPiso([m.varianteId]) : null;
+    const bajar = zonaDeLaSede(m) === "almacen_tienda" && ve("existencias") ? hrefBajarAlPiso([m.varianteId]) : null;
     if (bajar) atajos.push({ clave: "bajar", texto: "Bajar al piso", detalle: "llega con esta talla cargada", href: bajar, principal: true });
     const etiquetas = hrefEtiquetas([m.varianteId]);
     if (etiquetas) atajos.push({ clave: "etiquetas", texto: "Imprimir etiqueta", detalle: [m.talla, m.color].filter(Boolean).join(" · ") || "de esta prenda", href: etiquetas });
@@ -137,7 +126,7 @@ export function atajosDeOperacion(filas: readonly Movimiento[], accesos: Accesos
   const ids = [...new Set(llegadas.map((m) => m.varianteId))];
   const atajos: Atajo[] = [];
   const alAlmacen = llegadas.filter((m) => zonaDeLaSede(m) === "almacen_tienda").map((m) => m.varianteId);
-  const bajar = alAlmacen.length > 0 && ve("bajada_piso") ? hrefBajarAlPiso(alAlmacen) : null;
+  const bajar = alAlmacen.length > 0 && ve("existencias") ? hrefBajarAlPiso(alAlmacen) : null;
   const nBajar = new Set(alAlmacen).size;
   if (bajar) atajos.push({ clave: "bajar", texto: `Bajar ${nBajar === 1 ? "esta" : `estas ${nBajar}`} al piso`, detalle: "", href: bajar, principal: true });
   const etiquetas = hrefEtiquetas(ids);

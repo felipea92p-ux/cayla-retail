@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CloudOff, TriangleAlert } from "lucide-react";
 import { money } from "@/components/PuntoDeVenta";
 import { type VentaEncolada } from "@/lib/ventas-offline";
+import { totalDeLineas } from "@/lib/vender-reglas";
 
 type Props = {
   cola: VentaEncolada[];
@@ -11,7 +12,7 @@ type Props = {
 };
 
 function totalDe(venta: VentaEncolada): number {
-  return venta.params.p_items.reduce((acc, it) => acc + it.cantidad * (it.precio_unitario - it.descuento_unitario), 0);
+  return totalDeLineas(venta.params.p_items.map((it) => ({ cantidad: it.cantidad, precioUnitario: it.precio_unitario, descuentoUnitario: it.descuento_unitario })));
 }
 
 /**
@@ -52,29 +53,30 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
           {confirmando === venta.token ? (
             <span className="flex shrink-0 items-center gap-2">
               <span className="text-tinta/70">¿Descartarla? No queda ningún rastro en el servidor.</span>
+              {/* «Cancelar» antes de la acción, como en el pie de una hoja (ADR-0358, ronda 11). */}
+              <button
+                type="button"
+                onClick={() => setConfirmando(null)}
+                className="btn-cayla btn-secundario h-7 px-2.5 text-[12.5px]"
+              >
+                Cancelar
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   onDescartar(venta.token);
                   setConfirmando(null);
                 }}
-                className="label-cayla h-7 rounded-md bg-rojo px-2 text-[11px] text-crema hover:bg-rojo-profundo"
+                className="btn-cayla btn-peligro h-7 px-2.5 text-[12.5px]"
               >
                 Sí, descartar
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmando(null)}
-                className="label-cayla h-7 rounded-md border border-tinta/25 px-2 text-[11px] text-tinta hover:bg-sand/40"
-              >
-                Cancelar
               </button>
             </span>
           ) : (
             <button
               type="button"
               onClick={() => setConfirmando(venta.token)}
-              className="label-cayla h-7 shrink-0 rounded-md border border-rojo/40 px-2 text-[11px] text-rojo-profundo hover:bg-rojo/8"
+              className="btn-cayla btn-peligro h-7 shrink-0 px-2.5 text-[12.5px]"
             >
               Descartar
             </button>

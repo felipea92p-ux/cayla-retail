@@ -1,0 +1,63 @@
+{
+  "guia": "productos.marcas",
+  "ruta": "/productos/marcas",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 37,
+  "controles": {
+    "components/ConfirmarConResponsable.tsx": [
+      "ComboResponsable «{control}»",
+      "Boton «Cancelar»",
+      "Boton «{control?.motivo ?? undefined}»"
+    ],
+    "components/EditarMarcaModal.tsx": [
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la marca\")}»",
+      "BotonDeshacer «(sin nombre)»",
+      "button «Quitar»",
+      "button «Quitar» #2",
+      "button «Quitar» #3",
+      "input «Razón social o nombre del proveedor nuevo»",
+      "input «RUC del proveedor nuevo (opcional)»",
+      "ComboBuscable «{opciones}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/MarcasLista.tsx": [
+      "Boton «marcas.nueva»",
+      "button «marcas.desactivadas»",
+      "button «marcas.resumen»",
+      "Boton «Borrar la búsqueda»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «{control}»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/NuevaMarcaForm.tsx": [
+      "button «Cambiar»",
+      "ComboBuscable «nm-marca»",
+      "button «+ Proveedor nuevo»",
+      "button «Cambiar» #2",
+      "CampoTexto «Razón social»",
+      "CampoTexto «11 dígitos»",
+      "button «Mejor elijo uno que ya existe»",
+      "ComboBuscable «nm-prov»",
+      "button «Cancelar»",
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
+      "button «Descartar el aviso de etiquetas pendientes»"
+    ],
+    "components/marcas/FiltrosMarcas.tsx": [
+      "button «→() => onFiltro(f)»"
+    ],
+    "components/marcas/IndiceLetras.tsx": [
+      "button «{letra === \"#\" ? \"Ir a las marcas que empiezan con un número\" : `Ir a la ${letra}»"
+    ],
+    "components/marcas/TarjetaMarca.tsx": [
+      "button «Reactivar»",
+      "button «marcas.editar»",
+      "LapizEditar «{m.nombre}»"
+    ]
+  }
+}

@@ -15,6 +15,16 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 const ARRIBA = 96; // cabecera fija de la app
 const ABAJO = 110; // pie del paso pegado abajo (escritorio)
 
+/** Lo que tapa el borde de arriba: la cabecera de la app y, en Nuevo producto, los puntos de avance pegados bajo ella. Se mide en
+ *  vivo (2026-10-09): con el número fijo de 96 px, en el celular la guía dejaba el campo bajo los puntos (la cabecera y ellos llegaban
+ *  a 160 px) y «Unidades de hoy» quedaba tapado justo cuando la guía decía «sigue aquí». */
+function arribaTapado(): number {
+  const puntos = document.querySelector<HTMLElement>("[data-puntos-avance]");
+  if (!puntos) return ARRIBA;
+  const pegadaEn = parseFloat(getComputedStyle(puntos).top) || 0;
+  return Math.max(ARRIBA, pegadaEn + puntos.offsetHeight + 12);
+}
+
 /** Lo que tapa el borde de abajo: en escritorio, el pie del paso; en celular, la barra de la ficha (`data-barra-ficha`). */
 function abajoTapado(): number {
   const barra = document.querySelector<HTMLElement>("[data-barra-ficha]")?.offsetHeight ?? 0;
@@ -38,8 +48,15 @@ function fila(id: IdCampo): HTMLElement | null {
 /** ¿La persona está escribiendo ahora (foco en una caja de texto)? Entonces la guía mueve su luz pero NUNCA la página: al teclear el
  *  precio no puede saltar. Se prueba con el foco, no con la tecla: sirve igual con teclado, lector o pantalla táctil. */
 export function estaEscribiendo(): boolean {
-  const activo = document.activeElement;
-  return activo instanceof HTMLTextAreaElement || (activo instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(activo.type));
+  const el = document.activeElement;
+  // Un combo con el foco NO es alguien escribiendo: tras elegir el proveedor el cursor se queda en su caja, y la guía no llevaba al
+  // nombre (Felipe, 2026-10-09). Lo mismo decide la luz de cada campo (`useRetenerLuz`).
+  return esCajaDeTexto(el) && el.getAttribute("role") !== "combobox";
+}
+
+/** ¿Es una caja donde se teclea (texto, número, buscador…)? No lo son las casillas, los botones ni los combos que no escriben. */
+export function esCajaDeTexto(el: EventTarget | null): el is HTMLInputElement | HTMLTextAreaElement {
+  return el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(el.type));
 }
 
 /** Deja el campo a la vista con el menor movimiento posible. Dentro de un modal el que se desplaza es el modal, no la ventana:
@@ -53,10 +70,17 @@ export function asegurarVisible(id: IdCampo, opciones: { enModal?: boolean } = {
   }
   const r = el.getBoundingClientRect();
   const alto = window.innerHeight;
+  const arriba = arribaTapado();
   const abajo = abajoTapado();
-  if (r.top >= ARRIBA && r.bottom <= alto - abajo) return;
-  const cabe = r.height <= alto - ARRIBA - abajo;
-  el.scrollIntoView({ block: cabe ? "center" : "start", behavior: reducido() ? "auto" : "smooth" });
+  if (r.top >= arriba && r.bottom <= alto - abajo) return;
+  // Un campo más alto que lo libre que ya lo llena entero (la carta de colores mientras se recorre) está a la vista: llevarlo a su
+  // comienzo sería sacar a la persona de donde está.
+  if (r.top <= arriba && r.bottom >= alto - abajo) return;
+  // Se centra en el hueco que de verdad se ve (entre lo pegado arriba y lo pegado abajo), no en la ventana: `scrollIntoView` no sabe
+  // de los puntos ni de la barra, y centraba el campo debajo de uno de ellos. Si no cabe entero, su comienzo queda justo bajo lo de arriba.
+  const libre = alto - arriba - abajo;
+  const delta = r.height <= libre ? (r.top + r.bottom) / 2 - (arriba + alto - abajo) / 2 : r.top - arriba;
+  window.scrollBy({ top: delta, behavior: reducido() ? "auto" : "smooth" });
 }
 
 /** Lleva a la persona al campo: lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor. */
@@ -65,8 +89,9 @@ export function irAlIdCampo(id: IdCampo, opciones: { destello?: boolean; cursor?
   const el = fila(id);
   if (!el) return;
   asegurarVisible(id, { enModal });
-  // El cursor solo a una caja de texto: un combo o un interruptor no se abren solos, la persona elige.
-  if (cursor) el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), textarea:not([disabled])')?.focus({ preventScroll: true });
+  // El cursor solo a una caja de texto: un combo o un interruptor no se abren solos, la persona elige. Una caja que dice `data-sin-cursor` («Llenar todas con» de la tabla de
+  // cantidades de «Nueva orden») es una herramienta, no el dato que falta: el cursor va a la primera celda.
+  if (cursor) el.querySelector<HTMLElement>('input:not([disabled]):not([role="combobox"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([data-sin-cursor]), textarea:not([disabled])')?.focus({ preventScroll: true });
   if (!destello) return;
   el.removeAttribute("data-llamado");
   // Reinicia la animación aunque se pida dos veces seguidas.

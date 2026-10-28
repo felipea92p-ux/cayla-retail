@@ -1,0 +1,28 @@
+{
+  "guia": "rendimiento",
+  "ruta": "/rendimiento",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 12,
+  "controles": {
+    "components/rendimiento/ComparativoTiendas.tsx": [
+      "button «{activa ? \"rendimiento.tienda-activa\" : \"rendimiento.tienda-otra\"}»"
+    ],
+    "components/rendimiento/EditarMetaModal.tsx": [
+      "CampoMonto «{guia.etiqueta(\"meta\", `Meta de ${mesEtiqueta}»",
+      "CampoTexto «{guia.etiqueta(\"detalle\", \"¿Cuál?\")}»",
+      "button «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/rendimiento/GraficoVentasMeta.tsx": [
+      "button «{clave === \"mes\" ? \"rendimiento.grafico-mes\" : \"rendimiento.grafico-semana\"}»",
+      "SegmentoDeslizante «Cómo ver el mes»"
+    ],
+    "components/rendimiento/PanelRendimiento.tsx": [
+      "button «{v.etiqueta}»",
+      "LapizEditar «{`la meta de ${p.nombre}»",
+      "button «Ordenar por esta columna»"
+    ]
+  }
+}

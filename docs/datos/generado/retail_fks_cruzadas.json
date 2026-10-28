@@ -55,6 +55,31 @@
   "src_table": "cambios"
  },
  {
+  "conname": "campana_disenos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_disenos"
+ },
+ {
+  "conname": "campana_disenos_publicado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_web_disenos"
+ },
+ {
+  "conname": "campana_web_disenos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "campana_web_disenos"
+ },
+ {
+  "conname": "cierres_cola_arranque_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cierres_cola_arranque"
+ },
+ {
   "conname": "clientas_archivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "clientas"
@@ -68,6 +93,61 @@
   "conname": "clientas_fusiones_fusionada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "clientas_fusiones"
+ },
+ {
+  "conname": "club_avisos_enviados_deshecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_enviados_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_avisos_enviados"
+ },
+ {
+  "conname": "club_avisos_textos_sede_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_avisos_textos_sede"
+ },
+ {
+  "conname": "club_canjes_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_canjes"
+ },
+ {
+  "conname": "club_canjes_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_canjes"
+ },
+ {
+  "conname": "club_cupones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_cupones"
+ },
+ {
+  "conname": "club_invitaciones_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_invitaciones"
+ },
+ {
+  "conname": "club_permisos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_permisos"
+ },
+ {
+  "conname": "club_puntos_config_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_puntos_config"
+ },
+ {
+  "conname": "club_puntos_movimientos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_puntos_movimientos"
+ },
+ {
+  "conname": "club_textos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "club_textos"
  },
  {
   "conname": "codigos_descuento_creado_por_fkey",
@@ -120,9 +200,39 @@
   "src_table": "compra_adjuntos"
  },
  {
+  "conname": "compra_cierres_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres"
+ },
+ {
+  "conname": "compra_cierres_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres"
+ },
+ {
+  "conname": "compra_cierres_resuelto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_cierres"
+ },
+ {
+  "conname": "compra_gastos_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_gastos"
+ },
+ {
+  "conname": "compra_gastos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_gastos"
+ },
+ {
   "conname": "compra_item_cierres_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_item_cierres"
+ },
+ {
+  "conname": "compra_item_recibido_antes_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_item_recibido_antes"
  },
  {
   "conname": "compra_notas_credito_usuario_id_fkey",
@@ -130,14 +240,39 @@
   "src_table": "compra_notas_credito"
  },
  {
+  "conname": "compra_notas_proveedor_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_notas_proveedor"
+ },
+ {
   "conname": "compra_pagos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_pagos"
  },
  {
+  "conname": "compra_papeles_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_papeles"
+ },
+ {
+  "conname": "compra_papeles_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_papeles"
+ },
+ {
   "conname": "compra_reasignaciones_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compra_reasignaciones"
+ },
+ {
+  "conname": "compra_rondas_abierta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_rondas"
+ },
+ {
+  "conname": "compra_rondas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compra_rondas"
  },
  {
   "conname": "compradores_de_tienda_agregado_por_fkey",
@@ -220,6 +355,11 @@
   "src_table": "conteos"
  },
  {
+  "conname": "costo_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "costo_correcciones"
+ },
+ {
   "conname": "costo_historial_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "costo_historial"
@@ -228,6 +368,11 @@
   "conname": "cotizaciones_maquila_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cotizaciones_maquila"
+ },
+ {
+  "conname": "cuadres_piso_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuadres_piso"
  },
  {
   "conname": "cuentas_asignadas_asignado_por_fkey",
@@ -243,6 +388,86 @@
   "conname": "cuentas_dinero_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "cuentas_dinero"
+ },
+ {
+  "conname": "cuentas_dinero_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_dinero"
+ },
+ {
+  "conname": "cuentas_web_vinculos_google_avisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_web_vinculos_google"
+ },
+ {
+  "conname": "cuentas_web_vinculos_google_revertido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_web_vinculos_google"
+ },
+ {
+  "conname": "despacho_cierres_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_cierres"
+ },
+ {
+  "conname": "despacho_conteos_contado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_conteos"
+ },
+ {
+  "conname": "despacho_diferencias_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_diferencias"
+ },
+ {
+  "conname": "despacho_observaciones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_observaciones"
+ },
+ {
+  "conname": "despacho_pendientes_anotado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_pendientes"
+ },
+ {
+  "conname": "despacho_pendientes_resuelto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_pendientes"
+ },
+ {
+  "conname": "despacho_recibidos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_recibidos"
+ },
+ {
+  "conname": "despacho_separaciones_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_separaciones"
+ },
+ {
+  "conname": "despachos_abierto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_despachado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_sin_aviso_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos_sin_aviso"
  },
  {
   "conname": "devoluciones_aprobado_por_fkey",
@@ -290,6 +515,46 @@
   "src_table": "etiquetas"
  },
  {
+  "conname": "fondo_plata_anotada_anotada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "fondo_plata_anotada"
+ },
+ {
+  "conname": "fondo_plata_anotada_confirmada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "fondo_plata_anotada"
+ },
+ {
+  "conname": "fondo_plata_anotada_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "fondo_plata_anotada"
+ },
+ {
+  "conname": "foto_recortes_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "foto_recortes"
+ },
+ {
+  "conname": "foto_recortes_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "foto_recortes"
+ },
+ {
+  "conname": "frescura_decisiones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "frescura_decisiones"
+ },
+ {
+  "conname": "gasto_viaje_fotos_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_viaje_fotos"
+ },
+ {
+  "conname": "gasto_viaje_fotos_subida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_viaje_fotos"
+ },
+ {
   "conname": "gastos_anulado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gastos"
@@ -308,6 +573,11 @@
   "conname": "gastos_fijos_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gastos_fijos"
+ },
+ {
+  "conname": "gastos_fijos_ficha_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos_fijos_ficha"
  },
  {
   "conname": "gastos_usuario_id_fkey",
@@ -335,6 +605,16 @@
   "src_table": "medios_de_cobro"
  },
  {
+  "conname": "metas_persona_ajustes_cambiado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "metas_persona_ajustes"
+ },
+ {
+  "conname": "metas_persona_ajustes_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "metas_persona_ajustes"
+ },
+ {
   "conname": "movimientos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "movimientos"
@@ -355,6 +635,61 @@
   "src_table": "movimientos_insumo"
  },
  {
+  "conname": "orden_compra_versiones_reemplazada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_compra_versiones"
+ },
+ {
+  "conname": "orden_insumo_cierres_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_cierres"
+ },
+ {
+  "conname": "orden_insumo_recepciones_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_recepciones"
+ },
+ {
+  "conname": "orden_insumo_versiones_reemplazada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_versiones"
+ },
+ {
+  "conname": "ordenes_compra_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_compra_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_compra_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_insumo_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "parametros_liquidacion_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "parametros_liquidacion"
+ },
+ {
   "conname": "parametros_tributarios_registrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "parametros_tributarios"
@@ -370,9 +705,44 @@
   "src_table": "patrones"
  },
  {
+  "conname": "pedido_web_lineas_resuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_lineas"
+ },
+ {
+  "conname": "pedido_web_pagos_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_pagos"
+ },
+ {
+  "conname": "pedido_web_pagos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_pagos"
+ },
+ {
+  "conname": "pedido_web_pagos_verificado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedido_web_pagos"
+ },
+ {
   "conname": "pedidos_no_atendidos_atendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "pedidos_no_atendidos"
+ },
+ {
+  "conname": "pedidos_web_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_web"
+ },
+ {
+  "conname": "pedidos_web_confirmado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_web"
+ },
+ {
+  "conname": "pedidos_web_entregado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pedidos_web"
  },
  {
   "conname": "periodo_cierres_cerrado_por_fkey",
@@ -385,9 +755,109 @@
   "src_table": "periodo_cierres"
  },
  {
+  "conname": "piezas_liquidacion_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "piezas_liquidacion"
+ },
+ {
+  "conname": "piezas_liquidacion_retirada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "piezas_liquidacion"
+ },
+ {
+  "conname": "piezas_liquidacion_etiquetas_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "piezas_liquidacion_etiquetas"
+ },
+ {
+  "conname": "planes_compra_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_editado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_plazo_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_recupero_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_tope_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra"
+ },
+ {
+  "conname": "planes_compra_lineas_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_lineas"
+ },
+ {
+  "conname": "planes_compra_reparto_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "planes_compra_reparto"
+ },
+ {
+  "conname": "pos_maquinas_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pos_maquinas"
+ },
+ {
+  "conname": "pos_tarifas_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "pos_tarifas"
+ },
+ {
+  "conname": "precios_sede_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede"
+ },
+ {
+  "conname": "precios_sede_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede"
+ },
+ {
+  "conname": "precios_sede_prenda_archivado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede_prenda"
+ },
+ {
+  "conname": "precios_sede_prenda_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "precios_sede_prenda"
+ },
+ {
+  "conname": "preferencias_colaborador_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "preferencias_colaborador"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
+ },
+ {
+  "conname": "prendas_para_enviar_cancelado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_para_enviar"
+ },
+ {
+  "conname": "prendas_para_enviar_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_para_enviar"
  },
  {
   "conname": "prendas_por_regularizar_regularizado_por_fkey",
@@ -400,9 +870,44 @@
   "src_table": "prendas_por_regularizar"
  },
  {
+  "conname": "prendas_por_regularizar_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "prendas_por_regularizar_correcciones"
+ },
+ {
+  "conname": "produccion_avances_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_avances"
+ },
+ {
+  "conname": "produccion_avances_operaria_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_avances"
+ },
+ {
   "conname": "produccion_etapas_historial_hecho_por_fkey",
   "ref_table": "public.personas",
   "src_table": "produccion_etapas_historial"
+ },
+ {
+  "conname": "produccion_fase_marcas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_fase_marcas"
+ },
+ {
+  "conname": "produccion_fases_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_fases"
+ },
+ {
+  "conname": "produccion_salidas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_salidas"
+ },
+ {
+  "conname": "produccion_vueltas_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_vueltas"
  },
  {
   "conname": "producciones_creado_por_fkey",
@@ -410,9 +915,24 @@
   "src_table": "producciones"
  },
  {
+  "conname": "producto_avios_declarado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_avios"
+ },
+ {
   "conname": "producto_color_temporadas_asignado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "producto_color_temporadas"
+ },
+ {
+  "conname": "producto_consumos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_consumos"
+ },
+ {
+  "conname": "producto_origen_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_origen"
  },
  {
   "conname": "productos_aprobado_por_fkey",
@@ -435,6 +955,16 @@
   "src_table": "proveedor_creditos"
  },
  {
+  "conname": "proveedor_deuda_resoluciones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedor_deuda_resoluciones"
+ },
+ {
+  "conname": "proveedor_tarifas_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedor_tarifas"
+ },
+ {
   "conname": "proveedores_produccion_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "proveedores_produccion"
@@ -443,6 +973,41 @@
   "conname": "proveedores_produccion_modificado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "proveedores_produccion"
+ },
+ {
+  "conname": "recomendaciones_web_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "recomendaciones_web"
+ },
+ {
+  "conname": "recomendaciones_web_leida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "recomendaciones_web"
+ },
+ {
+  "conname": "recomendaciones_web_respondida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "recomendaciones_web"
+ },
+ {
+  "conname": "rendiciones_fondo_aprobada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_devuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_rendida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
  },
  {
   "conname": "roles_archivado_por_fkey",
@@ -470,6 +1035,11 @@
   "src_table": "separacion_abonos"
  },
  {
+  "conname": "separacion_aplazamientos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_aplazamientos"
+ },
+ {
   "conname": "separacion_avisos_avisado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_avisos"
@@ -485,6 +1055,11 @@
   "src_table": "separacion_items_retirados"
  },
  {
+  "conname": "separacion_pedidos_avisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
   "conname": "separacion_pedidos_cancelado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_pedidos"
@@ -496,6 +1071,11 @@
  },
  {
   "conname": "separacion_pedidos_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_sigue_en_pie_por_fkey",
   "ref_table": "public.personas",
   "src_table": "separacion_pedidos"
  },
@@ -575,6 +1155,11 @@
   "src_table": "terminales"
  },
  {
+  "conname": "terminales_firma_respaldo_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "terminales"
+ },
+ {
   "conname": "terminales_reactivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "terminales"
@@ -605,9 +1190,29 @@
   "src_table": "transferencias"
  },
  {
+  "conname": "transferencias_recepcion_firmada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "transferencias"
+ },
+ {
+  "conname": "traslado_sobrantes_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "traslado_sobrantes"
+ },
+ {
+  "conname": "traslado_sobrantes_revisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "traslado_sobrantes"
+ },
+ {
   "conname": "ubicaciones_sede_dynamic_id_fkey",
   "ref_table": "public.sedes",
   "src_table": "ubicaciones"
+ },
+ {
+  "conname": "venta_pagos_correcciones_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "venta_pagos_correcciones"
  },
  {
   "conname": "ventas_anulado_por_fkey",
@@ -628,5 +1233,30 @@
   "conname": "ventas_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "ventas"
+ },
+ {
+  "conname": "vitrina_largos_tipicos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_largos_tipicos"
+ },
+ {
+  "conname": "vitrina_looks_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_looks"
+ },
+ {
+  "conname": "vitrina_looks_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_looks"
+ },
+ {
+  "conname": "vitrina_productos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_productos"
+ },
+ {
+  "conname": "vitrina_productos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "vitrina_productos"
  }
 ]

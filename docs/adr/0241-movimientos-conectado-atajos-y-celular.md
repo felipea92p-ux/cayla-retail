@@ -94,3 +94,43 @@ el celular había que pasar la cabecera, la franja, dos filas de píldoras y una
   / Corregir / Existencias, detalle de una venta con Cambio / Devolución, «Bajar estas 2 al piso» en la operación, hoja
   de Filtros con Exportar, buscador con cámara. **Falta verlo con una cuenta real:** Apartados con `?abrir=`,
   Existencias con `?variante=`, Conteo con `?variantes=` y la cámara en un teléfono.
+
+## Actualización 2026-10-01 — las bajadas del día abren el cajón, ya no se despliegan
+
+La fila plegada «Bajadas al piso» (punto 3) dejó de desplegarse hacia abajo —empujaba la lista y, abierta, ocupaba media
+pantalla— y ahora abre el **mismo cajón lateral** que el resto de las operaciones (`CajonMovimiento`, `vista.tipo ===
+"bajadas"`): el mismo nombre de la fila, «Hoy, de 10:04 a 11:29», UNA frase con el número grande («10 prendas pasaron del
+almacén al piso de venta»), quién las hizo («Quién: Carla Ruiz y Luis Soto») y la lista de prendas con su hora, su variante y
+cuántas. Si el día mezcla bajadas con otros movimientos (un retiro del piso), la frase dice «cambiaron de lugar dentro de
+la tienda» y cada fila dice «Almacén → Piso» o «Piso → Almacén». Se simplificó el mismo día tras leerlo como alguien sin
+contexto: «veces», «tallas» (un bolso es talla única), «⇄» y «quedan N» no se entendían —ese N era el total de la tienda,
+no el del piso— y «quién» quedaba debajo de las filas. Es de consulta, como los demás. Es un solo marco con dos contenidos
+(`ContenidoOperacion` / `ContenidoBajadas`): pasar de las bajadas a otra fila, o al revés, cambia el contenido sin cerrar
+ni volver a deslizar. Las bajadas no van en la URL (`?mov=`): no son un movimiento con id y su agrupación depende de los
+filtros. Lógica pura y probada: `construirDetalleBajadas` en `lib/movimientos-cajon.ts` (6 casos en
+`lib/movimientos-cajon.test.ts`). Lo que se perdió a propósito: abrir el detalle de UNA bajada desde esa lista; quien
+quiera ese detalle (stock antes/después, enlaces) la busca con la píldora «Piso ↔ almacén» o por su prenda, donde cada
+bajada es su fila.
+
+## Actualización 2026-10-01 (b) — todos los cajones se leen igual
+
+Lo que se hizo con el cajón de las bajadas se aplicó a los demás (pedido de Felipe, tras leer cada uno como alguien sin
+contexto). Todos tienen el mismo orden: el nombre del movimiento y **cuándo** («Hoy, a las 10:59»); **una frase con el
+número grande** («3 prendas llegaron desde Tienda Lima», «1 prenda vendida», «1 prenda menos en el stock») y **quién**;
+y debajo solo lo que ayuda a creerla: la prenda con su foto (si es de una), la lista de prendas (si son varias), «En la
+tienda: había 6 · ahora hay 5», el motivo de un ajuste y «Más información» (el documento y el historial de la prenda).
+Se fueron «Movimiento», «Referencia», «Impacto», «Consultar», «Stock Antes/Después», «variante» y los símbolos «⇄ / +1 / −1».
+Un cambio dice **«La clienta devolvió»** y **«Se llevó»** (antes «Sale / Entra», que suena a stock). Las frases viven en
+`fraseDeMovimiento` / `fraseDeAjuste` (`lib/movimientos-cajon.ts`) y una prueba recorre TODOS los procesos de
+`ETIQUETA_PROCESO`, sumando y restando, en singular y plural: un proceso nuevo cae a «prenda entró / salió de la tienda»
+en vez de romper. Una bajada o un retiro suelto (movimiento interno) usa el cajón de las bajadas con una sola operación.
+**Dos correcciones de fondo:** un conteo (o cualquier ajuste) de varias prendas ahora las lista TODAS, con «1 más» /
+«5 menos» (antes solo se veía la primera); y el historial solo se ofrece si todas las filas son del mismo producto (antes,
+con varios, llevaba al del primero). Se quitó el botón «Copiar» de la referencia de un cambio.
+
+**Dónde (2026-10-01, c):** al simplificar se había quitado de los cajones en qué parte de la tienda pasó cada cosa, y el
+«había 6 · ahora hay 5» es el total de piso y almacén juntos: en un ajuste por conteo no se entendía si se corrigió el
+piso o el almacén. Ahora, bajo la frase, cada cajón dice **Dónde** («Almacén», «Piso de venta», o el nombre de otra
+sububicación) y **Quién**; un ajuste de una prenda lo dice también en la frase («1 prenda más en el almacén») y la línea del
+total se llama «En toda la tienda · piso y almacén juntos». No hay saldo por piso ni por almacén (`fn_movimientos_saldos`
+es del total de la tienda): no se inventa.

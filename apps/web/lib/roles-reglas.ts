@@ -137,13 +137,15 @@ export function hayCambios(guardados: readonly ClaveModulo[], borrador: readonly
 /**
  * «Así queda su menú»: lo que vería en el lateral una cuenta con este rol, parada en una tienda (o en el Taller, para ver
  * Producción). Sale de `menuPara`, el mismo que arma el menú real, así la vista previa no puede mentir.
+ * @internal La pantalla ya no dibuja el menú del rol (maqueta del 2026-10-27); lo cruzan las pruebas de `roles-reglas.test.ts`, que cuidan
+ * que cada rol ofrezca el menú que le toca (Facturación en Ventas, Producción solo en el Taller, el Líder sin Caja).
  */
 export function menuDelRol(rol: Pick<RolVista, "fijo" | "modulos" | "limitadoComoHoy">, ubicacionTipo: TipoUbicacion = "tienda"): FilaMenu[] {
   const permisos = permisosDeModulos(rol.fijo ? "lider" : "integrante", rol.modulos.map((clave) => ({ clave, completo: !rol.limitadoComoHoy })));
   return menuPara({ permisos, ubicacionTipo, modulos: rol.modulos }).riel;
 }
 
-/** El menú como texto corto: «Inicio · Ventas (Punto de Venta, Caja) · Inventario (…)». */
+/** El menú como texto corto: «Inicio · Ventas (Punto de Venta, Caja) · Inventario (…)». @internal Lo usan las pruebas de `menuDelRol`. */
 export function etiquetasDelMenu(riel: readonly FilaMenu[]): { etiqueta: string; hijas: string[] }[] {
   return riel.map((f) => ({ etiqueta: f.etiqueta, hijas: esGrupoMenu(f) ? f.hijos.map((h) => h.etiqueta) : [] }));
 }
@@ -280,15 +282,6 @@ export function pantallaPrincipalValida(elegida: ClaveModulo | null, borrador: r
  * Editor de roles rediseñado (spike `docs/maquetas/colaboradores-ux-spike-2026-09/`, aprobado por Felipe 2026-09-22).
  * ------------------------------------------------------------------------------------------------------------------ */
 
-/** Cómo se agrupa la lista de roles: los del sistema, los de las terminales y los que armó un líder. */
-export type FamiliaRol = "sistema" | "terminal" | "a_medida";
-
-export function familiaDeRol(rol: Pick<RolVista, "clave" | "fijo" | "esSistema">): FamiliaRol {
-  if (rol.clave === "terminal_ventas" || rol.clave === "terminal_administrativa") return "terminal";
-  if (rol.fijo || rol.esSistema) return "sistema";
-  return "a_medida";
-}
-
 /** El aviso de la lista de roles: «Sin módulos» si deja cuentas sin ver nada (ni Inicio, desde 20260925220000), «Sin
  *  uso» si nadie lo tiene. */
 export function avisoDelRol(rol: Pick<RolVista, "fijo" | "archivado" | "modulos">, cuentas: number): "sin_modulos" | "sin_uso" | null {
@@ -314,40 +307,4 @@ export function alternarGrupo(modulos: readonly ClaveModulo[], grupo: Modulo["gr
   return MODULOS.filter((m) => (delGrupo.has(m.clave) ? encender : modulos.includes(m.clave))).map((m) => m.clave);
 }
 
-const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/** Los grupos con los módulos que coinciden con lo buscado (nombre, lo que incluye o el grupo). Vacío = todos. */
-export function modulosFiltrados(texto: string): { grupo: Modulo["grupo"]; modulos: Modulo[] }[] {
-  const q = sinTildes(texto.trim());
-  if (!q) return modulosPorGrupo();
-  return modulosPorGrupo()
-    .map((g) => ({ grupo: g.grupo, modulos: g.modulos.filter((m) => sinTildes(`${m.nombre} ${m.incluye} ${g.grupo}`).includes(q)) }))
-    .filter((g) => g.modulos.length > 0);
-}
-
-export type CambioMenu = "igual" | "suma" | "quita";
-export type FilaMenuConCambios = { etiqueta: string; cambio: CambioMenu; hijas: { etiqueta: string; cambio: CambioMenu }[] };
-
-/**
- * «Así queda su menú» con el borrador a la vista: lo que se suma y lo que se quita, sobre el mismo `menuDelRol` que arma el
- * menú real. Se calcula el menú de lo guardado, el del borrador y el de ambos juntos (para conservar el orden del lateral).
- */
-export function menuConCambios(
-  rol: Pick<RolVista, "fijo" | "modulos" | "limitadoComoHoy">,
-  borrador: readonly ClaveModulo[],
-  ubicacionTipo: TipoUbicacion = "tienda",
-): FilaMenuConCambios[] {
-  const antes = etiquetasDelMenu(menuDelRol(rol, ubicacionTipo));
-  const despues = etiquetasDelMenu(menuDelRol({ ...rol, modulos: [...borrador] }, ubicacionTipo));
-  const juntos = etiquetasDelMenu(menuDelRol({ ...rol, modulos: [...new Set([...rol.modulos, ...borrador])] }, ubicacionTipo));
-  const cambio = (enAntes: boolean, enDespues: boolean): CambioMenu => (enAntes && enDespues ? "igual" : enDespues ? "suma" : "quita");
-  return juntos.map((f) => {
-    const a = antes.find((x) => x.etiqueta === f.etiqueta);
-    const d = despues.find((x) => x.etiqueta === f.etiqueta);
-    return {
-      etiqueta: f.etiqueta,
-      cambio: cambio(!!a, !!d),
-      hijas: f.hijas.map((h) => ({ etiqueta: h, cambio: cambio(!!a?.hijas.includes(h), !!d?.hijas.includes(h)) })),
-    };
-  });
-}

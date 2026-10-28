@@ -1,0 +1,33 @@
+{
+  "guia": "rotulos",
+  "ruta": "/rotulos",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 17,
+  "controles": {
+    "components/GuiaImpresion.tsx": [
+      "button «Ir al paso»",
+      "button «{children}»",
+      "Pestanas «{[ { clave: \"windows\", etiqueta: \"Windows\"}»",
+      "button «{p.titulo}»",
+      "Volver «→() => ir(indice - 1)»",
+      "button «Listo, ya salió bien»",
+      "button «Siguiente»"
+    ],
+    "components/GuiaImpresionVisuales.tsx": [
+      "button «{`Clic ${n}»",
+      "a «Ver foto grande»"
+    ],
+    "components/ImprimirRotulos.tsx": [
+      "BotonImprimir «→mandar»",
+      "Volver «(sin nombre)»",
+      "button «Quitar todas»",
+      "button «{`Quitar ${m.referencia}»",
+      "ComboBuscable «{opciones}»",
+      "SegmentoDeslizante «Cómo salen los rótulos»"
+    ],
+    "components/impresion/useImpresionBrother.tsx": [
+      "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
+      "BotonCopiar «la línea»"
+    ]
+  }
+}

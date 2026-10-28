@@ -1,0 +1,72 @@
+# Pestañas y segmentos — tres piezas, una por pregunta (ADR-0358)
+
+**Decidido:** 2026-10-06, Felipe, **mirando** (página de `/unificar`). **Piezas:** `components/ui/Pestanas.tsx` (vista), `pildora-cayla`
+(filtro y período) y `SegmentoEnlaces` / `SegmentoDeslizante forma="modo"` (modo y orden), con su piel en `app/estilos/pestanas-y-segmentos.css`.
+
+**La regla está en la pregunta que se hace la colaboradora: «¿qué cambia si toco esto?».**
+
+| Si al tocar… | La pieza | Cómo se ve (elegida por Felipe) |
+|---|---|---|
+| cambia de sección (otro contenido, otras acciones) | **pestaña de vista** (`<Pestanas>`) | **F**: el vidrio de Comprobantes con la píldora oscura que se desliza bajo la elegida, **en mayúsculas** («la que elegí pero con mayúsculas») |
+| deja menos filas en la misma lista (un estado, una zona, un período) | **píldora de filtro** (`pildora-cayla`, `BotonFiltro`) | **A**: la píldora rellena negra, la más usada |
+| muestra lo mismo de otra forma o en otro orden | **segmento de modo** (`SegmentoEnlaces`, `SegmentoDeslizante forma="modo"`) | **L**: la caja arena de «GRILLA / TABLA», con la elegida en papel, en mayúsculas |
+
+**También Finanzas y Configuración** (Felipe 2026-10-06: «sí, también Finanzas»): `PestanasFin` dibuja ahora con `<Pestanas>`; la regla de
+Finanzas de `CLAUDE.md` lo dice. Y las pestañas de Comprobantes (`FacturacionPestanas`, de donde salió el vidrio) y de la billetera de
+Traslados («Te llegan / Envías / Terminadas», ADR-0355) pasan a la misma pieza. Y las cuatro preguntas de **Análisis v4** (Hoy · Se está
+acabando · No se vende · Qué pedir, ADR-0357), que llegaron de `main` con su subrayado propio (Felipe 2026-10-06: «incluye lo de Análisis»):
+mismos conteos —«Se está acabando» en rojo si hay prendas—, el chip de confianza sigue a la derecha y sus gráficos se arman igual al cambiar.
+
+## Cómo se llegó aquí
+
+1. **2026-10-06, ronda 1.** El censo contó 25 formas en 54 pantallas; la depuración, 18 reales para cinco cosas distintas. Felipe eligió la
+   recomendación por su descripción (subrayado en tinta, píldora, segmento con contorno) y se migraron ~45 archivos a las tres piezas.
+2. **Ese mismo día, más tarde.** Al verlas aplicadas, no le gustaron. En la página de elegir escogió F (con mayúsculas), A y L. Como las ~45 pantallas ya
+   pasaban por las tres piezas, el cambio fue solo de piel (la hoja de estilos y el indicador que viaja) más las tres pestañas que seguían a mano.
+
+![Las formas que había](capturas/pestanas.jpg)
+
+3. **2026-10-23, el aviso de «hay más».** La auditoría del celular (hallazgo 14) vio que una fila que se desliza corta la primera o la
+   última pestaña en el borde y nada dice que hay más. Felipe eligió **mirando** la maqueta `docs/maquetas/pestanas-que-se-deslizan-2026-10/`
+   la opción **A: el degradado en el borde** (sobre la flecha en el borde y la barra de posición): la fila se desvanece 28 px del lado donde
+   falta por ver y se apaga sola al llegar al final. Vale para `<Pestanas>` (`.pestanas-cayla`) y para `.pildoras-desliza`, sin que
+   ninguna pantalla haga nada: `components/ui/FilasQueSeDeslizan.tsx` (montado una vez en `app/layout.tsx`) mide cada fila y le pone
+   `data-mas-izq` / `data-mas-der` (la regla pura es `lib/fila-desliza-reglas.ts`, con su prueba), y `pestanas-y-segmentos.css` dibuja la
+   máscara. Solo existe mientras la fila se desliza (nunca en escritorio, donde cabe entera). No cambia qué hace ninguna pestaña.
+
+4. **2026-10-26, la marca «nuevo».** La maqueta del Presupuesto del Plan (spike ④, Felipe la eligió mirando) pone una palabra «nuevo» en pizarra pegada al nombre de una pestaña recién llegada.
+   Es una variante de la píldora de conteo, no una pieza nueva: `<Pestanas>` acepta `conteo: "nuevo"` con `tono: "nuevo"` (pizarra con letra crema; sobre la píldora oscura, al revés). Quien monta
+   las pestañas decide hasta cuándo sale (`PestanasPlan`: hasta el 2026-12-31): una marca de «nuevo» que no caduca es ruido.
+   **Corrección del mismo día:** la letra era `crema-fija` y en oscuro, donde la pizarra se aclara, pasaba 1,8:1; ahora es `--color-crema`, que se invierte junto con el relleno (la regla del oscuro: el relleno y su
+   letra se invierten juntos; un color «fijo» es para el dato, no para un relleno del sistema). Lo mismo se corrigió en el «1» ámbar de la campana de avisos del Plan.
+
+## Qué es cada pieza
+
+- **`Pestanas`**: contenedor de vidrio (`vidrio-cayla`) con 4 px de aire y radio 14; la píldora en tinta de radio 10 viaja bajo la elegida
+  (`IndicadorDeslizante` «pildora-tinta», 450 ms, ADR-0136). Palabra en versalitas de 12 px; la elegida, en crema. Conteo en su píldora chica:
+  `pide` lo pone en ámbar con su texto para lector, `tono="rojo"` avisa un problema, `tono="neutro"` solo informa. Con `href`, enlaces con
+  `aria-current`; con `onCambio`, `tablist` con flechas. Si la fila no cabe (celular), se centra la elegida; en una columna angosta,
+  `pestanas-cayla--llenar` reparte el ancho.
+- **Píldora**: `pildora-cayla` sin cambio; `.pildora-cayla__n` es su conteo.
+- **Segmento de modo**: fondo sand con 2 px de aire, opciones en versalitas de 10,5 px en tinta al 60 %, la elegida en papel y tinta; 36 px.
+
+## Lo que queda distinto a propósito
+
+El cierre por unidad de Finanzas (`fin-matriz`, ADR-0195), el segmento del Observatorio (ADR-0322), la tarjeta-pestaña de Colaboradores
+(ADR-0172), las pestañas por tienda de Rendimiento (ADR-0325), los siete tipos de Movimientos (ADR-0353), la barra de Apartados en el celular
+(ADR-0223) y la barra de Comprobantes en el celular (ADR-0124). Sus líneas llevan `// unificar-fijo:` con el ADR.
+
+## Preguntas resueltas (Felipe, 2026-10-07)
+
+1. **Apartados en escritorio:** sí, pasa al vidrio (`<Pestanas>`, con el conteo de «Todos» como el que pide algo). El celular conserva su barra de
+   abajo, que es otra pieza (ADR-0206). Probado a 1440 y a 375 px.
+2. **Más de tres opciones:** se quedan como segmento (los cierres de Caja y la matriz de la ficha). Caben en una línea y se cambian con un toque;
+   un combo pide dos toques y esconde las otras. Solo pasaría a combo si no caben (más de cuatro, o un celular).
+3. **Avisar a Dany** de los cambios en Rendimiento y Clientes (`PanelRendimiento`, `GraficoVentasMeta`, `ClientaFichaModal`, `AvisosClubPanel`):
+   aceptado; el mensaje lo envía Felipe (queda redactado con las capturas de `apps/web/unificar/.salida/preguntas/`).
+
+## Deuda
+
+**0.** Las firmas atrapan una pestaña dibujada a mano (`role="tab"` fuera de la pieza), un subrayado a mano (`-mb-px border-b-2`,
+`after:h-0.5 after:bg-…`) y una «elegida» escrita a mano con fondo y sombra. La primera fusión con `main` las probó: atraparon la billetera de
+Traslados, que nació con sus pestañas a mano, y se migró; la segunda, las de Análisis v4, que también se migraron.

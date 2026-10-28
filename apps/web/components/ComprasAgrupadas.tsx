@@ -1,12 +1,15 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Clock, ReceiptText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, ReceiptText, SearchX, ShoppingBag } from "lucide-react";
+import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { agruparPorCompra, agruparPorDia, varianteLegible, type EstadoVisual } from "@/lib/cambios-reglas";
 import { soles } from "@/lib/compras-reglas";
+import { valorPagado } from "@/lib/devoluciones-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 
 // La lista de compras que comparten Cambios y Devoluciones (2026-09-18). La unidad es la
@@ -103,7 +106,7 @@ export function ComprasAgrupadas({
   return (
     // El hilo (Atelier, 2026-09-19): una línea taupe que baja por la izquierda y se dibuja al
     // entrar; cada día es un nudo sobre ella y sus compras cuelgan a la derecha.
-    <div className="relative pl-8 sm:pl-11">
+    <div data-guia="posventa.compras" className="relative pl-8 sm:pl-11">
       <span aria-hidden className="hilo-vertical absolute bottom-0 left-[11px] top-1.5 w-[1.5px] bg-gradient-to-b from-taupe to-taupe/15" />
       <div className="space-y-8">
         {agruparPorDia(lineas, ahora).map((dia, d) => (
@@ -122,8 +125,9 @@ export function ComprasAgrupadas({
               {agruparPorCompra(dia.lineas).map((compra, c) => (
                 <article
                   key={compra.ventaId}
+                  data-guia="posventa.compra"
                   style={{ "--i": Math.min(d * 2 + c + 2, 12) } as CSSProperties}
-                  className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_rgba(80,50,20,0.55)]"
+                  className="anim-sube rounded-[20px] bg-papel ring-1 ring-tinta/[0.07] transition-[transform,box-shadow] duration-[400ms] ease-[var(--ease-cayla)] hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-30px_color-mix(in_srgb,var(--color-sombra)_55%,transparent)]"
                 >
                   <header className="px-6 pb-1 pt-4">
                     <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
@@ -175,7 +179,7 @@ export function FilaPrendaVenta({
           </p>
           <p className="text-sm text-tinta/75">{varianteLegible(linea)}</p>
           <p className="mt-1 text-xs text-tinta/70">
-            <span className="font-mono">{codigoPrenda(linea)}</span> · {soles(linea.precioUnitario)}
+            <span className="font-mono">{codigoPrenda(linea)}</span> · {soles(valorPagado(linea, 1))}
             {linea.cantidad > 1 && ` · compró ${linea.cantidad}`}
           </p>
           {detalle}
@@ -192,9 +196,12 @@ export function FilaPrendaVenta({
 
 /** El botón de la fila: "Iniciar cambio →", "Iniciar devolución →". */
 export const CLASE_BOTON_FILA =
-  "boton-brillo label-cayla inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-md bg-tinta px-5 text-[11px] text-crema transition-[transform,box-shadow] duration-300 hover:-translate-y-px hover:shadow-[0_10px_22px_-12px_rgba(26,26,24,0.7)]";
+  "btn-cayla btn-primario inline-flex h-11 items-center gap-2 whitespace-nowrap";
 
-/** Los filtros de la actividad: pastillas con cuántas compras hay en cada una. */
+/** Los filtros de la actividad: píldoras con cuántas compras hay en cada una.
+ *  Dejan menos compras en la MISMA lista, así que van con la píldora de filtro del sistema (ADR-0358, «Pestañas y segmentos»,
+ *  2026-10-06), como el filtro de Devoluciones (ADR-0232 D3). Antes usaban la pista tinta/5 que en Devoluciones cambia la
+ *  pantalla: la misma cara hacía dos cosas en el mostrador. En el celular la fila se desliza (deja aire para el anillo de foco). */
 export function FiltrosActividad<T extends string>({
   valor,
   opciones,
@@ -205,18 +212,10 @@ export function FiltrosActividad<T extends string>({
   onCambio: (v: T) => void;
 }) {
   return (
-    <div role="group" aria-label="Filtrar la actividad" className="flex flex-wrap gap-1 rounded-full bg-tinta/5 p-1">
+    <div role="group" aria-label="Filtrar la actividad" data-guia="cambios.filtros" className="pildoras-desliza gap-2 sm:flex-wrap">
       {opciones.map((f) => (
-        <button
-          key={f.valor}
-          type="button"
-          aria-pressed={valor === f.valor}
-          onClick={() => onCambio(f.valor)}
-          className={`h-9 rounded-full px-4 text-sm transition-colors duration-200 ${
-            valor === f.valor ? "bg-papel font-semibold text-tinta shadow-[0_1px_2px_rgba(26,26,24,0.08)]" : "text-tinta/75 hover:text-tinta"
-          }`}
-        >
-          {f.texto} <span className="tabular-nums text-tinta/65">{f.cuantas}</span>
+        <button key={f.valor} type="button" aria-pressed={valor === f.valor} onClick={() => onCambio(f.valor)} className="pildora-cayla shrink-0">
+          {f.texto} <span className="pildora-cayla__n">{f.cuantas}</span>
         </button>
       ))}
     </div>
@@ -248,12 +247,12 @@ export function EsqueletoBusqueda() {
   );
 }
 
-export function EstadoVacio({ titulo, detalle }: { titulo: string; detalle: string }) {
+/** El vacío del mostrador (Cambios, Devoluciones, Historial): la pieza única <Vacio> (ADR-0358, ronda 5). */
+export function EstadoVacio({ titulo, detalle, icono = <ShoppingBag />, acciones }: { titulo: string; detalle: string; icono?: ReactNode; acciones?: ReactNode }) {
   return (
-    <div className="rounded-xl bg-papel/60 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-tinta">{titulo}</p>
-      <p className="mt-1 text-sm text-tinta/70">{detalle}</p>
-    </div>
+    <Vacio icono={icono} titulo={titulo} acciones={acciones}>
+      {detalle}
+    </Vacio>
   );
 }
 
@@ -271,20 +270,18 @@ export function SinResultadosVentas({
   onBuscarEnTodas: () => void;
 }) {
   return (
-    <div className="rounded-xl bg-papel/60 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-tinta">
-        No encontramos ventas con «{busqueda}»{todasLasSedes ? " en ninguna tienda" : ` en ${sede}`}.
-      </p>
-      <p className="mt-1 text-sm text-tinta/70">Prueba con el número de boleta, el DNI de la clienta, o escanea la etiqueta de la prenda.</p>
-      {puedeVerTodas && !todasLasSedes && (
-        <button
-          type="button"
-          onClick={onBuscarEnTodas}
-          className="label-cayla mt-4 inline-flex h-11 items-center rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/20 transition-colors duration-200 hover:bg-tinta hover:text-crema"
-        >
-          Buscar en todas las tiendas
-        </button>
-      )}
-    </div>
+    <Vacio
+      icono={<SearchX />}
+      titulo={`No encontramos ventas con «${busqueda}»${todasLasSedes ? " en ninguna tienda" : ` en ${sede}`}`}
+      acciones={
+        puedeVerTodas && !todasLasSedes ? (
+          <Boton peso="fantasma" onClick={onBuscarEnTodas} className="h-11">
+            Buscar en todas las tiendas
+          </Boton>
+        ) : null
+      }
+    >
+      Prueba con el número de boleta, el DNI del cliente, o escanea la etiqueta de la prenda.
+    </Vacio>
   );
 }

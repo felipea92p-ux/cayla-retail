@@ -1,6 +1,6 @@
 import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { lineasDeLaProforma, numeroDeProforma, precioAlCobrarDeLaProforma, type LineaProforma, type Proforma } from "./proformas-reglas";
-import { conDescuentoDeCampana } from "./vender-reglas";
+import { conDescuentoDeCampana, descuentoResultante } from "./vender-reglas";
 import { DONDE_SE_BAJA, motivoNoCobrable, type AvisoStock } from "./vender-stock-local";
 
 /**
@@ -10,7 +10,7 @@ import { DONDE_SE_BAJA, motivoNoCobrable, type AvisoStock } from "./vender-stock
  * se recorta al PISO de esta tienda (la venta descuenta el piso); lo que no hay (o no alcanza) vuelve en `faltan` para
  * avisarlo con nombre y su razón, y si está en el almacén de esta tienda lo dice con el número (D-40: se puede vender,
  * falta bajarlo) — `faltanEnAlmacen` avisa que hay algo que pedir que bajen. Si lo único que queda en el piso está
- * APARTADO para otra clienta (y no hay nada libre en el almacén), lo dice —«apartada para una clienta»— y no «no hay»:
+ * APARTADO para otra clienta (y no hay nada libre en el almacén), lo dice —«apartada para un cliente»— y no «no hay»:
  * la misma palabra que el buscador y el aviso de la caja (`motivoNoCobrable`).
  *
  * `prometidas`: TODAS las prendas de la proforma con el cobro prometido, hayan entrado o no. Una que no entró porque
@@ -33,7 +33,7 @@ export function lineasDelCarritoDesdeProforma(
     if (v) prometidas.push(lineaAlPrecioDeLaProforma(l, v, numero, l.cantidad));
     if (!v || v.stockAqui <= 0) {
       // Cada una con su razón: si se mezclan una del almacén y una que no hay, el aviso no manda a buscar la segunda.
-      const razon = enAlmacen > 0 ? `${enAlmacen} en el almacén` : v && motivoNoCobrable(v) === "apartada" ? "apartada para una clienta" : "no hay en esta tienda";
+      const razon = enAlmacen > 0 ? `${enAlmacen} en el almacén` : v && motivoNoCobrable(v) === "apartada" ? "apartada para un cliente" : "no hay en esta tienda";
       faltan.push(`${l.descripcion} (${razon})`);
       faltanEnAlmacen ||= enAlmacen > 0;
       continue;
@@ -53,11 +53,11 @@ export function lineasDelCarritoDesdeProforma(
   return { lineas, faltan, faltanEnAlmacen, prometidas };
 }
 
-/** «; 1 apartada para una clienta» / «; 2 apartadas para una clienta»: lo que explica por qué faltan unidades cuando lo
+/** «; 1 apartada para un cliente» / «; 2 apartadas para un cliente»: lo que explica por qué faltan unidades cuando lo
  *  que sobra en el piso está apartado. Con nada apartado, vacío (el aviso queda como siempre). */
 function textoApartadas(apartadoAqui: number | null | undefined): string {
   const n = apartadoAqui ?? 0;
-  return n <= 0 ? "" : `; ${n} ${n === 1 ? "apartada" : "apartadas"} para una clienta`;
+  return n <= 0 ? "" : `; ${n} ${n === 1 ? "apartada" : "apartadas"} para un cliente`;
 }
 
 /** El aviso al abrir el cobro de una proforma que no entró entera. Cada prenda lleva su razón (`faltan`); si alguna está
@@ -94,5 +94,8 @@ function lineaAlPrecioDeLaProforma(l: LineaProforma, v: VarianteBusqueda, numero
   };
   const deCampana = conDescuentoDeCampana(base);
   const deProforma: ItemCarrito = { ...base, descuentoUnitario: cobro.descuentoUnitario, razonDescuento: cobro.motivo, razonDescuentoOtro: cobro.motivoDetalle };
-  return deCampana.descuentoUnitario > deProforma.descuentoUnitario ? deCampana : deProforma;
+  // Un solo descuento, el mayor, con la regla de la caja y de `registrar_venta`: la proforma solo gana si SUPERA a la
+  // campaña por más de un céntimo. Con el descuento exacto (ADR-0302) una proforma al 20 % y una campaña de 20 % dan lo
+  // mismo: si ganaba la proforma, la línea iba como descuento manual y la base la rechazaba (venta_descuento_no_supera_campana).
+  return descuentoResultante(base, cobro.descuentoUnitario).prevaleceCampana ? deCampana : deProforma;
 }

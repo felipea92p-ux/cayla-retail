@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -14,7 +14,6 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
 import { ImpactoVista } from "@/components/CambioResumen";
 import {
-  AvisoDeError,
   BotonPrincipal,
   BotonRojo,
   BotonSecundario,
@@ -46,6 +45,12 @@ import {
 } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { Volver } from "@/components/ui/Volver";
+import { Aviso } from "@/components/ui/Aviso";
+import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
+import { Casilla } from "@/components/ui/Casilla";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -77,7 +82,8 @@ function itemInicial(): ItemElegido {
  * - Se elige UNA O VARIAS prendas de la boleta y todas viajan en una sola devolución
  *   (`crear_devolucion` recibe la lista): la pantalla de antes creaba una por prenda, y cada
  *   una aprobada emitía su propia nota de crédito parcial.
- * - Registrar NO mueve nada: queda pendiente y un líder la aprueba. Por eso el impacto se
+ * - Registrar NO mueve nada: queda pendiente hasta que alguien la revisa y la aprueba (quien ve
+ *   Devoluciones en la tienda, ADR-0534; la líder la valida en persona). Por eso el impacto se
  *   dice «al aprobarla», y la caja se valida en la aprobación, no acá.
  * - R-37: primero un cambio. En el paso de las prendas hay un salto a Cambios sobre esa
  *   misma prenda.
@@ -87,7 +93,6 @@ export function DevolucionesFlujo({
   lineaInicialId,
   ubicacionId,
   sede,
-  esLider,
   ahora,
   onCerrar,
   onNuevo,
@@ -100,7 +105,6 @@ export function DevolucionesFlujo({
   sede: string;
   /** Nombre de la sesión. Ya no se muestra: «Lo registra» es el responsable elegido (ADR-0161). */
   colaboradora: string;
-  esLider: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
@@ -108,19 +112,45 @@ export function DevolucionesFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
-  // Quién solicita la devolución (ADR-0161). Aprobarla sigue siendo solo del líder (ADR-0160), con su propia sesión.
+  // La devolución a medio armar es de SU sede (Felipe, 2026-10-11): si se vuelve a una sede con una guardada, se sigue en el mismo paso
+  // (el panel ya retomó la venta).
+  const { inicial: guardado, reportar: reportarDevolucion } = useTrabajoPorSede<DevolucionArmada>(ubicacionId);
+  // Quién solicita la devolución (ADR-0161). La aprueba quien ve Devoluciones en esta tienda (ADR-0534), con el mismo combo.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
-  const [paso, setPaso] = useState<Paso>(2);
-  const [elegidas, setElegidas] = useState<Record<string, ItemElegido>>(() => (lineaInicialId ? { [lineaInicialId]: itemInicial() } : {}));
-  const [motivo, setMotivo] = useState<MotivoDevolucion | null>(null);
-  const [detalle, setDetalle] = useState("");
+  const [paso, setPaso] = useState<Paso>(guardado?.paso ?? 2);
+  const [elegidas, setElegidas] = useState<Record<string, ItemElegido>>(() =>
+    guardado ? guardado.elegidas : lineaInicialId ? { [lineaInicialId]: itemInicial() } : {},
+  );
+  const [motivo, setMotivo] = useState<MotivoDevolucion | null>(guardado?.motivo ?? null);
+  const [detalle, setDetalle] = useState(guardado?.detalle ?? "");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El último error fue un corte (la respuesta no llegó): no se sabe si la devolución se guardó, y el título no puede decir que no.
+  const [errorIncierto, setErrorIncierto] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
   // Doble clic: el estado `enviando` tarda un render en apagar el botón; el ref es inmediato.
   const enviandoAhora = useRef(false);
+  // La marca de ESTA devolución (20261015162000): el navegador puede reenviar el envío por su cuenta si la conexión se corta, y la
+  // persona puede reintentar tras un corte. Con la misma marca, la base devuelve la devolución que ya guardó en vez de crear otra;
+  // con otra devolución, la rechaza (`token_reusado`). Una por cada devolución que se arma: «Registrar otra» monta el flujo de nuevo.
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
+
+  // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, la devolución queda guardada en ESTA sede. Registrada, ya no hay nada
+  // que guardar.
+  useEffect(() => {
+    reportarDevolucion(
+      paso !== "exito"
+        ? {
+            etiqueta: sede,
+            unidades: Object.values(elegidas).reduce((a, i) => a + i.cantidad, 0),
+            trabajo: { venta, lineaInicialId, paso, elegidas, motivo, detalle, token: token.current },
+            ...avisosDeLaDevolucion({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
+          }
+        : null,
+    );
+  }, [reportarDevolucion, paso, sede, elegidas, motivo, detalle, venta, lineaInicialId, compra.clienta, compra.comprobante]);
 
   const titulo = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -217,6 +247,7 @@ export function DevolucionesFlujo({
       return;
     }
     if (!responsable.listo) {
+      setErrorIncierto(false);
       setError(responsable.motivo);
       return;
     }
@@ -237,6 +268,7 @@ export function DevolucionesFlujo({
         // D-79: el código cerrado va aparte del texto libre de arriba — ver
         // devoluciones-reglas.ts. `bloqueo || !motivo` ya frenó más arriba si faltara.
         p_motivo_codigo: motivo,
+        p_token: token.current,
       }),
       responsable.firma(),
     );
@@ -244,6 +276,7 @@ export function DevolucionesFlujo({
     setEnviando(false);
     responsable.despues(fallo);
     if (fallo) {
+      setErrorIncierto(esRespuestaIncierta(fallo));
       setError(traducirError(fallo, "registrar la devolución"));
       return;
     }
@@ -285,7 +318,7 @@ export function DevolucionesFlujo({
           <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
             <fieldset className="mt-4">
-              <legend className="sr-only">Prendas que la clienta quiere devolver</legend>
+              <legend className="sr-only">Prendas que el cliente quiere devolver</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
                   const estado = estadoPrendaDevolucion(l, ahora);
@@ -298,12 +331,12 @@ export function DevolucionesFlujo({
                           estado.devolvible ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
                         }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={!!item}
+                        <Casilla
+                          marcada={!!item}
                           disabled={!estado.devolvible}
-                          onChange={() => alternarPrenda(l)}
-                          className="h-4 w-4 shrink-0 accent-tinta"
+                          onCambio={() => alternarPrenda(l)}
+                          etiqueta={`Devolver ${l.referencia} ${varianteLegible(l)}`}
+                          className="shrink-0"
                         />
                         <MiniaturaPrenda fotoUrl={l.fotoUrl} colorHex={l.colorHex} tamano="lg" />
                         <span className={`min-w-0 flex-1 ${estado.devolvible ? "" : "opacity-60"}`}>
@@ -327,7 +360,7 @@ export function DevolucionesFlujo({
                             max={disponibles}
                             value={item.cantidad}
                             onChange={(e) => cambiarItem(l.ventaItemId, { cantidad: Math.max(1, Math.min(disponibles, Number(e.target.value) || 1)) })}
-                            className="h-10 w-20 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+                            className="caja-campo-input w-20 text-sm"
                           />
                         </div>
                       )}
@@ -346,7 +379,7 @@ export function DevolucionesFlujo({
             </p>
             <Link
               href={enlaceCambios}
-              className="inline-flex items-center gap-1.5 font-semibold text-tinta underline decoration-tinta/30 underline-offset-4 transition-colors duration-200 hover:decoration-tinta"
+              className="btn-enlace inline-flex items-center gap-1.5 font-semibold"
             >
               Cambiar por otra prenda
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -354,10 +387,7 @@ export function DevolucionesFlujo({
           </div>
 
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={onCerrar}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Otra venta
-            </BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrendas}>
               Continuar
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -388,8 +418,8 @@ export function DevolucionesFlujo({
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 max-w-md">
-                  <label htmlFor="devolucion-detalle" className="text-xs font-semibold text-tinta/70">
+                <div className="campo mt-4 max-w-md">
+                  <label htmlFor="devolucion-detalle" className="campo-etiqueta">
                     {motivo === "otro" ? "¿Cuál es el motivo?" : "Algo más que anotar (opcional)"}
                   </label>
                   <input
@@ -401,14 +431,14 @@ export function DevolucionesFlujo({
                       setAvisoContinuar(null);
                       setDetalle(e.target.value);
                     }}
-                    placeholder={motivo === "defecto" ? "Ej. costura abierta en la manga" : "Lo que la clienta cuente"}
-                    className="mt-1.5 h-10 w-full rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 placeholder:text-tinta/55 focus:border-tinta"
+                    placeholder={motivo === "defecto" ? "Ej. costura abierta en la manga" : "Lo que el cliente cuente"}
+                    className="caja-campo-input mt-1.5 w-full text-sm"
                   />
                 </div>
               </fieldset>
 
               <div ref={refEstados} className="space-y-6">
-                <h3 className="text-[15px] font-semibold text-tinta">¿En qué estado vuelve cada prenda?</h3>
+                <TituloGrupo>¿En qué estado vuelve cada prenda?</TituloGrupo>
                 {lineasElegidas.map((l) => (
                   <EstadoDeLaPrenda key={l.ventaItemId} linea={l} item={elegidas[l.ventaItemId]!} onCambio={(c) => cambiarItem(l.ventaItemId, c)} />
                 ))}
@@ -418,10 +448,7 @@ export function DevolucionesFlujo({
             <PanelValidaciones validaciones={validaciones} impacto={impacto.inventario.length > 0 ? impacto : null} />
           </div>
           <PieDelPaso aviso={avisoContinuar}>
-            <BotonSecundario onClick={retroceder}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar la devolución
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -438,7 +465,7 @@ export function DevolucionesFlujo({
                 <Dato titulo="Venta">
                   {compra.comprobante ?? "Venta sin comprobante"} · {etiquetaDia(compra.creadoEn, ahora).toLowerCase()} {formatearHora(compra.creadoEn)}
                 </Dato>
-                <Dato titulo="Clienta">{compra.clienta ?? "No quedó registrada en la venta"}</Dato>
+                <Dato titulo="Cliente">{compra.clienta ?? "No quedó registrado en la venta"}</Dato>
                 <Dato titulo="Se registra en">{sede}</Dato>
                 {/* Con el combo (ADR-0161) la registra el responsable elegido, no la cuenta de la sesión. */}
                 <Dato titulo="Lo registra">{nombreResponsable ?? "Elige abajo en «Responsable»"}</Dato>
@@ -481,25 +508,28 @@ export function DevolucionesFlujo({
           </div>
 
           <p className="text-sm text-tinta/75">
-            Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: un líder la revisa y recién ahí se mueve el stock.
+            Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: recién al revisarla y aprobarla se mueve el stock.
           </p>
 
           <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
 
-          {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró la devolución." />}
+          {error && (
+            // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
+            // «No se pudo …» cuando no reconoce el error; con un mensaje de la base hay que decir además que no se guardó nada.
+            <Aviso tono="error" ref={errorRef} enfocable titulo={errorIncierto ? "No sabemos si se registró." : error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
+              {error}
+            </Aviso>
+          )}
 
           <PieDelPaso aviso={null}>
-            <BotonSecundario onClick={retroceder} disabled={enviando}>
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Atrás
-            </BotonSecundario>
+            <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} disabled={enviando || !responsable.listo} monto={soles(valorTotal)}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : "Registrar devolución"}
+              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+                <Check className="h-4 w-4" aria-hidden />
+                Registrar devolución
               </BotonRojo>
             </div>
           </PieDelPaso>
@@ -512,7 +542,7 @@ export function DevolucionesFlujo({
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
             {TITULOS.exito}
           </h2>
-          <p className="mt-2 text-sm text-tinta/75">Queda pendiente de aprobación de un líder. El stock y la caja no cambian hasta entonces.</p>
+          <p className="mt-2 text-sm text-tinta/75">Queda pendiente de aprobación: el stock y la caja no cambian hasta que la revises y la apruebes.</p>
           <dl className="mt-8 grid gap-4 text-left text-sm sm:grid-cols-2">
             <Dato titulo="Devuelve">
               {resultado.prendas.map((p) => `${p.referencia} · ${varianteLegible(p)}${p.cantidad > 1 ? ` (×${p.cantidad})` : ""}`).join(", ")}
@@ -524,9 +554,9 @@ export function DevolucionesFlujo({
             </Dato>
           </dl>
           <div className="mt-9 flex flex-wrap justify-center gap-2">
-            {esLider ? <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal> : null}
-            {esLider ? <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario> : <BotonPrincipal onClick={onNuevo}>Nueva devolución</BotonPrincipal>}
-            <BotonSecundario onClick={onCerrar}>Volver a la actividad</BotonSecundario>
+            <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal>
+            <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario>
+            <Volver onClick={onCerrar} a="Volver a la actividad" className="self-center" />
           </div>
         </div>
       )}
@@ -536,7 +566,7 @@ export function DevolucionesFlujo({
 
 /** «¿En qué estado vuelve?» de UNA prenda: impecable (al piso) o con defecto o uso (a
  *  cuarentena) y, si es lo segundo, qué se piensa hacer con ella. Las tres opciones de
- *  destino entran igual a cuarentena; el destino real lo decide después un líder. */
+ *  destino entran igual a cuarentena; el destino real se decide después, al resolverla en Inventario. */
 function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente; item: ItemElegido; onCambio: (c: Partial<ItemElegido>) => void }) {
   const sinDestino = item.grupo === "danada" && item.destino === null;
   return (
@@ -549,7 +579,7 @@ function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente
         {(
           [
             { grupo: "vendible", titulo: "Impecable", detalle: "Vuelve al piso de venta." },
-            { grupo: "danada", titulo: "Con defecto o uso", detalle: "Va a cuarentena hasta que un líder decida." },
+            { grupo: "danada", titulo: "Con defecto o uso", detalle: "Va a cuarentena hasta que se decida qué hacer con ella." },
           ] as const
         ).map((o) => {
           const activa = item.grupo === o.grupo;

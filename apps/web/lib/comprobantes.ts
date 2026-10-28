@@ -1,16 +1,16 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { exigir, leerTodas, tolerar } from "@/lib/resultado";
+import { exigir, leerPorTandasDeIds, leerTodas, tolerar } from "@/lib/resultado";
 import { resumenPorEnviar, type ResumenPorEnviar } from "@/lib/facturacion-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "@/lib/transmision-reglas";
-import type { Comprobante, EstadoComprobante, SerieComprobante, VentaDelDia } from "@/lib/comprobantes-reglas";
+import type { Comprobante, EstadoComprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
 
 // Tipos y reglas puras (lo que un componente cliente puede necesitar como
 // VALOR: constantes, `tipoDocumentoDeCliente`) viven en comprobantes-reglas.ts,
 // no acá — ver ese archivo para el porqué. Este archivo es solo lectura de
 // servidor (principio del repo: lib/ nunca escribe; la emisión pasa por RPC
 // desde el componente cliente).
-export type { TipoComprobante, EstadoComprobante, EntornoTransmision, Comprobante, SerieComprobante, ItemVentaDelDia, VentaDelDia } from "@/lib/comprobantes-reglas";
+export type { Comprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
 
 export async function getComprobantesMes(desde: string, hasta: string): Promise<Comprobante[]> {
   const supabase = await createClient();
@@ -102,17 +102,6 @@ export async function getUltimoPorSerie(series: SerieComprobante[]): Promise<Rec
   return porSerie;
 }
 
-/** Todo lo vendido hoy (hora Lima), con su comprobante si ya tiene uno. La
- *  RPC (`fn_ventas_del_dia`, security definer) ya filtra por rol: un líder ve
- *  todas las ubicaciones o una sola si se lo pides; un integrante solo ve la
- *  suya sin importar qué `ubicacionId` se mande — no hay nada que este lib
- *  necesite reforzar acá. */
-export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[]> {
-  const supabase = await createClient();
-  const res = await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId });
-  return exigir(res, "las ventas de hoy") as unknown as VentaDelDia[];
-}
-
 /** PL-114: cuántos comprobantes llevan más de `HORAS_REINTENTO_AUTOMATICO` sin llegar a SUNAT — el trabajo
  *  programado ya los soltó (PL-113) y le toca a una persona leer el error. Es la cifra del aviso del Inicio del
  *  líder. Nunca lanza: si no se puede leer, el Inicio lo dice en la tarjeta en vez de dibujar un 0. */
@@ -152,6 +141,8 @@ export type FilaColaReintento = {
   intentos_transmision: number;
   ultimo_intento_transmision_at: string | null;
   ultimo_error_transmision: string | null;
+  /** Horas desde que se EMITIÓ (ADR-0378). La RPC de la cola la trae desde el último intento, y `getPorEnviar` la
+   *  reemplaza: así un comprobante que se reintenta seguido no entra y sale del aviso «más de 1 hora sin llegar». */
   horas_esperando: number | null;
   /** De dónde sale la fila: la cola de reintento (`pendiente_reintento`), una que nunca se intentó
    *  (`pendiente`) o una que SUNAT rechazó (`rechazado`). Sin él, es de la cola (la RPC no lo trae). */
@@ -192,7 +183,8 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
   let consulta = supabase
     .from("comprobantes")
     .select("id, ubicacion_id, tipo, serie, numero, estado, intentos_transmision, ultimo_intento_transmision_at, ultimo_error_transmision, motivo_rechazo, created_at")
-    .in("estado", ["pendiente", "rechazado"])
+    // También los de la cola, solo por su fecha de emisión (ver abajo): la RPC no la trae.
+    .in("estado", ["pendiente", "rechazado", "pendiente_reintento"])
     .neq("tipo", "nota_venta");
   if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
   const res = await consulta.order("created_at", { ascending: true }).limit(500);
@@ -205,7 +197,9 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
     intentos_transmision: number | null; ultimo_intento_transmision_at: string | null; ultimo_error_transmision: string | null;
     motivo_rechazo: string | null; created_at: string;
   };
-  const sueltos: FilaColaReintento[] = ((datos ?? []) as unknown as Suelto[]).map((c) => ({
+  const leidos = (datos ?? []) as unknown as Suelto[];
+  const emitido = new Map(leidos.map((c) => [c.id, c.created_at]));
+  const sueltos: FilaColaReintento[] = leidos.filter((c) => c.estado !== "pendiente_reintento").map((c) => ({
     comprobante_id: c.id,
     ubicacion_id: c.ubicacion_id,
     tipo: c.tipo,
@@ -217,7 +211,13 @@ export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<Fi
     horas_esperando: (ahora - Date.parse(c.created_at)) / 3_600_000,
     estado: c.estado as "pendiente" | "rechazado",
   }));
-  const deLaCola = cola.map((f) => ({ ...f, estado: "pendiente_reintento" as const }));
+  // «Más de 1 hora sin llegar a SUNAT» cuenta desde la emisión, como dice el aviso (ADR-0378): la RPC lo medía desde el
+  // último intento, y un comprobante que se reintentaba cada 15 minutos nunca llegaba a la hora aunque llevara días.
+  // Si la fecha no se pudo leer, queda la de la RPC (mejor un aviso tardío que ninguno).
+  const deLaCola = cola.map((f) => {
+    const creado = emitido.get(f.comprobante_id);
+    return { ...f, estado: "pendiente_reintento" as const, horas_esperando: creado ? (ahora - Date.parse(creado)) / 3_600_000 : f.horas_esperando };
+  });
   return [...deLaCola, ...sueltos].sort((a, b) => (b.horas_esperando ?? 0) - (a.horas_esperando ?? 0));
 });
 
@@ -247,14 +247,20 @@ export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Rec
   const notasDelMes = filas.filter((c) => c.tipo === "nota_credito").map((c) => c.id);
 
   const [resClientas, resNotas, resOriginales, resDevoluciones] = await Promise.all([
-    dnis.length ? supabase.from("clientas").select("dni, telefono_whatsapp").in("dni", dnis) : Promise.resolve(null),
-    supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", ids),
-    originales.length ? supabase.from("comprobantes").select("id, serie, numero").in("id", originales) : Promise.resolve(null),
-    supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", [...notasDelMes, ...ids]),
+    // El comprobante solo guarda DNI (y RUC), así que solo una ficha con DNI puede ser su dueña: un carné o un pasaporte
+    // con los mismos dígitos es otra persona (ADR-0288 D-2).
+    dnis.length
+      ? supabase.from("clientas").select("documento_numero, telefono_whatsapp").eq("documento_tipo", "dni").in("documento_numero", dnis)
+      : Promise.resolve(null),
+    // Las tres por tandas de ids: un mes tiene ~1.100 comprobantes y mil ids en la dirección (40 KB) no caben (`leerPorTandasDeIds`); si el
+    // API la rechaza, `tolerar` lo traga y la fila pierde en silencio su enlace a la nota de crédito y a la devolución.
+    leerPorTandasDeIds(ids, (tanda) => supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", tanda)),
+    originales.length ? leerPorTandasDeIds(originales, (tanda) => supabase.from("comprobantes").select("id, serie, numero").in("id", tanda)) : Promise.resolve(null),
+    leerPorTandasDeIds([...notasDelMes, ...ids], (tanda) => supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", tanda)),
   ]);
   const telefonos = new Map<string, string>();
-  for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de las clientas").datos : null) ?? []) {
-    if (cl.dni && cl.telefono_whatsapp) telefonos.set(cl.dni, cl.telefono_whatsapp);
+  for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de los clientes").datos : null) ?? []) {
+    if (cl.documento_numero && cl.telefono_whatsapp) telefonos.set(cl.documento_numero, cl.telefono_whatsapp);
   }
   const notaDe = new Map<string, { id: string; numero: string }>();
   for (const n of (tolerar(resNotas, "las notas de crédito").datos ?? []) as { id: string; serie: string; numero: number; comprobante_original_id: string | null }[]) {

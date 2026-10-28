@@ -4,7 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
-import { ChevronDown, Plus, Printer } from "lucide-react";
+import { ChevronDown, FileText, Plus } from "lucide-react";
 import type { FotoDePrenda, Proforma } from "@/lib/proformas";
 import { lineasDeLaProforma, numeroDeProforma } from "@/lib/proformas-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
@@ -21,7 +21,9 @@ import { ProformaA4 } from "@/components/ProformaA4";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton } from "@/components/ui/campos";
+import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -48,6 +50,7 @@ export function ProformasPanel({
   ubicacionActualId,
   esLider,
   fotos,
+  preciosPorSede = {},
 }: {
   proformas: Proforma[];
   periodo: string;
@@ -61,6 +64,8 @@ export function ProformasPanel({
   esLider: boolean;
   /** Foto y color de cada prenda de estas proformas (`getFotosDeVariantes`). */
   fotos: Record<string, FotoDePrenda>;
+  /** Precio propio de cada tienda (`getPreciosPorSede`): la hoja cotiza al de la tienda elegida. */
+  preciosPorSede?: Record<string, Record<string, number>>;
 }) {
   // «Nueva proforma» vacía (`true`) o como copia de otra (Duplicar / Renovar).
   const [nueva, setNueva] = useState<true | Proforma | null>(null);
@@ -102,18 +107,18 @@ export function ProformasPanel({
     <div className="space-y-6">
       {/* `overflow-hidden` solo con filas (ver el mismo comentario en ComprobantesPanel): sin ellas la tarjeta es baja y
           recortaría el globo de ayuda del encabezado. */}
-      <div className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
+      <div data-guia="proformas.lista" className={`card-cayla anim-sube @container ${proformasOrdenadas.length > 0 ? "overflow-hidden" : ""}`} style={{ "--i": 6 } as CSSProperties}>
         <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0">
             <p className="label-cayla text-[11px] text-tinta/65">
               Proformas
               <Ayuda titulo="Proforma">
                 No es un comprobante de pago: SUNAT no la reconoce y no usa número de serie. Sirve para cotizarle prendas a
-                una clienta y guardarle el precio unos días. Cuando vuelve a comprar, «Cobrar» la lleva al Punto de Venta con
+                un cliente y guardarle el precio unos días. Cuando vuelve a comprar, «Cobrar» la lleva al Punto de Venta con
                 las prendas en el carrito, y ahí nace la venta con su boleta o factura.
               </Ayuda>
             </p>
-            <h2 className="font-display mt-0.5 text-xl leading-tight text-tinta">Todas las proformas</h2>
+            <TituloSeccion className="mt-0.5">Todas las proformas</TituloSeccion>
             <p className="mt-0.5 text-xs text-tinta/65">Las vigentes de cualquier mes, más las que se hicieron {periodo}. Las que vencen antes van primero.</p>
             {conversion.porcentaje !== null && (
               <p className="mt-1.5 text-[13px] text-tinta/75">
@@ -125,13 +130,17 @@ export function ProformasPanel({
               </p>
             )}
           </div>
-          <BotonCompacto variante="primario" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setNueva(true)}>
+          <BotonCompacto variante="primario" data-guia="proformas.nueva" icono={<Plus aria-hidden />} onClick={() => setNueva(true)}>
             Nueva proforma
           </BotonCompacto>
         </div>
 
         {proformas.length === 0 ? (
-          <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Sin proformas {periodo}.</p>
+          <div className="border-t border-tinta/10">
+            <Vacio icono={<FileText />} titulo={`Sin proformas ${periodo}`}>
+              Cambia el mes de arriba para ver otro período.
+            </Vacio>
+          </div>
         ) : proformasOrdenadas.length === 0 ? (
           <SinCoincidencias />
         ) : (
@@ -191,7 +200,7 @@ export function ProformasPanel({
                         )}
                       </div>
                       {lineas !== null && (
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div data-guia="proformas.acciones" className="flex flex-wrap items-center gap-1.5">
                           <button type="button" onClick={() => setViendo(p)} aria-label={`Ver o imprimir ${numeroDeProforma(p.numero)}`} className={ENLACE_FILA}>
                             Ver / imprimir
                           </button>
@@ -221,7 +230,7 @@ export function ProformasPanel({
                             <Link
                               href={`/vender?proforma=${p.id}`}
                               aria-label={`Cobrar ${numeroDeProforma(p.numero)} en el Punto de Venta`}
-                              className="inline-flex h-7 items-center rounded-md bg-tinta px-2.5 text-xs font-semibold text-crema outline-none transition-colors duration-200 hover:bg-tinta/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                              className="inline-flex h-7 items-center rounded-md bg-tinta px-2.5 text-xs font-semibold text-crema outline-none transition-colors duration-200 hover:bg-rojo-profundo focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
                             >
                               Cobrar
                             </Link>
@@ -263,6 +272,7 @@ export function ProformasPanel({
           prendas={prendas}
           ubicaciones={tiendas}
           ubicacionActualId={ubicacionActualId}
+          preciosPorSede={preciosPorSede}
           esLider={esLider}
           inicial={nueva === true ? null : nueva}
         />
@@ -270,23 +280,21 @@ export function ProformasPanel({
 
       {/* Ver / imprimir: la hoja A4 a escala y el botón que la manda a la impresora (o a «Guardar como PDF»). */}
       {viendo && (
-        <Modal titulo={numeroDeProforma(viendo.numero)} subtitulo={viendo.cliente_nombre ?? "Cliente varios"} ancho="max-w-3xl" onClose={() => setViendo(null)}>
+        <Modal conCerrar titulo={numeroDeProforma(viendo.numero)} subtitulo={viendo.cliente_nombre ?? "Cliente varios"} tamano="ancha" onClose={() => setViendo(null)}>
           {(cerrar) => (
             <div className="mt-4 space-y-4">
               <div className="h-[62vh] overflow-auto rounded-[10px] border border-tinta/10 bg-sand/30 p-3" data-sin-cascada>
                 {/* `zoom` (no `scale`): achica también el espacio que ocupa, así la hoja entera cabe sin cortarse. */}
-                <div className="mx-auto w-fit bg-white p-[8mm] shadow-sm" style={{ zoom: 0.68 }}>
+                <div className="papel-fijo mx-auto w-fit bg-white p-[8mm] shadow-sm" style={{ zoom: 0.68 }}>
                   <ProformaA4 proforma={viendo} tienda={nombreTienda(viendo.ubicacion_id)} fotos={fotos} />
                 </div>
               </div>
               <p className="text-xs text-tinta/60">Para enviarla por WhatsApp, elige «Guardar como PDF» en el cuadro de impresión y adjunta el archivo.</p>
               <div className="flex gap-2">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
-                  Cerrar
-                </Boton>
-                <Boton type="button" peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>
-                  <Printer aria-hidden className="h-4 w-4" /> Imprimir o guardar en PDF
-                </Boton>
+                {/* Que también sirve para guardarla en PDF lo dice la frase de arriba, no el botón (ADR-0358, ronda 11). */}
+                <BotonImprimir peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>
+                  Imprimir la proforma
+                </BotonImprimir>
               </div>
             </div>
           )}

@@ -1,0 +1,415 @@
+/* GUÍAS INTERACTIVAS (ADR-0389, Felipe 2026-10-07)
+   El velo oscuro con un recorte alrededor de la pieza que se explica (el «efecto de máscara»), y la tarjeta que dice qué es.
+   El velo es un SVG con un agujero redondeado que el motor lleva de pieza en pieza cuadro a cuadro (antes era la sombra gigante de
+   una caja, que Chrome a veces no repintaba); el anillo del recorte lo sigue con `left/top` y `width/height`, 420 ms con `--ease-cayla`, sin rebote ni bucle (ADR-0136). El velo es
+   `--color-sombra`, nunca `tinta` (en oscuro `tinta` es crema y el velo ACLARARÍA la pantalla, ADR-0336). Capa 55: sobre los
+   modales (50), bajo el loader (60) y los avisos (100). Con `prefers-reduced-motion` todo pasa en un instante. */
+
+.guia-capa {
+  --guia-velo: color-mix(in srgb, var(--color-sombra) 62%, transparent);
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  /* Radix pone `pointer-events: none` en el body mientras hay un modal abierto: la guía vuelve a recibir el mouse. */
+  pointer-events: auto;
+}
+:root[data-tema="oscuro"] .guia-capa {
+  --guia-velo: color-mix(in srgb, var(--color-sombra) 74%, transparent);
+}
+
+/* Lo que bloquea el mouse: la demo la maneja la guía, no la persona (una venta a medias por un clic suelto, nunca). */
+.guia-bloqueo {
+  position: absolute;
+  inset: 0;
+  cursor: default;
+}
+
+/* El velo: un SVG del tamaño de la ventana con un agujero donde está la pieza (lo dibuja y lo mueve el motor, cuadro a cuadro). */
+.guia-velo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.guia-velo path {
+  fill: var(--guia-velo);
+}
+
+/* El recorte ya no oscurece nada: es solo el anillo claro alrededor de la pieza (y su halo), siguiendo al agujero. Su lugar lo
+   escribe cuadro a cuadro el motor de movimiento de `GuiaInteractiva` (transform + tamaño): NO lleva transición propia, que se
+   reiniciaba en cada cuadro de un desplazamiento y lo dejaba atrás del agujero, a saltos. Sin pieza, no se ve. */
+.guia-recorte {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-crema) 55%, transparent);
+  pointer-events: none;
+  will-change: transform;
+}
+.guia-recorte[data-sin-pieza] {
+  box-shadow: none;
+}
+.guia-capa {
+  animation: guia-velo-entra 260ms var(--ease-cayla) backwards;
+}
+@keyframes guia-velo-entra {
+  from { opacity: 0; }
+}
+
+.guia-tarjeta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  padding: 18px 18px 14px;
+  box-shadow: 0 24px 60px -24px color-mix(in srgb, var(--color-sombra) 55%, transparent);
+  /* Su lugar también lo mueve el motor (sin transición de transform, por la misma razón que el anillo). */
+  will-change: transform;
+  transition: opacity 200ms var(--ease-cayla);
+}
+.guia-tarjeta[data-ocupada] {
+  opacity: 0.86;
+}
+/* El contenido de cada paso entra subiendo 6 px; la tarjeta en sí solo se desliza. */
+.guia-contenido {
+  animation: guia-contenido-entra 320ms var(--ease-cayla) backwards;
+}
+@keyframes guia-contenido-entra {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+}
+
+/* La línea de avance: tantos tramos como pasos, lleno hasta el actual. */
+.guia-avance {
+  display: flex;
+  gap: 3px;
+}
+.guia-avance > span {
+  height: 3px;
+  flex: 1;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-tinta) 14%, transparent);
+  transition: background-color 300ms var(--ease-cayla);
+}
+.guia-avance > span[data-hecho] {
+  background: var(--color-tinta);
+}
+
+/* La oferta de la primera vez: una tarjeta abajo a la derecha, sin velo (no interrumpe: se acepta o se deja). */
+.guia-oferta {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 45;
+  width: min(340px, calc(100vw - 32px));
+  border: 1px solid var(--color-sand);
+  border-radius: 18px;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  padding: 16px;
+  box-shadow: 0 20px 50px -24px color-mix(in srgb, var(--color-sombra) 45%, transparent);
+  animation: guia-oferta-entra 380ms var(--ease-cayla) backwards;
+}
+@keyframes guia-oferta-entra {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+}
+
+/* ---- Movimiento rico (Felipe, 2026-10-07: «lo más sofisticado e interactivo posible, con muchas animaciones»; ADR-0136 act.
+   2026-10-07 (d), ADR-0389). Sin rebote. Los únicos bucles son SEÑALES de «mira aquí» mientras la guía espera: el halo que
+   respira alrededor de la pieza y el cursor de texto que parpadea. Todo se apaga con `prefers-reduced-motion`. ---- */
+
+/* El halo: un borde suave alrededor del recorte que respira (señal de «esta es la pieza»). */
+.guia-recorte::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 18px;
+  border: 1.5px solid color-mix(in srgb, var(--color-crema) 60%, transparent);
+  opacity: 0;
+  animation: guia-halo 2.6s var(--ease-cayla) 0.5s infinite;
+}
+.guia-recorte[data-sin-pieza]::after {
+  display: none;
+}
+@keyframes guia-halo {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  45% { opacity: 0.9; transform: scale(1.012); }
+}
+
+/* La llegada: una onda que sale de la pieza UNA vez cuando la guía llega. */
+.guia-llegada {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-crema) 55%, transparent);
+  animation: guia-onda-llega 900ms var(--ease-cayla) 360ms both;
+}
+@keyframes guia-onda-llega {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-crema) 55%, transparent); }
+  to { box-shadow: 0 0 0 26px color-mix(in srgb, var(--color-crema) 0%, transparent); }
+}
+
+/* El cursor fantasma. Una flecha en tinta FIJA con borde crema fijo: se lee sobre cualquier fondo, en los dos temas. */
+.guia-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 700ms var(--ease-cayla),
+    opacity 240ms var(--ease-cayla);
+  z-index: 2;
+}
+.guia-cursor[data-visible] {
+  opacity: 1;
+}
+.guia-cursor[data-instante] {
+  transition: opacity 240ms var(--ease-cayla);
+}
+.guia-cursor-flecha {
+  position: absolute;
+  top: -3px;
+  left: -4px;
+  width: 26px;
+  height: 26px;
+  fill: var(--color-tinta-fija);
+  stroke: var(--color-crema-fija);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 3px 6px color-mix(in srgb, var(--color-sombra) 45%, transparent));
+  transition: transform 200ms var(--ease-cayla);
+}
+/* Escribiendo, la flecha se vuelve un cursor de texto que parpadea (señal, no adorno). */
+.guia-cursor[data-escribe] .guia-cursor-flecha {
+  transform: scale(0.001);
+}
+.guia-cursor[data-escribe]::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: -1px;
+  width: 2px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--color-rojo);
+  animation: guia-parpadeo 1s steps(1) infinite;
+}
+@keyframes guia-parpadeo {
+  50% { opacity: 0; }
+}
+/* El clic: la flecha se hunde y sale una onda. */
+.guia-cursor-onda {
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 2px solid var(--color-rojo);
+  opacity: 0;
+}
+.guia-cursor-onda[data-activa] {
+  animation: guia-clic 520ms var(--ease-cayla) both;
+}
+@keyframes guia-clic {
+  from { opacity: 0.9; transform: scale(0.3); }
+  to { opacity: 0; transform: scale(1.5); }
+}
+
+/* La tarjeta entra desde el lado de la pieza (se acerca a lo que explica). */
+.guia-tarjeta[data-lado="abajo"] .guia-contenido { --guia-desde-y: 10px; }
+.guia-tarjeta[data-lado="arriba"] .guia-contenido { --guia-desde-y: -10px; }
+.guia-tarjeta[data-lado="derecha"] .guia-contenido { --guia-desde-x: 12px; }
+.guia-tarjeta[data-lado="izquierda"] .guia-contenido { --guia-desde-x: -12px; }
+
+/* El contenido, en cascada: número, título, texto, nota y atajos (55 ms de desfase, como los modales). */
+.guia-contenido {
+  animation: none;
+}
+.guia-contenido .guia-fin,
+.guia-contenido .guia-numero,
+.guia-contenido .guia-titulo,
+.guia-contenido .guia-texto,
+.guia-contenido .guia-nota,
+.guia-contenido .guia-atajos {
+  animation: guia-pieza-entra 420ms var(--ease-cayla) backwards;
+}
+.guia-contenido .guia-numero { animation-delay: 0ms; }
+.guia-contenido .guia-titulo { animation-delay: 60ms; }
+.guia-contenido .guia-texto { animation-delay: 120ms; }
+.guia-contenido .guia-nota { animation-delay: 180ms; }
+.guia-contenido .guia-atajos { animation-delay: 240ms; }
+@keyframes guia-pieza-entra {
+  from { opacity: 0; transform: translate3d(var(--guia-desde-x, 0), var(--guia-desde-y, 8px), 0); }
+}
+
+/* El número del paso: un círculo en tinta que crece al llegar (sin rebote). */
+.guia-numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-top: -1px;
+  border-radius: 999px;
+  background: var(--color-tinta);
+  color: var(--color-crema);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.guia-contenido .guia-numero {
+  animation-name: guia-numero-entra;
+}
+@keyframes guia-numero-entra {
+  from { opacity: 0; transform: scale(0.4) rotate(-40deg); }
+}
+
+/* La línea de avance: el tramo nuevo se llena de izquierda a derecha. */
+.guia-avance > span {
+  position: relative;
+  overflow: hidden;
+}
+.guia-avance > span[data-hecho] {
+  background: color-mix(in srgb, var(--color-tinta) 14%, transparent);
+}
+.guia-avance > span[data-hecho]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-tinta);
+  transform-origin: left;
+  animation: guia-tramo 480ms var(--ease-cayla) backwards;
+}
+@keyframes guia-tramo {
+  from { transform: scaleX(0); }
+}
+
+/* Los atajos de teclado del primer paso. */
+.guia-atajos kbd {
+  display: inline-grid;
+  min-width: 22px;
+  height: 20px;
+  place-items: center;
+  padding: 0 5px;
+  border: 1px solid var(--color-sand);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--color-crema);
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--color-tinta);
+}
+
+/* El cierre: un visto que se dibuja y ocho chispas que salen una vez. */
+.guia-fin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 64px;
+  margin-bottom: 8px;
+}
+.guia-fin-visto {
+  width: 52px;
+  height: 52px;
+  fill: none;
+  stroke: var(--color-verde);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.guia-fin-visto circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: guia-trazo 700ms var(--ease-cayla) 120ms forwards;
+}
+.guia-fin-visto path {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: guia-trazo 420ms var(--ease-cayla) 680ms forwards;
+}
+@keyframes guia-trazo {
+  to { stroke-dashoffset: 0; }
+}
+.guia-chispa {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 999px;
+  background: var(--color-rojo);
+  opacity: 0;
+  animation: guia-chispa 760ms var(--ease-cayla) 900ms forwards;
+  --angulo: calc(var(--k) * 45deg);
+}
+.guia-chispa:nth-child(odd) {
+  background: var(--color-ambar);
+}
+@keyframes guia-chispa {
+  0% { opacity: 1; transform: rotate(var(--angulo)) translateY(0) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--angulo)) translateY(-38px) scale(0.4); }
+}
+
+/* La oferta de la primera vez: «Ver la demo» con una luz que la cruza una vez al aparecer. */
+.guia-oferta [data-guia-ver] {
+  position: relative;
+  overflow: hidden;
+}
+.guia-oferta [data-guia-ver]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-crema) 35%, transparent) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: guia-luz 1.1s var(--ease-cayla) 700ms forwards;
+}
+@keyframes guia-luz {
+  to { transform: translateX(120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guia-capa,
+  .guia-recorte::after,
+  .guia-llegada,
+  .guia-cursor,
+  .guia-cursor-onda,
+  .guia-contenido *,
+  .guia-avance > span::after,
+  .guia-fin *,
+  .guia-oferta [data-guia-ver]::after,
+  .guia-cursor[data-escribe]::before {
+    transition: none;
+    animation: none;
+  }
+  .guia-fin-visto circle,
+  .guia-fin-visto path {
+    stroke-dashoffset: 0;
+  }
+  .guia-recorte,
+  .guia-tarjeta,
+  .guia-contenido,
+  .guia-oferta,
+  .guia-avance > span {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Imprimir nunca lleva la guía. */
+@media print {
+  .guia-capa,
+  .guia-oferta {
+    display: none;
+  }
+}

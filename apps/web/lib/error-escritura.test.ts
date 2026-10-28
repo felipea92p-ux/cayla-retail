@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
+import { clasificarFalloDeSubida, debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -45,11 +45,20 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     expect(salida).toContain("Ya existe un producto con ese nombre");
   });
 
+  it("el mismo nombre en la misma marca (índice por marca, ADR-0294) dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError(
+      { message: 'duplicate key value violates unique constraint "productos_marca_referencia_clave_unica"', code: "23505" },
+      "crear el producto",
+    );
+    expect(salida).not.toContain("productos_marca_referencia_clave_unica");
+    expect(salida).toContain("en esa marca");
+  });
+
   it("una etiqueta repetida (aunque esté pendiente o desactivada) dice a dónde ir, sin nombrar el índice", () => {
     const salida = traducirError({ message: 'duplicate key value violates unique constraint "etiquetas_clave_unica"', code: "23505" }, "agregar la etiqueta");
     expect(salida).not.toContain("etiquetas_clave_unica");
-    expect(salida).toContain("Ya existe una etiqueta con ese nombre");
-    expect(salida).toContain("Catálogo → Atributos → Etiquetas");
+    expect(salida).toContain("Ya existe una insignia o una campaña con ese nombre");
+    expect(salida).toContain("Catálogo ▸ Insignias");
   });
 
   it("una talla y color repetidos en un producto se explican, no se citan", () => {
@@ -172,16 +181,33 @@ describe("no re-traduce lo que las RPC ya dicen bien", () => {
 });
 
 describe("los bordes de red y el fallback", () => {
-  it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
-    expect(salida).toContain("No se guardó nada");
+  // ADR-0410: «Failed to fetch» sale igual si la petición nunca salió que si la base guardó y se perdió la respuesta
+  // (/chaos de Producción: un lote de insumo entró y la pantalla dijo «No se guardó nada»).
+  it.each(["TypeError: Failed to fetch", "NetworkError when attempting to fetch resource.", "Load failed", "TypeError: fetch failed", "AbortError: signal is aborted without reason"])(
+    "una escritura cortada (%s) no promete que no se guardó: pide revisar antes de repetir",
+    (message) => {
+      const salida = traducirError({ message }, "ingresar el insumo");
+      expect(salida).toBe(
+        "Se cortó la conexión mientras se intentaba ingresar el insumo: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado."
+      );
+      expect(salida).not.toMatch(/no se guardó/i);
+    }
+  );
+
+  it("`confirmarAntesDeRepetir` ya es lo de siempre: misma frase con o sin la opción", () => {
+    const corte = { message: "TypeError: Failed to fetch" };
+    expect(traducirError(corte, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(traducirError(corte, "registrar el pago"));
   });
 
-  it("con dinero de por medio no afirma que no se guardó: pide revisar antes de repetir", () => {
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar el pago", { confirmarAntesDeRepetir: true });
-    expect(salida).not.toContain("No se guardó nada");
-    expect(salida).toContain("no podemos confirmar");
-    expect(salida).toContain("registrar el pago");
+  it("una lectura cortada dice solo que se cortó la conexión: no habla de guardar", () => {
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "cargar las prendas", { lectura: true });
+    expect(salida).toBe("No se pudo cargar las prendas: se cortó la conexión. Revisa el internet y vuelve a intentar.");
+    expect(salida).not.toMatch(/guard/i);
+  });
+
+  it("`lectura` no cambia lo que no es corte de red: la base respondió", () => {
+    const delaRpc = "No tienes permiso para ver esa caja";
+    expect(traducirError({ message: delaRpc, code: "P0001" }, "cargar la caja", { lectura: true })).toBe(delaRpc);
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
@@ -201,6 +227,24 @@ describe("los bordes de red y el fallback", () => {
 // acá se arma la frase. Si el nombre cambia en la migración y no acá, la colaboradora vuelve
 // a leer `venta_precio_cambiado` crudo en el mostrador.
 
+describe("un cambio o un apartado con una prenda sin precio (ADR-0385) se dice en palabras de tienda", () => {
+  it("cambio_sin_precio nombra la prenda y dice qué hacer", () => {
+    const salida = traducirError(
+      { message: "cambio_sin_precio", details: "Vestido Sofía (VES-0001-NEG-M)", hint: "La prenda que se lleva no tiene precio en el catálogo…", code: "P0001" },
+      "registrar el cambio"
+    );
+    expect(salida).toBe("Vestido Sofía (VES-0001-NEG-M) no tiene precio en el catálogo: elige otra prenda para el cambio, o pide que le pongan precio en su ficha.");
+  });
+
+  it("el candado de precio de un apartado ya no llega crudo", () => {
+    const salida = traducirError(
+      { message: 'new row for relation "separacion_items" violates check constraint "separacion_items_precio_unitario_check"', code: "23514" },
+      "apartar"
+    );
+    expect(salida).toBe("Una de las prendas no tiene precio en el catálogo: quítala del apartado y pide que le pongan precio en su ficha.");
+  });
+});
+
 describe("traduce los candados de la venta con el dato que trae el detalle", () => {
   it("precio cambiado: nombra la prenda y dice qué hacer", () => {
     const salida = traducirError(
@@ -208,6 +252,14 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
       "registrar la venta"
     );
     expect(salida).toBe("El precio de Blusa Emma (BLU-EMMA-BEI-S) cambió: quítala del ticket y vuelve a agregarla.");
+  });
+
+  it("sin precio (ADR-0384): nombra la prenda y dice qué hacer, no `venta_sin_precio` crudo", () => {
+    const salida = traducirError(
+      { message: "venta_sin_precio", details: "Blusa Emma (BLU-EMMA-BEI-S)", hint: "La prenda no tiene precio en el catálogo: ponle precio en su ficha antes de venderla.", code: "P0001" },
+      "registrar la venta"
+    );
+    expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) no tiene precio en el catálogo: quítala del ticket y pide que le pongan precio en su ficha antes de venderla.");
   });
 
   it("variante restringida a otra sede en la venta: nombra la prenda, no el código crudo", () => {
@@ -226,28 +278,18 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).toBe("Blusa Emma (BLU-EMMA-BEI-S) está restringida a otra sede — no se puede trasladar desde acá.");
   });
 
-  it("descuento sin código: dice a quién pedírselo", () => {
-    const salida = traducirError({ message: "venta_descuento_requiere_codigo", code: "P0001" }, "registrar la venta");
-    expect(salida).not.toContain("venta_descuento_requiere_codigo");
-    expect(salida).toContain("código");
-    expect(salida).toContain("Líder");
-  });
-
-  it("código inválido: repite el código que se escribió", () => {
+  it("la misma prenda dos veces en un traslado dice qué hacer, sin citar la restricción", () => {
     const salida = traducirError(
-      { message: "venta_codigo_descuento_invalido", details: "CAYLA10", code: "P0001" },
-      "registrar la venta"
+      {
+        message: 'duplicate key value violates unique constraint "transferencia_items_transferencia_id_variante_id_key"',
+        details: "Key (transferencia_id, variante_id)=(a, b) already exists.",
+        code: "23505",
+      },
+      "iniciar el traslado"
     );
-    expect(salida).toContain("CAYLA10");
-    expect(salida).toContain("no es válido");
-  });
-
-  it("descuento por encima del código: dice el tope", () => {
-    const salida = traducirError(
-      { message: "venta_descuento_supera_codigo", details: "15", code: "P0001" },
-      "registrar la venta"
-    );
-    expect(salida).toContain("hasta un 15 %");
+    expect(salida).not.toContain("transferencia_items");
+    expect(salida).not.toContain("duplicate key");
+    expect(salida).toContain("Esa prenda ya está en otra línea del traslado");
   });
 
   it("descuento sin motivo: nombra la prenda y pide elegir por qué", () => {
@@ -438,6 +480,19 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     expect(traducirError(prendas, "guardar la temporada")).toBe(prendas.message);
   });
 
+  it("los del fondo por rendir (ADR-0362 fase 6) también: dicen qué hacer, sin «Código:»", () => {
+    const propio = { message: "Nadie se entrega plata a sí mismo: que lo haga otra persona con el módulo Fondos por rendir.", code: "42501", hint: "fondo_propio" };
+    const ajeno = { message: "Desde tu fondo pagas tú: elige tu nombre en «Responsable».", code: "42501", hint: "fondo_ajeno" };
+    expect(traducirError(propio, "entregar la plata")).toBe(propio.message);
+    expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
+  });
+
+  it("los de las ofertas de una campaña («Tres preguntas»): dicen qué módulo falta, sin «Código:»", () => {
+    // Desde ADR-0534 activar, cambiar y retirar ya no esperan a un líder: el único rechazo de permiso es no tener la llave de campañas.
+    const modulo = { message: "Registrar una oferta necesita el módulo «Campañas», «Campañas de la tienda web» o «Insignias» en tu rol.", code: "42501", hint: "oferta_sin_modulo" };
+    expect(traducirError(modulo, "guardar la oferta")).toBe(modulo.message);
+  });
+
   it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
     const salida = traducirError({ message: "permission denied for table temporadas", code: "42501", hint: null }, "guardar la temporada");
     expect(salida).toContain("Código:");
@@ -538,5 +593,336 @@ describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2
     expect(esSinModulo({ ...clientas, hint: null })).toBe(false);
     expect(esSinModulo({ ...clientas, hint: "responsable_requerido" })).toBe(false);
     expect(esSinModulo(null)).toBe(false);
+  });
+});
+
+// ---- Costo atípico (2026-09-30, 20260930120000 y siguientes). La base rechaza un costo por prenda fuera de lo normal con el
+// nombre estable `costo_atipico`; a quien no es líder (no ve montos) le dice `costo_atipico_sin_lider`, sin cifras. La
+// segunda marca CONTIENE a la primera: si alguien reordena las huellas, el integrante lee el aviso del líder (o al revés).
+
+describe("traduce el costo atípico", () => {
+  it("un integrante lee que un líder debe confirmarlo, sin cifras", () => {
+    const salida = traducirError({ message: "costo_atipico_sin_lider", details: null, code: "P0001" }, "cerrar la orden");
+    expect(salida).toContain("solo un líder puede confirmarlo");
+    expect(salida).not.toContain("costo_atipico");
+    expect(salida).not.toMatch(/S\/|[0-9]/);
+  });
+
+  it("el orden de las huellas importa: `costo_atipico_sin_lider` NO cae en la frase de `costo_atipico`", () => {
+    const sinLider = traducirError({ message: "costo_atipico_sin_lider", code: "P0001" }, "cerrar la orden");
+    const lider = traducirError({ message: "costo_atipico", details: '{"motivo":"sube"}', code: "P0001" }, "cerrar la orden");
+    expect(sinLider).not.toBe(lider);
+    expect(lider).toContain("fuera de lo normal");
+    expect(lider).not.toContain("solo un líder puede confirmarlo");
+  });
+
+  it("si el líder llega aquí (una pantalla que no armó la confirmación), no ve el JSON crudo", () => {
+    const salida = traducirError({ message: "costo_atipico", details: '{"motivo":"sube","costo_unitario":70}', code: "P0001" }, "cerrar la orden");
+    expect(salida).not.toContain("{");
+    expect(salida).not.toContain("costo_atipico");
+  });
+});
+
+// ADR-0288 (20260930160000): el documento de la clienta tiene tipo, y la venta se liga a su ficha. Dos de los rechazos no
+// llegan como P0001 (22023 el formato, 23505 el documento de otra ficha): sin su hint caerían al genérico con «Código:».
+describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
+  it("los rechazos con hint pasan tal cual, también los que no son P0001", () => {
+    const casos = [
+      { message: "El DNI tiene 8 dígitos.", code: "22023", hint: "documento_invalido" },
+      { message: "El pasaporte tiene de 6 a 12 letras o números, sin guiones.", code: "22023", hint: "documento_invalido" },
+      {
+        // Desde 20261015054000 ya no se unen fichas: el mensaje dice de qué ficha es el documento.
+        message:
+          "Ese documento ya es de la ficha de Ana Pérez (C-0012, archivada). Un documento es de una sola persona: búscala en Clientes y corrige la que esté mal.",
+        code: "23505",
+        hint: "documento_de_otra_ficha",
+      },
+      // Un correo es de una sola persona (20261015054000): el mensaje no dice de quién es.
+      { message: "Ese correo ya está registrado con los datos de otra persona.", code: "23505", hint: "correo_repetido" },
+      // «Editar» de la ficha (20261015123000): el de otra ficha SÍ dice de cuál (lo ve quien edita fichas), y el mal escrito.
+      {
+        message: "Ese correo ya es de la ficha de Ana Pérez (C-0012). Un correo es de una sola persona: búscala en Clientes y corrige la que esté mal.",
+        code: "23505",
+        hint: "correo_de_otra_ficha",
+      },
+      {
+        message: "Con ese correo entra a la tienda online la ficha de Dani Ríos. Un correo es de una sola persona: usa otro para esta ficha.",
+        code: "23505",
+        hint: "correo_de_otra_ficha",
+      },
+      { message: "Revisa el correo: parece incompleto. Si no lo tiene, déjalo vacío.", code: "22023", hint: "correo_invalido" },
+      {
+        message: "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta.",
+        code: "P0001",
+        hint: "clienta_anonimizada",
+      },
+      { message: "Esa clienta ya no está en la libreta. Quítala del ticket y vuelve a buscarla.", code: "P0001", hint: "clienta_no_existe" },
+    ];
+    for (const c of casos) {
+      const salida = traducirError(c, "guardar la clienta");
+      expect(salida).toBe(c.message);
+      expect(salida).not.toContain("Código:");
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo (nunca el genérico)", () => {
+    for (const hint of ["documento_invalido", "documento_de_otra_ficha", "correo_repetido", "correo_de_otra_ficha", "correo_invalido", "clienta_anonimizada", "clienta_no_existe"]) {
+      const salida = traducirError({ message: "", code: "22023", hint }, "registrar la venta");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida.length, hint).toBeGreaterThan(20);
+      // Ya no se unen fichas (Felipe 2026-10-14): ninguna frase manda a «unir».
+      expect(salida, hint).not.toMatch(/unir|[uú]nelas/i);
+    }
+  });
+
+  it("el único por documento, si algún camino inserta directo, se explica sin citar el índice", () => {
+    const salida = traducirError(
+      { message: 'duplicate key value violates unique constraint "clientas_documento_unico"', code: "23505" },
+      "registrar la clienta",
+    );
+    expect(salida).toContain("Ya hay un cliente con ese documento");
+    expect(salida).not.toContain("clientas_documento_unico");
+  });
+
+  it("un 23505 cualquiera con otro hint no se hace pasar por documento repetido", () => {
+    expect(traducirError({ message: "duplicate key value", code: "23505", hint: "otra_cosa" }, "registrar la clienta")).toContain("Código:");
+  });
+});
+
+// ADR-0288 tanda 1c (20260930230200): el canje del cumpleaños en `registrar_venta`. Llegan como P0001 con su frase; si la
+// frase no llega, cada hint tiene la suya (nunca el genérico con «Código:»).
+// /chaos de Clientes 2026-10-15 (20261015154000, ADR-0416): la ficha vacía y el cumpleaños que no existe rebotan en castellano.
+describe("la ficha de un cliente (ADR-0416)", () => {
+  it("una ficha sin documento, nombre ni celular", () => {
+    expect(
+      traducirError({ message: 'new row for relation "clientas" violates check constraint "clientas_con_algun_dato"', code: "23514" }, "registrar la clienta"),
+    ).toBe("La ficha necesita al menos el documento, el nombre o el celular.");
+  });
+  it("un cumpleaños que no existe", () => {
+    expect(
+      traducirError({ message: 'new row for relation "clientas" violates check constraint "clientas_cumple_fecha_real"', code: "23514" }, "registrar la clienta"),
+    ).toBe("Ese cumpleaños no existe: revisa el día y el mes.");
+  });
+});
+
+// Programa de puntos (2026-10-19): el cupón del Club en `registrar_venta` y el canje de puntos. El 10 % de cumpleaños y el vale de
+// aniversario se retiraron: la base los rechaza con `beneficio_retirado`.
+describe("club: el cupón y los puntos (programa de puntos)", () => {
+  const HINTS = [
+    "cupon_no_existe",
+    "cupon_ya_usado",
+    "cupon_vencido",
+    "cupon_compra_minima",
+    "cupon_cubre_todo",
+    "cupon_sin_monto",
+    "cupon_descuento_distinto",
+    "club_un_cupon_por_compra",
+    "beneficio_retirado",
+    "puntos_insuficientes",
+    "canje_menor_al_minimo",
+    "canje_no_multiplo",
+  ];
+
+  it("el mensaje de la base pasa tal cual", () => {
+    for (const hint of HINTS) {
+      const message = `Mensaje de la base para ${hint}.`;
+      expect(traducirError({ message, code: "P0001", hint }, "registrar la venta"), hint).toBe(message);
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo en castellano", () => {
+    for (const hint of HINTS) {
+      const salida = traducirError({ message: "", code: "P0001", hint }, "registrar la venta");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida, hint).toMatch(/cupón|puntos|club/);
+    }
+  });
+});
+
+// ADR-0288 tanda 1b (20260930200000): el club, sus dos permisos y el WhatsApp de cada tienda. Sus rechazos traen un hint
+// estable; algunos llegan con 22023 o 23514 y sin él caerían al genérico con «Código:».
+describe("club de clientas: socia, publicidad y WhatsApp de la tienda (ADR-0288 tanda 1b)", () => {
+  const HINTS = [
+    "club_sin_texto",
+    "celular_invalido",
+    "no_es_socia",
+    "socia_sin_celular",
+    "whatsapp_tienda_invalido",
+    "socia_sin_documento",
+    "club_texto_cambio",
+    // Camino B (ADR-0288 act. c).
+    "ya_tiene_publicidad",
+    "celular_con_publicidad",
+  ];
+
+  it("el mensaje de la base pasa tal cual, con cualquier código", () => {
+    for (const [hint, code] of [
+      ["club_sin_texto", "P0001"],
+      ["celular_invalido", "22023"],
+      ["no_es_socia", "P0001"],
+      ["socia_sin_celular", "23514"],
+      ["whatsapp_tienda_invalido", "22023"],
+      ["socia_sin_documento", "23514"],
+      ["club_texto_cambio", "P0001"],
+      ["ya_tiene_publicidad", "P0001"],
+      ["celular_con_publicidad", "P0001"],
+    ] as const) {
+      const message = `Mensaje de la base para ${hint}.`;
+      const salida = traducirError({ message, code, hint }, "unirla al club");
+      expect(salida, hint).toBe(message);
+      expect(salida, hint).not.toContain("Código:");
+    }
+  });
+
+  it("sin mensaje de la base, cada hint tiene su frase de respaldo (nunca el genérico)", () => {
+    for (const hint of HINTS) {
+      const salida = traducirError({ message: "", code: "22023", hint }, "guardar el WhatsApp de la tienda");
+      expect(salida, hint).not.toContain("Código:");
+      expect(salida.length, hint).toBeGreaterThan(20);
+    }
+  });
+
+  it("camino B: las dos frases nuevas dicen qué pasa con su publicidad", () => {
+    expect(traducirError({ message: "", code: "P0001", hint: "ya_tiene_publicidad" }, "mostrar su QR")).toMatch(/Ya recibe novedades/);
+    expect(traducirError({ message: "", code: "P0001", hint: "celular_con_publicidad" }, "editar la ficha")).toBe(
+      "Cambió su celular: pierde la publicidad hasta que la vuelva a pedir desde el número nuevo."
+    );
+  });
+});
+
+describe("clasificarFalloDeSubida — ¿esto que falló al subir es un rechazo de verdad?", () => {
+  it("sin red, ni llegó al servidor: «red»", () => {
+    expect(clasificarFalloDeSubida({ message: "TypeError: Failed to fetch" })).toBe("red");
+  });
+
+  it("un 504 sin código de Postgres (se cortó en el camino) es pasajero, NO rechazo: la venta pudo haberse guardado", () => {
+    expect(clasificarFalloDeSubida({ message: "upstream request timeout", code: "" }, 504)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "upstream request timeout" }, 504)).toBe("pasajero");
+  });
+
+  it("un deadlock o un choque de transacciones (con código) es pasajero", () => {
+    expect(clasificarFalloDeSubida({ message: "deadlock detected", code: "40P01" }, 400)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "could not serialize access", code: "40001" }, 409)).toBe("pasajero");
+  });
+
+  it("un error SIN código y con estado 4xx (el servidor no dio veredicto) también se reintenta", () => {
+    expect(clasificarFalloDeSubida({ message: "Bad gateway html" }, 404)).toBe("pasajero");
+    expect(clasificarFalloDeSubida({ message: "excepción del cliente" }, null)).toBe("pasajero");
+  });
+
+  it("la base respondió con código y no es «intenta de nuevo»: rechazo definitivo", () => {
+    expect(clasificarFalloDeSubida({ message: "Esta caja ya está cerrada", code: "P0001" }, 400)).toBe("definitivo");
+    expect(clasificarFalloDeSubida({ message: "permission denied", code: "42501" }, 403)).toBe("definitivo");
+    expect(clasificarFalloDeSubida({ message: "Stock insuficiente", code: "P0001" }, 400)).toBe("definitivo");
+  });
+});
+
+// ADR-0328 (20261004204000, en producción desde el 5-oct): `regularizar_prenda` rechaza a quien vendió la prenda (salvo el líder firmando
+// él mismo) con 42501 y un hint propio. Sin su huella caería al genérico con «Código: …»; y no es un rechazo del combo «Responsable».
+// /chaos de Compras 2026-10-15 (ADR-0421): una factura que vence antes de emitirse rebota en castellano.
+describe("las fechas de una factura de compra", () => {
+  it("el vencimiento antes de la emisión", () => {
+    expect(
+      traducirError({ message: 'new row for relation "compras" violates check constraint "compras_vence_despues_de_emitir"', code: "23514" }, "registrar el comprobante"),
+    ).toMatch(/vencimiento no puede ser anterior a la emisión/);
+  });
+});
+
+describe("regularizar una prenda", () => {
+  // ADR-0534: quien vendió ya puede regularizar su propia venta; lo que falta es el módulo Existencias para la cola.
+  it("la cola sin el módulo Existencias dice dónde se hace, sin «líder» y sin «Código:»", () => {
+    const salida = traducirError({ code: "42501", message: "cola_sin_modulo", hint: "Cerrar la cola de una tienda necesita el módulo Existencias (ADR-0534)" }, "cerrar la cola");
+    expect(salida).toBe("Esto se hace desde Existencias: pide que le den ese módulo a tu rol.");
+    expect(salida).not.toMatch(/líder/);
+  });
+
+  // La base nombra la sede en el mensaje; pasa tal cual (P0001), sin caer al genérico.
+  it("una prenda todavía sin cargar en la sede: el mensaje de la base, con su sede", () => {
+    const mensaje =
+      "Esta prenda todavía no está cargada en Tienda Trujillo: primero cárgala con su stock inicial (la carga de Tienda Trujillo sigue abierta), con lo que hay hoy en la tienda sin la vendida, y vuelve a regularizarla.";
+    expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_en_sede" }, "regularizar la prenda")).toBe(mensaje);
+  });
+
+  // Con la carga inicial de la sede cerrada, la salida es «Encontré prendas»; también pasa tal cual.
+  it("una prenda sin cargar en una sede con la carga cerrada: el mensaje de la base, con su fecha", () => {
+    const mensaje =
+      "La carga de Tienda Trujillo se cerró el 15-oct y esta prenda nunca se cargó ahí: regístrala con «Encontré prendas» (lo que hay hoy en la tienda, sin la vendida) y después regulariza.";
+    expect(traducirError({ code: "P0001", message: mensaje, hint: "prenda_sin_cargar_carga_cerrada" }, "regularizar la prenda")).toBe(mensaje);
+  });
+
+  // «Perdió la etiqueta» ya no descuenta de Cuarentena ni de lo apartado; el mensaje lo dice.
+  it("sin unidades libres para descontar: dice que las apartadas y las de Cuarentena no cuentan", () => {
+    const salida = traducirError(
+      { code: "P0001", message: "prenda_sin_stock_para_descontar", hint: "Esa prenda no tiene stock en esta sede. Si llegó en un lote que se contó sin ella, elige «llegó nueva»." },
+      "regularizar la prenda",
+    );
+    expect(salida).toContain("las apartadas y las de Cuarentena no cuentan");
+  });
+});
+
+// /chaos 2026-10-13: los candados de montos de Ventas y Caja (20261013204000) hablan en castellano si saltan.
+describe("montos de Ventas y Caja", () => {
+  it("el vuelto de más y el monto que no es número", () => {
+    expect(
+      traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "registrar la venta"),
+    ).toMatch(/vuelto pasa de S\/\u00a0500/);
+    expect(
+      traducirError({ message: 'new row for relation "cajas" violates check constraint "cajas_montos_finitos"', code: "23514" }, "abrir la caja"),
+    ).toMatch(/no es un número válido/);
+  });
+});
+
+// ADR-0415: un precio o un costo de más de S/ 5 000 rebota en castellano.
+describe("el tope del precio de una prenda", () => {
+  it("dice qué revisar", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_precio_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/pasa de S\/ 5000: revisa que no falte el punto/);
+  });
+});
+
+// /chaos de Catálogo 2026-10-14 (20261014182000): el precio NaN y los nombres sin tope rebotan en castellano.
+describe("montos y nombres de Catálogo", () => {
+  it("un precio o costo que no es número", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_montos_finitos"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/no es un número válido/);
+  });
+  it("un nombre demasiado largo", () => {
+    expect(
+      traducirError({ message: 'new row for relation "productos" violates check constraint "productos_textos_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/demasiado largo/);
+  });
+});
+
+// /chaos de Finanzas 2026-10-14 (20261015002000, ADR-0412): un monto de más de S/ 1 000 000 rebota en castellano.
+describe("montos con tope de Finanzas", () => {
+  it("un gasto o un movimiento de dinero de más de un millón", () => {
+    for (const candado of ["gastos_monto_con_tope", "movimientos_dinero_monto_con_tope"]) {
+      expect(
+        traducirError({ message: `new row for relation "gastos" violates check constraint "${candado}"`, code: "23514" }, "registrar el gasto"),
+      ).toMatch(/pasa de S\/\u00a01 000 000/);
+    }
+  });
+  it("un gasto que cierra un fijo ya cerrado dice qué pasó en vez de «Vuelve a intentar» (que nunca funciona)", () => {
+    const frase = traducirError({ message: "Ese gasto fijo ya tiene su gasto de este mes.", code: "23505" }, "registrar el gasto");
+    expect(frase).toMatch(/ya tiene su gasto de este mes/);
+    expect(frase).toMatch(/Fijos del mes/);
+    expect(frase).not.toMatch(/Vuelve a intentar/);
+  });
+  it("el vuelto con tope sigue con su propia frase", () => {
+    expect(
+      traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "cobrar"),
+    ).toMatch(/vuelto pasa de S\/\u00a0500/);
+  });
+});
+
+// Avisos, «Editar mensajes» (20261020144000): el mensaje de la base pasa tal cual (dice qué está mal); sin él, su respaldo.
+describe("club: editar los mensajes de los avisos", () => {
+  it("el mensaje de la base pasa tal cual y hay respaldo en castellano", () => {
+    for (const hint of ["mensaje_aviso_invalido", "avisos_otra_tienda"]) {
+      expect(traducirError({ message: "Falta {nombre}.", code: "22023", hint }, "guardar los mensajes"), hint).toBe("Falta {nombre}.");
+      expect(traducirError({ message: "", code: "42501", hint }, "guardar los mensajes"), hint).toMatch(/mensaje/);
+    }
   });
 });

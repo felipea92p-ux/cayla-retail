@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Todas: tres opciones</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@500&display=swap" rel="stylesheet">
+<!-- Pestaña «Todas» del cajón, tres opciones (2026-10-07). Datos: Blazer Demo Franja con cantidades INVENTADAS. -->
+<style>
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--ambar-p:#734f15;--rojo:#b8412d;--sombra:#1a1a18}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--verde:#9ccb8d;--ambar:#e4b968;--ambar-p:#ecc676;--rojo:#e58a76}
+*{box-sizing:border-box;margin:0}
+body{background:var(--crema);color:var(--tinta);font:14px/1.4 "DM Sans",system-ui,sans-serif;padding:28px}
+h1{font-family:"EB Garamond",serif;font-weight:500;font-size:36px}
+.bajada{color:var(--taupe);margin-top:4px;max-width:900px}
+.fila3{display:grid;grid-template-columns:repeat(3,420px);gap:20px;margin-top:22px;align-items:start}
+.op header{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}
+.letra{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:99px;background:var(--tinta);color:var(--crema);font-weight:700;font-size:13px}
+.op header b{font-size:15px}.op header span{color:var(--taupe);font-size:12.5px}
+.cajon{background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:16px;box-shadow:0 18px 40px -18px color-mix(in srgb,var(--sombra) 30%,transparent)}
+.cab{display:grid;grid-template-columns:52px 1fr 34px;gap:11px;align-items:center}
+.foto{width:52px;height:62px;border-radius:10px;background:#3e7a4e;display:grid;place-items:center;color:#f5f0e8}
+.nom{font-family:"EB Garamond",serif;font-size:21px;line-height:1.1}
+.sub{color:var(--taupe);font-size:12.5px}
+.x{width:34px;height:34px;border-radius:99px;background:var(--hueso);display:grid;place-items:center}
+.pest{display:flex;gap:3px;background:var(--hueso);border-radius:11px;padding:3px;margin-top:12px}
+.pest span{flex:1;text-align:center;font-size:11.5px;font-weight:700;letter-spacing:.06em;padding:6px;border-radius:8px;color:var(--taupe)}
+.pest span.si{background:var(--tinta);color:var(--crema)}
+.sep{height:1px;background:var(--sand);margin:14px 0}
+.grande{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.grande .n{font-family:"EB Garamond",serif;font-size:46px;line-height:.9}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px}
+.chip i{width:7px;height:7px;border-radius:99px}
+.chip.am{color:var(--ambar-p);background:color-mix(in srgb,var(--ambar) 13%,transparent)}.chip.am i{background:var(--ambar)}
+.chip.ro{color:var(--rojo);background:color-mix(in srgb,var(--rojo) 11%,transparent)}.chip.ro i{background:var(--rojo)}
+.pto{display:inline-block;width:12px;height:12px;border-radius:99px;box-shadow:0 0 0 1px color-mix(in srgb,var(--tinta) 18%,transparent);flex-shrink:0}
+.gana{font-size:12.5px;color:var(--taupe);margin-top:10px;line-height:1.5}.gana b{color:var(--tinta)}
+.boton{display:flex;align-items:center;gap:10px;border-radius:12px;padding:11px 12px;margin-top:12px;font-weight:600;background:color-mix(in srgb,var(--ambar) 12%,transparent);color:var(--ambar-p)}
+.boton small{display:block;font-weight:400;color:var(--taupe);font-size:12px}
+.boton .ch{margin-left:auto}
+
+/* ---------- A: perchas por color ---------- */
+.A .color{display:flex;align-items:center;gap:8px;font-weight:600;margin-top:14px}
+.A .color small{margin-left:auto;font-weight:400;color:var(--taupe);font-size:12px}
+.A .tallas{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.tA{border:1px solid var(--sand);border-radius:12px;background:var(--crema);padding:8px 8px 7px;cursor:pointer}
+.tA .tt{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
+.tA .tt em{font-style:normal;font-size:10.5px;font-weight:600;border-radius:99px;padding:1px 6px}
+.tA .dos{display:flex;gap:10px;margin-top:6px;font-size:13px;font-variant-numeric:tabular-nums}
+.tA .dos span{display:inline-flex;align-items:center;gap:4px;color:var(--taupe)}
+.tA .dos b{color:var(--tinta);font-size:15px}
+.tA.am{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.tA.am .tt em{background:color-mix(in srgb,var(--ambar) 18%,transparent);color:var(--ambar-p)}
+.tA.am .dos span:first-child b{color:var(--ambar-p)}
+.tA.ro{border-color:color-mix(in srgb,var(--rojo) 40%,transparent);background:color-mix(in srgb,var(--rojo) 9%,transparent)}
+.tA.ro .tt{color:var(--rojo)} .tA.ro .tt em{background:color-mix(in srgb,var(--rojo) 14%,transparent);color:var(--rojo)}
+.tA.ro .dos{color:var(--rojo);font-size:12.5px}
+.tA .cero{opacity:.45}
+
+/* ---------- B: barras ---------- */
+.B table{width:100%;border-collapse:separate;border-spacing:0 8px;margin-top:4px;table-layout:fixed}.B th:first-child{width:96px}
+.B th{font-size:12px;color:var(--taupe);font-weight:600;text-align:center;padding-bottom:0}
+.B th:first-child{text-align:left}
+.B td.c{font-weight:600;font-size:13px;white-space:nowrap;padding-right:6px}
+.B td.c .pto{margin-right:6px;vertical-align:-1px}
+.barra{height:44px;border-radius:9px;margin:0 3px;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--sand);cursor:pointer;background:var(--crema)}
+.barra .p,.barra .a{flex:1;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums;gap:4px}
+.barra .p{background:color-mix(in srgb,var(--verde) 14%,transparent);color:var(--verde)}
+.barra .a{color:var(--taupe);font-weight:600;border-top:1px solid var(--sand)}
+.barra .p.cero{background:color-mix(in srgb,var(--ambar) 15%,transparent);color:var(--ambar-p)}
+.barra.ro{border-color:color-mix(in srgb,var(--rojo) 40%,transparent);background:color-mix(in srgb,var(--rojo) 10%,transparent);color:var(--rojo);align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.ley{display:flex;gap:12px;font-size:11.5px;color:var(--taupe);flex-wrap:wrap}
+.ley span{display:inline-flex;align-items:center;gap:5px}
+.ley em{width:12px;height:10px;border-radius:3px;display:inline-block}
+
+/* ---------- C: primero lo que toca ---------- */
+.C .bloque{border-radius:13px;padding:11px 12px;margin-top:10px}
+.C .bloque.am{background:color-mix(in srgb,var(--ambar) 11%,transparent)}
+.C .bloque.ro{background:color-mix(in srgb,var(--rojo) 9%,transparent)}
+.C .bloque h4{font-size:13.5px;display:flex;align-items:center;gap:8px}
+.C .bloque.am h4{color:var(--ambar-p)} .C .bloque.ro h4{color:var(--rojo)}
+.C .pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.C .pill{display:inline-flex;align-items:center;gap:6px;background:var(--papel);border:1px solid var(--sand);border-radius:99px;padding:4px 10px 4px 6px;font-size:12.5px;font-weight:600}
+.C .pill small{font-weight:400;color:var(--taupe)}
+.C .bloque .accion{margin-top:9px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:600;background:var(--tinta);color:var(--crema)}
+.C .bloque.ro .accion{background:transparent;border:1px solid color-mix(in srgb,var(--rojo) 40%,transparent);color:var(--rojo)}
+.C .lista{border:1px solid var(--sand);border-radius:13px;margin-top:12px;overflow:hidden;background:var(--crema)}
+.C .lfila{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--sand)}
+.C .lfila:first-child{border-top:0}
+.C .lfila b{font-size:13.5px}
+.C .lfila .n{font-size:12.5px;color:var(--taupe);text-align:right;white-space:nowrap}
+.C .lfila .n strong{color:var(--tinta)}
+.C .lfila .mini{display:flex;gap:3px}
+.C .mini i{width:18px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--verde) 55%,transparent)}
+.C .mini i.am{background:var(--ambar)} .C .mini i.ro{background:var(--rojo)}
+.mt{color:var(--taupe);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-top:16px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="percha" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M11.3 3a1.3 1.3 0 102 1c0 .5-.3.9-.7 1.1v1.3L4 13.5a1.5 1.5 0 00-.7 1.3V16h17.4v-1.2a1.5 1.5 0 00-.7-1.3l-7.7-6.1V5.4"/></symbol>
+  <symbol id="caja" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v12H3z"/><path d="M2 4h20v4H2z"/><path d="M10 12h4"/></g></symbol>
+  <symbol id="colgar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5a1 1 0 101.4.9v.9L6 9.5h12l-5-3.6"/><path d="M12 21v-7"/><path d="m9 16.5 3-3 3 3"/></g></symbol>
+  <symbol id="pedir" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></g></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="blazer" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M8 3 4 6 3 21h7l2-9 2 9h7L20 6l-4-3-4 6z"/></symbol>
+</svg>
+
+<h1>Pestaña «Todas»: tres opciones</h1>
+<p class="bajada">Misma prenda en las tres (Blazer Demo Franja, cantidades inventadas): a Verde le faltan S, M y L en el piso, y a Blanco se le acabó la L. Elige la que se entienda más rápido.
+<button onclick="document.documentElement.dataset.tema=document.documentElement.dataset.tema==='oscuro'?'':'oscuro'" style="margin-left:8px;font:inherit;font-size:12.5px;border:1px solid var(--sand);background:var(--papel);color:var(--tinta);border-radius:9px;padding:4px 10px;cursor:pointer">Claro / oscuro</button></p>
+
+<div class="fila3" id="fila"></div>
+
+<script>
+const T = ["S","M","L"];
+const C = [
+  ["Verde","#3e7a4e",[[0,3],[0,3],[0,3]]],
+  ["Blanco","#f4f1ea",[[1,1],[1,0],null]],
+  ["Gris","#bdbdbd",[[1,0],[1,1],[1,0]]],
+  ["Rojo","#c0392b",[[2,1],[1,0],[1,1]]],
+];
+const est = (c) => (c === null ? "ro" : c[0] === 0 && c[1] > 0 ? "am" : "");
+const cab = `<div class="cab"><div class="foto"><svg width="28" height="28"><use href="#blazer"/></svg></div><div><div class="nom">Blazer Demo Franja</div><div class="sub">Blazers · <b style="color:var(--tinta)">S/ 2.00</b></div></div><span class="x"><svg width="15" height="15"><use href="#x"/></svg></span></div>
+<div class="pest"><span>ESTA TALLA</span><span class="si">TODAS</span></div><div class="sep"></div>`;
+const resumen = `<div class="grande"><span class="n">22</span><span class="sub" style="font-size:14px">en esta sede</span><span class="chip am"><i></i>3 por colgar</span><span class="chip ro"><i></i>1 se acabó</span></div>`;
+const colgarVarias = `<div class="boton"><svg width="18" height="18"><use href="#colgar"/></svg><span>Colgar varias tallas y colores<small>Verde S, M y L</small></span><svg class="ch" width="15" height="15"><use href="#chev"/></svg></div>`;
+
+/* A — una tarjetita por talla, agrupadas por color: talla arriba, percha y caja con su número */
+let A = cab + resumen;
+for (const [n, hex, ts] of C) {
+  const p = ts.reduce((s, c) => s + (c ? c[0] : 0), 0), a = ts.reduce((s, c) => s + (c ? c[1] : 0), 0);
+  A += `<div class="color"><span class="pto" style="background:${hex}"></span>${n}<small>${p} en el piso · ${a} en almacén</small></div><div class="tallas">`;
+  ts.forEach((c, k) => {
+    const e = est(c);
+    A += `<div class="tA ${e}"><div class="tt">${T[k]}${e === "am" ? "<em>falta</em>" : e === "ro" ? "<em>se acabó</em>" : ""}</div>` +
+      (c === null ? `<div class="dos">No queda ninguna</div>` :
+      `<div class="dos"><span class="${c[0] ? "" : e ? "" : "cero"}"><svg width="14" height="14"><use href="#percha"/></svg><b>${c[0]}</b></span><span class="${c[1] ? "" : "cero"}"><svg width="14" height="14"><use href="#caja"/></svg><b>${c[1]}</b></span></div>`) + `</div>`;
+  });
+  A += `</div>`;
+}
+A += `<div class="ley" style="margin-top:10px"><span><svg width="13" height="13"><use href="#percha"/></svg>en el piso</span><span><svg width="13" height="13"><use href="#caja"/></svg>en almacén</span></div>` + colgarVarias;
+
+/* B — tabla de barras: cada celda partida en dos, arriba piso (verde), abajo almacén */
+let B = cab + resumen + `<div class="ley" style="margin-top:12px"><span><em style="background:color-mix(in srgb,var(--verde) 25%,transparent)"></em>arriba: en el piso</span><span><em style="border:1px solid var(--sand)"></em>abajo: en almacén</span><span><em style="background:color-mix(in srgb,var(--ambar) 25%,transparent)"></em>falta colgar</span></div>
+<table><thead><tr><th></th>${T.map((t) => `<th>${t}</th>`).join("")}</tr></thead><tbody>`;
+for (const [n, hex, ts] of C) {
+  B += `<tr><td class="c"><span class="pto" style="background:${hex}"></span>${n}</td>` + ts.map((c) =>
+    c === null ? `<td><div class="barra ro">Se acabó</div></td>` :
+    `<td><div class="barra"><div class="p ${c[0] === 0 && c[1] > 0 ? "cero" : ""}"><svg width="12" height="12"><use href="#percha"/></svg>${c[0]}</div><div class="a"><svg width="12" height="12"><use href="#caja"/></svg>${c[1]}</div></div></td>`).join("") + `</tr>`;
+}
+B += `</tbody></table>` + colgarVarias;
+
+/* C — primero lo que toca (dos bloques con su acción), después los colores en una lista corta */
+let Cc = cab + resumen +
+  `<div class="bloque am"><h4><svg width="16" height="16"><use href="#colgar"/></svg>Falta colgar · 3</h4><div class="pills"><span class="pill"><span class="pto" style="background:#3e7a4e"></span>Verde S <small>3 en almacén</small></span><span class="pill"><span class="pto" style="background:#3e7a4e"></span>Verde M <small>3</small></span><span class="pill"><span class="pto" style="background:#3e7a4e"></span>Verde L <small>3</small></span></div><span class="accion"><svg width="15" height="15"><use href="#colgar"/></svg>Colgar las 3</span></div>
+   <div class="bloque ro"><h4><svg width="16" height="16"><use href="#pedir"/></svg>Se acabó · 1</h4><div class="pills"><span class="pill"><span class="pto" style="background:#f4f1ea"></span>Blanco L <small>Trujillo tiene 2</small></span></div><span class="accion"><svg width="15" height="15"><use href="#pedir"/></svg>Pedir a Trujillo</span></div>
+   <div class="mt">Por color</div><div class="lista">`;
+for (const [n, hex, ts] of C) {
+  const p = ts.reduce((s, c) => s + (c ? c[0] : 0), 0), a = ts.reduce((s, c) => s + (c ? c[1] : 0), 0);
+  Cc += `<div class="lfila"><span class="pto" style="background:${hex};width:14px;height:14px"></span><b>${n}</b><span class="n"><strong>${p}</strong> en el piso · <strong>${a}</strong> almacén</span><svg width="14" height="14" style="color:var(--taupe)"><use href="#chev"/></svg></div>`;
+}
+Cc += `</div>`;
+
+const op = (l, t, d, cls, html, gana) => `<div class="op"><header><span class="letra">${l}</span><b>${t}</b><span>${d}</span></header><div class="cajon ${cls}">${html}</div><p class="gana">${gana}</p></div>`;
+document.getElementById("fila").innerHTML =
+  op("A", "Tallas como tarjetitas", "percha y caja con su número", "A", A, "<b>Ganas:</b> cada talla se lee sola, con dibujos en vez de palabras («falta», «se acabó» escritos en la propia talla). <b>Pagas:</b> más alto con muchos colores.") +
+  op("B", "Barras piso / almacén", "cada celda partida en dos", "B", B, "<b>Ganas:</b> se ve la tabla entera de un vistazo y el verde dice «está colgado». <b>Pagas:</b> hay que aprender que arriba es piso y abajo almacén.") +
+  op("C", "Primero lo que toca", "lo pendiente arriba, con su botón", "C", Cc, "<b>Ganas:</b> responde «¿qué hago?» sin leer números; cada problema trae su botón. <b>Pagas:</b> el detalle por talla queda a un toque (abre el color).");
+</script>
+</body>
+</html>

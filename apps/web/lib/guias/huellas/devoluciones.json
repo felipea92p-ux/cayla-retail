@@ -1,0 +1,88 @@
+{
+  "guia": "devoluciones",
+  "ruta": "/devoluciones",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 58,
+  "controles": {
+    "components/AnularVentaForm.tsx": [
+      "button «Listo»",
+      "Desplegable «{condiciones[i.ventaItemId] ?? \"vendible\"}»",
+      "input «Por qué se anula esta venta»",
+      "ComboResponsable «{responsable}»",
+      "button «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/BuscadorVentas.tsx": [
+      "BotonBuscar «(sin nombre)»",
+      "button «posventa.escanear»",
+      "button «posventa.sin-comprobante»",
+      "Desplegable «{todas ? \"todas\" : \"aqui\"}»"
+    ],
+    "components/ComprasAgrupadas.tsx": [
+      "button «{f.texto}»",
+      "Boton «Buscar en todas las tiendas»"
+    ],
+    "components/CorregirPagoModal.tsx": [
+      "button «{NOMBRE_METODO[m]}»",
+      "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
+      "CampoTexto «Qué pasó»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/DetalleVentaModal.tsx": [
+      "button «Reintentar»",
+      "Boton «Corregir pago»",
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
+    ],
+    "components/DevolucionesFlujo.tsx": [
+      "Casilla «{`Devolver ${l.referencia}»",
+      "input «{`cantidad-${l.ventaItemId}»",
+      "Link «Cambiar por otra prenda»",
+      "Volver «→onCerrar»",
+      "button «{m.etiqueta}»",
+      "input «devolucion-detalle»",
+      "Volver «→retroceder»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→retroceder» #2",
+      "Volver «→onCerrar» #2",
+      "button «{o.titulo}»",
+      "button «{d.etiqueta}»"
+    ],
+    "components/DevolucionesPanel.tsx": [
+      "Pestanas «→(v) => setVista(v as Vista)»",
+      "button «{f.texto}»",
+      "button «Escanear prenda»",
+      "button «Buscar la venta»",
+      "Link «Revisar en Inventario»",
+      "Link «Abrir caja»"
+    ],
+    "components/DevolucionesPendientes.tsx": [
+      "input «S/ 0.00»",
+      "button «Todo (»",
+      "CampoSelect «¿Cómo se le devuelve?»",
+      "CampoSelect «Sale de»",
+      "ComboResponsable «{responsable}»",
+      "input «{`rechazo-${d.id}»",
+      "ComboResponsable «{responsable}» #2"
+    ],
+    "components/DevolucionesResueltas.tsx": [
+      "Link «{d.notaCredito}»"
+    ],
+    "components/DevolucionesVentas.tsx": [
+      "button «devoluciones.anular»",
+      "button «Iniciar devolución»",
+      "button «devoluciones.ver-venta»",
+      "Link «devoluciones.cambiar»",
+      "button «devoluciones.devolver»"
+    ],
+    "components/FlujoGuiado.tsx": [
+      "Volver «→onVolver»",
+      "button «{hecho ? `Volver a «${nombre}»",
+      "button «{guia}»",
+      "button «{children}»",
+      "button «{children}» #2"
+    ]
+  }
+}

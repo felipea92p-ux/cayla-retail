@@ -1,27 +1,25 @@
 import { describe, it, expect } from "vitest";
 import {
+  DIAS_LO_SIGUIENTE,
+  loSiguienteDeLaRecepcion,
   anulacion,
   avisoRecepcion,
   buscarEnTraslado,
   consecuenciaAnular,
   consecuenciaCierre,
-  insigniaComparacion,
   leerCasilla,
   leerConteo,
   lugarTexto,
   mensajeEscaneo,
   nombrePrenda,
   puedeTerminar,
-  recorridoRecepcion,
   resolverEscaneo,
-  resumenAntesDeConfirmar,
   resumirGuardado,
   sumarAlConteo,
   textoObligatorioValido,
   textoPorContar,
   valorContado,
   type LineaRecepcion,
-  type TrasladoParaRecorrido,
 } from "./traslados-recepcion-reglas";
 
 function linea(p: Partial<LineaRecepcion> & { varianteId: string }): LineaRecepcion {
@@ -110,12 +108,6 @@ describe("leerConteo", () => {
     expect(textoPorContar(3)).toBe("Faltan 3 prendas por contar");
   });
 
-  it("la insignia pide volver a contar mientras se puede, y después dice qué pasó", () => {
-    const l = leerConteo([VESTIDO, BLUSA], { v1: 3, b1: 0 });
-    expect(insigniaComparacion(l.lineas.get("b1")!, { recontable: true }).texto).toBe("Vuelve a contarla");
-    expect(insigniaComparacion(l.lineas.get("b1")!, { recontable: false }).texto).toBe("Falta 1");
-    expect(insigniaComparacion(l.lineas.get("v1")!, { recontable: false }).texto).toBe("Sobra 1");
-  });
 });
 
 describe("guardado línea por línea", () => {
@@ -180,28 +172,6 @@ describe("confirmar", () => {
     expect(lugarTexto(null, "Taller")).toBe("al stock de Taller");
   });
 
-  it("antes de confirmar: entra lo que coincide y la diferencia espera, con nombre", () => {
-    const l = leerConteo([VESTIDO, BLUSA], { v1: 2, b1: 0 });
-    const r = resumenAntesDeConfirmar(l, { destino: "piso_venta", sede: "Tienda Lima" });
-    expect(r.entran).toBe("Entran 2 prendas que coinciden al piso de venta de Tienda Lima.");
-    expect(r.esperan).toBe("1 prenda con diferencia espera a un líder; las demás ya se pueden vender.");
-    expect(r.detalleEsperan).toEqual(["Blusa Valentina S blanco: enviaron 1, contaste 0"]);
-  });
-
-  it("si todo coincide, no hay nada que espere", () => {
-    const l = leerConteo([VESTIDO], { v1: 2 });
-    expect(resumenAntesDeConfirmar(l, { destino: null, sede: "Taller" })).toEqual({ entran: "Entran 2 prendas que coinciden al stock de Taller.", esperan: null, detalleEsperan: [] });
-  });
-
-  it("en singular y sin nada que coincida", () => {
-    const uno = leerConteo([BLUSA], { b1: 1 });
-    expect(resumenAntesDeConfirmar(uno, { destino: "almacen_tienda", sede: "Tienda Lima" }).entran).toBe("Entra 1 prenda que coincide al almacén de Tienda Lima.");
-    const ninguno = leerConteo([BLUSA], { b1: 0 });
-    const r = resumenAntesDeConfirmar(ninguno, { destino: "piso_venta", sede: "Tienda Lima" });
-    expect(r.entran).toMatch(/nada entra al stock todavía/);
-    expect(r.esperan).toBe("1 prenda con diferencia espera a un líder.");
-  });
-
   it("el aviso dice lo que de verdad entró y dónde", () => {
     expect(
       avisoRecepcion({ numero: 5, resultado: "cerrada", unidadesIngresadas: 3, lineasConDiferencia: 0, destino: "piso_venta", sede: "Tienda Lima", puedeCerrarDiferencia: false }),
@@ -226,8 +196,16 @@ describe("cerrar con diferencia", () => {
     const top = linea({ varianteId: "t1", referencia: "Top Aurora", talla: "M", color: "Negro", cantidadEnviada: 1, cantidadRecibida: 2 });
     const c = consecuenciaCierre([jean, { ...BLUSA, cantidadRecibida: 0 }, top], {}, { destino: "piso_venta", sede: "Tienda Lima" });
     expect(c.perdidas).toBe("Se dan por perdidas 3 prendas: Jean Mom 30 azul (2), Blusa Valentina S blanco (1).");
-    expect(c.deMas).toBe("Llegó 1 prenda de más y también entra: Top Aurora M negro.");
-    expect(c.entran).toBe("Entran 3 prendas al piso de venta de Tienda Lima.");
+    // ADR-0404: del top entra lo enviado (1); el de más queda por revisar, fuera del stock.
+    expect(c.deMas).toBe("Queda por revisar 1 prenda de más, sin entrar al stock: Top Aurora M negro.");
+    expect(c.entran).toBe("Entran 2 prendas al piso de venta de Tienda Lima.");
+  });
+
+  it("una prenda que no venía en la caja no entra: queda entera por revisar", () => {
+    const nueva = linea({ varianteId: "n1", referencia: "Falda Ariana", talla: "M", color: "Rosado", cantidadEnviada: null, cantidadRecibida: 2 });
+    const c = consecuenciaCierre([{ ...VESTIDO, cantidadRecibida: 2 }, nueva], {}, { destino: "piso_venta", sede: "Tienda Lima" });
+    expect(c.entran).toBe("Entran 2 prendas al piso de venta de Tienda Lima.");
+    expect(c.deMas).toBe("Quedan por revisar 2 prendas de más, sin entrar al stock: Falda Ariana M rosado (2).");
   });
 
   it("la nota y el motivo son obligatorios", () => {
@@ -260,46 +238,110 @@ describe("anular", () => {
   });
 });
 
-describe("recorridoRecepcion", () => {
-  const AHORA = "2026-09-26T18:00:00.000Z";
-  const t: TrasladoParaRecorrido = {
-    estado: "en_transito",
-    ubicacionOrigenNombre: "Tienda Trujillo",
-    ubicacionDestinoNombre: "Tienda Lima",
-    fechaEstimadaLlegada: "2026-09-26T20:00:00.000Z",
-    creadoEn: "2026-09-26T15:00:00.000Z",
-    confirmadoEn: null,
-    cerradoEn: null,
-    anuladoEn: null,
-    creadoPorNombre: "Ana",
-    confirmadoPorNombre: null,
-    cerradoPorNombre: null,
-    anuladoPorNombre: null,
+describe("Lo siguiente: después de recibir (ADR-0242 D-6.1)", () => {
+  const AHORA = "2026-10-03T20:00:00.000Z";
+  const AYER = "2026-10-02T20:00:00.000Z";
+  const base = {
+    esDestino: true,
+    lugarRecibido: "almacen_tienda" as const,
+    lineas: [
+      { varianteId: "v1", cantidadRecibida: 3, ingresado: true },
+      { varianteId: "v2", cantidadRecibida: 1, ingresado: true },
+    ],
+    trasladoId: "tr-1",
+    ultimoIngresoIso: AYER,
+    ahoraIso: AHORA,
+    veExistencias: true,
+    sede: "Tienda Lima",
   };
-  const ctx = { esDestino: true, meTocaCerrar: false, contadas: 0, enviadas: 2, huboDiferencia: false, ahoraIso: AHORA };
 
-  it("anulado es el final: salió y anulado, con quién", () => {
-    const pasos = recorridoRecepcion({ ...t, estado: "anulada", anuladoEn: "2026-09-26T16:00:00.000Z", anuladoPorNombre: "Ana" }, ctx);
-    expect(pasos.map((p) => p.clave)).toEqual(["salio", "anulado"]);
-    expect(pasos[1].estado).toBe("anulado");
-    expect(pasos[1].lineas).toContain("Anuló Ana");
+  it("si quedó en el almacén: «Bajar estas al piso» (principal) con las prendas que entraron, y las etiquetas de justo esas unidades", () => {
+    const r = loSiguienteDeLaRecepcion(base)!;
+    expect(r.intro).toBe("Lo que llegó quedó en el almacén de Tienda Lima. Para venderlo, hay que bajarlo al piso.");
+    expect(r.acciones).toEqual([
+      { clave: "bajar", texto: "Bajar estas al piso", href: "/inventario/bajar?lineas=v1:3,v2:1", principal: true },
+      { clave: "etiquetas", texto: "Imprimir etiquetas", href: "/etiquetas-de-precio?unidades=v1:3,v2:1&traslado=tr-1", principal: false },
+    ]);
   });
 
-  it("contando: dice cuántas lleva, sin depender de que alguien haya confirmado", () => {
-    const pasos = recorridoRecepcion(t, { ...ctx, contadas: 1 });
-    expect(pasos[2]).toMatchObject({ estado: "actual", lineas: ["Contando: 1 de 2 prendas"] });
+  it("con prendas a otro precio aquí (precio propio): cambiar la etiqueta va primero y la frase lo dice", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, conOtroPrecio: 2 })!;
+    expect(r.intro).toBe(
+      "2 prendas se venden aquí a otro precio: cámbiales la etiqueta antes de colgarlas. Lo que llegó quedó en el almacén de Tienda Lima. Para venderlo, hay que bajarlo al piso.",
+    );
+    expect(r.acciones.map((a) => [a.clave, a.principal])).toEqual([
+      ["etiquetas", true],
+      ["bajar", false],
+    ]);
+    expect(r.acciones[0]!.texto).toBe("Imprimir etiquetas con el precio de aquí");
   });
 
-  it("atrasado es urgente solo para quien recibe", () => {
-    const atrasado = { ...t, fechaEstimadaLlegada: "2026-09-26T16:00:00.000Z" };
-    expect(recorridoRecepcion(atrasado, ctx)[1].estado).toBe("urgente");
-    expect(recorridoRecepcion(atrasado, { ...ctx, esDestino: false })[1].estado).toBe("actual");
+  it("si quedó en el piso: solo etiquetas (no hay nada que bajar)", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, lugarRecibido: "piso_venta" })!;
+    expect(r.intro).toBe("Lo que llegó ya está en el piso de Tienda Lima.");
+    expect(r.acciones.map((a) => a.clave)).toEqual(["etiquetas"]);
+    expect(r.acciones[0]!.principal).toBe(true);
   });
 
-  it("recibido con diferencia: lo que coincidió ya está en stock y la diferencia espera", () => {
-    const pasos = recorridoRecepcion({ ...t, estado: "recibido_con_diferencia", confirmadoEn: AHORA, confirmadoPorNombre: "Luz" }, { ...ctx, meTocaCerrar: true });
-    expect(pasos[2]).toMatchObject({ estado: "alerta" });
-    expect(pasos[2].lineas).toContain("Confirmó Luz");
-    expect(pasos[3].lineas).toEqual(["Lo que coincidió ya está en stock", "Te toca cerrar la diferencia"]);
+  it("solo cuenta lo que ENTRÓ: una prenda con diferencia que espera al líder no va en la lista", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, lineas: [{ varianteId: "v1", cantidadRecibida: 3, ingresado: true }, { varianteId: "v2", cantidadRecibida: 1, ingresado: false }, { varianteId: "v3", cantidadRecibida: 0, ingresado: true }] })!;
+    expect(r.acciones[0]!.href).toBe("/inventario/bajar?lineas=v1:3");
+  });
+
+  it("sin el módulo Existencias no se ofrece «Bajar al piso» (llevaría a «Sin acceso»), pero las etiquetas sí", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, veExistencias: false })!;
+    expect(r.acciones.map((a) => a.clave)).toEqual(["etiquetas"]);
+    expect(r.acciones[0]!.principal).toBe(true);
+  });
+
+  it("nada para quien envió, ni en una sede sin piso y almacén (el Taller), ni si no entró ninguna prenda", () => {
+    expect(loSiguienteDeLaRecepcion({ ...base, esDestino: false })).toBeNull();
+    expect(loSiguienteDeLaRecepcion({ ...base, lugarRecibido: null })).toBeNull();
+    expect(loSiguienteDeLaRecepcion({ ...base, lineas: [{ varianteId: "v1", cantidadRecibida: 3, ingresado: false }] })).toBeNull();
+    expect(loSiguienteDeLaRecepcion({ ...base, lineas: [] })).toBeNull();
+  });
+
+  it("dura una semana desde que entró lo último; pasado ese día, ya es ruido", () => {
+    const dentro = new Date(new Date(AHORA).getTime() - DIAS_LO_SIGUIENTE * 86_400_000).toISOString();
+    const fuera = new Date(new Date(AHORA).getTime() - (DIAS_LO_SIGUIENTE * 86_400_000 + 60_000)).toISOString();
+    expect(loSiguienteDeLaRecepcion({ ...base, ultimoIngresoIso: dentro })).not.toBeNull();
+    expect(loSiguienteDeLaRecepcion({ ...base, ultimoIngresoIso: fuera })).toBeNull();
+  });
+
+  it("si ya se bajó TODO lo que llegó, no pide bajar nada (el botón llevaría a una lista vacía) y lo dice", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, bajables: new Set() })!;
+    expect(r.intro).toBe("Lo que llegó ya salió del almacén de Tienda Lima.");
+    expect(r.acciones.map((a) => a.clave)).toEqual(["etiquetas"]);
+    expect(r.acciones[0]!.principal).toBe(true);
+  });
+
+  it("si queda PARTE en el almacén, «Bajar» lleva solo esa parte; las etiquetas, las unidades que entraron", () => {
+    const r = loSiguienteDeLaRecepcion({ ...base, bajables: new Set(["v2"]) })!;
+    expect(r.intro).toContain("quedó en el almacén");
+    expect(r.acciones[0]!.href).toBe("/inventario/bajar?lineas=v2:1");
+    expect(r.acciones[1]!.href).toBe("/etiquetas-de-precio?unidades=v1:3,v2:1&traslado=tr-1");
+  });
+
+  it("una prenda apartada para una clienta no está «bajable»: tampoco se pide bajarla", () => {
+    expect(loSiguienteDeLaRecepcion({ ...base, bajables: new Set(["v1"]) })!.acciones[0]!.href).toBe("/inventario/bajar?lineas=v1:3");
+  });
+
+  it("si no se pudo leer el stock, se ofrece como antes (la pantalla de bajar descarta lo que no se puede)", () => {
+    expect(loSiguienteDeLaRecepcion({ ...base, bajables: undefined })!.acciones[0]!.href).toBe("/inventario/bajar?lineas=v1:3,v2:1");
+  });
+
+  it("las etiquetas llevan el id del traslado: así «Volver» regresa a su detalle", () => {
+    expect(loSiguienteDeLaRecepcion({ ...base, trasladoId: "abc" })!.acciones.find((a) => a.clave === "etiquetas")!.href).toContain("&traslado=abc");
+  });
+
+  it("sin fecha de ingreso (dato viejo) no se inventa: nada", () => {
+    expect(loSiguienteDeLaRecepcion({ ...base, ultimoIngresoIso: null })).toBeNull();
+  });
+
+  it("con más prendas distintas que el tope de una URL: «Bajar al piso» se abre sin lista y no se ofrecen etiquetas", () => {
+    const muchas = Array.from({ length: 101 }, (_, i) => ({ varianteId: `v${i}`, cantidadRecibida: 1, ingresado: true }));
+    const r = loSiguienteDeLaRecepcion({ ...base, lineas: muchas })!;
+    expect(r.acciones).toEqual([{ clave: "bajar", texto: "Bajar al piso", href: "/inventario/bajar", principal: true }]);
+    expect(loSiguienteDeLaRecepcion({ ...base, lugarRecibido: "piso_venta", lineas: muchas })).toBeNull();
   });
 });

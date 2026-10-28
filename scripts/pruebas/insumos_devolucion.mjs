@@ -120,7 +120,8 @@ rollback;`,
     contiene: "antes de cerrar la orden",
     sql: `${PREPARAR}
 select retail.registrar_consumo_insumo(:'ord', :'ins', 40) as _c \\gset
-select retail.cerrar_produccion(:'ord', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 10)), null, null, null) as _cierre \\gset
+-- Esta prueba habla de devolver insumos, no del costo: el cierre confirma el costo atípico (20260930121000).
+select retail.cerrar_produccion(:'ord', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 10)), null, null, null, true) as _cierre \\gset
 select retail.devolver_insumo_de_produccion(:'ord', :'ins', 5);
 rollback;`,
   },

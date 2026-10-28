@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CloudOff } from "lucide-react";
+import { Aviso } from "@/components/ui/Aviso";
 import { borrar, guardar, leer } from "@/lib/almacen-local";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { esCopiaGuardada } from "@/lib/sin-conexion-reglas";
 import { usePendientesSinSubir } from "@/lib/usePendientesSinSubir";
+import { sondearLaBase } from "@/lib/sondear-la-base";
+import { useEnLinea } from "@/lib/useEnLinea";
 
 const CLAVE_PERSONA = "cayla:sw:persona";
 /** En desarrollo el SW no se registra (serviría JavaScript viejo tras cada cambio); para probarlo: esta llave en "1". */
 const CLAVE_SW_DEV = "cayla:sw-dev";
+/** Cada cuánto se le pregunta a la base si responde mientras el navegador dice «sin red». */
+const CADA_MS_SONDA = 20_000;
 
 /**
  * Borra las copias de pantallas que guardó el service worker y las listas de turno recordadas (ADR-0210). Se llama
@@ -42,23 +46,41 @@ export async function borrarCopiasSinConexion(): Promise<void> {
  * `generadoEn` es la hora en que el servidor armó esta carga: en una copia, es la hora de la copia.
  */
 export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn: string }) {
-  const [enLinea, setEnLinea] = useState(true);
+  // «Sin conexión» se dice solo con evidencia: el navegador lo dice (`navigator.onLine` puede mentir, 2026-10-10, caja
+  // de TRU), nada de la base respondió en los últimos 90 s Y la sonda de abajo tampoco obtuvo respuesta.
+  const enLinea = useEnLinea();
+  const [sondaFallo, setSondaFallo] = useState(false);
   const [copiaDe, setCopiaDe] = useState<string | null>(null);
 
   useEffect(() => {
     // Se mide UNA vez, al cargar la página entera: el layout no se vuelve a montar al navegar dentro de la app.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (esCopiaGuardada(generadoEn, new Date())) setCopiaDe(generadoEn);
-    setEnLinea(navigator.onLine);
-    const alCambiar = () => setEnLinea(navigator.onLine);
-    window.addEventListener("online", alCambiar);
-    window.addEventListener("offline", alCambiar);
-    return () => {
-      window.removeEventListener("online", alCambiar);
-      window.removeEventListener("offline", alCambiar);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Mientras parezca que no hay red, se le pregunta a la base cada 20 s: si responde, el aviso no sale (y si ya
+  // estaba, se va). Con red no se sondea: los sondeos de cada pantalla ya traen la evidencia.
+  useEffect(() => {
+    if (enLinea) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSondaFallo(false);
+      return;
+    }
+    let vivo = true;
+    const sondear = async () => {
+      if (document.visibilityState !== "visible") return;
+      const respondio = await sondearLaBase();
+      if (vivo) setSondaFallo(!respondio);
+    };
+    void sondear();
+    const id = window.setInterval(sondear, CADA_MS_SONDA);
+    return () => {
+      vivo = false;
+      window.clearInterval(id);
+    };
+  }, [enLinea]);
+  const sinRed = !enLinea && sondaFallo;
 
   useEffect(() => {
     if (leer<string | null>(CLAVE_PERSONA, null) !== cuenta) {
@@ -76,32 +98,28 @@ export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn
   // Lo que espera subir, en cualquier pantalla (ADR-0210, «huecos»): el aviso de cada cola solo se ve en la suya.
   const { pendientes, rechazadas } = usePendientesSinSubir();
 
-  if (enLinea && !copiaDe && pendientes === 0 && rechazadas === 0) return null;
+  if (!sinRed && !copiaDe && pendientes === 0 && rechazadas === 0) return null;
 
   return (
-    <div role="status" className="mb-4 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.08] px-3 py-2 text-[13px] text-ambar-profundo">
-      <CloudOff className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <span>
-        {!enLinea ? <b className="font-semibold">Sin conexión. </b> : null}
-        {copiaDe
-          ? `Estás viendo la copia guardada en este equipo (${diaYHoraLima(copiaDe).dia} · ${diaYHoraLima(copiaDe).hora}). Lo que guardes sube solo al volver el internet.`
-          : !enLinea
-            ? "Lo que guardes en Vender, Recibir o Nuevo producto queda en este equipo y sube solo al volver el internet."
-            : null}
-        {enLinea && copiaDe ? " Ya hay internet: recarga la pantalla para ver lo de ahora." : null}
-        {pendientes > 0 ? (
-          <b className="font-semibold">
-            {" "}
-            {pendientes === 1 ? "1 operación espera subir" : `${pendientes} operaciones esperan subir`} desde este equipo.
-          </b>
-        ) : null}
-        {rechazadas > 0 ? (
-          <span className="text-rojo-profundo">
-            {" "}
-            {rechazadas === 1 ? "1 no pudo subir" : `${rechazadas} no pudieron subir`}: revísalas en Vender, Recibir o Nuevo producto.
-          </span>
-        ) : null}
-      </span>
-    </div>
+    <Aviso tono="atencion" className="mb-4" titulo={sinRed ? "Sin conexión" : undefined}>
+      {copiaDe
+        ? `Estás viendo la copia guardada en este equipo (${diaYHoraLima(copiaDe).dia} · ${diaYHoraLima(copiaDe).hora}). Lo que guardes sube solo al volver el internet.`
+        : sinRed
+          ? "Lo que guardes en Vender, Recibir o Nuevo producto queda en este equipo y sube solo al volver el internet."
+          : null}
+      {!sinRed && copiaDe ? " Ya hay internet: recarga la pantalla para ver lo de ahora." : null}
+      {pendientes > 0 ? (
+        <b className="font-semibold">
+          {" "}
+          {pendientes === 1 ? "1 operación espera subir" : `${pendientes} operaciones esperan subir`} desde este equipo.
+        </b>
+      ) : null}
+      {rechazadas > 0 ? (
+        <span className="text-rojo-profundo">
+          {" "}
+          {rechazadas === 1 ? "1 no pudo subir" : `${rechazadas} no pudieron subir`}: revísalas en Vender, Recibir o Nuevo producto.
+        </span>
+      ) : null}
+    </Aviso>
   );
 }

@@ -4,12 +4,15 @@ import { getVentasRecientes } from "@/lib/ventas-v2";
 import { contarPrendasEnCuarentena, getDevolucionesPendientes, getDevolucionesResueltas, getEstadisticasDevoluciones } from "@/lib/devoluciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { DevolucionesPanel } from "@/components/DevolucionesPanel";
+import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
+import { claveDeDevoluciones } from "@/lib/devoluciones-cambio-de-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { ResumenSede } from "@/components/ui/ResumenSede";
 
 // Devoluciones (rediseño 2026-09-18, mismo modelo que Cambios, ADR-0125/0122). Una devolución
-// tiene dos tiempos: una colaboradora la registra (`crear_devolucion`) y un líder la aprueba
-// (`aprobar_devolucion`); la pantalla, en DevolucionesPanel.
+// tiene dos tiempos: se registra (`crear_devolucion`) y, al revisarla, se aprueba (`aprobar_devolucion`).
+// Desde ADR-0534 aprueba quien ve Devoluciones en la tienda (la líder la valida en persona); la pantalla,
+// en DevolucionesPanel.
 //
 // 2026-09-26 (spike `docs/maquetas/devoluciones-2026-09`, ADR-0232): la cifra «Por aprobar» abre su
 // pestaña, hay una pestaña «Resueltas» y avisos que llevan a las pantallas vecinas (Inventario por la
@@ -35,7 +38,7 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-7">
-      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Devoluciones" subtitulo="Registra las devoluciones de la clienta y aprueba las que esperan.">
+      <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Devoluciones" subtitulo="Registra las devoluciones del cliente y aprueba las que esperan.">
         {/* «Por aprobar» primero y tocable: es lo único de la fila que pide algo a alguien. Las otras
             tres son de las devoluciones APROBADAS de ESTA sede. */}
         <ResumenSede
@@ -49,26 +52,30 @@ export default async function DevolucionesPage({ searchParams }: { searchParams:
         />
       </EncabezadoPagina>
 
-      <DevolucionesPanel
-        lineas={lineas}
-        pendientes={pendientes}
-        resueltas={resueltas}
-        busqueda={q?.trim() ?? ""}
-        todasLasSedes={todasLasSedes}
-        puedeVerTodas={esLider}
-        esLider={esLider}
-        sede={persona.ubicacionEtiqueta}
-        ubicacionId={persona.ubicacionId}
-        colaboradora={persona.nombre}
-        cajaAbierta={caja !== null}
-        abrirItemId={item}
-        accesos={{
-          cambios: veModulo(persona, "cambios"),
-          caja: veModulo(persona, "caja"),
-          comprobantes: veModulo(persona, "facturacion"),
-          cuarentena: veInventario ? enCuarentena : null,
-        }}
-      />
+      {/* La devolución a medio armar es de su sede (Felipe, 2026-10-11), como en Cambios: el panel lleva la sede en su key y
+          `TrabajoPorSede`, que no cambia con la sede, guarda la de la que se deja para retomarla al volver. */}
+      <TrabajoPorSede key="devoluciones" ubicacionId={persona.ubicacionId}>
+        <DevolucionesPanel
+          key={claveDeDevoluciones(persona.ubicacionId)}
+          lineas={lineas}
+          pendientes={pendientes}
+          resueltas={resueltas}
+          busqueda={q?.trim() ?? ""}
+          todasLasSedes={todasLasSedes}
+          puedeVerTodas={esLider}
+          sede={persona.ubicacionEtiqueta}
+          ubicacionId={persona.ubicacionId}
+          colaboradora={persona.nombre}
+          cajaAbierta={caja !== null}
+          abrirItemId={item}
+          accesos={{
+            cambios: veModulo(persona, "cambios"),
+            caja: veModulo(persona, "caja"),
+            comprobantes: veModulo(persona, "facturacion"),
+            cuarentena: veInventario ? enCuarentena : null,
+          }}
+        />
+      </TrabajoPorSede>
     </div>
   );
 }

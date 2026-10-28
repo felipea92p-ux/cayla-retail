@@ -86,10 +86,12 @@ insert into auth.users (id, aud, role, email) values
   ('${T_ADMIN}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
 insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) values (:'tru', 'Terminal Ventas TRU', 'ventas', '${T_VENTAS}') returning id as t_ventas \\gset
 insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) values (:'tru', 'Terminal Administrativa TRU', 'administrativa', '${T_ADMIN}') returning id as t_admin \\gset
--- ADR-0250 (2026-09-27): «Ajustar» dejó de venir de Existencias/Conteos/Traslados — pide su propio módulo, que la
--- siembra de 20260923030000 no le da a ningún rol de terminal (el módulo no existía todavía). Los casos de abajo
--- siguen probando el candado de responsable (D-13/ADR-0162) sobre registrar_movimiento, no el módulo.
-insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_administrativa'), 'ajustar_stock');
+-- ADR-0306 (2026-10-02): «Ajustar» es una función de Existencias/Conteos/Traslados (ADR-0250 la había separado en un
+-- módulo «Ajustar stock» que ya no existe). Se asegura Existencias en la terminal administrativa, sea cual sea la
+-- siembra: los casos de abajo siguen probando el candado de responsable (D-13/ADR-0162) sobre registrar_movimiento.
+insert into retail.rol_modulos (rol_id, modulo)
+  select retail.fn_rol_por_clave('terminal_administrativa'), 'existencias'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'existencias');
 insert into public.personas (id, nombres, apellidos, estado, sede_base_id) values ('${ROSA}', 'Rosa', 'Prueba', 'activo', :'sede_tru');
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) values ('${ROSA}', 'colaborador', :'tru');
 -- Rosa y Felipe marcaron entrada en Trujillo hace un segundo (fecha de la jornada explícita: sin carrera de medianoche).
@@ -177,6 +179,25 @@ const MIRAN_LA_CUENTA = [
   "fn_es_admin", "fn_es_lider", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
+  // ADR-0362 fase 4: «quién mira» en Recibir (la persona de la cuenta, null en una terminal) para avisar «tú hiciste la orden» antes
+  // de que la base lo frene; es identidad, no firma: quien recibe firma con fn_actor_persona_id(true).
+  "fn_recepcion_quien_mira",
+  // ADR-0517 (20261026161000): la persona de la cuenta que mira, sin la excepción del Admin (`fn_recepcion_quien_mira` ahora la llama).
+  // Es identidad, no firma: sirve para decir «tú compraste esto» en el detalle del envío.
+  "fn_recepcion_mi_persona",
+  // ADR-0362 fase 6 (20261013182000 y 20261013212000): el fondo por rendir es de UNA persona, y estas preguntan por la cuenta que
+  // entró, no por el responsable del combo. Es permiso o identidad, no firma (entregar, devolver y anular firman con
+  // fn_actor_persona_id(true)): nadie se entrega plata, registra su devolución ni anula lo de su propio fondo
+  // (fn_fondo_exigir_otra_persona); la pantalla marca «tu fondo» y quién es «yo» (fn_fondos, fn_fondos_movimientos,
+  // fn_fondos_opciones); desde un fondo paga solo su dueña, con su cuenta, nunca una terminal (fn_fondo_para_pagar); y «Mi fondo»
+  // es el de quien mira (fn_mi_fondo). Desde la rendición (20261013233000 y 235000), lo que pregunta «¿es lo tuyo?» lo hace con UNA pieza,
+  // fn_persona_de_la_cuenta (la tarjeta «Tu fondo», las fotos de un gasto del viaje, rendir, quién no aprueba, retirar la propia).
+  "fn_fondo_exigir_otra_persona", "fn_fondos", "fn_fondos_movimientos", "fn_fondos_opciones", "fn_fondo_para_pagar", "fn_mi_fondo",
+  "fn_persona_de_la_cuenta",
+  // ADR-0533 (20261027140000): la persona de la cuenta que mira, o null (una terminal, sin sesión), sin rechazar. Es identidad, no firma ni
+  // permiso: la leen `requirePersonaActualV2` (para proponerla en el combo «Responsable») y fn_mi_pantalla_principal. Antes eso era
+  // fn_actor_persona_id(false), que a una terminal la rechazaba y llenaba el registro de Postgres.
+  "fn_mi_persona_id",
 ].sort();
 // Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
 // cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo
@@ -197,12 +218,23 @@ caso(
   `select concat_ws(',',
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
      -- fn_mi_pantalla_principal (20260925220000): «mi» preferencia de aterrizaje, mismo patrón que fn_mi_terminal/fn_es_admin —
-     -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal)\\('),
+     -- mira la cuenta, nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije). Desde 20261027140000
+     -- (ADR-0533) la cuenta se lee con fn_mi_persona_id() y ya no llama a fn_actor_persona_id(false); sigue en la lista de abajo por las bases sin esa migración.
+     -- fn_mis_ventas_del_dia, fn_mi_meta y fn_mis_ventas_por_dia (ADR-0325, D-149): «lo mío» de la integrante. Preguntan por la CUENTA que
+     -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
+     -- fn_guia_quien (ADR-0389, 20261007180000): «ya te ofrecí esta guía» es de la cuenta que mira la pantalla (persona o
+     -- terminal), nunca del responsable del combo: elegir a otra persona no le marca a ella la demo como vista.
+     -- fn_mensaje_pedidos_web_mio / fn_guardar_mensaje_pedidos_web (20261019120000): «mi» texto del mensaje de WhatsApp en pedidos
+     -- web, mismo patrón que fn_mi_pantalla_principal: la preferencia es de la cuenta (false), nunca de un responsable delegado.
+     -- fn_cuentas_bancarias_cambiadas (20261013161000): el aviso «una cuenta de proveedor cambió» no se le muestra a la CUENTA que
+     -- hizo el cambio (ya lo sabe); compara con la cuenta que mira, como fn_guia_quien, nunca con un responsable del combo.
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mensaje_pedidos_web_mio|fn_guardar_mensaje_pedidos_web|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia|regularizar_prenda|fn_guia_quien|fn_cuentas_bancarias_cambiadas)\\('),
+     -- regularizar_prenda (20261004204000, ADR-0328): firma con el responsable (true) y compara la CUENTA (false) con quien vendió
+     -- —«nadie regulariza su propia venta»—: un permiso, como fn_alcanzo_a.
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
                         -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
                         -- firma en el alta y otra en la edición, caminos excluyentes.
-                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion)\\('))
+                        and d !~ 'FUNCTION retail\\.(suspender_colaborador|guardar_proveedor_produccion|regularizar_prenda)\\('))
    from (select pg_get_functiondef(oid) d from pg_proc where pronamespace = 'retail'::regnamespace and proname <> 'fn_actor_persona_id' and ${SIN_ROLES}) x;`,
   // Pisos, no números exactos: el total depende de qué migraciones tiene la base (local 41/29 con Apartados y series;
   // CI desde cero 41/28). Que cada función calce con SU lista lo prueban la re-ejecución y la falla cerrada de abajo.
@@ -354,10 +386,11 @@ caso(
   `${sesion(T_ADMIN, { resp: "rosa" })}${COMO_API}${COLOR}`,
   (s) => s.startsWith("aprobado,") && s.endsWith(",t")
 );
+// ADR-0534 (20261027164000): lo que se crea nace aprobado para cualquiera; antes, la terminal de ventas (sin Catálogo) lo dejaba pendiente.
 caso(
-  "catálogo — terminal de ventas + Rosa propone un color: PENDIENTE, propuesto por Rosa",
+  "catálogo — terminal de ventas (sin Catálogo) + Rosa crea un color: también APROBADO (ADR-0534), propuesto y aprobado por Rosa",
   `${sesion(T_VENTAS, { resp: "rosa" })}${COMO_API}${COLOR}`,
-  "pendiente,t,f"
+  "aprobado,t,t"
 );
 caso(
   "catálogo — terminal administrativa SIN responsable: el disparador rechaza (42501)",
@@ -370,7 +403,7 @@ caso(
   "Compras (registrar_compra, true desde 20260923230000): Felipe con x-responsable Rosa → la compra la firma Rosa, igual que una de tienda",
   `insert into retail.proveedores (nombre, activo) values ('ZZ Prueba actor ' || substr(md5(random()::text), 1, 8), true) returning id as prov \\gset
 ${sesion(FELIPE, { resp: "rosa", ubicacion: "tru" })}select retail.registrar_compra(:'prov', 'TST', 'N' || substr(md5(random()::text), 1, 10), 'credito', :'tru',
-  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 3, 'costo_unitario', 10)),
+  jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'v1', 'cantidad', 3, 'costo_unitario', 10, 'confirma_costo', true)),
   p_tipo => 'factura', p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() + 10, p_igv_porcentaje => 18) as compra \\gset
 select ${AJUSTE} as mov \\gset
 select concat_ws(',', (select usuario_id = :'rosa' from retail.compras where id = :'compra'), (select usuario_id = :'rosa' from retail.movimientos where id = :'mov'));`,

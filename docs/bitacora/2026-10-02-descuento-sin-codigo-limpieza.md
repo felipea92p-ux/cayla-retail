@@ -1,0 +1,4 @@
+## 2026-10-02 (Se va el código que quedó sin uso tras quitar el código de descuento)
+Qué hice: borré lo que ya nadie usa desde que la caja descuenta sin código: las tres frases de error del código en `lib/error-escritura.ts` (y sus pruebas), `lib/codigos-descuento.ts` y `lib/facturacion-codigos-reglas.ts` con su prueba (cuatro de sus funciones ya estaban en la lista de «reglas sin pantalla»). Tipos y pruebas en verde.
+Por qué así: la base ya no lanza esos errores (`20261002100000`, en producción desde el 2026-10-02) y la pantalla de códigos no existe desde el rediseño de Facturación; código muerto con pruebas en verde dice que algo funciona cuando nadie lo ve (ADR-0234). La tabla `codigos_descuento` se queda: es historial.
+Felipe se lleva: nada que hacer en producción; este PR va después de #703.
