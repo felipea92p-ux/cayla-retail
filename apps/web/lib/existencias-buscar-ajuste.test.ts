@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { crearIndiceBusquedaEspecial } from "./filtro-busqueda-especial";
 import { clavePercha } from "./inventario-reglas";
-import { detalleDelModelo, modelosParaAjustar } from "./existencias-buscar-ajuste";
+import { detalleDelModelo, detalleSinStock, modelosParaAjustar } from "./existencias-buscar-ajuste";
 
 type Fila = {
   varianteId: string;
@@ -68,5 +68,12 @@ describe("el buscador de «Ajustar stock» de la cabecera", () => {
 
   it("tiene tope", () => {
     expect(modelosParaAjustar(indice, "blusa", 1)).toHaveLength(1);
+  });
+});
+
+describe("detalleSinStock", () => {
+  it("dice que la sede no lo ha movido, con su categoría y marca si las hay", () => {
+    expect(detalleSinStock({ categoria: "Polos", marca: "Cayla" })).toBe("Polos · Cayla · Sin stock aquí todavía");
+    expect(detalleSinStock({ categoria: null, marca: null })).toBe("Sin stock aquí todavía");
   });
 });
