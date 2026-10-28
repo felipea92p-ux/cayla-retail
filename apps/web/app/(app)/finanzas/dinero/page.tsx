@@ -7,26 +7,28 @@ import { alcanzaPulso, tienesPulso } from "@/lib/dinero-pulso-reglas";
 import { getProyeccion } from "@/lib/flujo-caja";
 import { verDeLaVista } from "@/lib/vista-global";
 import { explicacionCuenta } from "@/lib/cuentas-dinero-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, detalleCajon, orilloDeDinero, preguntaDeDinero, repisaDe, repisasDeDinero } from "@/lib/dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, detalleCajon, orilloDeDinero, preguntaDeDinero, grupoDe, gruposDeDinero } from "@/lib/dinero-telar-reglas";
 import { getSedesDelTelar } from "@/lib/finanzas-telar";
 import { sedeDeLaCabecera } from "@/lib/gastos-telar-reglas";
 import { SEDE_EMPRESA, SEDE_TODAS, sedeDeLaUrl } from "@/lib/finanzas-telar-reglas";
-import { Frascos } from "@/components/finanzas/dinero/Frascos";
+import { GruposDeCuentas } from "@/components/finanzas/dinero/GruposDeCuentas";
+import { RepartoDeDinero } from "@/components/finanzas/dinero/RepartoDeDinero";
+import { repartoDeDinero } from "@/lib/dinero-reparto-reglas";
 import { CierresConDiferencia } from "@/components/finanzas/dinero/CierresConDiferencia";
 
 // Finanzas ▸ Cuentas y dinero ▸ Dónde está (ADR-0195 F3; El telar, Felipe 2026-10-23). Lee en el servidor y deja a una pieza
 // cliente operar. `?sede=` (la barra común; `?ver=` mientras dure el cambio; solo el líder) elige qué sede mirar: por defecto la sede
 // donde trabaja, o «todas» (ahí aparecen la plata del dueño y a qué cuenta entra cada cobro). Con el módulo, una cuenta ve su
-// cajón y su caja fuerte, y registra sus depósitos al banco. Cada cuenta es un frasco en la repisa de su sede.
+// cajón y su caja fuerte, y registra sus depósitos al banco. Cada cuenta es una fila en la tarjeta de su sede.
 export default async function CuentasDineroPage({ searchParams }: { searchParams: Promise<{ ver?: string; sede?: string }> }) {
   const persona = await exigirModulo("cuentas_dinero");
   const sp = await searchParams;
   const hoy = hoyLima();
   // La sede sale de la barra común (`?sede=`, o `?ver=` mientras dure el cambio). «Dónde está» no tiene «empresa» propia (la empresa
-  // no tiene cajón): se lee como todas, y los bancos se ven en la repisa de CAYLA entera.
+  // no tiene cajón): se lee como todas, y los bancos se ven en el grupo de CAYLA entera.
   const pedida = sedeDeLaUrl(sp);
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, pedida === SEDE_EMPRESA ? SEDE_TODAS : pedida));
-  // El telar: arriba, «tienes»; luego los frascos de cada sede y «¿me alcanza?» (el flujo de 6 semanas, solo el líder). Lo que se
+  // El telar: arriba, «tienes»; luego las cuentas de cada sede y «¿me alcanza?» (el flujo de 6 semanas, solo el líder). Lo que se
   // debe es su propia cara, «Qué debes» (/finanzas/dinero/por-pagar).
   // El efectivo de hoy (la misma cuenta del cierre) y los cierres con diferencia viven aquí desde que se retiró la pestaña Efectivo.
   const [movimientos, medios, sinCuenta, proyeccion, alertas, efectivo, cierres, telar] = await Promise.all([
@@ -42,13 +44,16 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   ]);
   // Con una sede elegida, «tienes» es SOLO lo suyo (su cajón y su caja fuerte): los bancos son de CAYLA entera y no se le suman.
   const sedeId = ctx.ver.ubicacionId;
-  const tienes = tienesPulso(sedeId ? ctx.cuentas.datos.filter((c) => repisaDe(c) === sedeId) : ctx.cuentas.datos, null);
+  const tienes = tienesPulso(sedeId ? ctx.cuentas.datos.filter((c) => grupoDe(c) === sedeId) : ctx.cuentas.datos, null);
   const esTaller = (c: { ubicacionId: string | null }) => c.ubicacionId !== null && ctx.talleres.includes(c.ubicacionId);
-  const repisas = repisasDeDinero(ctx.cuentas.datos, ctx.ubicaciones, sedeId, hoy, {
+  const grupos = gruposDeDinero(ctx.cuentas.datos, ctx.ubicaciones, sedeId, hoy, {
     explicar: (c) =>
       (c.tipo === "cajon" ? detalleCajon(efectivo.datos.find((f) => f.ubicacionId === c.ubicacionId), esTaller(c)) : null) ?? explicacionCuenta(c, medios.datos, esTaller(c)),
     avisar: (c) => avisoCajaFuerte(c, movimientos.datos, hoy),
   });
+
+  // El resumen de arriba (un círculo por sede) solo dice algo con dos grupos con plata: con una sede elegida no hay.
+  const reparto = repartoDeDinero(grupos, telar.sedes);
 
   const sede = sedeDeLaCabecera(ctx.ver, ctx.ubicaciones);
 
@@ -74,9 +79,10 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       <DineroPulso
         alcanza={alcanzaPulso(proyeccion.datos, tienes.guardado)}
         deCaylaEntera={!!sedeId}
-        frascos={
+        grupos={
           <>
-            <Frascos repisas={repisas} sedes={telar.sedes} />
+            {reparto && <RepartoDeDinero reparto={reparto} />}
+            <GruposDeCuentas grupos={grupos} sedes={telar.sedes} />
             <CierresConDiferencia cierres={cierres} />
           </>
         }
