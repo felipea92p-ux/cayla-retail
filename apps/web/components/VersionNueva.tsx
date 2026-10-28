@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import {
   CADA_MS_PREGUNTAR_VERSION,
   MS_MAS_TARDE,
+  MS_SALIDA,
   VERSION_SIN_DATO,
   hayVersionNueva,
   leerVersion,
@@ -42,6 +43,8 @@ async function preguntarVersion(): Promise<string | null> {
 export function VersionNueva() {
   const [hayNueva, setHayNueva] = useState(false);
   const [callada, setCallada] = useState(false);
+  // La ✕ no calla de golpe: primero se va como gota (`avisos.css`, ~1,45 s) y, al terminar, se quita de pantalla.
+  const [saliendo, setSaliendo] = useState(false);
 
   useEffect(() => {
     if (!VERSION_PROPIA || VERSION_PROPIA === VERSION_SIN_DATO) return;
@@ -81,21 +84,75 @@ export function VersionNueva() {
     return () => window.clearTimeout(id);
   }, [callada]);
 
+  // La mitad del ancho de la píldora, para que el líquido llegue a las paredes sea cual sea el largo del texto (ver `avisos.css`).
+  const medirPildora = useCallback((el: HTMLDivElement | null) => {
+    if (el) el.style.setProperty("--m", `${el.offsetWidth / 2}px`);
+  }, []);
+
+  useEffect(() => {
+    if (!saliendo) return;
+    // Respaldo: si el navegador no avisa que terminó la animación (o no hay), igual se va.
+    const id = window.setTimeout(() => {
+      setCallada(true);
+      setSaliendo(false);
+    }, MS_SALIDA + 300);
+    return () => window.clearTimeout(id);
+  }, [saliendo]);
+
+  const alPulsarMasTarde = useCallback(() => {
+    // Con «reducir movimiento» no hay gota: se va ya.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) setCallada(true);
+    else setSaliendo(true);
+  }, []);
+
   if (!hayNueva || callada) return null;
 
   return (
-    // Flota fuera del contenido (ADR-0422, act. 2026-10-28): no empuja la pantalla ni la tapa la barra fija de Finanzas.
-    <div role="status" className="version-nueva">
-      <span aria-hidden className="version-nueva-punto" />
-      <p className="version-nueva-texto" title="Termina lo que estás haciendo y actualiza.">
-        Hay una versión nueva <span>· actualiza cuando termines</span>
-      </p>
-      <button type="button" className="btn-cayla btn-secundario" onClick={() => window.location.reload()}>
-        Actualizar
-      </button>
-      <button type="button" className="version-nueva-x" aria-label="Más tarde" title="Más tarde" onClick={() => setCallada(true)}>
-        <X aria-hidden className="h-4 w-4" />
-      </button>
-    </div>
+    <>
+      {/* El filtro de «goteo» que funde las gotas en un solo líquido (blur + contraste del alfa). Una vez, sin tamaño. */}
+      <svg width="0" height="0" aria-hidden className="absolute">
+        <filter id="liquido" x="-10%" y="-250%" width="120%" height="600%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b" />
+          <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" />
+        </filter>
+      </svg>
+      {/* Flota fuera del contenido (ADR-0422, act. 2026-10-28): no empuja la pantalla ni la tapa la barra fija de Finanzas. Entra como una
+          gota que cae, rebota una vez y se riega como líquido hasta ser la píldora (excepción de ADR-0136; el detalle, en `avisos.css`). */}
+      <div
+        ref={medirPildora}
+        role="status"
+        className={`version-nueva ${saliendo ? "version-nueva-sale" : ""}`}
+        onAnimationEnd={(e) => {
+          if (saliendo && e.target === e.currentTarget && e.animationName === "cayla-version-cae-sale") {
+            setCallada(true);
+            setSaliendo(false);
+          }
+        }}
+      >
+        <div aria-hidden className="version-nueva-agua">
+          <div className="version-nueva-goo">
+            <i className="vn-gota" />
+            <i className="vn-piso" />
+            <i className="vn-cab-l" />
+            <i className="vn-cab-r" />
+            <i className="vn-col vn-col-0" />
+            <i className="vn-col vn-col-1" />
+            <i className="vn-col vn-col-2" />
+            <i className="vn-col vn-col-3" />
+            <i className="vn-col vn-col-4" />
+          </div>
+        </div>
+        <span aria-hidden className="version-nueva-punto" />
+        <p className="version-nueva-texto" title="Termina lo que estás haciendo y actualiza.">
+          Hay una versión nueva <span>· actualiza cuando termines</span>
+        </p>
+        <button type="button" className="btn-cayla btn-secundario" onClick={() => window.location.reload()}>
+          Actualizar
+        </button>
+        <button type="button" className="version-nueva-x" aria-label="Más tarde" title="Más tarde" onClick={alPulsarMasTarde}>
+          <X aria-hidden className="h-4 w-4" />
+        </button>
+      </div>
+    </>
   );
 }
