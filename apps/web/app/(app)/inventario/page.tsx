@@ -20,6 +20,8 @@ import { getCatalogoParaExistencias, getColoresParaExistencias } from "@/lib/exi
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
 import { soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { getStockPorDueno } from "@/lib/stock-por-dueno";
+import { getValorInventario } from "@/lib/valor-inventario";
+import { armarVistaValor } from "@/lib/valor-inventario-reglas";
 import { conDuenos } from "@/lib/stock-por-dueno-reglas";
 import { conDescripcion, conEstadoProducto, conFamiliaDeColor, conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
@@ -28,6 +30,7 @@ import { InventarioPanel } from "@/components/InventarioPanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BotonAjustarStock } from "@/components/existencias/BotonAjustarStock";
 import { CifrasExistencias } from "@/components/existencias/CifrasExistencias";
+import { ValorInventarioExistencias } from "@/components/existencias/ValorInventarioExistencias";
 import { pideAjustar, vueltaAEditar } from "@/lib/existencias-ajustar-desde-editar";
 import { desdeDeParams } from "@/lib/vuelta-productos";
 
@@ -115,6 +118,9 @@ export default async function InventarioPage({
   // De quién son las unidades de cada talla (ADR-0542): solo donde conviven dos empresas (Lima). Corre en paralelo con el ritmo de abajo;
   // dato secundario: si la base no responde, las tallas quedan sin la línea «De quién es» y nada más cambia.
   const repartoDeStock = getStockPorDueno(ubicacionActivaId, empresasAqui);
+  // «Ver el valor a costo» (ADR-0557): solo se pregunta si la cuenta puede pasar la puerta (líder, o quien ve el dinero de Compras); la
+  // base la repite y sin permiso devuelve cero filas. Corre en paralelo con el ritmo de abajo; dato secundario: si falla, sin el enlace.
+  const valorPendiente = persona.rol === "lider" || puede(persona, "verDineroCompras") ? getValorInventario() : Promise.resolve(null);
 
   // Política operativa de Inventario (Felipe, 2026-09-25): las jornadas mínimas del Ritmo reciente. Lo que el piso pide hoy ya
   // no sale de aquí: lo decide el motor del piso (`plan`).
@@ -231,6 +237,8 @@ export default async function InventarioPage({
   // El piso nunca cuadrado: el plan lo trae (`enPausa`, ADR-0328 d.5). Sin plan (la lectura falló) no se afirma nada: `planFallo` ya lo dice.
   const pisoSinCuadrar = vende && separa && plan?.enPausa === true;
 
+  const vistaValor = armarVistaValor(await valorPendiente, ubicacionActivaId);
+
   return (
     <div className="space-y-5">
       {/* Sin selector de sede propio ni interruptor de «datos de prueba» a propósito (Felipe,
@@ -260,6 +268,9 @@ export default async function InventarioPage({
           enCamino={resumen.enTransito > 0 ? { valor: resumen.enTransito, href: veTraslados ? "/inventario/traslados" : undefined } : null}
         />
       </EncabezadoPagina>
+
+      {/* La llave lleva un prefijo: `InventarioPanel`, su hermano, ya usa el id de la sede, y dos hermanos no pueden repetirla. */}
+      {vistaValor && <ValorInventarioExistencias key={`valor-${ubicacionActivaId}`} vista={vistaValor} />}
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,

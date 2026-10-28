@@ -6831,6 +6831,23 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: { variante_id: string; empresa_id: string; clave: string; cantidad: number; cantidad_apartada: number }[]
       }
+      fn_valor_inventario_existencias: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          ubicacion_id: string
+          sede: string
+          tipo: string
+          unidades: number
+          valor: number
+          unidades_sin_costo: number
+          prendas_sin_costo: number
+          valor_con_costo_de_compra: number
+          unidades_danadas: number
+          valor_danadas: number
+          unidades_claure: number
+          valor_claure: number
+        }[]
+      }
       fn_empresa_de_ventas: {
         Args: { p_ventas: string[] }
         Returns: { empresa_id: string; monto: number; venta_id: string }[]
