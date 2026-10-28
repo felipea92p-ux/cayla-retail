@@ -73,7 +73,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Escanear con la cámara",
-      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer el código de la etiqueta.",
+      texto: "En el celular o la tablet no hay lector: este botón abre la cámara para leer la etiqueta. Arriba tiene un interruptor: «Al ticket» agrega la prenda; «Existencias» solo mira y dice cuántas hay de cada talla y color, en el piso y en el almacén.",
     },
     {
       id: "sin-registrar",

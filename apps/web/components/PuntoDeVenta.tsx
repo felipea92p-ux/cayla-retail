@@ -73,6 +73,7 @@ import { AgregarBolsaModal, BotonDeBolsas } from "@/components/punto-de-venta/Bo
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { consultarExistencias } from "@/lib/escaner-existencias";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
 import {
@@ -2619,6 +2620,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       {camaraAbierta && (
         <EscanerCamara
           onCodigo={alEscanear}
+          // El interruptor «Al ticket / Existencias» (Felipe 2026-10-28): en «Existencias» la cámara lee la etiqueta y dice cuántas hay de
+          // cada color y talla de esa prenda en el piso y el almacén, sin tocar el ticket. Sobre las variantes con el stock en vivo.
+          consulta={{ leer: (codigo) => consultarExistencias(codigo, variantesVisibles), sede: ubicacionEtiqueta }}
           ticket={{ prendas, total }}
           onBuscarPorNombre={() => {
             cerrarCamara();
