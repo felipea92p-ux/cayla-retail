@@ -257,7 +257,7 @@ export function RegistrarCompra({ datos }: { datos: Datos }) {
   }
 
   function alRegistrarProveedor(p: ProveedorRegistrado) {
-    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null };
+    const elegido: ProveedorParaComprar = proveedores.find((x) => x.id === p.id) ?? { id: p.id, nombre: p.nombre, ruc: p.ruc, categorias: [], compras: 0, ultima: null, marcas: [] };
     setProveedores((ps) => (ps.some((x) => x.id === p.id) ? ps : [...ps, elegido]));
     setRegistrando(false);
     void elegirProveedor(elegido);
@@ -1033,6 +1033,12 @@ function PasoProveedor({
         </span>
         <span className="min-w-0">
           <span className="block truncate font-medium text-tinta">{p.nombre}</span>
+          {p.marcas.length > 0 && (
+            <span className="block truncate text-xs text-tinta/70">
+              {p.marcas.length === 1 ? "Marca" : "Marcas"}: {p.marcas.slice(0, 3).join(", ")}
+              {p.marcas.length > 3 ? ` y ${p.marcas.length - 3} más` : ""}
+            </span>
+          )}
           {/* Hasta dos líneas: a 375 px «Le compraste hace una semana · 4 compras» se cortaba en «4 c…». */}
           <span className="line-clamp-2 block text-xs text-taupe">
             {p.compras > 0
@@ -1054,7 +1060,7 @@ function PasoProveedor({
         onCambio={setQ}
         tamano="mostrador"
         etiqueta="Busca el proveedor"
-        placeholder="Nombre del proveedor" // sugerir-fijo: se busca un proveedor por su nombre; no depende de nada elegido antes
+        placeholder="Nombre o marca del proveedor" // sugerir-fijo: se busca un proveedor por su nombre o su marca; no depende de nada elegido antes
         guia="compra.buscador"
       />
       {/* Registrar un proveedor nuevo, a la vista bajo el buscador (Felipe 2026-10-23: «no se nota que tiene esa opción»; antes era un
