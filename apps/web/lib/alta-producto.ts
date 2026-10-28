@@ -100,12 +100,6 @@ export function codigoVariantePrevisto(base: string, colorCodigo: string | null,
   return base + (colorCodigo ? `-${colorCodigo}` : "") + `-${tokenTalla(tallaValor)}`;
 }
 
-/** Posiciones cuyo código ya apareció antes en la lista (la primera aparición no cuenta: es la que se queda). `null` =
- *  código todavía desconocido, nunca repetido. Dos variantes con el mismo código no caben (`variantes_codigo_unico`). */
-export function codigosRepetidos(codigos: readonly (string | null)[]): number[] {
-  return codigos.flatMap((c, i) => (c !== null && codigos.indexOf(c) !== i ? [i] : []));
-}
-
 /** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. `pantoneTcx`: el código para pedir la tela
  *  («19-2039 TCX»); el círculo es una aproximación en pantalla y el código es la referencia real. Null en los metálicos.
  *  `tipo`: `colores.tipo` («solido» | «textura» | «estampado»); `fondoDeMuestra` lo usa para que «Gris melange» no se pinte como «Gris».
@@ -322,23 +316,6 @@ export function textoDestinoStock(etiquetaSede: string, lugar: LugarCarga | null
   return `${lugar === "piso" ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
 }
 
-export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
-
-/** Cada bloque se abre al resolver el anterior; los cerrados se ven atenuados, no ocultos (la persona ve el camino completo). */
-export function desbloqueos(e: EstadoAlta): Desbloqueos {
-  const marca = Boolean(e.categoriaId);
-  // La marca y el proveedor son opcionales (ADR-0283): ya no traban el nombre.
-  const nombre = marca;
-  const nombreResuelto = nombre && e.referencia.trim() !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
-  const atributos = nombreResuelto;
-  const atributosResueltos =
-    atributos &&
-    !e.categoriaSinTallas &&
-    e.tallasElegidas > 0 &&
-    (!e.exigeTejidoPatron || (e.hayTejidosEnCategoria && e.hayPatronesEnCategoria && Boolean(e.tejidoId) && Boolean(e.patronId)));
-  return { marca, nombre, atributos, colores: atributosResueltos, precio: atributosResueltos };
-}
-
 // ---------------------------------------------------------------------------
 // Las 4 preguntas del alta (spike v2 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09; antes 5 pasos, spike 2026-09-24).
 // ---------------------------------------------------------------------------
@@ -382,12 +359,6 @@ export function faltaDelPaso(problemas: Problema[], paso: PasoAlta): string | nu
 /** Un paso está hecho cuando ni él ni ninguno anterior tiene problemas: sin categoría, «¿En qué tallas y colores?» no puede estar listo. */
 export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
   return !problemas.some((p) => pasoDeProblema(p) <= paso);
-}
-
-/** El paso más lejano al que se puede entrar: el primero que todavía tiene algo pendiente. */
-export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
-  const primero = problemas[0];
-  return primero ? pasoDeProblema(primero) : 4;
 }
 
 /** Se puede abrir un paso (desde la lista «Avance» de la ficha) cuando los anteriores están contestados. El 1 siempre. */

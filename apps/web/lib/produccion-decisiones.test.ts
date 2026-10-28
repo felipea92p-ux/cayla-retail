@@ -8,7 +8,6 @@ import { fraseDeLaFalta, hojaDelModelo } from "./produccion-hoja-modelo";
 import {
   agotadasQueSeVendian,
   cifrasResumen,
-  decisionesDeProduccion,
   demandaDeInsumos,
   demandaDelTaller,
   filasDeTela,
@@ -82,6 +81,10 @@ describe("demandaDeInsumos", () => {
     expect(demandaDeInsumos([orden("a")], {}, {}).size).toBe(0);
   });
 });
+
+// Lo que se dibuja de las decisiones: la lista de `resumenDeDecisiones(c)`. El envoltorio `decisionesDeProduccion` se borró
+// (solo lo usaba esta prueba); aquí queda como ayuda local para no perder la cobertura de las reglas.
+const decisionesDeProduccion = (c: ContextoDecisiones) => resumenDeDecisiones(c).decisiones;
 
 describe("decisionesDeProduccion", () => {
   it("entrega vencida y por vencer: solo hechos, con dónde está la orden", () => {
@@ -273,10 +276,6 @@ describe("decisionesDeProduccion", () => {
     });
     it("sin nada que no quepa no hay «ocultas»", () => {
       expect(resumenDeDecisiones(contexto({ ordenes: [orden("a", { fechaEntrega: "2026-09-10" })] })).ocultas).toEqual([]);
-    });
-    it("`decisionesDeProduccion` es lo que se dibuja, igual que `resumenDeDecisiones(...).decisiones`", () => {
-      const c = contexto({ ordenes: Array.from({ length: 5 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" })) });
-      expect(decisionesDeProduccion(c)).toEqual(resumenDeDecisiones(c).decisiones);
     });
   });
 

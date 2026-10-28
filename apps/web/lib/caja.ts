@@ -157,8 +157,8 @@ export async function getTableroCaja(cajaId: string): Promise<{ resumen: Resumen
 /**
  * Total vendido (todos los métodos) de esta ubicación entre el inicio del día de
  * Lima de hace 7 días y la misma hora de ese día — el comparativo "vs. mismo día de
- * la semana pasada" de la barra de meta. Ventana acotada a una hora (`hastaEstaHora`
- * en el caller, vía `horaDelDiaLima`) para no comparar un día completo contra lo que
+ * la semana pasada" de la barra de meta. Ventana acotada a una hora (la del
+ * caller, vía `horaDelDiaLima`) para no comparar un día completo contra lo que
  * llevamos hoy. Independiente de `getTableroCaja`: mira TODAS las ventas de la sede
  * ese día, no solo las de una caja puntual (una sede puede abrir/cerrar caja varias
  * veces en el día).

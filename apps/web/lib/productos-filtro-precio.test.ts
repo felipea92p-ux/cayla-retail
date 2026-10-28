@@ -3,7 +3,6 @@ import {
   leerMonto,
   limitesRedondeados,
   montoParaCaja,
-  montoParaUrl,
   pasoDePrecio,
   posicionEnControl,
   rangoDesdeControl,
@@ -40,8 +39,6 @@ describe("productos-filtro-precio — cajas, texto y control", () => {
     expect(leerMonto(" 80 ")).toBe(80);
     expect(leerMonto("80.5")).toBe(80.5);
     for (const malo of ["", "abc", "-5", "1.234,50", "12.345", "1e3"]) expect(leerMonto(malo)).toBeNull();
-    expect(montoParaUrl("39,90")).toBe("39.9"); // antes la coma hacía que la URL ignorara el filtro en silencio
-    expect(montoParaUrl("x")).toBe("");
     expect(montoParaCaja("79.9")).toBe("79.90");
     expect(montoParaCaja("80")).toBe("80");
   });

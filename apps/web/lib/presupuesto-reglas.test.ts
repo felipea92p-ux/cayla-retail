@@ -8,7 +8,6 @@ import {
   claveCelda,
   csvPresupuesto,
   explicarProyeccion,
-  filasQueSePasan,
   fraseSinTope,
   leerConfigPpto,
   leerFilaPpto,
@@ -101,9 +100,6 @@ describe("«Ver» y bloques", () => {
   });
   it("las unidades para elegir en «Ver», sin CAYLA y en orden", () => {
     expect(unidadesParaVer(FILAS).map((u) => u.clave)).toEqual([LIM, TRU, TAL, "empresa"]);
-  });
-  it("lo que se pasa, sin contar dos veces a CAYLA", () => {
-    expect(filasQueSePasan(bloquesPpto(FILAS, "todas")).map((f) => f.linea)).toEqual(["636", "637"]);
   });
 });
 
