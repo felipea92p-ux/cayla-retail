@@ -16,7 +16,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
-import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ElegirOpcion } from "@/components/recepcion-envio/BloquePrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { pendienteDe } from "@/lib/nos-debe-reglas";
@@ -101,8 +101,11 @@ export function CerrarEnvio({
   const { ventas, ponerActual, cambiarVenta, rechazar, aplicado, validar } = usePreciosDeVenta();
   // Lo que cambia (de compra y de venta), para confirmarlo antes de guardar: `null` = no se está confirmando.
   const [porConfirmar, setPorConfirmar] = useState<CambioDePrecio[] | null>(null);
-  // Las filas con el costo y el precio de venta de sus prendas a la vista.
-  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(() => new Set());
+  // Las filas con el costo y el precio de venta de sus prendas a la vista. Una categoría de fuera de la guía arranca abierta (su costo se pide y no
+  // viene de ninguna orden), pero se puede esconder (Felipe 2026-10-28): cerrada, dice «Falta el costo» mientras no lo escriban.
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
+    () => new Set(agruparLineas(visibles).filter((g) => !g.principal.linea && g.contadas > 0 && !(sinAviso && !veDinero)).map((g) => g.clave)),
+  );
   const alternarFila = (clave: string) =>
     setAbiertas((a) => {
       const n = new Set(a);
@@ -145,7 +148,17 @@ export function CerrarEnvio({
     }),
     grupos,
   );
-  const guia = useGuiaCampos(campos, { enModal: false });
+  const guiaBase = useGuiaCampos(campos, { enModal: false });
+  // «Falta: costo de Aretes» con la fila escondida: primero se abre la fila y recién después se lleva al campo (que solo existe con la fila abierta).
+  const guia: GuiaCampos = {
+    ...guiaBase,
+    ir: (id) => {
+      const cerrada = grupos.find((g) => idCampoCierre("costo", g.principal.clave) === id && !abiertas.has(g.clave));
+      if (!cerrada) return guiaBase.ir(id);
+      alternarFila(cerrada.clave);
+      requestAnimationFrame(() => requestAnimationFrame(() => guiaBase.ir(id)));
+    },
+  };
   const contadas = visibles.reduce((a, l) => a + contadasDe(l), 0);
   // Lo que pasa al cerrar, dicho para la tienda (formidable 2026-10-13, cambio 3): cuántas se pueden vender ya y cuántas quedan guardadas.
   const resumen = resumenDelCierre(visibles);
@@ -386,8 +399,9 @@ export function CerrarEnvio({
                         : `: cuestan lo que dice cada orden (de S/\u00a0${costoMin.toFixed(2)} a S/\u00a0${costoMax.toFixed(2)}).`
                       : ".")
                   : null;
-              const siempreAbierta = costoDeLaLineaObligatorio;
-              const abierta = siempreAbierta || abiertas.has(g.clave);
+              const abierta = abiertas.has(g.clave);
+              // El costo de una categoría de fuera de la guía no viene de ninguna orden: mientras falte, la fila escondida lo dice (con aviso, es obligatorio).
+              const faltaCosto = costoDeLaLineaObligatorio && !sinAviso && costo.valor == null;
               const idFila = g.principal.clave.replace(":", "-");
               const nombreGrupo = [p.categoria?.nombre ?? "Categoría", p.categoria ? marcaDeLinea(p).nombre : null].filter(Boolean).join(" · ");
               const contaron = [...new Set(g.lineas.map((x) => x.conteo?.contadoPor?.nombre?.split(" ")[0]).filter((n): n is string => !!n))];
@@ -411,10 +425,10 @@ export function CerrarEnvio({
               return (
                 <div key={g.clave}>
                 <div
-                  className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} @min-[1000px]:items-start ${siempreAbierta ? "" : "cursor-pointer"} ${abierta ? "bg-tinta/[0.03]" : ""}`}
+                  className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} @min-[1000px]:items-start cursor-pointer ${abierta ? "bg-tinta/[0.03]" : ""}`}
                   role="row"
                   onClick={(e) => {
-                    if (siempreAbierta || !(e.currentTarget.contains(e.target as Node))) return;
+                    if (!(e.currentTarget.contains(e.target as Node))) return;
                     if ((e.target as HTMLElement).closest("button, input, a, [role='group'], [role='radio']")) return;
                     alternarFila(g.clave);
                   }}
@@ -426,6 +440,7 @@ export function CerrarEnvio({
                     </span>
                     <span className="min-w-0 @min-[1000px]:flex @min-[1000px]:min-h-10 @min-[1000px]:flex-col @min-[1000px]:justify-center">
                       <p className="font-medium text-tinta">{p.categoria?.nombre ?? "Categoría"}</p>
+                      {faltaCosto && !abierta && <Chip tono="ambar">Falta el costo</Chip>}
                       {conCambios && !abierta && <Chip tono="ambar">{textoCambios}</Chip>}
                       <p className="text-xs text-taupe">
                         {[p.categoria ? marcaDeLinea(p).nombre : null, contaron.length > 0 ? `contó ${contaron.join(" y ")}` : null, !p.linea && !sinAviso ? "no estaba en la guía" : null]
@@ -501,18 +516,16 @@ export function CerrarEnvio({
                     )}
                   </div>
                   <div className="flex min-w-0 @min-[1000px]:min-h-10 @min-[1000px]:items-center @min-[1000px]:justify-end" role="cell">
-                    {!siempreAbierta && (
-                      <button
-                        type="button"
-                        onClick={() => alternarFila(g.clave)}
-                        aria-expanded={abierta}
-                        aria-controls={`precios-${idFila}`}
-                        aria-label={`${abierta ? "Esconder" : "Ver"} las prendas y los precios de ${nombreGrupo}`}
-                        className="grid h-8 w-8 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
-                      >
-                        <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => alternarFila(g.clave)}
+                      aria-expanded={abierta}
+                      aria-controls={`precios-${idFila}`}
+                      aria-label={`${abierta ? "Esconder" : "Ver"} las prendas y los precios de ${nombreGrupo}`}
+                      className="grid h-8 w-8 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
+                    >
+                      <ChevronRight aria-hidden className={`h-4 w-4 transition-transform duration-300 ease-cayla ${abierta ? "rotate-90" : ""}`} />
+                    </button>
                   </div>
                 </div>
                 {abierta && (
