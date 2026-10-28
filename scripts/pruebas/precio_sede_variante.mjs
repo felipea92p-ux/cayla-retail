@@ -249,6 +249,223 @@ select (exists (select 1 from pg_indexes where schemaname = 'retail' and tablena
   esperar("hay un índice parcial por (combinación, tienda) para la lectura", ultima(r) === "true", r);
 }
 
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// ACTIVIDAD 2 (`20261028232000_precio_de_tienda_por_combinacion_escribir_y_leer.sql`): escribir las excepciones, su limpieza sola, «la prenda
+// entera manda» y lo que las muestra.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+const POR = (precios, motivo = "Talla extra") => `jsonb_build_object(${precios}), '${motivo}'`;
+const PONER = (precios, motivo, sede = ":'tru'") => `retail.poner_precio_sede_variantes(:'p1', ${sede}, ${POR(precios, motivo)})`;
+const MOTIVO_PARA_ARMAR_OBSEQUIO = `
+update retail.familias set entra_a_motores = false
+ where codigo = (select c.familia from retail.categorias c join retail.productos pr on pr.categoria_id = c.id where pr.id = :'p1');
+update retail.variantes set precio = 0 where id = :'v1';`;
+
+// 11. Poner una excepción: cambia solo esa combinación en esa tienda y deja su historial firmado.
+{
+  const r = correr(FELIPE, `
+select ${PONER(":'v1', :general + 25", "Talla extra")} as n \\gset
+select concat_ws('|', :n::text,
+  (retail.fn_precio_en_sede(:'v1', :'tru') = :general + 25)::text,
+  (retail.fn_precio_en_sede(:'v2', :'tru') = :general)::text,
+  (retail.fn_precio_en_sede(:'v1', :'lima') = :general)::text,
+  (select count(*) = 1 and bool_and(usuario_id is not null) and bool_and((valor_nuevo::jsonb ->> 'propio')::boolean)
+          and bool_and((valor_nuevo::jsonb ->> 'precio')::numeric = :general + 25)
+     from retail.historial_producto_cambios where created_at = now() and campo = 'precio_sede' and entidad_id = :'v1')::text);`);
+  esperar("poner una excepción: cambia solo esa combinación en esa tienda y deja historial firmado", ultima(r) === "1|true|true|true|true", r);
+}
+
+// 12. Todo o nada: si una combinación falla, ninguna queda.
+{
+  const r = correr(FELIPE, `
+select jsonb_build_object(:'v1', :general + 25, :'v2', 0.01)::text as pj \\gset
+select set_config('t.pj', :'pj', true) as _a, set_config('t.p1', :'p1', true) as _b, set_config('t.tru', :'tru', true) as _c \\gset
+do $$ begin
+  perform retail.poner_precio_sede_variantes(current_setting('t.p1')::uuid, current_setting('t.tru')::uuid, current_setting('t.pj')::jsonb, 'Todo o nada');
+exception when others then null; end $$;
+select (select count(*) from retail.precios_sede_variante where ubicacion_id = :'tru' and variante_id in (:'v1', :'v2'))::text;`);
+  esperar("todo o nada: un precio malo deja sin escribir también a las combinaciones buenas", ultima(r) === "0", r);
+  const directo = correr(FELIPE, `select ${PONER(":'v1', :general + 25, :'v2', 0.01", "Todo o nada")};`);
+  esperar("el precio bajo el costo de la talla se rechaza (sin decir cuánto cuesta)", fallaCon(directo, "queda por debajo de lo que cuesta"), directo);
+}
+
+// 13. Rechazos de la combinación y de la prenda.
+{
+  const casos = [
+    ["sin ninguna combinación", `select retail.poner_precio_sede_variantes(:'p1', :'tru', '{}'::jsonb, 'Talla extra');`, "Elige al menos una combinación"],
+    ["un motivo de menos de 3 letras", `select ${PONER(":'v1', :general + 25", "ab")};`, "Escribe por qué esta tienda tiene otro precio"],
+    ["una combinación que no se entiende", `select ${PONER("'no-es-un-id', :general + 25", "Talla extra")};`, "Una combinación no se entiende"],
+    ["una combinación de otra prenda", `select id as vx from retail.variantes where producto_id <> :'p1' and activo order by id limit 1 \\gset
+select ${PONER(":'vx', :general + 25", "Talla extra")};`, "no es de esta prenda"],
+    ["una combinación desactivada", `alter table retail.variantes disable trigger variantes_talla_con_prendas_no_se_retira;
+update retail.variantes set activo = false where id = :'v2';
+select ${PONER(":'v2', :general + 25", "Talla extra")};`, "está desactivada"],
+    ["un precio de 0", `select ${PONER(":'v1', 0", "Talla extra")};`, "mayor que cero"],
+    ["un precio de más de S/ 5 000", `select ${PONER(":'v1', 5000.01", "Talla extra")};`, "mayor que cero"],
+    ["un precio que no es número", `select ${PONER(":'v1', 'abc'::text", "Talla extra")};`, "no se entiende"],
+    ["un precio NaN", `select ${PONER(":'v1', 'NaN'::numeric", "Talla extra")};`, "mayor que cero"],
+  ];
+  for (const [nombre, sql, texto] of casos) {
+    const r = correr(FELIPE, sql);
+    esperar(`poner una excepción con ${nombre} se rechaza`, fallaCon(r, texto), r);
+  }
+  const obsequio = correr(FELIPE, `${MOTIVO_PARA_ARMAR_OBSEQUIO}\nselect ${PONER(":'v1', 9.90", "Talla extra")};`);
+  esperar("la talla de obsequio no toma una excepción", fallaCon(obsequio, "se regala"), obsequio);
+  const ajena = correr(MICAELA, `select retail.poner_precio_sede_variantes(:'p1', :'lima', ${POR(":'v1', :general + 25", "Talla extra")});`);
+  esperar("desde Trujillo no se pone una excepción en Lima (solo tu tienda)", fallaCon(ajena, "tu propia tienda"), ajena);
+}
+
+// 14. Igual a lo de abajo no es una excepción; el mismo precio y motivo otra vez no cambia nada.
+{
+  const sinNada = correr(FELIPE, `
+select ${PONER(":'v1', :general", "Igual a la grilla")} as n \\gset
+select concat_ws('|', :n::text, (select count(*) from retail.precios_sede_variante where variante_id = :'v1')::text);`);
+  esperar("poner el precio general no guarda ninguna excepción", ultima(sinNada) === "0|0", sinNada);
+  const quita = correr(FELIPE, `
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+select ${PONER(":'v1', :general", "Igual a la grilla")} as n \\gset
+select concat_ws('|', :n::text, (retail.fn_precio_en_sede(:'v1', :'tru') = :general)::text,
+  (select count(*) from retail.precios_sede_variante where variante_id = :'v1' and archivado_en is null)::text,
+  (select archivado_motivo from retail.precios_sede_variante where variante_id = :'v1'));`);
+  esperar("igualar la excepción a la grilla la quita", ultima(quita) === "1|true|0|Quedó igual al precio de la prenda", quita);
+  const abajoPrenda = correr(FELIPE, `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Precio de la prenda') as _p \\gset
+select ${PONER(":'v1', :general + 10", "Igual a la prenda")} as n \\gset
+select concat_ws('|', :n::text, (select count(*) from retail.precios_sede_variante where variante_id = :'v1')::text);`);
+  esperar("igual al precio de la prenda en esa tienda tampoco es una excepción", ultima(abajoPrenda) === "0|0", abajoPrenda);
+  const repite = correr(FELIPE, `
+select ${PONER(":'v1', :general + 25", "Talla extra")} as a \\gset
+select ${PONER(":'v1', :general + 25", "Talla extra")} as b \\gset
+select ${PONER(":'v1', :general + 25", "Otro motivo")} as c \\gset
+select concat_ws('|', :a::text, :b::text, :c::text,
+  (select motivo from retail.precios_sede_variante where variante_id = :'v1' and archivado_en is null),
+  (select count(*) from retail.precios_sede_variante where variante_id = :'v1')::text);`);
+  esperar("el mismo precio y motivo otra vez no cambia; otro motivo nace otra fila y archiva la anterior", ultima(repite) === "1|0|1|Otro motivo|2", repite);
+}
+
+// 15. Quitar una excepción.
+{
+  const r = correr(FELIPE, `
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+select retail.quitar_precio_sede_variante(:'v1', :'tru', 'Ya no aplica') as q1 \\gset
+select retail.quitar_precio_sede_variante(:'v1', :'tru', 'Ya no aplica') as q2 \\gset
+select concat_ws('|', :q1::text, :q2::text, (retail.fn_precio_en_sede(:'v1', :'tru') = :general)::text,
+  (select archivado_motivo from retail.precios_sede_variante where variante_id = :'v1'),
+  (select count(*) from retail.historial_producto_cambios
+    where entidad_id = :'v1' and campo = 'precio_sede' and not (valor_nuevo::jsonb ->> 'propio')::boolean
+      and (valor_anterior::jsonb ->> 'precio')::numeric = :general + 25 and (valor_anterior::jsonb ->> 'propio')::boolean)::text);`);
+  esperar("quitar una excepción: vuelve a lo de abajo, queda archivada y anotada; quitarla otra vez da 0", ultima(r) === "1|0|true|Ya no aplica|1", r);
+}
+
+// 16. La prenda entera manda: un precio nuevo de la prenda en una tienda archiva las excepciones de esa tienda (y no las de otra).
+{
+  const sql = `
+select ${PONER(":'v1', :general + 25, :'v2', :general + 30", "Tallas extra")} as _a \\gset
+insert into retail.precios_sede_variante (variante_id, ubicacion_id, precio, motivo) values (:'v1', :'lima', :general + 5, 'En Lima');
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Todo en Trujillo') as _p \\gset
+select concat_ws('|',
+  (select count(*) from retail.precios_sede_variante where ubicacion_id = :'tru' and archivado_en is null)::text,
+  (select count(*) from retail.precios_sede_variante where ubicacion_id = :'lima' and archivado_en is null and variante_id = :'v1')::text,
+  (retail.fn_precio_en_sede(:'v1', :'tru') = :general + 10)::text,
+  (retail.fn_precio_en_sede(:'v2', :'tru') = :general + 10)::text,
+  (retail.fn_precio_en_sede(:'v1', :'lima') = :general + 5)::text,
+  (select bool_and(archivado_motivo like 'La prenda entera%') from retail.precios_sede_variante where ubicacion_id = :'tru'
+      and variante_id in (:'v1', :'v2'))::text,
+  -- El historial no miente: lo último dicho de la combinación parte de SU excepción, no del precio de la prenda.
+  (select count(*) = 1 from retail.historial_producto_cambios
+    where entidad_id = :'v1' and campo = 'precio_sede' and (valor_anterior::jsonb ->> 'precio')::numeric = :general + 25
+      and (valor_anterior::jsonb ->> 'propio')::boolean and (valor_nuevo::jsonb ->> 'precio')::numeric = :general + 10)::text);`;
+  const r = correr(FELIPE, sql);
+  esperar("un precio nuevo de la prenda en Trujillo archiva sus excepciones de Trujillo, no las de Lima, y el historial parte de la excepción",
+    ultima(r) === "0|1|true|true|true|true|true", r);
+  // MUTANTE: sin el disparador, las excepciones sobrevivirían y el caso lo ve.
+  const mutante = correr(FELIPE, `alter table retail.precios_sede_prenda disable trigger precios_sede_prenda_limpia_excepciones;\n${sql}`);
+  esperar("MUTANTE (sin el disparador que limpia): el caso lo ve", ultima(mutante) !== "0|1|true|true|true|true|true", mutante);
+}
+
+// 17. Quitar el precio de la prenda NO toca las excepciones.
+{
+  const r = correr(FELIPE, `
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Precio de la prenda') as _p \\gset
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+select retail.quitar_precio_sede(:'p1', :'tru', 'Ya no') as _q \\gset
+select concat_ws('|', (retail.fn_precio_en_sede(:'v1', :'tru') = :general + 25)::text, (retail.fn_precio_en_sede(:'v2', :'tru') = :general)::text,
+  (select count(*) from retail.precios_sede_variante where ubicacion_id = :'tru' and archivado_en is null)::text);`);
+  esperar("quitar el precio de la prenda deja las excepciones de sus combinaciones", ultima(r) === "true|true|1", r);
+}
+
+// 18. Limpieza sola, al final de la transacción (el disparador es diferido): talla apagada, talla que pasa a ser de obsequio, precio general que
+//     alcanza a la excepción. Cada una con su MUTANTE (la depuración no hace nada).
+{
+  const INMEDIATOS = `set constraints all immediate;`;
+  const SIN_DEPURAR = `create or replace function retail.fn_precio_sede_variante_depurar(p_producto_id uuid) returns integer language sql as $$ select 0 $$;`;
+  const MOTIVO = `(select archivado_motivo from retail.precios_sede_variante where variante_id = :'v1' and archivado_en is not null)`;
+  const casos = [
+    ["una talla que se apaga",
+     `alter table retail.variantes disable trigger variantes_talla_con_prendas_no_se_retira;
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+update retail.variantes set activo = false where id = :'v1';
+${INMEDIATOS}`,
+     "La talla se desactivó"],
+    ["una talla que pasa a ser de obsequio",
+     `update retail.familias set entra_a_motores = false
+ where codigo = (select c.familia from retail.categorias c join retail.productos pr on pr.categoria_id = c.id where pr.id = :'p1');
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+update retail.variantes set precio = 0 where id = :'v1';
+${INMEDIATOS}`,
+     "La talla pasó a ser de obsequio"],
+    ["el precio general que alcanza a la excepción",
+     `select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+update retail.variantes set precio = :general + 25 where producto_id = :'p1';
+${INMEDIATOS}`,
+     "Quedó igual al precio de la prenda"],
+  ];
+  for (const [nombre, armado, motivo] of casos) {
+    const consulta = `\nselect concat_ws('|', (select count(*) from retail.precios_sede_variante where variante_id = :'v1' and archivado_en is null)::text, ${MOTIVO});`;
+    const r = correr(FELIPE, armado + consulta);
+    esperar(`la excepción se archiva sola: ${nombre}`, ultima(r) === `0|${motivo}`, r);
+    const m = correr(FELIPE, SIN_DEPURAR + "\n" + armado + consulta);
+    esperar(`MUTANTE (sin depurar) — ${nombre}: el caso lo ve`, ultima(m) !== `0|${motivo}`, m);
+  }
+  // Ninguna excepción: la depuración no escribe nada y nada se rompe (lo normal).
+  const normal = correr(FELIPE, `update retail.variantes set precio = precio + 1 where producto_id = :'p1';\n${INMEDIATOS}\nselect count(*)::text from retail.precios_sede_variante;`);
+  esperar("sin excepciones, cambiar el precio general no escribe nada en la capa", ultima(normal) === "0", normal);
+}
+
+// 19. Lo que lo muestra dice lo mismo que lo que se cobra.
+{
+  const r = correr(FELIPE, `
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+select concat_ws('|',
+  -- fn_precios_en_sede: la combinación que solo tiene una excepción aparece, con su precio; su hermana no.
+  ((select precio from retail.fn_precios_en_sede(:'tru') where variante_id = :'v1') = :general + 25)::text,
+  (select count(*) = 0 from retail.fn_precios_en_sede(:'tru') where variante_id = :'v2')::text,
+  -- La lista de excepciones de la ficha.
+  (select count(*) = 1 and bool_and(sede = 'Tienda Trujillo' and precio = :general + 25 and variante_id = :'v1')
+     from retail.fn_precios_sede_variantes_producto(:'p1'))::text,
+  -- El filtro de Productos aplica la misma regla en cada variante de la prenda (también con el rango de precio).
+  (select count(*) = 0 from retail.fn_productos_filtro(p_ubicacion_id => :'tru') f
+    where f.producto_id = :'p1' and f.precio is distinct from retail.fn_precio_en_sede(f.variante_id, :'tru'))::text,
+  (select f_precio from retail.fn_productos_filtro(p_precio_min => :general + 20, p_precio_max => :general + 30, p_ubicacion_id => :'tru')
+    where variante_id = :'v1')::text,
+  (select f_precio from retail.fn_productos_filtro(p_precio_min => :general + 20, p_precio_max => :general + 30, p_ubicacion_id => :'lima')
+    where variante_id = :'v1')::text,
+  -- La prenda con una excepción tiene precio de tienda y no se puede eliminar.
+  retail.fn_producto_tiene_precio_de_tienda(:'p1')::text,
+  (select n >= 1 and not borrable from retail.fn_producto_historia(:'p1') where orden = 22)::text);`);
+  esperar("fn_precios_en_sede, la lista de la ficha, el filtro, «tiene precio de tienda» y el historial ven la excepción",
+    ultima(r) === "true|true|true|true|true|false|true|true", r);
+}
+
+// 20. Las funciones nuevas no se leen ni se llaman sin sesión de una persona con el permiso (las dos de lectura exigen sesión).
+{
+  const r = correr(FELIPE, `
+select ${PONER(":'v1', :general + 25", "Talla extra")} as _a \\gset
+reset request.jwt.claim.sub;
+reset request.jwt.claims;
+select concat_ws('|', (select count(*) from retail.fn_precios_sede_variantes_producto(:'p1'))::text, (select count(*) from retail.fn_precios_en_sede(:'tru'))::text);`);
+  esperar("sin sesión, la lista de excepciones y los precios por tienda no devuelven nada", ultima(r) === "0|0", r);
+}
+
 if (fallos) {
   console.log(`\n${fallos} fallo(s).`);
   process.exit(1);
