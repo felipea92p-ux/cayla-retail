@@ -5,6 +5,7 @@ import {
   categoriasDeHabituales,
   faltaEnPaso,
   faltaNombreNuevo,
+  conMarcas,
   filtrarProveedores,
   camposPrendaNueva,
   habitualDeNuevo,
@@ -66,13 +67,13 @@ import {
 // `soles()` une «S/» y la cifra con un espacio que no se parte (ADR-0413): las frases se comparan con espacios comunes.
 const plano = (s: string | null) => s?.replace(/ /g, " ") ?? null;
 
-const PROVEEDORES = leerProveedoresParaComprar([
+const PROVEEDORES = conMarcas(leerProveedoresParaComprar([
   { id: "rosa", nombre: "Textiles Rosa E.I.R.L.", ruc: "20123456789", categorias: ["blusas", "polos"], compras: 4, ultima: "2026-10-16" },
   { id: "lupe", nombre: "Confecciones Lupe", ruc: null, categorias: ["jeans"], compras: 1, ultima: "2026-10-01" },
   { id: "andinos", nombre: "Tejidos Andinos", categorias: [], compras: 0 },
   { id: "x" },
   null,
-]);
+]), { rosa: ["Kero", "Ámbar"] });
 
 describe("proveedores para comprar", () => {
   it("lee cada uno y descarta lo ilegible", () => {
@@ -89,6 +90,13 @@ describe("proveedores para comprar", () => {
     expect(filtrarProveedores(PROVEEDORES, "", "jeans").map((p) => p.id)).toEqual(["lupe"]);
     expect(filtrarProveedores(PROVEEDORES, "rosa", "jeans")).toEqual([]);
     expect(filtrarProveedores(PROVEEDORES, "", null)).toHaveLength(3);
+  });
+  it("también se busca por la marca con que se conoce al proveedor, sin tildes", () => {
+    expect(PROVEEDORES.find((p) => p.id === "rosa")?.marcas).toEqual(["Kero", "Ámbar"]);
+    expect(filtrarProveedores(PROVEEDORES, "kero", null).map((p) => p.id)).toEqual(["rosa"]);
+    expect(filtrarProveedores(PROVEEDORES, "ambar", null).map((p) => p.id)).toEqual(["rosa"]);
+    expect(filtrarProveedores(PROVEEDORES, "kero", "jeans")).toEqual([]);
+    expect(conMarcas(PROVEEDORES, null).every((p) => p.marcas.length === 0)).toBe(true);
   });
   it("las píldoras son solo las categorías que alguien vende, en el orden del catálogo", () => {
     const cats = [
@@ -412,7 +420,7 @@ describe("los proveedores, de 10 en 10", () => {
 });
 
 describe("el proveedor, como la maqueta (compras-formidable-2026-10)", () => {
-  const P = (id: string, compras: number, ultima: string | null) => ({ id, nombre: id, ruc: null, categorias: [], compras, ultima });
+  const P = (id: string, compras: number, ultima: string | null) => ({ id, nombre: id, ruc: null, categorias: [], compras, ultima, marcas: [] });
   it("los recientes: solo a quienes ya se les compró, el más reciente primero, hasta el máximo", () => {
     const lista = [P("a", 3, "2026-10-01"), P("b", 0, null), P("c", 1, "2026-10-20"), P("d", 9, "2026-10-20"), P("e", 2, "2026-09-01")];
     expect(proveedoresRecientes(lista).map((p) => p.id)).toEqual(["d", "c", "a", "e"]);
