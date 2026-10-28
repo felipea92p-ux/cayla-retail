@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Prueba de `20261026232000_vendido_por_empresa.sql` y `20261026234000_movimientos_filtro_por_empresa.sql` (ADR-0532): de quién es
- * cada prenda en Lima (la marca CAYLA es de CAYLA; cualquier otra, de CLAURE) y cuánto de lo vendido es de cada una.
+ * Prueba de `20261028153000_dueno_real_en_caja_historial_y_movimientos.sql` (ADR-0542, que reemplaza la regla por marca de ADR-0532): de quién es
+ * cada línea vendida en Lima (el dueño que marcó la persona en el movimiento de la venta; la ficha si la venta es anterior al libro) y cuánto de lo
+ * vendido es de cada empresa.
  *
- * Lo que importa: (1) la regla: en Lima manda la marca, en Trujillo el dato de la prenda, y sin la marca de la casa no se pasa nada a
- * CLAURE; (2) en el Historial, la suma de las empresas es EXACTAMENTE el «vendido» de `fn_totales_historial_ventas` con los mismos
- * filtros, y lo de CLAURE es lo vendido en Lima de las prendas que no son de marca CAYLA; (3) en Caja, lo de cada turno es lo de
- * `fn_resumen_caja`; (4) cada venta suma su total entre las empresas; (5) en Movimientos, CAYLA + CLAURE = sin filtro, en la lista y en
- * las cifras; (6) sin sesión no se lee y `anon` no ejecuta; (7) las migraciones se aplican dos veces. Cada caso corre en su transacción
- * con las migraciones aplicadas dentro y TERMINA EN ROLLBACK.
+ * Lo que importa: (1) el dueño de una línea: el del movimiento manda sobre la ficha; (2) en el Historial, la suma de las empresas es EXACTAMENTE el
+ * «vendido» de `fn_totales_historial_ventas` con los mismos filtros, y lo de CLAURE es lo vendido en Lima de lo que es de CLAURE; (3) en Caja, lo de
+ * cada turno es lo de `fn_resumen_caja`; (4) cada venta suma su total entre las empresas; (5) en Movimientos, CAYLA + CLAURE = sin filtro, en la lista
+ * y en las cifras; (6) sin sesión no se lee y `anon` no ejecuta; (7) la migración se aplica dos veces. Cada caso corre en su transacción con la
+ * migración aplicada dentro y TERMINA EN ROLLBACK. Las migraciones de ADR-0532 NO se repiten aquí: la nueva las supone aplicadas (y su parche de
+ * Movimientos tiene huella propia).
  *
  * USO: pnpm pruebas:vendido-por-empresa   (necesita el stack local: `npx supabase start`)
  */
@@ -21,7 +22,7 @@ import { fileURLToPath } from "node:url";
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leer = (f) => readFileSync(join(RAIZ, "supabase/migrations", f), "utf8");
-const MIGRACION = `${leer("20261026232000_vendido_por_empresa.sql")}\n${leer("20261026234000_movimientos_filtro_por_empresa.sql")}`;
+const MIGRACION = leer("20261028153000_dueno_real_en_caja_historial_y_movimientos.sql");
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const CAYLA = "'ca71a000-0000-4000-8000-000000000001'";
 const CLAURE = "'c1a07e00-0000-4000-8000-000000000002'";
@@ -36,9 +37,8 @@ function psql(sql) {
   ).trim();
 }
 // Las sedes se buscan por su nombre («Tienda LIM» en producción, «Tienda Lima» en el seed). La base limpia del CI corre las migraciones
-// ANTES de que el seed cree las sedes, así que allí `empresa_sedes` no tiene a CLAURE en Lima ni la marca CAYLA está ligada: cada
-// transacción arma esa escena (como en producción) y lee la marca de CAYLA en una variable de psql, como postgres (la sesión de la
-// tienda no lee `empresas`). Mismo patrón que `empresa_solo_en_sus_sedes.mjs`.
+// ANTES de que el seed cree las sedes, así que allí `empresa_sedes` no tiene a CLAURE en Lima: cada transacción arma esa escena (como en
+// producción). Mismo patrón que `empresa_solo_en_sus_sedes.mjs`.
 const sede = (nombres) => {
   const id = psql(`select id from retail.ubicaciones where nombre in (${nombres}) order by nombre limit 1;`);
   if (!id) throw new Error(`La base local no tiene la sede ${nombres}.`);
@@ -46,12 +46,8 @@ const sede = (nombres) => {
 };
 const LIMA = sede("'Tienda LIM', 'Tienda Lima'");
 const TRUJILLO = sede("'Tienda TRU', 'Tienda Trujillo'");
-const MARCA_CAYLA = ":'marca_cayla'::uuid";
 const ESCENA = `insert into retail.empresa_sedes (empresa_id, ubicacion_id) select ${CAYLA}, u.id from retail.ubicaciones u on conflict do nothing;
-insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;
-update retail.empresas set marca_id = (select m.id from retail.marcas m where upper(btrim(m.nombre)) = 'CAYLA' order by m.created_at limit 1)
- where clave = 'cayla' and marca_id is null;
-select coalesce(marca_id::text, '00000000-0000-0000-0000-000000000000') as marca_cayla from retail.empresas where clave = 'cayla' \\gset`;
+insert into retail.empresa_sedes (empresa_id, ubicacion_id) values (${CLAURE}, ${LIMA}) on conflict do nothing;`;
 // `antes`: lo que se hace como postgres antes de entrar con la sesión (pasar una prenda a CLAURE).
 const dentro = (consulta, { sesion = true, antes = "" } = {}) =>
   psql(`begin;\n\\o /dev/null\n${MIGRACION}\n${ESCENA}\n\\o\n${antes}\n${sesion ? SESION : ""}\n${consulta}\nrollback;`);
@@ -76,35 +72,40 @@ const sumaContraTotal = (args) =>
   dentro(`select (select coalesce(sum(total), 0) from retail.fn_vendido_por_empresa(${args}))::text || '|' ||
                  ((retail.fn_totales_historial_ventas(${args}))->>'total');`);
 
-// Una prenda vendida en Lima que es de marca CAYLA (si la escena no tiene ninguna, se le pone la marca CAYLA a la primera vendida allí).
-const UNA_DE_MARCA_CAYLA = `update retail.productos set marca_id = ${MARCA_CAYLA} where id = (select va.producto_id from retail.venta_items i
+// La primera prenda vendida en Lima, pasada a CLAURE en su ficha (como postgres): las ventas de antes del libro se leen con la ficha.
+const UNA_DE_CLAURE = `update retail.productos set empresa_id = ${CLAURE} where id = (select va.producto_id from retail.venta_items i
    join retail.ventas v on v.id = i.venta_id join retail.variantes va on va.id = i.variante_id
    where v.estado <> 'anulada' and v.ubicacion_id = ${LIMA} order by v.created_at, i.id limit 1);`;
-// Lo vendido en Lima de las prendas que NO son de marca CAYLA: lo que tiene que sumar CLAURE.
-const VENDIDO_LIMA_NO_CAYLA = `(select coalesce(round(sum(i.subtotal), 2), 0) from retail.venta_items i join retail.ventas v on v.id = i.venta_id
+// El dueño de una línea contado a mano, sin la función: el del movimiento de la venta si lo tiene; si no, el de la ficha.
+const DUENO_A_MANO = (i, p) => `coalesce((select m.empresa_id from retail.movimientos m where m.venta_item_id = ${i}.id and m.tipo = 'salida' and m.empresa_id is not null order by m.created_at limit 1), ${p}.empresa_id)`;
+// Lo vendido en Lima cuyo dueño es CLAURE: lo que tiene que sumar CLAURE.
+const VENDIDO_LIMA_DE_CLAURE = `(select coalesce(round(sum(i.subtotal), 2), 0) from retail.venta_items i join retail.ventas v on v.id = i.venta_id
    join retail.variantes va on va.id = i.variante_id join retail.productos p on p.id = va.producto_id
-   where v.estado <> 'anulada' and v.ubicacion_id = ${LIMA} and p.marca_id is distinct from ${MARCA_CAYLA})`;
+   where v.estado <> 'anulada' and v.ubicacion_id = ${LIMA} and ${DUENO_A_MANO("i", "p")} = ${CLAURE}::uuid)`;
 
-caso("la marca CAYLA quedó como la marca de CAYLA", () =>
-  igual(dentro(`select (select marca_id from retail.empresas where clave = 'cayla') = (select id from retail.marcas where upper(btrim(nombre)) = 'CAYLA');`, { sesion: false }), "t"));
-
-caso("regla: en Lima, marca CAYLA → CAYLA; otra marca o sin marca → CLAURE; en Trujillo, el dato de la prenda", () => {
-  const r = dentro(
-    `with p as (select id, marca_id, empresa_id from retail.productos order by id limit 40)
-     select bool_and(retail.fn_empresa_de_prenda_en_sede(p.id, ${LIMA}) =
-                       case when p.marca_id = ${MARCA_CAYLA} then ${CAYLA}::uuid else ${CLAURE}::uuid end)::text || '|' ||
-            bool_and(retail.fn_empresa_de_prenda_en_sede(p.id, ${TRUJILLO}) = p.empresa_id)::text
-       from p;`,
-    { sesion: false, antes: UNA_DE_MARCA_CAYLA },
-  );
-  return igual(r, "true|true");
-});
-
-caso("regla: sin la marca de la casa, en Lima manda el dato de la prenda (nada pasa a CLAURE por un dato que falta)", () =>
+caso("el dueño de una línea: el del movimiento de la venta si lo tiene; si no, el de la ficha de la prenda", () =>
   igual(
     dentro(
-      `select bool_and(retail.fn_empresa_de_prenda_en_sede(p.id, ${LIMA}) = p.empresa_id) from retail.productos p;`,
-      { sesion: false, antes: "update retail.empresas set marca_id = null;" },
+      `select bool_and(retail.fn_dueno_de_la_linea(i.id) = ${DUENO_A_MANO("i", "p")}) from retail.venta_items i
+         join retail.variantes va on va.id = i.variante_id join retail.productos p on p.id = va.producto_id;`,
+      { sesion: false, antes: UNA_DE_CLAURE },
+    ),
+    "t",
+  ));
+
+caso("el dueño del movimiento manda sobre la ficha (una venta de CLAURE de una prenda que la ficha dice de CAYLA)", () =>
+  igual(
+    dentro(
+      `select retail.fn_dueno_de_la_linea(i.id) = ${CLAURE}::uuid from retail.venta_items i where i.id = (select id from retail.venta_items order by id limit 1);`,
+      {
+        sesion: false,
+        // Un movimiento de venta con su dueño, escrito como postgres sin pasar por el disparador (la prueba solo lee).
+        antes: `set local session_replication_role = replica;
+          update retail.productos set empresa_id = ${CAYLA} where id = (select va.producto_id from retail.venta_items i join retail.variantes va on va.id = i.variante_id order by i.id limit 1);
+          insert into retail.movimientos (variante_id, ubicacion_id, tipo, cantidad, motivo, venta_item_id, empresa_id)
+            select i.variante_id, v.ubicacion_id, 'salida', 1, 'venta', i.id, ${CLAURE} from retail.venta_items i join retail.ventas v on v.id = i.venta_id order by i.id limit 1;
+          set local session_replication_role = origin;`,
+      },
     ),
     "t",
   ));
@@ -139,15 +140,15 @@ caso("Historial · por tienda: cada sede suma su vendido", () => {
   return null;
 });
 
-caso("en Lima, CLAURE suma lo vendido de las prendas que no son de marca CAYLA, y el total no cambia", () => {
+caso("en Lima, CLAURE suma lo vendido de lo que es de CLAURE, y el total no cambia", () => {
   const r = dentro(
-    `select coalesce(sum(total) filter (where clave = 'claure'), 0)::text || '|' || ${VENDIDO_LIMA_NO_CAYLA}::text || '|' ||
+    `select coalesce(sum(total) filter (where clave = 'claure'), 0)::text || '|' || ${VENDIDO_LIMA_DE_CLAURE}::text || '|' ||
             coalesce(sum(total), 0)::text || '|' || ((retail.fn_totales_historial_ventas(p_sede_id => ${LIMA}, p_incluir_prueba => true))->>'total')
        from retail.fn_vendido_por_empresa(p_sede_id => ${LIMA}, p_incluir_prueba => true);`,
-    { antes: UNA_DE_MARCA_CAYLA },
+    { antes: UNA_DE_CLAURE },
   );
   const [claure, esperado, suma, vendido] = r.split("|").map(Number);
-  if (claure !== esperado) return `CLAURE ${claure}, lo vendido en Lima que no es marca CAYLA ${esperado}`;
+  if (claure !== esperado) return `CLAURE ${claure}, lo vendido en Lima que es de CLAURE ${esperado}`;
   return suma === vendido ? null : `empresas ${suma}, vendido ${vendido}`;
 });
 
@@ -170,7 +171,7 @@ caso("Movimientos · en Lima, CAYLA + CLAURE es la lista sin filtro (todas y sol
   const cuenta = (extra) => `(select count(*) from retail.fn_movimientos(p_ubicacion_id => ${LIMA}, p_limite => 200${extra}))`;
   for (const cat of ["", ", p_categoria => 'venta'"]) {
     const r = dentro(`select ${cuenta(cat)}::text || '|' || (${cuenta(`${cat}, p_empresa_id => ${CAYLA}`)} + ${cuenta(`${cat}, p_empresa_id => ${CLAURE}`)})::text;`, {
-      antes: UNA_DE_MARCA_CAYLA,
+      antes: UNA_DE_CLAURE,
     });
     const [todo, partes] = r.split("|");
     if (todo !== partes) return `${cat || "todas"}: sin filtro ${todo}, CAYLA + CLAURE ${partes}`;
@@ -185,7 +186,7 @@ caso("Movimientos · las cifras también: CAYLA + CLAURE = sin filtro, grupo por
       `with todo as (${filas("")}), c as (${filas(`, p_empresa_id => ${CAYLA}`)}), l as (${filas(`, p_empresa_id => ${CLAURE}`)})
        select count(*) from todo t left join c on c.grupo = t.grupo left join l on l.grupo = t.grupo
         where t.n <> coalesce(c.n, 0) + coalesce(l.n, 0);`,
-      { antes: UNA_DE_MARCA_CAYLA },
+      { antes: UNA_DE_CLAURE },
     ),
     0,
   );
@@ -233,18 +234,21 @@ caso("sin sesión no se lee nada", () => {
   return igual(r, "0|0");
 });
 
-caso("anon no ejecuta; authenticated sí", () =>
+caso("anon no ejecuta; authenticated sí (y la función del dueño de una línea no la ejecuta nadie por la API)", () =>
   igual(
     dentro(
       `select string_agg(p.proname || '=' || has_function_privilege('anon', p.oid, 'execute')::text || '/' || has_function_privilege('authenticated', p.oid, 'execute')::text, ',' order by p.proname)
          from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('fn_vendido_por_empresa', 'fn_vendido_por_empresa_de_cajas',
-           'fn_empresa_de_ventas', 'fn_empresa_de_prenda_en_sede', 'fn_marcas_de_empresas', 'fn_movimientos', 'fn_movimientos_resumen_procesos');`,
+           'fn_empresa_de_ventas', 'fn_dueno_de_la_linea', 'fn_movimientos', 'fn_movimientos_resumen_procesos');`,
       { sesion: false },
     ),
-    "fn_empresa_de_prenda_en_sede=false/true,fn_empresa_de_ventas=false/true,fn_marcas_de_empresas=false/true,fn_movimientos=false/true,fn_movimientos_resumen_procesos=false/true,fn_vendido_por_empresa=false/true,fn_vendido_por_empresa_de_cajas=false/true",
+    "fn_dueno_de_la_linea=false/false,fn_empresa_de_ventas=false/true,fn_movimientos=false/true,fn_movimientos_resumen_procesos=false/true,fn_vendido_por_empresa=false/true,fn_vendido_por_empresa_de_cajas=false/true",
   ));
 
-caso("aplicar las migraciones dos veces no falla", () => {
+caso("la regla por marca ya no existe en la base", () =>
+  igual(dentro(`select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('fn_empresa_de_prenda_en_sede', 'fn_marcas_de_empresas');`, { sesion: false }), 0));
+
+caso("aplicar la migración dos veces no falla", () => {
   psql(`begin;\n\\o /dev/null\n${MIGRACION}\n${MIGRACION}\n\\o\nrollback;`);
   return null;
 });
