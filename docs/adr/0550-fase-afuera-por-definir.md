@@ -1,5 +1,7 @@
 # ADR-0550 — Una fase que sale afuera puede quedar «por definir», sin inventar un proveedor
 
+**Estado: DESCARTADA el 2026-10-28 (no se fusiona; el PR #1422 se cierra).** Otra sesión construyó lo mismo con otro diseño, «Pendiente de registrar» (ADR-0537 act. b: una fase de servicio sin proveedor que no cobra nada y **sí se opera**, con «Registrar quién» después). Las dos usan «servicio con proveedor nulo» con significados opuestos —esta bloqueaba operar la fase—, y la necesidad real de Felipe es **registrar lo que el Taller ya hizo**, que el bloqueo impedía. Queda la de ADR-0537 b. Esta migración se pegó en producción y se deshizo con `supabase/migrations/pegar-en-produccion-deshacer-fase-por-definir-2026-10-28.sql`. Lo que sigue es el razonamiento de entonces, que se conserva por lo que enseña: un proveedor «Pendiente» obliga a inventar una tarifa, y una columna aparte puede contradecir al proveedor.
+
 **Estado:** aceptada, **web y migración en su PR; la migración `20261028034000` está por pegar en producción (una sola parte)** · **Fecha:** 2026-10-28 ·
 **Decidió:** Felipe («Sí, constrúyelo», el 2026-10-28, tras elegir esta opción entre tres) · **Sigue a:** ADR-0400 (la orden con sus fases, quién las hace y su tela)
 

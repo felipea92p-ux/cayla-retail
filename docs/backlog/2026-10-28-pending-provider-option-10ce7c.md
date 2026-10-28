@@ -1,8 +1,7 @@
-# Backlog · 2026-10-28 · Fase afuera «por definir» — rama `claude/pending-provider-option-10ce7c`
+# Backlog · 2026-10-28 · Fase afuera «por definir» — DESCARTADA (rama `claude/pending-provider-option-10ce7c`, PR #1422 cerrado)
 
-ADR-0550. Migración `20261028034000_produccion_fase_afuera_por_definir.sql`, una sola parte, **por pegar en producción**.
+Otra sesión hizo lo mismo con otro diseño (`claude/registrar-producto-trujillo-67e787`, ADR-0537 act. b, migración `20261027220000`, «Pendiente de registrar»). Se queda esa.
 
-- [ ] **Pegar la migración en producción** y volver a correr `pnpm datos:generar:produccion` cuando se refresque el volcado (el CHECK `produccion_fases_quien` cambió).
-- [ ] **Aviso de «órdenes con fases por definir» en Inicio.** No se construyó: si en la práctica las órdenes se quedan quietas con fases sin definir, es el siguiente paso (el riesgo que nombra el ADR).
-- [ ] **Orden «de antes» y cierre «ya estaba en stock»** (plan del 27-oct, actividades 2 y 3): siguen pendientes. Hasta entonces, no marcar fases como hechas ni «Pasar al stock» en la OP-1 del Chaleco Cayla (duplicaría stock).
-- [ ] **Guía de foco de «Cambiar quién»:** `camposDeCambiarQuien` no cambió (por definir no tiene faltas). Revisar con `/focus` si Felipe quiere que la guía destaque el tercer segmento.
+- [ ] **Pegar en producción `pegar-en-produccion-deshacer-fase-por-definir-2026-10-28.sql`** (una parte): quita mi bloqueo `fase_por_definir`, el candado y los reemplazos que sí se pegaron el 2026-10-28. **Antes** de pegar `20261027220000` de la otra rama: si no, sus fases pendientes quedarían bloqueadas.
+- [ ] Verificar después: `fn_produccion_operar_fase` sin `fase_por_definir` y `fn_produccion_fases_normalizar` sin `por_definir`.
+- [ ] El tablero de choques entre ramas: `pnpm abrir-pr:choques` solo mira PR abiertos; una rama local sin PR que ya pegó SQL en producción no se ve. Mirar `docs/SESIONES-ACTIVAS.md` y `git branch -a` antes de empezar algo en Producción.

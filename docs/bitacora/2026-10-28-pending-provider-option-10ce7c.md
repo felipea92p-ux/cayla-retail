@@ -2,3 +2,5 @@
 Qué hice: la hoja «¿Quién hace…?» ganó un tercer segmento, «Por definir» (ADR-0550). La fase se guarda como servicio sin proveedor ni tarifa, no se puede operar hasta definirla (`fase_por_definir`) y la ficha dice «Sigue: definir quién hace…». El costo dice «por definir», no S/ 0.00.
 Por qué así: crear un proveedor «Pendiente» obliga a inventar una tarifa y esa tarifa se vuelve deuda real al registrar la Vuelta. Con «por definir» no puede existir una deuda sin nombre.
 Felipe se lleva: una migración de una sola parte por pegar en producción (`20261028034000`); 16 casos de Postgres y las pruebas de la web en verde. Falta mirarlo en el navegador.
+
+Actualización: DESCARTADA. Otra sesión construyó «Pendiente de registrar» (ADR-0537 b), que sirve para registrar lo ya hecho porque sí se opera; la mía bloqueaba operar. Se deshizo en producción con `pegar-en-produccion-deshacer-fase-por-definir-2026-10-28.sql` (huellas idénticas a antes, probado en local) y el PR #1422 se cierra sin fusionar. Lección: revisar `docs/SESIONES-ACTIVAS.md` y las ramas locales antes de empezar; `abrir-pr:choques` solo ve PR abiertos.
