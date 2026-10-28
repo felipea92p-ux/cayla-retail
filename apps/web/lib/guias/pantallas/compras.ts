@@ -2580,7 +2580,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "En esta ronda",
-      texto: "Todo lo de tu ronda en una lista, con la hora de cada cosa: lo que compraste y gastaste (con −) y la plata que te dieron (con +, en verde). Cada fila dice quién la revisa. Tócala y una hoja te cuenta qué hará Compras con eso.",
+      texto: "Todo lo de tu ronda, con la hora de cada cosa: lo que compraste y gastaste (con −) y la plata que te dieron (con +, en verde). Cada fila dice quién la revisa y, si es una compra, si falta mandarla (ámbar) o ya salió. Al pie, cuánto entró y salió. Tócala para ver qué hará Compras.",
     },
     {
       id: "antes",

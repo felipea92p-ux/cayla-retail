@@ -26,6 +26,7 @@ import {
   textoPorConfirmar,
   cuentaDeLaBilletera,
   usoDeLaPlata,
+  totalesDeLaLista,
   desdeRonda,
   horaDeMovimiento,
   queHaraCompras,
@@ -412,6 +413,33 @@ describe("Mi plata rediseñada (maqueta compras-formidable-2026-10)", () => {
     const [andina, , rosa] = actuales;
     expect(rosa.detalle).toBe("35 prendas · Factura · enviada · ENV-000118, ENV-000119");
     expect(andina.detalle).toBe("1 prenda · Boleta · falta mandar a LIM");
+  });
+
+  it("en la lista, lo del envío va en un chip (ámbar si falta mandar, verde si ya salió) y el resumen no lo repite; la hoja sigue con el detalle completo", () => {
+    const codigos = new Map([["c1", ["ENV-000118", "ENV-000119"]]]);
+    const { actuales } = movimientosDeLaCompradora(p, codigos);
+    const [andina, yape, rosa, taxi] = actuales;
+    expect([andina.envio, andina.resumen, andina.detalle]).toEqual([{ texto: "Falta mandar a LIM", tono: "ambar" }, "1 prenda · Boleta", "1 prenda · Boleta · falta mandar a LIM"]);
+    expect([rosa.envio, rosa.resumen]).toEqual([{ texto: "Enviada · ENV-000118, ENV-000119", tono: "verde" }, "35 prendas · Factura"]);
+    // Sin envío que decir (ni por mandar ni enviada con código), las tiendas se quedan en el resumen; la plata y el gasto no llevan chip de envío.
+    const sinCodigos = movimientosDeLaCompradora(p).actuales[2];
+    expect([sinCodigos.envio, sinCodigos.resumen]).toEqual([null, "35 prendas · Factura · AQP"]);
+    expect([yape.envio, yape.resumen, taxi.envio, taxi.resumen]).toEqual([null, "Yape o Plin · con foto", null, "Sin papel"]);
+  });
+
+  it("el pie de la lista suma lo que entró y lo que salió de la plata (no el texto de cada fila)", () => {
+    expect(totalesDeLaLista([])).toEqual({ entro: 0, salio: 0 });
+    expect(
+      totalesDeLaLista([
+        { entra: true, valor: 5700 },
+        { entra: false, valor: 198 },
+        { entra: false, valor: 0.1 },
+        { entra: false, valor: 0.2 },
+      ]),
+    ).toEqual({ entro: 5700, salio: 198.3 });
+    const { actuales } = movimientosDeLaCompradora(p);
+    const t = totalesDeLaLista(actuales);
+    expect(t.entro).toBeCloseTo(actuales.filter((m) => m.entra).reduce((s, m) => s + m.valor, 0), 2);
   });
 
   it("sin ronda: lo anotado después del último cierre va arriba; sin ningún cierre, lo de hoy; sin el día de la base, todo", () => {

@@ -1,8 +1,11 @@
 "use client";
 
 import { useRef, useState, type ReactNode, type RefObject } from "react";
-import { ChevronRight, Flag, HandCoins, ShoppingBag, Undo2, type LucideIcon } from "lucide-react";
-import { ICONO_GASTO } from "./iconos";
+import { ChevronRight, Flag, HandCoins, Undo2, type LucideIcon } from "lucide-react";
+import { ICONO_MOVIMIENTO } from "./iconos";
+import { DetalleDeFila } from "./DetalleDeFila";
+import { TablaDeLaRonda } from "./TablaDeLaRonda";
+import { soles } from "@/lib/compras-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
@@ -12,7 +15,7 @@ import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { diaMes } from "@/lib/fechas-lima";
 import { enviosDeLaFila, resumenDeEnvios, type EnvioMio, type RondaConEnvios } from "@/lib/mis-envios-reglas";
 import { FilaEnvio } from "./FilaEnvio";
-import { horaDeMovimiento, queHaraCompras, type EntradaHistorial, type MovimientoCompradora } from "@/lib/mi-plata-reglas";
+import { horaDeMovimiento, totalesDeLaLista, type EntradaHistorial, type MovimientoCompradora } from "@/lib/mi-plata-reglas";
 
 // La lista de Mis compras (maqueta docs/maquetas/mis-compras-rediseno-2026-10/, Felipe 2026-10-24): lo que compró, gastó y anotó en UNA
 // lista, en orden, con su ícono, la hora a la que lo anotó, su monto (− lo que sale, + en verde lo que entra) y su estado dicho por quién
@@ -22,10 +25,11 @@ import { horaDeMovimiento, queHaraCompras, type EntradaHistorial, type Movimient
 // «Ver rondas anteriores» (Felipe 2026-10-23, revisándolo en el celular): ahí ya no va todo suelto. Arriba solo la plata que le dieron, lo
 // que devolvió al cerrar una ronda y una fila por ronda; al tocar una ronda se abre una hoja con sus compras y lo de «Gasté en otra cosa»,
 // cuánto salió de su plata y cómo cerró. El agrupado: `historialDeLaCompradora`.
-const ICONO: Record<MovimientoCompradora["icono"], LucideIcon> = { compra: ShoppingBag, plata: HandCoins, ...ICONO_GASTO };
 
 /** La cara de una fila: ícono, título y detalle a la izquierda (hasta dos líneas cada uno), monto y estado a la derecha. */
 function Cara({
+  hora,
+  chips,
   icono: Icono,
   titulo,
   detalle,
@@ -34,6 +38,10 @@ function Cara({
   estado,
   extra,
 }: {
+  /** La hora a la que anotó algo: bajo el monto (en «En esta ronda»). */
+  hora?: string | null;
+  /** Los estados de la fila (lo del envío y quién lo revisa), en su propia línea bajo el texto, en vez del chip suelto a la derecha. */
+  chips?: ReactNode;
   icono: LucideIcon;
   titulo: string;
   detalle: string;
@@ -58,60 +66,54 @@ function Cara({
         <span className={`whitespace-nowrap text-sm tabular-nums ${entra ? "text-verde" : "text-tinta"}`}>
           {entra ? "+" : "−"} {monto}
         </span>
-        {estado && (
+        {hora && <span className="text-xs tabular-nums text-taupe">{hora}</span>}
+        {estado && !chips && (
           <Chip tono={estado.pendiente ? "pizarra" : "verde"} title={estado.detalle}>
             {estado.texto}
           </Chip>
         )}
       </span>
+      {chips && <span className="col-span-2 col-start-2 flex flex-wrap gap-1.5">{chips}</span>}
       {extra}
     </>
   );
 }
 
-/** Una compra, un gasto o una plata. `prefijo`: lo que va antes del detalle (la hora, o la ronda y el día). `conDetalle`: se toca y abre su
- *  hoja (no dentro de la hoja de una ronda: una hoja sobre otra). */
-function Fila({ m, prefijo = [], conDetalle = false }: { m: MovimientoCompradora; prefijo?: (string | null)[]; conDetalle?: boolean }) {
+/** Una compra, un gasto o una plata. `prefijo`: lo que va antes del detalle (la ronda y el día). `conDetalle`: se toca y abre su hoja (no dentro
+ *  de la hoja de una ronda: una hoja sobre otra). `enLista` («En esta ronda»): la hora va bajo el monto y los estados en su línea, como chips
+ *  (ámbar «Falta mandar a LIM», verde «Enviada · ENV-…», y quién lo revisa), con el detalle sin repetir lo del envío. */
+function Fila({ m, prefijo = [], conDetalle = false, enLista = false }: { m: MovimientoCompradora; prefijo?: (string | null)[]; conDetalle?: boolean; enLista?: boolean }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLButtonElement>(null);
   const antes = prefijo.filter(Boolean).map((x) => `${x} · `).join("");
-  const cara = <Cara icono={ICONO[m.icono]} titulo={m.titulo} detalle={`${antes}${m.detalle}`} entra={m.entra} monto={m.monto} estado={m.estado} />;
+  const chips = enLista ? (
+    <>
+      {m.envio && <Chip tono={m.envio.tono}>{m.envio.texto}</Chip>}
+      <Chip tono={m.estado.pendiente ? "pizarra" : "verde"} title={m.estado.detalle}>
+        {m.estado.texto}
+      </Chip>
+    </>
+  ) : undefined;
+  const cara = (
+    <Cara
+      icono={ICONO_MOVIMIENTO[m.icono]}
+      titulo={m.titulo}
+      detalle={enLista ? m.resumen : `${antes}${m.detalle}`}
+      hora={enLista ? horaDeMovimiento(m) : null}
+      chips={chips}
+      entra={m.entra}
+      monto={m.monto}
+      estado={enLista ? undefined : m.estado}
+    />
+  );
   if (!conDetalle) return <li className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 py-2.5">{cara}</li>;
   return (
     <li>
-      <button ref={origen} type="button" aria-haspopup="dialog" onClick={() => setAbierta(true)} className="grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2.5 py-2.5 text-left">
+      <button ref={origen} type="button" aria-haspopup="dialog" onClick={() => setAbierta(true)} className="grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1.5 py-2.5 text-left">
         {cara}
       </button>
       {abierta && <DetalleDeFila m={m} onClose={() => setAbierta(false)} volverA={origen} />}
     </li>
-  );
-}
-
-/** La hoja de una fila: la cuenta como en un cuaderno (hora, detalle, monto), su estado y qué hará Compras. Solo se lee: se cierra con la ×. */
-function DetalleDeFila({ m, onClose, volverA }: { m: MovimientoCompradora; onClose: () => void; volverA: RefObject<HTMLButtonElement | null> }) {
-  const hora = horaDeMovimiento(m);
-  const filas: [string, string][] = [...(hora ? ([["Hora", hora]] as [string, string][]) : []), ["Detalle", m.detalle]];
-  return (
-    <Modal titulo={m.titulo} onClose={onClose} variante="hoja" conCerrar alCerrarEnfocar={volverA}>
-      <div className="space-y-3.5">
-        <dl className="rounded-[14px] bg-hueso px-3.5 py-1.5 text-sm tabular-nums">
-          {filas.map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-4 border-t border-sand py-2 first:border-t-0">
-              <dt className="text-taupe">{k}</dt>
-              <dd className="text-right text-tinta">{v}</dd>
-            </div>
-          ))}
-          <div className="flex justify-between gap-4 border-t-2 border-tinta py-2 font-semibold">
-            <dt>{m.entra ? "Te dieron" : m.tipo === "compra" ? "Pagaste" : "Gastaste"}</dt>
-            <dd>{m.monto}</dd>
-          </div>
-        </dl>
-        <Chip tono={m.estado.pendiente ? "pizarra" : "verde"} title={m.estado.detalle}>
-          {m.estado.texto}
-        </Chip>
-        <p className="text-sm text-taupe">{queHaraCompras(m)}</p>
-      </div>
-    </Modal>
   );
 }
 
@@ -203,6 +205,18 @@ function FilaHistorial({ e, envios, hoy }: { e: EntradaHistorial; envios: EnvioM
   );
 }
 
+/** El total de la lista: cuánta plata entró y cuánta salió. En PC va dentro del pie de la tabla (`TablaDeLaRonda`); en celular, aquí. */
+function PieDeLaLista({ actuales, className = "" }: { actuales: MovimientoCompradora[]; className?: string }) {
+  const { entro, salio } = totalesDeLaLista(actuales);
+  return (
+    <p className={`flex flex-wrap justify-between gap-x-3 gap-y-0.5 border-t border-sand pt-2.5 text-xs text-taupe ${className}`}>
+      <span>
+        Entró <b className="font-semibold tabular-nums text-tinta">{soles(entro)}</b> · salió <b className="font-semibold tabular-nums text-tinta">{soles(salio)}</b>
+      </span>
+    </p>
+  );
+}
+
 /** «En esta ronda»: lo de la ronda abierta, lo más nuevo arriba. `desde`: «desde hoy 08:30», a la derecha del título. */
 export function ListaDelDia({
   actuales,
@@ -227,11 +241,17 @@ export function ListaDelDia({
           Cuando te den plata, tócala en «Me dieron plata»; lo que compres y gastes aparece aquí.
         </Vacio>
       ) : (
-        <ul className="divide-y divide-sand">
-          {actuales.map((m) => (
-            <Fila key={m.clave} m={m} prefijo={[horaDeMovimiento(m)]} conDetalle />
-          ))}
-        </ul>
+        <>
+          {/* PC (desde `lg`): la tabla con sus columnas y el total al pie. Celular y tablet: la lista, con la hora bajo el monto y los estados
+              en su línea; el total, debajo (maqueta docs/maquetas/mis-compras-pc-mesa-2026-10/, Felipe 2026-10-28). */}
+          <TablaDeLaRonda actuales={actuales} />
+          <ul className="divide-y divide-sand lg:hidden">
+            {actuales.map((m) => (
+              <Fila key={m.clave} m={m} conDetalle enLista />
+            ))}
+          </ul>
+          <PieDeLaLista actuales={actuales} className="lg:hidden" />
+        </>
       )}
     </section>
   );
