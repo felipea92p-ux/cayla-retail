@@ -20,6 +20,7 @@ import {
   TEXTO_TIPO_CUENTA,
   TIPOS_AUTOMATICOS,
   TIPOS_QUE_SE_AGREGAN,
+  idsSoloTransferencia,
   mediosDeMaquina,
   nombreCorto,
   textoDondeCobra,
@@ -87,6 +88,8 @@ export function ConfiguracionCuentas({
 
   const tiendas = [...new Map(medios.map((m) => [m.ubicacionId, m.ubicacionNombre])).entries()];
   const activas = cuentas.filter((c) => !c.archivada);
+  // El Taller no cobra a clientes: la base solo le lista «Transferencia» (de ahí paga a sus proveedores). Sus otras celdas no se dibujan.
+  const soloTransferencia = idsSoloTransferencia(medios);
 
   return (
     <>
@@ -149,17 +152,17 @@ export function ConfiguracionCuentas({
       </Superficie>
 
       <Superficie className="anim-sube" guia="config.cuentas-cobros">
-        <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una tienda a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
+        <TituloDeTarjeta titulo="A qué cuenta entra cada cobro" bajada="Si cambias el Yape de una sede a otra cuenta, desde hoy Finanzas lo cuenta ahí. Lo pasado no se mueve." />
         {tiendas.length === 0 ? (
           <Vacio tamano="chico" icono={<Store />}>
-            No hay tiendas activas.
+            No hay sedes activas.
           </Vacio>
         ) : (
           <div className="fin-tabla-wrap">
             <table className="fin-tabla fin-tabla-medios">
               <thead>
                 <tr>
-                  <th>Tienda</th>
+                  <th>Sede</th>
                   {MEDIOS_COBRO.map((m) => (
                     <th key={m}>{TEXTO_MEDIO_COBRO[m]}</th>
                   ))}
@@ -168,27 +171,38 @@ export function ConfiguracionCuentas({
               <tbody>
                 {tiendas.map(([id, nombre]) => (
                   <tr key={id}>
-                    <td data-l="Tienda">
+                    <td data-l="Sede">
                       <b>{nombre}</b>
                     </td>
-                    {MEDIOS_COBRO.map((m) => (
-                      <td key={m} data-l={TEXTO_MEDIO_COBRO[m]}>
-                        <CasillaMedio
-                          medio={m}
-                          tienda={nombre}
-                          actual={medios.find((x) => x.ubicacionId === id && x.medio === m)?.cuentaId ?? ""}
-                          cuentas={activas}
-                          deshabilitada={guardando}
-                          alCambiar={(cuentaId) =>
-                            guardar(
-                              () => createClient().rpc("guardar_medio_de_cobro" as never, { p_ubicacion_id: id, p_medio: m, p_cuenta_id: cuentaId || null } as never),
-                              "cambiar a qué cuenta entra el cobro",
-                              `${TEXTO_MEDIO_COBRO[m]} de ${nombre}: desde hoy entra a ${activas.find((c) => c.id === cuentaId)?.nombre ?? "ninguna cuenta"}.`,
-                            )
-                          }
-                        />
-                      </td>
-                    ))}
+                    {MEDIOS_COBRO.map((m) =>
+                      soloTransferencia.has(id) && m !== "transferencia" ? (
+                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className="fin-tenue">
+                          <span role="img" aria-label={`${nombre} no cobra con ${TEXTO_MEDIO_COBRO[m]}`}>
+                            —
+                          </span>
+                        </td>
+                      ) : (
+                        <td key={m} data-l={TEXTO_MEDIO_COBRO[m]}>
+                          <CasillaMedio
+                            medio={m}
+                            tienda={nombre}
+                            paga={soloTransferencia.has(id)}
+                            actual={medios.find((x) => x.ubicacionId === id && x.medio === m)?.cuentaId ?? ""}
+                            cuentas={activas}
+                            deshabilitada={guardando}
+                            alCambiar={(cuentaId) =>
+                              guardar(
+                                () => createClient().rpc("guardar_medio_de_cobro" as never, { p_ubicacion_id: id, p_medio: m, p_cuenta_id: cuentaId || null } as never),
+                                soloTransferencia.has(id) ? "cambiar de qué cuenta paga el Taller" : "cambiar a qué cuenta entra el cobro",
+                                soloTransferencia.has(id)
+                                  ? `Los pagos por transferencia de ${nombre}: desde hoy salen de ${activas.find((c) => c.id === cuentaId)?.nombre ?? "ninguna cuenta"}.`
+                                  : `${TEXTO_MEDIO_COBRO[m]} de ${nombre}: desde hoy entra a ${activas.find((c) => c.id === cuentaId)?.nombre ?? "ninguna cuenta"}.`,
+                              )
+                            }
+                          />
+                        </td>
+                      ),
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -196,7 +210,10 @@ export function ConfiguracionCuentas({
           </div>
         )}
         <PieTabla>
-          <span>El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.</span>
+          <span>
+            El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.
+            {soloTransferencia.size > 0 && " El Taller no cobra a clientes: solo guarda la cuenta de donde paga por transferencia, y esa es la que «Sale de» propone en sus pagos."}
+          </span>
         </PieTabla>
       </Superficie>
 
@@ -269,6 +286,7 @@ export function ConfiguracionCuentas({
 function CasillaMedio({
   medio,
   tienda,
+  paga = false,
   actual,
   cuentas,
   deshabilitada,
@@ -276,6 +294,8 @@ function CasillaMedio({
 }: {
   medio: MedioCobro;
   tienda: string;
+  /** El Taller no cobra: esta casilla dice de qué cuenta SALE lo que paga por transferencia. */
+  paga?: boolean;
   actual: string;
   cuentas: CuentaDinero[];
   deshabilitada: boolean;
@@ -291,7 +311,7 @@ function CasillaMedio({
   const sirven = cuentas.filter((c) => tipos.includes(c.tipo));
   return (
     <SelectFin
-      etiqueta={`A qué cuenta entra ${TEXTO_MEDIO_COBRO[medio]} de ${tienda}`}
+      etiqueta={paga ? `De qué cuenta paga ${tienda} por transferencia` : `A qué cuenta entra ${TEXTO_MEDIO_COBRO[medio]} de ${tienda}`}
       valor={valor}
       deshabilitado={deshabilitada}
       onValor={async (nuevo) => {

@@ -86,3 +86,18 @@ SE ROMPE SI:
 
 **Calendario:** el congelamiento de código del cierre de octubre corre del miércoles 28 a las 18:00 al lunes 2-nov a las 12:00; se construye y prueba en
 local y la migración se pega después, salvo que Felipe lo exima.
+
+## Actualización 2026-10-28: cómo se hizo de verdad el reinicio, y lo que enseñó
+
+El reinicio se hizo a mano, con las pantallas que ya existen, y salió. El método final difiere de la decisión 1 en un punto y conviene dejarlo escrito:
+
+- **Bancos y puentes empiezan el mismo día** (el de hoy) con su saldo real. Las puentes abren con **lo que de verdad está pendiente** (la tarjeta que aún no llegó), no en 0: así los días de ayer siguen marcables y el depósito real de mañana tiene de dónde descontar.
+- **Lo viejo se cierra con UN «Depósito de la máquina» por máquina, fechado el día anterior al corte.** Como su fecha es anterior al inicio de las dos cuentas, no mueve ningún saldo; solo cierra los días pendientes y anota la comisión estimada como gasto de octubre (el neto se calcula con la comisión esperada: Izipay por pago, Vendemás ~2,82 % efectivo de octubre). Sustituye a la apertura «saldo menos los abonos del día» de la decisión 1.
+- **Verificación:** con los saldos y movimientos leídos en producción, el saldo esperado de cada cuenta coincide con su app y el gasto de comisión no está duplicado (los intentos anulados anulan su gasto).
+
+Fricciones que salieron y entran como requisito de la actividad 3 (la pantalla):
+1. **`fn_pos_pendientes` y el formulario ignoran `saldo_desde`:** tras un reinicio siguen listando todos los días viejos como «atrasados» y marcados. Deben ocultar lo anterior al inicio de la cuenta, o decir «cerrar lo anterior al corte» como una acción propia.
+2. **La fecha vuelve a hoy al reabrir el formulario.** Un depósito con fecha igual o posterior al inicio de una cuenta sí cuenta en su saldo: con días viejos, el formulario debe avisarlo y pedir confirmación.
+3. **El destino por defecto fue una cuenta equivocada** (BCP en vez de Interbank): la máquina debe proponer el banco donde deposita.
+4. **El total cobrado cambia** si alguien registra o corrige una venta vieja durante la operación: el monto se toma del total que muestra la pantalla, y el formulario debe proponer «cobrado − comisión esperada» en vez de dejar que se teclee.
+5. **Vendemás no tenía tarifa cargada:** su «comisión esperada» salía en 0. Hay que sembrar su tarifa (2,30 % + IGV, por operación) antes de la actividad 1.

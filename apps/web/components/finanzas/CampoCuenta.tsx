@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CampoSelect } from "@/components/ui/campos";
 import { CampoFin, SelectFin } from "@/components/finanzas/kit";
@@ -47,6 +47,46 @@ export function useMiFondo(activo = true): { fondo: MiFondo | null; listo: boole
   return estado;
 }
 
+/** Los medios cuya cuenta propone el Taller (lo que `fn_cuenta_sellada` sella con su cuenta de transferencias): su efectivo se propone como siempre. */
+export const PROPUESTA_DEL_TALLER = ["transferencia", "deposito", "otro"] as const;
+
+/**
+ * El id del Taller activo, para pedir las cuentas de un pago de Producción con SU propuesta («Sale de» = la cuenta que el líder
+ * eligió para sus transferencias en Configuración ▸ Cuentas y cobros). Los comprobantes de Producción no llevan sede, así que sin esto
+ * se pediría con sede vacía y la propuesta sería «el primer banco». Es una lectura de `ubicaciones` (la ve toda cuenta con sesión,
+ * y un GET no abre el loader). Si no responde o no hay Taller, devuelve `null`: el formulario se comporta como antes (principio 9).
+ * Hay un solo Taller activo; si algún día hubiera dos, se toma el más antiguo (`created_at`), el mismo criterio con que la base sella
+ * un pago de Producción sin cuenta elegida, y la base sigue validando la cuenta elegida.
+ */
+export function useIdDelTaller(activo = true): { id: string | null; listo: boolean } {
+  // Con cuentas fijas (rutas de prueba visual, sin sesión) no hay nada que preguntar.
+  const fijas = useContext(CuentasDePrueba);
+  const [estado, setEstado] = useState<{ id: string | null; listo: boolean }>({ id: null, listo: false });
+  useEffect(() => {
+    if (!activo || fijas) return;
+    let vivo = true;
+    void createClient()
+      .from("ubicaciones")
+      .select("id")
+      .eq("tipo", "taller")
+      .eq("activo", true)
+      .order("created_at")
+      .limit(1)
+      .then(
+        ({ data, error }) => {
+          if (vivo) setEstado({ id: error ? null : ((data?.[0] as { id?: string } | undefined)?.id ?? null), listo: true });
+        },
+        () => {
+          if (vivo) setEstado({ id: null, listo: true });
+        },
+      );
+    return () => {
+      vivo = false;
+    };
+  }, [activo, fijas]);
+  return fijas ? { id: null, listo: true } : estado;
+}
+
 /** Las cuentas que esta cuenta puede elegir, con la propuesta de cada medio para esa tienda. La lectura es `fn_`: el
  *  loader general no bloquea la pantalla mientras llega. Sin permiso o sin cuentas, lista vacía (el combo lo dice).
  *  Con `conMiFondo` (solo los pagos de Compras: el comprobante de una orden al contado y Por pagar, ADR-0362 fase 6), suma
@@ -55,9 +95,15 @@ export function useCuentasParaElegir(
   clase: ClaseMovimiento,
   ubicacionId: string | null | undefined,
   activo = true,
-  opciones: { conMiFondo?: boolean } = {},
+  opciones: {
+    conMiFondo?: boolean;
+    /** Solo estos medios se PROPONEN (la lista de cuentas no cambia). Producción pide con la sede del Taller para que «Sale de» proponga
+     *  la cuenta de sus transferencias, pero su efectivo se propone como siempre: pedir con la sede no debe cambiar lo que nadie pidió. */
+    propuestaSoloDe?: readonly string[];
+  } = {},
 ) {
   const clave = `${clase}|${ubicacionId ?? ""}`;
+  const soloDe = opciones.propuestaSoloDe?.join(",") ?? "";
   const fijas = useContext(CuentasDePrueba)?.[clase] ?? null;
   const conFondo = !!opciones.conMiFondo && clase === "pago";
   const miFondo = useMiFondo(activo && conFondo && !fijas);
@@ -75,10 +121,14 @@ export function useCuentasParaElegir(
       vivo = false;
     };
   }, [clase, ubicacionId, activo, clave, fijas]);
+  const propuestas = useMemo(
+    () => (soloDe ? estado.cuentas.map((c) => ({ ...c, propuestaPara: c.propuestaPara.filter((m) => soloDe.split(",").includes(m)) })) : estado.cuentas),
+    [estado.cuentas, soloDe],
+  );
   if (fijas) return { cuentas: fijas, listo: true };
   // Con el fondo, el combo espera a las dos lecturas: así la propuesta no salta de la caja al fondo cuando llega la segunda.
-  if (conFondo) return { cuentas: conMiFondo(estado.cuentas, miFondo.fondo), listo: estado.clave === clave && miFondo.listo };
-  return { cuentas: estado.cuentas, listo: estado.clave === clave };
+  if (conFondo) return { cuentas: conMiFondo(propuestas, miFondo.fondo), listo: estado.clave === clave && miFondo.listo };
+  return { cuentas: propuestas, listo: estado.clave === clave };
 }
 
 const SIN_CUENTAS = "Sin cuentas para este medio: se agregan en Configuración ▸ Cuentas y cobros";
