@@ -20,7 +20,8 @@
     "unificar:fotos": "node unificar/fotos.mjs",
     "guias:huella": "node guias/huella.mjs",
     "guias:recorrer": "node guias/recorrer.mjs",
-    "asistente:evaluar": "node lib/asistente/evaluacion/evaluar.mjs"
+    "asistente:evaluar": "node lib/asistente/evaluacion/evaluar.mjs",
+    "asistente:tareas": "node lib/asistente/evaluacion/recorrer-tareas.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
