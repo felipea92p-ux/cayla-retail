@@ -256,7 +256,14 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
   it("limpiarCantidad: al tipear solo quedan dígitos, hasta 4 (una cantidad imposible ni se escribe)", () => {
     expect(limpiarCantidad("12")).toBe("12");
     expect(limpiarCantidad("-3")).toBe("3");
-    expect(limpiarCantidad("2.5")).toBe("25");
+    // /chaos 2026-10-28 (semilla 2810): «2,5» se guardaba como 25. Un decimal se corta en el entero; «1,200» con tres cifras es un millar.
+    expect(limpiarCantidad("2.5")).toBe("2");
+    expect(limpiarCantidad("2,5")).toBe("2");
+    expect(limpiarCantidad("12,50")).toBe("12");
+    expect(limpiarCantidad("1,200")).toBe("1200");
+    expect(limpiarCantidad("1.200")).toBe("1200");
+    expect(limpiarCantidad("1e3")).toBe("1");
+    expect(limpiarCantidad(" 12 u.")).toBe("12");
     expect(limpiarCantidad("abc")).toBe("");
     expect(limpiarCantidad("123456")).toBe("1234");
   });
