@@ -29,7 +29,8 @@ import {
   type DetalleEnvio,
 } from "@/lib/recepcion-envio-reglas";
 import { agruparLineas, camposDelCierrePorGrupo, causasDelGrupo, lineaDeLaPrenda, lineaDelGrupo } from "@/lib/recepcion-grupos-reglas";
-import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, cambioDePrecioDeVenta, cambiosDeVentaDe, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, problemasDePrecio, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { avisoDePrecioRechazado, type CambioDePrecio, cambioDePrecioDeCompra, cambioDePrecioDeVenta, cambiosDeVentaDe, camposDelCierre, contadasDe, costoComoTexto, costoDePrendaTexto, esRegaloFuera, costosDePrendaConProblema, type CostosDePrendas, type DecisionCierre, decisionInicial, detalladas, detalleParaDespues, diferenciaDe, HINT_CONTEO_CAMBIADO, idCampoCierre, leerCostoCierre, type LineaParaContar, lineasParaCerrar, lineaVisible, marcaDeLinea, mensajeAlGuardar, nombreDeLinea, prendasConCosto, problemasDePrecio, resumenDelCierre, textoBotonCerrar, textoResumenDelCierre, TOPES_CONTEO, unidadesSinIdentificar } from "@/lib/recepcion-conteo-reglas";
+import { VALOR_OTRO } from "@/lib/recepcion-envio-reglas";
 import { cambiarPrecioEnRecepcion, cerrarConteo, corregirGuiaEnvio, ponerProveedorEnvio } from "@/lib/recepcion-conteo-acciones";
 
 // Cerrar (ADR-0393, el paso 3 de la cara A): una fila por categoría —lo que dijeron, lo que se contó, lo que entra hoy al stock y lo que
@@ -371,7 +372,9 @@ export function CerrarEnvio({
               const causas = causasDelGrupo(g, deuda, sinAviso);
               const dP = decisionDe(p.clave);
               const costo = leerCostoCierre(dP.costo);
-              const editaCosto = !(sinAviso && !p.linea && !veDinero);
+              // Un regalo de fuera de la guía entra a S/ 0 (obsequio) sin pedir ningún costo (Felipe 2026-10-28; la base lo hace igual).
+              const regaloFuera = esRegaloFuera(p, dP);
+              const editaCosto = !(sinAviso && !p.linea && !veDinero) && !regaloFuera;
               const cambio = editaCosto && g.lineas.some((x) => decisionDe(x.clave).costo.trim() !== (costoInicial[x.clave] ?? "").trim());
               const prendas = g.separado.prendas;
               const alStock = g.enStock + detalladas(g.separado);
@@ -506,9 +509,24 @@ export function CerrarEnvio({
                                 opciones={c.opciones}
                                 valor={c.tipo === "faltante" ? decisionDe(c.lineas[0].clave).faltanteCausa : decisionDe(c.lineas[0].clave).sobranteCausa}
                                 onValor={(v) => {
-                                  for (const x of c.lineas) cambiar(x.clave, c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante });
+                                  // «Otro» se explica con la nota de la línea; al dejarlo, lo escrito se suelta (no hay otro lugar donde escribirla).
+                                  for (const x of c.lineas)
+                                    cambiar(x.clave, c.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante, ...(v === VALOR_OTRO ? {} : { nota: "" }) });
                                 }}
                               />
+                              {c.tipo === "sobrante" && decisionDe(c.lineas[0].clave).sobranteCausa === VALOR_OTRO && (
+                                <CampoTexto
+                                  className="mt-2"
+                                  etiqueta="¿Qué pasó exactamente?"
+                                  value={decisionDe(c.lineas[0].clave).nota}
+                                  maxLength={TOPES_CONTEO.nota}
+                                  // sugerir-fijo: lo que pasó con lo de más no depende de nada elegido antes
+                                  placeholder="Ej. El proveedor mandó una muestra"
+                                  onChange={(e) => {
+                                    for (const x of c.lineas) cambiar(x.clave, { nota: e.target.value });
+                                  }}
+                                />
+                              )}
                             </div>
                           </CampoGuiado>
                         ))}
@@ -535,6 +553,11 @@ export function CerrarEnvio({
                 {abierta && (
                   <div id={`precios-${idFila}`} className="border-t border-sand bg-tinta/[0.02] px-5 py-4" data-precios-de={g.clave}>
                     <div className="space-y-3">
+                      {regaloFuera && (
+                        <p className="text-xs text-taupe" data-regalo-sin-costo>
+                          Es un regalo: entra con costo S/&nbsp;0.00 (obsequio), sin que escribas nada.
+                        </p>
+                      )}
                       {costoDeLaLineaObligatorio && !unaCaja && (
                         <CampoGuiado id={idCampoCierre("costo", p.clave)} guia={guia}>
                           <FilaDeCosto
