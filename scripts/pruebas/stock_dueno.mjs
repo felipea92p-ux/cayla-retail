@@ -243,6 +243,44 @@ ${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${MOVER("v",
 select (select empresa_id from retail.movimientos where id = :'m') = :'cayla';`),
 );
 
+console.log("\n— Devoluciones y cambios vuelven al dueño de la venta —");
+/** Una venta de `v` (movimiento de salida enlazado a su línea) del dueño dado, y su devolución, por las tablas reales. */
+const VENDIDA = (empresa) => `
+insert into retail.ventas (ubicacion_id) values (:'lim') returning id as vta \\gset
+insert into retail.venta_items (venta_id, variante_id, cantidad, precio_unitario, costo_unitario) values (:'vta', :'v', 1, 59, 26) returning id as vi \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, venta_item_id, empresa_id)
+  values (:'v', :'lim', :'alm_lim', 'salida', 1, 'venta', :'vi', ${empresa ? `:'${empresa}'` : "null"}) returning id as m \\gset
+select retail.fn_aplicar_movimiento(:'m') as _ap \\gset
+`;
+const DEVOLUCION = `
+insert into retail.devoluciones (venta_id, ubicacion_id, motivo) values (:'vta', :'lim', 'prueba') returning id as dev \\gset
+insert into retail.devolucion_items (devolucion_id, venta_item_id, cantidad, condicion) values (:'dev', :'vi', 1, 'vendible') returning id as di \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, devolucion_item_id)
+  values (:'v', :'lim', :'alm_lim', 'entrada', 1, 'devolucion', :'di') returning id as m \\gset
+select retail.fn_aplicar_movimiento(:'m') as _ap \\gset
+`;
+caso(
+  "una devolución de una venta de CLAURE vuelve a CLAURE, sin que nadie lo marque",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${VENDIDA("claure")}${DEVOLUCION}
+select (select empresa_id from retail.movimientos where id = :'m') = :'claure' and ${DUENO("v", "claure")} = 2 and ${DUENO("v", "cayla")} = 3;`),
+);
+caso(
+  "una devolución de una venta de CAYLA vuelve a CAYLA aunque haya unidades de CLAURE",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${VENDIDA("cayla")}${DEVOLUCION}
+select (select empresa_id from retail.movimientos where id = :'m') = :'cayla' and ${DUENO("v", "claure")} = 2 and ${DUENO("v", "cayla")} = 3;`),
+);
+caso(
+  "un cambio: lo devuelto vuelve a su dueño y la prenda nueva sale del mismo dueño aunque haya de los dos",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${VENDIDA("claure")}
+insert into retail.cambios (venta_item_id, ubicacion_id, variante_nueva_id, cantidad) values (:'vi', :'lim', :'v', 1) returning id as cam \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, cambio_id) values (:'v', :'lim', :'alm_lim', 'entrada', 1, 'cambio', :'cam') returning id as m1 \\gset
+select retail.fn_aplicar_movimiento(:'m1') as _a1 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, cambio_id) values (:'v', :'lim', :'alm_lim', 'salida', 1, 'cambio', :'cam') returning id as m2 \\gset
+select retail.fn_aplicar_movimiento(:'m2') as _a2 \\gset
+select (select empresa_id from retail.movimientos where id = :'m1') = :'claure' and (select empresa_id from retail.movimientos where id = :'m2') = :'claure'
+   and ${DUENO("v", "claure")} = 1 and ${DUENO("v", "cayla")} = 3;`),
+);
+
 console.log("\n— Traslados —");
 caso(
   "un traslado de Lima a Trujillo, con unidades de las dos, lleva las de CAYLA y no toca a CLAURE",

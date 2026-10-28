@@ -199,6 +199,30 @@ $$;
 comment on function retail.fn_dueno_de_la_llamada(uuid) is
   'ADR-0542: la empresa que la pantalla eligió para esta llamada (encabezados x-dueno-lineas / x-dueno), o null. El disparador de movimientos la usa cuando el movimiento no trae dueño.';
 
+-- De quién era lo que se vendió, para que lo devuelto o cambiado vuelva a su dueño sin que nadie lo marque (ADR-0542, Felipe 2026-10-27:
+-- «una devolución vuelve al dueño de la venta original»). Sale del movimiento de la venta de esa línea; si la venta es anterior al libro
+-- (`empresa_id` vacío) vale la ficha, que es lo que Felipe eligió para el historial.
+create or replace function retail.fn_dueno_de_lo_vendido(p_devolucion_item_id uuid, p_cambio_id uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select coalesce(m.empresa_id, p.empresa_id)
+    from retail.movimientos m
+    join retail.variantes v on v.id = m.variante_id
+    join retail.productos p on p.id = v.producto_id
+   where m.tipo = 'salida'
+     and m.venta_item_id = coalesce(
+           (select di.venta_item_id from retail.devolucion_items di where di.id = p_devolucion_item_id),
+           (select c.venta_item_id from retail.cambios c where c.id = p_cambio_id))
+   limit 1
+$$;
+
+comment on function retail.fn_dueno_de_lo_vendido(uuid, uuid) is
+  'ADR-0542: la empresa de la línea que se vendió, para que una devolución o un cambio vuelvan a su dueño. Vacío si el movimiento no viene de una devolución ni de un cambio.';
+
 -- Los candados de una fila de stock y de sus dueños, en el mismo orden que usa fn_aplicar_movimiento (primero stock).
 create or replace function retail.fn_bloquear_libro(p_variante_id uuid, p_ubicacion_id uuid, p_sububicacion_id uuid)
 returns void
@@ -422,7 +446,9 @@ begin
     -- Lo que se entrega de un apartado se libera y se vende en la misma transacción: la venta hereda el dueño de lo que se liberó.
     v_memoria := 'cayla.liberado_v' || replace(new.variante_id::text, '-', '_');
     if new.tipo = 'salida' and new.empresa_id is null then
-      v_preferido := nullif(current_setting(v_memoria, true), '')::uuid;
+      v_preferido := coalesce(nullif(current_setting(v_memoria, true), '')::uuid,
+                              -- la prenda nueva de un cambio sale, si hay duda, del dueño de lo que el cliente devolvió
+                              case when new.cambio_id is not null then retail.fn_dueno_de_lo_vendido(null, new.cambio_id) end);
     end if;
     v_dueno := retail.fn_dueno_de_una_salida(new.variante_id, new.ubicacion_id, new.sububicacion_id, new.tipo, v_n, new.empresa_id,
                  case when new.tipo = 'traslado' then new.ubicacion_destino_id end, v_preferido);
@@ -431,7 +457,11 @@ begin
     end if;
   elsif v_entra then
     -- Un traslado que llega desde una sede sin reparto (Trujillo, el Taller) es de CAYLA: CLAURE no existe allá.
-    v_dueno := coalesce(new.empresa_id, case when new.tipo = 'traslado' then v_casa else retail.fn_dueno_de_entrada_sin_elegir(new.variante_id) end);
+    v_dueno := coalesce(
+      new.empresa_id,
+      case when new.tipo = 'traslado' then v_casa
+           -- una devolución o un cambio vuelve al dueño de la venta original; lo demás, el transitorio de la ficha
+           else coalesce(retail.fn_dueno_de_lo_vendido(new.devolucion_item_id, new.cambio_id), retail.fn_dueno_de_entrada_sin_elegir(new.variante_id)) end);
   end if;
 
   new.empresa_id := v_dueno;
@@ -478,6 +508,7 @@ comment on function retail.fn_movimiento_libro_por_dueno() is
 -- Solo las usan los disparadores (que no necesitan EXECUTE para dispararse): nadie las llama por la API.
 revoke all on function retail.fn_sede_con_dos_empresas(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_dueno_de_la_llamada(uuid) from public, anon, authenticated;
+revoke all on function retail.fn_dueno_de_lo_vendido(uuid, uuid) from public, anon, authenticated;
 revoke all on function retail.fn_dueno_de_entrada_sin_elegir(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_bloquear_libro(uuid, uuid, uuid) from public, anon, authenticated;
 revoke all on function retail.fn_reparto_de_la_fila(uuid, uuid, uuid) from public, anon, authenticated;
