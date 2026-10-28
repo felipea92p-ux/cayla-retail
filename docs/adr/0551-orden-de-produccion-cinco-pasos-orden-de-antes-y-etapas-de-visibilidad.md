@@ -50,7 +50,8 @@ A. **Las rutas de pasos son tres ramas de UNA lista, no tres funciones.** La bas
 
 B. **«De antes» es un modo de la orden, no otra tabla.** Una marca en `producciones` (`registro_retroactivo`) y una **fecha real por paso** en `produccion_fases`
    (`fecha_real`, nula en toda orden normal). La orden «de antes» se abre por una función propia, **solo del líder** (`fn_es_lider()`), que escribe los avances y marcas de todos
-   los pasos en **una transacción**: o queda la orden completa, o no queda nada. No se inventa un camino paralelo de avances.
+   los pasos en **una transacción**: o queda la orden completa, o no queda nada. No se inventa un camino paralelo de avances. Una orden **ya abierta** (OP-1, OP-4) se convierte
+   con una función hermana que solo agrega lo que falta y nunca reescribe un avance (pregunta 4).
 
 C. **«Ya estaba en stock» es una forma de cerrar, no un estado nuevo de la orden.** `producciones.estado` sigue siendo `en_proceso · terminada · anulada`; se agrega **cómo
    terminó** (`ingreso_al_stock`: `movimiento` o `ya_estaba`). Con `ya_estaba`, el cierre guarda el costo en la orden y **no escribe en `movimientos` ni toca
@@ -113,11 +114,18 @@ está en tienda cierre **sin movimiento** y con su costo solo en la orden. La vi
    se mantiene para todos los demás: **Vender y la Tienda web nunca la muestran** (no es existencia de ninguna tienda) y el cliente no la ve. Se muestra en Catálogo para que quien edita
    pueda completar fotos y detalles (tejido, patrón, descripción) mientras se fabrica, y para que siga existiendo la cola «Por revisar» (ADR-0371). Las cantidades no se editan ahí: salen
    de la orden y entran al stock al cerrarla.
-3. **«Si la orden lleva botones».** ¿Sale de los avíos del modelo (`20261026152000_produccion_avios_del_modelo.sql`) o es un interruptor de la orden? Propuesta: de los avíos del modelo.
-4. **Las órdenes que ya existen.** OP-1 (lote del Chaleco) y OP-4 (muestra de la Blusa) ¿se anulan y se vuelven a registrar «de antes», o se adaptan? OP-2 y OP-3 son ajenas a la hoja: ¿se tocan?
+3. **RESUELTA (Felipe, 2026-10-27): «lleva ojales y botones» es un dato del modelo.** La primera orden pregunta «¿Lleva ojales y botones?», el modelo se acuerda y las siguientes nacen con
+   el paso prendido (el mismo patrón de la tela y los avíos del modelo, ADR-0513). **Corrige mi propuesta anterior** («de los avíos del modelo»): en Insumos un botón es solo un avío
+   (`insumos.tipo` es `tela` o `avio`, sin forma de distinguirlo), así que no se podía deducir. Costo aceptado: una columna aditiva en el modelo, en la actividad 1.
+4. **RESUELTA (Felipe, 2026-10-27): OP-1 y OP-4 se convierten en «de antes», no se anulan** (mi recomendación era anular y registrar de nuevo; él eligió conservar su número y su historia).
+   Cómo se hace sin romper lo que solo se agrega: la conversión **no reescribe ningún avance** (siguen con la hora en que se anotaron); agrega los avances y marcas que faltan para que cada paso
+   quede `hecha` y pone la **fecha real en el paso** (`produccion_fases.fecha_real`), que es donde se lee la fecha, no en el avance. Es la función hermana de la que abre una orden «de antes»,
+   solo del líder y en una transacción. **Antes de escribirla se mide** si OP-1 y OP-4 ya tienen avances, Salidas o Vueltas. **OP-2 y OP-3 (ajenas a la hoja) no se tocan.**
 5. **Con qué ruta nacieron las 4 órdenes abiertas.** Si tienen siete pasos, la actividad 1 no las afecta; si tienen la ruta anterior, tampoco. Hay que medirlo antes de la 1.
 6. **Pago desde BCP Operativa.** ¿En qué categoría de gasto cae, y la guía/factura del servicio queda como papel de Finanzas (ADR-0400, «el papel sigue como gasto») o se enlaza a la Vuelta?
 7. **Fecha real y Actividad.** ¿Basta una fecha por paso, o también se quiere quién lo hizo en la fecha real? (Propuesta: solo la fecha, la firma es la de quien registra.)
+8. **NUEVA (sale de la 4): el Chaleco no cuadra.** OP-1 es un lote de 57 y la tienda ya tiene 66. Al convertirla, ¿la orden dice 57 (lo que se anotó) o 66 (lo que hay)? La orden «de antes»
+   no mete stock, pero su costo por prenda se divide entre las prendas buenas: 57 y 66 dan costos distintos. Es una decisión de dinero, tuya. Se mide primero cuántas hay de verdad.
 
 ## Cómo se verifica (lo que cada actividad debe demostrar antes de darse por terminada)
 
