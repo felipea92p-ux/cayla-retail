@@ -1408,6 +1408,7 @@ export function InventarioPanel({
         <BuscarPrendaParaAjustar
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
+          ubicacionId={ubicacionId}
           sinStock={sinStock}
           onClose={() => setBuscandoAjuste(false)}
           onElegir={(clave, varianteId) => {
