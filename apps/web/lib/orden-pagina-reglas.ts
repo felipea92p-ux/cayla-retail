@@ -1061,6 +1061,22 @@ export function cantidadesQuePuedenSalir(f: FasePagina): Record<string, number> 
   return salida;
 }
 
+/**
+ * Lo que «Salida» trae escrito de fábrica. Es lo que puede salir, salvo en la primera fase (Corte): ahí lo que la base deja mandar es el plan más un 10 % redondeado hacia arriba en cada talla
+ * y color (el margen por si se corta de más), y precargarlo entero hacía que 57 prendas pedidas salieran como 72. De fábrica parte del plan (menos lo que ya salió), que es lo que se pidió;
+ * el margen sigue como tope en `cantidadesQuePuedenSalir` y quien cortó de más lo escribe a mano. Es el mismo criterio de `cantidadesQueFaltan` para «Terminé».
+ */
+export function cantidadesDeFabricaDeSalida(f: FasePagina, fases: readonly FasePagina[]): Record<string, number> {
+  const tope = cantidadesQuePuedenSalir(f);
+  if (!esPrimeraFase(f, fases)) return tope;
+  const salida: Record<string, number> = {};
+  for (const v of f.porVariante) {
+    const n = Math.min(tope[v.varianteId] ?? 0, Math.max((v.plan ?? v.entrada) - v.salieron, 0));
+    if (n > 0) salida[v.varianteId] = n;
+  }
+  return salida;
+}
+
 /** Lo que está afuera con el servicio, por talla y color (solo las que tienen algo): lo que salió menos lo que ya volvió, buenas, segundas o faltantes. Es el valor de fábrica de «Vuelta». */
 export function cantidadesAfuera(f: FasePagina): Record<string, number> {
   const afuera: Record<string, number> = {};
