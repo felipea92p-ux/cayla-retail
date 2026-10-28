@@ -12,9 +12,9 @@ import { Boton } from "@/components/ui/campos";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
-import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type Quien, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { fasesParaRpc, problemasFases, proveedoresQueSirven, type FaseBorrador, type FaseClave, type QuienBorrador, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { camposDeCambiarQuien } from "@/lib/orden-pagina-guia";
-import { RPC_CAMBIAR_QUIEN_FASE, quienDeFase, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { RPC_CAMBIAR_QUIEN_FASE, fasePorDefinir, quienDeFase, type FasePagina, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import type { OpcionesNuevaOrden } from "@/lib/produccion";
 import { firmar } from "@/lib/responsable-reglas";
 import type { Tolerado } from "@/lib/resultado";
@@ -34,7 +34,7 @@ function borradorDe(f: FasePagina): FaseBorrador {
   return {
     clave: f.clave,
     encendida: true,
-    quien: f.quien,
+    quien: fasePorDefinir(f) ? "por_definir" : f.quien,
     proveedorId: f.proveedorId,
     tarifa: f.tarifaPrenda !== null ? String(f.tarifaPrenda) : "",
     fijo: f.fijoOrden > 0 ? String(f.fijoOrden) : "",
@@ -112,9 +112,15 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
       avisar.error(traducirError(error, `cambiar quién hace ${nombreMinuscula}`, { confirmarAntesDeRepetir: true }));
       return;
     }
-    const nuevoQuien: Quien = borrador.quien;
+    const nuevoQuien: QuienBorrador = borrador.quien;
     const nombreDelServicio = proveedores.find((p) => p.id === borrador.proveedorId)?.nombre;
-    avisar.exito(nuevoQuien === "servicio" ? `${fase.nombre} sale afuera${nombreDelServicio ? ` con ${nombreDelServicio}` : ""}` : `${fase.nombre} la hace el Taller`, {
+    const mensaje =
+      nuevoQuien === "por_definir"
+        ? `${fase.nombre} sale afuera · falta definir a quién`
+        : nuevoQuien === "servicio"
+          ? `${fase.nombre} sale afuera${nombreDelServicio ? ` con ${nombreDelServicio}` : ""}`
+          : `${fase.nombre} la hace el Taller`;
+    avisar.exito(mensaje, {
       detalle: `${datos.orden.numeroTexto} · ${datos.orden.producto.referencia}`,
       accion: {
         texto: "Deshacer",

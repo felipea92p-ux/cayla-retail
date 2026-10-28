@@ -96,6 +96,8 @@ describe("el costo se lee por prenda y se parte en lo que lo forma", () => {
     expect(form).toContain("partesDelCostoPorPrenda({");
     expect(form).toMatch(/porPrenda: unitario,/);
     expect(form).toMatch(/partes: partesDelCosto\.map\(/);
-    expect(form).toMatch(/afuera=\{serviciosSinListar\.map\(/);
+    // Las de afuera sin listar siguen en «Afuera»; detrás van las «por definir» (ADR-0550), que no suman al costo y por eso se dicen aparte.
+    expect(form).toMatch(/afuera=\{\[\s*\.\.\.serviciosSinListar\.map\(/);
+    expect(form).toMatch(/\.\.\.fasesPorDefinir\(fases\)\.map\(/);
   });
 });

@@ -44,6 +44,8 @@ import {
 const OPCIONES_QUIEN = [
   { clave: "taller", etiqueta: "Taller" },
   { clave: "servicio", etiqueta: "Afuera" },
+  // Sale afuera, pero todavía no se sabe a quién ni a cuánto (ADR-0550): se guarda así y no se opera hasta definirlo.
+  { clave: "por_definir", etiqueta: "Por definir" },
 ];
 
 const OPCIONES_POSICION = [
@@ -236,7 +238,8 @@ export function FilaFase({
   return (
     <div className="space-y-3 px-3.5 py-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 flex-1">
+        {/* `min-w-[12rem]`: con tres segmentos (Taller · Afuera · Por definir) el título ya no cabe al lado en 375 px y la fila baja el segmento en vez de apretarlo contra la ayuda. */}
+        <div className="min-w-[12rem] flex-1">
           <p className="flex items-center gap-1.5 font-display text-[17px] leading-tight text-tinta">
             {def.nombre}
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}
@@ -247,7 +250,7 @@ export function FilaFase({
         <SegmentoDeslizante
           etiqueta={`Quién hace ${nombreEnFrase}`}
           valor={fase.quien}
-          onCambio={(v) => onCambiar({ quien: v === "servicio" ? "servicio" : ("taller" satisfies Quien) })}
+          onCambio={(v) => onCambiar({ quien: v === "servicio" ? "servicio" : v === "por_definir" ? "por_definir" : ("taller" satisfies Quien) })}
           opciones={OPCIONES_QUIEN}
         />
       </div>
@@ -262,6 +265,12 @@ export function FilaFase({
           />
           <span className="text-[12.5px] text-tinta/70">{AYUDA_POSICION[fase.posicion ?? "pieza"]}</span>
         </div>
+      )}
+
+      {fase.quien === "por_definir" && (
+        <Aviso tono="info" chico>
+          Se guarda sin saber a quién ni a cuánto. {def.nombre} no puede empezar hasta que elijas proveedor y tarifa; lo haces después con «Definir quién».
+        </Aviso>
       )}
 
       {servicio && def.hito && (

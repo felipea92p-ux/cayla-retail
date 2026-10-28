@@ -49,7 +49,7 @@ import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumo
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { NivelDos } from "@/components/orden-produccion/NivelDos";
 import { esDeNivelDos, nivelDosPideAbrirse, resumenNivelDos } from "@/lib/orden-nivel-dos-reglas";
-import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { costoServiciosEstimado, faseDe, fasesIniciales, fasesParaRpc, fasesPorDefinir, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import {
   aviosSugeridos,
   coloresDeLaOrden,
@@ -982,7 +982,11 @@ export function NuevaOrdenProduccionForm({
                 }
               : null
           }
-          afuera={serviciosSinListar.map((s) => `${s.nombre}: ${s.proveedor ?? "elige a quién"}`)}
+          afuera={[
+            ...serviciosSinListar.map((s) => `${s.nombre}: ${s.proveedor ?? "elige a quién"}`),
+            // Una fase por definir no suma al costo (no hay precio todavía): se dice aquí para que el costo de arriba no parezca completo (ADR-0550).
+            ...fasesPorDefinir(fases).map((f) => `${faseDe(f.clave).nombre}: por definir quién, no suma al costo`),
+          ]}
           margen={verMargen && semaforo ? { porcentaje: Math.round(semaforo.margen * 100), chip: CHIP_SEMAFORO[semaforo.tono] } : null}
           entrega={fechaCorta(fechaEntrega)}
           notaSinPrecio={

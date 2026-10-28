@@ -31,6 +31,12 @@ export type FaseClave =
   | "estampado"
   | "lavanderia";
 export type Quien = "taller" | "servicio";
+/**
+ * Lo que la hoja le pide a la base (`fn_produccion_fases_normalizar`, ADR-0550): además del Taller y de un servicio con proveedor y tarifa, «por definir» —sale afuera pero
+ * todavía no se sabe a quién ni a cuánto—. La base lo guarda como `servicio` con proveedor nulo (`produccion_fases_quien`); una fase guardada así se lee de vuelta como `Quien`
+ * `servicio` con `proveedorId` nulo (`fasePorDefinir`, en `orden-pagina-reglas.ts`). Mientras esté así, no se opera (`fase_por_definir`).
+ */
+export type QuienBorrador = Quien | "por_definir";
 /** Solo bordado y estampado: sobre la pieza cortada (antes de costura) o sobre la prenda armada (después). */
 export type Posicion = "pieza" | "prenda";
 
@@ -120,7 +126,7 @@ export function secuenciaDe(clave: FaseClave, posicion: Posicion | null): number
 export type FaseBorrador = {
   clave: FaseClave;
   encendida: boolean;
-  quien: Quien;
+  quien: QuienBorrador;
   proveedorId: string | null;
   tarifa: string;
   fijo: string;
@@ -167,6 +173,11 @@ export function fasesEncendidas(fases: readonly FaseBorrador[]): FaseBorrador[] 
     unicas.push(f);
   }
   return ordenarFases(unicas);
+}
+
+/** Las fases que viajan «por definir» (salen afuera, sin saber a quién todavía), en el orden de la ruta: la hoja las dice en su resumen y la ficha avisa que su costo falta. */
+export function fasesPorDefinir(fases: readonly FaseBorrador[]): FaseBorrador[] {
+  return fasesEncendidas(fases).filter((f) => f.quien === "por_definir");
 }
 
 // ---------- La lista de precios del proveedor (sugiere; la fase copia y congela) ----------
@@ -306,6 +317,7 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     if (cat.posicionable && f.posicion === null) {
       di("fase_sin_posicion", `${nombre} dice si va sobre la pieza cortada o sobre la prenda armada.`);
     }
+    // Una fase del Taller no tiene nada que decir, y una por definir tampoco: no lleva proveedor, tarifa, fijo ni fecha hasta que se sepa (ADR-0550).
     if (f.quien !== "servicio") continue;
 
     if (!f.proveedorId) {
@@ -407,7 +419,7 @@ export function serviciosConCosto(
 
 export type FaseRpc = {
   clave: FaseClave;
-  quien: Quien;
+  quien: QuienBorrador;
   proveedor_id: string | null;
   tarifa_prenda: string | null;
   fijo_orden: string | null;
@@ -440,6 +452,7 @@ export function fasesParaRpc(fases: readonly FaseBorrador[], lista: readonly Tar
       fecha_prometida: null,
       posicion: cat.posicionable ? f.posicion : null,
     };
+    // El Taller y «por definir» viajan con todo en null: lo que haya quedado escrito en las cajas de un servicio no se manda (la base lo ignoraría igual).
     if (f.quien !== "servicio") return base;
     const s = leerServicio(f, lista, hoy);
     const fecha = f.fechaPrometida.trim();

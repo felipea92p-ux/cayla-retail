@@ -493,6 +493,7 @@ export function estadoDeLaOrden(o: OrdenPagina["orden"], fases: readonly FasePag
   if (todasLasQueCuentanHechas(fases)) return { texto: "Lista para pasar al stock", tono: "verde" };
   const actual = fases.find((f) => f.actual) ?? null;
   if (!actual) return { texto: "En proceso", tono: "pizarra" };
+  if (fasePorDefinir(actual)) return { texto: `En ${actual.nombre.toLocaleLowerCase("es")} · falta definir quién`, tono: "ambar" };
   return { texto: `En ${actual.nombre.toLocaleLowerCase("es")}${actual.quien === "servicio" ? " · afuera" : ""}`, tono: "pizarra" };
 }
 
@@ -544,8 +545,17 @@ export function previaQueCuenta(fases: readonly FasePagina[], indice: number): F
   return null;
 }
 
-/** Quién la hace, en una palabra: «Taller» o el nombre del servicio. */
+/**
+ * Una fase que sale afuera pero todavía no dice a quién (ADR-0550): `quien = servicio` con proveedor nulo, que es como la base la guarda (`produccion_fases_quien`). Mientras esté así
+ * no se opera (la base rechaza con `fase_por_definir`): su acción es «Definir quién».
+ */
+export function fasePorDefinir(f: Pick<FasePagina, "quien" | "proveedorId">): boolean {
+  return f.quien === "servicio" && f.proveedorId === null;
+}
+
+/** Quién la hace, en una palabra: «Taller», el nombre del servicio o «Por definir». */
 export function quienDeFase(f: FasePagina): string {
+  if (fasePorDefinir(f)) return "Por definir";
   return f.quien === "servicio" ? (f.proveedorNombre ?? "Un servicio") : "Taller";
 }
 
@@ -588,6 +598,8 @@ export type AccionFase = "terminar" | "salida" | "vuelta" | "marcar" | "desmarca
  */
 export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos" | "fases">): AccionFase[] {
   if (!p.permisos.puedeOperar || p.orden.estado !== "en_proceso") return [];
+  // Por definir no se opera (la base lo rechaza): lo único que toca es «Definir quién» (`puedeCambiarQuien`), que la ruta dibuja aparte.
+  if (fasePorDefinir(f)) return [];
   if (f.hito) return f.marcada ? ["desmarcar"] : ["marcar"];
   if (f.estado === "hecha") return [];
   if (f.quien === "taller") return faltaTerminar(f, p.fases) > 0 ? ["terminar"] : [];
@@ -597,7 +609,7 @@ export function accionesDeFase(f: FasePagina, p: Pick<OrdenPagina, "orden" | "pe
   return acciones;
 }
 
-export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "pasar_al_stock" | "nada" };
+export type Siguiente = { fase: FasePagina | null; accion: AccionFase | "definir" | "pasar_al_stock" | "nada" };
 
 /** Qué sigue en la orden: la fase actual y lo que le toca (terminar, mandar, recibir), o pasar al stock cuando las tres terminaron. */
 export function queSigue(fases: readonly FasePagina[], estado: EstadoOrden): Siguiente {
@@ -605,6 +617,7 @@ export function queSigue(fases: readonly FasePagina[], estado: EstadoOrden): Sig
   if (todasLasQueCuentanHechas(fases)) return { fase: fases[fases.length - 1], accion: "pasar_al_stock" };
   const actual = fases.find((f) => f.actual) ?? null;
   if (!actual) return { fase: null, accion: "nada" };
+  if (fasePorDefinir(actual)) return { fase: actual, accion: "definir" };
   if (actual.hito) return { fase: actual, accion: "marcar" };
   if (actual.quien === "taller") return { fase: actual, accion: faltaTerminar(actual, fases) > 0 ? "terminar" : "nada" };
   if (actual.afuera > 0) return { fase: actual, accion: "vuelta" };
@@ -617,6 +630,8 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
   if (!s.fase) return null;
   const fase = s.fase.nombre.toLocaleLowerCase("es");
   switch (s.accion) {
+    case "definir":
+      return `Sigue: definir quién hace ${fase}.`;
     case "marcar":
       return `Sigue: marcar ${fase} como hecho.`;
     case "terminar":
@@ -654,6 +669,8 @@ export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; ter
   const conExtras = (base: string) => [base, ...extras].join(" · ");
   const servicio = f.quien === "servicio";
   if (f.hito) return textoDeHito(f, ctx.terminoEl);
+  // Sin proveedor todavía: no hay a quién mandar ni de quién recibir, y nada de lo de abajo tiene sentido (ADR-0550).
+  if (fasePorDefinir(f)) return { cifra: String(f.hechas), de: `de ${total}`, detalle: "Falta definir quién la hace" };
   const de = servicio ? `de ${total} de vuelta` : f.estado === "pendiente" && f.hechas === 0 ? `de ${total}` : `de ${total} terminadas`;
 
   if (f.estado === "hecha") {
@@ -683,6 +700,7 @@ export function textoDeFase(f: FasePagina, ctx: { previa: FasePagina | null; ter
 /** Lo que dice la pieza de una fase que se marca (Ploteo): «Hecho · Marcado el jue 15», o «Por hacer» y de quién espera la marcada. No cuenta prendas. */
 function textoDeHito(f: FasePagina, terminoEl: string | null): TextoDeFase {
   const quien = quienDeFase(f);
+  if (fasePorDefinir(f)) return { cifra: "Por hacer", de: "", detalle: "Falta definir quién la hace" };
   const cobra = f.quien === "servicio" && f.fijoOrden > 0 ? ` · S/\u00a0${f.fijoOrden.toFixed(2)} por orden` : "";
   if (f.marcada) return { cifra: "Hecho", de: "", detalle: `${terminoEl ? `Marcado el ${diaCorto(fechaLimaDe(terminoEl))}` : "Marcado"}${f.quien === "servicio" ? ` · con ${quien}` : ""}${cobra}` };
   const prometido = f.quien === "servicio" && f.fechaPrometida ? ` · prometido ${diaCorto(f.fechaPrometida)}` : "";
@@ -785,7 +803,7 @@ export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false
 // ---------- El costo ----------
 
 export type FilaDeCosto = { clave: string; concepto: string; detalle: string | null; estimado: string; real: string; realPendiente: boolean };
-export type TablaDeCosto = { filas: FilaDeCosto[]; total: { estimado: string; real: string }; porPrenda: { estimado: string; real: string; realPendiente: boolean } };
+export type TablaDeCosto = { filas: FilaDeCosto[]; /** Las fases afuera sin proveedor todavía: su costo no está en el total (ADR-0550). */ faltaDefinir: string[]; total: { estimado: string; real: string }; porPrenda: { estimado: string; real: string; realPendiente: boolean } };
 
 /**
  * Estimado contra real por concepto (tela, avíos y cada servicio de afuera), el total y el costo por prenda. Donde todavía no hay real lo dice con su momento («al volver», «al
@@ -795,6 +813,7 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
   if (!p.permisos.veCostos || !p.costos) return null;
   const c = p.costos;
   const filas: FilaDeCosto[] = [];
+  const porDefinir: string[] = [];
   const plan = Math.max(p.orden.cantidadPlan, 0);
   const telas = p.insumos.filter((i) => i.tipo === "tela");
   const avios = p.insumos.filter((i) => i.tipo === "avio");
@@ -816,6 +835,12 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
   }
   for (const f of p.fases) {
     if (f.quien !== "servicio") continue;
+    // Sin proveedor no hay precio: se dice «por definir», nunca S/ 0.00 (parecería gratis), y el total queda parcial (`faltaDefinir`).
+    if (fasePorDefinir(f)) {
+      porDefinir.push(f.nombre);
+      filas.push({ clave: `servicio-${f.id}`, concepto: `${f.nombre} afuera`, detalle: "Falta definir quién la hace", estimado: "por definir", real: "aún no", realPendiente: true });
+      continue;
+    }
     const tarifa = f.tarifaPrenda ?? 0;
     const hayVuelta = f.devengado !== null && f.devengado > 0;
     filas.push({
@@ -830,6 +855,7 @@ export function textoCosto(p: OrdenPagina): TablaDeCosto | null {
   const cerrada = p.orden.estado === "terminada" && (p.orden.cantidadBuenas ?? 0) > 0;
   return {
     filas,
+    faltaDefinir: porDefinir,
     total: { estimado: monto(c.totalEstimado), real: monto(c.totalRealHastaHoy) },
     porPrenda: {
       estimado: plan > 0 ? monto(c.totalEstimado / plan) : "—",

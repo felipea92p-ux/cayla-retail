@@ -45,7 +45,7 @@ function orden(parche: { orden?: Crudo; fases?: Crudo[]; lineas?: Crudo[]; insum
       { variante_id: "n", talla: "30", color_nombre: "Negro", color_hex: "#111111", cantidad_plan: 30, cantidad_buenas: null },
       { variante_id: "c", talla: "30", color_nombre: "Caqui", color_hex: "#c3a77a", cantidad_plan: 18, cantidad_buenas: null },
     ],
-    fases: parche.fases ?? [hecha("corte", 10), fase("costura", 30, { quien: "servicio", proveedor_nombre: "Confecciones del Norte", entrada: 48, salieron: 48, afuera: 48, estado: "en_curso", actual: true, empezada: true, desde: "2026-10-16", dias_en_fase: 3 }), fase("acabado", 60)],
+    fases: parche.fases ?? [hecha("corte", 10), fase("costura", 30, { quien: "servicio", proveedor_id: "prov-1", proveedor_nombre: "Confecciones del Norte", entrada: 48, salieron: 48, afuera: 48, estado: "en_curso", actual: true, empezada: true, desde: "2026-10-16", dias_en_fase: 3 }), fase("acabado", 60)],
     insumos: parche.insumos ?? [],
     costos: null,
     linea_de_tiempo: parche.linea_de_tiempo ?? [{ id: "e-1", cuando: "2026-10-18T15:00:00+00:00", quien_nombre: "Rosa", tipo: "salida", fase_clave: "costura", fase_nombre: "Costura", cantidad: 48, detalle: "48 prendas" }],
@@ -103,9 +103,9 @@ describe("filaDeLaLista — una orden en una fila, con las reglas de su página"
   it("una fase del Taller dice «Taller · 21 de 36»; un servicio sin nada mandado, «por mandar»; uno que ya devolvió algo y no tiene nada afuera, lo que lleva", () => {
     const taller = fila({ fases: [hecha("corte", 10, 36), hecha("costura", 30, 36), fase("acabado", 60, { entrada: 36, hechas: 21, estado: "en_curso", actual: true, empezada: true, desde: "2026-10-15", dias_en_fase: 4 })] });
     expect(taller).toMatchObject({ quien: "Taller · 21 de 36", chip: { texto: "En acabado" }, grupo: "acabado", afuera: 0, dias: { n: 4, desde: "desde jue 15" } });
-    const porMandar = fila({ fases: [hecha("corte", 10), fase("costura", 30, { quien: "servicio", proveedor_nombre: "Confecciones del Norte", entrada: 48, estado: "pendiente", actual: true }), fase("acabado", 60)] });
+    const porMandar = fila({ fases: [hecha("corte", 10), fase("costura", 30, { quien: "servicio", proveedor_id: "prov-1", proveedor_nombre: "Confecciones del Norte", entrada: 48, estado: "pendiente", actual: true }), fase("acabado", 60)] });
     expect(porMandar.quien).toBe("Confecciones del Norte · por mandar");
-    const devolvio = fila({ fases: [hecha("corte", 10), fase("costura", 30, { quien: "servicio", proveedor_nombre: "Confecciones del Norte", entrada: 48, hechas: 20, salieron: 48, afuera: 0, estado: "en_curso", actual: true, empezada: true }), fase("acabado", 60)] });
+    const devolvio = fila({ fases: [hecha("corte", 10), fase("costura", 30, { quien: "servicio", proveedor_id: "prov-1", proveedor_nombre: "Confecciones del Norte", entrada: 48, hechas: 20, salieron: 48, afuera: 0, estado: "en_curso", actual: true, empezada: true }), fase("acabado", 60)] });
     expect(devolvio.quien).toBe("Confecciones del Norte · 20 de 48");
   });
   it("una orden que todavía no empezó su fase cuenta los días desde que se abrió", () => {
@@ -249,8 +249,12 @@ describe("una fase que se marca (Ploteo) en la fila de la lista", () => {
   it("dice quién la tiene y que falta hacerla, sin «0 de 0» ni «por mandar»; no hay prendas afuera", () => {
     const taller = fila({ fases: NUEVA(ploteo()) });
     expect(taller).toMatchObject({ quien: "Taller · por hacer", chip: { texto: "En ploteo" }, grupo: "ploteo", afuera: 0 });
-    const afuera = fila({ fases: NUEVA(ploteo({ quien: "servicio", proveedor_nombre: "Plotter Lima", fijo_orden: 40 })) });
+    const afuera = fila({ fases: NUEVA(ploteo({ quien: "servicio", proveedor_id: "prov-1", proveedor_nombre: "Plotter Lima", fijo_orden: 40 })) });
     expect(afuera).toMatchObject({ quien: "Plotter Lima · por hacer", chip: { texto: "En ploteo · afuera" }, grupo: "ploteo", afuera: 0 });
+  });
+  it("un ploteo por definir (afuera sin proveedor todavía) dice que falta definir quién, en ámbar, en vez de inventar un servicio (ADR-0550)", () => {
+    const porDefinir = fila({ fases: NUEVA(ploteo({ quien: "servicio", proveedor_id: null })) });
+    expect(porDefinir).toMatchObject({ quien: "Falta definir quién", chip: { texto: "En ploteo · falta definir quién", tono: "ambar" }, grupo: "ploteo", afuera: 0 });
   });
   it("marcado, la orden sigue por su fase de siempre; un ploteo sin marcar no impide «lista para el stock»", () => {
     const marcado = fila({ fases: NUEVA(ploteo({ estado: "hecha", actual: false, empezada: true, marcada: true })).map((f) => (f.clave === "corte" ? { ...f, actual: true, estado: "en_curso", empezada: true, hechas: 10 } : f)) });

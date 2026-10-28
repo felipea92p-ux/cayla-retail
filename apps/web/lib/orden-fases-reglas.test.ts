@@ -14,6 +14,7 @@ import {
   fasesEncendidas,
   fasesIniciales,
   fasesParaRpc,
+  fasesPorDefinir,
   leerEntero,
   leerServicio,
   ordenarFases,
@@ -512,5 +513,41 @@ describe("la pantalla no promete lo que la base rechaza, ni frena lo que la base
     // Que el azar de verdad llegue a «todo en orden» (y con servicios afuera), si no la prueba no probaría nada.
     expect(sinProblemas).toBeGreaterThan(20);
     expect(conServicio).toBeGreaterThan(5);
+  });
+});
+
+// ---------- «Afuera, por definir» (ADR-0550) ----------
+
+const MIGRACION_POR_DEFINIR = "supabase/migrations/20261028034000_produccion_fase_afuera_por_definir.sql";
+
+describe("una fase afuera «por definir»: sale afuera pero todavía no se sabe a quién ni a cuánto", () => {
+  it("no tiene nada que decir: sin proveedor ni tarifa no falta nada, a diferencia de «Afuera» sin proveedor, que sigue pidiendo a quién", () => {
+    expect(hints(con("costura", { encendida: true, quien: "por_definir" }))).toEqual([]);
+    expect(hints(con("costura", { encendida: true, quien: "servicio", proveedorId: null }))).toEqual(["fase_sin_proveedor", "fase_sin_tarifa"]);
+    // Ni siquiera lo escrito de más (una tarifa con coma) se juzga: no viaja.
+    expect(hints(con("costura", { encendida: true, quien: "por_definir", tarifa: "4,5", fechaPrometida: "2020-01-01" }))).toEqual([]);
+  });
+  it("viaja como «por_definir» con todo en null, aunque las cajas del servicio tengan algo escrito (la base lo ignoraría igual)", () => {
+    const fases = con("costura", { encendida: true, quien: "por_definir", proveedorId: CONF.id, tarifa: "4.50", fijo: "10", minimo: "100", fechaPrometida: "2026-10-30" });
+    const costura = fasesParaRpc(fases, LISTA, HOY).find((f) => f.clave === "costura");
+    expect(costura).toEqual({ clave: "costura", quien: "por_definir", proveedor_id: null, tarifa_prenda: null, fijo_orden: null, cantidad_minima: null, fecha_prometida: null, posicion: null });
+  });
+  it("fasesPorDefinir las lista en el orden de la ruta, y una apagada que no es de la espina no cuenta", () => {
+    const fases = con("corte", { quien: "por_definir" }, con("costura", { quien: "por_definir" }, con("bordado", { quien: "por_definir", encendida: false })));
+    expect(fasesPorDefinir(fases).map((f) => f.clave)).toEqual(["corte", "costura"]);
+    expect(fasesPorDefinir(iniciales())).toEqual([]);
+  });
+  it("no suma costo: sin proveedor no hay precio, y solo con fases por definir no hay servicio que estimar", () => {
+    const fases = con("costura", { quien: "por_definir" });
+    expect(costoServiciosEstimado(fases, 50, LISTA, HOY)).toBeNull();
+    expect(serviciosConCosto(fases, 50, LISTA, HOY, PROVEEDORES)).toEqual([]);
+  });
+  it("el vocabulario es el de la migración: la base acepta «por_definir» en su validación, lo guarda como servicio sin proveedor y rechaza operar con «fase_por_definir»", () => {
+    const sql = readFileSync(join(RAIZ, MIGRACION_POR_DEFINIR), "utf8");
+    expect(sql).toContain("'servicio', 'por_definir'");
+    expect(sql).toMatch(/if v_quien = 'por_definir' then\s+v_quien := 'servicio';/);
+    expect(sql).toContain("using hint = 'fase_por_definir'");
+    // Un servicio sin proveedor solo existe sin tarifa, fijo, mínimo ni fecha: el esquema impide la deuda sin nombre.
+    expect(sql).toMatch(/when proveedor_id is null\s+then tarifa_prenda is null and fijo_orden = 0 and cantidad_minima is null and fecha_prometida is null/);
   });
 });

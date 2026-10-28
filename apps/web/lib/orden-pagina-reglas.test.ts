@@ -29,6 +29,7 @@ import {
   esPrimeraFase,
   estadoDeLaOrden,
   faltaTerminar,
+  fasePorDefinir,
   fechaLimaDe,
   filasDeTela,
   fraseDeLaOrden,
@@ -1176,5 +1177,47 @@ describe("la tela de la orden con consumo por talla", () => {
     const fila = filasDeTela(orden({ insumos: [lino({ consumo_por_talla: { M: 1.5, S: 1 } })] }).insumos)[0];
     expect(fila.detalle).toBe("S 1 m · M 1.5 m por prenda");
     expect(filasDeTela(orden({ insumos: [lino({})] }).insumos)[0].detalle).toBe("1.33 m por prenda");
+  });
+});
+
+describe("una fase afuera por definir (ADR-0550): se lee como servicio sin proveedor y no se opera", () => {
+  /** La costura sale afuera pero todavía no dice a quién: como la guarda la base (`servicio` con proveedor nulo y sin tarifa). */
+  const porDefinir = () =>
+    orden({
+      fases: crudo().fases.map((f) =>
+        f.clave === "costura"
+          ? faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: null, estado: "pendiente", actual: true }, { entrada: 8 })
+          : f
+      ),
+    });
+  const costura = (p: OrdenPagina) => p.fases.find((f) => f.clave === "costura") as FasePagina;
+
+  it("fasePorDefinir: un servicio sin proveedor, no uno con proveedor ni uno del Taller", () => {
+    const p = porDefinir();
+    expect(fasePorDefinir(costura(p))).toBe(true);
+    expect(fasePorDefinir(costura(orden()))).toBe(false);
+    expect(fasePorDefinir(p.fases[0])).toBe(false);
+    expect(quienDeFase(costura(p))).toBe("Por definir");
+  });
+  it("no ofrece Terminé, Salida ni Vuelta, pero sí cambiar quién (todavía no empezó); lo que sigue es definirlo", () => {
+    const p = porDefinir();
+    expect(accionesDeFase(costura(p), p)).toEqual([]);
+    expect(puedeCambiarQuien(costura(p), p)).toBe(true);
+    expect(queSigue(p.fases, p.orden.estado)).toMatchObject({ accion: "definir" });
+    expect(textoQueSigue(queSigue(p.fases, p.orden.estado), p.fases)).toBe("Sigue: definir quién hace costura.");
+  });
+  it("el chip de la orden dice que falta definir quién (ámbar) y la pieza de la fase no inventa un servicio", () => {
+    const p = porDefinir();
+    expect(estadoDeLaOrden(p.orden, p.fases)).toEqual({ texto: "En costura · falta definir quién", tono: "ambar" });
+    const t = textoDeFase(costura(p), { previa: p.fases[0], terminoEl: null, totalPlan: 48 });
+    expect(t.detalle).toBe("Falta definir quién la hace");
+    expect(t.detalle).not.toMatch(/Un servicio|afuera con/);
+  });
+  it("el costo no pone S/ 0.00 (parecería gratis): dice «por definir» y avisa que el total no la incluye", () => {
+    const tabla = textoCosto(porDefinir());
+    const fila = tabla?.filas.find((f) => f.clave === "servicio-f-costura");
+    expect(fila).toMatchObject({ concepto: "Costura afuera", estimado: "por definir", real: "aún no", realPendiente: true });
+    expect(tabla?.faltaDefinir).toEqual(["Costura"]);
+    expect(textoCosto(orden())?.faltaDefinir).toEqual([]);
   });
 });

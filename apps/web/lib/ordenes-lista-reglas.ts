@@ -5,6 +5,7 @@ import { etapaActual, type EstadoEtapa, type EtapaClave } from "./produccion-reg
 import {
   diaCorto,
   estadoDeLaOrden,
+  fasePorDefinir,
   fechaLimaDe,
   leerOrdenPagina,
   quienDeFase,
@@ -101,6 +102,8 @@ function textoDeQuien(p: OrdenPagina): string {
   const actual = p.fases.find((f) => f.actual) ?? null;
   if (!actual) return todasLasQueCuentanHechas(p.fases) ? "Taller · todas las fases listas" : "Taller";
   const quien = quienDeFase(actual);
+  // Sin proveedor todavía: no hay a quién mandar ni de quién recibir (ADR-0550).
+  if (fasePorDefinir(actual)) return "Falta definir quién";
   // Una fase que se marca (Ploteo) no cuenta prendas: no hay «0 de 0» ni «por mandar», solo quién la tiene y que falta hacerla.
   if (actual.hito) return `${quien} · por hacer`;
   if (actual.quien === "servicio") {

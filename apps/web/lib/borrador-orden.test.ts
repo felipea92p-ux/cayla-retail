@@ -94,6 +94,13 @@ describe("guardar y leer", () => {
     expect(ultimoBorrador(a, TALLER)?.foto).toEqual(f);
     expect(hayBorradorEnElTaller(a, TALLER)).toBe(true);
   });
+  it("un borrador con una fase «por definir» (ADR-0550) se guarda y vuelve a leerse: el que lo escribió no lo pierde", () => {
+    const a = almacen();
+    const fases = fasesIniciales().map((f) => (f.clave === "corte" ? { ...f, quien: "por_definir" as const } : f));
+    const f = foto({ fases });
+    expect(guardarBorrador(a, TALLER, f)).toBe(true);
+    expect(leerBorradorGuardado(a, TALLER, "m-1")?.foto.fases.find((x) => x.clave === "corte")?.quien).toBe("por_definir");
+  });
   it("es por Taller y por modelo: otro modelo u otro Taller no lo ven", () => {
     const a = almacen();
     guardarBorrador(a, TALLER, foto({ productoId: "m-1" }));

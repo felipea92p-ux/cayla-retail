@@ -19,6 +19,7 @@ import {
   avisoMinimoDeFase,
   cuandoTerminoLaFase,
   faltaTerminar,
+  fasePorDefinir,
   previaQueCuenta,
   puedeCambiarQuien,
   quienDeFase,
@@ -76,6 +77,8 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
           const aviso = avisoMinimoDeFase(fase, orden.cantidadPlan);
           const cambiar = puedeCambiarQuien(fase, datos);
           const servicio = fase.quien === "servicio";
+          // Sin proveedor todavía (ADR-0550): no hay nada que operar, así que lo que toca es definir quién, a la vista y en primer plano si es la que sigue.
+          const porDefinir = fasePorDefinir(fase);
           const estadoTexto = fase.estado === "hecha" ? "hecha" : fase.actual ? "en curso" : "pendiente";
           return (
             <li
@@ -138,7 +141,12 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
                       Salida
                     </Boton>
                   )}
-                  {cambiar && (
+                  {cambiar && porDefinir && (
+                    <Boton type="button" peso={fase.actual ? "primario" : "fantasma"} aria-haspopup="dialog" data-guia={fase.id === idDeLaQueCambia ? "prod-orden.cambiar-quien" : undefined} onClick={() => setHoja({ tipo: "quien", faseId: fase.id })}>
+                      Definir quién
+                    </Boton>
+                  )}
+                  {cambiar && !porDefinir && (
                     <button type="button" aria-haspopup="dialog" data-guia={fase.id === idDeLaQueCambia ? "prod-orden.cambiar-quien" : undefined} onClick={() => setHoja({ tipo: "quien", faseId: fase.id })} className="btn-cayla btn-enlace text-[12.5px]">
                       Cambiar quién
                     </button>

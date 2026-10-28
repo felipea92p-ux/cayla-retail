@@ -86,7 +86,7 @@ const CLAVES_DE_FASE = new Set<string>(FASES.map((f) => f.clave));
 function esFase(x: unknown): x is FaseBorrador {
   if (!esObjeto(x)) return false;
   return (
-    esTexto(x.clave) && CLAVES_DE_FASE.has(x.clave) && typeof x.encendida === "boolean" && (x.quien === "taller" || x.quien === "servicio") && esTextoONulo(x.proveedorId) &&
+    esTexto(x.clave) && CLAVES_DE_FASE.has(x.clave) && typeof x.encendida === "boolean" && (x.quien === "taller" || x.quien === "servicio" || x.quien === "por_definir") && esTextoONulo(x.proveedorId) &&
     esTexto(x.tarifa) && esTexto(x.fijo) && esTexto(x.minimo) && esTexto(x.fechaPrometida) && (x.posicion === null || x.posicion === "pieza" || x.posicion === "prenda")
   );
 }

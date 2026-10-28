@@ -30,8 +30,12 @@ export function resumenNivelDos(o: EntradaDeResumen): string {
   if (o.hayModelo) {
     const encendidas = o.fases.filter((f) => f.encendida);
     const afuera = encendidas.filter((f) => f.quien === "servicio");
+    const porDefinir = encendidas.filter((f) => f.quien === "por_definir");
     partes.push(`${encendidas.length} ${encendidas.length === 1 ? "fase" : "fases"}`);
-    partes.push(afuera.length === 0 ? "todo en el Taller" : `${afuera.length} afuera (${afuera.map((f) => faseDe(f.clave).nombre).join(", ")})`);
+    if (afuera.length === 0 && porDefinir.length === 0) partes.push("todo en el Taller");
+    if (afuera.length > 0) partes.push(`${afuera.length} afuera (${afuera.map((f) => faseDe(f.clave).nombre).join(", ")})`);
+    // Una fase por definir se dice con su nombre (ADR-0550): nunca queda escondida bajo «todo en el Taller».
+    if (porDefinir.length > 0) partes.push(`por definir quién (${porDefinir.map((f) => faseDe(f.clave).nombre).join(", ")})`);
     partes.push(o.telasElegidas === 0 ? "sin tela elegida" : `${o.telasElegidas} ${o.telasElegidas === 1 ? "tela" : "telas"}`);
   }
   partes.push(o.entrega ? `entrega ${o.entrega}` : "sin fecha de entrega");

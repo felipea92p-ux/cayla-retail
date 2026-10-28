@@ -493,7 +493,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cambiar quién la hace",
-      texto: "Mientras una fase no empiece puedes cambiar si la hace el Taller o sale afuera, y a quién. Cuando se anota el primer avance o la primera salida, ya no se cambia.",
+      texto: "Mientras una fase no empiece puedes cambiar si la hace el Taller o sale afuera, y a quién. Si aún no sabes a quién, queda «Por definir» y la completas con «Definir quién». Con el primer avance o la primera salida, ya no se cambia.",
     },
     {
       id: "quien-fase",
@@ -501,7 +501,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
-      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio, cuánto cobra por prenda (su lista de precios lo sugiere), desde cuántas prendas cobra y para cuándo lo promete. En la demo no guardamos el cambio.",
+      texto: "Eliges Taller, Afuera o Por definir. Si sale afuera: a qué servicio, cuánto cobra por prenda (su lista lo sugiere) y para cuándo lo promete. «Por definir» guarda la fase sin saber a quién: no empieza hasta definirlo. En la demo no guardamos.",
     },
     {
       id: "tela",

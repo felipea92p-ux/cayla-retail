@@ -13,6 +13,12 @@ describe("resumenNivelDos — la línea que habla por lo plegado", () => {
     const fases = fasesIniciales().map((f) => (f.clave === "costura" || f.clave === "corte" ? { ...f, quien: "servicio" as const } : f));
     expect(resumenNivelDos({ ...base, fases })).toBe("7 fases · 2 afuera (Corte, Costura) · sin tela elegida · sin fecha de entrega");
   });
+  it("una fase por definir se dice con su nombre y nunca queda escondida bajo «todo en el Taller» (ADR-0550)", () => {
+    const fases = fasesIniciales().map((f) => (f.clave === "corte" ? { ...f, quien: "por_definir" as const } : f));
+    expect(resumenNivelDos({ ...base, fases })).toBe("7 fases · por definir quién (Corte) · sin tela elegida · sin fecha de entrega");
+    const mixtas = fasesIniciales().map((f) => (f.clave === "corte" ? { ...f, quien: "por_definir" as const } : f.clave === "costura" ? { ...f, quien: "servicio" as const } : f));
+    expect(resumenNivelDos({ ...base, fases: mixtas })).toBe("7 fases · 1 afuera (Costura) · por definir quién (Corte) · sin tela elegida · sin fecha de entrega");
+  });
   it("una sola fase afuera, una tela, la fecha y la nota", () => {
     const fases = fasesIniciales().map((f) => (f.clave === "costura" ? { ...f, quien: "servicio" as const } : f));
     expect(resumenNivelDos({ ...base, fases, telasElegidas: 1, entrega: "23 oct", hayNota: true })).toBe("7 fases · 1 afuera (Costura) · 1 tela · entrega 23 oct · con nota");

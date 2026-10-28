@@ -1,3 +1,4 @@
+import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { textoCosto, type OrdenPagina } from "@/lib/orden-pagina-reglas";
@@ -50,6 +51,11 @@ export function CostoDeLaOrden({ datos }: { datos: OrdenPagina }) {
           </span>
         </div>
       </Tabla>
+      {costo.faltaDefinir.length > 0 && (
+        <Aviso tono="atencion" chico>
+          El total no incluye {costo.faltaDefinir.map((n) => n.toLocaleLowerCase("es")).join(" ni ")}: falta definir quién {costo.faltaDefinir.length === 1 ? "la hace" : "las hace"} y a cuánto.
+        </Aviso>
+      )}
     </section>
   );
 }

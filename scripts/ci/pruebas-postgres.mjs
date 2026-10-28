@@ -1598,6 +1598,10 @@ export const PRUEBAS = [
   // lo marcado solo se agrega; la línea de tiempo y las puertas. ROLLBACK.
   "pruebas:produccion-ploteo",
 
+  // Una fase que sale afuera puede quedar «por definir» (ADR-0550): se guarda como servicio sin proveedor ni tarifa, no se opera hasta definirla (`fase_por_definir`), el esquema
+  // sigue prohibiendo la deuda sin nombre y completarla pasa por «Cambiar quién». ROLLBACK.
+  "pruebas:produccion-fase-por-definir",
+
   // Una orden completa con la ruta nueva, de punta a punta (ADR-0400 act. k y l, R1, actividad 6): ploteo marcado, costura y planchado afuera con su Salida y su Vuelta, etiquetado y
   // pasar al stock con el costo devengado repartido entre las buenas; el candado mira la última fase; nada se cierra ni se anula con prendas afuera; un ploteo sin marcar no devenga;
   // revertir devuelve el stock. ROLLBACK.
