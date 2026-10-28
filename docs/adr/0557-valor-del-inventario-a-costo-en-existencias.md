@@ -57,7 +57,8 @@ espera que esta cifra siga cuadrando con ella; o si una sede llega a miles de ta
 ## Pendiente de Felipe
 
 1. **Pegar `supabase/migrations/20261028211000_valor_inventario_existencias.sql` en producción** (una sola parte: dos funciones y su permiso, sin
-   políticas ni `alter`). Hasta entonces el enlace no aparece (la pantalla calla si la función no existe).
+   políticas ni `alter`) **DESPUÉS de `20261027222000` y `20261028153000` (ADR-0542)**: las funciones leen `retail.stock_dueno`, y sin esa tabla el
+   pegado falla con `42P01` y no se aplica nada. Hasta entonces el enlace no aparece (la pantalla calla si la función no existe).
 2. **Confirmar quién la ve.** Se eligió «líder + quien ve el dinero de Compras». La migración `20261022225000` dice que la Terminal Almacén tiene
    Facturas de compra y Por pagar: si es así, **la terminal de almacén la verá en su sede**. No se verificó en producción (lectura denegada).
    Revisar en Colaboradores ▸ Roles y accesos.
