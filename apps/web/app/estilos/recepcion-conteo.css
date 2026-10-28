@@ -47,19 +47,19 @@ button.rc-parada:disabled { cursor: default; }
 /* La chica vive en filas de cebra (papel y hueso): un tinte de tinta se ve igual sobre las dos; papel desaparecía en una y hueso en la otra. */
 .rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
 
-/* ---- La lista de categorías del envío ---- */
-.rc-cat-item { position: relative; display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border: 1px solid transparent; border-radius: 16px; text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
+/* ---- Las categorías del envío, en una fila de píldoras (opción A, Felipe 2026-10-28) ---- */
+/* Una píldora por categoría: su ícono, el nombre, lo contado (y «/lo que dijeron») y la marca de la guía de foco (✓ hecha, ● sigue aquí, ○ falta).
+   La que se cuenta lleva el borde de tinta y un poco más de cuerpo. Sin rebote (ADR-0136): el borde y el fondo cambian en 200 ms. */
+.rc-cat-pildora { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 14px 6px 8px; border: 1px solid var(--color-sand); border-radius: 999px; background: var(--color-papel); text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
-  .rc-cat-item:hover { border-color: var(--color-sand); background: var(--color-papel); }
+  .rc-cat-pildora:hover { border-color: var(--color-borde-control); }
 }
-.rc-cat-item[aria-current="true"] { border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); background: var(--color-papel); }
-.rc-cat-item .rc-cat-marca { position: absolute; left: -9px; }
-/* Una categoría con prendas anotadas al comprar se despliega: la flecha vive dentro de su fila (a la derecha del número) y, abajo, cada
-   prenda con cuántas eran y su «+», que la pasa a «¿Qué … son?». La categoría que se cuenta se corre 4 px: el grupo entero, con su flecha
-   y lo desplegado. Sin rebote (ADR-0136): la flecha da media vuelta y lo desplegado baja una vez. */
-.rc-cat-grupo { transition: translate 200ms var(--ease-cayla); }
-.rc-cat-grupo[data-actual] { translate: 4px 0; }
-.rc-cat-fila { position: relative; }
+.rc-cat-pildora[aria-current="true"] { border-color: var(--color-tinta); box-shadow: inset 0 0 0 0.5px var(--color-tinta); }
+.rc-cat-agregar { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 18px; border: 1px dashed var(--color-borde-control); border-radius: 999px; color: var(--color-taupe); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
+@media (hover: hover) {
+  .rc-cat-agregar:hover { border-color: var(--color-tinta); color: var(--color-tinta); }
+}
+
 /* «Anotado en la compra» (Felipe 2026-10-28): cada prenda que la compra anotó y todavía no está en «¿Qué … son?» es un chip con su «+» y cuántas
    eran; al tocarlo pasa a la lista. Sin rebote (ADR-0136): sube 1 px al apuntarlo y se encoge al presionarlo. */
 .rc-anotada-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 5px 13px 5px 9px; border: 1px solid var(--color-borde-control); border-radius: 999px; background: var(--color-papel); color: var(--color-tinta); font-size: 13.5px; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
@@ -69,10 +69,6 @@ button.rc-parada:disabled { cursor: default; }
   .rc-anotada-chip:hover { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -1px; }
 }
 .rc-anotada-chip:active { scale: 0.96; translate: 0 0; }
-.rc-cat-agregar { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 16px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-cat-agregar:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }
-}
 
 /* ---- El contador ---- */
 /* La tarjeta de la categoría que se cuenta: encendida, como el campo que sigue en la guía de foco (ADR-0284). */
@@ -128,13 +124,12 @@ button.rc-parada:disabled { cursor: default; }
 .rc-pend { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--color-sand); border-radius: 16px; background: var(--color-papel); }
 .rc-pend[data-tipo="crear"] { border-style: dashed; border-color: color-mix(in srgb, var(--color-pizarra) 45%, transparent); }
 
-@keyframes rc-despliegue { from { opacity: 0; translate: 0 -6px; } to { opacity: 1; translate: 0 0; } }
 @keyframes rc-pulso { from { transform: scale(0.85); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1); opacity: 1; } }
 @keyframes rc-trazo { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 @keyframes rc-trazo-aro { from { stroke-dashoffset: 264; } to { stroke-dashoffset: 0; } }
 @keyframes rc-trazo-visto { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-item, .rc-cat-grupo, .rc-cat-desplegar, .rc-cat-desplegar svg, .rc-anotada-mas, .rc-paso-btn, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
-  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto, .rc-anotadas { animation: none; }
+  .rc-riel-linea > i, .rc-parada, .rc-punto, .rc-cat-pildora, .rc-cat-agregar, .rc-anotada-chip, .rc-paso-btn, .rc-rapidos button, .rc-balanza .rc-brazo { transition: none; }
+  .rc-parada[data-estado="ahora"] .rc-punto::after, .rc-trazo, .rc-sello .rc-aro, .rc-sello .rc-visto { animation: none; }
 }

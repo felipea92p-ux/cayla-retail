@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Info, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -133,6 +133,8 @@ export function ContarEnvio({
     };
   }, [detalle.id]);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
+  // «Cómo se guarda quién cuenta»: la ayuda se abre con un toque (nunca solo con el mouse encima).
+  const [verAyuda, setVerAyuda] = useState(false);
   const grupo = grupos.find((g) => g.clave === foco) ?? grupos[0] ?? null;
   // «Falta: identificar las prendas de Faldas» desde otra categoría: primero se abre esa categoría y recién después se lleva a su «¿Qué … son?»
   // (que solo existe para la que se está contando).
@@ -239,21 +241,12 @@ export function ContarEnvio({
         </Aviso>
       )}
 
-      <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="space-y-5 lg:sticky lg:top-4">
-          <div data-guia="recepcion.quien-cuenta" className="space-y-1.5 px-1">
-            <p className="label-cayla text-[11px] text-taupe">Quién cuenta</p>
-            <ComboResponsable control={responsable} compacto />
-            <p className="text-xs text-taupe">Cada categoría guarda quién la contó. Varias personas pueden contar a la vez; firma quien cierra.</p>
-          </div>
-          {proveedorPorConfirmar && (
-            <p className="nota-cayla text-[13px]">
-              <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
-            </p>
-          )}
-
-          <nav aria-label="Categorías del envío" className="space-y-1.5" data-guia="recepcion.categorias">
-            <p className="label-cayla px-1 text-[11px] text-taupe">{sinAviso ? "Lo que llegó" : "Categorías del envío"}</p>
+      <div className="space-y-4">
+        {/* La barra de arriba (rediseño de «Contar», opción A, Felipe 2026-10-28): las categorías del envío son píldoras en una fila y «Quién cuenta»
+            queda a la derecha. Antes eran un riel lateral y un bloque con texto que dejaban dos columnas cortas al lado del contador. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <nav aria-label="Categorías del envío" className="flex min-w-0 flex-1 flex-wrap items-center gap-2" data-guia="recepcion.categorias">
+            <p className="label-cayla pr-1 text-[11px] text-taupe">{sinAviso ? "Lo que llegó" : "Categorías del envío"}</p>
             {grupos.map((g) => {
               const p = g.principal;
               const hayConteo = g.lineas.some((l) => l.conteo !== null);
@@ -273,36 +266,27 @@ export function ContarEnvio({
                   : sinIdent === 0
                     ? "todas identificadas"
                     : [ident > 0 ? `${ident} ${ident === 1 ? "identificada" : "identificadas"}` : null, `${sinIdent} por identificar`].filter(Boolean).join(" · ");
+              const nombreCategoria = p.categoria?.nombre ?? "Categoría";
               return (
-                <div key={g.clave} className="rc-cat-grupo" data-actual={grupo?.clave === g.clave ? "" : undefined}>
-                  <div className="rc-cat-fila">
-                    <button
-                      type="button"
-                      data-campo={p.linea ? idCampoConteo(p.clave) : undefined}
-                      aria-current={grupo?.clave === g.clave ? "true" : undefined}
-                      onClick={() => elegir(g)}
-                      className="rc-cat-item"
-                    >
-                      <span className="rc-cat-marca">
-                        <MarcaCampo estado={estado} />
-                      </span>
-                      <BaldosaCategoria categoria={p.categoria} />
-                      <span className="min-w-0 flex-1">
-                        <b className="block truncate text-sm text-tinta">{p.categoria?.nombre ?? "Categoría"}</b>
-                        <small className="block text-xs leading-snug text-taupe">{sub}</small>
-                        {dif != null && dif !== 0 && hayConteo && (
-                          <span className="mt-1 inline-block">
-                            <Chip tono="ambar">{dif > 0 ? `+${dif}` : dif}</Chip>
-                          </span>
-                        )}
-                      </span>
-                      <span className="whitespace-nowrap text-right tabular-nums">
-                        <b className="text-lg text-tinta">{g.contadas}</b>
-                        {g.dijeron != null && <span className="text-xs text-taupe">/{g.dijeron}</span>}
-                      </span>
-                    </button>
-                  </div>
-                </div>
+                <button
+                  key={g.clave}
+                  type="button"
+                  data-campo={p.linea ? idCampoConteo(p.clave) : undefined}
+                  aria-current={grupo?.clave === g.clave ? "true" : undefined}
+                  onClick={() => elegir(g)}
+                  title={sub}
+                  className="rc-cat-pildora"
+                >
+                  <BaldosaCategoria categoria={p.categoria} tamano="chico" />
+                  <b className="max-w-[11rem] truncate text-sm text-tinta">{nombreCategoria}</b>
+                  <span className="whitespace-nowrap tabular-nums">
+                    <b className="text-base text-tinta">{g.contadas}</b>
+                    {g.dijeron != null && <span className="text-xs text-taupe">/{g.dijeron}</span>}
+                  </span>
+                  {dif != null && dif !== 0 && hayConteo && <Chip tono="ambar">{dif > 0 ? `+${dif}` : dif}</Chip>}
+                  <MarcaCampo estado={estado} />
+                  <span className="sr-only">{sub}</span>
+                </button>
               );
             })}
             <button
@@ -311,13 +295,37 @@ export function ContarEnvio({
               onClick={() => setHoja({ tipo: "agregar" })}
               data-guia="recepcion.agregar"
               data-campo={visibles.length === 0 ? ID_CAMPO_AGREGAR : undefined}
+              title={sinAviso ? undefined : "Una categoría que no venía en el envío"}
             >
               <Plus aria-hidden className="h-4 w-4 shrink-0" />
               <span className="whitespace-nowrap text-[14.5px]">{sinAviso ? "Agregar lo que llegó" : "Agregar categoría"}</span>
-              {!sinAviso && <span className="whitespace-nowrap text-xs text-taupe">· no venía en el envío</span>}
             </button>
           </nav>
-        </aside>
+          <div data-guia="recepcion.quien-cuenta" className="flex items-center gap-2.5">
+            <p className="label-cayla text-[11px] text-taupe">Quién cuenta</p>
+            <ComboResponsable control={responsable} compacto className="min-w-0" />
+            <button
+              type="button"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-taupe transition-colors hover:text-tinta"
+              aria-expanded={verAyuda}
+              aria-controls="rc-ayuda-quien"
+              aria-label="Cómo se guarda quién cuenta"
+              onClick={() => setVerAyuda((v) => !v)}
+            >
+              <Info aria-hidden className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        {verAyuda && (
+          <p id="rc-ayuda-quien" className="nota-cayla text-[13px]">
+            Cada categoría guarda quién la contó. Varias personas pueden contar a la vez; firma quien cierra.
+          </p>
+        )}
+        {proveedorPorConfirmar && (
+          <p className="nota-cayla text-[13px]">
+            <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
+          </p>
+        )}
 
         <div className="min-w-0 space-y-4">
           <section className="rc-contador space-y-4 p-4 sm:p-6" aria-label="Contar">
