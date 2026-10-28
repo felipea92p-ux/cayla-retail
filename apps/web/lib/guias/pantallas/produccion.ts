@@ -827,7 +827,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       ancla: "prod-tela-nueva.compra",
       opcional: true,
       titulo: "Cómo la compras",
-      texto: "Por metro, por kilo (con su ancho y gramaje: de ahí salen los metros por kilo) o por rollo (con los metros que trae). El stock de la tela va siempre en metros: el kilo y el rollo se convierten.",
+      texto: "Por metro, por kilo (con su ancho abierto y su gramaje: de ahí salen los metros por kilo; la hoja avisa si el número no tiene sentido) o por rollo (con los metros que trae). El stock va siempre en metros: el kilo y el rollo se convierten.",
     },
     {
       id: "tela-colores",

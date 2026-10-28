@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar } from "./guia-campos";
 import {
+  MENSAJE_ANCHO,
+  MENSAJE_GRAMAJE,
+  avisosDeTelaNueva,
   camposDeTelaNueva,
+  codigoBaseDeVista,
   codigoDeVistaPrevia,
+  columnasDeLaTabla,
   costoTotalDeFila,
+  filasTrasCambiarCompra,
   metrosDeFila,
   payloadDeTelaNueva,
   prefijoDeTela,
@@ -190,5 +196,114 @@ describe("¿ya hay una tela así?", () => {
     expect(telaParecida("Jersey pima", telas)).toBeNull();
     expect(telaParecida("Botón nácar", telas)).toBeNull();
     expect(telaParecida("", telas)).toBeNull();
+  });
+});
+
+// ---------- Revisión de «una tela con sus colores» (28-oct-2026): lo que la hoja no cuidaba ----------
+
+describe("las cotas del kilo → metro (G9): un ancho en metros o un gramaje de otro mundo no inflan el saldo ×100", () => {
+  it("un ancho escrito en metros («1.60», «1,6») o fuera de 20–400 cm no se acepta y no hay rinde", () => {
+    for (const ancho of ["1.60", "1,6", "5", "19.9", "401", "1600"]) {
+      expect(problemasDeTelaNueva({ ...kilo, ancho }), ancho).toEqual([MENSAJE_ANCHO]);
+      expect(rindeEscrito({ ancho, gramaje: "180" }), ancho).toBeNull();
+    }
+  });
+  it("un gramaje fuera de 30–1500 g/m² tampoco, y si los dos están mal se dicen los dos", () => {
+    for (const gramaje of ["10", "29", "1501", "18000"]) expect(problemasDeTelaNueva({ ...kilo, gramaje }), gramaje).toEqual([MENSAJE_GRAMAJE]);
+    expect(problemasDeTelaNueva({ ...kilo, ancho: "1.60", gramaje: "9999" })).toEqual([MENSAJE_ANCHO, MENSAJE_GRAMAJE]);
+  });
+  it("los bordes valen: 20 y 400 cm, 30 y 1500 g/m²", () => {
+    for (const [ancho, gramaje] of [["20", "30"], ["400", "1500"], ["20", "1500"], ["400", "30"]]) expect(problemasDeTelaNueva({ ...kilo, ancho, gramaje }), `${ancho}/${gramaje}`).toEqual([]);
+  });
+  it("vacío sigue pidiendo el ancho y el gramaje (no es «fuera de rango»)", () => {
+    expect(problemasDeTelaNueva({ ...kilo, ancho: "" })).toEqual(["Para pasar los kilos a metros hace falta el ancho y el gramaje de la tela."]);
+  });
+  it("la guía dice lo mismo que la hoja: con el ancho fuera de rango «Cómo la compras» no está hecho y explica por qué", () => {
+    const campo = camposDeTelaNueva({ ...kilo, ancho: "1.60" }).find((c) => c.id === "compra");
+    expect(campo?.hecho).toBe(false);
+    expect(campo?.pendiente).toBe(MENSAJE_ANCHO);
+  });
+  it("sin tocar la hoja: un fardo con un rinde raro avisa (no bloquea) y uno normal no dice nada", () => {
+    expect(avisosDeTelaNueva(kilo)).toEqual([]);
+    expect(avisosDeTelaNueva({ ...kilo, ancho: "50", gramaje: "60" })[0]).toContain("33.3"); // 1000 ÷ (60 × 0,5)
+    expect(avisosDeTelaNueva({ ...kilo, ancho: "150", gramaje: "1500" })[0]).toContain("0.4");
+    expect(problemasDeTelaNueva({ ...kilo, ancho: "50", gramaje: "60" })).toEqual([]);
+    expect(avisosDeTelaNueva({ ...base, compra: "rollo", metrosPorRollo: "2" })[0]).toContain("2 metros");
+    expect(avisosDeTelaNueva({ ...base, compra: "rollo", metrosPorRollo: "80" })).toEqual([]);
+    expect(avisosDeTelaNueva(base)).toEqual([]);
+  });
+  it("el saldo en kilos o en rollos lleva en su nota lo que se contó y con qué factor se pasó a metros (la base solo guarda los metros)", () => {
+    const k = payloadDeTelaNueva({ ...kilo, filas: [fila("ARN", { ya: "12", costo: "25" })] });
+    const nota = (k.colores[0].saldo_inicial as { nota?: string }).nota ?? "";
+    expect(nota).toContain("12 kg");
+    expect(nota).toContain("3.47 m/kg");
+    expect(nota).toContain("ancho 160");
+    expect(nota).toContain("gramaje 180");
+    const r = payloadDeTelaNueva({ ...base, compra: "rollo", metrosPorRollo: "80", filas: [fila("ARN", { ya: "3", costo: "100" })] });
+    expect((r.colores[0].saldo_inicial as { nota?: string }).nota).toBe("3 rollos × 80 m");
+    const uno = payloadDeTelaNueva({ ...base, compra: "rollo", metrosPorRollo: "80", filas: [fila("ARN", { ya: "1", costo: "100" })] });
+    expect((uno.colores[0].saldo_inicial as { nota?: string }).nota).toBe("1 rollo × 80 m");
+    const m = payloadDeTelaNueva({ ...base, filas: [fila("ARN", { ya: "9", costo: "5" })] });
+    expect(m.colores[0].saldo_inicial).toEqual({ cantidad: 9, costo_total: 45 });
+  });
+});
+
+describe("el código de cada color en «Agregar colores» sale de la tela elegida, no de una nueva (G10)", () => {
+  it("con una tela elegida, el código es el suyo (MM-01), no el siguiente del prefijo de su nombre (MIL-01)", () => {
+    expect(codigoBaseDeVista({ codigo: "MM-01" }, "Milano Melange", [])).toBe("MM-01");
+    expect(codigoBaseDeVista({ codigo: "MIL-01" }, "Milano Melange", [{ codigo: "MIL-01" }])).toBe("MIL-01");
+  });
+  it("sin tela elegida, la vista previa de una tela nueva de siempre", () => {
+    expect(codigoBaseDeVista(null, "Milano Melange", [{ codigo: "MIL-01" }])).toBe("MIL-02");
+  });
+});
+
+describe("cambiar «Se compra» con cantidades ya escritas (G12)", () => {
+  const filas = [fila("ARN", { ya: "40", costo: "18", minimo: "30" }), fila("NEG")];
+  it("si había algo escrito, se vacía lo que dependía de la unidad (cantidad y costo) y se avisa; el mínimo, que va en metros, se queda", () => {
+    const r = filasTrasCambiarCompra(filas, "kilo", "rollo");
+    expect(r.vacio).toBe(true);
+    expect(r.filas[0]).toEqual({ color: "ARN", ya: "", costo: "", minimo: "30" });
+    expect(r.filas).toHaveLength(2);
+  });
+  it("si no había nada escrito, o la forma es la misma, no se toca nada ni se avisa", () => {
+    expect(filasTrasCambiarCompra([fila("NEG", { minimo: "5" })], "kilo", "rollo")).toEqual({ filas: [fila("NEG", { minimo: "5" })], vacio: false });
+    expect(filasTrasCambiarCompra(filas, "kilo", "kilo")).toEqual({ filas, vacio: false });
+  });
+});
+
+describe("la tabla de colores mide lo que sus columnas piden (G14)", () => {
+  it("el ancho mínimo es la suma de las columnas, los huecos, el relleno y el borde: así no se recorta el × ni «Mínimo»", () => {
+    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: false }).anchoMinimo).toBe(422);
+    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: true }).anchoMinimo).toBe(654);
+    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).anchoMinimo).toBe(754);
+    expect(columnasDeLaTabla({ compra: "rollo", puedeSaldo: false }).anchoMinimo).toBe(422);
+  });
+  it("la plantilla tiene una columna por cada ancho", () => {
+    expect(columnasDeLaTabla({ compra: "kilo", puedeSaldo: true }).plantilla.split(" ")).toHaveLength(7);
+    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: true }).plantilla.split(" ")).toHaveLength(6);
+    expect(columnasDeLaTabla({ compra: "metro", puedeSaldo: false }).plantilla.split(" ")).toHaveLength(4);
+  });
+});
+
+describe("¿es la misma tela? En una tela el número ES la identidad (G15)", () => {
+  const telas = [
+    { nombre: "Algodón 24/1", tipo: "tela" as const },
+    { nombre: "Jersey 150 g", tipo: "tela" as const },
+    { nombre: "Rib 1x1", tipo: "tela" as const },
+    { nombre: "Milano Melange", tipo: "tela" as const },
+  ];
+  it("otro título de hilo, otro gramaje u otro ligamento NO son «parecidas»: son otra tela", () => {
+    expect(telaParecida("Algodón 30/1", telas)).toBeNull();
+    expect(telaParecida("Jersey 200 g", telas)).toBeNull();
+    expect(telaParecida("Rib 2x2", telas)).toBeNull();
+  });
+  it("los mismos números con una letra de más, o el nombre sin números, sí preguntan", () => {
+    expect(telaParecida("Algodon 24/1", telas)).toMatchObject({ igual: true });
+    expect(telaParecida("Algodón 24/1 pima", telas)).toMatchObject({ igual: false, tela: { nombre: "Algodón 24/1" } });
+    expect(telaParecida("Jersey", telas)).toMatchObject({ igual: false, tela: { nombre: "Jersey 150 g" } });
+  });
+  it("sin números, la regla de siempre", () => {
+    expect(telaParecida("Milano", telas)).toMatchObject({ igual: false, tela: { nombre: "Milano Melange" } });
   });
 });

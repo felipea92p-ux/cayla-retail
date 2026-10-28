@@ -27,8 +27,15 @@ import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { createClient } from "@/lib/supabase/client";
 import {
   COMPRAS,
+  MENSAJE_ANCHO,
+  MENSAJE_GRAMAJE,
+  anchoFueraDeRango,
+  avisosDeTelaNueva,
   camposDeTelaNueva,
-  codigoDeVistaPrevia,
+  codigoBaseDeVista,
+  columnasDeLaTabla,
+  filasTrasCambiarCompra,
+  gramajeFueraDeRango,
   metrosDeFila,
   numeroMalEscrito,
   payloadDeTelaNueva,
@@ -99,6 +106,8 @@ export function NuevaTelaModal({
   // El cursor vuelve al buscador de colores recién tras elegir el primero (para sumar varios tecleando), no al abrir la hoja: ahí le toca al nombre.
   const [eligioColor, setEligioColor] = useState(false);
   const [cargando, setCargando] = useState(false);
+  // Al cambiar «Se compra» con cantidades escritas se vacían (estaban en otra unidad): la hoja lo dice hasta que se vuelva a escribir algo (G12 de la revisión).
+  const [avisoDeCompra, setAvisoDeCompra] = useState(false);
   const enVuelo = useRef(false);
   // Un token por cada vez que se abre la hoja: si el envío viaja dos veces (un reintento tras una red que se cae), la base devuelve lo ya creado.
   const token = useRef<string>(crypto.randomUUID());
@@ -123,7 +132,10 @@ export function NuevaTelaModal({
   const campos = camposDeTelaNueva(e);
   const guia = useGuiaCampos(agregarA ? campos.filter((c) => c.id === "colores" || c.id === "quien") : campos);
   const parecida = agregarA ? null : telaParecida(nombre, materiales);
-  const codigo = codigoDeVistaPrevia(e.nombre, materiales);
+  // En «Agregar colores» el código de cada color sale de la tela elegida (`MM-01-NEG`), no de una tela nueva (G10 de la revisión).
+  const codigo = codigoBaseDeVista(agregarA, e.nombre, materiales);
+  const avisosBlandos = avisosDeTelaNueva(e);
+  const tabla = columnasDeLaTabla(e);
   const rinde = rindeEscrito(e);
   const unidadDeCompra = COLUMNAS_SALDO[e.compra];
 
@@ -144,10 +156,18 @@ export function NuevaTelaModal({
 
   function alternarColor(codigoColor: string) {
     setEligioColor(true);
+    setAvisoDeCompra(false);
     setFilas((fs) => (fs.some((f) => f.color === codigoColor) ? fs.filter((f) => f.color !== codigoColor) : [...fs, { color: codigoColor, ya: "", costo: fs.at(-1)?.costo ?? "", minimo: "" }]));
   }
   function cambiarFila(codigoColor: string, cambio: Partial<FilaDeColor>) {
+    if (cambio.ya !== undefined || cambio.costo !== undefined) setAvisoDeCompra(false);
     setFilas((fs) => fs.map((f) => (f.color === codigoColor ? { ...f, ...cambio } : f)));
+  }
+  function cambiarCompra(nueva: CompraDeTela) {
+    const r = filasTrasCambiarCompra(filas, compra, nueva);
+    setCompra(nueva);
+    setFilas(r.filas);
+    if (r.vacio) setAvisoDeCompra(true);
   }
 
   // Un tejido que no está en la lista se crea aquí mismo (es el mismo vocabulario de Catálogo: nace aprobado, lo cree quien lo cree, ADR-0534).
@@ -249,7 +269,10 @@ export function NuevaTelaModal({
                       ) : undefined
                     }
                   >
-                    Si es la misma, agrégale los colores que le faltan en vez de crearla otra vez.
+                    {textoDeCompra(parecida.tela)}.{" "}
+                    {parecida.igual
+                      ? "Agrégale los colores que le faltan; si es otra tela con el mismo nombre, ponle a la nueva su medida o su proveedor al nombre."
+                      : "Si es la misma, agrégale los colores que le faltan en vez de crearla otra vez."}
                   </Aviso>
                 )}
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -285,11 +308,27 @@ export function NuevaTelaModal({
               <section data-guia="prod-tela-nueva.compra" className="space-y-3">
                 <TituloGrupo>Cómo la compras</TituloGrupo>
                 <CampoGuiado id="compra" guia={guia}>
-                  <Segmentado etiqueta={guia.etiqueta("compra", "Se compra")} valor={compra} onValor={setCompra} opciones={COMPRAS} pie="El stock de la tela va siempre en metros; el kilo y el rollo se convierten." />
+                  <Segmentado etiqueta={guia.etiqueta("compra", "Se compra")} valor={compra} onValor={cambiarCompra} opciones={COMPRAS} pie="El stock de la tela va siempre en metros; el kilo y el rollo se convierten." />
                   {compra === "kilo" && (
                     <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                      <CampoTexto etiqueta="Ancho (cm)" inputMode="decimal" value={ancho} onChange={(ev) => setAncho(ev.target.value)} placeholder="160" tono={numeroMalEscrito(ancho) ? "error" : undefined} pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : undefined} />
-                      <CampoTexto etiqueta="Gramaje (g/m²)" inputMode="decimal" value={gramaje} onChange={(ev) => setGramaje(ev.target.value)} placeholder="180" tono={numeroMalEscrito(gramaje) ? "error" : undefined} pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : undefined} />
+                      <CampoTexto
+                        etiqueta="Ancho abierto (cm)"
+                        inputMode="decimal"
+                        value={ancho}
+                        onChange={(ev) => setAncho(ev.target.value)}
+                        placeholder="160"
+                        tono={numeroMalEscrito(ancho) || anchoFueraDeRango(ancho) ? "error" : undefined}
+                        pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : anchoFueraDeRango(ancho) ? MENSAJE_ANCHO : "Si viene en tubo, el abierto es el doble del tubo plano."}
+                      />
+                      <CampoTexto
+                        etiqueta="Gramaje (g/m²)"
+                        inputMode="decimal"
+                        value={gramaje}
+                        onChange={(ev) => setGramaje(ev.target.value)}
+                        placeholder="180"
+                        tono={numeroMalEscrito(gramaje) || gramajeFueraDeRango(gramaje) ? "error" : undefined}
+                        pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeFueraDeRango(gramaje) ? MENSAJE_GRAMAJE : undefined}
+                      />
                       <div>
                         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>
                         <p className="flex h-12 items-center rounded-lg bg-hueso px-3 text-[14px] text-tinta">
@@ -312,6 +351,16 @@ export function NuevaTelaModal({
                     </div>
                   )}
                 </CampoGuiado>
+                {avisoDeCompra && (
+                  <Aviso tono="atencion" chico>
+                    Cambiaste cómo la compras: lo que habías escrito en «¿Ya tienes?» y en el costo estaba en la otra unidad. Vuelve a escribirlo.
+                  </Aviso>
+                )}
+                {avisosBlandos.map((t) => (
+                  <Aviso key={t} tono="atencion" chico>
+                    {t}
+                  </Aviso>
+                ))}
                 <div className="grid gap-3 sm:grid-cols-3">
                   <CampoGuiado id="merma" guia={guia}>
                     <CampoTexto
@@ -341,8 +390,8 @@ export function NuevaTelaModal({
               <p className="text-[12.5px] text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de arriba.</p>
             ) : (
               <div className="overflow-x-auto">
-                <div className="min-w-[620px] overflow-hidden rounded-xl border border-sand">
-                  <div className={`${FILA} bg-hueso text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: plantilla(e) }}>
+                <div style={{ minWidth: tabla.anchoMinimo }} className="overflow-hidden rounded-xl border border-sand">
+                  <div className={`${FILA} bg-hueso text-[11px] font-semibold uppercase tracking-[0.1em] text-tinta/70`} style={{ gridTemplateColumns: tabla.plantilla }}>
                     <span>Color</span>
                     <span>Código</span>
                     {puedeSaldo && <span className="text-right">¿Ya tienes? ({unidadDeCompra})</span>}
@@ -356,7 +405,7 @@ export function NuevaTelaModal({
                     const nombreColor = c?.nombre ?? f.color;
                     const metros = metrosDeFila(e, f);
                     return (
-                      <div key={f.color} className={`${FILA} border-t border-sand`} style={{ gridTemplateColumns: plantilla(e) }}>
+                      <div key={f.color} className={`${FILA} border-t border-sand`} style={{ gridTemplateColumns: tabla.plantilla }}>
                         <span className="flex min-w-0 items-center gap-2 text-[14px] text-tinta">
                           <Punto hex={c?.hex ?? null} familia={c?.familiaColor} tipo={c?.tipo} />
                           <span className="truncate">{nombreColor}</span>
@@ -428,8 +477,3 @@ export function NuevaTelaModal({
 }
 
 const FILA = "grid items-center gap-3 px-3 py-2";
-
-/** Las columnas de la tabla de colores: Color, Código, [¿Ya tienes?, ≈ metros (si no es por metro), Costo] (solo el líder), Mínimo, ×. */
-function plantilla(e: Pick<EntradaTelaNueva, "compra" | "puedeSaldo">): string {
-  return ["minmax(8rem,1.4fr)", "minmax(7rem,1.1fr)", ...(e.puedeSaldo ? ["6.5rem"] : []), ...(e.puedeSaldo && e.compra !== "metro" ? ["5.5rem"] : []), ...(e.puedeSaldo ? ["6.5rem"] : []), "5.5rem", "2rem"].join(" ");
-}

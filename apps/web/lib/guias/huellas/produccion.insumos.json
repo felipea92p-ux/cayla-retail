@@ -65,7 +65,7 @@
       "Boton «Agregar colores a esa»",
       "ComboBuscable «{tejidoId}»",
       "CampoTexto «{guia.etiqueta(\"composicion\", \"Composición\")}»",
-      "CampoTexto «Ancho (cm)»",
+      "CampoTexto «Ancho abierto (cm)»",
       "CampoTexto «Gramaje (g/m²)»",
       "CampoTexto «¿Cuántos metros trae un rollo?»",
       "CampoTexto «{guia.etiqueta(\"merma\", \"Merma al cortar (%)\")}»",

@@ -9,7 +9,7 @@
 
 import type { CampoDeGuia } from "./guia-campos";
 import { CANTIDAD_ILEGIBLE, leerCantidad, unidadesPermitidas, type TipoInsumo, type UnidadInsumo } from "./insumos-reglas";
-import { MONTO_ILEGIBLE, numeroDeMonto } from "./monto-plata-reglas";
+import { COSTO_UNITARIO_ILEGIBLE, numeroDeCostoUnitario } from "./monto-plata-reglas";
 
 export type EntradaInsumoNuevo = {
   tipo: TipoInsumo;
@@ -75,17 +75,17 @@ export function camposDeFichaDeLaTela(e: EntradaFichaDeLaTela): CampoDeGuia[] {
 export type EntradaIngresoDeInsumo = { tieneInsumo: boolean; cantidad: string; costo: string; responsableListo: boolean };
 
 /** «Ingresar insumo» abre un lote: qué llegó, cuánta cantidad (mayor que cero) y a qué costo (desde cero; se escribe, aunque sea 0). La hoja no guarda con menos.
- *  La cantidad se lee con `leerCantidad` y el costo con la regla única de plata (`numeroDeMonto`): ambos aceptan la coma decimal, y lo que NO se entiende no es 0 sino «falta»
+ *  La cantidad se lee con `leerCantidad` y el costo por unidad con `numeroDeCostoUnitario` (hasta 4 decimales: un botón a S/ 0.045): ambos aceptan la coma decimal, y lo que NO se entiende no es 0 sino «falta»
  *  (antes un costo de «2,5» se leía como 0 y el lote se abría gratis). */
 export function ingresoListo(e: Pick<EntradaIngresoDeInsumo, "tieneInsumo" | "cantidad" | "costo">): boolean {
   const cantidad = leerCantidad(e.cantidad);
-  const costo = numeroDeMonto(e.costo);
+  const costo = numeroDeCostoUnitario(e.costo);
   return e.tieneInsumo && cantidad !== null && cantidad > 0 && e.costo.trim() !== "" && Number.isFinite(costo) && costo >= 0;
 }
 
 export function camposDeIngresoDeInsumo(e: EntradaIngresoDeInsumo): CampoDeGuia[] {
   const cantidad = leerCantidad(e.cantidad);
-  const costo = numeroDeMonto(e.costo);
+  const costo = numeroDeCostoUnitario(e.costo);
   const costoLegible = Number.isFinite(costo);
   return [
     { id: "insumo", nombre: "Qué llegó", requerido: true, hecho: e.tieneInsumo, pendiente: "Elige qué insumo llegó." },
@@ -101,7 +101,7 @@ export function camposDeIngresoDeInsumo(e: EntradaIngresoDeInsumo): CampoDeGuia[
       nombre: "Costo",
       requerido: true,
       hecho: e.costo.trim() !== "" && costoLegible && costo >= 0,
-      pendiente: e.costo.trim() !== "" && !costoLegible ? MONTO_ILEGIBLE : "Escribe el costo por unidad, sin IGV (0 si fue un regalo).",
+      pendiente: e.costo.trim() !== "" && !costoLegible ? COSTO_UNITARIO_ILEGIBLE : "Escribe el costo por unidad, sin IGV (0 si fue un regalo).",
     },
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién ingresa este lote." },
   ];
