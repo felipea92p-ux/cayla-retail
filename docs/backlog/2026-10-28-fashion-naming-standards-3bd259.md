@@ -16,7 +16,8 @@
 
 ## /chaos 2026-10-28 (semilla 2810) — lo que quedó abierto
 
-- [ ] **Costo ≥ precio bloquea el alta con llegada** («El costo por prenda está fuera de lo normal») mientras la pantalla dice «Todo listo»: `crear_producto_con_llegada` manda el costo a `recibir_lote`, que lo compara con el precio. Decisión de Felipe (RPC): no mandar el costo de una prenda nueva o confirmarlo.
-- [ ] **«2,5» en una cantidad se guarda como 25** (`limpiarCantidad`, `lib/alta-producto.ts:306`): también en Nueva orden de producción. Heredado de ADR-0212.
-- [ ] **Cambiar de sede con el alta a medias la borra sin preguntar.** Heredado.
-- [ ] **«S/ 59» pegado en un monto** queda inválido sin decir por qué en el campo (`CampoMonto`). Heredado.
+- [x] **Costo ≥ precio bloquea el alta con llegada** («El costo por prenda está fuera de lo normal») mientras la pantalla dice «Todo listo»: `crear_producto_con_llegada` manda el costo a `recibir_lote`, que lo compara con el precio. Decisión de Felipe (RPC): no mandar el costo de una prenda nueva o confirmarlo.
+- [x] **«2,5» en una cantidad se guarda como 25** (`limpiarCantidad`, `lib/alta-producto.ts:306`): también en Nueva orden de producción. Heredado de ADR-0212.
+- [x] **Cambiar de sede con el alta a medias la borra sin preguntar.** Heredado.
+- [x] **«S/ 59» pegado en un monto** queda inválido sin decir por qué en el campo (`CampoMonto`). Heredado.
+- [ ] «2,5» **tecleado letra por letra** en una cantidad sigue dando 25: la coma no llega a la caja (`inputMode="numeric"`) y el 5 se suma. Pegado o de un tirón ya queda en 2. Baja prioridad: nadie cuenta media prenda.

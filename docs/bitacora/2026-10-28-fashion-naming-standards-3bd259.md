@@ -17,3 +17,8 @@ Felipe se lleva: probado en el navegador con Poleras (escritorio y 375 px, sin s
 Qué hice: 16 de 23 ataques en la base local y el navegador, con foto antes y la base restaurada idéntica después: doble clic, mismo token con otra cantidad, respuesta perdida, 10 sesiones a la vez, permisos, URLs torcidas y textos hostiles. 0 estados imposibles.
 Por qué así: la llegada mueve stock; lo grave sería una prenda con dos llegadas o una llegada sin prenda, y no pasó.
 Felipe se lleva: un hallazgo nuevo (costo ≥ precio bloquea el alta con «costo fuera de lo normal», en la función: decisión suya) y tres heredados («2,5» → 25 en una cantidad, cambiar de sede borra el alta, «S/ 59» pegado). Informe en `.chaos/informes/` (local).
+
+## 2026-10-28 (Los cuatro hallazgos del /chaos de Nuevo producto, cerrados)
+Qué hice: la llegada ya no manda el costo a `recibir_lote` (costo ≥ precio se crea); `limpiarCantidad` corta un decimal («2,5» → 2) y lee un millar («1,200»); el selector de sede pregunta «¿Salir sin guardar?» si alguna pantalla tiene algo a medias (`antesDeRehacerLaPantalla`); `limpiarPrecio` lee un monto pegado entero («S/. 59», «1.299,50») y Nuevo producto la usa también en precio y costo. Cada uno con su prueba primero.
+Por qué así: Felipe pidió arreglarlos todos; el primero tocaba la función de la base y lo autorizó él.
+Felipe se lleva: los cuatro ataques repetidos con la semilla 2810 en el navegador resisten, invariantes limpias y base restaurada idéntica; 163.938 pruebas web y 16/16 de la base en verde. Queda: «2,5» tecleado letra por letra.
