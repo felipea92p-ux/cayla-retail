@@ -660,7 +660,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "A qué cuenta entra cada cobro",
-      texto: "Por tienda: a qué banco o billetera llega cada medio de pago (Yape, tarjeta, transferencia). Así Vender no cambia y Finanzas sabe dónde quedó cada cobro. Se cambia en Configuración.",
+      texto: "Por sede: a qué banco o billetera llega cada medio de pago (Yape, tarjeta, transferencia). El Taller solo tiene Transferencia: de ahí paga. Así Vender no cambia y Finanzas sabe dónde quedó cada cobro. Se cambia en Configuración.",
     },
     {
       id: "sin-cuenta",

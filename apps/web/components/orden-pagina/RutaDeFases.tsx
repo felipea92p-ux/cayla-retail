@@ -6,6 +6,7 @@ import { AnotarAvanceModal } from "@/components/orden-pagina/AnotarAvanceModal";
 import { AnotarSalidaModal } from "@/components/orden-pagina/AnotarSalidaModal";
 import { AnotarVueltaModal } from "@/components/orden-pagina/AnotarVueltaModal";
 import { CambiarQuienModal } from "@/components/orden-pagina/CambiarQuienModal";
+import { QuitarPasoModal } from "@/components/orden-pagina/QuitarPasoModal";
 import { MarcarFaseModal } from "@/components/orden-pagina/MarcarFaseModal";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
@@ -21,6 +22,7 @@ import {
   faltaTerminar,
   previaQueCuenta,
   puedeCambiarQuien,
+  puedeQuitarPaso,
   quienDeFase,
   textoDeFase,
   type OrdenPagina,
@@ -28,11 +30,11 @@ import {
 
 // La ruta de fases de la orden (ADR-0400, decisiones 1–3 y 7; vista D de la lámina): las fases en fila, cosidas por un hilo — hecha ✓ · actual encendida · pendiente —, cada una con
 // quién la hace (el Taller o un servicio de afuera), cuántas van, lo que prometió y su acción: «Terminé N» en el Taller; «Salida» y «Vuelta» en un servicio. «Cambiar quién» aparece
-// solo mientras la fase no empezó. Nada se calcula aquí: el estado de cada fase viene derivado de la base (`fn_fases_de_orden`) y los textos de `lib/orden-pagina-reglas.ts`.
+// solo mientras la fase no empezó; «Quitar este paso», además, solo en un paso opcional (ADR-0551, actividad 1b). Nada se calcula aquí: el estado de cada fase viene derivado de la base (`fn_fases_de_orden`) y los textos de `lib/orden-pagina-reglas.ts`.
 // «Salida» y «Vuelta» abren sus hojas (actividad 4): lo que sale a un servicio y lo que regresa, por talla y color. En la fase actual, la que toca primero lleva el botón principal: «Vuelta»
 // si hay prendas afuera, «Salida» si no.
 
-type Hoja = { tipo: "terminar" | "quien" | "salida" | "vuelta" | "marcar" | "desmarcar"; faseId: string };
+type Hoja = { tipo: "terminar" | "quien" | "salida" | "vuelta" | "marcar" | "desmarcar" | "quitar"; faseId: string };
 
 export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opciones: Tolerado<OpcionesNuevaOrden> | null; hoy: string }) {
   const [hoja, setHoja] = useState<Hoja | null>(null);
@@ -40,6 +42,8 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
   const hechas = fases.filter((f) => f.estado === "hecha").length;
   // La guía interactiva (ADR-0389) ancla «Terminé» en la fase actual y «Cambiar quién» en la primera que lo permite: una sola pieza por ancla.
   const idDeLaQueCambia = fases.find((f) => puedeCambiarQuien(f, datos))?.id ?? null;
+  // «Quitar este paso» (un paso opcional que nadie empezó): se ancla en el primero que lo ofrece.
+  const idDeLaQueSeQuita = fases.find((f) => puedeQuitarPaso(f, datos))?.id ?? null;
   // «Salida» y «Vuelta» se anclan en la primera fase que las ofrece (no solo en la actual: con el corte a medias, la costura ya puede recibir una salida).
   const idDeLaQueSale = fases.find((f) => accionesDeFase(f, datos).includes("salida"))?.id ?? null;
   const idDeLaQueRecibe = fases.find((f) => accionesDeFase(f, datos).includes("vuelta"))?.id ?? null;
@@ -75,6 +79,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
           const acciones = accionesDeFase(fase, datos);
           const aviso = avisoMinimoDeFase(fase, orden.cantidadPlan);
           const cambiar = puedeCambiarQuien(fase, datos);
+          const quitar = puedeQuitarPaso(fase, datos);
           const servicio = fase.quien === "servicio";
           const estadoTexto = fase.estado === "hecha" ? "hecha" : fase.actual ? "en curso" : "pendiente";
           return (
@@ -115,7 +120,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
                   {aviso}
                 </Aviso>
               )}
-              {(acciones.length > 0 || cambiar) && (
+              {(acciones.length > 0 || cambiar || quitar) && (
                 <div className="op-fase-acciones">
                   {acciones.includes("marcar") && (
                     <Boton type="button" peso={fase.actual ? "primario" : "fantasma"} aria-haspopup="dialog" data-guia={fase.id === idDeLaQueMarca ? "prod-orden.marcar" : undefined} onClick={() => setHoja({ tipo: "marcar", faseId: fase.id })}>
@@ -143,6 +148,11 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
                       Cambiar quién
                     </button>
                   )}
+                  {quitar && (
+                    <button type="button" aria-haspopup="dialog" data-guia={fase.id === idDeLaQueSeQuita ? "prod-orden.quitar-paso" : undefined} onClick={() => setHoja({ tipo: "quitar", faseId: fase.id })} className="btn-cayla btn-enlace text-[12.5px]">
+                      Quitar este paso
+                    </button>
+                  )}
                 </div>
               )}
             </li>
@@ -153,6 +163,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
       {hoja?.tipo === "terminar" && faseDeLaHoja && <AnotarAvanceModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
+      {hoja?.tipo === "quitar" && faseDeLaHoja && <QuitarPasoModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "quien" && faseDeLaHoja && <CambiarQuienModal datos={datos} fase={faseDeLaHoja} opciones={opciones} hoy={hoy} onClose={() => setHoja(null)} />}
     </section>
   );
