@@ -85,7 +85,7 @@ export function BarraDeCambios({
               Recargar la prenda
             </Boton>
           ) : (
-            <Boton type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada}>
+            <Boton type="submit" peso="primario" className="max-sm:flex-1" cargando={bloqueada} data-guia="editar.barra-guardar">
               Revisar y guardar
             </Boton>
           )}

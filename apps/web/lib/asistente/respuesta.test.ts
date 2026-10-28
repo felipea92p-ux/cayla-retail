@@ -22,7 +22,7 @@ const sugerencias: Sugerencia[] = [
 ];
 const AQUI = "/compras/9f3a";
 const tramo = (guia_id: string, paso_id = "", rellenar = "") => ({ guia_id, paso_id, rellenar });
-const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], ...r });
+const ia = (r: Partial<RespuestaDeLaIA>): RespuestaDeLaIA => ({ tipo: "guia", texto: "Te llevo a Comprobantes.", tema: "como_hacer", referencia: "", tramos: [tramo(guia.id, "lista")], pasos: [], ...r });
 const revisar = (r: RespuestaDeLaIA | null, s: readonly Sugerencia[] = sugerencias) => revisarRespuesta(r, s, AQUI);
 
 describe("revisarRespuesta: solo se le cree a la IA lo que estaba en la lista", () => {
@@ -190,5 +190,22 @@ describe("reglas de tienda y errores (actividad 7): el texto es el aprobado, nun
     const m = mensajeDePregunta("plazo de cambio", sugerencias, [], conocimiento);
     expect(m).toContain('<regla id="cambio-plazo">');
     expect(m).toContain('<error marca="caja_cerrada">');
+  });
+});
+
+describe("revisarRespuesta: una pantalla que se abre desde otra no es un destino", () => {
+  it("si la IA elige el Historial de una prenda como tramo, se lleva a Productos, de donde se abre", () => {
+    const productos = GUIAS.find((g) => g.id === "productos")!;
+    const historial = GUIAS.find((g) => g.id === "productos.id.historial")!;
+    const r = revisarRespuesta(
+      ia({ tramos: [tramo("productos.id.historial", "cabeza")] }),
+      [{ guia: productos, href: "/productos", paso: null, puntos: 5 }],
+      "/",
+      [],
+      "",
+      { reglas: [], errores: [] },
+      [{ guia: historial, href: null, paso: null, puntos: 0 }],
+    );
+    expect(r.tipo === "guia" ? r.tramos.map((t) => [t.guiaId, t.href]) : r).toEqual([["productos", "/productos"]]);
   });
 });
