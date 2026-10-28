@@ -121,11 +121,21 @@ está en tienda cierre **sin movimiento** y con su costo solo en la orden. La vi
    Cómo se hace sin romper lo que solo se agrega: la conversión **no reescribe ningún avance** (siguen con la hora en que se anotaron); agrega los avances y marcas que faltan para que cada paso
    quede `hecha` y pone la **fecha real en el paso** (`produccion_fases.fecha_real`), que es donde se lee la fecha, no en el avance. Es la función hermana de la que abre una orden «de antes»,
    solo del líder y en una transacción. **Antes de escribirla se mide** si OP-1 y OP-4 ya tienen avances, Salidas o Vueltas. **OP-2 y OP-3 (ajenas a la hoja) no se tocan.**
-5. **Con qué ruta nacieron las 4 órdenes abiertas.** Si tienen siete pasos, la actividad 1 no las afecta; si tienen la ruta anterior, tampoco. Hay que medirlo antes de la 1.
-6. **Pago desde BCP Operativa.** ¿En qué categoría de gasto cae, y la guía/factura del servicio queda como papel de Finanzas (ADR-0400, «el papel sigue como gasto») o se enlaza a la Vuelta?
+5. **MEDIDA (producción, solo lectura, 2026-10-27): las 4 órdenes abiertas nacieron con la ruta nueva de 7 pasos** (`etapas` viejas vacías). OP-1 tiene Ploteo como servicio y el resto en el
+   Taller; OP-2, OP-3 y OP-4, todo en el Taller. **Ninguna tiene avances, Salidas ni Vueltas**; solo OP-2 tiene una marca (Ploteo). Consecuencias: la actividad 1 no las afecta, y
+   convertir OP-1 y OP-4 no tiene historia anotada que preservar: la conversión solo agrega.
+6. **MEDIDA (misma lectura): `categorias_gasto` no tiene una categoría para servicios de producción** (17 activas, ninguna para ploteo, corte, habilitado, ojales y botones o maquila). Pagar
+   una Vuelta con «Pagado» tiene dos caminos y la elección es contable, no técnica: (a) un gasto con una categoría nueva «Servicios de producción»; (b) un egreso que **cancela el devengado
+   de la orden** (ADR-0400: el costo de servicio de la orden ya es el devengado) sin pasar por gasto. **Con (a) y el devengado a la vez, el mismo servicio contaría dos veces** (en el costo de
+   la prenda y en el gasto del mes). Propuesta del arquitecto: (b). Se confirma con el contador antes de la actividad 4 (toca dinero).
 7. **Fecha real y Actividad.** ¿Basta una fecha por paso, o también se quiere quién lo hizo en la fecha real? (Propuesta: solo la fecha, la firma es la de quien registra.)
-8. **NUEVA (sale de la 4): el Chaleco no cuadra.** OP-1 es un lote de 57 y la tienda ya tiene 66. Al convertirla, ¿la orden dice 57 (lo que se anotó) o 66 (lo que hay)? La orden «de antes»
-   no mete stock, pero su costo por prenda se divide entre las prendas buenas: 57 y 66 dan costos distintos. Es una decisión de dinero, tuya. Se mide primero cuántas hay de verdad.
+8. **MEDIDA (misma lectura): el Chaleco no es 57 contra 66, es 57 contra 58, y las otras 8 son de otros colores.** OP-1 pide 57 en 15 variantes (5 colores × S, M, L). El stock de **esas** 15
+   variantes hoy es 58: coincide exacto en 12; difieren ARN-S (+1), NEG-M (+1) y RPA-S (−1). Las otras 8 unidades de «Chaleco Cayla» están en 7 variantes que **la orden no tiene** (beige, FFF,
+   macadamia). Total del producto en tiendas: 59 en Tienda TRU + 7 en Tienda LIM = 66. La orden «de antes» no mete stock, pero su costo por prenda se divide entre las prendas buenas, así que
+   57 y 58 dan costos distintos. **Propuesta:** la orden dice lo que se fabricó (57, o 58 si un conteo lo confirma); las 8 de otros colores no son de esta orden. La cifra es de dinero y es tuya.
+9. **NUEVA: la Blusa Claudia no está en ninguna sede.** OP-4 es una muestra de 69 (5 colores, talla única) y el producto tiene **0 de stock en todas partes**. ¿Existen las 69 físicamente, y dónde
+   están hoy (Taller, almacén, tienda)? Si están en el Taller, el cierre normal las registra con una entrada al Taller; si ya están en una tienda sin registrar, es otro caso («Prenda sin registrar»)
+   y el cierre debe ser «ya estaba» o un traslado, no una entrada al Taller.
 
 ## Cómo se verifica (lo que cada actividad debe demostrar antes de darse por terminada)
 
