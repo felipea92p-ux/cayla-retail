@@ -96,7 +96,7 @@ export function MesaDeLaRonda({
       </div>
       {rondaVacia && <RondaVacia texto={ronda.texto} />}
       <TerminarDia plata={plata} envios={enviosRonda} hoy={hoy} />
-      {anteriores.length > 0 && <RondasAnteriores historial={anteriores} envios={rondasEnvios} hoy={hoy} />}
+      {anteriores.length > 0 && <RondasAnteriores historial={anteriores} envios={rondasEnvios} hoy={hoy} tarjetas />}
     </div>
   );
 }

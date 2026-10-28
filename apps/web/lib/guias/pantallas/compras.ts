@@ -2587,7 +2587,7 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.antes",
       opcional: true,
       titulo: "Rondas anteriores",
-      texto: "Plegadas hasta que las necesites («Ver 4»): la plata que te dieron antes, lo que devolviste en caja y cada ronda que cerraste. Toca una ronda para ver lo que compraste y gastaste en ella y los envíos que mandaste, con su código.",
+      texto: "Tus últimas rondas cerradas, una tarjeta por ronda: cuánto salió de tu plata y cómo cerró. Toca una para ver lo que compraste y gastaste en ella y los envíos con su código. «Ver N más» abre lo anterior: plata anotada antes y lo que devolviste en caja.",
     },
     {
       id: "fin",

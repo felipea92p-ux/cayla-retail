@@ -148,6 +148,37 @@ export function HojaDeRonda({ e, envios, hoy, onClose, volverA }: { e: EntradaRo
   );
 }
 
+/** Cuántas rondas cerradas se ven como tarjeta (en PC, una por columna). */
+const TARJETAS = 3;
+
+/** Una ronda cerrada como tarjeta (maqueta mis-compras-pc-mesa, Felipe 2026-10-28): su número, de cuándo a cuándo y cuántas compras, lo que salió
+ *  de su plata y cómo cerró. Se toca y abre la misma hoja que la fila del historial. */
+function TarjetaDeRonda({ e, envios, hoy }: { e: EntradaRonda; envios: EnvioMio[]; hoy?: string }) {
+  const [abierta, setAbierta] = useState(false);
+  const origen = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button ref={origen} type="button" aria-haspopup="dialog" onClick={() => setAbierta(true)} className="card-cayla mov-boton flex w-full min-w-0 flex-col gap-1.5 p-4 text-left">
+        <span className="flex items-start justify-between gap-2">
+          <span className="font-serif text-xl leading-tight text-tinta">{e.titulo}</span>
+          {e.pendiente && (
+            <Chip tono="pizarra" title="Compras todavía revisa algo de esta ronda">
+              Compras revisa
+            </Chip>
+          )}
+        </span>
+        <span className="text-xs text-taupe">{e.detalle}</span>
+        <span className="mt-1 flex items-baseline justify-between gap-3 text-sm">
+          <span className="text-taupe">Salió de tu plata</span>
+          <b className="whitespace-nowrap font-semibold tabular-nums text-tinta">{e.monto}</b>
+        </span>
+        {e.cierre && <span className="text-xs text-taupe">{e.cierre}</span>}
+      </button>
+      {abierta && <HojaDeRonda e={e} envios={envios} hoy={hoy} onClose={() => setAbierta(false)} volverA={origen} />}
+    </>
+  );
+}
+
 /** Una ronda cerrada: la fila se toca y abre su hoja (Felipe 2026-10-23: «que se cargue un modal», no que se despliegue en la lista). */
 function FilaRonda({ e, envios, hoy }: { e: EntradaRonda; envios: EnvioMio[]; hoy?: string }) {
   const [abierta, setAbierta] = useState(false);
@@ -260,9 +291,51 @@ export function ListaDelDia({
 /** «Rondas anteriores». Por defecto, plegadas: el título y «Ver N» (cuántas filas hay); al abrir, cada ronda cerrada y la plata anotada de
  *  antes. Con `visibles` (sin ronda abierta, cuando son LO que hay en la pantalla), las primeras filas se ven de una vez y «Ver N más» guarda
  *  el resto. */
-export function RondasAnteriores({ historial, envios, hoy, visibles }: { historial: EntradaHistorial[]; envios: RondaConEnvios[] | null; hoy?: string; visibles?: number }) {
+export function RondasAnteriores({
+  historial,
+  envios,
+  hoy,
+  visibles,
+  tarjetas = false,
+}: {
+  historial: EntradaHistorial[];
+  envios: RondaConEnvios[] | null;
+  hoy?: string;
+  visibles?: number;
+  /** Con la ronda abierta (la mesa de la ronda): las últimas rondas cerradas como tarjetas, y lo demás tras «Ver N más». */
+  tarjetas?: boolean;
+}) {
   const [abierto, setAbierto] = useState(false);
   if (historial.length === 0) return null;
+  const rondas = historial.filter((e): e is EntradaRonda => e.tipo === "ronda");
+  if (tarjetas && rondas.length > 0) {
+    // Las tres rondas más nuevas, cada una una tarjeta que abre su hoja; todo lo demás (más rondas, la plata anotada sin ronda, lo devuelto al cerrar)
+    // queda en la lista de siempre, plegada.
+    const aparte = new Set(rondas.slice(0, TARJETAS).map((e) => e.clave));
+    const resto = historial.filter((e) => !aparte.has(e.clave));
+    return (
+      <section className="flex min-w-0 flex-col gap-2.5" data-guia="mi-plata.antes">
+        <TituloSeccion cuenta={rondas.length}>Rondas anteriores</TituloSeccion>
+        <div className="grid gap-3 lg:grid-cols-3">
+          {rondas.slice(0, TARJETAS).map((e) => (
+            <TarjetaDeRonda key={e.clave} e={e} envios={enviosDeLaFila(envios, e.clave) ?? []} hoy={hoy} />
+          ))}
+        </div>
+        {resto.length > 0 && (
+          <>
+            <FilasDeMas abierto={abierto} id="mi-plata-antes">
+              <ul className="divide-y divide-sand border-t border-sand">
+                {resto.map((e) => (
+                  <FilaHistorial key={e.clave} e={e} envios={e.tipo === "ronda" ? (enviosDeLaFila(envios, e.clave) ?? []) : []} hoy={hoy} />
+                ))}
+              </ul>
+            </FilasDeMas>
+            <BotonVerMas abierto={abierto} onCambiar={setAbierto} controla="mi-plata-antes" texto={`Ver ${resto.length} más`} />
+          </>
+        )}
+      </section>
+    );
+  }
   const fila = (e: EntradaHistorial) => <FilaHistorial key={e.clave} e={e} envios={e.tipo === "ronda" ? (enviosDeLaFila(envios, e.clave) ?? []) : []} hoy={hoy} />;
   if (visibles === undefined) {
     return (
