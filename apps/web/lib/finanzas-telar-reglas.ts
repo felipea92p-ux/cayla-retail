@@ -113,17 +113,19 @@ export function sedeElegida(pedida: ClaveSede, sedes: readonly SedeTelar[], veTo
 /** «Tienda Trujillo» → «Trujillo». */
 export const nombreCortoSede = (nombre: string) => nombre.replace(/^Tienda\s+/i, "").trim();
 
-/** El color del hilo de una ubicación. Sale de la ciudad o del tipo, porque `ubicaciones` no tiene código; una sede que no se
- *  reconoce va en taupe («otra»), nunca con el color de otra sede. */
+/** El color del hilo de una ubicación. Sale de la ciudad o de su sigla (TRU, AQP, LIM) o del tipo, porque `ubicaciones` no tiene
+ *  código; una sede que no se reconoce va en taupe («otra»), nunca con el color de otra sede. Las tiendas de CAYLA se llaman
+ *  «Tienda TRU», «Tienda AQP» y «Tienda LIM»: con solo el nombre de la ciudad ninguna se reconocía y todas salían del mismo marrón.
+ *  La sigla va entera y suelta (`\b`): «Truco» o «Limpieza» no son ni Trujillo ni Lima. */
 export function colorDeSede(u: { nombre: string; tipo?: string | null } | typeof SEDE_EMPRESA): ColorSede {
   if (u === SEDE_EMPRESA) return "emp";
   if (u.tipo === "taller") return "tal";
   // Un almacén no es la tienda de su ciudad: con el color de Lima, el gasto del almacén se leería como de la tienda.
   if (u.tipo === "almacen") return "otra";
   const n = u.nombre.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-  if (n.includes("trujillo")) return "tru";
-  if (n.includes("arequipa")) return "aqp";
-  if (n.includes("lima")) return "lim";
+  if (n.includes("trujillo") || /\btru\b/.test(n)) return "tru";
+  if (n.includes("arequipa") || /\baqp\b/.test(n)) return "aqp";
+  if (n.includes("lima") || /\blim\b/.test(n)) return "lim";
   if (n.includes("taller")) return "tal";
   return "otra";
 }
