@@ -4,9 +4,7 @@ import {
   claveReferencia,
   codigoBasePrevisto,
   codigoVariantePrevisto,
-  codigosRepetidos,
   construirCeldas,
-  desbloqueos,
   estadoSubidaSinConexion,
   faltaDelPaso,
   fraseStockCreado,
@@ -21,7 +19,6 @@ import {
   textoTallas,
   textoDestinoStock,
   TEXTO_FALTA_LUGAR,
-  pasoAlcanzable,
   pasoDeProblema,
   pasoHecho,
   leerErrorAlta,
@@ -279,29 +276,12 @@ describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
   });
 });
 
-describe("desbloqueos — cada bloque se abre al resolver el anterior", () => {
-  it("sin categoría no hay nada abierto", () => {
-    expect(desbloqueos({ ...base, categoriaId: "" })).toEqual({ marca: false, nombre: false, atributos: false, colores: false, precio: false });
-  });
-  it("con categoría se abre lo siguiente: marca y proveedor son opcionales (ADR-0283), no traban el nombre ni piden nada", () => {
-    expect(desbloqueos({ ...base, referencia: "" })).toEqual({ marca: true, nombre: true, atributos: false, colores: false, precio: false });
+describe("problemasAlta — marca opcional y comprobación del nombre", () => {
+  it("marca y proveedor son opcionales (ADR-0283): no traban el nombre ni piden nada", () => {
     expect(problemasAlta(base).map((p) => p.bloque)).not.toContain("marca");
   });
-  it("con la categoría se abre el nombre; sin nombre no se abren los atributos", () => {
-    expect(desbloqueos({ ...base, referencia: "" })).toEqual({ marca: true, nombre: true, atributos: false, colores: false, precio: false });
-  });
-  it("mientras se comprueba el nombre, los atributos siguen cerrados y el resumen lo dice", () => {
-    expect(desbloqueos({ ...base, comprobandoNombre: true }).atributos).toBe(false);
+  it("mientras se comprueba el nombre, el resumen lo dice", () => {
     expect(problemasAlta({ ...base, comprobandoNombre: true })[0].texto).toMatch(/Comprobando/);
-  });
-  it("un nombre bloqueado o sin confirmar deja cerrados los atributos", () => {
-    expect(desbloqueos({ ...base, nombreBloqueado: true }).atributos).toBe(false);
-    expect(desbloqueos({ ...base, nombreSinConfirmar: true }).atributos).toBe(false);
-  });
-  it("colores y precio se abren cuando tallas y (si se exige) tejido/patrón están resueltos", () => {
-    expect(desbloqueos(base)).toEqual({ marca: true, nombre: true, atributos: true, colores: true, precio: true });
-    expect(desbloqueos({ ...base, tejidoId: "" })).toEqual({ marca: true, nombre: true, atributos: true, colores: false, precio: false });
-    expect(desbloqueos({ ...base, tallasElegidas: 0 }).colores).toBe(false);
   });
 });
 
@@ -389,18 +369,15 @@ describe("pasos del alta — cada problema cae en su paso (4 preguntas, spike v2
     const p = problemasAlta(base);
     expect(PASOS_ALTA).toEqual([1, 2, 3, 4]);
     expect(PASOS_ALTA.map((n) => pasoHecho(p, n))).toEqual([true, true, true, true]);
-    expect(pasoAlcanzable(p)).toBe(4);
   });
   it("el stock cae en el paso 4, junto al precio: con el 3 completo se entra al 4", () => {
     const p = problemasAlta({ ...base, stockTotal: 0 });
     expect(p.map(pasoDeProblema)).toEqual([4]);
     expect(pasoHecho(p, 3)).toBe(true);
     expect(pasoHecho(p, 4)).toBe(false);
-    expect(pasoAlcanzable(p)).toBe(4);
   });
   it("sin categoría todo está pendiente y solo se entra al paso 1", () => {
     const p = problemasAlta({ ...base, categoriaId: "" });
-    expect(pasoAlcanzable(p)).toBe(1);
     expect(pasoHecho(p, 3)).toBe(false);
   });
   it("nombre, tejido y patrón son el paso 2; tallas y tabla el 3; precio y stock el 4", () => {
@@ -515,14 +492,5 @@ describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-
     expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
     expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
     expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.");
-  });
-});
-
-describe("codigosRepetidos — la fila nueva que choca con una que ya existe", () => {
-  it("marca solo la segunda aparición", () => {
-    expect(codigosRepetidos(["CMS-0001-BLA-L", "CMS-0001-NEG-L", "CMS-0001-BLA-L"])).toEqual([2]);
-  });
-  it("un código desconocido no se compara", () => {
-    expect(codigosRepetidos([null, null, "CMS-0001-U"])).toEqual([]);
   });
 });

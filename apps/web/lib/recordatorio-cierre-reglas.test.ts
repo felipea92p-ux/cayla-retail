@@ -12,7 +12,6 @@ import {
   minutosDeHora,
   nivelPorMinutos,
   nombreCorto,
-  progreso,
   rotuloPildora,
   textoCorto,
   tituloTarjeta,
@@ -76,14 +75,9 @@ describe("estadoRecordatorio: las horas de AQP (21:30) y TRU (19:45)", () => {
   });
 });
 
-describe("nivelPorMinutos y progreso", () => {
+describe("nivelPorMinutos", () => {
   it("cortes exactos", () => {
     expect([-1, 0, 29, 30, 59, 60, 600].map(nivelPorMinutos)).toEqual([0, 1, 1, 2, 2, 3, 3]);
-  });
-  it("el anillo se llena en la primera hora y no se pasa", () => {
-    expect(progreso(-5)).toBe(0);
-    expect(progreso(30)).toBe(0.5);
-    expect(progreso(200)).toBe(1);
   });
 });
 

@@ -151,6 +151,14 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       texto: "Si el cliente pidió una talla que no está y no quiere esperar, «Anotar que no había» se lo cuenta a Compras para que la reponga (en la demo no lo tocamos). «Listo» cierra la ventana y vuelves al catálogo.",
     },
     {
+      id: "dueno",
+      ancla: "vender.dueno",
+      opcional: true,
+      ...CAJA_ABIERTA,
+      titulo: "¿De quién sale?",
+      texto: "En Tienda Lima, si una prenda tiene unidades de CAYLA y de CLAURE, marca de cuál sale la que vendes (la etiqueta del colibrí es de CAYLA). Sin marcar, el cobro espera. Si solo hay de un dueño no pregunta. En la demo no se toca.",
+    },
+    {
       id: "ticket",
       ancla: "vender.ticket",
       solo: "escritorio",
@@ -345,6 +353,13 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       titulo: "El apartado",
       texto: "Aquí van las prendas separadas. Después pides los datos del cliente (celular para avisarle), el adelanto y cómo lo pagó. Hasta que no confirmas, no se separa nada.",
+    },
+    {
+      id: "dueno-apartado",
+      ancla: "apartar.dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que apartas?",
+      texto: "Si una prenda tiene unidades de CAYLA y de CLAURE en Tienda Lima, marca de cuál separas. Sin marcar, no se avanza. Si solo hay de un dueño no pregunta. En la demo no se toca.",
     },
     {
       id: "entregar",

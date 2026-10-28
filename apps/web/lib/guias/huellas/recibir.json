@@ -141,6 +141,10 @@
       "Volver «→cerrar»",
       "Boton «Confirmar y recibir»"
     ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
       "button «→() => setProveedorId(p.id)»",
       "button «No sé de quién es»",

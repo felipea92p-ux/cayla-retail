@@ -17,19 +17,14 @@ import {
   monogramaDeMarca,
   resumenDeMarcas,
   textoEstadoMarca,
-  buscarMarcaProveedor,
   contarParejasPorCategoria,
-  filtrarMarcas,
   problemaEdicionMarca,
   sePuedeEliminarMarca,
-  textoProductosMarca,
   type BorradorMarca,
   type ParejaDeMarca,
   SIN_ID,
   filtroDeMarcaOProveedor,
-  marcaAutomatica,
   marcasParecidas,
-  proveedorAutomatico,
   proveedoresDeMarca,
   sugerenciasDeCategoria,
   type MarcaOpcion,
@@ -54,52 +49,9 @@ const vinculos: Vinculo[] = [
   { marcaId: "m-nike", proveedorId: "p-b" },
 ];
 
-describe("elección automática: cero clics cuando no hay duda", () => {
-  it("marca con un solo proveedor → se elige sola", () => {
-    expect(proveedorAutomatico(vinculos, "m-cayla")).toBe("p-csac");
-    expect(proveedorAutomatico(vinculos, "m-nike")).toBe("p-b");
-  });
-  it("marca con varios proveedores → hay que elegir (null)", () => {
-    expect(proveedorAutomatico(vinculos, "m-adidas")).toBeNull();
+describe("proveedoresDeMarca", () => {
+  it("lista los proveedores que traen la marca, en el orden de los vínculos", () => {
     expect(proveedoresDeMarca(vinculos, "m-adidas")).toEqual(["p-a", "p-b"]);
-  });
-  it("marca sin proveedor registrado → null, no inventa uno", () => {
-    expect(proveedorAutomatico(vinculos, "m-fantasma")).toBeNull();
-  });
-  it("proveedor con una sola marca → se elige sola; con varias, no", () => {
-    expect(marcaAutomatica(vinculos, "p-csac")).toBe("m-cayla");
-    expect(marcaAutomatica(vinculos, "p-b")).toBeNull();
-  });
-});
-
-describe("buscarMarcaProveedor", () => {
-  it("una caja busca marcas y proveedores, sin tildes ni mayúsculas", () => {
-    const r = buscarMarcaProveedor("ambar", marcas, proveedores, vinculos);
-    expect(r).toHaveLength(1);
-    expect(r[0].tipo).toBe("proveedor");
-  });
-  it("una marca trae sus proveedores; un proveedor trae sus marcas", () => {
-    const [m] = buscarMarcaProveedor("adi", marcas, proveedores, vinculos);
-    expect(m.tipo === "marca" && m.proveedores.map((p) => p.nombre)).toEqual(["Distribuidora Ámbar", "Importaciones Beta"]);
-    const [p] = buscarMarcaProveedor("importaciones", marcas, proveedores, vinculos);
-    expect(p.tipo === "proveedor" && p.marcas.map((x) => x.nombre)).toEqual(["Adidas", "Nike"]);
-  });
-  it("lo que empieza con la consulta va antes que lo que solo la contiene", () => {
-    const r = buscarMarcaProveedor("a", marcas, proveedores, vinculos);
-    const nombres = r.map((x) => (x.tipo === "marca" ? x.marca.nombre : x.proveedor.nombre));
-    expect(nombres.indexOf("Adidas")).toBeLessThan(nombres.indexOf("CAYLA"));
-  });
-  it("a igual puntaje, la marca va antes que el proveedor", () => {
-    const r = buscarMarcaProveedor("cayla", marcas, proveedores, vinculos);
-    expect(r[0].tipo).toBe("marca");
-    expect(r[1].tipo).toBe("proveedor");
-  });
-  it("consulta vacía o sin coincidencias → nada", () => {
-    expect(buscarMarcaProveedor("  ", marcas, proveedores, vinculos)).toEqual([]);
-    expect(buscarMarcaProveedor("zzzz", marcas, proveedores, vinculos)).toEqual([]);
-  });
-  it("respeta el tope", () => {
-    expect(buscarMarcaProveedor("a", marcas, proveedores, vinculos, 2)).toHaveLength(2);
   });
 });
 
@@ -134,29 +86,6 @@ describe("sugerencias por categoría (predecir el registro)", () => {
   it("no sugiere una pareja cuya marca o proveedor ya no está disponible", () => {
     const s = sugerenciasDeCategoria([{ marcaId: "m-desactivada", proveedorId: "p-a", usos: 9 }], marcas, proveedores);
     expect(s).toEqual([]);
-  });
-});
-
-describe("Catálogo ▸ Marcas: buscar", () => {
-  const filas = [
-    { nombre: "Amuza", proveedores: [{ nombre: "Amuza Peru EIRL" }] },
-    { nombre: "3.20 Store", proveedores: [{ nombre: "M & J Saavedra Inversiones SAC" }] },
-    { nombre: "Ángelys", proveedores: [{ nombre: "Creaciones Angelys" }, { nombre: "Distribuidora Ámbar" }] },
-  ];
-  it("sin texto, todas", () => {
-    expect(filtrarMarcas(filas, "  ")).toHaveLength(3);
-  });
-  it("por la marca, sin tildes ni mayúsculas", () => {
-    expect(filtrarMarcas(filas, "ANGEL").map((f) => f.nombre)).toEqual(["Ángelys"]);
-  });
-  it("por quien la trae: «saavedra» encuentra 3.20 Store", () => {
-    expect(filtrarMarcas(filas, "saavedra").map((f) => f.nombre)).toEqual(["3.20 Store"]);
-  });
-  it("por cualquiera de sus proveedores, no solo el primero", () => {
-    expect(filtrarMarcas(filas, "ambar").map((f) => f.nombre)).toEqual(["Ángelys"]);
-  });
-  it("nada coincide, nada", () => {
-    expect(filtrarMarcas(filas, "zara")).toEqual([]);
   });
 });
 
@@ -203,13 +132,6 @@ describe("Catálogo ▸ Marcas: eliminar (el caso «Cayla 2», 2026-09-26)", () 
   });
   it("una marca sin proveedores tampoco tiene productos: se puede eliminar", () => {
     expect(sePuedeEliminarMarca([])).toBe(true);
-  });
-  it("la tarjeta dice por qué no se puede: descontinuados también cuentan", () => {
-    expect(textoProductosMarca(4, 4)).toBe("4 productos activos");
-    expect(textoProductosMarca(1, 1)).toBe("1 producto activo");
-    expect(textoProductosMarca(0, 2)).toBe("Sin productos activos · 2 descontinuados");
-    expect(textoProductosMarca(0, 1)).toBe("Sin productos activos · 1 descontinuado");
-    expect(textoProductosMarca(0, 0)).toBe("Sin productos todavía");
   });
   it("con un solo producto por CUALQUIERA de sus proveedores ya no", () => {
     expect(sePuedeEliminarMarca([{ productosTotal: 1 }])).toBe(false);

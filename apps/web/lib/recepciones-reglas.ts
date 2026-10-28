@@ -29,18 +29,6 @@ export function faltanteDeLinea(llego: number | null, pendiente: number): number
   return llego === null ? 0 : Math.max(0, pendiente - llego);
 }
 
-export function resumenConteo(lineas: { llego: number | null; pendiente: number }[]) {
-  const total = lineas.length;
-  const contadas = lineas.filter((l) => l.llego !== null).length;
-  return {
-    total,
-    contadas,
-    sinContar: total - contadas,
-    unidades: lineas.reduce((a, l) => a + (l.llego ?? 0), 0),
-    excedidas: lineas.filter((l) => l.llego !== null && l.llego > l.pendiente).length,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Urgencia: qué comprobante ya debió llegar
 // ---------------------------------------------------------------------------
