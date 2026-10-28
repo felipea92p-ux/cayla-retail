@@ -55,11 +55,19 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 // Uno o varios archivos separados por coma (las partes de una migración se aplican en orden).
 const APLICAR_ANTES = process.env.APLICAR_ANTES ? process.env.APLICAR_ANTES.split(",").map((f) => readFileSync(f.trim(), "utf8")).join("\n") : "";
 
+// `--con-migracion <archivo>`: una migración POSTERIOR que la base de prueba todavía no tiene (p. ej. 20261028065000, ADR-0553). Se aplica
+// dentro de cada transacción, justo tras su primer `begin;`, y se deshace con su rollback. Las pruebas que pegan partes viejas parten de
+// una base con esa migración ya aplicada (o no): este modo comprueba que no cambia lo que el redondeo promete (las huellas de
+// `fn_cuenta_sellada`, los lectores, el diario).
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_POSTERIOR = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
+
 function psql(sql) {
+  const texto = MIGRACION_POSTERIOR ? sql.replace(/^begin;/m, () => `begin;\n${MIGRACION_POSTERIOR}\n`) : sql;
   return execFileSync(
     "docker",
     ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
-    { input: sql, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+    { input: texto, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
 }
 
