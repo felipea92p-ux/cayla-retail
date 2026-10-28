@@ -2370,14 +2370,14 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.camino",
       opcional: true,
       titulo: "En qué paso vas",
-      texto: "Cuatro pasos: abre tu ronda, anota lo que haces, manda las prendas a las tiendas y ciérrala. El de ahora va en negro y los que ya hiciste, en verde.",
+      texto: "Cuatro pasos: abre tu ronda, anota lo que haces, manda las prendas a las tiendas y ciérrala. El de ahora va en negro y los que ya hiciste, en verde. A la derecha, el número de tu ronda y desde cuándo.",
     },
     {
       id: "tienes",
       ancla: "mi-plata.tienes",
       opcional: true,
       titulo: "Lo que tienes para comprar",
-      texto: "Toda la plata que tienes para comprar, también la que Compras todavía no revisa: ya la puedes usar. Con tu ronda abierta, abajo ves cuánto te dieron, cuánto compraste y cuánto gastaste en ella.",
+      texto: "Toda la plata que tienes para comprar, también la que Compras todavía no revisa: ya la puedes usar. Con tu ronda abierta, abajo ves cuánto te dieron, compraste y gastaste, y cuánto de lo que tenías ya usaste.",
     },
     {
       id: "abrir-ronda",
@@ -2540,7 +2540,7 @@ export const GUIA_MI_PLATA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cerrar mi ronda",
-      texto: "Al volver de comprar, ciérrala: revisa tu plata y di qué haces con lo que te sobró (te lo abrimos). Va debajo de la lista de la ronda.",
+      texto: "Es el último paso. Al volver de comprar, ciérrala: revisa tu plata y di qué haces con lo que te sobró (te lo abrimos). La franja te dice si antes falta mandar algo.",
     },
     {
       id: "cuaderno",
