@@ -101,7 +101,7 @@ export function BuscarPrendaParaAjustar({
                 })),
                 ...sinFila.map((p) => ({
                   clave: p.id,
-                  miniatura: <MiniaturaPrenda fotoUrl={null} colorHex={null} tamano="md" categoria={p.categoria} />,
+                  miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl ?? null} colorHex={null} tamano="md" categoria={p.categoria} familia={p.familia ?? null} />,
                   titulo: p.referencia,
                   detalle: detalleSinStock(p),
                 })),
