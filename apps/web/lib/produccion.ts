@@ -15,6 +15,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
 import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
 import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
+import { leerOjalesBotones } from "@/lib/orden-fases-reglas";
 import type { AvioDelModelo, ConsumoDelModelo } from "@/lib/orden-tela-reglas";
 
 export type LineaOrden = {
@@ -271,6 +272,8 @@ export type OpcionesNuevaOrden = {
   comprometido: Record<string, number>;
   /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados; `fn_tela_en_camino`, regla de Felipe del 2026-10-16). Sin ello, nada viene. */
   enCamino: Record<string, number>;
+  /** Por modelo que ya contestó: si lleva ojales y botones (ADR-0551). Un modelo que NO sale acá es uno que nadie ha preguntado, distinto de «no lleva». Sin lectura, ninguno contesta. */
+  ojalesBotones: Record<string, boolean>;
 };
 
 type OpcionesLeidas = {
@@ -289,6 +292,8 @@ type OpcionesLeidas = {
 };
 
 export const RPC_NUEVA_ORDEN_OPCIONES = "fn_nueva_orden_opciones";
+/** Los modelos que ya dijeron si llevan ojales y botones (ADR-0551, migración 20261028053000). */
+export const RPC_OJALES_BOTONES_DE_MODELOS = "fn_ojales_botones_de_modelos";
 
 /** Los avíos vigentes de cada modelo, en el orden en que la base los entrega; una cantidad que no se lee no entra. */
 function aviosPorModelo(filas: NonNullable<OpcionesLeidas["avios_modelo"]>): Record<string, AvioDelModelo[]> {
@@ -330,6 +335,9 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
       // Lo que viene en camino es dato SECUNDARIO de lo secundario: si la lectura falla, la hoja sigue (sin contar nada en camino).
       const camino = await (supabase.rpc(RPC_TELA_EN_CAMINO as never, { p_ubicacion_id: tallerId } as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
       const enCamino = camino.error ? null : leerTelaEnCamino(camino.data);
+      // Lo que cada modelo dijo de ojales y botones también es secundario: si la función aún no está en la base o falla, ningún modelo contesta y la hoja pregunta (nunca prende el paso a ciegas).
+      const botones = await (supabase.rpc(RPC_OJALES_BOTONES_DE_MODELOS as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
+      const ojalesBotones = botones.error ? {} : leerOjalesBotones(botones.data);
       return {
         proveedores: (o.proveedores ?? []).map((p) => ({
           id: p.id,
@@ -348,6 +356,7 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
         aviosModelo: aviosPorModelo(o.avios_modelo ?? []),
         comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
         enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
+        ojalesBotones,
       } satisfies OpcionesNuevaOrden;
     })(),
     "los servicios y las telas de la orden",

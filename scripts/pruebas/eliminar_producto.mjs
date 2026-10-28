@@ -328,7 +328,8 @@ select pg_temp.huella(:'va');`);
     "favoritos_web", "esperas_web", "vitrina_look_piezas", "look_web_piezas",
     // ADR-0513: la ficha de consumo (la tela declarada y los avíos del modelo) es configuración suya, como sus fotos, y la escribe Producción SIN orden:
     // se va con la ficha por su `on delete cascade` (la prueba de forma de `produccion_ficha_consumo.mjs` lo exige).
-    "producto_consumos", "producto_avios"];
+    // ADR-0551: si el modelo lleva ojales y botones (`producto_taller`) es configuración suya, como su ficha de consumo: la escribe Producción SIN orden y se va con él por su `on delete cascade`.
+    "producto_consumos", "producto_avios", "producto_taller"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",

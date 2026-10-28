@@ -28,6 +28,7 @@ describe("Producción: un corte de red no afirma que no se guardó nada", () => 
   const HOJAS_DEL_REDISENO: [archivo: string, contexto: string][] = [
     ["proveedores-produccion/TarifaServicioModal.tsx", "guardar la tarifa"],
     ["orden-pagina/CambiarQuienModal.tsx", "cambiar quién hace"],
+    ["orden-pagina/QuitarPasoModal.tsx", "quitar"],
     ["insumos-taller/FichaDeLaTelaModal.tsx", "guardar la ficha"],
     ["insumos-taller/NuevoInsumoModal.tsx", "crear el insumo"],
     ["orden-pagina/DeshacerAvanceModal.tsx", "deshacer lo que se anotó"],

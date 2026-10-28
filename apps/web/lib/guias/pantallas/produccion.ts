@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges si la hace el Taller o sale afuera: si sale, el servicio, su precio y la fecha (el ploteo cobra una vez por orden).",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Ojales y botones se prende solo si el modelo los lleva (y la hoja lo recuerda). En cada fase eliges si la hace el Taller o sale afuera: si sale, el servicio, su precio y la fecha (el ploteo cobra una vez por orden).",
     },
     {
       id: "tela",
@@ -387,7 +387,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "fases",
       ancla: "prod-orden.fases",
       titulo: "Las fases del lote",
-      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar, y Ojales y botones si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado, y Ojales y botones si la orden los lleva (una orden más antigua puede traer también Limpiar hilos y Etiquetar). Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
     },
     {
       id: "fase-actual",
@@ -502,6 +502,14 @@ export const GUIA_PROD_ORDEN: Guia = {
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
       texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio, cuánto cobra por prenda (su lista de precios lo sugiere), desde cuántas prendas cobra y para cuándo lo promete. En la demo no guardamos el cambio.",
+    },
+    {
+      id: "quitar-paso",
+      ancla: "prod-orden.quitar-paso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Quitar un paso que no se hace",
+      texto: "Si la orden trae un paso opcional que ya no se hace (por ejemplo, Limpiar hilos y revisar), lo quitas mientras nadie lo haya empezado. Pide confirmar porque no se puede volver a agregar. En la demo no lo quitamos.",
     },
     {
       id: "tela",
