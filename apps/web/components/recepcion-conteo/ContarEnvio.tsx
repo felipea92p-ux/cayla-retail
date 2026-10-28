@@ -11,7 +11,8 @@ import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { EtiquetaAhora, MarcaCampo } from "@/components/alta-producto/guia";
-import { Balanza, BaldosaCategoria } from "./piezas";
+import { BaldosaCategoria } from "./piezas";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 import { useGuiaCampos, type GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -29,6 +30,7 @@ import {
   prendaCreadaDeNueva,
   separarAnotada,
   textoPrendas,
+  veredictoDeLaBalanza,
   type ClaveLinea,
   type ConteosDelEnvio,
   type LineaParaContar,
@@ -377,15 +379,19 @@ export function ContarEnvio({
               </ContadorDeGrupo>
             )}
 
-            <div className="space-y-3">
-              <PieGuia guia={guia} listo="Todas las categorías tienen su número y sus prendas identificadas." />
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <ArrowLeft aria-hidden className="h-4 w-4" />
-                    Anterior
-                  </span>
-                </Boton>
+            <PieGuia guia={guia} listo="Todas las categorías tienen su número y sus prendas identificadas." />
+
+            {/* La barra de cierre (opción A, Felipe 2026-10-28): lo que dijeron contra lo contado de TODO el envío y la acción que sigue, en una sola
+                barra que se queda al pie mientras se baja. Reemplaza a la balanza de dibujo, que sigue en «Cerrar». */}
+            <BarraDeAbajo pegada className="rc-cierre" data-guia="recepcion.cifra">
+              <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
+                <span className="inline-flex items-center gap-1.5">
+                  <ArrowLeft aria-hidden className="h-4 w-4" />
+                  Anterior
+                </span>
+              </Boton>
+              <CifrasDelEnvio dijeron={totalDijeron} contadas={totalContadas} />
+              <div className="barra-abajo-acciones">
                 {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
                 {siguiente && !guia.puedeConfirmar ? (
                   <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
@@ -410,10 +416,8 @@ export function ContarEnvio({
                   </Boton>
                 )}
               </div>
-            </div>
+            </BarraDeAbajo>
           </section>
-
-          <Balanza dijeron={totalDijeron} contadas={totalContadas} guia="recepcion.cifra" />
         </div>
       </div>
 
@@ -677,5 +681,21 @@ function ContadorDeGrupo({
         </section>
       )}
     </>
+  );
+}
+
+/** «Dijeron 11 | Contadas 11 · Cuadra»: lo dicho contra lo contado de todo el envío, en la barra de abajo. Sin aviso, no hay con qué comparar. */
+function CifrasDelEnvio({ dijeron, contadas }: { dijeron: number | null; contadas: number }) {
+  const v = veredictoDeLaBalanza(dijeron, contadas);
+  return (
+    <div className="rc-cierre-cifras" aria-live="polite">
+      <span>
+        <span className="label-cayla text-[11px] text-taupe">Dijeron</span> <b>{dijeron == null ? "—" : dijeron.toLocaleString("es-PE")}</b>
+      </span>
+      <span>
+        <span className="label-cayla text-[11px] text-taupe">Contadas</span> <b>{contadas.toLocaleString("es-PE")}</b>
+      </span>
+      <Chip tono={v.estado}>{v.texto}</Chip>
+    </div>
   );
 }

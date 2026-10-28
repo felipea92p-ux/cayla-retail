@@ -1581,8 +1581,8 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "cifra",
       ancla: "recepcion.cifra",
       opcional: true,
-      titulo: "Cuántas vienen y cuántas van",
-      texto: "Cuántos fardos vienen (si Compras lo dijo), cuántas prendas dijeron que venían y, mientras cuentas, la balanza: a un lado lo que dijeron, al otro lo que llevas. Se inclina hacia donde hay más y te dice si cuadra, si faltan o si sobran.",
+      titulo: "Cuántas dijeron y cuántas llevas",
+      texto: "En la barra de abajo, que te sigue mientras bajas: cuántas prendas dijeron que venían (si Compras lo dijo), cuántas llevas contadas de todo el envío y si cuadra, faltan o sobran. A los lados, «Anterior» y la acción que sigue.",
     },
     {
       id: "otra-sede",

@@ -110,6 +110,15 @@ button.rc-parada:disabled { cursor: default; }
 .rc-filas-sep { container: filas-sep / inline-size; }
 @container filas-sep (max-width: 700px) { .rc-fila-sep { grid-template-columns: auto minmax(0, 1fr); } .rc-fila-sep .rc-fila-fin { grid-column: 1 / -1; } }
 
+/* ---- La barra de cierre de «Contar» (opción A) ---- */
+/* Anterior · lo dicho contra lo contado · la acción que sigue. Es la Isla del sistema (`barra-abajo`, pegada al flujo: sube con la página y se
+   queda al pie). Angosta: las cifras ocupan su propia fila arriba y los botones quedan debajo, uno a cada lado. */
+.rc-cierre-cifras { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 18px; min-width: 0; }
+.rc-cierre-cifras b { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.rc-cierre-cifras > :last-child { align-self: center; }
+.rc-cierre { padding-left: 0.625rem; }
+@media (max-width: 639px) { .rc-cierre .rc-cierre-cifras { order: -1; flex-basis: 100%; } .rc-cierre .barra-abajo-acciones { margin-left: auto; } }
+
 /* ---- La balanza «Dijeron / Contaste» ---- */
 .rc-balanza { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid var(--color-sand); border-radius: 20px; background: var(--color-papel); }
 .rc-balanza .rc-lado { display: flex; flex-direction: column; gap: 2px; }
