@@ -20,6 +20,7 @@ import {
   RPC_CERRAR_PRODUCCION,
   cantidadesTerminadas,
   fasesSinRegistrar,
+  pendienteConCosto,
   lineasDeCierre,
   problemasDeCierre,
   resumenDeCierre,
@@ -66,8 +67,10 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
   const resumen = resumenDeCierre(datos, total);
   const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
   const sinTela = avisoSinTelaDeclarada(datos.insumos, orden.esMuestra);
-  // Fases que salieron afuera sin registrar quién (ADR-0551 pendiente de registrar): no cobran nada, así que su costo no entra al de las prendas. Es un aviso, nunca un candado (como la tela sin anotar).
+  // Fases que salieron afuera sin registrar quién (ADR-0551): las que llevan costo lo devengan igual (su costo SÍ entra al de las prendas); las que no, no suman nada. Es un aviso, nunca un candado (como la tela sin anotar).
   const sinRegistrar = fasesSinRegistrar(fases);
+  const sinRegistrarSinCosto = sinRegistrar.filter((f) => !pendienteConCosto(f));
+  const sinRegistrarConCosto = sinRegistrar.filter((f) => pendienteConCosto(f));
   const guia = useGuiaCampos(camposDeCierre({ total, problemas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
@@ -212,10 +215,16 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
           </Aviso>
         )}
 
-        {sinRegistrar.length > 0 && (
+        {sinRegistrarSinCosto.length > 0 && (
           <Aviso tono="atencion">
-            {sinRegistrar.map((f) => f.nombre).join(", ")} {sinRegistrar.length === 1 ? "salió afuera y todavía no dice quién" : "salieron afuera y todavía no dicen quién"}: su costo no entra al de las prendas. Regístralo en la fase antes de pasar al
-            stock; después de pasar ya no se puede.
+            {sinRegistrarSinCosto.map((f) => f.nombre).join(", ")} {sinRegistrarSinCosto.length === 1 ? "salió afuera sin proveedor y sin costo: no entra" : "salieron afuera sin proveedor y sin costo: no entran"} al costo de las prendas. Escribe lo que cuesta
+            (o regístralo) en la fase antes de pasar al stock; después de pasar ya no se puede.
+          </Aviso>
+        )}
+
+        {sinRegistrarConCosto.length > 0 && (
+          <Aviso tono="info">
+            {sinRegistrarConCosto.map((f) => f.nombre).join(", ")} {sinRegistrarConCosto.length === 1 ? "sigue sin proveedor registrado" : "siguen sin proveedor registrado"}: su costo sí entra al de las prendas. Cuando sepas quién fue, regístralo en la fase.
           </Aviso>
         )}
 

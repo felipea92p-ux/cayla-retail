@@ -1010,7 +1010,7 @@ export function NuevaOrdenProduccionForm({
                 }
               : null
           }
-          afuera={serviciosSinListar.map((s) => `${s.nombre}: ${s.proveedor ?? "elige a quién"}`)}
+          afuera={serviciosSinListar.map((s) => `${s.nombre}: ${s.proveedor ?? (s.pendiente ? "pendiente de registrar" : "elige a quién")}`)}
           margen={verMargen && semaforo ? { porcentaje: Math.round(semaforo.margen * 100), chip: CHIP_SEMAFORO[semaforo.tono] } : null}
           entrega={fechaCorta(fechaEntrega)}
           notaSinPrecio={

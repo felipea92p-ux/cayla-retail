@@ -128,7 +128,7 @@ export type FaseBorrador = {
   minimo: string;
   fechaPrometida: string;
   posicion: Posicion | null;
-  /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera, pero todavía no se sabe con quién ni a cuánto. Sin proveedor, tarifa ni fijo: no cobra nada hasta que se registre quién. Solo cuenta en un servicio. */
+  /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera, pero todavía no se sabe con quién. Sin proveedor; puede llevar su costo (tarifa, fijo, mínimo), que se devenga como el de cualquier servicio, y sin costo no suma nada hasta que se registre. Solo cuenta en un servicio. */
   pendiente?: boolean;
 };
 
@@ -373,16 +373,10 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     }
     if (f.quien !== "servicio") continue;
 
-    if (f.pendiente) {
-      // Pendiente de registrar: no hay proveedor ni tarifa que juzgar; solo la fecha, si se escribió, tiene que ser una fecha (la base hace lo mismo).
-      const fechaPendiente = f.fechaPrometida.trim();
-      if (fechaPendiente !== "" && !esFechaIso(fechaPendiente)) di("fase_fecha_invalida", `La fecha prometida de ${nombre} no es una fecha válida.`);
-      continue;
-    }
-
-    if (!f.proveedorId) {
+    // Pendiente de registrar (ADR-0551): no hay proveedor que juzgar y su costo es OPCIONAL (en blanco no suma nada), pero lo que se escriba pasa los mismos topes de un servicio.
+    if (!f.proveedorId && !f.pendiente) {
       di("fase_sin_proveedor", `Si ${nombre} sale afuera, elige a quién.`);
-    } else {
+    } else if (f.proveedorId && !f.pendiente) {
       const prov = porId.get(f.proveedorId);
       if (!prov || !prov.activo) di("fase_proveedor_inactivo", `Ese proveedor no está activo en el directorio del Taller.`);
       else if (RUBROS_QUE_NO_SIRVEN.includes(prov.rubro)) di("fase_proveedor_rubro", `Ese proveedor vende tela o avíos: un servicio de ${nombre} es de maquila u otro rubro.`);
@@ -393,7 +387,8 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
       // Cobra por orden (el ploteo): el fijo es lo único que se escribe. El orden es el de la base: un texto que no es número, después «falta el fijo», después los topes.
       if (s.fijo.tipo === "coma") di("fase_tarifa_invalida", `Escribe lo que cobra ${nombre} por la orden con punto, por ejemplo 40.00.`);
       else if (s.fijo.tipo === "invalido") di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden tiene que ser un número, por ejemplo 40.00.`);
-      else if (s.fijo.tipo === "negativo" || s.fijoOrden <= 0) {
+      else if (f.pendiente && s.fijo.tipo === "negativo") di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden no puede ser negativo.`);
+      else if (!f.pendiente && (s.fijo.tipo === "negativo" || s.fijoOrden <= 0)) {
         di("fase_sin_fijo", s.fijo.tipo === "negativo" ? `Lo que cobra ${nombre} por la orden tiene que ser mayor que cero.` : `Falta lo que cobra ${nombre} por esta orden: escríbelo o guárdalo en la lista de precios del proveedor.`);
       } else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `Lo que cobra ${nombre} por la orden no puede pasar de S/\u00a099,999.99.`);
     } else if (s.tarifa.tipo === "coma") di("fase_tarifa_invalida", `Escribe la tarifa de ${nombre} con punto, por ejemplo 4.50.`);
@@ -402,15 +397,15 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     else if (s.fijo.tipo === "invalido") di("fase_tarifa_invalida", `El fijo por orden de ${nombre} tiene que ser un número, por ejemplo 80.00.`);
     else if (s.minimo.tipo === "invalido") di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} es un número entero, por ejemplo 150.`);
     else if (s.tarifa.tipo === "negativo" || (s.tarifa.tipo === "ok" && s.tarifa.valor <= 0)) di("fase_sin_tarifa", `La tarifa por prenda de ${nombre} tiene que ser mayor que cero.`);
-    else if (s.tarifaPrenda === null) di("fase_sin_tarifa", `Falta la tarifa por prenda de ${nombre}: escríbela o guárdala en la lista de precios del proveedor.`);
-    else if (s.tarifaPrenda > TARIFA_MAXIMA) di("fase_tarifa_invalida", `La tarifa de ${nombre} no puede pasar de S/\u00a09,999.99.`);
+    else if (s.tarifaPrenda === null && !f.pendiente) di("fase_sin_tarifa", `Falta la tarifa por prenda de ${nombre}: escríbela o guárdala en la lista de precios del proveedor.`);
+    else if ((s.tarifaPrenda ?? 0) > TARIFA_MAXIMA) di("fase_tarifa_invalida", `La tarifa de ${nombre} no puede pasar de S/\u00a09,999.99.`);
     else if (s.fijo.tipo === "negativo") di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede ser negativo.`);
     else if (s.fijoOrden > FIJO_MAXIMO) di("fase_tarifa_invalida", `El fijo por orden de ${nombre} no puede pasar de S/\u00a099,999.99.`);
     else if (s.cantidadMinima !== null && s.cantidadMinima <= 0) di("fase_tarifa_invalida", `La cantidad mínima de ${nombre} tiene que ser mayor que cero.`);
 
     const fecha = f.fechaPrometida.trim();
     if (fecha !== "" && !esFechaIso(fecha)) di("fase_fecha_invalida", `La fecha prometida de ${nombre} no es una fecha válida.`);
-    else if (fecha !== "" && fecha < ctx.hoy) di("fase_fecha_pasada", `La fecha prometida de ${nombre} ya pasó: elige una de hoy en adelante.`);
+    else if (fecha !== "" && fecha < ctx.hoy && !f.pendiente) di("fase_fecha_pasada", `La fecha prometida de ${nombre} ya pasó: elige una de hoy en adelante.`);
   }
   return problemas;
 }
@@ -427,7 +422,7 @@ export function avisoMinimo(
   lista: readonly TarifaDeLista[],
   ctx: { hoy: string; proveedores?: readonly ProveedorServicio[] }
 ): string | null {
-  if (!faseViaja(fase) || fase.quien !== "servicio" || fase.pendiente || totalPrendas <= 0) return null;
+  if (!faseViaja(fase) || fase.quien !== "servicio" || totalPrendas <= 0) return null;
   const s = leerServicio(fase, lista, ctx.hoy);
   if (s.cantidadMinima === null || s.cantidadMinima <= 0 || totalPrendas >= s.cantidadMinima) return null;
   const nombre = ctx.proveedores?.find((p) => p.id === fase.proveedorId)?.nombre ?? "Este servicio";
@@ -441,7 +436,6 @@ export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPren
   for (const f of fasesEncendidas(fases)) {
     if (f.quien !== "servicio") continue;
     hayServicio = true;
-    if (f.pendiente) continue; // no cobra nada hasta que se registre quién
     const s = leerServicio(f, lista, hoy);
     total += (s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden;
   }
@@ -449,7 +443,7 @@ export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPren
 }
 
 /** Una fase que sale afuera con lo que costaría en TODA la orden y a quién (para repartirlo por prenda en la ficha). */
-export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; costo: number };
+export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; /** Sale afuera sin proveedor a propósito (ADR-0551): no es una falta. */ pendiente: boolean; costo: number };
 
 /**
  * Cada fase que sale afuera con su costo de toda la orden (tarifa × prendas + fijo, a dos decimales) y su proveedor, en el orden de la ruta. Es la MISMA cuenta
@@ -464,13 +458,14 @@ export function serviciosConCosto(
   proveedores: readonly ProveedorServicio[]
 ): ServicioConCosto[] {
   return fasesEncendidas(fases)
-    .filter((f) => f.quien === "servicio" && !f.pendiente)
+    .filter((f) => f.quien === "servicio")
     .map((f) => {
       const s = leerServicio(f, lista, hoy);
       return {
         clave: f.clave,
         nombre: faseDe(f.clave).nombre,
         proveedor: proveedores.find((p) => p.id === f.proveedorId)?.nombre ?? null,
+        pendiente: f.pendiente === true,
         costo: aCentimos((s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden),
       };
     });
@@ -517,11 +512,12 @@ export function fasesParaRpc(fases: readonly FaseBorrador[], lista: readonly Tar
     };
     if (f.quien !== "servicio") return base;
     const fecha = f.fechaPrometida.trim();
-    if (f.pendiente) return { ...base, proveedor_pendiente: true, fecha_prometida: fecha === "" ? null : fecha };
-    const s = leerServicio(f, lista, hoy);
+    // El pendiente lleva lo que se escribió (sin lista de precios: no hay proveedor), el ploteo solo su fijo.
+    const s = leerServicio(f, f.pendiente ? [] : lista, hoy);
     return {
       ...base,
-      proveedor_id: f.proveedorId,
+      ...(f.pendiente ? { proveedor_pendiente: true } : {}),
+      proveedor_id: f.pendiente ? null : f.proveedorId,
       tarifa_prenda: textoDe(s.tarifa, f.tarifa, s.tarifaPrenda),
       fijo_orden: textoDe(s.fijo, f.fijo, s.fijoOrden),
       cantidad_minima: textoDe(s.minimo, f.minimo, s.cantidadMinima),

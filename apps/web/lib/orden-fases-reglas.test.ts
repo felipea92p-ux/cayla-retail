@@ -328,30 +328,57 @@ describe("avisos y textos", () => {
   });
 });
 
-describe("«pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera sin saber todavía con quién ni a cuánto", () => {
+describe("«pendiente de registrar» (ADR-0551): sale afuera sin saber todavía con quién; puede llevar su costo y lo devenga igual", () => {
   const pendiente = (clave: FaseClave, cambios: Partial<FaseBorrador> = {}, base?: FaseBorrador[]) => afuera(clave, { proveedorId: null, tarifa: "", pendiente: true, ...cambios }, base);
-  it("no pide proveedor ni tarifa ni fijo: no hay faltas; el mismo servicio SIN la marca sigue pidiendo proveedor (un olvido no es un pendiente)", () => {
+  it("no pide proveedor, tarifa ni fijo (el costo es opcional): no hay faltas; el mismo servicio SIN la marca sigue pidiendo proveedor (un olvido no es un pendiente)", () => {
     expect(hints(pendiente("costura"))).toEqual([]);
     expect(hints(pendiente("ploteo"))).toEqual([]);
     expect(hints(afuera("costura", { proveedorId: null }))).toContain("fase_sin_proveedor");
+  });
+  it("lo que se escriba pasa los mismos topes de un servicio: tarifa 0, negativa, sin punto, de más de S/ 9,999.99; fijo negativo o de más de S/ 99,999.99; mínimo 0", () => {
+    expect(hints(pendiente("costura", { tarifa: "4.50", fijo: "15", minimo: "20" }))).toEqual([]);
+    expect(hints(pendiente("costura", { tarifa: "0" }))).toEqual(["fase_sin_tarifa"]);
+    expect(hints(pendiente("costura", { tarifa: "-2" }))).toEqual(["fase_sin_tarifa"]);
+    expect(hints(pendiente("costura", { tarifa: "4,5" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hints(pendiente("costura", { tarifa: "10000" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hints(pendiente("costura", { tarifa: "4.5", fijo: "-1" }))).toEqual(["fase_tarifa_invalida"]);
+    expect(hints(pendiente("costura", { tarifa: "4.5", minimo: "0" }))).toEqual(["fase_tarifa_invalida"]);
+  });
+  it("el ploteo se cobra por orden: su fijo en blanco o escrito vale; negativo no", () => {
+    expect(hints(pendiente("ploteo", { fijo: "40" }, fasesIniciales()))).toEqual([]);
+    expect(hints(pendiente("ploteo", { fijo: "" }, fasesIniciales()))).toEqual([]);
+    expect(hints(pendiente("ploteo", { fijo: "-5" }, fasesIniciales()))).toEqual(["fase_tarifa_invalida"]);
+    const [r] = fasesParaRpc(pendiente("ploteo", { fijo: "40", tarifa: "3", minimo: "10" }, fasesIniciales()).filter((f) => f.clave === "ploteo"), LISTA, HOY);
+    expect(r).toMatchObject({ clave: "ploteo", proveedor_id: null, tarifa_prenda: null, fijo_orden: "40", cantidad_minima: null, proveedor_pendiente: true });
   });
   it("una fecha prometida pasada vale; una que no es fecha se rechaza como siempre", () => {
     expect(hints(pendiente("costura", { fechaPrometida: "2026-01-01" }))).toEqual([]);
     expect(hints(pendiente("costura", { fechaPrometida: "mañana" }))).toEqual(["fase_fecha_invalida"]);
   });
-  it("viaja a la base con la marca y sin proveedor, tarifa, fijo ni mínimo (aunque las cajas traigan lo que se escribió antes de elegir «pendiente»)", () => {
+  it("viaja a la base con la marca, SIN proveedor y con lo que se escribió (tarifa, fijo, mínimo); en blanco viaja sin monto", () => {
     const [r] = fasesParaRpc(pendiente("costura", { tarifa: "9", fijo: "20", minimo: "50", fechaPrometida: "2026-10-01" }).filter((f) => f.clave === "costura"), LISTA, HOY);
-    expect(r).toMatchObject({ clave: "costura", quien: "servicio", proveedor_id: null, tarifa_prenda: null, fijo_orden: null, cantidad_minima: null, fecha_prometida: "2026-10-01", proveedor_pendiente: true });
+    expect(r).toMatchObject({ clave: "costura", quien: "servicio", proveedor_id: null, tarifa_prenda: "9", fijo_orden: "20", cantidad_minima: "50", fecha_prometida: "2026-10-01", proveedor_pendiente: true });
+    const [vacia] = fasesParaRpc(pendiente("costura").filter((f) => f.clave === "costura"), LISTA, HOY);
+    expect(vacia).toMatchObject({ proveedor_id: null, tarifa_prenda: null, cantidad_minima: null, proveedor_pendiente: true });
   });
-  it("no cobra nada: no suma al costo estimado, no aparece en el reparto por prenda y no avisa de cantidad mínima", () => {
-    expect(costoServiciosEstimado(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY)).toBe(0);
-    expect(serviciosConCosto(pendiente("costura"), 50, LISTA, HOY, PROVEEDORES)).toEqual([]);
-    expect(avisoMinimo(pendiente("costura", { minimo: "500" }).find((f) => f.clave === "costura")!, 50, LISTA, { hoy: HOY, proveedores: PROVEEDORES })).toBeNull();
+  it("un pendiente NO toma la lista de precios de un proveedor que ya no tiene (no hay quién): lo escrito o nada", () => {
+    const [r] = fasesParaRpc(pendiente("costura", { proveedorId: CONF.id }).filter((f) => f.clave === "costura"), LISTA, HOY);
+    expect(r).toMatchObject({ proveedor_id: null, tarifa_prenda: null, proveedor_pendiente: true });
   });
-  it("la base lo acepta: la migración lee `proveedor_pendiente` en `fn_produccion_fases_normalizar` y no exige proveedor para esa fase", () => {
-    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261028072000_produccion_proveedor_pendiente_de_registrar.sql"), "utf8");
-    expect(sql).toContain("v_f ->> 'proveedor_pendiente'");
-    expect(sql).toContain("create or replace function retail.registrar_proveedor_de_fase(");
+  it("DEVENGA como un servicio: suma al costo estimado (tarifa × prendas + fijo), aparece en el reparto por prenda sin proveedor, y sin monto no suma; no avisa de cantidad mínima", () => {
+    expect(costoServiciosEstimado(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY)).toBe(470);
+    expect(costoServiciosEstimado(pendiente("costura"), 50, LISTA, HOY)).toBe(0);
+    const [fila] = serviciosConCosto(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY, PROVEEDORES);
+    expect(fila).toMatchObject({ clave: "costura", proveedor: null, pendiente: true, costo: 470 });
+    // El mínimo del pendiente avisa como el de cualquier servicio (sin nombre de proveedor: no hay).
+    expect(avisoMinimo(pendiente("costura", { minimo: "500" }).find((f) => f.clave === "costura")!, 50, LISTA, { hoy: HOY, proveedores: PROVEEDORES })).toBe("Este servicio cobra desde 500 prendas: esta orden lleva 50");
+  });
+  it("la base lo acepta: la migración del costo lee tarifa, fijo y mínimo del pendiente en `fn_produccion_fases_normalizar`, ensancha el CHECK y deja `dejar_fase_pendiente_de_registrar` con el costo", () => {
+    const sql = readFileSync(join(RAIZ, "supabase/migrations/20261028084000_produccion_pendiente_con_costo_devengado.sql"), "utf8");
+    expect(sql).toContain("'proveedor_id', null, 'tarifa_prenda', v_tarifa, 'fijo_orden', v_fijo, 'cantidad_minima', v_min");
+    expect(sql).toContain("(proveedor_id is null and (clave <> 'ploteo' or tarifa_prenda is null))");
+    expect(sql).toContain("dejar_fase_pendiente_de_registrar(\n  p_fase_id uuid, p_fecha_prometida date default null,\n  p_tarifa_prenda numeric default null");
+    expect(sql).toContain("p_limpiar_costo boolean default false");
   });
 });
 

@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿Aún no lo tienes? «Pendiente de registrar»; ¿no está? «+ Registrar proveedor nuevo».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿Aún no lo tienes? «Pendiente de registrar»: escribe lo que cuesta y ya cuenta como costo. ¿No está? «+ Registrar proveedor nuevo».",
     },
     {
       id: "tela",
@@ -501,7 +501,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
       titulo: "Taller o afuera",
-      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar»; ¿no está en la lista? «+ Registrar proveedor nuevo»), cuánto cobra por prenda, desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
+      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio (¿aún no lo tienes? «Pendiente de registrar», con su costo; ¿no está? «+ Registrar proveedor nuevo»), cuánto cobra por prenda, desde cuántas prendas y para cuándo. En la demo no guardamos el cambio.",
     },
     {
       id: "quitar-paso",

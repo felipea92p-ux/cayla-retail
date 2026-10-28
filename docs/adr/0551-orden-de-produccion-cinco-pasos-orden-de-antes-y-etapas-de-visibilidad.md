@@ -171,3 +171,23 @@ prometida) dio por hecho que la de entrega seguía rechazándose. Felipe eligió
 la primera versión de esta migración alineó solo la primera y falló en CI, porque la entrega pasada seguía rechazándose por las otras dos; producción tenía las tres sin la comprobación (medido, solo lectura). La
 hoja de Nueva orden sigue pidiendo una fecha de hoy en adelante. Cambian dos pruebas: la E1 de `produccion_cinco_pasos` (la entrega pasada ahora abre) y el bloque que deshace parches en `produccion_ploteo`.
 DESCARTÉ: devolver la comprobación a producción (cambia lo que la gente puede hacer hoy). SE ROMPE SI: alguien lee «la entrega no puede ser pasada» en `064000` y la vuelve a poner en `main` sin pegarla en producción.
+
+## Actualización 2026-10-28 (c) · «Pendiente de registrar» con su costo: se devenga aunque no se sepa a quién
+
+**Lo que pasó.** El pendiente (arriba, 28-oct) salía afuera **sin costo**: sin tarifa, sin fijo, devengado 0. Felipe, el mismo día: «necesito devengar el gasto aunque aún sea un desconocido». El trabajo se hizo y se
+debe aunque no se sepa a quién; la orden tiene que mostrarlo y el costo por prenda al pasar al stock tiene que incluirlo.
+
+**Medido antes de tocar nada (solo lectura, producción):** la base YA devenga cualquier servicio con tarifa o fijo, tenga proveedor o no (`fn_fases_de_orden`: `buenas × coalesce(tarifa, 0) + fijo`; `fn_orden_produccion`
+estima `tarifa × plan + fijo`). Lo único que lo impedía era que el pendiente se forzaba a tarifa y fijo vacíos en cuatro lugares: el CHECK `produccion_fases_quien`, `fn_produccion_fases_normalizar`,
+`dejar_fase_pendiente_de_registrar` y la pantalla.
+
+**Qué se hizo** (migración `20261028084000`; una parte; el CHECK nuevo es más ancho que el actual): el pendiente **puede llevar tarifa por prenda, fijo por orden y cantidad mínima** (los mismos campos y topes de un servicio;
+ninguno es obligatorio: sin monto devenga 0, como antes); el ploteo sigue cobrándose por orden (sin tarifa por prenda). `dejar_fase_pendiente_de_registrar` pasa de 2 a 5 parámetros (los 3 nuevos con valor por defecto) y una
+fase **ya pendiente** ajusta su costo en cualquier momento mientras la orden esté en proceso. La pantalla muestra «Por prenda», «Cantidad mínima» y el fijo bajo «Pendiente de registrar»; el aviso de «Pasar al stock» distingue el
+pendiente con costo («su costo sí entra al de las prendas») del que no lo tiene («no entra»).
+
+DECIDÍ: el costo del pendiente son los MISMOS campos de un servicio, no un «monto estimado» aparte: el devengado, la estimación de la orden, el costo por prenda y el «Registrar quién» posterior usan UNA sola cuenta.
+DESCARTÉ: una columna `costo_estimado` (otra fuente de verdad del costo de la misma fase); exigir monto al pendiente (hay fases cuyo precio tampoco se sabe); inventar un proveedor «Desconocido» (deuda y filtros de Por pagar
+con un proveedor que no existe).
+SE ROMPE SI: alguien repega `20261028072000` completa DESPUÉS de esta (su CHECK vuelve a forzar el pendiente a cero); o el candado `produccion_fases_quien` se revierte en producción (ya pasó una vez, 28-oct: huella esperada
+a0e071b039cc antes de esta; con esta, la que dé la migración).
