@@ -123,6 +123,10 @@ export function CompraDeLaTela({
   avisoDeCompra?: boolean;
 }) {
   const { compra, ancho, gramaje, metrosPorRollo, merma } = datos;
+  // El rango (20–400 cm, 30–1500 g/m²) se reclama al SALIR del campo, no mientras se teclea: al escribir «160» el «1» y el «16» ya están «fuera de rango» y la caja se pondría roja a media palabra.
+  const [salio, setSalio] = useState({ ancho: false, gramaje: false });
+  const anchoMal = numeroMalEscrito(ancho) || (salio.ancho && anchoFueraDeRango(ancho));
+  const gramajeMal = numeroMalEscrito(gramaje) || (salio.gramaje && gramajeFueraDeRango(gramaje));
   const rinde = rindeEscrito(datos);
   const avisosBlandos = avisosDeTelaNueva(datos);
   return (
@@ -136,18 +140,20 @@ export function CompraDeLaTela({
               inputMode="decimal"
               value={ancho}
               onChange={(ev) => onAncho(ev.target.value)}
+              onBlur={() => setSalio((s) => ({ ...s, ancho: true }))}
               placeholder="160"
-              tono={numeroMalEscrito(ancho) || anchoFueraDeRango(ancho) ? "error" : undefined}
-              pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : anchoFueraDeRango(ancho) ? MENSAJE_ANCHO : "Si viene en tubo, el abierto es el doble del tubo plano."}
+              tono={anchoMal ? "error" : undefined}
+              pie={numeroMalEscrito(ancho) ? CANTIDAD_ILEGIBLE : anchoMal ? MENSAJE_ANCHO : "Si viene en tubo, el abierto es el doble del tubo plano."}
             />
             <CampoTexto
               etiqueta="Gramaje (g/m²)"
               inputMode="decimal"
               value={gramaje}
               onChange={(ev) => onGramaje(ev.target.value)}
+              onBlur={() => setSalio((s) => ({ ...s, gramaje: true }))}
               placeholder="180"
-              tono={numeroMalEscrito(gramaje) || gramajeFueraDeRango(gramaje) ? "error" : undefined}
-              pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeFueraDeRango(gramaje) ? MENSAJE_GRAMAJE : undefined}
+              tono={gramajeMal ? "error" : undefined}
+              pie={numeroMalEscrito(gramaje) ? CANTIDAD_ILEGIBLE : gramajeMal ? MENSAJE_GRAMAJE : undefined}
             />
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-tinta/65">Rinde</p>

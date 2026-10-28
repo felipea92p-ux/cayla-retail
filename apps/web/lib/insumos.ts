@@ -121,6 +121,7 @@ type FilaMaterial = {
   ancho_cm: number | string | null;
   gramaje_gm2: number | string | null;
   metros_por_rollo: number | string | null;
+  updated_at: string;
 };
 
 type Respuesta<T> = PromiseLike<{ data: T[] | null; error: { message: string; code?: string } | null }>;
@@ -136,7 +137,7 @@ function leerMateriales(supabase: Awaited<ReturnType<typeof createClient>>): Res
   // La tabla es nueva (ADR-0554) y no está en los tipos generados: se tipa el cliente, no el resultado.
   return (supabase as unknown as { from: (t: string) => { select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => Respuesta<FilaMaterial> } } } })
     .from("materiales")
-    .select("id, codigo, nombre, tipo, tejido_id, composicion, unidad_medida, merma_pct, unidad_compra, ancho_cm, gramaje_gm2, metros_por_rollo")
+    .select("id, codigo, nombre, tipo, tejido_id, composicion, unidad_medida, merma_pct, unidad_compra, ancho_cm, gramaje_gm2, metros_por_rollo, updated_at")
     .is("archivado_at", null)
     .order("nombre");
 }
@@ -208,6 +209,7 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
         ancho: m.ancho_cm === null ? null : Number(m.ancho_cm),
         gramaje: m.gramaje_gm2 === null ? null : Number(m.gramaje_gm2),
         metrosPorRollo: m.metros_por_rollo === null ? null : Number(m.metros_por_rollo),
+        version: String(m.updated_at),
       }));
 
   const vistas: InsumoVista[] = filasInsumos.map((i) => {

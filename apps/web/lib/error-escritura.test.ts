@@ -971,4 +971,19 @@ describe("«una tela con sus colores» (ADR-0554, revisión del 28-oct): ningún
       expect(salida, message).not.toMatch(/insumos_|materiales_/);
     }
   });
+  it("con el deshacer pegado (las funciones ya no son de `authenticated`) NO dice que se cerró la sesión: dice que crear o editar telas está desactivado", () => {
+    for (const [funcion, esperado] of [["crear_material", "Crear telas está desactivado"], ["agregar_colores_a_material", "Sumar colores a una tela está desactivado"], ["editar_material", "Editar telas está desactivado"]] as const) {
+      const salida = traducirError({ message: `permission denied for function ${funcion}`, code: "42501" }, "guardar la tela");
+      expect(salida, funcion).toContain(esperado);
+      expect(salida, funcion).toContain("No se guardó nada");
+      expect(salida, funcion).not.toMatch(/sesión|entrar/i);
+    }
+    // Y las demás funciones siguen diciendo lo de siempre.
+    expect(traducirError({ message: "permission denied for function registrar_venta", code: "42501" }, "registrar la venta")).toContain("vuelve a entrar");
+  });
+  it("un choque de versión al editar la tela dice lo que la base dice, para ofrecer «Recargar»", () => {
+    const error = { message: "Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.", code: "PT409", hint: "version_cambiada" };
+    expect(esVersionCambiada(error)).toBe(true);
+    expect(traducirError(error, "guardar los cambios de la tela")).toBe("Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.");
+  });
 });

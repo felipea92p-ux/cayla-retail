@@ -212,7 +212,7 @@ describe("unidades por tipo (ADR-0554)", () => {
 });
 
 describe("agruparPorTela: cada tela con sus colores juntos", () => {
-  const tela = (id: string): MaterialVista => ({ id, codigo: id.toUpperCase(), nombre: id, tipo: "tela", tejidoId: null, composicion: null, unidad: "metro", merma: 0, compra: "metro", ancho: null, gramaje: null, metrosPorRollo: null });
+  const tela = (id: string): MaterialVista => ({ id, codigo: id.toUpperCase(), nombre: id, tipo: "tela", tejidoId: null, composicion: null, unidad: "metro", merma: 0, compra: "metro", ancho: null, gramaje: null, metrosPorRollo: null, version: "v1" });
   it("junta los colores de la misma tela aunque no vengan seguidos, y respeta el orden en que aparece cada tela", () => {
     const g = agruparPorTela([{ id: "1", materialId: "b" }, { id: "2", materialId: "a" }, { id: "3", materialId: "b" }], [tela("a"), tela("b")]);
     expect(g.map((x) => [x.material?.id, x.insumos.map((i) => i.id)])).toEqual([["b", ["1", "3"]], ["a", ["2"]]]);

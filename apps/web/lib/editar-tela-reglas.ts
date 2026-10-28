@@ -1,4 +1,5 @@
 import type { CampoDeGuia } from "./guia-campos";
+import type { VocabularioDeTelas } from "./insumos-ficha-reglas";
 import type { CompraDeTela, MaterialVista } from "./insumos-reglas";
 import { camposDeLaTela, materialParaLaBase, problemasDeLaTela, type DatosDeLaTela } from "./tela-nueva-reglas";
 
@@ -24,9 +25,47 @@ export function datosDeLaTelaYaGuardada(m: MaterialVista): DatosDeLaTela {
   };
 }
 
-/** Lo que se manda a `editar_material`: los mismos datos de la tela que `crear_material` (sin colores). */
-export function payloadDeEditarTela(e: DatosDeLaTela): Record<string, unknown> {
-  return materialParaLaBase(e);
+/** Lo que se manda a `editar_material`: los mismos datos de la tela que `crear_material` (sin colores) y la VERSIÓN que la hoja leyó al abrirse. Sin ella, o con una vieja, la base no guarda: otra persona la pudo cambiar
+ *  entretanto y no se pisa su cambio en silencio (ADR-0193). */
+export function payloadDeEditarTela(e: DatosDeLaTela, version: string): Record<string, unknown> {
+  return { ...materialParaLaBase(e), version };
+}
+
+/** Cuántos colores de la tela tienen un nombre distinto del que la base les escribiría hoy («Tela · Color», con el nombre VIVO del color en Catálogo ▸ Colores). Pasa cuando alguien renombra un color: el insumo no se entera
+ *  hasta que se guarda su tela, y entonces guardarla —aunque no cambie nada— los pone al día. Un color que ya no está en la lista de colores no se compara: no se sabe cómo se llamaría. */
+export function coloresConNombreDesfasado(
+  tela: Pick<MaterialVista, "nombre">,
+  colores: readonly { nombre: string; colorCodigo: string | null }[],
+  vocabulario: Pick<VocabularioDeTelas, "colores">,
+): number {
+  let desfasados = 0;
+  for (const c of colores) {
+    const vivo = c.colorCodigo ? vocabulario.colores.find((x) => x.codigo === c.colorCodigo)?.nombre : undefined;
+    if (c.colorCodigo && vivo === undefined) continue;
+    if (c.nombre !== (vivo === undefined ? tela.nombre : `${tela.nombre} · ${vivo}`)) desfasados += 1;
+  }
+  return desfasados;
+}
+
+/** Lo que la hoja dice de los colores bajo los campos: a cuántos les llega el cambio (y por qué «su color» y no «sus 1 colores»). */
+export function notaDeLosColores(cuantosColores: number): string {
+  if (cuantosColores <= 0) return "El código de la tela no cambia, y el stock tampoco.";
+  const a = cuantosColores === 1 ? "su color" : `sus ${cuantosColores} colores`;
+  return `El nombre, el tejido y la merma que pongas aquí les llegan a ${a} al guardar. El código de la tela y el de cada color no cambian, y el stock tampoco.`;
+}
+
+/** Lo que conviene saber ANTES de guardar, según lo que se cambió. No bloquea nada: solo dice lo que el cambio NO hace. */
+export function avisosDeEditarTela(inicial: DatosDeLaTela, actual: DatosDeLaTela): string[] {
+  const antes = materialParaLaBase(inicial);
+  const ahora = materialParaLaBase(actual);
+  const avisos: string[] = [];
+  if (ahora.nombre !== "" && antes.nombre !== ahora.nombre) {
+    avisos.push("El nombre nuevo se verá en los colores, en las listas y en las órdenes que lo muestren; lo que ya imprimiste o enviaste no cambia.");
+  }
+  if (antes.merma_pct !== ahora.merma_pct) {
+    avisos.push("La merma nueva cuenta para las órdenes que abras desde ahora; el plan de las que ya están abiertas no se recalcula solo.");
+  }
+  return avisos;
 }
 
 /** ¿Lo escrito dice algo distinto de lo guardado? Se compara lo que viajaría a la base, así «5» y «5,00» o un espacio de más no cuentan como cambio. */

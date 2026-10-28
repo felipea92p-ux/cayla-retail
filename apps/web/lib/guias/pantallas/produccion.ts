@@ -863,7 +863,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       ancla: "prod-tela-editar.cierre",
       opcional: true,
       titulo: "Guardar los cambios",
-      texto: "Eliges quién lo anota y tocas «Guardar los cambios»: se actualiza la tela y todos sus colores juntos, o ninguno. El botón espera a que cambies algo. En la demo no guardamos: cerramos la ventana.",
+      texto: "Eliges quién lo anota y tocas «Guardar los cambios»: se actualiza la tela y todos sus colores juntos, o ninguno. El botón espera a que cambies algo, o a que haya colores con el nombre por poner al día. En la demo no guardamos: cerramos la ventana.",
     },
     {
       id: "ficha-campos",

@@ -8,12 +8,13 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { CompraDeLaTela, TejidoYComposicion, useTejidosDeLaTela } from "@/components/insumos-taller/PiezasDeLaTela";
 import { avisar } from "@/components/ui/Avisos";
+import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
-import { camposDeEditarTela, datosDeLaTelaYaGuardada, hayCambiosEnLaTela, payloadDeEditarTela, problemasDeEditarTela } from "@/lib/editar-tela-reglas";
-import { traducirError } from "@/lib/error-escritura";
+import { avisosDeEditarTela, camposDeEditarTela, datosDeLaTelaYaGuardada, hayCambiosEnLaTela, notaDeLosColores, payloadDeEditarTela, problemasDeEditarTela } from "@/lib/editar-tela-reglas";
+import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import type { VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import { textoDeCompra, type MaterialVista } from "@/lib/insumos-reglas";
 import { firmar } from "@/lib/responsable-reglas";
@@ -30,6 +31,7 @@ import { useResponsable } from "@/lib/useResponsable";
 export function EditarTelaModal({
   material,
   cuantosColores,
+  coloresDesfasados = 0,
   tallerId,
   vocabulario,
   leyoVocabulario,
@@ -38,6 +40,8 @@ export function EditarTelaModal({
   material: MaterialVista;
   /** Cuántos colores tiene hoy: la hoja dice a cuántos les llega el cambio. */
   cuantosColores: number;
+  /** Cuántos de esos colores tienen un nombre que ya no sigue al de su color en Catálogo (alguien lo renombró): guardar la tela, aunque no cambie nada, los pone al día. */
+  coloresDesfasados?: number;
   tallerId: string;
   vocabulario: VocabularioDeTelas;
   /** `false`: los tejidos no se pudieron leer; la hoja lo dice. */
@@ -55,6 +59,10 @@ export function EditarTelaModal({
 
   const problemas = problemasDeEditarTela(datos);
   const hayCambios = hayCambiosEnLaTela(inicial, datos);
+  // Sin cambios en la tela todavía hay algo que guardar si hay colores con el nombre desfasado: guardarla los pone al día (la base reescribe el nombre de cada color al tocar su tela).
+  const soloPonerAlDia = !hayCambios && coloresDesfasados > 0;
+  const puedeGuardar = hayCambios || soloPonerAlDia;
+  const avisos = avisosDeEditarTela(inicial, datos);
   const guia = useGuiaCampos(camposDeEditarTela({ ...datos, responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): solo cuenta lo que la persona cambió.
@@ -67,6 +75,11 @@ export function EditarTelaModal({
     void guardiaFuera.then(() => router.refresh());
   }
 
+  // «Recargar» tras un choque de versión: se cierra la hoja (lo escrito se pierde, el aviso ya lo dijo) y la pantalla trae lo que la otra persona guardó.
+  function recargar() {
+    cerrarTrasGuardar();
+  }
+
   async function guardar(ev: React.FormEvent) {
     ev.preventDefault();
     if (enVuelo.current) return;
@@ -74,7 +87,7 @@ export function EditarTelaModal({
       avisar.error(problemas[0]);
       return;
     }
-    if (!hayCambios) {
+    if (!puedeGuardar) {
       avisar.aviso("No cambiaste nada de la tela.");
       return;
     }
@@ -87,7 +100,7 @@ export function EditarTelaModal({
     let resultado;
     try {
       // La función es nueva (ADR-0554) y los tipos generados todavía no la traen: la llamada se tipa a mano, como `crear_material`.
-      const consulta = createClient().rpc("editar_material" as never, { p_material_id: material.id, p_ubicacion_id: tallerId, p_material: payloadDeEditarTela(datos) } as never);
+      const consulta = createClient().rpc("editar_material" as never, { p_material_id: material.id, p_ubicacion_id: tallerId, p_material: payloadDeEditarTela(datos, material.version) } as never);
       resultado = await firmar(consulta, responsable.firma());
     } finally {
       enVuelo.current = false;
@@ -96,12 +109,18 @@ export function EditarTelaModal({
     responsable.despues(error);
     setCargando(false);
     if (error) {
+      // Otra persona guardó esta tela mientras se editaba: la hoja NO se cierra (lo escrito sigue a la vista para anotarlo) y se ofrece recargar, que trae sus cambios.
+      if (esVersionCambiada(error)) {
+        avisar.error(traducirError(error, "guardar los cambios de la tela"), { accion: { texto: "Recargar", onClick: recargar } });
+        return;
+      }
       // Editar una tela es idempotente (escribir los mismos datos dos veces deja lo mismo): repetirlo no duplica nada.
       avisar.error(traducirError(error, "guardar los cambios de la tela"));
       return;
     }
-    avisar.exito(`${datos.nombre.trim()} se actualizó`, {
-      detalle: cuantosColores > 0 ? `${cuantosColores === 1 ? "Su color la sigue" : `Sus ${cuantosColores} colores la siguen`}; ningún stock ni costo cambió.` : "Ningún stock ni costo cambió.",
+    const losColores = cuantosColores === 1 ? "Su color la sigue" : `Sus ${cuantosColores} colores la siguen`;
+    avisar.exito(soloPonerAlDia ? `Los nombres de ${coloresDesfasados === 1 ? "un color" : `${coloresDesfasados} colores`} de ${datos.nombre.trim()} se pusieron al día` : `${datos.nombre.trim()} se actualizó`, {
+      detalle: cuantosColores > 0 ? `${losColores}; ningún stock ni costo cambió.` : "Ningún stock ni costo cambió.",
     });
     cerrarTrasGuardar();
   }
@@ -142,18 +161,32 @@ export function EditarTelaModal({
               onMetrosPorRollo={(t) => cambiar({ metrosPorRollo: t })}
               onMerma={(t) => cambiar({ merma: t })}
             />
-            <p className="nota-cayla">
-              {cuantosColores > 0
-                ? `El nombre, el tejido y la merma que pongas aquí les llegan a sus ${cuantosColores === 1 ? "color" : `${cuantosColores} colores`} al guardar. El código de la tela y el de cada color no cambian, y el stock tampoco.`
-                : "El código de la tela no cambia, y el stock tampoco."}
-            </p>
+            <p className="nota-cayla">{notaDeLosColores(cuantosColores)}</p>
+            {avisos.map((t) => (
+              <Aviso key={t} tono="atencion" chico>
+                {t}
+              </Aviso>
+            ))}
+            {coloresDesfasados > 0 && (
+              <Aviso tono="info" chico>
+                {coloresDesfasados === 1 ? "Un color tiene un nombre que ya no sigue al de su color en Catálogo" : `${coloresDesfasados} colores tienen un nombre que ya no sigue al de su color en Catálogo`}. Al guardar la tela se ponen al día, aunque no cambies nada.
+              </Aviso>
+            )}
           </section>
 
           <div data-guia="prod-tela-editar.cierre" className="space-y-3">
             <CampoGuiado id="quien" guia={guia}>
               <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
             </CampoGuiado>
-            <PieGuia guia={guia} listo="Todo listo para guardar los cambios." conFrase />
+            {/* Con todo en orden pero nada cambiado, «Todo listo» sería mentira: el botón sigue apagado. Se dice por qué. */}
+            {!(guia.faltan.length === 0 && !puedeGuardar) && (
+              <PieGuia guia={guia} listo={soloPonerAlDia ? "Todo listo para poner al día los nombres de los colores." : "Todo listo para guardar los cambios."} conFrase />
+            )}
+            {!puedeGuardar && guia.puedeConfirmar && (
+              <p role="status" className="pt-1 text-[12.5px] text-tinta/80">
+                Todavía no cambiaste nada: el botón se enciende cuando corrijas algo.
+              </p>
+            )}
           </div>
 
           <div className="pie-hoja-fijo">
@@ -161,8 +194,8 @@ export function EditarTelaModal({
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(onClose)}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar || !hayCambios} title={!hayCambios ? "No cambiaste nada de la tela." : (guia.frase ?? responsable.motivo ?? undefined)} className={guia.claseConfirmar}>
-                Guardar los cambios
+              <Boton type="submit" peso="primario" cargando={cargando} disabled={!guia.puedeConfirmar || !puedeGuardar} title={!puedeGuardar ? "No cambiaste nada de la tela." : (guia.frase ?? responsable.motivo ?? undefined)} className={puedeGuardar ? guia.claseConfirmar : ""}>
+                {soloPonerAlDia ? "Poner al día los nombres" : "Guardar los cambios"}
               </Boton>
             </div>
           </div>

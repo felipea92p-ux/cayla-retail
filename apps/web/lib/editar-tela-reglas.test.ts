@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
 import type { MaterialVista } from "./insumos-reglas";
-import { camposDeEditarTela, datosDeLaTelaYaGuardada, hayCambiosEnLaTela, payloadDeEditarTela, problemasDeEditarTela } from "./editar-tela-reglas";
+import { avisosDeEditarTela, camposDeEditarTela, coloresConNombreDesfasado, datosDeLaTelaYaGuardada, hayCambiosEnLaTela, notaDeLosColores, payloadDeEditarTela, problemasDeEditarTela } from "./editar-tela-reglas";
 import { MENSAJE_ANCHO } from "./tela-nueva-reglas";
 
 // «Editar tela» (ADR-0554, actividad 3): se corrige con las MISMAS reglas con que se creó, y sin cambios no hay nada que guardar.
@@ -19,6 +19,7 @@ const tela = (extra: Partial<MaterialVista> = {}): MaterialVista => ({
   ancho: null,
   gramaje: null,
   metrosPorRollo: null,
+  version: "2026-10-28T12:00:00.123456+00:00",
   ...extra,
 });
 
@@ -64,10 +65,57 @@ describe("las reglas son las de crear la tela", () => {
 
 describe("lo que se manda a editar_material", () => {
   it("la merma como fracción; el ancho y el gramaje solo por kilo; sin colores", () => {
-    const p = payloadDeEditarTela({ nombre: " Milano Melange ", tejidoId: "t1", composicion: " 100 % algodón ", compra: "kilo", ancho: "160", gramaje: "180", metrosPorRollo: "", merma: "5" });
+    const p = payloadDeEditarTela({ nombre: " Milano Melange ", tejidoId: "t1", composicion: " 100 % algodón ", compra: "kilo", ancho: "160", gramaje: "180", metrosPorRollo: "", merma: "5" }, "v1");
     expect(p).toMatchObject({ nombre: "Milano Melange", tejido_id: "t1", composicion: "100 % algodón", unidad_compra: "kilo", ancho_cm: 160, gramaje_gm2: 180, merma_pct: 0.05 });
     expect(p).not.toHaveProperty("colores");
-    expect(payloadDeEditarTela({ ...datosDeLaTelaYaGuardada(tela()) })).not.toHaveProperty("ancho_cm");
+    expect(payloadDeEditarTela({ ...datosDeLaTelaYaGuardada(tela()) }, "v1")).not.toHaveProperty("ancho_cm");
+  });
+  it("lleva la versión que la hoja leyó al abrirse, tal cual (texto: pasarla por Date le quita los microsegundos y la base la rechazaría)", () => {
+    const m = tela();
+    expect(payloadDeEditarTela(datosDeLaTelaYaGuardada(m), m.version)).toMatchObject({ version: "2026-10-28T12:00:00.123456+00:00" });
+  });
+});
+
+describe("colores con el nombre desfasado", () => {
+  const vocabulario = { colores: [{ codigo: "ARN", nombre: "Arena", hex: null }, { codigo: "NEG", nombre: "Negro", hex: null }] };
+  const m = { nombre: "Milano Melange" };
+  it("los que tienen el nombre que la base les escribiría hoy no cuentan", () => {
+    expect(coloresConNombreDesfasado(m, [{ nombre: "Milano Melange · Arena", colorCodigo: "ARN" }, { nombre: "Milano Melange · Negro", colorCodigo: "NEG" }], vocabulario)).toBe(0);
+  });
+  it("renombrar el color en Catálogo deja desfasado al insumo hasta que se guarde su tela", () => {
+    const renombrado = { colores: [{ codigo: "ARN", nombre: "Arena clara", hex: null }, { codigo: "NEG", nombre: "Negro", hex: null }] };
+    expect(coloresConNombreDesfasado(m, [{ nombre: "Milano Melange · Arena", colorCodigo: "ARN" }, { nombre: "Milano Melange · Negro", colorCodigo: "NEG" }], renombrado)).toBe(1);
+  });
+  it("un color que ya no está en la lista no se compara (no se sabe cómo se llamaría); uno sin color se llama como la tela", () => {
+    expect(coloresConNombreDesfasado(m, [{ nombre: "Lo que sea", colorCodigo: "XXX" }], vocabulario)).toBe(0);
+    expect(coloresConNombreDesfasado(m, [{ nombre: "Milano Melange", colorCodigo: null }], vocabulario)).toBe(0);
+    expect(coloresConNombreDesfasado(m, [{ nombre: "Milano Melange · Arena", colorCodigo: null }], vocabulario)).toBe(1);
+  });
+  it("si la tela misma se renombró, todos los colores quedan desfasados", () => {
+    expect(coloresConNombreDesfasado({ nombre: "Milano" }, [{ nombre: "Milano Melange · Arena", colorCodigo: "ARN" }, { nombre: "Milano Melange · Negro", colorCodigo: "NEG" }], vocabulario)).toBe(2);
+  });
+});
+
+describe("lo que la hoja dice de los colores", () => {
+  it("«su color» con uno, «sus N colores» con varios, y sin colores solo lo que no cambia", () => {
+    expect(notaDeLosColores(1)).toContain("les llegan a su color al guardar");
+    expect(notaDeLosColores(1)).not.toMatch(/sus 1/);
+    expect(notaDeLosColores(3)).toContain("les llegan a sus 3 colores al guardar");
+    expect(notaDeLosColores(0)).toBe("El código de la tela no cambia, y el stock tampoco.");
+  });
+  it("cambiar el nombre o la merma avisa lo que NO hace; cambiar el tejido o dejarlo igual no avisa nada", () => {
+    const abierta = datosDeLaTelaYaGuardada(tela({ merma: 0.05 }));
+    expect(avisosDeEditarTela(abierta, abierta)).toEqual([]);
+    expect(avisosDeEditarTela(abierta, { ...abierta, tejidoId: "t2" })).toEqual([]);
+    expect(avisosDeEditarTela(abierta, { ...abierta, nombre: "Milano" })).toHaveLength(1);
+    expect(avisosDeEditarTela(abierta, { ...abierta, nombre: "Milano" })[0]).toContain("nombre nuevo");
+    expect(avisosDeEditarTela(abierta, { ...abierta, merma: "8" })[0]).toContain("merma nueva");
+    expect(avisosDeEditarTela(abierta, { ...abierta, nombre: "Milano", merma: "8" })).toHaveLength(2);
+  });
+  it("un espacio de más, «5,00» o un nombre vacío mientras se escribe no avisan nada", () => {
+    const abierta = datosDeLaTelaYaGuardada(tela({ merma: 0.05 }));
+    expect(avisosDeEditarTela(abierta, { ...abierta, nombre: "  Milano Melange ", merma: "5,00" })).toEqual([]);
+    expect(avisosDeEditarTela(abierta, { ...abierta, nombre: "" })).toEqual([]);
   });
 });
 

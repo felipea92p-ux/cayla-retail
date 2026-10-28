@@ -56,6 +56,10 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // «Una tela con sus colores»: tras el script de deshacer (o antes de pegar 20261028203000) las funciones de telas ya no son de `authenticated`: no es que se cerrara la sesión.
+  { marca: "permission denied for function crear_material", frase: "Crear telas está desactivado por ahora. No se guardó nada." },
+  { marca: "permission denied for function agregar_colores_a_material", frase: "Sumar colores a una tela está desactivado por ahora. No se guardó nada." },
+  { marca: "permission denied for function editar_material", frase: "Editar telas está desactivado por ahora. No se guardó nada." },
   // «Una tela con sus colores» (ADR-0554, revisión del 28-oct): las restricciones que la base deja sin mensaje propio. La pantalla frena casi todo antes; esto es el respaldo (y lo que ve la web vieja).
   { marca: "insumos_tela_en_metros", frase: "Una tela se lleva en metros: el kilo y el rollo se declaran al crear la tela, en «+ Nueva tela»." },
   { marca: "insumos_codigo_clave_unico", frase: "Ya hay un insumo con ese código (aunque cambien las mayúsculas, las tildes o los espacios). Elige otro código." },

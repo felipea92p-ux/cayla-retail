@@ -74,6 +74,8 @@ export type MaterialVista = {
   ancho: number | null;
   gramaje: number | null;
   metrosPorRollo: number | null;
+  /** Su `updated_at` tal como lo devolvió la base (texto, sin pasarlo por `Date`: pierde los microsegundos). «Editar tela» lo manda de vuelta y la base rechaza el guardado si otra persona cambió la tela entretanto (ADR-0193). */
+  version: string;
 };
 
 /** Metros que salen de un kilo: `1000 ÷ (gramaje en g/m² × ancho en m)`. `null` si falta el ancho o el gramaje. */

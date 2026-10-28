@@ -30,6 +30,8 @@ import {
 } from "@/lib/insumos-reglas";
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
 import { LapizEditar } from "@/components/ui/BotonEditar";
+import { coloresConNombreDesfasado } from "@/lib/editar-tela-reglas";
+import { costoUnitarioTexto } from "@/lib/monto-plata-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -81,7 +83,7 @@ export function InsumosPanel({
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
   const [fichando, setFichando] = useState<InsumoVista | null>(null);
   // «Editar tela» (solo el líder): la tela que se está corrigiendo y cuántos colores le llegan los cambios.
-  const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number } | null>(null);
+  const [editandoTela, setEditandoTela] = useState<{ material: MaterialVista; colores: number; desfasados: number } | null>(null);
   const [verCapital, setVerCapital] = useState(false);
 
   const { insumos, libro, capital } = datos;
@@ -197,7 +199,7 @@ export function InsumosPanel({
                                 + Agregar colores
                               </button>
                               {esLider && g.material && (
-                                <LapizEditar que={`la tela ${g.material.nombre}`} guia={g.material.id === primeraTelaId ? "prod-insumos.editar-tela" : undefined} onClick={() => setEditandoTela({ material: g.material as MaterialVista, colores: g.insumos.length })} />
+                                <LapizEditar que={`la tela ${g.material.nombre}`} guia={g.material.id === primeraTelaId ? "prod-insumos.editar-tela" : undefined} onClick={() => setEditandoTela({ material: g.material as MaterialVista, colores: g.insumos.length, desfasados: coloresConNombreDesfasado(g.material as MaterialVista, g.insumos, vocabulario) })} />
                               )}
                             </div>
                           )}
@@ -277,6 +279,7 @@ export function InsumosPanel({
           key={editandoTela.material.id}
           material={editandoTela.material}
           cuantosColores={editandoTela.colores}
+          coloresDesfasados={editandoTela.desfasados}
           tallerId={tallerId}
           vocabulario={vocabulario}
           leyoVocabulario={leyoVocabulario}
@@ -377,7 +380,7 @@ function FilaInsumo({
                       {cantidadTexto(l.saldo, i.unidad)} <span className="text-tinta/65">/ {cantidadTexto(l.cantidadIngresada, i.unidad)}</span>
                     </span>
                     <span className="flex min-w-[5.5rem] items-center justify-end gap-2 whitespace-nowrap tabular-nums text-tinta/75">
-                      {veCostos && l.costoUnitario !== null && soles(l.costoUnitario)}
+                      {veCostos && l.costoUnitario !== null && costoUnitarioTexto(l.costoUnitario)}
                       {primero?.id === l.id && (
                         <span title="Se descuenta primero: el más antiguo con saldo">
                           <Chip tono="neutro">1º</Chip>

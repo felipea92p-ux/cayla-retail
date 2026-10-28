@@ -60,7 +60,7 @@
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la tela\")}»",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «Guardar los cambios»"
+      "Boton «(sin nombre)»"
     ],
     "components/insumos-taller/FichaDeLaTelaModal.tsx": [
       "ComboResponsable «{responsable}»",

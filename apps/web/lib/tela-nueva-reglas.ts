@@ -294,7 +294,7 @@ const mismosNumeros = (a: string, b: string): boolean => {
 /** ¿Ya hay una tela con este nombre (o muy parecido)? Antes de crearla se avisa, para sumarle colores a esa en vez de repetirla. */
 export function telaParecida<T extends Pick<MaterialVista, "nombre" | "tipo">>(nombre: string, materiales: readonly T[]): { tela: T; igual: boolean } | null {
   // La regla de marcas ignora el número del final («Cayla 2» es «Cayla»); en una tela no: «Algodón 24/1» y «Algodón 30/1» son telas distintas (G15 de la revisión).
-  const r = nombresParecidos(nombre, materiales.filter((m) => m.tipo === "tela"), { max: 5 });
+  const r = nombresParecidos(nombre, materiales.filter((m) => m.tipo === "tela"), { max: 500 });
   if (r.igual) return { tela: r.igual, igual: true };
   const p = r.parecidos.find((x) => mismosNumeros(nombre, x.item.nombre));
   return p ? { tela: p.item, igual: false } : null;
