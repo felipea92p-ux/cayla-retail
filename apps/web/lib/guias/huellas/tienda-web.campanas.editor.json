@@ -2,7 +2,7 @@
   "guia": "tienda-web.campanas.editor",
   "ruta": "/tienda-web/campanas/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 100,
+  "total": 102,
   "controles": {
     "app/(app)/tienda-web/campanas/[id]/page.tsx": [
       "Volver «/tienda-web/campanas»",
@@ -33,6 +33,8 @@
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", `Nombre ${delUno}»",
+      "CampoFecha «Desde» #2",
+      "CampoFecha «Hasta» #2",
       "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
