@@ -11,8 +11,16 @@
  *   F. Agregar. `agregar_colores_a_material` suma los que faltan y deja los que estaban; un saldo en un color que ya existía se rechaza (eso es «Llegó tela»); con el mismo token no se duplica.
  *   G. Copias. El nombre y el código de un color los pone la tela y no se escriben a mano; el tejido y la merma son de la tela; un color no cambia de tela ni se suelta de ella.
  *   H. Estados imposibles. El mismo color dos veces en una tela, una tela por kilo sin medidas, medidas que no son números y el cambio de unidad de una tela no caben.
- *   I. Lo que ya existía. `fn_materializar_insumos_sueltos` vuelve tela cada insumo suelto, y se detiene si hay dos con el mismo nombre.
- *   J. Puertas. `anon` no llama a nada, `authenticated` solo a las dos funciones de alta, y la tabla de telas se lee pero no se escribe desde la API.
+ *   I. Lo que ya existía. `fn_materializar_insumos_sueltos` ENSAYA por defecto (no escribe) y con `true` vuelve tela cada insumo suelto de tela: agrupa los del mismo nombre, adopta a la tela que ya
+ *      existe, quita el « · Color» que se le agrega al mostrarlo, deja suelto —diciendo por qué— lo que choca y no toca avíos ni archivados. Nunca aborta.
+ *   J. Puertas. `anon` no llama a nada, `authenticated` solo a las funciones de alta y de edición, y la tabla de telas se lee pero no se escribe desde la API.
+ *   K. Editar una tela (revisión de 28-oct). `editar_material` corrige nombre, tejido, composición y merma y los colores la siguen en la misma transacción; es del líder; no cambia el tipo ni la unidad;
+ *      un color desfasado se cura en vez de bloquearse, y cambiar el tejido de UN color sigue rechazado.
+ *   L. Candado de unidad. Colgar un insumo suelto de una tela de otra clase se rechaza; de la misma clase se puede; el disparador de unidad firme ya no mira columnas.
+ *   M. Tokens. Un color repetido en la lista se rechaza con y sin token; el mismo token en otra tela ya no se confunde con un reintento (ningún saldo se pierde en silencio).
+ *   N. Dónde y quién. Solo en un Taller activo; un avío lo crea el líder; el código de la tela no se recorta al llegar a 100.
+ *   O. Insumos sueltos. El código derivado ocupado por un insumo suelto se dice; una tela con el nombre de un suelto avisa.
+ *   P. Medidas. Un ancho en metros («1.60») se rechaza en castellano, al crear y al editar.
  *
  * Los mensajes del servidor salen en el idioma de la base: por eso los casos buscan el NOMBRE de la restricción o el texto propio de la migración.
  *
@@ -293,19 +301,62 @@ insert into retail.insumos (codigo, nombre, tipo, unidad_medida, material_id, co
 );
 
 // ---------------- I. Lo que ya existía ----------------
+const SUELTO = (codigo, nombre, extra = "") => `insert into retail.insumos (codigo, nombre, tipo, unidad_medida${extra ? ", color_codigo" : ""}) values ('${codigo}', '${nombre}', 'tela', 'metro'${extra ? `, ${extra}` : ""});`;
 ok(
   "I1 un insumo suelto se vuelve tela: su código pasa a ser el de la tela y su color, `CÓDIGO-COL`",
-  `insert into retail.insumos (codigo, nombre, tipo, unidad_medida, color_codigo) values ('ZZ-VIEJO', 'Tela vieja', 'tela', 'metro', :'c1');
-select retail.fn_materializar_insumos_sueltos() as n \\gset
+  `${SUELTO("ZZ-VIEJO", "Tela vieja", ":'c1'")}
+select count(*) filter (where resultado = 'convertido') as n from retail.fn_materializar_insumos_sueltos(true) \\gset
 select :'n', m.codigo, i.codigo, i.nombre like 'Tela vieja · %' from retail.insumos i join retail.materiales m on m.id = i.material_id where i.nombre like 'Tela vieja%';`,
   (c) => Number(c[0]) >= 1 && c[1] === "ZZ-VIEJO" && c[2] === `ZZ-VIEJO-${c[2].split("-").at(-1)}` && c[3] === "t"
 );
-mal(
-  "I2 dos insumos sueltos con el mismo nombre no se vuelven telas: dice cuáles y no cambia nada",
-  "Hay insumos sueltos con el mismo nombre",
-  `insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-R1', 'Repetida', 'tela', 'metro');
-insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-R2', 'repetida', 'tela', 'metro');
-select retail.fn_materializar_insumos_sueltos();`
+ok(
+  "I2 por defecto ENSAYA: dice qué haría y no escribe nada",
+  `${SUELTO("ZZ-E1", "Ensayada", ":'c1'")}
+select count(*) filter (where resultado = 'se convertiría') as n from retail.fn_materializar_insumos_sueltos() \\gset
+select :'n', (select count(*) from retail.insumos where codigo = 'ZZ-E1' and material_id is null), (select count(*) from retail.materiales where nombre = 'Ensayada');`,
+  (c) => Number(c[0]) >= 1 && Number(c[1]) === 1 && Number(c[2]) === 0
+);
+ok(
+  "I3 dos sueltos con el mismo nombre y distinto color son UNA tela con dos colores (ya no se detiene)",
+  `${SUELTO("ZZ-R1", "Repetida", ":'c1'")}
+${SUELTO("ZZ-R2", "repetida", ":'c2'")}
+select count(*) as n from retail.fn_materializar_insumos_sueltos(true) \\gset
+select (select count(*) from retail.materiales where lower(nombre) = 'repetida'), (select count(*) from retail.insumos where material_id is not null and lower(nombre) like 'repetida%'),
+  (select bool_and(codigo like 'ZZ-R1-%') from retail.insumos where material_id is not null and lower(nombre) like 'repetida%');`,
+  (c) => Number(c[0]) === 1 && Number(c[1]) === 2 && c[2] === "t"
+);
+ok(
+  "I4 el mismo nombre y el MISMO color: el segundo se queda suelto, dice por qué y el primero sí se convierte",
+  `${SUELTO("ZZ-S1", "Choque", ":'c1'")}
+${SUELTO("ZZ-S2", "choque", ":'c1'")}
+select count(*) as n from retail.fn_materializar_insumos_sueltos(true) \\gset
+select (select count(*) from retail.insumos where codigo like 'ZZ-S1-%'), (select count(*) from retail.insumos where codigo = 'ZZ-S2' and material_id is null),
+  (select detalle from retail.fn_materializar_insumos_sueltos() where insumo_codigo = 'ZZ-S2');`,
+  (c) => Number(c[0]) === 1 && Number(c[1]) === 1 && c[2].includes("ya tiene ese color")
+);
+ok(
+  "I5 los avíos sueltos y los archivados no se tocan",
+  `insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-A1', 'Botón suelto', 'avio', 'unidad');
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida, archivado_at) values ('ZZ-A2', 'Archivada vieja', 'tela', 'metro', now());
+select count(*) as n from retail.fn_materializar_insumos_sueltos(true) \\gset
+select (select material_id is null from retail.insumos where codigo = 'ZZ-A1'), (select material_id is null from retail.insumos where codigo = 'ZZ-A2');`,
+  (c) => c[0] === "t" && c[1] === "t"
+);
+ok(
+  "I6 el nombre que ya trae « · Color» (lo que se ve en la lista) no crea otra tela ni duplica el color",
+  `select nombre as cn from retail.colores where codigo = :'c1' \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida, color_codigo) values ('ZZ-L1', 'Lana vieja · ' || :'cn', 'tela', 'metro', :'c1');
+select count(*) as n from retail.fn_materializar_insumos_sueltos(true) \\gset
+select m.nombre, i.nombre = 'Lana vieja · ' || :'cn' from retail.insumos i join retail.materiales m on m.id = i.material_id where i.codigo like 'ZZ-L1%';`,
+  (c) => c[0] === "Lana vieja" && c[1] === "t"
+);
+ok(
+  "I7 un código de más de 20 letras no abortaría nada: la tela recibe uno de la base y el resto se convierte",
+  `insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-CODIGO-MUY-LARGO-PARA-UNA-TELA', 'Larga', 'tela', 'metro');
+${SUELTO("ZZ-OK1", "Normalita")}
+select count(*) as n from retail.fn_materializar_insumos_sueltos(true) \\gset
+select (select count(*) from retail.materiales where nombre = 'Larga' and length(codigo) <= 20), (select count(*) from retail.materiales where nombre = 'Normalita');`,
+  (c) => Number(c[0]) === 1 && Number(c[1]) === 1
 );
 
 // ---------------- J. Puertas ----------------
@@ -317,8 +368,12 @@ ok(
     has_function_privilege('authenticated', 'retail.agregar_colores_a_material(uuid,uuid,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_material_agregar_colores(uuid,uuid,jsonb,uuid)', 'execute'),
     has_function_privilege('authenticated', 'retail.fn_codigo_de_material(text,text)', 'execute'),
-    has_function_privilege('authenticated', 'retail.fn_materializar_insumos_sueltos()', 'execute'));`,
-  (c) => c[0] === "f,t,t,f,f,f"
+    has_function_privilege('authenticated', 'retail.fn_materializar_insumos_sueltos(boolean)', 'execute'),
+    has_function_privilege('authenticated', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
+    has_function_privilege('anon', 'retail.editar_material(uuid,uuid,jsonb)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_material_leer(jsonb,text,text)', 'execute'),
+    has_function_privilege('authenticated', 'retail.fn_materiales_propagar_a_colores()', 'execute'));`,
+  (c) => c[0] === "f,t,t,f,f,f,t,f,f,f"
 );
 mal(
   "J2 la tabla de telas no se escribe desde la API",
@@ -332,6 +387,200 @@ ok(
 set local role authenticated;
 select count(*) from retail.materiales where nombre = 'Zafiro Prueba';`,
   (c) => Number(c[0]) === 1
+);
+
+// ---------------- K. Editar una tela (revisión del 28-oct: una tela ya creada no se podía corregir) ----------------
+const EDITAR = (mid, datos) => `retail.editar_material(${mid}, :'taller', ${datos})`;
+const TELA_DOS_COLORES = `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1"), COLOR("c2")))} as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'id')::uuid as mid \\gset`;
+ok(
+  "K1 el líder corrige una tela y TODOS sus colores la siguen (nombre, tejido, merma), con el código intacto",
+  `${TELA_DOS_COLORES}
+select id as tej from retail.tejidos where activo order by nombre limit 1 \\gset
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Renombrado', 'tejido_id', :'tej', 'merma_pct', 0.08, 'composicion', '100 % algodón')`)} as r2 \\gset
+select count(*) filter (where i.nombre like 'Zafiro Renombrado · %' and i.tejido_id = :'tej' and i.merma_pct = 0.08 and i.codigo like 'ZAF-01-%'), count(*), (select composicion from retail.materiales where id = :'mid') from retail.insumos i where i.material_id = :'mid';`,
+  (c) => Number(c[0]) === 2 && Number(c[1]) === 2 && c[2] === "100 % algodón"
+);
+mal(
+  "K2 editar una tela es del líder: un colaborador, aunque vea Producción en ese Taller, no la edita",
+  "Editar una tela es del líder",
+  `${TELA_DOS_COLORES}
+${MICAELA_EN_EL_TALLER}
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Otro')`)};`
+);
+mal(
+  "K3 renombrar a un nombre que ya tiene otra tela AVISA y dice cuál (aunque cambien mayúsculas, tildes o espacios)",
+  "Ya existe «Zafiro Otra»",
+  `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")))} as r1 \\gset
+select ${CREAR("Zafiro Otra", COLORES(COLOR("c2")))} as r2 \\gset
+select ${EDITAR("(:'r1'::jsonb -> 'material' ->> 'id')::uuid", `jsonb_build_object('nombre', ' zafíro  OTRA ')`)};`
+);
+ok(
+  "K4 el tipo y la unidad no se cambian al editar, aunque los manden",
+  `${TELA_DOS_COLORES}
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Prueba', 'tipo', 'avio', 'unidad_medida', 'kilo')`)} as r2 \\gset
+select (:'r2'::jsonb -> 'material' ->> 'tipo'), (:'r2'::jsonb -> 'material' ->> 'unidad_medida'), (select count(*) from retail.insumos where material_id = :'mid' and tipo = 'tela' and unidad_medida = 'metro');`,
+  (c) => c[0] === "tela" && c[1] === "metro" && Number(c[2]) === 2
+);
+ok(
+  "K5 después de editar la tela, un color se puede archivar (el desfase ya no lo bloquea)",
+  `${TELA_DOS_COLORES}
+select id as tej from retail.tejidos where activo order by nombre limit 1 \\gset
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Prueba', 'tejido_id', :'tej')`)} as r2 \\gset
+update retail.insumos set archivado_at = now() where material_id = :'mid' and color_codigo = :'c1';
+select count(*) filter (where archivado_at is not null), count(*) from retail.insumos where material_id = :'mid';`,
+  (c) => Number(c[0]) === 1 && Number(c[1]) === 2
+);
+ok(
+  "K6 un color que quedó desfasado se CURA al tocarlo (antes se bloqueaba con «son de la tela»)",
+  `${TELA_DOS_COLORES}
+alter table retail.insumos disable trigger insumos_copias_de_la_tela;
+update retail.insumos set merma_pct = 0.2 where material_id = :'mid';
+alter table retail.insumos enable trigger insumos_copias_de_la_tela;
+update retail.insumos set stock_minimo = 5 where material_id = :'mid';
+select max(merma_pct), min(stock_minimo) from retail.insumos where material_id = :'mid';`,
+  (c) => Number(c[0]) === 0 && Number(c[1]) === 5
+);
+mal(
+  "K7 cambiar el tejido de UN color sigue rechazado: es de la tela",
+  "son de la tela",
+  `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")))} as r \\gset
+select id as tej from retail.tejidos where activo order by nombre limit 1 \\gset
+update retail.insumos set tejido_id = :'tej' where material_id = (:'r'::jsonb -> 'material' ->> 'id')::uuid;`
+);
+ok(
+  "K8 un UPDATE directo de la tela (SQL del líder) también arrastra a sus colores",
+  `${TELA_DOS_COLORES}
+select id as tej from retail.tejidos where activo order by nombre limit 1 \\gset
+update retail.materiales set tejido_id = :'tej', nombre = 'Zafiro Corregido' where id = :'mid';
+select count(*) filter (where tejido_id = :'tej' and nombre like 'Zafiro Corregido · %'), count(*) from retail.insumos where material_id = :'mid';`,
+  (c) => Number(c[0]) === 2 && Number(c[1]) === 2
+);
+ok(
+  "K9 se puede pasar a comprar por kilo (con sus medidas) y volver a metro",
+  `${TELA_DOS_COLORES}
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Prueba', 'unidad_compra', 'kilo', 'ancho_cm', 160, 'gramaje_gm2', 180)`)} as r2 \\gset
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Prueba', 'unidad_compra', 'metro')`)} as r3 \\gset
+select (:'r2'::jsonb -> 'material' ->> 'unidad_compra'), (:'r2'::jsonb -> 'material' ->> 'ancho_cm')::numeric, (:'r3'::jsonb -> 'material' ->> 'unidad_compra'), (:'r3'::jsonb -> 'material' ->> 'ancho_cm');`,
+  (c) => c[0] === "kilo" && Number(c[1]) === 160 && c[2] === "metro" && c[3] === ""
+);
+
+// ---------------- L. Candado de unidad ----------------
+mal(
+  "L1 colgar un insumo suelto de una tela de OTRA clase se rechaza (un avío no se vuelve tela)",
+  "es de otra clase que la tela",
+  `${TELA_DOS_COLORES}
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-BOT', 'Botón suelto', 'avio', 'unidad');
+update retail.insumos set material_id = :'mid' where codigo = 'ZZ-BOT';`
+);
+ok(
+  "L2 colgar de la tela un suelto de la misma clase sí se puede: toma el nombre y el código de su color",
+  `${TELA_DOS_COLORES}
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida, color_codigo) values ('ZZ-SUELTA', 'Tela suelta', 'tela', 'metro', :'c3');
+select id as sid from retail.insumos where codigo = 'ZZ-SUELTA' \\gset
+update retail.insumos set material_id = :'mid' where id = :'sid';
+select codigo like 'ZAF-01-%', nombre like 'Zafiro Prueba · %' from retail.insumos where id = :'sid';`,
+  (c) => c[0] === "t" && c[1] === "t"
+);
+ok(
+  "L3 el candado de unidad ya no mira columnas: se dispara en todo UPDATE (el de antes no veía lo que otro disparador reescribía)",
+  `select pg_get_triggerdef(t.oid) not like '%UPDATE OF%' from pg_trigger t where t.tgname = 'insumos_unidad_firme' and t.tgrelid = 'retail.insumos'::regclass;`,
+  (c) => c[0] === "t"
+);
+
+// ---------------- M. Tokens: ningún saldo se pierde en silencio ----------------
+mal(
+  "M1 un color repetido en la lista se rechaza (sin token)",
+  "Un color va una sola vez",
+  `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1", [5, 50]), COLOR("c1", [3, 30])))};`
+);
+mal(
+  "M2 y con token pasa lo MISMO (antes el segundo saldo se perdía en silencio y respondía bien)",
+  "Un color va una sola vez",
+  `select gen_random_uuid() as tk \\gset
+select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1", [5, 50]), COLOR("c1", [3, 30])), "", ":'tk'")};`
+);
+ok(
+  "M3 el mismo token usado en OTRA tela ya no se toma por un reintento: los dos saldos se escriben",
+  `select gen_random_uuid() as tk \\gset
+select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1", [5, 50])), "", ":'tk'")} as r1 \\gset
+select ${CREAR("Zafiro Otra", COLORES(COLOR("c2")))} as r2 \\gset
+select retail.agregar_colores_a_material((:'r2'::jsonb -> 'material' ->> 'id')::uuid, :'taller', ${COLORES(COLOR("c1", [3, 30]))}, :'tk') as a \\gset
+select count(*), sum(l.cantidad_ingresada) from retail.insumo_lotes l join retail.insumos i on i.id = l.insumo_id where i.nombre like 'Zafiro %';`,
+  (c) => Number(c[0]) === 2 && Number(c[1]) === 8
+);
+
+// ---------------- N. Dónde y quién ----------------
+mal(
+  "N1 una tela se anota solo en un Taller",
+  "se anotan en un Taller",
+  `select id as tienda from retail.ubicaciones where tipo <> 'taller' and activo order by nombre limit 1 \\gset
+select retail.crear_material(:'tienda', jsonb_build_object('nombre', 'Zafiro Prueba'), '[]'::jsonb, null);`
+);
+mal(
+  "N2 un avío lo crea el líder",
+  "Los avíos los crea el líder",
+  `${MICAELA_EN_EL_TALLER}
+select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Prueba', 'tipo', 'avio', 'unidad_medida', 'unidad'), '[]'::jsonb, null);`
+);
+ok(
+  "N3 el líder sí crea un avío",
+  `select retail.crear_material(:'taller', jsonb_build_object('nombre', 'Botón Prueba', 'tipo', 'avio', 'unidad_medida', 'unidad'), jsonb_build_array(jsonb_build_object('color_codigo', :'c1')), null) as r \\gset
+select (:'r'::jsonb -> 'material' ->> 'tipo'), (:'r'::jsonb -> 'material' ->> 'codigo') like 'BOT-%', (:'r'::jsonb -> 'material' ->> 'unidad_medida');`,
+  (c) => c[0] === "avio" && c[1] === "t" && c[2] === "unidad"
+);
+ok(
+  "N4 el correlativo no se recorta al llegar a 100 (ZAF-99, ZAF-100)",
+  `insert into retail.codigos_correlativos (prefijo, ultimo) values ('MAT-ZAF', 98) on conflict (prefijo) do update set ultimo = 98;
+select ${CREAR("Zafiro Uno", COLORES(COLOR("c1")))} as r1 \\gset
+select ${CREAR("Zafiro Dos", COLORES(COLOR("c1")))} as r2 \\gset
+select (:'r1'::jsonb -> 'material' ->> 'codigo') || ',' || (:'r2'::jsonb -> 'material' ->> 'codigo');`,
+  (c) => c[0] === "ZAF-99,ZAF-100"
+);
+
+// ---------------- O. Insumos sueltos ----------------
+mal(
+  "O1 el código de un color ya usado por un insumo suelto se dice (no un error de índice)",
+  "ya lo usa otro insumo",
+  `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")))} as r \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZAF-01-' || :'c2', 'Ocupa el código', 'avio', 'unidad');
+select retail.agregar_colores_a_material((:'r'::jsonb -> 'material' ->> 'id')::uuid, :'taller', ${COLORES(COLOR("c2"))});`
+);
+mal(
+  "O2 una tela con el nombre de un insumo suelto avisa (su línea de stock quedaría duplicada)",
+  "insumo suelto con ese nombre",
+  `insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZ-SU', 'Zafiro Suelta', 'tela', 'metro');
+select ${CREAR("zafiro suelta", COLORES(COLOR("c1")))};`
+);
+
+// ---------------- P. Medidas con sentido ----------------
+mal(
+  "P1 un ancho escrito en metros («1.60») se rechaza en castellano al crear (inflaba el saldo en kilos ×100)",
+  "El ancho va en centímetros",
+  `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")), `, 'unidad_compra', 'kilo', 'ancho_cm', 1.6, 'gramaje_gm2', 180`)};`
+);
+mal(
+  "P2 y al editar",
+  "El ancho va en centímetros",
+  `${TELA_DOS_COLORES}
+select ${EDITAR(":'mid'", `jsonb_build_object('nombre', 'Zafiro Prueba', 'unidad_compra', 'kilo', 'ancho_cm', 1.6, 'gramaje_gm2', 180)`)};`
+);
+mal(
+  "P3 la tabla también lo impide, insertándola directo",
+  "materiales_medidas_plausibles",
+  `insert into retail.materiales (codigo, nombre, tipo, unidad_medida, unidad_compra, ancho_cm, gramaje_gm2) values ('ZZ-P3', 'Ancho en metros', 'tela', 'metro', 'kilo', 1.6, 180);`
+);
+ok(
+  "P4 un avío a peso (relleno) no necesita ancho ni gramaje; una tela por kilo sí",
+  `insert into retail.materiales (codigo, nombre, tipo, unidad_medida, unidad_compra) values ('ZZ-AK', 'Relleno', 'avio', 'kilo', 'kilo');
+select count(*) from retail.materiales where codigo = 'ZZ-AK';`,
+  (c) => Number(c[0]) === 1
+);
+ok(
+  "Q1 la respuesta de las funciones de alta no trae el token ni quién creó la tela",
+  `select ${CREAR("Zafiro Prueba", COLORES(COLOR("c1")))} as r \\gset
+select (:'r'::jsonb -> 'material') ? 'token_cliente', (:'r'::jsonb -> 'material') ? 'creado_por', (:'r'::jsonb -> 'material') ? 'codigo';`,
+  (c) => c[0] === "f" && c[1] === "f" && c[2] === "t"
 );
 
 function main() {

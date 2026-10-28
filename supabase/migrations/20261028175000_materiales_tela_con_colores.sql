@@ -17,8 +17,8 @@
 --   5. `crear_material` y `agregar_colores_a_material` (SECURITY DEFINER, firman con el responsable): crean la tela y/o sus colores y, si hace falta, el saldo inicial de cada color, TODO O NADA
 --      en una sola transacción; con token, un reintento devuelve lo ya creado y no duplica nada. Quien ve «Producción» en ese Taller crea telas y colores; el saldo inicial (dinero) lo anota
 --      solo el líder (ADR-0554, decisión 3). El saldo se abre con `recibir_insumo`, la misma función de siempre: no se reescribe nada de lotes.
---   6. `fn_materializar_insumos_sueltos`: vuelve tela (de un solo color) cada insumo que todavía no tiene. Se ejecuta UNA vez aquí: el insumo `MM-01` de producción pasa a ser la tela `MM-01` con su
---      color Arena (`MM-01-ARN`). Es re-ejecutable y no hace nada si no hay insumos sueltos.
+--   6. `fn_materializar_insumos_sueltos`: vuelve tela (de un solo color) cada insumo que todavía no tiene. Se ejecutó UNA vez al pegar: el insumo `MM-01` de producción pasó a ser la tela `MM-01` con su
+--      color Arena (`MM-01-ARN`). Esa versión abortaba con una fila rara: la de `20261028203000` ensaya por defecto y no aborta.
 --   PARTE 2 (la política de lectura, sola y al final — ADR-0195)
 --   7. `materiales` se puede leer (como `insumos`); escribirla solo se puede por las funciones.
 --
@@ -33,9 +33,12 @@
 -- SE ROMPE SI: alguien pide leer el tejido de un color directo de la tela y deja de leer la copia (la copia sigue ahí, no se rompe); o si se decide llevar el punto en kilos (ADR-0554 lo descartó);
 --   o si dos telas distintas necesitan el mismo nombre (hoy el nombre es único por tipo: se les agrega una marca, no un duplicado).
 --
--- PRODUCCIÓN. NO está aplicada. Va en DOS PARTES que se pegan por separado y en orden (ADR-0195: una política y un `alter` de una tabla en uso no van juntos), cada una con `lock_timeout = 3s`
---   y re-ejecutable. PARTE 1 = desde el primer `set lock_timeout` hasta la línea «FIN DE LA PARTE 1»; PARTE 2 = lo que sigue. Pegar DESPUÉS de `20261028172000`. Dentro de los textos no hay ningún
---   `select … into` (ADR-0288). Prueba: `pnpm pruebas:materiales`.
+-- PRODUCCIÓN. La PARTE 1 se pegó el 2026-10-28 (su último paso devolvió 1: el insumo MM-01 pasó a ser la tela MM-01 con su color Arena); la PARTE 2 y `20261028172000` se confirman con la consulta de solo
+--   lectura de ADR-0554. Va en DOS PARTES que se pegan por separado y en orden (ADR-0195: una política y un `alter` de una tabla en uso no van juntos), cada una con `lock_timeout = 3s` y re-ejecutable.
+--   PARTE 1 = desde el primer `set lock_timeout` hasta la línea «FIN DE LA PARTE 1»; PARTE 2 = lo que sigue. Pegar DESPUÉS de `20261028172000`. Dentro de los textos no hay ningún `select … into`
+--   (ADR-0288). Prueba: `pnpm pruebas:materiales`.
+--   NO SE EDITA MÁS (revisión del 28-oct): producción ya tiene el texto de la PARTE 1. Todo arreglo de las funciones, los disparadores o la tabla va en `20261028203000` (`create or replace`, candados nuevos).
+--   El conversor de la sección 6 se corrige allá (ahora ensaya por defecto y no aborta) y su llamada ya no vive en este archivo: se corre a mano, con el informe a la vista.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -86,7 +89,9 @@ comment on table retail.materiales is
   'ADR-0554: la TELA (o el avío): qué es y cómo se compra. Sus colores son filas de `insumos` (`material_id`), que son las líneas de stock con su lote, costo y mínimo. Solo se escribe por `crear_material` y las funciones de la tela.';
 
 alter table retail.materiales enable row level security;
-revoke all on retail.materiales from anon, authenticated;
+-- A `authenticated` solo se le quita lo que escribe: su lectura (el `grant select` de la PARTE 2) sobrevive a un repegado de esta parte. Antes un `revoke all` la borraba y la web quedaba ciega.
+revoke all on retail.materiales from anon;
+revoke insert, update, delete, truncate, references, trigger on retail.materiales from authenticated;
 
 create or replace function retail.fn_materiales_set_updated_at()
 returns trigger
@@ -457,7 +462,8 @@ begin
 end;
 $f$;
 revoke all on function retail.fn_materializar_insumos_sueltos() from public, anon, authenticated;
-select retail.fn_materializar_insumos_sueltos();
+-- (La llamada `select retail.fn_materializar_insumos_sueltos();` que cerraba esta parte ya se corrió una vez en producción. Repetirla en cada pegado convertía en tela los avíos sueltos y abortaba con un nombre repetido:
+--  el conversor corregido, que ensaya por defecto, está en 20261028203000 y se corre a mano: `select * from retail.fn_materializar_insumos_sueltos();`)
 
 -- FIN DE LA PARTE 1 (pega hasta aquí; la PARTE 2 va aparte, después) ---------------------------------------------------------------------------------------------------------
 
