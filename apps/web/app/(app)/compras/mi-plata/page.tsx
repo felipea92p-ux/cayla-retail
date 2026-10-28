@@ -15,10 +15,10 @@ import { AnotarGasto } from "@/components/mi-plata/AnotarGasto";
 import { PrimeraRonda, RondaVacia } from "@/components/mi-plata/RondaVacia";
 import { Billetera } from "@/components/mi-plata/Billetera";
 import { CaminoDePasos } from "@/components/mi-plata/CaminoDePasos";
-import { EnviosDeLaRonda } from "@/components/mi-plata/EnviosDeLaRonda";
 import { ListaDelDia, RondasAnteriores } from "@/components/mi-plata/ListaDelDia";
 import { UltimaRonda } from "@/components/mi-plata/UltimaRonda";
 import { MandarATienda } from "@/components/mi-plata/MandarATienda";
+import { ParaMandar } from "@/components/mi-plata/ParaMandar";
 import { TerminarDia } from "@/components/mi-plata/TerminarDia";
 
 // Compras ▸ Mis compras (ADR-0480, Compras simple): la pantalla de quien compra, hecha para el celular. Rediseño aprobado por
@@ -133,8 +133,14 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
           <div className={`contents lg:row-span-full lg:col-start-2 lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "xl:contents" : ""}`}>
             {/* Los envíos van pegados a «Falta mandar»: es el mismo paso del camino (Manda). */}
             <div className={conManda ? `contents lg:flex lg:flex-col lg:gap-4 ${tres ? "xl:col-start-2 xl:row-span-full" : ""}` : "contents lg:hidden"}>
-              <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} />
-              {rondaAbierta && envios !== null && <EnviosDeLaRonda envios={enviosDeLaRonda(envios, rondaAbierta.id)} texto={rondaAbierta.texto} hoy={hoy} />}
+              {/* La hoja «Mandar a la tienda» vive aquí sin su franja: la tarjeta de abajo trae el botón que la abre. */}
+              <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} sinFranja />
+              <ParaMandar
+                porMandar={plata.porMandar}
+                envios={rondaAbierta && envios !== null ? enviosDeLaRonda(envios, rondaAbierta.id) : null}
+                texto={rondaAbierta?.texto ?? null}
+                hoy={hoy}
+              />
             </div>
             <div className={`contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "xl:col-start-3 xl:row-span-full" : ""}`}>
               {rondaAbierta && rondaVacia && <RondaVacia texto={rondaAbierta.texto} />}

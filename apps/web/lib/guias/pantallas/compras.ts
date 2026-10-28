@@ -2500,8 +2500,8 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mandar",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Falta mandar",
-      texto: "Lo que compraste para una tienda y todavía no sale. Tócalo cuando entregues los fardos al transporte (te lo abrimos).",
+      titulo: "Para mandar",
+      texto: "Lo que compraste para cada tienda y todavía no sale, y cuántas prendas de la ronda ya mandaste. Toca «Mandar a …» cuando entregues los fardos al transporte (te lo abrimos). Abajo salen los envíos con su código.",
     },
     {
       id: "fardos",
@@ -2524,14 +2524,14 @@ export const GUIA_MI_PLATA: Guia = {
       ancla: "mi-plata.mis-envios",
       opcional: true,
       titulo: "Mis envíos",
-      texto: "Con tu ronda cerrada, aquí arriba: todos los paquetes que mandaste, de esta ronda y de las anteriores, con su código. Con la ronda abierta, lo encuentras en «Envíos de esta ronda».",
+      texto: "Con tu ronda cerrada, aquí arriba: todos los paquetes que mandaste, de esta ronda y de las anteriores, con su código. Con la ronda abierta, lo encuentras al pie de «Para mandar».",
     },
     {
       id: "envios",
       ancla: "mi-plata.envios",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Envíos de esta ronda",
+      titulo: "Los envíos de la ronda",
       texto: "Lo que ya mandaste en esta ronda, cada paquete con su código y en qué va: en camino, la tienda lo cuenta o recibido. Tócalo para ver el detalle y copiar el código. «Ver todos» abre Mis envíos, con las rondas anteriores y un buscador.",
     },
     {

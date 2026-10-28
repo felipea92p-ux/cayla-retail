@@ -276,6 +276,22 @@ export function enviosDeLaRonda(envios: readonly EnvioMio[], rondaId: string | n
   return rondaId ? envios.filter((e) => e.rondaId === rondaId) : [];
 }
 
+/**
+ * «Para mandar» (maqueta mis-compras-pc-mesa, Felipe 2026-10-28): cuántas de las prendas de la ronda ya salieron. Lo mandado es lo de los envíos
+ * de la ronda que no se anularon; lo que falta, lo que sigue por mandar a las tiendas. Sin nada de ninguno de los dos, no hay qué medir.
+ * El porcentaje se redondea hacia abajo: solo llega a 100 cuando ya salió todo.
+ */
+export function avanceDeEnvios(
+  porMandar: readonly { unidades: number }[],
+  envios: readonly Pick<EnvioMio, "estado" | "prendas">[],
+): { mandadas: number; total: number; pct: number; texto: string } | null {
+  const faltan = porMandar.reduce((s, t) => s + Math.max(0, t.unidades), 0);
+  const mandadas = envios.filter((e) => e.estado !== "anulado").reduce((s, e) => s + Math.max(0, e.prendas), 0);
+  const total = mandadas + faltan;
+  if (total <= 0) return null;
+  return { mandadas, total, pct: Math.floor((mandadas / total) * 100), texto: `${mandadas} de ${total} ${total === 1 ? "prenda mandada" : "prendas mandadas"}` };
+}
+
 /** Los de las rondas anteriores (todo lo que no es de la abierta), una tarjeta por ronda, la más nueva primero. */
 export function rondasConEnvios(envios: readonly EnvioMio[], rondaAbiertaId: string | null): RondaConEnvios[] {
   const grupos = new Map<string, RondaConEnvios>();
