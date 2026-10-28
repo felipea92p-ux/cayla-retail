@@ -262,6 +262,14 @@ export function FilaFase({
       )}
     </div>
   );
+  // El pendiente lleva su costo como cualquier servicio (ADR-0551): sin proveedor, lo que se escribe ya cuenta y se devenga al volver las prendas; en blanco, no suma nada.
+  const avisoPendiente = fase.pendiente ? (
+    <div className="sm:col-span-2">
+      <Aviso tono="info" chico>
+        Aún sin proveedor, lo que escribas aquí ya cuenta como costo de la orden. Si todavía no sabes cuánto, déjalo en blanco: no suma nada hasta que lo registres con «Registrar quién».
+      </Aviso>
+    </div>
+  ) : null;
   const tarifaVacia = fase.tarifa.trim() === "";
   const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/\u00a0${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
   const minimoVacio = fase.minimo.trim() === "";
@@ -298,25 +306,7 @@ export function FilaFase({
         </div>
       )}
 
-      {servicio && fase.pendiente && (
-        <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
-          {comboProveedor}
-          <CampoFecha
-            id={`${idBase}-fecha`}
-            etiqueta="Prometido para"
-            valor={fase.fechaPrometida}
-            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
-            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
-          />
-          <div className="sm:col-span-2">
-            <Aviso tono="info" chico>
-              No cobra nada todavía. Cuando sepas quién la hizo y a cuánto, lo registras en la orden con «Registrar quién» y su costo se suma solo.
-            </Aviso>
-          </div>
-        </div>
-      )}
-
-      {servicio && def.hito && !fase.pendiente && (
+      {servicio && def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
           {comboProveedor}
           <CampoMonto
@@ -335,10 +325,11 @@ export function FilaFase({
             onValor={(iso) => onCambiar({ fechaPrometida: iso })}
             {...pieDe("fecha", "opcional · cuándo lo devuelve")}
           />
+          {avisoPendiente}
         </div>
       )}
 
-      {servicio && !def.hito && !fase.pendiente && (
+      {servicio && !def.hito && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
           {comboProveedor}
           <CampoMonto
@@ -384,6 +375,7 @@ export function FilaFase({
               </button>
             )}
           </div>
+          {avisoPendiente}
         </div>
       )}
 

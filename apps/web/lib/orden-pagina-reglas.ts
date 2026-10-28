@@ -548,7 +548,7 @@ export function previaQueCuenta(fases: readonly FasePagina[], indice: number): F
   return null;
 }
 
-/** Sale afuera pero todavía no se sabe con quién ni a cuánto (ADR-0551 pendiente de registrar): un servicio sin proveedor. No cobra nada hasta que se registre quién. */
+/** Sale afuera pero todavía no se sabe con quién (ADR-0551 pendiente de registrar): un servicio sin proveedor. Puede llevar su costo, que se devenga igual; sin costo, no suma nada hasta que se registre. */
 export function esPendienteDeRegistrar(f: Pick<FasePagina, "quien" | "proveedorId">): boolean {
   return f.quien === "servicio" && f.proveedorId === null;
 }
@@ -559,9 +559,14 @@ export function quienDeFase(f: FasePagina): string {
   return f.proveedorNombre ?? (esPendienteDeRegistrar(f) ? "Pendiente de registrar" : "Un servicio");
 }
 
-/** Las fases que salieron afuera sin registrar quién, en el orden de la ruta: su costo NO entra al de las prendas hasta que se registre. */
+/** Las fases que salieron afuera sin registrar quién, en el orden de la ruta (con o sin costo escrito). */
 export function fasesSinRegistrar(fases: readonly FasePagina[]): FasePagina[] {
   return fases.filter(esPendienteDeRegistrar);
+}
+
+/** ¿Una fase pendiente lleva costo escrito (tarifa por prenda o fijo por orden)? Con costo se devenga como cualquier servicio (ADR-0551); sin él no suma nada hasta que se escriba o se registre. */
+export function pendienteConCosto(f: Pick<FasePagina, "tarifaPrenda" | "fijoOrden">): boolean {
+  return (f.tarifaPrenda ?? 0) > 0 || f.fijoOrden > 0;
 }
 
 /** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */

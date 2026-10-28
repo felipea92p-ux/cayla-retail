@@ -47,13 +47,16 @@ function borradorDe(f: FasePagina): FaseBorrador {
 }
 
 /**
- * La llamada que guarda una fase borrador. Tres caminos (ADR-0551 pendiente de registrar): «Pendiente de registrar» → `dejar_fase_pendiente_de_registrar`; una fase que ERA pendiente y ahora tiene proveedor →
+ * La llamada que guarda una fase borrador. Tres caminos (ADR-0551 pendiente de registrar): «Pendiente de registrar» → `dejar_fase_pendiente_de_registrar` (con su costo); una fase que ERA pendiente y ahora tiene proveedor →
  * `registrar_proveedor_de_fase` (vale aunque la fase ya empezó); todo lo demás → `cambiar_quien_fase`: el Taller lleva todo en null; un servicio, la tarifa escrita o la sugerida (la misma
  * cuenta de `fasesParaRpc`).
  */
 function llamada(faseId: string, b: FaseBorrador, eraPendiente: boolean, lista: readonly TarifaDeLista[], hoy: string): { rpc: string; args: Record<string, unknown> } {
   const r = fasesParaRpc([b], lista, hoy)[0];
-  if (r.quien === "servicio" && r.proveedor_pendiente) return { rpc: RPC_DEJAR_FASE_PENDIENTE, args: { p_fase_id: faseId, p_fecha_prometida: r.fecha_prometida } };
+  if (r.quien === "servicio" && r.proveedor_pendiente) {
+    // El pendiente lleva su costo (tarifa, fijo, mínimo): se devenga aunque no se sepa quién (ADR-0551). En blanco, no suma nada.
+    return { rpc: RPC_DEJAR_FASE_PENDIENTE, args: { p_fase_id: faseId, p_fecha_prometida: r.fecha_prometida, p_tarifa_prenda: r.tarifa_prenda, p_fijo_orden: r.fijo_orden, p_cantidad_minima: r.cantidad_minima } };
+  }
   if (eraPendiente && r.quien === "servicio") {
     return {
       rpc: RPC_REGISTRAR_PROVEEDOR_DE_FASE,

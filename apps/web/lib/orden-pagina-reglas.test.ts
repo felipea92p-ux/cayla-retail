@@ -51,6 +51,7 @@ import {
   puedeRegistrarQuien,
   esPendienteDeRegistrar,
   fasesSinRegistrar,
+  pendienteConCosto,
   puedeQuitarPaso,
   queSigue,
   quedanAfuera,
@@ -365,6 +366,11 @@ describe("las fases", () => {
     expect(esPendienteDeRegistrar(corte)).toBe(false);
     expect(quienDeFase(pendiente)).toBe("Pendiente de registrar");
     expect(fasesSinRegistrar([corte, pendiente, acabado])).toEqual([pendiente]);
+    // El pendiente puede llevar su costo (ADR-0551): con tarifa o con fijo se devenga como un servicio; sin ninguno no suma nada.
+    expect(pendienteConCosto({ tarifaPrenda: null, fijoOrden: 0 })).toBe(false);
+    expect(pendienteConCosto({ tarifaPrenda: 4.5, fijoOrden: 0 })).toBe(true);
+    expect(pendienteConCosto({ tarifaPrenda: null, fijoOrden: 40 })).toBe(true);
+    expect(pendienteConCosto({ tarifaPrenda: 0, fijoOrden: 0 })).toBe(false);
     expect(puedeCambiarQuien(pendiente, p)).toBe(false); // ya empezó: quién la hace no se cambia…
     expect(puedeRegistrarQuien(pendiente, p)).toBe(true); // …pero SÍ se registra quién fue
     expect(puedeRegistrarQuien(costura, p)).toBe(false);

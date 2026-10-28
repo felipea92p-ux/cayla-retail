@@ -40,7 +40,7 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
-// 20261028074000 volvió a cambiar `abrir_orden_produccion`, `abrir_produccion` y `abrir_produccion_con_modelo_nuevo` (la entrega pasada vale) y 20261028072000 (pendiente de registrar) cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va al final del mismo bloque.
+// 20261028084000 volvió a cambiar `fn_produccion_fases_normalizar` (el pendiente lleva su costo). 20261028074000 volvió a cambiar `abrir_orden_produccion`, `abrir_produccion` y `abrir_produccion_con_modelo_nuevo` (la entrega pasada vale) y 20261028072000 (pendiente de registrar) cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va al final del mismo bloque.
 // 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
 // (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
 // (lo mismo que los `DESHACER_*` de otras suites).
@@ -61,6 +61,35 @@ $q$,
     $q$      if v_fecha is not null and v_fecha < retail.fn_hoy_lima() then
         raise exception 'La fecha prometida de «%» ya pasó', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_pasada';
       end if;
+$q$);
+  -- Y el de 20261028084000 (el pendiente lleva su costo): vuelve el bloque que fuerza el pendiente a tarifa y fijo vacíos.
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$      end;
+      -- ADR-0551 (pendiente con costo): el pendiente PUEDE llevar tarifa, fijo y mínimo, y devenga como un servicio. Ninguno es obligatorio (sin monto devenga 0, como antes).
+      begin
+        v_tarifa := nullif(btrim(coalesce(v_f ->> 'tarifa_prenda', '')), '')::numeric;
+        v_fijo := coalesce(nullif(btrim(coalesce(v_f ->> 'fijo_orden', '')), '')::numeric, 0);
+        v_min := nullif(btrim(coalesce(v_f ->> 'cantidad_minima', '')), '')::integer;
+      exception when others then
+        raise exception 'La tarifa de «%» no es un número válido', retail.fn_fase_nombre(v_clave) using hint = 'fase_tarifa_invalida';
+      end;
+      if v_clave = 'ploteo' then
+        v_tarifa := null; v_min := null;
+      end if;
+      if (v_tarifa is not null and (v_tarifa <= 0 or v_tarifa > 9999.99)) or v_fijo < 0 or v_fijo > 99999.99 or (v_min is not null and v_min <= 0) then
+        raise exception 'La tarifa de «%» está fuera de rango', retail.fn_fase_nombre(v_clave) using hint = 'fase_tarifa_invalida';
+      end if;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', v_tarifa, 'fijo_orden', v_fijo, 'cantidad_minima', v_min, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+$q$,
+    $q$      end;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', null, 'fijo_orden', 0, 'cantidad_minima', null, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
 $q$);
   -- Y los de «pendiente de registrar» (20261028072000, ADR-0551): el inverso exacto de sus seis reemplazos anclados.
   v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
