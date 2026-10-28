@@ -124,7 +124,7 @@
       "ComboResponsable «{responsable}»",
       "button «Aplicar descuento» #2",
       "button «Quitar descuento»",
-      "button «{loading ? \"Procesando…\" : \"Confirmar cobro\"}»",
+      "button «vender.cobro-confirmar»",
       "button «vender.cobrar»"
     ],
     "components/VentaRegistradaModal.tsx": [
@@ -204,7 +204,7 @@
       "button «{i === 0 ? \"Exacto\" : undefined}»",
       "input «Otro monto recibido»",
       "button «{icono}»",
-      "button «(sin nombre)»"
+      "button «vender.cobro-confirmar»"
     ],
     "components/punto-de-venta/LineaDelTicket.tsx": [
       "button «{`Descuento para ${nombre}»",
