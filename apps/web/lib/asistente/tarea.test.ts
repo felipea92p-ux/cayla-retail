@@ -231,7 +231,7 @@ describe("los «Continuar» de en medio", () => {
       { id: "pie-prendas", ancla: "devolucion.pie-prendas", titulo: "Continuar", texto: "." },
       { id: "motivo", ancla: "devolucion.motivo", titulo: "Por qué", texto: "." },
       { id: "pie-motivo", ancla: "devolucion.pie-motivo", titulo: "Revisar la devolución", texto: "." },
-      { id: "registrar", ancla: "devolucion.registrar", titulo: "Registrar", texto: "." },
+      { id: "registrar", ancla: "devolucion.confirmar", titulo: "Registrar", texto: "." },
     ] };
     const t = revisarTarea([p("prendas", "Marca el short", "", "devoluciones"), p("motivo", "Elige el motivo", "", "devoluciones"), p("registrar", "Revisa y registra tú", "", "devoluciones")], [{ guia: devoluciones, href: "/devoluciones" }], "/", "devolver un short");
     expect(t.map((x) => [x.pasoId, x.orden])).toEqual([

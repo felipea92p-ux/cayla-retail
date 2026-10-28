@@ -91,7 +91,10 @@ un GET a `/api/*` que no es de Next no es una espera (`clasificarPeticion`, con 
 - **Qué es ahora:** `<VersionNueva />` dibuja una píldora oscura `position: fixed` (`.version-nueva`, `app/estilos/avisos.css`): punto,
   «Hay una versión nueva · actualiza cuando termines», «Actualizar» (el `btn-cayla btn-secundario`, invertido sobre la tinta) y una ✕
   («Más tarde», calla 30 min). Desde 1024 px se centra sobre el contenido, en la banda de la cabecera (su centro está libre); más abajo,
-  justo bajo la cabecera. Entra bajando 10 px una vez, sin bucle. Ya no usa `<Aviso>`: no empuja ni la tapa nada.
+  justo bajo la cabecera. Ya no usa `<Aviso>`: no empuja ni la tapa nada.
+- **La gota (Felipe, mirando `docs/maquetas/version-nueva-2026-10/gota.html`):** entra como una gota que cae suave, rebota una sola vez y se riega como
+  líquido hasta ser la píldora (~2,2 s), y al pulsar la ✕ se recoge y se va como gota (1,45 s). Una vez, sin bucle; con «reducir movimiento» aparece y se va
+  ya hecha. Es la excepción de ADR-0136 act. 2026-10-28.
 - **Lo que no cambia:** la lógica (`version-nueva-reglas.ts`), la pregunta a `/api/version`, que nunca recarga sola y los 30 min de «Más tarde».
 - **Se rompe si:** bajo 1024 px la píldora queda sobre las pestañas de Finanzas mientras esté abierta (se quita con la ✕); si el centro de la
   cabecera deja de estar libre (un buscador más ancho, un botón nuevo), a 1024–1100 px chocaría: mover el `lg:` o centrarla bajo la cabecera.
