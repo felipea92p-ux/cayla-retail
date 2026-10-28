@@ -931,7 +931,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.nuevo",
       opcional: true,
       titulo: "Una nueva",
-      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen; nace en la pestaña donde estás. Después le pones sus fechas, su descuento y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
+      texto: "Abre una ventana para crearla con su nombre y, si quieres, su dibujo o tu propia imagen y sus fechas de inicio y fin; nace en la pestaña donde estás. Después le pones sus ofertas y sus prendas. Antes mira si ya existe: una campaña que ya pasó se repite, no se crea de nuevo. En la demo no lo tocamos.",
     },
     {
       id: "pestanas",
@@ -1061,14 +1061,14 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.ofertas-campana",
       opcional: true,
       titulo: "Las fechas de la campaña",
-      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. «Cambiar fechas» las mueve aquí mismo, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite con un toque: «Repetir».",
+      texto: "La franja de arriba dice cuándo rige la campaña y cuántas prendas tiene. Las fechas se cambian desde «Editar», en su pase, y las ofertas tienen que caber dentro. Una campaña que ya pasó se repite ahí mismo, con «Repetir en» el año que viene.",
     },
     {
       id: "editar",
       ancla: "sellos.editar",
       opcional: true,
-      titulo: "Corregir su nombre y su ícono",
-      texto: "«Editar», a la derecha del estado, corrige el nombre (por si se escribió mal) y cambia el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen; si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro. En la demo no lo tocamos.",
+      titulo: "Corregir nombre, ícono y fechas",
+      texto: "«Editar», a la derecha del estado, corrige el nombre, cambia las fechas de una campaña y el ícono de su sello: la calabaza, el pastel, el gato… o tu propia imagen (si es de un solo color, píntala con el color del sello y se verá bien en modo oscuro). En la demo no lo tocamos.",
     },
     {
       id: "campana-form",
@@ -1118,7 +1118,7 @@ export const GUIA_SELLOS: Guia = {
       ancla: "sellos.listo",
       opcional: true,
       titulo: "Lo que ya tiene",
-      texto: "Fechas y prendas hacen que la campaña funcione; el descuento es opcional. Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
+      texto: "Fechas y prendas hacen que la campaña funcione; las ofertas y promociones son opcionales (el descuento se arma con ellas). Lo que falta sale en ámbar: así sabes qué preparar antes de que empiece.",
     },
     {
       id: "rotacion",
