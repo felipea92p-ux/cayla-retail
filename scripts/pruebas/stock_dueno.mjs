@@ -169,6 +169,14 @@ ${MOVER("v", "salida", "lim", "alm_lim", 1)}
 select ${DUENO("v", "cayla")} = 2 and ${DUENO("v", "claure")} = 2 and (select empresa_id from retail.movimientos where id = :'m') = :'cayla';`),
 );
 caso(
+  "el alta de una prenda de CLAURE desde Lima (crear_producto_con_empresa) deja su stock inicial como de CLAURE",
+  pasa(`${ENCABEZADOS(`json_build_object('x-dueno', :'claure')`)}
+select ${CREAR("Prueba Dueño Alta", "claure", "lim")} as pa \\gset
+select id as va from retail.variantes where producto_id = :'pa' limit 1 \\gset
+select ${DUENO("va", "claure")} = 3 and ${DUENO("va", "cayla")} = 0 and ${CLAURE_EN("va", "alm_lim")} = 3
+   and (select empresa_id from retail.productos where id = :'pa') = :'claure';`),
+);
+caso(
   "un dueño inválido en el encabezado se rechaza",
   rechaza(`${ENCABEZADOS(`json_build_object('x-dueno', 'no-es-un-uuid')`)}${MOVER("v", "entrada", "lim", "alm_lim", 1)}`, /El dueño enviado no es válido/),
 );
