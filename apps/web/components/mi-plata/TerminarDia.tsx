@@ -2,12 +2,13 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Flag } from "lucide-react";
+import { Flag, PackageCheck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
@@ -30,7 +31,7 @@ type Plata = Pick<MiPlata, "tiene" | "hoy" | "ronda" | "porMandar">;
 
 const OPCIONES: Record<Exclude<DecisionCierre, "le_deben">, { nombre: string; detalle: string }> = {
   se_queda: { nombre: "Me lo quedo para mi próxima ronda", detalle: "Sigue siendo plata de CAYLA para comprar" },
-  devuelve: { nombre: "Lo devuelvo hoy", detalle: "Lo entregas en caja y Compras lo recibe" },
+  devuelve: { nombre: "Lo devuelvo al cerrar", detalle: "Lo entregas en caja y Compras lo recibe" },
 };
 
 /** `envios`: los de la ronda abierta, para verlos antes de cerrarla (Felipe 2026-10-26); `null` si no se pudieron leer. */
@@ -96,7 +97,7 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
   // Un renglón del cuaderno: lo que fue (con su detalle entre paréntesis, en el mismo renglón) y su monto.
   const fila = (titulo: string, monto: string, detalle?: string) => (
     <li>
-      <span className="min-w-0 truncate">
+      <span className="min-w-0">
         {titulo}
         {detalle && <span className="text-taupe"> ({detalle})</span>}
       </span>
@@ -172,7 +173,7 @@ function TerminarModal({ plata, envios, hoy, onClose, volverA }: { plata: Plata;
                     {/* El círculo de una respuesta de radio (la maqueta): se llena de tinta al elegirla. */}
                     <span
                       aria-hidden
-                      className={`mt-0.5 h-[22px] w-[22px] rounded-full border-taupe transition-[border-width] duration-200 ${decision === k ? "border-[7px] border-tinta" : "border-[1.5px]"}`}
+                      className={`mt-0.5 h-[22px] w-[22px] rounded-full border-borde-control transition-[border-width] duration-200 ${decision === k ? "border-[7px] border-tinta" : "border-[1.5px]"}`}
                     />
                     <span className="min-w-0">
                       <span className="block font-medium text-tinta">{OPCIONES[k].nombre}</span>
@@ -234,7 +235,9 @@ function EnviosAntesDeCerrar({ envios, hoy }: { envios: EnvioMio[]; hoy?: string
           <p className="text-xs text-taupe">Los que sigan «en camino» los puedes seguir viendo en Mis envíos después de cerrar.</p>
         </>
       ) : (
-        <p className="text-sm text-taupe">No mandaste nada en esta ronda.</p>
+        <Vacio icono={<PackageCheck aria-hidden />} titulo="No mandaste nada" tamano="chico" alinear="izquierda">
+          No mandaste nada en esta ronda.
+        </Vacio>
       )}
     </div>
   );

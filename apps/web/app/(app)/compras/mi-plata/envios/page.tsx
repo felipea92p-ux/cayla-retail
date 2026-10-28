@@ -21,17 +21,18 @@ export default async function MisEnviosPage() {
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Mis envíos"
-        subtitulo="Los paquetes que mandaste a las tiendas, con su código y en qué van."
+        subtitulo="Los envíos que mandaste a las tiendas, con su código y en qué van."
         volver={<Volver href="/compras/mi-plata" a="Mis compras" />}
       />
-      {envios === null ? (
-        <Aviso tono="error" titulo="No se pudieron leer tus envíos">
-          Vuelve a intentarlo en un momento; si sigue, avísale a tu líder.
-        </Aviso>
-      ) : plata && !plata.persona ? (
+      {/* Una terminal no tiene «tus envíos»: se dice primero, aunque la lectura de los envíos tampoco haya llegado (no es un error). */}
+      {plata && !plata.persona ? (
         <Vacio icono={<PackageCheck aria-hidden />} titulo="Entra con tu cuenta">
           Los envíos son de cada persona: desde una terminal no hay «tus envíos». Entra con tu correo para verlos.
         </Vacio>
+      ) : envios === null ? (
+        <Aviso tono="error" titulo="No se pudieron leer tus envíos">
+          Vuelve a intentarlo en un momento; si sigue, avísale a tu líder.
+        </Aviso>
       ) : (
         <MisEnvios
           envios={envios}

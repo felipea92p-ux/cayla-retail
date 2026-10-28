@@ -19,6 +19,9 @@
  *     banco viaja con el token (`token_reusado` si cambia); «Revisar compras» lo ve ya elegido; confirmar sigue eligiendo la cuenta de la que
  *     sale la plata (la indicación no mueve nada) y no cambia lo que dijo la compradora; los bancos los ve quien tiene «Mis compras» o
  *     «Revisar compras».
+ *   · Candados de la auditoría (20261027231000, ADR-0543): la plata que Compras confirmó no se anula aparte desde «Entregas y devoluciones»
+ *     (H1); confirmar «ya tenía» —que no sale de ningún banco y fija el saldo inicial del fondo— es solo del líder, y un reintento de lo ya
+ *     confirmado no lo pide (H2); anotar plata toma el candado de la ronda de quien anota (H11).
  *   · `anon` no ejecuta nada.
  *
  * CÓMO. Sesión simulada con `request.jwt.claim.sub`, la migración pegada dos veces (se puede pegar dos veces) y ROLLBACK siempre.
@@ -51,8 +54,15 @@ const PARTES_DEL_BANCO = ["20261026165000_mis_compras_banco_de_la_plata_parte1_c
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8").replace(/^set lock_timeout.*$/gm, ""))
   .join("\n");
 
+// Los candados de la auditoría de «Mis compras» (20261027231000, ADR-0543): va DESPUÉS de todo lo anterior, como en la base.
+const AUDITORIA = readFileSync(join(RAIZ, "supabase", "migrations", "20261027231000_mis_compras_auditoria_candados.sql"), "utf8").replace(
+  /^set lock_timeout.*$/gm,
+  "",
+);
+
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
+const SANDRA = "22222222-2222-4222-8222-000000000005"; // líder
 
 function psql(sql) {
   return execFileSync(
@@ -73,6 +83,8 @@ ${MIGRACION}
 ${MIGRACION}
 ${PARTES_DEL_BANCO}
 ${PARTES_DEL_BANCO}
+${AUDITORIA}
+${AUDITORIA}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -85,6 +97,11 @@ exception when others then
 end;
 $f$;
 grant execute on function pg_temp.intento(text) to authenticated;
+-- ¿Esta sesión tiene el candado de la ronda de esa persona (el de abrir y cerrar, «compra_ronda:persona»)?
+create function pg_temp.tiene_candado(p_persona uuid) returns boolean language sql as $f$
+  select exists (select 1 from pg_locks where locktype = 'advisory' and pid = pg_backend_pid() and granted
+                    and ((classid::bigint << 32) | objid::bigint) = hashtextextended('compra_ronda:' || p_persona::text, 0));
+$f$;
 select id as banco from retail.cuentas_dinero where tipo = 'banco' and archivada_en is null order by nombre limit 1 \\gset
 select id as cajon from retail.cuentas_dinero where tipo = 'cajon' order by nombre limit 1 \\gset
 select id as micaela from public.personas where auth_user_id = '${MICAELA}' \\gset
@@ -355,6 +372,79 @@ caso(
   `${rolDeMicaela("existencias")}${como(MICAELA, "plata_anotar")}
 select left(pg_temp.intento('select retail.fn_bancos_para_plata_compras()'), 5);`,
   "42501",
+);
+
+
+// ---------- Candados de la auditoría de «Mis compras» (20261027231000, ADR-0543) ----------
+caso(
+  "H1: la plata que Compras ya confirmó no se anula aparte (movimiento_de_plata_anotada); el movimiento sigue vigente",
+  `${rolDeMicaela("ordenes_compra")}${anota("a", "yape_plin", 300, T1)}
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', null, :'banco') \\g /dev/null
+reset role;
+select movimiento_id as mov from retail.fondo_plata_anotada where id = :'a' \\gset
+${como(FELIPE, null)}
+select split_part(pg_temp.intento(format('select retail.anular_movimiento_fondo(%L, %L)', :'mov', 'me equivoque')), '|', 2);
+reset role;
+select (select estado from retail.movimientos_dinero where id = :'mov'), (select estado from retail.fondo_plata_anotada where id = :'a');`,
+  "movimiento_de_plata_anotada / vigente|confirmada",
+);
+
+caso(
+  "H2: confirmar «ya tenía» es solo del líder: quien tiene «Revisar compras» y no es líder recibe 42501 y no se crea ni se toca el fondo; el líder sí lo confirma",
+  `${rolDeMicaela("fondos")}
+reset role;
+select id as sandra from public.personas where auth_user_id = '${SANDRA}' \\gset
+select count(*) as fondos0 from retail.cuentas_dinero where tipo = 'fondo' and persona_id = :'sandra' \\gset
+insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por)
+  values (:'sandra', 'ya_tenia', 150, retail.fn_hoy_lima(), :'sandra') returning id as a \\gset
+${como(MICAELA, "plata_confirmar")}
+select split_part(pg_temp.intento(format('select retail.confirmar_plata_compras(%L, null, null)', :'a')), '|', 1),
+       split_part(pg_temp.intento(format('select retail.confirmar_plata_compras(%L, null, null)', :'a')), '|', 2);
+reset role;
+select (select estado from retail.fondo_plata_anotada where id = :'a'),
+       (select count(*) from retail.cuentas_dinero where tipo = 'fondo' and persona_id = :'sandra') - :fondos0;
+${como(FELIPE, "plata_confirmar")}
+select (retail.confirmar_plata_compras(:'a', null, null) ->> 'monto')::numeric;
+reset role;
+select (select estado from retail.fondo_plata_anotada where id = :'a'),
+       (select saldo_inicial from retail.cuentas_dinero where tipo = 'fondo' and persona_id = :'sandra');`,
+  "42501|plata_ya_tenia_solo_lider / por_confirmar|0 / 150.00 / confirmada|150.00",
+);
+
+caso(
+  "H2: un reintento de lo que el líder ya confirmó como «ya tenía» devuelve lo mismo, aunque lo repita quien no es líder",
+  `${rolDeMicaela("fondos")}
+reset role;
+select id as sandra from public.personas where auth_user_id = '${SANDRA}' \\gset
+insert into retail.fondo_plata_anotada (persona_id, medio, monto, fecha, anotada_por)
+  values (:'sandra', 'ya_tenia', 150, retail.fn_hoy_lima(), :'sandra') returning id as a \\gset
+${como(FELIPE, "plata_confirmar")}
+select retail.confirmar_plata_compras(:'a', null, null) \\g /dev/null
+${como(MICAELA, "plata_confirmar")}
+select (retail.confirmar_plata_compras(:'a', null, null) ->> 'monto')::numeric;`,
+  "150.00",
+);
+
+caso(
+  "H11: anotar plata toma el candado de la ronda de quien anota, el mismo que abrir y cerrar",
+  `${rolDeMicaela("ordenes_compra")}
+reset role;
+select pg_temp.tiene_candado(:'micaela') as antes \\gset
+${anota("a", "yape_plin", 30, T1)}
+reset role;
+select :'antes', pg_temp.tiene_candado(:'micaela');`,
+  "f|t",
+);
+
+caso(
+  "H11: la función del candado es interna (nadie la llama desde afuera) y sin persona no toma nada",
+  `reset role;
+select has_function_privilege('authenticated', 'retail.fn_ronda_compras_candado(uuid)', 'execute'),
+       has_function_privilege('anon', 'retail.fn_ronda_compras_candado(uuid)', 'execute');
+select retail.fn_ronda_compras_candado(null) \\g /dev/null
+select pg_temp.tiene_candado(:'micaela');`,
+  "f|f / f",
 );
 
 console.log(`\n${casos - fallas}/${casos} casos en verde`);

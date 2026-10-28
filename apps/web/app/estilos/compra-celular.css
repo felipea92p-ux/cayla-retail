@@ -24,10 +24,18 @@
   font-size: 17px;
   color: var(--color-tinta);
 }
+/* La misma, en chico (la tarjeta «Tu compra» de PC, 32 px). Va después de la grande: a igual fuerza, la última gana. */
+.compra-iniciales-chico {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 13px;
+}
 
 /* «Cerrar mi ronda»: la cuenta de la ronda como un cuaderno rayado (la maqueta). Cada renglón mide 44 px y la raya de arena cae
    bajo cada uno; el último, «Te queda», es más alto y va en la serif. La raya es de cada renglón: un rayado de fondo cada 44 px
-   cruzaba «Te queda» (52 px) cerca de su pie y el cuaderno se veía cortado. Sin `margin` propio: pisaba el aire de la hoja
+   cruzaba «Te queda» (52 px) cerca de su pie y el cuaderno se veía cortado. El alto es un MÍNIMO: con «Pusiste de tu bolsillo» y un monto
+   de S/ 1,000 o más, el nombre pasa a dos renglones y el renglón crece (a 375 px no cabía en uno). Sin `margin` propio: pisaba el aire de la hoja
    (`space-y-5`) y la pregunta de abajo quedaba pegada al cuaderno. */
 .compra-cuaderno {
   list-style: none;
@@ -41,8 +49,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 44px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 6px 16px;
   font-size: 14.5px;
   color: var(--color-tinta);
 }
@@ -50,7 +58,7 @@
   border-bottom: 1px solid var(--color-sand);
 }
 .compra-cuaderno > li.compra-cuaderno-fin {
-  height: 52px;
+  min-height: 52px;
   font-family: var(--font-serif);
   font-size: 22px;
 }

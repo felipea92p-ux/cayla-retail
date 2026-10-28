@@ -1486,7 +1486,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   proveedor por su marca; es una lectura **opcional** (si falla llega `null` y todo se pinta sin marcas). Reglas puras:
   `marcasPorProveedor`, `textoBuscableProveedor`, `detalleProveedorCombo`, `marcasParaMostrar`. **No cubre** los buscadores de
   Comprobantes y Recepciones, que filtran el proveedor dentro de sus RPC (`listar_compras_operativo` y la de recepciones).
-- **Registrar factura (`/compras/nueva`) se retiró el 2026-10-23** (ADR-0480 act.): la compra nace en «Mi plata para compras». `getCatalogoMarcas`
+- **Registrar factura (`/compras/nueva`) se retiró el 2026-10-23** (ADR-0480 act.): la compra nace en «Mis compras». `getCatalogoMarcas`
   (`lib/marcas-datos.ts`: alta y edición de producto, conteo) sigue filtrando con `proveedoresParaPedir`.
 - `/compras` (Historial de compras, solo lectura), `/compras/factura/[compraId]`,
   `/compras/recibir`, `/compras/por-pagar` → `lib/compras.ts` →
@@ -1500,7 +1500,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_plata_por_confirmar`, `resumen_compras`). El menú tiene UNA fila (`compras.comprobantes`, `modulo: facturas_compra` + `modulosAlternos`
   `fondos` y `por_pagar`, sin `exige`); cada pantalla sigue pidiendo su módulo y `/compras` manda a quien no ve el Historial a su primera pestaña.
 - **Compras simple (ADR-0480, 2026-10-22, en construcción):** el menú de Compras queda en cuatro entradas (ADR-0504; eran seis): Plan de campaña,
-  `/compras/mi-plata` («Mi plata para compras», módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
+  `/compras/mi-plata` («Mis compras», antes «Mi plata para compras»; módulo `ordenes_compra` reusado: sus ~40 funciones de permiso no cambian), Proveedores e Historial
   de compras (con `/compras/fondos`, «Revisar compras», módulo `fondos`, y Por pagar como pestañas). `/compras/ordenes` sigue en el código sin entrada en el menú.
   Actividad 2: `/compras/mi-plata` → `lib/mi-plata.ts` (`fn_mi_plata_compras`) + `lib/mi-plata-reglas.ts` (puro: lectura, cifras, qué falta,
   la cuenta sugerida) + `components/mi-plata/AnotarPlata.tsx` (`anotar_plata_compras`, la foto al depósito `retail-gastos-viaje/plata/`);
@@ -1520,7 +1520,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   que tiene. `?mandar=1` (desde «Listo» de la compra) abre «Mandar a la tienda».
   Actividad 6 (migración `20261023121000`): `/recibir/envio/[id]` muestra los papeles de lo comprado desde el celular
   (`components/recepcion-conteo/PapelesDeLaCompra.tsx`; `fn_envio_detalle` → `papeles`, foto firmada en `lib/recepcion-envio.ts`) y
-  `SepararPrendas` ofrece la prenda que eligió la compradora (`lineas[].producto`).
+  la prenda que eligió la compradora viaja en cada línea (`lineas[].producto`), pero el atajo «Son estas» de `SepararPrendas` se retiró el 2026-10-26 (ADR-0480): quien cuenta separa buscando la prenda.
   Actividad 7 (migración `20261023143000`): `/compras/fondos` suma `lib/revisar-compras.ts` (`fn_revisar_compras`, fotos de `papeles/`
   firmadas) + `lib/revisar-compras-reglas.ts` (puro: lectura, si cuadra, qué falta) + `components/mi-plata/PapelesPorCompletar.tsx`
   (`completar_papel_compra`: el comprobante pagado desde el fondo de quien compró; tabla `compra_item_recibido_antes`) y
@@ -1549,6 +1549,26 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_mi_plata_compras`; `ronda_id` en papeles, gastos, plata anotada y cierres).
   El 2026-10-24 «Algo nuevo» también se reparte entre tiendas y su marca se puede escribir con «+» (`HojaPrenda.tsx`); la marca escrita se crea al
   guardar con la RPC `registrar_marca_de_compra` (`20261024214000`, vía `registrarMarcaDeCompra` de `lib/compra-rapida-acciones.ts`), unida al proveedor.
+  **Mis envíos, el banco de la plata y la pantalla en tres columnas (2026-10-26/27, sin cambio de módulo):**
+  - **Mis envíos** (`/compras/mi-plata/envios`, solo lectura): los paquetes que mandó quien compra, con su código (`ENV-000118`) y agrupados por ronda.
+    `lib/mi-plata.ts:getMisEnvios` → RPC `fn_mis_envios()` (`20261026174000`) → `lib/mis-envios-reglas.ts` (puro: lectura, `enviosDeLaRonda`,
+    `rondasConEnvios`, `codigosPorCompra`, buscador y filtros «Sin recibir / Recibidos», resumen y estado de cada envío) → `components/mi-plata/MisEnvios.tsx`
+    (pestañas «Esta ronda» / «Rondas anteriores», `TablaEnvios.tsx` y `FilaEnvio.tsx`, el detalle en `HojaEnvio.tsx` —hoja en celular, cajón en escritorio— con
+    `CodigoDeEnvio.tsx`: copiar el código y compartirlo por WhatsApp). «Mandar a la tienda» (`MandarATienda.tsx`) muestra ese mismo código al salir el envío
+    y `EnviosDeLaRonda.tsx` lo trae a Mis compras. Si la lectura falla la pantalla lo dice; Mis compras sigue sin los envíos (principio 9).
+  - **El banco de la plata anotada:** en una transferencia, «Me dieron plata» pregunta de qué banco salió. `fn_bancos_para_plata_compras()` (`20261026170000`;
+    `getBancosParaPlata` en `lib/mi-plata.ts`, `leerBancosDePlata`) llena el combo y la columna `fondo_plata_anotada.cuenta_indicada_id` (`20261026165000`, solo
+    con `medio = 'transferencia'`) guarda la indicación; la cuenta de verdad la elige Compras al confirmar (`PlataPorConfirmar.tsx` muestra el banco que indicó; no mueve plata). Sin bancos
+    o sin migración, la hoja no pregunta y se anota igual.
+  - **Pantalla de escritorio en tres columnas** (`app/(app)/compras/mi-plata/page.tsx`; maqueta `docs/maquetas/mis-compras-envios-pc-2026-10/`): con la ronda abierta,
+    «tu plata y lo que haces» (camino, billetera, acciones, «Cerrar mi ronda» debajo) · «Manda» (falta mandar y los envíos de la ronda) · el registro de la ronda y las
+    anteriores. En el celular es una sola columna en el mismo orden del DOM.
+  - **«Tu última ronda»** (2026-10-27): sin ronda abierta, la columna del registro abre con cómo terminó la última (`UltimaRonda.tsx`: lo que salió de su plata,
+    cómo cerró, sus envíos y «Ver lo que anoté» en una hoja `HojaDeRonda` de `ListaDelDia.tsx`) en vez de un «Antes de abrir tu ronda 0»; el resto del historial
+    se ve de una vez. El armado de los datos es `ultimaRondaDelHistorial` de `lib/mi-plata-reglas.ts`.
+  - **Principio 9 en la lectura:** `leerMiPlata` devuelve `null` (la pantalla dice «No se pudo leer tu plata») si faltan `saldo` o `por_confirmar`, o —con una base
+    que ya manda `ronda`— `compras_por_completar` o `gastos_por_completar`: «tienes» no se arma con ceros inventados. Los topes de la base (venta de una prenda hasta
+    S/ 5 000, plata y papel hasta S/ 1 000 000, un gasto hasta S/ 100 000) se dicen en el campo (`leerPrecioVenta`, `problemaDeMonto(…, maximo)`).
 - **Recibir mercadería: «Llegó mercadería» (ADR-0330, 2026-10-04)** — `/recibir` abre en la puerta única: `LlegoMercaderia.tsx`
   (lógica pura en `lib/llegada-reglas.ts`, con prueba) → RPC `recibir_lote` sin cambios (entra al almacén de la sede de la
   cabecera, token y cola sin conexión). Lee en el servidor el catálogo, los proveedores con sus marcas (`getMarcasPorProveedor`),

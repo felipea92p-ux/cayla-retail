@@ -571,6 +571,16 @@ describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2
     expect(salida).not.toContain("Código:");
   });
 
+  it("Compras simple: la base aún dice «Mi plata para compras» y la persona busca «Mis compras» (el nombre del módulo en el menú)", () => {
+    const comprar = { message: "Cerrar la ronda necesita el módulo «Mi plata para compras» en tu rol", code: "42501", hint: "ordenes_compra_sin_modulo" };
+    const salida = traducirError(comprar, "cerrar tu ronda");
+    expect(salida).toBe("Cerrar la ronda necesita el módulo «Mis compras» en tu rol");
+    expect(salida).not.toContain("Mi plata");
+    expect(salida).not.toContain("Código:");
+    // Una base que ya dice «Mis compras» (migraciones nuevas) no cambia.
+    expect(traducirError({ ...comprar, message: "Crear una marca desde una compra necesita el módulo «Mis compras» en tu rol" }, "crear la marca")).toBe("Crear una marca desde una compra necesita el módulo «Mis compras» en tu rol");
+  });
+
   it("vale para cualquier módulo con la misma forma de hint: el de «Ajustar stock», que llega con 42501, deja de caer al genérico", () => {
     const ajuste = { message: "Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste", code: "42501", hint: "ajuste_sin_modulo" };
     expect(traducirError(ajuste, "ajustar el stock")).toBe(ajuste.message);
@@ -914,6 +924,18 @@ describe("montos con tope de Finanzas", () => {
     expect(
       traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "cobrar"),
     ).toMatch(/vuelto pasa de S\/\u00a0500/);
+  });
+});
+
+// Mis compras, candados de la auditoría (20261027231000): la frase de la base llega tal cual, también la de permiso (`42501`).
+describe("Mis compras: candados de la auditoría", () => {
+  it("confirmar la plata «Ya tenía» es del líder y la frase dice a quién pedírselo", () => {
+    const mensaje = "La plata que ya tenía antes de usar el sistema la confirma un líder: no sale de ningún banco. Pídele a un líder que la confirme.";
+    expect(traducirError({ message: mensaje, code: "42501", hint: "plata_ya_tenia_solo_lider" }, "confirmar la plata")).toBe(mensaje);
+  });
+  it("una plata confirmada no se anula aparte: la frase de la base pasa tal cual", () => {
+    const mensaje = "Es plata que una compradora anotó y Compras ya confirmó: no se anula aparte.";
+    expect(traducirError({ message: mensaje, code: "P0001", hint: "movimiento_de_plata_anotada" }, "anular la entrega")).toBe(mensaje);
   });
 });
 
