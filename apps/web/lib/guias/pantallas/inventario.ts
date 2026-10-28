@@ -1627,6 +1627,13 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Cuántos fardos vienen (si Compras lo dijo), cuántas prendas dijeron que venían y, mientras cuentas, la balanza: a un lado lo que dijeron, al otro lo que llevas. Se inclina hacia donde hay más y te dice si cuadra, si faltan o si sobran.",
     },
     {
+      id: "hacer-dueno",
+      ancla: "recibir.hacer-dueno",
+      opcional: true,
+      titulo: "¿De quién es lo que entra?",
+      texto: "Al meter al stock lo que quedó «para después» en Tienda Lima, marca si es de CAYLA o de CLAURE: sin eso no se puede guardar. En otras tiendas no se pregunta. En la demo no se toca.",
+    },
+    {
       id: "otra-sede",
       ancla: "recepcion.otra-sede",
       opcional: true,
