@@ -10,33 +10,50 @@
 -- QUÉ HACE (una sola parte, sin políticas — ADR-0195)
 --   1. Medidas con sentido: `materiales_medidas_plausibles` (ancho 20–400 cm, gramaje 30–1500 g/m²) y el kilo pide ancho y gramaje solo para una TELA (un avío a peso no tiene ancho).
 --   2. `editar_material(tela, taller, datos)`: corrige nombre, tejido, composición, merma y cómo se compra; los colores siguen a su tela en la misma transacción (`materiales_propaga_a_colores`).
---      El disparador de copias compara contra lo que el UPDATE CAMBIA (no solo contra la tela): un color desfasado se cura en vez de bloquearse. Editar es del LÍDER (como era la ficha de un insumo).
+--      El disparador de copias compara contra lo que el UPDATE CAMBIA (no solo contra la tela): un color desfasado se cura en vez de bloquearse. Editar es del LÍDER (como era la ficha de un insumo),
+--      firma con el responsable, deja su línea en «Actividad» con el valor de antes y el de después, y rechaza una hoja vieja (`version_cambiada`: otra persona guardó mientras esta estaba abierta).
+--      Lo que la hoja no manda queda como está (una llamada con solo el nombre no borra la merma ni el tejido).
 --   3. `fn_material_leer`: UNA sola lectura y validación de los datos de una tela, que usan `crear_material` y `editar_material` (antes vivía dentro de `crear_material`).
---   4. Candado de unidad completo: un insumo con historia no cambia de tipo ni de unidad ni por la puerta de «colgarlo de una tela» (`insumo_otra_unidad`; el disparador ya no mira columnas).
+--   4. Candado de unidad completo: un insumo con historia no cambia de tipo ni de unidad ni por la puerta de «colgarlo de una tela» (`insumo_otra_unidad`; el disparador, ahora sin lista de columnas, vive en 20261028172000).
 --   5. `fn_material_agregar_colores`: un color va una vez en la lista; el token incluye la tela; el color inexistente solo se exige al CREAR; el código derivado ocupado por otro insumo se dice.
---   6. `crear_material` y `agregar_colores_a_material`: solo en un Taller activo; un avío lo crea el líder (como antes lo exigía `insumos_insert_lider`); una tela con el nombre de un insumo suelto avisa.
+--   6. `crear_material` y `agregar_colores_a_material`: solo en un Taller activo; un avío lo crea el líder (también al sumarle colores); una tela con el nombre de un insumo suelto avisa; un saldo
+--      inicial de cero o mal formado se rechaza en vez de descartarse; las dos dejan su línea en «Actividad» (quién, qué tela, cuántos colores; sin cifras de dinero).
 --   7. `fn_codigo_de_material`: el correlativo no se recorta al llegar a 100. `fn_material_como_json`: lista de columnas, no «todo menos…».
---   8. `fn_materializar_insumos_sueltos(aplicar)`: ya no aborta. Por defecto ENSAYA (devuelve qué haría y no escribe); con `true` aplica. Agrupa los sueltos de una misma tela, adopta a la tela que
---      ya existe, quita el « · Color» que se le agrega al mostrarlo, deja suelto —diciendo por qué— lo que no puede, y no toca avíos ni archivados.
+--   8. `fn_materializar_insumos_sueltos(aplicar)`: ya no aborta. Por defecto ENSAYA (devuelve qué haría y no escribe; un NULL también ensaya); con `true` aplica. Agrupa los sueltos de una misma tela,
+--      adopta a la tela que ya existe, quita el « · Color» que se le agrega al mostrarlo, deja suelto —diciendo por qué— lo que no puede (también un suelto cuya merma o tejido no son los de la
+--      tela: la copia se los cambiaría sin avisar), dice en el ensayo lo que cambiaría al adoptar, toma los mismos candados que «agregar colores» y «editar», y no toca avíos ni archivados.
 --
 -- PROMETE: editar una tela deja a todos sus colores con el mismo nombre, tejido y merma, todo o nada; un color nunca cambia de tipo ni de unidad si ya se usó; ningún saldo se pierde en silencio por un
 --   token; el conversor nunca deja un insumo a medias.
--- ASUME:   `20261028172000` y `20261028175000` (PARTE 1) ya están aplicadas. Esta migración puede pegarse entera, en una sola pegada, y repetirse.
+-- ASUME:   `20261028172000` (los candados de unidad) y `20261028175000` (PARTE 1 y PARTE 2) ya están aplicadas: sin 172000 esta migración se detiene al principio con un mensaje claro y no cambia
+--   nada. Se pega entera, en una sola pegada, y se puede repetir. Lo que NO se puede repetir después de esta es la PARTE 1 de 175000 (volvería a poner seis funciones en su versión anterior):
+--   por eso esa parte se detiene sola si esta ya está.
 -- NO HACE: no archiva telas (decisión pendiente de Felipe), no deja a un colaborador editar una tela, no toca `recibir_insumo` (otra puerta de lotes: queda fuera de esta migración), no
 --   agrega la conversión kilo → metro en «Llegó tela» (act. 4).
 --
 -- DECIDÍ: editar la tela por una función que escribe `materiales` y deja que un disparador AFTER UPDATE vuelva a escribir sus colores (el BEFORE de cada color recalcula nombre y código). DESCARTÉ que la web
 --   actualice cada color uno por uno (N escrituras, y un corte a la mitad dejaba colores con otro tejido que su tela) y DESCARTÉ relajar el candado de «el tejido es de la tela» (la copia es lo que permite que
 --   las ~40 funciones de Producción y Compras sigan leyendo `insumos.tejido_id`). DESCARTÉ también un conversor que aborta con un mensaje (el de 175000): una fila rara bloqueaba las demás.
--- SE ROMPE SI: dos personas editan la misma tela en el mismo segundo (la segunda espera el candado de la tela y sobrescribe: gana la última), o si alguien agrega un campo de la tela que los colores copian y no lo
---   suma a `fn_insumos_copias_de_la_tela` y al disparador de propagación.
+-- SE ROMPE SI: alguien agrega un campo de la tela que los colores copian y no lo suma a `fn_insumos_copias_de_la_tela` y al disparador de propagación; o si se renombra un color en Catálogo (la copia del
+--   nombre de cada insumo no se entera hasta que alguien guarde esa fila: `update retail.insumos set material_id = material_id where material_id is not null;` las pone al día todas).
+--   Dos personas que editan la misma tela ya no se pisan: la segunda recibe «Otra persona cambió esta tela».
 --
--- PRODUCCIÓN. Una sola pegada (sin políticas, sin `drop trigger`: solo `create or replace`). Antes de pegar, el respaldo de la tela y sus colores (ver ADR-0554, «Si hay que volver atrás»).
+-- PRODUCCIÓN. Una sola pegada (sin políticas, sin `drop trigger`: solo `create or replace`), DESPUÉS de 20261028172000. Antes de pegar, el respaldo de la tela y sus colores (ver ADR-0554, «Si hay que volver atrás»).
 --   Después de publicar la web nueva: `select * from retail.fn_materializar_insumos_sueltos();` (ensayo) y, si el informe es lo que se espera, `select * from retail.fn_materializar_insumos_sueltos(true);`.
 --   Dentro de los textos no hay ningún `select … into` (ADR-0288). Prueba: `pnpm pruebas:materiales`.
 -- ============================================================================
 
 set lock_timeout = '3s';
+
+-- ---------- 0. Antes de tocar nada ----------
+-- Esta migración usa la función de `20261028172000` (los candados de unidad): sin ella el pegado fallaría a la mitad con un error de Postgres. Se dice claro y no cambia nada.
+do $f$
+begin
+  if to_regprocedure('retail.fn_insumos_unidad_firme()') is null then
+    raise exception 'Primero pega 20261028172000 (los candados de unidad): esta migración la necesita. No se cambió nada.' using hint = 'falta_172000';
+  end if;
+end
+$f$;
 
 -- ---------- 1. Medidas con sentido ----------
 do $f$
@@ -226,13 +243,10 @@ end;
 $f$;
 revoke all on function retail.fn_insumos_copias_de_la_tela() from public, anon, authenticated;
 
--- El candado de unidad ya no mira columnas: el de antes (`before update of unidad_medida, tipo`) no se disparaba cuando OTRO disparador cambiaba esas columnas (colgar un suelto de una tela con otra unidad).
--- La función compara old y new antes de buscar la historia: casi no cuesta en un UPDATE normal.
-create or replace trigger insumos_unidad_firme
-  before update on retail.insumos
-  for each row execute function retail.fn_insumos_unidad_firme();
+-- (El disparador `insumos_unidad_firme`, sin lista de columnas, vive en `20261028172000`: así 203000 no toca la tabla de insumos y no se cruza con quien guarda un color.)
 
 -- Cuando la tela cambia (nombre, código, tejido o merma), sus colores se ponen al día en la misma transacción: tocarlos basta, el BEFORE de cada color recalcula su nombre y su código.
+
 create or replace function retail.fn_materiales_propagar_a_colores()
 returns trigger
 language plpgsql
@@ -240,6 +254,8 @@ security definer
 set search_path = retail, public, extensions
 as $f$
 begin
+  -- El mismo candado que «agregar colores» y «editar»: un UPDATE directo a la tela (el SQL de un líder) no se cruza con un color que se está sumando en ese instante.
+  perform pg_advisory_xact_lock(hashtextextended('materiales:colores:' || new.id::text, 0));
   update retail.insumos set tejido_id = new.tejido_id, merma_pct = new.merma_pct where material_id = new.id;
   return null;
 end;
@@ -283,6 +299,22 @@ $f$;
 revoke all on function retail.fn_codigo_de_material(text, text) from public, anon, authenticated;
 
 -- ---------- 5. Altas: la tela y/o sus colores, todo o nada ----------
+-- Anota en «Actividad» (ADR-0207) lo que se hizo con una tela: quién, cuándo y —en una edición— cómo era antes y cómo quedó. Sin cifras de dinero. Si Actividad falla, lo hecho no se cae
+-- (como en las hermanas de Producción): queda un aviso en el log de la base.
+create or replace function retail.fn_material_anotar(p_accion text, p_descripcion text, p_actor uuid, p_ubicacion_id uuid, p_material_id uuid, p_detalle jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $f$
+begin
+  perform retail.fn_actividad_anotar('produccion', p_accion, p_descripcion, p_actor, retail.fn_actividad_terminal_ahora(), p_ubicacion_id, p_ubicacion_id, 'materiales', p_material_id::text, now(), p_detalle, 'vivo');
+exception when others then
+  raise warning 'actividad: no se anotó «%» de la tela % (%)', p_accion, p_material_id, sqlerrm;
+end;
+$f$;
+revoke all on function retail.fn_material_anotar(text, text, uuid, uuid, uuid, jsonb) from public, anon, authenticated;
+
 -- Interna: crea lo que falte de cada color de `p_colores` ([{color_codigo, stock_minimo, saldo_inicial: {cantidad, costo_total, nota}}]) y abre el saldo inicial con `recibir_insumo`.
 -- Un color que ya estaba se deja como está; si trae saldo, solo se acepta como REINTENTO del mismo envío (su lote ya existe con el token derivado): lo que llega después se anota en «Llegó tela».
 create or replace function retail.fn_material_agregar_colores(p_material_id uuid, p_ubicacion_id uuid, p_colores jsonb, p_token uuid)
@@ -309,6 +341,10 @@ begin
   if not found then
     raise exception 'Esa tela ya no existe. Actualiza la pantalla.' using hint = 'material_no_existe';
   end if;
+  -- Un avío lo crea el líder, también cuando se le suman colores.
+  if m.tipo = 'avio' and not retail.fn_es_lider() then
+    raise exception 'Los avíos los crea el líder.' using errcode = '42501', hint = 'avio_sin_lider';
+  end if;
   -- Un color va UNA vez: con token, el segundo saldo del mismo color se perdía en silencio (el reintento lo daba por ya hecho); sin token fallaba. Ahora pasa lo mismo en los dos casos.
   if exists (select 1 from jsonb_array_elements(coalesce(p_colores, '[]'::jsonb)) e group by coalesce(nullif(btrim(e ->> 'color_codigo'), ''), '') having count(*) > 1) then
     raise exception 'Un color va una sola vez en la tela.' using hint = 'color_repetido';
@@ -325,6 +361,13 @@ begin
     exception when invalid_text_representation or numeric_value_out_of_range then
       raise exception 'Los números del color «%» no se entienden: revisa el mínimo, la cantidad y el costo.', coalesce(v_color, '(sin color)') using hint = 'numero_ilegible';
     end;
+    -- Un saldo mal formado o de cero se rechaza: antes se descartaba en silencio y la persona creía que había anotado lo que ya tenía.
+    if jsonb_exists(v_c, 'saldo_inicial') and jsonb_typeof(v_c -> 'saldo_inicial') not in ('object', 'null') then
+      raise exception 'El saldo inicial del color «%» se manda como un objeto con su cantidad y su costo.', coalesce(v_color, '(sin color)') using hint = 'saldo_ilegible';
+    end if;
+    if v_cant is not null and not (v_cant > 0) then
+      raise exception 'La cantidad del saldo inicial de «%» tiene que ser mayor que cero (déjala vacía si todavía no llegó nada).', coalesce(v_color, '(sin color)') using hint = 'saldo_ilegible';
+    end if;
     v_nota := nullif(btrim(coalesce(v_c -> 'saldo_inicial' ->> 'nota', '')), '');
     -- El token del lote incluye la TELA: el mismo token usado en otra tela (o en otra operación) ya no se confunde con un reintento.
     v_token := case when p_token is null then null else md5(p_token::text || ':' || p_material_id::text || ':' || coalesce(v_color, ''))::uuid end;
@@ -371,6 +414,7 @@ end;
 $f$;
 revoke all on function retail.fn_material_agregar_colores(uuid, uuid, jsonb, uuid) from public, anon, authenticated;
 
+
 create or replace function retail.crear_material(p_ubicacion_id uuid, p_material jsonb, p_colores jsonb default '[]'::jsonb, p_token uuid default null)
 returns jsonb
 language plpgsql
@@ -385,6 +429,8 @@ declare
   v_existente record;
   v_suelto record;
   v_codigo text;
+  v_actor uuid;
+  v_n integer;
 begin
   perform retail.fn_produccion_exigir_operar(p_ubicacion_id);
   perform retail.fn_material_exigir_taller(p_ubicacion_id);
@@ -410,6 +456,7 @@ begin
   if v_tipo = 'avio' and not retail.fn_es_lider() then
     raise exception 'Los avíos los crea el líder.' using errcode = '42501', hint = 'avio_sin_lider';
   end if;
+  v_actor := retail.fn_actor_persona_id(true);
 
   -- Dos personas creando la misma tela a la vez: la segunda espera, ve que ya existe y recibe el aviso (no un error de índice).
   perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || v_tipo || ':' || coalesce(retail.fn_clave_texto(v_nombre), ''), 0));
@@ -424,15 +471,20 @@ begin
   v_codigo := retail.fn_codigo_de_material(v_nombre, v_tipo);
   insert into retail.materiales (codigo, nombre, tipo, tejido_id, composicion, unidad_medida, merma_pct, unidad_compra, ancho_cm, gramaje_gm2, metros_por_rollo, token_cliente, creado_por)
   values (v_codigo, v_nombre, v_tipo, nullif(v_d ->> 'tejido_id', '')::uuid, v_d ->> 'composicion', v_d ->> 'unidad_medida', (v_d ->> 'merma_pct')::numeric, v_d ->> 'unidad_compra',
-          (v_d ->> 'ancho_cm')::numeric, (v_d ->> 'gramaje_gm2')::numeric, (v_d ->> 'metros_por_rollo')::numeric, p_token, retail.fn_actor_persona_id(true))
+          (v_d ->> 'ancho_cm')::numeric, (v_d ->> 'gramaje_gm2')::numeric, (v_d ->> 'metros_por_rollo')::numeric, p_token, v_actor)
   returning id into v_id;
 
   perform retail.fn_material_agregar_colores(v_id, p_ubicacion_id, p_colores, p_token);
+  v_n := (select count(*)::integer from retail.insumos i where i.material_id = v_id);
+  perform retail.fn_material_anotar('tela_creada',
+    'creó la tela «' || v_nombre || '» (' || v_codigo || ')' || case when v_n > 0 then ' con ' || v_n || case when v_n = 1 then ' color' else ' colores' end else '' end,
+    v_actor, p_ubicacion_id, v_id, jsonb_build_object('material_id', v_id, 'codigo', v_codigo, 'tipo', v_tipo, 'colores', v_n));
   return retail.fn_material_como_json(v_id);
 end;
 $f$;
 revoke all on function retail.crear_material(uuid, jsonb, jsonb, uuid) from public, anon;
 grant execute on function retail.crear_material(uuid, jsonb, jsonb, uuid) to authenticated;
+
 
 create or replace function retail.agregar_colores_a_material(p_material_id uuid, p_ubicacion_id uuid, p_colores jsonb, p_token uuid default null)
 returns jsonb
@@ -440,6 +492,12 @@ language plpgsql
 security definer
 set search_path = retail, public, extensions
 as $f$
+declare
+  v_actor uuid;
+  v_antes integer;
+  v_despues integer;
+  v_codigo text;
+  v_nombre text;
 begin
   perform retail.fn_produccion_exigir_operar(p_ubicacion_id);
   perform retail.fn_material_exigir_taller(p_ubicacion_id);
@@ -450,9 +508,19 @@ begin
   if not exists (select 1 from retail.materiales m where m.id = p_material_id and m.archivado_at is null) then
     raise exception 'Esa tela ya no existe. Actualiza la pantalla.' using hint = 'material_no_existe';
   end if;
+  v_actor := retail.fn_actor_persona_id(true);
   -- Dos personas sumando colores (o editando) la misma tela a la vez: una a una.
   perform pg_advisory_xact_lock(hashtextextended('materiales:colores:' || p_material_id::text, 0));
+  v_antes := (select count(*)::integer from retail.insumos i where i.material_id = p_material_id);
   perform retail.fn_material_agregar_colores(p_material_id, p_ubicacion_id, p_colores, p_token);
+  v_despues := (select count(*)::integer from retail.insumos i where i.material_id = p_material_id);
+  -- Un reintento (el mismo token) no suma nada y no anota otra vez.
+  if v_despues > v_antes then
+    select m.codigo, m.nombre into v_codigo, v_nombre from retail.materiales m where m.id = p_material_id;
+    perform retail.fn_material_anotar('colores_agregados',
+      'le sumó ' || (v_despues - v_antes) || case when v_despues - v_antes = 1 then ' color' else ' colores' end || ' a la tela «' || v_nombre || '» (' || v_codigo || ')',
+      v_actor, p_ubicacion_id, p_material_id, jsonb_build_object('material_id', p_material_id, 'codigo', v_codigo, 'colores_nuevos', v_despues - v_antes));
+  end if;
   return retail.fn_material_como_json(p_material_id);
 end;
 $f$;
@@ -462,6 +530,7 @@ grant execute on function retail.agregar_colores_a_material(uuid, uuid, jsonb, u
 -- ---------- 6. Editar una tela (ADR-0554, actividad 3) ----------
 -- Corrige lo que se escribió mal o lo que cambió: nombre, tejido, composición, merma y cómo se compra (con su ancho, gramaje o metros por rollo). El tipo y la unidad NO se cambian (los de sus colores dependen
 -- de ellos). Es del LÍDER, como lo era la ficha de un insumo (`insumos_update_lider`): corregir la merma o el tejido de una tela cambia lo que Nueva orden propone y cuánta tela se pide.
+
 create or replace function retail.editar_material(p_material_id uuid, p_ubicacion_id uuid, p_material jsonb)
 returns jsonb
 language plpgsql
@@ -470,13 +539,27 @@ set search_path = retail, public, extensions
 as $f$
 declare
   m retail.materiales%rowtype;
+  v_actor uuid;
+  v_version timestamptz;
   v_d jsonb;
   v_existente record;
+  v_suelto record;
+  v_cambios text[] := '{}';
+  v_antes jsonb := '{}'::jsonb;
+  v_despues jsonb := '{}'::jsonb;
+  v_colores integer;
+  v_viejo text;
+  v_nuevo text;
 begin
   perform retail.fn_produccion_exigir_operar(p_ubicacion_id);
   perform retail.fn_material_exigir_taller(p_ubicacion_id);
   if not retail.fn_es_lider() then
     raise exception 'Editar una tela es del líder.' using errcode = '42501', hint = 'editar_material_sin_lider';
+  end if;
+  -- Firma con el responsable (como las hermanas de Producción): sin él no queda dicho quién la cambió.
+  v_actor := retail.fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién guarda esto' using errcode = '42501', hint = 'responsable_requerido';
   end if;
   if jsonb_typeof(p_material) is distinct from 'object' then
     raise exception 'Faltan los datos de la tela.' using hint = 'material_ilegible';
@@ -487,14 +570,63 @@ begin
   if not found then
     raise exception 'Esa tela ya no existe. Actualiza la pantalla.' using hint = 'material_no_existe';
   end if;
-  v_d := retail.fn_material_leer(p_material, m.tipo, m.unidad_medida);
+  -- Control de versión (ADR-0193): la hoja manda el `updated_at` que leyó al abrirse. Si otra persona guardó entretanto, o si no manda ninguno, no se pisa nada en silencio.
+  begin
+    v_version := nullif(btrim(coalesce(p_material ->> 'version', '')), '')::timestamptz;
+  exception when others then
+    v_version := null;
+  end;
+  if v_version is distinct from m.updated_at then
+    raise exception 'Otra persona cambió esta tela mientras la editabas. Actualiza la pantalla para ver sus cambios.' using errcode = 'PT409', hint = 'version_cambiada';
+  end if;
+  -- Lo que la hoja no manda queda como está (con solo el nombre no se borra la merma ni el tejido); un null explícito sí lo borra.
+  v_d := retail.fn_material_leer(
+    jsonb_build_object('nombre', m.nombre, 'tejido_id', m.tejido_id, 'composicion', m.composicion, 'merma_pct', m.merma_pct, 'unidad_compra', m.unidad_compra,
+                       'ancho_cm', m.ancho_cm, 'gramaje_gm2', m.gramaje_gm2, 'metros_por_rollo', m.metros_por_rollo) || (p_material - 'version'),
+    m.tipo, m.unidad_medida);
   if retail.fn_clave_texto(v_d ->> 'nombre') is distinct from retail.fn_clave_texto(m.nombre) then
     perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || m.tipo || ':' || coalesce(retail.fn_clave_texto(v_d ->> 'nombre'), ''), 0));
     for v_existente in select x.codigo, x.nombre, x.id from retail.materiales x where x.id <> m.id and x.tipo = m.tipo and retail.fn_clave_texto(x.nombre) = retail.fn_clave_texto(v_d ->> 'nombre') loop
       raise exception 'Ya existe «%» (%): ponle otro nombre a esta tela.', v_existente.nombre, v_existente.codigo using hint = 'material_ya_existe', detail = v_existente.id::text;
     end loop;
+    for v_suelto in select i.codigo from retail.insumos i where i.material_id is null and i.archivado_at is null and i.tipo = m.tipo and retail.fn_clave_texto(i.nombre) = retail.fn_clave_texto(v_d ->> 'nombre') loop
+      raise exception 'Ya hay un insumo suelto con ese nombre (%): primero se convierte en tela, para no duplicar su stock. Avisa al líder.', v_suelto.codigo using hint = 'insumo_suelto_igual';
+    end loop;
   end if;
-  -- Los colores siguen a su tela: el AFTER UPDATE (`materiales_propaga_a_colores`) los pone al día en esta misma transacción.
+  -- Qué cambia (para «Actividad»): el valor de antes y el de después, sin cifras de dinero.
+  if (v_d ->> 'nombre') is distinct from m.nombre then
+    v_cambios := array_append(v_cambios, 'nombre «' || m.nombre || '» → «' || (v_d ->> 'nombre') || '»');
+    v_antes := v_antes || jsonb_build_object('nombre', m.nombre);
+    v_despues := v_despues || jsonb_build_object('nombre', v_d ->> 'nombre');
+  end if;
+  if (v_d ->> 'merma_pct')::numeric is distinct from m.merma_pct then
+    v_cambios := array_append(v_cambios, 'merma ' || trim_scale(round(m.merma_pct * 100, 2))::text || ' % → ' || trim_scale(round((v_d ->> 'merma_pct')::numeric * 100, 2))::text || ' %');
+    v_antes := v_antes || jsonb_build_object('merma_pct', m.merma_pct);
+    v_despues := v_despues || jsonb_build_object('merma_pct', (v_d ->> 'merma_pct')::numeric);
+  end if;
+  if nullif(v_d ->> 'tejido_id', '')::uuid is distinct from m.tejido_id then
+    v_viejo := coalesce((select t.nombre from retail.tejidos t where t.id = m.tejido_id), '(ninguno)');
+    v_nuevo := coalesce((select t.nombre from retail.tejidos t where t.id = nullif(v_d ->> 'tejido_id', '')::uuid), '(ninguno)');
+    v_cambios := array_append(v_cambios, 'tejido ' || v_viejo || ' → ' || v_nuevo);
+    v_antes := v_antes || jsonb_build_object('tejido', v_viejo);
+    v_despues := v_despues || jsonb_build_object('tejido', v_nuevo);
+  end if;
+  if (v_d ->> 'composicion') is distinct from m.composicion then
+    v_cambios := array_append(v_cambios, 'composición');
+    v_antes := v_antes || jsonb_build_object('composicion', coalesce(m.composicion, '(vacía)'));
+    v_despues := v_despues || jsonb_build_object('composicion', coalesce(v_d ->> 'composicion', '(vacía)'));
+  end if;
+  if (v_d ->> 'unidad_compra') is distinct from m.unidad_compra then
+    v_cambios := array_append(v_cambios, 'se compra por ' || m.unidad_compra || ' → ' || (v_d ->> 'unidad_compra'));
+    v_antes := v_antes || jsonb_build_object('unidad_compra', m.unidad_compra);
+    v_despues := v_despues || jsonb_build_object('unidad_compra', v_d ->> 'unidad_compra');
+  end if;
+  if (v_d ->> 'ancho_cm')::numeric is distinct from m.ancho_cm or (v_d ->> 'gramaje_gm2')::numeric is distinct from m.gramaje_gm2 or (v_d ->> 'metros_por_rollo')::numeric is distinct from m.metros_por_rollo then
+    v_cambios := array_append(v_cambios, 'medidas de compra');
+    v_antes := v_antes || jsonb_build_object('ancho_cm', m.ancho_cm, 'gramaje_gm2', m.gramaje_gm2, 'metros_por_rollo', m.metros_por_rollo);
+    v_despues := v_despues || jsonb_build_object('ancho_cm', (v_d ->> 'ancho_cm')::numeric, 'gramaje_gm2', (v_d ->> 'gramaje_gm2')::numeric, 'metros_por_rollo', (v_d ->> 'metros_por_rollo')::numeric);
+  end if;
+  -- Los colores siguen a su tela: el AFTER UPDATE (`materiales_propaga_a_colores`) los pone al día en esta misma transacción (también si nada cambió: así se corrige un nombre de color desfasado).
   update retail.materiales set
     nombre = v_d ->> 'nombre',
     tejido_id = nullif(v_d ->> 'tejido_id', '')::uuid,
@@ -505,6 +637,13 @@ begin
     gramaje_gm2 = (v_d ->> 'gramaje_gm2')::numeric,
     metros_por_rollo = (v_d ->> 'metros_por_rollo')::numeric
    where id = m.id;
+  v_colores := (select count(*)::integer from retail.insumos i where i.material_id = m.id);
+  if cardinality(v_cambios) > 0 then
+    perform retail.fn_material_anotar('tela_editada',
+      'corrigió la tela «' || (v_d ->> 'nombre') || '» (' || m.codigo || '): ' || array_to_string(v_cambios, ', ')
+        || case when v_colores > 0 then ' · les llega a ' || v_colores || case when v_colores = 1 then ' color' else ' colores' end else '' end,
+      v_actor, p_ubicacion_id, m.id, jsonb_build_object('material_id', m.id, 'codigo', m.codigo, 'colores', v_colores, 'antes', v_antes, 'despues', v_despues));
+  end if;
   return retail.fn_material_como_json(m.id);
 end;
 $f$;
@@ -518,6 +657,7 @@ comment on function retail.editar_material(uuid, uuid, jsonb) is
 -- Por defecto ENSAYA (no escribe nada, devuelve qué haría); con `true` aplica, y antes de tocar cada insumo guarda su fila en `respaldo_purgas.filas` (purga `materializar-insumos-AAAA-MM-DD-HHMM`).
 -- Los avíos se quedan sueltos a propósito y los archivados no se tocan.
 drop function if exists retail.fn_materializar_insumos_sueltos();
+
 create or replace function retail.fn_materializar_insumos_sueltos(p_aplicar boolean default false)
 returns table (insumo_codigo text, insumo_nombre text, resultado text, detalle text)
 language plpgsql
@@ -527,12 +667,15 @@ as $f$
 declare
   r record;
   m retail.materiales%rowtype;
+  -- Un NULL también ensaya: solo un `true` escribe.
+  v_aplicar boolean := coalesce(p_aplicar, false);
   v_res jsonb := '[]'::jsonb;
   v_base text;
   v_color text;
   v_sufijo text;
   v_cod text;
   v_derivado text;
+  v_nota text;
   -- Cada corrida que APLICA guarda cómo era cada insumo ANTES de colgarlo de su tela, en el respaldo de siempre (`respaldo_purgas.filas`): es lo que usa el deshacer.
   v_purga text := 'materializar-insumos-' || to_char(timezone('America/Lima', now()), 'YYYY-MM-DD-HH24MI');
 begin
@@ -549,11 +692,14 @@ begin
             v_base := btrim(left(r.nombre, length(r.nombre) - length(v_sufijo)));
           end if;
         end if;
+        -- Los mismos candados que `crear_material`, «agregar colores» y «editar»: el conversor no se cruza con quien está creando o corrigiendo esa tela.
+        perform pg_advisory_xact_lock(hashtextextended('materiales:nombre:' || r.tipo || ':' || coalesce(retail.fn_clave_texto(v_base), ''), 0));
         -- ¿Ya hay una tela con ese nombre (aunque cambien mayúsculas o tildes)? Entonces este insumo es otro color de ella.
         m := null;
         for m in select x.* from retail.materiales x where x.tipo = r.tipo and retail.fn_clave_texto(x.nombre) = retail.fn_clave_texto(v_base) loop
           exit;
         end loop;
+        v_nota := '';
         if m.id is null then
           v_cod := r.codigo;
           -- Un código de más de 20 letras (la tela no los admite) o que ya usa otra tela se reemplaza por uno armado por la base.
@@ -564,14 +710,32 @@ begin
           values (v_cod, v_base, r.tipo, r.tejido_id, r.unidad_medida, r.merma_pct, r.unidad_medida, r.creado_por)
           returning * into m;
         else
+          perform pg_advisory_xact_lock(hashtextextended('materiales:colores:' || m.id::text, 0));
+          select * into m from retail.materiales x where x.id = m.id;
           if m.unidad_medida is distinct from r.unidad_medida then
             raise exception 'La tela «%» (%) se lleva en otra unidad.', m.nombre, m.codigo;
           end if;
           if exists (select 1 from retail.insumos x where x.material_id = m.id and coalesce(x.color_codigo, '') = coalesce(r.color_codigo, '')) then
             raise exception 'La tela «%» (%) ya tiene ese color.', m.nombre, m.codigo;
           end if;
+          -- La merma y el tejido son de la TELA: la copia se los pondría al color sin avisar y «Nueva orden» pediría otra cantidad de tela sin explicación. Si el suelto trae OTROS, se queda suelto.
+          if r.merma_pct > 0 and r.merma_pct is distinct from m.merma_pct then
+            raise exception 'Su merma (% %%) no es la de la tela (% %%): iguálala y vuelve a convertir.', trim_scale(round(r.merma_pct * 100, 2)), trim_scale(round(m.merma_pct * 100, 2));
+          end if;
+          if r.tejido_id is not null and r.tejido_id is distinct from m.tejido_id and (m.tejido_id is not null or exists (select 1 from retail.insumos x where x.material_id = m.id)) then
+            raise exception 'Su tejido no es el de la tela: iguálalo y vuelve a convertir.';
+          end if;
+          -- Una tela todavía sin colores y sin tejido toma el del suelto; con colores, nunca (se lo arrastraría a todos).
           if m.tejido_id is null and r.tejido_id is not null then
             update retail.materiales set tejido_id = r.tejido_id where id = m.id;
+            select * into m from retail.materiales x where x.id = m.id;
+          end if;
+          -- Lo que sí cambia al colgarlo (merma 0 o tejido vacío del suelto pasan a ser los de la tela): el ensayo lo dice.
+          if r.merma_pct is distinct from m.merma_pct then
+            v_nota := v_nota || ' · merma ' || trim_scale(round(r.merma_pct * 100, 2))::text || ' % → ' || trim_scale(round(m.merma_pct * 100, 2))::text || ' %';
+          end if;
+          if r.tejido_id is distinct from m.tejido_id then
+            v_nota := v_nota || ' · tejido ' || coalesce((select t.nombre from retail.tejidos t where t.id = r.tejido_id), '(ninguno)') || ' → ' || coalesce((select t.nombre from retail.tejidos t where t.id = m.tejido_id), '(ninguno)');
           end if;
         end if;
         v_derivado := m.codigo || coalesce('-' || r.color_codigo, '');
@@ -581,13 +745,13 @@ begin
         insert into respaldo_purgas.filas (purga, tabla, fila) values (v_purga, 'insumos', to_jsonb(r));
         update retail.insumos set material_id = m.id where id = r.id;
         v_res := v_res || jsonb_build_array(jsonb_build_object(
-          'c', r.codigo, 'n', r.nombre, 'r', case when p_aplicar then 'convertido' else 'se convertiría' end,
-          'd', 'color de «' || m.nombre || '» (' || m.codigo || '), queda como ' || v_derivado));
+          'c', r.codigo, 'n', r.nombre, 'r', case when v_aplicar then 'convertido' else 'se convertiría' end,
+          'd', 'color de «' || m.nombre || '» (' || m.codigo || '), queda como ' || v_derivado || v_nota));
       exception when others then
         v_res := v_res || jsonb_build_array(jsonb_build_object('c', r.codigo, 'n', r.nombre, 'r', 'se queda suelto', 'd', sqlerrm));
       end;
     end loop;
-    if not p_aplicar then
+    if not v_aplicar then
       -- Ensayo: se deshace todo lo hecho dentro de este bloque. Lo contado queda en `v_res` (las variables no se deshacen).
       raise exception 'ensayo' using errcode = 'ENSAY';
     end if;

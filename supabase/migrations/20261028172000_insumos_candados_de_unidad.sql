@@ -130,6 +130,9 @@ end;
 $f$;
 revoke all on function retail.fn_insumos_unidad_firme() from public, anon, authenticated;
 
+-- Sin lista de columnas (revisión del 28-oct): `before update of unidad_medida, tipo` no se dispara cuando OTRO disparador cambia esas columnas (colgar un insumo suelto de una
+-- tela con otra unidad lo hacía). La función compara old y new antes de buscar la historia: casi no cuesta en un UPDATE normal. Así esta migración queda en su forma FINAL y repegarla
+-- después de 20261028203000 no revierte nada.
 create or replace trigger insumos_unidad_firme
-  before update of unidad_medida, tipo on retail.insumos
+  before update on retail.insumos
   for each row execute function retail.fn_insumos_unidad_firme();

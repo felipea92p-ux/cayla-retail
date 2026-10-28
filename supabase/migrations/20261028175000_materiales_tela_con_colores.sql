@@ -34,7 +34,7 @@
 --   o si dos telas distintas necesitan el mismo nombre (hoy el nombre es único por tipo: se les agrega una marca, no un duplicado).
 --
 -- PRODUCCIÓN. La PARTE 1 se pegó el 2026-10-28 (su último paso devolvió 1: el insumo MM-01 pasó a ser la tela MM-01 con su color Arena); la PARTE 2 y `20261028172000` se confirman con la consulta de solo
---   lectura de ADR-0554. Va en DOS PARTES que se pegan por separado y en orden (ADR-0195: una política y un `alter` de una tabla en uso no van juntos), cada una con `lock_timeout = 3s` y re-ejecutable.
+--   lectura de ADR-0554. Va en DOS PARTES que se pegan por separado y en orden (ADR-0195: una política y un `alter` de una tabla en uso no van juntos), cada una con `lock_timeout = 3s` y re-ejecutable SOLO ANTES de pegar 20261028203000 (después, la PARTE 1 se detiene sola).
 --   PARTE 1 = desde el primer `set lock_timeout` hasta la línea «FIN DE LA PARTE 1»; PARTE 2 = lo que sigue. Pegar DESPUÉS de `20261028172000`. Dentro de los textos no hay ningún `select … into`
 --   (ADR-0288). Prueba: `pnpm pruebas:materiales`.
 --   NO SE EDITA MÁS (revisión del 28-oct): producción ya tiene el texto de la PARTE 1. Todo arreglo de las funciones, los disparadores o la tabla va en `20261028203000` (`create or replace`, candados nuevos).
@@ -42,6 +42,15 @@
 -- ============================================================================
 
 set lock_timeout = '3s';
+
+-- Freno al repegado (revisión del 28-oct): después de `20261028203000` esta parte dejaría seis funciones en su versión anterior, sin ningún error. Si 203000 ya está, se detiene y lo dice.
+do $f$
+begin
+  if to_regprocedure('retail.fn_material_leer(jsonb,text,text)') is not null then
+    raise exception 'La migración 20261028203000 ya está pegada: esta parte dejaría sus funciones en una versión anterior. No la repegues (si hace falta, repega 20261028203000).' using hint = 'repegado_peligroso';
+  end if;
+end
+$f$;
 
 -- ---------- 1. La tela ----------
 create table if not exists retail.materiales (
