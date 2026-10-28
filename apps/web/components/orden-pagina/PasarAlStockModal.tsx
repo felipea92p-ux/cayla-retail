@@ -19,6 +19,7 @@ import { camposDeCierre } from "@/lib/orden-pagina-guia";
 import {
   RPC_CERRAR_PRODUCCION,
   cantidadesTerminadas,
+  fasesSinRegistrar,
   lineasDeCierre,
   problemasDeCierre,
   resumenDeCierre,
@@ -65,6 +66,8 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
   const resumen = resumenDeCierre(datos, total);
   const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
   const sinTela = avisoSinTelaDeclarada(datos.insumos, orden.esMuestra);
+  // Fases que salieron afuera sin registrar quién (ADR-0551 pendiente de registrar): no cobran nada, así que su costo no entra al de las prendas. Es un aviso, nunca un candado (como la tela sin anotar).
+  const sinRegistrar = fasesSinRegistrar(fases);
   const guia = useGuiaCampos(camposDeCierre({ total, problemas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
@@ -206,6 +209,13 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
             }
           >
             {sinTela.texto}
+          </Aviso>
+        )}
+
+        {sinRegistrar.length > 0 && (
+          <Aviso tono="atencion">
+            {sinRegistrar.map((f) => f.nombre).join(", ")} {sinRegistrar.length === 1 ? "salió afuera y todavía no dice quién" : "salieron afuera y todavía no dicen quién"}: su costo no entra al de las prendas. Regístralo en la fase antes de pasar al
+            stock; después de pasar ya no se puede.
           </Aviso>
         )}
 

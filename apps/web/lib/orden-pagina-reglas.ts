@@ -24,6 +24,9 @@ export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
 export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
+/** «Pendiente de registrar» (ADR-0551 pendiente de registrar): dejar una fase que no empezó como un servicio sin proveedor, y registrar quién fue después (aunque la fase ya haya empezado). */
+export const RPC_DEJAR_FASE_PENDIENTE = "dejar_fase_pendiente_de_registrar";
+export const RPC_REGISTRAR_PROVEEDOR_DE_FASE = "registrar_proveedor_de_fase";
 export const RPC_QUITAR_PASO = "quitar_paso_orden";
 export const RPC_MARCAR_FASE = "marcar_fase_hecha";
 export const RPC_DESHACER_MARCA = "deshacer_marca_fase";
@@ -545,9 +548,20 @@ export function previaQueCuenta(fases: readonly FasePagina[], indice: number): F
   return null;
 }
 
-/** Quién la hace, en una palabra: «Taller» o el nombre del servicio. */
+/** Sale afuera pero todavía no se sabe con quién ni a cuánto (ADR-0551 pendiente de registrar): un servicio sin proveedor. No cobra nada hasta que se registre quién. */
+export function esPendienteDeRegistrar(f: Pick<FasePagina, "quien" | "proveedorId">): boolean {
+  return f.quien === "servicio" && f.proveedorId === null;
+}
+
+/** Quién la hace, en una palabra: «Taller», el nombre del servicio o «Pendiente de registrar». */
 export function quienDeFase(f: FasePagina): string {
-  return f.quien === "servicio" ? (f.proveedorNombre ?? "Un servicio") : "Taller";
+  if (f.quien !== "servicio") return "Taller";
+  return f.proveedorNombre ?? (esPendienteDeRegistrar(f) ? "Pendiente de registrar" : "Un servicio");
+}
+
+/** Las fases que salieron afuera sin registrar quién, en el orden de la ruta: su costo NO entra al de las prendas hasta que se registre. */
+export function fasesSinRegistrar(fases: readonly FasePagina[]): FasePagina[] {
+  return fases.filter(esPendienteDeRegistrar);
 }
 
 /** La primera fase que CUENTA prendas (Corte; una fase que se marca, como Ploteo, no cuenta): su tope es el plan más un 10 %, y para «lo que falta» se cuenta contra el plan. */
@@ -634,6 +648,11 @@ export function textoQueSigue(s: Siguiente, fases: readonly FasePagina[]): strin
 /** ¿Se puede cambiar quién hace esta fase? Solo mientras no empezó y la orden sigue en proceso (la base lo exige: `fase_empezada`, `orden_cerrada`). */
 export function puedeCambiarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
   return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && !f.empezada && f.estado !== "hecha";
+}
+
+/** ¿Se puede registrar quién hizo esta fase? Una fase pendiente, en cualquier momento (aunque ya empezó) mientras la orden siga en proceso (la base: `fase_no_pendiente`, `orden_cerrada`). */
+export function puedeRegistrarQuien(f: FasePagina, p: Pick<OrdenPagina, "orden" | "permisos">): boolean {
+  return p.permisos.puedeOperar && p.orden.estado === "en_proceso" && esPendienteDeRegistrar(f);
 }
 
 /**

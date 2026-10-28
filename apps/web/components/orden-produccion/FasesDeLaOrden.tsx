@@ -41,6 +41,8 @@ import {
 // neutro (es un camino, no un error) y lo que está mal escrito —una tarifa con coma, una fecha pasada— en rojo. La cantidad mínima del servicio
 // solo avisa (`avisoMinimo`): la base no bloquea (decisión 5).
 
+/** El valor del combo de proveedor que quiere decir «pendiente de registrar» (no es un id: la hoja lo traduce a `pendiente: true`). */
+const PENDIENTE = "__pendiente__";
 const OPCIONES_QUIEN = [
   { clave: "taller", etiqueta: "Taller" },
   { clave: "servicio", etiqueta: "Afuera" },
@@ -118,9 +120,11 @@ export type PropsFasesDeLaOrden = {
   problemas: ProblemaFase[];
   /** Lo que el modelo elegido dijo de ojales y botones (ADR-0551): `null` = nadie lo ha preguntado y lo que se elija se recuerda; `true`/`false` = ya contestó; sin modelo elegido, no se pasa. */
   ojalesDelModelo?: boolean | null;
+  /** «+ Registrar proveedor nuevo» bajo el combo de cada fase de afuera (ver `useAltaDeProveedorServicio`). */
+  onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
 };
 
-export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, ojalesDelModelo }: PropsFasesDeLaOrden) {
+export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, ojalesDelModelo, onAgregarProveedor }: PropsFasesDeLaOrden) {
   const sirven = proveedoresQueSirven(proveedores);
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
   const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
@@ -159,6 +163,7 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
               problemas={problemas.filter((p) => p.clave === fase.clave)}
               onCambiar={(parche) => cambiar(fase.clave, parche)}
               onApagar={() => cambiar(fase.clave, { encendida: false })}
+              onAgregarProveedor={onAgregarProveedor}
             />
           ))}
           {apagadas.length > 0 && (
@@ -197,6 +202,7 @@ export function FilaFase({
   problemas,
   onCambiar,
   onApagar,
+  onAgregarProveedor,
 }: {
   fase: FaseBorrador;
   totalPrendas: number;
@@ -207,6 +213,8 @@ export function FilaFase({
   problemas: ProblemaFase[];
   onCambiar: (parche: Partial<FaseBorrador>) => void;
   onApagar?: () => void;
+  /** Abre el alta de un proveedor de servicio; `alRegistrar` recibe el id del nuevo para elegirlo en esta fase. Sin ella, no se ofrece (la hoja que lo usa no lo permite). */
+  onAgregarProveedor?: (alRegistrar: (id: string) => void) => void;
 }) {
   const def = faseDe(fase.clave);
   const nombreEnFrase = def.nombre.toLocaleLowerCase("es");
@@ -232,11 +240,32 @@ export function FilaFase({
   const elegidoFuera = fase.proveedorId && !opcionesProveedor.some((o) => o.valor === fase.proveedorId) ? proveedores.find((p) => p.id === fase.proveedorId) : null;
   const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} · ya no hace servicios`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
 
+  const idBase = `fase-${fase.clave}`;
+  // «Pendiente de registrar» (ADR-0551 pendiente de registrar): la primera opción, siempre. Sale afuera sin saber todavía con quién ni a cuánto; no cobra nada hasta que se registre quién.
+  const opcionesConPendiente: Opcion<string>[] = [{ valor: PENDIENTE, texto: "Pendiente de registrar" }, ...opciones];
+  // Debajo del combo, la salida para quien SÍ se conoce pero todavía no está en el directorio: el alta de Producción, sin salir de la hoja.
+  const comboProveedor = (
+    <div>
+      <CampoSelect
+        id={`${idBase}-proveedor`}
+        etiqueta="Proveedor"
+        valor={fase.pendiente ? PENDIENTE : (fase.proveedorId ?? "")}
+        onValor={(v) => onCambiar(v === PENDIENTE ? { pendiente: true, proveedorId: null } : { pendiente: false, proveedorId: v || null })}
+        opciones={opcionesConPendiente}
+        marcador="Elegir a quién"
+        {...pieDe("proveedor", opcionesProveedor.length === 0 ? "aún no hay proveedores de servicio cargados" : undefined)}
+      />
+      {onAgregarProveedor && (
+        <button type="button" onClick={() => onAgregarProveedor((id) => onCambiar({ pendiente: false, proveedorId: id }))} className="btn-cayla btn-enlace mt-1 text-[13px]">
+          + Registrar proveedor nuevo
+        </button>
+      )}
+    </div>
+  );
   const tarifaVacia = fase.tarifa.trim() === "";
   const pieTarifa = sugerida ? (tarifaVacia ? "de su lista de precios" : `su lista dice S/\u00a0${dosDecimales(sugerida.tarifa)}`) : "sin IGV";
   const minimoVacio = fase.minimo.trim() === "";
   const pieMinimo = sugerida?.minimo != null && minimoVacio ? "de su lista de precios" : "desde cuántas prendas cobra";
-  const idBase = `fase-${fase.clave}`;
 
   return (
     <div className="space-y-3 px-3.5 py-3">
@@ -269,18 +298,27 @@ export function FilaFase({
         </div>
       )}
 
-      {servicio && def.hito && (
-        <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          <CampoSelect
-            id={`${idBase}-proveedor`}
-            etiqueta="Proveedor"
-            valor={fase.proveedorId ?? ""}
-            onValor={(v) => onCambiar({ proveedorId: v || null })}
-            opciones={opciones}
-            marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
-            deshabilitado={opciones.length === 0}
-            {...pieDe("proveedor")}
+      {servicio && fase.pendiente && (
+        <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+          {comboProveedor}
+          <CampoFecha
+            id={`${idBase}-fecha`}
+            etiqueta="Prometido para"
+            valor={fase.fechaPrometida}
+            onValor={(iso) => onCambiar({ fechaPrometida: iso })}
+            {...pieDe("fecha", "opcional · cuándo lo devuelve")}
           />
+          <div className="sm:col-span-2">
+            <Aviso tono="info" chico>
+              No cobra nada todavía. Cuando sepas quién la hizo y a cuánto, lo registras en la orden con «Registrar quién» y su costo se suma solo.
+            </Aviso>
+          </div>
+        </div>
+      )}
+
+      {servicio && def.hito && !fase.pendiente && (
+        <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
+          {comboProveedor}
           <CampoMonto
             id={`${idBase}-fijo`}
             etiqueta="Cobra por esta orden"
@@ -300,18 +338,9 @@ export function FilaFase({
         </div>
       )}
 
-      {servicio && !def.hito && (
+      {servicio && !def.hito && !fase.pendiente && (
         <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2">
-          <CampoSelect
-            id={`${idBase}-proveedor`}
-            etiqueta="Proveedor"
-            valor={fase.proveedorId ?? ""}
-            onValor={(v) => onCambiar({ proveedorId: v || null })}
-            opciones={opciones}
-            marcador={opcionesProveedor.length === 0 ? "Sin proveedores de servicio" : "Elegir a quién"}
-            deshabilitado={opciones.length === 0}
-            {...pieDe("proveedor")}
-          />
+          {comboProveedor}
           <CampoMonto
             id={`${idBase}-tarifa`}
             etiqueta="Por prenda"

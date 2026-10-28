@@ -128,6 +128,8 @@ export type FaseBorrador = {
   minimo: string;
   fechaPrometida: string;
   posicion: Posicion | null;
+  /** «Pendiente de registrar» (ADR-0551 pendiente de registrar): sale afuera, pero todavía no se sabe con quién ni a cuánto. Sin proveedor, tarifa ni fijo: no cobra nada hasta que se registre quién. Solo cuenta en un servicio. */
+  pendiente?: boolean;
 };
 
 /** Lo que la hoja sabe antes de pintar las fases (ADR-0551). Sin él, el bloque nace como siempre: la espina en el Taller y Ojales y botones apagado. */
@@ -371,6 +373,13 @@ export function problemasFases(fases: readonly FaseBorrador[], ctx: ContextoFase
     }
     if (f.quien !== "servicio") continue;
 
+    if (f.pendiente) {
+      // Pendiente de registrar: no hay proveedor ni tarifa que juzgar; solo la fecha, si se escribió, tiene que ser una fecha (la base hace lo mismo).
+      const fechaPendiente = f.fechaPrometida.trim();
+      if (fechaPendiente !== "" && !esFechaIso(fechaPendiente)) di("fase_fecha_invalida", `La fecha prometida de ${nombre} no es una fecha válida.`);
+      continue;
+    }
+
     if (!f.proveedorId) {
       di("fase_sin_proveedor", `Si ${nombre} sale afuera, elige a quién.`);
     } else {
@@ -418,7 +427,7 @@ export function avisoMinimo(
   lista: readonly TarifaDeLista[],
   ctx: { hoy: string; proveedores?: readonly ProveedorServicio[] }
 ): string | null {
-  if (!faseViaja(fase) || fase.quien !== "servicio" || totalPrendas <= 0) return null;
+  if (!faseViaja(fase) || fase.quien !== "servicio" || fase.pendiente || totalPrendas <= 0) return null;
   const s = leerServicio(fase, lista, ctx.hoy);
   if (s.cantidadMinima === null || s.cantidadMinima <= 0 || totalPrendas >= s.cantidadMinima) return null;
   const nombre = ctx.proveedores?.find((p) => p.id === fase.proveedorId)?.nombre ?? "Este servicio";
@@ -432,6 +441,7 @@ export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPren
   for (const f of fasesEncendidas(fases)) {
     if (f.quien !== "servicio") continue;
     hayServicio = true;
+    if (f.pendiente) continue; // no cobra nada hasta que se registre quién
     const s = leerServicio(f, lista, hoy);
     total += (s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden;
   }
@@ -454,7 +464,7 @@ export function serviciosConCosto(
   proveedores: readonly ProveedorServicio[]
 ): ServicioConCosto[] {
   return fasesEncendidas(fases)
-    .filter((f) => f.quien === "servicio")
+    .filter((f) => f.quien === "servicio" && !f.pendiente)
     .map((f) => {
       const s = leerServicio(f, lista, hoy);
       return {
@@ -477,6 +487,8 @@ export type FaseRpc = {
   cantidad_minima: string | null;
   fecha_prometida: string | null;
   posicion: Posicion | null;
+  /** Solo viaja (en true) en un servicio «pendiente de registrar»: la base lo lee en `fn_produccion_fases_normalizar` (ADR-0551 pendiente de registrar). */
+  proveedor_pendiente?: boolean;
 };
 
 /** Un número leído viaja como texto canónico; uno que no se pudo leer viaja TAL CUAL se escribió, para que sea la base la que lo rechace (nunca se arregla en silencio). */
@@ -504,8 +516,9 @@ export function fasesParaRpc(fases: readonly FaseBorrador[], lista: readonly Tar
       posicion: cat.posicionable ? f.posicion : null,
     };
     if (f.quien !== "servicio") return base;
-    const s = leerServicio(f, lista, hoy);
     const fecha = f.fechaPrometida.trim();
+    if (f.pendiente) return { ...base, proveedor_pendiente: true, fecha_prometida: fecha === "" ? null : fecha };
+    const s = leerServicio(f, lista, hoy);
     return {
       ...base,
       proveedor_id: f.proveedorId,
