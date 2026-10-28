@@ -40,6 +40,7 @@ const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").r
 const leer = (archivo) => sinCandadosDePegado(readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8"));
 const MIGRACION = leer("20261019192000_produccion_ploteo_la_fase_de_un_toque.sql");
 const MIGRACION_FASES = leer("20261019191000_produccion_fases_nuevas_expandir.sql");
+// 20261028072000 (pendiente de registrar) cambió cuatro funciones más (normalizar, fn_fases_de_orden, abrir_orden_produccion, fn_orden_produccion): su inverso va al final del mismo bloque.
 // 20261028052000 (ADR-0551) cambió dos líneas de `fn_produccion_fases_normalizar` (los siete pasos fijos pasaron a cinco) y 20261028064000 le quitó la comprobación de la fecha prometida pasada
 // (ADR-0537). Esta suite recarga 20261019192000 en cada caso y esa migración tiene su candado de md5 sobre la función tal como ella la dejó: se deshacen los dos parches antes de cargarla
 // (lo mismo que los `DESHACER_*` de otras suites).
@@ -61,6 +62,48 @@ $q$,
         raise exception 'La fecha prometida de «%» ya pasó', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_pasada';
       end if;
 $q$);
+  -- Y los de «pendiente de registrar» (20261028072000, ADR-0551): el inverso exacto de sus seis reemplazos anclados.
+  v_def := pg_get_functiondef('retail.fn_produccion_fases_normalizar(jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$    v_prov := null; v_tarifa := null; v_fijo := 0; v_min := null; v_fecha := null;
+    -- ADR-0551 (pendiente de registrar): «pendiente de registrar»: sale afuera, pero todavía no se sabe con quién ni a cuánto. No cobra nada (fijo 0, sin tarifa ni mínimo).
+    -- Solo con la marca explícita: un servicio sin proveedor y SIN la marca sigue siendo \`fase_sin_proveedor\` (un olvido no se vuelve un pendiente).
+    if v_quien = 'servicio' and lower(coalesce(v_f ->> 'proveedor_pendiente', 'false')) = 'true' then
+      begin
+        v_fecha := nullif(v_f ->> 'fecha_prometida', '')::date;
+      exception when others then
+        raise exception 'La fecha prometida de «%» no es válida', retail.fn_fase_nombre(v_clave) using hint = 'fase_fecha_invalida';
+      end;
+      v_salida := v_salida || jsonb_build_object(
+        'clave', v_clave, 'posicion', v_posicion, 'secuencia', retail.fn_fase_secuencia(v_clave, v_posicion), 'quien', v_quien,
+        'proveedor_id', null, 'tarifa_prenda', null, 'fijo_orden', 0, 'cantidad_minima', null, 'fecha_prometida', v_fecha, 'nota', v_nota);
+      continue;
+    end if;
+    if v_quien = 'servicio' then
+$q$,
+    $q$    v_prov := null; v_tarifa := null; v_fijo := 0; v_min := null; v_fecha := null;
+    if v_quien = 'servicio' then
+$q$);
+  v_def := pg_get_functiondef('retail.fn_fases_de_orden(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$round(v_buenas * coalesce(v_f.tarifa_prenda, 0) + v_f.fijo_orden, 2)$q$,
+    $q$round(v_buenas * v_f.tarifa_prenda + v_f.fijo_orden, 2)$q$);
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$jsonb_array_elements(v_fases) f left join retail.proveedores_produccion pr$q$,
+    $q$jsonb_array_elements(v_fases) f join retail.proveedores_produccion pr$q$);
+  v_def := pg_get_functiondef('retail.abrir_orden_produccion(jsonb, jsonb, jsonb)'::regprocedure);
+  execute replace(v_def,
+    $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by (f ->> 'secuencia')::int)$q$,
+    $q$' con ' || pr.nombre, ', ' order by (f ->> 'secuencia')::int)$q$);
+  v_def := pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$from retail.produccion_fases f left join retail.proveedores_produccion pr on pr.id = f.proveedor_id$q$,
+    $q$from retail.produccion_fases f join retail.proveedores_produccion pr on pr.id = f.proveedor_id$q$);
+  v_def := pg_get_functiondef('retail.fn_orden_produccion(uuid)'::regprocedure);
+  execute replace(v_def,
+    $q$' con ' || coalesce(pr.nombre, 'un servicio sin registrar'), ', ' order by f.secuencia)$q$,
+    $q$' con ' || pr.nombre, ', ' order by f.secuencia)$q$);
 end
 $deshacer_cinco$;
 `;
