@@ -22,6 +22,8 @@ const arg = (nombre, porDefecto) => {
 };
 const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const migracion = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8").replace(/^set lock_timeout.*$/gm, "");
+// Las migraciones de main que esta toca por debajo (cinco pasos, ojales y botones, fecha prometida pasada): idempotentes, así corre con la base al día o sin ella.
+const ANTES = ["20261028052000_produccion_cinco_pasos_fijos.sql", "20261028053000_producto_taller_ojales_y_botones.sql", "20261028064000_produccion_fecha_prometida_pasada_vale.sql"].map(migracion).join("\n");
 const PENDIENTE = migracion("20261028072000_produccion_proveedor_pendiente_de_registrar.sql");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
@@ -40,6 +42,7 @@ const PRELUDIO = `
 set client_min_messages = warning;
 begin;
 set local search_path = retail, public, extensions;
+${ANTES}
 ${PENDIENTE}
 set local search_path = retail, public, extensions;
 create function pg_temp.eh(p text) returns text language sql as $f$ select split_part(p, '|', 1) || '|' || split_part(p, '|', 2) $f$;
@@ -80,7 +83,7 @@ select v.id as v1, v.color_codigo as c1 from retail.variantes v where v.producto
 select v.id as v2 from retail.variantes v where v.producto_id = :'prod' and v.activo and v.color_codigo is not null and v.color_codigo <> :'c1' order by v.color_codigo, v.id limit 1 \\gset
 ${como(FELIPE)}
 `;
-const APERTURA = `jsonb_build_object('ubicacion_id', :'taller', 'producto_id', :'prod', 'es_muestra', false, 'fecha_entrega', (retail.fn_hoy_lima() - 3)::text,
+const APERTURA = `jsonb_build_object('ubicacion_id', :'taller', 'producto_id', :'prod', 'es_muestra', false, 'fecha_entrega', (retail.fn_hoy_lima() + 14)::text,
   'lineas', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', '30'), jsonb_build_object('variante_id', :'v2', 'cantidad', '20')))`;
 const FASE = (o) => `jsonb_build_object(${Object.entries(o).map(([k, v]) => `'${k}', ${v}`).join(", ")})`;
 const TALLER = (clave) => FASE({ clave: `'${clave}'`, quien: `'taller'` });
@@ -119,7 +122,7 @@ caso(
   "P0001|fase_sin_proveedor"
 );
 caso(
-  "A1 abrir con la costura pendiente: queda servicio sin proveedor ni tarifa, con la fecha de entrega pasada aceptada; el devengado es 0 aunque vuelvan prendas",
+  "A1 abrir con la costura pendiente: queda servicio sin proveedor ni tarifa, con su fecha de entrega; el devengado es 0 aunque vuelvan prendas",
   `${ABRIR_PENDIENTE}
    insert into retail.produccion_avances (fase_id, variante_id, cantidad, origen, hecho_por) values (:'f_corte', :'v1', 30, 'taller', :'felipe_p'), (:'f_corte', :'v2', 20, 'taller', :'felipe_p');
    insert into retail.produccion_salidas (fase_id, hecho_por) values (:'f_cost', :'felipe_p') returning id as sal \\gset

@@ -304,7 +304,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "fases",
       ancla: "prod-orden-nueva.fases",
       titulo: "Las fases y quién hace cada una",
-      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos, Planchado y Etiquetar van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿No está en la lista? «+ Registrar proveedor nuevo».",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado van siempre; Ojales y botones, si el modelo los lleva. En cada fase eliges Taller o afuera: si sale, el servicio, su precio y la fecha. ¿Aún no lo tienes? «Pendiente de registrar»; ¿no está? «+ Registrar proveedor nuevo».",
     },
     {
       id: "tela",
@@ -387,7 +387,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       id: "fases",
       ancla: "prod-orden.fases",
       titulo: "Las fases del lote",
-      texto: "Ploteo, Corte, Habilitado, Costura, Limpiar hilos y revisar, Planchado y Etiquetar y embolsar, y Ojales y botones si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
+      texto: "Ploteo, Corte, Habilitado, Costura y Planchado, y Ojales y botones si la orden los lleva (una orden más antigua puede traer también Limpiar hilos y Etiquetar). Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
     },
     {
       id: "fase-actual",
