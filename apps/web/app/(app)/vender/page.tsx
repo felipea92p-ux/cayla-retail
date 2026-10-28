@@ -28,6 +28,8 @@ import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
 import { getPedidosConCliente } from "@/lib/pedidos-entre-sedes";
+import { getEmpresasAqui } from "@/lib/empresas-de-sede";
+import { getStockPorDueno } from "@/lib/stock-por-dueno";
 
 /**
  * Vender: la caja del día de la ubicación — abrir, vender, cerrar, y ver lo vendido hoy.
@@ -138,6 +140,11 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   const familiasFueraDeMotores = new Set(
     resFamiliasApagadas.error ? [] : (resFamiliasApagadas.data ?? []).map((f) => f.codigo),
   );
+  // De quién son las unidades de cada prenda aquí (ADR-0542): solo donde conviven dos empresas (Lima). La cajera elige de cuál sale cuando hay
+  // de las dos. Dato secundario: si la base no responde, no se pregunta y la base decide (rechaza si de verdad hay duda).
+  const empresasAqui = await getEmpresasAqui(persona.ubicacionId).catch(() => null);
+  const repartoDeStock = await getStockPorDueno(persona.ubicacionId, empresasAqui);
+  const duenosPorVariante = repartoDeStock ? Object.fromEntries(repartoDeStock) : null;
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
     .map((v) => ({
@@ -261,6 +268,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         fondoUltimoCierre={fondoUltimoCierre}
         cierreAnterior={ultimoCierre ? { cerradaEn: ultimoCierre.cerradaEn, cerradaPorNombre: ultimoCierre.cerradaPorNombre, montoFondo: ultimoCierre.montoFondo } : null}
         variantes={variantesParaVenta}
+        duenosPorVariante={duenosPorVariante}
         colores={coloresConFicha}
         listasPrendaLibre={listasPrendaLibre}
         campanasNoCargaron={campanasNoCargaron}

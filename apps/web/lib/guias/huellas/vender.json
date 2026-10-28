@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 183,
+  "total": 185,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -130,6 +130,10 @@
       "button «Solo imprimir»",
       "button «Sin imprimir»",
       "button «Nueva venta»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
     ],
     "components/apartados/piezas.tsx": [
       "button «{accion}»"

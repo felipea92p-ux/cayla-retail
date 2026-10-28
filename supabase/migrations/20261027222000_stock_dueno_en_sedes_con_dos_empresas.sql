@@ -244,9 +244,12 @@ comment on function retail.fn_reparto_de_la_fila(uuid, uuid, uuid) is
 
 -- Quién pone la salida: el dueño elegido, o el único que tiene con qué. Devuelve `null`-equivalente (la casa) si el stock no alcanza
 -- (entonces habla fn_aplicar_movimiento); rechaza si hay duda («elige de cuál es») o si lo único que alcanza no puede ir al destino.
+-- (una base que ya tuviera la versión de siete argumentos la suelta: `drop function` no toma candados de auth)
+drop function if exists retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid);
+
 create or replace function retail.fn_dueno_de_una_salida(
   p_variante_id uuid, p_ubicacion_id uuid, p_sububicacion_id uuid,
-  p_tipo text, p_cantidad integer, p_explicito uuid, p_destino_id uuid)
+  p_tipo text, p_cantidad integer, p_explicito uuid, p_destino_id uuid, p_preferido uuid default null)
 returns uuid
 language plpgsql
 security definer
@@ -262,6 +265,8 @@ declare
   v_elegido uuid;
   v_del_elegido integer := 0;
   v_pool_explicito integer := 0;
+  v_pool_casa integer := 0;
+  v_pool_preferido integer := 0;
   v_que_hay text := '';         -- «3 de CAYLA y 2 de CLAURE»
   v_que_no_viaja text := '';    -- dueños con unidades que no pueden ir al destino
   v_nombre text;
@@ -287,6 +292,12 @@ begin
     if p_explicito is not null and r.empresa_id = p_explicito then
       v_pool_explicito := v_pool;
     end if;
+    if r.empresa_id = v_casa then
+      v_pool_casa := v_pool;
+    end if;
+    if p_preferido is not null and r.empresa_id = p_preferido then
+      v_pool_preferido := v_pool;
+    end if;
     if p_destino_id is null or exists (select 1 from retail.fn_empresas_de_sede(p_destino_id) e where e.id = r.empresa_id) then
       v_viajan := v_viajan + v_pool;
       if v_pool > 0 then
@@ -311,6 +322,19 @@ begin
 
   -- Nadie eligió: hay duda si dos dueños (que pueden ir) tienen unidades.
   if v_con > 1 then
+    -- Hay tres casos en que nadie puede elegir, y la duda se resuelve sola, sin adivinar a escondidas:
+    --  · lo que se entrega de un apartado: sale del dueño al que se le acaba de liberar esa unidad (`p_preferido`, misma transacción);
+    --  · soltar un apartado (vencido, anulado): sale de la casa si tiene apartadas, y si no, del otro;
+    --  · quien llama no es personal de la tienda (la tienda online, una persona que compra): sale de la casa, si le alcanza.
+    if p_preferido is not null and v_pool_preferido >= p_cantidad then
+      return p_preferido;
+    end if;
+    if p_tipo = 'liberacion_apartado' then
+      return case when v_pool_casa > 0 then v_casa else v_elegido end;
+    end if;
+    if not retail.fn_tiene_acceso_retail() and v_pool_casa >= p_cantidad then
+      return v_casa;
+    end if;
     raise exception '%', format('%s tiene %s en %s: elige de cuál es.', v_ref, v_que_hay, v_sede)
       using hint = 'elegir_dueno';
   end if;
@@ -328,7 +352,7 @@ begin
 end
 $$;
 
-comment on function retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid) is
+comment on function retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid, uuid) is
   'ADR-0542: de quién son las unidades que SALEN (venta, traslado, apartado, ajuste −): el dueño elegido, o el único que tiene con qué. Rechaza si hay duda (elegir_dueno) o si lo único que alcanza no puede ir al destino (empresa_fuera_de_sede).';
 
 -- ---------- 3. El disparador: resuelve el dueño y mueve el reparto ----------
@@ -349,6 +373,8 @@ declare
   v_dueno uuid;
   v_ubic_entra uuid;
   v_sub_entra uuid;
+  v_memoria text;
+  v_preferido uuid;
 begin
   -- Sin dueño en el movimiento, el que la pantalla eligió para la llamada (encabezado), si lo hay.
   new.empresa_id := coalesce(new.empresa_id, retail.fn_dueno_de_la_llamada(new.variante_id));
@@ -393,8 +419,16 @@ begin
   end if;
 
   if v_sale then
+    -- Lo que se entrega de un apartado se libera y se vende en la misma transacción: la venta hereda el dueño de lo que se liberó.
+    v_memoria := 'cayla.liberado_v' || replace(new.variante_id::text, '-', '_');
+    if new.tipo = 'salida' and new.empresa_id is null then
+      v_preferido := nullif(current_setting(v_memoria, true), '')::uuid;
+    end if;
     v_dueno := retail.fn_dueno_de_una_salida(new.variante_id, new.ubicacion_id, new.sububicacion_id, new.tipo, v_n, new.empresa_id,
-                 case when new.tipo = 'traslado' then new.ubicacion_destino_id end);
+                 case when new.tipo = 'traslado' then new.ubicacion_destino_id end, v_preferido);
+    if new.tipo = 'liberacion_apartado' then
+      perform set_config(v_memoria, v_dueno::text, true);
+    end if;
   elsif v_entra then
     -- Un traslado que llega desde una sede sin reparto (Trujillo, el Taller) es de CAYLA: CLAURE no existe allá.
     v_dueno := coalesce(new.empresa_id, case when new.tipo = 'traslado' then v_casa else retail.fn_dueno_de_entrada_sin_elegir(new.variante_id) end);
@@ -447,7 +481,7 @@ revoke all on function retail.fn_dueno_de_la_llamada(uuid) from public, anon, au
 revoke all on function retail.fn_dueno_de_entrada_sin_elegir(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_bloquear_libro(uuid, uuid, uuid) from public, anon, authenticated;
 revoke all on function retail.fn_reparto_de_la_fila(uuid, uuid, uuid) from public, anon, authenticated;
-revoke all on function retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid) from public, anon, authenticated;
+revoke all on function retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid, uuid) from public, anon, authenticated;
 revoke all on function retail.fn_movimiento_libro_por_dueno() from public, anon, authenticated;
 
 create or replace trigger trg_movimientos_libro_por_dueno

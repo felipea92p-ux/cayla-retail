@@ -32,3 +32,37 @@ export function conDueno<C extends { setHeader(nombre: string, valor: string): C
 export function conDuenoPorLineas<C extends { setHeader(nombre: string, valor: string): C }>(consulta: C, lineas: Readonly<Record<string, string>>): C {
   return Object.keys(lineas).length > 0 ? consulta.setHeader(ENCABEZADO_DUENO_LINEAS, JSON.stringify(lineas)) : consulta;
 }
+
+// ---- El ticket de Vender ------------------------------------------------------------------------------------------------------------
+// Una prenda con unidades de las dos empresas en Lima obliga a decir de cuál sale lo que se vende; una con unidades de una sola (o sin
+// reparto) no pregunta nada: la base toma al único dueño. Lo que el reparto no dice (la base no respondió) tampoco pregunta.
+
+/** Las unidades de un dueño de una prenda en la sede (lo que entrega `lib/stock-por-dueno-reglas.ts`). */
+export type UnidadesDeDueno = { empresaId: string; clave: string; nombre: string; cantidad: number; cantidadApartada: number };
+
+/** Los dueños entre los que hay que elegir para vender esta prenda, o `null` si no hay duda (menos de dos tienen unidades disponibles). */
+export function duenosParaElegir(duenos: readonly UnidadesDeDueno[] | null | undefined): EmpresaElegible[] | null {
+  const conUnidades = (duenos ?? []).filter((d) => d.cantidad - d.cantidadApartada > 0);
+  return conUnidades.length >= 2 ? conUnidades.map((d) => ({ id: d.empresaId, clave: d.clave, nombre: d.nombre })) : null;
+}
+
+/** Las prendas del ticket (por variante, sin repetir) a las que todavía les falta elegir de quién sale. */
+export function variantesSinDueno(
+  variantesDelTicket: readonly string[],
+  duenosPorVariante: Readonly<Record<string, readonly UnidadesDeDueno[]>> | null | undefined,
+  elegido: Readonly<Record<string, string>>,
+): string[] {
+  const faltan: string[] = [];
+  for (const v of new Set(variantesDelTicket)) {
+    const opciones = duenosParaElegir(duenosPorVariante?.[v]);
+    if (opciones && !opciones.some((o) => o.id === elegido[v])) faltan.push(v);
+  }
+  return faltan;
+}
+
+/** `{variante: empresa}` de las líneas de una venta ya armada (`p_items`): lo que viaja en `x-dueno-lineas`, también al subir desde la cola. */
+export function duenoDeLasLineas(items: readonly { variante_id?: string | null; empresa_id?: string | null }[] | null | undefined): Record<string, string> {
+  const mapa: Record<string, string> = {};
+  for (const it of items ?? []) if (it.variante_id && it.empresa_id) mapa[it.variante_id] = it.empresa_id;
+  return mapa;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { duenosParaElegir, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { BadgePercent, Banknote, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Star, Tag, Ticket, Trash2, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
@@ -176,6 +177,10 @@ type Props = {
   detalles?: ReadonlyMap<string, DetalleVariante>;
   /** Por `claveLinea`: los otros tickets abiertos que llevan esa prenda cuando no alcanza para todos (solo avisa). */
   tambienEn?: ReadonlyMap<string, readonly string[]>;
+  /** ADR-0542: de quién son las unidades de cada prenda aquí (solo las que tienen de alguien que no es la casa), lo que ya eligió la cajera por prenda, y cómo elige. */
+  duenosPorVariante?: Readonly<Record<string, readonly UnidadesDeDueno[]>> | null;
+  duenoElegido?: Readonly<Record<string, string>>;
+  onDueno?: (varianteId: string, empresaId: string) => void;
   /** Ref de la lista de líneas: el padre le captura la posición para el reflujo `Flip`. */
   listaRef: RefObject<HTMLDivElement | null>;
   onQuitar: (claveLinea: string) => void;
@@ -260,6 +265,9 @@ export function PuntoDeVentaTicket({
   carrito,
   detalles,
   tambienEn,
+  duenosPorVariante,
+  duenoElegido,
+  onDueno,
   listaRef,
   onQuitar,
   onCantidad,
@@ -859,6 +867,9 @@ export function PuntoDeVentaTicket({
                     linea={it}
                     detalle={detalles?.get(it.varianteId)}
                     tambienEn={tambienEn?.get(it.claveLinea)}
+                    duenos={duenosParaElegir(duenosPorVariante?.[it.varianteId])}
+                    duenoElegido={duenoElegido?.[it.varianteId]}
+                    onDueno={onDueno}
                     bloqueado={bloqueado || cobrando}
                     onQuitar={onQuitar}
                     onCantidad={onCantidad}

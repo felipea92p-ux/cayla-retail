@@ -12,6 +12,7 @@ export function ElegirDueno({
   onElegir,
   deshabilitado = false,
   guia,
+  chico = false,
 }: {
   empresas: readonly EmpresaElegible[];
   duenoId: string;
@@ -19,11 +20,13 @@ export function ElegirDueno({
   deshabilitado?: boolean;
   /** El `data-guia` de este grupo (cada pantalla que lo usa tiene el suyo). */
   guia: string;
+  /** Dentro de una fila (el ticket de Vender): 32 px de alto y sin ancho mínimo. */
+  chico?: boolean;
 }) {
   return (
     <div role="group" aria-label="De quién es lo que ajustas" data-guia={guia} className="flex flex-wrap gap-2">
       {empresas.map((e) => (
-        <ChipOpcion key={e.id} elegido={e.id === duenoId} disabled={deshabilitado} onClick={() => onElegir(e.id)} className="min-w-32 justify-center font-medium">
+        <ChipOpcion key={e.id} elegido={e.id === duenoId} disabled={deshabilitado} onClick={() => onElegir(e.id)} chico={chico} className={chico ? "justify-center font-medium" : "min-w-32 justify-center font-medium"}>
           {e.nombre}
         </ChipOpcion>
       ))}

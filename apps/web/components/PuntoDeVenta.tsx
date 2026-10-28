@@ -165,6 +165,7 @@ import { CajaCerrada } from "@/components/punto-de-venta/CajaCerrada";
 import { RegistrarBajadaModal } from "@/components/punto-de-venta/RegistrarBajadaModal";
 import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
+import { conDuenoPorLineas, duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "@/lib/dueno-reglas";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { numeroDeMonto } from "@/lib/monto-plata-reglas";
@@ -355,6 +356,8 @@ type Props = {
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
   variantes: VarianteBusqueda[];
+  /** ADR-0542: de quién son las unidades de cada prenda en esta sede, solo las que tienen de alguien que no es la casa (Lima). La cajera elige de cuál sale cuando hay de las dos. */
+  duenosPorVariante?: Record<string, UnidadesDeDueno[]> | null;
   /** La ficha de cada color activo (ADR-0316; Felipe 2026-10-10): «Todo de la prenda» dice con qué se combina el color que se mira,
    *  con lo que cuelga en esta sede primero. Vacío (o ausente) = la hoja no dice nada del color, y se vende igual. */
   colores?: ColorConFicha[];
@@ -423,9 +426,11 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, duenosPorVariante = null, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, maquinasCobro = SIN_MAQUINAS, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
+  // De quién sale cada prenda del ticket cuando hay unidades de las dos empresas (ADR-0542), por prenda. Sin respuesta de fábrica.
+  const [duenoDeLinea, setDuenoDeLinea] = useState<Record<string, string>>({});
   const buscador = useRef<HTMLInputElement>(null);
   // El botón grande de la persiana «Caja cerrada» (ADR-0301): el modal «Abrir caja» le devuelve el foco si se cierra sin abrir.
   const botonAbrirCaja = useRef<HTMLButtonElement>(null);
@@ -853,7 +858,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       for (const venta of aReintentar) {
         // Sube con el responsable que se eligió al cobrar y la HORA DE LA VENTA (`x-momento`), no la de ahora (ADR-0162),
         // y después la manda sola a SUNAT (D-60), igual que un cobro en línea.
-        const { data: ventaSubida, error, status } = await firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta));
+        const { data: ventaSubida, error, status } = await conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", venta.params), firmaDeVentaEncolada(venta)), duenoDeLasLineas(venta.params.p_items));
         if (!error) {
           resueltos.set(venta.token, null);
           subidas.push(...venta.items);
@@ -1456,6 +1461,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   }
   function limpiarTicket() {
     setCarrito([]);
+        setDuenoDeLinea({});
     quitarClienta();
     setNota("");
     setNombreTicket("");
@@ -1716,7 +1722,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     conVentajaDelClub && carrito.some((it) => it.liquidacion)
       ? "Las prendas de liquidación tienen precio final: el regalo del club se usa en otra venta. Quita el cupón o el canje, o cóbralas aparte."
       : null;
-  const motivoBloqueo = liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
+  // Lo elegido vale para ESTA venta: lo de una prenda que ya no está en el ticket no cuenta (y se limpia al cobrar).
+  const enTicket = new Set(carrito.map((it) => it.varianteId));
+  const duenoVigente = Object.fromEntries(Object.entries(duenoDeLinea).filter(([v]) => enTicket.has(v)));
+  const faltaDuenoEn = variantesSinDueno([...enTicket], duenosPorVariante, duenoVigente);
+  const motivoDueno = faltaDuenoEn.length > 0 ? `Marca de quién sale ${faltaDuenoEn.length === 1 ? "la prenda que tiene" : "las prendas que tienen"} unidades de CAYLA y de CLAURE.` : null;
+  const motivoBloqueo = motivoDueno ?? liquidacionConClub ?? cuponNoAlcanza ?? motivoBloqueoCobro({
     cajaAbierta: !bloqueado,
     prendas,
     momento,
@@ -1748,6 +1759,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     setProformaActiva(null);
     setConfirmoVencida(false);
     setCarrito([]);
+        setDuenoDeLinea({});
     limpiarComprobante();
     router.replace("/vender");
   }
@@ -1893,6 +1905,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       p_ubicacion_id: ubicacionId,
       p_items: lineasConClub.map((it) => ({
         variante_id: it.varianteId,
+        // Solo cuando había de quién elegir: la base toma al único dueño en el resto (ADR-0542).
+        empresa_id: duenosParaElegir(duenosPorVariante?.[it.varianteId]) ? duenoVigente[it.varianteId] : undefined,
         cantidad: it.cantidad,
         precio_unitario: it.precioUnitario,
         // Con el cupón, `descuento_unitario` es el TOTAL (el de siempre + la parte del club, sumados al
@@ -1941,7 +1955,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     const r = await envio.enviar(huellaDe({ ...params, p_token: undefined }), (token, senal) => {
       // Antes de mandarlo, el cobro queda anotado: si la página se cae ahora, al volver se pregunta por él.
       anotarCobro(token);
-      return firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal);
+      return conDuenoPorLineas(firmar(supabase.rpc("registrar_venta", { ...params, p_token: token }), responsable.firma()).abortSignal(senal), duenoDeLasLineas(params.p_items));
     });
     // Una ráfaga de clics o de Enter: el primero ya está cobrando.
     if (r.tipo === "ocupado" || r.tipo === "congelado") return;
@@ -1976,6 +1990,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         setHojaTicket(false);
         setOk({ total, prendas, recibo: null, estado: null, offline: true });
         setCarrito([]);
+        setDuenoDeLinea({});
         limpiarComprobante();
         return;
       }
@@ -2177,6 +2192,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     cuponClub.recargar();
     const vendidas = carrito.map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad }));
     setCarrito([]);
+        setDuenoDeLinea({});
     limpiarComprobante();
     // Cobrada la proforma, se quita `?proforma=` de la dirección (si no, recargar la volvería a pedir).
     if (proformaActiva) {
@@ -2273,6 +2289,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             carrito={carritoConPiso}
             detalles={detallesDelTicket}
             tambienEn={prendasEnOtrosTickets}
+            duenosPorVariante={duenosPorVariante}
+            duenoElegido={duenoVigente}
+            onDueno={(varianteId, empresaId) => setDuenoDeLinea((d) => ({ ...d, [varianteId]: empresaId }))}
             listaRef={listaTicket}
             onQuitar={quitar}
             onCantidad={cambiarCantidad}

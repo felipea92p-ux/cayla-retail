@@ -222,6 +222,27 @@ caso(
   rechaza(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${MOVER("v", "salida", "lim", "alm_lim", 99, { empresa: "claure" })}`, /Stock insuficiente: hay 5 y se pide sacar 99/),
 );
 
+console.log("\n— Cuando nadie puede elegir —");
+caso(
+  "lo que se entrega de un apartado sale del dueño al que se le liberó (misma transacción), aunque haya de los dos",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${MOVER("v", "apartado", "lim", "alm_lim", 1, { empresa: "claure" })}
+${MOVER("v", "liberacion_apartado", "lim", "alm_lim", 1)}${MOVER("v", "salida", "lim", "alm_lim", 1)}
+select ${DUENO("v", "claure")} = 1 and ${DUENO("v", "cayla")} = 3 and (select empresa_id from retail.movimientos where id = :'m') = :'claure';`),
+);
+caso(
+  "soltar un apartado con apartadas de los dos dueños saca primero de la casa, en vez de rechazar",
+  pasa(`${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${MOVER("v", "apartado", "lim", "alm_lim", 1, { empresa: "cayla" })}${MOVER("v", "apartado", "lim", "alm_lim", 1, { empresa: "claure" })}
+${MOVER("v", "liberacion_apartado", "lim", "alm_lim", 1)}
+select (select empresa_id from retail.movimientos where id = :'m') = :'cayla'
+   and (select cantidad_apartada from retail.stock_dueno where variante_id = :'v' and empresa_id = :'claure') = 1;`),
+);
+caso(
+  "quien llama no es personal de la tienda (la tienda online): con unidades de los dos, sale de la casa en vez de rechazar",
+  pasa(`select set_config('request.jwt.claim.sub', gen_random_uuid()::text, true) as _s \\gset
+${MOVER("v", "entrada", "lim", "alm_lim", 2, { empresa: "claure" })}${MOVER("v", "apartado", "lim", "alm_lim", 1)}
+select (select empresa_id from retail.movimientos where id = :'m') = :'cayla';`),
+);
+
 console.log("\n— Traslados —");
 caso(
   "un traslado de Lima a Trujillo, con unidades de las dos, lleva las de CAYLA y no toca a CLAURE",
@@ -383,7 +404,7 @@ caso("sus funciones internas y la tabla no las toca nadie por la API; solo fn_st
   const salida = psql(`begin;\n${MIGRACION}
 select not has_function_privilege('anon', 'retail.fn_movimiento_libro_por_dueno()', 'execute')
    and not has_function_privilege('authenticated', 'retail.fn_movimiento_libro_por_dueno()', 'execute')
-   and not has_function_privilege('authenticated', 'retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid)', 'execute')
+   and not has_function_privilege('authenticated', 'retail.fn_dueno_de_una_salida(uuid, uuid, uuid, text, integer, uuid, uuid, uuid)', 'execute')
    and not has_function_privilege('authenticated', 'retail.fn_stock_dueno_descuadres()', 'execute')
    and not has_function_privilege('authenticated', 'retail.fn_stock_dueno_cuadra()', 'execute')
    and not has_function_privilege('anon', 'retail.fn_stock_por_dueno(uuid)', 'execute')

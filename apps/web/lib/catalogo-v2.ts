@@ -5,7 +5,7 @@ import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { getEmpresasAqui } from "@/lib/empresas-de-sede";
-import { empresaDePrendaAqui, insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
+import { insigniaDeEmpresa, soloLasDeAqui } from "@/lib/empresas-de-sede-reglas";
 import { leerExistenciasProductos, type ExistenciasProducto } from "@/lib/productos-stock";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
@@ -199,9 +199,9 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
  */
 export async function getCatalogoDeLaSede(sedeId: string): Promise<VarianteCatalogo[]> {
   const [catalogo, empresas] = await Promise.all([getCatalogo(), getEmpresasAqui(sedeId).catch(() => null)]);
-  // La insignia dice de quién es la prenda AQUÍ (ADR-0532): en Lima, por su marca; una blusa Strend que también está en Trujillo lleva
-  // «CLAURE» en Lima. Qué se ofrece sigue decidiéndolo el dato de la prenda (ADR-0505: CLAURE no sale de Lima).
-  return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(empresaDePrendaAqui(v, empresas), empresas) }));
+  // La insignia es la de la FICHA (ADR-0505): una prenda dada de alta como de CLAURE lleva «CLAURE». De quién son las UNIDADES de una prenda
+  // que tiene de las dos lo dice el reparto (ADR-0542, `lib/stock-por-dueno.ts`): Vender pregunta de cuál sale cuando hay duda.
+  return soloLasDeAqui(catalogo, empresas).map((v) => ({ ...v, empresa: insigniaDeEmpresa(v.empresaId, empresas) }));
 }
 
 // ============================================================================

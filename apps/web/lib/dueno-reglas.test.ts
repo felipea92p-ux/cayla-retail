@@ -42,3 +42,27 @@ describe("los encabezados", () => {
     expect(conDuenoPorLineas(new Consulta(), {}).encabezados).toEqual({});
   });
 });
+
+import { duenoDeLasLineas, duenosParaElegir, variantesSinDueno, type UnidadesDeDueno } from "./dueno-reglas";
+
+const u = (clave: "cayla" | "claure", cantidad: number, cantidadApartada = 0): UnidadesDeDueno => ({ empresaId: clave === "cayla" ? "c" : "x", clave, nombre: clave.toUpperCase(), cantidad, cantidadApartada });
+
+describe("el ticket de Vender (ADR-0542)", () => {
+  it("solo hay que elegir cuando dos dueños tienen unidades DISPONIBLES (lo apartado no cuenta)", () => {
+    expect(duenosParaElegir([u("cayla", 3), u("claure", 2)])?.map((d) => d.clave)).toEqual(["cayla", "claure"]);
+    expect(duenosParaElegir([u("cayla", 3), u("claure", 2, 2)])).toBeNull();
+    expect(duenosParaElegir([u("claure", 4)])).toBeNull();
+    expect(duenosParaElegir(undefined)).toBeNull();
+  });
+  it("lista las prendas del ticket a las que falta elegir, sin repetir una prenda en dos líneas", () => {
+    const reparto = { v1: [u("cayla", 3), u("claure", 2)], v2: [u("claure", 4)] };
+    expect(variantesSinDueno(["v1", "v1", "v2", "v3"], reparto, {})).toEqual(["v1"]);
+    expect(variantesSinDueno(["v1"], reparto, { v1: "x" })).toEqual([]);
+    expect(variantesSinDueno(["v1"], reparto, { v1: "otra" })).toEqual(["v1"]);
+    expect(variantesSinDueno(["v1"], null, {})).toEqual([]);
+  });
+  it("arma el mapa por prenda desde las líneas de la venta (también la encolada)", () => {
+    expect(duenoDeLasLineas([{ variante_id: "v1", empresa_id: "x" }, { variante_id: "v2" }, { empresa_id: "c" }])).toEqual({ v1: "x" });
+    expect(duenoDeLasLineas(undefined)).toEqual({});
+  });
+});
