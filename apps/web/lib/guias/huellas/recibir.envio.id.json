@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 127,
+  "total": 126,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «/recibir»",
@@ -67,8 +67,6 @@
     "components/recepcion-conteo/ContarEnvio.tsx": [
       "ComboResponsable «{responsable}»",
       "button «→() => elegir(g)»",
-      "button «{primeraConAnotadas === g.clave ? \"recepcion.desplegar\" : undefined}»",
-      "button «{`Pasar ${a.prenda.nombre}»",
       "button «recepcion.agregar»",
       "Boton «Anterior»",
       "Boton «Listo, sigue»",
@@ -130,6 +128,7 @@
     ],
     "components/recepcion-conteo/SepararPrendas.tsx": [
       "button «{`Quitar ${etiqueta}»",
+      "button «{`Pasar ${a.prenda.nombre}»",
       "button «Cambiar»",
       "Boton «Tallas y colores ahora»",
       "Boton «Crear ahora»",

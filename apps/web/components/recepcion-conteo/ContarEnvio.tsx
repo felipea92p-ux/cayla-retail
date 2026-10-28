@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { ArrowLeft, ArrowRight, ChevronDown, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
@@ -39,7 +39,6 @@ import {
 } from "@/lib/recepcion-conteo-reglas";
 import {
   agruparLineas,
-  anotadasDelGrupo,
   anotadasPorSepararDelGrupo,
   avisoDePrendasAgregadas,
   camposDelConteoPorGrupo,
@@ -134,8 +133,6 @@ export function ContarEnvio({
     };
   }, [detalle.id]);
   const [errorHoja, setErrorHoja] = useState<string | null>(null);
-  // Las categorías desplegadas en la lista de la izquierda (con las prendas que se anotaron al comprar).
-  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   const grupo = grupos.find((g) => g.clave === foco) ?? grupos[0] ?? null;
   // «Falta: identificar las prendas de Faldas» desde otra categoría: primero se abre esa categoría y recién después se lleva a su «¿Qué … son?»
   // (que solo existe para la que se está contando).
@@ -154,19 +151,9 @@ export function ContarEnvio({
   const anterior = i > 0 ? grupos[i - 1] : null;
   const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id ?? SIN_MARCA}`));
   const proveedores = conteos?.proveedores ?? [];
-  // La guía interactiva explica la flecha de la primera categoría que la trae (un solo ancla por pantalla).
-  const primeraConAnotadas = grupos.find((g) => anotadasDelGrupo(g).length > 0)?.clave ?? null;
 
   function elegir(g: GrupoDeLineas) {
     setFoco(g.clave);
-  }
-
-  function alternar(clave: string) {
-    setAbiertas((a) => {
-      const n = new Set(a);
-      if (!n.delete(clave)) n.add(clave);
-      return n;
-    });
   }
 
   /** Guarda lo que cambió en cada línea de la categoría (cada una se guarda sola, con su propio aviso). */
@@ -185,7 +172,7 @@ export function ContarEnvio({
   }
 
   /**
-   * El «+» de una prenda anotada al comprar: pasa a «¿Qué … son?» con las que se esperaban (Felipe 2026-10-26), como si se hubiera elegido
+   * La prenda anotada al comprar que se toca en «¿Qué … son?»: pasa a esa lista con las que se esperaban (Felipe 2026-10-26), como si se hubiera elegido
    * desde el buscador. Si con eso se separa más de lo que ya se había contado, lo contado sube y la pantalla lo dice con el nombre de la
    * prenda y cuántas se agregaron (Felipe 2026-10-27). Con la categoría en 0 no avisa: no había número de nadie que pisar y el número
    * grande se ve pasar de 0 a lo separado.
@@ -286,12 +273,6 @@ export function ContarEnvio({
                   : sinIdent === 0
                     ? "todas identificadas"
                     : [ident > 0 ? `${ident} ${ident === 1 ? "identificada" : "identificadas"}` : null, `${sinIdent} por identificar`].filter(Boolean).join(" · ");
-              // Las prendas exactas que se anotaron al comprar: la categoría se despliega para verlas y pasarlas a «¿Qué … son?» con el «+».
-              const hayAnotadas = anotadasDelGrupo(g).length > 0;
-              const abierta = hayAnotadas && abiertas.has(g.clave);
-              const porSeparar = abierta ? anotadasPorSepararDelGrupo(g) : [];
-              const idAnotadas = `rc-anotadas-${p.clave.replace(":", "-")}`;
-              const nombreCategoria = p.categoria?.nombre.toLowerCase() ?? "prendas";
               return (
                 <div key={g.clave} className="rc-cat-grupo" data-actual={grupo?.clave === g.clave ? "" : undefined}>
                   <div className="rc-cat-fila">
@@ -299,7 +280,6 @@ export function ContarEnvio({
                       type="button"
                       data-campo={p.linea ? idCampoConteo(p.clave) : undefined}
                       aria-current={grupo?.clave === g.clave ? "true" : undefined}
-                      data-desplegable={hayAnotadas ? "" : undefined}
                       onClick={() => elegir(g)}
                       className="rc-cat-item"
                     >
@@ -321,50 +301,7 @@ export function ContarEnvio({
                         {g.dijeron != null && <span className="text-xs text-taupe">/{g.dijeron}</span>}
                       </span>
                     </button>
-                    {hayAnotadas && (
-                      <button
-                        type="button"
-                        className="rc-cat-desplegar"
-                        aria-expanded={abierta}
-                        aria-controls={idAnotadas}
-                        aria-label={`${abierta ? "Ocultar" : "Ver"} las prendas anotadas en la compra de ${nombreCategoria}`}
-                        title={abierta ? "Ocultar lo anotado en la compra" : "Ver lo anotado en la compra"}
-                        onClick={() => alternar(g.clave)}
-                        data-guia={primeraConAnotadas === g.clave ? "recepcion.desplegar" : undefined}
-                      >
-                        <ChevronDown aria-hidden className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
-                  {abierta && (
-                    <div id={idAnotadas} className="rc-anotadas">
-                      <p className="label-cayla text-[10.5px] text-taupe">Anotado en la compra</p>
-                      {porSeparar.length === 0 ? (
-                        <p className="text-xs text-taupe">Todo pasó a «¿Qué {nombreCategoria} son?».</p>
-                      ) : (
-                        <ul className="space-y-1.5">
-                          {porSeparar.map((a) => (
-                            <li key={a.prenda.productoId ?? `nueva:${a.linea.clave}`} className="rc-anotada">
-                              <span className="min-w-0">
-                                <b className="block truncate text-[13.5px] text-tinta">{a.prenda.nombre}</b>
-                                <small className="block truncate text-[11.5px] text-taupe">{a.prenda.codigo ?? (a.prenda.productoId ? "Del catálogo" : "Nueva: no está en el catálogo")}</small>
-                              </span>
-                              <span className="rc-anotada-n">× {a.prenda.cantidad}</span>
-                              <button
-                                type="button"
-                                className="rc-anotada-mas"
-                                aria-label={`Pasar ${a.prenda.nombre} (${a.prenda.cantidad}) a «¿Qué ${nombreCategoria} son?»`}
-                                title={`Pasar a «¿Qué ${nombreCategoria} son?»`}
-                                onClick={() => separarAnotadaDe(g, a)}
-                              >
-                                <Plus aria-hidden className="h-4 w-4" />
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -419,6 +356,8 @@ export function ContarEnvio({
                     onTallas={(p) => void abrirTallas(grupo, p)}
                     onPrendaVista={onPrendaVista}
                     onCrearNueva={(nueva) => setHoja({ tipo: "crear", grupo: grupo.clave, nueva })}
+                    anotadas={anotadasPorSepararDelGrupo(grupo)}
+                    onAnotada={(a) => separarAnotadaDe(grupo, a)}
                   />
                 )}
                 {errorHoja && (

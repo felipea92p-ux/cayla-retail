@@ -60,21 +60,15 @@ button.rc-parada:disabled { cursor: default; }
 .rc-cat-grupo { transition: translate 200ms var(--ease-cayla); }
 .rc-cat-grupo[data-actual] { translate: 4px 0; }
 .rc-cat-fila { position: relative; }
-.rc-cat-item[data-desplegable] { padding-right: 46px; }
-.rc-cat-desplegar { position: absolute; top: 50%; right: 9px; display: grid; place-items: center; width: 28px; height: 28px; margin-top: -14px; border-radius: 50%; color: var(--color-taupe); transition: background-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla); }
-.rc-cat-desplegar svg { transition: rotate 220ms var(--ease-cayla); }
-.rc-cat-desplegar[aria-expanded="true"] svg { rotate: 180deg; }
+/* «Anotado en la compra» (Felipe 2026-10-28): cada prenda que la compra anotó y todavía no está en «¿Qué … son?» es un chip con su «+» y cuántas
+   eran; al tocarlo pasa a la lista. Sin rebote (ADR-0136): sube 1 px al apuntarlo y se encoge al presionarlo. */
+.rc-anotada-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 5px 13px 5px 9px; border: 1px solid var(--color-borde-control); border-radius: 999px; background: var(--color-papel); color: var(--color-tinta); font-size: 13.5px; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
+.rc-anotada-chip b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.rc-anotada-chip span { color: var(--color-taupe); font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (hover: hover) {
-  .rc-cat-desplegar:hover { background: var(--color-hueso); color: var(--color-tinta); }
+  .rc-anotada-chip:hover { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -1px; }
 }
-.rc-anotadas { display: grid; gap: 6px; margin: 4px 0 6px 20px; padding-left: 12px; border-left: 1px solid var(--color-sand); animation: rc-despliegue 220ms var(--ease-cayla) backwards; }
-.rc-anotada { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 6px 7px 6px 11px; border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); }
-.rc-anotada-n { color: var(--color-tinta); font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rc-anotada-mas { display: grid; place-items: center; width: 32px; height: 32px; border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 50%; background: var(--color-papel); color: var(--color-tinta); transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), scale 120ms var(--ease-cayla); }
-@media (hover: hover) {
-  .rc-anotada-mas:hover { border-color: var(--color-tinta); background: var(--color-hueso); translate: 0 -1px; }
-}
-.rc-anotada-mas:active { scale: 0.92; translate: 0 0; }
+.rc-anotada-chip:active { scale: 0.96; translate: 0 0; }
 .rc-cat-agregar { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 11px 12px; border: 1px dashed color-mix(in srgb, var(--color-tinta) 25%, transparent); border-radius: 16px; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); transition: color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla); }
 @media (hover: hover) {
   .rc-cat-agregar:hover { border-color: color-mix(in srgb, var(--color-tinta) 45%, transparent); color: var(--color-tinta); }

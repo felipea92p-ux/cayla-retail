@@ -11,6 +11,7 @@ import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { buscarPrendasParaRecibir } from "@/lib/recepcion-envio-acciones";
 import type { CategoriaDeLinea, PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
 import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
+import type { AnotadaDelGrupo } from "@/lib/recepcion-grupos-reglas";
 import {
   cambiarCantidadNuevaDescrita,
   cambiarCantidadPrenda,
@@ -114,6 +115,8 @@ export function SepararPrendas({
   onTallas,
   onPrendaVista,
   onCrearNueva,
+  anotadas = [],
+  onAnotada,
 }: {
   categoria: CategoriaDeLinea;
   marca: MarcaDeLinea;
@@ -128,6 +131,10 @@ export function SepararPrendas({
   onPrendaVista: (p: PrendaRecepcion) => void;
   /** «Crear ahora» una nueva ya descrita: la pantalla abre la hoja de la prenda. Sin ella, la nueva solo queda «por crear» (se crea después). */
   onCrearNueva?: (nueva: { cantidad: number; descripcion: string }) => void;
+  /** Las prendas que se anotaron al comprar y todavía no pasaron a esta lista (Felipe 2026-10-28: antes se desplegaban bajo la categoría en el riel). */
+  anotadas?: readonly AnotadaDelGrupo[];
+  /** Pasa una anotada a esta lista, con las que se esperaban. */
+  onAnotada?: (a: AnotadaDelGrupo) => void;
 }) {
   const [describiendo, setDescribiendo] = useState(false);
   const total = totalSeparado(separado);
@@ -159,6 +166,29 @@ export function SepararPrendas({
             <Chip tono="verde">Todas identificadas</Chip>
           ))}
       </div>
+
+      {onAnotada && anotadas.length > 0 && (
+        <div className="space-y-1.5" data-guia="recepcion.anotadas">
+          <p className="label-cayla text-[10.5px] text-taupe">Anotado en la compra · toca una para pasarla aquí</p>
+          <ul className="flex flex-wrap gap-2">
+            {anotadas.map((a) => (
+              <li key={a.prenda.productoId ?? `nueva:${a.linea.clave}`}>
+                <button
+                  type="button"
+                  className="rc-anotada-chip"
+                  aria-label={`Pasar ${a.prenda.nombre} (${a.prenda.cantidad}) a «¿Qué ${nombre} son?»`}
+                  title={a.prenda.codigo ?? (a.prenda.productoId ? "Del catálogo" : "Nueva: no está en el catálogo")}
+                  onClick={() => onAnotada(a)}
+                >
+                  <Plus aria-hidden className="h-4 w-4" />
+                  <b>{a.prenda.nombre}</b>
+                  <span>× {a.prenda.cantidad}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <BuscarPrendaEnLinea
         categoria={categoria}

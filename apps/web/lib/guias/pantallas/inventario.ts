@@ -1665,16 +1665,6 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Lo que dijeron que venía, por tipo de prenda, con cuántas. Si la compra trajo varias prendas del mismo tipo, van juntas en una sola categoría. Tocas una para contarla; la que toca dice «Sigue aquí». Con su ✓ ya tiene su número y todas sus prendas identificadas; si no, te dice cuántas faltan por identificar.",
     },
     {
-      // Solo si alguna categoría trae prendas anotadas al comprar. El «+» pasa la prenda a «¿Qué … son?»: es un cambio que se guarda solo,
-      // así que la demo explica la flecha sin tocarla.
-      id: "desplegar",
-      ancla: "recepcion.desplegar",
-      opcional: true,
-      requiere: ["recepcion.categorias"],
-      titulo: "Lo que se anotó al comprar",
-      texto: "Si la compra anotó qué prendas eran, la flecha de la categoría las muestra con cuántas eran. Toca el «+» de una y pasa a «¿Qué prendas son?» con esa cantidad; si ya habías contado menos, lo contado sube y un aviso te dice cuántas se agregaron. Allí puedes cambiar el número, también escribiéndolo.",
-    },
-    {
       id: "numero",
       ancla: "recepcion.numero",
       opcional: true,
@@ -1698,6 +1688,16 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.categorias"],
       titulo: "¿Qué prendas son?",
       texto: "Di qué prenda es cada una de las que contaste: busca la del catálogo y pon cuántas eran. Si es nueva, anótala con un nombre corto y cuántas. Tienen que sumar lo contado: sin eso no se pasa a «Cerrar». Las tallas y los colores pueden esperar.",
+    },
+    {
+      // Solo si la categoría trae prendas anotadas al comprar que todavía no pasaron a la lista. Tocar un chip pasa la prenda a «¿Qué … son?»:
+      // es un cambio que se guarda solo, así que la demo lo explica sin tocarlo.
+      id: "anotadas",
+      ancla: "recepcion.anotadas",
+      opcional: true,
+      requiere: ["recepcion.categorias"],
+      titulo: "Lo que se anotó al comprar",
+      texto: "Si la compra anotó qué prendas eran, aquí salen con cuántas eran. Toca una y pasa a la lista de abajo con esa cantidad; si ya habías contado menos, lo contado sube y un aviso te dice cuántas se agregaron. Allí puedes cambiar el número, también escribiéndolo.",
     },
     {
       id: "agregar",
