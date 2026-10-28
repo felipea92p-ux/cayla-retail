@@ -6,7 +6,8 @@
    el mismo índice que el buscador de Existencias (`indiceDeExistencias`: nombre, código, códigos de barras, color, talla, marca y
    categoría), así que encuentra lo mismo. Lógica pura, con su prueba.
 
-   Hoy lista lo que esta sede tiene (o tuvo): una prenda que la tienda nunca tuvo es la actividad 2.
+   Lo que esta sede tiene (o tuvo) sale de aquí; una prenda que nunca movió (sin ninguna fila de `stock`) sale del catálogo
+   (`sinStockQueCoincide`, en el componente) y su línea se escribe con `detalleSinStock`.
    ==================================================================== */
 
 import { clavePercha } from "./inventario-reglas";
@@ -77,4 +78,10 @@ export function detalleDelModelo(m: Pick<ModeloParaAjustar<unknown>, "colores" |
   const colores = `${m.colores} ${m.colores === 1 ? "color" : "colores"}`;
   if (m.piso === null || m.almacen === null) return `${colores} · ${m.disponible} en la sede`;
   return `${colores} · ${m.piso} en piso · ${m.almacen} en almacén`;
+}
+
+/** La línea de un producto que esta sede nunca movió: dice que aquí no hay nada y que ahí se carga su primer stock. */
+export function detalleSinStock(p: { marca: string | null; categoria: string | null }): string {
+  const de = [p.categoria, p.marca].filter((x): x is string => !!x).join(" · ");
+  return `${de ? `${de} · ` : ""}Sin stock aquí todavía`;
 }
