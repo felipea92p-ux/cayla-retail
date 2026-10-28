@@ -1519,14 +1519,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.reciente",
       opcional: true,
       titulo: "Cada llegada",
-      texto: "Toca una llegada para ver qué prendas trajo (te la abrimos).",
-    },
-    {
-      id: "desplegar",
-      ancla: "recibir.desplegar",
-      opcional: true,
-      titulo: "Ver por color y talla",
-      texto: "La flecha de cada llegada despliega, sin salir de la lista, cuántas prendas entraron de cada color y talla. Vuelve a tocarla para cerrarla.",
+      texto: "Cada fila es un envío (con todos sus proveedores). Tócala para ver qué prendas trajo (te la abrimos).",
     },
     {
       id: "detalle",
@@ -1534,7 +1527,15 @@ export const GUIA_RECIBIR: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "recibir.reciente" }],
       titulo: "Lo que trajo",
-      texto: "Cada prenda con su talla, color y cuántas llegaron, y la nota si la hubo.",
+      texto: "Cada prenda del envío con cuántas llegaron, y la nota si la hubo.",
+    },
+    {
+      id: "desplegar",
+      ancla: "recibir.desplegar",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "recibir.reciente" }],
+      titulo: "Ver por color y talla",
+      texto: "Toca una prenda del envío para ver cuántas contaste de cada color y talla, y el costo con el que entró. Vuelve a tocarla para cerrarla.",
     },
     {
       id: "ver-todo",
