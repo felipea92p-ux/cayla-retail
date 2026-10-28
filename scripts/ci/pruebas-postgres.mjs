@@ -688,6 +688,11 @@ export const PRUEBAS = [
   // CLAURE no sale de Lima; la red al cierre atrapa un reparto que no cuadra con el stock. Cada caso: ROLLBACK.
   "pruebas:stock-dueno",
 
+  // «Ver el valor a costo» de Existencias (ADR-0557): una fila por sede y CERO filas sin el dinero de Compras (la puerta está en la base, y
+  // quien solo la ve en Compras recibe solo su sede); lo dañado y lo de CLAURE van aparte; una prenda sin costo no suma y se cuenta; lo que
+  // sube la Mercadería del Balance es valor + dañado + CLAURE. Cada caso: ROLLBACK.
+  "pruebas:valor-inventario-existencias",
+
   // Cuánto de lo vendido es de CAYLA y cuánto de CLAURE (ADR-0532): en el Historial la suma de las empresas es el vendido de
   // fn_totales_historial_ventas con los mismos filtros; una prenda de CLAURE suma a CLAURE; en Caja, lo de cada turno es lo de
   // fn_resumen_caja; sin sesión no se lee; anon no ejecuta; aplicarla dos veces es inocuo. Cada caso: ROLLBACK.
