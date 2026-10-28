@@ -61,9 +61,10 @@ export const FASES: ReadonlyArray<FaseDelCatalogo> = [
   { clave: "habilitado", nombre: "Habilitado", siempre: true, posicionable: false, ayuda: "Preparar lo cortado para coser: numerar, armar paquetes, sumar avíos y el corte menor de Tricotex", ruta: "nueva", hito: false, enLaHoja: true },
   { clave: "costura", nombre: "Costura", siempre: true, posicionable: false, ayuda: "Armar la prenda: costura, ojal y botón", ruta: "ambas", hito: false, enLaHoja: true },
   { clave: "ojales_botones", nombre: "Ojales y botones", siempre: false, posicionable: false, ayuda: "Solo si el modelo los lleva", ruta: "nueva", hito: false, enLaHoja: true },
-  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: true, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false, enLaHoja: true },
+  // ADR-0551 (Felipe, 2026-10-27): los pasos fijos son cinco. Limpiar hilos y revisar y Etiquetar y embolsar los hace la tienda: siguen en la base y en lo ya abierto, pero la hoja no los ofrece.
+  { clave: "limpieza_revision", nombre: "Limpiar hilos y revisar", siempre: false, posicionable: false, ayuda: "Quitar hilos sobrantes y revisar cada prenda", ruta: "nueva", hito: false, enLaHoja: false },
   { clave: "planchado", nombre: "Planchado", siempre: true, posicionable: false, ayuda: "Planchar la prenda terminada", ruta: "nueva", hito: false, enLaHoja: true },
-  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: true, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false, enLaHoja: true },
+  { clave: "etiquetado_embolsado", nombre: "Etiquetar y embolsar", siempre: false, posicionable: false, ayuda: "Etiqueta, bolsa y lista para despachar", ruta: "nueva", hito: false, enLaHoja: false },
   { clave: "acabado", nombre: "Acabado", siempre: true, posicionable: false, ayuda: "Revisión, planchado, etiqueta y embolsado", ruta: "anterior", hito: false, enLaHoja: false },
   { clave: "bordado", nombre: "Bordado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false, enLaHoja: false },
   { clave: "estampado", nombre: "Estampado", siempre: false, posicionable: true, ayuda: "Sobre la pieza cortada o sobre la prenda armada", ruta: "ambas", hito: false, enLaHoja: false },
@@ -71,8 +72,8 @@ export const FASES: ReadonlyArray<FaseDelCatalogo> = [
 ];
 
 /**
- * Las fases que la hoja «Nueva orden» ofrece (ADR-0400 act. k y l): la ruta nueva —Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Limpiar hilos y revisar ·
- * Planchado · Etiquetar y embolsar—, en el orden del catálogo. Las siete fijas viajan siempre; Ojales y botones se enciende si el modelo lo lleva.
+ * Las fases que la hoja «Nueva orden» ofrece (ADR-0400 act. k y l, ADR-0551): la ruta nueva —Ploteo · Corte · Habilitado · Costura · Ojales y botones (opcional) · Planchado—, en el
+ * orden del catálogo. Las cinco fijas viajan siempre; Ojales y botones se enciende si el modelo lo lleva. Limpiar hilos y revisar y Etiquetar y embolsar no se ofrecen (los hace la tienda).
  */
 export const FASES_DE_LA_HOJA: ReadonlyArray<FaseDelCatalogo> = FASES.filter((f) => f.enLaHoja);
 
@@ -129,21 +130,74 @@ export type FaseBorrador = {
   posicion: Posicion | null;
 };
 
-/** Cómo nace el bloque: la espina encendida y en el Taller; bordado y estampado apagados, sobre pieza; lavandería apagada. En el orden de la ruta. */
-export function fasesIniciales(): FaseBorrador[] {
+/** Lo que la hoja sabe antes de pintar las fases (ADR-0551). Sin él, el bloque nace como siempre: la espina en el Taller y Ojales y botones apagado. */
+export type ContextoDeFases = {
+  /** Lo que el modelo dijo de ojales y botones: `true` prende el paso; `false` y `null` (nadie lo ha preguntado) lo dejan apagado. */
+  ojalesBotones?: boolean | null;
+  /** Las fases que nacen en un servicio de afuera (Ploteo y Corte, `serviciosPorDefecto`) y su proveedor; `null` = hay a quién elegir pero falta elegir. */
+  servicios?: Partial<Record<FaseClave, string | null>>;
+};
+
+/** Cómo nace el bloque: la espina encendida y en el Taller (salvo lo que dice el contexto); bordado y estampado apagados, sobre pieza; lavandería apagada. En el orden de la ruta. */
+export function fasesIniciales(contexto: ContextoDeFases = {}): FaseBorrador[] {
   return ordenarFases(
-    FASES_DE_LA_HOJA.map((f) => ({
-      clave: f.clave,
-      encendida: f.siempre,
-      quien: "taller",
-      proveedorId: null,
-      tarifa: "",
-      fijo: "",
-      minimo: "",
-      fechaPrometida: "",
-      posicion: f.posicionable ? "pieza" : null,
-    }))
+    FASES_DE_LA_HOJA.map((f) => {
+      const afuera = contexto.servicios !== undefined && f.clave in contexto.servicios;
+      return {
+        clave: f.clave,
+        encendida: f.siempre || (f.clave === "ojales_botones" && contexto.ojalesBotones === true),
+        quien: afuera ? ("servicio" as const) : ("taller" as const),
+        proveedorId: afuera ? (contexto.servicios?.[f.clave] ?? null) : null,
+        tarifa: "",
+        fijo: "",
+        minimo: "",
+        fechaPrometida: "",
+        posicion: f.posicionable ? ("pieza" as const) : null,
+      };
+    })
   );
+}
+
+/** Las fases que nacen en un servicio de afuera (Felipe, 2026-10-27: Ploteo y Corte). */
+export const FASES_QUE_NACEN_AFUERA: ReadonlyArray<FaseClave> = ["ploteo", "corte"];
+
+/** ¿La lista de precios de este proveedor le sirve a esta fase? El ploteo se cobra por orden (el fijo); las demás, por prenda. Misma regla que `fn_produccion_fases_normalizar`. */
+function tarifaUsable(t: TarifaDeLista, clave: FaseClave): boolean {
+  return faseDe(clave).hito ? t.fijo > 0 : t.tarifa > 0;
+}
+
+/**
+ * Ploteo y Corte nacen «Afuera» SOLO si ya hay a quién mandarlos: un proveedor activo de servicios con precio vigente para esa fase. Sin él, nacen en el Taller (una orden no
+ * puede abrirse con un servicio sin proveedor: si no, hoy, con un solo proveedor cargado, toda orden nacería bloqueada). Con uno solo, queda elegido; con varios, el valor es
+ * `null` y la hoja pide elegir a quién. Cada fase se resuelve sola: puede haber proveedor de corte y no de ploteo.
+ */
+export function serviciosPorDefecto(proveedores: readonly ProveedorServicio[], lista: readonly TarifaDeLista[], hoy: string): Partial<Record<FaseClave, string | null>> {
+  const salida: Partial<Record<FaseClave, string | null>> = {};
+  for (const clave of FASES_QUE_NACEN_AFUERA) {
+    const con = proveedoresQueSirven(proveedores).filter((p) => {
+      const t = tarifaSugerida(p.id, clave, lista, hoy);
+      return t !== null && tarifaUsable(t, clave);
+    });
+    if (con.length > 0) salida[clave] = con.length === 1 ? con[0].id : null;
+  }
+  return salida;
+}
+
+/** Las filas de `fn_ojales_botones_de_modelos` como las usa la hoja: por modelo que ya contestó. Una fila que no se lee bien no contesta (la hoja vuelve a preguntar, nunca prende el paso a ciegas). */
+export function leerOjalesBotones(data: unknown): Record<string, boolean> {
+  const salida: Record<string, boolean> = {};
+  if (!Array.isArray(data)) return salida;
+  for (const f of data) {
+    if (typeof f !== "object" || f === null) continue;
+    const { producto_id: id, lleva_ojales_botones: lleva } = f as { producto_id?: unknown; lleva_ojales_botones?: unknown };
+    if (typeof id === "string" && typeof lleva === "boolean") salida[id] = lleva;
+  }
+  return salida;
+}
+
+/** Lo que dijo el modelo sobre ojales y botones, puesto en las fases: prende o apaga ese paso y no toca nada más (lo que la persona ya escribió en las demás filas se queda). */
+export function conOjalesDelModelo(fases: readonly FaseBorrador[], lleva: boolean | null): FaseBorrador[] {
+  return fases.map((f) => (f.clave === "ojales_botones" ? { ...f, encendida: lleva === true } : f));
 }
 
 /** Las fases en el orden de la ruta. Un bordado o estampado sin posición se acomoda como si fuera sobre pieza (solo para dibujarlo: la base lo rechaza). */
@@ -173,6 +227,15 @@ export function fasesEncendidas(fases: readonly FaseBorrador[]): FaseBorrador[] 
 
 /** Una fila de `proveedor_tarifas`. `vigenteDesde` es `aaaa-mm-dd`. */
 export type TarifaDeLista = { proveedorId: string; faseClave: FaseClave; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string };
+
+/** Las listas de precios de todos los proveedores, en una sola lista plana (lo que lee `tarifaSugerida`). */
+export function listaDeTarifas(
+  proveedores: readonly { id: string; tarifas: readonly { faseClave: string; tarifa: number; minimo: number | null; fijo: number; vigenteDesde: string }[] }[]
+): TarifaDeLista[] {
+  return proveedores.flatMap((p) =>
+    p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))
+  );
+}
 
 /** La tarifa que la base copiaría si la caja va vacía: la del proveedor para esa fase, vigente a `hoy` (`vigente_desde <= hoy`) y la más reciente. */
 export function tarifaSugerida(proveedorId: string | null, clave: FaseClave, lista: readonly TarifaDeLista[], hoy: string): TarifaDeLista | null {

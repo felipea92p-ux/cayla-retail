@@ -116,9 +116,11 @@ export type PropsFasesDeLaOrden = {
   guia: GuiaCampos;
   /** Lo que dijo `problemasFases` (el formulario lo calcula una vez y lo comparte con su guía de foco). */
   problemas: ProblemaFase[];
+  /** Lo que el modelo elegido dijo de ojales y botones (ADR-0551): `null` = nadie lo ha preguntado y lo que se elija se recuerda; `true`/`false` = ya contestó; sin modelo elegido, no se pasa. */
+  ojalesDelModelo?: boolean | null;
 };
 
-export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas }: PropsFasesDeLaOrden) {
+export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPrendas, hoy, guia, problemas, ojalesDelModelo }: PropsFasesDeLaOrden) {
   const sirven = proveedoresQueSirven(proveedores);
   const opcionesProveedor: Opcion<string>[] = sirven.map((p) => ({ valor: p.id, texto: p.nombre }));
   const encendidas = ordenarFases(fases).filter((f) => f.encendida || faseDe(f.clave).siempre);
@@ -170,6 +172,9 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
             </div>
           )}
         </div>
+        {ojalesDelModelo === null && (
+          <p className="text-[12.5px] text-tinta/70">Nadie ha dicho si este modelo lleva ojales y botones. Lo que elijas aquí se recuerda para las próximas órdenes.</p>
+        )}
         {sinServicios && (
           <Aviso tono="info" chico>
             Todavía no hay proveedores de servicio en el directorio del Taller. Regístralos en Abastecimiento ▸ Proveedores y vuelve.
