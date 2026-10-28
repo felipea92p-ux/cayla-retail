@@ -3431,6 +3431,7 @@ export type Database = {
           estado_alta: string
           id: string
           marca_id: string | null
+          nombre_proveedor: string | null
           patron_id: string | null
           permitir_venta_sin_stock: boolean
           propuesto_por: string | null
@@ -3455,6 +3456,7 @@ export type Database = {
           estado_alta?: string
           id?: string
           marca_id?: string | null
+          nombre_proveedor?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
@@ -3479,6 +3481,7 @@ export type Database = {
           estado_alta?: string
           id?: string
           marca_id?: string | null
+          nombre_proveedor?: string | null
           patron_id?: string | null
           permitir_venta_sin_stock?: boolean
           propuesto_por?: string | null
@@ -6727,6 +6730,10 @@ export type Database = {
       fijar_cierre_carga_inicial: {
         Args: { p_fecha: string | null; p_ubicacion_id: string }
         Returns: Json
+      }
+      fijar_nombre_proveedor: {
+        Args: { p_nombre: string; p_producto_id: string }
+        Returns: undefined
       }
       fn_carga_inicial_sedes: { Args: never; Returns: Json }
       fijar_meta_persona: {
