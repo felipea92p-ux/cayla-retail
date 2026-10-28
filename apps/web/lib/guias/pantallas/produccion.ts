@@ -756,7 +756,7 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "prod-insumos.nuevo" }],
       titulo: "Tela o avío, y cómo se mide",
-      texto: "Elige si es tela o avío y en qué se cuenta: metros, kilos, unidades… Todo lo que entre y salga de este insumo irá en esa medida.",
+      texto: "Elige si es tela o avío. Una tela se cuenta siempre en metros; un avío, en lo que elijas: unidades, conos, pares, docenas… Todo lo que entre y salga de este insumo irá en esa medida.",
     },
     {
       id: "modal-nombre",

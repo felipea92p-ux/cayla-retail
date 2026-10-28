@@ -711,6 +711,11 @@ export const PRUEBAS = [
   // Cada caso termina en ROLLBACK.
   "pruebas:insumos-devolucion",
 
+  // Candados de unidad de Insumos (ADR-0554, actividad 0): una tela se mide en metros, un insumo con historia no cambia de
+  // tipo ni de unidad (la historia se lee del catálogo, así que una tabla nueva queda cubierta sola), un código no se repite
+  // aunque cambien mayúsculas o espacios, y la propia migración se detiene si ya hay datos que la contradicen. ROLLBACK.
+  "pruebas:insumos-candados",
+
   // Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
   // RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
   // borrar, la lista suma lotes y total comprado, y un lote no acepta un proveedor del directorio de Compras.

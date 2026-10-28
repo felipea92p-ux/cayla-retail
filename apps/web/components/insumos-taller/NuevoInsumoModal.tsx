@@ -13,7 +13,7 @@ import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { traducirError } from "@/lib/error-escritura";
 import { valoresDeLaFicha, type VocabularioDeTelas } from "@/lib/insumos-ficha-reglas";
 import { camposDeInsumoNuevo, problemasDeInsumoNuevo } from "@/lib/insumos-guia";
-import { TIPOS_INSUMO, UNIDADES_INSUMO, type TipoInsumo, type UnidadInsumo } from "@/lib/insumos-reglas";
+import { TIPOS_INSUMO, UNIDADES_INSUMO, leerCantidad, unidadesPermitidas, type TipoInsumo, type UnidadInsumo } from "@/lib/insumos-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { sugerirInsumo } from "@/lib/sugerencias-insumos";
@@ -43,7 +43,7 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
   // Responsable (ADR-0161 act. d): el alta queda en `insumos.creado_por` (lo pone un disparador leyendo el combo).
   const responsable = useResponsable();
 
-  const entrada = { tipo, codigo, nombre, merma, minimo, tejidoId, colorCodigo, responsableListo: responsable.listo };
+  const entrada = { tipo, unidad, codigo, nombre, merma, minimo, tejidoId, colorCodigo, responsableListo: responsable.listo };
   const problemas = problemasDeInsumoNuevo(entrada);
   const guia = useGuiaCampos(camposDeInsumoNuevo(entrada));
   const ejemplo = sugerirInsumo(tipo, existentes);
@@ -80,7 +80,8 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
     setCargando(true);
     let resultado;
     try {
-      const mermaPct = merma.trim() === "" ? 0 : Number(merma) / 100;
+      // Ya pasó por `problemasDeInsumoNuevo`: lo escrito se entiende (coma o punto decimal).
+      const mermaPct = merma.trim() === "" ? 0 : (leerCantidad(merma) ?? 0) / 100;
       // `tejido_id` y `color_codigo` son nuevas (ADR-0400) y los tipos generados todavía no las traen: el objeto se pasa tipado a mano.
       const valores = {
         codigo: codigo.trim().toUpperCase(),
@@ -88,7 +89,7 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
         tipo,
         unidad_medida: unidad,
         merma_pct: mermaPct,
-        stock_minimo: minimo.trim() === "" ? null : Number(minimo),
+        stock_minimo: minimo.trim() === "" ? null : leerCantidad(minimo),
         nota: nota.trim() || null,
         ...valoresDeLaFicha({ tipo, tejidoId, colorCodigo }, vocabulario),
       };
@@ -113,11 +114,13 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
       <form onSubmit={guardar} className="mt-3.5 space-y-4">
         <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
           <CampoSelect etiqueta="Tipo" valor={tipo} onValor={cambiarTipo} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
+          {/* Una tela solo se mide en metros (ADR-0554, `insumos_tela_en_metros`); un avío, en la unidad que elijas. */}
           <CampoSelect
             etiqueta="Se mide en"
+            pie={tipo === "tela" ? "Las telas se llevan siempre en metros." : undefined}
             valor={unidad}
             onValor={(v) => setUnidad(v)}
-            opciones={Object.entries(UNIDADES_INSUMO).map(([k, u]) => ({ valor: k as UnidadInsumo, texto: u.larga }))}
+            opciones={unidadesPermitidas(tipo).map((k) => ({ valor: k, texto: UNIDADES_INSUMO[k].larga }))}
           />
         </div>
         <div data-guia="prod-insumo-nuevo.nombre" className="grid gap-3 sm:grid-cols-[8rem_1fr]">

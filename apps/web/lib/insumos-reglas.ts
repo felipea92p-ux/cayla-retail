@@ -30,6 +30,30 @@ export function cantidadTexto(n: number, unidad: UnidadInsumo): string {
   return `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: u.decimales })} ${u.corta}`;
 }
 
+/** En qué unidades se puede llevar el libro de cada tipo (ADR-0554). Una TELA va siempre en metros: el kilo y el rollo son unidades de COMPRA que se convierten al recibir, porque lo que el
+ *  sistema aprende del consumo (Audaces, el cierre de la orden) habla en metros. Un avío, en la unidad que se elija. Es el mismo candado que `insumos_tela_en_metros` en la base. */
+export function unidadesPermitidas(tipo: TipoInsumo): UnidadInsumo[] {
+  return tipo === "tela" ? ["metro"] : (Object.keys(UNIDADES_INSUMO) as UnidadInsumo[]);
+}
+
+/** Lo que dice la hoja cuando una cantidad escrita no se entiende. */
+export const CANTIDAD_ILEGIBLE = "No se entiende la cantidad: escríbela así, 48.2 o 48,2.";
+
+/**
+ * Una cantidad escrita a mano (metros, un mínimo, una merma en %): «48,2» y «48.2» son lo mismo, con uno o dos decimales.
+ *
+ * EL PROBLEMA. `Number("48,2")` es `NaN`: «Ingresar insumo» no dejaba guardar una cantidad con coma (se apagaba el botón sin decir por qué) y, peor, un COSTO con coma («2,5») se leía como 0 y la hoja
+ * lo daba por bueno: el lote se abría a costo cero. El costo (es plata) se lee con la regla única `numeroDeMonto`; una cantidad no admite miles ni tres decimales a propósito.
+ *
+ * LA REGLA. Solo cifras y UN separador (punto o coma) con 0, 1 o 2 decimales («12,» mientras se escribe es 12). Todo lo demás es `null` y la hoja dice cómo escribirlo:
+ * «1.200» ¿son mil doscientos o uno con dos? No se adivina, igual que `leerMontoPlata`. Vacío es `null` (quien llama decide si «vacío» es 0 o falta).
+ */
+export function leerCantidad(texto: string): number | null {
+  const t = texto.replace(/\s/g, "");
+  if (!/^(\d+([.,]\d{0,2})?|[.,]\d{1,2})$/.test(t)) return null;
+  return Number(t.replace(",", "."));
+}
+
 export type MovimientoInsumo = {
   id: string;
   insumoId: string;
