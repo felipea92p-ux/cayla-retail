@@ -235,7 +235,7 @@ export function InventarioPanel({
   /** Abrir esa talla directo en la planilla de «Ajustar stock» (`?ajustar=1`, desde el candado de Editar producto: ADR-0494). */
   abrirAjustar?: boolean;
   /** La talla de `?variante=` cuando esta sede nunca la movió (sin fila de `stock`): la página arma su fila en cero y, con `?ajustar=1`, el panel abre
-   *  «Ajustar stock» directo en su prenda, que es donde se le carga su primer stock. */
+   *  el modal de su prenda directo en la planilla de «Ajustar stock» (el mismo de cualquier talla), que es donde se le carga su primer stock. */
   abrirSinFila?: FilaExistencias | null;
   /** A dónde vuelve la planilla si se llegó desde Editar producto (`?de=`): «Volver a Editar producto». */
   volverAEditar?: string | null;
@@ -307,7 +307,7 @@ export function InventarioPanel({
   // (varias tallas a la vez, enlazar con un conteo).
   // Un producto que esta sede nunca movió (sin fila de `stock`): su planilla de ajuste abre con todos sus colores y tallas.
   const [ajustandoProducto, setAjustandoProducto] = useState<string | null>(null);
-  const [ajustando, setAjustando] = useState<FilaExistencias | null>(() => (abrirAjustar && puedeAjustar ? abrirSinFila : null));
+  const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
@@ -351,7 +351,8 @@ export function InventarioPanel({
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
   // `origen`: la miniatura de la tarjeta desde la que se abrió, para que la foto cruce hasta el modal (ADR-0391).
   const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; origen?: HTMLElement | null; deEditar?: boolean } | null>(() => {
-    const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
+    // Desde el candado de Editar, una talla que la sede nunca movió no está en `stock`: su fila en cero (`abrirSinFila`) abre el MISMO modal de la prenda.
+    const f = abrirVariante ? (stock.find((x) => x.varianteId === abrirVariante) ?? (abrirAjustar && puedeAjustar && abrirSinFila?.varianteId === abrirVariante ? abrirSinFila : null)) : null;
     if (!f) return null;
     const clave = agruparPorPrenda([f])[0].clave;
     // Desde el candado de Editar: directo en la planilla. Quien no puede ajustar (o mira otra sede) ve la talla, no la planilla: `puedeAjustarAqui` lo vuelve a exigir al montar.
@@ -558,7 +559,13 @@ export function InventarioPanel({
       };
     return null;
   }, [filtros.hoy, filtros.condicion]);
-  const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stock).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stock]);
+  // Mientras la talla sin movimientos esté abierta, su fila en cero se suma SOLO para el modal (la lista de atrás no la muestra): al guardar,
+  // la fila real llega en `stock` y esta deja de hacer falta.
+  const stockDelModal = useMemo(
+    () => (abrirSinFila && !stock.some((f) => f.varianteId === abrirSinFila.varianteId) ? [...stock, abrirSinFila] : stock),
+    [stock, abrirSinFila]
+  );
+  const prendaAbierta = useMemo(() => (abierta ? (agruparPorPrenda(stockDelModal).find((p) => p.clave === abierta.clave) ?? null) : null), [abierta, stockDelModal]);
   // Marcar varias y llevarlas a otra pantalla (Bajar al piso, Trasladar, Etiquetas) solo en la sede activa: esas pantallas
   // trabajan siempre sobre la sede de quien las abre, y lo marcado mirando otra se perdería en silencio al llegar.
   const conSeleccion = enSedeActiva;
@@ -1411,7 +1418,7 @@ export function InventarioPanel({
 
       {prendaAbierta && (
         <PanelTalla
-          colores={coloresDelModelo(stock, prendaAbierta.productoId)}
+          colores={coloresDelModelo(stockDelModal, prendaAbierta.productoId)}
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
           flujoInicial={abierta?.flujo?.tipo === "ajustar" && !puedeAjustarAqui ? null : (abierta?.flujo ?? null)}
