@@ -45,6 +45,7 @@
     "pruebas:costo-de-la-prenda": "node scripts/pruebas/costo_de_la_prenda.mjs",
     "pruebas:costo-corregir-compra": "node scripts/pruebas/costo_corregir_compra.mjs",
     "pruebas:precio-sede": "node scripts/pruebas/precio_sede.mjs",
+    "pruebas:precio-sede-variante": "node scripts/pruebas/precio_sede_variante.mjs",
     "pruebas:precio-desde-recepcion": "node scripts/pruebas/precio_desde_recepcion.mjs",
     "pruebas:recibir-lo-propio": "node scripts/pruebas/recibir_lo_propio.mjs",
     "pruebas:costo-por-prenda": "node scripts/pruebas/costo_por_prenda.mjs",
