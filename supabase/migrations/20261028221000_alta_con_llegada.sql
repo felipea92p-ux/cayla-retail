@@ -8,7 +8,7 @@
 -- (2026-10-28): «se debe poder ingresar unidades por ahí, ya que a veces pasa que lo usan y es engorroso tener que ir a otro módulo».
 --
 -- LA DECISIÓN. La carga inicial sigue cerrada: lo que se escribe en el alta NO es «lo que ya tenía» sin historia, es una llegada de
--- mercadería del proveedor elegido en el paso 2, con su fecha de hoy y su costo, igual que la puerta «Llegó mercadería» (ADR-0330). Por
+-- mercadería del proveedor elegido en el paso 2, con su fecha de hoy, igual que la puerta «Llegó mercadería» (ADR-0330). Por
 -- eso esta función no carga stock por su cuenta: hace las dos cosas que ya existen, en UNA transacción.
 --   1. El alta de siempre SIN cantidades (`crear_producto_con_stock_inicial`, o `crear_producto_con_empresa` desde una sede con dos
 --      tiendas), con todos sus candados: si el nombre choca o falta algo, no se crea nada.
@@ -103,11 +103,13 @@ begin
       p_etiqueta_ids, p_marca_id, p_proveedor_id, null, false, p_temporada);
   end if;
 
-  -- 4. Cada cantidad con la variante que acaba de nacer (por su talla y su color), y su costo si tiene: la llegada es una compra.
-  --    Sin costo (0), la línea entra al stock sin tocar el costo (un 0 en `recibir_lote` sería un obsequio).
+  -- 4. Cada cantidad con la variante que acaba de nacer (por su talla y su color). SIN `costo_unitario`, a propósito (/chaos 2026-10-28,
+  --    semilla 2810): el costo ya lo fijó el alta en la variante, y el promedio sobre un stock en cero daría el mismo número. Mandarlo
+  --    lo hacía pasar por el «costo fuera de lo normal» de `recibir_lote`, que rechaza un costo igual o mayor que el precio: la pantalla
+  --    decía «Todo listo» (el margen negativo solo se avisa) y el alta entera fallaba, o pedía a un líder confirmar algo que nadie podía
+  --    confirmar desde aquí. Lo único que no queda es la línea «compra» del historial de costo de esa prenda.
   select jsonb_agg(
            jsonb_build_object('variante_id', v.id, 'cantidad', (i ->> 'cantidad')::integer)
-           || case when v.costo > 0 then jsonb_build_object('costo_unitario', v.costo) else '{}'::jsonb end
            order by v.id)
     into v_items
     from jsonb_array_elements(p_variantes) i

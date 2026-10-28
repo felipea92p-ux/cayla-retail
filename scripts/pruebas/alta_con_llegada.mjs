@@ -208,6 +208,18 @@ ${COMO_POSTGRES}select concat_ws(',',
   (l) => /^t,20(\.0+)?$/.test(l.at(-1))
 );
 
+// /chaos 2026-10-28 (semilla 2810, hallazgo 1): un costo igual o mayor que el precio es una decisión de quien da de alta (la pantalla avisa
+// «pierdes dinero», no lo frena), y la llegada no lo vuelve a juzgar: antes `recibir_lote` lo rechazaba como «costo fuera de lo normal».
+caso(
+  "L2 · costo igual o mayor que el precio (59 y 80 sobre 59): crea y recibe igual, y el costo queda el del alta",
+  `${sesion(FELIPE)}${COMO_API}select pg_temp.crear('${REF}', jsonb_build_array(
+    jsonb_build_object('talla_id', :'t1', 'color_codigo', :'c1', 'precio', 59, 'costo', 59, 'cantidad', 2),
+    jsonb_build_object('talla_id', :'t2', 'color_codigo', :'c1', 'precio', 59, 'costo', 80, 'cantidad', 1)), :'tok1', :'tru', :'prov') as r \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${enStock("t1", "c1")}, ${enStock("t2", "c1")},
+  (select v.costo from retail.variantes v where v.id = ${vid("t1", "c1")}), (select v.costo from retail.variantes v where v.id = ${vid("t2", "c1")}));`,
+  (l) => /^true,2,1,59(\.0+)?,80(\.0+)?$/.test(l.at(-1))
+);
+
 // ===========================================================================
 // L3 · Doble clic
 // ===========================================================================
