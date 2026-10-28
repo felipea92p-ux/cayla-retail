@@ -317,7 +317,7 @@ export function DevolucionesFlujo({
         <div className="anim-revelar space-y-5">
           <div className="rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-6">
             <MetaCompra compra={compra} dia={etiquetaDia(compra.creadoEn, ahora)} />
-            <fieldset className="mt-4">
+            <fieldset data-guia="devolucion.prendas" className="mt-4">
               <legend className="sr-only">Prendas que el cliente quiere devolver</legend>
               <div className="space-y-1.5">
                 {venta.map((l) => {
@@ -386,7 +386,7 @@ export function DevolucionesFlujo({
             </Link>
           </div>
 
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="devolucion.pie-prendas">
             <Volver onClick={onCerrar} a="Volver a elegir otra venta" />
             <BotonPrincipal onClick={continuarDesdePrendas}>
               Continuar
@@ -400,7 +400,7 @@ export function DevolucionesFlujo({
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="space-y-9 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
-              <fieldset ref={refMotivo}>
+              <fieldset ref={refMotivo} data-guia="devolucion.motivo">
                 <legend className="text-[15px] font-semibold text-tinta">¿Por qué la devuelve?</legend>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {MOTIVOS_DEVOLUCION.map((m) => (
@@ -447,7 +447,7 @@ export function DevolucionesFlujo({
             {/* El impacto aparece en cuanto hay al menos una prenda con su estado elegido. */}
             <PanelValidaciones validaciones={validaciones} impacto={impacto.inventario.length > 0 ? impacto : null} />
           </div>
-          <PieDelPaso aviso={avisoContinuar}>
+          <PieDelPaso aviso={avisoContinuar} guia="devolucion.pie-motivo">
             <Volver onClick={retroceder} a="Volver al paso anterior" />
             <BotonPrincipal onClick={continuarAConfirmar}>
               Revisar la devolución
@@ -511,7 +511,9 @@ export function DevolucionesFlujo({
             Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: recién al revisarla y aprobarla se mueve el stock.
           </p>
 
-          <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+          <div data-guia="devolucion.responsable">
+            <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+          </div>
 
           {error && (
             // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
@@ -521,7 +523,7 @@ export function DevolucionesFlujo({
             </Aviso>
           )}
 
-          <PieDelPaso aviso={null}>
+          <PieDelPaso aviso={null} guia="devolucion.registrar">
             <Volver onClick={retroceder} deshabilitado={enviando} a="Volver al paso anterior" />
             <div className="flex flex-wrap items-center gap-2">
               <BotonSecundario onClick={onCerrar} disabled={enviando}>

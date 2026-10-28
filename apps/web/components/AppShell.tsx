@@ -18,6 +18,7 @@ import { MotorGuias } from "@/components/guias/MotorGuias";
 import { ElegirDemoModal } from "@/components/guias/ElegirDemoModal";
 import { BotonDemo } from "@/components/guias/BotonDemo";
 import { BotonAsistente } from "@/components/asistente/Asistente";
+import { Acompanante } from "@/components/asistente/Acompanante";
 import { pantallasDelAsistente } from "@/lib/asistente/pantallas";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
@@ -1157,6 +1158,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
       {/* Guías interactivas (ADR-0389): la oferta de la primera vez y la demo con el velo. `quien` decide «una vez por
           persona»: la persona, o la cuenta de la terminal (la base afina con la responsable de turno). */}
       <Suspense fallback={null}>
+        {/* «Pregúntale a CAYLA» acompaña una tarea paso a paso con la barra de abajo (ADR-0536, act. 2026-10-27). */}
+        {asistenteEncendido ? <Acompanante /> : null}
         <MotorGuias quien={persona.personaId ?? (esAparato ? `terminal:${persona.ubicacionId}` : "cuenta")} entradas={pantallasBuscables.map((h) => h.href)} />
       </Suspense>
     </div>

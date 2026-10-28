@@ -207,7 +207,7 @@ export function avisoDeResolucion(res: Resolucion, cobro: CobroEnCurso): { tono:
     return {
       tono: "info",
       titulo: `El cobro de ${soles(cobro.total)} no se registró`,
-      detalle: "No quedó ninguna venta guardada. Si la clienta todavía no se llevó las prendas, cóbrale de nuevo.",
+      detalle: "No quedó ninguna venta guardada. Si el cliente todavía no se llevó las prendas, cóbrale de nuevo.",
     };
   }
   const comprobante = res.datos.comprobante as { tipo?: string; serie?: string; numero?: number } | null | undefined;

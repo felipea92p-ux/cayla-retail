@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { CalendarArrowDown, CalendarArrowUp, UserRound } from "lucide-react";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
-import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
+import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar, type CuadresPorSede } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import type { PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { LibroPorVenta } from "@/lib/por-regularizar-deduccion";
@@ -48,6 +48,7 @@ export function PorRegularizarLista({
   ubicacionEtiqueta,
   variasSedes,
   plazos,
+  cuadres,
   sedeInicial,
   abrirItemId = null,
   listas,
@@ -66,6 +67,8 @@ export function PorRegularizarLista({
   variasSedes: boolean;
   /** Hasta cuándo cada tienda puede cerrar su cola (`ubicacion_id → AAAA-MM-DD`). Sin plazo no hay botón. */
   plazos: Record<string, string>;
+  /** Cuándo se guardó el último cuadre del piso de cada tienda (A6, ADR-0334 act. 2026-10-14): sin uno posterior a la última venta, no hay botón y se dice por qué. */
+  cuadres?: CuadresPorSede;
   /** La tienda que se está mirando (`?ubicacion=`), para que el cierre parta de ella. */
   sedeInicial: string | null;
   /** La línea de venta (`?item=`) con que llega Historial: si su prenda sigue pendiente, esa venta entra elegida. */
@@ -132,8 +135,8 @@ export function PorRegularizarLista({
     if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
   }
   // Las tiendas que se pueden cerrar HOY: con pendientes y con plazo vigente. Sin ninguna, el botón no existe. Desde ADR-0534 cierra quien ve
-  // Existencias (esta pantalla ya lo exige), no solo un líder; la base vuelve a pedir el módulo, la sede y el plazo.
-  const sedesConCola = useMemo(() => sedesParaCerrar(filas, plazos, ahora), [filas, plazos, ahora]);
+  // Existencias (esta pantalla ya lo exige), no solo un líder; la base vuelve a pedir el módulo, la sede, el plazo y el cuadre del piso.
+  const sedesConCola = useMemo(() => sedesParaCerrar(filas, plazos, ahora, cuadres), [filas, plazos, ahora, cuadres]);
   const sedesCerrables = useMemo(() => sedesConCola.filter((s) => s.puedeCerrar), [sedesConCola]);
   // Las sugerencias no dependen del plazo: identificar una venta nunca está vedado, solo cerrarla sin prenda.
   const sedesConPendientes = useMemo(() => sedesConCola.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesConCola]);

@@ -151,8 +151,9 @@ export async function getContextoDinero(
 }> {
   const esLider = persona.rol === "lider";
   const { ubicaciones, talleres } = await getUbicacionesDinero();
-  // «Ver» aquí es una sede o todas: la empresa no tiene cajón.
-  const ver = leerVer(verParam === "empresa" ? undefined : verParam, ubicaciones, esLider, persona.ubicacionId);
+  // «Ver» es una sede, todas o la empresa (`ver.soloEmpresa`: los bancos y lo que no es de ninguna sede). La empresa no tiene cajón, pero
+  // sí cuentas: leerla como «todas» (lo que se hacía hasta el 2026-10-28) le mostraba a Felipe las cajas de las tiendas en «Empresa».
+  const ver = leerVer(verParam, ubicaciones, esLider, persona.ubicacionId);
   const [cuentas, plata, conciliacion] = await Promise.all([
     getSaldos(null),
     esLider ? getPlataDelDueno() : Promise.resolve([]),

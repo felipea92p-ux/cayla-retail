@@ -73,6 +73,26 @@ describe("tieneTrabajo — qué vale la pena guardar", () => {
     const costuraAfuera = fasesIniciales().map((f) => (f.clave === "costura" ? { ...f, quien: "servicio" as const } : f));
     expect(tieneTrabajo(foto({ cantidades: {}, fases: costuraAfuera }))).toBe(true);
   });
+  it("elegir un modelo que lleva ojales y botones no es trabajo: sus fases de arranque son el punto de partida (ADR-0551); apagar ese paso a mano sí", () => {
+    const deArranque = fasesIniciales({ ojalesBotones: true });
+    expect(tieneTrabajo(foto({ cantidades: {}, fases: deArranque }), deArranque)).toBe(false);
+    // Sin pasar el punto de partida, el paso prendido se leería como una fase distinta de fábrica.
+    expect(tieneTrabajo(foto({ cantidades: {}, fases: deArranque }))).toBe(true);
+    const sinOjales = fasesIniciales({ ojalesBotones: false });
+    expect(tieneTrabajo(foto({ cantidades: {}, fases: sinOjales }), deArranque)).toBe(true);
+  });
+  it("con Ploteo y Corte afuera de arranque (hay a quién mandarlos) tampoco es trabajo, y cambiar a quién sí", () => {
+    const deArranque = fasesIniciales({ servicios: { ploteo: "prov-1", corte: null } });
+    expect(tieneTrabajo(foto({ cantidades: {}, fases: deArranque }), deArranque)).toBe(false);
+    const elegido = deArranque.map((f) => (f.clave === "corte" ? { ...f, proveedorId: "prov-2" } : f));
+    expect(tieneTrabajo(foto({ cantidades: {}, fases: elegido }), deArranque)).toBe(true);
+  });
+  it("guardarBorrador respeta el punto de partida: un modelo con ojales y nada más escrito no deja borrador", () => {
+    const almacenFalso = almacen();
+    const deArranque = fasesIniciales({ ojalesBotones: true });
+    expect(guardarBorrador(almacenFalso, TALLER, foto({ cantidades: {}, fases: deArranque }), new Date(), deArranque)).toBe(false);
+    expect(guardarBorrador(almacenFalso, TALLER, foto({ cantidades: { "v-1": "5" }, fases: deArranque }), new Date(), deArranque)).toBe(true);
+  });
 });
 
 describe("modeloDelBorrador", () => {

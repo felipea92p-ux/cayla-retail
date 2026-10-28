@@ -237,6 +237,8 @@ type Props = {
   id?: string;
   /** Arriba de las líneas mientras se arma (spike 2026-09-26): la tira de tickets en espera y la fila «Clienta». */
   arriba?: ReactNode;
+  /** Lo que va bajo «Cobrar», en el pie: la frase de las prendas sin registrar de hoy (`SinRegistrarDeHoy`, A5). */
+  abajo?: ReactNode;
   /** Dentro de la hoja del celular (`<Modal variante="ticket">`): llena la hoja y ofrece volver al catálogo. */
   enHoja?: boolean;
   onCerrarHoja?: () => void;
@@ -293,6 +295,7 @@ export function PuntoDeVentaTicket({
   loading,
   onCobrar,
   arriba,
+  abajo,
   enHoja = false,
   onCerrarHoja,
 }: Props) {
@@ -1037,7 +1040,9 @@ export function PuntoDeVentaTicket({
               y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
               envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
           {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
-            <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
+            <div data-guia="vender.responsable">
+              <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
+            </div>
           )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.
@@ -1085,6 +1090,8 @@ export function PuntoDeVentaTicket({
           ) : cobrando ? (
             <button
               type="submit"
+              // En el celular la hoja de cobro va compacta y su «Confirmar cobro» es este: la misma ancla que el de la hoja (ADR-0536).
+              data-guia="vender.cobro-confirmar"
               disabled={apagado || loading}
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
               className={`${BOTON_PRINCIPAL} ${listoParaConfirmar ? "cobrar-listo" : ""}`}
@@ -1111,6 +1118,7 @@ export function PuntoDeVentaTicket({
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           )}
+          {!cobrando && abajo}
         </div>
       </form>
     </aside>

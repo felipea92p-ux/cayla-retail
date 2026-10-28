@@ -83,6 +83,7 @@ export function HojaPrenda({
   onQuitar,
   onClose,
   nueva,
+  admitePrecioCero = false,
 }: {
   habitual: Habitual;
   borrador: BorradorPrenda;
@@ -100,10 +101,13 @@ export function HojaPrenda({
   onClose: () => void;
   /** Una prenda que todavía no le compras: la hoja pregunta además qué es, la marca y cómo se llama. */
   nueva?: PrendaNuevaDeHoja;
+  /** ¿La categoría de esta prenda admite venderla a S/ 0 (bolsas, cajas, empaque)? En una prenda nueva se lee de la categoría que se va eligiendo. Sin dato, no. */
+  admitePrecioCero?: boolean;
 }) {
   const n = nueva?.borrador;
+  const admiteCero = n ? nueva?.categorias.find((c) => c.id === n.categoriaId)?.admitePrecioCero === true : admitePrecioCero;
   const parecido = nueva && n ? habitualParecido(n.nombre, nueva.habituales, n.descartadas) : null;
-  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b) : camposPrenda(b));
+  const guia = useGuiaCampos(n ? camposPrendaNueva(n, parecido !== null, b, admiteCero) : camposPrenda(b, admiteCero));
   const poner = (campo: "costo" | "venta") => (v: string) => cambiar({ [campo]: v });
   // Cambiar cuántas rehace el reparto parejo entre las tiendas, salvo que se haya repartido a mano.
   const ponerCantidad = (v: string) => cambiar(conCantidad(b, v));
@@ -112,7 +116,7 @@ export function HojaPrenda({
   const faltaReparto = problemaReparto(b);
   const sumaReparto = b.destinos.reduce((s, d) => s + (leerCantidad(b.reparto[d] ?? "") ?? 0), 0);
   const cantidad = leerCantidad(b.cantidad);
-  const ganancia = gananciaPorPrenda(b);
+  const ganancia = gananciaPorPrenda(b, admiteCero);
   const laVezPasada = h.veces > 0 && h.ultimaCantidad != null && h.ultimaCantidad > 0 ? h.ultimaCantidad : null;
   const detalle = [h.categoria, h.marca].filter(Boolean).join(" · ");
   // Solo al cerrar la hoja: el «atrás» y los enlaces ya los cuida la guardia de «Compré ropa», que la contiene.
@@ -216,8 +220,8 @@ export function HojaPrenda({
           )}
 
           <CampoGuiado id="tienda" guia={guia} titulo="¿A qué tienda va? · una o varias">
-            {/* Con dos tiendas, dos columnas: en tres quedaba un hueco al lado. */}
-            <div role="group" aria-label="¿A qué tienda va?" className={`grid gap-2 ${tiendas.length === 2 ? "grid-cols-2" : "grid-cols-3"}`} data-guia="compra.tiendas">
+            {/* Las columnas se reparten solas según cuántas tiendas haya (dos, tres o más), sin un hueco al lado. */}
+            <div role="group" aria-label="¿A qué tienda va?" className="grid grid-cols-[repeat(auto-fit,minmax(6rem,1fr))] gap-2" data-guia="compra.tiendas">
               {tiendas.map((t) => {
                 const elegida = b.destinos.includes(t.id);
                 return (
@@ -383,7 +387,7 @@ function DescribirNueva({
             <Boton
               type="button"
               peso="fantasma"
-              className="h-10 w-10 shrink-0 px-0"
+              className="h-10 w-10 shrink-0 px-0 max-sm:h-11 max-sm:w-11 pointer-coarse:h-11 pointer-coarse:w-11"
               aria-label={escribeMarca ? "Volver a la lista de marcas" : "Escribir una marca nueva"}
               title={escribeMarca ? "Volver a la lista de marcas" : "Escribir una marca nueva"}
               aria-pressed={escribeMarca}

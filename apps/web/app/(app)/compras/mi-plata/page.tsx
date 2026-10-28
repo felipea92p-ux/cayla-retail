@@ -45,8 +45,12 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
     (plata?.porMandar.length ?? 0) === 0 &&
     envios !== null &&
     enviosDeLaRonda(envios, rondaAbierta.id).length === 0;
-  // Tres columnas solo con la ronda abierta y algo que mostrar; desde 1280 px (de 1024 a 1279, «Manda» y el registro se apilan en la segunda).
-  const tres = plata?.persona === true && plata.ronda.abierta !== null && !rondaVacia;
+  // «Manda» (lo que falta mandar y los envíos con su código) en PC solo se dibuja si tiene algo que mostrar; el celular siempre lo trae en su
+  // lugar (si está vacío no ocupa nada). Con prendas por mandar y la ronda ya cerrada, «Manda» baja sobre el registro (segunda columna): no
+  // desaparece en PC mientras en el celular sí se ve.
+  const conManda = plata?.persona === true && !rondaVacia && (plata.porMandar.length > 0 || (rondaAbierta !== null && envios !== null));
+  // Tres columnas solo con la ronda abierta y algo en «Manda»; desde 1280 px (de 1024 a 1279, «Manda» y el registro se apilan en la segunda).
+  const tres = conManda && rondaAbierta !== null;
   const anteriores = plata?.persona ? historialDeLaCompradora(lista?.antes ?? [], plata.ronda.cerradas ?? []) : [];
   // Sin ronda abierta (Felipe 2026-10-27, «muy básico»): lo primero es cómo terminó la última, y el resto del historial se ve de una vez en
   // vez de plegado tras un «Ver 2». La lista de «Antes de abrir tu ronda» solo se dibuja si hay algo anotado.
@@ -81,11 +85,14 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
       ) : (
         // Una sola columna en el celular, en este orden: camino y plata · acciones · falta mandar · envíos · lista de la ronda · cerrar ·
         // rondas anteriores. En escritorio (Felipe 2026-10-26, «A · tres columnas», docs/maquetas/mis-compras-envios-pc-2026-10/) el mismo
-        // contenido se reparte como se trabaja: tu plata y lo que haces · «Manda» (lo que falta mandar y los envíos con su código) · el
-        // registro de la ronda y las anteriores. Cada columna es una caja que en el celular «desaparece» (`contents`) y deja a sus hijos
-        // en la columna única, con `order` para conservar el orden de siempre. Sin ronda abierta no hay «Manda»: dos columnas.
+        // contenido se reparte como se trabaja: tu plata y lo que haces (con «Cerrar mi ronda» debajo) · «Manda» · el registro de la ronda y las
+        // anteriores. Las cajas de cada columna «desaparecen» en el celular (`contents`) y en PC se colocan por su columna y su fila: el DOM
+        // —y con él el teclado y el lector de pantalla— sigue el orden del celular, sin `order`, salvo UN par (abajo). «Cerrar mi ronda» va en
+        // la segunda fila (`1fr`) de su columna: las cajas de la derecha cruzan las dos filas y su alto no la empuja hacia abajo.
+        // El par: «Rondas anteriores» vive dentro de la columna del registro (debajo de la lista, en PC) y por eso, en el DOM, va antes que
+        // «Cerrar mi ronda»; en el celular `order-1` la deja después, como siempre. Las dos son lo último de la pantalla.
         <div
-          className={`grid gap-4 lg:items-start lg:gap-x-7 ${
+          className={`grid gap-4 lg:items-start lg:gap-x-7 ${rondaAbierta ? "lg:grid-rows-[auto_1fr]" : "lg:grid-rows-[auto]"} ${
             tres
               ? "lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,21rem)_minmax(0,1fr)_minmax(0,1fr)]"
               : rondaVacia
@@ -93,13 +100,13 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
                 : "lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
           }`}
         >
-          <div className={`contents lg:flex lg:flex-col lg:gap-4 lg:col-start-1 ${tres ? "lg:row-span-2 xl:row-span-1" : ""}`}>
-            <div className="order-1 flex flex-col gap-3.5 lg:order-none">
+          <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4">
+            <div className="flex flex-col gap-3.5">
               <CaminoDePasos pasos={PASOS_DE_LA_RONDA} ahora={pasoDeLaRonda(plata)} etiqueta="Tu ronda, paso a paso" guia="mi-plata.camino" />
               <Billetera plata={plata} />
             </div>
             {plata.ronda.abierta ? (
-              <section aria-label="¿Qué hiciste?" className="order-2 grid grid-cols-2 gap-2.5 lg:order-none">
+              <section aria-label="¿Qué hiciste?" className="grid grid-cols-2 gap-2.5">
                 <AccionDelDia
                   grande
                   href="/compras/mi-plata/compra"
@@ -113,48 +120,53 @@ export default async function MiPlataPage({ searchParams }: { searchParams: Prom
               </section>
             ) : (
               // Sin ronda: abrirla es lo único que se pide. La plata que le dieron se puede anotar igual (Compras a veces la manda antes).
-              <div className="order-2 flex flex-col gap-2.5 lg:order-none">
+              <div className="flex flex-col gap-2.5">
                 <AbrirRonda ultimaCerrada={plata.ronda.ultimaCerrada} />
                 <div className="grid grid-cols-2 gap-2.5">
                   <AnotarPlata puedeYaTenia={plata.puedeYaTenia} bancos={bancos} ancha />
                 </div>
               </div>
             )}
-            <div className="order-6 lg:order-none">
-              <TerminarDia plata={plata} envios={envios === null ? null : enviosDeLaRonda(envios, rondaAbierta?.id ?? null)} hoy={hoy} />
-            </div>
           </div>
-          <div className={`contents ${tres ? "lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4" : "lg:hidden"}`}>
+          {/* La columna de la derecha (y, de 1024 a 1279 px con «Manda», la segunda): «Manda» arriba y el registro debajo. A 1280 px o más con
+              la ronda abierta cada una es su propia columna. */}
+          <div className={`contents lg:row-span-full lg:col-start-2 lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "xl:contents" : ""}`}>
             {/* Los envíos van pegados a «Falta mandar»: es el mismo paso del camino (Manda). */}
-            <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} className="order-3 lg:order-none" />
-            {rondaAbierta && envios !== null && (
-              <div className="order-4 lg:order-none">
-                <EnviosDeLaRonda envios={enviosDeLaRonda(envios, rondaAbierta.id)} texto={rondaAbierta.texto} hoy={hoy} />
-              </div>
-            )}
-          </div>
-          <div className={`contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1" : "lg:col-start-2 lg:row-start-1"}`}>
-            {rondaAbierta && rondaVacia && <RondaVacia texto={rondaAbierta.texto} />}
-            {ultima && (
-              <div className="order-5 min-w-0 lg:order-none">
-                <UltimaRonda u={ultima} envios={enviosDeLaFila(rondasEnvios, ultima.ronda.clave)} hoy={hoy} />
-              </div>
-            )}
-            {sinHistoria && <PrimeraRonda />}
-            <div className={`order-5 min-w-0 lg:order-none ${rondaVacia ? "lg:hidden" : ""}`}>
-              <ListaDelDia
-                actuales={lista?.actuales ?? []}
-                titulo={tituloDeLaLista(plata.ronda)}
-                desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
-                ocultarSiVacia={!rondaAbierta}
-              />
+            <div className={conManda ? `contents lg:flex lg:flex-col lg:gap-4 ${tres ? "xl:col-start-2 xl:row-span-full" : ""}` : "contents lg:hidden"}>
+              <MandarATienda porMandar={plata.porMandar} abrirAlCargar={mandar === "1"} />
+              {rondaAbierta && envios !== null && <EnviosDeLaRonda envios={enviosDeLaRonda(envios, rondaAbierta.id)} texto={rondaAbierta.texto} hoy={hoy} />}
             </div>
-            {(ultima ? ultima.resto : anteriores).length > 0 && (
-              <div className="order-7 lg:order-none">
-                <RondasAnteriores historial={ultima ? ultima.resto : anteriores} envios={rondasEnvios} hoy={hoy} visibles={rondaAbierta ? undefined : 4} />
-              </div>
-            )}
+            <div className={`contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4 ${tres ? "xl:col-start-3 xl:row-span-full" : ""}`}>
+              {rondaAbierta && rondaVacia && <RondaVacia texto={rondaAbierta.texto} />}
+              {ultima && (
+                <div className="min-w-0">
+                  <UltimaRonda u={ultima} envios={enviosDeLaFila(rondasEnvios, ultima.ronda.clave)} hoy={hoy} />
+                </div>
+              )}
+              {sinHistoria && <PrimeraRonda />}
+              {/* Sin ronda abierta y nada anotado, la lista no dibuja nada: tampoco su caja, que sumaba un hueco de más entre las tarjetas. */}
+              {(rondaAbierta || (lista?.actuales.length ?? 0) > 0) && (
+                <div className={`min-w-0 ${rondaVacia ? "lg:hidden" : ""}`}>
+                  <ListaDelDia
+                    actuales={lista?.actuales ?? []}
+                    titulo={tituloDeLaLista(plata.ronda)}
+                    desde={plata.ronda.abierta ? desdeRonda(plata.ronda.abierta.abiertaEn, plata.hoy.fecha) : null}
+                    ocultarSiVacia={!rondaAbierta}
+                  />
+                </div>
+              )}
+              {(ultima ? ultima.resto : anteriores).length > 0 && (
+                <div className="order-1 lg:order-none">
+                  <RondasAnteriores historial={ultima ? ultima.resto : anteriores} envios={rondasEnvios} hoy={hoy} visibles={rondaAbierta ? undefined : 4} />
+                </div>
+              )}
+            </div>
           </div>
+          {rondaAbierta && (
+            <div className="lg:col-start-1 lg:row-start-2">
+              <TerminarDia plata={plata} envios={envios === null ? null : enviosDeLaRonda(envios, rondaAbierta.id)} hoy={hoy} />
+            </div>
+          )}
         </div>
       )}
     </div>

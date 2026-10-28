@@ -1598,10 +1598,20 @@ export const PRUEBAS = [
   // lo marcado solo se agrega; la línea de tiempo y las puertas. ROLLBACK.
   "pruebas:produccion-ploteo",
 
+  // «Pendiente de registrar» (ADR-0551 pendiente de registrar): una fase de servicio sin proveedor que puede llevar su costo (tarifa, fijo, mínimo) y lo devenga igual, y se registra quién después aunque ya haya empezado (conserva el costo; bloquea la orden; deja su rastro en Actividad). El CHECK, la apertura, el devengado, las puertas. ROLLBACK.
+  "pruebas:produccion-proveedor-pendiente",
+
   // Una orden completa con la ruta nueva, de punta a punta (ADR-0400 act. k y l, R1, actividad 6): ploteo marcado, costura y planchado afuera con su Salida y su Vuelta, etiquetado y
   // pasar al stock con el costo devengado repartido entre las buenas; el candado mira la última fase; nada se cierra ni se anula con prendas afuera; un ploteo sin marcar no devenga;
   // revertir devuelve el stock. ROLLBACK.
   "pruebas:produccion-ruta-nueva",
+  // Los CINCO pasos fijos de una orden (ADR-0551, actividad 1; migración 20261028052000): una orden se abre con Ploteo, Corte, Habilitado, Costura y Planchado (Limpiar hilos y revisar, Etiquetar y
+  // embolsar y Ojales y botones son opcionales); cada uno de los cinco hace falta (`fases_espina`); la de siete pasos y la ruta anterior siguen igual; el cierre mira la última fase que tenga.
+  "pruebas:produccion-cinco-pasos",
+  "pruebas:produccion-quitar-paso",
+  // «Lleva ojales y botones», un dato del MODELO (ADR-0551, migración 20261028053000): sin fila = nadie lo ha preguntado; guardar lo mismo no escribe ni anota; solo quien opera ese Taller guarda;
+  // la tabla no se lee ni se escribe directo; la fila se va con el modelo. ROLLBACK.
+  "pruebas:producto-taller",
 
   // El avance de una fase, la Salida a un servicio, su Vuelta y la orden en una lectura (ADR-0400, actividades 3 y 4): «Terminé N» dentro
   // de lo que de verdad entró (por talla y color; plan × 1,10 en el corte), Deshacer solo del último y mientras nadie lo use, Salida y

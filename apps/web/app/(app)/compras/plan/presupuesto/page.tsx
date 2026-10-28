@@ -16,6 +16,7 @@ export default async function PresupuestoPlanPage({ searchParams }: { searchPara
       preparacion={preparacion}
       campanas={campanas}
       puedeContar={veModulo(persona, "conteos")}
+      puedeVerCompras={veModulo(persona, "ordenes_compra")}
       veAnalisis={veModulo(persona, "analisis")}
       planPedidoNoExiste={planPedidoNoExiste}
       propuesta={propuesta}

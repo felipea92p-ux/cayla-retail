@@ -15,7 +15,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
-import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { PROPUESTA_DEL_TALLER, useCuentasParaElegir, useIdDelTaller } from "@/components/finanzas/CampoCuenta";
 
 // Pagar un saldo desde Por pagar (ADR-0133, F4c). Entero o en partes, con uno o varios medios: `registrar_pago_comprobante_produccion` bloquea
 // el comprobante, no deja pasarse del saldo y con el mismo token no repite el pago (un reintento no cobra dos veces). Con `<Modal>` del sistema.
@@ -28,8 +28,10 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el pago firma con quien se elige en el combo (lista de la sede activa).
   const responsable = useResponsable();
-  // ADR-0195 F3b: «Sale de» en cada medio. El Taller no cobra: sin propuesta de medios de cobro, la primera cuenta que sirve.
-  const cuentas = useCuentasParaElegir("pago", null);
+  // ADR-0195 F3b: «Sale de» en cada medio. Se pide con la sede del Taller: propone la cuenta que el líder eligió para sus
+  // transferencias; sin ella (o si el Taller no responde), la primera cuenta que sirve, como siempre.
+  const taller = useIdDelTaller();
+  const cuentas = useCuentasParaElegir("pago", taller.id, taller.listo, { propuestaSoloDe: PROPUESTA_DEL_TALLER });
 
   const reparto = repartoDeMedios(medios, c.saldo, false);
   const errorFecha = fecha > hoy ? "La fecha del pago no puede ser futura." : fecha < c.fechaEmision ? "El pago no puede ser anterior a la emisión del comprobante." : null;

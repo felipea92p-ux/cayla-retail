@@ -37,6 +37,7 @@ export function PlanCategoriaModal({
   conVersion,
   versionConocida,
   precioDeLaPlata = 0,
+  puedeVerCompras = false,
   siguiente,
   enSerie,
   onGuardado,
@@ -60,6 +61,8 @@ export function PlanCategoriaModal({
   versionConocida?: number;
   /** El precio de la plata del plan con tope que la campaña usa (0 = el plan de siempre). */
   precioDeLaPlata?: number;
+  /** Ve Compras ▸ Mis compras (`ordenes_compra`): el paso 3 solo ofrece «Ver en Compras» a quien puede entrar. */
+  puedeVerCompras?: boolean;
   /** La que sigue si se guarda con «Guardar y seguir»; null si no queda ninguna (el botón no se dibuja). */
   siguiente: CategoriaPlan | null;
   /** Ya se guardó alguna en esta tanda: esta llegó por «Guardar y seguir» y el cursor va a su primer campo. */
@@ -118,6 +121,7 @@ export function PlanCategoriaModal({
               fila={fila}
               hoy={hoy}
               limite={limite}
+              puedeVerCompras={puedeVerCompras}
               onIrAlPaso2={() => irAPaso("2")}
               onCancelar={() => salida.pedirAccion(cerrar)}
             />

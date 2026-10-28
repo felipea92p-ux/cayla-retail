@@ -206,7 +206,7 @@ export function HojaDeCobro({
         <section className={`hoja-cobro-paso ${pagoOk ? "es-hecho" : "sigue-aqui"}`}>
           <CabezaPaso numero={1} titulo="Pago" hecho={pagoOk} pista={pagoOk ? null : "Sigue aquí"} estado={estadoPago} />
           <div className="hoja-cobro-pago grid">
-            <div className={`hoja-cobro-medios grid ${varios ? "con-montos" : ""}`}>
+            <div data-guia="vender.cobro-medio" className={`hoja-cobro-medios grid ${varios ? "con-montos" : ""}`}>
               {medios.map((m, iAtajo) => {
                 const indice = pagos.findIndex((p) => p.metodo === m);
                 const pago = indice === -1 ? null : pagos[indice];
@@ -301,7 +301,7 @@ export function HojaDeCobro({
                   Escribe cuánto paga <br />en efectivo.
                 </p>
               ) : efectivo ? (
-                <div className="hoja-cobro-efectivo anim-revelar">
+                <div data-guia="vender.cobro-recibe" className="hoja-cobro-efectivo anim-revelar">
                   {redondeo > 0 && aCobrar > 0 && (
                     <p className="hoja-cobro-nota rounded-lg bg-hueso text-tinta/80" data-redondeo>
                       Cobra <b className="font-semibold text-tinta tabular-nums">{money(aCobrar)}</b> en efectivo
@@ -390,7 +390,7 @@ export function HojaDeCobro({
             pistaFuerte={pagoOk && !comprobanteOk}
             estado={!tipoComprobante ? null : comprobanteOk ? { ok: true, texto: ETIQUETA_TIPO[tipoComprobante] } : { ok: false, texto: faltaDocumento ?? "" }}
           />
-          <div className="grid grid-cols-3 gap-2.5">
+          <div data-guia="vender.cobro-comprobante" className="grid grid-cols-3 gap-2.5">
             {TIPOS.filter((t) => tipos.includes(t.tipo)).map(({ tipo, icono }) => (
               <button
                 key={tipo}
@@ -405,7 +405,7 @@ export function HojaDeCobro({
               </button>
             ))}
           </div>
-          {tipoComprobante && <div data-documento-cobro className="hoja-cobro-doc anim-revelar">{documento}</div>}
+          {tipoComprobante && <div data-documento-cobro data-guia="vender.cobro-documento" className="hoja-cobro-doc anim-revelar">{documento}</div>}
         </section>
       </div>
 
@@ -414,6 +414,7 @@ export function HojaDeCobro({
           <button
             type="submit"
             form={formId}
+            data-guia="vender.cobro-confirmar"
             disabled={apagado}
             className="hoja-cobro-confirmar flex w-full items-center rounded-2xl bg-tinta text-crema transition-[background-color,transform] duration-200 hover:-translate-y-px disabled:cursor-not-allowed disabled:bg-hueso disabled:text-tinta/60 disabled:hover:translate-y-0"
           >

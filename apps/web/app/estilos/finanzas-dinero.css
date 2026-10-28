@@ -1,33 +1,36 @@
 /* Finanzas ▸ Cuentas y dinero en «El telar» (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/).
-   Solo tokens (ADR-0169 / ADR-0336). El color de cada repisa llega en --c (lo pone el componente: un token, nunca un hex).
-   Movimiento: el líquido sube una sola vez al llegar, sin rebote ni bucle (ADR-0136, excepción de Finanzas, D7); se apaga
-   con prefers-reduced-motion. Un :hover va dentro de @media (hover: hover). */
+   Solo tokens (ADR-0169 / ADR-0336). El color de cada grupo llega en --c (lo pone el componente: un token, nunca un hex).
+   Movimiento: «Dónde está» traza las porciones del círculo una vez y sus barras son las de BarraAvance; las burbujas
+   caen y el hilo de un par se dibuja una sola vez, sin rebote ni bucle (ADR-0136, excepción de Finanzas, D7); se apagan con
+   prefers-reduced-motion. Un :hover va dentro de @media (hover: hover). */
 
 @layer components {
-  /* ---- Dónde está: las repisas con sus frascos ---- */
-  .din-estante {
+  /* ---- Dónde está: una tarjeta por sede, una fila por cuenta ---- */
+  .din-grupos {
     display: grid;
     gap: 14px;
+    align-items: start;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   }
-  .din-repisa {
+  .din-grupo {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 4px;
     min-width: 0;
-    padding: 16px 18px;
+    padding: 16px 18px 6px;
     border: 1px solid var(--color-sand);
     border-radius: 16px;
     background: var(--color-papel);
   }
-  .din-repisa-cab {
+  .din-grupo-cab {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    padding-bottom: 10px;
   }
-  .din-repisa-sede {
+  .din-grupo-sede {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -35,13 +38,13 @@
     font-weight: 600;
     color: var(--color-tinta);
   }
-  .din-repisa-sede i {
+  .din-grupo-sede i {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: var(--c);
   }
-  .din-repisa-total {
+  .din-grupo-total {
     font-family: var(--font-serif);
     font-size: 24px;
     font-weight: 500;
@@ -49,85 +52,269 @@
     font-variant-numeric: tabular-nums;
     color: var(--color-tinta);
   }
-  .din-repisa-mas {
+  .din-grupo-mas {
     font-family: var(--font-sans);
     font-size: 12px;
     font-weight: 400;
     color: var(--color-taupe);
   }
-  .din-repisa-nota {
+  .din-grupo-nota {
+    padding: 2px 0 10px;
     font-size: 12.5px;
     color: var(--color-taupe);
   }
-  .din-frascos {
+  .din-filas {
     display: flex;
-    flex-wrap: wrap;
-    gap: 14px 10px;
-    align-items: flex-end;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
-  .din-frasco {
+  .din-fila {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .din-fila-cab {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+  .din-fila-nombre {
+    min-width: 0;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--color-tinta);
+  }
+  .din-fila-nombre small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+  .din-fila-saldo {
+    flex: none;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--color-tinta);
+  }
+  /* Un saldo que no le toca ver a quien mira: no es una cifra, es un aviso. */
+  .din-fila[data-oculto] .din-fila-saldo {
+    max-width: 9.5rem;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.3;
+    color: var(--color-taupe);
+  }
+  /* Menos de cero en una cuenta es algo que mirar: la cifra se tiñe, sin más aviso. */
+  .din-fila[data-negativo] .din-fila-saldo {
+    color: var(--color-rojo-profundo);
+  }
+
+  /* ---- Dónde está: el resumen de arriba, un círculo que reparte la plata entre las sedes ---- */
+  .din-reparto {
+    display: grid;
+    /* El círculo y su leyenda van juntos y centrados: con la leyenda a todo el ancho, el nombre quedaba a un palmo de su cifra. */
+    grid-template-columns: minmax(200px, 270px) minmax(0, 620px);
+    justify-content: center;
+    gap: 24px 56px;
+    align-items: center;
+    padding: 6px 0 4px;
+  }
+  .din-anillo {
+    position: relative;
+    width: 100%;
+    max-width: 270px;
+    margin-inline: auto;
+    aspect-ratio: 1;
+    container-type: inline-size;
+  }
+  .din-anillo svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .din-anillo-pista {
+    fill: none;
+    stroke: var(--color-sand);
+    stroke-width: 18;
+    opacity: 0.55;
+  }
+  .din-anillo-arco {
+    fill: none;
+    stroke: var(--c);
+    stroke-width: 18;
+    stroke-linecap: butt;
+    stroke-dasharray: 1;
+    transition: opacity 0.25s var(--ease-cayla);
+    animation: din-traza 0.9s var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 120ms + 250ms);
+  }
+  .din-anillo-arco[data-atenuada] {
+    opacity: 0.22;
+  }
+  @keyframes din-traza {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+  .din-anillo-centro {
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    width: 96px;
+    padding: 0 18%;
     text-align: center;
   }
-  .din-frasco svg {
-    width: 64px;
-    height: 86px;
-    overflow: visible;
+  .din-anillo-rotulo {
+    max-width: 100%;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
   }
-  .din-vidrio {
-    fill: color-mix(in srgb, var(--color-hueso) 40%, transparent);
-    stroke: color-mix(in srgb, var(--color-tinta) 35%, transparent);
-    stroke-width: 1.5;
-  }
-  .din-brillo {
-    fill: none;
-    stroke: color-mix(in srgb, var(--color-papel) 70%, transparent);
-    stroke-width: 3;
-    stroke-linecap: round;
-  }
-  .din-liquido rect {
-    fill: color-mix(in srgb, var(--c) 72%, transparent);
-  }
-  .din-liquido path {
-    fill: none;
-    stroke: var(--c);
-    stroke-width: 2;
-  }
-  .din-frasco-saldo {
+  .din-anillo-cifra {
     font-family: var(--font-serif);
-    font-size: 17px;
+    font-size: clamp(20px, 12.5cqw, 36px);
+    font-weight: 500;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .din-anillo-pie {
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .din-leyenda-caja {
+    min-width: 0;
+  }
+  .din-leyenda {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .din-leyenda li {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto 3.25rem;
+    align-items: baseline;
+    column-gap: 14px;
+    padding: 13px 0;
+    border-top: 1px solid var(--color-sand);
+    transition: opacity 0.25s var(--ease-cayla);
+  }
+  .din-leyenda li:first-child {
+    border-top: 0;
+  }
+  .din-leyenda[data-hay-activa] li:not([data-activa]) {
+    opacity: 0.45;
+  }
+  .din-leyenda i {
+    align-self: center;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .din-leyenda-nombre {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--color-tinta);
+  }
+  .din-leyenda-nombre small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+  .din-leyenda-monto {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 500;
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
     color: var(--color-tinta);
   }
-  .din-frasco[data-oculto] .din-frasco-saldo {
-    font-family: var(--font-sans);
-    font-size: 12px;
+  .din-leyenda-pct {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
     color: var(--color-taupe);
   }
-  .din-frasco-nombre {
-    font-size: 12px;
-    line-height: 1.3;
-    color: var(--color-tinta);
+  /* Lo que no cabe en el círculo: el punto vacío, la cifra teñida y la razón debajo del nombre. */
+  .din-leyenda .din-leyenda-aparte {
+    border-top: 1.5px dashed var(--color-borde-control);
   }
-  .din-frasco-nombre small {
+  .din-leyenda-aparte i {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--color-pizarra);
+  }
+  .din-leyenda-aparte .din-leyenda-monto {
+    color: var(--color-rojo-profundo);
+  }
+  .din-leyenda .din-leyenda-total {
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-top: 1.5px solid var(--color-tinta);
+  }
+  .din-leyenda-total .din-leyenda-nombre {
+    font-weight: 600;
+  }
+  .din-reparto-nota {
+    margin: 10px 0 0;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .din-leyenda-pct:empty {
+    display: none;
+  }
+  .din-leyenda .din-leyenda-vacia {
     display: block;
-    font-size: 11.5px;
+    padding: 6px 0 13px;
+    font-size: 14px;
     color: var(--color-taupe);
   }
-
-  /* El líquido sube desde el fondo, una vez, en cascada (90 ms entre frascos). */
-  .din-liquido {
-    animation: din-llena 1.3s var(--ease-cayla) backwards;
-    animation-delay: calc(var(--i, 0) * 90ms + 300ms);
+  @media (max-width: 720px) {
+    .din-reparto {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .din-anillo {
+      max-width: 240px;
+    }
   }
-  @keyframes din-llena {
-    from {
-      transform: translateY(100%);
+  /* En el celular el porcentaje baja bajo el nombre: en una sola fila el nombre se quedaba sin lugar y se pisaba con la cifra. */
+  @media (max-width: 480px) {
+    .din-leyenda li {
+      grid-template-columns: 12px minmax(0, 1fr) auto;
+      column-gap: 12px;
+      row-gap: 2px;
+    }
+    .din-leyenda-pct {
+      grid-column: 2;
+      grid-row: 2;
+      text-align: left;
+    }
+    .din-leyenda .din-leyenda-total {
+      grid-template-columns: minmax(0, 1fr) auto;
     }
   }
 
@@ -359,13 +546,8 @@
     }
   }
 
-  @media (max-width: 480px) {
-    .din-frasco {
-      width: 84px;
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .din-liquido,
+    .din-anillo-arco,
     .din-burbuja,
     .din-par[data-estado="revisada"] .din-par-hilo path {
       animation: none;

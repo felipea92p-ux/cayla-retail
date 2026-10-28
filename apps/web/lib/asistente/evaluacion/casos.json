@@ -1,5 +1,5 @@
 {
-  "_": "Evaluación fija de «Pregúntale a CAYLA» (ADR-0536, riesgo «que responda mal sin que nadie lo note»). 40 preguntas de tienda con lo que se acepta como buena respuesta: `guia:<id>` (llevó a esa guía en algún tramo), `regla:<id>`, `sin_acceso:<módulo>` (o `sin_acceso` a secas), `no_existe` o `fuera_de_tema`. La parte sin red la corre el CI (`casos.test.ts`); la que llama a la IA se corre a mano antes de cambiar el modelo o las instrucciones: `pnpm --filter web asistente:evaluar` contra el ERP local (cuesta ~US$0,05). Las cuentas son las de `tema/cuentas.mjs`; las dos miran Tienda Lima, que tiene que tener el asistente encendido.",
+  "_": "Evaluación fija de «Pregúntale a CAYLA» (ADR-0536, riesgo «que responda mal sin que nadie lo note»). 50 preguntas de tienda (las 10 últimas, escritas con faltas de ortografía como se escriben en el mostrador) con lo que se acepta como buena respuesta: `guia:<id>` (llevó a esa guía en algún tramo), `regla:<id>`, `sin_acceso:<módulo>` (o `sin_acceso` a secas), `no_existe` o `fuera_de_tema`. La parte sin red la corre el CI (`casos.test.ts`); la que llama a la IA se corre a mano antes de cambiar el modelo o las instrucciones: `pnpm --filter web asistente:evaluar` contra el ERP local (cuesta ~US$0,05). Las cuentas son las de `tema/cuentas.mjs`; las dos miran Tienda Lima, que tiene que tener el asistente encendido.",
   "casos": [
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Cómo cierro la caja?", "acepta": ["guia:caja"] },
     { "cuenta": "admin", "ruta": "/", "pregunta": "¿Dónde veo los cierres de caja de la semana pasada?", "acepta": ["guia:caja.historial"] },
@@ -40,6 +40,16 @@
     { "cuenta": "terminal-ventas", "ruta": "/vender", "pregunta": "¿Cómo aparto una prenda para un cliente?", "acepta": ["sin_acceso:apartados"] },
     { "cuenta": "terminal-ventas", "ruta": "/vender", "pregunta": "¿Cómo registro un producto nuevo?", "acepta": ["sin_acceso:productos"] },
     { "cuenta": "terminal-ventas", "ruta": "/vender", "pregunta": "¿Cómo cierro la caja al final del día?", "acepta": ["guia:caja"] },
-    { "cuenta": "terminal-ventas", "ruta": "/vender", "pregunta": "¿Cómo cobro con Yape?", "acepta": ["guia:vender"] }
+    { "cuenta": "terminal-ventas", "ruta": "/vender", "pregunta": "¿Cómo cobro con Yape?", "acepta": ["guia:vender"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "kiero bender un chort, ¿como le cobro?", "acepta": ["guia:vender"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como sierro la caha?", "acepta": ["guia:caja"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como ago un canbio de taya?", "acepta": ["guia:cambios", "regla:cambio-diferencia"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "El cliente quiere debolucion de su plata", "acepta": ["guia:devoluciones", "regla:devolucion-orden"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como mando ropa a la tienda de trujiyo?", "acepta": ["guia:inventario.traslados.nuevo", "guia:inventario.traslados"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como apartr una prenda para un cliente?", "acepta": ["guia:vender.apartados"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como registro un prodcto nuebo?", "acepta": ["guia:productos.nuevo", "guia:productos"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como ago un conteo de imbentario?", "acepta": ["guia:inventario.conteo"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "Yego mercaderia del probedor, ¿donde la ingreso?", "acepta": ["guia:recibir"] },
+    { "cuenta": "admin", "ruta": "/", "pregunta": "¿Como pongo una prenda en liquidasion?", "acepta": ["guia:productos.liquidacion"] }
   ]
 }
