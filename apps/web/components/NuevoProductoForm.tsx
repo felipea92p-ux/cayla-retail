@@ -94,7 +94,7 @@ import {
 import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import { sugerirDescripcion, sugerirNombre } from "@/lib/sugerencias-alta-producto";
-import { celdaSinPrecio, montoDeCelda, nombreCelda } from "@/lib/tabla-alta-reglas";
+import { celdaSinPrecio, limpiarPrecio, montoDeCelda, nombreCelda } from "@/lib/tabla-alta-reglas";
 import { precioValido } from "@/lib/variantes-ficha-reglas";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaInicialSede } from "@/lib/carga-inicial-reglas";
 import { Volver } from "@/components/ui/Volver";
@@ -1250,7 +1250,7 @@ export function NuevoProductoForm({
       <div>
         <FilaAlta etiqueta="Precio y costo" ayuda="El costo es opcional" campo="precio" estado={est.precio}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
+            <CampoMonto etiqueta="Precio de venta" pie="Para todas las tallas y colores" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(limpiarPrecio(e.target.value))} />
             <CampoMonto
               etiqueta="Costo"
               pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
@@ -1259,7 +1259,8 @@ export function NuevoProductoForm({
               value={costoBase}
               onChange={(e) => {
                 setCostoTocado(true);
-                setCostoBase(e.target.value);
+                // La misma limpieza que las celdas de la tabla: «S/ 59» pegado o «59,90» se leen bien (/chaos 2026-10-28).
+                setCostoBase(limpiarPrecio(e.target.value));
               }}
             />
             <div>
