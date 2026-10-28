@@ -61,6 +61,11 @@ export function RepartoDeDinero({ reparto, textos }: { reparto: Reparto; textos:
                   <span className="din-leyenda-pct">{p.pctEntero === 0 ? "<1 %" : `${p.pctEntero} %`}</span>
                 </li>
               ))}
+              {reparto.porciones.length === 0 && (
+                <li className="din-leyenda-vacia">
+                  <span>Ninguna cuenta tiene saldo hoy.</span>
+                </li>
+              )}
               {reparto.aparte.map((a) => (
                 <li key={a.id} className="din-leyenda-aparte">
                   <i aria-hidden="true" />

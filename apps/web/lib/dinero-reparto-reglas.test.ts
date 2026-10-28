@@ -131,15 +131,29 @@ describe("repartoDeDinero", () => {
     expect(oculto.porciones.map((p) => p.id)).not.toContain("cAQP");
     expect(r.ocultos).toBe(false);
   });
-  it("con una sola sede también hay círculo si tiene dos cuentas con plata: el cajón y la caja fuerte", () => {
+  it("con una sola sede también hay círculo: el cajón y la caja fuerte de Tienda TRU", () => {
     const uno = repartoDeDinero([HOY[2]!])!;
     expect(uno.porciones.map((p) => p.id)).toEqual(["fTRU", "cTRU"]);
     expect(uno.neto).toBe(3700);
   });
-  it("con menos de dos cuentas con plata no hay círculo", () => {
-    expect(repartoDeDinero([g("tru", "TRU", 2, [f("a", "Caja", 500, "cajon"), f("b", "Fuerte", 0, "caja_fuerte")])])).toBeNull();
-    expect(repartoDeDinero([g("tru", "TRU", 2, [f("a", "Caja", 500, "cajon"), f("b", "Fuerte", -40, "caja_fuerte")])])).toBeNull();
-    expect(repartoDeDinero([g("tru", "TRU", 2, [])])).toBeNull();
+  it("con una sola cuenta con plata hay un anillo entero: toda la plata está en un solo lugar (Lima, con su caja fuerte en cero)", () => {
+    const lim = repartoDeDinero([g("lim", "Tienda LIM", 1, [f("c", "Caja Operativa", 209, "cajon"), f("f", "Caja fuerte", 0, "caja_fuerte")])])!;
+    expect(lim.porciones).toHaveLength(1);
+    expect(lim.porciones[0]).toMatchObject({ id: "c", pctEntero: 100, desde: 0, hasta: 360 });
+    expect(lim.enCuentas).toBe(209);
+    expect(lim.neto).toBe(209);
+  });
+  it("sin ninguna cuenta con plata el anillo está vacío, no desaparece; lo negativo se dice aparte", () => {
+    const taller = repartoDeDinero([g("tal", "Taller", 3, [f("a", "Fondo fijo", 0, "cajon"), f("b", "Caja Operativa", 0, "caja_fuerte")])])!;
+    expect(taller.porciones).toEqual([]);
+    expect(taller.enCuentas).toBe(0);
+    expect(taller.neto).toBe(0);
+    const negativo = repartoDeDinero([g("tal", "Taller", 3, [f("a", "Fondo fijo", -40, "cajon")])])!;
+    expect(negativo.porciones).toEqual([]);
+    expect(negativo.aparte.map((x) => x.id)).toEqual(["a"]);
+    expect(negativo.neto).toBe(-40);
+  });
+  it("sin ningún grupo de cuentas no hay resumen", () => {
     expect(repartoDeDinero([])).toBeNull();
   });
 });
@@ -148,6 +162,10 @@ describe("trazoDeArco", () => {
   it("la primera porción arranca arriba, a las 12, y gira con el reloj", () => {
     const d = trazoDeArco(0, 90, 80, 100, 0);
     expect(d).toBe("M100 20A80 80 0 0 1 180 100");
+  });
+  it("una sola porción es el círculo entero: dos medias vueltas, sin hueco, y no un arco que acaba donde empieza", () => {
+    const d = trazoDeArco(0, 360, 80, 100);
+    expect(d).toBe("M100 20A80 80 0 1 1 100 180A80 80 0 1 1 100 20");
   });
   it("una porción de más de media vuelta pide el arco grande", () => {
     expect(trazoDeArco(0, 200, 80, 100, 0)).toContain("A80 80 0 1 1");

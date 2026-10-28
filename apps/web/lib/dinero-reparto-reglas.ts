@@ -8,8 +8,9 @@
 // tiendas y el Taller (una pareja de tonos por sede) y pizarra para lo que está en camino. Siempre tokens (ADR-0169), nunca un hex.
 //
 // Un círculo reparte un total entre partes que valen MÁS que cero. Una cuenta con saldo negativo no cabe en una porción: se dice aparte, y
-// el total resta lo negativo para que coincida con el «Tienes» de la cabecera. Una cuenta en cero no se dibuja. Con menos de dos
-// porciones el círculo no dice nada y la pantalla muestra solo las cuentas.
+// el total resta lo negativo para que coincida con el «Tienes» de la cabecera. Una cuenta en cero no se dibuja. El círculo está siempre,
+// también con una sola cuenta con plata (un anillo entero) o con ninguna (un anillo vacío): que el gráfico desaparezca al cambiar de
+// sede confunde más que un anillo que dice «toda la plata está en un solo lugar» (Felipe, 2026-10-28, viendo Lima).
 
 import { GRUPO_CAMINO, GRUPO_EMPRESA, type GrupoCuentas } from "./dinero-telar-reglas";
 
@@ -107,7 +108,7 @@ export function porcentajesEnteros(partes: readonly number[]): number[] {
   return base;
 }
 
-/** Lo que dice la tarjeta del círculo: su bajada y el rótulo del centro. */
+/** Lo que dice la tarjeta del círculo: su bajada y el rótulo del centro. Lo decide quien sabe qué se mira (la barra), no la cantidad de grupos: una sola tarjeta puede ser una sede o la empresa. */
 export type TextosDelReparto = { bajada: string; rotulo: string };
 
 /**
@@ -124,8 +125,9 @@ export function textosDelReparto(sede: string | null, soloEmpresa: boolean): Tex
 /** Lo que dice de dónde es una cuenta: la sede, si es de una; las de CAYLA entera y las que están en camino se explican solas. */
 const lugarDe = (g: Pick<GrupoCuentas, "clave" | "titulo">) => (g.clave === GRUPO_EMPRESA || g.clave === GRUPO_CAMINO ? null : g.titulo);
 
-/** El resumen de «Dónde está», o nulo si no hay al menos dos cuentas con plata (un círculo de una sola porción no cuenta nada). */
+/** El resumen de «Dónde está», o nulo si no hay ningún grupo de cuentas (la pantalla dice entonces que faltan las cuentas). */
 export function repartoDeDinero(grupos: readonly GrupoCuentas[]): RepartoDeDinero | null {
+  if (grupos.length === 0) return null;
   type Cuenta = { id: string; titulo: string; lugar: string | null; monto: number; color: string; suma: number };
   const positivas: Cuenta[][] = [];
   const aparte: RepartoDeDinero["aparte"] = [];
@@ -142,7 +144,6 @@ export function repartoDeDinero(grupos: readonly GrupoCuentas[]): RepartoDeDiner
     positivas.push(mias.map((c) => ({ ...c, suma })).sort((a, b) => b.monto - a.monto));
   }
   const cuentas = positivas.sort((a, b) => b[0]!.suma - a[0]!.suma).flat();
-  if (cuentas.length < 2) return null;
   const enCuentas = r2(cuentas.reduce((a, c) => a + c.monto, 0));
   const enteros = porcentajesEnteros(cuentas.map((c) => c.monto));
   let acumulado = 0;
@@ -176,6 +177,8 @@ export function repartoDeDinero(grupos: readonly GrupoCuentas[]): RepartoDeDiner
  * puede desaparecer ni voltearse—, así se ve de dónde a dónde va cada una.
  */
 export function trazoDeArco(desde: number, hasta: number, r: number, c = 100, hueco = 2.4): string {
+  // Una sola porción es el círculo entero: un arco no puede acabar donde empieza, así que se traza en dos medias vueltas y sin hueco.
+  if (hasta - desde >= 359.99) return `M${c} ${r2(c - r)}A${r} ${r} 0 1 1 ${c} ${r2(c + r)}A${r} ${r} 0 1 1 ${c} ${r2(c - r)}`;
   const h = Math.min(hueco, (hasta - desde) * 0.4) / 2;
   const a0 = desde + h;
   const a1 = hasta - h;

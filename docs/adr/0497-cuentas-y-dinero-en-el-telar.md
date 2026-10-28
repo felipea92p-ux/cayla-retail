@@ -121,7 +121,9 @@ terracotas las tiendas y la pizarra lo que viene en camino.
 depósitos que ventas con tarjeta): un círculo reparte partes mayores que cero, así que lo negativo se dice aparte y el total lo resta.
 
 **Cómo funciona:**
-- El círculo aparece con dos o más cuentas con plata; con una sede elegida reparte su cajón y su caja fuerte.
+- El círculo está siempre, con todas las sedes y con una sola: con una sede reparte su cajón y su caja fuerte; con una sola cuenta con plata
+  es un anillo entero («toda la plata está en un solo lugar») y sin ninguna, un anillo vacío que lo dice. Antes se escondía con menos de dos
+  cuentas y Felipe, al cambiar a Lima, preguntó «¿no muestra el gráfico?» (2026-10-28): que un gráfico desaparezca al cambiar de sede confunde.
 - La primera versión repartía por sede y «CAYLA entera» era una sola porción de casi todo el círculo (77 %). Felipe, viéndola con datos
   reales, pidió que el círculo fuera el todo y que cada parte se viera con color: ahora cada porción es una cuenta, así los bancos se
   ven uno por uno. Una cuenta que pesa menos de 1 % dice «<1 %» y no le quita un punto a otra.

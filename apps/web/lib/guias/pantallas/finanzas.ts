@@ -624,7 +624,7 @@ export const GUIA_FIN_CUENTAS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Cómo se reparte",
-      texto: "El círculo es la plata de lo que miras (con «Todas», toda la de CAYLA), partida por lugar: cada banco, el efectivo de cada tienda y lo que viene en camino. Verdes, los bancos; terracotas, las tiendas. Pasa el mouse por una fila y el círculo la destaca. Un saldo negativo no entra, pero resta en «Tienes hoy».",
+      texto: "El círculo es la plata de lo que miras («Todas», una sede o la empresa), partida por lugar: cada banco, el efectivo de cada tienda y lo que viene en camino. Verdes, los bancos; terracotas, las tiendas. Pasa el mouse por una fila y el círculo la destaca. Un saldo negativo no entra, pero resta.",
     },
     {
       id: "cuentas",
