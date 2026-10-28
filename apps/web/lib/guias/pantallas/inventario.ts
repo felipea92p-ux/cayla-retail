@@ -1395,7 +1395,15 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, en una tabla, lo que Compras mandó a tu sede; con muchos, busca por número, guía o proveedor. «Detalle» abre lo que trae y cuántos fardos; ahí «Empezar a recibir» lleva a contar («Seguir recibiendo» si ya empezaste). Cada orden sin guía va con «Llegó esta orden». Si hiciste la orden, la recibe otra persona.",
+      texto: "Lo que Compras mandó a tu sede, con el día en que salió cada envío. Primero lo que ya empezaste y luego lo que va en camino; dentro de cada grupo, lo más antiguo arriba. «Detalle» abre lo que trae; ahí empiezas a recibir. Cada orden sin guía va con «Llegó esta orden». Si hiciste la orden, la recibe otra persona.",
+    },
+    {
+      // Los filtros viven en el navegador y no cambian nada de la base: el piloto no necesita abrirlos, solo se explican.
+      id: "envios-filtros",
+      ancla: "recibir.envios-filtros",
+      opcional: true,
+      titulo: "Hallar un envío entre muchos",
+      texto: "Escribe un número, una guía o un proveedor, o usa las píldoras: «Estado» (abierto, en camino, sin guía o los que no puedes recibir tú), «Proveedor» y «Fechas», el día en que salió el envío («Hace más de una semana» muestra lo que tarda en llegar). «Limpiar todo» los quita.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.
@@ -1579,7 +1587,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.papeles",
       opcional: true,
       titulo: "El papel de la compra",
-      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas.",
+      texto: "Si lo compraron desde el celular, aquí está la boleta, la factura o la nota que le dieron a la compradora, con quién compró. Se queda a la vista mientras cuentas. Si un papel no trae foto, «Subir foto» te deja subirla o tomarla ahí mismo.",
     },
     {
       id: "papel-foto",
@@ -1589,11 +1597,18 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       texto: "Tócala y se abre en grande sobre la pantalla, sin perder lo que estás contando.",
     },
     {
+      id: "papel-subir",
+      ancla: "recepcion.papel-subir",
+      opcional: true,
+      titulo: "Sube o toma la foto",
+      texto: "Cuando un papel llegó sin foto, este botón abre la cámara o tus fotos. Queda guardada con la compra y Compras la ve al completarla; una foto ya subida no se cambia.",
+    },
+    {
       id: "anotado",
       ancla: "recepcion.anotado",
       opcional: true,
       titulo: "Lo que anotó la compradora",
-      texto: "Cada prenda que anotó al comprar, con cuántas: «Ahora» es la que sigue, «Contada» la que ya llegó completa.",
+      texto: "Cada prenda que anotó al comprar, con cuántas. Se va llenando con lo que identificas de ella en «¿Qué … son?»: «Contada» es la que ya llegó completa y «0 de 4» la que todavía no identificas.",
     },
     // ---- En camino: se lee lo que trae y se abre ----
     {

@@ -19,11 +19,19 @@
  *
  * USO
  *   pnpm pruebas:cuentas-dinero    → con las migraciones ya aplicadas en el local
+ *   pnpm pruebas:cuentas-dinero -- --con-migracion supabase/migrations/<archivo>.sql [--contenedor <nombre>]
+ *                                  → prueba una migración que el local aún no tiene, dentro de cada transacción (se deshace)
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// `--con-migracion <archivo>`: para probar una migración que la base de prueba todavía no tiene, sin escribir nada en ella: el
+// archivo se aplica DENTRO de la transacción de cada escenario y se deshace con su ROLLBACK (ADR-0548). El CI no lo usa.
+const ARG_MIGRACION = process.argv.indexOf("--con-migracion");
+const MIGRACION_EN_LA_TRANSACCION = ARG_MIGRACION > 0 ? readFileSync(process.argv[ARG_MIGRACION + 1], "utf8") : "";
+const ARG_CONTENEDOR = process.argv.indexOf("--contenedor");
+const CONTENEDOR_LOCAL = ARG_CONTENEDOR > 0 ? process.argv[ARG_CONTENEDOR + 1] : "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — Tienda Trujillo
 
@@ -66,6 +74,7 @@ $f$;
  *  y un egreso «Depósito bancario» de S/ 300 que la tienda registró. */
 const ESCENA = `
 begin;
+${MIGRACION_EN_LA_TRANSACCION}
 ${INTENTO}
 ${SALDO}
 ${cambiaA(FELIPE)}
@@ -309,6 +318,33 @@ select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'ibk',
   esperar("su egreso vuelve a «por clasificar» (la plata sí salió del cajón)", r.ok && Number(vuelve) === 1, r);
   esperar("no se anula dos veces", r.ok && dosVeces.includes("ya estaba anulado"), r);
   esperar("el egreso liberado se puede depositar de nuevo, bien", r.ok && reusar === "t", r);
+}
+
+// 8b. ADR-0548: el token de un movimiento que se deshizo no devuelve «hecho» en falso (hermana de pos_maquinas, ADR-0544).
+{
+  const r = correr(`${ESCENA}
+select gen_random_uuid() as tok \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', null, null, 0, null, null, :'tok') as m1 \\gset
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', null, null, 0, null, null, :'tok') = :'m1'::uuid;
+select retail.anular_movimiento_dinero(:'m1', 'Me equivoqué de cuenta') as _a \\gset
+select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''entre_cuentas'', 50, %L, %L, null, null, 0, null, null, %L)', :'bcp', :'ibk', :'tok'));
+select count(*), count(*) filter (where estado = 'anulado') from retail.movimientos_dinero where token_cliente = :'tok';
+select pg_temp.saldo(:'bcp');
+select retail.registrar_movimiento_dinero('entre_cuentas', 50, :'bcp', :'ibk', null, null, 0, null, null, gen_random_uuid()) is not null;
+select pg_temp.saldo(:'bcp');
+select gen_random_uuid() as tok2 \\gset
+select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'bcp', null, null, 0, null, :'egreso', :'tok2') as m2 \\gset
+select retail.anular_movimiento_dinero(:'m2', 'Era de otra tienda') as _b \\gset
+select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''deposito'', 300, %L, %L, null, null, 0, null, %L, %L)', :'cajon_tru', :'bcp', :'egreso', :'tok2'));
+select count(*), count(*) filter (where estado = 'anulado') from retail.movimientos_dinero where token_cliente = :'tok2';
+select retail.registrar_movimiento_dinero('deposito', 300, :'cajon_tru', :'bcp', null, null, 0, null, :'egreso', gen_random_uuid()) is not null;`);
+  const [mismo, tokenDeshecho, unaFila, saldoSinNuevo, nuevoRegistra, saldoConNuevo, depositoDeshecho, unaFilaDeposito, depositoNuevo] = lineas(r);
+  esperar("el mismo token con su movimiento vigente devuelve ese mismo movimiento (doble clic)", r.ok && mismo === "t", r);
+  esperar("con el movimiento deshecho, reintentar con el mismo token dice que se deshizo (un movimiento, no un depósito)", r.ok && tokenDeshecho === "Ese movimiento ya se deshizo: vuelve a registrarlo desde cero.", r);
+  esperar("ese reintento no escribe nada: el token sigue con su única fila, anulada", r.ok && unaFila === "1|1" && saldoSinNuevo === "1000.00", r);
+  esperar("con un token nuevo, el movimiento se registra y el banco baja", r.ok && nuevoRegistra === "t" && saldoConNuevo === "950.00", r);
+  esperar("un depósito deshecho también avisa, con la palabra «depósito», y no escribe", r.ok && depositoDeshecho === "Ese depósito ya se deshizo: vuelve a registrarlo desde cero." && unaFilaDeposito === "1|1", r);
+  esperar("el egreso que liberó el «Deshacer» se deposita de nuevo con un token nuevo", r.ok && depositoNuevo === "t", r);
 }
 
 // 9. Decisión B: con el módulo, su tienda y solo depósitos; sin él, nada. Nadie lee las tablas directo.

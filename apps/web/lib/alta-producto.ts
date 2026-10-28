@@ -485,7 +485,7 @@ export function fraseStockCreado(stock: { unidades: number; donde: string }, sin
   if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
   if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
   if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;
-  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}): ya aparecen en Existencias.`;
+  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.`;
 }
 
 /** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */

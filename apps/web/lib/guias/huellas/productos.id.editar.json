@@ -2,19 +2,10 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 146,
+  "total": 145,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{volverA}»"
-    ],
-    "components/AjustarInventarioModal.tsx": [
-      "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
-      "button «{o.texto}»",
-      "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
-      "BotonDescargar «Descargar reporte del ajuste»",
-      "ComboResponsable «{responsable}»",
-      "Boton «Cancelar»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/BarraDeCambios.tsx": [
       "Boton «Descartar»",
@@ -144,9 +135,7 @@
       "button «{h.puede ? `Agregar ${donde}»",
       "button «{`${nombreElegida}»",
       "input «{`Precio de ${etiqueta}»",
-      "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»",
-      "CampoTexto «{<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? \"hecho\" : \"falta\"}»",
-      "ComboResponsable «{stock.responsable}»"
+      "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»"
     ],
     "components/ficha-producto/PanelDelTaller.tsx": [
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
@@ -173,12 +162,26 @@
       "Boton «{`Quitar el precio de ${f.sede}»",
       "Boton «{`Poner un precio propio en ${f.sede}»"
     ],
+    "components/ficha-producto/PuertaAjustarStock.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Ajustar stock»"
+    ],
+    "components/ficha-producto/QuitarVarianteHoja.tsx": [
+      "Boton «Cancelar»",
+      "BotonEnlace «Llevarlo a 0 en Existencias»",
+      "Boton «Cancelar» #2",
+      "Boton «Archivar»"
+    ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/ficha-producto/SeccionFicha.tsx": [
       "button «{hecho ? \"✓\" : numero}»"
+    ],
+    "components/ficha-producto/UnidadesDePartida.tsx": [
+      "button «+1 a todas»",
+      "button «En 0»"
     ],
     "components/ficha-producto/piezas.tsx": [
       "ComboBuscable «{id}»",

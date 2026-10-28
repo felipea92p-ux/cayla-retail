@@ -703,7 +703,7 @@ function fichaHtml(p){
   }
   if(S.panel==='sede'){
     const uni=lider||term, sel=S.sedesSel||SS(p), igual=sel.length===SS(p).length&&sel.every(x=>SS(p).includes(x));
-    panel=`<div class="panel"><div class="lbl">${lider?'Arranca en':(uni?'Sede':'Sedes')} <em>${uni?'una':'una o varias'}</em></div>
+    panel=`<div class="panel"><div class="lbl">${lider?'Sede donde abre':(uni?'Sede':'Sedes')} <em>${uni?'una':'una o varias'}</em></div>
       <div class="opc">${SEDES.map(s=>{const on=sel.includes(s.id);return `<button data-a="elSede" data-s="${s.id}" aria-pressed="${on}" ${on&&sel.length===1&&!uni?'title="Debe quedar al menos una"':''}>${!uni?`<span class="ckm">${on?ic('check','s'):''}</span>`:''}${s.n}</button>`}).join('')}</div>
       ${uni?'':`<button class="btn pri" data-a="okSedes" ${igual?'disabled':''}>Guardar sedes</button>`}</div>`;
   }

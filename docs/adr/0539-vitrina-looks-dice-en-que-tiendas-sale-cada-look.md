@@ -44,3 +44,16 @@ Una sola parte (`20261027204000`), idempotente, que solo crea dos funciones: no 
 
 - Revisar las 8 pruebas viejas de `pnpm pruebas:vitrina-looks` que ya fallaban en `main` con esta base local (precio, láminas y «hay» de las tallas): no son de este cambio.
 - Si Felipe quiere que el aviso bloquee, es una condición más en `LookHoja` (`sePuedeConfirmar`); hoy no.
+
+## Actualización 2026-10-27 (b): al armar un look solo se elige lo que hay
+
+Felipe (2026-10-27), con la hoja abierta: el aviso decía «no saldría en ninguna tienda» y aun así se podían elegir la blusa beige (solo en TRU) y la cartera blanca (solo en AQP). «Si no hay, o un color ya no hay, no debería poder seleccionarse.» Cambia lo que el DESCARTÉ de arriba dejaba abierto, pero solo en la **selección**, no en el guardado:
+
+- **Una prenda que no hay en ninguna tienda, o un color que ya no hay, no se puede elegir** (la foto se apaga y dice «Sin stock»).
+- **Con prendas ya elegidas, solo se ofrece lo que hay en alguna de las tiendas donde están TODAS ellas**: lo demás se apaga y dice dónde sí hay («Solo en Lima»; al pasar el mouse, «Tus prendas están juntas en Trujillo; esta solo hay en Lima»). El color con que entra una prenda es uno que cumple eso (y, si se filtra por una tienda, uno que haya ahí). En el desplegable de color de una prenda elegida, el color que no coincide con las demás aparece apagado («· sin stock» / «· no coincide en tienda»).
+- **Guardar sigue sin bloquearse**: un look ya guardado al que después se le acabó una prenda conserva sus prendas (el color actual siempre se queda) y el aviso le dice qué le falta. Si lo elegido ya no coincide en ninguna tienda, no se ofrece nada nuevo y se dice «quita una para seguir».
+- **Sin tiendas leídas** (cargando o la base no respondió) no se bloquea nada: se arma como antes.
+- La regla es pura (`lib/vitrina-looks-reglas.ts`: `tiendasEnComun`, `colorElegible`, `porQueNoSeElige`, `colorInicialElegible`, con su prueba) y usa los mismos datos de «hay» de la base: no agrega una regla nueva de stock, no toca migraciones ni la tienda online.
+
+**Se rompe si:** dos personas arman looks a la vez y el stock cambia entre que se abre la hoja y se guarda (la lista de «hay» se lee al abrir la hoja): el look puede guardarse con una prenda que ya se agotó; el aviso y la tienda online lo siguen diciendo bien.
+

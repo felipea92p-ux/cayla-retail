@@ -123,6 +123,7 @@ export function PanelTalla({
   claveInicial,
   varianteInicial,
   flujoInicial = null,
+  volverAEditar = null,
   ubicacionId,
   sedeNombre,
   separa,
@@ -153,6 +154,8 @@ export function PanelTalla({
   varianteInicial?: string;
   /** Abrir directamente en un paso (acción rápida de la tarjeta, «Colgar primero»). Cambia con cada pedido. */
   flujoInicial?: FlujoPedido | null;
+  /** La ficha de Editar producto de donde se llegó (candado → «Ajustar stock»): la vuelta de la planilla va ahí, no a la talla. */
+  volverAEditar?: string | null;
   ubicacionId: string;
   sedeNombre: string;
   separa: boolean;
@@ -483,6 +486,10 @@ export function PanelTalla({
   // Volver a la talla: si hay algo tocado sin guardar, primero «¿Salir sin guardar?».
   const volverDeAjuste = () =>
     pedirAccion(() => {
+      if (volverAEditar) {
+        router.push(volverAEditar);
+        return;
+      }
       setFlujo(null);
       setFocoAjuste(null);
       setListoAjuste(null);
@@ -896,6 +903,7 @@ export function PanelTalla({
                     foco={focoAjuste}
                     onApagarFoco={() => setFocoAjuste(null)}
                     onVolver={volverDeAjuste}
+                    volverA={volverAEditar ? "Editar producto" : undefined}
                     onAbrirConteo={(id) => {
                       // Esa talla faltó en un conteo cerrado: se suma en la ventana completa de Ajustar, que la enlaza a ese conteo.
                       const f = colores.flatMap((c) => c.tallas).find((t) => t.varianteId === id);

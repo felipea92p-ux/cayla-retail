@@ -192,6 +192,9 @@ export function InventarioPanel({
   danadosPendientes,
   abrirDanados = false,
   abrirVariante = null,
+  abrirAjustar = false,
+  abrirSinFila = null,
+  volverAEditar = null,
   apartados,
   editaCatalogo = false,
   puedeAjustar,
@@ -229,6 +232,13 @@ export function InventarioPanel({
   abrirDanados?: boolean;
   /** La talla a abrir al llegar (`?variante=`, desde Movimientos: ADR-0241). */
   abrirVariante?: string | null;
+  /** Abrir esa talla directo en la planilla de «Ajustar stock» (`?ajustar=1`, desde el candado de Editar producto: ADR-0494). */
+  abrirAjustar?: boolean;
+  /** La talla de `?variante=` cuando esta sede nunca la movió (sin fila de `stock`): la página arma su fila en cero y, con `?ajustar=1`, el panel abre
+   *  «Ajustar stock» directo en su prenda, que es donde se le carga su primer stock. */
+  abrirSinFila?: FilaExistencias | null;
+  /** A dónde vuelve la planilla si se llegó desde Editar producto (`?de=`): «Volver a Editar producto». */
+  volverAEditar?: string | null;
   /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
   apartados: Apartado[];
   /** Edita el catálogo (`puede(persona, "editarCatalogo")`): ve «Eliminar el producto» en el detalle, como en Catálogo (ADR-0252; `permisosDelDetalle`). */
@@ -295,7 +305,9 @@ export function InventarioPanel({
   // Colgar, Colgar varias y Subir se hacen DENTRO del panel de la talla (`PanelTalla` + `FlujoTalla`, maqueta 2026-10-06): las ventanas
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
-  const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  // Un producto que esta sede nunca movió (sin fila de `stock`): su planilla de ajuste abre con todos sus colores y tallas.
+  const [ajustandoProducto, setAjustandoProducto] = useState<string | null>(null);
+  const [ajustando, setAjustando] = useState<FilaExistencias | null>(() => (abrirAjustar && puedeAjustar ? abrirSinFila : null));
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
@@ -338,9 +350,12 @@ export function InventarioPanel({
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   // `flujo`: el panel abre YA en un paso (acción rápida de la tarjeta, «Colgar primero»): la maqueta lo hace así, sin ventana aparte.
   // `origen`: la miniatura de la tarjeta desde la que se abrió, para que la foto cruce hasta el modal (ADR-0391).
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; origen?: HTMLElement | null } | null>(() => {
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string; flujo?: FlujoPedido; origen?: HTMLElement | null; deEditar?: boolean } | null>(() => {
     const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
-    return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
+    if (!f) return null;
+    const clave = agruparPorPrenda([f])[0].clave;
+    // Desde el candado de Editar: directo en la planilla. Quien no puede ajustar (o mira otra sede) ve la talla, no la planilla: `puedeAjustarAqui` lo vuelve a exigir al montar.
+    return abrirAjustar && puedeAjustar ? { clave, varianteId: f.varianteId, flujo: { tipo: "ajustar" }, deEditar: Boolean(volverAEditar) } : { clave, varianteId: f.varianteId };
   });
   // Las tallas marcadas para actuar sobre varias a la vez (la barra de abajo). Por talla y no por prenda: una prenda
   // marcada son todas sus tallas, y así el filtro «Talla» no cambia lo que se lleva.
@@ -1333,6 +1348,17 @@ export function InventarioPanel({
       )}
 
 
+      {ajustandoProducto && (
+        <AjustarInventarioModal
+          productoId={ajustandoProducto}
+          ubicacionId={ubicacionId}
+          sububicaciones={sububicaciones}
+          puedeBajarAlPiso={puedeBajarAlPiso}
+          onClose={() => setAjustandoProducto(null)}
+          alCerrarEnfocar={volverFoco}
+        />
+      )}
+
       {viendoDanados && (
         <ResolverDanadosModal
           pendientes={soloPrenda ? deLaPrenda(danadosPendientes, soloPrenda) : danadosPendientes}
@@ -1370,10 +1396,15 @@ export function InventarioPanel({
         <BuscarPrendaParaAjustar
           indice={indiceBusqueda}
           sedeNombre={sedeNombre}
+          sinStock={sinStock}
           onClose={() => setBuscandoAjuste(false)}
           onElegir={(clave, varianteId) => {
             setBuscandoAjuste(false);
             setAbierta({ clave, varianteId, flujo: { tipo: "ajustar" } });
+          }}
+          onElegirSinStock={(productoId) => {
+            setBuscandoAjuste(false);
+            setAjustandoProducto(productoId);
           }}
         />
       )}
@@ -1383,7 +1414,8 @@ export function InventarioPanel({
           colores={coloresDelModelo(stock, prendaAbierta.productoId)}
           claveInicial={prendaAbierta.clave}
           varianteInicial={abierta?.varianteId}
-          flujoInicial={abierta?.flujo ?? null}
+          flujoInicial={abierta?.flujo?.tipo === "ajustar" && !puedeAjustarAqui ? null : (abierta?.flujo ?? null)}
+          volverAEditar={abierta?.deEditar ? volverAEditar : null}
           ubicacionId={ubicacionId}
           sedeNombre={sedeNombre}
           separa={separa}
