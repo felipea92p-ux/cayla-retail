@@ -114,6 +114,11 @@ describe("gruposDeDinero", () => {
     const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY)[0];
     expect(tru.filas.find((f) => f.id === "fTRU")!.escala).toBe(escalaDeCuenta(6200, 18300));
   });
+  it("cada grupo lleva su lugar en la lista de sedes, el mismo con todas las sedes que con una sola; CAYLA entera y En camino no tienen", () => {
+    const todas = gruposDeDinero(CUENTAS, SEDES, null, HOY);
+    expect(todas.map((x) => [x.clave, x.posicion])).toEqual([["tru", 0], ["aqp", 1], ["tal", 3], ["empresa", -1], ["camino", -1]]);
+    expect(gruposDeDinero(CUENTAS, SEDES, "aqp", HOY)[0]!.posicion).toBe(1);
+  });
   it("cada banco trae su insignia de conciliación", () => {
     const emp = gruposDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "empresa")!;
     expect(emp.filas.find((f) => f.id === "bcp")!.insignia?.texto).toContain("conciliada");

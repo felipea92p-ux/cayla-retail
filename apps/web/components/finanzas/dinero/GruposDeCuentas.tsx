@@ -4,12 +4,13 @@ import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
-import { colorDeGrupo, montoConSigno, type FilaCuenta, type GrupoCuentas } from "@/lib/dinero-telar-reglas";
-import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
+import { montoConSigno, type FilaCuenta, type GrupoCuentas } from "@/lib/dinero-telar-reglas";
+import { colorDeGrupoEnReparto } from "@/lib/dinero-reparto-reglas";
 
 // Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): una tarjeta por sede y, adentro, una fila por cuenta con su saldo a
 // la derecha, lo que dice de ella debajo del nombre y una barra fina de cuánto pesa contra la cuenta con más plata. Hasta el
-// 2026-10-28 cada cuenta era un frasco que se llenaba (ADR-0497); se cambió porque un dibujo no deja comparar cifras ni leerlas.
+// 2026-10-28 cada cuenta era un frasco que se llenaba (ADR-0497); se cambió porque un dibujo no deja comparar cifras ni leerlas. El punto
+// de cada tarjeta lleva el color de su grupo en el círculo de arriba (`RepartoDeDinero`), para que las dos se lean como una sola cosa.
 // El grupo, el orden y el peso de cada fila los decide `lib/dinero-telar-reglas.ts`; aquí solo se dibuja. Sin estado: sirve en el
 // servidor. Sin movimiento propio: las barras son las de `BarraAvance` (se llenan una vez al verse) y las tarjetas entran en cascada.
 
@@ -35,7 +36,7 @@ function FilaDeCuenta({ f, i }: { f: FilaCuenta; i: number }) {
   );
 }
 
-export function GruposDeCuentas({ grupos, sedes }: { grupos: GrupoCuentas[]; sedes: readonly SedeTelar[] }) {
+export function GruposDeCuentas({ grupos }: { grupos: GrupoCuentas[] }) {
   if (grupos.length === 0) {
     return (
       <Superficie>
@@ -52,7 +53,7 @@ export function GruposDeCuentas({ grupos, sedes }: { grupos: GrupoCuentas[]; sed
         <article
           key={g.clave}
           className="din-grupo anim-entra"
-          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeGrupo(g.clave, sedes) } as CSSProperties}
+          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeGrupoEnReparto(g) } as CSSProperties}
           aria-label={`${g.titulo}: ${montoConSigno(g.total)}`}
         >
           <header className="din-grupo-cab">

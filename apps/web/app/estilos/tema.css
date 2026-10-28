@@ -75,6 +75,14 @@
     --color-sede-tal: #a26cc6;
     --color-sede-emp: #8a7d70;
 
+    /* El círculo de «Dónde está»: los mismos tonos, ajustados para leerse sobre el fondo oscuro. */
+    --color-reparto-verde-claro: #8fcf79;
+    --color-reparto-menta: #5f8f52;
+    --color-reparto-terracota: #e0845e;
+    --color-reparto-arcilla: #b9714f;
+    --color-reparto-ocre: #e6bb68;
+    --color-reparto-pizarra-claro: #6b8199;
+
     /* Sombras: en oscuro la tinta no se ve sobre la tinta; son de negro y más abiertas, solo para lo que flota. */
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow: 0 2px 8px -2px rgb(0 0 0 / 0.35);
@@ -143,6 +151,12 @@
     --color-sede-lim: #1d8a72;
     --color-sede-tal: #8a4fa8;
     --color-sede-emp: #9a8b7b;
+    --color-reparto-verde-claro: #78b060;
+    --color-reparto-menta: #b7d8a6;
+    --color-reparto-terracota: #cb6a42;
+    --color-reparto-arcilla: #e3ab8d;
+    --color-reparto-ocre: #d7a44a;
+    --color-reparto-pizarra-claro: #9db2c6;
     --color-metodo-redondeo: var(--color-taupe);
 
     --color-background: var(--color-crema);

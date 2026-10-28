@@ -105,9 +105,10 @@ Todo se apaga con `prefers-reduced-motion`.
 Felipe vio la pantalla con datos reales y la rechazó: los frascos con líquido son decoración y no sirven para gestionar. Pidió que se
 presente como un informe de Anthropic o de Apple, con un gráfico circular o algo con estilo, y no como una lista aburrida.
 
-**DECIDÍ:** «Dónde está» abre con un resumen (`RepartoDeDinero`): un círculo que reparte la plata entre las sedes y CAYLA entera, con lo
-que hay al centro y, al lado, una leyenda con monto y porcentaje de cada una. Debajo, una tarjeta por sede con una fila por cuenta
-(nombre, qué es, estado, saldo a la derecha y una barra fina de cuánto pesa). Cada color es el que la sede ya tiene en toda Finanzas.
+**DECIDÍ:** «Dónde está» abre con un resumen (`RepartoDeDinero`): un círculo que es toda la plata de CAYLA, partido en los lugares donde está
+(cada cuenta con saldo), con lo que hay al centro y, al lado, una leyenda con monto y porcentaje de cada una. Debajo, una tarjeta por sede
+con una fila por cuenta (nombre, qué es, estado, saldo a la derecha y una barra fina de cuánto pesa). Los verdes son los bancos, los
+terracotas las tiendas y la pizarra lo que viene en camino.
 
 **DESCARTÉ:**
 - **Seguir con los frascos.** El nivel salía de una raíz cuadrada, así que el dibujo mentía: S/ 500 parecía la mitad de un banco de
@@ -120,14 +121,21 @@ que hay al centro y, al lado, una leyenda con monto y porcentaje de cada una. De
 depósitos que ventas con tarjeta): un círculo reparte partes mayores que cero, así que lo negativo se dice aparte y el total lo resta.
 
 **Cómo funciona:**
-- El círculo solo aparece con dos o más grupos con plata: con una sede elegida es un solo grupo y no dice nada.
+- El círculo aparece con dos o más cuentas con plata; con una sede elegida reparte su cajón y su caja fuerte.
+- La primera versión repartía por sede y «CAYLA entera» era una sola porción de casi todo el círculo (77 %). Felipe, viéndola con datos
+  reales, pidió que el círculo fuera el todo y que cada parte se viera con color: ahora cada porción es una cuenta, así los bancos se
+  ven uno por uno. Una cuenta que pesa menos de 1 % dice «<1 %» y no le quita un punto a otra.
+- Los colores son tokens: verde y verde claro para los bancos, pareja de terracotas por tienda (en el orden de la lista de ubicaciones, así
+  una tienda lleva los mismos tonos con todas las sedes que con una sola), pizarra para lo en camino. Seis colores de dato nuevos
+  (`--color-reparto-*`, en claro y en oscuro) siguen el precedente de los de sede; la paleta oficial no cambia. El color de una cuenta no
+  depende de su saldo: no cambia de un día a otro.
 - Los porcentajes enteros suman 100 (método del mayor resto): tres tercios dan 33 + 33 + 34, no 99.
 - Lo negativo no entra al círculo; «Tienes hoy» lo resta y coincide con la cabecera.
 - La barra de cada fila es lineal contra la cuenta con más plata. La cifra va escrita al lado, así que ya no hace falta deformarla.
 - Dentro de la tarjeta de una sede, el nombre pierde el lugar repetido: «Caja Operativa», no «Caja Operativa · Tienda AQP».
 - Un saldo negativo se escribe siempre igual (por ejemplo `−S/ 24,000`, con el menos de verdad) en la fila y en el total del grupo.
 
-**Piezas y reglas:** `lib/dinero-reparto-reglas.ts` (qué porción le toca a cada grupo), `components/finanzas/dinero/RepartoDeDinero.tsx`
+**Piezas y reglas:** `lib/dinero-reparto-reglas.ts` (qué porción y qué color le toca a cada cuenta), `components/finanzas/dinero/RepartoDeDinero.tsx`
 (el círculo y la leyenda; el único estado es qué porción se mira) y `components/finanzas/dinero/GruposDeCuentas.tsx` (las tarjetas).
 Las barras son `BarraAvance` y los chips, `Chip`. Movimiento (ADR-0136, excepción de Finanzas, D7): las porciones se trazan una vez
 y en cascada, sin rebote ni bucle, y se apagan con `prefers-reduced-motion`. Tampoco se ven con el `:hover` de CSS: la porción que se
