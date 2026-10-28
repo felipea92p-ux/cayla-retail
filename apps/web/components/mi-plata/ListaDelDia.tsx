@@ -130,7 +130,9 @@ export function HojaDeRonda({ e, envios, hoy, onClose, volverA }: { e: EntradaRo
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-taupe">En esta ronda no anotaste compras ni gastos.</p>
+          <Vacio icono={<Flag aria-hidden />} titulo="Nada anotado" tamano="chico">
+            En esta ronda no anotaste compras ni gastos.
+          </Vacio>
         )}
         <p className="flex items-baseline justify-between gap-3 border-t border-sand pt-3 text-sm">
           <span className="text-tinta/65">Salió de tu plata</span>

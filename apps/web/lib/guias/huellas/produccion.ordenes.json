@@ -123,12 +123,12 @@
       "button «Cambiar»"
     ],
     "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "CampoSelect «Proveedor»",
+      "button «+ Registrar proveedor nuevo»",
       "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
       "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
-      "CampoSelect «Proveedor»",
       "CampoMonto «Cobra por esta orden»",
       "CampoFecha «Prometido para»",
-      "CampoSelect «Proveedor» #2",
       "CampoMonto «Por prenda»",
       "CampoTexto «Cantidad mínima»",
       "CampoFecha «Prometido para» #2",

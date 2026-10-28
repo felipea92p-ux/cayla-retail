@@ -4,6 +4,7 @@ import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStockId } from "@/lib/stock-por-sede";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { COLUMNAS_FILA_EN_CERO, filaEnCero } from "@/lib/existencias-fila-en-cero";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
 import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
@@ -369,6 +370,22 @@ export async function getExistencias(
     });
   }
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
+}
+
+/**
+ * La fila en cero de UNA talla que esta sede nunca tuvo (ni una fila de `stock`), para abrir «Ajustar stock» en ella.
+ *
+ * Existencias arma sus filas desde `stock`, y una fila de `stock` nace de un movimiento: una prenda recién creada (o una talla que nunca llegó a
+ * esta tienda) no tiene ninguna, así que `?variante=<id>&ajustar=1` —el candado de Editar producto, ADR-0494— no encontraba nada y la pantalla
+ * no abría nada: justo la prenda a la que hay que cargarle su primer stock. El ajuste no necesita la fila (`AjustarInventarioModal` lee las
+ * tallas del producto de la base y marca «sin historia» la que nunca se movió, ADR-0235): solo necesita saber de qué prenda se habla.
+ * `null` si la variante no existe o está apagada. Mismo cuerpo que la fila «en camino» de `getExistencias`.
+ */
+export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("variantes").select(COLUMNAS_FILA_EN_CERO).eq("id", varianteId).eq("activo", true).maybeSingle();
+  if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
+  return filaEnCero(data, separaPisoAlmacen);
 }
 
 export type ResumenExistencias = ResumenInventario & {

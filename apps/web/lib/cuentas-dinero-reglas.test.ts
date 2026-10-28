@@ -13,6 +13,7 @@ import {
   saldoConCentimos,
   tituloDelMovimiento,
   explicacionCuenta,
+  idsSoloTransferencia,
   insigniaCuenta,
   leerConciliacion,
   leerCuenta,
@@ -124,6 +125,35 @@ describe("de dónde le llega la plata a cada cuenta, en palabras", () => {
     expect(tiposParaMedio("qr")).toEqual(["por_abonar", "banco"]);
     expect(tiposParaMedio("tarjeta")).toEqual(["por_abonar", "banco"]);
     expect(tiposParaMedio("yape")).toEqual(["banco"]);
+  });
+});
+
+describe("el Taller solo guarda la cuenta de sus transferencias", () => {
+  const TALLER = "taller-1";
+  const fila = (ubicacionId: string, ubicacionNombre: string, medio: FilaMedio["medio"], cuentaId: string | null): FilaMedio => ({ ubicacionId, ubicacionNombre, medio, cuentaId, cuentaNombre: cuentaId, vigenteDesde: null });
+  // Las 2 tiendas de siempre más el Taller, que la base lista solo con «transferencia».
+  const conTaller: FilaMedio[] = [...medios, fila(TALLER, "Taller", "transferencia", "ibk")];
+  const conQr: FilaMedio[] = [...conTaller, fila(TRU, "Tienda TRU", "qr", "pos"), fila(LIM, "Tienda LIM", "qr", "pos")];
+
+  it("reconoce al Taller por lo que la base le lista, y a ninguna tienda", () => {
+    expect([...idsSoloTransferencia(conTaller)]).toEqual([TALLER]);
+    expect(idsSoloTransferencia(medios).size).toBe(0);
+  });
+  it("«Plin de las 2 tiendas» sigue diciendo 2: el Taller no cuenta como tienda", () => {
+    expect(textoRecibe(ibk, conTaller)).toBe("Plin de las 2 tiendas · Yape de LIM · pagos de Taller");
+    expect(textoRecibe(pos, conQr)).toBe("Tarjeta de las 2 tiendas · QR de las 2 tiendas");
+  });
+  it("si todas las sedes usan la misma cuenta, las transferencias de las tiendas no repiten sedes y lo del Taller se dice como pagos", () => {
+    const todas = conTaller.map((m) => (m.medio === "transferencia" ? { ...m, cuentaId: "bcp" } : m));
+    expect(textoRecibe(bcp, todas)).toBe("Yape de TRU · transferencias · pagos de Taller");
+  });
+  it("si el Taller usa otra cuenta, la de las tiendas no lo menciona y la del Taller dice que de ahí paga", () => {
+    expect(textoRecibe(bcp, conTaller)).toBe("Yape de TRU · transferencias");
+    expect(textoRecibe(cuenta({ id: "solo", tipo: "banco" }), [...medios, fila(TALLER, "Taller", "transferencia", "solo")])).toBe("Pagos de Taller");
+  });
+  it("sin la migración (la base no lista al Taller) todo se ve exactamente como antes", () => {
+    expect(textoRecibe(bcp, medios)).toBe("Yape de TRU · transferencias");
+    expect(textoRecibe(ibk, medios)).toBe("Plin de las 2 tiendas · Yape de LIM");
   });
 });
 

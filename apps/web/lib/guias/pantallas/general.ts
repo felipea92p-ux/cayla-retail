@@ -1034,7 +1034,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.cuentas-cobros",
       opcional: true,
       titulo: "A qué cuenta entra cada cobro",
-      texto: "Si en una tienda se cobra con Yape, con tarjeta o con QR, a qué cuenta llega esa plata: un banco, o la cuenta «por depositar» de la máquina que lo cobró. Si lo cambias, cuenta desde hoy; lo pasado no se mueve.",
+      texto: "Si en una tienda se cobra con Yape, tarjeta o QR, a qué cuenta llega esa plata: un banco, o la cuenta «por depositar» de la máquina. El Taller no cobra: solo tiene Transferencia, la cuenta de donde paga, y «Sale de» la propone. Si lo cambias, cuenta desde hoy; lo pasado no se mueve.",
     },
     {
       id: "maquinas",

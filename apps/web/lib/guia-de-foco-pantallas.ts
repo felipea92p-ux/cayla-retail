@@ -100,9 +100,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- finanzas ----
   "/finanzas": PENDIENTE,
   "/finanzas/cierre": PENDIENTE,
-  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: los frascos de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
+  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: el círculo que reparte la plata, las cuentas de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
   "/finanzas/dinero/conciliacion": { estado: "aplicada", evidencia: ["components/finanzas/CuentasDinero.tsx"] },
-  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: los frascos dicen el efectivo de hoy)." },
+  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: las cuentas de Dónde está dicen el efectivo de hoy)." },
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,
@@ -393,6 +393,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/orden-pagina/EditarTelaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/EditarTelaModal.tsx"] },
   "components/orden-produccion/FichaDeConsumoHoja.tsx": { estado: "aplicada", evidencia: ["components/orden-produccion/FichaDeConsumoHoja.tsx"] },
   "components/orden-pagina/MarcarFaseModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién la marca o la deshace): el título dice qué fase queda hecha o por hacer y no cuenta prendas; no hay camino que indicar." },
+  "components/orden-pagina/QuitarPasoModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién quita el paso): el título dice qué paso sale de la orden y la bajada avisa que no se puede volver a agregar; la base rechaza el resto." },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
   // La orden de Producción, en su `<Cajon>` (ADR-0358 ronda 17). Su archivo trae un solo control (quién lo hace), pero el cajón lleva
   // adentro el cierre («Pasar al stock»: `OrdenCierre.tsx`, 4 controles) y los insumos (`OrdenInsumos.tsx`, 4): ahí está el camino que guiar.
