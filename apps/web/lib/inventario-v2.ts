@@ -371,6 +371,55 @@ export async function getExistencias(
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
 
+/**
+ * La fila en cero de UNA talla que esta sede nunca tuvo (ni una fila de `stock`), para abrir «Ajustar stock» en ella.
+ *
+ * Existencias arma sus filas desde `stock`, y una fila de `stock` nace de un movimiento: una prenda recién creada (o una talla que nunca llegó a
+ * esta tienda) no tiene ninguna, así que `?variante=<id>&ajustar=1` —el candado de Editar producto, ADR-0494— no encontraba nada y la pantalla
+ * no abría nada: justo la prenda a la que hay que cargarle su primer stock. El ajuste no necesita la fila (`AjustarInventarioModal` lee las
+ * tallas del producto de la base y marca «sin historia» la que nunca se movió, ADR-0235): solo necesita saber de qué prenda se habla.
+ * `null` si la variante no existe o está apagada. Mismo cuerpo que la fila «en camino» de `getExistencias`.
+ */
+export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("variantes")
+    .select(
+      `id, sku, codigo, talla:tallas ( valor ),
+       color:colores ( nombre, hex ),
+       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+       codigos_barras ( codigo )`
+    )
+    .eq("id", varianteId)
+    .eq("activo", true)
+    .maybeSingle();
+  if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
+  return {
+    varianteId: data.id,
+    productoId: data.producto?.id ?? "",
+    sku: codigoDeEtiqueta(data),
+    talla: data.talla?.valor ?? null,
+    color: data.color?.nombre ?? null,
+    colorHex: data.color?.hex ?? null,
+    referencia: data.producto?.referencia ?? "",
+    categoria: data.producto?.categoria?.nombre ?? null,
+    categoriaPrefijo: data.producto?.categoria?.prefijo ?? null,
+    categoriaFamilia: data.producto?.categoria?.familia ?? null,
+    codigosBarras: (data.codigos_barras ?? []).map((c) => c.codigo),
+    fotoUrl: fotoPrincipal(data.producto?.producto_fotos),
+    total: 0,
+    piso: separaPisoAlmacen ? 0 : null,
+    almacen: separaPisoAlmacen ? 0 : null,
+    danado: separaPisoAlmacen ? 0 : null,
+    apartado: 0,
+    disponible: 0,
+    pisoDisponible: separaPisoAlmacen ? 0 : null,
+    almacenDisponible: separaPisoAlmacen ? 0 : null,
+    enTransito: 0,
+    enRed: [],
+  };
+}
+
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;

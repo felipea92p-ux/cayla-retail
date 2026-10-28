@@ -193,6 +193,7 @@ export function InventarioPanel({
   abrirDanados = false,
   abrirVariante = null,
   abrirAjustar = false,
+  abrirSinFila = null,
   volverAEditar = null,
   apartados,
   editaCatalogo = false,
@@ -233,6 +234,9 @@ export function InventarioPanel({
   abrirVariante?: string | null;
   /** Abrir esa talla directo en la planilla de «Ajustar stock» (`?ajustar=1`, desde el candado de Editar producto: ADR-0494). */
   abrirAjustar?: boolean;
+  /** La talla de `?variante=` cuando esta sede nunca la movió (sin fila de `stock`): la página arma su fila en cero y, con `?ajustar=1`, el panel abre
+   *  «Ajustar stock» directo en su prenda, que es donde se le carga su primer stock. */
+  abrirSinFila?: FilaExistencias | null;
   /** A dónde vuelve la planilla si se llegó desde Editar producto (`?de=`): «Volver a Editar producto». */
   volverAEditar?: string | null;
   /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
@@ -301,7 +305,7 @@ export function InventarioPanel({
   // Colgar, Colgar varias y Subir se hacen DENTRO del panel de la talla (`PanelTalla` + `FlujoTalla`, maqueta 2026-10-06): las ventanas
   // «Reponer prenda» y «Subir prenda» ya no existen. Ajustar y Reportar dañada conservan su ventana completa para lo que el panel no cubre
   // (varias tallas a la vez, enlazar con un conteo).
-  const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
+  const [ajustando, setAjustando] = useState<FilaExistencias | null>(() => (abrirAjustar && puedeAjustar ? abrirSinFila : null));
   // «Ajustar stock» de la cabecera (ADR-0494): cada toque abre «¿Qué prenda vas a ajustar?» (patrón «previo + comparación»).
   const pedidoDeAjuste = usePedidoDeAjuste();
   const [pedidoVisto, setPedidoVisto] = useState(pedidoDeAjuste);
