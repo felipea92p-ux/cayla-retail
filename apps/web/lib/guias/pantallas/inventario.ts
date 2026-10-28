@@ -1522,6 +1522,13 @@ export const GUIA_RECIBIR: Guia = {
       texto: "Toca una llegada para ver qué prendas trajo (te la abrimos).",
     },
     {
+      id: "desplegar",
+      ancla: "recibir.desplegar",
+      opcional: true,
+      titulo: "Ver por color y talla",
+      texto: "La flecha de cada llegada despliega, sin salir de la lista, cuántas prendas entraron de cada color y talla. Vuelve a tocarla para cerrarla.",
+    },
+    {
       id: "detalle",
       ancla: "recibir.detalle",
       opcional: true,
