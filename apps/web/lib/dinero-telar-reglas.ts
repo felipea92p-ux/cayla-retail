@@ -1,6 +1,8 @@
-// Finanzas ▸ Cuentas y dinero en «El telar» (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/): «Dónde está» dibuja
-// cada cuenta como un frasco que se llena hasta su nivel, agrupado por sede (una repisa por sede). Lógica pura: no suma plata
-// que la base no haya sumado (`fn_cuentas_dinero_saldos`), solo agrupa, ordena y decide el nivel de cada frasco.
+// Finanzas ▸ Cuentas y dinero en «El telar» (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/): «Dónde está» lista cada
+// cuenta con su saldo, agrupada por sede (una tarjeta por sede), y una barra fina dice cuánto pesa contra la que más tiene. Hasta el
+// 2026-10-28 cada cuenta era un frasco que se llenaba: se cambió por filas porque el dibujo no dejaba comparar ni leer (ADR-0497,
+// «Actualización 2026-10-28»). Lógica pura: no suma plata que la base no haya sumado (`fn_cuentas_dinero_saldos`), solo agrupa,
+// ordena y decide cuánto pesa cada cuenta.
 //
 // Qué es de quién (decisiones D1–D4, 2026-10-23: con lo que la base ya trae): el cajón y la caja fuerte son de su sede; los
 // bancos, lo entregado al líder (`por_rendir`) y la tarjeta de crédito son de CAYLA entera; lo «por depositar» de las máquinas
@@ -18,17 +20,18 @@ import type { ConciliacionCuenta } from "./cuentas-dinero-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** La clave de la repisa de CAYLA entera y la de lo que viene en camino (las de sede son el id de la ubicación). */
+/** La clave del grupo de CAYLA entera y la de lo que viene en camino (las de sede son el id de la ubicación). */
 export const GRUPO_EMPRESA = "empresa";
 export const GRUPO_CAMINO = "camino";
 
 export type FilaCuenta = {
   id: string;
+  /** Sin el lugar que ya dice el título del grupo («Caja Operativa», no «Caja Operativa · Tienda AQP»). */
   nombre: string;
   tipo: CuentaDinero["tipo"];
-  /** Nulo = no le toca verlo (el cajón abierto, para quien no cierra la caja): el frasco se dibuja sin líquido y lo dice. */
+  /** Nulo = no le toca verlo (el cajón abierto, para quien no cierra la caja): la fila no lleva cifra ni barra y lo dice. */
   saldo: number | null;
-  /** De 0 a 1: cuánto se llena el frasco. Nulo si el saldo no se ve. */
+  /** De 0 a 1: cuánto pesa contra la cuenta con más plata de la pantalla. Nulo si el saldo no se ve. */
   escala: number | null;
   insignia: Insignia | null;
   /** Para qué es, en palabras («Caja abierta hoy», «Yape de TRU y AQP»): lo pone quien llama, que conoce los medios de cobro. */
@@ -41,21 +44,37 @@ export type GrupoCuentas = {
   titulo: string;
   /** Lo que suman los saldos que se ven (sin los ocultos). */
   total: number;
-  /** Algún frasco de la repisa no deja ver su saldo. */
+  /** Alguna cuenta del grupo no deja ver su saldo. */
   ocultos: boolean;
   filas: FilaCuenta[];
-  /** Una línea que explica la repisa cuando hace falta («Los bancos son de CAYLA entera»). */
+  /** Una línea que explica el grupo cuando hace falta («Los bancos son de CAYLA entera»). */
   nota: string | null;
 };
 
 /**
- * El nivel de un frasco contra el más lleno de la pantalla. Con raíz cuadrada, para que un cajón de S/ 500 se vea al lado de un
- * banco de S/ 18,000 (lineal, quedaría vacío). Un frasco en cero o en negativo muestra un fondo mínimo: «hay frasco, está vacío».
+ * Cuánto pesa una cuenta contra la que más plata tiene en la pantalla, de 0 a 1 y en línea recta: S/ 500 junto a S/ 20,000 es el
+ * 2,5 % y se ve como el 2,5 %. Con los frascos se sacaba raíz cuadrada para que el cajón no quedara vacío, y el dibujo mentía:
+ * S/ 500 parecía la mitad de un banco de S/ 18,000. Aquí la cifra va escrita al lado, así que la barra puede ser honesta. En cero
+ * o en negativo no hay barra; nulo si el saldo no se ve.
  */
 export function escalaDeCuenta(saldo: number | null, maximo: number): number | null {
   if (saldo === null) return null;
-  if (saldo <= 0 || maximo <= 0) return 0.04;
-  return r2(0.07 + 0.86 * Math.sqrt(Math.min(saldo, maximo) / maximo));
+  if (saldo <= 0 || maximo <= 0) return 0;
+  return Math.round((Math.min(saldo, maximo) / maximo) * 10000) / 10000;
+}
+
+/** Un saldo con su signo siempre igual, en la cifra de una fila y en el total de su grupo: «S/ 1,100» y «−S/ 24,000» (con el menos de verdad, no el guion). */
+export function montoConSigno(n: number): string {
+  return Math.round(n) < 0 ? `−${solesRedondo(-n)}` : solesRedondo(n);
+}
+
+/**
+ * «Caja Operativa · Tienda AQP» dentro de la tarjeta de Tienda AQP: el lugar ya lo dice el título del grupo, no se repite en cada
+ * fila. Solo quita el lugar si va al final tras « · » y si deja algo escrito.
+ */
+export function nombreSinElLugar(nombre: string, lugar: string): string {
+  const cola = ` · ${lugar}`;
+  return nombre.endsWith(cola) && nombre.length > cola.length ? nombre.slice(0, -cola.length) : nombre;
 }
 
 /**
@@ -70,10 +89,10 @@ export function colorDeGrupo(clave: string | null, sedes: readonly Pick<SedeTela
   return color && color !== "otra" ? `var(--color-sede-${color})` : "var(--color-taupe)";
 }
 
-/** En cada repisa, de lo que está más a la mano a lo que está más lejos: el cajón, la caja fuerte, lo del líder, el banco. */
+/** En cada grupo, de lo que está más a la mano a lo que está más lejos: el cajón, la caja fuerte, lo del líder, el banco. */
 const ORDEN_TIPO: Record<CuentaDinero["tipo"], number> = { cajon: 0, caja_fuerte: 1, por_rendir: 2, banco: 3, por_abonar: 4, tarjeta_credito: 5 };
 
-/** La repisa a la que va una cuenta (ver el encabezado). La tarjeta de crédito no es un frasco: es deuda. */
+/** El grupo al que va una cuenta (ver el encabezado). La tarjeta de crédito no es plata que se tiene: es deuda, y no va en ninguno. */
 export function grupoDe(c: Pick<CuentaDinero, "tipo" | "ubicacionId">): string | null {
   if (c.tipo === "tarjeta_credito") return null;
   if (c.tipo === "por_abonar") return GRUPO_CAMINO;
@@ -82,16 +101,16 @@ export function grupoDe(c: Pick<CuentaDinero, "tipo" | "ubicacionId">): string |
 }
 
 /**
- * Las grupos de «Dónde está». Con una sede elegida, solo la suya (aunque esté vacía: «Lima todavía no tiene plata»); con todas,
- * una por sede en el orden de `ubicaciones` (tiendas y después el Taller), luego CAYLA entera y al final lo que viene en camino.
- * Las grupos sin cuentas no salen.
+ * Los grupos de «Dónde está». Con una sede elegida, solo el suyo (aunque esté vacío: «Lima todavía no tiene plata»); con todas,
+ * uno por sede en el orden de `ubicaciones` (tiendas y después el Taller), luego CAYLA entera y al final lo que viene en camino.
+ * Los grupos sin cuentas no salen.
  */
 export function gruposDeDinero(
   cuentas: readonly CuentaDinero[],
   ubicaciones: readonly { id: string; nombre: string }[],
   ubicacionId: string | null,
   hoy: string,
-  /** Lo que dice cada frasco bajo su nombre y el aviso propio de la pantalla (la caja fuerte que no se deposita). */
+  /** Lo que dice cada fila bajo su nombre y el aviso propio de la pantalla (la caja fuerte que no se deposita). */
   extra: { explicar?: (c: CuentaDinero) => string | null; avisar?: (c: CuentaDinero) => Insignia | null } = {},
 ): GrupoCuentas[] {
   const explicar = extra.explicar ?? (() => null);
@@ -118,7 +137,7 @@ export function gruposDeDinero(
       titulo,
       total: r2(suyas.reduce((a, c) => a + (c.saldo ?? 0), 0)),
       ocultos: suyas.some((c) => c.saldo === null),
-      filas: suyas.map((c) => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, saldo: c.saldo, escala: escalaDeCuenta(c.saldo, maximo), insignia: insigniaCuenta(c, hoy) ?? avisar(c), detalle: explicar(c) })),
+      filas: suyas.map((c) => ({ id: c.id, nombre: nombreSinElLugar(c.nombre, titulo), tipo: c.tipo, saldo: c.saldo, escala: escalaDeCuenta(c.saldo, maximo), insignia: insigniaCuenta(c, hoy) ?? avisar(c), detalle: explicar(c) })),
       nota,
     });
   }
@@ -175,7 +194,7 @@ export function avisoCajaFuerte(
 }
 
 /**
- * Lo que dice el frasco del cajón bajo su nombre: abierta, desde qué hora y cuánto se vendió en efectivo (la misma cuenta del cierre,
+ * Lo que dice la fila del cajón bajo su nombre: abierta, desde qué hora y cuánto se vendió en efectivo (la misma cuenta del cierre,
  * `fn_efectivo_por_tienda`); cerrada, desde cuándo. El Taller no tiene caja: tiene un fondo fijo.
  */
 export function detalleCajon(f: Pick<EfectivoFila, "abierta" | "abiertaEn" | "ventasEfectivo" | "egresos" | "depositos" | "cerradaEn"> | undefined, esTaller: boolean): string | null {

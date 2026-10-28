@@ -100,9 +100,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ---- finanzas ----
   "/finanzas": PENDIENTE,
   "/finanzas/cierre": PENDIENTE,
-  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: los frascos de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
+  "/finanzas/dinero": { estado: "no-aplica", motivo: "Dónde está (El telar) no tiene campos: el círculo que reparte la plata, las cuentas de cada sede, «¿Me alcanza?» y listas de solo lectura. Lo que se llena vive en sus hojas (Registrar movimiento, Poner o sacar plata, Decir de qué cuenta fue), que se declaran como modales." },
   "/finanzas/dinero/conciliacion": { estado: "aplicada", evidencia: ["components/finanzas/CuentasDinero.tsx"] },
-  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: los frascos dicen el efectivo de hoy)." },
+  "/finanzas/dinero/efectivo": { estado: "no-aplica", motivo: "Solo redirige a Cuentas y dinero ▸ Dónde está (Efectivo por tienda se retiró: las cuentas de Dónde está dicen el efectivo de hoy)." },
   "/finanzas/dinero/por-pagar": { estado: "no-aplica", motivo: "Qué debes (El telar) solo mira y filtra: el buscador y los filtros puestos no son un formulario. El pago se abre en la hoja de Compras o de Producción, que tiene su propia guía." },
   "/finanzas/gastos": PENDIENTE,
   "/finanzas/impuestos": PENDIENTE,

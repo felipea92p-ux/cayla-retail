@@ -1,52 +1,37 @@
 import type { CSSProperties } from "react";
 import { Landmark } from "lucide-react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Superficie } from "@/components/finanzas/kit";
-import { solesRedondo } from "@/lib/gastos-reglas";
-import { colorDeGrupo, type FilaCuenta, type GrupoCuentas } from "@/lib/dinero-telar-reglas";
+import { colorDeGrupo, montoConSigno, type FilaCuenta, type GrupoCuentas } from "@/lib/dinero-telar-reglas";
 import type { SedeTelar } from "@/lib/finanzas-telar-reglas";
 
-// Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): cada cuenta es un frasco que se llena hasta su nivel, en la repisa
-// de su sede. El nivel y los grupos los decide `lib/dinero-telar-reglas.ts`; aquí solo se dibuja. Sin estado: sirve en el servidor.
-// El líquido sube una sola vez al llegar, sin rebote (ADR-0136, excepción de Finanzas, D7), y no se mueve con
-// `prefers-reduced-motion` (`app/estilos/finanzas-dinero.css`).
+// Cuentas y dinero ▸ Dónde está (El telar, Felipe 2026-10-23): una tarjeta por sede y, adentro, una fila por cuenta con su saldo a
+// la derecha, lo que dice de ella debajo del nombre y una barra fina de cuánto pesa contra la cuenta con más plata. Hasta el
+// 2026-10-28 cada cuenta era un frasco que se llenaba (ADR-0497); se cambió porque un dibujo no deja comparar cifras ni leerlas.
+// El grupo, el orden y el peso de cada fila los decide `lib/dinero-telar-reglas.ts`; aquí solo se dibuja. Sin estado: sirve en el
+// servidor. Sin movimiento propio: las barras son las de `BarraAvance` (se llenan una vez al verse) y las tarjetas entran en cascada.
 
-const JARRA = "M24 4h24v8c0 4 14 6 14 18v58a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V30c0-12 14-14 14-18z";
-
-function DibujoCuenta({ f, i }: { f: FilaCuenta; i: number }) {
-  const y = f.escala === null ? 96 : 96 - f.escala * 82 - 8;
-  const clip = `din-cl-${f.id}`;
+function FilaDeCuenta({ f, i }: { f: FilaCuenta; i: number }) {
+  const oculto = f.saldo === null;
+  const saldo = f.saldo ?? 0;
   return (
-    <div className="din-frasco" data-oculto={f.saldo === null ? "" : undefined}>
-      <svg viewBox="0 0 72 96" aria-hidden="true">
-        <defs>
-          <clipPath id={clip}>
-            <path d={JARRA} />
-          </clipPath>
-        </defs>
-        <path className="din-vidrio" d={JARRA} />
-        {f.escala !== null && (
-          <g clipPath={`url(#${clip})`}>
-            <g className="din-liquido" style={{ ["--i" as string]: i } as CSSProperties}>
-              <rect x="0" y={y} width="72" height="100" />
-              <path d={`M0 ${y} Q 18 ${y - 3} 36 ${y} T 72 ${y}`} />
-            </g>
-          </g>
-        )}
-        <path className="din-brillo" d="M17 36v40" />
-      </svg>
-      <span className="din-frasco-saldo">{f.saldo === null ? "Lo ve quien cierra la caja" : f.saldo < 0 ? `−${solesRedondo(-f.saldo)}` : solesRedondo(f.saldo)}</span>
-      <span className="din-frasco-nombre">
-        {f.nombre}
-        {f.detalle && <small>{f.detalle}</small>}
-      </span>
+    <li className="din-fila" data-oculto={oculto ? "" : undefined} data-negativo={Math.round(saldo) < 0 ? "" : undefined}>
+      <div className="din-fila-cab">
+        <span className="din-fila-nombre">
+          {f.nombre}
+          {f.detalle && <small>{f.detalle}</small>}
+        </span>
+        <b className="din-fila-saldo">{oculto ? "Lo ve quien cierra la caja" : montoConSigno(saldo)}</b>
+      </div>
       {f.insignia && (
         <Chip tono={f.insignia.tono} versalitas={false}>
           {f.insignia.texto}
         </Chip>
       )}
-    </div>
+      {f.escala !== null && <BarraAvance pct={f.escala * 100} alto="fina" tono="tinta" decorativa indice={i} />}
+    </li>
   );
 }
 
@@ -62,32 +47,32 @@ export function GruposDeCuentas({ grupos, sedes }: { grupos: GrupoCuentas[]; sed
   }
   let n = 0;
   return (
-    <section className="din-estante" aria-label="Dónde está la plata" data-guia="fin-dinero.cuentas">
-      {grupos.map((r, i) => (
+    <section className="din-grupos" aria-label="Dónde está la plata" data-guia="fin-dinero.cuentas">
+      {grupos.map((g, i) => (
         <article
-          key={r.clave}
-          className="din-repisa anim-entra"
-          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeGrupo(r.clave, sedes) } as CSSProperties}
-          aria-label={`${r.titulo}: ${solesRedondo(r.total)}`}
+          key={g.clave}
+          className="din-grupo anim-entra"
+          style={{ ["--i" as string]: i + 1, ["--c" as string]: colorDeGrupo(g.clave, sedes) } as CSSProperties}
+          aria-label={`${g.titulo}: ${montoConSigno(g.total)}`}
         >
-          <header className="din-repisa-cab">
-            <span className="din-repisa-sede">
+          <header className="din-grupo-cab">
+            <span className="din-grupo-sede">
               <i aria-hidden="true" />
-              {r.titulo}
+              {g.titulo}
             </span>
-            <b className="din-repisa-total">
-              {solesRedondo(r.total)}
-              {r.ocultos && <span className="din-repisa-mas"> y lo que no ves</span>}
+            <b className="din-grupo-total">
+              {montoConSigno(g.total)}
+              {g.ocultos && <span className="din-grupo-mas"> y lo que no ves</span>}
             </b>
           </header>
-          {r.filas.length > 0 && (
-            <div className="din-frascos">
-              {r.filas.map((f) => (
-                <DibujoCuenta key={f.id} f={f} i={n++} />
+          {g.filas.length > 0 && (
+            <ul className="din-filas" role="list">
+              {g.filas.map((f) => (
+                <FilaDeCuenta key={f.id} f={f} i={n++} />
               ))}
-            </div>
+            </ul>
           )}
-          {r.nota && <p className="din-repisa-nota">{r.nota}</p>}
+          {g.nota && <p className="din-grupo-nota">{g.nota}</p>}
         </article>
       ))}
     </section>

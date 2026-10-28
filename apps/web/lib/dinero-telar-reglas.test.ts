@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, detalleCajon, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { solesRedondo } from "./gastos-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, detalleCajon, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
   cajaId: null, cajaAbierta: false, saldoDesde: null, ultimaConciliacion: null, ultimoAbono: null, orden: 0, ...p,
 });
-// La historia de la maqueta (jueves 15 de octubre): cada sol en su repisa.
+// La historia de la maqueta (jueves 15 de octubre): cada sol en su grupo.
 const CUENTAS: CuentaDinero[] = [
   cuenta({ id: "bcp", nombre: "BCP", tipo: "banco", saldo: 18300, ultimaConciliacion: "2026-10-14" }),
   cuenta({ id: "ibk", nombre: "Interbank", tipo: "banco", saldo: 9830 }),
@@ -30,7 +31,7 @@ const HOY = "2026-10-15";
 const plano = (t: string) => t.replace(/\s/g, " ");
 
 describe("grupoDe", () => {
-  it("el cajón y la caja fuerte van a su sede; bancos y lo del líder, a CAYLA entera; las máquinas, en camino; la tarjeta no es frasco", () => {
+  it("el cajón y la caja fuerte van a su sede; bancos y lo del líder, a CAYLA entera; las máquinas, en camino; la tarjeta no va en ninguno", () => {
     expect(grupoDe({ tipo: "cajon", ubicacionId: "tru" })).toBe("tru");
     expect(grupoDe({ tipo: "caja_fuerte", ubicacionId: "aqp" })).toBe("aqp");
     expect(grupoDe({ tipo: "banco", ubicacionId: null })).toBe("empresa");
@@ -41,18 +42,50 @@ describe("grupoDe", () => {
 });
 
 describe("escalaDeCuenta", () => {
-  it("sube con raíz cuadrada, el más lleno llega a 0.93 y lo vacío deja un fondo mínimo", () => {
-    expect(escalaDeCuenta(18300, 18300)).toBe(0.93);
-    expect(escalaDeCuenta(4575, 18300)).toBe(0.5); // un cuarto de la plata se ve a la mitad
-    expect(escalaDeCuenta(0, 18300)).toBe(0.04);
-    expect(escalaDeCuenta(-50, 18300)).toBe(0.04);
+  it("es una línea recta: la que más tiene llega a 1 y un cuarto de la plata se ve como un cuarto", () => {
+    expect(escalaDeCuenta(18300, 18300)).toBe(1);
+    expect(escalaDeCuenta(4575, 18300)).toBe(0.25);
+    expect(escalaDeCuenta(500, 20000)).toBe(0.025); // S/ 500 junto a S/ 20,000: una astilla, y es verdad
+  });
+  it("lo que pesa es proporcional: el doble de plata es el doble de barra (con raíz cuadrada no lo era)", () => {
+    expect(escalaDeCuenta(2000, 10000)! * 2).toBeCloseTo(escalaDeCuenta(4000, 10000)!, 10);
+  });
+  it("en cero o en negativo no hay barra, y con un saldo que no se ve no hay nada que medir", () => {
+    expect(escalaDeCuenta(0, 18300)).toBe(0);
+    expect(escalaDeCuenta(-50, 18300)).toBe(0);
+    expect(escalaDeCuenta(10, 0)).toBe(0);
     expect(escalaDeCuenta(null, 18300)).toBeNull();
-    expect(escalaDeCuenta(10, 0)).toBe(0.04);
+  });
+  it("nunca pasa de 1, aunque la cuenta sea más grande que el máximo que se le dio", () => {
+    expect(escalaDeCuenta(25000, 18300)).toBe(1);
+  });
+});
+
+describe("montoConSigno", () => {
+  it("escribe el negativo con el menos de verdad y siempre igual; el cero no lleva signo", () => {
+    expect(montoConSigno(1141)).toBe(solesRedondo(1141));
+    expect(montoConSigno(-24000)).toBe(`−${solesRedondo(24000)}`);
+    expect(montoConSigno(-950.4)).toBe(`−${solesRedondo(950.4)}`);
+    expect(montoConSigno(0)).toBe(solesRedondo(0));
+    expect(montoConSigno(-0.3)).toBe(solesRedondo(0)); // un negativo que redondea a cero no se escribe «−S/ 0»
+  });
+});
+
+describe("nombreSinElLugar", () => {
+  it("quita el lugar que ya dice el título del grupo", () => {
+    expect(nombreSinElLugar("Caja Operativa · Tienda AQP", "Tienda AQP")).toBe("Caja Operativa");
+    expect(nombreSinElLugar("Fondo fijo · Taller", "Taller")).toBe("Fondo fijo");
+  });
+  it("deja el nombre como está si el lugar no va al final tras « · », o si no queda nada", () => {
+    expect(nombreSinElLugar("Cajón · TRU", "Trujillo")).toBe("Cajón · TRU");
+    expect(nombreSinElLugar("BCP Empresa", "CAYLA entera")).toBe("BCP Empresa");
+    expect(nombreSinElLugar("Taller · Mi caja", "Taller")).toBe("Taller · Mi caja");
+    expect(nombreSinElLugar(" · Taller", "Taller")).toBe(" · Taller");
   });
 });
 
 describe("gruposDeDinero", () => {
-  it("con todas: una repisa por sede con cuentas, en el orden de las sedes, y después CAYLA entera y En camino", () => {
+  it("con todas: un grupo por sede con cuentas, en el orden de las sedes, y después CAYLA entera y En camino", () => {
     const r = gruposDeDinero(CUENTAS, SEDES, null, HOY);
     expect(r.map((x) => [x.clave, x.titulo, x.total])).toEqual([
       ["tru", "Trujillo", 6700],
@@ -61,23 +94,23 @@ describe("gruposDeDinero", () => {
       ["empresa", "CAYLA entera", 28130],
       ["camino", "En camino", 2140],
     ]);
-    // Lima no tiene cuentas: no sale. La tarjeta y lo archivado no son frascos.
+    // Lima no tiene cuentas: no sale. La tarjeta y lo archivado no salen.
     expect(r.flatMap((x) => x.filas.map((f) => f.id))).not.toContain("visa");
     expect(r.flatMap((x) => x.filas.map((f) => f.id))).not.toContain("vieja");
   });
-  it("el saldo que no se ve no suma, marca la repisa y deja el frasco sin nivel", () => {
+  it("el saldo que no se ve no suma, marca el grupo y deja la fila sin escala", () => {
     const aqp = gruposDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "aqp")!;
     expect(aqp.ocultos).toBe(true);
     expect(aqp.filas.find((f) => f.id === "cAQP")!.escala).toBeNull();
   });
-  it("con una sede: solo su repisa, aunque esté vacía, con la nota que lo dice", () => {
+  it("con una sede: solo su grupo, aunque esté vacía, con la nota que lo dice", () => {
     expect(gruposDeDinero(CUENTAS, SEDES, "tru", HOY).map((x) => x.clave)).toEqual(["tru"]);
     const lim = gruposDeDinero(CUENTAS, SEDES, "lim", HOY);
     expect(lim).toHaveLength(1);
     expect(lim[0].filas).toEqual([]);
     expect(lim[0].nota).toContain("Todavía no tiene");
   });
-  it("el nivel se mide contra el frasco más lleno de TODA la empresa, también con una sede elegida", () => {
+  it("la escala se mide contra la cuenta con más plata de TODA la empresa, también con una sede elegida", () => {
     const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY)[0];
     expect(tru.filas.find((f) => f.id === "fTRU")!.escala).toBe(escalaDeCuenta(6200, 18300));
   });
@@ -88,8 +121,20 @@ describe("gruposDeDinero", () => {
   });
 });
 
+describe("gruposDeDinero · el nombre de cada fila", () => {
+  it("dentro de la tarjeta de su sede, la fila no repite el lugar; fuera de ella, lo conserva", () => {
+    const cs = [
+      cuenta({ id: "c1", nombre: "Caja Operativa · Trujillo", tipo: "cajon", ubicacionId: "tru", saldo: 100 }),
+      cuenta({ id: "b1", nombre: "BCP Empresa", tipo: "banco", saldo: 900 }),
+    ];
+    const g = gruposDeDinero(cs, SEDES, null, HOY);
+    expect(g.find((x) => x.clave === "tru")!.filas.map((f) => f.nombre)).toEqual(["Caja Operativa"]);
+    expect(g.find((x) => x.clave === "empresa")!.filas.map((f) => f.nombre)).toEqual(["BCP Empresa"]);
+  });
+});
+
 describe("gruposDeDinero · el detalle", () => {
-  it("cada frasco lleva lo que dice quien llama, y nada si no dice", () => {
+  it("cada fila lleva lo que dice quien llama, y nada si no dice", () => {
     const r = gruposDeDinero(CUENTAS, SEDES, "tru", HOY, { explicar: (c) => (c.tipo === "cajon" ? "Caja abierta hoy" : null) })[0];
     expect(r.filas.map((f) => f.detalle)).toEqual(["Caja abierta hoy", null]);
     expect(gruposDeDinero(CUENTAS, SEDES, "tru", HOY)[0].filas.every((f) => f.detalle === null)).toBe(true);
@@ -126,7 +171,7 @@ describe("ultimoDepositoDe y avisoCajaFuerte", () => {
     expect(avisoCajaFuerte({ id: "fAQP", tipo: "caja_fuerte", saldo: null }, MOVS, HOY)).toBeNull();
     expect(avisoCajaFuerte({ id: "cTRU", tipo: "cajon", saldo: 500 }, MOVS, HOY)).toBeNull();
   });
-  it("el aviso llega al frasco cuando la cuenta no trae insignia propia", () => {
+  it("el aviso llega a la fila cuando la cuenta no trae insignia propia", () => {
     const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY, { avisar: (c) => avisoCajaFuerte(c, MOVS, HOY) })[0];
     expect(tru.filas.find((f) => f.id === "fTRU")!.insignia).toEqual({ texto: "depositada hace 2 días", tono: "verde" });
   });
