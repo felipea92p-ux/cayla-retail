@@ -5,8 +5,9 @@
 // ordena y decide cuánto pesa cada cuenta.
 //
 // Qué es de quién (decisiones D1–D4, 2026-10-23: con lo que la base ya trae): el cajón y la caja fuerte son de su sede; los
-// bancos, lo entregado al líder (`por_rendir`) y la tarjeta de crédito son de CAYLA entera; lo «por depositar» de las máquinas
-// va aparte, «En camino», porque todavía no tiene sede.
+// bancos, lo entregado al líder (`por_rendir`) y la tarjeta de crédito son de la empresa (el grupo «Empresa», el mismo hilo de la
+// barra común: lo que no es de ninguna sede); lo «por depositar» de las máquinas va aparte, «En camino», porque todavía no tiene sede.
+// «Todas» es todo eso junto y repartido por sede; «Empresa» solo la parte de la empresa (`GRUPOS_DE_LA_EMPRESA`, 2026-10-28).
 
 import { cuentasVisibles, diaYNumero, insigniaCuenta, type CuentaDinero, type EfectivoFila, type Insignia, type MovimientoDinero } from "./cuentas-dinero-reglas";
 import { diaLima, diasEntreFechas, horaLima } from "./fechas-lima";
@@ -20,9 +21,16 @@ import type { ConciliacionCuenta } from "./cuentas-dinero-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** La clave del grupo de CAYLA entera y la de lo que viene en camino (las de sede son el id de la ubicación). */
+/** La clave del grupo de la empresa (lo que no es de ninguna sede) y la de lo que viene en camino (las de sede son el id de la ubicación). */
 export const GRUPO_EMPRESA = "empresa";
 export const GRUPO_CAMINO = "camino";
+
+/**
+ * Lo que mira «Empresa» en la barra (Felipe 2026-10-28: «Empresa» y «Todas» no son lo mismo): las cuentas que no son de ninguna sede
+ * —los bancos y lo entregado al líder— y lo que viene en camino, que todavía no tiene sede (`orilloDeDinero` ya lo cuenta ahí). «Todas»
+ * es toda la plata repartida por sede, y la empresa es una de esas partes.
+ */
+export const GRUPOS_DE_LA_EMPRESA: readonly string[] = [GRUPO_EMPRESA, GRUPO_CAMINO];
 
 export type FilaCuenta = {
   id: string;
@@ -103,14 +111,46 @@ export function grupoDe(c: Pick<CuentaDinero, "tipo" | "ubicacionId">): string |
 }
 
 /**
- * Los grupos de «Dónde está». Con una sede elegida, solo el suyo (aunque esté vacío: «Lima todavía no tiene plata»); con todas,
- * uno por sede en el orden de `ubicaciones` (tiendas y después el Taller), luego CAYLA entera y al final lo que viene en camino.
- * Los grupos sin cuentas no salen.
+ * Qué grupos mira «Dónde está» según lo que dice la barra: una sede (solo su cajón y su caja fuerte), la empresa (`GRUPOS_DE_LA_EMPRESA`)
+ * o todas (`null`: toda la plata, un grupo por sede). La empresa y una sede nunca se piden a la vez.
+ */
+export function gruposDelAlcance(ubicacionId: string | null, soloEmpresa: boolean): readonly string[] | null {
+  if (soloEmpresa) return GRUPOS_DE_LA_EMPRESA;
+  return ubicacionId ? [ubicacionId] : null;
+}
+
+/**
+ * Las cuentas que suman en el «Tienes» de lo que se mira. Con todas, todas; con una sede, solo las suyas (los bancos son de la empresa
+ * y no se le suman); con la empresa, sus bancos, lo del líder, lo que viene en camino y la tarjeta de crédito (la deuda es suya, de ninguna sede).
+ */
+export function cuentasDelAlcance(cuentas: readonly CuentaDinero[], grupos: readonly string[] | null): CuentaDinero[] {
+  if (!grupos) return [...cuentas];
+  return cuentas.filter((c) => {
+    const g = grupoDe(c);
+    return g === null ? grupos.includes(GRUPO_EMPRESA) : grupos.includes(g);
+  });
+}
+
+/**
+ * Los movimientos entre cuentas que toca la empresa: los que sacan o meten plata de una cuenta suya (un depósito del cajón al banco
+ * entra; pasar plata del cajón a la caja fuerte de la misma tienda no). La base ya sabe filtrar por sede (`fn_movimientos_dinero`); por
+ * «empresa» no, y cada extremo se busca por su cuenta, también si la cuenta ya se archivó.
+ */
+export function movimientosDeLaEmpresa<M extends { origenId: string | null; destinoId: string | null }>(movimientos: readonly M[], cuentas: readonly CuentaDinero[]): M[] {
+  const suyas = new Set(cuentasDelAlcance(cuentas, GRUPOS_DE_LA_EMPRESA).map((c) => c.id));
+  return movimientos.filter((m) => (m.origenId !== null && suyas.has(m.origenId)) || (m.destinoId !== null && suyas.has(m.destinoId)));
+}
+
+/**
+ * Los grupos de «Dónde está». `alcance` dice cuáles (ver `gruposDelAlcance`): con una sede, solo el suyo (aunque esté vacío: «Lima
+ * todavía no tiene plata»); con la empresa, el suyo y lo que viene en camino; con todas (`null`), uno por sede en el orden de
+ * `ubicaciones` (tiendas y después el Taller), luego la empresa y al final lo que viene en camino. Un grupo sin cuentas solo sale si es
+ * de una sede que se pidió sola.
  */
 export function gruposDeDinero(
   cuentas: readonly CuentaDinero[],
   ubicaciones: readonly { id: string; nombre: string }[],
-  ubicacionId: string | null,
+  alcance: string | readonly string[] | null,
   hoy: string,
   /** Lo que dice cada fila bajo su nombre y el aviso propio de la pantalla (la caja fuerte que no se deposita). */
   extra: { explicar?: (c: CuentaDinero) => string | null; avisar?: (c: CuentaDinero) => Insignia | null } = {},
@@ -119,16 +159,18 @@ export function gruposDeDinero(
   const avisar = extra.avisar ?? (() => null);
   const vis = cuentasVisibles(cuentas, null).filter((c) => grupoDe(c) !== null);
   const maximo = Math.max(0, ...vis.map((c) => c.saldo ?? 0));
-  const claves = ubicacionId ? [ubicacionId] : [...ubicaciones.map((u) => u.id), GRUPO_EMPRESA, GRUPO_CAMINO];
+  const pedidos = alcance === null ? null : typeof alcance === "string" ? [alcance] : alcance;
+  const claves = pedidos ?? [...ubicaciones.map((u) => u.id), GRUPO_EMPRESA, GRUPO_CAMINO];
   const grupos: GrupoCuentas[] = [];
   for (const clave of claves) {
     const suyas = vis.filter((c) => grupoDe(c) === clave).sort((a, b) => ORDEN_TIPO[a.tipo] - ORDEN_TIPO[b.tipo] || a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"));
-    if (!suyas.length && !ubicacionId) continue;
+    const esDeSede = clave !== GRUPO_EMPRESA && clave !== GRUPO_CAMINO;
+    if (!suyas.length && !(pedidos && esDeSede)) continue;
     const titulo =
-      clave === GRUPO_EMPRESA ? "CAYLA entera" : clave === GRUPO_CAMINO ? "En camino" : (ubicaciones.find((u) => u.id === clave)?.nombre ?? "Tu tienda");
+      clave === GRUPO_EMPRESA ? "Empresa" : clave === GRUPO_CAMINO ? "En camino" : (ubicaciones.find((u) => u.id === clave)?.nombre ?? "Tu tienda");
     const nota =
       clave === GRUPO_EMPRESA
-        ? "Los bancos y lo que se entregó al líder son de CAYLA entera."
+        ? "Los bancos y lo que se entregó al líder son de la empresa, no de una sede."
         : clave === GRUPO_CAMINO
           ? "Lo que las máquinas de tarjeta y QR depositan en 1 o 2 días. Todavía no tiene sede."
           : suyas.length === 0

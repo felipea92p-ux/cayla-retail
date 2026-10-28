@@ -34,8 +34,6 @@ export type PorcionReparto = {
 };
 
 export type RepartoDeDinero = {
-  /** De quién es la plata: el nombre de la sede cuando se mira una sola («Tienda LIM»), nulo cuando se miran todas (CAYLA entera). */
-  alcance: string | null;
   /** Agrupadas por sede (la que más tiene primero) y, dentro de cada una, de la que más tiene a la que menos: así se lee un informe. */
   porciones: PorcionReparto[];
   /** Las cuentas con saldo negativo: no entran al círculo. */
@@ -110,6 +108,20 @@ export function porcentajesEnteros(partes: readonly number[]): number[] {
   return base;
 }
 
+/** Lo que dice la tarjeta del círculo: su bajada y el rótulo del centro. Lo decide quien sabe qué se mira (la barra), no la cantidad de grupos: una sola tarjeta puede ser una sede o la empresa. */
+export type TextosDelReparto = { bajada: string; rotulo: string };
+
+/**
+ * Qué dice el círculo según lo que se mira (Felipe 2026-10-28: «Empresa» y «Todas» no son lo mismo): con todas, toda la plata de
+ * CAYLA; con una sede, la suya; con la empresa, solo lo que no es de ninguna sede. El centro nunca dice «CAYLA entera» si el círculo no
+ * es de toda la plata.
+ */
+export function textosDelReparto(sede: string | null, soloEmpresa: boolean): TextosDelReparto {
+  if (soloEmpresa) return { bajada: "La plata de la empresa, la que no es de ninguna sede: sus bancos, lo del líder y lo que viene en camino.", rotulo: "La empresa" };
+  if (sede) return { bajada: `La plata de ${sede}, repartida entre su cajón y su caja fuerte.`, rotulo: sede };
+  return { bajada: "Toda la plata de CAYLA, repartida por el lugar donde está.", rotulo: "CAYLA entera" };
+}
+
 /** Lo que dice de dónde es una cuenta: la sede, si es de una; las de CAYLA entera y las que están en camino se explican solas. */
 const lugarDe = (g: Pick<GrupoCuentas, "clave" | "titulo">) => (g.clave === GRUPO_EMPRESA || g.clave === GRUPO_CAMINO ? null : g.titulo);
 
@@ -151,7 +163,6 @@ export function repartoDeDinero(grupos: readonly GrupoCuentas[]): RepartoDeDiner
     };
   });
   return {
-    alcance: grupos.length === 1 ? grupos[0]!.titulo : null,
     porciones,
     aparte,
     enCuentas,

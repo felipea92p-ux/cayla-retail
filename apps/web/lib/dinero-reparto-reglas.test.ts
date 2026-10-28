@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilaCuenta, GrupoCuentas } from "./dinero-telar-reglas";
-import { colorDeCuentaEnReparto, colorDeGrupoEnReparto, porcentajesEnteros, repartoDeDinero, trazoDeArco } from "./dinero-reparto-reglas";
+import { colorDeCuentaEnReparto, colorDeGrupoEnReparto, porcentajesEnteros, repartoDeDinero, textosDelReparto, trazoDeArco } from "./dinero-reparto-reglas";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const f = (id: string, nombre: string, saldo: number | null, tipo: FilaCuenta["tipo"] = "banco"): FilaCuenta => ({ id, nombre, tipo, saldo, escala: null, insignia: null, detalle: null });
@@ -16,7 +16,7 @@ const HOY = [
   g("lim", "Tienda LIM", 1, [f("cLIM", "Caja Operativa", 200, "cajon"), f("fLIM", "Caja fuerte", 0, "caja_fuerte")]),
   g("tru", "Tienda TRU", 2, [f("cTRU", "Caja Operativa", 300, "cajon"), f("fTRU", "Caja fuerte", 3400, "caja_fuerte")]),
   g("tal", "Taller", 3, [f("fondo", "Fondo fijo", 0, "cajon")]),
-  g("empresa", "CAYLA entera", -1, [f("lider", "Efectivo entregado al líder", 25, "por_rendir"), f("bcp", "BCP Empresa", 3000), f("ibk", "Interbank Empresa", 17000)]),
+  g("empresa", "Empresa", -1, [f("lider", "Efectivo entregado al líder", 25, "por_rendir"), f("bcp", "BCP Empresa", 3000), f("ibk", "Interbank Empresa", 17000)]),
   g("camino", "En camino", -1, [f("izi", "Por depositar Izipay", 100, "por_abonar"), f("vend", "Por depositar Vendemás", -24000, "por_abonar")]),
 ];
 
@@ -78,7 +78,7 @@ describe("el color de cada cuenta", () => {
 
 describe("repartoDeDinero", () => {
   const r = repartoDeDinero(HOY)!;
-  it("cada porción es una cuenta: los bancos se ven uno por uno y no como un solo bloque «CAYLA entera»", () => {
+  it("cada porción es una cuenta: los bancos se ven uno por uno y no como un solo bloque «Empresa»", () => {
     expect(r.porciones.map((p) => p.id)).toEqual(["ibk", "bcp", "lider", "fTRU", "cTRU", "fAQP", "cAQP", "cLIM", "izi"]);
   });
   it("va por sede, de la que más tiene a la que menos, y dentro de cada sede de la cuenta que más tiene a la que menos", () => {
@@ -131,18 +131,13 @@ describe("repartoDeDinero", () => {
     expect(oculto.porciones.map((p) => p.id)).not.toContain("cAQP");
     expect(r.ocultos).toBe(false);
   });
-  it("con todas las sedes no hay un alcance propio: es CAYLA entera", () => {
-    expect(r.alcance).toBeNull();
-  });
-  it("con una sola sede también hay círculo y dice de quién es: el cajón y la caja fuerte de Tienda TRU", () => {
+  it("con una sola sede también hay círculo: el cajón y la caja fuerte de Tienda TRU", () => {
     const uno = repartoDeDinero([HOY[2]!])!;
-    expect(uno.alcance).toBe("Tienda TRU");
     expect(uno.porciones.map((p) => p.id)).toEqual(["fTRU", "cTRU"]);
     expect(uno.neto).toBe(3700);
   });
   it("con una sola cuenta con plata hay un anillo entero: toda la plata está en un solo lugar (Lima, con su caja fuerte en cero)", () => {
     const lim = repartoDeDinero([g("lim", "Tienda LIM", 1, [f("c", "Caja Operativa", 209, "cajon"), f("f", "Caja fuerte", 0, "caja_fuerte")])])!;
-    expect(lim.alcance).toBe("Tienda LIM");
     expect(lim.porciones).toHaveLength(1);
     expect(lim.porciones[0]).toMatchObject({ id: "c", pctEntero: 100, desde: 0, hasta: 360 });
     expect(lim.enCuentas).toBe(209);
@@ -150,7 +145,6 @@ describe("repartoDeDinero", () => {
   });
   it("sin ninguna cuenta con plata el anillo está vacío, no desaparece; lo negativo se dice aparte", () => {
     const taller = repartoDeDinero([g("tal", "Taller", 3, [f("a", "Fondo fijo", 0, "cajon"), f("b", "Caja Operativa", 0, "caja_fuerte")])])!;
-    expect(taller.alcance).toBe("Taller");
     expect(taller.porciones).toEqual([]);
     expect(taller.enCuentas).toBe(0);
     expect(taller.neto).toBe(0);
@@ -182,5 +176,17 @@ describe("trazoDeArco", () => {
     const [ini, fin] = fina.replace("M", "").split("A");
     expect(ini).not.toBe(fin!.split(" ").slice(-2).join(" "));
     expect(fina).toContain("A80 80 0 0 1");
+  });
+});
+
+describe("textosDelReparto", () => {
+  it("el círculo solo dice «CAYLA entera» cuando es de toda la plata: con una sede dice la sede y con la empresa, la empresa", () => {
+    expect(textosDelReparto(null, false)).toEqual({ bajada: "Toda la plata de CAYLA, repartida por el lugar donde está.", rotulo: "CAYLA entera" });
+    expect(textosDelReparto("Trujillo", false).rotulo).toBe("Trujillo");
+    expect(textosDelReparto("Trujillo", false).bajada).toContain("Trujillo");
+    const empresa = textosDelReparto(null, true);
+    expect(empresa.rotulo).toBe("La empresa");
+    expect(empresa.bajada).toContain("de ninguna sede");
+    expect(empresa.bajada).not.toContain("Toda la plata de CAYLA");
   });
 });

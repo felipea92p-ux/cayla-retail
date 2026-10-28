@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CuentaDinero } from "./cuentas-dinero-reglas";
 import { solesRedondo } from "./gastos-reglas";
-import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, detalleCajon, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { avisoCajaFuerte, chipsDondeEsta, chipsQueDebes, colorDeGrupo, cuentasDelAlcance, detalleCajon, GRUPOS_DE_LA_EMPRESA, gruposDelAlcance, movimientosDeLaEmpresa, preguntaDeDinero, respuestaCuadrar, escalaDeCuenta, orilloDeDinero, grupoDe, gruposDeDinero, montoConSigno, nombreSinElLugar, ultimoDepositoDe } from "./dinero-telar-reglas";
+import { tienesPulso } from "./dinero-pulso-reglas";
 
 const cuenta = (p: Partial<CuentaDinero> & Pick<CuentaDinero, "id" | "nombre" | "tipo">): CuentaDinero => ({
   cuentaContable: "104", ubicacionId: null, ubicacionNombre: null, numero: null, saldo: 0, archivada: false, soloDestino: false,
@@ -78,20 +79,20 @@ describe("nombreSinElLugar", () => {
   });
   it("deja el nombre como está si el lugar no va al final tras « · », o si no queda nada", () => {
     expect(nombreSinElLugar("Cajón · TRU", "Trujillo")).toBe("Cajón · TRU");
-    expect(nombreSinElLugar("BCP Empresa", "CAYLA entera")).toBe("BCP Empresa");
+    expect(nombreSinElLugar("BCP Empresa", "Empresa")).toBe("BCP Empresa");
     expect(nombreSinElLugar("Taller · Mi caja", "Taller")).toBe("Taller · Mi caja");
     expect(nombreSinElLugar(" · Taller", "Taller")).toBe(" · Taller");
   });
 });
 
 describe("gruposDeDinero", () => {
-  it("con todas: un grupo por sede con cuentas, en el orden de las sedes, y después CAYLA entera y En camino", () => {
+  it("con todas: un grupo por sede con cuentas, en el orden de las sedes, y después la empresa y En camino", () => {
     const r = gruposDeDinero(CUENTAS, SEDES, null, HOY);
     expect(r.map((x) => [x.clave, x.titulo, x.total])).toEqual([
       ["tru", "Trujillo", 6700],
       ["aqp", "Arequipa", 3900],
       ["tal", "Taller", 150],
-      ["empresa", "CAYLA entera", 28130],
+      ["empresa", "Empresa", 28130],
       ["camino", "En camino", 2140],
     ]);
     // Lima no tiene cuentas: no sale. La tarjeta y lo archivado no salen.
@@ -114,7 +115,7 @@ describe("gruposDeDinero", () => {
     const tru = gruposDeDinero(CUENTAS, SEDES, "tru", HOY)[0];
     expect(tru.filas.find((f) => f.id === "fTRU")!.escala).toBe(escalaDeCuenta(6200, 18300));
   });
-  it("cada grupo lleva su lugar en la lista de sedes, el mismo con todas las sedes que con una sola; CAYLA entera y En camino no tienen", () => {
+  it("cada grupo lleva su lugar en la lista de sedes, el mismo con todas las sedes que con una sola; la empresa y En camino no tienen", () => {
     const todas = gruposDeDinero(CUENTAS, SEDES, null, HOY);
     expect(todas.map((x) => [x.clave, x.posicion])).toEqual([["tru", 0], ["aqp", 1], ["tal", 3], ["empresa", -1], ["camino", -1]]);
     expect(gruposDeDinero(CUENTAS, SEDES, "aqp", HOY)[0]!.posicion).toBe(1);
@@ -123,6 +124,63 @@ describe("gruposDeDinero", () => {
     const emp = gruposDeDinero(CUENTAS, SEDES, null, HOY).find((x) => x.clave === "empresa")!;
     expect(emp.filas.find((f) => f.id === "bcp")!.insignia?.texto).toContain("conciliada");
     expect(emp.filas.find((f) => f.id === "ibk")!.insignia?.texto).toBe("sin conciliar");
+  });
+});
+
+// «Empresa» y «Todas» no son lo mismo (Felipe 2026-10-28): todas es toda la plata, repartida por sede; la empresa, solo la parte que no es de ninguna sede.
+describe("la empresa no es «todas»", () => {
+  it("el alcance de la barra: una sede, la empresa o todas; la empresa gana sobre una sede que no se pidió", () => {
+    expect(gruposDelAlcance(null, false)).toBeNull();
+    expect(gruposDelAlcance("tru", false)).toEqual(["tru"]);
+    expect(gruposDelAlcance(null, true)).toEqual(GRUPOS_DE_LA_EMPRESA);
+    expect(GRUPOS_DE_LA_EMPRESA).toEqual(["empresa", "camino"]);
+  });
+  it("con la empresa: solo CAYLA y lo que viene en camino, sin ninguna caja de las tiendas", () => {
+    const r = gruposDeDinero(CUENTAS, SEDES, gruposDelAlcance(null, true), HOY);
+    expect(r.map((x) => [x.clave, x.titulo, x.total])).toEqual([
+      ["empresa", "Empresa", 28130],
+      ["camino", "En camino", 2140],
+    ]);
+    const ids = r.flatMap((x) => x.filas.map((f) => f.id));
+    for (const caja of ["cTRU", "fTRU", "cAQP", "fAQP", "ffTAL"]) expect(ids).not.toContain(caja);
+  });
+  it("«todas» sigue trayendo lo mismo que la empresa MÁS cada sede: la empresa es una de sus partes, no su sinónimo", () => {
+    const todas = gruposDeDinero(CUENTAS, SEDES, null, HOY);
+    const empresa = gruposDeDinero(CUENTAS, SEDES, gruposDelAlcance(null, true), HOY);
+    expect(todas.length).toBeGreaterThan(empresa.length);
+    expect(todas.filter((g) => GRUPOS_DE_LA_EMPRESA.includes(g.clave))).toEqual(empresa);
+    expect(todas.map((g) => g.clave)).toEqual(expect.arrayContaining(["tru", "aqp", "tal"]));
+  });
+  it("con la empresa, un grupo sin cuentas no sale (ni «En camino» vacío); con una sede pedida sola, sí", () => {
+    const sinCamino = CUENTAS.filter((c) => c.tipo !== "por_abonar");
+    expect(gruposDeDinero(sinCamino, SEDES, GRUPOS_DE_LA_EMPRESA, HOY).map((g) => g.clave)).toEqual(["empresa"]);
+    expect(gruposDeDinero([], SEDES, GRUPOS_DE_LA_EMPRESA, HOY)).toEqual([]);
+    expect(gruposDeDinero([], SEDES, "lim", HOY)).toHaveLength(1);
+  });
+  it("«tienes»: con la empresa suma sus bancos, lo del líder y lo que viene en camino, y dice la deuda de la tarjeta; con una sede, solo lo suyo", () => {
+    const empresa = tienesPulso(cuentasDelAlcance(CUENTAS, GRUPOS_DE_LA_EMPRESA), null);
+    expect(empresa.total).toBe(18300 + 9830 + 2140);
+    expect(empresa.tarjeta).toBe(2300);
+    expect(empresa.partes.map((p) => p.clave)).toEqual(["bancos", "camino", "efectivo"]);
+    const tru = tienesPulso(cuentasDelAlcance(CUENTAS, ["tru"]), null);
+    expect(tru.total).toBe(6700);
+    expect(tru.tarjeta).toBe(0);
+    // Todas: todo, con lo que dice la empresa dentro.
+    const todas = tienesPulso(cuentasDelAlcance(CUENTAS, null), null);
+    expect(todas.total).toBe(empresa.total + 6700 + 3900 + 150);
+  });
+  it("los movimientos de la empresa: los que meten o sacan plata de una cuenta suya, también si ya se archivó; pasar del cajón a la caja fuerte de la misma tienda, no", () => {
+    const mov = (id: string, origenId: string | null, destinoId: string | null) => ({ id, origenId, destinoId });
+    const MOVS = [
+      mov("deposito", "cTRU", "bcp"),
+      mov("aporte", null, "ibk"),
+      mov("retiro", "ibk", null),
+      mov("maquina", "izi", "bcp"),
+      mov("a-la-fuerte", "cTRU", "fTRU"),
+      mov("sin-cuentas", null, null),
+      mov("del-banco-viejo", "vieja", "cTRU"),
+    ];
+    expect(movimientosDeLaEmpresa(MOVS, CUENTAS).map((m) => m.id)).toEqual(["deposito", "aporte", "retiro", "maquina", "del-banco-viejo"]);
   });
 });
 
@@ -220,6 +278,7 @@ describe("la respuesta de cada cara", () => {
     expect(preguntaDeDinero("donde", "Trujillo")).toBe("¿Cuánta plata tiene Trujillo hoy?");
     expect(preguntaDeDinero("debes", null)).toBe("¿Cuánto debes?");
     expect(preguntaDeDinero("debes", "Taller")).toBe("¿Cuánto debe Taller?");
+    expect(preguntaDeDinero("donde", "la empresa")).toBe("¿Cuánta plata tiene la empresa hoy?");
     expect(preguntaDeDinero("cuadrar", "Trujillo")).toBe("¿Cuánto dicen tus bancos?");
   });
   it("Dónde está: dónde está la plata, la tarjeta aparte y si algo no se ve", () => {
