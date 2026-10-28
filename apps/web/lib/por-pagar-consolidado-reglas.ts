@@ -118,11 +118,6 @@ export function totalPorPagar(filas: readonly Pick<FilaPorPagar, "saldo">[]): { 
   return { saldo: redondear(filas.reduce((a, f) => a + f.saldo, 0)), n: filas.length };
 }
 
-/** Lo más urgente primero; a igual fecha, por proveedor (la base ya lo manda así: esto lo asegura si se filtra). */
-export function ordenarPorVencimiento<T extends Pick<FilaPorPagar, "vence" | "proveedor" | "documento">>(filas: readonly T[]): T[] {
-  return [...filas].sort((a, b) => a.vence.localeCompare(b.vence) || a.proveedor.localeCompare(b.proveedor, "es") || a.documento.localeCompare(b.documento));
-}
-
 /** «vencida hace 2 días» · «vence hoy» · «en 4 días» (el texto del spike, bajo la fecha). */
 export function textoVence(f: Pick<FilaPorPagar, "vence">, hoy: string): string {
   const d = diasHasta(f.vence, hoy);

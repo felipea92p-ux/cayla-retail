@@ -911,11 +911,6 @@ export function desgloseAjustes(g: CifrasGrupo): { faltaron: string | null; apar
   return { faltaron: cara("salen"), aparecieron: cara("entran") };
 }
 
-/** «unidad» o «unidades», según la cifra. */
-export function unidades(cifra: number): string {
-  return Math.abs(cifra) === 1 ? "unidad" : "unidades";
-}
-
 // ---------------------------------------------------------------------------
 // El buscador entiende los nombres de los procesos (ADR-0234): quien escribe «venta» o «traslado» quiere ver ventas o
 // traslados, y la búsqueda solo busca prendas y referencias («Traslado 24»). Una palabra sola (o dos, como «stock

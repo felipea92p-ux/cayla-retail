@@ -1,5 +1,5 @@
 // Buscador de Catálogo ▸ Atributos ▸ Colores/Tejidos/Patrones — sin tildes ni mayúsculas, mismo criterio que
-// `filtrarMarcas` (lib/marcas.ts) y `buscarCategorias` (lib/categorias-reglas.ts). Faltaba: con 30+ colores y un
+// `buscarCategorias` (lib/categorias-reglas.ts). Faltaba: con 30+ colores y un
 // vocabulario de tejidos y patrones que crece con cada censo, las tres pestañas mostraban toda la grilla sin
 // forma de filtrar (Felipe, 2026-09-28 — el pie de «Sinónimos» en ColoresLista ya decía «el buscador los
 // entiende» sin que existiera ninguno).

@@ -69,13 +69,6 @@ export type Orden = { campo: CampoOrden; dir: "asc" | "desc" };
 /** Al abrir: de la venta más reciente a la más antigua (Felipe, 2026-10-06). */
 export const ORDEN_INICIAL: Orden = { campo: "vendio", dir: "desc" };
 
-/** Al tocar un encabezado: el mismo campo invierte; uno nuevo arranca de mayor a menor (lo más reciente, lo más caro, lo más urgente
- *  primero), salvo el nombre de la prenda, que arranca de la A a la Z. */
-export function siguienteOrden(actual: Orden, campo: CampoOrden): Orden {
-  if (actual.campo === campo) return { campo, dir: actual.dir === "desc" ? "asc" : "desc" };
-  return { campo, dir: campo === "prenda" ? "asc" : "desc" };
-}
-
 type FilaOrdenable = {
   id: string;
   descripcion: string;

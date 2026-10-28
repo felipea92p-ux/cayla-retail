@@ -173,8 +173,6 @@ export const cobrosGuardados = (crudo: unknown): CobroEnCurso[] =>
   enviosGuardados<CobroEnCurso>(crudo, (c) => typeof c.total === "number" && typeof c.prendas === "number");
 export const conCobro = (lista: readonly CobroEnCurso[], cobro: CobroEnCurso): CobroEnCurso[] => conEnvio(lista, cobro);
 export const sinCobro = (lista: readonly CobroEnCurso[], token: string): CobroEnCurso[] => sinEnvio(lista, token);
-export const cobrosPorResolver = (lista: readonly CobroEnCurso[], ahora: number, tope = TOPE_ESPERA_MS): CobroEnCurso[] =>
-  enviosPorResolver(lista, ahora, tope);
 
 // Nuevo traslado: el traslado en curso.
 export type TrasladoEnCurso = EnvioEnCurso & { destino: string; prendas: number };

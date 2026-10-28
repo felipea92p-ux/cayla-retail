@@ -7,7 +7,7 @@ function money(n: number) {
 }
 
 /** Barras de ventas por hora — solo el rango entre la apertura y ahora (nunca un
- *  9am-8pm fijo, ver `rangoHorasCaja`). Las barras por tiempo del sistema (ronda 14 de /unificar): la hora actual en tinta,
+ *  9am-8pm fijo). Las barras por tiempo del sistema (ronda 14 de /unificar): la hora actual en tinta,
  *  con su cifra; cada hora dice su monto al pasar el mouse. */
 export function VentasPorHoraChart({ datos, horaActual }: { datos: { hora: number; monto: number }[]; horaActual: number }) {
   return (
