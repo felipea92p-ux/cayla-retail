@@ -1,6 +1,6 @@
 # ADR-0545 — Retiro del código y de las funciones de la base que nadie usa
 
-- **Fecha:** 2026-10-27 · **Estado:** código retirado y verificado en local; la migración `20261028003000` está escrita y **sin pegar en producción** (espera el OK puntual de Felipe: es un cambio de esquema).
+- **Fecha:** 2026-10-27 · **Estado:** código retirado y fusionado (PR #1436); la migración `20261028003000` **se pegó en producción el 2026-10-28** (Felipe, a mano; verificado: ambas funciones ya no existen).
   Los números de este ADR y de la migración están reservados para la rama `claude/ordenes-compra-modulo-fc9e27` (`pnpm reservar`).
 - **Continúa a:** [ADR-0406](0406-knip-vigila-el-codigo-muerto.md) (Knip en el CI y la deuda de `knip --production`) y a
   `docs/investigacion/2026-10-14-codigo-que-solo-usan-las-pruebas.md` (el informe de las 109 piezas).

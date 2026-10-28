@@ -61,6 +61,7 @@ export default async function ConfirmarConteoPage({ params, searchParams }: { pa
       </div>
       <ConfirmarConteo
         conteoId={c.id}
+        ubicacionId={persona.ubicacionId}
         filas={aActualizar}
         correctas={r.correctas}
         yaAjustadas={yaAjustadas}

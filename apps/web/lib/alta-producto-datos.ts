@@ -1,5 +1,4 @@
 import { dibujoElegido, type DibujoDeInsignia } from "@cayla-retail/shared/insignias-visual";
-import { getMarcasDeEmpresas } from "@/lib/empresas-de-sede";
 import { esRutaDeImagenDeInsignia } from "@cayla-retail/shared/insignia-imagen";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -36,7 +35,7 @@ import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 
 export type FamiliaAlta = { codigo: string; nombre: string; exigeTejidoPatron: boolean };
 /** Una tienda a la que puede pertenecer un producto (ADR-0463): CAYLA, CLAURE. */
-export type EmpresaAlta = { id: string; clave: string; nombre: string; /** ADR-0532: su marca (la marca CAYLA es de CAYLA). */ marcaId?: string | null };
+export type EmpresaAlta = { id: string; clave: string; nombre: string };
 export type CategoriaAlta = { id: string; nombre: string; familia: string | null; prefijo: string | null; padreNombre: string | null };
 export type EtiquetaAlta = {
   id: string;
@@ -86,9 +85,9 @@ export type ContextoAlta = CatalogoMarcas & {
  *  `null`: el alta no pregunta nada y el producto nace en CAYLA. Solo Lima, donde conviven CAYLA y CLAURE, trae dos. */
 async function getEmpresasAlta(sedeId: string): Promise<EmpresaAlta[] | null> {
   const supabase = await createClient();
-  const [{ data, error }, marcas] = await Promise.all([supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId }), getMarcasDeEmpresas()]);
+  const { data, error } = await supabase.rpc("fn_empresas_de_sede", { p_sede_id: sedeId });
   if (error || !data || data.length < 2) return null;
-  return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre, marcaId: marcas?.get(t.id) ?? null }));
+  return data.map((t) => ({ id: t.id, clave: t.clave, nombre: t.nombre }));
 }
 
 const VENTANA_VARIANTES = 1000;
