@@ -115,9 +115,11 @@
     color: var(--color-taupe);
     transition: gap 260ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
-  .ia-enl:hover {
-    gap: 8px;
-    color: var(--color-rojo);
+  @media (hover: hover) {
+    .ia-enl:hover {
+      gap: 8px;
+      color: var(--color-rojo);
+    }
   }
   .ia-enl svg.ia-ic {
     width: 15px;
@@ -137,10 +139,12 @@
     white-space: nowrap;
     transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla);
   }
-  .ia-mini:hover {
-    background: var(--color-tinta);
-    color: var(--color-crema);
-    border-color: var(--color-tinta);
+  @media (hover: hover) {
+    .ia-mini:hover {
+      background: var(--color-tinta);
+      color: var(--color-crema);
+      border-color: var(--color-tinta);
+    }
   }
   .ia-mini svg.ia-ic {
     width: 15px;
@@ -150,10 +154,12 @@
     border-color: color-mix(in srgb, var(--color-ambar) 40%, transparent);
     color: var(--color-ambar-profundo);
   }
-  .ia-mini.ia-foto:hover {
-    background: var(--color-ambar);
-    color: var(--color-crema);
-    border-color: var(--color-ambar);
+  @media (hover: hover) {
+    .ia-mini.ia-foto:hover {
+      background: var(--color-ambar);
+      color: var(--color-crema);
+      border-color: var(--color-ambar);
+    }
   }
 
   /* foco de luz que sigue al mouse (`EfectosInicio` escribe --mx y --my) */
@@ -191,9 +197,11 @@
     -webkit-mask-composite: xor;
     mask-composite: exclude;
   }
-  .ia-spot:hover::after,
-  .ia-spot:hover::before {
-    opacity: 1;
+  @media (hover: hover) {
+    .ia-spot:hover::after,
+    .ia-spot:hover::before {
+      opacity: 1;
+    }
   }
 
   /* ── la cabina: Papel ── */
@@ -314,8 +322,10 @@
     transition: box-shadow 350ms var(--ease-cayla);
     will-change: transform;
   }
-  .ia-cta:hover {
-    box-shadow: 0 0 0 6px var(--h-halo);
+  @media (hover: hover) {
+    .ia-cta:hover {
+      box-shadow: 0 0 0 6px var(--h-halo);
+    }
   }
   .ia-cta .ia-plus {
     display: grid;
@@ -327,8 +337,10 @@
     color: var(--h-btn);
     transition: transform 550ms var(--ease-cayla);
   }
-  .ia-cta:hover .ia-plus {
-    transform: rotate(90deg);
+  @media (hover: hover) {
+    .ia-cta:hover .ia-plus {
+      transform: rotate(90deg);
+    }
   }
   /* un solo brillo que barre el botón al llegar */
   .ia-cta::after {
@@ -354,8 +366,10 @@
     background: var(--h-btn);
     color: var(--h-btn-fg);
   }
-  .ia-cta.ia-cta2:hover .ia-plus {
-    transform: none;
+  @media (hover: hover) {
+    .ia-cta.ia-cta2:hover .ia-plus {
+      transform: none;
+    }
   }
   .ia-tecla {
     display: inline-flex;
@@ -383,9 +397,11 @@
     cursor: pointer;
     transition: color 260ms var(--ease-cayla), gap 300ms var(--ease-cayla);
   }
-  .ia-vinc:hover {
-    color: var(--h-fg);
-    gap: 12px;
+  @media (hover: hover) {
+    .ia-vinc:hover {
+      color: var(--h-fg);
+      gap: 12px;
+    }
   }
   .ia-vinc svg.ia-ic {
     width: 15px;
@@ -425,10 +441,12 @@
     background: var(--h-glass);
     transition: background 260ms var(--ease-cayla), border-color 260ms var(--ease-cayla), transform 350ms var(--ease-cayla);
   }
-  .ia-rs:hover {
-    border-color: var(--h-line);
-    background: var(--color-papel);
-    transform: translateX(4px);
+  @media (hover: hover) {
+    .ia-rs:hover {
+      border-color: var(--h-line);
+      background: var(--color-papel);
+      transform: translateX(4px);
+    }
   }
   .ia-rs .ia-th {
     position: relative;
@@ -570,8 +588,10 @@
     font-weight: 600;
     transition: gap 300ms var(--ease-cayla), transform 260ms var(--ease-cayla);
   }
-  .ia-go:hover {
-    gap: 14px;
+  @media (hover: hover) {
+    .ia-go:hover {
+      gap: 14px;
+    }
   }
   .ia-go:active {
     transform: scale(0.98);
@@ -596,8 +616,10 @@
     font-size: 14px;
     transition: background 260ms var(--ease-cayla);
   }
-  .ia-dp:hover {
-    background: var(--color-papel);
+  @media (hover: hover) {
+    .ia-dp:hover {
+      background: var(--color-papel);
+    }
   }
   .ia-dp .ia-t {
     flex: 1;
@@ -636,36 +658,6 @@
     font-weight: 400;
     line-height: 1;
   }
-  .ia-ring {
-    flex: none;
-    width: 54px;
-    height: 54px;
-    transform: rotate(-90deg);
-  }
-  .ia-ring circle {
-    fill: none;
-    stroke-width: 4.5;
-    stroke-linecap: round;
-  }
-  .ia-ring .ia-bg {
-    stroke: var(--h-line);
-  }
-  .ia-ring .ia-fg {
-    stroke: var(--h-fg);
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    transition: stroke-dashoffset 1300ms var(--ease-cayla) 300ms;
-  }
-  .ia-in .ia-ring .ia-fg {
-    stroke-dashoffset: var(--off);
-  }
-  .ia-ring.ia-l .ia-bg {
-    stroke: var(--ia-t12);
-  }
-  .ia-ring.ia-l .ia-fg {
-    stroke: var(--color-verde);
-  }
-
   /* ── «Te toca» ── */
   .ia-tt {
     overflow: hidden;
@@ -684,8 +676,10 @@
   .ia-ap.ia-f {
     border-top: 0;
   }
-  .ia-ap:hover {
-    background: var(--ia-t05);
+  @media (hover: hover) {
+    .ia-ap:hover {
+      background: var(--ia-t05);
+    }
   }
   /* el filo rojo de lo urgente va en una sombra interior: ::before y ::after ya los usa el foco de luz */
   .ia-ap.ia-u {
@@ -726,8 +720,10 @@
     font-weight: 500;
     transition: color 260ms var(--ease-cayla);
   }
-  .ia-ap:hover .ia-t {
-    color: var(--color-rojo);
+  @media (hover: hover) {
+    .ia-ap:hover .ia-t {
+      color: var(--color-rojo);
+    }
   }
   .ia-ap .ia-d {
     margin-top: 1px;
@@ -763,44 +759,11 @@
     color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, crema */
     transition: transform 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
-  .ia-ap:hover .ia-chev {
-    transform: translateX(4px);
-    color: var(--color-rojo);
-  }
-  .ia-mas {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 550ms var(--ease-cayla);
-  }
-  .ia-mas.ia-on {
-    grid-template-rows: 1fr;
-  }
-  .ia-mas > div {
-    overflow: hidden;
-  }
-  .ia-vm {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px;
-    border-top: 1px solid var(--ia-t08);
-    color: var(--color-taupe);
-    font-size: 13.5px;
-    font-weight: 500;
-    transition: background 260ms var(--ease-cayla);
-  }
-  .ia-vm:hover {
-    background: var(--ia-t05);
-  }
-  .ia-vm svg.ia-ic {
-    width: 15px;
-    height: 15px;
-    transition: transform 400ms var(--ease-cayla);
-  }
-  .ia-vm.ia-on svg.ia-ic {
-    transform: rotate(180deg);
+  @media (hover: hover) {
+    .ia-ap:hover .ia-chev {
+      transform: translateX(4px);
+      color: var(--color-rojo);
+    }
   }
   .ia-dial {
     display: flex;
@@ -897,9 +860,11 @@
     border-radius: 50%;
     transition: background 260ms var(--ease-cayla), color 260ms var(--ease-cayla), transform 260ms var(--ease-cayla);
   }
-  .ia-arr button:hover {
-    background: var(--color-tinta);
-    color: var(--color-crema);
+  @media (hover: hover) {
+    .ia-arr button:hover {
+      background: var(--color-tinta);
+      color: var(--color-crema);
+    }
   }
   .ia-arr button:active {
     transform: scale(0.92);
@@ -951,9 +916,11 @@
     transition: transform 450ms var(--ease-cayla), border-color 300ms var(--ease-cayla), box-shadow 400ms var(--ease-cayla);
     will-change: transform;
   }
-  .ia-pc:hover {
-    border-color: var(--color-taupe);
-    box-shadow: 0 18px 36px -18px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+  @media (hover: hover) {
+    .ia-pc:hover {
+      border-color: var(--color-taupe);
+      box-shadow: 0 18px 36px -18px color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    }
   }
   .ia-pc .ia-ft {
     position: relative;
@@ -969,8 +936,10 @@
     object-fit: contain;
     transition: transform 700ms var(--ease-cayla);
   }
-  .ia-pc:hover .ia-ft img {
-    transform: scale(1.07) translateY(-4px);
+  @media (hover: hover) {
+    .ia-pc:hover .ia-ft img {
+      transform: scale(1.07) translateY(-4px);
+    }
   }
   /* un barrido de luz baja por la foto al llegar (una vez) */
   .ia-pc .ia-scan {
@@ -1118,13 +1087,12 @@
     color: var(--ia-t65);
     font-size: 12.5px;
   }
-  .ia-k .ia-ring {
+  /* El anillo chico del sistema (<Anillo>, ronda 13 de /unificar), a la derecha de la cifra. */
+  .ia-k .ia-k-anillo {
     position: absolute;
     right: 12px;
     top: 50%;
-    width: 46px;
-    height: 46px;
-    margin-top: -23px;
+    margin-top: -20px;
   }
 
   /* ── «En camino» ── */
@@ -1254,8 +1222,10 @@
   .ia-rp .ia-it.ia-f {
     border-top: 0;
   }
-  .ia-rp .ia-it:hover {
-    background: var(--ia-t05);
+  @media (hover: hover) {
+    .ia-rp .ia-it:hover {
+      background: var(--ia-t05);
+    }
   }
   .ia-rp .ia-mg {
     position: relative;
@@ -1343,24 +1313,28 @@
     height: 24px;
     transition: transform 450ms var(--ease-cayla);
   }
-  .ia-ax:hover {
-    transform: translateY(-3px);
-    border-color: var(--color-taupe);
-    color: var(--color-rojo);
-    box-shadow: 0 14px 26px -16px color-mix(in srgb, var(--color-tinta) 30%, transparent);
-  }
-  .ia-ax:hover svg.ia-ic {
-    transform: scale(1.14);
+  @media (hover: hover) {
+    .ia-ax:hover {
+      transform: translateY(-3px);
+      border-color: var(--color-taupe);
+      color: var(--color-rojo);
+      box-shadow: 0 14px 26px -16px color-mix(in srgb, var(--color-tinta) 30%, transparent);
+    }
+    .ia-ax:hover svg.ia-ic {
+      transform: scale(1.14);
+    }
   }
   .ia-ax.ia-esc {
     border-color: var(--color-tinta);
     background: var(--color-tinta);
     color: var(--color-crema);
   }
-  .ia-ax.ia-esc:hover {
-    border-color: var(--color-taupe);
-    background: var(--color-taupe);
-    color: var(--color-crema);
+  @media (hover: hover) {
+    .ia-ax.ia-esc:hover {
+      border-color: var(--color-taupe);
+      background: var(--color-taupe);
+      color: var(--color-crema);
+    }
   }
 
   /* ── el orden en pantalla ── */

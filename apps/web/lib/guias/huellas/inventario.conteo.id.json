@@ -2,7 +2,7 @@
   "guia": "inventario.conteo.id",
   "ruta": "/inventario/conteo/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 61,
+  "total": 58,
   "controles": {
     "app/(app)/inventario/conteo/[id]/page.tsx": [
       "Link «Contar todo»"
@@ -17,24 +17,24 @@
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
       "button «Quitar»",
-      "ComboBuscable «Proveedor»",
+      "ComboBuscable «buscar-marca»",
       "button «Quitar» #2",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «buscar-proveedor»",
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
-      "ComboBuscable «)»",
+      "ComboBuscable «nm-marca»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
       "CampoTexto «Razón social»",
       "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
-      "ComboBuscable «)» #2",
+      "ComboBuscable «nm-prov»",
       "button «Cancelar»",
       "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -45,9 +45,9 @@
     "components/conteo/AltaAlVuelo.tsx": [
       "CampoTexto «Nombre de la prenda»",
       "CampoSelect «Categoría»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{tallaId}»",
       "CampoSelect «Color (si aplica)»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -56,20 +56,15 @@
       "button «Seguir contando»",
       "button «Sí, aplicar a»"
     ],
-    "components/conteo/CampoContaste.tsx": [
-      "button «{`Restar uno. ${etiqueta}»",
-      "input «{etiqueta}»",
-      "button «{`Sumar uno. ${etiqueta}»"
-    ],
     "components/conteo/CanceladoConteo.tsx": [
-      "Volver «:»",
-      "Volver «(sin nombre)»"
+      "Volver «{volverA}»",
+      "Volver «/inventario/conteo»"
     ],
     "components/conteo/ContarConteo.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «{volver.href}»",
       "input «Escanear código»",
       "button «Limpiar»",
-      "ComboResponsable «) : (»",
+      "ComboResponsable «{responsable}»",
       "button «Sumar 1»",
       "button «Escanear con la cámara»",
       "button «{preparando ? \"Guardando lo último…\" : \"Revisar conteo\"}»",
@@ -89,11 +84,11 @@
       "button «{contenido}»"
     ],
     "components/conteo/ResultadoConteo.tsx": [
-      "Volver «:»",
-      "Volver «(sin nombre)»",
+      "Volver «{volverA}»",
+      "Volver «/inventario/conteo»",
       "BotonVer «Ver Existencias»",
       "BotonVer «Ver movimientos del conteo»",
-      "Link «Míralas todas en Movimientos →»"
+      "Link «Míralas todas en Movimientos»"
     ]
   }
 }

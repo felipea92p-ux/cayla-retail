@@ -11,6 +11,9 @@ export type SedeActiva = {
    *  «Responsable» le muestra un aviso en vez de la lista (20260924171300). */
   esAdmin?: boolean;
   nombreSesion?: string;
+  /** ADR-0454 (temporal): la sesión es una terminal con firma de respaldo (hoy Caja Lima y Almacén Lima): no pide el combo
+   *  «Responsable» y todo lo que guarda queda a nombre de esta persona. `null` en una persona y en una terminal sin respaldo. */
+  firmaRespaldo?: { personaId: string; nombre: string } | null;
 };
 
 const Contexto = createContext<SedeActiva | null>(null);
@@ -29,9 +32,10 @@ export function SedeActivaProveedor({
   personaSesionId = null,
   esAdmin = false,
   nombreSesion = "",
+  firmaRespaldo = null,
   children,
 }: SedeActiva & { children: React.ReactNode }) {
-  return <Contexto.Provider value={{ ubicacionId, etiqueta, personaSesionId, esAdmin, nombreSesion }}>{children}</Contexto.Provider>;
+  return <Contexto.Provider value={{ ubicacionId, etiqueta, personaSesionId, esAdmin, nombreSesion, firmaRespaldo }}>{children}</Contexto.Provider>;
 }
 
 /** `null` fuera del layout de la app (p. ej. una ruta pública de prueba). */

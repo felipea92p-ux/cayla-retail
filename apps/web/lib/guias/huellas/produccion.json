@@ -2,18 +2,26 @@
   "guia": "produccion",
   "ruta": "/produccion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 15,
+  "total": 21,
   "controles": {
+    "components/ProduccionSoloLider.tsx": [
+      "BotonVer «Ir a Órdenes»"
+    ],
     "components/ResumenProduccionPanel.tsx": [
       "BotonEnlace «Ver órdenes»",
       "BotonEnlace «+ Nueva orden»",
-      "Pestanas «0 ? \"ambar\" : \"verde\"»",
+      "Pestanas «(sin nombre)»",
       "Link «{d.accion.texto}»",
       "Link «{o.cantidad}»",
-      "Link «Cárgalas en Insumos»"
+      "Link «Cárgalas en Insumos»",
+      "BotonEnlace «Ver los pedidos»",
+      "BotonEnlace «{t.atrasado > 0 ? \"Ver los pedidos\" : \"Pedir\"}»"
     ],
     "components/produccion-resumen/FilaQueAbreLaHoja.tsx": [
       "button «{guia}»"
+    ],
+    "components/produccion-resumen/FilasQuePlegan.tsx": [
+      "BotonVerMas «{textoMas}»"
     ],
     "components/produccion-resumen/HojaModelo.tsx": [
       "BotonEnlace «Ver en Catálogo»",
@@ -21,12 +29,18 @@
       "BotonEnlace «Trasladar al piso»",
       "BotonEnlace «{hoja.sugerida ? \"Abrir orden sugerida\" : \"Abrir orden\"}»"
     ],
+    "components/produccion-resumen/ListaQueFabricarPrimero.tsx": [
+      "BotonEnlace «Preparar orden»"
+    ],
     "components/produccion-resumen/MatrizDelModelo.tsx": [
       "SegmentoDeslizante «Tienda de la matriz»",
       "button «→() => alFijar(c.nombre)»"
     ],
     "components/produccion-resumen/OrdenesYTelaDelModelo.tsx": [
       "Link «(sin nombre)»"
+    ],
+    "components/produccion-resumen/PorQue.tsx": [
+      "button «{guia}»"
     ],
     "components/vista-rapida/FotoVistaRapida.tsx": [
       "button «vista-rapida.ampliar»"

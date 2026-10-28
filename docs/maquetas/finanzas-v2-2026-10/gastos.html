@@ -1,0 +1,1454 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gastos · Finanzas · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Gastos — tres caminos. Solo tokens de base.css; el papel físico (recibos, talones, polaroid) usa los fijos
+   (--crema-fija / --tinta-fija) porque no se oscurece (ADR-0336, regla 3). Movimiento: una vez, sin rebote. */
+
+/* ---------- Piezas comunes de la página ---------- */
+.g-ico{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+@keyframes g-dib{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+.g-dib{stroke-dasharray:1;animation:g-dib .6s var(--ease-cayla) backwards;animation-delay:var(--d,0ms)}
+@keyframes g-entra{from{opacity:0;transform:translateY(12px)}}
+.g-entra{animation:g-entra .5s var(--ease-cayla) backwards;animation-delay:var(--d,0ms)}
+@keyframes g-sello{from{opacity:0;transform:scale(1.45) rotate(-12deg)}}
+@keyframes g-revelar{from{opacity:0;transform:translateY(-4px)}}
+@keyframes g-sube-se-va{0%{opacity:0;transform:translateY(6px)}25%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-16px)}}
+.g-enlace{border:0;background:none;padding:0;cursor:pointer;font-size:inherit;color:var(--tinta);text-decoration:underline;
+  text-decoration-color:color-mix(in srgb,var(--tinta) 30%,transparent);text-underline-offset:3px;transition:color .2s var(--ease-cayla),text-decoration-color .2s}
+.g-enlace:hover{color:var(--rojo-p);text-decoration-color:var(--rojo-p)}
+.g-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:230px;max-width:min(320px,86vw);background:var(--papel);border:1px solid var(--sand);
+  border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:2px;animation:g-revelar .24s var(--ease-cayla) backwards;
+  box-shadow:0 18px 40px -22px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.g-menu.derecha{left:auto;right:0}
+.g-menu button{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;border:0;background:transparent;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--tinta)}
+.g-menu button:hover,.g-menu button:focus-visible{background:var(--hueso)}
+.g-menu button[aria-selected="true"]{font-weight:600}
+.g-menu button svg{width:14px;height:14px;fill:none;stroke:var(--verde);stroke-width:2}
+.g-switch{position:relative;width:36px;height:20px;flex:none;border-radius:999px;border:0;padding:0;cursor:pointer;background:var(--sand);transition:background .25s var(--ease-cayla)}
+.g-switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--papel);transition:transform .3s var(--ease-cayla),width .2s}
+.g-switch[aria-checked="true"]{background:var(--tinta)}
+.g-switch[aria-checked="true"]::after{transform:translateX(16px)}
+.g-switch:active::after{width:20px}
+/* Polaroid: papel físico, no se oscurece. La foto «se revela» una vez. */
+.g-polaroid{background:var(--crema-fija);color:var(--tinta-fija);padding:9px 9px 30px;border-radius:3px;width:170px;position:relative;flex:none;
+  box-shadow:0 16px 30px -18px color-mix(in srgb,var(--sombra) 70%,transparent);transform:rotate(var(--r,2deg))}
+.g-polaroid .g-foto{aspect-ratio:1;border-radius:2px;overflow:hidden;position:relative;
+  background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--tinta-fija) 70%,var(--crema-fija)),var(--tinta-fija) 75%)}
+.g-polaroid .g-foto svg{position:absolute;inset:0;width:100%;height:100%}
+.g-polaroid .g-foto::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--crema-fija) 82%,var(--tinta-fija));opacity:0;pointer-events:none}
+.g-polaroid.revela .g-foto svg{animation:g-revela 2.6s var(--ease-cayla) .25s backwards}
+.g-polaroid.revela .g-foto::after{animation:g-velo 2.6s var(--ease-cayla) .1s backwards}
+@keyframes g-revela{0%{opacity:0;filter:blur(6px) brightness(.4) sepia(.9)}55%{opacity:.75;filter:blur(1.5px) sepia(.4)}100%{opacity:1;filter:none}}
+@keyframes g-velo{from{opacity:.92}to{opacity:0}}
+.g-polaroid .g-pie-foto{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-family:var(--serif);font-style:italic;font-size:15px;color:var(--tinta-fija)}
+.g-polaroid.mini{width:92px;padding:5px 5px 16px}
+.g-polaroid.mini .g-pie-foto{font-size:10px;bottom:2px}
+.pr-papel{fill:var(--crema-fija)}
+.pr-t{font:600 8.5px var(--mono);fill:var(--tinta-fija);text-anchor:middle;letter-spacing:.06em}
+.pr-m{font:600 10px var(--mono);fill:var(--tinta-fija);text-anchor:middle}
+.pr-l{stroke:color-mix(in srgb,var(--tinta-fija) 35%,var(--crema-fija));stroke-width:1.4;stroke-linecap:round}
+.g-anotado{position:absolute;right:-8px;top:18px;z-index:2;font:600 12px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--verde);
+  border:2px solid var(--verde);border-radius:6px;padding:4px 8px;transform:rotate(-9deg);background:color-mix(in srgb,var(--crema-fija) 70%,transparent);
+  animation:g-sello .55s var(--ease-cayla) backwards}
+:root[data-theme="dark"] .g-anotado{color:var(--tinta-fija);border-color:var(--tinta-fija)}
+
+/* ---------- A · La respuesta ---------- */
+.a-respuesta{position:relative;background:var(--papel);border:1px solid var(--sand);border-radius:24px;padding:clamp(22px,4.5vw,52px);
+  display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,4vw,52px);align-items:center}
+@media (max-width:880px){.a-respuesta{grid-template-columns:1fr}}
+.a-total{font-size:clamp(44px,7.2vw,80px);line-height:.98;letter-spacing:-.02em;margin-top:14px}
+.a-total small{display:block;font-size:max(17px,.32em);font-style:italic;color:var(--taupe);letter-spacing:0;margin-bottom:8px;font-weight:400}
+.a-frase{font-size:clamp(16px,1.55vw,19px);margin-top:18px;max-width:44ch}
+.a-subraya{font-weight:600;background:linear-gradient(var(--taupe),var(--taupe)) no-repeat left bottom/100% 2px;padding-bottom:2px}
+.animar .a-subraya{animation:a-subraya 1s var(--ease-cayla) 1s backwards}
+@keyframes a-subraya{from{background-size:0 2px}}
+.a-extra{margin-top:10px;font-size:13.5px;color:var(--verde);display:none}
+.a-extra.ve{display:block;animation:g-entra .4s var(--ease-cayla) backwards}
+.a-igv{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:14px}
+.a-monedas{display:flex;flex-direction:column;gap:14px;min-width:0}
+.a-monedas svg{width:100%;height:auto;max-width:440px;overflow:visible;display:block}
+.a-grupo{cursor:default}
+.a-grupo .a-mov{transform-box:fill-box;transition:transform .4s var(--ease-cayla);transition-delay:calc(var(--k,0) * 28ms)}
+.a-grupo:hover .a-mov{transform:translateY(-6px)}
+.a-moneda{transform-box:fill-box;transform-origin:center}
+.a-m-cara{stroke-width:1.2}
+.a-alq .a-m-cara{fill:var(--taupe);stroke:var(--taupe)}
+.a-alq .a-m-aro{fill:none;stroke:color-mix(in srgb,var(--papel) 45%,transparent);stroke-width:1}
+.a-alq .a-m-s{fill:var(--papel)}
+.a-otro .a-m-cara{fill:var(--hueso);stroke:color-mix(in srgb,var(--taupe) 45%,var(--sand))}
+.a-otro .a-m-aro{fill:none;stroke:color-mix(in srgb,var(--taupe) 30%,transparent);stroke-width:1}
+.a-otro .a-m-s{fill:var(--taupe)}
+.a-m-s{font:500 22px var(--serif);text-anchor:middle;dominant-baseline:central}
+.a-rotulo{font:500 14px var(--sans);fill:var(--tinta)}
+.a-rotulo-t{font:400 12.5px var(--sans);fill:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.a-grupo:hover .a-rotulo{fill:var(--rojo-p)}
+.a-detalle{grid-column:1/-1}
+.a-cats{display:grid;gap:0;padding-top:6px}
+.a-cat{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(70px,1.5fr) 92px;gap:16px;align-items:center;padding:11px 0;border-top:1px solid var(--sand)}
+.a-cat b{font-weight:500;display:block}
+.a-cat small{font-size:12.5px}
+.a-cat .pista{height:8px}
+.a-cat .pista i{background:var(--c)}
+.a-cat .m{text-align:right;font-family:var(--serif);font-size:19px;font-variant-numeric:tabular-nums}
+.desplegable.abierto .a-cat .pista i{animation:a-crece .8s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 60ms + 150ms)}
+@keyframes a-crece{from{width:0}}
+@media (max-width:520px){.a-cat{grid-template-columns:1fr 84px}.a-cat .pista{grid-column:1/-1;grid-row:2}}
+
+.a-cuerpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:920px){.a-cuerpo{grid-template-columns:1fr}}
+.a-bandeja{padding:clamp(20px,3vw,32px);border-radius:22px}
+.a-band-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+.a-faltan{font-family:var(--serif);font-size:clamp(30px,3.4vw,40px);line-height:1.05;margin-top:6px}
+.a-num{display:inline-block;min-width:.55em}
+.a-num.cambia{animation:a-num .45s var(--ease-cayla) backwards}
+@keyframes a-num{from{opacity:0;transform:translateY(-55%)}}
+.a-band-cab p{font-size:14px;max-width:34ch}
+.a-pasos{display:flex;gap:5px;margin:18px 0 22px}
+.a-pasos i{flex:1;height:4px;border-radius:2px;background:var(--hueso);position:relative;overflow:hidden}
+.a-pasos i::after{content:"";position:absolute;inset:0;background:var(--verde);transform:scaleX(0);transform-origin:left;transition:transform .55s var(--ease-cayla)}
+.a-pasos i.ok::after{transform:none}
+.a-mazo{position:relative;padding-bottom:18px}
+.a-mazo::before,.a-mazo::after{content:"";position:absolute;bottom:9px;left:16px;right:16px;height:60px;border-radius:18px;background:var(--papel);border:1px solid var(--sand);z-index:0;
+  transition:opacity .35s var(--ease-cayla)}
+.a-mazo::after{bottom:0;left:34px;right:34px;opacity:.7}
+.a-mazo[data-quedan="2"]::after,.a-mazo[data-quedan="1"]::after,.a-mazo[data-quedan="1"]::before,.a-mazo[data-quedan="0"]::after,.a-mazo[data-quedan="0"]::before{opacity:0}
+.a-carta{position:relative;z-index:1;background:var(--papel);border:1px solid var(--sand);border-radius:18px;padding:clamp(18px,2.6vw,26px);display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 22px 44px -30px color-mix(in srgb,var(--sombra) 45%,transparent)}
+.a-carta.entra{animation:a-carta-entra .55s var(--ease-cayla) backwards}
+.a-carta.sale{animation:a-carta-sale .5s var(--ease-cayla) forwards}
+@keyframes a-carta-entra{from{opacity:0;transform:translateY(16px) scale(.97)}}
+@keyframes a-carta-sale{to{opacity:0;transform:translateX(-42px) rotate(-2.5deg)}}
+.a-carta-top{display:flex;align-items:center;gap:10px}
+.a-ico{width:34px;height:34px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);flex:none}
+.a-carta-top .versalita{flex:1;min-width:0}
+.a-carta-top .tenue{font-size:13px;white-space:nowrap}
+.a-quien{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.a-quien h3{font-size:clamp(22px,2.4vw,27px);line-height:1.1}
+.a-quien p{font-size:13px;margin-top:4px}
+.a-monto{font-family:var(--serif);font-size:clamp(26px,3vw,34px);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.a-monto.entra{color:var(--verde)}
+.a-quien-der{display:flex;align-items:flex-start;gap:12px}
+.a-corte{height:1px;background:repeating-linear-gradient(90deg,var(--sand) 0 6px,transparent 6px 11px)}
+.a-sug{font-family:var(--serif);font-size:clamp(26px,3vw,32px);line-height:1.1;display:inline-block;position:relative;padding-bottom:4px;align-self:flex-start}
+.a-sug::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--taupe);transform-origin:left;animation:a-hilo .7s var(--ease-cayla) .25s backwards}
+@keyframes a-hilo{from{transform:scaleX(0)}}
+.a-por{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;color:color-mix(in srgb,var(--tinta) 72%,transparent);max-width:56ch}
+.a-por .g-ico{color:var(--taupe);margin-top:2px;width:16px;height:16px}
+.a-recordar{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.a-opc-in{display:flex;flex-wrap:wrap;gap:8px;padding-top:2px}
+.a-opc-in button{border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer;transition:border-color .2s,background .2s,transform .2s var(--ease-cayla)}
+.a-opc-in button:hover{border-color:var(--tinta);transform:translateY(-1px)}
+.a-opc-in button[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.a-acciones{display:flex;gap:10px;flex-wrap:wrap}
+.a-acciones .btn.primario{height:44px;padding:0 22px;font-size:14.5px}
+.a-acciones .btn.sutil{height:44px}
+.a-visto{position:absolute;inset:0;border-radius:inherit;display:grid;place-content:center;justify-items:center;gap:10px;z-index:3;text-align:center;padding:20px;
+  background:color-mix(in srgb,var(--papel) 92%,transparent);animation:mq-aparece .22s var(--ease-cayla) backwards}
+.a-visto svg{width:68px;height:68px;fill:none;stroke:var(--verde);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.a-visto b{font-family:var(--serif);font-size:22px;font-weight:500}
+.a-deshacer{min-height:24px;margin-top:6px;font-size:13.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.a-deshacer>span{animation:g-entra .35s var(--ease-cayla) backwards}
+.a-listo{text-align:center;padding:30px 12px 22px;display:grid;justify-items:center;gap:10px;animation:a-carta-entra .55s var(--ease-cayla) backwards}
+.a-listo svg{width:84px;height:84px;fill:none;stroke:var(--verde);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.a-listo h3{font-size:30px}
+.a-listo p{max-width:40ch;font-size:14.5px}
+.a-lado{display:flex;flex-direction:column;gap:18px}
+.a-foto-btn{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;width:100%;padding:22px;border-radius:22px;border:0;
+  background:var(--tinta);color:var(--crema);cursor:pointer;text-align:left;position:relative;overflow:hidden;transition:transform .26s var(--ease-cayla),background .26s var(--ease-cayla)}
+.a-foto-btn:hover{transform:translateY(-2px);background:var(--rojo-p)}
+.a-foto-btn:active{transform:scale(.985)}
+.a-foto-ico{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--crema) 35%,transparent)}
+.a-foto-ico .g-ico{width:24px;height:24px}
+.a-foto-btn b{display:block;font-family:var(--serif);font-weight:500;font-size:clamp(22px,2.4vw,27px);line-height:1.1}
+.a-foto-btn span.sub{display:block;font-size:13.5px;opacity:.82;margin-top:4px}
+.a-foto-flecha{transition:transform .3s var(--ease-cayla)}
+.a-foto-btn:hover .a-foto-flecha{transform:translateX(4px)}
+.a-foto-btn[aria-expanded="true"] .a-foto-flecha{transform:rotate(90deg)}
+.a-foto-res{display:flex;gap:20px;align-items:flex-start;padding:22px 6px 4px;flex-wrap:wrap}
+.a-foto-datos{flex:1;min-width:180px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.a-leido{display:grid;grid-template-columns:auto 1fr;gap:4px 14px}
+.a-leido dt{color:var(--taupe);font-size:12.5px}
+.a-leido dd{margin:0;font-weight:500}
+.a-fijos{display:flex;flex-direction:column;gap:12px}
+.a-cuatro{display:flex;gap:8px}
+.a-cuatro span{flex:1;border-radius:10px;background:var(--papel);border:1px solid var(--sand);padding:8px 6px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.06em;position:relative}
+.a-cuatro span svg{display:block;margin:0 auto 4px;width:16px;height:16px;fill:none;stroke:var(--verde);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- B · La mesa de trabajo ---------- */
+.b-acciones{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.b-mes{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);font-size:13.5px}
+.cifra.clic{cursor:pointer;text-align:left;font:inherit;color:inherit}
+.cifra .etq{font-size:12.5px;font-weight:500;color:color-mix(in srgb,var(--tinta) 75%,transparent);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.cifra .etq svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;transition:transform .25s var(--ease-cayla)}
+.cifra.clic:hover .etq svg{transform:translateX(3px)}
+.cifra .valor.ambar{color:var(--ambar)}
+.b-cifra-extra{font-size:12px;color:var(--verde);display:none}
+.b-cifra-extra.ve{display:block;animation:g-entra .35s var(--ease-cayla) backwards}
+.b-dos{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:980px){.b-dos{grid-template-columns:1fr}}
+.b-tit{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.b-tit h2{font-size:21px;display:flex;align-items:center;gap:8px}
+.b-globo{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--hueso);font:600 11.5px var(--sans);color:var(--tinta);font-variant-numeric:tabular-nums}
+.b-globo.cambia{animation:a-num .4s var(--ease-cayla) backwards}
+.b-bajada{font-size:13.5px;margin-bottom:14px}
+.b-en-que{display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px;align-items:center}
+@media (max-width:640px){.b-en-que{grid-template-columns:1fr;justify-items:center}}
+.b-dona{position:relative;width:220px;height:220px}
+.b-dona svg{width:100%;height:100%;transform:rotate(-90deg)}
+.b-seg{fill:none;stroke-width:26;transition:opacity .25s var(--ease-cayla),stroke-width .25s var(--ease-cayla);cursor:pointer}
+.animar .b-seg{animation:b-seg 1s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 85ms + 250ms)}
+@keyframes b-seg{from{stroke-dasharray:0 100}}
+.b-dona.foco .b-seg{opacity:.22}
+.b-dona.foco .b-seg.activo{opacity:1;stroke-width:30}
+.b-dona-centro{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;padding:44px}
+.b-dona-centro b{font-family:var(--serif);font-weight:500;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.b-dona-centro span{font-size:12px;margin-top:6px}
+.b-leyenda{list-style:none;margin:0;padding:0;display:grid;gap:2px;width:100%}
+.b-leyenda li{display:grid;grid-template-columns:12px minmax(0,1fr) minmax(50px,1.2fr) 74px 40px;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:13.5px;
+  transition:background .2s var(--ease-cayla)}
+.b-leyenda li:hover,.b-leyenda li.activo{background:var(--hueso)}
+.b-leyenda .sw{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.b-leyenda .pista{height:6px}
+.b-leyenda .pista i{background:var(--c)}
+.b-leyenda .m{text-align:right;font-variant-numeric:tabular-nums}
+.b-leyenda .pc{text-align:right;font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent);font-variant-numeric:tabular-nums}
+@media (max-width:520px){.b-leyenda li{grid-template-columns:12px minmax(0,1fr) 74px 36px}.b-leyenda .pista{display:none}}
+
+.b-band-lista{list-style:none;margin:0;padding:0}
+.b-fila{display:grid;grid-template-columns:34px minmax(0,1.15fr) minmax(0,1.5fr) auto auto;gap:14px;align-items:center;padding:13px 2px;border-top:1px solid var(--sand);position:relative}
+.b-fila .a-ico{width:32px;height:32px}
+.b-fila .quien b{display:block;font-weight:500;font-size:14px;line-height:1.3}
+.b-fila .quien small{font-size:12px}
+.b-sug{display:flex;flex-direction:column;gap:3px;min-width:0}
+.b-sug .va{font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.b-sug .va b{font-weight:600}
+.b-sug .por{font-size:12.5px;line-height:1.4}
+.b-fila .monto{font-family:var(--serif);font-size:20px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.b-fila .monto.entra{color:var(--verde)}
+.b-ok{display:flex;gap:6px;align-items:center;position:relative}
+.b-ok .btn.chico{min-width:52px}
+.b-fila.hecho{background:color-mix(in srgb,var(--verde) 6%,transparent)}
+.b-fila.hecho .quien,.b-fila.hecho .monto,.b-fila.hecho .a-ico{opacity:.55}
+.b-fila.hecho.recien{animation:b-recien 1.1s var(--ease-cayla) backwards}
+@keyframes b-recien{from{background:color-mix(in srgb,var(--verde) 20%,transparent)}}
+.b-hecho-v{display:inline-flex;align-items:center;gap:6px;color:var(--verde);font-size:13px;font-weight:600}
+.b-hecho-v svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:760px){
+  .b-fila{grid-template-columns:32px minmax(0,1fr) auto}
+  .b-sug{grid-column:2/-1}
+  .b-ok{grid-column:2/-1}
+}
+.b-band-vacio{display:none;text-align:center;padding:26px 10px 10px;gap:8px;justify-items:center}
+.b-band-vacio.ve{display:grid;animation:g-entra .45s var(--ease-cayla) backwards}
+.b-band-vacio svg{width:46px;height:46px;fill:none;stroke:var(--verde);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.b-band-vacio b{font-family:var(--serif);font-weight:500;font-size:21px}
+
+.b-reglas{list-style:none;margin:0;padding:0}
+.b-regla{padding:12px 0;border-top:1px solid var(--sand);display:grid;gap:4px;font-size:13.5px;transition:opacity .3s var(--ease-cayla)}
+.b-regla .cuando{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.b-regla .cuando b{font-weight:600}
+.b-regla .va{display:flex;align-items:center;gap:6px}
+.b-regla .va svg{width:14px;height:14px;fill:none;stroke:var(--taupe);stroke-width:1.6;flex:none}
+.b-regla .meta{font-size:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.b-regla.quitada .cuando,.b-regla.quitada .va{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--tinta) 45%,transparent);opacity:.55}
+.b-regla.nueva{animation:b-recien 1.4s var(--ease-cayla) backwards,g-entra .5s var(--ease-cayla) backwards}
+.b-usos.cambia{animation:a-num .4s var(--ease-cayla) backwards;display:inline-block}
+.b-nota-reglas{font-size:12.5px;margin-top:12px}
+
+.b-pestanas{position:relative;display:inline-flex;gap:2px;padding:4px;border-radius:999px;max-width:100%;overflow-x:auto;scrollbar-width:none;
+  background:color-mix(in srgb,var(--hueso) 80%,transparent);border:1px solid color-mix(in srgb,var(--sand) 70%,transparent)}
+.b-pestanas::-webkit-scrollbar{display:none}
+.b-pestanas button{position:relative;z-index:1;border:0;background:transparent;padding:8px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;
+  font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:color-mix(in srgb,var(--tinta) 72%,transparent);display:inline-flex;align-items:center;gap:7px;
+  transition:color .25s var(--ease-cayla)}
+.b-pestanas button[aria-selected="true"]{color:var(--crema)}
+.b-pestanas button[aria-selected="true"] .b-globo{background:color-mix(in srgb,var(--crema) 22%,transparent);color:var(--crema)}
+.b-pest-pild{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--tinta);z-index:0;transition:left .38s var(--ease-cayla),width .38s var(--ease-cayla)}
+.b-panel{padding-top:18px}
+.b-filtros{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.b-pild-wrap{position:relative;display:inline-flex}
+.b-pild{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--sand);background:var(--papel);cursor:pointer;font-size:13px;
+  transition:border-color .2s var(--ease-cayla),background .2s,color .2s,transform .2s var(--ease-cayla)}
+.b-pild:hover{border-color:var(--tinta);transform:translateY(-1px)}
+.b-pild svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.b-pild .car{transition:transform .25s var(--ease-cayla)}
+.b-pild[aria-expanded="true"] .car{transform:rotate(180deg)}
+.b-pild.puesta{background:var(--tinta);color:var(--crema);border-color:var(--tinta);padding-right:36px}
+.b-pild-x{display:none;position:absolute;right:5px;top:5px;width:24px;height:24px;border-radius:50%;border:0;background:color-mix(in srgb,var(--crema) 18%,transparent);color:var(--crema);cursor:pointer;place-items:center}
+.b-pild-x svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+.b-pild.puesta+.b-pild-x{display:grid}
+.b-limpiar{display:none;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:999px;border:1px dashed color-mix(in srgb,var(--tinta) 35%,transparent);background:transparent;cursor:pointer;font-size:13px}
+.b-limpiar.ve{display:inline-flex;animation:g-entra .3s var(--ease-cayla) backwards}
+.b-conteo{margin-left:auto;font-size:13px}
+.b-tabla td small{display:block;font-size:12px;margin-top:2px}
+.b-tabla tbody tr.b-tr{cursor:pointer}
+.b-tabla tbody tr.b-tr.abierta{background:color-mix(in srgb,var(--hueso) 70%,transparent)}
+.b-tabla tbody tr.b-tr td:first-child{position:relative}
+.b-tabla tbody tr.b-tr.abierta td:first-child::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--rojo)}
+.b-punto{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:8px;vertical-align:1px}
+.b-tabla tfoot td{font-weight:600;border-bottom:0;padding-top:14px}
+.b-tabla td.vacia{text-align:center;padding:34px 10px}
+.b-det td{padding:0 12px 14px;border-bottom:1px solid var(--sand);background:color-mix(in srgb,var(--hueso) 70%,transparent)}
+.b-det-in{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 22px;padding:6px 0 4px 12px;animation:g-revelar .3s var(--ease-cayla) backwards}
+.b-det-in dt{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.b-det-in dd{margin:2px 0 0;font-size:13.5px}
+.b-det-in .nota{grid-column:1/-1;font-size:13px;padding:10px 14px;background:var(--papel)}
+.b-fijos-cab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:center;margin-bottom:16px}
+@media (max-width:760px){.b-fijos-cab{grid-template-columns:1fr}}
+.b-fijos-cab h3{font-size:22px}
+.b-fijos-cab p{font-size:13.5px;margin-top:6px;max-width:52ch}
+.b-dias{display:grid;grid-template-columns:repeat(31,1fr);gap:3px;align-items:end}
+.b-dias i{height:30px;border-radius:2px;background:var(--hueso)}
+.b-dias i.u{background:var(--taupe)}
+.b-dias i.hoy{background:var(--tinta)}
+.animar .b-dias i.u,.b-panel:not([hidden]) .b-dias i.u{animation:mq-crece-alto .5s var(--ease-cayla) backwards;transform-origin:bottom;animation-delay:calc(var(--i,0) * 30ms + 150ms)}
+.b-dias-pie{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}
+.b-fijos .pista{height:8px;min-width:80px}
+.b-fijos .pista i{background:var(--taupe)}
+.b-sugeridos{margin-top:22px}
+.b-sugeridos h3{font-size:18px;margin-bottom:4px}
+.b-sugerido{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--sand);font-size:13.5px}
+.b-sugerido .acc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.b-sugerido.listo .acc{animation:g-entra .35s var(--ease-cayla) backwards}
+.b-activos .pista{height:8px;min-width:70px}
+.b-activos .pista i{background:var(--pizarra)}
+.b-vacio{display:grid;justify-items:center;text-align:center;gap:8px;padding:38px 16px}
+.b-vacio svg{width:52px;height:52px;fill:none;stroke:var(--verde);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.b-vacio b{font-family:var(--serif);font-weight:500;font-size:22px}
+.b-vacio p{max-width:46ch;font-size:13.5px}
+.b-porque-in{font-size:13px;padding-top:8px}
+
+/* ---------- C · Las cosas de la tienda ---------- */
+.c-mesa{position:relative;border-radius:26px;padding:clamp(18px,3.4vw,40px);background:var(--hueso);
+  background-image:repeating-linear-gradient(105deg,color-mix(in srgb,var(--taupe) 5%,transparent) 0 2px,transparent 2px 9px),
+    radial-gradient(ellipse at 20% 0%,color-mix(in srgb,var(--papel) 55%,transparent),transparent 60%);
+  display:flex;flex-direction:column;gap:clamp(22px,3vw,34px)}
+.c-capa{position:absolute;inset:0;pointer-events:none;z-index:30}
+.c-cab{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.c-cab h2{font-size:clamp(30px,4.4vw,48px);line-height:1.04;margin-top:8px}
+.c-cab h2 .num{white-space:nowrap}
+.c-cab p{font-size:15.5px;margin-top:10px;max-width:50ch}
+.c-extra{font-size:13.5px;color:var(--verde);margin-top:6px;display:none}
+.c-extra.ve{display:block;animation:g-entra .35s var(--ease-cayla) backwards}
+.c-sueltos-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px 18px;flex-wrap:wrap}
+.c-sueltos-cab h3{font-size:22px}
+.c-sueltos{display:flex;flex-wrap:wrap;gap:30px 26px;align-items:flex-start;min-height:60px}
+.c-suelto{position:relative;width:208px;display:flex;flex-direction:column;align-items:center;gap:12px;touch-action:none}
+.c-suelto.arrastra{z-index:35;cursor:grabbing}
+.c-suelto.arrastra .c-va,.c-suelto.volando .c-va{opacity:0;transition:opacity .15s}
+.c-papel{position:relative;width:190px;background:var(--crema-fija);color:var(--tinta-fija);padding:14px 15px 12px;border-radius:3px 3px 0 0;cursor:grab;
+  transform:rotate(var(--r,0deg));transition:transform .35s var(--ease-cayla),filter .3s;user-select:none;-webkit-user-select:none;
+  filter:drop-shadow(0 10px 12px color-mix(in srgb,var(--sombra) 20%,transparent))}
+.c-papel:hover{transform:rotate(0deg) translateY(-3px);filter:drop-shadow(0 16px 16px color-mix(in srgb,var(--sombra) 26%,transparent))}
+.c-suelto.arrastra .c-papel{transform:rotate(0deg) scale(1.04)}
+.c-papel .dientes{position:absolute;left:0;bottom:-7px;width:100%;height:8px;display:block}
+.c-papel .dientes path{fill:var(--crema-fija)}
+.c-papel .t{display:block;font:600 9.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta-fija) 62%,var(--crema-fija))}
+.c-papel .q{display:block;font-family:var(--serif);font-size:18px;line-height:1.15;margin-top:6px}
+.c-papel .d{display:block;font:500 11px var(--mono);margin-top:4px;color:color-mix(in srgb,var(--tinta-fija) 70%,var(--crema-fija))}
+.c-papel .l{display:block;height:1px;margin:10px 0 8px;background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--tinta-fija) 40%,var(--crema-fija)) 0 4px,transparent 4px 7px)}
+.c-papel .m{display:flex;justify-content:space-between;align-items:baseline;font:600 15px var(--mono)}
+.c-papel .m small{font:500 10px var(--mono);letter-spacing:.1em}
+.c-papel.talon{border-left:none;padding-left:22px;background:
+  radial-gradient(circle at 0 10px,transparent 4px,var(--crema-fija) 4.5px) left top/12px 20px repeat-y,var(--crema-fija)}
+.c-papel.talon::before{content:"";position:absolute;left:12px;top:10px;bottom:6px;border-left:1px dashed color-mix(in srgb,var(--tinta-fija) 30%,var(--crema-fija))}
+.c-suelto .g-polaroid{cursor:grab;transition:transform .35s var(--ease-cayla)}
+.c-suelto .g-polaroid:hover{transform:rotate(0deg) translateY(-3px)}
+.c-va{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;transition:opacity .2s}
+.c-va .a{font-size:13.5px}
+.c-va .a b{font-weight:600}
+.c-va .p{font-size:12px;line-height:1.35;max-width:26ch}
+.c-va .bot{display:flex;gap:6px;position:relative}
+.c-pista{font-size:12.5px}
+.c-deshacer{min-height:22px;font-size:13.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.c-deshacer>span{animation:g-entra .35s var(--ease-cayla) backwards}
+.c-limpia{display:none;align-items:center;gap:18px;padding:6px 0}
+.c-limpia.ve{display:flex;animation:g-entra .45s var(--ease-cayla) backwards}
+.c-limpia svg{width:96px;height:96px;flex:none;animation:g-sello .6s var(--ease-cayla) .1s backwards}
+.c-limpia svg circle{fill:none;stroke:var(--verde);stroke-width:2}
+.c-limpia svg text{font:600 11px var(--sans);letter-spacing:.16em;fill:var(--verde);text-anchor:middle}
+.c-limpia b{font-family:var(--serif);font-weight:500;font-size:24px;display:block}
+.c-sobres{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:22px 16px}
+.c-sobre.ancho{grid-column:span 2}
+@media (max-width:1020px){.c-sobres{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:600px){.c-sobres{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}}
+.c-sobre{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;border-radius:14px;transition:background .25s var(--ease-cayla)}
+.c-sobre svg{display:block;width:100%;height:auto;overflow:hidden}
+.c-tapa{fill:color-mix(in srgb,var(--taupe) 34%,var(--papel))}
+.c-atras{fill:color-mix(in srgb,var(--taupe) 30%,var(--papel))}
+.c-frente{fill:color-mix(in srgb,var(--taupe) 20%,var(--papel));stroke:color-mix(in srgb,var(--taupe) 42%,var(--papel));stroke-width:1;transition:fill .25s var(--ease-cayla)}
+.c-pliegue{fill:none;stroke:color-mix(in srgb,var(--taupe) 45%,var(--papel));stroke-width:1}
+.c-hoja{transform:translateY(96px);transition:transform .55s var(--ease-cayla);transition-delay:calc(var(--k,0) * 30ms)}
+.c-hoja.ve{transform:none}
+.c-sobre:hover .c-hoja.ve{transform:translateY(-6px)}
+.c-hoja rect{fill:var(--crema-fija);stroke:color-mix(in srgb,var(--tinta-fija) 18%,var(--crema-fija));stroke-width:1}
+.c-hoja line{stroke:color-mix(in srgb,var(--tinta-fija) 25%,var(--crema-fija));stroke-width:2;stroke-linecap:round}
+.c-rotulo{position:absolute;left:12%;right:12%;bottom:13%;display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 8px;border-radius:4px;
+  background:var(--crema-fija);color:var(--tinta-fija);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 1px 0 color-mix(in srgb,var(--sombra) 12%,transparent)}
+.c-rotulo i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
+.c-figura{position:relative}
+.c-pie{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding-inline:4px}
+.c-pie b{font-family:var(--serif);font-weight:500;font-size:21px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.c-pie span{font-size:12px;white-space:nowrap}
+.c-parte{height:3px;border-radius:2px;background:color-mix(in srgb,var(--taupe) 18%,transparent);margin-inline:4px;overflow:hidden}
+.c-parte i{display:block;height:100%;width:var(--w,0%);background:var(--c);border-radius:2px;transition:width .6s var(--ease-cayla)}
+.c-sobre.blanco{background:color-mix(in srgb,var(--papel) 60%,transparent);outline:1.5px dashed var(--taupe);outline-offset:4px}
+.c-sobre.blanco .c-frente{fill:color-mix(in srgb,var(--taupe) 10%,var(--papel))}
+.c-mas{position:absolute;left:50%;top:0;transform:translateX(-50%);font:600 13px var(--sans);color:var(--verde);white-space:nowrap;pointer-events:none;
+  background:var(--papel);border-radius:999px;padding:2px 10px;border:1px solid color-mix(in srgb,var(--verde) 40%,transparent);animation:g-sube-se-va 1.6s var(--ease-cayla) forwards}
+.c-cajas{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:600px){.c-cajas{grid-template-columns:1fr}}
+.c-cajas-cab{display:flex;align-items:center;gap:12px;margin-bottom:-6px}
+.c-cajas-cab::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--taupe) 35%,transparent)}
+.c-caja-frente{fill:color-mix(in srgb,var(--pizarra) 16%,var(--papel));stroke:color-mix(in srgb,var(--pizarra) 40%,var(--papel));stroke-width:1;transition:fill .25s}
+.c-caja-atras{fill:color-mix(in srgb,var(--pizarra) 26%,var(--papel))}
+.c-sobre.blanco .c-caja-frente{fill:color-mix(in srgb,var(--pizarra) 8%,var(--papel))}
+.c-caja-nota{font-size:12px;padding-inline:4px}
+.c-vuela{position:absolute;left:0;top:0;width:44px;height:54px;border-radius:2px;background:var(--crema-fija);
+  background-image:linear-gradient(color-mix(in srgb,var(--tinta-fija) 28%,var(--crema-fija)),color-mix(in srgb,var(--tinta-fija) 28%,var(--crema-fija))),
+   linear-gradient(color-mix(in srgb,var(--tinta-fija) 20%,var(--crema-fija)),color-mix(in srgb,var(--tinta-fija) 20%,var(--crema-fija))),
+   linear-gradient(color-mix(in srgb,var(--tinta-fija) 20%,var(--crema-fija)),color-mix(in srgb,var(--tinta-fija) 20%,var(--crema-fija)));
+  background-size:60% 3px,74% 2px,50% 2px;background-position:8px 9px,8px 18px,8px 25px;background-repeat:no-repeat;
+  box-shadow:0 8px 14px -8px color-mix(in srgb,var(--sombra) 45%,transparent);will-change:transform,opacity}
+.c-vuela::after{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:3px;background:var(--c,var(--taupe));border-radius:2px}
+.c-foto-btn{display:inline-flex;align-items:center;gap:10px}
+.c-foto-btn .g-ico{width:18px;height:18px}
+
+@media (prefers-reduced-motion:reduce){.c-hoja{transition:none}}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="index.html" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · maquetas</span><b>Gastos</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · La mesa</button><button data-ver="c">C · Las cosas</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<main class="pagina">
+
+<!-- ======================================================================= A · LA RESPUESTA -->
+<section class="variante" data-variante="a">
+  <div class="variante-cab"><span class="versalita">Camino A · La respuesta</span><p class="idea tenue">Una respuesta grande y la bandeja de a una tarjeta: el sistema propone, tú dices «sí» con un toque y la tarjeta se va.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div><div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Gastos</h1>
+      <p class="frase tenue">En qué se fue la plata este mes, y lo poco que te falta revisar.</p></div>
+  </div>
+
+  <article class="a-respuesta" data-sube style="--i:1">
+    <div>
+      <span class="versalita">¿En qué se fue la plata este mes?</span>
+      <h2 class="a-total"><small>Este mes gastaste</small><span class="num" data-cuenta="17750" data-pre="S/ " data-dur="1300">S/ 17,750</span></h2>
+      <p class="a-frase"><span class="a-subraya">7 de cada 10 soles fueron alquiler</span> de tus cuatro locales. Lo demás se repartió en 8 cosas chicas; la más grande, la publicidad en Instagram.</p>
+      <p class="a-extra" id="a-extra"></p>
+      <div class="a-igv"><span>De esto, <b class="num">S/ 1,321</b> vuelve a ti como descuento de impuestos.</span>
+        <button class="porque" type="button" data-porque="a-igv" aria-expanded="false">¿Por qué?</button></div>
+      <div class="desplegable" id="a-igv"><div><p class="nota" style="margin-top:12px">Cuando pagas con <b>factura</b>, una parte del precio es IGV (el impuesto que va dentro de lo que pagas). Ese IGV se resta de lo que le pagas a SUNAT el mes que viene. Este mes juntaste S/ 1,321 de 7 facturas. Lo que se paga en efectivo desde S/ 2,000 pierde ese descuento: este mes no perdiste nada. Y si juntas la factura de Hidrandina que está en tu bandeja, recuperas S/ 63 más.</p></div></div>
+    </div>
+    <div class="a-monedas">
+      <svg viewBox="0 0 420 240" role="img" aria-label="De cada 10 soles, 7 fueron alquiler y 3 todo lo demás">
+        <g class="a-grupo" id="a-monedas-alq"></g>
+        <g class="a-grupo" id="a-monedas-otro"></g>
+      </svg>
+      <div><button class="porque" type="button" data-porque="a-detalle" aria-expanded="false">Ver en qué se fue cada sol</button></div>
+    </div>
+    <div class="a-detalle desplegable" id="a-detalle"><div><div class="a-cats" id="a-cats"></div></div></div>
+  </article>
+
+  <div class="a-cuerpo">
+    <article class="tarjeta a-bandeja" data-sube style="--i:2">
+      <div class="a-band-cab">
+        <div><span class="versalita">¿Qué te falta revisar?</span>
+          <h2 class="a-faltan" id="a-faltan">Te faltan <span class="a-num num" id="a-num">6</span></h2></div>
+        <p class="tenue" id="a-band-frase">El sistema ya propone qué es cada cosa. Si está bien, dices «sí» y listo.</p>
+      </div>
+      <div class="a-pasos" id="a-pasos" aria-hidden="true"></div>
+      <div class="a-mazo" id="a-mazo" data-quedan="6" aria-live="polite"></div>
+      <div class="a-deshacer" id="a-deshacer" aria-live="polite"></div>
+    </article>
+
+    <aside class="a-lado">
+      <div data-sube style="--i:3">
+        <button class="a-foto-btn" type="button" data-porque="a-foto" aria-expanded="false" id="a-foto-btn">
+          <span class="a-foto-ico"><svg class="g-ico" viewBox="0 0 24 24"><path d="M3.5 8h3.2l1.8-2.5h7l1.8 2.5h3.2v11h-17z"/><circle cx="12" cy="13.2" r="3.6"/></svg></span>
+          <span><b>Registrar un gasto</b><span class="sub">Saca una foto del recibo. Leemos el monto, la fecha y el RUC por ti.</span></span>
+          <svg class="g-ico a-foto-flecha" viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5"/></svg>
+        </button>
+        <div class="desplegable" id="a-foto"><div>
+          <div class="a-foto-res">
+            <div class="g-polaroid" id="a-polaroid" style="--r:-2.5deg">
+              <div class="g-foto"><svg viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(-6 50 50)"><rect class="pr-papel" x="24" y="12" width="52" height="78" rx="1.5"/><text class="pr-t" x="50" y="26">BODEGA EL SOL</text><line class="pr-l" x1="31" y1="35" x2="69" y2="35"/><line class="pr-l" x1="31" y1="43" x2="62" y2="43"/><text class="pr-t" x="50" y="55" style="font-size:6.5px">BOLSAS DE BASURA</text><line class="pr-l" x1="31" y1="63" x2="69" y2="63"/><text class="pr-m" x="50" y="78">S/ 12.00</text></g></svg></div>
+              <span class="g-pie-foto">bodega · TRU</span>
+            </div>
+            <div class="a-foto-datos">
+              <span class="versalita">Esto leímos</span>
+              <dl class="a-leido"><dt>Monto</dt><dd class="num">S/ 12.00</dd><dt>Fecha</dt><dd>hoy, 15 de octubre</dd><dt>Quién</dt><dd>Bodega El Sol · sin RUC</dd></dl>
+              <p>¿Es <b>Útiles y limpieza</b> de Trujillo?</p>
+              <p class="tenue" style="font-size:13px">Leímos «bolsas de basura» y la foto salió de la caja de Trujillo.</p>
+              <div class="a-acciones"><button class="btn primario chico" type="button" id="a-foto-si">Sí, anótalo</button><button class="btn sutil chico" type="button">Escribirlo a mano</button></div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="tarjeta hundida a-fijos" data-sube style="--i:4">
+        <span class="versalita">Lo que se repite cada mes</span>
+        <p><b>Los 4 alquileres ya están.</b> No tienes que hacer nada.</p>
+        <div class="a-cuatro"><span><svg viewBox="0 0 16 16"><path class="g-dib" pathLength="1" style="--d:900ms" d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>TRU</span><span><svg viewBox="0 0 16 16"><path class="g-dib" pathLength="1" style="--d:980ms" d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>AQP</span><span><svg viewBox="0 0 16 16"><path class="g-dib" pathLength="1" style="--d:1060ms" d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>LIM</span><span><svg viewBox="0 0 16 16"><path class="g-dib" pathLength="1" style="--d:1140ms" d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>Taller</span></div>
+        <div><button class="porque" type="button" data-porque="a-dev" aria-expanded="false">¿Por qué el resumen dice S/ 6,050?</button></div>
+        <div class="desplegable" id="a-dev"><div><p style="font-size:13.5px;padding-top:4px">Los S/ 12,500 se pagaron el 1, pero el local se usa todo el mes. Por eso el resumen reparte el alquiler entre los 31 días: a hoy, día 15, van <b>S/ 6,050</b>. Así el día 1 no parece un desastre ni el 30 un regalo.</p></div></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ======================================================================= B · LA MESA DE TRABAJO -->
+<section class="variante" data-variante="b" hidden>
+  <div class="variante-cab"><span class="versalita">Camino B · La mesa de trabajo</span><p class="idea tenue">Todo a la vista: cifras, en qué se fue, la bandeja con «OK» por fila y las reglas que aprendió el sistema, al lado.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div><div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Gastos</h1>
+      <p class="frase tenue">Lo que pagas para que el negocio funcione y no es ropa. Lo pagado en octubre va con IGV.</p></div>
+    <div class="b-acciones"><span class="b-mes"><svg class="g-ico" viewBox="0 0 20 20" style="width:16px;height:16px"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M3 8.5h14M7 3v3M13 3v3"/></svg>Octubre 2026</span>
+      <button class="btn primario" type="button"><svg class="g-ico" viewBox="0 0 20 20" style="width:16px;height:16px"><path d="M10 4v12M4 10h12"/></svg>Registrar gasto</button></div>
+  </div>
+
+  <div class="rejilla r4">
+    <div class="cifra" data-entra style="--i:1"><span class="etq">Gastado en octubre</span><span class="valor num" data-cuenta="17750" data-pre="S/ ">S/ 17,750</span><span class="pie">17 gastos · 7 de cada 10 soles, alquiler</span><span class="b-cifra-extra" id="b-extra"></span></div>
+    <div class="cifra" data-entra style="--i:2"><span class="etq">IGV que recuperas <button class="porque" type="button" data-porque="b-igv-p" aria-expanded="false">¿Por qué?</button></span><span class="valor num" id="b-igv" data-cuenta="1321" data-pre="S/ ">S/ 1,321</span><span class="pie" id="b-igv-pie">de 7 facturas · S/ 0 perdido</span>
+      <div class="desplegable" id="b-igv-p"><div><p class="b-porque-in tenue">El IGV de una factura se resta de lo que pagas a SUNAT. Se pierde si pagas en efectivo desde S/ 2,000: este mes, nada perdido.</p></div></div></div>
+    <button class="cifra clic" type="button" data-entra style="--i:3" data-ir-tab="fijos"><span class="etq">Fijos del mes <svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg></span><span class="valor num" id="b-fijos-v">4 de 4</span><span class="pie"><span class="chip c-verde">Todos registrados</span></span></button>
+    <button class="cifra clic" type="button" data-entra style="--i:4" id="b-ir-bandeja"><span class="etq">Por revisar <svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg></span><span class="valor num ambar" id="b-pend">6</span><span class="pie" id="b-pend-pie">4 son seguros: un toque cada uno</span></button>
+  </div>
+
+  <article class="tarjeta" data-sube style="--i:2">
+    <div class="b-tit"><h2>En qué se fue</h2><span class="tenue" style="font-size:12.5px">Toca una categoría para ver sus gastos</span></div>
+    <p class="b-bajada tenue">Lo pagado en octubre, con IGV. Lo que se reparte por día (el alquiler, la depreciación) está en «Fijos del mes».</p>
+    <div class="b-en-que">
+      <div class="b-dona" id="b-dona"><svg viewBox="0 0 200 200" id="b-dona-svg" aria-hidden="true"></svg>
+        <div class="b-dona-centro"><b class="num" id="b-dona-num" data-cuenta="17750" data-pre="S/ ">S/ 17,750</b><span class="tenue" id="b-dona-txt">en octubre</span></div></div>
+      <ul class="b-leyenda" id="b-leyenda"></ul>
+    </div>
+  </article>
+
+  <div class="b-dos">
+    <article class="tarjeta" id="b-bandeja" data-sube style="--i:3">
+      <div class="b-tit"><h2>Por revisar <span class="b-globo" id="b-globo">6</span></h2>
+        <button class="btn primario chico" type="button" id="b-todo">OK a todo lo seguro (4)</button></div>
+      <p class="b-bajada tenue">El sistema propone qué es cada cosa y te dice por qué. «Seguro» es lo que una regla ya conoce; lo demás, confírmalo tú.</p>
+      <ul class="b-band-lista" id="b-band-lista"></ul>
+      <div class="b-band-vacio" id="b-band-vacio"><svg viewBox="0 0 48 48"><circle class="g-dib" pathLength="1" cx="24" cy="24" r="20"/><path class="g-dib" pathLength="1" style="--d:350ms" d="M15 24.5 21.5 31 33.5 18"/></svg><b>No te falta revisar nada</b><p class="tenue" style="font-size:13.5px">Todo lo de octubre está en su lugar.</p></div>
+    </article>
+    <aside class="tarjeta" data-sube style="--i:4">
+      <div class="b-tit"><h2>Lo que aprendió <span class="b-globo" id="b-reglas-n">6</span></h2></div>
+      <p class="b-bajada tenue">Cada regla dice qué hacer cuando vuelve a llegar algo igual. Si una se equivoca, la quitas.</p>
+      <ul class="b-reglas" id="b-reglas"></ul>
+      <p class="b-nota-reglas tenue">Una regla nace cuando eliges lo mismo dos veces, o cuando marcas «Recordar». Nunca anota sola algo nuevo: te lo propone.</p>
+    </aside>
+  </div>
+
+  <article class="tarjeta" id="b-tabs-card" data-sube style="--i:5">
+    <div class="b-pestanas" role="tablist" aria-label="Qué ver" id="b-pestanas">
+      <span class="b-pest-pild" aria-hidden="true"></span>
+      <button role="tab" aria-selected="true" data-tab="gastos" type="button">Gastos <span class="b-globo">17</span></button>
+      <button role="tab" aria-selected="false" data-tab="fijos" type="button">Fijos del mes <span class="b-globo" id="b-fijos-globo">4</span></button>
+      <button role="tab" aria-selected="false" data-tab="activos" type="button">Máquinas y muebles <span class="b-globo">4</span></button>
+      <button role="tab" aria-selected="false" data-tab="cajon" type="button">Salidas del cajón <span class="b-globo">0</span></button>
+    </div>
+
+    <div class="b-panel" data-panel="gastos" role="tabpanel">
+      <div class="b-filtros" id="b-filtros">
+        <span class="b-pild-wrap"><button class="b-pild" type="button" data-filtro="sede" aria-haspopup="listbox" aria-expanded="false"><svg viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.6"/></svg><span class="lbl">Sede</span><svg class="car" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button><button class="b-pild-x" type="button" data-quitar="sede" aria-label="Quitar el filtro de sede"><svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3 3 9"/></svg></button></span>
+        <span class="b-pild-wrap"><button class="b-pild" type="button" data-filtro="cat" aria-haspopup="listbox" aria-expanded="false"><svg viewBox="0 0 16 16"><path d="M2.5 4.5h11M4.5 8h7M6.5 11.5h3"/></svg><span class="lbl">Categoría</span><svg class="car" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button><button class="b-pild-x" type="button" data-quitar="cat" aria-label="Quitar el filtro de categoría"><svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3 3 9"/></svg></button></span>
+        <span class="b-pild-wrap"><button class="b-pild" type="button" data-filtro="comp" aria-haspopup="listbox" aria-expanded="false"><svg viewBox="0 0 16 16"><path d="M4 2.5h5.5L12 5v8.5H4z"/><path d="M6 8h4M6 10.5h3"/></svg><span class="lbl">Comprobante</span><svg class="car" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></button><button class="b-pild-x" type="button" data-quitar="comp" aria-label="Quitar el filtro de comprobante"><svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3 3 9"/></svg></button></span>
+        <button class="b-limpiar" type="button" id="b-limpiar"><svg class="g-ico" viewBox="0 0 16 16" style="width:14px;height:14px"><path d="M2.5 3.5h11l-4.2 5v4l-2.6 1v-5z"/><path d="M2 14 14 2"/></svg>Limpiar filtros</button>
+        <span class="b-conteo tenue num" id="b-conteo"></span>
+      </div>
+      <div class="desliza"><table class="tabla b-tabla">
+        <thead><tr><th>Fecha</th><th>En qué</th><th>Sede</th><th>Comprobante</th><th class="m">Monto</th><th class="m">IGV que recuperas</th></tr></thead>
+        <tbody id="b-tbody"></tbody>
+        <tfoot><tr><td colspan="4" id="b-pie-txt">Total</td><td class="m num" id="b-pie-monto"></td><td class="m num" id="b-pie-igv"></td></tr></tfoot>
+      </table></div>
+    </div>
+
+    <div class="b-panel" data-panel="fijos" role="tabpanel" hidden>
+      <div class="b-fijos-cab">
+        <div><h3>Lo pagaste el 1, pero lo usas día a día</h3>
+          <p class="tenue">Cada alquiler se reparte entre los 31 días de octubre (lo que los contadores llaman «devengado»). A hoy, día 15, el negocio ya usó <b>S/ 6,050</b> de los S/ 12,500.</p></div>
+        <div><div class="b-dias" id="b-dias" aria-hidden="true"></div><div class="b-dias-pie tenue"><span>1 oct</span><span>hoy, 15</span><span>31 oct</span></div></div>
+      </div>
+      <div class="desliza"><table class="tabla b-fijos">
+        <thead><tr><th>Local</th><th class="m">Al mes</th><th class="m">Por día</th><th>Usado a hoy</th><th class="m">S/</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td><b>Alquiler Trujillo</b></td><td class="m">4,000.00</td><td class="m">129.03</td><td><div class="pista" data-crece><i style="--w:48.4%"></i></div></td><td class="m">1,935</td><td><span class="chip c-verde">Registrado</span></td></tr>
+          <tr><td><b>Alquiler Arequipa</b> <small class="tenue">con detracción</small></td><td class="m">3,200.00</td><td class="m">103.23</td><td><div class="pista" data-crece style="--i:1"><i style="--w:48.4%"></i></div></td><td class="m">1,548</td><td><span class="chip c-verde">Registrado</span></td></tr>
+          <tr><td><b>Alquiler Lima</b> <small class="tenue">abre el 20</small></td><td class="m">2,800.00</td><td class="m">90.32</td><td><div class="pista" data-crece style="--i:2"><i style="--w:48.4%"></i></div></td><td class="m">1,355</td><td><span class="chip c-verde">Registrado</span></td></tr>
+          <tr><td><b>Alquiler Taller</b></td><td class="m">2,500.00</td><td class="m">80.65</td><td><div class="pista" data-crece style="--i:3"><i style="--w:48.4%"></i></div></td><td class="m">1,210</td><td><span class="chip c-verde">Registrado</span></td></tr>
+        </tbody>
+        <tfoot><tr><td>Los 4 locales</td><td class="m">12,500.00</td><td class="m">403.23</td><td></td><td class="m">≈ 6,050</td><td></td></tr></tfoot>
+      </table></div>
+      <div class="b-sugeridos">
+        <h3>Se repite cada mes y todavía no es fijo</h3>
+        <p class="tenue" style="font-size:13px">Si lo haces fijo, el sistema lo espera cada mes y te avisa si no llega.</p>
+        <div id="b-sugeridos"></div>
+      </div>
+    </div>
+
+    <div class="b-panel" data-panel="activos" role="tabpanel" hidden>
+      <div class="b-fijos-cab">
+        <div><h3>Máquinas y muebles: <span class="num">S/ 58,700</span></h3>
+          <p class="tenue">No se gastan de golpe: se desgastan un poco cada mes. Ese desgaste (la «depreciación») cuenta como gasto aunque no salga plata: <b>S/ 920 al mes</b>, y a hoy van S/ 440.</p></div>
+        <div class="nota" style="font-size:13px">Una máquina de coser nueva no es gasto del mes: se registra como máquina y se reparte en los años que dura.</div>
+      </div>
+      <div class="desliza"><table class="tabla b-activos">
+        <thead><tr><th>Dónde</th><th>Qué hay</th><th class="m">Valor</th><th>Parte del total</th><th class="m">Se desgasta al mes</th></tr></thead>
+        <tbody>
+          <tr><td><b>Trujillo</b></td><td>Mostrador, 2 probadores, POS y maniquíes</td><td class="m">18,400</td><td><div class="pista" data-crece><i style="--w:31.3%"></i></div></td><td class="m">290</td></tr>
+          <tr><td><b>Lima</b></td><td>Muebles nuevos y POS (abre el 20)</td><td class="m">16,800</td><td><div class="pista" data-crece style="--i:1"><i style="--w:28.6%"></i></div></td><td class="m">240</td></tr>
+          <tr><td><b>Arequipa</b></td><td>Mostrador, probador y POS</td><td class="m">14,300</td><td><div class="pista" data-crece style="--i:2"><i style="--w:24.4%"></i></div></td><td class="m">230</td></tr>
+          <tr><td><b>Taller</b></td><td>3 máquinas de coser y una remalladora</td><td class="m">9,200</td><td><div class="pista" data-crece style="--i:3"><i style="--w:15.7%"></i></div></td><td class="m">160</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="2">Todo</td><td class="m">58,700</td><td></td><td class="m">920</td></tr></tfoot>
+      </table></div>
+    </div>
+
+    <div class="b-panel" data-panel="cajon" role="tabpanel" hidden>
+      <div class="b-vacio"><svg viewBox="0 0 52 52"><circle class="g-dib" pathLength="1" cx="26" cy="26" r="22"/><path class="g-dib" pathLength="1" style="--d:350ms" d="M16 26.5 23 33.5 36 19.5"/></svg>
+        <b>Todo en orden: no hay salidas del cajón por explicar</b>
+        <p class="tenue">Cuando sale plata de un cajón sin decir para qué, aparece aquí. La del taxi de Arequipa llegó con su foto y está en «Por revisar».</p></div>
+    </div>
+  </article>
+</section>
+
+<!-- ======================================================================= C · LAS COSAS DE LA TIENDA -->
+<section class="variante" data-variante="c" hidden>
+  <div class="variante-cab"><span class="versalita">Camino C · Las cosas de la tienda</span><p class="idea tenue">Cada gasto es un papel y cada categoría un sobre. Los recibos del mes caen en su sobre; los sueltos esperan sobre la mesa a que los mandes al suyo.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div><div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Gastos</h1>
+      <p class="frase tenue">Los papeles del mes, cada uno en su sobre.</p></div>
+    <button class="btn sutil c-foto-btn" type="button" id="c-foto"><svg class="g-ico" viewBox="0 0 24 24"><path d="M3.5 8h3.2l1.8-2.5h7l1.8 2.5h3.2v11h-17z"/><circle cx="12" cy="13.2" r="3.6"/></svg>Saca una foto del recibo</button>
+  </div>
+
+  <div class="c-mesa" id="c-mesa" data-sube style="--i:1">
+    <div class="c-capa" id="c-capa" aria-hidden="true"></div>
+    <div class="c-cab">
+      <div><span class="versalita">¿En qué se fue la plata este mes?</span>
+        <h2>Salieron <span class="num" id="c-total" data-cuenta="17750" data-pre="S/ " data-dur="1300">S/ 17,750</span> en 9 sobres</h2>
+        <p class="tenue">El sobre más gordo es el del alquiler: <b>7 de cada 10 soles</b>. Pasa el mouse por un sobre para ver sus papeles.</p>
+        <p class="c-extra" id="c-extra"></p></div>
+    </div>
+
+    <div class="c-sobres" id="c-sobres"></div>
+    <div>
+      <div class="c-sueltos-cab"><h3 id="c-sueltos-tit">Sobre la mesa: 6 papeles sueltos</h3><span class="c-pista tenue">Toca «A su sobre» o arrástralo al sobre que quieras.</span></div>
+      <div class="c-sueltos" id="c-sueltos" style="margin-top:18px"></div>
+      <div class="c-limpia" id="c-limpia"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="38" style="stroke-width:1"/><text x="50" y="47">AL DÍA</text><text x="50" y="62" style="font-size:8px;letter-spacing:.12em">15 · OCT</text></svg>
+        <div><b>La mesa está limpia</b><p class="tenue">Cada papel está en su sobre. No te falta revisar nada.</p></div></div>
+      <div class="c-deshacer" id="c-deshacer" aria-live="polite" style="margin-top:14px"></div>
+    </div>
+
+    <div class="c-cajas-cab"><span class="versalita">Lo que no es gasto del mes</span></div>
+    <div class="c-cajas" id="c-cajas"></div>
+  </div>
+</section>
+
+</main><script src="base.js"></script><script>
+(function () {
+  "use strict";
+  const R = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ms = (n) => (R ? 0 : n);
+  const $ = (s, el) => (el || document).querySelector(s);
+  const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+  const soles = (n, dec) => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 });
+  const igvDe = (m) => Math.round((m * 18 / 118) * 100) / 100;
+
+  // Cuenta de un número a otro; si llega otra cuenta al mismo elemento, la vieja se detiene.
+  function contarDe(el, desde, hasta, dur, fmt) {
+    fmt = fmt || ((n) => soles(Math.round(n)));
+    const tok = {}; el._tok = tok;
+    if (R || desde === hasta) { el.textContent = fmt(hasta); return; }
+    const t0 = performance.now(); const ease = (t) => 1 - Math.pow(1 - t, 3);
+    (function paso(t) {
+      if (el._tok !== tok) return;
+      const p = Math.min(1, Math.max(0, (t - t0) / (dur || 700)));
+      el.textContent = fmt(desde + (hasta - desde) * ease(p));
+      if (p < 1) requestAnimationFrame(paso);
+    })(t0);
+  }
+
+  // ---------------------------------------------------------------- Íconos
+  const ico = (d, vb) => `<svg class="g-ico" viewBox="${vb || "0 0 20 20"}" aria-hidden="true">${d}</svg>`;
+  const IC = {
+    factura: ico('<path d="M5 2.5h7l3 3v12H5z"/><path d="M12 2.5v3h3M7.5 9h5M7.5 12h5M7.5 15h3"/>'),
+    banco: ico('<path d="M2.5 7.5 10 3l7.5 4.5M4 8.5v6.5M8 8.5v6.5M12 8.5v6.5M16 8.5v6.5M2.5 17h15"/>'),
+    foto: ico('<path d="M3 6.5h3l1.5-2h5l1.5 2h3v10H3z"/><circle cx="10" cy="11" r="3"/>'),
+    chispa: ico('<path d="M10 2.5v3M10 14.5v3M2.5 10h3M14.5 10h3M5 5l2 2M13 13l2 2M15 5l-2 2M7 13l-2 2"/>'),
+    flecha: ico('<path d="M4 10h11M11 5.5 15.5 10 11 14.5"/>'),
+    visto: '<svg viewBox="0 0 16 16"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>',
+  };
+  const visto = (d) => `<svg viewBox="0 0 20 20"><path class="g-dib" pathLength="1" style="--d:${d || 0}ms" d="M4.5 10.5 8.5 14.5 15.5 6"/></svg>`;
+
+  // ---------------------------------------------------------------- La historia (cifras de ejemplo del README)
+  const CATS = {
+    alquiler: { n: "Alquiler", d: "Los 4 locales, pagados el 1", c: "var(--taupe)" },
+    publicidad: { n: "Publicidad", d: "Instagram y Facebook", c: "var(--m-yape)" },
+    contador: { n: "Contador", d: "El estudio contable", c: "var(--pizarra)" },
+    luz: { n: "Luz y agua", d: "Hidrandina, SEAL y Sedalib", c: "var(--m-qr)" },
+    internet: { n: "Internet y teléfono", d: "Claro", c: "var(--m-plin)" },
+    bolsas: { n: "Bolsas y empaque", d: "Bolsas con logo", c: "var(--verde)" },
+    utiles: { n: "Útiles y limpieza", d: "Tottus y librería", c: "var(--ambar)" },
+    movilidad: { n: "Movilidad", d: "Taxis y fletes chicos", c: "color-mix(in srgb,var(--m-yape) 45%,var(--taupe))" },
+    mant: { n: "Mantenimiento", d: "El baño de Arequipa", c: "color-mix(in srgb,var(--tinta) 45%,var(--sand))" },
+  };
+  const ORDEN = ["alquiler", "publicidad", "contador", "luz", "internet", "bolsas", "utiles", "movilidad", "mant"];
+  const SEDE_N = { TRU: "Trujillo", AQP: "Arequipa", LIM: "Lima", Taller: "Taller", Empresa: "Toda la empresa" };
+  // comp: Factura | Recibo | Boleta | Sin comprobante | Del extranjero | Falta factura
+  const GASTOS = [
+    { f: "01 oct", que: "Alquiler del local", quien: "Inmobiliaria Libertad SAC", cat: "alquiler", sede: "TRU", comp: "Factura", monto: 4000, pago: "Banco BCP" },
+    { f: "01 oct", que: "Alquiler del local", quien: "Rentas del Misti SAC", cat: "alquiler", sede: "AQP", comp: "Factura", monto: 3200, pago: "Banco BCP", nota: "Lleva detracción: el 10 % (S/ 320) se deposita en el Banco de la Nación. Lo ves en Impuestos." },
+    { f: "01 oct", que: "Alquiler del local", quien: "Arrendador (persona)", cat: "alquiler", sede: "LIM", comp: "Recibo", monto: 2800, pago: "Banco Interbank", nota: "Recibo de arrendamiento: una persona no cobra IGV, no hay nada que recuperar. Lima abre el 20: este mes paga sin vender todavía." },
+    { f: "01 oct", que: "Alquiler del Taller", quien: "Arrendador (persona)", cat: "alquiler", sede: "Taller", comp: "Recibo", monto: 2500, pago: "Banco Interbank", nota: "Recibo de arrendamiento: no lleva IGV." },
+    { f: "02 oct", que: "Bolsas con logo", quien: "Bolsas Perú SAC", cat: "bolsas", sede: "Empresa", comp: "Factura", monto: 380, pago: "Banco BCP" },
+    { f: "03 oct", que: "Publicidad en Instagram", quien: "Meta Platforms", cat: "publicidad", sede: "Empresa", comp: "Del extranjero", monto: 1500, pago: "Tarjeta de CAYLA", nota: "Factura del extranjero: no lleva IGV peruano." },
+    { f: "05 oct", que: "Internet y teléfono", quien: "Claro", cat: "internet", sede: "Empresa", comp: "Factura", monto: 450, pago: "Banco BCP" },
+    { f: "05 oct", que: "Contador de septiembre", quien: "Estudio contable", cat: "contador", sede: "Empresa", comp: "Recibo", monto: 1200, pago: "Banco BCP", nota: "Recibo por honorarios: no lleva IGV." },
+    { f: "06 oct", que: "Taxi al banco", quien: "Sin comprobante", cat: "movilidad", sede: "TRU", comp: "Sin comprobante", monto: 70, pago: "Cajón de Trujillo" },
+    { f: "07 oct", que: "Útiles de limpieza", quien: "Tottus", cat: "utiles", sede: "TRU", comp: "Factura", monto: 180, pago: "Cajón de Trujillo", nota: "Se pagó en efectivo, pero es menos de S/ 2,000: el IGV sí se recupera." },
+    { f: "08 oct", que: "Flete de mercadería", quien: "Sin comprobante", cat: "movilidad", sede: "AQP", comp: "Sin comprobante", monto: 90, pago: "Cajón de Arequipa" },
+    { f: "09 oct", que: "Luz de la tienda", quien: "Hidrandina", cat: "luz", sede: "TRU", comp: "Falta factura", monto: 410, pago: "Banco BCP", hid: true, nota: "Se pagó por banco y SUNAT ya trajo su factura: está en «Por revisar». Al juntarlas recuperas S/ 62.54." },
+    { f: "10 oct", que: "Luz de la tienda", quien: "SEAL", cat: "luz", sede: "AQP", comp: "Factura", monto: 330, pago: "Banco BCP" },
+    { f: "11 oct", que: "Agua de la tienda", quien: "Sedalib", cat: "luz", sede: "TRU", comp: "Factura", monto: 120, pago: "Banco BCP" },
+    { f: "12 oct", que: "Movilidad del Taller", quien: "Sin comprobante", cat: "movilidad", sede: "Taller", comp: "Sin comprobante", monto: 150, pago: "Caja chica del Taller" },
+    { f: "13 oct", que: "Útiles de oficina", quien: "Librería", cat: "utiles", sede: "AQP", comp: "Boleta", monto: 150, pago: "Cajón de Arequipa", nota: "Una boleta no sirve para recuperar IGV. La próxima vez, pide factura con el RUC de CAYLA." },
+    { f: "14 oct", que: "Arreglo del baño", quien: "Gasfitero", cat: "mant", sede: "AQP", comp: "Sin comprobante", monto: 220, pago: "Cajón de Arequipa" },
+  ];
+  const TOTAL = GASTOS.reduce((s, g) => s + g.monto, 0); // 17,750
+  const porCat = {}; ORDEN.forEach((k) => (porCat[k] = 0)); GASTOS.forEach((g) => (porCat[g.cat] += g.monto));
+  const docsCat = {}; ORDEN.forEach((k) => (docsCat[k] = 0)); GASTOS.forEach((g) => docsCat[g.cat]++);
+
+  // La bandeja: 6 cosas. destino = sobre/caja de C. efecto: cuánto suma a gastos si se acepta así.
+  const BANDEJA = [
+    { id: "tex", tipo: "factura", origen: "Factura que SUNAT trajo a tu RUC", quien: "Textiles del Norte SAC", doc: "Factura F001-00231", fecha: "13 oct", monto: 3540,
+      sug: "Tela del Taller", boton: "Sí, es tela", porque: "Igual que las últimas 4 veces que le compraste a Textiles del Norte.", corto: "igual que las últimas 4 veces", regla: "r-tex", destino: "taller",
+      opciones: [["Tela del Taller", "taller"], ["Etiquetas del Taller", "taller"], ["Bolsas y empaque", "bolsas"], ["Mantenimiento", "mant"]] },
+    { id: "hid", tipo: "factura", origen: "Factura que SUNAT trajo a tu RUC", quien: "Hidrandina", doc: "Factura S001-48812", fecha: "9 oct", monto: 410,
+      sug: "La luz de Trujillo", boton: "Sí, es la luz de TRU", porque: "Ya anotaste un pago de S/ 410 a Hidrandina el 9 de octubre: esta es su factura. Al juntarlas recuperas S/ 62.54 de IGV.", corto: "es la factura del pago del 9 de octubre", regla: "r-hid", destino: "luz", junta: true,
+      opciones: [["La luz de Trujillo", "luz"], ["La luz de otra sede", "luz"], ["Mantenimiento", "mant"]] },
+    { id: "gra", tipo: "factura", origen: "Factura que SUNAT trajo a tu RUC", quien: "Grafinort EIRL", doc: "Factura E001-0098", fecha: "14 oct", monto: 650,
+      sug: "Etiquetas del Taller", boton: "Sí, son etiquetas", porque: "Es la primera vez que le compras. En SUNAT figura como imprenta, y eso suele ser etiquetas para la ropa.", corto: "es nueva; en SUNAT figura como imprenta", nueva: true, destino: "taller",
+      opciones: [["Etiquetas del Taller", "taller"], ["Bolsas y empaque", "bolsas"], ["Publicidad impresa", "publicidad"]] },
+    { id: "ibk", tipo: "banco", origen: "Movimiento del banco sin explicar", quien: "Interbank · «COM MANT»", doc: "Salió de tu cuenta de Interbank", fecha: "2 oct", monto: 180,
+      sug: "Comisión del banco", boton: "Sí, es comisión", porque: "«COM MANT» es la comisión por mantener la cuenta. Interbank la cobra a inicios de cada mes.", corto: "Interbank la cobra cada mes", regla: "r-ibk", destino: "comision",
+      opciones: [["Comisión del banco", "comision"], ["Mantenimiento", "mant"]] },
+    { id: "bcp", tipo: "banco", origen: "Movimiento del banco sin explicar", quien: "BCP · «TRANSF»", doc: "Entró a tu cuenta del BCP", fecha: "13 oct", monto: 1000, entra: true,
+      sug: "Depósito de la caja fuerte de TRU", boton: "Sí, es el depósito", porque: "Entró plata, no salió: no es un gasto. El martes 13 Trujillo sacó S/ 1,000 de su caja fuerte para depositar, y el monto calza.", corto: "Trujillo sacó S/ 1,000 de su caja fuerte el martes", destino: "nogasto",
+      opciones: [["Depósito de la caja fuerte de TRU", "nogasto"], ["Aporte del dueño", "nogasto"], ["Pago de un cliente", "nogasto"]] },
+    { id: "taxi", tipo: "foto", origen: "Foto de un recibo", quien: "Taxi en Arequipa", doc: "Foto que subió la caja de Arequipa", fecha: "14 oct", monto: 18,
+      sug: "Movilidad de Arequipa", boton: "Sí, es movilidad", porque: "En la foto leímos «TAXI» y S/ 18.00. Es el taxi que faltaba anotar en el cierre de caja de Arequipa.", corto: "leímos «TAXI» y S/ 18.00 en la foto", regla: "r-taxi", destino: "movilidad", foto: "TAXI",
+      opciones: [["Movilidad de Arequipa", "movilidad"], ["Útiles y limpieza", "utiles"], ["Mantenimiento", "mant"]] },
+  ];
+  const NO_GASTO = { taller: 1, nogasto: 1 };
+  function efecto(it, destino) {
+    if (it.entra || NO_GASTO[destino]) return 0;
+    if (it.junta && destino === "luz") return 0; // se junta con el pago que ya estaba
+    return it.monto;
+  }
+
+  function polaroid(texto, monto, pie, extra) {
+    return `<div class="g-polaroid ${extra || ""}"><div class="g-foto"><svg viewBox="0 0 100 100" aria-hidden="true"><g transform="rotate(-6 50 50)">
+      <rect class="pr-papel" x="24" y="12" width="52" height="78" rx="1.5"/><text class="pr-t" x="50" y="27">${texto}</text>
+      <line class="pr-l" x1="31" y1="36" x2="69" y2="36"/><line class="pr-l" x1="31" y1="44" x2="60" y2="44"/><line class="pr-l" x1="31" y1="52" x2="66" y2="52"/>
+      <line class="pr-l" x1="31" y1="62" x2="69" y2="62"/><text class="pr-m" x="50" y="77">${monto}</text></g></svg></div><span class="g-pie-foto">${pie}</span></div>`;
+  }
+
+  // ---------------------------------------------------------------- Menú flotante (píldoras de B, «Otro sobre» de C)
+  let menu = null;
+  function cerrarMenu() {
+    if (!menu) return;
+    menu.m.remove(); menu.ancla.setAttribute("aria-expanded", "false");
+    const a = menu.ancla; menu = null; return a;
+  }
+  function abrirMenu(ancla, opciones, actual, alElegir, derecha) {
+    if (menu && menu.ancla === ancla) { cerrarMenu(); return; }
+    cerrarMenu();
+    const m = document.createElement("div");
+    m.className = "g-menu" + (derecha ? " derecha" : ""); m.setAttribute("role", "listbox");
+    m.innerHTML = opciones.map((o, i) => `<button type="button" role="option" data-i="${i}" aria-selected="${o.v === actual}"><span>${o.l}</span>${o.v === actual ? IC.visto : ""}</button>`).join("");
+    ancla.parentElement.appendChild(m); ancla.setAttribute("aria-expanded", "true");
+    menu = { m, ancla };
+    m.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-i]"); if (!b) return;
+      const o = opciones[+b.dataset.i]; const a = cerrarMenu(); alElegir(o); if (a && a.isConnected) a.focus({ preventScroll: true });
+    });
+    const primero = m.querySelector('[aria-selected="true"]') || m.querySelector("button");
+    if (primero) primero.focus({ preventScroll: true });
+  }
+  document.addEventListener("click", (e) => { if (menu && !menu.m.contains(e.target) && !menu.ancla.contains(e.target)) cerrarMenu(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && menu) { const a = cerrarMenu(); if (a) a.focus(); } });
+
+  // =================================================================== A · LA RESPUESTA
+  (function caminoA() {
+    // Las 10 monedas: 7 de alquiler, 3 de lo demás (dos filas de 5).
+    const moneda = (k) => {
+      const cx = 42 + (k % 5) * 84, cy = 42 + Math.floor(k / 5) * 84;
+      return `<g class="a-mov" style="--k:${k}"><g class="a-moneda" data-sello style="--i:${k}">
+        <circle class="a-m-cara" cx="${cx}" cy="${cy}" r="36"/><circle class="a-m-aro" cx="${cx}" cy="${cy}" r="28.5"/>
+        <text class="a-m-s" x="${cx}" y="${cy + 1}">S/</text></g></g>`;
+    };
+    let alq = "", otro = "";
+    for (let k = 0; k < 7; k++) alq += moneda(k);
+    for (let k = 7; k < 10; k++) otro += moneda(k);
+    $("#a-monedas-alq").classList.add("a-alq");
+    $("#a-monedas-alq").innerHTML = alq + `<g data-aparece style="--i:8"><circle class="a-m-cara" cx="8" cy="206" r="7"/>
+      <text class="a-rotulo" x="24" y="211">Alquiler · S/ 12,500</text><text class="a-rotulo-t" x="24" y="230">7 de cada 10 soles</text></g>`;
+    $("#a-monedas-otro").classList.add("a-otro");
+    $("#a-monedas-otro").innerHTML = otro + `<g data-aparece style="--i:9"><circle class="a-m-cara" cx="228" cy="206" r="7"/>
+      <text class="a-rotulo" x="244" y="211">Lo demás · S/ 5,250</text><text class="a-rotulo-t" x="244" y="230">8 cosas chicas</text></g>`;
+
+    // En qué se fue cada sol
+    const max = porCat.alquiler;
+    $("#a-cats").innerHTML = ORDEN.map((k, i) => `<div class="a-cat" style="--c:${CATS[k].c};--i:${i}">
+        <div><b>${CATS[k].n}</b><small class="tenue">${CATS[k].d}</small></div>
+        <div class="pista"><i style="--w:${(porCat[k] / max) * 100}%"></i></div>
+        <span class="m">${soles(porCat[k])}</span></div>`).join("");
+
+    // La bandeja de a una tarjeta
+    const st = { idx: 0, hechos: [], extra: 0, ocupado: false, elegido: {}, recordar: true };
+    const mazo = $("#a-mazo"), num = $("#a-num"), pasos = $("#a-pasos"), deshacer = $("#a-deshacer");
+    pasos.innerHTML = BANDEJA.map(() => "<i></i>").join("");
+
+    function sel(it) { return st.elegido[it.id] || { label: it.sug, destino: it.destino, cambiado: false }; }
+
+    function carta(it) {
+      const s = sel(it);
+      const opc = it.opciones.map(([l, d]) => `<button type="button" data-opc="${l}" data-dest="${d}" aria-pressed="${l === s.label}">${l}</button>`).join("");
+      return `<div class="a-carta-top"><span class="a-ico">${IC[it.tipo]}</span><span class="versalita">${it.origen}</span><span class="tenue">${it.fecha}</span></div>
+        <div class="a-quien"><div><h3>${it.quien}</h3><p class="tenue">${it.doc}</p></div>
+          <div class="a-quien-der">${it.foto ? polaroid(it.foto, "S/ 18.00", "taxi · AQP", "mini revela") : ""}
+          <b class="a-monto ${it.entra ? "entra" : ""}">${it.entra ? "+ " : ""}${soles(it.monto)}</b></div></div>
+        <div class="a-corte"></div>
+        <span class="versalita">${it.entra ? "¿Qué fue esta plata que entró?" : "¿De qué fue esto?"}</span>
+        <span class="a-sug" id="a-sug">${s.label}</span>
+        <p class="a-por">${IC.chispa}<span id="a-por">${s.cambiado ? "Lo elegiste tú. Si lo eliges así otra vez, el sistema lo aprende solo." : it.porque}</span></p>
+        ${it.nueva ? `<span class="chip c-ambar" style="align-self:flex-start">Proveedor nuevo · todavía sin regla</span>
+          <label class="a-recordar"><button type="button" class="g-switch" role="switch" aria-checked="${st.recordar}" id="a-recordar" aria-label="Recordar para la próxima"></button>Recordar para la próxima: cada factura de Grafinort irá aquí</label>` : ""}
+        <div class="desplegable" id="a-opc"><div><div class="a-opc-in">${opc}</div></div></div>
+        <div class="a-acciones"><button class="btn primario" type="button" data-a="si">${s.cambiado ? "Sí, anótalo así" : it.boton}</button>
+          <button class="btn sutil" type="button" data-a="cambiar" aria-expanded="false" aria-controls="a-opc">Cambiar</button></div>`;
+    }
+
+    function pintar(entrando) {
+      const quedan = BANDEJA.length - st.idx;
+      mazo.dataset.quedan = String(quedan);
+      if (quedan === 0) {
+        mazo.innerHTML = `<div class="a-listo"><svg viewBox="0 0 84 84"><circle class="g-dib" pathLength="1" cx="42" cy="42" r="36"/><path class="g-dib" pathLength="1" style="--d:400ms" d="M26 43 37 54 59 31"/></svg>
+          <h3>Listo, no te falta nada</h3><p class="tenue">Revisaste las 6 cosas. ${st.hechos.some((h) => h.reglaNueva) ? "El sistema aprendió una regla nueva: Grafinort → Etiquetas del Taller." : "Todo quedó en su lugar."}</p>
+          <button class="btn sutil chico" type="button" id="a-reiniciar">Volver a empezar (maqueta)</button></div>`;
+        $("#a-band-frase").textContent = "Todo lo de octubre está en su lugar.";
+        return;
+      }
+      $("#a-band-frase").textContent = "El sistema ya propone qué es cada cosa. Si está bien, dices «sí» y listo.";
+      const it = BANDEJA[st.idx];
+      mazo.innerHTML = `<div class="a-carta${entrando ? " entra" : ""}" data-id="${it.id}">${carta(it)}</div>`;
+    }
+
+    function contador() {
+      const quedan = BANDEJA.length - st.idx;
+      $("#a-faltan").innerHTML = quedan === 0 ? `No te falta <span class="a-num num cambia" id="a-num">nada</span>` : `Te ${quedan === 1 ? "falta" : "faltan"} <span class="a-num num cambia" id="a-num">${quedan}</span>`;
+      $$("i", pasos).forEach((p, i) => p.classList.toggle("ok", i < st.idx));
+      const ex = $("#a-extra");
+      if (st.extra > 0) { ex.textContent = `Con lo que revisaste hoy suman ${soles(st.extra)} más a gastos.`; ex.classList.add("ve"); }
+      else ex.classList.remove("ve");
+    }
+
+    function aceptar() {
+      if (st.ocupado || st.idx >= BANDEJA.length) return;
+      st.ocupado = true;
+      const it = BANDEJA[st.idx], s = sel(it);
+      const reglaNueva = !!(it.nueva && st.recordar);
+      const ef = efecto(it, s.destino);
+      st.hechos.push({ it, s, ef, reglaNueva });
+      st.extra += ef;
+      const c = $(".a-carta", mazo);
+      const v = document.createElement("div");
+      v.className = "a-visto";
+      v.innerHTML = `<svg viewBox="0 0 68 68"><circle class="g-dib" pathLength="1" cx="34" cy="34" r="29"/><path class="g-dib" pathLength="1" style="--d:260ms" d="M21 35 30 44 48 25"/></svg><b>Anotado</b><span class="tenue">${it.quien} → ${s.label}</span>`;
+      c.appendChild(v);
+      // el visto se ve aunque no haya movimiento: es la respuesta a lo que hiciste
+      setTimeout(() => { c.classList.add("sale"); }, 700);
+      setTimeout(() => {
+        st.idx++; contador(); pintar(true); st.ocupado = false;
+        deshacer.innerHTML = `<span><b>${it.quien}</b> → ${s.label}${reglaNueva ? " · regla nueva" : ""}.</span> <button class="g-enlace" type="button" id="a-deshacer-b">Deshacer</button>`;
+        const sig = $('[data-a="si"]', mazo); if (sig) sig.focus({ preventScroll: true });
+      }, R ? 900 : 1150);
+    }
+
+    function volverAtras() {
+      if (st.ocupado || !st.hechos.length) return;
+      const h = st.hechos.pop(); st.extra -= h.ef; st.idx--;
+      contador(); pintar(true);
+      deshacer.innerHTML = `<span class="tenue">Volvió a la bandeja: ${h.it.quien}.</span>`;
+    }
+
+    mazo.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-a]");
+      if (a && a.dataset.a === "si") aceptar();
+      if (a && a.dataset.a === "cambiar") {
+        const caja = $("#a-opc"); const ab = caja.classList.toggle("abierto"); a.setAttribute("aria-expanded", String(ab));
+      }
+      const o = e.target.closest("[data-opc]");
+      if (o) {
+        const it = BANDEJA[st.idx];
+        const cambiado = o.dataset.opc !== it.sug;
+        st.elegido[it.id] = { label: o.dataset.opc, destino: o.dataset.dest, cambiado };
+        $$("[data-opc]", mazo).forEach((b) => b.setAttribute("aria-pressed", String(b === o)));
+        const sug = $("#a-sug"), fresco = sug.cloneNode(false); // nodo nuevo: el hilo se vuelve a dibujar
+        fresco.textContent = o.dataset.opc; sug.replaceWith(fresco);
+        $("#a-por").textContent = cambiado ? "Lo elegiste tú. Si lo eliges así otra vez, el sistema lo aprende solo." : it.porque;
+        $('[data-a="si"]', mazo).textContent = cambiado ? "Sí, anótalo así" : it.boton;
+      }
+      const sw = e.target.closest("#a-recordar");
+      if (sw) { st.recordar = !st.recordar; sw.setAttribute("aria-checked", String(st.recordar)); }
+      if (e.target.closest("#a-reiniciar")) { st.idx = 0; st.hechos = []; st.extra = 0; st.elegido = {}; deshacer.innerHTML = ""; contador(); pintar(true); }
+    });
+    deshacer.addEventListener("click", (e) => { if (e.target.closest("#a-deshacer-b")) volverAtras(); });
+
+    // Registrar con foto: la polaroid se revela al abrir; «Sí, anótalo» la sella.
+    $("#a-foto-btn").addEventListener("click", () => {
+      const p = $("#a-polaroid");
+      // este clic llega antes que el de base.js: si todavía no está abierto, es que se está abriendo
+      if (!$("#a-foto").classList.contains("abierto")) { p.classList.remove("revela"); void p.offsetWidth; p.classList.add("revela"); }
+    });
+    $("#a-foto-si").addEventListener("click", (e) => {
+      const p = $("#a-polaroid"); if ($(".g-anotado", p)) return;
+      p.insertAdjacentHTML("beforeend", '<span class="g-anotado">Anotado</span>');
+      e.currentTarget.textContent = "Anotado (maqueta)"; e.currentTarget.disabled = true;
+    });
+
+    pintar(false); contador();
+  })();
+
+  // =================================================================== B · LA MESA DE TRABAJO
+  (function caminoB() {
+    const st = {
+      item: {}, extra: 0, igvExtra: 0, hidJunta: false, fijos: 4,
+      reglas: [
+        { id: "r-tex", cuando: "Textiles del Norte SAC", va: "Tela del Taller", usos: 4, activa: true, desde: "desde junio" },
+        { id: "r-hid", cuando: "Hidrandina", va: "Luz y agua · Trujillo", usos: 3, activa: true, desde: "desde julio" },
+        { id: "r-ibk", cuando: "«COM MANT» en Interbank", va: "Comisión del banco", usos: 2, activa: true, desde: "desde agosto" },
+        { id: "r-taxi", cuando: "Una foto que dice «TAXI»", va: "Movilidad", usos: 6, activa: true, desde: "desde agosto" },
+        { id: "r-meta", cuando: "Meta Platforms", va: "Publicidad", usos: 3, activa: true, desde: "desde julio" },
+        { id: "r-claro", cuando: "Claro", va: "Internet y teléfono", usos: 2, activa: true, desde: "desde agosto" },
+      ],
+      filtros: { sede: "", cat: "", comp: "" }, abierta: -1,
+    };
+    BANDEJA.forEach((it) => (st.item[it.id] = { hecho: false, label: it.sug, destino: it.destino, cambiado: false }));
+    const regla = (id) => st.reglas.find((r) => r.id === id);
+    const seguro = (it) => !!(it.regla && regla(it.regla) && regla(it.regla).activa && !st.item[it.id].cambiado);
+
+    // ---- Dona y leyenda
+    let off = 0;
+    $("#b-dona-svg").innerHTML = ORDEN.map((k, i) => {
+      const p = (porCat[k] / TOTAL) * 100; const largo = Math.max(p - 0.6, 0.3);
+      const s = `<circle class="b-seg" data-cat="${k}" cx="100" cy="100" r="80" pathLength="100" style="--i:${i};stroke:${CATS[k].c};stroke-dasharray:${largo} 100;stroke-dashoffset:${-off}"/>`;
+      off += p; return s;
+    }).join("");
+    $("#b-leyenda").innerHTML = ORDEN.map((k, i) => `<li data-cat="${k}" style="--c:${CATS[k].c};--i:${i}" data-entra><span class="sw"></span><span>${CATS[k].n}</span>
+        <span class="pista" data-crece style="--i:${i}"><i style="--w:${(porCat[k] / porCat.alquiler) * 100}%"></i></span><span class="m">${soles(porCat[k])}</span><span class="pc">${Math.round((porCat[k] / TOTAL) * 1000) / 10}%</span></li>`).join("");
+    const dona = $("#b-dona"), numD = $("#b-dona-num"), txtD = $("#b-dona-txt");
+    function foco(k) {
+      dona.classList.toggle("foco", !!k);
+      $$(".b-seg", dona).forEach((s) => s.classList.toggle("activo", s.dataset.cat === k));
+      $$("#b-leyenda li").forEach((l) => l.classList.toggle("activo", l.dataset.cat === k));
+      if (k) { numD._tok = null; numD.textContent = soles(porCat[k]); txtD.textContent = CATS[k].n; }
+      else { numD._tok = null; numD.textContent = soles(TOTAL); txtD.textContent = "en octubre"; }
+    }
+    [$("#b-leyenda"), $("#b-dona-svg")].forEach((el) => {
+      el.addEventListener("mouseover", (e) => { const t = e.target.closest("[data-cat]"); if (t) foco(t.dataset.cat); });
+      el.addEventListener("mouseleave", () => foco(null));
+      el.addEventListener("click", (e) => {
+        const t = e.target.closest("[data-cat]"); if (!t) return;
+        st.filtros = { sede: "", cat: t.dataset.cat, comp: "" }; elegirTab("gastos"); pintarTabla();
+        $("#b-tabs-card").scrollIntoView({ behavior: R ? "auto" : "smooth", block: "start" });
+      });
+    });
+
+    // ---- Bandeja como lista
+    const lista = $("#b-band-lista");
+    function fila(it, recien) {
+      const s = st.item[it.id];
+      const seg = seguro(it);
+      const conf = s.cambiado ? '<span class="chip c-pizarra">Lo elegiste tú</span>' : seg ? `<span class="chip c-verde">Seguro · regla, ${regla(it.regla).usos} veces</span>` : '<span class="chip c-ambar">Por confirmar</span>';
+      const porque = s.cambiado ? "Lo cambiaste tú." : it.regla && !regla(it.regla).activa ? "Quitaste la regla: confírmalo tú." : it.corto;
+      const acc = s.hecho
+        ? `<span class="b-hecho-v">${visto(0)}Anotado</span><button class="g-enlace" type="button" data-b="deshacer" style="font-size:12.5px">Deshacer</button>`
+        : `<button class="btn primario chico" type="button" data-b="ok">OK</button><span class="b-pild-wrap"><button class="btn sutil chico" type="button" data-b="cambiar" aria-haspopup="listbox" aria-expanded="false">Cambiar</button></span>`;
+      return `<li class="b-fila${s.hecho ? " hecho" : ""}${recien ? " recien" : ""}" data-id="${it.id}">
+        <span class="a-ico">${IC[it.tipo]}</span>
+        <div class="quien"><b>${it.quien}</b><small class="tenue">${it.doc} · ${it.fecha}</small></div>
+        <div class="b-sug"><span class="va">→ <b>${s.label}</b> ${s.hecho ? "" : conf}</span><span class="por tenue">${porque}</span></div>
+        <span class="monto ${it.entra ? "entra" : ""}">${it.entra ? "+ " : ""}${soles(it.monto)}</span>
+        <div class="b-ok">${acc}</div></li>`;
+    }
+    function pintarBandeja() {
+      lista.innerHTML = BANDEJA.map((it) => fila(it)).join("");
+      $$("li", lista).forEach((li, i) => { li.classList.add("g-entra"); li.style.setProperty("--d", 300 + i * 55 + "ms"); });
+    }
+    function refila(it, recien) {
+      const li = $(`[data-id="${it.id}"]`, lista); if (!li) return;
+      li.outerHTML = fila(it, recien);
+    }
+    function pendientes() { return BANDEJA.filter((it) => !st.item[it.id].hecho); }
+    function resumen() {
+      const p = pendientes(), seg = p.filter(seguro);
+      const pend = $("#b-pend"), viejo = parseInt(pend.textContent, 10) || 0;
+      contarDe(pend, viejo, p.length, 400, (n) => String(Math.round(n)));
+      $("#b-pend-pie").textContent = p.length === 0 ? "Nada por revisar" : seg.length ? `${seg.length} ${seg.length === 1 ? "es seguro" : "son seguros"}: un toque cada uno` : "Confírmalos tú: no hay regla";
+      const g = $("#b-globo"); g.textContent = String(p.length); g.classList.remove("cambia"); void g.offsetWidth; g.classList.add("cambia");
+      const todo = $("#b-todo"); todo.textContent = `OK a todo lo seguro (${seg.length})`; todo.disabled = seg.length === 0; todo.style.display = p.length ? "" : "none";
+      $("#b-band-vacio").classList.toggle("ve", p.length === 0);
+      const ex = $("#b-extra");
+      if (st.extra > 0) { ex.textContent = `+ ${soles(st.extra)} de lo revisado hoy`; ex.classList.add("ve"); } else ex.classList.remove("ve");
+      const igv = $("#b-igv"), base = 1321.03;
+      const antes = igv._v == null ? base : igv._v; const ahora = base + st.igvExtra; igv._v = ahora;
+      contarDe(igv, antes, ahora, 600);
+      $("#b-igv-pie").textContent = `de ${st.hidJunta ? 8 : 7} facturas · S/ 0 perdido`;
+    }
+
+    function ok(it) {
+      const s = st.item[it.id]; if (s.hecho) return;
+      s.hecho = true; s.ef = efecto(it, s.destino); st.extra += s.ef;
+      s.usoRegla = null; s.reglaNueva = false;
+      if (it.regla && regla(it.regla) && regla(it.regla).activa && !s.cambiado) { regla(it.regla).usos++; s.usoRegla = it.regla; }
+      if (it.nueva) { st.reglas.unshift({ id: "r-gra", cuando: "Grafinort EIRL", va: s.label, usos: 1, activa: true, desde: "nueva, de hoy", nueva: true }); s.reglaNueva = true; }
+      if (it.junta && s.destino === "luz") { st.hidJunta = true; st.igvExtra = 62.54; pintarTabla(); }
+      refila(it, true); pintarReglas(s.usoRegla || (s.reglaNueva ? "r-gra" : null)); resumen();
+    }
+    function deshacerItem(it) {
+      const s = st.item[it.id]; if (!s.hecho) return;
+      s.hecho = false; st.extra -= s.ef || 0;
+      if (s.usoRegla && regla(s.usoRegla)) regla(s.usoRegla).usos--;
+      if (s.reglaNueva) st.reglas = st.reglas.filter((r) => r.id !== "r-gra");
+      if (it.junta) { st.hidJunta = false; st.igvExtra = 0; pintarTabla(); }
+      refila(it); pintarReglas(s.usoRegla); resumen();
+    }
+    lista.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-b]"); if (!b) return;
+      const it = BANDEJA.find((x) => x.id === b.closest("[data-id]").dataset.id);
+      if (b.dataset.b === "ok") ok(it);
+      if (b.dataset.b === "deshacer") deshacerItem(it);
+      if (b.dataset.b === "cambiar") {
+        const s = st.item[it.id];
+        abrirMenu(b, it.opciones.map(([l, d]) => ({ v: l, l, d })), s.label, (o) => {
+          s.label = o.v; s.destino = o.d; s.cambiado = o.v !== it.sug; refila(it); resumen();
+        }, true);
+      }
+    });
+    $("#b-todo").addEventListener("click", () => {
+      pendientes().filter(seguro).forEach((it, i) => setTimeout(() => ok(it), ms(i * 160)));
+    });
+    $("#b-ir-bandeja").addEventListener("click", () => $("#b-bandeja").scrollIntoView({ behavior: R ? "auto" : "smooth", block: "start" }));
+
+    // ---- Reglas
+    function pintarReglas(tocada) {
+      $("#b-reglas").innerHTML = st.reglas.map((r) => `<li class="b-regla${r.activa ? "" : " quitada"}${r.nueva && tocada === r.id ? " nueva" : ""}" data-regla="${r.id}">
+          <div class="cuando"><span class="tenue">Cuando llega</span><b>${r.cuando}</b></div>
+          <div class="va"><svg viewBox="0 0 16 16"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg><span>va a <b>${r.va}</b></span>${r.nueva ? ' <span class="chip c-verde">Nueva</span>' : ""}</div>
+          <div class="meta tenue"><span class="b-usos${tocada === r.id && !r.nueva ? " cambia" : ""}">usada ${r.usos} ${r.usos === 1 ? "vez" : "veces"}</span> · <span>${r.desde}</span> ·
+            <button class="g-enlace" type="button" data-r="${r.activa ? "quitar" : "poner"}">${r.activa ? "Deshacer" : "Volver a ponerla"}</button></div></li>`).join("");
+      $("#b-reglas-n").textContent = String(st.reglas.filter((r) => r.activa).length);
+    }
+    $("#b-reglas").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-r]"); if (!b) return;
+      const r = regla(b.closest("[data-regla]").dataset.regla); r.activa = b.dataset.r === "poner";
+      pintarReglas(); BANDEJA.filter((it) => it.regla === r.id && !st.item[it.id].hecho).forEach((it) => refila(it)); resumen();
+    });
+
+    // ---- Pestañas
+    const pest = $("#b-pestanas"), pild = $(".b-pest-pild", pest);
+    function moverPild() { const b = $('[aria-selected="true"]', pest); if (!b || !b.offsetWidth) return; pild.style.left = b.offsetLeft + "px"; pild.style.width = b.offsetWidth + "px"; }
+    function elegirTab(t) {
+      $$("[role=tab]", pest).forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+      $$(".b-panel").forEach((p) => (p.hidden = p.dataset.panel !== t));
+      moverPild();
+    }
+    pest.addEventListener("click", (e) => { const b = e.target.closest("[role=tab]"); if (b) elegirTab(b.dataset.tab); });
+    $$("[data-ir-tab]").forEach((b) => b.addEventListener("click", () => { elegirTab(b.dataset.irTab); $("#b-tabs-card").scrollIntoView({ behavior: R ? "auto" : "smooth", block: "start" }); }));
+    addEventListener("resize", moverPild);
+
+    // ---- Tabla con filtros
+    const OPC = {
+      sede: [{ v: "", l: "Todas las sedes" }].concat(Object.keys(SEDE_N).map((k) => ({ v: k, l: SEDE_N[k] }))),
+      cat: [{ v: "", l: "Todas las categorías" }].concat(ORDEN.map((k) => ({ v: k, l: CATS[k].n }))),
+      comp: [{ v: "", l: "Con y sin factura" }, { v: "con", l: "Con factura" }, { v: "sin", l: "Sin factura" }],
+    };
+    const NOMBRE = { sede: "Sede", cat: "Categoría", comp: "Comprobante" };
+    const compDe = (g) => (g.hid && st.hidJunta ? "Factura" : g.comp);
+    const conFactura = (g) => compDe(g) === "Factura";
+    const CHIP = { "Factura": "c-verde", "Recibo": "c-pizarra", "Boleta": "c-taupe", "Sin comprobante": "c-taupe", "Del extranjero": "c-pizarra", "Falta factura": "c-ambar" };
+    function filtrados() {
+      const f = st.filtros;
+      return GASTOS.map((g, i) => ({ g, i })).filter(({ g }) => (!f.sede || g.sede === f.sede) && (!f.cat || g.cat === f.cat) && (!f.comp || (f.comp === "con") === conFactura(g)));
+    }
+    function pintarTabla() {
+      const filas = filtrados(), tb = $("#b-tbody");
+      let suma = 0, igv = 0;
+      tb.innerHTML = filas.map(({ g, i }, k) => {
+        const c = compDe(g), iv = c === "Factura" ? igvDe(g.monto) : 0; suma += g.monto; igv += iv;
+        const det = st.abierta === i ? `<tr class="b-det"><td colspan="6"><dl class="b-det-in">
+            <div><dt>Pagado con</dt><dd>${g.pago}</dd></div><div><dt>Sin IGV</dt><dd class="num">${soles(g.monto - iv, 2)}</dd></div>
+            <div><dt>IGV que recuperas</dt><dd class="num">${iv ? soles(iv, 2) : "Nada"}</dd></div><div><dt>Quién</dt><dd>${g.quien}</dd></div>
+            ${g.nota ? `<div class="nota">${g.nota}</div>` : ""}</dl></td></tr>` : "";
+        return `<tr class="b-tr g-entra${st.abierta === i ? " abierta" : ""}" data-n="${i}" style="--d:${k * 32}ms" tabindex="0" aria-expanded="${st.abierta === i}">
+          <td class="num tenue" style="white-space:nowrap">${g.f}</td>
+          <td><span class="b-punto" style="--c:${CATS[g.cat].c}"></span><b style="font-weight:500">${g.que}</b><small class="tenue">${g.quien} · ${CATS[g.cat].n}</small></td>
+          <td>${SEDE_N[g.sede]}</td><td><span class="chip ${CHIP[c]}">${c}</span></td>
+          <td class="m">${soles(g.monto)}</td><td class="m ${iv ? "" : "tenue"}">${iv ? soles(iv, 2) : "—"}</td></tr>${det}`;
+      }).join("") || `<tr><td class="vacia" colspan="6"><b class="serif" style="font-size:19px;font-weight:500">No hay gastos con esos filtros</b><br><span class="tenue">Prueba con otra sede o </span><button class="g-enlace" type="button" data-limpiar>borra los filtros</button></td></tr>`;
+      $("#b-pie-txt").textContent = `${filas.length} ${filas.length === 1 ? "gasto" : "gastos"}`;
+      $("#b-pie-monto").textContent = soles(suma);
+      $("#b-pie-igv").textContent = soles(igv, 2);
+      $("#b-conteo").textContent = filas.length === GASTOS.length ? "" : `${filas.length} de ${GASTOS.length}`;
+      // píldoras
+      let alguno = false;
+      $$("[data-filtro]").forEach((b) => {
+        const k = b.dataset.filtro, v = st.filtros[k]; if (v) alguno = true;
+        b.classList.toggle("puesta", !!v);
+        $(".lbl", b).textContent = v ? OPC[k].find((o) => o.v === v).l : NOMBRE[k];
+      });
+      $("#b-limpiar").classList.toggle("ve", alguno);
+    }
+    $("#b-filtros").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-filtro]");
+      if (b) { const k = b.dataset.filtro; abrirMenu(b, OPC[k], st.filtros[k], (o) => { st.filtros[k] = o.v; st.abierta = -1; pintarTabla(); }); }
+      const x = e.target.closest("[data-quitar]");
+      if (x) { st.filtros[x.dataset.quitar] = ""; pintarTabla(); }
+      if (e.target.closest("#b-limpiar")) { st.filtros = { sede: "", cat: "", comp: "" }; pintarTabla(); }
+    });
+    $("#b-tbody").addEventListener("click", (e) => {
+      if (e.target.closest("[data-limpiar]")) { st.filtros = { sede: "", cat: "", comp: "" }; pintarTabla(); return; }
+      const tr = e.target.closest(".b-tr"); if (!tr) return;
+      const i = +tr.dataset.n; st.abierta = st.abierta === i ? -1 : i;
+      pintarTabla(); $$(".b-tr").forEach((r) => r.classList.remove("g-entra")); // abrir una fila no repite la cascada
+    });
+    $("#b-tbody").addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches(".b-tr")) { e.preventDefault(); e.target.click(); } });
+
+    // ---- Fijos: la tira de 31 días y lo que se repite
+    $("#b-dias").innerHTML = Array.from({ length: 31 }, (_, d) => `<i class="${d < 14 ? "u" : d === 14 ? "u hoy" : ""}" style="--i:${d}"></i>`).join("");
+    const SUG = [
+      { id: "claro", q: "Claro · Internet y teléfono", m: 450, v: "3 meses seguidos, siempre a inicios de mes" },
+      { id: "cont", q: "Estudio contable · Contador", m: 1200, v: "3 meses seguidos, el día 5" },
+    ];
+    function pintarSug() {
+      $("#b-sugeridos").innerHTML = SUG.map((s) => `<div class="b-sugerido${s.estado ? " listo" : ""}" data-s="${s.id}">
+        <div><b style="font-weight:500">${s.q}</b> · <span class="num">${soles(s.m)}</span><br><span class="tenue" style="font-size:12.5px">${s.v}</span></div>
+        <div class="acc">${s.estado === "fijo" ? `<span class="chip c-verde">Ahora es fijo</span><button class="g-enlace" data-sa="volver" type="button" style="font-size:12.5px">Deshacer</button>`
+          : s.estado === "no" ? `<span class="tenue" style="font-size:12.5px">No lo volveremos a sugerir.</span><button class="g-enlace" data-sa="volver" type="button" style="font-size:12.5px">Deshacer</button>`
+          : `<button class="btn primario chico" type="button" data-sa="fijo">Hacerlo fijo</button><button class="btn sutil chico" type="button" data-sa="no">No es fijo</button>`}</div></div>`).join("");
+    }
+    $("#b-sugeridos").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-sa]"); if (!b) return;
+      const s = SUG.find((x) => x.id === b.closest("[data-s]").dataset.s);
+      const antes = s.estado === "fijo";
+      s.estado = b.dataset.sa === "volver" ? null : b.dataset.sa;
+      const ahora = s.estado === "fijo";
+      if (antes !== ahora) { st.fijos += ahora ? 1 : -1; $("#b-fijos-v").textContent = `${st.fijos} de ${st.fijos}`; $("#b-fijos-globo").textContent = String(st.fijos); }
+      pintarSug();
+    });
+
+    pintarBandeja(); pintarReglas(); pintarTabla(); pintarSug();
+    document.addEventListener("variante", (e) => { if (e.detail === "b") requestAnimationFrame(moverPild); });
+    requestAnimationFrame(moverPild);
+  })();
+
+  // =================================================================== C · LAS COSAS DE LA TIENDA
+  (function caminoC() {
+    const mesa = $("#c-mesa"), capa = $("#c-capa"), sueltosEl = $("#c-sueltos");
+    const SOBRES = ORDEN.concat(["comision"]);
+    const NOMBRE = Object.assign({}, ...ORDEN.map((k) => ({ [k]: CATS[k].n })), { comision: "Comisiones del banco", taller: "Taller · tela e insumos", nogasto: "No es gasto" });
+    const COLOR = Object.assign({}, ...ORDEN.map((k) => ({ [k]: CATS[k].c })), { comision: "var(--pizarra)", taller: "var(--pizarra)", nogasto: "var(--pizarra)" });
+    const CORTO = { internet: "Internet", comision: "Comisiones" }; // el rótulo del sobre es chico
+    const st = { monto: {}, mostrado: {}, hojas: {}, sueltos: [], hecho: [], demo: false, corrida: 0 };
+    const base = {}; SOBRES.forEach((k) => (base[k] = porCat[k] || 0)); base.taller = 0; base.nogasto = 0;
+    const extra = () => st.hecho.reduce((s, h) => s + h.ef, 0);
+
+    const dientes = (w, n) => {
+      let d = `M0 0 H${w} V2`; const p = w / n;
+      for (let k = n; k > 0; k--) d += ` L${((k - 0.5) * p).toFixed(1)} 8 L${((k - 1) * p).toFixed(1)} 2`;
+      return `<svg class="dientes" viewBox="0 0 ${w} 8" preserveAspectRatio="none" aria-hidden="true"><path d="${d} Z"/></svg>`;
+    };
+    function hojasSvg(W, top) {
+      let s = "";
+      for (let k = 0; k < 6; k++) {
+        const x = W / 2 - 32 + (k - 2.5) * (W > 200 ? 26 : 12), y = top + (k % 2) * 5, r = (k - 2.5) * 2.4;
+        s += `<g class="c-hoja" data-k="${k}" style="--k:${k}"><g transform="rotate(${r.toFixed(1)} ${x + 32} ${y + 74})"><rect x="${x}" y="${y}" width="64" height="74" rx="1.5"/>
+          <line x1="${x + 10}" y1="${y + 12}" x2="${x + 44}" y2="${y + 12}"/><line x1="${x + 10}" y1="${y + 21}" x2="${x + 52}" y2="${y + 21}"/></g></g>`;
+      }
+      return s;
+    }
+    function sobre(k) {
+      const ancho = k === "alquiler", W = ancho ? 400 : 200;
+      return `<div class="c-sobre${ancho ? " ancho" : ""}" data-destino="${k}" style="--c:${COLOR[k]}">
+        <div class="c-figura"><svg viewBox="0 0 ${W} 145" aria-hidden="true">
+          <path class="c-tapa" d="M6 36 L${W / 2} 6 L${W - 6} 36 Z"/>
+          <rect class="c-atras" x="6" y="34" width="${W - 12}" height="110" rx="7"/>
+          ${hojasSvg(W, 18)}
+          <path class="c-frente" d="M6 62 L${W / 2} 102 L${W - 6} 62 V137 Q${W - 6} 144 ${W - 13} 144 H13 Q6 144 6 137 Z"/>
+          <path class="c-pliegue" d="M6 144 L${W / 2} 110 L${W - 6} 144"/>
+        </svg><span class="c-rotulo"><i></i>${CORTO[k] || NOMBRE[k]}</span></div>
+        <div class="c-pie"><b class="c-monto">S/ 0</b><span class="tenue c-docs"></span></div>
+        <div class="c-parte"><i></i></div></div>`;
+    }
+    function caja(k, nota) {
+      const W = 400;
+      return `<div class="c-sobre" data-destino="${k}" style="--c:${COLOR[k]}">
+        <div class="c-figura"><svg viewBox="0 0 ${W} 119" aria-hidden="true">
+          <rect class="c-caja-atras" x="10" y="30" width="${W - 20}" height="84" rx="6"/>
+          ${hojasSvg(W, 14)}
+          <path class="c-caja-frente" d="M4 60 H${W - 4} L${W - 18} 114 Q${W - 20} 118 ${W - 26} 118 H26 Q20 118 18 114 Z"/>
+        </svg><span class="c-rotulo" style="bottom:9%"><i></i>${NOMBRE[k]}</span></div>
+        <div class="c-pie"><b class="c-monto">S/ 0</b><span class="tenue c-docs"></span></div>
+        <p class="c-caja-nota tenue">${nota}</p></div>`;
+    }
+    $("#c-sobres").innerHTML = SOBRES.map(sobre).join("");
+    $("#c-cajas").innerHTML = caja("taller", "Tela y etiquetas entran al costo de la ropa (Compras del Taller), no a los gastos del mes.") +
+      caja("nogasto", "Plata que entró o se movió entre tus cuentas: no se gastó.");
+    const destinoEl = (k) => $(`[data-destino="${k}"]`, mesa);
+
+    function pintarSobre(k, mas) {
+      const el = destinoEl(k); if (!el) return;
+      const m = $(".c-monto", el);
+      contarDe(m, st.mostrado[k] || 0, st.monto[k], 650);
+      st.mostrado[k] = st.monto[k];
+      const n = st.hojas[k] || 0;
+      $$(".c-hoja", el).forEach((h, i) => h.classList.toggle("ve", i < Math.min(n, 6)));
+      $(".c-docs", el).textContent = n === 0 ? "vacío" : `${n} ${n === 1 ? "papel" : "papeles"}`;
+      const parte = $(".c-parte i", el); if (parte) parte.style.setProperty("--w", Math.min(100, (st.monto[k] / TOTAL) * 100 * 1.25) + "%");
+      if (mas) {
+        const t = document.createElement("span"); t.className = "c-mas"; t.textContent = mas;
+        $(".c-figura", el).appendChild(t); setTimeout(() => t.remove(), ms(1700) || 1200);
+      }
+    }
+    function pintarTotal() {
+      // la respuesta de arriba no espera a la lluvia: siempre es el total del mes más lo revisado hoy
+      const t = $("#c-total"), v = TOTAL + extra();
+      if (t._v == null) t._v = TOTAL;
+      if (t._v !== v) contarDe(t, t._v, v, 500);
+      t._v = v;
+      const ex = $("#c-extra");
+      if (extra() > 0) { ex.textContent = `Con lo que mandaste a su sobre hoy: + ${soles(extra())}.`; ex.classList.add("ve"); } else ex.classList.remove("ve");
+    }
+
+    // ---- Papeles sueltos (la bandeja)
+    st.sueltos = BANDEJA.map((it, i) => ({ it, orden: i }));
+    const ROT = [-3, 2.5, -1.5, 3, -2.5, 1.5, -2];
+    function papel(it, i) {
+      if (it.foto) return polaroid(it.foto, soles(it.monto, 2), it.pie || "taxi · AQP", "revela");
+      const talon = it.tipo === "banco";
+      return `<div class="c-papel${talon ? " talon" : ""}" style="--r:${ROT[i % ROT.length]}deg">
+        <span class="t">${talon ? "Estado de cuenta" : "Factura · llegó por SUNAT"}</span>
+        <span class="q">${it.quien}</span><span class="d">${it.doc.replace("Factura ", "")} · ${it.fecha}</span>
+        <span class="l"></span><span class="m"><small>${it.entra ? "ENTRÓ" : "TOTAL"}</small>${it.entra ? "+" : ""}${soles(it.monto, 2)}</span>${dientes(190, 19)}</div>`;
+    }
+    function suelto(s, entrando) {
+      const it = s.it;
+      return `<div class="c-suelto${entrando ? " g-entra" : ""}" data-id="${it.id}" style="--d:${entrando ? 0 : 300 + s.orden * 70}ms">
+        ${papel(it, s.orden)}
+        <div class="c-va"><span class="a">Va a <b>${it.sug}</b></span><span class="p tenue">${it.corto}</span>
+          <span class="bot"><button class="btn primario chico" type="button" data-c="mandar">A su sobre ${IC.flecha}</button>
+          <span class="b-pild-wrap"><button class="btn sutil chico" type="button" data-c="otro" aria-haspopup="listbox" aria-expanded="false">Otro</button></span></span></div></div>`;
+    }
+    function pintarSueltos() {
+      sueltosEl.innerHTML = st.sueltos.map((s) => suelto(s, false)).join("");
+      $$(".c-suelto", sueltosEl).forEach((el) => el.classList.add("g-entra"));
+      resumenSueltos();
+    }
+    function resumenSueltos() {
+      const n = st.sueltos.length;
+      $("#c-sueltos-tit").textContent = n ? `Sobre la mesa: ${n} ${n === 1 ? "papel suelto" : "papeles sueltos"}` : "Sobre la mesa: nada suelto";
+      $("#c-limpia").classList.toggle("ve", n === 0);
+      $(".c-pista", mesa).style.visibility = n ? "" : "hidden";
+    }
+
+    // FLIP: los papeles que quedan se acomodan sin saltar.
+    function acomodar(cambio) {
+      const antes = new Map($$(".c-suelto", sueltosEl).map((el) => [el, el.getBoundingClientRect()]));
+      cambio();
+      if (R) return;
+      $$(".c-suelto", sueltosEl).forEach((el) => {
+        const a = antes.get(el); if (!a) return;
+        const b = el.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+        if (dx || dy) el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(0.32,0.72,0.24,1)" });
+      });
+    }
+
+    function mandar(id, destino, label, desdeArrastre) {
+      const s = st.sueltos.find((x) => x.it.id === id); if (!s) return;
+      const it = s.it, el = $(`.c-suelto[data-id="${id}"]`, sueltosEl), dest = destinoEl(destino);
+      if (!el || !dest || el.classList.contains("volando")) return;
+      el.classList.add("volando");
+      const fin = () => {
+        acomodar(() => { el.remove(); st.sueltos = st.sueltos.filter((x) => x !== s); });
+        const ef = efecto(it, destino);
+        st.hecho.push({ s, destino, label: label || it.sug, ef });
+        st.monto[destino] = (st.monto[destino] || 0) + (NO_GASTO[destino] ? it.monto : ef);
+        st.hojas[destino] = (st.hojas[destino] || 0) + 1;
+        pintarSobre(destino, it.junta && destino === "luz" ? "factura engrapada" : "+ " + soles(it.monto));
+        pintarTotal(); resumenSueltos();
+        $("#c-deshacer").innerHTML = `<span><b>${it.quien}</b> → ${NOMBRE[destino]}${label && !label.startsWith(NOMBRE[destino]) ? ` (${label})` : ""}.</span> <button class="g-enlace" type="button" id="c-deshacer-b">Deshacer</button>`;
+      };
+      if (R) { fin(); return; }
+      const a = el.getBoundingClientRect(), b = $(".c-figura", dest).getBoundingClientRect();
+      const tx = desdeArrastre ? desdeArrastre.x : 0, ty = desdeArrastre ? desdeArrastre.y : 0;
+      const dx = b.left + b.width / 2 - (a.left + a.width / 2) + tx, dy = b.top + b.height * 0.4 - (a.top + a.height * 0.35) + ty;
+      el.style.zIndex = 35;
+      const anim = el.animate([
+        { transform: `translate(${tx}px,${ty}px)`, opacity: 1 },
+        { transform: `translate(${tx + (dx - tx) * 0.55}px,${ty + (dy - ty) * 0.5 - 40}px) scale(.7)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(${dx}px,${dy}px) scale(.22)`, opacity: 0 },
+      ], { duration: 780, easing: "cubic-bezier(0.32,0.72,0.24,1)", fill: "forwards" });
+      anim.onfinish = fin;
+    }
+
+    function deshacerC() {
+      const h = st.hecho.pop(); if (!h) return;
+      const it = h.s.it, k = h.destino;
+      st.monto[k] -= (NO_GASTO[k] ? it.monto : h.ef); st.hojas[k]--;
+      pintarSobre(k); pintarTotal();
+      acomodar(() => {
+        st.sueltos.push(h.s); st.sueltos.sort((x, y) => x.orden - y.orden);
+        const sig = st.sueltos[st.sueltos.indexOf(h.s) + 1];
+        const html = suelto(h.s, true);
+        const ref = sig ? $(`.c-suelto[data-id="${sig.it.id}"]`, sueltosEl) : null;
+        if (ref) ref.insertAdjacentHTML("beforebegin", html); else sueltosEl.insertAdjacentHTML("beforeend", html);
+      });
+      resumenSueltos();
+      $("#c-deshacer").innerHTML = `<span class="tenue">Volvió a la mesa: ${it.quien}.</span>`;
+    }
+
+    sueltosEl.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-c]"); if (!b) return;
+      const id = b.closest(".c-suelto").dataset.id, s = st.sueltos.find((x) => x.it.id === id);
+      if (b.dataset.c === "mandar") mandar(id, s.it.destino);
+      if (b.dataset.c === "otro") {
+        abrirMenu(b, s.it.opciones.map(([l, d]) => ({ v: l, l: `${l} <span class="tenue" style="font-size:12px">· ${NOMBRE[d]}</span>`, d })), null, (o) => mandar(id, o.d, o.v));
+      }
+    });
+    $("#c-deshacer").addEventListener("click", (e) => { if (e.target.closest("#c-deshacer-b")) deshacerC(); });
+
+    // ---- Arrastrar un papel a cualquier sobre
+    let arr = null;
+    sueltosEl.addEventListener("pointerdown", (e) => {
+      const p = e.target.closest(".c-papel, .g-polaroid"); if (!p || e.button > 0) return;
+      const el = p.closest(".c-suelto"); if (el.classList.contains("volando")) return;
+      arr = { el, id: el.dataset.id, x0: e.clientX, y0: e.clientY, x: 0, y: 0, sobre: null, movio: false };
+      el.setPointerCapture(e.pointerId);
+    });
+    sueltosEl.addEventListener("pointermove", (e) => {
+      if (!arr) return;
+      arr.x = e.clientX - arr.x0; arr.y = e.clientY - arr.y0;
+      if (!arr.movio && Math.hypot(arr.x, arr.y) < 5) return;
+      arr.movio = true; arr.el.classList.add("arrastra");
+      arr.el.style.transform = `translate(${arr.x}px,${arr.y}px)`;
+      let hit = null;
+      $$("[data-destino]", mesa).forEach((d) => {
+        const r = $(".c-figura", d).getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top - 10 && e.clientY <= r.bottom + 30) hit = d;
+      });
+      if (hit !== arr.sobre) { if (arr.sobre) arr.sobre.classList.remove("blanco"); if (hit) hit.classList.add("blanco"); arr.sobre = hit; }
+    });
+    function soltar() {
+      if (!arr) return;
+      const a = arr; arr = null;
+      a.el.classList.remove("arrastra");
+      if (a.sobre) {
+        a.sobre.classList.remove("blanco");
+        const k = a.sobre.dataset.destino, it = BANDEJA.find((x) => x.id === a.id) || st.sueltos.find((x) => x.it.id === a.id).it;
+        const op = it.opciones.find(([, d]) => d === k);
+        a.el.style.transform = "";
+        mandar(a.id, k, op ? op[0] : NOMBRE[k], { x: a.x, y: a.y });
+      } else if (a.movio) {
+        a.el.style.transition = "transform .38s cubic-bezier(0.32,0.72,0.24,1)"; a.el.style.transform = "";
+        setTimeout(() => (a.el.style.transition = ""), ms(400));
+      }
+    }
+    sueltosEl.addEventListener("pointerup", soltar);
+    sueltosEl.addEventListener("pointercancel", soltar);
+
+    // ---- Foto nueva: la polaroid cae a la mesa y se revela
+    $("#c-foto").addEventListener("click", (e) => {
+      if (st.demo) return; st.demo = true;
+      const it = { id: "demo", tipo: "foto", quien: "Bodega en Trujillo", doc: "Foto de hoy", fecha: "15 oct", monto: 12, sug: "Útiles y limpieza", corto: "leímos «BOLSAS DE BASURA» y S/ 12.00",
+        destino: "utiles", foto: "BODEGA", pie: "bodega · TRU", opciones: [["Útiles y limpieza", "utiles"], ["Bolsas y empaque", "bolsas"], ["Mantenimiento", "mant"]] };
+      const s = { it, orden: -1 };
+      st.sueltos.unshift(s);
+      acomodar(() => sueltosEl.insertAdjacentHTML("afterbegin", suelto(s, true)));
+      resumenSueltos();
+      e.currentTarget.disabled = true; e.currentTarget.lastChild.textContent = "Foto lista sobre la mesa";
+    });
+
+    // ---- La lluvia: los recibos del mes caen a su sobre (una vez, al entrar)
+    function reiniciar() {
+      st.corrida++;
+      SOBRES.concat(["taller", "nogasto"]).forEach((k) => {
+        st.monto[k] = 0; st.hojas[k] = 0; st.mostrado[k] = 0;
+      });
+      st.hecho.forEach((h) => { const k = h.destino; st.monto[k] += (NO_GASTO[k] ? h.s.it.monto : h.ef); st.hojas[k]++; });
+    }
+    function lluvia() {
+      reiniciar();
+      const corrida = st.corrida;
+      SOBRES.concat(["taller", "nogasto"]).forEach((k) => pintarSobre(k));
+      pintarTotal();
+      // el polaroid se revela
+      $$(".g-polaroid", sueltosEl).forEach((p) => { p.classList.remove("revela"); void p.offsetWidth; p.classList.add("revela"); });
+      if (R) {
+        GASTOS.forEach((g) => { st.monto[g.cat] += g.monto; st.hojas[g.cat]++; });
+        SOBRES.forEach((k) => pintarSobre(k)); pintarTotal(); return;
+      }
+      const m = mesa.getBoundingClientRect(), zona = $("#c-sobres").getBoundingClientRect();
+      const zx = zona.left - m.left, zy = zona.top - m.top, zw = zona.width; // relativo a la mesa: no depende del scroll
+      GASTOS.forEach((g, i) => {
+        setTimeout(() => {
+          if (corrida !== st.corrida) return;
+          const dest = $(".c-figura", destinoEl(g.cat)).getBoundingClientRect(), m2 = mesa.getBoundingClientRect();
+          const v = document.createElement("div"); v.className = "c-vuela"; v.style.setProperty("--c", CATS[g.cat].c);
+          capa.appendChild(v);
+          const x0 = zx + ((i * 137) % Math.max(60, zw - 60)), y0 = zy - 110;
+          const x1 = dest.left - m2.left + dest.width / 2 - 22, y1 = dest.top - m2.top + dest.height * 0.32 - 27;
+          const r0 = ((i * 53) % 30) - 15;
+          const a = v.animate([
+            { transform: `translate(${x0}px,${y0 - 30}px) rotate(${r0}deg)`, opacity: 0 },
+            { transform: `translate(${x0}px,${y0}px) rotate(${r0 / 2}deg)`, opacity: 1, offset: 0.25 },
+            { transform: `translate(${x1}px,${y1}px) rotate(0deg) scale(.55)`, opacity: 1, offset: 0.85 },
+            { transform: `translate(${x1}px,${y1 + 26}px) scale(.45)`, opacity: 0 },
+          ], { duration: 1050, easing: "cubic-bezier(0.32,0.72,0.24,1)", fill: "forwards" });
+          a.onfinish = () => {
+            v.remove(); if (corrida !== st.corrida) return;
+            st.monto[g.cat] += g.monto; st.hojas[g.cat]++; pintarSobre(g.cat); pintarTotal();
+          };
+        }, 650 + i * 115);
+      });
+    }
+
+    pintarSueltos();
+    reiniciar(); GASTOS.forEach((g) => { st.monto[g.cat] += g.monto; st.hojas[g.cat]++; });
+    SOBRES.concat(["taller", "nogasto"]).forEach((k) => { st.mostrado[k] = st.monto[k]; $(".c-monto", destinoEl(k)).textContent = soles(st.monto[k]); });
+    SOBRES.concat(["taller", "nogasto"]).forEach((k) => pintarSobre(k));
+    // La lluvia corre una vez cada vez que se entra a C, cuando los sobres están a la vista (si no, nadie la vería).
+    let espera = null;
+    document.addEventListener("variante", (e) => {
+      if (e.detail !== "c") return;
+      if (espera) { espera.disconnect(); espera = null; }
+      if (R || !("IntersectionObserver" in window)) { lluvia(); return; }
+      reiniciar(); SOBRES.concat(["taller", "nogasto"]).forEach((k) => pintarSobre(k));
+      espera = new IntersectionObserver((ents) => {
+        if (ents.some((x) => x.isIntersecting)) { espera.disconnect(); espera = null; setTimeout(lluvia, 250); }
+      }, { threshold: 0.35 });
+      espera.observe($("#c-sobres"));
+    });
+  })();
+})();
+</script></body></html>

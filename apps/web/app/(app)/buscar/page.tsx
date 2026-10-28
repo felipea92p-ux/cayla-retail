@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -56,9 +57,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
               autoFocus
             />
           </div>
-          <Boton type="submit" peso="primario" data-guia="buscar.boton">
-            Buscar
-          </Boton>
+          <BotonBuscar type="submit" peso="primario" data-guia="buscar.boton" />
         </form>
       </div>
 
@@ -74,7 +73,8 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
 async function Resultados({ term, textoOriginal }: { term: string; textoOriginal: string }) {
   // El precio que se le dice al cliente es el de ESTA tienda (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10).
   const persona = await requirePersonaActualV2();
-  const [catalogo, preciosSede] = await Promise.all([getCatalogo(), getPreciosPorSede([persona.ubicacionId])]);
+  // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+  const [catalogo, preciosSede] = await Promise.all([getCatalogoDeLaSede(persona.ubicacionId), getPreciosPorSede([persona.ubicacionId])]);
   const preciosAqui = preciosSede[persona.ubicacionId] ?? {};
 
   const k = clave(term);

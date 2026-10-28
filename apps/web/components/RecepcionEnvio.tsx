@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
+import { Anillo } from "@/components/ui/Anillo";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronRight, Info, Truck, X } from "lucide-react";
@@ -78,6 +81,9 @@ import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerenc
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -144,6 +150,9 @@ type ConteoDelEnvio = {
 // lateral abierto una ventana de 1440 px deja al panel en ~700 px, y ahí la tabla de 6 columnas aprieta el nombre (ADR-0128).
 // Panel angosto: cada línea es una tarjeta con su − / +; ancho: la tabla de siempre.
 const PLANTILLA_LINEA = "@[46rem]:grid-cols-[1fr_4rem_6.5rem_3rem_9rem] @[60rem]:grid-cols-[1fr_8.5rem_4rem_7rem_3rem_10rem]";
+
+/** La marca de los campos «Llegó»: Enter salta al siguiente campo marcado (y, tras el último, al escáner). */
+const MARCA_CONTEO = { "data-conteo": true };
 
 const CHIP_ESTADO: Record<EstadoLinea, TonoChip> = { sin_contar: "neutro", completa: "verde", faltan: "ambar", excede: "rojo" };
 const ETIQUETA_ESTADO: Record<EstadoLinea, (faltan: number) => string> = {
@@ -660,6 +669,13 @@ export function RecepcionEnvio({
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+    // Un costo que no se entiende no viaja adivinado (ADR-0419): se dice y se lleva al campo.
+    const extraIlegible = extras.findIndex((x) => !x.esRegalo && montoIlegible(x.costoUnitario));
+    if (extraIlegible >= 0) {
+      setPestana("fuera");
+      avisar.error(MONTO_ILEGIBLE);
+      return void window.setTimeout(() => document.querySelector<HTMLInputElement>(`[data-campo="envio-extra-costo-${extraIlegible}"]`)?.focus(), 60);
+    }
 
     const pedido = armarPedidoEnvio({
       ubicacionId,
@@ -843,51 +859,36 @@ export function RecepcionEnvio({
             <span className="hidden truncate text-[12.5px] tabular-nums text-tinta/65 @[60rem]:block">{l.sku ?? "—"}</span>
             <span className="hidden text-center text-sm tabular-nums text-tinta/65 @[46rem]:block">{l.pendiente}</span>
             <span className="text-left @[46rem]:text-center">
-              <span
+              <PasoCantidad
                 key={destello?.id === l.id ? destello.n : 0}
-                className={`${destello?.id === l.id ? "anim-pop" : ""} inline-flex items-center overflow-hidden rounded-[10px] border transition-colors focus-within:border-rojo ${
-                  excede ? "border-rojo bg-rojo/[0.08]" : completa ? "border-verde bg-verde/[0.09]" : estado === "faltan" ? "border-ambar bg-ambar/10" : "border-tinta/25"
-                }`}
-              >
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Una unidad menos"
-                  onClick={() => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1))}
-                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                >
-                  −
-                </button>
-                <input /* unificar-fijo: el contador entre − y + que tiñe su borde según lo que llegó; otra función, no un campo */
-                  type="number"
-                  min={0}
-                  max={l.pendiente}
-                  data-conteo
-                  aria-label={`Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`}
-                  value={reparto[l.id]?.[l.varianteId] ?? ""}
-                  placeholder="—"
-                  onChange={(e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value))}
-                  onFocus={(e) => e.target.select()}
-                  onKeyDown={(e) => {
+                className={destello?.id === l.id ? "anim-pop" : ""}
+                // El borde y el número dicen lo que llegó: se pasó, está completo, falta.
+                tono={excede ? "error" : completa ? "exito" : estado === "faltan" ? "atencion" : undefined}
+                sinTab
+                // En tabla (panel ancho) el − / + se esconde hasta pasar el mouse por la fila o enfocarla; en tarjeta se ve siempre.
+                claseBotones="overflow-hidden transition-[width,background-color,color,transform] duration-200 ease-cayla @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
+                menos={{ onClick: () => fijar(l.id, l.varianteId!, Math.max(0, (llego ?? 0) - 1)), etiqueta: "Una unidad menos" }}
+                mas={{ onClick: () => fijar(l.id, l.varianteId!, (llego ?? 0) + 1), etiqueta: "Una unidad más" }}
+                campo={{
+                  type: "number",
+                  min: 0,
+                  max: l.pendiente,
+                  ...MARCA_CONTEO,
+                  "aria-label": `Llegó de ${l.referencia} ${[l.talla, l.color].filter(Boolean).join(" ")}`,
+                  value: reparto[l.id]?.[l.varianteId] ?? "",
+                  placeholder: "—",
+                  onChange: (e) => fijar(l.id, l.varianteId!, e.target.value === "" ? null : Number(e.target.value)),
+                  onFocus: (e) => e.target.select(),
+                  onKeyDown: (e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
                     const todos = [...document.querySelectorAll<HTMLInputElement>("input[data-conteo]")].filter((i) => i.offsetParent);
                     const siguiente = todos[todos.indexOf(e.currentTarget) + 1];
                     if (siguiente) siguiente.focus();
                     else escaneoRef.current?.focus();
-                  }}
-                  className={`h-[42px] w-14 bg-transparent text-center text-[15px] tabular-nums outline-none [appearance:textfield] @[46rem]:h-9 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${excede ? "text-rojo" : completa ? "text-verde-profundo" : estado === "faltan" ? "text-ambar-profundo" : "text-tinta/45"}`}
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Una unidad más"
-                  onClick={() => fijar(l.id, l.varianteId!, (llego ?? 0) + 1)}
-                  className="grid h-[42px] w-10 place-items-center overflow-hidden text-lg text-tinta/65 transition-[width,color] duration-200 hover:text-rojo @[46rem]:h-9 @[46rem]:w-0 @[46rem]:group-focus-within:w-6 @[46rem]:group-hover:w-6"
-                >
-                  +
-                </button>
-              </span>
+                  },
+                }}
+              />
             </span>
             <span className={`hidden text-center text-sm tabular-nums @[46rem]:block ${dif === null || dif === 0 ? "text-tinta/45" : dif < 0 ? "font-semibold text-ambar-profundo" : "font-semibold text-rojo"}`}>
               {dif === null ? "—" : dif === 0 ? "0" : dif < 0 ? `−${-dif}` : `+${dif}`}
@@ -1050,7 +1051,7 @@ export function RecepcionEnvio({
               >
                 {recienMarcada?.id === c.id && <span key={recienMarcada.n} aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
                 <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border-[1.5px] ${marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
-                  {marcada && <Check className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
+                  {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14.5px] font-semibold text-tinta">
@@ -1062,9 +1063,7 @@ export function RecepcionEnvio({
                   <span className="block text-xs text-tinta/65">
                     {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.{c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad ? " · tu parte" : ""}
                   </span>
-                  <span aria-hidden className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-sand">
-                    <span className="anim-crece-x block h-full rounded-full bg-tinta/45" style={{ width: `${c.facturadoCantidad ? Math.min(100, (c.recibidoCantidad / c.facturadoCantidad) * 100) : 0}%` }} />
-                  </span>
+                  <BarraAvance pct={c.facturadoCantidad ? (c.recibidoCantidad / c.facturadoCantidad) * 100 : 0} alto="fina" decorativa className="mt-1.5" />
                 </span>
                 <span className="shrink-0 text-right">
                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
@@ -1092,7 +1091,7 @@ export function RecepcionEnvio({
               <div className="card-cayla flex min-h-[10rem] flex-col items-center justify-center gap-2 p-8 text-center">
                 {/* el camión rueda sobre un camino punteado y da la vuelta en cada extremo: adorno, se detiene con movimiento reducido */}
                 <div aria-hidden className="relative mb-2 h-12 w-full max-w-[22rem] overflow-hidden">
-                  <Truck strokeWidth={1.5} className="recibir-camion absolute bottom-[-4px] left-1/2 -ml-[15px] h-[30px] w-[30px] text-tinta/65" />
+                  <Truck /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ strokeWidth={1.5} className="recibir-camion absolute bottom-[-4px] left-1/2 -ml-[15px] h-[30px] w-[30px] text-tinta/65" />
                   <span className="recibir-camino absolute inset-x-0 bottom-0 block h-[2px]" />
                 </div>
                 <p className="font-display text-xl text-tinta">¿Qué llegó?</p>
@@ -1113,7 +1112,7 @@ export function RecepcionEnvio({
               <section className="card-cayla anim-entra grid overflow-hidden @xl:grid-cols-2 @[44rem]:grid-cols-[1.25fr_1fr_1fr]" style={{ "--i": 0 } as CSSProperties}>
                 <div className="flex items-center gap-4 p-5">
                   <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-sand bg-sand/50 text-tinta/65">
-                    <Truck className="h-[22px] w-[22px]" strokeWidth={1.6} />
+                    <Truck className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
                     <p className="font-display text-[21px] leading-tight text-tinta">{tituloEnvio}</p>
@@ -1151,7 +1150,10 @@ export function RecepcionEnvio({
                   )}
                 </div>
                 <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">
-                  <Anillo pct={pctContado} />
+                  {/* Cuánto llevas contado del envío (el anillo del sistema, ronda 13): en tinta mientras falta, verde al 100 %. */}
+                  <Anillo pct={pctContado} tamano="mediano" etiqueta={`${pctContado} % contado`}>
+                    <span className="font-display text-[19px] font-normal">{pctContado}%</span>
+                  </Anillo>
                   <div>
                     <p className="label-cayla text-[10.5px] text-tinta/55">Estado de recepción</p>
                     <p key={estadoDelEnvio} className="anim-asentar font-display text-2xl leading-tight text-tinta">{estadoDelEnvio}</p>
@@ -1287,9 +1289,7 @@ export function RecepcionEnvio({
                       {ultimaLectura.texto}
                     </span>
                     {ultimaLectura.deshacer && (
-                      <button type="button" onClick={deshacerLectura} className="btn-cayla btn-enlace text-xs">
-                        Deshacer
-                      </button>
+                      <BotonDeshacer onClick={deshacerLectura} className="text-xs" />
                     )}
                     {ultimaLectura.agregar && (
                       <button type="button" onClick={agregarYReleer} className="btn-cayla btn-sutil btn-chico">
@@ -1306,9 +1306,7 @@ export function RecepcionEnvio({
                       <span className="whitespace-nowrap text-xs text-tinta/65">
                         {totales.lineasContadas} de {totales.lineasTotal} {totales.lineasTotal === 1 ? "línea contada" : "líneas contadas"}
                       </span>
-                      <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={totales.lineasContadas} aria-valuemin={0} aria-valuemax={totales.lineasTotal} aria-label="Líneas contadas">
-                        <div className={`h-full rounded-full transition-[width] ${totales.lineasContadas === totales.lineasTotal ? "bg-verde" : "bg-ambar"}`} style={{ width: `${totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0}%` }} />
-                      </div>
+                      <BarraAvance pct={totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0} etiqueta="Líneas contadas" texto={`${totales.lineasContadas} de ${totales.lineasTotal}`} className="min-w-24 flex-1" />
                       {totales.lineasTotal - totales.lineasContadas > 0 && <span className="text-xs text-tinta/55">{totales.lineasTotal - totales.lineasContadas} sin contar: siguen pendientes</span>}
                     </div>
 
@@ -1333,7 +1331,7 @@ export function RecepcionEnvio({
                         <div key={c.id} className="border-t border-tinta/10 first:border-t-0">
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-sand/30 px-5 py-3">
                             <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: !abierto }))} aria-expanded={abierto} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                              <ChevronRight aria-hidden className={`h-[18px] w-[18px] shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
+                              <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
                               <Ini nombre={c.proveedorNombre} />
                               <span className="min-w-0">
                                 <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-tinta">
@@ -1355,9 +1353,7 @@ export function RecepcionEnvio({
                                     {contadasC} de {propias.length} {propias.length === 1 ? "línea" : "líneas"}
                                   </span>
                                 </span>
-                                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-sand">
-                                  <span className={`block h-full rounded-full ${unidadesC >= pendienteTotal ? "bg-verde" : "bg-ambar"}`} style={{ width: `${pendienteTotal ? Math.min(100, (unidadesC / pendienteTotal) * 100) : 0}%` }} />
-                                </span>
+                                <BarraAvance pct={pendienteTotal ? (unidadesC / pendienteTotal) * 100 : 0} alto="fina" decorativa className="mt-1" />
                               </span>
                               {abierto ? (
                                 <>
@@ -1414,8 +1410,8 @@ export function RecepcionEnvio({
                                   : "ya tiene un faltante cerrado esperando el documento del proveedor."}
                               </p>
                             </div>
-                            <Link href="/compras/notas-credito" className="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo">
-                              <Chip tono="ambar">Se reclama en Notas de crédito ↗</Chip>
+                            <Link href="/compras/proveedores" className="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo">
+                              <Chip tono="ambar">Se reclama en «Nos debe» ↗</Chip>
                             </Link>
                           </div>
                         ))}
@@ -1487,9 +1483,7 @@ export function RecepcionEnvio({
                               />
                             </div>
                             <input
-                              type="number"
-                              min={0}
-                              step="0.10"
+                              {...atributosMontoTexto(ex.esRegalo ? "" : ex.costoUnitario)}
                               placeholder={ex.esRegalo ? "Sin costo" : "Costo (opc.)"}
                               aria-label="Costo unitario"
                               data-campo={`envio-extra-costo-${i}`}
@@ -1497,9 +1491,10 @@ export function RecepcionEnvio({
                               value={ex.esRegalo ? "" : ex.costoUnitario}
                               onChange={(e) => {
                                 const v = e.target.value;
-                                actualizarExtra(i, { costoUnitario: v === "" ? "" : String(Math.max(0, Number(v) || 0)) });
+                                // Se guarda como se escribe (coma incluida) y se lee al enviar; un negativo queda en 0 (ADR-0419).
+                                actualizarExtra(i, { costoUnitario: v.trim() === "" ? "" : v.trim().startsWith("-") ? "0" : v });
                               }}
-                              className="caja-campo-input w-24 shrink-0 text-right tabular-nums"
+                              className={`caja-campo-input w-24 shrink-0 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                             />
                             <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-[10px] text-tinta/55 hover:text-rojo">
                               Quitar
@@ -1534,8 +1529,8 @@ export function RecepcionEnvio({
 
                 {/* ---------------- notas del envío ---------------- */}
                 {pestana === "notas" && (
-                  <div className="anim-asentar space-y-2 p-5">
-                    <label htmlFor="recibir-nota" className="label-cayla text-[11px] text-tinta/65">
+                  <div className="campo anim-asentar space-y-2 p-5">
+                    <label htmlFor="recibir-nota" className="campo-etiqueta">
                       Nota del envío (opcional)
                     </label>
                     <textarea
@@ -1740,27 +1735,12 @@ function Ini({ nombre, chico = false, apilada = false }: { nombre: string; chico
   );
 }
 
-// Cuánto llevas contado del envío, de un vistazo. Ámbar mientras falta, verde al 100 %.
-function Anillo({ pct }: { pct: number }) {
-  const r = 28;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="70" height="70" viewBox="0 0 70 70" className="shrink-0" role="img" aria-label={`${pct} % contado`}>
-      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" className="stroke-sand" />
-      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" strokeLinecap="round" className={`transition-[stroke-dashoffset,stroke] duration-[900ms] ease-cayla ${pct >= 100 ? "stroke-verde" : "stroke-ambar"}`} strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, pct / 100))} transform="rotate(-90 35 35)" />
-      <text x="35" y="41" textAnchor="middle" className="fill-tinta font-display" fontSize="19">
-        {pct}%
-      </text>
-    </svg>
-  );
-}
-
 // El estado de la fila y, si llegó corta y ya se decidió qué pasó, esa decisión a la vista.
 function EstadoDeLinea({ estado, faltan, decision, onEditar }: { estado: EstadoLinea; faltan: number; decision?: Decision; onEditar: () => void }) {
   return (
     <span className="anim-asentar flex flex-col items-start gap-1">
       <Chip tono={CHIP_ESTADO[estado]}>
-        {estado === "completa" && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+        {estado === "completa" && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "0ms" } as CSSProperties} />}
         {ETIQUETA_ESTADO[estado](faltan)}
       </Chip>
       {decision && <ResumenDecision decision={decision} onEditar={onEditar} />}

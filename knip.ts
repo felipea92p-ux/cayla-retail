@@ -35,8 +35,10 @@ const config: KnipConfig = {
   compilers: { css: importsDelCss },
   ignoreExportsUsedInFile: true,
   // `supabase` es la CLI (en el CI va por `npx supabase`, no como dependencia) y `uptime`, el comando del sistema que lee la carga
-  // de la máquina en `scripts/carga/carga.mjs`.
-  ignoreBinaries: ["supabase", "uptime"],
+  // de la máquina en `scripts/carga/carga.mjs`; `openssl`, el del sistema, que arma el certificado de prueba del experimento
+  // `scripts/investigacion/reintento-post-cortado.mjs`; `vercel`, la CLI de cada máquina (`vercel login`), con que
+  // `apps/tienda/scripts/medicion-leer.mjs` baja el registro de la tienda (ADR-0447).
+  ignoreBinaries: ["supabase", "uptime", "openssl", "vercel"],
   workspaces: {
     ".": {
       // Los scripts de la raíz se corren a mano, desde las skills o desde el CI: cada uno es un punto de entrada, y también lo que
@@ -51,10 +53,8 @@ const config: KnipConfig = {
     "apps/web": {
       // Las rutas de Next (`app/**`, `proxy.ts`), las pruebas de Vitest y los CLI de `package.json` los encuentra Knip solo. Estos no:
       entry: [
-        // Se cargan por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210) y
-        // `new Worker("/quitar-fondo.worker.js")` (ADR-0228). Llegan a la tienda: llevan `!`.
+        // Se carga por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210). Llega a la tienda: lleva `!`.
         "public/sw.js!",
-        "public/quitar-fondo.worker.js!",
         // Se leen como texto y se inyectan en la página que se mide (`tema/cli.mjs`, `unificar/cli.mjs`, `unificar/fotos.mjs`).
         "tema/motor/escaner-en-pagina.js",
         "unificar/motor/censo-en-pagina.js",
@@ -77,19 +77,36 @@ const config: KnipConfig = {
             ignoreFiles: [
               "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos}.ts",
               "lib/*-fixture{,s}.ts",
+              // La ayuda de precio de «Nueva orden de compra» (`docs/pantallas/compras-ordenes-precio-y-stock.md`, actividad 1 de 7): las reglas
+              // puras nacen antes que su pantalla, que las importa en la actividad 4 (`components/ordenes-compra/NuevaOrdenCompra.tsx`).
+              // SE SACA DE AQUÍ al conectarla: este candado es justo para que «lo uso después» no se quede.
+              "lib/orden-compra-precio-ayuda.ts",
             ],
           }
         : {}),
       ignore: [
-        // La pieza de «Cancelar y el pie de una hoja», elegida por Felipe el 2026-10-14 (ronda 11 de /unificar, ADR-0358): nace
-        // antes que sus primeros usos. Sale de aquí cuando la use la primera hoja.
-        "components/ui/PieAcciones.tsx",
         // «Mis partes de compras» dejó de dibujarse con ADR-0387 (2026-10-12), que dice que se retira junto con
         // `lib/compras-mi-parte*.ts` y la página `/compras/parte/[compraId]`. Su lectura es la única que llama
         // `fn_mis_partes_de_compras`: quitarla deja esa función de la base sin llamador (`pruebas:roles-cobertura` lo marca),
         // así que el retiro va entero, con su migración y el OK de Felipe.
         "components/MisPartesDeCompras.tsx",
       ],
+    },
+    // La tienda online (ADR-0408), una app aparte. Sus rutas y pruebas las encuentra Knip solo, como en la web.
+    "apps/tienda": {
+      project: [
+        // Lo que llega a la tienda publicada.
+        "{app,components,lib}/**/*.{ts,tsx,css}!",
+        "*.{ts,mjs,js}!",
+        // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
+        "scripts/**/*.mjs",
+      ],
+    },
+    "packages/shared": {
+      project: ["src/**/*.{ts,css}!"],
+      // La hoja de los efectos de las campañas es la FUENTE de dos copias (`apps/web/app/estilos` y `apps/tienda/app/estilos`) que una prueba
+      // (`apps/web/lib/campana-efectos.test.ts`) lee como texto y mantiene idénticas: ningún archivo la importa.
+      ignore: ["src/campana-efectos.css"],
     },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],

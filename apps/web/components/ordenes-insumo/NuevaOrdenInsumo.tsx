@@ -44,6 +44,7 @@ import {
   argsCrearOrdenInsumo,
   argsEditarOrdenInsumo,
   avisoDeUnidadCambiada,
+  borradorNuevoDeOrdenInsumo,
   camposDeLaOrdenInsumo,
   cantidadesDelBorrador,
   dudaDeLineaInsumo,
@@ -56,6 +57,7 @@ import {
   type OrdenInsumoBorrador,
 } from "@/lib/orden-insumo-alta";
 import { crearOrdenInsumo, editarOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
+import type { PrecargaDePedido } from "@/lib/pedir-insumo-reglas";
 
 // Nueva orden de insumos del Taller (ADR-0362, fase 7 · actividad 2): la gemela de «Nueva orden de compra» (fase 1, aprobada por Felipe),
 // con la línea del Taller. Arriba, a quién se le pide, a qué taller llega, cuándo y una nota; abajo, lo que se pide, una línea por
@@ -70,9 +72,13 @@ import { crearOrdenInsumo, editarOrdenInsumo } from "@/lib/ordenes-insumo-accion
 // mismo instante.
 //
 // La guía de foco (CLAUDE.md «Guía de foco»): cada bloque se enciende cuando es lo que sigue y «Falta: …» sobre el botón lleva a cada cosa.
-// Sale de `camposDeLaOrdenInsumo`, que son las reglas de `fn_orden_insumo_validar` (la entrega estimada es sugerida: nunca bloquea).
+// Sale de `camposDeLaOrdenInsumo`, que son las reglas de `fn_orden_insumo_validar` (la entrega estimada es opcional: ni bloquea ni se lista como «falta»).
 // Lo que la base rechace igual (alguien desactivó al proveedor un momento antes) se dice donde corresponde: bajo su campo, bajo su línea o
 // en el aviso de la hoja, sobre los botones (ADR-0358).
+//
+// «Pedir N m» (Resumen, página de una orden, «Qué hacer hoy») llega con el insumo y la cantidad que falta: la primera línea abre con ellos
+// (`precarga`, ya validada por la página; solo al abrir, lo que la persona escriba después no se pisa). Al abrir, el cursor queda en lo primero
+// que falta —el proveedor— para que se pueda escribir de una vez (la prueba ciega escribía sin campo enfocado).
 //
 // EDITAR: la misma pantalla con la orden como está (`editar`): el título, el botón («Guardar cambios») y lo que se guarda
 // (`editar_orden_insumo`, con la versión que se vio al abrir). Lo que ya venía completo no se llena de ✓. Si una línea trae un insumo cuya
@@ -83,7 +89,7 @@ const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // guía (✓, «Sigue aquí», falta, opcional).
 const TITULO_FIJO = "mb-1.5 flex h-6 items-center gap-x-2 overflow-hidden whitespace-nowrap text-[13px] font-semibold text-tinta";
 // La fila de una línea cuando hay lugar (sección de 60 rem o más: una pantalla de 1440 con el menú abierto): marca de la guía y número ·
-// insumo · descripción · cantidad con su unidad («12.5 metros») · precio por unidad · descuento (caja + «% / S/») · subtotal · quitar. La
+// insumo · descripción · cantidad con su unidad («12.5 metros») · costo por unidad · descuento (caja + «% / S/») · subtotal · quitar. La
 // comparten el encabezado y cada fila. Más angosta que la de la orden de compra (56 rem): la cantidad lleva su unidad al lado.
 const FILA_ANCHA = "@min-[60rem]:grid-cols-[2.5rem_minmax(0,1.5fr)_minmax(0,1fr)_9.5rem_6rem_minmax(8.5rem,10rem)_6.5rem_2rem]";
 
@@ -104,17 +110,17 @@ type Props = {
   hoy: string;
   /** El taller con el que arranca «Llega a»: el único, o el taller donde se trabaja; «» si hay que elegir. */
   destinoInicial: string;
+  /** Viene de un «Pedir N m»: el insumo y la cantidad de la primera línea. Solo la toma «Nueva» (al editar, la orden manda). */
+  precarga?: PrecargaDePedido | null;
   editar?: EdicionOrdenInsumo;
 };
 
 /** Un rechazo de la base, dicho en su lugar (ver `lugarDelError`). */
 type ErrorEnPantalla = { lugar: LugarDelError; titulo?: string; texto: string; tono: "error" | "atencion"; accion?: { texto: string; onClick: () => void } };
 
-export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: Props) {
+export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, precarga, editar }: Props) {
   const router = useRouter();
-  const [orden, setOrden] = useState<OrdenInsumoBorrador>(
-    () => editar?.inicial ?? { proveedorId: "", destinoId: destinoInicial, entrega: "", nota: "", lineas: [lineaInsumoVacia("l1")] },
-  );
+  const [orden, setOrden] = useState<OrdenInsumoBorrador>(() => editar?.inicial ?? borradorNuevoDeOrdenInsumo(destinoInicial, precarga ?? null));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<ErrorEnPantalla | null>(null);
   // Con varios talleres, «Llega a» viene puesto con el taller donde se trabaja: hasta que la persona lo elige, la guía lo trata como
@@ -144,6 +150,9 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
   );
   const campos = camposDeLaOrdenInsumo(orden, ctx, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
+  // Al abrir, el cursor queda en lo primero que falta cuando eso es el proveedor (su lista se abre para escribir y buscar). Con el dedo no: el
+  // teclado taparía la hoja. Se decide una sola vez, al abrir; el mismo campo después no vuelve a pedir el foco.
+  const [enfocarProveedor] = useState(() => guia.ahora === "proveedor" && !(typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches));
 
   // Al editar, lo que llegó completo no se marca con ✓ (regla 4 de la guía); si se deja pendiente al editar, vuelve a llevar su marca.
   const [completosAlAbrir] = useState(() => new Set(editar ? campos.filter((c) => c.hecho).map((c) => c.id) : []));
@@ -357,6 +366,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
                   id="oi-proveedor"
                   caja
                   etiquetaAccesible="Proveedor"
+                  autoFocus={enfocarProveedor}
                   marcador="Nombre o RUC…"
                   valor={orden.proveedorId}
                   onValor={(proveedorId) => cambiar((o) => ({ ...o, proveedorId }))}
@@ -468,7 +478,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
                 Descripción
               </span>
               <span>Cantidad</span>
-              <span>Precio u.</span>
+              <span>Costo u.</span>
               <span className="truncate">
                 Descuento <span className="text-[12px] font-normal text-taupe">si hay</span>
               </span>
@@ -604,7 +614,7 @@ function LineaOrdenInsumo({
 
   // Dos caras, según el ancho de la SECCIÓN (`@container` de «Lo que pides»), no de la ventana: con 60 rem o más, la línea es UNA FILA
   // (los títulos van en el encabezado de arriba); más angosta (y en el celular), una tarjeta: «Línea N» con su ✕, el insumo, la
-  // descripción, cantidad y precio, el descuento y el subtotal.
+  // descripción, cantidad y costo, el descuento y el subtotal.
   return (
     <CampoGuiado id={id} guia={guia} retiene="fila" className="rounded-xl border border-sand bg-papel p-3 @min-[60rem]:rounded-lg @min-[60rem]:py-2">
       <div data-guia="oi-form.linea" className={`grid grid-cols-2 items-start gap-x-2.5 gap-y-2 @min-[60rem]:items-center ${FILA_ANCHA}`}>
@@ -663,11 +673,11 @@ function LineaOrdenInsumo({
           </div>
         </div>
         <div className="min-w-0">
-          <p className={`${TITULO} @min-[60rem]:hidden`}>Precio por {porUnidad}</p>
+          <p className={`${TITULO} @min-[60rem]:hidden`}>Costo por {porUnidad}</p>
           <CampoTexto
             caja
             sinPie
-            etiqueta={`Precio por ${porUnidad} de la línea ${numero}, en soles`}
+            etiqueta={`Costo por ${porUnidad} de la línea ${numero}, en soles`}
             inputMode="decimal"
             placeholder="0.00"
             value={l.precio}

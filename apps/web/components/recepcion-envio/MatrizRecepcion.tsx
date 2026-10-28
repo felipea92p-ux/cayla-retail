@@ -1,12 +1,12 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import { limpiarCantidad, leerCantidad, type ColorAlta } from "@/lib/alta-producto";
 import { fondoDeMuestra } from "@/lib/colores-familias";
 import { pasoCantidad } from "@/lib/tabla-alta-reglas";
 import { matrizDe, nombreDeVariante, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 // La matriz de lo que llegó de UNA prenda (ADR-0362, fase 4): una fila por color, una columna por talla, como la tabla de Nuevo producto
 // (`MatrizCantidades`) — la misma forma a propósito: quien ya armó una prenda reconoce cada celda sin leerla otra vez. Cada celda es una
@@ -15,9 +15,6 @@ import { matrizDe, nombreDeVariante, type PrendaRecepcion } from "@/lib/recepcio
 // Dos usos: `modo="cantidades"` (cuántas llegaron, buenas y dañadas juntas) y `modo="danadas"` (cuántas de esas vinieron dañadas: una celda
 // con más dañadas que las que llegaron se pinta en ámbar y la guía lo dice). Vacío es cero; solo dígitos, hasta 4 (una cantidad imposible ni
 // se tipea). Total por color, por talla y general, solo donde dicen algo.
-
-const BOTON_PASO =
-  "grid h-6 w-5 shrink-0 place-items-center rounded-[5px] text-taupe/70 transition-colors hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25";
 
 export function MatrizRecepcion({
   prenda,
@@ -123,33 +120,29 @@ export function MatrizRecepcion({
                   return (
                     <td key={v.id} className={`border-t border-sand p-0 ${fondoFila}`}>
                       <span className="flex h-12 min-w-[88px] items-center justify-center px-0.5 sm:h-[52px] sm:min-w-[98px]">
-                        <span
-                          className={`inline-flex items-center gap-0.5 rounded-[7px] border bg-hueso px-0.5 focus-within:border-taupe focus-within:bg-papel ${
-                            deMas ? "border-ambar" : "border-transparent"
-                          } ${sinNada ? "opacity-40" : ""}`}
-                        >
-                          <button type="button" tabIndex={-1} disabled={deshabilitada || sinNada || texto === ""} aria-label={`Restar a ${nombre}`} onClick={() => onValor(v.id, pasoCantidad(texto, -1))} className={BOTON_PASO}>
-                            <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
-                          </button>
-                          <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={4}
-                            autoComplete="off"
-                            aria-label={`${pregunta} ${nombre}`}
-                            aria-invalid={deMas || undefined}
-                            placeholder="0"
-                            value={texto}
-                            disabled={deshabilitada || sinNada}
-                            onChange={(e) => onValor(v.id, limpiarCantidad(e.target.value))}
-                            onFocus={(e) => e.currentTarget.select()}
-                            className={`w-8 border-0 bg-transparent py-1.5 text-center text-sm tabular-nums outline-none placeholder:text-tinta/25 sm:w-9 ${deMas ? "font-semibold text-ambar" : "text-tinta"}`}
-                          />
-                          <button type="button" tabIndex={-1} disabled={deshabilitada || sinNada} aria-label={`Sumar a ${nombre}`} onClick={() => onValor(v.id, pasoCantidad(texto, 1))} className={BOTON_PASO}>
-                            <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
-                          </button>
-                        </span>
+                        <PasoCantidad
+                          tamano="celda"
+                          sinTab
+                          // Más dañadas que las que llegaron: la celda se pinta en ámbar (y la guía lo dice).
+                          tono={deMas ? "atencion" : undefined}
+                          className={sinNada ? "opacity-40" : ""}
+                          menos={{ onClick: () => onValor(v.id, pasoCantidad(texto, -1)), deshabilitado: deshabilitada || sinNada || texto === "", etiqueta: `Restar a ${nombre}` }}
+                          mas={{ onClick: () => onValor(v.id, pasoCantidad(texto, 1)), deshabilitado: deshabilitada || sinNada, etiqueta: `Sumar a ${nombre}` }}
+                          campo={{
+                            type: "text",
+                            inputMode: "numeric",
+                            pattern: "[0-9]*",
+                            maxLength: 4,
+                            autoComplete: "off",
+                            "aria-label": `${pregunta} ${nombre}`,
+                            "aria-invalid": deMas || undefined,
+                            placeholder: "0",
+                            value: texto,
+                            disabled: deshabilitada || sinNada,
+                            onChange: (e) => onValor(v.id, limpiarCantidad(e.target.value)),
+                            onFocus: (e) => e.currentTarget.select(),
+                          }}
+                        />
                       </span>
                     </td>
                   );

@@ -141,9 +141,10 @@ const como = (auth) => `set local request.jwt.claim.sub = '${auth}';\nset local 
 /** Apaga la terminal / la sede: se hace como postgres, antes de cambiar de sesión. */
 const APAGAR_TERMINAL = `update retail.terminales set activo = false, desactivada_at = now() where auth_user_id = '${T_APAGADA}';\n`;
 const APAGAR_SEDE = `update retail.ubicaciones set activo = false where id = :'sede_prueba';\n`;
-/** Como en producción, el rol «Terminal Almacén» ve los módulos de dinero de Compras (la base local no los siembra). */
+/** Como en producción, el rol «Terminal Almacén» ve los módulos de dinero de Compras (la base local no los siembra; «notas_credito» se
+ *  retiró en ADR-0480). */
 const MODULOS_DE_DINERO = `insert into retail.rol_modulos (rol_id, modulo)
-  select retail.fn_rol_por_clave('terminal_administrativa'), m from unnest(array['facturas_compra', 'por_pagar', 'notas_credito']) m on conflict do nothing;\n`;
+  select retail.fn_rol_por_clave('terminal_administrativa'), m from unnest(array['facturas_compra', 'por_pagar']) m on conflict do nothing;\n`;
 
 /** Para el BARRIDO: una lectura que además de la puerta de retail pide un MÓDULO (`fn_ve_modulo`, ADR-0161: hoy las del Plan del piso, `plan_piso`) le dice 42501
  *  a quien no lo ve, y eso es correcto, no un fallo de la puerta. Lo que el barrido mide es que la puerta conozca a las terminales, así que la terminal
@@ -350,10 +351,30 @@ caso(
      from pg_proc where oid = 'retail.fn_tiene_acceso_retail()'::regprocedure;`,
   "t,t,t,t"
 );
+// Las políticas que usan la puerta desde 20261015221000 (lecturas y altas de retail) y 20261015222000 (subidas a storage). Antes pedían
+// solo «tener sesión», que una terminal ya tiene: la puerta no les abre nada nuevo a las terminales, solo deja fuera a quien no es de
+// retail. Una política nueva que la use tiene que sumarse aquí, después de revisar qué le abre a una terminal.
+const POLITICAS_CON_LA_PUERTA = {
+  retail: [
+    "activos_fijos_select", "categoria_patrones_select", "categoria_tallas_select", "categoria_tejidos_select", "categorias_select",
+    "codigos_barras_select", "codigos_correlativos_select", "codigos_descuento_select", "colores_select", "colores_insert_autenticado",
+    "configuracion_empresa_select", "cotizaciones_maquila_select", "etiqueta_categorias_select", "etiquetas_select",
+    "etiquetas_insert_autenticado", "familias_select", "gastos_select", "insumos_select_autenticado", "marca_proveedores_select",
+    "marcas_select", "modulos_select", "patrones_select", "patrones_insert_autenticado", "producto_fotos_select", "productos_select",
+    "proveedores_select", "sububicaciones_select", "tallas_select", "tallas_insert_autenticado", "tejidos_select",
+    "tejidos_insert_autenticado", "ubicacion_datos_fiscales_select", "ubicaciones_select", "variante_etiquetas_select", "variantes_select",
+  ],
+  storage: [
+    "retail_productos_fotos_insert", "retail_colores_muestras_insert", "retail_compras_adjuntos_insert", "retail_gastos_viaje_fotos_insert",
+  ],
+};
+const lista = (nombres) => nombres.map((n) => `'${n}'`).join(", ");
 caso(
-  "RADIO DEL CAMBIO: ninguna política, vista ni función de otro schema depende de la puerta (si alguna la usa, hay que revisar qué abre a las terminales)",
+  "RADIO DEL CAMBIO: las únicas políticas que usan la puerta son las de 20261015221000 y 20261015222000 (antes pedían solo tener sesión, que una terminal ya tenía), y ninguna vista ni función de otro schema depende de ella",
   `select concat_ws(',',
-     (select count(*) from pg_policies where coalesce(qual, '') || coalesce(with_check, '') ~ 'fn_tiene_acceso_retail'),
+     (select count(*) from pg_policies where coalesce(qual, '') || coalesce(with_check, '') ~ 'fn_tiene_acceso_retail'
+        and not ((schemaname = 'retail' and policyname in (${lista(POLITICAS_CON_LA_PUERTA.retail)}))
+                 or (schemaname = 'storage' and tablename = 'objects' and policyname in (${lista(POLITICAS_CON_LA_PUERTA.storage)})))),
      (select count(*) from pg_views where definition ~ 'fn_tiene_acceso_retail'),
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname not in ('retail', 'pg_catalog', 'information_schema') and p.prokind = 'f' and pg_get_functiondef(p.oid) ~ 'fn_tiene_acceso_retail'));`,
   "0,0,0"

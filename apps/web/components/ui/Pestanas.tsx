@@ -39,8 +39,9 @@ export type Pestana = {
   /** El conteo pide algo (ámbar) y esto es lo que oye quien usa lector de pantalla tras el número: «esperan revisión». */
   pide?: string;
   /** El tono del conteo: sin él, si hay `pide`, va en ámbar (pide algo); «rojo» avisa un problema («SUNAT rechazó»); «neutro»
-   *  solo informa y usa `pide` como su texto para lector («vigentes»). */
-  tono?: "rojo" | "neutro";
+   *  solo informa y usa `pide` como su texto para lector («vigentes»); «nuevo» marca una vista recién llegada con la palabra
+   *  «nuevo» en pizarra (la maqueta del Presupuesto del Plan, Felipe 2026-10-26): quien la pone decide hasta cuándo. */
+  tono?: "rojo" | "neutro" | "nuevo";
   /** Una línea de ayuda al pasar el mouse (`title`): «Cuánto cuesta cada prenda». */
   ayuda?: string;
   /** El ancla de la guía interactiva de su pantalla (`data-guia`, ADR-0389): la guía enciende y toca esta pestaña. */
@@ -110,9 +111,12 @@ export function Pestanas({
     </>
   );
 
+  // `suppressHydrationWarning` en la fila: `FilasQueSeDeslizan` (montado en `app/layout.tsx`) le pone `data-mas-izq`/`data-mas-der`
+  // desde afuera de React, y si la fila vive en un `Suspense` que hidrata después (la mesa de mando de Finanzas), ya trae la marca y
+  // React avisaba que el HTML no coincidía. Esas dos marcas no son de React: no hay nada que comparar.
   if (porEstado) {
     return (
-      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style}>
+      <div ref={fila} role="tablist" aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
         {items.map((p, i) => {
           const esActiva = p.clave === activa;
           return (
@@ -138,7 +142,7 @@ export function Pestanas({
   }
 
   return (
-    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style}>
+    <nav ref={filaNav} aria-label={etiquetaAccesible} data-guia={guia} className={`vidrio-cayla pestanas-cayla ${className}`} style={style} suppressHydrationWarning>
       {items.map((p) => (
         <Link key={p.clave} href={p.href ?? "#"} aria-current={p.clave === activa ? "page" : undefined} title={p.ayuda} data-guia={p.guia} className="pestana-cayla">
           {contenido(p)}

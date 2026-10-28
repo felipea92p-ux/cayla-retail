@@ -14,23 +14,23 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // En pantalla se dice «entrada» y «salida» (Felipe, 2026-09-22): es plata que entra o sale del cajón, y así lo dice el
 // mostrador. En la base el tipo sigue siendo 'ingreso' | 'egreso' — solo cambian las palabras, no el dato.
 const TEXTO_TIPO = { ingreso: "Entrada", egreso: "Salida" } as const;
 
 // «Retiro de efectivo» y «Depósito bancario» son un egreso con motivo predefinido — mismo caso que
-// registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true, que
-// la RPC exige de líder (ADR-0056). Las listas y las reglas viven en lib/caja-panel-reglas.ts.
+// registrar_movimiento_caja() en SQL: un tipo, no una tabla. «Ajuste de caja» además marca es_ajuste=true; desde
+// ADR-0534 lo anota quien opera la caja, no solo el líder (antes, ADR-0056). Las listas y las reglas viven en lib/caja-panel-reglas.ts.
 
 export function MovimientoCajaModal({
   cajaId,
-  esLider,
   soloSalida = false,
   onClose,
 }: {
   cajaId: string;
-  esLider: boolean;
   /** Desde 2026-10-10 Caja abre este modal solo para SACAR plata («Retiro o depósito»): las entradas tienen su hoja,
    *  «Registrar ingreso» (`IngresoRapidoModal`). Con esto el tipo viene fijo y no se muestra. */
   soloSalida?: boolean;
@@ -53,7 +53,7 @@ export function MovimientoCajaModal({
   // Quién hace el ingreso o egreso (ADR-0161, A12: el cierre de caja lo muestra por movimiento).
   const responsable = useResponsable();
 
-  const motivosRapidos = tipo ? motivosDeMovimiento(tipo, esLider) : [];
+  const motivosRapidos = tipo ? motivosDeMovimiento(tipo) : [];
   const mostrarLibre = motivoRapido === "Otro";
   const motivo = mostrarLibre ? motivoLibre : motivoRapido;
   const esAjuste = esMotivoDeAjuste(motivoRapido);
@@ -86,7 +86,7 @@ export function MovimientoCajaModal({
     const params = {
       p_caja_id: cajaId,
       p_tipo: tipo,
-      p_monto: Number(monto) || 0,
+      p_monto: numeroDeMonto(monto) || 0,
       p_motivo: motivo,
       p_nota: nota.trim() || undefined,
       p_es_ajuste: esAjuste,
@@ -107,7 +107,7 @@ export function MovimientoCajaModal({
   }
 
   function registrado(t: "ingreso" | "egreso") {
-    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
+    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/\u00a0${(numeroDeMonto(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }
@@ -162,16 +162,13 @@ export function MovimientoCajaModal({
             </span>
             <input
               id="mov-monto"
-              type="number"
-              inputMode="decimal"
-              min={0.01}
-              step="0.01"
+              {...atributosMontoTexto(monto)}
               required
               autoFocus
               placeholder="0.00"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
-              className="font-display self-stretch py-0 text-2xl tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className={`font-display self-stretch py-0 text-2xl tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
             />
           </div>
         </div>

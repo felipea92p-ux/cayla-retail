@@ -6,6 +6,7 @@ import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
 // cómo se nombra y se pinta un color, cómo se elige UNO (corregir), cómo se muestra el código que va a tener cada
@@ -47,6 +48,10 @@ export type ContextoFicha = {
   puedeCorregir: boolean;
   /** Ajustar el stock desde la ficha. `null` o ausente = la cuenta no puede ajustar stock: no se ofrece. */
   ajusteStock?: AjusteStockFicha | null;
+  /** Una terminal (Felipe 2026-10-26): el precio de la prenda vale en todas las tiendas y la base no se lo deja cambiar
+   *  (`variantes_terminal_no_cambia_precio`). Trae el nombre de su tienda, donde sí pone el suyo («Precio en …»); `""` si la
+   *  terminal no está en una tienda. Ausente = la cuenta cambia el precio de la prenda como siempre. Una talla NUEVA sí lleva su precio. */
+  precioFijoEn?: string | null;
 };
 
 /** Valor del combo para «Sin color»: los códigos de color son 3 mayúsculas, este no choca con ninguno. */
@@ -136,12 +141,12 @@ export function MontosNuevas({
     <div className="grid grid-cols-2 gap-3">
       <label className="block">
         <span className="text-[12.5px] font-semibold text-tinta">Precio de venta</span>
-        <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CAMPO_MONTO}`} />
+        <input {...atributosMontoTexto(precio)} placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
       </label>
       {veCosto && (
         <label className="block">
           <span className="text-[12.5px] font-semibold text-tinta">Costo (opcional)</span>
-          <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CAMPO_MONTO}`} />
+          <input {...atributosMontoTexto(costo)} placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
         </label>
       )}
     </div>

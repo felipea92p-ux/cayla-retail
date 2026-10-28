@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { CircleCheck, FunnelX, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { avisar } from "@/components/ui/Avisos";
@@ -49,6 +50,8 @@ import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
+import type { RepartoEmpresas as RepartoDeEmpresas } from "@/lib/vendido-por-empresa-reglas";
 
 function money(n: number) {
   return "S/" + n.toFixed(2);
@@ -109,6 +112,7 @@ export function CajaAbiertaPanel({
   sedesIngreso = [],
   abrirCierre = false,
   comparativa = null,
+  repartoEmpresas = null,
 }: {
   ubicacionNombre: string;
   personaNombre: string;
@@ -132,11 +136,11 @@ export function CajaAbiertaPanel({
   contexto: ContextoTableroCaja;
   /** Qué accesos a otras pantallas se muestran: solo los módulos que la cuenta ve (ADR-0161). */
   accesos: AccesosCaja;
-  /** Lo que necesita el formulario de Finanzas ▸ Gastos para abrirse aquí; `null` si la cuenta no registra gastos. */
+  /** Lo que necesita «Registrar gasto» para abrirse aquí; `null` si la cuenta no registra gastos (ni Caja ni Gastos, ADR-0491). */
   gasto?: {
     categorias: CategoriaGasto[];
-    ubicaciones: UbicacionGastos[];
-    cajasAbiertas: { id: string; ubicacionId: string }[];
+    /** Lo que pide el formulario completo de Finanzas ▸ Gastos; `null` sin el módulo Gastos (solo la hoja rápida). */
+    completo: { ubicaciones: UbicacionGastos[]; cajasAbiertas: { id: string; ubicacionId: string }[] } | null;
     proveedores: { id: string; nombre: string; ruc: string | null }[];
     esLider: boolean;
     hoy: string;
@@ -147,6 +151,8 @@ export function CajaAbiertaPanel({
   sedesIngreso?: { id: string; nombre: string }[];
   /** Los pagos de hoy y de ayer (ADR-0319). `null` = la base aún no tiene `fn_comparativa_caja`: Caja se ve como antes. */
   comparativa?: { hoy: PagoDelDia[]; ayer: PagoDelDia[] } | null;
+  /** De quién es lo vendido del turno (ADR-0532): CAYLA y CLAURE en Lima. `null` donde hay una sola empresa o si la base no respondió. */
+  repartoEmpresas?: RepartoDeEmpresas | null;
   /** Se llegó desde «Cerrar caja» del recordatorio de cierre (`/caja?cerrar=1`, ADR-0305): el cierre ya sale abierto. */
   abrirCierre?: boolean;
 }) {
@@ -302,6 +308,16 @@ export function CajaAbiertaPanel({
     </div>
   );
 
+  // De quién es lo vendido (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. Va bajo el titular de «hoy contra ayer».
+  const tarjetaReparto = repartoEmpresas ? (
+    <RepartoEmpresas
+      reparto={repartoEmpresas}
+      guia="caja.reparto-empresas"
+      indice={1}
+      frase="Lo vendido desde que se abrió esta caja, prenda por prenda. Sin las ventas anuladas."
+    />
+  ) : null;
+
   // «Movimientos del turno»: va junto a «Dónde ganas y dónde pierdes» en el diseño nuevo y en su lugar de siempre en el anterior.
   const tarjetaMovimientos = (
           <div data-guia="caja.movimientos" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 7 } as CSSProperties}>
@@ -420,12 +436,13 @@ export function CajaAbiertaPanel({
               horaCierreMin={minutosLima(horaCierre)}
               cajon={<TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={3} />}
               movimientos={tarjetaMovimientos}
+              reparto={tarjetaReparto}
             />
           </>
         ) : (
           <>
         {/* ---------- Lo que hay: efectivo en el cajón, cobrado y ritmo ---------- */}
-        <div className="grid gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-3 @[900px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] @[1200px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <TarjetaCajon esperado={esperadoCajon} piezas={piezasDelCajon(caja.montoApertura, resumen)} indice={1} />
           <TarjetaCobrado porMetodo={series.porMetodo} redondeo={resumen.redondeo} indice={2} />
           <div className="card-cayla anim-sube hidden flex-col p-5 sm:flex @[900px]:col-span-2 @[1200px]:col-span-1" style={{ "--i": 3 } as CSSProperties}>
@@ -435,15 +452,15 @@ export function CajaAbiertaPanel({
           </div>
         </div>
 
+        {tarjetaReparto}
+
         {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1) ---------- */}
         {metaVentaDiaria !== null && metaPct !== null && (
-          <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
+          <div className={`grid grid-cols-1 gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
             <div data-guia="caja.meta" className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 4 } as CSSProperties}>
               <TituloSeccion dato={<b>{soles0(metaVentaDiaria)}</b>}>Meta de hoy</TituloSeccion>
               <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
-              <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
-                <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
-              </div>
+              <BarraAvance pct={metaPct} alto="gruesa" etiqueta="Meta de hoy" className="mb-1 mt-4" />
               <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
                 <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
                 <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
@@ -510,12 +527,11 @@ export function CajaAbiertaPanel({
 
       <BarraCajaMovil vender={accesos.vender} onGasto={abrirGasto} onIngreso={() => setModal("ingreso")} onCerrar={puedeCerrar ? () => setModal("cerrar") : null} />
 
-      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} soloSalida onClose={() => setModal(null)} />}
+      {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} soloSalida onClose={() => setModal(null)} />}
       {modal === "ingreso" && (
         <IngresoRapidoModal
           caja={{ id: caja.id, ubicacionId: caja.ubicacionId }}
           ubicacionNombre={ubicacionNombre}
-          esLider={personaRol === "lider"}
           sedes={sedesIngreso}
           accesos={{ vender: accesos.vender, apartados: accesos.apartados }}
           onCerrar={() => setModal(null)}
@@ -532,16 +548,16 @@ export function CajaAbiertaPanel({
           proveedores={gasto.proveedores}
           hoy={gasto.hoy}
           onCerrar={() => setModal(null)}
-          onFormularioCompleto={() => setModal("gastoCompleto")}
+          onFormularioCompleto={gasto.completo ? () => setModal("gastoCompleto") : undefined}
           onRetiro={() => setModal("movimiento")}
         />
       )}
-      {modal === "gastoCompleto" && gasto && (
+      {modal === "gastoCompleto" && gasto?.completo && (
         <RegistrarGastoModal
           categorias={gasto.categorias}
-          ubicaciones={gasto.ubicaciones}
+          ubicaciones={gasto.completo.ubicaciones}
           proveedores={gasto.proveedores}
-          cajasAbiertas={gasto.cajasAbiertas}
+          cajasAbiertas={gasto.completo.cajasAbiertas}
           esLider={gasto.esLider}
           ubicacionInicial={caja.ubicacionId}
           hoy={gasto.hoy}
@@ -640,9 +656,9 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
           ok ? "bg-verde/15 text-verde-profundo" : "bg-ambar/15 text-ambar-profundo"
         }`}
       >
-        <span aria-hidden className="relative flex h-[15px] w-[15px] items-center justify-center">
+        <span aria-hidden className="relative flex h-3.5 w-3.5 items-center justify-center">
           <span className={`anim-caja-ping absolute inset-0 rounded-full ${ok ? "bg-verde" : "bg-ambar"}`} />
-          <Icono size={15} className={`relative ${ok ? "anim-caja-check" : ""}`} />
+          <Icono size={14} className={`relative ${ok ? "anim-caja-check" : ""}`} />
         </span>
         <span className="relative">{ok ? "Todo sincronizado" : `${pendientes} venta${pendientes === 1 ? "" : "s"} sin sincronizar`}</span>
       </span>
@@ -803,7 +819,7 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
 
 /** «S/ 1,700»: las cifras de la tarjeta de meta van redondas (spike de Finanzas). */
 function soles0(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+  return `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 }
 
 function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {

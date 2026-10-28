@@ -143,9 +143,11 @@
   color: var(--color-tinta);
   transition: border-color 200ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
 }
-.hilo-chip:hover {
-  border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
-  background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+@media (hover: hover) {
+  .hilo-chip:hover {
+    border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent);
+    background: color-mix(in srgb, var(--color-hueso) 60%, transparent);
+  }
 }
 .hilo-chip .hilo-marca {
   width: 14px;
@@ -248,7 +250,7 @@
     button[aria-haspopup]:not(.caja-cayla button)
   ) {
   background-color: var(--color-papel);
-  border-color: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+  border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); /* P2 de la familia: el reposo ya es el borde de control (3:1); el control que sigue sube un escalón */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -279,5 +281,27 @@
 @media (prefers-reduced-motion: reduce) {
   .hilo-tarjeta {
     transition: none;
+  }
+}
+
+/* ---- El sello del stock inicial (ADR-0494, actividad 3) ----
+   Al crear la prenda, sus unidades de partida quedan selladas: se estampa UNA vez, sin rebote ni bucle (ADR-0136). */
+.sello-stock-inicial {
+  transform: rotate(-8deg);
+  animation: sello-stock-inicial 780ms var(--ease-cayla) 250ms both;
+}
+@keyframes sello-stock-inicial {
+  from {
+    opacity: 0;
+    transform: scale(1.7) rotate(-22deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sello-stock-inicial {
+    animation: none;
   }
 }

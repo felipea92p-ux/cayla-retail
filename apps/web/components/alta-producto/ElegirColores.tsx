@@ -70,8 +70,6 @@ export function ElegirColores({
   // cuando se vuelve a pedir desde el buscador con otro nombre.
   const [nuevo, setNuevo] = useState<{ nombre: string; vez: number } | null>(null);
   const [pidioSinRed, setPidioSinRed] = useState(false);
-  // El último color creado por alguien que no es Líder: queda pendiente de aprobación y se dice mientras siga elegido.
-  const [pendiente, setPendiente] = useState<ColorAlta | null>(null);
   const enLinea = useEnLinea();
 
   const porCodigo = new Map(colores.map((c) => [c.codigo, c]));
@@ -116,12 +114,6 @@ export function ElegirColores({
           ))
         )}
       </div>
-      )}
-
-      {pendiente && elegidos.includes(pendiente.codigo) && (
-        <p role="status" className="text-xs text-taupe">
-          <span className="text-tinta">{pendiente.nombre}</span>: ya lo puedes usar; queda pendiente de que un Líder lo apruebe.
-        </p>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -185,9 +177,8 @@ export function ElegirColores({
                 if (!elegidos.includes(cod)) onAlternar(cod);
                 setNuevo(null);
               }}
-              onCreado={(color, esPendiente) => {
+              onCreado={(color) => {
                 setNuevo(null);
-                setPendiente(esPendiente ? color : null);
                 onCreado(color);
               }}
             />

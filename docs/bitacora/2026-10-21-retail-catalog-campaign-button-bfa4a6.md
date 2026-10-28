@@ -1,0 +1,4 @@
+## 2026-10-21 (Atributos ▸ Etiquetas: el botón «Campaña» pasa a decir «Configurar»)
+Qué hice: en cada tarjeta de Catálogo ▸ Atributos ▸ Etiquetas, el botón que abre el descuento, las fechas y las categorías de la etiqueta dice «Configurar» (antes «Campaña»), y la hoja que abre se titula «Configuración «Nombre»» (antes «Campaña «Nombre»»); hacen lo mismo que antes. «Repetir», el de una campaña que ya pasó, y su título «Repetir «Nombre» en 2027» no cambian. Se pusieron al día la guía interactiva, el aviso «Sin preparar» y el escenario de la auditoría de tema, que nombraban el botón.
+Por qué así: el botón sale en TODA etiqueta (Nuevo, Hecho a mano, Para liquidar), no solo en las de campaña; «Campaña» en «Nuevo» prometía algo que no es.
+Felipe se lleva: el botón y el título de la hoja ahora dicen lo mismo; «etiqueta» sigue nombrando dos cosas en el ERP (la marca comercial de esta pestaña y el papel de precio que se imprime).

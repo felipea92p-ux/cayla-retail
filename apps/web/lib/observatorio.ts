@@ -6,6 +6,9 @@
 // ASUME: quien llama ya comprobó que la cuenta es Admin (la página y las rutas de API); la base lo vuelve a preguntar.
 
 import { createClient } from "@/lib/supabase/server";
+import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
+import { getIgvEnEspera } from "@/lib/igv-en-espera";
+import { diasDeEspera, hrefPrendasSinLlegar } from "@/lib/igv-en-espera-reglas";
 import { exigir } from "@/lib/resultado";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getPorRegularizar } from "@/lib/por-regularizar";
@@ -84,7 +87,7 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
   const porNombre = new Map(tiendas.map((t) => [t.nombre, t.id]));
   const ahora = new Date();
 
-  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas] = await Promise.all([
+  const [aperturas, regularizar, traslados, apartados, tramos, fotos, sunat, devoluciones, pedidosEntreSedes, perdidas, cuentasBancarias, igv] = await Promise.all([
     getAperturasPorRevisar(),
     tolerar("las prendas por regularizar", async () => (await getPorRegularizar(null)).filter((f) => f.estado === "pendiente")),
     tolerar("los traslados", async () => (await Promise.all(tiendas.map((t) => getTrasladosEnCurso(t.id)))).flat()),
@@ -121,6 +124,10 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
         })
       )
     ),
+    // Felipe 2026-10-13 (auditoría, punto 18): proveedores que cambiaron su cuenta bancaria esta semana (null si no se leyó).
+    getCuentasBancariasCambiadas(),
+    // ADR-0362 fase 5b, actividad 4: el IGV de lo que no llegó (undefined si la base todavía no tiene la función).
+    tolerar("el IGV en espera", () => getIgvEnEspera()),
   ]);
 
   const contarPor = (ids: readonly string[]) => {
@@ -246,6 +253,42 @@ export async function getAvisosObservatorio(tiendas: readonly TiendaObs[]): Prom
       detalle: tramos && n
         ? { tipo: "tramos", vencidas: { n: tramos.vencidas.comprobantes, monto: tramos.vencidas.saldo }, semana: { n: tramos.semana.comprobantes, monto: tramos.semana.saldo } }
         : null,
+    });
+  }
+  // Felipe 2026-10-13 (auditoría, punto 18): un proveedor cambió su cuenta bancaria esta semana. El pago no se bloquea: se
+  // avisa para confirmarla con el proveedor antes de pagar. Es de toda la empresa, no de una tienda.
+  {
+    const c = cuentasBancarias;
+    const n = c === null ? null : c.proveedores;
+    avisos.push({
+      clave: "cuentas",
+      nivel: nivelPorCuenta(n, "hoy"),
+      n,
+      icono: "alerta",
+      titulo: "Cuentas de proveedor que cambiaron",
+      corto: "cuentas bancarias",
+      porTienda: null,
+      edad: c?.primeroEn ? diasDesde(c.primeroEn, ahora) : null, // el aro mide lo que más lleva esperando
+      href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
+      detalle: null,
+    });
+  }
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. De toda la empresa: el IGV es
+  // uno. «Notas de crédito por pedir» se retiró con su módulo (ADR-0480); queda resolver lo que no llegó.
+  if (igv !== undefined) {
+    const f = igv === null ? null : (igv.faltantes ?? null);
+    const m = f === null ? null : f.prendas;
+    avisos.push({
+      clave: "prendasSinLlegar",
+      nivel: nivelPorCuenta(m, "semana"),
+      n: m,
+      icono: "alerta",
+      titulo: "Prendas de factura que te deben",
+      corto: "prendas que te deben",
+      porTienda: null,
+      edad: f ? diasDeEspera(f.desde, hoy) : null,
+      href: f ? hrefPrendasSinLlegar(f) : "/compras/proveedores",
+      detalle: null,
     });
   }
   {

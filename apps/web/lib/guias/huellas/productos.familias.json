@@ -5,20 +5,20 @@
   "total": 14,
   "controles": {
     "app/(app)/productos/familias/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/productos/categorias»"
     ],
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],
     "components/FamiliasLista.tsx": [
       "Boton «familias.agregar»",
-      "LapizEditar «setConfirmando(confirmacionCatalogo(\"desactivar\", f.nombre,»",
+      "LapizEditar «{f.nombre}»",
       "Boton «Desactivar»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

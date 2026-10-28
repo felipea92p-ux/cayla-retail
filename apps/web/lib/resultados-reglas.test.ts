@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   avisosER,
+  clavesCerradas,
   columnasER,
   conceptosER,
   csvEstado,
@@ -10,10 +11,12 @@ import {
   fuentesDe,
   leerCampana,
   leerFilaER,
+  leerPeriodoMes,
   leerVerER,
   margenQueSePierde,
   mesAnterior,
   mesTitulo,
+  NOTA_MES_CERRADO,
   nombreCorto,
   nombreEje,
   origenDeCifra,
@@ -50,6 +53,9 @@ const fila = (p: Partial<FilaER> & Pick<FilaER, "unidad" | "nombre">): FilaER =>
   descuadres: 0,
   planillaVisible: true,
   planillaNota: null,
+  planillaEstimada: 0,
+  planillaAlCierre: 0,
+  planillaPersonas: 0,
   ...p,
 });
 
@@ -174,6 +180,14 @@ describe("las filas del cuadro", () => {
     expect([planilla.nombre, planilla.cuenta]).toEqual(["Planilla (Dynamic)", "62"]);
     expect(conceptos.find((k) => k.clave === "g639")!.nombre).toBe("Comisiones bancarias");
   });
+  it("las mermas se rotulan con la 6951 (desvalorización de inventarios), no con la 659; la 659 ya no es la cuenta de la fila", () => {
+    const mermas = conceptos.find((k) => k.clave === "mermas")!;
+    expect([mermas.nombre, mermas.cuenta]).toEqual(["Mermas", "6951"]);
+    expect(mermas.cuentas[0]).toBe("6951");
+    // Las diferencias de caja y el redondeo empiezan igual (659…) pero son otras cuentas: la fila de mermas nunca las lee.
+    expect(mermas.cuentas).not.toContain("6599");
+    expect(mermas.cuentas).not.toContain("6598");
+  });
   it("el redondeo de efectivo (ADR-0311) sale como su gasto, con su cuenta, y dice de dónde viene", () => {
     const conRedondeo: FilaER = { ...TRU, detalleGastos: [...TRU.detalleGastos, { cuenta: "6598", nombre: "Redondeo de efectivo (a favor del cliente)", monto: 0.08 }] };
     const k = conceptosER([conRedondeo]).find((c) => c.clave === "g6598")!;
@@ -185,9 +199,9 @@ describe("las filas del cuadro", () => {
 
 describe("cómo se escribe", () => {
   it("soles redondos con el signo menos de verdad", () => {
-    expect(solesER(44100)).toBe("S/ 44,100");
-    expect(solesER(-19850.4)).toBe("−S/ 19,850");
-    expect(solesER(0.2)).toBe("S/ 0");
+    expect(solesER(44100)).toBe("S/\u00a044,100");
+    expect(solesER(-19850.4)).toBe("−S/\u00a019,850");
+    expect(solesER(0.2)).toBe("S/\u00a00");
   });
   it("porcentaje con coma decimal; sin base no hay porcentaje", () => {
     expect(porcentaje(23670, 44100)).toBe("53,7 %");
@@ -251,6 +265,21 @@ describe("de dónde sale una cifra", () => {
     ]);
     expect(o.mayores[0]!.asiento).toBe("v1");
   });
+  it("«De dónde sale» de las mermas suma la 6951 y, mientras siga en el plan, la 659; nunca las diferencias de caja (6599) ni el redondeo (6598)", () => {
+    const k = conceptosER([TAL]).find((c) => c.clave === "mermas")!;
+    const mermas = [
+      l({ cuenta: "6951", debe: 50, regla: "merma_conteo", asiento: "m1" }),
+      l({ cuenta: "659", debe: 30, regla: "merma_merma", asiento: "m2" }),
+      l({ cuenta: "6599", debe: 7, regla: "diferencia_caja", asiento: "c1" }),
+      l({ cuenta: "6598", debe: 0.08, regla: "venta", asiento: "r1" }),
+    ];
+    const o = origenDeCifra(mermas, k.cuentas, "u-tru");
+    expect(o.total).toBe(80);
+    expect(o.porRegla.map((g) => [g.texto, g.monto])).toEqual([
+      ["Faltantes de conteo", 50],
+      ["Quitadas a mano, sin contar", 30],
+    ]);
+  });
   it("CAYLA suma todas las unidades; «empresa», solo lo que no tiene tienda", () => {
     expect(Math.round(origenDeCifra(lineas, ["7011"], "consolidado").total * 100) / 100).toBe(296.61);
     expect(origenDeCifra(lineas, ["7011"], "empresa").total).toBe(0);
@@ -274,6 +303,8 @@ describe("descargar", () => {
     expect(csv.startsWith("﻿Estado de resultados · Agosto 2026")).toBe(true);
     expect(csv).toContain("Concepto;Cuenta;Trujillo;CAYLA");
     expect(csv).toContain("Costo de lo vendido;691;-19850.00;0.00");
+    expect(csv).toContain("Mermas;6951;");
+    expect(csv).not.toContain("Mermas;659;");
   });
 });
 
@@ -403,7 +434,7 @@ describe("las campañas que pasaron", () => {
   });
   it("la frase de las que no se pagaron (la del spike)", () => {
     expect(fraseCampanasMalas(pasadas)).toBe(
-      "Día del Gato y Día del Perro vendieron +3,8 % y +1,5 % contra un día normal y se descontaron S/ 4,500: dejaron S/ 3,942 menos que no hacerlas.",
+      "Día del Gato y Día del Perro vendieron +3,8 % y +1,5 % contra un día normal y se descontaron S/\u00a04,500: dejaron S/\u00a03,942 menos que no hacerlas.",
     );
     expect(fraseCampanasMalas([pasadas[0]!])).toBeNull();
     expect(nombreEje("Día Internacional del Gato")).toBe("Día del Gato");
@@ -421,5 +452,31 @@ describe("las campañas que pasaron", () => {
     });
     expect([c.ventas, c.normal, c.margenExtra, c.descuento, c.momento]).toEqual([1120, 700, 140, 280, "pasada"]);
     expect(c.metaPct).toBeNull();
+  });
+});
+
+// Auditoría de Finanzas 2026-10-16, G09: un mes cerrado se lee de su foto y la pantalla lo dice por columna.
+describe("unidades cerradas de un mes", () => {
+  const TRU = "11111111-1111-4111-8111-111111111111";
+  const LIM = "22222222-2222-4222-8222-222222222222";
+
+  it("lee la fila de fn_periodos_mes y marca solo las CERRADAS, con la llave de claveUnidad", () => {
+    const filas = [
+      { alcance: "ubicacion", ubicacion_id: TRU, estado: "cerrado", huella: "abc", cerrado_en: "2026-09-30T10:00:00Z" },
+      { alcance: "ubicacion", ubicacion_id: LIM, estado: "abierto", huella: null, cerrado_en: null },
+      { alcance: "empresa", ubicacion_id: null, estado: "cerrado", huella: "def", cerrado_en: "2026-09-30T10:00:00Z" },
+      { alcance: "consolidado", ubicacion_id: null, estado: "reabierto", huella: null, cerrado_en: null },
+    ];
+    expect(clavesCerradas(filas.map(leerPeriodoMes))).toEqual([TRU, "empresa"]);
+  });
+
+  it("sin períodos (un mes que nadie cerró) no marca nada", () => {
+    expect(clavesCerradas([])).toEqual([]);
+    expect(clavesCerradas([{ alcance: "ubicacion", ubicacionId: null, estado: "cerrado" }])).toEqual([]); // una tienda sin id no se inventa
+  });
+
+  it("la nota promete lo que hace el sistema: lo congelado no cambia y se corrige reabriendo", () => {
+    expect(NOTA_MES_CERRADO).toMatch(/no cambian/);
+    expect(NOTA_MES_CERRADO).toMatch(/Cierre de mes/);
   });
 });

@@ -73,6 +73,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_compra_anular: "Anular una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Registrar el comprobante de una orden y anularlo (fase 2, migración 20261012211000): una sola clave para las dos acciones.
   orden_compra_comprobante: "Registrar o anular el comprobante de una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Registrar un proveedor nuevo desde la orden (2026-10-21, migración 20261021202000): la compradora, en Gamarra, no puede esperar a quien administra
+  // proveedores. Con su cuenta firma ella; una terminal sigue eligiendo quién, como en las demás acciones de la orden.
+  proveedor_de_orden: "Registrar un proveedor nuevo desde una orden de compra (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Enviar lo de una orden a una sede y anular el envío (fase 3, migración 20261012225000): una sola clave para las dos acciones.
   orden_compra_envio: "Enviar a una sede lo de una orden de compra, o anular ese envío (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Órdenes de insumos del Taller (ADR-0362, fase 7; migración 20261013040000): la decisión 39 extendida al Taller, por la misma razón
@@ -80,6 +83,8 @@ export const ACCIONES_SIN_RESPONSABLE = {
   orden_insumo_crear: "Crear una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   orden_insumo_editar: "Editar una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   orden_insumo_anular: "Anular una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // ADR-0362 fase 7 parte 2 (20261015020000): el papel del proveedor de una orden de insumos.
+  orden_insumo_comprobante: "Registrar el comprobante de una orden de insumos del Taller (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // Fondos por rendir (ADR-0362, fase 6; migración 20261013182000): quien entrega plata, recibe lo devuelto o anula un error firma con su
   // cuenta; una terminal elige quién. La base además impide que la persona mueva su propio fondo desde ahí.
   fondo_entregar: "Entregar plata al fondo de una persona (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
@@ -91,12 +96,33 @@ export const ACCIONES_SIN_RESPONSABLE = {
   // viaje (evidencia, como el adjunto de una factura), rendir el propio fondo (solo con la cuenta de su dueña) y aprobar o devolver una
   // rendición (quien la revisa firma con su cuenta; una terminal elige quién).
   gasto_viaje_foto: "Sumar o quitar la foto del papel de un gasto del viaje (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Compras simple (ADR-0480, actividad 2; migración 20261022235000): la compradora anota su plata y Compras la confirma.
+  plata_anotar: "Anotar la plata que te dieron para comprar (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  plata_confirmar: "Confirmar la plata que anotó una compradora (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // La compra desde el celular (ADR-0480, actividad 3; migración 20261023005000), como crear una orden de compra.
+  compra_rapida: "Registrar una compra desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // El resto del día de compras (ADR-0480, actividad 5; migración 20261023114000).
+  gasto_rapido: "Anotar un gasto que no es ropa desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  compra_mandar: "Mandar a una tienda lo que compraste para ella (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  compra_terminar_dia: "Cerrar tu ronda de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // La ronda de compras (ADR-0480; migración 20261023183000): la abre la compradora desde su celular. Cerrarla sigue con `compra_terminar_dia`.
+  compra_ronda_abrir: "Abrir tu ronda de compras (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // Revisar compras (ADR-0480, actividad 7; migración 20261023143000): completar el papel y recibir lo del cierre del día.
+  papel_completar: "Completar el papel de una compra anotada desde el celular (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  compra_cierre_recibir: "Recibir lo que devuelve una compradora al terminar el día, o pagarle lo que puso (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  gasto_revisar: "Pasar a los gastos lo que una compradora gastó en otra cosa (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendir: "Rendir el propio fondo (solo con la cuenta de su dueña: desde una terminal no se rinde)",
   fondo_rendicion_aprobar: "Aprobar la rendición de un fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendicion_devolver: "Devolver para corregir la rendición de un fondo, o retirar la propia (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   // ADR-0362 fase 6 · actividad 7 (20261014145000): la deuda de un faltante se salda cuando la persona devuelve la plata.
   fondo_deuda_pagar: "Registrar lo que una persona paga de la deuda de un faltante de su fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_deuda_anular: "Anular el pago de la deuda de un faltante de fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // «Arma el tuyo» (ADR-0434, actividad 2; migración 20261017013000; Felipe 2026-10-16): el recorte que el ERP guarda solo al subir una
+  // foto, para el probador de la tienda online. Nadie hace una operación aparte: solo subió la foto.
+  recorte_foto: "Guardar el recorte de una foto para el probador de la tienda online al subirla (lo hace el ERP solo, y con la cuenta de una persona firma ella)",
+  // Tienda online (ADR-0469; migración 20261021170000): un líder deshace la unión de una cuenta de Google con un miembro. Un líder siempre
+  // entra con su cuenta de persona (una terminal nunca es líder): firma él mismo.
+  vinculo_google_desvincular: "Deshacer la unión de una cuenta de Google con un miembro de la tienda online (solo un líder, y firma con su propia cuenta)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

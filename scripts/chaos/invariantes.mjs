@@ -145,7 +145,11 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
  where coalesce(m.t, 0) <> i.cantidad
    -- ADR-0379: una pieza de liquidación nunca estuvo en el stock, así que su línea no descuenta nada a propósito. Lo que la
    -- cuida es INV-13 (la pieza vendida cuadra con su línea), no esta.
-   and not exists (select 1 from retail.piezas_liquidacion pl where pl.venta_item_id = i.id)`,
+   and not exists (select 1 from retail.piezas_liquidacion pl where pl.venta_item_id = i.id)
+   -- ADR-0408 act. 10: la prenda de un pedido web se vende al quedar pagado y sale del stock recién al entregarla. Mientras su
+   -- línea del pedido no se entrega, su línea de venta no tiene salida a propósito (con una, sí es violación). La cuida INV-18.
+   and not (coalesce(m.t, 0) = 0
+            and exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = i.id and pwl.estado <> 'entregada'))`,
     corrompe: `update retail.venta_items set cantidad = cantidad + 1 where ctid = (select ctid from retail.venta_items limit 1);`,
   },
   {
@@ -389,6 +393,160 @@ update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retai
     corrompe: `alter table retail.movimientos_dinero drop constraint if exists movimientos_dinero_montos_finitos;
 set local session_replication_role = replica;
 update retail.movimientos_dinero set monto = 'NaN' where ctid = (select ctid from retail.movimientos_dinero limit 1);`,
+  },
+  {
+    id: "INV-18",
+    nombre: "pedido_web_cuadra_con_su_venta",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Un pedido web pagado o entregado tiene UNA venta (ADR-0408 act. 10): una línea de venta por prenda no quitada, cobrada con un solo «anticipo» por el total, con su boleta; y cada prenda sale del stock al entregarse, nunca antes (una salida por prenda entregada, ninguna por la que todavía espera). Un pedido sin pagar no tiene venta. Uno anulado DESPUÉS de pagarse (20261015114000) conserva su venta, ANULADA entera, se le devolvió todo y su boleta no quedó viva ante SUNAT sin su nota de crédito.",
+    sql: `
+select w.id as pedido_id, w.codigo, w.estado, 'venta' as problema
+  from retail.pedidos_web w
+ where (w.estado in ('pagado', 'entregado') or (w.estado = 'anulado' and w.pagado_en is not null)) <> (w.venta_id is not null)
+union all
+select w.id, w.codigo, w.estado, 'lineas'
+  from retail.pedidos_web w
+ where w.venta_id is not null
+   and (exists (select 1 from retail.pedido_web_lineas l
+                 where l.pedido_id = w.id and l.estado <> 'quitada'
+                   and not exists (select 1 from retail.venta_items vi
+                                    where vi.id = l.venta_item_id and vi.venta_id = w.venta_id and vi.variante_id = l.variante_id
+                                      and vi.cantidad = 1 and vi.precio_unitario = l.precio_lista and vi.descuento_unitario = l.descuento))
+        or exists (select 1 from retail.venta_items vi where vi.venta_id = w.venta_id
+                    and not exists (select 1 from retail.pedido_web_lineas l where l.pedido_id = w.id and l.venta_item_id = vi.id)))
+union all
+select w.id, w.codigo, w.estado, 'cobro'
+  from retail.pedidos_web w
+ where w.venta_id is not null
+   and coalesce((select string_agg(vp.metodo || ':' || vp.monto, ',') from retail.venta_pagos vp where vp.venta_id = w.venta_id), '')
+       <> 'anticipo:' || w.total
+union all
+select w.id, w.codigo, w.estado, 'boleta'
+  from retail.pedidos_web w
+ where w.venta_id is not null
+   and not exists (select 1 from retail.comprobantes c where c.venta_id = w.venta_id and c.tipo in ('boleta', 'factura'))
+union all
+select w.id, w.codigo, w.estado, 'salida'
+  from retail.pedidos_web w
+  join retail.pedido_web_lineas l on l.pedido_id = w.id and l.venta_item_id is not null
+ where coalesce((select sum(m.cantidad) from retail.movimientos m where m.venta_item_id = l.venta_item_id and m.tipo = 'salida'), 0)
+       <> case when l.estado = 'entregada' then 1 else 0 end
+union all
+select w.id, w.codigo, w.estado, 'entrega'
+  from retail.pedidos_web w
+ where w.estado = 'entregado'
+   and exists (select 1 from retail.pedido_web_lineas l where l.pedido_id = w.id and l.estado not in ('quitada', 'entregada'))
+union all
+-- Anulado después de pagarse: su venta anulada entera (cada línea con su anulación), nada sin devolver y la boleta sin quedar viva.
+select w.id, w.codigo, w.estado, 'anulacion'
+  from retail.pedidos_web w
+  join retail.ventas v on v.id = w.venta_id
+ where w.estado = 'anulado' and w.pagado_en is not null
+   and (v.estado <> 'anulada' or w.pagado <> 0
+        or exists (select 1 from retail.venta_items vi where vi.venta_id = v.id
+                    and not exists (select 1 from retail.venta_anulacion_items ai where ai.venta_item_id = vi.id))
+        or exists (select 1 from retail.comprobantes c where c.venta_id = v.id and c.tipo in ('boleta', 'factura')
+                    and (c.estado in ('pendiente', 'pendiente_reintento', 'enviado')
+                         or (c.estado = 'aceptado' and not exists (select 1 from retail.comprobantes n
+                                                                   where n.comprobante_original_id = c.id and n.tipo = 'nota_credito')))))`,
+    // Los disparadores del pedido rechazan este cambio: se apagan SOLO dentro de la transacción revertida (como INV-17).
+    corrompe: `set local session_replication_role = replica;
+update retail.pedido_web_lineas set venta_item_id = null where ctid = (select ctid from retail.pedido_web_lineas where venta_item_id is not null limit 1);`,
+  },
+  {
+    id: "INV-19",
+    nombre: "la_plata_de_nos_debe_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "La plata de «Nos debe» (ADR-0362, fase 5b) cuadra entre tablas: el documento interno por lo que no llegó cierra sus prendas en el comprobante y el de lo devuelto por llegar dañado no cierra nada (sí llegaron), cada uno de la deuda que le corresponde; un «Depositó» devuelve exactamente lo que su documento dejó a favor (ni más ni menos: lo demás sería saldo a favor fantasma o un reembolso de más); y la nota de crédito del proveedor (07) dice lo mismo que los documentos internos que respalda, todos de su comprobante. Nació de /chaos 2026-10-15 (fase 5b).",
+    sql: `
+select n.id::text as fila_id, n.serie_numero, 'documento_y_cierre' as problema
+  from retail.compra_notas_credito n
+ where n.interna
+   and ((n.motivo = 'devolucion') <> (n.cierre_id is null)
+        or exists (select 1 from retail.proveedor_deuda_resoluciones r join retail.despacho_diferencias x on x.id = r.diferencia_id
+                    where r.nota_credito_id = n.id and (x.causa = 'devuelta') <> (n.motivo = 'devolucion')))
+union all
+select r.id::text, n.serie_numero, 'deposito'
+  from retail.proveedor_deuda_resoluciones r
+  join retail.compra_notas_credito n on n.id = r.nota_credito_id
+ where r.forma = 'deposito'
+   and coalesce((select sum(k.monto) from retail.proveedor_creditos k where k.nota_credito_id = n.id and k.tipo = 'reembolso'), 0)
+       <> coalesce((select sum(k.monto) from retail.proveedor_creditos k where k.nota_credito_id = n.id and k.tipo = 'nota_credito'), 0)
+union all
+select p.id::text, p.serie_numero, 'nota_proveedor'
+  from retail.compra_notas_proveedor p
+  left join lateral (select sum(n.monto) as monto, sum(n.igv) as igv
+                       from retail.compra_notas_proveedor_documentos d
+                       join retail.compra_notas_credito n on n.id = d.nota_credito_id
+                      where d.nota_proveedor_id = p.id) s on true
+ where p.monto is distinct from s.monto or p.igv is distinct from s.igv
+    or exists (select 1 from retail.compra_notas_proveedor_documentos d join retail.compra_notas_credito n on n.id = d.nota_credito_id
+                where d.nota_proveedor_id = p.id and (not n.interna or n.compra_id <> p.compra_id))`,
+    // Las notas no se editan (`compra_notas_credito_inmutables`): el disparador se apaga SOLO dentro de la transacción revertida.
+    corrompe: `set local session_replication_role = replica;
+update retail.compra_notas_credito set cierre_id = null where ctid = (select ctid from retail.compra_notas_credito where interna and motivo = 'faltante' limit 1);`,
+  },
+  {
+    id: "INV-20",
+    nombre: "lo_devuelto_cuadra_con_su_prenda",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Cada deuda «devuelta» (lo que se le devolvió al proveedor por llegar dañado, ADR-0362 fase 5b, actividad 6a) tiene su prenda de la cuarentena marcada «devuelta al proveedor» a ESE proveedor y por la misma cantidad, con su salida de la cuarentena sin `compra_item_id` (si lo llevara, el comprobante la contaría como recibida otra vez). Si no, la deuda cobra prendas que siguen en la cuarentena, o a otro proveedor. Nació de /chaos 2026-10-15 (fase 5b).",
+    sql: `
+select x.id::text as diferencia_id, coalesce(pd.estado, 'sin prenda') as estado, 'prenda' as problema
+  from retail.despacho_diferencias x
+  left join retail.prendas_danadas pd on pd.id = x.prenda_danada_id
+ where x.causa = 'devuelta'
+   and (pd.id is null or pd.estado <> 'devuelta_proveedor' or pd.proveedor_id is distinct from x.proveedor_id or pd.cantidad <> x.cantidad
+        or not exists (select 1 from retail.movimientos m
+                        where m.id = pd.movimiento_salida_id and m.tipo = 'salida' and m.motivo = 'cuarentena_devuelta_proveedor'
+                          and m.compra_item_id is null and m.cantidad = pd.cantidad))`,
+    // Lo recibido no se cambia (`despacho_diferencias_fija`): el disparador se apaga SOLO dentro de la transacción revertida.
+    corrompe: `set local session_replication_role = replica;
+update retail.despacho_diferencias set cantidad = cantidad + 1 where ctid = (select ctid from retail.despacho_diferencias where causa = 'devuelta' limit 1);`,
+  },
+  {
+    id: "INV-21",
+    nombre: "caja_cerrada_cuadra_su_fondo",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una caja cerrada real cumple contado = fondo que deja + trasladado (ADR-0186: el fondo se calcula, nunca se escribe). Si no, el cajón de esa noche sale inflado o desinflado, la apertura del día siguiente «falta» o «sobra» contra un esperado que nunca existió, y el Diario lo asienta como pérdida. Nació de la auditoría de Finanzas 2026-10-16 (G01): un traslado regularizado a mano sin tocar el fondo dejó S/ 700 de falso faltante en Trujillo. Desde `20261016211000` un candado diferido lo impide; esta invariante vigila lo que ya estaba o lo que se cuele por una puerta nueva.",
+    sql: `
+select c.id as caja_id, c.ubicacion_id, c.monto_cierre_real, c.monto_fondo,
+       coalesce((select sum(t.monto) from retail.caja_traslados t where t.caja_id = c.id), 0) as trasladado
+  from retail.cajas c
+ where c.estado = 'cerrada' and not c.es_prueba and c.monto_fondo is not null and c.monto_cierre_real is not null
+   and abs(c.monto_fondo + coalesce((select sum(t.monto) from retail.caja_traslados t where t.caja_id = c.id), 0) - c.monto_cierre_real) >= 0.005`,
+    // El candado diferido (`trg_cajas_cuadra_su_fondo`) rebotaría la corrupción al confirmar: dentro de la transacción revertida se
+    // desactivan los disparadores de usuario, y sin eso no se podría probar que el detector la ve.
+    corrompe: `set local session_replication_role = replica;
+update retail.cajas set monto_fondo = monto_fondo + 700 where ctid = (select ctid from retail.cajas where estado = 'cerrada' and not es_prueba and monto_fondo is not null limit 1);`,
+  },
+  {
+    id: "INV-22",
+    nombre: "cambio_por_varias_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Un cambio de una prenda por VARIAS cuadra en las tres cosas que lo definen (ADR-0470): su diferencia es el valor de todo lo que se llevó menos lo que la clienta pagó por lo que devolvió; las unidades que salieron del piso son las que dice su lista de prendas; y las que volvieron son las que se devolvieron. Si no, la caja o la cuenta de Izipay cobraron una cifra y el stock movió otra. `registrar_cambio_varias` lo guarda todo junto; esto vigila lo que se cuele por otra puerta o un arreglo a mano. Nació del cambio del body por dos Top Rib (B005-000670, 2026-10-21), que se había registrado como un cambio uno por uno y una venta aparte.",
+    sql: `
+select c.id as cambio_id, c.diferencia,
+       round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2) as diferencia_esperada,
+       sum(s.cantidad) as unidades_anotadas,
+       (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'salida') as unidades_que_salieron,
+       c.cantidad as unidades_devueltas,
+       (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada') as unidades_que_volvieron
+  from retail.cambios c
+  join retail.venta_items vi on vi.id = c.venta_item_id
+  join retail.cambio_salidas s on s.cambio_id = c.id
+ group by c.id, c.diferencia, c.cantidad, vi.precio_unitario, vi.descuento_unitario
+having c.diferencia <> round(sum(s.precio_unitario * s.cantidad) - (vi.precio_unitario - vi.descuento_unitario) * c.cantidad, 2)
+    or sum(s.cantidad) <> (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'salida')
+    or c.cantidad <> (select coalesce(sum(m.cantidad), 0) from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada')`,
+    // La diferencia de un cambio por varias deja de ser la que sale de sus prendas: un arreglo a mano que la "corrige" sin tocar la lista.
+    corrompe: `update retail.cambios set diferencia = diferencia + 5
+ where ctid = (select c.ctid from retail.cambios c where exists (select 1 from retail.cambio_salidas s where s.cambio_id = c.id) limit 1);`,
   },
 ];
 

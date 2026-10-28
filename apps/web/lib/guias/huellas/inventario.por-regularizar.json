@@ -5,7 +5,7 @@
   "total": 40,
   "controles": {
     "app/(app)/inventario/por-regularizar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «{volverA}»"
     ],
     "components/CerrarColaArranqueModal.tsx": [
       "CampoSelect «Tienda»",
@@ -23,13 +23,13 @@
       "button «Usar «»",
       "button «{categoria ? `Cambiar a ${categoriaSugerida.nombre}»",
       "button «{t.valor}»",
-      "ComboBuscable «(sin nombre)»",
-      "ComboBuscable «(sin nombre)» #2",
+      "ComboBuscable «{categoriaId}»",
+      "ComboBuscable «{colorCodigo}»",
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
       "Boton «Corregir el precio»",
-      "Boton «Sí, cobré S/»",
-      "ComboResponsable «)»",
+      "Boton «Sí, cobré S/&nbsp;»",
+      "ComboResponsable «{corregir.responsable}»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ReabrirPrendaModal.tsx": [
@@ -56,8 +56,8 @@
     ],
     "components/por-regularizar/PuenteUnion.tsx": [
       "button «Corregir lo anotado»",
-      "button «{f === \"ya_registrada\" ? <Tag aria-hidden strokeWidth={1.6}»",
-      "ComboResponsable «(sin nombre)»",
+      "button «→() => onForma(f)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/por-regularizar/ResumenResuelta.tsx": [

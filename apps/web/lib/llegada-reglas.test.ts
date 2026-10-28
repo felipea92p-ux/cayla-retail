@@ -74,6 +74,12 @@ describe("sumarPrenda / fijarCantidad / fijarCosto", () => {
     expect(fijarCosto(base, "a", "-5")[0].costo).toBe("0");
     expect(fijarCosto(base, "a", "39.9")[0].costo).toBe("39.9");
   });
+
+  it("el costo se guarda como se escribe, con coma y todo, y se lee al enviar (ADR-0419): «2,5» no se vuelve «0» a mitad de escribir", () => {
+    const base = sumarPrenda([], "a");
+    expect(fijarCosto(base, "a", "2,")[0].costo).toBe("2,");
+    expect(fijarCosto(base, "a", "39,90")[0].costo).toBe("39,90");
+  });
 });
 
 describe("sugerirPrendas y leerTexto", () => {
@@ -164,6 +170,13 @@ describe("pedidoRecibirLote", () => {
     expect(conf.p_items[1]).toMatchObject({ confirma_costo: true });
     expect(conf.p_items[0]).not.toHaveProperty("confirma_costo");
     expect(conf.p_numero_guia).toBe("T001-9");
+  });
+
+  it("el costo con coma decimal viaja como número (ADR-0419): «39,90» es 39.90", () => {
+    const lineas: LineaLlegada[] = [{ varianteId: "a", cantidad: 1, costo: "39,90" }];
+    expect(pedidoRecibirLote({ ubicacionId: "tru", proveedorId: "prov", lineas, numeroGuia: "", token: "t1" }).p_items).toEqual([
+      { variante_id: "a", cantidad: 1, costo_unitario: 39.9 },
+    ]);
   });
 
   it("la línea atípica que dice la base (desde 1) es la prenda de la pantalla", () => {

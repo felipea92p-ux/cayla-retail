@@ -16,6 +16,9 @@ import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
+import { hrefPrendasSinLlegar, textoPrendasSinLlegar } from "./igv-en-espera-reglas";
+import { soles as solesConCentimos } from "./compras-reglas";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -33,6 +36,8 @@ export type ClaveAviso =
   | "perdidas"
   | "regularizar"
   | "porPagar"
+  | "cuentasBancarias"
+  | "prendasSinLlegar"
   | "recibir"
   | "porTerminar"
   | "reponer"
@@ -86,6 +91,13 @@ export type FuentesAvisos = {
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
+  /** Proveedores que cambiaron su cuenta bancaria en los últimos 7 días (20261013161000). Solo se lee para el líder. */
+  cuentasBancarias?: { cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn?: string | null } | null;
+  /** ADR-0362 fase 5b (actividad 4): facturas cuya plata ya volvió con un documento interno y esperan la nota del proveedor (su IGV, en la
+   *  cuenta puente). `dias`: lo que lleva esperando la más antigua. Para quien ve Notas de crédito. */
+  /** ADR-0362 fase 5b (actividad 4): prendas de una factura que no llegaron y siguen sin resolver (su IGV, en el crédito fiscal sin la
+   *  mercadería). Para quien ve Proveedores. */
+  prendasSinLlegar?: { prendas: number; facturas: number; igv: number; proveedores: number; proveedorId: string | null } | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
   /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
@@ -100,7 +112,7 @@ export type FuentesAvisos = {
   porCompletar?: number | null;
 };
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 const SIN_LEER = "No se pudo leer. Lo demás de esta pantalla sí está al día.";
 
@@ -346,10 +358,10 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     avisos.push({
       clave: "porPagar",
       grupo: "Compras",
-      titulo: p && p.vencidas > 0 ? "Facturas de proveedor vencidas" : "Facturas que vencen esta semana",
+      titulo: p && p.vencidas > 0 ? "Compras por pagar vencidas" : "Compras que vencen esta semana",
       cantidad: n,
       nivel: p === null ? "sinleer" : p.vencidas > 0 ? "urgente" : nivelDe(p.semana, "toca"),
-      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "factura vencida", "facturas vencidas")}` : `Revisa ${n} ${plural(n, "factura que vence", "facturas que vencen")} esta semana`,
+      ahora: !n ? "" : p && p.vencidas > 0 ? `Paga ${n} ${plural(n, "compra vencida", "compras vencidas")}` : `Revisa ${n} ${plural(n, "compra que vence", "compras que vencen")} esta semana`,
       detalle:
         p === null ? SIN_LEER
           : p.vencidas > 0 ? `${soles(p.montoVencido)} ya vencido${p.semana > 0 ? ` · y ${p.semana} más vencen esta semana` : ""}.`
@@ -357,6 +369,46 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       href: "/compras/por-pagar",
       ocultable: true,
       urgenteSi: "Cuando ya venció",
+    });
+  }
+  // Felipe 2026-10-13 (auditoría, punto 18): un proveedor cambió su cuenta bancaria esta semana. El pago no se bloquea: se le
+  // avisa al líder para que la confirme con el proveedor antes de pagar. No se oculta: es plata que puede salir a la cuenta
+  // equivocada, y cambiar la cuenta justo antes de un pago es la forma más común de desviarlo.
+  if (f.cuentasBancarias !== undefined) {
+    const c = f.cuentasBancarias;
+    const n = c === null ? null : c.proveedores;
+    avisos.push({
+      clave: "cuentasBancarias",
+      grupo: "Compras",
+      titulo: "Cuentas de proveedor que cambiaron",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !n ? "" : `Confirma ${n === 1 ? "la cuenta nueva" : `${n} cuentas nuevas`} antes de pagar`,
+      detalle:
+        c === null ? SIN_LEER
+          : n === 0 ? "Ningún proveedor cambió su cuenta esta semana."
+            : n === 1 ? `${c.ultimoProveedor ?? "Un proveedor"} cambió su cuenta para cobrar: confírmala con él antes de pagarle.`
+              : `${n} proveedores cambiaron su cuenta esta semana; el último, ${c.ultimoProveedor ?? "uno sin nombre"}.`,
+      href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
+      ocultable: false,
+    });
+  }
+  // ADR-0362 fase 5b, actividad 4 (Felipe 2026-10-15): el IGV de lo que no llegó, mientras no se regularice. No se oculta: es crédito
+  // fiscal que no cuadra con la mercadería. El aviso hermano, «Notas de crédito por pedir», se retiró con su módulo (ADR-0480).
+  if (f.prendasSinLlegar !== undefined) {
+    const p = f.prendasSinLlegar;
+    const n = p === null ? null : p.prendas;
+    const t = p === null ? null : textoPrendasSinLlegar(p, solesConCentimos);
+    avisos.push({
+      clave: "prendasSinLlegar",
+      grupo: "Compras",
+      titulo: "Prendas de factura que te deben",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: t?.ahora ?? "",
+      detalle: t?.detalle ?? SIN_LEER,
+      href: p ? hrefPrendasSinLlegar(p) : "/compras/proveedores",
+      ocultable: false,
     });
   }
   // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.
@@ -687,7 +739,7 @@ export function armarEquipo(turno: FilaTurno[], actividad: FilaActividad[] | nul
       m = { personaId: a.persona_id, nombre: primerNombre(a.persona_nombre), estado: null, ventas: 0, monto: 0, ultima: null };
       porId.set(a.persona_id, m);
     }
-    m.ultima ??= { hora: a.ocurrio_at, texto: a.descripcion };
+    m.ultima ??= { hora: a.ocurrio_at, texto: montosSinCorte(a.descripcion) }; // la descripción la escribe Postgres
     if (a.accion === "venta_registrada") {
       const total = Number((a.detalle as { total?: unknown } | null)?.total ?? 0);
       m.ventas = (m.ventas ?? 0) + 1;

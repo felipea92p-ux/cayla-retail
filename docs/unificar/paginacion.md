@@ -38,3 +38,8 @@ deslizamiento se vio en la demo, que usa el mismo CSS.
 ## Deuda al decidir
 
 0 archivos: las tres paginaciones ya eran piezas y cambiaron por dentro.
+
+## Control (2026-10-17)
+
+La paginación de Clientes (`ClientasPanel.tsx`) seguía a mano («‹ Anterior · Página 2 de 5 · Siguiente ›» en versalitas): pasó a
+`<Paginas hrefDe>`, por URL como antes. La encontró la firma de `accion.anterior` (ronda 17), que ahora la vigila.

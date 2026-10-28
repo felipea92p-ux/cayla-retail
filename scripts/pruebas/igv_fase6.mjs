@@ -180,7 +180,9 @@ select 'dos_caminos|' ||
 insert into retail.proveedores_produccion (nombre, rubro) values ('Taller Prueba IGV', 'maquila') returning id as pprov \\gset
 insert into retail.comprobantes_produccion (proveedor_id, tipo, serie, numero, condicion, subtotal, igv, total)
   values (:'pprov', 'factura', 'TIG', '1', 'contado', 2118.64, 381.36, 2500) returning id as cprod \\gset
-insert into retail.comprobantes_produccion_pagos (comprobante_id, monto, metodo) values (:'cprod', 2500, 'efectivo') returning id as pp \\gset
+-- La fecha va explícita, en hora de Lima: el default de la columna es current_date (UTC) y, de 7 p. m. a medianoche en Lima, ya es
+-- el día siguiente, así que fn_impuestos_compras(hoy_lima, hoy_lima) no veía el pago y la prueba caía (main en rojo, 2026-10-14).
+insert into retail.comprobantes_produccion_pagos (comprobante_id, monto, metodo, fecha) values (:'cprod', 2500, 'efectivo', retail.fn_hoy_lima()) returning id as pp \\gset
 ${como(FELIPE)}${firma("gasto_viaje_registrar")}
 select 'taller|' || c.origen || ':' || c.tipo || ':' || c.igv from retail.fn_impuestos_compras(retail.fn_hoy_lima(), retail.fn_hoy_lima()) c where c.id = :'pp';
 select 'diario|' || pg_temp.asiento('igv_perdido:' || :'pp');`,

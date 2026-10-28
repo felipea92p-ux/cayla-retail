@@ -1,0 +1,93 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 12: el Club en la cuenta.
+   Los bloques del Club en «Mi perfil» (los beneficios, Favoritos, Te avisamos cuando llegue; el orden y la página, en perfil.css), el
+   corazón de favoritos y lo que necesita «Avísame cuando llegue». Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10:
+   `.t-cuenta-pag` grande, `.w-bloque`, `.w-seccion-t`, `.t-novedad`, `.t-carril`, `.t-corazon`, `.t-fav-grande`, `.t-bolsa-item`,
+   `.w-quitar`), con su propio prefijo `c-` para no pisar las piezas que otras actividades dibujan con el nombre de la maqueta (el
+   carril del Inicio, la bolsa). Solo los tokens de app/globals.css: en oscuro se invierten solos. El corazón vive sobre la FOTO
+   (el estudio claro, igual en los dos temas): por eso usa el papel y la tinta fijos, como las insignias de la tarjeta.
+   ===================================================================================================== */
+
+/* ---- Un bloque con su título (lo usa «Lo que nos escribiste», en Recomendaciones) ---- */
+.c-bloque { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.c-bloque-t { margin: 0; font-family: var(--display); text-transform: none; letter-spacing: -.01em; font-size: 23px; font-weight: 400; line-height: 1.12; }
+.c-reintentar { align-self: flex-start; margin-left: 0; }
+
+/* ---- Un beneficio o la línea de las novedades (maqueta: `.t-novedad`) ---- */
+.c-novedad { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 14px; border-radius: 0; background: var(--papel); border: 1px solid var(--sand); }
+.c-novedad > .ic { width: 22px; height: 22px; color: var(--rojo-profundo); margin-top: 1px; }
+.c-novedad b { display: block; font-size: 14px; font-weight: 600; }
+.c-novedad small { display: block; margin-top: 3px; color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
+.c-novedad[data-disponible] { border-color: color-mix(in srgb, var(--verde) 45%, var(--sand)); }
+/* «Disponible»: en el celular, bajo el texto (no le quita ancho al título); desde 700 px, a la derecha. */
+.c-chip { grid-column: 2; justify-self: start; margin-top: 6px; align-self: start; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 0; color: var(--verde); background: color-mix(in srgb, var(--verde) 12%, transparent); }
+.c-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+/* Lo que lleva hacia el vale: una barra fina que se llena una vez al aparecer. */
+.c-barra { display: block; height: 6px; margin-top: 10px; border-radius: 0; background: var(--hueso); overflow: hidden; }
+.c-barra > i { display: block; height: 100%; width: var(--avance, 0%); border-radius: 0; background: var(--verde); transform-origin: left center; animation: c-llenar .9s var(--ease) .2s both; }
+.c-ver { align-self: flex-start; }
+
+/* ---- El corazón (maqueta: `.t-corazon` en la tarjeta, `.t-fav-grande` en la ficha). En la tarjeta vive en la foto
+   (`.t-card-media`, catalogo.css), arriba a la derecha y por encima de «Agregar». ---- */
+.c-corazon { position: absolute; top: 6px; right: 6px; z-index: 3; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--t-tinta-fija); display: grid; place-items: center; cursor: pointer; transition: transform .2s var(--ease), background-color .2s; }
+.c-corazon:hover { opacity: .6; }
+/* Se ve de 36 px y se toca en 44 (un dedo, en la esquina de la foto). */
+.c-corazon::before { content: ""; position: absolute; inset: -4px; }
+.c-corazon .ic { width: 18px; height: 18px; }
+.c-corazon[aria-pressed="true"] { color: var(--t-oferta); }
+.c-corazon-grande { flex: none; width: 52px; height: 52px; padding: 0; border-radius: 0; border: 1px solid var(--tinta); background: transparent; color: var(--tinta); display: grid; place-items: center; cursor: pointer; transition: border-color .2s, color .2s; }
+.c-corazon-grande .ic { width: 22px; height: 22px; }
+.c-corazon-grande[aria-pressed="true"] { color: var(--rojo); border-color: var(--rojo); }
+.c-corazon[aria-pressed="true"] .ic, .c-corazon-grande[aria-pressed="true"] .ic { fill: currentColor; }
+.c-ic, .c-late { display: grid; place-items: center; }
+.c-late { animation: c-corazon .5s var(--ease); }
+.c-corazon:focus-visible, .c-corazon-grande:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+/* ---- «Avísame cuando llegue»: el botón ancho de la ficha (`t-btn t-btn-ancho t-btn-sec`). Un <button> no hereda la letra solo
+   (`.t-btn` no la pide): sin esto sale en la del sistema y no en Heebo. ---- */
+.c-avisame { font-family: inherit; }
+/* Ya pedido y con su espera conocida: el mismo botón lo quita (el ✓ en verde dice que está anotado; la × al final, que se quita). */
+.c-avisame-pedido > .ic:first-child { color: var(--verde); }
+.c-avisame-x { display: grid; place-items: center; margin-left: 2px; color: var(--taupe); }
+.c-avisame-x .ic { width: 16px; height: 16px; }
+.c-avisame-pedido:hover:not(:disabled) .c-avisame-x { color: var(--rojo-profundo); }
+.c-avisame-pedido:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* Con la × al lado, «Te avisaremos cuando llegue» pasaba a dos renglones en el celular: ahí dice «Te avisaremos». */
+@container tienda (max-width: 479px) {
+  .c-avisame-largo { display: none; }
+}
+
+/* ---- Te avisamos cuando llegue (maqueta: `.t-bolsa-item` y `.w-quitar`): cada talla en su tarjeta, como los pedidos; dos por fila en
+   la computadora ---- */
+.c-esperas { display: grid; gap: 10px; }
+.c-espera { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px; border-radius: 0; border: 1px solid var(--sand); background: var(--papel); }
+.c-espera-foto { display: block; }
+.c-espera-foto .pz { width: 80%; }
+.c-espera-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13.5px; }
+.c-espera-txt b { font-weight: 600; }
+.c-espera-txt small { color: var(--tinta-60); font-size: 12.5px; }
+.c-espera-estado { display: flex; gap: 6px; align-items: center; margin-top: 2px; font-size: 12.5px; color: var(--tinta-60); }
+.c-espera-estado .ic { width: 15px; height: 15px; }
+.c-espera-estado.llego { color: var(--verde); font-weight: 600; }
+.c-espera-estado.fuera { color: var(--ambar); font-weight: 600; }
+.c-espera-txt .c-ver { padding: 2px 0; }
+.c-quitar { border: 0; background: none; padding: 6px 0; font: inherit; font-size: 12.5px; color: var(--tinta-60); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); cursor: pointer; }
+.c-quitar:hover { color: var(--rojo-profundo); }
+.c-quitar:disabled { cursor: default; opacity: .6; }
+.c-quitar:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 0; }
+
+/* Late una vez al guardarse: crece y vuelve, sin pasarse de largo hacia adentro (antes bajaba a .92: un rebote). */
+@keyframes c-corazon { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes c-llenar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .c-late, .c-barra > i { animation: none; }
+  .c-corazon, .c-corazon-grande { transition: none; }
+}
+
+@container tienda (min-width: 700px) {
+  .c-novedad { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .c-chip { grid-column: auto; margin-top: 0; }
+}
+@container tienda (min-width: 960px) {
+  .c-esperas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

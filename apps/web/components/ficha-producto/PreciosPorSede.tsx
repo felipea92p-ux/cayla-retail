@@ -26,6 +26,7 @@ import {
  * decía «Las demás tiendas: S/ 79.90» con TRU a 69.90). La de precio propio lleva la insignia, desde cuándo, por qué y quién, con
  * «Cambiar» y «Quitar»; las demás dicen que siguen el precio de la prenda y, si esta cuenta puede, ofrecen ponerle uno. Lee con
  * `usePreciosDeTienda` (en la ficha) y guarda por su cuenta (`poner_precio_sede`): no es parte del «Confirmar y guardar» de la ficha.
+ * Una terminal no lo ve: el precio de su tienda se escribe en la tabla de «Precios» (`PrecioAquiTerminal`, Felipe 2026-10-27).
  */
 export function PreciosPorSede({
   productoId,
@@ -77,6 +78,41 @@ export function PreciosPorSede({
   };
   const dePrenda = precioPrenda !== null ? `a ${soles(precioPrenda)}` : "al precio de cada talla";
 
+  // La ficha es un <form>: los eventos de la hoja (un portal) suben por el árbol de React (ADR-0128). Sin esto, «Guardar precio»
+  // abriría «Revisa y guarda» del producto, y Enter en el precio no guardaría (la ficha lo frena).
+  const hojas = (
+    <span
+      className="contents"
+      onSubmit={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {hoja?.k === "poner" && (
+        <PonerPrecioSedeModal
+          productoId={productoId}
+          tiendas={hoja.actual ? tiendas : libres}
+          tiendaInicial={hoja.tiendaId}
+          general={precioPrenda}
+          costoMaximo={costoMaximo}
+          precioAntesEn={precioEn}
+          ubicacionActual={ubicacionActual}
+          actual={hoja.actual}
+          onClose={() => setHoja(null)}
+          onGuardado={cerrarYLeer}
+        />
+      )}
+      {hoja?.k === "quitar" && (
+        <QuitarPrecioSedeModal
+          productoId={productoId}
+          precio={hoja.precio}
+          general={precioPrenda}
+          ubicacionActual={ubicacionActual}
+          onClose={() => setHoja(null)}
+          onGuardado={cerrarYLeer}
+        />
+      )}
+    </span>
+  );
+
   return (
     <div
       className="mt-4 rounded-sm border border-sand bg-papel px-3.5 py-3"
@@ -87,7 +123,6 @@ export function PreciosPorSede({
         <Store
           aria-hidden
           className="h-4 w-4 shrink-0 text-taupe"
-          strokeWidth={1.75}
         />
         <p className="text-[13px] font-semibold text-tinta">
           Precio por tienda
@@ -184,38 +219,7 @@ export function PreciosPorSede({
         </ul>
       )}
 
-      {/* La ficha es un <form>: los eventos de la hoja (un portal) suben por el árbol de React (ADR-0128). Sin esto, «Guardar
-          precio» abriría «Revisa y guarda» del producto, y Enter en el precio no guardaría (la ficha lo frena). */}
-      <span
-        className="contents"
-        onSubmit={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        {hoja?.k === "poner" && (
-          <PonerPrecioSedeModal
-            productoId={productoId}
-            tiendas={hoja.actual ? tiendas : libres}
-            tiendaInicial={hoja.tiendaId}
-            general={precioPrenda}
-            costoMaximo={costoMaximo}
-            precioAntesEn={precioEn}
-            ubicacionActual={ubicacionActual}
-            actual={hoja.actual}
-            onClose={() => setHoja(null)}
-            onGuardado={cerrarYLeer}
-          />
-        )}
-        {hoja?.k === "quitar" && (
-          <QuitarPrecioSedeModal
-            productoId={productoId}
-            precio={hoja.precio}
-            general={precioPrenda}
-            ubicacionActual={ubicacionActual}
-            onClose={() => setHoja(null)}
-            onGuardado={cerrarYLeer}
-          />
-        )}
-      </span>
+      {hojas}
     </div>
   );
 }

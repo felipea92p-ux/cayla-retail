@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { alcanceDeRespuesta, arranqueDeRespuesta, type AlcanceConteo, type ArranqueConteo } from "@/lib/conteo-inicio-reglas";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogo, getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { codigosDeConteo, conteoResumenDesdeFila, detalleDesdeJson, type ConteoResumen, type DetalleConteo, type PrendaConteo } from "@/lib/conteo-reglas";
 
-// Lecturas del Conteo rediseñado (2026-09-29). Este archivo solo LEE, y solo por funciones de la base:
+// Lecturas del Conteo rediseñado (2026-09-29). Este archivo solo LEE, y por funciones de la base (con UNA excepción, la última de la lista):
 //  · `fn_conteo_detalle`  → el detalle de UN conteo (cabecera + resumen + líneas) en un solo jsonb. Un solo renglón:
 //    no lo alcanza el tope de 1.000 filas de PostgREST, que truncaría en silencio un conteo de ~1.200 variantes.
 //  · `fn_conteos_resumen` → el historial de una sede, ya sumado en Postgres.
+//  · `getCompletadasConAtajo` → la excepción: cuenta con un `select` a `conteo_items` (ver su comentario).
 // Nunca lee `stock` (la cifra de «cuánto hay» es de `fn_existencias`, ADR-0270) ni costos: el conteo no habla de plata.
 // Las escrituras (abrir, contar, recontar, confirmar, cerrar, cancelar) las hace el navegador con la firma del responsable.
 
@@ -30,6 +31,24 @@ export async function getDetalleConteo(id: string): Promise<DetalleConteo | null
   // La base trae quién abrió, no quién cerró: se busca solo si hace falta (el conteo cerrado que se está mirando).
   const nombres = exigir(await supabase.rpc("fn_nombres_personas", { p_ids: [detalle.conteo.cerradoPor] }), "el nombre de quien cerró el conteo");
   return { ...detalle, conteo: { ...detalle.conteo, cerradoPorNombre: nombres[0]?.nombre ?? null } };
+}
+
+/**
+ * Cuántas variantes de un conteo se completaron con «Completar todo» de una tarjeta (`conteo_items.completada_con_atajo`; ADR-0328, opción C
+ * de Felipe: cuentan para la exactitud y el arranque, pero Revisar y Confirmar lo dicen). Es un dato SECUNDARIO: quien lo pide lo envuelve en
+ * `opcional()`, y si falla no se dice nada y el conteo sigue entero (la frase informa, no decide).
+ * Solo cuenta (`head`): no trae filas. Lanza si la base responde con error: «cero» y «no pude leer» no son lo mismo.
+ *
+ * Es un `select` directo y no una función porque la marca no viaja en `fn_conteo_detalle`, y recrear esa función arrastra sus parches vivos
+ * (ADR-0328, act. 2026-10-22). La lectura la permite RLS (`conteo_items_select` filtra por sede). Cuando `fn_conteo_detalle` se rehaga por
+ * otra razón, sumarle `con_atajo` a su jsonb y quitar este `select`: `datos:comparar` solo vigila llamadas a funciones, no columnas.
+ */
+export async function getCompletadasConAtajo(conteoId: string): Promise<number> {
+  if (!ES_UUID.test(conteoId)) return 0;
+  const supabase = await createClient();
+  const { count, error } = await supabase.from("conteo_items").select("variante_id", { count: "exact", head: true }).eq("conteo_id", conteoId).eq("completada_con_atajo", true);
+  if (error) throw new Error(`No se pudo leer lo completado con el atajo: ${error.message}`);
+  return count ?? 0;
 }
 
 /**
@@ -89,10 +108,14 @@ export async function getArranqueConteo(ubicacionId: string): Promise<ArranqueCo
  * `categoriaId` sale de `categorias` cruzando por nombre —`VarianteCatalogo` solo trae el nombre, y el nombre es único
  * (`categorias_nombre_clave_unica`)—. Es una ayuda para avisar «no pertenece al conteo» antes de guardar: si falla, va
  * `null` y la base igual rechaza la prenda fuera de alcance (hint `fuera_de_alcance`), que la pantalla ya sabe leer.
+ *
+ * Con `sedeId` (contar, cuadrar), sin las prendas de una empresa que no opera en esa sede (ADR-0505): una prenda de CLAURE escaneada
+ * en Trujillo no se reconoce, en vez de entrar al conteo y hacer fallar su cierre entero (la base no la deja entrar allí). Sin
+ * `sedeId` (revisar o confirmar lo ya contado), el catálogo entero: solo se buscan nombres de lo que ya está en el conteo.
  */
-export async function getCatalogoConteo(): Promise<PrendaConteo[]> {
+export async function getCatalogoConteo(sedeId?: string): Promise<PrendaConteo[]> {
   const supabase = await createClient();
-  const [catalogo, categorias] = await Promise.all([getCatalogo(), supabase.from("categorias").select("id, nombre")]);
+  const [catalogo, categorias] = await Promise.all([sedeId ? getCatalogoDeLaSede(sedeId) : getCatalogo(), supabase.from("categorias").select("id, nombre")]);
   const { datos, fallo } = tolerar(categorias, "las categorías del conteo");
   if (fallo) console.error(fallo);
   const idPorNombre = new Map((datos ?? []).map((c) => [c.nombre, c.id]));

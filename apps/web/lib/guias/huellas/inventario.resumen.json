@@ -2,24 +2,22 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 54,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
-      "button «{`Una menos de ${etiqueta}»",
-      "button «{`Una más de ${etiqueta}»",
-      "Desplegable «)»",
+      "Desplegable «pedir-sede»",
       "button «Reintentar»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{`pedir-prenda-${i}»",
       "button «{`Quitar ${prenda?.etiqueta ?? \"esta línea\"}»",
       "Boton «+ Agregar otra prenda»",
       "input «Nota (opcional)»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Mejor no»",
       "Boton «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/analisis/AnalisisPantalla.tsx": [
       "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",
-      "Pestanas «(sin nombre)»"
+      "Pestanas «{items}»"
     ],
     "components/analisis/Carril.tsx": [
       "button «{textoVerMas(g.prendas.length - g.corte)}»"
@@ -35,7 +33,7 @@
       "button «Ver con los datos de hoy»"
     ],
     "components/analisis/HojaLiquidarDesde.tsx": [
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -46,8 +44,8 @@
       "button «{`${textoPedirA(sede)}»"
     ],
     "components/analisis/PestanaHoy.tsx": [
-      "Pastilla «))»",
-      "Pastilla «))» #2",
+      "Pastilla «(sin nombre)»",
+      "Pastilla «(sin nombre)» #2",
       "button «{c.verbo}»",
       "Link «{contenido}»"
     ],
@@ -66,7 +64,7 @@
     "components/analisis/PestanaQuieta.tsx": [
       "Link «{etiqueta}»",
       "button «{`${LIQUIDAR_PASO}»",
-      "input «= LIQUIDAR_MAX»",
+      "input «{idUmbral}»",
       "button «{`${LIQUIDAR_PASO}» #2",
       "button «Guardar para todos»",
       "Link «{`${texto}»",
@@ -75,7 +73,7 @@
       "Link «Frescura del piso»"
     ],
     "components/analisis/TodaviaNo.tsx": [
-      "Link «Registrar»",
+      "Link «{registrar.texto}»",
       "Link «Cuadrar»",
       "Link «Contar»",
       "button «→() => abrirFicha(t.varianteId)»",

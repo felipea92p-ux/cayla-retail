@@ -9,7 +9,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, CAUSAS_FALTANTE, CAUSAS_SOBRANTE, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { cifrasDelEnvio, paraDespues, textoNoSeReabre, textoPrendas, veredictoDelCerrado, prendasQueEntraron, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { BOTON_DE_PENDIENTE, cifrasDelEnvio, paraDespues, textoNoSeReabre, textoPrendas, veredictoDelCerrado, prendasQueEntraron, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { Sello } from "./piezas";
 import { ReabrirEnvio } from "./ReabrirEnvio";
@@ -33,6 +33,9 @@ export function EnvioCerrado({
   veExistencias,
   responsable,
   prendas,
+  soloSede = false,
+  sinAviso = false,
+  veDinero = true,
   onPrendaVista,
   onCambio,
   onReabierto,
@@ -45,6 +48,11 @@ export function EnvioCerrado({
   veExistencias: boolean;
   responsable: ControlResponsable;
   prendas: ReadonlyMap<string, PrendaRecepcion>;
+  /** Una terminal (ADR-0531): el precio de venta vale solo en su sede; no se ofrece «Todas las sedes». */
+  soloSede?: boolean;
+  /** Llegó sin aviso y quien ve el dinero de Compras: de ellos depende quién escribe el costo de lo de fuera de la guía (`HacerAhora`). */
+  sinAviso?: boolean;
+  veDinero?: boolean;
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onCambio: () => void;
@@ -147,14 +155,14 @@ export function EnvioCerrado({
             {lista.map((p, i) => (
               <li key={`${p.tipo}-${p.linea}-${i}`} className="rc-pend" data-tipo={p.tipo}>
                 <span aria-hidden className="rc-cat-ic" data-tamano="chico">
-                  {p.tipo === "separar" ? <Layers className="h-[18px] w-[18px]" /> : p.tipo === "detalle" ? <ListChecks className="h-[18px] w-[18px]" /> : <Sparkles className="h-[18px] w-[18px]" />}
+                  {p.tipo === "separar" ? <Layers className="h-4 w-4" /> : p.tipo === "detalle" ? <ListChecks className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
                 </span>
                 <span className="min-w-0">
                   <b className="block text-[14.5px] text-tinta">{p.titulo}</b>
                   <small className="block text-[12.5px] text-taupe">{p.sub}</small>
                 </span>
                 <Boton type="button" peso="fantasma" onClick={() => setHaciendo(p)}>
-                  {p.tipo === "crear" ? "+ Crear ahora" : "Hacer ahora"}
+                  {BOTON_DE_PENDIENTE[p.tipo]}
                 </Boton>
               </li>
             ))}
@@ -230,12 +238,19 @@ export function EnvioCerrado({
           catalogo={catalogo}
           responsable={responsable}
           prendas={prendas}
+          soloSede={soloSede}
+          sinAviso={sinAviso}
+          veDinero={veDinero}
           onPrendaVista={onPrendaVista}
           onListo={() => {
             setHaciendo(null);
             onCambio();
           }}
-          onCerrar={() => setHaciendo(null)}
+          // La prenda de un «crear» ya existe aunque no se hayan metido sus tallas: «Para después» se relee para decirlo.
+          onCerrar={(huboCambio) => {
+            setHaciendo(null);
+            if (huboCambio) onCambio();
+          }}
         />
       )}
 

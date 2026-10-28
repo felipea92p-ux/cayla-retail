@@ -13,7 +13,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function cuando(iso: string) {

@@ -5,21 +5,21 @@
   "total": 17,
   "controles": {
     "components/ordenes-insumo/NuevaOrdenInsumo.tsx": [
-      "Volver «(sin nombre)»",
-      "ComboBuscable «(sin nombre)»",
+      "Volver «{RUTA_ORDENES_INSUMO}»",
+      "ComboBuscable «oi-proveedor»",
       "CampoSelect «Llega a»",
       "CampoFecha «Entrega estimada»",
       "CampoTexto «Nota»",
       "Boton «oi-form.agregar»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{errorHoja.accion.texto}»",
       "BotonEnlace «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "button «{`Quitar la línea ${numero}»",
-      "ComboBuscable «Descripción»",
+      "ComboBuscable «{l.insumoId}»",
       "CampoTexto «{`Descripción de la línea ${numero}»",
       "CampoTexto «{`Cantidad de la línea ${numero}»",
-      "CampoTexto «{`Precio por ${porUnidad}»",
+      "CampoTexto «{`Costo por ${porUnidad}»",
       "CampoTexto «{`Descuento de la línea ${numero}»",
       "SegmentoDeslizante «{`Descuento de la línea ${numero}»"
     ]

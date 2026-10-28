@@ -14,11 +14,15 @@ import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta, solesRedondo } from "@/lib/gastos-reglas";
 import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas, parsearMonto, parsearPorcentaje, validarTienda } from "@/lib/configuracion-reglas";
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
-import type { CampanaConfig, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
+import type { CampanaConfig, ConfiguracionMetas, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Casilla, type Guardar } from "@/components/ConfiguracionCasilla";
+import { ConfiguracionMetasMes } from "@/components/ConfiguracionMetasMes";
+import { ConfiguracionAsistente } from "@/components/asistente/ConfiguracionAsistente";
+import type { SedeAsistente } from "@/lib/asistente/sedes";
 
-// Configuración ▸ Tiendas y caja (ADR-0195 F1), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
+// Configuración ▸ Tiendas y caja (ADR-0195 F1; metas por mes y por fecha, ADR-0435), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
 // SOLA al salir de ella si cambió, firmada con el responsable. Sin botones «Guardar»: la base vuelve a validar todo.
 // ADR-0288 tanda 1b suma una tercera, con el mismo patrón: el WhatsApp de cada tienda para el QR del club
@@ -26,38 +30,6 @@ import { BotonVer } from "@/components/ui/BotonDescargar";
 
 const texto = (n: number | null) => (n === null ? "" : String(n));
 const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
-
-type Guardar = (hacer: () => PromiseLike<{ error: unknown }>, que: string, listo: string) => Promise<boolean>;
-
-/** Una casilla numérica que se guarda al salir (blur) si su texto cambió. Si el guardado falla, vuelve a lo de antes. */
-function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
-  const [t, setT] = useState(valor);
-  const [antes, setAntes] = useState(valor);
-  // Si la base trae otro valor (otro guardado, un refresco), la casilla lo toma.
-  if (valor !== antes) {
-    setAntes(valor);
-    setT(valor);
-  }
-  return (
-    <input
-      aria-label={etiqueta}
-      inputMode="decimal"
-      value={t}
-      placeholder={placeholder}
-      onChange={(e) => setT(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setT(valor);
-      }}
-      onBlur={async () => {
-        if (t.trim() === valor.trim()) return;
-        const ok = await alGuardar(t);
-        if (!ok) setT(valor);
-      }}
-      className={`fin-control fin-num inline-block ${ancho}`}
-    />
-  );
-}
 
 /** La hora de cierre: se guarda al salir si cambió (vacía = sin hora, Caja no proyecta). */
 function CasillaHora({ valor, etiqueta, alGuardar }: { valor: string; etiqueta: string; alGuardar: (hora: string) => Promise<boolean> }) {
@@ -267,8 +239,19 @@ function FilaCampana({ campana, tiendas, hoy, guardar }: { campana: CampanaConfi
 }
 
 /** `despuesDeWhatsapp`: otra tarjeta de la sede que va entre el WhatsApp y las campañas (la carga inicial, ADR-0328). Se pasa
- *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. */
-export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Datos; despuesDeWhatsapp?: ReactNode }) {
+ *  armada desde la página: tiene su propio responsable y su propia hoja, no usa las casillas de aquí. `asistente`: el interruptor
+ *  de «Pregúntale a CAYLA» por sede (ADR-0536, act. 8), que sí usa el responsable de aquí; `null` si la base no lo tiene todavía. */
+export function ConfiguracionTiendas({
+  datos,
+  metas,
+  despuesDeWhatsapp,
+  asistente,
+}: {
+  datos: Datos;
+  metas?: ConfiguracionMetas | null;
+  despuesDeWhatsapp?: ReactNode;
+  asistente?: { sedes: SedeAsistente[]; gastado: number | null } | null;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
@@ -337,10 +320,12 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </PieTabla>
       </Superficie>
 
+      {metas && metas.tiendas.length > 0 && <ConfiguracionMetasMes metas={metas} guardar={guardar} />}
+
       <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
-          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
+          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador) y desde la tienda web, donde llegan sus pedidos. Sin número, esa tienda no muestra QR ni sale en la web, y el club sigue, sin novedades por WhatsApp."
         >
           <BotonVer href="/clientas/cartel" chico>
             Ver el cartel del club
@@ -370,11 +355,13 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
         </PieTabla>
       </Superficie>
 
+      {asistente && asistente.sedes.length > 0 && <ConfiguracionAsistente sedes={asistente.sedes} gastado={asistente.gastado} hoy={datos.hoy} guardar={guardar} />}
+
       {despuesDeWhatsapp}
 
       <Superficie className="anim-sube" guia="config.tiendas-campanas">
-        <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Etiquetas. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
-          <BotonEnlace href="/productos/atributos?tipo=etiquetas">+ Nueva campaña (en Catálogo ▸ Etiquetas)</BotonEnlace>
+        <TituloDeTarjeta titulo="Campañas: lo que cambian en la caja" bajada="Las campañas y sus fechas son las de Catálogo ▸ Insignias. Aquí se dice, por tienda, cuánto sube la meta y qué fondo dejar. Vacío = lo normal.">
+          <BotonEnlace href="/productos/insignias">+ Nueva campaña (en Catálogo ▸ Insignias)</BotonEnlace>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla fin-tabla-apretada">

@@ -3,11 +3,13 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { enLaTabla } from "@/lib/frescura-pantalla";
 import { categoriasFueraDeMotores, sinCategoriasApagadas } from "@/lib/familias-motores";
+import { contarPendientes, leerVendidoSinRegistrar } from "@/lib/vendido-sin-registrar";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
   type CargarDudas,
   type FilaConfianza,
+  type FrescuraDeSede,
   type FrescuraSede,
   type LlamarRpcFrescura,
   type RespuestaRpc,
@@ -17,12 +19,14 @@ import { leerRespaldoCayla } from "@/lib/frescura-vara-cayla";
 import { avisoDatosDeHoy, META_CON_PRENDA, ventas30, ventasConPrendaDe100 } from "@/lib/analisis-aviso";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
 import { pisoFrescuraParaElInicio, type LecturaParaElInicio, type PisoFrescuraInicio } from "@/lib/inicio-piso-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
+import { unstable_rethrow } from "next/navigation";
 
 // La parte que LEE de Postgres para Frescura del piso (ADR-0208, pasos 3 y 4 del 3c): solo dice a quién preguntar. Qué se
 // pide, en qué orden, cómo falla cada bloque y qué significan los datos vive en `frescura-reglas.ts` (`armarFrescuraLider`,
@@ -172,7 +176,7 @@ async function preciosDelPiso(supabase: Supabase, sedeId: string, lectura: Datos
     for (let i = 0; i < ids.length; i += IDS_POR_CONSULTA) trozos.push(ids.slice(i, i + IDS_POR_CONSULTA));
     const [lecturas, propios] = await Promise.all([
       Promise.all(trozos.map((t) => supabase.from("variantes").select("id, precio").in("id", t))),
-      supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: sedeId }),
+      leerPreciosPropiosDeSede(supabase, sedeId),
     ]);
     if (lecturas.some((l) => l.error)) return {};
     const generales = new Map<string, number>();
@@ -217,7 +221,8 @@ async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<Puerta
     if (error) return null;
     const fila = leerPreparacion(data).find((f) => f.ubicacionId === sedeId);
     if (!fila) return null;
-    return puertaDeFila(fila);
+    // Lo que «Registrar N sin prenda» puede registrar de verdad: las pendientes (la misma cuenta que Análisis).
+    return { ...puertaDeFila(fila), pendientes: await contarPendientes(supabase, sedeId) };
   } catch {
     return null;
   }
@@ -269,22 +274,15 @@ async function anotadasDeLaSede(supabase: Supabase, sedeId: string): Promise<Ano
     const ahora = Date.now();
     const desde = new Date(ahora - 28 * 86_400_000).toISOString();
     const corte14 = ahora - 14 * 86_400_000;
-    const { data, error } = await supabase
-      .from("prendas_por_regularizar")
-      .select("categoria_id, vendido_en, categoria:categorias ( nombre )")
-      .eq("ubicacion_id", sedeId)
-      .in("estado", ["pendiente", "cerrada_sin_prenda"])
-      .gte("vendido_en", desde);
-    if (error || !data) return [];
-    // Sin lo de una familia apagada (la bolsa de despacho): sus ventas anotadas no cuentan en la rapidez de una categoría de prendas.
-    const fuera = await categoriasFueraDeMotores(supabase);
+    // La misma lectura que usa Análisis (`lib/vendido-sin-registrar.ts`), ya sin las familias apagadas: la bolsa de despacho no cuenta en
+    // la rapidez de una categoría de prendas.
     const porCategoria = new Map<string, AnotadasCategoria>();
-    for (const f of sinCategoriasApagadas(data as { categoria_id: string; vendido_en: string; categoria: { nombre: string } | null }[], fuera, (r) => r.categoria_id)) {
-      const c = porCategoria.get(f.categoria_id) ?? { categoriaId: f.categoria_id, nombre: f.categoria?.nombre ?? "Sin categoría", d14: 0, d28: 0, fechas: [] };
+    for (const f of await leerVendidoSinRegistrar(supabase, sedeId, desde)) {
+      const c = porCategoria.get(f.categoriaId) ?? { categoriaId: f.categoriaId, nombre: f.categoria, d14: 0, d28: 0, fechas: [] };
       c.d28 += 1;
-      c.fechas.push(f.vendido_en);
-      if (Date.parse(f.vendido_en) >= corte14) c.d14 += 1;
-      porCategoria.set(f.categoria_id, c);
+      c.fechas.push(f.vendidoEn);
+      if (Date.parse(f.vendidoEn) >= corte14) c.d14 += 1;
+      porCategoria.set(f.categoriaId, c);
     }
     return [...porCategoria.values()];
   } catch {
@@ -396,8 +394,29 @@ export async function getPisoDeFrescuraParaElInicio(persona: Pick<PersonaActualV
     if (!lectura.datos.separaPiso) return { estado: "no_aplica" };
     return { estado: "ok", datos: pisoFrescuraParaElInicio(lectura.datos, puerta) };
   } catch (e) {
+    unstable_rethrow(e);
     console.error("Inicio: no se pudo leer el piso de Frescura", e);
     return { estado: "fallo" };
+  }
+}
+
+/**
+ * La lectura de Frescura de UNA tienda, con lo que cambia el veredicto (la vara de CAYLA de respaldo y las dudas de ventas sin registrar),
+ * para Análisis (ADR-0357, act. 2026-10-14): qué unidades colgadas pueden ser una venta sin registrar y la vara de cada categoría. Las
+ * mismas cuentas de la pantalla, sin lo decorativo ni la comparación con hace 4 semanas (Análisis no la usa).
+ *
+ * PROMETE: nunca lanza; la falla vuelve en `fallo`. ASUME: la llama el servidor con la sesión de quien mira y solo si ve `frescura` (la base
+ * lo exige: sin él, `fn_frescura_sede` da 42501).
+ */
+export async function getLecturaFrescuraDeTienda(sede: { id: string; nombre: string }): Promise<FrescuraDeSede["lectura"]> {
+  try {
+    const supabase = await createClient();
+    const rpc = rpcFrescura(supabase);
+    const { respaldo } = await leerRespaldoCayla(rpc, new Date().toISOString());
+    return (await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, undefined, cargarDudasCon(supabase))).lectura;
+  } catch (e) {
+    unstable_rethrow(e);
+    return { datos: null, fallo: e instanceof Error ? e.message : String(e) };
   }
 }
 

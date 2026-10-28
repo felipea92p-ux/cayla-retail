@@ -79,10 +79,13 @@ export type PrendaAnalisis = {
   almacen: number;
   /** Vendidas con su prenda en mis últimos 30 días. */
   vendidas30: number;
-  /** Cuántos días de ventas tiene MI tienda en el ERP, hasta 30 (`diasDeVentas`): el ritmo es `vendidas30` entre esto. Lo pone el
-   *  cargador, igual en todas las prendas de la tienda; si falta, 30. Ejemplo inventado: una tienda que vende en el ERP hace 8 días
-   *  mide su ritmo entre 8, no entre 30 (si no, cada prenda «dura» casi 4 veces más de lo que dura). */
+  /** Entre cuántos días se mide su ritmo: `vendidas30` entre esto. Desde el 2026-10-14, los días que estuvo colgada, de 7 a los días de
+   *  ventas de mi tienda (`ventanaDeRitmo`); lo pone el cargador. Si falta, 30. Ejemplo inventado: una blusa colgada hace 4 días en una
+   *  tienda que vende en el ERP hace 15 mide su ritmo entre 7, no entre 15 (si no, «dura» el doble de lo que dura). */
   diasDeVentas?: number;
+  /** Los días de ventas de MI tienda en el ERP, hasta 30 (`diasDeVentas` de `analisis-reglas`): el techo de la ventana de cada prenda,
+   *  para rearmarla en el modelo. Si falta, el modelo usa la ventana de su primera talla (como antes del 2026-10-14). */
+  diasDeVentasTienda?: number;
   /** Vendidas por semana en mi tienda: 8 semanas, de la más vieja a la actual. La semana k (0 a 7) son los 7 días que terminan
    *  hoy − 7·(7−k) (`fn_analisis_sede`, 20261006214000): la última termina hoy. Las fechas de la ficha dependen de esto. */
   semanas: number[];
@@ -95,6 +98,13 @@ export type PrendaAnalisis = {
   /** Su última venta en MI tienda (YYYY-MM-DD, sin tope de fechas); null si nunca se vendió aquí. undefined si la base todavía no lo
    *  dice (sin 20261010120000): con esto se cuentan los días sin venderse del modelo entero (`analisis-modelo.ts`). */
   ultimaVenta?: string | null;
+  /** Desde cuántos días sin venderse se vigila y se liquida, según la vara de su tipo (`analisis-vara.ts`). Sin ella (la vara no alcanza o
+   *  no se leyó Frescura), «Liquidar desde» y un mes. */
+  umbrales?: UmbralesQuieta;
+  /** Unidades colgadas de esta prenda que pueden ser una venta sin registrar: una venta pendiente anotada en caja con su tipo, talla y
+   *  color (la cuenta de Frescura, ADR-0208 act. 2026-10-10 (c)). Con alguna, no se sabe si se vendió: no se liquida (ADR-0357, act.
+   *  2026-10-14). Sin la lectura de Frescura, undefined. */
+  enDuda?: number;
   /** La primera vez que entró a MI tienda (YYYY-MM-DD); null si no se sabe. Con esto se cuentan los días que lleva guardada. */
   llego: string | null;
   /** Unidades que llegaron a mi tienda en los últimos 30 días, y cuántas de ellas ya se vendieron («se vende lo que llega»). */
@@ -123,7 +133,7 @@ export type AccesoAnalisis = {
   traslados: boolean;
   /** «Pedir a otra tienda»: lo acepta la base con Traslados o con Análisis. */
   pedir: boolean;
-  /** Compras con su dinero a la vista (Nueva compra). */
+  /** «Mis compras» (clave `ordenes_compra`, ADR-0480): donde se anota lo comprado. */
   compras: boolean;
   produccion: boolean;
   etiquetas: boolean;
@@ -143,6 +153,13 @@ export type AccesoAnalisis = {
 /** La lectura del motor (ADR-0346) de una tienda, con sus días para dibujar «Ventas con su prenda, día a día» y su primera venta en
  *  el ERP (YYYY-MM-DD, o null si todavía no vende): de ahí sale cuántos días de ventas tiene (`diasDeVentas`). */
 export type PreparacionAnalisis = PreparacionSede & { dias: DiaVenta[]; hoy: string; primeraVenta: string | null };
+
+/**
+ * Los dos escalones de «No se vende» de un tipo de prenda, en días, sacados de la vara de su categoría en Frescura (ADR-0357, act.
+ * 2026-10-14): se vigila desde lo que tardan 3 de cada 4 de su tipo que sí se vendieron (p75) y se liquida desde lo que tardan 9 de cada
+ * 10 (p90). `vara` dice cuál juzgó (la del mes de la tienda, la de CAYLA o la de hoy) y `vendidas`, con cuántas ventas.
+ */
+export type UmbralesQuieta = { vigila: number; liquidar: number; vara: "mes" | "cayla" | "hoy"; vendidas: number };
 
 /** Todo lo que la pantalla necesita, leído una vez por el servidor. */
 export type DatosAnalisis = {
@@ -173,6 +190,16 @@ export type DatosAnalisis = {
   sabeUltimaVenta: boolean;
   /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
+  /** Si se leyó Frescura del piso de mi tienda (las dudas de ventas sin registrar y la vara de cada categoría): «sin_modulo» si quien
+   *  mira no la ve, «fallo» si no respondió (y se dice en `fallas`), «no_aplica» si la sede no separa piso y almacén. */
+  frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica";
+  /** Lo vendido «sin registrar» en mi tienda en los mismos 30 días de `vendidas30`, por tipo (nombre de la categoría): la venta que no
+   *  dice qué prenda fue pero sí de qué tipo (`lib/vendido-sin-registrar.ts`). «Qué pedir» la suma a lo vendido de su tipo (ADR-0357,
+   *  act. 2026-10-14). Vacío si no se pudo leer (y se dice en `fallas`). */
+  sinPrendaPorTipo: Record<string, number>;
+  /** Las ventas sin su prenda que todavía se pueden registrar (pendientes, sin tope de fechas) y las que se cerraron sin prenda en los
+   *  mismos 30 días: lo que dice «Ver qué falta» (ADR-0357, act. 2026-10-14). Null la que no se pudo leer. */
+  porRegistrar: { pendientes: number | null; cerradas30: number | null };
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */
   rebajaDe100: number | null;
   /** Lo que más rinde por categoría en 90 días: ganancia por cada S/ 1 que hay en ropa de esa categoría. */

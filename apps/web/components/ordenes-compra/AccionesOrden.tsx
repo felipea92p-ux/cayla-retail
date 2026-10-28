@@ -36,12 +36,12 @@ import { textoParaBase } from "@/lib/orden-compra-alta";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
-// solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar comprobante» —la acción principal— mientras la orden esté
+// solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar la compra» —la acción principal— mientras la orden esté
 // generada y con «Llega a». Y desde que tiene un comprobante «Editar» se va (la base no edita una orden con comprobante); mientras tenga uno
 // vigente también se va «Anular orden» (primero se anula el comprobante; la orden abierta lo explica).
 //
 // Con envíos (fase 3, actividad «Enviar a una sede»): mientras la orden esté generada y tenga algo por enviar se suma «Enviar a una sede» (la
-// pantalla `envio/[id]`). Es la acción principal si «Registrar comprobante» no está; si está, queda a su lado en segundo plano: el comprobante no
+// pantalla `envio/[id]`). Es la acción principal si «Registrar la compra» no está; si está, queda a su lado en segundo plano: el comprobante no
 // bloquea (decisión 9) y cualquiera de los dos puede ir primero. Y desde que la orden tiene un envío se va «Editar» (aun anulado: la guía
 // cuelga de sus líneas), y con uno vigente también «Anular orden» (primero se anula el envío; la orden abierta lo explica).
 //
@@ -78,7 +78,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   const registrar = puedeRegistrarComprobante(orden) && (
     <BotonEnlace href={`/compras/ordenes/comprobante/${orden.id}`} peso="primario" data-guia="orden.registrar-comprobante">
       <span className="inline-flex items-center gap-2">
-        <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar comprobante
+        <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar la compra
       </span>
     </BotonEnlace>
   );
@@ -98,6 +98,8 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   const anular = puedeAnular && (
     <Boton
       peso="peligro"
+      // En el celular, en la columna de acciones del pie, «Anular orden» va abajo del todo (ver `lugar === "pie"`); en la cabecera no cambia.
+      className={lugar === "pie" ? "max-sm:order-2" : undefined}
       onClick={(e) => {
         origenAnular.current = e.currentTarget;
         setAnulando(true);
@@ -111,9 +113,12 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   return (
     <>
       {lugar === "pie" ? (
-        <div data-guia="orden.acciones" className="flex w-full flex-wrap items-center gap-3">
+        // En el celular las acciones van en una columna, cada una a todo el ancho (con `flex-wrap` caían en cuatro filas de largos distintos y
+        // «Editar» quedaba suelto; hallazgo 13 de la auditoría del celular, 2026-10-23): las normales arriba, con la principal al final, y
+        // «Anular orden» aparte, debajo. En escritorio no cambia: anular a la izquierda y el resto a la derecha.
+        <div data-guia="orden.acciones" className="flex w-full flex-wrap items-center gap-3 max-sm:flex-col max-sm:items-stretch">
           {anular}
-          <div className="ml-auto flex flex-wrap items-center gap-3">
+          <div className="ml-auto flex flex-wrap items-center gap-3 max-sm:order-1 max-sm:ml-0 max-sm:flex-col max-sm:items-stretch">
             {imprimir}
             {gastoViaje}
             {puedeEditar && <BotonEditarOrden id={orden.id} />}

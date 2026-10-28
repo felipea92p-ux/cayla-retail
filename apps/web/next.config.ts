@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // El optimizador de imágenes solo acepta fotos del Storage PÚBLICO de nuestro Supabase (las de prendas,
 // `retail-productos-fotos`), nada de otro host: sin lista cerrada, `/_next/image?url=…` serviría de proxy a
@@ -8,7 +9,17 @@ import type { NextConfig } from "next";
 // Las demás imágenes de Storage siguen `unoptimized`.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
 
+// La versión de ESTA compilación: el commit que Vercel construye (su `VERCEL_GIT_COMMIT_SHA`; si faltara, el id del despliegue).
+// Queda grabada en el JavaScript de cada pestaña y en la ruta `/api/version`; cuando difieren, la pestaña avisa «hay una versión
+// nueva» (ADR-0422, `lib/version-nueva-reglas.ts`). Fuera de Vercel (`next dev`) vale «desarrollo» y no se compara con nada.
+const versionDeEstaCompilacion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "desarrollo";
+
 const nextConfig: NextConfig = {
+  // En qué entorno corre esta versión (ADR-0424), escrito dentro del código al armarla: Sentry solo avisa en `production`. Vercel da
+  // `VERCEL_ENV` al armar (production, preview); en local no existe y queda «local». Se escribe aquí y no se lee de
+  // `NEXT_PUBLIC_VERCEL_ENV` porque esa depende de una casilla del panel de Vercel.
+  env: { NEXT_PUBLIC_BUILD_ID: versionDeEstaCompilacion, NEXT_PUBLIC_ENTORNO: process.env.VERCEL_ENV ?? "local" },
+
   images: {
     remotePatterns: supabaseUrl
       ? [
@@ -94,6 +105,14 @@ const nextConfig: NextConfig = {
       { source: "/inventario/frescura", destination: "/gestion/frescura", permanent: false },
       { source: "/inventario/frescura/tienda", destination: "/gestion/frescura/tienda", permanent: false },
       { source: "/inventario/plan-del-piso", destination: "/gestion/plan-del-piso", permanent: false },
+      // ADR-0430 (2026-10-16): todo lo de la tienda online se juntó en el grupo «Tienda web». Los enlaces viejos siguen llegando, con su
+      // query intacta (`?pedido=`, `?pestana=`, `?r=`): un pedido compartido por WhatsApp antes del cambio abre igual. La pestaña
+      // «Tienda web» de Configuración es ahora Tienda web ▸ Ajustes; solo se desvía esa pestaña, el resto de Configuración no se toca.
+      { source: "/vender/pedidos-web", destination: "/tienda-web/pedidos", permanent: false },
+      { source: "/productos/vitrina", destination: "/tienda-web/vitrina", permanent: false },
+      { source: "/productos/vitrina/:resto*", destination: "/tienda-web/vitrina/:resto*", permanent: false },
+      { source: "/clientas/recomendaciones", destination: "/tienda-web/recomendaciones", permanent: false },
+      { source: "/configuracion", has: [{ type: "query", key: "tab", value: "tienda-web" }], destination: "/tienda-web/ajustes", permanent: false },
       // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/
       // Tallas/Tejidos/Patrones/Etiquetas eran 5 pantallas y 5 filas de menú
       // separadas para lo que en el fondo es un solo tipo de pantalla
@@ -105,7 +124,11 @@ const nextConfig: NextConfig = {
       { source: "/productos/tallas", destination: "/productos/atributos?tipo=tallas", permanent: false },
       { source: "/productos/tejidos", destination: "/productos/atributos?tipo=tejidos", permanent: false },
       { source: "/productos/patrones", destination: "/productos/atributos?tipo=patrones", permanent: false },
-      { source: "/productos/etiquetas", destination: "/productos/atributos?tipo=etiquetas", permanent: false },
+      // Los sellos dejaron de ser una pestaña de Atributos y Campañas dejó de ser una fila aparte (Felipe 2026-10-22): las dos viven en
+      // Catálogo ▸ Insignias, con las campañas como primera vista. Los enlaces guardados a cualquiera de las tres siguen llegando.
+      { source: "/productos/etiquetas", destination: "/productos/insignias?vista=rotacion", permanent: false },
+      { source: "/productos/atributos", has: [{ type: "query", key: "tipo", value: "etiquetas" }], destination: "/productos/insignias?vista=rotacion", permanent: false },
+      { source: "/productos/campanas", destination: "/productos/insignias", permanent: false },
       // Facturación pasó a llamarse Comprobantes (2026-09-22, D-60): el envío a SUNAT es automático y
       // la pantalla es de series. Los enlaces viejos siguen llegando: la lista del mes es «Emitidos»,
       // y el Resumen y los códigos de descuento (que ya no se muestran) caen en Series.
@@ -119,4 +142,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry (ADR-0424): al terminar el armado sube los mapas del código a Sentry (así un aviso dice la línea exacta, no la del código
+// comprimido) y después los borra, para no publicarlos. Necesita `SENTRY_AUTH_TOKEN`, que Felipe pone en Vercel: sin esa llave
+// (en local, en el CI) no genera ni sube mapas y el armado sigue igual. Lo que hace Sentry en ejecución está en `instrumentation*.ts`.
+export default withSentryConfig(nextConfig, {
+  org: "cayla",
+  project: "cayla-retail",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
+  widenClientFileUpload: true,
+  silent: !process.env.CI,
+  telemetry: false,
+});

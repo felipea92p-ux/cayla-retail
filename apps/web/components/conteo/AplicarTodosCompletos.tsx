@@ -1,9 +1,10 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Flag, ListChecks } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import type { ControlConteo } from "@/components/conteo/control-conteo";
 import { Modal } from "@/components/ui/Modal";
+import { Aviso } from "@/components/ui/Aviso";
 
 /* ====================================================================
    «Aplicar todos completos» · llenar de un golpe lo que CAYLA esperaba (Inventario ▸ Conteo ▸ Contar, 2026-10-01)
@@ -67,10 +68,7 @@ export function ConfirmarAplicarTodos({
       {(cerrar) => (
         <div className="space-y-4">
           {avisoArranque && (
-            <p role="status" className="flex items-start gap-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-              <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0" />
-              {avisoArranque}
-            </p>
+            <Aviso tono="atencion">{avisoArranque}</Aviso>
           )}
           <p className="text-sm text-tinta/80">{textos.detalle}</p>
           {textos.reconteo && <p className="nota-cayla">{textos.reconteo}</p>}

@@ -1,7 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { Lock } from "lucide-react";
+import { FichaDeConsumoHoja } from "@/components/orden-produccion/FichaDeConsumoHoja";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { Boton } from "@/components/ui/campos";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -11,13 +16,15 @@ import { rangoDePrecios, tonoDeBarra } from "@/lib/matriz-ficha-reglas";
 import { useSubirFotos, type FotoSubida } from "./useSubirFotos";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
+import type { PuertaDeLaFicha } from "@/lib/ficha-consumo-datos";
 
 // Panel del taller (maqueta B, Felipe 2026-10-02): la columna derecha que usa el ancho que ADR-0257 dejó libre. Es la identidad
 // visual de la prenda en vivo —la foto del color elegido, sus colores, el stock por talla de ese color, el precio y lo que le falta—
 // para que quien ajusta precios o stock a la izquierda vea de un vistazo qué le falta sin bajar a buscarlo.
 //
 // NO es un segundo lugar para guardar (ADR-0257: guardar es solo la barra de abajo). Lo que hace aquí es lo mismo que hace la
-// izquierda, por el mismo camino: el stepper de cada talla es el ajuste de `useStockFicha` (con el motivo de la visita), y
+// izquierda, por el mismo camino: el stock de cada talla se ve con su candado (tocarlo abre «Ajustar stock» en Existencias, ADR-0494), y
 // «Cambiar foto» sube la foto con la misma revisión de siempre (`useSubirFotos`, ADR-0228) y la deja en la ficha hasta «Revisar y
 // guardar», como cualquier foto de la sección «Fotos».
 
@@ -30,10 +37,12 @@ export function PanelDelTaller({
   fotosVista,
   onFotosSubidas,
   stock,
-  onAbrirModal,
+  onAjustar,
   pendientes,
   completadaAqui,
   onIrPendiente,
+  campana = null,
+  fichaConsumo = null,
   deshabilitado,
 }: {
   ctx: ContextoFicha;
@@ -47,15 +56,22 @@ export function PanelDelTaller({
   /** Fotos recién subidas desde el panel: van al color mostrado y pasan a ser su portada. */
   onFotosSubidas: (nuevas: FotoSubida[]) => void;
   stock: StockFicha;
-  onAbrirModal: (color: string | null) => void;
+  /** El candado de una talla guardada: abre «Ajustar stock» (la puerta a Existencias, ADR-0494). `etiqueta` es «Blanco · S». */
+  onAjustar: (varianteId: string, etiqueta: string) => void;
   pendientes: readonly PendienteFicha[];
   completadaAqui: boolean;
   onIrPendiente: (p: PendienteFicha, colorSinFoto: string | null) => void;
+  /** Lo que cobra la caja hoy con la campaña de la prenda, o lo que cobrará al guardar (`fraseCajaCobra`, ADR-0472). `null` = sin
+   *  campaña: la tarjeta dice solo el precio, como siempre. */
+  campana?: { texto: string; alGuardar: boolean } | null;
+  /** La puerta de la ficha de consumo (ADR-0513): con ella se dibuja la tarjeta que abre su hoja. `null` = sin tarjeta. */
+  fichaConsumo?: (PuertaDeLaFicha & { productoId: string; referencia: string }) | null;
   deshabilitado: boolean;
 }) {
   const n = ctx.nombres;
+  const [fichaAbierta, setFichaAbierta] = useState(false);
   const archivo = useRef<HTMLInputElement>(null);
-  const { elegir, ocupado, revision } = useSubirFotos({ onSubidas: onFotosSubidas });
+  const { elegir, ocupado } = useSubirFotos({ onSubidas: onFotosSubidas });
 
   const vista = vistaDeFotos(colores, fotosVista as FotoLocal[]);
   const tarjeta = vista.tarjetas.find((t) => t.codigo === colorMostrado);
@@ -73,7 +89,7 @@ export function PanelDelTaller({
 
   const precios = filas
     .filter((f) => f.activo)
-    .map((f) => Number(f.precio))
+    .map((f) => numeroDeMonto(f.precio))
     .filter((p) => p > 0);
   const primerSinFoto = colores.find(sinFoto) ?? null;
   const pendiente = pendientes[0];
@@ -160,59 +176,58 @@ export function PanelDelTaller({
               const esperando = guardada && stock.cargando;
               const talla = n.talla(f.tallaId) || "Única";
               const nombre = `${n.color(colorMostrado)} · ${talla}`;
-              const puedeBajar = guardada ? stock.puedeAjustar && stock.puedeBajar(f.id!) : u > 0;
-              // ADR-0328: con la carga inicial cerrada, una talla que nunca estuvo aquí suma solo con «Encontré prendas».
-              const bloqueo = guardada ? stock.bloqueoDeSubida(f.id!) : stock.bloqueoNuevas;
-              // Lo tocado y sin guardar, en ámbar como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
-              const cambiada = !esperando && (guardada ? u !== stock.numeroGuardado(f.id!) : u > 0);
-              // Sin «Ajustar stock» no hay stepper, ni en una variante nueva (no se le podría cargar stock inicial).
+              // Lo puesto en una variante NUEVA y sin guardar va en ámbar, como en la matriz: el panel no puede decir «8» como si ya estuviera guardado.
+              const cambiada = !guardada && u > 0;
+              const tituloNumero = cambiada ? "Entra como stock inicial al guardar" : undefined;
+              // Sin «Ajustar stock» no hay candado ni stepper, ni en una variante nueva (no se le podría cargar stock inicial).
               const conBotones = stock.puedeAjustar;
               return (
                 <div key={f.clave} className="taller-barra-talla">
                   <b className="min-w-0 text-[12px] text-taupe">{talla}</b>
-                  <div className="taller-pista">
-                    <div
-                      className="taller-relleno"
-                      data-tono={tonoDeBarra(u)}
-                      role="progressbar"
-                      aria-valuenow={u}
-                      aria-valuemin={0}
-                      aria-valuemax={max}
-                      aria-label={`${nombre}: ${u} ${u === 1 ? "unidad" : "unidades"}`}
-                      style={{ width: esperando ? 0 : `${Math.round((u / max) * 100)}%` }}
-                    />
-                  </div>
-                  <span
-                    className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`}
-                    title={cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined}
-                  >
-                    {esperando ? "…" : u}
-                  </span>
+                  {/* La barra a escala del sistema (ronda 14 de /unificar): en tinta, ámbar si quedan pocas (lo pinta la pantalla). */}
+                  <BarraAvance
+                    pct={esperando ? 0 : (u / max) * 100}
+                    tono={tonoDeBarra(u) === "bajo" ? "ambar" : "tinta"}
+                    etiqueta={nombre}
+                    texto={`${u} ${u === 1 ? "unidad" : "unidades"}`}
+                  />
                   {conBotones ? (
-                    <span className="taller-stepper" data-mini="true">
-                      <button
-                        type="button"
-                        aria-label={`Una menos de ${nombre}`}
-                        disabled={deshabilitado || esperando || !puedeBajar}
-                        onClick={() => (guardada ? stock.paso(f.id!, -1) : stock.pasoNueva(f.clave, -1))}
+                    // El número va dentro del paso de cantidad (ADR-0358, ronda 17): ocupa las dos últimas columnas de la fila. Una talla
+                    // guardada lleva candado (se ajusta en Existencias); solo una variante nueva lleva − y + (sus unidades de partida).
+                    guardada ? (
+                      <PasoCantidad
+                        tamano="celda"
+                        sinTab
+                        className="col-span-2 cursor-pointer justify-self-end"
+                        title="Tiene candado: el stock se ajusta en Existencias"
+                        onClick={() => onAjustar(f.id!, nombre)}
+                        menos={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${nombre}` }}
+                        mas={{ onClick: () => {}, bloqueado: true, etiqueta: `Ajustar stock de ${nombre}` }}
                       >
-                        −
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={bloqueo ? `Una más de ${nombre}: ${bloqueo}` : `Una más de ${nombre}`}
-                        title={bloqueo ?? undefined}
-                        disabled={deshabilitado || esperando || !!bloqueo}
-                        onClick={() => {
-                          if (!guardada) return stock.pasoNueva(f.clave, 1);
-                          if (stock.paso(f.id!, 1).abrirModal) onAbrirModal(f.guardada!.colorCodigo);
-                        }}
+                        <span className="inline-flex items-center justify-center gap-1">
+                          {esperando ? "…" : u}
+                          <Lock aria-hidden className="h-3 w-3 text-taupe" />
+                        </span>
+                      </PasoCantidad>
+                    ) : (
+                      <PasoCantidad
+                        tamano="celda"
+                        className="col-span-2 justify-self-end"
+                        menos={{ onClick: () => stock.pasoNueva(f.clave, -1), deshabilitado: deshabilitado || u <= 0, etiqueta: `Una menos de ${nombre}` }}
+                        mas={{ onClick: () => stock.pasoNueva(f.clave, 1), deshabilitado, etiqueta: `Una más de ${nombre}` }}
                       >
-                        +
-                      </button>
-                    </span>
+                        <span className={cambiada ? "text-ambar-profundo" : undefined} title={tituloNumero}>
+                          {u}
+                        </span>
+                      </PasoCantidad>
+                    )
                   ) : (
-                    <span />
+                    <>
+                      <span className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`} title={tituloNumero}>
+                        {esperando ? "…" : u}
+                      </span>
+                      <span />
+                    </>
                   )}
                 </div>
               );
@@ -222,9 +237,30 @@ export function PanelDelTaller({
       )}
 
       {precios.length > 0 && (
-        <div data-guia="editar.precio" className="taller-tarjeta flex items-center justify-between">
-          <span className="taller-tit">Precio de la prenda</span>
-          <span className="taller-rango">{rangoDePrecios(precios).replace("–", " – ")}</span>
+        <div data-guia="editar.precio" className="taller-tarjeta">
+          <div className="flex items-center justify-between">
+            <span className="taller-tit">Precio de la prenda</span>
+            <span className="taller-rango">{rangoDePrecios(precios).replace("–", " – ")}</span>
+          </div>
+          {/* La campaña no toca el precio guardado: la caja la descuenta al cobrar. Sin esta línea, poner una etiqueta con descuento
+              parecía no hacer nada (ADR-0472). Lo que cambia al guardar va en ámbar, como todo lo cambiado de la ficha. */}
+          {campana && (
+            <p role="status" className={`mt-2 border-t border-sand pt-2 text-[12.5px] leading-snug ${campana.alGuardar ? "text-ambar-profundo" : "text-tinta/75"}`}>
+              {campana.texto}
+            </p>
+          )}
+        </div>
+      )}
+
+      {fichaConsumo && (
+        <div data-guia="editar.ficha-consumo" className="taller-tarjeta">
+          <div className="flex items-center justify-between gap-2">
+            <span className="taller-tit">Ficha de consumo</span>
+            <Boton type="button" peso="fantasma" aria-haspopup="dialog" onClick={() => setFichaAbierta(true)}>
+              Abrir la ficha
+            </Boton>
+          </div>
+          <p className="mt-2 text-[12.5px] leading-snug text-tinta/75">Cuánta tela y qué avíos lleva una prenda. Las órdenes de producción la proponen solas.</p>
         </div>
       )}
 
@@ -246,7 +282,9 @@ export function PanelDelTaller({
       )}
 
       <p data-guia="editar.guardar" className="text-center text-[11.5px] text-tinta/45">Guardar sigue abajo, en la barra.</p>
-      {revision}
+      {fichaAbierta && fichaConsumo && (
+        <FichaDeConsumoHoja tallerId={fichaConsumo.tallerId} tallerNombre={fichaConsumo.tallerNombre} productoId={fichaConsumo.productoId} referencia={fichaConsumo.referencia} insumos={fichaConsumo.insumos} onClose={() => setFichaAbierta(false)} />
+      )}
     </aside>
   );
 }

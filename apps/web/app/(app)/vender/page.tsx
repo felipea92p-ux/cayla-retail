@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
 import { accesosVisibles } from "@/lib/vender-accesos";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -9,6 +9,8 @@ import { agruparStockPorSede } from "@/lib/stock-por-sede";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { TicketPorSede } from "@/components/punto-de-venta/TicketPorSede";
@@ -21,7 +23,7 @@ import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
 import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { elegirComprobante, type VentaCruda } from "@/lib/ventas-historial-reglas";
 import { diaLima } from "@/lib/fechas-lima";
-import { tiposDeComprobanteDeLaSede, type CampanaLinea } from "@/lib/vender-reglas";
+import { leerMaquinasDeCobro, tiposDeComprobanteDeLaSede, type CampanaLinea } from "@/lib/vender-reglas";
 import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
@@ -61,8 +63,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries] = await Promise.all([
-    getCatalogo(),
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries, resMaquinas] = await Promise.all([
+    // Lo que se puede vender AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima, y en Lima con su insignia.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
     getUbicaciones(),
@@ -71,7 +74,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // a verificar `registrar_venta`. Es un dato secundario: si no carga, se vende sin
     // ella y se AVISA (abajo), en vez de tumbar la caja. Mientras la función no exista en
     // producción (PGRST202) no hay campañas que aplicar: sin aviso.
-    supabase.rpc("campanas_vigentes"),
+    // Por páginas: una campaña de todas las categorías pasa de las 1.000 filas que PostgREST entrega (2.518 en TRU el 2026-10-23).
+    leerCampanasVigentes(supabase, persona.ubicacionId),
     // Listas cerradas del modal «Prenda sin registrar» (ADR-0179), las mismas que usa Ventas sin registrar al corregir (ADR-0369).
     // Si alguna no carga, la caja sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
     leerListasPrendaLibre(),
@@ -95,7 +99,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     getPedidosConCliente(persona.ubicacionId),
     // Precio propio de esta tienda (Felipe 2026-10-09): las prendas que aquí se venden a otro precio. Si la lectura falla, se
     // muestra el general y `registrar_venta` rechaza el cobro («el precio cambió») antes de cobrar mal: nunca un cobro equivocado.
-    supabase.rpc("fn_precios_en_sede", { p_ubicacion_id: persona.ubicacionId }),
+    leerPreciosPropiosDeSede(supabase, persona.ubicacionId),
     // La ficha de cada color (ADR-0316; Felipe 2026-10-10): qué transmite y con qué se combina, para «Todo de la prenda». Secundario y
     // chico (~90 filas): si falla, la hoja no dice nada del color y se vende igual. La lee cualquier sesión (`colores_select`).
     supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
@@ -104,6 +108,10 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     // Las series activas de esta sede: la hoja de cobro solo ofrece los comprobantes que la sede puede emitir (/chaos 2026-10-13,
     // «Nota de venta» sin serie). Secundario: si falla, se ofrecen los tres como antes y cobrar dice qué falta.
     supabase.from("series_comprobantes").select("tipo").eq("ubicacion_id", persona.ubicacionId).is("archivada_at", null),
+    // Las máquinas de cobro de esta tienda (ADR-0429, 20261016173000): con tarjeta o QR el pago nace con la de defecto y, donde hay dos
+    // (Vendemás e Izipay para la tarjeta en TRU y AQP), la hoja deja cambiarla con un toque. Si la función no existe todavía o falla,
+    // la hoja no pregunta y la base sella la máquina por defecto sola.
+    supabase.rpc("fn_pos_maquinas_de_sede" as never, { p_ubicacion_id: persona.ubicacionId } as never),
   ]);
   const coloresConFicha: ColorConFicha[] = (tolerar(resColores, "las fichas de color").datos ?? []).map((c) => ({
     codigo: c.codigo,
@@ -150,6 +158,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       categoriaFamilia: v.categoriaFamilia ?? null,
       fueraDeMotores: v.categoriaFamilia ? familiasFueraDeMotores.has(v.categoriaFamilia) : false,
       marca: v.marca,
+      empresa: v.empresa ?? null,
       precio: preciosDeEstaSede.get(v.varianteId) ?? v.precio,
       precioDeSede: preciosDeEstaSede.has(v.varianteId),
       campana: campanaPorVariante.get(v.varianteId) ?? null,
@@ -269,6 +278,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         verMesaRegularizar={modulos.includes("existencias")}
         club={club}
         qrDisponible={resQr.data === true}
+        maquinasCobro={leerMaquinasDeCobro(resMaquinas.error ? [] : ((resMaquinas.data ?? []) as Record<string, unknown>[]))}
         tiposComprobante={tiposDeComprobanteDeLaSede(resSeries.error ? null : (resSeries.data ?? null))}
         redondeoEfectivoDisponible={resRedondeo.data === true}
         pedirAOtraSede={

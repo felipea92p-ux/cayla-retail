@@ -30,9 +30,12 @@
        encima de «vendiste · tienes» del de arriba (Felipe 2026-10-12). */
     .al-lista > .al-f{flex:none}
     .al-nota{margin:-4px 0 10px}
+    .al-sin-registro{margin:10px 0 0}
     .al-mas{position:sticky;bottom:0;flex:none;margin-top:-34px;min-height:44px;padding-top:18px;border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
       color:var(--color-taupe);background:linear-gradient(to bottom,transparent,var(--color-papel) 62%)}
-    .al-mas:hover{color:var(--color-tinta)}
+    @media (hover: hover) {
+      .al-mas:hover{color:var(--color-tinta)}
+    }
     .al-mas:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px;border-radius:9px}
     /* La lista a la izquierda y el panel del tipo a la derecha, fijo mientras se recorre; en una pantalla angosta, uno debajo del otro. */
     .pedir-ad{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,1fr);gap:14px;align-items:start}
@@ -52,14 +55,20 @@
     .al-cab .nav-et{position:absolute;left:calc(var(--nav) * 100%);transform:translateX(-50%);font-weight:600;color:var(--color-tinta);white-space:nowrap}
     .al-f{width:100%;border:0;background:transparent;text-align:left;padding:6px 8px;border-radius:9px;cursor:pointer;font:inherit;color:inherit;
       min-height:24px;transition:background-color 160ms var(--ease-cayla)}
-    .al-f:hover,.al-f[aria-pressed="true"]{background:var(--color-hueso)}
+    .al-f[aria-pressed="true"] {background:var(--color-hueso)}
+    @media (hover: hover) {
+      .al-f:hover {background:var(--color-hueso)}
+    }
     .al-f:focus-visible{outline:2px solid var(--color-tinta);outline-offset:-2px}
     .al-f .ico{display:grid;place-items:center;color:var(--color-taupe)}
     .al-f .n{min-width:0;line-height:1.2}
     .al-f .n b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .al-f .n small{font-size:11.5px;color:var(--color-tinta-60)}
     .al-f .p{position:relative;height:10px;border-radius:5px;background:var(--color-hueso)}
-    .al-f:hover .p,.al-f[aria-pressed="true"] .p{background:var(--color-papel)}
+    .al-f[aria-pressed="true"] .p {background:var(--color-papel)}
+    @media (hover: hover) {
+      .al-f:hover .p {background:var(--color-papel)}
+    }
     .al-f .p i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;width:calc(var(--n) * 100%);min-width:3px;background:var(--color-grafico-neutro)}
     .al-f.pide .p i{background:color-mix(in srgb,var(--color-ambar) 70%,var(--color-papel))}
     .al-f .p .nav{position:absolute;top:-6px;bottom:-6px;left:calc(var(--nav) * 100%);border-left:1.5px dashed var(--color-tinta);pointer-events:none}

@@ -16,7 +16,7 @@
 // «por ejemplo») se resuelve con `sugerir-fijo`, no agregando el archivo a la deuda.
 
 /** Cuántos archivos siguen con un ejemplo estático sin resolver. Baja a medida que se hacen; subir es romper la regla. */
-export const PENDIENTES_HOY = 59;
+export const PENDIENTES_HOY = 53;
 
 /** Rutas relativas a `apps/web/`. */
 export const ARCHIVOS_PENDIENTES: readonly string[] = [
@@ -30,13 +30,11 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/ClientaFichaModal.tsx",
   "components/ColoresLista.tsx",
   "components/CompraDetallePanel.tsx",
-  "components/CompraFormV2.tsx",
   "components/ComprobanteProduccionForm.tsx",
   "components/ComprobantesPanel.tsx",
   "components/ComprobantesProduccionPanel.tsx",
   "components/CotizacionesMaquilaPanel.tsx",
   "components/EditarMarcaModal.tsx",
-  "components/EtiquetasLista.tsx",
   "components/FamiliasLista.tsx",
   "components/FiltrosCompras.tsx",
   "components/FiltrosMovimientos.tsx",
@@ -47,11 +45,9 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/MediosDePago.tsx",
   "components/MovimientoCajaModal.tsx",
   "components/MovimientosLista.tsx",
-  "components/NotasCreditoPanel.tsx",
   "components/NuevaProformaModal.tsx",
   "components/PagoPiezas.tsx",
   "components/PatronesLista.tsx",
-  "components/PrendasDeEtiquetaModal.tsx",
   "components/ProductoForm.tsx",
   "components/ProveedorModal.tsx",
   "components/ProveedorProduccionModal.tsx",
@@ -61,7 +57,6 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   "components/RecepcionEnvio.tsx",
   "components/RecibirComprobanteModal.tsx",
   "components/RegistrarGastoModal.tsx",
-  "components/RegistrarNotaCreditoModal.tsx",
   "components/RolesModales.tsx",
   "components/SaldoFavorAcciones.tsx",
   "components/SaldoFavorProveedor.tsx",
@@ -84,5 +79,4 @@ export const ARCHIVOS_PENDIENTES: readonly string[] = [
   // ---- components/frescura/ ----
   "components/frescura/FrescuraPanel.tsx",
   // ---- components/punto-de-venta/ ----
-  "components/punto-de-venta/Esperas.tsx",
 ];

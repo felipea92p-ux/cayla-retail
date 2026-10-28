@@ -225,13 +225,15 @@ export function ComprobanteProduccionForm({
 
         <fieldset data-guia="prod-factura-nueva.lineas">
           <legend className="label-cayla text-[11px] text-tinta/65">Qué se compró · costo unitario sin IGV</legend>
-          <ul className="mt-2 space-y-2">
+          <ul className="mt-2 space-y-2 max-sm:space-y-3">
             {lineas.map((l, i) => {
               const insumo = insumos.find((x) => x.id === l.insumoId);
               const subtotalLinea = Number(l.cantidad.replace(",", ".")) > 0 && l.costo.trim() !== "" ? redondear2(Number(l.cantidad.replace(",", ".")) * Number(l.costo.replace(",", "."))) : null;
               return (
-                <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_5rem_5rem_auto]">
-                  <div className="space-y-1.5">
+                // En el celular la línea ocupa dos filas: arriba qué se compró (a todo el ancho) y abajo cantidad, costo y ✕. Con las cuatro
+                // columnas en una fila la descripción se quedaba con ~105 px: el combo decía «Otro c…» y «Qué se compró» salía cortado.
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] max-sm:border-b max-sm:border-tinta/10 max-sm:pb-3 max-sm:last:border-b-0 max-sm:last:pb-0">
+                  <div className="space-y-1.5 max-sm:col-span-3">
                     <Desplegable
                       valor={l.insumoId ?? (l.descripcion || l.insumoId === null ? CONCEPTO_LIBRE : "")}
                       onValor={(v) => cambiarLinea(i, v === CONCEPTO_LIBRE ? { insumoId: null } : { insumoId: v, descripcion: "" })}

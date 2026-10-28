@@ -1,26 +1,36 @@
+import * as Sentry from "@sentry/nextjs";
+
 /**
- * Errores del servidor que no pueden perderse (principio 9: «todo puede fallar… nunca pierde datos»).
+ * Errores que no pueden perderse (principio 9: «todo puede fallar… nunca pierde datos»), y el aviso a Felipe (ADR-0424).
  *
  * EL PROBLEMA. En Facturación había dos maneras de perder un error. La primera: un `catch` que
  * reemplaza la causa real por un texto genérico (una falla de DNS contra Lucode se leía «no respondió a
  * tiempo»). La segunda, peor: Lucode o SUNAT ya tienen el documento pero la base no lo guardó, y el único
  * aviso era el mensaje en la pantalla de quien vendía. Si la colaboradora lo cerraba, no quedaba rastro.
  *
- * LO QUE HACE. Escribe UNA línea JSON en los logs del servidor (Vercel), que se busca con
- * `vercel logs --query lucode`. Nada más: no cambia la respuesta a la pantalla ni reintenta.
+ * LO QUE HACE `capturarError`. Escribe UNA línea JSON en los logs del servidor (Vercel), que se busca con
+ * `vercel logs --query lucode`, y desde el 2026-10-15 manda el mismo error a Sentry, que guarda el historial y le escribe a
+ * Felipe (era «el paso siguiente» que este comentario anunciaba: los logs de Vercel duran poco y no avisan a nadie). Los de un
+ * mismo `donde` se agrupan en un solo aviso. No cambia la respuesta a la pantalla ni reintenta.
  *
- * LO QUE NO HACE, Y ES DELIBERADO. No guarda historial. Los logs de Vercel duran poco, así que sirven para
- * diagnosticar el día del problema, no como archivo. Si hace falta memoria larga o alertas, el paso siguiente
- * es Sentry o un drenaje de logs, y esta función es el único lugar que habría que cambiar.
+ * `contexto` lleva identificadores (id, serie-número, estado): NUNCA el DNI, el RUC ni el nombre de la clienta. Viaja a Sentry tal
+ * cual; el mensaje del error, en cambio, pasa por la limpieza de `errores-reglas.ts` (puede traer lo que respondió Lucode).
  *
- * `contexto` lleva identificadores (id, serie-número, estado): NUNCA el DNI, el RUC ni el nombre de la clienta.
+ * Es del SERVIDOR: importa Sentry de entrada. Lo del navegador (las barreras de error) está en `errores-navegador.ts`, que lo carga
+ * después, para no sumarle peso a cada pantalla.
  */
 
 type ErrorSuelto = { message?: unknown; code?: unknown; name?: unknown; cause?: unknown };
 
 export function capturarError(donde: string, error: unknown, contexto: Record<string, unknown> = {}): void {
+  const descripcion = describir(error);
   // `donde` y la descripción van después de `contexto` para que el contexto no los pise.
-  console.error(JSON.stringify({ nivel: "error", ...contexto, donde, ...describir(error) }));
+  console.error(JSON.stringify({ nivel: "error", ...contexto, donde, ...descripcion }));
+  Sentry.captureException(error instanceof Error ? error : new Error(descripcion.mensaje), {
+    fingerprint: ["capturarError", donde],
+    tags: { donde },
+    contexts: { detalle: { ...contexto, codigo: descripcion.codigo, causa: descripcion.causa } },
+  });
 }
 
 // Sirve igual para un `Error` lanzado que para el error que devuelve supabase-js ({ message, code }).

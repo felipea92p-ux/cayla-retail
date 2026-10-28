@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { Flag, FunnelX, Receipt } from "lucide-react";
 import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
 import { getDetalleCierre, type DetalleCierre, type EventoCaja } from "@/app/actions/caja";
@@ -14,9 +15,10 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { RepartoEmpresas } from "@/components/RepartoEmpresas";
 
 function money(n: number) {
-  return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function hora(iso: string) {
@@ -178,6 +180,10 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
       </Tarjeta>
 
       <div className="grid gap-3.5 @4xl:grid-cols-3">
+        {/* De quién fue lo vendido (ADR-0532): solo en Lima, donde CAYLA y CLAURE comparten la caja. */}
+        {detalle?.reparto && (
+          <RepartoEmpresas enHoja className="@4xl:col-span-3" reparto={detalle.reparto} frase="Lo vendido en este turno, prenda por prenda. Sin las ventas anuladas." />
+        )}
         <Tarjeta titulo="Qué se cobró" nota={detalle && detalle.cobros.total > 0 ? money(detalle.cobros.total) : undefined}>
           {detalle ? <CobrosPorMedio cobros={detalle.cobros} /> : esperando ? <p className="py-8 text-center text-sm text-tinta/60">Cargando lo cobrado…</p> : null}
         </Tarjeta>
@@ -335,7 +341,6 @@ const MARCA: Record<Exclude<MarcaDelDia["tipo"], "apertura" | "cierre">, string>
 
 /** Las ventas de cada hora del turno en barras, con las marcas del día arriba (se abre, se cierra, sale plata, un cambio). */
 function DiaDelTurno({ dia }: { dia: ReturnType<typeof diaDelTurno> }) {
-  const maximo = Math.max(...dia.horas.map((h) => h.total));
   const resumen = dia.horas.filter((h) => h.total > 0).map((h) => `${h.etiqueta}: ${money(h.total)}`).join(", ");
   if (dia.ventas === 0) {
     return (
@@ -357,28 +362,15 @@ function DiaDelTurno({ dia }: { dia: ReturnType<typeof diaDelTurno> }) {
             ),
           )}
         </div>
-        <div className="mt-5 flex h-24 items-end gap-1 border-b border-sand" aria-hidden>
-          {dia.horas.map((h) => (
-            <div key={h.hora} className="relative flex h-full flex-1 items-end" title={`${h.etiqueta}: ${money(h.total)}`}>
-              <div
-                className={`w-full rounded-t-md ${h.total === 0 ? "bg-sand" : h.pico ? "bg-tinta" : "bg-taupe/35"}`}
-                style={{ height: h.total === 0 ? "2px" : `${Math.max(4, (h.total / maximo) * 100)}%` }}
-              />
-              {h.pico && (
-                <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-semibold text-tinta" style={{ bottom: `calc(${Math.max(4, (h.total / maximo) * 100)}% + 4px)` }}>
-                  {money(h.total)}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="mt-1.5 flex gap-1 text-[11px] text-tinta/60" aria-hidden>
-          {dia.horas.map((h, i) => (
-            <span key={h.hora} className="min-w-0 flex-1 whitespace-nowrap">
-              {i % 2 === 0 ? h.etiqueta : ""}
-            </span>
-          ))}
-        </div>
+        {/* Las barras por tiempo del sistema (ronda 14): el pico en tinta con su monto; cada hora dice lo suyo al pasar el mouse. */}
+        <BarrasTiempo
+          className="mt-5"
+          alto={112}
+          decorativa
+          barras={dia.horas.map((h, i) => ({ clave: String(h.hora), valor: h.total, etiqueta: i % 2 === 0 ? h.etiqueta : "", tip: `${h.etiqueta}: ${money(h.total)}`, cifra: money(h.total) }))}
+          destacada={dia.horas.find((h) => h.pico) ? String(dia.horas.find((h) => h.pico)!.hora) : null}
+          etiqueta="Ventas por hora"
+        />
       </div>
       <dl className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
         <Cifra n={dia.ventas} texto={dia.ventas === 1 ? "venta" : "ventas"} />
@@ -463,7 +455,8 @@ function CascadaDelEfectivo({ c, estado }: { c: ReturnType<typeof cascadaEfectiv
   );
 }
 
-/** Lo cobrado por medio de pago: una dona con el total al centro y, debajo, cada medio con su monto, su % y cuántas ventas. */
+/** Lo cobrado por medio de pago: el total arriba, la barra apilada del sistema (ronda 14 de /unificar: la dona pasó a la barra que
+ *  reparte un total, como «Cómo se pagó» del Historial) y, debajo, cada medio con su monto, su % y cuántas ventas. */
 function CobrosPorMedio({ cobros }: { cobros: DetalleCierre["cobros"] }) {
   if (cobros.medios.length === 0) {
     return (
@@ -472,25 +465,18 @@ function CobrosPorMedio({ cobros }: { cobros: DetalleCierre["cobros"] }) {
       </Vacio>
     );
   }
-  const r = 56;
-  const C = 2 * Math.PI * r;
-  // Cada arco empieza donde terminó el anterior: el desfase de uno es la suma de los largos de los que lo preceden.
-  const arcos = cobros.medios.map((m, i) => ({ m, parte: (m.monto / cobros.total) * C, antes: cobros.medios.slice(0, i).reduce((a, x) => a + (x.monto / cobros.total) * C, 0) }));
   return (
     <>
-      <svg viewBox="0 0 150 150" className="mx-auto block h-[150px] w-[150px]" role="img" aria-label={`Total cobrado ${money(cobros.total)}. ${cobros.medios.map((m) => `${m.texto} ${m.pct} %`).join(", ")}`}>
-        <circle cx="75" cy="75" r={r} fill="none" strokeWidth="16" style={{ stroke: "var(--color-sand)" }} />
-        {arcos.map(({ m, parte, antes }) => {
-          const largo = Math.max(0, parte - (cobros.medios.length > 1 ? 3 : 0));
-          return <circle key={m.clave} cx="75" cy="75" r={r} fill="none" strokeWidth="16" strokeDasharray={`${largo} ${C - largo}`} strokeDashoffset={-antes} transform="rotate(-90 75 75)" style={{ stroke: COLOR_MEDIO[m.clave] }} />;
-        })}
-        <text x="75" y="75" textAnchor="middle" fontSize="22" className="font-display fill-tinta">
-          {`S/ ${Math.round(cobros.total).toLocaleString("es-PE")}`}
-        </text>
-        <text x="75" y="93" textAnchor="middle" fontSize="11" className="fill-tinta/60">
-          cobrado
-        </text>
-      </svg>
+      <p className="flex items-baseline justify-between gap-3">
+        <span className="text-xs text-tinta/60">cobrado</span>
+        <b className="font-display text-[22px] font-normal tabular-nums text-tinta">{`S/\u00a0${Math.round(cobros.total).toLocaleString("es-PE")}`}</b>
+      </p>
+      <BarraApilada
+        className="mt-2"
+        formato={money}
+        etiqueta={`Total cobrado ${money(cobros.total)}. ${cobros.medios.map((m) => `${m.texto} ${m.pct} %`).join(", ")}`}
+        segmentos={cobros.medios.map((m) => ({ clave: m.clave, nombre: m.texto, valor: m.monto, color: COLOR_MEDIO[m.clave] }))}
+      />
       <div className="mt-2">
         {cobros.medios.map((m) => (
           <Linea

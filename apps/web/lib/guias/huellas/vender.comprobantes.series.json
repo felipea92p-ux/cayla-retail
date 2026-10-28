@@ -5,10 +5,10 @@
   "total": 18,
   "controles": {
     "components/FacturacionPestanas.tsx": [
-      "Pestanas «);»"
+      "Pestanas «(sin nombre)»"
     ],
     "components/FacturacionShell.tsx": [
-      "Link «comprobantes.aviso-sunat»"
+      "Link «Ver Por enviar»"
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"
@@ -24,7 +24,7 @@
       "Boton «Cancelar»",
       "Boton «Registrar serie»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? undefined}»"
     ],

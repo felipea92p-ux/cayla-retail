@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opción 2 · La paleta a la vista — maqueta</title>
+<link rel="stylesheet" href="base.css">
+<style>
+/* ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Opción 2 · La paleta a la vista. Prefijo .o2-. Solo los tokens de base.css (el color de cada muestra viene de los datos).
+   Dos formas de la MISMA pieza, según el ancho del lienzo (lo decide el JS, no matchMedia):
+     data-modo="barra"  (lienzo ≥ UMBRAL_BARRA)  una sola fila DENTRO de la barra pegada: muestras de 32 px y chips de 32 px, cada
+                                                  uno con su número DEBAJO (cuelga en el aire que deja la barra).
+     data-modo="flujo"  (lienzo menor)           dos bloques sobre la lista, sin pegarse: muestras de 36 px en celdas de 44 que se acomodan
+                                                  en las filas que hagan falta (nada queda fuera de la pantalla, ya no se desliza), chips de
+                                                  44 px por sistema de talla (letras / cinturas + única), el número debajo de cada uno. Lo
+                                                  elegido te sigue en una línea pegada AL PIE (.o2-dock), porque la barra de arriba ya mide 107 px.
+   El número es SIEMPRE el mismo gesto: debajo de lo que tocas, en los dos modos (antes, en la barra, era un índice que se pegaba a
+   la talla y se leía «28¹⁹» como 2819, y la muestra no lo traía).
+   ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.o2-zona {
+  --o2-filo: color-mix(in srgb, var(--tinta) 54%, var(--crema)); /* borde de un control: 3,3:1 contra el muro */
+  --o2-celda: 32px;
+  --o2-bola: 32px;
+  position: relative;
+  color: var(--tinta);
+}
+/* En la barra la zona cuelga 3 px hacia arriba y suelta 5 hacia abajo: así la fila de números tiene aire hasta la línea de la barra y la barra
+   crece 2 px en total (113 → 115 sin categoría, 145 → 147 con grupo y categoría; el tope es 150). */
+.o2-zona[data-modo="barra"] { width: calc(100cqi - 2 * var(--gutter)); display: flex; align-items: center; gap: clamp(22px, 1.6cqi, 40px); min-height: 32px; margin: -3px 0 5px; }
+.o2-zona[data-modo="flujo"] { --o2-celda: 44px; --o2-bola: 36px; display: block; padding: 2px 0 14px; margin-bottom: 18px; border-bottom: 1px solid var(--sand); }
+
+/* ── Cada bloque (color, talla) ── */
+.o2-grupo { display: grid; grid-template-rows: 1fr; grid-template-columns: minmax(0, 1fr); min-width: 0; transition: grid-template-rows 0.25s var(--ease), opacity 0.25s var(--ease); }
+.o2-grupo[hidden] { display: none; }
+.o2-grupo[data-cerrado] { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
+.o2-cuerpo { min-height: 0; min-width: 0; }
+.o2-zona[data-modo="barra"] .o2-grupo { flex: none; }
+.o2-zona[data-modo="barra"] .o2-cuerpo { display: flex; align-items: center; gap: 6px; }
+/* Solo mientras se abre o se cierra en celular y tableta se recorta; en la barra nunca: los números cuelgan fuera de la caja de 32 px. */
+.o2-zona[data-modo="flujo"] .o2-grupo[data-cerrado] .o2-cuerpo, .o2-zona[data-modo="flujo"] .o2-grupo[data-anim] .o2-cuerpo { overflow: hidden; }
+.o2-zona[data-modo="flujo"] .o2-g-talla { margin-top: 2px; }
+
+/* ── La etiqueta («COLOR», «TALLA»), con los nombres de lo elegido en celular y tableta ── */
+.o2-cab { display: flex; align-items: center; gap: 2px; flex: none; min-height: 32px; }
+.o2-zona[data-modo="flujo"] .o2-cab { gap: 8px; min-height: 28px; }
+.o2-et { font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: 0.16em; text-transform: uppercase; color: var(--taupe); white-space: nowrap; }
+.o2-nombres { display: none; }
+.o2-zona[data-modo="flujo"] .o2-nombres { display: block; flex: 1; min-width: 0; font: italic 400 16px/1.2 var(--nombre); color: var(--tinta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o2-zona[data-modo="flujo"] .o2-nombres:not(:empty)::before { content: "·"; font-style: normal; color: var(--taupe); margin-right: 8px; }
+/* Mientras no hay nada elegido, la línea dice qué son las cifras de debajo (después la ocupan los nombres de lo elegido). */
+.o2-zona[data-modo="flujo"] .o2-nombres:empty::after { font: 400 12px/1.2 var(--sans); color: var(--taupe); }
+.o2-zona[data-modo="flujo"] .o2-nombres[data-n="color"]:empty::after { content: "· prendas por color"; }
+.o2-zona[data-modo="flujo"] .o2-nombres[data-n="talla"]:empty::after { content: "· prendas por talla"; }
+.o2-zona .o2-nombres[data-aviso] { color: var(--ambar); }
+.o2-zona[data-modo="flujo"] .o2-nombres[data-aviso] + .o2-q { display: none; } /* mientras explica, la línea es toda suya */
+.o2-zona[data-modo="flujo"] .o2-nombres[data-aviso] { color: var(--ambar); font-size: 15px; }
+
+/* «Quitar» de cada bloque: una ✕ junto a la etiqueta en la barra; la palabra, a la derecha de la línea, en celular y tableta. */
+.o2-q { position: relative; z-index: 2; border: 0; background: none; padding: 0; color: var(--tinta); display: inline-flex; align-items: center; justify-content: center; }
+.o2-q::before { content: ""; position: absolute; inset: -6px -4px; }
+.o2-q svg { width: 10px; height: 10px; }
+.o2-q[hidden] { display: none; }
+.o2-zona[data-modo="barra"] .o2-q { width: 24px; height: 32px; margin-inline: -3px; }
+.o2-zona[data-modo="barra"] .o2-q[data-sin="true"] { visibility: hidden; }
+.o2-zona[data-modo="barra"] .o2-q-t { display: none; }
+.o2-zona[data-modo="flujo"] .o2-q { height: 44px; margin: -8px 0 -8px auto; padding: 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: 0.16em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--o2-filo); }
+.o2-zona[data-modo="flujo"] .o2-q svg { display: none; }
+.o2-zona[data-modo="flujo"] .o2-q::before { inset: 0 -8px; }
+@media (hover: hover) { .o2-q:hover, .o2-qt:hover { color: var(--taupe); } }
+
+/* «Quitar todo»: deshace color y talla de un toque (solo aparece cuando hay de las dos). Solo en celular y tableta: en la barra ancha las dos ✕ están
+   pegadas a lo que quitan, y un tercer control obligaría a subir el umbral de la fila única de 1400 a unos 1520 px (medido: 117 px más). */
+.o2-qt { position: relative; z-index: 2; flex: none; border: 0; background: none; padding: 0; color: var(--tinta); font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: 0.16em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--o2-filo); white-space: nowrap; }
+.o2-qt::before { content: ""; position: absolute; inset: -6px -8px; }
+.o2-qt[hidden] { display: none; }
+.o2-zona[data-modo="barra"] .o2-qt { display: none; }
+.o2-zona[data-modo="flujo"] .o2-qt:not([hidden]) { display: block; height: 44px; margin: -4px 0 -12px auto; }
+
+/* ── Las filas ── */
+.o2-fila { display: flex; align-items: center; }
+.o2-g-color .o2-fila { gap: 10px; }
+/* En la barra la fila de colores guarda el ancho de TODAS las muestras (32 px y 10 de aire) aunque la lista tenga menos. */
+.o2-zona[data-modo="barra"] .o2-g-color .o2-fila { min-width: calc(var(--o2-ncol, 13) * 32px + (var(--o2-ncol, 13) - 1) * 10px); }
+.o2-g-talla .o2-fila { gap: 3px; }
+.o2-sis { display: flex; align-items: center; gap: 3px; flex: none; }
+/* Celular y tableta: nada se desliza ni queda fuera. Las muestras llenan las filas que hagan falta (8 y 5 en 390 px) y los chips se
+   agrupan por sistema: letras en una línea; cinturas y única en la siguiente. */
+.o2-zona[data-modo="flujo"] .o2-g-color .o2-fila { display: grid; grid-template-columns: repeat(auto-fill, var(--o2-celda)); justify-content: space-between; align-items: start; gap: 20px 0; padding: 4px 0 14px; margin-inline: calc((var(--o2-celda) - var(--o2-bola)) / -2); }
+.o2-zona[data-modo="flujo"] .o2-g-talla .o2-fila { flex-wrap: wrap; align-items: flex-start; gap: 20px 16px; padding: 4px 0 14px; }
+.o2-zona[data-modo="flujo"] .o2-sis { gap: 4px; }
+.o2-zona[data-modo="flujo"] .o2-sep { display: none; }
+
+/* ── La muestra ── */
+.o2-m { position: relative; flex: none; width: var(--o2-celda); height: var(--o2-celda); padding: 0; border: 0; background: none; border-radius: 50%; -webkit-tap-highlight-color: transparent; }
+#lienzo .o2-m:focus-visible, #lienzo .o2-c:focus-visible { outline: none; }
+#lienzo .o2-m:focus-visible .o2-bola { outline: 1.5px solid var(--rojo); outline-offset: 7px; }
+#lienzo .o2-c:focus-visible { outline: 1.5px solid var(--rojo); outline-offset: 3px; }
+.o2-bola { position: absolute; inset: calc((var(--o2-celda) - var(--o2-bola)) / 2); border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 24%, transparent); transition: background-color 0.2s var(--ease); }
+.o2-m[data-filo] .o2-bola { box-shadow: inset 0 0 0 1px var(--o2-filo); }
+/* El anillo de «elegida»: grafito de 2 px, separado 2 px de la muestra, que crece al elegir. */
+.o2-bola::after { content: ""; position: absolute; inset: -3.5px; border-radius: 50%; border: 2px solid var(--tinta); opacity: 0; transform: scale(0.84); transition: transform 0.2s var(--ease), opacity 0.2s var(--ease); }
+.o2-m[aria-pressed="true"] .o2-bola::after { opacity: 1; transform: none; }
+.o2-ok { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; color: var(--ok); opacity: 0; transform: scale(0.7); transition: transform 0.2s var(--ease), opacity 0.2s var(--ease); }
+.o2-m[aria-pressed="true"] .o2-ok { opacity: 1; transform: none; }
+@media (hover: hover) { .o2-m[data-estado="normal"][aria-pressed="false"]:hover .o2-bola::after { opacity: 0.4; transform: none; } }
+/* A cero: la muestra casi se va y una raya fina la cruza. Es una opción que daría 0 y no responde. */
+.o2-m[data-estado="cero"] .o2-bola { background: color-mix(in srgb, var(--c) 34%, var(--crema)); box-shadow: inset 0 0 0 1px var(--sand); }
+.o2-m[data-estado="cero"], .o2-c[data-estado="cero"] { cursor: default; }
+.o2-m[data-estado="cero"] .o2-bola::before, .o2-m[data-estado="muerta"] .o2-bola::before { content: ""; position: absolute; left: 50%; top: 50%; width: 138%; height: 1px; background: var(--tinta); transform: translate(-50%, -50%) rotate(-45deg); box-shadow: 0 0 0 1px color-mix(in srgb, var(--crema) 70%, transparent); }
+/* Muerta: sigue elegida pero no hay prendas con lo otro. Anillo discontinuo + la misma raya + su nota («sin M»). */
+.o2-m[data-estado="muerta"] .o2-bola { background: color-mix(in srgb, var(--c) 62%, var(--crema)); }
+.o2-m[data-estado="muerta"] .o2-bola::after { border-style: dashed; }
+.o2-m[data-estado="muerta"] .o2-ok { opacity: 0; }
+
+/* ── El chip de talla ── */
+.o2-c { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; height: 32px; min-width: 36px; padding: 0 10px; border: 1px solid var(--o2-filo); background: transparent; color: var(--tinta); font: 500 13px/1 var(--sans); font-variation-settings: "wdth" 100; letter-spacing: 0.02em; -webkit-tap-highlight-color: transparent; transition: background-color 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease); }
+.o2-c-t { position: relative; }
+.o2-c[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+@media (hover: hover) { .o2-c[data-estado="normal"][aria-pressed="false"]:hover { border-color: var(--tinta); } }
+.o2-c[data-estado="cero"] { color: var(--tinta-40); border-color: var(--sand); }
+.o2-c[data-estado="cero"] .o2-c-t { text-decoration: line-through; text-decoration-thickness: 1px; }
+.o2-c[data-estado="muerta"] { background: transparent; color: var(--tinta); border: 2px dashed var(--tinta); padding: 0 9px; }
+.o2-c[data-estado="muerta"] .o2-c-t { text-decoration: line-through; text-decoration-thickness: 1px; }
+.o2-zona[data-modo="flujo"] .o2-c { height: 44px; min-width: 44px; padding: 0 10px; font-size: 14px; }
+.o2-sep { flex: none; width: 1px; height: 16px; margin: 0 5px; background: var(--sand); align-self: center; }
+
+/* ── El número: debajo de cada muestra y de cada chip, en la barra y en celular y tableta ── */
+.o2-n { position: absolute; left: 50%; top: calc(100% + var(--o2-nt, 3px)); transform: translateX(-50%); font: 400 12px/12px var(--sans); font-variant-numeric: tabular-nums lining-nums; color: var(--taupe); white-space: nowrap; text-align: center; pointer-events: none; }
+.o2-zona[data-modo="flujo"] { --o2-nt: 1px; }
+.o2-zona[data-modo="flujo"] .o2-n { line-height: 14px; }
+.o2-m[aria-pressed="true"] .o2-n, .o2-c[aria-pressed="true"] .o2-n { color: var(--tinta); font-weight: 500; }
+.o2-m[data-estado="cero"] .o2-n, .o2-c[data-estado="cero"] .o2-n { color: var(--tinta-60); }
+/* La nota de una muestra o chip «muerto» ocupa el lugar del número, en ámbar. */
+.o2-m[data-estado="muerta"] .o2-n, .o2-c[data-estado="muerta"] .o2-n { color: var(--ambar); font-weight: 500; z-index: 1; }
+@keyframes o2-cuenta { from { opacity: 0.3; } }
+.o2-n[data-cambia] { animation: o2-cuenta 0.24s var(--ease) both; }
+
+/* ── El tooltip (afuera del lienzo, en motor.capas()). Se puede pasar el mouse por encima: no se cierra al intentar llegar a él. ── */
+.o2-tip { position: absolute; z-index: 5; left: 0; top: 0; width: max-content; max-width: min(340px, calc(100% - 16px)); padding: 7px 12px 8px; background: var(--tinta); color: var(--crema); font: 400 12.5px/1.35 var(--sans); visibility: hidden; opacity: 0; transition: opacity 0.16s var(--ease), visibility 0s 0.16s; }
+.o2-tip[data-visible] { visibility: visible; opacity: 1; transition-delay: 0s; }
+.o2-tip i { font: italic 400 16px/1.1 var(--nombre); margin-right: 3px; }
+.o2-tip small { font-size: 12.5px; opacity: 0.9; }
+
+/* ── La línea de lo elegido, pegada al pie (solo en celular y tableta, y solo si lo elegido quedó fuera de la vista) ── */
+.o2-dock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 12px; height: calc(44px + env(safe-area-inset-bottom, 0px)); padding: 0 var(--o2-gut, 16px) env(safe-area-inset-bottom, 0px); background: var(--papel); border-top: 1px solid var(--tinta); transform: translateY(10px); opacity: 0; visibility: hidden; transition: transform 0.22s var(--ease), opacity 0.22s var(--ease), visibility 0s 0.22s; }
+.o2-dock[data-visible] { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
+/* Cada faceta de la línea es un botón que quita solo esa («Negro ✕», «M ✕»). */
+.o2-dock-txt { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 2px; overflow: hidden; }
+.o2-dock-t { position: relative; flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 7px; height: 44px; padding: 0 6px; border: 0; background: none; color: var(--tinta); font: italic 400 16px/1.2 var(--nombre); }
+.o2-dock-t span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o2-dock-t svg { flex: none; width: 10px; height: 10px; }
+.o2-dock-txt b { flex: none; font: 400 16px/1 var(--nombre); color: var(--taupe); }
+.o2-dock-q { position: relative; flex: none; align-self: flex-end; height: 44px; border: 0; background: none; padding: 0; font-size: 11px; font-weight: 500; font-variation-settings: var(--ancho); letter-spacing: 0.16em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--o2-filo, var(--taupe)); color: var(--tinta); }
+.o2-dock-q::before { content: ""; position: absolute; inset: 0 -10px; }
+body[data-o2-dock] #lienzo { padding-bottom: 60px; }
+/* Lo que se enfoca con el teclado no queda bajo la línea del pie. (El alto de la barra pegada lo pone el JS en scroll-padding-top.) */
+html:has(body[data-o2-dock]) { scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+/* El aviso de la maqueta sube por encima de la línea mientras esta se ve. */
+body:has(.o2-dock[data-visible]) .t-toast { bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important; }
+
+@media (hover: hover) { .o2-dock-t:hover span, .o2-dock-q:hover { color: var(--taupe); } }
+@media (prefers-reduced-motion: reduce) {
+  .o2-grupo, .o2-bola, .o2-bola::after, .o2-ok, .o2-c, .o2-tip, .o2-dock { transition: none !important; }
+  .o2-n[data-cambia] { animation: none; }
+}
+</style>
+</head>
+<body>
+<main id="lienzo"></main>
+<div id="capas"></div>
+<script src="datos-filtros.js"></script>
+<script src="logica.js"></script>
+<script>
+window.OPCION = {
+  nombre: "Opción 2",
+  montar(m) {
+    "use strict";
+    const L = m.L;
+    const lienzo = document.getElementById("lienzo");
+    const barraEl = document.getElementById("barra");
+    const capas = m.capas();
+    const UMBRAL_BARRA = 1400; // lienzo desde el cual la paleta y las tallas caben en UNA fila sin apretarse (medido: la fila natural mide 1261 px y a 1400 la barra tiene 1288)
+    const calma = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    const SVG_OK = '<svg class="o2-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8.6l3.1 3.1 6.5-7.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square"/></svg>';
+    const SVG_X = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+    // ── Colores de los tokens, para decidir qué muestra necesita un filo más fuerte y de qué color es su ✓ ──
+    const css = getComputedStyle(document.documentElement);
+    const token = (n) => css.getPropertyValue(n).trim();
+    const aRgb = (hex) => { const h = hex.replace("#", ""); const f = h.length === 3 ? h.replace(/./g, "$&$&") : h; return [0, 2, 4].map((i) => parseInt(f.slice(i, i + 2), 16)); };
+    const luz = (hex) => { const c = aRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const contraste = (a, b) => { const x = luz(a), y = luz(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const MURO = token("--crema"), TINTA = token("--tinta"), PAPEL = token("--papel");
+
+    // ── Palabras ──
+    const corto = (nombre) => nombre.split(" y ")[0];
+    const nombreTalla = (k) => (k === "UNICA" ? "única" : k);
+    const lista = (arr, y) => (arr.length <= 1 ? arr.join("") : arr.slice(0, -1).join(", ") + " " + y + " " + arr[arr.length - 1]);
+    const prendas = (n) => n + (n === 1 ? " prenda" : " prendas");
+    const tallasTxt = (arr) => (arr.length === 1 ? (arr[0] === "UNICA" ? "la talla única" : "la talla " + arr[0]) : "las tallas " + lista(arr.map(nombreTalla), "y"));
+    const coloresTxt = (arr) => lista(arr.map((id) => corto(L.famNombre[id])), "y");
+    const notaTallas = (arr) => "sin " + (arr.length === 1 ? nombreTalla(arr[0]) : arr.length === 2 ? nombreTalla(arr[0]) + " ni " + nombreTalla(arr[1]) : "esas tallas");
+    const notaColores = (arr) => "sin " + (arr.length === 1 ? corto(L.famNombre[arr[0]]) : arr.length === 2 ? corto(L.famNombre[arr[0]]) + " ni " + corto(L.famNombre[arr[1]]) : "esos colores");
+    // La talla se dibuja si la lista la pide o si quedó una elegida (venía de otra lista): una selección nunca queda sin lugar donde quitarla.
+    const verTalla = (d) => d.opciones.tallaRelevante || d.estado.talla.length > 0;
+
+    // ── El DOM ──
+    const zona = document.createElement("div");
+    zona.className = "o2-zona";
+    zona.setAttribute("data-modo", "flujo");
+    const grupoHtml = (cls, faceta, etiqueta, quitar) =>
+      '<div class="o2-grupo ' + cls + '"><div class="o2-cuerpo">' +
+      '<div class="o2-cab"><span class="o2-et" id="o2-et-' + faceta + '">' + etiqueta + '</span><span class="o2-nombres" data-n="' + faceta + '"></span>' +
+      '<button type="button" class="o2-q" data-q="' + faceta + '" data-sin="true" aria-label="' + quitar + '" title="' + quitar + '"><span class="o2-q-t">Quitar</span>' + SVG_X + "</button></div>" +
+      '<div class="o2-fila" role="group" aria-labelledby="o2-et-' + faceta + '" data-faceta="' + faceta + '"></div></div></div>';
+    zona.innerHTML = grupoHtml("o2-g-color", "color", "Color", "Quitar los colores elegidos") + grupoHtml("o2-g-talla", "talla", "Talla", "Quitar las tallas elegidas") +
+      '<button type="button" class="o2-qt" data-qt data-sin="true" hidden>Quitar todo</button><p class="t-sr" role="status" id="o2-live"></p>';
+    const gColor = zona.querySelector(".o2-g-color"), gTalla = zona.querySelector(".o2-g-talla");
+    const filaColor = gColor.querySelector(".o2-fila"), filaTalla = gTalla.querySelector(".o2-fila");
+    const live = zona.querySelector("#o2-live");
+    const qt = zona.querySelector("[data-qt]");
+    // En la barra, el bloque de colores guarda el lugar de TODAS las muestras: al cambiar de categoría la talla no se corre de sitio.
+    zona.style.setProperty("--o2-ncol", String(Object.keys(L.famNombre).length));
+
+    const tip = document.createElement("div");
+    tip.className = "o2-tip"; tip.id = "o2-tip"; tip.setAttribute("role", "tooltip");
+    capas.appendChild(tip);
+
+    const dock = document.createElement("div");
+    dock.className = "o2-dock"; dock.setAttribute("role", "region"); dock.setAttribute("aria-label", "Lo que elegiste");
+    dock.innerHTML = '<div class="o2-dock-txt"></div><button type="button" class="o2-dock-q">Quitar todo</button>';
+    capas.appendChild(dock);
+    const dockTxt = dock.querySelector(".o2-dock-txt");
+
+    // ── Estado local ──
+    let modo = "flujo", ultimo = null, firma = null, primera = true, tipBoton = null, tipTimer = null, tipFijo = null, tipSalida = null, tipCerrado = 0, sinGlobo = null, msgTimer = {}, sinCabida = 0;
+
+    function ponerZona(nuevo) {
+      const destino = nuevo === "barra" ? m.slot("filtros") : m.slot("seleccion");
+      zona.setAttribute("data-modo", nuevo);
+      const cambio = modo !== nuevo;
+      modo = nuevo;
+      if (zona.parentNode !== destino) m.conservarFoco(zona, () => destino.appendChild(zona));
+      return cambio;
+    }
+    // ¿Cabe la fila en la barra con las letras que hay? (sin las letras de la tienda el ancho cambia: si no cabe, se queda en celular y tableta)
+    const cabeEnBarra = () => zona.scrollWidth <= zona.clientWidth + 1;
+    function ubicar() {
+      const ancho = lienzo.getBoundingClientRect().width;
+      let cambio = ponerZona(ancho >= UMBRAL_BARRA && ancho > sinCabida ? "barra" : "flujo");
+      if (modo === "barra" && !cabeEnBarra()) { sinCabida = ancho; cambio = ponerZona("flujo") || cambio; }
+      return cambio;
+    }
+
+    // ── Construir las filas (solo cuando cambian las opciones del nivel) ──
+    function botonColor(f) {
+      const filo = contraste(f.hex, MURO) < 3.2 ? " data-filo" : "";
+      const ok = contraste(f.hex, TINTA) >= contraste(f.hex, PAPEL) ? "var(--tinta)" : "var(--papel)";
+      return '<button type="button" class="o2-m" data-id="c-' + f.id + '" data-faceta="color" data-valor="' + f.id + '" data-estado="normal" aria-pressed="false"' + filo + ' style="--c:' + f.hex + ";--ok:" + ok + '">' +
+        '<span class="o2-bola"></span>' + SVG_OK + '<span class="o2-n"></span></button>';
+    }
+    function botonTalla(k) {
+      const et = k === "UNICA" ? "Única" : k;
+      return '<button type="button" class="o2-c" data-id="t-' + k + '" data-faceta="talla" data-valor="' + k + '" data-estado="normal" aria-pressed="false">' +
+        '<span class="o2-c-t">' + esc(et) + '</span><span class="o2-n"></span></button>';
+    }
+    function construir(d) {
+      m.conservarFoco(zona, () => {
+        filaColor.innerHTML = d.opciones.familias.map((f) => botonColor(f)).join("");
+        const s = d.opciones.sistemas;
+        const trozos = [s.letra, s.cintura, s.unica].filter((x) => x.length);
+        filaTalla.innerHTML = verTalla(d)
+          ? trozos.map((g) => '<span class="o2-sis">' + g.map((k) => botonTalla(k)).join("") + "</span>").join('<span class="o2-sep" aria-hidden="true"></span>')
+          : "";
+      });
+    }
+
+    // ── Poner al día lo dibujado ──
+    function ponerNumero(el, txt) {
+      if (el.textContent === txt) return;
+      el.textContent = txt;
+      if (!primera && !calma()) { el.removeAttribute("data-cambia"); void el.offsetWidth; el.setAttribute("data-cambia", ""); }
+    }
+    function parchar(d, tallas) {
+      zona.querySelectorAll(".o2-m, .o2-c").forEach((b) => {
+        const faceta = b.dataset.faceta, v = b.dataset.valor;
+        const elegido = d.estado[faceta].indexOf(v) >= 0;
+        const n = d.conteos[faceta][v] || 0;
+        const muerta = elegido && d.muertas[faceta].indexOf(v) >= 0;
+        const cero = !elegido && n === 0;
+        const est = muerta ? "muerta" : cero ? "cero" : "normal";
+        const esColor = faceta === "color";
+        const otra = esColor ? tallas : d.estado.color; // lo elegido en la OTRA faceta es lo que explica un cero o una muerta
+        const nombre = esColor ? L.famNombre[v] : v === "UNICA" ? "Estándar / única" : v;
+        const nombreAcc = esColor ? nombre : "Talla " + (v === "UNICA" ? "estándar / única" : v);
+        const causa = esColor ? tallasTxt(otra) : coloresTxt(otra);
+        let acc = nombreAcc + ", " + prendas(n);
+        if (muerta) acc = nombreAcc + ", elegido, pero no hay prendas en " + causa + ". Tócalo para quitarlo";
+        else if (cero) acc = nombreAcc + ", no disponible: no hay prendas en " + causa;
+        else if (elegido) acc += ", elegido";
+        b.dataset.estado = est;
+        b.setAttribute("aria-pressed", String(elegido));
+        if (cero) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled");
+        b.setAttribute("aria-label", acc);
+        ponerNumero(b.querySelector(".o2-n"), muerta ? (esColor ? notaTallas(otra) : notaColores(otra)) : String(n));
+      });
+    }
+    function nombresDe(faceta, d, tallas) {
+      return faceta === "color"
+        ? d.estado.color.map((id) => L.famNombre[id]).join(", ")
+        : tallas.map((k) => (k === "UNICA" ? "Única" : k)).join(", ");
+    }
+    function quitarAvisos() {
+      ["color", "talla"].forEach((f) => {
+        clearTimeout(msgTimer[f]);
+        const el = zona.querySelector('[data-n="' + f + '"]');
+        el.removeAttribute("data-aviso"); el.removeAttribute("title");
+      });
+    }
+    function ponerNombres(d, tallas) {
+      ["color", "talla"].forEach((f) => {
+        const el = zona.querySelector('[data-n="' + f + '"]');
+        if (el.hasAttribute("data-aviso")) return; // un aviso de «sin prendas» se queda unos segundos (y se va solo si algo cambia)
+        el.textContent = nombresDe(f, d, tallas);
+        const q = zona.querySelector('[data-q="' + f + '"]');
+        const hay = (f === "color" ? d.estado.color : tallas).length > 0;
+        q.dataset.sin = String(!hay);
+        q.hidden = modo === "flujo" && !hay;
+      });
+      const ambos = d.estado.color.length > 0 && tallas.length > 0;
+      qt.dataset.sin = String(!ambos);
+      qt.hidden = modo === "flujo" && !ambos;
+    }
+    function cerrarTalla(abrir) {
+      if (primera && !abrir) { gTalla.setAttribute("data-cerrado", ""); gTalla.hidden = true; return; } // al cargar, sin animar
+      const cerrado = gTalla.hasAttribute("data-cerrado");
+      const animar = () => { gTalla.setAttribute("data-anim", ""); clearTimeout(msgTimer.anim); msgTimer.anim = setTimeout(() => gTalla.removeAttribute("data-anim"), 300); };
+      if (abrir) {
+        if (!cerrado && !gTalla.hidden) return;
+        gTalla.hidden = false;
+        void gTalla.offsetWidth;
+        animar();
+        gTalla.removeAttribute("data-cerrado");
+      } else {
+        if (gTalla.hidden) return;
+        animar();
+        gTalla.setAttribute("data-cerrado", "");
+        const fin = () => { if (gTalla.hasAttribute("data-cerrado")) gTalla.hidden = true; };
+        if (calma()) fin(); else setTimeout(fin, 260);
+      }
+    }
+
+    // ── El teclado: una parada por fila (roving tabindex) ──
+    const items = (fila) => Array.prototype.slice.call(fila.querySelectorAll(".o2-m, .o2-c"));
+    function roving(fila) {
+      const its = items(fila);
+      if (!its.length) return;
+      let actual = its.filter((b) => b === document.activeElement)[0] || its.filter((b) => b.dataset.actual === "1")[0]
+        || its.filter((b) => b.getAttribute("aria-pressed") === "true")[0] || its.filter((b) => b.dataset.estado !== "cero")[0] || its[0];
+      its.forEach((b) => { b.tabIndex = b === actual ? 0 : -1; b.dataset.actual = b === actual ? "1" : ""; });
+    }
+    // Un botón que se va a esconder (la ✕ al quedar sin nada) pasa el foco a la fila ANTES de actuar: el foco nunca cae al <body>.
+    function pasarFocoAFila(fila) {
+      const a = fila.querySelector('[tabindex="0"]') || items(fila)[0];
+      if (a) a.focus({ preventScroll: true });
+    }
+
+    // ── El tooltip ──
+    function datosDe(b) {
+      if (!ultimo) return null;
+      const faceta = b.dataset.faceta, v = b.dataset.valor, d = ultimo.d;
+      const esColor = faceta === "color";
+      const elegido = d.estado[faceta].indexOf(v) >= 0;
+      const n = d.conteos[faceta][v] || 0;
+      const otra = esColor ? ultimo.tallas : d.estado.color;
+      return { esColor, elegido, n, est: b.dataset.estado, nombre: esColor ? L.famNombre[v] : v === "UNICA" ? "Estándar / única" : "Talla " + v,
+        causa: esColor ? tallasTxt(otra) : coloresTxt(otra),
+        // La versión corta cabe en la línea de la etiqueta en un celular: «Rojo: sin prendas en XL».
+        corto: (esColor ? corto(L.famNombre[v]) : v === "UNICA" ? "Única" : "Talla " + v) + ": sin prendas en " + (esColor ? lista(otra.map(nombreTalla), "y") : coloresTxt(otra)) };
+    }
+    function tipHtml(b) {
+      const x = datosDe(b);
+      if (!x) return "";
+      if (x.est === "cero") return "<i>" + esc(x.nombre) + "</i> <small>sin prendas en " + esc(x.causa) + "</small>";
+      if (x.est === "muerta") return "<i>" + esc(x.nombre) + "</i> <small>sin prendas en " + esc(x.causa) + " · toca para quitar</small>";
+      if (!x.esColor && b.dataset.valor !== "UNICA") return ""; // el chip ya trae su número y su nombre
+      return "<i>" + esc(x.nombre) + "</i> <small>" + (x.elegido ? "elegido · " : "") + prendas(x.n) + "</small>";
+    }
+    function colocarTip(b) {
+      const cr = capas.getBoundingClientRect(), r = b.getBoundingClientRect();
+      tip.style.left = "0px"; tip.style.top = "0px";
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      let x = r.left + r.width / 2 - cr.left - w / 2;
+      x = Math.max(8, Math.min(x, cr.width - w - 8));
+      const bajo = r.bottom + 22; // pasa de largo la fila de números que cuelga debajo
+      const arriba = r.top - h - 10;
+      const y = bajo + h > window.innerHeight - 8 && arriba > 8 ? arriba : bajo;
+      tip.style.left = Math.round(x) + "px";
+      tip.style.top = Math.round(y - cr.top) + "px";
+    }
+    function mostrarTip(b, ms) {
+      const html = tipHtml(b);
+      if (!html) { ocultarTip(); return; }
+      clearTimeout(tipTimer); clearTimeout(tipFijo); clearTimeout(tipSalida); tipFijo = null;
+      if (tipBoton && tipBoton !== b) tipBoton.removeAttribute("aria-describedby");
+      tipBoton = b;
+      tip.innerHTML = html;
+      colocarTip(b);
+      tip.setAttribute("data-visible", "");
+      b.setAttribute("aria-describedby", "o2-tip");
+      if (ms) tipFijo = setTimeout(ocultarTip, ms);
+    }
+    function ocultarTip() {
+      clearTimeout(tipTimer); clearTimeout(tipFijo); clearTimeout(tipSalida); tipFijo = null;
+      if (tip.hasAttribute("data-visible")) tipCerrado = performance.now();
+      tip.removeAttribute("data-visible");
+      if (tipBoton) tipBoton.removeAttribute("aria-describedby");
+      tipBoton = null;
+    }
+
+    // ── Explicar un cero sin pasar el mouse ──
+    function explicar(b) {
+      const x = datosDe(b);
+      if (!x) return;
+      const txt = x.nombre + " no tiene prendas en " + x.causa + ".";
+      live.textContent = "";
+      setTimeout(() => { live.textContent = txt; }, 30);
+      if (modo === "flujo") {
+        const el = zona.querySelector('[data-n="' + b.dataset.faceta + '"]');
+        el.textContent = x.corto;
+        el.title = txt;
+        el.setAttribute("data-aviso", "");
+        clearTimeout(msgTimer[b.dataset.faceta]);
+        msgTimer[b.dataset.faceta] = setTimeout(() => { el.removeAttribute("data-aviso"); el.removeAttribute("title"); if (ultimo) ponerNombres(ultimo.d, ultimo.tallas); }, 3600);
+      } else {
+        tip.innerHTML = tipHtml(b);
+        mostrarTip(b, 2800);
+      }
+    }
+
+    // ── Lo elegido, al pie: cada faceta es un botón que quita solo esa ──
+    function datosDock(d, tallas) {
+      const cols = d.estado.color.map((id) => corto(L.famNombre[id]));
+      const tals = tallas.map((k) => (k === "UNICA" ? "Única" : k));
+      const partes = [];
+      if (cols.length) partes.push({ f: "color", txt: cols.length <= 2 ? cols.join(", ") : cols.length + " colores", voz: "Quitar los colores elegidos: " + lista(cols, "y") });
+      if (tals.length) partes.push({ f: "talla", txt: tals.length <= 3 ? tals.join(", ") : tals.length + " tallas", voz: "Quitar las tallas elegidas: " + lista(tals, "y") });
+      return partes;
+    }
+    function ponerDock() {
+      if (!ultimo) return;
+      const ancho = document.querySelector(".t-ancho"); // el aire lateral de la página: la línea del pie vive afuera del lienzo y no lo hereda
+      if (ancho) dock.style.setProperty("--o2-gut", (parseFloat(getComputedStyle(ancho).paddingLeft) || 16) + "px");
+      const { d, tallas } = ultimo;
+      const hay = d.estado.color.length + tallas.length > 0;
+      const enFlujo = modo === "flujo";
+      document.body.toggleAttribute("data-o2-dock", enFlujo && hay);
+      let ver = false;
+      if (enFlujo && hay) {
+        // Se ve en cuanto la paleta queda (aunque sea en parte) bajo la barra pegada: con una lista corta la página no baja más y la paleta se queda medio tapada.
+        const z = zona.getBoundingClientRect(), bar = barraEl.getBoundingClientRect();
+        ver = z.top < bar.bottom - 2;
+      }
+      if (hay) {
+        dockTxt.innerHTML = datosDock(d, tallas).map((p) => '<button type="button" class="o2-dock-t" data-dq="' + p.f + '" aria-label="' + esc(p.voz) + '"><span>' + esc(p.txt) + "</span>" + SVG_X + "</button>").join('<b aria-hidden="true">·</b>');
+      }
+      dock.toggleAttribute("data-visible", ver);
+      if (ver) dock.removeAttribute("inert"); else dock.setAttribute("inert", "");
+    }
+    // Lo que se enfoca con Tab no queda bajo la barra pegada de arriba (la base la deja tapar el corazón de las tarjetas).
+    function ponerMargenDeFoco() {
+      document.documentElement.style.scrollPaddingTop = Math.round(barraEl.getBoundingClientRect().height + 12) + "px";
+    }
+
+    // ── Dibujar ──
+    function render(d) {
+      const tallas = d.estado.talla; // lo elegido es lo que hay: si la lista no pide talla, la fila se dibuja igual mientras haya una elegida
+      ultimo = { d, tallas };
+      quitarAvisos(); // un cambio de verdad (otro filtro, Reiniciar, otro grupo) deja sin sentido el aviso de «sin prendas» anterior
+      const f = d.opciones.familias.map((x) => x.id).join(",") + "|" + d.opciones.tallas.join(",") + "|" + verTalla(d);
+      if (f !== firma) { construir(d); firma = f; }
+      parchar(d, tallas);
+      ponerNombres(d, tallas);
+      cerrarTalla(verTalla(d));
+      roving(filaColor); roving(filaTalla);
+      if (tipBoton && tip.hasAttribute("data-visible")) { const h = tipHtml(tipBoton); if (h) { tip.innerHTML = h; colocarTip(tipBoton); } else ocultarTip(); }
+      if (modo === "barra" && !cabeEnBarra()) { sinCabida = lienzo.getBoundingClientRect().width; ponerZona("flujo"); ponerNombres(d, tallas); }
+      ponerDock();
+      ponerMargenDeFoco();
+      primera = false;
+    }
+
+    // ── Eventos ──
+    zona.addEventListener("click", (e) => {
+      const q = e.target.closest("[data-q]");
+      if (q) {
+        const f = q.dataset.q;
+        pasarFocoAFila(f === "color" ? filaColor : filaTalla);
+        m.limpiar(f);
+        return;
+      }
+      if (e.target.closest("[data-qt]")) { pasarFocoAFila(filaColor); m.limpiar(); return; }
+      const b = e.target.closest(".o2-m, .o2-c");
+      if (!b) return;
+      if (b.dataset.estado === "cero") { explicar(b); return; }
+      if (e.detail > 0) { ocultarTip(); sinGlobo = b; } // con el mouse, el globo no se queda tapando «N prendas en …» (ese renglón ya dice lo que cambió) ni vuelve hasta que el mouse salga y entre
+      if (!m.alternar(b.dataset.faceta, b.dataset.valor)) explicar(b);
+    });
+    zona.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { ocultarTip(); return; }
+      const b = e.target.closest(".o2-m, .o2-c");
+      if (!b || !["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+      const its = items(b.closest(".o2-fila"));
+      let i = its.indexOf(b);
+      i = e.key === "Home" ? 0 : e.key === "End" ? its.length - 1 : Math.max(0, Math.min(its.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)));
+      e.preventDefault();
+      its.forEach((x) => { x.tabIndex = x === its[i] ? 0 : -1; x.dataset.actual = x === its[i] ? "1" : ""; });
+      its[i].focus();
+    });
+    zona.addEventListener("focusin", (e) => {
+      const b = e.target.closest(".o2-m, .o2-c");
+      if (!b) return;
+      items(b.closest(".o2-fila")).forEach((x) => { x.tabIndex = x === b ? 0 : -1; x.dataset.actual = x === b ? "1" : ""; });
+      if (b.matches(":focus-visible")) mostrarTip(b);
+    });
+    zona.addEventListener("focusout", (e) => { if (e.target.closest(".o2-m, .o2-c") === tipBoton) ocultarTip(); });
+    zona.addEventListener("pointerover", (e) => {
+      if (e.pointerType !== "mouse") return;
+      const b = e.target.closest(".o2-m, .o2-c");
+      if (!b || b === tipBoton || b === sinGlobo) return;
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(() => mostrarTip(b), tipBoton || performance.now() - tipCerrado < 260 ? 0 : 160);
+    });
+    zona.addEventListener("pointerout", (e) => {
+      if (e.pointerType !== "mouse") return;
+      const b = e.target.closest(".o2-m, .o2-c");
+      if (b && !b.contains(e.relatedTarget)) {
+        if (b === sinGlobo) sinGlobo = null;
+        clearTimeout(tipTimer);
+        // El globo se puede alcanzar con el mouse (se cierra con un respiro), como pide una ayuda que aparece al pasar por encima.
+        if (b === tipBoton && !tipFijo) { clearTimeout(tipSalida); tipSalida = setTimeout(ocultarTip, 240); }
+      }
+    });
+    tip.addEventListener("pointerenter", () => clearTimeout(tipSalida));
+    tip.addEventListener("pointerleave", () => { if (!tipFijo) { clearTimeout(tipSalida); tipSalida = setTimeout(ocultarTip, 120); } });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") ocultarTip(); });
+    dock.addEventListener("click", (e) => {
+      const conFoco = dock.contains(document.activeElement);
+      const dq = e.target.closest("[data-dq]");
+      if (dq) {
+        const f = dq.dataset.dq;
+        if (conFoco) pasarFocoAFila(f === "color" ? filaColor : filaTalla);
+        m.limpiar(f);
+        return;
+      }
+      if (e.target.closest(".o2-dock-q")) {
+        if (conFoco) pasarFocoAFila(filaColor);
+        m.limpiar();
+      }
+    });
+
+    let cuadro = 0;
+    const alScroll = () => { if (cuadro) return; cuadro = requestAnimationFrame(() => { cuadro = 0; ponerDock(); ponerMargenDeFoco(); if (tip.hasAttribute("data-visible") && tipBoton && !tipFijo) ocultarTip(); }); };
+    window.addEventListener("scroll", alScroll, { passive: true });
+    window.addEventListener("resize", alScroll);
+
+    ubicar();
+    new ResizeObserver(() => {
+      if (ubicar()) { firma = null; if (ultimo) render(ultimo.d); }
+      ponerDock();
+      ponerMargenDeFoco();
+    }).observe(lienzo);
+    new ResizeObserver(ponerMargenDeFoco).observe(barraEl);
+    // Cuando llegan las letras de la tienda cambian los anchos: se vuelve a decidir si la fila cabe en la barra.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { sinCabida = 0; if (ubicar() && ultimo) { firma = null; render(ultimo.d); } });
+    m.alCambiar(render);
+  },
+};
+</script>
+<script src="motor.js"></script>
+</body>
+</html>

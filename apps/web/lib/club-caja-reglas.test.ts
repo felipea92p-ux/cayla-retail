@@ -34,13 +34,6 @@ const resumen = (parte: Partial<ResumenClientaCaja> = {}): ResumenClientaCaja =>
   celular: null,
   cumpleDia: null,
   cumpleMes: null,
-  cumpleDisponible: false,
-  cumplePct: 10,
-  cumpleCanjeadoEsteAnio: false,
-  cumpleCanjeadoEl: null,
-  aniversarioDisponible: false,
-  aniversarioMonto: null,
-  aniversarioVence: null,
   ...parte,
 });
 const listo = (parte: Partial<ResumenClientaCaja> = {}): LecturaClub => ({ estado: "listo", resumen: resumen(parte) });
@@ -131,60 +124,79 @@ describe("«Pídele que escanee el cartel del club» (tanda 1g)", () => {
     expect(esperaDelCartel({ visible: false, desdeMs: 0, ahoraMs: CONSULTA_CARTEL_HASTA_MS })).toBe("vencida");
   });
 
-  it("la fila dice por qué le conviene (el % sale de la base) y que se actualiza sola", () => {
-    const f = filaDelCartel({ sinDocumento: false, espera: "esperando", cumplePct: 12.5 });
+  it("la fila dice por qué le conviene (el regalo sale de la configuración de los puntos) y que se actualiza sola", () => {
+    const f = filaDelCartel({ sinDocumento: false, espera: "esperando", regaloCumple: 150 });
     expect(f.destacado).toBe("Pídele que escanee el cartel del club");
-    expect(f.bajada).toBe("Gana 12.5 % en su cumpleaños y un vale cada aniversario · se actualiza sola");
+    expect(f.bajada).toBe("Gana puntos en cada compra y 150 de regalo en su cumpleaños · se actualiza sola");
     expect(f).toMatchObject({ actualizar: false, consultar: true });
-    expect(filaDelCartel({ sinDocumento: false, espera: "esperando", cumplePct: null }).bajada).toMatch(/^Gana 10 %/);
+    // Sin la configuración (o sin regalo) no promete un número.
+    expect(filaDelCartel({ sinDocumento: false, espera: "esperando", regaloCumple: null }).bajada).toMatch(/^Gana puntos en cada compra y los cambia por cupones/);
+    expect(filaDelCartel({ sinDocumento: false, espera: "esperando", regaloCumple: 0 }).bajada).toMatch(/cupones de descuento/);
   });
 
   it("pausada no pregunta; vencida ofrece «Actualizar»", () => {
-    expect(filaDelCartel({ sinDocumento: false, espera: "pausada", cumplePct: 10 })).toMatchObject({ actualizar: false, consultar: false });
-    const vencida = filaDelCartel({ sinDocumento: false, espera: "vencida", cumplePct: 10 });
+    expect(filaDelCartel({ sinDocumento: false, espera: "pausada", regaloCumple: 100 })).toMatchObject({ actualizar: false, consultar: false });
+    const vencida = filaDelCartel({ sinDocumento: false, espera: "vencida", regaloCumple: 100 });
     expect(vencida).toMatchObject({ actualizar: true, consultar: false });
     expect(vencida.bajada).toMatch(/¿Ya se unió\? Toca «Actualizar»/);
   });
 
   it("sin documento en su ficha no espera: al unirse desde el cartel caería en otra ficha", () => {
-    const f = filaDelCartel({ sinDocumento: true, espera: "esperando", cumplePct: 10 });
+    const f = filaDelCartel({ sinDocumento: true, espera: "esperando", regaloCumple: 100 });
     expect(f).toMatchObject({ actualizar: false, consultar: false });
     expect(f.bajada).toMatch(/complétalo en Clientes/);
   });
 });
 
-describe("la guía de foco de «Registrar cliente» (Cobrar y Nueva clienta): solo el documento (tanda 1g)", () => {
+describe("la guía de foco de «Registrar cliente» (Cobrar y Nueva clienta): el documento y su nombre (tanda 1g; Felipe 2026-10-15)", () => {
+  // Documento inventado: en las pruebas nunca se consulta el padrón con el de una persona real (aquí ni siquiera hay red).
   const lista: HojaRegistrar = {
     documentoTipo: "dni",
-    documentoNumero: "45871236",
-    nombre: "MARIA QUISPE",
+    documentoNumero: "90000001",
+    nombre: "",
+    padron: { estado: "confirmado", nombre: "PRUEBA SIMULADA MARIA", fuente: "RENIEC" },
     responsableListo: true,
     responsableMotivo: null,
   };
+  const pasaporte = { ...lista, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", padron: { estado: "sin_consultar" as const } };
 
-  it("con documento, nombre y quién registra, se puede registrar: ni celular ni cumpleaños", () => {
+  it("con documento, el nombre del padrón y quién registra, se puede registrar: ni celular ni cumpleaños", () => {
     const c = camposDeRegistrar(lista);
     expect(sePuedeConfirmar(c)).toBe(true);
-    expect(c.map((x) => x.id)).toEqual(["documento", "responsable"]);
-    expect(estadosDe(c)).toMatchObject({ documento: "hecho", responsable: "hecho" });
+    expect(c.map((x) => x.id)).toEqual(["documento", "nombre", "responsable"]);
+    expect(estadosDe(c)).toMatchObject({ documento: "hecho", nombre: "hecho", responsable: "hecho" });
   });
 
-  it("con DNI el nombre vive en el bloque del documento: sin él, lo que falta se llama «Nombre»", () => {
-    const c = camposDeRegistrar({ ...lista, nombre: "" });
-    expect(sePuedeConfirmar(c)).toBe(false);
-    expect(c.find((x) => x.id === "documento")?.nombre).toBe("Nombre");
-    expect(c.some((x) => x.id === "nombre")).toBe(false);
+  it("con DNI el nombre lo trae el padrón: lo escrito no cuenta, y sin el padrón no se registra", () => {
+    // Escribir un nombre no lo arregla: con DNI solo vale el del padrón.
+    const escrito = camposDeRegistrar({ ...lista, nombre: "MARIA INVENTADA", padron: { estado: "sin_respuesta" } });
+    expect(sePuedeConfirmar(escrito)).toBe(false);
+    expect(escrito.find((x) => x.id === "nombre")).toMatchObject({ nombre: "Nombre del padrón", pendiente: expect.stringMatching(/Volver a intentar/) });
+    const noEsta = camposDeRegistrar({ ...lista, padron: { estado: "no_encontrado" } });
+    expect(sePuedeConfirmar(noEsta)).toBe(false);
+    expect(noEsta.find((x) => x.id === "nombre")?.pendiente).toMatch(/no encontró ese DNI/);
+    expect(sePuedeConfirmar(camposDeRegistrar({ ...lista, padron: { estado: "consultando" } }))).toBe(false);
   });
 
-  it("con carné o pasaporte el nombre es su propio bloque", () => {
-    const c = camposDeRegistrar({ ...lista, documentoTipo: "carne_extranjeria", documentoNumero: "001234567", nombre: "" });
-    expect(estadosDe(c)).toMatchObject({ documento: "hecho", nombre: "ahora" });
-    expect(sePuedeConfirmar(c)).toBe(false);
+  it("con el DNI a medias, lo que sigue es el documento (el nombre espera los 8 dígitos)", () => {
+    const c = camposDeRegistrar({ ...lista, documentoNumero: "9000", padron: { estado: "sin_consultar" } });
+    expect(estadosDe(c)).toMatchObject({ documento: "ahora", nombre: "falta" });
+    expect(c.find((x) => x.id === "nombre")?.pendiente).toMatch(/8 dígitos/);
   });
 
-  it("un nombre de menos de 3 letras no alcanza (spike, `modalRegistrar`)", () => {
-    expect(sePuedeConfirmar(camposDeRegistrar({ ...lista, documentoTipo: "pasaporte", documentoNumero: "AB123456", nombre: "Lu" }))).toBe(false);
-    expect(sePuedeConfirmar(camposDeRegistrar({ ...lista, documentoTipo: "pasaporte", documentoNumero: "AB123456", nombre: "Lucía" }))).toBe(true);
+  it("con carné o pasaporte el nombre se escribe y es su propio bloque: vacío o con números no se registra", () => {
+    const vacio = camposDeRegistrar({ ...pasaporte, documentoTipo: "carne_extranjeria", documentoNumero: "001234567" });
+    expect(estadosDe(vacio)).toMatchObject({ documento: "hecho", nombre: "ahora" });
+    expect(vacio.find((x) => x.id === "nombre")?.nombre).toBe("Nombre");
+    expect(sePuedeConfirmar(vacio)).toBe(false);
+    const conNumeros = camposDeRegistrar({ ...pasaporte, nombre: "Lucía 2" });
+    expect(sePuedeConfirmar(conNumeros)).toBe(false);
+    expect(conNumeros.find((x) => x.id === "nombre")?.pendiente).toMatch(/no lleva números/);
+  });
+
+  it("un nombre escrito de menos de 3 letras no alcanza (spike, `modalRegistrar`)", () => {
+    expect(sePuedeConfirmar(camposDeRegistrar({ ...pasaporte, nombre: "Lu" }))).toBe(false);
+    expect(sePuedeConfirmar(camposDeRegistrar({ ...pasaporte, nombre: "Lucía" }))).toBe(true);
   });
 
   it("sin documento, con uno mal escrito o sin quién registra, no se registra", () => {

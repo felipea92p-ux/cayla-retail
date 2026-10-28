@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
 import {
+  cambioPrecioAqui,
+  problemaPrecioAqui,
   camposPonerPrecio,
   conPreciosDeSede,
   conPrecioDeLaSede,
@@ -44,8 +46,8 @@ describe("leerMonto", () => {
 
 describe("diferencia con el precio de la prenda", () => {
   it("dice cuánto más o menos, en palabras de tienda (nunca «general»)", () => {
-    expect(fraseDiferencia(129.9, 119.9)).toBe("S/ 10.00 más que el precio de la prenda (+8 %)");
-    expect(fraseDiferencia(109.9, 119.9)).toBe("S/ 10.00 menos que el precio de la prenda (−8 %)");
+    expect(fraseDiferencia(129.9, 119.9)).toBe("S/\u00a010.00 más que el precio de la prenda (+8 %)");
+    expect(fraseDiferencia(109.9, 119.9)).toBe("S/\u00a010.00 menos que el precio de la prenda (−8 %)");
     expect(fraseDiferencia(119.9, 119.9)).toBe("igual que el precio de la prenda");
     expect(fraseDiferencia(100, null)).toBeNull();
   });
@@ -160,7 +162,7 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   });
   it("FAL-0008: AQP 79.90 (igual a la prenda) y TRU 69.90 son DOS precios, no tres", () => {
     const lista = [{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }, { sede: "TRU", precio: 69.9 }];
-    expect(insigniaPrecios(lista)).toEqual({ texto: "2 precios", detalle: "AQP y LIM S/ 79.90 · TRU S/ 69.90" });
+    expect(insigniaPrecios(lista)).toEqual({ texto: "2 precios", detalle: "AQP y LIM S/\u00a079.90 · TRU S/\u00a069.90" });
   });
   it("con precio por talla, la tienda sin precio propio es un rango y cuenta aparte (no se esconde detrás del más barato)", () => {
     const r = preciosDeTiendaPorProducto(
@@ -169,7 +171,7 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
       nombres,
     );
     expect(r.falda).toEqual([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9, hasta: 89.9 }, { sede: "TRU", precio: 79.9, hasta: 89.9 }]);
-    expect(insigniaPrecios(r.falda)).toEqual({ texto: "2 precios", detalle: "AQP S/ 79.90 · LIM y TRU S/ 79.90–89.90" });
+    expect(insigniaPrecios(r.falda)).toEqual({ texto: "2 precios", detalle: "AQP S/\u00a079.90 · LIM y TRU S/\u00a079.90–89.90" });
   });
   it("si todas las tiendas venden igual, no hay insignia", () => {
     expect(insigniaPrecios([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }])).toBeNull();
@@ -336,7 +338,7 @@ describe("al cambiar el precio de la prenda, la hoja pregunta por las tiendas", 
 
 describe("las etiquetas colgadas al cambiar el precio de una tienda", () => {
   it("dice cuántas y con qué precio, en singular y plural", () => {
-    expect(avisoEtiquetasAlCambiar(3, "Tienda AQP", 69.9)).toBe("En Tienda AQP hay 3 prendas con la etiqueta de S/ 69.90: cámbiales la etiqueta.");
+    expect(avisoEtiquetasAlCambiar(3, "Tienda AQP", 69.9)).toBe("En Tienda AQP hay 3 prendas con la etiqueta de S/\u00a069.90: cámbiales la etiqueta.");
     expect(avisoEtiquetasAlCambiar(1, "Tienda AQP", null)).toBe("En Tienda AQP hay 1 prenda con la etiqueta de antes: cámbiale la etiqueta.");
     expect(avisoEtiquetasAlCambiar(0, "Tienda AQP", 69.9)).toBeNull();
   });
@@ -364,5 +366,47 @@ describe("el botón que abre la hoja nombra la tienda si queda una sola", () => 
     expect(textoPonerPrecio([{ nombre: "Tienda Lima" }, { nombre: "Tienda AQP" }], false)).toBe("Precio distinto en una tienda");
     expect(textoPonerPrecio([{ nombre: "Tienda Lima" }, { nombre: "Tienda AQP" }], true)).toBe("Precio distinto en otra tienda");
     expect(textoPonerPrecio([], true)).toBeNull();
+  });
+});
+
+// ADR-0415: el precio de una tienda tampoco pasa de S/ 5 000 (la base lo rechaza con `precios_sede_prenda_precio_con_tope`).
+describe("el precio de una sede tiene techo", () => {
+  const base: Parameters<typeof camposPonerPrecio>[0] = { tiendaId: "aqp", monto: "5990", general: 59.9, motivo: "Mercado", responsableListo: true, responsableMotivo: null };
+  it("5990 (el punto que falta) deja el precio por hacer, con la frase del tope", () => {
+    const precio = camposPonerPrecio(base).find((c) => c.id === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(precio?.pendiente).toMatch(/pasa de S\/ 5000/);
+  });
+  it("S/ 5 000 justos sí", () => {
+    expect(camposPonerPrecio({ ...base, monto: "5000" }).find((c) => c.id === "precio")?.hecho).toBe(true);
+  });
+});
+
+describe("cambioPrecioAqui: lo que una terminal escribe en la tabla de Precios", () => {
+  it("sin tocar, o con el precio que ya vende la tienda, no cambia nada", () => {
+    expect(cambioPrecioAqui({ escrito: null, propio: null, general: 89.9 })).toEqual({ que: "nada" });
+    expect(cambioPrecioAqui({ escrito: "89.90", propio: null, general: 89.9 })).toEqual({ que: "nada" });
+    expect(cambioPrecioAqui({ escrito: "79.9", propio: 79.9, general: 89.9 })).toEqual({ que: "nada" });
+  });
+  it("otro precio: la tienda pasa a venderlo, y se dice el de antes", () => {
+    expect(cambioPrecioAqui({ escrito: "79.90", propio: null, general: 89.9 })).toEqual({ que: "poner", precio: 79.9, antes: 89.9 });
+    expect(cambioPrecioAqui({ escrito: "69,90", propio: 79.9, general: 89.9 })).toEqual({ que: "poner", precio: 69.9, antes: 79.9 });
+  });
+  it("el precio de la prenda sobre un precio propio: vuelve al de la prenda (la base no deja uno igual)", () => {
+    expect(cambioPrecioAqui({ escrito: "89.90", propio: 79.9, general: 89.9 })).toEqual({ que: "quitar", antes: 79.9, general: 89.9 });
+  });
+  it("si el precio cambia según la talla, cualquier monto es un precio propio para todas", () => {
+    expect(cambioPrecioAqui({ escrito: "80", propio: null, general: null })).toEqual({ que: "poner", precio: 80, antes: null });
+  });
+  it("lo que no es un monto no se guarda", () => {
+    expect(cambioPrecioAqui({ escrito: "", propio: null, general: 89.9 })).toEqual({ que: "invalido" });
+    expect(cambioPrecioAqui({ escrito: "0", propio: null, general: 89.9 })).toEqual({ que: "invalido" });
+  });
+  it("problemaPrecioAqui dice lo que la base rechazaría", () => {
+    expect(problemaPrecioAqui({ que: "invalido" }, "Tienda TRU", 89.9, null)).toMatch(/TRU/);
+    expect(problemaPrecioAqui({ que: "poner", precio: 30, antes: 89.9 }, "Tienda TRU", 89.9, 40)).toBe(FRASE_BAJO_COSTO);
+    expect(problemaPrecioAqui({ que: "poner", precio: 9000, antes: 89.9 }, "Tienda TRU", 89.9, null)).not.toBeNull();
+    expect(problemaPrecioAqui({ que: "poner", precio: 79.9, antes: 89.9 }, "Tienda TRU", 89.9, 40)).toBeNull();
+    expect(problemaPrecioAqui({ que: "quitar", antes: 79.9, general: 89.9 }, "Tienda TRU", 89.9, 95)).toBeNull();
   });
 });

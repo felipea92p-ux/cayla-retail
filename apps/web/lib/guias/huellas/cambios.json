@@ -2,24 +2,27 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 44,
   "controles": {
     "components/BuscadorVentas.tsx": [
-      "button «Buscar»",
+      "BotonBuscar «(sin nombre)»",
       "button «posventa.escanear»",
       "button «posventa.sin-comprobante»",
-      "Desplegable «)»"
+      "Desplegable «{todas ? \"todas\" : \"aqui\"}»"
     ],
     "components/CambioReemplazo.tsx": [
-      "button «{m.etiqueta}»",
-      "ComboBuscable «Escanear»",
-      "button «Escanear»",
-      "Link «¿Nada de su agrado? Pasar a devolución»",
       "button «{hay ? `Talla ${t}»",
       "button «{hay ? `Color ${nombre}»",
+      "button «{m.etiqueta}»",
+      "ComboBuscable «{`${idBase}»",
+      "button «Escanear»",
+      "Link «¿Nada de su agrado? Pasar a devolución»",
+      "button «{`Quitar la ${cual}»",
+      "ComboBuscable «{`${idBase}» #2",
+      "button «→onAgregarExtra»",
       "button «{o.titulo}»",
-      "input «)»",
-      "Desplegable «)»"
+      "input «{`${idBase}»",
+      "Desplegable «{`${idBase}»"
     ],
     "components/CambioSalidas.tsx": [
       "Link «{cuerpo}»"
@@ -31,11 +34,11 @@
       "button «Nuevo cambio»"
     ],
     "components/CambiosFlujo.tsx": [
-      "input «{l.referencia}»",
-      "Volver «Continuar»",
-      "Volver «Revisar el cambio»",
-      "ComboResponsable «{envio.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
-      "Volver «Cancelar»"
+      "input «prenda-a-cambiar»",
+      "Volver «→onCerrar»",
+      "Volver «→retroceder»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→retroceder» #2"
     ],
     "components/CambiosPanel.tsx": [
       "button «Escanear prenda o boleta»"
@@ -51,10 +54,12 @@
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
       "button «Buscar escribiendo»",
+      "SegmentoDeslizante «Qué hacer con la cámara»",
+      "button «Listo ·»",
       "button «Mejor buscar escribiendo»"
     ],
     "components/FlujoGuiado.tsx": [
-      "Volver «Paso»",
+      "Volver «→onVolver»",
       "button «{hecho ? `Volver a «${nombre}»",
       "button «{guia}»",
       "button «{children}»",
@@ -63,7 +68,7 @@
     "components/punto-de-venta/AnotarNoHabia.tsx": [
       "Boton «→anotar»",
       "button «{t}»",
-      "ComboResponsable «(sin nombre)»"
+      "ComboResponsable «{responsable}»"
     ]
   }
 }

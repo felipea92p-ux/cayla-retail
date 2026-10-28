@@ -8,6 +8,7 @@ import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { Tolerado } from "@/lib/resultado";
 import { getMotorDeLaRed, type MotorDeLaRed } from "@/lib/motor-demanda";
+import { unstable_rethrow } from "next/navigation";
 
 // Nueva orden con decisión (ADR-0133, F5): lo que se calcula en el servidor para que el formulario aconseje ANTES de abrir la orden. Solo para el
 // líder (ventas y stock de toda la red, costos de insumos). Es información SECUNDARIA: si falla, «Nueva orden» sigue funcionando como siempre y avisa.
@@ -78,7 +79,8 @@ export async function getDecisionProduccion(args: {
       },
       fallo: null,
     };
-  } catch {
+  } catch (e) {
+    unstable_rethrow(e);
     return { datos: null, fallo: "No se pudo calcular la sugerencia de la red. Puedes abrir la orden igual, con tus cantidades." };
   }
 }

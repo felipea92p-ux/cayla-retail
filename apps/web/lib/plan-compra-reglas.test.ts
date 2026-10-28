@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { laDeLaCabeceraPrimero, tiendaDeLaCabecera } from "./plan-compra-reglas";
+import { leerCalendario } from "./plan-compra-calendario";
 import {
   aplicarFiltro,
   argsCrearCampana,
@@ -9,12 +10,13 @@ import {
   armarFilas,
   borradorDe,
   borradorDeRanura,
-  borradorNuevo,
-  argsCampanaNueva,
+  argsPlanPropio,
   calendarioDelSelector,
   campanasSinFechas,
+  claveDeRanura,
+  conCalendario,
+  ranurasPorArmar,
   fechasDelAnio,
-  nombreDelPlanNuevo,
   ranurasSinPlan,
   calcular,
   colaDelPaso,
@@ -74,7 +76,6 @@ import {
   problemasDeLaCampana,
   problemasDelBorrador,
   propuestaDeNormal,
-  avisosDelResumen,
   repartir,
   rotuloDeCampana,
   segmentosDelTope,
@@ -776,7 +777,69 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
     // En plena Navidad sigue ofreciéndose (está en curso); el 26 de diciembre ya no.
     expect(ranurasSinPlan(l, "2026-12-20").map((x) => x.nombre)).toContain("Navidad 2026");
     expect(ranurasSinPlan(l, "2026-12-26").map((x) => x.nombre)).not.toContain("Navidad 2026");
-    expect(campanasSinFechas(l).map((e) => e.nombre)).toEqual(["Sin fechas"]);
+    expect(campanasSinFechas(l, "2026-10-12").map((e) => e.nombre)).toEqual(["Sin fechas"]);
+  });
+  it("con el calendario del plan solo se ofrecen las que están «en mi plan»: las que prendiste, las que ya tuvieron plan y las propias; nunca una pausada, una quitada o una que no compras", () => {
+    const fila = (extra: Record<string, unknown>) => ({ id: "d", etiqueta_id: null, nombre: null, desde_md: null, hasta_md: null, uso: "activa", pausa_hasta: null, repite: "anual", anio_unico: null, quitada: false, planes: [], por: "Felipe", ...extra });
+    const conCal = (filas: unknown[]) => conCalendario(leida(), leerCalendario({ soportado: true, hoy: "2026-10-12", filas }))!;
+    // Sin decisión: Navidad nunca tuvo plan y no se ofrece; el Día de la Madre ya tuvo el suyo y sigue (su de 2027 ya existe: no hay ranura).
+    expect(ranurasSinPlan(conCal([]), "2026-10-12").map((x) => x.nombre)).toEqual([]);
+    // Prendida (el interruptor): se ofrece este año y el que viene.
+    expect(ranurasSinPlan(conCal([fila({ id: "n", etiqueta_id: "e2" })]), "2026-10-12").map((x) => x.nombre)).toEqual(["Navidad 2026", "Navidad 2027"]);
+    // «No», pausada con regreso a futuro o quitada: no se ofrece; una pausada que ya regresó, sí.
+    for (const f of [{ uso: "no" }, { uso: "pausada", pausa_hasta: "2027-02-01" }, { quitada: true }]) expect(ranurasSinPlan(conCal([fila({ id: "n", etiqueta_id: "e2", ...f })]), "2026-10-12")).toEqual([]);
+    expect(ranurasSinPlan(conCal([fila({ id: "n", etiqueta_id: "e2", uso: "pausada", pausa_hasta: "2026-10-12" })]), "2026-10-12").map((x) => x.nombre)).toEqual(["Navidad 2026", "Navidad 2027"]);
+    // «Solo un año»: únicamente el suyo.
+    expect(ranurasSinPlan(conCal([fila({ id: "n", etiqueta_id: "e2", repite: "unica", anio_unico: 2027 })]), "2026-10-12").map((x) => x.nombre)).toEqual(["Navidad 2027"]);
+    // Las fechas del plan que puso el calendario mandan sobre las de la insignia (una ventana de compra empieza antes).
+    expect(ranurasSinPlan(conCal([fila({ id: "n", etiqueta_id: "e2", desde_md: "11-20", hasta_md: "12-31" })]), "2026-10-12").map((x) => [x.nombre, x.desde, x.hasta])).toEqual([
+      ["Navidad 2026", "2026-11-20", "2026-12-31"],
+      ["Navidad 2027", "2027-11-20", "2027-12-31"],
+    ]);
+    // Si la base todavía no guarda el calendario (null), se ofrecen todas, como antes.
+    expect(ranurasSinPlan({ ...leida(), calendario: null }, "2026-10-12").map((x) => x.nombre)).toEqual(["Navidad 2026", "Navidad 2027"]);
+  });
+  it("las campañas propias (sin insignia) se ofrecen con su nombre y el año del fin; la que cruza el año empieza en el anterior; una con plan ese año no", () => {
+    const propia = { id: "p", etiqueta_id: null, nombre: "Día del Padre", desde_md: "06-07", hasta_md: "06-21", uso: "activa", pausa_hasta: null, repite: "anual", anio_unico: null, quitada: false, planes: [], por: "Felipe" };
+    const conCal = (filas: unknown[]) => conCalendario(leida(), leerCalendario({ soportado: true, hoy: "2026-10-12", filas }))!;
+    const [padre] = ranurasSinPlan(conCal([propia]), "2026-10-12");
+    expect(padre).toEqual({ etiquetaId: null, calendarioId: "p", anio: 2027, nombre: "Día del Padre 2027", desde: "2027-06-07", hasta: "2027-06-21" });
+    expect(claveDeRanura(padre)).toBe("propia:p|2027");
+    expect(claveDeRanura({ etiquetaId: "e2", calendarioId: null, anio: 2026 })).toBe("e2|2026");
+    // Con su plan de 2027 armado ya no se ofrece; una pausada o quitada, tampoco.
+    expect(ranurasSinPlan(conCal([{ ...propia, planes: [{ id: "x", nombre: "Día del Padre 2027", anio: 2027, archivado: false }] }]), "2026-10-12")).toEqual([]);
+    expect(ranurasSinPlan(conCal([{ ...propia, uso: "pausada" }]), "2026-10-12")).toEqual([]);
+    expect(ranurasSinPlan(conCal([{ ...propia, quitada: true }]), "2026-10-12")).toEqual([]);
+    // Del 20 dic al 6 ene: la ranura del año que viene empieza en este año.
+    const fin = ranurasSinPlan(conCal([{ ...propia, nombre: "Fin de año", desde_md: "12-20", hasta_md: "01-06" }]), "2026-10-12");
+    expect(fin.map((x) => [x.nombre, x.desde, x.hasta])).toEqual([["Fin de año 2027", "2026-12-20", "2027-01-06"]]);
+  });
+  it("las que se ofrecen armar: las que están en mi plan, sin plan y empiezan en los próximos 90 días (no las que ya empezaron, ni sin calendario)", () => {
+    const fila = (extra: Record<string, unknown>) => ({ id: "d", etiqueta_id: null, nombre: null, desde_md: null, hasta_md: null, uso: "activa", pausa_hasta: null, repite: "anual", anio_unico: null, quitada: false, planes: [], por: "Felipe", ...extra });
+    const conCal = (filas: unknown[]) => conCalendario(leida(), leerCalendario({ soportado: true, hoy: "2026-10-12", filas }))!;
+    // Navidad (11 dic) está a 60 días; con el calendario prendida, se ofrece.
+    expect(ranurasPorArmar(conCal([fila({ id: "n", etiqueta_id: "e2" })]), "2026-10-12").map((x) => [x.ranura.nombre, x.dias])).toEqual([["Navidad 2026", 60]]);
+    // A 91 días o más no; la que ya empezó (20 de diciembre) tampoco.
+    expect(ranurasPorArmar(conCal([fila({ id: "n", etiqueta_id: "e2" })]), "2026-09-11")).toEqual([]);
+    expect(ranurasPorArmar(conCal([fila({ id: "n", etiqueta_id: "e2" })]), "2026-12-20")).toEqual([]);
+    // Con el plazo más largo o más corto cambia lo que entra.
+    expect(ranurasPorArmar(conCal([fila({ id: "n", etiqueta_id: "e2" })]), "2026-10-12", 30)).toEqual([]);
+    // Prendida o no prendida: sin la decisión (nunca tuvo plan) no se ofrece; sin calendario en la base, tampoco avisa de lo que nadie eligió.
+    expect(ranurasPorArmar(conCal([]), "2026-10-12")).toEqual([]);
+    expect(ranurasPorArmar({ ...leida(), calendario: null }, "2026-10-12")).toEqual([]);
+  });
+  it("las sin fechas piden fechas en el Calendario solo si se ofrecerían: la que no compras no molesta, y la que ya las recibió del calendario deja de pedirlas", () => {
+    const fila = (extra: Record<string, unknown>) => ({ id: "d", etiqueta_id: "e3", nombre: null, desde_md: null, hasta_md: null, uso: "activa", pausa_hasta: null, repite: "anual", anio_unico: null, quitada: false, planes: [], por: "Felipe", ...extra });
+    const conCal = (filas: unknown[]) => conCalendario(leida(), leerCalendario({ soportado: true, hoy: "2026-10-12", filas }))!;
+    expect(campanasSinFechas(conCal([]), "2026-10-12")).toEqual([]);
+    expect(campanasSinFechas(conCal([fila({})]), "2026-10-12").map((e) => e.nombre)).toEqual(["Sin fechas"]);
+    expect(campanasSinFechas(conCal([fila({ desde_md: "11-03", hasta_md: "11-05" })]), "2026-10-12")).toEqual([]);
+    expect(campanasSinFechas(conCal([fila({ uso: "no" })]), "2026-10-12")).toEqual([]);
+    // Y con fechas del calendario, se arma como cualquier otra.
+    expect(ranurasSinPlan(conCal([fila({ desde_md: "11-03", hasta_md: "11-05" })]), "2026-10-12").map((x) => [x.nombre, x.desde, x.hasta])).toEqual([
+      ["Sin fechas 2026", "2026-11-03", "2026-11-05"],
+      ["Sin fechas 2027", "2027-11-03", "2027-11-05"],
+    ]);
   });
   it("el selector como calendario: planes y campañas sin plan juntos en su grupo, por fecha; las sin fechas, solo si se pueden armar", () => {
     const l = leida();
@@ -786,15 +849,14 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
       ["calendario", "Por venir · 2026", "Navidad 2026"],
       ["plan", "Por venir · 2027", "Día de la Madre 2027"],
       ["calendario", "Por venir · 2027", "Navidad 2027"],
-      ["sin-fechas", "Sin fechas en Etiquetas", "Sin fechas"],
+      ["sin-fechas", "Sin fechas", "Sin fechas"],
     ]);
     expect(calendarioDelSelector(l, "2026-10-12", false).some((x) => x.tipo === "sin-fechas")).toBe(false);
     expect(calendarioDelSelector(l, "2026-12-20", false).filter((x) => x.grupo === "En curso").map((x) => x.tipo)).toEqual(["plan", "calendario"]);
   });
-  it("tocar una del calendario arranca la hoja con su nombre y sus fechas de ese año; una nueva, vacía", () => {
+  it("tocar una del calendario arranca la hoja con su nombre y sus fechas de ese año", () => {
     const [navidad] = ranurasSinPlan(leida(), "2026-10-12");
-    expect(borradorDeRanura(navidad)).toEqual({ etiquetaId: "e2", nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25" });
-    expect(borradorNuevo()).toEqual({ etiquetaId: null, nombre: "", desde: "", hasta: "" });
+    expect(borradorDeRanura(navidad)).toEqual({ etiquetaId: "e2", calendarioId: null, nombre: "Navidad 2026", desde: "2026-12-11", hasta: "2026-12-25" });
   });
   it("lo que impide armar una del calendario: que ya tenga su plan ese año, nombre vacío o repetido, fechas que faltan o al revés", () => {
     const { etiquetas } = leida();
@@ -808,20 +870,13 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
     expect(problemasDeLaCampana({ ...ok, desde: "" }, etiquetas).desde).toMatch(/desde cuándo/);
     expect(problemasDeLaCampana({ ...ok, hasta: "2026-12-01" }, etiquetas).hasta).toMatch(/antes de empezar/);
   });
-  it("lo que impide una campaña nueva: sin nombre, uno que ya está en el calendario (sin tildes ni mayúsculas) o cuyo plan ya existe", () => {
-    const { etiquetas } = leida();
-    const ok = { etiquetaId: null, nombre: "Cyber Wow", desde: "2026-11-03", hasta: "2026-11-05" };
-    expect(problemasDeLaCampana(ok, etiquetas, [])).toEqual({});
-    expect(problemasDeLaCampana({ ...ok, nombre: " " }, etiquetas).nombre).toMatch(/Escribe el nombre de la campaña/);
-    expect(problemasDeLaCampana({ ...ok, nombre: "NAVIDAD" }, etiquetas).nombre).toMatch(/ya está en el calendario/);
-    expect(problemasDeLaCampana({ ...ok, nombre: "sin fechas" }, etiquetas).nombre).toMatch(/«Sin fechas» ya está en Etiquetas, sin fechas: pónselas/);
-    expect(problemasDeLaCampana(ok, etiquetas, ["cyber wow 2026"]).nombre).toMatch(/Ya hay un plan «Cyber Wow 2026»/);
-    expect(nombreDelPlanNuevo({ nombre: "  Cyber   Wow ", hasta: "2027-01-02" })).toBe("Cyber Wow 2027");
-  });
   it("los argumentos van como los espera la base (el nombre vacío del plan va como null: la base pone el suyo)", () => {
-    expect(argsCrearCampana({ etiquetaId: "e2", nombre: " Navidad 2026 ", desde: "2026-12-11", hasta: "2026-12-25" })).toEqual({ p_etiqueta_id: "e2", p_nombre: "Navidad 2026", p_desde: "2026-12-11", p_hasta: "2026-12-25" });
-    expect(argsCrearCampana({ etiquetaId: "e2", nombre: "  ", desde: "a", hasta: "b" }).p_nombre).toBeNull();
-    expect(argsCampanaNueva({ etiquetaId: null, nombre: "  Cyber   Wow ", desde: "2026-11-03", hasta: "2026-11-05" })).toEqual({ p_nombre: "Cyber Wow", p_desde: "2026-11-03", p_hasta: "2026-11-05" });
+    expect(argsCrearCampana({ etiquetaId: "e2", calendarioId: null, nombre: " Navidad 2026 ", desde: "2026-12-11", hasta: "2026-12-25" })).toEqual({ p_etiqueta_id: "e2", p_nombre: "Navidad 2026", p_desde: "2026-12-11", p_hasta: "2026-12-25" });
+    expect(argsCrearCampana({ etiquetaId: "e2", calendarioId: null, nombre: "  ", desde: "a", hasta: "b" }).p_nombre).toBeNull();
+    // Una propia (sin insignia): el año es el del FIN de la campaña, como el de su nombre.
+    expect(argsPlanPropio({ etiquetaId: null, calendarioId: "d1", nombre: "  Día del   Padre 2027 ", desde: "2026-12-20", hasta: "2027-01-06" })).toEqual({
+      p_calendario_id: "d1", p_anio: 2027, p_nombre: "Día del Padre 2027", p_desde: "2026-12-20", p_hasta: "2027-01-06",
+    });
   });
   it("si las fechas del plan no son las de su campaña ESE AÑO, lo dice (nunca en silencio); si coinciden, nada", () => {
     const e = leida().etiquetas[1];
@@ -843,9 +898,14 @@ describe("varias campañas: leer el selector y crear una desde una etiqueta (ADR
     expect(camposDeLaCampana(ok, etiquetas, [], listo).map((c) => c.id)).toEqual(["nombre", "desde", "hasta", "responsable"]);
     const yaArmada = { ...ok, etiquetaId: "e1", desde: "2027-04-25", hasta: "2027-05-09" };
     expect(camposDeLaCampana(yaArmada, etiquetas, [], listo)[0].pendiente).toMatch(/ya tiene su plan de 2027/);
-    const nueva = camposDeLaCampana(borradorNuevo(), etiquetas, [], listo);
-    expect(nueva.map((c) => c.nombre)).toEqual(["Nombre de la campaña", "Desde", "Hasta", "Quién crea la campaña"]);
-    expect(nueva[0].pendiente).toMatch(/Escribe el nombre de la campaña/);
+    // Una propia ya armada ese año también lo dice; una que ya no está en el calendario, también.
+    const propia = { etiquetaId: null, calendarioId: "d1", nombre: "Día del Padre 2027", desde: "2027-06-07", hasta: "2027-06-21" };
+    const propias = [{ id: "d1", planes: [{ id: "p1", nombre: "Día del Padre 2027", anio: 2027, archivado: false }] }];
+    expect(camposDeLaCampana(propia, etiquetas, [], listo, [{ id: "d1", planes: [] }]).map((c) => c.id)).toEqual(["nombre", "desde", "hasta", "responsable"]);
+    expect(camposDeLaCampana(propia, etiquetas, [], listo, propias)[0].pendiente).toMatch(/ya tiene su plan de 2027/);
+    expect(camposDeLaCampana(propia, etiquetas, [], listo, [])[0].pendiente).toMatch(/ya no está en tu calendario/);
+    expect(sePuedeConfirmar(camposDeLaCampana(propia, etiquetas, [], listo, [{ id: "d1", planes: [] }]))).toBe(true);
+    expect(sePuedeConfirmar(camposDeLaCampana(propia, etiquetas, [], listo, propias))).toBe(false);
   });
 });
 
@@ -922,7 +982,7 @@ describe("Formidable y chaos, 2026-10-10: lo que la hoja dice y lo que acepta", 
   it("nombres de campaña casi iguales son el mismo (sin tildes, mayúsculas ni espacios dobles)", () => {
     expect(nombreComparable("Navídad  2026 ")).toBe(nombreComparable("navidad 2026"));
     const etiquetas = [{ id: "e1", nombre: "Navidad", desde: "2026-12-11", hasta: "2026-12-25", planId: null, planes: [] }];
-    const b = { etiquetaId: "e1", nombre: "Navídad  2026", desde: "2026-12-11", hasta: "2026-12-25" };
+    const b = { etiquetaId: "e1", calendarioId: null, nombre: "Navídad  2026", desde: "2026-12-11", hasta: "2026-12-25" };
     expect(problemasDeLaCampana(b, etiquetas, ["Navidad 2026"]).nombre).toMatch(/Ya hay un plan/);
     expect(argsCrearCampana({ ...b, nombre: "  Fiestas   Patrias 2026 " }).p_nombre).toBe("Fiestas Patrias 2026");
   });
@@ -1038,19 +1098,6 @@ describe("la lista de campañas por año (C1)", () => {
     expect(campanasDelSelector([diciembre], "2026-12-01")[0].grupo).toBe("En curso");
     expect(campanasDelSelector([diciembre], "2026-12-31")[0].grupo).toBe("En curso");
     expect(campanasDelSelector([diciembre], "2027-01-01")[0].grupo).toBe("Terminadas");
-  });
-});
-
-describe("el número del botón «Resumen y avisos»", () => {
-  const sede = (nombre: string, alDia: boolean) => ({ nombre, alDia, falta: alDia ? "" : "piso sin cuadrar" });
-  it("cuántas tiendas no tienen su stock al día", () => {
-    expect(avisosDelResumen({ estado: "incompleto", sedes: [sede("AQP", false), sede("LIM", false), sede("TRU", true)] as never })).toBe(2);
-  });
-  it("todo al día: sin número", () => {
-    expect(avisosDelResumen({ estado: "confiable", sedes: [sede("TRU", true)] as never })).toBe(0);
-  });
-  it("si no se pudo comprobar, uno: no se dice «todo bien» por un error", () => {
-    expect(avisosDelResumen({ estado: "sin-dato", sedes: [] })).toBe(1);
   });
 });
 

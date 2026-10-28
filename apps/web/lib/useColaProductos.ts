@@ -10,7 +10,7 @@ import { borrarFotos, marcarCreado, subirFotosListas } from "@/lib/fotos-pendien
  *  alta encola `crear_producto_con_stock_inicial`; `crear_producto_con_variantes` se queda en la lista para que un alta
  *  guardada sin conexión ANTES de publicar esa versión (sigue en el `localStorage` de ese equipo) no se descarte como
  *  inválida al volver la red. */
-export const RPCS_PRODUCTOS = ["crear_producto_con_stock_inicial", "crear_producto_con_variantes"] as const;
+export const RPCS_PRODUCTOS = ["crear_producto_con_stock_inicial", "crear_producto_con_empresa", "crear_producto_con_variantes"] as const;
 
 /**
  * La cola sin conexión del alta de producto. El código (`PREFIJO-NNNN`) y el de barras los reparte la base al subir,

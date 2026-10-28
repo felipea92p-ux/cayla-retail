@@ -2,30 +2,45 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 74,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/compras/proveedores»",
       "Link «{celdas}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
+      "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
-      "LapizEditar «)»",
-      "button «{`Copiar ${etiqueta.toLowerCase()}»"
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
+    ],
+    "components/LoQueQuizaNoVes.tsx": [
+      "button «Ver»"
+    ],
+    "components/PagoPiezas.tsx": [
+      "BotonCopiar «{que}»",
+      "Boton «Listo»",
+      "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
+      "CampoFecha «Fecha del pago»",
+      "CampoTexto «Referencia»",
+      "input «{`Monto del medio ${i + 1}»",
+      "CampoTexto «Referencia» #2",
+      "button «{`Quitar el medio ${i + 1}»",
+      "button «＋»",
+      "button «Usar»",
+      "button «Completar con el último medio»"
     ],
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
-      "Boton «Copiar CCI»",
-      "BotonEditar «→() => setEditando(true)»",
-      "BotonEnlace «Registrar factura»"
+      "BotonCopiar «el CCI»",
+      "BotonEditar «→() => setEditando(true)»"
     ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
+      "SegmentoDeslizante «Clase de proveedor»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",
@@ -44,24 +59,48 @@
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
+    "components/ProveedorTallasSedes.tsx": [
+      "BotonVer «Ir a Traslados»"
+    ],
     "components/SaldoFavorAcciones.tsx": [
       "CampoTexto «Monto devuelto»",
       "CampoFecha «Fecha»",
       "button «{t}»",
       "CampoTexto «Referencia»",
       "CampoTexto «Nota (opcional)»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «Registrar reembolso»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"
     ],
+    "components/nos-debe/HojaDeposito.tsx": [
+      "Boton «proveedor-ficha.deposito»",
+      "CampoTexto «Cuántas pagó»",
+      "CampoMonto «Cuánto te depositó»",
+      "CampoFecha «Fecha del depósito»",
+      "CampoTexto «Referencia»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/nos-debe/HojaReposicion.tsx": [
       "Boton «proveedor-ficha.reposicion»",
       "CampoTexto «Cuántas llegaron»",
       "CampoTexto «Cómo llegó»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/nos-debe/HojaSaldoAFavor.tsx": [
+      "Boton «proveedor-ficha.saldo-a-favor»",
+      "CampoTexto «Cuántas pasan»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"

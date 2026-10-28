@@ -36,8 +36,6 @@
   .vsr-f-prog { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
   .vsr-f-top { display: flex; align-items: baseline; gap: 0.625rem; font-size: 14px; color: var(--vsr-t65); }
   .vsr-f-n { font-family: var(--font-serif); font-size: 36px; line-height: 1; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
-  .vsr-f-bar { height: 6px; border-radius: 3px; background: var(--color-sand); overflow: hidden; }
-  .vsr-f-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--color-verde); transform-origin: left; transition: transform 1s var(--ease-cayla); }
   .vsr-venc {
     display: inline-flex;
     align-items: center;
@@ -51,7 +49,9 @@
     color: var(--color-rojo-profundo);
     transition: background-color 250ms, color 250ms, border-color 250ms;
   }
-  .vsr-venc:hover { border-color: var(--color-rojo); }
+  @media (hover: hover) {
+    .vsr-venc:hover { border-color: var(--color-rojo); }
+  }
   .vsr-venc[aria-pressed="true"] { background: var(--color-rojo-profundo); border-color: var(--color-rojo-profundo); color: var(--color-crema); }
   /* La «Vencida» es una señal (ADR-0136): su punto late TRES veces y se queda quieto, como el chip. */
   .vsr-venc > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: vsr-late 1.1s var(--ease-cayla) 3; }
@@ -92,7 +92,9 @@
     animation: vsr-sube 450ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--i, 0) * 40ms);
   }
-  .vsr-talon:hover { border-color: var(--color-taupe); }
+  @media (hover: hover) {
+    .vsr-talon:hover { border-color: var(--color-taupe); }
+  }
   .vsr-talon[aria-pressed="true"] {
     transform: translateX(10px);
     border-color: var(--color-tinta);
@@ -176,7 +178,9 @@
     animation: vsr-sube 500ms var(--ease-cayla) backwards;
     animation-delay: calc(var(--i, 0) * 55ms);
   }
-  .vsr-ct:hover { border-color: var(--color-taupe); transform: translateY(-3px); }
+  @media (hover: hover) {
+    .vsr-ct:hover { border-color: var(--color-taupe); transform: translateY(-3px); }
+  }
   .vsr-ct[aria-pressed="true"] { border-color: var(--color-tinta); box-shadow: 0 0 0 1px var(--color-tinta), 0 16px 26px -20px color-mix(in srgb, var(--color-sombra) 55%, transparent); transform: translateY(-3px); }
   .vsr-ct[data-sin-unidades] .vsr-ct-foto { opacity: 0.6; }
   .vsr-ct-foto { position: relative; width: 100%; aspect-ratio: 1.75; overflow: hidden; border-radius: var(--radius-md); }
@@ -192,7 +196,9 @@
   .vsr-veredicto[data-tono="otra"] { color: var(--vsr-t65); }
   /* «¿Por qué?»: lo difícil bajo un toque (ley 6). */
   .vsr-pq { display: inline-flex; align-items: center; min-height: 24px; padding: 0 2px; font-size: 12px; color: var(--color-taupe-profundo); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
-  .vsr-pq:hover { color: var(--color-tinta); }
+  @media (hover: hover) {
+    .vsr-pq:hover { color: var(--color-tinta); }
+  }
   .vsr-pq[aria-expanded="true"] { color: var(--color-tinta); text-decoration-style: solid; }
   .vsr-pq-nota { flex-basis: 100%; width: 100%; background: var(--color-hueso); border-radius: var(--radius-md); padding: 0.5625rem 0.75rem; font-size: 12.5px; line-height: 1.45; color: var(--color-tinta); animation: vsr-sube 300ms var(--ease-cayla) backwards; }
   .vsr-pq-nota b { font-weight: 600; }
@@ -265,7 +271,9 @@
   /* «Cómo estaba», dos opciones en tarjeta (la guía de foco las enciende: alta-guia.css). */
   .vsr-formas { display: grid; gap: 0.5rem; }
   .vsr-forma { display: flex; gap: 0.625rem; align-items: flex-start; text-align: left; border: 1px solid var(--color-sand); border-radius: var(--radius-lg); padding: 0.5625rem 0.6875rem; background: var(--color-crema); transition: border-color 250ms, background-color 250ms, box-shadow 250ms; }
-  .vsr-forma:hover { border-color: var(--color-taupe); }
+  @media (hover: hover) {
+    .vsr-forma:hover { border-color: var(--color-taupe); }
+  }
   .vsr-forma svg { margin-top: 2px; width: 18px; height: 18px; color: var(--color-taupe-profundo); flex: none; }
   .vsr-forma b { display: block; font-weight: 600; font-size: 13.5px; color: var(--color-tinta); }
   .vsr-forma small { display: block; color: var(--vsr-t65); font-size: 12px; line-height: 1.35; margin-top: 1px; }

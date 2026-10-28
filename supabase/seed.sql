@@ -11,6 +11,12 @@
 -- de punta a punta desde el propio seed, no solo con INSERT directo.
 -- ============================================================================
 
+-- EL RELOJ: EN HORA DE LIMA. El contenedor de Postgres (y el runner del CI) van en UTC: después de las
+-- 19:00 de Lima ya es «mañana» para `current_date`, pero las funciones miden «hoy» en hora de Lima. Sin
+-- esta línea, la compra del seed salía con fecha de mañana y la base la rechazaba («La fecha de emisión
+-- no puede ser futura») y el seed no entraba: pasó en el CI del PR #1127 el 2026-10-15 a las 19:33.
+set timezone = 'America/Lima';
+
 -- ==================== 1. usuario para entrar ====================
 -- Mismo patrón que V1 (ver git tag cayla-v1-pre-retail-v2): credenciales
 -- de desarrollo, a propósito obvias: felipe@cayla.local / cayla-local
@@ -58,6 +64,16 @@ union all
 select 'Tienda Lima', 'tienda', id from public.sedes where codigo = 'LIM'
 union all
 select 'Tienda Trujillo', 'tienda', id from public.sedes where codigo = 'TRU';
+
+-- ADR-0429: las máquinas de cobro (Izipay, Vendemás) se enganchan a las tiendas recién creadas, como en producción, ANTES de
+-- las ventas de más abajo: el cobro con tarjeta se sella con la cuenta del momento (`fn_cuenta_sellada`), y si las máquinas
+-- se sembraran después, la venta con tarjeta de Trujillo quedaría «sin cuenta» (2026-10-17). Idempotente.
+-- Con guarda: en el CI de un PR el seed corre con la base de MAIN y las migraciones del PR se aplican después (la 173000 siembra ahí).
+do $$ begin
+  if to_regprocedure('retail.fn_pos_sembrar_maquinas_en_tiendas()') is not null then
+    perform retail.fn_pos_sembrar_maquinas_en_tiendas();
+  end if;
+end $$;
 
 -- Plazo para cerrar la cola de arranque de ventas sin registrar (ADR-0334). En producción la migración 20261005100000 lo siembra
 -- hasta el 15-oct; aquí las tiendas nacen DESPUÉS de las migraciones, así que se siembra de nuevo, siempre vigente (hoy + 30 días)
@@ -423,6 +439,9 @@ begin
           from retail.variantes v join retail.productos p on p.id = v.producto_id
           where p.referencia in ('Blusa Emma', 'Blusa Valentina')),
       'metodo', 'transferencia', 'referencia', 'BCP-7781'),
+    -- La emisión con el día de Lima: el valor por defecto de registrar_compra es current_date (UTC en la base), y de 19:00 a
+    -- 24:00 de Lima ya es «mañana» y la regla de emisión no futura (20261015171000) lo rechaza.
+    p_fecha_emision => retail.fn_hoy_lima(),
     p_nota => 'Factura al contado, detallada por talla/color'
   ) into compra1_id;
   -- recepción completa de la factura 1, con su guía
@@ -441,7 +460,8 @@ begin
                from retail.productos p join retail.variantes v on v.producto_id = p.id
                where p.referencia in ('Vestido Sofía', 'Vestido Antonella', 'Casaca Ximena', 'Casaca Luciana')
                group by p.id, p.referencia) x),
-    p_fecha_vencimiento => current_date + 30,
+    p_fecha_emision => retail.fn_hoy_lima(),
+    p_fecha_vencimiento => retail.fn_hoy_lima() + 30,
     p_nota => 'Factura al crédito, agrupada por modelo'
   ) into compra2_id;
   -- recepción PARCIAL de la factura 2: de cada modelo llega la mitad (15 por

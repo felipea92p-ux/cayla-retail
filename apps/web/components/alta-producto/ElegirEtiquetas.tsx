@@ -60,18 +60,13 @@ type Props = {
   elegidas: readonly string[];
   /** El `setState` del formulario: se usa siempre con función (`prev => …`) para no pisar lo que se marcó mientras una respuesta venía en camino. */
   onElegidas: Dispatch<SetStateAction<string[]>>;
-  /** Quien crea una etiqueta y la deja aprobada de una (`fn_puede_editar_etiquetas`: líder o un rol con el módulo Etiquetas). Solo cambia lo que dice el panel de crear. */
-  puedeAprobar: boolean;
   /** Sin internet no se puede crear una etiqueta nueva (sí elegir las que ya existen). */
   enLinea: boolean;
   /** Una etiqueta nueva quedó aprobada: el formulario la suma a su vocabulario. */
   onCreada: (e: EtiquetaAlta) => void;
-  /** Lo que alguien sin permiso de aprobar propuso en esta pantalla: espera a un líder, así que no se puede marcar ni proponer otra vez. Vive en el formulario para no perderse al plegar el paso. */
-  propuestas: readonly string[];
-  onPropuesta: (nombre: string) => void;
 };
 
-export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, puedeAprobar, enLinea, onCreada, propuestas, onPropuesta }: Props) {
+export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, enLinea, onCreada }: Props) {
   const [hoja, setHoja] = useState(false);
   const [nueva, setNueva] = useState(false);
   const hoy = useMemo(() => hoyLima(), []);
@@ -99,7 +94,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       <div className="space-y-2.5">
         {etiquetas.length === 0 ? (
           <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tag />}>
-            {enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}
+            {enLinea ? "Todavía no hay insignias. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay insignias."}
           </Vacio>
         ) : (
           <GrillaMuestras>
@@ -114,7 +109,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
                 onTocar={() => setUltimaId(et.id)}
               />
             ))}
-            <TileVerTodos total={total} singular="etiqueta" plural="etiquetas" onClick={() => setHoja(true)} />
+            <TileVerTodos total={total} singular="insignia o campaña" plural="insignias y campañas" onClick={() => setHoja(true)} />
           </GrillaMuestras>
         )}
 
@@ -124,11 +119,6 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
           </p>
         )}
 
-        {propuestas.length > 0 && (
-          <p className="text-xs text-taupe">
-            Esperando a un líder: {propuestas.map((p) => `«${p}»`).join(", ")}. Cuando la apruebe podrás marcarla.
-          </p>
-        )}
         <p className="text-xs text-taupe">
           Se aplican a todas las variantes de la prenda.
         </p>
@@ -138,13 +128,13 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
         <Modal
           variante="hoja"
           tamano="ancha"
-          titulo="Elige las etiquetas"
+          titulo="Elige insignias y campañas"
           subtitulo={`${total} en el catálogo.`}
           onClose={() => setHoja(false)}
-          // «+ Nueva etiqueta» arriba a la derecha, a la vista (Felipe 2026-10-02): antes solo aparecía al escribir un nombre que no existe.
+          // «+ Nueva insignia» arriba a la derecha, a la vista (Felipe 2026-10-02): antes solo aparecía al escribir un nombre que no existe.
           acciones={
-            <Boton type="button" peso="primario" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una etiqueta necesita internet"} className="h-9 whitespace-nowrap py-0">
-              + Nueva etiqueta
+            <Boton type="button" peso="primario" onClick={() => setNueva(true)} disabled={!enLinea} title={enLinea ? undefined : "Crear una insignia necesita internet"} className="h-9 whitespace-nowrap py-0">
+              + Nueva insignia
             </Boton>
           }
         >
@@ -154,25 +144,20 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
             idsCubiertas={idsCubiertas}
             marcadas={marcadas}
             hoy={hoy}
-            puedeAprobar={puedeAprobar}
             enLinea={enLinea}
-            propuestas={propuestas}
             onAlternar={alternar}
             onTocar={setUltimaId}
             onCreada={onCreada}
-            onPropuesta={onPropuesta}
           />
           {nueva && (
             <NuevaEtiquetaModal
-              contexto={{ todas: etiquetas, reparto, elegidas: [...marcadas], propuestas }}
-              puedeAprobar={puedeAprobar}
+              contexto={{ todas: etiquetas, reparto, elegidas: [...marcadas] }}
               enLinea={enLinea}
               onCerrar={() => setNueva(false)}
               onCreada={(e) => {
                 onCreada(e);
                 alternar(e.id);
               }}
-              onPropuesta={onPropuesta}
             />
           )}
         </Modal>
@@ -222,7 +207,7 @@ function TarjetaEtiqueta({
           // `TooltipTrigger` (2026-10-02), se abre de verdad; los dos juntos se encimarían.
         >
           <div className="relative">
-            <MuestraEtiqueta nombre={et.nombre} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
+            <MuestraEtiqueta nombre={et.nombre} icono={et.icono} imagen={et.imagen} imagenSilueta={et.imagenSilueta} estilo={estiloConocido(et.estilo)} className="h-10 w-full" />
             {dto && (
               <span
                 aria-hidden
@@ -255,7 +240,7 @@ function TarjetaEtiqueta({
 
 /**
  * El contenido de «Ver todos»: el buscador (también sirve para crear una etiqueta que no existe) y el vocabulario
- * completo agrupado por Rotación/Artesanal/Campaña y festividad/General, igual que Catálogo ▸ Atributos ▸ Etiquetas.
+ * completo agrupado por Rotación/Artesanal/Campaña y festividad/General, igual que Catálogo ▸ Insignias.
  * Tocar una tarjeta acá NO cierra la hoja: a diferencia de Tejido/Patrón/Temporada, de etiquetas se eligen varias.
  */
 function HojaEtiquetas({
@@ -264,26 +249,20 @@ function HojaEtiquetas({
   idsCubiertas,
   marcadas,
   hoy,
-  puedeAprobar,
   enLinea,
-  propuestas,
   onAlternar,
   onTocar,
   onCreada,
-  onPropuesta,
 }: {
   etiquetas: readonly EtiquetaAlta[];
   reparto: ReturnType<typeof repartirEtiquetas>;
   idsCubiertas: ReadonlySet<string>;
   marcadas: ReadonlySet<string>;
   hoy: string;
-  puedeAprobar: boolean;
   enLinea: boolean;
-  propuestas: readonly string[];
   onAlternar: (id: string) => void;
   onTocar: (id: string) => void;
   onCreada: (e: EtiquetaAlta) => void;
-  onPropuesta: (nombre: string) => void;
 }) {
   const entrada = useRef<HTMLInputElement>(null);
   const [texto, setTexto] = useState("");
@@ -293,7 +272,7 @@ function HojaEtiquetas({
   const visibles = useMemo(() => [...reparto.elegibles, ...reparto.cubiertas].filter((e) => coincideConTexto(e, texto)), [reparto, texto]);
   const grupos = useMemo(() => agruparEtiquetas(visibles), [visibles]);
 
-  const contexto = { todas: etiquetas, reparto, elegidas: [...marcadas], propuestas };
+  const contexto = { todas: etiquetas, reparto, elegidas: [...marcadas] };
   const significado = significadoDelTexto(texto, contexto);
   const hayCrear = significado.tipo === "nueva" && enLinea && creando === null;
   const notaTexto =
@@ -302,7 +281,7 @@ function HojaEtiquetas({
       : significado.tipo === "invalida"
         ? FRASE_ETIQUETA_INVALIDA
         : significado.tipo === "nueva" && !enLinea
-          ? "Sin conexión no se pueden crear etiquetas nuevas. Elige entre las que ya existen."
+          ? "Sin conexión no se pueden crear insignias nuevas. Elige entre las que ya existen."
           : null;
 
   function pedirCrear(nombre: string) {
@@ -337,8 +316,8 @@ function HojaEtiquetas({
           ref={entrada}
           valor={texto}
           autoFocus
-          etiqueta="Buscar o crear una etiqueta"
-          placeholder="Buscar o crear una etiqueta…"
+          etiqueta="Buscar o crear una insignia"
+          placeholder="Buscar o crear una insignia…"
           // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
           onCambio={(v) => setTexto(v.replace(/,+$/, ""))}
           onKeyDown={(e) => {
@@ -361,7 +340,7 @@ function HojaEtiquetas({
           {notaTexto ??
             (hayCrear && significado.tipo === "nueva"
               ? `Escribiste «${significado.nombre}»: elige una de abajo o pulsa «+ Crear» para agregarla.`
-              : `Escribiste «${texto.trim()}»: elige la etiqueta de abajo.`)}
+              : `Escribiste «${texto.trim()}»: elígelo en la lista de abajo.`)}
         </p>
       )}
 
@@ -369,17 +348,10 @@ function HojaEtiquetas({
         <div className="mt-2.5">
           <CrearEtiquetaAbierta
             nombre={creando}
-            puedeAprobar={puedeAprobar}
             onAprobada={(valor) => {
-              onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
+              onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", icono: null, imagen: null, imagenSilueta: false, descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
               onAlternar(valor.id);
-              avisar.exito(`Etiqueta «${valor.texto}» creada y agregada`);
-              setCreando(null);
-              entrada.current?.focus();
-            }}
-            onPendiente={(valor) => {
-              onPropuesta(valor.texto);
-              avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+              avisar.exito(`Insignia «${valor.texto}» creada y agregada`);
               setCreando(null);
               entrada.current?.focus();
             }}
@@ -393,7 +365,7 @@ function HojaEtiquetas({
 
       <div className="scroll-cayla -mx-1 mt-3 max-h-[52vh] overflow-y-auto px-1 pb-1">
         {grupos.length === 0 ? (
-          <p className="py-4 text-[13px] text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay etiquetas para elegir."}</p>
+          <p className="py-4 text-[13px] text-taupe">{texto.trim() ? `Nada coincide con «${texto.trim()}».` : "No hay insignias ni campañas para elegir."}</p>
         ) : (
           <div className="space-y-3">
             {grupos.map((g) => (
@@ -430,18 +402,14 @@ function HojaEtiquetas({
 /** «+ Nueva etiqueta» de la cabecera de la hoja: pide el nombre y, si de verdad es nueva, abre la misma confirmación de siempre. */
 function NuevaEtiquetaModal({
   contexto,
-  puedeAprobar,
   enLinea,
   onCerrar,
   onCreada,
-  onPropuesta,
 }: {
   contexto: Parameters<typeof significadoDelTexto>[1];
-  puedeAprobar: boolean;
   enLinea: boolean;
   onCerrar: () => void;
   onCreada: (e: EtiquetaAlta) => void;
-  onPropuesta: (nombre: string) => void;
 }) {
   const [texto, setTexto] = useState("");
   const significado = significadoDelTexto(texto, contexto);
@@ -454,11 +422,11 @@ function NuevaEtiquetaModal({
           ? FRASE_ETIQUETA_INVALIDA
           : null;
   return (
-    <Modal variante="hoja" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
+    <Modal variante="hoja" titulo="Nueva insignia" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
       {(cerrar) => (
         <div className="space-y-3">
           <CampoTexto
-            etiqueta="Nombre de la etiqueta"
+            etiqueta="Nombre de la insignia"
             sinPie
             autoFocus
             value={texto}
@@ -476,15 +444,9 @@ function NuevaEtiquetaModal({
             <CrearEtiquetaAbierta
               key={significado.nombre}
               nombre={significado.nombre}
-              puedeAprobar={puedeAprobar}
               onAprobada={(valor) => {
-                onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
-                avisar.exito(`Etiqueta «${valor.texto}» creada y agregada`);
-                cerrar();
-              }}
-              onPendiente={(valor) => {
-                onPropuesta(valor.texto);
-                avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+                onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", icono: null, imagen: null, imagenSilueta: false, descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
+                avisar.exito(`Insignia «${valor.texto}» creada y agregada`);
                 cerrar();
               }}
               onCerrar={cerrar}
@@ -499,18 +461,14 @@ function NuevaEtiquetaModal({
 // «Crear» es UNA escritura aparte del producto; la firma quien inició el alta (`useFirmaDeMitad`), sin combo propio desde 2026-09-29.
 // NO va dentro de la transacción del alta: si crear la etiqueta fallara a mitad, la persona perdería la prenda que llenaba.
 // Si la red cae, la respuesta es «No se pudo hablar con el servidor» y NO se crea nada: la prenda y lo llenado siguen ahí.
-// Lo que pasa después lo decide la RESPUESTA (¿quedó aprobada?), no lo que este panel anunció: `puedeAprobar` solo cambia el texto.
+// Desde ADR-0534 toda insignia nace aprobada, la cree quien la cree: se crea y se marca en esta prenda.
 function CrearEtiquetaAbierta({
   nombre,
-  puedeAprobar,
   onAprobada,
-  onPendiente,
   onCerrar,
 }: {
   nombre: string;
-  puedeAprobar: boolean;
   onAprobada: (valor: ValorCreado) => void;
-  onPendiente: (valor: ValorCreado) => void;
   onCerrar: () => void;
 }) {
   const [trabajando, setTrabajando] = useState(false);
@@ -525,11 +483,15 @@ function CrearEtiquetaAbierta({
     const { valor, error: errCrear } = await proponerEtiqueta(nombre, firma.encabezados());
     setTrabajando(false);
     if (errCrear || !valor) {
-      setError(errCrear ?? "No se pudo crear la etiqueta. Reintenta.");
+      setError(errCrear ?? "No se pudo crear la insignia. Reintenta.");
       return;
     }
-    if (valor.aprobado) onAprobada(valor);
-    else onPendiente(valor);
+    // Solo si la base todavía no tiene ADR-0534 vuelve por aprobar: el alta la rechazaría, así que no se marca y se dice dónde quedó.
+    if (!valor.aprobado) {
+      setError(`«${valor.texto}» quedó por aprobar en Catálogo ▸ Insignias: todavía no se puede marcar en una prenda.`);
+      return;
+    }
+    onAprobada(valor);
   }
 
   return (
@@ -537,7 +499,7 @@ function CrearEtiquetaAbierta({
       ref={panel}
       tabIndex={-1}
       role="group"
-      aria-label={`Crear la etiqueta ${nombre}`}
+      aria-label={`Crear la insignia ${nombre}`}
       className="space-y-2.5 rounded-md border border-sand bg-hueso p-3 outline-none"
       onKeyDown={(e) => {
         if (e.key === "Escape" && !trabajando) {
@@ -548,17 +510,13 @@ function CrearEtiquetaAbierta({
       }}
     >
       <p className="text-sm text-tinta">
-        Crear la etiqueta <strong>«{nombre}»</strong>
+        Crear la insignia <strong>«{nombre}»</strong>
       </p>
-      <p className="text-xs text-taupe">
-        {puedeAprobar
-          ? "Queda en el catálogo para usarla en otras prendas, y se marca en esta."
-          : "Queda pendiente: un líder tiene que aprobarla en Catálogo → Atributos antes de poder marcarla en una prenda."}
-      </p>
+      <p className="text-xs text-taupe">Queda en el catálogo para usarla en otras prendas, y se marca en esta.</p>
       <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
         <Boton peso="primario" cargando={trabajando} textoCargando="Creando…" type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined}>
-          {puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
+          Crear y agregar
         </Boton>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar

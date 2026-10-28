@@ -102,9 +102,9 @@ export function leerVariantesParaAjuste(productoId: string, ubicacionId: string,
   const consulta = createClient()
     .from("variantes")
     .select(
-      `id, sku, codigo,
+      `id, sku, codigo, activo,
        talla:tallas ( valor ),
-       color:colores ( nombre ),
+       color:colores ( nombre, hex ),
        producto:productos ( referencia ),
        stock ( cantidad, cantidad_apartada, sububicacion_id )`
     )

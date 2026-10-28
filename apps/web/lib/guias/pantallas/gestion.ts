@@ -60,14 +60,14 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Las respuestas de hoy",
-      texto: "Una tarjeta por pregunta, con su estado (va bien, atención o urgente) y las prendas que lo explican. Toca una tarjeta para ir a su pestaña.",
+      texto: "Una tarjeta por pregunta, con su estado (urgente, atención o va bien) y las prendas que lo explican. Si los datos están incompletos, nunca dice «va bien»: dice «con lo registrado». Toca una tarjeta para ir a su pestaña.",
     },
     {
       id: "que-hacer",
       ancla: "analisis.que-hacer",
       opcional: true,
       titulo: "Qué hacer hoy",
-      texto: "Lo urgente del día en orden: qué reponer, qué pedir a otra sede, qué mover. Si dice «nada urgente», la tienda va bien.",
+      texto: "Lo urgente del día en orden: qué reponer, qué pedir a otra sede, qué mover. Si dice «nada urgente» con los datos completos, la tienda va bien.",
     },
     {
       id: "acaba",
@@ -75,7 +75,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-acaba" }],
       titulo: "Se está acabando",
-      texto: "Las prendas que, al ritmo que se venden, se acaban pronto, con los días que les quedan. Desde aquí puedes pedirlas a otra sede antes de quedarte sin nada.",
+      texto: "Las prendas que, al ritmo que se venden desde que se colgaron, se acaban pronto, con los días que les quedan. Desde aquí puedes pedirlas a otra sede antes de quedarte sin nada.",
     },
     {
       id: "nose",
@@ -83,7 +83,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-nose" }],
       titulo: "No se vende",
-      texto: "Las prendas que llevan mucho sin venderse aunque hay stock. Para decidir si moverlas, trasladarlas o liquidarlas.",
+      texto: "Las prendas que llevan sin venderse más de lo que tardan las de su tipo en tu piso, aunque hay stock. Para decidir si trasladarlas o liquidarlas. Las que pueden haberse vendido sin registrar van aparte, en «Aún no se sabe».",
     },
     {
       id: "piso",
@@ -99,7 +99,7 @@ export const GUIA_ANALISIS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "analisis.pestana-pedir" }],
       titulo: "Qué pedir",
-      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo de prenda, para cuánto alcanza lo que tienes; lo que no llega va en ámbar y conviene pedirlo. Toca un tipo y al lado ves lo que más se vende de él (Top 5, 10…).",
+      texto: "Arriba, cuánto falta para la campaña, con un atajo al Plan de campaña. «¿Para cuánto te alcanza?»: cada tipo de prenda, para cuánto alcanza lo que tienes (contando también lo vendido sin registrar); lo que no llega va en ámbar y conviene pedirlo. Toca un tipo y al lado ves lo que más se vende.",
     },
     {
       id: "pedir-orden",
@@ -254,7 +254,7 @@ export const GUIA_FRESCURA: Guia = {
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "frescura.buscador" }],
 };
 
-// Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde el líder prepara cambios que se guardan con «Revisar y guardar».
+// Plan del piso (ADR-0329 + ADR-0328): solo lectura salvo «Grupos», donde quien ve el módulo prepara cambios que se guardan con «Revisar y guardar».
 // La demo recorre las tres pestañas (son estado de la pantalla, no rutas), pero nunca confirma ni cambia el grupo de una categoría.
 export const GUIA_PLAN_DEL_PISO: Guia = {
   id: "inventario.plan-del-piso",
@@ -350,7 +350,7 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "plan-piso.pestana-grupos" }],
       titulo: "Cómo van los grupos",
-      texto: "En «Grupos» (te la abrimos): cuántas categorías hay, cuántas ya confirmó el líder, cuántas siguen por revisar y cuántas son nuevas y todavía no tienen grupo.",
+      texto: "En «Grupos» (te la abrimos): cuántas categorías hay, cuántas ya están confirmadas, cuántas siguen por revisar y cuántas son nuevas y todavía no tienen grupo.",
     },
     {
       id: "grupos-tabla",
@@ -364,14 +364,14 @@ export const GUIA_PLAN_DEL_PISO: Guia = {
       ancla: "plan-piso.grupos-acciones",
       opcional: true,
       titulo: "Revisar de corrido",
-      texto: "Solo para el líder. «Siguiente por revisar» te lleva a la próxima categoría pendiente, y el otro botón deja confirmadas de una vez todas las propuestas. Nada se guarda todavía: queda preparado.",
+      texto: "«Siguiente por revisar» te lleva a la próxima categoría pendiente, y el otro botón deja confirmadas de una vez todas las propuestas. Nada se guarda todavía: queda preparado.",
     },
     {
       id: "grupos-fila",
       ancla: "plan-piso.grupos-fila",
       opcional: true,
       titulo: "Cada categoría",
-      texto: "El líder elige aquí su grupo o confirma el propuesto. Los cambios se juntan en una barra abajo; recién con «Revisar y guardar», eligiendo quién lo hace, quedan guardados. Quien no es líder solo ve el grupo.",
+      texto: "Aquí eliges su grupo o confirmas el propuesto. Los cambios se juntan en una barra abajo; recién con «Revisar y guardar», eligiendo quién lo hace, quedan guardados.",
     },
     {
       id: "historia-cifras",
@@ -552,4 +552,89 @@ export const GUIA_RENDIMIENTO: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "clic", ancla: "rendimiento.periodo-hoy" }],
+};
+
+// Gestión ▸ Preguntas del equipo (ADR-0536, actividad 9): lo que el equipo le pregunta a «Pregúntale a CAYLA». Solo lee: la demo no
+// guarda nada (no hay nada que guardar); los filtros se explican sin tocarlos, para no dejar la lista filtrada al salir.
+export const GUIA_PREGUNTAS_EQUIPO: Guia = {
+  id: "gestion.preguntas",
+  ruta: "/gestion/preguntas",
+  titulo: "Preguntas del equipo",
+  resumen: "Lo que tu equipo le pregunta a CAYLA: qué se resolvió, qué no encontró y qué accesos pide.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que pregunta tu equipo",
+      texto: "Cada vez que alguien usa «Preguntar» en la cabecera, su pregunta llega aquí con lo que se le respondió y si le sirvió. Sirve para saber qué falta, qué está escondido y qué accesos pide la gente.",
+    },
+    {
+      id: "mes",
+      ancla: "preguntas.mes",
+      titulo: "El mes",
+      texto: "Las flechas pasan al mes de al lado; tocando el nombre eliges cualquiera. Todo lo de abajo es de ese mes.",
+    },
+    {
+      id: "cifras",
+      ancla: "preguntas.cifras",
+      opcional: true,
+      titulo: "Las cifras del mes",
+      texto: "Cuántas preguntas hubo y de cuántas personas, cuántas se resolvieron, cuántas se quedaron sin respuesta, cuántas piden un acceso y a cuántas no les sirvió. Tocar una cifra deja en la lista solo esas.",
+    },
+    {
+      id: "informe",
+      ancla: "preguntas.informe",
+      opcional: true,
+      titulo: "Lo que conviene mejorar",
+      texto: "Cada lunes a las 7:00, las preguntas de la semana anterior se vuelven hasta 5 mejoras: algo que CAYLA no hace, algo escondido, una regla sin escribir, un acceso o alguien a quien capacitar. Cada una muestra las preguntas que la sostienen.",
+    },
+    {
+      id: "armar",
+      ancla: "preguntas.armar",
+      opcional: true,
+      titulo: "Si el lunes no salió",
+      texto: "Si el informe de la semana pasada no está, este botón lo arma en unos segundos. Se arma una sola vez por semana. En la demo no lo tocamos.",
+    },
+    {
+      id: "pantallas",
+      ancla: "preguntas.pantallas",
+      opcional: true,
+      titulo: "Pantallas que más responden",
+      texto: "Las pantallas que más respuestas dieron. Una que se pregunta mucho puede estar escondida: conviene acercarla.",
+    },
+    {
+      id: "accesos",
+      ancla: "preguntas.accesos",
+      opcional: true,
+      titulo: "Accesos que piden",
+      texto: "Los módulos que la gente buscó y su rol no tiene. Si tiene sentido dárselos, se hace en Colaboradores ▸ Roles y accesos.",
+    },
+    {
+      id: "filtros",
+      ancla: "preguntas.filtros",
+      opcional: true,
+      titulo: "Filtrar la lista",
+      texto: "Lo mismo que las cifras, en píldoras. «Sin respuesta» es lo más valioso: es lo que CAYLA todavía no hace o una regla que nadie escribió.",
+    },
+    {
+      id: "lista",
+      ancla: "preguntas.lista",
+      opcional: true,
+      titulo: "Cada pregunta",
+      texto: "Cuándo, quién la hizo, lo que escribió (si dijo que no le sirvió, también qué buscaba) y qué le respondió CAYLA: a qué pantalla la llevó o qué acceso le falta.",
+    },
+    {
+      id: "vacio",
+      ancla: "preguntas.vacio",
+      opcional: true,
+      titulo: "Todavía nadie preguntó",
+      texto: "Si el asistente está apagado en tu sede, aquí no llega nada: se enciende sede por sede en Configuración ▸ Tiendas y caja.",
+    },
+    {
+      id: "cierre",
+      ancla: null,
+      titulo: "Listo",
+      texto: "Ya sabes leer lo que pregunta tu equipo. Para repasarlo: Mi perfil ▸ Demo ▸ Preguntas del equipo.",
+    },
+  ],
 };

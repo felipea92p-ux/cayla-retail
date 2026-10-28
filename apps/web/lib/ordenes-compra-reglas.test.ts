@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
+import { leerCategoriasDeProveedor,
   ESTADO_ENVIO,
   ESTADO_ORDEN,
   POR_REPARTIR_LISTA,
@@ -40,6 +40,7 @@ import {
   tieneEnvioVivo,
   textoDestino,
   vacioDeLista,
+  vacioEnOtrasSedes,
 } from "./ordenes-compra-reglas";
 
 const LIMA = "0b6f1c2e-0000-4000-8000-0000000000b2";
@@ -149,6 +150,26 @@ describe("las píldoras de «Llega a» y lo que dice la lista vacía", () => {
       titulo: "No hay ninguna orden generada",
       frase: "Quita el filtro para ver todas.",
     });
+  });
+  it("lo buscado está en otra sede: dice dónde y lleva a todas las sedes con la misma búsqueda (Felipe 2026-10-13)", () => {
+    const f = filtrosDeLista({ destino: TRU, q: "OC-002783" }, CTX_LISTA);
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: "Tienda Arequipa" }])).toEqual({
+      titulo: "«OC-002783» está en Tienda Arequipa",
+      frase: "Aquí solo ves las de la sede elegida: míralas en todas las sedes.",
+      href: "/compras/ordenes?destino=todas&q=OC-002783",
+    });
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: "Tienda Arequipa" }, { destinoNombre: "Tienda Arequipa" }])?.titulo).toBe(
+      "Las 2 órdenes con «OC-002783» están en Tienda Arequipa",
+    );
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: "Tienda Arequipa" }, { destinoNombre: "Tienda Lima" }, { destinoNombre: null }])).toMatchObject({
+      titulo: "Hay 3 órdenes con «OC-002783» en otras sedes",
+      frase: "Están en Tienda Arequipa, Tienda Lima y por repartir. Aquí solo ves las de la sede elegida.",
+    });
+    expect(vacioEnOtrasSedes(f, [{ destinoNombre: null }])?.titulo).toBe("«OC-002783» está por repartir");
+    // No corresponde: nada en otras sedes, sin búsqueda, ya en todas o en «Por enviar».
+    expect(vacioEnOtrasSedes(f, [])).toBeNull();
+    expect(vacioEnOtrasSedes(filtrosDeLista({ destino: TRU }, CTX_LISTA), [{ destinoNombre: "Tienda Lima" }])).toBeNull();
+    expect(vacioEnOtrasSedes(filtrosDeLista({ destino: TODAS, q: "Zara" }, CTX_LISTA), [{ destinoNombre: "Tienda Lima" }])).toBeNull();
   });
   it("sin resultados por la búsqueda: nombra lo buscado; la búsqueda no va entre los filtros (se borra con su botón)", () => {
     const v = vacioDeLista(filtrosDeLista({ destino: TODAS, q: "Zara" }, CTX_LISTA), null);
@@ -620,5 +641,35 @@ describe("qué se puede hacer con una orden que tiene (o no) envíos", () => {
     expect(estadoDeEnvioDeOrden({ envios: [], lineas: [linea({ enviado: 0 })] })).toBe("ninguno");
     expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 4, porEnviar: 6 })] })).toBe("en_parte");
     expect(estadoDeEnvioDeOrden({ envios: [vivo()], lineas: [linea({ enviado: 10, porEnviar: 0 }), linea({ id: "i2", enviado: 0, porEnviar: 0 })] })).toBe("completo");
+  });
+});
+
+describe("leerCategoriasDeProveedor: lo que devuelve fn_proveedor_categorias (una fila por proveedor)", () => {
+  it("arma el mapa proveedor → categorías, sin repetir", () => {
+    const r = leerCategoriasDeProveedor([
+      { proveedor_id: "p1", categorias: ["c1", "c2", "c1"] },
+      { proveedor_id: "p2", categorias: ["c3"] },
+    ]);
+    expect(r).toEqual({ p1: ["c1", "c2"], p2: ["c3"] });
+  });
+  it("una lista vacía es «nadie maneja nada todavía», no «no se pudo leer»", () => {
+    expect(leerCategoriasDeProveedor([])).toEqual({});
+  });
+  it("si la respuesta no es una lista (la base aún no tiene la función) es null: no se filtra", () => {
+    expect(leerCategoriasDeProveedor(null)).toBeNull();
+    expect(leerCategoriasDeProveedor({})).toBeNull();
+    expect(leerCategoriasDeProveedor(undefined)).toBeNull();
+  });
+  it("ignora filas incompletas, sin arreglo o con categorías que no son texto", () => {
+    expect(
+      leerCategoriasDeProveedor([null, 3, {}, { proveedor_id: "p1" }, { categorias: ["c1"] }, { proveedor_id: "p1", categorias: "c1" }, { proveedor_id: "p1", categorias: [7, "", "c1"] }]),
+    ).toEqual({ p1: ["c1"] });
+  });
+  it("con cientos de proveedores sigue siendo una fila por proveedor (el tope de PostgREST son 1.000 filas)", () => {
+    const filas = Array.from({ length: 300 }, (_, i) => ({ proveedor_id: `p${i}`, categorias: Array.from({ length: 52 }, (_, k) => `c${k}`) }));
+    expect(filas.length).toBeLessThan(1000);
+    const r = leerCategoriasDeProveedor(filas)!;
+    expect(Object.keys(r)).toHaveLength(300);
+    expect(r["p299"]).toHaveLength(52);
   });
 });

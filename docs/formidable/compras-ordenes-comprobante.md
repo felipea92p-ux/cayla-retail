@@ -54,7 +54,19 @@ rendir (fase 6) cualquier pago al contado de una compra en Gamarra va a salir de
 - Caída externa: el corte de señal dice «no sabemos si llegó: vuelve a pulsar sin cambiar nada» y el token hace seguro el reintento.
 - Persona sin contexto: ciega ✓ (arriba) · real: sin probar.
 
+## Después (2026-10-13, aprobado por Felipe: «Sí, así»)
+Los 3 cambios, hechos y verificados en el banco a 1440 px (capturas en el PR):
+1. **Nada viene puesto.** El tipo de papel, cómo se paga y el medio del pago al contado arrancan vacíos y se eligen siempre; el total es el de la
+   orden, sin IGV, hasta elegir factura («Compra de OC-002788 · S/ 80.00 · IGV No lleva»). Al elegir «Contado», ninguna ficha de medio viene
+   marcada y «Sale de» dice «Primero elige con qué se pagó». Al mirarlo salieron tres textos que no decían lo que pasaba y se corrigieron: el del
+   IGV («Una comprobante no lleva…» → «Solo una factura suma el IGV aparte: elige qué papel te dieron»), el del vencimiento sin condición («Solo a
+   crédito hay vencimiento») y el de «Sale de».
+2. **«Registrar la compra»** en la orden abierta y en el botón de guardar; el título es «Compra de OC-…».
+3. **Buscar en otra sede.** Desde Lima, buscar «OC-002783» dice ««OC-002783» está en Tienda Trujillo · Aquí solo ves las de la sede elegida» con
+   «Ver en todas las sedes» (misma búsqueda) y «Borrar la búsqueda». La lista sigue arrancando en la sede donde se trabaja (decisión 37).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-12 | fase 5a | 5,5 (provisional, 4 leyes) | sin medir | — |
+| 2026-10-13 | `claude/formidable-compras-oc-9b0c82` | sin volver a medir (falta una nueva prueba ciega) | sin medir | los 3 |

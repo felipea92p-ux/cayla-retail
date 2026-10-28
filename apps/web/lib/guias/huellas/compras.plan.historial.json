@@ -13,13 +13,13 @@
     ],
     "components/plan-compra/HistorialCampanas.tsx": [
       "Link «{a}»",
-      "Desplegable «)»",
+      "Desplegable «{resto.map((a) => ({ valor: String(a), texto: String(a), grupo: decadaDe(a)}»",
       "DesplegablePildora «Ordenar por»",
       "button «Borrar la búsqueda»",
       "button «plan-historial.fila»"
     ],
     "components/plan-compra/PestanasPlan.tsx": [
-      "Pestanas «);»"
+      "Pestanas «{[ { clave: \"plan\", etiqueta: \"Plan\", href: `/compras/plan${conPlan}»"
     ]
   }
 }

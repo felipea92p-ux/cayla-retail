@@ -9,6 +9,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { CierrePulso } from "@/components/finanzas/CierrePulso";
+import { pulsoCierre } from "@/lib/cierre-pulso-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
@@ -30,6 +32,7 @@ import {
   nombreMes,
   primerNombre,
   puedeCerrar,
+  resumenAvisos,
   textoBotonCerrar,
   textoChequeo,
   textoOpcionMes,
@@ -111,6 +114,9 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
           </>
         }
       />
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta; la matriz y los chequeos, después. */}
+      <CierrePulso pulso={pulsoCierre(panel)} />
 
       <div data-guia="fin-cierre.matriz" className="fin-matriz anim-sube" style={{ ["--n" as string]: Math.min(6, unidades.length + 1) } as CSSProperties}>
         {unidades.map((x, i) => {
@@ -222,7 +228,7 @@ function Chequeos({ panel, u, onCerrar, onReabrir }: { panel: PanelCierre; u: Un
       <CabeceraBloque titulo={tituloUnidad(panel.mes, u)} bajada={bajadaUnidad(u)} />
       <ul className="fin-chequeos">
         {u.chequeos.map((c, i) => {
-          const t = textoChequeo(c, panel.mes);
+          const t = textoChequeo(c, panel.mes, u);
           const href = cerrada ? null : enlaceChequeo(c, u, panel.mes);
           return (
             <li key={c.clave} {...entra(i + 1)}>
@@ -293,7 +299,9 @@ function useEjecutar() {
 
 function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad: Unidad; onCerrar: () => void; alCerrar: () => void }) {
   const { responsable, guardando, ejecutar } = useEjecutar();
+  // Lo que falta, dicho por lo que falta («conteos de inventario sin cerrar»), no por el título del chequeo, que dice el estado bueno.
   const avisos = avisosPendientes(unidad);
+  const resumen = resumenAvisos(avisos);
   const titulo = `Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`;
   async function cerrar() {
     const ok = await ejecutar(
@@ -317,8 +325,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
-          <b>Cierras con {avisos.length === 1 ? "un aviso" : `${avisos.length} avisos`}:</b>{" "}
-          {avisos.map((c) => textoChequeo(c, mes).titulo.toLowerCase()).join(" · ")}. Quedan guardados en la historia del cierre.
+          <b>Cierras con {resumen.cuenta}:</b> {resumen.lista}. Quedan guardados en la historia del cierre.
         </div>
       )}
       <ComboResponsable control={responsable} deshabilitado={guardando} />

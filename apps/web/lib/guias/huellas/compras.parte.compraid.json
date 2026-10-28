@@ -5,7 +5,7 @@
   "total": 28,
   "controles": {
     "app/(app)/compras/parte/[compraId]/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/compras/por-pagar»"
     ],
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -16,16 +16,16 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/PagoPiezas.tsx": [
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "BotonCopiar «{que}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
       "CampoFecha «Fecha del pago»",

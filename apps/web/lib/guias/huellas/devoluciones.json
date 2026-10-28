@@ -6,17 +6,17 @@
   "controles": {
     "components/AnularVentaForm.tsx": [
       "button «Listo»",
-      "Desplegable «))»",
+      "Desplegable «{condiciones[i.ventaItemId] ?? \"vendible\"}»",
       "input «Por qué se anula esta venta»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/BuscadorVentas.tsx": [
-      "button «Buscar»",
+      "BotonBuscar «(sin nombre)»",
       "button «posventa.escanear»",
       "button «posventa.sin-comprobante»",
-      "Desplegable «)»"
+      "Desplegable «{todas ? \"todas\" : \"aqui\"}»"
     ],
     "components/ComprasAgrupadas.tsx": [
       "button «{f.texto}»",
@@ -26,7 +26,7 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -38,20 +38,20 @@
     ],
     "components/DevolucionesFlujo.tsx": [
       "Casilla «{`Devolver ${l.referencia}»",
-      "input «)»",
+      "input «{`cantidad-${l.ventaItemId}»",
       "Link «Cambiar por otra prenda»",
-      "Volver «Continuar»",
+      "Volver «→onCerrar»",
       "button «{m.etiqueta}»",
-      "input «¿En qué estado vuelve cada prenda?»",
-      "Volver «Revisar la devolución»",
-      "ComboResponsable «(sin nombre)»",
-      "Volver «Cancelar»",
-      "Volver «)»",
+      "input «devolucion-detalle»",
+      "Volver «→retroceder»",
+      "ComboResponsable «{responsable}»",
+      "Volver «→retroceder» #2",
+      "Volver «→onCerrar» #2",
       "button «{o.titulo}»",
       "button «{d.etiqueta}»"
     ],
     "components/DevolucionesPanel.tsx": [
-      "Pestanas «{vista === \"compras\" && ( <> {}»",
+      "Pestanas «→(v) => setVista(v as Vista)»",
       "button «{f.texto}»",
       "button «Escanear prenda»",
       "button «Buscar la venta»",
@@ -63,9 +63,9 @@
       "button «Todo (»",
       "CampoSelect «¿Cómo se le devuelve?»",
       "CampoSelect «Sale de»",
-      "ComboResponsable «Cancelar»",
-      "input «(sin nombre)»",
-      "ComboResponsable «Cancelar» #2"
+      "ComboResponsable «{responsable}»",
+      "input «{`rechazo-${d.id}»",
+      "ComboResponsable «{responsable}» #2"
     ],
     "components/DevolucionesResueltas.tsx": [
       "Link «{d.notaCredito}»"
@@ -78,7 +78,7 @@
       "button «devoluciones.devolver»"
     ],
     "components/FlujoGuiado.tsx": [
-      "Volver «Paso»",
+      "Volver «→onVolver»",
       "button «{hecho ? `Volver a «${nombre}»",
       "button «{guia}»",
       "button «{children}»",

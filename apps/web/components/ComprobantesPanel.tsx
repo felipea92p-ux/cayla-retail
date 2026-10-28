@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { BotonPuntos } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { paginar } from "@/lib/paginacion";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Link2, MoreHorizontal, ReceiptText, Store } from "lucide-react";
+import { CircleCheck, FileText, Link2, ReceiptText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -48,14 +49,12 @@ function accionComprobante(
     onAnularClick: (c: Comprobante) => void;
     onConsultarAnulacion: (id: string) => void;
     onLiberarClick: (c: Comprobante) => void;
-    /** Anular y «liberar sin espera» son solo del líder (`anular_comprobante`, `marcar_comprobante_no_emitido`). */
-    esLider: boolean;
   }
 ) {
   const numero = `${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
-  const botones = accionesDelComprobante(c)
-    .filter((accion) => handlers.esLider || (accion !== "anular" && accion !== "liberar"))
-    .map((accion) => {
+  // Anular y «liberar sin espera» los hace quien ve Facturación (ADR-0534; antes, solo el líder), que es quien ve esta
+  // pantalla (`exigirPermiso("facturar")`): `anular_comprobante` y `marcar_comprobante_no_emitido` lo vuelven a exigir.
+  const botones = accionesDelComprobante(c).map((accion) => {
     switch (accion) {
       case "reintentar": {
         const enVuelo = handlers.transmitiendoId === c.id;
@@ -98,7 +97,7 @@ function accionComprobante(
 function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | null }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
-    // En una tarjeta angosta (celular) no se dibujan: viven en «Opciones», con botones del tamaño de un dedo.
+    // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo.
     <div className="mt-0.5 hidden flex-wrap gap-x-3 text-[12.5px] @min-[640px]:flex">
       {c.pdfUrl && (
         <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="btn-enlace font-medium">
@@ -161,7 +160,7 @@ export function ComprobantesPanel({
   tiendas: { id: string; nombre: string }[];
   /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
   periodo: string;
-  /** Anular y «liberar sin espera» son solo del líder; la terminal de ventas emite y reintenta. */
+  /** Solo para «Opciones»: el líder busca en Posventa en todas las tiendas. Anular y liberar ya no dependen de esto (ADR-0534). */
   esLider: boolean;
 }) {
   const router = useRouter();
@@ -172,7 +171,7 @@ export function ComprobantesPanel({
   const { transmitiendoId, transmitir: onTransmitir, confirmacion: confirmacionTransmitir } = useTransmitir();
 
   // Anulación (paso c, ADR-0016) y liberación (ADR-0093): cada una vive en su modal (abajo), que firma con el combo
-  // «Responsable» (ADR-0161). Solo líder — la pantalla entera ya lo es, y la base lo vuelve a exigir a la cuenta.
+  // «Responsable» (ADR-0161). Quien ve Facturación (ADR-0534): la pantalla entera ya lo exige, y la base lo vuelve a exigir a la cuenta.
   const [anulando, setAnulando] = useState<Comprobante | null>(null);
   const [liberando, setLiberando] = useState<Comprobante | null>(null);
   // Las opciones de un comprobante (ver la venta, WhatsApp, cambio, devolución): la hoja de `OpcionesComprobante`.
@@ -233,7 +232,7 @@ export function ComprobantesPanel({
     setModal(null);
   }
 
-  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick, esLider };
+  const acciones = { transmitiendoId, consultandoId, onTransmitir, onAnularClick, onConsultarAnulacion, onLiberarClick };
 
   // Filtros de la lista (en memoria: el mes ya está entero en pantalla). Las opciones salen de lo que hay
   // en el mes, así nunca se ofrece un filtro que deja la lista vacía de entrada.
@@ -380,13 +379,13 @@ export function ComprobantesPanel({
                     <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
                     {extras[c.id]?.notaDeCredito && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Tiene {extras[c.id]!.notaDeCredito!.numero}
                       </p>
                     )}
                     {extras[c.id]?.corrige && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>
                     )}
@@ -406,10 +405,8 @@ export function ComprobantesPanel({
                     </div>
                     <div data-guia="comprobantes.acciones" className="flex flex-wrap items-center gap-1.5">
                       {botones}
-                      <BotonCompacto variante="fila" data-guia="comprobantes.opciones" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
-                        <MoreHorizontal aria-hidden size={15} strokeWidth={1.75} />
-                        <span>Opciones</span>
-                      </BotonCompacto>
+                      {/* El «⋯» de una fila de una lista (ronda 13): abre la hoja con lo que se hace con el comprobante. En el celular, 44 px. */}
+                      <BotonPuntos que={`${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} guia="comprobantes.opciones" className="max-sm:h-11 max-sm:w-11" onClick={() => setConOpciones(c)} />
                     </div>
                   </div>
                 </div>

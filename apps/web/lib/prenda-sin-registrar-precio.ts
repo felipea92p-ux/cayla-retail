@@ -54,7 +54,7 @@ export function precioNecesitaConfirmacion(veredicto: VeredictoPrecio, precio: n
   return precioConfirmado === null || Math.abs(precioConfirmado - precio) >= 0.005;
 }
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** La referencia que se lee bajo el precio, antes de teclear: «Camisas y Blusas en tu catálogo: de S/ 59.00 a S/ 129.00». */
 export function fraseDeReferencia(categoria: string, rango: RangoDePrecios): string {

@@ -9,8 +9,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { indexarPrendas, modoDeMesa, textoDeDiferencia, diferenciaDe, type FormaRegularizar, type ModoDeMesa, type PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { deduccionPara, type LibroPorVenta } from "@/lib/por-regularizar-deduccion";
-import { motivoPropiaVenta, notaSinUnidades } from "@/lib/por-regularizar-reglas";
-import { useSedeActiva } from "@/components/SedeActiva";
+import { notaSinUnidades } from "@/lib/por-regularizar-reglas";
 import { usePrendaSinCargar } from "./usePrendaSinCargar";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
@@ -47,7 +46,6 @@ export function MesaRegularizar({
   disponibles,
   libro = null,
   variasSedes,
-  esLider,
   ahora,
   elegidaAlAbrir = null,
   sinPendientes,
@@ -70,7 +68,6 @@ export function MesaRegularizar({
    *  `null` = no se pudo leer: la mesa sigue igual, sin sugerencia. */
   libro?: LibroPorVenta | null;
   variasSedes: boolean;
-  esLider: boolean;
   ahora: Date;
   /** La venta que entra elegida (Historial llega con `?item=`). */
   elegidaAlAbrir?: string | null;
@@ -147,11 +144,9 @@ export function MesaRegularizar({
   // «¿Cómo estaba?» deducido del libro de ESA prenda en la tienda de la venta (ADR-0328 act. 5): una sugerencia, nunca una elección.
   const deducida = deduccionPara(libro, sel, prenda?.id ?? null);
   // Lo que `regularizar_prenda` va a rechazar (20261004204000), dicho antes del botón con la misma frase de la base: una prenda que nunca
-  // entró a esa tienda (se pregunta solo por la que no tiene unidades libres) y la venta propia. Solo avisan: no cambian la guía ni el botón.
+  // entró a esa tienda (se pregunta solo por la que no tiene unidades libres). Solo avisa: no cambia la guía ni el botón.
   const sinCargar = usePrendaSinCargar(prenda?.id ?? null, sel?.ubicacionId ?? null, prenda !== null && !(unidadesDeLaPrenda !== null && unidadesDeLaPrenda > 0));
   const notaStock = prenda && sel ? notaSinUnidades({ disponible: unidadesDeLaPrenda, cargada: sinCargar.cargada, sede: sel.sede, carga: sinCargar.carga }) : null;
-  const personaSesionId = useSedeActiva()?.personaSesionId ?? null;
-  const propiaVenta = sel ? motivoPropiaVenta({ vendidoPorId: sel.vendidoPorId, responsableId: responsable.elegidoId, personaSesionId, esLider }) : null;
   const hecho = sel !== null && saliendoId === sel.id;
 
   // La guía de foco (CLAUDE.md «Guía de foco», ADR-0284): lo que falta sale de lo que ya bloquea el botón, nada más.
@@ -252,7 +247,7 @@ export function MesaRegularizar({
   );
   const puente = sel && pendiente && (
     <div className="vsr-puente" ref={puenteRef}>
-      <PuenteUnion venta={sel} prenda={prenda} disponible={unidadesDeLaPrenda} notaStock={notaStock} propiaVenta={propiaVenta} deducida={deducida} forma={forma} onForma={elegirForma} responsable={responsable} guia={guia} guardando={guardando} hecho={hecho} onGuardar={() => void guardar()} onCorregir={() => abrirCorreccion(sel)} alCrecer={traerElBotonALaVista} />
+      <PuenteUnion venta={sel} prenda={prenda} disponible={unidadesDeLaPrenda} notaStock={notaStock} deducida={deducida} forma={forma} onForma={elegirForma} responsable={responsable} guia={guia} guardando={guardando} hecho={hecho} onGuardar={() => void guardar()} onCorregir={() => abrirCorreccion(sel)} alCrecer={traerElBotonALaVista} />
     </div>
   );
   const derecha = !sel ? (
@@ -260,7 +255,7 @@ export function MesaRegularizar({
       <TodoCuadrado sede={etiquetaSede} />
     ) : null
   ) : !pendiente ? (
-    <ResumenResuelta fila={sel} esLider={esLider} onReabrir={onReabrir} onCorregir={onCorregir} />
+    <ResumenResuelta fila={sel} onReabrir={onReabrir} onCorregir={onCorregir} />
   ) : modo === "tres" ? (
     <>
       {puente}
@@ -290,7 +285,7 @@ export function MesaRegularizar({
       </div>
       {modo !== "hoja" && <div className="vsr-der">{derecha}</div>}
       {modo === "hoja" && hojaAbierta && sel && pendiente && (
-        <Modal conCerrar titulo="Regularizar prenda" subtitulo={`${sel.descripcion} · cobrada a S/ ${sel.precioCobrado.toFixed(2)}`} onClose={() => setHojaAbierta(false)} tamano="mediana" bloqueado={guardando} alCerrarEnfocar={retornoFoco}>
+        <Modal conCerrar titulo="Regularizar prenda" subtitulo={`${sel.descripcion} · cobrada a S/\u00a0${sel.precioCobrado.toFixed(2)}`} onClose={() => setHojaAbierta(false)} tamano="mediana" bloqueado={guardando} alCerrarEnfocar={retornoFoco}>
           <div className="vsr-hoja">
             {panelPrendas}
             {puente}

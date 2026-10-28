@@ -2,6 +2,7 @@ import { resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import type { CompraResumen, LineaCompra } from "./compras-reglas";
 import type { RecepcionDeCompra } from "./compras-indicadores";
 import { diasDeAtraso, estadoLinea, faltanteDeLinea } from "./recepciones-reglas";
+import { numeroDeMonto } from "./monto-plata-reglas";
 
 // Reglas puras del ENVÍO (ADR-0113): una llegada a la puerta que puede traer comprobantes de VARIOS
 // proveedores y prendas fuera de comprobante con su origen. Sin I/O: se prueban sin base ni navegador.
@@ -405,7 +406,7 @@ export function armarPedidoEnvio(p: {
     variante_id: e.varianteId,
     cantidad: e.cantidad,
     es_regalo: e.esRegalo,
-    ...(!e.esRegalo && e.costoUnitario ? { costo_unitario: Number(e.costoUnitario) } : {}),
+    ...(!e.esRegalo && e.costoUnitario ? { costo_unitario: numeroDeMonto(e.costoUnitario) } : {}),
   }));
   return {
     p_ubicacion_id: p.ubicacionId,

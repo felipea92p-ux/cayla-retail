@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avisos del club · 3 diseños</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Maqueta (2026-10-20): tres formas de dibujar Clientes ▸ Avisos, más la hoja «Editar mensajes» que comparten las tres.
+   Colores y letras: los tokens del ERP (apps/web/app/globals.css y estilos/tema.css). Las personas son EJEMPLOS INVENTADOS:
+   no existen en el sistema. Los textos de los mensajes son la PROPUESTA nueva (hoy en producción viven las versiones de
+   retail.club_textos que se ven en «Hoy»). La línea de BAJA va siempre al final: la base la exige (club_textos_aviso_con_baja). */
+:root{--crema:#f5f0e8;--papel:#fbf8f2;--hueso:#eae1d2;--sand:#e8e0d0;--tinta:#1a1a18;--taupe:#805c4c;--rojo:#b8412d;--rojo-p:#8b2a1f;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--sombra:#1a1a18}
+:root[data-tema="oscuro"]{--crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--ambar:#e4b968;--pizarra:#a2b8cd;--sombra:#000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--crema);color:var(--tinta);font:14px/1.5 "DM Sans",system-ui,sans-serif}
+button{font:inherit;color:inherit}
+.serif{font-family:"EB Garamond",Georgia,serif}
+.num{font-variant-numeric:tabular-nums}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.i.g{width:20px;height:20px}
+.barra{position:sticky;top:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 24px;background:var(--tinta);color:var(--crema)}
+.barra b{font-weight:600;margin-right:8px}
+.barra button{font-size:13px;border:1px solid color-mix(in srgb,var(--crema) 30%,transparent);background:transparent;color:var(--crema);border-radius:999px;padding:6px 14px;cursor:pointer}
+.barra button[aria-pressed="true"]{background:var(--crema);color:var(--tinta)}
+.barra .sep{flex:1}
+.hoja{max-width:1180px;margin:0 auto;padding:28px 24px 80px}
+.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.sede{display:flex;align-items:center;gap:10px;color:var(--taupe);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.sede:after{content:"";height:1px;width:48px;background:var(--taupe)}
+h1{font:400 46px/1.05 "EB Garamond",Georgia,serif;margin:8px 0 6px}
+.frase{color:color-mix(in srgb,var(--tinta) 70%,transparent);margin:0}
+.diseno{display:none}.diseno.activo{display:block}
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:12px}
+.nota{background:var(--hueso);border-radius:10px;padding:12px 14px;font-size:13px}
+.etq{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;border-radius:10px;padding:10px 18px;cursor:pointer;border:1px solid var(--tinta);transition:transform .2s,background .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.prim{background:var(--tinta);color:var(--crema)}.btn.prim:hover{background:var(--rojo-p);border-color:var(--rojo-p)}
+.btn.sec{background:transparent;color:var(--tinta);border-color:var(--sand)}
+.btn.sut{background:transparent;border-color:transparent;color:color-mix(in srgb,var(--tinta) 70%,transparent);padding:8px 10px;font-size:12.5px}
+.btn.sut:hover{background:color-mix(in srgb,var(--sand) 50%,transparent)}
+.btn.cab-v{font-size:11px;letter-spacing:.1em;text-transform:uppercase;height:40px;padding:0 16px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 10px;color:color-mix(in srgb,var(--tinta) 75%,transparent);background:var(--hueso)}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.piz{color:var(--pizarra);background:color-mix(in srgb,var(--pizarra) 12%,transparent)}
+.chip.verde{color:var(--verde);background:color-mix(in srgb,var(--verde) 12%,transparent)}
+.chip.ambar{color:var(--ambar);background:color-mix(in srgb,var(--ambar) 12%,transparent)}
+.pild{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer}
+.pild[aria-pressed="true"]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pild .n{font-size:11px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;background:color-mix(in srgb,currentColor 12%,transparent)}
+.av{width:40px;height:40px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font:500 16px/1 "EB Garamond",Georgia,serif;flex:none}
+.av.ok{background:color-mix(in srgb,var(--verde) 18%,transparent);color:var(--verde)}
+.resp{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:10px;background:var(--hueso);font-size:13px}
+.resp .av{width:28px;height:28px;font-size:13px}
+.oscuro-nota{font-size:12px;color:var(--taupe);margin-top:30px}
+/* La burbuja de WhatsApp, con tokens (no el verde de WhatsApp): es un mensaje, no la app. */
+.burbuja{position:relative;max-width:440px;background:color-mix(in srgb,var(--verde) 13%,var(--papel));border-radius:12px 12px 12px 4px;padding:10px 12px 18px;font-size:13.5px;line-height:1.45;white-space:pre-line;word-break:break-word}
+.burbuja .hora{position:absolute;right:10px;bottom:4px;font-size:10.5px;color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.burbuja .cierre{display:block;margin-top:8px;padding-top:8px;border-top:1px dashed color-mix(in srgb,var(--tinta) 18%,transparent)}
+.burbuja .baja{display:block;margin-top:6px;font-size:12px;color:color-mix(in srgb,var(--tinta) 65%,transparent)}
+.burbuja b{font-weight:600}
+.barra-av{height:6px;background:var(--hueso);border-radius:999px;overflow:hidden}
+.barra-av i{display:block;height:100%;background:var(--tinta);border-radius:999px;transition:width .45s cubic-bezier(.2,.7,.2,1),background .3s}
+.barra-av i.lista{background:var(--verde)}
+@keyframes sube{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sube{animation:sube .32s cubic-bezier(.2,.7,.2,1) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- Hoy ---------- */
+.hoy-cifras{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px}
+.cifra .v{font:400 32px/1.1 "EB Garamond",Georgia,serif}
+.cifra small{display:block;font-size:12px;color:var(--taupe)}
+.hoy-fila{display:flex;gap:16px;padding:16px 20px;border-top:1px solid var(--sand)}
+.hoy-texto{margin-top:8px;border:1px solid var(--sand);background:var(--crema);border-radius:8px;padding:8px 12px;font-size:13px;color:color-mix(in srgb,var(--tinta) 80%,transparent)}
+.hoy-grupo{background:color-mix(in srgb,var(--hueso) 40%,transparent);padding:10px 20px}
+
+/* ---------- A · Una a la vez ---------- */
+.a-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.a-foco{padding:24px}
+.a-quien{display:flex;gap:14px;align-items:center}
+.a-quien .av{width:56px;height:56px;font-size:22px}
+.a-nombre{font:400 28px/1.1 "EB Garamond",Georgia,serif}
+.a-porque{font-size:13px;color:var(--taupe);margin-top:2px}
+.a-chat{margin:20px 0;padding:18px;border-radius:12px;background:var(--crema);border:1px solid var(--sand)}
+.a-chat .para{font-size:12px;color:var(--taupe);margin-bottom:10px;display:flex;justify-content:space-between}
+.a-acc{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.a-acc .tecla{font-size:11px;color:var(--taupe);margin-left:4px}
+kbd{font:600 11px/1 "DM Sans";border:1px solid var(--sand);border-bottom-width:2px;border-radius:5px;padding:2px 6px;background:var(--papel)}
+.a-cola{position:sticky;top:70px;padding:16px}
+.a-cola h3{font:400 21px/1.2 "EB Garamond",Georgia,serif;margin:0 0 4px}
+.a-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;padding:8px;border-radius:8px;cursor:pointer}
+.a-item:hover{background:color-mix(in srgb,var(--sand) 45%,transparent)}
+.a-item[aria-current="true"]{background:var(--hueso);box-shadow:inset 3px 0 0 var(--rojo)}
+.a-item .av{width:30px;height:30px;font-size:13px}
+.a-item .t{flex:1;min-width:0;font-size:13px}
+.a-item .t small{display:block;color:var(--taupe);font-size:11.5px}
+.a-item.hecho .t{color:color-mix(in srgb,var(--tinta) 55%,transparent)}
+.a-grupo{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin:12px 8px 4px}
+.a-fin{text-align:center;padding:40px 20px}
+
+/* ---------- B · Por tipo ---------- */
+.b-tipos{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.b-tipo{text-align:left;border:1px solid var(--sand);background:var(--papel);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .2s,transform .2s}
+.b-tipo:hover{transform:translateY(-2px)}
+.b-tipo[aria-pressed="true"]{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.b-tipo .ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--hueso);margin-bottom:10px}
+.b-tipo .v{font:400 34px/1 "EB Garamond",Georgia,serif}
+.b-tipo .t{font-weight:600;margin-top:4px}
+.b-tipo small{display:block;color:var(--taupe);font-size:12px;margin-top:2px}
+.b-tipo .barra-av{margin-top:12px}
+.b-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.b-card{padding:16px;display:flex;flex-direction:column;gap:12px;transition:opacity .3s}
+.b-card.hecho{opacity:.6}
+.b-card .top{display:flex;gap:12px;align-items:center}
+.b-card .top .t{flex:1;min-width:0}
+.b-card .top small{display:block;color:var(--taupe);font-size:12px}
+.b-card .burbuja{max-width:none}
+.b-card .acc{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:auto}
+.b-card .acc .ok{color:var(--verde);font-size:13px;margin-right:auto;display:inline-flex;gap:6px;align-items:center}
+
+/* ---------- C · Como WhatsApp ---------- */
+.c-app{display:grid;grid-template-columns:360px minmax(0,1fr);height:620px;overflow:hidden}
+.c-lista{border-right:1px solid var(--sand);display:flex;flex-direction:column;min-height:0}
+.c-lista .filtros{display:flex;gap:6px;flex-wrap:wrap;padding:12px;border-bottom:1px solid var(--sand)}
+.c-lista .filtros .pild{padding:4px 10px;font-size:12px}
+.c-chats{overflow:auto;flex:1}
+.c-chat{display:flex;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--sand);background:transparent;padding:12px 14px;cursor:pointer}
+.c-chat:hover{background:color-mix(in srgb,var(--sand) 35%,transparent)}
+.c-chat[aria-current="true"]{background:var(--hueso)}
+.c-chat .t{flex:1;min-width:0}
+.c-chat .l1{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:13.5px}
+.c-chat .l1 span{font-weight:400;font-size:11px;color:var(--taupe)}
+.c-chat .l2{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 65%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-chat .vistos{color:var(--verde)}
+.c-conv{display:flex;flex-direction:column;min-height:0;background:var(--crema)}
+.c-conv .cab-c{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--papel);border-bottom:1px solid var(--sand)}
+.c-conv .cab-c .t{flex:1}
+.c-conv .cab-c small{display:block;color:var(--taupe);font-size:12px}
+.c-conv .cuerpo{flex:1;overflow:auto;padding:28px 24px;display:flex;flex-direction:column;gap:14px}
+.c-conv .porque{align-self:center;font-size:12px;background:var(--papel);border:1px solid var(--sand);border-radius:999px;padding:4px 12px;color:var(--taupe)}
+.c-conv .burbuja{align-self:flex-end;border-radius:12px 12px 4px 12px}
+.c-conv .enviar{display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--papel);border-top:1px solid var(--sand)}
+.c-conv .enviar .msg{flex:1;font-size:13px;color:var(--taupe)}
+
+/* ---------- Hoja «Editar mensajes» ---------- */
+.velo{position:fixed;inset:0;z-index:40;background:color-mix(in srgb,var(--sombra) 30%,transparent);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.velo.abierto{display:flex}
+.hoja-m{width:min(1020px,100%);background:var(--papel);border-radius:16px;padding:24px;animation:sube .3s cubic-bezier(.2,.7,.2,1) both}
+.hoja-m h2{font:400 24px/1.2 "EB Garamond",Georgia,serif;margin:0}
+.hoja-m .baj{color:var(--taupe);font-size:13.5px;margin:4px 0 18px}
+.x{float:right;width:32px;height:32px;border-radius:50%;border:0;background:transparent;cursor:pointer;font-size:18px}
+.x:hover{background:var(--hueso)}
+.ed-grid{display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:18px;align-items:start}
+.ed-tipos{display:flex;flex-direction:column;gap:4px}
+.ed-tipo{display:flex;gap:10px;align-items:center;text-align:left;border:0;background:transparent;border-radius:10px;padding:10px;cursor:pointer;font-size:13.5px}
+.ed-tipo:hover{background:color-mix(in srgb,var(--sand) 45%,transparent)}
+.ed-tipo[aria-pressed="true"]{background:var(--hueso);font-weight:600}
+.ed-tipo small{display:block;font-weight:400;font-size:11.5px;color:var(--ambar)}
+.campo-et{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--tinta) 70%,transparent);font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between}
+textarea{width:100%;min-height:150px;resize:vertical;border:1px solid transparent;background:var(--hueso);border-radius:10px;padding:10px 12px;color:var(--tinta);font:13.5px/1.5 "DM Sans";outline:none;transition:background .2s}
+textarea:focus{background:var(--papel);border-color:var(--rojo)}
+.marc{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.marc button{border:1px dashed var(--taupe);background:transparent;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.marc button:hover{background:var(--hueso)}
+.fijo{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--taupe);background:var(--crema);border:1px solid var(--sand);border-radius:10px;padding:10px 12px;margin-top:10px}
+.error{color:var(--rojo-p);font-size:12.5px;margin-top:6px}
+.ed-prev{position:sticky;top:0;background:var(--crema);border:1px solid var(--sand);border-radius:12px;padding:14px}
+.ed-prev .burbuja{max-width:none}
+.ed-pie{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:22px;padding-top:16px;border-top:1px solid var(--sand)}
+.ed-pie .resp{margin-right:auto}
+
+.comparar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 24px}
+.comparar div{font-size:12.5px;padding:12px 14px;border-radius:10px;background:var(--papel);border:1px solid var(--sand)}
+.comparar b{display:block;font-size:13px}
+@media (max-width:980px){.a-grid,.b-grid,.comparar,.ed-grid{grid-template-columns:1fr}.a-cola{position:static}.b-tipos,.hoy-cifras{grid-template-columns:repeat(2,1fr)}.c-app{grid-template-columns:1fr;height:auto}.c-chats{max-height:300px}.ed-tipos{flex-direction:row;flex-wrap:wrap}.ed-prev{position:static}}
+</style>
+</head>
+<body>
+<div class="barra">
+  <b>Avisos del club</b>
+  <button data-ir="hoy">Hoy</button>
+  <button data-ir="a" aria-pressed="true">A · Uno a la vez</button>
+  <button data-ir="b">B · Por tipo</button>
+  <button data-ir="c">C · Como WhatsApp</button>
+  <span class="sep"></span>
+  <button id="abrir-editor">Editar mensajes</button>
+  <button id="tema">Oscuro</button>
+</div>
+
+<div class="hoja">
+  <div class="cab">
+    <div>
+      <div class="sede">Trujillo · martes 20 de octubre</div>
+      <h1>Avisos</h1>
+      <p class="frase">Los mensajes que hoy le tocan a cada miembro del club, listos para mandar desde el WhatsApp de esta tienda.</p>
+    </div>
+    <button class="btn sec cab-v" data-editar><svg class="i" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>Editar mensajes</button>
+  </div>
+
+  <div class="comparar">
+    <div><b>A · Uno a la vez</b>La pantalla se vuelve una tanda: un miembro grande en el centro, su mensaje tal como le llega, «Enviar» y pasa sola al siguiente. A la derecha, la fila de lo que falta.</div>
+    <div><b>B · Por tipo</b>Cuatro tarjetas grandes arriba (cumpleaños, puntos, novedades, rebajas) con su avance; abajo, una tarjeta por miembro con su mensaje en burbuja.</div>
+    <div><b>C · Como WhatsApp</b>Se ve como WhatsApp Web, que la encargada ya conoce: la lista de chats a la izquierda y la conversación con el mensaje listo a la derecha.</div>
+  </div>
+
+  <section class="diseno" id="d-hoy"></section>
+  <section class="diseno activo" id="d-a"></section>
+  <section class="diseno" id="d-b"></section>
+  <section class="diseno" id="d-c"></section>
+
+  <p class="oscuro-nota">Las personas son <b>ejemplos inventados</b>: no las busques en el sistema. Los textos de A, B y C son la propuesta nueva; los de «Hoy» son los que están en producción. «Editar mensajes» abre la misma hoja en los tres diseños y lo que cambies ahí se ve al tiro en todos.</p>
+</div>
+
+<!-- ===================== Hoja «Editar mensajes» ===================== -->
+<div class="velo" id="velo" role="dialog" aria-modal="true" aria-labelledby="ed-titulo">
+  <div class="hoja-m">
+    <button class="x" id="cerrar-editor" aria-label="Cerrar">×</button>
+    <h2 id="ed-titulo">Editar mensajes</h2>
+    <p class="baj">El texto que se arma para cada aviso. Lo que cambies rige desde que guardas, en las 3 tiendas; lo que ya se mandó no cambia.</p>
+    <div class="ed-grid">
+      <nav class="ed-tipos" id="ed-tipos" aria-label="Qué mensaje editas"></nav>
+      <div>
+        <div class="campo-et"><span id="ed-et">El mensaje</span><span id="ed-largo" class="num"></span></div>
+        <textarea id="ed-texto" spellcheck="true"></textarea>
+        <div class="desc" style="font-size:12px;color:var(--taupe)">Toca un dato para ponerlo donde está el cursor. Se completa solo con lo de cada miembro.</div>
+        <div class="marc" id="ed-marc"></div>
+        <div id="ed-error" class="error"></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sut" id="ed-restaurar">Volver al sugerido</button></div>
+
+        <div class="campo-et" style="margin-top:20px"><span>El cierre de todos los mensajes</span></div>
+        <textarea id="ed-cierre" style="min-height:70px"></textarea>
+        <div class="fijo"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Y al final, siempre: <b>«Si no quieres recibir más mensajes, responde BAJA.»</b> Lo pide la ley de datos personales, así que no se puede quitar ni cambiar.</span></div>
+      </div>
+      <aside class="ed-prev" aria-label="Así le llega">
+        <div class="etq" style="margin-bottom:10px">Así le llega a un miembro</div>
+        <div id="ed-burbuja"></div>
+        <p style="font-size:12px;color:var(--taupe);margin:10px 0 0">Con los datos de un miembro de ejemplo. En WhatsApp, lo que va entre asteriscos sale en <b>negrita</b>.</p>
+      </aside>
+    </div>
+    <div class="ed-pie">
+      <span class="resp"><span class="av">AT</span>Quién lo cambia: Ana Torres</span>
+      <button class="btn sec" id="ed-cancelar">Cancelar</button>
+      <button class="btn prim" id="ed-guardar">Guardar mensajes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const IC = {
+  cumpleanos:'<path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/>',
+  puntos:'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  novedades:'<path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/>',
+  rebaja:'<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  msg:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  flecha:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+};
+const ico = (k, g) => `<svg class="i${g ? ' g' : ''}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+
+const TIPOS = {
+  cumpleanos:{titulo:'Cumpleaños',chip:'Cumpleaños',tono:'',promo:false,nota:'Promesa del club · no cuenta para el tope',datos:['nombre','regalo','tienda']},
+  puntos:{titulo:'Puntos por vencer',chip:'Puntos',tono:'',promo:false,nota:'Promesa del club · no cuenta para el tope',datos:['nombre','puntos','valor','fecha','tienda']},
+  novedades:{titulo:'Novedades',chip:'Novedades',tono:'piz',promo:true,nota:'Promoción · máximo 2 al mes',datos:['nombre','tienda']},
+  rebaja:{titulo:'Rebajas',chip:'Rebaja',tono:'piz',promo:true,nota:'Promoción · máximo 2 al mes',datos:['nombre','prenda','pct','tienda']},
+};
+const ORDEN = ['cumpleanos','puntos','novedades','rebaja'];
+const NOMBRE_DATO = {nombre:'Nombre',regalo:'Puntos de regalo',tienda:'Tienda',puntos:'Sus puntos',valor:'Lo que valen (S/)',fecha:'Fecha en que se eliminan',prenda:'Prenda',pct:'% de descuento'};
+
+// Lo que está hoy en producción (retail.club_textos, versión vigente de cada aviso_*, leído el 2026-10-20).
+const HOY = {
+  cumpleanos:'¡Feliz mes de cumpleaños, {nombre}! Como miembro del Club CAYLA, con tu primera compra de este mes te regalamos {regalo} puntos, en cualquier tienda CAYLA o en la tienda web. Te esperamos en {tienda}. Si no quieres recibir más mensajes, responde BAJA.',
+  puntos:'Hola {nombre}, tienes {puntos} puntos en el Club CAYLA (valen S/ {valor}). Si no compras hasta el {fecha}, se eliminan junto con tus datos, como dicen los términos del club. Te esperamos en {tienda}. Si no quieres recibir más mensajes, responde BAJA.',
+  novedades:'Hola {nombre}, llegaron prendas nuevas a {tienda}. Como miembro del Club CAYLA, te contamos primero: ven a verlas cuando quieras. Si no quieres recibir más mensajes, responde BAJA.',
+  rebaja:'Hola {nombre}, {prenda} está con {pct} % de descuento en {tienda} y tenemos tu talla, mientras haya stock. Si no quieres recibir más mensajes, responde BAJA.',
+};
+// La propuesta: más cálida, en párrafos cortos, con una negrita en lo que importa y un emoji que dice de qué se trata.
+const SUGERIDO = {
+  cumpleanos:'🎂 ¡Feliz mes de cumpleaños, {nombre}!\nEn el Club CAYLA queremos celebrarte: con tu primera compra de este mes te regalamos *{regalo} puntos*, en cualquier tienda CAYLA o en la tienda web.\nTe esperamos en {tienda}. 💐',
+  puntos:'Hola, {nombre} ✨\nTienes *{puntos} puntos* en el Club CAYLA, que valen *S/ {valor}* en tu próxima compra.\nÚsalos antes del *{fecha}*: si no hay compras hasta esa fecha, se eliminan junto con tus datos, como indican los términos del club.\nTe esperamos en {tienda}.',
+  novedades:'Hola, {nombre} 👋\nAcaban de llegar prendas nuevas a {tienda} y, como miembro del Club CAYLA, eres de las primeras personas en saberlo.\nVen a conocerlas antes que nadie. ✨',
+  rebaja:'Hola, {nombre} 🏷️\n*{prenda}* está con *{pct} % de descuento* en {tienda} y tenemos tu talla.\nLa promoción dura mientras haya stock: si te gusta, no esperes mucho.',
+};
+const CIERRE_SUGERIDO = '🛍️ Recuerda que en *tienda.cayla.pe* puedes ver tus puntos, tus avisos y todo lo nuevo de CAYLA, cuando quieras.';
+const BAJA = 'Si no quieres recibir más mensajes, responde BAJA.';
+
+let textos = {...SUGERIDO};
+let cierre = CIERRE_SUGERIDO;
+
+// Ejemplos inventados (no existen en el sistema).
+const AVISOS = [
+  {id:1,tipo:'cumpleanos',nombre:'Lucía Paredes Soto',cel:'9•• ••• 321',porque:'Cumple el 24 de octubre · todavía no recibe su regalo',d:{regalo:'100'}},
+  {id:2,tipo:'cumpleanos',nombre:'Andrés Quispe Ramos',cel:'9•• ••• 118',porque:'Cumple el 29 de octubre · todavía no recibe su regalo',d:{regalo:'100'}},
+  {id:3,tipo:'puntos',nombre:'Rosa Medina Vargas',cel:'9•• ••• 904',porque:'Su última compra fue hace casi 3 años',d:{puntos:'340',valor:'15',fecha:'18 de noviembre'}},
+  {id:4,tipo:'novedades',nombre:'Carla Ruiz Delgado',cel:'9•• ••• 556',porque:'Pidió novedades de Trujillo · 0 promociones este mes',d:{}},
+  {id:5,tipo:'novedades',nombre:'Miguel Torres León',cel:'9•• ••• 230',porque:'Pidió novedades de Trujillo · 1 promoción este mes',d:{}},
+  {id:6,tipo:'novedades',nombre:'Valeria Chávez Ríos',cel:'9•• ••• 772',porque:'Pidió novedades de Trujillo · 0 promociones este mes',d:{}},
+  {id:7,tipo:'rebaja',nombre:'Diana Flores Huamán',cel:'9•• ••• 649',porque:'Compra talla M · la Blusa Emma tiene stock en M',d:{prenda:'Blusa Emma',pct:'30'}},
+];
+const enviado = new Set();
+let actual = AVISOS[0].id, filtroB = 'todos', filtroC = 'todos', actualC = AVISOS[0].id;
+
+const iniciales = n => n.split(/\s+/).slice(0,2).map(p => p[0]).join('');
+const primer = n => n.split(/\s+/)[0];
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const negritas = s => esc(s).replace(/\*([^*\n]+)\*/g,'<b>$1</b>');
+function completar(t, a){
+  const d = {nombre:primer(a.nombre), tienda:'CAYLA Trujillo', ...a.d};
+  return t.replace(/\{([a-z]+)\}/g, (m,k) => d[k] ?? m);
+}
+function burbuja(a, {texto, hoy} = {}){
+  if (hoy) return `<div class="burbuja">${negritas(completar(HOY[a.tipo], a))}<span class="hora">10:24</span></div>`;
+  const cuerpo = completar(texto ?? textos[a.tipo], a);
+  return `<div class="burbuja">${negritas(cuerpo)}${cierre.trim() ? `<span class="cierre">${negritas(cierre)}</span>` : ''}<span class="baja">${BAJA}</span><span class="hora">10:24</span></div>`;
+}
+const chip = t => `<span class="chip ${TIPOS[t].tono}">${TIPOS[t].chip}</span>`;
+const porMandar = () => AVISOS.filter(a => !enviado.has(a.id));
+function enviar(id){ enviado.add(id); pintar(); }
+function deshacer(id){ enviado.delete(id); pintar(); }
+
+/* ---------- Hoy ---------- */
+function pintarHoy(){
+  const c = t => AVISOS.filter(a => a.tipo === t).length;
+  document.getElementById('d-hoy').innerHTML = `
+  <div class="hoy-cifras">${ORDEN.map(t => `<div class="cifra"><div class="etq">${TIPOS[t].titulo}</div><div class="v num">${c(t)}</div><small>${TIPOS[t].promo ? 'Promoción: máximo 2 al mes por miembro' : 'Por mandar · no cuenta para el tope'}</small></div>`).join('')}
+    <div class="cifra"><div class="etq">Enviados</div><div class="v num">${enviado.size}</div><small>Desde que abriste esta pantalla</small></div></div>
+  <p class="nota">Abre WhatsApp Web con el número de esta tienda antes de enviar.</p>
+  <div class="tarjeta" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 20px;align-items:flex-end">
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pild" aria-pressed="true">Todos <span class="n">${AVISOS.length}</span></button>${ORDEN.map(t => `<button class="pild">${TIPOS[t].titulo} <span class="n">${c(t)}</span></button>`).join('')}</div>
+      <span class="resp"><span class="av">AT</span>Ana Torres</span>
+    </div>
+    ${ORDEN.map(t => `<div class="hoy-grupo"><div class="etq">${TIPOS[t].titulo} · ${c(t)} por mandar</div></div>${AVISOS.filter(a => a.tipo === t).map(a => `
+      <div class="hoy-fila"><span class="av" style="border-radius:12px;background:var(--hueso)">${ico(t)}</span>
+        <div style="flex:1;min-width:0"><b>${a.nombre}</b> ${chip(t)} <span style="font-size:12px;color:var(--taupe)">${a.cel}</span>
+          <div style="font-size:12px;color:var(--taupe)">${a.porque}</div>
+          <div class="hoy-texto">${esc(completar(HOY[t], a))}</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px;width:150px"><button class="btn prim">${ico('msg')}Enviar</button><button class="btn sut">PIDIÓ BAJA</button></div>
+      </div>`).join('')}`).join('')}
+  </div>
+  <p class="nota" style="margin-top:16px">La lista la arma la base: solo miembros que pidieron novedades por WhatsApp de esta tienda; máximo 2 promociones al mes por miembro (cumpleaños y puntos por vencer no cuentan), y 1 de cada 5 miembros no recibe novedades ni rebajas para medir si los avisos sirven. Si un miembro responde BAJA, regístralo con «Pidió BAJA».</p>`;
+}
+
+/* ---------- A · Uno a la vez ---------- */
+function pintarA(){
+  const total = AVISOS.length, hechos = enviado.size, pct = Math.round(hechos / total * 100);
+  const a = AVISOS.find(x => x.id === actual);
+  const quedan = porMandar();
+  const foco = (!a || (enviado.has(a.id) && quedan.length === 0)) ? `
+    <div class="a-fin sube"><div class="av ok" style="width:64px;height:64px;margin:0 auto 12px">${ico('check', true)}</div>
+      <div class="a-nombre">Listo por hoy</div><p style="color:var(--taupe)">Mandaste los ${total} avisos de Trujillo. Mañana la lista se arma sola otra vez.</p></div>` : `
+    <div class="sube" style="animation-name:sube" data-k="${a.id}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="a-quien"><span class="av ${enviado.has(a.id) ? 'ok' : ''}">${enviado.has(a.id) ? ico('check', true) : iniciales(a.nombre)}</span>
+          <div><div class="a-nombre">${a.nombre}</div><div class="a-porque">${a.porque}</div></div></div>
+        ${chip(a.tipo)}
+      </div>
+      <div class="a-chat"><div class="para"><span>Para ${a.cel} · desde el WhatsApp de CAYLA Trujillo</span><span>${TIPOS[a.tipo].nota}</span></div>${burbuja(a)}</div>
+      <div class="a-acc">
+        ${enviado.has(a.id)
+          ? `<span class="chip verde">Enviado · 10:24</span><button class="btn sut" onclick="deshacer(${a.id})">↶ Deshacer</button><span style="flex:1"></span>
+             ${quedan.length ? `<button class="btn prim" onclick="siguiente()">Siguiente: ${primer(quedan[0].nombre)} ${ico('flecha')}</button>` : ''}`
+          : `<button class="btn prim" onclick="enviarA(${a.id})">${ico('msg')}Enviar por WhatsApp</button><span class="tecla"><kbd>Enter</kbd></span>
+             <button class="btn sec" onclick="saltar()">Saltar por ahora</button><span style="flex:1"></span><button class="btn sut">Pidió BAJA</button>`}
+      </div>
+    </div>`;
+  document.getElementById('d-a').innerHTML = `
+  <div class="tarjeta" style="padding:16px 20px;margin-bottom:16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1;min-width:240px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><b>Hoy en Trujillo</b><span class="num">${hechos} de ${total} enviados</span></div>
+      <div class="barra-av"><i class="${hechos === total ? 'lista' : ''}" style="width:${pct}%"></i></div></div>
+    <span class="resp"><span class="av">AT</span>Envía: Ana Torres</span>
+  </div>
+  <div class="a-grid">
+    <div class="tarjeta a-foco">${foco}</div>
+    <aside class="tarjeta a-cola"><h3>La fila de hoy</h3><div style="font-size:12px;color:var(--taupe)">Toca a alguien para saltar a su mensaje.</div>
+      ${ORDEN.map(t => { const g = AVISOS.filter(x => x.tipo === t); return g.length ? `<div class="a-grupo">${TIPOS[t].titulo}</div>${g.map(x => `
+        <button class="a-item ${enviado.has(x.id) ? 'hecho' : ''}" aria-current="${x.id === actual}" onclick="irA(${x.id})">
+          <span class="av ${enviado.has(x.id) ? 'ok' : ''}">${enviado.has(x.id) ? ico('check') : iniciales(x.nombre)}</span>
+          <span class="t">${x.nombre}<small>${enviado.has(x.id) ? 'Enviado' : x.porque.split(' · ')[0]}</small></span></button>`).join('')}` : ''; }).join('')}
+    </aside>
+  </div>
+  <p class="nota" style="margin-top:16px">Abre WhatsApp Web con el número de esta tienda. «Enviar» abre el chat con el mensaje escrito: solo aprietas Enter allá y vuelves aquí. La lista la arma la base (quién pidió avisos, el tope de 2 promociones al mes y el grupo de control); si alguien responde BAJA, márcalo con «Pidió BAJA».</p>`;
+}
+function irA(id){ actual = id; pintar(); }
+function enviarA(id){ enviado.add(id); pintar(); }
+function siguiente(){ const q = porMandar(); if (q.length) actual = q[0].id; pintar(); }
+function saltar(){ const i = AVISOS.findIndex(x => x.id === actual); const sig = AVISOS.slice(i + 1).concat(AVISOS.slice(0, i)).find(x => !enviado.has(x.id)); if (sig) actual = sig.id; pintar(); }
+
+/* ---------- B · Por tipo ---------- */
+function pintarB(){
+  const lista = AVISOS.filter(a => filtroB === 'todos' || a.tipo === filtroB);
+  document.getElementById('d-b').innerHTML = `
+  <div class="b-tipos">${ORDEN.map(t => { const g = AVISOS.filter(a => a.tipo === t), h = g.filter(a => enviado.has(a.id)).length; return `
+    <button class="b-tipo" aria-pressed="${filtroB === t}" onclick="filtrarB('${t}')">
+      <div class="ico">${ico(t, true)}</div><div class="v num">${g.length - h}</div><div class="t">${TIPOS[t].titulo}</div><small>${TIPOS[t].nota}</small>
+      <div class="barra-av"><i class="${h === g.length ? 'lista' : ''}" style="width:${g.length ? h / g.length * 100 : 0}%"></i></div></button>`; }).join('')}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <div style="font:400 21px/1.2 'EB Garamond',Georgia,serif">${filtroB === 'todos' ? 'Todos los avisos de hoy' : TIPOS[filtroB].titulo} <span class="pild" style="cursor:default;padding:2px 8px;font:12px 'DM Sans'"><span class="num">${lista.filter(a => !enviado.has(a.id)).length} por mandar</span></span>
+      ${filtroB !== 'todos' ? `<button class="btn sut" onclick="filtrarB('todos')">Ver todos</button>` : ''}</div>
+    <span class="resp"><span class="av">AT</span>Envía: Ana Torres</span>
+  </div>
+  <div class="b-grid">${lista.map(a => `
+    <article class="tarjeta b-card ${enviado.has(a.id) ? 'hecho' : ''}">
+      <div class="top"><span class="av ${enviado.has(a.id) ? 'ok' : ''}">${enviado.has(a.id) ? ico('check') : iniciales(a.nombre)}</span>
+        <div class="t"><b>${a.nombre}</b><small>${a.porque}</small></div>${chip(a.tipo)}</div>
+      ${burbuja(a)}
+      <div class="acc">${enviado.has(a.id)
+        ? `<span class="ok">${ico('check')}Enviado a las 10:24</span><button class="btn sut" onclick="deshacer(${a.id})">↶ Deshacer</button>`
+        : `<button class="btn sut">Pidió BAJA</button><button class="btn prim" onclick="enviar(${a.id})">${ico('msg')}Enviar a ${a.cel}</button>`}</div>
+    </article>`).join('')}</div>
+  <p class="nota" style="margin-top:16px">Toca una tarjeta de arriba para ver solo ese tipo; la barrita se llena a medida que mandas. Cumpleaños y puntos son promesas del club; novedades y rebajas son promociones y la base no deja pasar de 2 al mes por miembro.</p>`;
+}
+function filtrarB(t){ filtroB = filtroB === t ? 'todos' : t; pintar(); }
+
+/* ---------- C · Como WhatsApp ---------- */
+function pintarC(){
+  const lista = AVISOS.filter(a => filtroC === 'todos' || a.tipo === filtroC);
+  if (!lista.some(a => a.id === actualC) && lista.length) actualC = lista[0].id;
+  const a = AVISOS.find(x => x.id === actualC);
+  const linea = x => completar(textos[x.tipo], x).replace(/\*/g,'').split('\n')[0];
+  document.getElementById('d-c').innerHTML = `
+  <div class="tarjeta c-app">
+    <div class="c-lista">
+      <div class="filtros"><button class="pild" aria-pressed="${filtroC === 'todos'}" onclick="filtrarC('todos')">Todos <span class="n">${porMandar().length}</span></button>
+        ${ORDEN.map(t => `<button class="pild" aria-pressed="${filtroC === t}" onclick="filtrarC('${t}')">${TIPOS[t].titulo} <span class="n">${AVISOS.filter(x => x.tipo === t && !enviado.has(x.id)).length}</span></button>`).join('')}</div>
+      <div class="c-chats">${lista.map(x => `
+        <button class="c-chat" aria-current="${x.id === actualC}" onclick="irC(${x.id})">
+          <span class="av ${enviado.has(x.id) ? 'ok' : ''}">${iniciales(x.nombre)}</span>
+          <span class="t"><span class="l1">${x.nombre}<span>${enviado.has(x.id) ? '10:24' : TIPOS[x.tipo].chip}</span></span>
+            <span class="l2">${enviado.has(x.id) ? `<span class="vistos">✓✓</span> ` : ''}${esc(linea(x))}</span></span></button>`).join('')}</div>
+      <div style="padding:10px 14px;border-top:1px solid var(--sand);font-size:12px;color:var(--taupe)">Envía: <b style="color:var(--tinta)">Ana Torres</b> · ${enviado.size} de ${AVISOS.length} enviados</div>
+    </div>
+    <div class="c-conv">${a ? `
+      <div class="cab-c"><span class="av">${iniciales(a.nombre)}</span><div class="t"><b>${a.nombre}</b><small>${a.cel} · ${a.porque}</small></div>${chip(a.tipo)}</div>
+      <div class="cuerpo"><span class="porque">${TIPOS[a.tipo].nota}</span>${burbuja(a)}
+        ${enviado.has(a.id) ? `<span class="porque" style="color:var(--verde)">✓ Anotado como enviado · 10:24</span>` : ''}</div>
+      <div class="enviar">${enviado.has(a.id)
+        ? `<span class="msg">Listo. ${porMandar().length ? `Sigue ${primer(porMandar()[0].nombre)}.` : 'No queda nadie por hoy.'}</span><button class="btn sut" onclick="deshacer(${a.id})">↶ Deshacer</button>${porMandar().length ? `<button class="btn prim" onclick="irC(${porMandar()[0].id})">Siguiente ${ico('flecha')}</button>` : ''}`
+        : `<span class="msg">Se abre WhatsApp Web con este mensaje escrito. Allá solo aprietas Enter.</span><button class="btn sut">Pidió BAJA</button><button class="btn prim" onclick="enviar(${a.id})">${ico('msg')}Enviar</button>`}</div>` : ''}
+    </div>
+  </div>
+  <p class="nota" style="margin-top:16px">Igual que WhatsApp Web: a la izquierda quién falta (✓✓ cuando ya se mandó), a la derecha el mensaje tal como le llega. La lista la arma la base; si alguien responde BAJA, márcalo con «Pidió BAJA».</p>`;
+}
+function filtrarC(t){ filtroC = t; pintar(); }
+function irC(id){ actualC = id; pintar(); }
+
+function pintar(){ pintarHoy(); pintarA(); pintarB(); pintarC(); }
+
+/* ---------- Hoja «Editar mensajes» ---------- */
+let edTipo = 'cumpleanos', borrador = {}, borradorCierre = '';
+const velo = document.getElementById('velo'), ta = document.getElementById('ed-texto'), taC = document.getElementById('ed-cierre');
+function abrirEditor(){ borrador = {...textos}; borradorCierre = cierre; edTipo = 'cumpleanos'; pintarEditor(); velo.classList.add('abierto'); ta.focus(); }
+function cerrarEditor(){ velo.classList.remove('abierto'); }
+function problemas(t, tipo){
+  const p = [];
+  if (!t.includes('{nombre}')) p.push('Falta {nombre}: el mensaje tiene que saludar a la persona por su nombre.');
+  const sueltos = [...new Set((t.match(/\{[a-z]+\}/g) || []).filter(m => !TIPOS[tipo].datos.includes(m.slice(1, -1))))];
+  if (sueltos.length) p.push(`Este mensaje no sabe completar ${sueltos.join(', ')}: quítalo o usa uno de los datos de abajo.`);
+  if (/responde\s+baja/i.test(t)) p.push('La línea de BAJA ya va sola al final: no hace falta escribirla.');
+  return p;
+}
+function pintarEditor(){
+  document.getElementById('ed-tipos').innerHTML = ORDEN.map(t => `<button class="ed-tipo" aria-pressed="${t === edTipo}" data-t="${t}">${ico(t)}<span>${TIPOS[t].titulo}${borrador[t] !== textos[t] ? '<small>Sin guardar</small>' : ''}</span></button>`).join('');
+  document.querySelectorAll('.ed-tipo').forEach(b => b.onclick = () => { edTipo = b.dataset.t; pintarEditor(); ta.focus(); });
+  ta.value = borrador[edTipo]; taC.value = borradorCierre;
+  document.getElementById('ed-et').textContent = 'El mensaje de ' + TIPOS[edTipo].titulo.toLowerCase();
+  document.getElementById('ed-marc').innerHTML = TIPOS[edTipo].datos.map(k => `<button type="button" data-k="${k}">+ ${NOMBRE_DATO[k]}</button>`).join('');
+  document.querySelectorAll('#ed-marc button').forEach(b => b.onclick = () => insertar(`{${b.dataset.k}}`));
+  refrescarPrevia();
+}
+function refrescarPrevia(){
+  const t = borrador[edTipo];
+  const p = problemas(t, edTipo);
+  document.getElementById('ed-error').innerHTML = p.map(x => `<div>${esc(x)}</div>`).join('');
+  document.getElementById('ed-largo').textContent = `${(t + '\n' + borradorCierre + '\n' + BAJA).length} letras`;
+  const ej = AVISOS.find(a => a.tipo === edTipo);
+  const guardado = cierre; cierre = borradorCierre;
+  document.getElementById('ed-burbuja').innerHTML = burbuja(ej, {texto: t});
+  cierre = guardado;
+  document.getElementById('ed-guardar').disabled = ORDEN.some(k => problemas(borrador[k], k).length);
+}
+function insertar(m){
+  const i = ta.selectionStart ?? ta.value.length, f = ta.selectionEnd ?? i;
+  ta.value = ta.value.slice(0, i) + m + ta.value.slice(f);
+  ta.selectionStart = ta.selectionEnd = i + m.length; ta.focus();
+  borrador[edTipo] = ta.value; pintarEditor(); ta.focus(); ta.selectionStart = ta.selectionEnd = i + m.length;
+}
+ta.addEventListener('input', () => { borrador[edTipo] = ta.value; refrescarPrevia(); document.querySelector('.ed-tipo[aria-pressed="true"] span').innerHTML = TIPOS[edTipo].titulo + (borrador[edTipo] !== textos[edTipo] ? '<small>Sin guardar</small>' : ''); });
+taC.addEventListener('input', () => { borradorCierre = taC.value; refrescarPrevia(); });
+document.getElementById('ed-restaurar').onclick = () => { borrador[edTipo] = SUGERIDO[edTipo]; pintarEditor(); };
+document.getElementById('ed-cancelar').onclick = cerrarEditor;
+document.getElementById('cerrar-editor').onclick = cerrarEditor;
+document.getElementById('ed-guardar').onclick = () => { textos = {...borrador}; cierre = borradorCierre; cerrarEditor(); pintar(); };
+velo.addEventListener('click', e => { if (e.target === velo) cerrarEditor(); });
+document.getElementById('abrir-editor').onclick = abrirEditor;
+document.querySelectorAll('[data-editar]').forEach(b => b.onclick = abrirEditor);
+
+/* ---------- Barra ---------- */
+document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-ir]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  document.querySelectorAll('.diseno').forEach(d => d.classList.toggle('activo', d.id === 'd-' + b.dataset.ir));
+});
+document.getElementById('tema').onclick = e => {
+  const o = document.documentElement.dataset.tema === 'oscuro';
+  document.documentElement.dataset.tema = o ? '' : 'oscuro'; e.target.textContent = o ? 'Oscuro' : 'Claro';
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && velo.classList.contains('abierto')) cerrarEditor();
+  if (e.key === 'Enter' && !velo.classList.contains('abierto') && document.getElementById('d-a').classList.contains('activo') && !(e.target instanceof HTMLButtonElement)) {
+    if (!enviado.has(actual)) enviarA(actual); else siguiente();
+  }
+});
+pintar();
+</script>
+</body>
+</html>

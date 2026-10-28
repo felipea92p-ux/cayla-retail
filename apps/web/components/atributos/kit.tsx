@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { FunnelX, Shapes } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Boton } from "@/components/ui/campos";
@@ -131,7 +132,7 @@ export function VocabularioVacio({ children, icono = <Shapes /> }: { children: R
 
 /** La insignia de estado junto al nombre: «Pendiente», «Rechazada». */
 function Insignia({ children }: { children: ReactNode }) {
-  return <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">{children}</span>;
+  return <Chip tono="rojo" className="shrink-0">{children}</Chip>;
 }
 
 /** La parte de arriba de la tarjeta que abre un detalle (Tejidos y Patrones: su foto y sus prendas). Las acciones del pie
@@ -220,20 +221,6 @@ export function BotonesPendiente({ onAprobar, onRechazar, aprobando = false }: {
 /** El pie de una tarjeta ya aprobada: sus enlaces («Prendas», «Editar») y, al final, «Desactivar». */
 export function PieTarjeta({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{children}</div>;
-}
-
-/** Un enlace del pie. Cada uno en una sola línea: «Configurar campaña» partido en dos se leía como dos acciones. */
-export function AccionTarjeta({ onClick, children, guia }: { onClick: () => void; children: ReactNode; /** Ancla de la guía interactiva (`data-guia`, ADR-0389). */ guia?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      data-guia={guia}
-      className="label-cayla whitespace-nowrap text-[10px] text-tinta/75 underline-offset-4 transition-colors hover:text-tinta hover:underline"
-    >
-      {children}
-    </button>
-  );
 }
 
 /**

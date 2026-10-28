@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { Plus } from "lucide-react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, puntosAVista, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
@@ -10,9 +11,9 @@ import { SIZES_OPCIONES_VENDER, SIZES_TARJETA_VENDER as SIZES_FOTO } from "@/lib
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
-import { Badge } from "@/components/ui/badge";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 
 /** Cuántos puntos de color entran en la tarjeta más angosta (un celular de 320 px, dos columnas): con más, «+N». */
 const PUNTOS_A_LA_VISTA = 5;
@@ -149,6 +150,8 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
         {/* Dos líneas: en un celular de 320 la tarjeta mide ~140 px y una sola dejaba «Pantalón…» sin decir cuál. */}
         <p className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</p>
         <p className="mt-0.5 text-[11.5px] text-tinta/55">{resumenDePrenda(prenda)}</p>
+        {/* ADR-0505: en Lima, «CLAURE» bajo el nombre, para no venderla como la blusa de CAYLA que se le parece. */}
+        <InsigniaEmpresa nombre={elegido.tallas[0]?.variante.empresa} className="mt-1" />
       </div>
 
       {prenda.colores.length > 1 && (
@@ -238,11 +241,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       )}
 
       {/* El globito se re-asienta cada vez que cambia la cantidad (`key`). */}
-      {enCarrito > 0 && (
-        <Badge key={`globo-${enCarrito}`} className="anim-pop pointer-events-none absolute top-2 right-2 z-20 h-6 min-w-6 rounded-full px-1.5 text-xs">
-          {enCarrito}
-        </Badge>
-      )}
+      <Globito n={enCarrito} esquina late etiqueta="en el ticket" className="absolute top-2 right-2 z-20" />
     </article>
   );
 }

@@ -8,6 +8,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
+import { ElegirEmpresa, TarjetaEmpresa } from "@/components/alta-producto/ElegirEmpresa";
+import { empresaPorMarca } from "@/lib/empresas-de-sede-reglas";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMuestra } from "@/components/alta-producto/ElegirMuestra";
 import { ElegirTemporada } from "@/components/alta-producto/ElegirTemporada";
@@ -95,6 +97,7 @@ import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada, type CargaIn
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
+import { ArrowRight } from "lucide-react";
 
 /** Con la carga inicial de la sede cerrada, ninguna cantidad viaja (un objeto fijo: no cambia en cada render). */
 const SIN_CANTIDADES: Readonly<Record<string, string>> = Object.freeze({});
@@ -161,14 +164,11 @@ export function NuevoProductoForm({
   contexto,
   destino,
   cargaInicial = null,
-  puedeAprobarEtiquetas,
 }: {
   contexto: ContextoAlta;
   destino: DestinoStock;
   /** La carga inicial de la sede del stock (ADR-0328): su fecha de cierre y el «hoy» de la base. `null` = no se sabe (no se avisa). */
   cargaInicial?: CargaInicialSede | null;
-  /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
-  puedeAprobarEtiquetas: boolean;
 }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
@@ -204,6 +204,18 @@ export function NuevoProductoForm({
   );
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
+  // ADR-0463: a qué tienda pertenece el producto — solo desde una sede donde operan dos (Lima). `contexto.empresas` nulo = Trujillo,
+  // Arequipa o una base sin tiendas: el producto nace en CAYLA. Desde el 2026-10-26 (ADR-0532, Felipe: «todo lo que se registre en Lima y
+  // no sea de la marca CAYLA pasa a ser CLAURE») ya no se pregunta: la decide la marca (`empresaPorMarca`). Solo si la base no dice cuál
+  // es la marca de CAYLA se vuelve a preguntar, como antes, sin ninguna marcada.
+  const [empresaElegida, setEmpresaId] = useState("");
+  const empresas = contexto.empresas;
+  const exigeEmpresa = Boolean(empresas && empresas.length > 0);
+  const decideLaMarca = Boolean(empresas?.find((t) => t.clave === "cayla")?.marcaId);
+  const empresaId = decideLaMarca ? (empresaPorMarca(marcaId, empresas)?.id ?? "") : empresaElegida;
+  const preguntaEmpresa = exigeEmpresa && !decideLaMarca;
+  const empresa = empresas?.find((t) => t.id === empresaId) ?? null;
+  const faltaEmpresa = preguntaEmpresa && !empresaId;
   const [proveedorId, setProveedorId] = useState("");
   const [marcaNombre, setMarcaNombre] = useState("");
   const [proveedorNombre, setProveedorNombre] = useState("");
@@ -228,9 +240,6 @@ export function NuevoProductoForm({
   // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
   const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
   const vocabEtiquetas = useMemo(() => unirEtiquetas(contexto.etiquetas, etiquetasNuevas), [contexto.etiquetas, etiquetasNuevas]);
-  // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
-  // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
-  const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
   // «Temporada y etiquetas · opcional» (paso 2) arranca ABIERTO (Felipe 2026-09-29): plegado se pasaba de largo y nadie
   // sabía que ahí se elige la temporada y las etiquetas. Sigue siendo plegable, y plegado la línea dice lo elegido.
   const [masAbierto, setMasAbierto] = useState(true);
@@ -265,7 +274,7 @@ export function NuevoProductoForm({
   // está en la base). Con el producto creado no hay nada que perder; tras «crear otro parecido» vuelve a preguntar, porque
   // lo copiado también se perdería. La foto de apertura es la del formulario vacío.
   const fotoActual = fotoFormulario({
-    categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
+    empresaId, categoriaId, marcaId, proveedorId, referencia, descripcion, tallasElegidas, tejidoId, patronId, temporada,
     coloresElegidos, fotos: fotos.map((f) => f.clave), precioBase, costoBase, excluidas: [...excluidas].sort(),
     overridePrecio, overrideCosto, etiquetasElegidas, cantidades, sinStock, lugarCarga,
   });
@@ -438,6 +447,9 @@ export function NuevoProductoForm({
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
+    // La guía y la validación piden la tienda solo si se pregunta (sin la marca de CAYLA en la base): si la decide la marca, siempre está.
+    exigeEmpresa: preguntaEmpresa,
+    empresaId,
     categoriaId,
     referencia,
     comprobandoNombre,
@@ -630,7 +642,14 @@ export function NuevoProductoForm({
       p_al_piso: conStock && destino.separaPiso && lugarCarga === "piso",
     };
     const firma = responsable.firma();
-    const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_stock_inicial", params), firma);
+    // ADR-0463: desde una sede con dos tiendas (Lima), el alta va por `crear_producto_con_empresa` (la de siempre + la tienda, en la misma
+    // transacción); sin ellas, por la de siempre y el producto nace en CAYLA. La cola sin conexión guarda cuál usó.
+    const rpcAlta = exigeEmpresa ? "crear_producto_con_empresa" : "crear_producto_con_stock_inicial";
+    const paramsAlta = exigeEmpresa ? { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId } : params;
+    const { data: productoId, error, status } = await firmar(
+      exigeEmpresa ? supabase.rpc("crear_producto_con_empresa", { ...params, p_empresa_id: empresaId, p_sede_id: destino.ubicacionId }) : supabase.rpc("crear_producto_con_stock_inicial", params),
+      firma,
+    );
 
     // Sin red (ADR-0210, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
     // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
@@ -641,8 +660,8 @@ export function NuevoProductoForm({
       const firmaCola = conStock ? responsable.firma(new Date().toISOString()) : firma;
       const op = nuevaOperacion({
         token: token.current,
-        rpc: "crear_producto_con_stock_inicial",
-        params,
+        rpc: rpcAlta,
+        params: paramsAlta,
         firma: firmaCola,
         resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"}${conStock ? ` · ${stock.total} u.` : ""} · ${categoria?.nombre ?? ""}`,
       });
@@ -654,7 +673,7 @@ export function NuevoProductoForm({
       const fotosGuardadas = await guardarFotos(
         token.current,
         nombreFinal,
-        fotosOrdenadas.map((f) => ({ archivo: f.archivo, original: f.original, colorCodigo: f.colorCodigo })),
+        fotosOrdenadas.map((f) => ({ archivo: f.archivo, colorCodigo: f.colorCodigo })),
       );
       fotos.forEach((f) => URL.revokeObjectURL(f.vista));
       setFotos([]);
@@ -703,7 +722,7 @@ export function NuevoProductoForm({
     if (fotosOrdenadas.length > 0) {
       const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
       for (const f of fotosOrdenadas) {
-        const r = await subirFotoProducto(supabase, f.archivo, f.original);
+        const r = await subirFotoProducto(supabase, f.archivo);
         if ("error" in r) {
           fallidas.push(`${f.archivo.name}: ${r.error}`);
           continue;
@@ -791,7 +810,7 @@ export function NuevoProductoForm({
       .filter(Boolean)
       .join(", ") || null;
   const resumen: Record<NumeroPaso, string> = {
-    1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
+    1: categoria ? `${empresa ? `${empresa.nombre} · ` : ""}${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
     2: [nombreFinal, marcaNombre, tejidoTexto, patronTexto].filter(Boolean).join(" · "),
     // «26–42 (9) · 8 colores · 68 variantes · 7 fotos»: con muchas tallas se leen primera–última y cuántas.
     3: tallasOrdenadas.length
@@ -805,7 +824,7 @@ export function NuevoProductoForm({
           .join(" · ")
       : "",
     4: [
-      precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
+      precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
       stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)
@@ -843,7 +862,10 @@ export function NuevoProductoForm({
           disabled={Boolean(faltaDelPasoProblema(problemas, n))}
           className={`btn-cayla btn-primario ${listo ? "hilo-seguir" : ""}`}
         >
-          Seguir →
+          <span className="flex items-center gap-2">
+            Seguir
+            <ArrowRight aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+          </span>
         </button>
       ) : (
         // El paso 4 cierra el alta: aquí termina la persona, así que aquí está «Crear» (la ficha conserva el suyo).
@@ -878,7 +900,10 @@ export function NuevoProductoForm({
           <p className="text-[13px] text-taupe">
             Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.
           </p>
-          <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} />
+          {/* Sin tienda no se elige categoría (ADR-0463): se ve el camino, atenuado, y se enciende al elegir la tienda. La pregunta vive en su propia tarjeta, sobre este paso. */}
+          <div inert={faltaEmpresa} className={faltaEmpresa ? "opacity-50 transition-opacity" : "transition-opacity"}>
+            <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} pausado={faltaEmpresa} />
+          </div>
         </div>
       );
     }
@@ -1016,7 +1041,7 @@ export function NuevoProductoForm({
               )}
             </FilaAlta>
             <FilaAlta
-              etiqueta="Etiquetas"
+              etiqueta="Insignias y campañas"
               ayuda={`Para buscar y agrupar${nombresEtiquetas.length ? ` · ${plural(nombresEtiquetas.length, "elegida", "elegidas")}` : ""}`}
             >
               <ElegirEtiquetas
@@ -1024,11 +1049,8 @@ export function NuevoProductoForm({
                 categoriaId={categoriaId}
                 elegidas={etiquetasElegidas}
                 onElegidas={setEtiquetasElegidas}
-                puedeAprobar={puedeAprobarEtiquetas}
                 enLinea={enLinea}
                 onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
-                propuestas={etiquetasPropuestas}
-                onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
               />
             </FilaAlta>
           </PlegableAlta>
@@ -1149,7 +1171,7 @@ export function NuevoProductoForm({
         {/* La tabla del paso 3, ahora con números: cuántas hay hoy (ADR-0212) o, en su segmento, el precio distinto. */}
         <FilaAlta
           etiqueta="Unidades de hoy"
-          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Si no tienes, márcalo abajo`}
+          ayuda={cargaCerrada ? `La carga inicial de ${destino.etiqueta} ya se cerró` : `Lo que ya tienes en ${destino.etiqueta}. Se escribe una sola vez: al crear, queda sellado y después se ajusta en Existencias. Si no tienes, márcalo abajo`}
           campo="stock"
           estado={est.stock}
         >
@@ -1294,6 +1316,13 @@ export function NuevoProductoForm({
                 </Aviso>
               )}
               {/* Solo el paso abierto: los demás están en los puntos de arriba. `key` lo vuelve a montar al cambiar de paso (entra con su revelado). */}
+              {paso === 1 && empresas && preguntaEmpresa && (
+                <TarjetaEmpresa>
+                  <FilaAlta etiqueta="Tienda" campo="empresa" estado={est.empresa}>
+                    <ElegirEmpresa empresas={empresas} empresaId={empresaId} onElegir={setEmpresaId} />
+                  </FilaAlta>
+                </TarjetaEmpresa>
+              )}
               <PasoAlta key={paso} numero={paso} titulo={TITULOS[paso]} pie={pie(paso)}>
                 {cuerpo(paso)}
               </PasoAlta>
@@ -1303,6 +1332,7 @@ export function NuevoProductoForm({
               datos={{
                 nombre: nombreFinal,
                 codigo: categoria ? base : null,
+                empresa: empresa?.nombre ?? null,
                 categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
                 marca: marcaId ? marcaNombre || null : null,
                 tejido: tejidoTexto,

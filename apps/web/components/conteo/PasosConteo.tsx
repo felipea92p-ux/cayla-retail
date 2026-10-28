@@ -78,7 +78,7 @@ export function PasosConteo({
     const avance = pasos.length > 1 ? Math.max(0, indice) / (pasos.length - 1) : 0;
     return (
       <nav aria-label={etiqueta} className={className}>
-        <ol className="rc-riel">
+        <ol className="rc-riel" data-pasos={pasos.length} style={{ "--pasos": pasos.length } as React.CSSProperties}>
           <li aria-hidden className="rc-riel-linea">
             <i style={{ "--p": avance } as React.CSSProperties} />
           </li>
@@ -130,7 +130,7 @@ export function PasosConteo({
               {/* El trazo que une un paso con el anterior: relleno si ese paso ya se hizo. */}
               {i > 0 && <span aria-hidden className={`h-px w-3 sm:w-6 ${i <= indice ? "bg-tinta/40" : "bg-sand"}`} />}
               <span aria-hidden className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px] tabular-nums ${MARCA[estado]}`}>
-                {estado === "hecho" ? <Check strokeWidth={2.4} className="h-3 w-3" /> : i + 1}
+                {estado === "hecho" ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ strokeWidth={3} className="h-3 w-3" /> : i + 1}
               </span>
               <span className={`text-sm ${NOMBRE[estado]}`}>{p.nombre}</span>
               <span className="sr-only">{LEIDO[estado]}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -287,12 +288,7 @@ export function PagoJuntosModal({
                       />
                     </div>
                     {/* La cascada: cuánto del pago recibe este comprobante. Verde = queda en cero; rojo = se pasa del saldo. */}
-                    <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
-                      <div
-                        className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${pasa ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                        style={{ transform: `scaleX(${armada && c.saldo > 0 ? Math.min(1, aplicado / c.saldo) : 0})` }}
-                      />
-                    </div>
+                    <BarraAvance pct={armada && c.saldo > 0 ? (aplicado / c.saldo) * 100 : 0} alto="fina" tono={pasa ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
                     <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${pasa || invalido ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                       {invalido ? (
                         "Monto no válido"
@@ -363,7 +359,7 @@ export function PagoJuntosModal({
           </section>
 
           {saldoFavor > 0 && (
-            <div className="rounded-xl border border-verde/40 bg-verde/[0.06] p-4">
+            <div /* unificar-fijo: el saldo a favor con su interruptor para usarlo, no un aviso */ className="rounded-xl border border-verde/40 bg-verde/[0.06] p-4">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -428,15 +424,19 @@ export function PagoJuntosModal({
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-          <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
-            <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
-            <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
-              Cancelar
-            </button>
-            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
-              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
-            </Boton>
+          {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. El sangrado va en la caja de
+              afuera y `pie-acciones` adentro (ver el mismo pie en `CompraDetallePanel`): en el celular la nota va en su fila y los
+              dos botones, uno bajo el otro, porque la etiqueta lleva el monto y no cabe en media fila. */}
+          <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
+            <div className="pie-acciones">
+              <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
+              <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
+                Cancelar
+              </button>
+              <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman} className="pie-acciones-ancho">
+                {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+              </Boton>
+            </div>
           </div>
         </form>
         )

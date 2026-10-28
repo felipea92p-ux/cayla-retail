@@ -9,6 +9,7 @@ import { efectivoACobrar, redondeoDelEfectivo, TOPE_VUELTO, UNIDAD_EFECTIVO } fr
 export { TOPE_VUELTO };
 import { motivoNoCobrable } from "./vender-stock-local";
 import { precioValido } from "./variantes-ficha-reglas";
+import { repartirVale } from "./club-cupon-reparto-reglas";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -54,10 +55,64 @@ export type PagoAplicado = {
   /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230): con él, Ventas ▸ Historial encuentra la venta
    *  aunque la clienta haya perdido la boleta y solo tenga la captura del pago. */
   referencia?: string;
+  /** Con tarjeta o QR: la cuenta «por depositar» de la MÁQUINA que cobró (Izipay, Vendemás; ADR-0429). Nace con la máquina por
+   *  defecto de la tienda y la cajera la cambia con un toque donde hay dos. Viaja como `cuenta_id`; la base la valida. */
+  cuentaId?: string;
 };
 
 /** Los medios que dan un nº de operación que la clienta ve en su celular. */
 export const METODOS_CON_OPERACION: readonly MetodoPagoVenta[] = ["yape", "plin", "transferencia"];
+
+/** Los medios que cobra una máquina (ADR-0429): la plata espera en su cuenta «por depositar» hasta que la máquina la deposita. */
+export const METODOS_CON_MAQUINA: readonly MetodoPagoVenta[] = ["tarjeta", "qr"];
+
+/** Una máquina de cobro de ESTA tienda para un medio, como la devuelve `fn_pos_maquinas_de_sede` (20261016173000). */
+export type MaquinaDeCobro = {
+  maquinaId: string;
+  nombre: string;
+  /** Su cuenta «por depositar»: lo que viaja en el pago. */
+  cuentaId: string;
+  medio: "tarjeta" | "qr";
+  /** Hoy es a donde entra ese medio en esta tienda («A qué cuenta entra cada cobro»): la que la hoja marca de entrada. */
+  porDefecto: boolean;
+};
+
+/** Las filas de la base → máquinas. Una fila rara (sin id, otro medio) se descarta: nunca tumba la caja. */
+export function leerMaquinasDeCobro(filas: readonly Record<string, unknown>[] | null | undefined): MaquinaDeCobro[] {
+  return (filas ?? []).flatMap((f) => {
+    const medio = f.medio === "tarjeta" || f.medio === "qr" ? f.medio : null;
+    if (!medio || !f.maquina_id || !f.cuenta_id) return [];
+    return [{ maquinaId: String(f.maquina_id), nombre: String(f.nombre ?? ""), cuentaId: String(f.cuenta_id), medio, porDefecto: f.por_defecto === true }];
+  });
+}
+
+/** Las máquinas que cobran con ese medio en esta tienda (vacío para efectivo, Yape, Plin y transferencia). */
+export function maquinasPara(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): MaquinaDeCobro[] {
+  return METODOS_CON_MAQUINA.includes(metodo) ? maquinas.filter((m) => m.medio === metodo) : [];
+}
+
+/** La hoja pregunta con cuál máquina solo donde hay DOS o más para ese medio (Felipe 2026-10-05: Lima no pregunta). */
+export function preguntaMaquina(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): boolean {
+  return maquinasPara(maquinas, metodo).length >= 2;
+}
+
+/** La cuenta que lleva un pago recién tocado: la máquina por defecto de la tienda para ese medio; si ninguna está marcada
+ *  como tal, la única que hay; sin máquinas (o con otro medio), nada: la base decide sola, como antes. */
+export function cuentaPorDefecto(maquinas: readonly MaquinaDeCobro[], metodo: MetodoPagoVenta): string | undefined {
+  const opciones = maquinasPara(maquinas, metodo);
+  return (opciones.find((m) => m.porDefecto) ?? (opciones.length === 1 ? opciones[0] : undefined))?.cuentaId;
+}
+
+/** Un pago nuevo con su máquina puesta (si el medio la tiene). */
+export function pagoNuevo(metodo: MetodoPagoVenta, monto: number, maquinas: readonly MaquinaDeCobro[]): PagoAplicado {
+  const cuentaId = cuentaPorDefecto(maquinas, metodo);
+  return cuentaId ? { metodo, monto, cuentaId } : { metodo, monto };
+}
+
+/** El nombre de la máquina de un pago («Vendemás»), para la pista «Cobra en Vendemás y confirma». Sin máquina, null. */
+export function nombreMaquina(maquinas: readonly MaquinaDeCobro[], pago: Pick<PagoAplicado, "metodo" | "cuentaId">): string | null {
+  return maquinasPara(maquinas, pago.metodo).find((m) => m.cuentaId === pago.cuentaId)?.nombre ?? null;
+}
 
 /** El nº de operación tal como se guarda: sin espacios, solo letras y dígitos, hasta 40. Vacío = no se anotó. */
 export function limpiarOperacion(texto: string): string {
@@ -187,7 +242,7 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number, redo
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
  *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
-export type PagoParaRpc = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string };
+export type PagoParaRpc = { metodo: MetodoPagoVenta | "redondeo"; monto: number; recibido?: number; referencia?: string; cuenta_id?: string };
 
 export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false): PagoParaRpc[] {
   // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila de redondeo: la suma de todo
@@ -195,8 +250,11 @@ export function pagosParaRpc(pagos: readonly PagoAplicado[], redondear = false):
   const { pagos: cobrados, redondeo } = pagosCobrados(pagos, redondear);
   const filas = cobrados
     .filter((p) => p.monto > 0)
-    .map(({ metodo, monto, recibido, referencia }): PagoParaRpc => {
+    .map(({ metodo, monto, recibido, referencia, cuentaId }): PagoParaRpc => {
       if (metodo === "efectivo") return recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto };
+      // La máquina que cobró (ADR-0429) viaja solo con tarjeta o QR y solo si la hoja la puso. Una base anterior a 20261016182000
+      // ignora la clave (lee el pago clave por clave): la venta se registra igual.
+      if (METODOS_CON_MAQUINA.includes(metodo)) return cuentaId ? { metodo, monto, cuenta_id: cuentaId } : { metodo, monto };
       // El nº de operación viaja solo si se anotó. Una base que todavía no tiene `venta_pagos.referencia` lo ignora (lee
       // el pago clave por clave): la venta se registra igual.
       const operacion = METODOS_CON_OPERACION.includes(metodo) ? limpiarOperacion(referencia ?? "") : "";
@@ -268,7 +326,7 @@ export function motivoBloqueoCobro(v: {
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
   // Un ticket que no cobra nada (solo la bolsa de obsequio, a S/ 0.00) no se puede cobrar ni emitir: la base rechaza una venta en S/ 0
   // entera. Se dice aquí, con la causa, en vez de dejar «Elige cómo pagó el cliente» para un total que no tiene qué pagar.
-  if (v.total <= 0) return "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+  if (v.total <= 0) return "El ticket está en S/\u00a00.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
@@ -279,11 +337,11 @@ export function motivoBloqueoCobro(v: {
   // Con el redondeo, un efectivo de menos de S/ 0.10 (p. ej. los 0.07 que sobran tras un Yape) no se puede entregar: no hay moneda. Se
   // cobra con otro medio; regalar el monto de otro medio no es redondear.
   const efectivo = v.redondeoEfectivo ? v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0) : undefined;
-  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/\u00a0${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
   // Un vuelto de más de S/ 500 es un billete mal escrito (la base tampoco lo acepta, `venta_pagos_recibido_con_tope`).
   const conRecibido = v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0 && p.recibido !== undefined);
   if (conRecibido && vueltoDe(conRecibido, !!v.redondeoEfectivo) > TOPE_VUELTO) {
-    return `El vuelto pasa de S/ ${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
+    return `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
   }
   if (v.sinComprobante) return "Elige el comprobante.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";
@@ -322,23 +380,29 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
   return (precioC - finalC) / 100;
 }
 
-/** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio o en soles por prenda. */
+/** Cómo la colaboradora le dice la cantidad al apartado «Descuento»: en % del precio de cada prenda, o en soles del total de
+ *  lo elegido. */
 export type ModoDescuento = "porcentaje" | "monto";
 
-/** El descuento por unidad que pide el apartado para una línea de ese precio, sea cual sea el modo: en % sale de
- *  `descuentoUnitarioPorPorcentaje` (con el precio sin céntimos sueltos) y en S/ es el monto tal cual, recortado al precio. */
-export function descuentoPedido(modo: ModoDescuento, valor: number, precioUnitario: number): number {
-  return modo === "monto" ? descuentoUnitarioPorMonto(precioUnitario, valor) : descuentoUnitarioPorPorcentaje(precioUnitario, valor);
-}
+/** Lo mínimo de una línea para saber cuánto le toca de un descuento: su clave, su precio y cuántas unidades son. */
+type LineaParaDescuento = { claveLinea: string; precioUnitario: number; cantidad: number };
 
-/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
- *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
- *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo.
- *  Es lo que la colaboradora escribió, al céntimo: un monto no se redondea (ADR-0403), porque quien lo escribe ya
- *  decidió cuánto quiere descontar. */
-export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
-  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
-  return redondear2(Math.min(montoUnitario, precioUnitario));
+/** El descuento por unidad que pide el apartado para cada línea alcanzada (clave de la línea → soles por unidad).
+ *  - En %: el de cada línea sale de su precio (`descuentoUnitarioPorPorcentaje`, sin céntimos sueltos).
+ *  - En S/: el monto es para TODO lo elegido, no para cada prenda (Felipe, 2026-10-24). Antes era «por prenda»: S/ 100 sobre un
+ *    ticket de S/ 139 con dos prendas de menos de S/ 100 dejaba las dos en S/ 0 y la venta no se podía cobrar. Ahora se reparte
+ *    entre las líneas en proporción a su precio, por unidad y al céntimo, con la MISMA regla que el cupón del Club
+ *    (`repartirVale`): nunca más que el precio de una prenda ni que el total de lo elegido, y la suma es exacta salvo cuando el
+ *    resto no se puede partir por unidades (se queda corta por céntimos, nunca se pasa). Con una sola prenda es el monto tal
+ *    cual, recortado a su precio. Lo que se escribe no se redondea al S/ 0.10 (ADR-0403): quien lo escribe ya decidió cuánto. */
+export function descuentosPedidos(modo: ModoDescuento, valor: number, lineas: readonly LineaParaDescuento[]): Map<string, number> {
+  if (modo === "porcentaje") return new Map(lineas.map((l) => [l.claveLinea, descuentoUnitarioPorPorcentaje(l.precioUnitario, valor)]));
+  if (!Number.isFinite(valor) || valor <= 0) return new Map(lineas.map((l) => [l.claveLinea, 0]));
+  const partes = repartirVale(
+    lineas.map((l) => ({ precioUnitario: l.precioUnitario, descuentoUnitario: 0, cantidad: l.cantidad })),
+    valor,
+  );
+  return new Map(lineas.map((l, i) => [l.claveLinea, partes[i]!]));
 }
 
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
@@ -409,6 +473,8 @@ type LineaDescontable = {
   razonDescuentoOtro: string;
   argumentoDescuento: string;
   campana?: CampanaLinea | null;
+  /** Una pieza de liquidación tiene precio final: ningún descuento del ticket la toca (ADR-0379). */
+  liquidacion?: { codigo: string } | null;
 };
 
 /** ¿El descuento que lleva esta línea es el de su campaña (no uno puesto a mano)? */
@@ -466,11 +532,22 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
   });
 }
 
-function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: string[], detalle: DetalleDescuento, montoPara: (l: L) => number): L[] {
-  const alcanza = (l: L) => claves.length === 0 || claves.includes(l.claveLinea);
+/** ¿El descuento del apartado alcanza a esta línea? Las de `claves` (o todas, si viene vacío: «todo el ticket»), menos las
+ *  piezas de liquidación (ADR-0379). */
+export function entraAlDescuento(l: { claveLinea: string; liquidacion?: { codigo: string } | null }, claves: readonly string[] | null): boolean {
+  return !l.liquidacion && (claves === null || claves.length === 0 || claves.includes(l.claveLinea));
+}
+
+function aplicarConMonto<L extends LineaDescontable>(
+  carrito: L[],
+  claves: string[],
+  detalle: DetalleDescuento,
+  montosPara: (alcanzadas: L[]) => Map<string, number>,
+): L[] {
+  const pedidos = montosPara(carrito.filter((l) => entraAlDescuento(l, claves)));
   return carrito.map((l) => {
-    if (!alcanza(l)) return l;
-    const { monto, prevaleceCampana } = descuentoResultante(l, montoPara(l));
+    if (!entraAlDescuento(l, claves)) return l;
+    const { monto, prevaleceCampana } = descuentoResultante(l, pedidos.get(l.claveLinea) ?? 0);
     if (prevaleceCampana) return conDescuentoDeCampana(l);
     return {
       ...l,
@@ -486,14 +563,21 @@ function aplicarConMonto<L extends LineaDescontable>(carrito: L[], claves: strin
  *  `claves` viene vacío ("todo el ticket"). Las que no entran quedan como estaban. Para
  *  quitar un descuento: `aplicarDescuento(carrito, 0, claves, SIN_DETALLE_DESCUENTO)`. */
 export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porcentaje: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
+  return aplicarConMonto(carrito, claves, detalle, (ls) => new Map(ls.map((l) => [l.claveLinea, descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje)])));
 }
 
-/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
- *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos).
- *  Vuelve el 2026-10-14 (Felipe) tras haberse quitado el 2026-09-25. */
-export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
+/** Lo mismo que `aplicarDescuento`, pero con un monto en soles para TODO lo alcanzado, repartido entre las prendas según su
+ *  precio (`descuentosPedidos`) — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos).
+ *  Vuelve el 2026-10-14 (Felipe) tras haberse quitado el 2026-09-25; desde el 2026-10-24 el monto es del total, no por prenda.
+ *  Una línea cuya campaña da igual o más que su parte se queda con la campaña (un solo descuento por prenda, el mayor), y su
+ *  parte no pasa a las demás. */
+export function aplicarDescuentoMonto<L extends LineaDescontable & { cantidad: number }>(
+  carrito: L[],
+  monto: number,
+  claves: string[],
+  detalle: DetalleDescuento,
+): L[] {
+  return aplicarConMonto(carrito, claves, detalle, (ls) => descuentosPedidos("monto", monto, ls));
 }
 
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado

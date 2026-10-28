@@ -57,3 +57,10 @@ ronda 4 le dio a la cabecera. Toca a todo «+ …» dibujado por `<Boton>` (mide
 
 `<Download` fuera de la pieza (un botón a mano o solo el ícono) y «Exportar» como texto de un botón, un ítem de menú o una etiqueta.
 Excepciones: ninguna.
+
+## Actualización 2026-10-26 — la cabecera del Plan de campaña
+
+Felipe pidió que, en la cabecera del Plan de campaña, «Descargar la lista» sea **solo el ícono, con su nombre al pasar el mouse**: ahí ya hay
+otros dos íconos de 40 px (el Resumen y los avisos) y el texto largo empujaba la fila. Se resolvió **dentro de la misma pieza**:
+`<BotonDescargar soloIcono>` (40 px, el texto de `children` es su nombre en el globito y para el lector de pantalla). Es una excepción de ese
+lugar, no la forma de la pieza: en cualquier otro lugar sigue siendo «Descargar» + qué.

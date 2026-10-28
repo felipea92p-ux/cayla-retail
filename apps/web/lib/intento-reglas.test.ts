@@ -91,9 +91,9 @@ describe("el cobro en curso de Vender", () => {
   });
   it("el aviso dice lo que pasó, con el comprobante si lo hay", () => {
     const cobro = c("a", "x");
-    expect(avisoDeResolucion({ tipo: "no_llego" }, cobro)).toMatchObject({ tono: "info", titulo: "El cobro de S/ 149.90 no se registró" });
+    expect(avisoDeResolucion({ tipo: "no_llego" }, cobro)).toMatchObject({ tono: "info", titulo: "El cobro de S/\u00a0149.90 no se registró" });
     const hecho = avisoDeResolucion({ tipo: "hecho", datos: { total: 149.9, comprobante: { tipo: "boleta", serie: "B001", numero: 2 } } }, cobro);
-    expect(hecho).toMatchObject({ tono: "exito", titulo: "Tu venta de S/ 149.90 sí se registró" });
+    expect(hecho).toMatchObject({ tono: "exito", titulo: "Tu venta de S/\u00a0149.90 sí se registró" });
     expect(hecho.detalle).toContain("Boleta B001-2");
   });
 });
@@ -147,7 +147,8 @@ describe("la lista de operaciones es la de la base", () => {
     // texto nuevo y no el viejo.
     const sumadas = TODAS.slice(i + 1).flatMap((m) =>
       [...m.matchAll(/pg_temp\.reemplazar\('retail\.fn_resolver_intento\(text, uuid\)',\s*\$v\$([^$]*)\$v\$,\s*\$n\$([^$]*)\$n\$/g)]
-        .filter(([, viejo]) => viejo.includes("'separar_pedido_para_apartar'"))
+        // La plata anotada (ADR-0480, 20261022235000) ancla en la última línea de la lista, la que termina en `…') then`.
+        .filter(([, viejo]) => viejo.includes("'separar_pedido_para_apartar'") || viejo.includes("'enviar_pedido_a_otra_sede') then"))
         .flatMap(([, viejo, nuevo]) => (nuevo.match(/'([a-z_]+)'/g) ?? []).map((x) => x.slice(1, -1)).filter((op) => !viejo.includes(`'${op}'`))),
     );
     expect([...new Set([...delResolver, ...sumadas])].sort()).toEqual([...OPERACIONES_CON_MARCA].sort());

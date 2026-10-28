@@ -43,7 +43,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
       <div className="space-y-6">
         {cabecera("¿Está fresco el piso de CAYLA?")}
         <section className="card-cayla px-4 py-5 sm:px-5">
-          <Vacio tamano="chico" alinear="izquierda" icono={<Store strokeWidth={1.5} />}>
+          <Vacio tamano="chico" alinear="izquierda" icono={<Store />}>
             Por ahora, la frescura de las tres tiendas juntas la lee el líder. Para ver una tienda, elígela en el selector de arriba.
           </Vacio>
         </section>
@@ -102,7 +102,7 @@ export function FrescuraRed({ red }: { red: DatosRed }) {
                 {/* Un <a> simple: abrir la ruta cambia la tienda del selector, nunca se pide por adelantado. */}
                 <a href={enlaceATienda(t.id)} className="btn-cayla btn-enlace inline-flex min-h-6 items-center gap-0.5 text-[14.5px] font-semibold">
                   {t.nombre}
-                  <ChevronRight aria-hidden strokeWidth={1.8} className="h-3.5 w-3.5" />
+                  <ChevronRight aria-hidden className="h-3.5 w-3.5" />
                 </a>
                 {t.principal && <span className="text-[12.5px] font-normal tabular-nums text-taupe"> · {unidades(t.principal.total)}</span>}
               </span>

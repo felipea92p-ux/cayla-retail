@@ -5,8 +5,6 @@ import {
   alternarModulo,
   avisoDelRol,
   cambiosDelBorrador,
-  familiaDeRol,
-  menuConCambios,
   controlDe,
   cuentasAsignables,
   esMiRolSinSerLider,
@@ -91,7 +89,7 @@ describe("controles del editor", () => {
   });
 
   it("hoy todo módulo sale con interruptor (Felipe, 2026-09-22: se abrieron los 7 que tenían candado); el candado sigue para uno que nazca así", () => {
-    for (const clave of ["roles", "colaboradores", "analisis", "etiquetas", "facturas_compra", "por_pagar", "notas_credito", "caja"] as const) {
+    for (const clave of ["roles", "colaboradores", "analisis", "etiquetas", "facturas_compra", "por_pagar", "caja"] as const) {
       expect(controlDe(INTEGRANTE, modulo(clave)), clave).toEqual({ tipo: "interruptor", editable: true });
     }
     expect(controlDe(INTEGRANTE, { ...modulo("caja"), soloLider: true })).toEqual({ tipo: "candado", texto: "Solo líder" });
@@ -118,7 +116,7 @@ describe("controles del editor", () => {
   it("los módulos se agrupan como en el spike", () => {
     // General nació el 2026-09-25 con Inicio (20260925220000): va primero, por su `orden` (5). Finanzas nació el
     // 2026-09-24 con Gastos (ADR-0195 F2): va al final, por su `orden` (250).
-    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["General", "Ventas", "Clientes", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
+    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["General", "Ventas", "Tienda web", "Clientes", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
   });
 });
 
@@ -247,12 +245,6 @@ describe("P6 · Colaboradores y Roles y accesos, solo para personas", () => {
 });
 
 describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
-  it("agrupa los roles en sistema, terminal y a medida", () => {
-    expect(familiaDeRol(LIDER)).toBe("sistema");
-    expect(familiaDeRol(INTEGRANTE)).toBe("sistema");
-    expect(familiaDeRol(rol({ clave: "terminal_ventas", esSistema: true }))).toBe("terminal");
-    expect(familiaDeRol(rol())).toBe("a_medida");
-  });
   it("avisa «Sin módulos» y «Sin uso», nunca del Líder ni de un archivado", () => {
     expect(avisoDelRol(rol(), 16)).toBe("sin_modulos");
     expect(avisoDelRol(rol(), 0)).toBe("sin_uso");
@@ -271,14 +263,6 @@ describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
     expect(r).toContain("existencias");
     expect(r.filter((c) => !compras.includes(c))).toEqual(["existencias"]);
     expect(alternarGrupo(r, "Compras", false)).toEqual(["existencias"]);
-  });
-  it("la vista previa marca lo que se suma y lo que se quita", () => {
-    const guardado = rol({ modulos: ["vender"] });
-    const menu = menuConCambios(guardado, ["existencias"]);
-    const cambios = menu.flatMap((f) => [[f.etiqueta, f.cambio], ...f.hijas.map((h) => [`${f.etiqueta}/${h.etiqueta}`, h.cambio])]);
-    expect(cambios.some(([, c]) => c === "suma")).toBe(true);
-    expect(cambios.some(([, c]) => c === "quita")).toBe(true);
-    expect(menuConCambios(guardado, ["vender"]).every((f) => f.cambio === "igual" && f.hijas.every((h) => h.cambio === "igual"))).toBe(true);
   });
 });
 

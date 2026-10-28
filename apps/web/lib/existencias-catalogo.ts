@@ -27,7 +27,7 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     (desde, hasta) =>
       supabase
         .from("productos")
-        .select("id, referencia, descripcion, estado, estado_alta, es_prueba, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id )")
+        .select("id, referencia, descripcion, estado, estado_alta, es_prueba, empresa_id, marca:marcas ( nombre ), categoria:categorias ( nombre, familia ), variantes ( id )")
         .eq("variantes.activo", true)
         .limit(1, { referencedTable: "variantes" })
         .order("id")
@@ -48,6 +48,7 @@ export async function getCatalogoParaExistencias(): Promise<{ productos: Product
     estadoAlta: p.estado_alta,
     esPrueba: p.es_prueba,
     conVariantesActivas: (p.variantes ?? []).length > 0,
+    empresaId: p.empresa_id,
   }));
   return { productos, fallo };
 }

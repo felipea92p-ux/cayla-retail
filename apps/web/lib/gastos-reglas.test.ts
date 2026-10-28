@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  prefijoALaFecha,
   borradorDesdeFijo,
   estadoGasto,
   igvDeFactura,
@@ -24,6 +25,14 @@ import {
   totalesActivos,
   validarActivo,
   validarFijo,
+  leerFijoMes,
+  AYUDA_MOMENTO_FIJO,
+  MOMENTOS_FIJO,
+  TEXTO_MOMENTO_FIJO,
+  textoCuandoVence,
+  textoDiasAntes,
+  textoPagarDesde,
+  textoColumnaCuando,
   validarGasto,
   leerGasto,
   papelDelGasto,
@@ -96,6 +105,10 @@ describe("«Ver»: qué mira la pantalla", () => {
   });
   it("quien no es líder ve solo su tienda, aunque la URL pida otra cosa", () => {
     expect(leerVer("empresa", [ubics[0]!], false, "lim")).toEqual({ clave: "tru", ubicacionId: "tru", soloEmpresa: false });
+  });
+  it("«Por pagar» y «Egresos sin clasificar» son de hoy: con otro mes, la bajada lo dice", () => {
+    expect(prefijoALaFecha("2026-10", "2026-10-22")).toBe("");
+    expect(prefijoALaFecha("2026-09", "2026-10-22")).toBe("A hoy · ");
   });
 });
 
@@ -185,7 +198,7 @@ describe("estado, anular y cómo se pagó", () => {
   });
 
   it("formatos del spike: cifras redondas y «23 sep»", () => {
-    expect(solesRedondo(5472.4)).toBe("S/ 5,472");
+    expect(solesRedondo(5472.4)).toBe("S/\u00a05,472");
     expect(fechaCorta("2026-09-03")).toBe("3 sep");
     expect(fechaCorta("2026-09-23", true)).toBe("23 sep 2026");
   });
@@ -316,7 +329,8 @@ describe("F2b: gastos fijos", () => {
   const fijo = {
     id: "f1", ubicacionId: "tru", ubicacionNombre: "Tienda Trujillo", categoria: "servicios_basicos", categoriaNombre: "Servicios básicos",
     descripcion: "Luz", proveedorId: "p1", proveedorNombre: "Hidrandina", comprobanteTipo: "boleta" as const, monto: 180, montoVariable: true,
-    diaDelMes: 10, fechaEsperada: "2026-09-10", estado: "falta" as const, gastoId: null, gastoMonto: null,
+    diaDelMes: 10, momento: "dia" as const, fechaEsperada: "2026-09-10", estado: "falta" as const, gastoId: null, gastoMonto: null,
+    diasAntes: 0, fechaPago: "2026-09-10", tocaPagar: false,
   };
   it("un gasto que nace de un fijo trae su tienda, categoría, proveedor y comprobante; si el monto varía, no lo inventa", () => {
     expect(borradorDesdeFijo(fijo, HOY)).toEqual({ gastoFijoId: "f1", ubicacion: "tru", categoria: "servicios_basicos", descripcion: "Luz", comprobante: "boleta", proveedorId: "p1", monto: "", fecha: "2026-09-10" });
@@ -333,11 +347,73 @@ describe("F2b: gastos fijos", () => {
     expect(resumenFijos([fijo, vienen, listo])).toEqual({ faltan: 1, vienen: 1, registrados: 1, montoPendiente: 2680 });
   });
   it("el día va del 1 al 28 y el monto es obligatorio", () => {
-    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1" };
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1", momento: "dia" as const, diasAntes: null };
     expect(validarFijo(b).ok && validarFijo(b)).toMatchObject({ valor: { p_ubicacion_id: "tru", p_proveedor_id: null, p_dia_del_mes: 1, p_monto: 2500 } });
     expect(validarFijo({ ...b, dia: "31" }).ok).toBe(false);
     expect(validarFijo({ ...b, monto: "" }).ok).toBe(false);
     expect(validarFijo({ ...b, ubicacion: "empresa" }).ok && validarFijo({ ...b, ubicacion: "empresa" })).toMatchObject({ valor: { p_ubicacion_id: null } });
+  });
+  it("cuándo vence (ADR-0440, ADR-0487): un día fijo no manda p_momento; los otros tres mandan su momento y su día de respaldo", () => {
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "", momento: "dia" as const, diasAntes: null };
+    expect(validarFijo(b).ok).toBe(false); // «un día fijo» sin día
+    const conDia = validarFijo({ ...b, dia: "12" });
+    expect(conDia.ok && "p_momento" in conDia.valor).toBe(false);
+    for (const [momento, dia] of [["primera_semana", 7], ["quincena", 15], ["fin_de_mes", 28]] as const) {
+      // el día escrito antes de cambiar de opción se ignora
+      expect(validarFijo({ ...b, momento, dia: "3" })).toMatchObject({ ok: true, valor: { p_momento: momento, p_dia_del_mes: dia } });
+    }
+    expect(validarFijo({ ...b, dia: "31" })).toMatchObject({ ok: false, error: expect.stringContaining("A fin de mes") });
+  });
+  it("cada momento tiene su texto y su ayuda", () => {
+    for (const m of MOMENTOS_FIJO) expect(TEXTO_MOMENTO_FIJO[m]).toBeTruthy();
+    for (const m of MOMENTOS_FIJO) expect(AYUDA_MOMENTO_FIJO[m]).toMatch(/vence|Vence/);
+    expect(AYUDA_MOMENTO_FIJO.fin_de_mes).toContain("28, 29, 30 o 31");
+    expect(AYUDA_MOMENTO_FIJO.quincena).toContain("no si no sabes el día");
+  });
+  it("lee el momento de la base y, sin la columna o con un valor raro, cuenta como un día fijo", () => {
+    const fila = { id: "f1", categoria: "alquileres", categoria_nombre: "Alquileres", descripcion: "Alquiler", comprobante_tipo: "factura", monto: "2500", dia_del_mes: 28, fecha_esperada: "2026-09-30", estado: "por_llegar" };
+    expect(leerFijoMes({ ...fila, momento: "fin_de_mes" }).momento).toBe("fin_de_mes");
+    expect(leerFijoMes(fila).momento).toBe("dia");
+    expect(leerFijoMes({ ...fila, momento: "el_30" }).momento).toBe("dia");
+  });
+  it("dice cuándo vence con palabras de tienda", () => {
+    expect(textoCuandoVence("dia", 10)).toBe("el día 10");
+    expect(textoCuandoVence("primera_semana", 7)).toBe("la primera semana");
+    expect(textoCuandoVence("quincena", 15)).toBe("la quincena");
+    expect(textoCuandoVence("fin_de_mes", 28)).toBe("a fin de mes");
+    expect(textoColumnaCuando("dia", 10)).toBe("10");
+    expect(textoColumnaCuando("fin_de_mes", 28)).toBe("Fin de mes");
+  });
+  it("pagar antes (ADR-0487): sin la columna en la base no se manda; con ella siempre va explícito, también el 0", () => {
+    const b = { ubicacion: "tru", categoria: "luz", descripcion: "Luz", proveedorId: "", comprobante: "boleta" as const, monto: "180", variable: true, dia: "12", momento: "dia" as const };
+    const sin = validarFijo({ ...b, diasAntes: null });
+    expect(sin.ok && "p_dias_antes" in sin.valor).toBe(false);
+    expect(validarFijo({ ...b, diasAntes: "3" })).toMatchObject({ ok: true, valor: { p_dias_antes: 3 } });
+    expect(validarFijo({ ...b, diasAntes: "0" })).toMatchObject({ ok: true, valor: { p_dias_antes: 0 } });
+    expect(validarFijo({ ...b, diasAntes: "  " })).toMatchObject({ ok: true, valor: { p_dias_antes: 0 } }); // vacío = el mismo día
+    expect(validarFijo({ ...b, diasAntes: "30" })).toMatchObject({ ok: true, valor: { p_dias_antes: 30 } });
+  });
+  it("pagar antes: más de 30, negativo o con decimales se rechaza con su razón (el mismo tope que la base)", () => {
+    const b = { ubicacion: "tru", categoria: "luz", descripcion: "Luz", proveedorId: "", comprobante: "boleta" as const, monto: "180", variable: true, dia: "12", momento: "dia" as const };
+    for (const malo of ["31", "45", "-1", "2.5", "tres"]) expect(validarFijo({ ...b, diasAntes: malo }), malo).toMatchObject({ ok: false, error: expect.stringContaining("de 0 a 30") });
+  });
+  it("dice cuánto antes se paga y desde cuándo, sin hacer la cuenta a la persona", () => {
+    expect(textoDiasAntes(0)).toBe("el mismo día");
+    expect(textoDiasAntes(1)).toBe("1 día antes");
+    expect(textoDiasAntes(3)).toBe("3 días antes");
+    expect(textoPagarDesde("dia", 15, 3)).toBe("desde el día 12");
+    expect(textoPagarDesde("quincena", 15, 3)).toBe("desde el día 12");
+    expect(textoPagarDesde("primera_semana", 7, 3)).toBe("desde el día 4");
+    expect(textoPagarDesde("fin_de_mes", 28, 3)).toBe("3 días antes de fin de mes");
+    expect(textoPagarDesde("dia", 2, 5)).toBe("desde fines del mes anterior");
+    expect(textoPagarDesde("dia", 15, 0)).toBeNull();
+    expect(textoPagarDesde("dia", Number.NaN, 3)).toBeNull(); // «un día fijo» todavía sin día escrito
+  });
+  it("lee «pagar antes» de la base y, sin la columna, queda en null (el campo no se pide)", () => {
+    const fila = { id: "f1", categoria: "luz", categoria_nombre: "Luz", descripcion: "Luz", comprobante_tipo: "boleta", monto: "180", dia_del_mes: 15, momento: "quincena", fecha_esperada: "2026-10-15", estado: "por_llegar" };
+    expect(leerFijoMes(fila)).toMatchObject({ diasAntes: null, fechaPago: null, tocaPagar: false });
+    expect(leerFijoMes({ ...fila, dias_antes: 3, fecha_pago: "2026-10-12", toca_pagar: true })).toMatchObject({ diasAntes: 3, fechaPago: "2026-10-12", tocaPagar: true });
+    expect(leerFijoMes({ ...fila, dias_antes: 0, fecha_pago: "2026-10-15", toca_pagar: false })).toMatchObject({ diasAntes: 0, tocaPagar: false });
   });
 });
 
@@ -373,9 +449,9 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     expect(igvDelGasto(g!)).toEqual({ descontable: 0, perdido: 360 });
   });
   it("la fila, en dos renglones: el IGV de la factura como siempre y, debajo, lo perdido (sin ambigüedad: «¿180 era todo el IGV?»)", () => {
-    expect(igvBajoElMonto(gasto(360))).toEqual({ igv: "IGV S/ 360.00", perdido: null });
-    expect(igvBajoElMonto(hotel!)).toEqual({ igv: "IGV S/ 360.00", perdido: "perdido S/ 360.00" });
-    expect(igvBajoElMonto(alquiler!)).toEqual({ igv: "IGV S/ 360.00", perdido: "perdido S/ 180.00" });
+    expect(igvBajoElMonto(gasto(360))).toEqual({ igv: "IGV S/\u00a0360.00", perdido: null });
+    expect(igvBajoElMonto(hotel!)).toEqual({ igv: "IGV S/\u00a0360.00", perdido: "perdido S/\u00a0360.00" });
+    expect(igvBajoElMonto(alquiler!)).toEqual({ igv: "IGV S/\u00a0360.00", perdido: "perdido S/\u00a0180.00" });
     expect(igvBajoElMonto(gasto(0, 50))).toBe(null);
   });
   it("cada renglón de la fila es corto (no ensancha la columna Monto como «IGV S/ 180.00 · perdido S/ 180.00»)", () => {
@@ -390,36 +466,36 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     }
   });
   it("el detalle dice cuánto, cómo y cuándo: el hotel pagado en efectivo el 14 oct", () => {
-    expect(textoIgvPerdido(hotel!)).toBe("S/ 360.00 · se pagó en efectivo el 14 oct");
+    expect(textoIgvPerdido(hotel!)).toBe("S/\u00a0360.00 · se pagó en efectivo el 14 oct");
     const [fondo] = conIgvPerdido([gasto(360)], [pago("hotel", "2026-10-14", 360, 2360, "fondo")]);
-    expect(textoIgvPerdido(fondo!)).toBe("S/ 360.00 · se pagó desde un fondo el 14 oct");
+    expect(textoIgvPerdido(fondo!)).toBe("S/\u00a0360.00 · se pagó desde un fondo el 14 oct");
     expect(textoIgvPerdido(gasto(360))).toBe(null);
   });
   it("el detalle de una factura pagada en partes separa los dos montos con palabras («del pago de»), o dice cuántos pagos y cuándo", () => {
-    expect(textoIgvPerdido(alquiler!)).toBe("S/ 180.00 · del pago de S/ 1,180.00 en efectivo (12 oct)");
+    expect(textoIgvPerdido(alquiler!)).toBe("S/\u00a0180.00 · del pago de S/\u00a01,180.00 en efectivo (12 oct)");
     const [dos] = conIgvPerdido([gasto(360)], [pago("hotel", "2026-10-14", 120, 786.67), pago("hotel", "2026-10-03", 120, 786.67, "fondo")]);
-    expect(textoIgvPerdido(dos!)).toBe("S/ 240.00 · de 2 pagos sin banco (3 oct y 14 oct)");
+    expect(textoIgvPerdido(dos!)).toBe("S/\u00a0240.00 · de 2 pagos sin banco (3 oct y 14 oct)");
     const [tres] = conIgvPerdido([gasto(360)], ["2026-10-03", "2026-10-09", "2026-10-14"].map((f) => pago("hotel", f, 100, 655.56)));
-    expect(textoIgvPerdido(tres!)).toBe("S/ 300.00 · de 3 pagos en efectivo (3 oct, 9 oct y 14 oct)");
+    expect(textoIgvPerdido(tres!)).toBe("S/\u00a0300.00 · de 3 pagos en efectivo (3 oct, 9 oct y 14 oct)");
   });
   it("la fecha de un pago de otro año lleva su año", () => {
     const [g] = conIgvPerdido([gasto(360, 2360, "2026-12-20")], [pago("hotel", "2027-01-05", 360, 2360)]);
-    expect(textoIgvPerdido(g!)).toBe("S/ 360.00 · se pagó en efectivo el 5 ene 2027");
+    expect(textoIgvPerdido(g!)).toBe("S/\u00a0360.00 · se pagó en efectivo el 5 ene 2027");
   });
   it("la nota dice la factura, la regla y el mes del pago con la frase de Impuestos; el mes del último pago va al enlace", () => {
     expect(notaIgvPerdido(hotel!)).toEqual({
       texto:
-        "Esta factura es de S/ 2,360: desde S/ 2,000 se paga por el banco, y SUNAT no deja descontar el IGV de lo que se pagó en efectivo o desde un fondo. Ese IGV ya está restado de lo que descuentas en octubre.",
+        "Esta factura es de S/\u00a02,360: desde S/\u00a02,000 se paga por el banco, y SUNAT no deja descontar el IGV de lo que se pagó en efectivo o desde un fondo. Ese IGV ya está restado de lo que descuentas en octubre.",
       mes: "2026-10",
     });
     expect(UMBRAL_BANCARIZACION).toBe(2000);
     expect(notaIgvPerdido(gasto(360))).toBe(null);
   });
   it("la nota aclara que la regla mira la factura aunque el pago sin banco sea menor de S/ 2,000 (la prueba ciega pensó que no le tocaba)", () => {
-    expect(notaIgvPerdido(alquiler!)!.texto).toContain("en efectivo o desde un fondo, aunque ese pago sea de menos de S/ 2,000. Ese IGV");
+    expect(notaIgvPerdido(alquiler!)!.texto).toContain("en efectivo o desde un fondo, aunque ese pago sea de menos de S/\u00a02,000. Ese IGV");
     const [dos] = conIgvPerdido([gasto(360, 2360, "2026-09-20")], [pago("hotel", "2026-11-02", 120, 786.67), pago("hotel", "2026-10-05", 120, 786.67)]);
     const n = notaIgvPerdido(dos!)!;
-    expect(n.texto).toContain("aunque cada pago sea de menos de S/ 2,000. Ese IGV ya está restado de lo que descuentas en octubre y noviembre.");
+    expect(n.texto).toContain("aunque cada pago sea de menos de S/\u00a02,000. Ese IGV ya está restado de lo que descuentas en octubre y noviembre.");
     expect(n.mes).toBe("2026-11");
     const [diciembre] = conIgvPerdido([gasto(360, 2360, "2026-12-20")], [pago("hotel", "2027-01-05", 360, 2360)]);
     expect(notaIgvPerdido(diciembre!)!.texto).toMatch(/descuentas en enero de 2027\.$/);
@@ -442,32 +518,32 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     const p = leerPanel({ igv: "1600.00", boletas: 2, igv_perdido: { n: 1, igv: "360.00", de_otros_meses: 0 } });
     expect(p.igvDescontable).toBe(1240);
     expect(igvParaLaTarjeta(p)).toBe(1240);
-    expect(bajadaIgvDelMes(p)).toBe("Solo de facturas, menos S/ 360 que se pierde por pagar sin banco. 2 boletas sin IGV descontable.");
+    expect(bajadaIgvDelMes(p)).toBe("Solo de facturas, menos S/\u00a0360 que se pierde por pagar sin banco. 2 boletas sin IGV descontable.");
     const parte = leerPanel({ igv: 900, boletas: 0, igv_perdido: { n: 2, igv: 540, de_otros_meses: 180 } });
-    expect(bajadaIgvDelMes(parte)).toBe("Solo de facturas, menos S/ 540 que se pierde por pagar sin banco (S/ 180 de gastos de otros meses). 0 boletas sin IGV descontable.");
+    expect(bajadaIgvDelMes(parte)).toBe("Solo de facturas, menos S/\u00a0540 que se pierde por pagar sin banco (S/\u00a0180 de gastos de otros meses). 0 boletas sin IGV descontable.");
     const centimos = leerPanel({ igv: 50, boletas: 0, igv_perdido: { n: 1, igv: 0.4, de_otros_meses: 0 } });
-    expect(bajadaIgvDelMes(centimos)).toContain("menos S/ 0.40 que se pierde");
+    expect(bajadaIgvDelMes(centimos)).toContain("menos S/\u00a00.40 que se pierde");
   });
   it("la tarjeta nunca dice un negativo: si lo perdido pasa el IGV del mes, dice S/ 0 y que Impuestos resta lo que falta", () => {
     const pasa = leerPanel({ igv: 50, boletas: 1, igv_perdido: { n: 2, igv: 230, de_otros_meses: 180 } });
     expect(pasa.igvDescontable).toBe(-180);
     expect(igvParaLaTarjeta(pasa)).toBe(0);
-    expect(solesRedondo(igvParaLaTarjeta(pasa))).toBe("S/ 0");
+    expect(solesRedondo(igvParaLaTarjeta(pasa))).toBe("S/\u00a00");
     expect(bajadaIgvDelMes(pasa)).toBe(
-      "Se pierde S/ 230 por pagar sin banco (S/ 180 de gastos de otros meses), más que los S/ 50 de IGV de las facturas del mes: Impuestos resta los S/ 180 que faltan. 1 boleta sin IGV descontable.",
+      "Se pierde S/\u00a0230 por pagar sin banco (S/\u00a0180 de gastos de otros meses), más que los S/\u00a050 de IGV de las facturas del mes: Impuestos resta los S/\u00a0180 que faltan. 1 boleta sin IGV descontable.",
     );
     const sinFacturas = leerPanel({ igv: 0, boletas: 0, igv_perdido: { n: 1, igv: 180, de_otros_meses: 180 } });
     expect(igvParaLaTarjeta(sinFacturas)).toBe(0);
     expect(bajadaIgvDelMes(sinFacturas)).toBe(
-      "Las facturas del mes no traen IGV, y se pierde S/ 180 por pagar sin banco (de gastos de otros meses): Impuestos lo resta este mes. 0 boletas sin IGV descontable.",
+      "Las facturas del mes no traen IGV, y se pierde S/\u00a0180 por pagar sin banco (de gastos de otros meses): Impuestos lo resta este mes. 0 boletas sin IGV descontable.",
     );
   });
   it("la tarjeta nunca dice «S/ -0»: un IGV pagado en partes puede perder un céntimo de más al redondear cada pago", () => {
     const p = leerPanel({ igv: 360, boletas: 0, igv_perdido: { n: 3, igv: 360.01, de_otros_meses: 0 } });
     expect(p.igvDescontable).toBe(-0.01);
-    expect(solesRedondo(igvParaLaTarjeta(p))).toBe("S/ 0");
-    expect(solesRedondo(-0.3)).toBe("S/ 0");
-    expect(solesRedondo(-180)).toBe("S/ -180");
+    expect(solesRedondo(igvParaLaTarjeta(p))).toBe("S/\u00a00");
+    expect(solesRedondo(-0.3)).toBe("S/\u00a00");
+    expect(solesRedondo(-180)).toBe("S/\u00a0-180");
   });
   it("el mes del gasto dice cuando su tarjeta cuenta un IGV que se pierde por un pago de otro mes (la fila ya dice «perdido»)", () => {
     const [septiembre] = conIgvPerdido([gasto(360, 2360, "2026-09-20")], [pago("hotel", "2026-10-05", 180, 1180)]);
@@ -477,7 +553,7 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     expect(otro).toEqual({ igv: 180, meses: ["2026-10"] });
     const p = leerPanel({ igv: 720, boletas: 0, igv_perdido: { n: 1, igv: 360, de_otros_meses: 0 } });
     expect(bajadaIgvDelMes({ ...p, mes: "2026-09" }, otro)).toBe(
-      "Solo de facturas, menos S/ 360 que se pierde por pagar sin banco. Incluye S/ 180 que se pierde por un pago sin banco de octubre: Impuestos lo resta en ese mes. 0 boletas sin IGV descontable.",
+      "Solo de facturas, menos S/\u00a0360 que se pierde por pagar sin banco. Incluye S/\u00a0180 que se pierde por un pago sin banco de octubre: Impuestos lo resta en ese mes. 0 boletas sin IGV descontable.",
     );
     expect(perdidoEnOtroMes([mismoMes!], "2026-09")).toEqual({ igv: 0, meses: [] });
     const varios = perdidoEnOtroMes(
@@ -485,7 +561,19 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
       "2026-12",
     );
     expect(bajadaIgvDelMes({ ...leerPanel({ igv: 360, boletas: 0 }), mes: "2026-12" }, varios)).toContain(
-      "Incluye S/ 240 que se pierde por pagos sin banco de enero de 2027 y febrero de 2027: Impuestos lo resta en esos meses.",
+      "Incluye S/\u00a0240 que se pierde por pagos sin banco de enero de 2027 y febrero de 2027: Impuestos lo resta en esos meses.",
     );
+  });
+});
+
+// /chaos de Finanzas 2026-10-14 (ADR-0412): un gasto llega hasta S/ 1 000 000, el mismo tope de la base (`gastos_monto_con_tope`).
+describe("el monto de un gasto tiene tope", () => {
+  it("un millón entra; un sol más, no", () => {
+    expect(validarGasto({ ...base, monto: "1,000,000" }, HOY).ok).toBe(true);
+    const r = validarGasto({ ...base, monto: "1000000.01" }, HOY);
+    expect(r).toEqual({ ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." });
+  });
+  it("el 9 pegado de /chaos", () => {
+    expect(validarGasto({ ...base, monto: "99999999" }, HOY).ok).toBe(false);
   });
 });

@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bandage, PencilLine, Truck, Warehouse, Store } from "lucide-react";
+import { ArrowRight, Bandage, Truck, Warehouse, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
 import { IconoPercha } from "@/components/ui/IconoPercha";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -20,7 +21,6 @@ import { argumentosDeBajada, formatearHoraLima, interpretarErrorDeBajada, itemsP
 import { argumentosDeRetiro, interpretarErrorDeRetiro, leerRespuestaDeRetiro, MAX_NOTA_RETIRO, respuestaResuelveLaMarcaDeRetiro, RPC_RETIRO, textoDelBloqueSubir, textoMarcaSinResolverDeRetiro, tituloDeExitoRetiro } from "@/lib/retiro-reglas";
 import { RPC_SUBIR_PARA_ENVIAR } from "@/lib/para-enviar-reglas";
 import { argumentosDeReporte, cantidadAjustada, desdeInicial, interpretarErrorDeDanada, leerRespuestaDanada, MAX_TEXTO_DANADA, puedeEnviarReporte, quePasaAlReportar, recordatorioAlReportar, respuestaResuelveLaMarca as reporteResuelveLaMarca, RPC_REPORTAR_DANADA, tallasReportables, textoBotonReportar, tituloExitoReporte } from "@/lib/danadas-reglas";
-import { argumentosDeAjuste, faltantesDesdeJson } from "@/lib/ajuste-reglas";
 import { cantidadesDeLoQueFalta, coloresParaMover, detalleDeLoMovido, leerCantidadTecleada, lineasDeMoverModelo, tallasParaReponer, tallasQueFaltan, textoFilaSinAlcance } from "@/lib/reponer-prenda-reglas";
 import { celdaColgarVarias, celdaSubirVarias, llenarTodasCon, totalesColgar } from "@/lib/colgar-varias-tabla";
 import { lineasEnUrl, type PrendaAgrupada } from "@/lib/existencias-prendas";
@@ -34,12 +34,8 @@ import {
   faltanHasta,
   asiQueda,
   maxCantidad,
-  motivoParaLaBase,
-  motivoPideNotaFlujo,
-  motivosDeAjuste,
   pasoCompleto,
   pasosDe,
-  quedaTrasAjuste,
   resumenDeFlujo,
   textoHecho,
   totalVarias,
@@ -71,7 +67,6 @@ const ICONO_FINAL: Record<TipoFlujo, ComponentType<{ className?: string; strokeW
   subirVarias: Warehouse,
   enviar: Truck,
   pedir: ArrowRight,
-  ajustar: PencilLine,
   danada: Bandage,
 };
 
@@ -124,7 +119,7 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
   return (
     <div className={`rounded-2xl border px-3 py-2.5 text-center ${destino ? "border-verde/40 bg-verde/[0.08]" : "border-sand bg-crema"}`}>
       <p className="flex items-center justify-center gap-1.5 text-[12.5px] text-taupe">
-        <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.6} />
+        <Ico aria-hidden className="h-3.5 w-3.5" />
         {lado.lugar === "piso" ? "En el piso" : "Almacén"}
       </p>
       <b className={`block font-display text-[38px] font-medium leading-[1.05] tabular-nums ${destino ? "text-verde" : "text-tinta"}`}>{lado.despues}</b>
@@ -137,8 +132,8 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
 function NotaSubida({ valor, onValor }: { valor: string; onValor: (v: string) => void }) {
   return (
     <>
-      <label htmlFor="flujo-nota-subida" className="label-cayla mb-1.5 mt-4 block text-[11px] text-taupe">
-        Por qué la subes · opcional
+      <label htmlFor="flujo-nota-subida" className="campo-etiqueta mb-1.5 mt-4">
+        Por qué la subes <span className="font-normal normal-case text-tinta/45">· opcional</span>
       </label>
       <textarea
         id="flujo-nota-subida"
@@ -168,23 +163,21 @@ function CeldaSubir({ celda, n, etiqueta, fondo, onValor }: { celda: ReturnType<
     );
   return (
     <td className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
-      <span className="inline-flex items-center gap-px rounded-lg border border-transparent bg-hueso px-0.5 focus-within:border-taupe focus-within:bg-papel">
-        <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => onValor(n - 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-          −
-        </button>
-        <input
-          inputMode="numeric"
-          aria-label={`Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
-          value={n === 0 ? "" : n}
-          placeholder="0"
-          onFocus={(e) => e.currentTarget.select()}
-          onChange={(e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso)}
-          className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
-        />
-        <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.piso} onClick={() => onValor(n + 1, celda.piso)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-          +
-        </button>
-      </span>
+      <PasoCantidad
+        tamano="celda"
+        menos={{ onClick: () => onValor(n - 1, celda.piso), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+        mas={{ onClick: () => onValor(n + 1, celda.piso), deshabilitado: n >= celda.piso, etiqueta: `Una más de ${etiqueta}` }}
+        campo={{
+          inputMode: "numeric",
+          "aria-label": `Cuántas descuelgas de ${etiqueta}: hay ${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`,
+          value: n === 0 ? "" : n,
+          placeholder: "0",
+          onFocus: (e) => e.currentTarget.select(),
+          onChange: (e) => onValor(leerCantidadTecleada(e.target.value, celda.piso), celda.piso),
+          // Con algo elegido, el número va en verde.
+          className: n > 0 ? "text-verde" : "",
+        }}
+      />
       <small className="mt-1 block text-[10.5px] text-taupe">{celda.piso} colgada{celda.piso === 1 ? "" : "s"}</small>
       <small className="block text-[10.5px] text-taupe/75">{celda.almacen} en almacén</small>
     </td>
@@ -224,12 +217,9 @@ export function FlujoTalla({
   destinos,
   origenes,
   puedePedirParaCliente,
-  sububicacionPisoId,
-  sububicacionAlmacenId,
   onHecho,
   onSalir,
   onCambiar,
-  onAjustarCompleto,
   onCambios,
 }: {
   tipo: TipoFlujo;
@@ -248,17 +238,13 @@ export function FlujoTalla({
   destinos: readonly { id: string; nombre: string }[];
   origenes: readonly SedeConCantidad[];
   puedePedirParaCliente: boolean;
-  sububicacionPisoId: string | null;
-  sububicacionAlmacenId: string | null;
   /** Terminó bien: el panel vuelve a la talla con el aviso «hecho». */
   /** `cerrar`: lo hecho se confirmó con el aviso destacado y el panel entero se cierra (hoy, bajar al piso). */
   onHecho: (texto: string, opciones?: { cerrar?: boolean }) => void;
   /** Cancelar (o Escape): vuelve a la talla sin guardar. */
   onSalir: () => void;
-  /** Pasar a otra acción con lo que ya se eligió («Se dañó» en Ajustar lleva a Reportar dañada). */
+  /** Pasar a otra acción con lo que ya se eligió. */
   onCambiar: (tipo: TipoFlujo, datos: DatosFlujo) => void;
-  /** Abrir la ventana completa de Ajustar (una talla que faltó en un conteo se enlaza ahí). */
-  onAjustarCompleto: () => void;
   /** Avisa al panel si hay algo que perder: la persona cambió un dato o avanzó de paso, o hay un guardado en camino. */
   onCambios?: (sucio: boolean) => void;
 }) {
@@ -293,8 +279,6 @@ export function FlujoTalla({
   useEffect(() => {
     onCambios?.(sucio);
   }, [sucio, onCambios]);
-  // Una talla que faltó en un conteo cerrado: la suma se enlaza al conteo en la ventana completa (no se adivina aquí).
-  const [faltoEnConteo, setFaltoEnConteo] = useState(false);
   const enVuelo = useRef(false);
   const enviadoEn = useRef<string | null>(null);
   // La marca de cada intento: la misma mientras no cambie lo que se manda (la huella), nueva si cambia.
@@ -303,19 +287,6 @@ export function FlujoTalla({
     if (!intento.current || intento.current.huella !== huella) intento.current = { huella, token: crypto.randomUUID() };
     return intento.current.token;
   };
-
-  useEffect(() => {
-    if (tipo !== "ajustar") return;
-    let vigente = true;
-    createClient()
-      .rpc("fn_faltantes_de_conteo" as never, { p_ubicacion_id: ubicacionId, p_variante_ids: [fila.varianteId] } as never)
-      .then(({ data, error: e }) => {
-        if (vigente && !e) setFaltoEnConteo(faltantesDesdeJson(data).has(fila.varianteId));
-      });
-    return () => {
-      vigente = false;
-    };
-  }, [tipo, ubicacionId, fila.varianteId]);
 
   const almacenPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.almacenDisponible ?? 0)])));
   const pisoPorTalla = Object.fromEntries(colores.flatMap((c) => c.tallas.map((t) => [t.varianteId, Math.max(0, t.pisoDisponible ?? 0)])));
@@ -333,10 +304,9 @@ export function FlujoTalla({
   const pasos = pasosDe(tipo, d, ctx);
   const paso = pasos[Math.min(i, pasos.length - 1)];
   const ultimo = i >= pasos.length - 1;
-  const bloqueoConteo = tipo === "ajustar" && paso === "motivo" && d.signo === "sumar" && faltoEnConteo;
   // Con un envío en duda solo falta quién lo hace: se reenvía EXACTAMENTE lo enviado, aunque las cifras releídas ya no lo validen
   // (si se guardó, lo libre ya bajó; apagar el botón dejaría sin saber qué pasó). La misma regla que tenía «Reportar dañada».
-  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx) && !bloqueoConteo, responsable.listo);
+  const completo = puedeEnviarReporte(incierto, pasoCompleto(paso, tipo, d, ctx), responsable.listo);
   const nombreSede = (id: string | undefined) => [...destinos, ...origenes].find((s) => s.id === id)?.nombre ?? null;
   const nombreTalla = (varianteId: string) => {
     for (const c of colores) {
@@ -548,27 +518,6 @@ export function FlujoTalla({
           yaEstaba: () => false,
         };
       }
-      case "ajustar": {
-        if (!d.motivo) return null;
-        const base = motivoParaLaBase(d.motivo, d.nota ?? "");
-        const delta = d.signo === "sumar" ? n : -n;
-        const sububicacionId = separa ? (d.lugar === "almacen" ? sububicacionAlmacenId : sububicacionPisoId) : null;
-        return {
-          rpc: "ajustar_inventario",
-          args: argumentosDeAjuste({
-            ubicacionId,
-            sububicacionId,
-            ajustes: [{ variante: { varianteId: fila.varianteId }, delta }],
-            cargaInicial: [],
-            motivo: base.motivo,
-            alPiso: false,
-            nota: base.nota,
-            token: tokenPara(JSON.stringify(["ajustar", fila.varianteId, sububicacionId, delta, base])),
-          }),
-          error: (e) => traducirError(e, "ajustar el inventario"),
-          yaEstaba: (x) => typeof x === "object" && x !== null && (x as { ya_registrado?: boolean }).ya_registrado === true,
-        };
-      }
       case "danada": {
         const desde = d.lugar === "almacen" ? "almacen" : "piso";
         const motivo = (d.nota ?? "").trim();
@@ -650,7 +599,7 @@ export function FlujoTalla({
                   <LadoDelViaje lado={viaje.de} />
                   <span aria-hidden className="flex flex-col items-center gap-1 text-taupe">
                     <b className="rounded-full bg-tinta px-2.5 py-0.5 text-[13px] text-papel tabular-nums">{d.n ?? 0}</b>
-                    <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+                    <ArrowRight className="h-4 w-4" />
                   </span>
                   <LadoDelViaje lado={viaje.a} destino />
                 </div>
@@ -712,7 +661,7 @@ export function FlujoTalla({
                   poner({ cant: llenarTodasCon(todas, limpio === "" ? null : Number(limpio), subiendo ? "subir" : "bajar") });
                 }}
                 onFocus={(e) => e.currentTarget.select()}
-                className="h-9 w-14 rounded-[9px] border border-transparent bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
+                className="h-9 w-14 rounded-[9px] border border-borde-control bg-hueso text-center text-[15px] font-semibold tabular-nums text-tinta outline-none placeholder:text-tinta/30 focus:border-taupe focus:bg-papel"
               />
               {subiendo ? (
                 <button type="button" disabled={nColgado === 0} onClick={() => { setRelleno(""); poner({ cant: { ...todoLoColgado } }); }} title="Todo lo que está colgado de cada talla" className="btn-cayla btn-secundario btn-chico">
@@ -772,23 +721,23 @@ export function FlujoTalla({
                           const etiqueta = `${c.color ?? ""} ${nombre}`;
                           return (
                             <td key={nombre} className={`border-t border-sand px-1 py-2 text-center ${fondo}`}>
-                              <span className={`inline-flex items-center gap-px rounded-lg border px-0.5 focus-within:border-taupe focus-within:bg-papel ${celda.falta ? "border-ambar/40 bg-ambar/[0.14]" : "border-transparent bg-hueso"}`}>
-                                <button type="button" aria-label={`Una menos de ${etiqueta}`} disabled={n <= 0} onClick={() => poner1(t.varianteId, n - 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-                                  −
-                                </button>
-                                <input
-                                  inputMode="numeric"
-                                  aria-label={`Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`}
-                                  value={n === 0 ? "" : n}
-                                  placeholder="0"
-                                  onFocus={(e) => e.currentTarget.select()}
-                                  onChange={(e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } })}
-                                  className={`h-8 w-8 bg-transparent text-center text-[15px] font-bold tabular-nums outline-none placeholder:font-medium placeholder:text-tinta/30 ${n > 0 ? "text-verde" : "text-tinta"}`}
-                                />
-                                <button type="button" aria-label={`Una más de ${etiqueta}`} disabled={n >= celda.almacen} onClick={() => poner1(t.varianteId, n + 1, celda.almacen)} className="grid h-8 w-6 place-items-center rounded-md text-taupe hover:bg-sand hover:text-tinta disabled:pointer-events-none disabled:opacity-25">
-                                  +
-                                </button>
-                              </span>
+                              <PasoCantidad
+                                tamano="celda"
+                                // La talla que falta en el piso se tiñe de ámbar (como su «falta» de abajo).
+                                tono={celda.falta ? "atencion" : undefined}
+                                menos={{ onClick: () => poner1(t.varianteId, n - 1, celda.almacen), deshabilitado: n <= 0, etiqueta: `Una menos de ${etiqueta}` }}
+                                mas={{ onClick: () => poner1(t.varianteId, n + 1, celda.almacen), deshabilitado: n >= celda.almacen, etiqueta: `Una más de ${etiqueta}` }}
+                                campo={{
+                                  inputMode: "numeric",
+                                  "aria-label": `Cuántas cuelgas de ${etiqueta}: hay ${celda.almacen} en almacén`,
+                                  value: n === 0 ? "" : n,
+                                  placeholder: "0",
+                                  onFocus: (e) => e.currentTarget.select(),
+                                  onChange: (e) => poner({ cant: { ...cant, [t.varianteId]: leerCantidadTecleada(e.target.value, celda.almacen) } }),
+                                  // Con algo elegido, el número va en verde (también en una talla que falta).
+                                  className: n > 0 ? "text-verde" : "",
+                                }}
+                              />
                               <small className={`mt-1 block text-[10.5px] ${celda.falta ? "font-semibold text-ambar-profundo" : "text-taupe"}`}>
                                 {celda.falta ? "falta" : celda.piso === 0 ? "nada colgado" : `${celda.piso} colgada${celda.piso === 1 ? "" : "s"}`}
                               </small>
@@ -918,85 +867,15 @@ export function FlujoTalla({
           </>
         );
       case "lugar": {
-        const verbo = tipo === "danada" ? "¿Dónde está la prenda dañada?" : "¿Dónde está el número mal?";
+        // Solo lo pregunta «Reportar dañada» (el «Dónde» de Ajustar se fue con su paso guiado, ADR-0494).
+        const verbo = "¿Dónde está la prenda dañada?";
         return (
           <>
             <Pregunta>{verbo}</Pregunta>
             <div className="grid gap-2 sm:grid-cols-2">
-              <Opcion marcada={d.lugar === "piso"} titulo="En piso" sub={tipo === "danada" ? `${ctx.piso} libres colgadas` : `El sistema dice ${ctx.piso}`} onClick={() => poner({ lugar: "piso", motivo: undefined, n: tipo === "danada" ? cantidadAjustada(d.n ?? 1, ctx.piso) : d.n })} deshabilitada={tipo === "danada" && ctx.piso === 0} />
-              <Opcion marcada={d.lugar === "almacen"} titulo="En almacén" sub={tipo === "danada" ? `${ctx.almacen} libres guardadas` : `El sistema dice ${ctx.almacen}`} onClick={() => poner({ lugar: "almacen", motivo: undefined, n: tipo === "danada" ? cantidadAjustada(d.n ?? 1, ctx.almacen) : d.n })} deshabilitada={tipo === "danada" && ctx.almacen === 0} />
+              <Opcion marcada={d.lugar === "piso"} titulo="En piso" sub={`${ctx.piso} libres colgadas`} onClick={() => poner({ lugar: "piso", n: cantidadAjustada(d.n ?? 1, ctx.piso) })} deshabilitada={ctx.piso === 0} />
+              <Opcion marcada={d.lugar === "almacen"} titulo="En almacén" sub={`${ctx.almacen} libres guardadas`} onClick={() => poner({ lugar: "almacen", n: cantidadAjustada(d.n ?? 1, ctx.almacen) })} deshabilitada={ctx.almacen === 0} />
             </div>
-          </>
-        );
-      }
-      case "cambio": {
-        const queda = quedaTrasAjuste(d, ctx);
-        const lugarTxt = !separa ? "en la sede" : d.lugar === "almacen" ? "en almacén" : "en piso";
-        const antes = !separa ? ctx.piso + ctx.almacen : d.lugar === "almacen" ? ctx.almacen : ctx.piso;
-        return (
-          <>
-            <Pregunta>¿Sobran o faltan?</Pregunta>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Opcion marcada={d.signo === "quitar"} titulo="Faltan · quitar" sub="Hay menos de las que dice" onClick={() => poner({ signo: "quitar", n: 0, motivo: undefined })} />
-              <Opcion marcada={d.signo === "sumar"} titulo="Sobran · sumar" sub="Encontré unidades" onClick={() => poner({ signo: "sumar", n: 0, motivo: undefined })} />
-            </div>
-            {d.signo && (
-              <div className="mt-3 flex flex-wrap items-center gap-4">
-                <Stepper id="flujo-cambio" valor={d.n ?? 0} max={d.signo === "quitar" ? antes : null} etiqueta="Cuántas" onValor={(n) => poner({ n })} />
-                <span className="text-[13px] text-taupe">
-                  Queda en <b className="font-display text-[22px] font-medium text-tinta">{queda}</b> {lugarTxt}
-                </span>
-              </div>
-            )}
-          </>
-        );
-      }
-      case "motivo": {
-        const lista = motivosDeAjuste(d.signo, d.lugar, separa);
-        return (
-          <>
-            <Pregunta>¿Por qué?</Pregunta>
-            {bloqueoConteo ? (
-              <div className="grid gap-2 rounded-2xl bg-hueso p-3 text-sm text-tinta">
-                <span>Esta talla faltó en un conteo cerrado. Lo que encontraste se enlaza con ese conteo en la ventana completa de Ajustar, para que no quede contado dos veces.</span>
-                <button type="button" onClick={onAjustarCompleto} className="btn-cayla btn-primario justify-self-start">
-                  Abrir Ajustar stock
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {lista.map((m) => (
-                    <Opcion key={m.clave} marcada={d.motivo === m.clave} titulo={m.texto} sub={m.ayuda} onClick={() => poner({ motivo: m.clave })} />
-                  ))}
-                </div>
-                {d.motivo === "se_dano" && (
-                  <div className="mt-3 grid gap-2 rounded-2xl bg-hueso p-3 text-sm text-tinta">
-                    <span>Una unidad dañada no se resta: se reporta y el líder decide si se arregla, se liquida o sale. Así no se pierde de vista.</span>
-                    <button type="button" onClick={() => onCambiar("danada", { lugar: d.lugar, n: d.n })} className="btn-cayla btn-primario justify-self-start">
-                      Reportar dañada
-                    </button>
-                  </div>
-                )}
-                {motivoPideNotaFlujo(d.motivo) && (
-                  <>
-                    <label htmlFor="flujo-nota" className="label-cayla mb-1.5 mt-3 block text-[11px] text-taupe">
-                      {d.motivo === "encontre" ? "¿Dónde estaban?" : "Cuéntalo en una línea"}
-                    </label>
-                    <textarea
-                      id="flujo-nota"
-                      rows={2}
-                      maxLength={200}
-                      // sugerir-fijo: el ejemplo sigue al motivo elegido (las dos únicas notas que pide Ajustar)
-                      placeholder={d.motivo === "encontre" ? "Ej. en la caja de la repisa alta" : "Ej. se usó para el maniquí de la vitrina"}
-                      value={d.nota ?? ""}
-                      onChange={(e) => poner({ nota: e.target.value })}
-                      className={CLASE_TEXTO}
-                    />
-                  </>
-                )}
-              </>
-            )}
           </>
         );
       }
@@ -1046,9 +925,11 @@ export function FlujoTalla({
   }
 
   return (
-    <div onKeyDown={alTeclear} className="flex min-h-0 flex-1 flex-col">
+    // `min-w-0`: este flujo es hijo de una grilla de una columna `auto` (`PanelTalla`); sin él su ancho mínimo era el de la tabla de «Colgar
+    // varias» (372 px) y en el celular la hoja entera se deslizaba de lado, con «Continuar →» cortado. Con él, la tabla scrollea en su caja.
+    <div onKeyDown={alTeclear} className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* La acción, la talla y los pasos. */}
-      <div className="grid gap-2.5 border-b border-sand px-[18px] py-3">
+      <div className="grid grid-cols-1 gap-2.5 border-b border-sand px-[18px] py-3">
         <p className="flex items-center gap-2 text-sm text-tinta">
           <i aria-hidden className="h-4 w-4 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-sand)]" style={{ background: fondoContexto }} />
           <span className="min-w-0 truncate">
@@ -1101,7 +982,7 @@ export function FlujoTalla({
             className={`flex-[2] ${completo ? "hilo-seguir" : ""}`}
           >
             <span className="flex items-center justify-center gap-2">
-              {ultimo && <IconoFinal aria-hidden className="-my-1 h-[18px] w-[18px]" strokeWidth={1.6} />}
+              {ultimo && <IconoFinal aria-hidden className="-my-1 h-4 w-4" />}
               {ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
               {!ultimo && <ArrowRight aria-hidden className="-my-1 h-4 w-4" />}
               <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>

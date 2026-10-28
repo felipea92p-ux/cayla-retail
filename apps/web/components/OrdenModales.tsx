@@ -13,6 +13,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
 // cambió de archivo). Cada una es una RPC; ninguna escribe en las tablas directo. Si la base dice que no, el aviso
@@ -55,16 +56,15 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
       <form onSubmit={onSubmit} className="space-y-4">
         <p className="text-sm text-tinta/75">La orden queda anulada y no toca el stock de prendas. Sigue visible abajo, para que no se pierda el registro.</p>
         {porDevolver.length > 0 && (
-          <p className="rounded-lg border border-ambar/40 bg-ambar/[0.07] px-3 py-2.5 text-[13px] text-ambar-profundo">
-            <b className="font-semibold">Los insumos descontados vuelven al estante</b> ({porDevolver.map((g) => `${g.insumo} ${cantidadTexto(g.neto, g.unidad)}`).join(", ")}), cada uno a su lote y a su costo. Queda
-            registrado como devolución.
-          </p>
+          <Aviso tono="atencion" titulo="La tela y los avíos que ya se usaron vuelven al estante">
+            {porDevolver.map((g) => `${g.insumo} ${cantidadTexto(g.neto, g.unidad)}`).join(", ")}: cada uno a su lote y a su costo. Queda registrado como devolución.
+          </Aviso>
         )}
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="anular-motivo">
             Motivo (opcional)
           </label>
-          <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela la corrida" className={campoTexto} />
+          <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela el lote" className={campoTexto} />
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
         <div className="pie-acciones pt-1">

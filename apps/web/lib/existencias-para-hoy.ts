@@ -61,7 +61,8 @@ export type EntradaParaHoy = {
   /** `null`: la sede no es una tienda (las ventas sin registrar nacen en Vender) y no se dibuja. `"fallo"`: la cola no respondió y se dice. */
   sinRegistrar: { pendientes: number; vencidas: number } | "fallo" | null;
   danadas: number;
-  /** Quien mira puede decidir qué se hace con las dañadas (un líder, en su sede). Si no, la fila solo informa. */
+  /** Quien mira puede decidir qué se hace con las dañadas (quien ve Existencias, en su sede: ADR-0534). Si no —mirando otra sede—, la
+   *  fila solo informa. */
   resuelveDanadas: boolean;
   apartados: { vencidos: number };
   enCamino: { traslados: number; atrasados: number; proximaLlegada: string | null };
@@ -197,7 +198,7 @@ export function tareasParaHoy(e: EntradaParaHoy): TareaHoy[] {
       texto: plural(e.danadas, "prenda dañada", "prendas dañadas"),
       detalle: e.resuelveDanadas
         ? "Están fuera de la venta y esperan tu decisión: se arregló, liquidar, botar o donar."
-        : "Están fuera de la venta: un líder decide si se arreglan, se liquidan, se botan o se donan.",
+        : "Están fuera de la venta: en su sede se decide si se arreglan, se liquidan, se botan o se donan.",
       tono: "ambar",
     });
   }

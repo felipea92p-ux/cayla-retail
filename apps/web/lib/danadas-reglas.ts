@@ -13,7 +13,7 @@
  *            la migración); y leer la respuesta en uno de tres finales: hecho (o ya estaba hecho), no alcanza / no se puede,
  *            o «no sé» (corte de red: se reenvía lo mismo con la misma marca).
  *   ASUME:   las cifras que recibe son las LIBRES de Existencias (`pisoDisponible`, `almacenDisponible`: sin lo apartado).
- *   NO HACE: no decide qué se hace con la prenda (eso es del líder, en Dañadas) ni cuenta una pérdida: reportar es moverla a la
+ *   NO HACE: no decide qué se hace con la prenda (eso se hace en Dañadas) ni cuenta una pérdida: reportar es moverla a la
  *            cuarentena dentro de la sede.
  */
 
@@ -221,7 +221,68 @@ export function tituloExitoArreglo(unidades: number): string {
 
 export const TEXTO_ARREGLO_YA_ESTABA = "Esta prenda ya había vuelto al almacén. No se repitió.";
 
-const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas y el líder decide si se arregla y vuelve, se liquida, se bota o se dona.";
+// ---------------------------------------------------------------------------------------------------------------------------------
+// «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a; decisión 60, Felipe 2026-10-15): solo lo que llegó dañado en una recepción, el
+// grupo entero, lo hace quien tiene Existencias. La base la saca de la cuarentena y deja la deuda «por reponer» en la ficha del proveedor
+// (`devolver_danada_al_proveedor`, 20261015150000), con las mismas salidas que un faltante.
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+export const RPC_DEVOLVER_DANADA = "devolver_danada_al_proveedor";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
+export const PARAMETROS_RPC_DEVOLVER = ["p_id", "p_nota", "p_token"] as const;
+/** Lectura (`fn_`: el loader no tapa Existencias): cuáles de la cuarentena de una sede llegaron dañadas en una recepción. */
+export const RPC_DANADAS_DEVOLVIBLES = "fn_danadas_devolvibles";
+
+/** A quién vuelve una prenda que llegó dañada en una recepción, de qué envío y si tenía arreglo («Tiene arreglo» / «Sin arreglo»). */
+export type DevolucionPosible = { proveedorId: string; proveedor: string; envio: string | null; arreglo: string | null };
+
+const textoDe = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v.trim() : null);
+
+/** Lee `fn_danadas_devolvibles`, por id de la prenda dañada. Una fila rara se descarta; lo que no se entiende, vacío (sin el botón). */
+export function leerDevolvibles(data: unknown): Map<string, DevolucionPosible> {
+  const out = new Map<string, DevolucionPosible>();
+  if (!Array.isArray(data)) return out;
+  for (const f of data) {
+    if (typeof f !== "object" || f === null) continue;
+    const r = f as Record<string, unknown>;
+    const id = textoDe(r.id);
+    const proveedorId = textoDe(r.proveedor_id);
+    const proveedor = textoDe(r.proveedor);
+    if (!id || !proveedorId || !proveedor) continue;
+    out.set(id, { proveedorId, proveedor, envio: textoDe(r.envio), arreglo: textoDe(r.arreglo) });
+  }
+  return out;
+}
+
+/** La guía del panel «Devolver al proveedor»: la nota es opcional (hasta 200, como en la base); quién lo hace, obligatorio. */
+export function camposGuiaDevolucion(nota: string, responsableListo: boolean): CampoDeGuia[] {
+  const largo = largoUtil(nota);
+  return [
+    largo > MAX_TEXTO_DANADA
+      ? { id: "devolucion", nombre: "Nota", requerido: true, hecho: false, pendiente: `La nota admite hasta ${MAX_TEXTO_DANADA} caracteres.` }
+      : { id: "devolucion", nombre: "Nota", requerido: false, hecho: largo > 0, pendiente: "" },
+    { id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsableListo, pendiente: "Elige quién decide." },
+  ];
+}
+
+export type ArgumentosDeDevolucion = { p_id: string; p_nota: string; p_token: string };
+
+export function argumentosDeDevolucion(id: string, nota: string, token: string): ArgumentosDeDevolucion {
+  return { p_id: id, p_nota: nota.trim(), p_token: token };
+}
+
+/** Lo que pasa al devolver, antes de confirmar: sale de Dañadas y queda como deuda del proveedor, con las salidas de un faltante. */
+export function quePasaAlDevolver(proveedor: string): string {
+  return `Sale de Dañadas y queda como deuda de ${proveedor} en su ficha («Nos debe»): que te la reponga o te devuelva lo que pagaste. Entrégasela con una nota de lo que tiene.`;
+}
+
+export function tituloExitoDevolucion(unidades: number, proveedor: string): string {
+  return unidades === 1 ? `Devuelta a ${proveedor}` : `${unidades} prendas devueltas a ${proveedor}`;
+}
+
+export const TEXTO_DEVOLUCION_YA_ESTABA = "Esta prenda ya se había devuelto al proveedor. No se repitió.";
+
+const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas, donde se decide si se arregla y vuelve, se liquida, se bota o se dona.";
 
 /**
  * Lo que pasa al reportar, en palabras de tienda: se avisa ANTES de confirmar y sigue al lugar elegido. Pide el acto físico
@@ -256,7 +317,7 @@ const ESTADO_DANADA_EN_PALABRAS: Record<string, string> = {
 const YA_RESUELTA_CRUDO = /^Esta prenda ya se resolvió como ([a-z_]+)$/;
 
 /**
- * El rechazo de «Se botó», «Donada» o «Liquidada» que perdió la carrera contra otro líder: `resolver_prenda_danada` y
+ * El rechazo de «Se botó», «Donada» o «Liquidada» que perdió la carrera contra otra persona: `resolver_prenda_danada` y
  * `liquidar_prenda_danada` (de antes de esta pantalla) dicen el estado crudo («…como se_arreglo»). Se dice en palabras de tienda
  * y `yaResuelta` avisa a la pantalla que relea la lista. Cualquier otro rechazo pasa por `traducirError`.
  */
@@ -269,18 +330,28 @@ export function textoErrorDeResolucion(error: ErrorEscritura, contexto: string):
   return { mensaje: traducirError(error, contexto), yaResuelta: false };
 }
 
-export type OrigenDanada = "reporte" | "devolucion" | "cambio";
+export type OrigenDanada = "reporte" | "devolucion" | "cambio" | "recepcion";
 
-/** De dónde llegó la prenda a Dañadas. La base exige exactamente uno (`prendas_danadas_un_origen`): con motivo es un reporte,
- *  con cambio es un cambio, y lo demás es una devolución (el origen más antiguo de la cuarentena). */
+/** El motivo que escribe la recepción en lo que llegó dañado (`fn_recepcion_entrar`): «Llegó dañada en ENV-000302». */
+const MOTIVO_DE_RECEPCION = /^Llegó dañada en ENV-/;
+
+/** De dónde llegó la prenda a Dañadas. La base exige exactamente uno (`prendas_danadas_un_origen`): con el motivo de la recepción llegó
+ *  dañada en un envío; con otro motivo es un reporte, con cambio es un cambio, y lo demás es una devolución (el origen más antiguo). */
 export function origenDeDanada(f: { motivoReporte: string | null; cambioId: string | null }): OrigenDanada {
+  if (f.motivoReporte && MOTIVO_DE_RECEPCION.test(f.motivoReporte)) return "recepcion";
   if (f.motivoReporte) return "reporte";
   if (f.cambioId) return "cambio";
   return "devolucion";
 }
 
-/** La línea que dice de dónde llegó: «Reportada en la tienda: mancha en la manga», «Volvió en una devolución»… */
-export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | null): string {
+/** La línea que dice de dónde llegó: «Reportada en la tienda: mancha en la manga», «Volvió en una devolución», «Llegó dañada en
+ *  ENV-000302 · Textiles Andina · sin arreglo»… */
+export function textoOrigenDanada(origen: OrigenDanada, motivoReporte: string | null, devolucion: DevolucionPosible | null = null): string {
+  if (origen === "recepcion") {
+    if (!devolucion) return motivoReporte ?? "Llegó dañada en una recepción";
+    const arreglo = devolucion.arreglo ? ` · ${devolucion.arreglo.toLowerCase()}` : "";
+    return `Llegó dañada en ${devolucion.envio ?? "una recepción"} · ${devolucion.proveedor}${arreglo}`;
+  }
   if (origen === "reporte") return motivoReporte ? `Reportada en la tienda: ${motivoReporte}` : "Reportada en la tienda";
   return origen === "cambio" ? "Volvió en un cambio" : "Volvió en una devolución";
 }

@@ -96,7 +96,7 @@ function Pastilla({
     >
       {children}
       {cuenta !== undefined && <span className="pildora-cayla__n">{cuenta.toLocaleString("es-PE")}</span>}
-      {activa && quitable && <X aria-label="quitar" strokeWidth={1.75} className="-mr-1 h-3.5 w-3.5 opacity-70" />}
+      {activa && quitable && <X aria-label="quitar" className="-mr-1 h-3.5 w-3.5 opacity-70" />}
     </button>
   );
 }
@@ -110,6 +110,7 @@ export function FiltrosMovimientos({
   desde,
   hasta,
   resumen,
+  empresas = null,
 }: {
   /** Las de la ubicación que se mira. Si no tiene ninguna de las tres que se filtran (el Taller), el control no se muestra. */
   sububicaciones: Sububicacion[];
@@ -126,6 +127,8 @@ export function FiltrosMovimientos({
   /** Las cifras con los demás filtros puestos (no el tipo ni el proceso): la de cada píldora de tipo y de proceso. Null si la
    *  base no las pudo dar: las píldoras van sin cifra. */
   resumen: ResumenTienda | null;
+  /** Las empresas de esta sede, solo donde conviven dos (Lima, ADR-0532): «Tienda · Todas · CAYLA · CLAURE». `null` = sin el filtro. */
+  empresas?: { clave: string; nombre: string }[] | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -139,6 +142,8 @@ export function FiltrosMovimientos({
   const [camara, setCamara] = useState(false);
 
   const proc = params.get("proc") || null;
+  // ADR-0532: de qué tienda es lo que se mira (en Lima, la marca CAYLA es de CAYLA y lo demás de CLAURE). Solo cuenta si es una de aquí.
+  const emp = empresas?.find((e) => e.clave === params.get("emp"))?.clave ?? null;
   // Un enlace con solo `?proc=conteo` (el de Conteo) aprieta igual «Ajustes»: el tipo se deduce.
   const cat: CategoriaFiltro | null = CATEGORIAS_FILTRO.find((c) => c === params.get("cat")) ?? categoriaDeProceso(proc);
   // «Personalizado» se abre con un toque aunque todavía no haya fechas en la URL.
@@ -182,9 +187,9 @@ export function FiltrosMovimientos({
   }, [busqueda]);
 
   const subDisponibles = FILTROS_SUBUBICACION.filter((f) => sububicaciones.some((s) => s.tipo === f.tipo));
-  const hayFiltros = !!(params.get("q") || cat || sub || proc || periodo !== periodoPorDefecto);
+  const hayFiltros = !!(params.get("q") || cat || sub || proc || emp || periodo !== periodoPorDefecto);
   // Cuántos filtros hay puestos, para el botón «Filtros · n» del celular (la búsqueda se ve sola: no cuenta).
-  const cuantosFiltros = [cat, proc, sub, periodo !== periodoPorDefecto].filter(Boolean).length;
+  const cuantosFiltros = [cat, proc, sub, emp, periodo !== periodoPorDefecto].filter(Boolean).length;
   // Los procesos que se ofrecen bajo el tipo elegido: los que tuvieron algo en el período (en su orden), y el elegido
   // aunque esté en cero. Sin cifras (la base no respondió), todos los del tipo.
   const procesosDelTipo = cat
@@ -283,6 +288,22 @@ export function FiltrosMovimientos({
     </div>
   );
 
+  // «Tienda» (ADR-0532, Felipe 2026-10-26): ver por separado lo de CAYLA y lo de CLAURE en Lima. Con «Ventas» elegido, sus ventas.
+  const tienda = empresas && empresas.length > 1 && (
+    <div data-guia="movimientos.tienda" className="flex max-w-full shrink-0 items-center gap-2">
+      <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
+        Tienda
+      </span>
+      <div role="group" aria-label="De qué tienda es la prenda" className="pildoras-desliza gap-1.5 sm:flex-wrap">
+        {[{ clave: null as string | null, nombre: "Todas" }, ...empresas].map((e) => (
+          <button key={e.clave ?? "todas"} type="button" aria-pressed={emp === e.clave} onClick={() => aplicar({ emp: e.clave ?? "" })} className="pildora-cayla shrink-0">
+            {e.nombre}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   const procesos = cat && hayProcesos && (
     <div role="group" aria-label={`Proceso dentro de ${nombreTipo(cat)}`} className="anim-revelar flex items-center gap-2 border-l-2 border-sand pl-3">
       <span aria-hidden className="label-cayla shrink-0 text-[10px] font-bold text-taupe">
@@ -322,7 +343,7 @@ export function FiltrosMovimientos({
           aria-label="Escanear una etiqueta"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-sand bg-papel text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
         >
-          <Camera aria-hidden strokeWidth={1.5} className="h-[18px] w-[18px]" />
+          <Camera aria-hidden className="h-4 w-4" />
         </button>
         {/* El botón de los filtros del sistema (ADR-0358, ronda 10): una píldora más, con cuántos hay puestos en su globito. */}
         <span className="flex shrink-0 sm:hidden">
@@ -351,6 +372,7 @@ export function FiltrosMovimientos({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
           {procesoSueltoPildora}
           {zona}
+          {tienda}
           {hayFiltros && (
             <BotonLimpiar onClick={limpiar} guia="movimientos.limpiar">
               Limpiar filtros
@@ -377,6 +399,7 @@ export function FiltrosMovimientos({
                 </section>
               )}
               {zona && <section className="space-y-2">{zona}</section>}
+              {tienda && <section className="space-y-2">{tienda}</section>}
               {hrefExportar && (
                 <BotonDescargar href={hrefExportar} chico className="self-start">
                   Descargar Excel con estos filtros

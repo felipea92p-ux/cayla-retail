@@ -344,7 +344,7 @@ function soles(valor: string, vacio: string): string {
   if (t === "") return vacio;
   const n = Number(t);
   if (!Number.isFinite(n)) return t;
-  return `S/ ${Number.isInteger(n) ? n : n.toFixed(2)}`;
+  return `S/\u00a0${Number.isInteger(n) ? n : n.toFixed(2)}`;
 }
 
 /** «S/ 90», «S/ 90.50», o «sin precio» si el campo está vacío. */
@@ -369,7 +369,7 @@ const TITULO_GRUPO: Record<ClaveGrupo, string> = {
   identidad: "Color o talla corregidos",
   precios: "Precios",
   costos: "Costos",
-  etiquetas: "Etiquetas",
+  etiquetas: "Insignias",
   fotos: "Fotos",
   datos: "Datos de la prenda",
   temporadaColor: "Temporada por color",

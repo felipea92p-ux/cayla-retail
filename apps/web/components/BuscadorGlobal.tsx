@@ -148,14 +148,15 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
         onClick={abrir}
         aria-label="Buscar una pantalla o a alguien del equipo"
         title="Buscar  ( Ctrl K )"
-        className="hidden items-center gap-2.5 rounded-full border border-sand bg-hueso px-3.5 py-2 text-[13px] text-tinta/70 transition-colors hover:border-taupe/40 hover:bg-sand sm:flex"
+        className="hidden min-w-0 items-center gap-2.5 rounded-full border border-sand bg-hueso px-3.5 py-2 text-[13px] text-tinta/70 transition-colors hover:border-taupe/40 hover:bg-sand sm:flex"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
           <circle cx="10.5" cy="10.5" r="7.5" />
           <path d="M21 21l-4.8-4.8" />
         </svg>
-        <span>Buscar…</span>
-        <span className="ml-1 flex items-center gap-0.5">
+        <span className="truncate">Buscar…</span>
+        {/* El atajo es de teclado: con el dedo no hay Ctrl. Con el iPhone de lado (ADR-0479) además dejaba la sede bajo la muesca. */}
+        <span className="ml-1 flex items-center gap-0.5 pointer-coarse:hidden">
           <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">Ctrl</span>
           <span className="rounded border border-sand bg-papel px-1.5 py-px text-[10px] font-semibold text-tinta/70">K</span>
         </span>

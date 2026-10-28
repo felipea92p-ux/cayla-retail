@@ -23,7 +23,8 @@ export default async function ClientasPage({ searchParams }: { searchParams: Pro
       filas={lista.filas}
       total={lista.total}
       falla={lista.falla}
-      params={params}
+      // La página que de verdad se leyó: si la de la URL ya no existe, la última (el pie y su «Anterior» parten de esa).
+      params={{ ...params, pagina: lista.pagina }}
       cifras={cifras}
       hoy={hoyLima()}
       // Felipe 2026-10-13 (auditoría punto 18): el DNI y el celular completos, solo el líder.

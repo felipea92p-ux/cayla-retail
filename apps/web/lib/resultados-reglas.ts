@@ -32,6 +32,16 @@ export type FilaER = {
   descuadres: number;
   planillaVisible: boolean;
   planillaNota: string | null;
+  /**
+   * Lo que de `planilla` (y de `gastos`) es ESTIMADO (ADR-0453): lo que corresponde pagar hasta hoy según las boletas de Dynamic, de
+   * un período que Dynamic todavía no pagó. Fuera del libro: la base no lo trae, lo suma la web (`aplicarProvision`). 0 = todo lo de
+   * `planilla` está asentado en el diario.
+   */
+  planillaEstimada: number;
+  /** Lo que costaría el período entero de esa estimación (nunca menos que `planillaEstimada`). 0 si no hay estimación. */
+  planillaAlCierre: number;
+  /** Personas en las boletas de esa estimación (suma de las sedes de la columna). */
+  planillaPersonas: number;
 };
 
 type Fila = Record<string, unknown>;
@@ -71,6 +81,9 @@ export function leerFilaER(r: Fila): FilaER {
     descuadres: n(r.asientos_descuadrados),
     planillaVisible: !!r.planilla_visible,
     planillaNota: texto(r.planilla_nota),
+    planillaEstimada: 0,
+    planillaAlCierre: 0,
+    planillaPersonas: 0,
   };
 }
 
@@ -86,11 +99,12 @@ export function nombreCorto(f: Pick<FilaER, "nombre" | "unidad">): string {
 // ---- «Ver»: qué se mira (la cabecera dice dónde se trabaja) --------------------------------------------------------------
 
 /**
- * `?ver=` → qué columnas. El líder: una ubicación (por defecto, la sede donde trabaja), «todas» o «empresa»; siempre con
- * CAYLA al lado. Quien tiene el módulo sin ser líder ve solo su tienda: la base ya no le manda otra cosa.
+ * `?ver=` → qué columnas. Quien ve todo (`veFinanzasDeTodo`: el líder, o un rol con Configuración, Cierre de mes o CAYLA Global): una
+ * ubicación (por defecto, la sede donde trabaja), «todas» o «empresa»; siempre con CAYLA al lado. Quien tiene solo «Reportes
+ * financieros» ve solo su tienda: la base ya no le manda otra cosa.
  */
-export function leerVerER(param: string | undefined, filas: readonly FilaER[], esLider: boolean, sedeActual: string | null): string {
-  if (!esLider) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
+export function leerVerER(param: string | undefined, filas: readonly FilaER[], veTodo: boolean, sedeActual: string | null): string {
+  if (!veTodo) return filas.find((f) => f.ubicacionId)?.ubicacionId ?? "todas";
   if (param === "todas" || param === "empresa") return param;
   const candidata = param ?? sedeActual;
   if (candidata && filas.some((f) => f.ubicacionId === candidata)) return candidata;
@@ -192,9 +206,12 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
     {
       clave: "mermas",
       nombre: "Mermas",
-      cuenta: "659",
+      // Las pérdidas de inventario van a la 6951 «Desvalorización de inventarios — mercaderías» (migración 20261023012000,
+      // provisional hasta el OK del contador). Antes iban a la 659: se sigue leyendo para que «De dónde sale» no quede vacío
+      // si la web y la base se publican en distinto orden, y mientras la 659 siga en el plan.
+      cuenta: "6951",
       tipo: "linea",
-      cuentas: ["659"],
+      cuentas: ["6951", "659"],
       valor: (f) => -f.mermas,
     },
     {
@@ -222,7 +239,7 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
 /** «S/ 44,100» y «−S/ 19,850» (el signo menos de verdad, no el guion), sin céntimos: como el spike. */
 export function solesER(v: number): string {
   const r = Math.round(v);
-  return `${r < 0 ? "−" : ""}S/ ${Math.abs(r).toLocaleString("es-PE")}`;
+  return `${r < 0 ? "−" : ""}S/\u00a0${Math.abs(r).toLocaleString("es-PE")}`;
 }
 
 /** «53,7 %» (coma decimal, como el spike), o null si no hay base (dividir entre cero no es un porcentaje). */
@@ -301,6 +318,11 @@ export function avisosER(columnas: readonly FilaER[], enCurso: boolean): AvisoER
       tono: "pizarra",
       texto: "La planilla la muestra Dynamic solo a quien la administra: estos números no la restan.",
     });
+  } else if (columnas.some((f) => f.planillaEstimada > 0)) {
+    out.push({
+      tono: "pizarra",
+      texto: "Los sueldos marcados «provisionado» son lo que corresponde pagar hasta hoy según las boletas de Dynamic; las horas de hoy se calculan con lo que lleva cada persona y se corrigen al cerrar su jornada. Cuando Dynamic pague el período entra lo pagado de verdad y la provisión desaparece.",
+    });
   } else if (enCurso && columnas.every((f) => f.planilla === 0)) {
     out.push({
       tono: "pizarra",
@@ -325,6 +347,10 @@ export type LineaDiario = {
   glosa: string;
 };
 
+/** El orden con que se pagina `fn_diario` (`rpc-por-paginas.ts`): un mes de ventas pasa de 5.000 líneas y PostgREST corta en 1.000. Entran todas las
+ *  columnas que distinguen una línea de otra: sin un orden único, dos páginas pueden repetir una línea o saltarse otra y la suma sale distinta. */
+export const ORDEN_DIARIO = ["fecha", "asiento", "cuenta", "debe", "haber", "origen_id", "regla", "ubicacion_id", "glosa"] as const;
+
 export function leerLineaDiario(r: Fila): LineaDiario {
   return {
     fecha: String(r.fecha ?? ""),
@@ -340,6 +366,28 @@ export function leerLineaDiario(r: Fila): LineaDiario {
   };
 }
 
+/** Un período de un mes (`fn_periodos_mes`): qué unidad es y en qué estado está. */
+export type PeriodoMes = { alcance: string; ubicacionId: string | null; estado: string };
+
+export function leerPeriodoMes(r: Fila): PeriodoMes {
+  return { alcance: String(r.alcance ?? ""), ubicacionId: texto(r.ubicacion_id), estado: String(r.estado ?? "") };
+}
+
+/**
+ * Las unidades de un mes que ya están CERRADAS, con la misma llave que `claveUnidad` (la tienda por su id; «empresa» y «consolidado» por su
+ * nombre). Sus columnas muestran lo que se congeló al cerrar (auditoría de Finanzas 2026-10-16, G09): no cambian aunque después se corrija algo.
+ */
+export function clavesCerradas(periodos: readonly PeriodoMes[]): string[] {
+  return periodos
+    .filter((p) => p.estado === "cerrado")
+    .map((p) => (p.alcance === "ubicacion" ? p.ubicacionId : p.alcance))
+    .filter((k): k is string => !!k);
+}
+
+/** La nota que acompaña a un cuadro con columnas cerradas. */
+export const NOTA_MES_CERRADO =
+  "Las columnas «cerrado» muestran lo que se congeló al cerrar el mes: no cambian aunque después se corrija algo. Si hay que corregirlo, se reabre en Cierre de mes.";
+
 /** Qué operación generó cada línea, en palabras de la tienda. */
 export const TEXTO_REGLA: Record<string, string> = {
   venta: "Ventas",
@@ -353,6 +401,9 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",
+  // ADR-0408 act. 10: lo que un cliente paga por su pedido web antes de que sea una venta (y lo que se anula).
+  pedido_web_pago: "Pagos de pedidos web",
+  pedido_web_pago_anulado: "Pagos de pedidos web anulados",
   gasto: "Gastos",
   compra: "Facturas de mercadería",
   activo: "Activos fijos",
@@ -387,12 +438,16 @@ export function fuentesDe(clave: string): string[] {
       "todo lo que salió sin venderse (fn_perdida_razon, la misma cuenta que la pestaña Pérdidas): faltantes de conteo, restas a mano, dañadas botadas o donadas, lo que faltó en un traslado y la venta anulada cuya prenda no volvió",
       "al costo que tenía la prenda ese día (la venta anulada, al costo sellado en la venta)",
     ];
-  if (clave === "g62") return ["planilla_por_sede (Dynamic)", "lo pagado + las provisiones de la sede, del período que termina en el mes"];
+  if (clave === "g62")
+    return [
+      "planilla_por_sede (Dynamic): el costo real de la sede (lo pagado con la AFP y la renta de 4ª que se retienen, el EsSalud del empleador y las provisiones), del período que termina en el mes",
+      "mientras Dynamic no pague el período, una provisión del costo real con las boletas de cada persona hasta hoy (no entra al diario)",
+    ];
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
   if (clave === "g6599") return ["cajas: lo contado − lo que decía el sistema al cerrar, y lo contado al abrir − el fondo que quedó", "un sobrante resta"];
   if (clave === "g6598")
-    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
+    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/\u00a00.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
   return ["gastos vigentes con fecha del mes, sin el IGV de su factura", "menos las notas de crédito de su proveedor"];
 }
 

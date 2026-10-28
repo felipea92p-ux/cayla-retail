@@ -374,7 +374,7 @@ export function PrendaSinRegistrarModal({
                   miniatura: <MiniaturaPrenda fotoUrl={p.fotoUrl} colorHex={p.colorHex ?? null} tamano="md" prefijo={p.categoriaPrefijo} familia={p.categoriaFamilia} categoria={p.categoria} />,
                   titulo: p.referencia,
                   detalle: detalleDePosible(p),
-                  derecha: `S/ ${p.precio.toFixed(2)}`,
+                  derecha: `S/\u00a0${p.precio.toFixed(2)}`,
                 }))}
                 activa={null}
                 tecla={null}
@@ -409,7 +409,7 @@ export function PrendaSinRegistrarModal({
                   <span className="font-semibold">{guia.etiqueta("precio", <Titulo icono={<Banknote />}>Precio cobrado</Titulo>)}</span>
                   <span className="mt-0.5 block text-xs text-tinta/65">No cambia: es lo que entró a caja.</span>
                 </span>
-                <span className="shrink-0 font-display text-3xl text-tinta">S/ {corregir.inicial.precio.toFixed(2)}</span>
+                <span className="shrink-0 font-display text-3xl text-tinta">S/&nbsp;{corregir.inicial.precio.toFixed(2)}</span>
               </div>
             </CampoGuiado>
           ) : (
@@ -462,7 +462,7 @@ export function PrendaSinRegistrarModal({
                       Corregir el precio
                     </Boton>
                     <Boton type="button" peso="primario" className="sm:flex-1" onClick={() => setPrecioConfirmado(datos.precio)}>
-                      Sí, cobré S/ {datos.precio.toFixed(2)}
+                      Sí, cobré S/&nbsp;{datos.precio.toFixed(2)}
                     </Boton>
                   </div>
                 ) : (
@@ -563,7 +563,7 @@ function EtiquetaPrevia({
   ) : (
     <span className={vacio}>Color</span>
   );
-  const textoPrecio = precio > 0 ? `S/ ${precio.toFixed(2)}` : "S/ 0.00";
+  const textoPrecio = precio > 0 ? `S/\u00a0${precio.toFixed(2)}` : "S/\u00a00.00";
 
   return (
     <div

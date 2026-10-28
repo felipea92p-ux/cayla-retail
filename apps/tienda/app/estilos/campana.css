@@ -1,0 +1,83 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA · La tienda vestida con el diseño de una campaña (Tienda web ▸ Campañas, ERP).
+   El líder elige un ambiente y una paleta; la base manda tres colores y aquí se pintan (`lib/diseno-campana.ts` los valida y deja pasar solo lo
+   que se lee). Las piezas se visten por el atributo `data-campana` —la clave del ambiente— y sus variables `--cmp-*`; sin ese atributo, la
+   tienda es la de siempre. Los colores son DATO del diseño: no cambian con el tema claro/oscuro de la tienda. Un ambiente nuevo no pide CSS
+   nuevo mientras solo cambie de colores; su movimiento, sus efectos y sus piezas llegan con las actividades que siguen.
+   ===================================================================================================== */
+
+/* La franja de arriba. */
+.t-anuncio[data-campana] { background: var(--cmp-fondo); color: var(--cmp-texto); }
+
+/* La portada del Inicio. */
+.t-hero[data-campana] { background: var(--cmp-fondo); color: var(--cmp-texto); }
+.t-hero[data-campana] .t-hero-ceja { color: var(--cmp-texto); opacity: .9; }
+.t-hero[data-campana] .t-hero-tit { color: var(--cmp-texto); }
+.t-hero[data-campana] .t-hero-tit em { color: var(--cmp-acento); }
+.t-hero[data-campana] .t-hero-desc,
+.t-hero[data-campana] .t-hero-desc b { color: var(--cmp-texto); }
+.t-hero[data-campana] .t-cuenta { border-color: color-mix(in srgb, var(--cmp-texto) 35%, transparent); }
+.t-hero[data-campana] .t-cuenta > span + span { border-left-color: color-mix(in srgb, var(--cmp-texto) 35%, transparent); }
+.t-hero[data-campana] .t-hero-acciones .t-enlace { color: var(--cmp-texto); text-decoration-color: color-mix(in srgb, var(--cmp-texto) 55%, transparent); }
+.t-hero[data-campana] .t-hero-acciones .t-enlace:hover { text-decoration-color: var(--cmp-texto); }
+/* El botón principal toma el acento; su letra, la que se lee sobre él. */
+.t-hero[data-campana] .t-btn-claro { background: var(--cmp-acento); border-color: var(--cmp-acento); color: var(--cmp-boton); }
+@media (hover: hover) {
+  .t-hero[data-campana] .t-btn-claro:hover:not(:disabled) { background: transparent; color: var(--cmp-acento); }
+}
+
+/* La banda de la campaña en el catálogo: su tarjeta toma los colores del diseño. */
+.t-campana[data-campana] { background: var(--cmp-fondo); border-color: var(--cmp-fondo); color: var(--cmp-texto); }
+.t-campana[data-campana] .pct { color: var(--cmp-acento); }
+.t-campana[data-campana] small { color: var(--cmp-texto); opacity: .85; }
+a.t-campana[data-campana]:hover, .t-campana[data-campana][aria-current="true"] { border-color: var(--cmp-acento); }
+.t-campana[data-campana][aria-current="true"] { box-shadow: inset 0 0 0 1px var(--cmp-acento); }
+.t-campana[data-campana]:focus-visible { outline-color: var(--cmp-acento); }
+
+/* La línea de la bolsa: de qué campaña es el descuento de la prenda, con el color de su sello (los pone el diseño en línea). */
+.t-bolsa-campana { display: inline-block; width: fit-content; margin-top: 6px; padding: 3px 8px 2px; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; border-radius: 2px; }
+
+/* El título de una campaña con diseño, como en la vista previa del ERP: sobrio, en una línea por palabra (nunca partido a media palabra), con la última
+   palabra en cursiva y en el color de acento; el descuento grande en cursiva y los botones con su flecha. La portada de siempre no cambia. */
+.t-hero[data-campana] .t-hero-tit { font-variation-settings: "wdth" 100; font-weight: 500; letter-spacing: 0; line-height: 1.02; font-size: clamp(32px, 5.6cqi, 80px); }
+.t-hero[data-campana] .t-hero-tit em { font-family: var(--nombre); font-style: italic; font-weight: 400; text-transform: none; font-size: 1.18em; line-height: 1.05; }
+.t-hero[data-campana] .t-hero-dcto { display: flex; align-items: baseline; gap: 12px; margin: 28px 0 0; }
+.t-hero[data-campana] .t-hero-dcto b { font-family: var(--nombre); font-style: italic; font-weight: 400; font-size: clamp(36px, 4.2cqi, 60px); line-height: 1; color: var(--cmp-acento); }
+.t-hero[data-campana] .t-hero-dcto span { font-size: 14px; color: var(--cmp-texto); }
+.t-hero[data-campana] .t-hero-como { margin: 12px 0 0; max-width: 38ch; font-size: 15px; line-height: 1.55; color: var(--cmp-texto); opacity: .9; }
+/* Entre 640 y 959 px la portada de siempre es de una sola columna y deja el costado en blanco: con diseño de campaña, el texto y la obra van lado a lado
+   desde 640 px (a partir de 960 ya lo hace la portada de siempre). */
+@container tienda (min-width: 640px) and (max-width: 959.98px) {
+  .t-hero[data-campana].t-hero-inicio { grid-template-columns: minmax(0, 1fr) minmax(0, 38%); align-items: end; gap: clamp(20px, 4cqi, 48px); padding: clamp(32px, 6cqi, 72px) clamp(16px, 4cqi, 64px) 0; }
+}
+.t-hero[data-campana] .t-btn-borde { background: transparent; color: var(--cmp-texto); border-color: color-mix(in srgb, var(--cmp-texto) 75%, transparent); }
+@media (hover: hover) {
+  .t-hero[data-campana] .t-btn-borde:hover:not(:disabled) { background: var(--cmp-texto); color: var(--cmp-fondo); }
+}
+
+/* La línea debajo del titular (texto del diseño, opcional): entre el titular y el descuento. */
+.t-hero[data-campana] .t-hero-baj { margin: 20px 0 0; max-width: 34ch; font-size: 17px; line-height: 1.5; color: var(--cmp-texto); }
+
+/* La portada con imagen propia (modo «Mi propia imagen»): la imagen llena la portada y los botones van encima, abajo a la izquierda. El texto de la
+   campaña va dentro de la imagen. En el celular se pide 4:5: la versión vertical si el líder la subió; si no, la horizontal recortada al centro. */
+.t-hero.t-hero-imagen { position: relative; isolation: isolate; display: block; overflow: hidden; padding: 0; min-height: 0; aspect-ratio: 2.5 / 1; background: var(--cmp-fondo); }
+.t-hero-imagen picture, .t-hero-imagen .t-hero-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.t-hero-imagen .t-hero-img { object-fit: cover; object-position: center; }
+.t-hero-imagen::after { content: ""; position: absolute; inset: auto 0 0 0; height: 55%; z-index: 1; pointer-events: none; background: linear-gradient(to top, color-mix(in srgb, var(--cmp-fondo) 70%, transparent), transparent); }
+.t-hero-img-acciones { position: absolute; z-index: 5; left: clamp(20px, 4vw, 56px); bottom: clamp(16px, 3vw, 40px); }
+.t-hero-img-cuenta { position: absolute; z-index: 5; top: clamp(14px, 2.5vw, 32px); right: clamp(16px, 3vw, 40px); }
+.t-hero-imagen .t-cuenta { background: color-mix(in srgb, var(--cmp-fondo) 55%, transparent); }
+.t-hero-imagen .t-btn-vidrio { background: color-mix(in srgb, var(--cmp-fondo) 45%, transparent); border: 1px solid color-mix(in srgb, var(--cmp-texto) 75%, transparent); color: var(--cmp-texto); backdrop-filter: blur(6px); }
+@media (hover: hover) {
+  .t-hero-imagen .t-btn-vidrio:hover:not(:disabled) { background: var(--cmp-texto); color: var(--cmp-fondo); }
+}
+@media (max-width: 700px) {
+  .t-hero.t-hero-imagen { aspect-ratio: 4 / 5; }
+  .t-hero-img-acciones { right: 20px; }
+  .t-hero-img-cuenta { right: 14px; }
+}
+
+/* La vista previa privada de un diseño (`app/vista-previa/[llave]`): una franja arriba que dice que es una prueba y no la tienda en vivo. */
+.cp-previa-aviso { position: sticky; top: 0; z-index: 60; padding: 8px 16px; font-size: 12.5px; line-height: 1.4; text-align: center; background: var(--tinta); color: var(--crema); }
+.cp-previa-aviso b { font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 11px; }
+.cp-previa-nota { margin: 16px 0 0; padding: 12px 16px; font-size: 13px; background: var(--hueso); border-left: 3px solid var(--ambar, var(--tinta)); }

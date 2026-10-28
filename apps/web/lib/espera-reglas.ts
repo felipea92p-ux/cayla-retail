@@ -54,7 +54,7 @@ export function claveNavegacion(url: URL): string {
  * un aviso de más; equivocarse hacia «lectura» deja guardar sin ninguna señal, que es lo que se evita.
  * Al escribir una RPC de solo lectura para el navegador: nómbrala con uno de estos prefijos.
  */
-export const PREFIJOS_RPC_DE_LECTURA = ["fn_", "previsualizar_", "campanas_", "resumen_", "buscar_", "get_"] as const;
+export const PREFIJOS_RPC_DE_LECTURA = ["fn_", "previsualizar_", "campanas_", "resumen_", "buscar_", "get_", "validar_"] as const;
 
 export function esRpcDeLectura(nombre: string): boolean {
   return PREFIJOS_RPC_DE_LECTURA.some((p) => nombre.startsWith(p));

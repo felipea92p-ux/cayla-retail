@@ -6,7 +6,7 @@ import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
-import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
+import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -371,6 +371,55 @@ export async function getExistencias(
   return filas.sort((a, b) => a.referencia.localeCompare(b.referencia, "es") || (a.sku ?? "").localeCompare(b.sku ?? "", "es"));
 }
 
+/**
+ * La fila en cero de UNA talla que esta sede nunca tuvo (ni una fila de `stock`), para abrir «Ajustar stock» en ella.
+ *
+ * Existencias arma sus filas desde `stock`, y una fila de `stock` nace de un movimiento: una prenda recién creada (o una talla que nunca llegó a
+ * esta tienda) no tiene ninguna, así que `?variante=<id>&ajustar=1` —el candado de Editar producto, ADR-0494— no encontraba nada y la pantalla
+ * no abría nada: justo la prenda a la que hay que cargarle su primer stock. El ajuste no necesita la fila (`AjustarInventarioModal` lee las
+ * tallas del producto de la base y marca «sin historia» la que nunca se movió, ADR-0235): solo necesita saber de qué prenda se habla.
+ * `null` si la variante no existe o está apagada. Mismo cuerpo que la fila «en camino» de `getExistencias`.
+ */
+export async function getFilaSinStockDeVariante(varianteId: string, separaPisoAlmacen: boolean): Promise<FilaExistencias | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("variantes")
+    .select(
+      `id, sku, codigo, talla:tallas ( valor ),
+       color:colores ( nombre, hex ),
+       producto:productos ( id, referencia, categoria:categorias ( nombre, prefijo, familia ), producto_fotos ( url, orden, es_principal ) ),
+       codigos_barras ( codigo )`
+    )
+    .eq("id", varianteId)
+    .eq("activo", true)
+    .maybeSingle();
+  if (error || !data || varianteId === ID_CARGO_ESPECIAL) return null;
+  return {
+    varianteId: data.id,
+    productoId: data.producto?.id ?? "",
+    sku: codigoDeEtiqueta(data),
+    talla: data.talla?.valor ?? null,
+    color: data.color?.nombre ?? null,
+    colorHex: data.color?.hex ?? null,
+    referencia: data.producto?.referencia ?? "",
+    categoria: data.producto?.categoria?.nombre ?? null,
+    categoriaPrefijo: data.producto?.categoria?.prefijo ?? null,
+    categoriaFamilia: data.producto?.categoria?.familia ?? null,
+    codigosBarras: (data.codigos_barras ?? []).map((c) => c.codigo),
+    fotoUrl: fotoPrincipal(data.producto?.producto_fotos),
+    total: 0,
+    piso: separaPisoAlmacen ? 0 : null,
+    almacen: separaPisoAlmacen ? 0 : null,
+    danado: separaPisoAlmacen ? 0 : null,
+    apartado: 0,
+    disponible: 0,
+    pisoDisponible: separaPisoAlmacen ? 0 : null,
+    almacenDisponible: separaPisoAlmacen ? 0 : null,
+    enTransito: 0,
+    enRed: [],
+  };
+}
+
 export type ResumenExistencias = ResumenInventario & {
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
@@ -387,7 +436,7 @@ export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias
 
 // ============================================================================
 // "Dañado" (2026-09-17, ADR-0071): la cola de prendas en cuarentena
-// esperando que un líder decida Liquidada / Se botó / Donada
+// esperando que se decida Liquidada / Se botó / Donada (quien ve Existencias en su sede, ADR-0534)
 // (`retail.resolver_prenda_danada`). Consulta aparte de `getStockPorUbicacion`
 // porque acá SÍ hace falta historial (desde cuándo, resuelta por quién) —
 // `retail.stock` (de donde sale `FilaStock.danado`) es solo el snapshot de
@@ -412,6 +461,8 @@ export type PrendaDanada = {
   origen: OrigenDanada;
   /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
   motivoReporte: string | null;
+  /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
+  devolucion: DevolucionPosible | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
@@ -456,6 +507,9 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       : exigir(conMotivo, "las prendas dañadas pendientes");
   // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
   const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
+  // «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): cuáles llegaron dañadas en una recepción y a quién vuelven. Opcional: si la
+  // base no responde o todavía no tiene la función, la lista sale sin ese botón, como antes.
+  const devolvibles = filas.length === 0 ? new Map<string, DevolucionPosible>() : await leerDevolviblesDeSede(supabase, ubicacionId);
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -468,5 +522,15 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
     origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
     motivoReporte: f.motivo_reporte,
+    devolucion: devolvibles.get(f.id) ?? null,
   }));
+}
+
+async function leerDevolviblesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, DevolucionPosible>> {
+  try {
+    const { data, error } = await supabase.rpc(RPC_DANADAS_DEVOLVIBLES as never, { p_ubicacion_id: ubicacionId } as never);
+    return error ? new Map() : leerDevolvibles(data);
+  } catch {
+    return new Map();
+  }
 }

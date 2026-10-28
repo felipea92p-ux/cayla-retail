@@ -1,12 +1,11 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeftRight, KeyRound, MapPin, PauseCircle, PlayCircle } from "lucide-react";
 import type { Terminal } from "@/lib/colaboradores";
 import { cuandoEntro } from "@/lib/equipo-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { IconoAparato } from "@/components/ui/IconoAparato";
-import { CajonFicha } from "@/components/colaboradores/CajonFicha";
+import { Cajon } from "@/components/ui/Cajon";
 import { PildoraRol } from "@/components/colaboradores/EquipoLista";
 
 // La ficha de una terminal (Felipe 2026-10-05: «Terminales» se ve igual que «Todas»; antes era otra pantalla con su tabla y dos
@@ -23,7 +22,7 @@ function BotonAccion({ icono: Icono, texto, onClick, peligro = false }: { icono:
         peligro ? "border-sand text-rojo hover:border-rojo/50" : "border-sand text-tinta hover:border-taupe"
       }`}
     >
-      <Icono aria-hidden className={`h-5 w-5 ${peligro ? "text-rojo" : "text-taupe"}`} strokeWidth={1.6} />
+      <Icono aria-hidden className={`h-5 w-5 ${peligro ? "text-rojo" : "text-taupe"}`} />
       {texto}
     </button>
   );
@@ -47,52 +46,49 @@ export function FichaTerminal({
 }) {
   const t = terminal;
   return (
-    <CajonFicha clave={t.id} onCerrar={onCerrar}>
-      <div className="flex items-center gap-4 pr-9">
-        <span className={`grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl bg-tinta text-crema ${t.activo ? "" : "opacity-60"}`}>
-          <IconoAparato className="h-8 w-8" />
+    <Cajon
+      onCerrar={onCerrar}
+      clave={t.id}
+      marca={
+        <span className={`grid h-10 w-10 place-items-center rounded-xl bg-tinta text-crema ${t.activo ? "" : "opacity-60"}`}>
+          <IconoAparato className="h-5 w-5" />
         </span>
-        <div className="min-w-0">
-          <Dialog.Title asChild>
-            <h2 className="font-display text-[26px] leading-tight text-tinta">{t.nombre}</h2>
-          </Dialog.Title>
-          <Dialog.Description asChild>
-            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] text-tinta/65">
-              <MapPin aria-hidden className="h-3.5 w-3.5" />
-              {t.ubicacion_nombre}
-              <PildoraRol nombre={t.rol_nombre} lider={false} />
-              {!t.activo && <Chip tono="apagado" tachado={false}>Desactivada</Chip>}
-            </p>
-          </Dialog.Description>
-          {t.correo && <p className="mt-1 truncate text-xs text-tinta/55">{t.correo}</p>}
-        </div>
-      </div>
-
-      <p className="rounded-xl bg-hueso px-4 py-3 text-[15px] leading-snug text-tinta" data-guia="colaboradores.terminal-frase">
-        {!t.activo ? (
-          <>
-            <strong className="font-semibold">Desactivada:</strong> no puede leer ni guardar nada. Su historial se conserva.
-          </>
-        ) : t.ultimo_acceso ? (
-          <>
-            Inició sesión por última vez <strong className="font-semibold">{cuandoEntro(t.ultimo_acceso, ahoraIso)}</strong>. Lo que hace lo firma quien atiende.
-          </>
-        ) : (
-          <>
-            <strong className="font-semibold">Todavía no ha iniciado sesión.</strong> Escribe su correo y su clave en la caja o la tablet.
-          </>
-        )}
-      </p>
-
+      }
+      titulo={t.nombre}
+      frase={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <MapPin aria-hidden className="h-3.5 w-3.5" />
+          {t.ubicacion_nombre}
+          <PildoraRol nombre={t.rol_nombre} lider={false} />
+          {!t.activo && <Chip tono="apagado" tachado={false}>Desactivada</Chip>}
+        </span>
+      }
+      debajo={
+        // Una línea: cuándo inició sesión por última vez y el correo que se escribe en el aparato.
+        <p className="truncate text-xs text-tinta/60" data-guia="colaboradores.terminal-frase">
+          {!t.activo ? (
+            <strong className="font-semibold text-tinta">Desactivada</strong>
+          ) : t.ultimo_acceso ? (
+            <>
+              Última sesión <strong className="font-semibold text-tinta">{cuandoEntro(t.ultimo_acceso, ahoraIso)}</strong>
+            </>
+          ) : (
+            <strong className="font-semibold text-tinta">Aún sin sesión</strong>
+          )}
+          {t.correo ? ` · ${t.correo}` : ""}
+        </p>
+      }
+      claseCuerpo="space-y-5"
+    >
       <div className="grid grid-cols-3 gap-2" data-guia="colaboradores.terminal-acciones">
         <BotonAccion icono={KeyRound} texto="Clave nueva" onClick={onClave} />
-        {onCambiarRol && <BotonAccion icono={ArrowLeftRight} texto="Cambiar rol" onClick={onCambiarRol} />}
+        {onCambiarRol && <BotonAccion icono={ArrowLeftRight} texto="Rol" onClick={onCambiarRol} />}
         {t.activo ? (
           <BotonAccion icono={PauseCircle} texto="Desactivar" onClick={onAlternar} peligro />
         ) : (
           <BotonAccion icono={PlayCircle} texto="Reactivar" onClick={onAlternar} />
         )}
       </div>
-    </CajonFicha>
+    </Cajon>
   );
 }

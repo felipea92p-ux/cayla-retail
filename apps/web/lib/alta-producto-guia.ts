@@ -14,14 +14,15 @@
 // fondo de cada paso y en la columna de la derecha; los campos mismos no decían nada, y el paso 3 salía «Listo» sin haberlo
 // abierto y con cero colores. La persona no sabía por dónde ir ni qué seguía.
 
-import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
+import { claveReferencia, faltaDelPaso, faltaLugarCarga, pasoHecho, textoCeldaSinPrecio, TEXTO_FALTA_LUGAR, TEXTO_FALTA_EMPRESA, type EstadoAlta, type PasoAlta, type Problema } from "./alta-producto";
 
 /** Cada cosa que la persona llena o decide en el alta, en el orden en que la encuentra en pantalla. */
-export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
+export type CampoAlta = "empresa" | "categoria" | "nombre" | "descripcion" | "marca" | "tejido" | "patron" | "tallas" | "colores" | "precio" | "stock" | "responsable";
 
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
 import { siguienteDe, type EstadoCampo } from "./guia-campos";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 export type CampoGuia = {
   id: CampoAlta;
@@ -51,10 +52,16 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   const precioOk = e.precioBase.trim() !== "" && Number.isFinite(precio) && precio > 0;
   const costo = Number(e.costoBase);
   const costoOk = e.costoBase.trim() === "" || (Number.isFinite(costo) && costo >= 0);
+  const precioSobreTope = precioOk && precio > MAX_PRECIO_PRENDA;
+  const costoSobreTope = e.costoBase.trim() !== "" && costo > MAX_PRECIO_PRENDA;
   const nombreOk = e.referencia.trim() !== "" && claveReferencia(e.referencia) !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const configurar = (tipo: "tejidos" | "patrones") => `Habilita los ${tipo} de esta categoría.`;
 
   return [
+    // ADR-0463: solo existe como campo cuando la base ya tiene tiendas (`exigeEmpresa`); si no, la guía queda como era.
+    ...(e.exigeEmpresa
+      ? [{ id: "empresa" as const, paso: 1 as const, nombre: "Tienda", requerido: true, sugerido: false, hecho: Boolean(e.empresaId), pendiente: TEXTO_FALTA_EMPRESA }]
+      : []),
     { id: "categoria", paso: 1, nombre: "Categoría", requerido: true, sugerido: false, hecho: Boolean(e.categoriaId), pendiente: "Elige qué producto es (familia y categoría)." },
     // Va ANTES del nombre, como en pantalla (Felipe, 2026-09-30): con la marca elegida la lectura de lo que ya existe de esa marca empieza antes de que se
     // escriba una letra. Opcional (ADR-0283): nunca se lista como «falta» ni bloquea nada; solo lleva ✓ si se eligió. Pero con el paso 2 recién abierto,
@@ -114,9 +121,17 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       nombre: "Precio",
       requerido: true,
       sugerido: false,
-      hecho: precioOk && costoOk && !e.celdaSinPrecio,
-      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0384) y el costo.
-      pendiente: !precioOk ? "Pon el precio de venta." : e.celdaSinPrecio ? textoCeldaSinPrecio(e.celdaSinPrecio) : "El costo no puede ser negativo.",
+      hecho: precioOk && costoOk && !e.celdaSinPrecio && !precioSobreTope && !costoSobreTope,
+      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0384), el costo y el tope de S/ 5 000 (ADR-0415).
+      pendiente: !precioOk
+        ? "Pon el precio de venta."
+        : e.celdaSinPrecio
+          ? textoCeldaSinPrecio(e.celdaSinPrecio)
+          : !costoOk
+            ? "El costo no puede ser negativo."
+            : precioSobreTope
+              ? FRASE_PRECIO_CON_TOPE
+              : FRASE_COSTO_CON_TOPE,
     },
     {
       id: "stock",

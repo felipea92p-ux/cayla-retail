@@ -2,29 +2,38 @@
   "guia": "clientas.avisos",
   "ruta": "/clientas/avisos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 16,
+  "total": 23,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],
     "components/clientas/AvisosClubPanel.tsx": [
-      "Boton «avisos.beneficios»",
-      "button «{t === \"todos\" ? \"Todos\" : INFO_TIPO_AVISO[t].titulo}»",
-      "ComboResponsable «)»",
-      "button «{motivoResponsable ?? \"Vuelve a la lista de por mandar\"}»",
+      "BotonEditar «{`Cambia lo que dice cada aviso de ${sede.nombre}»",
+      "ComboResponsable «{responsable}»",
+      "button «→() => setElegido(a.clave)»",
+      "BotonDeshacer «{enCurso ? \"Deshaciendo…\" : \"Deshacer\"}»",
+      "Boton «También con Enter»",
       "Boton «{motivoResponsable ?? undefined}»",
-      "button «Abrir WhatsApp de nuevo»",
-      "Boton «{bloqueo ?? \"Abre WhatsApp Web con su número y el texto listos\"}»",
+      "Boton «Abrir WhatsApp de nuevo»",
+      "Boton «Enviar por WhatsApp»",
+      "Boton «Saltar por ahora»",
       "button «{motivoResponsable ?? \"Respondió BAJA a un mensaje del club\"}»"
     ],
-    "components/clientas/BeneficiosClubModal.tsx": [
-      "input «{i === ANIOS_ESCALA - 1 ? `Vale del año ${i + 1}»",
-      "ComboResponsable «(sin nombre)»",
+    "components/clientas/EditarMensajesAvisos.tsx": [
+      "button «{INFO_TIPO_AVISO[t].titulo}»",
+      "textarea «mensaje-aviso»",
+      "button «+»",
+      "BotonDeshacer «Volver al guardado»",
+      "textarea «cierre-avisos»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "Boton «Guardar»",
-      "input «{etiqueta}»"
+      "Boton «Guardar mensajes»"
+    ],
+    "components/clientas/VinculosGoogleAvisos.tsx": [
+      "Boton «{bloqueo ?? \"Abre WhatsApp Web con su número y el texto listos\"}»",
+      "Boton «La cuenta de Google deja de entrar a esta ficha»"
     ]
   }
 }

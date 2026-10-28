@@ -24,17 +24,16 @@ import {
 } from "@/lib/compras";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCierresCompra, getNotasCreditoCompra, type CierreLinea, type NotaCreditoCompra } from "@/lib/compras-faltantes";
-import { NotasCreditoCompra } from "@/components/NotasCreditoCompra";
 import { BotonCerrarFaltante } from "@/components/AccionesFaltantes";
 import { CompraAcciones } from "@/components/CompraDetallePanel";
-import { BarraAvance } from "@/components/ComprobanteAvance";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { ComprobanteEncabezado } from "@/components/ComprobanteEncabezado";
 import { ComprobanteLineaTiempo } from "@/components/ComprobanteLineaTiempo";
 import { ComprobantePagos } from "@/components/ComprobantePagos";
 import { AdjuntosDeFactura } from "@/components/AdjuntosCompra";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
-import { avanceRecepcion, avancePago, complementoDeSaldo, datosCabecera, fraccion, lineaDeTiempo, tonoDeAvance } from "@/lib/comprobante-linea-tiempo";
+import { avanceRecepcion, avancePago, complementoDeSaldo, datosCabecera, fraccion, lineaDeTiempo } from "@/lib/comprobante-linea-tiempo";
 import { hoyLima } from "@/lib/fechas-lima";
 import { getProveedor } from "@/lib/proveedores";
 import { datosPagoDe, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
@@ -176,7 +175,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -243,20 +242,13 @@ export function CompraDetalle({
               valor={anulada ? "—" : compra.recibidoCantidad.toLocaleString("es-PE")}
               unidad={anulada ? undefined : `de ${compra.facturadoCantidad.toLocaleString("es-PE")} u.`}
             >
-              <BarraAvance
-                avance={avanceDeRecepcion}
-                tono={compra.estadoRecepcion === "parcial" ? "ambar" : compra.estadoRecepcion === "recibida" ? "verde" : "neutro"}
-                etiqueta={`Recepción: ${Math.round(fraccion(avanceDeRecepcion, 1) * 100)}%`}
-              />
+              <BarraAvance pct={fraccion(avanceDeRecepcion, 1) * 100} etiqueta="Recepción" className="mt-2" />
               {unidadesCerradas > 0 && <p className="mt-2">{`${unidadesCerradas.toLocaleString("es-PE")} ${unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} por faltante.`}</p>}
             </TarjetaCifra>
           )}
           <TarjetaCifra etiqueta="Pago" valor={anulada ? "—" : soles(compra.pagado)} unidad={anulada ? undefined : `de ${soles(compra.total)}`}>
-            <BarraAvance
-              avance={avanceDePago}
-              tono={compra.vencida ? "rojo" : compra.estadoPago === "parcial" ? "ambar" : compra.estadoPago === "pagada" ? "verde" : "neutro"}
-              etiqueta={`Pago: ${Math.round(fraccion(avanceDePago, 1) * 100)}%`}
-            />
+            {/* Vencida: el rojo lo pone la pantalla; si no, la barra va en tinta y pasa a verde al quedar pagada (ronda 13). */}
+            <BarraAvance pct={fraccion(avanceDePago, 1) * 100} tono={compra.vencida ? "rojo" : undefined} etiqueta="Pago" className="mt-2" />
             {compra.notasCredito > 0 && <p className="mt-2">{`${soles(compra.notasCredito)} menos por notas de crédito.`}</p>}
           </TarjetaCifra>
         </div>
@@ -335,7 +327,7 @@ export function CompraDetalle({
                       </span>
                       {/* Misma barra que las tarjetas de arriba, en miniatura: acá se
                           lee qué línea puntual falta, no solo el total de la factura. */}
-                      <BarraAvance fina avance={avanceLinea} tono={tonoDeAvance(avanceLinea)} etiqueta={`Recibido: ${l.recibido} de ${l.cantidad}`} />
+                      <BarraAvance pct={avanceLinea * 100} alto="fina" etiqueta="Recibido" texto={`${l.recibido} de ${l.cantidad}`} className="mt-1" />
                     </span>
                     <span className={celda("der", "text-sm tabular-nums text-tinta")}>{soles(l.subtotal)}</span>
                   </div>
@@ -381,8 +373,6 @@ export function CompraDetalle({
               </Tabla>
             )}
           </section>
-
-          <NotasCreditoCompra compra={compra} notas={notasCredito} cerrados={lineas.filter((l) => l.cerrado > 0).map((l) => ({ faltan: l.cerrado, costoUnitario: l.costoUnitario }))} />
 
           {/* Quién puede adjuntar lo decide la RPC (`fn_puede_registrar_facturas_compra`, ADR-0161 P1). Acá solo se esconde
               a quien no tiene Facturas de compra y en una factura anulada, que la RPC también rechaza. */}

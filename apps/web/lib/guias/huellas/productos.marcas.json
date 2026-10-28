@@ -5,20 +5,20 @@
   "total": 37,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],
     "components/EditarMarcaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la marca\")}»",
-      "button «Deshacer»",
+      "BotonDeshacer «(sin nombre)»",
       "button «Quitar»",
       "button «Quitar» #2",
       "button «Quitar» #3",
       "input «Razón social o nombre del proveedor nuevo»",
       "input «RUC del proveedor nuevo (opcional)»",
-      "ComboBuscable «(sin nombre)»",
-      "ComboResponsable «Cancelar»",
+      "ComboBuscable «{opciones}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -29,18 +29,18 @@
       "Boton «Borrar la búsqueda»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
-      "ComboBuscable «)»",
+      "ComboBuscable «nm-marca»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
       "CampoTexto «Razón social»",
       "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
-      "ComboBuscable «)» #2",
+      "ComboBuscable «nm-prov»",
       "button «Cancelar»",
       "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -57,7 +57,7 @@
     "components/marcas/TarjetaMarca.tsx": [
       "button «Reactivar»",
       "button «marcas.editar»",
-      "LapizEditar «) )»"
+      "LapizEditar «{m.nombre}»"
     ]
   }
 }

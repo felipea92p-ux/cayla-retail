@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
@@ -10,6 +10,7 @@ import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
 import { PERIODO_DE_FABRICA, rangoDelPeriodo } from "@/lib/historial-apartados-reglas";
 import { createClient } from "@/lib/supabase/server";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import { TrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -45,10 +46,11 @@ async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; a
   const [datos, variantes, caja, stockAqui, resCampanas, resStockSedes, ubicaciones, resRedondeo, preciosSede] = await Promise.all([
     // El Historial abre en los últimos 30 días de lo cerrado (Felipe 2026-10-10); lo abierto sale siempre.
     getApartadosDeTienda(persona.ubicacionId, { desde: rangoDelPeriodo(PERIODO_DE_FABRICA, hoyLima()).desde ?? undefined, abrir }),
-    getCatalogo(),
+    // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+    getCatalogoDeLaSede(persona.ubicacionId),
     getCajaAbierta(persona.ubicacionId),
     getDisponibleEnSede(persona.ubicacionId),
-    supabase.rpc("campanas_vigentes"),
+    leerCampanasVigentes(supabase, persona.ubicacionId),
     // «¿Dónde más hay?» para lo que aquí no tiene disponible (misma lectura que el Punto de venta). Es secundario:
     // si falla, el buscador sigue funcionando sin esa línea.
     leerStockDeLasSedes(),

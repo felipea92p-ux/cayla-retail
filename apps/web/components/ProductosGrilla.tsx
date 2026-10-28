@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { Chip } from "@/components/ui/Chip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { MarcaProveedorLinea } from "@/components/MarcaProveedorLinea";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { destinoDelBoton, type EstadoProducto } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { colorPrincipal, coloresDe, rangoSoles, variantesQueSeVenden } from "@/lib/productos-vista";
+import { precioDeHoy, type CampanaDeVariante } from "@/lib/precio-de-hoy";
+import { PrecioConCampana } from "@/components/ficha-producto/PrecioConCampana";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { SwatchesColor } from "@/components/ProductoPiezas";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
@@ -61,10 +64,14 @@ export function ProductosGrilla({
   tamanoInicial = TAMANO_GRILLA_POR_DEFECTO,
   preciosTienda = {},
   preciosAqui,
+  campanasHoy,
   colores,
   tarjetasLook,
 }: {
   productos: ProductoListado[];
+  /** La campaña que cobra la caja hoy por variante (`campanasQueCobra`, ADR-0472): la tarjeta tacha el precio de lista y dice el de
+   *  la caja. Ausente = no se pudo leer: el precio de siempre. */
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** La ficha de cada color activo (ADR-0316): la vista rápida dice con qué se combina el color de la foto. Ausente = no dice nada. */
   colores?: ColorConFicha[];
   /** El catálogo de la sede como tarjetas prenda×color con piso: la frase «Combina bien con un jean…» de la vista rápida. */
@@ -132,6 +139,7 @@ export function ProductosGrilla({
           compacta={tamano === "pequeno"}
           otrosPrecios={preciosTienda[p.productoId]}
           preciosAqui={preciosAqui}
+          campanasHoy={campanasHoy}
           fichasColor={colores}
           tarjetasLook={tarjetasLook}
         />
@@ -154,12 +162,14 @@ function TarjetaProducto({
   compacta = false,
   otrosPrecios,
   preciosAqui,
+  campanasHoy,
   fichasColor,
   tarjetasLook,
 }: {
   producto: ProductoListado;
   otrosPrecios?: PrecioDeTienda[];
   preciosAqui?: Record<string, number>;
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** Las fichas de color del vocabulario (ADR-0316), para la vista rápida. `colores`, abajo, son los de ESTA prenda. */
   fichasColor?: ColorConFicha[];
   tarjetasLook?: TarjetaLook[];
@@ -209,6 +219,9 @@ function TarjetaProducto({
   const lineas = existencias && alerta !== "sin_stock" ? lineasDeStock(existencias) : null;
   const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
   const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
+  // El precio de la tienda elegida arriba (su precio propio, si tiene) y, si una campaña lo rebaja hoy, lo que cobra la caja (ADR-0472).
+  const precios = variantesQueSeVenden(producto.variantes).map((v) => ({ id: v.varianteId, precio: preciosAqui?.[v.varianteId] ?? v.precio }));
+  const deHoy = campanasHoy ? precioDeHoy(precios, (id) => campanasHoy[id]) : null;
 
   return (
     <div
@@ -229,6 +242,13 @@ function TarjetaProducto({
         className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
       >
         {activo?.fotoUrl ? <ImagenDePrenda src={activo.fotoUrl} alt={`${producto.referencia} — ${activo.nombre}`} fill sizes={SIZES_FOTO} className="object-cover" fondo={activo.hex} fallback={sinFoto} /> : sinFoto}
+        {producto.empresa && (
+          // ADR-0505: «CLAURE» arriba a la izquierda, donde no choca con «Muestra — color» (arriba a la derecha) ni con «Descontinuado».
+          // Con fondo propio, como «Descontinuado»: sobre una foto oscura, un chip transparente no se lee.
+          <span className="absolute top-2.5 left-2.5 rounded-full bg-papel/90">
+            <InsigniaEmpresa nombre={producto.empresa} />
+          </span>
+        )}
         {descontinuado && (
           // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
           // Con fondo propio: sobre una foto oscura, un chip transparente no se lee.
@@ -255,7 +275,7 @@ function TarjetaProducto({
         <div data-guia="productos.precio-stock" className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">
             {/* El precio de la tienda elegida arriba (su precio propio, si tiene): el que cobra la caja aquí (Felipe 2026-10-10). */}
-            {rangoSoles(variantesQueSeVenden(producto.variantes).map((v) => preciosAqui?.[v.varianteId] ?? v.precio)) ?? "—"}
+            {deHoy ? <PrecioConCampana precio={deHoy} /> : (rangoSoles(precios.map((p) => p.precio)) ?? "—")}
             <InsigniaPrecios lista={otrosPrecios} className="ml-1.5 align-middle" />
           </span>
           <span
@@ -317,6 +337,7 @@ function TarjetaProducto({
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
           preciosAqui={preciosAqui}
+          campanasHoy={campanasHoy}
           colores={fichasColor}
           tarjetasLook={tarjetasLook}
           veExistencias={veExistencias}

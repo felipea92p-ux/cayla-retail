@@ -39,4 +39,4 @@ export function sedeCorta(sede: string): string {
   return sede.replace(/^tienda\s+/i, "").trim() || sede;
 }
 
-export const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+export const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;

@@ -46,7 +46,7 @@ import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 // las columnas viajan en una variable que pone la <Tabla> (`--columnas-historial`); en celular también (cada celda dice su tienda).
 const PLANTILLA_HISTORIAL = "grid-cols-[var(--columnas-historial)]";
 
-const solesSinCentimos = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+const solesSinCentimos = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 
 function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   const m = c.medida;
@@ -156,7 +156,7 @@ export function HistorialCampanas({
         «×1.8 un día normal» quiere decir que en esa campaña la tienda vendió, por día, 1.8 veces lo que vendía por día en los 60 días anteriores.
       </span>
       <span className="mt-2 block">
-        Las fechas son las de cada campaña en Catálogo ▸ Etiquetas llevadas a {anio} (Día de la Madre se mueve con su segundo domingo de mayo).
+        Las fechas son las de cada campaña en Catálogo ▸ Insignias llevadas a {anio} (Día de la Madre se mueve con su segundo domingo de mayo).
       </span>
       <span className="mt-2 block">
         {arranqueErp ? `Antes del ${fechaCortaES(arranqueErp)} de ${arranqueErp.slice(0, 4)} ` : "Antes del ERP "}las cifras salen de Sinatra, los Excel de

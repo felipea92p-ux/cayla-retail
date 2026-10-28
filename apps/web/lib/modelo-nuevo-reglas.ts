@@ -185,8 +185,8 @@ export function problemaDePrecio(b: BorradorModelo): string | null {
   if (l.tipo === "invalido") return "El precio tiene que ser un número, por ejemplo 12.50.";
   if (l.tipo === "negativo") return "El precio no puede ser negativo.";
   const valor = l.tipo === "ok" ? aCentimos(l.valor) : 0;
-  if (valor > PRECIO_MAXIMO) return "El precio no puede pasar de S/ 99,999.99.";
-  if (!b.esMuestra && valor < PRECIO_MINIMO) return l.tipo === "ok" && l.valor > 0 ? "El precio mínimo es S/ 0.01." : "Pon el precio a tienda. Una muestra sí puede ir sin precio.";
+  if (valor > PRECIO_MAXIMO) return "El precio no puede pasar de S/\u00a099,999.99.";
+  if (!b.esMuestra && valor < PRECIO_MINIMO) return l.tipo === "ok" && l.valor > 0 ? "El precio mínimo es S/\u00a00.01." : "Pon el precio a tienda. Una muestra sí puede ir sin precio.";
   return null;
 }
 
@@ -203,7 +203,7 @@ export function problemaDeCostos(c: TextosDeOrden): string | null {
     if (l.tipo === "coma") return `Escribe el costo de ${cual} con punto, por ejemplo 12.50.`;
     if (l.tipo === "invalido") return `El costo de ${cual} tiene que ser un número, por ejemplo 12.50.`;
     if (l.tipo === "negativo") return `El costo de ${cual} no puede ser negativo.`;
-    if (l.tipo === "ok" && aCentimos(l.valor) > COSTO_MAXIMO) return `El costo de ${cual} no puede pasar de S/ 999,999.99.`;
+    if (l.tipo === "ok" && aCentimos(l.valor) > COSTO_MAXIMO) return `El costo de ${cual} no puede pasar de S/\u00a0999,999.99.`;
   }
   return null;
 }
@@ -316,18 +316,27 @@ export function camposDeGuiaOrden(o: {
   borrador: BorradorModelo;
   celdas: readonly CeldaAlta[];
   totalExistente: number;
-  costos?: TextosDeOrden;
+  /** Lo que las fases y la tela de la orden (ADR-0400) tienen pendiente: la primera frase de `problemasFases` / `problemasTela`, o `null`. Las dos son
+   *  bloques que nacen válidos (la espina en el Taller; sin tela): solo cuentan como «falta» cuando lo escrito no es lo que la base acepta. */
+  fases?: { falta: string | null };
+  /** La tela es opcional: sin elegir se ve como «opcional»; elegida y bien escrita, hecha; mal escrita, falta. */
+  tela?: { falta: string | null; elegida: boolean };
 }): CampoDeGuia[] {
-  const costoMalo = o.costos ? problemaDeCostos(o.costos) : null;
+  const faltaFase = o.fases?.falta ?? null;
+  const faltaTela = o.tela?.falta ?? null;
+  const deLaOrden: CampoDeGuia[] = [
+    { id: "fases", nombre: "Fases y quién las hace", requerido: faltaFase !== null, hecho: faltaFase === null, pendiente: faltaFase ?? "" },
+    { id: "tela", nombre: "Tela", requerido: faltaTela !== null, hecho: faltaTela === null && (o.tela?.elegida ?? false), pendiente: faltaTela ?? "" },
+  ];
   if (!o.esNuevo) {
     return [
       { id: "modelo", nombre: "Modelo", requerido: true, hecho: o.hayModelo, pendiente: "Elige el modelo que se va a producir." },
       { id: "cantidades", nombre: "Cuántas prendas", requerido: true, hecho: o.totalExistente > 0, pendiente: "Escribe cuántas prendas de cada talla y color." },
-      { id: "costos", nombre: "Costos", requerido: costoMalo !== null, hecho: costoMalo === null, pendiente: costoMalo ?? "" },
+      ...deLaOrden,
     ];
   }
   const b = o.borrador;
-  const problemas = problemasDelModelo(b, o.celdas, o.costos);
+  const problemas = problemasDelModelo(b, o.celdas);
   const hay = (campo: ProblemaModelo["campo"]) => problemas.some((p) => p.campo === campo);
   const frase = (campo: ProblemaModelo["campo"]) => problemas.find((p) => p.campo === campo)?.texto ?? "";
   const conCategoria = b.categoria !== null;
@@ -338,7 +347,7 @@ export function camposDeGuiaOrden(o: {
     { id: "tallas", nombre: "Tallas", requerido: conCategoria || hay("tallas"), hecho: conCategoria && !hay("tallas"), pendiente: frase("tallas") },
     { id: "precio", nombre: "Precio", requerido: !b.esMuestra || hay("precio"), hecho: !hay("precio") && (conPrecio || !b.esMuestra), pendiente: frase("precio") },
     { id: "cantidades", nombre: "Cuántas prendas", requerido: true, hecho: !hay("cantidades"), pendiente: frase("cantidades") },
-    { id: "costos", nombre: "Costos", requerido: hay("costos"), hecho: !hay("costos"), pendiente: frase("costos") },
+    ...deLaOrden,
   ];
 }
 

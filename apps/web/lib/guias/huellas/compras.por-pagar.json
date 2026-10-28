@@ -2,7 +2,7 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 73,
+  "total": 70,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -17,11 +17,11 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -29,7 +29,7 @@
       "button «{TITULO[f.k]}»"
     ],
     "components/FiltrosCompras.tsx": [
-      "BotonFiltros «, accionesDespues, ].map( (contr»",
+      "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Pago»",
       "DesplegablePildora «Recepción»",
@@ -55,12 +55,12 @@
       "button «Solo lo vencido ·»",
       "button «{`Descontar mi saldo a favor con ${proveedorNombre}»",
       "CampoFecha «Fecha del pago»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{credito > 0 ? `Registrar pago de ${soles(total)}»"
     ],
     "components/PagoPiezas.tsx": [
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "BotonCopiar «{que}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
       "CampoFecha «Fecha del pago»",
@@ -88,17 +88,16 @@
       "Link «)»"
     ],
     "components/PorPagarVistaRapida.tsx": [
-      "button «Cerrar»",
-      "Link «Abrir comprobante»",
-      "button «Comprobante anterior»",
-      "button «Comprobante siguiente»"
+      "Link «Abrir comprobante»"
     ],
     "components/SaldosAFavor.tsx": [
       "Link «{s.nombre}»"
     ],
     "components/SalidasDeCaja.tsx": [
-      "input «Caja disponible, para ver hasta dónde alcanza»",
-      "button «{`${s.etiqueta}»"
+      "input «Caja disponible, para ver hasta dónde alcanza»"
+    ],
+    "components/compras/CabeceraDeCompras.tsx": [
+      "Pestanas «{items.map(({ clave, etiqueta, href, conteo, pide, tono}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

@@ -15,6 +15,7 @@
 
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
@@ -169,6 +170,11 @@ export function repartirFamilias<T extends { codigo: string }>(familias: T[]): {
 // ---------------------------------------------------------------------------
 
 export type EstadoAlta = {
+  /** ADR-0463: el alta pregunta a qué tienda pertenece el producto (CAYLA, CLAURE) ANTES de la categoría. `false` o ausente = la base
+   *  todavía no tiene las tiendas (se pega antes que la web, o aún no): el alta sigue como siempre y el producto nace en CAYLA. */
+  exigeEmpresa?: boolean;
+  /** La tienda elegida. Vacía = todavía sin elegir (no hay valor de fábrica: un producto en la tienda equivocada no se nota hasta tarde). */
+  empresaId?: string;
   categoriaId: string;
   // Marca y proveedor NO están aquí: desde ADR-0283 (2026-09-29) un producto se crea sin ellos y se completan después.
   referencia: string;
@@ -224,12 +230,17 @@ export function textoCeldaSinPrecio(celda: string): string {
   return `${celda} tiene el precio en 0 (tabla, pestaña Precios): pon un precio mayor que 0 o déjala vacía para que tome el de todas.`;
 }
 
-export type Problema = { bloque: "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
+/** Lo que falta cuando todavía no se dijo a qué tienda pertenece el producto. Una sola frase para `problemasAlta` y la guía. */
+export const TEXTO_FALTA_EMPRESA = "Elige a qué tienda pertenece el producto.";
+
+export type Problema = { bloque: "empresa" | "categoria" | "nombre" | "tela" | "tallas" | "variantes" | "precio" | "stock"; texto: string };
 
 /** Lo que falta, en el orden en que la persona lo encuentra en pantalla: así `problemas[0]` es siempre lo próximo que va a
  *  ver (nombre → tejido → patrón en el paso 2; tallas y tabla en el 3; precio y stock en el 4). */
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
+  // La tienda va antes que la categoría (ADR-0463): sin ella no se sabe de qué negocio es el producto.
+  if (e.exigeEmpresa && !e.empresaId) return [{ bloque: "empresa", texto: TEXTO_FALTA_EMPRESA }];
   if (!e.categoriaId) return [{ bloque: "categoria", texto: "Elige qué producto es (familia y categoría)." }];
   if (!e.referencia.trim()) p.push({ bloque: "nombre", texto: "Escribe el nombre del producto." });
   // Sin ni una letra ni un número («...», «✨») la base no tiene con qué formar la clave del nombre y lo rechaza recién al final de los 4 pasos.
@@ -253,6 +264,9 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.celdaSinPrecio) p.push({ bloque: "precio", texto: textoCeldaSinPrecio(e.celdaSinPrecio) });
   const costo = Number(e.costoBase);
   if (e.costoBase.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) p.push({ bloque: "precio", texto: "El costo no puede ser negativo." });
+  // ADR-0415: hasta S/ 5 000 (la base lo rechaza igual con `variantes_precio_con_tope`).
+  if (precio > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_PRECIO_CON_TOPE });
+  if (costo > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_COSTO_CON_TOPE });
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
@@ -345,6 +359,7 @@ export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4];
 
 export function pasoDeProblema(p: Problema): PasoAlta {
   switch (p.bloque) {
+    case "empresa":
     case "categoria":
       return 1;
     case "nombre":
@@ -470,7 +485,7 @@ export function fraseStockCreado(stock: { unidades: number; donde: string }, sin
   if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
   if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
   if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;
-  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}): ya aparecen en Existencias.`;
+  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}) como stock inicial: ya aparecen en Existencias, donde desde ahora se ajustan.`;
 }
 
 /** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */

@@ -5,13 +5,13 @@
   "total": 7,
   "controles": {
     "app/(app)/inventario/conteo/[id]/confirmar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «{`/inventario/conteo/${c.id}»"
     ],
     "components/conteo/ConfirmarConteo.tsx": [
-      "ComboResponsable «) : (enPantalla.modo === \"base\" || enPantalla.modo === \"reco»",
+      "ComboResponsable «{combo}»",
       "button «{enPantalla.cambiar}»",
       "Link «Ver el conteo»",
-      "Volver «void cerrar()»",
+      "Volver «{urlRevisar}»",
       "Boton «{razonApagado ?? undefined}»"
     ],
     "components/conteo/PasosConteo.tsx": [

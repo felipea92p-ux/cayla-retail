@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
+import { leerCampanasVigentes } from "@/lib/campanas-vigentes";
+import { leerPreciosPropiosDeSede } from "@/lib/precios-propios-de-sede";
 import { mismosPrecios, type PreciosReleidos } from "@/lib/precios-en-vivo-reglas";
 import { registrarPreciosPropios } from "@/lib/precios-en-vivo-registro";
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
@@ -33,9 +35,9 @@ async function leerPrecios(conocidos: Set<string>): Promise<Map<string, number> 
   return new Map(data.filter((v) => conocidos.has(v.id)).map((v) => [v.id, Number(v.precio)]));
 }
 
-async function leerCampanas(): Promise<Map<string, CampanaLinea> | null> {
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc("campanas_vigentes");
+async function leerCampanas(ubicacionId: string): Promise<Map<string, CampanaLinea> | null> {
+  // Las campañas de ESTA tienda (una campaña puede regir solo en algunas, ADR-0486), por páginas: pasan de las 1.000 filas.
+  const { data, error } = await leerCampanasVigentes(createClient(), ubicacionId);
   // Igual que al cargar la pantalla: si la función no existe en esa base (PGRST202) no hay campañas que aplicar.
   if (error) return error.code === "PGRST202" ? new Map() : null;
   return new Map((data ?? []).map((c) => [c.variante_id, { etiquetaId: c.etiqueta_id, nombre: c.etiqueta_nombre, pct: Number(c.descuento_pct) }]));
@@ -45,7 +47,7 @@ async function leerCampanas(): Promise<Map<string, CampanaLinea> | null> {
 // que no sube la versión del catálogo; la lista es corta (solo las excepciones). Si la función aún no existe (PGRST202), no
 // hay precios propios; si la lectura falla, `null`: se conservan los últimos.
 async function leerPropios(ubicacionId: string): Promise<Map<string, number> | null> {
-  const { data, error } = await createClient().rpc("fn_precios_en_sede", { p_ubicacion_id: ubicacionId });
+  const { data, error } = await leerPreciosPropiosDeSede(createClient(), ubicacionId);
   if (error) return error.code === "PGRST202" ? new Map() : null;
   return leerPreciosEnSede(data);
 }
@@ -99,7 +101,7 @@ export function usePreciosEnVivo(
         const releerPrecios = !hayPrecios || version === null || version !== versionRef.current;
         const [generales, campanas, propios] = await Promise.all([
           releerPrecios ? leerPrecios(new Set(conocidosRef.current)) : Promise.resolve(generalesRef.current),
-          leerCampanas(),
+          leerCampanas(ubicacionId),
           leerPropios(ubicacionId),
         ]);
         if (cancelado || !generales) return;

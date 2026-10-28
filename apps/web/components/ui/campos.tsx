@@ -217,12 +217,14 @@ type CampoMontoProps = InputHTMLAttributes<HTMLInputElement> & {
   moneda?: string;
   /** La etiqueta solo para el lector de pantalla: el bloque de arriba ya la dice a la vista (un `CampoGuiado` con su título). */
   etiquetaOculta?: boolean;
+  /** Sin el renglón reservado para un error bajo la caja: la hoja dice lo que falta en otro lado (su «Falta: …»). */
+  sinPie?: boolean;
 };
 
-export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, className = "", ...props }: CampoMontoProps) {
+export function CampoMonto({ etiqueta, ayuda, pie, tono, moneda = "S/", etiquetaOculta = false, sinPie = false, className = "", ...props }: CampoMontoProps) {
   const id = useId();
   return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta}>
+    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id} etiquetaOculta={etiquetaOculta} sinPie={sinPie}>
       {/* La caja que se enciende, de 48 px (ADR-0358, ronda 6): la cifra sigue siendo lo más grande de la hoja. */}
       <div className="caja-cayla caja-campo caja-campo-alta" data-tono={tono === "error" ? "error" : undefined}>
         <span aria-hidden className="font-display select-none text-base leading-none text-tinta/55">
@@ -975,7 +977,7 @@ function conMas(children: ReactNode): ReactNode {
   if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
   return (
     <span className="flex items-center gap-1.5">
-      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
+      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" />
       <span>
         {primero.replace(/^\s*\+\s*/, "")}
         {partes.slice(1)}

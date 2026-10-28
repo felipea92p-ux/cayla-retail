@@ -1,6 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { leerRpcPorPaginas } from "@/lib/rpc-por-paginas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
+  type ProveedorGasto,
   conIgvPerdido,
   leerActivo,
   leerEgreso,
@@ -22,6 +25,11 @@ import {
   type UbicacionGastos,
   type Ver,
 } from "@/lib/gastos-reglas";
+import { leerResumenFicha, type ResumenFicha } from "@/lib/gasto-fijo-ficha-reglas";
+import { dentroDeVer, juntarPaneles, juntarRecientes, partesDeVer } from "@/lib/gastos-varias-sedes";
+
+/** Todo lo que la cuenta ve: con varias sedes, lo que trae su sede en cada fila se lee así y se filtra con `dentroDeVer`. */
+const TODO: Ver = { clave: "todas", ubicacionId: null, soloEmpresa: false };
 
 // Finanzas ▸ Gastos (ADR-0195 F2, 20260924235100). Todo sale de funciones que ya miran solo lo que la cuenta ve
 // (`fn_gastos_ubicaciones`): el líder, todas y «la empresa»; con el módulo Gastos, su tienda. Si una lectura falla, la
@@ -61,7 +69,20 @@ export async function getContextoGastos(): Promise<{ ubicaciones: UbicacionGasto
   };
 }
 
+/** `fn_gastos_lista` corta en `p_limite` (la función no tiene tope propio): alto a propósito, y la lista se lee por páginas (`rpc-por-paginas.ts`: PostgREST
+ *  corta en 1.000). Con 500 de antes, un mes de más de 500 gastos perdía los más viejos y la lista no cuadraba con el total del panel. */
+const LIMITE_LISTA_GASTOS = 50_000;
+/** El orden de la lista (`fecha desc, created_at desc`) con `id` al final, para que dos gastos nunca empaten entre una página y la siguiente. */
+const ORDEN_GASTOS = ["fecha desc", "creado_en desc", "id"] as const;
+
 export async function getPanelGastos(desde: string, hasta: string, ver: Ver): Promise<Lectura<PanelGastos | null>> {
+  // Varias sedes (Felipe 2026-10-24): la base suma una sede (o la empresa) a la vez; se pide cada parte y se juntan.
+  if (ver.varias) {
+    const partes = await Promise.all(partesDeVer(ver).map((p) => getPanelGastos(desde, hasta, p)));
+    const falla = partes.find((x) => x.falla)?.falla;
+    if (falla) return { datos: null, falla };
+    return { datos: juntarPaneles(partes.flatMap((x) => (x.datos ? [x.datos] : []))), falla: null };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_gastos_panel" as never, { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa } as never);
   if (error) return { datos: null, falla: falla("el resumen de gastos", error) };
@@ -69,20 +90,30 @@ export async function getPanelGastos(desde: string, hasta: string, ver: Ver): Pr
 }
 
 export async function getGastos(desde: string, hasta: string, ver: Ver): Promise<Lectura<GastoFila[]>> {
+  if (ver.varias) {
+    const todo = await getGastos(desde, hasta, TODO);
+    return { ...todo, datos: todo.datos.filter((g) => dentroDeVer(ver, g.ubicacionId)) };
+  }
   const supabase = await createClient();
   const rango = { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa };
   const [lista, perdido] = await Promise.all([
-    supabase.rpc("fn_gastos_lista" as never, { ...rango, p_limite: 500 } as never),
+    // Por páginas y sin el tope de 500 de antes: la lista del mes y el panel (`fn_gastos_panel`, que suma todo) deben cuadrar (~280 gastos al mes hoy).
+    leerRpcPorPaginas(supabase, "fn_gastos_lista", { ...rango, p_limite: LIMITE_LISTA_GASTOS }, ORDEN_GASTOS, { enParalelo: 1 }),
     // ADR-0362, fase 6 (decisión 76): qué gasto perdió IGV por pagarse sin banco. Si no se puede leer, la lista sale igual y lo dice.
     supabase.rpc("fn_gastos_igv_perdido" as never, rango as never),
   ]);
   if (lista.error) return { datos: [], falla: falla("los gastos", lista.error) };
-  const gastos = ((lista.data ?? []) as Record<string, unknown>[]).map(leerGasto);
+  const gastos = (lista.data ?? []).map(leerGasto);
   if (perdido.error) return { datos: gastos, falla: falla("el IGV perdido por pagar sin banco", perdido.error) };
   return { datos: conIgvPerdido(gastos, (perdido.data ?? []) as Record<string, unknown>[]), falla: null };
 }
 
 export async function getEgresosPorClasificar(ver: Ver): Promise<Lectura<EgresoPorClasificar[]>> {
+  // La base corta en 300 por pedido: con varias sedes, cada una trae las suyas y se juntan con el mismo tope.
+  if (ver.varias) {
+    const partes = await Promise.all(partesDeVer(ver).map((p) => getEgresosPorClasificar(p)));
+    return { datos: juntarRecientes(partes.map((x) => x.datos), (e) => e.creadoEn, 300), falla: partes.find((x) => x.falla)?.falla ?? null };
+  }
   if (ver.soloEmpresa) return { datos: [], falla: null }; // la empresa no tiene cajón
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_egresos_sin_clasificar" as never, { p_ubicacion_id: ver.ubicacionId, p_limite: 300 } as never);
@@ -91,6 +122,8 @@ export async function getEgresosPorClasificar(ver: Ver): Promise<Lectura<EgresoP
 }
 
 export async function getMarcasNoGasto(ver: Ver): Promise<MarcaNoGasto[]> {
+  // La fila no trae su sede: con varias, se pide cada una y se juntan con el mismo tope.
+  if (ver.varias) return juntarRecientes(await Promise.all(partesDeVer(ver).map((p) => getMarcasNoGasto(p))), (m) => m.revisadoEn, 100);
   if (ver.soloEmpresa) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_egresos_no_gasto_lista" as never, { p_ubicacion_id: ver.ubicacionId, p_limite: 100 } as never);
@@ -99,18 +132,76 @@ export async function getMarcasNoGasto(ver: Ver): Promise<MarcaNoGasto[]> {
 }
 
 /** Los proveedores activos, para elegir el del comprobante (el directorio lo lee cualquier cuenta con acceso). */
-export async function getProveedoresParaGasto(): Promise<{ id: string; nombre: string; ruc: string | null }[]> {
+export async function getProveedoresParaGasto(): Promise<ProveedorGasto[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("proveedores").select("id, nombre, ruc").eq("activo", true).order("nombre");
-  return ((data ?? []) as { id: string; nombre: string; ruc: string | null }[]).map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc }));
+  // Con su contacto (ADR-0440). Lo bancario NO se lee de la tabla: la pantalla lo pide al elegir (`fn_proveedor_datos_bancarios`).
+  const { data } = await supabase.from("proveedores").select("id, nombre, ruc, contacto, telefono, forma_pago_preferida, plazo_credito_dias, rubros").eq("activo", true).order("nombre");
+  return ((data ?? []) as ProveedorGasto[]).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    ruc: p.ruc,
+    contacto: p.contacto ?? null,
+    telefono: p.telefono ?? null,
+    forma_pago_preferida: p.forma_pago_preferida ?? null,
+    plazo_credito_dias: p.plazo_credito_dias ?? null,
+    rubros: p.rubros ?? [],
+  }));
+}
+
+/**
+ * Lo que se sabe de cada gasto fijo para poder pagarlo (ADR-0452), por id. `disponible: false` si la base todavía no tiene la
+ * ficha (la migración 20261018003000 no está pegada): la pantalla se dibuja como antes, sin la columna ni el aviso.
+ */
+export async function getFichasDeFijos(): Promise<{ porFijo: Record<string, ResumenFicha>; disponible: boolean }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_gastos_fijos_fichas" as never);
+  if (error) return { porFijo: {}, disponible: false };
+  const porFijo: Record<string, ResumenFicha> = {};
+  for (const fila of (data ?? []) as Record<string, unknown>[]) {
+    const { gastoFijoId, resumen } = leerResumenFicha(fila);
+    porFijo[gastoFijoId] = resumen;
+  }
+  return { porFijo, disponible: true };
 }
 
 /** Los gastos de una ubicación en un rango (Producción ▸ Eficiencia lee los del Taller). Vacío si la cuenta no los ve. */
 export async function getGastosDeUbicacion(ubicacionId: string, desde: string, hasta: string): Promise<GastoFila[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_gastos_lista" as never, { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ubicacionId, p_limite: 500 } as never);
+  const { data, error } = await leerRpcPorPaginas(supabase, "fn_gastos_lista", { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ubicacionId, p_limite: LIMITE_LISTA_GASTOS }, ORDEN_GASTOS, { enParalelo: 1 });
   if (error) return [];
-  return ((data ?? []) as Record<string, unknown>[]).map(leerGasto).filter((g) => g.estado === "vigente");
+  return (data ?? []).map(leerGasto).filter((g) => g.estado === "vigente");
+}
+
+/** Lo que Caja necesita de un gasto: la tarjeta «Gastos del turno» y la ★ del mosaico del gasto rápido. */
+export type GastoDeCaja = Pick<GastoFila, "id" | "descripcion" | "categoria" | "categoriaNombre" | "fecha" | "montoTotal" | "medioPago" | "cajaMovimientoId" | "comprobanteTipo" | "creadoEn">;
+
+/**
+ * Los gastos vigentes de la tienda de `desde` a hoy (90 días como mucho), para Caja (ADR-0491, `fn_gastos_de_caja`). Los lee también quien
+ * maneja la caja sin el módulo Gastos: a esa cuenta la base solo le muestra los que pasaron por la caja o por el Yape o el Plin de la tienda.
+ * `null` si no se pudo leer (la tarjeta lo dice; el mosaico sale en su orden de fábrica).
+ */
+export async function getGastosDeCaja(ubicacionId: string, desde: string): Promise<GastoDeCaja[] | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_gastos_de_caja" as never, { p_ubicacion_id: ubicacionId, p_desde: desde } as never);
+  // La web se publica ANTES de pegar 20261023212000: mientras la función no exista (PGRST202), la lectura de antes, que solo
+  // responde a quien tiene el módulo Gastos.
+  if (error?.code === "PGRST202") return getGastosDeUbicacion(ubicacionId, desde, hoyLima());
+  if (error) return null;
+  return ((data ?? []) as Record<string, unknown>[]).map((g) => {
+    const fila = leerGasto(g);
+    return {
+      id: fila.id,
+      descripcion: fila.descripcion,
+      categoria: fila.categoria,
+      categoriaNombre: fila.categoriaNombre,
+      fecha: fila.fecha,
+      montoTotal: fila.montoTotal,
+      medioPago: fila.medioPago,
+      cajaMovimientoId: fila.cajaMovimientoId,
+      comprobanteTipo: fila.comprobanteTipo,
+      creadoEn: fila.creadoEn,
+    };
+  });
 }
 
 // ---- F2b (20260925000000): activos fijos y gastos fijos del mes ---------------------------------------------------------
@@ -123,6 +214,10 @@ export async function getTiposActivo(): Promise<TipoActivo[]> {
 
 /** Los activos de lo que se mira, con su depreciación a hoy. La empresa no tiene activos (cada uno está en un lugar). */
 export async function getActivos(ver: Ver): Promise<Lectura<ActivoFila[]>> {
+  if (ver.varias) {
+    const todo = await getActivos(TODO);
+    return { ...todo, datos: todo.datos.filter((a) => dentroDeVer(ver, a.ubicacionId)) };
+  }
   if (ver.soloEmpresa) return { datos: [], falla: null };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_activos_lista" as never, { p_ubicacion_id: ver.ubicacionId } as never);
@@ -132,6 +227,10 @@ export async function getActivos(ver: Ver): Promise<Lectura<ActivoFila[]>> {
 
 /** Los gastos fijos de un mes: registrado, viene o falta. */
 export async function getFijosMes(desde: string, ver: Ver): Promise<Lectura<GastoFijoMes[]>> {
+  if (ver.varias) {
+    const todo = await getFijosMes(desde, TODO);
+    return { ...todo, datos: todo.datos.filter((f) => dentroDeVer(ver, f.ubicacionId)) };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_gastos_fijos_mes" as never, { p_mes: desde, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa } as never);
   if (error) return { datos: [], falla: falla("los gastos fijos", error) };
@@ -145,6 +244,6 @@ export async function getFijosSugeridos(ver: Ver): Promise<FijoSugerido[]> {
   if (error) return [];
   return ((data ?? []) as Record<string, unknown>[])
     .map(leerSugerido)
-    .filter((f) => (ver.soloEmpresa ? f.ubicacionId === null : ver.ubicacionId ? f.ubicacionId === ver.ubicacionId : true));
+    .filter((f) => dentroDeVer(ver, f.ubicacionId));
 }
 

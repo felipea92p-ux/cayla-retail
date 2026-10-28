@@ -51,8 +51,18 @@ export const METODOS_DIFERENCIA = [
   { valor: "yape", etiqueta: "Yape" },
   { valor: "plin", etiqueta: "Plin" },
   { valor: "transferencia", etiqueta: "Transferencia" },
+  { valor: "qr", etiqueta: "QR" },
 ] as const;
 export type MetodoDiferencia = (typeof METODOS_DIFERENCIA)[number]["valor"];
+
+/**
+ * Los medios que el paso «Reemplazo» ofrece. El QR solo si la base ya lo acepta (`fn_acepta_qr_en_cambios`, 20261021184000): si la
+ * migración aún no está en producción, la lista sigue con los cinco de siempre y nunca ofrece algo que la base rechazaría — la misma
+ * regla que `fn_acepta_pago_qr` en Vender. Sin QR, la clienta que pagó con Izipay terminaba anotada como «transferencia» (2026-10-21).
+ */
+export function metodosDiferencia(aceptaQr: boolean) {
+  return METODOS_DIFERENCIA.filter((m) => aceptaQr || m.valor !== "qr");
+}
 
 // ============================================================================
 // Qué escribió (o escaneó) la colaboradora en el buscador (2026-09-18). Tres
@@ -140,8 +150,8 @@ export function estadoPlazoVenta(creadoEn: string, ahora: Date): EstadoVisual {
 
 /** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice
  *  eso (más útil que "fuera de plazo"); después, el plazo — y ahí sí, a diferencia de
- *  Devoluciones, fuera de plazo bloquea: Cambios no tiene aprobación de un líder que
- *  decida después. */
+ *  Devoluciones, fuera de plazo bloquea: Cambios no tiene una aprobación posterior
+ *  que lo decida. */
 export function estadoPrendaVendida(
   linea: { cantidad: number; yaCambiado: number; yaDevuelto: number; anulada: boolean; creadoEn: string },
   ahora: Date
@@ -229,7 +239,7 @@ export type Validacion = {
   clave: string;
   /** `ok` ✓ · `alerta` frena (algo está mal) · `pendiente` frena (falta un dato) ·
    *  `aviso` NO frena: lo que conviene saber antes de seguir (ej. fuera de plazo en una
-   *  devolución, que igual decide un líder). */
+   *  devolución, que igual se decide al aprobarla). */
   estado: "ok" | "alerta" | "pendiente" | "aviso";
   /** `rojo` pinta el ícono en rojo aunque el estado no frene: el plazo vencido se ve rojo
    *  en las dos pantallas, sea una alerta (Cambios) o un aviso (Devoluciones). */
@@ -361,7 +371,10 @@ export type ImpactoOperacion = {
 export function impactoCambio(e: {
   devuelta: string;
   entregada: string;
+  /** Cuántas de la devuelta vuelven (y, en un cambio de una por una, cuántas de la nueva salen). */
   cantidad: number;
+  /** Un cambio por VARIAS prendas (ADR-0470): cada prenda que sale del piso con su cantidad. Sin esto, sale `entregada` × `cantidad`. */
+  entregadas?: readonly { prenda: string; cantidad: number }[];
   condicion: CondicionCambio;
   diferencia: number;
   metodo: MetodoDiferencia;
@@ -369,7 +382,7 @@ export function impactoCambio(e: {
 }): ImpactoOperacion {
   // En medio de una frase: "con tarjeta", pero "con Yape" — las marcas no se achican.
   const etiqueta = METODOS_DIFERENCIA.find((m) => m.valor === e.metodo)?.etiqueta ?? e.metodo;
-  const metodo = e.metodo === "yape" || e.metodo === "plin" ? etiqueta : etiqueta.toLowerCase();
+  const metodo = e.metodo === "yape" || e.metodo === "plin" || e.metodo === "qr" ? etiqueta : etiqueta.toLowerCase();
   const enEfectivo = e.metodo === "efectivo";
   const caja =
     e.diferencia === 0
@@ -391,7 +404,12 @@ export function impactoCambio(e: {
         prenda: e.devuelta,
         donde: e.condicion === "vendible" ? `vuelve al piso de ${e.sede}` : `entra a cuarentena en ${e.sede}`,
       },
-      { signo: "−", cantidad: e.cantidad, prenda: e.entregada, donde: `sale del piso de ${e.sede}` },
+      ...(e.entregadas && e.entregadas.length > 0 ? e.entregadas : [{ prenda: e.entregada, cantidad: e.cantidad }]).map((x) => ({
+        signo: "−" as const,
+        cantidad: x.cantidad,
+        prenda: x.prenda,
+        donde: `sale del piso de ${e.sede}`,
+      })),
     ],
     caja,
   };
@@ -411,6 +429,22 @@ export function descripcionEntregada(
 ): string {
   const variante = varianteLegible(entregada);
   return entregada.productoId === productoVendidoId ? variante : [entregada.referencia, variante].filter(Boolean).join(" · ");
+}
+
+/** Lo que se le entregó a la clienta en un cambio YA hecho: lo de siempre si fue una prenda, y todas con su cantidad si fueron varias (ADR-0470):
+ *  «Negro · Talla S (×2) + Top Rib · Blanco · Talla M». */
+export function descripcionEntregadaTodas(
+  cambio: {
+    productoId: string;
+    referencia: string;
+    talla: string | null;
+    color: string | null;
+    salidas?: readonly { productoId: string; referencia: string; talla: string | null; color: string | null; cantidad: number }[];
+  },
+  productoVendidoId: string
+): string {
+  if (!cambio.salidas || cambio.salidas.length === 0) return descripcionEntregada(cambio, productoVendidoId);
+  return cambio.salidas.map((x) => `${descripcionEntregada(x, productoVendidoId)}${x.cantidad > 1 ? ` (×${x.cantidad})` : ""}`).join(" + ");
 }
 
 // ============================================================================

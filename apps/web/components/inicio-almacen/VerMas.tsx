@@ -1,21 +1,16 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Ico } from "./iconos";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 
-/** «Ver N más» de «Te toca»: las filas de más se despliegan con `grid-template-rows` (0fr → 1fr), sin medir alturas. Cerradas
- *  quedan `inert`: ni se ven ni se alcanzan con el teclado. */
+/** «Ver N más» de «Te toca»: la pieza de todo el ERP (ronda 15 de /unificar), que nació aquí. Las filas de más bajan en su lugar
+ *  y, cerradas, quedan `inert`: ni se ven ni se alcanzan con el teclado. */
 export function VerMas({ cantidad, children }: { cantidad: number; children: ReactNode }) {
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <div className={`ia-mas ${abierto ? "ia-on" : ""}`} inert={!abierto}>
-        <div>{children}</div>
-      </div>
-      <button type="button" className={`ia-vm ${abierto ? "ia-on" : ""}`} onClick={() => setAbierto((v) => !v)} aria-expanded={abierto}>
-        {abierto ? "Ver menos" : `Ver ${cantidad} más`}
-        <Ico clave="chevDown" />
-      </button>
+      <FilasDeMas abierto={abierto}>{children}</FilasDeMas>
+      <BotonVerMas abierto={abierto} onCambiar={setAbierto} texto={`Ver ${cantidad} más`} />
     </>
   );
 }

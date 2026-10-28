@@ -2,7 +2,7 @@
   "guia": "clientas",
   "ruta": "/clientas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 48,
   "controles": {
     "components/CampoDocumentoClienta.tsx": [
       "CampoSelect «{etiqueta}»",
@@ -10,52 +10,58 @@
     ],
     "components/ClientaFichaModal.tsx": [
       "Boton «Cancelar»",
-      "Pestanas «(sin nombre)»",
-      "BotonEditar «)»",
+      "BotonEditar «Editar datos»",
+      "button «Archivar a este cliente»",
+      "Pestanas «{[ { clave: \"club\", etiqueta: \"Club\"}»",
       "Boton «Registrar su BAJA»",
-      "button «Unir con otra ficha»",
-      "button «Archivar»",
-      "ComboResponsable «Reactivar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "ComboResponsable «{volverAVer}»",
+      "CampoTexto «{ID_CORREO}»",
+      "ComboResponsable «{responsable}» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"motivo\", \"Motivo\")}»",
-      "ComboResponsable «{volverAVer}» #2",
+      "ComboResponsable «{responsable}» #3",
       "Boton «{guia.frase ?? undefined}»",
-      "CampoTexto «Buscar»",
-      "Boton «Buscar»",
-      "button «{otra.nombre ?? \"Sin nombre\"}»",
-      "ComboResponsable «{volverAVer}» #3",
-      "Boton «{guia.frase ?? undefined}» #2",
-      "ComboResponsable «{volverAVer}» #4",
-      "Boton «{responsable.motivo ?? undefined}»",
-      "button «{todas ? \"Ver menos\" : `Ver las ${total}»"
+      "ComboResponsable «{responsable}» #4",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ClientasPanel.tsx": [
       "BotonDescargar «Solo un Admin puede descargar la lista completa»",
+      "BotonEnlace «clientas.cartel»",
       "Boton «clientas.nuevo»",
       "Link «{f.texto}»",
-      "Link «‹ Anterior»",
-      "Link «Siguiente ›»",
-      "button «clientas.fila»"
-    ],
-    "components/ConsultaDocumento.tsx": [
-      "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
-      "CampoTexto «{etiqueta.nombre}»"
+      "button «{guiaPrimera ? \"clientas.fila\" : undefined}»"
     ],
     "components/NuevaClientaModal.tsx": [
-      "CampoTexto «Nombre completo»",
-      "ComboResponsable «(sin nombre)»",
+      "button «Abrir su ficha»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre completo\")}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
+    "components/clientas/FichaDelCliente.tsx": [
+      "BotonCopiar «{que}»",
+      "BotonFiltro «{f.texto}»",
+      "BotonVerMas «{`Ver las ${filtrados.length}»"
+    ],
+    "components/clientas/NombreDelPadron.tsx": [
+      "button «Volver a intentar»",
+      "CampoTexto «{padron.estado === \"consultando\" ? \"Consultando el padrón…\" : \"Lo trae el padrón\"}»",
+      "button «Actualizar desde el padrón»"
+    ],
     "components/clientas/PreferenciasClienta.tsx": [
       "button «{o.valor}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Deshacer»",
       "Boton «Guardar preferencias»"
+    ],
+    "components/clientas/TiendaOnlineDeLaFicha.tsx": [
+      "Boton «Restablecer acceso»",
+      "CampoTexto «{guia.etiqueta(\"correo\", \"Correo nuevo\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/clientas/club-piezas.tsx": [
       "CampoTexto «{etiqueta}»",

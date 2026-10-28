@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { accionesDeCompraDe, puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
-import { getCatalogo } from "@/lib/catalogo-v2";
+import { getCatalogoDeLaSede } from "@/lib/catalogo-v2";
 import { listarPorRecibir, getLineasCompra, getRecepcionesRecientes, filtrosDesdeParams, getProveedoresActivos, type ParamsCompras } from "@/lib/compras";
 import type { CompraResumen } from "@/lib/compras-reglas";
 import { getResumenRecepciones, listarRecepcionesCompras, listarRecepcionesSinComprobante } from "@/lib/compras-indicadores";
@@ -32,6 +32,7 @@ import { RecepcionesRecientes } from "@/components/RecepcionesRecientes";
 import { FunnelX, Receipt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
+import { AccionSinAviso, SinAvisoProvider } from "@/components/recepcion-conteo/SinAvisoContexto";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
 import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
@@ -151,7 +152,9 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           <RecepcionesRecientes recepciones={sinFactura} costos={costosSinFactura} vacio={`Todavía no llegó nada sin factura a ${nombreMirada}.`} />
         </section>
 
-        <TituloSeccion className="-mb-3">Contra factura</TituloSeccion>
+        {/* `space-y-6` deja 24 px como margen INFERIOR del título (Tailwind 4): `mb-3` los baja a 12. Con `-mb-3` el título quedaba
+            12 px debajo de las tarjetas y se veía cortado por la mitad. */}
+        <TituloSeccion className="mb-3">Contra factura</TituloSeccion>
         <div data-guia="recibidas.cifras" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <TarjetaCifra className="anim-entra" style={{ "--i": 0 } as CSSProperties} punto="neutro" etiqueta="Unidades recibidas" valor={<CifraQueCuenta valor={resumen.unidadesRecibidas} alMontar />}>
             últimos 90 días · {resumen.recepciones.toLocaleString("es-PE")} {resumen.recepciones === 1 ? "recepción" : "recepciones"}
@@ -221,7 +224,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
     const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando] = await Promise.all([
-      getCatalogo(),
+      // Lo que se puede recibir AQUÍ (ADR-0505): en Trujillo no se sugiere la blusa de CLAURE que se parece a la de CAYLA.
+      getCatalogoDeLaSede(persona.ubicacionId),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
       getMarcasPorProveedor(),
@@ -290,20 +294,24 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     if (contando.disponible) {
       return (
         <div className="space-y-6">
-          {conEncabezado(`Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
+          {conEncabezado(`Abre un fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+          <SinAvisoProvider>
           {deOrdenes && (
-            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} />
+            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} accionTitulo={<AccionSinAviso />} />
           )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
-            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
+            rubrosEnUso={rubrosEnUso}
+            puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
             hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
+          </SinAvisoProvider>
           {llegoEstaSemana}
         </div>
       );
@@ -324,7 +332,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
             verMontos={verMontos}
             veExistencias={veModulo(persona, "existencias")}
-            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
+            guiaEnEspera={Boolean(deOrdenes && (deOrdenes.envios.some((e) => !e.creadoPorMi) || deOrdenes.ordenes.some((o) => !o.creadaPorMi)))}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, rubros: p.rubros, marcas: marcas?.[p.id] ?? [] }))}
             rubrosEnUso={rubrosEnUso}
             puedeAgregarProveedor={puedeAgregarProveedor}
             facturas={facturasDeLaSede}
@@ -366,7 +375,8 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
     // tablas de dinero quedan cerradas para él en la base). Quien lo ve (P2) recibe además los montos de `compras_resumen`.
     // ADR-0139: solo los comprobantes que aún le faltan a ESTA tienda, con las cifras de ella.
     listarPorRecibir(filtros, cursor, { sinMontos: !verMontos, ubicacionId: ubicacionMirada }),
-    getCatalogo(),
+    // Lo que se ofrece AQUÍ (ADR-0505): sin las prendas de CLAURE fuera de Lima.
+    getCatalogoDeLaSede(ubicacionMirada),
     getProveedoresActivos(),
   ]);
   // Quien cuenta sin ver el dinero de Compras no ve montos: la base ya no se los entrega (ADR-0126) y, por si esa lectura
@@ -415,11 +425,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>
             ) : (
-              <Vacio
-                icono={<Receipt />}
-                titulo="No hay nada pendiente de recibir"
-                acciones={acciones.facturas ? <BotonEnlace href="/compras/nueva" peso="primario">Registrar un comprobante</BotonEnlace> : undefined}
-              >
+              <Vacio icono={<Receipt />} titulo="No hay nada pendiente de recibir">
                 No hay comprobantes con mercadería pendiente de recibir. Si llegó mercadería sin factura,{" "}
                 <Link href="/recibir" className="btn-enlace">recíbela sin factura</Link>.
               </Vacio>

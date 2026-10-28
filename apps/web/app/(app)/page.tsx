@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -42,6 +43,7 @@ import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/in
 import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
 import { getResumenMiFondo } from "@/lib/fondos";
 import { hrefTuFondo, mostrarTuFondo } from "@/lib/fondos-reglas";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -250,11 +252,12 @@ export default async function InicioPage() {
       </div>
 
       {fijo && (
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
-          <Link href={fijo.href} className="flex h-13 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema" data-guia="inicio.fijo">
+        // La barra de abajo del celular es la Isla (ADR-0479, actividad 12): con una sola acción, la isla es el botón.
+        <BarraDeAbajo sola className="sm:hidden">
+          <Link href={fijo.href} className="btn-cayla btn-primario gap-2.5" data-guia="inicio.fijo">
             <Icono clave={fijo.icono} /> {fijo.etiqueta}
           </Link>
-        </div>
+        </BarraDeAbajo>
       )}
     </div>
   );
@@ -285,7 +288,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
       <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <div className="card-cayla flex items-start gap-3 px-4 py-3.5 text-sm text-tinta/80 sm:px-5">
-          <Icono clave="caja" className="mt-0.5 size-[18px] text-tinta/60" />
+          <Icono clave="caja" className="mt-0.5 size-4 text-tinta/60" />
           <p>
             <span className="font-semibold text-tinta">{esLider ? "Aún sin ventas hoy." : "Aún no tienes ventas hoy."}</span> {caja}
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
@@ -318,9 +321,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           r.meta ? (
             <TarjetaCifra etiqueta="Meta del día" valor={`${r.meta.pct} %`}>
               Faltan {formatoSoles(r.meta.falta)} de {formatoSoles(r.meta.meta)}
-              <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                <span className="block h-full rounded-full bg-verde" style={{ width: `${r.meta.barra}%` }} />
-              </span>
+              <BarraAvance pct={r.meta.barra} decorativa className="mt-2" />
             </TarjetaCifra>
           ) : (
             <TarjetaCifra etiqueta="Meta del día" valor={null}>
@@ -430,7 +431,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
             href={a.href}
             className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
-            <Icono clave={a.icono} className="size-[22px]" />
+            <Icono clave={a.icono} className="size-5" />
             {a.etiqueta}
           </Link>
         ))}

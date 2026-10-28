@@ -12,6 +12,9 @@ export type OpcionSegmento = {
   deshabilitada?: boolean;
   /** Solo en `forma="modo"`: la línea que sale al pasar el mouse (`title`). */
   ayuda?: string;
+  /** Solo en `forma="modo"`: bajo `sm`, solo el icono (la palabra sigue para el lector de pantalla y en `title`): la barra gana ancho en una
+   *  pantalla chica. Vitrina ▸ Modelos, 2026-10-26. */
+  soloIcono?: boolean;
   /** El ancla de la guía interactiva de esta opción (`data-guia`, ADR-0389): la demo la toca para cambiar de opción. */
   guia?: string;
 };
@@ -94,7 +97,7 @@ function SegmentoModo({ opciones, valor, onCambio, etiqueta, className = "" }: P
             className="segmento-cayla__opcion"
           >
             {o.icono}
-            {o.etiqueta}
+            {o.soloIcono ? <span className="max-sm:sr-only">{o.etiqueta}</span> : o.etiqueta}
             {o.conteo != null && <span className="pildora-cayla__n">{o.conteo}</span>}
           </button>
         );

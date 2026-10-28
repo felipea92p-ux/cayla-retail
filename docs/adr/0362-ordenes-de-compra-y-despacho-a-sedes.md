@@ -35,7 +35,7 @@
 | 14 | Faltante | **La causa la elige la sede.** Cada faltante es UNA deuda del proveedor («2 polos · S/ 50») en estado «por reponer», que se cierra con un toque: **«Llegó la reposición»** (se cuenta en la próxima recepción de ese proveedor) o **«Pasar a saldo a favor»** (se descuenta del próximo pago). Sin plazos automáticos. Se ve en la ficha del proveedor y al crear su próxima orden de compra |
 | 15 | Sobrante | El motivo (regalo, se cobra aparte, se descuenta o cobra en la próxima compra) lo marca **quien recibe en la sede** |
 | 16 | Quién paga | **La encargada de compras**, desde su fondo por rendir, o administración desde la cuenta de la empresa (brief). **Reemplaza ADR-0184** («cada tienda paga su parte»; en producción, sin uso: 0 compras). Toca Compras, Por pagar y Finanzas |
-| 17 | Separación de funciones | **Quien crea la orden de compra no puede recibirla, sin excepción** (ni el líder) |
+| 17 | Separación de funciones | **Quien crea la orden de compra no puede recibirla** (ni el líder). ***Excepción desde el 2026-10-26 (ADR-0517, Felipe): la cuenta de un Admin sí puede recibir lo que él mismo compró, y queda anotado***; el Taller conserva el bloqueo íntegro |
 | 18 | Costo | **Lo corrige quien recibe, en la recepción** (brief), y **todo el que recibe ve los precios**. Reemplaza, para la recepción, la regla de ADR-0126 (la sede no ve plata) |
 | 19 | Quién compra | Una **encargada de tienda** o la **encargada general**. Lo que compra la de tienda llega **directo a su sede** (sin pasar por Lima); lo que compra la general se compra y **después se envía** desde Lima a las sedes |
 | 20 | Gastos adicionales | Se registran como dice el brief (flete, fardos, carretilla, viáticos), pero **aparte: nunca se mezclan con el costo de la prenda**. El costo de traer una compra se ve junto a ella, no dentro de `variantes.costo`. Responde también el flete de Lima a cada sede |
@@ -78,11 +78,11 @@
 | 57 | Contabilidad del fondo, provisional | **Fondo en la 1413** (entregas a rendir) y **el Yape personal de la compradora no cuenta como pago bancarizado de CAYLA**, hasta que el contador diga otra cosa (Felipe 2026-10-13) |
 | 58 | Saldo a favor con factura | **Interno ya, su nota de crédito después:** se registra al toque con un documento interno que baja lo que se le debe al proveedor en el próximo pago, marcado «falta su nota de crédito» con el aviso del IGV (61) hasta que llegue; al llegar, se adjunta (Felipe 2026-10-13). Con boleta, nota de venta o sin comprobante: documento interno sin IGV |
 | 59 | «Depositó» | **Lo registra quien tiene Proveedores**, desde la ficha del proveedor (Felipe 2026-10-13; el módulo es la llave, 40) |
-| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13) |
+| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13). El módulo es **Existencias**, solo para lo que **llegó dañado en una recepción** y **el grupo entero** (Felipe 2026-10-15) |
 | 61 | Aviso del IGV | **Aviso en Inicio que no se puede ocultar**, para quien ve la plata de Compras, mientras un proveedor deba prendas de una factura (Felipe 2026-10-13) |
 | 62 | Lista de compras del Taller | **Después**: primero el comprobante y la recepción de la orden de insumos (Felipe 2026-10-13) |
 | 63 | Maquila y flete del Taller | **Siguen como gastos** en Finanzas (los del viaje, en el fondo de la fase 6); la orden de insumos solo lleva insumos (Felipe 2026-10-13) |
-| 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13) |
+| 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13). **Hecha el 2026-10-15** (`20261015141000`, en producción): `guardar_plan_compra_minimo` ya no pide ser líder y bloquea el plan antes de sumar los mínimos, porque con más personas que pueden fijarlos, dos a la vez en tiendas distintas dejaban la campaña en 120 % (`pruebas:plan-compra-minimo`, C1). «Campaña nueva» sigue siendo de un líder: escribe en Etiquetas |
 | 65 | Dónde va «Fondos por rendir» | **Directo en Compras**, como octava entrada (después de Por pagar), subiendo el tope del menú de Compras. Se le preguntó con el subgrupo «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación y con «Finanzas ▸ Dinero»; dijo que no va en Finanzas y eligió no regrupar (Felipe 2026-10-13) |
 | 66 | Recibir mercadería | **Se mudará a Existencias** (Felipe 2026-10-13, al hablar del menú). Ese día Compras baja de 8 a 7 entradas y la excepción del tope queda solo por Fondos por rendir. No es parte de la fase 6 |
 | 67 | Gastos del viaje: dónde y a qué | **Desde Órdenes de compra**, por quien tiene ese módulo; la plata sale de «Mi fondo» o de una cuenta de siempre. Un gasto va a **una o varias órdenes**: con varias se reparte según el total de cada una («hay que manejar ambos casos») (Felipe 2026-10-13) |
@@ -102,6 +102,11 @@
 | 81 | Aprobar sin ver la lista | **«Aprobar» espera a que se vea lo que se rindió.** Si la lista no se puede leer, «Revisar», «Ver tu rendición» y «Rendir» lo dicen («No pude traer lo que rindió») con «Volver a intentar», en vez de dibujar una lista vacía; la lectura se corta a los 10 s. La base ya relee y rechaza si algo cambió: esto cuida que quien aprueba vea lo que aprueba. Nació de /formidable (2026-10-14, cambio 2) (Felipe 2026-10-14) |
 | 82 | La cuenta de una persona, dicha entera | **El faltante dice en cuánto queda la deuda** («su deuda pasa de S/ 25.00 a S/ 30.00»), en «Revisar», en «Rendir», en «Ver tu rendición» y en el botón «Aprobar: su deuda sube a S/ 30.00»; la fila de quien rindió dice «dice S/ 375.00 · por aprobar» bajo lo de los libros; quien no puede aprobar ve «Revisar» en secundario; «Ver tu rendición» lee la explicación de la propia rendición (`fn_mi_rendicion_abierta`, `20261014222000`) para no decir «quien la revisa decide» cuando sin explicación es deuda (54); y palabras de tienda: «1 gasto y 1 entrega» (no «2 filas»), «Entregado» (no «Le entregaste»), «Lo que entró y salió de su fondo», «otra persona que revise los fondos» (también en `fn_rendicion_quien_no_aprueba`). Nació de /formidable (2026-10-14, cambio 3) (Felipe 2026-10-14) |
 | 83 | Devolver con una rendición por aprobar: las dos cifras | **La hoja de devolución dice las dos cifras y de dónde sale el tope**: «Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00» (reemplaza la frase de la hoja de la 79; el tope no cambia). La cifra grande de la tabla y de «Tienen en la mano» sigue siendo la de los libros. Va con lo que falta y no con «lo que dijo tener»: si después de rendir le entregaron más, lo que dijo tener ya no es el tope. Y un monto dentro de una frase no se parte entre «S/» y la cifra (`solesSinCorte`). Nació de la prueba ciega repetida de /formidable (2026-10-14): con S/ 380 en la tabla y S/ 375 en la hoja, no supo cuál era la buena (Felipe 2026-10-14) |
+| 84 | Pagar al contado el papel del Taller | **Como en tienda**: quien registra el papel de una orden de insumos lo paga en el acto desde una cuenta de la empresa o desde «Mi fondo»; lo que se paga después de un papel al crédito sigue con el líder, en Por pagar del Taller (Felipe 2026-10-14) |
+| 85 | Lo que no llegó de una orden de insumos | **Anotado en la orden**: «el resto no va a llegar» cierra lo pendiente de esa línea y queda como lo que el proveedor nos debe, a la vista en la orden y en la lista; cómo se salda (reposición, saldo a favor o reembolso) llega con la fase 5b (Felipe 2026-10-14) |
+| 86 | Anular el papel de una orden de insumos | **No se anula si responde por algo**: si una línea suya está anotada como «no llegará» o si respalda lo recibido de más (lo que pasa lo pedido y no cubren los otros papeles vigentes), Producción ▸ Comprobantes no lo anula y dice por qué; primero se registra el papel correcto. Lo recibido que cabe en lo pedido lo respalda la orden, y ese papel sí se anula. Para mirar, bloquea la orden, como recibir y registrar. Nació de /chaos (2026-10-14, gravedad 1) (Felipe 2026-10-14) |
+| 87 | El papel de una orden de insumos, sin nada puesto | **Como el de Compras desde el 13/10**: el tipo, cómo se paga y el medio del pago al contado arrancan vacíos y se eligen siempre, y el total va sin IGV hasta elegir factura; la pantalla dice «Compra de OI-…» y su botón, «Registrar la compra»; y el pie dice lo que se va a registrar («Vas a registrar la factura F001-0456 por S/ 56.05, al crédito: vence el 30/10/2026»). Nació de /formidable (2026-10-14: con solo serie y número se registraba una factura al crédito con IGV que nadie eligió) (Felipe 2026-10-14) |
+| 88 | La orden de insumos dice lo mismo que Recibir | **La orden muestra lo que su papel trajo y no estaba pedido** («No estaba en la orden»: lo facturado, lo que llegó al Taller y lo que queda), y su estado lo cuenta: «Recibida» cuando no queda nada por recibir, también fuera de la orden, y «Llegó en parte» mientras quede algo. La hoja de Recibir dice al pie las cantidades que entran y lo que no llegará con lo que nos debe el proveedor, y cada línea dice qué pasa con su resto («Si no lo marcas, lo que falta (20 unidades) sigue pendiente para otra entrega»). Nació de /formidable (2026-10-14) (Felipe 2026-10-14) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -153,9 +158,25 @@ sola al crear la prenda; un costo de 0 pide confirmar; sin cola sin conexión en
 **Fase 5a (2026-10-12, rama `claude/purchase-order-phase5-9b0c82`).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`.
 Lo construido (no mueve plata): **la deuda** es el faltante «No vino» de una recepción (14); se ve en la ficha del proveedor («Prendas
 por reponer») y al crear o editar su próxima orden (14); se salda con **la prenda** —en la próxima recepción, «Es la reposición de lo que
-faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido. **Fase 5b, sin construir:**
-«Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
-tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
+faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido.
+
+**Fase 5b (2026-10-15, rama `claude/purchase-order-phase5b-9b0c82`).** Contrato: el mismo, sección «Fase 5b». Lo construido (mueve plata):
+**«Pasar a saldo a favor»** (58) registra al toque un documento interno DI-… por lo que se pagó de lo que no llegó, al costo del papel:
+baja lo que se le debe a ese comprobante y, si ya se pagó, deja el resto a favor; con una factura lleva su IGV, que espera la nota del
+proveedor en la **cuenta puente 4019** («IGV por regularizar», Felipe 2026-10-15) y no baja el crédito fiscal hasta que llega. **«Llegó su
+nota de crédito»** adjunta la nota 07 del proveedor a esos documentos sin mover plata: desde su fecha, Impuestos la cuenta y el Diario saca
+el IGV de la 4019. **«Depositó»** (59), con Proveedores: el documento interno y el reembolso de lo que quedó a favor, en una sola
+operación; el depósito tiene que ser exactamente eso. **El aviso del IGV** (61), en Inicio sin poder ocultarse y en el Observatorio.
+**Devolver al proveedor lo que llegó dañado** (60): desde Dañadas, con Existencias; queda como deuda «por reponer» (causa `devuelta`) con
+las mismas tres salidas, y su documento interno es por devolución, sobre el comprobante donde esas prendas se recibieron. De paso, la
+ficha del proveedor muestra el saldo a favor a quien solo tiene Proveedores (salía S/ 0). Migraciones `20261015145000` (el esquema) y
+`20261015150000` (las funciones); prueba `pnpm pruebas:nos-debe` (41 casos). **En producción desde el 2026-10-15** (allá `20261015233508`
+y `20261015234146`), pegadas en ese orden con el OK de Felipe: las 16 funciones que crean o reescriben tienen la misma huella (md5 de su
+definición) que en el banco donde corrieron las pruebas, y los 22 reemplazos anclados quedaron aplicados.
+
+Por defecto *(provisional, revisar con Felipe y el contador)*: el código y el nombre de la 4019; el monto de la nota del proveedor se
+escribe y tiene que coincidir con los documentos que respalda, y una nota puede respaldar varios documentos internos del mismo
+comprobante; una dañada que llegó de más (fuera de la guía), que devolvió un cliente o que reportó la tienda no se devuelve con deuda.
 
 **Fase 7, parte 1 (2026-10-13, rama `claude/purchase-order-phase7-9b0c82`; construida de noche, provisional).** Contrato:
 `docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md` (con «Cambios al construir»). Lo construido: **la orden de
@@ -163,8 +184,8 @@ insumos del Taller** (`OI-000001`, su propio correlativo: 28) con su **módulo p
 delegable: quien lo tiene ve y hace todo en estas órdenes, con sus precios, sin ver el resto de la plata del Taller). Proveedor de
 `proveedores_produccion`, destino un taller y líneas de insumo con la cantidad en su unidad (hasta 3 decimales) y el precio con hasta 4
 decimales, como los comprobantes y los lotes del Taller. Crear, ver, editar, anular e imprimir o guardar el PDF, con las mismas reglas que
-la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **Sin construir (espera a
-Felipe):** el comprobante de la orden y la recepción en el Taller (las preguntas 2 a 4 del contrato).
+la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **El comprobante de la orden y la recepción
+en el Taller** (las preguntas 2 a 4 del contrato) se construyeron en la parte 2, abajo.
 
 Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción ▸ Abastecimiento (la opción recomendada de la pregunta 1),
 pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
@@ -380,6 +401,79 @@ crédito, la proporción se calcula sobre el total ORIGINAL de la factura (como 
 dice «Sin comprobante» en un gasto del viaje con factura (su papel vive en `gastos_viaje` y `fn_gastos_lista` solo mira `compras`): queda
 como tarea aparte.
 
+**Fase 7, parte 2 (2026-10-14, rama `claude/purchase-order-phase7-2-9b0c82`; lista de 5 actividades aprobada por Felipe el 2026-10-14): el
+papel y la recepción de la orden de insumos en el Taller** (decisiones 17, 18, 25, 28, 29, 47, 52, 53, 62, 63 y 84 a 88). Migraciones
+`20261015015000` y `…020000` (el papel al crédito), `…034000` (al contado), `…035000` y `…040000` (recibir contra la orden) y `…043000` (lo
+que no llegó); pruebas `pnpm pruebas:comprobante-orden-insumo` (24 casos) y `pnpm pruebas:recepcion-orden-insumo` (25, con dos sesiones a la
+vez). Contrato: `contrato-ordenes-de-insumos.md`. **Se pegan en ese orden y una sola vez:** volver a pegar la `…020000` después de la
+`…034000` deshace el contado (pasó en el banco de pruebas y lo encontró /chaos). **En producción desde el 2026-10-15**, pegadas así; las 16
+funciones que tocan tienen la misma huella (md5 de su definición) que en el banco donde corrieron las pruebas. Una séptima, `…112000`, la
+pidió el CI: las dos columnas nuevas de `insumo_lotes` nacieron sin permiso de lectura y el candado de dinero del Taller exige que todo lo
+que no es dinero se lea (`pruebas:candado-dinero-produccion`, caso 6). Se pegó con el OK de Felipe el mismo día; el costo sigue cerrado.
+
+```
+DECIDÍ: el papel de una orden de insumos es un comprobante del Taller como cualquier otro (`comprobantes_produccion` con `orden_insumo_id`,
+        y cada línea con su `orden_insumo_item_id`): Por pagar del Taller, sus pagos y su lista lo leen sin cambios. Lo registra quien
+        tiene «Órdenes de insumos» (47) y, al contado, lo paga en el acto desde una cuenta o desde «Mi fondo» (84; el disparador de los
+        pagos del Taller aprendió el fondo con la misma regla de la fase 6: solo su dueña, nunca una terminal). El mismo papel (proveedor,
+        serie y número) no puede estar vigente dos veces (índice único parcial `comprobantes_produccion_papel_vigente_unico`). Una orden
+        con un papel, aunque después se anule, ya no se edita; con un papel vigente o algo recibido, no se anula.
+DESCARTÉ: una tabla propia para el papel de la orden (Por pagar, el Diario y los pagos del Taller tendrían que leer dos tablas); dejar
+        que la recepción vieja del Taller (`recibir_comprobante_produccion`) reciba un papel de orden: serían dos caminos para la misma
+        tela, así que lo rechaza y `fn_lineas_comprobantes_produccion` no lo lista.
+SE ROMPE SI: una función nueva recibe el papel de una orden por fuera de la orden, o el papel se pega fuera de orden (ver arriba).
+```
+
+```
+DECIDÍ: recibir contra la orden escribe una recepción (`orden_insumo_recepciones`, que solo se agrega) y, por cada línea que llega, un
+        lote con su movimiento de compra EN LA MISMA transacción y en el taller de la orden, nunca más de lo que queda (lo mayor entre lo
+        pedido y lo facturado en papeles vigentes, menos lo recibido y lo anotado). El costo del lote lo ve y lo corrige quien recibe
+        (53): el del papel si la línea tiene uno solo vigente; si no, el neto de la orden. Quien hizo la orden no la recibe (17), y la
+        recepción la exige el módulo Producción en la función (deja de ser un módulo «solo de pantalla» en la prueba de cobertura). La
+        orden se bloquea `for update`: dos recepciones, o una recepción y una edición o una anulación, se ponen en fila (probado con dos
+        sesiones y con una ráfaga de diez).
+DESCARTÉ: recibir en esta hoja lo que no tiene orden (sigue la recepción contra el papel: «Facturas sin orden»); una excepción para que
+        el líder reciba lo que él pidió (la 17 no la tiene).
+SE ROMPE SI: una función nueva abre lotes de una orden sin bloquear la orden: dos personas recibirían lo mismo.
+```
+
+```
+DECIDÍ: lo que no va a llegar se anota en la orden (85): `orden_insumo_cierres` (solo se agrega), con su cantidad, el costo de ese día y
+        su motivo (faltó, se devolvió al proveedor, otro). La orden lo muestra («No llegó» y «El proveedor nos debe S/ …») y la lista
+        lleva el chip «Nos debe», que se lee aparte con `fn_ordenes_insumo_nos_debe`. El papel de una orden responde por lo que la orden
+        recibió y anotó: `anular_comprobante_produccion` bloquea la orden y no lo anula si una línea suya está anotada como «no llegará»
+        o si respalda lo recibido de más (/chaos, gravedad 1; arreglado con el OK de Felipe, prueba en `pruebas:recepcion-orden-insumo`).
+DESCARTÉ: cerrar la línea sin monto (la deuda no se vería en ningún lado); que `fn_ordenes_insumo` trajera la deuda: cambiar lo que
+        devuelve una función obliga a borrarla y crearla de nuevo, y rompía la prueba de la parte 1.
+SE ROMPE SI: una función nueva anula o cambia el papel de una orden sin bloquear la orden ni mirar lo recibido y lo anotado: la orden
+        diría «El proveedor nos debe» por un papel anulado, o quedaría un lote sin papel.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: en la hoja de Recibir, una cantidad **en blanco es todo lo que queda** y «0» que de ese
+insumo no llegó nada; el código del lote, si se deja en blanco, es el número de la orden («OI-000123», y «/2», «/3» si ese insumo ya abrió
+lote con él); el motivo de lo que no llega arranca en «Faltó mercadería»; el vencimiento del crédito se sugiere con el plazo del proveedor
+(30 días si su ficha no lo dice). Visto de paso: el Diario no asienta los pagos del Taller (era así antes de esta fase; la prueba de la
+fase 6 lo dice).
+
+**/chaos de la parte 2 (2026-10-14, semilla 1072; banco propio).** 84 casos en la base, 11 de concurrencia con COMMIT y 21 en el
+navegador: resiste el doble clic, la red cortada y perdida, las dos pestañas, la ráfaga de diez sesiones, NaN e Infinito, ids ajenos, los
+permisos y las fechas futuras. Encontró 1 de gravedad 1, 3 de gravedad 2 y 2 de gravedad 4. **Arreglados con el OK de Felipe
+(2026-10-14), cada uno con su prueba y repetidos con la misma semilla:** el de gravedad 1 —anular el papel de una orden desde Producción ▸
+Comprobantes dejaba lo recibido o lo anotado como «no llegará» sin respaldo, también a la vez que se recibía: ahora la función bloquea la
+orden y lo impide (arriba)—; los textos sin tope en la base (el código de lote, hasta 40 letras; la referencia del pago, hasta 100; un
+pago, hasta 20 medios) y los dos de gravedad 4 (el porqué de un número que no vale queda escrito sobre los botones; tras un corte, corregir
+el papel ofrece «Recargar»). **Quedan, de Felipe:** la coma decimal («1.299,50» se lee 1.2995; es la decisión pendiente en todo el ERP) y
+el piso y el techo de las fechas (una emisión de 1900 entra; también en el papel de Compras). Tablero: `docs/chaos/README.md`.
+
+**/formidable de la parte 2 (2026-10-14; ciega sobre capturas, escéptico y medido en el navegador).** El papel sacó 7,1 con la ley 7 en 3:
+«Factura» y «Crédito» venían elegidos sin contar y el botón registraba una factura con IGV que nadie eligió. Recibir sacó 6,8 con la ley 9
+en 4: la orden no mostraba lo que llegó fuera de ella y su chip decía «Llegó en parte» aunque Recibir dijera que no quedaba nada. Con el OK
+de Felipe: en el papel **nada viene puesto** (como el de Compras desde el 13/10), dice «Compra de OI-…» y «Registrar la compra», y su pie
+dice qué se va a registrar; la orden muestra **lo que no estaba en ella** (`fuera_de_orden`) y su chip dice lo mismo que Recibir; el pie de
+Recibir dice las cantidades que entran y lo que nos debe el proveedor, y cada línea dice qué pasa con su resto. Después: 7,9 y 7,7
+(provisionales: la ciega no se repitió). Informes: `docs/formidable/ordenes-insumos-comprobante.md` y
+`docs/formidable/produccion-recibir-orden-insumo.md`.
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe
@@ -533,3 +627,53 @@ Fondo: cada persona tiene su cuenta «por rendir» con su nombre; entrega y devo
 rendición abierta por persona; el saldo se calcula; nadie se entrega plata a sí mismo ni aprueba su propia rendición; quien gasta
 del fondo es solo su dueña (se compara la cuenta que entró y el combo Responsable). La compradora no necesita Finanzas: ve su fondo
 como tarjeta donde compra y en Inicio. Órdenes de compra entra a la regla de celular (375 px) porque se usa en Gamarra.
+
+## Actualización 2026-10-21 · Nueva orden: prefiltro por proveedor, «Registrar proveedor», «Cómo pagarle»; y el Día de compra (decidido, sin construir)
+
+Origen: Felipe, mirando «Nueva orden de compra»: al elegir proveedor seguían saliendo todas las categorías y marcas; la compradora no puede
+registrar a un proveedor nuevo; las compras se hacen en ciertos días y ahí van varias órdenes, con presupuesto, quién compra, si se le pagó y
+sus datos de pago. Análisis completo en `docs/pantallas/compras-ordenes-nueva.md` (6 agentes, 8 revisores escépticos y 24 decisiones de
+Felipe, 20 antes del informe y 4 después). **Construida la entrega 1 (el formulario)**; las entregas 2 y 3 quedan diseñadas.
+
+### Construido (entrega 1)
+
+| Qué | Decisión de Felipe | Cómo quedó |
+|---|---|---|
+| Datos de pago visibles para la compradora | `ordenes_compra` entra a `fn_puede_ver_datos_bancarios()` (decisión 2026-10-21; antes solo Proveedores, Por pagar y Cuentas y dinero) | Migración `20261021200000`. La web distingue «no tiene cuenta» de «no puedes verlos» (`bancarios_visibles` → `ocultos`); el titular va primero |
+| «Cómo pagarle» en la orden | Hoja con teléfono y destino de la plata, con copiar | `ComoPagarle.tsx` sobre `ProveedorElegido`; cuatro estados (`estadoDeLosBancarios`) |
+| Prefiltro | Solo lo que el proveedor maneja + «Ver todas (N)» (nunca candado) | Migración `20261021201000` (`fn_proveedor_categorias`, solo lectura: sus productos, las marcas de un solo proveedor, sus órdenes generadas y sus comprobantes vigentes); `ComboBuscable` gana la prop `ampliar`. **Sin casilla «Recordar»**: guardar la orden ya es el recuerdo (se propuso retirarla; Felipe lo confirma, y si no responde se retira). La función devuelve UNA fila por proveedor: PostgREST corta toda lectura en 1.000 filas sin avisar y los pares podían pasarse |
+| Línea que no calza | Al cambiar de proveedor las líneas se quedan, marcadas | `lineaNoCalza` (derivado: A→B→A lo limpia; marca ajena = atención, categoría ajena = info) |
+| «Registrar proveedor» | Nombre + RUC o «No tiene RUC»; por el módulo Órdenes de compra; ficha «incompleta» sin columna nueva | Migración `20261021202000` (`registrar_proveedor_de_orden`: no duplica, devuelve el que ya estaba, rechaza el mismo nombre con otro RUC y un desactivado, no escribe banco ni rubros); clave `proveedor_de_orden` en `acciones_sin_responsable` (con la cuenta de una persona firma ella; **desde una terminal se elige quién**, como en las demás acciones de la orden: la base rechaza con `responsable_requerido`); «¿no será…?» obligatoria (no existe fusionar proveedores); al corregir un RUC completo se vacía el nombre de la empresa anterior |
+
+**Revisión independiente (2026-10-21):** cuatro revisores y un escéptico por hallazgo. Confirmaron y se corrigieron en la misma rama: la prueba de categorías no cubría la categoría
+de la prenda (la vía de toda factura anterior al 12-oct), la lectura se cortaba en silencio a las 1.000 filas, un RUC corregido dejaba el nombre de la empresa anterior, una terminal podía registrar
+un proveedor sin persona, Tab elegía la única categoría ofrecida sin que se escribiera nada, el WhatsApp recién registrado no llegaba a «Cómo pagarle», y dos textos y un párrafo de permisos estaban desactualizados.
+Una nota de honestidad: un escéptico, al medir la cobertura, **leyó producción (solo SELECT de conteos)**: 126 pares y 50 de 113 proveedores activos con alguna categoría derivada, 46 categorías activas y 412 productos.
+
+### Decidido, sin construir (entregas 2 y 3)
+
+- **Día de compra** = ficha propia `dias_compra`, **una fila por (compradora, fecha)** con su presupuesto y su historial (disparador); **toda orden pertenece a
+  un día** (`ordenes_compra.dia_compra_id NOT NULL`, se abre con un atajo dentro de Nueva orden); hoy a 7 días atrás, sin cierre, una orden no cambia de día; la
+  compradora fija su propio presupuesto (puede quedar en blanco) y pasarse avisa sin bloquear; la compradora se deriva del día (no se duplica en la orden).
+  Al agregar el parámetro a `crear_orden_compra`: `drop function` de la de 6 argumentos en la misma migración y un ayudante para las 18 suites con 47 `insert` directos.
+- **Quién manda: la compradora del día** (deuda, sede y regla «quien compra no recibe»); `creada_por` sigue siendo la firma, y la regla 17 excluye a ambas. Toca
+  `fn_orden_compra_gestora`, `fn_recepcion_exigir`, `recibir_orden_sin_envio`, tres banderas de pantalla y la sede del gasto del viaje (5 sitios que hoy leen `creada_por`).
+- **Quién compra:** las tres compradoras de CAYLA siempre visibles (excepción al horario: no es una firma) más una lista que edita el líder; presupuesto por compradora.
+- **«Pagó X de Y» por proveedor y día**, calculado de pagos reales (`fn_dia_compra_pagos`; Y = lo facturado si hay papel, lo pedido si no); el check abre «Registrar pago», no se tilda.
+- **Pagar al contado antes del papel:** una compra «Sin comprobante» pagada se convierte en su papel con una función nueva `completar_papel_de_compra` (hoy una SC con pagos no
+  se puede reemplazar). Dinero: se ensaya antes de pegarse. **Descartado:** una tabla de anticipos (reabre 5 funciones de Finanzas).
+- **Vista «Bitácora»** dentro de Órdenes de compra (ruta hermana, `<Pestanas href>`), sin módulo nuevo (ADR-0306).
+
+### Pendiente de Felipe (si no responde, lo recomendado)
+
+Permiso para pagar a crédito desde la bitácora (hoy exige Por pagar); qué hacer con la marca obligatoria cuando un proveedor no tiene ninguna; contra qué se mide el
+presupuesto (pedido, facturado o pagado, con o sin IGV); la regla de 7 días; si el nombre es «Presupuesto» o «Plata para hoy»; si `/compras/ordenes*` pasa a «Celular
+obligatorio»; que «toda orden pertenece a un día» no cubre las órdenes de insumos del Taller.
+
+### En producción
+
+Las tres migraciones de la entrega 1 están **sin pegar**; se pegan **en este orden** (cada una, una sola parte, re-pegable): `20261021200000` (datos de pago), `20261021201000`
+(`fn_proveedor_categorias`) y `20261021202000` (`registrar_proveedor_de_orden`). La web se puede publicar antes: sin cada función la pantalla se ve como hoy o dice que no
+está disponible todavía. **Choque conocido:** la rama sin fusionar `claude/skills-todos-agents-94f745` (Análisis: «Comprar» abre una orden armada, líneas «Por revisar») toca los
+mismos archivos; al fusionarla, `lineaNoCalza` debe saltarse las líneas `prellenadas` y se regeneran las huellas de las guías de Nueva y Editar orden.
+

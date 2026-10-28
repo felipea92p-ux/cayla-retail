@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Banknote, Check, Package } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -373,12 +374,7 @@ export function RegistrarPagoModal({
                     </span>
                   )}
                   {/* La cascada: cuánto del saldo cubre este pago. Se llena al abrir. Verde = queda en cero; rojo = se pasa del saldo. */}
-                  <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
-                    <div
-                      className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${excede ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                      style={{ transform: `scaleX(${armada && compra.saldo > 0 ? Math.min(1, suma / compra.saldo) : 0})` }}
-                    />
-                  </div>
+                  <BarraAvance pct={armada && compra.saldo > 0 ? (suma / compra.saldo) * 100 : 0} alto="fina" tono={excede ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
                   <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${excede ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                     {excede ? (
                       "Supera el saldo"
@@ -461,15 +457,27 @@ export function RegistrarPagoModal({
             <div className="space-y-5" data-guia="pago-modal.pie">
               <ComboResponsable control={responsable} deshabilitado={loading} />
 
-              {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-              <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
-                <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
-                <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
-                  Cancelar
-                </button>
-                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {`Registrar pago de ${soles(suma)}`}
-                </Boton>
+              {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. El sangrado va en la caja de
+                  afuera y `pie-acciones` adentro: en el celular `pie-acciones` se pone `margin-left: 0` y, junto al sangrado, dejaba el pie
+                  24 px adentro. En el celular la nota va en su fila y los dos botones, uno bajo el otro (la etiqueta lleva el monto y no
+                  cabe en media fila). */}
+              <div className="-mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
+                <div className="pie-acciones">
+                  <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55 max-sm:basis-full">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
+                  <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
+                    Cancelar
+                  </button>
+                  <Boton
+                    textoCargando="Registrando…"
+                    type="submit"
+                    peso="primario"
+                    cargando={loading}
+                    disabled={loading || excede || favorExcedido || suma <= 0}
+                    className="pie-acciones-ancho"
+                  >
+                    {`Registrar pago de ${soles(suma)}`}
+                  </Boton>
+                </div>
               </div>
             </div>
           </form>

@@ -71,12 +71,9 @@
 }
 
 /* ---- La matriz color × talla ----
-   La tabla es la de «Unidades de hoy» del alta (`MatrizCantidades`, clases de Tailwind en `MatrizStockFicha.tsx`). Aquí solo lo que
-   Editar le suma a la caja − N + de cada celda: el borde ámbar de lo que cambió y espera a «Revisar y guardar», el punteado de una
-   variante nueva y el destello de la celda que se acaba de tocar. */
-.matriz-paso {
-  border-color: transparent;
-}
+   Cada celda es el paso de cantidad del sistema (`<PasoCantidad tamano="celda">`, ADR-0358, ronda 17). Aquí solo lo que Editar le
+   suma: el borde ámbar de lo que cambió y espera a «Revisar y guardar», el punteado de una variante nueva y el destello de la celda que
+   se acaba de tocar. */
 .matriz-paso[data-cambiada="true"] {
   border-color: var(--color-ambar);
 }
@@ -86,6 +83,37 @@
 }
 .matriz-paso[data-tocada="true"] {
   animation: taller-destello 480ms var(--ease-cayla);
+}
+/* El sello: la variante que acaba de guardarse con sus unidades de partida cambia la caja por el candado (ADR-0494). Una sola vez. */
+.matriz-paso[data-sellada="true"] {
+  animation: taller-sellado 900ms var(--ease-cayla) both;
+}
+.matriz-paso[data-sellada="true"] .candado-sellado {
+  animation: taller-candado 620ms var(--ease-cayla) both;
+}
+@keyframes taller-sellado {
+  0% {
+    border-color: var(--color-ambar);
+    background: color-mix(in srgb, var(--color-ambar) 16%, var(--color-papel));
+    transform: scale(1.05);
+  }
+  50% {
+    border-color: var(--color-verde);
+    background: color-mix(in srgb, var(--color-verde) 16%, var(--color-papel));
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes taller-candado {
+  from {
+    opacity: 0.2;
+    transform: translateY(-4px) rotate(-18deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes taller-destello {
   0%,
@@ -97,53 +125,7 @@
   }
 }
 
-/* El stepper: el mismo control redondo de la maqueta (y del alta), el número es el stock de HOY. */
-.taller-stepper {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--color-sand);
-  border-radius: 999px;
-  background: var(--color-papel);
-  overflow: hidden;
-}
-.taller-stepper button {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-taupe-profundo);
-  line-height: 1;
-  transition: background-color 150ms, color 150ms;
-}
-.taller-stepper button:hover:not(:disabled) {
-  background: var(--color-hueso);
-  color: var(--color-tinta);
-}
-.taller-stepper button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.taller-stepper .taller-val {
-  min-width: 22px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-tinta);
-}
-.taller-stepper[data-mini="true"] {
-  background: var(--color-hueso);
-}
-.taller-stepper[data-mini="true"] button {
-  width: 18px;
-  height: 18px;
-  font-size: 12px;
-}
-.taller-stepper[data-mini="true"] button:hover:not(:disabled) {
-  background: var(--color-papel);
-}
+/* El stepper de cada talla es la pieza del sistema (<PasoCantidad tamano="celda">, ADR-0358 ronda 17). */
 .taller-fila-nueva {
   animation: anim-revelar-taller 320ms var(--ease-cayla) both;
 }
@@ -179,10 +161,12 @@
     border-color 160ms var(--ease-cayla),
     background-color 160ms var(--ease-cayla);
 }
-.taller-agregar-color:hover:not(:disabled) {
-  border-style: solid;
-  border-color: var(--color-tinta);
-  background: var(--color-hueso);
+@media (hover: hover) {
+  .taller-agregar-color:hover:not(:disabled) {
+    border-style: solid;
+    border-color: var(--color-tinta);
+    background: var(--color-hueso);
+  }
 }
 .taller-agregar-color:focus-visible {
   outline: 2px solid var(--color-tinta);
@@ -328,9 +312,11 @@
   backdrop-filter: blur(2px);
   transition: background-color 150ms var(--ease-cayla), transform 150ms var(--ease-cayla);
 }
-.taller-btn-foto:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-tinta) 90%, transparent);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .taller-btn-foto:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-tinta) 90%, transparent);
+    transform: translateY(-1px);
+  }
 }
 .taller-btn-foto[data-sin-foto="true"] {
   background: var(--color-ambar);
@@ -350,8 +336,10 @@
   box-shadow: 0 0 0 1.5px var(--color-sand);
   transition: box-shadow 180ms var(--ease-cayla), transform 180ms var(--ease-cayla);
 }
-.taller-swatch:hover {
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .taller-swatch:hover {
+    transform: translateY(-2px);
+  }
 }
 .taller-swatch[aria-pressed="true"] {
   box-shadow: 0 0 0 2px var(--color-tinta);
@@ -395,30 +383,7 @@
   overflow-wrap: anywhere;
   line-height: 1.25;
 }
-.taller-pista {
-  height: 8px;
-  background: var(--color-hueso);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.taller-relleno {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--color-verde);
-  transition: width 320ms var(--ease-cayla);
-  animation: taller-crece 560ms var(--ease-cayla) both;
-}
-.taller-relleno[data-tono="bajo"] {
-  background: var(--color-ambar);
-}
-.taller-relleno[data-tono="cero"] {
-  background: color-mix(in oklab, var(--color-tinta) 15%, transparent);
-}
-@keyframes taller-crece {
-  from {
-    width: 0;
-  }
-}
+/* La barra de cada talla es la barra de avance del sistema en tinta (<BarraAvance>, ronda 14 de /unificar). */
 .taller-rango {
   font-family: var(--font-serif);
   font-weight: 600;
@@ -482,10 +447,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .matriz-paso[data-tocada="true"],
+  .matriz-paso[data-sellada="true"],
+  .matriz-paso[data-sellada="true"] .candado-sellado,
   .taller-fila-nueva,
   .taller-banner-nueva,
   .taller-panel,
-  .taller-relleno,
   .taller-hilo::after,
   .taller-foto-grande[data-flash="true"],
   .taller-foto-img {
@@ -493,7 +459,6 @@
   }
   .taller-sec-cuerpo,
   .taller-chev,
-  .taller-relleno,
   .taller-swatch {
     transition: none;
   }

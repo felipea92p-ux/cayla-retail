@@ -2,11 +2,13 @@
 
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
 import { esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
+import { BarraDeAbajo } from "@/components/ui/BarraDeAbajo";
 
 export { FotoPrenda } from "@/components/ui/FotoPrenda";
 
@@ -73,7 +75,8 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
   const cuerpo = (
     <div id="comprobante-print">
       <header className="rt-centro">
-        <p className="rt-marca">{EMISOR.nombreComercial}</p>
+        <LogoCayla tinta="negro" className="rt-logo" />
+        <p className="sr-only">{EMISOR.nombreComercial}</p>
         <p className="rt-negrita">
           {EMISOR.razonSocial} · RUC {EMISOR.ruc}
         </p>
@@ -196,10 +199,8 @@ export function BarraMovil({
 }) {
   return (
     <EnCuerpo>
-    <div
-      className="anim-revelar fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-tinta bg-tinta px-5 py-3 text-crema sm:left-lateral lg:hidden"
-      style={{ bottom: `calc(${ALTO_PESTANAS_MOVIL} + env(safe-area-inset-bottom))` }}
-    >
+    {/* La isla oscura de lo que llevas elegido, apoyada en las pestañas (ADR-0479, actividad 12, `barra-abajo`). */}
+    <BarraDeAbajo tono="tinta" sobre={ALTO_PESTANAS_MOVIL} className="z-20 flex-nowrap justify-between gap-3 py-2.5 pl-5 pr-2.5 sm:left-[calc(var(--spacing-lateral)+0.75rem)] lg:hidden">
       <div className="min-w-0">
         <p className="label-cayla truncate text-[10px] text-crema/60 dark:text-crema/75">{etiqueta}</p>
         <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>
@@ -213,7 +214,7 @@ export function BarraMovil({
         {accion}
         {icono}
       </button>
-    </div>
+    </BarraDeAbajo>
     </EnCuerpo>
   );
 }

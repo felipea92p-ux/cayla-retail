@@ -62,12 +62,12 @@ describe("veredictoDePrecio y la confirmación", () => {
   });
 
   it("los textos: la referencia y el aviso", () => {
-    expect(fraseDeReferencia("Camisas y Blusas", rango)).toBe("Camisas y Blusas en tu catálogo: de S/ 59.00 a S/ 129.00.");
-    expect(fraseDeReferencia("Correas", { desde: 39.9, hasta: 39.9, n: 1 })).toBe("Correas en tu catálogo: S/ 39.90 (una prenda).");
+    expect(fraseDeReferencia("Camisas y Blusas", rango)).toBe("Camisas y Blusas en tu catálogo: de S/\u00a059.00 a S/\u00a0129.00.");
+    expect(fraseDeReferencia("Correas", { desde: 39.9, hasta: 39.9, n: 1 })).toBe("Correas en tu catálogo: S/\u00a039.90 (una prenda).");
     const bajo = fraseFueraDeRango(15, "Camisas y Blusas", rango, "bajo");
-    expect(bajo.titulo).toBe("S/ 15.00 está por debajo de lo usual en Camisas y Blusas");
-    expect(bajo.detalle).toContain("de S/ 59.00 a S/ 129.00");
+    expect(bajo.titulo).toBe("S/\u00a015.00 está por debajo de lo usual en Camisas y Blusas");
+    expect(bajo.detalle).toContain("de S/\u00a059.00 a S/\u00a0129.00");
     expect(bajo.detalle).toContain("confírmalo");
-    expect(fraseFueraDeRango(300, "Camisas y Blusas", rango, "alto").titulo).toBe("S/ 300.00 está por encima de lo usual en Camisas y Blusas");
+    expect(fraseFueraDeRango(300, "Camisas y Blusas", rango, "alto").titulo).toBe("S/\u00a0300.00 está por encima de lo usual en Camisas y Blusas");
   });
 });

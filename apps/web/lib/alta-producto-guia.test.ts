@@ -334,3 +334,55 @@ describe("enFoco — «Sigue aquí» espera a que la persona termine de escribir
     expect(estadosDeCampos(campos, 4, "stock").precio).toBe("falta");
   });
 });
+
+// ADR-0415: un precio o un costo de más de S/ 5 000 deja el precio por hacer, con la misma frase que `problemasAlta`.
+describe("el tope del precio (ADR-0415): la guía y `problemasAlta` lo dicen igual", () => {
+  it.each([
+    ["precio de 5990 (el punto que falta)", { precioBase: "5990" }, /^El precio pasa de S\/ 5000/],
+    ["costo de 5990", { costoBase: "5990" }, /^El costo pasa de S\/ 5000/],
+  ] as const)("%s", (_caso, e, frase) => {
+    const estado = { ...completo, ...e };
+    const precio = camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio");
+    const problema = problemasAlta(estado).find((p) => p.bloque === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(problema?.texto).toMatch(frase);
+    expect(precio?.pendiente).toBe(problema?.texto);
+  });
+  it("S/ 5 000 justos sí", () => {
+    const estado = { ...completo, precioBase: "5000", costoBase: "5000" };
+    expect(problemasAlta(estado).some((p) => p.bloque === "precio")).toBe(false);
+  });
+});
+
+describe("la tienda va antes de la categoría (ADR-0463)", () => {
+  it("sin tiendas en la base (exigeEmpresa ausente) el alta es la de siempre: ni problema ni campo", () => {
+    expect(problemasAlta({ ...completo, categoriaId: "" })[0].bloque).toBe("categoria");
+    expect(guia({ categoriaId: "" }).some((c) => c.id === "empresa")).toBe(false);
+  });
+
+  it("con tiendas y sin elegir una, lo primero que falta es la tienda — antes que la categoría — y ya hay campo para ella", () => {
+    const e = { ...completo, exigeEmpresa: true, empresaId: "", categoriaId: "" };
+    expect(problemasAlta(e)).toEqual([{ bloque: "empresa", texto: "Elige a qué tienda pertenece el producto." }]);
+    const campos = camposDelAlta(e, extraCompleto);
+    expect(campos.map((c) => c.id).slice(0, 2)).toEqual(["empresa", "categoria"]);
+    const est = estadosDeCampos(campos, 1);
+    expect(est.empresa).toBe("ahora");
+    expect(est.categoria).toBe("falta");
+  });
+
+  it("elegida la tienda, la luz pasa a la categoría y el campo lleva ✓", () => {
+    const e = { ...completo, exigeEmpresa: true, empresaId: "claure", categoriaId: "" };
+    expect(problemasAlta(e)[0].bloque).toBe("categoria");
+    const est = estadosDeCampos(camposDelAlta(e, extraCompleto), 1);
+    expect(est.empresa).toBe("hecho");
+    expect(est.categoria).toBe("ahora");
+  });
+
+  it("«requerido y sin hacer» dice lo mismo que problemasAlta, con y sin tienda elegida", () => {
+    for (const empresaId of ["", "cayla"]) {
+      const e = { ...completo, exigeEmpresa: true, empresaId };
+      const sinHacer = camposDelAlta(e, extraCompleto).filter((c) => c.requerido && !c.hecho).map((c) => c.pendiente);
+      expect(sinHacer).toEqual(problemasAlta(e).map((p) => p.texto));
+    }
+  });
+});

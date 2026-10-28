@@ -2,7 +2,7 @@
 
 import { avisar } from "@/components/ui/Avisos";
 import { useEsperando } from "@/components/ui/Espera";
-import { IsotipoCayla } from "@/components/ui/IsotipoCayla";
+import { INICIO_DE_LA_PALABRA, LogoCayla } from "@/components/ui/LogoCayla";
 import { PanelVuelo } from "@/components/login/PanelVuelo";
 import { saludoDelDia } from "@/lib/login-vuelo";
 import { entradaEnCurso, iniciarEntrada, ponerNombreDelSaludo } from "@/lib/entrada-estado";
@@ -12,6 +12,7 @@ import { cuentaParaSaludar } from "@/lib/login-saludo";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { esFalloDeAuth } from "@/lib/base-caida-reglas";
 import { Boton } from "@/components/ui/campos";
 
 const MENSAJES_ERROR: Record<string, string> = {
@@ -104,6 +105,12 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
+      // Si el servicio no respondió (la base caída, un corte), la contraseña no tiene la culpa: decir «incorrectos» hace que cada quien la
+      // reescriba, la «recupere» o llame a un líder por un problema que no es suyo (ADR-0450).
+      if (esFalloDeAuth(error)) {
+        avisar.error("No logramos conectar con el sistema. No es tu contraseña: espera un momento y vuelve a intentar.");
+        return;
+      }
       avisar.error("Correo o contraseña incorrectos.", { enfocar: "login-email" });
       return;
     }
@@ -136,14 +143,15 @@ function LoginForm() {
       <main className="login-lado">
         <form onSubmit={onSubmit} className="login-form">
           <div className="login-marca-chica">
-            <IsotipoCayla className="h-12 w-auto" />
-            <p className="font-display mt-4 text-3xl text-tinta" style={{ letterSpacing: "0.24em" }}>
-              CAYLA
-            </p>
-            {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo. */}
-            <p className="label-cayla text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em" }}>
-              Retail
-            </p>
+            {/* El logo oficial (ADR-0446), el mismo del lateral: nunca «CAYLA» escrito con una letra del sistema. */}
+            <div className="flex flex-col items-start">
+              <LogoCayla className="h-12" />
+              <span className="sr-only">CAYLA</span>
+              {/* Dice de qué sistema es (Dynamic es otro) — nunca reemplaza a "CAYLA", solo se agrega debajo, alineado con la palabra. */}
+              <p className="label-cayla mt-0.5 text-[11px] text-taupe-profundo" style={{ letterSpacing: "0.2em", marginLeft: `${INICIO_DE_LA_PALABRA * 3}rem` }}>
+                Retail
+              </p>
+            </div>
           </div>
 
           <p className="login-saludo" data-listo={saludo ? "" : undefined}>

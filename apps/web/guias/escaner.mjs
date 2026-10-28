@@ -112,8 +112,9 @@ function importsQueSeDibujan(texto) {
 const CONTROLES = [
   "button", "a", "Link", "input", "textarea", "select",
   "Boton", "BotonEnlace", "BotonAncla", "BotonCompacto", "BotonFiltro", "BotonFiltros",
-  // Las piezas de una sola función de `/unificar` (rondas 10 y 11, ADR-0358): un control que se migra a ellas sigue en la huella.
-  "BotonDescargar", "BotonVer", "BotonImprimir", "BotonLimpiar", "FiltroPuesto", "BotonEditar", "LapizEditar",
+  // Las piezas de una sola función de `/unificar` (rondas 10 a 15, ADR-0358): un control que se migra a ellas sigue en la huella.
+  "BotonDescargar", "BotonVer", "BotonImprimir", "BotonLimpiar", "FiltroPuesto", "BotonEditar", "LapizEditar", "BotonCopiar", "BotonPuntos",
+  "BotonBuscar", "BotonDeshacer", "BotonVerMas",
   "CampoTexto", "CampoSelect", "CampoMonto", "CampoFecha", "Desplegable", "DesplegablePildora", "ComboBuscable", "ComboResponsable",
   "Casilla", "Pestanas", "SegmentoDeslizante", "SegmentoEnlaces", "Pastilla", "Volver",
 ];
@@ -141,11 +142,25 @@ const compacto = (s) => s.replace(/\s+/g, " ").trim();
 
 /** Cómo se llama un control, del dato más estable al menos: ancla, aria-label, etiqueta, placeholder, title, su texto. */
 function nombreDe(abre, despues) {
-  for (const attr of ["data-guia", "aria-label", "etiqueta", "placeholder", "title", "titulo"]) {
+  // `que` es el nombre de las piezas de una sola función que se cierran solas (`<LapizEditar que=…/>`, `<BotonCopiar que=…/>`).
+  for (const attr of ["data-guia", "aria-label", "etiqueta", "que", "placeholder", "title", "titulo"]) {
     const lit = abre.match(new RegExp(`\\s${attr}="([^"]+)"`));
     if (lit) return compacto(lit[1]);
     const expr = abre.match(new RegExp(`\\s${attr}=\\{([^}]{1,80})\\}`));
     if (expr) return `{${compacto(expr[1])}}`;
+  }
+  // Una pieza que se cierra sola (`<BotonDeshacer onClick={…} />`) no tiene texto adentro: lo que sigue es otro código y no su nombre.
+  // Se nombra por lo que dice (`texto`), adónde lleva (`href`), qué dato muestra (`id`, `name`, `valor`, `control`…) o qué hace al
+  // tocarlo (`onClick`, `onValor`…) (ronda 16 de /unificar): un nombre que no depende del código de al lado.
+  if (/\/>$/.test(abre)) {
+    for (const attr of ["texto", "href", "id", "name", "valor", "value", "control", "items", "opciones"]) {
+      const lit = abre.match(new RegExp(`\\s${attr}="([^"]+)"`));
+      if (lit) return compacto(lit[1]);
+      const expr = abre.match(new RegExp(`\\s${attr}=\\{([^}]{1,80})\\}`));
+      if (expr) return `{${compacto(expr[1])}}`;
+    }
+    const alTocar = abre.match(/\s(?:onClick|onValor|onCambio|onCambiar|onChange|onElegir)=\{([^}]{1,60})\}/);
+    return alTocar ? `→${compacto(alTocar[1])}` : "(sin nombre)";
   }
   // Texto literal de adentro (lo primero que no es una etiqueta ni una expresión).
   const texto = despues.match(/^\s*(?:<[^>]*>\s*)*([^<{}]{2,60})/);
@@ -215,7 +230,8 @@ function archivosFuente() {
 }
 
 /**
- * Las anclas que el código declara: `data-guia="x"`, la prop `guia="x"` de una pieza (Pestanas) y `guia: "x"` en un objeto.
+ * Las anclas que el código declara: `data-guia="x"`, la prop `guia="x"` de una pieza (Pestanas) —o `guiaAlgo="x"`, cuando una pieza
+ * ancla dos partes (`SelectorMes guiaAnterior`)— y `guia: "x"` en un objeto.
  * Una con plantilla (`guia: \`apartados.pestana-${p.id}\``) vuelve como patrón: `apartados.pestana-*`.
  */
 export function anclasDelCodigo() {
@@ -223,13 +239,13 @@ export function anclasDelCodigo() {
   const patrones = []; // { re, fuente, archivo }
   for (const f of archivosFuente()) {
     const texto = readFileSync(f, "utf8");
-    for (const m of texto.matchAll(/(?:data-guia|\bguia)\s*[=:]\s*\{?\s*"([a-z0-9][a-z0-9._-]*)"/g)) literales.set(m[1], rel(f));
+    for (const m of texto.matchAll(/(?:data-guia|\bguia(?:[A-Z]\w*)?)\s*[=:]\s*\{?\s*"([a-z0-9][a-z0-9._-]*)"/g)) literales.set(m[1], rel(f));
     // Dentro de una expresión (`data-guia={modoCamara ? "vender.buscar-por-nombre" : "vender.camara"}`, o la prop `guia={…}` de una
     // pieza): cada texto con punto.
-    for (const m of texto.matchAll(/(?:data-guia|\bguia)=\{([^}]{1,200})\}/g)) {
+    for (const m of texto.matchAll(/(?:data-guia|\bguia(?:[A-Z]\w*)?)=\{([^}]{1,200})\}/g)) {
       for (const s of m[1].matchAll(/"([a-z0-9][a-z0-9-]*\.[a-z0-9._-]+)"/g)) literales.set(s[1], rel(f));
     }
-    for (const m of texto.matchAll(/(?:data-guia|\bguia)\s*[=:]\s*\{?\s*`([a-z0-9][a-z0-9._-]*)\$\{[^}]+\}([a-z0-9._-]*)`/g)) {
+    for (const m of texto.matchAll(/(?:data-guia|\bguia(?:[A-Z]\w*)?)\s*[=:]\s*\{?\s*`([a-z0-9][a-z0-9._-]*)\$\{[^}]+\}([a-z0-9._-]*)`/g)) {
       const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       patrones.push({ re: new RegExp(`^${esc(m[1])}[a-z0-9_-]+${esc(m[2])}$`), fuente: `${m[1]}*${m[2]}`, archivo: rel(f) });
     }

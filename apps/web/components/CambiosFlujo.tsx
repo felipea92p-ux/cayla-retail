@@ -27,18 +27,28 @@ import {
 } from "@/components/FlujoGuiado";
 import { CambioReemplazo } from "@/components/CambioReemplazo";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import type { TonoLectura } from "@/lib/escaner-reglas";
 import { usePistola } from "@/components/ui/usePistola";
 import type { TonoAvisoLinea } from "@/components/ui/Aviso";
 import { CambioTicketHoja, type TicketCambio } from "@/components/CambioTicket";
 import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import {
   agruparCatalogo,
+  derivarExtra,
   derivarReemplazo,
+  describirSalidas,
+  extrasDe,
+  opcionesDeOtraPrenda,
   opcionesDePrenda,
   pagadoPorUnidad,
+  prendaExtraNueva,
+  salidasParaBase,
   seleccionDesdeLectura,
   seleccionInicial,
   textoPagoConDescuento,
+  totalesDelCambio,
+  validarPrendasExtra,
+  type PrendaExtra,
   type Seleccion,
   type VarianteCatalogo,
 } from "@/lib/cambio-reemplazo-reglas";
@@ -96,6 +106,7 @@ export function CambiosFlujo({
   esLider,
   sedes,
   catalogo: catalogoProp,
+  aceptaQr,
   ahora,
   onCerrar,
   onNuevo,
@@ -112,6 +123,8 @@ export function CambiosFlujo({
   esLider: boolean;
   sedes: SedeConId[];
   catalogo: VarianteCatalogo[];
+  /** `fn_acepta_qr_en_cambios`: ofrece el QR entre los medios de la diferencia. */
+  aceptaQr: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
@@ -158,7 +171,9 @@ export function CambiosFlujo({
   // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): la prenda que vuelve, la que se lleva, la cantidad, el motivo y
   // el pago de la diferencia. Si la respuesta se pierde, el paso se congela (ni volver ni cambiar nada) hasta saber si el cambio
   // quedó; con otra prenda y la marca vieja, la base devolvía el cambio anterior. La marca viaja con lo guardado al cambiar de sede.
-  const envio = useIntento("registrar_cambio", guardado?.intento ?? null);
+  // Una prenda por VARIAS (ADR-0470) tiene su propia operación: la base anota y revisa cada envío por (operación, token). Con el envío en duda
+  // la pantalla está congelada, así que la operación no puede cambiar a mitad de un envío.
+  const envio = useIntento(extrasDe(seleccion ?? {}).length > 0 ? "registrar_cambio_varias" : "registrar_cambio", guardado?.intento ?? null);
   const enviando = envio.enviando;
   const [revisando, setRevisando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +212,10 @@ export function CambiosFlujo({
   const elegidoId = seleccion?.productoId;
   const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto, elegidoId) : []), [linea, porProducto, elegidoId]);
   const r = linea && seleccion ? derivarReemplazo(linea, porProducto, seleccion) : null;
+  // Las otras prendas que se lleva (ADR-0470) y el total de lo que se lleva: la diferencia que se cobra sale de aquí, no de una sola prenda.
+  const extras = seleccion ? extrasDe(seleccion) : [];
+  const extrasR = linea && seleccion ? extras.map((x) => derivarExtra(linea, porProducto, seleccion, x)) : [];
+  const totales = linea && seleccion && r ? totalesDelCambio(linea, seleccion, r, extrasR) : null;
 
   const validaciones: Validacion[] =
     linea && seleccion && r
@@ -217,23 +236,26 @@ export function CambiosFlujo({
               }
             : null,
           sede,
-          diferencia: r.diferencia,
+          diferencia: totales!.diferencia,
           metodo: seleccion.metodo,
           cajaAbierta,
-        })
+        }).concat(validarPrendasExtra({ extras, extrasR, salidas: totales!.salidas, sede }))
       : [];
   const bloqueo = primerBloqueo(validaciones);
 
   const devueltaTexto = linea ? `${linea.referencia} · ${varianteLegible(linea)}` : "";
   const nuevaTexto = r?.varianteNueva ? `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}` : "";
   const impacto =
-    linea && seleccion && r
+    linea && seleccion && r && totales
       ? impactoCambio({
           devuelta: devueltaTexto,
           entregada: nuevaTexto,
           cantidad: seleccion.cantidad,
+          entregadas: totales.esVarias
+            ? totales.salidas.map((x) => ({ prenda: `${x.variante.referencia} · ${varianteLegible(x.variante)}`, cantidad: x.cantidad }))
+            : undefined,
           condicion: r.condicion,
-          diferencia: r.diferencia,
+          diferencia: totales.diferencia,
           metodo: seleccion.metodo,
           sede,
         })
@@ -257,19 +279,20 @@ export function CambiosFlujo({
   // Escanear la prenda que se lleva (Felipe 2026-10-09: «que se escanee y se seleccione automáticamente»). La pistola
   // escucha todo el paso 3, dentro del combo de prenda o con el foco en cualquier botón (`fuera: "leer"`, sin robar
   // teclas a «¿Cuántas cambia?»); en el celular, la cámara. Lo leído elige prenda, talla y color de una vez.
-  function alLeerPrenda(codigo: string) {
+  // Devuelve el tono para el bip de la cámara (`EscanerBusqueda`): agudo si la eligió, grave si no la encontró.
+  function alLeerPrenda(codigo: string): { tono: TonoLectura } {
     setCamara(false);
     setEsperandoPistola(false);
     const r = seleccionDesdeLectura(codigo, catalogo);
     if (r.tipo === "no-encontrada") {
       setLectura({ tono: "atencion", texto: `No encontramos «${r.codigo}» en el catálogo. Revisa la etiqueta o búscala por su nombre.` });
-      return;
+      return { tono: "ambar" };
     }
-    navigator.vibrate?.(35);
     setAvisoContinuar(null);
     setSeleccion((actual) => (actual ? { ...actual, ...r.cambio } : actual));
     const detalle = varianteLegible(r.variante);
     setLectura({ tono: "exito", texto: `Escaneada: ${r.variante.referencia}${detalle ? ` · ${detalle}` : ""}` });
+    return { tono: "verde" };
   }
   usePistola(campoPrenda, {
     activa: paso === 3 && !camara,
@@ -286,6 +309,20 @@ export function CambiosFlujo({
     if (window.matchMedia?.("(pointer: coarse)").matches) return setCamara(true);
     setEsperandoPistola(true);
     campoPrenda.current?.focus();
+  }
+
+  // Las otras prendas que se lleva (ADR-0470): agregar, cambiar una y quitarla. Lo que ya se eligió de las demás no se toca.
+  function agregarExtra() {
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, extras: [...extrasDe(actual), prendaExtraNueva(crypto.randomUUID())] } : actual));
+  }
+  function cambiarExtra(id: string, cambio: Partial<PrendaExtra>) {
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, extras: extrasDe(actual).map((x) => (x.id === id ? { ...x, ...cambio } : x)) } : actual));
+  }
+  function quitarExtra(id: string) {
+    setAvisoContinuar(null);
+    setSeleccion((actual) => (actual ? { ...actual, extras: extrasDe(actual).filter((x) => x.id !== id) } : actual));
   }
 
   function elegirLinea(id: string) {
@@ -325,7 +362,7 @@ export function CambiosFlujo({
   }
 
   async function confirmar() {
-    if (!linea || !seleccion || !r || !r.varianteNueva || !seleccion.motivo || bloqueo) {
+    if (!linea || !seleccion || !r || !totales || !r.varianteNueva || !seleccion.motivo || bloqueo) {
       setPaso(3);
       return;
     }
@@ -334,17 +371,26 @@ export function CambiosFlujo({
       return;
     }
     setError(null);
-    const params = {
+    const comun = {
       p_venta_item_id: linea.ventaItemId,
       p_ubicacion_id: ubicacionId,
-      p_variante_nueva_id: r.varianteNueva.varianteId,
       p_cantidad: seleccion.cantidad,
-      p_metodo_pago_diferencia: r.diferencia !== 0 ? seleccion.metodo : undefined,
+      p_metodo_pago_diferencia: totales.diferencia !== 0 ? seleccion.metodo : undefined,
       p_motivo: seleccion.motivo,
       p_condicion: r.condicion,
     };
+    // Con una sola prenda, el cambio de siempre (`registrar_cambio`, sin tocar). Con varias (ADR-0470), `registrar_cambio_varias`: todas
+    // las prendas, la diferencia total y el stock en un solo guardado.
+    const params = totales.esVarias
+      ? { ...comun, p_salidas: salidasParaBase(totales.salidas) }
+      : { ...comun, p_variante_nueva_id: r.varianteNueva.varianteId };
     const res = await envio.enviar(huellaDe(params), (token, senal) =>
-      firmar(createClient().rpc("registrar_cambio", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
+      firmar(
+        totales.esVarias
+          ? createClient().rpc("registrar_cambio_varias", { ...(params as typeof comun & { p_salidas: ReturnType<typeof salidasParaBase> }), p_token: token })
+          : createClient().rpc("registrar_cambio", { ...(params as typeof comun & { p_variante_nueva_id: string }), p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
     if (res.tipo === "ocupado" || res.tipo === "congelado") return;
     responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
@@ -370,17 +416,18 @@ export function CambiosFlujo({
   }
 
   function registrado(data: unknown) {
-    if (!linea || !seleccion || !r || !r.varianteNueva) return;
+    if (!linea || !seleccion || !r || !totales || !r.varianteNueva) return;
     // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
     // combo se vacíe tras guardar.
     setResultado({
       operacion: String(data ?? "").slice(0, 8).toUpperCase(),
       comprobante: compra.comprobante,
       clienta: compra.clienta,
-      devolvio: `${linea.referencia} · ${varianteLegible(linea)}`,
-      sellevo: `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}`,
-      cantidad: seleccion.cantidad,
-      diferencia: r.diferencia,
+      // Una prenda por varias (ADR-0470): cada prenda lleva su cantidad en el texto, y la del ticket queda en 1 para que no se repita en las dos.
+      devolvio: `${linea.referencia} · ${varianteLegible(linea)}${totales.esVarias && seleccion.cantidad > 1 ? ` (×${seleccion.cantidad})` : ""}`,
+      sellevo: totales.esVarias ? describirSalidas(totales.salidas) : `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}`,
+      cantidad: totales.esVarias ? 1 : seleccion.cantidad,
+      diferencia: totales.diferencia,
       vaACuarentena: r.condicion === "no_vendible",
       sede,
       atendio: nombreResponsable,
@@ -483,6 +530,13 @@ export function CambiosFlujo({
                 onEscanear={escanearPrenda}
                 lectura={lectura}
                 esperandoPistola={esperandoPistola}
+                aceptaQr={aceptaQr}
+                totales={totales!}
+                extrasR={extrasR}
+                opcionesOtraPrenda={(elegidoId) => opcionesDeOtraPrenda(porProducto, elegidoId)}
+                onExtra={cambiarExtra}
+                onAgregarExtra={agregarExtra}
+                onQuitarExtra={quitarExtra}
               />
               {camara && (
                 <EscanerBusqueda
@@ -511,7 +565,7 @@ export function CambiosFlujo({
         </div>
       )}
 
-      {paso === 4 && linea && seleccion && r && r.varianteNueva && impacto && (
+      {paso === 4 && linea && seleccion && r && totales && r.varianteNueva && impacto && (
         <div className="anim-revelar space-y-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="space-y-8 rounded-[22px] bg-papel p-5 ring-1 ring-tinta/[0.07] sm:p-7">
@@ -530,7 +584,8 @@ export function CambiosFlujo({
                 devuelta={ficha(linea, r.pagadoUnitario, textoPagoConDescuento(linea))}
                 nueva={ficha(r.varianteNueva, r.precioNueva ?? r.varianteNueva.precio)}
                 cantidad={seleccion.cantidad}
-                diferencia={r.diferencia}
+                diferencia={totales.diferencia}
+                otras={totales.salidas.slice(1).map((x) => ({ ...ficha(x.variante, x.precio), cantidad: x.cantidad }))}
               />
               <div className="border-t border-tinta/[0.08] pt-7">
                 <ImpactoVista impacto={impacto} />
@@ -559,7 +614,7 @@ export function CambiosFlujo({
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
+              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={totales.diferencia !== 0 ? soles(Math.abs(totales.diferencia)) : undefined}>
                 <Check className="h-4 w-4" aria-hidden />
                 {envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
               </BotonRojo>

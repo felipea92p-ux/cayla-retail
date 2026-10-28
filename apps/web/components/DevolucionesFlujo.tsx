@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -82,7 +82,8 @@ function itemInicial(): ItemElegido {
  * - Se elige UNA O VARIAS prendas de la boleta y todas viajan en una sola devolución
  *   (`crear_devolucion` recibe la lista): la pantalla de antes creaba una por prenda, y cada
  *   una aprobada emitía su propia nota de crédito parcial.
- * - Registrar NO mueve nada: queda pendiente y un líder la aprueba. Por eso el impacto se
+ * - Registrar NO mueve nada: queda pendiente hasta que alguien la revisa y la aprueba (quien ve
+ *   Devoluciones en la tienda, ADR-0534; la líder la valida en persona). Por eso el impacto se
  *   dice «al aprobarla», y la caja se valida en la aprobación, no acá.
  * - R-37: primero un cambio. En el paso de las prendas hay un salto a Cambios sobre esa
  *   misma prenda.
@@ -92,7 +93,6 @@ export function DevolucionesFlujo({
   lineaInicialId,
   ubicacionId,
   sede,
-  esLider,
   ahora,
   onCerrar,
   onNuevo,
@@ -105,7 +105,6 @@ export function DevolucionesFlujo({
   sede: string;
   /** Nombre de la sesión. Ya no se muestra: «Lo registra» es el responsable elegido (ADR-0161). */
   colaboradora: string;
-  esLider: boolean;
   ahora: Date;
   onCerrar: () => void;
   onNuevo: () => void;
@@ -116,7 +115,7 @@ export function DevolucionesFlujo({
   // La devolución a medio armar es de SU sede (Felipe, 2026-10-11): si se vuelve a una sede con una guardada, se sigue en el mismo paso
   // (el panel ya retomó la venta).
   const { inicial: guardado, reportar: reportarDevolucion } = useTrabajoPorSede<DevolucionArmada>(ubicacionId);
-  // Quién solicita la devolución (ADR-0161). Aprobarla sigue siendo solo del líder (ADR-0160), con su propia sesión.
+  // Quién solicita la devolución (ADR-0161). La aprueba quien ve Devoluciones en esta tienda (ADR-0534), con el mismo combo.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const [paso, setPaso] = useState<Paso>(guardado?.paso ?? 2);
@@ -127,10 +126,16 @@ export function DevolucionesFlujo({
   const [detalle, setDetalle] = useState(guardado?.detalle ?? "");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El último error fue un corte (la respuesta no llegó): no se sabe si la devolución se guardó, y el título no puede decir que no.
+  const [errorIncierto, setErrorIncierto] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
   // Doble clic: el estado `enviando` tarda un render en apagar el botón; el ref es inmediato.
   const enviandoAhora = useRef(false);
+  // La marca de ESTA devolución (20261015162000): el navegador puede reenviar el envío por su cuenta si la conexión se corta, y la
+  // persona puede reintentar tras un corte. Con la misma marca, la base devuelve la devolución que ya guardó en vez de crear otra;
+  // con otra devolución, la rechaza (`token_reusado`). Una por cada devolución que se arma: «Registrar otra» monta el flujo de nuevo.
+  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
 
   // Lo armado, al día, para `TrabajoPorSede`: si la sede cambia, la devolución queda guardada en ESTA sede. Registrada, ya no hay nada
   // que guardar.
@@ -140,7 +145,7 @@ export function DevolucionesFlujo({
         ? {
             etiqueta: sede,
             unidades: Object.values(elegidas).reduce((a, i) => a + i.cantidad, 0),
-            trabajo: { venta, lineaInicialId, paso, elegidas, motivo, detalle },
+            trabajo: { venta, lineaInicialId, paso, elegidas, motivo, detalle, token: token.current },
             ...avisosDeLaDevolucion({ etiqueta: sede, clienta: compra.clienta, comprobante: compra.comprobante }),
           }
         : null,
@@ -242,6 +247,7 @@ export function DevolucionesFlujo({
       return;
     }
     if (!responsable.listo) {
+      setErrorIncierto(false);
       setError(responsable.motivo);
       return;
     }
@@ -262,6 +268,7 @@ export function DevolucionesFlujo({
         // D-79: el código cerrado va aparte del texto libre de arriba — ver
         // devoluciones-reglas.ts. `bloqueo || !motivo` ya frenó más arriba si faltara.
         p_motivo_codigo: motivo,
+        p_token: token.current,
       }),
       responsable.firma(),
     );
@@ -269,6 +276,7 @@ export function DevolucionesFlujo({
     setEnviando(false);
     responsable.despues(fallo);
     if (fallo) {
+      setErrorIncierto(esRespuestaIncierta(fallo));
       setError(traducirError(fallo, "registrar la devolución"));
       return;
     }
@@ -500,7 +508,7 @@ export function DevolucionesFlujo({
           </div>
 
           <p className="text-sm text-tinta/75">
-            Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: un líder la revisa y recién ahí se mueve el stock.
+            Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: recién al revisarla y aprobarla se mueve el stock.
           </p>
 
           <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
@@ -508,7 +516,7 @@ export function DevolucionesFlujo({
           {error && (
             // La base rechazó la operación: el aviso recibe el foco para que se lea y se oiga sin buscarlo. `traducirError` abre con
             // «No se pudo …» cuando no reconoce el error; con un mensaje de la base hay que decir además que no se guardó nada.
-            <Aviso tono="error" ref={errorRef} enfocable titulo={error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
+            <Aviso tono="error" ref={errorRef} enfocable titulo={errorIncierto ? "No sabemos si se registró." : error.startsWith("No se pudo") ? undefined : "No se registró la devolución."}>
               {error}
             </Aviso>
           )}
@@ -534,7 +542,7 @@ export function DevolucionesFlujo({
           <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
             {TITULOS.exito}
           </h2>
-          <p className="mt-2 text-sm text-tinta/75">Queda pendiente de aprobación de un líder. El stock y la caja no cambian hasta entonces.</p>
+          <p className="mt-2 text-sm text-tinta/75">Queda pendiente de aprobación: el stock y la caja no cambian hasta que la revises y la apruebes.</p>
           <dl className="mt-8 grid gap-4 text-left text-sm sm:grid-cols-2">
             <Dato titulo="Devuelve">
               {resultado.prendas.map((p) => `${p.referencia} · ${varianteLegible(p)}${p.cantidad > 1 ? ` (×${p.cantidad})` : ""}`).join(", ")}
@@ -546,8 +554,8 @@ export function DevolucionesFlujo({
             </Dato>
           </dl>
           <div className="mt-9 flex flex-wrap justify-center gap-2">
-            {esLider ? <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal> : null}
-            {esLider ? <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario> : <BotonPrincipal onClick={onNuevo}>Nueva devolución</BotonPrincipal>}
+            <BotonPrincipal onClick={onIrAAprobar}>Revisar y aprobar</BotonPrincipal>
+            <BotonSecundario onClick={onNuevo}>Nueva devolución</BotonSecundario>
             <Volver onClick={onCerrar} a="Volver a la actividad" className="self-center" />
           </div>
         </div>
@@ -558,7 +566,7 @@ export function DevolucionesFlujo({
 
 /** «¿En qué estado vuelve?» de UNA prenda: impecable (al piso) o con defecto o uso (a
  *  cuarentena) y, si es lo segundo, qué se piensa hacer con ella. Las tres opciones de
- *  destino entran igual a cuarentena; el destino real lo decide después un líder. */
+ *  destino entran igual a cuarentena; el destino real se decide después, al resolverla en Inventario. */
 function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente; item: ItemElegido; onCambio: (c: Partial<ItemElegido>) => void }) {
   const sinDestino = item.grupo === "danada" && item.destino === null;
   return (
@@ -571,7 +579,7 @@ function EstadoDeLaPrenda({ linea, item, onCambio }: { linea: LineaVentaReciente
         {(
           [
             { grupo: "vendible", titulo: "Impecable", detalle: "Vuelve al piso de venta." },
-            { grupo: "danada", titulo: "Con defecto o uso", detalle: "Va a cuarentena hasta que un líder decida." },
+            { grupo: "danada", titulo: "Con defecto o uso", detalle: "Va a cuarentena hasta que se decida qué hacer con ella." },
           ] as const
         ).map((o) => {
           const activa = item.grupo === o.grupo;

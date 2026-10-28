@@ -47,7 +47,6 @@ export function PorRegularizarLista({
   libro = null,
   ubicacionEtiqueta,
   variasSedes,
-  esLider,
   plazos,
   cuadres,
   sedeInicial,
@@ -66,8 +65,6 @@ export function PorRegularizarLista({
   ubicacionEtiqueta: string;
   /** El líder ve todas las sedes: cada fila dice de cuál es. */
   variasSedes: boolean;
-  /** Solo un líder cierra la cola de arranque (ADR-0334); la base lo vuelve a exigir. */
-  esLider: boolean;
   /** Hasta cuándo cada tienda puede cerrar su cola (`ubicacion_id → AAAA-MM-DD`). Sin plazo no hay botón. */
   plazos: Record<string, string>;
   /** Cuándo se guardó el último cuadre del piso de cada tienda (A6, ADR-0334 act. 2026-10-14): sin uno posterior a la última venta, no hay botón y se dice por qué. */
@@ -137,17 +134,18 @@ export function PorRegularizarLista({
     const tarjeta = tarjetaRef.current;
     if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
   }
-  // Las tiendas que se pueden cerrar HOY: con pendientes y con plazo vigente. Sin ninguna, el botón no existe.
-  const sedesDelLider = useMemo(() => (esLider ? sedesParaCerrar(filas, plazos, ahora, cuadres) : []), [esLider, filas, plazos, ahora, cuadres]);
-  const sedesCerrables = useMemo(() => sedesDelLider.filter((s) => s.puedeCerrar), [sedesDelLider]);
+  // Las tiendas que se pueden cerrar HOY: con pendientes y con plazo vigente. Sin ninguna, el botón no existe. Desde ADR-0534 cierra quien ve
+  // Existencias (esta pantalla ya lo exige), no solo un líder; la base vuelve a pedir el módulo, la sede, el plazo y el cuadre del piso.
+  const sedesConCola = useMemo(() => sedesParaCerrar(filas, plazos, ahora, cuadres), [filas, plazos, ahora, cuadres]);
+  const sedesCerrables = useMemo(() => sedesConCola.filter((s) => s.puedeCerrar), [sedesConCola]);
   // Las sugerencias no dependen del plazo: identificar una venta nunca está vedado, solo cerrarla sin prenda.
-  const sedesConPendientes = useMemo(() => sedesDelLider.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesDelLider]);
+  const sedesConPendientes = useMemo(() => sedesConCola.map((s) => ({ ubicacionId: s.ubicacionId, sede: s.sede, pendientes: s.pendientes })), [sedesConCola]);
   // Qué dice el plazo de cada tienda: sin esto, vencido el plazo el botón desaparecía sin explicación. Solo se muestra a la vista cuando hay algo que
   // explicar (venció, no hay plazo, o hoy es el último día); con el plazo corriendo, va en el propio «Cerrar la cola de arranque» del menú «Más».
-  const avisosUrgentes = useMemo(() => avisosDePlazo(sedesDelLider.filter((s) => !s.puedeCerrar || s.diasDePlazo === 0)), [sedesDelLider]);
+  const avisosUrgentes = useMemo(() => avisosDePlazo(sedesConCola.filter((s) => !s.puedeCerrar || s.diasDePlazo === 0)), [sedesConCola]);
   const plazoUnico = sedesCerrables.length === 1 && sedesCerrables[0].plazoHasta ? `hasta el ${diaMesDe(sedesCerrables[0].plazoHasta)}` : null;
-  // Lo que solo hace un líder (la base lo vuelve a exigir) va en un menú: dos botones de peso igual compitiendo con el trabajo de la mesa.
-  const accionesDeLider = useMemo<ItemMenu[]>(
+  // Lo que se hace de vez en cuando (en bloque) va en un menú: dos botones de peso igual compitiendo con el trabajo de la mesa.
+  const accionesEnBloque = useMemo<ItemMenu[]>(
     () => [
       ...(sedesConPendientes.length > 0 ? [{ clave: "sugerencias", etiqueta: "Identificar con sugerencias", onSelect: () => setSugiriendo(true) }] : []),
       ...(sedesCerrables.length > 0 ? [{ clave: "cerrar", etiqueta: `Cerrar la cola de arranque${plazoUnico ? ` · ${plazoUnico}` : ""}`, onSelect: () => setCerrando(true) }] : []),
@@ -171,7 +169,7 @@ export function PorRegularizarLista({
 
       <div ref={tarjetaRef}>
         <div className="card-cayla anim-sube" style={{ "--i": 4 } as CSSProperties}>
-          {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo de líder va en «Más». */}
+          {/* Una sola fila de herramientas (la mesa empieza más arriba): buscar, filtrar, ordenar y «quién vendió»; lo que va en bloque, en «Más». */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5 px-5 pb-3 pt-4">
             <Buscador guia="regularizar.buscador"
               valor={busqueda}
@@ -206,7 +204,7 @@ export function PorRegularizarLista({
                 aria-label={orden.dir === "desc" ? "Ordenadas de la más reciente a la más antigua. Cambiar a la más antigua primero" : "Ordenadas de la más antigua a la más reciente. Cambiar a la más reciente primero"}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-sand bg-papel px-2.5 text-xs text-tinta transition-colors hover:bg-hueso"
               >
-                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
+                {orden.dir === "asc" ? <CalendarArrowUp aria-hidden className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden className="h-3.5 w-3.5 shrink-0" />}
                 <span className="hidden md:inline">{orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
               </button>
               <DesplegablePildora
@@ -217,7 +215,7 @@ export function PorRegularizarLista({
                 onValor={setQuien}
                 opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
               />
-              {accionesDeLider.length > 0 && <MenuAcciones etiqueta="Más acciones" texto="Más" items={accionesDeLider} />}
+              {accionesEnBloque.length > 0 && <MenuAcciones etiqueta="Más acciones" texto="Más" items={accionesEnBloque} />}
             </div>
           </div>
           {avisosUrgentes.length > 0 && (
@@ -236,7 +234,6 @@ export function PorRegularizarLista({
               preciosPorSede={preciosPorSede}
               libro={libro}
               variasSedes={variasSedes}
-              esLider={esLider}
               ahora={ahora}
               sinPendientes={cifras.pendientes === 0}
               etiquetaSede={ubicacionEtiqueta}

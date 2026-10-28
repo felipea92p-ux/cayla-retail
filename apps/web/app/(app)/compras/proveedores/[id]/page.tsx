@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
+import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor, getProveedorServicioResumen, getProveedorPrendas, getProveedorTallasSedes } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight, Receipt } from "lucide-react";
 import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
-import { rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
+import { ETIQUETA_TIPO_PROVEEDOR, rubrosConConteo, siguientePaso } from "@/lib/proveedores-reglas";
 import { getCreditosProveedor } from "@/lib/saldo-favor";
 import { getNosDebeProveedor } from "@/lib/nos-debe";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -16,8 +16,15 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
+import { ProveedorPrendas } from "@/components/ProveedorPrendas";
+import { LoQueQuizaNoVes } from "@/components/LoQueQuizaNoVes";
+import { hallazgosDeProveedor } from "@/lib/proveedor-analisis-reglas";
+import { hallazgosDeTallasYSedes, juntarHallazgos } from "@/lib/proveedor-tallas-sedes-reglas";
+import { ProveedorTallasSedes } from "@/components/ProveedorTallasSedes";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
+import { ProveedorServicio } from "@/components/ProveedorServicio";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
+import { CambiosCuentaProveedor } from "@/components/CambiosCuentaProveedor";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 import { NosDebeProveedor } from "@/components/nos-debe/NosDebeProveedor";
 import { Volver } from "@/components/ui/Volver";
@@ -25,6 +32,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { esUuid } from "@/lib/club-registro-reglas";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -51,24 +59,41 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
   const abreComprobantes = puede(persona, "verDineroCompras"); // el detalle y la lista de comprobantes son de Facturas de proveedor
   const { id } = await params;
+  // Un id que no es uuid no es un proveedor: «no existe», no la pantalla de error (/chaos de Compras, ADR-0421).
+  if (!esUuid(id)) notFound();
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, nosDebe] = await Promise.all([
-    getProveedor(id),
-    siDinero(() => getProveedorMetricasCompras(id)),
-    esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
-    siDinero(() => getProveedorCostoEvolucion(id)),
-    getProveedorDevoluciones(id),
-    siDinero(() => listarCompras({ proveedorId: id }, { limite: 3 })),
+  // El tipo decide qué se muestra: la ficha de un proveedor de servicios (Entel, luz) no tiene prendas, entregas ni devoluciones.
+  const proveedor = await getProveedor(id);
+  if (!proveedor) notFound();
+  const deServicios = proveedor.tipo === "servicios";
+  const [m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe, servicio, prendas, tallasSedes] = await Promise.all([
+    deServicios ? Promise.resolve(null) : siDinero(() => getProveedorMetricasCompras(id)),
+    esLider && !deServicios ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
+    deServicios ? Promise.resolve(null) : siDinero(() => getProveedorCostoEvolucion(id)),
+    deServicios ? Promise.resolve({ unidades: 0, ultima: null }) : getProveedorDevoluciones(id),
+    deServicios ? Promise.resolve(null) : siDinero(() => listarCompras({ proveedorId: id }, { limite: 3 })),
     getProveedores(),
     siDinero(() => getCreditosProveedor(id)),
     getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
+    // Cambios de cuenta (Felipe 2026-10-13): opcional como las marcas; si falla, la ficha se pinta sin el historial.
+    getCambiosBancarios(id).catch(() => []),
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer. Con los mismos ojos que el saldo a favor (los montos de la ficha); si la base
     // todavía no lo sabe contar, llega vacío y la ficha sale como antes.
-    siDinero(() => getNosDebeProveedor(id)),
+    deServicios ? Promise.resolve(null) : siDinero(() => getNosDebeProveedor(id)),
+    // Lo que se le paga a un proveedor de servicios (comprobantes de gasto). Con la misma llave que los montos.
+    deServicios ? siDinero(() => getProveedorServicioResumen(id)) : Promise.resolve(null),
+    // Lo que se le compró prenda por prenda y cuánto se vendió (2026-10-24): plata, así que con la misma llave que las cifras de arriba.
+    // Un proveedor de servicios no tiene prendas. Opcional: si la base todavía no tiene la función, la ficha se pinta sin esta sección.
+    deServicios ? Promise.resolve(null) : siDinero(() => getProveedorPrendas(id).catch(() => null)),
+    // Las tallas que se llevan y cómo le va en cada sede (2026-10-26): con la misma llave que lo comprado. Opcional: sin la función en la base,
+    // la ficha se pinta sin estas dos secciones.
+    deServicios ? Promise.resolve(null) : siDinero(() => getProveedorTallasSedes(id).catch(() => null)),
   ]);
-  if (!proveedor) notFound();
   const marcas = marcasMapa?.[id] ?? [];
+  const hoy = hoyLima();
+  // El botón de Traslados solo si quien mira tiene ese módulo: si no, la sugerencia se lee y se le pasa a quien lo tiene.
+  const hrefTraslados = usaModulo(persona.rol, persona.modulos, "traslados") ? "/inventario/traslados/nuevo" : null;
 
   const ahora = new Date();
   const plural = (n: number, s: string, p: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? s : p}`;
@@ -108,6 +133,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
           }
           pie={
             <div className="flex flex-wrap gap-2">
+              <Chip tono={deServicios ? "pizarra" : undefined} versalitas={false}>
+                {ETIQUETA_TIPO_PROVEEDOR[proveedor.tipo]}
+              </Chip>
               {marcas.map((marca) => (
                 <Chip key={marca} versalitas={false}>
                   {marca}
@@ -132,6 +160,10 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       )}
 
       <ProveedorCuentasFicha proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
+
+      <CambiosCuentaProveedor cambios={cambiosCuenta} />
+
+      {servicio && <ProveedorServicio resumen={servicio} />}
 
       {m && (
       <section className="space-y-3">
@@ -203,10 +235,21 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       </section>
       )}
 
+      {prendas && <LoQueQuizaNoVes guia="proveedor-ficha.analisis" hallazgos={juntarHallazgos(hallazgosDeProveedor(prendas, hoy), tallasSedes ? hallazgosDeTallasYSedes(tallasSedes, hoy) : [])} />}
+      {prendas && <ProveedorPrendas prendas={prendas} />}
+      {tallasSedes && <ProveedorTallasSedes celdas={tallasSedes} hoy={hoy} hrefTraslados={hrefTraslados} />}
+
       {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
           no cuenta las prendas, el saldo a favor queda solo, como antes. */}
       {nosDebe && (nosDebe.nosDebe || nosDebe.falla) ? (
-        <NosDebeProveedor nosDebe={nosDebe.nosDebe} falla={nosDebe.falla} proveedorNombre={proveedor.nombre} hoy={hoyLima()}>
+        <NosDebeProveedor
+          nosDebe={nosDebe.nosDebe}
+          falla={nosDebe.falla}
+          proveedorNombre={proveedor.nombre}
+          hoy={hoyLima()}
+          // Pasar a saldo a favor mueve plata: la misma regla que `resolver_deuda_proveedor` (fn_puede_gestionar_proveedores).
+          puedeSaldoAFavor={esLider || usaModulo(persona.rol, persona.modulos, "proveedores")}
+        >
           {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
         </NosDebeProveedor>
       ) : (
@@ -263,6 +306,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       )}
 
       {/* Dos negocios, nunca sumados: devoluciones/dañados e insumos del Taller van aparte de las prendas terminadas. */}
+      {!deServicios && (
       <div data-guia="proveedor-ficha.otros" className="grid gap-3 lg:grid-cols-2">
         {/* Las dos con la pieza única de cifra (TarjetaCifra, ADR-0358): cero devoluciones es un dato; sin lotes, «sin dato». */}
         <TarjetaCifra
@@ -287,6 +331,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             </TarjetaCifra>
           ))}
       </div>
+      )}
     </div>
   );
 }

@@ -73,6 +73,54 @@ if (VERSIONES.length < 20) {
   process.exit(1);
 }
 const RV_HOY = "retail.registrar_venta(uuid,jsonb,jsonb,uuid,uuid,text,text,text,text,text,text,uuid,text,numeric,uuid,text,boolean,boolean)";
+// EL PROGRAMA DE PUNTOS (ADR-0459) volvió a tocar funciones de esta cadena, después de todo lo de arriba:
+//   - registrar_venta, con reemplazos ANCLADOS (202000, 204000, 221000 y 224000): los deshace DESHACER_POSTERIORES (su
+//     DESHACER_CLUB_PUNTOS, en registrar-venta-antes-de-precio-sede.mjs), como los demás parches posteriores al redondeo;
+//   - registrar_aviso_enviado, con un reemplazo anclado de 20261019222000 (acepta el tipo `puntos`, ya no `aniversario`): se deshace aquí;
+//   - fn_club_avisos_pendientes (20261019222000) y fn_club_anonimizar_inactivas (20261019220000), reemplazadas ENTERAS.
+// El anclado se deshace para medir la cadena del club sobre su punto de partida: el par [viejo, nuevo] se lee del archivo para no
+// copiarlo, y si la base no lo tiene, `replace` no cambia nada. Las enteras no traen una tabla de versiones con su md5 «después»: su
+// «después» se MIDE pegando su archivo (el del repo) en una transacción que se deshace, antes del caso (l). Así la cadena sigue al
+// archivo: si alguien cambia la viva a mano, o el archivo, la prueba lo marca.
+const ANCLADOS_PUNTOS = [
+  ...leer("supabase", "migrations", "20261019222000_club_puntos_textos_y_avisos.sql").matchAll(
+    /pg_temp\.reemplazar\(\s*'(retail\.registrar_aviso_enviado\([^']*\))',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g
+  ),
+].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+if (ANCLADOS_PUNTOS.length !== 1) {
+  console.error(`✗ Esperaba 1 reemplazo anclado de registrar_aviso_enviado en 20261019222000 y encontré ${ANCLADOS_PUNTOS.length}.`);
+  process.exit(1);
+}
+// Avisos por tienda (20261020151000, Felipe 2026-10-20): un reemplazo anclado en fn_club_avisos_pendientes (lee el mensaje de su tienda).
+// Se deshace igual que el de arriba, para medir la lista de avisos contra el «después» de su archivo de puntos (20261019222000).
+const ANCLADOS_AVISOS_SEDE = [
+  ...leer("supabase", "migrations", "20261020151000_club_avisos_mensajes_por_tienda.sql").matchAll(
+    /pg_temp\.reemplazar\(\s*'(retail\.fn_club_avisos_pendientes\([^']*\))',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/g
+  ),
+].map((m) => ({ firma: m[1], viejo: m[2], nuevo: m[3] }));
+if (ANCLADOS_AVISOS_SEDE.length !== 1) {
+  console.error(`✗ Esperaba 1 reemplazo anclado de fn_club_avisos_pendientes en 20261020151000 y encontré ${ANCLADOS_AVISOS_SEDE.length}.`);
+  process.exit(1);
+}
+// Campañas por sede (20261023162000, ADR-0486): otro reemplazo anclado en fn_club_avisos_pendientes (la rebaja que avisa es la de esa tienda).
+// La migración busca la función por su nombre y no lo reconoce el patrón de arriba: se escribe aquí. Se deshace igual, para medir la lista de
+// avisos contra el «después» de su archivo de puntos.
+ANCLADOS_AVISOS_SEDE.push({
+  firma: "retail.fn_club_avisos_pendientes(uuid)",
+  viejo: "retail.campanas_vigentes() cv",
+  nuevo: "retail.campanas_vigentes(p_ubicacion_id) cv",
+});
+const DESHACER_PUNTOS = `do $deshacer_puntos$
+begin
+${[...ANCLADOS_PUNTOS, ...ANCLADOS_AVISOS_SEDE].map(({ firma, viejo, nuevo }) => `  execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$);`).join("\n")}
+end $deshacer_puntos$;
+`;
+const ENTERAS_PUNTOS = [
+  { firma: "retail.fn_club_anonimizar_inactivas()", archivo: "20261019220000_club_puntos_conservacion.sql" },
+  { firma: "retail.fn_club_avisos_pendientes(uuid)", archivo: "20261019222000_club_puntos_textos_y_avisos.sql" },
+];
+/** firma → md5 normalizado que deja su archivo (se llena antes del caso (l)). */
+const DESPUES_ENTERAS_PUNTOS = new Map();
 // 20261002100000_descuento_sin_codigo.sql (Felipe, 2026-10-01) volvió a cambiar la registrar_venta de 18 (le quitó el código
 // de descuento), partiendo del «después» de la PARTE 8: la cadena no se corta y su «después» es el md5 vivo de HOY.
 const SIN_CODIGO = leer("supabase", "migrations", "20261002100000_descuento_sin_codigo.sql");
@@ -89,8 +137,77 @@ const NO_REPETIR = leer("supabase", "migrations", "20261003235000_club_no_repeti
 const NO_REPETIR_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const NO_REPETIR_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
-/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club) o el de la PARTE 8. */
-const despuesHoy = (v) => (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.despues) ?? "NO_EXISTE";
+// 20261015232000_club_cartel_no_escribe_en_una_ficha_existente.sql (Felipe 2026-10-15, opción A) volvió a cambiarla: con una ficha que ya
+// existía no escribe nada. Parte del «después» de 20261003235000: la cadena no se corta y su «después» es el vivo de HOY.
+const SIN_PISAR = leer("supabase", "migrations", "20261015232000_club_cartel_no_escribe_en_una_ficha_existente.sql");
+const SIN_PISAR_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_PISAR)?.[1];
+const SIN_PISAR_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_PISAR)?.[1];
+// 20261016000000_club_intento_freno_por_ip_documento_y_dia.sql cambió club_intento (candado por ip, tope antes de anotar, topes por documento y
+// del día), partiendo del «después» de la PARTE 8: su «después» es el vivo de HOY.
+const FRENO = leer("supabase", "migrations", "20261016000000_club_intento_freno_por_ip_documento_y_dia.sql");
+const FRENO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(FRENO)?.[1];
+const FRENO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(FRENO)?.[1];
+const CLUB_INTENTO = "retail.club_intento(text,text,text,text)";
+if (!FRENO_ANTES || FRENO_ANTES !== VERSIONES.find((v) => v.firma === CLUB_INTENTO)?.despues) {
+  console.error("✗ 20261016000000 debería cambiar club_intento partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
+if (!SIN_PISAR_ANTES || SIN_PISAR_ANTES !== NO_REPETIR_DESPUES) {
+  console.error("✗ 20261015232000 debería cambiar registrarse_en_el_club partiendo del «después» de 20261003235000.");
+  process.exit(1);
+}
+// 20261015055000_tienda_cuentas_entrada_y_cierre.sql cambió fn_club_anonimizar_inactivas (Felipe 2026-10-14: entrar a la cuenta de la
+// tienda online también cuenta como actividad; un pedido web en curso la frena), partiendo del «después» de la PARTE 8. Su tabla de
+// versiones tiene el mismo formato; la cadena no se corta.
+const ENTRADA_WEB = leer("supabase", "migrations", "20261015055000_tienda_cuentas_entrada_y_cierre.sql");
+const CONSERVACION = "retail.fn_club_anonimizar_inactivas()";
+const CONSERVACION_WEB = [...ENTRADA_WEB.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)]
+  .map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }))
+  .find((v) => v.firma === CONSERVACION);
+if (!CONSERVACION_WEB || CONSERVACION_WEB.antes !== VERSIONES.find((v) => v.firma === CONSERVACION)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015055000 debería cambiar fn_club_anonimizar_inactivas partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
+// 20261015131000_clientas_anonimizar_espera_pedido_pagado.sql (Felipe 2026-10-15: anonimizar espera un pedido web pagado, y «a pedido
+// suyo» desde la tienda online) cambió la FIRMA de la rutina de anonimizar: creó la de 4 parámetros y BORRÓ la de 3 («después»: que no
+// exista), partiendo del «después» de la PARTE 8. La cadena no se corta.
+const ESPERA_PEDIDO = leer("supabase", "migrations", "20261015131000_clientas_anonimizar_espera_pedido_pagado.sql");
+const ANONIMIZAR_3 = "retail.fn_clienta_anonimizar(uuid,uuid,boolean)";
+const ANONIMIZAR_ESPERA = [...ESPERA_PEDIDO.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)]
+  .map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }))
+  .find((v) => v.firma === ANONIMIZAR_3);
+if (!ANONIMIZAR_ESPERA || ANONIMIZAR_ESPERA.despues !== null || ANONIMIZAR_ESPERA.antes !== VERSIONES.find((v) => v.firma === ANONIMIZAR_3)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015131000 debería borrar la fn_clienta_anonimizar de 3 parámetros partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
+// ADR-0416 (anonimizar es de un líder) volvió a tocar archivar_clienta con su propia tabla de versiones: su «antes» es el «después» de
+// esta PARTE 8, y su «después» es el de hoy. (La tienda online no toca archivar_clienta: su espera vive en la rutina, 20261015131000.)
+const ANONIMIZAR_LIDER = readFileSync(join(RAIZ, "supabase", "migrations", "20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"), "utf8");
+const ARCHIVAR = "retail.archivar_clienta(uuid,text,boolean,integer)";
+const ARCHIVAR_POSTERIOR = /\('retail\.archivar_clienta\(uuid,text,boolean,integer\)',\s+'([0-9a-f]{32})',\s+'([0-9a-f]{32})'\)/.exec(ANONIMIZAR_LIDER);
+if (!ARCHIVAR_POSTERIOR || VERSIONES.find((v) => v.firma === ARCHIVAR)?.despues !== ARCHIVAR_POSTERIOR[1]) {
+  console.error("✗ La tabla de versiones de 20261015155000 debería partir del «después» de archivar_clienta de esta PARTE 8.");
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la
+ *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—, archivar_clienta) o el de la PARTE 8. Las que el programa
+ *  de puntos reemplazó ENTERAS (la conservación otra vez y la lista de avisos), el que deja su archivo (DESPUES_ENTERAS_PUNTOS). */
+const despuesHoy = (v) =>
+  (DESPUES_ENTERAS_PUNTOS.has(v.firma)
+    ? DESPUES_ENTERAS_PUNTOS.get(v.firma)
+    : v.firma === RV_HOY
+    ? REDONDEO_DESPUES
+    : v.firma === REGISTRARSE
+      ? SIN_PISAR_DESPUES
+      : v.firma === CLUB_INTENTO
+        ? FRENO_DESPUES
+      : v.firma === CONSERVACION
+        ? CONSERVACION_WEB.despues
+        : v.firma === ANONIMIZAR_3
+          ? ANONIMIZAR_ESPERA.despues
+          : v.firma === ARCHIVAR
+            ? ARCHIVAR_POSTERIOR[2]
+            : v.despues) ?? "NO_EXISTE";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
 // (ADR-0288 act. k). El cuerpo de cada sección.
@@ -267,44 +384,46 @@ select club_desde is not null, publicidad_desde is null, codigo_club is not null
 // =====================================================================================================================
 // b. Quien ya existe
 // =====================================================================================================================
+// Desde 20261015232000 (Felipe 2026-10-15, opción A) el cartel no escribe NADA en una ficha que ya existía: la página no prueba que
+// el documento sea de quien escribe. Se pide en caja. Antes (G-4) la actualizaba; estos casos lo prueban al revés.
+// La ficha ya existía ANTES de este registro (un día antes): la regla mira fichas de otra transacción, no la que crea el propio registro.
+const FOTO_FICHA = (alias, como = "antes") =>
+  `update retail.clientas set created_at = created_at - interval '1 day' where id = :'${alias}';
+select md5(c::text) as ${alias}_${como}, (select count(*) from retail.club_permisos where clienta_id = :'${alias}') as ${alias}_permisos_${como},
+          (select count(*) from retail.actividad where registro_id = :'${alias}'::text) as ${alias}_actividad_${como}
+     from retail.clientas c where c.id = :'${alias}' \\gset\n`;
+const SIGUE_IGUAL = (alias) =>
+  `select (select md5(c::text) from retail.clientas c where c.id = :'${alias}') = :'${alias}_antes',
+          (select count(*) from retail.club_permisos where clienta_id = :'${alias}') = :${alias}_permisos_antes,
+          (select count(*) from retail.actividad where registro_id = :'${alias}'::text) = :${alias}_actividad_antes;\n`;
 caso(
-  "(b) ya existía (la registró la caja, sin club): reemplaza nombre (del padrón), celular, nacimiento y correo; se vuelve socia desde ahora (era_socia = f); registro_origen sigue «caja»",
+  "(b) ya existía (la registró la caja, sin club): club_ya_tiene_ficha y no escribe nada — ni nombre, celular, nacimiento o correo, ni Club, ni permisos, ni actividad",
   como(FELIPE) +
     `select retail.registrar_clienta(p_documento_tipo => 'dni', p_documento_numero => '90882001', p_nombre => 'Lu Perez', p_telefono_whatsapp => '966882001', p_cumple_dia => 1::smallint, p_cumple_mes => 1::smallint) as c \\gset
-` + comoServidor + REGISTRAR("f", { numero: "90882001", cel: "966882099", correo: "nuevo@correo.pe" }) +
-    `select :'f' = :'c', :'f_era';
 reset role;
-select nombre, telefono_whatsapp, cumple_dia || '/' || cumple_mes || '/' || cumple_anio, correo, registro_origen, club_desde = now()
-  from retail.clientas where id = :'c';
-`,
-  "t|f\nLUCIA PEREZ SALAS|966882099|12/5/1990|nuevo@correo.pe|caja|t"
+` + FOTO_FICHA("c") + comoServidor + INTENTO_REG({ numero: "90882001", cel: "966882099", correo: "nuevo@correo.pe" }) +
+    `reset role;\n` + SIGUE_IGUAL("c"),
+  "P0001|club_ya_tiene_ficha\nt|t|t"
 );
 caso(
-  "(b) G-4: ya era socia (de antes, con su código): conserva club_desde y codigo_club, era_socia = t; un correo vacío no borra el que tenía; la fecha de nacimiento sí se reemplaza; y NO queda otro evento del club (aceptó los mismos textos: no dio nada nuevo, 20261003235000)",
+  "(b) ya era socia (se registró antes en el cartel): volver con otro celular, otra fecha, otro correo y la casilla → club_ya_tiene_ficha; conserva sus datos, su código, su fecha y no deja permisos nuevos",
   comoServidor + REGISTRAR("f", { numero: "90882011", cel: "966882011", correo: "primero@correo.pe" }) +
-    `reset role;\nupdate retail.clientas set club_desde = now() - interval '200 days' where id = :'f';\n` +
-    comoServidor + REGISTRAR("g", { numero: "90882011", cel: "966882011", nac: "1991-06-13", correo: "" }) +
-    `select :'g' = :'f', :'g_codigo' = :'f_codigo', :'g_desde'::timestamptz = now() - interval '200 days', :'g_era';
-reset role;
-select correo, cumple_dia || '/' || cumple_mes || '/' || cumple_anio, club_desde = now() - interval '200 days' from retail.clientas where id = :'f';
-select count(*) from retail.club_permisos where clienta_id = :'f' and finalidad = 'club';
-`,
-  "t|t|t|t\nprimero@correo.pe|13/6/1991|t\n1"
+    `reset role;\n` + FOTO_FICHA("f") + comoServidor +
+    INTENTO_REG({ numero: "90882011", cel: "966882099", nac: "1991-06-13", correo: "otro@correo.pe" }) +
+    `reset role;\n` + SIGUE_IGUAL("f"),
+  "P0001|club_ya_tiene_ficha\nt|t|t"
 );
 caso(
-  "(b) carné de extranjería: el nombre lo escribe ella (sin padrón); sobre una ficha que ya tenía nombre NO lo pisa; sobre una sin nombre, lo completa",
+  "(b) carné de extranjería y pasaporte: sobre una ficha que ya existía (con nombre o sin él) tampoco escribe nada",
   como(FELIPE) +
     `select retail.registrar_clienta(p_documento_tipo => 'carne_extranjeria', p_documento_numero => 'CE123456', p_nombre => 'Ana Torres') as a \\gset
 reset role;
 insert into retail.clientas (documento_tipo, documento_numero) values ('pasaporte', 'PA987654') returning id as b \\gset
-` + comoServidor +
-    REGISTRAR("fa", { tipo: "carne_extranjeria", numero: "ce 123456", nombre: "Otra Persona", cel: "966882021", padron: false }) +
-    REGISTRAR("fb", { tipo: "pasaporte", numero: "PA987654", nombre: "Beatriz Gomez", cel: "966882022", padron: false }) +
-    `reset role;
-select string_agg(nombre || ':' || documento_numero, ' · ' order by documento_tipo) from retail.clientas where id in (:'a', :'b');
-select :'fa' = :'a', :'fb' = :'b', :'fa_corto', :'fb_corto';
-`,
-  "Ana Torres:CE123456 · Beatriz Gomez:PA987654\nt|t|Ana|Beatriz"
+` + FOTO_FICHA("a") + FOTO_FICHA("b") + comoServidor +
+    INTENTO_REG({ tipo: "carne_extranjeria", numero: "ce 123456", nombre: "Otra Persona", cel: "966882021", padron: false }) +
+    INTENTO_REG({ tipo: "pasaporte", numero: "PA987654", nombre: "Beatriz Gomez", cel: "966882022", padron: false }) +
+    `reset role;\n` + SIGUE_IGUAL("a") + SIGUE_IGUAL("b"),
+  "P0001|club_ya_tiene_ficha\nP0001|club_ya_tiene_ficha\nt|t|t\nt|t|t"
 );
 
 // =====================================================================================================================
@@ -373,83 +492,13 @@ select string_agg(texto_tipo || ' v' || texto_version, ',' order by texto_tipo) 
 // e. Celular nuevo
 // =====================================================================================================================
 caso(
-  "(e) socia CON publicidad se registra con OTRO celular y la casilla: se le quita la del número de antes (revoca por pagina_cartel, con nota, sin persona) y se le da para el nuevo (dos otorga y un revoca: en una misma transacción tienen la misma hora); el celular es el nuevo y sigue con publicidad",
+  "(e) una miembro CON publicidad que vuelve a escanear el cartel (con otro celular y la casilla, o con el mismo sin la casilla): club_ya_tiene_ficha y no cambia nada — ni su celular, ni su publicidad, ni sus permisos (20261015232000)",
   comoServidor + REGISTRAR("f", { numero: "90885001", cel: "966885001" }) +
-    REGISTRAR("g", { numero: "90885001", cel: "966885099" }) +
-    `reset role;
-select telefono_whatsapp, publicidad_desde is not null from retail.clientas where id = :'f';
-select string_agg(accion || ':' || medio || ':' || coalesce(texto_tipo, '-') || ':' || (registrado_por is null) || ':' || coalesce(nota, '-'), ' · ' order by accion, texto_tipo)
-  from retail.club_permisos where clienta_id = :'f' and finalidad = 'publicidad_whatsapp';
-`,
-  "966885099|t\notorga:pagina_cartel:casilla_publicidad:true:- · otorga:pagina_cartel:casilla_publicidad:true:- · revoca:pagina_cartel:-:true:se volvió a registrar en el cartel con otro celular"
-);
-caso(
-  "(e) …con OTRO celular y SIN la casilla: se le quita y queda sin publicidad (sigue socia); con el MISMO celular sin la casilla, no se le toca nada",
-  comoServidor + REGISTRAR("f", { numero: "90885011", cel: "966885011" }) + REGISTRAR("h", { numero: "90885012", cel: "966885012" }) +
-    REGISTRAR("g", { numero: "90885011", cel: "966885098", pub: false }) +
-    REGISTRAR("i", { numero: "90885012", cel: "+51 966 885 012", pub: false }) +
-    `reset role;
-select string_agg(telefono_whatsapp || ':' || (club_desde is not null) || ':' || (publicidad_desde is not null), ' · ' order by documento_numero)
-  from retail.clientas where id in (:'f', :'h');
-select (select count(*) from retail.club_permisos where clienta_id = :'f' and finalidad = 'publicidad_whatsapp'),
-       (select count(*) from retail.club_permisos where clienta_id = :'h' and finalidad = 'publicidad_whatsapp');
-`,
-  "966885098:true:false · 966885012:true:true\n2|1"
-);
-
-// =====================================================================================================================
-// m. Una miembro que actualiza sus datos NO deja otro «Se unió» (20261003235000)
-// =====================================================================================================================
-const SOLO_CLUB_Y_PUB = (alias) =>
-  `select string_agg(texto_tipo || ' v' || texto_version || ':' || coalesce(nota, '-'), ' · ' order by texto_version, texto_tipo)
-  from retail.club_permisos where clienta_id = :'${alias}' and finalidad = 'club';
-select string_agg(texto_tipo || ' v' || texto_version || ':' || coalesce(nota, '-'), ' · ' order by texto_version)
-  from retail.club_permisos where clienta_id = :'${alias}' and finalidad = 'publicidad_whatsapp';\n`;
-caso(
-  "(m) una miembro CON publicidad vuelve a escanear el cartel con los mismos textos y marca la casilla otra vez: se actualizan sus datos (nombre, nacimiento), conserva su código y su fecha, la página le dice que ya era miembro, y NO se agrega otro «club otorga» ni otro «publicidad otorga»",
-  comoServidor + REGISTRAR("f", { numero: "90886001", cel: "966886001" }) +
-    REGISTRAR("g", { numero: "90886001", cel: "966886001", nombre: "LUCIA PEREZ CAMPOS", nac: "1991-02-03" }) +
-    `select :'g' = :'f', :'g_codigo' = :'f_codigo', :'g_era';
-reset role;
-select cumple_dia || '/' || cumple_mes || '/' || cumple_anio, publicidad_desde is not null from retail.clientas where id = :'f';
-` + SOLO_CLUB_Y_PUB("f"),
-  "t|t|t\n3/2/1991|t\nterminos v2:aceptó también la privacidad v2\ncasilla_publicidad v2:-"
-);
-caso(
-  "(m) …si los términos cambiaron (v3) desde la última vez, SÍ se anota: «volvió a aceptar los textos nuevos», con la versión nueva; la primera fila queda como estaba",
-  comoServidor + REGISTRAR("f", { numero: "90886011", cel: "966886011" }) +
-    `reset role;\ninsert into retail.club_textos (tipo, version, texto) values ('terminos', 3, 'Términos v3 de prueba.');\n` + comoServidor +
-    REGISTRAR("g", { numero: "90886011", cel: "966886011", versiones: `'{"terminos": 3, "privacidad": 2, "casilla_publicidad": 2}'::jsonb` }) +
-    `select :'g_era';\nreset role;\n` + SOLO_CLUB_Y_PUB("f"),
-  "t\nterminos v2:aceptó también la privacidad v2 · terminos v3:volvió a aceptar los textos nuevos · privacidad v2\ncasilla_publicidad v2:-"
-);
-caso(
-  "(m) …y con una casilla nueva (v3) y la publicidad que ya tenía, también se anota («volvió a aceptar el texto nuevo»); con la misma casilla, no",
-  comoServidor + REGISTRAR("f", { numero: "90886021", cel: "966886021" }) +
-    `reset role;\ninsert into retail.club_textos (tipo, version, texto) values ('casilla_publicidad', 3, 'Casilla v3 de prueba.');\n` + comoServidor +
-    REGISTRAR("g", { numero: "90886021", cel: "966886021", versiones: `'{"terminos": 2, "privacidad": 2, "casilla_publicidad": 3}'::jsonb` }) +
-    `reset role;\n` + SOLO_CLUB_Y_PUB("f"),
-  "terminos v2:aceptó también la privacidad v2\ncasilla_publicidad v2:- · casilla_publicidad v3:volvió a aceptar el texto nuevo"
-);
-caso(
-  "(m) una miembro SIN publicidad que vuelve y marca la casilla por primera vez: la publicidad SÍ es un permiso nuevo (una fila, sin nota) y el club no repite; y una que vuelve sin marcar nada no deja filas",
-  comoServidor + REGISTRAR("f", { numero: "90886031", cel: "966886031", pub: false }) +
-    REGISTRAR("g", { numero: "90886031", cel: "966886031", pub: false }) +
-    REGISTRAR("h", { numero: "90886031", cel: "966886031" }) +
-    `reset role;\nselect publicidad_desde is not null from retail.clientas where id = :'f';\n` + SOLO_CLUB_Y_PUB("f"),
-  "t\nterminos v2:aceptó también la privacidad v2\ncasilla_publicidad v2:-"
-);
-caso(
-  "(m) una miembro de antes del cartel (solo una fila de legado, sin textos) que se registra por primera vez en el cartel: SÍ deja su fila, porque no hay un permiso del cartel con estos textos",
-  como(FELIPE) +
-    `select retail.registrar_clienta(p_documento_tipo => 'dni', p_documento_numero => '90886041', p_nombre => 'Lu Perez', p_telefono_whatsapp => '966886041') as c \\gset
-reset role;
-update retail.clientas set club_desde = now() - interval '30 days', codigo_club = 'C-9041' where id = :'c';
-insert into retail.club_permisos (clienta_id, finalidad, accion, medio, registrado_por, ubicacion_id, nota)
-  values (:'c', 'club', 'otorga', 'legado', null, null, 'marcado en caja antes del club');
-` + comoServidor + REGISTRAR("g", { numero: "90886041", cel: "966886041", pub: false }) +
-    `select :'g_era';\nreset role;\n` + SOLO_CLUB_Y_PUB("c"),
-  "t\nterminos v2:volvió a aceptar los textos nuevos · privacidad v2"
+    `reset role;\n` + FOTO_FICHA("f") + comoServidor +
+    INTENTO_REG({ numero: "90885001", cel: "966885099" }) +
+    INTENTO_REG({ numero: "90885001", cel: "966885001", pub: false }) +
+    `reset role;\n` + SIGUE_IGUAL("f") + `select telefono_whatsapp, publicidad_desde is not null from retail.clientas where id = :'f';\n`,
+  "P0001|club_ya_tiene_ficha\nP0001|club_ya_tiene_ficha\nt|t|t\n966885001|t"
 );
 
 // =====================================================================================================================
@@ -481,17 +530,41 @@ select :'f' <> :'a', (select anonimizada and documento_numero is null and club_d
 // g. Los límites del cartel
 // =====================================================================================================================
 caso(
-  "(g) club_intento: 20 consultas por ip en la hora pasan y la 21 no (otra ip, sí); 5 registros por ip pasan y el 6 no; 3 por celular y 3 por documento (desde ips distintas) pasan y el 4 no; el celular se guarda normalizado",
+  "(g) club_intento: 20 consultas por ip en la hora pasan y la 21 no (otra ip, sí), y la que no pasa NO se anota; 5 registros por ip pasan y el 6 no; 3 por celular y 3 por documento (desde ips distintas) pasan y el 4 no; el celular se guarda normalizado",
   comoServidor +
-    `select string_agg(retail.club_intento('consulta', 'ip-a', 'doc-x', null)::text, ',') from generate_series(1, 21);
-select retail.club_intento('consulta', 'ip-b', 'doc-x', null);
+    `select string_agg(retail.club_intento('consulta', 'ip-a', 'doc-a' || g, null)::text, ',') from generate_series(1, 21) g;
+select retail.club_intento('consulta', 'ip-b', 'doc-b', null);
 select string_agg(retail.club_intento('registro', 'ip-c', 'doc-' || g, '96688700' || g)::text, ',') from generate_series(1, 6) g;
 select string_agg(retail.club_intento('registro', 'ip-d' || g, 'doc-d' || g, '+51 966 887 999')::text, ',') from generate_series(1, 4) g;
 select string_agg(retail.club_intento('registro', 'ip-e' || g, 'doc-e', '96688800' || g)::text, ',') from generate_series(1, 4) g;
 reset role;
 select count(*) from retail.club_intentos_registro where celular = '966887999';
+select count(*) from retail.club_intentos_registro where ip_hash = 'ip-a';
 `,
-  `${Array(20).fill("true").join(",")},false\nt\n${Array(5).fill("true").join(",")},false\ntrue,true,true,false\ntrue,true,true,false\n4`
+  `${Array(20).fill("true").join(",")},false\nt\n${Array(5).fill("true").join(",")},false\ntrue,true,true,false\ntrue,true,true,false\n3\n20`
+);
+caso(
+  "(g) la consulta de un DNI: 5 por documento y hora, aunque cambie de ip (la 6 no); 300 al día en toda CAYLA (la 301 no, ni con otra ip ni otro documento); la consulta de un correo (sin documento) no entra en esos topes",
+  comoServidor +
+    `select string_agg(retail.club_intento('consulta', 'ip-f' || g, 'doc-f', null)::text, ',') from generate_series(1, 6) g;
+reset role;
+insert into retail.club_intentos_registro (tipo, ip_hash, documento_hash, creado_en)
+  select 'consulta', 'ip-dia-' || g, 'doc-dia-' || g, now() - interval '1 minute' from generate_series(1, 300 - (select count(*) from retail.club_intentos_registro
+    where tipo = 'consulta' and documento_hash is not null and creado_en >= (date_trunc('day', now() at time zone 'America/Lima') at time zone 'America/Lima'))::integer) g;
+` + comoServidor +
+    `select retail.club_intento('consulta', 'ip-g', 'doc-g', null), retail.club_intento('consulta', 'ip-g', null, null);
+`,
+  `true,true,true,true,true,false\nf|t`
+);
+caso(
+  "(g) los intentos de más de un día se van solos (de a poco) con la siguiente llamada",
+  `reset role;
+insert into retail.club_intentos_registro (tipo, ip_hash, creado_en) select 'consulta', 'ip-viejo', now() - interval '2 days' from generate_series(1, 3);
+` + comoServidor + `select retail.club_intento('consulta', 'ip-h', null, null);
+reset role;
+select count(*) from retail.club_intentos_registro where ip_hash = 'ip-viejo';
+`,
+  "t\n0"
 );
 
 // =====================================================================================================================
@@ -570,16 +643,16 @@ select retail.fn_club_pagina(:'taller') is null, retail.fn_club_pagina(gen_rando
   "Tienda Lima|966000111|10.00|1=20.00,2=30.00,3=40.00,4=50.00,5=60.00|6|600.00|60|casilla_publicidad,privacidad,saludo,terminos|t|t|t|t|t\nt|t|t"
 );
 caso(
-  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cuatro plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
+  "(i) fn_club_textos_legales (como anon): lo mismo sin la tienda, con los términos y la privacidad; y las cinco plantillas de avisos, en cada versión (cumpleaños y novedades tienen v2: act. k; cumpleaños tiene v3 y nace «Puntos por vencer», aviso_puntos v1: programa de puntos, 20261019222000; los cuatro con su versión nueva, con el cierre de la tienda web: 20261020144000, cuyo `aviso_cierre` no es un mensaje y no entra), terminan con «Si no quieres recibir más mensajes, responde BAJA.» y saludan por {nombre}",
   comoAnon +
     `select (select string_agg(k, ',' order by k) from jsonb_object_keys(p) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(p -> 'textos') k),
        p -> 'textos' -> 'terminos' ->> 'texto' = $t$${TEXTO_TERMINOS}$t$, p -> 'textos' -> 'privacidad' ->> 'version'
   from (select retail.fn_club_textos_legales() as p) x;
 reset role;
 select string_agg(tipo || ' v' || version || ':' || (texto like '%Si no quieres recibir más mensajes, responde BAJA.' and texto like '%{nombre}%'), ',' order by tipo, version)
-  from retail.club_textos where tipo like 'aviso\\_%';
+  from retail.club_textos where tipo like 'aviso\\_%' and tipo <> 'aviso_cierre';
 ` + intento(`insert into retail.club_textos (tipo, version, texto) values ('aviso_rebaja', 9, 'Hola {nombre}, sin baja.')`),
-  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_rebaja v1:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
+  "compras,dias,escala,monto_minimo,pct,textos|privacidad,terminos|t|2\naviso_aniversario v1:true,aviso_cumpleanos v1:true,aviso_cumpleanos v2:true,aviso_cumpleanos v3:true,aviso_cumpleanos v4:true,aviso_novedades v1:true,aviso_novedades v2:true,aviso_novedades v3:true,aviso_puntos v1:true,aviso_puntos v2:true,aviso_rebaja v1:true,aviso_rebaja v2:true\n23514|new row for relation \"club_textos\" violates check constraint \"club_textos_aviso_con_baja\""
 );
 
 // =====================================================================================================================
@@ -677,10 +750,21 @@ select a.detalle ? 'automatica' from retail.actividad a where a.accion = 'anonim
 // =====================================================================================================================
 // l. Estructura y pegado
 // =====================================================================================================================
+// El «después» de las funciones que el programa de puntos reemplazó ENTERAS: se pega su archivo en una transacción que se deshace y se
+// mide lo que deja (la última fila: el archivo puede imprimir filas vacías de sus `select pg_temp.reemplazar(…)`).
+// 20261020144000 sumó el texto `aviso_cierre`, que la regla de tipos de 20261019222000 no conoce: para volver a pegar ese archivo en la
+// transacción que se deshace, esa fila se quita antes (sin el disparador de «solo agregar»: igual se deshace todo).
+// Y antes, el anclado de 20261020151000 se deshace en la viva: 20261019222000 solo se vuelve a pegar sobre la suya o la nueva.
+const SIN_CIERRE = `set local session_replication_role = replica;\ndelete from retail.club_textos where tipo = 'aviso_cierre';\nset local session_replication_role = origin;\n${ANCLADOS_AVISOS_SEDE.map(({ firma, viejo, nuevo }) => `do $d$ begin execute replace(pg_get_functiondef('${firma}'::regprocedure), $q$${nuevo}$q$, $q$${viejo}$q$); end $d$;\n`).join("")}`;
+for (const { firma, archivo } of ENTERAS_PUNTOS) {
+  const r = correr(`begin;\n${archivo.startsWith("20261019222000") ? SIN_CIERRE : ""}${leer("supabase", "migrations", archivo)}\nselect coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${firma}')), 'NO_EXISTE');\nrollback;`);
+  DESPUES_ENTERAS_PUNTOS.set(firma, r.ok ? r.salida.split("\n").filter(Boolean).at(-1) : `NO_SE_PUDO_MEDIR (${archivo}): ${r.mensaje.split("\n").find((l) => l.includes("ERROR")) ?? r.mensaje}`);
+}
 caso(
-  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí, y registrarse_en_el_club el de 20261003235000) y los «antes» son los de producción el 2026-10-01`,
-  // registrar_venta se mide antes de los parches posteriores (precio por sede, ADR-0370; origen sugerido, 20261010220100): la cadena que se vigila es la del club.
-  DESHACER_POSTERIORES + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
+  `(l) los md5 «después» de la sección 0 de la PARTE 8 son los de las funciones vivas (${VERSIONES.length} firmas; la registrar_venta de 17 ya no existe, la de 18 tiene el de 20261003130000, que parte del de 20261002100000, que parte del de aquí, y registrarse_en_el_club el de 20261015232000, que parte del de 20261003235000; con los anclados del programa de puntos deshechos, y la conservación y la lista de avisos con el de sus archivos de puntos, 20261019220000 y 20261019222000) y los «antes» son los de producción el 2026-10-01`,
+  // registrar_venta se mide antes de los parches posteriores (precio por sede, ADR-0370; origen sugerido, 20261010220100; los del programa
+  // de puntos, ADR-0459): la cadena que se vigila es la del club. Y registrar_aviso_enviado, antes del anclado de puntos (DESHACER_PUNTOS).
+  DESHACER_PUNTOS + DESHACER_POSTERIORES + VERSIONES.map((v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`).join(""),
   (s) =>
     s === VERSIONES.map(despuesHoy).join("\n") &&
     VERSIONES.find((v) => v.firma === RV_HOY)?.despues === SIN_CODIGO_ANTES &&

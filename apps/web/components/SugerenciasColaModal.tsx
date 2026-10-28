@@ -15,7 +15,7 @@ import { Boton, CampoSelect } from "@/components/ui/campos";
 import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const textoDiferencia = (d: number) => (d === 0 ? "Se cobró el precio oficial" : d < 0 ? `Se cobró ${soles(-d)} menos` : `Se cobró ${soles(d)} más`);
 
 /** Lo último que respondió la base, con la clave (tienda + intento) a la que respondió: una respuesta de otra tienda no vale. */
@@ -23,7 +23,7 @@ type Respuesta = { clave: string; parejas: ParejaSugerida[] | null };
 
 /**
  * «Identificar con sugerencias» (ADR-0334): antes de cerrar la cola de arranque, las ventas que tienen UNA sola prenda posible
- * (misma categoría, talla y color, con stock en la tienda) se identifican de una vez. La base propone; un líder CONFIRMA fila por
+ * (misma categoría, talla y color, con stock en la tienda) se identifican de una vez. La base propone; quien ve Existencias CONFIRMA fila por
  * fila: una sola candidata no es certeza (si la prenda vendida nunca se cargó, la candidata es OTRA prenda que sigue colgada y
  * quedaría con 1 de menos). Las que no se marcan siguen pendientes para identificarlas a mano o cerrarlas.
  *
@@ -54,7 +54,7 @@ export function SugerenciasColaModal({
   const [reintento, setReintento] = useState(0);
   const prendas = useMemo(() => conPrecioDeLaSede(prendasCatalogo, preciosPorSede[ubicacionId], (p) => p.id), [prendasCatalogo, preciosPorSede, ubicacionId]);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
-  // Lo que el líder ELIGIÓ: nada viene marcado de fábrica. «marcadas» se deriva de esto y de lo que hay ahora (una sugerencia que ya no
+  // Lo que la persona ELIGIÓ: nada viene marcado de fábrica. «marcadas» se deriva de esto y de lo que hay ahora (una sugerencia que ya no
   // está, porque se recargó la lista, no cuenta aunque su id siga aquí).
   const [elegidas, setElegidas] = useState<ReadonlySet<string>>(new Set());
   const [guardando, setGuardando] = useState(false);

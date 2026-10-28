@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowRight, Download } from "lucide-react";
 import { Boton, BotonAncla, BotonEnlace } from "./campos";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
 
 /* ====================================================================
    Los botones de una sola función de la ronda 10 de /unificar (ADR-0358: Felipe los eligió tocándolos el 2026-10-13).
@@ -10,6 +11,8 @@ import { Boton, BotonAncla, BotonEnlace } from "./campos";
      en la cabecera de una pantalla habla en versalitas, en una hoja en letra normal) con el ícono de descarga a la izquierda, que BAJA 2 px
      al pasar el mouse (`app/globals.css`, junto al movimiento de todo botón). Con `href`, es una descarga directa (`<a download>`: no pasa
      por el loader de pantalla); con `onClick`, arma el archivo en el navegador y `cargando` corre el hilo mientras tanto.
+     `soloIcono` (Felipe 2026-10-26, la cabecera del Plan de campaña, donde ya hay otros íconos de 40 px): el ícono solo, con su nombre al pasar
+     el mouse (y para el lector de pantalla), igual que el «Resumen» de al lado. Es una excepción de ese lugar, no la forma de la pieza.
    · <BotonVer>: llevar a ver algo en otra pantalla (la prenda en Existencias, el impuesto en Facturación, la ficha del proveedor). Siempre
      el botón secundario con la flecha a la derecha, que avanza 4 px al pasar el mouse: dice que LLEVA, sin competir con el botón negro de
      la pantalla. Nunca negro, nunca con «→» escrito. Dentro de una frase sigue siendo el enlace (`btn-enlace`), y junto a un resumen,
@@ -24,15 +27,42 @@ type Comun = {
   chico?: boolean;
   className?: string;
   title?: string;
+  /** El nombre para el lector de pantalla, si el texto solo no alcanza («Es el mismo diseño: Blusa Emma»). */
+  etiqueta?: string;
   /** Ancla de la guía (ADR-0389). */
   guia?: string;
+  /** Solo el ícono de 40 px, con el texto de `children` como su nombre al pasar el mouse. Con `cargando` no cambia de ancho: solo se apaga. */
+  soloIcono?: boolean;
 };
 
 export function BotonDescargar(
   props: Comun & ({ href: string; onClick?: never; cargando?: never; disabled?: never } | { onClick: () => void; href?: never; cargando?: boolean; disabled?: boolean }),
 ) {
-  const { children, peso = "fantasma", chico = false, className = "", title, guia } = props;
+  const { children, peso = "fantasma", chico = false, className = "", title, guia, soloIcono = false, etiqueta } = props;
   const clase = `${chico ? "btn-chico" : ""} ${className}`;
+  if (soloIcono) {
+    const nombre = typeof children === "string" ? children : (etiqueta ?? "Descargar");
+    const caraIcono = `w-10 justify-center px-0! ${clase}`;
+    const icono = <Download aria-hidden className="h-4 w-4" />;
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {props.href !== undefined ? (
+              <BotonAncla href={props.href} download peso={peso} className={caraIcono} aria-label={nombre} data-guia={guia}>
+                {icono}
+              </BotonAncla>
+            ) : (
+              <Boton type="button" onClick={props.onClick} disabled={props.disabled || props.cargando} aria-busy={props.cargando || undefined} peso={peso} className={caraIcono} aria-label={nombre} data-guia={guia}>
+                {icono}
+              </Boton>
+            )}
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6}>{nombre}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
   // En una caja `flex` (de bloque, no `inline-flex`): el CSS base dibuja todo `svg` como bloque y, dentro de la caja sin flex de
   // <Boton>, el ícono bajaba de línea; una caja `inline-flex` armaba además su propia línea de texto y el botón crecía 5 px sobre
   // sus vecinos de la cabecera. `-my-1`: el ícono de 16 px no estira el alto de la letra de 11 px (40 px, como todo botón ahí).
@@ -57,7 +87,7 @@ export function BotonDescargar(
 }
 
 export function BotonVer(props: Omit<Comun, "peso"> & ({ href: string; onClick?: never; alNavegar?: () => void } | { onClick: () => void; href?: never; alNavegar?: never })) {
-  const { children, chico = false, className = "", title, guia } = props;
+  const { children, chico = false, className = "", title, etiqueta, guia } = props;
   const clase = `${chico ? "btn-chico" : ""} ${className}`;
   const contenido = (
     <span className="flex items-center gap-2">
@@ -67,13 +97,13 @@ export function BotonVer(props: Omit<Comun, "peso"> & ({ href: string; onClick?:
   );
   if (props.href !== undefined) {
     return (
-      <BotonEnlace href={props.href} onClick={props.alNavegar} className={clase} title={title} data-guia={guia}>
+      <BotonEnlace href={props.href} onClick={props.alNavegar} className={clase} title={title} aria-label={etiqueta} data-guia={guia}>
         {contenido}
       </BotonEnlace>
     );
   }
   return (
-    <Boton type="button" onClick={props.onClick} className={clase} title={title} data-guia={guia}>
+    <Boton type="button" onClick={props.onClick} className={clase} title={title} aria-label={etiqueta} data-guia={guia}>
       {contenido}
     </Boton>
   );

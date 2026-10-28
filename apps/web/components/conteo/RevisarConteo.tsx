@@ -10,6 +10,7 @@ import { BarraFija } from "@/components/ui/BarraFija";
 import { MuestraColor } from "@/components/ui/MuestraColor";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import { textoAtajoEnRevision } from "@/lib/conteo-atajo";
 import { bloqueoDeCierre, lineaDesdeJson, notaDeLinea, resumirLineas, textoFaltanPorContar } from "@/lib/conteo-reglas";
 import { diferenciasEnOrden, pendientesPorPercha, textoConfirmaPrimero, type FilaConteoVista } from "@/lib/conteo-revision";
 import { traducirError } from "@/lib/error-escritura";
@@ -78,7 +79,18 @@ function ColorYTalla({ color, colorHex, talla, conTalla = false }: { color: stri
   );
 }
 
-export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: { conteoId: string; filas: FilaConteoVista[]; generadoEn: string }) {
+export function RevisarConteo({
+  conteoId,
+  filas: filasIniciales,
+  generadoEn,
+  conAtajo = null,
+}: {
+  conteoId: string;
+  filas: FilaConteoVista[];
+  generadoEn: string;
+  /** Cuántas variantes se completaron con «Completar todo» al cargar la página; `null` si no se pudo leer (no se dice nada). */
+  conAtajo?: number | null;
+}) {
   const router = useRouter();
 
   // Frescura: «Volver a contar» lleva a Contar y de allí se regresa a Revisar; el enrutador puede devolver esta pantalla desde su
@@ -110,6 +122,8 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
   const tarjetaPend = useRef<HTMLElement>(null);
 
   const resumen = useMemo(() => resumirLineas(filas), [filas]);
+  // ADR-0328 (opción C): lo completado con el atajo CUENTA, pero se dice. «Contadas» = las que alguien contó (sin las «sin contar»).
+  const textoAtajo = textoAtajoEnRevision(conAtajo ?? 0, resumen.verificadas - resumen.sinContar);
   const diferencias = useMemo(() => diferenciasEnOrden(filas), [filas]);
   const perchas = useMemo(() => pendientesPorPercha(filas), [filas]);
   const sinConfirmar = resumen.conDiferencia - resumen.confirmadas;
@@ -204,14 +218,13 @@ export function RevisarConteo({ conteoId, filas: filasIniciales, generadoEn }: {
     <>
       <section id="revisar-resumen" data-guia="revisar.resumen" tabIndex={-1} className="card-cayla space-y-3 p-4 outline-none sm:p-5">
         <ResumenConteo resumen={resumen} variante="revision" />
+        {textoAtajo && <p className="text-sm text-taupe">{textoAtajo}</p>}
         {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={alguienOcupado} className="w-full sm:w-72" />}
       </section>
 
       {conPendientes && (
         <>
-          <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-            {textoFaltanPorContar(resumen.pendientes)}
-          </p>
+          <Aviso tono="atencion">{textoFaltanPorContar(resumen.pendientes)}</Aviso>
 
           <section ref={tarjetaPend} data-guia="revisar.pendientes" className="card-cayla @container scroll-mt-24 overflow-hidden">
             <div className="space-y-1 border-b border-sand px-4 py-4 @[36rem]:px-5">

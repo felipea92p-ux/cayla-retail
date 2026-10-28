@@ -28,6 +28,8 @@ import { claveCelda, codigoVariantePrevisto, margenPorcentaje } from "./alta-pro
 import type { VarianteFicha } from "./producto-cambios-reglas";
 import { compararTallas } from "./tallas";
 import { SIN_PROPIA } from "./temporada-reglas";
+import { numeroDeMonto } from "./monto-plata-reglas";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -582,7 +584,7 @@ function masComun(valores: readonly string[]): string {
 }
 
 const normalizarMonto = (v: string) => {
-  const n = Number(v);
+  const n = numeroDeMonto(v);
   return v.trim() === "" || !Number.isFinite(n) ? "" : String(Number(n.toFixed(2)));
 };
 
@@ -663,10 +665,13 @@ export function costoEfectivo(f: FilaFicha): string {
 
 /** Lo que cuesta la talla activa que MÁS cuesta, según la base (lo guardado, no lo que se está escribiendo): el piso del precio de una
  *  tienda (`poner_precio_sede`, Felipe 2026-10-11). `null` si no hay ninguna activa guardada o no se ve el costo (quien no ve el dinero
- *  recibe el costo vacío, 20260923193700). Las variantes nuevas todavía no existen para la base: no cuentan. */
-export function costoMaximoGuardado(filas: readonly FilaFicha[]): number | null {
+ *  recibe el costo vacío, 20260923193700). Las variantes nuevas todavía no existen para la base: no cuentan. La talla de OBSEQUIO
+ *  tampoco —S/ 0 guardado en una categoría que admite el 0 (Empaque)—: el precio de la tienda no la alcanza, sigue en 0 en toda tienda.
+ *  La de ropa en S/ 0 sí cuenta: en esa tienda se vende al precio de la tienda (2026-10-15, 20261015121000). `admitePrecioCero` es el de
+ *  la categoría GUARDADA de la prenda, la que mira la base (sin dato, no: ropa). */
+export function costoMaximoGuardado(filas: readonly FilaFicha[], admitePrecioCero = false): number | null {
   const costos = filas
-    .filter((f) => f.guardada?.activo)
+    .filter((f) => f.guardada?.activo && (!admitePrecioCero || Number(f.guardada.precio) > 0))
     .map((f) => (f.guardada!.costo.trim() === "" ? NaN : Number(f.guardada!.costo)))
     .filter((n) => Number.isFinite(n) && n > 0);
   return costos.length > 0 ? Math.max(...costos) : null;
@@ -698,7 +703,7 @@ export function textosCostoFijo(sinComprobar: boolean): { nota: string; celda: s
 export function margenDeFila(f: FilaFicha): number | null {
   const costo = costoEfectivo(f);
   if (costo.trim() === "") return null;
-  return margenPorcentaje(Number(f.precio), Number(costo));
+  return margenPorcentaje(numeroDeMonto(f.precio), numeroDeMonto(costo));
 }
 
 export type CampoBloque = "precio" | "costo";
@@ -730,7 +735,7 @@ export function aplicarEnBloque(
   monto: string,
   admitePrecioCero = false,
 ): { filas: FilaFicha[]; aplicadas: number; fijas: number; error: string | null } {
-  const n = Number(monto);
+  const n = numeroDeMonto(monto);
   const invalido = monto.trim() === "" || (campo === "precio" ? !precioValido(n, admitePrecioCero) : !Number.isFinite(n) || n < 0);
   if (invalido) {
     const error = campo === "costo" ? "Escribe un costo de 0 o más." : admitePrecioCero ? "Escribe un precio de 0 o más." : "Escribe un precio mayor que 0.";
@@ -789,15 +794,15 @@ export function payloadVariantes(filas: readonly FilaFicha[]): VariantePayload[]
   const ordenadas = ordenDeGuardado(filas) ?? [...filas];
   return ordenadas.map((f) => {
     if (!f.guardada || !f.id) {
-      return { color_codigo: f.colorCodigo, talla_id: f.tallaId, precio: Number(f.precio), costo: f.costo.trim() === "" ? 0 : Number(f.costo) };
+      return { color_codigo: f.colorCodigo, talla_id: f.tallaId, precio: numeroDeMonto(f.precio), costo: f.costo.trim() === "" ? 0 : numeroDeMonto(f.costo) };
     }
     const costo = costoEfectivo(f);
     return {
       id: f.id,
       ...(f.colorCodigo !== f.guardada.colorCodigo ? { color_codigo: f.colorCodigo ?? "" } : {}),
       ...(f.tallaId !== f.guardada.tallaId ? { talla_id: f.tallaId ?? "" } : {}),
-      precio: Number(f.precio),
-      costo: costo.trim() === "" ? 0 : Number(costo),
+      precio: numeroDeMonto(f.precio),
+      costo: costo.trim() === "" ? 0 : numeroDeMonto(costo),
       activo: f.activo,
     };
   });
@@ -956,6 +961,18 @@ export type CategoriaElegida = {
  * vendería gratis sin que nadie lo note. Solo lo de una familia fuera de los motores (Empaque) admite 0: la bolsa de obsequio,
  * que Vender muestra como «Obsequio» y no declara a SUNAT (ADR-0377). La base acepta 0 en las dos (`variantes_precio_check`).
  */
+/** «el costo (S/ 70.00) es mayor que el precio (S/ 59.90): pierdes S/ 10.10 en cada venta…». Solo un aviso (ADR-0415): vender por debajo
+ *  del costo puede ser a propósito (liquidar). Sin precio o sin costo válidos, o con alguno sobre el tope (ya es un error), nada. */
+export function avisoCostoSobrePrecio(precioTexto: string, costoTexto: string): string | null {
+  if (precioTexto.trim() === "" || costoTexto.trim() === "") return null;
+  const precio = numeroDeMonto(precioTexto);
+  const costo = numeroDeMonto(costoTexto);
+  if (!Number.isFinite(precio) || !Number.isFinite(costo) || precio <= 0 || costo <= precio) return null;
+  if (precio > MAX_PRECIO_PRENDA || costo > MAX_PRECIO_PRENDA) return null;
+  const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+  return `el costo (${s(costo)}) es mayor que el precio (${s(precio)}): pierdes ${s(costo - precio)} en cada venta. Si es a propósito (para liquidarla), guarda igual.`;
+}
+
 export function precioValido(precio: number, admitePrecioCero = false): boolean {
   return Number.isFinite(precio) && (admitePrecioCero ? precio >= 0 : precio > 0);
 }
@@ -970,14 +987,24 @@ export function problemasVariantes(filas: readonly FilaFicha[], n: NombresFicha,
   if (filas.length === 0) return [{ texto: "Agrega al menos una variante con «Agregar color» o «Agregar talla».", bloquea: true }];
   for (const f of filas) {
     if (!f.activo) continue;
-    if (f.precio.trim() === "" || !precioValido(Number(f.precio), categoria?.admitePrecioCero)) {
+    if (f.precio.trim() === "" || !precioValido(numeroDeMonto(f.precio), categoria?.admitePrecioCero)) {
       const falta = categoria?.admitePrecioCero ? "un precio de 0 o más" : "un precio mayor que 0";
       p.push({ texto: `${nombreVariante(f, n)} necesita ${falta}.`, bloquea: true, clave: f.clave });
     }
-    const costo = Number(f.costo);
+    const costo = numeroDeMonto(f.costo);
     if (!f.costoFijo && f.costo.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) {
       p.push({ texto: `El costo de ${nombreVariante(f, n)} no puede ser negativo.`, bloquea: true, clave: f.clave });
     }
+    // ADR-0415: hasta S/ 5 000 (la base lo rechaza igual), y un aviso —no un candado— si se vende por debajo de lo que cuesta.
+    const precio = numeroDeMonto(f.precio);
+    if (f.precio.trim() !== "" && precio > MAX_PRECIO_PRENDA) {
+      p.push({ texto: `${nombreVariante(f, n)}: ${FRASE_PRECIO_CON_TOPE.charAt(0).toLowerCase()}${FRASE_PRECIO_CON_TOPE.slice(1)}`, bloquea: true, clave: f.clave });
+    }
+    if (!f.costoFijo && f.costo.trim() !== "" && costo > MAX_PRECIO_PRENDA) {
+      p.push({ texto: `${nombreVariante(f, n)}: ${FRASE_COSTO_CON_TOPE.charAt(0).toLowerCase()}${FRASE_COSTO_CON_TOPE.slice(1)}`, bloquea: true, clave: f.clave });
+    }
+    const aviso = avisoCostoSobrePrecio(f.precio, f.costo);
+    if (aviso) p.push({ texto: `${nombreVariante(f, n)}: ${aviso}`, bloquea: false, clave: f.clave });
   }
   const vistas = new Set<string>();
   for (const f of filas) {
@@ -1049,12 +1076,6 @@ export function leerEstadoVariantes(data: unknown): Record<string, EstadoVariant
  */
 export const NACEN_SIN_UNIDADES = "Nacen sin unidades: lo que llegó se registra al recibirlo, en «Recibir mercadería».";
 
-/** Lo mismo, dicho en los modales «Agregar color/talla» a quien SÍ puede poner stock desde la tabla (tiene «Ajustar stock»). Antes
- *  el modal mandaba a «Recibir mercadería» y, al cerrarlo, el cartel de la ficha decía «toca + en la tabla»: dos caminos que se
- *  contradecían (revisión 2026-10-03). Los dos son ciertos; cada uno para su caso. */
-export const NACEN_EN_CERO_CARGABLES =
-  "Nacen en 0: si las prendas ya están en la tienda, ponlas con «+» en la tabla y entran al guardar; si llegan de un proveedor, regístralas en «Recibir mercadería».";
-
 /**
  * El único círculo de candados que el orden de ADR-0263 T8 no cierra: una venta o un traslado de VARIAS tallas de esta
  * prenda (en otro orden que el id) en el mismo instante en que la ficha corrige esas tallas. Postgres lo corta con 40P01 y
@@ -1083,4 +1104,33 @@ export const FRASE_CHOQUE_DE_CANDADOS =
 export function avisoBloqueSinAplicar(pendiente: CampoBloque | null): string | null {
   if (pendiente === null) return null;
   return `Tienes un ${pendiente === "precio" ? "precio" : "costo"} sin aplicar: pulsa Aplicar o bórralo.`;
+}
+
+// ---------------------------------------------------------------------------
+// Unidades de partida de lo que nace (ADR-0494, actividad 3): «Agregar color / talla» pregunta con cuántas unidades nace cada variante.
+// ---------------------------------------------------------------------------
+
+/** La llave de una combinación en el mapa de unidades de partida de los modales: `color|talla` (sin color o sin talla, vacío). */
+export function llaveDeUnidades(c: Identidad): string {
+  return `${c.colorCodigo ?? ""}|${c.tallaId ?? ""}`;
+}
+
+/**
+ * De las unidades de partida que puso un modal (por combinación) a las filas NUEVAS que `agregarCombinaciones` acaba de crear (por su
+ * clave): solo las que nacieron (sin id, y que no estaban antes) y con más de 0. Una combinación que solo reactivó una variante
+ * desactivada no es un nacimiento: su stock ya es lo que es. Puro: así se prueba sin React.
+ */
+export function unidadesParaNuevas(
+  antes: readonly FilaFicha[],
+  despues: readonly FilaFicha[],
+  unidades: Readonly<Record<string, number>>
+): Record<string, number> {
+  const estaban = new Set(antes.map((f) => f.clave));
+  const salida: Record<string, number> = {};
+  for (const f of despues) {
+    if (f.id || f.guardada || estaban.has(f.clave)) continue;
+    const n = unidades[llaveDeUnidades(f)] ?? 0;
+    if (Number.isInteger(n) && n > 0) salida[f.clave] = n;
+  }
+  return salida;
 }

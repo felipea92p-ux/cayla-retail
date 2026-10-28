@@ -2,15 +2,18 @@
   "guia": "compras.proveedores",
   "ruta": "/compras/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 52,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
+      "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
+    "components/LoQueQuizaNoVes.tsx": [
+      "button «Ver»"
+    ],
     "components/ProveedorModal.tsx": [
-      "button «Cerrar»",
+      "SegmentoDeslizante «Clase de proveedor»",
       "CampoTexto «Contacto»",
       "CampoTexto «Teléfono»",
       "button «{r}»",
@@ -30,27 +33,44 @@
       "Boton «(sin nombre)»"
     ],
     "components/ProveedorVistaRapida.tsx": [
-      "button «Cerrar»",
-      "Link «+ Comprobante»",
       "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
-      "button «Proveedor anterior»",
-      "button «Proveedor siguiente»",
       "BotonVer «Abrir ficha completa»"
+    ],
+    "components/ProveedoresComparar.tsx": [
+      "button «Quitar todos»",
+      "button «Abrir su vista rápida»",
+      "button «{`Quitar ${f.nombre}»"
+    ],
+    "components/ProveedoresLoQueNoSeVe.tsx": [
+      "Link «{t.ayuda}»",
+      "button «{t.ayuda}»"
     ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",
-      "button «{o.etiqueta}»",
-      "button «proveedores.sin-pago»",
+      "Pestanas «(sin nombre)»",
+      "DesplegablePildora «Rubro»",
+      "DesplegablePildora «Ritmo»",
+      "DesplegablePildora «Datos de pago»",
+      "BotonLimpiar «Limpiar filtros»",
       "Boton «Registrar el primero»",
+      "Boton «Registrar uno»",
       "Boton «Borrar la búsqueda»",
       "Boton «Registrarlo»",
       "Boton «Limpiar filtros»",
+      "button «Ver en Servicios»",
+      "button «Ver la comparación»",
       "Link «{`${p.nombre}»",
       "button «proveedores.nombre»",
       "Link «{soles(saldo)}»",
       "Link «{soles(p.saldo_favor ?? 0)}»",
-      "Link «proveedores.comprobante»",
       "Boton «Reactivar»"
+    ],
+    "components/ProveedoresRanking.tsx": [
+      "SegmentoDeslizante «Ordenar el ranking por»",
+      "BotonVerMas «{`Ver los ${resto.length}»",
+      "Casilla «{`Comparar ${f.nombre}»",
+      "button «proveedores.nombre»",
+      "Link «proveedores.saldo»"
     ]
   }
 }

@@ -34,10 +34,9 @@
   padding: 0;
   list-style: none;
 }
+/* El logo oficial (`LogoCayla`), no «CAYLA» escrito: el alto lo pone cada formato, el ancho sigue solo. */
 .gt-marca {
-  font-weight: 700;
-  letter-spacing: 0.32em;
-  margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
+  width: auto;
 }
 .gt-titulo {
   font-weight: 700;
@@ -112,7 +111,8 @@
   text-align: center;
 }
 .guia-traslado[data-formato="termica"] .gt-marca {
-  font-size: 13pt;
+  height: 9mm;
+  margin: 0 auto 1mm;
 }
 .guia-traslado[data-formato="termica"] .gt-titulo {
   font-size: 8pt;
@@ -172,13 +172,13 @@
   grid-area: cab;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   column-gap: 4mm;
   border-bottom: 2px solid var(--color-tinta-fija);
   padding-bottom: 2mm;
 }
 .guia-traslado[data-formato="a4"] .gt-marca {
-  font-size: 15pt;
+  height: 7mm;
 }
 .guia-traslado[data-formato="a4"] .gt-titulo {
   font-size: 10pt;
@@ -284,8 +284,10 @@
   text-decoration: none;
   transition: transform 300ms var(--ease-cayla);
 }
-.tp-qr:hover {
-  transform: scale(1.06);
+@media (hover: hover) {
+  .tp-qr:hover {
+    transform: scale(1.06);
+  }
 }
 .tp-qr:focus-visible {
   outline: 2px solid var(--color-tinta);
@@ -315,7 +317,9 @@
   .tp-qr {
     transition: none;
   }
-  .tp-qr:hover {
-    transform: none;
+  @media (hover: hover) {
+    .tp-qr:hover {
+      transform: none;
+    }
   }
 }

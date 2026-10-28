@@ -53,7 +53,7 @@ export const MAX_PRENDAS_PARA_RECIBIR = 30;
 
 /** El aviso de costo atípico de la recepción (`recibir_despacho`): el detalle viene en JSON en `details`. */
 export const HINT_COSTO_ATIPICO_RECEPCION = "recepcion_costo_atipico";
-/** Decisión 17: quien hizo una de las órdenes del envío no lo recibe (ni el líder). */
+/** Decisión 17: quien hizo una de las órdenes del envío no lo recibe (ni el líder; solo un Admin, ADR-0517). */
 export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -131,6 +131,8 @@ export type EnvioPorAbrir = {
   numero: string;
   numeroGuia: string | null;
   estado: Extract<EstadoEnvio, "en_camino" | "abierto">;
+  /** El INSTANTE en que salió el envío (`despachado_en`, ISO): la tabla lo lee en Lima y ordena por él. `null` si la base no lo manda. */
+  despachadoEn: string | null;
   unidades: number;
   lineas: number;
   ordenes: string[];
@@ -155,6 +157,7 @@ export function leerEnviosPorAbrir(data: unknown): EnvioPorAbrir[] {
         numero,
         numeroGuia: texto(r.numero_guia),
         estado,
+        despachadoEn: texto(r.despachado_en),
         unidades: Math.max(0, cifra(r.unidades) ?? 0),
         lineas: Math.max(0, cifra(r.lineas) ?? 0),
         ordenes: lista(r.ordenes).map(numeroDeOrden).filter((x): x is string => !!x),
@@ -191,22 +194,13 @@ export function leerOrdenesDirectas(data: unknown): OrdenDirecta[] {
     .filter((o): o is OrdenDirecta => o !== null);
 }
 
-/** Lo que dice cada fila de la tarjeta de la puerta: «Textiles Andina · 32 prendas · guía 001-123». */
-export function detalleDeEnvioPorAbrir(e: EnvioPorAbrir): string {
-  const partes = [
-    e.proveedores.length > 0 ? e.proveedores.join(", ") : null,
-    `${e.unidades.toLocaleString("es-PE")} ${e.unidades === 1 ? "prenda" : "prendas"}`,
-    e.numeroGuia ? `guía ${e.numeroGuia}` : null,
-  ];
-  return partes.filter(Boolean).join(" · ");
-}
-
-export function detalleDeOrdenDirecta(o: OrdenDirecta): string {
-  return [o.proveedor, "llega sin guía", `${o.unidadesPorEnviar.toLocaleString("es-PE")} ${o.unidadesPorEnviar === 1 ? "prenda" : "prendas"}`].filter(Boolean).join(" · ");
-}
-
 /** Lo que se dice en vez del botón cuando quien mira hizo la orden (decisión 17). */
 export const TEXTO_LA_RECIBE_OTRA = "La recibe otra persona: tú hiciste la orden";
+
+/** ADR-0517: un Admin sí recibe lo que él mismo compró; antes de contar se le avisa que va a quedar anotado. */
+export const TEXTO_COMPRASTE_Y_LO_RECIBES = "Compraste esto tú: lo puedes recibir porque eres Admin";
+/** ADR-0517: lo que ve cualquiera en un envío cerrado por quien hizo la compra (y quien revisa las compras, en su ficha). */
+export const TEXTO_LO_RECIBIO_QUIEN_COMPRO = "Lo recibió quien hizo la compra";
 
 // ---- Un envío por dentro (`fn_envio_detalle`) ---------------------------------------------------------------------------------------
 
@@ -229,6 +223,18 @@ export type LineaEnvio = {
   compraItemId: string | null;
   /** El precio de venta que puso quien compró (decisión 21): precarga el de la prenda nueva. */
   precioVentaSugerido: number | null;
+  /** La prenda del catálogo que eligió la compradora al comprar desde el celular (ADR-0480): se ofrece de un toque al contar. */
+  prendaElegida: { productoId: string; nombre: string | null; codigo: string | null } | null;
+};
+
+/** El papel de una compra anotada desde el celular que viene en el envío (ADR-0480): la tienda cuenta mirando su foto. Sin montos. */
+export type PapelDelEnvio = {
+  id: string;
+  tipo: string | null;
+  fotoRuta: string | null;
+  fecha: string | null;
+  proveedor: string | null;
+  compradora: string | null;
 };
 
 /** Lo que entró de una línea (o de algo que no estaba en la guía), tal como se cerró: «cómo se cerró». */
@@ -279,6 +285,9 @@ export type DetalleEnvio = {
   version: number;
   /** Cuántas prendas vienen en total. */
   enviado: number;
+  /** Cuántos fardos (paquetes) entregó la compradora al transporte (ADR-0480). `null` = nadie lo dijo: un envío de antes o armado en el
+   *  escritorio, o una base que todavía no manda `bultos`. La pantalla no muestra nada en ese caso, nunca un «0 fardos». */
+  bultos: number | null;
   lineas: LineaEnvio[];
   /** Solo en un envío cerrado; `null` si la base todavía no lo dice. */
   recibidos: RecibidoEnvio[] | null;
@@ -287,11 +296,17 @@ export type DetalleEnvio = {
   lotes: string[];
   /** En un envío cerrado: el resumen de cómo se cerró (`recepcion`, el mismo que devuelve `recibir_despacho`). */
   recepcion: ResultadoRecepcion | null;
-  /** Si la base lo dice: quien mira hizo alguna de sus órdenes (decisión 17). */
+  /** Si la base lo dice: a quien mira, Recibir le cierra este envío porque hizo alguna de sus órdenes (decisión 17). Un Admin no queda aquí. */
   creadoPorMi: boolean | null;
+  /** ADR-0517: quien mira hizo alguna de sus órdenes, sea Admin (la puede recibir) o no. `null` = la base todavía no lo dice. */
+  comproQuienMira: boolean | null;
+  /** ADR-0517: el envío está cerrado y lo cerró quien hizo alguna de sus órdenes (un Admin recibió lo que él mismo compró). */
+  recibioQuienCompro: boolean | null;
   /** Lo que los proveedores del envío deben por reponer, por categoría y marca (fase 5a, `deudas_del_proveedor`): con esto se ofrece «Es la
    *  reposición de lo que faltó». `null` = la base todavía no lo dice (la recepción sigue sin esa opción). */
   deudas: DeudaDelEnvio[] | null;
+  /** Los papeles de las compras anotadas desde el celular que vienen en el envío (ADR-0480); vacío en uno armado en el escritorio. */
+  papeles: PapelDelEnvio[];
 };
 
 function leerCategoria(r: Record<string, unknown>): CategoriaDeLinea | null {
@@ -330,6 +345,31 @@ function leerLineaEnvio(f: unknown): LineaEnvio | null {
     costoUnitario: Math.max(0, cifra(r.precio_unitario) ?? cifra(r.costo_unitario) ?? 0),
     compraItemId: texto(r.compra_item_id),
     precioVentaSugerido: cifra(r.precio_venta_sugerido),
+    prendaElegida: leerPrendaElegida(r.producto),
+  };
+}
+
+function leerPrendaElegida(v: unknown): LineaEnvio["prendaElegida"] {
+  const o = objeto(v);
+  const productoId = o ? texto(o.id) : null;
+  return o && productoId ? { productoId, nombre: texto(o.nombre), codigo: texto(o.codigo) } : null;
+}
+
+/** La carpeta de las fotos de los papeles de compra (ADR-0480): una ruta de otra carpeta no se firma. */
+export const CARPETA_PAPELES_COMPRA = "papeles/";
+
+function leerPapel(v: unknown): PapelDelEnvio | null {
+  const o = objeto(v);
+  const id = o ? texto(o.id) : null;
+  if (!o || !id) return null;
+  const ruta = texto(o.foto_ruta);
+  return {
+    id,
+    tipo: texto(o.tipo),
+    fotoRuta: ruta && ruta.startsWith(CARPETA_PAPELES_COMPRA) ? ruta : null,
+    fecha: texto(o.fecha),
+    proveedor: texto(o.proveedor),
+    compradora: texto(o.compradora),
   };
 }
 
@@ -415,6 +455,7 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     motivoAnulacion: texto(d.motivo_anulacion),
     version: cifra(d.version) ?? 1,
     enviado: cifra(d.unidades) ?? lineas.reduce((a, l) => a + l.enviado, 0),
+    bultos: fardosDe(d.bultos),
     lineas,
     recibidos,
     diferencias,
@@ -425,8 +466,17 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     ],
     recepcion,
     creadoPorMi: booleano(d.creado_por_mi),
+    comproQuienMira: booleano(d.compro_quien_mira),
+    recibioQuienCompro: booleano(d.recibio_quien_compro),
     deudas: leerDeudasDelEnvio(d.deudas_del_proveedor ?? d.deudas),
+    papeles: lista(d.papeles).map(leerPapel).filter((x): x is PapelDelEnvio => x !== null),
   };
+}
+
+/** Los fardos que dijo la base: un entero de 1 en adelante (la base los limita de 1 a 99); cualquier otra cosa es «no se sabe». */
+function fardosDe(v: unknown): number | null {
+  const n = cifra(v);
+  return n !== null && Number.isInteger(n) && n >= 1 ? n : null;
 }
 
 /** Los proveedores del envío (uno por línea, sin repetir), en el orden en que aparecen. Con dos o más, lo que no estaba en la guía dice de cuál es. */
@@ -766,7 +816,7 @@ export function leerCosto(t: string): { centimos: number | null; problema: strin
   const limpio = t.replace(/\s+/g, "");
   const n = leerNumero(limpio, 2);
   if (n.tipo === "vacio") return { centimos: null, problema: "Escribe el costo por unidad." };
-  if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/ 99,999.99." } : { centimos: n.escalado, problema: null };
+  if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/\u00a099,999.99." } : { centimos: n.escalado, problema: null };
   switch (n.motivo) {
     case "negativo":
       return { centimos: null, problema: "El costo no puede ser negativo." };
@@ -1211,9 +1261,11 @@ export const TEXTO_QUIEN_COMPRO =
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
 const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden)_[a-z_]+$/;
-/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4); con la cara A el botón es «Abrir el fardo». El texto vive en nueve
- *  lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se traduce aquí, por su pista, en vez de tocarlo allá. */
-export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se abrió: ábrelo primero y después cuenta.";
+/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4). La cara A (ADR-0393) lo llamó «Abrir el fardo» y el aviso se traducía; con
+ *  varios fardos por envío que se abren por partes, «abrir el fardo» ya no decía qué hacía el botón y volvió a ser «Empezar a recibir»
+ *  (ADR-0480, 2026-10-26). El texto vive en nueve lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se dice aquí, por su
+ *  pista, en vez de tocarlo allá. */
+export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se empezó a recibir: pulsa «Empezar a recibir» primero y después cuenta.";
 
 export function mensajeDeLaRecepcion(error: { message?: string | null; hint?: string | null } | null | undefined): string | null {
   if (!error?.message) return null;
@@ -1439,7 +1491,9 @@ export function borradorDePrenda(ctx: ContextoPrenda, o: { precioSugerido?: numb
   }
   return {
     nombre: "",
-    tallaIds: ctx.tallas.filter((t) => t.habitual).map((t) => t.id),
+    // Sin tallas marcadas (Felipe 2026-10-13, /formidable): las «de siempre» venían marcadas aunque no hubieran llegado, y la prenda
+    // nacía con tallas en cero que después salían en Existencias y en las etiquetas. Se marcan las que llegaron.
+    tallaIds: [],
     colorCodigos: [],
     precio: o.precioSugerido != null && o.precioSugerido > 0 ? costoComoTexto(o.precioSugerido) : "",
     descripcion: "",
@@ -1474,8 +1528,8 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
     if (n.motivo === "ambiguo") return { centimos: null, problema: `¿«${limpio}» son ${limpio.replace(".", "")} soles? Escríbelo sin el punto de miles.` };
     return { centimos: null, problema: "Escribe el precio con punto decimal, por ejemplo 59.90." };
   }
-  if (n.escalado <= 0) return { centimos: null, problema: "El precio de venta tiene que ser mayor que S/ 0." };
-  if (n.escalado > PRECIO_MAXIMO_CENTIMOS) return { centimos: null, problema: "El precio va hasta S/ 99,999.99." };
+  if (n.escalado <= 0) return { centimos: null, problema: "El precio de venta tiene que ser mayor que S/\u00a00." };
+  if (n.escalado > PRECIO_MAXIMO_CENTIMOS) return { centimos: null, problema: "El precio va hasta S/\u00a099,999.99." };
   return { centimos: n.escalado, problema: null };
 }
 
@@ -1484,9 +1538,10 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
  * número, talla habilitada en la categoría, precio mayor que 0 y hasta S/ 99 999.99, tejido y patrón si la familia los pide) más lo que Nuevo
  * producto también exige (al menos una talla si la categoría las tiene). Los colores son opcionales: sin color, la prenda va «Sin color».
  *
- * `tocados` (ADR-0284 act. h): las tallas habituales y el precio que sugirió quien compró vienen puestos, pero importan (las tallas que
- * llegaron pueden ser otras; el precio es al que se vende). Mientras la persona no los toca son «sugeridos»: la luz pasa por ellos para que los
- * revise y nunca bloquean. Puestos mal (sin tallas, un precio que no sirve), bloquean como siempre.
+ * Las tallas arrancan sin marcar (Felipe 2026-10-13, /formidable): se marcan las que llegaron, y sin ninguna no se crea.
+ * `tocados.precio` (ADR-0284 act. h): el precio que sugirió quien compró viene puesto, pero importa (es al que se vende). Mientras la persona
+ * no lo toca es «sugerido»: la luz pasa por él para que lo revise y no bloquea. Puesto mal (un precio que no sirve), bloquea como siempre.
+ * (`tocados.tallas` queda en la firma por compatibilidad: ya no cambia nada.)
  */
 export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: { tallas?: boolean; precio?: boolean } = {}): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [];
@@ -1498,12 +1553,7 @@ export function camposDePrenda(b: BorradorPrenda, ctx: ContextoPrenda, tocados: 
   }
   if (ctx.tallas.length > 0) {
     const ok = tallasElegidas(b, ctx).length > 0;
-    const porRevisar = nueva && ok && !tocados.tallas;
-    campos.push(
-      porRevisar
-        ? { id: "prenda-tallas", nombre: "Tallas", requerido: false, sugerido: true, hecho: false, pendiente: "Revisa las tallas: vienen marcadas las de siempre. Deja solo las que llegaron." }
-        : { id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Elige las tallas que llegaron." },
-    );
+    campos.push({ id: "prenda-tallas", nombre: "Tallas", requerido: true, hecho: ok, pendiente: "Marca las tallas que llegaron." });
   }
   campos.push({ id: "prenda-colores", nombre: "Colores", requerido: false, hecho: b.colorCodigos.length > 0, pendiente: "" });
   if (!nueva) {
@@ -1600,6 +1650,9 @@ export function argsPrepararPrenda(
 
 /** «Se crean 4: M y L en Negro y en Blanco»: lo que la hoja va a crear, para leerlo antes de pulsar. */
 export function textoDeLoQueSeCrea(b: BorradorPrenda, ctx: ContextoPrenda, nombreColor: (codigo: string) => string): string | null {
+  // Sin tallas marcadas en una categoría que las tiene, todavía no se crea nada: «1 combinación: Única» decía algo que no iba a pasar
+  // (la talla es obligatoria). Aparece apenas se marca la primera (las tallas arrancan sin marcar, Felipe 2026-10-13).
+  if (ctx.modo === "nueva" && ctx.tallas.length > 0 && tallasElegidas(b, ctx).length === 0) return null;
   const combinaciones = combinacionesDeLaHoja(b, ctx);
   if (combinaciones.length === 0) return null;
   const tallas = [...new Set(combinaciones.map((c) => c.talla_id))].map((id) => (id ? (ctx.tallas.find((t) => t.id === id)?.valor ?? "?") : "Única"));

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { armarEventos, type FilaHistorial, type LecturaHistorial } from "@/lib/historial-prenda-reglas";
+import { leerCostoPrenda } from "@/lib/costo-prenda-reglas";
 
 export type { LecturaHistorial };
 
@@ -25,15 +26,21 @@ export function useHistorialPrenda(productoId: string, activo: boolean): { lectu
     if (!activo) return;
     let vivo = true;
     // Los tipos de la base son generados y todavía no traen esta función (ADR-0354): la llamada va con `as never`, como otras.
-    void createClient()
-      .rpc("fn_historial_prenda" as never, { p_producto_id: productoId } as never)
-      .then(({ data, error }) => {
-        if (!vivo) return;
-        setRespuesta({
-          clave,
-          lectura: error || !Array.isArray(data) ? { estado: "error" } : { estado: "ok", eventos: armarEventos(data as FilaHistorial[]) },
-        });
+    // La pestaña «Costo» se lee a la vez: si falla o la cuenta no ve el dinero de compras, solo no aparece.
+    const supabase = createClient();
+    void Promise.all([
+      supabase.rpc("fn_historial_prenda" as never, { p_producto_id: productoId } as never),
+      supabase.rpc("fn_costo_de_la_prenda" as never, { p_producto_id: productoId } as never),
+    ]).then(([{ data, error }, costo]) => {
+      if (!vivo) return;
+      setRespuesta({
+        clave,
+        lectura:
+          error || !Array.isArray(data)
+            ? { estado: "error" }
+            : { estado: "ok", eventos: armarEventos(data as FilaHistorial[]), costo: costo.error ? null : leerCostoPrenda(costo.data) },
       });
+    });
     return () => {
       vivo = false;
     };

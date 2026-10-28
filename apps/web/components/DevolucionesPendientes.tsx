@@ -24,31 +24,32 @@ import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
- * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
- * todavía no resolvió. Un líder ve las acciones; quien no lo es ve que están esperando —
- * `aprobar_devolucion` y `rechazar_devolucion` exigen líder y lo vuelven a validar.
+ * «Por aprobar» (2026-09-18): las devoluciones registradas que todavía nadie resolvió. Desde
+ * ADR-0534 (2026-10-27) las aprueba o rechaza cualquiera que ve Devoluciones en la tienda —en
+ * una terminal compartida, la líder la valida en persona, no con su cuenta—, también quien la
+ * registró; `aprobar_devolucion` y `rechazar_devolucion` lo vuelven a validar en la base.
  *
  * Aprobar es lo que mueve las cosas (stock, nota de crédito, reembolso), así que la
- * tarjeta le pone delante al líder lo que necesita para decidir: qué prendas y en qué estado
- * vuelven, cuánto pagó la clienta, y si la compra ya venció el plazo (que no bloquea: lo
- * decide él). El reembolso es opcional y es la última opción (R-37).
+ * tarjeta pone delante lo que se necesita para decidir: qué prendas y en qué estado
+ * vuelven, cuánto pagó el cliente, y si la compra ya venció el plazo (que no bloquea: lo
+ * decide quien la revisa). El reembolso es opcional y es la última opción (R-37).
  *
- * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso sigue siendo del líder (lo pregunta
- * la base a la cuenta), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
+ * Aprobar y rechazar firman con el combo «Responsable» (ADR-0161): el permiso lo pregunta la base a la cuenta
+ * (módulo y sede), el combo solo dice quién de turno lo hizo. El combo vive en el panel que se abre al tocar
  * Aprobar/Rechazar, no en cada tarjeta, para no leer la asistencia una vez por devolución pendiente.
  */
 export function DevolucionesPendientes({
   pendientes,
-  esLider,
   cajaAbierta,
   ahora,
   ubicacionId,
   sede,
 }: {
   pendientes: DevolucionPendiente[];
-  esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   /** La tienda de estas devoluciones: la lista de «De turno» del combo es la de aquí. */
@@ -61,7 +62,7 @@ export function DevolucionesPendientes({
     return (
       <div className="card-cayla">
         <Vacio icono={<Check />} titulo="No hay devoluciones esperando">
-          Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.
+          Las que se registren aparecen aquí hasta que alguien las revise y las apruebe o las rechace.
         </Vacio>
       </div>
     );
@@ -69,7 +70,7 @@ export function DevolucionesPendientes({
   return (
     <div data-guia="devoluciones.pendientes" className="space-y-3">
       {pendientes.map((d) => (
-        <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
+        <TarjetaPendiente key={d.id} devolucion={d} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
       ))}
     </div>
   );
@@ -79,13 +80,11 @@ type Ubicacion = { ubicacionId: string; etiqueta: string };
 
 function TarjetaPendiente({
   devolucion: d,
-  esLider,
   cajaAbierta,
   ahora,
   ubicacion,
 }: {
   devolucion: DevolucionPendiente;
-  esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
   ubicacion: Ubicacion;
@@ -157,24 +156,15 @@ function TarjetaPendiente({
 
       {!resolviendo && (
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-tinta/[0.07] px-5 py-3.5">
-          {esLider ? (
-            <>
-              <p className="text-xs text-tinta/70">
-                {d.sinAceptar
-                  ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
-                  : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
-              </p>
-              <div className="flex items-center gap-2">
-                <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
-                <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
-              </div>
-            </>
-          ) : (
-            <Chip tono="ambar" versalitas={false}>
-              <Clock className="h-3.5 w-3.5" aria-hidden />
-              Esperando aprobación de un líder
-            </Chip>
-          )}
+          <p className="text-xs text-tinta/70">
+            {d.sinAceptar
+              ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
+              : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
+          </p>
+          <div className="flex items-center gap-2">
+            <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
+            <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
+          </div>
         </footer>
       )}
 
@@ -217,7 +207,7 @@ function PanelResolver({
   const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId, modo === "aprobar");
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
 
-  const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const montoNumero = monto.trim() === "" ? null : numeroDeMonto(monto);
   const hayReembolso = montoNumero !== null && montoNumero > 0;
   const conCuenta = hayReembolso && metodo !== "efectivo";
   const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
@@ -316,15 +306,12 @@ function PanelResolver({
               <div className="mt-1 flex items-center gap-2">
                 <input
                   id={`monto-${d.id}`}
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  inputMode="decimal"
+                  {...atributosMontoTexto(monto)}
                   autoFocus
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
                   placeholder="S/ 0.00"
-                  className="caja-campo-input w-36 text-sm tabular-nums"
+                  className={`caja-campo-input w-36 text-sm tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                 />
                 <button
                   type="button"

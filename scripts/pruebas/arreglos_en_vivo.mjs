@@ -471,8 +471,9 @@ ${PENDIENTES("c1")}`),
 
 exito(
   // Decisión 41 (ADR-0387, Felipe 2026-10-12): quien tiene el módulo ve TODAS las tiendas; antes veía solo la suya (ADR-0184).
-  "C · con el módulo Notas de crédito, Micaela (Trujillo) ve el pendiente de su sede Y el de Lima, en el tablero y en la lista",
-  comoFelipe(`${MODULOS_DE_COMPRAS("notas_credito")}${compraCerrada(4, { v: "c1", gestora: "lima" })}${compraCerrada(4, { v: "c2", gestora: "trujillo" })}
+  // ADR-0480 (2026-10-22): el módulo «Notas de crédito» se retiró; la llave de la lista y el tablero es cualquiera de los de dinero de Compras.
+  "C · con el módulo Facturas de proveedor, Micaela (Trujillo) ve el pendiente de su sede Y el de Lima, en el tablero y en la lista",
+  comoFelipe(`${MODULOS_DE_COMPRAS("facturas_compra")}${compraCerrada(4, { v: "c1", gestora: "lima" })}${compraCerrada(4, { v: "c2", gestora: "trujillo" })}
 set local request.jwt.claim.sub = '${MICAELA}';
 set local role authenticated;
 set local request.jwt.claim.role = 'authenticated';
@@ -836,7 +837,7 @@ rollback;`,
 // venta se caería. Aquí `postgres` sí lo es y se saltaría toda ACL: por eso, dentro del ROLLBACK, la función que llama
 // la tienda pasa a una dueña NO superusuaria que hereda los permisos de `postgres` (como la dueña real).
 
-const SANDRA = "22222222-2222-4222-8222-000000000005"; // otra líder: quien registró la devolución no puede aprobarla
+const SANDRA = "22222222-2222-4222-8222-000000000005"; // otra líder (antes, quien registró la devolución no podía aprobarla; ADR-0534 quitó esa regla: aprobar es de quien ve Devoluciones en la sede, y Sandra, líder, lo ve)
 
 /** Pasa esas funciones (por nombre) a una dueña NO superusuaria que hereda de `postgres` (solo si `postgres` es superusuario). */
 const DUENA_COMO_EN_PRODUCCION = (nombres) =>
@@ -910,7 +911,7 @@ select retail.crear_devolucion(:'venta_id', :'ubic',
 `;
 
 exito(
-  "F · COMO authenticated (otra líder), aprobar la devolución de una venta aceptada emite su nota de crédito (emitir_nota por dentro)",
+  "F · COMO authenticated (otra cuenta con Devoluciones), aprobar la devolución de una venta aceptada emite su nota de crédito (emitir_nota por dentro)",
   `${DEVOLUCION_LISTA}${DUENA_COMO_EN_PRODUCCION(["aprobar_devolucion"])}
 ${COMO("authenticated", SANDRA)}
 select 1 as _a from retail.aprobar_devolucion(:'devolucion_id', null, null) \\gset

@@ -2,8 +2,9 @@
 // existe, con las prendas marcadas (ADR-0245), y quien lo termina es esa pantalla. Un botón cuyo destino la cuenta no ve no se
 // dibuja (ADR-0161): cada función devuelve null en ese caso, y la pantalla no muestra el botón.
 //
-// Lo que todavía no existe (2026-10-06): Compras no recibe prendas por URL (solo `?prov=`) y la rebaja de Etiquetas no recibe
-// prendas marcadas: «Comprar» abre la compra con su proveedor y «Liquidar» abre las etiquetas de esas prendas.
+// Lo que todavía no existe (2026-10-06): la rebaja de Etiquetas no recibe prendas marcadas: «Liquidar» abre las etiquetas de esas
+// prendas. «Comprar» de terceros lleva a «Mis compras», donde nace toda compra desde el 2026-10-23 (ADR-0480 act.: el
+// registro a mano de una factura, con su `?prov=`, se retiró).
 
 import type { AccesoAnalisis, PrendaAnalisis, SedeAnalisis } from "./analisis-tipos";
 import { totalEnTienda } from "./analisis-reglas";
@@ -20,17 +21,20 @@ function tallasDe<T extends object>(filas: readonly T[]): T[] {
   return filas.flatMap((f) => ("variantes" in f && Array.isArray(f.variantes) ? (f.variantes as T[]) : [f]));
 }
 
+/** Donde nace una compra a terceros (ADR-0480). */
+const RUTA_MI_PLATA = "/compras/mi-plata";
+
 /** Dónde vuelve «Volver» desde las pantallas que lo aceptan. */
 export const RUTA_ANALISIS = "/gestion/analisis";
 
 /**
- * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, una compra nueva con su proveedor.
- * Sin origen conocido, la compra (lo más común); null si la cuenta no ve ese módulo.
+ * «Comprar»: del Taller, una orden de Producción con el modelo ya elegido; de terceros, «Mis compras» (allí se anota
+ * lo comprado). Sin origen conocido, la compra (lo más común); null si la cuenta no ve ese módulo.
  */
 export function hrefComprar(p: Pick<PrendaAnalisis, "origen" | "productoId" | "proveedorId">, a: Pick<AccesoAnalisis, "produccion" | "compras">): string | null {
   if (p.origen === "taller") return a.produccion ? `/produccion/ordenes?nueva=${encodeURIComponent(p.productoId)}` : null;
   if (!a.compras) return null;
-  return p.proveedorId ? `/compras/nueva?prov=${encodeURIComponent(p.proveedorId)}` : "/compras/nueva";
+  return RUTA_MI_PLATA;
 }
 
 /**
@@ -68,6 +72,12 @@ export function hrefLiquidar(prendas: readonly Pick<PrendaAnalisis, "varianteId"
   const tallas = tallasDe(prendas);
   if (!a.etiquetas || tallas.length === 0 || tallas.length > MAX_VARIANTES_EN_URL) return null;
   return urlEtiquetasDePrecio({ variantes: tallas.map((p) => p.varianteId) }, RUTA_ANALISIS);
+}
+
+/** «Registrar ventas»: la cola de ventas sin su prenda (Por regularizar), si la cuenta la ve (ADR-0357, act. 2026-10-14). */
+export const HREF_POR_REGULARIZAR = "/inventario/por-regularizar";
+export function hrefRegistrarVentas(a: Pick<AccesoAnalisis, "regularizar">): string | null {
+  return a.regularizar ? HREF_POR_REGULARIZAR : null;
 }
 
 /** «Reponer»: bajar al piso lo que está guardado (una de cada una). null si nada tiene almacén o la cuenta no ve Existencias. */

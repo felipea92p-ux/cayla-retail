@@ -14,7 +14,7 @@ export function RepartoTiendas({ objetivo, tiendas, taller }: { objetivo: number
         Cómo se reparte entre tiendas
         <Ayuda titulo="El reparto">
           <span className="block">Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días (su ritmo por día, para no castigar a la que abrió después).</span>
-          <span className="mt-2 block">Una tienda con mínimo (lo fija un líder en «Ver detalle» del Plan) recibe por lo menos ese %, aunque venda poco.</span>
+          <span className="mt-2 block">Una tienda con mínimo (lo fija quien arma el plan, en «Ver detalle») recibe por lo menos ese %, aunque venda poco.</span>
           <span className="mt-2 block">«Mandar» es lo que le falta para llegar a lo que le toca: se manda todo al inicio. «Sobra» se puede trasladar a otra tienda.</span>
         </Ayuda>
       </p>

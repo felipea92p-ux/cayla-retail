@@ -73,8 +73,8 @@ describe("leerPorRevisar", () => {
 
 describe("textos de la fila", () => {
   it("precio: uno, un rango o sin precio (una muestra)", () => {
-    expect(textoPrecio(79.9, 79.9)).toBe("S/ 79.90");
-    expect(textoPrecio(59.9, 79.9)).toBe("S/ 59.90 a S/ 79.90");
+    expect(textoPrecio(79.9, 79.9)).toBe("S/\u00a079.90");
+    expect(textoPrecio(59.9, 79.9)).toBe("S/\u00a059.90 a S/\u00a079.90");
     expect(textoPrecio(null, null)).toBe("Sin precio");
     expect(textoPrecio(0, 0)).toBe("Sin precio");
   });
@@ -145,7 +145,7 @@ describe("bloqueoDeAprobacion (ADR-0384)", () => {
     expect(bloqueoDeAprobacion({ ...base, precioMin: 0, precioMax: 0 })?.queHacer).toMatch(/Ponle precio en su ficha/);
   });
   it("algunas en S/ 0: «Tiene variantes en S/ 0»", () => {
-    expect(bloqueoDeAprobacion({ ...base, precioMin: 0 })?.texto).toBe("Tiene variantes en S/ 0");
+    expect(bloqueoDeAprobacion({ ...base, precioMin: 0 })?.texto).toBe("Tiene variantes en S/\u00a00");
   });
   it("en Empaque (fuera de los motores) el 0 es la bolsa de obsequio: se aprueba", () => {
     expect(bloqueoDeAprobacion({ precioMin: 0, precioMax: 0, admitePrecioCero: true })).toBeNull();

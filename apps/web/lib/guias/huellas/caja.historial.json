@@ -5,7 +5,7 @@
   "total": 11,
   "controles": {
     "app/(app)/caja/historial/page.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/caja»",
       "Link «Todas las tiendas»",
       "Link «{u.nombre.replace(/^Tienda\\s+/i, \"\")}»",
       "Link «Solo los que no cuadraron»",
@@ -13,7 +13,7 @@
       "BotonEnlace «Limpiar filtros»"
     ],
     "components/AperturasPorRevisar.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/HistorialCierresTabla.tsx": [

@@ -224,13 +224,15 @@
 .puntos-paso[data-tipo="aqui"] .puntos-rotulo {
   animation: puntos-aparece 350ms 100ms var(--ease-cayla) both;
 }
-.puntos-tocable:hover .puntos-punto {
-  transform: scale(1.14);
-}
-.puntos-tocable:hover .puntos-nombre {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-color: color-mix(in srgb, var(--color-verde) 40%, transparent);
+@media (hover: hover) {
+  .puntos-tocable:hover .puntos-punto {
+    transform: scale(1.14);
+  }
+  .puntos-tocable:hover .puntos-nombre {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: color-mix(in srgb, var(--color-verde) 40%, transparent);
+  }
 }
 
 /* Celular (Felipe, 2026-10-09: «que no sea tan invasiva y no le quite espacio al contenido»). Pegada arriba medía 104 px —con la

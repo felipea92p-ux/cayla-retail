@@ -206,6 +206,8 @@ export function fraseDeMovimiento(m: Movimiento, n: number): string {
       return `${prenda} ${una ? "dañada botada" : "dañadas botadas"}`;
     case "cuarentena_donada":
       return `${prenda} ${una ? "dañada donada" : "dañadas donadas"}`;
+    case "cuarentena_devuelta_proveedor":
+      return `${prenda} ${una ? "dañada devuelta" : "dañadas devueltas"} al proveedor`;
     case "apartado":
       return `${prenda} ${una ? "apartada" : "apartadas"} para un cliente`;
     case "liberacion_apartado":
@@ -331,7 +333,7 @@ export function pasosDeOperacion(op: OperacionMovimiento): PasoCajon[] {
     }
     case "cambio": {
       const dif = primera.cambio?.diferencia ?? null;
-      return [hecho(`El cliente devolvió ${cuantasPrendas(r.entran)}`), hecho(`Se llevó ${cuantasPrendas(r.salen)}`), hecho(dif !== null && dif !== 0 ? `Diferencia: S/ ${dif.toFixed(2)}` : "Sin diferencia de precio")];
+      return [hecho(`El cliente devolvió ${cuantasPrendas(r.entran)}`), hecho(`Se llevó ${cuantasPrendas(r.salen)}`), hecho(dif !== null && dif !== 0 ? `Diferencia: S/\u00a0${dif.toFixed(2)}` : "Sin diferencia de precio")];
     }
     case "conteo": {
       const c = primera.conteo;

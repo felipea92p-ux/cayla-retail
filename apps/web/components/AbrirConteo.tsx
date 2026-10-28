@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Flag, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -26,7 +27,6 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { ElegirPrendas } from "@/components/conteo/ElegirPrendas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
@@ -270,13 +270,15 @@ export function AbrirConteo({
           {/* Antes de contar: lo que viene en camino y no se recibió no está en el stock de esta sede. Si ya está en el rack, sale
               «de más»; si no, se recibe después y descuadra lo contado. */}
           {!!trasladosPorAtender && trasladosPorAtender > 0 && (
-            <div data-guia="conteo.aviso-traslados" className="flex flex-col items-start gap-1.5 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm @[36rem]:flex-row @[36rem]:items-center @[36rem]:gap-3">
-              <span className="min-w-0 flex-1 text-tinta">
-                <b className="font-semibold">Antes de contar:</b> hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por
-                atender. Recíbelos primero, o esas prendas saldrán como diferencia.
-              </span>
-              <EnlaceVer href="/inventario/traslados">Ver traslados</EnlaceVer>
-            </div>
+            <Aviso
+              tono="atencion"
+              guia="conteo.aviso-traslados"
+              titulo="Antes de contar"
+              accion={<Link href="/inventario/traslados">Ver traslados</Link>}
+            >
+              Hay {trasladosPorAtender === 1 ? "1 traslado" : `${trasladosPorAtender} traslados`} hacia esta sede por atender. Recíbelos
+              primero, o esas prendas saldrán como diferencia.
+            </Aviso>
           )}
 
           {separaPisoAlmacen && (
@@ -290,7 +292,7 @@ export function AbrirConteo({
                 opciones={lugares.map((l) => ({
                   valor: l.id,
                   titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
-                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
+                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
                   linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
                   cifra: alcance ? textoVariantesRegistradas(variantesDelConteo(alcance, l.id, null) ?? 0) : null,
                 }))}
@@ -369,7 +371,7 @@ export function AbrirConteo({
                       a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
                     } ${visible ? "" : "invisible"}`}
                   >
-                    <Flag aria-hidden strokeWidth={1.5} className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
+                    <Flag aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
                     <span className="min-w-0">
                       <b className="font-semibold">{a.titulo}.</b> {a.texto}
                     </span>
@@ -394,7 +396,9 @@ export function AbrirConteo({
         <aside
           data-guia="conteo.tu-conteo"
           aria-label="Resumen del conteo"
-          className="sticky bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-b-[inherit] border-t border-sand bg-papel px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-b-none @[46rem]:rounded-r-[inherit] @[46rem]:border-l @[46rem]:border-t-0 @[46rem]:bg-hueso/50 @[46rem]:p-7"
+          // En una tarjeta angosta, la Isla pegada abajo (ADR-0479, actividad 12); en una ancha, la columna de la derecha de siempre.
+          data-pegada
+          className="barra-abajo z-10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 @[46rem]:static @[46rem]:flex @[46rem]:flex-col @[46rem]:items-stretch @[46rem]:gap-5 @[46rem]:rounded-none @[46rem]:rounded-r-[inherit] @[46rem]:border-0 @[46rem]:border-l @[46rem]:border-sand @[46rem]:bg-hueso/50 @[46rem]:p-7 @[46rem]:shadow-none @[46rem]:animate-none"
         >
           <p className="eyebrow-cayla hidden !text-taupe @[46rem]:block">Tu conteo</p>
 

@@ -2,9 +2,10 @@
 
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
-import { ScanLine } from "lucide-react";
+import { Plus, ScanLine, X } from "lucide-react";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { Desplegable } from "@/components/ui/campos";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 import { Aviso, type TonoAvisoLinea } from "@/components/ui/Aviso";
 import { ComparacionPrendas } from "@/components/CambioResumen";
 import { CambioSalidas } from "@/components/CambioSalidas";
@@ -12,8 +13,8 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import { OPCION, OPCION_ACTIVA, OPCION_INACTIVA } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { unidadesDisponibles, METODOS_DIFERENCIA, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
-import { textoPagoConDescuento, type Reemplazo, type Seleccion } from "@/lib/cambio-reemplazo-reglas";
+import { unidadesDisponibles, metodosDiferencia, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
+import { MAX_PRENDAS_EXTRA, extrasDe, textoPagoConDescuento, type PrendaExtra, type Reemplazo, type Seleccion, type TotalesDelCambio } from "@/lib/cambio-reemplazo-reglas";
 
 /** Talla que no queda en esta sede: se puede tocar igual — así se ve dónde más hay. */
 const OPCION_SIN_STOCK = `${OPCION} border-dashed border-tinta/35 bg-transparent text-tinta/65 hover:border-tinta/55`;
@@ -23,6 +24,73 @@ function Pregunta({ children, id }: { children: ReactNode; id?: string }) {
     <legend id={id} className="text-[15px] font-semibold text-tinta">
       {children}
     </legend>
+  );
+}
+
+/**
+ * Las tallas y los colores de la prenda elegida, con cuántas hay en el piso de cada una. Lo usan la primera prenda que se lleva y cada
+ * prenda EXTRA (ADR-0470): el mismo marcado, para que elegir la segunda se sienta igual que la primera.
+ */
+function ElegirTallaYColor({ r, linea, onCambio }: { r: Reemplazo; linea: LineaVentaReciente; onCambio: (cambio: { talla?: string; color?: string }) => void }) {
+  return (
+    <>
+  {r.tallas.length > 1 && (
+    <fieldset className="mt-6">
+      <legend className="text-xs font-semibold text-tinta/70">
+        Talla{r.esLaMisma && linea.talla ? ` · compró ${linea.talla}` : ""}
+      </legend>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {r.tallas.map((t) => {
+          const hay = r.hayAqui(t, r.colorEfectivo);
+          const subtitulo = r.esLaMisma && t === linea.talla ? "compró esta" : hay ? `${r.stockAqui(t, r.colorEfectivo)} en piso` : r.sinStockTexto(t, r.colorEfectivo);
+          return (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={t === r.tallaEfectiva}
+              aria-label={hay ? `Talla ${t}, ${subtitulo}` : `Talla ${t}, ${r.sinStockTexto(t, r.colorEfectivo)}`}
+              className={`min-w-16 ${t === r.tallaEfectiva ? OPCION_ACTIVA : hay ? OPCION_INACTIVA : OPCION_SIN_STOCK}`}
+              onClick={() => onCambio({ talla: t })}
+            >
+              {t}
+              <span className="block text-[11.5px] font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  )}
+
+  {r.colores.length > 1 && (
+    <fieldset className="mt-5">
+      <legend className="text-xs font-semibold text-tinta/70">
+        Color{r.esLaMisma && linea.color ? ` · compró ${linea.color}` : ""}
+      </legend>
+      <div className="mt-2 flex flex-wrap items-center gap-2.5">
+        {r.colores.map(([nombre, hex]) => {
+          const hay = r.hayAqui(r.tallaEfectiva, nombre);
+          const elegido = nombre === r.colorEfectivo;
+          const sinStock = r.sinStockTexto(r.tallaEfectiva, nombre);
+          return (
+            <button
+              key={nombre}
+              type="button"
+              title={hay ? nombre : `${nombre} · ${sinStock}`}
+              aria-label={hay ? `Color ${nombre}` : `Color ${nombre}, ${sinStock}`}
+              aria-pressed={elegido}
+              onClick={() => onCambio({ color: nombre })}
+              className={`h-10 w-10 rounded-full border-2 transition-[box-shadow,transform] duration-300 ${
+                elegido ? "border-tinta shadow-[0_0_0_2px_var(--color-papel),0_0_0_4px_var(--color-tinta)]" : "border-tinta/15 hover:border-tinta/40"
+              } ${hay ? "" : "opacity-40"}`}
+              style={{ background: hex ?? "var(--color-sand)" }}
+            />
+          );
+        })}
+        {r.colorEfectivo && <span className="ml-1 text-sm text-tinta/75">{r.colorEfectivo}</span>}
+      </div>
+    </fieldset>
+  )}
+    </>
   );
 }
 
@@ -45,6 +113,13 @@ export function CambioReemplazo({
   onEscanear,
   lectura,
   esperandoPistola,
+  aceptaQr,
+  totales,
+  extrasR,
+  opcionesOtraPrenda,
+  onExtra,
+  onAgregarExtra,
+  onQuitarExtra,
 }: {
   linea: LineaVentaReciente;
   seleccion: Seleccion;
@@ -65,9 +140,21 @@ export function CambioReemplazo({
   lectura: { tono: TonoAvisoLinea; texto: string } | null;
   /** El botón se tocó en el mostrador: el campo espera a la pistola. */
   esperandoPistola: boolean;
+  /** La base ya acepta el QR como medio de la diferencia (`fn_acepta_qr_en_cambios`): sin eso, el combo no lo ofrece. */
+  aceptaQr: boolean;
+  /** Lo que se lleva en total y lo que cuesta (`totalesDelCambio`): la diferencia que se cobra es esta, no la de una sola prenda. */
+  totales: TotalesDelCambio;
+  /** Lo derivado de cada prenda EXTRA, en el mismo orden que `seleccion.extras`. */
+  extrasR: readonly Reemplazo[];
+  /** Qué prendas se ofrecen como otra más (`opcionesDeOtraPrenda`). */
+  opcionesOtraPrenda: (elegidoId: string) => OpcionCombo<string>[];
+  onExtra: (id: string, cambio: Partial<PrendaExtra>) => void;
+  onAgregarExtra: () => void;
+  onQuitarExtra: (id: string) => void;
 }) {
   const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
+  const extras = extrasDe(s);
 
   return (
     <div className="space-y-9">
@@ -128,62 +215,7 @@ export function CambioReemplazo({
           )
         )}
 
-        {r.tallas.length > 1 && (
-          <fieldset className="mt-6">
-            <legend className="text-xs font-semibold text-tinta/70">
-              Talla{r.esLaMisma && linea.talla ? ` · compró ${linea.talla}` : ""}
-            </legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {r.tallas.map((t) => {
-                const hay = r.hayAqui(t, r.colorEfectivo);
-                const subtitulo = r.esLaMisma && t === linea.talla ? "compró esta" : hay ? `${r.stockAqui(t, r.colorEfectivo)} en piso` : r.sinStockTexto(t, r.colorEfectivo);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    aria-pressed={t === r.tallaEfectiva}
-                    aria-label={hay ? `Talla ${t}, ${subtitulo}` : `Talla ${t}, ${r.sinStockTexto(t, r.colorEfectivo)}`}
-                    className={`min-w-16 ${t === r.tallaEfectiva ? OPCION_ACTIVA : hay ? OPCION_INACTIVA : OPCION_SIN_STOCK}`}
-                    onClick={() => onCambio({ talla: t })}
-                  >
-                    {t}
-                    <span className="block text-[11.5px] font-normal opacity-70 dark:opacity-85">{subtitulo}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        )}
-
-        {r.colores.length > 1 && (
-          <fieldset className="mt-5">
-            <legend className="text-xs font-semibold text-tinta/70">
-              Color{r.esLaMisma && linea.color ? ` · compró ${linea.color}` : ""}
-            </legend>
-            <div className="mt-2 flex flex-wrap items-center gap-2.5">
-              {r.colores.map(([nombre, hex]) => {
-                const hay = r.hayAqui(r.tallaEfectiva, nombre);
-                const elegido = nombre === r.colorEfectivo;
-                const sinStock = r.sinStockTexto(r.tallaEfectiva, nombre);
-                return (
-                  <button
-                    key={nombre}
-                    type="button"
-                    title={hay ? nombre : `${nombre} · ${sinStock}`}
-                    aria-label={hay ? `Color ${nombre}` : `Color ${nombre}, ${sinStock}`}
-                    aria-pressed={elegido}
-                    onClick={() => onCambio({ color: nombre })}
-                    className={`h-10 w-10 rounded-full border-2 transition-[box-shadow,transform] duration-300 ${
-                      elegido ? "border-tinta shadow-[0_0_0_2px_var(--color-papel),0_0_0_4px_var(--color-tinta)]" : "border-tinta/15 hover:border-tinta/40"
-                    } ${hay ? "" : "opacity-40"}`}
-                    style={{ background: hex ?? "var(--color-sand)" }}
-                  />
-                );
-              })}
-              {r.colorEfectivo && <span className="ml-1 text-sm text-tinta/75">{r.colorEfectivo}</span>}
-            </div>
-          </fieldset>
-        )}
+        <ElegirTallaYColor r={r} linea={linea} onCambio={onCambio} />
 
         {r.avisoSinStock && r.varianteNueva && (
           <CambioSalidas
@@ -198,6 +230,61 @@ export function CambioReemplazo({
             {...salidas}
           />
         )}
+
+        {r.varianteNueva && !r.sinStockAqui && (
+          <div data-guia="cambios.otras-prendas" className="mt-8 space-y-5">
+            {extras.map((extra, i) => {
+              const er = extrasR[i];
+              if (!er) return null;
+              const cual = `${i + 2}.ª`;
+              return (
+                <div key={extra.id} className="space-y-4 rounded-2xl bg-sand/45 p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta/65">Otra prenda · la {cual}</p>
+                    <button
+                      type="button"
+                      onClick={() => onQuitarExtra(extra.id)}
+                      aria-label={`Quitar la ${cual} prenda`}
+                      title={`Quitar la ${cual} prenda`}
+                      className="btn-cayla btn-sutil grid h-8 w-8 place-items-center p-0"
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <ComboBuscable
+                      id={`${idBase}-extra-${extra.id}`}
+                      valor={extra.productoId}
+                      onValor={(productoId) => onExtra(extra.id, { productoId, talla: null, color: null })}
+                      opciones={opcionesOtraPrenda(extra.productoId)}
+                      etiquetaAccesible={`Prenda ${cual} que se lleva`}
+                      marcador="Busca la prenda…"
+                      className="min-w-[11rem] flex-1 sm:max-w-md"
+                    />
+                    <PasoCantidad
+                      menos={{ onClick: () => onExtra(extra.id, { cantidad: Math.max(1, extra.cantidad - 1) }), deshabilitado: extra.cantidad <= 1, etiqueta: `Una menos de la ${cual} prenda` }}
+                      mas={{ onClick: () => onExtra(extra.id, { cantidad: Math.min(99, extra.cantidad + 1) }), deshabilitado: extra.cantidad >= 99, etiqueta: `Una más de la ${cual} prenda` }}
+                    >
+                      {extra.cantidad}
+                    </PasoCantidad>
+                  </div>
+                  <ElegirTallaYColor r={er} linea={linea} onCambio={(cambio) => onExtra(extra.id, cambio)} />
+                  {er.avisoSinStock && (
+                    <Aviso tono="atencion" chico>
+                      {er.avisoSinStock}
+                    </Aviso>
+                  )}
+                </div>
+              );
+            })}
+            {extras.length < MAX_PRENDAS_EXTRA && (
+              <button type="button" onClick={onAgregarExtra} className="btn-cayla btn-secundario gap-2">
+                <Plus className="h-4 w-4" aria-hidden />
+                {extras.length === 0 ? "Se lleva otra prenda más" : "Agregar otra prenda"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <fieldset>
@@ -206,7 +293,7 @@ export function CambioReemplazo({
           {(
             [
               { valor: "vendible", titulo: "Impecable", detalle: "Vuelve al piso de venta." },
-              { valor: "no_vendible", titulo: "Con defecto o uso", detalle: "Va a cuarentena: un líder decide si se repara, se dona o vuelve al proveedor." },
+              { valor: "no_vendible", titulo: "Con defecto o uso", detalle: "Va a cuarentena: ahí se decide si se repara, se dona o vuelve al proveedor." },
             ] as const
           ).map((o) => {
             const activa = r.condicion === o.valor;
@@ -265,13 +352,22 @@ export function CambioReemplazo({
               : null
           }
           cantidad={s.cantidad}
-          diferencia={r.diferencia}
+          diferencia={totales.diferencia}
+          otras={totales.salidas.slice(1).map((x) => ({
+            referencia: x.variante.referencia,
+            talla: x.variante.talla,
+            color: x.variante.color,
+            colorHex: x.variante.colorHex,
+            fotoUrl: x.variante.fotoUrl,
+            precio: x.precio,
+            cantidad: x.cantidad,
+          }))}
         />
 
-        {r.varianteNueva && !r.sinStockAqui && r.diferencia !== 0 && (
+        {r.varianteNueva && !r.sinStockAqui && totales.diferencia !== 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <label htmlFor={`${idBase}-metodo`} className="text-sm text-tinta/75">
-              {r.diferencia > 0 ? "¿Cómo paga la diferencia?" : "¿Cómo se le devuelve?"}
+              {totales.diferencia > 0 ? "¿Cómo paga la diferencia?" : "¿Cómo se le devuelve?"}
             </label>
             {/* El combo del sistema en caja (ADR-0209); `ref` es su botón, al que Cambios lleva el foco si falta la caja. */}
             <Desplegable
@@ -281,7 +377,7 @@ export function CambioReemplazo({
               className="w-56 max-w-full"
               valor={s.metodo}
               onValor={(metodo) => onCambio({ metodo })}
-              opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+              opciones={metodosDiferencia(aceptaQr).map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
             />
           </div>
         )}

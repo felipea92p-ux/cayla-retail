@@ -89,61 +89,32 @@ describe("armarRecibo con el redondeo del efectivo", () => {
   });
 });
 
-// ADR-0288 D-5: con el cumpleaños, cada línea trae su descuento TOTAL (campaña + club, el de `venta_items`) y el papel dice
-// cuánto de eso es del club. El total del papel es el que se cobró.
-describe("armarRecibo con el cumpleaños del club", () => {
-  const conCumple = (cumple: { pct: number; monto: number } | null) =>
+// Programa de puntos: con el cupón del Club, cada línea trae su descuento TOTAL (el de `venta_items`) y el papel dice cuánto de eso
+// es del cupón. El total del papel es el que se cobró.
+describe("armarRecibo con el cupón del Club", () => {
+  const conCupon = (cupon: { monto: number } | null) =>
     armarRecibo({
       comprobante,
       sede: "Tienda Lima",
       cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
-      // 79.90 con campaña 16.00 + club 6.39 = 22.39; 79.90 con club 7.99.
-      lineas: [
-        { cantidad: 1, referencia: "Blusa Aurora", codigo: null, precioUnitario: 79.9, descuentoUnitario: 22.39 },
-        { cantidad: 1, referencia: "Falda Lía", codigo: null, precioUnitario: 79.9, descuentoUnitario: 7.99 },
-      ],
-      pagos: [{ metodo: "yape", monto: 129.42 }],
-      tasaIgv: 0.18,
-      cumple,
-    });
-
-  it("el total es lo cobrado, y el papel sabe cuánto fue del club", () => {
-    const r = conCumple({ pct: 10, monto: 14.38 });
-    expect(r.total).toBe(129.42);
-    expect(r.cumple).toEqual({ pct: 10, monto: 14.38 });
-  });
-  it("sin canje (o con un monto en 0) no dice nada del cumpleaños", () => {
-    expect(conCumple(null).cumple).toBeNull();
-    expect(conCumple({ pct: 10, monto: 0 }).cumple).toBeNull();
-  });
-});
-
-// Tanda 1g: el vale de aniversario viaja igual que el cumpleaños.
-describe("armarRecibo con el vale de aniversario del club", () => {
-  const conVale = (vale: { monto: number } | null) =>
-    armarRecibo({
-      comprobante,
-      sede: "Tienda Lima",
-      cliente: { tipoDoc: "dni", numDoc: "12345678", nombre: "Ana Pérez" },
-      // 79.90 + 40.10 con un vale de S/ 30: 19.98 y 10.02 de club.
+      // 79.90 + 40.10 con un cupón de S/ 30: 19.98 y 10.02 del cupón.
       lineas: [
         { cantidad: 1, referencia: "Blusa Aurora", codigo: null, precioUnitario: 79.9, descuentoUnitario: 19.98 },
         { cantidad: 1, referencia: "Falda Lía", codigo: null, precioUnitario: 40.1, descuentoUnitario: 10.02 },
       ],
       pagos: [{ metodo: "yape", monto: 90 }],
       tasaIgv: 0.18,
-      vale,
+      cupon,
     });
 
-  it("el total es lo cobrado, y el papel sabe cuánto fue del vale", () => {
-    const r = conVale({ monto: 30 });
+  it("el total es lo cobrado, y el papel sabe cuánto fue del cupón", () => {
+    const r = conCupon({ monto: 30 });
     expect(r.total).toBe(90);
-    expect(r.vale).toEqual({ monto: 30 });
-    expect(r.cumple).toBeNull();
+    expect(r.cupon).toEqual({ monto: 30 });
   });
-  it("sin vale (o en 0) no dice nada", () => {
-    expect(conVale(null).vale).toBeNull();
-    expect(conVale({ monto: 0 }).vale).toBeNull();
+  it("sin cupón (o en 0) no dice nada", () => {
+    expect(conCupon(null).cupon).toBeNull();
+    expect(conCupon({ monto: 0 }).cupon).toBeNull();
   });
 });
 

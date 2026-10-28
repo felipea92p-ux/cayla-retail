@@ -3,9 +3,16 @@
   "configurations": [
     {
       "name": "maqueta-referentes",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 -m http.server ${PORT:-3031} --directory docs/maquetas"],
+      "port": 3031,
+      "autoPort": true
+    },
+    {
+      "name": "investigacion-docs",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "3031", "--directory", "docs/maquetas"],
-      "port": 3031
+      "runtimeArgs": ["-m", "http.server", "3032", "--bind", "127.0.0.1", "--directory", "docs/investigacion"],
+      "port": 3032
     },
     {
       "name": "cayla-retail-dev",
@@ -91,6 +98,36 @@
         "mkdir -p apps/web/unificar/.salida && python3 -m http.server ${PORT:-8793} --directory apps/web/unificar/.salida"
       ],
       "port": 8793,
+      "autoPort": true
+    },
+    {
+      "name": "tienda-dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
+    },
+    {
+      "name": "tienda-compilada",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pnpm --filter tienda exec next start --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
+    },
+    {
+      "name": "tienda-dev-local-bin",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PATH=\"$HOME/.local/bin:$HOME/.local/lib/node/bin:$PATH\" pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
       "autoPort": true
     }
   ]

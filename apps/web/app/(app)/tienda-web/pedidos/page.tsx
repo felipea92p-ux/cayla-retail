@@ -1,0 +1,76 @@
+import { exigirModulo } from "@/lib/persona-actual";
+import { createClient } from "@/lib/supabase/server";
+import { MENSAJE_PREDETERMINADO_WEB, conEmpresas, leerDetalle, leerTablero, type PestanaPedidos } from "@/lib/pedidos-web-reglas";
+import { getEmpresaDeProductos, getEmpresasDeLaSede } from "@/lib/pedidos-web";
+import { Aviso } from "@/components/ui/Aviso";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { PedidosWebPantalla } from "@/components/pedidos-web/PedidosWebPantalla";
+
+// Tienda web ▸ Pedidos web (ADR-0408, actividad 8; ADR-0430 y su actualización del 2026-10-17, maqueta docs/maquetas/pedidos-web-2026-10):
+// lo que los clientes separaron en la tienda online para ESTA tienda, para confirmarlo; y lo que otra tienda espera de aquí, para
+// enviarlo. La cabecera es `EncabezadoPagina` (ADR-0220). El pedido abierto vive en la URL (`?pedido=<id>`): se comparte, sobrevive a recargar y
+// la página lo lee junto con la lista.
+const PESTANAS: readonly PestanaPedidos[] = ["confirmar", "cobrar", "entregar", "cerrados"];
+
+export default async function PedidosWebPage({ searchParams }: { searchParams: Promise<{ pedido?: string; pestana?: string }> }) {
+  // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
+  const persona = await exigirModulo("pedidos_web");
+  const { pedido, pestana } = await searchParams;
+
+  if (persona.ubicacionTipo !== "tienda") {
+    return (
+      <div className="space-y-6">
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} detalle="Tienda web" titulo="Pedidos" subtitulo="Lo que los clientes separan en la tienda online." />
+        <Aviso tono="info" titulo="Los pedidos web se atienden en una tienda">
+          Cambia a una tienda desde el selector de arriba para ver sus pedidos.
+        </Aviso>
+      </div>
+    );
+  }
+
+  const supabase = await createClient();
+  const idPedido = pedido && /^[0-9a-f-]{36}$/i.test(pedido) ? pedido : null;
+  const [tablero, detalle, empresas, mensaje] = await Promise.all([
+    supabase.rpc("fn_pedidos_web_tablero", { p_ubicacion_id: persona.ubicacionId }),
+    idPedido ? supabase.rpc("fn_pedido_web_detalle", { p_pedido_id: idPedido }) : Promise.resolve(null),
+    // En Lima conviven CAYLA y CLAURE: el detalle dice de cuál es cada prenda (ADR-0463). En las demás sedes no se nombra.
+    getEmpresasDeLaSede(persona.ubicacionId),
+    // Es el mensaje propio de quien mira (20261019120000): los tipos generados aún no la conocen.
+    supabase.rpc("fn_mensaje_pedidos_web_mio" as never) as unknown as Promise<{ data: unknown; error: unknown }>,
+  ]);
+
+  // En Lima cada prenda dice su empresa: se lee de `productos.empresa_id`, así que no depende de una función nueva en la base.
+  let detalleLeido = detalle && !detalle.error ? leerDetalle(detalle.data) : null;
+  if (detalleLeido && empresas.length > 0) {
+    detalleLeido = conEmpresas(detalleLeido, empresas, await getEmpresaDeProductos(detalleLeido.lineas.flatMap((l) => (l.productoId ? [l.productoId] : []))));
+  }
+
+  if (tablero.error) {
+    return (
+      <div className="space-y-6">
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} detalle="Tienda web" titulo="Pedidos" subtitulo={`Lo que separaron en la web para ${persona.ubicacionEtiqueta}.`} />
+        <Aviso tono="error" titulo="No se pudieron leer los pedidos web">
+          Recarga la página; si sigue, avísale al líder.
+        </Aviso>
+      </div>
+    );
+  }
+
+  // La cabecera la dibuja la pantalla: su «¿Cómo funciona?» abre las reglas bajo el camino (ADR-0430, act. 2026-10-17).
+  return (
+    <PedidosWebPantalla
+      tablero={leerTablero(tablero.data)}
+      tiendaId={persona.ubicacionId}
+      tienda={persona.ubicacionEtiqueta}
+      variasEmpresas={empresas.length > 0}
+      ahoraIso={new Date().toISOString()}
+      // `?pestana=` es el filtro del camino (el nombre viene de cuando eran pestañas: un enlace guardado o del Resumen sigue sirviendo).
+      filtroInicial={PESTANAS.find((p) => p === pestana) ?? null}
+      // Un pedido de otra tienda, o que ya no existe, no abre nada: la base lo rechaza y la lista queda como estaba.
+      detalle={detalleLeido}
+      detalleFallo={Boolean(idPedido && (!detalle || detalle.error))}
+      // Si la base no responde o nunca editó el suyo, el de fábrica: el botón de WhatsApp sigue funcionando.
+      mensajePredeterminado={!mensaje.error && typeof mensaje.data === "string" && mensaje.data.trim() ? mensaje.data : MENSAJE_PREDETERMINADO_WEB}
+    />
+  );
+}

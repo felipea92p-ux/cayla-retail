@@ -17,18 +17,18 @@
       "Link «Complétalas en Catálogo»"
     ],
     "components/frescura/FrescuraDecidir.tsx": [
-      "input «{textoTrasladoElegible(t, ahora)}»",
+      "input «traslado»",
       "Link «Armar traslado»",
       "Link «Retirar del piso en Existencias»",
       "CampoTexto «{guia.etiqueta(\"nota\", \"Nota (opcional)\")}»",
       "button «+ Agregar una nota»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "button «Ver»",
       "button «No, todavía no»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
-      "input «{o.titulo}»",
+      "input «accion»",
       "CampoTexto «{guia.etiqueta(\"nota\", \"¿Qué pasó? (opcional)\")}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}» #2",
       "button «No»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],

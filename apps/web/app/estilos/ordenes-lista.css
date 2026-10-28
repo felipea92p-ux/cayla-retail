@@ -1,0 +1,85 @@
+/* LA LISTA DE ÓRDENES DEL TALLER (ADR-0400, actividad 5; lámina `docs/maquetas/produccion-rediseno-2026-10/index.html`, vista A, elegida por Felipe el 2026-10-14).
+   Las medidas son las de la lámina; los colores, solo tokens de globals.css (ADR-0169 / ADR-0336). Las piezas del sistema (EncabezadoPagina, TarjetaCifra, Pestanas, Buscador,
+   Tabla, Chip, Vacio, Aviso) se usan tal cual: aquí solo vive lo que ninguna dibuja — la fila que es un enlace con un «¿Por qué?» adentro, y la explicación que se abre bajo ella.
+   Movimiento (ADR-0136): la fila entra en cascada y su hilo rojo de canto crece al pasar el mouse (los dos, de `.fila-cayla`); la explicación se abre por `grid-template-rows`,
+   sin medir alturas. Sin rebote ni bucle; todo se apaga con `prefers-reduced-motion`. */
+
+@layer components {
+  /* La fila es un contenedor con un enlace que la cubre entera: dentro hay un botón («¿Por qué?») y un botón no puede ir dentro de un enlace. El enlace recibe los clics y el foco;
+     las celdas no (`pointer-events-none`), salvo el botón. */
+  .ol-enlace {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+  }
+  /* Una orden de antes de las fases no tiene página: su «enlace» es un botón que abre el cajón; sin la cara de botón. */
+  button.ol-enlace {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+  .ol-enlace:focus-visible {
+    outline: var(--foco-ancho) solid var(--foco-color);
+    outline-offset: calc(var(--foco-ancho) * -1);
+  }
+  /* El hilo rojo y la flecha de `.fila-cayla` también con el foco del enlace (el contenedor no es el que lo recibe). */
+  .ol-fila:has(.ol-enlace:focus-visible):not([data-sin-hilo]) {
+    background-size: 2px calc(100% - 1.25rem);
+  }
+  .ol-fila:has(.ol-enlace:focus-visible)::after {
+    opacity: 1;
+    translate: 0 0;
+    color: var(--color-tinta);
+  }
+
+  .ol-celdas {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .ol-porque {
+    pointer-events: auto;
+    position: relative;
+  }
+
+  /* «Pide algo»: el texto en rojo profundo con su «¿Por qué?» al lado. Es lo único rojo de la fila. */
+  .ol-causa {
+    color: var(--color-rojo-profundo);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  /* La explicación se abre bajo la fila, ocupando todo su ancho. */
+  .ol-explica {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 240ms var(--ease-cayla);
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .ol-explica[data-abierta="true"] {
+    grid-template-rows: 1fr;
+  }
+  .ol-explica > div {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ol-explica p {
+    margin: 0;
+    padding: 8px 0 2px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-tinta);
+  }
+  .ol-explica p + p {
+    padding-top: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ol-explica { transition-duration: 1ms; }
+  }
+}

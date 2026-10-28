@@ -314,7 +314,21 @@ select pg_temp.huella(:'va');`);
 {
   // `producto_origen` (ADR-0292) es SUYA: es un dato que nace con la ficha (en qué sede se registró) y se va con ella por su
   // `on delete cascade`; no es historia y no frena el borrado.
-  const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen"];
+  // `vitrina_productos` (ADR-0408, actividad 3) es SUYA: si se ve en la tienda online y cómo entra a Lo nuevo son configuración de
+  // la ficha, como sus fotos, y se van con ella por su `on delete cascade` (quién lo cambió y cuándo queda en `actividad`).
+  // `favoritos_web` y `esperas_web` (ADR-0408, actividad 12) también: el corazón y el «Avísame» de un cliente de la tienda online
+  // sobre un modelo que nunca se vendió ni se movió no son historia de la prenda; se van con ella por su `on delete cascade`. Y
+  // `vitrina_look_piezas` (actividad 11): que una prenda salga en un look de la tienda online es configuración de la vitrina y se va
+  // con su ficha (`on delete cascade`); el look guarda cuántas prendas lleva, así que le falta una, no se muestra y el ERP lo dice
+  // (20261015031000).
+  // `look_web_piezas` (ADR-0434, actividad 8, 20261017044000) es SUYA como los favoritos: el look que un cliente guardó con un modelo
+  // que nunca se vendió ni se movió no es historia de la prenda; su fila se va con ella (`on delete cascade`) y el look sigue con las
+  // demás (la tienda dice «Una prenda que guardaste ya no está»).
+  const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen", "vitrina_productos",
+    "favoritos_web", "esperas_web", "vitrina_look_piezas", "look_web_piezas",
+    // ADR-0513: la ficha de consumo (la tela declarada y los avíos del modelo) es configuración suya, como sus fotos, y la escribe Producción SIN orden:
+    // se va con la ficha por su `on delete cascade` (la prueba de forma de `produccion_ficha_consumo.mjs` lo exige).
+    "producto_consumos", "producto_avios"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
@@ -330,12 +344,39 @@ select pg_temp.huella(:'va');`);
     // ADR-0393: lo contado al recibir que todavía no entró al stock (un pendiente «detalle») también: renglón 23 de
     // `fn_producto_historia` (20261014234000). Lo recibido frena por su movimiento con lote; un pendiente no deja movimiento.
     "despacho_pendientes",
+    // ADR-0480 (actividad 3): una prenda en una línea de orden de compra (la compra anotada desde el celular) tiene un proveedor del otro
+    // lado: renglón 26 de `fn_producto_historia` (20261023005000).
+    "orden_compra_items",
+    // ADR-0408: una prenda que un cliente pidió por la web (con su precio, y quizá su pago) es historia: frena el borrado aunque
+    // nunca haya movido stock (se puede separar algo que está por conseguir). Las líneas no se borran (pedido_web_lineas_sin_borrar);
+    // renglón 25 de `fn_producto_historia` (20261015011000, act. 8): Catálogo dice «tiene pedidos web» y no ofrece «Eliminar».
+    "pedido_web_lineas",
+    // ADR-0470: las prendas que se lleva la clienta en un cambio por VARIAS prendas. Es historia de la prenda, como `cambios`; el cambio deja además
+    // un movimiento de salida con su `cambio_id`, que ya frena el borrado, y la llave a `variantes` (sin cascada) lo impediría igual.
+    "cambio_salidas",
+    // ADR-0515: la corrección del costo de una compra. Cuelga de una fila de `costo_historial` de la misma prenda, que ya frena el
+    // borrado, y la llave a `productos` y `variantes` (sin cascada) lo impediría igual.
+    "costo_correcciones",
+    // ADR-0530: lo que el Plan de campaña mandó a Compras («pendiente de campaña», y lo ya pedido o rectificado). Es historia de lo que se decidió comprar de la
+    // prenda y nunca se borra (el pedido es inmutable tras pedido o rectificado); la llave a `productos` (sin cascada) impide borrar una prenda que está en uno.
+    // Pendiente aparte: que Catálogo lo diga con su mensaje («está en un pedido de campaña») en vez del error crudo de la llave: renglón nuevo de `fn_producto_historia`.
+    "pedidos_campana_lineas",
+    // ADR-0495: los pasos de la tienda online (vio la prenda, eligió talla, la puso en la bolsa). Solo se agregan: un disparador impide
+    // borrarlos, así que no pueden irse con la ficha; y sus llaves a `productos` y `variantes` (sin cascada) frenan el borrado de una
+    // prenda que alguien miró en la tienda online. Pendiente aparte, como el de arriba: que Catálogo lo diga con su mensaje («la miraron en
+    // la tienda online») en vez del error de la llave, con su renglón en `fn_producto_historia`.
+    "trafico_web",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
   // Y lo contado de más al recibir un traslado (`traslado_sobrantes`, ADR-0404), de la recepción de la misma prenda.
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes"];
+  // Y lo del rediseño de Producción (ADR-0400): el avance, las líneas de una Salida y de una Vuelta cuelgan de una fase de una orden y
+  // solo se anotan contra una línea de ESA orden (`registrar_avance`, `registrar_salida` y `registrar_vuelta` lo piden), así que son de
+  // la misma prenda que la orden; y lo medido de una orden cerrada (`producto_consumo_medido`, ADR-0513) cuelga de ESA orden. La orden
+  // (`producciones`) es historia y frena el borrado, y ninguna se borra nunca.
+  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes",
+    "produccion_avances", "produccion_salida_lineas", "produccion_vuelta_lineas", "producto_consumo_medido"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

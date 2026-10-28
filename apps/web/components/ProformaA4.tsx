@@ -1,9 +1,10 @@
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasDeLaProforma, numeroDeProforma, totalesDeLineas, type Proforma } from "@/lib/proformas-reglas";
 import type { FotoDePrenda } from "@/lib/proformas";
 import { fechaHoraLima } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 const ETIQUETA = "mr-[3pt] inline-block rounded-full border border-black/20 px-[5pt] text-[7pt] leading-[11pt] text-black/60";
 
 /**
@@ -35,10 +36,10 @@ export function ProformaA4({
     <div data-testid="proforma-a4" className="mx-auto flex min-h-[268mm] w-[186mm] flex-col bg-white font-sans text-[9pt] leading-snug text-black">
       <header className="flex items-end justify-between gap-6 border-b-2 border-rojo pb-[3mm] [print-color-adjust:exact]">
         <div className="flex items-center gap-[4mm]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- se imprime: una <img> normal se decodifica antes de `print()` */}
-          <img src="/cayla-isotipo.png" alt="" className="h-auto w-[13mm] shrink-0" />
           <div>
-            <p className="font-display text-[22pt] leading-none tracking-[0.14em] text-rojo">{emisor.nombreComercial}</p>
+            {/* El logo oficial (ADR-0446) en el rojo de marca, nunca «CAYLA» escrito con una letra del sistema. */}
+            <LogoCayla className="h-[11mm] [print-color-adjust:exact]" />
+            <p className="sr-only">{emisor.nombreComercial}</p>
             <p className="mt-[1mm] text-black/60">
               {emisor.razonSocial} · RUC {emisor.ruc}
             </p>

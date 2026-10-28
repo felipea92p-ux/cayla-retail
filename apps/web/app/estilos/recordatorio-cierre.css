@@ -231,7 +231,9 @@
   font-weight: 600;
   transition: background-color 200ms ease;
 }
-.rcc-boton:hover { background: var(--color-vidrio); }
+@media (hover: hover) {
+  .rcc-boton:hover { background: var(--color-vidrio); }
+}
 .rcc-mas {
   width: 28px;
   height: 28px;
@@ -241,11 +243,15 @@
   color: color-mix(in srgb, var(--color-crema) 70%, transparent);
   transition: transform 400ms var(--ease-cayla), background-color 200ms ease;
 }
-.rcc-mas:hover { background: color-mix(in srgb, var(--color-crema) 12%, transparent); }
+@media (hover: hover) {
+  .rcc-mas:hover { background: color-mix(in srgb, var(--color-crema) 12%, transparent); }
+}
 .rcc-mas[aria-expanded="true"] { transform: rotate(180deg); }
 .rcc-boton:focus-visible, .rcc-mas:focus-visible, .rcc-luego:focus-visible, .rcc-si:focus-visible { outline: 2px solid var(--color-crema); outline-offset: 2px; }
 .rcc-flecha { display: inline-block; transition: transform 250ms var(--ease-cayla); }
-.rcc-boton:hover .rcc-flecha, .rcc-si:hover .rcc-flecha { transform: translateX(3px); }
+@media (hover: hover) {
+  .rcc-boton:hover .rcc-flecha, .rcc-si:hover .rcc-flecha { transform: translateX(3px); }
+}
 
 /* Según el hueco que mide el componente en la barra (`data-tramo` en la raíz, `medirHueco`): 0 todo · 1 sin el botón «Cerrar»
    (queda en la pestaña) · 2 sin «h : min» · 3 solo luz y paletas · 4 lo mismo, más apretado · 5 como el 3, pero colgando bajo la
@@ -346,7 +352,9 @@
 
 .rcc-acciones { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
 .rcc-luego { border-radius: 10px; padding: 9px 12px; font-size: 13px; color: color-mix(in srgb, var(--color-crema) 72%, transparent); transition: background-color 200ms ease, color 200ms ease; }
-.rcc-luego:hover { background: color-mix(in srgb, var(--color-crema) 10%, transparent); color: var(--color-crema); }
+@media (hover: hover) {
+  .rcc-luego:hover { background: color-mix(in srgb, var(--color-crema) 10%, transparent); color: var(--color-crema); }
+}
 .rcc-si {
   flex: 1;
   display: inline-flex;
@@ -361,7 +369,9 @@
   color: var(--color-tinta);
   transition: background-color 200ms ease;
 }
-.rcc-si:hover { background: var(--color-vidrio); }
+@media (hover: hover) {
+  .rcc-si:hover { background: var(--color-vidrio); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rcc-isla, .rcc-isla *, .rcc-isla *::before, .rcc-isla *::after {

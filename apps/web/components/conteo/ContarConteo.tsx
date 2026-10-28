@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { useRouter } from "next/navigation";
 import { Camera, Clock, Info, ScanBarcode, UserRound, X, ScanLine, SearchX } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
 import { BotonAplicarTodos, ConfirmarAplicarTodos } from "@/components/conteo/AplicarTodosCompletos";
-import { ControlConteo, type EstadoGuardado, type FalloDeGuardado } from "@/components/conteo/control-conteo";
+import { ControlConteo, type EstadoGuardado, type FalloDeGuardado, type LineaDelAtajo } from "@/components/conteo/control-conteo";
 import { ListaConteo } from "@/components/conteo/ListaConteo";
 import { PasosConteo } from "@/components/conteo/PasosConteo";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
@@ -291,22 +292,48 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
   );
 
   /**
-   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante
-   * que SIGUE pendiente se cuenta con lo que debe haber, por el mismo camino que cualquier cantidad escrita (`alConfirmar`: mismo
-   * responsable, mismo guardado agrupado y en serie, mismo estado y progreso). Las que ya tienen número no se tocan
-   * (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Devuelve cuántas anotó.
+   * Lo que sale a la red con «Completar todo»: UNA llamada (`conteo_completar_tarjeta`) que cuenta las tallas con la misma `conteo_contar`
+   * y las marca «completadas con el atajo» (cuentan, pero Revisar lo dice; ADR-0328, opción C de Felipe). Un solo camino: la función
+   * está en la base desde antes de publicar esta pantalla, así que no hay respaldo talla por talla (ADR-0328, act. 2026-10-22).
+   */
+  const enviarCompletar = useCallback(
+    async (lineas: LineaDelAtajo[]) =>
+      await firmar(
+        createClient()
+          .rpc("conteo_completar_tarjeta", { p_conteo_id: conteo.id, p_lineas: lineas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad })) })
+          .setHeader("x-espera", "no"),
+        responsableRef.current.firma()
+      ),
+    [conteo.id]
+  );
+
+  /**
+   * «Completar todo» de una tarjeta: «encontré todo tal como CAYLA esperaba» en ESE modelo y color. Cada variante que SIGUE pendiente se
+   * cuenta con lo que debe haber: se pinta YA (como cualquier cantidad escrita) y sale UNA sola petición (`control.completar`). Las que
+   * ya tienen número no se tocan (`pendientesParaCompletar`). Si falta el responsable, se avisa una sola vez y no se anota ninguna. Si la
+   * base rechaza, las líneas vuelven a pendiente y se dice por qué. Devuelve cuántas pintó.
    */
   const completarTodo = useCallback(
     (varianteIds: string[]): number => {
-      let anotadas = 0;
-      for (const id of pendientesParaCompletar(varianteIds, control.linea)) {
-        const l = control.linea(id);
-        if (!l || !alConfirmar(id, l.debeHaber)) break;
-        anotadas++;
+      const r = responsableRef.current;
+      if (!r.listo) {
+        setAviso({ tipo: "texto", texto: r.motivo ?? "Elige quién cuenta antes de anotar." });
+        return 0;
       }
+      const items = pendientesParaCompletar(varianteIds, control.linea).flatMap((id) => {
+        const l = control.linea(id);
+        return l ? [{ varianteId: id, cantidad: l.debeHaber }] : [];
+      });
+      const { anotadas, resultado } = control.completar(items, enviarCompletar);
+      void resultado.then((res) => {
+        if (!("error" in res)) return;
+        // Un rechazo por el responsable (asistencia) vacía el combo y relee la lista, como al contar.
+        responsableRef.current.despues(res.error);
+        setAviso({ tipo: "texto", texto: traducirError(res.error, "completar esa tarjeta") });
+      });
       return anotadas;
     },
-    [control, alConfirmar]
+    [control, enviarCompletar]
   );
 
   // «Aplicar todos completos»: las que SIGUEN pendientes y nadie contó, entre las que se ven (la lista acotada y, si hay texto, lo que deja
@@ -763,28 +790,6 @@ function textoInicio(iso: string): string {
   return `${de("day")}/${de("month")}/${de("year")} · ${de("hour")}:${de("minute")}`;
 }
 
-/** El anillo del progreso: pista en sand y avance en terracota (el mismo que el hilo de CAYLA), sin animación de más. */
-function Anillo({ porcentaje }: { porcentaje: number }) {
-  const r = 16;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg aria-hidden viewBox="0 0 40 40" className="h-10 w-10 shrink-0 -rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-sand" />
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - porcentaje / 100)}
-        className="stroke-rojo transition-[stroke-dashoffset] duration-300 ease-cayla"
-      />
-    </svg>
-  );
-}
-
 /**
  * La barra de información bajo el buscador: quién cuenta, cómo va y desde cuándo. Solo tres bloques (los pendientes ya
  * están arriba a la derecha). El responsable se eligió al abrir el conteo: aquí solo se ve su nombre, sin «Cambiar». Solo si
@@ -800,7 +805,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   return (
     <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       <div className={bloque}>
-        <UserRound aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-tinta/70">Responsable</p>
           {mostrarCombo ? (
@@ -811,7 +816,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Anillo porcentaje={porcentaje} />
+        <Anillo pct={porcentaje} tamano="chico" decorativa />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Progreso</p>
           <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
@@ -823,7 +828,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Clock aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Inicio del conteo</p>
           <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>

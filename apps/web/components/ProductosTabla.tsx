@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { InsigniaEmpresa } from "@/components/InsigniaEmpresa";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
 import { MiniaturaPrenda, SwatchesColor } from "@/components/ProductoPiezas";
@@ -45,6 +47,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
 import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
+import { precioDeHoy, type CampanaDeVariante, type PrecioDeHoy } from "@/lib/precio-de-hoy";
+import { PrecioConCampana } from "@/components/ficha-producto/PrecioConCampana";
 import { Casilla } from "@/components/ui/Casilla";
 import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
@@ -72,6 +76,8 @@ type Fila = {
   colores: ColorDisponible[];
   tallas: string[];
   precio: string;
+  /** Si una campaña la rebaja hoy, lo que cobra la caja (ADR-0472): la fila tacha `precio` y lo dice. */
+  deHoy: PrecioDeHoy | null;
   costo: string | null;
   margen: MargenProducto | null;
   alerta: ReturnType<typeof alertaDeStock>;
@@ -102,8 +108,11 @@ export function ProductosTabla({
   hrefLimpiar,
   preciosTienda = {},
   preciosAqui,
+  campanasHoy,
 }: {
   productos: ProductoListado[];
+  /** La campaña que cobra la caja hoy por variante (`campanasQueCobra`, ADR-0472). Ausente = no se pudo leer: el precio de siempre. */
+  campanasHoy?: Record<string, CampanaDeVariante>;
   /** Por prenda, el precio en cada tienda (`preciosDeTiendaPorProducto`): la insignia «2 precios». */
   preciosTienda?: Record<string, PrecioDeTienda[]>;
   /** Los precios propios de la tienda elegida arriba (variante → precio). La fila, sus variantes y el margen usan ESE precio: el que
@@ -136,6 +145,7 @@ export function ProductosTabla({
           colores: coloresDe(p.variantes),
           tallas: tallasDe(p.variantes),
           precio: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => v.precio)) ?? "—",
+          deHoy: campanasHoy ? precioDeHoy(variantesQueSeVenden(p.variantes).map((v) => ({ id: v.varianteId, precio: v.precio })), (id) => campanasHoy[id]) : null,
           costo: rangoSoles(variantesQueSeVenden(p.variantes).map((v) => (tieneCosto(v.costo) ? v.costo : null))),
           margen: margenDe(variantesQueSeVenden(p.variantes)),
           alerta: alertaDeStock(p),
@@ -145,7 +155,7 @@ export function ProductosTabla({
           otrosPrecios: preciosTienda[p.productoId] ?? [],
         };
       }),
-    [productos, existencias, preciosTienda, preciosAqui],
+    [productos, existencias, preciosTienda, preciosAqui, campanasHoy],
   );
 
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -389,9 +399,8 @@ function Margen({ margen }: { margen: MargenProducto | null }) {
   return (
     <span className="inline-flex items-center justify-end gap-2 whitespace-nowrap" title={margen.bajo ? `Alguna talla deja menos de ${UMBRAL_MARGEN_BAJO} %` : undefined}>
       <span className={`tabular-nums ${margen.bajo ? "text-ambar" : "text-tinta"}`}>{textoMargen(margen)}</span>
-      <span aria-hidden className="h-1 w-11 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full ${margen.bajo ? "bg-ambar" : "bg-verde"}`} style={{ width: `${ancho}%` }} />
-      </span>
+      {/* El margen mínimo: una medida, no un avance; el ámbar lo pone un margen bajo. */}
+      <BarraAvance pct={ancho} alto="fina" tono={margen.bajo ? "ambar" : "tinta"} decorativa className="w-11" />
     </span>
   );
 }
@@ -463,9 +472,12 @@ function FilaAncha({
             </button>
             <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[50px] w-10 ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
             <div className={`min-w-0 ${fila.descontinuado ? "opacity-70" : ""}`}>
-              <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
-                {p.referencia}
-              </p>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <p className="font-display truncate text-[17px] leading-tight text-tinta" title={p.referencia}>
+                  {p.referencia}
+                </p>
+                <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
+              </div>
               <p className="mt-0.5 truncate text-[11px] text-tinta/55">
                 <span className="font-mono tracking-wide">{p.codigo ?? "sin código"}</span> · {p.categoria ?? "sin categoría"}
               </p>
@@ -489,7 +501,7 @@ function FilaAncha({
           <Tallas tallas={tallas} />
         </td>
         <td className="whitespace-nowrap px-3 py-3 text-right align-middle tabular-nums text-tinta">
-          {fila.precio}
+          {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} enUnaLinea className="justify-end" /> : fila.precio}
           <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
         </td>
         {conMargen && (
@@ -627,9 +639,12 @@ function TarjetaFila({
         <MiniaturaPrenda color={activo.color} referencia={p.referencia} className={`h-[62px] w-[50px] ${fila.descontinuado ? "opacity-60" : ""}`} {...categoriaDe(p)} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <p className="font-display min-w-0 truncate text-[17px] leading-tight text-tinta">{p.referencia}</p>
+              <InsigniaEmpresa nombre={p.empresa} className="shrink-0" />
+            </div>
             <p className="shrink-0 text-right text-[14px] tabular-nums text-tinta">
-              {fila.precio}
+              {fila.deHoy ? <PrecioConCampana precio={fila.deHoy} className="justify-end" /> : fila.precio}
               <InsigniaPrecios lista={fila.otrosPrecios} className="ml-1.5 align-middle" />
             </p>
           </div>
@@ -805,7 +820,9 @@ function StockDeVariante({ stock, varianteId }: { stock: StockDeModelo; variante
 /* ─────────────────────────── Lo marcado ─────────────────────────── */
 
 /** Sube desde abajo cuando hay algo marcado. En el celular ocupa el ancho y los botones van en columnas iguales (con
- *  su palabra: un ícono solo no le dice nada a quien lo ve por primera vez). */
+ *  su palabra: un ícono solo no le dice nada a quien lo ve por primera vez). Con `px-3` en cada botón la barra medía 397 px en 351 y la
+ *  ✕ de «Quitar la marca» quedaba fuera de la pantalla (auditoría del celular, 2026-10-23, hallazgo 7): el relleno lateral baja a `px-1`
+ *  bajo `sm`, y en un teléfono de menos de ~340 px la barra pasa a una segunda fila (`flex-wrap`) en vez de salirse. */
 function BarraMarcadas({
   seleccion,
   puedeEditar,
@@ -831,18 +848,20 @@ function BarraMarcadas({
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
   const hrefRotulos = n > 0 ? urlRotulos(seleccion.map((p) => p.productoId), { productos: pantalla }) : null;
   const forma =
-    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
+    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:px-3 sm:text-[13px]";
   const boton = `${forma} hover:bg-crema/10`;
   return (
     <div
       role="toolbar"
       aria-label="Acciones sobre las prendas marcadas"
       aria-hidden={n === 0}
-      className={`fixed inset-x-3 bottom-3 z-40 flex items-center gap-1 rounded-2xl bg-tinta p-1.5 text-crema shadow-[0_24px_48px_-16px_color-mix(in_srgb,var(--color-sombra)_50%,transparent)] transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
+      // La isla oscura de lo que llevas elegido (ADR-0479, actividad 12, `barra-abajo`).
+      data-tono="tinta"
+      className={`barra-abajo z-40 flex-nowrap gap-1 p-1.5 max-sm:flex-wrap transition-[opacity,transform] duration-300 ease-cayla sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2 sm:pl-4 ${
         n > 0 ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
       }`}
     >
-      <span className="flex shrink-0 items-baseline gap-1.5 px-2 sm:mr-2 sm:px-0">
+      <span className="flex shrink-0 items-baseline gap-1.5 px-1 sm:mr-2 sm:px-0">
         <span className="font-display text-xl tabular-nums">{n}</span>
         <span className="hidden text-[12px] text-crema/70 sm:inline">{n === 1 ? "marcada" : "marcadas"}</span>
       </span>
@@ -888,7 +907,7 @@ function BarraMarcadas({
         onClick={onLimpiar}
         aria-label="Quitar la marca"
         tabIndex={n > 0 ? 0 : -1}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 dark:text-crema/75 transition-colors hover:bg-crema/10 hover:text-crema"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-crema/60 transition-colors hover:bg-crema/10 hover:text-crema max-sm:ml-auto dark:text-crema/75"
       >
         <X aria-hidden className="h-4 w-4" />
       </button>

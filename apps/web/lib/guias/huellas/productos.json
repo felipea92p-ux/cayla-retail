@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 78,
+  "total": 92,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -13,15 +13,19 @@
       "Link «Crear desde Recibir»",
       "Link «Completar»"
     ],
+    "components/AvisoCostoAtipico.tsx": [
+      "Boton «{textoCorregir}»",
+      "Boton «{motivoNoListo ?? undefined}»"
+    ],
     "components/CambiarEstadoProductosHoja.tsx": [
-      "ComboResponsable «{textos.nota}»",
+      "ComboResponsable «{responsable}»",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/EliminarProductoModal.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "BotonEditar «)»",
+      "BotonEditar «{`/productos/${producto.productoId}»",
       "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -33,7 +37,7 @@
       "BotonLimpiar «Limpiar todo»",
       "DesplegablePildora «Ordenar por»",
       "BotonLimpiar «Limpiar filtros»",
-      "button «Copiar enlace de esta lista»",
+      "BotonCopiar «el enlace de esta lista»",
       "DesplegablePildora «Categoría»",
       "DesplegablePildora «Talla»",
       "DesplegablePildora «Color»",
@@ -42,6 +46,7 @@
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Estado»",
       "DesplegablePildora «Temporada»",
+      "DesplegablePildora «Tienda»",
       "DesplegablePildora «Por completar»",
       "BotonFiltros «→alTocarFiltros»",
       "BotonFiltros «→alTocarFiltros» #2",
@@ -66,10 +71,10 @@
       "BotonEnlace «Limpiar filtros»",
       "Casilla «{etiqueta}»",
       "button «productos.tabla-abrir»",
-      "LapizEditar «)»",
+      "LapizEditar «{referencia}»",
       "Link «{`Ver ${referencia}»",
       "Link «{`Historial de ${referencia}»",
-      "BotonEditar «)»",
+      "BotonEditar «{acciones.editar}»",
       "Link «Ver en Existencias»",
       "Link «Historial»",
       "button «Eliminar»",
@@ -85,10 +90,25 @@
       "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
+    "components/historial-prenda/CorregirCostoModal.tsx": [
+      "CampoMonto «{guia.etiqueta(\"costo\", \"Costo correcto de lo que llegó\")}»",
+      "CampoTexto «{guia.etiqueta(\"motivo\", \"¿Qué estaba mal?\")}»",
+      "ComboResponsable «{responsable}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/historial-prenda/CostoPrenda.tsx": [
+      "button «Por qué es un estimado»",
+      "button «{cuerpo}»",
+      "button «{`Compra ${numero}»",
+      "button «Cómo se calcula»",
+      "BotonPuntos «{`la compra ${numero}»"
+    ],
     "components/historial-prenda/HistorialPrenda.tsx": [
       "button «historial-prenda.volver»",
       "button «Todo»",
       "button «{f.nombre}»",
+      "button «historial-prenda.costo»",
       "button «{`${g.persona?.nombre ?? \"Sin firma\"}»",
       "button «Reintentar»",
       "Link «Movimientos»"

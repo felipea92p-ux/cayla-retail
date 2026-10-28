@@ -1,0 +1,5 @@
+# Las fuentes de dafont no se suben: el repo es público y casi ninguna licencia permite redistribuirlas.
+# Se bajan de nuevo desde las páginas de dafont que lista index.html.
+fuentes/
+# El PDF para compartir (8 MB de imágenes) se regenera abriendo index.html?hojas; no hace falta en git.
+letras-dafont-cayla.pdf

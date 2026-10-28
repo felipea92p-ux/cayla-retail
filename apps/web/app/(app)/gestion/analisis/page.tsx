@@ -29,7 +29,7 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     existencias: veModulo(persona, "existencias"),
     traslados: veModulo(persona, "traslados"),
     pedir: veModulo(persona, "traslados") || veModulo(persona, "analisis"),
-    compras: veModulo(persona, "facturas_compra") && puede(persona, "verDineroCompras"),
+    compras: veModulo(persona, "ordenes_compra"),
     produccion: veModulo(persona, "produccion"),
     etiquetas: true,
     movimientos: veModulo(persona, "movimientos"),
@@ -40,6 +40,6 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     planCompra: veModulo(persona, "plan_compra") && puede(persona, "verDineroCompras"),
   };
 
-  const datos = await getDatosAnalisis(ubicacionActiva);
+  const datos = await getDatosAnalisis(ubicacionActiva, { conFrescura: acceso.frescura });
   return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} busquedaInicial={leerBusqueda(params.q)} queFaltaInicial={leerQueFalta(params[PARAM_QUE_FALTA])} />;
 }

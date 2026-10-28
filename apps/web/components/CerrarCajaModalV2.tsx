@@ -28,7 +28,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 
 function money(n: number) {
-  return (n < 0 ? "-S/ " : "S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? "-S/\u00a0" : "S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type Esperado = {
@@ -410,7 +410,7 @@ export function CerrarCajaModalV2({
                       const cantidad = parseInt(billetes[d] ?? "", 10) || 0;
                       return (
                         <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-xs text-tinta/65">
-                          <b className="font-semibold text-tinta">{d >= 1 ? `S/ ${d}` : `${Math.round(d * 100)} cts`}</b>
+                          <b className="font-semibold text-tinta">{d >= 1 ? `S/\u00a0${d}` : `${Math.round(d * 100)} cts`}</b>
                           <input
                             inputMode="numeric"
                             placeholder="0"
@@ -465,7 +465,7 @@ export function CerrarCajaModalV2({
             <span className="font-display text-2xl tabular-nums">{money(contado ?? 0)}</span>
           </div>
           {fondoPedido && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
+            <div /* unificar-fijo: el fondo que pide la campaña, un dato del cierre junto a «Contaste» y «Queda en el cajón», no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-pizarra/30 bg-pizarra/10 px-3.5 py-2.5">
               <span className="text-sm font-semibold text-tinta">Deja {money(fondoPedido.monto)} para el próximo turno</span>
               <span className="text-xs text-pizarra">{fondoPedido.motivo}</span>
             </div>
@@ -523,7 +523,7 @@ export function CerrarCajaModalV2({
               )}
             </div>
           )}
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
+          <div /* unificar-fijo: la cifra de lo que queda en el cajón, no un aviso */ className="flex items-center justify-between gap-3 rounded-xl border border-ambar/35 bg-ambar/10 px-3.5 py-2.5">
             <span className="label-cayla text-[10px] leading-snug text-ambar-profundo">
               Queda en el cajón
               <br />

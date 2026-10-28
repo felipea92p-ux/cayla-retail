@@ -59,7 +59,7 @@ describe("estadoPrendaDevolucion", () => {
     expect(estadoPrendaDevolucion(base, ahora)).toMatchObject({ clave: "dentro_del_plazo", devolvible: true, tono: "verde" });
   });
 
-  it("FUERA DE PLAZO NO BLOQUEA: se puede registrar (el líder decide), pero se ve en ROJO", () => {
+  it("FUERA DE PLAZO NO BLOQUEA: se puede registrar (se decide al revisarla), pero se ve en ROJO", () => {
     expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 8, 1).toISOString() }, ahora)).toMatchObject({
       clave: "fuera_de_plazo",
       devolvible: true,
@@ -220,7 +220,7 @@ describe("impactoDevolucion", () => {
 
   it("registrar no mueve la caja, y dice cuánto pagó la clienta", () => {
     expect(impactoDevolucion(base).caja.titulo).toBe("Al registrarla, la caja no se mueve");
-    expect(impactoDevolucion(base).caja.detalle).toContain("S/ 250.00");
+    expect(impactoDevolucion(base).caja.detalle).toContain("S/\u00a0250.00");
   });
 
   it("solo con un comprobante aceptado por SUNAT anuncia la nota de crédito, total o parcial", () => {
@@ -245,7 +245,7 @@ describe("revisarAprobacion", () => {
   });
 
   it("reembolsar más de lo que pagó avisa pero no frena; un monto negativo sí frena", () => {
-    expect(revisarAprobacion({ ...base, monto: 100 })).toEqual({ bloqueo: null, aviso: "Es más de lo que pagó el cliente (S/ 79.90)." });
+    expect(revisarAprobacion({ ...base, monto: 100 })).toEqual({ bloqueo: null, aviso: "Es más de lo que pagó el cliente (S/\u00a079.90)." });
     expect(revisarAprobacion({ ...base, monto: -5 }).bloqueo).toBe("El monto del reembolso no puede ser negativo.");
   });
 });
@@ -304,7 +304,7 @@ describe("el medio del reembolso: libre, con aviso (Felipe 2026-10-12)", () => {
   it("devolver con un medio con que no se pagó avisa, pero no frena", () => {
     const r = revisarAprobacion({ ...base, metodo: "efectivo", pagos: [{ metodo: "tarjeta", monto: 79.9 }] });
     expect(r.bloqueo).toBeNull();
-    expect(r.aviso).toBe("Esta venta se pagó con Tarjeta (S/ 79.90). Vas a devolver en Efectivo: confírmalo con el cliente.");
+    expect(r.aviso).toBe("Esta venta se pagó con Tarjeta (S/\u00a079.90). Vas a devolver en Efectivo: confírmalo con el cliente.");
   });
 
   it("con el mismo medio, o sin reembolso, no hay nada que avisar", () => {

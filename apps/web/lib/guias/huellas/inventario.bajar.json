@@ -2,10 +2,10 @@
   "guia": "inventario.bajar",
   "ruta": "/inventario/bajar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 33,
   "controles": {
     "app/(app)/inventario/bajar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/inventario»"
     ],
     "components/BajarAlPisoForm.tsx": [
       "button «Buscar por nombre»",
@@ -17,7 +17,7 @@
       "button «→empezarDeNuevo»",
       "input «Escanea o escribe el nombre»",
       "button «bajar.camara»",
-      "button «{nombreDePrenda(p)}»",
+      "button «→() => elegirPorNombre(p)»",
       "button «Comprobar» #2",
       "button «{preguntaDelRack(ofertaVisible).si}»",
       "button «{preguntaDelRack(ofertaVisible).no}»",
@@ -26,17 +26,14 @@
       "button «Comprobar» #3",
       "button «Empezar otra bajada»",
       "button «Bajar otro fardo»",
-      "button «{`Una menos de ${nombre}»",
-      "input «{`Cantidad de ${nombre}»",
-      "button «{`Una más de ${nombre}»",
       "button «Quitar»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «→confirmar»"
     ],
     "components/BajarEnManoModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nota\", \"¿De dónde salió? (opcional)\")}»",
       "button «{texto}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

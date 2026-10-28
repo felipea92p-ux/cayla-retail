@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoFin, InputFin, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
 import { EditarCuentaModal } from "@/components/finanzas/EditarCuentaModal";
+import { TarifaMaquinaModal } from "@/components/finanzas/TarifaMaquinaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { parsearMonto, solesRedondo } from "@/lib/gastos-reglas";
@@ -19,33 +20,52 @@ import {
   TEXTO_TIPO_CUENTA,
   TIPOS_AUTOMATICOS,
   TIPOS_QUE_SE_AGREGAN,
+  mediosDeMaquina,
   nombreCorto,
+  textoDondeCobra,
   textoRecibe,
+  textoTarifa,
   tiposParaMedio,
   type CuentaDinero,
   type FilaMedio,
+  type MaquinaPos,
   type MedioCobro,
   type TipoCuenta,
 } from "@/lib/cuentas-dinero-reglas";
 import { Boton } from "@/components/ui/campos";
-import { Store } from "lucide-react";
+import { CreditCard, Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { LapizEditar } from "@/components/ui/BotonEditar";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
 // qué cuenta entra cada medio de cobro en cada tienda. Como en Tiendas y caja, CADA CASILLA SE GUARDA SOLA al cambiar,
 // firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve. Cada cuenta se
-// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25).
+// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25). Desde el ADR-0429, también las
+// máquinas de cobro (Izipay, Vendemás): en qué tiendas cobran con tarjeta y QR y en qué cuenta «por depositar» espera esa plata.
+// Se leen, no se editan aquí: el destino por defecto de cada tienda se cambia en «A qué cuenta entra cada cobro».
 
 type Consulta = PromiseLike<{ error: unknown }>;
 
-export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: CuentaDinero[]; medios: FilaMedio[]; hoy: string }) {
+export function ConfiguracionCuentas({
+  cuentas,
+  medios,
+  maquinas,
+  hoy,
+}: {
+  cuentas: CuentaDinero[];
+  medios: FilaMedio[];
+  /** Nulo = la base todavía no conoce las máquinas (falta pegar 20261016173000): la tarjeta no se dibuja. */
+  maquinas: MaquinaPos[] | null;
+  hoy: string;
+}) {
   const router = useRouter();
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
   const [agregar, setAgregar] = useState(false);
   const [editar, setEditar] = useState<CuentaDinero | null>(null);
+  const [tarifaDe, setTarifaDe] = useState<MaquinaPos | null>(null);
 
   const guardar = async (hacer: () => Consulta, que: string, listo: string) => {
     if (!responsable.listo) {
@@ -176,10 +196,69 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
           </div>
         )}
         <PieTabla>
-          <span>El efectivo siempre cae al cajón de la tienda.</span>
+          <span>El efectivo siempre cae al cajón de la tienda. La tarjeta y el QR entran a la cuenta «por depositar» de la máquina que los cobra.</span>
         </PieTabla>
       </Superficie>
 
+      {maquinas && (
+        <Superficie className="anim-sube" guia="config.maquinas">
+          <TituloDeTarjeta titulo="Máquinas de cobro" bajada="Con qué máquina se cobra con tarjeta y QR en cada tienda, y en qué cuenta espera lo cobrado hasta que la máquina lo deposita, sin su comisión." />
+          {maquinas.length === 0 ? (
+            <Vacio tamano="chico" icono={<CreditCard />}>
+              No hay máquinas de cobro.
+            </Vacio>
+          ) : (
+            <div className="fin-tabla-wrap">
+              <table className="fin-tabla">
+                <thead>
+                  <tr>
+                    <th>Máquina</th>
+                    <th>Lo cobrado espera en</th>
+                    <th>Dónde cobra</th>
+                    <th>Tarifa (solo estima y avisa)</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {maquinas.map((m) => (
+                    <tr key={m.id} className={m.archivada ? "fin-suave" : undefined}>
+                      <td data-l="Máquina">
+                        <b>{m.nombre}</b>
+                      </td>
+                      <td data-l="Espera en">{nombreCorto(m.cuentaNombre)}</td>
+                      <td data-l="Dónde cobra">{textoDondeCobra(m)}</td>
+                      <td className="fin-ancha" data-l="Tarifa">
+                        {mediosDeMaquina(m).map((x) => (
+                          <span key={x.medio} className="block">
+                            <b className="font-semibold">{TEXTO_MEDIO_COBRO[x.medio]}:</b> {textoTarifa(x.tarifa)}
+                          </span>
+                        ))}
+                      </td>
+                      <td data-l="Estado">
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <Chip tono={m.archivada ? "apagado" : "verde"} tachado={false}>
+                            {m.archivada ? "archivada" : "activa"}
+                          </Chip>
+                          {!m.archivada && mediosDeMaquina(m).length > 0 && (
+                            <span data-guia="config.maquina-tarifa">
+                              <LapizEditar que={`la tarifa de ${m.nombre}`} disabled={guardando} onClick={() => setTarifaDe(m)} />
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <PieTabla>
+            <span>Donde una tienda tiene dos máquinas para un mismo medio, la hoja de cobro pregunta cuál y marca de entrada la de «A qué cuenta entra cada cobro». La tarifa solo sirve para estimar la comisión y avisar si la máquina se atrasa: la comisión real sale de cada depósito.</span>
+          </PieTabla>
+        </Superficie>
+      )}
+
+      {tarifaDe && <TarifaMaquinaModal maquina={tarifaDe} onCerrar={() => setTarifaDe(null)} />}
       {agregar && <AgregarCuentaModal hoy={hoy} onCerrar={() => setAgregar(false)} />}
       {editar && <EditarCuentaModal cuenta={editar} hoy={hoy} onCerrar={() => setEditar(null)} />}
     </>
@@ -266,14 +345,14 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
   return (
     <Modal variante="hoja" titulo="Agregar cuenta" subtitulo="Un banco, una billetera que no cae a un banco, el POS de tarjeta o la tarjeta de crédito de CAYLA." onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Nombre" htmlFor="cta-nombre">
-        <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" />
+        <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" maxLength={MAX_NOMBRE_CUENTA} />
       </CampoFin>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Tipo" htmlFor="cta-tipo">
           <SelectFin<TipoCuenta> id="cta-tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_QUE_SE_AGREGAN.map((t) => ({ valor: t.tipo, texto: t.texto }))} />
         </CampoFin>
         <CampoFin etiqueta="Número (opcional)" htmlFor="cta-numero">
-          <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" />
+          <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
         </CampoFin>
       </div>
       <div className="fin-dos-campos">

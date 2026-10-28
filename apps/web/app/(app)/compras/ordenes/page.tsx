@@ -19,11 +19,12 @@ import {
   recienDe,
   textoDestino,
   vacioDeLista,
+  vacioEnOtrasSedes,
   type FiltrosLista,
   type ParamsLista,
 } from "@/lib/ordenes-compra-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaMes, hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -38,6 +39,8 @@ import { getResumenMiFondo } from "@/lib/fondos";
 import { mostrarTuFondo } from "@/lib/fondos-reglas";
 import { PaginacionCursor } from "@/components/Paginacion";
 import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
+import { PendientesDeCampana } from "@/components/ordenes-compra/PendientesDeCampana";
+import { getPedidosDeCampana } from "@/lib/pedidos-campana";
 
 // Órdenes de compra (ADR-0362, fase 1): lo que CAYLA le pide a cada proveedor, antes de que llegue la factura. Cada orden lleva un
 // número que no se repite ni se libera (OC-000001), su proveedor, a qué tienda llega —o «por repartir», si llega a Lima y se
@@ -82,12 +85,14 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 
 export default async function OrdenesCompraPage({ searchParams }: { searchParams: Promise<ParamsLista> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [params, destinosLeidos, resumen, porEnviar, fondo] = await Promise.all([
+  const [params, destinosLeidos, resumen, porEnviar, fondo, deCampana] = await Promise.all([
     searchParams,
     getDestinosOrden(),
     getResumenOrdenes(),
     getOrdenesPorEnviar(),
     getResumenMiFondo(),
+    // Los pedidos que el Plan de campaña mandó a Compras (ADR-0530): se confirman aquí. Una ayuda: sin la función, la sección no sale.
+    getPedidosDeCampana(),
   ]);
   const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
   const destinos = destinosLeidos ?? [];
@@ -96,6 +101,11 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
   const filtros = filtrosDeLista(params, { sedeActual: persona.ubicacionId, destinos: idsElegibles });
   const { filas: leidas, falla } = await listarOrdenesCompra(filtros, porEnviar);
   const { filas, cursorSiguiente } = paginaDeOrdenes(leidas);
+  // Lo buscado no está en la sede elegida: se mira si está en otra, para no decir «no existe» de una orden que sí existe (/formidable).
+  const enOtrasSedes =
+    filas.length === 0 && !falla && filtros.q && filtros.destino !== TODAS && !filtros.porEnviar
+      ? vacioEnOtrasSedes(filtros, (await listarOrdenesCompra({ ...filtros, destino: TODAS, antesDe: null })).filas)
+      : null;
 
   const nuevaOrden = (
     <BotonEnlace href="/compras/ordenes/nueva" peso="primario" data-guia="ordenes.nueva">
@@ -128,6 +138,9 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
           </div>
         }
       />
+
+      {/* Lo que el Plan de campaña mandó a Compras y espera confirmación (ADR-0530): antes que las órdenes, porque es lo que pide una decisión. */}
+      <PendientesDeCampana pedidos={deCampana.pedidos} falla={deCampana.falla} hoy={hoyLima()} />
 
       {falla ? (
         <Aviso tono="error" titulo="No se pudieron leer las órdenes de compra">
@@ -231,7 +244,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
             {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
             <div data-resultados data-guia="ordenes.lista" className="divide-y divide-sand">
               {filas.length === 0 ? (
-                <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} />
+                <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} enOtrasSedes={enOtrasSedes} />
               ) : (
                 <>
                   {/* Los títulos, solo con la tabla en columnas (el `Encabezado` decide por la ventana; esta caja, por la tabla). */}
@@ -356,8 +369,37 @@ function CifraGeneradas({
 }
 
 /** La lista quedó vacía por los filtros o la búsqueda: dice qué se está mirando, deja quitar cada filtro y ofrece el camino. */
-function VacioFiltrado({ filtros, nombreDestino, nuevaOrden }: { filtros: FiltrosLista; nombreDestino: string | null; nuevaOrden: ReactNode }) {
+function VacioFiltrado({
+  filtros,
+  nombreDestino,
+  nuevaOrden,
+  enOtrasSedes,
+}: {
+  filtros: FiltrosLista;
+  nombreDestino: string | null;
+  nuevaOrden: ReactNode;
+  enOtrasSedes: ReturnType<typeof vacioEnOtrasSedes>;
+}) {
   const v = vacioDeLista(filtros, nombreDestino);
+  if (enOtrasSedes) {
+    return (
+      <Vacio
+        icono={<SearchX />}
+        titulo={enOtrasSedes.titulo}
+        filtros={v.filtros}
+        acciones={
+          <>
+            <BotonEnlace href={enOtrasSedes.href} peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
+              Ver en todas las sedes
+            </BotonEnlace>
+            <BotonEnlace href={hrefLista(filtros, { q: "" })}>Borrar la búsqueda</BotonEnlace>
+          </>
+        }
+      >
+        {enOtrasSedes.frase}
+      </Vacio>
+    );
+  }
   return (
     <Vacio
       icono={filtros.q ? <SearchX /> : <FunnelX />}

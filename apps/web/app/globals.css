@@ -6,9 +6,21 @@
 @import "./estilos/comprobantes-registro.css";
 @import "./estilos/notas-credito.css";
 @import "./estilos/avisos.css";
+@import "./estilos/centro-avisos.css";
+@import "./estilos/presupuesto-plan.css";
+@import "./estilos/calendario-plan.css";
+@import "./estilos/paso-2-plan.css";
+@import "./estilos/pagos-plan.css";
 @import "./estilos/finanzas.css";
+@import "./estilos/finanzas-dinero.css";
+@import "./estilos/finanzas-recorrido.css";
+@import "./estilos/telar.css";
 @import "./estilos/alta-guia.css";
+@import "./estilos/campana-efectos.css";
+@import "./estilos/etiqueta-prendas.css";
+@import "./estilos/campana-hoja.css";
 @import "./estilos/guias.css";
+@import "./estilos/roles.css";
 @import "./estilos/alta-parecidas.css";
 @import "./estilos/lista-compra.css";
 @import "./estilos/puntos-avance.css";
@@ -27,6 +39,10 @@
 @import "./estilos/caja-cierre.css";
 @import "./estilos/caja-comparativa.css";
 @import "./estilos/ficha-taller.css";
+@import "./estilos/ajuste-modelo.css";
+@import "./estilos/orden-pagina.css";
+@import "./estilos/ordenes-lista.css";
+@import "./estilos/compra-celular.css";
 @import "./estilos/vista-rapida.css";
 @import "./estilos/historial-prenda.css";
 @import "./estilos/vender-grilla.css";
@@ -39,6 +55,9 @@
 @import "./estilos/enlaces-paginas-caras.css";
 @import "./estilos/titulos.css";
 @import "./estilos/traslados-pases.css";
+@import "./estilos/sellos.css";
+/* Las ofertas de una campaña, «Tres preguntas» (Felipe 2026-10-23): la hoja de Configurar de Insignias ▸ Campañas. */
+@import "./estilos/ofertas.css";
 @import "./estilos/traslados-guia.css";
 /* La orden de compra en papel (ADR-0362, actividad 6): A4 para imprimir o guardar en PDF. */
 @import "./estilos/orden-compra-papel.css";
@@ -55,11 +74,24 @@
 @import "./estilos/analisis-ficha.css";
 @import "./estilos/vacio-aviso-buscador.css";
 @import "./estilos/barra-apilada.css";
+@import "./estilos/avance-anillo-copiar.css";
+@import "./estilos/graficos-tiempo.css";
+@import "./estilos/globito-vermas.css";
 @import "./estilos/liquidacion.css";
+/* Aventurero, el gato del meme en «Sin acceso» y en las barreras de error (2026-10-15). También la importa global-error.tsx. */
+@import "./estilos/aventurero.css";
 /* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
 @import "./estilos/plan-piso.css";
 /* Historial de cierres de Caja: cada cierre como un ticket con su sello (maqueta E, Felipe 2026-10-12). */
 @import "./estilos/historial-tickets.css";
+/* Tienda web (ADR-0430): la ventana del navegador, el mosaico de prendas, el camino del pedido y su movimiento. */
+@import "./estilos/tienda-web.css";
+/* Tienda web ▸ Conf. Tienda: las puertas, el teléfono y la fachada (ADR-0518, maqueta 2026-10-26). */
+@import "./estilos/tienda-web-conf.css";
+/* La barra de abajo: la Isla (ADR-0479, actividad 12; /unificar familia `barra-movil`). */
+@import "./estilos/barra-abajo.css";
+/* Tienda web ▸ Tráfico (ADR-0495): el punto de «ahora mirando» y, después, la vitrina. */
+@import "./estilos/trafico.css";
 /* El modo oscuro (ADR-0336): redefine ESTOS MISMOS tokens bajo `[data-tema="oscuro"]`. */
 @import "./estilos/tema.css";
 
@@ -145,6 +177,11 @@
      Encontrado el 2026-09-09 midiendo el lateral; ADR-0012 no lo había visto
      porque sus 9 usos viven en pantallas que necesitan sesión. Ver ADR-0017. */
   --color-taupe-profundo: #805c4c;
+  /* El borde de lo que se toca o se escribe (campo, combo, área de texto, botón secundario, casilla, interruptor apagado). 2026-10-26, P2 de la
+     familia CAYLA (Felipe eligió la opción C mirando la lámina): `sand` da 1.2:1 y no identifica un control (WCAG 1.4.11 pide 3:1); este tono —una
+     mezcla de taupe y papel, el mínimo que pasa con margen— da 3.6:1 sobre crema, 3.8:1 sobre papel y 3.1:1 sobre hueso. `sand` sigue siendo la línea
+     DECORATIVA (tarjeta, tabla, píldora con texto). Mismo valor en CAYLA Dynamic (`docs/familia/contrato.json`, ADR-0516). */
+  --color-borde-control: #96786a;
 
   --color-ambar-profundo: #734f15;
 
@@ -175,6 +212,15 @@
   /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
      de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0230). */
   --color-metodo-anticipo: var(--color-taupe);
+
+  /* Los hilos de sede del telar de Finanzas (Felipe 2026-10-23, docs/maquetas/finanzas-telar-2026-10/): color de DATO, como los
+     métodos de pago. Cada sede se lee con el mismo color en la barra, el orillo y cada gráfico de Finanzas; Empresa va rayada
+     (es de todos). Son relleno y filo, no texto: el nombre de la sede va siempre escrito al lado. */
+  --color-sede-tru: #2f6aa3;
+  --color-sede-aqp: #c26a2e;
+  --color-sede-lim: #1d8a72;
+  --color-sede-tal: #8a4fa8;
+  --color-sede-emp: #9a8b7b;
   /* El redondeo del efectivo (ADR-0311) tampoco es un medio ni dinero que entró: es lo que no se cobró por llegar a la moneda
      de S/ 0.10. En «Cómo se pagó» (Historial) va en taupe, como el anticipo, para que no salga sin punto. */
   --color-metodo-redondeo: var(--color-taupe);
@@ -211,7 +257,8 @@
      `ml-56`) más un cuarto desalineado en el panel "+ Nuevo" (`left-60`),
      y por eso el panel abría 16px corrido del borde del lateral.
      Subió de 14rem a 17rem el 2026-09-09 (ADR-0014). */
-  --spacing-lateral: 17rem;
+  /* Con el iPhone de lado, la muesca queda a la izquierda: el lateral la incluye en su ancho y aparta su contenido (ADR-0479). */
+  --spacing-lateral: calc(17rem + env(safe-area-inset-left, 0px));
 
   /* Movimiento estándar del sistema — todo `transition-colors`/`transition-transform`
      sin `ease-*` explícito (la inmensa mayoría de los ~260 hover del sistema) usa esto.
@@ -247,7 +294,7 @@
    12 (aire) + 16 (relleno de fila) + 20 (ícono) + 16 + 12: el ícono queda EXACTO donde estaba, solo
    se apagan las etiquetas. `AppShell` pone `data-lateral="plegado"` en su contenedor. */
 [data-lateral="plegado"] {
-  --spacing-lateral: 4.75rem;
+  --spacing-lateral: calc(4.75rem + env(safe-area-inset-left, 0px));
 }
 
 /* ==================================================================
@@ -450,34 +497,42 @@ body {
     background: var(--color-tinta);
     color: var(--color-crema);
   }
-  .btn-primario:hover:not(:disabled) {
-    background: var(--color-rojo-profundo);
+  @media (hover: hover) {
+    .btn-primario:hover:not(:disabled) {
+      background: var(--color-rojo-profundo);
+    }
   }
   .btn-secundario {
     background: transparent;
     color: var(--color-tinta);
-    border-color: var(--color-sand);
+    border-color: var(--color-borde-control); /* P2 de la familia: lo que se toca lleva el borde de control, no la línea decorativa */
   }
-  .btn-secundario:hover:not(:disabled) {
-    border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent);
-    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  @media (hover: hover) {
+    .btn-secundario:hover:not(:disabled) {
+      border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel));
+      background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+    }
   }
   .btn-peligro {
     background: transparent;
     color: var(--color-rojo);
     border-color: color-mix(in oklab, var(--color-rojo) 30%, transparent);
   }
-  .btn-peligro:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-rojo) 10%, transparent);
+  @media (hover: hover) {
+    .btn-peligro:hover:not(:disabled) {
+      background: color-mix(in oklab, var(--color-rojo) 10%, transparent);
+    }
   }
   .btn-sutil {
     background: transparent;
     color: var(--color-taupe);
     border-color: var(--color-sand);
   }
-  .btn-sutil:hover:not(:disabled) {
-    color: var(--color-tinta);
-    background: color-mix(in oklab, var(--color-sand) 30%, transparent);
+  @media (hover: hover) {
+    .btn-sutil:hover:not(:disabled) {
+      color: var(--color-tinta);
+      background: color-mix(in oklab, var(--color-sand) 30%, transparent);
+    }
   }
   /* El enlace dentro de una frase (ADR-0358, ronda 8: Felipe lo eligió tocándolo el 2026-10-13): en reposo, la palabra en tinta con
      un subrayado tenue; al pasar el mouse, un HILO ROJO de 1,5 px corre de izquierda a derecha sobre el subrayado y el texto pasa a
@@ -511,9 +566,11 @@ body {
     padding-bottom: 0.25em;
     margin-bottom: -0.25em;
   }
-  .btn-enlace:hover:not(:disabled):not([aria-disabled="true"]) {
-    background-size: 100% 1.5px, 100% 1px;
-    color: var(--color-rojo-profundo);
+  @media (hover: hover) {
+    .btn-enlace:hover:not(:disabled):not([aria-disabled="true"]) {
+      background-size: 100% 1.5px, 100% 1px;
+      color: var(--color-rojo-profundo);
+    }
   }
   .btn-enlace:active:not(:disabled):not([aria-disabled="true"]) {
     color: var(--color-rojo);
@@ -533,9 +590,11 @@ body {
     white-space: nowrap;
     transition: background-color 150ms, border-color 150ms, color 150ms;
   }
-  .pildora-cayla:hover {
-    color: var(--color-tinta);
-    background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+  @media (hover: hover) {
+    .pildora-cayla:hover {
+      color: var(--color-tinta);
+      background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+    }
   }
   .pildora-cayla[aria-pressed="true"],
   .pildora-cayla[aria-current="page"],
@@ -545,10 +604,10 @@ body {
     color: var(--color-crema);
   }
 
-  /* Caja de control hundida (input, select, buscador): hueso, borde sand, radio de control. */
+  /* Caja de control hundida (input, select, buscador): hueso, borde de control (P2 de la familia: 3:1, no el sand decorativo), radio de control. */
   .caja-cayla {
     background: var(--color-hueso);
-    border: 1px solid var(--color-sand);
+    border: 1px solid var(--color-borde-control);
     border-radius: var(--radius-md);
     transition: border-color 150ms;
   }
@@ -588,8 +647,10 @@ body {
   .fila-cayla:nth-child(even of .fila-cayla) {
     background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
   }
-  .fila-cayla:hover {
-    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  @media (hover: hover) {
+    .fila-cayla:hover {
+      background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+    }
   }
   /* Foco de una fila clicable (ADR-0351): el anillo va HACIA ADENTRO (offset negativo). Hacia afuera la tarjeta de la tabla
      (`overflow-hidden`) lo recortaba en los costados y la fila de arriba y la de abajo lo tapaban. */
@@ -630,8 +691,13 @@ body {
     background-size: 2px 0;
     transition: background-color 180ms var(--ease-cayla), background-size 220ms var(--ease-cayla);
   }
-  .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):is(:hover, :focus-visible, [aria-current="true"], [aria-current="page"]) {
+  .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):is(:focus-visible, [aria-current="true"], [aria-current="page"]) {
     background-size: 2px calc(100% - 1.25rem);
+  }
+  @media (hover: hover) {
+    .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):hover {
+      background-size: 2px calc(100% - 1.25rem);
+    }
   }
   .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):is([aria-current="true"], [aria-current="page"]) {
     background-color: color-mix(in oklab, var(--color-hueso) 75%, transparent);
@@ -653,10 +719,17 @@ body {
     pointer-events: none;
     transition: opacity 200ms var(--ease-cayla), translate 200ms var(--ease-cayla), color 200ms;
   }
-  .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):not(:has(.lucide-chevron-right)):is(:hover, :focus-visible, [aria-current="true"], [aria-current="page"])::after {
+  .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):not(:has(.lucide-chevron-right)):is(:focus-visible, [aria-current="true"], [aria-current="page"])::after {
     opacity: 1;
     translate: 0 0;
     color: var(--color-tinta);
+  }
+  @media (hover: hover) {
+    .fila-cayla:is(a, button, [role="button"], [role="link"], .cursor-pointer):not(.cmp-fila, .inline-block):not(:has(.lucide-chevron-right)):hover::after {
+      opacity: 1;
+      translate: 0 0;
+      color: var(--color-tinta);
+    }
   }
   /* 3. La fila recién guardada respira en verde una vez (`data-recien`), como la orden de compra recién guardada. En un <table> (la
      planilla de Contar, ronda 9) respiran sus celdas: el <tr> conserva su entrada, su rayado y su tinte (verde si la talla cuadra). */
@@ -719,10 +792,11 @@ body {
     align-items: center;
     gap: 1.3mm;
   }
-  .etq-cab svg {
+  /* El logo oficial (colibrí + palabra, ADR-0446) en vez del colibrí viejo y «C A Y L A» escrito: 4,6 mm de alto, ~16 mm de ancho. */
+  .etq-cab .etq-logo {
     flex: none;
-    width: 6.2mm;
-    height: auto;
+    width: auto;
+    height: 4.6mm;
   }
   .etq-cab b {
     font-size: 3mm;
@@ -976,6 +1050,14 @@ body {
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+  /* El link de la tienda online («tienda.cayla.pe», 15 caracteres, Felipe 2026-10-20): en mayúsculas y con este espaciado no cabe
+     junto al QR y se cortaba en «…CAYLA.P». En minúsculas y sin espaciado entra entero en la columna de datos. */
+  .etq-datos small.etq-web {
+    font-size: 1.8mm;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+  }
   /* El QR: 19 mm con su zona muda (el lado lo pone `EtiquetaPrecio.tsx`; lib/qr.ts), por encima de los 18 mm
      verificados con la pistola Zebra. Con 22 mm el código de al lado se cortaba («CMS-0011-NAR…») desde que la
      etiqueta pasó a 40,1 mm de ancho. El margen negativo mete SOLO esa zona blanca en el acolchado: abajo está el
@@ -1087,11 +1169,9 @@ body {
     width: 72mm;
     box-sizing: border-box;
     /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba lo justo
-       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo 18 mm (antes 6,
-       Felipe 2026-10-09): la cuchilla de la térmica está más arriba que el cabezal, y con 6 mm el
-       corte caía sobre el pie y el QR salía partido. Este blanco es lo que el papel avanza hasta
-       la cuchilla después de la última línea. */
-    padding: 2mm 4mm 18mm;
+       (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. Abajo el blanco lo pone
+       `::after` (ver abajo), no el padding. */
+    padding: 2mm 4mm 0;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -1102,6 +1182,19 @@ body {
     font-size: 8pt;
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
+  }
+  /* El blanco del pie para arrancar el ticket sin apretar «avanzar papel» (Felipe 2026-10-26). La cuchilla y la barra de
+     corte están más arriba que el cabezal: después de la última línea el papel tiene que avanzar hasta ahí (6 mm partían el
+     QR; 18 mm de padding, 2026-10-09, tampoco alcanzaban). Un blanco que termina en blanco no sirve: el driver de la térmica
+     recorta las líneas vacías del final y el papel se detiene sobre el pie. Por eso el blanco termina en un punto impreso,
+     que obliga a avanzar los 24 mm completos y queda al filo del corte. */
+  #comprobante-print::after {
+    content: "·";
+    display: block;
+    padding-top: 24mm;
+    text-align: center;
+    font-size: 8pt;
+    line-height: 1;
   }
   #comprobante-print p,
   #comprobante-print dl,
@@ -1118,20 +1211,12 @@ body {
   #comprobante-print .rt-negrita {
     font-weight: 700;
   }
-  /* Cabecera: logo en negro (el PNG es terracota; una térmica solo tiene un tono). */
+  /* Cabecera: el logo oficial en vector y negro (una térmica solo tiene un tono), centrado: ~31 mm de ancho. */
   #comprobante-print .rt-logo {
     display: block;
-    width: 13mm;
-    height: auto;
-    margin: 0 auto 1mm;
-    filter: brightness(0);
-  }
-  #comprobante-print .rt-marca {
-    font-size: 13pt;
-    font-weight: 700;
-    letter-spacing: 0.32em;
-    margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
-    margin-bottom: 0.5mm;
+    width: auto;
+    height: 9mm;
+    margin: 0 auto 1.5mm;
   }
   #comprobante-print .rt-tienda {
     margin-top: 1mm;
@@ -1467,9 +1552,11 @@ html[data-buscando] [data-resultados] {
       box-shadow 260ms var(--ease-cayla),
       border-color 260ms var(--ease-cayla);
   }
-  .alza-cayla:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+  @media (hover: hover) {
+    .alza-cayla:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
   }
 }
 
@@ -1516,9 +1603,6 @@ html[data-buscando] [data-resultados] {
 @keyframes cayla-trazo {
   from { stroke-dashoffset: 24; }
 }
-@keyframes cayla-anillo {
-  from { stroke-dasharray: 0 100; }
-}
 @keyframes cayla-pop {
   40% { transform: scale(1.07); }
 }
@@ -1543,7 +1627,6 @@ html[data-buscando] [data-resultados] {
   .anim-pop { animation: cayla-pop 500ms var(--ease-cayla); }
   /* El tilde de un check que se traza (solo el último trazo del ícono: el círculo queda). */
   .check-trazo path:last-child { stroke-dasharray: 24; animation: cayla-trazo 550ms var(--ease-cayla) backwards; animation-delay: var(--d, 700ms); }
-  .anillo-progreso .rg { transition: stroke-dasharray 900ms var(--ease-cayla); animation: cayla-anillo 1.3s var(--ease-cayla) 300ms backwards; }
   /* El MOVIMIENTO ÚNICO de un botón (ADR-0358, ronda 3: Felipe eligió la D tocándola, 2026-10-07). Lo usan `<Boton>`,
      `<BotonEnlace>`, `<BotonAncla>`, la barra de vidrio de Comprobantes (`BotonCompacto`) y los botones de los pasos de
      Cambios y Devoluciones (`FlujoGuiado`); antes eran tres movimientos distintos.
@@ -1571,20 +1654,30 @@ html[data-buscando] [data-resultados] {
     transform: translate3d(-120%, 0, 0) skewX(-12deg);
     opacity: 0;
   }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+  @media (hover: hover) {
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; box-shadow: var(--shadow-md); }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled):not([aria-disabled="true"])::after { animation: cayla-brillo 650ms var(--ease-cayla); }
+  }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active:not(:disabled):not([aria-disabled="true"]) { translate: 0 0; scale: 0.97; box-shadow: var(--shadow-sm); }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-plus, .mov-mas) { transition: rotate 300ms var(--ease-cayla); }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
+  @media (hover: hover) {
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-plus, .mov-mas) { rotate: 90deg; }
+  }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  @media (hover: hover) {
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  }
   /* Descargar (ADR-0358, ronda 10): la flecha de descarga BAJA 2 px, como la que lleva a otro lado avanza. */
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-download { transition: translate 300ms var(--ease-cayla); }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-download { translate: 0 2px; }
+  @media (hover: hover) {
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-download { translate: 0 2px; }
+  }
   /* Imprimir (ADR-0358, ronda 11): la hoja SALE de la impresora (baja 2 px), como la flecha de descargar baja. */
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-printer rect { transition: translate 300ms var(--ease-cayla); }
-  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-printer rect { translate: 0 2px; }
+  @media (hover: hover) {
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-printer rect { translate: 0 2px; }
+  }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
     content: ""; position: absolute; pointer-events: none; border-radius: 999px;
     left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
@@ -1791,12 +1884,13 @@ html[data-buscando] [data-resultados] {
      scroll más cercano. */
   .pie-hoja-fijo {
     position: sticky;
-    bottom: -1.5rem;
+    /* `--borde-abajo`: la barrita del iPhone bajo la hoja del celular (ADR-0479, actividad 9; 0 en todo lo demás). */
+    bottom: calc(-1.5rem - var(--borde-abajo, 0px));
     z-index: 1;
     margin-inline: -1.5rem;
-    margin-bottom: -1.5rem;
+    margin-bottom: calc(-1.5rem - var(--borde-abajo, 0px));
     padding-inline: 1.5rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: calc(1.5rem + var(--borde-abajo, 0px));
     background: var(--fondo-hoja, var(--color-papel));
   }
   .pie-hoja-fijo::before {
@@ -1807,6 +1901,89 @@ html[data-buscando] [data-resultados] {
     height: 1rem;
     background: linear-gradient(to top, var(--fondo-hoja, var(--color-papel)), transparent);
     pointer-events: none;
+  }
+}
+
+/* ---- EL MOUSE ENCIMA, SOLO CON MOUSE (ADR-0479, actividad 7) ----
+   En un teléfono no hay «encima»: el navegador da por puesto el `:hover` en lo que tocaste y lo deja así hasta que tocas otra
+   cosa. Un botón quedaba levantado con su sombra, una fila teñida, los demás tramos de un gráfico apagados. Por eso todo
+   `:hover` de nuestro CSS vive dentro de `@media (hover: hover)`, igual que el `hover:` de Tailwind v4, que ya lo hace solo.
+   El foco del teclado (`:focus-visible`) y lo marcado (`aria-current`) quedan afuera: valen con el dedo también. Un `:hover`
+   que SÍ debe responder al toque (un globito que es la lectura de un dato) lleva antes `/* hover-tactil: <por qué> *\/`.
+   Lo vigila lib/hover-con-mouse.test.ts. ---- */
+
+/* ---- HOJA DEL CELULAR (ADR-0479, Felipe eligió «B · Hoja viva con profundidad» el 2026-10-22) ----
+   Bajo 640 px la hoja de `<Modal>` es una hoja de verdad: LLEGA desde el borde de abajo (no aparece subiendo 24 px con un
+   fundido, que en escritorio está bien y en el teléfono no se lee como algo que se puede devolver), tiene asa y se baja
+   con el dedo (`useHojaArrastre`, reglas en lib/hoja-gesto.ts). Entra en 460 ms con --ease-cayla, sin rebote, y su
+   contenido sigue entrando en cascada; sale entera en 300 ms con --ease-salida (MS_SALIDA_CELULAR en Modal.tsx).
+   Solo la hoja de `<Modal>` (`.cascada-modal`): el loader (`Espera`) usa las mismas clases y sigue igual, y la cámara es
+   pantalla completa. Con «reducir movimiento» rige la regla de siempre: todo aparece de una. ---- */
+@keyframes cayla-hoja-movil-entra {
+  from { transform: translate3d(0, 100%, 0); }
+}
+@keyframes cayla-hoja-movil-sale {
+  from { transform: none; }
+  to { transform: translate3d(0, 100%, 0); }
+}
+@keyframes cayla-entra-de-lado {
+  from { opacity: 0.2; transform: translate3d(var(--desde-x, 0px), 0, 0); }
+}
+@layer components {
+  .asa-hoja { display: none; }
+  @media (max-width: 639.98px) {
+    /* Arriba de la hoja, en el relleno: corre con el contenido (si la hoja está desplazada, bajar el dedo desplaza). No
+       recibe toques: el dedo lo escucha la hoja entera, y así la franja no le quita la punta a la ✕ ni a la cabecera del ticket. */
+    .asa-hoja {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 1.5rem;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+    .asa-hoja::before {
+      content: "";
+      width: 2.25rem;
+      height: 5px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-tinta) 20%, transparent);
+      transition: width 260ms var(--ease-cayla), background-color 200ms var(--ease-cayla);
+    }
+    /* Mientras el dedo la lleva, el asa se estira un poco y se oscurece: la hoja «se agarró». */
+    [data-arrastrando] > .asa-hoja::before {
+      width: 2.75rem;
+      background: color-mix(in srgb, var(--color-tinta) 38%, transparent);
+    }
+  }
+  @media (max-width: 639.98px) and (prefers-reduced-motion: no-preference) {
+    .cascada-modal.anim-modal-entra:not([data-variante="camara"]) {
+      animation: cayla-hoja-movil-entra 460ms var(--ease-cayla) backwards;
+    }
+    .cascada-modal.anim-modal-sale:not([data-variante="camara"]) {
+      animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
+    }
+    /* El cajón (`<Cajon>`, actividad 5) también es una hoja alta en el celular: llega y se va como ella. */
+    .cajon-hoja.anim-cajon {
+      animation: cayla-hoja-movil-entra 460ms var(--ease-cayla) backwards;
+    }
+    .cajon-hoja.anim-cajon-salida {
+      animation: cayla-hoja-movil-sale 300ms var(--ease-salida) both;
+    }
+    /* Al pasar de registro deslizando (o con ‹ ›), el nuevo entra desde el lado hacia donde fue el dedo: el siguiente desde la
+       derecha, el anterior desde la izquierda. Reemplaza al «se reacomoda» de escritorio (`anim-asentar`). */
+    .cajon-hoja [data-registro][data-lado] {
+      animation: cayla-entra-de-lado 300ms var(--ease-cayla) both;
+    }
+    .cajon-hoja [data-registro][data-lado="1"] { --desde-x: 40px; }
+    .cajon-hoja [data-registro][data-lado="-1"] { --desde-x: -40px; }
+  }
+  /* Una hoja que quedó fuera de su lugar (a media altura, `data-movida`, la pone useHojaArrastre) sale con su transición: la
+     animación de salida, sobre la misma propiedad, la cancelaría y la hoja (y el velo) saltarían abajo de golpe (medido). Lleva el
+     `:not(...)` de la regla de salida de arriba para pesar más que ella. */
+  .cascada-modal[data-movida].anim-modal-sale:not([data-variante="camara"]),
+  [data-movida].anim-velo-salida {
+    animation: none;
   }
 }
 
@@ -1822,7 +1999,8 @@ html[data-buscando] [data-resultados] {
   [data-teclado] > .cascada-modal {
     max-height: 100%;
     padding-bottom: calc(var(--teclado, 0px) + 1.5rem);
-    scroll-padding-bottom: calc(var(--teclado, 0px) + 1rem);
+    /* `--alto-pie`: el pie fijo (Cancelar / Agregar) también tapa; sin él, el campo enfocado quedaba debajo del pie (2026-10-23). */
+    scroll-padding-bottom: calc(var(--teclado, 0px) + var(--alto-pie, 0px) + 1rem);
   }
   /* Bajo el pie fijo no asoma nada: si el navegador reportó corto lo visible, entre el pie y el teclado quedaría a la vista
      el contenido que pasa por detrás. Este paño del color de la hoja lo tapa (detrás del teclado no se ve). */
@@ -2249,7 +2427,7 @@ html[data-buscando] [data-resultados] {
   .hilo-n--apagado {
     border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent);
   }
-  .hilo-n svg {
+  .hilo-n svg { /* unificar-fijo: el círculo punteado de un campo opcional (guía de foco), no un ícono */
     position: absolute;
     inset: 1px;
     width: calc(100% - 2px);
@@ -2375,7 +2553,9 @@ html[data-buscando] [data-resultados] {
   .anim-cajon-salida { animation: cayla-cajon-sale 240ms var(--ease-salida) both; }
   .anim-destello-fila { animation: cayla-destello-fila 2600ms var(--ease-cayla) backwards; }
   .trazo-linea { stroke-dasharray: 1; stroke-dashoffset: 0; }
-  .group:hover .trazo-al-pasar { animation: cayla-trazo 760ms var(--ease-cayla) both; }
+  @media (hover: hover) {
+    .group:hover .trazo-al-pasar { animation: cayla-trazo 760ms var(--ease-cayla) both; }
+  }
   .anim-trazo { animation: cayla-trazo-entra 900ms var(--ease-cayla) backwards; animation-delay: calc(var(--i, 0) * 38ms + 180ms); }
   .anim-crece-x {
     animation: cayla-crece-x 620ms var(--ease-cayla) backwards;
@@ -2494,30 +2674,15 @@ html[data-buscando] [data-resultados] {
     .anim-velo-salida {
       animation-duration: 1ms;
     }
-    .anim-ritmo-linea,
-    .anim-ritmo-punto,
-    .anim-vivo-destello,
-    .anim-vivo-delta,
-    .anim-vivo-onda,
-    .anim-entra,
-    .anim-cajon,
-    .anim-cajon-salida,
-    .anim-destello-fila,
-    .anim-trazo,
-    .anim-crece-x,
-    .anim-crece-y,
-    .group:hover .trazo-al-pasar,
-    .anim-vivo-fila,
-    .anim-destello-lectura,
-    .anim-cinta,
-    .anim-barra,
-    .anim-sale,
-    .anim-sello path,
-    .anim-onda,
-    .recibir-hilo,
-    .anim-movimiento {
+    .anim-ritmo-linea, .anim-ritmo-punto, .anim-vivo-destello, .anim-vivo-delta, .anim-vivo-onda, .anim-entra, .anim-cajon, .anim-cajon-salida, .anim-destello-fila, .anim-trazo, .anim-crece-x, .anim-crece-y, .anim-vivo-fila, .anim-destello-lectura, .anim-cinta, .anim-barra, .anim-sale, .anim-sello path, .anim-onda, .recibir-hilo, .anim-movimiento {
       animation-duration: 1ms;
       animation-delay: 0ms;
+    }
+    @media (hover: hover) {
+      .group:hover .trazo-al-pasar {
+        animation-duration: 1ms;
+        animation-delay: 0ms;
+      }
     }
     .anim-rueda,
     .anim-caja-check path {
@@ -2525,7 +2690,9 @@ html[data-buscando] [data-resultados] {
       animation-delay: 0ms;
     }
     .anim-caja-ping { animation: none; }
-    .alza-cayla:hover { transform: none; }
+    @media (hover: hover) {
+      .alza-cayla:hover { transform: none; }
+    }
     .hilo-trabajando::after { animation: none; }
     /* El respiro rojo es solo opacidad y se queda; el barrido de luz sí se mueve: fuera. */
     .anim-tope-barrido { display: none; }
@@ -2541,16 +2708,16 @@ html[data-buscando] [data-resultados] {
     .hilo-dibuja,
     .hilo-vertical,
     .anim-pop,
-    .check-trazo path:last-child,
-    .anillo-progreso .rg {
+    .check-trazo path:last-child {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
     :is(.mov-boton, .btn-cayla:not(.btn-enlace))::after,
     :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before { animation: none !important; }
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)), :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
+    @media (hover: hover) {
+      :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover { translate: none !important; scale: none !important; }
+    }
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, svg rect, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
@@ -2586,7 +2753,9 @@ html[data-buscando] [data-resultados] {
     --x: calc(10% + var(--pos) * 20%);
     animation: ola-pos 4.6s infinite;
   }
-  .ola-activa:hover { animation-play-state: paused; }
+  @media (hover: hover) {
+    .ola-activa:hover { animation-play-state: paused; }
+  }
   .ola-activa::before {
     content: "";
     position: absolute;
@@ -2653,9 +2822,10 @@ html[data-buscando] [data-resultados] {
 #boleta-a4-print {
   display: none;
 }
+/* Arriba 22 mm (Felipe 2026-10-26: con 12 mm el logo salía pegado al borde de la hoja); los lados y abajo siguen en 12. */
 @page a4 {
   size: A4;
-  margin: 12mm;
+  margin: 22mm 12mm 12mm;
 }
 @media print {
   body:has(#boleta-a4-print) > *:not(#boleta-a4-print) {
@@ -2844,7 +3014,9 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     height: 5px;
     background: var(--c);
   }
-  .hoja-cobro-medio:hover { border-color: var(--c); transform: translateY(-3px); }
+  @media (hover: hover) {
+    .hoja-cobro-medio:hover { border-color: var(--c); transform: translateY(-3px); }
+  }
   .hoja-cobro-medio:focus-visible { outline: 2px solid var(--color-rojo); outline-offset: 2px; }
   /* El cuadrado es su propio contenedor: el nombre cabe entero aunque la hoja sea angosta (menú lateral abierto). */
   .hoja-cobro-medio { container-type: inline-size; }
@@ -2856,7 +3028,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     .hoja-cobro-nombre-corto { display: inline; }
   }
   .hoja-cobro-icono { display: block; width: 52%; height: 52%; color: var(--cd); transition: color 300ms, width 350ms var(--ease-cayla), height 350ms var(--ease-cayla); }
-  .hoja-cobro-icono svg { stroke-width: 1.25; }
+  .hoja-cobro-icono svg { stroke-width: 1.5; } /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */
   .hoja-cobro-medio.es-elegido { background: var(--cd); border-color: var(--cd); color: var(--color-crema); }
   .hoja-cobro-medio.es-elegido .hoja-cobro-icono { color: var(--color-crema); }
   /* Las letras de adentro de las burbujas, elegido el medio. Yape: la burbuja va RELLENA (crema), así que su «S/» va en
@@ -2938,7 +3110,9 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     font-variant-numeric: tabular-nums;
     transition: background-color 250ms var(--ease-cayla), border-color 250ms, color 250ms, transform 250ms var(--ease-cayla);
   }
-  .hoja-cobro-billete:hover:not(:disabled) { border-color: var(--cd); transform: translateY(-2px); }
+  @media (hover: hover) {
+    .hoja-cobro-billete:hover:not(:disabled) { border-color: var(--cd); transform: translateY(-2px); }
+  }
   .hoja-cobro-billete.es-elegido {
     background: var(--cd);
     border-color: var(--cd);
@@ -2948,6 +3122,24 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   .hoja-cobro-billete.es-otro { background: var(--color-papel); border-style: dashed; box-shadow: none; cursor: text; }
   .hoja-cobro-billete.es-otro:focus-within,
   .hoja-cobro-billete.es-escrito { border-style: solid; border-color: var(--cd); }
+  /* «¿Con qué máquina?» (ADR-0429): las máquinas son baldosas como los billetes, en el color del medio (tarjeta o QR) y con el nombre
+     en versalitas; la elegida se llena, como el billete elegido. Solo aparecen donde la tienda tiene dos para ese medio. */
+  .hoja-cobro-maquinas { display: grid; gap: 0.5rem; margin-bottom: 0.75rem; }
+  /* Cada máquina en una baldosa que le dé al nombre al menos 5,5 rem: dos por fila si caben (el celular, la hoja angosta) y una
+     debajo de la otra en la columna angosta de la hoja ancha. Nunca un nombre recortado. */
+  .hoja-cobro-maquinas .hoja-cobro-billetes { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+  .hoja-cobro-billete.es-maquina {
+    --c: var(--color-metodo-tarjeta);
+    --cd: var(--color-metodo-tarjeta);
+    padding-inline: 0.375rem;
+    font-family: inherit;
+    font-size: 12px; /* 12 px: lo mínimo legible a distancia en el mostrador (oficio visual); era 11 */
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .hoja-cobro-billete.es-maquina.metodo-qr { --c: var(--color-metodo-qr); --cd: var(--color-metodo-qr); }
 
   /* Comprobante: punteado mientras no se elige; elegido, en tinta; los otros se apagan. */
   .hoja-cobro-comprobante {
@@ -2964,7 +3156,9 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     text-align: left;
     transition: background-color 300ms var(--ease-cayla), border-color 300ms, color 300ms, opacity 300ms;
   }
-  .hoja-cobro-comprobante:hover:not(:disabled) { border-style: solid; border-color: var(--color-tinta); }
+  @media (hover: hover) {
+    .hoja-cobro-comprobante:hover:not(:disabled) { border-style: solid; border-color: var(--color-tinta); }
+  }
   .hoja-cobro-comprobante.es-elegido { border-style: solid; border-color: var(--color-tinta); background: var(--color-tinta); color: var(--color-crema); }
   .hoja-cobro-comprobante-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
   .hoja-cobro-comprobante-icono { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; flex: none; border-radius: 0.5rem; background: var(--color-hueso); }
@@ -2990,7 +3184,9 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     .hoja-cobro-doc > fieldset > div > div:nth-child(2):has(> :nth-child(2)) > * { margin-block: 0; }
   }
   .hoja-cobro-comprobante.es-otro { opacity: 0.55; border-style: solid; border-color: var(--color-sand); }
-  .hoja-cobro-comprobante.es-otro:hover { opacity: 1; }
+  @media (hover: hover) {
+    .hoja-cobro-comprobante.es-otro:hover { opacity: 1; }
+  }
   /* Angosta, el comprobante deja el ícono y se queda con el nombre entero («Nota de venta»). */
   @container (max-width: 44rem) {
     .hoja-cobro-comprobante-icono { display: none; }
@@ -3128,7 +3324,9 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
   @media (prefers-reduced-motion: reduce) {
     .hoja-cobro, .hoja-cobro-velo, .hoja-cobro-marca { animation: none; }
     .hoja-cobro-medio, .hoja-cobro-billete, .hoja-cobro-comprobante, .hoja-cobro-paso { transition: none; }
-    .hoja-cobro-medio:hover, .hoja-cobro-billete:hover { transform: none; }
+    @media (hover: hover) {
+      .hoja-cobro-medio:hover, .hoja-cobro-billete:hover { transform: none; }
+    }
   }
 }
 @keyframes hoja-cobro-entra {

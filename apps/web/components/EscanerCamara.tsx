@@ -1,6 +1,7 @@
 "use client";
 
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Globito } from "@/components/ui/Globito";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -14,8 +15,10 @@ import {
   keyframesVuelo,
   mensajeEscaneo,
   normalizarLectura,
+  sonidoDeLecturaCamara,
   type ResultadoEscaneo,
 } from "@/lib/escaner-reglas";
+import { avisarLectura } from "@/lib/sonido-conteo";
 
 /* ====================================================================
    EscanerCamara · leer el QR de la etiqueta con la cámara del teléfono (2026-09-25)
@@ -33,7 +36,8 @@ import {
        el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, en el almacén, apartada para una
        clienta, no es de la tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo
        del almacén dice «No entró · en almacén» y lo apartado «No entró · apartada» (`estadoCorto`): aquí no sale el
-       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`).
+       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`);
+     · y cada lectura SUENA (2026-10-23): el bip agudo de Conteo si entró, el grave si no (`sonidoDeLecturaCamara`).
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Cómo lee: con el `BarcodeDetector` del navegador cuando existe (Chrome en Android: rápido, y lee también el Code 128
@@ -187,7 +191,8 @@ export function EscanerCamara({
       const tono = mensajeEscaneo(r).tono;
       setHistorial((h) => [lectura, ...h].slice(0, 3));
       setDestello({ id: n, tono });
-      navigator.vibrate?.(tono === "verde" ? 35 : [30, 70, 30]);
+      // Suena y vibra en cada lectura (el bip de Conteo): quien vende mira la prenda y al cliente, no la pantalla.
+      avisarLectura(sonidoDeLecturaCamara(tono));
       if (moverse()) {
         setVuelo(lectura);
         if (r.estado === "agregada") setEnVuelo(true);
@@ -413,12 +418,8 @@ export function EscanerCamara({
             <div className="mt-3 flex items-center gap-3 border-t border-sand pt-3">
               {/* La bolsa: adonde vuela cada prenda. Late cuando una entra (y recién ahí cambia su número). */}
               <span ref={bolsaRef} key={latidoBolsa} className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-tinta text-crema ${latidoBolsa > 0 ? "anim-pop" : ""}`}>
-                <ShoppingBag aria-hidden className="h-5 w-5" strokeWidth={1.6} />
-                {ticketMostrado.prendas > 0 && (
-                  <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-medium tabular-nums text-crema ring-2 ring-crema">
-                    {ticketMostrado.prendas}
-                  </span>
-                )}
+                <ShoppingBag aria-hidden className="h-5 w-5" />
+                <Globito n={ticketMostrado.prendas} esquina sobreOscuro etiqueta="prendas en el ticket" className="absolute -right-1.5 -top-1.5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="label-cayla block text-[10px] text-taupe">

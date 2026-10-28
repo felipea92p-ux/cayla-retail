@@ -26,6 +26,20 @@ mismos conteos —«Se está acabando» en rojo si hay prendas—, el chip de co
 
 ![Las formas que había](capturas/pestanas.jpg)
 
+3. **2026-10-23, el aviso de «hay más».** La auditoría del celular (hallazgo 14) vio que una fila que se desliza corta la primera o la
+   última pestaña en el borde y nada dice que hay más. Felipe eligió **mirando** la maqueta `docs/maquetas/pestanas-que-se-deslizan-2026-10/`
+   la opción **A: el degradado en el borde** (sobre la flecha en el borde y la barra de posición): la fila se desvanece 28 px del lado donde
+   falta por ver y se apaga sola al llegar al final. Vale para `<Pestanas>` (`.pestanas-cayla`) y para `.pildoras-desliza`, sin que
+   ninguna pantalla haga nada: `components/ui/FilasQueSeDeslizan.tsx` (montado una vez en `app/layout.tsx`) mide cada fila y le pone
+   `data-mas-izq` / `data-mas-der` (la regla pura es `lib/fila-desliza-reglas.ts`, con su prueba), y `pestanas-y-segmentos.css` dibuja la
+   máscara. Solo existe mientras la fila se desliza (nunca en escritorio, donde cabe entera). No cambia qué hace ninguna pestaña.
+
+4. **2026-10-26, la marca «nuevo».** La maqueta del Presupuesto del Plan (spike ④, Felipe la eligió mirando) pone una palabra «nuevo» en pizarra pegada al nombre de una pestaña recién llegada.
+   Es una variante de la píldora de conteo, no una pieza nueva: `<Pestanas>` acepta `conteo: "nuevo"` con `tono: "nuevo"` (pizarra con letra crema; sobre la píldora oscura, al revés). Quien monta
+   las pestañas decide hasta cuándo sale (`PestanasPlan`: hasta el 2026-12-31): una marca de «nuevo» que no caduca es ruido.
+   **Corrección del mismo día:** la letra era `crema-fija` y en oscuro, donde la pizarra se aclara, pasaba 1,8:1; ahora es `--color-crema`, que se invierte junto con el relleno (la regla del oscuro: el relleno y su
+   letra se invierten juntos; un color «fijo» es para el dato, no para un relleno del sistema). Lo mismo se corrigió en el «1» ámbar de la campana de avisos del Plan.
+
 ## Qué es cada pieza
 
 - **`Pestanas`**: contenedor de vidrio (`vidrio-cayla`) con 4 px de aire y radio 14; la píldora en tinta de radio 10 viaja bajo la elegida

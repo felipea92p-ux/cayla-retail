@@ -15,7 +15,7 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 /** «el 04/10» o «entre el 30/09 y el 04/10»: cuándo se vendió lo que se va a cerrar. */
 const cuandoSeVendio = (desde: string, hasta: string) => {
   const a = diaYHoraLima(desde).dia;
@@ -24,12 +24,13 @@ const cuandoSeVendio = (desde: string, hasta: string) => {
 };
 
 /**
- * «Cerrar la cola de arranque» (ADR-0334, opción B de Felipe, 2026-10-04): un líder da por hechas, en bloque, las ventas sin
- * registrar de UNA tienda cuando ya no se puede saber qué prenda era cada una. No mueve stock ni toca la venta: la prenda queda sin
- * identificar y la fila pasa a «Cerrada sin prenda». Solo lo que el líder VE aquí (hasta `corte`): lo que se venda desde ahora sigue
- * pendiente. La base vuelve a exigir líder, plazo y motivo (`cerrar_cola_arranque`); aquí solo se evita ofrecer lo que rechazaría.
+ * «Cerrar la cola de arranque» (ADR-0334, opción B de Felipe, 2026-10-04): quien ve Existencias (ADR-0534; antes, solo un líder) da
+ * por hechas, en bloque, las ventas sin registrar de UNA tienda cuando ya no se puede saber qué prenda era cada una. No mueve stock ni
+ * toca la venta: la prenda queda sin identificar y la fila pasa a «Cerrada sin prenda». Solo lo que se VE aquí (hasta `corte`): lo que
+ * se venda desde ahora sigue pendiente. La base vuelve a exigir el módulo, la sede, el plazo y el motivo (`cerrar_cola_arranque`); aquí
+ * solo se evita ofrecer lo que rechazaría.
  *
- * Sin combo «Responsable»: firma la cuenta del líder (`cola_arranque_cerrar`, como regularizar). La guía de foco dice qué falta: la
+ * Sin combo «Responsable»: firma la cuenta (`cola_arranque_cerrar`, como regularizar). La guía de foco dice qué falta: la
  * tienda (si hay varias), el motivo y, opcional, una nota.
  */
 export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: SedeParaCerrar[]; inicial: string | null; onClose: () => void }) {
@@ -70,7 +71,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
       return;
     }
     // La cifra del aviso es la que cerró la BASE (la del registro del cierre), no la que mostraba la hoja: si otra persona regularizó
-    // algunas mientras el líder leía, la base cerró menos y el aviso no debe afirmar lo contrario. Si no se puede leer, no se inventa.
+    // algunas mientras se leía la hoja, la base cerró menos y el aviso no debe afirmar lo contrario. Si no se puede leer, no se inventa.
     const { data: cierre } = typeof cierreId === "string" ? await createClient().from("cierres_cola_arranque").select("filas").eq("id", cierreId).maybeSingle() : { data: null };
     avisar.exito("Cola cerrada", { detalle: textoCierreHecho(sede.sede, cierre?.filas ?? null) });
     onClose();
@@ -114,7 +115,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
                 <li>El stock no cambia y el dinero de cada venta tampoco: solo queda sin identificar qué prenda era.</li>
                 <li>Lo que se venda desde ahora sigue pendiente.</li>
                 <li>Antes de cerrar, usa «Identificar con sugerencias»: las que tienen una sola prenda posible se pueden unir a su prenda y dejar el stock cuadrado.</li>
-                <li>Si quien compró una de estas prendas la devuelve o la cambia, un líder tiene que reabrirla antes.</li>
+                <li>Si quien compró una de estas prendas la devuelve o la cambia, primero hay que reabrirla aquí, en Ventas sin registrar.</li>
                 {sede.diasDePlazo !== null && (
                   <li>
                     Esta opción está abierta {sede.diasDePlazo === 0 ? "solo hoy" : `${sede.diasDePlazo} ${sede.diasDePlazo === 1 ? "día más" : "días más"}`} para esta tienda.

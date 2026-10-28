@@ -1,0 +1,86 @@
+/* =====================================================================
+   LA BARRA DE AVANCE, EL ANILLO Y COPIAR — las piezas de la ronda 13 de /unificar (ADR-0358, Felipe 2026-10-15, P1 en las tres).
+   <BarraAvance> (components/ui/BarraAvance.tsx), <Anillo> (components/ui/Anillo.tsx) y <BotonCopiar> (components/ui/BotonCopiar.tsx).
+   Registros: docs/unificar/grafico.avance.md, grafico.anillo.md y accion.copiar.md. Solo tokens (ADR-0169, ADR-0336).
+
+   Movimiento de ADR-0136, sin rebote ni bucle: la barra se llena desde cero una vez al verse (760 ms) y el anillo se cierra desde arriba
+   (1,1 s); si la cifra cambia, se deslizan (500 ms) y cambian de color. El ✓ de copiar se dibuja (320 ms). Todo se apaga con
+   `prefers-reduced-motion`. Sin JavaScript: la barra y el anillo sirven en un Server Component.
+   ===================================================================== */
+
+@layer components {
+  /* ---------- La barra de avance: la pista de arena y su relleno. Tres altos con nombre. ---------- */
+  .barra-avance { position: relative; display: block; width: 100%; height: 6px; border-radius: 999px; background: var(--color-sand); }
+  .barra-avance[data-alto="fina"] { height: 3px; }
+  .barra-avance[data-alto="gruesa"] { height: 12px; }
+  /* El relleno: tinta; verde al completarse; el rojo y el ámbar los pone la pantalla (`tono`). */
+  .barra-avance-lleno {
+    position: absolute; inset: 0 auto 0 0; display: block; width: var(--p); border-radius: inherit; background: var(--color-tinta);
+    transform-origin: left center;
+    animation: cayla-avance-llena 760ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 38ms + 180ms);
+    transition: width 500ms var(--ease-cayla), background-color 400ms var(--ease-cayla);
+  }
+  .barra-avance[data-tono="verde"] .barra-avance-lleno { background: var(--color-verde); }
+  .barra-avance[data-tono="ambar"] .barra-avance-lleno { background: var(--color-ambar); }
+  .barra-avance[data-tono="rojo"] .barra-avance-lleno { background: var(--color-rojo); }
+  /* La rayita de «a esta hora tocaba» (o de un mínimo): 2 px, 6 px más alta que la barra. */
+  .barra-avance-marca {
+    position: absolute; top: 50%; left: var(--m); width: 2px; height: calc(100% + 6px); border-radius: 1px; background: var(--color-taupe);
+    transform: translate(-1px, -50%);
+  }
+  .barra-avance[data-alto="fina"] .barra-avance-marca { height: 9px; }
+
+  /* ---------- El anillo: pista de hueso, arco de tinta con las puntas redondas, la cifra adentro. Tres tamaños. ---------- */
+  .anillo { position: relative; display: inline-grid; place-items: center; flex: none; }
+  .anillo > svg { position: absolute; inset: 0; overflow: visible; }
+  .anillo-pista { stroke: var(--color-hueso); }
+  .anillo-arco {
+    stroke: var(--color-tinta); stroke-linecap: round; stroke-dasharray: var(--p) 100;
+    animation: cayla-anillo-cierra 1100ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 38ms + 160ms);
+    transition: stroke-dasharray 500ms var(--ease-cayla), stroke 400ms var(--ease-cayla);
+  }
+  .anillo[data-tono="verde"] .anillo-arco { stroke: var(--color-verde); }
+  .anillo[data-tono="ambar"] .anillo-arco { stroke: var(--color-ambar); }
+  .anillo[data-tono="rojo"] .anillo-arco { stroke: var(--color-rojo); }
+  /* Sobre una superficie pintada de tinta (el titular de Caja, que se invierte con el tema): pista y arco en crema; verde al cerrarse. */
+  .anillo[data-sobre-tinta] .anillo-pista { stroke: color-mix(in srgb, var(--color-crema) 14%, transparent); }
+  .anillo[data-sobre-tinta]:not([data-tono]) .anillo-arco { stroke: var(--color-crema); }
+  .anillo-centro { position: relative; display: flex; flex-direction: column; align-items: center; line-height: 1.1; text-align: center; font-variant-numeric: tabular-nums; }
+  .anillo[data-tamano="chico"] .anillo-centro { font-size: 11.5px; font-weight: 600; }
+  .anillo[data-tamano="mediano"] .anillo-centro { font-size: 15px; font-weight: 600; }
+
+  /* ---------- Copiar ---------- */
+  /* Junto a un dato: el ícono solo, de 32 px, como el lápiz de Editar. Al copiar, el ícono se vuelve un ✓ verde que se dibuja. */
+  .copiar-icono > span { grid-area: 1 / 1; display: grid; place-items: center; transition: opacity 200ms var(--ease-cayla), transform 260ms var(--ease-cayla); }
+  .copiar-icono[data-copiado] { background: color-mix(in srgb, var(--color-verde) 12%, transparent); color: var(--color-verde-profundo); }
+  /* «Copiado» sobre el ícono, como un globito: no corre lo que está al lado. */
+  .copiar-dicho {
+    position: absolute; bottom: calc(100% + 4px); left: 50%; padding: 2px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--color-verde) 45%, transparent); background: var(--color-papel);
+    font-size: 11.5px; font-weight: 500; color: var(--color-verde-profundo);
+    opacity: 0; transform: translate(-50%, 3px); transition: opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
+  }
+  [data-copiado] > .copiar-dicho { opacity: 1; transform: translate(-50%, 0); }
+  /* Suelto: el secundario; «Copiar …» y «Copiado» apilados en una celda, así el botón no cambia de ancho. */
+  .copiar-boton > .copiar-pila { display: inline-grid; }
+  .copiar-pila > span { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 200ms var(--ease-cayla); }
+  .btn-cayla.copiar-boton[data-copiado] { color: var(--color-verde-profundo); border-color: color-mix(in srgb, var(--color-verde) 55%, transparent); }
+  /* Lo que se ve en cada momento: el ícono (o «Copiar …») en reposo y el ✓ («Copiado») al copiar. */
+  .copiar-b { opacity: 0; transform: scale(.7); }
+  [data-copiado] .copiar-a { opacity: 0; transform: scale(.7); }
+  [data-copiado] .copiar-b { opacity: 1; transform: none; }
+  .copiar-pila > .copiar-b, [data-copiado] .copiar-pila > .copiar-a { transform: none; }
+  .copiar-tilde path { stroke-dasharray: 24; stroke-dashoffset: 24; }
+  [data-copiado] .copiar-tilde path { animation: cayla-copiar-tilde 320ms var(--ease-cayla) 80ms forwards; }
+}
+
+@keyframes cayla-avance-llena { from { transform: scaleX(0); } }
+@keyframes cayla-anillo-cierra { from { stroke-dasharray: 0 100; } }
+@keyframes cayla-copiar-tilde { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .barra-avance-lleno, .anillo-arco, .copiar-dicho, .copiar-icono > span, .copiar-pila > span { animation: none; transition: none; }
+  .copiar-tilde path, [data-copiado] .copiar-tilde path { animation: none; stroke-dashoffset: 0; }
+}

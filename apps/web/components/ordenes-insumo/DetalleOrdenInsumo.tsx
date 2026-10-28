@@ -1,17 +1,31 @@
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { etiquetaRubro } from "@/lib/proveedores-produccion-reglas";
+import { textoDeTipo, type TipoComprobante } from "@/lib/comprobante-orden-reglas";
+import { MOTIVOS_CIERRE } from "@/lib/recibir-produccion-reglas";
+import {
+  papelDeOrdenInsumo,
+  pedidasDeLaOrden,
+  recepcionDeOrdenInsumo,
+  textoDeFueraDeOrden,
+  textoPapelDeLineaInsumo,
+  textoRecibidoDeLineaInsumo,
+  type PedidaInsumo,
+} from "@/lib/comprobante-orden-insumo-reglas";
 import {
   ESTADO_ORDEN,
   cantidadConUnidad,
+  importeCentimos,
   nombreUnidad,
   precioUnitarioTexto,
   textoCantidades,
+  type CierreDeOrdenInsumo,
   type DetalleOrdenInsumo as Detalle,
-  type LineaOrdenInsumo,
+  type FueraDeOrdenInsumo,
 } from "@/lib/ordenes-insumo-reglas";
 
 // Una orden de insumos por dentro (ADR-0362, fase 7 · actividad 2): lo mismo en la ventana que se abre sobre la lista y en la página que
@@ -22,7 +36,19 @@ import {
 // y el subtotal; abajo, cuánto se pidió de cada unidad —nunca metros sumados con conos—, el total, la nota, lo que la orden decía antes de
 // cada edición y quién la creó. Una anulada lo dice primero, con su motivo: es lo único que importa de ella.
 //
-// # · Insumo (código y descripción) · Cantidad · Precio u. · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
+// Lo que no llegó (fase 7 parte 2, actividad 4): cada línea dice cuánto se cerró («No llegó: 4.5 metros») y, bajo los papeles, «Lo que no
+// llegó» lista cada cierre con su motivo, quién lo anotó y lo que el proveedor nos debe a su costo. Cómo se salda llega con la fase 5b.
+//
+// Lo que el papel trajo fuera de la orden (decisión 43; /formidable 2026-10-14): bajo la tabla, «No estaba en la orden» lista cada línea
+// con su papel, su monto y lo que pasó en el Taller. Explica por qué un papel suma más que la orden, y la recepción de la orden (su etiqueta
+// y su nota) la cuenta: dice lo mismo que Producción ▸ Recibir.
+//
+// Con papel (fase 7 parte 2): cada línea dice cuánto llegó ya en comprobantes («Llegó en papel: 10 de 12.5 metros») y, bajo la tabla, van los
+// papeles de la orden. Sin «Anular» aquí: anular un papel del Taller es del líder (Producción ▸ Comprobantes), y la nota lo dice para que
+// nadie busque un botón que no está. Todo con tolerancia: una base que todavía no los cuenta no trae nada de esto y la orden se ve como
+// siempre.
+//
+// # · Insumo (código y descripción) · Cantidad · Costo u. · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: con menos de 40 rem la cuenta de la línea va en un renglón bajo el insumo.
 const PLANTILLA = "@min-[40rem]:grid-cols-[2rem_minmax(0,1fr)_7.5rem_6.5rem_6.5rem_7rem]";
 const EN_COLUMNAS = "hidden @min-[40rem]:block";
@@ -35,6 +61,13 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   const creada = diaYHoraLima(d.creadaEn);
   const editada = d.actualizadaEn ? diaYHoraLima(d.actualizadaEn) : null;
   const anulada = d.anuladaEn ? diaYHoraLima(d.anuladaEn) : null;
+  const pedidas = pedidasDeLaOrden(d);
+  // «Llegó en papel» solo cuando la orden ya tiene algo en papel: en una sin papel, «0 de 12.5 metros» en cada línea sería ruido. Lo mismo
+  // «Llegó al Taller» (actividad 3): solo cuando ya entró algo.
+  const papel = papelDeOrdenInsumo(pedidas);
+  // Cómo va la recepción, como la ve Producción ▸ Recibir: con lo anotado como «no llegará» y lo de fuera de la orden.
+  const recepcion = recepcionDeOrdenInsumo(pedidas, d.cierres, d.fueraDeOrden);
+  const nosDebe = d.cierres.reduce((s, c) => s + c.importe, 0);
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -76,14 +109,20 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
               { titulo: "#" },
               { titulo: "Insumo" },
               { titulo: "Cantidad", alinear: "der" },
-              { titulo: "Precio u.", alinear: "der" },
+              { titulo: "Costo u.", alinear: "der" },
               { titulo: "Descuento", alinear: "der" },
               { titulo: "Subtotal", alinear: "der" },
             ]}
           />
         </div>
-        {d.lineas.map((l) => (
-          <LineaDetalle key={l.posicion} l={l} />
+        {pedidas.map((l) => (
+          <LineaDetalle
+            key={l.posicion}
+            l={l}
+            conPapel={papel !== null}
+            conRecepcion={recepcion !== null}
+            noLlego={d.cierres.filter((c) => l.itemId !== null && c.itemId === l.itemId)}
+          />
         ))}
         <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-3">
           <span className="text-sm text-taupe">
@@ -95,6 +134,19 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
           </span>
         </div>
       </Tabla>
+
+      <FueraDeLaOrden fuera={d.fueraDeOrden} />
+
+      <ComprobantesDeOrdenInsumo orden={d} />
+
+      <LoQueNoLlego cierres={d.cierres} nosDebe={nosDebe} />
+
+      {/* Con algo recibido en el Taller (actividad 3), la orden ya no se edita ni se anula: lo dice para que nadie busque el botón. */}
+      {recepcion && d.estado === "generada" && (
+        <p data-guia="oi.recibido" className="nota-cayla">
+          Ya llegaron insumos de esta orden al Taller: no se edita ni se anula.{recepcion === "en_parte" ? " Lo que falta se recibe en Producción ▸ Recibir." : ""}
+        </p>
+      )}
 
       {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado. */}
       {d.nota && (
@@ -139,6 +191,13 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
 
       <p data-guia="oi.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
+        {papel && <Chip tono={papel === "completa" ? "verde" : "ambar"}>{papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
+        {recepcion && (
+          <Chip tono={recepcion === "en_parte" ? "ambar" : "verde"}>
+            {recepcion === "completa" ? "Llegó todo" : recepcion === "cerrada" ? "Recibida" : "Llegó en parte"}
+          </Chip>
+        )}
+        {d.cierres.length > 0 && <Chip tono="ambar">Nos debe</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
           {editada && ` · editada por ${d.actualizadaPor ?? "alguien sin nombre en Dynamic"} el ${editada.dia} a las ${editada.hora}`}
@@ -148,7 +207,8 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   );
 }
 
-function LineaDetalle({ l }: { l: LineaOrdenInsumo }) {
+function LineaDetalle({ l, conPapel, conRecepcion, noLlego }: { l: PedidaInsumo; conPapel: boolean; conRecepcion: boolean; noLlego: CierreDeOrdenInsumo[] }) {
+  const cerrado = noLlego.reduce((s, c) => s + c.cantidad, 0);
   const unidadCambio = l.unidadActual != null && l.unidadActual !== l.unidadMedida;
   return (
     <div className={fila(PLANTILLA)}>
@@ -158,6 +218,27 @@ function LineaDetalle({ l }: { l: LineaOrdenInsumo }) {
         <span className="block text-xs text-taupe">{[l.codigo, l.descripcion].filter(Boolean).join(" · ")}</span>
         {/* La orden guarda la unidad del día en que se hizo; si el catálogo la cambió después, se avisa (editarla pide la nueva). */}
         {unidadCambio && <span className="block text-xs text-ambar">Hoy este insumo se pide en {nombreUnidad(l.unidadActual!)}</span>}
+        {conPapel && (
+          <span
+            data-guia="oi.papel-linea"
+            className={`mt-0.5 block text-xs tabular-nums ${l.facturado > l.cantidad ? "text-ambar" : l.facturado >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}
+          >
+            Llegó en papel: {textoPapelDeLineaInsumo(l)}
+          </span>
+        )}
+        {conRecepcion && (
+          <span
+            data-guia="oi.recibido-linea"
+            className={`mt-0.5 block text-xs tabular-nums ${l.recibido >= Math.max(l.cantidad, l.facturado) ? "text-verde-profundo" : "text-taupe"}`}
+          >
+            Llegó al Taller: {textoRecibidoDeLineaInsumo(l)}
+          </span>
+        )}
+        {cerrado > 0 && (
+          <span data-guia="oi.no-llego-linea" className="mt-0.5 block text-xs tabular-nums text-ambar">
+            No llegó: {cantidadConUnidad(cerrado, l.unidadMedida)}
+          </span>
+        )}
         {/* Sin columnas: la cuenta entera, cada cifra sin partirse («S/» no queda solo al final de un renglón). */}
         <span className="mt-1 block text-sm tabular-nums text-tinta/80 @min-[40rem]:hidden">
           <span className="whitespace-nowrap">{cantidadConUnidad(l.cantidad, l.unidadMedida)}</span> ×{" "}
@@ -188,5 +269,125 @@ function LineaDetalle({ l }: { l: LineaOrdenInsumo }) {
       </span>
       <span className={`${CIFRA} font-medium text-tinta`}>{soles(l.subtotal)}</span>
     </div>
+  );
+}
+
+// Lo que el papel trajo sin estar en la orden (decisión 43): cada línea con lo que pasó en el Taller, su papel y su monto (por qué el papel
+// suma más que la orden).
+function FueraDeLaOrden({ fuera }: { fuera: FueraDeOrdenInsumo[] }) {
+  if (fuera.length === 0) return null;
+  return (
+    <section aria-label="No estaba en la orden" data-guia="oi.fuera-de-orden" className="space-y-2">
+      <TituloGrupo nota="lo trajo el papel">No estaba en la orden</TituloGrupo>
+      <ul className="divide-y divide-sand rounded-xl border border-sand">
+        {fuera.map((f) => (
+          <li key={f.itemId} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+            <span className="min-w-0 text-tinta">
+              {f.insumo} <span className="whitespace-nowrap tabular-nums">· {cantidadConUnidad(f.facturado, f.unidad)}</span>
+              <span className={`block text-xs tabular-nums ${f.queda > 0 ? "text-taupe" : f.cerrado > 0 ? "text-ambar" : "text-verde-profundo"}`}>
+                {textoDeFueraDeOrden(f)}
+              </span>
+            </span>
+            <span className="whitespace-nowrap text-xs tabular-nums text-taupe">
+              {f.documento} · {soles(importeCentimos(Math.round(f.facturado * 1000), Math.round(f.costoUnitario * 10_000)) / 100)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// Los papeles de una orden (fase 7 parte 2): del más reciente al más antiguo, vigentes y anulados. Documento · Tipo · Emisión · Vence ·
+// Total · Estado; sin columnas, lo demás en un renglón bajo el documento.
+const PLANTILLA_PAPEL = "@min-[40rem]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_5.5rem_5.5rem_7rem_6rem]";
+
+function ComprobantesDeOrdenInsumo({ orden: d }: { orden: Detalle }) {
+  if (d.comprobantes.length === 0) return null;
+  const vigente = d.comprobantes.some((c) => c.estado === "vigente");
+  return (
+    <section aria-label="Comprobantes de la orden" data-guia="oi.comprobantes" className="space-y-2">
+      <TituloGrupo nota="el papel que ya llegó">Comprobantes</TituloGrupo>
+      <Tabla>
+        <div className="hidden @min-[40rem]:block">
+          <Encabezado
+            plantilla={PLANTILLA_PAPEL}
+            columnas={[
+              { titulo: "Documento" },
+              { titulo: "Tipo" },
+              { titulo: "Emisión", alinear: "der" },
+              { titulo: "Vence", alinear: "der" },
+              { titulo: "Total", alinear: "der" },
+              { titulo: "Estado" },
+            ]}
+          />
+        </div>
+        {d.comprobantes.map((c) => (
+          <div key={c.id} className={fila(PLANTILLA_PAPEL)}>
+            <span className={celda("izq", "font-medium tabular-nums text-tinta")}>{c.documento}</span>
+            <span className={celda("izq", "whitespace-normal text-sm text-tinta/80")}>
+              {textoDeTipo(c.tipo as TipoComprobante)}
+              {c.condicion === "credito" ? " · Crédito" : c.condicion === "contado" ? " · Contado" : ""}
+              {/* Sin columnas: lo demás en un renglón, con su contexto. */}
+              <span className="mt-0.5 block text-xs tabular-nums text-taupe @min-[40rem]:hidden">
+                {c.fechaEmision ? `${fechaCorta(c.fechaEmision)} · ` : ""}
+                {c.fechaVencimiento ? `vence ${fechaCorta(c.fechaVencimiento)} · ` : ""}
+                <span className="whitespace-nowrap">{soles(c.total)}</span>
+              </span>
+            </span>
+            <span className={`${CIFRA} text-tinta/80`}>{c.fechaEmision ? fechaCorta(c.fechaEmision) : "—"}</span>
+            <span className={`${CIFRA} text-tinta/80`}>{c.fechaVencimiento ? fechaCorta(c.fechaVencimiento) : "—"}</span>
+            <span className={`${CIFRA} text-tinta`}>{soles(c.total)}</span>
+            <span className="min-w-0">
+              <Chip tono={c.estado === "vigente" ? "neutro" : "apagado"}>{c.estado === "vigente" ? "Vigente" : "Anulado"}</Chip>
+            </span>
+          </div>
+        ))}
+      </Tabla>
+      {d.estado === "generada" && (
+        <p className="nota-cayla">
+          {vigente
+            ? "Mientras tenga un comprobante vigente, la orden no se edita ni se anula. Si el papel está mal, pídele a tu líder que lo anule y vuelve a registrarlo."
+            : "Como esta orden ya tuvo comprobante, no se edita. Si hace falta, registra el papel de nuevo."}
+        </p>
+      )}
+    </section>
+  );
+}
+
+const MOTIVO: Record<CierreDeOrdenInsumo["motivo"], string> = Object.fromEntries(MOTIVOS_CIERRE.map((m) => [m.valor, m.etiqueta])) as Record<
+  CierreDeOrdenInsumo["motivo"],
+  string
+>;
+
+// Lo que no llegó (actividad 4): cada cierre con su motivo, quién lo anotó y cuándo, y lo que el proveedor nos debe a su costo.
+function LoQueNoLlego({ cierres, nosDebe }: { cierres: CierreDeOrdenInsumo[]; nosDebe: number }) {
+  if (cierres.length === 0) return null;
+  return (
+    <section aria-label="Lo que no llegó" data-guia="oi.no-llego" className="space-y-2">
+      <TituloGrupo nota="el proveedor nos lo debe">Lo que no llegó</TituloGrupo>
+      <ul className="divide-y divide-sand rounded-xl border border-sand">
+        {cierres.map((c) => {
+          const cuando = c.creadoEn ? diaYHoraLima(c.creadoEn) : null;
+          return (
+            <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+              <span className="min-w-0 text-tinta">
+                {c.insumo} <span className="whitespace-nowrap tabular-nums">· {cantidadConUnidad(c.cantidad, c.unidad)}</span>
+                <span className="block text-xs text-taupe">
+                  {MOTIVO[c.motivo]}
+                  {c.nota ? ` · «${c.nota}»` : ""}
+                  {cuando ? ` · ${c.por ?? "alguien"} lo anotó el ${cuando.dia}` : ""}
+                </span>
+              </span>
+              <span className="whitespace-nowrap tabular-nums text-tinta">{soles(c.importe)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="flex items-baseline justify-between gap-4 px-1 text-sm">
+        <span className="text-taupe">El proveedor nos debe</span>
+        <b className="font-display text-lg font-normal tabular-nums text-tinta">{soles(nosDebe)}</b>
+      </p>
+    </section>
   );
 }

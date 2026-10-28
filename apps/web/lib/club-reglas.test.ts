@@ -3,10 +3,8 @@ import {
   ajustarCelular,
   celularValido,
   codigoClubLegible,
-  enlaceQrClub,
   estadoClub,
   textoVigente,
-  enlacePaginaClub,
   type TextoClub,
 } from "./club-reglas";
 
@@ -36,23 +34,8 @@ describe("club de clientas (ADR-0288 tanda 1b): dos permisos, código y QR", () 
     expect(textoVigente(textos, "mensaje_generico")).toBeNull();
   });
 
-
-  it("el QR abre el WhatsApp DE LA TIENDA con el texto listo; sin número de tienda no hay QR", () => {
-    expect(enlaceQrClub("987654321", "Hola CAYLA")).toBe("https://wa.me/51987654321?text=Hola%20CAYLA");
-    expect(enlaceQrClub(null, "Hola")).toBeNull();
-    expect(enlaceQrClub("12345", "Hola")).toBeNull();
-  });
-
   it("el código de socia se lee en mayúsculas", () => {
     expect(codigoClubLegible("c-0142")).toBe("C-0142");
     expect(codigoClubLegible(null)).toBeNull();
-  });
-});
-
-describe("la página de registro (ADR-0288 act. g): el QR del cartel y del ticket", () => {
-  it("abre /club/<tienda> en el mismo dominio del ERP", () => {
-    const tienda = "3f2a9c1e-7b4d-4e8a-9c21-5d6e7f8a9b0c";
-    expect(enlacePaginaClub("https://retail.cayla.pe/", tienda)).toBe(`https://retail.cayla.pe/club/${tienda}`);
-    expect(enlacePaginaClub("http://localhost:3000", tienda)).toBe(`http://localhost:3000/club/${tienda}`);
   });
 });

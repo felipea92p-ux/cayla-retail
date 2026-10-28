@@ -50,14 +50,20 @@
     font-size: 12.5px; font-weight: 500; background: var(--color-tinta); color: var(--color-crema); cursor: pointer;
     transition: transform 200ms var(--ease-cayla), opacity 200ms, background-color 200ms;
   }
-  .vacio-filtro:hover { background: var(--color-rojo-profundo); }
+  @media (hover: hover) {
+    .vacio-filtro:hover { background: var(--color-rojo-profundo); }
+  }
   .vacio-filtro svg { width: 14px; height: 14px; opacity: 0.75; }
-  .vacio-filtro:hover svg { opacity: 1; }
+  @media (hover: hover) {
+    .vacio-filtro:hover svg { opacity: 1; }
+  }
   .vacio-filtro:active { transform: scale(0.94); }
   /* «Limpiar todo» al final de los filtros puestos (ronda 11, <BotonLimpiar>): una píldora más, punteada, con el embudo tachado; el borde
      se calienta al pasar el mouse y se encoge al presionarla, como la del filtro puesto. */
   .pildora-limpiar { border-style: dashed; gap: 6px; font-weight: 500; color: var(--color-taupe); transition: border-color 200ms, color 200ms, transform 200ms var(--ease-cayla); }
-  .pildora-limpiar:hover { border-color: var(--color-taupe); color: var(--color-tinta); }
+  @media (hover: hover) {
+    .pildora-limpiar:hover { border-color: var(--color-taupe); color: var(--color-tinta); }
+  }
   .pildora-limpiar:active { transform: scale(0.94); }
   .pildora-limpiar svg { width: 14px; height: 14px; flex-shrink: 0; }
 
@@ -74,7 +80,9 @@
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); text-underline-offset: 3px;
     transition: background-color 200ms, text-decoration-color 200ms;
   }
-  .vacio-chico-accion:hover { background: color-mix(in srgb, var(--color-sand) 55%, transparent); text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .vacio-chico-accion:hover { background: color-mix(in srgb, var(--color-sand) 55%, transparent); text-decoration-color: currentColor; }
+  }
 
   /* ---------- <Aviso>: la franja a la izquierda (P2) ---------- */
   .aviso-linea {
@@ -103,7 +111,9 @@
     text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--cp) 35%, transparent); text-underline-offset: 3px;
     transition: background-color 200ms;
   }
-  .aviso-linea-acc :is(a, button):hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
+  @media (hover: hover) {
+    .aviso-linea-acc :is(a, button):hover { background: color-mix(in srgb, var(--c) 12%, transparent); }
+  }
   .aviso-linea.chico { align-items: center; padding: 8px 10px 8px 10px; border-radius: 4px 12px 12px 4px; }
   .aviso-linea.chico .aviso-linea-ic { grid-row: 1; height: 18px; }
   .aviso-linea.chico .aviso-linea-ic svg { width: 14px; height: 14px; }
@@ -131,12 +141,21 @@
   /* ---------- <Buscador> de una lista ---------- */
   .buscador {
     position: relative; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 10px;
-    background: var(--color-hueso); border: 1px solid var(--color-sand); overflow: hidden;
+    background: var(--color-hueso); border: 1px solid var(--color-borde-control); overflow: hidden; /* P2 de la familia: se escribe en él, lleva el borde de control (3:1) */
     transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla);
   }
-  .buscador:hover { border-color: color-mix(in srgb, var(--color-taupe) 45%, var(--color-sand)); }
-  .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent); }
+  @media (hover: hover) {
+    .buscador:hover { border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
+  }
+  .buscador:focus-within { background: var(--color-papel); border-color: color-mix(in srgb, var(--color-tinta) 65%, var(--color-papel)); }
   .buscador:has(input:focus-visible) { outline: var(--foco-ancho) solid var(--foco-color); outline-offset: var(--foco-separacion); }
+  /* «Lo escribió CAYLA» (ADR-0536, actividad 6): el asistente escribió aquí lo que la persona dijo. La marca va dentro de la caja, a la
+     derecha, hasta que la persona la toca o escribe (`marcarLoEscribioCayla`, components/guias/piloto.ts). */
+  .buscador[data-lo-escribio-cayla] { border-color: var(--color-taupe); }
+  .buscador[data-lo-escribio-cayla]::after {
+    content: "Lo escribió CAYLA · revísalo"; flex-shrink: 0; white-space: nowrap; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; line-height: 16px; color: var(--color-taupe-profundo); background: var(--color-sand);
+  }
   /* La sombra de predicción (opt-in, `sombra`): el campo y la sombra comparten caja para que su texto empiece en el mismo punto. La
      sombra solo se ve con el cursor adentro; lo ya escrito va invisible para que lo único que se vea sea lo que falta. */
   .buscador-campo { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; }
@@ -164,7 +183,9 @@
     animation: cayla-revelar 240ms var(--ease-cayla) both;
   }
   .buscador-borrar svg { width: 14px; height: 14px; }
-  .buscador-borrar:hover { background: var(--color-sand); color: var(--color-tinta); }
+  @media (hover: hover) {
+    .buscador-borrar:hover { background: var(--color-sand); color: var(--color-tinta); }
+  }
   .buscador-senal {
     position: absolute; right: 44px; pointer-events: none; white-space: nowrap; font-size: 10.5px; font-weight: 600;
     letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-rojo); opacity: 0; transition: opacity 200ms var(--ease-cayla);

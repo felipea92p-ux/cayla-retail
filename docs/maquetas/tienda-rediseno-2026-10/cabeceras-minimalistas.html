@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cabeceras minimalistas · CAYLA tienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Newsreader:ital,opsz,wght@1,6..72,300..500&display=swap" rel="stylesheet">
+<style>
+/* Lámina para elegir la cabecera de la tienda (A · Muro, minimalista). Solo maqueta: no es la tienda. */
+:root { --muro:#ecebe7; --lienzo:#e1ded7; --grafito:#1c1c1a; --piedra:#615e57; --linea:#cbc7be; --roja:#c8283c; --fondo-lamina:#d9d6cf; }
+body.oscuro { --muro:#161615; --lienzo:#262624; --grafito:#ecebe7; --piedra:#a6a39b; --linea:#3a3a37; --fondo-lamina:#0d0d0c; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo-lamina); color: var(--grafito); font: 400 15px/1.5 "Archivo", system-ui, sans-serif; font-variation-settings: "wdth" 100; transition: background .3s; }
+.lamina { max-width: 1320px; margin: 0 auto; padding: 32px 24px 80px; }
+.cima { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; margin-bottom: 40px; }
+.cima h1 { margin: 0; font: 250 clamp(26px, 3vw, 40px)/1.05 "Archivo", sans-serif; font-variation-settings: "wdth" 125; text-transform: uppercase; letter-spacing: .06em; }
+.cima p { margin: 8px 0 0; color: var(--piedra); }
+.tema { display: inline-flex; border: 1px solid var(--linea); }
+.tema button { font: inherit; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; padding: 10px 18px; border: 0; background: transparent; color: var(--piedra); cursor: pointer; }
+.tema button[aria-pressed="true"] { background: var(--grafito); color: var(--muro); }
+.variante { margin-bottom: 72px; }
+.variante-cab { display: flex; gap: 20px; align-items: baseline; margin-bottom: 16px; flex-wrap: wrap; }
+.variante-cab b { font: italic 400 34px/1 "Newsreader", serif; }
+.variante-cab h2 { margin: 0; font: 500 11px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; letter-spacing: .16em; text-transform: uppercase; }
+.variante-cab p { margin: 0; color: var(--piedra); font-size: 14px; flex-basis: 100%; }
+.marcos { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .marcos { grid-template-columns: 1fr; } .movil { max-width: 390px; } }
+.marco { background: var(--muro); color: var(--grafito); overflow: hidden; position: relative; min-height: 360px; border: 1px solid var(--linea); font-size: 15px; }
+.etq { display: block; font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--piedra); margin: 0 0 8px; }
+.cap { font-variation-settings: "wdth" 125; font-weight: 500; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+.marco a, .marco button { color: inherit; text-decoration: none; font: inherit; }
+.marco button { background: none; border: 0; padding: 0; cursor: pointer; }
+.marco a:hover, .marco .sel:hover, .marco .lk:hover { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1px; }
+/* cabeceras */
+.cab { position: relative; display: flex; align-items: center; height: 72px; padding: 0 clamp(16px, 3vw, 40px); border-bottom: 1px solid var(--linea); background: var(--muro); }
+.movil .cab { height: 60px; padding: 0 16px; }
+.logo { display: inline-flex; align-items: center; gap: 8px; }
+.logo svg { width: 28px; height: 28px; color: var(--roja); }
+.logo span { font: 500 20px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; letter-spacing: .12em; color: var(--roja); }
+.izq, .der, .centro { display: flex; align-items: center; gap: clamp(14px, 2vw, 28px); }
+.der { margin-left: auto; }
+.centro { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.n { font-style: normal; font-variant-numeric: tabular-nums; }
+.ic { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.4; }
+.hamb { width: 36px; height: 36px; display: grid; place-content: center; gap: 6px; }
+.hamb i { display: block; width: 20px; height: 1px; background: currentColor; }
+/* contexto bajo la cabecera, para juzgarla en uso */
+.contexto { padding: clamp(28px, 5vw, 56px) clamp(16px, 3vw, 40px) 40px; display: grid; gap: 28px; grid-template-columns: 1fr minmax(0, 36%); align-items: end; }
+.movil .contexto { grid-template-columns: 1fr; padding: 28px 16px 28px; }
+.contexto h3 { margin: 0; font: 200 clamp(44px, 7vw, 96px)/.92 "Archivo", sans-serif; font-variation-settings: "wdth" 125; text-transform: uppercase; letter-spacing: .02em; }
+.movil .contexto h3 { font-size: 54px; }
+.obra { aspect-ratio: 4/5; background: var(--lienzo); display: grid; place-items: center; color: var(--piedra); }
+.movil .obra { aspect-ratio: 4/3; }
+.cedula { display: flex; justify-content: space-between; margin-top: 12px; }
+.cedula em { font: italic 400 20px/1.2 "Newsreader", serif; }
+/* menú desplegable */
+.panel { position: absolute; inset: 0; background: var(--muro); z-index: 5; padding: 0 clamp(16px, 3vw, 40px); display: none; flex-direction: column; }
+.panel.abierto { display: flex; }
+.panel .cab { padding: 0; }
+.panel ul { list-style: none; margin: clamp(20px, 4vw, 48px) 0 0; padding: 0; display: grid; gap: 4px; }
+.panel li a { display: block; font: 200 clamp(36px, 5vw, 64px)/1.1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; text-transform: uppercase; letter-spacing: .02em; }
+.movil .panel li a { font-size: 38px; }
+.panel .pie-panel { margin-top: auto; padding: 24px 0 28px; display: flex; gap: 24px; flex-wrap: wrap; color: var(--piedra); }
+.sub { border-bottom: 1px solid var(--linea); display: flex; justify-content: center; gap: clamp(18px, 3vw, 40px); padding: 14px 0; }
+.sel-lista { position: absolute; top: calc(100% + 8px); background: var(--muro); border: 1px solid var(--linea); padding: 8px 0; min-width: 150px; z-index: 4; display: none; }
+.sel-lista.abierto { display: block; }
+.sel-lista button { display: block; width: 100%; text-align: left; padding: 8px 16px; }
+.sel-lista button:hover { background: var(--lienzo); }
+.pos { position: relative; }
+.nota-pie { color: var(--piedra); font-size: 13px; margin-top: 12px; }
+.elige { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--linea); color: var(--piedra); }
+.riel { display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 560px; }
+.riel aside { border-right: 1px solid var(--linea); padding: 28px 24px; display: flex; flex-direction: column; gap: 28px; }
+.riel aside nav { display: grid; gap: 14px; }
+.riel aside .abajo { margin-top: auto; display: grid; gap: 14px; }
+.flota { position: relative; }
+.flota .cab { position: absolute; top: 0; left: 0; right: 0; border: 0; background: transparent; z-index: 3; height: 76px; }
+.flota .contexto { padding-top: 96px; }
+</style>
+</head>
+<body>
+<main class="lamina">
+  <div class="cima">
+    <div>
+      <h1>Cabeceras minimalistas</h1>
+      <p>Seis maneras de dejar la cabecera de la tienda casi vacía. Toca todo: menús, tienda y claro / oscuro.</p>
+    </div>
+    <div class="tema" role="group" aria-label="Tema">
+      <button type="button" data-tema="claro" aria-pressed="true">Claro</button>
+      <button type="button" data-tema="oscuro" aria-pressed="false">Oscuro</button>
+    </div>
+  </div>
+  <div id="variantes"></div>
+  <p class="elige">Dime el número (1 a 6) o mezcla: «la 2, pero con la tienda de la 1».</p>
+</main>
+
+<script>
+const COLIBRI = `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7c5 0 9 3 11 7 1-3 4-5 8-5l6-4-3 6c0 5-3 9-8 10l-3 6-2-6C8 20 5 14 3 7Z"/></svg>`;
+const logo = `<a class="logo" href="#" aria-label="CAYLA">${COLIBRI}<span>CAYLA</span></a>`;
+const lupa = `<svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>`;
+const bolsaIc = `<svg class="ic" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>`;
+const hamb = `<button class="hamb" data-abre aria-label="Abrir el menú"><i></i><i></i></button>`;
+
+/* Selector de tienda, como un texto: «Todas ▾» */
+const tienda = `<span class="pos"><button class="sel cap" data-sel>Todas&nbsp;▾</button>
+  <span class="sel-lista"><button data-pon="Todas">Todas las tiendas</button><button data-pon="Lima">Lima</button><button data-pon="Trujillo">Trujillo</button></span></span>`;
+
+const contexto = (m) => `<div class="contexto"><h3>Lo<br>nuevo</h3><div><div class="obra">obra</div><div class="cedula"><em>Blusa Emma</em><span class="n">S/ 79.90</span></div></div></div>`;
+
+const panel = (m) => `<div class="panel" data-panel>
+  <div class="cab">${logo}<div class="der"><button class="cap lk" data-cierra>Cerrar</button></div></div>
+  <ul><li><a href="#">Lo nuevo</a></li><li><a href="#">Ropa</a></li><li><a href="#">Looks</a></li><li><a href="#">Más vendidos</a></li><li><a href="#">Ofertas</a></li></ul>
+  <div class="pie-panel cap">${tienda}<a href="#">Entrar</a><a href="#">Buscar</a></div>
+</div>`;
+
+const V = [
+  {
+    n: "1", t: "Una línea", nota: "La de A. Tres palabras a cada lado y el logo al centro. La tienda pasa a un «Todas ▾» chico: desaparece la segunda barra y la franja negra.",
+    d: () => `<header class="cab"><nav class="izq cap"><a href="#">Lo nuevo</a><a href="#">Ropa</a><a href="#">Looks</a></nav><div class="centro">${logo}</div><nav class="der cap">${tienda}<a href="#">Buscar</a><a href="#">Bolsa <i class="n">2</i></a></nav></header>`,
+    m: () => `<header class="cab">${hamb}<div class="centro">${logo}</div><nav class="der cap"><a href="#">Bolsa <i class="n">2</i></a></nav></header>`,
+    conPanel: true,
+  },
+  {
+    n: "2", t: "Solo marca y menú", nota: "Lo más vacío: el logo y dos palabras. Todo lo demás (secciones, tienda, buscar, cuenta) vive en un menú grande a pantalla completa. Igual en escritorio y celular.",
+    d: () => `<header class="cab">${logo}<nav class="der cap"><button class="lk cap" data-abre>Menú</button><a href="#">Bolsa <i class="n">2</i></a></nav></header>`,
+    m: () => `<header class="cab">${logo}<nav class="der cap"><button class="lk cap" data-abre>Menú</button><a href="#">Bolsa <i class="n">2</i></a></nav></header>`,
+    conPanel: true,
+  },
+  {
+    n: "3", t: "Logo arriba, secciones debajo", nota: "Editorial: el logo solo y centrado, y debajo una línea fina con las secciones. La tienda y la bolsa en las esquinas. Más aire, un poco más alto.",
+    d: () => `<header style="border-bottom:1px solid var(--linea)"><div class="cab" style="border:0;height:64px"><div class="izq cap">${tienda}</div><div class="centro">${logo}</div><nav class="der cap"><a href="#">Buscar</a><a href="#">Bolsa <i class="n">2</i></a></nav></div><nav class="sub cap" style="border:0;padding-top:0;padding-bottom:16px"><a href="#">Lo nuevo</a><a href="#">Ropa</a><a href="#">Looks</a><a href="#">Ofertas</a></nav></header>`,
+    m: () => `<header class="cab">${hamb}<div class="centro">${logo}</div><nav class="der cap"><a href="#">Bolsa <i class="n">2</i></a></nav></header>`,
+    conPanel: true,
+  },
+  {
+    n: "4", t: "Logo a la izquierda, solo íconos", nota: "Marca a la izquierda, cuatro secciones al centro y solo dos íconos finos a la derecha (buscar y bolsa). La tienda se elige al entrar a Ropa o en el pie.",
+    d: () => `<header class="cab">${logo}<nav class="centro cap"><a href="#">Lo nuevo</a><a href="#">Ropa</a><a href="#">Looks</a><a href="#">Ofertas</a></nav><nav class="der"><a href="#" aria-label="Buscar">${lupa}</a><a href="#" aria-label="Bolsa">${bolsaIc}</a></nav></header>`,
+    m: () => `<header class="cab">${hamb}<div class="centro">${logo}</div><nav class="der"><a href="#" aria-label="Bolsa">${bolsaIc}</a></nav></header>`,
+    conPanel: true,
+  },
+  {
+    n: "5", t: "Riel lateral", nota: "Como la pared de un museo: una columna angosta a la izquierda con el logo y las secciones en vertical; arriba no queda barra y el contenido gana todo el alto. En celular vuelve a hamburguesa.",
+    completo: true,
+    d: () => `<div class="riel"><aside>${logo}<nav class="cap"><a href="#">Lo nuevo</a><a href="#">Ropa</a><a href="#">Looks</a><a href="#">Ofertas</a></nav><div class="abajo cap">${tienda}<a href="#">Buscar</a><a href="#">Bolsa <i class="n">2</i></a></div></aside><div>${contexto()}</div></div>`,
+    m: () => `<header class="cab">${hamb}<div class="centro">${logo}</div><nav class="der cap"><a href="#">Bolsa <i class="n">2</i></a></nav></header>`,
+    conPanel: true,
+  },
+  {
+    n: "6", t: "Flotante sobre la foto", nota: "Sin barra ni raya: el logo y dos palabras flotan sobre el contenido, que empieza desde el borde de arriba. La más limpia a la vista; el menú sigue siendo la pantalla completa de la 2.",
+    completo: true,
+    d: () => `<div class="flota"><header class="cab">${logo}<nav class="der cap"><button class="lk cap" data-abre>Menú</button><a href="#">Bolsa <i class="n">2</i></a></nav></header>${contexto()}</div>`,
+    m: () => `<div class="flota"><header class="cab">${logo}<nav class="der cap"><button class="lk cap" data-abre>Menú</button><a href="#">Bolsa <i class="n">2</i></a></nav></header>${contexto()}</div>`,
+    conPanel: true,
+  },
+];
+
+document.getElementById("variantes").innerHTML = V.map((v) => `
+<section class="variante">
+  <div class="variante-cab"><b>${v.n}</b><h2>${v.t}</h2><p>${v.nota}</p></div>
+  <div class="marcos">
+    <div><span class="etq">Escritorio</span><div class="marco">${v.completo ? v.d() : v.d() + contexto()}${v.conPanel ? panel() : ""}</div></div>
+    <div class="movil"><span class="etq">Celular · 390 px</span><div class="marco">${v.completo && !v.m().includes("flota") ? v.m() + contexto() : (v.completo ? v.m() : v.m() + contexto())}${v.conPanel ? panel() : ""}</div></div>
+  </div>
+</section>`).join("");
+
+/* Interacción: menú, selector de tienda, tema */
+document.addEventListener("click", (e) => {
+  const abre = e.target.closest("[data-abre]"), cierra = e.target.closest("[data-cierra]"), sel = e.target.closest("[data-sel]"), pon = e.target.closest("[data-pon]");
+  const marco = e.target.closest(".marco");
+  if (e.target.closest("a[href='#']")) e.preventDefault();
+  if (abre && marco) marco.querySelector("[data-panel]").classList.add("abierto");
+  if (cierra && marco) marco.querySelector("[data-panel]").classList.remove("abierto");
+  document.querySelectorAll(".sel-lista.abierto").forEach((l) => { if (!sel || l !== sel.nextElementSibling) l.classList.remove("abierto"); });
+  if (sel) sel.nextElementSibling.classList.toggle("abierto");
+  if (pon) { document.querySelectorAll("[data-sel]").forEach((b) => (b.innerHTML = pon.dataset.pon + "&nbsp;▾")); }
+  const tema = e.target.closest("[data-tema]");
+  if (tema) { document.body.classList.toggle("oscuro", tema.dataset.tema === "oscuro"); document.querySelectorAll("[data-tema]").forEach((b) => b.setAttribute("aria-pressed", String(b === tema))); }
+});
+</script>
+</body>
+</html>

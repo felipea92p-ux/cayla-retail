@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { avanceDeMision, claveMision, leerFotoMision, objetivosDeHoy } from "@/lib/existencias-mision";
 import { hoyLima } from "@/lib/fechas-lima";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
-const LARGO = 2 * Math.PI * 13;
 const nada = () => () => {};
 
 /* ====================================================================
@@ -78,27 +78,12 @@ export function AnilloMision({
           : `Hoy: ${hechas} de ${total} tallas resueltas. Pendientes: ${pendientes}`
       }
       title="Lo de hoy: tallas por colgar y agotadas que otra tienda tiene. Toca para ver los pendientes de la sede."
-      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-sand bg-crema p-[3px] text-left text-[13px] transition-colors hover:border-taupe lg:pr-3.5"
+      className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-sand bg-crema text-left text-[13px] transition-colors hover:border-taupe lg:pr-3.5"
     >
-      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden className="shrink-0">
-        <circle cx="16" cy="16" r="13" fill="none" strokeWidth="3.5" stroke="var(--color-hueso)" />
-        <circle
-          cx="16"
-          cy="16"
-          r="13"
-          fill="none"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          stroke={listo ? "var(--color-verde)" : "var(--color-ambar)"}
-          transform="rotate(-90 16 16)"
-          strokeDasharray={LARGO}
-          strokeDashoffset={LARGO * (1 - fraccion)}
-          className="transition-[stroke-dashoffset] duration-500 ease-[var(--ease-cayla)] motion-reduce:transition-none"
-        />
-        <text x="16" y="16" textAnchor="middle" dominantBaseline="central" className="fill-tinta text-[11px] font-semibold tabular-nums lg:hidden">
-          {adentro}
-        </text>
-      </svg>
+      {/* El anillo chico del sistema (ronda 13). Lo que falta va en ámbar a propósito: es el recordatorio de lo de hoy (2026-10-06). */}
+      <Anillo pct={fraccion * 100} tamano="chico" tono={listo ? "verde" : "ambar"} decorativa>
+        <span className="text-tinta lg:hidden">{adentro}</span>
+      </Anillo>
       <span className="leading-tight max-lg:hidden">
         <b className="block whitespace-nowrap text-[13.5px] font-semibold tabular-nums text-tinta">{texto}</b>
         <small className="text-[11px] text-taupe">hoy</small>

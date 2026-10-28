@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { LogoCayla } from "@/components/ui/LogoCayla";
 import { NIVEL_QR, ZONA_MUDA_MODULOS } from "@/lib/qr";
 import { cartelesDelClub, type CartelDeTienda } from "@/lib/club-qr-reglas";
 import { CARTEL_INVITACION, letraChicaDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
@@ -19,8 +20,9 @@ import { BotonImprimir } from "@/components/ui/BotonImprimir";
 // Ninguna cifra está escrita aquí: las tres líneas y la letra chica las arma `lib/club-cartel-reglas.ts` con los beneficios que
 // leyó el servidor. Sin ellos no se dibuja ningún cartel (ni en pantalla ni en la impresora): la pantalla dice por qué.
 //
-// Cada QR abre la página de registro de SU tienda (`/club/<uuid>`), armada con el origen de este navegador: el mismo dominio
-// donde vive la página. Antes de montarse en el navegador no hay origen, y el cuadro del QR queda vacío un instante.
+// Cada QR abre la tienda online (`ENLACE_DEL_CARTEL`, con la marca `?utm_source=qr` para que Tienda web ▸ Tráfico cuente a quien escanea,
+// ADR-0495): ahí la persona crea su cuenta y entra al Club (Felipe 2026-10-16, 20261016154000). Es la misma para todas las tiendas; los
+// carteles impresos antes llevan a `/club/<uuid>`, que redirige ahí. Lo escrito bajo el QR sigue siendo «tienda.cayla.pe», sin la marca.
 
 const sinSuscripcion = () => () => {};
 
@@ -47,22 +49,22 @@ export function CartelClub({
   fuente: string;
   volver: ReactNode;
 }) {
-  // El origen (y el portal, que necesita `document`) solo existen en el navegador: en el servidor no hay hoja ni QR. Montada,
-  // la hoja queda siempre, así Ctrl+P también imprime los carteles y no la pantalla.
-  const origen = useSyncExternalStore(sinSuscripcion, () => window.location.origin, () => null);
-  const carteles = origen ? cartelesDelClub(origen, tiendas) : tiendas.map((t) => ({ id: t.id, tienda: t.nombre, numero: null, enlace: "" }));
+  // El portal necesita `document`: solo existe en el navegador, y en el servidor no hay hoja. Montada, la hoja queda siempre, así
+  // Ctrl+P también imprime los carteles y no la pantalla.
+  const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
+  const carteles = cartelesDelClub(tiendas);
   const hay = carteles.length > 0;
-  const sinNumero = origen ? carteles.filter((c) => c.numero === null).map((c) => c.tienda) : [];
+  const sinNumero = carteles.filter((c) => c.numero === null).map((c) => c.tienda);
 
   return (
     <div className={`space-y-8 ${fuente}`}>
       <EncabezadoPagina
         sede="Todas las sedes"
         titulo="Cartel del club"
-        subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR y se registra en el Club CAYLA desde su celular."
+        subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR, crea su cuenta en tienda.cayla.pe y así entra al Club CAYLA."
         pie={volver}
         acciones={
-          <BotonImprimir peso="primario" disabled={!hay || !textos || !origen} onClick={() => window.print()}>
+          <BotonImprimir peso="primario" disabled={!hay || !textos || !montado} onClick={() => window.print()}>
             {hay && textos ? `Imprimir ${carteles.length === 1 ? "el cartel" : `${carteles.length} carteles`}` : "Nada que imprimir"}
           </BotonImprimir>
         }
@@ -97,7 +99,8 @@ export function CartelClub({
             {sinNumero.length > 0 && (
               <p className="nota-cayla">
                 <b>{sinNumero.join(", ")}</b> {sinNumero.length === 1 ? "no tiene" : "no tienen"} número de WhatsApp: el cartel sirve igual, pero
-                quien se una ahí no tiene a quién saludar al final ni de dónde recibir las novedades. El líder lo carga en{" "}
+                {sinNumero.length === 1 ? "esa tienda no tiene" : "esas tiendas no tienen"} desde dónde escribir las novedades del Club. El
+                líder lo carga en{" "}
                 <Link href="/configuracion?tab=tiendas" className="btn-enlace">
                   Configuración ▸ Tiendas y caja
                 </Link>
@@ -105,15 +108,15 @@ export function CartelClub({
               </p>
             )}
             <p className="nota-cayla">
-              Antes de pegarlo, escanéalo con un celular: tiene que abrir la página del Club CAYLA <b>de esa tienda</b>. El ticket
-              impreso lleva el mismo QR. Al imprimir, papel A4 y, si el navegador pregunta por los márgenes, «Ninguno»: el fondo va hasta
+              Antes de pegarlo, escanéalo con un celular: tiene que abrir la tienda online, <b>tienda.cayla.pe</b>. Ahí el cliente crea
+              su cuenta y entra al Club. Al imprimir, papel A4 y, si el navegador pregunta por los márgenes, «Ninguno»: el fondo va hasta
               el borde de la hoja.
             </p>
           </>
         )
       )}
 
-      {origen &&
+      {montado &&
         hay &&
         textos &&
         createPortal(
@@ -137,8 +140,9 @@ function Cartel({ cartel, textos }: { cartel: CartelDeTienda; textos: TextosCart
       <div className="cartel-club-marco">
         <div className="cartel-club-interior">
           <div className="cartel-club-cabeza">
-            {/* eslint-disable-next-line @next/next/no-img-element -- se imprime: una <img> normal se decodifica antes de `print()` */}
-            <img src="/cayla-isotipo.png" alt="" className="cartel-club-isotipo" />
+            {/* El logo oficial (ADR-0446) en crema sobre el rojo profundo; debajo, «CLUB» en versalitas. */}
+            <LogoCayla tinta="actual" className="cartel-club-logo" />
+            <span className="sr-only">CAYLA</span>
             <span className="cartel-club-sello">{CARTEL_INVITACION.sello}</span>
           </div>
 
@@ -165,18 +169,16 @@ function Cartel({ cartel, textos }: { cartel: CartelDeTienda; textos: TextosCart
           <div className="cartel-club-pie">
             {/* La zona muda va DENTRO del cuadro crema (4 módulos, la norma): sin ella el lector no encuentra dónde empieza. */}
             <div className="cartel-club-qr">
-              {cartel.enlace && (
-                <QRCodeSVG
-                  value={cartel.enlace}
-                  size={512}
-                  level={NIVEL_QR}
-                  marginSize={ZONA_MUDA_MODULOS}
-                  bgColor="transparent"
-                  fgColor="currentColor"
-                  role="img"
-                  aria-label={`QR del Club CAYLA de ${cartel.tienda}`}
-                />
-              )}
+              <QRCodeSVG
+                value={cartel.enlace}
+                size={512}
+                level={NIVEL_QR}
+                marginSize={ZONA_MUDA_MODULOS}
+                bgColor="transparent"
+                fgColor="currentColor"
+                role="img"
+                aria-label={`QR del Club CAYLA de ${cartel.tienda}: abre tienda.cayla.pe`}
+              />
             </div>
             <p className="cartel-club-escanea">{CARTEL_INVITACION.escanea}</p>
             <p className="cartel-club-letra-chica">{letraChicaDelCartel(cartel.tienda, textos)}</p>

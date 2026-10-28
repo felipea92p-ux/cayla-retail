@@ -86,3 +86,15 @@ uno viejo en vez de editarlo).
 Felipe se lleva: cerrar en bloque deja de enterrar sin contar; TRU, AQP y LIM tienen que cuadrar el piso al menos una vez antes del 18, 21 y
 31. Verificado: `pnpm pruebas:cola-arranque` 56/56 (3 casos nuevos), `lib/cola-arranque-reglas.test.ts` 33, `tsc` y vitest entero en verde;
 en el navegador local la mesa muestra el aviso en vez del botón. Aplicada en producción el 2026-10-14 con el OK de Felipe (versión `20261015000109`).
+
+## 2026-10-28 (se trajo `main` a la rama: 2.384 commits después)
+Qué hice: merge de `origin/main` en la rama, con 12 archivos en conflicto. Lo de `main` ganó donde ya había decidido otra cosa: las pruebas de Postgres
+usan `20261027174000` y la columna `nota` del cuadre de prueba; la mesa de Por regularizar ya no exige ser líder (ADR-0534) y conserva el cuadre de A6;
+el texto de «Descuento, espera y quién atiende» de la guía de Vender sigue el de `main` y suma lo de A5 en 315 letras. Las huellas de Vender y de
+Por regularizar se regeneraron con `guias:huella` (solo suman los 3 y 2 controles de A2, A3 y A5). Una regla nueva de `main`
+(`lib/montos-sin-corte.test.ts`) obligó a escribir «S/ » con espacio duro en los tres montos de A3.
+Por qué así: `main` ya trae por su cuenta el SQL de A1 (dentro de `20261017040000`) y el candado de A6 (`20261027174000`), con el mismo texto que
+`20261014165000` y `20261015004000`; esas migraciones son reemplazos anclados que se saltan si el texto nuevo ya está, así que corren en cualquier
+orden sin cambiar nada. Lo que `main` todavía no tiene es A0 (`20261014161000`, el plazo de la cola sigue a la carga inicial; en producción desde el
+14-oct) y todo el código web de A1, A2, A3, A5 y A6.
+Verificado: `tsc` limpio, `vitest` entero (707 archivos), `knip` limpio. Sin Docker en esta sesión: las pruebas de Postgres las corre el CI.

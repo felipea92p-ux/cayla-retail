@@ -102,3 +102,11 @@ Navegador integrado, 1440 × 900 y 1024 × 768, claro y oscuro, 0 errores de con
 - **Que la regla de costos sea «ve el módulo `produccion`» y no una cuenta concreta** (se confirma al escribir A4b).
 - **Tercerizar una etapa al abrir** (y la tarifa de maquila desde `cotizaciones_maquila`, hoy 0 filas) y los `CHECK` de `variantes` y `producciones` que admiten `NaN`: modelo de datos y núcleo, de Felipe; no se tocan aquí.
 - `abrir_produccion` no valida la fecha de entrega (hoy puede ser pasada): del núcleo.
+
+## Actualización 2026-10-14 · A4–A7 las absorbe el ADR-0400 (decisión de Felipe)
+
+El 2026-10-13 Felipe pidió rediseñar **todo** el módulo Producción (ADR-0400: fases con quién las hace, Salida y Vuelta de un servicio,
+tela y consumo de la orden, avance «Terminé N», cabecera única). Las actividades A4 a A7 de este ADR **no se construyen en su rama**:
+A4 pierde sentido (los tres montos tecleados desaparecen: el costo de servicio es el devengado y el de tela sale del consumo), A4b (costos
+del Taller para quien ve `produccion`) entra en la migración `20261014160000`, A5 (palabras y plazos) en la actividad 8 del ADR-0400 y
+A6 («Producir este modelo») en la actividad 3. A1–A3 quedan intactas y son la base de la hoja nueva.

@@ -135,7 +135,7 @@ describe("cómo se dibuja", () => {
       "Efectivo por rendir",
       "Cajones (resta del cierre de esa caja)",
       "Tarjeta de crédito",
-      "Por abonar (POS)",
+      "Por depositar (máquina de cobro)",
     ]);
     expect(agruparCuentas([c("bcp", "banco")]).length).toBe(1);
   });
@@ -203,8 +203,8 @@ describe("el fondo por rendir en «Sale de»", () => {
 
   it("va primero en el combo, con lo que tiene en la mano o lo que CAYLA le debe", () => {
     const opciones = opcionesDeCuenta(CON_FONDO, "pago", "efectivo");
-    expect(opciones[0]).toEqual({ valor: "fondo_ana", texto: "Mi fondo · tienes S/ 380.00", grupo: "Tu fondo por rendir", deshabilitada: false });
-    expect(etiquetaCuenta({ ...FONDO, saldo: -120 })).toBe("Mi fondo · CAYLA te debe S/ 120.00");
+    expect(opciones[0]).toEqual({ valor: "fondo_ana", texto: "Mi fondo · tienes S/\u00a0380.00", grupo: "Tu fondo por rendir", deshabilitada: false });
+    expect(etiquetaCuenta({ ...FONDO, saldo: -120 })).toBe("Mi fondo · CAYLA te debe S/\u00a0120.00");
     expect(etiquetaCuenta({ ...FONDO, saldo: 0 })).toBe("Mi fondo · sin plata");
     // Con tarjeta no aparece.
     expect(opcionesDeCuenta(CON_FONDO, "pago", "tarjeta").some((o) => o.valor === "fondo_ana")).toBe(false);
@@ -229,14 +229,14 @@ describe("el fondo por rendir en «Sale de»", () => {
   });
 
   it("la frase de abajo dice cuánto le queda y, si no alcanza, que CAYLA se lo devuelve al rendir (nunca frena)", () => {
-    expect(ayudaDelFondo(380, 0)).toBe("Sale de tu fondo por rendir (tienes S/ 380.00): no toca ninguna caja.");
-    expect(ayudaDelFondo(380, 300)).toBe("Sale de tu fondo: te quedan S/ 80.00 en la mano.");
-    expect(ayudaDelFondo(380, 380)).toBe("Sale de tu fondo: te quedan S/ 0.00 en la mano.");
-    expect(ayudaDelFondo(380, 500)).toBe("Tu fondo tiene S/ 380.00: los S/ 120.00 que faltan los pones tú y CAYLA te los devuelve al rendir.");
+    expect(ayudaDelFondo(380, 0)).toBe("Sale de tu fondo por rendir (tienes S/\u00a0380.00): no toca ninguna caja.");
+    expect(ayudaDelFondo(380, 300)).toBe("Sale de tu fondo: te quedan S/\u00a080.00 en la mano.");
+    expect(ayudaDelFondo(380, 380)).toBe("Sale de tu fondo: te quedan S/\u00a00.00 en la mano.");
+    expect(ayudaDelFondo(380, 500)).toBe("Tu fondo tiene S/\u00a0380.00: los S/\u00a0120.00 que faltan los pones tú y CAYLA te los devuelve al rendir.");
     expect(ayudaDelFondo(0, 0)).toBe("Tu fondo no tiene plata: lo que pagues lo pones tú y CAYLA te lo devuelve al rendir.");
-    expect(ayudaDelFondo(0, 250)).toBe("Lo pones tú: CAYLA te deberá S/ 250.00 y te lo devuelve al rendir.");
-    expect(ayudaDelFondo(-100, 0)).toBe("CAYLA ya te debe S/ 100.00: lo que pagues lo pones tú y se suma a lo que te debe.");
-    expect(ayudaDelFondo(-100, 250)).toBe("Lo pones tú: CAYLA te deberá S/ 350.00 y te lo devuelve al rendir.");
+    expect(ayudaDelFondo(0, 250)).toBe("Lo pones tú: CAYLA te deberá S/\u00a0250.00 y te lo devuelve al rendir.");
+    expect(ayudaDelFondo(-100, 0)).toBe("CAYLA ya te debe S/\u00a0100.00: lo que pagues lo pones tú y se suma a lo que te debe.");
+    expect(ayudaDelFondo(-100, 250)).toBe("Lo pones tú: CAYLA te deberá S/\u00a0350.00 y te lo devuelve al rendir.");
     expect(ayudaCuenta(FONDO, "sale")).toBe(ayudaDelFondo(380, 0));
   });
 

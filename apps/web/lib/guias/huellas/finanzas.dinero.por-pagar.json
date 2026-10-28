@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.por-pagar",
   "ruta": "/finanzas/dinero/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 49,
   "controles": {
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -13,29 +13,29 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/MediosDePago.tsx": [
-      "Desplegable «cambiar(i,»",
+      "Desplegable «{m.metodo}»",
       "input «{`Monto del medio ${i + 1}»",
       "input «{`Referencia del medio ${i + 1}»",
       "button «{`Quitar el medio ${i + 1}»",
       "button «Agregar otro medio»",
-      "Desplegable «(sin nombre)»"
+      "Desplegable «{valor}»"
     ],
     "components/PagarComprobanteProduccionModal.tsx": [
       "CampoTexto «Fecha del pago»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/PagoPiezas.tsx": [
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "BotonCopiar «{que}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
       "CampoFecha «Fecha del pago»",
@@ -52,7 +52,26 @@
     ],
     "components/finanzas/PorPagarConsolidado.tsx": [
       "Link «fin-por-pagar.varias»",
+      "button «{TEXTO_NATURALEZA[t]}»",
+      "FiltroPuesto «{`Quitar el filtro ${p.texto}»",
+      "BotonLimpiar «Limpiar todo»",
       "Link «fin-por-pagar.pagar»"
+    ],
+    "components/finanzas/telar/DockTelar.tsx": [
+      "Link «{`${a.texto}»",
+      "button «{`${a.texto}»"
+    ],
+    "components/finanzas/telar/MesaDeMando.tsx": [
+      "button «Todas»",
+      "button «{marcada && <Check className=\"h-3 w-3\" />}»",
+      "BotonEnlace «telar.registrar»"
+    ],
+    "components/finanzas/telar/Orillo.tsx": [
+      "Link «{`${t.nombre}»"
+    ],
+    "components/finanzas/telar/TeToca.tsx": [
+      "button «telar.te-toca»",
+      "BotonVer «{p.verbo}»"
     ]
   }
 }

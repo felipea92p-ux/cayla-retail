@@ -7,71 +7,55 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { exportarClientas } from "@/lib/clientas-acciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { MenuAcciones } from "@/components/ui/MenuAcciones";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { NuevaClientaModal } from "@/components/NuevaClientaModal";
 import { ClientaFichaModal } from "@/components/ClientaFichaModal";
 import { BuscadorClientas } from "@/components/clientas/BuscadorClientas";
 import { Chip } from "@/components/ui/Chip";
-import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
+import { TABLA, Tabla } from "@/components/ui/Tabla";
 import { celularLegible } from "@/lib/club-caja-reglas";
 import {
   COLUMNAS_EXPORTAR,
-  FILTROS_LISTA,
-  POR_PAGINA,
   cuentaDelFiltro,
+  detalleConFicha,
   detalleFrecuentes,
   detallePublicidad,
   detalleSocias,
   estadoDeLaFila,
   filaParaExportar,
+  filtrosParaRevisar,
+  fraseDeLaFila,
   hrefLista,
   pieLista,
-  publicidadDeLaFila,
   suSedeLegible,
   ultimaCompraLegible,
+  ultimaPagina,
   type CifrasClientas,
   type ClientaDeLista,
+  type FiltroLista,
   type ParamsLista,
 } from "@/lib/clientas-lista-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { hoyLima } from "@/lib/fechas-lima";
 import { contactoVisible } from "@/lib/documento-clienta-reglas";
-import { FunnelX, SearchX, Users } from "lucide-react";
+import { FunnelX, QrCode, SearchX, Users } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { Paginas } from "@/components/ui/Paginas";
 
-// Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
-// «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nuevo cliente» en una fila; cuatro cifras (identificadas,
-// socias, con publicidad, frecuentes); el buscador y los filtros en píldoras, y la tabla, en UNA tarjeta (CLAUDE.md, ADR-0169);
-// la nota de «su sede» al pie. La lista, sus cuentas y cada columna calculada (su sede, última compra, frecuente con compra
-// neta) las da la base sobre TODAS las fichas (`fn_clientas_lista`, `fn_cifras_clientas`): la pantalla solo las pinta y
-// pagina. Búsqueda, filtro y página viven en la URL (`?q=&filtro=&pagina=`).
+// Clientes ▸ Fichas, diseño B (Felipe 2026-10-20, docs/maquetas/fichas-b-2026-10/; antes, la tabla de seis columnas del spike del club,
+// ADR-0288 «Actualización 2026-09-30 (f)»): cabecera con «Descargar lista», «Cartel del club» y «+ Nuevo cliente» en una fila (el
+// «Más» se fue: tenía una sola opción); cuatro cifras que son también los filtros principales (tocar «Miembros del club» filtra
+// la lista: así sobra la fila de píldoras repetida); el buscador, las píldoras «Para revisar» y, en vez de una tabla, una tarjeta por
+// persona con una frase que dice quién es («Miembro desde mar 2026 · compra seguido · recibe novedades»), todo en UNA tarjeta
+// (CLAUDE.md, ADR-0169); la nota de «su sede» al pie. La lista, sus cuentas y cada dato calculado (su sede, última compra, frecuente
+// con compra neta) los da la base sobre TODAS las fichas (`fn_clientas_lista`, `fn_cifras_clientas`): la pantalla solo los pinta
+// y pagina. Búsqueda, filtro y página viven en la URL (`?q=&filtro=&pagina=`).
 // D-109: cualquier cuenta con el módulo ve a TODAS las clientas, sin distinguir sede — por eso la cabecera dice «Todas las
 // sedes» en vez de la sede activa (Felipe, 2026-09-27).
-//
-// La tabla decide su forma por el ancho de la TARJETA (`@container`), no por el de la ventana: con el lateral abierto, una
-// ventana de 800 px deja ~450 px a la tabla, y las seis columnas del spike cortaban el chip de estado y el celular.
-//   · 800 px o más: las seis columnas del spike, con un mínimo que deja entero cada chip, el celular y la última compra;
-//   · de 560 a 800: cuatro (el celular va bajo el documento y la publicidad bajo el estado);
-//   · menos de 560 (celular, o una ventana angosta con el lateral): cada fila apila sus datos.
-// El spike tiene su propio error aquí (los chips se montan sobre la columna de al lado): no se copió.
-const PLANTILLA =
-  "grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1.5 " +
-  "@min-[560px]:grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,0.7fr)_minmax(8rem,1fr)_minmax(7.5rem,0.9fr)] @min-[560px]:items-center " +
-  "@min-[800px]:grid-cols-[minmax(8rem,1.7fr)_minmax(6.5rem,0.9fr)_minmax(4.5rem,0.7fr)_minmax(8rem,1.1fr)_minmax(7.5rem,1fr)_minmax(7.5rem,1.2fr)]";
-const SOLO_ANCHA = "hidden @min-[800px]:block";
-const COLUMNAS: Columna[] = [
-  { titulo: "Cliente" },
-  { titulo: "Celular", clase: SOLO_ANCHA },
-  { titulo: "Su sede", ayuda: "Donde más compró en los últimos 12 meses" },
-  { titulo: "Estado", ayuda: "Identificado: tiene ficha y sus compras se ligan. Miembro: dijo que sí al club." },
-  { titulo: "Publicidad", clase: SOLO_ANCHA, ayuda: "Novedades, rebajas y su saludo por WhatsApp: solo si lo pidió." },
-  { titulo: "Última compra" },
-];
-const DESDE_MEDIA = "hidden @min-[560px]:block";
 
 export function ClientasPanel({
   filas,
@@ -121,7 +105,12 @@ export function ClientasPanel({
     router.refresh();
   }
 
-  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  /** Tocar una cifra la pone de filtro; tocar la que ya está puesta vuelve a «Todos». */
+  function filtrar(filtro: FiltroLista) {
+    router.push(hrefLista(params, { filtro: params.filtro === filtro ? "todas" : filtro }), { scroll: false });
+  }
+
+  const paginas = ultimaPagina(total);
   // El vacío dice por qué y ofrece deshacerlo ahí mismo (ADR-0358 ronda 5): borrar la búsqueda o volver a «Todos».
   const vacioIcono = params.termino ? <SearchX /> : params.filtro === "todas" ? <Users /> : <FunnelX />;
   const vacioAccion = params.termino
@@ -139,26 +128,21 @@ export function ClientasPanel({
     <div className="space-y-8">
       <EncabezadoPagina
         sede="Todas las sedes"
-        titulo="Clientes"
-        subtitulo="El club de CAYLA: la tienda recuerda a cada cliente y le escribe solo cuando tiene algo que le sirve."
+        titulo="Fichas"
+        subtitulo="Aquí están los clientes que la tienda recuerda. Toca uno para ver su historia y sus beneficios."
         acciones={
-          // A 375 px los tres botones caben en una fila: los tres con `px-3`, 8 px entre ellos y «Descargar» a secas, sin su ícono
-          // (con el padding de siempre, o con «Descargar lista», «+ Nuevo cliente» bajaba). Más angosto, la fila se parte sola.
+          // A 375 px los botones van con `px-3`, «Descargar» a secas y «Cartel» sin su «del club» ni su ícono: «Descargar» y «Cartel»
+          // caben en una fila y «+ Nuevo cliente» baja a la suya (con el «Más» de antes cabían los tres). La fila se parte sola.
           <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3">
             <BotonDescargar onClick={onExportar} cargando={exportando} className="max-sm:px-3 max-sm:[&_.lucide-download]:hidden" title="Solo un Admin puede descargar la lista completa" guia="clientas.exportar">
               Descargar<span className="max-sm:hidden"> lista</span>
             </BotonDescargar>
-            {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px.
-                «Llegó un mensaje de WhatsApp» se fue en la tanda 1g (G-7): ella se une desde el cartel y la BAJA va en su ficha. */}
-            <span data-guia="clientas.mas" className="max-sm:[&>button]:px-3">
-              <MenuAcciones
-                etiqueta="Más acciones de Clientes"
-                texto="Más"
-                items={[
-                  { clave: "cartel", etiqueta: "Imprimir el cartel del club", onSelect: () => router.push("/clientas/cartel") },
-                ]}
-              />
-            </span>
+            {/* Antes iba en un «Más» que tenía solo esta opción: ahora es un botón a la vista. Lleva a su pantalla (la hoja A4 con
+                el QR de cada tienda), no imprime desde aquí: por eso el ícono es el del QR y no el de la impresora. */}
+            <BotonEnlace href="/clientas/cartel" peso="fantasma" className="max-sm:px-3 max-sm:[&_.lucide-qr-code]:hidden" data-guia="clientas.cartel" title="Abre el cartel con el QR del club, para imprimirlo">
+              <QrCode className="h-4 w-4" aria-hidden />
+              Cartel<span className="max-sm:hidden"> del club</span>
+            </BotonEnlace>
             <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)} data-guia="clientas.nuevo">
               + Nuevo cliente
             </Boton>
@@ -168,16 +152,18 @@ export function ClientasPanel({
 
       {cifras && (
         <div className="anim-sube grid grid-cols-2 gap-3 lg:grid-cols-4" style={{ "--i": 1 } as React.CSSProperties} data-guia="clientas.cifras">
-          <TarjetaCifra etiqueta="Identificados" valor={cifras.identificadas}>
-            Con ficha: sus compras se ligan
+          {/* Cada cifra es también un filtro (la que está puesta se rellena; tocarla otra vez vuelve a «Todos»): la lista no repite
+              esos cuatro como píldora. Un filtro por clic navega con el loader de siempre (ADR-0149). */}
+          <TarjetaCifra etiqueta="Clientes con ficha" valor={cifras.identificadas} onClick={() => filtrar("todas")} activa={params.filtro === "todas"}>
+            {detalleConFicha()}
           </TarjetaCifra>
-          <TarjetaCifra etiqueta="Miembros del club" valor={cifras.socias}>
+          <TarjetaCifra etiqueta="Miembros del club" valor={cifras.socias} onClick={() => filtrar("socias")} activa={params.filtro === "socias"}>
             {detalleSocias(cifras)}
           </TarjetaCifra>
-          <TarjetaCifra etiqueta="Con publicidad" valor={cifras.conPublicidad} punto="verde">
+          <TarjetaCifra etiqueta="Reciben novedades" valor={cifras.conPublicidad} punto="verde" onClick={() => filtrar("con_publicidad")} activa={params.filtro === "con_publicidad"}>
             {detallePublicidad(cifras)}
           </TarjetaCifra>
-          <TarjetaCifra etiqueta="Frecuentes" valor={cifras.frecuentes}>
+          <TarjetaCifra etiqueta="Compran seguido" valor={cifras.frecuentes} onClick={() => filtrar("frecuentes")} activa={params.filtro === "frecuentes"}>
             {detalleFrecuentes()}
           </TarjetaCifra>
         </div>
@@ -187,10 +173,10 @@ export function ClientasPanel({
         <Tabla className="@container">
           <div className="space-y-3 p-4">
             <BuscadorClientas params={params} />
-            {/* Un filtro por clic es una acción decidida: navega con el loader de siempre (ADR-0149). «Archivados» es una
-                píldora más, al final: mira solo las fichas fuera de la libreta (para reactivar una o revisar una fusión). */}
-            <nav className="flex flex-wrap gap-2" aria-label="Filtrar la lista" data-guia="clientas.filtros">
-              {FILTROS_LISTA.map((f) => (
+            {/* «Para revisar»: lo que no es una cifra. Sin cifras (la base no las dio) vuelven todos los filtros como píldora. */}
+            <nav className="flex flex-wrap items-center gap-2" aria-label="Filtrar la lista" data-guia="clientas.filtros">
+              {cifras && <span className="label-cayla mr-1 text-[10.5px] text-tinta/60">Para revisar</span>}
+              {filtrosParaRevisar(cifras !== null).map((f) => (
                 <Link
                   key={f.valor}
                   href={hrefLista(params, { filtro: f.valor })}
@@ -216,45 +202,30 @@ export function ClientasPanel({
               <Vacio tamano="chico" icono={vacioIcono} accion={vacioAccion} className="py-5">
                 {vacio}
               </Vacio>
-
             ) : (
-              <>
-                <Encabezado visible="hidden @min-[560px]:grid" plantilla={PLANTILLA.replace("grid ", "")} columnas={COLUMNAS} />
-                {filas.map((c) => (
-                  <FilaClienta key={c.id} c={c} hoy={hoy} verCompleto={verCompleto} onAbrir={() => setFichaAbiertaId(c.id)} />
+              <ul className="grid gap-2.5 p-4">
+                {filas.map((c, i) => (
+                  <li key={c.id}>
+                    <FilaClienta c={c} hoy={hoy} verCompleto={verCompleto} onAbrir={() => setFichaAbiertaId(c.id)} guiaPrimera={i === 0} />
+                  </li>
                 ))}
-              </>
+              </ul>
             )}
           </div>
 
           {!falla && (
             <div className={`${TABLA.pie} flex flex-wrap items-center justify-between gap-x-4 gap-y-2`} data-guia="clientas.pie">
               <span>{pieLista(total, params.filtro, cifras)}</span>
-              {paginas > 1 && (
-                <nav className="flex items-center gap-3" aria-label="Páginas">
-                  {params.pagina > 1 ? (
-                    <Link href={hrefLista(params, { pagina: params.pagina - 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">
-                      ‹ Anterior
-                    </Link>
-                  ) : null}
-                  <span className="tabular-nums">
-                    Página {Math.min(params.pagina, paginas)} de {paginas}
-                  </span>
-                  {params.pagina < paginas ? (
-                    <Link href={hrefLista(params, { pagina: params.pagina + 1 })} className="label-cayla text-[11px] text-tinta hover:text-rojo">
-                      Siguiente ›
-                    </Link>
-                  ) : null}
-                </nav>
-              )}
+              {/* La paginación del sistema (ADR-0358, ronda 8), por URL como antes. */}
+              <Paginas pagina={params.pagina} totalPaginas={paginas} hrefDe={(n) => hrefLista(params, { pagina: n })} />
             </div>
           )}
         </Tabla>
       </div>
 
       <p className="nota-cayla anim-sube" style={{ "--i": 3 } as React.CSSProperties} data-guia="clientas.nota">
-        La <b>sede</b> de cada cliente es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «Sin publicidad» son miembros
-        que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
+        La <b>sede</b> de cada cliente es donde más compró en los últimos 12 meses: se calcula al leer, nunca se escribe. «No reciben novedades» son
+        miembros que todavía no pidieron novedades y rebajas por WhatsApp: reciben solo los avisos informativos.
       </p>
 
       {abriendoAlta && (
@@ -262,6 +233,12 @@ export function ClientasPanel({
           onClose={() => setAbriendoAlta(false)}
           onCreada={() => {
             setAbriendoAlta(false);
+            refrescar();
+          }}
+          // Ese documento ya tenía ficha (un documento es de una sola persona): se abre la suya en vez de crear otra.
+          onAbrirFicha={(id) => {
+            setAbriendoAlta(false);
+            setFichaAbiertaId(id);
             refrescar();
           }}
         />
@@ -274,56 +251,46 @@ export function ClientasPanel({
   );
 }
 
-/** Una fila: las seis columnas del spike cuando la tarjeta es ancha; más angosta, lo mismo apilado (ver PLANTILLA). */
-function FilaClienta({ c, hoy, verCompleto, onAbrir }: { c: ClientaDeLista; hoy: string; verCompleto: boolean; onAbrir: () => void }) {
-  const estado = estadoDeLaFila(c);
-  const publicidad = publicidadDeLaFila(c);
+/** Una tarjeta por persona (diseño B): su cara, su nombre y la frase que dice quién es; a la derecha, su última compra y dónde. El DNI
+ *  y el celular completos solo para el líder; los demás, a medias (Felipe 2026-10-13, auditoría punto 18). */
+function FilaClienta({ c, hoy, verCompleto, onAbrir, guiaPrimera }: { c: ClientaDeLista; hoy: string; verCompleto: boolean; onAbrir: () => void; guiaPrimera: boolean }) {
   const ultima = ultimaCompraLegible(c.ultimaCompra, hoy);
-  // Como el spike: bajo el nombre, solo el documento (el código de miembro se busca igual en el buscador).
-  // El DNI y el celular completos solo para el líder; los demás, a medias (Felipe 2026-10-13, auditoría punto 18).
   const contacto = contactoVisible(c, verCompleto, celularLegible);
-  const documento = contacto.documento ?? "Sin documento";
-  const celular = contacto.celular;
+  const dondeYCelular = [c.suSede ? suSedeLegible(c.suSede) : null, contacto.celular].filter(Boolean).join(" · ") || "Sin celular";
+  // El archivado, anonimizado o unido a otra ficha dice por qué en una insignia (la frase lo repite en palabras).
+  const fuera = c.archivadaEn ? estadoDeLaFila(c) : null;
   // La guía interactiva escribe en el buscador la primera palabra de un nombre de esta lista: solo sirve una de 3 letras o más.
   const nombreDeEjemplo = (c.nombre ?? "").split(/\s+/).some((p) => p.length >= 3);
-  const chipPublicidad = publicidad ? (
-    <Chip tono={publicidad.tono} tachado={false}>
-      {publicidad.texto}
-    </Chip>
-  ) : null;
   return (
-    <button type="button" onClick={onAbrir} className={`fila-cayla w-full cursor-pointer px-5 py-3 text-left ${PLANTILLA} ${c.archivadaEn ? "opacity-60" : ""}`} data-guia="clientas.fila">
+    <button
+      type="button"
+      onClick={onAbrir}
+      className={`card-cayla grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 px-4 py-3 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-taupe motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${c.archivadaEn ? "opacity-60" : ""}`}
+      data-guia={guiaPrimera ? "clientas.fila" : undefined}
+    >
+      <AvatarPersona personaId={null} nombre={c.nombre ?? ""} tamano={40} />
       <span className="min-w-0">
-        <span className="block break-words text-sm font-medium text-tinta @min-[560px]:truncate" data-guia={nombreDeEjemplo ? "clientas.nombre" : undefined}>{c.nombre ?? "Sin nombre"}</span>
-        <span className="block truncate text-xs text-tinta/65">
-          {documento}
-          {celular && <span className="hidden @min-[560px]:inline @min-[800px]:hidden"> · {celular}</span>}
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-display text-[19px] leading-tight text-tinta" data-guia={guiaPrimera && nombreDeEjemplo ? "clientas.nombre" : undefined}>
+            {c.nombre ?? "Sin nombre"}
+          </span>
+          {fuera && (
+            <Chip tono={fuera.tono} tachado={false}>
+              {fuera.texto}
+            </Chip>
+          )}
         </span>
+        <span className="block text-[13px] text-tinta/70">{fraseDeLaFila(c)}</span>
       </span>
-      <span className={`min-w-0 truncate text-sm tabular-nums text-tinta/80 ${SOLO_ANCHA}`}>{celular ?? "—"}</span>
-      <span className={`min-w-0 truncate text-sm text-tinta/80 ${DESDE_MEDIA}`}>{suSedeLegible(c.suSede)}</span>
-      <span className="flex min-w-0 flex-col items-end gap-1 @min-[560px]:items-start">
-        <Chip tono={estado.tono} tachado={false}>
-          {estado.texto}
-        </Chip>
-        {chipPublicidad && <span className="@min-[800px]:hidden">{chipPublicidad}</span>}
-      </span>
-      <span className={`min-w-0 ${SOLO_ANCHA}`}>{chipPublicidad ?? <span className="text-sm text-tinta/50">—</span>}</span>
-      <span className={`min-w-0 text-sm text-tinta/80 ${DESDE_MEDIA}`}>
+      <span className="col-span-2 grid gap-0.5 text-xs text-tinta/65 sm:col-span-1 sm:justify-items-end sm:text-right">
         {ultima ? (
-          <>
-            <span className="whitespace-nowrap">{ultima.fecha}</span> <span className="whitespace-nowrap text-xs text-tinta/55">· {ultima.hace}</span>
-          </>
+          <span>
+            Última compra <b className="font-medium text-tinta">{ultima.hace}</b>
+          </span>
         ) : (
-          "—"
+          <span>Sin compras todavía</span>
         )}
-      </span>
-      {/* Menos de 560 px: su celular, su sede y su última compra en una línea bajo lo demás (se parte si no cabe: nada se
-          corta a la mitad). */}
-      <span className="col-span-2 min-w-0 text-xs text-tinta/65 @min-[560px]:hidden">
-        {[celular, c.suSede ? `sede ${suSedeLegible(c.suSede)}` : null, ultima ? `última compra ${ultima.fecha} · ${ultima.hace}` : "sin compras todavía"]
-          .filter(Boolean)
-          .join(" · ")}
+        <span>{dondeYCelular}</span>
       </span>
     </button>
   );

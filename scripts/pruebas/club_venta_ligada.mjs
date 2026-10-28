@@ -27,8 +27,8 @@
  *   d. CL-27: registrar con DNI liga sus ventas anteriores sin clienta con boleta a ese DNI, y no toca la que ya era de otra
  *      ficha, ni la de otro documento, ni la que no llevó comprobante; la actividad lo anota sin el documento ni el nombre;
  *      corregir el documento en la ficha también liga; corregirlo al de otra ficha → `documento_de_otra_ficha`.
- *   e. Anonimizar deja `documento_numero` en null; unir pasa el tipo y el número a la que queda si no tenía, y si tenía
- *      conserva los suyos.
+ *   e. Anonimizar deja `documento_numero` en null. (Hasta el 2026-10-14, también que unir pasaba el tipo y el número a la que
+ *      quedaba: `unir_clientas` se borró en 20261015054000, y las uniones de (b) son de ANTES, armadas a mano.)
  *   f. Estructura: una sola firma de `registrar_clienta`, `editar_clienta` y `registrar_venta`; los ayudantes sin EXECUTE
  *      para la API; ninguna función de `retail` (salvo `separar_prendas`) nombra `clientas.dni` (y el vigilante muerde); los
  *      md5 «después» de la sección 0 de la migración son los de las funciones vivas (con los de la tanda 1b, 20260930200000,
@@ -37,10 +37,10 @@
  *   g. Pegado: con la 1b encima, pegar esta migración otra vez aborta con un mensaje claro y no pisa nada (la idempotencia y
  *      el candado con una función cambiada en vivo los prueba ahora club_permisos.mjs, sobre la 1b).
  *   h. Dos cajas a la vez, en dos conexiones reales (ROLLBACK): (h1) registran el mismo DNI y la segunda espera en el alta
- *      (el único `(documento_tipo, documento_numero)`) en vez de crear otra ficha; (h1b) una une dos fichas mientras la otra
- *      vende a la que se va, y la venta espera en la LECTURA de la ficha (`for key share`), antes de decidir a cuál se liga.
- *      Con BASE_DESECHABLE=1, además, las mismas dos carreras con COMMIT: una sola ficha (h2), y la venta termina en la ficha
- *      que quedó (h3); dejan fichas de prueba, así que no corren en el CI.
+ *      (el único `(documento_tipo, documento_numero)`) en vez de crear otra ficha; (h1b) una anonimiza una ficha mientras la
+ *      otra le vende, y la venta espera en la LECTURA de la ficha (`for key share`), antes de decidir si puede ligarla (hasta el
+ *      2026-10-14 la otra caja unía dos fichas). Con BASE_DESECHABLE=1, además, las mismas dos carreras con COMMIT: una sola
+ *      ficha (h2), y la venta se rechaza con `clienta_anonimizada` (h3); dejan fichas de prueba, así que no corren en el CI.
  *
  * LO QUE ESTA PRUEBA ENCONTRÓ en la primera versión de la migración (2026-09-30, antes de pegarla en ningún lado):
  *   - (a) toda venta SIN clienta fallaba en una conexión nueva: «record "v_ficha_clienta" is not assigned yet» (el `and`
@@ -63,6 +63,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -126,6 +127,17 @@ const PASO_1G = readFileSync(join(RAIZ, "supabase", "migrations", "2026100121070
 const VERSIONES_1G = [
   ...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
 ].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+
+// Tandas posteriores a la 1g que vuelven a tocar una de sus funciones, con su propia tabla de versiones (ADR-0416: anonimizar
+// es de un líder). El «después» de HOY es el de la última; y la cadena no se corta: su «antes» es el «después» de la 1g.
+for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+  const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+  for (const m of texto.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)) {
+    const v = VERSIONES_1G.find((x) => x.firma === m[1]);
+    if (!v || v.despues !== (m[3] ?? null)) throw new Error(`${archivo}: su «antes» de ${m[1]} no es el «después» de la 1g`);
+    v.despues = m[5] ?? null;
+  }
+}
 const RV_1C = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
 const cortadas1g = [...VERSIONES_1C, ...VERSIONES_1B].filter((v) => v.despues && VERSIONES_1G.some((w) => w.firma === v.firma && w.antes !== v.despues));
 if (!VERSIONES_1G.some((w) => w.firma === RV_1C && w.antes) || cortadas1g.length) {
@@ -134,16 +146,34 @@ if (!VERSIONES_1G.some((w) => w.firma === RV_1C && w.antes) || cortadas1g.length
 }
 /** La registrar_venta que vive HOY: la que creó la 1g (la de 18). */
 const REGISTRAR_VENTA_HOY = VERSIONES_1G.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
-/** El md5 que cada firma tiene que tener HOY: el «después» de la última tanda que la tocó (1g, 1c, 1b), o el de esta migración. */
+// 20261015054000 (Felipe 2026-10-14: el documento y el correo son de una sola persona) BORRÓ unir_clientas, partiendo del «después»
+// de la 1b. Su tabla de versiones, igual que las de arriba; la cadena tampoco se corta.
+const CORREO_UNICO = readFileSync(join(RAIZ, "supabase", "migrations", "20261015054000_clientas_correo_unico_y_sin_unir_fichas.sql"), "utf8");
+const VERSIONES_CORREO = [
+  ...CORREO_UNICO.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
+].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+const cortadasCorreo = VERSIONES_1B.filter((v) => VERSIONES_CORREO.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (VERSIONES_CORREO.find((w) => w.firma === "retail.unir_clientas(uuid,uuid,integer,integer)")?.despues !== null || cortadasCorreo.length) {
+  console.error(`✗ La tabla de versiones de 20261015054000 debería borrar unir_clientas partiendo del «después» de la 1b; no calzan: ${cortadasCorreo.map((v) => v.firma).join(", ")}.`);
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el «después» de la última que la tocó (20261015054000, 1g, 1c, 1b), o el de esta migración. */
 const despuesHoy = (firma, despues) => {
+  const k = VERSIONES_CORREO.find((x) => x.firma === firma);
   const g = VERSIONES_1G.find((x) => x.firma === firma);
   const c = VERSIONES_1C.find((x) => x.firma === firma);
   const b = VERSIONES_1B.find((x) => x.firma === firma);
-  return (g ? g.despues : c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
+  return (k ? k.despues : g ? g.despues : c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
 };
-// Las firmas de registrar_clienta y editar_clienta que viven hoy (las de la 1b).
+// Las firmas de registrar_clienta y editar_clienta que viven hoy: la de la 1b para registrar; para editar, la que creó
+// 20261015123000 (Felipe 2026-10-15: el correo en «Editar» de la ficha, `p_correo` al final), que borró la de 10 de la 1b.
 const REGISTRAR_HOY = "retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
-const EDITAR_HOY = "retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer)";
+const CORREO_FICHA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015123000_clientas_correo_en_la_ficha.sql"), "utf8");
+const EDITAR_HOY = [...CORREO_FICHA.matchAll(/\('(retail\.editar_clienta\([^']*\))',\s+null,\s+'[0-9a-f]{32}'\)/g)].map((m) => m[1])[0];
+if (EDITAR_HOY !== "retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer,text)") {
+  console.error(`✗ La tabla de versiones de 20261015123000 debería crear la editar_clienta de 11 (con p_correo); dice ${EDITAR_HOY}.`);
+  process.exit(1);
+}
 
 /** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo. */
 const cuerpoDe = (inicio) => {
@@ -337,25 +367,28 @@ delete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrant
 // =====================================================================================================================
 // b. Unida, anonimizada o inexistente
 // =====================================================================================================================
+// Desde 20261015054000 no se unen fichas (Felipe 2026-10-14: el documento y el correo son de una sola persona). Las uniones de
+// estos casos son de ANTES (lo que dejaba unir_clientas, armado a mano): un ticket viejo, o encolado sin conexión, puede traer
+// todavía el id de una ficha que se unió a otra, y la venta tiene que seguir yendo a la que quedó.
 caso(
-  "(b) la ficha unida a otra: la venta queda en la que se conservó",
+  "(b) la ficha unida a otra (una unión de antes): la venta queda en la que se conservó",
   SEDE() + como(FELIPE) +
     ALTA("queda", { numero: "90880201", nombre: "Club Queda Prueba" }) +
     ALTA("se_va", { nombre: "Club Se Va Prueba", celular: "987880202" }) +
-    `select (retail.unir_clientas(:'queda', :'se_va', null, null)).id as _u \\gset\n` +
+    `reset role;\n${unionDeAntes(":'queda'", ":'se_va'")}` +
+    como(FELIPE) +
     VENDER("venta", { clienta: ":'se_va'" }) +
     `reset role;\nselect cliente_id = :'queda'::uuid from retail.ventas where id::text = :'venta';\n`,
   "t"
 );
 caso(
-  "(b) en cadena (Z se unió a Y, e Y a X): la venta de Z queda en X",
+  "(b) en cadena (Z se unió a Y, e Y a X, uniones de antes): la venta de Z queda en X",
   SEDE() + como(FELIPE) +
     ALTA("x", { numero: "90880211", nombre: "Club X Prueba" }) +
     ALTA("y", { nombre: "Club Y Prueba", celular: "987880212" }) +
     ALTA("z", { nombre: "Club Z Prueba", celular: "987880213" }) +
-    `select (retail.unir_clientas(:'y', :'z', null, null)).id as _u1 \\gset
-select (retail.unir_clientas(:'x', :'y', null, null)).id as _u2 \\gset
-` +
+    `reset role;\n${unionDeAntes(":'y'", ":'z'")}${unionDeAntes(":'x'", ":'y'")}` +
+    como(FELIPE) +
     VENDER("venta", { clienta: ":'z'" }) +
     `reset role;\nselect cliente_id = :'x'::uuid from retail.ventas where id::text = :'venta';\n`,
   "t"
@@ -374,12 +407,13 @@ caso(
   "ERROR|clienta_anonimizada\n0|0"
 );
 caso(
-  "(b) la ficha unida a una que DESPUÉS se anonimizó: también clienta_anonimizada (se sigue la unión y se mira la que quedó)",
+  "(b) la ficha unida (una unión de antes) a una que DESPUÉS se anonimizó: también clienta_anonimizada (se sigue la unión y se mira la que quedó)",
   SEDE() + como(FELIPE) +
     ALTA("x", { numero: "90880231", nombre: "Club X Anon Prueba" }) +
     ALTA("y", { nombre: "Club Y Anon Prueba", celular: "987880232" }) +
-    `select (retail.unir_clientas(:'x', :'y', null, null)).id as _u \\gset
-select retail.archivar_clienta(:'x', 'pidió que la borren', true, null) as _v \\gset
+    `reset role;\n${unionDeAntes(":'x'", ":'y'")}` +
+    como(FELIPE) +
+    `select retail.archivar_clienta(:'x', 'pidió que la borren', true, null) as _v \\gset
 ` +
     VENDER("venta", { clienta: ":'y'", token: `'${TOKEN_B}'` }) + `select :'venta';\n` + NADA_SE_GUARDO(TOKEN_B),
   "ERROR|clienta_anonimizada\n0|0"
@@ -474,7 +508,7 @@ caso(
 // d. CL-27: sus compras anteriores pasan a su ficha
 // =====================================================================================================================
 caso(
-  "(d) registrar con DNI liga la venta anterior sin clienta con boleta a ese DNI; no mueve la que ya era de otra ficha, ni la de otro DNI, ni la que no llevó comprobante",
+  "(d) registrar con DNI YA NO liga la venta anterior con boleta a ese DNI (CL-27 retirado, 2026-10-19): ninguna boleta anterior pasa a la ficha nueva, y la que ya era de otra ficha sigue siendo suya",
   SEDE() + como(FELIPE) +
     ALTA("otra", { nombre: "Club Otra Ficha", celular: "987880701" }) +
     VENDER("v_suya", { tipoDoc: "'dni'", num: "'90880701'" }) +
@@ -483,26 +517,27 @@ caso(
     VENDER("v_sin_doc") +
     ALTA("nueva", { numero: "90880701", nombre: "Club Ligada Prueba" }) +
     `reset role;
-select (select cliente_id = :'nueva'::uuid from retail.ventas where id::text = :'v_suya'),
+select (select cliente_id is null from retail.ventas where id::text = :'v_suya'),
        (select cliente_id = :'otra'::uuid from retail.ventas where id::text = :'v_de_otra'),
        (select cliente_id is null from retail.ventas where id::text = :'v_otro_dni'),
        (select cliente_id is null from retail.ventas where id::text = :'v_sin_doc');
 select count(*), max(a.detalle ->> 'ventas_ligadas'), bool_and(a::text !~* '(90880701|ligada prueba)')
   from retail.actividad a where a.modulo = 'clientas' and a.accion = 'ligar_ventas' and a.registro_id = :'nueva';
 `,
-  "t|t|t|t\n1|1|t"
+  // El ligado retroactivo se retiró (actividad 11 de los puntos): la ficha nueva empieza sin historia y no anota «ligar_ventas».
+  "t|t|t|t\n0||"
 );
 caso(
-  "(d) corregir el documento en la ficha también liga la venta anterior con ese DNI (y la actividad de editar dice cuántas)",
+  "(d) corregir el documento en la ficha tampoco liga la venta anterior con ese DNI (CL-27 retirado): la venta sigue sin clienta y la actividad de editar dice 0",
   SEDE() + como(FELIPE) +
     ALTA("e", { nombre: "Club Editada Prueba", celular: "987880801" }) +
     VENDER("venta", { tipoDoc: "'dni'", num: "'90880801'" }) +
     `select retail.editar_clienta(:'e', 'dni', '90880801', 'Club Editada Prueba', '987880801', null, null, null, null, null) as _v \\gset
 reset role;
-select (select cliente_id = :'e'::uuid from retail.ventas where id::text = :'venta'),
+select (select cliente_id is null from retail.ventas where id::text = :'venta'),
        (select detalle ->> 'ventas_ligadas' from retail.actividad where modulo = 'clientas' and accion = 'editar' and registro_id = :'e');
 `,
-  "t|1"
+  "t|0"
 );
 caso(
   "(d) corregirlo al documento de OTRA ficha: documento_de_otra_ficha, y no cambia nada; el mismo número con otro tipo sí se puede",
@@ -517,8 +552,10 @@ caso(
 );
 
 // =====================================================================================================================
-// e. Anonimizar y unir con el documento con tipo
+// e. Anonimizar con el documento con tipo
 // =====================================================================================================================
+// (Los dos casos de «unir pasa el tipo y el número a la que queda» se fueron con unir_clientas, que 20261015054000 borró: ya no se
+// unen fichas, porque el documento y el correo son de una sola persona.)
 caso(
   "(e) anonimizar deja documento_numero en null y el número no queda en ninguna columna de la ficha",
   como(FELIPE) +
@@ -529,25 +566,6 @@ select documento_numero is null, anonimizada, (select count(*) from retail.clien
   from retail.clientas where id = :'f';
 `,
   "t|t|0"
-);
-caso(
-  "(e) unir: la que queda sin documento toma el tipo y el número de la que se va (y la que se va lo suelta)",
-  como(FELIPE) +
-    ALTA("queda", { nombre: "Club Queda Sin Doc", celular: "987881101" }) +
-    ALTA("se_va", { tipo: "pasaporte", numero: "UN123456", nombre: "Club Se Va Pasaporte" }) +
-    `select (u).documento_tipo || ':' || (u).documento_numero from (select retail.unir_clientas(:'queda', :'se_va', null, null) as u) x;
-reset role;
-select documento_numero is null from retail.clientas where id = :'se_va';
-`,
-  "pasaporte:UN123456\nt"
-);
-caso(
-  "(e) unir: la que queda CON su documento lo conserva (tipo y número), aunque la que se va traiga otro",
-  como(FELIPE) +
-    ALTA("queda", { numero: "90881201", nombre: "Club Queda Con Dni" }) +
-    ALTA("se_va", { tipo: "carne_extranjeria", numero: "CE123456", nombre: "Club Se Va Carne" }) +
-    `select (u).documento_tipo || ':' || (u).documento_numero from (select retail.unir_clientas(:'queda', :'se_va', null, null) as u) x;\n`,
-  "dni:90881201"
 );
 
 // =====================================================================================================================
@@ -597,7 +615,7 @@ end $fn$;
   "zz_lee_dni"
 );
 caso(
-  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la última tanda que la tocó: la 1b en buscar_clienta y unir_clientas, la 1g en archivar_clienta; y registrar_venta de 16 ya no existe: la 1c la reemplazó, y la 1g a esa); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
+  "(f) los md5 «después» de la sección 0 son los de las funciones vivas (con los de la última tanda que la tocó: la 1b en buscar_clienta, la 1g en archivar_clienta; unir_clientas ya no existe: 20261015054000 la borró; y registrar_venta de 16 ya no existe: la 1c la reemplazó, y la 1g a esa); las dos firmas que creó esta migración ya no existen (la 1b las reemplazó), y el «antes» que la 1b escribió para ellas es el md5 de sus cuerpos en ESTE archivo",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join("") +
@@ -659,7 +677,7 @@ caso(
   (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("retail.buscar_clienta(text,boolean) cambió desde que se escribió esta migración")
 );
 caso(
-  "(g) …y no pisa NADA: funciones, permisos, columnas, candados e índices como estaban, el bloque D-1 una sola vez en registrar_venta y una sola firma (la de la 1b) de registrar_clienta y de editar_clienta",
+  "(g) …y no pisa NADA: funciones, permisos, columnas, candados e índices como estaban, el bloque D-1 una sola vez en registrar_venta y una sola firma (la de hoy) de registrar_clienta y de editar_clienta",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y la foto lo delata.
   FOTO +
@@ -743,25 +761,26 @@ rollback;
   }
 );
 
-// Una caja une dos fichas (U, sin confirmar) mientras otra vende a la que se va (V). registrar_venta tiene que ESPERAR en
-// la lectura de la ficha (`for key share` contra el `for update` de unir_clientas), ANTES de decidir a cuál se liga: así,
-// cuando U confirme, sigue la unión. Si en vez de eso espera recién al guardar la venta (la llave foránea de
-// ventas.cliente_id), ya decidió con la ficha de antes de la unión y la venta quedaría colgada de la unida (lo muestra h3
-// con COMMIT). Usa dos fichas del seed (confirmadas: una sesión no ve lo que la otra no confirmó); las dos sesiones terminan
-// en ROLLBACK.
+// Una caja anonimiza una ficha (U, sin confirmar) mientras otra le vende (V). registrar_venta tiene que ESPERAR en la lectura de
+// la ficha (`for key share` contra el `for update` de archivar_clienta), ANTES de decidir si puede ligarle la venta: así, cuando U
+// confirme, ve la ficha anonimizada y rechaza. Si en vez de eso espera recién al guardar la venta (la llave foránea de
+// ventas.cliente_id), ya decidió con la ficha de antes y la venta quedaría a nombre de una ficha anonimizada (lo muestra h3 con
+// COMMIT). Hasta el 2026-10-14 la otra caja UNÍA dos fichas (unir_clientas, que también tomaba la fila con `for update`); desde
+// 20261015054000 no se unen fichas y la misma espera se prueba con anonimizar. Usa una ficha del seed (confirmada: una sesión no ve
+// lo que la otra no confirmó); las dos sesiones terminan en ROLLBACK.
 await carrera(
-  "(h1b) una caja une dos fichas mientras otra vende a la que se va: la venta ESPERA en la lectura de la ficha, antes de decidir a cuál se liga (sin COMMIT: las dos terminan en ROLLBACK)",
+  "(h1b) una caja anonimiza una ficha mientras otra le vende: la venta ESPERA en la lectura de la ficha, antes de decidir si puede ligarla (sin COMMIT: las dos terminan en ROLLBACK)",
   async () => {
     const fichas = correr(`select id from retail.clientas
  where not anonimizada and archivada_en is null and fusionada_en_id is null and documento_numero is not null
- order by documento_numero limit 2;`);
-    const [queda, seVa] = fichas.ok ? fichas.salida.split("\n") : [];
-    if (!queda || !seVa) return [false, `no hay dos fichas activas en la base (el seed trae 8): ${fichas.mensaje ?? ""}`];
+ order by documento_numero limit 1;`);
+    const [seVa] = fichas.ok ? fichas.salida.split("\n") : [];
+    if (!seVa) return [false, `no hay una ficha activa con documento en la base (el seed trae 8): ${fichas.mensaje ?? ""}`];
     const app = `club_venta_ligada_u_${Date.now()}`;
     const u = psqlEnParalelo(`set application_name = '${app}';
 begin;
 set local search_path = retail, public, extensions;
-${como(FELIPE)}select (retail.unir_clientas('${queda}', '${seVa}', null, null)).id as _u \\gset
+${como(FELIPE)}select retail.archivar_clienta('${seVa}', 'prueba de carrera', true, null) as _u \\gset
 select pg_sleep(3);
 rollback;
 `);
@@ -784,7 +803,7 @@ exception when others then
   -- con un SELECT INTO que crea tabla), así que el contexto ya no trae su texto: dice qué fila de \`clientas\` esperaba.
   -- Primero «al guardar»: la llave foránea de ventas.cliente_id también bloquea la fila de \`clientas\`, y esa espera tardía
   -- es justo el defecto que esta prueba vigila.
-  return v_estado || '|' || case when v_contexto ~* 'insert into ventas' then 'al guardar la venta, con la ficha de antes de la unión'
+  return v_estado || '|' || case when v_contexto ~* 'insert into ventas' then 'al guardar la venta, con la ficha de antes de anonimizarla'
                                  when v_contexto ~* 'from retail\\.clientas c where c\\.id = p_cliente_id'
                                    or (v_contexto ~* 'locking tuple .* in relation "clientas"' and v_contexto ~* 'at FOR over SELECT rows')
                                    then 'en la lectura de la ficha'
@@ -828,35 +847,31 @@ commit;
   );
 
   await carrera(
-    "(h3) con COMMIT: una caja une dos fichas mientras otra vende a la que se va → la venta termina en la ficha que quedó (nunca colgada de una unida)",
+    "(h3) con COMMIT: una caja anonimiza una ficha mientras otra le vende → la venta se rechaza con clienta_anonimizada (nunca a nombre de una ficha anonimizada)",
     async () => {
       const prep = correr(`insert into retail.clientas (documento_numero, nombre)
-  values ((select '7' || lpad(floor(random() * 1e7)::int::text, 7, '0')), 'Prueba Carrera Queda') returning id;
-insert into retail.clientas (nombre, telefono_whatsapp) values ('Prueba Carrera Se Va', '9' || lpad(floor(random() * 1e8)::int::text, 8, '0')) returning id;`);
+  values ((select '7' || lpad(floor(random() * 1e7)::int::text, 7, '0')), 'Prueba Carrera Se Va') returning id;`);
       if (!prep.ok) return [false, prep.mensaje];
-      const [queda, seVa] = prep.salida.split("\n");
+      const [seVa] = prep.salida.split("\n");
       const app = `club_venta_ligada_u_${Date.now()}`;
-      // U: la caja que une. Toma las dos fichas (`for update`), las une y duerme 4 s antes de confirmar.
+      // U: la caja que anonimiza. Toma la ficha (`for update`), la anonimiza y duerme 4 s antes de confirmar.
       const u = psqlEnParalelo(`set application_name = '${app}';
 begin;
 set local search_path = retail, public, extensions;
-${como(FELIPE)}select (retail.unir_clientas('${queda}', '${seVa}', null, null)).id;
+${como(FELIPE)}select retail.archivar_clienta('${seVa}', 'prueba de carrera', true, null);
 select pg_sleep(4);
 commit;
 `);
       await dormir(100);
-      // V: la caja que vende. Prepara su sede, espera a ver a U dormida y vende a la ficha que se va. Mira dónde quedó la
-      // venta y se deshace (lo que se prueba es la ficha de la venta, no la venta).
+      // V: la caja que vende. Prepara su sede, espera a ver a U dormida y le vende a esa ficha; se deshace al final.
       const v = await psqlEnParalelo(`begin;
 set local search_path = retail, public, extensions;
-${PRELUDIO.replace("begin;", "")}${SEDE()}${esperarA(app)}${como(FELIPE)}${VENDER("venta", { clienta: `'${seVa}'` })}reset role;
-select case cliente_id when '${queda}'::uuid then 'la que quedó' when '${seVa}'::uuid then 'la que se fue (unida)' else coalesce(cliente_id::text, 'sin clienta') end
-  from retail.ventas where id::text = :'venta';
+${PRELUDIO.replace("begin;", "")}${SEDE()}${esperarA(app)}${como(FELIPE)}${VENDER("venta", { clienta: `'${seVa}'` })}select :'venta';
 rollback;
 `);
       const ru = await u;
       const obtenido = `${ru.ok ? "U ok" : `U falló: ${ru.mensaje}`}\n${v.ok ? v.salida : `V falló: ${v.mensaje}`}`;
-      return [obtenido === "U ok\nt\nla que quedó", obtenido];
+      return [obtenido.startsWith("U ok") && obtenido.endsWith("t\nERROR|clienta_anonimizada"), obtenido];
     }
   );
 } else {

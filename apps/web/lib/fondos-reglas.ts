@@ -1,5 +1,5 @@
 import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
-import { soles, solesSinCorte } from "./compras-reglas";
+import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { CuentaElegible } from "./cuenta-sellada-reglas";
 import type { Opcion } from "../components/ui/campos";
@@ -447,7 +447,7 @@ export function topeDevolucion(saldo: number, faltantePorAprobar = 0): TopeDevol
  */
 export function subtituloDevolver(tope: TopeDevolucion): string {
   return tope.porRendicion
-    ? `Los libros dicen ${solesSinCorte(tope.libros)}, pero a su rendición por aprobar le faltan ${solesSinCorte(tope.faltante)}: puede devolver hasta ${solesSinCorte(tope.monto)}.`
+    ? `Los libros dicen ${soles(tope.libros)}, pero a su rendición por aprobar le faltan ${soles(tope.faltante)}: puede devolver hasta ${soles(tope.monto)}.`
     : `Tiene ${soles(tope.monto)} en su fondo.`;
 }
 
@@ -459,7 +459,7 @@ export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevoluci
   const t = typeof tope === "number" ? topeDevolucion(tope) : tope;
   if (t != null && m > t.monto + CENTAVO / 10) {
     return t.porRendicion
-      ? `Puede devolver hasta ${solesSinCorte(Math.max(t.monto, 0))}: a su rendición por aprobar le faltan ${solesSinCorte(t.faltante)}.`
+      ? `Puede devolver hasta ${soles(Math.max(t.monto, 0))}: a su rendición por aprobar le faltan ${soles(t.faltante)}.`
       : `Tiene ${soles(Math.max(t.monto, 0))} en su fondo: no puede devolver más.`;
   }
   return null;
@@ -516,4 +516,60 @@ export function camposDevolver(
     { id: "nota", nombre: "Nota", requerido: false, hecho: v.nota.trim() !== "" && nota === null, pendiente: nota ?? "" },
     ...campoResponsable({ ...r, quien: "Quién recibe" }),
   ];
+}
+
+// ---------- Las hojas de Revisar compras (diseño «A · Bandeja serena», Felipe 2026-10-23) ----------
+
+/**
+ * La barra de cada persona en «Quién tiene plata»: lo que le entregaron, partido en lo que gastó, lo que devolvió y lo que tiene. Un fondo
+ * en negativo (pagó de su bolsillo) no tiene plata en la mano: su tramo es 0 y lo gastado pasa de lo entregado, así que la pista crece
+ * hasta lo gastado y la barra nunca se sale de su lugar.
+ */
+export type TramosFondo = { gasto: number; devolvio: number; tiene: number; total: number };
+
+export function tramosDelFondo(f: Pick<FondoFila, "entregado" | "devuelto" | "gastado" | "saldo">): TramosFondo {
+  const gasto = redondo(Math.max(f.gastado, 0));
+  const devolvio = redondo(Math.max(f.devuelto, 0));
+  const tiene = redondo(Math.max(f.saldo, 0));
+  return { gasto, devolvio, tiene, total: redondo(Math.max(f.entregado, gasto + devolvio + tiene)) };
+}
+
+/** La plata que VUELVE a CAYLA (una devolución, el pago de una deuda) se escribe con «+» y en verde; una entrega sale. */
+export const VUELVE_A_CAYLA: Record<TipoMovimientoFondo, boolean> = {
+  entrega_fondo: false,
+  devolucion_fondo: true,
+  pago_deuda_fondo: true,
+};
+
+/**
+ * «Entregas y devoluciones», agrupada por día (`aaaa-mm-dd`), en el orden en que llega de la base (lo más nuevo arriba). Si un día
+ * aparece dos veces, se junta en su primer lugar: el separador de un día nunca sale repetido.
+ */
+export function movimientosPorDia<T extends { fecha: string }>(movimientos: readonly T[]): { dia: string; movimientos: T[] }[] {
+  const grupos = new Map<string, T[]>();
+  for (const m of movimientos) {
+    const dia = m.fecha.slice(0, 10);
+    const grupo = grupos.get(dia);
+    if (grupo) grupo.push(m);
+    else grupos.set(dia, [m]);
+  }
+  return [...grupos].map(([dia, movs]) => ({ dia, movimientos: movs }));
+}
+
+/** Con cuántas personas «¿A quién?» se elige con fichas (su cara y su nombre); con más, el combo de siempre, con su buscador. */
+export const MAX_FICHAS_PERSONA = 6;
+
+/**
+ * El nombre de cada ficha de «¿A quién?»: el primer nombre, como se habla en la tienda; si dos personas lo comparten, el nombre
+ * completo de las dos (dos «Rosa» iguales no se distinguen).
+ */
+export function nombresDeFichas(personas: readonly PersonaOpcion[]): Record<string, string> {
+  const veces = new Map<string, number>();
+  for (const p of personas) {
+    const corto = primerNombre(p.nombre).toLocaleLowerCase("es");
+    veces.set(corto, (veces.get(corto) ?? 0) + 1);
+  }
+  return Object.fromEntries(
+    personas.map((p) => [p.id, (veces.get(primerNombre(p.nombre).toLocaleLowerCase("es")) ?? 0) > 1 ? p.nombre : primerNombre(p.nombre)]),
+  );
 }

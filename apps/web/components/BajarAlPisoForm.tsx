@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Hand, Info, Minus, Plus, ScanBarcode, ScanLine } from "lucide-react";
+import { Camera, Check, ScanBarcode, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
@@ -92,6 +92,7 @@ import {
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
+import { PasoCantidad } from "@/components/ui/PasoCantidad";
 
 /*
  * «Bajar prendas al piso» (ADR-0208, paso 1). Se usa de pie junto al fardo, con la pistola (que es un teclado): cada
@@ -835,8 +836,8 @@ export function BajarAlPisoForm({
         </div>
       )}
 
-      <section data-guia="bajar.escaner" className="card-cayla p-4 sm:p-5">
-        <label htmlFor="bajar-escaner" className="label-cayla text-[11px] text-taupe">
+      <section data-guia="bajar.escaner" className="campo card-cayla p-4 sm:p-5">
+        <label htmlFor="bajar-escaner" className="campo-etiqueta">
           Escanear prenda
         </label>
         <div className="mt-2 flex gap-2">
@@ -917,9 +918,14 @@ export function BajarAlPisoForm({
                     className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-hueso/70 focus-visible:bg-hueso/70"
                   >
                     <MiniaturaPrenda fotoUrl={p.fotoUrl} {...categoriaDe(p)} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-tinta">{nombreDePrenda(p)}</span>
-                      {p.sku && <span className="block truncate font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                    {/* El modelo arriba y «talla · color» debajo, con el código al final de esa línea: lo que distingue una fila de otra
+                        es la talla y el color, y en una sola línea («Vestido Sofía · L · Azul…») era justo lo que se cortaba en el celular. */}
+                    <span className="min-w-0 flex-1" title={nombreDePrenda(p)}>
+                      <span className="block truncate text-sm text-tinta">{p.referencia}</span>
+                      <span className="block truncate text-xs text-tinta/70">
+                        {[p.talla, p.color].map((t) => (t ?? "").trim()).filter(Boolean).join(" · ")}
+                        {p.sku && <span className="ml-2 font-mono text-[11px] text-tinta/60">{p.sku}</span>}
+                      </span>
                     </span>
                     <span className="shrink-0 text-right text-xs tabular-nums text-taupe">{textoDeExistencia(p)}</span>
                   </button>
@@ -929,12 +935,8 @@ export function BajarAlPisoForm({
           </div>
         )}
         {prendaEnMano && ofertaVisible && (
-          <div role="alert" className="anim-revelar mt-3 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3 py-3 text-sm text-ambar-profundo">
-            <p className="flex items-start gap-2">
-              <Hand aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{textoDeOferta(ofertaVisible, prendaEnMano, sede)}</span>
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+          <Aviso tono="atencion" className="mt-3" titulo={textoDeOferta(ofertaVisible, prendaEnMano, sede)}>
+            <div className="mt-2 flex flex-wrap gap-2">
               {ofertaVisible.tipo === "comprobar" ? (
                 <button type="button" className="btn-cayla btn-primario h-11" onClick={() => abrirEnMano(prendaEnMano, 0)}>
                   Comprobar
@@ -965,13 +967,12 @@ export function BajarAlPisoForm({
                 Ahora no
               </button>
             </div>
-          </div>
+          </Aviso>
         )}
         {aviso && !enMano && (
-          <p role="alert" className="anim-revelar mt-3 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.07] px-3 py-2.5 text-sm text-ambar-profundo">
-            <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{aviso}</span>
-          </p>
+          <Aviso tono="atencion" className="mt-3">
+            {aviso}
+          </Aviso>
         )}
         <p className="sr-only" aria-live="polite">
           {anuncio}
@@ -1088,43 +1089,29 @@ export function BajarAlPisoForm({
                           </div>
                         </div>
                         <div className="relative ml-auto flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            aria-label={`Una menos de ${nombre}`}
-                            disabled={listaQuieta || porEscanear(l)}
-                            onClick={() => cambiarCantidad(l.varianteId, l.cantidad - 1)}
-                            className="btn-cayla btn-secundario h-11 w-11 p-0"
-                          >
-                            <Minus aria-hidden className="h-4 w-4" />
-                          </button>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            aria-label={`Cantidad de ${nombre}`}
-                            className={`caja-campo-input h-11 w-14 px-1 text-center text-base tabular-nums ${enRojo ? "text-rojo-profundo" : ""}`}
-                            disabled={listaQuieta}
-                            value={edicion[l.varianteId] ?? String(l.cantidad)}
-                            onFocus={(e) => e.currentTarget.select()}
-                            onChange={(e) => {
-                              const valor = e.target.value;
-                              setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
-                            }}
-                            onBlur={(e) => confirmarNumero(l.varianteId, e.currentTarget.value)}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter") return;
-                              e.preventDefault();
-                              volverAlEscaner();
+                          <PasoCantidad
+                            menos={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad - 1), deshabilitado: listaQuieta || porEscanear(l), etiqueta: `Una menos de ${nombre}` }}
+                            mas={{ onClick: () => cambiarCantidad(l.varianteId, l.cantidad + 1), deshabilitado: listaQuieta || l.cantidad >= tope, etiqueta: `Una más de ${nombre}` }}
+                            tono={enRojo ? "error" : undefined}
+                            campo={{
+                              type: "text",
+                              inputMode: "numeric",
+                              "aria-label": `Cantidad de ${nombre}`,
+                              disabled: listaQuieta,
+                              value: edicion[l.varianteId] ?? String(l.cantidad),
+                              onFocus: (e) => e.currentTarget.select(),
+                              onChange: (e) => {
+                                const valor = e.target.value;
+                                setEdicion((m) => ({ ...m, [l.varianteId]: valor }));
+                              },
+                              onBlur: (e) => confirmarNumero(l.varianteId, e.currentTarget.value),
+                              onKeyDown: (e) => {
+                                if (e.key !== "Enter") return;
+                                e.preventDefault();
+                                volverAlEscaner();
+                              },
                             }}
                           />
-                          <button
-                            type="button"
-                            aria-label={`Una más de ${nombre}`}
-                            disabled={listaQuieta || l.cantidad >= tope}
-                            onClick={() => cambiarCantidad(l.varianteId, l.cantidad + 1)}
-                            className="btn-cayla btn-secundario h-11 w-11 p-0"
-                          >
-                            <Plus aria-hidden className="h-4 w-4" />
-                          </button>
                           <button type="button" disabled={listaQuieta} onClick={() => quitar(l.varianteId)} className="btn-cayla btn-sutil ml-1 h-11">
                             Quitar
                           </button>
@@ -1139,13 +1126,12 @@ export function BajarAlPisoForm({
 
           {hayLineas && <p className="nota-cayla">{textoNotaDelPie(congelada)}</p>}
           {sinGuardado && hayEscaneadas && (
-            <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
-              Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.
-            </p>
+            <Aviso tono="atencion">Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.</Aviso>
           )}
 
-          {/* Pie pegajoso al fondo: desde ADR-0206 el celular no tiene barra abajo (mismo patrón que FichaPrevia). */}
-          <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-3 sm:bottom-4 sm:mx-0 sm:rounded-xl sm:border sm:px-5 sm:py-3">
+          {/* Pie pegajoso al fondo: en el celular es la Isla pegada dentro del formulario (ADR-0479, actividad 12); desde `sm`, la
+              tarjeta de siempre a 16 px del borde. */}
+          <div data-pegada className="barra-abajo z-20 block px-4 py-3 sm:bottom-4 sm:rounded-xl sm:px-5 sm:py-3 sm:shadow-none sm:animate-none">
             <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
               <div data-guia="bajar.resumen" className="min-w-0">
                 <p className="font-display text-xl tabular-nums text-tinta">{textoDeResumen(resumen)}</p>

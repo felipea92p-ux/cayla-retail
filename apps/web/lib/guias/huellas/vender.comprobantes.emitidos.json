@@ -2,7 +2,7 @@
   "guia": "vender.comprobantes.emitidos",
   "ruta": "/vender/comprobantes/emitidos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 51,
+  "total": 49,
   "controles": {
     "components/ComprobantesPanel.tsx": [
       "BotonCompacto «{`Reintentar ${numero}»",
@@ -16,18 +16,18 @@
       "DesplegablePildora «Tipo»",
       "DesplegablePildora «Tienda»",
       "DesplegablePildora «Estado»",
-      "BotonCompacto «comprobantes.opciones»",
+      "BotonPuntos «{`${ETIQUETA_TIPO[c.tipo]}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»",
       "CampoTexto «Motivo» #2",
-      "ComboResponsable «Cancelar» #2",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/ConfirmarTransmision.tsx": [
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "button «{responsable.motivo ?? undefined}»"
     ],
@@ -35,7 +35,7 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -46,10 +46,10 @@
       "BotonImprimir «Imprimir»"
     ],
     "components/FacturacionPestanas.tsx": [
-      "Pestanas «);»"
+      "Pestanas «(sin nombre)»"
     ],
     "components/FacturacionShell.tsx": [
-      "Link «comprobantes.aviso-sunat»"
+      "Link «Ver Por enviar»"
     ],
     "components/OpcionesComprobante.tsx": [
       "a «{tieneNumero && primerNombre ? `WhatsApp a ${primerNombre}»",
@@ -68,10 +68,6 @@
     ],
     "components/PestanasComprobantesMovil.tsx": [
       "Link «{p.etiqueta}»"
-    ],
-    "components/SelectorMesFacturacion.tsx": [
-      "Link «comprobantes.mes-anterior»",
-      "Link «{NOMBRES_MES[siguiente.mes - 1]}»"
     ],
     "components/SinCoincidencias.tsx": [
       "Boton «Borrar la búsqueda»"

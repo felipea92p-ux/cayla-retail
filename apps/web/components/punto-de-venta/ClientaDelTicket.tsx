@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Cake, ChevronDown, ChevronUp, Gift, Lock, QrCode, SearchX, UserPlus, UserRound, X } from "lucide-react";
+import { Cake, ChevronDown, ChevronUp, QrCode, SearchX, Star, UserPlus, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
-import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
+import { NombreDelPadron, usePadronDeFicha } from "@/components/clientas/NombreDelPadron";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Chip } from "@/components/ui/Chip";
 import type { ClubDeLaClienta } from "@/components/punto-de-venta/useClubDeLaClienta";
+import type { CuponDelClubEnCaja } from "@/components/punto-de-venta/useCuponDelClub";
 import { useEsperaDelCartel } from "@/components/punto-de-venta/useEsperaDelCartel";
 import {
   cajaDelClub,
@@ -20,13 +21,12 @@ import {
   estadoEnLaLibreta,
   filaDelCartel,
   lineaDeLaClientaEnCaja,
-  nombreSuficiente,
   type CajaDelClub,
   type PublicidadEnCaja,
 } from "@/lib/club-caja-reglas";
 import { codigoClubLegible } from "@/lib/club-reglas";
-import { ayudaCumpleFueraDeMes, filaDelCumple, type AccionCumple, type FilaCumple } from "@/lib/club-cumple-canje-reglas";
-import { filaDelVale, type AccionVale, type FilaVale } from "@/lib/club-aniversario-canje-reglas";
+import { filaDePuntos, type FilaPuntos } from "@/lib/club-puntos-reglas";
+import { useEnLinea } from "@/lib/useEnLinea";
 import {
   altaDesdeBusqueda,
   filaDeClienta,
@@ -37,7 +37,9 @@ import {
 } from "@/lib/clienta-ticket-reglas";
 import { ajustarNumeroAlTipo, normalizarNumeroDocumento, problemaDocumento, tipoDocumentoDe } from "@/lib/documento-clienta-reglas";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
-import { registrarClienta } from "@/lib/clientas-acciones";
+import { fichaConDocumento, registrarClienta } from "@/lib/clientas-acciones";
+import { avisoDelAlta, resultadoDelAlta } from "@/lib/alta-clienta-reglas";
+import { AYUDA_NOMBRE_ESCRITO, nombreDelAlta, pendienteDelNombre, problemaNombreEscrito } from "@/lib/nombre-del-padron-reglas";
 import { esSinModulo, traducirError } from "@/lib/error-escritura";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Buscador } from "@/components/ui/Buscador";
@@ -53,7 +55,7 @@ const BOTON_CHICO_PRIMARIO =
   "btn-cayla btn-primario h-7 shrink-0 px-2.5 text-[12.5px]";
 const BOTON_CHICO_SECUNDARIO =
   "btn-cayla btn-secundario h-7 shrink-0 px-2.5 text-[12.5px]";
-/** Con lo del club plegado, sus acciones como píldoras (spike, `accion` de `partesClub`): «Canjear 10 %», «Usar vale S/ 30». */
+/** Con lo del club plegado, su acción a la vista como píldora (spike, `accion` de `partesClub`): «Usar puntos». */
 const PILDORA_ACCION =
   "inline-flex items-center gap-1.5 rounded-full bg-tinta px-2.5 py-0.5 text-xs leading-5 text-crema transition-colors hover:bg-rojo-profundo disabled:opacity-50 disabled:hover:bg-tinta";
 
@@ -64,8 +66,9 @@ const PILDORA_ACCION =
  * a nombre de quién van.
  *
  * Registrar en el ticket (ADR-0288 D-9 y tanda 1g, G-2): si no está en la libreta, se registra en la misma hoja, sin salir
- * del cobro, SOLO con su documento —tipo (DNI por defecto) y número; con DNI el nombre llega del padrón y, si el padrón no
- * responde, se escribe a mano (principio 9); con carné o pasaporte, el nombre se escribe—, y queda elegida para esta venta.
+ * del cobro, SOLO con su documento —tipo (DNI por defecto) y número; con DNI el nombre lo trae el padrón y no se escribe: si el
+ * padrón no responde, no se registra y la venta sigue sin cliente (Felipe 2026-10-15); con carné o pasaporte, el nombre se
+ * escribe tal cual—, y queda elegida para esta venta.
  * El celular y el cumpleaños los escribe ella al unirse desde el cartel.
  *
  * `puedeBuscar` (ADR-0249, actualización 2026-09-28): la libreta es del módulo «Clientas». Qué se muestra sin él lo decide
@@ -73,11 +76,11 @@ const PILDORA_ACCION =
  *
  * El club, dibujado como el spike del club (`clientaDelTicketHTML` de `45-club-caja.js`, commit 94f2dece): UNA sola caja con
  * el nombre, el documento y el estado arriba («Identificado» o «Miembro» y su publicidad), y lo del club DENTRO de la misma caja:
- *   · socia: su cumpleaños y su vale de aniversario, plegados por defecto (la flecha los abre). En su mes (tanda 1c, D-5), la
- *     fila del cumpleaños trae «Canjear 10 %»; con un vale disponible (tanda 1g, G-13), «Usar vale» —y plegada, las mismas
- *     acciones como píldoras—. Va una sola ventaja del club por compra: con una puesta, la otra se apaga y dice por qué. Qué
- *     dicen lo deciden `filaDelCumple` y `filaDelVale`; si están aplicados lo sabe el Punto de venta (`clubDeLaClienta`),
- *     porque el ticket y el cobro los usan cuando esta caja ya no está;
+ *   · miembro: su cumpleaños (en su mes, con el regalo de puntos) y sus puntos —«1,240 puntos · valen S/ 62»— con «Usar puntos»,
+ *     plegados por defecto (la flecha los abre; plegada, «Usar puntos» sale como píldora). Canjear crea un cupón con código y lo
+ *     pone en el ticket; el cupón de un código se pide con «Código de cupón», junto a «Aplicar descuento». Qué dice la fila lo decide
+ *     `filaDePuntos`; el cupón puesto lo sabe el Punto de venta (`useCuponDelClub`), porque el ticket y el cobro lo usan cuando esta
+ *     caja ya no está;
  *   · no socia (tanda 1g, G-2): «Pídele que escanee el cartel del club», en cada compra. Mientras la caja está a la vista,
  *     vuelve a leer su resumen cada 3 s (`useEsperaDelCartel`) y, cuando ella se une con ese documento, pasa sola a «Miembro».
  * Qué se muestra lo decide `cajaDelClub` (lib/club-caja-reglas.ts, con pruebas). Si la lectura falla, la caja queda como antes
@@ -92,6 +95,10 @@ export function ClientaDelTicket({
   responsable,
   onHojaAbierta,
   clubDeLaClienta,
+  puntosDelClub,
+  totalDelTicket,
+  hayArticulos,
+  onUsarPuntos,
 }: {
   clienta: ClientaDelTicket | null;
   onElegir: (c: ClientaDelTicket) => void;
@@ -104,8 +111,16 @@ export function ClientaDelTicket({
   onHojaAbierta?: (abierta: boolean) => void;
   /** Lo que se sabe de la clienta elegida frente al club (`useClubDeLaClienta`, en el Punto de venta). */
   clubDeLaClienta: ClubDeLaClienta;
+  /** Sus puntos y el cupón puesto en esta compra (`useCuponDelClub`, en el Punto de venta). */
+  puntosDelClub: CuponDelClubEnCaja;
+  /** Lo que vale el ticket SIN cupón y si tiene prendas: «Usar puntos» depende de los dos (el rango de canje sale de ahí). */
+  totalDelTicket: number;
+  hayArticulos: boolean;
+  /** Abre la hoja «Usar puntos». */
+  onUsarPuntos: () => void;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const enLinea = useEnLinea();
   const fila = filaDeClienta(clienta, puedeBuscar);
   const lectura = clubDeLaClienta.lectura;
   const resumen = lectura.estado === "listo" ? lectura.resumen : null;
@@ -137,22 +152,21 @@ export function ClientaDelTicket({
   const linea = clienta ? lineaDeLaClientaEnCaja(clienta, resumen?.celular ?? null, caja.tipo === "socia" ? caja.codigo : null) : null;
   const hayFilas = caja.tipo === "socia";
   const abiertaLaCaja = hayFilas && clubDeLaClienta.abierta;
-  // El canje del cumpleaños (tanda 1c): null = nada del canje, la fila sigue con lo de la 1b (su fecha o «Sin cumpleaños»).
-  const filaCumple =
-    caja.tipo === "socia"
-      ? filaDelCumple(clubDeLaClienta.cumple, clubDeLaClienta.cumpleAplicado, resumen?.cumpleCanjeadoEl ?? null, undefined, clubDeLaClienta.valeAplicado)
+  // Los puntos (programa de puntos): lo que tiene y cuánto vale, con «Usar puntos». El cumpleaños ya no rebaja el precio: regala puntos
+  // con su primera compra del mes, y los suma la base al cobrar (`resumen_puntos_caja.regalo_disponible`).
+  const puntos = caja.tipo === "socia" ? puntosDelClub.puntos : null;
+  const filaPts: FilaPuntos | null =
+    puntos && puntos.miembro
+      ? filaDePuntos({ resumen: puntos, totalDelTicket, hayArticulos, cuponPuesto: puntosDelClub.cupon !== null, sinConexion: !enLinea })
       : null;
-  // El vale de aniversario (tanda 1g): null = no tiene un vale disponible.
-  const filaVale = caja.tipo === "socia" ? filaDelVale(clubDeLaClienta.vale, clubDeLaClienta.valeAplicado, clubDeLaClienta.cumpleAplicado) : null;
-  const alCumple = (accion: AccionCumple) => (accion === "canjear" ? clubDeLaClienta.canjearCumple() : clubDeLaClienta.quitarCumple());
-  const alVale = (accion: AccionVale) => (accion === "usar" ? clubDeLaClienta.usarVale() : clubDeLaClienta.quitarVale());
+  const alPuntos = () => onUsarPuntos();
   const pildoras = [
-    filaCumple?.tipo === "canje" ? { clave: "cumple", icono: Cake, ...filaCumple.pildora, ayuda: filaCumple.ayuda, alTocar: () => filaCumple.pildora.accion && alCumple(filaCumple.pildora.accion) } : null,
-    filaVale ? { clave: "vale", icono: Gift, ...filaVale.pildora, ayuda: filaVale.ayuda, alTocar: () => filaVale.pildora.accion && alVale(filaVale.pildora.accion) } : null,
+    filaPts?.pildora.accion === "usar" ? { clave: "puntos", icono: Star, ...filaPts.pildora, ayuda: filaPts.ayuda, alTocar: alPuntos } : null,
   ].filter((p) => p !== null);
 
   return (
-    <div data-guia="vender.cliente" className="px-5 pt-3">
+    // En la fila de «Agregar bolsa» (`PuntoDeVenta`): toma el ancho que la bolsa deja. `@container`: «opcional» sale solo si cabe.
+    <div data-guia="vender.cliente" className="@container min-w-0 flex-1">
       {clienta && linea ? (
         // Una sola caja: nombre, documento y estado arriba; lo del club, dentro de la misma caja (spike, `tarjeta-club`).
         <div className="overflow-hidden rounded-xl border border-sand bg-crema">
@@ -194,21 +208,30 @@ export function ClientaDelTicket({
           </div>
 
           {caja.tipo === "socia" && abiertaLaCaja && (
-            // Las filas de adentro (spike, `filaTarjeta`): su cumpleaños, con el canje en su mes (1c), y su vale de aniversario
-            // (1g). «Su pedido» (1d) vendrá como otra fila igual.
+            // Las filas de adentro (spike, `filaTarjeta`): su cumpleaños (con el regalo de puntos en su mes) y sus puntos con «Usar
+            // puntos». «Su pedido» (1d) vendrá como otra fila igual.
             <div className="anim-revelar">
-              {filaCumple ? (
-                <FilaCumpleDelClub fila={filaCumple} bloqueado={bloqueado} onAccion={alCumple} />
+              {puntos?.regaloDisponible ? (
+                <FilaDelClub
+                  icono={<Cake className="h-3.5 w-3.5 shrink-0" />}
+                  sm="Se suman solos al cobrar esta compra"
+                  titulo={`En su mes de cumpleaños recibe ${puntos.config.regaloCumple} puntos de regalo con su primera compra.`}
+                >
+                  <b className="font-semibold">Cumple este mes</b> · +{puntos.config.regaloCumple} puntos de regalo
+                </FilaDelClub>
               ) : caja.cumple ? (
-                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} titulo={ayudaCumpleFueraDeMes(resumen?.cumplePct ?? null)}>
+                <FilaDelClub
+                  icono={<Cake className="h-3.5 w-3.5 shrink-0" />}
+                  titulo={`En su mes de cumpleaños recibe ${puntos?.config.regaloCumple ?? 100} puntos de regalo con su primera compra.`}
+                >
                   {caja.cumple}
                 </FilaDelClub>
               ) : (
-                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} sm="Se agrega en su ficha de Clientes" titulo="Sin él no hay beneficio de cumpleaños.">
+                <FilaDelClub icono={<Cake className="h-3.5 w-3.5 shrink-0" />} sm="Se agrega en su ficha de Clientes" titulo="Sin él no hay regalo de cumpleaños.">
                   <b className="font-semibold">Sin cumpleaños</b>
                 </FilaDelClub>
               )}
-              {filaVale && <FilaValeDelClub fila={filaVale} bloqueado={bloqueado} onAccion={alVale} />}
+              {filaPts && <FilaPuntosDelClub fila={filaPts} bloqueado={bloqueado} onUsar={alPuntos} />}
             </div>
           )}
 
@@ -226,7 +249,7 @@ export function ClientaDelTicket({
 
           {caja.tipo === "identificada" && (
             <FilaDelCartel
-              fila={filaDelCartel({ sinDocumento: caja.sinDocumento, espera: espera.espera, cumplePct: resumen?.cumplePct ?? null })}
+              fila={filaDelCartel({ sinDocumento: caja.sinDocumento, espera: espera.espera, regaloCumple: puntosDelClub.puntos?.config.regaloCumple ?? null })}
               revisando={espera.revisando}
               onActualizar={espera.actualizar}
             />
@@ -237,11 +260,12 @@ export function ClientaDelTicket({
           type="button"
           onClick={() => setAbierto(true)}
           disabled={bloqueado}
-          className="flex w-full items-center gap-2 rounded-xl border border-dashed border-tinta/25 px-3 py-2.5 text-left text-[13px] text-tinta/65 transition-colors hover:border-taupe hover:text-tinta"
+          title="Búscalo por documento, celular o nombre. Es opcional."
+          className="flex h-11 w-full items-center gap-2 rounded-md border border-dashed border-tinta/25 px-3 text-left text-[13px] text-tinta/65 transition-colors hover:border-taupe hover:text-tinta sm:h-9"
         >
           <UserRound className="h-4 w-4 shrink-0" aria-hidden />
-          Agregar cliente
-          <span className="ml-auto text-[11.5px] text-tinta/50">Documento, celular o nombre · opcional</span>
+          <span className="truncate">Agregar cliente</span>
+          <span className="ml-auto hidden text-[11.5px] text-tinta/50 @min-[13.5rem]:inline">opcional</span>
         </button>
       )}
 
@@ -321,48 +345,16 @@ function BotonDeFila<A extends string>({
   );
 }
 
-/** La fila del cumpleaños con el canje (tanda 1c; spike, `partesClub`): «Cumple este mes · 10 % disponible» y su botón, o el
- *  candado de «Cumpleaños canjeado el 12 sep». Los textos y la acción salen de `filaDelCumple`. */
-function FilaCumpleDelClub({ fila, bloqueado, onAccion }: { fila: FilaCumple; bloqueado: boolean; onAccion: (a: AccionCumple) => void }) {
-  // Spike: «Cumple este mes · 10 % disponible», pero «Cumpleaños canjeado el 12 sep» (sin el punto medio).
-  const texto = (
-    <>
-      <b className="font-semibold">{fila.destacado}</b>
-      {fila.tipo === "canje" ? " · " : " "}
-      {fila.resto}
-    </>
-  );
-  if (fila.tipo === "canjeado") {
-    return (
-      <FilaDelClub icono={<Lock className="h-3.5 w-3.5 shrink-0" />} sm={fila.bajada} titulo={fila.ayuda}>
-        {texto}
-      </FilaDelClub>
-    );
-  }
+/** La fila de los puntos: «1,240 puntos · valen S/ 62» y su botón «Usar puntos» (apagado, dice por qué en la segunda línea).
+ *  Los textos y la acción salen de `filaDePuntos`. */
+function FilaPuntosDelClub({ fila, bloqueado, onUsar }: { fila: FilaPuntos; bloqueado: boolean; onUsar: () => void }) {
   return (
     <FilaDelClub
-      icono={<Cake className="h-3.5 w-3.5 shrink-0" />}
-      sm={fila.bajada}
-      // Apagado, la bajada dice por qué (sin conexión, o ya usa su vale): se lee entera también a 375 px.
-      smEntera={fila.boton.accion === null}
-      titulo={fila.ayuda}
-      accion={<BotonDeFila boton={fila.boton} bloqueado={bloqueado} onAccion={onAccion} />}
-    >
-      {texto}
-    </FilaDelClub>
-  );
-}
-
-/** La fila del vale de aniversario (tanda 1g, G-13): «Vale de aniversario · S/ 30 · hasta el 30 nov» con «Usar vale»,
- *  «Quitar» o «Sin conexión». Los textos y la acción salen de `filaDelVale`. */
-function FilaValeDelClub({ fila, bloqueado, onAccion }: { fila: FilaVale; bloqueado: boolean; onAccion: (a: AccionVale) => void }) {
-  return (
-    <FilaDelClub
-      icono={<Gift className="h-3.5 w-3.5 shrink-0" />}
+      icono={<Star className="h-3.5 w-3.5 shrink-0" />}
       sm={fila.bajada}
       smEntera={fila.boton.accion === null}
       titulo={fila.ayuda}
-      accion={<BotonDeFila boton={fila.boton} bloqueado={bloqueado} onAccion={onAccion} />}
+      accion={<BotonDeFila boton={fila.boton} bloqueado={bloqueado} onAccion={onUsar} />}
     >
       <b className="font-semibold">{fila.destacado}</b> · {fila.resto}
     </FilaDelClub>
@@ -579,10 +571,10 @@ function BuscarClientaModal({
 
 /**
  * El alta del ticket (ADR-0288 D-9 y tanda 1g, G-2), dibujada como el spike del club (`modalRegistrar`) y con la misma regla
- * que el alta de /clientas (`NuevaClientaModal`): SOLO el documento (con DNI, el nombre llega del padrón en el mismo bloque;
- * con carné o pasaporte, se escribe) y quién registra, con el combo del ticket: lo que se elija aquí vale también para la
- * venta. Qué bloquea y qué sigue lo dice `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas): la guía y el botón miran
- * la misma regla.
+ * que el alta de /clientas (`NuevaClientaModal`): SOLO el documento y su nombre (con DNI lo trae el padrón y no se escribe:
+ * `NombreDelPadron`; con carné o pasaporte, se escribe tal cual) y quién registra, con el combo del ticket: lo que se elija aquí
+ * vale también para la venta. Qué bloquea y qué sigue lo dice `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas): la
+ * guía y el botón miran la misma regla.
  */
 function RegistrarClientaEnTicket({
   alta,
@@ -608,12 +600,18 @@ function RegistrarClientaEnTicket({
   const tipo = alta.documentoTipo;
   const esDni = tipo === "dni";
   const numero = normalizarNumeroDocumento(alta.documentoNumero);
+  // Con DNI, el nombre lo trae el padrón (Felipe 2026-10-15): con los 8 dígitos pregunta sola y la caja queda bloqueada.
+  const { padron, consultar } = usePadronDeFicha({ numero, activo: esDni, automatico: true });
+  const nombre = nombreDelAlta(tipo, padron, alta.nombre);
+  const problemaNombre = esDni ? null : problemaNombreEscrito(alta.nombre);
+  const conNumeros = problemaNombre !== null && /[0-9]/.test(alta.nombre);
 
   // Guía de foco (CLAUDE.md «Guía de foco», ADR-0284): `camposDeRegistrar` es la MISMA regla que apaga «Registrar».
   const campos = camposDeRegistrar({
     documentoTipo: tipo,
     documentoNumero: alta.documentoNumero,
     nombre: alta.nombre,
+    padron,
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
   });
@@ -633,16 +631,21 @@ function RegistrarClientaEnTicket({
     if (!sePuedeConfirmar(campos)) {
       const problema = problemaDocumento(tipo, alta.documentoNumero);
       if (numero === "" || problema) return void avisar.error(problema ?? "Elige el tipo y escribe el número.", { enfocar: ID_NUMERO_DOCUMENTO });
-      if (!nombreSuficiente(alta.nombre)) return void avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
+      // Con DNI no hay caja que llenar: el aviso del padrón ya dice qué hacer. Con carné o pasaporte, se lleva el cursor al nombre.
+      const faltaNombre = pendienteDelNombre(tipo, padron, alta.nombre);
+      if (faltaNombre) return void avisar.error(faltaNombre, esDni ? undefined : { enfocar: ID_NOMBRE });
       return void avisar.error(responsable.motivo ?? "Elige quién registra.");
     }
 
     onGuardando(true);
+    // La ficha con ese documento JUSTO ANTES de registrar (activa o archivada): la base no crea otra, la completa o la reactiva, y
+    // la caja tiene que decir eso y no «Cliente registrado» (Felipe 2026-10-15). El buscador del ticket no muestra las archivadas.
+    const previa = await fichaConDocumento(tipo, numero);
     const { id, error } = await registrarClienta(
       {
         documentoTipo: tipo,
         documentoNumero: numero,
-        nombre: alta.nombre,
+        nombre,
         // Tanda 1g (G-2): en caja solo el documento. El celular y el cumpleaños los escribe ella al unirse desde el cartel.
         telefonoWhatsapp: "",
         cumpleDia: "",
@@ -655,16 +658,22 @@ function RegistrarClientaEnTicket({
     if (error || !id) {
       // Solo ante un rechazo: con éxito, `despues` vaciaría el combo y soltaría a quien atiende la venta en curso.
       if (error) responsable.despues(error);
+      // La base no encontró la lectura del padrón (la hoja estuvo abierta más de una hora, o no se pudo anotar): se vuelve a leer.
+      if (error?.hint === "nombre_sin_padron") consultar();
       return void avisar.error(traducirError(error, "registrar al cliente"));
     }
+    // Si ya tenía ficha, la del ticket es esa: su nombre si no se escribió otro y su celular (la base conserva los dos al completarla).
+    const resultado = resultadoDelAlta(previa, id);
+    const deAntes = resultado === "nueva" ? null : previa;
     const nueva: ClientaDelTicket = {
       id,
-      nombre: alta.nombre.trim() || null,
+      nombre: nombre || deAntes?.nombre?.trim() || null,
       documentoTipo: tipo,
       documentoNumero: numero || null,
-      celular: null,
+      celular: deAntes?.telefonoWhatsapp ?? null,
     };
-    avisar.exito("Cliente registrado", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Para ser del club, que escanee el cartel.` });
+    const aviso = avisoDelAlta(resultado, lineaDeClienta(nueva).titulo, "ticket");
+    avisar.exito(aviso.titulo, { detalle: aviso.detalle });
     onRegistrada(nueva);
   }
 
@@ -684,39 +693,35 @@ function RegistrarClientaEnTicket({
             debe quedar bajo el pie. */}
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]">
           <CampoTipoDocumento corto tipo={tipo} onTipo={(t) => onCambiar({ documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, alta.documentoNumero) })} />
-          {esDni ? (
-            // Solo el DNI consulta el padrón (ADR-0008, ADR-0288 D-2). Si no responde, el nombre se escribe aquí mismo.
-            <ConsultaDocumento
-              tipo="dni"
-              obligatorio
-              numero={alta.documentoNumero}
-              onNumero={(v) => onCambiar({ documentoNumero: v })}
-              nombre={alta.nombre}
-              onNombre={(v) => onCambiar({ nombre: v })}
-            />
-          ) : (
-            <CampoNumeroDocumento tipo={tipo} numero={alta.documentoNumero} onNumero={(v) => onCambiar({ documentoNumero: v })} />
-          )}
+          <CampoNumeroDocumento tipo={tipo} numero={alta.documentoNumero} onNumero={(v) => onCambiar({ documentoNumero: v })} />
         </div>
-        {!esDni && (
-          <p className="mt-1 text-xs text-tinta/60">
-            Solo el DNI se autocompleta con el padrón; {tipo === "pasaporte" ? "el pasaporte" : "el carné"} lleva el nombre a mano.
-          </p>
-        )}
       </CampoGuiado>
 
-      {!esDni && (
-        <CampoGuiado id="nombre" guia={guia} titulo="Nombre">
+      {/* El nombre (Felipe 2026-10-15): con DNI lo trae el padrón y no se escribe —sin el padrón no se registra, y la venta sigue
+          sin cliente—; con carné o pasaporte se escribe tal cual está en el documento. */}
+      <CampoGuiado id="nombre" guia={guia}>
+        {esDni ? (
+          <NombreDelPadron
+            padron={padron}
+            donde="venta"
+            onConsultar={consultar}
+            deshabilitado={guardando}
+            conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
+          />
+        ) : (
           <CampoTexto
             id={ID_NOMBRE}
-            etiqueta="Nombre completo"
-            caja
-            placeholder="Nombre completo" // sugerir-fijo: nombre de la caja; el nombre de una persona no depende de nada elegido antes
+            etiqueta={guia.etiqueta("nombre", "Nombre completo")}
+            autoComplete="off"
+            maxLength={200}
             value={alta.nombre}
             onChange={(e) => onCambiar({ nombre: e.target.value })}
+            // Los números se dicen apenas se tipean (ningún nombre los lleva); lo demás que falta lo dice la guía.
+            pie={conNumeros ? problemaNombre : AYUDA_NOMBRE_ESCRITO}
+            tono={conNumeros ? "error" : "neutro"}
           />
-        </CampoGuiado>
-      )}
+        )}
+      </CampoGuiado>
 
       <CampoGuiado id="responsable" guia={guia}>
         <ComboResponsable control={responsable} deshabilitado={guardando} />

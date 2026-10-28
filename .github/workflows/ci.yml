@@ -67,6 +67,7 @@ jobs:
       alcance: ${{ steps.medir.outputs.alcance }}
       verificar: ${{ steps.medir.outputs.verificar }}
       compilar: ${{ steps.medir.outputs.compilar }}
+      compilar_tienda: ${{ steps.medir.outputs.compilar_tienda }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -112,8 +113,13 @@ jobs:
       # (si no hay node_modules, todos fallarían por la misma razón y el informe sería
       # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
       # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
+      # Más memoria para `tsc`: el 2026-10-16 revisar los tipos de la web pedía ~1,98 GB y Node corta en ~2 GB por defecto, así que un
+      # PR que sumaba unos pocos archivos moría con «JavaScript heap out of memory» (código 134) sin ningún error de tipos. El runner
+      # tiene memoria de sobra; 6 GB deja margen para que el ERP siga creciendo.
       - name: Tipos
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm typecheck
 
       - name: Lint
@@ -169,6 +175,17 @@ jobs:
           node --test scripts/migraciones/sin-drop-trigger.test.mjs
           node scripts/migraciones/sin-drop-trigger.mjs
 
+      # Ningún ayudante `pg_temp.<nombre>` cambia el nombre de sus parámetros respecto de uno anterior con la misma firma:
+      # el CLI de Supabase aplica todas las migraciones en UNA sesión y `pg_temp` se arrastra, así que el segundo
+      # `create or replace` falla con 42P13 y la base no se arma (2026-10-23, `20261023212000`; #1300 y #1301 en rojo).
+      # En producción cada pegada es su propia sesión y no lo ve; el CI de la migración nueva tampoco, porque se aparta.
+      # Solo lee archivos; no necesita node_modules.
+      - name: Ayudantes pg_temp sin choque
+        if: ${{ !cancelled() }}
+        run: |
+          node --test scripts/migraciones/pg-temp-sin-choque.test.mjs
+          node scripts/migraciones/pg-temp-sin-choque.mjs
+
       # Las pruebas del check «SQL pegado» (el check en sí corre en `sql-pegado.yml`, también al editar el cuerpo del
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
@@ -192,9 +209,11 @@ jobs:
       # Qué versiones construye Vercel (ADR-0383): el `ignoreCommand` de `apps/web/vercel.json` salta la vista previa de un
       # merge que solo trae `main` a la rama. Si el filtro se equivocara hacia saltar de más, una rama con código se quedaría
       # sin compilar en Vercel sin que nadie lo note: por eso sus pruebas corren aquí. Solo usan Node.
+      # Y el vigía del acuse (ADR-0425, `vigia-vercel.yml`): si Vercel no recibe el último commit de main, pide la
+      # publicación al Deploy Hook. Sus pruebas simulan un commit sin publicación contra un GitHub falso en 127.0.0.1.
       - name: Qué construye Vercel
         if: ${{ !cancelled() }}
-        run: node --test scripts/ci/vercel-ignorar.test.mjs
+        run: node --test scripts/ci/vercel-ignorar.test.mjs scripts/ci/vercel-ignorar-tienda.test.mjs scripts/ci/vigia-vercel.test.mjs scripts/ci/vigia-salud.test.mjs
 
       # Una entrada nueva de bitácora o de backlog vive en su propio archivo (ADR-0259): BITACORA.md y BACKLOG.md eran los
       # dos archivos más tocados del repo y cada PR chocaba ahí con el anterior. Van también las pruebas de «qué toca el
@@ -243,6 +262,8 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: clave-de-mentira-solo-para-compilar
+      # `next build` revisa los tipos con el mismo `tsc` que el paso «Tipos»: misma memoria y mismo porqué (2026-10-16).
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
 
@@ -257,6 +278,30 @@ jobs:
 
       - name: next build
         run: pnpm --filter web exec next build
+
+  # Compila la tienda online (ADR-0408), la app aparte de `apps/tienda`: lo mismo que «Compila la web», solo cuando el PR puede
+  # cambiar lo que ella compila. Sin `TIENDA_DB_URL`: la portada se arma sin campaña, como cuando la base no responde
+  # (lib/base.ts), y la compilación no habla con ninguna base.
+  compilar-tienda:
+    name: Compila la tienda
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.compilar_tienda != 'no' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: next build
+        run: pnpm --filter tienda build
 
   # PARTIDO EN TANDAS (ADR-0381, 2026-10-12). Las ~180 pruebas corrían en serie sobre una base: 8–11 min, y el ruleset exige
   # la rama al día con main, así que un PR que tardaba 10 min ya estaba atrasado otra vez. Ahora corren en 4 jobs a la vez,
@@ -319,11 +364,15 @@ jobs:
       # una en el catálogo: esas huellas las compara el check «SQL pegado» con producción cuando el PR dice que su SQL ya
       # está pegado. Una migración que no se aplica hace fallar este paso, igual que antes hacía fallar `supabase start`.
       # Al final los archivos vuelven a su carpeta: hay pruebas que leen el de su migración.
+      #
+      # `supabase start` se reintenta UNA vez: el 54422 de la base cae en el rango de puertos salientes de Linux (32768–60999), y
+      # mientras se bajan las imágenes alguna conexión a veces lo ocupa («failed to bind host port … address already in use»; tres
+      # tandas el 2026-10-15, en PR distintos). Un error de verdad (una migración, la semilla) falla igual en el segundo intento.
       - id: supabase
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance != 'web' }}
         run: |
           if [ "${{ github.event_name }}" = pull_request ]; then node scripts/migraciones/huellas-del-pr.mjs apartar "$RUNNER_TEMP/migraciones-del-pr"; fi
-          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           if [ -d "$RUNNER_TEMP/migraciones-del-pr" ]; then
             if [ "${{ matrix.tanda }}" = 1 ]; then huellas="$RUNNER_TEMP/huellas-del-pr.json"; else huellas=""; fi
             node scripts/migraciones/huellas-del-pr.mjs aplicar "$RUNNER_TEMP/migraciones-del-pr" $huellas
@@ -335,7 +384,7 @@ jobs:
       - name: Solo las pruebas que leen la web (el PR solo cambia apps/web)
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' && needs.alcance.outputs.alcance == 'web' }}
         run: |
-          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"
+          npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS" || { npx "$SUPABASE_CLI" stop --no-backup || true; sleep 15; npx "$SUPABASE_CLI" start -x "$SIN_SERVICIOS"; }
           node scripts/ci/pruebas-web.mjs
 
       # Apenas la base está arriba, para que el check «SQL pegado» no espere las pruebas. Sin migraciones nuevas (o si no se

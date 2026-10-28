@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Clock, RefreshCw, Search, ShieldCheck, UserRound, SearchX } from "lucide-react";
+import { Check, ChevronDown, RefreshCw, Search, ShieldCheck, UserRound, SearchX } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
@@ -13,6 +14,7 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 
 type Props = {
   control: ControlResponsable;
@@ -22,6 +24,9 @@ type Props = {
   /** El aviso del Admin como chip de una línea (Punto de venta, spike 2026-09-26): el recuadro de siempre ocupaba
    *  ~60 px del pie del ticket, justo donde el espacio más cuesta, y no cambia nada de lo que se hace. */
   compacto?: boolean;
+  /** La etiqueta a la izquierda de la caja y sin el «Obligatorio para guardar»: el pie de una hoja donde el alto es de la tabla
+   *  (Ajustar stock, Felipe 2026-10-27). Lo que falta lo dice la guía de foco del pie. */
+  enLinea?: boolean;
 };
 
 /**
@@ -38,7 +43,7 @@ type Props = {
  *    y «Actualizar lista». Igual para un líder, incluso trabajando desde casa (A9).
  *  · El Admin (ADR-0178) no pasa por nada de esto: firma él y solo ve un aviso de que no necesita autorización.
  */
-export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false }: Props) {
+export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false, enLinea = false }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
@@ -91,49 +96,63 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
     if (abierto && posLista && mostrarBuscador) buscador.current?.focus();
   }, [abierto, posLista, mostrarBuscador]);
 
+  // ADR-0454 (temporal, hasta integrar Lima con Dynamic): una terminal con firma de respaldo (Caja y Almacén de Lima) no pide nada, la base firma
+  // sola. Se dice en una línea —como al Admin— y no se deja un hueco: muchas pantallas ponen su propio título («Quién recibe») junto al combo.
+  if (estado === "respaldo" && compacto) {
+    return (
+      <p role="status" className={`flex ${className}`}>
+        <Chip tono="pizarra" versalitas={false} title="Esta terminal no pide responsable. Lo que guardes queda a nombre de quien la respalda.">
+          <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden />
+          Sin responsable{control.firmaDeRespaldo ? ` · ${control.firmaDeRespaldo}` : ""}
+        </Chip>
+      </p>
+    );
+  }
+
+  if (estado === "respaldo") {
+    return (
+      <Aviso tono="info" chico className={className} titulo="Esta terminal no pide responsable">
+        {control.firmaDeRespaldo ? `Lo que guardes queda a nombre de ${control.firmaDeRespaldo}.` : "Lo que guardes queda firmado por la terminal."}
+      </Aviso>
+    );
+  }
+
   if (estado === "admin" && compacto) {
     return (
       <p role="status" className={`flex ${className}`}>
-        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-pizarra/[0.1] px-2.5 text-[11px] font-medium text-pizarra" title="Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.">
-          <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <Chip tono="pizarra" versalitas={false} title="Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.">
+          <ShieldCheck className="h-3 w-3 shrink-0" aria-hidden />
           Admin · queda a tu nombre
-        </span>
+        </Chip>
       </p>
     );
   }
 
   if (estado === "admin") {
     return (
-      <p role="status" className={`flex items-center gap-2 rounded-lg border border-pizarra/25 bg-pizarra/[0.06] px-3 py-2.5 text-[13px] text-tinta/80 ${className}`}>
-        <ShieldCheck className="h-4 w-4 shrink-0 text-pizarra" aria-hidden />
-        <span>
-          <b className="font-semibold text-tinta">Eres admin:</b> no necesitas autorización. Lo que guardes queda a tu nombre.
-        </span>
-      </p>
+      <Aviso tono="info" chico className={className} titulo="Eres admin">
+        No necesitas autorización. Lo que guardes queda a tu nombre.
+      </Aviso>
     );
   }
 
   if (estado === "nadie" || estado === "sin_lectura") {
     const nadie = estado === "nadie";
     return (
-      <div role="alert" className={`anim-revelar rounded-xl border border-ambar/35 bg-ambar/[0.07] p-3.5 ${className}`}>
-        <p className="flex items-center gap-2 text-sm font-semibold text-ambar-profundo">
-          <Clock className="h-4 w-4 shrink-0" aria-hidden />
-          {nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}
-        </p>
+      <Aviso tono="atencion" className={className} titulo={nadie ? `Nadie de turno en ${sede}` : "No se pudo leer quién está de turno"}>
         {nadie ? (
           <>
-            <p className="mt-1.5 text-[13px] text-tinta/80">
+            <p>
               Para guardar, quien atiende tiene que haber marcado su <b className="font-semibold">entrada</b> hoy en esta tienda. Nadie lo
               ha hecho todavía (la regla es la misma para los líderes).
             </p>
-            <ol className="ml-[18px] mt-2 list-decimal text-[13px] text-tinta/80">
+            <ol className="ml-[18px] mt-2 list-decimal">
               <li>Marca tu entrada en el kiosco de asistencia de la tienda.</li>
               <li>Vuelve aquí y toca «Actualizar lista».</li>
             </ol>
           </>
         ) : (
-          <p className="mt-1.5 text-[13px] text-tinta/80">Revisa la conexión y vuelve a intentar. Sin esa lista no se puede elegir quién hace la operación.</p>
+          <p>Revisa la conexión y vuelve a intentar. Sin esa lista no se puede elegir quién hace la operación.</p>
         )}
         <Boton type="button" onClick={() => void control.recargar()} cargando={control.recargando} textoCargando="Actualizando…" className="mt-3 h-9">
           <span className="flex items-center gap-2">
@@ -141,7 +160,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
             Actualizar lista
           </span>
         </Boton>
-      </div>
+      </Aviso>
     );
   }
 
@@ -199,8 +218,8 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   return (
     // `campo`: la etiqueta se oscurece con la caja encendida (ADR-0358, ronda 6).
-    <div ref={raiz} className={`campo relative ${className}`} onKeyDown={alTeclado}>
-      <p className="campo-etiqueta mb-1.5 flex items-center gap-1.5">
+    <div ref={raiz} className={`campo relative ${enLinea ? "flex flex-wrap items-center gap-x-3" : ""} ${className}`} onKeyDown={alTeclado}>
+      <p className={`campo-etiqueta flex items-center gap-1.5 ${enLinea ? "" : "mb-1.5"}`}>
         Responsable <span className="text-rojo" aria-hidden>*</span>
       </p>
       <button
@@ -214,12 +233,12 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         onClick={abrirOCerrar}
         // La caja que se enciende, de 48 px con su avatar (ADR-0358, ronda 6). Antes, una caja crema propia con borde rojo punteado
         // mientras faltaba: ahora lo dice el «*», «Obligatorio para guardar» y la guía de foco, como en todo campo.
-        className="caja-cayla caja-campo caja-campo-alta disabled:cursor-default disabled:opacity-60"
+        className={`caja-cayla caja-campo disabled:cursor-default disabled:opacity-60 ${enLinea ? "min-w-[14rem] flex-1" : "caja-campo-alta"}`}
       >
         {elegido ? (
           <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} tamano={32} />
         ) : (
-          <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
+          <UserRound className="h-4 w-4 flex-none" aria-hidden />
         )}
         <span className={`min-w-0 flex-1 truncate text-sm ${elegido ? "" : "text-tinta/65"}`}>
           {cargando ? "Leyendo quién está de turno…" : elegido ? (cortos.get(elegido.nombre) ?? elegido.nombre) : control.pregunta}
@@ -228,7 +247,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
       </button>
       {/* Pantalla abierta sin red (ADR-0210): la lista es la última que se leyó aquí. La base confirma al subir. */}
       {control.deMemoria && (
-        <p className="mt-1.5 text-xs text-ambar-profundo">
+        <p className={`text-xs text-ambar-profundo ${enLinea ? "basis-full" : "mt-1.5"}`}>
           Sin conexión: lista de turno de las {diaYHoraLima(control.deMemoria).hora}. Al subir, el sistema confirma que esa persona estaba de turno.
         </p>
       )}
@@ -309,7 +328,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           destino
         )}
 
-      {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
+      {!elegido && !cargando && !enLinea && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
     </div>
   );
 }
