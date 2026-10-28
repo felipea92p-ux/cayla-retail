@@ -730,3 +730,21 @@ que valía de S/ 69.90 a S/ 79.90. Ahora el cambio trae el rango (`CambioDePreci
 todas pasan a venderse a este precio» (`textoIgualaTallas`). La base no cambia. Además, bajo el campo del precio sale «Antes S/ …» cuando el precio escrito es válido y distinto del de hoy (uno solo), y en la
 hoja de una sola prenda no se repite su nombre ni el precio de hoy cuando el campo ya lo trae.
 
+
+### «Contar» se rediseña en una mesa de trabajo (Felipe, 2026-10-28; opción A de `docs/maquetas/recibir-contar-2026-10/`)
+La pestaña tenía tres columnas desiguales (el papel de la compra, un riel con «Quién cuenta» y las categorías, y el contador) y dos quedaban cortas junto a la tercera: espacio vacío
+a los lados y «¿Qué … son?» tres pantallas más abajo. Felipe pidió tres propuestas solo en imagen y eligió la A. Es solo web, sin migración, y no cambia qué se guarda: el reparto de
+lo contado entre las líneas (`repartirTotal`, `repartirSeparado`) y las reglas de «Cerrar» son las mismas. Seis actividades, cada una con su commit:
+1. **El papel va a la derecha** (columna fija de 25 rem, en Contar, Cerrar y lo cerrado; bajo `xl` sigue arriba). El trabajo ocupa el ancho.
+2. **«Anotado en la compra» pasa a «¿Qué … son?»** como chips con «+» (`recepcion.anotadas`). Antes se desplegaban bajo la categoría en el riel; sin riel necesitaban otro lugar. Tocar uno
+   hace lo mismo de antes (`separarAnotadaDe`).
+3. **Las categorías son píldoras en una fila** (`rc-cat-pildora`, con la marca de la guía de foco) y «Quién cuenta» queda a su derecha con un ⓘ que abre la ayuda con un toque.
+4. **El contador es una franja**: número con − y +, atajos y barra de «cuadra» en una fila cuando la tarjeta es ancha (container query sobre la tarjeta, no la ventana: junto al
+   papel la columna mide ~650 px y la barra baja debajo). «¿Qué … son?» tiene su propia tarjeta debajo.
+5. **Una barra de cierre al pie** (`BarraDeAbajo pegada`, clase `rc-cierre`): «Anterior», «Dijeron N · Contadas N · veredicto» de todo el envío y la acción que sigue. Reemplaza a la
+   balanza de dibujo en Contar; en Cerrar la balanza se queda.
+6. Cierre: 375 px, modo oscuro y 1024/1440/1920 verificados; guía de «Recibir un envío» y su huella al día.
+
+**Lo que se decidió por el camino.** La clase de la barra no puede llamarse `rc-barra`: es una firma de `grafico.avance` en `unificar/familias.mjs` (la barra de avance vieja de «Recibir
+contando»). En el celular el papel sigue ARRIBA del contador, como antes: no se cambió para no mezclar dos decisiones. Probado en el navegador con ENV-000685 (con papel y dos prendas
+anotadas), restaurando la base local con `scripts/flujo-de-negocio/estado.mjs` tras contar.
