@@ -330,6 +330,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
+  "components/recepcion-conteo/LlegoSinAviso.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/LlegoSinAviso.tsx"] },
   // Registrar proveedor desde Nueva orden (2026-10-21): el RUC y la razón social (un solo campo: la consulta los pinta juntos), o solo el nombre con
   // «No tiene RUC», y el WhatsApp si se escribió; la pregunta «¿no será uno que ya tienes?» sin contestar también bloquea. Sale de lo que la función
   // `registrar_proveedor_de_orden` ya exige (`lib/proveedor-de-orden-reglas.ts`, con su prueba).

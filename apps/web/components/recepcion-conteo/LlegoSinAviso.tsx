@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, CircleHelp, PackageOpen, SearchX, Store } from "lucide-react";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
-import { CajaFardo } from "./piezas";
+import { Modal } from "@/components/ui/Modal";
 import { BotonSinAviso, useSinAviso } from "./SinAvisoContexto";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useAltaDeProveedor } from "@/components/useAltaDeProveedor";
@@ -74,7 +73,6 @@ export function LlegoSinAviso({
     const segunLaDireccion = () => {
       if (window.location.hash !== "#sin-aviso") return;
       setAbierto(true);
-      requestAnimationFrame(() => document.getElementById("sin-aviso")?.scrollIntoView({ block: "start" }));
     };
     segunLaDireccion();
     window.addEventListener("hashchange", segunLaDireccion);
@@ -102,7 +100,6 @@ export function LlegoSinAviso({
       { id: "sin-aviso-guia", nombre: "Número de guía", requerido: false, hecho: guia.trim() !== "", pendiente: "Si vino con guía, escribe su número." },
       { id: "sin-aviso-quien", nombre: "Quién recibe", requerido: true, hecho: responsable.listo, pendiente: "Elige quién recibe." },
     ],
-    { enModal: false },
   );
 
   async function abrir() {
@@ -144,11 +141,16 @@ export function LlegoSinAviso({
       </div>
     )}
     {abierto && (
-    <div id="sin-aviso-formulario" className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <section className="card-cayla grid gap-6 overflow-hidden p-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:p-6" aria-label="Llegó sin aviso">
-        <div className="grid place-items-start justify-center pt-1.5">
-          <CajaFardo />
-        </div>
+      <Modal
+        titulo={hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}
+        subtitulo={hayListaArriba
+          ? "Lo de arriba lo despachó Compras. Si llegó algo más, que nadie despachó desde el sistema, dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."
+          : "Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."}
+        tamano="mediana"
+        onClose={() => setAbierto(false)}
+        bloqueado={abriendo}
+      >
+        <div id="sin-aviso-formulario">
         <form
           noValidate
           onSubmit={(e) => {
@@ -157,16 +159,6 @@ export function LlegoSinAviso({
           }}
           className="min-w-0 space-y-4"
         >
-          <div>
-            <p className="label-cayla text-[11px] text-taupe">Sin aviso de Compras</p> {/* unificar-fijo: la ceja de la tarjeta (de dónde viene el paquete), no un vacío */}
-            <TituloSeccion>{hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}</TituloSeccion>
-            <p className="mt-1 text-[15px] text-taupe">
-              {hayListaArriba
-                ? "Lo de arriba lo despachó Compras. Si llegó algo más, que nadie despachó desde el sistema, dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."
-                : "Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."}
-            </p>
-          </div>
-
           <CampoGuiado id="sin-aviso-proveedor" guia={campos}>
             <p className="mb-1.5 text-[13px] font-semibold text-tinta">{campos.etiqueta("sin-aviso-proveedor", "¿De quién es?")}</p>
             <Buscador valor={buscar} onCambio={setBuscar} placeholder="Busca el proveedor por nombre, marca o RUC" etiqueta="Buscar el proveedor" />
@@ -285,16 +277,13 @@ export function LlegoSinAviso({
               <ArrowRight aria-hidden className="h-4 w-4" />
             </span>
           </Boton>
+
+          <p className="nota-cayla text-[13.5px]">
+            Cuando Compras lo despache, el envío aparecerá arriba con lo que dijeron por categoría y marca, y la pantalla comparará sola. Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b className="text-tinta">Traslados</b>.
+          </p>
         </form>
-      </section>
-      <aside className="card-cayla space-y-2 p-5">
-        <TituloSeccion nivel={3}>Cuando Compras lo despache</TituloSeccion>
-        <p className="text-[13.5px] text-taupe">
-          El envío aparecerá arriba con lo que dijeron por categoría y marca, y la pantalla comparará sola. Lo que manda otra sede de CAYLA no entra
-          por aquí: se recibe en <b className="text-tinta">Traslados</b>.
-        </p>
-      </aside>
-    </div>
+        </div>
+      </Modal>
     )}
     </div>
     {/* Fuera del <form> (ADR-0128): un `submit` del alta no debe llegar a «Empezar a contar». */}
