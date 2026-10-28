@@ -29,7 +29,7 @@ const migracion = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations",
 const ANTES = ["20261028052000_produccion_cinco_pasos_fijos.sql", "20261028053000_producto_taller_ojales_y_botones.sql", "20261028064000_produccion_fecha_prometida_pasada_vale.sql"].map(migracion).join("\n");
 const PENDIENTE = migracion("20261028072000_produccion_proveedor_pendiente_de_registrar.sql");
 const COSTO = migracion("20261028084000_produccion_pendiente_con_costo_devengado.sql");
-// El inverso exacto de los reemplazos anclados de COSTO (sacado de su archivo) y de su función de cinco parámetros: deja las funciones como las dejó PENDIENTE.
+// El inverso exacto de los reemplazos anclados de COSTO (sacado de su archivo) y de su función de seis parámetros: deja las funciones como las dejó PENDIENTE.
 const DESHACER_COSTO = `
 do $deshacer_costo$
 declare v_def text;
@@ -39,7 +39,7 @@ ${[...COSTO.matchAll(/reemplazar_anclado\(\s*'([^']+)',\s*\$v\$(.*?)\$v\$,\s*\$v
   .join("\n")}
 end
 $deshacer_costo$;
-drop function if exists retail.dejar_fase_pendiente_de_registrar(uuid, date, numeric, numeric, integer);
+drop function if exists retail.dejar_fase_pendiente_de_registrar(uuid, date, numeric, numeric, integer, boolean);
 `;
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // Integrante de Tienda Trujillo (seed)
@@ -200,7 +200,7 @@ caso(
      pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'0'" }))})),
      pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'-2'" }))})),
      pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'20000'" }))})),
-     pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'4.5', 'fijo_orden', '-1'" }).replace("'-1'", "'-1'"))})),
+     pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'4.5'", fijo_orden: "'-1'" }))})),
      pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'cuatro'" }))})),
      pg_temp.eh(pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'4.5'", cantidad_minima: "'0'" }))})));`,
   "P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida"
@@ -239,7 +239,7 @@ caso(
   "OK,t,OK,P0001|fase_empezada"
 );
 caso(
-  "D2 una fase YA pendiente ajusta su costo cuando quiera, también después de empezar: 4.50 → 6.00 cambia lo devengado (50 × 6.00 = 300); y volver a dejarla sin monto la devuelve a 0",
+  "D2 una fase YA pendiente ajusta su costo cuando quiera, también después de empezar: 4.50 → 6.00 cambia lo devengado (50 × 6.00 = 300); una llamada SIN monto lo conserva; borrarlo se pide a propósito (p_limpiar_costo) y lo devuelve a 0",
   `select pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'4.50'" }))}) as r \\gset
    select id as f_cost from retail.produccion_fases where produccion_id = (select id from pg_temp.ultima) and clave = 'costura' \\gset
    select id as f_corte from retail.produccion_fases where produccion_id = (select id from pg_temp.ultima) and clave = 'corte' \\gset
@@ -247,8 +247,10 @@ caso(
    select pg_temp.intento(format('select retail.dejar_fase_pendiente_de_registrar(%L, null, 6.00)', :'f_cost')) as a \\gset
    select ${DEVENGADO} as d1 \\gset
    select pg_temp.intento(format('select retail.dejar_fase_pendiente_de_registrar(%L)', :'f_cost')) as b \\gset
-   select concat_ws(',', :'a', :'d1', :'b', ${DEVENGADO});`,
-  "OK,300.00,OK,0.00"
+   select ${DEVENGADO} as d2 \\gset
+   select pg_temp.intento(format('select retail.dejar_fase_pendiente_de_registrar(%L, null, null, null, null, true)', :'f_cost')) as c \\gset
+   select concat_ws(',', :'a', :'d1', :'b', :'d2', :'c', ${DEVENGADO});`,
+  "OK,300.00,OK,300.00,OK,0.00"
 );
 caso(
   "D3 dejar pendiente con un monto fuera de tope (tarifa 0 o de 20 000, fijo negativo) se rechaza con fase_tarifa_invalida y no cambia nada",
@@ -261,6 +263,38 @@ caso(
   "P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida,P0001|fase_tarifa_invalida,t"
 );
 caso(
+  "R3 registrar quién CONSERVA el costo que el pendiente ya llevaba si no se manda otro (tarifa 4.50 + fijo 15 → 240.00); si se manda otro, manda el nuevo",
+  `select pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'4.50'", fijo_orden: "'15'", cantidad_minima: "'20'" }))}) as r \\gset
+   select id as f_cost from retail.produccion_fases where produccion_id = (select id from pg_temp.ultima) and clave = 'costura' \\gset
+   select id as f_corte from retail.produccion_fases where produccion_id = (select id from pg_temp.ultima) and clave = 'corte' \\gset
+   ${VUELVEN_50}
+   select retail.registrar_proveedor_de_fase(:'f_cost', :'maquila') as x \\gset
+   select concat_ws(',',
+     (select (proveedor_id = :'maquila' and tarifa_prenda = 4.50 and fijo_orden = 15 and cantidad_minima = 20) from retail.produccion_fases where id = :'f_cost'),
+     ${DEVENGADO});`,
+  "t,240.00"
+);
+caso(
+  "A2 cada cambio de costo y cada registro de proveedor deja su rastro en Actividad (quién, qué fase y de cuánto a cuánto); repetir lo mismo no lo duplica",
+  `select pg_temp.abre(${APERTURA}, ${ESPINA(PENDIENTE_FASE("costura", { tarifa_prenda: "'4.50'" }))}) as r \\gset
+   select id as f_cost from retail.produccion_fases where produccion_id = (select id from pg_temp.ultima) and clave = 'costura' \\gset
+   select count(*) as antes from retail.actividad where modulo = 'produccion' and accion in ('produccion_fase_pendiente_costo', 'produccion_fase_proveedor_registrado') \\gset
+   select pg_temp.intento(format('select retail.dejar_fase_pendiente_de_registrar(%L, null, 6.00, null, null, true)', :'f_cost')) as a \\gset
+   select pg_temp.intento(format('select retail.dejar_fase_pendiente_de_registrar(%L, null, 6.00, null, null, true)', :'f_cost')) as b \\gset
+   select pg_temp.intento(format('select retail.registrar_proveedor_de_fase(%L, %L)', :'f_cost', :'maquila')) as c \\gset
+   select concat_ws(',', :'a', :'b', :'c',
+     (select count(*) from retail.actividad where modulo = 'produccion' and accion in ('produccion_fase_pendiente_costo', 'produccion_fase_proveedor_registrado')) - :antes,
+     (select count(*) from retail.actividad where accion = 'produccion_fase_pendiente_costo' and detalle ->> 'tarifa_antes' = '4.50' and detalle ->> 'tarifa_despues' = '6.00' and persona_id = :'felipe_p'));`,
+  "OK,OK,OK,2,1"
+);
+caso(
+  "L1 las dos funciones bloquean la fila de la ORDEN antes de leer (como cerrar_produccion): dos personas a la vez se turnan y el costo no cambia mientras la orden se cierra",
+  `select concat_ws(',',
+     (select position('for update' in lower(prosrc)) > 0 from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'dejar_fase_pendiente_de_registrar'),
+     (select position('for update' in lower(prosrc)) > 0 from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'registrar_proveedor_de_fase'));`,
+  "t,t"
+);
+caso(
   "P1 las puertas: una integrante de Trujillo (sin acceso al Taller) no deja pendiente ni registra; anon no ejecuta; authenticated sí; y la función de dos parámetros ya no existe",
   `${ABRIR_PENDIENTE}
    ${como(MICAELA)}
@@ -270,8 +304,8 @@ caso(
    select concat_ws(',', :'a', :'b',
      has_function_privilege('anon', 'retail.registrar_proveedor_de_fase(uuid, uuid, numeric, numeric, integer, date)', 'execute'),
      has_function_privilege('authenticated', 'retail.registrar_proveedor_de_fase(uuid, uuid, numeric, numeric, integer, date)', 'execute'),
-     has_function_privilege('anon', 'retail.dejar_fase_pendiente_de_registrar(uuid, date, numeric, numeric, integer)', 'execute'),
-     has_function_privilege('authenticated', 'retail.dejar_fase_pendiente_de_registrar(uuid, date, numeric, numeric, integer)', 'execute'),
+     has_function_privilege('anon', 'retail.dejar_fase_pendiente_de_registrar(uuid, date, numeric, numeric, integer, boolean)', 'execute'),
+     has_function_privilege('authenticated', 'retail.dejar_fase_pendiente_de_registrar(uuid, date, numeric, numeric, integer, boolean)', 'execute'),
      to_regprocedure('retail.dejar_fase_pendiente_de_registrar(uuid, date)') is null);`,
   (o) => /^(42501|P0001)\|[a-z_]*,(42501|P0001)\|[a-z_]*,f,t,f,t,t$/.test(o)
 );

@@ -241,7 +241,7 @@ export function FilaFase({
   const opciones: Opcion<string>[] = elegidoFuera ? [{ valor: elegidoFuera.id, texto: `${elegidoFuera.nombre} · ya no hace servicios`, deshabilitada: true }, ...opcionesProveedor] : opcionesProveedor;
 
   const idBase = `fase-${fase.clave}`;
-  // «Pendiente de registrar» (ADR-0551 pendiente de registrar): la primera opción, siempre. Sale afuera sin saber todavía con quién ni a cuánto; no cobra nada hasta que se registre quién.
+  // «Pendiente de registrar» (ADR-0551 pendiente de registrar): la primera opción, siempre. Sale afuera sin saber todavía con quién; lo que se escriba de costo ya cuenta, y en blanco no suma nada hasta que se registre.
   const opcionesConPendiente: Opcion<string>[] = [{ valor: PENDIENTE, texto: "Pendiente de registrar" }, ...opciones];
   // Debajo del combo, la salida para quien SÍ se conoce pero todavía no está en el directorio: el alta de Producción, sin salir de la hoja.
   const comboProveedor = (

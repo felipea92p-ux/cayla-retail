@@ -422,7 +422,7 @@ export function avisoMinimo(
   lista: readonly TarifaDeLista[],
   ctx: { hoy: string; proveedores?: readonly ProveedorServicio[] }
 ): string | null {
-  if (!faseViaja(fase) || fase.quien !== "servicio" || fase.pendiente || totalPrendas <= 0) return null;
+  if (!faseViaja(fase) || fase.quien !== "servicio" || totalPrendas <= 0) return null;
   const s = leerServicio(fase, lista, ctx.hoy);
   if (s.cantidadMinima === null || s.cantidadMinima <= 0 || totalPrendas >= s.cantidadMinima) return null;
   const nombre = ctx.proveedores?.find((p) => p.id === fase.proveedorId)?.nombre ?? "Este servicio";
@@ -443,7 +443,7 @@ export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPren
 }
 
 /** Una fase que sale afuera con lo que costaría en TODA la orden y a quién (para repartirlo por prenda en la ficha). */
-export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; costo: number };
+export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; /** Sale afuera sin proveedor a propósito (ADR-0551): no es una falta. */ pendiente: boolean; costo: number };
 
 /**
  * Cada fase que sale afuera con su costo de toda la orden (tarifa × prendas + fijo, a dos decimales) y su proveedor, en el orden de la ruta. Es la MISMA cuenta
@@ -465,6 +465,7 @@ export function serviciosConCosto(
         clave: f.clave,
         nombre: faseDe(f.clave).nombre,
         proveedor: proveedores.find((p) => p.id === f.proveedorId)?.nombre ?? null,
+        pendiente: f.pendiente === true,
         costo: aCentimos((s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden),
       };
     });

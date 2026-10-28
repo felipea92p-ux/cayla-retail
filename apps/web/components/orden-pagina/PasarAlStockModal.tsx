@@ -217,7 +217,7 @@ export function PasarAlStockModal({ datos, onClose, alAnotarTela, alDeclararTela
 
         {sinRegistrarSinCosto.length > 0 && (
           <Aviso tono="atencion">
-            {sinRegistrarSinCosto.map((f) => f.nombre).join(", ")} {sinRegistrarSinCosto.length === 1 ? "salió afuera sin proveedor y sin costo" : "salieron afuera sin proveedor y sin costo"}: no entra al costo de las prendas. Escribe lo que cuesta
+            {sinRegistrarSinCosto.map((f) => f.nombre).join(", ")} {sinRegistrarSinCosto.length === 1 ? "salió afuera sin proveedor y sin costo: no entra" : "salieron afuera sin proveedor y sin costo: no entran"} al costo de las prendas. Escribe lo que cuesta
             (o regístralo) en la fase antes de pasar al stock; después de pasar ya no se puede.
           </Aviso>
         )}

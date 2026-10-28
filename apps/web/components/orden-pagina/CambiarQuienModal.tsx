@@ -55,7 +55,7 @@ function llamada(faseId: string, b: FaseBorrador, eraPendiente: boolean, lista: 
   const r = fasesParaRpc([b], lista, hoy)[0];
   if (r.quien === "servicio" && r.proveedor_pendiente) {
     // El pendiente lleva su costo (tarifa, fijo, mínimo): se devenga aunque no se sepa quién (ADR-0551). En blanco, no suma nada.
-    return { rpc: RPC_DEJAR_FASE_PENDIENTE, args: { p_fase_id: faseId, p_fecha_prometida: r.fecha_prometida, p_tarifa_prenda: r.tarifa_prenda, p_fijo_orden: r.fijo_orden, p_cantidad_minima: r.cantidad_minima } };
+    return { rpc: RPC_DEJAR_FASE_PENDIENTE, args: { p_fase_id: faseId, p_fecha_prometida: r.fecha_prometida, p_tarifa_prenda: r.tarifa_prenda, p_fijo_orden: r.fijo_orden, p_cantidad_minima: r.cantidad_minima, p_limpiar_costo: true } };
   }
   if (eraPendiente && r.quien === "servicio") {
     return {
@@ -187,7 +187,7 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
                 onAgregarProveedor={altaProveedor.abrir}
               />
             </div>
-            {eraPendiente && fase.empezada && (
+            {eraPendiente && fase.empezada && !borrador.pendiente && (
               <Aviso tono="atencion" chico>
                 {nombreMinuscula[0].toLocaleUpperCase("es") + nombreMinuscula.slice(1)} ya empezó: al guardar queda registrado y no se puede cambiar. Revisa bien el proveedor y la tarifa.
               </Aviso>

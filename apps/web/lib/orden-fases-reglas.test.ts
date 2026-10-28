@@ -369,14 +369,16 @@ describe("«pendiente de registrar» (ADR-0551): sale afuera sin saber todavía 
     expect(costoServiciosEstimado(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY)).toBe(470);
     expect(costoServiciosEstimado(pendiente("costura"), 50, LISTA, HOY)).toBe(0);
     const [fila] = serviciosConCosto(pendiente("costura", { tarifa: "9", fijo: "20" }), 50, LISTA, HOY, PROVEEDORES);
-    expect(fila).toMatchObject({ clave: "costura", proveedor: null, costo: 470 });
-    expect(avisoMinimo(pendiente("costura", { minimo: "500" }).find((f) => f.clave === "costura")!, 50, LISTA, { hoy: HOY, proveedores: PROVEEDORES })).toBeNull();
+    expect(fila).toMatchObject({ clave: "costura", proveedor: null, pendiente: true, costo: 470 });
+    // El mínimo del pendiente avisa como el de cualquier servicio (sin nombre de proveedor: no hay).
+    expect(avisoMinimo(pendiente("costura", { minimo: "500" }).find((f) => f.clave === "costura")!, 50, LISTA, { hoy: HOY, proveedores: PROVEEDORES })).toBe("Este servicio cobra desde 500 prendas: esta orden lleva 50");
   });
   it("la base lo acepta: la migración del costo lee tarifa, fijo y mínimo del pendiente en `fn_produccion_fases_normalizar`, ensancha el CHECK y deja `dejar_fase_pendiente_de_registrar` con el costo", () => {
     const sql = readFileSync(join(RAIZ, "supabase/migrations/20261028084000_produccion_pendiente_con_costo_devengado.sql"), "utf8");
     expect(sql).toContain("'proveedor_id', null, 'tarifa_prenda', v_tarifa, 'fijo_orden', v_fijo, 'cantidad_minima', v_min");
     expect(sql).toContain("(proveedor_id is null and (clave <> 'ploteo' or tarifa_prenda is null))");
     expect(sql).toContain("dejar_fase_pendiente_de_registrar(\n  p_fase_id uuid, p_fecha_prometida date default null,\n  p_tarifa_prenda numeric default null");
+    expect(sql).toContain("p_limpiar_costo boolean default false");
   });
 });
 
